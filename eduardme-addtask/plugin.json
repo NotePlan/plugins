@@ -1,0 +1,166 @@
+{
+  "noteplan.minAppVersion": "3.0.21", 
+  "plugin.id": "np-plugin-examples",
+  "plugin.name": "A collection of examples",
+  "plugin.description": "",
+  "plugin.icon": "",
+  "plugin.author": "Eduard Metzger",
+  "plugin.repoUrl": "tbd", 
+  "plugin.version": "0.0.1", 
+  "plugin.dependencies": [], 
+  "plugin.script": "script.js",
+  "plugin.isRemote": "false",
+  "plugin.commands": [ 
+    {
+      "name": "example1",
+      "description": "Reads the content of the opened note",
+      "jsFunction": "readContent",
+    },
+    {
+      "name": "example2",
+      "description": "!Warning: Overwrites content of the opened note",
+      "jsFunction": "writeContent",
+    },
+    {
+      "name": "example3",
+      "description": "Prints note information (open Plugin Console)",
+      "jsFunction": "noteInformation",
+    },
+    {
+      "name": "example4",
+      "description": "Returns all cached folders",
+      "jsFunction": "cachedFolders",
+    },
+    {
+      "name": "example5",
+      "description": "Returns all cached calendar notes",
+      "jsFunction": "calendarNotes",
+    },
+    {
+      "name": "example6",
+      "description": "Returns all cached project notes",
+      "jsFunction": "projectNotes",
+    },
+    {
+      "name": "example7",
+      "description": "Opens a daily note",
+      "jsFunction": "openNoteByDate",
+    },
+    {
+      "name": "example8",
+      "description": "Open note by filename",
+      "jsFunction": "openNoteByFilename",
+    },
+    {
+      "name": "example9",
+      "description": "Open note by title",
+      "jsFunction": "openNoteByTitle",
+    },
+    {
+      "name": "example10",
+      "description": "Query different notes",
+      "jsFunction": "queryNotes",
+    },
+    {
+      "name": "example11",
+      "description": "!warning overwrite note 'TEST'",
+      "jsFunction": "overwriteNote",
+    },
+    {
+      "name": "example12",
+      "description": "Creates a new note 'This is a test'",
+      "jsFunction": "createNewNote",
+    },
+    {
+      "name": "example13",
+      "description": "Create a note after asking for title and folder",
+      "jsFunction": "commandBarInput",
+    },
+    {
+      "name": "example14",
+      "description": "Creates an event",
+      "jsFunction": "createEvent",
+    },
+    {
+      "name": "example15",
+      "description": "Get and set cursor and selected line",
+      "jsFunction": "selectionExample",
+    },
+    {
+      "name": "example16",
+      "description": "Testing promises",
+      "jsFunction": "promisesTest",
+    },
+    {
+      "name": "example17",
+      "description": "Testing fetch",
+      "jsFunction": "fetchTest",
+    },
+    {
+      "name": "example18",
+      "description": "Returns the currently selected text (raw)",
+      "jsFunction": "selectedText",
+    },
+    {
+      "name": "example19",
+      "description": "Returns preferences",
+      "jsFunction": "getPreferences",
+    },
+    {
+      "name": "example20",
+      "description": "Get all paragraphs (including todos) from editor",
+      "jsFunction": "getAllParagraphsFromEditor",
+    },
+    {
+      "name": "example21",
+      "description": "Get all paragraphs (including todos) from a note",
+      "jsFunction": "getAllParagraphsFromNote",
+    },
+    {
+      "name": "example22",
+      "description": "Insert todo at line",
+      "jsFunction": "insertTodo",
+    },
+    {
+      "name": "example23",
+      "description": "append todo",
+      "jsFunction": "appendTodo",
+    },
+    {
+      "name": "example24",
+      "description": "add task to note",
+      "jsFunction": "addTaskToNote",
+    },
+    {
+      "name": "example25",
+      "description": "add task to heading of note",
+      "jsFunction": "addTaskToHeading",
+    },
+    {
+      "name": "example26",
+      "description": "Get the range of a paragraph at a position",
+      "jsFunction": "rangeOfParagraph",
+    },
+    {
+      "name": "example27",
+      "description": "Get selected paragraphs",
+      "jsFunction": "selectedParagraphs",
+    },
+    {
+      "name": "example28",
+      "description": "Changes a given paragraph and saves it back to the note",
+      "jsFunction": "modifyExistingParagraphs",
+    },
+    {
+      "name": "example29",
+      "description": "Select a paragraph which will be removed",
+      "jsFunction": "removeParagraph",
+    },
+    {
+      "name": "test",
+      "description": "Select a paragraph which will be removed",
+      "jsFunction": "test",
+    },
+  ],
+  "plugin.preferences": [], 
+}
