@@ -1,0 +1,26 @@
+{
+  "noteplan.min_version": "3.0.21",
+  "plugin.id": "jgclark.NoteHelpers",
+  "plugin.name": "Note Helpers",
+  "plugin.description": "Commands to help manage NotePlan notes",
+  "plugin.icon": "",
+  "plugin.author": "Jonathan Clark",
+  "plugin.url": "tbd",
+  "plugin.version": "0.3.0",
+  "plugin.dependencies": [],
+  "plugin.script": "noteHelpers.js",
+  "plugin.isRemote": "false",
+  "plugin.commands": [
+    {
+      "name": "Statistics",
+      "description": "Get Statistics on this note",
+      "jsFunction": "statistics"
+    },
+    {
+      "name": "Create New Note",
+      "description": "Create new note in current folder, and optionally with currently selected text",
+      "jsFunction": "newNote"
+    }
+  ],
+  "plugin.preferences": []
+}
