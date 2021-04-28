@@ -1,7 +1,7 @@
 //--------------------------------------------------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark
-// v0.3.0, 28.4.2021
+// v0.3.1, 28.4.2021
 //--------------------------------------------------------------------------------------------------------------------
 
 // Globals
@@ -9,9 +9,9 @@ var todaysDate = new Date().toISOString().slice(0, 10)
 var defaultTodoMarker = (DataStore.preference("defaultTodoCharacter") != undefined) ? DataStore.preference("defaultTodoCharacter") : "*"
 
 //------------------------------------------------------------------
+// Helper functions
 // TODO: separate out helpers into a separate file?
 //------------------------------------------------------------------
-// Helper function, not called by a command
 function printNote(note) {
   if (note == undefined) {
     console.log("Note not found!")
@@ -34,43 +34,6 @@ function printNote(note) {
       "\n\tmentions: " + note.mentions)
   }
 }
-
-//------------------------------------------------------------------
-// Global variables for following helper functions -- hopefully now not needed
-// var workingNote = ""
-// var line_count
-// var lines = []
-// var line_number // needed ?
-
-//------------------------------------------------------------------
-// NOTE: shouldn't now be needed, as EM has provided
-//   note.insertParapgrahBeforeParagraph(todoTitle, heading, "list") etc.
-//
-// Insert 'new_line' into position 'line_number'.
-// don't go beyond current size of @lines
-// function insert_new_line_at_line(new_line, line_number) {
-//   var n = (line_number >= lines.length) ? lines.length : line_number
-//   console.log(". insert_new_line_at_line " + n + " ...")
-//   // break line up into separate lines(on "\n") -- will often be overkill
-//   var line_a = new_line.split("\n")
-//   line_a.forEach(lineToAdd)
-//   function lineToAdd(value) {
-//     lines.splice(n, 0, value)
-//     n += 1
-//   }
-//   line_count = lines.length
-// }
-
-//------------------------------------------------------------------
-// NOTE: shouldn't now be needed, as EM has provided
-//   note.insertParapgrahBeforeParagraph(todoTitle, heading, "list") etc.
-//
-// Insert 'new_line' into position 'line_number'.
-// don't go beyond current size of @lines
-// function updateNoteInDataStore(noteToUpdate) {
-//   noteToUpdate.content = lines.join("\n")
-//   console.log("  -> updated content for " + noteToUpdate.filename + " (" + line_count + " lines)")
-// }
 
 //------------------------------------------------------------------
 // Create new note in current folder, and optionally with currently selected text

@@ -6,7 +6,8 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "tbd",
-  "plugin.version": "0.3.0",
+  "plugin.version": "0.3.1",
+  "plugin.changelog": "v0.3.0\n- added **statistics**: for now this only writes to the console log (open from the Help menu)\n\nv0.2.0\n- added **newNote**",
   "plugin.dependencies": [],
   "plugin.script": "noteHelpers.js",
   "plugin.isRemote": "false",
@@ -18,7 +19,7 @@
     },
     {
       "name": "Create New Note",
-      "description": "Create new note in current folder, and optionally with currently selected text",
+      "description": "Create new note in the current folder, with a provided title, using any currently selected text to populate the contents",
       "jsFunction": "newNote"
     }
   ],
