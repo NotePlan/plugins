@@ -1,0 +1,77 @@
+{
+  "noteplan.min_version": "3.0.21",
+  "plugin.id": "jgclark.DailyJournal",
+  "plugin.name": "Daily Journal",
+  "plugin.description": "Support for daily journalling in NotePlan, including start-of-day template, and end-of-day review questions",
+  "plugin.icon": "",
+  "plugin.author": "Jonathan Clark",
+  "plugin.url": "tbd",
+  "plugin.version": "0.4.0",
+  "plugin.dependencies": [],
+  "plugin.script": "plugin.js",
+  "plugin.isRemote": "false",
+  "plugin.commands": [
+    {
+      "name": "dayStart",
+      "description": "Start today's daily note with a template, including local weather lookup",
+      "jsFunction": "dayStart",
+      "requested_interval": "24h"
+    },
+    {
+      "name": "dayReview",
+      "description": "Ask journal questions for an end-of-day review",
+      "jsFunction": "dayReview",
+      "requested_interval": "8h"
+    }
+  ],
+  "plugin.preferences": [
+    {
+      "name": "openWeatherAPIKey",
+      "description": "API key to use the openWeather service",
+      "type": "string",
+      "default": ""
+    },
+    {
+      "name": "latPosition",
+      "description": "Latitude position to send to the openWeather service",
+      "type": "string",
+      "default": ""
+    },
+    {
+      "name": "longPosition",
+      "description": "Longitude position to send to the openWeather service",
+      "type": "string",
+      "default": ""
+    },
+    {
+      "name": "openWeatherUnits",
+      "description": "Units that the openWeather service returns",
+      "type": "string",
+      "default": "metric"
+    },
+    {
+      "name": "templateText",
+      "description": "Template text to add to each daily note at the start of day",
+      "type": "string",
+      "default": "\n### Media\n\n### Journal\n"
+    },
+    {
+      "name": "reviewSectionHeading",
+      "description": "Heading after which to put  the review responses",
+      "type": "string",
+      "default": "Journal"
+    },
+    {
+      "name": "reviewQuestions",
+      "description": "Comma-separated list of review questions to ask",
+      "type": "string",
+      "default": "@work(<int>)\n@fruitveg(<int>)\nMood:: <mood>\nGratitude:: <string>\nGod was:: <string>\nAlive:: <string>\nNot Great:: <string>\nWife:: <string>\nRemember:: <string>"
+    },
+    {
+      "name": "mood",
+      "description": "Comma-separated set of possible moods to choose between",
+      "type": "string",
+      "default": "🤩 Great,🙂 Good,😇 Blessed,🥱 Tired,😫 Stressed,😤 Frustrated,😔 Low,🥵 Sick,Other"
+    }
+  ]
+}
