@@ -405,14 +405,6 @@ async function removeParagraph() {
 //    Editor.paragraphs = paragraphs
 }
 
-function test() {
-    
-    Editor.addParagraphBelowHeadingTitle("NEW TEST LINE 1 following TEST_HEAD", "", "TEST_HEAD", true, true)
-    Editor.addParagraphBelowHeadingTitle("NEW TEST LINE 2 following TEST_HEAD", "open", "TEST_HEAD", true, true)
-//    Editor.addParagraphBelowHeadingTitle("NEW TEST LINE 3 following TEST_HEAD", "done", "TEST_HEAD", false, true)
-//    Editor.addParagraphBelowHeadingTitle("NEW TEST LINE 4 following TEST_HEAD", "list", "TEST_HEAD", true, true)
-}
-
 function printParagraphs(ps) {
     ps.forEach(p => printParagraph(p))
 }
