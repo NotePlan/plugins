@@ -156,11 +156,6 @@
       "description": "Select a paragraph which will be removed",
       "jsFunction": "removeParagraph",
     },
-    {
-      "name": "test",
-      "description": "Select a paragraph which will be removed",
-      "jsFunction": "test",
-    },
   ],
   "plugin.preferences": [], 
 }
