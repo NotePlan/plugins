@@ -8,7 +8,7 @@ type Range = {
 declare const Paragraph: Paragraph;
 type Paragraph = {
   content: string;
-  type: string;
+  type: ParagraphType;
   readonly rawContent: string;
   readonly prefix: string;
   readonly contentRange: Range | undefined;
@@ -30,7 +30,7 @@ type NoteType = "Calendar" | "Notes";
 declare const Note: Note;
 type Note = {
   readonly filename: string;
-  readonly Type: NoteType;
+  readonly type: NoteType;
   readonly title: string | undefined;
   readonly date: Date | undefined;
   readonly changedDate: Date | undefined;
@@ -110,7 +110,7 @@ type Editor = {
   readonly note: Note;
   content: string | undefined;
   readonly title: string | undefined;
-  readonly type: string | undefined;
+  readonly type: NoteType | undefined;
   readonly filename: string | undefined;
   paragraphs: Array<Paragraph>;
   readonly selectedLinesText: Array<string>;
@@ -196,19 +196,20 @@ type Calendar = {
   parseDateText(text: string): Array<{ [key: string]: Date }>;
 };
 
+type CalenderItemType = "event" | "reminder";
 declare const CalendarItem: CalendarItem;
 type CalendarItem = {
   id: string | undefined;
   readonly title: string;
   readonly date: Date;
   readonly endDate: Date | undefined;
-  readonly type: string;
+  readonly type: CalenderItemType;
   readonly isAllDay: boolean;
   create(
     title: string,
     date: Date,
     endDate: Date | undefined,
-    type: "event" | "reminder",
+    type: CalenderItemType,
     isAllDay: boolean
   ): CalendarItem;
 };
