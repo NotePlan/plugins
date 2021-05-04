@@ -2722,11 +2722,6 @@ data-urls@^1.1.0:
     whatwg-mimetype "^2.2.0"
     whatwg-url "^7.0.0"
 
-date-fns@^2.20.2:
-  version "2.20.2"
-  resolved "https://registry.yarnpkg.com/date-fns/-/date-fns-2.20.2.tgz#7f05d1275e1e43c3bdde5998201920098e19c6a1"
-  integrity sha512-QS0Z8SD/ALhKFvhtU4Fhz+1crsI7fPzBquXmdWay33KJPEU7btro2hnmmErpQRmt2D624B1lbjXQKDUMLnQTmQ==
-
 deasync@^0.1.14:
   version "0.1.21"
   resolved "https://registry.yarnpkg.com/deasync/-/deasync-0.1.21.tgz#bb11eabd4466c0d8776f0d82deb8a6126460d30f"

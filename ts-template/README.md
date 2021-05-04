@@ -9,7 +9,11 @@ $ yarn
 $ yarn build
 ```
 
-- Final plugin will be in the `dist` directory which can be copied to the `Plugins` directory for NotePlan
+## Building
+- If a plugin is kept in a single file with no external dependencies then `yarn build` can be used to compile the plugin to JS
+- If a plugin has external dependencies or requires any other files then use `yarn build:with-deps` to compile the plugin to JS
+
+However the plugin is compiled the final build will be located in the `dist` directory
 
 
 ## Notes
