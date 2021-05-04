@@ -1,0 +1,21 @@
+{
+  "noteplan.minAppVersion": "3.0.21", 
+  "plugin.id": "eduardme.move", 
+  "plugin.name": "Move the note to another folder", 
+  "plugin.description": "Move a note from the current folder into another folder.", 
+  "plugin.icon": "f120", 
+  "plugin.author": "Eduard Metzger",
+  "plugin.repoUrl": "tbd", 
+  "plugin.version": "0.0.1", 
+  "plugin.dependencies": [ ], 
+  "plugin.script": "index.js",
+  "plugin.isRemote": "false",
+  "plugin.commands": [ 
+    {
+      "name": "move", 
+      "description": "Move note to another folder", 
+      "jsFunction": "selectFolder"
+    }
+  ],
+  "plugin.preferences": []
+}
