@@ -5,9 +5,9 @@
   "plugin.description": "Commands to help manage NotePlan notes",
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
-  "plugin.url": "tbd",
-  "plugin.version": "0.3.1",
-  "plugin.changelog": "v0.3.0\n- added **statistics**: for now this only writes to the console log (open from the Help menu)\n\nv0.2.0\n- added **newNote**",
+  "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/",
+  "plugin.version": "0.4.0",
+  "plugin.changelog": "See plugin README.md",
   "plugin.dependencies": [],
   "plugin.script": "noteHelpers.js",
   "plugin.isRemote": "false",
@@ -19,9 +19,33 @@
     },
     {
       "name": "Create New Note",
-      "description": "Create new note in the current folder, with a provided title, using any currently selected text to populate the contents",
+      "description": "Create new note in the current folder, with title, optional template, and optional current text selection",
       "jsFunction": "newNote"
+    },
+    {
+      "name": "Apply Template to a Note",
+      "description": "Choose a Template to apply to an existing Note",
+      "jsFunction": "applyTemplate"
     }
   ],
-  "plugin.preferences": []
+  "plugin.preferences": [
+    {
+      "name": "templateName",
+      "description": "Array of names for the templates, to be displayed as a choice to the user",
+      "type": "array",
+      "default": [
+        "Daily note structure",
+        "Project Meeting note"
+      ]
+    },
+    {
+      "name": "templateName",
+      "description": "Array of names for the templates, to be displayed as a choice to the user",
+      "type": "array",
+      "default": [
+        "### Tasks\n### Media\n\n### Journal\n",
+        "### Project X Meeting on [[date]] with @Y and @Z\n\n### Notes\n\n### Actions\n"
+      ]
+    }
+  ]
 }
