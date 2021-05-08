@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark
-// v0.4.0, 7.5.2021
+// v0.5.0, 8.5.2021
 //--------------------------------------------------------------------------------------------------------------------
 
 // Globals
@@ -13,7 +13,7 @@ var pref_templateText = []
 
 // Items that should come from the Preference framework in time:
 pref_templateName.push("Daily note structure")
-pref_templateText.push("### Tasks\n### Media\n\n### Journal\n")
+pref_templateText.push("### Tasks\n\n### Media\n\n### Journal\n")
 pref_templateName.push("Project Meeting note")
 pref_templateText.push("### Project X Meeting on [[date]] with @Y and @Z\n\n### Notes\n\n### Actions\n")
 
@@ -41,6 +41,33 @@ function printNote(note) {
       "\n\tfilename: " + note.filename +
       "\n\thashtags: " + note.hashtags +
       "\n\tmentions: " + note.mentions)
+  }
+}
+
+async function selectFolder() {
+  if (Editor.type == "Notes") {
+
+    // [String] list of options, placeholder text, callback function with selection
+    let folder = await CommandBar.showOptions(DataStore.folders, "Select new folder for '" + Editor.title + "'")
+    moveNote(folder.value)
+
+  } else {
+    console.log("\t can't move calendar notes.")
+    CommandBar.hide()
+  }
+}
+
+//------------------------------------------------------------------
+// Command from Eduard to move a note to a different folder
+function moveNote(selectedFolder) {
+  console.log("move " + Editor.title + " (filename = '" + Editor.filename + "')" + " to " + selectedFolder)
+  var newFilename = DataStore.moveNote(Editor.filename, selectedFolder)
+
+  if (newFilename != undefined) {
+    Editor.openNoteByFilename(newFilename)
+    console.log("\tmoving note was successful")
+  } else {
+    console.log("\tmoving note was NOT successful")
   }
 }
 
@@ -119,10 +146,8 @@ async function applyTemplate() {
     } else if (pref_templateName.length > 1) {
       var names = pref_templateName
       var re = await CommandBar.showOptions(names, "Select template to use:")
-      if (re.index != 0) {
-        templateText = pref_templateText[re.index]
-        console.log("\tTemplate name to use: " + pref_templateName[re.index])
-      }
+      templateText = pref_templateText[re.index]
+      console.log("\tTemplate name to use: " + pref_templateName[re.index])
     } else {
       throw "No templates configured."
     }

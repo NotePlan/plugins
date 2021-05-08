@@ -1,11 +1,13 @@
 # NoteHelpers plugin
-This plugin provides three commands to help work with NotePlan notes.
+This plugin provides four commands to help work with NotePlan notes.
 
-`Statistics`, simply displays a range of statistics on the current note.
+The first two are very simple:
+- `move Note`, which moves a note to a different folder the user selects
+- `show Statistics`, simply displays a range of statistics on the current note.
 
-The other two help apply Templates to new or existing notes:
-- `applyTemplate`  inserts a template into the current note, after the title
-- `newNote`  creates a new note in the current folder, with title, optional template, and optional current text selection
+The other two help apply **template**s to new or existing notes:
+- `apply Template to a Note`  inserts a template into the current note, after the title
+- `new Note`  creates a new note in the current folder, with title, optional template, and optional current text selection
 
 ## Configuration
 Before the configuration mechanism is available, you need to update the `jgclark.noteHelpers\noteHelpers.js` file in the plugin's folder directly. Update the following lines at the top of the file accordingly:
@@ -21,6 +23,9 @@ You can have any number of templates defined, but each needs a Name and Text.  I
 Templates should normally end with a linefeed character (`\n`).
 
 ## Changelog
+
+### v0.5.0
+- include the example plugin **move** command to this plugin
 
 ### v0.4.0
 - added multiple templates to **newNote**

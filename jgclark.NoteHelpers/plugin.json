@@ -6,26 +6,31 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/",
-  "plugin.version": "0.4.0",
+  "plugin.version": "0.5.0",
   "plugin.changelog": "See plugin README.md",
   "plugin.dependencies": [],
   "plugin.script": "noteHelpers.js",
   "plugin.isRemote": "false",
   "plugin.commands": [
     {
-      "name": "Statistics",
-      "description": "Get Statistics on this note",
-      "jsFunction": "statistics"
-    },
-    {
-      "name": "Create New Note",
+      "name": "create new Note",
       "description": "Create new note in the current folder, with title, optional template, and optional current text selection",
       "jsFunction": "newNote"
     },
     {
-      "name": "Apply Template to a Note",
+      "name": "apply Template to a Note",
       "description": "Choose a Template to apply to an existing Note",
       "jsFunction": "applyTemplate"
+    },
+    {
+      "name": "move Note",
+      "description": "Moves the currently opened (non-calendar) note to a folder you select",
+      "jsFunction": "selectFolder"
+    },
+    {
+      "name": "show Statistics",
+      "description": "Show Statistics on this note in the Command Bar",
+      "jsFunction": "statistics"
     }
   ],
   "plugin.preferences": [
@@ -43,7 +48,7 @@
       "description": "Array of names for the templates, to be displayed as a choice to the user",
       "type": "array",
       "default": [
-        "### Tasks\n### Media\n\n### Journal\n",
+        "### Tasks\n\n### Media\n\n### Journal\n",
         "### Project X Meeting on [[date]] with @Y and @Z\n\n### Notes\n\n### Actions\n"
       ]
     }
