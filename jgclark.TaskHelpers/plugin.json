@@ -14,16 +14,16 @@
   "plugin.commands": [
     {
       "name": "inbox add task",
-      "description": "Quickly add a task to your Inbox note (defaults to Daily note, but can be configured to a different specific one).",
+      "description": "Quickly add a task to your Inbox note 📥 (defaults to Daily note, but can be configured to a different specific one).",
       "jsFunction": "addTaskToInbox"
     },
     {
-      "name": "quickly add a task at top of note section",
+      "name": "quickly add a task to a note's section",
       "description": "Quickly add a task to a specified note's heading section",
       "jsFunction": "addTaskToNoteHeading"
     },
     {
-      "name": "quickly add a text line at top of note section",
+      "name": "quickly add a text line to a note's section",
       "description": "Quickly add text line to a specified note's heading section",
       "jsFunction": "addTextToNoteHeading"
     }
