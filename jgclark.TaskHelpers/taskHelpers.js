@@ -10,8 +10,8 @@
 // let defaultTodoMarker = (DataStore.preference('defaultTodoCharacter') !== undefined) ? DataStore.preference('defaultTodoCharacter') : '*'
 
 // Items that will come from the Preference framework in time:
-var pref_inboxFilename = "TEST/TEST.md"  // leave blank for daily note, or give relative filename (e.g. "Folder/Inbox.md")
-var pref_addInboxPosition = "prepend"  // or "append"
+var pref_inboxFilename = ""  // leave blank for daily note, or give relative filename (e.g. "Folder/Inbox.md")
+var pref_addInboxPosition = "append"  // or "append"
 
 // ------------------------------------------------------------------
 // Helper function, not called by a command
