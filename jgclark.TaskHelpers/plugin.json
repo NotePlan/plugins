@@ -1,0 +1,45 @@
+{
+  "noteplan.min_version": "3.0.21",
+  "plugin.id": "jgclark.TaskHelpers",
+  "plugin.name": "Task Helpers",
+  "plugin.description": "Commands to quickly add tasks/todos or general text to NotePlan notes",
+  "plugin.icon": "",
+  "plugin.author": "Jonathan Clark",
+  "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.TaskHelpers/",
+  "plugin.version": "0.3.0",
+  "plugin.changelog": "See plugin README.md",
+  "plugin.dependencies": [],
+  "plugin.script": "taskHelpers.js",
+  "plugin.isRemote": "false",
+  "plugin.commands": [
+    {
+      "name": "inbox add task",
+      "description": "Quickly add a task to your Inbox note (defaults to Daily note, but can be configured to a different specific one).",
+      "jsFunction": "addTaskToInbox"
+    },
+    {
+      "name": "quickly add a task at top of note section",
+      "description": "Quickly add a task to a specified note's heading section",
+      "jsFunction": "addTaskToNoteHeading"
+    },
+    {
+      "name": "quickly add a text line at top of note section",
+      "description": "Quickly add text line to a specified note's heading section",
+      "jsFunction": "addTextToNoteHeading"
+    }
+  ],
+  "plugin.preferences": [
+    {
+      "name": "inboxFilename",
+      "description": "leave blank for daily note, or give relative filename (e.g. 'Folder/Inbox.md')",
+      "type": "string",
+      "default": ""
+    },
+    {
+      "name": "addInboxPosition",
+      "description": "whether to 'append' or 'prepend' new tasks to the Inbox note",
+      "type": "string",
+      "default": "append"
+    }
+  ]
+}
