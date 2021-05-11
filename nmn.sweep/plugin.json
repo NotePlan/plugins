@@ -1,0 +1,26 @@
+{
+  "noteplan.minAppVersion": "3.0.21",
+  "plugin.id": "nmn.sweep",
+  "plugin.name": "Reschedule Overdue Tasks",
+  "plugin.description": "Reschedule Overdue Tasks to selected date",
+  "plugin.icon": "f120",
+  "plugin.author": "Naman Goel",
+  "plugin.repoUrl": "tbd",
+  "plugin.version": "0.0.2",
+  "plugin.dependencies": [ ],
+  "plugin.script": "script.js",
+  "plugin.isRemote": "false",
+  "plugin.commands": [
+    {
+      "name": "sweepFile",
+      "description": "Reschedule all incomeplete tasks from current file",
+      "jsFunction": "sweepFile"
+    },
+    {
+      "name": "sweepAll",
+      "description": "Reschedule all incomeplete tasks from all files",
+      "jsFunction": "sweepAll"
+    }
+  ],
+  "plugin.preferences": []
+}
