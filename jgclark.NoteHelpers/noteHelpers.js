@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark
-// v0.5.0, 8.5.2021
+// v0.5.0, 12.5.2021
 //--------------------------------------------------------------------------------------------------------------------
 
 // Globals
@@ -231,10 +231,29 @@ async function statistics() {
 }
 
 //------------------------------------------------------------------
+// Jump cursor to the '## Done' heading in the current file
+function jumpToDone() {
+  var paras = Editor.note.paragraphs
+  var paraCount = paras.length
+  console.log("Found " + paraCount + " paragraphs")
+
+  // Find the line of interest
+  for (var i = 0; i < paraCount; i++) {
+    var p = paras[i]
+    console.log(i + ": " + p.content + " / "+ p.headingLevel)
+    if (p.content == "Done" && p.headingLevel === 2) {
+      Editor.highlight(p)
+      break
+    }
+  }
+  console.log("Warning: Couldn't find a ## Done section")
+}
+
+//------------------------------------------------------------------
 // Insert 'new_line' at start of a section headed 'section_heading'
 // If this is blank, then insert after start of note metadata
 
-// NOTE: not currently working because of lack of API support yet (releases 625-8)
+// NOTE: not currently working because of lack of API support yet (as of release 628)
 
 // TODO: add following back into plugin.json to active this again:
 // {

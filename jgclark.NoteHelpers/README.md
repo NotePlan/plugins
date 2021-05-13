@@ -1,9 +1,10 @@
 # NoteHelpers plugin
-This plugin provides four commands to help work with NotePlan notes.
+This plugin provides commands to help work with NotePlan notes.
 
-The first two are very simple:
+The first three are very simple:
 - `move Note`, which moves a note to a different folder the user selects
-- `show Statistics`, simply displays a range of statistics on the current note.
+- `show Statistics`, simply displays a range of statistics on the current note
+- `jump to Done`, simply jumps the cursor to the `## Done` section of the current note (if it exists)
 
 The other two help apply **template**s to new or existing notes:
 - `apply Template to a Note`  inserts a template into the current note, after the title
@@ -24,10 +25,13 @@ Templates should normally end with a linefeed character (`\n`).
 
 ## Changelog
 
-### v0.5.0
-- include the example plugin **move** command to this plugin
+### v0.6.0, 13.5.2021
+- add the **jump to Done** command
 
-### v0.4.0
+### v0.5.0, 8.5.2021
+- include the example plugin **move Note** command to this plugin
+
+### v0.4.0, 7.5.2021
 - added multiple templates to **newNote**
 - added **applyTemplate** command
 
