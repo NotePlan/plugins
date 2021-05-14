@@ -1,0 +1,27 @@
+{
+  "noteplan.minAppVersion": "3.0.21", 
+  "plugin.id": "np.statistics",
+  "plugin.name": "Note Statistics",
+  "plugin.description": "",
+  "plugin.icon": "",
+  "plugin.author": "Community",
+  "plugin.repoUrl": "", 
+  "plugin.version": "0.0.1", 
+  "plugin.dependencies": [], 
+  "plugin.script": "script.js",
+  "plugin.isRemote": "false",
+  "plugin.commands": [ 
+    {
+      "name": "wordCount",
+      "description": "Shows word count and other numbers",
+      "jsFunction": "showWordCount",
+    },
+    {
+      "name": "taskCount",
+      "description": "Counts the tasks in the note",
+      "jsFunction": "showTaskCount",
+    },
+    
+  ],
+  "plugin.preferences": [], 
+}
