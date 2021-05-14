@@ -1,24 +1,60 @@
+// @flow
+//-----------------------------------------------------------------------------
+// Statistic commands
+// Jonathan Clark & Eduard Metzger
+// v0.1.0, 14.5.2021
+//-----------------------------------------------------------------------------
 
 function init() {
     // Anything you need to do to setup the script. You can keep it empty or delete the function, too.
 }
 
-// IDEAS:
+// IDEAS TODO:
 //	- Task counts across time frames, like this week, this month, this year.
 //	- Task counts in projects
-//	- Note counts
 // 	- Overdue counts
 //	- Upcoming counts
 
+//-----------------------------------------------------------------------------
+// Helper function
+function percent (value, total) {
+	return value + " (" + Math.round(value / total * 100) + "%)"
+}
+
+//-----------------------------------------------------------------------------
+// Show note counts
+async function showNoteCount() {
+	var calNotes = DataStore.calendarNotes
+	var projNotes = DataStore.projectNotes
+	var total = calNotes.length + projNotes.length
+	var createdLastMonth = projNotes.filter(n => Calendar.unitsAgoFromNow(n.createdDate, "month") < 1)
+	var createdLastQuarter = projNotes.filter(n => Calendar.unitsAgoFromNow(n.createdDate, "month") < 3)
+	var updatedLastMonth = projNotes.filter(n => Calendar.unitsAgoFromNow(n.changedDate, "month") < 1)
+	var updatedLastQuarter = projNotes.filter(n => Calendar.unitsAgoFromNow(n.changedDate, "month") < 3)
+
+	var display = [
+		"🔢 Total: " + total,
+		"📅 Calendar notes: " + calNotes.length + " (equivalent to " + Math.round(calNotes.length / 36.5)/10.0 + " years)",
+		"🛠 Project notes: " + projNotes.length,
+		"      - created in last month: " + percent(createdLastMonth.length, projNotes.length),
+		"      - created in last quarter: " + percent(createdLastQuarter.length, projNotes.length),
+		"      - updated in last month: " + percent(updatedLastMonth.length, projNotes.length),
+		"      - updated in last quarter: " + percent(updatedLastQuarter.length, projNotes.length)
+	]
+
+	var re = await CommandBar.showOptions(display, "Notes count. Select anything to copy.")
+	if (re !== null) {
+		Clipboard.string = display.join("\n")
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Show task counts for currently displayed note
 async function showTaskCount() {
 	var paragraphs = Editor.paragraphs
 
 	var countParagraphs = function(types) {
 		return paragraphs.filter(p => types.includes(p.type)).length
-	}
-
-	var percent = function(value, total) {
-		return value + " ("+ Math.round(value/total*100) + "%)"
 	}
 
 	var total = countParagraphs(["open", "done", "scheduled", "cancelled"])
@@ -27,10 +63,10 @@ async function showTaskCount() {
 					"🔢 Total: " + total,
 					"✅ Done: " + percent(countParagraphs(["done"]), total), 
 				 	"⚪️ Open: " + percent(countParagraphs(["open"]), total), 
-  				 	"🚫 Canceled: " + percent(countParagraphs(["cancelled"]), total), 
-  				 	"📆 Scheduled: " + percent(countParagraphs(["scheduled"]), total),  
-  				 	"📤 Closed: " + percent(countParagraphs(["done", "scheduled", "cancelled"]), total), 
-  				 ]
+  			 	"🚫 Canceled: " + percent(countParagraphs(["cancelled"]), total), 
+  			 	"📆 Scheduled: " + percent(countParagraphs(["scheduled"]), total),  
+  			 	"📤 Closed: " + percent(countParagraphs(["done", "scheduled", "cancelled"]), total), 
+  ]
 
 	var re = await CommandBar.showOptions(display, "Task count. Select anything to copy.")
 	if(re !== null) {
@@ -52,7 +88,7 @@ async function showWordCount() {
   	charCount += p.content.length
 
   	if(p.content.length > 0) {
-  		var match = p.content.match(/\w+/g)
+			var match = p.content.match(/\w+/g)  // TODO: ideally remove task and bullet markers
   		if(match != null) {
   			wordCount += match.length
   		}
