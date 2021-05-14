@@ -17,13 +17,19 @@ async function showTaskCount() {
 		return paragraphs.filter(p => types.includes(p.type)).length
 	}
 
+	var percent = function(value, total) {
+		return value + " ("+ Math.round(value/total*100) + "%)"
+	}
+
+	var total = countParagraphs(["open", "done", "scheduled", "cancelled"])
+
 	var display = [
-					"🔢 Total: " + countParagraphs(["open", "done", "scheduled", "cancelled"]),
-					"✅ Done: " + countParagraphs(["done"]), 
-				 	"⚪️ Open: " + countParagraphs(["open"]), 
-  				 	"🚫 Canceled: " + countParagraphs(["cancelled"]), 
-  				 	"📆 Scheduled: " + countParagraphs(["scheduled"]),  
-  				 	"📤 Closed: " + countParagraphs(["done", "scheduled", "cancelled"]), 
+					"🔢 Total: " + total,
+					"✅ Done: " + percent(countParagraphs(["done"]), total), 
+				 	"⚪️ Open: " + percent(countParagraphs(["open"]), total), 
+  				 	"🚫 Canceled: " + percent(countParagraphs(["cancelled"]), total), 
+  				 	"📆 Scheduled: " + percent(countParagraphs(["scheduled"]), total),  
+  				 	"📤 Closed: " + percent(countParagraphs(["done", "scheduled", "cancelled"]), total), 
   				 ]
 
 	var re = await CommandBar.showOptions(display, "Task count. Select anything to copy.")
