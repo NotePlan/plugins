@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Statistic commands
 // Jonathan Clark & Eduard Metzger
-// v0.1.2, 15.5.2021
+// v0.2.0, 15.5.2021
 //-----------------------------------------------------------------------------
 
 function init() {
@@ -11,7 +11,6 @@ function init() {
 
 // IDEAS TODO:
 //	- Task counts across time frames, like this week, this month, this year.
-//	- Task counts in projects
 // 	- Overdue counts
 //	- Upcoming counts
 
@@ -36,10 +35,10 @@ async function showNoteCount() {
 		"🔢 Total: " + total,
 		"📅 Calendar notes: " + calNotes.length + " (equivalent to " + Math.round(calNotes.length / 36.5)/10.0 + " years)",
 		"🛠 Project notes: " + projNotes.length,
-		"      - created in last month: " + percent(createdLastMonth.length, projNotes.length),
-		"      - created in last quarter: " + percent(createdLastQuarter.length, projNotes.length),
-		"      - updated in last month: " + percent(updatedLastMonth.length, projNotes.length),
-		"      - updated in last quarter: " + percent(updatedLastQuarter.length, projNotes.length)
+		"    - created in last month: " + percent(createdLastMonth.length, projNotes.length),
+		"    - created in last quarter: " + percent(createdLastQuarter.length, projNotes.length),
+		"    - updated in last month: " + percent(updatedLastMonth.length, projNotes.length),
+		"    - updated in last quarter: " + percent(updatedLastQuarter.length, projNotes.length)
 	]
 
 	var re = await CommandBar.showOptions(display, "Notes count. Select anything to copy.")
@@ -49,23 +48,76 @@ async function showNoteCount() {
 }
 
 //-----------------------------------------------------------------------------
+// Shows task statistics for project notes
+async function showTaskCountProjects() {
+	var projNotes = DataStore.projectNotes
+	var projNotesCount = projNotes.length
+	var doneTotal = 0
+	var openTotal = 0
+	var cancelledTotal = 0
+	var scheduledTotal = 0
+	var open = new Map() // track the open totals as an object
+
+	// Count task type for a single note
+	var countTaskTypeInNote = function (inType) {
+		return paragraphs.filter(p => (p.type == inType)).length
+	}
+
+	// Iterate over all project notes, counting
+	for (let i = 0; i < projNotesCount; i += 1) {
+		n = projNotes[i]
+		var paragraphs = n.paragraphs
+		doneTotal += countTaskTypeInNote("done")
+		openTotal += countTaskTypeInNote("open")
+		open.set(n.title, countTaskTypeInNote("open"))
+		cancelledTotal += countTaskTypeInNote("cancelled")
+		scheduledTotal += countTaskTypeInNote("scheduled")
+	}
+
+	var closedTotal = doneTotal + scheduledTotal + cancelledTotal
+	var total = openTotal + closedTotal
+	var display = [
+		"Task statistics from " + projNotes.length + " project notes:",
+		"\t✅ Done: " + percent(doneTotal, total) + "\t🚫 Cancelled: " + percent(cancelledTotal, total),
+		"\t⚪️ Open: " + percent(openTotal, total),
+		"\t📆 Scheduled: " + percent(scheduledTotal, total),
+		"\t📤 Closed: " + percent(closedTotal, total),
+	]
+
+	// Now find top 3 project notes by open tasks
+	const openSorted = new Map([...open.entries()].sort((a, b) => b[1] - a[1]))
+	display.push("Projects with most open tasks:")
+	let i = 0
+	for (let elem of openSorted.entries()) {
+		i += 1
+		display.push(`\t${elem[0]} (${elem[1]} open)`)
+		if (i>=3) {break}
+	}
+
+	var re = await CommandBar.showOptions(display, "Task stats. Select anything to copy.")
+	if (re !== null) {
+		Clipboard.string = display.join("\n")
+	}
+}
+
+//-----------------------------------------------------------------------------
 // Show task counts for currently displayed note
-async function showTaskCount() {
+async function showTaskCountNote() {
 	var paragraphs = Editor.paragraphs
 
-	var countParagraphs = function(types) {
+	var countParagraphs = function (types) {
 		return paragraphs.filter(p => types.includes(p.type)).length
 	}
 
 	var total = countParagraphs(["open", "done", "scheduled", "cancelled"])
 
 	var display = [
-					"🔢 Total: " + total,
-					"✅ Done: " + percent(countParagraphs(["done"]), total), 
-				 	"⚪️ Open: " + percent(countParagraphs(["open"]), total), 
-  			 	"🚫 Canceled: " + percent(countParagraphs(["cancelled"]), total), 
-  			 	"📆 Scheduled: " + percent(countParagraphs(["scheduled"]), total),  
-  			 	"📤 Closed: " + percent(countParagraphs(["done", "scheduled", "cancelled"]), total), 
+		"🔢 Total: " + total,
+		"✅ Done: " + percent(countParagraphs(["done"]), total),
+		"⚪️ Open: " + percent(countParagraphs(["open"]), total),
+		"🚫 Cancelled: " + percent(countParagraphs(["cancelled"]), total),
+		"📆 Scheduled: " + percent(countParagraphs(["scheduled"]), total),
+		"📤 Closed: " + percent(countParagraphs(["done", "scheduled", "cancelled"]), total),
   ]
 
 	var re = await CommandBar.showOptions(display, "Task count. Select anything to copy.")
