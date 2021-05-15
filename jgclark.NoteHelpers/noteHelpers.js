@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark
-// v0.5.0, 12.5.2021
+// v0.7.0, 14.5.2021
 //--------------------------------------------------------------------------------------------------------------------
 
 // Globals
@@ -162,71 +162,22 @@ async function applyTemplate() {
 }
 
 //------------------------------------------------------------------
-// Write out a statistical summary to the console.log
-async function statistics() {
-  var n = Editor.note
-  console.log("Statistics for '" + n.title + "' at " + todaysDate)
-  var byteCount = n.content.length
-  var lines = n.content.split("\n")
-  var lineCount = lines.length
-  var wordCount = n.content.match(/\w+/g).length // TODO: ideally remove task and bullet markers
-  var mentionCount = n.mentions.length
-  var tagCount = n.hashtags.length
+// Jumps the cursor to the heading of the current note that the user selects
+async function jumpToHeading() {
+  var paras = Editor.paragraphs
+  // Extract list of headings
+  function isHeading(p) {
+    return p.prefix.includes('#')
+  }
+  var headingParas = paras.filter(p => p.prefix.includes('#'))
+  var headingValues = headingParas.map(p => p.content)
 
-  // Do task counts
-  if (defaultTodoMarker == "-") {
-    var RE_TASK = new RegExp(/^\s*\-\s*/)
-  }
-  else {
-    var RE_TASK = new RegExp(/^\s*\*\s*/)
-  }
-  var taskCount = 0
-  var openTaskCount = 0
-  var completedTaskCount = 0
-  var cancelledTaskCount = 0
-  var futureTaskCount = 0
-  for (var i = 0; i < lineCount; i++) {
-    let l = lines[i]
-    if (l.match(RE_TASK)) {
-      taskCount += 1
-      if (l.match(/\s\[x\]\s/)) {
-        completedTaskCount += 1
-      } else if (l.match(/\s\[-\]\s/)) {
-        cancelledTaskCount += 1
-      } else {
-        var rer = l.match(/>(\d{4}-[01]\d-\d{2})/)
-        if (rer !== undefined && rer.length > 0) { // we have a date; is it in the future?
-          if (rer[1] > todaysDate) {
-            futureTaskCount += 1
-          }
-        }
-      }
-    }
-  }
-  // Write summary to console log
-  console.log("\tCharacters:\t" + byteCount)
-  console.log("\tWords:\t" + wordCount)
-  console.log("\tLines:\t" + lineCount)
-  console.log("\tMentions:\t" + mentionCount)
-  console.log("\tTags:\t" + tagCount)
-  openTaskCount = taskCount - completedTaskCount - cancelledTaskCount
-  console.log("\tOpen tasks:\t" + openTaskCount + " (of which " + futureTaskCount + " are future)")
-  console.log("\tCompleted tasks:\t" + completedTaskCount)
-  console.log("\tCancelled tasks:\t" + cancelledTaskCount)
-
-  // Write summary to screen via command bar mechanism
-  var commandBarLines = []
-  commandBarLines.push(lineCount + " lines, " + wordCount + " words, " + byteCount + " characters")
-  commandBarLines.push("Includes: " + mentionCount + " @mentions and " + tagCount + " #tags")
-  var taskLine = "Tasks: " + openTaskCount + " open"
-  if (futureTaskCount > 0) { taskLine += " (of which " + futureTaskCount + " are future)" }
-  if (cancelledTaskCount > 0) { taskLine += ", " + completedTaskCount + " completed" }
-  if (cancelledTaskCount > 0) { taskLine += ", " + cancelledTaskCount + " cancelled" }
-  commandBarLines.push(taskLine)
-  var reply = await CommandBar.showOptions(commandBarLines, "Statistics for this note. (Press enter to copy result to clipboard.)")
-  if (reply !== undefined) {
-    var replyString = commandBarLines[reply.index]
-    // pbcopy(replyString) TODO: waiting for advice about how to copy to clipboard
+  // Present list of headingValues for user to choose from
+  if (headingValues.length > 0) {
+    let re = await CommandBar.showOptions(headingValues, "Select heading to jump to:")
+    Editor.highlight(headingParas[re.index])
+  } else {
+    console.log("Warning: No headings found in this note")
   }
 }
 
@@ -235,13 +186,13 @@ async function statistics() {
 function jumpToDone() {
   var paras = Editor.note.paragraphs
   var paraCount = paras.length
-  console.log("Found " + paraCount + " paragraphs")
 
-  // Find the line of interest
+  // Find the line of interest from all the paragraphs
   for (var i = 0; i < paraCount; i++) {
     var p = paras[i]
     console.log(i + ": " + p.content + " / "+ p.headingLevel)
     if (p.content == "Done" && p.headingLevel === 2) {
+      // jump cursor to that paragraph
       Editor.highlight(p)
       break
     }
@@ -250,11 +201,8 @@ function jumpToDone() {
 }
 
 //------------------------------------------------------------------
-// Insert 'new_line' at start of a section headed 'section_heading'
-// If this is blank, then insert after start of note metadata
-
+// Set the title of a note from YAML, rather than the first line.
 // NOTE: not currently working because of lack of API support yet (as of release 628)
-
 // TODO: add following back into plugin.json to active this again:
 // {
 //   "name": "Set title from YAML",
@@ -279,7 +227,7 @@ function setTitleFromYAML() {
   }
   console.log("\tnew title = " + newTitle)
   if (newTitle != "") {
-    Editor.note.title = newTitle // FIXME: setter not available not yet available (last checked on release 628)
+    Editor.note.title = newTitle // TODO: setter not available not yet available (last checked on release 628)
   } 
   printNote(Editor.note)
 }
