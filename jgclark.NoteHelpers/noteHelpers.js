@@ -134,8 +134,10 @@ async function newNote() {
 async function applyTemplate() {
   // The Editor object is not always open, so have to handle possible error here
   // If it isn't open, then just carry on; all it means is that there won't be a selection.
+
   // TODO: Reported to EM that this is a bit of a hack, and it would be good to be able to
   // test for Editor?.content or similar.
+  // Something is now available, according to Discord.
   try {
     console.log("\napplyTemplate for note " + Editor.filename)
 
@@ -169,7 +171,7 @@ async function jumpToHeading() {
   function isHeading(p) {
     return p.prefix.includes('#')
   }
-  var headingParas = paras.filter(p => p.prefix.includes('#'))
+  var headingParas = paras.filter(p => (p.type === 'title')) // = all headings, not just the top 'title'
   var headingValues = headingParas.map(p => p.content)
 
   // Present list of headingValues for user to choose from

@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Statistic commands
 // Jonathan Clark & Eduard Metzger
-// v0.1.0, 14.5.2021
+// v0.1.2, 15.5.2021
 //-----------------------------------------------------------------------------
 
 function init() {
@@ -74,6 +74,8 @@ async function showTaskCount() {
 	}
 }
 
+//-----------------------------------------------------------------------------
+// Show word counts etc. for currently displayed note
 async function showWordCount() {
   var paragraphs = Editor.paragraphs
   var note = Editor.note
@@ -84,14 +86,17 @@ async function showWordCount() {
   var mentionCount = note.mentions.length
   var tagCount = note.hashtags.length
 
+	var bulletCount = 0
+	var prefixCount = 0
+
   paragraphs.forEach((p) => {
   	charCount += p.content.length
 
   	if(p.content.length > 0) {
-			var match = p.content.match(/\w+/g)  // TODO: ideally remove task and bullet markers
+			var match = p.content.match(/\w+/g)
   		if(match != null) {
   			wordCount += match.length
-  		}
+			}
   	}
   	
   	lineCount += 1
@@ -117,4 +122,3 @@ async function showWordCount() {
   	Clipboard.string = display.join("\n")
   }
 }
-
