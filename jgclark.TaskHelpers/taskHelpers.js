@@ -129,8 +129,8 @@ async function addTaskToInbox() {
     // Create the inbox note if not existing, ask the user which folder
     if(inboxNote == null) {
       let folders = DataStore.folders
-      await CommandBar.showOptions(folders, "Inbox not found, choose a folder or cancel [ESC]")
-      newFilename = DataStore.newNote(pref_inboxTitle, "")
+      let folder = await CommandBar.showOptions(folders, "Inbox not found, choose a folder or cancel [ESC]")
+      newFilename = DataStore.newNote(pref_inboxTitle, folder.value)
     }
   }
 
