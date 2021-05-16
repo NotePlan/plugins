@@ -1,7 +1,7 @@
 {
   "noteplan.minAppVersion": "3.0.21", 
   "plugin.id": "np.statistics",
-  "plugin.name": "Note Statistics",
+  "plugin.name": "🔢 Note Statistics",
   "plugin.description": "",
   "plugin.icon": "",
   "plugin.author": "Jonathan & Eduard",

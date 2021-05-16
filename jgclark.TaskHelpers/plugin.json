@@ -1,7 +1,7 @@
 {
   "noteplan.min_version": "3.0.21",
   "plugin.id": "jgclark.TaskHelpers",
-  "plugin.name": "Quick Capture",
+  "plugin.name": "⚡️ Quick Capture",
   "plugin.description": "Commands to quickly add tasks/todos or general text to NotePlan notes",
   "plugin.icon": "",
   "plugin.author": "Eduard & Jonathan",

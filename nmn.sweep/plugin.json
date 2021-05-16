@@ -1,10 +1,10 @@
 {
   "noteplan.minAppVersion": "3.0.21",
   "plugin.id": "nmn.sweep",
-  "plugin.name": "Reschedule Overdue Tasks",
+  "plugin.name": "🧹 Task Sweeper",
   "plugin.description": "Reschedule Overdue Tasks to selected date",
   "plugin.icon": "f120",
-  "plugin.author": "Naman Goel",
+  "plugin.author": "Naman Goel & Eduard",
   "plugin.repoUrl": "tbd",
   "plugin.version": "0.0.2",
   "plugin.dependencies": [ ],
