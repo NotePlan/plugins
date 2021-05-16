@@ -23,7 +23,8 @@ var pref_addInboxPosition = "prepend"  // or "append"
 
 ### v0.3.1, 16.5.2021
 - change to using short command names [EM suggestions]
-- 
+- add `quickly prepend task` command
+- add `quickly append task` command
 
 ### v0.3.0, 10.5.2021
 - add `inbox add task` command
