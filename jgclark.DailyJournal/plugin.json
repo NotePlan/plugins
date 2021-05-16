@@ -2,24 +2,24 @@
   "noteplan.min_version": "3.0.21",
   "plugin.id": "jgclark.DailyJournal",
   "plugin.name": "☀️ Daily Journal",
-  "plugin.description": "Support for daily journalling in NotePlan, including start-of-day template, and end-of-day review questions",
+  "plugin.description": "Support for daily journalling in NotePlan, including start-of-day template, and end-of-day review questions. Before use it requires configuration: please see website for details.",
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
-  "plugin.url": "tbd",
-  "plugin.version": "0.4.0",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/README.md",
+  "plugin.version": "0.4.1",
   "plugin.dependencies": [],
   "plugin.script": "plugin.js",
   "plugin.isRemote": "false",
   "plugin.commands": [
     {
       "name": "dayStart",
-      "description": "Start today's daily note with a template, including local weather lookup",
+      "description": "Start today's daily note with a template, including local weather lookup (requires configuring)",
       "jsFunction": "dayStart",
       "requested_interval": "24h"
     },
     {
       "name": "dayReview",
-      "description": "Ask journal questions for an end-of-day review",
+      "description": "Ask journal questions for an end-of-day review (requires configuring)",
       "jsFunction": "dayReview",
       "requested_interval": "8h"
     }

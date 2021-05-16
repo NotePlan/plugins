@@ -1,7 +1,7 @@
 //--------------------------------------------------------------------------------------------------------------------
 // Daily Journal plugin for NotePlan
 // Jonathan Clark
-// v0.4.0, 24.4.2021
+// v0.4.1, 16.5.2021
 //--------------------------------------------------------------------------------------------------------------------
 
 // Settings
@@ -10,15 +10,16 @@ var pref_templateText = "\n### Media\n\n### Journal\n"
 var pref_reviewSectionHeading = "Journal"
 var pref_reviewQuestions = "@work(<int>)\n@fruitveg(<int>)\nMood:: <mood>\nGratitude:: <string>\nGod was:: <string>\nAlive:: <string>\nNot Great:: <string>\nWife:: <string>\nRemember:: <string>"
 var pref_mood = "🤩 Great,🙂 Good,😇 Blessed,🥱 Tired,😫 Stressed,😤 Frustrated,😔 Low,🥵 Sick,Other"
-var pref_moodArray = pref_mood.split(",")
-// Leave following blank if don't want to get weather
+
+// Leave following as empty strings ("") if you don't want to get weather from openweathermap.org
 var pref_openWeatherAPIKey = "b8041917d91a7e0e1418485bbd3f1b1f" // need to get your own  API key: don't use mine!
-var pref_latPosition = "51.3"
-var pref_longPosition = "-1"
+var pref_latPosition = "51.3" // need to use your own latitude!
+var pref_longPosition = "-1" // need to use your own longitude!
 var pref_openWeatherUnits = "metric"
 
 // Globals
 var todaysDate = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+var pref_moodArray = pref_mood.split(",") // with a proper config system, this won't be needed
 
 //------------------------------------------------------------------
 // Start today's daily note with a template, including local weather lookup
@@ -75,8 +76,8 @@ function getWeatherSummary() {
 // Helper function to test for integer
 // taken from https://stackoverflow.com/questions/14636536/how-to-check-if-a-variable-is-an-integer-in-javascript
 function isInt(value) {
-  var x = parseFloat(value);
-  return !isNaN(value) && (x | 0) === x;
+  var x = parseFloat(value)
+  return !isNaN(value) && (x | 0) === x
 }
 
 //------------------------------------------------------------------
