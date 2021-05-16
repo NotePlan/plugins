@@ -7,12 +7,14 @@ This plugin allows repeats **every x days, weeks, months, quarters or years**. I
 - When _interval_ is of the form `+2w` it will duplicate the task for 2 weeks after the date the _task was completed_.
 - When _interval_ is of the form `2w` it will duplicate the task for 2 weeks after the date the _task was last due_. This is found from a `>yyyy-mm-dd` scheduled date. If this can't be determined, then it defaults to the first option.
 
-The plugin acts on the currently open note in the editor, not on any others.
+The plugin acts on the currently open note in the editor, not on any others.  **To invoke it type `/rpt` in the command bar**.
 
-### Configuration
+## Configuration
 For this feature to work, you need to have the 'Append Completion Date' NotePlan setting turned on in the Preferences.
 
-### History
-This started off life in my [npTools Ruby script](https://github.com/jgclark/NotePlan-tools/).
+## History
+### v0.2.1
+- shorten command name in line with newer plugin style
 
-v0.1.0 - first release for plugin, ported to JavaScript plugin framework.
+### v0.2.0
+- first main release for plugin, ported to JavaScript plugin framework from my [npTools Ruby script](https://github.com/jgclark/NotePlan-tools/).

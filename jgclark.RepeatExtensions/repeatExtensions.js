@@ -82,6 +82,18 @@ function calcOffsetDate(oldDateISO, interval) {
   // - interval is string of form nn[bdwmq], and could be negative
   // - where 'b' is weekday (i.e. Monday - Friday in English)
   // Return new date also in ISO Date format
+
+  /**
+   * TODO: Could now use NP's own date manipulation functions:
+   * Calendar.dateUnits() -> "year", "month", "day", "hour", "minute", "second"
+   * .add(calendarItem) -> CalendarItem
+   * .parseDateText(text) -> [DateRangeObject]
+   * .dateFrom(year, month, day, hour, minute, second) -> Date
+   * .unitOf(date, type) -> Int
+   * .unitsUntilNow(date, type) -> Int
+   * .unitsAgoFromNow(date, type) -> Int
+   * Calendar.addUnitToDate(date, type, num)
+   */
   var oldDate = new Date(oldDateISO)
   var daysToAdd = 0
   var day = 1000 * 60 * 60 * 24 // a day in milliseconds
@@ -130,6 +142,11 @@ function calcOffsetDate(oldDateISO, interval) {
   var newDateFmt = toISODateString(newDate)
   // console.log("    c_o_d: add " + daysToAdd + " --> " + newDateFmt)
   return newDateFmt
+}
+
+// test the new Calendar API helper functions
+function testCalAPI() {
+  var d = new Date("2021-05-02")
 }
 
 // test the calcOffsetDate function (by visual inspection; nothing clever)
