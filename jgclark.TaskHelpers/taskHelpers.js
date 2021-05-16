@@ -38,6 +38,22 @@ function printNote(note) {
   }
 }
 
+async function prependTaskToNote() {
+  let taskName = await CommandBar.showInput("Type the task name", "Prepend '%@'...")
+  let notes = projectNotesSortedByChanged()
+
+  let re = await CommandBar.showOptions(notes.map(n => n.title), "Select note to prepend")
+  notes[re.index].prependTodo(taskName)
+}
+
+async function appendTaskToNote() {
+  let taskName = await CommandBar.showInput("Type the task name", "Prepend '%@'...")
+  let notes = projectNotesSortedByChanged()
+
+  let re = await CommandBar.showOptions(notes.map(n => n.title), "Select note to append")
+  notes[re.index].appendTodo(taskName)
+}
+
 // ------------------------------------------------------------------
 // This adds a task to a selected heading, based on EM's 'example25'.
 // Problem here is that duplicate headings are not respected.
@@ -112,4 +128,9 @@ async function addTaskToInbox() {
   } else {
     console.log("ERROR: Couldn't find Inbox note '" + pref_inboxFilename + "'")
   }
+}
+
+
+function projectNotesSortedByChanged() {
+  return DataStore.projectNotes.sort((first, second) => first.changedDate < second.changedDate)
 }
