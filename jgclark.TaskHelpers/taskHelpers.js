@@ -62,7 +62,7 @@ async function addTaskToNoteHeading() {
   let todoTitle = await CommandBar.showInput('Type the task', "Add task '%@'")
 
   // Then ask for the note we want to add the todo
-  let notes = DataStore.projectNotes
+  let notes = projectNotesSortedByChanged()
   // CommandBar.showOptions only takes [string] as input
   let re = await CommandBar.showOptions(notes.map((n) => n.title), 'Select note for new todo')
   let note = notes[re.index]
@@ -86,7 +86,7 @@ async function addTextToNoteHeading() {
   let text = await CommandBar.showInput('Type the text to add', "Add task '%@'")
 
   // Then ask for the note we want to add the text
-  let notes = DataStore.projectNotes
+  let notes = projectNotesSortedByChanged()
   // CommandBar.showOptions only takes [string] as input
   let re = await CommandBar.showOptions(notes.map((n) => n.title), 'Select note to add this')
   let note = notes[re.index]
