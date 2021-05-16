@@ -1,8 +1,7 @@
-/* eslint-disable no-undef */
 // --------------------------------------------------------------------------------------------------------------------
-// Task Helpers plugin for NotePlan
+// QuickCapture plugin for NotePlan (was: TaskHelpers)
 // Jonathan Clark
-// v0.3.0, 10.5.2021
+// v0.3.2, 16.5.2021
 // --------------------------------------------------------------------------------------------------------------------
 
 // Settings from NotePlan
@@ -39,6 +38,8 @@ function printNote(note) {
   }
 }
 
+// ------------------------------------------------------------------
+// Prepends a task to a chosen note
 async function prependTaskToNote() {
   let taskName = await CommandBar.showInput("Type the task name", "Prepend '%@'...")
   let notes = projectNotesSortedByChanged()
@@ -47,6 +48,8 @@ async function prependTaskToNote() {
   notes[re.index].prependTodo(taskName)
 }
 
+// ------------------------------------------------------------------
+// Appends a task to a chosen note
 async function appendTaskToNote() {
   let taskName = await CommandBar.showInput("Type the task name", "Prepend '%@'...")
   let notes = projectNotesSortedByChanged()
@@ -157,7 +160,6 @@ async function addTaskToInbox() {
     console.log("ERROR: Couldn't find Inbox note '" + pref_inboxFilename + "'")
   }
 }
-
 
 function projectNotesSortedByChanged() {
   return DataStore.projectNotes.sort((first, second) => first.changedDate < second.changedDate)

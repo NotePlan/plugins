@@ -1,40 +1,39 @@
 {
   "noteplan.min_version": "3.0.21",
-  "plugin.id": "jgclark.TaskHelpers",
+  "plugin.id": "jgclark.QuickCapture",
   "plugin.name": "⚡️ Quick Capture",
-  "plugin.description": "Commands to quickly add tasks/todos or general text to NotePlan notes",
+  "plugin.description": "Commands to quickly add tasks/todos or general text to NotePlan notes. See website for configuration of special Inbox note.",
   "plugin.icon": "",
   "plugin.author": "Eduard & Jonathan",
-  "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.TaskHelpers/",
-  "plugin.version": "0.3.1",
-  "plugin.changelog": "See plugin README.md",
+  "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.QuickCapture/",
+  "plugin.version": "0.3.2",
   "plugin.dependencies": [],
-  "plugin.script": "taskHelpers.js",
+  "plugin.script": "plugin.js",
   "plugin.isRemote": "false",
   "plugin.commands": [
     {
       "name": "int",
-      "description": "Quickly add a task to your '📥 Inbox' note.",
+      "description": "Quickly add a task to your '📥 Inbox' note",
       "jsFunction": "addTaskToInbox"
     },
     {
       "name": "qath",
-      "description": "Quickly add a task to a note's heading",
+      "description": "Quickly add a task at the top of a chosen note's heading",
       "jsFunction": "addTaskToNoteHeading"
     },
     {
       "name": "qalh",
-      "description": "Quickly add text to a note's heading",
+      "description": "Quickly add text at the top of a chosen note's heading",
       "jsFunction": "addTextToNoteHeading"
     },
     {
       "name": "qpt",
-      "description": "Quickly prepend a task to any note",
+      "description": "Quickly prepend a task to a chosen note",
       "jsFunction": "prependTaskToNote"
     },
     {
       "name": "qat",
-      "description": "Quickly append a task to any note",
+      "description": "Quickly append a task to a chosen note",
       "jsFunction": "appendTaskToNote"
     }
   ],
