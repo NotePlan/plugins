@@ -108,17 +108,44 @@ async function addTextToNoteHeading() {
 // - add to today's daily note (default) or to a particular named note
 async function addTaskToInbox() {
 
+  // PREVIOUS CODE
+  // let todoTitle = await CommandBar.showInput('Type the task to add to your Inbox note', "Add task '%@'")
+  // let inboxNote
+  // // Get the relevant note from the Datastore
+  // if (pref_inboxFilename != "") {
+  //   inboxNote = DataStore.projectNoteByFilename(pref_inboxFilename)
+  // } else {
+  //   let todaysDate = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+  //   inboxNote = DataStore.calendarNoteByDateString(todaysDate) // Add this todo to today's daily note
+  // }
+
+  let newFilename = null
+  let inboxNote = null
+
+  if (pref_inboxTitle != "") { 
+    inboxNote = DataStore.projectNoteByTitle(pref_inboxTitle)[0]
+
+    // Create the inbox note if not existing, ask the user which folder
+    if(inboxNote == null) {
+      let folders = DataStore.folders
+      await CommandBar.showOptions(folders, "Inbox not found, choose a folder or cancel [ESC]")
+      newFilename = DataStore.newNote(pref_inboxTitle, "")
+    }
+  }
+
   // Ask for the todo title
   let todoTitle = await CommandBar.showInput('Type the task to add to your Inbox note', "Add task '%@'")
-  let inboxNote
-  // Get the relevant note from the Datastore
-  if (pref_inboxFilename != "") {
-    inboxNote = DataStore.projectNoteByFilename(pref_inboxFilename)
+  
+  // Re-fetch the note if we created it previously. We need to wait a bit so it's cached, that's why we query it after the task input.
+  if(newFilename != null) {
+    inboxNote = DataStore.projectNoteByFilename(newFilename)
+    console.log("inbox note: " + inboxNote)
   } else {
-    let todaysDate = new Date().toISOString().slice(0, 10).replace(/-/g, '')
-    inboxNote = DataStore.calendarNoteByDateString(todaysDate) // Add this todo to today's daily note
+    console.log("newFilename is still null")
   }
-  if (inboxNote !== undefined) {
+
+  // Get the relevant note from the Datastore
+  if (inboxNote != null) {
     if (pref_addInboxPosition == "append") {
       inboxNote.appendTodo(todoTitle)
     } else {

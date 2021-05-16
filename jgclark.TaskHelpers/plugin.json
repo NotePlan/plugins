@@ -13,7 +13,7 @@
   "plugin.isRemote": "false",
   "plugin.commands": [
     {
-      "name": "inbox add task",
+      "name": "int",
       "description": "Quickly add a task to your Inbox note 📥 (defaults to Daily note, but can be configured to a different specific one).",
       "jsFunction": "addTaskToInbox"
     },
