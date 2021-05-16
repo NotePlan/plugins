@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark
-// v0.7.0, 14.5.2021
+// v0.7.1, 16.5.2021
 //--------------------------------------------------------------------------------------------------------------------
 
 // Globals
@@ -165,6 +165,7 @@ async function applyTemplate() {
 
 //------------------------------------------------------------------
 // Jumps the cursor to the heading of the current note that the user selects
+// NB: need to update to allow this to work with sub-windows, when EM updates API
 async function jumpToHeading() {
   var paras = Editor.paragraphs
   // Extract list of headings
@@ -185,6 +186,7 @@ async function jumpToHeading() {
 
 //------------------------------------------------------------------
 // Jump cursor to the '## Done' heading in the current file
+// NB: need to update to allow this to work with sub-windows, when EM updates API
 function jumpToDone() {
   var paras = Editor.note.paragraphs
   var paraCount = paras.length

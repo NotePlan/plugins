@@ -7,8 +7,8 @@ The first ones are very simple:
 - `/jd`: simply jumps the cursor to the `## Done` section of the current note (if it exists)
 
 The other two help apply **template**s to new or existing notes:
-- `at`: inserts a template into the current note, after the title
-- `nn`: creates a new note in the current folder, with title, optional template, and optional current text selection
+- `/it`: inserts a template into the current note, after the title
+- `/nn`: creates a new note in the current folder, with title, optional template, and optional current text selection
 
 ## Configuration
 Before the configuration mechanism is available, you need to update the `jgclark.noteHelpers\noteHelpers.js` file in the plugin's folder directly. Update the following lines at the top of the file accordingly:

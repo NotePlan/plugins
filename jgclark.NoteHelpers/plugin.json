@@ -6,35 +6,35 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/",
-  "plugin.version": "0.7.0",
+  "plugin.version": "0.7.1",
   "plugin.changelog": "See plugin README.md",
   "plugin.dependencies": [],
   "plugin.script": "noteHelpers.js",
   "plugin.isRemote": "false",
   "plugin.commands": [
     {
-      "name": "apply Template to a Note",
+      "name": "it",
       "description": "Choose a Template to apply to an existing Note",
       "jsFunction": "applyTemplate"
     },
     {
-      "name": "create new Note",
+      "name": "nn",
       "description": "Create new note in the current folder, with title, optional template, and optional current text selection",
       "jsFunction": "newNote"
     },
     {
-      "name": "move Note",
+      "name": "mn",
       "description": "Moves the currently opened (non-calendar) note to a folder you select",
       "jsFunction": "selectFolder"
     },
     {
-      "name": "jump to Heading",
-      "description": "Jumps the cursor to the heading of the current note that the user selects",
+      "name": "jh",
+      "description": "Jumps the cursor to the heading of the current note that the user selects. (Currently only works in the main window.)",
       "jsFunction": "jumpToHeading"
     },
     {
-      "name": "jump to Done",
-      "description": "Jump in the current note to the ## Done section",
+      "name": "jd",
+      "description": "Jump in the current note to the ## Done section. (Currently only works in the main window.)",
       "jsFunction": "jumpToDone"
     }
   ],
