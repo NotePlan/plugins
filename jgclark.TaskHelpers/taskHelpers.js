@@ -11,6 +11,7 @@
 
 // Items that will come from the Preference framework in time:
 var pref_inboxFilename = ""  // leave blank for daily note, or give relative filename (e.g. "Folder/Inbox.md")
+var pref_inboxTitle = "📥 Inbox"
 var pref_addInboxPosition = "append"  // or "append"
 
 // ------------------------------------------------------------------

@@ -14,7 +14,7 @@
   "plugin.commands": [
     {
       "name": "int",
-      "description": "Quickly add a task to your Inbox note 📥 (defaults to Daily note, but can be configured to a different specific one).",
+      "description": "Quickly add a task to your '📥 Inbox' note.",
       "jsFunction": "addTaskToInbox"
     },
     {
