@@ -1,0 +1,14 @@
+{
+  "name": "nmn.sweep",
+  "main": "lib/script.src.js",
+  "version": "1.0.0",
+  "devDependencies": {
+    "@babel/cli": "^7.13.16",
+    "@babel/core": "^7.14.2",
+    "@babel/preset-flow": "^7.13.13",
+    "flow-bin": "^0.151.0"
+  },
+  "scripts": {
+    "build": "./node_modules/.bin/babel src/ -f script.js -d ~/Library/Containers/co.noteplan.NotePlan3/Data/Library/Application\\ Support/co.noteplan.NotePlan3/Plugins/nmn.sweep"
+  }
+}
