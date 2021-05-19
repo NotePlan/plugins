@@ -20,7 +20,10 @@
   },
   "scripts": {
     "build": "rollup -c ./rollup.config.js",
-    "watch": "rollup -c ./rollup.config.js --watch"
+    "watch": "rollup -c ./rollup.config.js --watch",
+    "lint": "eslint src",
+    "typecheck": "flow check",
+    "test": "yarn run lint && yarn run typecheck"
   },
   "prettier": {
     "printWidth": 80,

@@ -24,6 +24,33 @@ Set Up
        - You should see your code get autoformatted when you save
     5. Make sure to open this folder directly in VSCode and not the entire repo as the ESLint plug-in can be annoying about that
 
+
+Building
+
+If you followed the first few steps from the Set Up, you should already have `yarn` installed.
+
+While navigated to this plugin's folder, you can run:
+
+```sh
+yarn run build
+```
+This looks for the the "build" key under "scripts" in the package.json file and runs it. Any script there can be run this way.
+
+
+This will bundle and transpile the javascript files and output a single `script.js` file at the root level of this plugin folder.
+This output location has been chosen to make development while testing possible.
+
+You can also run:
+
+```sh
+yarn run watch
+```
+
+This command will keep running and compiling whenever it detects a change to a src file. This is made for easy development.
+
+Finally, you can run `yarn run test` to run lint and typecheck your code from the command line. Generally, this should be neccesary,
+but if you are having trouble setting up editor plugins (or use vim/emacs) this might the easiest thing to do.
+
 ## Flow Guide
 
 You can read a full guide for Flow on `flow.org` but here are some quick tips if you're familiar with Swift:
