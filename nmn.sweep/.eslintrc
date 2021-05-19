@@ -58,6 +58,7 @@
   },
   "ignorePatterns": [
     "node_modules",
-    "dist"
+    "dist",
+    "script.js"
   ]
 }
