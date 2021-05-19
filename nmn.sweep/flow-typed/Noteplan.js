@@ -4,9 +4,9 @@ type Range = {
   start: number,
   end: number,
   +length: number,
-}
+};
 
-declare var Paragraph: TParagraph
+declare var Paragraph: TParagraph;
 
 type TParagraph = {
   content: string,
@@ -26,10 +26,10 @@ type TParagraph = {
   +linkedNoteTitles: $ReadOnlyArray<string>,
 
   duplicate(): TParagraph,
-}
+};
 
-type NoteType = "Calendar" | "Notes"
-declare var Note: TNote
+type NoteType = 'Calendar' | 'Notes';
+declare var Note: TNote;
 type TNote = {
   ...TParagaraphBridge,
   +filename: string,
@@ -42,18 +42,18 @@ type TNote = {
   +mentions: $ReadOnlyArray<string>,
   content: string | void,
   paragraphs: $ReadOnlyArray<TParagraph>,
-}
+};
 
 type ParagraphType =
-  | "open"
-  | "done"
-  | "scheduled"
-  | "cancelled"
-  | "quote"
-  | "list"
-  | "empty"
+  | 'open'
+  | 'done'
+  | 'scheduled'
+  | 'cancelled'
+  | 'quote'
+  | 'list'
+  | 'empty';
 
-declare var ParagaraphBridge: TParagaraphBridge
+declare var ParagaraphBridge: TParagaraphBridge;
 type TParagaraphBridge = {
   paragraphRangeAtCharacterIndex(pos: number): Range | void,
   insertTodo(name: string, lineIndex: number): void,
@@ -63,7 +63,7 @@ type TParagaraphBridge = {
   insertParagraph(
     name: string,
     lineIndex: number,
-    paragraphType: ParagraphType
+    paragraphType: ParagraphType,
   ): void,
   insertQuote(name: string, lineIndex: number): void,
   insertBullet(name: string, lineIndex: number): void,
@@ -76,39 +76,39 @@ type TParagaraphBridge = {
     title: string,
     headingTitle: string,
     shouldAppend: boolean,
-    shouldCreate: boolean
+    shouldCreate: boolean,
   ): void,
   addParagraphBelowHeadingTitle(
     title: string,
     paragraphType: ParagraphType,
     headingTitle: string,
     shouldAppend: boolean,
-    shouldCreate: boolean
+    shouldCreate: boolean,
   ): void,
   appendTodoBelowHeadingLineIndex(title: string, headinLineIndex: number): void,
   appendParagraphBelowHeadingLineIndex(
     title: string,
     paragraphType: ParagraphType,
-    headingLineIndex: number
+    headingLineIndex: number,
   ): void,
   insertTodoAfterParagraph(title: string, otherTodo: TParagraph): void,
   insertTodoBeforeParagraph(title: string, otherTodo: TParagraph): void,
   insertParagraphAfterParagraph(
     title: string,
     otherParagraph: TParagraph,
-    paragraphType: ParagraphType
+    paragraphType: ParagraphType,
   ): void,
   insertParagraphBeforeParagraph(
     title: string,
     otherParagraph: TParagraph,
-    paragraphType: ParagraphType
+    paragraphType: ParagraphType,
   ): void,
   removeParagraphAtIndex(lineIndex: number): void,
   removeParagraph(paragraph: TParagraph): void,
   updateParagraph(paragraph: TParagraph): void,
-}
+};
 
-declare var Editor: TEditor
+declare var Editor: TEditor;
 type TEditor = {
   +note: TNote,
   content: string | void,
@@ -128,54 +128,54 @@ type TEditor = {
     filename: string,
     newWindow?: boolean,
     highlightStart?: number,
-    highlightEnd?: number
+    highlightEnd?: number,
   ): Promise<TNote>,
   openNoteByTitle(
     title: string,
     newWindow?: boolean,
     highlightStart?: number,
-    highlightEnd?: number
+    highlightEnd?: number,
   ): Promise<TNote>,
   openNoteByTitleCaseInsensitive(
     title: string,
     newWindow?: boolean,
     caseSensitive?: boolean,
     highlightStart?: number,
-    highlightEnd?: number
+    highlightEnd?: number,
   ): Promise<TNote>,
   openNoteByDate(
     date: Date,
     newWindow?: boolean,
     highlightStart?: number,
-    highlightEnd?: number
+    highlightEnd?: number,
   ): Promise<TNote>,
   openNoteByDateString(
     filename: string,
     newWindow?: boolean,
     highlightStart?: number,
-    highlightEnd?: number
+    highlightEnd?: number,
   ): Promise<TNote | void>,
   scrollTo(pos: number): void,
-}
+};
 
-type DataStorePreference = ((key: "themeLight") => void | string) &
-  ((key: "themeDark") => void | string) &
-  ((key: "fontDelta") => number) &
-  ((key: "firstDayOfWeek") => number) &
-  ((key: "isAgendaVisible") => void | boolean) &
-  ((key: "isAgendaExpanded") => void | boolean) &
-  ((key: "isAsteriskTodo") => void | boolean) &
-  ((key: "isDashTodo") => void | boolean) &
-  ((key: "isNumbersTodo") => void | boolean) &
-  ((key: "defaultTodoCharacter") => "*" | "-") &
-  ((key: "isAppendScheduleLinks") => void | boolean) &
-  ((key: "isAppendCompletionLinks") => void | boolean) &
-  ((key: "isCopyScheduleGeneralNoteTodos") => void | boolean) &
-  ((key: "isSmartMarkdownLink") => void | boolean) &
-  ((key: "fontSize") => number) &
-  ((key: "fontFamily") => string)
+type DataStorePreference = ((key: 'themeLight') => void | string) &
+  ((key: 'themeDark') => void | string) &
+  ((key: 'fontDelta') => number) &
+  ((key: 'firstDayOfWeek') => number) &
+  ((key: 'isAgendaVisible') => void | boolean) &
+  ((key: 'isAgendaExpanded') => void | boolean) &
+  ((key: 'isAsteriskTodo') => void | boolean) &
+  ((key: 'isDashTodo') => void | boolean) &
+  ((key: 'isNumbersTodo') => void | boolean) &
+  ((key: 'defaultTodoCharacter') => '*' | '-') &
+  ((key: 'isAppendScheduleLinks') => void | boolean) &
+  ((key: 'isAppendCompletionLinks') => void | boolean) &
+  ((key: 'isCopyScheduleGeneralNoteTodos') => void | boolean) &
+  ((key: 'isSmartMarkdownLink') => void | boolean) &
+  ((key: 'fontSize') => number) &
+  ((key: 'fontFamily') => string);
 
-declare var DataStore: TDataStore
+declare var DataStore: TDataStore;
 type TDataStore = {
   +defaultFileExtension: string,
   +folders: $ReadOnlyArray<string>,
@@ -187,18 +187,18 @@ type TDataStore = {
   calendarNoteByDateString(filename: string): TNote | void,
   projectNoteByTitle(
     title: string,
-    caseInsensitive: boolean
+    caseInsensitive: boolean,
   ): $ReadOnlyArray<TNote> | void,
   projectNoteByTitleCaseInsensitive(
-    title: string
+    title: string,
   ): $ReadOnlyArray<TNote> | void,
   projectNoteByFilename(filename: string): TNote | void,
   noteByFilename(filename: string, type: NoteType): TNote | void,
   moveNote(noteName: string, folder: string): string | void,
   newNote(noteTitle: string, folder: string): string | void,
-}
+};
 
-declare var CommandBar: TCommandBar
+declare var CommandBar: TCommandBar;
 type TCommandBar = {
   placeholder: string,
   searchText: string,
@@ -207,20 +207,20 @@ type TCommandBar = {
   hide(): void,
   showOptions(
     options: $ReadOnlyArray<string>,
-    placeholder: string
+    placeholder: string,
   ): Promise<{ +index: number, +value: string }>,
   showInput(placeholder: string, submitText: string): Promise<string>,
-}
+};
 
-declare var Calendar: TCalendar
+declare var Calendar: TCalendar;
 type TCalendar = {
   add(item: TCalendarItem): TCalendarItem | void,
   parseDateText(text: string): $ReadOnlyArray<{ [key: string]: Date }>,
-  addUnitToDate(Date, "day" | "month" | "year", number): Date,
-}
+  addUnitToDate(Date, 'day' | 'month' | 'year', number): Date,
+};
 
-type CalenderItemType = "event" | "reminder"
-declare var CalendarItem: TCalendarItem
+type CalenderItemType = 'event' | 'reminder';
+declare var CalendarItem: TCalendarItem;
 type TCalendarItem = {
   +id: string | void,
   +title: string,
@@ -233,8 +233,12 @@ type TCalendarItem = {
     date: Date,
     endDate: Date | void,
     type: CalenderItemType,
-    isAllDay: boolean
+    isAllDay: boolean,
   ): TCalendarItem,
-}
+};
 
-declare function fetch(url: string): Promise<{ [string]: mixed }>
+declare function fetch(url: string): Promise<{ [string]: mixed }>;
+
+// Every function made available must be assigned to `globalThis`
+// This type ensures that only functions are made available as plugins
+declare var globalThis: { [string]: () => mixed };

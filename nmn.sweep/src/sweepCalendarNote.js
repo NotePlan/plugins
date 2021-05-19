@@ -3,6 +3,7 @@
 export default async function sweepCalendarNote(
   note: TNote,
   withUserConfirm: boolean = true,
+  notifyNoChanges: boolean = true,
 ): Promise<void> {
   const paragraphs = note.paragraphs;
 
@@ -59,6 +60,7 @@ export default async function sweepCalendarNote(
   if (numTasksToMove > 0) {
     let re = { index: 0 };
     if (withUserConfirm) {
+      Editor.openNoteByFilename(note.filename);
       re = await CommandBar.showOptions(
         [
           '✂️ Move (cut & paste) ' + numTasksToMove + ' task(s) to today',
@@ -86,7 +88,7 @@ export default async function sweepCalendarNote(
       }
     }
   } else {
-    if (withUserConfirm) {
+    if (notifyNoChanges && withUserConfirm) {
       await CommandBar.showInput(
         'There are no open tasks to move in this note.',
         "OK, I'll open another date.",

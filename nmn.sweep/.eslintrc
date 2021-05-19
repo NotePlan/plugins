@@ -54,7 +54,8 @@
     "DataStore": true,
     "CommandBar": true,
     "Calendar": true,
-    "CalendarItem": true
+    "CalendarItem": true,
+    "globalThis": true
   },
   "ignorePatterns": [
     "node_modules",

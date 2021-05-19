@@ -16,6 +16,12 @@ const OPTIONS = [
 ];
 const DEFAULT_OPTION = { unit: 'day', value: 0 };
 
+/**
+ * TODO:
+ * 1. Add option to move all tasks silently
+ * 2. Add option to reschedule instead of move Calendar notes
+ * 3. Add option to change target date from "Today" to something you can choose
+ *  */
 export default async function sweepAll(): Promise<void> {
   const { index } = await CommandBar.showOptions(
     OPTIONS.map((option) => option.label),
@@ -32,19 +38,23 @@ export default async function sweepAll(): Promise<void> {
   const afterDateFileName = filenameDateString(
     Calendar.addUnitToDate(new Date(), unit, -value),
   );
-  await Promise.all(
-    DataStore.projectNotes.map((n) =>
-      sweepProjectNote(n, false, afterDateFileName),
-    ),
-  );
+  await CommandBar.showInput('Dealing with your Project Notes First', 'OK');
+
+  for (const note of DataStore.projectNotes) {
+    await sweepProjectNote(note, true, afterDateFileName, false);
+  }
+
+  await CommandBar.showInput(`Now let's look at your Daily Notes`, 'OK');
 
   const todayFileName = filenameDateString(new Date());
-  await Promise.all(
-    DataStore.calendarNotes
-      .filter(
-        (note) =>
-          note.filename < todayFileName && note.filename >= afterDateFileName,
-      )
-      .map((n) => sweepCalendarNote(n, false)),
+  const recentCalNotes = DataStore.calendarNotes.filter(
+    (note) =>
+      note.filename < todayFileName && note.filename >= afterDateFileName,
   );
+
+  for (const note of recentCalNotes) {
+    await sweepCalendarNote(note, true, false);
+  }
+
+  await CommandBar.showInput(`All Done!`, 'OK');
 }

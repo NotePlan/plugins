@@ -12,9 +12,14 @@
   "plugin.isRemote": "false",
   "plugin.commands": [
     {
-      "name": "spf",
+      "name": "sweepFile",
       "description": "Move all open tasks from current note to today",
       "jsFunction": "sweepFile"
+    },
+    {
+      "name": "sweepAll",
+      "description": "Move all overdue tasks to today",
+      "jsFunction": "sweepAll"
     }
   ],
   "plugin.preferences": []

@@ -6,6 +6,7 @@ export default async function sweepProjectNote(
   note: TNote,
   withUserConfirm: boolean = true,
   afterDateFileName: string = '0000-00-00',
+  notifyNoChanges: boolean = true,
 ): Promise<void> {
   const paragraphs = note.paragraphs;
   const todayDateString = hyphenatedDateString(new Date());
@@ -22,6 +23,7 @@ export default async function sweepProjectNote(
     let re = { index: 0 };
 
     if (withUserConfirm) {
+      Editor.openNoteByFilename(note.filename);
       re = await CommandBar.showOptions(
         [
           `🔗 Yes, Reschedule (update '>date') ${numTasksToUpdate} task${
@@ -57,7 +59,7 @@ export default async function sweepProjectNote(
       }
     }
   } else {
-    if (withUserConfirm) {
+    if (notifyNoChanges && withUserConfirm) {
       await CommandBar.showInput(
         'Everything is up to date here!',
         "OK, I'll open another note.",
