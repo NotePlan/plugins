@@ -5,10 +5,16 @@
   "devDependencies": {
     "@babel/cli": "^7.13.16",
     "@babel/core": "^7.14.2",
+    "@babel/eslint-parser": "^7.14.3",
     "@babel/preset-flow": "^7.13.13",
-    "flow-bin": "^0.151.0"
+    "eslint": "^7.26.0",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-flowtype": "^5.7.2",
+    "eslint-plugin-import": "^2.23.2",
+    "flow-bin": "^0.151.0",
+    "prettier": "^2.3.0"
   },
   "scripts": {
-    "build": "./node_modules/.bin/babel src/ -f script.js -d ~/Library/Containers/co.noteplan.NotePlan3/Data/Library/Application\\ Support/co.noteplan.NotePlan3/Plugins/nmn.sweep"
+    "build": "babel src/script.js -o script.js"
   }
 }

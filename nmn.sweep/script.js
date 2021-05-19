@@ -1,8 +1,10 @@
+const global = this;
+
 async function sweepFile() {
   const type = Editor.type;
   const note = Editor.note;
 
-  if (type === 'Calendar') {
+  if (type === "Calendar") {
     const todayNoteFileName = filenameDateString(new Date()) + "." + DataStore.defaultFileExtension;
 
     if (Editor.filename == todayNoteFileName) {
@@ -17,9 +19,9 @@ async function sweepFile() {
 }
 
 async function sweepAll() {
-  let re = await CommandBar.showOptions(["7 days", "14 days", "21 days", "1 month", "3 months", "6 months", "1 year", "❌ Cancel"], "🧹 Reschedule tasks to today of the last...");
-  var num = 0;
-  var unit = "day";
+  const re = await CommandBar.showOptions(["7 days", "14 days", "21 days", "1 month", "3 months", "6 months", "1 year", "❌ Cancel"], "🧹 Reschedule tasks to today of the last...");
+  let num = 0;
+  let unit = "day";
 
   switch (re.index) {
     case 0:
@@ -59,12 +61,14 @@ async function sweepAll() {
   } // TODO: Something not working here.
 
 
-  let afterDateFileName = filenameDateString(Calendar.addUnitToDate(new Date(), unit, -num));
+  const afterDateFileName = filenameDateString(Calendar.addUnitToDate(new Date(), unit, -num));
   DataStore.projectNotes.forEach(n => sweepProjectNote(n, false, afterDateFileName));
   const todayFileName = filenameDateString(new Date());
   DataStore.calendarNotes.filter(note => note.filename < todayFileName && note.filename >= afterDateFileName).forEach(n => sweepCalendarNote(n, false));
-} // Helpers
+}
 
+global.sweepFile = sweepFile;
+global.sweepAll = sweepAll; // Helpers
 
 async function sweepCalendarNote(note, withUserConfirm = true) {
   const paragraphs = note.paragraphs;
@@ -75,7 +79,7 @@ async function sweepCalendarNote(note, withUserConfirm = true) {
   const nonMovableTypes = ["scheduled", "cancelled", "done"];
   const resetTypes = ["title", "empty"];
   let lastRootItem = null;
-  paragraphs.forEach((p, index) => {
+  paragraphs.forEach((p, _index) => {
     if (nonMovableTypes.includes(p.type)) {
       return;
     } // Remember the last item which is not indented and open, or a bullet
@@ -109,10 +113,10 @@ async function sweepCalendarNote(note, withUserConfirm = true) {
     return;
   }
 
-  let numTasksToMove = paragraphsToMove.filter(p => p.type == "open").length;
+  const numTasksToMove = paragraphsToMove.filter(p => p.type == "open").length;
 
   if (numTasksToMove > 0) {
-    var re = {
+    let re = {
       index: 0
     };
 
@@ -140,12 +144,12 @@ async function sweepCalendarNote(note, withUserConfirm = true) {
 async function sweepProjectNote(note, withUserConfirm = true, afterDateFileName = "") {
   const paragraphs = note.paragraphs;
   const todayDateString = hyphenatedDateString(new Date());
-  let numTasksToUpdate = paragraphs.filter(p => {
+  const numTasksToUpdate = paragraphs.filter(p => {
     return p.type == "open" && p.date != null && hyphenatedDateString(p.date) < todayDateString && hyphenatedDateString(p.date) >= afterDateFileName;
   }).length;
 
   if (numTasksToUpdate > 0) {
-    var re = {
+    let re = {
       index: 0
     };
 
@@ -155,7 +159,7 @@ async function sweepProjectNote(note, withUserConfirm = true, afterDateFileName 
 
     if (re.index == 0) {
       paragraphs.forEach(para => {
-        if (para.type === 'open' && para.date != null) {
+        if (para.type === "open" && para.date != null) {
           const paraDateString = hyphenatedDateString(para.date);
 
           if (paraDateString < todayDateString && paraDateString >= afterDateFileName) {
@@ -194,7 +198,7 @@ function hyphenatedDateString(dateObj) {
     month,
     date
   } = getYearMonthDate(dateObj);
-  return `${year}-${month < 10 ? '0' : ''}${month}-${date < 10 ? '0' : ''}${date}`;
+  return `${year}-${month < 10 ? "0" : ""}${month}-${date < 10 ? "0" : ""}${date}`;
 }
 
 function filenameDateString(dateObj) {
@@ -203,5 +207,5 @@ function filenameDateString(dateObj) {
     month,
     date
   } = getYearMonthDate(dateObj);
-  return `${year}${month < 10 ? '0' : ''}${month}${date < 10 ? '0' : ''}${date}`;
+  return `${year}${month < 10 ? "0" : ""}${month}${date < 10 ? "0" : ""}${date}`;
 }
