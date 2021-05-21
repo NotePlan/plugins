@@ -195,6 +195,10 @@
     const type = Editor.type;
     const note = Editor.note;
 
+    if (note == null) {
+      return;
+    }
+
     if (type === 'Calendar') {
       const todayNoteFileName = filenameDateString(new Date()) + '.' + DataStore.defaultFileExtension;
 
