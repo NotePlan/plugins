@@ -6,11 +6,11 @@
 
 // Settings
 // Items that should come from the Preference framework in time:
-const pref_templateText = ```
+const pref_templateText = `
 ### Media
 
 ### Journal
-```;
+`;
 const pref_reviewSectionHeading = 'Journal';
 const pref_reviewQuestions = [
   '@work(<int>)',
