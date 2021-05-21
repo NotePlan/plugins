@@ -544,15 +544,15 @@ type TNote = {
   /**
    * Date and time when the note was last modified.
    */
-  +changedDate: Date | void,
+  +changedDate: Date,
   /**
    * Date and time of the creation of the note.
    */
-  +createdDate: Date | void,
+  +createdDate: Date,
   /**
    * All #hashtags contained in this note.
    */
-  +hashtashs: $ReadOnlyArray<string>,
+  +hashtags: $ReadOnlyArray<string>,
   /**
    * All @mentions contained in this note.
    */
@@ -840,7 +840,7 @@ type TParagaraphBridge = {
    */
   insertParagraphAfterParagraph(
     title: string,
-    otherParagraph: TParagaraph,
+    otherParagraph: TParagraph,
     paragraphType: ParagraphType,
   ): void,
 

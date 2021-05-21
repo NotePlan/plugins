@@ -55,11 +55,12 @@
     "CommandBar": true,
     "Calendar": true,
     "CalendarItem": true,
-    "globalThis": true
+    "globalThis": true,
+    "Clipboard": true,
+    "fetch": true
   },
   "ignorePatterns": [
     "node_modules",
-    "dist",
-    "script.js"
+    "nmn.sweep/script.js"
   ]
 }
