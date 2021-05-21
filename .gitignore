@@ -3,6 +3,4 @@ node_modules/
 dist/
 .cache/
 */ts-template/*.*
-*/package.json
-*/.flowconfig
 */node_modules/
