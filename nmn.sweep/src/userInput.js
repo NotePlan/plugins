@@ -17,10 +17,16 @@ export async function chooseOption<T, TDefault = T>(
   return options[index]?.value ?? defaultValue;
 }
 
-export async function showMessage(title: string): Promise<void> {
-  await CommandBar.showOptions(['OK'], title);
+export async function showMessage(
+  title: string,
+  okLabel: string = 'OK',
+): Promise<void> {
+  await CommandBar.showOptions([okLabel], title);
 }
 
-export async function getInput(title: string): Promise<string> {
-  return await CommandBar.showInput(title, 'OK');
+export async function getInput(
+  title: string,
+  okLabel: string = 'OK',
+): Promise<string> {
+  return await CommandBar.showInput(title, okLabel);
 }

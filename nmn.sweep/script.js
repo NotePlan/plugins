@@ -28,41 +28,55 @@
     return `${year}${month < 10 ? '0' : ''}${month}${date < 10 ? '0' : ''}${date}`;
   }
 
-  async function sweepProjectNote(note, withUserConfirm = true, afterDateFileName = '0000-00-00', notifyNoChanges = true) {
+  async function chooseOption(title, options, defaultValue) {
+    const {
+      index
+    } = await CommandBar.showOptions(options.map(option => option.label), title);
+    return options[index]?.value ?? defaultValue;
+  }
+  async function showMessage(title, okLabel = 'OK') {
+    await CommandBar.showOptions([okLabel], title);
+  }
+
+  async function sweepProjectNote(note, withUserConfirm = true, afterHyphenatedDate = '0000-00-00', notifyNoChanges = true) {
     const paragraphs = note.paragraphs;
     const todayDateString = hyphenatedDateString(new Date());
-    const numTasksToUpdate = paragraphs.filter(p => p.type == 'open' && p.date != null && hyphenatedDateString(p.date) < todayDateString && hyphenatedDateString(p.date) >= afterDateFileName).length;
+    const overdueTasks = paragraphs.filter(p => p.type == 'open' && p.date != null && hyphenatedDateString(p.date) < todayDateString && hyphenatedDateString(p.date) >= afterHyphenatedDate);
+    const numTasksToUpdate = overdueTasks.length;
 
     if (numTasksToUpdate > 0) {
-      let re = {
-        index: 0
-      };
+      let confirmed = true;
+      const pluralTask = numTasksToUpdate != 1 ? 'tasks' : 'task';
 
       if (withUserConfirm) {
         Editor.openNoteByFilename(note.filename);
-        re = await CommandBar.showOptions([`🔗 Yes, Reschedule (update '>date') ${numTasksToUpdate} task${numTasksToUpdate != 1 ? 's' : ''} to today`, '❌ No, Cancel'], '🧹 Ready to sweep?');
+        const yesLabel = `🔗 Yes, Reschedule (update '>date') ${numTasksToUpdate} ${pluralTask} to today`;
+        confirmed = await chooseOption('🧹 Ready to sweep?', [{
+          label: yesLabel,
+          value: true
+        }, {
+          label: '❌ Not This File',
+          value: false
+        }], false);
       }
 
-      if (re.index == 0) {
-        paragraphs.forEach(para => {
+      if (confirmed) {
+        overdueTasks.forEach(para => {
           if (para.type === 'open' && para.date != null) {
             const paraDateString = hyphenatedDateString(para.date);
+            para.content = para.content.replace(paraDateString, todayDateString);
 
-            if (paraDateString < todayDateString && paraDateString >= afterDateFileName) {
-              para.content = para.content.replace(paraDateString, todayDateString);
+            if (Editor.filename == note.filename) {
+              Editor.updateParagraph(para);
+            } else {
+              note.updateParagraph(para);
             }
           }
         });
-
-        if (Editor.filename == note.filename) {
-          Editor.paragraphs = paragraphs;
-        } else {
-          note.paragraphs = paragraphs;
-        }
       }
     } else {
       if (notifyNoChanges && withUserConfirm) {
-        await CommandBar.showInput('Everything is up to date here!', "OK, I'll open another note.");
+        await showMessage('Everything is already up to date here!');
       }
     }
   }
@@ -76,7 +90,7 @@
     const nonMovableTypes = ['scheduled', 'cancelled', 'done'];
     const resetTypes = ['title', 'empty'];
     let lastRootItem = null;
-    paragraphs.forEach((p, _index) => {
+    paragraphs.forEach(p => {
       if (nonMovableTypes.includes(p.type)) {
         return;
       } // Remember the last item which is not indented and open, or a bullet
@@ -104,7 +118,8 @@
     // TODO: Filter out "empty" headings
     // TODO: Don't remove root tasks or bullets, if they have at least one closed item below, indented as child. Rather, check it off
 
-    const todayNote = DataStore.calendarNoteByDate(new Date());
+    const today = new Date();
+    const todayNote = DataStore.calendarNoteByDate(today);
 
     if (todayNote == null) {
       return;
@@ -113,30 +128,67 @@
     const numTasksToMove = paragraphsToMove.filter(p => p.type == 'open').length;
 
     if (numTasksToMove > 0) {
-      let re = {
-        index: 0
-      };
+      let rescheduleTasks = 'move';
 
       if (withUserConfirm) {
         Editor.openNoteByFilename(note.filename);
-        re = await CommandBar.showOptions(['✂️ Move (cut & paste) ' + numTasksToMove + ' task(s) to today', '❌ Cancel'], '🧹 Ready to sweep?');
+        rescheduleTasks = await chooseOption('🧹 Ready to sweep?', [{
+          label: '✂️ Move (cut & paste) ' + numTasksToMove + ' task(s) to today',
+          value: 'move'
+        }, {
+          label: '✂️ Reschedule (copy) ' + numTasksToMove + ' task(s) to today',
+          value: 'reschedule'
+        }, {
+          label: '❌ Cancel',
+          value: false
+        }], false);
       }
 
-      if (re.index == 0) {
+      if (rescheduleTasks === 'move') {
         // Add Tasks to Today
-        todayNote.paragraphs = [...todayNote.paragraphs, ...paragraphsToMove]; // Remove Tasks from the open day. Use 'Editor', since we apply this to the opened note (or day). Then you can use undo to revert changes.
+        todayNote.paragraphs = [...todayNote.paragraphs, ...paragraphsToMove];
+        paragraphsToRemove.forEach(para => {
+          if (Editor.filename == note.filename) {
+            Editor.removeParagraph(para);
+          } else {
+            note.removeParagraph(para);
+          }
+        });
+      }
 
-        if (Editor.filename == note.filename) {
-          Editor.paragraphs = note.paragraphs.filter((_, index) => !paragraphsToRemove.map(p => p.lineIndex).includes(index));
-        } else {
-          note.paragraphs = note.paragraphs.filter((_, index) => !paragraphsToRemove.map(p => p.lineIndex).includes(index));
-        }
+      if (rescheduleTasks === 'reschedule') {
+        const noteDate = note.date;
+        const dateTag = noteDate != null ? ` <${hyphenatedDateString(noteDate)}` : '';
+        const paragraphsWithDateTag = paragraphsToMove.map(para => {
+          const paraClone = para.duplicate();
+
+          if (para.type === 'open') {
+            paraClone.content = removeDateTags(paraClone.content) + dateTag;
+          }
+
+          return paraClone;
+        });
+        todayNote.paragraphs = [...todayNote.paragraphs, ...paragraphsWithDateTag];
+        paragraphsToRemove.forEach(para => {
+          para.type = 'scheduled';
+          para.content = removeDateTags(para.content) + ` >${hyphenatedDateString(today)}`;
+
+          if (Editor.filename == note.filename) {
+            Editor.updateParagraph(para);
+          } else {
+            note.updateParagraph(para);
+          }
+        });
       }
     } else {
       if (notifyNoChanges && withUserConfirm) {
         await CommandBar.showInput('There are no open tasks to move in this note.', "OK, I'll open another date.");
       }
     }
+  }
+
+  function removeDateTags(content) {
+    return content.replace(/<\d{4}-\d{2}-\d{2}/g, '').replace(/>\d{4}-\d{2}-\d{2}/g, '').trim();
   }
 
   async function sweepFile() {
@@ -159,40 +211,56 @@
 
   const OPTIONS = [{
     label: '7 days',
-    value: 7,
-    unit: 'day'
+    value: {
+      num: 7,
+      unit: 'day'
+    }
   }, {
     label: '14 days',
-    value: 14,
-    unit: 'day'
+    value: {
+      num: 14,
+      unit: 'day'
+    }
   }, {
     label: '21 days',
-    value: 21,
-    unit: 'day'
+    value: {
+      num: 21,
+      unit: 'day'
+    }
   }, {
     label: '1 month',
-    value: 1,
-    unit: 'month'
+    value: {
+      num: 1,
+      unit: 'month'
+    }
   }, {
     label: '3 months',
-    value: 3,
-    unit: 'month'
+    value: {
+      num: 3,
+      unit: 'month'
+    }
   }, {
     label: '6 months',
-    value: 6,
-    unit: 'month'
+    value: {
+      num: 6,
+      unit: 'month'
+    }
   }, {
     label: '1 year',
-    value: 1,
-    unit: 'year'
+    value: {
+      num: 1,
+      unit: 'year'
+    }
   }, {
     label: '❌ Cancel',
-    value: 0,
-    unit: 'day'
+    value: {
+      num: 0,
+      unit: 'day'
+    }
   }];
   const DEFAULT_OPTION = {
     unit: 'day',
-    value: 0
+    num: 0
   };
   /**
    * TODO:
@@ -203,26 +271,18 @@
 
   async function sweepAll() {
     const {
-      index
-    } = await CommandBar.showOptions(OPTIONS.map(option => option.label), '🧹 Reschedule tasks to today of the last...');
-
-    if (index < 0 || index >= 7) {
-      // Invalid option
-      return;
-    }
-
-    const {
       unit,
-      value
-    } = OPTIONS[index] ?? DEFAULT_OPTION;
-    const afterDateFileName = filenameDateString(Calendar.addUnitToDate(new Date(), unit, -value));
+      num
+    } = await chooseOption('🧹 Reschedule tasks to today of the last...', OPTIONS, DEFAULT_OPTION);
+    const afterDate = Calendar.addUnitToDate(new Date(), unit, -num);
+    const afterDateFileName = filenameDateString(Calendar.addUnitToDate(new Date(), unit, -num));
     await CommandBar.showInput('Dealing with your Project Notes First', 'OK');
 
     for (const note of DataStore.projectNotes) {
-      await sweepProjectNote(note, true, afterDateFileName, false);
+      await sweepProjectNote(note, true, hyphenatedDateString(afterDate), false);
     }
 
-    await CommandBar.showInput(`Now let's look at your Daily Notes`, 'OK');
+    await showMessage(`Now let's look at your Daily Notes`);
     const todayFileName = filenameDateString(new Date());
     const recentCalNotes = DataStore.calendarNotes.filter(note => note.filename < todayFileName && note.filename >= afterDateFileName);
 
@@ -230,7 +290,7 @@
       await sweepCalendarNote(note, true, false);
     }
 
-    await CommandBar.showInput(`All Done!`, 'OK');
+    await showMessage(`All Done!`);
   }
 
   globalThis.sweepAll = sweepAll;

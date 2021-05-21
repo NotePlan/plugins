@@ -37,6 +37,10 @@
 declare var Editor: TEditor;
 type TEditor = {
   /**
+   * Also all the keys from this object
+   */
+  ...TParagaraphBridge,
+  /**
    * Get the note object of the opened note in the editor
    */
   +note: ?TNote,
@@ -157,11 +161,6 @@ type TEditor = {
    * will be unfolded.
    */
   highlightByRange(range: Range): void,
-
-  /**
-   * Also all the keys from this object
-   */
-  ...ParagaraphBridge,
 };
 
 /**
@@ -486,7 +485,7 @@ type TParagraph = {
   /**
    * Get the heading level of the paragraph ('# heading' = level 1).
    */
-  +headingLevel: string,
+  +headingLevel: number,
   /**
    * If the task is a recurring one (contains '@repeat(...)')
    */

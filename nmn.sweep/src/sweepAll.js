@@ -1,6 +1,6 @@
 // @flow strict
 
-import { filenameDateString } from './dateHelpers';
+import { filenameDateString, hyphenatedDateString } from './dateHelpers';
 import sweepCalendarNote from './sweepCalendarNote';
 import sweepProjectNote from './sweepProjectNote';
 import { chooseOption, showMessage } from './userInput';
@@ -35,13 +35,15 @@ export default async function sweepAll(): Promise<void> {
     DEFAULT_OPTION,
   );
 
+  const afterDate = Calendar.addUnitToDate(new Date(), unit, -num);
+
   const afterDateFileName = filenameDateString(
     Calendar.addUnitToDate(new Date(), unit, -num),
   );
   await CommandBar.showInput('Dealing with your Project Notes First', 'OK');
 
   for (const note of DataStore.projectNotes) {
-    await sweepProjectNote(note, true, afterDateFileName, false);
+    await sweepProjectNote(note, true, hyphenatedDateString(afterDate), false);
   }
 
   await showMessage(`Now let's look at your Daily Notes`);
