@@ -50,12 +50,12 @@
 
       if (withUserConfirm) {
         Editor.openNoteByFilename(note.filename);
-        const yesLabel = `🔗 Yes, Reschedule (update '>date') ${numTasksToUpdate} ${pluralTask} to today`;
-        confirmed = await chooseOption('🧹 Ready to sweep?', [{
+        const yesLabel = `🔗 Yes, reschedule (update '>date') ${numTasksToUpdate} ${pluralTask} to today`;
+        confirmed = await chooseOption(`🧹 Ready to sweep '${note.title}'?`, [{
           label: yesLabel,
           value: true
         }, {
-          label: '❌ Not This File',
+          label: '❌ Skip this note',
           value: false
         }], false);
       }
@@ -136,7 +136,7 @@
           label: '✂️ Move (cut & paste) ' + numTasksToMove + ' task(s) to today',
           value: 'move'
         }, {
-          label: '✂️ Reschedule (copy) ' + numTasksToMove + ' task(s) to today',
+          label: '🗓 Reschedule (copy) ' + numTasksToMove + ' task(s) to today',
           value: 'reschedule'
         }, {
           label: '❌ Cancel',
@@ -278,20 +278,32 @@
       unit,
       num
     } = await chooseOption('🧹 Reschedule tasks to today of the last...', OPTIONS, DEFAULT_OPTION);
-    const afterDate = Calendar.addUnitToDate(new Date(), unit, -num);
-    const afterDateFileName = filenameDateString(Calendar.addUnitToDate(new Date(), unit, -num));
-    await CommandBar.showInput('Dealing with your Project Notes First', 'OK');
 
-    for (const note of DataStore.projectNotes) {
-      await sweepProjectNote(note, true, hyphenatedDateString(afterDate), false);
+    if (num == 0) {
+      // User canceled, return here, so no additional messages are shown
+      await showMessage(`Cancelled! No changes made.`);
+      return;
     }
 
-    await showMessage(`Now let's look at your Daily Notes`);
-    const todayFileName = filenameDateString(new Date());
-    const recentCalNotes = DataStore.calendarNotes.filter(note => note.filename < todayFileName && note.filename >= afterDateFileName);
+    const afterDate = Calendar.addUnitToDate(new Date(), unit, -num);
+    const afterDateFileName = filenameDateString(Calendar.addUnitToDate(new Date(), unit, -num));
+    const re1 = await CommandBar.showOptions(['✅ OK', '❌ Skip'], '📙 Processing with your Project Notes first...');
 
-    for (const note of recentCalNotes) {
-      await sweepCalendarNote(note, true, false);
+    if (re1.index == 0) {
+      for (const note of DataStore.projectNotes) {
+        await sweepProjectNote(note, true, hyphenatedDateString(afterDate), false);
+      }
+    }
+
+    const re2 = await CommandBar.showOptions(['✅ OK', '❌ Skip'], '🗓 Now processing your Daily Notes...');
+
+    if (re2.index == 0) {
+      const todayFileName = filenameDateString(new Date());
+      const recentCalNotes = DataStore.calendarNotes.filter(note => note.filename < todayFileName && note.filename >= afterDateFileName);
+
+      for (const note of recentCalNotes) {
+        await sweepCalendarNote(note, true, false);
+      }
     }
 
     await showMessage(`All Done!`);
