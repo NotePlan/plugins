@@ -29,12 +29,12 @@ export default async function sweepProjectNote(
 
     if (withUserConfirm) {
       Editor.openNoteByFilename(note.filename);
-      const yesLabel = `🔗 Yes, Reschedule (update '>date') ${numTasksToUpdate} ${pluralTask} to today`;
+      const yesLabel = `🔗 Yes, reschedule (update '>date') ${numTasksToUpdate} ${pluralTask} to today`;
       confirmed = await chooseOption<boolean>(
-        '🧹 Ready to sweep?',
+        `🧹 Ready to sweep '${note.title}'?`,
         [
           { label: yesLabel, value: true },
-          { label: '❌ Not This File', value: false },
+          { label: '❌ Skip this note', value: false },
         ],
         false,
       );

@@ -6,19 +6,19 @@
   "plugin.icon": "f120",
   "plugin.author": "Naman Goel & Eduard",
   "plugin.repoUrl": "tbd",
-  "plugin.version": "0.0.4",
+  "plugin.version": "0.0.5",
   "plugin.dependencies": [ ],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
   "plugin.commands": [
     {
-      "name": "sweepFile",
+      "name": "swt",
       "description": "Move all open tasks from current note to today",
       "jsFunction": "sweepFile"
     },
     {
-      "name": "sweepAll",
-      "description": "Move all overdue tasks to today",
+      "name": "swa",
+      "description": "Reschedule multiple notes interactively to today",
       "jsFunction": "sweepAll"
     }
   ],

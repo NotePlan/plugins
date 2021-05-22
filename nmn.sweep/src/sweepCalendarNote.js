@@ -78,7 +78,7 @@ export default async function sweepCalendarNote(
           },
           {
             label:
-              '✂️ Reschedule (copy) ' + numTasksToMove + ' task(s) to today',
+              '🗓 Reschedule (copy) ' + numTasksToMove + ' task(s) to today',
             value: 'reschedule',
           },
           {
