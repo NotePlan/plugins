@@ -3,4 +3,3 @@ node_modules/
 dist/
 .cache/
 */ts-template/*.*
-*/node_modules/
