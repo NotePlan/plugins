@@ -6,7 +6,7 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/",
-  "plugin.version": "0.7.1",
+  "plugin.version": "0.7.2",
   "plugin.changelog": "See plugin README.md",
   "plugin.dependencies": [],
   "plugin.script": "noteHelpers.js",
