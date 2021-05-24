@@ -1,5 +1,8 @@
 // @flow strict
 
+import { hyphenatedDateString } from './dateHelpers';
+import { chooseOption } from './userInput';
+
 export default async function sweepCalendarNote(
   note: TNote,
   withUserConfirm: boolean = true,
@@ -14,9 +17,10 @@ export default async function sweepCalendarNote(
   const mainItemTypes = ['open'];
   const nonMovableTypes = ['scheduled', 'cancelled', 'done'];
   const resetTypes = ['title', 'empty'];
+
   let lastRootItem: ?TParagraph = null;
 
-  paragraphs.forEach((p, _index) => {
+  paragraphs.forEach((p) => {
     if (nonMovableTypes.includes(p.type)) {
       return;
     }
@@ -48,44 +52,83 @@ export default async function sweepCalendarNote(
   // TODO: Add back non-todo main types if it has indented todos
   // TODO: Filter out "empty" headings
   // TODO: Don't remove root tasks or bullets, if they have at least one closed item below, indented as child. Rather, check it off
-
-  const todayNote = DataStore.calendarNoteByDate(new Date());
+  const today = new Date();
+  const todayNote = DataStore.calendarNoteByDate(today);
   if (todayNote == null) {
     return;
   }
 
+  type RescheduleType = 'move' | 'reschedule' | false;
+
   const numTasksToMove = paragraphsToMove.filter(
     (p) => p.type == 'open',
   ).length;
+
   if (numTasksToMove > 0) {
-    let re = { index: 0 };
+    let rescheduleTasks: RescheduleType = 'move';
     if (withUserConfirm) {
       Editor.openNoteByFilename(note.filename);
-      re = await CommandBar.showOptions(
-        [
-          '✂️ Move (cut & paste) ' + numTasksToMove + ' task(s) to today',
-          '❌ Cancel',
-        ],
+      rescheduleTasks = await chooseOption<RescheduleType>(
         '🧹 Ready to sweep?',
+        [
+          {
+            label:
+              '✂️ Move (cut & paste) ' + numTasksToMove + ' task(s) to today',
+            value: 'move',
+          },
+          {
+            label:
+              '🗓 Reschedule (copy) ' + numTasksToMove + ' task(s) to today',
+            value: 'reschedule',
+          },
+          {
+            label: '❌ Cancel',
+            value: false,
+          },
+        ],
+        false,
       );
     }
 
-    if (re.index == 0) {
+    if (rescheduleTasks === 'move') {
       // Add Tasks to Today
       todayNote.paragraphs = [...todayNote.paragraphs, ...paragraphsToMove];
 
-      // Remove Tasks from the open day. Use 'Editor', since we apply this to the opened note (or day). Then you can use undo to revert changes.
-      if (Editor.filename == note.filename) {
-        Editor.paragraphs = note.paragraphs.filter(
-          (_, index) =>
-            !paragraphsToRemove.map((p) => p.lineIndex).includes(index),
-        );
-      } else {
-        note.paragraphs = note.paragraphs.filter(
-          (_, index) =>
-            !paragraphsToRemove.map((p) => p.lineIndex).includes(index),
-        );
-      }
+      paragraphsToRemove.forEach((para) => {
+        if (Editor.filename == note.filename) {
+          Editor.removeParagraph(para);
+        } else {
+          note.removeParagraph(para);
+        }
+      });
+    }
+    if (rescheduleTasks === 'reschedule') {
+      const noteDate = note.date;
+      const dateTag =
+        noteDate != null ? ` <${hyphenatedDateString(noteDate)}` : '';
+      const paragraphsWithDateTag = paragraphsToMove.map((para) => {
+        const paraClone = para.duplicate();
+        if (para.type === 'open') {
+          paraClone.content = removeDateTags(paraClone.content) + dateTag;
+        }
+        return paraClone;
+      });
+
+      todayNote.paragraphs = [
+        ...todayNote.paragraphs,
+        ...paragraphsWithDateTag,
+      ];
+
+      paragraphsToRemove.forEach((para) => {
+        para.type = 'scheduled';
+        para.content =
+          removeDateTags(para.content) + ` >${hyphenatedDateString(today)}`;
+        if (Editor.filename == note.filename) {
+          Editor.updateParagraph(para);
+        } else {
+          note.updateParagraph(para);
+        }
+      });
     }
   } else {
     if (notifyNoChanges && withUserConfirm) {
@@ -95,4 +138,11 @@ export default async function sweepCalendarNote(
       );
     }
   }
+}
+
+function removeDateTags(content: string): string {
+  return content
+    .replace(/<\d{4}-\d{2}-\d{2}/g, '')
+    .replace(/>\d{4}-\d{2}-\d{2}/g, '')
+    .trim();
 }

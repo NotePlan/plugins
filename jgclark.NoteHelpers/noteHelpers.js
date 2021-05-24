@@ -17,6 +17,7 @@ pref_templateText.push("### Tasks\n\n### Media\n\n### Journal\n")
 pref_templateName.push("Project Meeting note")
 pref_templateText.push("### Project X Meeting on [[date]] with @Y and @Z\n\n### Notes\n\n### Actions\n")
 
+var staticTemplateFolder = "📋 Templates"
 
 //------------------------------------------------------------------
 // Helper functions
@@ -75,56 +76,35 @@ function moveNote(selectedFolder) {
 // Create new note in current folder, and optionally with currently selected text
 // Also now offers to use one of a number of Templates
 async function newNote() {
-  console.log("\nnewNote:")
-  var sel = ""
-  var currentFolder = ""
-  // The Editor object is not always open, so have to handle possible error here
-  // If it isn't open, then just carry on; all it means is that there won't be a selection.
-  // TODO: Reported to EM that this is a bit of a hack, and it would be good to be able to
-  // test for Editor?.content or similar.
-  try { 
-    sel = Editor.selectedText
-    // console.log("\tCurrent cursor position: " + sel.start + " for " + sel.length + " chars")
-    console.log("\tSelected text: " + sel)
-    // Work out current folder name
-    // NB: Handily, if we're in a daily note, then the currentFolder is empty
+  let currentFolder = ""
+
+  if(Editor.content != null) {
     let reArray = Editor.filename.match(/(.*)\/.*/)
-    currentFolder = (reArray !== undefined) ? reArray[1] : ""
+    console.log(Editor.filename)
+    console.log(reArray)
+    currentFolder = (reArray !== undefined && reArray.length > 0) ? reArray[1] : ""
   }
-  catch (err) {
-    sel = "" // shouldn't be needed, but seems to be
+
+  console.log("\tCurrent folder: " + currentFolder)
+
+  // Get title for this note
+  var title = await CommandBar.showInput("Enter title of the new note", "Create a new note with title '%@'")
+
+  await createTemplateFolderIfNeeded()
+  let templateText = await selectTemplateContent(true)
+  console.log(templateText)
+  if(templateText == null) {
+    templateText = ""
   }
-  finally {
 
-    console.log("\tCurrent folder: " + currentFolder)
+  if (title !== undefined && title != "") {
+    // Create new note in the specific folder
+    let filename = DataStore.newNote(title + "\n" + templateText, currentFolder)
+    console.log("\tCreated note with title: " + title + "\tfilename: " + filename)
+    await Editor.openNoteByFilename(filename)
 
-    // Get title for this note
-    var title = await CommandBar.showInput("Enter title of the new note", "Create a new note with title '%@'")
-
-    // If template(s) are defined, then ask which one to use, unless there is only one
-    var templateText = ""
-    if (pref_templateName.length == 1) {
-      templateText = pref_templateText[0]
-    } else if (pref_templateName.length > 1) {
-      var defaultNone = ["(None)"]
-      var names = defaultNone.concat(pref_templateName)
-      var re = await CommandBar.showOptions(names, "Select template to use:")
-      if (re.index != 0) {
-        templateText = pref_templateText[re.index - 1]
-        console.log("\Template name to use: '" + pref_templateName[re.index - 1])
-      }
-    }
-
-    if (title !== undefined && title != "") {
-      // Create new note in the specific folder
-      let filename = DataStore.newNote(title, currentFolder)
-      console.log("\tCreated note with title: " + title + "\tfilename: " + filename)
-      // Add template text (if selected) then the previous selection (if present)
-      await Editor.openNoteByFilename(filename)
-      Editor.content = "# " + title + "\n" + templateText + sel
-    } else {
-      console.log("\tError: undefined or empty title")
-    }
+  } else {
+    console.log("\tError: undefined or empty title")
   }
 }
 
@@ -138,30 +118,97 @@ async function applyTemplate() {
   // TODO: Reported to EM that this is a bit of a hack, and it would be good to be able to
   // test for Editor?.content or similar.
   // Something is now available, according to Discord.
-  try {
-    console.log("\napplyTemplate for note " + Editor.filename)
+  // try {
+  //   console.log("\napplyTemplate for note " + Editor.filename)
 
-    // If template(s) are defined, then ask which one to use, unless there's just one defined
-    var templateText = ""
-    if (pref_templateName.length == 1) {
-      templateText = pref_templateText[0]
-    } else if (pref_templateName.length > 1) {
-      var names = pref_templateName
-      var re = await CommandBar.showOptions(names, "Select template to use:")
-      templateText = pref_templateText[re.index]
-      console.log("\tTemplate name to use: " + pref_templateName[re.index])
-    } else {
-      throw "No templates configured."
-    }
+  //   // If template(s) are defined, then ask which one to use, unless there's just one defined
+  //   var templateText = ""
+  //   if (pref_templateName.length == 1) {
+  //     templateText = pref_templateText[0]
+  //   } else if (pref_templateName.length > 1) {
+  //     var names = pref_templateName
+  //     var re = await CommandBar.showOptions(names, "Select template to use:")
+  //     templateText = pref_templateText[re.index]
+  //     console.log("\tTemplate name to use: " + pref_templateName[re.index])
+  //   } else {
+  //     throw "No templates configured."
+  //   }
 
-    // Insert template text after note's title (or at the top if a daily note)
-    pos = (Editor.type == "Notes") ? 1 : 0
-    Editor.note.insertParagraph(templateText, pos, "empty")
-  }
-  catch (err) {
-    console.log("Error in applyTemplate: " + err)
+  //   // Insert template text after note's title (or at the top if a daily note)
+  //   pos = (Editor.type == "Notes") ? 1 : 0
+  //   Editor.note.insertParagraph(templateText, pos, "empty")
+  // }
+  // catch (err) {
+  //   console.log("Error in applyTemplate: " + err)
+  // }
+
+  await createTemplateFolderIfNeeded()
+  let content = await selectTemplateContent()
+
+  if(content != null) {
+    Editor.prependParagraph(content)
   }
 }
+
+function templateFolder() {
+  return DataStore.folders.filter(f => f.includes(staticTemplateFolder))[0] 
+}
+
+async function selectTemplateContent(shouldIncludeNone) {
+  let folder = templateFolder()
+
+  let templateNotes = DataStore.projectNotes.filter(n => n.filename.includes(folder))
+  let options = templateNotes.map(n => n.title)
+  if(shouldIncludeNone != null && shouldIncludeNone == true) {
+    options.splice(0, 0, "(none)");
+  }
+
+  let templateIndex = (await CommandBar.showOptions(options, "Select a template:")).index
+
+  if(shouldIncludeNone == true) {
+    if(templateIndex == 0) {
+      return null
+    }
+    templateIndex -= 1 // We need to decrement the index because we need to fetch the note from the original array which has not the "none" option.
+  }
+
+  let templateNote = templateNotes[templateIndex]
+
+  // Now cut out everything above "---" (second line), which is there so we can have a more meaningful title for the template note
+  if(templateNote != null) {
+    var lines = templateNote.paragraphs
+
+    if(lines.length > 0 && lines[1].content == "---") {
+      lines.splice(1, 1)
+      lines.splice(0, 1)
+    }
+
+    return lines.map(l => l.rawContent).join("\n")
+  } else {
+    console.log("Failed to get the template note from the index")
+  }
+}
+
+async function createTemplateFolderIfNeeded() {
+  let folder = templateFolder()
+  
+  if(folder == null) { // No templates folder yet, create one with a sample template
+    console.log("template folder not found")
+
+    if((await CommandBar.showOptions(["✅ Create '" + staticTemplateFolder + "' with samples", "❌ Cancel"], "No templates folder found.")).index == 1) {
+      return
+    }
+
+    let subfolder = (await CommandBar.showOptions(DataStore.folders, "Select a location for the templates folder.")).value
+    folder = subfolder + "/" + staticTemplateFolder
+
+    // Now create a sample note in that folder, then we got the folder also created
+    DataStore.newNote("Daily Note Template\n---\n## Tasks\n\n## Media\n\n## Journal\n", folder)
+    DataStore.newNote("Meeting Note Template\n---\n## Project X Meeting on [[date]] with @Y and @Z\n\n## Notes\n\n## Actions", folder)
+
+    await CommandBar.showInput("Folder '" + staticTemplateFolder + "' created with samples.", "OK, choose a template")
+  } 
+} 
 
 //------------------------------------------------------------------
 // Jumps the cursor to the heading of the current note that the user selects

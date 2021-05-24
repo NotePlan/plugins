@@ -1,2 +1,2 @@
-var htmlToRtf = require('html-to-rtf');
+const htmlToRtf = require('html-to-rtf');
 global.htmlToRtf = htmlToRtf;

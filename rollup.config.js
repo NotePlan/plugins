@@ -5,9 +5,9 @@ import resolve from '@rollup/plugin-node-resolve';
 
 export default {
   external: [],
-  input: 'src/index.js',
+  input: 'nmn.sweep/src/index.js',
   output: {
-    file: 'script.js',
+    file: 'nmn.sweep/script.js',
     format: 'iife',
   },
   plugins: [
