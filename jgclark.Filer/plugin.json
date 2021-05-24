@@ -1,0 +1,22 @@
+{
+  "noteplan.min_version": "3.0.21",
+  "plugin.id": "jgclark.Filer",
+  "plugin.name": "🗃 Filer",
+  "plugin.description": "Help file (move) paragraphs to different notes",
+  "plugin.icon": "",
+  "plugin.author": "jgclark",
+  "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Filer",
+  "plugin.version": "0.2.0",
+  "plugin.dependencies": [],
+  "plugin.script": "fileItems.js",
+  "plugin.isRemote": "false",
+  "plugin.commands": [
+    {
+      "name": "fp",
+      "description": "file paragraphs to different notes",
+      "jsFunction": "fileParas"
+    }
+  ],
+  "plugin.preferences": [
+  ]
+}
