@@ -1,15 +1,15 @@
-// @flow
+// 
 //--------------------------------------------------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark
-// v0.7.1, 16.5.2021
+// v0.7.1, 24.5.2021
 //--------------------------------------------------------------------------------------------------------------------
 
 // Globals
-var todaysDate = new Date().toISOString().slice(0, 10)
-var defaultTodoMarker = (DataStore.preference("defaultTodoCharacter") !== undefined) ? DataStore.preference("defaultTodoCharacter") : "*"
-var pref_templateName = []
-var pref_templateText = []
+ todaysDate = new Date().toISOString().slice(0, 10)
+ defaultTodoMarker = (DataStore.preference("defaultTodoCharacter") !== undefined) ? DataStore.preference("defaultTodoCharacter") : "*"
+ pref_templateName = [] 
+ pref_templateText = []
 
 // Items that should come from the Preference framework in time:
 pref_templateName.push("Daily note structure")
@@ -17,18 +17,18 @@ pref_templateText.push("### Tasks\n\n### Media\n\n### Journal\n")
 pref_templateName.push("Project Meeting note")
 pref_templateText.push("### Project X Meeting on [[date]] with @Y and @Z\n\n### Notes\n\n### Actions\n")
 
-var staticTemplateFolder = "📋 Templates"
+ staticTemplateFolder = "📋 Templates"
 
 //------------------------------------------------------------------
 // Helper functions
 //------------------------------------------------------------------
-function printNote(note) {
-  if (note == undefined) {
+ printNote(note) {
+   (note undefined) {
     console.log("Note not found!")
-    return
+    
   }
 
-  if (note.type == "Notes") {
+  (note.type == "Notes") {
     console.log(
       "title: " + note.title +
       "\n\tfilename: " + note.filename +
@@ -36,7 +36,8 @@ function printNote(note) {
       "\n\tmentions: " + note.mentions +
       "\n\tcreated: " + note.createdDate +
       "\n\tchanged: " + note.changedDate)
-  } else {
+  }
+ {
     console.log(
       "date: " + note.date +
       "\n\tfilename: " + note.filename +
@@ -45,14 +46,15 @@ function printNote(note) {
   }
 }
 
-async function selectFolder() {
-  if (Editor.type == "Notes") {
+ selectFolder() {
+  (Editor.type "Notes") {
 
     // [String] list of options, placeholder text, callback function with selection
-    let folder = await CommandBar.showOptions(DataStore.folders, "Select new folder for '" + Editor.title + "'")
+    let folder await CommandBar.showOptions(DataStore.folders, "Select new folder for '" Editor.title "'")
     moveNote(folder.value)
 
-  } else {
+  } 
+{
     console.log("\t can't move calendar notes.")
     CommandBar.hide()
   }
@@ -60,14 +62,15 @@ async function selectFolder() {
 
 //------------------------------------------------------------------
 // Command from Eduard to move a note to a different folder
-function moveNote(selectedFolder) {
-  console.log("move " + Editor.title + " (filename = '" + Editor.filename + "')" + " to " + selectedFolder)
-  var newFilename = DataStore.moveNote(Editor.filename, selectedFolder)
+ moveNote(selectedFolder) {
+  console.log("move " Editor.title " (filename '" + Editor.filename + "')" + " to " + selectedFolder)
+   newFilename DataStore.moveNote(Editor.filename, selectedFolder)
 
-  if (newFilename != undefined) {
+  (newFilename undefined) {
     Editor.openNoteByFilename(newFilename)
     console.log("\tmoving note was successful")
-  } else {
+  } 
+ {
     console.log("\tmoving note was NOT successful")
   }
 }
@@ -76,10 +79,10 @@ function moveNote(selectedFolder) {
 // Create new note in current folder, and optionally with currently selected text
 // Also now offers to use one of a number of Templates
 async function newNote() {
-  let currentFolder = ""
+  currentFolder ""
 
-  if(Editor.content != null) {
-    let reArray = Editor.filename.match(/(.*)\/.*/)
+  (Editor.content null) {
+     reArray = Editor.filename.match(/(.*)\/.*/)
     console.log(Editor.filename)
     console.log(reArray)
     currentFolder = (reArray !== undefined && reArray.length > 0) ? reArray[1] : ""
