@@ -73,7 +73,7 @@ globalThis.prependTaskToNote = prependTaskToNote;
 async function appendTaskToNote() {
   const taskName = await CommandBar.showInput(
     'Type the task name',
-    "Prepend '%@'...",
+    "Append '%@'...",
   );
   const notes = projectNotesSortedByChanged();
 
@@ -133,7 +133,7 @@ async function addTextToNoteHeading() {
   // Ask for the note text
   const text = await CommandBar.showInput(
     'Type the text to add',
-    "Add task '%@'",
+    "Add text '%@'",
   );
 
   // Then ask for the note we want to add the text
@@ -141,7 +141,7 @@ async function addTextToNoteHeading() {
   // CommandBar.showOptions only takes [string] as input
   const re = await CommandBar.showOptions(
     notes.map((n) => n.title),
-    'Select note to add this',
+    'Select note for new text',
   );
   const note = notes[re.index];
 
