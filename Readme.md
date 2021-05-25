@@ -1,6 +1,6 @@
 # NotePlan Plugins
 
-This is the initial repository for [NotePlan app](https://noteplan.co/) plugins, available from release v3.0.22.
+This is the initial repository for [NotePlan app](https://noteplan.co/) plugins, available from release v3.0.22 (Mac & iOS).
 
 The plugins work through [Command Bar Plugins](https://help.noteplan.co/article/65-commandbar-plugins)
 for example:
