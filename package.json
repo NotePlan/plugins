@@ -22,8 +22,11 @@
     "build": "rollup -c ./rollup.config.js",
     "watch": "rollup -c ./rollup.config.js --watch",
     "lint": "eslint .",
+    "lint-fix": "eslint . --fix",
+    "format": "prettier -w ./**/*.js ./**/**/*.js ./**/**/**/*.js",
     "typecheck": "flow check",
-    "test": "yarn run lint && yarn run typecheck"
+    "fix": "npm run lint-fix && npm run format",
+    "test": "npm run lint && npm run typecheck"
   },
   "prettier": {
     "printWidth": 80,

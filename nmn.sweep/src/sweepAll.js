@@ -35,9 +35,10 @@ export default async function sweepAll(): Promise<void> {
     DEFAULT_OPTION,
   );
 
-  if(num == 0) { // User canceled, return here, so no additional messages are shown
-    await showMessage(`Cancelled! No changes made.`)
-    return
+  if (num == 0) {
+    // User canceled, return here, so no additional messages are shown
+    await showMessage(`Cancelled! No changes made.`);
+    return;
   }
 
   const afterDate = Calendar.addUnitToDate(new Date(), unit, -num);
@@ -45,26 +46,37 @@ export default async function sweepAll(): Promise<void> {
     Calendar.addUnitToDate(new Date(), unit, -num),
   );
 
-  const re1 = await CommandBar.showOptions(['✅ OK', '❌ Skip'], '📙 Processing with your Project Notes first...');
-  if(re1.index == 0) {
+  const re1 = await CommandBar.showOptions(
+    ['✅ OK', '❌ Skip'],
+    '📙 Processing with your Project Notes first...',
+  );
+  if (re1.index == 0) {
     for (const note of DataStore.projectNotes) {
-      await sweepProjectNote(note, true, hyphenatedDateString(afterDate), false)
+      await sweepProjectNote(
+        note,
+        true,
+        hyphenatedDateString(afterDate),
+        false,
+      );
     }
   }
 
-  const re2 = await CommandBar.showOptions(['✅ OK', '❌ Skip'], '🗓 Now processing your Daily Notes...');
+  const re2 = await CommandBar.showOptions(
+    ['✅ OK', '❌ Skip'],
+    '🗓 Now processing your Daily Notes...',
+  );
 
-  if(re2.index == 0) {
+  if (re2.index == 0) {
     const todayFileName = filenameDateString(new Date());
     const recentCalNotes = DataStore.calendarNotes.filter(
       (note) =>
         note.filename < todayFileName && note.filename >= afterDateFileName,
     );
-  
+
     for (const note of recentCalNotes) {
       await sweepCalendarNote(note, true, false);
     }
   }
-  
+
   await showMessage(`All Done!`);
 }

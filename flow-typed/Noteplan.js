@@ -692,6 +692,7 @@ type ParagraphType =
   | 'done'
   | 'scheduled'
   | 'cancelled'
+  | 'title'
   | 'quote'
   | 'list'
   | 'empty';
