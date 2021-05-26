@@ -7,12 +7,15 @@ It works out what you want moving from the current open note using this priority
 - current heading and its following section (up to the next title of the same level or higher)
 - current line the cursor is in
 
-It pops up the command bar to choose the project note you want to move it to, followed by the heading within that note to move it after.  You can press Escape (on Mac) at any time to cancel the move.
+It pops up the command bar to choose the project note you want to move it to, followed by the heading within that note to move it after.  You can press Escape (on Mac) at any time to cancel.  The move happens in the background, leaving you in the current note.
 
 ## Configuration
 None needed.
 
 ## History
+### v0.2.2, 26.5.2021
+- add ability to move paragraphs to top or bottom of note. (Top of note comes after title if there is one.)
+- works when moving to notes with _no title or headings at all_ [Issue 10 by @dwertheimer ]
 
 ### v0.2.0, 25.5.2021
 - first release

@@ -2,7 +2,7 @@
 // -----------------------------------------------------------------------------
 // Plugin to help move selected pargraphs to other notes
 // Jonathan Clark
-// v0.2.1, 26.5.2021
+// v0.2.2, 26.5.2021
 // -----------------------------------------------------------------------------
 
 function projectNotesSortedByChanged() {
@@ -24,16 +24,16 @@ function rangeToString(r) {
 
 // Print out paragraph details
 // Currently unused
-// function paraDetails(p) {
-//   console.log(
-//     "Para content: " + p.content +
-//     "\n\trawContent: " + p.rawContent +
-//     "\n\tlineIndex: " + p.lineIndex +
-//     "\ttype: " + p.type +
-//     "\tindents: " + p.indents + // NB only counts tabs not spaces
-//     "\tprefix: " + p.prefix)
-//   if (p.headingRange != undefined) {console.log('\theadingRange from '+p.headingRange.start+' len '+p.headingRange.length)}
-// }
+function paraDetails(p) {
+  console.log(
+    "Para content: " + p.content +
+    "\n\trawContent: " + p.rawContent +
+    "\n\tlineIndex: " + p.lineIndex +
+    "\ttype: " + p.type +
+    "\tindents: " + p.indents + // NB only counts tabs not spaces
+    "\tprefix: " + p.prefix)
+  if (p.headingRange != undefined) {console.log('\theadingRange from '+p.headingRange.start+' len '+p.headingRange.length)}
+}
 
 // Convert paragraph(s) to single raw text string
 function parasToText(paras) {
@@ -91,11 +91,11 @@ async function fileParas() {
     // paraDetails(para)
     console.log(
       "  Para '" +
-        para.content +
-        "' type: " +
-        para.type +
-        ', index: ' +
-        firstSelParaIndex,
+      para.content +
+      "' type: " +
+      para.type +
+      ', index: ' +
+      firstSelParaIndex,
     );
     // if this is a heading, find the rest of the sections
     if (para.type === 'title') {
@@ -135,15 +135,32 @@ async function fileParas() {
   );
   const noteToMoveTo = notes[res.index];
   console.log('  Moving to note: ' + (noteToMoveTo.title ?? 'Untitled'));
+
   // ask to which heading to add the paras
-  const headings = noteToMoveTo.paragraphs.filter((p) => p.type === 'title');
+  let headingStrings = []
+  const headingParas = noteToMoveTo.paragraphs.filter((p) => p.type === 'title');  // = all headings, not just the top 'title'
+  // console.log(headingParas.length);
+  // paraDetails(headingParas[0]);
+  if (headingParas.length > 0) {
+    headingStrings = headingParas.map((p) => {
+      let prefix = "";
+      for (var i = 1; i < p.headingLevel; i++) {
+        prefix += "    ";
+      }
+      return prefix + p.content;
+    });
+  } else {
+    // Cope with case where there are no headings or titles, pointed out by @dwertheimer
+    headingStrings = ['(top of note)'];
+  }
+  // and add a bottom of note option
+  // headingStrings.unshift('(top of note)'); // add at start
+  headingStrings.push('(bottom of note)'); // add at end
   res = await CommandBar.showOptions(
-    headings.map((p) => p.prefix + p.content),
-    "Select a heading from note '" +
-      (noteToMoveTo.title ?? 'Untitled') +
-      "' to move after",
+    headingStrings,
+    "Select a heading from note '" + (noteToMoveTo.title ?? 'Untitled') + "' to move after",
   );
-  const headingToFind = headings[res.index].content;
+  const headingToFind = headingStrings[res.index].trim();
   console.log('    under heading: ' + headingToFind);
 
   // Add to new location
@@ -152,19 +169,25 @@ async function fileParas() {
   // Add text directly under the heading in the note
   // note.addParagraphBelowHeadingTitle(parasToMove, 'empty', heading.content, false, false);
   const destParas = noteToMoveTo.paragraphs;
-  let headingIndex = null;
-  for (let i = 0; i < destParas.length; i++) {
-    const p = destParas[i];
-    if (p.content == headingToFind && p.type === 'title') {
-      headingIndex = i;
-      break;
+  let insertionIndex = null;
+  if (headingToFind == '(top of note)') {
+    insertionIndex = 0;
+  } else if (headingToFind == '(bottom of note)') {
+    insertionIndex = destParas.length + 1;
+  } else {
+    for (let i = 0; i < destParas.length; i++) {
+      const p = destParas[i];
+      if (p.content == headingToFind && p.type === 'title') {
+        insertionIndex = i + 1;
+        break;
+      }
     }
   }
-  if (headingIndex == null) {
+  if (insertionIndex == null) {
     return;
   }
-  console.log('  This heading is at index ' + headingIndex);
-  await noteToMoveTo.insertParagraph(parasAsText, headingIndex + 1, 'empty');
+  console.log('  Inserting at index ' + insertionIndex);
+  await noteToMoveTo.insertParagraph(parasAsText, insertionIndex, 'empty');
 
   // delete from existing location
   // TODO: waiting for a fix to the preferred .removeParagraph call
