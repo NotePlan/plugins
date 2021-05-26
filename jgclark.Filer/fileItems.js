@@ -2,7 +2,7 @@
 // -----------------------------------------------------------------------------
 // Plugin to help move selected pargraphs to other notes
 // Jonathan Clark
-// v0.2.0, 25.5.2021
+// v0.2.1, 26.5.2021
 // -----------------------------------------------------------------------------
 
 function projectNotesSortedByChanged() {
@@ -54,8 +54,8 @@ async function fileParas() {
   // - current heading + its following section
   // - current line
   // - TODO: current line (plus any indented paragraphs)
-  const { content, selectedParagraphs } = Editor;
-  if (content == null || selectedParagraphs == null) {
+  const { content, selectedParagraphs, note } = Editor;
+  if (content == null || selectedParagraphs == null || note == null) {
     // No note open, or no paragraph selection (perhaps empty note), so don't do anything.
     console.log('fileParse: warning: No note open.');
     return;
@@ -103,8 +103,7 @@ async function fileParas() {
       const thisHeadingLevel = para.headingLevel;
       console.log('  Found heading level ' + thisHeadingLevel);
       parasToMove.push(para); // make this the first line to move
-      // Work out how far this section extends.
-      // NB: headingRange doesn't help us here
+      // Work out how far this section extends. (NB: headingRange doesn't help us here.)
       for (let i = firstSelParaIndex + 1; i < allParas.length; i++) {
         const p = allParas[i];
         if (p.type === 'title' && p.headingLevel <= thisHeadingLevel) {
@@ -169,23 +168,11 @@ async function fileParas() {
 
   // delete from existing location
   // TODO: waiting for a fix to the preferred .removeParagraph call
-  // for (let i = firstSelParaIndex; i < (firstSelParaIndex + parasToMove.length); i++) {
-  //   // console.log('  About to remove selected para # ' + i)
-  //   // Editor.removeParagraph(parasToMove[i])
-  // }
-
-  // So instead, we need to work on the underlying lines system
-  const allLines = Editor.content?.split('\n') ?? [];
-  console.log(
-    '  Preparing to delete: in ' +
-      parasToMove.length +
-      ' lines starting line ' +
-      firstSelParaIndex,
-  );
-  allLines.splice(firstSelParaIndex, parasToMove.length);
-  Editor.content = allLines.join('\n');
-
-  // TODO: Check that when I can go back to the .removeParagraph that it doesn't move around the cursor unhelpfully
+  // but this alternative works
+  for (let i = (firstSelParaIndex + parasToMove.length - 1); i >= firstSelParaIndex; i--) {
+    console.log('  Remove original para # ' + i);
+    note.removeParagraphAtIndex(i);
+  }
 }
 
 globalThis.fileParas = fileParas;
