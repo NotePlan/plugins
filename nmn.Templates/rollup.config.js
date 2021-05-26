@@ -5,10 +5,12 @@ import resolve from '@rollup/plugin-node-resolve';
 
 export default {
   external: [],
-  input: 'nmn.sweep/src/index.js',
+  input: `${__dirname}/src/index.js`,
   output: {
-    file: 'nmn.sweep/script.js',
+    file: `${__dirname}/script.js`,
     format: 'iife',
+    name: 'exports',
+    footer: 'Object.assign(globalThis, exports)',
   },
   plugins: [
     babel({ babelHelpers: 'bundled' }),
