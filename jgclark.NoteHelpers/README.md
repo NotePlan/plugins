@@ -25,6 +25,10 @@ Templates should normally end with a linefeed character (`\n`).
 
 ## History
 
+### v0.8.0, 26.5.2021
+- change to using a separate folder for storing Templates, rather than have to hard-code in the plugin code. The first time **/it** or **/nn** is called the command offers to create and populate the '📋 Templates' folder if it doesn't exist
+- fix: the **/jd** command now works if the Done section has been folded
+
 ### v0.7.1, 15.5.2021
 - change to using two-letter command names, to match new style agreed with EM
 

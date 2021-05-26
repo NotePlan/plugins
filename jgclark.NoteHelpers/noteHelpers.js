@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark
-// v0.7.1, 16.5.2021
+// v0.8.0, 26.5.2021
 //--------------------------------------------------------------------------------------------------------------------
 
 // Globals
@@ -13,18 +13,7 @@ const defaultTodoMarker =
   DataStore.preference('defaultTodoCharacter') !== undefined
     ? DataStore.preference('defaultTodoCharacter')
     : '*';
-const pref_templateName = [];
-const pref_templateText = [];
-
-// Items that should come from the Preference framework in time:
-pref_templateName.push('Daily note structure');
-pref_templateText.push('### Tasks\n\n### Media\n\n### Journal\n');
-pref_templateName.push('Project Meeting note');
-pref_templateText.push(
-  '### Project X Meeting on [[date]] with @Y and @Z\n\n### Notes\n\n### Actions\n',
-);
-
-const staticTemplateFolder = '📋 Templates';
+var staticTemplateFolder = "📋 Templates"
 
 //------------------------------------------------------------------
 // Helper functions
@@ -37,23 +26,29 @@ function printNote(note) {
 
   if (note.type == 'Notes') {
     console.log(
-      [
-        ['title:', note.title ?? 'Untitled'].join(' '),
-        ['filename:', note.filename].join(' '),
-        ['hashtags:', note.hashtags].join(' '),
-        ['mentions:', note.mentions].join(' '),
-        ['created:', note.createdDate].join(' '),
-        ['changed:', note.changedDate].join(' '),
-      ].join('\n\t'),
+      'title: ' +
+        (note.title ?? '') +
+        '\n\tfilename: ' +
+        (note.filename ?? '') +
+        '\n\thashtags: ' +
+        (note.hashtags?.join(',') ?? '') +
+        '\n\tmentions: ' +
+        (note.mentions?.join(',') ?? '') +
+        '\n\tcreated: ' +
+        (String(note.createdDate) ?? '') +
+        '\n\tchanged: ' +
+        (String(note.changedDate) ?? ''),
     );
   } else {
     console.log(
-      [
-        ['date:', note.date].join(' '),
-        ['filename:', note.filename].join(' '),
-        ['hashtags:', note.hashtags].join(' '),
-        ['mentions:', note.mentions].join(' '),
-      ].join('\n\t'),
+      'date: ' +
+        (String(note.createdDate) ?? '') +
+        '\n\tfilename: ' +
+        (note.filename ?? '') +
+        '\n\thashtags: ' +
+        (note.hashtags?.join(',') ?? '') +
+        '\n\tmentions: ' +
+        (note.mentions?.join(',') ?? ''),
     );
   }
 }
@@ -63,21 +58,83 @@ async function selectFolder() {
     // [String] list of options, placeholder text, callback function with selection
     const folder = await CommandBar.showOptions(
       DataStore.folders,
-      "Select new folder for '" + (Editor.title ?? 'Untitled') + "'",
+      "Select new folder for '" + (Editor.title ?? '') + "'",
     );
     moveNote(folder.value);
   } else {
-    console.log("\t can't move calendar notes.");
+    console.log("\tWarning: I can't move calendar notes.");
     CommandBar.hide();
   }
 }
 globalThis.selectFolder = selectFolder;
+
+function templateFolder() {
+  return DataStore.folders.filter(f => f.includes(staticTemplateFolder))[0] 
+}
+
+async function selectTemplateContent(shouldIncludeNone) {
+  let folder = templateFolder()
+
+  let templateNotes = DataStore.projectNotes.filter(n => n.filename.includes(folder))
+  let options = templateNotes.map(n => n.title)
+  if(shouldIncludeNone != null && shouldIncludeNone == true) {
+    options.splice(0, 0, "(none)");
+  }
+
+  let templateIndex = (await CommandBar.showOptions(options, "Select a template:")).index
+
+  if(shouldIncludeNone == true) {
+    if(templateIndex == 0) {
+      return null
+    }
+    templateIndex -= 1 // We need to decrement the index because we need to fetch the note from the original array which has not the "none" option.
+  }
+
+  let templateNote = templateNotes[templateIndex]
+
+  // Now cut out everything above "---" (second line), which is there so we can have a more meaningful title for the template note
+  if(templateNote != null) {
+    var lines = templateNote.paragraphs
+
+    if(lines.length > 0 && lines[1].content == "---") {
+      lines.splice(1, 1)
+      lines.splice(0, 1)
+    }
+
+    return lines.map(l => l.rawContent).join("\n")
+  } else {
+    console.log("Failed to get the template note from the index")
+  }
+}
+
+async function createTemplateFolderIfNeeded() {
+  let folder = templateFolder()
+  
+  if(folder == null) { // No templates folder yet, create one with a sample template
+    console.log("template folder not found")
+
+    if((await CommandBar.showOptions(["✅ Create '" + staticTemplateFolder + "' with samples", "❌ Cancel"], "No templates folder found.")).index == 1) {
+      return
+    }
+
+    let subfolder = (await CommandBar.showOptions(DataStore.folders, "Select a location for the templates folder.")).value
+    folder = subfolder + "/" + staticTemplateFolder
+
+    // Now create a sample note in that folder, then we got the folder also created
+    DataStore.newNote("Daily Note Template\n---\n## Tasks\n\n## Media\n\n## Journal\n", folder)
+    DataStore.newNote("Meeting Note Template\n---\n## Project X Meeting on [[date]] with @Y and @Z\n\n## Notes\n\n## Actions", folder)
+
+    await CommandBar.showInput("Folder '" + staticTemplateFolder + "' created with samples.", "OK, choose a template")
+  } 
+}
 
 //------------------------------------------------------------------
 // Command from Eduard to move a note to a different folder
 function moveNote(selectedFolder) {
   const { title, filename } = Editor;
   if (title == null || filename == null) {
+    // No note open, so don't do anything.
+    console.log('moveNote: warning: No note open.');
     return;
   }
   console.log(`move ${title} (filename = ${filename}) to ${selectedFolder}`);
@@ -96,17 +153,10 @@ function moveNote(selectedFolder) {
 // Create new note in current folder, and optionally with currently selected text
 // Also now offers to use one of a number of Templates
 async function newNote() {
+  const { filename, selectedText } = Editor;
+  console.log('\nnewNote:');
+  let sel = '';
   let currentFolder = '';
-  const { content, filename } = Editor;
-
-  if (content != null && filename != null) {
-    const reArray = filename.match(/(.*)\/.*/);
-    console.log(filename);
-    console.log(reArray);
-    currentFolder = reArray && reArray?.length > 0 ? reArray[1] : '';
-  }
-
-  console.log('\tCurrent folder: ' + currentFolder);
 
   // Get title for this note
   const title = await CommandBar.showInput(
@@ -114,26 +164,51 @@ async function newNote() {
     "Create a new note with title '%@'",
   );
 
-  await createTemplateFolderIfNeeded();
-  let templateText = await selectTemplateContent(true);
-  console.log(templateText);
-  if (templateText == null) {
-    templateText = '';
+  // If template(s) are defined, then ask which one to use, unless there is only one
+  await createTemplateFolderIfNeeded()
+  let templateText = await selectTemplateContent(true)
+  if(templateText == null) {
+    templateText = ""
+  }
+  console.log("Template text: " + templateText)
+
+  // let templateText = '';
+  // if (pref_templateName.length == 1) {
+  //   templateText = pref_templateText[0];
+  // } else if (pref_templateName.length > 1) {
+  //   const defaultNone = ['(None)'];
+  //   const names = defaultNone.concat(pref_templateName);
+  //   const re = await CommandBar.showOptions(names, 'Select template to use:');
+  //   if (re.index != 0) {
+  //     templateText = pref_templateText[re.index - 1];
+  //     console.log(
+  //       "Template name to use: '" + pref_templateName[re.index - 1],
+  //     );
+  //   }
+  // }
+
+  // Eduard's template-folder-and-files version of the above:
+  const folders = DataStore.folders; // excludes Trash and Archive
+  if (folders.length > 0) {
+    const re = await CommandBar.showOptions(
+      folders,
+      'Select folder to add note in:',
+    );
+    currentFolder = folders[re.index];
+  } else {
+    // no Folders so go to root
+    currentFolder = '/';
   }
 
   if (title !== undefined && title != '') {
     // Create new note in the specific folder
-    const filename = DataStore.newNote(
-      title + '\n' + templateText,
-      currentFolder,
-    );
-    if (filename == null) {
-      return;
-    }
+    const filename = DataStore.newNote(title, currentFolder) ?? '';
     console.log(
       '\tCreated note with title: ' + title + '\tfilename: ' + filename,
     );
+    // Add template text (if selected) then the previous selection (if present)
     await Editor.openNoteByFilename(filename);
+    Editor.content = '# ' + title + '\n' + templateText + sel;
   } else {
     console.log('\tError: undefined or empty title');
   }
@@ -141,146 +216,55 @@ async function newNote() {
 globalThis.newNote = newNote;
 
 //------------------------------------------------------------------
-// Create new note in current folder, and optionally with currently selected text
-// Also now offers to use one of a number of Templates
+// Apply template to the current note
+// TODO: Change to using a Template/*.md directory to source templates from
 async function applyTemplate() {
-  // The Editor object is not always open, so have to handle possible error here
-  // If it isn't open, then just carry on; all it means is that there won't be a selection.
-
-  // TODO: Reported to EM that this is a bit of a hack, and it would be good to be able to
-  // test for Editor?.content or similar.
-  // Something is now available, according to Discord.
-  // try {
-  //   console.log("\napplyTemplate for note " + Editor.filename)
-
-  //   // If template(s) are defined, then ask which one to use, unless there's just one defined
-  //   var templateText = ""
-  //   if (pref_templateName.length == 1) {
-  //     templateText = pref_templateText[0]
-  //   } else if (pref_templateName.length > 1) {
-  //     var names = pref_templateName
-  //     var re = await CommandBar.showOptions(names, "Select template to use:")
-  //     templateText = pref_templateText[re.index]
-  //     console.log("\tTemplate name to use: " + pref_templateName[re.index])
-  //   } else {
-  //     throw "No templates configured."
-  //   }
-
-  //   // Insert template text after note's title (or at the top if a daily note)
-  //   pos = (Editor.type == "Notes") ? 1 : 0
-  //   Editor.note.insertParagraph(templateText, pos, "empty")
+  // const { filename } = Editor;
+  // if (filename == null) {
+  //   // No note open, so nothing to do.
+  //   console.log('applyTemplate: warning: No note open.');
+  //   return;
   // }
-  // catch (err) {
-  //   console.log("Error in applyTemplate: " + err)
+  // console.log('\napplyTemplate for note ' + filename);
+
+  // // If template(s) are defined, then ask which one to use, unless there's just one defined
+  // let templateText = '';
+  // if (pref_templateName.length == 1) {
+  //   templateText = pref_templateText[0];
+  // } else if (pref_templateName.length > 1) {
+  //   const names = pref_templateName;
+  //   const re = await CommandBar.showOptions(names, 'Select template to use:');
+  //   templateText = pref_templateText[re.index];
+  //   console.log('\tTemplate name to use: ' + pref_templateName[re.index]);
+  // } else {
+  //   throw 'applyTemplate: error: No templates configured.';
   // }
 
+  // // Insert template text after note's title (or at the top if a daily note)
+  // const pos = Editor.type == 'Notes' ? 1 : 0;
+  // Editor.insertParagraph(templateText, pos, 'empty');
+
+  // Eduard's template-folder-and-files version of the above:
   await createTemplateFolderIfNeeded();
-  const content = await selectTemplateContent();
+  let content = await selectTemplateContent();
 
-  if (content != null) {
+  if(content != null) {
     Editor.prependParagraph(content, 'empty');
   }
+
 }
 globalThis.applyTemplate = applyTemplate;
-
-function templateFolder() {
-  return DataStore.folders.filter((f) => f.includes(staticTemplateFolder))[0];
-}
-
-async function selectTemplateContent(shouldIncludeNone) {
-  const folder = templateFolder();
-
-  const templateNotes = DataStore.projectNotes.filter((n) =>
-    n.filename.includes(folder),
-  );
-  let options = templateNotes.map((n) => n.title).filter(Boolean);
-  if (shouldIncludeNone != null && shouldIncludeNone == true) {
-    options = ['(none)', ...options];
-  }
-
-  let templateIndex = (
-    await CommandBar.showOptions(options, 'Select a template:')
-  ).index;
-
-  if (shouldIncludeNone == true) {
-    if (templateIndex == 0) {
-      return null;
-    }
-    templateIndex -= 1; // We need to decrement the index because we need to fetch the note from the original array which has not the "none" option.
-  }
-
-  const templateNote = templateNotes[templateIndex];
-
-  // Now cut out everything above "---" (second line), which is there so we can have a more meaningful title for the template note
-  if (templateNote != null) {
-    const lines = templateNote.paragraphs.map((para) => para.duplicate());
-
-    if (lines.length > 0 && lines[1].content == '---') {
-      lines.splice(1, 1);
-      lines.splice(0, 1);
-    }
-
-    return lines.map((l) => l.rawContent).join('\n');
-  } else {
-    console.log('Failed to get the template note from the index');
-  }
-}
-
-async function createTemplateFolderIfNeeded() {
-  let folder = templateFolder();
-
-  if (folder == null) {
-    // No templates folder yet, create one with a sample template
-    console.log('template folder not found');
-
-    if (
-      (
-        await CommandBar.showOptions(
-          [
-            "✅ Create '" + staticTemplateFolder + "' with samples",
-            '❌ Cancel',
-          ],
-          'No templates folder found.',
-        )
-      ).index == 1
-    ) {
-      return;
-    }
-
-    const subfolder = (
-      await CommandBar.showOptions(
-        DataStore.folders,
-        'Select a location for the templates folder.',
-      )
-    ).value;
-    folder = subfolder + '/' + staticTemplateFolder;
-
-    // Now create a sample note in that folder, then we got the folder also created
-    DataStore.newNote(
-      'Daily Note Template\n---\n## Tasks\n\n## Media\n\n## Journal\n',
-      folder,
-    );
-    DataStore.newNote(
-      'Meeting Note Template\n---\n## Project X Meeting on [[date]] with @Y and @Z\n\n## Notes\n\n## Actions',
-      folder,
-    );
-
-    await CommandBar.showInput(
-      "Folder '" + staticTemplateFolder + "' created with samples.",
-      'OK, choose a template',
-    );
-  }
-}
 
 //------------------------------------------------------------------
 // Jumps the cursor to the heading of the current note that the user selects
 // NB: need to update to allow this to work with sub-windows, when EM updates API
 async function jumpToHeading() {
-  const paras = Editor.paragraphs;
-  // Extract list of headings
-  // function isHeading(p) {
-  //   return p.prefix.includes('#');
-  // }
+  const paras = Editor?.paragraphs;
+  if (paras == null) {
+    // No note open
+    return;
+  }
+
   const headingParas = paras.filter((p) => p.type === 'title'); // = all headings, not just the top 'title'
   const headingValues = headingParas.map((p) => p.content);
 
@@ -301,14 +285,17 @@ globalThis.jumpToHeading = jumpToHeading;
 // Jump cursor to the '## Done' heading in the current file
 // NB: need to update to allow this to work with sub-windows, when EM updates API
 function jumpToDone() {
-  const paras = Editor.note?.paragraphs ?? [];
+  const paras = Editor?.paragraphs;
+  if (paras == null) {
+    // No note open
+    return;
+  }
   const paraCount = paras.length;
 
   // Find the line of interest from all the paragraphs
   for (let i = 0; i < paraCount; i++) {
     const p = paras[i];
-    console.log(i + ': ' + p.content + ' / ' + p.headingLevel);
-    if (p.content == 'Done' && p.headingLevel === 2) {
+    if ((p.content == 'Done' || p.content == 'Done …') && p.headingLevel === 2) {
       // jump cursor to that paragraph
       Editor.highlight(p);
       break;
@@ -331,19 +318,17 @@ globalThis.jumpToDone = jumpToDone;
 function setTitleFromYAML() {
   const { note, content } = Editor;
   if (note == null || content == null) {
+    // no note open.
     return;
   }
-  const title = note.title ?? 'Untitled';
-  console.log('setTitleFromYAML:\n\told title = ' + title);
+  console.log('setTitleFromYAML:\n\told title = ' + (note.title ?? ''));
   const lines = content.split('\n');
   let n = 0;
   let newTitle = '';
   while (n < lines.length) {
     if (lines[n].match(/^[Tt]itle:\s*.*/)) {
       const rer = lines[n].match(/^[Tt]itle:\s*(.*)/);
-      if (rer) {
-        newTitle = rer[1];
-      }
+      newTitle = rer?.[1] ?? '';
     }
     if (lines[n] == '' || lines[n] == '...') {
       break;
@@ -354,6 +339,6 @@ function setTitleFromYAML() {
   if (newTitle != '') {
     note.title = newTitle; // TODO: setter not available not yet available (last checked on release 628)
   }
-  printNote(note);
+  printNote(Editor.note);
 }
 globalThis.setTitleFromYAML = setTitleFromYAML;
