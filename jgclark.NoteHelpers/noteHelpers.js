@@ -297,7 +297,13 @@ async function jumpToHeading() {
   }
 
   const headingParas = paras.filter((p) => p.type === 'title'); // = all headings, not just the top 'title'
-  const headingValues = headingParas.map((p) => p.content);
+  const headingValues = headingParas.map((p) => {
+    let prefix = ""
+    for(var i = 1; i < p.headingLevel; i++) {
+      prefix += "    "
+    }
+    return prefix + "• " + p.content
+  });
 
   // Present list of headingValues for user to choose from
   if (headingValues.length > 0) {
