@@ -25,6 +25,9 @@ Templates should normally end with a linefeed character (`\n`).
 
 ## History
 
+### v0.8.1, 26.5.2021
+- change: **/jh** now indents the different heading levels
+
 ### v0.8.0, 26.5.2021
 - change: **/nn** now asks for the folder to create the new note in
 - fix: the **/jd** command now works if the Done section has been folded

@@ -1,8 +1,8 @@
 // @flow
 //--------------------------------------------------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
-// Jonathan Clark
-// v0.8.0, 26.5.2021
+// Jonathan Clark & Eduard Metzger
+// v0.8.1, 26.5.2021
 //--------------------------------------------------------------------------------------------------------------------
 
 // Globals
@@ -302,7 +302,7 @@ async function jumpToHeading() {
     for(var i = 1; i < p.headingLevel; i++) {
       prefix += "    "
     }
-    return prefix + "• " + p.content
+    return prefix + p.content
   });
 
   // Present list of headingValues for user to choose from

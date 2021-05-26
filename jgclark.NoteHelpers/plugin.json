@@ -4,9 +4,9 @@
   "plugin.name": "📙 Note Helpers",
   "plugin.description": "Commands to help manage NotePlan notes",
   "plugin.icon": "",
-  "plugin.author": "Jonathan Clark",
+  "plugin.author": "Jonathan Clark & Eduard Metzger",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/",
-  "plugin.version": "0.8.0",
+  "plugin.version": "0.8.1",
   "plugin.changelog": "See plugin README.md",
   "plugin.dependencies": [],
   "plugin.script": "noteHelpers.js",
@@ -19,7 +19,7 @@
     },
     {
       "name": "nn",
-      "description": "Create new note with title, in chosen folder with optional template, and optional current text selection",
+      "description": "Create new note with title, in chosen folder with optional template, and current text selection",
       "jsFunction": "newNote"
     },
     {
