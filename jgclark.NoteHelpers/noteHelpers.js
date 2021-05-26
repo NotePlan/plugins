@@ -13,7 +13,7 @@ const defaultTodoMarker =
   DataStore.preference('defaultTodoCharacter') !== undefined
     ? DataStore.preference('defaultTodoCharacter')
     : '*';
-var staticTemplateFolder = "📋 Templates"
+const staticTemplateFolder = '📋 Templates';
 
 //------------------------------------------------------------------
 // Helper functions
@@ -69,63 +69,96 @@ async function selectFolder() {
 globalThis.selectFolder = selectFolder;
 
 function templateFolder() {
-  return DataStore.folders.filter(f => f.includes(staticTemplateFolder))[0] 
+  return DataStore.folders.find((f) => f.includes(staticTemplateFolder));
 }
 
-async function selectTemplateContent(shouldIncludeNone) {
-  let folder = templateFolder()
-
-  let templateNotes = DataStore.projectNotes.filter(n => n.filename.includes(folder))
-  let options = templateNotes.map(n => n.title)
-  if(shouldIncludeNone != null && shouldIncludeNone == true) {
-    options.splice(0, 0, "(none)");
+async function selectTemplateContent(shouldIncludeNone = false) {
+  const folder = templateFolder();
+  if (folder == null) {
+    // template folder not found
+    return;
   }
 
-  let templateIndex = (await CommandBar.showOptions(options, "Select a template:")).index
+  const templateNotes = DataStore.projectNotes.filter((n) =>
+    n.filename.includes(folder),
+  );
+  const options = templateNotes.map((n) => n.title ?? 'Untitled');
+  if (shouldIncludeNone) {
+    options.splice(0, 0, '(none)');
+  }
 
-  if(shouldIncludeNone == true) {
-    if(templateIndex == 0) {
-      return null
+  let templateIndex = (
+    await CommandBar.showOptions(options, 'Select a template:')
+  ).index;
+
+  if (shouldIncludeNone) {
+    if (templateIndex == 0) {
+      return null;
     }
-    templateIndex -= 1 // We need to decrement the index because we need to fetch the note from the original array which has not the "none" option.
+    templateIndex -= 1; // We need to decrement the index because we need to fetch the note from the original array which has not the "none" option.
   }
 
-  let templateNote = templateNotes[templateIndex]
+  const templateNote = templateNotes[templateIndex];
 
   // Now cut out everything above "---" (second line), which is there so we can have a more meaningful title for the template note
-  if(templateNote != null) {
-    var lines = templateNote.paragraphs
+  if (templateNote != null) {
+    const lines = [...templateNote.paragraphs];
 
-    if(lines.length > 0 && lines[1].content == "---") {
-      lines.splice(1, 1)
-      lines.splice(0, 1)
+    if (lines.length > 0 && lines[1].content == '---') {
+      lines.splice(1, 1);
+      lines.splice(0, 1);
     }
 
-    return lines.map(l => l.rawContent).join("\n")
+    return lines.map((l) => l.rawContent).join('\n');
   } else {
-    console.log("Failed to get the template note from the index")
+    console.log('Failed to get the template note from the index');
   }
 }
 
 async function createTemplateFolderIfNeeded() {
-  let folder = templateFolder()
-  
-  if(folder == null) { // No templates folder yet, create one with a sample template
-    console.log("template folder not found")
+  let folder = templateFolder();
 
-    if((await CommandBar.showOptions(["✅ Create '" + staticTemplateFolder + "' with samples", "❌ Cancel"], "No templates folder found.")).index == 1) {
-      return
+  if (folder == null) {
+    // No templates folder yet, create one with a sample template
+    console.log('template folder not found');
+
+    if (
+      (
+        await CommandBar.showOptions(
+          [
+            "✅ Create '" + staticTemplateFolder + "' with samples",
+            '❌ Cancel',
+          ],
+          'No templates folder found.',
+        )
+      ).index == 1
+    ) {
+      return;
     }
 
-    let subfolder = (await CommandBar.showOptions(DataStore.folders, "Select a location for the templates folder.")).value
-    folder = subfolder + "/" + staticTemplateFolder
+    const subfolder = (
+      await CommandBar.showOptions(
+        DataStore.folders,
+        'Select a location for the templates folder.',
+      )
+    ).value;
+    folder = subfolder + '/' + staticTemplateFolder;
 
     // Now create a sample note in that folder, then we got the folder also created
-    DataStore.newNote("Daily Note Template\n---\n## Tasks\n\n## Media\n\n## Journal\n", folder)
-    DataStore.newNote("Meeting Note Template\n---\n## Project X Meeting on [[date]] with @Y and @Z\n\n## Notes\n\n## Actions", folder)
+    DataStore.newNote(
+      'Daily Note Template\n---\n## Tasks\n\n## Media\n\n## Journal\n',
+      folder,
+    );
+    DataStore.newNote(
+      'Meeting Note Template\n---\n## Project X Meeting on [[date]] with @Y and @Z\n\n## Notes\n\n## Actions',
+      folder,
+    );
 
-    await CommandBar.showInput("Folder '" + staticTemplateFolder + "' created with samples.", "OK, choose a template")
-  } 
+    await CommandBar.showInput(
+      "Folder '" + staticTemplateFolder + "' created with samples.",
+      'OK, choose a template',
+    );
+  }
 }
 
 //------------------------------------------------------------------
@@ -153,9 +186,8 @@ function moveNote(selectedFolder) {
 // Create new note in current folder, and optionally with currently selected text
 // Also now offers to use one of a number of Templates
 async function newNote() {
-  const { filename, selectedText } = Editor;
   console.log('\nnewNote:');
-  let sel = '';
+  const sel = '';
   let currentFolder = '';
 
   // Get title for this note
@@ -165,12 +197,12 @@ async function newNote() {
   );
 
   // If template(s) are defined, then ask which one to use, unless there is only one
-  await createTemplateFolderIfNeeded()
-  let templateText = await selectTemplateContent(true)
-  if(templateText == null) {
-    templateText = ""
+  await createTemplateFolderIfNeeded();
+  let templateText = await selectTemplateContent(true);
+  if (templateText == null) {
+    templateText = '';
   }
-  console.log("Template text: " + templateText)
+  console.log('Template text: ' + templateText);
 
   // let templateText = '';
   // if (pref_templateName.length == 1) {
@@ -246,12 +278,11 @@ async function applyTemplate() {
 
   // Eduard's template-folder-and-files version of the above:
   await createTemplateFolderIfNeeded();
-  let content = await selectTemplateContent();
+  const content = await selectTemplateContent();
 
-  if(content != null) {
+  if (content != null) {
     Editor.prependParagraph(content, 'empty');
   }
-
 }
 globalThis.applyTemplate = applyTemplate;
 
@@ -295,7 +326,10 @@ function jumpToDone() {
   // Find the line of interest from all the paragraphs
   for (let i = 0; i < paraCount; i++) {
     const p = paras[i];
-    if ((p.content == 'Done' || p.content == 'Done …') && p.headingLevel === 2) {
+    if (
+      (p.content == 'Done' || p.content == 'Done …') &&
+      p.headingLevel === 2
+    ) {
       // jump cursor to that paragraph
       Editor.highlight(p);
       break;
