@@ -26,8 +26,12 @@ Templates should normally end with a linefeed character (`\n`).
 ## History
 
 ### v0.8.0, 26.5.2021
-- change to using a separate folder for storing Templates, rather than have to hard-code in the plugin code. The first time **/it** or **/nn** is called the command offers to create and populate the '📋 Templates' folder if it doesn't exist
+- change: **/nn** now asks for the folder to create the new note in
 - fix: the **/jd** command now works if the Done section has been folded
+- remove preference variables no longer needed with the '📋 Templates' folder mechanism
+
+### v0.7.2, 22.5.2021
+- Updated applyTemplate() and newNote() so that they pick a template from a folder. This '📋 Templates' folder - along with sample templates - will be created if non-existing.
 
 ### v0.7.1, 15.5.2021
 - change to using two-letter command names, to match new style agreed with EM
