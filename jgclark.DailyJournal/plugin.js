@@ -1,16 +1,12 @@
 //--------------------------------------------------------------------------------------------------------------------
 // Daily Journal plugin for NotePlan
 // Jonathan Clark
-// v0.4.1, 16.5.2021
+// v0.5.0, 27.5.2021
 //--------------------------------------------------------------------------------------------------------------------
 
-// Settings
-// Items that should come from the Preference framework in time:
-const pref_templateText = `
-### Media
-
-### Journal
-`;
+// Title of template note to use as Daily template
+const pref_templateTitle = 'Daily Note Template';
+// Settings that should come from the Preference framework in time:
 const pref_reviewSectionHeading = 'Journal';
 const pref_reviewQuestions = [
   '@work(<int>)',
@@ -24,94 +20,118 @@ const pref_reviewQuestions = [
   'Remember:: <string>',
 ].join('\n');
 
-const pref_mood = [
+const pref_moods = [
   '🤩 Great',
   '🙂 Good',
   '😇 Blessed',
   '🥱 Tired',
   '😫 Stressed',
   '😤 Frustrated',
+  '😡 Angry',
   '😔 Low',
   '🥵 Sick',
   'Other',
 ].join(',');
-// Leave following as empty strings ("") if you don't want to get weather from openweathermap.org
+
+// Leave following as empty strings ('') if you don't want to get weather from openweathermap.org
 const pref_openWeatherAPIKey = 'b8041917d91a7e0e1418485bbd3f1b1f'; // need to get your own  API key: don't use mine!
 const pref_latPosition = '51.3'; // need to use your own latitude!
 const pref_longPosition = '-1'; // need to use your own longitude!
 const pref_openWeatherUnits = 'metric';
 
 // Globals
+const staticTemplateFolder = '📋 Templates';
 const todaysDate = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-const pref_moodArray = pref_mood.split(','); // with a proper config system, this won't be needed
+const pref_moodArray = pref_moods.split(','); // with a proper config system, this won't be needed
 
 //------------------------------------------------------------------
-// Start today's daily note with a template, including local weather lookup
-async function dayStart() {
-  console.log('\ndayStart for ' + todaysDate);
-  await Editor.openNoteByDate(new Date(), false); // open today's date in the main window
-  const existingContent = Editor.content;
-  console.log('\tbefore: ' + existingContent.length + ' bytes');
-  const newContent = existingContent + '\n' + pref_templateText + '\n'; // WAITING: Plugin.preference.template_text
-  if (pref_openWeatherAPIKey != '') {
-    const getWeatherURL =
-      'https://api.openweathermap.org/data/2.5/onecall?lat=' +
-      pref_latPosition +
-      '&lon=' +
-      pref_longPosition +
-      '&exclude=current,hourly,minutely&units=' +
-      pref_openWeatherUnits +
-      '&appid=' +
-      pref_openWeatherAPIKey;
-    fetch(getWeatherURL)
-      .then((jsonIn) => {
-        const weatherTodayAll = JSON.parse(jsonIn).daily['0'];
-        const maxTemp = weatherTodayAll.feels_like.day.toFixed(0);
-        const minTemp = weatherTodayAll.feels_like.night.toFixed(0);
-        const weatherDesc = weatherTodayAll.weather['0'].description;
-        const weatherLine =
-          'Weather:: ' + maxTemp + '/' + minTemp + ' ' + weatherDesc;
-        console.log('Weather summary: ' + weatherLine);
-        Editor.content = newContent + weatherLine;
-        console.log('\tafter: ' + newContent.length + ' bytes');
-      })
-      .catch((e) => {
-        console.log('\tHTTP lookup error: ' + e);
-      });
+// Helper functions
+
+function templateFolder() {
+  return DataStore.folders.find((f) => f.includes(staticTemplateFolder));
+}
+
+async function getTemplateContent(templateTitle) {
+  const folder = templateFolder();
+  if (folder == null) {
+    // template folder not found
+        console.log("Error: Failed to find the '📋 Templates' folder");
+    return;
+  }
+
+  // Get list of templates from its folder
+  const templateNotes = DataStore.projectNotes.filter((n) =>
+    n.filename.includes(folder),
+  );
+  const templateNote = templateNotes.find((note) => note.title === templateTitle);
+  // Now cut out everything above "---" (second line), which is there so we can have a more meaningful title for the template note
+  if (templateNote != null) {
+    const lines = [...templateNote.paragraphs];
+
+    if (lines.length > 0 && lines[1].content == '---') {
+      lines.splice(1, 1);
+      lines.splice(0, 1);
+    }
+
+    return lines.map((l) => l.rawContent).join('\n');
   } else {
-    Editor.content = newContent;
-    console.log('\tafter: ' + newContent.length + ' bytes');
+    console.log("Error: Failed to get template note '" + templateTitle + "' from the index");
   }
 }
 
-//TODO use in the above ------------------------------------------------------------------
 // Get summary of today's weather in a line
 // Using https://openweathermap.org/api/one-call-api#data, for which you can get a free API key
-function getWeatherSummary() {
+async function getWeatherSummary() {
   const getWeatherURL =
-    'https://api.openweathermap.org/data/2.5/onecall?lat=' +
+    "https://api.openweathermap.org/data/2.5/onecall?lat=" +
     pref_latPosition +
-    '&lon=' +
+    "&lon=" +
     pref_longPosition +
-    '&exclude=current,hourly,minutely&units=' +
+    "&exclude=current,hourly,minutely&units=" +
     pref_openWeatherUnits +
-    '&appid=' +
+    "&appid=" +
     pref_openWeatherAPIKey;
+  
+  // TODO: add icons, according to returned description. Main terms are:
+  // thunderstorm, drizzle, shower > rain, snow, sleet, clear sky, mist, fog, dust, tornado, overcast > clouds
+  // with 'light' modifier for rain and snow
+  // const weatherDescIcons = [
+  //   "Rain 🌧️",
+  //   "Rain & Showers 🌦️",
+  //   "Sunny intervals 🌥️",
+  //   "Partly sunny ⛅",
+  //   "Sunny ☀️",
+  //   "Snow 🌨️",
+  // ].join(",");
 
-  fetch(getWeatherURL)
-    .then((jsonIn) => {
-      const weatherTodayAll = JSON.parse(jsonIn).daily['0'];
-      const maxTemp = weatherTodayAll.feels_like.day.toFixed(0);
-      const minTemp = weatherTodayAll.feels_like.night.toFixed(0);
-      const weatherDesc = weatherTodayAll.weather['0'].description;
-      const summaryLine =
-        'Weather:: ' + maxTemp + '/' + minTemp + ' ' + weatherDesc;
-      console.log('Weather summary: ' + summaryLine);
-      return summaryLine;
-    })
-    .catch((e) => {
-      console.log('\tHTTP lookup error: ' + e);
-    });
+  const jsonIn = await fetch(getWeatherURL);
+  const weatherTodayAll = JSON.parse(jsonIn).daily["0"];
+  const maxTemp = weatherTodayAll.feels_like.day.toFixed(0);
+  const minTemp = weatherTodayAll.feels_like.night.toFixed(0);
+  const weatherDesc = weatherTodayAll.weather["0"].description;
+  const summaryLine = "Weather: " + maxTemp + "/" + minTemp + " " + weatherDesc;
+  console.log("Weather summary: " + summaryLine);
+  return summaryLine;
+}
+
+//------------------------------------------------------------------
+// Start today's daily note with a template, including local weather lookup if configured
+async function dayStart() {
+  console.log("\ndayStart for " + todaysDate);
+
+  // open today's date in the main window, and read content
+  await Editor.openNoteByDate(new Date(), false);
+  // const existingContent = Editor.content;
+
+  // get daily template's content
+  const templateText = await getTemplateContent(pref_templateTitle);
+  console.log("\tRead template text from Template '" + pref_templateTitle + "'");
+  let newContent = templateText + "\n";
+  if (pref_openWeatherAPIKey != "") {
+    const weatherLine = await getWeatherSummary();
+    newContent += weatherLine + "\n";
+  }
+  Editor.insertParagraph(newContent, 0, 'empty');
 }
 
 //------------------------------------------------------------------
@@ -123,7 +143,8 @@ function isInt(value) {
 }
 
 //------------------------------------------------------------------
-// Gather answers to set questions, and append to
+// Gather answers to set questions, and append to the daily note
+// TODO: use NP API function calls which are now available
 async function dayReview() {
   console.log('\ndailyReview for ' + todaysDate);
   Editor.openNoteByDate(new Date()); // open today's date in main window

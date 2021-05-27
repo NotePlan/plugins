@@ -2,11 +2,11 @@
   "noteplan.min_version": "3.0.21",
   "plugin.id": "jgclark.DailyJournal",
   "plugin.name": "☀️ Daily Journal",
-  "plugin.description": "Support for daily journalling in NotePlan, including start-of-day template, and end-of-day review questions. Before use it requires configuration: please see website for details.",
+  "plugin.description": "Support for daily journalling in NotePlan, including start-of-day template, and end-of-day review questions. Before use it requires some configuration: please see website for details.",
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/README.md",
-  "plugin.version": "0.4.1",
+  "plugin.version": "0.5.0",
   "plugin.dependencies": [],
   "plugin.script": "plugin.js",
   "plugin.isRemote": "false",
@@ -50,10 +50,10 @@
       "default": "metric"
     },
     {
-      "name": "templateText",
-      "description": "Template text to add to each daily note at the start of day",
+      "name": "templateTitle",
+      "description": "Title of Template file to use at the start of day",
       "type": "string",
-      "default": "\n### Media\n\n### Journal\n"
+      "default": "Daily Note Template"
     },
     {
       "name": "reviewSectionHeading",
@@ -68,7 +68,7 @@
       "default": "@work(<int>)\n@fruitveg(<int>)\nMood:: <mood>\nGratitude:: <string>\nGod was:: <string>\nAlive:: <string>\nNot Great:: <string>\nWife:: <string>\nRemember:: <string>"
     },
     {
-      "name": "mood",
+      "name": "moods",
       "description": "Comma-separated set of possible moods to choose between",
       "type": "string",
       "default": "🤩 Great,🙂 Good,😇 Blessed,🥱 Tired,😫 Stressed,😤 Frustrated,😔 Low,🥵 Sick,Other"
