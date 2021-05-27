@@ -1,7 +1,7 @@
 //--------------------------------------------------------------------------------------------------------------------
 // Repeat Extensions plugin for NotePlan
 // Jonathan Clark
-// v0.2.0, 3.5.2021
+// v0.2.0, 27.5.2021
 //--------------------------------------------------------------------------------------------------------------------
 
 // Globals
@@ -20,7 +20,6 @@ function rangeToString(r) {
   if (r == undefined) {
     return 'Range is undefined!';
   }
-
   return 'location: ' + r.start + ', length: ' + r.length;
 }
 
@@ -68,9 +67,8 @@ function readInEditorNote() {
   paras = Editor.paragraphs; // reads with zero-based indexing (in .lineIndex)
   lineCount = paras.length;
   const title = Editor.title;
-  console.log(
-    '  Read from Editor ' + lineCount + " paragraphs from '" + title + "'",
-  );
+  console.log("  Read note '" + title + "' from Editor (" + lineCount + " paragraphs)");
+
   // check if the last paragraph is undefined, and if so delete it from our copy
   if (paras[lineCount] == undefined) {
     console.log('    Note: removing empty final paragaph number ' + lineCount);
@@ -127,11 +125,9 @@ function calcOffsetDate(oldDateISO, interval) {
       const currentDayOfWeek = oldDate.getUTCDay(); // = day of week with Sunday = 0, ..Saturday = 6
       let dayOfWeek;
       if (num < 0) {
-        // dayOfWeek = (currentDayOfWeek - 12) % (7)
-        dayOfWeek = currentDayOfWeek;
+        dayOfWeek = (currentDayOfWeek - 12) % (7)
       } else {
-        // dayOfWeek = (currentDayOfWeek + 6) % (7) // % = modulo operator in JSON
-        dayOfWeek = currentDayOfWeek;
+        dayOfWeek = (currentDayOfWeek + 6) % (7) // % = modulo operator in JSON
       }
       if (dayOfWeek == 6) {
         num--;
@@ -160,7 +156,7 @@ function calcOffsetDate(oldDateISO, interval) {
       daysToAdd = num * 365; // on average
       break;
     default:
-      console.log('    Error in c_o_d from ' + oldDate + ' by ' + interval);
+      console.log('\tError in c_o_d from ' + oldDate + ' by ' + interval);
       break;
   }
   const newDate = new Date(oldDate);
@@ -176,25 +172,6 @@ function testCalAPI() {
   return d;
 }
 globalThis.testCalAPI = testCalAPI;
-
-// test the calcOffsetDate function (by visual inspection; nothing clever)
-function testCOD() {
-  const d = new Date('2021-05-02');
-  console.log('Test cOD, starting with base date ' + d);
-  console.log(calcOffsetDate(d, '3d'));
-  console.log(calcOffsetDate(d, '43d'));
-  console.log(calcOffsetDate(d, '3w'));
-  console.log(calcOffsetDate(d, '3m'));
-  console.log(calcOffsetDate(d, 'm'));
-  console.log(calcOffsetDate(d, '3s'));
-  console.log(calcOffsetDate(d, '1b'));
-  console.log(calcOffsetDate(d, '2b'));
-  console.log(calcOffsetDate(d, '3b'));
-  console.log(calcOffsetDate(d, '4b'));
-  console.log(calcOffsetDate(d, '5b'));
-  console.log(calcOffsetDate(d, '6b'));
-}
-globalThis.testCOD = testCOD;
 
 //------------------------------------------------------------------
 // Process any completed(or cancelled) tasks with my extended @repeat(..) tags,
@@ -221,12 +198,13 @@ async function repeats() {
   const RE_EXTENDED_REPEAT = '@repeat\\(\\+?\\d+[bdwmqy]\\)'; // find @repeat()
   const RE_EXTENDED_REPEAT_CAPTURE = '@repeat\\((.*?)\\)'; // find @repeat() and return part inside brackets
 
-  console.log('repeats:');
+  console.log('\nrepeats:');
   readInEditorNote();
   let n = 0;
   let line = '';
   let updatedLine = '';
   let completedDate = '';
+  let completedTime = '';
   let reReturnArray = [];
   let endOfActive = 0;
   // Set range of paragraphs in active part of note
@@ -237,19 +215,19 @@ async function repeats() {
     line = p.content;
     updatedLine = '';
     completedDate = '';
+
     // find lines with datetime to shorten, and capture date part of it
     // i.e. @done(YYYY-MM-DD HH:MM[AM|PM])
     // console.log("  [" + n + "] " + line)
-    if (line.match(RE_DONE_DATE_TIME)) {
-      // get completed date
+    if (p.content.match(RE_DONE_DATE_TIME)) {
+      // get completed date and time
       reReturnArray = line.match(RE_DONE_DATE_CAPTURE);
-      completedDate = reReturnArray[1]; // now not used
-      const completedTime = reReturnArray[2];
-      console.log(
-        "  Found '" + completedDate + "' in " + n + ": '" + line + "' ",
-      );
+      completedDate = reReturnArray[1];
+      completedTime = reReturnArray[2];
+      console.log("  Found " + completedDate + "/" + completedTime + " in " + n + ": '" + line + "' ");
       updatedLine = line.replace(completedTime, ''); // couldn't get a regex to work here
-      line.content = updatedLine;
+      p.content = updatedLine;
+
       // Send the update to the Editor
       await Editor.updateParagraph(p);
       console.log('    updated Paragraph ' + p.lineIndex);
@@ -261,9 +239,8 @@ async function repeats() {
         // get repeat to apply
         reReturnArray = updatedLine.match(RE_EXTENDED_REPEAT_CAPTURE);
         let dateIntervalString = reReturnArray[1];
-        console.log(
-          '    Found EXTENDED @repeat(' + dateIntervalString + ') syntax',
-        );
+        console.log('    Found EXTENDED @repeat(' + dateIntervalString + ') syntax');
+
         if (dateIntervalString[0] == '+') {
           // New repeat date = completed date + interval
           dateIntervalString = dateIntervalString.substring(
@@ -274,17 +251,18 @@ async function repeats() {
           console.log('    Adding from completed date --> ' + newRepeatDate);
           // Remove any >date
           updatedLine = updatedLine.replace(/\s+>\d{4}-[01]\d{1}-\d{2}/, ''); // i.e. RE_DUE_DATE, but can't get regex to work with variables like this
+
         } else {
-          let dueDate = '';
           // New repeat date = due date + interval
           // look for the due date(>YYYY-MM-DD)
+          let dueDate = '';
           reReturnArray = updatedLine.match(RE_DUE_DATE_CAPTURE);
           if (reReturnArray[1] != undefined) {
             dueDate = reReturnArray[1];
-            console.log(dueDate);
+            // console.log(dueDate);
             // need to remove the old due date
             updatedLine = updatedLine.replace('>' + dueDate, '');
-            console.log(updatedLine);
+            // console.log(updatedLine);
           } else {
             // but if there is no due date then treat that as today
             dueDate = completedDate;
@@ -299,9 +277,7 @@ async function repeats() {
           .trim();
         outline = updatedLineWithoutDone + ' >' + newRepeatDate;
         console.log('    -> ' + outline);
-        // Insert this new line after current line
-        // n += 1
-        // insert_new_line_at_line(outline, n)
+
         // save updated copy of the note contents, as changes were made (at least to @done(...))
         await Editor.insertParagraphAfterParagraph(outline, p, 'scheduled');
         console.log('    inserted new paragraph after line ' + p.lineIndex);
