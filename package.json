@@ -39,5 +39,10 @@
     "semi": true,
     "trailingComma": "all",
     "singleQuote": true
+  },
+  "dependencies": {
+    "json5": "^2.2.0",
+    "toml": "^3.0.0",
+    "yaml": "^1.10.2"
   }
 }

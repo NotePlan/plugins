@@ -5,32 +5,22 @@ import {
   chooseOption,
   getInput,
 } from '../../nmn.sweep/src/userInput';
+import { getDefaultConfiguration, parseJSON5 } from './configuration';
+
+import { getTemplateFolder, makeTemplateFolder } from './template-folder';
 
 export async function addTemplate() {
-  const templateFolder = DataStore.folders.find((folder) =>
-    folder.includes('Templates'),
-  );
+  const templateFolder = await getTemplateFolder();
 
-  // If Template folder doesn't exist, make one and exit
   if (templateFolder == null) {
-    DataStore.newNote(
-      `Dummy Template\nCreated on {{date({locale: 'en_IN', dateStyle: 'short'})}}`,
-      'Templates',
-    );
-    await showMessage('Created a dummy template to get you started');
-    return;
-  }
-
-  // A note must already be open for this plugin
-  if (Editor.note == null) {
-    await showMessage(
-      'Please open a note where this content can be added and try again.',
-    );
+    await makeTemplateFolder();
+    await showMessage('Try using this command again to use a template');
     return;
   }
 
   const options = DataStore.projectNotes
     .filter((n) => n.filename?.startsWith(templateFolder))
+    .filter((n) => !n.title?.startsWith('_configuration'))
     .map((note) =>
       note.title == null ? null : { label: note.title, value: note },
     )
@@ -40,19 +30,28 @@ export async function addTemplate() {
     'Choose Template',
     options,
   );
-  const templateContent = selectedTemplate?.content;
+  let templateContent = selectedTemplate?.content;
   if (templateContent == null) {
     return;
   }
+  templateContent = templateContent.split('\n---\n').slice(1).join('\n---\n');
 
-  const processedTemplateContent = await processTemplate(templateContent);
+  const config = (await getDefaultConfiguration()) ?? {};
+
+  const processedTemplateContent = await processTemplate(
+    templateContent,
+    config,
+  );
 
   Editor.content = [Editor.content, processedTemplateContent]
     .filter(Boolean)
     .join('\n');
 }
 
-async function processTemplate(content: string): Promise<string> {
+async function processTemplate(
+  content: string,
+  config: { [string]: ?mixed },
+): Promise<string> {
   const tagStart = content.indexOf('{{');
   const tagEnd = content.indexOf('}}');
   const hasTag = tagStart !== -1 && tagEnd !== -1 && tagStart < tagEnd;
@@ -64,23 +63,60 @@ async function processTemplate(content: string): Promise<string> {
   const afterTag = content.slice(tagEnd + 2);
   const tag = content.slice(tagStart + 2, tagEnd);
 
-  const tagProcessed = await processTag(tag);
-  const restProcessed = await processTemplate(afterTag);
-
-  return beforeTag + tagProcessed + restProcessed;
+  try {
+    const tagProcessed = await processTag(tag, config);
+    const restProcessed = await processTemplate(afterTag, config);
+    return beforeTag + tagProcessed + restProcessed;
+  } catch (e) {
+    console.log(e);
+    return content;
+  }
 }
 
-async function processTag(tag: string): Promise<string> {
+async function processTag(
+  tag: string,
+  config: { [string]: ?mixed },
+): Promise<string> {
   if (tag.startsWith('date(') && tag.endsWith(')')) {
-    return processDate(tag.slice(5, tag.length - 1));
+    return await processDate(tag.slice(5, tag.length - 1), config);
+  }
+  const valueInConfig = tag
+    // eslint-disable-next-line no-useless-escape
+    .split(/[\.\[\]]/)
+    .filter(Boolean)
+    .reduce(
+      (path, key: string) =>
+        path != null && typeof path === 'object' ? path[key] : null,
+      config.tagValue,
+    );
+  if (valueInConfig != null) {
+    return String(valueInConfig);
   }
   return await getInput(`Value for ${tag}`);
 }
 
-function processDate(_dateConfig: string): string {
-  // TODO:
-  // json5.parse(dateConfig)
-  return new Intl.DateTimeFormat([], { dateStyle: 'short' }).format(new Date());
+async function processDate(
+  dateConfig: string,
+  config: { [string]: ?mixed },
+): Promise<string> {
+  const defaultConfig = config.date ?? {};
+  const paramConfig = dateConfig.trim() ? await parseJSON5(dateConfig) : {};
+  // console.log(`param config: ${dateConfig} as ${JSON.stringify(paramConfig)}`);
+  const finalArguments: { [string]: mixed } = {
+    ...defaultConfig,
+    ...paramConfig,
+  };
+
+  const { locale, ...otherParams } = (finalArguments: any);
+
+  const localeParam = locale != null ? String(locale) : [];
+  const secondParam = {
+    dateStyle: 'short',
+    ...otherParams,
+  };
+  // console.log(`${JSON.stringify(localeParam)}, ${JSON.stringify(secondParam)}`);
+
+  return new Intl.DateTimeFormat(localeParam, secondParam).format(new Date());
 }
 
 export function newNoteWithTemplate() {
