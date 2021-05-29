@@ -1,7 +1,8 @@
+// @flow
 // --------------------------------------------------------------------------------------------------------------------
 // QuickCapture plugin for NotePlan (was: TaskHelpers)
 // Jonathan Clark
-// v0.3.2, 16.5.2021
+// v0.3.3, 21.5.2021
 // --------------------------------------------------------------------------------------------------------------------
 
 // Settings from NotePlan
@@ -9,9 +10,9 @@
 // let defaultTodoMarker = (DataStore.preference('defaultTodoCharacter') !== undefined) ? DataStore.preference('defaultTodoCharacter') : '*'
 
 // Items that will come from the Preference framework in time:
-const pref_inboxFilename = ''; // leave blank for daily note, or give relative filename (e.g. "Folder/Inbox.md")
+const pref_inboxFilename = 'inbox.md'; // leave blank for daily note, or give relative filename (e.g. "Folder/Inbox.md")
 const pref_inboxTitle = '📥 Inbox';
-const pref_addInboxPosition = 'append'; // or "append"
+const pref_addInboxPosition = 'append'; // or "prepend"
 
 // ------------------------------------------------------------------
 // Helper function, not called by a command
@@ -49,7 +50,6 @@ function printNote(note) {
     );
   }
 }
-globalThis.printNote = printNote;
 
 // ------------------------------------------------------------------
 // Prepends a task to a chosen note
@@ -178,23 +178,12 @@ globalThis.addTextToNoteHeading = addTextToNoteHeading;
 // - append or prepend to the inbox note (default: append)
 // - add to today's daily note (default) or to a particular named note
 async function addTaskToInbox() {
-  // PREVIOUS CODE
-  // let todoTitle = await CommandBar.showInput('Type the task to add to your Inbox note', "Add task '%@'")
-  // let inboxNote
-  // // Get the relevant note from the Datastore
-  // if (pref_inboxFilename != "") {
-  //   inboxNote = DataStore.projectNoteByFilename(pref_inboxFilename)
-  // } else {
-  //   let todaysDate = new Date().toISOString().slice(0, 10).replace(/-/g, '')
-  //   inboxNote = DataStore.calendarNoteByDateString(todaysDate) // Add this todo to today's daily note
-  // }
-
   let newFilename = null;
   let inboxNote = null;
-
-  if (pref_inboxTitle != '') {
-    inboxNote = DataStore.projectNoteByTitle(pref_inboxTitle)[0];
-
+  
+  console.log("addTaskToInbox: " + pref_inboxFilename);
+  if (pref_inboxFilename != '') {
+    inboxNote = DataStore.projectNoteByFilename(pref_inboxFilename);
     // Create the inbox note if not existing, ask the user which folder
     if (inboxNote == null) {
       const folders = DataStore.folders;
@@ -203,6 +192,8 @@ async function addTaskToInbox() {
         'Inbox not found, choose a folder or cancel [ESC]',
       );
       newFilename = DataStore.newNote(pref_inboxTitle, folder.value);
+      // NB: this returns a filename not of our choosing
+      console.log("made new inbox note, filename = " + newFilename);
     }
   }
 
@@ -215,9 +206,7 @@ async function addTaskToInbox() {
   // Re-fetch the note if we created it previously. We need to wait a bit so it's cached, that's why we query it after the task input.
   if (newFilename != null) {
     inboxNote = DataStore.projectNoteByFilename(newFilename);
-    console.log('inbox note: ' + inboxNote);
-  } else {
-    console.log('newFilename is still null');
+    console.log('  got new inbox note');
   }
 
   // Get the relevant note from the Datastore
@@ -227,9 +216,9 @@ async function addTaskToInbox() {
     } else {
       inboxNote.prependTodo(todoTitle);
     }
-    console.log("Added todo to Inbox note '" + inboxNote.filename + "'");
+    console.log("  Added todo to Inbox note '" + inboxNote.filename + "'");
   } else {
-    console.log("ERROR: Couldn't find Inbox note '" + pref_inboxFilename + "'");
+    console.log("  ERROR: Couldn't find Inbox note '" + pref_inboxFilename + "'");
   }
 }
 globalThis.addTaskToInbox = addTaskToInbox;
@@ -239,3 +228,4 @@ function projectNotesSortedByChanged() {
     (first, second) => first.changedDate < second.changedDate,
   );
 }
+
