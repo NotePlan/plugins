@@ -98,10 +98,12 @@ async function getWeatherSummary() {
   // const weatherDescIcons = [
   //   "Rain 🌧️",
   //   "Rain & Showers 🌦️",
-  //   "Sunny intervals 🌥️",
+  //   "Sunny intervals 🌤",
   //   "Partly sunny ⛅",
   //   "Sunny ☀️",
   //   "Snow 🌨️",
+  //   "Thunderstorm ⛈",
+  //   "Tornado 🌪",
   // ].join(",");
 
   const jsonIn = await fetch(getWeatherURL);
