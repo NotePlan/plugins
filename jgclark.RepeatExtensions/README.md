@@ -9,10 +9,17 @@ This plugin allows repeats **every x days, weeks, months, quarters or years**. I
 
 **To run it on the _currently open note_, type `/rpt` in the command bar**.
 
+When run on a _project note_, it creates the new repeat task straight after the completed task.
+When run on a _daily note_, it creates the new repeat task on the date of the new repeat.
+
 ## Configuration
 For this feature to work, you need to have the 'Append Completion Date' NotePlan setting turned on in the Preferences (and not to mind the time portion of the `@done(...)` tag being removed, as a sign that the line has been processed).
 
 ## History
+
+### v0.2.1, 30.5.2021
+- [fix] allow for other date localisations (that make `@done()` include versions of AM/PM string as well)
+- [new] where the repeat is in a daily note, now 'throw' the new repeat of the task into the future date. (Note this is currently waiting on a fix to the API to be implemented fully.)
 
 ### v0.2.0, 27.5.2021
 - first released version for plugin, ported to JavaScript plugin framework from my [npTools Ruby script](https://github.com/jgclark/NotePlan-tools/).

@@ -1,15 +1,8 @@
 //--------------------------------------------------------------------------------------------------------------------
 // Repeat Extensions plugin for NotePlan
 // Jonathan Clark
-// v0.2.0, 27.5.2021
+// v0.2.1, 30.5.2021
 //--------------------------------------------------------------------------------------------------------------------
-
-// Globals
-// var todaysDate = new Date().toISOString().slice(0, 10)
-let paras = [];
-let lineCount = 0;
-let doneHeaderLine = 0;
-let cancelledHeaderLine = 0;
 
 //------------------------------------------------------------------
 // Helper functions
@@ -30,66 +23,32 @@ function printParagraph(p) {
     return;
   }
   console.log(
-    '\n\ncontent: ' +
-      p.content +
-      '\n\ttype: ' +
-      p.type +
-      '\n\tprefix: ' +
-      p.prefix +
-      '\n\tcontentRange: ' +
-      rangeToString(p.contentRange) +
-      '\n\tlineIndex: ' +
-      p.lineIndex +
-      '\n\tdate: ' +
-      p.date +
-      '\n\theading: ' +
-      p.heading +
-      '\n\theadingRange: ' +
-      rangeToString(p.headingRange) +
-      '\n\theadingLevel: ' +
-      p.headingLevel +
-      '\n\tisRecurring: ' +
-      p.isRecurring +
-      '\n\tindents: ' +
-      p.indents +
-      '\n\tfilename: ' +
-      p.filename +
-      '\n\tnoteType: ' +
-      p.noteType +
-      '\n\tlinkedNoteTitles: ' +
-      p.linkedNoteTitles,
+    '\n\ncontent: ' + p.content +
+      '\n\ttype: ' + p.type +
+      '\n\tprefix: ' +  p.prefix +
+      '\n\tcontentRange: ' + rangeToString(p.contentRange) +
+      '\n\tlineIndex: ' + p.lineIndex +
+      '\n\tdate: ' + p.date +
+      '\n\theading: ' + p.heading +
+      '\n\theadingRange: ' + rangeToString(p.headingRange) +
+      '\n\theadingLevel: ' + p.headingLevel +
+      '\n\tisRecurring: ' + p.isRecurring +
+      '\n\tindents: ' + p.indents +
+      '\n\tfilename: ' + p.filename +
+      '\n\tnoteType: ' + p.noteType +
+      '\n\tlinkedNoteTitles: ' + p.linkedNoteTitles,
   );
 }
 globalThis.printParagraph = printParagraph;
 
-// Read in the current note in the Editor and parse to get it ready to use in later functions
-function readInEditorNote() {
-  paras = Editor.paragraphs; // reads with zero-based indexing (in .lineIndex)
-  lineCount = paras.length;
-  const title = Editor.title;
-  console.log("  Read note '" + title + "' from Editor (" + lineCount + " paragraphs)");
-
-  // check if the last paragraph is undefined, and if so delete it from our copy
-  if (paras[lineCount] == undefined) {
-    console.log('    Note: removing empty final paragaph number ' + lineCount);
-    lineCount--;
-  }
-  for (let i = 0; i < lineCount; i++) {
-    const p = paras[i];
-    // console.log(i.toString() + "/" + p.lineIndex + ": " + p.content)
-    if (p.prefix == '## ' && p.content == 'Done') {
-      doneHeaderLine = i;
-    }
-    if (p.prefix == '## ' && p.content == 'Cancelled') {
-      cancelledHeaderLine = i;
-    }
-  }
-  console.log('  dHL = ' + doneHeaderLine + ', cHL = ' + cancelledHeaderLine);
-}
-
 // Return date part of ISO 8601 standard datetime string (YYYY-MM-DD)
 function toISODateString(d) {
   return d.toISOString().slice(0, 10);
+}
+
+// Return date string in format YYYYMMDD
+function ISODateToYYYYMMDD(iso) {
+  return iso.slice(0, 4) + iso.slice(5,7) + iso.slice(8,10);
 }
 
 // Calculate an offset date
@@ -98,7 +57,7 @@ function calcOffsetDate(oldDateISO, interval) {
   // - oldDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type
   // - interval is string of form nn[bdwmq], and could be negative
   // - where 'b' is weekday (i.e. Monday - Friday in English)
-  // Return new date also in ISO Date format
+  // Return new date also in ISO Date format string
 
   /**
    * TODO: Could now use NP's own date manipulation functions:
@@ -113,7 +72,6 @@ function calcOffsetDate(oldDateISO, interval) {
    */
   const oldDate = new Date(oldDateISO);
   let daysToAdd = 0;
-  // const day = 1000 * 60 * 60 * 24; // a day in milliseconds
   const unit = interval.charAt(interval.length - 1); // get last character
   let num = Number(interval.substr(0, interval.length - 1)); // return all but last character
   // console.log("    c_o_d: old = " + oldDate + " / "  + num + " / " + unit)
@@ -189,7 +147,7 @@ async function repeats() {
   // the @repeat tag from the task in NotePlan.
 
   const RE_DATE = '\\d{4}-[01]\\d{1}-\\d{2}'; // find dates of form YYYY-MM-DD and similar
-  const RE_TIME = '[0-2]\\d{1}:[0-5]\\d{1}'; // find '12:23'. NB: Not sure whether additional /(?:.(?:AM|PM))?/ can work in JS
+  const RE_TIME = '[0-2]\\d{1}:[0-5]\\d{1}\\s?(?:AM|PM|am|pm)?'; // find '12:23' with optional '[ ][AM|PM|am|pm]'
   // const RE_DUE_DATE = '\\s+>' + RE_DATE; // find ' >2021-02-23' etc.
   const RE_DUE_DATE_CAPTURE = '\\s+>(' + RE_DATE + ')'; // find ' >2021-02-23' and return just date part
   const RE_DATE_TIME = RE_DATE + ' ' + RE_TIME; // YYYY-MM-DD HH:MM[AM|PM]
@@ -198,20 +156,47 @@ async function repeats() {
   const RE_EXTENDED_REPEAT = '@repeat\\(\\+?\\d+[bdwmqy]\\)'; // find @repeat()
   const RE_EXTENDED_REPEAT_CAPTURE = '@repeat\\((.*?)\\)'; // find @repeat() and return part inside brackets
 
-  console.log('\nrepeats:');
-  readInEditorNote();
+  // Get current note details
+  const { paragraphs, title } = Editor;
+  if (paragraphs == null) {
+    // No note open, or no paragraphs (perhaps empty note), so don't do anything.
+    console.log('repeat: warning: No note open, or empty note.');
+    return;
+  }
+  let lineCount = paragraphs.length
+  console.log("\nrepeats: from note '" + title + "'")
+
+  // check if the last paragraph is undefined, and if so delete it from our copy
+  if (paragraphs[lineCount] == undefined) {
+    lineCount--
+  }
+
+  // work out where ## Done or ## Cancelled sections start, if present
+  let doneHeaderLine = 0;
+  let cancelledHeaderLine = 0;
+  for (let i = 0; i < lineCount; i++) {
+    const p = paragraphs[i];
+    // console.log(i.toString() + "/" + p.lineIndex + ": " + p.content)
+    if (p.headingLevel == 2 && p.content == 'Done') {
+      doneHeaderLine = i;
+    }
+    if (p.headingLevel == 2 && p.content == 'Cancelled') {
+      cancelledHeaderLine = i;
+    }
+  }
+  // console.log('  dHL = ' + doneHeaderLine + ', cHL = ' + cancelledHeaderLine);
+  const endOfActive = doneHeaderLine != 0 ? doneHeaderLine : lineCount;
+
   let n = 0;
   let line = '';
   let updatedLine = '';
   let completedDate = '';
   let completedTime = '';
   let reReturnArray = [];
-  let endOfActive = 0;
-  // Set range of paragraphs in active part of note
-  endOfActive = doneHeaderLine != 0 ? doneHeaderLine : lineCount;
+
   // Go through each line in the active part of the file
   for (n = 0; n < endOfActive; n++) {
-    const p = paras[n];
+    const p = paragraphs[n];
     line = p.content;
     updatedLine = '';
     completedDate = '';
@@ -230,7 +215,7 @@ async function repeats() {
 
       // Send the update to the Editor
       await Editor.updateParagraph(p);
-      console.log('    updated Paragraph ' + p.lineIndex);
+      // console.log('    updated Paragraph ' + p.lineIndex);
 
       // Test if this is one of my special extended repeats
       if (updatedLine.match(RE_EXTENDED_REPEAT)) {
@@ -271,16 +256,32 @@ async function repeats() {
           console.log('    Adding from due date --> ' + newRepeatDate);
         }
 
-        // Create new repeat line, removing the @done text
-        const updatedLineWithoutDone = updatedLine
-          .replace(/@done\(.*\)/, '')
-          .trim();
-        outline = updatedLineWithoutDone + ' >' + newRepeatDate;
-        console.log('    -> ' + outline);
+        outline = updatedLine.replace(/@done\(.*\)/, '').trim()
 
-        // save updated copy of the note contents, as changes were made (at least to @done(...))
-        await Editor.insertParagraphAfterParagraph(outline, p, 'scheduled');
-        console.log('    inserted new paragraph after line ' + p.lineIndex);
+        // Create and add the new repeat line ...
+        if (Editor.type == 'Notes') {
+          // ...either in same project note
+          outline += ' >' + newRepeatDate
+          // console.log('    -> ' + outline)
+          await Editor.insertParagraphAfterParagraph(outline, p, 'scheduled')
+          console.log('    Inserted new paragraph after line ' + p.lineIndex)
+        } else {
+          // ... or in the future daily note (prepend)
+          // console.log('    -> ' + outline)
+          const newRepeatDateShorter = ISODateToYYYYMMDD(newRepeatDate)
+          const newDailyNote = await DataStore.calendarNoteByDateString(newRepeatDateShorter)
+          if (newDailyNote.title !== undefined) {
+            console.log(newDailyNote.filename)
+            await newDailyNote.appendTodo(outline)
+            console.log('    Inserted new repeat in daily note ' + newRepeatDateShorter)
+          } else {
+            // TODO: WAITING: for EM to make a way to create future calendar notes.
+            // In the meantime, have to use a future reference in the current note instead.
+            outline += ' >' + newRepeatDate
+            await Editor.insertParagraphAfterParagraph(outline, p, 'scheduled')
+            console.log('    Inserted new repeat in original daily note (waiting for plugin framework fix)')
+          }
+        }        
       }
     }
   }
