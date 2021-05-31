@@ -1,15 +1,15 @@
 // @flow
 
-import { chooseOption, showMessage } from '../../nmn.sweep/src/userInput';
+import { chooseOption, showMessage } from '../../nmn.sweep/src/userInput'
 
-const staticTemplateFolder = '📋 Templates';
+const staticTemplateFolder = '📋 Templates'
 
 export function getTemplateFolder(): ?string {
-  return DataStore.folders.find((f) => f.includes(staticTemplateFolder));
+  return DataStore.folders.find((f) => f.includes(staticTemplateFolder))
 }
 
 export async function makeTemplateFolder(): Promise<void> {
-  let folder = getTemplateFolder();
+  let folder = getTemplateFolder()
 
   if (folder == null) {
     const shouldCreateFolder = await chooseOption<boolean, boolean>(
@@ -25,10 +25,10 @@ export async function makeTemplateFolder(): Promise<void> {
         },
       ],
       false,
-    );
+    )
 
     if (!shouldCreateFolder) {
-      return;
+      return
     }
 
     const subfolder = await chooseOption<string>(
@@ -38,16 +38,16 @@ export async function makeTemplateFolder(): Promise<void> {
         value: folder + (folder.endsWith('/') ? '' : '/'),
       })),
       '',
-    );
-    folder = subfolder + staticTemplateFolder;
+    )
+    folder = subfolder + staticTemplateFolder
 
     // Now create a sample note in that folder, then we got the folder also created
-    DataStore.newNote(DAILY_NOTE_TEMPLATE, folder);
-    DataStore.newNote(MEETING_NOTE_TEMPLATE, folder);
-    DataStore.newNote(TAGS_TEMPLATE, folder);
-    DataStore.newNote(CONFIG, folder);
+    DataStore.newNote(DAILY_NOTE_TEMPLATE, folder)
+    DataStore.newNote(MEETING_NOTE_TEMPLATE, folder)
+    DataStore.newNote(TAGS_TEMPLATE, folder)
+    DataStore.newNote(CONFIG, folder)
 
-    await showMessage(`"${staticTemplateFolder}" folder created with samples `);
+    await showMessage(`"${staticTemplateFolder}" folder created with samples `)
   }
 }
 
@@ -64,7 +64,7 @@ const DAILY_NOTE_TEMPLATE = `Daily Note Template
 ## Media
 
 ## Journal
-`;
+`
 
 const MEETING_NOTE_TEMPLATE = `Meeting Note Template
 ---
@@ -73,14 +73,14 @@ const MEETING_NOTE_TEMPLATE = `Meeting Note Template
 ## Notes
 
 ## Actions
-`;
+`
 
 const TAGS_TEMPLATE = `Tags Template
 ---
 # {{title}}
 
 Created on {{date({locale: 'en-US', dateStyle: 'short'})}}
-`;
+`
 
 const CONFIG = ` _configuration
 ---
@@ -225,4 +225,4 @@ firstName = "John"
 # Can be used as {{me.lastName}}
 lastName = "Doe"
 \`\`\`
-`;
+`

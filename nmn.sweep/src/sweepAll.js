@@ -1,14 +1,14 @@
 // @flow strict
 
-import { filenameDateString, hyphenatedDateString } from './dateHelpers';
-import sweepCalendarNote from './sweepCalendarNote';
-import sweepProjectNote from './sweepProjectNote';
-import { chooseOption, showMessage } from './userInput';
+import { filenameDateString, hyphenatedDateString } from './dateHelpers'
+import sweepCalendarNote from './sweepCalendarNote'
+import sweepProjectNote from './sweepProjectNote'
+import { chooseOption, showMessage } from './userInput'
 
 type Option1 = $ReadOnly<{
   num: number,
   unit: 'day' | 'month' | 'year',
-}>;
+}>
 
 const OPTIONS = [
   { label: '7 days', value: { num: 7, unit: 'day' } },
@@ -19,8 +19,8 @@ const OPTIONS = [
   { label: '6 months', value: { num: 6, unit: 'month' } },
   { label: '1 year', value: { num: 1, unit: 'year' } },
   { label: '❌ Cancel', value: { num: 0, unit: 'day' } },
-];
-const DEFAULT_OPTION: Option1 = { unit: 'day', num: 0 };
+]
+const DEFAULT_OPTION: Option1 = { unit: 'day', num: 0 }
 
 /**
  * TODO:
@@ -33,50 +33,45 @@ export default async function sweepAll(): Promise<void> {
     '🧹 Reschedule tasks to today of the last...',
     OPTIONS,
     DEFAULT_OPTION,
-  );
+  )
 
   if (num == 0) {
     // User canceled, return here, so no additional messages are shown
-    await showMessage(`Cancelled! No changes made.`);
-    return;
+    await showMessage(`Cancelled! No changes made.`)
+    return
   }
 
-  const afterDate = Calendar.addUnitToDate(new Date(), unit, -num);
+  const afterDate = Calendar.addUnitToDate(new Date(), unit, -num)
   const afterDateFileName = filenameDateString(
     Calendar.addUnitToDate(new Date(), unit, -num),
-  );
+  )
 
   const re1 = await CommandBar.showOptions(
     ['✅ OK', '❌ Skip'],
     '📙 Processing with your Project Notes first...',
-  );
+  )
   if (re1.index == 0) {
     for (const note of DataStore.projectNotes) {
-      await sweepProjectNote(
-        note,
-        true,
-        hyphenatedDateString(afterDate),
-        false,
-      );
+      await sweepProjectNote(note, true, hyphenatedDateString(afterDate), false)
     }
   }
 
   const re2 = await CommandBar.showOptions(
     ['✅ OK', '❌ Skip'],
     '🗓 Now processing your Daily Notes...',
-  );
+  )
 
   if (re2.index == 0) {
-    const todayFileName = filenameDateString(new Date());
+    const todayFileName = filenameDateString(new Date())
     const recentCalNotes = DataStore.calendarNotes.filter(
       (note) =>
         note.filename < todayFileName && note.filename >= afterDateFileName,
-    );
+    )
 
     for (const note of recentCalNotes) {
-      await sweepCalendarNote(note, true, false);
+      await sweepCalendarNote(note, true, false)
     }
   }
 
-  await showMessage(`All Done!`);
+  await showMessage(`All Done!`)
 }

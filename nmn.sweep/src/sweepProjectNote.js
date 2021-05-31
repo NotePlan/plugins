@@ -1,7 +1,7 @@
 // @flow
 
-import { hyphenatedDateString } from './dateHelpers';
-import { chooseOption, showMessage } from './userInput';
+import { hyphenatedDateString } from './dateHelpers'
+import { chooseOption, showMessage } from './userInput'
 
 // TODO make afterHyphenatedDate take a regular date instead
 export default async function sweepProjectNote(
@@ -10,8 +10,8 @@ export default async function sweepProjectNote(
   afterHyphenatedDate: string = '0000-00-00',
   notifyNoChanges: boolean = true,
 ): Promise<void> {
-  const paragraphs = note.paragraphs;
-  const todayDateString = hyphenatedDateString(new Date());
+  const paragraphs = note.paragraphs
+  const todayDateString = hyphenatedDateString(new Date())
 
   const overdueTasks = paragraphs.filter(
     (p) =>
@@ -19,17 +19,17 @@ export default async function sweepProjectNote(
       p.date != null &&
       hyphenatedDateString(p.date) < todayDateString &&
       hyphenatedDateString(p.date) >= afterHyphenatedDate,
-  );
+  )
 
-  const numTasksToUpdate = overdueTasks.length;
+  const numTasksToUpdate = overdueTasks.length
 
   if (numTasksToUpdate > 0) {
-    let confirmed = true;
-    const pluralTask = numTasksToUpdate != 1 ? 'tasks' : 'task';
+    let confirmed = true
+    const pluralTask = numTasksToUpdate != 1 ? 'tasks' : 'task'
 
     if (withUserConfirm) {
-      Editor.openNoteByFilename(note.filename);
-      const yesLabel = `🔗 Yes, reschedule (update '>date') ${numTasksToUpdate} ${pluralTask} to today`;
+      Editor.openNoteByFilename(note.filename)
+      const yesLabel = `🔗 Yes, reschedule (update '>date') ${numTasksToUpdate} ${pluralTask} to today`
       confirmed = await chooseOption<boolean>(
         `🧹 Ready to sweep '${note.title ?? 'Untitled'}'?`,
         [
@@ -37,27 +37,27 @@ export default async function sweepProjectNote(
           { label: '❌ Skip this note', value: false },
         ],
         false,
-      );
+      )
     }
 
     if (confirmed) {
       overdueTasks.forEach((para) => {
         if (para.type === 'open' && para.date != null) {
-          const paraDateString = hyphenatedDateString(para.date);
+          const paraDateString = hyphenatedDateString(para.date)
 
-          para.content = para.content.replace(paraDateString, todayDateString);
+          para.content = para.content.replace(paraDateString, todayDateString)
 
           if (Editor.filename == note.filename) {
-            Editor.updateParagraph(para);
+            Editor.updateParagraph(para)
           } else {
-            note.updateParagraph(para);
+            note.updateParagraph(para)
           }
         }
-      });
+      })
     }
   } else {
     if (notifyNoChanges && withUserConfirm) {
-      await showMessage('Everything is already up to date here!');
+      await showMessage('Everything is already up to date here!')
     }
   }
 }

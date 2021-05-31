@@ -17,5 +17,5 @@ declare module 'json5' {
   declare export default {
     parse: (string) => mixed,
     stringify: (mixed) => string,
-  };
+  }
 }

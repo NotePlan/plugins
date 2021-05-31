@@ -17,5 +17,5 @@ declare module 'toml' {
   declare export default {
     parse: (string) => mixed,
     stringify: (mixed) => string,
-  };
+  }
 }
