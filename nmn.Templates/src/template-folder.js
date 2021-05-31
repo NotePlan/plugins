@@ -104,19 +104,6 @@ The first code-block within the note will always be used. So edit the default co
 {
   // Even though it says, "javacsript" above, this actually just JSON5.
 
-  // configuration for weather data
-  weather: {
-    // API key for https://openweathermap.org/
-    // !!REQUIRED!!
-    apiKey: '... put your API key here ...',
-    // Default location for weather forcast
-    lattitude: 0,
-    longitude: 0,
-    // Default temperature unit. Can be "C" (Celcius), "K" (Kelvin) or "F" (Fahrenheit)
-    unit: 'C',
-    // When using a weather tag, you can customize these options.
-  },
-
   // configuration for dates, heavily based on javascript's Intl module
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat/DateTimeFormat
   date: {
@@ -150,17 +137,6 @@ If you prefer YAML format, delete the code-block above and edit this one instead
 
 \`\`\`yaml
 ---
-# configuration for weather data
-weather:
-  # API key for https://openweathermap.org/
-  # !!REQUIRED!!
-  apiKey: "... put your API key here ..."
-  # Default location for weather forcast
-  lattitude: 0
-  longitude: 0
-  # Default temperature unit. Can be "C" (Celcius), "K" (Kelvin) or "F" (Fahrenheit)
-  unit: C
-
 # configuration for dates, heavily based on javascript's Intl module
 # https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat/DateTimeFormat
 date:
@@ -189,18 +165,6 @@ tagValue:
 If you prefer TOML instead of JSON5 or YAML, delete the two code blocks above and use this one instead:
 
 \`\`\`ini
-# configuration for weather data
-[weather]
-# API key for https://openweathermap.org/
-# !!REQUIRED!!
-apiKey = "... put your API key here ..."
-# Default location for weather forcast
-lattitude = 0
-longitude = 0
-# Default temperature unit. Can be "C" (Celcius), "K" (Kelvin) or "F" (Fahrenheit)
-unit = "C"
-# When using a weather tag, you can customize these options.
-
 # configuration for dates, heavily based on javascript's Intl module
 # https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat/DateTimeFormat
 [date]
@@ -226,3 +190,22 @@ firstName = "John"
 lastName = "Doe"
 \`\`\`
 `
+
+/**
+ * 
+ * The following should be added to the default configuration
+ * once the weather function works.
+ * 
+ // configuration for weather data
+  weather: {
+    // API key for https://openweathermap.org/
+    // !!REQUIRED!!
+    apiKey: '... put your API key here ...',
+    // Default location for weather forcast
+    lattitude: 0,
+    longitude: 0,
+    // Default temperature unit. Can be "C" (Celcius), "K" (Kelvin) or "F" (Fahrenheit)
+    unit: 'C',
+    // When using a weather tag, you can customize these options.
+  },
+*/

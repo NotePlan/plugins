@@ -5,14 +5,16 @@ import {
   chooseOption,
   getInput,
 } from '../../nmn.sweep/src/userInput'
-import { getDefaultConfiguration, parseJSON5 } from './configuration'
+import { getDefaultConfiguration } from './configuration'
+import { processTemplate } from './interpolation'
 
 import { getTemplateFolder, makeTemplateFolder } from './template-folder'
 
-export async function addTemplate() {
+export async function addTemplate(newNote?: [string, string]) {
   const templateFolder = await getTemplateFolder()
 
   if (templateFolder == null) {
+    console.log(`addTemplate: templateFolder is null`)
     await makeTemplateFolder()
     await showMessage('Try using this command again to use a template')
     return
@@ -26,6 +28,9 @@ export async function addTemplate() {
     )
     .filter(Boolean)
 
+  console.log(`addTemplate: found ${options.length} options`)
+
+  console.log(`addTemplate: asking user which template:`)
   const selectedTemplate = await chooseOption<TNote, void>(
     'Choose Template',
     options,
@@ -43,82 +48,71 @@ export async function addTemplate() {
     config,
   )
 
-  Editor.content = [Editor.content, processedTemplateContent]
-    .filter(Boolean)
-    .join('\n')
-}
-
-async function processTemplate(
-  content: string,
-  config: { [string]: ?mixed },
-): Promise<string> {
-  const tagStart = content.indexOf('{{')
-  const tagEnd = content.indexOf('}}')
-  const hasTag = tagStart !== -1 && tagEnd !== -1 && tagStart < tagEnd
-  if (!hasTag) {
-    return content
-  }
-
-  const beforeTag = content.slice(0, tagStart)
-  const afterTag = content.slice(tagEnd + 2)
-  const tag = content.slice(tagStart + 2, tagEnd)
-
-  try {
-    const tagProcessed = await processTag(tag, config)
-    const restProcessed = await processTemplate(afterTag, config)
-    return beforeTag + tagProcessed + restProcessed
-  } catch (e) {
-    console.log(e)
-    return content
+  if (newNote != null) {
+    const [title, folder] = newNote
+    const filename = DataStore.newNote(title, folder)
+    if (!filename) {
+      await showMessage('There was an error creating your note :(')
+      return
+    }
+    await Editor.openNoteByFilename(filename)
+    Editor.content = `# ${title}\n${processedTemplateContent}`
+  } else {
+    Editor.content = [Editor.content, processedTemplateContent]
+      .filter(Boolean)
+      .join('\n')
   }
 }
 
-async function processTag(
-  tag: string,
-  config: { [string]: ?mixed },
-): Promise<string> {
-  if (tag.startsWith('date(') && tag.endsWith(')')) {
-    return await processDate(tag.slice(5, tag.length - 1), config)
-  }
-  const valueInConfig = tag
-    // eslint-disable-next-line no-useless-escape
-    .split(/[\.\[\]]/)
-    .filter(Boolean)
-    .reduce(
-      (path, key: string) =>
-        path != null && typeof path === 'object' ? path[key] : null,
-      config.tagValue,
+export async function newNoteWithTemplate() {
+  const title = await getInput(
+    'Enter title of the new note',
+    "Create a new note with title '%@'",
+  )
+
+  let folder = '/'
+  if (DataStore.folders.length > 0) {
+    folder = await chooseOption(
+      'Select folder to add note in:',
+      DataStore.folders.map((folder) => ({
+        label: folder,
+        value: folder,
+      })),
+      '/',
     )
-  if (valueInConfig != null) {
-    return String(valueInConfig)
-  }
-  return await getInput(`Value for ${tag}`)
-}
-
-async function processDate(
-  dateConfig: string,
-  config: { [string]: ?mixed },
-): Promise<string> {
-  const defaultConfig = config.date ?? {}
-  const paramConfig = dateConfig.trim() ? await parseJSON5(dateConfig) : {}
-  // console.log(`param config: ${dateConfig} as ${JSON.stringify(paramConfig)}`);
-  const finalArguments: { [string]: mixed } = {
-    ...defaultConfig,
-    ...paramConfig,
   }
 
-  const { locale, ...otherParams } = (finalArguments: any)
-
-  const localeParam = locale != null ? String(locale) : []
-  const secondParam = {
-    dateStyle: 'short',
-    ...otherParams,
+  if (!title) {
+    console.log('\tError: undefined or empty title')
+    await showMessage('Cannot create a not with an empty title')
+    return
   }
-  // console.log(`${JSON.stringify(localeParam)}, ${JSON.stringify(secondParam)}`);
 
-  return new Intl.DateTimeFormat(localeParam, secondParam).format(new Date())
-}
+  const templateFolder = await getTemplateFolder()
+  let shouldAddTemplate = false
 
-export function newNoteWithTemplate() {
-  console.log('newNoteWithTemplate run')
+  if (templateFolder != null || templateFolder !== '') {
+    shouldAddTemplate = await chooseOption(
+      'Do you want to get started with a template?',
+      [
+        { label: 'Yes', value: true },
+        { label: 'No', value: false },
+      ],
+      false,
+    )
+  }
+  if (shouldAddTemplate) {
+    await addTemplate([title, folder])
+    return
+  }
+
+  const filename = DataStore.newNote(title, folder)
+
+  if (!filename) {
+    await showMessage('There was an error creating your note :(')
+    return
+  }
+
+  await Editor.openNoteByFilename(filename)
+  Editor.content = `# ${title}\n`
 }

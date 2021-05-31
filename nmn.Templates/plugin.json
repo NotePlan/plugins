@@ -12,13 +12,13 @@
   "plugin.isRemote": "false",
   "plugin.commands": [
     {
-      "name": "addTemplate",
-      "description": "Add template to open note",
+      "name": "it",
+      "description": "Choose a Template to apply to an existing Note",
       "jsFunction": "addTemplate"
     },
     {
-      "name": "newNoteWithTemplate",
-      "description": "Create new note with a template",
+      "name": "nn",
+      "description": "Create new note with title, in chosen folder with optional template",
       "jsFunction": "newNoteWithTemplate"
     }
   ],

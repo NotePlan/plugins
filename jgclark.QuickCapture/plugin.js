@@ -16,6 +16,7 @@ const pref_addInboxPosition = 'append' // or "prepend"
 
 // ------------------------------------------------------------------
 // Helper function, not called by a command
+// eslint-disable-next-line no-unused-vars
 function printNote(note) {
   if (note === undefined) {
     console.log('Note not found!')
@@ -24,29 +25,11 @@ function printNote(note) {
 
   if (note.type === 'Notes') {
     console.log(
-      'title: ' +
-        note.title +
-        '\n\tfilename: ' +
-        note.filename +
-        '\n\thashtags: ' +
-        note.hashtags +
-        '\n\tmentions: ' +
-        note.mentions +
-        '\n\tcreated: ' +
-        note.createdDate +
-        '\n\tchanged: ' +
-        note.changedDate,
+      `title: ${note.title}\n\tfilename: ${note.filename}\n\thashtags: ${note.hashtags}\n\tmentions: ${note.mentions}\n\tcreated: ${note.createdDate}\n\tchanged: ${note.changedDate}`,
     )
   } else {
     console.log(
-      'date: ' +
-        note.date +
-        '\n\tfilename: ' +
-        note.filename +
-        '\n\thashtags: ' +
-        note.hashtags +
-        '\n\tmentions: ' +
-        note.mentions,
+      `date: ${note.date}\n\tfilename: ${note.filename}\n\thashtags: ${note.hashtags}\n\tmentions: ${note.mentions}`,
     )
   }
 }
@@ -61,7 +44,7 @@ async function prependTaskToNote() {
   const notes = projectNotesSortedByChanged()
 
   const re = await CommandBar.showOptions(
-    notes.map((n) => n.title),
+    notes.map((n) => n.title).filter(Boolean),
     'Select note to prepend',
   )
   notes[re.index].prependTodo(taskName)
@@ -78,7 +61,7 @@ async function appendTaskToNote() {
   const notes = projectNotesSortedByChanged()
 
   const re = await CommandBar.showOptions(
-    notes.map((n) => n.title),
+    notes.map((n) => n.title).filter(Boolean),
     'Select note to append',
   )
   notes[re.index].appendTodo(taskName)
@@ -96,7 +79,7 @@ async function addTaskToNoteHeading() {
   const notes = projectNotesSortedByChanged()
   // CommandBar.showOptions only takes [string] as input
   const re = await CommandBar.showOptions(
-    notes.map((n) => n.title),
+    notes.map((n) => n.title).filter(Boolean),
     'Select note for new todo',
   )
   const note = notes[re.index]
@@ -105,17 +88,14 @@ async function addTaskToNoteHeading() {
   const headings = note.paragraphs.filter((p) => p.type === 'title')
   const re2 = await CommandBar.showOptions(
     headings.map((p) => p.prefix + p.content),
-    "Select a heading from note '" + note.title + "'",
+    `Select a heading from note '${note.title ?? ''}'`,
   )
   const heading = headings[re2.index]
   // console.log("Selected heading: " + heading.content)
   console.log(
-    'Adding todo: ' +
-      todoTitle +
-      ' to ' +
-      note.title +
-      ' in heading: ' +
-      heading.content,
+    `Adding todo: ${todoTitle} to ${note.title ?? ''} in heading: ${
+      heading.content
+    }`,
   )
 
   // Add todo to the heading in the note (and add the heading if it doesn't exist)
@@ -137,7 +117,7 @@ async function addTextToNoteHeading() {
   const notes = projectNotesSortedByChanged()
   // CommandBar.showOptions only takes [string] as input
   const re = await CommandBar.showOptions(
-    notes.map((n) => n.title),
+    notes.map((n) => n.title).filter(Boolean),
     'Select note for new text',
   )
   const note = notes[re.index]
@@ -146,17 +126,14 @@ async function addTextToNoteHeading() {
   const headings = note.paragraphs.filter((p) => p.type === 'title')
   const re2 = await CommandBar.showOptions(
     headings.map((p) => p.prefix + p.content),
-    "Select a heading from note '" + note.title + "'",
+    `Select a heading from note '${note.title ?? ''}'`,
   )
   const heading = headings[re2.index]
   // console.log("Selected heading: " + heading.content)
   console.log(
-    'Adding text: ' +
-      text +
-      ' to ' +
-      note.title +
-      ' in heading: ' +
-      heading.content,
+    `Adding text: ${text} to ${note.title ?? ''} in heading: ${
+      heading.content
+    }`,
   )
 
   // Add text to the heading in the note (and add the heading if it doesn't exist)
@@ -178,8 +155,8 @@ async function addTaskToInbox() {
   let newFilename = null
   let inboxNote = null
 
-  console.log('addTaskToInbox: ' + pref_inboxFilename)
-  if (pref_inboxFilename != '') {
+  console.log(`addTaskToInbox: ${pref_inboxFilename}`)
+  if (pref_inboxFilename !== '') {
     inboxNote = DataStore.projectNoteByFilename(pref_inboxFilename)
     // Create the inbox note if not existing, ask the user which folder
     if (inboxNote == null) {
@@ -188,9 +165,9 @@ async function addTaskToInbox() {
         folders,
         'Inbox not found, choose a folder or cancel [ESC]',
       )
-      newFilename = DataStore.newNote(pref_inboxTitle, folder.value)
+      newFilename = DataStore.newNote(pref_inboxTitle, folder.value) ?? ''
       // NB: this returns a filename not of our choosing
-      console.log('made new inbox note, filename = ' + newFilename)
+      console.log(`made new inbox note, filename = ${newFilename}`)
     }
   }
 
@@ -208,22 +185,20 @@ async function addTaskToInbox() {
 
   // Get the relevant note from the Datastore
   if (inboxNote != null) {
-    if (pref_addInboxPosition == 'append') {
+    if (pref_addInboxPosition === 'append') {
       inboxNote.appendTodo(todoTitle)
     } else {
       inboxNote.prependTodo(todoTitle)
     }
-    console.log("  Added todo to Inbox note '" + inboxNote.filename + "'")
+    console.log(`  Added todo to Inbox note '${inboxNote.filename}'`)
   } else {
-    console.log(
-      "  ERROR: Couldn't find Inbox note '" + pref_inboxFilename + "'",
-    )
+    console.log(`  ERROR: Couldn't find Inbox note '${pref_inboxFilename}'`)
   }
 }
 globalThis.addTaskToInbox = addTaskToInbox
 
 function projectNotesSortedByChanged() {
-  return DataStore.projectNotes.sort(
-    (first, second) => first.changedDate < second.changedDate,
-  )
+  return DataStore.projectNotes
+    .slice()
+    .sort((first, second) => first.changedDate - second.changedDate)
 }
