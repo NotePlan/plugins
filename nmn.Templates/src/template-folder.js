@@ -114,8 +114,8 @@ The first code-block within the note will always be used. So edit the default co
     locale: 'en-US',
     // can be "short", "medium", "long" or "full"
     dateStyle: 'short',
-    // can be null (to skip time), "short", "medium", "long" or "full"
-    timeStyle: null,
+    // optional key, can be "short", "medium", "long" or "full"
+    timeStyle: 'short,
   },
 
   // default values for custom tags.
