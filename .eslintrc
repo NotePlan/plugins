@@ -20,7 +20,7 @@
   "rules": {
     "prefer-template": "warn",
     "eqeqeq": ["error", "smart"],
-    "semi": ["never"],
+    "semi": ["error", "never"],
     "curly": ["error", "multi-line"],
     "linebreak-style": ["error", "unix"],
     "max-len": [

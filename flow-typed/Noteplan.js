@@ -34,7 +34,7 @@
  *
  * Here are the available functions you can call with the Editor object:
  */
-declare var Editor: TEditor;
+declare var Editor: TEditor
 type TEditor = {
   /**
    * Also all the keys from this object
@@ -161,13 +161,13 @@ type TEditor = {
    * will be unfolded.
    */
   highlightByRange(range: Range): void,
-};
+}
 
 /**
  * With DataStore you can query, create and move notes which are cached by
  * NotePlan. It allows you to query a set of user preferences, too.
  */
-declare var DataStore: TDataStore;
+declare var DataStore: TDataStore
 type TDataStore = {
   /**
    * Get the preference for the default file (note) extension,
@@ -284,7 +284,7 @@ type TDataStore = {
    * (if the there is a duplicate, it will add a number).
    */
   newNote(noteTitle: string, folder: string): ?string,
-};
+}
 
 /**
  * Use CommandBar to get user input. Either by asking the user to type in a
@@ -292,7 +292,7 @@ type TDataStore = {
  * This list can be "fuzzy-search" filtered by the user. So, it's fine to show
  * a long list of options, like all folders or notes or tasks in a note.
  */
-declare var CommandBar: TCommandBar;
+declare var CommandBar: TCommandBar
 type TCommandBar = {
   /**
    * Get or set the current text input placeholder (what you can read when no
@@ -345,7 +345,7 @@ type TCommandBar = {
    * input with the entered text as success result.
    */
   showInput(placeholder: string, submitText: string): Promise<string>,
-};
+}
 
 /**
  * Use Calendar to create events, reminders, and to parse dates, like
@@ -355,8 +355,8 @@ type TCommandBar = {
  *
  * See also `CalendarItem` if you want to create an event or reminder.
  */
-declare var Calendar: TCalendar;
-type CalendarDateUnit = 'year' | 'month' | 'day' | 'hour' | 'minute' | 'second';
+declare var Calendar: TCalendar
+type CalendarDateUnit = 'year' | 'month' | 'day' | 'hour' | 'minute' | 'second'
 type DateRange = {
   /**
    * The start date of the parsed date text.
@@ -371,7 +371,7 @@ type DateRange = {
    * respective times and dates set.
    */
   +end: Date,
-};
+}
 type TCalendar = {
   /**
    * Get all available date units: "year", "month", "day", "hour", "minute", "second"
@@ -434,14 +434,14 @@ type TCalendar = {
    * unit types using `dateUnits`.
    */
   unitsBetween(date1: Date, date2: Date, type: CalendarDateUnit): number,
-};
+}
 
 /**
  * You can get paragraphs from `Editor` or `Note`.
  * They represent blocks or lines of text (delimited by linebreaks = \n).
  * A task for example is a paragraph, a list item (bullet), heading, etc.
  */
-declare var Paragraph: TParagraph;
+declare var Paragraph: TParagraph
 type TParagraph = {
   /**
    * Get or set the type of the paragraph
@@ -512,9 +512,9 @@ type TParagraph = {
    * original object
    */
   duplicate(): TParagraph,
-};
+}
 
-type NoteType = 'Calendar' | 'Notes';
+type NoteType = 'Calendar' | 'Notes'
 /**
  * Notes can be queried by DataStore. You can change the complete text of the
  * note, which will be saved to file or query, add, remove, or modify
@@ -573,7 +573,7 @@ type TNote = {
    * to file.
    */
   paragraphs: $ReadOnlyArray<TParagraph>,
-};
+}
 
 /**
  * Ranges are used when you deal with selections or need to know where a
@@ -592,15 +592,15 @@ type Range = {
    * Character length of the range (end - start).
    */
   +length: number,
-};
+}
 
-type CalenderItemType = 'event' | 'reminder';
+type CalenderItemType = 'event' | 'reminder'
 /**
  * The CalendarItem is used in combination with
  * [Calendar](https://help.noteplan.co/article/70-javascript-plugin-api#calendar)
  * to create events or reminders.
  */
-declare var CalendarItem: TCalendarItem;
+declare var CalendarItem: TCalendarItem
 type TCalendarItem = {
   /**
    * The ID of the event or reminder after it has been created by
@@ -647,7 +647,7 @@ type TCalendarItem = {
     type: CalenderItemType,
     isAllDay: boolean,
   ): TCalendarItem,
-};
+}
 
 /**
  * Access and set the data inside the current clipboard.
@@ -685,7 +685,7 @@ declare var Clipboard: {
    * Pass in the types you are interested in and get the available type back.
    */
   availableType(fromTypes: $ReadOnlyArray<string>): ?string,
-};
+}
 
 type ParagraphType =
   | 'open'
@@ -695,9 +695,9 @@ type ParagraphType =
   | 'title'
   | 'quote'
   | 'list'
-  | 'empty';
+  | 'empty'
 
-declare var ParagaraphBridge: TParagaraphBridge;
+declare var ParagaraphBridge: TParagaraphBridge
 type TParagaraphBridge = {
   /**
    * Returns a range object of the full paragraph of the given character
@@ -874,11 +874,11 @@ type TParagaraphBridge = {
    * @param {ParagraphObject} paragraph - Paragraph object to update, get it from `.paragraphs`
    */
   updateParagraph(paragraph: TParagraph): void,
-};
+}
 
 // This is the built-in `fetch` function from Javascript.
-declare function fetch(url: string): Promise<{ [string]: mixed }>;
+declare function fetch(url: string): Promise<{ [string]: mixed }>
 
 // Every function made available must be assigned to `globalThis`
 // This type ensures that only functions are made available as plugins
-declare var globalThis: { [string]: () => mixed };
+declare var globalThis: { [string]: () => mixed }
