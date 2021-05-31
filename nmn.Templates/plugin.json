@@ -1,0 +1,26 @@
+{
+  "noteplan.minAppVersion": "3.0.21",
+  "plugin.id": "nmn.templates",
+  "plugin.name": "🔩 Templates",
+  "plugin.description": "Create Notes with Custom Templates",
+  "plugin.icon": "f120",
+  "plugin.author": "Naman Goel",
+  "plugin.repoUrl": "tbd",
+  "plugin.version": "0.0.1",
+  "plugin.dependencies": [ ],
+  "plugin.script": "script.js",
+  "plugin.isRemote": "false",
+  "plugin.commands": [
+    {
+      "name": "it",
+      "description": "Choose a Template to apply to an existing Note",
+      "jsFunction": "addTemplate"
+    },
+    {
+      "name": "nn",
+      "description": "Create new note with title, in chosen folder with optional template",
+      "jsFunction": "newNoteWithTemplate"
+    }
+  ],
+  "plugin.preferences": []
+}
