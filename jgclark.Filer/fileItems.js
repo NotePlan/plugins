@@ -18,7 +18,7 @@ function projectNotesSortedByChanged() {
 
   return projectNotes.sort(
     (first, second) =>
-      first.changedDate.valueOf() - second.changedDate.valueOf(),
+      first.changedDate.valueOf() < second.changedDate.valueOf(),
   )
 }
 
