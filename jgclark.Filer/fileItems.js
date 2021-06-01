@@ -2,11 +2,10 @@
 // -----------------------------------------------------------------------------
 // Plugin to help move selected pargraphs to other notes
 // Jonathan Clark
-// v0.3.0, 31.5.2021
+// v0.3.2, 1.6.2021
 // -----------------------------------------------------------------------------
 
 // Preference that needs to get added when there is a proper config system
-// eslint-disable-next-line no-unused-vars
 const pref_addDateBacklink = true
 
 // -----------------------------------------------------------------------------
@@ -30,33 +29,6 @@ function rangeToString(r) {
   return `range: ${r.start}-${r.end}`
 }
 
-// Print out paragraph details
-// Currently unused
-// function paraDetails(p) {
-//   console.log(
-//     'Para content: ' +
-//       p.content +
-//       '\n\trawContent: ' +
-//       p.rawContent +
-//       '\n\tlineIndex: ' +
-//       p.lineIndex +
-//       '\ttype: ' +
-//       p.type +
-//       '\tindents: ' +
-//       p.indents + // NB only counts tabs not spaces
-//       '\tprefix: ' +
-//       p.prefix,
-//   )
-//   if (p.headingRange != undefined) {
-//     console.log(
-//       '\theadingRange from ' +
-//         p.headingRange.start +
-//         ' len ' +
-//         p.headingRange.length,
-//     )
-//   }
-// }
-
 // Convert paragraph(s) to single raw text string
 function parasToText(paras) {
   // console.log('parasToText: starting with ' + paras.length + ' paragraphs')
@@ -77,7 +49,7 @@ async function fileParas() {
   // - current selection
   // - current heading + its following section
   // - current line
-  // - TODO: current line (plus any indented paragraphs)
+  // - current line (plus any indented paragraphs)
   const { content, selectedParagraphs, note } = Editor
   if (content == null || selectedParagraphs == null || note == null) {
     // No note open, or no paragraph selection (perhaps empty note), so don't do anything.
@@ -153,7 +125,7 @@ async function fileParas() {
 
   // If this is a calendar note we've moving from, and the user wants to
   // create a date backlink, then append backlink to the first para in parasToMove
-  if (note.type === 'Calendar') {
+  if (pref_addDateBacklink && note.type === 'Calendar') {
     const todaysDate = new Date().toISOString().slice(0, 10)
     parasToMove[0].content = `${parasToMove[0].content} >${todaysDate}`
   }

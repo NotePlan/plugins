@@ -5,14 +5,14 @@
   "plugin.description": "Help file (move) the current paragraph, selected paragraphs, or heading and its section, to different notes. Please see website for more details.",  "plugin.icon": "",
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Filer",
-  "plugin.version": "0.3.1",
+  "plugin.version": "0.3.2",
   "plugin.dependencies": [],
   "plugin.script": "fileItems.js",
   "plugin.isRemote": "false",
   "plugin.commands": [
     {
       "name": "fp",
-      "description": "file paragraphs to different notes",
+      "description": "file (move) paragraphs to different notes",
       "jsFunction": "fileParas"
     }
   ],
