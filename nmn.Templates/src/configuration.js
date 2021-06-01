@@ -2,7 +2,7 @@
 
 import toml from 'toml'
 import json5 from 'json5'
-import yaml from 'yaml'
+import { load } from 'js-yaml'
 import { showMessage } from '../../nmn.sweep/src/userInput'
 import { getTemplateFolder } from './template-folder'
 
@@ -86,13 +86,14 @@ export async function parseJSON5(
 
 async function parseYAML(contents: string): Promise<?{ [string]: ?mixed }> {
   try {
-    const value = yaml.parse(contents)
+    const value = load(contents)
     if (typeof value === 'object') {
       return (value: any)
     } else {
       return {}
     }
   } catch (e) {
+    console.log(contents)
     console.log(e)
     await showMessage(
       'Invalid YAML in your configuration. Please fix it to use configuration',

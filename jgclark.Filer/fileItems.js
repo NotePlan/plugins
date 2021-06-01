@@ -6,19 +6,15 @@
 // -----------------------------------------------------------------------------
 
 // Preference that needs to get added when there is a proper config system
-const pref_addDateBacklink = true;
+const pref_addDateBacklink = true
 
 // -----------------------------------------------------------------------------
 // Helper Functions
 
 // Return list of all project notes, sorted by changed date (newest to oldest)
 function projectNotesSortedByChanged() {
-<<<<<<< HEAD
-  const projectNotes = DataStore.projectNotes.slice();
-=======
   const projectNotes = DataStore.projectNotes.slice()
 
->>>>>>> c8ccb5c9b3b9c91be3bc71c75b2318a94dc8968d
   return projectNotes.sort(
     (first, second) =>
       first.changedDate.valueOf() - second.changedDate.valueOf(),
@@ -80,15 +76,8 @@ async function fileParas() {
   // - current selection
   // - current heading + its following section
   // - current line
-<<<<<<< HEAD
-  // - current line (plus any indented paragraphs)
-  // allow setting to create a backlink when moving from a calendar note (requested by @Dimitry)
-
-  const { content, selectedParagraphs, note } = Editor;
-=======
   // - TODO: current line (plus any indented paragraphs)
   const { content, selectedParagraphs, note } = Editor
->>>>>>> c8ccb5c9b3b9c91be3bc71c75b2318a94dc8968d
   if (content == null || selectedParagraphs == null || note == null) {
     // No note open, or no paragraph selection (perhaps empty note), so don't do anything.
     console.log('fileParse: warning: No note open.')
@@ -99,14 +88,9 @@ async function fileParas() {
   if (selection == null) {
     return
   }
-<<<<<<< HEAD
-  const range = Editor.paragraphRangeAtCharacterIndex(selection.start);
-  console.log('\nfileParse: selection ' + rangeToString(range));
-=======
   const range = Editor.paragraphRangeAtCharacterIndex(selection.start)
   // const firstSelPara = selectedParagraphs[0]; // needed?
   console.log('\nfileParse: selection ' + rangeToString(range))
->>>>>>> c8ccb5c9b3b9c91be3bc71c75b2318a94dc8968d
 
   // Work out what paragraph number this selected para is
   let firstSelParaIndex = 0
@@ -129,12 +113,6 @@ async function fileParas() {
     const para = selectedParagraphs[0]
     // paraDetails(para)
     console.log(
-<<<<<<< HEAD
-      "  Para '" + para.content +
-      "' type: " + para.type +
-      ", index: " + firstSelParaIndex,
-    );
-=======
       "  Para '" +
         para.content +
         "' type: " +
@@ -142,7 +120,6 @@ async function fileParas() {
         ', index: ' +
         firstSelParaIndex,
     )
->>>>>>> c8ccb5c9b3b9c91be3bc71c75b2318a94dc8968d
     // if this is a heading, find the rest of the sections
     if (para.type === 'title') {
       // includes all heading levels
@@ -159,34 +136,28 @@ async function fileParas() {
       }
       console.log('  Found ' + parasToMove.length + ' heading section lines')
     } else {
-<<<<<<< HEAD
-      // This isn't a heading. 
+      // This isn't a heading.
       // Now see if there are following indented lines to move as well
-      startingIndentLevel = para.indents;
-      console.log('  Found single line with indent level ' + startingIndentLevel);
-      parasToMove.push(para);
+      startingIndentLevel = para.indents
+      console.log(
+        '  Found single line with indent level ' + startingIndentLevel,
+      )
+      parasToMove.push(para)
       for (let i = firstSelParaIndex + 1; i < allParas.length; i++) {
-        const p = allParas[i];
+        const p = allParas[i]
         if (p.indents <= startingIndentLevel) {
           // stop as this para is same or less indented than the starting line
-          break;
+          break
         }
-        parasToMove.push(p);
+        parasToMove.push(p)
       }
-      console.log('  Found ' + parasToMove.length + ' indented paras');
-=======
-      // this isn't a heading. Now see if there are following indented lines
-      console.log('  Found single line with indent level ' + para.indents)
-      parasToMove.push(para)
-      // TODO following indented lines
       console.log('  Found ' + parasToMove.length + ' indented paras')
->>>>>>> c8ccb5c9b3b9c91be3bc71c75b2318a94dc8968d
     }
   }
 
   // If this is a calendar note we've moving from, and the user wants to
   // create a date backlink, then append backlink to the first para in parasToMove
-  if (pref_templateName && note.type === "Calendar") {
+  if (pref_templateName && note.type === 'Calendar') {
     const todaysDate = new Date().toISOString().slice(0, 10)
     parasToMove[0].content = parasToMove[0].content + ' >' + todaysDate
   }
@@ -234,7 +205,6 @@ async function fileParas() {
   const headingToFind = headingStrings[res.index].trim()
   console.log('    under heading: ' + headingToFind)
 
-  
   // Add to new location
   // Currently there's no API function to deal with multiple paragraphs, but we can
   // insert a raw text string
