@@ -41,8 +41,8 @@
     "singleQuote": true
   },
   "dependencies": {
+    "js-yaml": "^4.1.0",
     "json5": "^2.2.0",
-    "toml": "^3.0.0",
-    "yaml": "^1.10.2"
+    "toml": "^3.0.0"
   }
 }

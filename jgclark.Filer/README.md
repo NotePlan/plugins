@@ -14,6 +14,9 @@ It pops up the command bar to choose the project note you want to move it to, fo
 If you want to stop date backlinks being added change the line at the top of the plugin'\ `fileItems.js` file to: `const pref_addDateBacklink = false;`
 
 ## History
+### v0.3.2, 31.5.2021
+- bug fixes and additions to README
+
 ### v0.3.0, 31.5.2021
 - added ability to move any indented paragraphs after the selected line
 - creates a `>date` backlink when moving from a calendar note (requested by @Dimitry). Can be turned off by the `pref_addDateBacklink` setting (see above).
