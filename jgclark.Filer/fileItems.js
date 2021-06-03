@@ -193,7 +193,7 @@ async function fileParas() {
       }
     }
   }
-  if (insertionIndex == null) {
+  if (insertionIndex === null) {
     return
   }
   console.log(`  Inserting at index ${insertionIndex}`)
@@ -201,7 +201,10 @@ async function fileParas() {
 
   // delete from existing location
   // TODO: waiting for a fix to the preferred .removeParagraph call
-  // but this alternative works
+  // but this alternative works.
+  // In r634 "fixed removeParagraph. It will now look for the paragraph first at the lineIndex,
+  // and if not found it will look for a paragraph with the same the content and indentation and
+  // type. Additionally, I have added removeParagraphs(arrayOfParagraphs), to make this a bit safer."
   for (
     let i = firstSelParaIndex + parasToMove.length - 1;
     i >= firstSelParaIndex;
