@@ -20,13 +20,13 @@
   "rules": {
     "prefer-template": "warn",
     "eqeqeq": ["error", "smart"],
-    "semi": ["never"],
+    "semi": ["off"],
     "curly": ["error", "multi-line"],
     "linebreak-style": ["error", "unix"],
     "max-len": [
       "error",
       {
-        "code": 80,
+        "code": 109,
         "ignoreComments": true,
         "ignoreStrings": true,
         "ignoreTemplateLiterals": true
@@ -64,6 +64,6 @@
   },
   "ignorePatterns": [
     "node_modules",
-    "nmn.sweep/script.js"
+    "script.js"
   ]
 }
