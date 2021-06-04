@@ -1,21 +1,23 @@
 // eslint-disable-next-line
-import commonjs from '@rollup/plugin-commonjs';
-import babel from '@rollup/plugin-babel';
-import resolve from '@rollup/plugin-node-resolve';
+import commonjs from "@rollup/plugin-commonjs"
+import { babel } from "@rollup/plugin-babel"
+import resolve from "@rollup/plugin-node-resolve"
 
 export default {
   external: [],
-  input: `src/index.js`,
+  input: `${__dirname}/src/index.js`,
   output: {
-    file: `script.js`,
-    format: 'iife',
+    file: `${__dirname}/script.js`,
+    format: "iife",
+    name: "exports",
+    footer: "Object.assign(globalThis, exports)",
   },
   plugins: [
+    babel({ babelHelpers: "bundled" }),
+    commonjs(),
     resolve({
       browser: false,
     }),
-    babel({ babelHelpers: 'bundled' }),
-    commonjs(),
   ],
-  context: 'this',
-};
+  context: "this",
+}

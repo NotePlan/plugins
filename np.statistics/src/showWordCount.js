@@ -1,7 +1,7 @@
 // @flow
 
 // Show word counts etc. for currently displayed note
-export default async function showWordCount() {
+export default async function showWordCount(): Promise<void> {
   const paragraphs = Editor.paragraphs
   const note = Editor.note
   if (note == null) {
@@ -38,22 +38,22 @@ export default async function showWordCount() {
   const selectedLines = Editor.selectedLinesText.length
 
   const display = [
-    `Characters: ${ 
-      selectedCharCount > 0 ? `${selectedCharCount  }/${  charCount}` : charCount}`,
-    `Words: ${ 
-      selectedWordCount > 0 ? `${selectedWordCount  }/${  wordCount}` : wordCount}`,
-    `Lines: ${ 
-      selectedLines > 1 ? `${selectedLines  }/${  lineCount}` : lineCount}`,
-    `Mentions: ${  mentionCount}`,
-    `Hashtags: ${  tagCount}`,
+    `Characters: ${
+      selectedCharCount > 0 ? `${selectedCharCount}/${charCount}` : charCount
+    }`,
+    `Words: ${
+      selectedWordCount > 0 ? `${selectedWordCount}/${wordCount}` : wordCount
+    }`,
+    `Lines: ${selectedLines > 1 ? `${selectedLines}/${lineCount}` : lineCount}`,
+    `Mentions: ${mentionCount}`,
+    `Hashtags: ${tagCount}`,
   ]
 
   const re = await CommandBar.showOptions(
     display,
-    "Word count. Select anything to copy.",
+    'Word count. Select anything to copy.',
   )
   if (re !== null) {
-    Clipboard.string = display.join("\n")
+    Clipboard.string = display.join('\n')
   }
 }
-globalThis.showWordCount = showWordCount

@@ -22,9 +22,11 @@
   "scripts": {
     "build:nmn.sweep": "rollup -c ./nmn.sweep/rollup.config.js",
     "build:nmn.Templates": "rollup -c ./nmn.Templates/rollup.config.js",
+    "build:np.statistics": "rollup -c ./np.statistics/rollup.config.js",
     "build": "concurrently \"npm:build:*\"",
     "watch:nmn.sweep": "rollup -c ./nmn.sweep/rollup.config.js --watch",
     "watch:nmn.Templates": "rollup -c ./nmn.Templates/rollup.config.js --watch",
+    "watch:np.statistics": "rollup -c ./np.statistics/rollup.config.js --watch",
     "watch": "concurrently \"npm:watch:*\"",
     "lint": "eslint .",
     "lint-fix": "eslint . --fix",

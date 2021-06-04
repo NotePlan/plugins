@@ -1,6 +1,6 @@
 // @flow
 
-import { percent } from "./statsHelpers"
+import { percent } from './statsHelpers'
 
 //-----------------------------------------------------------------------------
 // Shows task statistics for project notes
@@ -27,18 +27,21 @@ export default async function showTaskCountProjects() {
     cancelledTotal += n.paragraphs.filter((p) => p.type === 'cancelled').length
     scheduledTotal += n.paragraphs.filter((p) => p.type === 'scheduled').length
     open.set(n.title, n.paragraphs.filter((p) => p.type === 'open').length)
-    if (i > 20) {break}
+    if (i > 20) {
+      break
+    }
   }
 
   const closedTotal = doneTotal + scheduledTotal + cancelledTotal
   const total = openTotal + closedTotal
+  const donePercent = percent(doneTotal, total)
+  const cancelledPercent = percent(cancelledTotal, total)
   const display1 = [
-    `Task statistics from ${ projNotes.length } project notes:  (select any to copy)`,
-    `\t✅ Done: ${ percent(doneTotal, total)
-    }\t🚫 Cancelled: ${ percent(cancelledTotal, total)}`,
-    `\t⚪️ Open: ${ percent(openTotal, total)}`,
-    `\t📆 Scheduled: ${ percent(scheduledTotal, total)}`,
-    `\t📤 Closed: ${ percent(closedTotal, total)}`,
+    `Task statistics from ${projNotes.length} project notes:  (select any to copy)`,
+    `\t✅ Done: ${donePercent}\t🚫 Cancelled: ${cancelledPercent}`,
+    `${percent(openTotal, total)}`,
+    `\t📆 Scheduled: ${percent(scheduledTotal, total)}`,
+    `\t📤 Closed: ${percent(closedTotal, total)}`,
   ]
 
   // Now find top 5 project notes by open tasks
@@ -46,7 +49,7 @@ export default async function showTaskCountProjects() {
   const openSorted = new Map([...open.entries()].sort((a, b) => b[1] - a[1]))
   const openSortedTitle = []
   let i = 0
-  let display2 = []
+  const display2 = []
   display2.push('Projects with most open tasks:  (select any to open)')
   for (const elem of openSorted.entries()) {
     i += 1
@@ -68,7 +71,9 @@ export default async function showTaskCountProjects() {
     } else {
       // We want to open the relevant note
       const title = openSortedTitle[re.index - 6]
-      Editor.openNoteByTitle(title)
+      if (title != null) {
+        Editor.openNoteByTitle(title)
+      }
     }
   }
 }

@@ -12,14 +12,14 @@
 //	- Upcoming counts
 
 // import { percent } from './statsHelpers'
-import showNoteCount from "./showNoteCount"
-import showWordCount from "./showWordCount"
-import showTaskCountProjects from "./taskProjectStats"
-import showTaskCountNote from "./taskNoteStats"
-import showTagCount from "./tagStats"
+import _showNoteCount from './showNoteCount'
+import _showWordCount from './showWordCount'
+import _showTaskCountProjects from './taskProjectStats'
+import _showTaskCountNote from './taskNoteStats'
+import _showTagCount from './tagStats'
 
-globalThis.showNoteCount = showNoteCount
-globalThis.showWordCount = showWordCount
-globalThis.showTaskCountProjects = showTaskCountProjects
-globalThis.showTaskCountNote = showTaskCountNote
-globalThis.showTagCount = showTagCount
+export const showNoteCount = _showNoteCount
+export const showWordCount = _showWordCount
+export const showTaskCountProjects = _showTaskCountProjects
+export const showTaskCountNote = _showTaskCountNote
+export const showTagCount = _showTagCount

@@ -64,6 +64,7 @@
   },
   "ignorePatterns": [
     "node_modules",
-    "nmn.sweep/script.js"
+    "nmn.sweep/script.js",
+    "np.statistics/script.js"
   ]
 }
