@@ -1,5 +1,5 @@
 {
-  "name": "nmn.sweep",
+  "name": "np.plugins",
   "main": "lib/script.src.js",
   "version": "1.0.0",
   "devDependencies": {
@@ -47,6 +47,7 @@
     "singleQuote": true
   },
   "dependencies": {
+    "enquirer": "^2.3.6",
     "js-yaml": "^4.1.0",
     "json5": "^2.2.0",
     "toml": "^3.0.0"

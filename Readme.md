@@ -8,7 +8,7 @@ for example:
 
 If you are a user and have plugin ideas, [submit them here](https://feedback.noteplan.co/plugins-scripting) or ask in the [NotePlan Discord community](https://discord.gg/D4268MT)'s `#plugin-ideas` channel.
 
-If you are a developer and want to contribute and build your plugins, see the [plugin writing documentation](https://help.noteplan.co/article/67-create-command-bar-plugins) and discuss this with other developers on [Discord](https://discord.gg/D4268MT) `#plugin-dev` channel.
+If you are a developer and want to contribute and build your plugins, see the [plugin writing documentation](https://help.noteplan.co/article/67-create-command-bar-plugins) and discuss this with other developers on [Discord](https://discord.gg/D4268MT) `#plugin-dev` channel.  Your might want to consult this [good modern JavaScript tutorial](https://javascript.info/).
 
 # Contributing
 
@@ -17,20 +17,23 @@ If you are a developer and want to contribute and build your plugins, see the [p
 ### Set Up
 
 1.  Make sure you have a recent version of `node` and `npm` installed. `brew install node` should do the trick.
-2.  Run `npm install`. This will install all the dependencies.
-3.  Run `npm run watch` and your multi-file JS plugins will be compiled for you.
+2.  Run `npm install` from the root of your local GitHub repository for `noteplan/plugins`. This will install all the dependencies.
+3.  Run `npm run autowatch` from the same root. The first time you run the script it will ask you for the full path to you Plugins folder and if you provide it, it will automatically copy the final js file and the plugin.json file in there automatically.
 
-### Commands:
+This includes setting up [eslint](https://eslint.org/) (for checking code conventions), [flow](https://flow.org/) (for type checking), [babel](https://babeljs.io/) (a JS compiler), and [rollup](https://rollupjs.org/guide/en/) (for bundling multiple source files into a single release).  Each have their own configuration files in the root; they can be overridden if needed by placing a more specific config file in the respective plugin's folders.
+
+### Commands
 
 These are the most common commands you will use while developing:
 
+- **`npm run autowatch` and your multi-file JS plugins will be compiled for you, and optionally be copied to your running NotePlan instance for testing**.  In most cases you shouldn't then need to run the following individual commands, but they're listed for completeness.
 - `npm run build`: Will build all the plugins into single files (where needed)
 - `npm run watch`: Will watch *all* files for changes and automatically compile them into single javascript files (where needed)
 - `npm run typecheck`: Will typecheck all the javascript files with `Flow`. Only files with a `// @flow` comment are checked.
 - `npm run fix`: Will lint and autoformat
 - `npm run test`: Will lint and typecheck all Javascript files and report, but not fix anything
 
-You may find these commands usefull too:
+You may find these commands useful too:
 
 - `npm run build:nmn.sweep`: Will build the `nmn.sweep` plugin to a single file
 - `npm run build:nmn.Templates`: Will build the `nmn.Templates` plugin to a single file
