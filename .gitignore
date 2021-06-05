@@ -4,3 +4,4 @@ dist/
 .cache/
 */ts-template/*.*
 package-lock.json
+.pluginpath

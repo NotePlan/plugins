@@ -191,7 +191,7 @@ var exports = (function (exports) {
     return content.replace(/<\d{4}-\d{2}-\d{2}/g, '').replace(/>\d{4}-\d{2}-\d{2}/g, '').trim();
   }
 
-  async function sweepFile$1() {
+  async function sweepFile() {
     const type = Editor.type;
     const note = Editor.note;
 
@@ -273,7 +273,7 @@ var exports = (function (exports) {
    * 3. Add option to change target date from "Today" to something you can choose
    *  */
 
-  async function sweepAll$1() {
+  async function sweepAll() {
     const {
       unit,
       num
@@ -308,9 +308,6 @@ var exports = (function (exports) {
 
     await showMessage(`All Done!`);
   }
-
-  const sweepFile = sweepFile$1;
-  const sweepAll = sweepAll$1;
 
   exports.sweepAll = sweepAll;
   exports.sweepFile = sweepFile;

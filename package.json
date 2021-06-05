@@ -16,8 +16,11 @@
     "eslint-plugin-flowtype": "^5.7.2",
     "eslint-plugin-import": "^2.23.2",
     "flow-bin": "^0.151.0",
+    "inquirer": "^8.1.0",
+    "mkdirp": "^1.0.4",
     "prettier": "^2.3.0",
-    "rollup": "^2.48.0"
+    "rollup": "^2.48.0",
+    "simple-input": "^1.0.1"
   },
   "scripts": {
     "build:nmn.sweep": "rollup -c ./nmn.sweep/rollup.config.js",
@@ -28,6 +31,7 @@
     "watch:nmn.Templates": "rollup -c ./nmn.Templates/rollup.config.js --watch",
     "watch:np.statistics": "rollup -c ./np.statistics/rollup.config.js --watch",
     "watch": "concurrently \"npm:watch:*\"",
+    "autowatch": "node scripts/rollup.js",
     "lint": "eslint .",
     "lint-fix": "eslint . --fix",
     "format": "prettier -w ./**/*.js ./**/**/*.js ./**/**/**/*.js",
