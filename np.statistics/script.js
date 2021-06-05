@@ -34,7 +34,7 @@ var exports = (function (exports) {
 
   // Show note counts
 
-  async function showNoteCount$1() {
+  async function showNoteCount() {
     const calNotes = DataStore.calendarNotes;
     const projNotes = DataStore.projectNotes;
     const total = calNotes.length + projNotes.length;
@@ -51,7 +51,7 @@ var exports = (function (exports) {
   }
 
   // Show word counts etc. for currently displayed note
-  async function showWordCount$1() {
+  async function showWordCount() {
     const paragraphs = Editor.paragraphs;
     const note = Editor.note;
 
@@ -96,7 +96,7 @@ var exports = (function (exports) {
 
   // Shows task statistics for project notes
 
-  async function showTaskCountProjects$1() {
+  async function showTaskCountProjects() {
     const projNotes = DataStore.projectNotes;
     const projNotesCount = projNotes.length;
     let doneTotal = 0;
@@ -167,7 +167,7 @@ var exports = (function (exports) {
 
   // Show task counts for currently displayed note
 
-  async function showTaskCountNote$1() {
+  async function showTaskCountNote() {
     const paragraphs = Editor.paragraphs;
 
     const countParagraphs = function (types) {
@@ -533,15 +533,8 @@ var exports = (function (exports) {
   //   await showMessage(`All Done!`);
   // }
 
-  //-----------------------------------------------------------------------------
-  const showNoteCount = showNoteCount$1;
-  const showWordCount = showWordCount$1;
-  const showTaskCountProjects = showTaskCountProjects$1;
-  const showTaskCountNote = showTaskCountNote$1;
-  const showTagCount = tagStats;
-
   exports.showNoteCount = showNoteCount;
-  exports.showTagCount = showTagCount;
+  exports.showTagCount = tagStats;
   exports.showTaskCountNote = showTaskCountNote;
   exports.showTaskCountProjects = showTaskCountProjects;
   exports.showWordCount = showWordCount;

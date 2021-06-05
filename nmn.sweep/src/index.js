@@ -1,7 +1,4 @@
 // @flow
 
-import sF from './sweepFile'
-import sA from './sweepAll'
-
-export const sweepFile = sF
-export const sweepAll = sA
+export { default as sweepFile } from './sweepFile'
+export { default as sweepAll } from './sweepAll'

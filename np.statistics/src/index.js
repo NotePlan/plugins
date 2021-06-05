@@ -12,14 +12,8 @@
 //	- Upcoming counts
 
 // import { percent } from './statsHelpers'
-import _showNoteCount from './showNoteCount'
-import _showWordCount from './showWordCount'
-import _showTaskCountProjects from './taskProjectStats'
-import _showTaskCountNote from './taskNoteStats'
-import _showTagCount from './tagStats'
-
-export const showNoteCount = _showNoteCount
-export const showWordCount = _showWordCount
-export const showTaskCountProjects = _showTaskCountProjects
-export const showTaskCountNote = _showTaskCountNote
-export const showTagCount = _showTagCount
+export { default as showNoteCount } from './showNoteCount'
+export { default as showWordCount } from './showWordCount'
+export { default as showTaskCountProjects } from './taskProjectStats'
+export { default as showTaskCountNote } from './taskNoteStats'
+export { default as showTagCount } from './tagStats'
