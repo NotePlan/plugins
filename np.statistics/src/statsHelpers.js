@@ -35,6 +35,35 @@ export function getYearMonthDate(dateObj: Date): $ReadOnly<{
   }
 }
 
+export function unhyphenateDateString(dateString: string): string {
+  return dateString.replace(/-/g, '')
+}
+
+export function toISODateString(dateObj: Date): string {
+  return dateObj.toISOString().slice(0, 10)
+}
+
+export function unhyphenatedDate(dateObj: Date): string {
+  const { year, month, date } = getYearMonthDate(dateObj)
+  return `${year}${month < 10 ? '0' : ''}${month}${date < 10 ? '0' : ''}${date}`
+}
+
+export function hyphenatedDate(dateObj: Date): string {
+  const { year, month, date } = getYearMonthDate(dateObj)
+  return `${year}-${month < 10 ? '0' : ''}${month}-${
+    date < 10 ? '0' : ''
+  }${date}`
+}
+
+export function filenameDateString(dateObj: Date): string {
+  const { year, month, date } = getYearMonthDate(dateObj)
+  return `${year}${month < 10 ? '0' : ''}${month}${date < 10 ? '0' : ''}${date}`
+}
+
+export function dateStringFromCalendarFilename(filename: string): string {
+  return filename.slice(0, 8)
+}
+
 export const months = [
   'January',
   'February',
@@ -68,22 +97,6 @@ export function monthNameAbbrev(m: number): string {
   return monthsAbbrev[m - 1]
 }
 
-export function unhyphenateDateString(dateString: string): string {
-  return dateString.replace(/-/g, '')
-}
-
-export function hyphenatedDateString(dateObj: Date): string {
-  const { year, month, date } = getYearMonthDate(dateObj)
-  return `${year}-${month < 10 ? '0' : ''}${month}-${
-    date < 10 ? '0' : ''
-  }${date}`
-}
-
-export function filenameDateString(dateObj: Date): string {
-  const { year, month, date } = getYearMonthDate(dateObj)
-  return `${year}${month < 10 ? '0' : ''}${month}${date < 10 ? '0' : ''}${date}`
-}
-
 export function withinDateRange(
   testDate: string,
   fromDate: string,
@@ -93,12 +106,49 @@ export function withinDateRange(
 }
 
 // Tests for the above
-// console.log(withinDateRange(unhyphenateDateString('2021-04-24'), '20210501', '20210531')) // false
-// console.log(withinDateRange(unhyphenateDateString('2021-05-01'), '20210501', '20210531')) // true
-// console.log(withinDateRange(unhyphenateDateString('2021-05-24'), '20210501', '20210531')) // true
-// console.log(withinDateRange(unhyphenateDateString('2021-05-31'), '20210501', '20210531')) // true
-// console.log(withinDateRange(unhyphenateDateString('2021-06-24'), '20210501', '20210531')) // false
+// console.log(withinDateRange(unhyphenateDate('2021-04-24'), '20210501', '20210531')) // false
+// console.log(withinDateRange(unhyphenateDate('2021-05-01'), '20210501', '20210531')) // true
+// console.log(withinDateRange(unhyphenateDate('2021-05-24'), '20210501', '20210531')) // true
+// console.log(withinDateRange(unhyphenateDate('2021-05-31'), '20210501', '20210531')) // true
+// console.log(withinDateRange(unhyphenateDate('2021-06-24'), '20210501', '20210531')) // false
 
-export function dateStringFromCalendarFilename(filename: string): string {
-  return filename.slice(0, 8)
+// Pretty print range information
+export function rangeToString(r: DateRange): string {
+  if (r == null) {
+    return 'Range is undefined!'
+  }
+  return `range: ${r.start}-${r.end}`
+}
+
+// return title of note useful for display, even for calendar notes (the YYYYMMDD)
+export function displayTitle(n: TNote): string {
+  if (n.type === 'Calendar') {
+    return unhyphenatedDate(n.date)
+  } else {
+    return n.title ?? ''
+  }
+}
+
+// Print out all data for a paragraph (borrowed from EM)
+export function printParagraph(p) {
+  if (p === null) {
+    console.log('ERROR: paragraph is undefined')
+    return
+  }
+  console.log(
+    `\n\ncontent: ${  p.content 
+      }\n\ttype: ${  p.type 
+      }\n\tprefix: ${   p.prefix 
+      }\n\tcontentRange: ${  rangeToString(p.contentRange) 
+      }\n\tlineIndex: ${  p.lineIndex 
+      }\n\tdate: ${  p.date 
+      }\n\theading: ${  p.heading 
+      }\n\theadingRange: ${  rangeToString(p.headingRange) 
+      }\n\theadingLevel: ${  p.headingLevel 
+      }\n\tisRecurring: ${  p.isRecurring 
+      }\n\tindents: ${  p.indents 
+      }\n\tfilename: ${  p.filename 
+      }\n\tnoteType: ${  p.noteType 
+      }\n\tlinkedNoteTitles: ${  p.linkedNoteTitles}`,
+  )
 }

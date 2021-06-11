@@ -1,0 +1,90 @@
+// @flow
+
+import { parseJSON5 } from '../../nmn.Templates/src/configuration'
+import { showMessage } from '../../nmn.sweep/src/userInput'
+
+// Get summary of today's weather in a line
+// Using https://openweathermap.org/api/one-call-api#data, for which you can get a free API key
+export async function getWeatherSummary(
+  weatherParams: string,
+  config: { [string]: ?mixed },
+): Promise<string> {
+
+  const weatherDescText = [
+    'showers',
+    'rain',
+    'sunny intervals',
+    'partly sunny',
+    'sunny',
+    'cloud',
+    'snow ',
+    'thunderstorm',
+    'tornado',
+  ]
+  const weatherDescIcons = [
+    "🌦️",
+    "🌧️",
+    "🌤",
+    "⛅",
+    "☀️",
+    "☁️",
+    "🌨️",
+    "⛈",
+    "🌪",
+  ]
+
+  // Get config settings from Template folder _configuration note
+  const weatherConfig = config.weather ?? null
+  if (weatherConfig == null) {
+    await showMessage("Cannot find 'weather' settings in Templates/_configuration note")
+    return ''
+  }
+  const pref_openWeatherAPIKey = weatherConfig.openWeatherAPIKey
+  const pref_latPosition = weatherConfig.latPosition
+  const pref_longPosition = weatherConfig.longPosition
+  const pref_openWeatherUnits = weatherConfig.openWeatherUnits
+
+  // TODO: probably getDefaultConfiguration rather than parseJSON5 ?
+  console.log(`getWeatherSummary: Params: '${weatherParams}'`)
+  const paramConfig = weatherParams.trim() ? await parseJSON5(weatherParams) : {}
+  console.log(paramConfig)
+  
+  const getWeatherURL =
+    `https://api.openweathermap.org/data/2.5/onecall?lat=${ 
+    pref_latPosition 
+    }&lon=${ 
+    pref_longPosition 
+    }&exclude=current,hourly,minutely&units=${ 
+    pref_openWeatherUnits 
+    }&appid=${ 
+    pref_openWeatherAPIKey}`
+  
+  // TODO: Allow for more customisation of what is pulled out from the API's data structure
+  // using weatherParams
+
+  const jsonIn = await fetch(getWeatherURL)
+  if (jsonIn != null) {
+    const weatherTodayAll = JSON.parse(jsonIn).daily["0"]
+    const maxTemp = weatherTodayAll.feels_like.day.toFixed(0)
+    const minTemp = weatherTodayAll.feels_like.night.toFixed(0)
+    const weatherDesc = weatherTodayAll.weather["0"].description
+    // see if we can fix an icon for this as well, according to returned description. Main terms are:
+    // thunderstorm, drizzle, shower > rain, snow, sleet, clear sky, mist, fog, dust, tornado, overcast > clouds
+    // with 'light' modifier for rain and snow
+    let weatherIcon = ''
+    for (let i = 0; i < weatherDescText.length; i++) {
+      if (weatherDesc.match(weatherDescText[i])) {
+        weatherIcon = weatherDescIcons[i]
+        break
+      }
+    }
+    const summaryLine = `Weather: ${maxTemp}/${minTemp} ${weatherIcon}${weatherDesc}`
+    console.log(`\t${summaryLine}`)
+    return summaryLine
+  } else {
+    await showMessage('Sorry; error in Weather lookup')
+    return 'sorry; error in Weather lookup'
+  }
+}
+
+// globalThis.getWeatherSummary = getWeatherSummary

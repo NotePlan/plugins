@@ -2,8 +2,10 @@
 // -----------------------------------------------------------------------------
 // Plugin to help move selected pargraphs to other notes
 // Jonathan Clark
-// v0.3.2, 1.6.2021
+// v0.3.3, 11.6.2021
 // -----------------------------------------------------------------------------
+
+import { rangeToString, displayTitle } from '../../np.statistics/src/statsHelpers'
 
 // Preference that needs to get added when there is a proper config system
 const pref_addDateBacklink = true
@@ -11,22 +13,15 @@ const pref_addDateBacklink = true
 // -----------------------------------------------------------------------------
 // Helper Functions
 
-// Return list of all project notes, sorted by changed date (newest to oldest)
-function projectNotesSortedByChanged() {
+// Return list of all notes, sorted by changed date (newest to oldest)
+function allNotesSortedByChanged() {
   const projectNotes = DataStore.projectNotes.slice()
-
-  return projectNotes.sort(
+  const calendarNotes = DataStore.calendarNotes.slice()
+  const allNotes = projectNotes.concat(calendarNotes)
+  const allNotesSortedByDate = allNotes.sort(
     (first, second) =>
-      first.changedDate.valueOf() - second.changedDate.valueOf(),
-  )
-}
-
-// Pretty print range information
-function rangeToString(r) {
-  if (r == null) {
-    return 'Range is undefined!'
-  }
-  return `range: ${r.start}-${r.end}`
+      second.changedDate - first.changedDate) // most recent first
+  return allNotesSortedByDate
 }
 
 // Convert paragraph(s) to single raw text string
@@ -44,7 +39,7 @@ function parasToText(paras) {
 
 // -----------------------------------------------------------------------------
 
-async function fileParas() {
+export async function fileParas() {
   // identify out what we're moving (in priority order):
   // - current selection
   // - current heading + its following section
@@ -119,7 +114,7 @@ async function fileParas() {
         }
         parasToMove.push(p)
       }
-      console.log(`  Found ${parasToMove.length} indented paras`)
+      console.log(`  Found ${parasToMove.length-1} indented paras`)
     }
   }
 
@@ -137,13 +132,14 @@ async function fileParas() {
 
   // Decide where to move to
   // Ask for the note we want to add the paras
-  const notes = projectNotesSortedByChanged()
+  const notes = allNotesSortedByChanged()
+
   let res = await CommandBar.showOptions(
-    notes.map((n) => n.title ?? 'null'),
-    `Select project note to move ${parasToMove.length} to`,
+    notes.map((n) => displayTitle(n)),
+    `Select note to move ${parasToMove.length} lines to`,
   )
   const noteToMoveTo = notes[res.index]
-  console.log(`  Moving to note: ${noteToMoveTo.title ?? 'Untitled'}`)
+  console.log(`  Moving to note: ${displayTitle(noteToMoveTo)}`)
 
   // ask to which heading to add the paras
   let headingStrings = []
@@ -215,4 +211,4 @@ async function fileParas() {
   }
 }
 
-globalThis.fileParas = fileParas
+// globalThis.fileParas = fileParas

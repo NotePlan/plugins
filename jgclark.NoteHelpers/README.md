@@ -1,14 +1,9 @@
 # NoteHelpers plugin
-This plugin provides commands to help work with NotePlan notes.
-
-The first ones are very simple:
+This plugin provides commands to help work with NotePlan notes:
 - `/mn`: which moves a note to a different folder the user selects
 - `/jh`: jumps the cursor to the heading of the current note that the user selects
 - `/jd`: simply jumps the cursor to the `## Done` section of the current note (if it exists)
-
-The other two help apply **template**s to new or existing notes:
-- `/it`: inserts a template into the current note, after the title
-- `/nn`: creates a new note in the current folder, with title, optional template, and optional current text selection
+- `/nns`: create a new note from selection (and leave link to it in its place)
 
 ## Configuration
 Before the configuration mechanism is available, you need to update the `jgclark.noteHelpers\noteHelpers.js` file in the plugin's folder directly. Update the following lines at the top of the file accordingly:
@@ -24,6 +19,12 @@ You can have any number of templates defined, but each needs a Name and Text.  I
 Templates should normally end with a linefeed character (`\n`).
 
 ## History
+
+### v0.9.0, 12.6.2021
+- [add]: **/nns** command to add a new note from selection (and leave link to it in its place) (@dwertheimer)
+
+### v0.8.2, 7.6.2021
+- change: remove **/it** and **/nn** in favour of updated versions in the 'nmn.Templates' plugin
 
 ### v0.8.1, 26.5.2021
 - change: **/jh** now indents the different heading levels

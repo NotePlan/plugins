@@ -1,55 +1,18 @@
 //--------------------------------------------------------------------------------------------------------------------
 // Repeat Extensions plugin for NotePlan
 // Jonathan Clark
-// v0.2.5, 3.6.2021
+// v0.2.2, 11.6.2021
 //--------------------------------------------------------------------------------------------------------------------
+
+import {
+  toISODateString,
+  unhyphenateDateString,
+//   rangeToString,
+} from '../../np.statistics/src/statsHelpers'
 
 //------------------------------------------------------------------
 // Helper functions
 //------------------------------------------------------------------
-
-// Pretty print range information
-function rangeToString(r) {
-  if (r === null) {
-    return 'Range is undefined!'
-  }
-  return `location: ${  r.start  }, length: ${  r.length}`
-}
-
-// Print out all data for a paragraph (borrowed from EM)
-function printParagraph(p) {
-  if (p === null) {
-    console.log('ERROR: paragraph is undefined')
-    return
-  }
-  console.log(
-    `\n\ncontent: ${  p.content 
-      }\n\ttype: ${  p.type 
-      }\n\tprefix: ${   p.prefix 
-      }\n\tcontentRange: ${  rangeToString(p.contentRange) 
-      }\n\tlineIndex: ${  p.lineIndex 
-      }\n\tdate: ${  p.date 
-      }\n\theading: ${  p.heading 
-      }\n\theadingRange: ${  rangeToString(p.headingRange) 
-      }\n\theadingLevel: ${  p.headingLevel 
-      }\n\tisRecurring: ${  p.isRecurring 
-      }\n\tindents: ${  p.indents 
-      }\n\tfilename: ${  p.filename 
-      }\n\tnoteType: ${  p.noteType 
-      }\n\tlinkedNoteTitles: ${  p.linkedNoteTitles}`,
-  )
-}
-globalThis.printParagraph = printParagraph
-
-// Return date part of ISO 8601 standard datetime string (YYYY-MM-DD)
-function toISODateString(d) {
-  return d.toISOString().slice(0, 10)
-}
-
-// Return date string in format YYYYMMDD
-function ISODateToYYYYMMDD(iso) {
-  return iso.slice(0, 4) + iso.slice(5,7) + iso.slice(8,10)
-}
 
 // Calculate an offset date
 function calcOffsetDate(oldDateISO, interval) {
@@ -74,7 +37,7 @@ function calcOffsetDate(oldDateISO, interval) {
   let daysToAdd = 0
   const unit = interval.charAt(interval.length - 1) // get last character
   let num = Number(interval.substr(0, interval.length - 1)) // return all but last character
-  // console.log("    c_o_d: old = " + oldDate + " / "  + num + " / " + unit)
+  // console.log(`    c_o_d: old = ${  oldDate  } / ${   num  } / ${  unit}`)
   switch (unit) {
     case 'b': {
       // week days
@@ -120,14 +83,14 @@ function calcOffsetDate(oldDateISO, interval) {
   const newDate = new Date(oldDate)
   newDate.setDate(oldDate.getDate() + daysToAdd)
   const newDateFmt = toISODateString(newDate)
-  // console.log("    c_o_d: add " + daysToAdd + " --> " + newDateFmt)
+  // console.log(`    c_o_d: add ${  daysToAdd  } --> ${  newDateFmt}`)
   return newDateFmt
 }
 
 //------------------------------------------------------------------
 // Process any completed(or cancelled) tasks with my extended @repeat(..) tags,
 // and also remove the HH: MM portion of any @done(...) tasks.
-async function repeats() {
+export async function repeats() {
   // When interval is of the form '+2w' it will duplicate the task for 2 weeks
   // after the date is was completed.
   // When interval is of the form '2w' it will duplicate the task for 2 weeks
@@ -203,7 +166,7 @@ async function repeats() {
       reReturnArray = line.match(RE_DONE_DATE_CAPTURE)
       completedDate = reReturnArray[1]
       completedTime = reReturnArray[2]
-      console.log(`  Found ${  completedDate  }/${  completedTime  } in ${  n  }: '${  line  }' `)
+      console.log(`  Found completed repeat ${ completedDate }/${ completedTime } in line ${n}`)
       updatedLine = line.replace(completedTime, '') // couldn't get a regex to work here
       p.content = updatedLine
 
@@ -218,7 +181,7 @@ async function repeats() {
         // get repeat to apply
         reReturnArray = updatedLine.match(RE_EXTENDED_REPEAT_CAPTURE)
         let dateIntervalString = reReturnArray[1]
-        console.log(`    Found EXTENDED @repeat(${  dateIntervalString  }) syntax`)
+        console.log(`\tFound EXTENDED @repeat syntax: ${dateIntervalString}`)
 
         if (dateIntervalString[0] === '+') {
           // New repeat date = completed date + interval
@@ -227,27 +190,30 @@ async function repeats() {
             dateIntervalString.length,
           )
           newRepeatDate = calcOffsetDate(completedDate, dateIntervalString)
-          console.log(`    Adding from completed date --> ${  newRepeatDate}`)
+          console.log(`\tAdding from completed date --> ${newRepeatDate}`)
           // Remove any >date
           updatedLine = updatedLine.replace(/\s+>\d{4}-[01]\d{1}-\d{2}/, '') // i.e. RE_DUE_DATE, but can't get regex to work with variables like this
+          // console.log(`\tupdatedLine: ${  updatedLine}`)
 
         } else {
           // New repeat date = due date + interval
           // look for the due date(>YYYY-MM-DD)
           let dueDate = ''
-          reReturnArray = updatedLine.match(RE_DUE_DATE_CAPTURE)
-          if (reReturnArray[1] !== undefined) {
-            dueDate = reReturnArray[1]
-            // console.log(dueDate);
+          const resArray = updatedLine.match(RE_DUE_DATE_CAPTURE) ?? []
+          console.log(resArray.length)
+          if (resArray[1] != null) {
+            console.log(`\tmatch => ${resArray[1]}`)
+            dueDate = resArray[1]
             // need to remove the old due date
-            updatedLine = updatedLine.replace(`>${  dueDate}`, '')
+            updatedLine = updatedLine.replace(`>${dueDate}`, '')
             // console.log(updatedLine);
           } else {
             // but if there is no due date then treat that as today
             dueDate = completedDate
+            // console.log(`\tno match => use completed date ${dueDate}`)
           }
           newRepeatDate = calcOffsetDate(dueDate, dateIntervalString)
-          console.log(`    Adding from due date --> ${  newRepeatDate}`)
+          console.log(`\tAdding from due date --> ${newRepeatDate}`)
         }
 
         outline = updatedLine.replace(/@done\(.*\)/, '').trim()
@@ -256,31 +222,29 @@ async function repeats() {
         if (Editor.type === 'Notes') {
           // ...either in same project note
           outline += ` >${  newRepeatDate}`
-          // console.log('    -> ' + outline)
+          // console.log(`\toutline: ${  outline}`)
           await Editor.insertParagraphAfterParagraph(outline, p, 'scheduled')
-          console.log(`    Inserted new paragraph after line ${  p.lineIndex}`)
+          console.log(`\tInserted new para after line ${p.lineIndex}`)
         } else {
           // ... or in the future daily note (prepend)
           // console.log('    -> ' + outline)
-          const newRepeatDateShorter = ISODateToYYYYMMDD(newRepeatDate)
+          const newRepeatDateShorter = unhyphenateDateString(newRepeatDate)
           const newDailyNote = await DataStore.calendarNoteByDateString(newRepeatDateShorter)
-          if (newDailyNote.title !== undefined) {
-            console.log(newDailyNote.filename)
+          if (newDailyNote.title != null) {
+            // console.log(newDailyNote.filename)
             await newDailyNote.appendTodo(outline)
-            console.log(`    Inserted new repeat in daily note ${  newRepeatDateShorter}`)
+            console.log(`\tInserted new repeat in daily note ${newRepeatDateShorter}`)
           } else {
-            // TODO: WAITING: for EM to make a way to create future calendar notes.
-            // In the meantime, have to use a future reference in the current note instead.
-            // Apparently fixed in r634 ... "I have fixed it so that dailyNote.title is not undefined 
-            // and if you appendTodo it will create the note if it's not existing automatically. 
-            // So no changes needed.I could run your script successfully."
-            outline += ` >${  newRepeatDate}`
+            // After a fix to future calendar note creation in r635, we shouldn't get here.
+            // But just in case, we'll create new repeat in today's daily note
+            outline += ` >${newRepeatDate}`
+            console.log(`\toutline: ${outline}`)
+
             await Editor.insertParagraphAfterParagraph(outline, p, 'scheduled')
-            console.log('    Inserted new repeat in original daily note (waiting for plugin framework fix)')
+            console.log('\tInserted new repeat in original daily note')
           }
         }        
       }
     }
   }
 }
-globalThis.repeats = repeats

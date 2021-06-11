@@ -1,8 +1,13 @@
 // @flow
 
+import { todaysDateISOString } from './statsHelpers'
+
 //-----------------------------------------------------------------------------
 // User settings: TODO: move to proper preferences system, when available in NP
 const pref_folderToStore = 'Summaries'
+const pref_countsHeading = 'Hashtag counts'
+const pref_countsHeadingLevel = 3
+const pref_showAsHashtag = false
 
 //-----------------------------------------------------------------------------
 // Helper functions
@@ -18,8 +23,6 @@ import {
   // hyphenatedDateString,
   // filenameDateString,
 } from './statsHelpers'
-
-// const todaysDateISOString = new Date().toISOString().slice(0, 10)
 
 //-------------------------------------------------------------------------------
 // Ask user which period to cover, call main stats function, and present results
@@ -65,6 +68,7 @@ export default async function tagStats() {
   let fromDate
   let toDate
   let periodString = ''
+  let countsHeading = ''
 
   switch (period) {
     case 'lm': {
@@ -73,42 +77,50 @@ export default async function tagStats() {
       toDate = Calendar.addUnitToDate(fromDate, 'month', 1) // + 1 month
       toDate = Calendar.addUnitToDate(toDate, 'day', -1) // -1 day, to get last day of last month
       periodString = `${monthNameAbbrev(fromDate.getMonth() + 1)} ${y}`
+      countsHeading = pref_countsHeading
       break
     }
     case 'mtd': {
       fromDate = Calendar.dateFrom(y, m, 1, 0, 0, 0) // start of this month
       toDate = Calendar.dateFrom(y, m, d, 0, 0, 0)
       periodString = `${monthNameAbbrev(m)} ${y}`
+      countsHeading = `${pref_countsHeading} (to ${todaysDateISOString})`
       break
     }
     case 'lq': {
-      const quarterStartMonth = Math.floor((m - 1) / 3) * 3 + 1
-      fromDate = Calendar.dateFrom(y, quarterStartMonth, 1, 0, 0, 0) // start of this quarter
+      const thisQ = Math.floor((m - 1) / 3) + 1
+      const lastQ = (thisQ > 0) ? thisQ - 1 : 4
+      const thisQStartMonth = (thisQ-1) * 3 + 1
+      const lastQStartMonth = (lastQ-1) * 3 + 1
+      fromDate = Calendar.dateFrom(y, thisQStartMonth, 1, 0, 0, 0) // start of this quarter
       fromDate = Calendar.addUnitToDate(fromDate, 'month', -3) // -1 quarter
       toDate = Calendar.addUnitToDate(fromDate, 'month', 3) // +1 quarter
       toDate = Calendar.addUnitToDate(toDate, 'day', -1) // -1 day, to get last day of last month
-      periodString = `${fromDate.getFullYear()} Q${
-        Math.floor(fromDate.getMonth() / 3) + 1
-      }`
+      periodString = `Q${lastQ} (${monthNameAbbrev(lastQStartMonth)}-${monthNameAbbrev(lastQStartMonth + 3)}) ${y}`
+      countsHeading = pref_countsHeading
       break
     }
     case 'qtd': {
-      const quarterStartMonth = Math.floor((m - 1) / 3) * 3 + 1
-      fromDate = Calendar.dateFrom(y, quarterStartMonth, 1, 0, 0, 0) // start of this quarter
+      const thisQ = Math.floor((m - 1) / 3) + 1
+      const thisQStartMonth = (thisQ-1) * 3 + 1
+      fromDate = Calendar.dateFrom(y, thisQStartMonth, 1, 0, 0, 0) // start of this quarter
       toDate = Calendar.dateFrom(y, m, d, 0, 0, 0)
-      periodString = `${y} Q${Math.floor((m - 1) / 3) + 1}`
+      periodString = `Q${thisQ} (${monthNameAbbrev(thisQStartMonth)}-${monthNameAbbrev(thisQStartMonth + 3)}) ${y}`
+      countsHeading = `${pref_countsHeading} (to ${todaysDateISOString})`
       break
     }
     case 'ly': {
       fromDate = Calendar.dateFrom(y - 1, 1, 1, 0, 0, 0) // start of last year
       toDate = Calendar.dateFrom(y - 1, 12, 31, 0, 0, 0) // end of last year
       periodString = `${y - 1}`
+      countsHeading = pref_countsHeading
       break
     }
     case 'ytd': {
       fromDate = Calendar.dateFrom(y, 1, 1, 0, 0, 0) // start of this year
       toDate = Calendar.dateFrom(y, m, d, 0, 0, 0)
       periodString = `${y}`
+      countsHeading = `${pref_countsHeading} (to ${todaysDateISOString})`
       break
     }
   }
@@ -118,9 +130,8 @@ export default async function tagStats() {
   }
   const fromDateStr = fromDate.toISOString().slice(0, 10).replace(/-/g, '')
   const toDateStr = toDate.toISOString().slice(0, 10).replace(/-/g, '')
-
-  const title = `${periodString} (${fromDateStr}-${toDateStr})`
-  console.log(`\ntagStats: ${title}:`)
+  const title = `${periodString}` // (${fromDateStr}-${toDateStr})`
+  console.log(`\ntagStats: ${title} (${fromDateStr}-${toDateStr}):`)
   const results = calcTagStatsPeriod(fromDateStr, toDateStr)
   // The .sort method needs a function to sort non string values
   // Here it's sorting arrays of two values each.
@@ -131,7 +142,8 @@ export default async function tagStats() {
   )
   const outputArray = []
   for (const elem of sortedResults.entries()) {
-    outputArray.push(`${elem[1]}\t${elem[0]}`)
+    let hashtagString = (pref_showAsHashtag) ? elem[0] : elem[0].slice(1)
+    outputArray.push(`${elem[1]}\t${hashtagString}`)
   }
 
   const labelString = `🗒 Add/update note '${periodString}' in folder '${pref_folderToStore}'`
@@ -172,51 +184,63 @@ export default async function tagStats() {
         console.log(
           `\tappending results to today's note (${todaysNote.filename ?? ''})`,
         )
-        // TODO: create two different 'title' strings to use
-        // TODO: .appendParagraph type says it needs two arguments
         // I suggest adding to the content directly instead
-        todaysNote.appendParagraph(`### Hashtag Counts for ${title}`)
-        todaysNote.appendParagraph(outputArray.join('\n'))
+        todaysNote.appendParagraph(`### Hashtag Counts for ${title}`, 'empty')
+        todaysNote.appendParagraph(outputArray.join('\n'), 'empty')
         console.log(`\tappended results to today's note`)
       }
       break
     }
     case 'note': {
-      // TODO: first see if it's already created
-      const existingNote = await DataStore.projectNoteByTitle(title, true)
       let note: ?TNote
-      if (existingNote == null) {
-        // This returns a filename and not a
-        const noteFilename = await DataStore.newNote(title, pref_folderToStore)
-        note =
-          noteFilename != null ? DataStore.noteByFilename(noteFilename) : null
-        console.log(`\twriting results to new note (${title})`)
+      // first see if this note has already been created
+      // (look only in active notes, not Archive or Trash)
+      const existingNotes: $ReadOnlyArray<TNote> =
+        await DataStore.projectNoteByTitle(title, true, false)
+      console.log(`\tfound ${existingNotes.length} existing summary notes for this period`)
+
+      if (existingNotes.length > 0) {
+        note = existingNotes[0] // pick the first if more than one
+        console.log(`\tfilename of first matching note: ${note.filename}`)
       } else {
-        note = existingNote[0]
-        console.log(`\twriting results to existing note (${title})`)
+        // make a new note for this
+        let noteFilename = await DataStore.newNote(title, pref_folderToStore)
+        console.log(`\tnewNote filename: ${noteFilename}`)
+        noteFilename = `${pref_folderToStore}/${noteFilename}` ?? '(error)'
+        // NB: filename here = folder + filename
+        note = await DataStore.projectNoteByFilename(noteFilename)
+        console.log(`\twriting results to the new note '${noteFilename}'`)
       }
+
       if (note != null) {
         const nonNullableNote = note
-        // TODO: add second argument to `.appendParagraph`
-        nonNullableNote.appendParagraph('')
-        nonNullableNote.appendParagraph(`### Hashtag Counts`)
-        nonNullableNote.appendParagraph(outputArray.join('\n'))
-        console.log(`\twritten results to note (${title})`)
+        // Do we have an existing Hashtag counts section? If so, delete it.
+        const insertionLineIndex = await removeSection(nonNullableNote, pref_countsHeading)
+        console.log(`\tinsertionLineIndex: ${insertionLineIndex}`)
+        // Set place to insert either after the found section heading, or at end of note
+        nonNullableNote.insertHeading(countsHeading, insertionLineIndex, pref_countsHeadingLevel)
+        nonNullableNote.insertParagraph(outputArray.join('\n'), insertionLineIndex + 1, 'empty')
+      } else {
+        // FIXME: gets here when writing a new note
+        console.log("tagStats: error: shouldn't get here -- no valid note to write to")
+        return
       }
+
+      console.log(`\twritten results to note '${title}'`)
       break
     }
+
     case 'log': {
       console.log(outputArray.join('\n'))
       break
     }
+
     case 'cancel': {
       break
     }
+
     default: {
-      const re = await CommandBar.showOptions(
-        outputArray,
-        'Tag counts.  (Select anything to copy)',
-      )
+      const re = await CommandBar.showOptions(outputArray, 'Tag counts.  (Select anything to copy)')
       if (re !== null) {
         Clipboard.string = outputArray.join('\n')
       }
@@ -224,6 +248,50 @@ export default async function tagStats() {
     }
   }
   //   await showMessage('Everything is already up to date here!');
+}
+
+// remove all paragraphs in a section, given:
+// - Section heading line to look for (needs to match from start but not end)
+// - Array of paragraphs
+// Returns the lineIndex of the found heading, or if not found the last line of the note
+async function removeSection(note: TNote, heading: string): number {
+  let existingHeadingIndex
+  const ps = note.paragraphs
+  const thisTitle = note.title ?? ''
+  console.log(`\t  removeSection '${pref_countsHeading}' from note '${thisTitle}' with ${ps.length} paras:`)
+
+  for (const p of ps) {
+    if (p.type === 'title' && p.content.startsWith(heading)) {
+      existingHeadingIndex = p.lineIndex
+    }
+  }
+
+  if (existingHeadingIndex !== undefined) {
+    console.log(`\t    heading at: ${existingHeadingIndex}`)
+    // Work out the set of paragraphs to remove
+    // console.log(`Heading found at line: ${existingHeadingIndex}`)
+    // let psToRemove = []
+    note.removeParagraph(ps[existingHeadingIndex])
+    let removed = 1
+    for (let i = existingHeadingIndex + 1; i < ps.length; i++) {
+      if (ps[i].type === 'title' || ps[i].content === '') {
+        break
+      }
+      // psToRemove.push(ps[i])
+      await note.removeParagraph(ps[i])
+      removed++
+    }
+    console.log(`\t   Removed ${removed} paragraphs. ${existingHeadingIndex}`)
+
+    // Delete the saved set of paragraphs
+    // TODO: think this is hitting NP API bug?
+    // console.log(`About to remove ${psToRemove.length} paragraphs`)
+    // note.removeParagraphs(psToRemove)
+    // console.log(`Removed ${psToRemove.length} paragraphs`);
+    return existingHeadingIndex
+  } else {
+    return ps.length
+  }
 }
 
 //-------------------------------------------------------------------------------

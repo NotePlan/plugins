@@ -1,14 +1,14 @@
 {
-  "noteplan.min_version": "3.0.21",
+  "noteplan.min_version": "3.0.23",
   "plugin.id": "jgclark.RepeatExtensions",
   "plugin.name": "🔁 @repeat Extensions",
   "plugin.description": "Commands to extend the built-in @repeat() mechanism. See README.md for more details.",
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions/",
-  "plugin.version": "0.2.1",
+  "plugin.version": "0.2.2",
   "plugin.dependencies": [],
-  "plugin.script": "repeatExtensions.js",
+  "plugin.script": "script.js",
   "plugin.isRemote": "false",
   "plugin.commands": [
     {
