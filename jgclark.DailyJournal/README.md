@@ -31,6 +31,12 @@ Some of these need more explanation:
 
 ## History
 
+TODO: Put weather & template name config in the Templates config file
+
+### v0.6.0, 8.6.2021
+- internal change: restructure code to use parts of the related 'Templates' plugin
+- now `/dayStart` really only calls a Templates function to apply the `Daily Note Template` template. To include a weather forecast, now include the `{{weather()}}` tag in that template, and configure the OpenWeather calls as described in the `Templates/_configuration` file (described above).
+
 ### v0.5.0, 27.5.2021
 - change: use Template system (from '**NoteHelpers**' plugin) to provide the `Daily Note Template`. This template title defaults to 'Daily Note Template', but can be configured in `pref_templateText ` (as above).
 - update code to use newer NotePlan APIs
