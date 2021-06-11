@@ -1,5 +1,5 @@
 # Repeat Extension plugin
-NotePlan has a simple repeat mechanism built in, which allows for `@repeat(1/n)`.  That wasn't flexible enough for my purposes, so I created my own extension to this mechanism.
+NotePlan has a simple [built-in repeat mechanism](https://noteplan.co/faq/Notes%20&%20Todos/How%20to%20create%20a%20recurring%20or%20repeating%20todo/), which allows for `@repeat(1/n)`.  That wasn't flexible enough for my purposes, so I created my own extension to this mechanism.
 
 This plugin allows repeats **every x days, weeks, months, quarters or years**. It does the work of creating the next task using information from completed tasks that include a `@repeat(interval)`, on the appropriate future date.
 
@@ -16,6 +16,9 @@ When run on a _daily note_, it creates the new repeat task on the date of the ne
 For this feature to work, you need to have the 'Append Completion Date' NotePlan setting turned on in the Preferences (and not to mind the time portion of the `@done(...)` tag being removed, as a sign that the line has been processed).
 
 ## History
+
+### v0.2.2, 11.6.2021
+- [update] following API fix, future repeats are created OK in daily notes
 
 ### v0.2.1, 30.5.2021
 - [fix] allow for other date localisations (that make `@done()` include versions of AM/PM string as well)

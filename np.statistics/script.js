@@ -14,7 +14,10 @@ var exports = (function (exports) {
   function percent(value, total) {
     return `${value} (${Math.round(value / total * 100)}%)`;
   }
-  new Date().toISOString().slice(0, 10);
+  const todaysDateISOString = new Date().toISOString().slice(0, 10);
+  function dateStringFromCalendarFilename(filename) {
+    return filename.slice(0, 8);
+  }
   const monthsAbbrev = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   function monthNameAbbrev(m) {
     return monthsAbbrev[m - 1];
@@ -22,15 +25,6 @@ var exports = (function (exports) {
   function withinDateRange(testDate, fromDate, toDate) {
     return testDate >= fromDate && testDate <= toDate;
   } // Tests for the above
-  // console.log(withinDateRange(unhyphenateDateString('2021-04-24'), '20210501', '20210531')) // false
-  // console.log(withinDateRange(unhyphenateDateString('2021-05-01'), '20210501', '20210531')) // true
-  // console.log(withinDateRange(unhyphenateDateString('2021-05-24'), '20210501', '20210531')) // true
-  // console.log(withinDateRange(unhyphenateDateString('2021-05-31'), '20210501', '20210531')) // true
-  // console.log(withinDateRange(unhyphenateDateString('2021-06-24'), '20210501', '20210531')) // false
-
-  function dateStringFromCalendarFilename(filename) {
-    return filename.slice(0, 8);
-  }
 
   // Show note counts
 
@@ -183,10 +177,11 @@ var exports = (function (exports) {
     }
   }
 
-  //-----------------------------------------------------------------------------
   // User settings: TODO: move to proper preferences system, when available in NP
-  const pref_folderToStore = 'Summaries'; //-----------------------------------------------------------------------------
-  //-------------------------------------------------------------------------------
+
+  const pref_folderToStore = 'Summaries';
+  const pref_countsHeading = 'Hashtag counts';
+  const pref_countsHeadingLevel = 3;
   // Ask user which period to cover, call main stats function, and present results
 
   async function tagStats() {
@@ -218,6 +213,7 @@ var exports = (function (exports) {
     let fromDate;
     let toDate;
     let periodString = '';
+    let countsHeading = '';
 
     switch (period) {
       case 'lm':
@@ -231,6 +227,7 @@ var exports = (function (exports) {
           toDate = Calendar.addUnitToDate(toDate, 'day', -1); // -1 day, to get last day of last month
 
           periodString = `${monthNameAbbrev(fromDate.getMonth() + 1)} ${y}`;
+          countsHeading = pref_countsHeading;
           break;
         }
 
@@ -240,13 +237,17 @@ var exports = (function (exports) {
 
           toDate = Calendar.dateFrom(y, m, d, 0, 0, 0);
           periodString = `${monthNameAbbrev(m)} ${y}`;
+          countsHeading = `${pref_countsHeading} (to ${todaysDateISOString})`;
           break;
         }
 
       case 'lq':
         {
-          const quarterStartMonth = Math.floor((m - 1) / 3) * 3 + 1;
-          fromDate = Calendar.dateFrom(y, quarterStartMonth, 1, 0, 0, 0); // start of this quarter
+          const thisQ = Math.floor((m - 1) / 3) + 1;
+          const lastQ = thisQ > 0 ? thisQ - 1 : 4;
+          const thisQStartMonth = (thisQ - 1) * 3 + 1;
+          const lastQStartMonth = (lastQ - 1) * 3 + 1;
+          fromDate = Calendar.dateFrom(y, thisQStartMonth, 1, 0, 0, 0); // start of this quarter
 
           fromDate = Calendar.addUnitToDate(fromDate, 'month', -3); // -1 quarter
 
@@ -254,17 +255,20 @@ var exports = (function (exports) {
 
           toDate = Calendar.addUnitToDate(toDate, 'day', -1); // -1 day, to get last day of last month
 
-          periodString = `${fromDate.getFullYear()} Q${Math.floor(fromDate.getMonth() / 3) + 1}`;
+          periodString = `Q${lastQ} (${monthNameAbbrev(lastQStartMonth)}-${monthNameAbbrev(lastQStartMonth + 3)}) ${y}`;
+          countsHeading = pref_countsHeading;
           break;
         }
 
       case 'qtd':
         {
-          const quarterStartMonth = Math.floor((m - 1) / 3) * 3 + 1;
-          fromDate = Calendar.dateFrom(y, quarterStartMonth, 1, 0, 0, 0); // start of this quarter
+          const thisQ = Math.floor((m - 1) / 3) + 1;
+          const thisQStartMonth = (thisQ - 1) * 3 + 1;
+          fromDate = Calendar.dateFrom(y, thisQStartMonth, 1, 0, 0, 0); // start of this quarter
 
           toDate = Calendar.dateFrom(y, m, d, 0, 0, 0);
-          periodString = `${y} Q${Math.floor((m - 1) / 3) + 1}`;
+          periodString = `Q${thisQ} (${monthNameAbbrev(thisQStartMonth)}-${monthNameAbbrev(thisQStartMonth + 3)}) ${y}`;
+          countsHeading = `${pref_countsHeading} (to ${todaysDateISOString})`;
           break;
         }
 
@@ -275,6 +279,7 @@ var exports = (function (exports) {
           toDate = Calendar.dateFrom(y - 1, 12, 31, 0, 0, 0); // end of last year
 
           periodString = `${y - 1}`;
+          countsHeading = pref_countsHeading;
           break;
         }
 
@@ -284,6 +289,7 @@ var exports = (function (exports) {
 
           toDate = Calendar.dateFrom(y, m, d, 0, 0, 0);
           periodString = `${y}`;
+          countsHeading = `${pref_countsHeading} (to ${todaysDateISOString})`;
           break;
         }
     }
@@ -295,8 +301,9 @@ var exports = (function (exports) {
 
     const fromDateStr = fromDate.toISOString().slice(0, 10).replace(/-/g, '');
     const toDateStr = toDate.toISOString().slice(0, 10).replace(/-/g, '');
-    const title = `${periodString} (${fromDateStr}-${toDateStr})`;
-    console.log(`\ntagStats: ${title}:`);
+    const title = `${periodString}`; // (${fromDateStr}-${toDateStr})`
+
+    console.log(`\ntagStats: ${title} (${fromDateStr}-${toDateStr}):`);
     const results = calcTagStatsPeriod(fromDateStr, toDateStr); // The .sort method needs a function to sort non string values
     // Here it's sorting arrays of two values each.
 
@@ -304,7 +311,8 @@ var exports = (function (exports) {
     const outputArray = [];
 
     for (const elem of sortedResults.entries()) {
-      outputArray.push(`${elem[1]}\t${elem[0]}`);
+      let hashtagString = elem[0].slice(1);
+      outputArray.push(`${elem[1]}\t${hashtagString}`);
     }
 
     const labelString = `🗒 Add/update note '${periodString}' in folder '${pref_folderToStore}'`;
@@ -334,12 +342,10 @@ var exports = (function (exports) {
           if (todaysNote == null) {
             console.log(`\terror appending to today's note`);
           } else {
-            console.log(`\tappending results to today's note (${todaysNote.filename ?? ''})`); // TODO: create two different 'title' strings to use
-            // TODO: .appendParagraph type says it needs two arguments
-            // I suggest adding to the content directly instead
+            console.log(`\tappending results to today's note (${todaysNote.filename ?? ''})`); // I suggest adding to the content directly instead
 
-            todaysNote.appendParagraph(`### Hashtag Counts for ${title}`);
-            todaysNote.appendParagraph(outputArray.join('\n'));
+            todaysNote.appendParagraph(`### Hashtag Counts for ${title}`, 'empty');
+            todaysNote.appendParagraph(outputArray.join('\n'), 'empty');
             console.log(`\tappended results to today's note`);
           }
 
@@ -348,29 +354,41 @@ var exports = (function (exports) {
 
       case 'note':
         {
-          // TODO: first see if it's already created
-          const existingNote = await DataStore.projectNoteByTitle(title, true);
-          let note;
+          let note; // first see if this note has already been created
+          // (look only in active notes, not Archive or Trash)
 
-          if (existingNote == null) {
-            // This returns a filename and not a
-            const noteFilename = await DataStore.newNote(title, pref_folderToStore);
-            note = noteFilename != null ? DataStore.noteByFilename(noteFilename) : null;
-            console.log(`\twriting results to new note (${title})`);
+          const existingNotes = await DataStore.projectNoteByTitle(title, true, false);
+          console.log(`\tfound ${existingNotes.length} existing summary notes for this period`);
+
+          if (existingNotes.length > 0) {
+            note = existingNotes[0]; // pick the first if more than one
+
+            console.log(`\tfilename of first matching note: ${note.filename}`);
           } else {
-            note = existingNote[0];
-            console.log(`\twriting results to existing note (${title})`);
+            // make a new note for this
+            let noteFilename = await DataStore.newNote(title, pref_folderToStore);
+            console.log(`\tnewNote filename: ${noteFilename}`);
+            noteFilename = `${pref_folderToStore}/${noteFilename}` ?? '(error)'; // NB: filename here = folder + filename
+
+            note = await DataStore.projectNoteByFilename(noteFilename);
+            console.log(`\twriting results to the new note '${noteFilename}'`);
           }
 
           if (note != null) {
-            const nonNullableNote = note; // TODO: add second argument to `.appendParagraph`
+            const nonNullableNote = note; // Do we have an existing Hashtag counts section? If so, delete it.
 
-            nonNullableNote.appendParagraph('');
-            nonNullableNote.appendParagraph(`### Hashtag Counts`);
-            nonNullableNote.appendParagraph(outputArray.join('\n'));
-            console.log(`\twritten results to note (${title})`);
+            const insertionLineIndex = await removeSection(nonNullableNote, pref_countsHeading);
+            console.log(`\tinsertionLineIndex: ${insertionLineIndex}`); // Set place to insert either after the found section heading, or at end of note
+
+            nonNullableNote.insertHeading(countsHeading, insertionLineIndex, pref_countsHeadingLevel);
+            nonNullableNote.insertParagraph(outputArray.join('\n'), insertionLineIndex + 1, 'empty');
+          } else {
+            // FIXME: gets here when writing a new note
+            console.log("tagStats: error: shouldn't get here -- no valid note to write to");
+            return;
           }
 
+          console.log(`\twritten results to note '${title}'`);
           break;
         }
 
@@ -397,9 +415,55 @@ var exports = (function (exports) {
         }
     } //   await showMessage('Everything is already up to date here!');
 
+  } // remove all paragraphs in a section, given:
+  // - Section heading line to look for (needs to match from start but not end)
+  // - Array of paragraphs
+  // Returns the lineIndex of the found heading, or if not found the last line of the note
+
+  async function removeSection(note, heading) {
+    let existingHeadingIndex;
+    const ps = note.paragraphs;
+    const thisTitle = note.title ?? '';
+    console.log(`\t  removeSection '${pref_countsHeading}' from note '${thisTitle}' with ${ps.length} paras:`);
+
+    for (const p of ps) {
+      if (p.type === 'title' && p.content.startsWith(heading)) {
+        existingHeadingIndex = p.lineIndex;
+      }
+    }
+
+    if (existingHeadingIndex !== undefined) {
+      console.log(`\t    heading at: ${existingHeadingIndex}`); // Work out the set of paragraphs to remove
+      // console.log(`Heading found at line: ${existingHeadingIndex}`)
+      // let psToRemove = []
+
+      note.removeParagraph(ps[existingHeadingIndex]);
+      let removed = 1;
+
+      for (let i = existingHeadingIndex + 1; i < ps.length; i++) {
+        if (ps[i].type === 'title' || ps[i].content === '') {
+          break;
+        } // psToRemove.push(ps[i])
+
+
+        await note.removeParagraph(ps[i]);
+        removed++;
+      }
+
+      console.log(`\t   Removed ${removed} paragraphs. ${existingHeadingIndex}`); // Delete the saved set of paragraphs
+      // TODO: think this is hitting NP API bug?
+      // console.log(`About to remove ${psToRemove.length} paragraphs`)
+      // note.removeParagraphs(psToRemove)
+      // console.log(`Removed ${psToRemove.length} paragraphs`);
+
+      return existingHeadingIndex;
+    } else {
+      return ps.length;
+    }
   } //-------------------------------------------------------------------------------
   // Calculate tag statistics for daily notes of a given time period
   // Returns a Map of {tag, count}
+
 
   function calcTagStatsPeriod(fromDateStr, toDateStr) {
     // Get all daily notes that are within this time period

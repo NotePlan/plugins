@@ -241,12 +241,17 @@ type TDataStore = {
    */
   calendarNoteByDateString(filename: string): ?TNote,
   /**
-   * Returns all regular notes with the given title (first line in editor).
-   * Since multiple notes can have the same title, an array is returned.
+   * Returns all regular notes with the given title (first line in editor). 
+   * Since multiple notes can have the same title, an array is returned. 
+   * Use 'caseSensitive' (default = false) to search for a note ignoring 
+   * the case and set 'searchAllFolders' to true if you want to look for 
+   * notes in trash and archive as well. 
+   * By default NotePlan won't return notes in trash and archive.
    */
   projectNoteByTitle(
     title: string,
     caseInsensitive: boolean,
+    searchAllFolders: boolean,
   ): ?$ReadOnlyArray<TNote>,
   /**
    * Returns all regular notes with the given case insenstivie title
