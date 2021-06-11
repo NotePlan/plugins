@@ -3,7 +3,7 @@
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
 // /nns by @dwertheimer
-// v0.8.1, 26.5.2021
+// v0.9.0, 1.6.2021
 //--------------------------------------------------------------------------------------------------------------------
 
 // Globals
@@ -71,7 +71,7 @@ function getUniqueNoteTitle(title) {
     res = []
   while (++i === 1 || res.length > 0) {
     newtitle = i === 1 ? title : `${title} ${i}`
-    res = DataStore.projectNoteByTitle(newtitle)
+    res = DataStore.projectNoteByTitle(newtitle,true,false)
   }
   return newtitle
 }
