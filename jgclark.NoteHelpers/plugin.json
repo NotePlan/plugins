@@ -26,6 +26,11 @@
       "name": "jd",
       "description": "Jump to the ## Done section. (Currently only works in main window.)",
       "jsFunction": "jumpToDone"
+    },
+    {
+      "name": "nns",
+      "description": "New note from selection (and leave link to it in its place)",
+      "jsFunction": "newNoteFromSelection"
     }
   ],
   "plugin.preferences": [
