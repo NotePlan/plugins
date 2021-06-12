@@ -9329,7 +9329,7 @@ The first code-block within the note will always be used. So edit the default co
     // can be "short", "medium", "long" or "full"
     dateStyle: 'short',
     // optional key, can be "short", "medium", "long" or "full"
-    timeStyle: 'short,
+    timeStyle: 'short',
   },
 
   // default values for custom tags.
@@ -9529,6 +9529,58 @@ lastName = "Doe"
     }
   }
 
+  // Using https://openweathermap.org/api/one-call-api#data, for which you can get a free API key
+
+  async function getWeatherSummary(weatherParams, config) {
+    const weatherDescText = ['showers', 'rain', 'sunny intervals', 'partly sunny', 'sunny', 'cloud', 'snow ', 'thunderstorm', 'tornado'];
+    const weatherDescIcons = ["🌦️", "🌧️", "🌤", "⛅", "☀️", "☁️", "🌨️", "⛈", "🌪"]; // Get config settings from Template folder _configuration note
+
+    const weatherConfig = config.weather ?? null;
+
+    if (weatherConfig == null) {
+      await showMessage("Cannot find 'weather' settings in Templates/_configuration note");
+      return '';
+    }
+
+    const pref_openWeatherAPIKey = weatherConfig.openWeatherAPIKey;
+    const pref_latPosition = weatherConfig.latPosition;
+    const pref_longPosition = weatherConfig.longPosition;
+    const pref_openWeatherUnits = weatherConfig.openWeatherUnits; // TODO: probably getDefaultConfiguration rather than parseJSON5 ?
+
+    console.log(`getWeatherSummary: Params: '${weatherParams}'`);
+    const paramConfig = weatherParams.trim() ? await parseJSON5(weatherParams) : {};
+    console.log(paramConfig);
+    const getWeatherURL = `https://api.openweathermap.org/data/2.5/onecall?lat=${pref_latPosition}&lon=${pref_longPosition}&exclude=current,hourly,minutely&units=${pref_openWeatherUnits}&appid=${pref_openWeatherAPIKey}`; // TODO: Allow for more customisation of what is pulled out from the API's data structure
+    // using weatherParams
+
+    const jsonIn = await fetch(getWeatherURL);
+
+    if (jsonIn != null) {
+      const weatherTodayAll = JSON.parse(jsonIn).daily["0"];
+      const maxTemp = weatherTodayAll.feels_like.day.toFixed(0);
+      const minTemp = weatherTodayAll.feels_like.night.toFixed(0);
+      const weatherDesc = weatherTodayAll.weather["0"].description; // see if we can fix an icon for this as well, according to returned description. Main terms are:
+      // thunderstorm, drizzle, shower > rain, snow, sleet, clear sky, mist, fog, dust, tornado, overcast > clouds
+      // with 'light' modifier for rain and snow
+
+      let weatherIcon = '';
+
+      for (let i = 0; i < weatherDescText.length; i++) {
+        if (weatherDesc.match(weatherDescText[i])) {
+          weatherIcon = weatherDescIcons[i];
+          break;
+        }
+      }
+
+      const summaryLine = `${maxTemp}/${minTemp} ${weatherIcon}${weatherDesc}`;
+      console.log(`\t${summaryLine}`);
+      return summaryLine;
+    } else {
+      await showMessage('Sorry; error in Weather lookup');
+      return 'sorry; error in Weather lookup';
+    }
+  }
+
   async function processTemplate(content, config) {
     const tagStart = content.indexOf('{{');
     const tagEnd = content.indexOf('}}');
@@ -9543,20 +9595,16 @@ lastName = "Doe"
     const tag = content.slice(tagStart + 2, tagEnd);
 
     try {
-      const tagProcessed = await processTag(tag, config);
+      const tagProcessed = await processTags(tag, config);
       const restProcessed = await processTemplate(afterTag, config);
       return beforeTag + tagProcessed + restProcessed;
     } catch (e) {
       console.log(e);
       return content;
     }
-  }
+  } // Apply any matching tag values, asking user for value if not found in configuration
 
-  async function processTag(tag, config) {
-    if (tag.startsWith('date(') && tag.endsWith(')')) {
-      return await processDate(tag.slice(5, tag.length - 1), config);
-    }
-
+  async function processTagValues(tag, config) {
     const valueInConfig = tag // eslint-disable-next-line no-useless-escape
     .split(/[\.\[\]]/).filter(Boolean).reduce((path, key) => path != null && typeof path === 'object' ? path[key] : null, config.tagValue);
 
@@ -9565,15 +9613,33 @@ lastName = "Doe"
     }
 
     return await getInput(`Value for ${tag}`);
-  }
+  } // Apply any matching tag functions
 
-  async function processDate(dateConfig, config) {
+
+  async function processTags(tag, config) {
+    if (tag.startsWith('date(') && tag.endsWith(')')) {
+      return await processDate(tag.slice(5, tag.length - 1), config);
+    } else if (tag.startsWith('weather(') && tag.endsWith(')')) {
+      return await getWeatherSummary(tag.slice(8, tag.length - 1), config);
+    } // **Add other extension function calls here**
+    // Can call functions defined in other plugins, by appropriate use
+    // of imports at top of file (e.g. getWeatherSummary)
+    // Or declare below (e.g. processDate)
+    else {
+        // no matching funcs, so now attempt to match defined tag values instead
+        return processTagValues(tag, config);
+      }
+  } // ----------------------------------------------------------------
+  // Define new tag functions here ...
+
+  async function processDate(dateParams, config) {
     const defaultConfig = config.date ?? {};
-    const paramConfig = dateConfig.trim() ? await parseJSON5(dateConfig) : {}; // console.log(`param config: ${dateConfig} as ${JSON.stringify(paramConfig)}`);
+    const paramConfig = dateParams.trim() ? await parseJSON5(dateParams) : {}; // console.log(`param config: ${dateParams} as ${JSON.stringify(paramConfig)}`);
 
     const finalArguments = { ...defaultConfig,
       ...paramConfig
-    };
+    }; // ... = "gather the remaining parameters into an array"
+
     const {
       locale,
       ...otherParams
@@ -9587,11 +9653,35 @@ lastName = "Doe"
     return new Intl.DateTimeFormat(localeParam, secondParam).format(new Date());
   }
 
-  async function addTemplate(newNote) {
+  async function applyNamedTemplate(templateName) {
+    console.log(`applyNamedTemplate: for template '${templateName}'`);
     const templateFolder = await getTemplateFolder();
 
     if (templateFolder == null) {
-      console.log(`addTemplate: templateFolder is null`);
+      console.log(`\twarning: templateFolder is null`);
+      await makeTemplateFolder();
+      await showMessage('Try using this command again to use a template');
+      return;
+    }
+
+    const selectedTemplate = DataStore.projectNoteByTitle(templateName, true, false)[0];
+    let templateContent = selectedTemplate?.content;
+
+    if (templateContent == null || templateContent.length === 0) {
+      console.log(`\twarning: template '${templateName}' is null or empty`);
+      return;
+    }
+
+    templateContent = templateContent.split('\n---\n').slice(1).join('\n---\n');
+    const config = (await getDefaultConfiguration()) ?? {};
+    const processedTemplateContent = await processTemplate(templateContent, config);
+    Editor.content = [Editor.content, processedTemplateContent].filter(Boolean).join('\n');
+  }
+  async function applyTemplate(newNote) {
+    const templateFolder = await getTemplateFolder();
+
+    if (templateFolder == null) {
+      console.log(`applyTemplate: warning: templateFolder is null`);
       await makeTemplateFolder();
       await showMessage('Try using this command again to use a template');
       return;
@@ -9601,8 +9691,8 @@ lastName = "Doe"
       label: note.title,
       value: note
     }).filter(Boolean);
-    console.log(`addTemplate: found ${options.length} options`);
-    console.log(`addTemplate: asking user which template:`);
+    console.log(`applyTemplate: found ${options.length} options`); // console.log(`applyTemplate: asking user which template:`)
+
     const selectedTemplate = await chooseOption('Choose Template', options);
     let templateContent = selectedTemplate?.content;
 
@@ -9642,15 +9732,15 @@ lastName = "Doe"
 
     if (!title) {
       console.log('\tError: undefined or empty title');
-      await showMessage('Cannot create a not with an empty title');
+      await showMessage('Cannot create a note with an empty title');
       return;
     }
 
     const templateFolder = await getTemplateFolder();
-    let shouldAddTemplate = false;
+    let shouldApplyTemplate = false;
 
     if (templateFolder != null || templateFolder !== '') {
-      shouldAddTemplate = await chooseOption('Do you want to get started with a template?', [{
+      shouldApplyTemplate = await chooseOption('Do you want to get started with a template?', [{
         label: 'Yes',
         value: true
       }, {
@@ -9659,8 +9749,8 @@ lastName = "Doe"
       }], false);
     }
 
-    if (shouldAddTemplate) {
-      await addTemplate([title, folder]);
+    if (shouldApplyTemplate) {
+      await applyTemplate([title, folder]);
       return;
     }
 
@@ -9675,7 +9765,8 @@ lastName = "Doe"
     Editor.content = `# ${title}\n`;
   }
 
-  exports.addTemplate = addTemplate;
+  exports.applyNamedTemplate = applyNamedTemplate;
+  exports.applyTemplate = applyTemplate;
   exports.newNoteWithTemplate = newNoteWithTemplate;
 
   Object.defineProperty(exports, '__esModule', { value: true });
