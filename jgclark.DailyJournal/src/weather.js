@@ -78,7 +78,7 @@ export async function getWeatherSummary(
         break
       }
     }
-    const summaryLine = `Weather: ${maxTemp}/${minTemp} ${weatherIcon}${weatherDesc}`
+    const summaryLine = `${maxTemp}/${minTemp} ${weatherIcon}${weatherDesc}`
     console.log(`\t${summaryLine}`)
     return summaryLine
   } else {
@@ -86,5 +86,3 @@ export async function getWeatherSummary(
     return 'sorry; error in Weather lookup'
   }
 }
-
-// globalThis.getWeatherSummary = getWeatherSummary

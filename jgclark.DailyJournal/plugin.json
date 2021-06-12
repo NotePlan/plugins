@@ -6,7 +6,7 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/README.md",
-  "plugin.version": "0.6.0",
+  "plugin.version": "0.6.2",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -25,53 +25,5 @@
     }
   ],
   "plugin.preferences": [
-    {
-      "name": "openWeatherAPIKey",
-      "description": "API key to use the openWeather service",
-      "type": "string",
-      "default": ""
-    },
-    {
-      "name": "latPosition",
-      "description": "Latitude position to send to the openWeather service",
-      "type": "string",
-      "default": ""
-    },
-    {
-      "name": "longPosition",
-      "description": "Longitude position to send to the openWeather service",
-      "type": "string",
-      "default": ""
-    },
-    {
-      "name": "openWeatherUnits",
-      "description": "Units that the openWeather service returns",
-      "type": "string",
-      "default": "metric"
-    },
-    {
-      "name": "templateTitle",
-      "description": "Title of Template file to use at the start of day",
-      "type": "string",
-      "default": "Daily Note Template"
-    },
-    {
-      "name": "reviewSectionHeading",
-      "description": "Heading after which to put  the review responses",
-      "type": "string",
-      "default": "Journal"
-    },
-    {
-      "name": "reviewQuestions",
-      "description": "Comma-separated list of review questions to ask",
-      "type": "string",
-      "default": "@work(<int>)\n@fruitveg(<int>)\nMood:: <mood>\nGratitude:: <string>\nGod was:: <string>\nAlive:: <string>\nNot Great:: <string>\nWife:: <string>\nRemember:: <string>"
-    },
-    {
-      "name": "moods",
-      "description": "Comma-separated set of possible moods to choose between",
-      "type": "string",
-      "default": "🤩 Great,🙂 Good,😇 Blessed,🥱 Tired,😫 Stressed,😤 Frustrated,😔 Low,🥵 Sick,Other"
-    }
   ]
 }
