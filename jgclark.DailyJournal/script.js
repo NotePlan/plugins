@@ -9329,7 +9329,7 @@ The first code-block within the note will always be used. So edit the default co
     // can be "short", "medium", "long" or "full"
     dateStyle: 'short',
     // optional key, can be "short", "medium", "long" or "full"
-    timeStyle: 'short,
+    timeStyle: 'short',
   },
 
   // default values for custom tags.
