@@ -29,26 +29,6 @@ export async function processTemplate(
   }
 }
 
-// Apply any matching tag values, asking user for value if not found in configuration
-async function processTagValues(
-  tag: string,
-  config: { [string]: ?mixed },
-): Promise<string> {
-  const valueInConfig = tag
-    // eslint-disable-next-line no-useless-escape
-    .split(/[\.\[\]]/)
-    .filter(Boolean)
-    .reduce(
-      (path, key: string) =>
-        path != null && typeof path === 'object' ? path[key] : null,
-      config.tagValue,
-    )
-  if (valueInConfig != null) {
-    return String(valueInConfig)
-  }
-  return await getInput(`Value for ${tag}`)
-}
-
 // Apply any matching tag functions
 export async function processTags(
   tag: string,
@@ -69,6 +49,26 @@ export async function processTags(
   else { // no matching funcs, so now attempt to match defined tag values instead
     return processTagValues(tag, config)
   }
+}
+
+// Apply any matching tag values, asking user for value if not found in configuration
+async function processTagValues(
+  tag: string,
+  config: { [string]: ?mixed },
+): Promise<string> {
+  const valueInConfig = tag
+    // eslint-disable-next-line no-useless-escape
+    .split(/[\.\[\]]/)
+    .filter(Boolean)
+    .reduce(
+      (path, key: string) =>
+        path != null && typeof path === 'object' ? path[key] : null,
+      config.tagValue,
+    )
+  if (valueInConfig != null) {
+    return String(valueInConfig)
+  }
+  return await getInput(`Value for ${tag}`)
 }
 
 // ----------------------------------------------------------------

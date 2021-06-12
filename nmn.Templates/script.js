@@ -9602,19 +9602,7 @@ lastName = "Doe"
       console.log(e);
       return content;
     }
-  } // Apply any matching tag values, asking user for value if not found in configuration
-
-  async function processTagValues(tag, config) {
-    const valueInConfig = tag // eslint-disable-next-line no-useless-escape
-    .split(/[\.\[\]]/).filter(Boolean).reduce((path, key) => path != null && typeof path === 'object' ? path[key] : null, config.tagValue);
-
-    if (valueInConfig != null) {
-      return String(valueInConfig);
-    }
-
-    return await getInput(`Value for ${tag}`);
   } // Apply any matching tag functions
-
 
   async function processTags(tag, config) {
     if (tag.startsWith('date(') && tag.endsWith(')')) {
@@ -9629,8 +9617,20 @@ lastName = "Doe"
         // no matching funcs, so now attempt to match defined tag values instead
         return processTagValues(tag, config);
       }
+  } // Apply any matching tag values, asking user for value if not found in configuration
+
+  async function processTagValues(tag, config) {
+    const valueInConfig = tag // eslint-disable-next-line no-useless-escape
+    .split(/[\.\[\]]/).filter(Boolean).reduce((path, key) => path != null && typeof path === 'object' ? path[key] : null, config.tagValue);
+
+    if (valueInConfig != null) {
+      return String(valueInConfig);
+    }
+
+    return await getInput(`Value for ${tag}`);
   } // ----------------------------------------------------------------
   // Define new tag functions here ...
+
 
   async function processDate(dateParams, config) {
     const defaultConfig = config.date ?? {};
