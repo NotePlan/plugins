@@ -74,12 +74,13 @@ async function showMessageYesNo(message, choicesArray = ['Yes', 'No']) {
 // Find a unique note title/filename so backlinks can work properly (@dwertheimer)
 function getUniqueNoteTitle(title) {
   let i = 0,
-    res = []
+    res = [],
+    newTitle = title
   while (++i === 1 || res.length > 0) {
-    newtitle = i === 1 ? title : `${title} ${i}`
-    res = DataStore.projectNoteByTitle(newtitle, true, false)
+    newTitle = i === 1 ? title : `${title} ${i}`
+    res = DataStore.projectNoteByTitle(newTitle, true, false)
   }
-  return newtitle
+  return newTitle
 }
 
 //------------------------------------------------------------------
@@ -263,11 +264,15 @@ async function newNoteFromSelection() {
           Editor.replaceSelectionWithText(``)
         }
       }
-      if (insertBackLink)
+      if (insertBackLink) {
         newNote.appendParagraph(`From [[${origFile}]]:`, 'empty')
+      }
       newNote.appendParagraph(movedText, 'empty')
-      if ((await showMessageYesNo('New Note created. Open it now?')) === 'Yes')
+      if (
+        (await showMessageYesNo('New Note created. Open it now?')) === 'Yes'
+      ) {
         await Editor.openNoteByFilename(filename)
+      }
     } else {
       console.log('\tError: undefined or empty title')
     }
