@@ -65,13 +65,19 @@ async function showMessage(message, confirmTitle = 'OK') {
   return await CommandBar.showOptions([confirmTitle], message)
 }
 
+// Show feedback Yes/No Question via Command Bar (@dwertheimer)
+async function showMessageYesNo(message, choicesArray = ['Yes', 'No']) {
+  const answer = await CommandBar.showOptions(choicesArray, message)
+  return choicesArray[answer.index]
+}
+
 // Find a unique note title/filename so backlinks can work properly (@dwertheimer)
 function getUniqueNoteTitle(title) {
   let i = 0,
     res = []
   while (++i === 1 || res.length > 0) {
     newtitle = i === 1 ? title : `${title} ${i}`
-    res = DataStore.projectNoteByTitle(newtitle,true,false)
+    res = DataStore.projectNoteByTitle(newtitle, true, false)
   }
   return newtitle
 }
@@ -242,6 +248,8 @@ async function newNoteFromSelection() {
       // const origFileType = Editor.note.type //either "Notes" or "Calendar"
 
       const filename = DataStore.newNote(title, currentFolder) ?? ''
+      const newNote = await DataStore.projectNoteByFilename(filename)
+
       const iblq = await CommandBar.showOptions(
         ['Yes', 'No'],
         'Insert link to new file where selection was?',
@@ -255,10 +263,11 @@ async function newNoteFromSelection() {
           Editor.replaceSelectionWithText(``)
         }
       }
-      await Editor.openNoteByFilename(filename)
       if (insertBackLink)
-        Editor.note.appendParagraph(`From [[${origFile}]]:`, 'empty')
-      Editor.note.appendParagraph(movedText, 'empty')
+        newNote.appendParagraph(`From [[${origFile}]]:`, 'empty')
+      newNote.appendParagraph(movedText, 'empty')
+      if ((await showMessageYesNo('New Note created. Open it now?')) === 'Yes')
+        await Editor.openNoteByFilename(filename)
     } else {
       console.log('\tError: undefined or empty title')
     }
