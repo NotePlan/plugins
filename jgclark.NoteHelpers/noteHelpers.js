@@ -206,16 +206,25 @@ globalThis.setTitleFromYAML = setTitleFromYAML
 // Create new note from currently selected text
 // and (optionally) leave backlink to it where selection was
 async function newNoteFromSelection() {
-  const { selectedLinesText, selectedText } = Editor
-  console.log('\nnewNoteFromSelection (running):')
+  const { selectedLinesText, selectedText, selectedParagraphs } = Editor
+  console.log(
+    `\nnewNoteFromSelection (running) ${selectedParagraphs.length} selected:`,
+  )
   let currentFolder = ''
 
   if (selectedLinesText.length && selectedText !== '') {
     // Get title for this note
-    const stripHashes = /^\s*(#)* *(.*)/
-    const firstLineArray = stripHashes.exec(selectedLinesText[0])
-    const strippedFirstLine =
-      firstLineArray.length === 3 ? firstLineArray[2] : ''
+    console.log(
+      `1st Para Type = ${selectedParagraphs[0].type} = "${selectedParagraphs[0].content}"`,
+    )
+    // const stripHashes = /^\s*(#)* *(.*)/
+    // const firstLineArray = stripHashes.exec(selectedLinesText[0])
+    // const strippedFirstLine =
+    //   firstLineArray.length === 3 ? firstLineArray[2] : ''
+
+    const isTextContent =
+      ['title', 'text', 'empty'].indexOf(selectedParagraphs[0].type) >= 0
+    const strippedFirstLine = selectedParagraphs[0].content
     let title = await CommandBar.showInput(
       'Title of new note ([enter] to use text below)',
       strippedFirstLine,
@@ -223,7 +232,9 @@ async function newNoteFromSelection() {
     // If user just hit [enter], then use the first line as suggested
     if (!title) {
       title = strippedFirstLine
-      selectedLinesText.shift()
+      if (isTextContent) {
+        selectedLinesText.shift()
+      }
     }
     const movedText = selectedLinesText.join('\n')
     const uniqueTitle = getUniqueNoteTitle(title)
