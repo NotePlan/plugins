@@ -3,7 +3,7 @@
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
 // /nns by @dwertheimer
-// v0.9.0, 1.6.2021
+// v0.9.1, 1.6.2021
 //--------------------------------------------------------------------------------------------------------------------
 
 // Globals

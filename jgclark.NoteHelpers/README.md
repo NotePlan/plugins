@@ -20,6 +20,9 @@ Templates should normally end with a linefeed character (`\n`).
 
 ## History
 
+### v0.9.1, 12.6.2021
+- change: write text offscreen and ask user if they want to open newly created file
+
 ### v0.9.0, 12.6.2021
 - [add]: **/nns** command to add a new note from selection (and leave link to it in its place) (@dwertheimer)
 
