@@ -283,7 +283,9 @@ async function newNoteFromSelection() {
           console.log(`\t\tWorked! ${fullPath} (${desc} version) `)
         } else {
           console.log(
-            `\t\tDidn't work! ${fullPath} (${desc}) returned ${newNote}`,
+            `\t\tDidn't work! ${
+              useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename'
+            } returned ${newNote}`,
           )
         }
         return newNote
