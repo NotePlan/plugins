@@ -271,12 +271,16 @@ async function newNoteFromSelection() {
         desc,
         useProjNoteByFilename = true,
       ) {
-        console.log(`\tAbout to open filename: "${fullPath}" (${desc})`)
+        console.log(
+          `\tAbout to open filename: "${fullPath}" (${desc}) using ${
+            useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename'
+          }`,
+        )
         const newNote = (await useProjNoteByFilename)
           ? DataStore.projectNoteByFilename(fullPath)
           : DataStore.noteByFilename(fullPath, 'Notes')
         if (newNote) {
-          console.log(`\tWorked! ${fullPath} (${desc} version)`)
+          console.log(`\tWorked! ${fullPath} (${desc} version) `)
         } else {
           console.log(
             `\tDidn't work! ${fullPath} (${desc}) returned ${newNote}`,
