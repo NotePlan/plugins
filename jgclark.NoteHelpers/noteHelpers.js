@@ -280,10 +280,10 @@ async function newNoteFromSelection() {
           ? DataStore.projectNoteByFilename(fullPath)
           : DataStore.noteByFilename(fullPath, 'Notes')
         if (newNote) {
-          console.log(`\tWorked! ${fullPath} (${desc} version) `)
+          console.log(`\t\tWorked! ${fullPath} (${desc} version) `)
         } else {
           console.log(
-            `\tDidn't work! ${fullPath} (${desc}) returned ${newNote}`,
+            `\t\tDidn't work! ${fullPath} (${desc}) returned ${newNote}`,
           )
         }
         return newNote
@@ -318,7 +318,15 @@ async function newNoteFromSelection() {
           false,
         )
       }
-
+      if (!newNote) {
+        newNote = await noteOpener(
+          `${
+            currentFolder !== '/' ? '/' + currentFolder + '/' : ''
+          }${filename}`,
+          'using noteByFilename Instead, leading slash',
+          false,
+        )
+      }
       // let newNote = await DataStore.projectNoteByFilename(fullPath)
 
       if (!newNote) {
