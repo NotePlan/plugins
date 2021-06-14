@@ -264,18 +264,45 @@ async function newNoteFromSelection() {
       console.log(`\torigFile:${origFile}`)
       const filename = (await DataStore.newNote(title, currentFolder)) ?? ''
       console.log(`\tnewNote returned Filename:${filename}`)
-      const fullPath = `${
+
+      // Start Testing/debugging here
+      const noteOpener = async function (fullPath, desc) {
+        console.log(`\tAbout to open filename: "${fullPath}" (${desc})`)
+        const newNote = await DataStore.projectNoteByFilename(fullPath)
+        if (newNote) {
+          console.log(`\tWorked! ${fullPath} (${desc} version)`)
+        } else {
+          console.log(
+            `\tDidn't work! ${fullPath} (${desc}) returned ${newNote}`,
+          )
+        }
+        return newNote
+      }
+      let fullPath = `${
         currentFolder !== '/' ? currentFolder + '/' : ''
       }${filename}`
-      console.log(`\tAbout to open filename: "${fullPath}"`)
-      /*
-                  // make a new note for this
-            let noteFilename = await DataStore.newNote(title, pref_folderToStore);
-            console.log(`\tnewNote filename: ${noteFilename}`);
-            noteFilename = `${pref_folderToStore}/${noteFilename}` ?? '(error)'; // NB: filename here = folder + filename
 
-            */
-      const newNote = await DataStore.projectNoteByFilename(fullPath)
+      let newNote = await noteOpener(fullPath, 'no leading slash')
+      if (!newNote) {
+        fullPath = `${
+          currentFolder !== '/' ? '/' + currentFolder + '/' : ''
+        }${filename}`
+        newNote = await noteOpener(fullPath, 'with leading slash')
+      }
+      if (!newNote) {
+        newNote = await noteOpener(
+          `${currentFolder}/${filename}`,
+          'Jonathan way',
+        )
+      }
+      if (!newNote) {
+        newNote = await noteOpener(
+          `${filename}`,
+          'no folder path, filename only',
+        )
+      }
+      // let newNote = await DataStore.projectNoteByFilename(fullPath)
+
       if (newNote) {
         console.log(`\tnewNote=${newNote}\n\t${newNote.title}`)
         console.log(`\tcontent=${newNote.content}`)
