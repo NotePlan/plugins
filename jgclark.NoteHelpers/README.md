@@ -20,7 +20,7 @@ Templates should normally end with a linefeed character (`\n`).
 
 ## History
 
-### v0.9.1, 12.6.2021
+### v0.9.2, 13.6.2021
 - change: write text offscreen and ask user if they want to open newly created file
 
 ### v0.9.0, 12.6.2021
