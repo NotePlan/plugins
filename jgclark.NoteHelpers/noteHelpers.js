@@ -266,9 +266,15 @@ async function newNoteFromSelection() {
       console.log(`\tnewNote returned Filename:${filename}`)
 
       // Start Testing/debugging here
-      const noteOpener = async function (fullPath, desc) {
+      const noteOpener = async function (
+        fullPath,
+        desc,
+        useProjNoteByFilename = true,
+      ) {
         console.log(`\tAbout to open filename: "${fullPath}" (${desc})`)
-        const newNote = await DataStore.projectNoteByFilename(fullPath)
+        const newNote = (await useProjNoteByFilename)
+          ? DataStore.projectNoteByFilename(fullPath)
+          : DataStore.noteByFilename(fullPath, 'Notes')
         if (newNote) {
           console.log(`\tWorked! ${fullPath} (${desc} version)`)
         } else {
@@ -301,7 +307,18 @@ async function newNoteFromSelection() {
           'no folder path, filename only',
         )
       }
+      if (!newNote) {
+        newNote = await noteOpener(
+          `${currentFolder !== '/' ? currentFolder + '/' : ''}${filename}`,
+          'using noteByFilename Instead',
+          false,
+        )
+      }
+
       // let newNote = await DataStore.projectNoteByFilename(fullPath)
+
+      if (!newNote) {
+      }
 
       if (newNote) {
         console.log(`\tnewNote=${newNote}\n\t${newNote.title}`)
