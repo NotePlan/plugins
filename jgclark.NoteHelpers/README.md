@@ -3,7 +3,6 @@ This plugin provides commands to help work with NotePlan notes:
 - `/mn`: which moves a note to a different folder the user selects
 - `/jh`: jumps the cursor to the heading of the current note that the user selects
 - `/jd`: simply jumps the cursor to the `## Done` section of the current note (if it exists)
-- `/nns`: create a new note from selection (and leave link to it in its place)
 
 ## Configuration
 Before the configuration mechanism is available, you need to update the `jgclark.noteHelpers\noteHelpers.js` file in the plugin's folder directly. Update the following lines at the top of the file accordingly:
