@@ -1,11 +1,14 @@
-// @flow
+// @ flow
 // -----------------------------------------------------------------------------
-// Plugin to help move selected pargraphs to other notes
+// Plugin to help move selected paragraphs to other notes
 // Jonathan Clark
 // v0.3.3, 11.6.2021
 // -----------------------------------------------------------------------------
 
-import { rangeToString, displayTitle } from '../../np.statistics/src/statsHelpers'
+import {
+  rangeToString,
+  displayTitle,
+} from '../../np.statistics/src/statsHelpers'
 
 // Preference that needs to get added when there is a proper config system
 const pref_addDateBacklink = true
@@ -19,8 +22,8 @@ function allNotesSortedByChanged() {
   const calendarNotes = DataStore.calendarNotes.slice()
   const allNotes = projectNotes.concat(calendarNotes)
   const allNotesSortedByDate = allNotes.sort(
-    (first, second) =>
-      second.changedDate - first.changedDate) // most recent first
+    (first, second) => second.changedDate - first.changedDate,
+  ) // most recent first
   return allNotesSortedByDate
 }
 
@@ -114,7 +117,7 @@ export async function fileParas() {
         }
         parasToMove.push(p)
       }
-      console.log(`  Found ${parasToMove.length-1} indented paras`)
+      console.log(`  Found ${parasToMove.length - 1} indented paras`)
     }
   }
 

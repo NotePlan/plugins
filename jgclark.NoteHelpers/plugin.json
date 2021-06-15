@@ -6,7 +6,7 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark & Eduard Metzger",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/",
-  "plugin.version": "0.9.2",
+  "plugin.version": "0.9.3",
   "plugin.changelog": "See plugin README.md",
   "plugin.dependencies": [],
   "plugin.script": "noteHelpers.js",
@@ -27,11 +27,6 @@
       "description": "Jump to the ## Done section. (Currently only works in main window.)",
       "jsFunction": "jumpToDone"
     },
-    {
-      "name": "nns",
-      "description": "New note from selection (and leave link to it in its place)",
-      "jsFunction": "newNoteFromSelection"
-    }
   ],
   "plugin.preferences": [
   ]
