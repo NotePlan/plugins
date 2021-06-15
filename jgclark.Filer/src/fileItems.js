@@ -1,4 +1,4 @@
-// @ flow
+// @flow
 // -----------------------------------------------------------------------------
 // Plugin to help move selected paragraphs to other notes
 // Jonathan Clark
@@ -17,7 +17,7 @@ const pref_addDateBacklink = true
 // Helper Functions
 
 // Return list of all notes, sorted by changed date (newest to oldest)
-function allNotesSortedByChanged() {
+function allNotesSortedByChanged():Array<TNote> {
   const projectNotes = DataStore.projectNotes.slice()
   const calendarNotes = DataStore.calendarNotes.slice()
   const allNotes = projectNotes.concat(calendarNotes)
@@ -28,7 +28,7 @@ function allNotesSortedByChanged() {
 }
 
 // Convert paragraph(s) to single raw text string
-function parasToText(paras) {
+function parasToText(paras:Array<TParagraph>):string {
   // console.log('parasToText: starting with ' + paras.length + ' paragraphs')
   let text = ''
   for (let i = 0; i < paras.length; i++) {
@@ -213,5 +213,3 @@ export async function fileParas() {
     note.removeParagraphAtIndex(i)
   }
 }
-
-// globalThis.fileParas = fileParas

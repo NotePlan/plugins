@@ -1,4 +1,4 @@
-// @ flow
+// @flow
 //------------------------------------------------------------------
 // @dwertheimer based on @jgclark's newNote
 // Create new note from currently selected text

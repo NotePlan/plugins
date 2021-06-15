@@ -43,7 +43,7 @@ var exports = (function (exports) {
     }
   } // Print out all data for a paragraph (borrowed from EM)
 
-  // @ flow
+  // -----------------------------------------------------------------------------
   // Helper Functions
   // Return list of all notes, sorted by changed date (newest to oldest)
 
@@ -250,7 +250,7 @@ var exports = (function (exports) {
       console.log(`  Remove original para # ${i}`);
       note.removeParagraphAtIndex(i);
     }
-  } // globalThis.fileParas = fileParas
+  }
 
   //------------------------------------------------------------------
 
@@ -304,7 +304,7 @@ var exports = (function (exports) {
     return currentFolder;
   }
 
-  // @ flow
+  //------------------------------------------------------------------
   async function newNoteFromSelection() {
     const version = `0.4.0`;
     console.log(`Running v${version}`);

@@ -20,8 +20,8 @@ Templates should normally end with a linefeed character (`\n`).
 
 ## History
 
-### v0.9.3, 15.6.2021
-- change: moved /nns (which was temporarily here) to Filer and cleaned up here
+### v0.9.3, 15.6.2021 (@dwertheimer)
+- change: moved **/nns** (which was temporarily here) to Filer and cleaned up here
 
 ### v0.9.0, 12.6.2021
 - [add]: **/nns** command to add a new note from selection (and leave link to it in its place) (@dwertheimer)

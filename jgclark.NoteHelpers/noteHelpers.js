@@ -1,4 +1,4 @@
-// @ flow
+// @flow
 //--------------------------------------------------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
@@ -141,7 +141,7 @@ globalThis.jumpToDone = jumpToDone
 
 //------------------------------------------------------------------
 // Set the title of a note from YAML, rather than the first line.
-// NOTE: not currently working because of lack of API support yet (as of release 628)
+// NOTE: not currently working because of lack of API support yet (as of release 636)
 // TODO: add following back into plugin.json to active this again:
 // {
 //   "name": "Set title from YAML",
@@ -171,7 +171,7 @@ function setTitleFromYAML() {
   }
   console.log(`\tnew title = ${newTitle}`)
   if (newTitle !== '') {
-    note.title = newTitle // TODO: setter not available not yet available (last checked on release 628)
+    note.title = newTitle // TODO: when setter available
   }
   printNote(Editor.note)
 }

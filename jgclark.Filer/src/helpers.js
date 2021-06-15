@@ -1,3 +1,5 @@
+// @flow
+
 //------------------------------------------------------------------
 // Helper functions
 //------------------------------------------------------------------
@@ -29,17 +31,20 @@ export function printNote(note) {
 }
 
 // Show feedback message using Command Bar (@dwertheimer)
-export async function showMessage(message, confirmTitle = 'OK') {
+export async function showMessage(message:string, confirmTitle:string = 'OK') {
   return await CommandBar.showOptions([confirmTitle], message)
 }
 
 // Show feedback Yes/No Question via Command Bar (@dwertheimer)
-export async function showMessageYesNo(message, choicesArray = ['Yes', 'No']) {
+export async function showMessageYesNo(message:string, choicesArray:Array<string> = ['Yes', 'No']):Promise<string> {
   const answer = await CommandBar.showOptions(choicesArray, message)
   return choicesArray[answer.index]
 }
 
-export async function noteOpener(fullPath, desc, useProjNoteByFilename = true) {
+export async function noteOpener(
+  fullPath: string,
+  desc: string,
+  useProjNoteByFilename: boolean = true): Promise<TNote> {
   console.log(
     `\tAbout to open filename: "${fullPath}" (${desc}) using ${
       useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename'
@@ -62,7 +67,7 @@ export async function noteOpener(fullPath, desc, useProjNoteByFilename = true) {
 
 // Find a unique note title/filename so backlinks can work properly (@dwertheimer)
 // Keep adding numbers to the end of a filename (if already taken) until it works
-export function getUniqueNoteTitle(title) {
+export function getUniqueNoteTitle(title:string):string {
   let i = 0,
     res = [],
     newTitle = title
@@ -73,7 +78,7 @@ export function getUniqueNoteTitle(title) {
   return newTitle
 }
 
-export async function chooseFolder(msg) {
+export async function chooseFolder(msg:string):Promise<string> {
   let currentFolder
   const folders = DataStore.folders // excludes Trash and Archive
   if (folders.length > 0) {

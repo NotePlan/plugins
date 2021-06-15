@@ -26,7 +26,7 @@
       "name": "jd",
       "description": "Jump to the ## Done section. (Currently only works in main window.)",
       "jsFunction": "jumpToDone"
-    },
+    }
   ],
   "plugin.preferences": [
   ]
