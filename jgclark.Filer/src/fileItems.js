@@ -1,11 +1,14 @@
 // @flow
 // -----------------------------------------------------------------------------
-// Plugin to help move selected pargraphs to other notes
+// Plugin to help move selected paragraphs to other notes
 // Jonathan Clark
 // v0.3.3, 11.6.2021
 // -----------------------------------------------------------------------------
 
-import { rangeToString, displayTitle } from '../../np.statistics/src/statsHelpers'
+import {
+  rangeToString,
+  displayTitle,
+} from '../../np.statistics/src/statsHelpers'
 
 // Preference that needs to get added when there is a proper config system
 const pref_addDateBacklink = true
@@ -14,18 +17,18 @@ const pref_addDateBacklink = true
 // Helper Functions
 
 // Return list of all notes, sorted by changed date (newest to oldest)
-function allNotesSortedByChanged() {
+function allNotesSortedByChanged():Array<TNote> {
   const projectNotes = DataStore.projectNotes.slice()
   const calendarNotes = DataStore.calendarNotes.slice()
   const allNotes = projectNotes.concat(calendarNotes)
   const allNotesSortedByDate = allNotes.sort(
-    (first, second) =>
-      second.changedDate - first.changedDate) // most recent first
+    (first, second) => second.changedDate - first.changedDate,
+  ) // most recent first
   return allNotesSortedByDate
 }
 
 // Convert paragraph(s) to single raw text string
-function parasToText(paras) {
+function parasToText(paras:Array<TParagraph>):string {
   // console.log('parasToText: starting with ' + paras.length + ' paragraphs')
   let text = ''
   for (let i = 0; i < paras.length; i++) {
@@ -114,7 +117,7 @@ export async function fileParas() {
         }
         parasToMove.push(p)
       }
-      console.log(`  Found ${parasToMove.length-1} indented paras`)
+      console.log(`  Found ${parasToMove.length - 1} indented paras`)
     }
   }
 
@@ -210,5 +213,3 @@ export async function fileParas() {
     note.removeParagraphAtIndex(i)
   }
 }
-
-// globalThis.fileParas = fileParas

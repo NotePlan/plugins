@@ -3,7 +3,8 @@
 // -----------------------------------------------------------------------------
 // Plugin to help move selected pargraphs to other notes
 // Jonathan Clark
-// v0.3.3, 11.6.2021
+// v0.4, 15.6.2021
 // -----------------------------------------------------------------------------
 
 export { fileParas } from './fileItems'
+export { newNoteFromSelection } from './newNoteFromSelection'

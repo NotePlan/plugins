@@ -14,6 +14,9 @@ It pops up the command bar to choose the note you want to move it to, followed b
 If you want to stop date backlinks being added change the line at the top of the plugin'\ `fileItems.js` file to: `const pref_addDateBacklink = false;`
 
 ## History
+
+### v0.4.0 15.6.2021 (@dwertheimer)
+- add /nns (moved from NoteHelpers)
 ### v0.3.3, 11.6.2021
 - remove restriction to move to just project notes
 - update code to work with today's API fixes
