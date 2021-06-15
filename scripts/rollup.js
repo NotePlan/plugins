@@ -80,7 +80,7 @@ async function main() {
           `Generated "${outputFile.replace(
             rootFolder,
             '',
-          )}"\nand copied to the "Plugins" folder\n\n`,
+          )}"\nand copied to the "Plugins" folder\nat ${new Date().toISOString().slice(0, 16)}\n`,
         )
       } else {
         console.log(`Generated "${outputFile.replace(rootFolder, '')}"`)
