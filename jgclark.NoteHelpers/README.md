@@ -4,19 +4,6 @@ This plugin provides commands to help work with NotePlan notes:
 - `/jh`: jumps the cursor to the heading of the current note that the user selects
 - `/jd`: simply jumps the cursor to the `## Done` section of the current note (if it exists)
 
-## Configuration
-Before the configuration mechanism is available, you need to update the `jgclark.noteHelpers\noteHelpers.js` file in the plugin's folder directly. Update the following lines at the top of the file accordingly:
-```js
-// Items that should come from the Preference framework in time:
-pref_templateName.push("Daily note structure")
-pref_templateText.push("### Tasks\n### Media\n\n### Journal\n")
-pref_templateName.push("Project Meeting note")
-pref_templateText.push("### Project X Meeting on [[date]] with @Y and @Z\n\n### Notes\n\n### Actions\n")
-```
-You can have any number of templates defined, but each needs a Name and Text.  If there is only a single template configured, then it will be applied automatically by `applyTemplate`.
-
-Templates should normally end with a linefeed character (`\n`).
-
 ## History
 
 ### v0.9.3, 15.6.2021 (@dwertheimer)
