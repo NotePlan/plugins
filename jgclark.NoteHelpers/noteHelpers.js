@@ -2,8 +2,7 @@
 //--------------------------------------------------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// /nns by @dwertheimer
-// v0.9.0, 1.6.2021
+// v0.9.3, 1.6.2021
 //--------------------------------------------------------------------------------------------------------------------
 
 // Globals
@@ -60,23 +59,7 @@ async function selectFolder() {
 }
 globalThis.selectFolder = selectFolder
 
-// Show feedback message using Command Bar (@dwertheimer)
-async function showMessage(message, confirmTitle = 'OK') {
-  return await CommandBar.showOptions([confirmTitle], message)
-}
-
-// Find a unique note title/filename so backlinks can work properly (@dwertheimer)
-function getUniqueNoteTitle(title) {
-  let i = 0,
-    res = []
-  while (++i === 1 || res.length > 0) {
-    newtitle = i === 1 ? title : `${title} ${i}`
-    res = DataStore.projectNoteByTitle(newtitle,true,false)
-  }
-  return newtitle
-}
-
-//------------------------------------------------------------------
+//-----------------------------------------------------------------
 // Command from Eduard to move a note to a different folder
 function moveNote(selectedFolder) {
   const { title, filename } = Editor
@@ -158,7 +141,7 @@ globalThis.jumpToDone = jumpToDone
 
 //------------------------------------------------------------------
 // Set the title of a note from YAML, rather than the first line.
-// NOTE: not currently working because of lack of API support yet (as of release 628)
+// NOTE: not currently working because of lack of API support yet (as of release 636)
 // TODO: add following back into plugin.json to active this again:
 // {
 //   "name": "Set title from YAML",
@@ -188,83 +171,8 @@ function setTitleFromYAML() {
   }
   console.log(`\tnew title = ${newTitle}`)
   if (newTitle !== '') {
-    note.title = newTitle // TODO: setter not available not yet available (last checked on release 628)
+    note.title = newTitle // TODO: when setter available
   }
   printNote(Editor.note)
 }
 globalThis.setTitleFromYAML = setTitleFromYAML
-
-//------------------------------------------------------------------
-// @dwertheimer based on @jgclark's newNote
-// Create new note from currently selected text
-// and (optionally) leave backlink to it where selection was
-async function newNoteFromSelection() {
-  const { selectedLinesText, selectedText } = Editor
-  console.log('\nnewNoteFromSelection (running):')
-  let currentFolder = ''
-
-  if (selectedLinesText.length && selectedText !== '') {
-    // Get title for this note
-    const stripHashes = /^\s*(#)* *(.*)/
-    const firstLineArray = stripHashes.exec(selectedLinesText[0])
-    const strippedFirstLine =
-      firstLineArray.length === 3 ? firstLineArray[2] : ''
-    let title = await CommandBar.showInput(
-      'Title of new note ([enter] to use text below)',
-      strippedFirstLine,
-    )
-    // If user just hit [enter], then use the first line as suggested
-    if (!title) {
-      title = strippedFirstLine
-      selectedLinesText.shift()
-    }
-    const movedText = selectedLinesText.join('\n')
-    const uniqueTitle = getUniqueNoteTitle(title)
-    if (title !== uniqueTitle) {
-      await showMessage(`Title exists. Using "${uniqueTitle}" instead`)
-      title = uniqueTitle
-    }
-    const folders = DataStore.folders // excludes Trash and Archive
-    if (folders.length > 0) {
-      const re = await CommandBar.showOptions(
-        folders,
-        'Select folder to add note in:',
-      )
-      currentFolder = folders[re.index]
-    } else {
-      // no Folders so go to root
-      currentFolder = '/'
-    }
-
-    if (title) {
-      // Create new note in the specific folder
-      const origFile = Editor.note.title || Editor.note.filename // Calendar notes have no title
-      // const origFileType = Editor.note.type //either "Notes" or "Calendar"
-
-      const filename = DataStore.newNote(title, currentFolder) ?? ''
-      const iblq = await CommandBar.showOptions(
-        ['Yes', 'No'],
-        'Insert link to new file where selection was?',
-      )
-      const insertBackLink = iblq.index === 0
-      if (Editor.replaceSelectionWithText) {
-        // for compatibility, make sure the function exists
-        if (insertBackLink) {
-          Editor.replaceSelectionWithText(`[[${title}]]`)
-        } else {
-          Editor.replaceSelectionWithText(``)
-        }
-      }
-      await Editor.openNoteByFilename(filename)
-      if (insertBackLink)
-        Editor.note.appendParagraph(`From [[${origFile}]]:`, 'empty')
-      Editor.note.appendParagraph(movedText, 'empty')
-    } else {
-      console.log('\tError: undefined or empty title')
-    }
-  } else {
-    showMessage('No text was selected. Nothing to do.', "OK, I'll try again!")
-  }
-  console.log('\nnewNoteFromSelection (finished)')
-}
-globalThis.newNoteFromSelection = newNoteFromSelection
