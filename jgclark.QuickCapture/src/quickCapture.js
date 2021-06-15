@@ -2,22 +2,21 @@
 // --------------------------------------------------------------------------------------------------------------------
 // QuickCapture plugin for NotePlan (was: TaskHelpers)
 // Jonathan Clark
-// v0.3.3, 21.5.2021
+// v0.4.0, 15.6.2021
 // --------------------------------------------------------------------------------------------------------------------
+
+import { displayTitle } from '../../np.statistics/src/statsHelpers'
+import { getDefaultConfiguration } from '../../nmn.Templates/src/configuration'
+import { showMessage } from '../../nmn.sweep/src/userInput'
 
 // Settings from NotePlan
 // var defaultFileExtension = (DataStore.defaultFileExtension != undefined) ? DataStore.defaultFileExtension : "md"
 // let defaultTodoMarker = (DataStore.preference('defaultTodoCharacter') !== undefined) ? DataStore.preference('defaultTodoCharacter') : '*'
 
-// Items that will come from the Preference framework in time:
-const pref_inboxFilename = 'inbox.md' // leave blank for daily note, or give relative filename (e.g. "Folder/Inbox.md")
-const pref_inboxTitle = '📥 Inbox'
-const pref_addInboxPosition = 'append' // or "prepend"
-
 // ------------------------------------------------------------------
 // Helper function, not called by a command
 // eslint-disable-next-line no-unused-vars
-function printNote(note) {
+function printNote(note: TNote) {
   if (note === undefined) {
     console.log('Note not found!')
     return
@@ -36,7 +35,7 @@ function printNote(note) {
 
 // ------------------------------------------------------------------
 // Prepends a task to a chosen note
-async function prependTaskToNote() {
+export async function prependTaskToNote() {
   const taskName = await CommandBar.showInput(
     'Type the task name',
     "Prepend '%@'...",
@@ -49,11 +48,10 @@ async function prependTaskToNote() {
   )
   notes[re.index].prependTodo(taskName)
 }
-globalThis.prependTaskToNote = prependTaskToNote
 
 // ------------------------------------------------------------------
 // Appends a task to a chosen note
-async function appendTaskToNote() {
+export async function appendTaskToNote() {
   const taskName = await CommandBar.showInput(
     'Type the task name',
     "Append '%@'...",
@@ -66,16 +64,15 @@ async function appendTaskToNote() {
   )
   notes[re.index].appendTodo(taskName)
 }
-globalThis.appendTaskToNote = appendTaskToNote
 
 // ------------------------------------------------------------------
 // This adds a task to a selected heading, based on EM's 'example25'.
 // Problem here is that duplicate headings are not respected.
-async function addTaskToNoteHeading() {
-  // Ask for the todo title
+export async function addTaskToNoteHeading() {
+  // Ask for the task title
   const todoTitle = await CommandBar.showInput('Type the task', "Add task '%@'")
 
-  // Then ask for the note we want to add the todo
+  // Then ask for the note we want to add the task
   const notes = projectNotesSortedByChanged()
   // CommandBar.showOptions only takes [string] as input
   const re = await CommandBar.showOptions(
@@ -84,7 +81,7 @@ async function addTaskToNoteHeading() {
   )
   const note = notes[re.index]
 
-  // Finally, ask to which heading to add the todo
+  // Finally, ask to which heading to add the task
   const headings = note.paragraphs.filter((p) => p.type === 'title')
   const re2 = await CommandBar.showOptions(
     headings.map((p) => p.prefix + p.content),
@@ -101,12 +98,11 @@ async function addTaskToNoteHeading() {
   // Add todo to the heading in the note (and add the heading if it doesn't exist)
   note.addTodoBelowHeadingTitle(todoTitle, heading.content, false, true)
 }
-globalThis.addTaskToNoteHeading = addTaskToNoteHeading
 
 // ------------------------------------------------------------------
-// This adds a note to a selected note's heading.
+// This adds general text to a selected note's heading.
 // Problem here is that duplicate headings are not respected.
-async function addTextToNoteHeading() {
+export async function addTextToNoteHeading() {
   // Ask for the note text
   const text = await CommandBar.showInput(
     'Type the text to add',
@@ -145,18 +141,68 @@ async function addTextToNoteHeading() {
     true,
   )
 }
-globalThis.addTextToNoteHeading = addTextToNoteHeading
+
+// ------------------------------------------------------------------
+// Quickly prepend a task to a daily note
+export async function prependTaskToDailyNote() {
+  // Ask for the task title
+  const todoTitle = await CommandBar.showInput('Type the task', "Add task '%@'")
+
+  // Then ask for the daily ote we want to add the todo
+  const notes = calendarNotesSortedByChanged()
+  const res = await CommandBar.showOptions(
+    notes.map((n) => displayTitle(n)).filter(Boolean),
+    'Select daily note for new todo',
+  )
+  const note = notes[res.index]
+  
+  console.log(`Prepending task: ${todoTitle} to ${displayTitle(note)}`)
+  note.prependTodo(todoTitle)
+}
+
+// ------------------------------------------------------------------
+// Quickly append a task to a daily note
+export async function appendTaskToDailyNote() {
+  // Ask for the task title
+  const todoTitle = await CommandBar.showInput('Type the task', "Add task '%@'")
+
+  // Then ask for the daily ote we want to add the todo
+  const notes = calendarNotesSortedByChanged()
+  const res = await CommandBar.showOptions(
+    notes.map((n) => displayTitle(n)).filter(Boolean),
+    'Select daily note for new todo',
+  )
+  const note = notes[res.index]
+
+  console.log(`Appending task: ${todoTitle} to ${displayTitle(note)}`)
+  note.appendTodo(todoTitle)
+}
 
 // ------------------------------------------------------------------
 // This adds a task to a special 'inbox' note. Possible configuration:
 // - append or prepend to the inbox note (default: append)
 // - add to today's daily note (default) or to a particular named note
-async function addTaskToInbox() {
-  let newFilename = null
-  let inboxNote = null
+export async function addTaskToInbox() {
 
-  console.log(`addTaskToInbox: ${pref_inboxFilename}`)
+  // Get config settings from Template folder _configuration note
+  const config = (await getDefaultConfiguration()) ?? {}
+  const inboxConfig = config.inbox ?? null
+  if (inboxConfig == null) {
+    console.log("\tWarning: Cannot find 'inbox' settings in Templates/_configuration note. Stopping.")
+    await showMessage("Cannot find 'inbox' settings in Templates/_configuration note")
+    return
+  }
+
+  // Read settings from _configuration note
+  const pref_inboxFilename = inboxConfig.inboxFilename ?? ""
+  const pref_inboxTitle = inboxConfig.inboxTitle ?? "📥 Inbox"
+  const pref_addInboxPosition = inboxConfig.addInboxPosition ?? "append"
+
+  // Get or setup the inbox note
+  let newFilename: string
+  let inboxNote: TNote
   if (pref_inboxFilename !== '') {
+    console.log(`addTaskToInbox: ${pref_inboxFilename}`)
     inboxNote = DataStore.projectNoteByFilename(pref_inboxFilename)
     // Create the inbox note if not existing, ask the user which folder
     if (inboxNote == null) {
@@ -171,7 +217,7 @@ async function addTaskToInbox() {
     }
   }
 
-  // Ask for the todo title
+  // Ask for the task title
   const todoTitle = await CommandBar.showInput(
     'Type the task to add to your Inbox note',
     "Add task '%@'",
@@ -180,7 +226,7 @@ async function addTaskToInbox() {
   // Re-fetch the note if we created it previously. We need to wait a bit so it's cached, that's why we query it after the task input.
   if (newFilename != null) {
     inboxNote = DataStore.projectNoteByFilename(newFilename)
-    console.log('  got new inbox note')
+    console.log('\tgot new inbox note')
   }
 
   // Get the relevant note from the Datastore
@@ -190,15 +236,20 @@ async function addTaskToInbox() {
     } else {
       inboxNote.prependTodo(todoTitle)
     }
-    console.log(`  Added todo to Inbox note '${inboxNote.filename}'`)
+    console.log(`\tAdded todo to Inbox note '${inboxNote.filename}'`)
   } else {
-    console.log(`  ERROR: Couldn't find Inbox note '${pref_inboxFilename}'`)
+    console.log(`\tERROR: Couldn't find Inbox note '${pref_inboxFilename}'`)
   }
 }
-globalThis.addTaskToInbox = addTaskToInbox
 
-function projectNotesSortedByChanged() {
+function calendarNotesSortedByChanged(): Array<TNote> {
+  return DataStore.calendarNotes
+    .slice()
+    .sort((first, second) => second.changedDate - first.changedDate)
+}
+
+function projectNotesSortedByChanged(): Array<TNote> {
   return DataStore.projectNotes
     .slice()
-    .sort((first, second) => first.changedDate - second.changedDate)
+    .sort((first, second) => second.changedDate - first.changedDate)
 }
