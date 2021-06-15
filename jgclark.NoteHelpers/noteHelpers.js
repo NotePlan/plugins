@@ -1,4 +1,4 @@
-// @flow
+// @ flow
 //--------------------------------------------------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
@@ -201,6 +201,28 @@ function setTitleFromYAML() {
 }
 globalThis.setTitleFromYAML = setTitleFromYAML
 
+// Start Testing/debugging here
+async function noteOpener(fullPath, desc, useProjNoteByFilename = true) {
+  console.log(
+    `\tAbout to open filename: "${fullPath}" (${desc}) using ${
+      useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename'
+    }`,
+  )
+  const newNote = (await useProjNoteByFilename)
+    ? DataStore.projectNoteByFilename(fullPath)
+    : DataStore.noteByFilename(fullPath, 'Notes')
+  if (newNote) {
+    console.log(`\t\tWorked! ${fullPath} (${desc} version) `)
+  } else {
+    console.log(
+      `\t\tDidn't work! ${
+        useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename'
+      } returned ${newNote}`,
+    )
+  }
+  return newNote
+}
+
 //------------------------------------------------------------------
 // @dwertheimer based on @jgclark's newNote
 // Create new note from currently selected text
@@ -265,83 +287,23 @@ async function newNoteFromSelection() {
       const filename = (await DataStore.newNote(title, currentFolder)) ?? ''
       console.log(`\tnewNote returned Filename:${filename}`)
 
-      // Start Testing/debugging here
-      const noteOpener = async function (
-        fullPath,
-        desc,
-        useProjNoteByFilename = true,
-      ) {
-        console.log(
-          `\tAbout to open filename: "${fullPath}" (${desc}) using ${
-            useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename'
-          }`,
-        )
-        const newNote = (await useProjNoteByFilename)
-          ? DataStore.projectNoteByFilename(fullPath)
-          : DataStore.noteByFilename(fullPath, 'Notes')
-        if (newNote) {
-          console.log(`\t\tWorked! ${fullPath} (${desc} version) `)
-        } else {
-          console.log(
-            `\t\tDidn't work! ${
-              useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename'
-            } returned ${newNote}`,
-          )
-        }
-        return newNote
-      }
-      let fullPath = `${
-        currentFolder !== '/' ? currentFolder + '/' : ''
+      const fullPath = `${
+        currentFolder !== '/' ? `${currentFolder}/` : ''
       }${filename}`
 
-      let newNote = await noteOpener(fullPath, 'no leading slash')
-      if (!newNote) {
-        fullPath = `${
-          currentFolder !== '/' ? '/' + currentFolder + '/' : ''
-        }${filename}`
-        newNote = await noteOpener(fullPath, 'with leading slash')
-      }
-      if (!newNote) {
-        newNote = await noteOpener(
-          `${currentFolder}/${filename}`,
-          'Jonathan way',
-        )
-      }
-      if (!newNote) {
-        newNote = await noteOpener(
-          `${filename}`,
-          'no folder path, filename only',
-        )
-      }
-      if (!newNote) {
-        newNote = await noteOpener(
-          `${currentFolder !== '/' ? currentFolder + '/' : ''}${filename}`,
-          'using noteByFilename Instead',
-          false,
-        )
-      }
-      if (!newNote) {
-        newNote = await noteOpener(
-          `${
-            currentFolder !== '/' ? '/' + currentFolder + '/' : ''
-          }${filename}`,
-          'using noteByFilename Instead, leading slash',
-          false,
-        )
-      }
-      // let newNote = await DataStore.projectNoteByFilename(fullPath)
+      // This question needs to be here after newNote and before noteOpener
+      // to force a cache refresh after newNote. This API bug will eventually be fixed.
+      const iblq = await CommandBar.showOptions(
+        ['Yes', 'No'],
+        'Insert link to new file where selection was?',
+      )
 
-      if (!newNote) {
-      }
+      const newNote = await noteOpener(fullPath, 'no leading slash')
 
       if (newNote) {
         console.log(`\tnewNote=${newNote}\n\t${newNote.title}`)
         console.log(`\tcontent=${newNote.content}`)
 
-        const iblq = await CommandBar.showOptions(
-          ['Yes', 'No'],
-          'Insert link to new file where selection was?',
-        )
         const insertBackLink = iblq.index === 0
         if (Editor.replaceSelectionWithText) {
           // for compatibility, make sure the function exists
@@ -351,18 +313,19 @@ async function newNoteFromSelection() {
             Editor.replaceSelectionWithText(``)
           }
         }
-        if (insertBackLink) {
-          newNote.appendParagraph(`From [[${origFile}]]:`, 'text')
-        }
+
         newNote.appendParagraph(movedText, 'empty')
+        if (insertBackLink) {
+          newNote.appendParagraph(`^^^ Moved from [[${origFile}]]:`, 'text')
+        }
         if (
           (await showMessageYesNo('New Note created. Open it now?')) === 'Yes'
         ) {
-          await Editor.openNoteByFilename(filename)
+          await Editor.openNoteByFilename(fullPath)
         }
       } else {
-        console.log(`\Could not open file: "${fullPath}"`)
-        showMessage(`Could not open file ${fullPath}`)
+        console.log(`\tCould not open file: "${fullPath}"`)
+        showMessage(`\tCould not open file ${fullPath}`)
       }
     } else {
       console.log('\tError: undefined or empty title')
