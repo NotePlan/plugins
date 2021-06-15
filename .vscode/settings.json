@@ -1,5 +1,0 @@
-{
-    "typescript.validate.enable": false,
-    "typescript.suggest.includeAutomaticOptionalChainCompletions": false,
-    "javascript.validate.enable": false
-}
