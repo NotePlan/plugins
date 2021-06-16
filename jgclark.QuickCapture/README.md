@@ -19,7 +19,7 @@ In the `Templates/_configuration` note, include the following settings you want 
 	...
 	inbox: {
 		inboxFilename: "📥 Inbox.md", // leave blank to use today's daily note, or give relative filename (e.g. "Folder/Inbox.md", ignoring the starting '/')
-		pref_inboxTitle: "📥 Inbox", // or whatever you want to call it
+		inboxTitle: "📥 Inbox", // or whatever you want to call it
 		addInboxPosition: "prepend"  // or "append"
 	},
 ```
