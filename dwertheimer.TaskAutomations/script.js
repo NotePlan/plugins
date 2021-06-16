@@ -323,7 +323,9 @@ var exports = (function (exports) {
   const HASHTAGS = /\B#([a-zA-Z0-9]+\b)/g;
   const MENTIONS = /\B@([a-zA-Z0-9]+\b)/g;
   const EXCLAMATIONS = /\B(!+\B)/g;
-  const PARENS_PRIORITY = /^\s*(\([a-zA-z]\))\B/g; // must be at start of content
+  const PARENS_PRIORITY = /^\s*\(([a-zA-z])\)\B/g; // must be at start of content
+
+  const TASK_TYPES = ['open', 'scheduled', 'done', 'cancelled'];
 
   function getElementsFromTask(content, reSearch) {
     const found = [];
@@ -338,6 +340,74 @@ var exports = (function (exports) {
     return found;
   }
   /*
+   * Get numeric priority level based on !!! or (B)
+   */
+
+
+  function getNumericPriority(item) {
+    let prio = -1;
+
+    if (item.exclamations[0]) {
+      prio = item.exclamations[0].length;
+    } else if (item.parensPriority[0]) {
+      prio = item.parensPriority[0].charCodeAt(0) - 'A'.charCodeAt(0) + 1;
+    } else {
+      prio = -1;
+    }
+
+    return prio;
+  } // is value an array? if so, return its first value in lowercase for sorting
+
+
+  const ia = val => {
+    const retVal = Array.isArray(val) ? val[0] : val;
+    return typeof retVal === 'string' ? retVal.toLowerCase() : retVal;
+  };
+  /*
+   * Multi-key sorting
+   * @param field list - property array
+   * @example const sortedHomes = homes.sort(fieldSorter(['state', '-price'])); //the - in front of name is DESC
+   */
+
+
+  const fieldSorter = fields => (a, b) => fields.map(o => {
+    let dir = 1;
+
+    if (o[0] === '-') {
+      dir = -1;
+      o = o.substring(1);
+    } // if item is undefined, it loses immediately before compare (dbw)
+
+
+    console.log(`a=${a[o]}, b=${b[o]}`); // if (ia(a[o]) === undefined)
+    //   console.log(`a[o] is undefined; lose to ${b[o]}`)
+    // if (ia(b[o]) === undefined)
+    //   console.log(`b[o] is undefined; lose to ${a[o]}`)
+
+    if (ia(a[o]) === undefined) return dir;
+    if (ia(b[o]) === undefined) return -dir; // console.log(
+    //   `${ia(a[o])} ${
+    //     ia(a[o]) > ia(b[o]) ? ' > ' : ia(a[o]) < ia(b[o]) ? ' < ' : ' == '
+    //   } ${ia(b[o])}`,
+    // )
+
+    return ia(a[o]) > ia(b[o]) ? dir : ia(a[o]) < ia(b[o]) ? -dir : 0;
+  }).reduce((p, n) => p ? p : n, 0);
+  /*
+   * @param array of task items
+   * @param pass in field names to sort by -- either a single string or an array of strings/sort-order
+   * @return the sorted task list
+   */
+
+
+  function sortListBy(list, fields) {
+    const sortBy = typeof fields === 'string' ? [fields] : fields;
+    list.sort(fieldSorter(sortBy)); // console.log('** LIST AFTER fieldSorter SORT:')
+    // console.log(JSON.stringify(list))
+
+    return list; // return list.sort(fieldSorterOptimized(sortBy))
+  } // Note: nmn.sweep limits how far back you look with: && hyphenatedDateString(p.date) >= afterHyphenatedDate,
+  /*
    * @param Paragraphs array
    * @return tasks object of tasks by type {'open':[], 'scheduled'[], 'done':[], 'cancelled':[]}
    */
@@ -345,19 +415,18 @@ var exports = (function (exports) {
   function getTasksByType(paragraphs) {
     const tasks = {}; // * @type {"open", "done", "scheduled", "cancelled", "title", "quote", "list" (= bullet), "empty" (no content) or "text" (= plain text)}
 
-    const taskTypes = ['open', 'scheduled', 'done', 'cancelled'];
-    taskTypes.forEach(t => tasks[t] = []);
+    TASK_TYPES.forEach(t => tasks[t] = []);
     paragraphs.forEach((para, index) => {
-      if (taskTypes.indexOf(para.type) >= 0) {
+      if (TASK_TYPES.indexOf(para.type) >= 0) {
         const content = para.content;
-        console.log(`\t${index}: ${para.type}: ${para.content}`);
+        console.log(`${index}: ${para.type}: ${para.content}`);
 
         try {
           const hashtags = getElementsFromTask(content, HASHTAGS);
           const mentions = getElementsFromTask(content, MENTIONS);
           const exclamations = getElementsFromTask(content, EXCLAMATIONS);
           const parensPriority = getElementsFromTask(content, PARENS_PRIORITY);
-          tasks[para.type].push({
+          const task = {
             content: para.content,
             index,
             raw: para.rawContent,
@@ -365,33 +434,83 @@ var exports = (function (exports) {
             mentions,
             exclamations,
             parensPriority
-          });
+          };
+          task.priority = getNumericPriority(task);
+          tasks[para.type].push(task);
         } catch (error) {
           console.log(error, para.content, index);
         }
       }
     });
-    console.log(`\t${JSON.stringify(tasks)}`);
+    console.log(`Tasks:${tasks.open.length} returning from getTasksByType`);
     return tasks;
   }
 
-  // Type checking reference: https://flow.org/
+  /* eslint-disable no-unused-vars */
+  const SORT_ORDERS = [{
+    sortFields: ['priority'],
+    name: 'Priority (!!! and (A))'
+  }, {
+    sortFields: ['mentions', 'priority'],
+    name: 'By first @Person in task, then by priority'
+  }, {
+    sortFields: ['hashtags', 'priority'],
+    name: 'By first #tag in task, then by priority'
+  }];
+  /*
+   *  sortOrder can be an array-order of:
+   *        content,
+   *        priority,
+   *        index,
+   *        raw,
+   *        hashtags,
+   *        mentions,
+   *        exclamations,
+   *        parensPriority,
+   *  any item can be in DESC order by placing a minus in front, e.g. "-priority"
+   */
 
-  async function sortTasksInNote(note) {
+  function sortTasksInNote(note, sortOrder = ['priority']) {
+    const sortedList = {};
+
     if (note) {
       const paragraphs = note.paragraphs;
       console.log(`\t${paragraphs.length} total lines in note`);
 
       if (paragraphs.length) {
-        getTasksByType(paragraphs);
+        const taskList = getTasksByType(paragraphs);
+        console.log(`Open Tasks:${taskList.open.length}`);
+        TASK_TYPES.forEach(ty => {
+          sortedList[ty] = sortListBy(taskList[ty], sortOrder); // sortedList[ty] = sortListBy(taskList[ty], ['hashtags'])
+          // sortedList[ty] = sortListBy(taskList[ty], ['mentions'])
+          // sortedList[ty] = sortListBy(taskList[ty], ['priority'])
+        });
+        console.log(`After Sort - Open Tasks:${sortedList.open.length}`);
       }
+    } else {
+      console.log(`sorttasksInNote: no note to sort`);
     }
+
+    console.log(JSON.stringify(sortedList));
+    return sortedList;
+  }
+
+  async function getUserSort(sortChoices = SORT_ORDERS) {
+    // [String] list of options, placeholder text, callback function with selection/
+    const choice = await CommandBar.showOptions(sortChoices.map(a => a.name), `Select sort order:`);
+    return sortChoices[choice.index].sortFields;
   }
 
   async function sortTasks() {
     console.log('\nStarting sortTasks():');
-    sortTasksInNote(Editor.note);
-    console.log('Finished sortTasks():');
+    const sortOrder = await getUserSort();
+    const tasks = sortTasksInNote(Editor.note, sortOrder);
+    console.log(`\t${JSON.stringify(tasks)}`);
+    console.log(`.OPEN Tasks: Priority | Content (sorted by ${JSON.stringify(sortOrder)})`);
+    tasks.open.forEach(t => {
+      console.log(`${t.priority}: # ${t.hashtags} || @ ${t.mentions} || ${t.content} `);
+    });
+    console.log('Finished sortTasks()!');
   }
 
   exports.sortTasks = sortTasks;
