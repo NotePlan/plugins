@@ -89,6 +89,31 @@ type TEditor = {
    * Get the selected text.
    */
   +selectedText: ?string,
+
+  /**
+   * Inserts the given text at the given character position (index)
+   * @param text 	  - Text to insert
+   * @param index   - Position to insert at (you can get this using 'renderedSelection' for example)
+   */
+  insertTextAtCharacterIndex(text: string, index: number): void,
+
+  /**
+   * Inserts the given text at the current cursor position
+   * @param text - Text to insert
+   */
+  insertTextAtCursor(text: string): void,
+  /**
+   * Inserts a plain paragrah before the selected paragraph (or the paragraph the cursor is currently positioned)
+   * @param name - Text of the paragraph
+   * @param type - note type
+   * @param indents - How much it should be indented
+   */
+  insertParagraphAtCursor(name: string, type: NoteType, indents: number): void,
+  /**
+   * Replaces the current cursor selection with the given text
+   * @param text - Text to insert
+   */
+  replaceSelectionWithText(text: string): void,
   /**
    * Opens a note using the given filename
    */
@@ -241,17 +266,17 @@ type TDataStore = {
    */
   calendarNoteByDateString(filename: string): ?TNote,
   /**
-   * Returns all regular notes with the given title (first line in editor). 
-   * Since multiple notes can have the same title, an array is returned. 
-   * Use 'caseSensitive' (default = false) to search for a note ignoring 
-   * the case and set 'searchAllFolders' to true if you want to look for 
-   * notes in trash and archive as well. 
+   * Returns all regular notes with the given title (first line in editor).
+   * Since multiple notes can have the same title, an array is returned.
+   * Use 'caseSensitive' (default = false) to search for a note ignoring
+   * the case and set 'searchAllFolders' to true if you want to look for
+   * notes in trash and archive as well.
    * By default NotePlan won't return notes in trash and archive.
    */
   projectNoteByTitle(
     title: string,
     caseInsensitive: boolean,
-    searchAllFolders: boolean,
+    searchAllFolders?: boolean,
   ): ?$ReadOnlyArray<TNote>,
   /**
    * Returns all regular notes with the given case insenstivie title
@@ -879,6 +904,24 @@ type TParagaraphBridge = {
    * @param {ParagraphObject} paragraph - Paragraph object to update, get it from `.paragraphs`
    */
   updateParagraph(paragraph: TParagraph): void,
+
+  /**
+   * Updates an array paragraphs. Get the paragraphs, then modify them and update the text in the note or editor using this method.
+   * @param paragraphs - Paragraph objects to update, get it from `.paragraphs`
+   */
+  updateParagraphs(paragraphs: $ReadOnlyArray<TParagraph>): void,
+
+  /**
+   * Replaces the text at the given range with the given text
+   * @param text - Text to insert
+   * @param location - Position to insert at (you can get this using 'renderedSelection' for example)
+   * @param length - Amount of characters to replace from the location
+   */
+  replaceTextInCharacterRange(
+    text: string,
+    location: number,
+    length: number,
+  ): void,
 }
 
 // This is the built-in `fetch` function from Javascript.
