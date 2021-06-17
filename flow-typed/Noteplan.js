@@ -726,6 +726,7 @@ type ParagraphType =
   | 'quote'
   | 'list'
   | 'empty'
+  | 'text'
 
 declare var ParagaraphBridge: TParagaraphBridge
 type TParagaraphBridge = {
