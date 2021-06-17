@@ -55,7 +55,7 @@ const fieldSorter = (fields) => (a, b) =>
         o = o.substring(1)
       }
       // if item is undefined, it loses immediately before compare (dbw)
-      console.log(`a=${a[o]}, b=${b[o]}`)
+      // console.log(`a=${a[o]}, b=${b[o]}`)
       // if (ia(a[o]) === undefined)
       //   console.log(`a[o] is undefined; lose to ${b[o]}`)
       // if (ia(b[o]) === undefined)

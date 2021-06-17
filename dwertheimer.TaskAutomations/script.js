@@ -319,6 +319,27 @@ var exports = (function (exports) {
 
   globalThis.newNoteFromSelection = newNoteFromSelection;
 
+  // File from nmn.sweep
+  // edited by dbw to add functions
+  function getYearMonthDate(dateObj = new Date()) {
+    const year = dateObj.getFullYear();
+    const month = dateObj.getMonth() + 1;
+    const date = dateObj.getDate();
+    return {
+      year,
+      month,
+      date
+    };
+  }
+  function hyphenatedDateString(dateObj) {
+    const {
+      year,
+      month,
+      date
+    } = getYearMonthDate(dateObj);
+    return `${year}-${month < 10 ? '0' : ''}${month}-${date < 10 ? '0' : ''}${date}`;
+  }
+
   /* eslint-disable max-len */
   const HASHTAGS = /\B#([a-zA-Z0-9]+\b)/g;
   const MENTIONS = /\B@([a-zA-Z0-9]+\b)/g;
@@ -377,12 +398,12 @@ var exports = (function (exports) {
       dir = -1;
       o = o.substring(1);
     } // if item is undefined, it loses immediately before compare (dbw)
-
-
-    console.log(`a=${a[o]}, b=${b[o]}`); // if (ia(a[o]) === undefined)
+    // console.log(`a=${a[o]}, b=${b[o]}`)
+    // if (ia(a[o]) === undefined)
     //   console.log(`a[o] is undefined; lose to ${b[o]}`)
     // if (ia(b[o]) === undefined)
     //   console.log(`b[o] is undefined; lose to ${a[o]}`)
+
 
     if (ia(a[o]) === undefined) return dir;
     if (ia(b[o]) === undefined) return -dir; // console.log(
@@ -448,16 +469,40 @@ var exports = (function (exports) {
 
   /* eslint-disable no-unused-vars */
   const SORT_ORDERS = [{
-    sortFields: ['priority'],
+    sortFields: ['-priority', 'content'],
     name: 'Priority (!!! and (A))'
   }, {
-    sortFields: ['mentions', 'priority'],
+    sortFields: ['mentions', '-priority', 'content'],
     name: 'By first @Person in task, then by priority'
   }, {
-    sortFields: ['hashtags', 'priority'],
+    sortFields: ['hashtags', '-priority', 'content'],
     name: 'By first #tag in task, then by priority'
   }];
-  /*
+  /**
+   *
+   * @param {*} todos
+   * @param {*} heading
+   * @returns {int} next line number
+   */
+
+  function insertTodos(note, todos, heading = null, separator = '') {
+    // THIS VERSION IS SUPER SLOW. I THINK INSERTTODO IS SLOW...
+    // let currentLine = startingLine ? startingLine : heading ? 1 : 2
+    // if (heading) {
+    //   Editor.insertParagraph(heading, 1, 'text')
+    //   currentLine++
+    // }
+    // for (let i = todos.length - 1; i >= 0; i--) {
+    //   Editor.insertTodo(todos[i].content, currentLine++)
+    // }
+    // return currentLine
+    const headingStr = heading ? `${heading}\n` : '';
+    const contentStr = todos.map(t => t.raw).join(`\n`);
+    note.insertParagraph(`${headingStr}${contentStr}${separator ? `\n${separator}` : ''}`, 1, 'text');
+  }
+  /**
+   *  @param {TNote} the note
+   *  @param {array} sort fields order
    *  sortOrder can be an array-order of:
    *        content,
    *        priority,
@@ -468,7 +513,9 @@ var exports = (function (exports) {
    *        exclamations,
    *        parensPriority,
    *  any item can be in DESC order by placing a minus in front, e.g. "-priority"
+   *  @returns the a sorted list of the tasks from the note
    */
+
 
   function sortTasksInNote(note, sortOrder = ['priority']) {
     const sortedList = {};
@@ -482,16 +529,14 @@ var exports = (function (exports) {
         console.log(`Open Tasks:${taskList.open.length}`);
         TASK_TYPES.forEach(ty => {
           sortedList[ty] = sortListBy(taskList[ty], sortOrder); // sortedList[ty] = sortListBy(taskList[ty], ['hashtags'])
-          // sortedList[ty] = sortListBy(taskList[ty], ['mentions'])
-          // sortedList[ty] = sortListBy(taskList[ty], ['priority'])
         });
         console.log(`After Sort - Open Tasks:${sortedList.open.length}`);
       }
     } else {
       console.log(`sorttasksInNote: no note to sort`);
-    }
+    } // console.log(JSON.stringify(sortedList))
 
-    console.log(JSON.stringify(sortedList));
+
     return sortedList;
   }
 
@@ -501,18 +546,89 @@ var exports = (function (exports) {
     return sortChoices[choice.index].sortFields;
   }
 
+  function findRawParagraph(note, content) {
+    const found = note.paragraphs.filter(p => p.rawContent === content);
+
+    if (found && found.length > 1) {
+      console.log(`Found ${found.length} occurrences for "${content}". Deleting the first.`);
+    }
+
+    return found[0];
+  }
+
+  function deleteExistingTasks(note, tasks) {
+    TASK_TYPES.forEach(typ => {
+      console.log(`Deleting ${tasks[typ].length} ${typ} tasks from note`); // Have to find all the paragraphs again
+
+      Editor.note.removeParagraphs(tasks[typ].map(t => findRawParagraph(note, t.raw)));
+    }); //   tasks[typ]
+    //     .slice()
+    //     .reverse()
+    //     .forEach((t) => Editor.removeParagraphAtIndex(t.index))
+    // })
+    //  removeParagraphAtIndex(lineIndex: number): void,
+  }
+
+  function writeOutTasks(note, tasks, drawSeparators = true) {
+    // tasks.forEach((cat) => {})
+    const headings = {
+      open: 'Open Tasks',
+      scheduled: 'Scheduled Tasks',
+      done: 'Completed Tasks',
+      cancelled: 'Cancelled Tasks'
+    };
+    TASK_TYPES.slice().reverse().forEach(ty => {
+      if (tasks[ty].length) {
+        insertTodos(note, tasks[ty], `### ${headings[ty]}:`, '');
+      }
+    });
+  }
+
   async function sortTasks() {
     console.log('\nStarting sortTasks():');
     const sortOrder = await getUserSort();
-    const tasks = sortTasksInNote(Editor.note, sortOrder);
-    console.log(`\t${JSON.stringify(tasks)}`);
-    console.log(`.OPEN Tasks: Priority | Content (sorted by ${JSON.stringify(sortOrder)})`);
-    tasks.open.forEach(t => {
-      console.log(`${t.priority}: # ${t.hashtags} || @ ${t.mentions} || ${t.content} `);
-    });
+    const sortedTasks = sortTasksInNote(Editor.note, sortOrder); // console.log(`\t${JSON.stringify(tasks)}`)
+    // console.log(
+    //   `.OPEN Tasks: Priority | Content (sorted by ${JSON.stringify(sortOrder)})`,
+    // )
+    // tasks.open.forEach((t) => {
+    //   console.log(
+    //     `${t.priority}: # ${t.hashtags} || @ ${t.mentions} || ${t.content} `,
+    //   )
+    // })
+
+    deleteExistingTasks(Editor.note, sortedTasks); // need to do this before adding new lines to preserve line numbers
+
+    writeOutTasks(Editor.note, sortedTasks);
     console.log('Finished sortTasks()!');
   }
 
+  const nowISO = () => new Date().toISOString();
+
+  const dateTime = () => {
+    const today = new Date();
+    const date = hyphenatedDateString;
+    const time = `${today.getHours()}:${today.getMinutes()}:${today.getSeconds()}`;
+    return `${date} ${time}`;
+  };
+
+  function insertDate() {
+    Editor.insertTextAtCursor(hyphenatedDateString());
+  }
+  function insertISODate() {
+    Editor.insertTextAtCursor(nowISO());
+  }
+  function insertDateTime() {
+    Editor.insertTextAtCursor(dateTime());
+  }
+  function insertCalendarNoteLink() {
+    Editor.insertTextAtCursor(`[[${hyphenatedDateString()}]]`);
+  }
+
+  exports.insertCalendarNoteLink = insertCalendarNoteLink;
+  exports.insertDate = insertDate;
+  exports.insertDateTime = insertDateTime;
+  exports.insertISODate = insertISODate;
   exports.sortTasks = sortTasks;
 
   Object.defineProperty(exports, '__esModule', { value: true });

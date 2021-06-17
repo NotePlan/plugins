@@ -1,6 +1,7 @@
 // @flow
 // File from nmn.sweep
-export function getYearMonthDate(dateObj: Date): $ReadOnly<{
+// edited by dbw to add functions
+export function getYearMonthDate(dateObj: Date = new Date()): $ReadOnly<{
   year: number,
   month: number,
   date: number,

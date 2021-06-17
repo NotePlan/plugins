@@ -12,6 +12,25 @@
       "name": "ts", 
       "description": "Sort tasks on the page (e.g. after a sweep)", 
       "jsFunction": "sortTasks"
-    }
-  ]
+    },
+    {
+      "name": "ldn", 
+      "description": "Link to today's Calendar Note", 
+      "jsFunction": "insertCalendarNoteLink"
+    },
+    {
+      "name": "date", 
+      "description": "Insert date (without time) at cursor", 
+      "jsFunction": "insertDate"
+    },    
+    {
+      "name": "time", 
+      "description": "Insert date+time (in ISO format) at cursor", 
+      "jsFunction": "insertISODate"
+    },
+  {
+      "name": "now", 
+      "description": "Insert (human readable) date+time at cursor", 
+      "jsFunction": "insertDateTime"
+    }  ]
 }
