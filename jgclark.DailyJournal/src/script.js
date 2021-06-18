@@ -171,6 +171,3 @@ export async function dayReview() {
     true,
   )
 }
-
-// globalThis.dayStart = dayStart
-// globalThis.dayReview = dayReview

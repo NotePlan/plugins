@@ -6,7 +6,7 @@
   "plugin.icon": "f120",
   "plugin.author": "Naman Goel",
   "plugin.repoUrl": "tbd",
-  "plugin.version": "0.0.1",
+  "plugin.version": "0.1.0",
   "plugin.dependencies": [ ],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -14,7 +14,7 @@
     {
       "name": "it",
       "description": "Choose a Template to apply to an existing Note",
-      "jsFunction": "addTemplate"
+      "jsFunction": "applyTemplate"
     },
     {
       "name": "nn",
