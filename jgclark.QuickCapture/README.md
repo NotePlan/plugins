@@ -14,8 +14,8 @@ This plugin provides commands to quickly add tasks/todos or general text to Note
 
 In the `Templates/_configuration` note, include the following settings you want in the note's first configuration block. For example:
 
-```
-\`\`\`javascript
+`
+```javascript
 	...
 	inbox: {
 		inboxFilename: "📥 Inbox.md", // leave blank to use today's daily note, or give relative filename (e.g. "Folder/Inbox.md", ignoring the starting '/')
@@ -23,8 +23,8 @@ In the `Templates/_configuration` note, include the following settings you want 
 		addInboxPosition: "prepend",  // or "append"
 	},
 	...
-\`\`\`
 ```
+`
 (This example fragment is in JSON5 format, but you can also use TOML or YAML formats: see the help text in `_configuration` note. Ensure there are commas at the end of all that lines that need them.)
 
 ## History
