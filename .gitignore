@@ -5,4 +5,4 @@ dist/
 */ts-template/*.*
 package-lock.json
 .pluginpath
-package-lock.json
+*/.eslintrc

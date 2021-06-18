@@ -123,7 +123,7 @@ export function rangeToString(r: DateRange): string {
 // return title of note useful for display, even for calendar notes (the YYYYMMDD)
 export function displayTitle(n: TNote): string {
   if (n.type === 'Calendar') {
-    return unhyphenatedDate(n.date)
+    return hyphenatedDate(n.date)
   } else {
     return n.title ?? ''
   }
