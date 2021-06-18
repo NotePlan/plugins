@@ -9332,6 +9332,19 @@ The first code-block within the note will always be used. So edit the default co
     timeStyle: 'short',
   },
 
+  // configuration for weather data
+  weather: {
+    // API key for https://openweathermap.org/
+    // !!REQUIRED!!
+    openWeatherAPIKey: '... put your API key here ...',
+    // Default location for weather forcast
+    latPosition: 0.0,
+    longPosition: 0.0,
+    // Default units. Can be 'metric' (for Celsius), or 'metric' (for Fahrenheit)
+    openWeatherUnits: 'metric',
+    // When using a weather tag, you can customize these options.
+  },
+
   // default values for custom tags.
   // These tags cannot be functions, but you may choose to have nested objects.
   // feel free to edit this value however you see fit.
@@ -9364,6 +9377,18 @@ date:
   # can be null (to skip time), "short", "medium", "long" or "full"
   timeStyle: short
 
+# configuration for weather data lookups, if wanted
+weather:
+  # API key for https://openweathermap.org/
+  # !!REQUIRED!!
+  openWeatherAPIKey: <put your API key here>
+  # Default location for weather forcast
+  latPosition: 0.0
+  longPosition: 0.0
+  # Default units. Can be 'metric' (for Celsius), or 'metric' (for Fahrenheit)
+  openWeatherUnits: metric
+  # When using a weather tag, you can customize these options.
+
 # default values for custom tags.
 # These tags cannot be functions, but you may choose to have nested objects.
 # feel free to edit this value however you see fit.
@@ -9392,6 +9417,18 @@ dateStyle = "short"
 # can be null (to skip time), "short", "medium", "long" or "full"
 timeStyle = "short"
 
+// configuration for weather data
+[weather]
+// API key for https://openweathermap.org/
+# !!REQUIRED!!
+openWeatherAPIKey = <put your API key here>
+# Default location for weather forcast
+latPosition = 0.0
+longPosition = 0.0
+# Default units. Can be 'metric' (for Celsius), or 'metric' (for Fahrenheit)
+openWeatherUnits = 'metric'
+# When using a weather tag, you can customize these options.
+
 # default values for custom tags.
 [tagValue]
 # These tags cannot be functions, but you may choose to have nested objects.
@@ -9404,24 +9441,6 @@ firstName = "John"
 lastName = "Doe"
 \`\`\`
 `;
-  /**
-   * 
-   * The following should be added to the default configuration
-   * once the weather function works.
-   * 
-   // configuration for weather data
-    weather: {
-      // API key for https://openweathermap.org/
-      // !!REQUIRED!!
-      apiKey: '... put your API key here ...',
-      // Default location for weather forcast
-      lattitude: 0,
-      longitude: 0,
-      // Default temperature unit. Can be "C" (Celcius), "K" (Kelvin) or "F" (Fahrenheit)
-      unit: 'C',
-      // When using a weather tag, you can customize these options.
-    },
-  */
 
   const ALLOWED_FORMATS = ['javascript', 'json', 'json5', 'yaml', 'toml', 'ini'];
   const FORMAT_MAP = {
@@ -9545,14 +9564,11 @@ lastName = "Doe"
     const pref_openWeatherAPIKey = weatherConfig.openWeatherAPIKey;
     const pref_latPosition = weatherConfig.latPosition;
     const pref_longPosition = weatherConfig.longPosition;
-    const pref_openWeatherUnits = weatherConfig.openWeatherUnits; // TODO: probably getDefaultConfiguration rather than parseJSON5 ?
-
+    const pref_openWeatherUnits = weatherConfig.openWeatherUnits;
     console.log(`getWeatherSummary: Params: '${weatherParams}'`);
-    const paramConfig = weatherParams.trim() ? await parseJSON5(weatherParams) : {};
-    console.log(paramConfig);
-    const getWeatherURL = `https://api.openweathermap.org/data/2.5/onecall?lat=${pref_latPosition}&lon=${pref_longPosition}&exclude=current,hourly,minutely&units=${pref_openWeatherUnits}&appid=${pref_openWeatherAPIKey}`; // TODO: Allow for more customisation of what is pulled out from the API's data structure
-    // using weatherParams
+    weatherParams.trim() ? await parseJSON5(weatherParams) : {}; // console.log(paramConfig)
 
+    const getWeatherURL = `https://api.openweathermap.org/data/2.5/onecall?lat=${pref_latPosition}&lon=${pref_longPosition}&exclude=current,hourly,minutely&units=${pref_openWeatherUnits}&appid=${pref_openWeatherAPIKey}`;
     const jsonIn = await fetch(getWeatherURL);
 
     if (jsonIn != null) {
@@ -9570,7 +9586,9 @@ lastName = "Doe"
           weatherIcon = weatherDescIcons[i];
           break;
         }
-      }
+      } // TODO: Allow for more customisation of what is pulled out from the API's data structure
+      // using weatherParams
+
 
       const summaryLine = `${maxTemp}/${minTemp} ${weatherIcon}${weatherDesc}`;
       console.log(`\t${summaryLine}`);
@@ -9582,6 +9600,7 @@ lastName = "Doe"
   }
 
   async function processTemplate(content, config) {
+    console.log(`processTemplate: ${content}`);
     const tagStart = content.indexOf('{{');
     const tagEnd = content.indexOf('}}');
     const hasTag = tagStart !== -1 && tagEnd !== -1 && tagStart < tagEnd;
@@ -9605,6 +9624,8 @@ lastName = "Doe"
   } // Apply any matching tag functions
 
   async function processTags(tag, config) {
+    console.log(`processTag: ${tag}`);
+
     if (tag.startsWith('date(') && tag.endsWith(')')) {
       return await processDate(tag.slice(5, tag.length - 1), config);
     } else if (tag.startsWith('weather(') && tag.endsWith(')')) {
@@ -9633,6 +9654,7 @@ lastName = "Doe"
 
 
   async function processDate(dateParams, config) {
+    console.log(`processDate: ${dateConfig}`);
     const defaultConfig = config.date ?? {};
     const paramConfig = dateParams.trim() ? await parseJSON5(dateParams) : {}; // console.log(`param config: ${dateParams} as ${JSON.stringify(paramConfig)}`);
 
