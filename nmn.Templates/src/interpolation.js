@@ -1,13 +1,14 @@
 // @flow
 
 import { getInput } from '../../nmn.sweep/src/userInput'
-import { getWeatherSummary } from '../../jgclark.DailyJournal/src/weather'
+import { getWeatherSummary } from './weather'
 import { parseJSON5 } from './configuration'
 
 export async function processTemplate(
   content: string,
   config: { [string]: ?mixed },
 ): Promise<string> {
+  console.log(`processTemplate: ${content}`)
   const tagStart = content.indexOf('{{')
   const tagEnd = content.indexOf('}}')
   const hasTag = tagStart !== -1 && tagEnd !== -1 && tagStart < tagEnd
@@ -34,6 +35,7 @@ export async function processTags(
   tag: string,
   config: { [string]: ?mixed },
 ): Promise<string> {
+  console.log(`processTag: ${tag}`)
   if (tag.startsWith('date(') && tag.endsWith(')')) {
     return await processDate(tag.slice(5, tag.length - 1), config)
   }
@@ -78,6 +80,7 @@ async function processDate(
   dateParams: string,
   config: { [string]: ?mixed },
 ): Promise<string> {
+  console.log(`processDate: ${dateConfig}`)
   const defaultConfig = config.date ?? {}
   const paramConfig = dateParams.trim() ? await parseJSON5(dateParams) : {}
   // console.log(`param config: ${dateParams} as ${JSON.stringify(paramConfig)}`);

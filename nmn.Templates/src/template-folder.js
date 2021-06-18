@@ -118,6 +118,19 @@ The first code-block within the note will always be used. So edit the default co
     timeStyle: 'short',
   },
 
+  // configuration for weather data
+  weather: {
+    // API key for https://openweathermap.org/
+    // !!REQUIRED!!
+    openWeatherAPIKey: '... put your API key here ...',
+    // Default location for weather forcast
+    latPosition: 0.0,
+    longPosition: 0.0,
+    // Default units. Can be 'metric' (for Celsius), or 'metric' (for Fahrenheit)
+    openWeatherUnits: 'metric',
+    // When using a weather tag, you can customize these options.
+  },
+
   // default values for custom tags.
   // These tags cannot be functions, but you may choose to have nested objects.
   // feel free to edit this value however you see fit.
@@ -150,6 +163,18 @@ date:
   # can be null (to skip time), "short", "medium", "long" or "full"
   timeStyle: short
 
+# configuration for weather data lookups, if wanted
+weather:
+  # API key for https://openweathermap.org/
+  # !!REQUIRED!!
+  openWeatherAPIKey: <put your API key here>
+  # Default location for weather forcast
+  latPosition: 0.0
+  longPosition: 0.0
+  # Default units. Can be 'metric' (for Celsius), or 'metric' (for Fahrenheit)
+  openWeatherUnits: metric
+  # When using a weather tag, you can customize these options.
+
 # default values for custom tags.
 # These tags cannot be functions, but you may choose to have nested objects.
 # feel free to edit this value however you see fit.
@@ -178,6 +203,18 @@ dateStyle = "short"
 # can be null (to skip time), "short", "medium", "long" or "full"
 timeStyle = "short"
 
+// configuration for weather data
+[weather]
+// API key for https://openweathermap.org/
+# !!REQUIRED!!
+openWeatherAPIKey = <put your API key here>
+# Default location for weather forcast
+latPosition = 0.0
+longPosition = 0.0
+# Default units. Can be 'metric' (for Celsius), or 'metric' (for Fahrenheit)
+openWeatherUnits = 'metric'
+# When using a weather tag, you can customize these options.
+
 # default values for custom tags.
 [tagValue]
 # These tags cannot be functions, but you may choose to have nested objects.
@@ -190,22 +227,3 @@ firstName = "John"
 lastName = "Doe"
 \`\`\`
 `
-
-/**
- * 
- * The following should be added to the default configuration
- * once the weather function works.
- * 
- // configuration for weather data
-  weather: {
-    // API key for https://openweathermap.org/
-    // !!REQUIRED!!
-    apiKey: '... put your API key here ...',
-    // Default location for weather forcast
-    lattitude: 0,
-    longitude: 0,
-    // Default temperature unit. Can be "C" (Celcius), "K" (Kelvin) or "F" (Fahrenheit)
-    unit: 'C',
-    // When using a weather tag, you can customize these options.
-  },
-*/

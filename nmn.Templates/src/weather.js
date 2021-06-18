@@ -44,10 +44,9 @@ export async function getWeatherSummary(
   const pref_longPosition = weatherConfig.longPosition
   const pref_openWeatherUnits = weatherConfig.openWeatherUnits
 
-  // TODO: probably getDefaultConfiguration rather than parseJSON5 ?
   console.log(`getWeatherSummary: Params: '${weatherParams}'`)
   const paramConfig = weatherParams.trim() ? await parseJSON5(weatherParams) : {}
-  console.log(paramConfig)
+  // console.log(paramConfig)
   
   const getWeatherURL =
     `https://api.openweathermap.org/data/2.5/onecall?lat=${ 
@@ -59,15 +58,13 @@ export async function getWeatherSummary(
     }&appid=${ 
     pref_openWeatherAPIKey}`
   
-  // TODO: Allow for more customisation of what is pulled out from the API's data structure
-  // using weatherParams
-
   const jsonIn = await fetch(getWeatherURL)
   if (jsonIn != null) {
     const weatherTodayAll = JSON.parse(jsonIn).daily["0"]
     const maxTemp = weatherTodayAll.feels_like.day.toFixed(0)
     const minTemp = weatherTodayAll.feels_like.night.toFixed(0)
     const weatherDesc = weatherTodayAll.weather["0"].description
+    
     // see if we can fix an icon for this as well, according to returned description. Main terms are:
     // thunderstorm, drizzle, shower > rain, snow, sleet, clear sky, mist, fog, dust, tornado, overcast > clouds
     // with 'light' modifier for rain and snow
@@ -78,9 +75,14 @@ export async function getWeatherSummary(
         break
       }
     }
+
+  // TODO: Allow for more customisation of what is pulled out from the API's data structure
+  // using weatherParams
+
     const summaryLine = `${maxTemp}/${minTemp} ${weatherIcon}${weatherDesc}`
     console.log(`\t${summaryLine}`)
     return summaryLine
+
   } else {
     await showMessage('Sorry; error in Weather lookup')
     return 'sorry; error in Weather lookup'

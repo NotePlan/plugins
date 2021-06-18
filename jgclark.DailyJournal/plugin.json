@@ -6,14 +6,14 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/README.md",
-  "plugin.version": "0.6.2",
+  "plugin.version": "0.7.0",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
   "plugin.commands": [
     {
       "name": "dayStart",
-      "description": "Start today's daily note with a template, including local weather lookup (requires configuring)",
+      "description": "Start today's daily note with a template (requires configuring)",
       "jsFunction": "dayStart",
       "requested_interval": "24h"
     },
