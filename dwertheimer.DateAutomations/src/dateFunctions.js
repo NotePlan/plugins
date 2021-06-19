@@ -24,7 +24,7 @@ export function insertCalendarNoteLink() {
 }
 
 // From nmn.sweep
-export function hyphenatedDateString(dateObj?: Date): string {
+export function hyphenatedDateString(dateObj?: Date = new Date()): string {
   const { year, month, date } = getYearMonthDate(dateObj)
   return `${year}-${month < 10 ? '0' : ''}${month}-${
     date < 10 ? '0' : ''
