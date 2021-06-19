@@ -38,8 +38,7 @@ export async function processTags(
   console.log(`processTag: ${tag}`)
   if (tag.startsWith('date(') && tag.endsWith(')')) {
     return await processDate(tag.slice(5, tag.length - 1), config)
-  }
-  else if (tag.startsWith('weather(') && tag.endsWith(')')) {
+  } else if (tag.startsWith('weather(') && tag.endsWith(')')) {
     return await getWeatherSummary(tag.slice(8, tag.length - 1), config)
   }
 
@@ -47,8 +46,8 @@ export async function processTags(
   // Can call functions defined in other plugins, by appropriate use
   // of imports at top of file (e.g. getWeatherSummary)
   // Or declare below (e.g. processDate)
-  
-  else { // no matching funcs, so now attempt to match defined tag values instead
+  else {
+    // no matching funcs, so now attempt to match defined tag values instead
     return processTagValues(tag, config)
   }
 }
@@ -80,7 +79,7 @@ async function processDate(
   dateParams: string,
   config: { [string]: ?mixed },
 ): Promise<string> {
-  console.log(`processDate: ${dateConfig}`)
+  // console.log(`processDate: ${dateConfig}`)
   const defaultConfig = config.date ?? {}
   const paramConfig = dateParams.trim() ? await parseJSON5(dateParams) : {}
   // console.log(`param config: ${dateParams} as ${JSON.stringify(paramConfig)}`);
