@@ -2,66 +2,18 @@
 //--------------------------------------------------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// v0.9.3, 1.6.2021
+// v0.9.0, 19.6.2021
 //--------------------------------------------------------------------------------------------------------------------
 
-// Globals
-// eslint-disable-next-line no-unused-vars
-const todaysDate = new Date().toISOString().slice(0, 10)
-// eslint-disable-next-line no-unused-vars
-const defaultTodoMarker =
-  DataStore.preference('defaultTodoCharacter') !== undefined
-    ? DataStore.preference('defaultTodoCharacter')
-    : '*'
+import {
+  projectNotesSortedByChanged,
+  printNote,
+} from '../../helperFunctions'
 
-//------------------------------------------------------------------
-// Helper functions
-//------------------------------------------------------------------
-function printNote(note) {
-  if (note == null) {
-    console.log('Note not found!')
-    return
-  }
-
-  if (note.type === 'Notes') {
-    console.log(
-      `title: ${note.title ?? ''}\n\tfilename: ${
-        note.filename ?? ''
-      }\n\thashtags: ${note.hashtags?.join(',') ?? ''}\n\tmentions: ${
-        note.mentions?.join(',') ?? ''
-      }\n\tcreated: ${String(note.createdDate) ?? ''}\n\tchanged: ${
-        String(note.changedDate) ?? ''
-      }`,
-    )
-  } else {
-    console.log(
-      `date: ${String(note.createdDate) ?? ''}\n\tfilename: ${
-        note.filename ?? ''
-      }\n\thashtags: ${note.hashtags?.join(',') ?? ''}\n\tmentions: ${
-        note.mentions?.join(',') ?? ''
-      }`,
-    )
-  }
-}
-
-async function selectFolder() {
-  if (Editor.type === 'Notes') {
-    // [String] list of options, placeholder text, callback function with selection
-    const folder = await CommandBar.showOptions(
-      DataStore.folders,
-      `Select new folder for '${Editor.title ?? ''}'`,
-    )
-    moveNote(folder.value)
-  } else {
-    console.log("\tWarning: I can't move calendar notes.")
-    CommandBar.hide()
-  }
-}
-globalThis.selectFolder = selectFolder
 
 //-----------------------------------------------------------------
 // Command from Eduard to move a note to a different folder
-function moveNote(selectedFolder) {
+export function moveNote(selectedFolder: string) {
   const { title, filename } = Editor
   if (title == null || filename == null) {
     // No note open, so don't do anything.
@@ -83,7 +35,7 @@ function moveNote(selectedFolder) {
 //------------------------------------------------------------------
 // Jumps the cursor to the heading of the current note that the user selects
 // NB: need to update to allow this to work with sub-windows, when EM updates API
-async function jumpToHeading() {
+export async function jumpToHeading() {
   const paras = Editor?.paragraphs
   if (paras == null) {
     // No note open
@@ -96,7 +48,7 @@ async function jumpToHeading() {
     for (let i = 1; i < p.headingLevel; i++) {
       prefix += '    '
     }
-    return prefix + p.content
+    return `${prefix}${p.content}`
   })
 
   // Present list of headingValues for user to choose from
@@ -105,39 +57,67 @@ async function jumpToHeading() {
       headingValues,
       'Select heading to jump to:',
     )
-    Editor.highlight(headingParas[re.index])
+    // find out position of this heading, ready to set insertion point
+    const startPos = headingParas[re.index].contentRange?.start ?? 0
+    console.log(startPos)
+    Editor.renderedSelect(startPos, 0) // FIXME: WAITING for EM to shift viewport not just cursor
+    // Editor.select(startPos, 0)
+
+    // Earlier version:
+    // Editor.highlight(headingParas[re.index])
   } else {
     console.log('Warning: No headings found in this note')
   }
 }
-globalThis.jumpToHeading = jumpToHeading
+
+//------------------------------------------------------------------
+// Jumps the cursor to the heading of the current note that the user selects
+// NB: need to update to allow this to work with sub-windows, when EM updates API
+export async function jumpToNoteHeading() {
+  // first jump to the note of interest, then to the heading
+  const notesList = projectNotesSortedByChanged()
+  const re = await CommandBar.showOptions(
+    notesList.map((n) => n.title),
+    'Select note to jump to',
+  )
+  const note = notesList[re.index]
+
+  // Open the note in the Editor
+  if (note != null) {
+    await Editor.openNoteByTitle(note.title)
+  } else {
+    console.log("\terror: couldn't open selected note")
+    return
+  }
+
+  // Now jump to the heading
+  await jumpToHeading()
+}
 
 //------------------------------------------------------------------
 // Jump cursor to the '## Done' heading in the current file
 // NB: need to update to allow this to work with sub-windows, when EM updates API
-function jumpToDone() {
+export function jumpToDone() {
   const paras = Editor?.paragraphs
   if (paras == null) {
     // No note open
     return
   }
-  const paraCount = paras.length
 
-  // Find the line of interest from all the paragraphs
-  for (let i = 0; i < paraCount; i++) {
-    const p = paras[i]
-    if (
-      (p.content === 'Done' || p.content === 'Done …') &&
-      p.headingLevel === 2
-    ) {
-      // jump cursor to that paragraph
-      Editor.highlight(p)
-      break
-    }
+  // Find the 'Done' heading of interest from all the paragraphs
+  const matches = paras.filter(p => p.headingLevel === 2).filter(q => q.content.startsWith('Done'))
+
+  if (matches != null) {
+    const startPos = matches[0].contentRange?.start ?? 0
+    Editor.renderedSelect(startPos, 0) // FIXME: WAITING for EM to shift viewport not just cursor
+    // Editor.select(startPos, 0)
+
+    // Earlier version
+    // Editor.highlight(p)
+  } else {
+    console.log("Warning: Couldn't find a '## Done' section")
   }
-  console.log("Warning: Couldn't find a ## Done section")
 }
-globalThis.jumpToDone = jumpToDone
 
 //------------------------------------------------------------------
 // Set the title of a note from YAML, rather than the first line.
@@ -149,7 +129,7 @@ globalThis.jumpToDone = jumpToDone
 //       "jsFunction": "setTitleFromYAML"
 // },
 
-function setTitleFromYAML() {
+export function setTitleFromYAML() {
   const { note, content } = Editor
   if (note == null || content == null) {
     // no note open.
@@ -173,6 +153,5 @@ function setTitleFromYAML() {
   if (newTitle !== '') {
     note.title = newTitle // TODO: when setter available
   }
-  printNote(Editor.note)
+  printNote(note)
 }
-globalThis.setTitleFromYAML = setTitleFromYAML
