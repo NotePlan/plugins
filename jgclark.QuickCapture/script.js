@@ -9258,24 +9258,6 @@ var exports = (function (exports) {
   function getTemplateFolder() {
     return DataStore.folders.find(f => f.includes(staticTemplateFolder));
   }
-  /**
-   * 
-   * The following should be added to the default configuration
-   * once the weather function works.
-   * 
-   // configuration for weather data
-    weather: {
-      // API key for https://openweathermap.org/
-      // !!REQUIRED!!
-      apiKey: '... put your API key here ...',
-      // Default location for weather forcast
-      lattitude: 0,
-      longitude: 0,
-      // Default temperature unit. Can be "C" (Celcius), "K" (Kelvin) or "F" (Fahrenheit)
-      unit: 'C',
-      // When using a weather tag, you can customize these options.
-    },
-  */
 
   const ALLOWED_FORMATS = ['javascript', 'json', 'json5', 'yaml', 'toml', 'ini'];
   const FORMAT_MAP = {
