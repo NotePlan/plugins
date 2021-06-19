@@ -75,7 +75,7 @@ async function processTagValues(
 // ----------------------------------------------------------------
 // Define new tag functions here ...
 
-async function processDate(
+export async function processDate(
   dateParams: string,
   config: { [string]: ?mixed },
 ): Promise<string> {
