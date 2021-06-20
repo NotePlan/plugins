@@ -4,9 +4,16 @@
 import { getDefaultConfiguration } from '../../nmn.Templates/src/configuration'
 import { hyphenatedDateString } from '../../nmn.sweep/src/dateHelpers'
 
-const pad = (num) => (num < 10 ? `0${num}` : num)
+const pad = (num: number): string => (num < 10 ? `0${num}` : String(num))
+type DateConfig = {
+  timezone: string,
+  locale: string,
+  dateStyle?: string,
+  timeStyle?: string,
+  hour12?: boolean,
+}
 
-async function getDateConfig() {
+async function getDateConfig(): Promise<DateConfig> {
   const config = (await getDefaultConfiguration()) ?? {}
   const dateConfig = config.date ?? null
   if (dateConfig && dateConfig.locale) {
@@ -30,7 +37,7 @@ async function getDateConfig() {
 
 /**
  * Create a list of options for combinations of date & time formats
- * @returns {allDateOptions} props: dateStyle, timeStyle, label, text (to be inserted if chosen)
+ * @returns [{allDateOptions}] props: dateStyle, timeStyle, label, text (to be inserted if chosen)
  */
 async function getFormattedDateTime() {
   // pull options and create options for various dateStyles and timeStyles
