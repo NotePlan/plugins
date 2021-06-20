@@ -9654,7 +9654,7 @@ lastName = "Doe"
 
 
   async function processDate(dateParams, config) {
-    console.log(`processDate: ${dateConfig}`);
+    // console.log(`processDate: ${dateConfig}`)
     const defaultConfig = config.date ?? {};
     const paramConfig = dateParams.trim() ? await parseJSON5(dateParams) : {}; // console.log(`param config: ${dateParams} as ${JSON.stringify(paramConfig)}`);
 

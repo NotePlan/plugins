@@ -19,7 +19,7 @@
       "jsFunction": "insertDate"
     },    
     {
-      "name": "time", 
+      "name": "iso", 
       "description": "Insert date+time (in ISO format) at cursor", 
       "jsFunction": "insertISODate"
     },
@@ -27,5 +27,15 @@
       "name": "now", 
       "description": "Insert (human readable) date+time at cursor", 
       "jsFunction": "insertDateTime" 
+    },
+  {
+      "name": "time", 
+      "description": "Insert (human readable) time at cursor", 
+      "jsFunction": "insertTime" 
+    },
+  {
+      "name": "dp", 
+      "description": "(Date Picker) Choose format and insert date/time time at cursor", 
+      "jsFunction": "datePicker" 
     }  ]
 }
