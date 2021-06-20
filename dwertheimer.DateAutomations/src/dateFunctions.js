@@ -9,7 +9,7 @@ const pad = (num) => (num < 10 ? `0${num}` : num)
 async function getDateConfig() {
   const config = (await getDefaultConfiguration()) ?? {}
   const dateConfig = config.date ?? null
-  if (dateConfig) {
+  if (dateConfig && date.locale) {
     return dateConfig
   } else {
     return {

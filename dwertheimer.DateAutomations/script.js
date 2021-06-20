@@ -9362,7 +9362,7 @@ var exports = (function (exports) {
     const config = (await getDefaultConfiguration()) ?? {};
     const dateConfig = config.date ?? null;
 
-    if (dateConfig) {
+    if (dateConfig && date.locale) {
       return dateConfig;
     } else {
       return {
