@@ -1,25 +1,29 @@
 // @flow
 
+//------------------------------------------------------------------------------
+
 import {
   showMessage,
   chooseOption,
   getInput,
 } from '../../nmn.sweep/src/userInput'
-import { getDefaultConfiguration } from './configuration'
-import { processTemplate } from './interpolation'
 
-import { getTemplateFolder, makeTemplateFolder } from './template-folder'
+import { getDefaultConfiguration, getOrMakeConfigurationSection } from './configuration'
+import { processTemplate } from './interpolation'
+import { getTemplateFolder, getOrMakeTemplateFolder } from './template-folder'
+
+//------------------------------------------------------------------------------
 
 export async function applyNamedTemplate(templateName: string) {
   console.log(`applyNamedTemplate: for template '${templateName}'`)
   
-  const templateFolder = await getTemplateFolder()
-  if (templateFolder == null) {
-    console.log(`\twarning: templateFolder is null`)
-    await makeTemplateFolder()
-    await showMessage('Try using this command again to use a template')
-    return
-  }
+  // const templateFolder = await getOrMakeTemplateFolder()
+  // if (templateFolder == null) {
+  //   console.log(`\twarning: templateFolder is null`)
+  //   await getOrMakeTemplateFolder()
+  //   await showMessage('Try using this command again to use a template')
+  //   return
+  // }
 
   const selectedTemplate = DataStore.projectNoteByTitle(templateName, true, false)[0]
 
@@ -43,13 +47,13 @@ export async function applyNamedTemplate(templateName: string) {
 }
 
 export async function applyTemplate(newNote?: [string, string]) {
-  const templateFolder = await getTemplateFolder()
-  if (templateFolder == null) {
-    console.log(`applyTemplate: warning: templateFolder is null`)
-    await makeTemplateFolder()
-    await showMessage('Try using this command again to use a template')
-    return
-  }
+  const templateFolder = await getOrMakeTemplateFolder()
+  // if (templateFolder == null) {
+  //   console.log(`applyTemplate: warning: templateFolder is null`)
+  //   await makeTemplateFolder()
+  //   await showMessage('Try using this command again to use a template')
+  //   return
+  // }
 
   const options = DataStore.projectNotes
     .filter((n) => n.filename?.startsWith(templateFolder))
@@ -119,7 +123,7 @@ export async function newNoteWithTemplate() {
     return
   }
 
-  const templateFolder = await getTemplateFolder()
+  const templateFolder = await getOrMakeTemplateFolder()
   let shouldApplyTemplate = false
 
   if (templateFolder != null || templateFolder !== '') {

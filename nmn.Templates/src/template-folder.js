@@ -8,10 +8,12 @@ export function getTemplateFolder(): ?string {
   return DataStore.folders.find((f) => f.includes(staticTemplateFolder))
 }
 
-export async function makeTemplateFolder(): Promise<void> {
+export async function getOrMakeTemplateFolder(): Promise<?string> {
+  console.log('getOrMakeTemplateFolder')
   let folder = getTemplateFolder()
 
   if (folder == null) {
+    // No template folder yet, so offer to make it and populate it
     const shouldCreateFolder = await chooseOption<boolean, boolean>(
       'No templates folder found.',
       [
@@ -20,7 +22,7 @@ export async function makeTemplateFolder(): Promise<void> {
           value: true,
         },
         {
-          label: '❌ Cancel',
+          label: '❌ Cancel command',
           value: false,
         },
       ],
@@ -46,9 +48,12 @@ export async function makeTemplateFolder(): Promise<void> {
     DataStore.newNote(MEETING_NOTE_TEMPLATE, folder)
     DataStore.newNote(TAGS_TEMPLATE, folder)
     DataStore.newNote(CONFIG, folder)
-
-    await showMessage(`"${staticTemplateFolder}" folder created with samples `)
+    console.log(`-> "${staticTemplateFolder}" folder created with samples`)
+    await showMessage(`"${staticTemplateFolder}" folder created with samples`)
+    // FIXME: hopefully can remove this after API cache fix.
+    await showMessage(`Please re-start command.`)
   }
+  return folder
 }
 
 /*

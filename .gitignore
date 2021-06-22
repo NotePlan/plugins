@@ -6,3 +6,4 @@ dist/
 package-lock.json
 .pluginpath
 */.eslintrc
+_test*.yml
