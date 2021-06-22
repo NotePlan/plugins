@@ -57,7 +57,12 @@ export function percent(value: number, total: number): string {
 // Date functions
 // @jgclark except where shown
 
+export const RE_DATE = '\\d{4}-[01]\\d{1}-\\d{2}' // find dates of form YYYY-MM-DD
+export const RE_TIME = '[0-2]\\d{1}:[0-5]\\d{1}\\s?(?:AM|PM|am|pm)?' // find '12:23' with optional '[ ][AM|PM|am|pm]'
+
 export const todaysDateISOString: string = new Date().toISOString().slice(0, 10)
+// TODO: make a friendlier string
+export const nowShortDateTime: string = new Date().toISOString().slice(0, 16)
 
 // @nmn
 export function getYearMonthDate(dateObj: Date): $ReadOnly<{

@@ -1,0 +1,31 @@
+{
+	"noteplan.minAppVersion": "3.0.23",
+	"plugin.id": "jgclark.GTDReview",
+	"plugin.name": "🔬GTD Review",
+	"plugin.description": "Commands to help with GTD Reviews",
+	"plugin.icon": "",
+	"plugin.author": "Jonathan Clark",
+	"plugin.repoUrl": "",
+	"plugin.version": "0.1.2",
+	"plugin.dependencies": [],
+	"plugin.script": "script.js",
+	"plugin.isRemote": "false",
+	"plugin.commands": [
+		{
+			"name": "prepare GTD review",
+			"description": "prepare project list for GTD review",
+			"jsFunction": "noteTypeSummaries"
+		},
+		{
+			"name": "complete project review",
+			"description": "update project's @reviewed() date (GTD)",
+			"jsFunction": "editorSetReviewDate"
+		},
+		{
+			"name": "next project review",
+			"description": "update this project's @reviewed() date, and jump to next review (GTD)",
+			"jsFunction": "nextReview"
+		}
+	],
+	"plugin.preferences": []
+}

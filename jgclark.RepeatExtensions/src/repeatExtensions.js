@@ -7,8 +7,10 @@
 import {
   toISODateString,
   unhyphenateDateString,
+  RE_DATE, // find dates of form YYYY-MM-DD
+  RE_TIME, // find '12:23' with optional '[ ][AM|PM|am|pm]'
 //   rangeToString,
-} from '../../np.statistics/src/statsHelpers'
+} from '../../helperFunctions'
 
 //------------------------------------------------------------------
 // Helper functions
@@ -102,8 +104,6 @@ export async function repeats() {
   // It includes cancelled tasks as well; to remove a repeat entirely, remoce
   // the @repeat tag from the task in NotePlan.
 
-  const RE_DATE = '\\d{4}-[01]\\d{1}-\\d{2}' // find dates of form YYYY-MM-DD and similar
-  const RE_TIME = '[0-2]\\d{1}:[0-5]\\d{1}\\s?(?:AM|PM|am|pm)?' // find '12:23' with optional '[ ][AM|PM|am|pm]'
   // const RE_DUE_DATE = '\\s+>' + RE_DATE; // find ' >2021-02-23' etc.
   const RE_DUE_DATE_CAPTURE = `\\s+>(${  RE_DATE  })` // find ' >2021-02-23' and return just date part
   const RE_DATE_TIME = `${RE_DATE  } ${  RE_TIME}` // YYYY-MM-DD HH:MM[AM|PM]
