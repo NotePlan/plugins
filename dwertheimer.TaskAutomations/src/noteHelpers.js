@@ -61,12 +61,12 @@ async function selectFolder() {
 globalThis.selectFolder = selectFolder
 
 // Show feedback message using Command Bar (@dwertheimer)
-async function showMessage(message, confirmTitle = 'OK') {
+export async function showMessage(message, confirmTitle = 'OK') {
   return await CommandBar.showOptions([confirmTitle], message)
 }
 
 // Show feedback Yes/No Question via Command Bar (@dwertheimer)
-async function showMessageYesNo(message, choicesArray = ['Yes', 'No']) {
+export async function showMessageYesNo(message, choicesArray = ['Yes', 'No']) {
   const answer = await CommandBar.showOptions(choicesArray, message)
   return choicesArray[answer.index]
 }

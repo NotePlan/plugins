@@ -54,19 +54,8 @@ const fieldSorter = (fields) => (a, b) =>
         dir = -1
         o = o.substring(1)
       }
-      // if item is undefined, it loses immediately before compare (dbw)
-      // console.log(`a=${a[o]}, b=${b[o]}`)
-      // if (ia(a[o]) === undefined)
-      //   console.log(`a[o] is undefined; lose to ${b[o]}`)
-      // if (ia(b[o]) === undefined)
-      //   console.log(`b[o] is undefined; lose to ${a[o]}`)
       if (ia(a[o]) === undefined) return dir
       if (ia(b[o]) === undefined) return -dir
-      // console.log(
-      //   `${ia(a[o])} ${
-      //     ia(a[o]) > ia(b[o]) ? ' > ' : ia(a[o]) < ia(b[o]) ? ' < ' : ' == '
-      //   } ${ia(b[o])}`,
-      // )
       return ia(a[o]) > ia(b[o]) ? dir : ia(a[o]) < ia(b[o]) ? -dir : 0
     })
     .reduce((p, n) => (p ? p : n), 0)
@@ -111,7 +100,7 @@ export function getTasksByType(paragraphs) {
   paragraphs.forEach((para, index) => {
     if (TASK_TYPES.indexOf(para.type) >= 0) {
       const content = para.content
-      console.log(`${index}: ${para.type}: ${para.content}`)
+      // console.log(`${index}: ${para.type}: ${para.content}`)
       try {
         const hashtags = getElementsFromTask(content, HASHTAGS)
         const mentions = getElementsFromTask(content, MENTIONS)

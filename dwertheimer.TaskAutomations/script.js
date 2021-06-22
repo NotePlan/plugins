@@ -46,12 +46,10 @@ var exports = (function (exports) {
     return await CommandBar.showOptions([confirmTitle], message);
   } // Show feedback Yes/No Question via Command Bar (@dwertheimer)
 
-
   async function showMessageYesNo(message, choicesArray = ['Yes', 'No']) {
     const answer = await CommandBar.showOptions(choicesArray, message);
     return choicesArray[answer.index];
   } // Find a unique note title/filename so backlinks can work properly (@dwertheimer)
-
 
   function getUniqueNoteTitle(title) {
     let i = 0,
@@ -397,21 +395,10 @@ var exports = (function (exports) {
     if (o[0] === '-') {
       dir = -1;
       o = o.substring(1);
-    } // if item is undefined, it loses immediately before compare (dbw)
-    // console.log(`a=${a[o]}, b=${b[o]}`)
-    // if (ia(a[o]) === undefined)
-    //   console.log(`a[o] is undefined; lose to ${b[o]}`)
-    // if (ia(b[o]) === undefined)
-    //   console.log(`b[o] is undefined; lose to ${a[o]}`)
-
+    }
 
     if (ia(a[o]) === undefined) return dir;
-    if (ia(b[o]) === undefined) return -dir; // console.log(
-    //   `${ia(a[o])} ${
-    //     ia(a[o]) > ia(b[o]) ? ' > ' : ia(a[o]) < ia(b[o]) ? ' < ' : ' == '
-    //   } ${ia(b[o])}`,
-    // )
-
+    if (ia(b[o]) === undefined) return -dir;
     return ia(a[o]) > ia(b[o]) ? dir : ia(a[o]) < ia(b[o]) ? -dir : 0;
   }).reduce((p, n) => p ? p : n, 0);
   /*
@@ -439,8 +426,7 @@ var exports = (function (exports) {
     TASK_TYPES.forEach(t => tasks[t] = []);
     paragraphs.forEach((para, index) => {
       if (TASK_TYPES.indexOf(para.type) >= 0) {
-        const content = para.content;
-        console.log(`${index}: ${para.type}: ${para.content}`);
+        const content = para.content; // console.log(`${index}: ${para.type}: ${para.content}`)
 
         try {
           const hashtags = getElementsFromTask(content, HASHTAGS);
@@ -486,7 +472,7 @@ var exports = (function (exports) {
    */
 
   function insertTodos(note, todos, heading = null, separator = '') {
-    // THIS VERSION IS SUPER SLOW. I THINK INSERTTODO IS SLOW...
+    // THE API IS SUPER SLOW TO INSERT TASKS ONE BY ONE
     // let currentLine = startingLine ? startingLine : heading ? 1 : 2
     // if (heading) {
     //   Editor.insertParagraph(heading, 1, 'text')
@@ -496,8 +482,10 @@ var exports = (function (exports) {
     //   Editor.insertTodo(todos[i].content, currentLine++)
     // }
     // return currentLine
+    // SO INSTEAD, JUST PASTE THEM ALL IN ONE BIG STRING
     const headingStr = heading ? `${heading}\n` : '';
     const contentStr = todos.map(t => t.raw).join(`\n`);
+    console.log(`inserting tasks: \n${JSON.stringify(todos)}`);
     note.insertParagraph(`${headingStr}${contentStr}${separator ? `\n${separator}` : ''}`, 1, 'text');
   }
   /**
@@ -527,9 +515,12 @@ var exports = (function (exports) {
       if (paragraphs.length) {
         const taskList = getTasksByType(paragraphs);
         console.log(`Open Tasks:${taskList.open.length}`);
-        TASK_TYPES.forEach(ty => {
+
+        for (const ty of TASK_TYPES) {
+          // TASK_TYPES.forEach((ty) => {
           sortedList[ty] = sortListBy(taskList[ty], sortOrder); // sortedList[ty] = sortListBy(taskList[ty], ['hashtags'])
-        });
+        }
+
         console.log(`After Sort - Open Tasks:${sortedList.open.length}`);
       }
     } else {
@@ -550,26 +541,66 @@ var exports = (function (exports) {
     const found = note.paragraphs.filter(p => p.rawContent === content);
 
     if (found && found.length > 1) {
-      console.log(`Found ${found.length} occurrences for "${content}". Deleting the first.`);
+      console.log(`Found ${found.length} identical occurrences for "${content}". Deleting the first.`);
     }
 
-    return found[0];
+    return found[0] || null;
+  } //TODO: this does not work. creates 4 copies of the file but does not save the tasks
+  // seems like somewheer there's not an await where there should be
+
+
+  async function saveBackup(taskList) {
+    const backupPath = `@Trash`;
+    const backupTitle = `_Task-sort-backup`;
+    const backupFilename = `${backupPath}/${backupTitle}.${DataStore.defaultFileExtension}`;
+    console.log(`\tBackup filename: ${backupFilename}`);
+    let notes = await DataStore.projectNoteByTitle(backupTitle, false, true);
+    console.log(`\tGot note back: ${notes}`);
+
+    if (!notes || !notes.length) {
+      console.log(`\tsaveBackup: no note named ${backupFilename}`);
+      const filename = await DataStore.newNote(`_Task-sort-backup`, `@Trash`); // TODO: There's a bug in API where filename is not correct and the file is not in cache unless you open a command bar
+      // remove all this:
+
+      await CommandBar.showOptions(['OK'], `Backing up todos in Trash/${backupTitle}`); //
+
+      console.log(`\tCreated ${filename} for backups`);
+      notes = await DataStore.projectNoteByTitle(backupTitle, false, true); // note = await DataStore.projectNoteByFilename(backupFilename)
+
+      console.log(`backup file contents:\n${JSON.stringify(notes)}`);
+    }
+
+    if (notes && notes[0]) {
+      notes[0].insertParagraph(`---`, 2, 'text');
+      console.log(`BACKUP`);
+      await insertTodos(notes[0], taskList);
+    }
   }
 
-  function deleteExistingTasks(note, tasks) {
-    TASK_TYPES.forEach(typ => {
+  async function deleteExistingTasks(note, tasks, shouldBackupTasks = true) {
+    for (const typ of TASK_TYPES) {
       console.log(`Deleting ${tasks[typ].length} ${typ} tasks from note`); // Have to find all the paragraphs again
 
-      Editor.note.removeParagraphs(tasks[typ].map(t => findRawParagraph(note, t.raw)));
-    }); //   tasks[typ]
+      if (shouldBackupTasks) {
+        await saveBackup(tasks[typ]);
+      }
+
+      try {
+        const taskList = tasks[typ].map(t => findRawParagraph(note, t.raw));
+        Editor.note.removeParagraphs(taskList);
+      } catch (e) {
+        console.log(JSON.stringify(e));
+      }
+    } //   tasks[typ]
     //     .slice()
     //     .reverse()
     //     .forEach((t) => Editor.removeParagraphAtIndex(t.index))
     // })
     //  removeParagraphAtIndex(lineIndex: number): void,
+
   }
 
-  function writeOutTasks(note, tasks, drawSeparators = true) {
+  async function writeOutTasks(note, tasks, drawSeparators = true) {
     // tasks.forEach((cat) => {})
     const headings = {
       open: 'Open Tasks',
@@ -577,9 +608,15 @@ var exports = (function (exports) {
       done: 'Completed Tasks',
       cancelled: 'Cancelled Tasks'
     };
-    TASK_TYPES.slice().reverse().forEach(ty => {
+    TASK_TYPES.slice().reverse().forEach(async (ty, i) => {
       if (tasks[ty].length) {
-        insertTodos(note, tasks[ty], `### ${headings[ty]}:`, '');
+        console.log(`EDITOR_FILE TASK_TYPE=${ty}`);
+
+        try {
+          await insertTodos(note, tasks[ty], `### ${headings[ty]}:`, `${i === tasks[ty].length - 1 ? '---' : ''}`);
+        } catch (e) {
+          console.log(JSON.stringify(e));
+        }
       }
     });
   }
@@ -587,7 +624,9 @@ var exports = (function (exports) {
   async function sortTasks() {
     console.log('\nStarting sortTasks():');
     const sortOrder = await getUserSort();
-    const sortedTasks = sortTasksInNote(Editor.note, sortOrder); // console.log(`\t${JSON.stringify(tasks)}`)
+    console.log(`\tFinished getUserSort, now sortTasksInNote`);
+    const sortedTasks = sortTasksInNote(Editor.note, sortOrder);
+    console.log(`\tFinished sortTasksInNote, now deleteExistingTasks`); // console.log(`\t${JSON.stringify(tasks)}`)
     // console.log(
     //   `.OPEN Tasks: Priority | Content (sorted by ${JSON.stringify(sortOrder)})`,
     // )
@@ -597,9 +636,11 @@ var exports = (function (exports) {
     //   )
     // })
 
-    deleteExistingTasks(Editor.note, sortedTasks); // need to do this before adding new lines to preserve line numbers
+    await deleteExistingTasks(Editor.note, sortedTasks); // need to do this before adding new lines to preserve line numbers
 
-    writeOutTasks(Editor.note, sortedTasks);
+    console.log(`\tFinished deleteExistingTasks, now writeOutTasks`);
+    await writeOutTasks(Editor.note, sortedTasks);
+    console.log(`\tFinished writeOutTasks, now finished`);
     console.log('Finished sortTasks()!');
   }
 
