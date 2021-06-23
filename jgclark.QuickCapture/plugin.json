@@ -1,14 +1,14 @@
 {
-  "noteplan.min_version": "3.0.21",
+  "noteplan.min_version": "3.0.23",
   "plugin.id": "jgclark.QuickCapture",
   "plugin.name": "⚡️ Quick Capture",
   "plugin.description": "Commands to quickly add tasks/todos or general text to NotePlan notes. See website for configuration of special Inbox note.",
   "plugin.icon": "",
-  "plugin.author": "Eduard & Jonathan",
+  "plugin.author": "Jonathan Clark & Eduard Metzger",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.QuickCapture/",
-  "plugin.version": "0.3.2",
+  "plugin.version": "0.4.0",
   "plugin.dependencies": [],
-  "plugin.script": "plugin.js",
+  "plugin.script": "script.js",
   "plugin.isRemote": "false",
   "plugin.commands": [
     {
@@ -27,28 +27,26 @@
       "jsFunction": "addTextToNoteHeading"
     },
     {
-      "name": "qpt",
-      "description": "Quickly prepend a task to a chosen note",
-      "jsFunction": "prependTaskToNote"
+      "name": "qad",
+      "description": "Quickly append a task to a chosen daily note",
+      "jsFunction": "appendTaskToDailyNote"
+    },
+    {
+      "name": "qpd",
+      "description": "Quickly prepend a task to a chosen daily note",
+      "jsFunction": "prependTaskToDailyNote"
     },
     {
       "name": "qat",
-      "description": "Quickly append a task to a chosen note",
+      "description": "Quickly append a task to a chosen project note",
       "jsFunction": "appendTaskToNote"
+    },
+    {
+      "name": "qpt",
+      "description": "Quickly prepend a task to a chosen project note",
+      "jsFunction": "prependTaskToNote"
     }
   ],
   "plugin.preferences": [
-    {
-      "name": "inboxFilename",
-      "description": "leave blank for daily note, or give relative filename (e.g. 'Folder/Inbox.md')",
-      "type": "string",
-      "default": ""
-    },
-    {
-      "name": "addInboxPosition",
-      "description": "whether to 'append' or 'prepend' new tasks to the Inbox note",
-      "type": "string",
-      "default": "append"
-    }
   ]
 }

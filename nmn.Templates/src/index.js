@@ -10,11 +10,42 @@ import { processTemplate } from './interpolation'
 
 import { getTemplateFolder, makeTemplateFolder } from './template-folder'
 
-export async function addTemplate(newNote?: [string, string]) {
+export async function applyNamedTemplate(templateName: string) {
+  console.log(`applyNamedTemplate: for template '${templateName}'`)
+  
   const templateFolder = await getTemplateFolder()
-
   if (templateFolder == null) {
-    console.log(`addTemplate: templateFolder is null`)
+    console.log(`\twarning: templateFolder is null`)
+    await makeTemplateFolder()
+    await showMessage('Try using this command again to use a template')
+    return
+  }
+
+  const selectedTemplate = DataStore.projectNoteByTitle(templateName, true, false)[0]
+
+  let templateContent = selectedTemplate?.content
+  if (templateContent == null || templateContent.length === 0) {
+    console.log(`\twarning: template '${templateName}' is null or empty`)
+    return
+  }
+  templateContent = templateContent.split('\n---\n').slice(1).join('\n---\n')
+
+  const config = (await getDefaultConfiguration()) ?? {}
+
+  const processedTemplateContent = await processTemplate(
+    templateContent,
+    config,
+  )
+
+  Editor.content = [Editor.content, processedTemplateContent]
+    .filter(Boolean)
+    .join('\n')
+}
+
+export async function applyTemplate(newNote?: [string, string]) {
+  const templateFolder = await getTemplateFolder()
+  if (templateFolder == null) {
+    console.log(`applyTemplate: warning: templateFolder is null`)
     await makeTemplateFolder()
     await showMessage('Try using this command again to use a template')
     return
@@ -28,9 +59,9 @@ export async function addTemplate(newNote?: [string, string]) {
     )
     .filter(Boolean)
 
-  console.log(`addTemplate: found ${options.length} options`)
+  console.log(`applyTemplate: found ${options.length} options`)
 
-  console.log(`addTemplate: asking user which template:`)
+  // console.log(`applyTemplate: asking user which template:`)
   const selectedTemplate = await chooseOption<TNote, void>(
     'Choose Template',
     options,
@@ -84,15 +115,15 @@ export async function newNoteWithTemplate() {
 
   if (!title) {
     console.log('\tError: undefined or empty title')
-    await showMessage('Cannot create a not with an empty title')
+    await showMessage('Cannot create a note with an empty title')
     return
   }
 
   const templateFolder = await getTemplateFolder()
-  let shouldAddTemplate = false
+  let shouldApplyTemplate = false
 
   if (templateFolder != null || templateFolder !== '') {
-    shouldAddTemplate = await chooseOption(
+    shouldApplyTemplate = await chooseOption(
       'Do you want to get started with a template?',
       [
         { label: 'Yes', value: true },
@@ -101,8 +132,8 @@ export async function newNoteWithTemplate() {
       false,
     )
   }
-  if (shouldAddTemplate) {
-    await addTemplate([title, folder])
+  if (shouldApplyTemplate) {
+    await applyTemplate([title, folder])
     return
   }
 

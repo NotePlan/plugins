@@ -5,6 +5,4 @@ dist/
 */ts-template/*.*
 package-lock.json
 .pluginpath
-package-lock.json
-np.plugin-flow-skeleton/script.js
-.vscode/settings.json
+*/.eslintrc

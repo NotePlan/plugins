@@ -1,15 +1,15 @@
 {
-  "noteplan.min_version": "3.0.23",
+  "noteplan.min_version": "3.0.24",
   "plugin.id": "jgclark.NoteHelpers",
   "plugin.name": "📙 Note Helpers",
-  "plugin.description": "Commands to help manage NotePlan notes",
+  "plugin.description": "Commands to quickly jump around and manage notes",
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark & Eduard Metzger",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/",
   "plugin.version": "0.9.0",
   "plugin.changelog": "See plugin README.md",
   "plugin.dependencies": [],
-  "plugin.script": "noteHelpers.js",
+  "plugin.script": "script.js",
   "plugin.isRemote": "false",
   "plugin.commands": [
     {
@@ -19,18 +19,18 @@
     },
     {
       "name": "jh",
-      "description": "Jumps to the heading that the user selects. (Currently only works in main window.)",
+      "description": "Jumps to the heading that the user selects. (Currently only works in main window)",
       "jsFunction": "jumpToHeading"
     },
     {
-      "name": "jd",
-      "description": "Jump to the ## Done section. (Currently only works in main window.)",
-      "jsFunction": "jumpToDone"
+      "name": "jn",
+      "description": "Jump to a different note, and then selected heading. (Currently only works in main window)",
+      "jsFunction": "jumpToNoteHeading"
     },
     {
-      "name": "nns",
-      "description": "New note from selection (and leave link to it in its place)",
-      "jsFunction": "newNoteFromSelection"
+      "name": "jd",
+      "description": "Jump to the '## Done' section. (Currently only works in main window)",
+      "jsFunction": "jumpToDone"
     }
   ],
   "plugin.preferences": [

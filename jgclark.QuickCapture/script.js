@@ -1,18 +1,37 @@
 var exports = (function (exports) {
   'use strict';
 
-  async function chooseOption(title, options, defaultValue) {
-    const {
-      index
-    } = await CommandBar.showOptions(options.map(option => option.label), title);
-    return options[index]?.value ?? defaultValue;
-  }
   async function showMessage(title, okLabel = 'OK') {
     await CommandBar.showOptions([okLabel], title);
   }
-  async function getInput(title, okLabel = 'OK') {
-    return await CommandBar.showInput(title, okLabel);
+
+  new Date().toISOString().slice(0, 10);
+  function getYearMonthDate(dateObj) {
+    const year = dateObj.getFullYear();
+    const month = dateObj.getMonth() + 1;
+    const date = dateObj.getDate();
+    return {
+      year,
+      month,
+      date
+    };
   }
+  function hyphenatedDate(dateObj) {
+    const {
+      year,
+      month,
+      date
+    } = getYearMonthDate(dateObj);
+    return `${year}-${month < 10 ? '0' : ''}${month}-${date < 10 ? '0' : ''}${date}`;
+  }
+
+  function displayTitle(n) {
+    if (n.type === 'Calendar') {
+      return hyphenatedDate(n.date);
+    } else {
+      return n.title ?? '';
+    }
+  } // Print out all data for a paragraph (borrowed from EM)
 
   var parser$1 = function () {
     /*
@@ -9239,208 +9258,24 @@ var exports = (function (exports) {
   function getTemplateFolder() {
     return DataStore.folders.find(f => f.includes(staticTemplateFolder));
   }
-  async function makeTemplateFolder() {
-    let folder = getTemplateFolder();
-
-    if (folder == null) {
-      const shouldCreateFolder = await chooseOption('No templates folder found.', [{
-        label: `✅ Create ${staticTemplateFolder} with samples`,
-        value: true
-      }, {
-        label: '❌ Cancel',
-        value: false
-      }], false);
-
-      if (!shouldCreateFolder) {
-        return;
-      }
-
-      const subfolder = await chooseOption('Select a location for the templates folder.', DataStore.folders.map(folder => ({
-        label: folder,
-        value: folder + (folder.endsWith('/') ? '' : '/')
-      })), '');
-      folder = subfolder + staticTemplateFolder; // Now create a sample note in that folder, then we got the folder also created
-
-      DataStore.newNote(DAILY_NOTE_TEMPLATE, folder);
-      DataStore.newNote(MEETING_NOTE_TEMPLATE, folder);
-      DataStore.newNote(TAGS_TEMPLATE, folder);
-      DataStore.newNote(CONFIG, folder);
-      await showMessage(`"${staticTemplateFolder}" folder created with samples `);
-    }
-  }
-  /*
-
-  DEFAULT TEMPLATE NOTES FOLLOW
-
+  /**
+   * 
+   * The following should be added to the default configuration
+   * once the weather function works.
+   * 
+   // configuration for weather data
+    weather: {
+      // API key for https://openweathermap.org/
+      // !!REQUIRED!!
+      apiKey: '... put your API key here ...',
+      // Default location for weather forcast
+      lattitude: 0,
+      longitude: 0,
+      // Default temperature unit. Can be "C" (Celcius), "K" (Kelvin) or "F" (Fahrenheit)
+      unit: 'C',
+      // When using a weather tag, you can customize these options.
+    },
   */
-
-  const DAILY_NOTE_TEMPLATE = `Daily Note Template
----
-## Tasks
-
-## Media
-
-## Journal
-`;
-  const MEETING_NOTE_TEMPLATE = `Meeting Note Template
----
-## Project X Meeting on [[date]] with @Y and @Z
-
-## Notes
-
-## Actions
-`;
-  const TAGS_TEMPLATE = `Tags Template
----
-# {{title}}
-
-Created on {{date({locale: 'en-US', dateStyle: 'short'})}}
-`;
-  const CONFIG = ` _configuration
----
-# Template Tag Configuration
-
-This file is used to configure how templates work. \
-Use the code fence below to set global values for template tags.
-
-You can one of the following languages for your configuration:
-
-**javascript**: Actually, *[JSON5](https://json5.org)*. If you write a codeblock tagged as javascript, \
-make sure you write valid JSON5. Anything else will cause an error.
-**json**: If you don't mind losing the ability to write comments etc, you can use regular JSON as well.
-**yaml**: If you prefer the syntax of YAML, that is supported too.
-**ini**: If you would like to use the TOML format, mark your codeblock with \`ini\` and it will \
-be treated as TOML.
-
-The first code-block within the note will always be used. So edit the default configuration below:
-
-\`\`\`javascript
-{
-  // Even though it says, "javacsript" above, this actually just JSON5.
-
-  // configuration for dates, heavily based on javascript's Intl module
-  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat/DateTimeFormat
-  date: {
-    // Default timezone for date and time.
-    timezone: 'automatic',
-    // Default locale to format date and time.
-    // e.g. en-US will result in mm/dd/yyyy, while en_GB will be dd/mm/yyyy
-    locale: 'en-US',
-    // can be "short", "medium", "long" or "full"
-    dateStyle: 'short',
-    // optional key, can be "short", "medium", "long" or "full"
-    timeStyle: 'short',
-  },
-
-  // configuration for weather data
-  weather: {
-    // API key for https://openweathermap.org/
-    // !!REQUIRED!!
-    openWeatherAPIKey: '... put your API key here ...',
-    // Default location for weather forcast
-    latPosition: 0.0,
-    longPosition: 0.0,
-    // Default units. Can be 'metric' (for Celsius), or 'metric' (for Fahrenheit)
-    openWeatherUnits: 'metric',
-    // When using a weather tag, you can customize these options.
-  },
-
-  // default values for custom tags.
-  // These tags cannot be functions, but you may choose to have nested objects.
-  // feel free to edit this value however you see fit.
-  tagValue: {
-    me: {
-      // Can be used as {{me.firstName}}
-      firstName: 'John',
-      // Can be used as {{me.lastName}}
-      lastName: 'Doe',
-    }
-    // ...
-  },
-}
-\`\`\`
-
-If you prefer YAML format, delete the code-block above and edit this one instead:
-
-\`\`\`yaml
----
-# configuration for dates, heavily based on javascript's Intl module
-# https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat/DateTimeFormat
-date:
-  # Default timezone for date and time.
-  timezone: automatic
-  # Default locale to format date and time.
-  # e.g. en-US will result in mm/dd/yyyy, while en_GB will be dd/mm/yyyy
-  locale: en-US
-  # can be "short", "medium", "long" or "full"
-  dateStyle: short
-  # can be null (to skip time), "short", "medium", "long" or "full"
-  timeStyle: short
-
-# configuration for weather data lookups, if wanted
-weather:
-  # API key for https://openweathermap.org/
-  # !!REQUIRED!!
-  openWeatherAPIKey: <put your API key here>
-  # Default location for weather forcast
-  latPosition: 0.0
-  longPosition: 0.0
-  # Default units. Can be 'metric' (for Celsius), or 'metric' (for Fahrenheit)
-  openWeatherUnits: metric
-  # When using a weather tag, you can customize these options.
-
-# default values for custom tags.
-# These tags cannot be functions, but you may choose to have nested objects.
-# feel free to edit this value however you see fit.
-tagValue:
-  me:
-    # Can be used as {{me.firstName}}
-    firstName: John
-    # Can be used as {{me.lastName}}
-    lastName: Doe
-  # ... add any of your own keys here
-\`\`\`
-
-If you prefer TOML instead of JSON5 or YAML, delete the two code blocks above and use this one instead:
-
-\`\`\`ini
-# configuration for dates, heavily based on javascript's Intl module
-# https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat/DateTimeFormat
-[date]
-# Default timezone for date and time.
-timezone = "automatic"
-# Default locale to format date and time.
-# e.g. en-US will result in mm/dd/yyyy, while en_GB will be dd/mm/yyyy
-locale = "en-US"
-# can be "short", "medium", "long" or "full"
-dateStyle = "short"
-# can be null (to skip time), "short", "medium", "long" or "full"
-timeStyle = "short"
-
-// configuration for weather data
-[weather]
-// API key for https://openweathermap.org/
-# !!REQUIRED!!
-openWeatherAPIKey = <put your API key here>
-# Default location for weather forcast
-latPosition = 0.0
-longPosition = 0.0
-# Default units. Can be 'metric' (for Celsius), or 'metric' (for Fahrenheit)
-openWeatherUnits = 'metric'
-# When using a weather tag, you can customize these options.
-
-# default values for custom tags.
-[tagValue]
-# These tags cannot be functions, but you may choose to have nested objects.
-# feel free to edit this value however you see fit.
-
-[tagValue.me]
-# Can be used as {{me.firstName}}
-firstName = "John"
-# Can be used as {{me.lastName}}
-lastName = "Doe"
-\`\`\`
-`;
 
   const ALLOWED_FORMATS = ['javascript', 'json', 'json5', 'yaml', 'toml', 'ini'];
   const FORMAT_MAP = {
@@ -9548,248 +9383,161 @@ lastName = "Doe"
     }
   }
 
-  // Using https://openweathermap.org/api/one-call-api#data, for which you can get a free API key
-
-  async function getWeatherSummary(weatherParams, config) {
-    const weatherDescText = ['showers', 'rain', 'sunny intervals', 'partly sunny', 'sunny', 'cloud', 'snow ', 'thunderstorm', 'tornado'];
-    const weatherDescIcons = ["🌦️", "🌧️", "🌤", "⛅", "☀️", "☁️", "🌨️", "⛈", "🌪"]; // Get config settings from Template folder _configuration note
-
-    const weatherConfig = config.weather ?? null;
-
-    if (weatherConfig == null) {
-      await showMessage("Cannot find 'weather' settings in Templates/_configuration note");
-      return '';
-    }
-
-    const pref_openWeatherAPIKey = weatherConfig.openWeatherAPIKey;
-    const pref_latPosition = weatherConfig.latPosition;
-    const pref_longPosition = weatherConfig.longPosition;
-    const pref_openWeatherUnits = weatherConfig.openWeatherUnits;
-    console.log(`getWeatherSummary: Params: '${weatherParams}'`);
-    weatherParams.trim() ? await parseJSON5(weatherParams) : {}; // console.log(paramConfig)
-
-    const getWeatherURL = `https://api.openweathermap.org/data/2.5/onecall?lat=${pref_latPosition}&lon=${pref_longPosition}&exclude=current,hourly,minutely&units=${pref_openWeatherUnits}&appid=${pref_openWeatherAPIKey}`;
-    const jsonIn = await fetch(getWeatherURL);
-
-    if (jsonIn != null) {
-      const weatherTodayAll = JSON.parse(jsonIn).daily["0"];
-      const maxTemp = weatherTodayAll.feels_like.day.toFixed(0);
-      const minTemp = weatherTodayAll.feels_like.night.toFixed(0);
-      const weatherDesc = weatherTodayAll.weather["0"].description; // see if we can fix an icon for this as well, according to returned description. Main terms are:
-      // thunderstorm, drizzle, shower > rain, snow, sleet, clear sky, mist, fog, dust, tornado, overcast > clouds
-      // with 'light' modifier for rain and snow
-
-      let weatherIcon = '';
-
-      for (let i = 0; i < weatherDescText.length; i++) {
-        if (weatherDesc.match(weatherDescText[i])) {
-          weatherIcon = weatherDescIcons[i];
-          break;
-        }
-      } // TODO: Allow for more customisation of what is pulled out from the API's data structure
-      // using weatherParams
+  // --------------------------------------------------------------------------------------------------------------------
+  // Prepends a task to a chosen note
 
 
-      const summaryLine = `${maxTemp}/${minTemp} ${weatherIcon}${weatherDesc}`;
-      console.log(`\t${summaryLine}`);
-      return summaryLine;
-    } else {
-      await showMessage('Sorry; error in Weather lookup');
-      return 'sorry; error in Weather lookup';
-    }
-  }
+  async function prependTaskToNote() {
+    const taskName = await CommandBar.showInput('Type the task name', "Prepend '%@'...");
+    const notes = projectNotesSortedByChanged();
+    const re = await CommandBar.showOptions(notes.map(n => n.title).filter(Boolean), 'Select note to prepend');
+    notes[re.index].prependTodo(taskName);
+  } // ------------------------------------------------------------------
+  // Appends a task to a chosen note
 
-  async function processTemplate(content, config) {
-    console.log(`processTemplate: ${content}`);
-    const tagStart = content.indexOf('{{');
-    const tagEnd = content.indexOf('}}');
-    const hasTag = tagStart !== -1 && tagEnd !== -1 && tagStart < tagEnd;
+  async function appendTaskToNote() {
+    const taskName = await CommandBar.showInput('Type the task name', "Append '%@'...");
+    const notes = projectNotesSortedByChanged();
+    const re = await CommandBar.showOptions(notes.map(n => n.title).filter(Boolean), 'Select note to append');
+    notes[re.index].appendTodo(taskName);
+  } // ------------------------------------------------------------------
+  // This adds a task to a selected heading, based on EM's 'example25'.
+  // Problem here is that duplicate headings are not respected.
 
-    if (!hasTag) {
-      return content;
-    }
+  async function addTaskToNoteHeading() {
+    // Ask for the task title
+    const todoTitle = await CommandBar.showInput('Type the task', "Add task '%@'"); // Then ask for the note we want to add the task
 
-    const beforeTag = content.slice(0, tagStart);
-    const afterTag = content.slice(tagEnd + 2);
-    const tag = content.slice(tagStart + 2, tagEnd);
+    const notes = projectNotesSortedByChanged(); // CommandBar.showOptions only takes [string] as input
 
-    try {
-      const tagProcessed = await processTags(tag, config);
-      const restProcessed = await processTemplate(afterTag, config);
-      return beforeTag + tagProcessed + restProcessed;
-    } catch (e) {
-      console.log(e);
-      return content;
-    }
-  } // Apply any matching tag functions
+    const re = await CommandBar.showOptions(notes.map(n => n.title).filter(Boolean), 'Select note for new todo');
+    const note = notes[re.index]; // Finally, ask to which heading to add the task
 
-  async function processTags(tag, config) {
-    console.log(`processTag: ${tag}`);
+    const headings = note.paragraphs.filter(p => p.type === 'title');
+    const re2 = await CommandBar.showOptions(headings.map(p => p.prefix + p.content), `Select a heading from note '${note.title ?? ''}'`);
+    const heading = headings[re2.index]; // console.log("Selected heading: " + heading.content)
 
-    if (tag.startsWith('date(') && tag.endsWith(')')) {
-      return await processDate(tag.slice(5, tag.length - 1), config);
-    } else if (tag.startsWith('weather(') && tag.endsWith(')')) {
-      return await getWeatherSummary(tag.slice(8, tag.length - 1), config);
-    } // **Add other extension function calls here**
-    // Can call functions defined in other plugins, by appropriate use
-    // of imports at top of file (e.g. getWeatherSummary)
-    // Or declare below (e.g. processDate)
-    else {
-        // no matching funcs, so now attempt to match defined tag values instead
-        return processTagValues(tag, config);
+    console.log(`Adding todo: ${todoTitle} to ${note.title ?? ''} in heading: ${heading.content}`); // Add todo to the heading in the note (and add the heading if it doesn't exist)
+
+    note.addTodoBelowHeadingTitle(todoTitle, heading.content, false, true);
+  } // ------------------------------------------------------------------
+  // This adds general text to a selected note's heading.
+  // Problem here is that duplicate headings are not respected.
+
+  async function addTextToNoteHeading() {
+    // Ask for the note text
+    const text = await CommandBar.showInput('Type the text to add', "Add text '%@'"); // Then ask for the note we want to add the text
+
+    const notes = projectNotesSortedByChanged(); // CommandBar.showOptions only takes [string] as input
+
+    const re = await CommandBar.showOptions(notes.map(n => n.title).filter(Boolean), 'Select note for new text');
+    const note = notes[re.index]; // Finally, ask to which heading to add the text
+
+    const headings = note.paragraphs.filter(p => p.type === 'title');
+    const re2 = await CommandBar.showOptions(headings.map(p => p.prefix + p.content), `Select a heading from note '${note.title ?? ''}'`);
+    const heading = headings[re2.index]; // console.log("Selected heading: " + heading.content)
+
+    console.log(`Adding text: ${text} to ${note.title ?? ''} in heading: ${heading.content}`); // Add text to the heading in the note (and add the heading if it doesn't exist)
+
+    note.addParagraphBelowHeadingTitle(text, 'empty', heading.content, false, true);
+  } // ------------------------------------------------------------------
+  // Quickly prepend a task to a daily note
+
+  async function prependTaskToDailyNote() {
+    // Ask for the task title
+    const todoTitle = await CommandBar.showInput('Type the task', "Add task '%@'"); // Then ask for the daily ote we want to add the todo
+
+    const notes = calendarNotesSortedByChanged();
+    const res = await CommandBar.showOptions(notes.map(n => displayTitle(n)).filter(Boolean), 'Select daily note for new todo');
+    const note = notes[res.index];
+    console.log(`Prepending task: ${todoTitle} to ${displayTitle(note)}`);
+    note.prependTodo(todoTitle);
+  } // ------------------------------------------------------------------
+  // Quickly append a task to a daily note
+
+  async function appendTaskToDailyNote() {
+    // Ask for the task title
+    const todoTitle = await CommandBar.showInput('Type the task', "Add task '%@'"); // Then ask for the daily ote we want to add the todo
+
+    const notes = calendarNotesSortedByChanged();
+    const res = await CommandBar.showOptions(notes.map(n => displayTitle(n)).filter(Boolean), 'Select daily note for new todo');
+    const note = notes[res.index];
+    console.log(`Appending task: ${todoTitle} to ${displayTitle(note)}`);
+    note.appendTodo(todoTitle);
+  } // ------------------------------------------------------------------
+  // This adds a task to a special 'inbox' note. Possible configuration:
+  // - append or prepend to the inbox note (default: append)
+  // - add to today's daily note (default) or to a particular named note
+
+  async function addTaskToInbox() {
+    // Get config settings from Template folder _configuration note
+    const config = (await getDefaultConfiguration()) ?? {};
+    const inboxConfig = config.inbox ?? null;
+
+    if (inboxConfig == null) {
+      console.log("\tWarning: Cannot find 'inbox' settings in Templates/_configuration note. Stopping.");
+      await showMessage("Cannot find 'inbox' settings in Templates/_configuration note");
+      return;
+    } // Read settings from _configuration note
+
+
+    const pref_inboxFilename = inboxConfig.inboxFilename ?? "";
+    const pref_inboxTitle = inboxConfig.inboxTitle ?? "📥 Inbox";
+    const pref_addInboxPosition = inboxConfig.addInboxPosition ?? "append"; // Get or setup the inbox note
+
+    let newFilename;
+    let inboxNote;
+
+    if (pref_inboxFilename !== '') {
+      console.log(`addTaskToInbox: ${pref_inboxFilename}`);
+      inboxNote = DataStore.projectNoteByFilename(pref_inboxFilename); // Create the inbox note if not existing, ask the user which folder
+
+      if (inboxNote == null) {
+        const folders = DataStore.folders;
+        const folder = await CommandBar.showOptions(folders, 'Inbox not found, choose a folder or cancel [ESC]');
+        newFilename = DataStore.newNote(pref_inboxTitle, folder.value) ?? ''; // NB: this returns a filename not of our choosing
+
+        console.log(`made new inbox note, filename = ${newFilename}`);
       }
-  } // Apply any matching tag values, asking user for value if not found in configuration
-
-  async function processTagValues(tag, config) {
-    const valueInConfig = tag // eslint-disable-next-line no-useless-escape
-    .split(/[\.\[\]]/).filter(Boolean).reduce((path, key) => path != null && typeof path === 'object' ? path[key] : null, config.tagValue);
-
-    if (valueInConfig != null) {
-      return String(valueInConfig);
-    }
-
-    return await getInput(`Value for ${tag}`);
-  } // ----------------------------------------------------------------
-  // Define new tag functions here ...
+    } // Ask for the task title
 
 
-  async function processDate(dateParams, config) {
-    console.log(`processDate: ${dateConfig}`);
-    const defaultConfig = config.date ?? {};
-    const paramConfig = dateParams.trim() ? await parseJSON5(dateParams) : {}; // console.log(`param config: ${dateParams} as ${JSON.stringify(paramConfig)}`);
+    const todoTitle = await CommandBar.showInput('Type the task to add to your Inbox note', "Add task '%@'"); // Re-fetch the note if we created it previously. We need to wait a bit so it's cached, that's why we query it after the task input.
 
-    const finalArguments = { ...defaultConfig,
-      ...paramConfig
-    }; // ... = "gather the remaining parameters into an array"
+    if (newFilename != null) {
+      inboxNote = DataStore.projectNoteByFilename(newFilename);
+      console.log('\tgot new inbox note');
+    } // Get the relevant note from the Datastore
 
-    const {
-      locale,
-      ...otherParams
-    } = finalArguments;
-    const localeParam = locale != null ? String(locale) : [];
-    const secondParam = {
-      dateStyle: 'short',
-      ...otherParams
-    }; // console.log(`${JSON.stringify(localeParam)}, ${JSON.stringify(secondParam)}`);
 
-    return new Intl.DateTimeFormat(localeParam, secondParam).format(new Date());
-  }
-
-  async function applyNamedTemplate(templateName) {
-    console.log(`applyNamedTemplate: for template '${templateName}'`);
-    const templateFolder = await getTemplateFolder();
-
-    if (templateFolder == null) {
-      console.log(`\twarning: templateFolder is null`);
-      await makeTemplateFolder();
-      await showMessage('Try using this command again to use a template');
-      return;
-    }
-
-    const selectedTemplate = DataStore.projectNoteByTitle(templateName, true, false)[0];
-    let templateContent = selectedTemplate?.content;
-
-    if (templateContent == null || templateContent.length === 0) {
-      console.log(`\twarning: template '${templateName}' is null or empty`);
-      return;
-    }
-
-    templateContent = templateContent.split('\n---\n').slice(1).join('\n---\n');
-    const config = (await getDefaultConfiguration()) ?? {};
-    const processedTemplateContent = await processTemplate(templateContent, config);
-    Editor.content = [Editor.content, processedTemplateContent].filter(Boolean).join('\n');
-  }
-  async function applyTemplate(newNote) {
-    const templateFolder = await getTemplateFolder();
-
-    if (templateFolder == null) {
-      console.log(`applyTemplate: warning: templateFolder is null`);
-      await makeTemplateFolder();
-      await showMessage('Try using this command again to use a template');
-      return;
-    }
-
-    const options = DataStore.projectNotes.filter(n => n.filename?.startsWith(templateFolder)).filter(n => !n.title?.startsWith('_configuration')).map(note => note.title == null ? null : {
-      label: note.title,
-      value: note
-    }).filter(Boolean);
-    console.log(`applyTemplate: found ${options.length} options`); // console.log(`applyTemplate: asking user which template:`)
-
-    const selectedTemplate = await chooseOption('Choose Template', options);
-    let templateContent = selectedTemplate?.content;
-
-    if (templateContent == null) {
-      return;
-    }
-
-    templateContent = templateContent.split('\n---\n').slice(1).join('\n---\n');
-    const config = (await getDefaultConfiguration()) ?? {};
-    const processedTemplateContent = await processTemplate(templateContent, config);
-
-    if (newNote != null) {
-      const [title, folder] = newNote;
-      const filename = DataStore.newNote(title, folder);
-
-      if (!filename) {
-        await showMessage('There was an error creating your note :(');
-        return;
+    if (inboxNote != null) {
+      if (pref_addInboxPosition === 'append') {
+        inboxNote.appendTodo(todoTitle);
+      } else {
+        inboxNote.prependTodo(todoTitle);
       }
 
-      await Editor.openNoteByFilename(filename);
-      Editor.content = `# ${title}\n${processedTemplateContent}`;
+      console.log(`\tAdded todo to Inbox note '${inboxNote.filename}'`);
     } else {
-      Editor.content = [Editor.content, processedTemplateContent].filter(Boolean).join('\n');
+      console.log(`\tERROR: Couldn't find Inbox note '${pref_inboxFilename}'`);
     }
   }
-  async function newNoteWithTemplate() {
-    const title = await getInput('Enter title of the new note', "Create a new note with title '%@'");
-    let folder = '/';
 
-    if (DataStore.folders.length > 0) {
-      folder = await chooseOption('Select folder to add note in:', DataStore.folders.map(folder => ({
-        label: folder,
-        value: folder
-      })), '/');
-    }
-
-    if (!title) {
-      console.log('\tError: undefined or empty title');
-      await showMessage('Cannot create a note with an empty title');
-      return;
-    }
-
-    const templateFolder = await getTemplateFolder();
-    let shouldApplyTemplate = false;
-
-    if (templateFolder != null || templateFolder !== '') {
-      shouldApplyTemplate = await chooseOption('Do you want to get started with a template?', [{
-        label: 'Yes',
-        value: true
-      }, {
-        label: 'No',
-        value: false
-      }], false);
-    }
-
-    if (shouldApplyTemplate) {
-      await applyTemplate([title, folder]);
-      return;
-    }
-
-    const filename = DataStore.newNote(title, folder);
-
-    if (!filename) {
-      await showMessage('There was an error creating your note :(');
-      return;
-    }
-
-    await Editor.openNoteByFilename(filename);
-    Editor.content = `# ${title}\n`;
+  function calendarNotesSortedByChanged() {
+    return DataStore.calendarNotes.slice().sort((first, second) => second.changedDate - first.changedDate);
   }
 
-  exports.applyNamedTemplate = applyNamedTemplate;
-  exports.applyTemplate = applyTemplate;
-  exports.newNoteWithTemplate = newNoteWithTemplate;
+  function projectNotesSortedByChanged() {
+    return DataStore.projectNotes.slice().sort((first, second) => second.changedDate - first.changedDate);
+  }
+
+  exports.addTaskToInbox = addTaskToInbox;
+  exports.addTaskToNoteHeading = addTaskToNoteHeading;
+  exports.addTextToNoteHeading = addTextToNoteHeading;
+  exports.appendTaskToDailyNote = appendTaskToDailyNote;
+  exports.appendTaskToNote = appendTaskToNote;
+  exports.prependTaskToDailyNote = prependTaskToDailyNote;
+  exports.prependTaskToNote = prependTaskToNote;
 
   Object.defineProperty(exports, '__esModule', { value: true });
 
