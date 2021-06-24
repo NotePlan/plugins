@@ -5,6 +5,7 @@
 // v0.4.0, 15.6.2021
 // --------------------------------------------------------------------------------------------------------------------
 
+// This file doesn't exist apparently
 import { displayTitle } from '../../np.statistics/src/statsHelpers'
 import { getDefaultConfiguration } from '../../nmn.Templates/src/configuration'
 import { showMessage } from '../../nmn.sweep/src/userInput'
@@ -16,20 +17,30 @@ import { showMessage } from '../../nmn.sweep/src/userInput'
 // ------------------------------------------------------------------
 // Helper function, not called by a command
 // eslint-disable-next-line no-unused-vars
-function printNote(note: TNote) {
-  if (note === undefined) {
+function printNote(note: ?TNote) {
+  if (note == null) {
     console.log('Note not found!')
     return
   }
 
   if (note.type === 'Notes') {
-    console.log(
-      `title: ${note.title}\n\tfilename: ${note.filename}\n\thashtags: ${note.hashtags}\n\tmentions: ${note.mentions}\n\tcreated: ${note.createdDate}\n\tchanged: ${note.changedDate}`,
-    )
+    const { title, filename, hashtags, mentions, createdDate, changedDate } =
+      note
+    const objToLog = {
+      title,
+      filename,
+      hashtags,
+      mentions,
+      createdDate,
+      changedDate,
+    }
+    // Using `null, 2` as the second and third arguments to JSON.stringify
+    // pretty-prints the object.
+    console.log(JSON.stringify(objToLog, null, 2))
   } else {
-    console.log(
-      `date: ${note.date}\n\tfilename: ${note.filename}\n\thashtags: ${note.hashtags}\n\tmentions: ${note.mentions}`,
-    )
+    const { date, filename, hashtags, mentions } = note
+    const objToLog = { date, filename, hashtags, mentions }
+    console.log(JSON.stringify(objToLog, null, 2))
   }
 }
 
@@ -155,7 +166,7 @@ export async function prependTaskToDailyNote() {
     'Select daily note for new todo',
   )
   const note = notes[res.index]
-  
+
   console.log(`Prepending task: ${todoTitle} to ${displayTitle(note)}`)
   note.prependTodo(todoTitle)
 }
@@ -183,27 +194,33 @@ export async function appendTaskToDailyNote() {
 // - append or prepend to the inbox note (default: append)
 // - add to today's daily note (default) or to a particular named note
 export async function addTaskToInbox() {
-
   // Get config settings from Template folder _configuration note
-  const config = (await getDefaultConfiguration()) ?? {}
-  const inboxConfig = config.inbox ?? null
+  const config = await getDefaultConfiguration()
+  const inboxConfig = config?.inbox ?? null
   if (inboxConfig == null) {
-    console.log("\tWarning: Cannot find 'inbox' settings in Templates/_configuration note. Stopping.")
-    await showMessage("Cannot find 'inbox' settings in Templates/_configuration note")
+    console.log(
+      "\tWarning: Cannot find 'inbox' settings in Templates/_configuration note. Stopping.",
+    )
+    await showMessage(
+      "Cannot find 'inbox' settings in Templates/_configuration note",
+    )
     return
   }
 
+  // Typecasting
+  const inboxConfigObj: { [string]: string } = (inboxConfig: any)
+
   // Read settings from _configuration note
-  const pref_inboxFilename = inboxConfig.inboxFilename ?? ""
-  const pref_inboxTitle = inboxConfig.inboxTitle ?? "📥 Inbox"
-  const pref_addInboxPosition = inboxConfig.addInboxPosition ?? "append"
+  const pref_inboxFilename = inboxConfigObj.inboxFilename ?? ''
+  const pref_inboxTitle = inboxConfigObj.inboxTitle ?? '📥 Inbox'
+  const pref_addInboxPosition = inboxConfigObj.addInboxPosition ?? 'append'
 
   // Get or setup the inbox note
-  let newFilename: string
-  let inboxNote: TNote
+  let newFilename: ?string
+  let inboxNote: ?TNote
   if (pref_inboxFilename !== '') {
-    console.log(`addTaskToInbox: ${pref_inboxFilename}`)
-    inboxNote = DataStore.projectNoteByFilename(pref_inboxFilename)
+    console.log(`addTaskToInbox: ${String(pref_inboxFilename)}`)
+    inboxNote = DataStore.projectNoteByFilename(String(pref_inboxFilename))
     // Create the inbox note if not existing, ask the user which folder
     if (inboxNote == null) {
       const folders = DataStore.folders
@@ -236,7 +253,7 @@ export async function addTaskToInbox() {
     } else {
       inboxNote.prependTodo(todoTitle)
     }
-    console.log(`\tAdded todo to Inbox note '${inboxNote.filename}'`)
+    console.log(`\tAdded todo to Inbox note '${String(inboxNote?.filename)}'`)
   } else {
     console.log(`\tERROR: Couldn't find Inbox note '${pref_inboxFilename}'`)
   }

@@ -93,10 +93,10 @@ var exports = (function (exports) {
   async function jumpToNoteHeading() {
     // first jump to the note of interest, then to the heading
     const notesList = projectNotesSortedByChanged();
-    const re = await CommandBar.showOptions(notesList.map(n => n.title), 'Select note to jump to');
+    const re = await CommandBar.showOptions(notesList.map(n => n.title ?? 'untitled'), 'Select note to jump to');
     const note = notesList[re.index]; // Open the note in the Editor
 
-    if (note != null) {
+    if (note != null && note.title != null) {
       await Editor.openNoteByTitle(note.title);
     } else {
       console.log("\terror: couldn't open selected note");

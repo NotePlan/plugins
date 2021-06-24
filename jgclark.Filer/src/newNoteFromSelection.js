@@ -37,6 +37,7 @@ export async function newNoteFromSelection() {
       title = strippedFirstLine
       if (isTextContent) {
         // the types don't allow you to mutate selectedLinesText. Should this change?
+        // $FlowFixMe
         selectedLinesText.shift()
       }
     }
