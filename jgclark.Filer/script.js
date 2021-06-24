@@ -1,48 +1,6 @@
 var exports = (function (exports) {
   'use strict';
 
-  new Date().toISOString().slice(0, 10);
-  function getYearMonthDate(dateObj) {
-    const year = dateObj.getFullYear();
-    const month = dateObj.getMonth() + 1;
-    const date = dateObj.getDate();
-    return {
-      year,
-      month,
-      date
-    };
-  }
-  function unhyphenatedDate(dateObj) {
-    const {
-      year,
-      month,
-      date
-    } = getYearMonthDate(dateObj);
-    return `${year}${month < 10 ? '0' : ''}${month}${date < 10 ? '0' : ''}${date}`;
-  }
-  // console.log(withinDateRange(unhyphenateDate('2021-04-24'), '20210501', '20210531')) // false
-  // console.log(withinDateRange(unhyphenateDate('2021-05-01'), '20210501', '20210531')) // true
-  // console.log(withinDateRange(unhyphenateDate('2021-05-24'), '20210501', '20210531')) // true
-  // console.log(withinDateRange(unhyphenateDate('2021-05-31'), '20210501', '20210531')) // true
-  // console.log(withinDateRange(unhyphenateDate('2021-06-24'), '20210501', '20210531')) // false
-  // Pretty print range information
-
-  function rangeToString(r) {
-    if (r == null) {
-      return 'Range is undefined!';
-    }
-
-    return `range: ${r.start}-${r.end}`;
-  } // return title of note useful for display, even for calendar notes (the YYYYMMDD)
-
-  function displayTitle(n) {
-    if (n.type === 'Calendar') {
-      return unhyphenatedDate(n.date);
-    } else {
-      return n.title ?? '';
-    }
-  } // Print out all data for a paragraph (borrowed from EM)
-
   // -----------------------------------------------------------------------------
   // Helper Functions
   // Return list of all notes, sorted by changed date (newest to oldest)
@@ -100,7 +58,7 @@ var exports = (function (exports) {
 
     const range = Editor.paragraphRangeAtCharacterIndex(selection.start); // const firstSelPara = selectedParagraphs[0]; // needed?
 
-    console.log(`\nfileParse: selection ${rangeToString(range)}`); // Work out what paragraph number this selected para is
+    console.log(`\nfileParse: selection ${JSON.stringify(range)}`); // Work out what paragraph number this selected para is
 
     let firstSelParaIndex = 0;
 
@@ -118,7 +76,7 @@ var exports = (function (exports) {
 
     if (selectedParagraphs.length > 1) {
       // we have a selection of paragraphs, so use them
-      parasToMove = selectedParagraphs;
+      parasToMove = [...selectedParagraphs];
       console.log(`  Found ${parasToMove.length} selected paras`);
     } else {
       // we have just one paragraph selected -- the current one
@@ -181,9 +139,9 @@ var exports = (function (exports) {
     // Ask for the note we want to add the paras
 
     const notes = allNotesSortedByChanged();
-    let res = await CommandBar.showOptions(notes.map(n => displayTitle(n)), `Select note to move ${parasToMove.length} lines to`);
+    let res = await CommandBar.showOptions(notes.map(n => n.title ?? 'untitled'), `Select note to move ${parasToMove.length} lines to`);
     const noteToMoveTo = notes[res.index];
-    console.log(`  Moving to note: ${displayTitle(noteToMoveTo)}`); // ask to which heading to add the paras
+    console.log(`  Moving to note: ${noteToMoveTo.title ?? 'untitled'}`); // ask to which heading to add the paras
 
     let headingStrings = [];
     const headingParas = noteToMoveTo.paragraphs.filter(p => p.type === 'title'); // = all headings, not just the top 'title'
@@ -255,7 +213,7 @@ var exports = (function (exports) {
   //------------------------------------------------------------------
 
   async function showMessage(message, confirmTitle = 'OK') {
-    return await CommandBar.showOptions([confirmTitle], message);
+    await CommandBar.showOptions([confirmTitle], message);
   } // Show feedback Yes/No Question via Command Bar (@dwertheimer)
 
   async function showMessageYesNo(message, choicesArray = ['Yes', 'No']) {
@@ -269,7 +227,7 @@ var exports = (function (exports) {
     if (newNote) {
       console.log(`\t\tOpened ${fullPath} (${desc} version) `);
     } else {
-      console.log(`\t\tDidn't work! ${useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename'} returned ${newNote}`);
+      console.log(`\t\tDidn't work! ${useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename'} returned ${String(newNote)}`);
     }
 
     return newNote;
@@ -326,6 +284,8 @@ var exports = (function (exports) {
         title = strippedFirstLine;
 
         if (isTextContent) {
+          // the types don't allow you to mutate selectedLinesText. Should this change?
+          // $FlowFixMe
           selectedLinesText.shift();
         }
       }
@@ -342,7 +302,7 @@ var exports = (function (exports) {
 
       if (title) {
         // Create new note in the specific folder
-        const origFile = Editor.note.title || Editor.note.filename; // Calendar notes have no title
+        const origFile = Editor.note?.title ?? Editor.note?.filename ?? ''; // Calendar notes have no title
         // const origFileType = Editor.note.type //either "Notes" or "Calendar"
 
         console.log(`\torigFile:${origFile}`);
@@ -355,8 +315,8 @@ var exports = (function (exports) {
         const newNote = await noteOpener(fullPath, 'no leading slash');
 
         if (newNote) {
-          console.log(`\tnewNote=${newNote}\n\t${newNote.title}`);
-          console.log(`\tcontent=${newNote.content}`);
+          console.log(`\tnewNote=${String(newNote)}\n\t${String(newNote.title)}`);
+          console.log(`\tcontent=${String(newNote.content)}`);
           const insertBackLink = iblq.index === 0;
 
           if (Editor.replaceSelectionWithText) {

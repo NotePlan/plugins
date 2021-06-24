@@ -5,11 +5,6 @@
 // v0.3.3, 11.6.2021
 // -----------------------------------------------------------------------------
 
-import {
-  rangeToString,
-  displayTitle,
-} from '../../np.statistics/src/statsHelpers'
-
 // Preference that needs to get added when there is a proper config system
 const pref_addDateBacklink = true
 
@@ -61,7 +56,7 @@ export async function fileParas() {
   }
   const range = Editor.paragraphRangeAtCharacterIndex(selection.start)
   // const firstSelPara = selectedParagraphs[0]; // needed?
-  console.log(`\nfileParse: selection ${rangeToString(range)}`)
+  console.log(`\nfileParse: selection ${JSON.stringify(range)}`)
 
   // Work out what paragraph number this selected para is
   let firstSelParaIndex = 0
@@ -138,11 +133,11 @@ export async function fileParas() {
   const notes = allNotesSortedByChanged()
 
   let res = await CommandBar.showOptions(
-    notes.map((n) => displayTitle(n)),
+    notes.map((n) => n.title ?? 'untitled'),
     `Select note to move ${parasToMove.length} lines to`,
   )
   const noteToMoveTo = notes[res.index]
-  console.log(`  Moving to note: ${displayTitle(noteToMoveTo)}`)
+  console.log(`  Moving to note: ${noteToMoveTo.title ?? 'untitled'}`)
 
   // ask to which heading to add the paras
   let headingStrings = []

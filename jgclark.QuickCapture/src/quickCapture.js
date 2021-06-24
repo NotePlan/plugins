@@ -5,10 +5,12 @@
 // v0.4.0, 15.6.2021
 // --------------------------------------------------------------------------------------------------------------------
 
-// This file doesn't exist apparently
-import { displayTitle } from '../../np.statistics/src/statsHelpers'
 import { getDefaultConfiguration } from '../../nmn.Templates/src/configuration'
 import { showMessage } from '../../nmn.sweep/src/userInput'
+
+function displayTitle(note: TNote): string {
+  return note.title ?? 'untitled note'
+}
 
 // Settings from NotePlan
 // var defaultFileExtension = (DataStore.defaultFileExtension != undefined) ? DataStore.defaultFileExtension : "md"
