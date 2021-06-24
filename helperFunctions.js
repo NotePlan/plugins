@@ -31,12 +31,18 @@ export async function getInput(
 }
 
 // Show feedback message using Command Bar (@dwertheimer, updating @nmn)
-export async function showMessage(message:string, confirmTitle:string = 'OK') {
-  return await CommandBar.showOptions([confirmTitle], message)
+export async function showMessage(
+  message: string,
+  confirmTitle: string = 'OK',
+): Promise<void> {
+  await CommandBar.showOptions([confirmTitle], message)
 }
 
 // Show feedback Yes/No Question via Command Bar (@dwertheimer)
-export async function showMessageYesNo(message:string, choicesArray:Array<string> = ['Yes', 'No']):Promise<string> {
+export async function showMessageYesNo(
+  message: string,
+  choicesArray: Array<string> = ['Yes', 'No'],
+): Promise<string> {
   const answer = await CommandBar.showOptions(choicesArray, message)
   return choicesArray[answer.index]
 }
@@ -51,7 +57,6 @@ export async function showMessageYesNo(message:string, choicesArray:Array<string
 export function percent(value: number, total: number): string {
   return `${value} (${Math.round((value / total) * 100)}%)`
 }
-
 
 //-------------------------------------------------------------------------------
 // Date functions
@@ -94,7 +99,9 @@ export function toISOShortDateTimeString(dateObj: Date): string {
 
 export function printDateRange(drs: Array<DateRange>) {
   const dr = drs[0]
-  console.log(`${toISOShortDateTimeString(dr.start)}-${toISOShortDateTimeString(dr.end)}`)
+  console.log(
+    `${toISOShortDateTimeString(dr.start)}-${toISOShortDateTimeString(dr.end)}`,
+  )
 }
 
 export function unhyphenatedDate(dateObj: Date): string {
@@ -166,7 +173,6 @@ export function withinDateRange(
 // console.log(withinDateRange(unhyphenateDate('2021-05-31'), '20210501', '20210531')) // true
 // console.log(withinDateRange(unhyphenateDate('2021-06-24'), '20210501', '20210531')) // false
 
-
 //-------------------------------------------------------------------------------
 // Misc functions for NP
 
@@ -181,7 +187,7 @@ export function rangeToString(r: Range): string {
 // return title of note useful for display, even for calendar notes (the YYYYMMDD)
 // (@jgclark)
 export function displayTitle(n: TNote): string {
-  if (n.type === 'Calendar') {
+  if (n.type === 'Calendar' && n.date != null) {
     return hyphenatedDate(n.date)
   } else {
     return n.title ?? ''
@@ -189,30 +195,50 @@ export function displayTitle(n: TNote): string {
 }
 
 // Print out all data for a paragraph (@EduardMe)
-export function printParagraph(p) {
+export function printParagraph(p: TParagraph) {
   if (p === null) {
     console.log('ERROR: paragraph is undefined')
     return
   }
-  console.log(
-    `\n\ncontent: ${  p.content 
-      }\n\ttype: ${  p.type 
-      }\n\tprefix: ${   p.prefix 
-      }\n\tcontentRange: ${  rangeToString(p.contentRange) 
-      }\n\tlineIndex: ${  p.lineIndex 
-      }\n\tdate: ${  p.date 
-      }\n\theading: ${  p.heading 
-      }\n\theadingRange: ${  rangeToString(p.headingRange) 
-      }\n\theadingLevel: ${  p.headingLevel 
-      }\n\tisRecurring: ${  p.isRecurring 
-      }\n\tindents: ${  p.indents 
-      }\n\tfilename: ${  p.filename 
-      }\n\tnoteType: ${  p.noteType 
-      }\n\tlinkedNoteTitles: ${  p.linkedNoteTitles}`,
-  )
+
+  const {
+    content,
+    type,
+    prefix,
+    contentRange,
+    lineIndex,
+    date,
+    heading,
+    headingRange,
+    headingLevel,
+    isRecurring,
+    indents,
+    filename,
+    noteType,
+    linkedNoteTitles,
+  } = p
+
+  const logObject = {
+    content,
+    type,
+    prefix,
+    contentRange,
+    lineIndex,
+    date,
+    heading,
+    headingRange,
+    headingLevel,
+    isRecurring,
+    indents,
+    filename,
+    noteType,
+    linkedNoteTitles,
+  }
+
+  console.log(JSON.stringify(logObject, null, 2))
 }
 
-export function printNote(note) {
+export function printNote(note: TNote) {
   if (note == null) {
     console.log('Note not found!')
     return
@@ -243,30 +269,31 @@ export function printNote(note) {
 export async function noteOpener(
   fullPath: string,
   desc: string,
-  useProjNoteByFilename: boolean = true): Promise<TNote> {
+  useProjNoteByFilename: boolean = true,
+): Promise<?TNote> {
   console.log(
     `\tAbout to open filename: "${fullPath}" (${desc}) using ${
       useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename'
     }`,
   )
-  const newNote = (await useProjNoteByFilename)
-    ? DataStore.projectNoteByFilename(fullPath)
-    : DataStore.noteByFilename(fullPath, 'Notes')
-  if (newNote) {
+  const newNote = useProjNoteByFilename
+    ? await DataStore.projectNoteByFilename(fullPath)
+    : await DataStore.noteByFilename(fullPath, 'Notes')
+  if (newNote != null) {
     console.log(`\t\tOpened ${fullPath} (${desc} version) `)
+    return newNote
   } else {
     console.log(
       `\t\tDidn't work! ${
         useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename'
-      } returned ${newNote}`,
+      } returned ${(newNote: any)}`,
     )
   }
-  return newNote
 }
 
 // Find a unique note title/filename so backlinks can work properly (@dwertheimer)
 // Keep adding numbers to the end of a filename (if already taken) until it works
-export function getUniqueNoteTitle(title:string):string {
+export function getUniqueNoteTitle(title: string): string {
   let i = 0,
     res = [],
     newTitle = title
@@ -278,7 +305,7 @@ export function getUniqueNoteTitle(title:string):string {
 }
 
 // Return user's pick from list of available folders (or return / if none) (@jgclark)
-export async function chooseFolder(msg:string):Promise<string> {
+export async function chooseFolder(msg: string): Promise<string> {
   let folder: string
   const folders = DataStore.folders // excludes Trash and Archive
   if (folders.length > 0) {
@@ -293,7 +320,7 @@ export async function chooseFolder(msg:string):Promise<string> {
 }
 
 // Return list of all notes, sorted by changed date (newest to oldest)
-export function allNotesSortedByChanged():Array<TNote> {
+export function allNotesSortedByChanged(): Array<TNote> {
   const projectNotes = DataStore.projectNotes.slice()
   const calendarNotes = DataStore.calendarNotes.slice()
   const allNotes = projectNotes.concat(calendarNotes)
@@ -304,7 +331,7 @@ export function allNotesSortedByChanged():Array<TNote> {
 }
 
 // Return list of project notes, sorted by changed date (newest to oldest)
-export function projectNotesSortedByChanged():Array<TNote> {
+export function projectNotesSortedByChanged(): Array<TNote> {
   const projectNotes = DataStore.projectNotes.slice()
   const notesSorted = projectNotes.sort(
     (first, second) => second.changedDate - first.changedDate,
@@ -313,25 +340,24 @@ export function projectNotesSortedByChanged():Array<TNote> {
 }
 
 // Return list of project notes, sorted by title (ascending)
-export function projectNotesSortedByTitle():Array<TNote> {
+export function projectNotesSortedByTitle(): Array<TNote> {
   const projectNotes = DataStore.projectNotes.slice()
-  const notesSorted = projectNotes.sort(
-    function (first, second) {
-      var a = first.title.toUpperCase()  // ignore upper and lowercase
-      var b = second.title.toUpperCase() // ignore upper and lowercase
-      if (a < b) {
-        return -1 //a comes first
-      }
-      if (a > b) {
-        return 1 // b comes first
-      }
-      return 0  // names must be equal
-    })
+  const notesSorted = projectNotes.sort(function (first, second) {
+    const a = first.title?.toUpperCase() ?? '' // ignore upper and lowercase
+    const b = second.title?.toUpperCase() ?? '' // ignore upper and lowercase
+    if (a < b) {
+      return -1 //a comes first
+    }
+    if (a > b) {
+      return 1 // b comes first
+    }
+    return 0 // names must be equal
+  })
   return notesSorted
 }
 
 // Convert paragraph(s) to single raw text string
-export function parasToText(paras:Array<TParagraph>):string {
+export function parasToText(paras: Array<TParagraph>): string {
   // console.log('parasToText: starting with ' + paras.length + ' paragraphs')
   let text = ''
   for (let i = 0; i < paras.length; i++) {

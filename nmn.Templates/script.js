@@ -9236,18 +9236,20 @@ var exports = (function (exports) {
   var load = loader.load;
 
   const staticTemplateFolder = '📋 Templates';
-  function getTemplateFolder() {
+  function getTemplateFolder$1() {
     return DataStore.folders.find(f => f.includes(staticTemplateFolder));
   }
-  async function makeTemplateFolder() {
-    let folder = getTemplateFolder();
+  async function getOrMakeTemplateFolder() {
+    console.log('getOrMakeTemplateFolder');
+    let folder = getTemplateFolder$1();
 
     if (folder == null) {
+      // No template folder yet, so offer to make it and populate it
       const shouldCreateFolder = await chooseOption('No templates folder found.', [{
         label: `✅ Create ${staticTemplateFolder} with samples`,
         value: true
       }, {
-        label: '❌ Cancel',
+        label: '❌ Cancel command',
         value: false
       }], false);
 
@@ -9265,8 +9267,13 @@ var exports = (function (exports) {
       DataStore.newNote(MEETING_NOTE_TEMPLATE, folder);
       DataStore.newNote(TAGS_TEMPLATE, folder);
       DataStore.newNote(CONFIG, folder);
-      await showMessage(`"${staticTemplateFolder}" folder created with samples `);
+      console.log(`-> "${staticTemplateFolder}" folder created with samples`);
+      await showMessage(`"${staticTemplateFolder}" folder created with samples`); // FIXME: hopefully can remove this after API cache fix.
+
+      await showMessage(`Please re-start command.`);
     }
+
+    return folder;
   }
   /*
 
@@ -9446,7 +9453,8 @@ lastName = "Doe"
   const FORMAT_MAP = {
     javascript: 'json5',
     ini: 'toml'
-  };
+  }; // @nmn original, but split up by @jgclark
+
   async function getDefaultConfiguration() {
     const templateFolder = await getTemplateFolder();
 
@@ -9462,13 +9470,16 @@ lastName = "Doe"
     }
 
     const firstCodeblock = content.split('\n```')[1];
+    return await parseFirstCodeblock(firstCodeblock);
+  } // Parse first codeblock as JSON/JSON5/YAML/TOML
 
-    if (firstCodeblock == null) {
-      await showMessage('No configuration found in configuration file.');
+  async function parseFirstCodeblock(block) {
+    if (block == null) {
+      await showMessage('No configuration block found in configuration file.');
       return {};
     }
 
-    let [format, ...contents] = firstCodeblock.split('\n');
+    let [format, ...contents] = block.split('\n');
     contents = contents.join('\n');
     format = format.trim();
 
@@ -9478,6 +9489,7 @@ lastName = "Doe"
     }
 
     format = FORMAT_MAP[format] ?? format;
+    console.log(`parseFirstCodeblock: will parse format ${format} length ${contents.length}`);
 
     switch (format) {
       case 'json':
@@ -9491,8 +9503,11 @@ lastName = "Doe"
 
       case 'toml':
         return parseTOML(contents);
+
+      default:
+        console.log(`parseFirstCodeblock: error: can't deal with format ${format}`);
     }
-  }
+  } // Get configuration section, or if not present, save into _configuraiton file
 
   async function parseJSON(contents) {
     try {
@@ -9675,16 +9690,16 @@ lastName = "Doe"
     return new Intl.DateTimeFormat(localeParam, secondParam).format(new Date());
   }
 
-  async function applyNamedTemplate(templateName) {
-    console.log(`applyNamedTemplate: for template '${templateName}'`);
-    const templateFolder = await getTemplateFolder();
+  //------------------------------------------------------------------------------
 
-    if (templateFolder == null) {
-      console.log(`\twarning: templateFolder is null`);
-      await makeTemplateFolder();
-      await showMessage('Try using this command again to use a template');
-      return;
-    }
+  async function applyNamedTemplate(templateName) {
+    console.log(`applyNamedTemplate: for template '${templateName}'`); // const templateFolder = await getOrMakeTemplateFolder()
+    // if (templateFolder == null) {
+    //   console.log(`\twarning: templateFolder is null`)
+    //   await getOrMakeTemplateFolder()
+    //   await showMessage('Try using this command again to use a template')
+    //   return
+    // }
 
     const selectedTemplate = DataStore.projectNoteByTitle(templateName, true, false)[0];
     let templateContent = selectedTemplate?.content;
@@ -9700,14 +9715,12 @@ lastName = "Doe"
     Editor.content = [Editor.content, processedTemplateContent].filter(Boolean).join('\n');
   }
   async function applyTemplate(newNote) {
-    const templateFolder = await getTemplateFolder();
-
-    if (templateFolder == null) {
-      console.log(`applyTemplate: warning: templateFolder is null`);
-      await makeTemplateFolder();
-      await showMessage('Try using this command again to use a template');
-      return;
-    }
+    const templateFolder = await getOrMakeTemplateFolder(); // if (templateFolder == null) {
+    //   console.log(`applyTemplate: warning: templateFolder is null`)
+    //   await makeTemplateFolder()
+    //   await showMessage('Try using this command again to use a template')
+    //   return
+    // }
 
     const options = DataStore.projectNotes.filter(n => n.filename?.startsWith(templateFolder)).filter(n => !n.title?.startsWith('_configuration')).map(note => note.title == null ? null : {
       label: note.title,
@@ -9758,7 +9771,7 @@ lastName = "Doe"
       return;
     }
 
-    const templateFolder = await getTemplateFolder();
+    const templateFolder = await getOrMakeTemplateFolder();
     let shouldApplyTemplate = false;
 
     if (templateFolder != null || templateFolder !== '') {

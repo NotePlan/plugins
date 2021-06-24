@@ -9226,16 +9226,12 @@ var exports = (function (exports) {
     await CommandBar.showOptions([okLabel], title);
   }
 
-  const staticTemplateFolder = '📋 Templates';
-  function getTemplateFolder() {
-    return DataStore.folders.find(f => f.includes(staticTemplateFolder));
-  }
-
   const ALLOWED_FORMATS = ['javascript', 'json', 'json5', 'yaml', 'toml', 'ini'];
   const FORMAT_MAP = {
     javascript: 'json5',
     ini: 'toml'
-  };
+  }; // @nmn original, but split up by @jgclark
+
   async function getDefaultConfiguration() {
     const templateFolder = await getTemplateFolder();
 
@@ -9251,13 +9247,16 @@ var exports = (function (exports) {
     }
 
     const firstCodeblock = content.split('\n```')[1];
+    return await parseFirstCodeblock(firstCodeblock);
+  } // Parse first codeblock as JSON/JSON5/YAML/TOML
 
-    if (firstCodeblock == null) {
-      await showMessage('No configuration found in configuration file.');
+  async function parseFirstCodeblock(block) {
+    if (block == null) {
+      await showMessage('No configuration block found in configuration file.');
       return {};
     }
 
-    let [format, ...contents] = firstCodeblock.split('\n');
+    let [format, ...contents] = block.split('\n');
     contents = contents.join('\n');
     format = format.trim();
 
@@ -9267,6 +9266,7 @@ var exports = (function (exports) {
     }
 
     format = FORMAT_MAP[format] ?? format;
+    console.log(`parseFirstCodeblock: will parse format ${format} length ${contents.length}`);
 
     switch (format) {
       case 'json':
@@ -9280,8 +9280,11 @@ var exports = (function (exports) {
 
       case 'toml':
         return parseTOML(contents);
+
+      default:
+        console.log(`parseFirstCodeblock: error: can't deal with format ${format}`);
     }
-  }
+  } // Get configuration section, or if not present, save into _configuraiton file
 
   async function parseJSON(contents) {
     try {
@@ -9362,7 +9365,7 @@ var exports = (function (exports) {
     const config = (await getDefaultConfiguration()) ?? {};
     const dateConfig = config.date ?? null;
 
-    if (dateConfig && date.locale) {
+    if (dateConfig && dateConfig.locale) {
       return dateConfig;
     } else {
       return {
@@ -9382,7 +9385,7 @@ var exports = (function (exports) {
   }
   /**
    * Create a list of options for combinations of date & time formats
-   * @returns {allDateOptions} props: dateStyle, timeStyle, label, text (to be inserted if chosen)
+   * @returns [{allDateOptions}] props: dateStyle, timeStyle, label, text (to be inserted if chosen)
    */
 
 

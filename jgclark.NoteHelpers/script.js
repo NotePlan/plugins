@@ -2,10 +2,10 @@ var exports = (function (exports) {
   'use strict';
 
   //-------------------------------------------------------------------------------
-  // Date functions
-  // @jgclark except where shown
 
-  new Date().toISOString().slice(0, 10); // @nmn
+  new Date().toISOString().slice(0, 10); // TODO: make a friendlier string
+
+  new Date().toISOString().slice(0, 16); // @nmn
   function printNote(note) {
     if (note == null) {
       console.log('Note not found!');

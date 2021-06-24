@@ -9222,12 +9222,6 @@ var exports = (function (exports) {
   };
   var load = loader.load;
 
-  async function chooseOption(title, options, defaultValue) {
-    const {
-      index
-    } = await CommandBar.showOptions(options.map(option => option.label), title);
-    return options[index]?.value ?? defaultValue;
-  }
   async function showMessage(title, okLabel = 'OK') {
     await CommandBar.showOptions([okLabel], title);
   }
@@ -9235,218 +9229,12 @@ var exports = (function (exports) {
     return await CommandBar.showInput(title, okLabel);
   }
 
-  const staticTemplateFolder = '📋 Templates';
-  function getTemplateFolder() {
-    return DataStore.folders.find(f => f.includes(staticTemplateFolder));
-  }
-  async function makeTemplateFolder() {
-    let folder = getTemplateFolder();
-
-    if (folder == null) {
-      const shouldCreateFolder = await chooseOption('No templates folder found.', [{
-        label: `✅ Create ${staticTemplateFolder} with samples`,
-        value: true
-      }, {
-        label: '❌ Cancel',
-        value: false
-      }], false);
-
-      if (!shouldCreateFolder) {
-        return;
-      }
-
-      const subfolder = await chooseOption('Select a location for the templates folder.', DataStore.folders.map(folder => ({
-        label: folder,
-        value: folder + (folder.endsWith('/') ? '' : '/')
-      })), '');
-      folder = subfolder + staticTemplateFolder; // Now create a sample note in that folder, then we got the folder also created
-
-      DataStore.newNote(DAILY_NOTE_TEMPLATE, folder);
-      DataStore.newNote(MEETING_NOTE_TEMPLATE, folder);
-      DataStore.newNote(TAGS_TEMPLATE, folder);
-      DataStore.newNote(CONFIG, folder);
-      await showMessage(`"${staticTemplateFolder}" folder created with samples `);
-    }
-  }
-  /*
-
-  DEFAULT TEMPLATE NOTES FOLLOW
-
-  */
-
-  const DAILY_NOTE_TEMPLATE = `Daily Note Template
----
-## Tasks
-
-## Media
-
-## Journal
-`;
-  const MEETING_NOTE_TEMPLATE = `Meeting Note Template
----
-## Project X Meeting on [[date]] with @Y and @Z
-
-## Notes
-
-## Actions
-`;
-  const TAGS_TEMPLATE = `Tags Template
----
-# {{title}}
-
-Created on {{date({locale: 'en-US', dateStyle: 'short'})}}
-`;
-  const CONFIG = ` _configuration
----
-# Template Tag Configuration
-
-This file is used to configure how templates work. \
-Use the code fence below to set global values for template tags.
-
-You can one of the following languages for your configuration:
-
-**javascript**: Actually, *[JSON5](https://json5.org)*. If you write a codeblock tagged as javascript, \
-make sure you write valid JSON5. Anything else will cause an error.
-**json**: If you don't mind losing the ability to write comments etc, you can use regular JSON as well.
-**yaml**: If you prefer the syntax of YAML, that is supported too.
-**ini**: If you would like to use the TOML format, mark your codeblock with \`ini\` and it will \
-be treated as TOML.
-
-The first code-block within the note will always be used. So edit the default configuration below:
-
-\`\`\`javascript
-{
-  // Even though it says, "javacsript" above, this actually just JSON5.
-
-  // configuration for dates, heavily based on javascript's Intl module
-  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat/DateTimeFormat
-  date: {
-    // Default timezone for date and time.
-    timezone: 'automatic',
-    // Default locale to format date and time.
-    // e.g. en-US will result in mm/dd/yyyy, while en_GB will be dd/mm/yyyy
-    locale: 'en-US',
-    // can be "short", "medium", "long" or "full"
-    dateStyle: 'short',
-    // optional key, can be "short", "medium", "long" or "full"
-    timeStyle: 'short',
-  },
-
-  // configuration for weather data
-  weather: {
-    // API key for https://openweathermap.org/
-    // !!REQUIRED!!
-    openWeatherAPIKey: '... put your API key here ...',
-    // Default location for weather forcast
-    latPosition: 0.0,
-    longPosition: 0.0,
-    // Default units. Can be 'metric' (for Celsius), or 'metric' (for Fahrenheit)
-    openWeatherUnits: 'metric',
-    // When using a weather tag, you can customize these options.
-  },
-
-  // default values for custom tags.
-  // These tags cannot be functions, but you may choose to have nested objects.
-  // feel free to edit this value however you see fit.
-  tagValue: {
-    me: {
-      // Can be used as {{me.firstName}}
-      firstName: 'John',
-      // Can be used as {{me.lastName}}
-      lastName: 'Doe',
-    }
-    // ...
-  },
-}
-\`\`\`
-
-If you prefer YAML format, delete the code-block above and edit this one instead:
-
-\`\`\`yaml
----
-# configuration for dates, heavily based on javascript's Intl module
-# https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat/DateTimeFormat
-date:
-  # Default timezone for date and time.
-  timezone: automatic
-  # Default locale to format date and time.
-  # e.g. en-US will result in mm/dd/yyyy, while en_GB will be dd/mm/yyyy
-  locale: en-US
-  # can be "short", "medium", "long" or "full"
-  dateStyle: short
-  # can be null (to skip time), "short", "medium", "long" or "full"
-  timeStyle: short
-
-# configuration for weather data lookups, if wanted
-weather:
-  # API key for https://openweathermap.org/
-  # !!REQUIRED!!
-  openWeatherAPIKey: <put your API key here>
-  # Default location for weather forcast
-  latPosition: 0.0
-  longPosition: 0.0
-  # Default units. Can be 'metric' (for Celsius), or 'metric' (for Fahrenheit)
-  openWeatherUnits: metric
-  # When using a weather tag, you can customize these options.
-
-# default values for custom tags.
-# These tags cannot be functions, but you may choose to have nested objects.
-# feel free to edit this value however you see fit.
-tagValue:
-  me:
-    # Can be used as {{me.firstName}}
-    firstName: John
-    # Can be used as {{me.lastName}}
-    lastName: Doe
-  # ... add any of your own keys here
-\`\`\`
-
-If you prefer TOML instead of JSON5 or YAML, delete the two code blocks above and use this one instead:
-
-\`\`\`ini
-# configuration for dates, heavily based on javascript's Intl module
-# https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat/DateTimeFormat
-[date]
-# Default timezone for date and time.
-timezone = "automatic"
-# Default locale to format date and time.
-# e.g. en-US will result in mm/dd/yyyy, while en_GB will be dd/mm/yyyy
-locale = "en-US"
-# can be "short", "medium", "long" or "full"
-dateStyle = "short"
-# can be null (to skip time), "short", "medium", "long" or "full"
-timeStyle = "short"
-
-// configuration for weather data
-[weather]
-// API key for https://openweathermap.org/
-# !!REQUIRED!!
-openWeatherAPIKey = <put your API key here>
-# Default location for weather forcast
-latPosition = 0.0
-longPosition = 0.0
-# Default units. Can be 'metric' (for Celsius), or 'metric' (for Fahrenheit)
-openWeatherUnits = 'metric'
-# When using a weather tag, you can customize these options.
-
-# default values for custom tags.
-[tagValue]
-# These tags cannot be functions, but you may choose to have nested objects.
-# feel free to edit this value however you see fit.
-
-[tagValue.me]
-# Can be used as {{me.firstName}}
-firstName = "John"
-# Can be used as {{me.lastName}}
-lastName = "Doe"
-\`\`\`
-`;
-
   const ALLOWED_FORMATS = ['javascript', 'json', 'json5', 'yaml', 'toml', 'ini'];
   const FORMAT_MAP = {
     javascript: 'json5',
     ini: 'toml'
-  };
+  }; // @nmn original, but split up by @jgclark
+
   async function getDefaultConfiguration() {
     const templateFolder = await getTemplateFolder();
 
@@ -9462,13 +9250,16 @@ lastName = "Doe"
     }
 
     const firstCodeblock = content.split('\n```')[1];
+    return await parseFirstCodeblock(firstCodeblock);
+  } // Parse first codeblock as JSON/JSON5/YAML/TOML
 
-    if (firstCodeblock == null) {
-      await showMessage('No configuration found in configuration file.');
+  async function parseFirstCodeblock(block) {
+    if (block == null) {
+      await showMessage('No configuration block found in configuration file.');
       return {};
     }
 
-    let [format, ...contents] = firstCodeblock.split('\n');
+    let [format, ...contents] = block.split('\n');
     contents = contents.join('\n');
     format = format.trim();
 
@@ -9478,6 +9269,7 @@ lastName = "Doe"
     }
 
     format = FORMAT_MAP[format] ?? format;
+    console.log(`parseFirstCodeblock: will parse format ${format} length ${contents.length}`);
 
     switch (format) {
       case 'json':
@@ -9491,8 +9283,11 @@ lastName = "Doe"
 
       case 'toml':
         return parseTOML(contents);
+
+      default:
+        console.log(`parseFirstCodeblock: error: can't deal with format ${format}`);
     }
-  }
+  } // Get configuration section, or if not present, save into _configuraiton file
 
   async function parseJSON(contents) {
     try {
@@ -9654,7 +9449,7 @@ lastName = "Doe"
 
 
   async function processDate(dateParams, config) {
-    console.log(`processDate: ${dateConfig}`);
+    // console.log(`processDate: ${dateConfig}`)
     const defaultConfig = config.date ?? {};
     const paramConfig = dateParams.trim() ? await parseJSON5(dateParams) : {}; // console.log(`param config: ${dateParams} as ${JSON.stringify(paramConfig)}`);
 
@@ -9675,16 +9470,16 @@ lastName = "Doe"
     return new Intl.DateTimeFormat(localeParam, secondParam).format(new Date());
   }
 
-  async function applyNamedTemplate(templateName) {
-    console.log(`applyNamedTemplate: for template '${templateName}'`);
-    const templateFolder = await getTemplateFolder();
+  //------------------------------------------------------------------------------
 
-    if (templateFolder == null) {
-      console.log(`\twarning: templateFolder is null`);
-      await makeTemplateFolder();
-      await showMessage('Try using this command again to use a template');
-      return;
-    }
+  async function applyNamedTemplate(templateName) {
+    console.log(`applyNamedTemplate: for template '${templateName}'`); // const templateFolder = await getOrMakeTemplateFolder()
+    // if (templateFolder == null) {
+    //   console.log(`\twarning: templateFolder is null`)
+    //   await getOrMakeTemplateFolder()
+    //   await showMessage('Try using this command again to use a template')
+    //   return
+    // }
 
     const selectedTemplate = DataStore.projectNoteByTitle(templateName, true, false)[0];
     let templateContent = selectedTemplate?.content;

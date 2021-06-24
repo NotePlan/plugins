@@ -4,7 +4,7 @@ var exports = (function (exports) {
   //-------------------------------------------------------------------------------
 
   async function showMessage(message, confirmTitle = 'OK') {
-    return await CommandBar.showOptions([confirmTitle], message);
+    await CommandBar.showOptions([confirmTitle], message);
   } // Show feedback Yes/No Question via Command Bar (@dwertheimer)
   // Date functions
   // @jgclark except where shown

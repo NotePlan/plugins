@@ -17,7 +17,7 @@ var exports = (function (exports) {
   } // Show feedback message using Command Bar (@dwertheimer, updating @nmn)
 
   async function showMessage$1(message, confirmTitle = 'OK') {
-    return await CommandBar.showOptions([confirmTitle], message);
+    await CommandBar.showOptions([confirmTitle], message);
   } // Show feedback Yes/No Question via Command Bar (@dwertheimer)
   // Stats functions
   // @jgclark except where shown
@@ -28,10 +28,10 @@ var exports = (function (exports) {
   function percent(value, total) {
     return `${value} (${Math.round(value / total * 100)}%)`;
   } //-------------------------------------------------------------------------------
-  // Date functions
-  // @jgclark except where shown
 
-  const todaysDateISOString = new Date().toISOString().slice(0, 10); // @nmn
+  const todaysDateISOString = new Date().toISOString().slice(0, 10); // TODO: make a friendlier string
+
+  new Date().toISOString().slice(0, 16); // @nmn
   function dateStringFromCalendarFilename(filename) {
     return filename.slice(0, 8);
   }
