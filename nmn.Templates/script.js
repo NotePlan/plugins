@@ -9563,11 +9563,13 @@ lastName = "Doe"
     }
   }
 
+  // import { parseJSON5 } from '../../nmn.Templates/src/configuration'
   // Using https://openweathermap.org/api/one-call-api#data, for which you can get a free API key
 
   async function getWeatherSummary(weatherParams, config) {
     const weatherDescText = ['showers', 'rain', 'sunny intervals', 'partly sunny', 'sunny', 'cloud', 'snow ', 'thunderstorm', 'tornado'];
-    const weatherDescIcons = ["🌦️", "🌧️", "🌤", "⛅", "☀️", "☁️", "🌨️", "⛈", "🌪"]; // Get config settings from Template folder _configuration note
+    const weatherDescIcons = ['🌦️', '🌧️', '🌤', '⛅', '☀️', '☁️', '🌨️', '⛈', '🌪']; // Get config settings from Template folder _configuration note
+    // Setting this to `any` for now.
 
     const weatherConfig = config.weather ?? null;
 
@@ -9580,17 +9582,20 @@ lastName = "Doe"
     const pref_latPosition = weatherConfig.latPosition;
     const pref_longPosition = weatherConfig.longPosition;
     const pref_openWeatherUnits = weatherConfig.openWeatherUnits;
-    console.log(`getWeatherSummary: Params: '${weatherParams}'`);
-    weatherParams.trim() ? await parseJSON5(weatherParams) : {}; // console.log(paramConfig)
+    console.log(`getWeatherSummary: Params: '${weatherParams}'`); // const paramConfig = weatherParams.trim()
+    //   ? await parseJSON5(weatherParams)
+    //   : {}
+    // console.log(paramConfig)
 
     const getWeatherURL = `https://api.openweathermap.org/data/2.5/onecall?lat=${pref_latPosition}&lon=${pref_longPosition}&exclude=current,hourly,minutely&units=${pref_openWeatherUnits}&appid=${pref_openWeatherAPIKey}`;
-    const jsonIn = await fetch(getWeatherURL);
+    const response = await fetch(getWeatherURL);
+    const jsonIn = await response.json();
 
     if (jsonIn != null) {
-      const weatherTodayAll = JSON.parse(jsonIn).daily["0"];
+      const weatherTodayAll = jsonIn.daily['0'];
       const maxTemp = weatherTodayAll.feels_like.day.toFixed(0);
       const minTemp = weatherTodayAll.feels_like.night.toFixed(0);
-      const weatherDesc = weatherTodayAll.weather["0"].description; // see if we can fix an icon for this as well, according to returned description. Main terms are:
+      const weatherDesc = weatherTodayAll.weather['0'].description; // see if we can fix an icon for this as well, according to returned description. Main terms are:
       // thunderstorm, drizzle, shower > rain, snow, sleet, clear sky, mist, fog, dust, tornado, overcast > clouds
       // with 'light' modifier for rain and snow
 

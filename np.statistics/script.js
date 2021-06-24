@@ -9816,7 +9816,7 @@ lastName = "Doe"
   // Jonathan Clark
   // v0.3.0, 21.6.2021
   //-----------------------------------------------------------------------------
-  // TODO: 
+  // TODO:
   // - When weekly/monthly notes are made possible in NP, then output changes there as well
   //-----------------------------------------------------------------------------
   // Globals, to be looked up later
@@ -9824,15 +9824,20 @@ lastName = "Doe"
   let pref_countsHeadingLevel;
   let pref_hashtagCountsHeading;
   let pref_mentionCountsHeading;
-  let pref_showAsHashtagOrMention;
-  let pref_includeHashtags;
-  let pref_excludeHashtags;
-  let pref_includeMentions;
-  let pref_excludeMentions; //-----------------------------------------------------------------------------
+  let pref_showAsHashtagOrMention = false;
+  let pref_includeHashtags = [];
+  let pref_excludeHashtags = [];
+  let pref_includeMentions = [];
+  let pref_excludeMentions = []; //-----------------------------------------------------------------------------
+  // Return quarter start and end dates for a given quarter
 
   function quarterStartEnd(qtr, year) {
-    let fromDate;
-    let toDate;
+    // Default values are needed to account for the
+    // default case of the switch statement below.
+    // Otherwise, these variables will never get initialized before
+    // being used.
+    let fromDate = new Date();
+    let toDate = new Date();
 
     switch (qtr) {
       case 1:
@@ -10073,8 +10078,13 @@ lastName = "Doe"
 
     const hOutputArray = [];
     let results = calcHashtagStatsPeriod(fromDateStr, toDateStr);
-    const hCounts = results[0];
-    const hSumTotals = results[1]; // Custom sort method to sort arrays of two values each
+    const hCounts = results?.[0];
+    const hSumTotals = results?.[1];
+
+    if (hSumTotals == null || hCounts == null) {
+      console.log('no hSumTotals value');
+      return;
+    } // Custom sort method to sort arrays of two values each
     // const sortedHCounts = new Map(
     //   [...(hCounts?.entries() ?? [])].sort(([key1, _v1], [key2, _v2]) =>
     //     key1.localeCompare(key2),
@@ -10082,29 +10092,37 @@ lastName = "Doe"
     // )
     // First process more complex 'SumTotals', calculating appropriately
 
-    for (const elem of hSumTotals) {
+
+    for (const [key, value] of hSumTotals) {
       // .entries() implied
-      const hashtagString = pref_showAsHashtagOrMention ? elem[0] : elem[0].slice(1);
-      const count = hCounts.get(elem[0]);
-      const total = elem[1].toFixed(0);
-      const average = (total / count).toFixed(1);
-      hOutputArray.push(`${hashtagString}\t${total}\taverage ${average} (from ${count} entries)`);
-      hCounts.delete(elem[0]); // remove the entry from the next map, as not longer needed
+      const hashtagString = pref_showAsHashtagOrMention ? key : key.slice(1);
+      const count = hCounts.get(key);
+
+      if (count != null) {
+        const total = value.toFixed(0);
+        const average = (value / count).toFixed(1);
+        hOutputArray.push(`${hashtagString}\t${total}\taverage ${average} (from ${count} entries)`);
+        hCounts.delete(key); // remove the entry from the next map, as not longer needed
+      }
     } // Then process simpler 'Counts'
 
 
-    for (const elem of hCounts) {
+    for (const [key, value] of hCounts) {
       // .entries() implied
-      const hashtagString = pref_showAsHashtagOrMention ? elem[0] : elem[0].slice(1);
-      hOutputArray.push(`${hashtagString}\t${elem[1]}`);
+      const hashtagString = pref_showAsHashtagOrMention ? key : key.slice(1);
+      hOutputArray.push(`${hashtagString}\t${value}`);
     }
 
     hOutputArray.sort(); // Calc mentions stats (returns two maps)
 
     const mOutputArray = [];
     results = calcMentionStatsPeriod(fromDateStr, toDateStr);
-    const mCounts = results[0];
-    const mSumTotals = results[1]; // Custom sort method to sort arrays of two values each
+    const mCounts = results?.[0];
+    const mSumTotals = results?.[1];
+
+    if (mCounts == null || mSumTotals == null) {
+      return;
+    } // Custom sort method to sort arrays of two values each
     // const sortedMResults = new Map(
     //   [...(mCounts?.entries() ?? [])].sort(([key1, _v1], [key2, _v2]) =>
     //     key1.localeCompare(key2),
@@ -10112,25 +10130,29 @@ lastName = "Doe"
     // )
     // First process more complex 'SumTotals', calculating appropriately
 
-    for (const elem of mSumTotals) {
+
+    for (const [key, value] of mSumTotals) {
       // .entries() implied
-      const mentionString = pref_showAsHashtagOrMention ? elem[0] : elem[0].slice(1);
-      const count = mCounts.get(elem[0]);
-      const total = elem[1].toFixed(0);
-      const average = (total / count).toFixed(1);
-      mOutputArray.push(`${mentionString}\t${total}\taverage ${average} (from ${count} entries)`);
-      mCounts.delete(elem[0]); // remove the entry from the next map, as not longer needed
+      const mentionString = pref_showAsHashtagOrMention ? key : key.slice(1);
+      const count = mCounts.get(key);
+
+      if (count != null) {
+        const total = value.toFixed(0);
+        const average = (value / count).toFixed(1);
+        mOutputArray.push(`${mentionString}\t${total}\taverage ${average} (from ${count} entries)`);
+        mCounts.delete(key); // remove the entry from the next map, as not longer needed
+      }
     } // Then process simpler 'Counts'
 
 
-    for (const elem of mCounts) {
-      const mentionString = pref_showAsHashtagOrMention ? elem[0] : elem[0].slice(1);
-      mOutputArray.push(`${mentionString}\t${elem[1]}`);
+    for (const [key, value] of mCounts) {
+      const mentionString = pref_showAsHashtagOrMention ? key : key.slice(1);
+      mOutputArray.push(`${mentionString}\t${value}`);
     }
 
     mOutputArray.sort(); // Ask where to save this summary to
 
-    const labelString = `🗒 Add/update note '${periodString}' in folder '${pref_folderToStore}'`;
+    const labelString = `🗒 Add/update note '${periodString}' in folder '${String(pref_folderToStore)}'`;
     const destination = await chooseOption$1(`Where to save the summary for ${periodString}?`, [{
       // TODO: When weekly/monthly notes are made possible in NP, then add options like this
       //   label: "📅 Append to this month's note",
@@ -10158,9 +10180,9 @@ lastName = "Doe"
             console.log(`\terror appending to today's note`);
           } else {
             console.log(`\tappending results to today's note (${todaysNote.filename ?? ''})`);
-            todaysNote.appendParagraph(`${pref_hashtagCountsHeading} for ${periodString} ${countsHeadingAdd}`, 'text');
+            todaysNote.appendParagraph(`${String(pref_hashtagCountsHeading)} for ${periodString} ${countsHeadingAdd}`, 'text');
             todaysNote.appendParagraph(hOutputArray.join('\n'), 'text');
-            todaysNote.appendParagraph(`${pref_mentionCountsHeading} for ${periodString} ${countsHeadingAdd}`, 'empty');
+            todaysNote.appendParagraph(`${String(pref_mentionCountsHeading)} for ${periodString} ${countsHeadingAdd}`, 'empty');
             todaysNote.appendParagraph(mOutputArray.join('\n'), 'text');
             console.log(`\tappended results to today's note`);
           }
@@ -10173,7 +10195,7 @@ lastName = "Doe"
           let note; // first see if this note has already been created
           // (look only in active notes, not Archive or Trash)
 
-          const existingNotes = await DataStore.projectNoteByTitle(periodString, true, false);
+          const existingNotes = (await DataStore.projectNoteByTitle(periodString, true, false)) ?? [];
           console.log(`\tfound ${existingNotes.length} existing summary notes for this period`);
 
           if (existingNotes.length > 0) {
@@ -10208,7 +10230,7 @@ lastName = "Doe"
           } else {
             // Shouldn't get here, but will because of a bug in <=r635
             console.log("tagStats: error: shouldn't get here -- no valid note to write to");
-            showMessage$1("Please re-run this command (NP bug before release 636");
+            showMessage$1('Please re-run this command (NP bug before release 636');
             return;
           }
 
@@ -10249,7 +10271,7 @@ lastName = "Doe"
 
   async function removeSection(note, heading) {
     const ps = note.paragraphs;
-    let existingHeadingIndex;
+    let existingHeadingIndex = -1;
     const thisTitle = note.title ?? '';
     console.log(`\t  removeSection '${heading}' from note '${thisTitle}' with ${ps.length} paras:`);
 
@@ -10307,9 +10329,13 @@ lastName = "Doe"
 
 
     const hashtagsToLookFor = pref_includeHashtags.length > 0 ? pref_includeHashtags : [];
-    console.log(`\thashtagsToLookFor: ${hashtagsToLookFor}`);
+    console.log(JSON.stringify({
+      hashtagsToLookFor
+    }, null, 2));
     const hashtagsToIgnore = pref_excludeHashtags.length > 0 ? pref_excludeHashtags : [];
-    console.log(`\thashtagsToIgnore: ${hashtagsToIgnore}`); // For each matching date, find and store the tags in Map
+    console.log(JSON.stringify({
+      hashtagsToIgnore
+    }, null, 2)); // For each matching date, find and store the tags in Map
 
     const tagCounts = new Map(); // key: tagname; value: count
     // Also define map to count and total hashtags with a final /number part.
@@ -10322,7 +10348,7 @@ lastName = "Doe"
       for (const t of seenTags) {
         // check this is on inclusion, or not on exclusion list, before adding
         if (hashtagsToLookFor.length > 0 && hashtagsToLookFor.filter(a => t.startsWith(a)).length === 0) ; else if (hashtagsToIgnore.filter(a => t.startsWith(a)).length > 0) ; else {
-          // if this is tag that finishes /number, then 
+          // if this is tag that finishes /number, then
           if (t.match(/\/\d+(\.\d+)?$/)) {
             const tagParts = t.split('/');
             const k = tagParts[0];
@@ -10365,9 +10391,13 @@ lastName = "Doe"
 
 
     const mentionsToLookFor = pref_includeMentions.length > 0 ? pref_includeMentions : [];
-    console.log(`\tmentionsToLookFor: ${mentionsToLookFor}`);
+    console.log(JSON.stringify({
+      mentionsToLookFor
+    }, null, 2));
     const mentionsToIgnore = pref_excludeMentions.length > 0 ? pref_excludeMentions : [];
-    console.log(`\tmentionsToIgnore: ${mentionsToIgnore}`); // For each matching date, find and store the mentions in Map
+    console.log(JSON.stringify({
+      mentionsToIgnore
+    }, null, 2)); // For each matching date, find and store the mentions in Map
 
     const mentionCounts = new Map(); // key: tagname; value: count
     // Also define map to count and total hashtags with a final /number part.
@@ -10381,7 +10411,7 @@ lastName = "Doe"
         // check this is on inclusion, or not on exclusion list, before adding
         if (mentionsToLookFor.length > 0 && // TODO: does this work for #run and #runav?
         mentionsToLookFor.filter(a => m.startsWith(a)).length === 0) ; else if (mentionsToIgnore.filter(a => m.startsWith(a)).length > 0) ; else {
-          // if this is menion that finishes (number), then 
+          // if this is menion that finishes (number), then
           if (m.match(/\(\d+(\.\d+)?\)$/)) {
             const mentionParts = m.split('(');
             const k = mentionParts[0];
