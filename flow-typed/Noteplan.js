@@ -186,6 +186,11 @@ type TEditor = {
    * will be unfolded.
    */
   highlightByRange(range: Range): void,
+  /**
+   * NOTE: Available from v3.0.23+ (Mac: Build 636+, iOS: Build 562+)
+   * Scrolls to and highlights the given range defined by the character index and the character length it should cover. If the paragraph is folded, it will be unfolded.
+   */
+  highlightByIndex(index: number, length: number): void,
 }
 
 /**
