@@ -16,7 +16,7 @@ const FORMAT_MAP = {
 export async function getDefaultConfiguration(): Promise<?{
   [string]: ?mixed,
 }> {
-  const templateFolder = await getTemplateFolder()
+  const templateFolder = await getOrMakeTemplateFolder()
   if (templateFolder == null) {
     return {}
   }
@@ -35,7 +35,9 @@ export async function getDefaultConfiguration(): Promise<?{
 }
 
 // Parse first codeblock as JSON/JSON5/YAML/TOML
-export async function parseFirstCodeblock(block: string): Promise<?{ [string]: ?mixed }> {
+export async function parseFirstCodeblock(
+  block: string,
+): Promise<?{ [string]: ?mixed }> {
   if (block == null) {
     await showMessage('No configuration block found in configuration file.')
     return {}
@@ -50,7 +52,9 @@ export async function parseFirstCodeblock(block: string): Promise<?{ [string]: ?
     return {}
   }
   format = FORMAT_MAP[format] ?? format
-  console.log(`parseFirstCodeblock: will parse format ${format} length ${contents.length}`)
+  console.log(
+    `parseFirstCodeblock: will parse format ${format} length ${contents.length}`,
+  )
 
   switch (format) {
     case 'json':
@@ -62,7 +66,9 @@ export async function parseFirstCodeblock(block: string): Promise<?{ [string]: ?
     case 'toml':
       return parseTOML(contents)
     default:
-      console.log(`parseFirstCodeblock: error: can't deal with format ${format}`)
+      console.log(
+        `parseFirstCodeblock: error: can't deal with format ${format}`,
+      )
   }
 }
 
@@ -71,8 +77,8 @@ export async function parseFirstCodeblock(block: string): Promise<?{ [string]: ?
 // @jgclark
 export async function getOrMakeConfigurationSection(
   configSectionName: string,
-  configSectionDefault: string): Promise<?{ [string]: ?mixed }> {
-  
+  configSectionDefault: string,
+): Promise<?{ [string]: ?mixed }> {
   const templateFolder = await getOrMakeTemplateFolder()
   if (templateFolder == null) {
     return {}
@@ -80,8 +86,12 @@ export async function getOrMakeConfigurationSection(
 
   console.log(`getOrMakeConfigurationSection: got folder ${templateFolder}`)
   const configFile = DataStore.projectNotes
-  .filter((n) => n.filename?.startsWith(templateFolder))
-  .find((n) => !!n.title?.startsWith('_configuration'))
+    .filter((n) => n.filename?.startsWith(templateFolder))
+    .find((n) => !!n.title?.startsWith('_configuration'))
+
+  if (configFile == null) {
+    return {}
+  }
 
   const content: ?string = configFile?.content
   if (content == null) {
@@ -93,13 +103,14 @@ export async function getOrMakeConfigurationSection(
 
   // Get config contents
   const firstCodeblock = content.split('\n```')[1]
-  const config = await parseFirstCodeblock(firstCodeblock) ?? {}
+  const config: { [string]: mixed } =
+    (await parseFirstCodeblock(firstCodeblock)) ?? {}
 
   // Does it contain the section we want?
-  if (firstCodeblock === undefined ||
-      config[configSectionName] == null) { // alternative to dot notation that allows variables
+  if (firstCodeblock == null || config[configSectionName] == null) {
+    // alternative to dot notation that allows variables
     // No, so offer to make it and populate it
-    const shouldAddDefaultConfig = await chooseOption <boolean, boolean> (
+    const shouldAddDefaultConfig = await chooseOption<boolean, boolean>(
       `No '${configSectionName}' configuration section found.`,
       [
         {
@@ -119,19 +130,32 @@ export async function getOrMakeConfigurationSection(
 
     // Add default configuration
     // TODO: check for javascript block start
-    const backtickParas = configFile.paragraphs.filter((p) => p.content.match(/```/))
+    const backtickParas = configFile.paragraphs.filter((p) =>
+      p.content.match(/```/),
+    )
     // const startJSFirstBlockParas = configFile.paragraphs.filter((p) => p.content.match(/^```\s*javascript/))
-    if (backtickParas.length > 0 && backtickParas[0].content.endsWith('javascript')) {
+    if (
+      backtickParas.length > 0 &&
+      backtickParas[0].content.endsWith('javascript')
+    ) {
       // Insert new default configuration at the bottom of the current _configuration block
       const endFirstBlockLineNumber = backtickParas[1].lineIndex - 1
       // insert paragraph just before second ``` line
       if (endFirstBlockLineNumber !== undefined) {
-        configFile.insertParagraph(configSectionDefault, endFirstBlockLineNumber, 'text')
+        configFile.insertParagraph(
+          configSectionDefault,
+          endFirstBlockLineNumber,
+          'text',
+        )
         // FIXME: doesn't do next line
-        await showMessage(`Inserted default javascript-style configuration for ${configName}.\nPlease check before re-running command.`)
+        await showMessage(
+          `Inserted default javascript-style configuration for ${configSectionName}.\nPlease check before re-running command.`,
+        )
         Editor.openNoteByFilename(configFile.filename)
       } else {
-        await showMessage(`Error: cannot create default configuration for ${configName}`)
+        await showMessage(
+          `Error: cannot create default configuration for ${configSectionName}`,
+        )
         return {}
       }
     } else {
@@ -139,7 +163,9 @@ export async function getOrMakeConfigurationSection(
       const configAsJSBlock = `\`\`\` javascript\n{\n${configSectionDefault}\n}\n\`\`\``
       configFile.insertParagraph(configAsJSBlock, 2, 'text')
       // FIXME: doesn't do next line
-      await showMessage(`Created default javascript-style configuration for ${configName}.\nPlease check before re-running command.`)
+      await showMessage(
+        `Created default javascript-style configuration for ${configSectionName}.\nPlease check before re-running command.`,
+      )
       Editor.openNoteByFilename(configFile.filename)
       return {}
     }
@@ -148,7 +174,6 @@ export async function getOrMakeConfigurationSection(
   // We have the configuration, so return it
   return config
 }
-
 
 async function parseJSON(contents: string): Promise<?{ [string]: ?mixed }> {
   try {

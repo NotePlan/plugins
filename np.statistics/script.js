@@ -9692,6 +9692,11 @@ lastName = "Doe"
 
     console.log(`getOrMakeConfigurationSection: got folder ${templateFolder}`);
     const configFile = DataStore.projectNotes.filter(n => n.filename?.startsWith(templateFolder)).find(n => !!n.title?.startsWith('_configuration'));
+
+    if (configFile == null) {
+      return {};
+    }
+
     const content = configFile?.content;
 
     if (content == null) {
@@ -9705,7 +9710,7 @@ lastName = "Doe"
     const firstCodeblock = content.split('\n```')[1];
     const config = (await parseFirstCodeblock(firstCodeblock)) ?? {}; // Does it contain the section we want?
 
-    if (firstCodeblock === undefined || config[configSectionName] == null) {
+    if (firstCodeblock == null || config[configSectionName] == null) {
       // alternative to dot notation that allows variables
       // No, so offer to make it and populate it
       const shouldAddDefaultConfig = await chooseOption(`No '${configSectionName}' configuration section found.`, [{
@@ -9731,10 +9736,10 @@ lastName = "Doe"
         if (endFirstBlockLineNumber !== undefined) {
           configFile.insertParagraph(configSectionDefault, endFirstBlockLineNumber, 'text'); // FIXME: doesn't do next line
 
-          await showMessage(`Inserted default javascript-style configuration for ${configName}.\nPlease check before re-running command.`);
+          await showMessage(`Inserted default javascript-style configuration for ${configSectionName}.\nPlease check before re-running command.`);
           Editor.openNoteByFilename(configFile.filename);
         } else {
-          await showMessage(`Error: cannot create default configuration for ${configName}`);
+          await showMessage(`Error: cannot create default configuration for ${configSectionName}`);
           return {};
         }
       } else {
@@ -9742,7 +9747,7 @@ lastName = "Doe"
         const configAsJSBlock = `\`\`\` javascript\n{\n${configSectionDefault}\n}\n\`\`\``;
         configFile.insertParagraph(configAsJSBlock, 2, 'text'); // FIXME: doesn't do next line
 
-        await showMessage(`Created default javascript-style configuration for ${configName}.\nPlease check before re-running command.`);
+        await showMessage(`Created default javascript-style configuration for ${configSectionName}.\nPlease check before re-running command.`);
         Editor.openNoteByFilename(configFile.filename);
         return {};
       }

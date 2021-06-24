@@ -9236,12 +9236,12 @@ var exports = (function (exports) {
   var load = loader.load;
 
   const staticTemplateFolder = '📋 Templates';
-  function getTemplateFolder$1() {
+  function getTemplateFolder() {
     return DataStore.folders.find(f => f.includes(staticTemplateFolder));
   }
   async function getOrMakeTemplateFolder() {
     console.log('getOrMakeTemplateFolder');
-    let folder = getTemplateFolder$1();
+    let folder = getTemplateFolder();
 
     if (folder == null) {
       // No template folder yet, so offer to make it and populate it
@@ -9456,7 +9456,7 @@ lastName = "Doe"
   }; // @nmn original, but split up by @jgclark
 
   async function getDefaultConfiguration() {
-    const templateFolder = await getTemplateFolder();
+    const templateFolder = await getOrMakeTemplateFolder();
 
     if (templateFolder == null) {
       return {};
@@ -9701,7 +9701,7 @@ lastName = "Doe"
     //   return
     // }
 
-    const selectedTemplate = DataStore.projectNoteByTitle(templateName, true, false)[0];
+    const selectedTemplate = DataStore.projectNoteByTitle(templateName, true, false)?.[0];
     let templateContent = selectedTemplate?.content;
 
     if (templateContent == null || templateContent.length === 0) {
@@ -9715,12 +9715,14 @@ lastName = "Doe"
     Editor.content = [Editor.content, processedTemplateContent].filter(Boolean).join('\n');
   }
   async function applyTemplate(newNote) {
-    const templateFolder = await getOrMakeTemplateFolder(); // if (templateFolder == null) {
-    //   console.log(`applyTemplate: warning: templateFolder is null`)
-    //   await makeTemplateFolder()
-    //   await showMessage('Try using this command again to use a template')
-    //   return
-    // }
+    const templateFolder = await getOrMakeTemplateFolder();
+
+    if (templateFolder == null) {
+      console.log(`applyTemplate: warning: templateFolder is null`); // await makeTemplateFolder()
+
+      await showMessage('Template Folder Not Found');
+      return;
+    }
 
     const options = DataStore.projectNotes.filter(n => n.filename?.startsWith(templateFolder)).filter(n => !n.title?.startsWith('_configuration')).map(note => note.title == null ? null : {
       label: note.title,
