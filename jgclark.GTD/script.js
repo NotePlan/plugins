@@ -46,7 +46,12 @@ var exports = (function (exports) {
   async function nextReview() {
     // First update @review(date) on current open note
     console.log('nextReview: stage 1');
-    const openNote = await editorSetReviewDate(); // Then update @review(date) in review list note
+    const openNote = await editorSetReviewDate();
+
+    if (openNote == null) {
+      return;
+    } // Then update @review(date) in review list note
+
 
     console.log('nextReview: stage 2');
     await updateReviewListWithComplete(openNote); // Read review list to work out what's the next one to review
@@ -54,12 +59,12 @@ var exports = (function (exports) {
     console.log('nextReview: stage 3');
     const noteToReview = await getNextNoteToReview(); // Open that note in editor
 
-    if (noteToReview !== undefined) {
+    if (noteToReview != null) {
       console.log('nextReview: stage 4');
       Editor.openNoteByFilename(noteToReview.filename);
     } else {
-      console.log("nextReview: 🎉 No more notes to review!");
-      await showMessage("🎉 No more notes to review!");
+      console.log('nextReview: 🎉 No more notes to review!');
+      await showMessage('🎉 No more notes to review!');
     }
   } //-------------------------------------------------------------------------------
   // Complete current review, then jump to the next one to review
@@ -69,7 +74,7 @@ var exports = (function (exports) {
       console.log('completeReviewUpdateList: error: called with null or Calendar note type');
     }
 
-    console.log(`completeReviewUpdateList for '${note.title}'`); // TODO: does this need to be async?
+    console.log(`completeReviewUpdateList for '${note.title ?? ''}'`); // TODO: does this need to be async?
   } //-------------------------------------------------------------------------------
   // Complete current review, then jump to the next one to review
 
@@ -90,35 +95,47 @@ var exports = (function (exports) {
 
     let metadataPara; // get list of @mentions
 
-    const reviewedMentions = Editor.note?.mentions.filter(m => m.match(RE_REVIEW_MENTION));
+    const firstReviewedMention = Editor.note?.mentions.find(m => m.match(RE_REVIEW_MENTION));
 
-    if (reviewedMentions != null && reviewedMentions.length > 0) {
+    if (firstReviewedMention != null) {
       // find line in currently open note containing @reviewed() mention
-      const firstMatch = reviewedMentions[0]; // which line is this in?
+      const firstMatch = firstReviewedMention; // which line is this in?
 
-      const ps = Editor.paragraphs; // TODO: Need a default here
-
-      for (let i = 0; i < ps.length; i++) {
-        if (ps[i].content.match(RE_REVIEW_MENTION)) {
-          metadataPara = ps[i];
-          console.log(`\tFound existing ${reviewMentionString}(date) in line ${i}`);
+      for (const para of Editor.paragraphs) {
+        if (para.content.match(RE_REVIEW_MENTION)) {
+          metadataPara = para;
+          console.log(`\tFound existing ${reviewMentionString}(date) in line ${para.lineIndex}`);
         }
-      } // replace with today's date
+      }
 
+      if (metadataPara == null) {
+        // What if Editor.paragraphs is an empty array?
+        return null;
+      }
 
-      const older = metadataPara.content;
+      const metaPara = metadataPara; // replace with today's date
+
+      const older = metaPara.content;
       const newer = older.replace(firstMatch, reviewedTodayString);
-      metadataPara.content = newer;
-      console.log(`\tupdating para to '${newer}'`);
+      metaPara.content = newer;
+      console.log(`\tupdating para to '${newer}'`); // send update to Editor
+
+      await Editor.updateParagraph(metaPara);
     } else {
       // no existing mention, so append to note's default metadata line
       console.log(`\tno matching ${reviewMentionString}(date) string found. Will append to line ${pref_metadataLineIndex}`);
       const metadataPara = Editor.note?.paragraphs[pref_metadataLineIndex];
-      metadataPara.content += ` ${reviewedTodayString}`;
-    } // send update to Editor
 
+      if (metadataPara == null) {
+        return null;
+      }
 
-    await Editor.updateParagraph(metadataPara); // return current note, to help next function
+      const metaPara = metadataPara;
+      metaPara.content += ` ${reviewedTodayString}`; // send update to Editor
+
+      await Editor.updateParagraph(metaPara);
+    } // return current note, to help next function
+
 
     return Editor.note;
   }
@@ -140,7 +157,7 @@ var exports = (function (exports) {
 
     const projectNotesWithTag = projectNotesInFolder.filter(n => n.hashtags.includes(tag)); // Sort alphabetically on note's title
 
-    const projectNotesSortedByName = projectNotesWithTag.sort((first, second) => second.title - first.title);
+    const projectNotesSortedByName = projectNotesWithTag.sort((first, second) => (first.title ?? '').localeCompare(second.title ?? ''));
     return projectNotesSortedByName;
   } // Return line summarising a project note's status:
   // - title
@@ -157,17 +174,20 @@ var exports = (function (exports) {
   // Define 'Project' class to use in GTD.
   // Holds title, last reviewed date, due date, review interval, completion date,
   // number of closed, open & waiting for tasks
+  // NOTE: class syntax is likely not supported in Safari 11.
 
 
   class Project {
+    // Types for the class properties
+    // reviewInterval
     constructor(note) {
       this.note = note;
       this.title = note.title;
       this.dueDate = undefined; // TODO
 
       this.reviewedDate = undefined; // TODO
+      // this.reviewInterval = ''
 
-      this.reviewInterval = '';
       this.completedDate = undefined;
       this.openTasks = 0;
       this.completedTasks = 0;
@@ -183,13 +203,14 @@ var exports = (function (exports) {
     }
 
     basicSummaryLine() {
-      titleAsLink = this.title !== undefined ? `[[${this.title}]]` : '(error)';
+      const titleAsLink = this.title !== undefined ? `[[${this.title ?? ''}]]` : '(error)';
       return `- ${titleAsLink}`;
     }
 
     detailedSummaryLine() {
-      const titleAsLink = note.title !== undefined ? `[[${note.title}]]` : '(error)';
-      return `- ${titleAsLink}\t${timeUntilDue()}\t${timeUntilReview()}`; // etc.
+      // Class properties must always be used with `this.`
+      const titleAsLink = this.note.title !== undefined ? `[[${this.note.title ?? ''}]]` : '(error)';
+      return `- ${titleAsLink}\t${this.timeUntilDue()}\t${this.timeUntilReview()}`; // etc.
     }
 
   } //-------------------------------------------------------------------------------
@@ -198,17 +219,23 @@ var exports = (function (exports) {
 
   async function noteTypeSummaries() {
     console.log(`\ntesting class Project`);
-    let p1 = new Project(Editor.note);
+    const note = Editor.note;
+
+    if (!note) {
+      return;
+    }
+
+    const p1 = new Project(note);
     console.log(p1.detailedSummaryLine());
     console.log(`\nnoteTypeSummaries`);
     const destination = 'note'; // or 'note' or 'show'
 
     const tags = pref_noteTypeTags.split(',');
 
-    for (let i = 0; i < tags.length; i++) {
+    for (const tag of tags) {
       // Do the main work
-      const outputArray = makeNoteTypeSummary(tags[i]);
-      const tagName = tags[i].slice(1);
+      const outputArray = makeNoteTypeSummary(tag);
+      const tagName = tag.slice(1);
       const noteTitle = `'${tagName}' notes summary`;
       outputArray.unshift(`# ${noteTitle}`); // add note title to start
       // Save or show the results
@@ -219,7 +246,7 @@ var exports = (function (exports) {
             let note; // first see if this note has already been created
             // (look only in active notes, not Archive or Trash)
 
-            const existingNotes = DataStore.projectNoteByTitle(noteTitle, true, false);
+            const existingNotes = DataStore.projectNoteByTitle(noteTitle, true, false) ?? [];
             console.log(`\tfound ${existingNotes.length} existing summary notes for this period`);
 
             if (existingNotes.length > 0) {
@@ -229,15 +256,17 @@ var exports = (function (exports) {
             } else {
               // make a new note for this
               let noteFilename = await DataStore.newNote(noteTitle, pref_folderToStore);
-              console.log(`\tnewNote filename: ${noteFilename}`);
-              noteFilename = `${pref_folderToStore}/${noteFilename}` ?? '(error)'; // NB: filename here = folder + filename
+              console.log(`\tnewNote filename: ${String(noteFilename)}`);
+              noteFilename = `${pref_folderToStore}/${String(noteFilename)}` ?? '(error)'; // NB: filename here = folder + filename
 
               note = await DataStore.projectNoteByFilename(noteFilename);
               console.log(`\twriting results to the new note '${noteFilename}'`);
             }
 
             if (note != null) {
-              note.content = outputArray.join("\n");
+              // This is a bug in flow. Creating a temporary const is a workaround.
+              const n = note;
+              n.content = outputArray.join('\n');
             } else {
               console.log("makeNoteTypeSummary: error: shouldn't get here -- no valid note to write to");
               return;
@@ -255,7 +284,8 @@ var exports = (function (exports) {
 
         default:
           {
-            const re = await CommandBar.showOptions(outputArray, `Summary for ${noteTag} notes.  (Select anything to copy)`);
+            const re = await CommandBar.showOptions(outputArray, // you had noteTag here. But that variable is not defined
+            `Summary for ${String(tag)} notes.  (Select anything to copy)`);
 
             if (re !== null) {
               Clipboard.string = outputArray.join('\n');
@@ -266,7 +296,7 @@ var exports = (function (exports) {
       }
     }
   } //-------------------------------------------------------------------------------
-  // Return summary of notes that contain a particular tag, for all 
+  // Return summary of notes that contain a particular tag, for all
   // relevant folders
 
   function makeNoteTypeSummary(noteTag) {
@@ -278,21 +308,23 @@ var exports = (function (exports) {
     const folderList = DataStore.folders ;
     console.log(`${folderList.length} folders`); // Iterate over the folders
 
-    for (let f = 0; f < folderList.length; f++) {
-      const notes = findMatchingNotesSortedByName(noteTag, folderList[f]); // console.log(notes.length)
+    for (const folder of folderList) {
+      const notes = findMatchingNotesSortedByName(noteTag, folder); // console.log(notes.length)
 
       if (notes.length > 0) {
         {
-          outputArray.push(`### ${folderList[f]} (${notes.length} notes)`);
+          outputArray.push(`### ${folder} (${notes.length} notes)`);
         } // iterate over this folder's notes
 
 
-        for (let n = 0; n < notes.length; n++) {
-          outputArray.push(noteStatus(notes[n]));
+        for (const note of notes) {
+          outputArray.push(noteStatus(note));
         }
 
         noteCount += notes.length;
       }
+
+      notes.length;
     } // Add a summary/ies onto the start
 
     outputArray.unshift(`Total: ${noteCount} notes. (Last updated: ${nowShortDateTime})`);
