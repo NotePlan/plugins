@@ -4,19 +4,41 @@
 import { getDefaultConfiguration } from '../../nmn.Templates/src/configuration'
 import { hyphenatedDateString } from '../../nmn.sweep/src/dateHelpers'
 
-const pad = (num: number): string => (num < 10 ? `0${num}` : String(num))
-type DateConfig = {
+type DateConfig = $ReadOnly<{
   timezone: string,
   locale: string,
   dateStyle?: string,
   timeStyle?: string,
   hour12?: boolean,
+  ...
+}>
+// This is a function that verifies that an object is of the type
+// DateConfig. If it is, it returns an object with the correct type
+// If it's not, it returns undefined.
+function asDateConfig(obj: mixed): ?DateConfig {
+  if (
+    typeof obj === 'object' &&
+    obj != null &&
+    typeof obj.timezone === 'string' &&
+    typeof obj.locale === 'string'
+  ) {
+    const { timezone, locale, dateStyle, timeStyle, hour12, ...other } = obj
+    return {
+      ...other,
+      timezone,
+      locale,
+      dateStyle: typeof dateStyle === 'string' ? dateStyle : undefined,
+      timeStyle: typeof timeStyle === 'string' ? timeStyle : undefined,
+      hour12: typeof hour12 === 'boolean' ? hour12 : undefined,
+    }
+  }
 }
 
 async function getDateConfig(): Promise<DateConfig> {
-  const config = (await getDefaultConfiguration()) ?? {}
-  const dateConfig = config.date ?? null
-  if (dateConfig && dateConfig.locale) {
+  const config = await getDefaultConfiguration()
+  // Verify that the config.date value is a `DateConfig`
+  const dateConfig = asDateConfig(config?.date)
+  if (dateConfig) {
     return dateConfig
   } else {
     return {
@@ -44,17 +66,30 @@ async function getFormattedDateTime() {
   const dateConfig = await getDateConfig()
   const dateStyles = ['short', 'medium', 'long'] // pulling out 'full' for now
   const timeStyles = ['', 'short', 'medium', 'long'] // pulling out 'full' for now
+
   const options = []
   dateStyles.forEach((ds) =>
     timeStyles.forEach((ts) => {
-      dateConfig.dateStyle = ds
-      if (ds === '') delete dateConfig.dateStyle
-      dateConfig.timeStyle = ts
-      if (ts === '') delete dateConfig.timeStyle
+      // Pluck all values except `dateStyle` and `timeStyle`
+      const { dateStyle: _1, timeStyle: _2, ...config } = { ...dateConfig }
+
+      // conditionall add those keys to config
+      if (ds !== '') {
+        // Ignore type error for now
+        // $FlowFixMe
+        config.dateStyle = ds
+      }
+      if (ts !== '') {
+        // $FlowFixMe
+        config.timeStyle = ts
+      }
+
       const text = new Intl.DateTimeFormat(
         dateConfig.locale,
+        // $FlowFixMe
         dateConfig,
       ).format()
+
       options.push({
         dateStyle: ds !== '' ? ds : null,
         timeStyle: ts !== '' ? ds : null,
@@ -63,7 +98,8 @@ async function getFormattedDateTime() {
       })
     }),
   )
-  // console.log(JSON.stringify(options))
+
+  // console.log(JSON.stringify(options, null, 2))
   return options
 }
 
@@ -75,8 +111,7 @@ export async function insertISODate() {
 
 // /date
 export async function insertDate() {
-  const dateConfig = await getDateConfig()
-  if (dateConfig.timeStyle) delete dateConfig.timeStyle
+  const { timeStyle: _, ...dateConfig } = await getDateConfig()
   const dateText = new Intl.DateTimeFormat(
     dateConfig.locale,
     dateConfig,
@@ -86,9 +121,12 @@ export async function insertDate() {
 
 // /now
 export async function insertDateTime() {
-  const dateConfig = await getDateConfig()
-  if (!dateConfig.dateStyle) dateConfig.dateStyle = 'full'
-  if (!dateConfig.timeStyle) dateConfig.timeStyle = 'short'
+  const _dateConfig = await getDateConfig()
+  const dateConfig = {
+    ..._dateConfig,
+    dateStyle: _dateConfig.dateStyle ?? 'full',
+    timeStyle: _dateConfig.timeStyle ?? 'short',
+  }
   const dateText = new Intl.DateTimeFormat(
     dateConfig.locale,
     dateConfig,
@@ -98,8 +136,7 @@ export async function insertDateTime() {
 
 // /time
 export async function insertTime() {
-  const dateConfig = await getDateConfig()
-  if (dateConfig.dateStyle) delete dateConfig.dateStyle
+  const { dateStyle: _, ...dateConfig } = await getDateConfig()
   const timeText = new Intl.DateTimeFormat(
     dateConfig.locale,
     dateConfig,

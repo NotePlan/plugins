@@ -9361,11 +9361,35 @@ var exports = (function (exports) {
 
   // TODO: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat
 
-  async function getDateConfig() {
-    const config = (await getDefaultConfiguration()) ?? {};
-    const dateConfig = config.date ?? null;
+  // This is a function that verifies that an object is of the type
+  // DateConfig. If it is, it returns an object with the correct type
+  // If it's not, it returns undefined.
+  function asDateConfig(obj) {
+    if (typeof obj === 'object' && obj != null && typeof obj.timezone === 'string' && typeof obj.locale === 'string') {
+      const {
+        timezone,
+        locale,
+        dateStyle,
+        timeStyle,
+        hour12,
+        ...other
+      } = obj;
+      return { ...other,
+        timezone,
+        locale,
+        dateStyle: typeof dateStyle === 'string' ? dateStyle : undefined,
+        timeStyle: typeof timeStyle === 'string' ? timeStyle : undefined,
+        hour12: typeof hour12 === 'boolean' ? hour12 : undefined
+      };
+    }
+  }
 
-    if (dateConfig && dateConfig.locale) {
+  async function getDateConfig() {
+    const config = await getDefaultConfiguration(); // Verify that the config.date value is a `DateConfig`
+
+    const dateConfig = asDateConfig(config?.date);
+
+    if (dateConfig) {
       return dateConfig;
     } else {
       return {
@@ -9398,18 +9422,34 @@ var exports = (function (exports) {
 
     const options = [];
     dateStyles.forEach(ds => timeStyles.forEach(ts => {
-      dateConfig.dateStyle = ds;
-      if (ds === '') delete dateConfig.dateStyle;
-      dateConfig.timeStyle = ts;
-      if (ts === '') delete dateConfig.timeStyle;
-      const text = new Intl.DateTimeFormat(dateConfig.locale, dateConfig).format();
+      // Pluck all values except `dateStyle` and `timeStyle`
+      const {
+        dateStyle: _1,
+        timeStyle: _2,
+        ...config
+      } = { ...dateConfig
+      }; // conditionall add those keys to config
+
+      if (ds !== '') {
+        // Ignore type error for now
+        // $FlowFixMe
+        config.dateStyle = ds;
+      }
+
+      if (ts !== '') {
+        // $FlowFixMe
+        config.timeStyle = ts;
+      }
+
+      const text = new Intl.DateTimeFormat(dateConfig.locale, // $FlowFixMe
+      dateConfig).format();
       options.push({
         dateStyle: ds !== '' ? ds : null,
         timeStyle: ts !== '' ? ds : null,
         label: `${text} (${ds}/${ts})`,
         text: `${text}`
       });
-    })); // console.log(JSON.stringify(options))
+    })); // console.log(JSON.stringify(options, null, 2))
 
     return options;
   } // /iso
@@ -9421,23 +9461,30 @@ var exports = (function (exports) {
   } // /date
 
   async function insertDate() {
-    const dateConfig = await getDateConfig();
-    if (dateConfig.timeStyle) delete dateConfig.timeStyle;
+    const {
+      timeStyle: _,
+      ...dateConfig
+    } = await getDateConfig();
     const dateText = new Intl.DateTimeFormat(dateConfig.locale, dateConfig).format();
     Editor.insertTextAtCursor(dateText);
   } // /now
 
   async function insertDateTime() {
-    const dateConfig = await getDateConfig();
-    if (!dateConfig.dateStyle) dateConfig.dateStyle = 'full';
-    if (!dateConfig.timeStyle) dateConfig.timeStyle = 'short';
+    const _dateConfig = await getDateConfig();
+
+    const dateConfig = { ..._dateConfig,
+      dateStyle: _dateConfig.dateStyle ?? 'full',
+      timeStyle: _dateConfig.timeStyle ?? 'short'
+    };
     const dateText = new Intl.DateTimeFormat(dateConfig.locale, dateConfig).format();
     Editor.insertTextAtCursor(`${dateText}`);
   } // /time
 
   async function insertTime() {
-    const dateConfig = await getDateConfig();
-    if (dateConfig.dateStyle) delete dateConfig.dateStyle;
+    const {
+      dateStyle: _,
+      ...dateConfig
+    } = await getDateConfig();
     const timeText = new Intl.DateTimeFormat(dateConfig.locale, dateConfig).format();
     Editor.insertTextAtCursor(timeText);
   } // /ldn
