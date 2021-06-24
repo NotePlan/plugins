@@ -1,6 +1,6 @@
 // @flow strict
 
-import { hyphenatedDateString } from './dateHelpers'
+import { hyphenatedDateString, removeDateTags } from './dateHelpers'
 import { chooseOption } from './userInput'
 
 export default async function sweepCalendarNote(
@@ -38,7 +38,7 @@ export default async function sweepCalendarNote(
     // Either all movable types, or anything indented, if the parent is indented as well.
     if (
       moveableTypes.includes(p.type) ||
-      ((p.indents > 0 || p.type == 'empty') && lastRootItem != null)
+      ((p.indents > 0 || p.type === 'empty') && lastRootItem != null)
     ) {
       paragraphsToMove.push(p)
 
@@ -60,7 +60,9 @@ export default async function sweepCalendarNote(
 
   type RescheduleType = 'move' | 'reschedule' | false
 
-  const numTasksToMove = paragraphsToMove.filter((p) => p.type == 'open').length
+  const numTasksToMove = paragraphsToMove.filter(
+    (p) => p.type === 'open',
+  ).length
 
   if (numTasksToMove > 0) {
     let rescheduleTasks: RescheduleType = 'move'
@@ -93,7 +95,7 @@ export default async function sweepCalendarNote(
       todayNote.paragraphs = [...todayNote.paragraphs, ...paragraphsToMove]
 
       paragraphsToRemove.forEach((para) => {
-        if (Editor.filename == note.filename) {
+        if (Editor.filename === note.filename) {
           Editor.removeParagraph(para)
         } else {
           note.removeParagraph(para)
@@ -116,9 +118,10 @@ export default async function sweepCalendarNote(
 
       paragraphsToRemove.forEach((para) => {
         para.type = 'scheduled'
-        para.content =
-          removeDateTags(para.content) + ` >${hyphenatedDateString(today)}`
-        if (Editor.filename == note.filename) {
+        para.content = `${removeDateTags(para.content)} >${hyphenatedDateString(
+          today,
+        )}`
+        if (Editor.filename === note.filename) {
           Editor.updateParagraph(para)
         } else {
           note.updateParagraph(para)
@@ -133,11 +136,4 @@ export default async function sweepCalendarNote(
       )
     }
   }
-}
-
-function removeDateTags(content: string): string {
-  return content
-    .replace(/<\d{4}-\d{2}-\d{2}/g, '')
-    .replace(/>\d{4}-\d{2}-\d{2}/g, '')
-    .trim()
 }

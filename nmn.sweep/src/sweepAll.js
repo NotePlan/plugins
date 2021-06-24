@@ -50,8 +50,13 @@ export default async function sweepAll(): Promise<void> {
     ['✅ OK', '❌ Skip'],
     '📙 Processing with your Project Notes first...',
   )
-  if (re1.index == 0) {
-    for (const note of DataStore.projectNotes) {
+  // Narrow project note search to notes edited in last N days
+  if (re1.index === 0) {
+    const recentProjNotes = DataStore.projectNotes.filter(
+      (note) => note.changedDate > afterDate,
+    )
+    console.log(`Project Notes to search: ${recentProjNotes.length}`)
+    for (const note of recentProjNotes) {
       await sweepProjectNote(note, true, hyphenatedDateString(afterDate), false)
     }
   }
@@ -61,17 +66,19 @@ export default async function sweepAll(): Promise<void> {
     '🗓 Now processing your Daily Notes...',
   )
 
-  if (re2.index == 0) {
+  if (re2.index === 0) {
     const todayFileName = filenameDateString(new Date())
     const recentCalNotes = DataStore.calendarNotes.filter(
       (note) =>
         note.filename < todayFileName && note.filename >= afterDateFileName,
     )
 
+    console.log(`Calendar Notes to search: ${recentCalNotes.length}`)
     for (const note of recentCalNotes) {
       await sweepCalendarNote(note, true, false)
     }
   }
 
   await showMessage(`All Done!`)
+  await Editor.openNoteByDate(date(new Date()))
 }
