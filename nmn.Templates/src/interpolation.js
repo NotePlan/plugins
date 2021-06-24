@@ -81,7 +81,13 @@ export async function processDate(
 ): Promise<string> {
   // console.log(`processDate: ${dateConfig}`)
   const defaultConfig = config.date ?? {}
-  const paramConfig = dateParams.trim() ? await parseJSON5(dateParams) : {}
+  const dateParamsTrimmed = dateParams.trim()
+  const paramConfig =
+    dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}')
+      ? await parseJSON5(dateParams)
+      : dateParamsTrimmed !== ''
+      ? await parseJSON5(`{${dateParams}}`)
+      : {}
   // console.log(`param config: ${dateParams} as ${JSON.stringify(paramConfig)}`);
   const finalArguments: { [string]: mixed } = {
     ...defaultConfig,
