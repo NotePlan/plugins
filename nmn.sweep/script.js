@@ -41,84 +41,8 @@ var exports = (function (exports) {
     await CommandBar.showOptions([okLabel], title);
   }
 
-  function createForwardedFromPara(para, noteTitleStr) {
-    // const dateTag = noteTitle ? ` <${hyphenatedDateString(noteTitle)}` : ''
-    const paraClone = para.duplicate();
-    paraClone.content = `${removeDateTags(paraClone.content)} <[[${noteTitleStr}]]`;
-    return paraClone;
-  } // TODO make afterHyphenatedDate take a regular date instead
-
-
-  async function sweepProjectNote(note, withUserConfirm = true, afterHyphenatedDate = '0000-00-00', notifyNoChanges = true) {
-    const paragraphs = note.paragraphs;
-    const paragraphsToMove = [];
-    console.log(`Reading note: "${note.title || ''}"`);
-    const todayDateString = hyphenatedDateString(new Date());
-    const today = new Date();
-    const todayNote = DataStore.calendarNoteByDate(today);
-
-    if (todayNote == null) {
-      console.log(`Could not open today's calendar note`);
-      return;
-    }
-
-    const overdueTasks = paragraphs.filter(p => {
-      const pDateStr = hyphenatedDateString(p.date || note.changedDate);
-      return p.type === 'open' && pDateStr <= todayDateString && pDateStr >= afterHyphenatedDate;
-    });
-    const numTasksToUpdate = overdueTasks.length;
-    console.log(`${numTasksToUpdate} overdue tasks in this note`);
-
-    if (numTasksToUpdate > 0) {
-      let confirmed = true;
-      const pluralTask = numTasksToUpdate !== 1 ? 'tasks' : 'task';
-
-      if (withUserConfirm) {
-        Editor.openNoteByFilename(note.filename);
-        const yesLabel = `🔗 Yes, reschedule (update '>date') ${numTasksToUpdate} ${pluralTask} to today`;
-        confirmed = await chooseOption(`🧹 Ready to sweep '${note.title ?? 'Untitled'}'?`, [{
-          label: yesLabel,
-          value: true
-        }, {
-          label: '❌ Skip this note',
-          value: false
-        }], false);
-      }
-
-      if (confirmed) {
-        overdueTasks.forEach(para => {
-          if (para.type === 'open' || para.type === 'scheduled') {
-            console.log(`processing ${para.content}`);
-            paragraphsToMove.push(createForwardedFromPara(para, note.title || ''));
-
-            if (para.date) {
-              para.content = para.content.replace(hyphenatedDateString(para.date), todayDateString);
-            } else {
-              para.content = `${para.content} >${todayDateString}`;
-            }
-
-            para.type = 'scheduled';
-            console.log(`about to updateParagraph ${para.content}`);
-
-            if (Editor.filename === note.filename) {
-              Editor.updateParagraph(para);
-            } else {
-              note.updateParagraph(para);
-            }
-          }
-        });
-        console.log(`Adding ${paragraphsToMove.length} tasks to ${todayNote.title || ''}`);
-        paragraphsToMove.forEach(t => console.log(t.content));
-        todayNote.paragraphs = [...todayNote.paragraphs, ...paragraphsToMove];
-      }
-    } else {
-      if (notifyNoChanges && withUserConfirm) {
-        await showMessage('Everything is already up to date here!');
-      }
-    }
-  }
-
-  async function sweepCalendarNote(note, withUserConfirm = true, notifyNoChanges = true) {
+  /* eslint-disable no-unused-vars */
+  async function sweepNote(note, withUserConfirm = true, notifyNoChanges = true, overdueOnly = false, isProjectNote = false) {
     const paragraphs = note.paragraphs;
     const paragraphsToMove = [];
     const paragraphsToRemove = [];
@@ -128,22 +52,27 @@ var exports = (function (exports) {
     const resetTypes = ['title', 'empty'];
     let lastRootItem = null;
     paragraphs.forEach(p => {
+      // console.log(`type:${p.type} indents:${p.indents} "${p.content}"`)
+      // ['scheduled', 'cancelled', 'done']
       if (nonMovableTypes.includes(p.type)) {
         return;
       } // Remember the last item which is not indented and open, or a bullet
+      // ['open']
 
 
-      if (mainItemTypes.includes(p.type) && p.indents == 0) {
+      if (mainItemTypes.includes(p.type) && p.indents === 0) {
         lastRootItem = p;
       } // Reset the root item to null if a heading comes in between
+      // ['title', 'empty']
 
 
-      if (resetTypes.includes(p.type) && p.indents == 0) {
+      if (resetTypes.includes(p.type) && p.indents === 0) {
         lastRootItem = null;
       } // Either all movable types, or anything indented, if the parent is indented as well.
 
 
-      if (moveableTypes.includes(p.type) || (p.indents > 0 || p.type === 'empty') && lastRootItem != null) {
+      if ( // ['open', 'title']
+      moveableTypes.includes(p.type) || (p.indents > 0 || p.type === 'empty') && lastRootItem != null) {
         paragraphsToMove.push(p);
 
         if (!['title', 'empty'].includes(p.type)) {
@@ -159,21 +88,26 @@ var exports = (function (exports) {
     const todayNote = DataStore.calendarNoteByDate(today);
 
     if (todayNote == null) {
-      return;
+      console.log(`Couldn't open Today's Calendar Note`);
+      return {
+        status: 'error',
+        msg: `Couldn't open Today's Calendar Note`
+      };
     }
 
     const numTasksToMove = paragraphsToMove.filter(p => p.type === 'open').length;
 
     if (numTasksToMove > 0) {
-      let rescheduleTasks = 'move';
+      console.log(`\t\t${note.filename} has ${numTasksToMove} open tasks`);
+      let rescheduleTasks = isProjectNote ? 'reschedule' : 'move';
 
       if (withUserConfirm) {
         Editor.openNoteByFilename(note.filename);
-        rescheduleTasks = await chooseOption('🧹 Ready to sweep?', [{
-          label: '✂️ Move (cut & paste) ' + numTasksToMove + ' task(s) to today',
+        rescheduleTasks = await chooseOption(`Move or Copy ${numTasksToMove} open task(s) to TODAY?`, [{
+          label: `✂️ Move (cut & paste) task(s) to today's Calendar Note`,
           value: 'move'
         }, {
-          label: '🗓 Reschedule (copy) ' + numTasksToMove + ' task(s) to today',
+          label: `🗓 Leave original here and copy/link to Calendar Note`,
           value: 'reschedule'
         }, {
           label: '❌ Cancel',
@@ -183,24 +117,26 @@ var exports = (function (exports) {
 
       if (rescheduleTasks === 'move') {
         // Add Tasks to Today
-        todayNote.paragraphs = [...todayNote.paragraphs, ...paragraphsToMove];
-        paragraphsToRemove.forEach(para => {
-          if (Editor.filename === note.filename) {
-            Editor.removeParagraph(para);
-          } else {
-            note.removeParagraph(para);
-          }
-        });
+        todayNote.paragraphs = [...todayNote.paragraphs, ...paragraphsToMove]; // paragraphsToRemove.forEach((para) => {
+
+        if (Editor.filename === note.filename) {
+          Editor.removeParagraphs(paragraphsToRemove);
+        } else {
+          note.removeParagraphs(paragraphsToRemove);
+        } // })
+
       }
 
       if (rescheduleTasks === 'reschedule') {
         const noteDate = note.date;
         const dateTag = noteDate != null ? ` <${hyphenatedDateString(noteDate)}` : '';
+        const projNote = note.title ?? '';
+        const link = isProjectNote ? ` <[[${projNote}]]` : dateTag;
         const paragraphsWithDateTag = paragraphsToMove.map(para => {
           const paraClone = para.duplicate();
 
           if (para.type === 'open') {
-            paraClone.content = removeDateTags(paraClone.content) + dateTag;
+            paraClone.content = removeDateTags(paraClone.content) + link;
           }
 
           return paraClone;
@@ -217,11 +153,23 @@ var exports = (function (exports) {
           }
         });
       }
+
+      console.log(`\t\t${rescheduleTasks}-ing  ${paragraphsToMove.length} paragraphs; ${numTasksToMove} tasks`);
     } else {
       if (notifyNoChanges && withUserConfirm) {
         await CommandBar.showInput('There are no open tasks to move in this note.', "OK, I'll open another date.");
+        return {
+          status: 'error',
+          msg: 'There are no open tasks to move in this note.'
+        };
       }
     }
+
+    return {
+      status: 'ok',
+      msg: `Moved ${numTasksToMove}`,
+      tasks: numTasksToMove
+    };
   }
 
   async function sweepFile() {
@@ -232,18 +180,22 @@ var exports = (function (exports) {
       return;
     }
 
-    if (type === 'Calendar') {
-      const todayNoteFileName = filenameDateString(new Date()) + '.' + DataStore.defaultFileExtension;
+    console.log(`Starting sweepFile`);
 
-      if (Editor.filename == todayNoteFileName) {
-        await CommandBar.showInput('Open a different note than today', 'OK');
+    if (type === 'Calendar') {
+      const todayNoteFileName = `${filenameDateString(new Date())}.${DataStore.defaultFileExtension}`;
+
+      if (Editor.filename === todayNoteFileName) {
+        await CommandBar.showInput(`Open a different note for a different day (can't sweep today)`, 'OK');
         return;
       }
 
-      return await sweepCalendarNote(note);
+      await sweepNote(note, true, true, false, false);
     } else {
-      return await sweepProjectNote(note);
+      await sweepNote(note, true, true, false, true);
     }
+
+    console.log(`Finished sweepFile`);
   }
 
   const OPTIONS = [{
@@ -289,6 +241,12 @@ var exports = (function (exports) {
       unit: 'year'
     }
   }, {
+    label: 'All Time',
+    value: {
+      num: 99,
+      unit: 'year'
+    }
+  }, {
     label: '❌ Cancel',
     value: {
       num: 0,
@@ -299,54 +257,103 @@ var exports = (function (exports) {
     unit: 'day',
     num: 0
   };
+  async function sweep7() {
+    sweepAll(false, false, {
+      num: 7,
+      unit: 'day'
+    });
+  }
   /**
    * TODO:
    * 1. Add option to move all tasks silently
+   * - Implement sweepOverdue
    * 2. Add option to reschedule instead of move Calendar notes
    * 3. Add option to change target date from "Today" to something you can choose
    *  */
 
-  async function sweepAll() {
-    const {
+  async function sweepAll(overdueOnly = false, requireUserAction = true, periodToCheck = DEFAULT_OPTION) {
+    let {
       unit,
       num
-    } = await chooseOption('🧹 Reschedule tasks to today of the last...', OPTIONS, DEFAULT_OPTION);
+    } = periodToCheck;
+    console.log(`Starting sweepAll overdueOnly:${String(overdueOnly)} requireUserAction:${String(requireUserAction)} periodToCheck:${JSON.stringify(periodToCheck)}`);
 
-    if (num == 0) {
-      // User canceled, return here, so no additional messages are shown
-      await showMessage(`Cancelled! No changes made.`);
-      return;
+    if (requireUserAction) {
+      const setPeriod = await chooseOption('🧹 Reschedule tasks to today from the last...', OPTIONS, DEFAULT_OPTION);
+
+      if (setPeriod.num === 0) {
+        // User canceled, return here, so no additional messages are shown
+        await showMessage(`Cancelled! No changes made.`);
+        return;
+      } else {
+        unit = setPeriod.unit;
+        num = setPeriod.num;
+      }
+    }
+
+    let res = {},
+        withUserConfirm = requireUserAction;
+
+    if (withUserConfirm) {
+      res = await CommandBar.showOptions(['✅ Yes', '❌ No (Reschedule Silently)'], '📙 Want to approve each note during sweep?');
+      withUserConfirm = res.index === 0;
     }
 
     const afterDate = Calendar.addUnitToDate(new Date(), unit, -num);
     const afterDateFileName = filenameDateString(Calendar.addUnitToDate(new Date(), unit, -num));
-    const re1 = await CommandBar.showOptions(['✅ OK', '❌ Skip'], '📙 Processing with your Project Notes first...'); // Narrow project note search to notes edited in last N days
+    const count = {
+      files: 0,
+      tasks: 0
+    };
 
-    if (re1.index === 0) {
-      const recentProjNotes = DataStore.projectNotes.filter(note => note.changedDate > afterDate);
-      console.log(`Project Notes to search: ${recentProjNotes.length}`);
+    const processResult = res => {
+      if (res.status === 'ok') {
+        if (res.tasks) {
+          count.files += 1;
+          count.tasks += res.tasks;
+        }
+      } else {
+        console.log(`Error: ${res.msg}`);
+      }
+    }; // PROJECT NOTES FIRST
+
+
+    if (withUserConfirm) {
+      res = await CommandBar.showOptions(['✅ OK', '❌ Skip'], `📙 Scan for Tasks in Project Notes?`);
+    } // Narrow project note search to notes edited in last N days
+
+
+    if (!withUserConfirm || typeof res.index !== 'undefined' && res.index === 0) {
+      const recentProjNotes = DataStore.projectNotes.filter(note => note.changedDate >= afterDate);
+      console.log(`\tProject Notes to search: ${recentProjNotes.length}`);
 
       for (const note of recentProjNotes) {
-        await sweepProjectNote(note, true, hyphenatedDateString(afterDate), false);
+        processResult(await sweepNote(note, withUserConfirm, false, overdueOnly, true));
       }
+    } //  CALENDAR NOTES
+
+
+    if (withUserConfirm) {
+      res = await CommandBar.showOptions(['✅ OK', '❌ Skip'], `Done. Now Scan Daily Calendar Notes 🗓?`);
     }
 
-    const re2 = await CommandBar.showOptions(['✅ OK', '❌ Skip'], '🗓 Now processing your Daily Notes...');
-
-    if (re2.index === 0) {
+    if (!withUserConfirm || typeof res.index !== 'undefined' && res.index === 0) {
       const todayFileName = filenameDateString(new Date());
       const recentCalNotes = DataStore.calendarNotes.filter(note => note.filename < todayFileName && note.filename >= afterDateFileName);
-      console.log(`Calendar Notes to search: ${recentCalNotes.length}`);
+      console.log(`\tCalendar Notes to search: ${recentCalNotes.length}`);
 
       for (const note of recentCalNotes) {
-        await sweepCalendarNote(note, true, false);
+        processResult(await sweepNote(note, withUserConfirm, false));
       }
     }
 
-    await showMessage(`All Done!`);
-    await Editor.openNoteByDate(date(new Date()));
+    const msg = count.tasks > 0 ? `Moved ${count.tasks} tasks from ${count.files} files.` : ``;
+    await showMessage(`All Done! ${msg}`);
+    await Editor.openNoteByDate(new Date());
+    console.log(`Finished sweepAll`);
   }
 
+  exports.sweep7 = sweep7;
   exports.sweepAll = sweepAll;
   exports.sweepFile = sweepFile;
 

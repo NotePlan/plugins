@@ -1,26 +1,30 @@
 {
-  "noteplan.minAppVersion": "3.0.21",
+  "noteplan.minAppVersion": "3.0.23",
   "plugin.id": "nmn.sweep",
   "plugin.name": "🧹 Task Sweeper",
   "plugin.description": "Move Overdue Tasks to selected date",
   "plugin.icon": "f120",
   "plugin.author": "Naman Goel & Eduard",
   "plugin.repoUrl": "tbd",
-  "plugin.version": "0.0.6",
+  "plugin.version": "0.0.7",
   "plugin.dependencies": [ ],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
   "plugin.commands": [
     {
       "name": "swt",
-      "description": "Move all open tasks from current note to today",
+      "description": "Move/Reschedule all open tasks in current note to TODAY",
       "jsFunction": "sweepFile"
     },
     {
       "name": "swa",
-      "description": "Reschedule multiple notes interactively to today",
+      "description": "Find ALL open tasks & move/reschedule to today",
       "jsFunction": "sweepAll"
-    }
-  ],
+    },
+    {
+      "name": "sw7",
+      "description": "Find all open tasks for last 7 days & silently move/reschedule to today",
+      "jsFunction": "sweep7"
+    }  ],
   "plugin.preferences": []
 }
