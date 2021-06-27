@@ -4,11 +4,16 @@
 // Specific how-to re: Noteplan: https://github.com/NotePlan/plugins/blob/main/Flow_Guide.md
 
 /**
- * TODO: do a lot more testing
+ * TODO: see readme
  * Find the extra space and think about just one separator
  */
 
-import { showMessage, showMessageYesNo } from './noteHelpers'
+import {
+  chooseOption,
+  showMessage,
+  getInput,
+} from '../../nmn.sweep/src/userInput'
+
 import {
   getOverdueTasks,
   getTasksByType,
@@ -27,13 +32,16 @@ const SORT_ORDERS = [
     name: 'By first #tag in task, then by priority',
   },
 ]
+const DEFAULT_SORT_INDEX = 0
+const MAKE_BACKUP = true
+
 /**
  *
  * @param {*} todos
  * @param {*} heading
  * @returns {int} next line number
  */
-function insertTodos(note, todos, heading = null, separator = '') {
+function insertTodos(note: TNote, todos, heading = '', separator = '') {
   // THE API IS SUPER SLOW TO INSERT TASKS ONE BY ONE
   // let currentLine = startingLine ? startingLine : heading ? 1 : 2
   // if (heading) {
@@ -41,13 +49,13 @@ function insertTodos(note, todos, heading = null, separator = '') {
   //   currentLine++
   // }
   // for (let i = todos.length - 1; i >= 0; i--) {
-  //   Editor.insertTodo(todos[i].content, currentLine++)
+  //   Editor.insertTodo(todos].content, currentLine++)
   // }
   // return currentLine
   // SO INSTEAD, JUST PASTE THEM ALL IN ONE BIG STRING
   const headingStr = heading ? `${heading}\n` : ''
   const contentStr = todos.map((t) => t.raw).join(`\n`)
-  console.log(`inserting tasks: \n${JSON.stringify(todos)}`)
+  // console.log(`inserting tasks: \n${JSON.stringify(todos)}`)
   note.insertParagraph(
     `${headingStr}${contentStr}${separator ? `\n${separator}` : ''}`,
     1,
@@ -70,7 +78,10 @@ function insertTodos(note, todos, heading = null, separator = '') {
  *  any item can be in DESC order by placing a minus in front, e.g. "-priority"
  *  @returns the a sorted list of the tasks from the note
  */
-function sortTasksInNote(note, sortOrder = ['priority']) {
+function sortTasksInNote(
+  note,
+  sortOrder = SORT_ORDERS[DEFAULT_SORT_INDEX].sortFields,
+) {
   const sortedList = {}
   if (note) {
     const paragraphs = note.paragraphs
@@ -118,7 +129,7 @@ async function saveBackup(taskList) {
   console.log(`\tBackup filename: ${backupFilename}`)
   let note
   let notes = await DataStore.projectNoteByTitle(backupTitle, false, true)
-  console.log(`\tGot note back: ${notes}`)
+  console.log(`\tGot note back: ${notes ? JSON.stringify(notes) : ''}`)
   if (!notes || !notes.length) {
     console.log(`\tsaveBackup: no note named ${backupFilename}`)
     const filename = await DataStore.newNote(`_Task-sort-backup`, `@Trash`)
@@ -129,10 +140,10 @@ async function saveBackup(taskList) {
       `Backing up todos in Trash/${backupTitle}`,
     )
     //
-    console.log(`\tCreated ${filename} for backups`)
+    console.log(`\tCreated ${filename ? filename : ''} for backups`)
     notes = await DataStore.projectNoteByTitle(backupTitle, false, true)
     // note = await DataStore.projectNoteByFilename(backupFilename)
-    console.log(`backup file contents:\n${JSON.stringify(notes)}`)
+    console.log(`backup file contents:\n${notes ? JSON.stringify(notes) : ''}`)
   }
   if (notes && notes[0]) {
     notes[0].insertParagraph(`---`, 2, 'text')
@@ -149,7 +160,9 @@ async function deleteExistingTasks(note, tasks, shouldBackupTasks = true) {
       await saveBackup(tasks[typ])
     }
     try {
-      const taskList = tasks[typ].map((t) => findRawParagraph(note, t.raw))
+      const taskList = tasks[typ].map(
+        note ? (t) => findRawParagraph(note, t.raw) : false,
+      )
       Editor.note.removeParagraphs(taskList)
     } catch (e) {
       console.log(JSON.stringify(e))
@@ -157,42 +170,70 @@ async function deleteExistingTasks(note, tasks, shouldBackupTasks = true) {
   }
 }
 
-async function writeOutTasks(note, tasks, drawSeparators = true) {
+async function writeOutTasks(
+  note,
+  tasks,
+  drawSeparators = false,
+  withHeadings,
+) {
   const headings = {
     open: 'Open Tasks',
     scheduled: 'Scheduled Tasks',
     done: 'Completed Tasks',
     cancelled: 'Cancelled Tasks',
   }
-  TASK_TYPES.slice()
-    .reverse()
-    .forEach((ty, i) => {
-      if (tasks[ty].length) {
-        console.log(`EDITOR_FILE TASK_TYPE=${ty}`)
-        try {
-          await insertTodos(
-            note,
-            tasks[ty],
-            `### ${headings[ty]}:`,
-            `${i === tasks[ty].length - 1 ? '---' : ''}`,
-          )
-        } catch (e) {
-          console.log(JSON.stringify(e))
-        }
+  const tasksTypesReverse = TASK_TYPES.slice().reverse()
+  for (let i = 0; i < tasksTypesReverse.length; i++) {
+    const ty = tasksTypesReverse[i]
+    if (tasks[ty].length) {
+      console.log(`EDITOR_FILE TASK_TYPE=${ty}`)
+      try {
+        note
+          ? await insertTodos(
+              note,
+              tasks[ty],
+              withHeadings ? `### ${headings[ty]}:` : '',
+              drawSeparators
+                ? `${i === tasks[ty].length - 1 ? '---' : ''}`
+                : '',
+            )
+          : null
+      } catch (e) {
+        console.log(JSON.stringify(e))
       }
-    })
+    }
+  }
 }
 
-export default async function sortTasks() {
+async function wantHeadings() {
+  return await chooseOption(
+    `Include Task Type headings in the output?`,
+    [
+      { label: 'Yes', value: true },
+      { label: 'No', value: false },
+    ],
+    true,
+  )
+}
+
+export default async function sortTasks(
+  withUserInput = true,
+  sortFields = SORT_ORDERS[DEFAULT_SORT_INDEX].sortFields,
+  withHeadings = null,
+) {
   console.log('\nStarting sortTasks():')
-  const sortOrder = await getUserSort()
+  const sortOrder = withUserInput ? await getUserSort() : sortFields
+  console.log(`\n`)
   console.log(`\tFinished getUserSort, now sortTasksInNote`)
+  const printHeadings = withHeadings === null ? await wantHeadings() : true
+  console.log(
+    `\tFinished wantHeadings()=${String(printHeadings)}, now sortTasksInNote`,
+  )
   const sortedTasks = sortTasksInNote(Editor.note, sortOrder)
   console.log(`\tFinished sortTasksInNote, now deleteExistingTasks`)
-  await deleteExistingTasks(Editor.note, sortedTasks) // need to do this before adding new lines to preserve line numbers
+  await deleteExistingTasks(Editor.note, sortedTasks, MAKE_BACKUP) // need to do this before adding new lines to preserve line numbers
   console.log(`\tFinished deleteExistingTasks, now writeOutTasks`)
-
-  await writeOutTasks(Editor.note, sortedTasks)
+  await writeOutTasks(Editor.note, sortedTasks, false, printHeadings)
   console.log(`\tFinished writeOutTasks, now finished`)
 
   console.log('Finished sortTasks()!')

@@ -1,19 +1,27 @@
-# insertPluginFunctionNameHere plugin
+# Task Automations plugin
 
-[You will delete this text and replace it with a readme about your plugin -- not ever seen by users, but good for people looking at your code. Before you delete though, you should know:]
+## /ts - Tasks Sort
+This plugin will sort your tasks by priority or by #tag or @context/person. 
 
-You do not need all of this scaffolding for a basic NP plugin. As the instructions state (https://help.noteplan.co/article/65-commandbar-plugins), you can create a plugin with just two files: `plugin.json` and `script.js`. 
+When you run /ts, it will sort the tasks into task types (open|scheduled|completed|cancelled), and it will ask you how you want to sort within those categories and whether you want the output to have the category type headings or not, e.g.:
 
-However, for more complex plugins, you may find that it's easier to write code in multiple files, incorporating code (helper functions, etc.) written (and *TESTED*) previously by others. You also may want type checking (e.g. Flow.io) to help validate the code you write. If either of those is interesting to you, you're in the right place. Before going any further, make sure you follow the dev environment setup instructions (https://github.com/NotePlan/plugins). 
+### Open Tasks
+  - [ ] Open Task
+### Scheduled Tasks
+  - [>] Forwarded/Scheduled Task >2030-01-01
+### Completed Tasks
+  - [x] Completed Task
+### Cancelled Tasks
+  - [x] Cancelled task
 
-Then create a copy of this skeleton, do a global find/replace for `insertPluginFunctionNameHere` for the function name of your plugin's JS entry point (it will be listed in the plugin.json). And change the filename `insertPluginFunctionNameHere.js` to match. Give the skeleton folder a name (e.g. your githubUsername.pluginOrCollectionOfCommandsName)
+Note: Because the plugin needs to delete the tasks in order to sort and re-insert them in the proper order, as an extra safety measure, the plugin will make a backup of all the tasks you sort just in case something goes wrong. You can find all the tasks backed up at: `@Trash/_Task-sort-backup`, and you should probably clean that document out every so often. :) 
 
-That's it. Happy coding! 
-
-Hat-tip to @eduard, @nmn & @jgclark, who made all this fancy cool stuff.
+Note: At this time, the plugin will ignore headings that are attached to the tasks (e.g. tasks indented under root-level #headings). I need to understand/think more about this use case and how to deal with it in sorting.
 
 ## Configuration
 
+## Future Features / Todo List
+- Make silent shortcuts to do specific sorts
 ## History
 
-0.0.1 Created initial skeleton based on Discord DM from @nmn :)
+0.0.2 Initial version

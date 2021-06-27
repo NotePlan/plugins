@@ -97,7 +97,8 @@ export function getTasksByType(paragraphs) {
   const tasks = {}
   // * @type {"open", "done", "scheduled", "cancelled", "title", "quote", "list" (= bullet), "empty" (no content) or "text" (= plain text)}
   TASK_TYPES.forEach((t) => (tasks[t] = []))
-  paragraphs.forEach((para, index) => {
+  for (let index = 0; index < paragraphs.length; index++) {
+    const para = paragraphs[index]
     if (TASK_TYPES.indexOf(para.type) >= 0) {
       const content = para.content
       // console.log(`${index}: ${para.type}: ${para.content}`)
@@ -123,7 +124,7 @@ export function getTasksByType(paragraphs) {
     } else {
       // console.log(`\t\tSkip: ${para.content}`) //not a task
     }
-  })
+  }
   console.log(`Tasks:${tasks.open.length} returning from getTasksByType`)
   return tasks
 }
