@@ -23,6 +23,7 @@ import {
 
 const SORT_ORDERS = [
   { sortFields: ['-priority', 'content'], name: 'Priority (!!! and (A))' },
+  /* FIXME non-priority fields not working yet 
   {
     sortFields: ['mentions', '-priority', 'content'],
     name: 'By first @Person in task, then by priority',
@@ -30,7 +31,7 @@ const SORT_ORDERS = [
   {
     sortFields: ['hashtags', '-priority', 'content'],
     name: 'By first #tag in task, then by priority',
-  },
+  }, */
 ]
 const DEFAULT_SORT_INDEX = 0
 const MAKE_BACKUP = true
