@@ -1,7 +1,7 @@
 # Task Automations plugin
 
 ## /ts - Tasks Sort
-This plugin will sort your tasks by priority or by #tag or @context/person. 
+This plugin will sort your tasks in the open note in the Editor
 
 When you run /ts, it will sort the tasks into task types (open|scheduled|completed|cancelled), and it will ask you how you want to sort within those categories and whether you want the output to have the category type headings or not, e.g.:
 
@@ -12,7 +12,7 @@ When you run /ts, it will sort the tasks into task types (open|scheduled|complet
 ### Completed Tasks
   - [x] Completed Task
 ### Cancelled Tasks
-  - [x] Cancelled task
+  - [-] Cancelled task
 
 Note: Because the plugin needs to delete the tasks in order to sort and re-insert them in the proper order, as an extra safety measure, the plugin will make a backup of all the tasks you sort just in case something goes wrong. You can find all the tasks backed up at: `@Trash/_Task-sort-backup`, and you should probably clean that document out every so often. :) 
 
@@ -21,6 +21,7 @@ Note: At this time, the plugin will ignore headings that are attached to the tas
 ## Configuration
 
 ## Future Features / Todo List
+- Sort by priority or by #tag or @context/person. 
 - Make silent shortcuts to do specific sorts
 ## History
 
