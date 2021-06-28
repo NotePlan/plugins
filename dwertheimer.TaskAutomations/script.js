@@ -128,7 +128,9 @@ var exports = (function (exports) {
     return tasks;
   }
 
-  /* eslint-disable no-unused-vars */
+  /* es lint-disable no-unused-vars */
+  // But the functions exist to look for open items with a date that is less than today
+
   const SORT_ORDERS = [{
     sortFields: ['-priority', 'content'],
     name: 'Priority (!!! and (A))'
@@ -242,7 +244,7 @@ var exports = (function (exports) {
       const filename = await DataStore.newNote(`_Task-sort-backup`, `@Trash`); // TODO: There's a bug in API where filename is not correct and the file is not in cache unless you open a command bar
       // remove all this:
 
-      await CommandBar.showOptions(['OK'], `Backing up todos in Trash/${backupTitle}`); //
+      await CommandBar.showOptions(['OK'], `Backing up todos in @Trash/${backupTitle}`); //
 
       console.log(`\tCreated ${filename ? filename : ''} for backups`);
       notes = await DataStore.projectNoteByTitle(backupTitle, false, true); // note = await DataStore.projectNoteByFilename(backupFilename)

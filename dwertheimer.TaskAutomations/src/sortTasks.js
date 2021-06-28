@@ -1,4 +1,4 @@
-/* eslint-disable no-unused-vars */
+/* es lint-disable no-unused-vars */
 // @flow
 // Type checking reference: https://flow.org/
 // Specific how-to re: Noteplan: https://github.com/NotePlan/plugins/blob/main/Flow_Guide.md
@@ -8,18 +8,11 @@
  * Find the extra space and think about just one separator
  */
 
-import {
-  chooseOption,
-  showMessage,
-  getInput,
-} from '../../nmn.sweep/src/userInput'
+import { chooseOption } from '../../nmn.sweep/src/userInput'
 
-import {
-  getOverdueTasks,
-  getTasksByType,
-  sortListBy,
-  TASK_TYPES,
-} from './taskHelpers'
+import { getTasksByType, sortListBy, TASK_TYPES } from './taskHelpers'
+// Note: not currently using getOverdueTasks from taskHelpers (because if it's open, we are moving it)
+// But the functions exist to look for open items with a date that is less than today
 
 const SORT_ORDERS = [
   { sortFields: ['-priority', 'content'], name: 'Priority (!!! and (A))' },
@@ -128,7 +121,6 @@ async function saveBackup(taskList) {
   const backupTitle = `_Task-sort-backup`
   const backupFilename = `${backupPath}/${backupTitle}.${DataStore.defaultFileExtension}`
   console.log(`\tBackup filename: ${backupFilename}`)
-  let note
   let notes = await DataStore.projectNoteByTitle(backupTitle, false, true)
   console.log(`\tGot note back: ${notes ? JSON.stringify(notes) : ''}`)
   if (!notes || !notes.length) {
@@ -136,9 +128,9 @@ async function saveBackup(taskList) {
     const filename = await DataStore.newNote(`_Task-sort-backup`, `@Trash`)
     // TODO: There's a bug in API where filename is not correct and the file is not in cache unless you open a command bar
     // remove all this:
-    const choice = await CommandBar.showOptions(
+    await CommandBar.showOptions(
       ['OK'],
-      `Backing up todos in Trash/${backupTitle}`,
+      `Backing up todos in @Trash/${backupTitle}`,
     )
     //
     console.log(`\tCreated ${filename ? filename : ''} for backups`)

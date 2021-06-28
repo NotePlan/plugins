@@ -23,6 +23,7 @@ Note: At this time, the plugin will ignore headings that are attached to the tas
 ## Future Features / Todo List
 - Sort by priority or by #tag or @context/person. 
 - Make silent shortcuts to do specific sorts
+- (optionally) Leave tasks with dates in place until they are overdue? [use getOverdueTasks()]
 ## History
 
 0.0.2 Initial version
