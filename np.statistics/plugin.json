@@ -1,12 +1,12 @@
 {
-	"noteplan.minAppVersion": "3.0.21",
+	"noteplan.minAppVersion": "3.0.24",
 	"plugin.id": "np.statistics",
 	"plugin.name": "🔢 Note Statistics",
 	"plugin.description": "",
 	"plugin.icon": "",
 	"plugin.author": "Jonathan & Eduard",
 	"plugin.repoUrl": "",
-	"plugin.version": "0.2.5",
+	"plugin.version": "0.3.0",
 	"plugin.dependencies": [],
 	"plugin.script": "script.js",
 	"plugin.isRemote": "false",
@@ -32,9 +32,9 @@
 			"jsFunction": "showWordCount"
 		},
 		{
-			"name": "tagc",
-			"description": "Shows count of tag mentions",
-			"jsFunction": "showTagCount"
+			"name": "stp",
+			"description": "Show stats of tags and mentions over a time period",
+			"jsFunction": "periodStats"
 		}
 	],
 	"plugin.preferences": []

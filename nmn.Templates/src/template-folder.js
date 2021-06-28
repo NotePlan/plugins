@@ -8,10 +8,12 @@ export function getTemplateFolder(): ?string {
   return DataStore.folders.find((f) => f.includes(staticTemplateFolder))
 }
 
-export async function makeTemplateFolder(): Promise<void> {
+export async function getOrMakeTemplateFolder(): Promise<?string> {
+  console.log('getOrMakeTemplateFolder')
   let folder = getTemplateFolder()
 
   if (folder == null) {
+    // No template folder yet, so offer to make it and populate it
     const shouldCreateFolder = await chooseOption<boolean, boolean>(
       'No templates folder found.',
       [
@@ -20,7 +22,7 @@ export async function makeTemplateFolder(): Promise<void> {
           value: true,
         },
         {
-          label: '❌ Cancel',
+          label: '❌ Cancel command',
           value: false,
         },
       ],
@@ -46,9 +48,12 @@ export async function makeTemplateFolder(): Promise<void> {
     DataStore.newNote(MEETING_NOTE_TEMPLATE, folder)
     DataStore.newNote(TAGS_TEMPLATE, folder)
     DataStore.newNote(CONFIG, folder)
-
-    await showMessage(`"${staticTemplateFolder}" folder created with samples `)
+    console.log(`-> "${staticTemplateFolder}" folder created with samples`)
+    await showMessage(`"${staticTemplateFolder}" folder created with samples`)
+    // FIXME: hopefully can remove this after API cache fix.
+    await showMessage(`Please re-start command.`)
   }
+  return folder
 }
 
 /*
@@ -89,14 +94,12 @@ const CONFIG = ` _configuration
 This file is used to configure how templates work. \
 Use the code fence below to set global values for template tags.
 
-You can one of the following languages for your configuration:
+To write your configuration you can use JSON5. JSON5 is a human-friendly
+superset of JSON that lets you write comments, unquoted keys and other common
+patterns available in Javscript.
 
-**javascript**: Actually, *[JSON5](https://json5.org)*. If you write a codeblock tagged as javascript, \
-make sure you write valid JSON5. Anything else will cause an error.
-**json**: If you don't mind losing the ability to write comments etc, you can use regular JSON as well.
-**yaml**: If you prefer the syntax of YAML, that is supported too.
-**ini**: If you would like to use the TOML format, mark your codeblock with \`ini\` and it will \
-be treated as TOML.
+Just use the codeblock marked as \`javascript\` shown below to write your own
+custom configurayion.
 
 The first code-block within the note will always be used. So edit the default configuration below:
 
@@ -146,84 +149,4 @@ The first code-block within the note will always be used. So edit the default co
 }
 \`\`\`
 
-If you prefer YAML format, delete the code-block above and edit this one instead:
-
-\`\`\`yaml
----
-# configuration for dates, heavily based on javascript's Intl module
-# https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat/DateTimeFormat
-date:
-  # Default timezone for date and time.
-  timezone: automatic
-  # Default locale to format date and time.
-  # e.g. en-US will result in mm/dd/yyyy, while en_GB will be dd/mm/yyyy
-  locale: en-US
-  # can be "short", "medium", "long" or "full"
-  dateStyle: short
-  # can be null (to skip time), "short", "medium", "long" or "full"
-  timeStyle: short
-
-# configuration for weather data lookups, if wanted
-weather:
-  # API key for https://openweathermap.org/
-  # !!REQUIRED!!
-  openWeatherAPIKey: <put your API key here>
-  # Default location for weather forcast
-  latPosition: 0.0
-  longPosition: 0.0
-  # Default units. Can be 'metric' (for Celsius), or 'metric' (for Fahrenheit)
-  openWeatherUnits: metric
-  # When using a weather tag, you can customize these options.
-
-# default values for custom tags.
-# These tags cannot be functions, but you may choose to have nested objects.
-# feel free to edit this value however you see fit.
-tagValue:
-  me:
-    # Can be used as {{me.firstName}}
-    firstName: John
-    # Can be used as {{me.lastName}}
-    lastName: Doe
-  # ... add any of your own keys here
-\`\`\`
-
-If you prefer TOML instead of JSON5 or YAML, delete the two code blocks above and use this one instead:
-
-\`\`\`ini
-# configuration for dates, heavily based on javascript's Intl module
-# https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat/DateTimeFormat
-[date]
-# Default timezone for date and time.
-timezone = "automatic"
-# Default locale to format date and time.
-# e.g. en-US will result in mm/dd/yyyy, while en_GB will be dd/mm/yyyy
-locale = "en-US"
-# can be "short", "medium", "long" or "full"
-dateStyle = "short"
-# can be null (to skip time), "short", "medium", "long" or "full"
-timeStyle = "short"
-
-// configuration for weather data
-[weather]
-// API key for https://openweathermap.org/
-# !!REQUIRED!!
-openWeatherAPIKey = <put your API key here>
-# Default location for weather forcast
-latPosition = 0.0
-longPosition = 0.0
-# Default units. Can be 'metric' (for Celsius), or 'metric' (for Fahrenheit)
-openWeatherUnits = 'metric'
-# When using a weather tag, you can customize these options.
-
-# default values for custom tags.
-[tagValue]
-# These tags cannot be functions, but you may choose to have nested objects.
-# feel free to edit this value however you see fit.
-
-[tagValue.me]
-# Can be used as {{me.firstName}}
-firstName = "John"
-# Can be used as {{me.lastName}}
-lastName = "Doe"
-\`\`\`
 `

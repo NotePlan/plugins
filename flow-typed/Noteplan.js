@@ -186,6 +186,11 @@ type TEditor = {
    * will be unfolded.
    */
   highlightByRange(range: Range): void,
+  /**
+   * NOTE: Available from v3.0.23+ (Mac: Build 636+, iOS: Build 562+)
+   * Scrolls to and highlights the given range defined by the character index and the character length it should cover. If the paragraph is folded, it will be unfolded.
+   */
+  highlightByIndex(index: number, length: number): void,
 }
 
 /**
@@ -924,9 +929,6 @@ type TParagaraphBridge = {
     length: number,
   ): void,
 }
-
-// This is the built-in `fetch` function from Javascript.
-declare function fetch(url: string): Promise<{ [string]: mixed }>
 
 // Every function made available must be assigned to `globalThis`
 // This type ensures that only functions are made available as plugins

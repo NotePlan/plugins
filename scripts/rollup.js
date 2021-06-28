@@ -8,6 +8,7 @@ const commonjs = require('@rollup/plugin-commonjs')
 const { babel } = require('@rollup/plugin-babel')
 const resolve = require('@rollup/plugin-node-resolve').default
 const mkdirp = require('mkdirp')
+const { terser } = require('rollup-plugin-terser')
 
 const FOLDERS_TO_IGNORE = ['scripts', 'flow-typed', 'node_modules']
 const rootFolderPath = path.join(__dirname, '..')
@@ -80,7 +81,9 @@ async function main() {
           `Generated "${outputFile.replace(
             rootFolder,
             '',
-          )}"\nand copied to the "Plugins" folder\nat ${new Date().toISOString().slice(0, 16)}\n`,
+          )}"\nand copied to the "Plugins" folder\nat ${new Date()
+            .toISOString()
+            .slice(0, 16)}\n`,
         )
       } else {
         console.log(`Generated "${outputFile.replace(rootFolder, '')}"`)
@@ -164,6 +167,7 @@ function getConfig(pluginPath) {
       resolve({
         browser: false,
       }),
+      terser(),
     ],
     context: 'this',
   }

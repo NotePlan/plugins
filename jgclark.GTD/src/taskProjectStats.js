@@ -1,6 +1,6 @@
 // @flow
 
-import { percent } from '../../helperFunctions'
+import { percent } from '../../helperFunctions.js'
 
 //-----------------------------------------------------------------------------
 // Shows task statistics for project notes

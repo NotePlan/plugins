@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Statistic commands for notes and projects
 // Jonathan Clark & Eduard Metzger
-// v0.2.5, 11.6.2021
+// v0.3.0, 21.6.2021
 //-----------------------------------------------------------------------------
 
 // TODO: IDEAS
@@ -11,9 +11,8 @@
 // 	- Overdue counts
 //	- Upcoming counts
 
-// import { percent } from './statsHelpers'
 export { default as showNoteCount } from './showNoteCount'
 export { default as showWordCount } from './showWordCount'
 export { default as showTaskCountProjects } from './taskProjectStats'
 export { default as showTaskCountNote } from './taskNoteStats'
-export { default as showTagCount } from './tagStats'
+export { periodStats } from './periodStats'

@@ -5,11 +5,6 @@
 // v0.3.3, 11.6.2021
 // -----------------------------------------------------------------------------
 
-import {
-  rangeToString,
-  displayTitle,
-} from '../../np.statistics/src/statsHelpers'
-
 // Preference that needs to get added when there is a proper config system
 const pref_addDateBacklink = true
 
@@ -17,7 +12,7 @@ const pref_addDateBacklink = true
 // Helper Functions
 
 // Return list of all notes, sorted by changed date (newest to oldest)
-function allNotesSortedByChanged():Array<TNote> {
+function allNotesSortedByChanged(): Array<TNote> {
   const projectNotes = DataStore.projectNotes.slice()
   const calendarNotes = DataStore.calendarNotes.slice()
   const allNotes = projectNotes.concat(calendarNotes)
@@ -28,7 +23,7 @@ function allNotesSortedByChanged():Array<TNote> {
 }
 
 // Convert paragraph(s) to single raw text string
-function parasToText(paras:Array<TParagraph>):string {
+function parasToText(paras: Array<TParagraph>): string {
   // console.log('parasToText: starting with ' + paras.length + ' paragraphs')
   let text = ''
   for (let i = 0; i < paras.length; i++) {
@@ -61,7 +56,7 @@ export async function fileParas() {
   }
   const range = Editor.paragraphRangeAtCharacterIndex(selection.start)
   // const firstSelPara = selectedParagraphs[0]; // needed?
-  console.log(`\nfileParse: selection ${rangeToString(range)}`)
+  console.log(`\nfileParse: selection ${JSON.stringify(range)}`)
 
   // Work out what paragraph number this selected para is
   let firstSelParaIndex = 0
@@ -74,10 +69,10 @@ export async function fileParas() {
   }
   console.log(`  First para index: ${firstSelParaIndex}`)
 
-  let parasToMove = []
+  let parasToMove: Array<TParagraph> = []
   if (selectedParagraphs.length > 1) {
     // we have a selection of paragraphs, so use them
-    parasToMove = selectedParagraphs
+    parasToMove = [...selectedParagraphs]
     console.log(`  Found ${parasToMove.length} selected paras`)
   } else {
     // we have just one paragraph selected -- the current one
@@ -138,11 +133,11 @@ export async function fileParas() {
   const notes = allNotesSortedByChanged()
 
   let res = await CommandBar.showOptions(
-    notes.map((n) => displayTitle(n)),
+    notes.map((n) => n.title ?? 'untitled'),
     `Select note to move ${parasToMove.length} lines to`,
   )
   const noteToMoveTo = notes[res.index]
-  console.log(`  Moving to note: ${displayTitle(noteToMoveTo)}`)
+  console.log(`  Moving to note: ${noteToMoveTo.title ?? 'untitled'}`)
 
   // ask to which heading to add the paras
   let headingStrings = []

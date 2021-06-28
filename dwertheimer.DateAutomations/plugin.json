@@ -1,0 +1,41 @@
+{
+  "noteplan.minAppVersion": "3.0.23", 
+  "plugin.id": "dwertheimer.DateAutomations", 
+  "plugin.name": "📅 Date Automations", 
+  "plugin.description": "Helping you move faster with dates", 
+  "plugin.author": "David Wertheimer, with help from code by @nmn", 
+  "plugin.version": "0.0.1", 
+  "plugin.dependencies": [ ], 
+  "plugin.script": "script.js",
+  "plugin.commands": [ 
+    {
+      "name": "ldn", 
+      "description": "Create link to today's Calendar Note at cursor", 
+      "jsFunction": "insertCalendarNoteLink"
+    },
+    {
+      "name": "date", 
+      "description": "Insert date (without time) at cursor", 
+      "jsFunction": "insertDate"
+    },    
+    {
+      "name": "iso", 
+      "description": "Insert date+time (in ISO format) at cursor", 
+      "jsFunction": "insertISODate"
+    },
+  {
+      "name": "now", 
+      "description": "Insert (human readable) date+time at cursor", 
+      "jsFunction": "insertDateTime" 
+    },
+  {
+      "name": "time", 
+      "description": "Insert (human readable) time at cursor", 
+      "jsFunction": "insertTime" 
+    },
+  {
+      "name": "dp", 
+      "description": "(Date Picker) Choose format and insert date/time time at cursor", 
+      "jsFunction": "datePicker" 
+    }  ]
+}

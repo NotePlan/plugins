@@ -5,11 +5,7 @@
 // v0.9.0, 19.6.2021
 //--------------------------------------------------------------------------------------------------------------------
 
-import {
-  projectNotesSortedByChanged,
-  printNote,
-} from '../../helperFunctions'
-
+import { projectNotesSortedByChanged, printNote } from '../../helperFunctions'
 
 //-----------------------------------------------------------------
 // Command from Eduard to move a note to a different folder
@@ -77,13 +73,13 @@ export async function jumpToNoteHeading() {
   // first jump to the note of interest, then to the heading
   const notesList = projectNotesSortedByChanged()
   const re = await CommandBar.showOptions(
-    notesList.map((n) => n.title),
+    notesList.map((n) => n.title ?? 'untitled'),
     'Select note to jump to',
   )
   const note = notesList[re.index]
 
   // Open the note in the Editor
-  if (note != null) {
+  if (note != null && note.title != null) {
     await Editor.openNoteByTitle(note.title)
   } else {
     console.log("\terror: couldn't open selected note")
@@ -105,7 +101,9 @@ export function jumpToDone() {
   }
 
   // Find the 'Done' heading of interest from all the paragraphs
-  const matches = paras.filter(p => p.headingLevel === 2).filter(q => q.content.startsWith('Done'))
+  const matches = paras
+    .filter((p) => p.headingLevel === 2)
+    .filter((q) => q.content.startsWith('Done'))
 
   if (matches != null) {
     const startPos = matches[0].contentRange?.start ?? 0

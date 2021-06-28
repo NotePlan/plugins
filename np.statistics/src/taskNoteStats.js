@@ -1,6 +1,6 @@
 // @flow
 
-import { percent } from "./statsHelpers"
+import { percent } from '../../helperFunctions'
 
 //-----------------------------------------------------------------------------
 // Show task counts for currently displayed note
