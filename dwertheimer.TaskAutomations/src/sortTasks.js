@@ -210,9 +210,9 @@ async function wantHeadings() {
 }
 
 export default async function sortTasks(
-  withUserInput = true,
-  sortFields = SORT_ORDERS[DEFAULT_SORT_INDEX].sortFields,
-  withHeadings = null,
+  withUserInput: boolean = true,
+  sortFields: Array<string> = SORT_ORDERS[DEFAULT_SORT_INDEX].sortFields,
+  withHeadings: boolean | null = null,
 ) {
   console.log('\nStarting sortTasks():')
   const sortOrder = withUserInput ? await getUserSort() : sortFields
