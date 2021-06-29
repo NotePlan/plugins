@@ -906,6 +906,12 @@ type TParagaraphBridge = {
   removeParagraph(paragraph: TParagraph): void,
 
   /**
+   * Removes a given paragraph
+   * @param paragraph - Paragraph object to remove, get it from `.paragraphs`
+   */
+  removeParagraphs(paragraphs: $ReadOnlyArray<TParagraph>): void,
+
+  /**
    * Updates a given paragraph. Get the paragraph, then modify it and update the text in the note or editor using this method.
    * @param {ParagraphObject} paragraph - Paragraph object to update, get it from `.paragraphs`
    */
