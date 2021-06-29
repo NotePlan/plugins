@@ -1,27 +1,35 @@
 // @flow
 
+//------------------------------------------------------------------------------
+
 import {
   showMessage,
   chooseOption,
   getInput,
 } from '../../nmn.sweep/src/userInput'
+
 import { getDefaultConfiguration } from './configuration'
 import { processTemplate } from './interpolation'
+import { getOrMakeTemplateFolder } from './template-folder'
 
-import { getTemplateFolder, makeTemplateFolder } from './template-folder'
+//------------------------------------------------------------------------------
 
 export async function applyNamedTemplate(templateName: string) {
   console.log(`applyNamedTemplate: for template '${templateName}'`)
-  
-  const templateFolder = await getTemplateFolder()
-  if (templateFolder == null) {
-    console.log(`\twarning: templateFolder is null`)
-    await makeTemplateFolder()
-    await showMessage('Try using this command again to use a template')
-    return
-  }
 
-  const selectedTemplate = DataStore.projectNoteByTitle(templateName, true, false)[0]
+  // const templateFolder = await getOrMakeTemplateFolder()
+  // if (templateFolder == null) {
+  //   console.log(`\twarning: templateFolder is null`)
+  //   await getOrMakeTemplateFolder()
+  //   await showMessage('Try using this command again to use a template')
+  //   return
+  // }
+
+  const selectedTemplate = DataStore.projectNoteByTitle(
+    templateName,
+    true,
+    false,
+  )?.[0]
 
   let templateContent = selectedTemplate?.content
   if (templateContent == null || templateContent.length === 0) {
@@ -43,11 +51,11 @@ export async function applyNamedTemplate(templateName: string) {
 }
 
 export async function applyTemplate(newNote?: [string, string]) {
-  const templateFolder = await getTemplateFolder()
+  const templateFolder = await getOrMakeTemplateFolder()
   if (templateFolder == null) {
     console.log(`applyTemplate: warning: templateFolder is null`)
-    await makeTemplateFolder()
-    await showMessage('Try using this command again to use a template')
+    // await makeTemplateFolder()
+    await showMessage('Template Folder Not Found')
     return
   }
 
@@ -119,7 +127,7 @@ export async function newNoteWithTemplate() {
     return
   }
 
-  const templateFolder = await getTemplateFolder()
+  const templateFolder = await getOrMakeTemplateFolder()
   let shouldApplyTemplate = false
 
   if (templateFolder != null || templateFolder !== '') {

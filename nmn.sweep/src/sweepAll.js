@@ -35,7 +35,7 @@ export default async function sweepAll(): Promise<void> {
     DEFAULT_OPTION,
   )
 
-  if (num == 0) {
+  if (num === 0) {
     // User canceled, return here, so no additional messages are shown
     await showMessage(`Cancelled! No changes made.`)
     return
@@ -61,7 +61,7 @@ export default async function sweepAll(): Promise<void> {
     '🗓 Now processing your Daily Notes...',
   )
 
-  if (re2.index == 0) {
+  if (re2.index === 0) {
     const todayFileName = filenameDateString(new Date())
     const recentCalNotes = DataStore.calendarNotes.filter(
       (note) =>

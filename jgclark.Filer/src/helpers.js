@@ -3,7 +3,7 @@
 //------------------------------------------------------------------
 // Helper functions
 //------------------------------------------------------------------
-export function printNote(note) {
+export function printNote(note: TNote): void {
   if (note == null) {
     console.log('Note not found!')
     return
@@ -31,12 +31,18 @@ export function printNote(note) {
 }
 
 // Show feedback message using Command Bar (@dwertheimer)
-export async function showMessage(message:string, confirmTitle:string = 'OK') {
-  return await CommandBar.showOptions([confirmTitle], message)
+export async function showMessage(
+  message: string,
+  confirmTitle: string = 'OK',
+): Promise<void> {
+  await CommandBar.showOptions([confirmTitle], message)
 }
 
 // Show feedback Yes/No Question via Command Bar (@dwertheimer)
-export async function showMessageYesNo(message:string, choicesArray:Array<string> = ['Yes', 'No']):Promise<string> {
+export async function showMessageYesNo(
+  message: string,
+  choicesArray: Array<string> = ['Yes', 'No'],
+): Promise<string> {
   const answer = await CommandBar.showOptions(choicesArray, message)
   return choicesArray[answer.index]
 }
@@ -44,7 +50,8 @@ export async function showMessageYesNo(message:string, choicesArray:Array<string
 export async function noteOpener(
   fullPath: string,
   desc: string,
-  useProjNoteByFilename: boolean = true): Promise<TNote> {
+  useProjNoteByFilename: boolean = true,
+): Promise<?TNote> {
   console.log(
     `\tAbout to open filename: "${fullPath}" (${desc}) using ${
       useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename'
@@ -59,7 +66,7 @@ export async function noteOpener(
     console.log(
       `\t\tDidn't work! ${
         useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename'
-      } returned ${newNote}`,
+      } returned ${String(newNote)}`,
     )
   }
   return newNote
@@ -67,7 +74,7 @@ export async function noteOpener(
 
 // Find a unique note title/filename so backlinks can work properly (@dwertheimer)
 // Keep adding numbers to the end of a filename (if already taken) until it works
-export function getUniqueNoteTitle(title:string):string {
+export function getUniqueNoteTitle(title: string): string {
   let i = 0,
     res = [],
     newTitle = title
@@ -78,7 +85,7 @@ export function getUniqueNoteTitle(title:string):string {
   return newTitle
 }
 
-export async function chooseFolder(msg:string):Promise<string> {
+export async function chooseFolder(msg: string): Promise<string> {
   let currentFolder
   const folders = DataStore.folders // excludes Trash and Archive
   if (folders.length > 0) {

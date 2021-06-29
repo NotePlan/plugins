@@ -36,6 +36,8 @@ export async function newNoteFromSelection() {
     if (!title) {
       title = strippedFirstLine
       if (isTextContent) {
+        // the types don't allow you to mutate selectedLinesText. Should this change?
+        // $FlowFixMe
         selectedLinesText.shift()
       }
     }
@@ -49,7 +51,7 @@ export async function newNoteFromSelection() {
 
     if (title) {
       // Create new note in the specific folder
-      const origFile = Editor.note.title || Editor.note.filename // Calendar notes have no title
+      const origFile = Editor.note?.title ?? Editor.note?.filename ?? '' // Calendar notes have no title
       // const origFileType = Editor.note.type //either "Notes" or "Calendar"
       console.log(`\torigFile:${origFile}`)
       const filename = (await DataStore.newNote(title, currentFolder)) ?? ''
@@ -69,8 +71,8 @@ export async function newNoteFromSelection() {
       const newNote = await noteOpener(fullPath, 'no leading slash')
 
       if (newNote) {
-        console.log(`\tnewNote=${newNote}\n\t${newNote.title}`)
-        console.log(`\tcontent=${newNote.content}`)
+        console.log(`\tnewNote=${String(newNote)}\n\t${String(newNote.title)}`)
+        console.log(`\tcontent=${String(newNote.content)}`)
 
         const insertBackLink = iblq.index === 0
         if (Editor.replaceSelectionWithText) {
