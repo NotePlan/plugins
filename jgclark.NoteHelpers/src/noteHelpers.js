@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// v0.9.0, 19.6.2021
+// v0.9.0, 29.6.2021
 //--------------------------------------------------------------------------------------------------------------------
 
 import { projectNotesSortedByChanged, printNote } from '../../helperFunctions'
@@ -55,8 +55,10 @@ export async function jumpToHeading() {
     )
     // find out position of this heading, ready to set insertion point
     const startPos = headingParas[re.index].contentRange?.start ?? 0
-    console.log(startPos)
-    Editor.renderedSelect(startPos, 0) // FIXME: WAITING for EM to shift viewport not just cursor
+    // console.log(startPos)
+    Editor.renderedSelect(startPos, 0)
+    CommandBar.hide() // shouldn't be needed, but seems to...
+
     // Editor.select(startPos, 0)
 
     // Earlier version:
@@ -107,7 +109,7 @@ export function jumpToDone() {
 
   if (matches != null) {
     const startPos = matches[0].contentRange?.start ?? 0
-    Editor.renderedSelect(startPos, 0) // FIXME: WAITING for EM to shift viewport not just cursor
+    Editor.renderedSelect(startPos, 0)
     // Editor.select(startPos, 0)
 
     // Earlier version
