@@ -22,24 +22,17 @@ function calcOffsetDate(oldDateISO, interval) {
   // - oldDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type
   // - interval is string of form nn[bdwmq], and could be negative
   // - where 'b' is weekday (i.e. Monday - Friday in English)
-  // Return new date also in ISO Date format string
+  // Return new date also in ISO Date format
+  // v2 method, using built-in NotePlan function 'Calendar.addUnitToDate(date, type, num)'
 
-  /**
-   * TODO: Could now use NP's own date manipulation functions:
-   * Calendar.dateUnits() -> "year", "month", "day", "hour", "minute", "second"
-   * .add(calendarItem) -> CalendarItem
-   * .parseDateText(text) -> [DateRangeObject]
-   * .dateFrom(year, month, day, hour, minute, second) -> Date
-   * .unitOf(date, type) -> Int
-   * .unitsUntilNow(date, type) -> Int
-   * .unitsAgoFromNow(date, type) -> Int
-   * Calendar.addUnitToDate(date, type, num)
-   */
   const oldDate = new Date(oldDateISO)
   let daysToAdd = 0
+  let monthsToAdd = 0
+  let yearsToAdd = 0
   const unit = interval.charAt(interval.length - 1) // get last character
   let num = Number(interval.substr(0, interval.length - 1)) // return all but last character
-  // console.log(`    c_o_d: old = ${  oldDate  } / ${   num  } / ${  unit}`)
+  // console.log("    c_o_d: old = " + oldDate + " / "  + num + " / " + unit)
+
   switch (unit) {
     case 'b': {
       // week days
@@ -64,28 +57,35 @@ function calcOffsetDate(oldDateISO, interval) {
       break
     }
     case 'd':
-      daysToAdd = num * 1 // need *1 otherwise treated as a string for some reason
+      daysToAdd = num // need *1 otherwise treated as a string for some reason
       break
     case 'w':
       daysToAdd = num * 7
       break
     case 'm':
-      daysToAdd = num * 30 // on average
+      monthsToAdd = num
       break
     case 'q':
-      daysToAdd = num * 91 // on average
+      monthsToAdd = num * 3
       break
     case 'y':
-      daysToAdd = num * 365 // on average
+      yearsToAdd = num
       break
     default:
-      console.log(`\tError in c_o_d from ${  oldDate  } by ${  interval}`)
+      console.log(`\tInvalid date interval: '${interval}'`)
       break
   }
-  const newDate = new Date(oldDate)
-  newDate.setDate(oldDate.getDate() + daysToAdd)
+
+  const newDate = (daysToAdd > 0)
+    ? Calendar.addUnitToDate(oldDate, 'day', daysToAdd)
+    : (monthsToAdd > 0)
+      ? Calendar.addUnitToDate(oldDate, 'month', monthsToAdd)
+      : (yearsToAdd > 0)
+        ? Calendar.addUnitToDate(oldDate, 'year', yearsToAdd)
+        : oldDate // if nothing else, leave date the same
+
   const newDateFmt = toISODateString(newDate)
-  // console.log(`    c_o_d: add ${  daysToAdd  } --> ${  newDateFmt}`)
+  // console.log("    c_o_d: add " + daysToAdd + " --> " + newDateFmt)
   return newDateFmt
 }
 
@@ -229,7 +229,8 @@ export async function repeats() {
           // ... or in the future daily note (prepend)
           // console.log('    -> ' + outline)
           const newRepeatDateShorter = unhyphenateDateString(newRepeatDate)
-          const newDailyNote = await DataStore.calendarNoteByDateString(newRepeatDateShorter)
+          const newDailyNote =
+            await DataStore.calendarNoteByDateString(newRepeatDateShorter)
           if (newDailyNote.title != null) {
             // console.log(newDailyNote.filename)
             await newDailyNote.appendTodo(outline)
