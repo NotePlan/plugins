@@ -21,6 +21,24 @@ export default async function showNoteCount(): Promise<void> {
     (n) => Calendar.unitsAgoFromNow(n.changedDate, 'month') < 3,
   )
 
+  // Test code to track down where there's an error in the data reported 
+  // by the API. Seems not; the problems are elsewhere in NP, according to 
+  // what the OS says about the underlying files.
+
+  // console.log('\nCreated last Quarter')
+  // for (let i = 0; i < createdLastQuarter.length; i++) {
+  //   const n=createdLastQuarter[i]
+  //   printNote(n)
+  //   console.log(`  ${Calendar.unitsAgoFromNow(n.createdDate, 'Quarter')}`)
+  // }
+
+  // console.log('\nUpdated last Quarter')
+  // for (let i = 0; i < updatedLastQuarter.length; i++) {
+  //   const n=updatedLastQuarter[i]
+  //   printNote(n)
+  //   console.log(`  ${Calendar.unitsAgoFromNow(n.updatedDate, 'Quarter')}`)
+  // }
+
   const display = [
     `🔢 Total: ${total}`,
     `📅 Calendar notes: ${calNotes.length} (equivalent to ${
