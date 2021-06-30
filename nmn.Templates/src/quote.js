@@ -25,18 +25,18 @@ export async function getDailyQuote(
   // }
 
   const availableModes = [
-    'today',
-    'random',
-    'author'
+    'zen-today',
+    'zen-random',
+    'zen-author'
   ]
 
-  const pref_mode = (quoteConfig.mode && availableModes.includes(quoteConfig.mode)) ? quoteConfig.mode : 'random' // Available modes: [today, random, author (premium only)].
+  const pref_mode = (quoteConfig?.mode && availableModes.includes(quoteConfig?.mode)) ? quoteConfig?.mode : 'zen-random' // Available modes: [today, random, author (premium only)].
   // For premium subscriptions
-  const pref_author = quoteConfig.author // Available authors: https://premium.zenquotes.io/available-authors/
-  const pref_key = quoteConfig.apiKey // https://premium.zenquotes.io/
+  const pref_author = quoteConfig?.author // Available authors: https://premium.zenquotes.io/available-authors/
+  const pref_key = quoteConfig?.apiKey // https://premium.zenquotes.io/
     
   const zenQuotesAPI = `https://zenquotes.io/api/`
-  const getDailyQuoteURL = (pref_mode == 'author' && pref_author && pref_key) ? `${zenQuotesAPI}quotes/${pref_mode}/${pref_author}/${pref_key}` : `${zenQuotesAPI}${pref_mode}`;
+  const getDailyQuoteURL = (pref_mode === 'zen-author' && pref_author && pref_key) ? `${zenQuotesAPI}quotes/${pref_mode}/${pref_author}/${pref_key}` : `${zenQuotesAPI}${pref_mode}`;
   console.log(getDailyQuoteURL)
   const response = await fetch(getDailyQuoteURL)
   if (response != null) {
@@ -45,6 +45,6 @@ export async function getDailyQuote(
     console.log(`\t${quoteLine}`)
     return quoteLine
   } else {
-    return 'Error in Daily Quote lookup'
+    return 'Error in zenquotes.io Daily Quote lookup'
   }
 }
