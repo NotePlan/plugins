@@ -137,11 +137,11 @@ The first code-block within the note will always be used. So edit the default co
 
   // configuration for daily quote, all settings are optional
   quote: {
-    // Available modes: [zen-random (default), zen-today, zen-author]
-    mode: 'zen-today',
+    // Available modes: [random (default), today, author]
+    mode: 'today',
     // API key required, available authors: https://premium.zenquotes.io/available-authors/
     author: 'anne-frank',
-    // Required for mode: 'zen-author' (from https://premium.zenquotes.io/)
+    // Required for mode: 'author' (from https://premium.zenquotes.io/)
     apiKey: '... put your API key here ...',
   },
 
