@@ -67,8 +67,10 @@ const DAILY_NOTE_TEMPLATE = `Daily Note Template
 ## Tasks
 
 ## Media
+{{quote()}}
 
 ## Journal
+{{weather()}}
 `
 
 const MEETING_NOTE_TEMPLATE = `Meeting Note Template
@@ -131,7 +133,16 @@ The first code-block within the note will always be used. So edit the default co
     longPosition: 0.0,
     // Default units. Can be 'metric' (for Celsius), or 'metric' (for Fahrenheit)
     openWeatherUnits: 'metric',
-    // When using a weather tag, you can customize these options.
+  },
+
+  // configuration for daily quote, all settings are optional
+  quote: {
+    // Available modes: [zen-random (default), zen-today, zen-author]
+    mode: 'zen-today',
+    // API key required, available authors: https://premium.zenquotes.io/available-authors/
+    author: 'anne-frank',
+    // Required for mode: 'zen-author' (from https://premium.zenquotes.io/)
+    apiKey: '... put your API key here ...',
   },
 
   // default values for custom tags.

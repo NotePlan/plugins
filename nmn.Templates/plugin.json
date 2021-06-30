@@ -6,7 +6,7 @@
   "plugin.icon": "f120",
   "plugin.author": "Naman Goel",
   "plugin.repoUrl": "tbd",
-  "plugin.version": "0.1.0",
+  "plugin.version": "0.2.0",
   "plugin.dependencies": [ ],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
