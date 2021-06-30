@@ -134,6 +134,16 @@ The first code-block within the note will always be used. So edit the default co
     // When using a weather tag, you can customize these options.
   },
 
+  // configuration for daily quote, all settings are optional
+  quote: {
+    // Available modes: [random (default), today, author]
+    mode: 'today',
+    // API key required, available authors: https://premium.zenquotes.io/available-authors/
+    author: 'anne-frank',
+    // Required for mode: 'author'
+    apiKey: '... put your API key here ...',
+  },
+
   // default values for custom tags.
   // These tags cannot be functions, but you may choose to have nested objects.
   // feel free to edit this value however you see fit.
