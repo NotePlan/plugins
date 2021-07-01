@@ -60,6 +60,7 @@ export async function getWeatherSummary(
 
   const jsonIn = await fetch(getWeatherURL)
   if (jsonIn != null) {
+    //$FlowIgnore[incompatible-call]
     const weatherTodayAll = JSON.parse(jsonIn).daily['0']
     // const weatherTodayAll = jsonIn.daily['0']
     const maxTemp = weatherTodayAll.feels_like.day.toFixed(0)

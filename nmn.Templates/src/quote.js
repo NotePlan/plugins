@@ -36,11 +36,12 @@ export async function getDailyQuote(
   const pref_key = quoteConfig?.apiKey // https://premium.zenquotes.io/
     
   const zenQuotesAPI = `https://zenquotes.io/api/`
-  const getDailyQuoteURL = (pref_mode === 'author' && pref_author && pref_key) ? `${zenQuotesAPI}quotes/${pref_mode}/${pref_author}/${pref_key}` : `${zenQuotesAPI}${pref_mode}`;
+  const getDailyQuoteURL = (pref_mode === 'author' && pref_author && pref_key) ? `${zenQuotesAPI}quotes/${pref_mode}/${pref_author}/${pref_key}` : `${zenQuotesAPI}${pref_mode}`
   console.log(getDailyQuoteURL)
   const response = await fetch(getDailyQuoteURL)
   if (response != null) {
-    let data = JSON.parse(response)[0]
+    //$FlowIgnore[incompatible-call]
+    const data = JSON.parse(response)[0]
     const quoteLine = `> ${data.q} - *${data.a}*`
     console.log(`\t${quoteLine}`)
     return quoteLine
