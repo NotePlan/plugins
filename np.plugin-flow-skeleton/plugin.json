@@ -1,0 +1,17 @@
+{
+  "noteplan.minAppVersion": "3.0.21", 
+  "plugin.id": "yourGitID.yourPluginCollectionName", 
+  "plugin.name": "Main Heading/Title for your plugin collection (e.g. Note Helpers)", 
+  "plugin.description": "More descriptive subtitle for your collection of commands.", 
+  "plugin.author": "Your Name",
+  "plugin.version": "0.0.2", 
+  "plugin.dependencies": [ ], 
+  "plugin.script": "script.js",
+  "plugin.commands": [ 
+    {
+      "name": "shortPluginCommandHere", 
+      "description": "description goes here. displays in plugins install panel", 
+      "jsFunction": "insertPluginFunctionNameHere"
+    }
+  ]
+}

@@ -8,6 +8,7 @@ const commonjs = require('@rollup/plugin-commonjs')
 const { babel } = require('@rollup/plugin-babel')
 const resolve = require('@rollup/plugin-node-resolve').default
 const mkdirp = require('mkdirp')
+const username = require('os').userInfo().username
 const { terser } = require('rollup-plugin-terser')
 
 const FOLDERS_TO_IGNORE = ['scripts', 'flow-typed', 'node_modules']
@@ -127,8 +128,8 @@ async function getCopyTargetPath(dirents) {
       {
         type: 'input',
         name: 'inputPath',
-        message:
-          'What is the absolute path to the noteplan Plugins folder. (should start with "/" end with "/Plugins")',
+        default: `/Users/${username}/Library/Containers/co.noteplan.NotePlan3/Data/Library/Application Support/co.noteplan.NotePlan3/Plugins`,
+        message: `Enter the absolute path to the noteplan Plugins folder below. (Should start with "/" end with "/Plugins" -- No trailing slash and no escapes (backslashes) in the path. On a Mac, it would be something like the suggestion below\n[type path or enter to accept this suggestion.]\n>>`,
       },
     ])
     pluginPath = inputPath
