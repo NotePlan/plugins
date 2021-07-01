@@ -1,0 +1,22 @@
+{
+  "noteplan.min_version": "3.0.23",
+  "plugin.id": "jgclark.EventHelpers",
+  "plugin.name": "🕓 Event Helpers",
+  "plugin.description": "Commands to extend NotePlan's Events handling, including Timeblocks. See website for more details, and configuration.",
+  "plugin.icon": "",
+  "plugin.author": "jgclark",
+  "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers",
+  "plugin.version": "0.1.0",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.isRemote": "false",
+  "plugin.commands": [
+    {
+      "name": "timeblocks",
+      "description": "promote timeblocks to be full calendar events",
+      "jsFunction": "timeblocksToCalendar"
+    }
+  ],
+  "plugin.preferences": [
+  ]
+}
