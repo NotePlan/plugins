@@ -1,5 +1,5 @@
 // @flow strict
-// import {chooseOption,showMessage,getInput} from '../../nmn.sweep/src/userInput.js'
+
 export type Option<T> = $ReadOnly<{
   label: string,
   value: T,
