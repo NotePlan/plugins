@@ -13,10 +13,11 @@
 
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 import {
-  // toISOShortDateTimeString,
-  // toISODateString,
+  // eslint-disable-next-line no-unused-vars
   printDateRange,
   displayTitle,
+  // toISOShortDateTimeString,
+  // toISODateString,
 } from '../../helperFunctions'
 
 // Setting variables
@@ -35,13 +36,14 @@ export async function timeblocksToCalendar() {
   const { paragraphs, note } = Editor
   if (paragraphs == null || note == null) {
     console.log('\ntimeblocksToCalendar: warning: no content found')
+    return
   }
   const noteTitle = displayTitle(note)
   console.log(`\ntimeblocksToCalendar: starting for note '${noteTitle}'`)
 
   // Get config settings from Template folder _configuration note
   const config = await getOrMakeConfigurationSection(
-    'statistics',
+    'events',
     DEFAULT_EVENTS_OPTIONS,
   )
   const eventsConfig: any = config?.events ?? null
