@@ -57,7 +57,7 @@ type TEditor = {
    */
   +type: ?NoteType,
   /**
-   * Get the filename of the note
+   * Get the filename of the **note**
    */
   +filename: ?string,
   /**
@@ -906,8 +906,8 @@ type TParagaraphBridge = {
   removeParagraph(paragraph: TParagraph): void,
 
   /**
-   * Removes a given paragraph
-   * @param paragraph - Paragraph object to remove, get it from `.paragraphs`
+   * Removes given paragraphs
+   * @param paragraphs - Array of Paragraph object to remove, get it from `.paragraphs`
    */
   removeParagraphs(paragraphs: $ReadOnlyArray<TParagraph>): void,
 
