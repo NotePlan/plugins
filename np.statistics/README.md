@@ -14,25 +14,29 @@ Then it asks where to save its output: to screen, to console log, or to a specia
 The `/stp` command requires configuration; the first time its run it should detect it doesn't have configuration, and offer to write some to the first configuration block of the `Templates/_configuration` note (as used by the Templates system). 
 Alternatively, in the `Templates/_configuration` note, include the following settings you want in the note's first configuration block. For example:
 
-```
+```javascript
 ...
 statistics: {
   folderToStore: 'Summaries',
   hashtagCountsHeading: '#hashtag counts',
   mentionCountsHeading: '@mention counts',
   countsHeadingLevel: 2, // one of markdown heading level 1-5
-  showAsHashtagOrMention: false,
-  // In the following the includes (if specified) takes precedence over excludes ...
+  showAsHashtagOrMention: true, // if false hide the # or @ symbols
+  // In the following the includes (if specified) takes precedence over any excludes.
+  // Items in the list need to be included in quotes, separated by commas.
   includeHashtags: [], // e.g. ['#holiday','#jog','#commute','#webinar']
   excludeHashtags: [],
-  includeMentions: [], // e.g. ['@work','@fruitveg','@water']
-  excludeMentions: ['@done'],
+  includeMentions: [], // e.g. ['@work','@fruitveg','@water', '@sleep']
+  excludeMentions: ['@done', '@repeat'],
 },
 ...
 ```
-(This example fragment is in JSON5 format: see the help text in `_configuration` note. Ensure there are commas at the end of all that lines that need them.)
+(This example fragment is in JSON5 format: ensure there are commas at the end of all that lines that need them.)
 
 ## History
+### v0.3.3, 2.7.2021
+- tweaks to display; large numbers will now display using local settings for thousands separators
+
 ### v0.3.2, 29.6.2021
 - add /stp command to generate some statistics and summaries over time periods.
 

@@ -20,7 +20,7 @@ export default async function showTaskCountNote() {
     `🚫 Cancelled: ${ percent(countParagraphs(["cancelled"]), total)}`,
     `📆 Scheduled: ${ percent(countParagraphs(["scheduled"]), total)}`,
     `📤 Closed: ${ 
-      percent(countParagraphs(["done", "scheduled", "cancelled"]), total)}`,
+      percent(countParagraphs(["done", "cancelled"]), total)}`,
   ]
 
   const re = await CommandBar.showOptions(

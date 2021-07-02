@@ -55,7 +55,7 @@ export async function showMessageYesNo(
 // export function percent(value, total) {
 // @eduardme
 export function percent(value: number, total: number): string {
-  return `${value} (${Math.round((value / total) * 100)}%)`
+  return `${value.toLocaleString()} (${Math.round((value / total) * 100)}%)`
 }
 
 //-------------------------------------------------------------------------------

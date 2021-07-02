@@ -23,25 +23,20 @@ export default async function showTaskCountProjects() {
   for (let i = 0; i < projNotesCount; i += 1) {
     const n = projNotes[i]
     doneTotal += n.paragraphs.filter((p) => p.type === 'done').length
-    openTotal += n.paragraphs.filter((p) => p.type === 'open').length
+    openTotal += n.paragraphs.filter((p) => p.type === 'open').length // doesn't include scheduled
     cancelledTotal += n.paragraphs.filter((p) => p.type === 'cancelled').length
-    scheduledTotal += n.paragraphs.filter((p) => p.type === 'scheduled').length
+    scheduledTotal += n.paragraphs.filter((p) => p.type === 'scheduled').length  // not quite the same as future
     open.set(n.title, n.paragraphs.filter((p) => p.type === 'open').length)
-    if (i > 20) {
-      break
-    }
   }
 
-  const closedTotal = doneTotal + scheduledTotal + cancelledTotal
+  const closedTotal = doneTotal + cancelledTotal
   const total = openTotal + closedTotal
   const donePercent = percent(doneTotal, total)
   const cancelledPercent = percent(cancelledTotal, total)
   const display1 = [
     `Task statistics from ${projNotes.length} project notes:  (select any to copy)`,
     `\t✅ Done: ${donePercent}\t🚫 Cancelled: ${cancelledPercent}`,
-    `${percent(openTotal, total)}`,
-    `\t📆 Scheduled: ${percent(scheduledTotal, total)}`,
-    `\t📤 Closed: ${percent(closedTotal, total)}`,
+    `\t⚪️ Open: ${percent(openTotal, total)}\t📆 Scheduled: ${percent(scheduledTotal, total)}`,
   ]
 
   // Now find top 5 project notes by open tasks

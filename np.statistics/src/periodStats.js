@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Create statistics for hasthtags and mentions for time periods
 // Jonathan Clark
-// v0.3.2, 29.6.2021
+// v0.3.3, 2.7.2021 - unreleased
 //-----------------------------------------------------------------------------
 
 // TODO:
@@ -34,6 +34,7 @@ import {
   monthNameAbbrev,
   withinDateRange,
   dateStringFromCalendarFilename,
+  displayTitle,
 } from '../../helperFunctions'
 
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
@@ -462,14 +463,21 @@ export async function periodStats(): Promise<void> {
 
       if (existingNotes.length > 0) {
         note = existingNotes[0] // pick the first if more than one
-        console.log(`\tfilename of first matching note '${note.title ?? ''}'`)
+        console.log(`\tfilename of first matching note: ${displayTitle(note)}`)
       } else {
-        // make a new note for this
-        const noteFilename = DataStore.newNote(periodString, pref_folderToStore) ?? ''
+        // make a new note for this. NB: filename here = folder + filename
+        const noteFilename = DataStore.newNote(periodString, pref_folderToStore)
+        if (!noteFilename) {
+          await showMessage('There was an error creating the new note')
+          return
+        }
         console.log(`\tnewNote filename: ${noteFilename}`)
-        // NB: filename here = folder + filename
         note = DataStore.projectNoteByFilename(noteFilename)
-        console.log(`\twriting results to the new note '${note.title ?? ''}'`)
+        if (note == null) {
+          await showMessage('There was an error getting the new note ready to write')
+          return
+        }
+        console.log(`\twriting results to the new note '${displayTitle(note)}'`)
       }
 
       if (note != null) {

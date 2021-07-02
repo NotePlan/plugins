@@ -39,14 +39,14 @@ export default async function showWordCount(): Promise<void> {
 
   const display = [
     `Characters: ${
-      selectedCharCount > 0 ? `${selectedCharCount}/${charCount}` : charCount
+      selectedCharCount > 0 ? `${selectedCharCount.toLocaleString()}/${charCount.toLocaleString()}` : charCount.toLocaleString()
     }`,
     `Words: ${
-      selectedWordCount > 0 ? `${selectedWordCount}/${wordCount}` : wordCount
+      selectedWordCount > 0 ? `${selectedWordCount.toLocaleString()}/${wordCount.toLocaleString()}` : wordCount.toLocaleString()
     }`,
-    `Lines: ${selectedLines > 1 ? `${selectedLines}/${lineCount}` : lineCount}`,
-    `Mentions: ${mentionCount}`,
-    `Hashtags: ${tagCount}`,
+    `Lines: ${selectedLines > 1 ? `${selectedLines.toLocaleString()}/${lineCount.toLocaleString()}` : lineCount.toLocaleString()}`,
+    `Mentions: ${mentionCount.toLocaleString()}`,
+    `Hashtags: ${tagCount.toLocaleString()}`,
   ]
 
   const re = await CommandBar.showOptions(
