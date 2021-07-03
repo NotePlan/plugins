@@ -1,5 +1,10 @@
 // @flow
 
+// TODO:
+// - ideally find a way to get current location. It must be possible as Scriptable achieves this
+//   with await Location.current()
+//   and has a Location.reverseGeocode(latitude, longitude) field -> postal town etc.
+
 // import { parseJSON5 } from '../../nmn.Templates/src/configuration'
 import { showMessage } from '../../nmn.sweep/src/userInput'
 
@@ -36,21 +41,31 @@ export async function getWeatherSummary(
   const pref_longPosition = weatherConfig.longPosition
   const pref_openWeatherUnits = weatherConfig.openWeatherUnits
 
-  console.log(`getWeatherSummary: Params: '${weatherParams}'`)
-  // const paramConfig = weatherParams.trim()
-  //   ? await parseJSON5(weatherParams)
-  //   : {}
-  // console.log(paramConfig)
-
   const getWeatherURL = `https://api.openweathermap.org/data/2.5/onecall?lat=${pref_latPosition}&lon=${pref_longPosition}&exclude=current,hourly,minutely&units=${pref_openWeatherUnits}&appid=${pref_openWeatherAPIKey}`
 
-  const response = await fetch(getWeatherURL)
-  const jsonIn = await response.json()
+  // ** The following is the more correct way, but doesn't work.
+  //    So have to use a way that Flow doesn't like.
+  //    See Issue 7 **
+  // const response = await fetch(getWeatherURL)
+  // console.log(response.status)
+  // console.log(response.statusText)
+  // console.log(response.type)
+  // console.log(response.url)
+  // let jsonIn
+  // if (response.ok) { // if HTTP-status is 200-299
+  //   jsonIn = await response.json()
+  // } else {
+  //   return `Sorry; error ${response.status} in Weather lookup`
+  // }
+
+  const jsonIn = await fetch(getWeatherURL)
   if (jsonIn != null) {
-    const weatherTodayAll = jsonIn.daily['0']
+    //$FlowIgnore[incompatible-call]
+    const weatherTodayAll = JSON.parse(jsonIn).daily['0']
+    // const weatherTodayAll = jsonIn.daily['0']
     const maxTemp = weatherTodayAll.feels_like.day.toFixed(0)
     const minTemp = weatherTodayAll.feels_like.night.toFixed(0)
-    const weatherDesc = weatherTodayAll.weather['0'].description
+    const weatherDesc = weatherTodayAll.weather['0'].description ?? ''
 
     // see if we can fix an icon for this as well, according to returned description. Main terms are:
     // thunderstorm, drizzle, shower > rain, snow, sleet, clear sky, mist, fog, dust, tornado, overcast > clouds
@@ -65,12 +80,17 @@ export async function getWeatherSummary(
 
     // TODO: Allow for more customisation of what is pulled out from the API's data structure
     // using weatherParams
+    // Future use, if we want to do more customisation with parameters
+    // console.log(`getWeatherSummary: Params: '${weatherParams}'`)
+    // const paramConfig = weatherParams.trim()
+    //   ? await parseJSON5(weatherParams)
+    //   : {}
+    // console.log(paramConfig)
 
-    const summaryLine = `${maxTemp}/${minTemp} ${weatherIcon}${weatherDesc}`
+    const summaryLine = `${weatherIcon}${weatherDesc} ${maxTemp}/${minTemp}`
     console.log(`\t${summaryLine}`)
     return summaryLine
   } else {
-    await showMessage('Sorry; error in Weather lookup')
-    return 'sorry; error in Weather lookup'
+    return `Sorry; unexpected data in Weather lookup`
   }
 }

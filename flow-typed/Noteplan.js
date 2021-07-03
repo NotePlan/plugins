@@ -57,7 +57,7 @@ type TEditor = {
    */
   +type: ?NoteType,
   /**
-   * Get the filename of the note
+   * Get the filename of the **note**
    */
   +filename: ?string,
   /**
@@ -904,6 +904,12 @@ type TParagaraphBridge = {
    * @param paragraph - Paragraph object to remove, get it from `.paragraphs`
    */
   removeParagraph(paragraph: TParagraph): void,
+
+  /**
+   * Removes given paragraphs
+   * @param paragraphs - Array of Paragraph object to remove, get it from `.paragraphs`
+   */
+  removeParagraphs(paragraphs: $ReadOnlyArray<TParagraph>): void,
 
   /**
    * Updates a given paragraph. Get the paragraph, then modify it and update the text in the note or editor using this method.

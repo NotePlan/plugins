@@ -20,20 +20,20 @@ statistics: {
   folderToStore: 'Summaries',
   hashtagCountsHeading: '#hashtag counts',
   mentionCountsHeading: '@mention counts',
-  countsHeadingLevel: 3,
+  countsHeadingLevel: 2, // one of markdown heading level 1-5
   showAsHashtagOrMention: false,
   // In the following the includes (if specified) takes precedence over excludes ...
   includeHashtags: [], // e.g. ['#holiday','#jog','#commute','#webinar']
   excludeHashtags: [],
-  includeMentions: [], // e.g. ['@work','@fruitveg','@words']
+  includeMentions: [], // e.g. ['@work','@fruitveg','@water']
   excludeMentions: ['@done'],
 },
 ...
 ```
-(This example fragment is in JSON5 format, but you can also use TOML or YAML formats: see the help text in `_configuration` note. Ensure there are commas at the end of all that lines that need them.)
+(This example fragment is in JSON5 format: see the help text in `_configuration` note. Ensure there are commas at the end of all that lines that need them.)
 
 ## History
-### v0.3.0, 20.6.2021
+### v0.3.2, 29.6.2021
 - add /stp command to generate some statistics and summaries over time periods.
 
 ### v0.2.0

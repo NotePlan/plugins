@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Daily Journal commands
 // Jonathan Clark
-// v0.6.4, 18.6.2021
+// v0.6.5, 28.6.2021
 //-----------------------------------------------------------------------------
 
-export { dayStart, dayReview } from './script'
+export { dayStart, dayReview } from './journal'

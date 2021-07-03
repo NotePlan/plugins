@@ -97,10 +97,9 @@ export function toISOShortDateTimeString(dateObj: Date): string {
   return dateObj.toISOString().slice(0, 16)
 }
 
-export function printDateRange(drs: Array<DateRange>) {
-  const dr = drs[0]
+export function printDateRange(dr: DateRange) {
   console.log(
-    `${toISOShortDateTimeString(dr.start)}-${toISOShortDateTimeString(dr.end)}`,
+    `DateRange <${toISOShortDateTimeString(dr.start)} - ${toISOShortDateTimeString(dr.end)}>`,
   )
 }
 
@@ -248,19 +247,18 @@ export function printNote(note: TNote) {
     console.log(
       `title: ${note.title ?? ''}\n\tfilename: ${
         note.filename ?? ''
-      }\n\thashtags: ${note.hashtags?.join(',') ?? ''}\n\tmentions: ${
-        note.mentions?.join(',') ?? ''
       }\n\tcreated: ${String(note.createdDate) ?? ''}\n\tchanged: ${
         String(note.changedDate) ?? ''
+      }\n\thashtags: ${note.hashtags?.join(',') ?? ''}\n\tmentions: ${
+        note.mentions?.join(',') ?? ''
       }`,
     )
   } else {
     console.log(
-      `date: ${String(note.createdDate) ?? ''}\n\tfilename: ${
-        note.filename ?? ''
-      }\n\thashtags: ${note.hashtags?.join(',') ?? ''}\n\tmentions: ${
-        note.mentions?.join(',') ?? ''
-      }`,
+      `filename: ${note.filename ?? ''}\n\tcreated: ${
+        String(note.createdDate) ?? ''}\n\tchanged: ${
+      String(note.changedDate) ?? ''}\n\thashtags: ${note.hashtags?.join(',') ?? ''}\n\tmentions: ${
+        note.mentions?.join(',') ?? ''}`,
     )
   }
 }

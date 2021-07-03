@@ -1,9 +1,9 @@
 // @flow
 
 //-----------------------------------------------------------------------------
-// Calendar ???
+// Event Helpers
 // Jonathan Clark
-// v0.1.0, 1.6.2021
+// v0.1.0, 29.6.2021
 //-----------------------------------------------------------------------------
 
-export { default as timeblocksToCalendar } from './timeblocks'
+export { timeblocksToCalendar } from './timeblocks'

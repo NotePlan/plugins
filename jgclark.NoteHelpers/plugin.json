@@ -1,5 +1,5 @@
 {
-  "noteplan.min_version": "3.0.24",
+  "noteplan.min_version": "3.0.23",
   "plugin.id": "jgclark.NoteHelpers",
   "plugin.name": "📙 Note Helpers",
   "plugin.description": "Commands to quickly jump around and manage notes",

@@ -2,6 +2,7 @@
 
 import { getInput } from '../../nmn.sweep/src/userInput'
 import { getWeatherSummary } from './weather'
+import { getDailyQuote } from './quote'
 import { parseJSON5 } from './configuration'
 
 export async function processTemplate(
@@ -40,6 +41,8 @@ export async function processTags(
     return await processDate(tag.slice(5, tag.length - 1), config)
   } else if (tag.startsWith('weather(') && tag.endsWith(')')) {
     return await getWeatherSummary(tag.slice(8, tag.length - 1), config)
+  } else if (tag.startsWith('quote(') && tag.endsWith(')')) {
+    return await getDailyQuote(tag.slice(6, tag.length - 1), config)
   }
 
   // **Add other extension function calls here**
