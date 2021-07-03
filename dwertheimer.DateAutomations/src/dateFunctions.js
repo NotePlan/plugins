@@ -84,10 +84,11 @@ async function getFormattedDateTime() {
         config.timeStyle = ts
       }
 
+      // console.log(`${JSON.stringify(config)}`)
       const text = new Intl.DateTimeFormat(
-        dateConfig.locale,
+        config.locale,
         // $FlowFixMe
-        dateConfig,
+        config,
       ).format()
 
       options.push({
@@ -99,7 +100,7 @@ async function getFormattedDateTime() {
     }),
   )
 
-  // console.log(JSON.stringify(options, null, 2))
+  console.log(JSON.stringify(options, null, 2))
   return options
 }
 
