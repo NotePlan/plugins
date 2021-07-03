@@ -66,39 +66,51 @@ async function getFormattedDateTime() {
   const dateConfig = await getDateConfig()
   const dateStyles = ['short', 'medium', 'long'] // pulling out 'full' for now
   const timeStyles = ['', 'short', 'medium', 'long'] // pulling out 'full' for now
+  const hour12 = [false, true]
+
+  // Pluck all values except `dateStyle` and `timeStyle`
+  const { dateStyle: _1, timeStyle: _2, ...config } = { ...dateConfig }
+
+  // Get user default locale
+  const locales = []
+  locales.push((dateConfig && dateConfig.locale) || 'en-US')
+  if (dateConfig.locale !== 'sv-SE') locales.push('sv-SE')
 
   const options = []
-  dateStyles.forEach((ds) =>
-    timeStyles.forEach((ts) => {
-      // Pluck all values except `dateStyle` and `timeStyle`
-      const { dateStyle: _1, timeStyle: _2, ...config } = { ...dateConfig }
+  locales.forEach((loc) => {
+    dateStyles.forEach((ds) =>
+      timeStyles.forEach((ts) => {
+        hour12.forEach((h12) => {
+          // conditionall add those keys to config
+          if (ds !== '') {
+            // Ignore type error for now
+            // $FlowFixMe
+            config.dateStyle = ds
+          }
+          if (ts !== '') {
+            // $FlowFixMe
+            config.timeStyle = ts
+          }
+          config.hour12 = h12
+          // console.log(`${JSON.stringify(config)}`)
+          const text = new Intl.DateTimeFormat(
+            loc,
+            // $FlowFixMe
+            config,
+          ).format()
 
-      // conditionall add those keys to config
-      if (ds !== '') {
-        // Ignore type error for now
-        // $FlowFixMe
-        config.dateStyle = ds
-      }
-      if (ts !== '') {
-        // $FlowFixMe
-        config.timeStyle = ts
-      }
-
-      // console.log(`${JSON.stringify(config)}`)
-      const text = new Intl.DateTimeFormat(
-        config.locale,
-        // $FlowFixMe
-        config,
-      ).format()
-
-      options.push({
-        dateStyle: ds !== '' ? ds : null,
-        timeStyle: ts !== '' ? ds : null,
-        label: `${text} (${ds}/${ts})`,
-        text: `${text}`,
-      })
-    }),
-  )
+          options.push({
+            dateStyle: ds !== '' ? ds : null,
+            timeStyle: ts !== '' ? ds : null,
+            label: `${text} (${loc}/${ds ? ds : '[not set]'}/${
+              ts ? ts : '[not-set]'
+            }/${String(h12)})`,
+            text: `${text}`,
+          })
+        })
+      }),
+    )
+  })
 
   console.log(JSON.stringify(options, null, 2))
   return options
@@ -155,7 +167,7 @@ export async function datePicker() {
   const dateChoices = await getFormattedDateTime()
   const re = await CommandBar.showOptions(
     dateChoices.map((d) => d.label),
-    'Choose a format (dateStyle/timeStyle)',
+    'Choose format (locale/dateStyle/timeStyle/hour12)',
   )
   Editor.insertTextAtCursor(dateChoices[re.index].text)
 }
