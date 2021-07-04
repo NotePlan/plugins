@@ -5,89 +5,13 @@
 //--------------------------------------------------------------------------------------------------------------------
 
 import {
-  toISODateString,
   unhyphenateDateString,
   RE_DATE, // find dates of form YYYY-MM-DD
   RE_TIME, // find '12:23' with optional '[ ][AM|PM|am|pm]'
-//   rangeToString,
+  calcOffsetDate,
+  // toISODateString,
+  // rangeToString,
 } from '../../helperFunctions'
-
-//------------------------------------------------------------------
-// Helper functions
-//------------------------------------------------------------------
-
-// Calculate an offset date
-function calcOffsetDate(oldDateISO, interval) {
-  // Calculate an offset date, assuming:
-  // - oldDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type
-  // - interval is string of form nn[bdwmq], and could be negative
-  // - where 'b' is weekday (i.e. Monday - Friday in English)
-  // Return new date also in ISO Date format
-  // v2 method, using built-in NotePlan function 'Calendar.addUnitToDate(date, type, num)'
-
-  const oldDate = new Date(oldDateISO)
-  let daysToAdd = 0
-  let monthsToAdd = 0
-  let yearsToAdd = 0
-  const unit = interval.charAt(interval.length - 1) // get last character
-  let num = Number(interval.substr(0, interval.length - 1)) // return all but last character
-  // console.log("    c_o_d: old = " + oldDate + " / "  + num + " / " + unit)
-
-  switch (unit) {
-    case 'b': {
-      // week days
-      // Method from Arjen at https://stackoverflow.com/questions/279296/adding-days-to-a-date-but-excluding-weekends
-      // Avoids looping, and copes with negative intervals too
-      const currentDayOfWeek = oldDate.getUTCDay() // = day of week with Sunday = 0, ..Saturday = 6
-      let dayOfWeek
-      if (num < 0) {
-        dayOfWeek = (currentDayOfWeek - 12) % (7)
-      } else {
-        dayOfWeek = (currentDayOfWeek + 6) % (7) // % = modulo operator in JSON
-      }
-      if (dayOfWeek === 6) {
-        num--
-      }
-      if (dayOfWeek === -6) {
-        num++
-      }
-      // console.log("    c_o_d b: " + currentDayOfWeek + " / " + num + " / " + dayOfWeek)
-      const numWeekends = Math.trunc((num + dayOfWeek) / 5)
-      daysToAdd = num + numWeekends * 2
-      break
-    }
-    case 'd':
-      daysToAdd = num // need *1 otherwise treated as a string for some reason
-      break
-    case 'w':
-      daysToAdd = num * 7
-      break
-    case 'm':
-      monthsToAdd = num
-      break
-    case 'q':
-      monthsToAdd = num * 3
-      break
-    case 'y':
-      yearsToAdd = num
-      break
-    default:
-      console.log(`\tInvalid date interval: '${interval}'`)
-      break
-  }
-
-  const newDate = (daysToAdd > 0)
-    ? Calendar.addUnitToDate(oldDate, 'day', daysToAdd)
-    : (monthsToAdd > 0)
-      ? Calendar.addUnitToDate(oldDate, 'month', monthsToAdd)
-      : (yearsToAdd > 0)
-        ? Calendar.addUnitToDate(oldDate, 'year', yearsToAdd)
-        : oldDate // if nothing else, leave date the same
-
-  const newDateFmt = toISODateString(newDate)
-  // console.log("    c_o_d: add " + daysToAdd + " --> " + newDateFmt)
-  return newDateFmt
-}
 
 //------------------------------------------------------------------
 // Process any completed(or cancelled) tasks with my extended @repeat(..) tags,
