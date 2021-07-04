@@ -6,7 +6,7 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark & Eduard Metzger",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/",
-  "plugin.version": "0.9.0",
+  "plugin.version": "0.9.1",
   "plugin.changelog": "See plugin README.md",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
@@ -15,7 +15,7 @@
     {
       "name": "mn",
       "description": "Moves the currently opened (non-calendar) note to a folder you select",
-      "jsFunction": "selectFolder"
+      "jsFunction": "moveNote"
     },
     {
       "name": "jh",
