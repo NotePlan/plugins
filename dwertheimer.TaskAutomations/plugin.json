@@ -7,6 +7,7 @@
   "plugin.version": "0.0.2", 
   "plugin.dependencies": [ ], 
   "plugin.script": "script.js",
+  "plugin.url": "https://github.com/dwertheimer/Noteplan-plugins/blob/main/dwertheimer.TaskAutomations/readme.md",
   "plugin.commands": [ 
     {
       "name": "ts", 
