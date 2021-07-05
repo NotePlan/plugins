@@ -33,25 +33,25 @@ export async function getOrMakeTemplateFolder(): Promise<?string> {
       return
     }
 
-    const subfolder = await chooseOption<string>(
+    const subFolder = await chooseOption<string>(
       'Select a location for the templates folder.',
       DataStore.folders.map((folder) => ({
         label: folder,
-        value: folder + (folder.endsWith('/') ? '' : '/'),
+        value: folder + (folder.endsWith('/') ? '' : '/'), // ensure ends with '/'
       })),
       '',
     )
-    folder = subfolder + staticTemplateFolder
+    folder = subFolder + staticTemplateFolder
 
     // Now create a sample note in that folder, then we got the folder also created
     DataStore.newNote(DAILY_NOTE_TEMPLATE, folder)
     DataStore.newNote(MEETING_NOTE_TEMPLATE, folder)
     DataStore.newNote(TAGS_TEMPLATE, folder)
     DataStore.newNote(CONFIG, folder)
-    console.log(`-> "${staticTemplateFolder}" folder created with samples`)
-    await showMessage(`"${staticTemplateFolder}" folder created with samples`)
-    // FIXME: hopefully can remove this after API cache fix.
-    await showMessage(`Please re-start command.`)
+    // for 'folder' to be useful straight away we need to strip off any leading '/'
+    folder = (folder.startsWith('/')) ? folder.slice(1) : folder
+    console.log(`-> "${folder}" folder created with samples`)
+    await showMessage(`"${folder}" folder created with samples`)
   }
   return folder
 }
@@ -67,15 +67,15 @@ const DAILY_NOTE_TEMPLATE = `Daily Note Template
 ## Tasks
 
 ## Media
-{{quote()}}
+> {{quote()}}
 
 ## Journal
-{{weather()}}
+Weather: {{weather()}}
 `
 
 const MEETING_NOTE_TEMPLATE = `Meeting Note Template
 ---
-## Project X Meeting on [[date]] with @Y and @Z
+## Project X Meeting on [[{{date-as-YYYY-MM-DD}}]] with {{people list}}
 
 ## Notes
 
@@ -123,19 +123,19 @@ The first code-block within the note will always be used. So edit the default co
     timeStyle: 'short',
   },
 
-  // configuration for weather data
+  // configuration for weather data (used in Daily Note Template, for example)
   weather: {
     // API key for https://openweathermap.org/
     // !!REQUIRED!!
     openWeatherAPIKey: '... put your API key here ...',
-    // Default location for weather forcast
+    // Required location for weather forecast
     latPosition: 0.0,
     longPosition: 0.0,
     // Default units. Can be 'metric' (for Celsius), or 'metric' (for Fahrenheit)
     openWeatherUnits: 'metric',
   },
 
-  // configuration for daily quote, all settings are optional
+  // configuration for daily quote (used in Daily Note Template, for example)
   quote: {
     // Available modes: [random (default), today, author]
     mode: 'today',

@@ -52,9 +52,7 @@ export async function parseFirstCodeblock(
     return {}
   }
   format = FORMAT_MAP[format] ?? format
-  console.log(
-    `parseFirstCodeblock: will parse format ${format} length ${contents.length}`,
-  )
+  console.log(`parseFirstCodeblock: will parse ${contents.length} bytes of ${format}`)
 
   switch (format) {
     case 'json':
@@ -99,7 +97,7 @@ export async function getOrMakeConfigurationSection(
     // TODO: make new _configuration file
     return {}
   }
-  console.log('getOrMakeConfigurationSection: got configFile content')
+  console.log('getOrMakeConfigurationSection: got content')
 
   // Get config contents
   const firstCodeblock = content.split('\n```')[1]
@@ -107,8 +105,9 @@ export async function getOrMakeConfigurationSection(
     (await parseFirstCodeblock(firstCodeblock)) ?? {}
 
   // Does it contain the section we want?
-  if (firstCodeblock == null || config[configSectionName] == null) {
-    // alternative to dot notation that allows variables
+  if (firstCodeblock == null ||
+    config[configSectionName] // alternative to dot notation that allows variables
+    == null) { 
     // No, so offer to make it and populate it
     const shouldAddDefaultConfig = await chooseOption<boolean, boolean>(
       `No '${configSectionName}' configuration section found.`,
@@ -147,24 +146,28 @@ export async function getOrMakeConfigurationSection(
           endFirstBlockLineNumber,
           'text',
         )
-        // FIXME: doesn't do next line
         await showMessage(
-          `Inserted default javascript-style configuration for ${configSectionName}.\nPlease check before re-running command.`,
+          `Inserted default configuration for ${configSectionName}.`,
+          `OK: I will check this before re-running the command.`,
         )
         Editor.openNoteByFilename(configFile.filename)
+        return {}
       } else {
         await showMessage(
           `Error: cannot create default configuration for ${configSectionName}`,
+          `OK: I will check this before re-running the command.`,
         )
+        Editor.openNoteByFilename(configFile.filename)
         return {}
       }
     } else {
       // Couldn't find javascript first codeblock, so insert it at line 2
       const configAsJSBlock = `\`\`\` javascript\n{\n${configSectionDefault}\n}\n\`\`\``
       configFile.insertParagraph(configAsJSBlock, 2, 'text')
-      // FIXME: doesn't do next line
+      
       await showMessage(
-        `Created default javascript-style configuration for ${configSectionName}.\nPlease check before re-running command.`,
+        `Created default configuration for ${configSectionName}.`,
+        `OK: I will check this before re-running the command.`,
       )
       Editor.openNoteByFilename(configFile.filename)
       return {}

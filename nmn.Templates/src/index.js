@@ -13,9 +13,9 @@ import { processTemplate } from './interpolation'
 import { getOrMakeTemplateFolder } from './template-folder'
 
 //------------------------------------------------------------------------------
-
-export async function applyNamedTemplate(templateName: string) {
-  console.log(`applyNamedTemplate: for template '${templateName}'`)
+// Apply a folder based on an existing Template's title
+export async function applyNamedTemplateTitle(templateTitle: string) {
+  console.log(`applyNamedTemplateTitle: for template '${templateTitle}'`)
 
   // const templateFolder = await getOrMakeTemplateFolder()
   // if (templateFolder == null) {
@@ -26,14 +26,14 @@ export async function applyNamedTemplate(templateName: string) {
   // }
 
   const selectedTemplate = DataStore.projectNoteByTitle(
-    templateName,
+    templateTitle,
     true,
     false,
   )?.[0]
 
   let templateContent = selectedTemplate?.content
   if (templateContent == null || templateContent.length === 0) {
-    console.log(`\twarning: template '${templateName}' is null or empty`)
+    console.log(`\twarning: template '${templateTitle}' is null or empty`)
     return
   }
   templateContent = templateContent.split('\n---\n').slice(1).join('\n---\n')
@@ -58,6 +58,7 @@ export async function applyTemplate(newNote?: [string, string]) {
     await showMessage('Template Folder Not Found')
     return
   }
+  console.log(`applyTemplate: templateFolder = '${templateFolder}'`)
 
   const options = DataStore.projectNotes
     .filter((n) => n.filename?.startsWith(templateFolder))

@@ -5,14 +5,16 @@
 //   with await Location.current()
 //   and has a Location.reverseGeocode(latitude, longitude) field -> postal town etc.
 
-// import { parseJSON5 } from '../../nmn.Templates/src/configuration'
-import { showMessage } from '../../nmn.sweep/src/userInput'
+// import { showMessage } from '../../helperFunctions'
+import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 
 // Get summary of today's weather in a line
 // Using https://openweathermap.org/api/one-call-api#data, for which you can get a free API key
 export async function getWeatherSummary(
+  // eslint-disable-next-line no-unused-vars
   weatherParams: string,
-  config: { [string]: ?mixed },
+  // eslint-disable-next-line no-unused-vars
+  config: { [string]: ?mixed }, // FIXME: In time remove this parameter
 ): Promise<string> {
   const weatherDescText = [
     'showers',
@@ -28,13 +30,17 @@ export async function getWeatherSummary(
   const weatherDescIcons = ['🌦️', '🌧️', '🌤', '⛅', '☀️', '☁️', '🌨️', '⛈', '🌪']
 
   // Get config settings from Template folder _configuration note
-  // Setting this to `any` for now.
-  const weatherConfig: any = config.weather ?? null
+  const config2 = await getOrMakeConfigurationSection(
+    'weather',
+    DEFAULT_WEATHER_CONFIG,
+  )
+  
+  // Get config settings from Template folder _configuration note
+  // $FlowIgnore
+  const weatherConfig: any = config2.weather ?? null
   if (weatherConfig == null) {
-    await showMessage(
-      "Cannot find 'weather' settings in Templates/_configuration note",
-    )
-    return ''
+    console.log("Cannot find 'weather' settings in Templates/_configuration note.")
+    return "_Error: Cannot find 'weather' settings in Templates/_configuration note._"
   }
   const pref_openWeatherAPIKey = weatherConfig.openWeatherAPIKey
   const pref_latPosition = weatherConfig.latPosition
@@ -58,10 +64,24 @@ export async function getWeatherSummary(
   //   return `Sorry; error ${response.status} in Weather lookup`
   // }
 
-  const jsonIn = await fetch(getWeatherURL)
+  console.log(getWeatherURL)
+  let jsonIn
+  let weatherTodayAll
+  try {
+    jsonIn = await fetch(getWeatherURL)
+    // console.log(`  HTTP response ${jsonIn.status}`) //  .status always returns 'undefined', even when it works?!
+  } catch(err) {
+    console.log(`Error ${err.message} parsing Weather data lookup. Please check your _configuration note.`)
+    return `Error ${err.message} parsing Weather data lookup. Please check your _configuration note.`
+  }
   if (jsonIn != null) {
-    //$FlowIgnore[incompatible-call]
-    const weatherTodayAll = JSON.parse(jsonIn).daily['0']
+    try {
+      // $FlowIgnore[incompatible-call]
+      weatherTodayAll = JSON.parse(jsonIn)?.daily['0']
+    } catch (err) {
+      console.log(`Error ${err.message} parsing Weather data lookup. Please check your _configuration note.`)
+      return `Error ${err.message} parsing Weather data lookup. Please check your _configuration note.`
+    }
     // const weatherTodayAll = jsonIn.daily['0']
     const maxTemp = weatherTodayAll.feels_like.day.toFixed(0)
     const minTemp = weatherTodayAll.feels_like.night.toFixed(0)
@@ -91,6 +111,21 @@ export async function getWeatherSummary(
     console.log(`\t${summaryLine}`)
     return summaryLine
   } else {
-    return `Sorry; unexpected data in Weather lookup`
+    return `Problem in Weather data lookup for ${pref_latPosition}/${pref_longPosition}. Please check your _configuration note.`
   }
 }
+
+
+const DEFAULT_WEATHER_CONFIG = `
+  // configuration for weather data (used in Daily Note Template, for example)
+  weather: {
+    // API key for https://openweathermap.org/
+    // !!REQUIRED!!
+    openWeatherAPIKey: '... put your API key here ...',
+    // Required location for weather forecast
+    latPosition: 0.0,
+    longPosition: 0.0,
+    // Default units. Can be 'metric' (for Celsius), or 'metric' (for Fahrenheit)
+    openWeatherUnits: 'metric',
+  },
+`

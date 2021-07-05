@@ -42,10 +42,10 @@ export async function getDailyQuote(
   if (response != null) {
     //$FlowIgnore[incompatible-call]
     const data = JSON.parse(response)[0]
-    const quoteLine = `> ${data.q} - *${data.a}*`
+    const quoteLine = `${data.q} - *${data.a}*`
     console.log(`\t${quoteLine}`)
     return quoteLine
   } else {
-    return 'Error in zenquotes.io Daily Quote lookup'
+    return 'Error in zenquotes.io Daily Quote lookup. Please check your _configuration note.'
   }
 }
