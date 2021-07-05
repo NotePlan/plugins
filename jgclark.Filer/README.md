@@ -1,5 +1,5 @@
 # Filer plugin
-This plugin provides the **`/fp`** command to help quickly file any paragraphs (any sort of line, not just tasks) to different notes in NotePlan.
+This plugin provides the **`/fp`** and **`/mp`** commands to help quickly **file** (**move**) any paragraphs (any sort of line, not just tasks) to different notes in NotePlan.
 
 It works out what you want moving from the current open note using this priority order:
 
@@ -10,13 +10,20 @@ It works out what you want moving from the current open note using this priority
 
 It pops up the command bar to choose the note you want to move it to, followed by the heading within that note to move it after.  You can press Escape (on Mac) at any time to cancel.  The move happens in the background, leaving you in the current note.
 
+It also provides the **`/nns`** **new note from selection** command, which extends the **`/nn`** command. It is interactive, prompting various questions as it works.
+
 ## Configuration
 If you want to stop date backlinks being added change the line at the top of the plugin'\ `fileItems.js` file to: `const pref_addDateBacklink = false;`
 
 ## History
 
+### v0.4.1 5.7.2021
+- fixes to /nns (not working with subfolders)
+- update README
+
 ### v0.4.0 15.6.2021 (@dwertheimer)
 - add /nns (moved from NoteHelpers)
+
 ### v0.3.3, 11.6.2021
 - remove restriction to move to just project notes
 - update code to work with today's API fixes
