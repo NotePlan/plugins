@@ -1,0 +1,1 @@
+var exports=function(e){"use strict";return e.insertPluginFunctionNameHere=async function(){console.log("Hello World")},Object.defineProperty(e,"__esModule",{value:!0}),e}({});Object.assign(globalThis,exports);
