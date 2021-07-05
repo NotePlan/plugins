@@ -1,12 +1,17 @@
 // @flow
 // --------------------------------------------------------------------------------------------------------------------
-// QuickCapture plugin for NotePlan (was: TaskHelpers)
+// QuickCapture plugin for NotePlan
 // Jonathan Clark
-// v0.4.0, 15.6.2021
+// v0.4.2, 5.7.2021
 // --------------------------------------------------------------------------------------------------------------------
 
 import { getDefaultConfiguration } from '../../nmn.Templates/src/configuration'
-import { showMessage } from '../../nmn.sweep/src/userInput'
+import {
+  // printNote,
+  showMessage,
+  unhyphenateDateString,
+  todaysDateISOString,
+} from '../../helperFunctions'
 
 function displayTitle(note: TNote): string {
   return note.title ?? 'untitled note'
@@ -15,36 +20,6 @@ function displayTitle(note: TNote): string {
 // Settings from NotePlan
 // var defaultFileExtension = (DataStore.defaultFileExtension != undefined) ? DataStore.defaultFileExtension : "md"
 // let defaultTodoMarker = (DataStore.preference('defaultTodoCharacter') !== undefined) ? DataStore.preference('defaultTodoCharacter') : '*'
-
-// ------------------------------------------------------------------
-// Helper function, not called by a command
-// eslint-disable-next-line no-unused-vars
-function printNote(note: ?TNote) {
-  if (note == null) {
-    console.log('Note not found!')
-    return
-  }
-
-  if (note.type === 'Notes') {
-    const { title, filename, hashtags, mentions, createdDate, changedDate } =
-      note
-    const objToLog = {
-      title,
-      filename,
-      hashtags,
-      mentions,
-      createdDate,
-      changedDate,
-    }
-    // Using `null, 2` as the second and third arguments to JSON.stringify
-    // pretty-prints the object.
-    console.log(JSON.stringify(objToLog, null, 2))
-  } else {
-    const { date, filename, hashtags, mentions } = note
-    const objToLog = { date, filename, hashtags, mentions }
-    console.log(JSON.stringify(objToLog, null, 2))
-  }
-}
 
 // ------------------------------------------------------------------
 // Prepends a task to a chosen note
@@ -161,7 +136,7 @@ export async function prependTaskToDailyNote() {
   // Ask for the task title
   const todoTitle = await CommandBar.showInput('Type the task', "Add task '%@'")
 
-  // Then ask for the daily ote we want to add the todo
+  // Then ask for the daily note we want to add the todo
   const notes = calendarNotesSortedByChanged()
   const res = await CommandBar.showOptions(
     notes.map((n) => displayTitle(n)).filter(Boolean),
@@ -179,7 +154,7 @@ export async function appendTaskToDailyNote() {
   // Ask for the task title
   const todoTitle = await CommandBar.showInput('Type the task', "Add task '%@'")
 
-  // Then ask for the daily ote we want to add the todo
+  // Then ask for the daily note we want to add the todo
   const notes = calendarNotesSortedByChanged()
   const res = await CommandBar.showOptions(
     notes.map((n) => displayTitle(n)).filter(Boolean),
@@ -189,6 +164,27 @@ export async function appendTaskToDailyNote() {
 
   console.log(`Appending task: ${todoTitle} to ${displayTitle(note)}`)
   note.appendTodo(todoTitle)
+}
+
+// ------------------------------------------------------------------
+// Quickly append text to today's journal
+export async function appendTaskToDailyJournal() {
+  const todaysDateStr = unhyphenateDateString(todaysDateISOString)
+  // Ask for the text
+  const text = await CommandBar.showInput('Type the text', `Add text '%@' to ${todaysDateStr}`)
+
+  const note = DataStore.calendarNoteByDateString(todaysDateStr)
+  if (note != null) {
+    console.log(`\nAppending text to Journal section of ${displayTitle(note)}`)
+    // Add text to the heading in the note (and add the heading if it doesn't exist)
+    note.addParagraphBelowHeadingTitle(
+      text,
+      'empty',
+      'Journal',
+      true,
+      true,
+    )
+  }
 }
 
 // ------------------------------------------------------------------

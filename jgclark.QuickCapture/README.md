@@ -5,6 +5,7 @@ This plugin provides commands to quickly add tasks/todos or general text to Note
 - `/qath`: Quickly add a task at the top of a chosen note's heading
 - `/qalh`: Quickly add text lines at the top of a chosen note's heading
 - `/qad`: Quickly append a task to a chosen daily (calendar) note
+- `/qaj`: Quickly add text to the Journal section of today's daily note
 - `/qat`: Quickly append a task to a chosen project note
 - `/qpd`: Quickly prepend a task to a chosen daily (calendar) note
 - `/qpt`: Quickly prepend a task to a chosen project note
@@ -27,6 +28,9 @@ inbox: {
 
 ## History
 
+### v0.4.2, 5.7.2021
+- add `/qaj` command: Quickly add text to the Journal section of today's daily note
+
 ### v0.4.0, 15.6.2021
 - `/int`  now uses the `Templates/_configuration` file (described above) to get settings for this command, rather than have to change the plugin script file directly
 
@@ -35,8 +39,8 @@ inbox: {
 
 ### v0.3.1, 16.5.2021
 - change to using short command names [EM suggestions]
-- add `quickly prepend task` command
-- add `quickly append task` command
+- add `/qpt` command: quickly prepend task
+- add `/qat` command: quickly append task
 
 ### v0.3.0, 10.5.2021
 - add `inbox add task` command
