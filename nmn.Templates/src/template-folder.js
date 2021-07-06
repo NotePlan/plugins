@@ -49,7 +49,7 @@ export async function getOrMakeTemplateFolder(): Promise<?string> {
     DataStore.newNote(TAGS_TEMPLATE, folder)
     DataStore.newNote(CONFIG, folder)
     // for 'folder' to be useful straight away we need to strip off any leading '/'
-    folder = (folder.startsWith('/')) ? folder.slice(1) : folder
+    folder = folder.startsWith('/') ? folder.slice(1) : folder
     console.log(`-> "${folder}" folder created with samples`)
     await showMessage(`"${folder}" folder created with samples`)
   }
@@ -106,6 +106,12 @@ Just use the codeblock marked as \`javascript\` shown below to write your own
 custom configurayion.
 
 The *first* code-block within the note will always be used. So edit the default configuration below:
+
+IMPORTANT: The configuration code blocks below are validated in realtime by Noteplan as you edit. 
+If the configuration passes the validation, you will see configuration settings in color (e.g. orange, 
+green, purple, black, etc.). If there is a mistake in your configuration settings, the configuration
+settings below will all be black. If you have a quoted "string" that you want to have a line break
+in it, insert a "\n" where you want the line break, e.g. "This\nIs\nThreelines"
 
 \`\`\`javascript
 {
