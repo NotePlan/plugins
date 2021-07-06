@@ -1,17 +1,23 @@
 //--------------------------------------------------------------------------------------------------------------------
 // Daily Journal plugin for NotePlan
 // Jonathan Clark
-// v0.6.5, 28.6.2021
+// v0.6.5, 6.7.2021
 //--------------------------------------------------------------------------------------------------------------------
 
-import { getDefaultConfiguration } from '../../nmn.Templates/src/configuration'
-import { showMessage } from '../../nmn.sweep/src/userInput'
-import { applyNamedTemplate } from '../../nmn.Templates/src/index'
+import {
+  showMessage,
+  todaysDateISOString,
+  unhyphenateDateString,
+} from '../../helperFunctions'
+import {
+  getOrMakeConfigurationSection,
+} from '../../nmn.Templates/src/configuration'
+import { applyNamedTemplateTitle } from '../../nmn.Templates/src/index'
 
 // Title of template note to use as Daily template
 const pref_templateTitle = 'Daily Note Template'
 
-const todaysDate = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+const todaysDateString = unhyphenateDateString(todaysDateISOString)
 
 //------------------------------------------------------------------
 // Helper functions
@@ -26,31 +32,42 @@ function isInt(value) {
 //------------------------------------------------------------------
 // Start today's daily note with a template, including local weather lookup if configured
 export async function dayStart() {
-  console.log(`\ndayStart for ${todaysDate}`)
+  console.log(`\\ndayStart for ${todaysDateString}`)
 
   // open today's date in the main window, and read content
   await Editor.openNoteByDate(new Date(), false)
   // apply daily template, using @nmn Template system
-  await applyNamedTemplate(pref_templateTitle)
+  await applyNamedTemplateTitle(pref_templateTitle)
 }
 
 //------------------------------------------------------------------
 // Gather answers to set questions, and append to the daily note
 export async function dayReview() {
-  console.log(`\ndailyReview for ${todaysDate}`)
+  console.log(`\ndailyReview for ${todaysDateString}`)
 
   // Get config settings from Template folder _configuration note
-  const config = (await getDefaultConfiguration()) ?? {}
+  const config = (await getOrMakeConfigurationSection(
+    'dailyJournal',
+    DEFAULT_JOURNAL_OPTIONS,
+  ))
   const journalConfig = config.dailyJournal ?? null
   if (journalConfig == null) {
-    console.log("\tWarning: Cannot find 'journal' settings in Templates/_configuration note. Stopping.")
-    await showMessage("Cannot find 'journal' settings in Templates/_configuration note")
+    // Almost certainly because we've just written default settings to _configuration.
+    // If so, we should just stop, as that will need checking.
+    // console.log("\tWarning: Cannot find 'dailyJournal' settings in Templates/_configuration note. Stopping.")
+    // await showMessage(
+    //   "Cannot find 'dailyJournal' settings in _configuration.",
+    //   "Yes, I'll check my _configuration settings."
+    // )
     return
   }
   const pref_reviewQuestions = journalConfig.reviewQuestions ?? null
   if (pref_reviewQuestions == null) {
     console.log("\tWarning: Cannot find any 'reviewQuestions' setting in Templates/_configuration note. Stopping.")
-    await showMessage("Cannot find any 'reviewQuestions' setting in Templates/_configuration note")
+    await showMessage(
+      "Cannot find any 'reviewQuestions' setting in _configuration",
+      "OK, I'll check my _configuration settings."
+    )
     return
   }
   const pref_reviewSectionHeading = journalConfig.reviewSectionHeading ?? "Journal"
@@ -163,11 +180,21 @@ export async function dayReview() {
       }' the text:${ 
       output}`,
   )
+  // FIXME: If sectionHeading isn't present then it lands up writing '# ## Heading'
   Editor.note.addParagraphBelowHeadingTitle(
     output,
-    '',
+    'empty',
     pref_reviewSectionHeading,
     true,
     true,
   )
 }
+
+const DEFAULT_JOURNAL_OPTIONS = `
+  dailyJournal: {
+    reviewSectionHeading: "Journal",
+    moods: "🤩 Great,🙂 Good,😇 Blessed,🥱 Tired,😫 Stressed,😤 Frustrated,😔 Low,🥵 Sick,Other",
+    reviewQuestions: "@work(<int>)\\n@fruitveg(<int>)\\nMood:: <mood>\\nExercise:: <string>\\nGratitude:: <string>\\nGod was:: <string>\\nAlive:: <string>\\nNot Great:: <string>\\nWife:: <string>\\nRemember:: <string>"
+  },
+
+`

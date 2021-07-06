@@ -21,7 +21,7 @@ If you want to include a short summary of the weather forecast, include a `{{wea
   ...
 }
 ```
-(This example is in JSON5 format, but you can also use TOML or YAML formats: see the help text in `_configuration` note.)
+(This example is in JSON5 format: see the help text in `_configuration` note.)
 
 ### /dayReview
 `/dayReview` now uses the `Daily Note Template` note found in the `Templates` folder. If this note has not been added, it should prompt you to create one.
@@ -47,12 +47,16 @@ In more detail:
 
 ## History
 
-### v0.6.2, 12.6.2021
-- now `/dayReview` also uses the `Templates/_configuration` file (described above) to get settings for this command.
+### v0.6.5, 6.7.2021
+- on first use it now offers to populate default configuration (as shown above) into the _configuration file
+- more informative pop ups as it works
 
-### v0.6.0, 11.6.2021
-- internal change: restructure code to use parts of the related 'Templates' plugin
-- now `/dayStart` use the Templates plugin function to apply the `Daily Note Template` template. To include a weather forecast, now include the `{{weather()}}` tag in that template, and configure the OpenWeather calls as described in the `Templates/_configuration` file (described above).
+### v0.6.4, 29.6.2021
+- internal code changes only, responding to other plugins' changes
+
+### v0.6.2, 12.6.2021 -- includes **BREAKING CHANGES**
+- now `/dayStart` calls the Templates plugin to apply the `Daily Note Template` template. To include a weather forecast, now include the `{{weather()}}` tag in that template, and configure the OpenWeather calls as described in the `Templates/_configuration` file. 
+- now `/dayReview` also uses the `Templates/_configuration` file to get settings for this command.
 
 ### v0.5.0, 27.5.2021
 - change: use Template system (from '**NoteHelpers**' plugin) to provide the `Daily Note Template`. This template title defaults to 'Daily Note Template', but can be configured in `pref_templateText ` (as above).
