@@ -33,11 +33,11 @@ In the `Templates/_configuration` note, including the following settings you wan
 	...
 	dailyJournal: {
 		reviewSectionHeading: "Journal",
-		reviewQuestions: "@work(<int>)\n@fruitveg(<int>)\nMood:: <mood>\nGratitude:: <string>\nGod was:: <string>\nAlive:: <string>\nNot Great:: <string>\nWife:: <string>\nRemember:: <string>",
+		reviewQuestions: "@work(<int>)\n@fruitveg(<int>)\nMood:: <mood>\nGratitude:: <string>\nGod was:: <string>\nAlive:: <string>\nNot Great:: <string>\nWife:: <string>\nRemember:: <string>", // NB: need to use "\n" for linebreaks rather than actual linebreaks, as even JSON5 doesn't fully support multi-line strings.
 		moods: "🤩 Great,🙂 Good,😇 Blessed,🥱 Tired,😫 Stressed,😤 Frustrated,😔 Low,🥵 Sick,Other"
 	}
 ```
-(This example is in JSON5 format, but you can also use TOML or YAML formats: see the help text in `_configuration` note.)
+(This example is in JSON5 format (though labelled 'javascript' for code display purposes): see the help text in `_configuration` note.)
 
 In more detail:
 - **reviewSectionHeading**: the name of a heading after which the review answers are added. If it doesn't exist, it is added at the end of the note.

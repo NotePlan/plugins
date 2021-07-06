@@ -93,21 +93,23 @@ const CONFIG = ` _configuration
 ---
 # Template Tag Configuration
 
-This file is used to configure how templates work. \
+This file is used to configure how templates work. 
 Use the code fence below to set global values for template tags.
 
 To write your configuration you can use JSON5. JSON5 is a human-friendly
 superset of JSON that lets you write comments, unquoted keys and other common
 patterns available in Javscript.
+(NB: even JSON5 doesn't fully support multi-line strings, so to include
+them you need to use "\n" for linebreaks rather than actual linebreaks.)
 
 Just use the codeblock marked as \`javascript\` shown below to write your own
 custom configurayion.
 
-The first code-block within the note will always be used. So edit the default configuration below:
+The *first* code-block within the note will always be used. So edit the default configuration below:
 
 \`\`\`javascript
 {
-  // Even though it says, "javacsript" above, this actually just JSON5.
+  // Even though it says, "javascript" above, this is actually JSON5.
 
   // configuration for dates, heavily based on javascript's Intl module
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat/DateTimeFormat
