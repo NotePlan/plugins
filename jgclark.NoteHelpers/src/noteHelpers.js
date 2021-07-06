@@ -5,17 +5,18 @@
 // v0.9.0, 29.6.2021
 //--------------------------------------------------------------------------------------------------------------------
 
-import { projectNotesSortedByChanged, printNote } from '../../helperFunctions'
+import { projectNotesSortedByChanged, printNote, chooseFolder } from '../../helperFunctions'
 
 //-----------------------------------------------------------------
 // Command from Eduard to move a note to a different folder
-export function moveNote(selectedFolder: string) {
+export async function moveNote() {
   const { title, filename } = Editor
   if (title == null || filename == null) {
     // No note open, so don't do anything.
     console.log('moveNote: warning: No note open.')
     return
   }
+  const selectedFolder = await chooseFolder("Select a folder for '" + title + "'")
   console.log(`move ${title} (filename = ${filename}) to ${selectedFolder}`)
 
   const newFilename = DataStore.moveNote(filename, selectedFolder)
