@@ -469,6 +469,52 @@ type TCalendar = {
    * unit types using `dateUnits`.
    */
   unitsBetween(date1: Date, date2: Date, type: CalendarDateUnit): number,
+    
+  /**
+  * Note: Available from v3.0.25
+  * Returns all events between the `startDate` and `endDate`. Use `filter` to search for specific events (keyword in the title).
+  * This function fetches events asynchronously, so use async/await.
+  * @param {Date} 
+  * @param {Date} 
+  * @param {String?} 
+  * @return {Promise}
+  */
+  eventsBetween(startDate: Date,
+    endDate: Date,
+    filter: ?string
+  ): Promise < TCalendarItem >,
+      
+  /**
+  * Note: Available from v3.0.25
+  * Returns all reminders between the `startDate` and `endDate`. Use `filter` to search for specific reminders (keyword in the title). 
+  * This function fetches reminders asynchronously, so use async/await.
+  * @param {Date} 
+  * @param {Date} 
+  * @param {String?}  
+  * @return {Promise}
+  */
+  remindersBetween(startDate: Date,
+    endDate: Date,
+    filter: ?string
+  ): Promise < TCalendarItem >,
+      
+  /**
+  * Note: Available from v3.0.25
+  * Returns all events for today. Use `filter` to search for specific events (keyword in the title). 
+  * This function fetches events asynchronously, so use async/await.
+  * @param {String?} 
+  * @return {Promise}
+  */
+  eventsToday(filter: string): Promise<TCalendarItem>,
+      
+  /**
+  * Note: Available from v3.0.25
+  * Returns all reminders between for today. Use `filter` to search for specific reminders (keyword in the title). 
+  * This function fetches reminders asynchronously, so use async/await.
+  * @param {String?} 
+  * @return {Promise}
+  */
+  remindersToday(filter: string): Promise<TCalendarItem>,
 }
 
 /**
