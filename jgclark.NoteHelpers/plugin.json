@@ -1,12 +1,13 @@
 {
   "noteplan.min_version": "3.0.23",
+  "macOS.minVersion": "10.15.7",
   "plugin.id": "jgclark.NoteHelpers",
   "plugin.name": "📙 Note Helpers",
   "plugin.description": "Commands to quickly jump around and manage notes",
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark & Eduard Metzger",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/",
-  "plugin.version": "0.9.2",
+  "plugin.version": "0.10.0",
   "plugin.changelog": "See plugin README.md",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
@@ -31,6 +32,11 @@
       "name": "jd",
       "description": "Jump to the '## Done' section. (Currently only works in main window)",
       "jsFunction": "jumpToDone"
+    },
+    {
+      "name": "index",
+      "description": "Make/Update note link Indexes for one or more folders",
+      "jsFunction": "indexFolders"
     }
   ],
   "plugin.preferences": [

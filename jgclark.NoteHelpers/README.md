@@ -6,8 +6,12 @@ This plugin provides these commands to help jump quickly between NotePlan notes,
 - `/jd`: simply jumps the cursor to the `## Done` section of the current note (if it exists)
 
 ## History
-### v0.9.0, 19.6.2021
+### v0.10.0, 7.7.2021
+- add: **/index** command to make/update note link Indexes for one or more folders 
+
+### v0.9.2, 7.7.2021
 - add: **/jn** command to jump to a different note, and then user selected heading
+- fix: 'undefined' error in /mn
 
 <!--### v0.9.3, 15.6.2021 (@dwertheimer)
 - change: moved **/nns** (which was temporarily here) to Filer and cleaned up here

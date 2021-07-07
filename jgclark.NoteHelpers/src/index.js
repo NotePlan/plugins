@@ -3,7 +3,14 @@
 // -----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// v0.9.0, 19.6.2021
+// last changed at v0.10.0, 7.7.2021
 // -----------------------------------------------------------------------------
 
-export { moveNote, jumpToDone, jumpToHeading, jumpToNoteHeading, setTitleFromYAML  } from './noteHelpers'
+export {
+  moveNote,
+  jumpToDone,
+  jumpToHeading,
+  jumpToNoteHeading,
+  setTitleFromYAML
+} from './noteHelpers'
+// export { indexFolders } from './indexFolders'
