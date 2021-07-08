@@ -380,8 +380,26 @@ export async function chooseFolder(msg: string): Promise<string> {
   let folder: string
   const folders = DataStore.folders // excludes Trash and Archive
   if (folders.length > 0) {
-    const re = await CommandBar.showOptions(folders, msg)
-    folder = folders[re.index]
+    // make a slightly fancy list with indented labels, different from plain values
+    const folderOptionList: Array<any> = []
+    for (const f of folders) {
+      if (f !== '/') {
+        const folderParts = f.split('/')
+        for (let i = 0; i < folderParts.length - 1; i++) {
+          folderParts[i] = '     '
+        }
+        folderParts[folderParts.length - 1] = `📁 ${folderParts[folderParts.length - 1]}`
+        const folderLabel = folderParts.join('')
+        console.log(folderLabel)
+        folderOptionList.push({ label: folderLabel, value: f })
+      } else {
+        // deal with special case for root folder
+        folderOptionList.push({ label: '📁 /', value: '/' })
+      }
+    }
+    // const re = await CommandBar.showOptions(folders, msg)
+    const re = await chooseOption(msg, folderOptionList, '/')
+    folder = re
   } else {
     // no Folders so go to root
     folder = '/'
