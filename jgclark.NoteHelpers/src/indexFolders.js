@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------------------------------------------------
 // Part of Note Helpers plugin for NotePlan
 // Jonathan Clark
-// at v0.10.0, 8.7.2021
+// at v0.10.1, 8.7.2021
 //--------------------------------------------------------------------------------------------------------------------
 
 import {
@@ -99,7 +99,7 @@ function makeFolderIndex(
 // 3. This folder + subfolders (add/update into single _index note)
 // 4. This folder + subfolders (add/update into _index notes in each subfolder)
 
-export async function indexFolders(): void {
+export async function indexFolders(): Promise<void> {
   // To start with just operate on current note's folder
   const fullFilename = Editor.filename ?? undefined
   // const currentNote = Editor.note ?? undefined
@@ -160,7 +160,7 @@ export async function indexFolders(): void {
     let outputFilename = `${thisFolder}/_index.md`
     // see if we already have an _index file in this folder
     let outputNote = DataStore.projectNoteByFilename(outputFilename)
-    console.log(">>")
+
     if (outputNote == null) {
       // make a new note for this
       outputFilename = await DataStore.newNote(

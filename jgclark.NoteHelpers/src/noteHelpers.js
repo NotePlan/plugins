@@ -16,7 +16,7 @@ export async function moveNote() {
     console.log('moveNote: warning: No note open.')
     return
   }
-  const selectedFolder = await chooseFolder("Select a folder for '" + title + "'")
+  const selectedFolder = await chooseFolder(`Select a folder for '${  title  }'`)
   console.log(`move ${title} (filename = ${filename}) to ${selectedFolder}`)
 
   const newFilename = DataStore.moveNote(filename, selectedFolder)
@@ -39,6 +39,8 @@ export async function jumpToHeading() {
     return
   }
 
+  // TODO: it would be a good learning exercise to work out how to combine
+  // the following two variables into a single map -> showOptions
   const headingParas = paras.filter((p) => p.type === 'title') // = all headings, not just the top 'title'
   const headingValues = headingParas.map((p) => {
     let prefix = ''
