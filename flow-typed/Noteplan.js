@@ -482,8 +482,8 @@ type TCalendar = {
   eventsBetween(startDate: Date,
     endDate: Date,
     filter: ?string
-  ): Promise < TCalendarItem >,
-      
+  ): Promise<Array<TCalendarItem>>,
+
   /**
   * Note: Available from v3.0.25
   * Returns all reminders between the `startDate` and `endDate`. Use `filter` to search for specific reminders (keyword in the title). 
@@ -496,7 +496,7 @@ type TCalendar = {
   remindersBetween(startDate: Date,
     endDate: Date,
     filter: ?string
-  ): Promise < TCalendarItem >,
+  ): Promise<Array<TCalendarItem>>,
       
   /**
   * Note: Available from v3.0.25
@@ -505,7 +505,7 @@ type TCalendar = {
   * @param {String?} 
   * @return {Promise}
   */
-  eventsToday(filter: string): Promise<TCalendarItem>,
+  eventsToday(filter: ?string): Promise<Array<TCalendarItem>>,
       
   /**
   * Note: Available from v3.0.25
@@ -514,7 +514,7 @@ type TCalendar = {
   * @param {String?} 
   * @return {Promise}
   */
-  remindersToday(filter: string): Promise<TCalendarItem>,
+  remindersToday(filter: ?string): Promise<Array<TCalendarItem>>,
 }
 
 /**
