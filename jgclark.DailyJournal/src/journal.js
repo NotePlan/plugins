@@ -1,7 +1,7 @@
 //--------------------------------------------------------------------------------------------------------------------
 // Daily Journal plugin for NotePlan
 // Jonathan Clark
-// v0.6.5, 6.7.2021
+// v0.6.7, 8.7.2021
 //--------------------------------------------------------------------------------------------------------------------
 
 import {
@@ -100,7 +100,7 @@ export async function dayReview() {
   for (i = 0; i < numQs; i++) {
     // remove type indicators from the question string
     question[i] = questionLines[i]
-      .replace(/:|\(|\)|<string>|<int>|<mood>/g, '')
+      .replace(/:|\(|\)|<string>|<int>|<number>|<mood>/g, '')
       .trim()
     const reArray = questionLines[i].match(typeRE)
     questionType[i] = reArray[1]
@@ -119,11 +119,26 @@ export async function dayReview() {
           `${question[i]  }: %@`,
         )
         if (reply != null && isInt(reply)) {
-          // console.log(reply)
           reviewLine = questionLines[i].replace(/<int>/, reply)
         } else {
           console.log(
             `\tERROR trying to get integer answer for question '${ 
+              question[i] 
+              }'`,
+          )
+        }
+        break
+      }
+      case 'number': {
+        const reply = await CommandBar.showInput(
+          questionType[i],
+          `${question[i]  }: %@`,
+        )
+        if (reply != null && Number(reply)) {
+          reviewLine = questionLines[i].replace(/<number>/, reply)
+        } else {
+          console.log(
+            `\tERROR trying to get number answer for question '${ 
               question[i] 
               }'`,
           )
@@ -136,7 +151,6 @@ export async function dayReview() {
           `${question[i]  }: %@`,
         )
         if (replyString != null) {
-          // console.log(replyString)
           reviewLine =
             replyString !== ''
               ? questionLines[i].replace(/<string>/, replyString)
@@ -157,7 +171,6 @@ export async function dayReview() {
         )
         const replyMood = pref_moodArray[reply.index]
         if (replyMood != null && replyMood !== '') {
-          // console.log(replyMood)
           reviewLine = questionLines[i].replace(/<mood>/, replyMood)
         } else {
           console.log('\tERROR trying to get mood answer')
@@ -194,7 +207,7 @@ const DEFAULT_JOURNAL_OPTIONS = `
   dailyJournal: {
     reviewSectionHeading: "Journal",
     moods: "🤩 Great,🙂 Good,😇 Blessed,🥱 Tired,😫 Stressed,😤 Frustrated,😔 Low,🥵 Sick,Other",
-    reviewQuestions: "@work(<int>)\\n@fruitveg(<int>)\\nMood:: <mood>\\nExercise:: <string>\\nGratitude:: <string>\\nGod was:: <string>\\nAlive:: <string>\\nNot Great:: <string>\\nWife:: <string>\\nRemember:: <string>"
+    reviewQuestions: "@sleep(<number>)\\n@work(<number>)\\n@fruitveg(<int>)\\nMood:: <mood>\\nExercise:: <string>\\nGratitude:: <string>\\nGod was:: <string>\\nAlive:: <string>\\nNot Great:: <string>\\nWife:: <string>\\nRemember:: <string>"
   },
 
 `

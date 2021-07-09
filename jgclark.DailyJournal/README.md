@@ -41,13 +41,16 @@ In the `Templates/_configuration` note, including the following settings you wan
 
 In more detail:
 - **reviewSectionHeading**: the name of a heading after which the review answers are added. If it doesn't exist, it is added at the end of the note.
-- **reviewQuestions**: a string that includes both the questions and how to lay out the answers in the daily note. There are several possible question types: `<int>`, `<string>`, `<mood>`. The first two are integer and general string, and the last pops up a list of moods to select from.  You can indicate new lines with `\n` characters.
+- **reviewQuestions**: a string that includes both the questions and how to lay out the answers in the daily note. There are several possible question types: `<int>`, `<number>`, `<string>`, `<mood>`. The first two are integer and any kind of number; the third is a string, and the last pops up a list of moods to select from.  You can indicate new lines with `\n` characters.
 - **moods**: a comma-separated list of possible moods to select from.  They don't have to have emoji, but I rather like them.
 
 
 ## History
 
-### v0.6.5, 6.7.2021
+### v0.6.7, 8.7.2021
+- add ability to check for `<number>` as well as `<int>` values in daily review questions
+
+### v0.6.6, 6.7.2021
 - on first use it now offers to populate default configuration (as shown above) into the _configuration file
 - more informative pop ups as it works
 
