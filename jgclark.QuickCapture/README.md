@@ -8,7 +8,7 @@ This plugin provides commands to quickly add tasks/todos or general text to Note
 - `/qaj`: Quickly add text to the Journal section of today's daily note
 - `/qat`: Quickly append a task to a chosen project note
 - `/qpd`: Quickly prepend a task to a chosen daily (calendar) note
-- `/qpt`: Quickly prepend a task to a chosen project note
+- `/qpt`: Quickly prepend a task to a chosen project note. (Inserts after title or YAML frontmatter, or starting metadata lines.)
 
 ## Configuration
 `/int` now uses the `Daily Note Template` note found in the `Templates` folder. If this note has not been added, it should prompt you to create one.
@@ -27,6 +27,8 @@ inbox: {
 (This example fragment is in JSON5 format, but you can also use TOML or YAML formats: see the help text in `_configuration` note. Ensure there are commas at the end of all that lines that need them.)
 
 ## History
+### v0.4.4, 9.7.2021
+- improve: smarter prepending for `/qpt` command
 
 ### v0.4.2, 5.7.2021
 - add `/qaj` command: Quickly add text to the Journal section of today's daily note

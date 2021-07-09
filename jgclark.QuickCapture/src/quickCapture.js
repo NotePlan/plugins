@@ -2,7 +2,7 @@
 // --------------------------------------------------------------------------------------------------------------------
 // QuickCapture plugin for NotePlan
 // Jonathan Clark
-// v0.4.2, 5.7.2021
+// v0.4.4, 8.7.2021
 // --------------------------------------------------------------------------------------------------------------------
 
 import { getDefaultConfiguration } from '../../nmn.Templates/src/configuration'
@@ -11,15 +11,62 @@ import {
   showMessage,
   unhyphenateDateString,
   todaysDateISOString,
+  displayTitle,
 } from '../../helperFunctions'
 
-function displayTitle(note: TNote): string {
-  return note.title ?? 'untitled note'
-}
+// ------------------------------------------------------------------
+// Prepends a task to a chosen note, but more smartly that usual. 
+// I.e. if the note starts with YAML frontmatter (e.g. https://docs.zettlr.com/en/core/yaml-frontmatter/)
+// or a metadata line (= starts with a hashtag), then add after that.
+export function smartPrependPara(note: TNote,
+  paraText: string,
+  paragraphType: ParagraphType): void {
+  
+  const lines = note.content?.split('\n') ?? ['']
 
-// Settings from NotePlan
-// var defaultFileExtension = (DataStore.defaultFileExtension != undefined) ? DataStore.defaultFileExtension : "md"
-// let defaultTodoMarker = (DataStore.preference('defaultTodoCharacter') !== undefined) ? DataStore.preference('defaultTodoCharacter') : '*'
+  // By default we prepend at line 1, i.e. right after the Title line
+  let insertionLine = 1
+  // If we have any content, check for these special cases
+  if (lines.length > 0) {
+    if (lines[0] === '---') {
+      // console.log(`YAML start found. Will check ${lines.length} lines`)
+      // We (probably) have a YAML block
+      // Find end of YAML/frontmatter
+      // TODO: check my ruby code to see what I did here
+      for (let i = 1; i < lines.length; i++) {
+        if (lines[i] === '---' || lines[i] === '...') {
+          // console.log(`YAML end at ${i}`)
+          insertionLine = i + 1
+          break
+        }
+      }
+      if (insertionLine === 1) {
+        // If we get here we haven't found an end to the YAML block.
+        console.log(`Warning: couldn't find end of YAML frontmatter in note ${displayTitle(note)}`)
+        // It's not clear what to do at this point, so will leave insertion point as is
+      }
+    } else if (lines[1].match(/^#[A-z]/)) {
+      // We have a hashtag at the start of the line, making this a metadata line
+      // Move insertion point to after the next blank line, or before the next 
+      // heading line, whichever is sooner.
+      // console.log(`Metadata line found`)
+      for (let i = 2; i < 13 /*lines.length*/; i++) {
+        // console.log(`${i}: ${lines[i]}`)
+        if (lines[i].match(/^#{1,5}\s/)) {
+            // console.log(`  Heading at ${i}`)
+            insertionLine = i + 1
+            break
+          } else if (lines[i] === '') {
+            // console.log(`  Blank line at ${i}`)
+            insertionLine = i + 1
+            break
+          }
+      }
+    }
+  }
+  // Insert the text at the insertionLine line
+  note.insertParagraph(paraText, insertionLine, paragraphType)
+}
 
 // ------------------------------------------------------------------
 // Prepends a task to a chosen note
@@ -34,7 +81,10 @@ export async function prependTaskToNote() {
     notes.map((n) => n.title).filter(Boolean),
     'Select note to prepend',
   )
-  notes[re.index].prependTodo(taskName)
+  // Old way
+  // notes[re.index].prependTodo(taskName)
+  // Newer way
+  smartPrependPara(notes[re.index], taskName, 'open')
 }
 
 // ------------------------------------------------------------------
