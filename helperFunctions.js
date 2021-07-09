@@ -248,6 +248,11 @@ export function calcOffsetDate(oldDateISO: string, interval:string): string {
 //-------------------------------------------------------------------------------
 // Misc functions for NP
 
+export const defaultFileExt: string =
+  (DataStore.defaultFileExtension != null)
+  ? DataStore.defaultFileExtension
+  : "md"
+
 // Pretty print range information (@EduardMe)
 export function rangeToString(r: Range): string {
   if (r == null) {
