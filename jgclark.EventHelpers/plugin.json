@@ -1,12 +1,13 @@
 {
-  "noteplan.min_version": "3.0.23",
+  "noteplan.min_version": "3.0.25",
+	"macOS.minVersion": "10.15.7",
   "plugin.id": "jgclark.EventHelpers",
   "plugin.name": "🕓 Event Helpers",
   "plugin.description": "Commands to extend NotePlan's Events handling, including Timeblocks. See website for more details, and configuration.",
   "plugin.icon": "",
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers",
-  "plugin.version": "0.1.1",
+  "plugin.version": "0.1.2",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -15,6 +16,21 @@
       "name": "timeblocks",
       "description": "promote timeblocks to be full calendar events",
       "jsFunction": "timeblocksToCalendar"
+    },
+    {
+      "name": "list today events",
+      "description": "list of Today's calendar events",
+      "jsFunction": "listTodaysEvents"
+    },
+    {
+      "name": "insert today events",
+      "description": "insert list of Today's calendar events at cursor",
+      "jsFunction": "insertTodaysEvents"
+    },
+    {
+      "name": "make sections from events",
+      "description": "make sections from events",
+      "jsFunction": "makeSectionFromEvent"
     }
   ],
   "plugin.preferences": [

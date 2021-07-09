@@ -97,6 +97,10 @@ export function toISOShortDateTimeString(dateObj: Date): string {
   return dateObj.toISOString().slice(0, 16)
 }
 
+export function toISOShortTimeString(dateObj: Date): string {
+  return dateObj.toISOString().slice(11, 16)
+}
+
 export function printDateRange(dr: DateRange) {
   console.log(
     `DateRange <${toISOShortDateTimeString(dr.start)} - ${toISOShortDateTimeString(dr.end)}>`,
