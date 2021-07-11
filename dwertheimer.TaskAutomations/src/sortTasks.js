@@ -156,6 +156,7 @@ async function deleteExistingTasks(note, tasks, shouldBackupTasks = true) {
       const taskList = tasks[typ].map(
         note ? (t) => findRawParagraph(note, t.raw) : false,
       )
+      //$FlowIgnore
       Editor.note.removeParagraphs(taskList)
     } catch (e) {
       console.log(JSON.stringify(e))

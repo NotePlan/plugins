@@ -25,3 +25,6 @@ If you install this plugin and run /dp, you will get some ideas for dateStyle an
 
 ## History
 
+0.0.2   Adding 	"macOS.minVersion": "10.15.7"
+
+0.0.1   Initial version
