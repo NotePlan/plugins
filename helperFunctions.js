@@ -176,13 +176,26 @@ export function withinDateRange(
 // console.log(withinDateRange(unhyphenateDate('2021-05-31'), '20210501', '20210531')) // true
 // console.log(withinDateRange(unhyphenateDate('2021-06-24'), '20210501', '20210531')) // false
 
-// Calculate an offset date
-export function calcOffsetDate(oldDateISO: string, interval:string): string {
+// Calculate an offset date, returning ISO datestring
+export function calcOffsetDateStr(oldDateISO: string, interval: string): string {
   // Calculate an offset date, assuming:
   // - oldDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type
   // - interval is string of form nn[bdwmq], and could be negative
   // - where 'b' is weekday (i.e. Monday - Friday in English)
   // Return new date also in ISO Date format
+  // v2 method, using built-in NotePlan function 'Calendar.addUnitToDate(date, type, num)'
+
+  const newDate = calcOffsetDate(oldDateISO, interval)
+  return toISODateString(newDate)
+}
+
+// Calculate an offset date, returning Date object
+export function calcOffsetDate(oldDateISO: string, interval:string): Date {
+  // Calculate an offset date, assuming:
+  // - oldDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type
+  // - interval is string of form nn[bdwmq], and could be negative
+  // - where 'b' is weekday (i.e. Monday - Friday in English)
+  // Return new date as a JS Date 
   // v2 method, using built-in NotePlan function 'Calendar.addUnitToDate(date, type, num)'
 
   const oldDate = new Date(oldDateISO)
@@ -244,9 +257,7 @@ export function calcOffsetDate(oldDateISO: string, interval:string): string {
         ? Calendar.addUnitToDate(oldDate, 'year', yearsToAdd)
         : oldDate // if nothing else, leave date the same
 
-  const newDateFmt = toISODateString(newDate)
-  // console.log("    c_o_d: add " + daysToAdd + " --> " + newDateFmt)
-  return newDateFmt
+  return newDate
 }
 
 //-------------------------------------------------------------------------------

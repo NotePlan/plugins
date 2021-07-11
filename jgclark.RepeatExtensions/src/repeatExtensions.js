@@ -8,7 +8,7 @@ import {
   unhyphenateDateString,
   RE_DATE, // find dates of form YYYY-MM-DD
   RE_TIME, // find '12:23' with optional '[ ][AM|PM|am|pm]'
-  calcOffsetDate,
+  calcOffsetDateStr,
   // toISODateString,
   // rangeToString,
 } from '../../helperFunctions'
@@ -113,7 +113,7 @@ export async function repeats() {
             1,
             dateIntervalString.length,
           )
-          newRepeatDate = calcOffsetDate(completedDate, dateIntervalString)
+          newRepeatDate = calcOffsetDateStr(completedDate, dateIntervalString)
           console.log(`\tAdding from completed date --> ${newRepeatDate}`)
           // Remove any >date
           updatedLine = updatedLine.replace(/\s+>\d{4}-[01]\d{1}-\d{2}/, '') // i.e. RE_DUE_DATE, but can't get regex to work with variables like this
@@ -136,7 +136,7 @@ export async function repeats() {
             dueDate = completedDate
             // console.log(`\tno match => use completed date ${dueDate}`)
           }
-          newRepeatDate = calcOffsetDate(dueDate, dateIntervalString)
+          newRepeatDate = calcOffsetDateStr(dueDate, dateIntervalString)
           console.log(`\tAdding from due date --> ${newRepeatDate}`)
         }
 
