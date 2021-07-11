@@ -26,4 +26,5 @@ Note: At this time, the plugin will ignore headings that are attached to the tas
 - (optionally) Leave tasks with dates in place until they are overdue? [use getOverdueTasks()]
 ## History
 
+0.0.3 Adding 	"macOS.minVersion": "10.15.7"
 0.0.2 Initial version
