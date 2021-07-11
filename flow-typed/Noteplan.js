@@ -105,10 +105,13 @@ type TEditor = {
   /**
    * Inserts a plain paragrah before the selected paragraph (or the paragraph the cursor is currently positioned)
    * @param name - Text of the paragraph
-   * @param type - note type
+   * @param type - paragraph type
    * @param indents - How much it should be indented
    */
-  insertParagraphAtCursor(name: string, type: NoteType, indents: number): void,
+  insertParagraphAtCursor(name: string,
+    type: ParagraphType,
+    indents: number
+  ): void,
   /**
    * Replaces the current cursor selection with the given text
    * @param text - Text to insert
