@@ -6,4 +6,5 @@ dist/
 package-lock.json
 .pluginpath
 */.eslintrc
-_test*.yml
+*test*.yaml
+*.code-workspace
