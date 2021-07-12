@@ -93,12 +93,20 @@ export function toISODateString(dateObj: Date): string {
   return dateObj.toISOString().slice(0, 10)
 }
 
+export function toLocaleDateString(dateObj: Date): string {
+  return dateObj.toLocaleString().slice(0, 10)
+}
+
 export function toISOShortDateTimeString(dateObj: Date): string {
   return dateObj.toISOString().slice(0, 16)
 }
 
-export function toISOShortTimeString(dateObj: Date): string {
+export function toISOShortTime(dateObj: Date): string {
   return dateObj.toISOString().slice(11, 16)
+}
+
+export function toLocaleShortTime(dateObj: Date): string {
+  return dateObj.toLocaleTimeString().slice(0, 5)
 }
 
 export function printDateRange(dr: DateRange) {

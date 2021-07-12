@@ -1,7 +1,7 @@
 // @flow
 
 // ------------------------------------------------------------------------------------
-// Command to turn timeblocks into full calendar events
+// Command to turn time blocks into full calendar events
 // @jgclark
 //
 // See https://help.noteplan.co/article/52-part-2-tasks-events-and-reminders#timeblocking
@@ -13,17 +13,12 @@
 
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 import {
-  // eslint-disable-next-line no-unused-vars
-  printDateRange,
+  // printDateRange,
   displayTitle,
-  // toISOShortDateTimeString,
-  // toISODateString,
 } from '../../helperFunctions'
 
-// Setting variables
-let pref_processedTagName: string
-
-const RE_SCHEDULED_DATE = '>\\d{4}-[01]\\d{1}-\\d{2}' // find dates of form YYYY-MM-DD
+// find dates of form YYYY-MM-DD
+const RE_SCHEDULED_DATE = '>\\d{4}-[01]\\d{1}-\\d{2}'
 // find '[>date] 12:30[AM|PM|am|pm][-14:45[AM|PM|am|pm]]'
 export const RE_TIMEBLOCK_TYPE1 = `(${RE_SCHEDULED_DATE})? [0-2]?\\d:[0-5]\\d(AM|PM|am|pm)?(\\s?-\\s?[0-2]?\\d:[0-5]\\d(AM|PM|am|pm)?)?`
 // find '[>date] at 2(AM|PM|am|pm)[-11[AM|PM|am|pm]]'
@@ -31,15 +26,15 @@ export const RE_TIMEBLOCK_TYPE2 = `(${RE_SCHEDULED_DATE})? at [0-2]?\\d(:[0-5]\\
 
 // ------------------------------------------------------------------------------------
 
-// Go through current Editor note and identify timeblocks to turn into events
-export async function timeblocksToCalendar() {
+// Go through current Editor note and identify time blocks to turn into events
+export async function timeBlocksToCalendar() {
   const { paragraphs, note } = Editor
   if (paragraphs == null || note == null) {
-    console.log('\ntimeblocksToCalendar: warning: no content found')
+    console.log('\ntimeBlocksToCalendar: warning: no content found')
     return
   }
   const noteTitle = displayTitle(note)
-  console.log(`\ntimeblocksToCalendar: starting for note '${noteTitle}'`)
+  console.log(`\ntimeBlocksToCalendar: starting for note '${noteTitle}'`)
 
   // Get config settings from Template folder _configuration note
   const config = await getOrMakeConfigurationSection(
@@ -53,13 +48,17 @@ export async function timeblocksToCalendar() {
   }
 
   console.log("\tFound 'events' settings in _configuration note.")
-  // now get each setting
-  pref_processedTagName =
-    eventsConfig.pref_processedTagName != null ? eventsConfig.pref_processedTagName : '#event_created'
-  
-  // Look through open note to find timeblocks
+  // now get each setting we need
+  const pref_processedTagName = eventsConfig.processedTagName != null
+    ? eventsConfig.processedTagName
+    : '#event_created'
+  const pref_removeTimeBlocksWhenProcessed =
+    (eventsConfig.removeTimeBlocksWhenProcessed != null)
+    ? eventsConfig.removeTimeBlocksWhenProcessed
+    : true
+
+  // Look through open note to find time blocks
   const timeblockParas = paragraphs.filter(
-    // (p) => (p.content.match(RE_TIMEBLOCK_TYPE1) ))
     (p) => (p.content.match(RE_TIMEBLOCK_TYPE1) || (p.content.match(RE_TIMEBLOCK_TYPE2))))
   if (timeblockParas.length > 0) {
     console.log(`  found ${timeblockParas.length} in '${noteTitle}'`)
@@ -68,37 +67,41 @@ export async function timeblocksToCalendar() {
     for (let i = 0; i < timeblockParas.length; i++) {
       const thisPara = timeblockParas[i]
       let tempArray = thisPara.content?.match(RE_TIMEBLOCK_TYPE1) ?? ['']
-      const timeblockStringType1 = tempArray[0]
+      const timeBlockStringType1 = tempArray[0]
       tempArray = thisPara.content?.match(RE_TIMEBLOCK_TYPE2) ?? ['']
-      const timeblockStringType2 = tempArray[0]
-      const timeblockString = (timeblockStringType1 !== '') ? timeblockStringType1 : timeblockStringType2
+      const timeBlockStringType2 = tempArray[0]
+      const timeBlockString = (timeBlockStringType1 !== '') ? timeBlockStringType1 : timeBlockStringType2
       // Check to see if this line has been processed before, by looking for the processed tag
       if (thisPara.content.match(pref_processedTagName)) {
-        console.log(`\tIgnoring timeblock '${timeblockString}' as line contains ${pref_processedTagName}`)
+        console.log(`\tIgnoring timeblock '${timeBlockString}' as line contains ${pref_processedTagName}`)
       }
       else {
-        console.log(`\tFound timeblock '${timeblockString}'`)
+        console.log(`\tFound timeblock '${timeBlockString}'`)
         
         // NB: parseDateText returns an array, so we'll use the first one as most likely
-        const timeblockDateRange = Calendar.parseDateText(timeblockString)[0]
+        const timeblockDateRange = Calendar.parseDateText(timeBlockString)[0]
         if (timeblockDateRange != null) {
-          // printDateRange(timeblockDateRange)
-          const title = thisPara.content.replace(timeblockString, '')
-          console.log(`\tWill process timeblock '${timeblockString}' for '${title}'`)
+          const title = thisPara.content.replace(timeBlockString, '')
+          console.log(`\tWill process time block '${timeBlockString}' for '${title}'`)
           createEventFromDateRange(title, timeblockDateRange)
 
-          // Add processedTag (if wanted)
+          // Remove time block string (if wanted)
+          if (pref_removeTimeBlocksWhenProcessed) {
+            thisPara.content = thisPara.content.replace(timeBlockString, '')
+          }
+          // Add processedTag (if not empty)
           if (pref_processedTagName !== '') {
             thisPara.content += ` ${pref_processedTagName}`
-            Editor.updateParagraph(thisPara)
+            console.log(`\t-> '${thisPara.content}'`)
           }
+          Editor.updateParagraph(thisPara) // seems not to work twice in quick succession, so just do it once here
         } else {
-          console.log(`\tError getting DateRange from '${timeblockString}'`)
+          console.log(`\tError getting DateRange from '${timeBlockString}'`)
         }
       }
     }
   } else {
-    console.log(`  -> No timeblocks found.`)
+    console.log(`  -> No time blocks found.`)
   }
 }
 
@@ -123,29 +126,19 @@ function createEventFromDateRange(eventTitle: string, dateRange: DateRange) {
 }
 
 const DEFAULT_EVENTS_OPTIONS = `  events: {
-    processedTagName: "#event_created",
+    processedTagName: "#event_created",   // optional tag to add after making a time block an event
+    removeTimeBlocksWhenProcessed: true,  // whether to remove time block after making an event from it
+    todaysEventsHeading = "### Events today",  // heading to put before list of today's events
+    addMatchingEvents: {   // match events with string on left, and add this into daily note prepending by string on the right (which can be empty)
+      "#meeting": "### ",
+      "#webinar": "### ",
+      "#holiday": "",
+    },
   },
 `
 
-// This is for later use when we can *read* calendar events, as promised by @EduardMe, 1.7.2021
-// const DEFAULT_EVENTS_OPTIONS = `  events: {
-//     defaultCalendarName: "<your default here>",
-//     processedTagName: "#event_created",
-//     createNoteSections: {
-//       [
-// 		 "tag":   "#meeting",
-//         "title": "#meeting Notes",
-//       ],
-//       [
-// 		 "tag":   "#webinar",
-//         "title": "#webinar Notes",
-//       ],
-//     },
-//   },
-// `
-
 //----------------------------------------------------------------------
-// Testing finding timeblock in text string:
+// Testing finding time blocks in text string:
 // - The following *don't work*:
 // printDateRange(Calendar.parseDateText("2021-06-02 2.15PM-3.45PM")[0])
 // printDateRange(Calendar.parseDateText("2021-06-02 at 2PM")[0])

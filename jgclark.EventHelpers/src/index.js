@@ -3,12 +3,12 @@
 //-----------------------------------------------------------------------------
 // Event Helpers
 // Jonathan Clark
-// v0.1.2, 29.7.2021
+// v0.2.0, 11.7.2021
 //-----------------------------------------------------------------------------
 
-export { timeblocksToCalendar } from './timeblocks'
+export { timeBlocksToCalendar } from './timeblocks'
 export {
   listTodaysEvents,
-  insertTodaysEvents,
-  makeSectionFromEvent,
+  insertListTodaysEvents,
+  addMatchingEvents,
 } from './eventsToNotes'
