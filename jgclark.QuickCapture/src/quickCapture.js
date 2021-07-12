@@ -249,7 +249,7 @@ export async function appendTaskToDailyJournal() {
 export async function addTaskToInbox() {
   console.log(`addTaskToInbox:`)
   // Get config settings from Template folder _configuration note
-  let inboxConfig = await getOrMakeConfigurationSection('inbox', DEFAULT_INBOX_CONFIG)
+  const inboxConfig = await getOrMakeConfigurationSection('inbox', DEFAULT_INBOX_CONFIG)
   // inboxConfig = config?.inbox ?? null
   if (inboxConfig == null) {
     console.log(
@@ -281,6 +281,7 @@ export async function addTaskToInbox() {
       const folder = await chooseFolder(
         'Inbox not found, choose a folder or cancel [ESC]',
       )
+      // $FlowFixMe -- don't know how to deal with apparent mixed type here
       newFilename = DataStore.newNote(pref_inboxTitle, folder) ?? ''
       // NB: this returns a filename not of our choosing
       if (newFilename != null) {
@@ -310,6 +311,7 @@ export async function addTaskToInbox() {
     }
     console.log(`\tAdded todo to Inbox note '${String(inboxNote?.filename)}'`)
   } else {
+    // $FlowFixMe -- don't know how to deal with apparent mixed type here
     console.log(`\tERROR: Couldn't find Inbox note '${pref_inboxFilename}'`)
   }
 }
