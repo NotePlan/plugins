@@ -10,6 +10,7 @@ import {
   nowShortDateTime,
   chooseOption,
   chooseFolder,
+  defaultFileExt,
 } from '../../helperFunctions'
 
 // Get the folder name from the full NP (project) note filename
@@ -97,7 +98,7 @@ function makeFolderIndex(
 // 1. This folder only (insert into current note)
 // 2. This folder only (add/update to _index note)
 // 3. This folder + subfolders (add/update into single _index note)
-// 4. This folder + subfolders (add/update into _index notes in each subfolder)
+// 4. TODO: This folder + subfolders (add/update into _index notes in each subfolder)
 
 export async function indexFolders(): Promise<void> {
   // To start with just operate on current note's folder
@@ -157,7 +158,7 @@ export async function indexFolders(): Promise<void> {
   if (option.endsWith('index')) {
 
     // write out to index file(s)
-    let outputFilename = `${thisFolder}/_index.md`
+    let outputFilename = `${thisFolder}/_index.${defaultFileExt}`
     // see if we already have an _index file in this folder
     let outputNote = DataStore.projectNoteByFilename(outputFilename)
 
