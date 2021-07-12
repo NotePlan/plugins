@@ -35,11 +35,11 @@ export async function insertListTodaysEvents(): Promise<void> {
     return
   }
   // Get config settings from Template folder _configuration note
-  const config = await getOrMakeConfigurationSection(
+  const eventsConfig = await getOrMakeConfigurationSection(
     'events',
     DEFAULT_EVENTS_OPTIONS,
   )
-  const eventsConfig: any = config?.events ?? null
+  // const eventsConfig: any = config?.events ?? null
   if (eventsConfig == null) {
     console.log("\tCouldn't find 'events' settings in _configuration note.")
     await showMessage("Couldn't find 'events' settings in _configuration note.")
@@ -70,29 +70,27 @@ export async function insertListTodaysEvents(): Promise<void> {
 export async function addMatchingEvents(): Promise<void> {
   console.log(`\naddMatchingEvents:`)
   // Get config settings from Template folder _configuration note
-  const config = await getOrMakeConfigurationSection(
+  const eventsConfig = await getOrMakeConfigurationSection(
     'events',
     DEFAULT_EVENTS_OPTIONS,
   )
-  const eventsConfig: any = config?.events ?? null
+  // const eventsConfig: any = config?.events ?? null
   if (eventsConfig == null) {
     console.log("\tCouldn't find 'events' settings in _configuration note.")
     return
   }
   // now get the setting we need
-  // console.log( JSON.stringify(eventsConfig.addMatchingEvents))
-  const pref_addMatchingEvents = (eventsConfig.addMatchingEvents != null)
-    ? eventsConfig.addMatchingEvents
-    : {
-      "#meeting": "### ",
-      "#webinar": "### ",
-      "#holiday": "",
-    }
-  console.log(`\tFrom settings found ${addMatchingEvents.length} matches to look for`)
-  
+  const pref_addMatchingEvents = eventsConfig.addMatchingEvents ?? null
+
+  if (pref_addMatchingEvents == null) {
+    console.log("\nError: empty find 'addMatchingEvents' setting in _configuration note.")
+    await showMessage(`Warning: Empty 'addMatchingEvents' setting in _configuration note`)
+    return
+  }
+  // console.log( pref_addMatchingEvents.toString() )
   const textToMatch = Object.keys(pref_addMatchingEvents)
   const textToPrepend = Object.values(pref_addMatchingEvents)
-  console.log( textToMatch.toString() )
+  console.log(`\tFrom settings found ${textToMatch.length} match strings to look for`)
   const eA: Array<TCalendarItem> = await Calendar.eventsToday()
   
   await fetch("https://noteplan.co") // TODO: WAIT: remove on next beta!
@@ -119,7 +117,7 @@ export async function addMatchingEvents(): Promise<void> {
 const DEFAULT_EVENTS_OPTIONS = `  events: {
     processedTagName: "#event_created",   // optional tag to add after making a time block an event
     removeTimeBlocksWhenProcessed: true,  // whether to remove time block after making an event from it
-    todaysEventsHeading: "### Events today",  // heading to put before list of today's events
+    todaysEventsHeading: "### Events today",  // optional heading to put before list of today's events
     addMatchingEvents: {   // match events with string on left, and add this into daily note prepending by string on the right (which can be empty)
       "#meeting": "### ",
       "#webinar": "### ",

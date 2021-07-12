@@ -37,11 +37,11 @@ export async function timeBlocksToCalendar() {
   console.log(`\ntimeBlocksToCalendar: starting for note '${noteTitle}'`)
 
   // Get config settings from Template folder _configuration note
-  const config = await getOrMakeConfigurationSection(
+  const eventsConfig = await getOrMakeConfigurationSection(
     'events',
     DEFAULT_EVENTS_OPTIONS,
   )
-  const eventsConfig: any = config?.events ?? null
+  // const eventsConfig: any = config?.events ?? null
   if (eventsConfig == null) {
     console.log("\tCouldn't find 'events' settings in _configuration note.")
     return
@@ -128,7 +128,7 @@ function createEventFromDateRange(eventTitle: string, dateRange: DateRange) {
 const DEFAULT_EVENTS_OPTIONS = `  events: {
     processedTagName: "#event_created",   // optional tag to add after making a time block an event
     removeTimeBlocksWhenProcessed: true,  // whether to remove time block after making an event from it
-    todaysEventsHeading = "### Events today",  // heading to put before list of today's events
+    todaysEventsHeading: "### Events today",  // optional heading to put before list of today's events
     addMatchingEvents: {   // match events with string on left, and add this into daily note prepending by string on the right (which can be empty)
       "#meeting": "### ",
       "#webinar": "### ",

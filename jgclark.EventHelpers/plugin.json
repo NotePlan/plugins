@@ -14,7 +14,7 @@
   "plugin.commands": [
     {
       "name": "time blocks to calendar",
-      "description": "promote timeblocks to be full calendar events",
+      "description": "promote time blocks to be full calendar events",
       "jsFunction": "timeBlocksToCalendar"
     },
     {
