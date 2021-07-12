@@ -2,7 +2,7 @@
 // --------------------------------------------------------------------------------------------------------------------
 // QuickCapture plugin for NotePlan
 // Jonathan Clark
-// v0.4.5, 10.7.2021
+// v0.4.5, 12.7.2021
 // --------------------------------------------------------------------------------------------------------------------
 
 import {
@@ -249,31 +249,28 @@ export async function appendTaskToDailyJournal() {
 export async function addTaskToInbox() {
   console.log(`addTaskToInbox:`)
   // Get config settings from Template folder _configuration note
-  const inboxConfig = await getOrMakeConfigurationSection('inbox', DEFAULT_INBOX_CONFIG)
-  // const inboxConfig = config?.inbox ?? null
+  let inboxConfig = await getOrMakeConfigurationSection('inbox', DEFAULT_INBOX_CONFIG)
+  // inboxConfig = config?.inbox ?? null
   if (inboxConfig == null) {
     console.log(
       "\tWarning: Cannot find 'inbox' settings in Templates/_configuration note. Stopping.",
     )
     await showMessage(
-      "Error: please check 'inbox' settings in Templates/_configuration note",
+      "Error: please check 'inbox' settings in '_configuration' note",
     )
     return
   }
 
-  // Typecasting
-  const inboxConfigObj: { [string]: string } = (inboxConfig: any)
-
   // Read settings from _configuration note,
   // with some pre-defined settings as a final fallback
-  console.log(inboxConfigObj.inboxFilename)
-  const pref_inboxFilename = inboxConfigObj.inboxFilename ?? "📥 Inbox.md"
-  console.log(inboxConfigObj.inboxTitle)
-  const pref_inboxTitle = inboxConfigObj.inboxTitle ?? "📥 Inbox"
-  console.log(inboxConfigObj.addInboxPosition)
-  const pref_addInboxPosition = inboxConfigObj.addInboxPosition ?? "prepend"
+  // console.log(inboxConfig.inboxFilename)
+  const pref_inboxFilename = inboxConfig.inboxFilename ?? "📥 Inbox.md"
+  // console.log(inboxConfig.inboxTitle)
+  const pref_inboxTitle = inboxConfig.inboxTitle ?? "📥 Inbox"
+  // console.log(inboxConfig.addInboxPosition)
+  const pref_addInboxPosition = inboxConfig.addInboxPosition ?? "prepend"
 
-  // Get or setup the inbox note
+  // Get or setup the inbox note from the Datastore
   let newFilename: ?string
   let inboxNote: ?TNote
   if (pref_inboxFilename !== '') {
@@ -293,6 +290,10 @@ export async function addTaskToInbox() {
         console.log('\tgot the new inbox note')
       }
     }
+  } else {
+    inboxNote = DataStore.calendarNoteByDateString(
+      unhyphenateDateString(todaysDateISOString)
+    )
   }
 
   // Ask for the task title
@@ -301,8 +302,6 @@ export async function addTaskToInbox() {
     "Add task '%@'",
   )
 
-
-  // Get the relevant note from the Datastore
   if (inboxNote != null) {
     if (pref_addInboxPosition === 'append') {
       inboxNote.appendTodo(todoTitle)
