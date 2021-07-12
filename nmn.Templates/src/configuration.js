@@ -52,7 +52,7 @@ export async function parseFirstCodeblock(
     return {}
   }
   format = FORMAT_MAP[format] ?? format
-  console.log(`parseFirstCodeblock: will parse ${contents.length} bytes of ${format}`)
+  console.log(`\tparseFirstCodeblock: will parse ${contents.length} bytes of ${format}`)
 
   switch (format) {
     case 'json':
@@ -65,7 +65,7 @@ export async function parseFirstCodeblock(
       return parseTOML(contents)
     default:
       console.log(
-        `parseFirstCodeblock: error: can't deal with format ${format}`,
+        `\tparseFirstCodeblock: error: can't deal with format ${format}`,
       )
   }
 }
@@ -77,27 +77,34 @@ export async function getOrMakeConfigurationSection(
   configSectionName: string,
   configSectionDefault: string,
 ): Promise<?{ [string]: ?mixed }> {
-  const templateFolder = await getOrMakeTemplateFolder()
+  let templateFolder = await getOrMakeTemplateFolder()
   if (templateFolder == null) {
+    console.log(`  getOrMakeConfigurationSection: couldn't find the templateFolder ... will try to create it ...`)
+    templateFolder = getOrMakeTemplateFolder()
     return {}
   }
 
-  console.log(`getOrMakeConfigurationSection: got folder ${templateFolder}`)
+  console.log(`  getOrMakeConfigurationSection: got folder ${templateFolder}`)
   const configFile = DataStore.projectNotes
+    // $FlowIgnore[incompatible-call]
     .filter((n) => n.filename?.startsWith(templateFolder))
     .find((n) => !!n.title?.startsWith('_configuration'))
 
   if (configFile == null) {
+    console.log(`  getOrMakeConfigurationSection: Error: cannot find '_configuration' file`)
+    await showMessage(`Error: cannot find '_configuration' file. Please check.`)
+    // Really strange to get here: won't code a response, but will just stop.
     return {}
   }
 
   const content: ?string = configFile?.content
   if (content == null) {
-    await showMessage(`Error: cannot find '_configuration' file`)
-    // TODO: make new _configuration file
+    console.log(`  getOrMakeConfigurationSection: Error: '_configuration' file is empty`)
+    await showMessage(`Error: empty '_configuration' file. Please check.`)
+    // Really strange to get here: won't code a response, but will just stop.
     return {}
   }
-  console.log('getOrMakeConfigurationSection: got content')
+  console.log('  getOrMakeConfigurationSection: got _configuration file')
 
   // Get config contents
   const firstCodeblock = content.split('\n```')[1]
@@ -128,7 +135,6 @@ export async function getOrMakeConfigurationSection(
     }
 
     // Add default configuration
-    // TODO: check for javascript block start
     const backtickParas = configFile.paragraphs.filter((p) =>
       p.content.match(/```/),
     )
@@ -137,13 +143,14 @@ export async function getOrMakeConfigurationSection(
       backtickParas.length > 0 &&
       backtickParas[0].content.endsWith('javascript')
     ) {
-      // Insert new default configuration at the bottom of the current _configuration block
-      const endFirstBlockLineNumber = backtickParas[1].lineIndex - 1
+      // Insert new default configuration at the top of the current _configuration block
+      const startFirstBlockLineNumber = backtickParas[0].lineIndex + 2
+      // const endFirstBlockLineNumber = backtickParas[1].lineIndex - 1 // this used to do the bottom of the block
       // insert paragraph just before second ``` line
-      if (endFirstBlockLineNumber !== undefined) {
+      if (startFirstBlockLineNumber !== undefined) {
         configFile.insertParagraph(
           configSectionDefault,
-          endFirstBlockLineNumber,
+          startFirstBlockLineNumber,
           'text',
         )
         await showMessage(
@@ -175,7 +182,8 @@ export async function getOrMakeConfigurationSection(
   }
 
   // We have the configuration, so return it
-  return config
+  // $FlowIgnore
+  return config[configSectionName]
 }
 
 async function parseJSON(contents: string): Promise<?{ [string]: ?mixed }> {

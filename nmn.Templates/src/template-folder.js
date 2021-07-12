@@ -1,6 +1,6 @@
 // @flow
 
-import { chooseOption, showMessage } from '../../nmn.sweep/src/userInput'
+import { chooseOption, showMessage } from '../../helperFunctions'
 
 const staticTemplateFolder = '📋 Templates'
 
@@ -8,8 +8,10 @@ export function getTemplateFolder(): ?string {
   return DataStore.folders.find((f) => f.includes(staticTemplateFolder))
 }
 
+// get the template folder path, without leading '/'
+// if it doesn't exist, offer to create it and populate it with samples
 export async function getOrMakeTemplateFolder(): Promise<?string> {
-  console.log('getOrMakeTemplateFolder')
+  console.log('  getOrMakeTemplateFolder start')
   let folder = getTemplateFolder()
 
   if (folder == null) {
@@ -94,7 +96,8 @@ const CONFIG = ` _configuration
 # Template Tag Configuration
 
 This file is used to configure how templates work. 
-Use the code fence below to set global values for template tags.
+Use the code fence below (which comes after a line made by 3 dashes)
+to set global values for template tags.
 
 To write your configuration you can use JSON5. JSON5 is a human-friendly
 superset of JSON that lets you write comments, unquoted keys and other common

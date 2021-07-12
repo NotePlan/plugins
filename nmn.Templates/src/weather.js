@@ -13,8 +13,6 @@ import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configura
 export async function getWeatherSummary(
   // eslint-disable-next-line no-unused-vars
   weatherParams: string,
-  // eslint-disable-next-line no-unused-vars
-  config: { [string]: ?mixed }, // FIXME: In time remove this parameter
 ): Promise<string> {
   const weatherDescText = [
     'showers',
@@ -30,17 +28,18 @@ export async function getWeatherSummary(
   const weatherDescIcons = ['🌦️', '🌧️', '🌤', '⛅', '☀️', '☁️', '🌨️', '⛈', '🌪']
 
   // Get config settings from Template folder _configuration note
-  const config2 = await getOrMakeConfigurationSection(
+  const weatherConfig = await getOrMakeConfigurationSection(
     'weather',
     DEFAULT_WEATHER_CONFIG,
   )
   
   // Get config settings from Template folder _configuration note
-  // $FlowIgnore
-  const weatherConfig: any = config2.weather ?? null
+  // $FlowIgnore[incompatible-use]
+  // const weatherConfig: any = config2.weather ?? null
+  console.log(JSON.stringify(weatherConfig))
   if (weatherConfig == null) {
     console.log("Cannot find 'weather' settings in Templates/_configuration note.")
-    return "_Error: Cannot find 'weather' settings in Templates/_configuration note._"
+    return "Error: Cannot find 'weather' settings in Templates/_configuration note."
   }
   const pref_openWeatherAPIKey = weatherConfig.openWeatherAPIKey
   const pref_latPosition = weatherConfig.latPosition
@@ -111,6 +110,7 @@ export async function getWeatherSummary(
     console.log(`\t${summaryLine}`)
     return summaryLine
   } else {
+    // $FlowFixMe[incompatible-type]
     return `Problem in Weather data lookup for ${pref_latPosition}/${pref_longPosition}. Please check your _configuration note.`
   }
 }

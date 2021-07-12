@@ -1,6 +1,7 @@
 // @flow
 
 import { getInput } from '../../nmn.sweep/src/userInput'
+import { listTodaysEvents, listMatchingTodaysEvents } from '../../jgclark.EventHelpers/src/eventsToNotes'
 import { getWeatherSummary } from './weather'
 import { getDailyQuote } from './quote'
 import { parseJSON5 } from './configuration'
@@ -40,7 +41,11 @@ export async function processTags(
   if (tag.startsWith('date(') && tag.endsWith(')')) {
     return await processDate(tag.slice(5, tag.length - 1), config)
   } else if (tag.startsWith('weather(') && tag.endsWith(')')) {
-    return await getWeatherSummary(tag.slice(8, tag.length - 1), config)
+    return await getWeatherSummary(tag.slice(8, tag.length - 1))
+  } else if (tag.startsWith('listTodaysEvents(') && tag.endsWith(')')) {
+    return await listTodaysEvents()
+  } else if (tag.startsWith('listMatchingEvents(') && tag.endsWith(')')) {
+    return await listMatchingTodaysEvents()
   } else if (tag.startsWith('quote(') && tag.endsWith(')')) {
     return await getDailyQuote(tag.slice(6, tag.length - 1), config)
   }
@@ -49,6 +54,7 @@ export async function processTags(
   // Can call functions defined in other plugins, by appropriate use
   // of imports at top of file (e.g. getWeatherSummary)
   // Or declare below (e.g. processDate)
+    
   else {
     // no matching funcs, so now attempt to match defined tag values instead
     return processTagValues(tag, config)
