@@ -16,10 +16,14 @@ import {
   // hyphenatedDateString,
   // filenameDateString,
   nowShortDateTime,
+  RE_DATE,
+  toISODateString,
+  toISOShortDateTimeString,
+  calcOffsetDate,
 } from '../../helperFunctions.js'
 
 // Return list of notes in a folder with a particular hashtag
-function findMatchingNotesSortedByName(
+function findMatchingTagsNotesSortedByName(
   tag: string,
   folder: string,
 ): Array<TNote> {
@@ -54,6 +58,55 @@ function noteStatus(note: TNote): string {
   return `- ${titleAsLink}` // due ... last reviewed ...
 }
 
+function calcNextReviewDate(lastReviewDate: Date, interval: string): Date {
+  // RUBY:
+  // @next_review_date = !@last_review_date.nil? ? calc_offset_date(@last_review_date, @review_interval) : TODAYS_DATE
+  
+  let reviewDate: Date = (lastReviewDate != null)
+    ? calcOffsetDate(toISODateString(lastReviewDate), interval) 
+    : new Date()  // today's date
+  return reviewDate
+}
+
+const RE_MENTION_DATE_CAPTURE = `\\((${RE_DATE})\\)` // capture date of form YYYY-MM-DD from enclosing parenthesis
+const RE_MENTION_STRING_CAPTURE = '\\((.*?)\\)' // capture string inside parantheses
+
+// From an array of mentions, return the first string that matches the
+// starting string
+function getMentionFromList(mentionList: $ReadOnlyArray<string>, mention: string): string {
+  console.log(`getMentionFromList for: ${mention}`)
+  const res = mentionList.filter((m) => m.startsWith(`${mention}(`))
+  return (res.length > 0) ? res[0] : ''
+}
+
+// Turn e.g. @due(2021-03-04) into a JS Date
+function getDateFromMention(mention: string): ?Date {
+  console.log(`getDateFromMention: ${mention}`)
+  // TODO: TEST
+  const res = mention.match(RE_MENTION_DATE_CAPTURE) ?? []
+  if (res[1].length > 0) {
+    // NB: Strings are correct, but FIXME: date construction isn't
+    const date = new Date(Number(res[1].slice(0, 4)),
+      Number(res[1].slice(5, 7)),
+      Number(res[1].slice(8, 10)))
+    console.log(toISOShortDateTimeString(date))
+    return date
+  } else {
+    return
+  }
+}
+
+// Turn e.g. @due(2021-03-04) into a JS Date
+function getStringFromMention(mention: string): ?string {
+  console.log(`getStringFromMention: ${mention}`)
+  const res = mention.match(RE_MENTION_STRING_CAPTURE) ?? []
+  if (res[1].length > 0) {
+    return res[1]
+  } else {
+    return
+  }
+}
+
 //-------------------------------------------------------------------------------
 // Define 'Project' class to use in GTD.
 // Holds title, last reviewed date, due date, review interval, completion date,
@@ -65,7 +118,8 @@ class Project {
   title: ?string
   dueDate: ?Date
   reviewedDate: ?Date
-  // reviewInterval
+  reviewInterval: ?string
+  nextReviewDate: ?Date
   completedDate: ?Date
   openTasks: number
   completedTasks: number
@@ -74,21 +128,51 @@ class Project {
   constructor(note: TNote) {
     this.note = note
     this.title = note.title
-    this.dueDate = undefined // TODO
-    this.reviewedDate = undefined // TODO
-    // this.reviewInterval = ''
-    this.completedDate = undefined
-    this.openTasks = 0
-    this.completedTasks = 0
-    this.waitingTasks = 0
+
+    // RUBY CODE:
+    // # Now process line 2 (rest of metadata)
+    // # the following regex matches returns an array with one item, so make a string (by join), and then parse as a date
+    // @metadata_line.scan(/@start\(#{RE_DATES_FLEX_MATCH}\)/) { |m|  @start_date = Date.parse(m.join) }
+    // @metadata_line.scan(/(@end|@due)\(#{RE_DATES_FLEX_MATCH}\)/) { |m| @due_date = Date.parse(m.join) } # allow alternate form '@end(...)'
+    // @metadata_line.scan(/(@completed|@finished)\(#{RE_DATES_FLEX_MATCH}\)/) { |m| @completed_date = Date.parse(m.join) }
+    // @metadata_line.scan(/@reviewed\(#{RE_DATES_FLEX_MATCH}\)/) { |m| @last_review_date = Date.parse(m.join) }
+    // @metadata_line.scan(/#{RE_REVIEW_WITH_INTERVALS_MATCH}/) { |m| @review_interval = m.join.downcase }
+    
+    // # make completed if @completed_date set
+    // @is_completed = true unless @completed_date.nil?
+    // # make cancelled if #cancelled or #someday flag set
+    // @is_cancelled = true if @metadata_line =~ /(#cancelled|#someday)/
+
+    // # OLDER LOGIC:
+    // # set note to non-active if #archive is set, or cancelled, completed.
+    // # @is_active = false if @metadata_line == /#archive/ || @is_completed || @is_cancelled
+    // # NEWER LOGIC:
+    // # set note to active if #active is set or a @review date found, and not complete/cancelled
+    // @is_active = true if (@metadata_line =~ /#active/ || !@review_interval.nil?) && !@is_cancelled && !@is_completed
+
+    const mentions: $ReadOnlyArray<string> = note.mentions
+    this.dueDate = getDateFromMention( getMentionFromList(mentions, "@due") )
+    this.reviewedDate = getDateFromMention( getMentionFromList(mentions, "@reviewed") )
+    this.reviewInterval = getStringFromMention( getMentionFromList(mentions, "@review") )
+    this.nextReviewDate = (this.reviewedDate != null && this.reviewInterval != null)
+      ? calcNextReviewDate(this.reviewedDate, this.reviewInterval)
+      : null
+    this.completedDate = getDateFromMention( getMentionFromList(mentions, "@completed") )
+    this.openTasks = 0 // TODO:
+    this.completedTasks = 0 // TODO:
+    this.waitingTasks = 0 // TODO:
   }
 
   timeUntilDue(): string {
-    return 'temp' // this.dueDate TODO
+    const diffDays = Calendar.unitsBetween(new Date(), this.dueDate, 'day')
+    let diffStr = `${diffDays}d`
+    return diffStr
   }
 
   timeUntilReview(): string {
-    return '3w' // TODO
+    const diffDays = Calendar.unitsBetween(new Date(), this.nextReviewDate, 'day')
+    let diffStr = `${diffDays}d`
+    return diffStr
   }
 
   basicSummaryLine(): string {
@@ -101,7 +185,11 @@ class Project {
     // Class properties must always be used with `this.`
     const titleAsLink =
       this.note.title !== undefined ? `[[${this.note.title ?? ''}]]` : '(error)'
-    return `- ${titleAsLink}\t${this.timeUntilDue()}\t${this.timeUntilReview()}` // etc.
+    let output = `- ${titleAsLink}\t${this.timeUntilDue()}\t${this.timeUntilReview()}`
+    if (this.completedDate != null) {
+      output += ` [Completed ${toISODateString(this.completedDate)}]`
+    }
+    return output
   }
 }
 
@@ -113,12 +201,11 @@ export async function noteTypeSummaries() {
   if (!note) {
     return
   }
-
   const p1 = new Project(note)
-  console.log(p1.detailedSummaryLine())
+  console.log(`For open note:\n\t${p1.detailedSummaryLine()}`)
 
   console.log(`\nnoteTypeSummaries`)
-  const destination = 'note' // or 'note' or 'show'
+  const destination = 'note' // or 'show' or 'log'
   const tags = pref_noteTypeTags.split(',')
 
   for (const tag of tags) {
@@ -158,9 +245,8 @@ export async function noteTypeSummaries() {
         }
 
         if (note != null) {
-          // This is a bug in flow. Creating a temporary const is a workaround.
-          const n = note
-          n.content = outputArray.join('\n')
+          // $FlowIgnore[incompatible-use]
+          note.content = outputArray.join('\n')
         } else {
           console.log(
             "makeNoteTypeSummary: error: shouldn't get here -- no valid note to write to",
@@ -209,7 +295,7 @@ export function makeNoteTypeSummary(noteTag: string): Array<string> {
   let notesLength = 0
   // A for-of loop is cleaner and less error prone than a regular for-loop
   for (const folder of folderList) {
-    const notes = findMatchingNotesSortedByName(noteTag, folder)
+    const notes = findMatchingTagsNotesSortedByName(noteTag, folder)
     // console.log(notes.length)
     if (notes.length > 0) {
       if (pref_groupedByFolder) {
@@ -217,7 +303,7 @@ export function makeNoteTypeSummary(noteTag: string): Array<string> {
       }
       // iterate over this folder's notes
       for (const note of notes) {
-        outputArray.push(noteStatus(note))
+        outputArray.push(noteStatus(note)) // TODO: use Class function
       }
       noteCount += notes.length
     }
