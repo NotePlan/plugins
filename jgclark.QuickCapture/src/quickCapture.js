@@ -2,16 +2,21 @@
 // --------------------------------------------------------------------------------------------------------------------
 // QuickCapture plugin for NotePlan
 // Jonathan Clark
-// v0.4.4, 8.7.2021
+// v0.4.5, 10.7.2021
 // --------------------------------------------------------------------------------------------------------------------
 
-import { getDefaultConfiguration } from '../../nmn.Templates/src/configuration'
+import {
+  // getDefaultConfiguration,
+  getOrMakeConfigurationSection,
+} from '../../nmn.Templates/src/configuration'
+  
 import {
   // printNote,
   showMessage,
   unhyphenateDateString,
   todaysDateISOString,
   displayTitle,
+  chooseFolder,
 } from '../../helperFunctions'
 
 // ------------------------------------------------------------------
@@ -242,15 +247,16 @@ export async function appendTaskToDailyJournal() {
 // - append or prepend to the inbox note (default: append)
 // - add to today's daily note (default) or to a particular named note
 export async function addTaskToInbox() {
+  console.log(`addTaskToInbox:`)
   // Get config settings from Template folder _configuration note
-  const config = await getDefaultConfiguration()
-  const inboxConfig = config?.inbox ?? null
+  const inboxConfig = await getOrMakeConfigurationSection('inbox', DEFAULT_INBOX_CONFIG)
+  // const inboxConfig = config?.inbox ?? null
   if (inboxConfig == null) {
     console.log(
       "\tWarning: Cannot find 'inbox' settings in Templates/_configuration note. Stopping.",
     )
     await showMessage(
-      "Cannot find 'inbox' settings in Templates/_configuration note",
+      "Error: please check 'inbox' settings in Templates/_configuration note",
     )
     return
   }
@@ -258,27 +264,34 @@ export async function addTaskToInbox() {
   // Typecasting
   const inboxConfigObj: { [string]: string } = (inboxConfig: any)
 
-  // Read settings from _configuration note
-  const pref_inboxFilename = inboxConfigObj.inboxFilename ?? ''
-  const pref_inboxTitle = inboxConfigObj.inboxTitle ?? '📥 Inbox'
-  const pref_addInboxPosition = inboxConfigObj.addInboxPosition ?? 'append'
+  // Read settings from _configuration note,
+  // with some pre-defined settings as a final fallback
+  console.log(inboxConfigObj.inboxFilename)
+  const pref_inboxFilename = inboxConfigObj.inboxFilename ?? "📥 Inbox.md"
+  console.log(inboxConfigObj.inboxTitle)
+  const pref_inboxTitle = inboxConfigObj.inboxTitle ?? "📥 Inbox"
+  console.log(inboxConfigObj.addInboxPosition)
+  const pref_addInboxPosition = inboxConfigObj.addInboxPosition ?? "prepend"
 
   // Get or setup the inbox note
   let newFilename: ?string
   let inboxNote: ?TNote
   if (pref_inboxFilename !== '') {
-    console.log(`addTaskToInbox: ${String(pref_inboxFilename)}`)
+    console.log(`\tAttempting to use inbox filename: ${String(pref_inboxFilename)}`)
     inboxNote = DataStore.projectNoteByFilename(String(pref_inboxFilename))
     // Create the inbox note if not existing, ask the user which folder
     if (inboxNote == null) {
-      const folders = DataStore.folders
-      const folder = await CommandBar.showOptions(
-        folders,
+      const folder = await chooseFolder(
         'Inbox not found, choose a folder or cancel [ESC]',
       )
-      newFilename = DataStore.newNote(pref_inboxTitle, folder.value) ?? ''
+      newFilename = DataStore.newNote(pref_inboxTitle, folder) ?? ''
       // NB: this returns a filename not of our choosing
-      console.log(`made new inbox note, filename = ${newFilename}`)
+      if (newFilename != null) {
+        console.log(`\tmade new inbox note, filename = ${newFilename}`)
+        // $FlowIgnore[incompatible-call]
+        inboxNote = DataStore.projectNoteByFilename(newFilename)
+        console.log('\tgot the new inbox note')
+      }
     }
   }
 
@@ -288,11 +301,6 @@ export async function addTaskToInbox() {
     "Add task '%@'",
   )
 
-  // Re-fetch the note if we created it previously. We need to wait a bit so it's cached, that's why we query it after the task input.
-  if (newFilename != null) {
-    inboxNote = DataStore.projectNoteByFilename(newFilename)
-    console.log('\tgot new inbox note')
-  }
 
   // Get the relevant note from the Datastore
   if (inboxNote != null) {
@@ -306,6 +314,14 @@ export async function addTaskToInbox() {
     console.log(`\tERROR: Couldn't find Inbox note '${pref_inboxFilename}'`)
   }
 }
+
+const DEFAULT_INBOX_CONFIG = `
+  inbox: {
+    inboxFilename: "📥 Inbox.md",
+    inboxTitle: "📥 Inbox",
+    addInboxPosition: "prepend",
+  },
+`
 
 function calendarNotesSortedByChanged(): Array<TNote> {
   return DataStore.calendarNotes

@@ -11,7 +11,7 @@ This plugin provides commands to quickly add tasks/todos or general text to Note
 - `/qpt`: Quickly prepend a task to a chosen project note. (Inserts after title or YAML frontmatter, or starting metadata lines.)
 
 ## Configuration
-`/int` now uses the `Daily Note Template` note found in the `Templates` folder. If this note has not been added, it should prompt you to create one.
+The first time you  use `/int` it should write some default configuration to the  `_configuration_` note found in the `Templates` folder. If this note has not been added, it will add one, if you agree.
 
 In the `Templates/_configuration` note, include the following settings you want in the note's first configuration block. For example:
 
@@ -24,9 +24,12 @@ inbox: {
 },
 ...
 ```
-(This example fragment is in JSON5 format, but you can also use TOML or YAML formats: see the help text in `_configuration` note. Ensure there are commas at the end of all that lines that need them.)
+(This example fragment is in JSON5 format: see the help text in `_configuration` note. Ensure there are commas at the end of all that lines that need them.)
 
 ## History
+### v0.4.5, 9.7.2021
+- fix: bug fix with empty configurations (thanks to @renehuber)
+
 ### v0.4.4, 9.7.2021
 - improve: smarter prepending for `/qpt` command
 
