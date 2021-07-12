@@ -72,7 +72,9 @@ export async function timeBlocksToCalendar() {
       const timeBlockStringType2 = tempArray[0]
       const timeBlockString = (timeBlockStringType1 !== '') ? timeBlockStringType1 : timeBlockStringType2
       // Check to see if this line has been processed before, by looking for the processed tag
+      // $FlowFixMe[incompatible-call]
       if (thisPara.content.match(pref_processedTagName)) {
+        // $FlowFixMe[incompatible-type]
         console.log(`\tIgnoring timeblock '${timeBlockString}' as line contains ${pref_processedTagName}`)
       }
       else {
@@ -91,6 +93,7 @@ export async function timeBlocksToCalendar() {
           }
           // Add processedTag (if not empty)
           if (pref_processedTagName !== '') {
+            // $FlowFixMe[incompatible-type]
             thisPara.content += ` ${pref_processedTagName}`
             console.log(`\t-> '${thisPara.content}'`)
           }

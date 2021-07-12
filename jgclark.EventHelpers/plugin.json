@@ -7,7 +7,7 @@
   "plugin.icon": "",
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers",
-  "plugin.version": "0.2.0",
+  "plugin.version": "0.2.1",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -28,9 +28,9 @@
       "jsFunction": "listTodaysEvents"
     },
     {
-      "name": "add matching events",
-      "description": "add matching events to today's note",
-      "jsFunction": "addMatchingEvents"
+      "name": "insert matching events",
+      "description": "insert matching events into today's note",
+      "jsFunction": "insertMatchingTodaysEvents"
     }
   ],
   "plugin.preferences": [

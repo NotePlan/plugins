@@ -1,7 +1,7 @@
 // @flow
 // ------------------------------------------------------------------------------------
 // Command to bring calendar events into notes
-// v0.2.0, 12.7.2021
+// v0.2.1, 13.7.2021
 // @jgclark
 // ------------------------------------------------------------------------------------
 
@@ -13,27 +13,8 @@ import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configura
 
 //------------------------------------------------------------------------------
 // Return MD list of today's events
-export async function listTodaysEvents(): Promise<Array<string>> {
+export async function listTodaysEvents(): Promise<string> {
   // TODO: Work out if there's an issue running this between 11PM and midnight on BST?
-  const eA: Array<TCalendarItem> = await Calendar.eventsToday()
-  const outputArray: Array<string> = []
-  for (const e of eA) {
-    let outputLine = `- ${e.title}`
-    if (!e.isAllDay) {
-      outputLine += ` (${toLocaleShortTime(e.date)})`
-    }
-    outputArray.push(outputLine)
-  }
-  console.log(outputArray.join(''))
-  return outputArray
-}
-
-// Insert list of today's events at cursor positions
-export async function insertListTodaysEvents(): Promise<void> {
-  if (Editor.note == null) {
-    await showMessage('Please run again with a note open.')
-    return
-  }
   // Get config settings from Template folder _configuration note
   const eventsConfig = await getOrMakeConfigurationSection(
     'events',
@@ -43,32 +24,53 @@ export async function insertListTodaysEvents(): Promise<void> {
   if (eventsConfig == null) {
     console.log("\tCouldn't find 'events' settings in _configuration note.")
     await showMessage("Couldn't find 'events' settings in _configuration note.")
-    return
+    return ''
   }
   // console.log("\tFound 'events' settings in _configuration note.")
   // now get setting we need
-  const pref_todaysEventsHeading = (eventsConfig.todaysEventsHeading != null)
+  const pref_todaysEventsHeading: string = (eventsConfig.todaysEventsHeading != null)
+    // $FlowFixMe - mixed and string??
     ? eventsConfig.todaysEventsHeading
     : '### Events today'
-  console.log(pref_todaysEventsHeading)
+  // console.log(pref_todaysEventsHeading)
 
-  // Get list of events happening today
-  const outputArray: Array<string> = await listTodaysEvents()
-
-  await fetch("https://noteplan.co") // TODO: WAIT: remove on next beta!
-
-  outputArray.push((outputArray.length === 0) ? "none\n" : "")
-  outputArray.unshift(pref_todaysEventsHeading)
+  const eA: Array<TCalendarItem> = await Calendar.eventsToday()
+  const outputArray: Array<string> = []
+  for (const e of eA) {
+    let outputLine = `- ${e.title}`
+    if (!e.isAllDay) {
+      outputLine += ` (${toLocaleShortTime(e.date)})`
+    }
+    outputArray.push(outputLine)
+  }
+  if (pref_todaysEventsHeading !== "") {
+    outputArray.unshift(pref_todaysEventsHeading)
+  }
   const output = outputArray.join('\n')
   console.log(output)
+  return output
+}
+
+// Insert list of today's events at cursor positions
+export async function insertListTodaysEvents(): Promise<void> {
+  if (Editor.note == null) {
+    await showMessage('Please run again with a note open.')
+    return
+  }
+
+  // Get list of events happening today
+  let output: string = await listTodaysEvents()
+  await fetch("https://noteplan.co") // TODO: WAIT: remove on next beta!
+  output += ((output.length === 0) ? "\nnone\n" : "\n") 
   Editor.insertTextAtCursor(output)
 }
 
 
-// Add matching events to today's note, from list in keys of pref_addMatchingEvents.
+// Return string list of matching events in today's note, from list in keys of
+// pref_addMatchingEvents. 
 // Prepend any with value of the values in pref_addMatchingEvents.
-export async function addMatchingEvents(): Promise<void> {
-  console.log(`\naddMatchingEvents:`)
+export async function listMatchingTodaysEvents(): Promise<string> {
+  console.log(`\nalistMatchingTodaysEvents:`)
   // Get config settings from Template folder _configuration note
   const eventsConfig = await getOrMakeConfigurationSection(
     'events',
@@ -77,15 +79,16 @@ export async function addMatchingEvents(): Promise<void> {
   // const eventsConfig: any = config?.events ?? null
   if (eventsConfig == null) {
     console.log("\tCouldn't find 'events' settings in _configuration note.")
-    return
+    return ''
   }
   // now get the setting we need
+  // $FlowFixMe -- not sure how to type this pref_
   const pref_addMatchingEvents = eventsConfig.addMatchingEvents ?? null
 
   if (pref_addMatchingEvents == null) {
     console.log("\nError: empty find 'addMatchingEvents' setting in _configuration note.")
     await showMessage(`Warning: Empty 'addMatchingEvents' setting in _configuration note`)
-    return
+    return ''
   }
   // console.log( pref_addMatchingEvents.toString() )
   const textToMatch = Object.keys(pref_addMatchingEvents)
@@ -101,7 +104,7 @@ export async function addMatchingEvents(): Promise<void> {
       const m = textToMatch[i]
       if (e.title.match(m)) {
         // $FlowFixMe -- not sure how to deal with mixed coercing to strings
-        let outputLine = `${textToPrepend[i]} ${e.title}`
+        let outputLine = `${textToPrepend[i]}${e.title}`
         if (!e.isAllDay) {
           outputLine += ` (${toLocaleShortTime(e.date)})`
         }
@@ -109,8 +112,16 @@ export async function addMatchingEvents(): Promise<void> {
       }
     }
   }
-  const output = outputArray.join('\n')
+  const output = outputArray.join("\n")
   console.log(output)
+  return output
+}
+
+// Add matching events to today's note.
+export async function insertMatchingTodaysEvents(): Promise<void> {
+  console.log(`\ninsertMatchingTodaysEvents:`)
+  // Get config settings from Template folder _configuration note
+  const output = await listMatchingTodaysEvents()
   Editor.insertTextAtCursor(output)
 }
 

@@ -185,7 +185,9 @@ export function withinDateRange(
 // console.log(withinDateRange(unhyphenateDate('2021-06-24'), '20210501', '20210531')) // false
 
 // Calculate an offset date, returning ISO datestring
-export function calcOffsetDateStr(oldDateISO: string, interval: string): string {
+export function calcOffsetDateStr(
+  oldDateISO: string,
+  interval: string): string {
   // Calculate an offset date, assuming:
   // - oldDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type
   // - interval is string of form nn[bdwmq], and could be negative
