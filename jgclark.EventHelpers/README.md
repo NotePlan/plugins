@@ -36,6 +36,9 @@ I would like to add a command that works the other way: taking events in the cal
 
 ## History
 
+### v0.2.2, 13.7.2021
+- fix: time block parse error (tip off by @nikolaus)
+
 ### v0.2.1, 13.7.2021
 - refactor to allow to be called from Daily Note Template as either:
   -  `{{listTodaysEvents()}}` or

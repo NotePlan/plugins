@@ -14,6 +14,9 @@
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 import {
   // printDateRange,
+  todaysDateISOString,
+  isoDateStringFromCalendarFilename,
+  RE_DATE,
   displayTitle,
 } from '../../helperFunctions'
 
@@ -62,15 +65,22 @@ export async function timeBlocksToCalendar() {
     (p) => (p.content.match(RE_TIMEBLOCK_TYPE1) || (p.content.match(RE_TIMEBLOCK_TYPE2))))
   if (timeblockParas.length > 0) {
     console.log(`  found ${timeblockParas.length} in '${noteTitle}'`)
+    // Work out our current date context (as YYYY-MM-DD):
+    // - if a calendar note -> date of note
+    // - if a project note -> today's date
+    // NB: But these are ignored if there's an actual date in the time block
+    const dateContext = (note.type === "Calendar")
+      ? isoDateStringFromCalendarFilename(note.filename)
+      : todaysDateISOString
 
-    // Iterate over timeblocks 
+    // Iterate over timeblocks
     for (let i = 0; i < timeblockParas.length; i++) {
       const thisPara = timeblockParas[i]
       let tempArray = thisPara.content?.match(RE_TIMEBLOCK_TYPE1) ?? ['']
       const timeBlockStringType1 = tempArray[0]
       tempArray = thisPara.content?.match(RE_TIMEBLOCK_TYPE2) ?? ['']
       const timeBlockStringType2 = tempArray[0]
-      const timeBlockString = (timeBlockStringType1 !== '') ? timeBlockStringType1 : timeBlockStringType2
+      let timeBlockString = (timeBlockStringType1 !== '') ? timeBlockStringType1 : timeBlockStringType2
       // Check to see if this line has been processed before, by looking for the processed tag
       // $FlowFixMe[incompatible-call]
       if (thisPara.content.match(pref_processedTagName)) {
@@ -80,6 +90,12 @@ export async function timeBlocksToCalendar() {
       else {
         console.log(`\tFound timeblock '${timeBlockString}'`)
         
+        // Now add dateContext if there isn't one set already
+        const origTimeBlockString = timeBlockString
+        if (!timeBlockString.match(RE_DATE)) {
+          console.log(`\tNo date in time block so will add current dateContext (${dateContext})`)
+          timeBlockString = `${dateContext} ${timeBlockString}`
+        }
         // NB: parseDateText returns an array, so we'll use the first one as most likely
         const timeblockDateRange = Calendar.parseDateText(timeBlockString)[0]
         if (timeblockDateRange != null) {
@@ -89,7 +105,7 @@ export async function timeBlocksToCalendar() {
 
           // Remove time block string (if wanted)
           if (pref_removeTimeBlocksWhenProcessed) {
-            thisPara.content = thisPara.content.replace(timeBlockString, '')
+            thisPara.content = thisPara.content.replace(origTimeBlockString, '')
           }
           // Add processedTag (if not empty)
           if (pref_processedTagName !== '') {
