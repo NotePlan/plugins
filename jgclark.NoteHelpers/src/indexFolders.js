@@ -17,7 +17,7 @@ import {
 function getFolderFromFilename(fullFilename: string): string {
   const filenameParts = fullFilename.split('/')
   // console.log(filenameParts)
-  return filenameParts.slice(0, (filenameParts.length - 1)).join('/')
+  return filenameParts.slice(0, filenameParts.length - 1).join('/')
 }
 // Tests for gFFF function above
 // console.log(`gFFF('one/two/three/four.txt') -> ${getFolderFromFilename('one/two/three/four.txt')}`)
@@ -27,7 +27,7 @@ function getFolderFromFilename(fullFilename: string): string {
 
 // Return (project) note title as a [[link]]
 function titleAsLink(note: TNote): string {
-  return (note.title !== undefined) ? `[[${note.title ?? ''}]]` : '(error)'
+  return note.title !== undefined ? `[[${note.title ?? ''}]]` : '(error)'
 }
 
 // Return list of notes in a folder with a particular hashtag
@@ -54,19 +54,22 @@ function notesInFolderSortedByName(folder: string): Array<TNote> {
 // Returns an array of strings, one for each output line.
 function makeFolderIndex(
   folder: string,
-  includeSubfolders: boolean):
-  Array<string> {
-  console.log(`\nmakeFolderIndex for '${folder}' (${includeSubfolders ? 'with' : 'without'} subfolders)`)
+  includeSubfolders: boolean,
+): Array<string> {
+  console.log(
+    `\nmakeFolderIndex for '${folder}' (${
+      includeSubfolders ? 'with' : 'without'
+    } subfolders)`,
+  )
 
   let noteCount = 0
   const outputArray: Array<string> = []
   let folderList: Array<string> = []
   // if we want a to include any subfolders, create list of folders
   if (includeSubfolders) {
-    folderList = DataStore.folders.
-      filter((f) => f.startsWith(folder))
+    folderList = DataStore.folders.filter((f) => f.startsWith(folder))
   } else {
-  // otherwise use a single folder
+    // otherwise use a single folder
     folderList = [folder]
   }
   console.log(`\tFound ${folderList.length} matching folder(s)`)
@@ -78,8 +81,10 @@ function makeFolderIndex(
     if (notes.length > 0) {
       // If this is a sub-folder level, then prefix with ### for a 3rd level heading,
       // otherwise leave blank, as a suitable header gets added elsewhere.
-      outputArray.push( (noteCount>0) ? `### ${f} Index` : `${f} Index`)
-      outputArray.push(`(${notes.length} notes, last updated: ${nowShortDateTime})`)
+      outputArray.push(noteCount > 0 ? `### ${f} Index` : `${f} Index`)
+      outputArray.push(
+        `(${notes.length} notes, last updated: ${nowShortDateTime})`,
+      )
       // iterate over this folder's notes
       for (const note of notes) {
         outputArray.push(titleAsLink(note))
@@ -89,7 +94,7 @@ function makeFolderIndex(
     }
   }
 
-  return outputArray 
+  return outputArray
 }
 
 //----------------------------------------------------------------
@@ -108,7 +113,9 @@ export async function indexFolders(): Promise<void> {
   let outputArray: Array<string> = []
 
   if (fullFilename === undefined) {
-    console.log(`  Info: No current filename (and therefore folder) found, so will ask instead.`)
+    console.log(
+      `  Info: No current filename (and therefore folder) found, so will ask instead.`,
+    )
     thisFolder = await chooseFolder(`Please pick folder to index`)
   } else {
     thisFolder = getFolderFromFilename(fullFilename)
@@ -156,7 +163,6 @@ export async function indexFolders(): Promise<void> {
   console.log(`  -> ${outString}`)
 
   if (option.endsWith('index')) {
-
     // write out to index file(s)
     let outputFilename = `${thisFolder}/_index.${defaultFileExt}`
     // see if we already have an _index file in this folder
@@ -164,27 +170,24 @@ export async function indexFolders(): Promise<void> {
 
     if (outputNote == null) {
       // make a new note for this
-      outputFilename = await DataStore.newNote(
-        '_index',
-        thisFolder,
-      )
+      outputFilename = await DataStore.newNote('_index', thisFolder)
       console.log(`\tnewNote filename: ${String(outputFilename)}`)
       // outputFilename = `${pref_folderToStore}/${String(outputFilename)}` ?? '(error)'
       // NB: filename here = folder + filename
+      if (outputFilename == null) {
+        return
+      }
       outputNote = await DataStore.projectNoteByFilename(outputFilename)
       console.log(`\twriting results to the new note '${outputFilename}'`)
     }
 
     if (outputNote != null) {
       outputNote.content = `# ${outString}` // overwrite what was there before
-
     } else {
-      console.log("error after newNote(): no valid note to write to")
+      console.log('error after newNote(): no valid note to write to')
       return
     }
-
   } else if (option.endsWith('current')) {
-
     // write out to the current file
     Editor.insertTextAtCursor(`${outString}`)
   }

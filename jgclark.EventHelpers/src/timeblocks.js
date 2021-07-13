@@ -6,7 +6,7 @@
 //
 // See https://help.noteplan.co/article/52-part-2-tasks-events-and-reminders#timeblocking
 // for definition of time blocks. In summary:
-//  "It is essential to use the keyword at or write the time with colons (HH:mm). 
+//  "It is essential to use the keyword at or write the time with colons (HH:mm).
 //   You can also use the 24h format like 15:00 without am / pm.
 //   And, you don't have to define an end time."
 // ------------------------------------------------------------------------------------
@@ -52,26 +52,33 @@ export async function timeBlocksToCalendar() {
 
   console.log("\tFound 'events' settings in _configuration note.")
   // now get each setting we need
-  const pref_processedTagName = eventsConfig.processedTagName != null
-    ? eventsConfig.processedTagName
-    : '#event_created'
+  const pref_processedTagName: string =
+    eventsConfig.processedTagName != null &&
+    typeof eventsConfig.processedTagName === 'string'
+      ? eventsConfig.processedTagName
+      : '#event_created'
   const pref_removeTimeBlocksWhenProcessed =
-    (eventsConfig.removeTimeBlocksWhenProcessed != null)
-    ? eventsConfig.removeTimeBlocksWhenProcessed
-    : true
+    eventsConfig.removeTimeBlocksWhenProcessed != null
+      ? eventsConfig.removeTimeBlocksWhenProcessed
+      : true
 
   // Look through open note to find time blocks
   const timeblockParas = paragraphs.filter(
-    (p) => (p.content.match(RE_TIMEBLOCK_TYPE1) || (p.content.match(RE_TIMEBLOCK_TYPE2))))
+    (p) =>
+      p.content.match(RE_TIMEBLOCK_TYPE1) ||
+      p.content.match(RE_TIMEBLOCK_TYPE2),
+  )
   if (timeblockParas.length > 0) {
     console.log(`  found ${timeblockParas.length} in '${noteTitle}'`)
     // Work out our current date context (as YYYY-MM-DD):
     // - if a calendar note -> date of note
     // - if a project note -> today's date
     // NB: But these are ignored if there's an actual date in the time block
-    const dateContext = (note.type === "Calendar")
-      ? isoDateStringFromCalendarFilename(note.filename)
-      : todaysDateISOString
+    const dateContext =
+      note.type === 'Calendar'
+        ? isoDateStringFromCalendarFilename(note.filename) ??
+          todaysDateISOString
+        : todaysDateISOString
 
     // Iterate over timeblocks
     for (let i = 0; i < timeblockParas.length; i++) {
@@ -80,27 +87,35 @@ export async function timeBlocksToCalendar() {
       const timeBlockStringType1 = tempArray[0]
       tempArray = thisPara.content?.match(RE_TIMEBLOCK_TYPE2) ?? ['']
       const timeBlockStringType2 = tempArray[0]
-      let timeBlockString = (timeBlockStringType1 !== '') ? timeBlockStringType1 : timeBlockStringType2
+      let timeBlockString =
+        timeBlockStringType1 !== ''
+          ? timeBlockStringType1
+          : timeBlockStringType2
       // Check to see if this line has been processed before, by looking for the processed tag
       // $FlowFixMe[incompatible-call]
       if (thisPara.content.match(pref_processedTagName)) {
         // $FlowFixMe[incompatible-type]
-        console.log(`\tIgnoring timeblock '${timeBlockString}' as line contains ${pref_processedTagName}`)
-      }
-      else {
+        console.log(
+          `\tIgnoring timeblock '${timeBlockString}' as line contains ${pref_processedTagName}`,
+        )
+      } else {
         console.log(`\tFound timeblock '${timeBlockString}'`)
-        
+
         // Now add dateContext if there isn't one set already
         const origTimeBlockString = timeBlockString
         if (!timeBlockString.match(RE_DATE)) {
-          console.log(`\tNo date in time block so will add current dateContext (${dateContext})`)
+          console.log(
+            `\tNo date in time block so will add current dateContext (${dateContext})`,
+          )
           timeBlockString = `${dateContext} ${timeBlockString}`
         }
         // NB: parseDateText returns an array, so we'll use the first one as most likely
         const timeblockDateRange = Calendar.parseDateText(timeBlockString)[0]
         if (timeblockDateRange != null) {
           const title = thisPara.content.replace(timeBlockString, '')
-          console.log(`\tWill process time block '${timeBlockString}' for '${title}'`)
+          console.log(
+            `\tWill process time block '${timeBlockString}' for '${title}'`,
+          )
           createEventFromDateRange(title, timeblockDateRange)
 
           // Remove time block string (if wanted)

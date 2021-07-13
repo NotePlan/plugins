@@ -61,10 +61,11 @@ function noteStatus(note: TNote): string {
 function calcNextReviewDate(lastReviewDate: Date, interval: string): Date {
   // RUBY:
   // @next_review_date = !@last_review_date.nil? ? calc_offset_date(@last_review_date, @review_interval) : TODAYS_DATE
-  
-  let reviewDate: Date = (lastReviewDate != null)
-    ? calcOffsetDate(toISODateString(lastReviewDate), interval) 
-    : new Date()  // today's date
+
+  let reviewDate: Date =
+    lastReviewDate != null
+      ? calcOffsetDate(toISODateString(lastReviewDate), interval)
+      : new Date() // today's date
   return reviewDate
 }
 
@@ -73,10 +74,13 @@ const RE_MENTION_STRING_CAPTURE = '\\((.*?)\\)' // capture string inside paranth
 
 // From an array of mentions, return the first string that matches the
 // starting string
-function getMentionFromList(mentionList: $ReadOnlyArray<string>, mention: string): string {
+function getMentionFromList(
+  mentionList: $ReadOnlyArray<string>,
+  mention: string,
+): string {
   console.log(`getMentionFromList for: ${mention}`)
   const res = mentionList.filter((m) => m.startsWith(`${mention}(`))
-  return (res.length > 0) ? res[0] : ''
+  return res.length > 0 ? res[0] : ''
 }
 
 // Turn e.g. @due(2021-03-04) into a JS Date
@@ -86,9 +90,11 @@ function getDateFromMention(mention: string): ?Date {
   const res = mention.match(RE_MENTION_DATE_CAPTURE) ?? []
   if (res[1].length > 0) {
     // NB: Strings are correct, but FIXME: date construction isn't
-    const date = new Date(Number(res[1].slice(0, 4)),
+    const date = new Date(
+      Number(res[1].slice(0, 4)),
       Number(res[1].slice(5, 7)),
-      Number(res[1].slice(8, 10)))
+      Number(res[1].slice(8, 10)),
+    )
     console.log(toISOShortDateTimeString(date))
     return date
   } else {
@@ -137,7 +143,7 @@ class Project {
     // @metadata_line.scan(/(@completed|@finished)\(#{RE_DATES_FLEX_MATCH}\)/) { |m| @completed_date = Date.parse(m.join) }
     // @metadata_line.scan(/@reviewed\(#{RE_DATES_FLEX_MATCH}\)/) { |m| @last_review_date = Date.parse(m.join) }
     // @metadata_line.scan(/#{RE_REVIEW_WITH_INTERVALS_MATCH}/) { |m| @review_interval = m.join.downcase }
-    
+
     // # make completed if @completed_date set
     // @is_completed = true unless @completed_date.nil?
     // # make cancelled if #cancelled or #someday flag set
@@ -151,28 +157,39 @@ class Project {
     // @is_active = true if (@metadata_line =~ /#active/ || !@review_interval.nil?) && !@is_cancelled && !@is_completed
 
     const mentions: $ReadOnlyArray<string> = note.mentions
-    this.dueDate = getDateFromMention( getMentionFromList(mentions, "@due") )
-    this.reviewedDate = getDateFromMention( getMentionFromList(mentions, "@reviewed") )
-    this.reviewInterval = getStringFromMention( getMentionFromList(mentions, "@review") )
-    this.nextReviewDate = (this.reviewedDate != null && this.reviewInterval != null)
-      ? calcNextReviewDate(this.reviewedDate, this.reviewInterval)
-      : null
-    this.completedDate = getDateFromMention( getMentionFromList(mentions, "@completed") )
+    this.dueDate = getDateFromMention(getMentionFromList(mentions, '@due'))
+    this.reviewedDate = getDateFromMention(
+      getMentionFromList(mentions, '@reviewed'),
+    )
+    this.reviewInterval = getStringFromMention(
+      getMentionFromList(mentions, '@review'),
+    )
+    this.nextReviewDate =
+      this.reviewedDate != null && this.reviewInterval != null
+        ? calcNextReviewDate(this.reviewedDate, this.reviewInterval)
+        : null
+    this.completedDate = getDateFromMention(
+      getMentionFromList(mentions, '@completed'),
+    )
     this.openTasks = 0 // TODO:
     this.completedTasks = 0 // TODO:
     this.waitingTasks = 0 // TODO:
   }
 
   timeUntilDue(): string {
+    // ensure this.dueDate is not null before passing to function
     const diffDays = Calendar.unitsBetween(new Date(), this.dueDate, 'day')
-    let diffStr = `${diffDays}d`
-    return diffStr
+    return `${diffDays}d`
   }
 
   timeUntilReview(): string {
-    const diffDays = Calendar.unitsBetween(new Date(), this.nextReviewDate, 'day')
-    let diffStr = `${diffDays}d`
-    return diffStr
+    // ensure this.nextReviewDate is not null before passing to function
+    const diffDays = Calendar.unitsBetween(
+      new Date(),
+      this.nextReviewDate,
+      'day',
+    )
+    return `${diffDays}d`
   }
 
   basicSummaryLine(): string {

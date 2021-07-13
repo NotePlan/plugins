@@ -5,10 +5,7 @@
 // @jgclark
 // ------------------------------------------------------------------------------------
 
-import {
-  showMessage,
-  toLocaleShortTime
-} from '../../helperFunctions'
+import { showMessage, toLocaleShortTime } from '../../helperFunctions'
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 
 //------------------------------------------------------------------------------
@@ -28,10 +25,11 @@ export async function listTodaysEvents(): Promise<string> {
   }
   // console.log("\tFound 'events' settings in _configuration note.")
   // now get setting we need
-  const pref_todaysEventsHeading: string = (eventsConfig.todaysEventsHeading != null)
-    // $FlowFixMe - mixed and string??
-    ? eventsConfig.todaysEventsHeading
-    : '### Events today'
+  const pref_todaysEventsHeading: string =
+    eventsConfig.todaysEventsHeading != null &&
+    typeof eventsConfig.todaysEventsHeading === 'string'
+      ? eventsConfig.todaysEventsHeading
+      : '### Events today'
   // console.log(pref_todaysEventsHeading)
 
   const eA: Array<TCalendarItem> = await Calendar.eventsToday()
@@ -43,7 +41,7 @@ export async function listTodaysEvents(): Promise<string> {
     }
     outputArray.push(outputLine)
   }
-  if (pref_todaysEventsHeading !== "") {
+  if (pref_todaysEventsHeading !== '') {
     outputArray.unshift(pref_todaysEventsHeading)
   }
   const output = outputArray.join('\n')
@@ -60,14 +58,13 @@ export async function insertListTodaysEvents(): Promise<void> {
 
   // Get list of events happening today
   let output: string = await listTodaysEvents()
-  await fetch("https://noteplan.co") // TODO: WAIT: remove on next beta!
-  output += ((output.length === 0) ? "\nnone\n" : "\n") 
+  await fetch('https://noteplan.co') // TODO: WAIT: remove on next beta!
+  output += output.length === 0 ? '\nnone\n' : '\n'
   Editor.insertTextAtCursor(output)
 }
 
-
 // Return string list of matching events in today's note, from list in keys of
-// pref_addMatchingEvents. 
+// pref_addMatchingEvents.
 // Prepend any with value of the values in pref_addMatchingEvents.
 export async function listMatchingTodaysEvents(): Promise<string> {
   console.log(`\nalistMatchingTodaysEvents:`)
@@ -82,21 +79,28 @@ export async function listMatchingTodaysEvents(): Promise<string> {
     return ''
   }
   // now get the setting we need
-  // $FlowFixMe -- not sure how to type this pref_
-  const pref_addMatchingEvents = eventsConfig.addMatchingEvents ?? null
+
+  const pref_addMatchingEvents: ?{ [string]: mixed } =
+    (eventsConfig.addMatchingEvents: $FlowFixMe) ?? null
 
   if (pref_addMatchingEvents == null) {
-    console.log("\nError: empty find 'addMatchingEvents' setting in _configuration note.")
-    await showMessage(`Warning: Empty 'addMatchingEvents' setting in _configuration note`)
+    console.log(
+      "\nError: empty find 'addMatchingEvents' setting in _configuration note.",
+    )
+    await showMessage(
+      `Warning: Empty 'addMatchingEvents' setting in _configuration note`,
+    )
     return ''
   }
-  // console.log( pref_addMatchingEvents.toString() )
+
   const textToMatch = Object.keys(pref_addMatchingEvents)
   const textToPrepend = Object.values(pref_addMatchingEvents)
-  console.log(`\tFrom settings found ${textToMatch.length} match strings to look for`)
+  console.log(
+    `\tFrom settings found ${textToMatch.length} match strings to look for`,
+  )
   const eA: Array<TCalendarItem> = await Calendar.eventsToday()
-  
-  await fetch("https://noteplan.co") // TODO: WAIT: remove on next beta!
+
+  await fetch('https://noteplan.co') // TODO: WAIT: remove on next beta!
 
   const outputArray: Array<string> = []
   for (const e of eA) {
@@ -112,7 +116,7 @@ export async function listMatchingTodaysEvents(): Promise<string> {
       }
     }
   }
-  const output = outputArray.join("\n")
+  const output = outputArray.join('\n')
   console.log(output)
   return output
 }

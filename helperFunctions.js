@@ -111,7 +111,9 @@ export function toLocaleShortTime(dateObj: Date): string {
 
 export function printDateRange(dr: DateRange) {
   console.log(
-    `DateRange <${toISOShortDateTimeString(dr.start)} - ${toISOShortDateTimeString(dr.end)}>`,
+    `DateRange <${toISOShortDateTimeString(
+      dr.start,
+    )} - ${toISOShortDateTimeString(dr.end)}>`,
   )
 }
 
@@ -187,7 +189,8 @@ export function withinDateRange(
 // Calculate an offset date, returning ISO datestring
 export function calcOffsetDateStr(
   oldDateISO: string,
-  interval: string): string {
+  interval: string,
+): string {
   // Calculate an offset date, assuming:
   // - oldDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type
   // - interval is string of form nn[bdwmq], and could be negative
@@ -200,12 +203,12 @@ export function calcOffsetDateStr(
 }
 
 // Calculate an offset date, returning Date object
-export function calcOffsetDate(oldDateISO: string, interval:string): Date {
+export function calcOffsetDate(oldDateISO: string, interval: string): Date {
   // Calculate an offset date, assuming:
   // - oldDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type
   // - interval is string of form nn[bdwmq], and could be negative
   // - where 'b' is weekday (i.e. Monday - Friday in English)
-  // Return new date as a JS Date 
+  // Return new date as a JS Date
   // v2 method, using built-in NotePlan function 'Calendar.addUnitToDate(date, type, num)'
 
   const oldDate = new Date(oldDateISO)
@@ -224,9 +227,9 @@ export function calcOffsetDate(oldDateISO: string, interval:string): Date {
       const currentDayOfWeek = oldDate.getUTCDay() // = day of week with Sunday = 0, ..Saturday = 6
       let dayOfWeek
       if (num < 0) {
-        dayOfWeek = (currentDayOfWeek - 12) % (7)
+        dayOfWeek = (currentDayOfWeek - 12) % 7
       } else {
-        dayOfWeek = (currentDayOfWeek + 6) % (7) // % = modulo operator in JSON
+        dayOfWeek = (currentDayOfWeek + 6) % 7 // % = modulo operator in JSON
       }
       if (dayOfWeek === 6) {
         num--
@@ -259,13 +262,14 @@ export function calcOffsetDate(oldDateISO: string, interval:string): Date {
       break
   }
 
-  const newDate = (daysToAdd > 0)
-    ? Calendar.addUnitToDate(oldDate, 'day', daysToAdd)
-    : (monthsToAdd > 0)
+  const newDate =
+    daysToAdd > 0
+      ? Calendar.addUnitToDate(oldDate, 'day', daysToAdd)
+      : monthsToAdd > 0
       ? Calendar.addUnitToDate(oldDate, 'month', monthsToAdd)
-      : (yearsToAdd > 0)
-        ? Calendar.addUnitToDate(oldDate, 'year', yearsToAdd)
-        : oldDate // if nothing else, leave date the same
+      : yearsToAdd > 0
+      ? Calendar.addUnitToDate(oldDate, 'year', yearsToAdd)
+      : oldDate // if nothing else, leave date the same
 
   return newDate
 }
@@ -274,9 +278,7 @@ export function calcOffsetDate(oldDateISO: string, interval:string): Date {
 // Misc functions for NP
 
 export const defaultFileExt: string =
-  (DataStore.defaultFileExtension != null)
-  ? DataStore.defaultFileExtension
-  : "md"
+  DataStore.defaultFileExtension != null ? DataStore.defaultFileExtension : 'md'
 
 // Pretty print range information (@EduardMe)
 export function rangeToString(r: Range): string {
@@ -359,9 +361,10 @@ export function printNote(note: TNote) {
   } else {
     console.log(
       `filename: ${note.filename ?? ''}\n\tcreated: ${
-        String(note.createdDate) ?? ''}\n\tchanged: ${
-      String(note.changedDate) ?? ''}\n\thashtags: ${note.hashtags?.join(',') ?? ''}\n\tmentions: ${
-        note.mentions?.join(',') ?? ''}`,
+        String(note.createdDate) ?? ''
+      }\n\tchanged: ${String(note.changedDate) ?? ''}\n\thashtags: ${
+        note.hashtags?.join(',') ?? ''
+      }\n\tmentions: ${note.mentions?.join(',') ?? ''}`,
     )
   }
 }
@@ -418,7 +421,9 @@ export async function chooseFolder(msg: string): Promise<string> {
         for (let i = 0; i < folderParts.length - 1; i++) {
           folderParts[i] = '     '
         }
-        folderParts[folderParts.length - 1] = `📁 ${folderParts[folderParts.length - 1]}`
+        folderParts[folderParts.length - 1] = `📁 ${
+          folderParts[folderParts.length - 1]
+        }`
         const folderLabel = folderParts.join('')
         console.log(folderLabel)
         folderOptionList.push({ label: folderLabel, value: f })
@@ -486,4 +491,13 @@ export function parasToText(paras: Array<TParagraph>): string {
   }
   const parasAsText = text.trimEnd() // remove extra newline not wanted after last line
   return parasAsText
+}
+
+export function isoDateStringFromCalendarFilename(filename: string): ?string {
+  if (!/[0-9]{8}/.test(filename)) {
+    return null
+  }
+  return new Date(
+    `${filename.slice(0, 4)}-${filename.slice(4, 6)}-${filename.slice(6)}`,
+  ).toISOString()
 }

@@ -32,21 +32,39 @@ export async function getWeatherSummary(
     'weather',
     DEFAULT_WEATHER_CONFIG,
   )
-  
+
   // Get config settings from Template folder _configuration note
   // $FlowIgnore[incompatible-use]
   // const weatherConfig: any = config2.weather ?? null
   console.log(JSON.stringify(weatherConfig))
   if (weatherConfig == null) {
-    console.log("Cannot find 'weather' settings in Templates/_configuration note.")
+    console.log(
+      "Cannot find 'weather' settings in Templates/_configuration note.",
+    )
     return "Error: Cannot find 'weather' settings in Templates/_configuration note."
   }
-  const pref_openWeatherAPIKey = weatherConfig.openWeatherAPIKey
-  const pref_latPosition = weatherConfig.latPosition
-  const pref_longPosition = weatherConfig.longPosition
-  const pref_openWeatherUnits = weatherConfig.openWeatherUnits
 
-  const getWeatherURL = `https://api.openweathermap.org/data/2.5/onecall?lat=${pref_latPosition}&lon=${pref_longPosition}&exclude=current,hourly,minutely&units=${pref_openWeatherUnits}&appid=${pref_openWeatherAPIKey}`
+  const { openWeatherAPIKey, latPosition, longPosition, openWeatherUnits } =
+    weatherConfig
+
+  if (
+    openWeatherAPIKey == null ||
+    typeof openWeatherAPIKey !== 'string' ||
+    latPosition == null ||
+    typeof latPosition !== 'string' ||
+    longPosition == null ||
+    typeof longPosition !== 'string' ||
+    openWeatherUnits == null ||
+    typeof openWeatherUnits !== 'string'
+  ) {
+    return `Invalid configuration provided`
+  }
+
+  const getWeatherURL = `https://api.openweathermap.org/data/2.5/onecall?lat=${encodeURIComponent(
+    latPosition,
+  )}&lon=${longPosition}&exclude=current,hourly,minutely&units=${encodeURIComponent(
+    openWeatherUnits,
+  )}&appid=${encodeURIComponent(openWeatherAPIKey)}`
 
   // ** The following is the more correct way, but doesn't work.
   //    So have to use a way that Flow doesn't like.
@@ -69,8 +87,10 @@ export async function getWeatherSummary(
   try {
     jsonIn = await fetch(getWeatherURL)
     // console.log(`  HTTP response ${jsonIn.status}`) //  .status always returns 'undefined', even when it works?!
-  } catch(err) {
-    console.log(`Error ${err.message} parsing Weather data lookup. Please check your _configuration note.`)
+  } catch (err) {
+    console.log(
+      `Error ${err.message} parsing Weather data lookup. Please check your _configuration note.`,
+    )
     return `Error ${err.message} parsing Weather data lookup. Please check your _configuration note.`
   }
   if (jsonIn != null) {
@@ -78,7 +98,9 @@ export async function getWeatherSummary(
       // $FlowIgnore[incompatible-call]
       weatherTodayAll = JSON.parse(jsonIn)?.daily['0']
     } catch (err) {
-      console.log(`Error ${err.message} parsing Weather data lookup. Please check your _configuration note.`)
+      console.log(
+        `Error ${err.message} parsing Weather data lookup. Please check your _configuration note.`,
+      )
       return `Error ${err.message} parsing Weather data lookup. Please check your _configuration note.`
     }
     // const weatherTodayAll = jsonIn.daily['0']
@@ -111,10 +133,9 @@ export async function getWeatherSummary(
     return summaryLine
   } else {
     // $FlowFixMe[incompatible-type]
-    return `Problem in Weather data lookup for ${pref_latPosition}/${pref_longPosition}. Please check your _configuration note.`
+    return `Problem in Weather data lookup for ${latPosition}/${longPosition}. Please check your _configuration note.`
   }
 }
-
 
 const DEFAULT_WEATHER_CONFIG = `
   // configuration for weather data (used in Daily Note Template, for example)
