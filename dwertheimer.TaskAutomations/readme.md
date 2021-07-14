@@ -26,5 +26,6 @@ Note: At this time, the plugin will ignore headings that are attached to the tas
 - (optionally) Leave tasks with dates in place until they are overdue? [use getOverdueTasks()]
 ## History
 
+0.0.4 Added /mat command to reset completed tasks (or to set all open as complete), per request from @JaredOS
 0.0.3 Adding 	"macOS.minVersion": "10.15.7"
-0.0.2 Initial version
+0.0.2 Initial /ts version
