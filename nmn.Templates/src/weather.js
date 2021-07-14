@@ -34,9 +34,8 @@ export async function getWeatherSummary(
   )
 
   // Get config settings from Template folder _configuration note
-  // $FlowIgnore[incompatible-use]
-  // const weatherConfig: any = config2.weather ?? null
-  console.log(JSON.stringify(weatherConfig))
+  // $FlowIgnore[incompatible-type]
+  console.log(`\tSettings are ${JSON.stringify(weatherConfig)}`)
   if (weatherConfig == null) {
     console.log(
       "Cannot find 'weather' settings in Templates/_configuration note.",
@@ -51,9 +50,9 @@ export async function getWeatherSummary(
     openWeatherAPIKey == null ||
     typeof openWeatherAPIKey !== 'string' ||
     latPosition == null ||
-    typeof latPosition !== 'string' ||
+    typeof latPosition !== 'number' ||
     longPosition == null ||
-    typeof longPosition !== 'string' ||
+    typeof longPosition !== 'number' ||
     openWeatherUnits == null ||
     typeof openWeatherUnits !== 'string'
   ) {
@@ -81,7 +80,7 @@ export async function getWeatherSummary(
   //   return `Sorry; error ${response.status} in Weather lookup`
   // }
 
-  console.log(getWeatherURL)
+  // console.log(getWeatherURL)
   let jsonIn
   let weatherTodayAll
   try {
