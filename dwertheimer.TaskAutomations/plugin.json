@@ -5,7 +5,7 @@
   "plugin.name": "✅ Task Automations", 
   "plugin.description": "Functions for handling Tasks", 
   "plugin.author": "David Wertheimer",
-  "plugin.version": "0.0.3", 
+  "plugin.version": "0.0.4", 
   "plugin.dependencies": [ ], 
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/dwertheimer/Noteplan-plugins/blob/main/dwertheimer.TaskAutomations/readme.md",
@@ -14,5 +14,11 @@
       "name": "ts", 
       "description": "Sort tasks on the page (e.g. after a sweep)", 
       "jsFunction": "sortTasks",
-    },  ]
+    },  
+    {
+      "name": "mat", 
+      "description": "Mark All Tasks (choose open or complete)", 
+      "jsFunction": "markTasks",
+    },  
+  ]
 } 
