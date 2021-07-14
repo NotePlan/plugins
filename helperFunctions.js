@@ -138,6 +138,10 @@ export function dateStringFromCalendarFilename(filename: string): string {
   return filename.slice(0, 8)
 }
 
+export function isoDateStringFromCalendarFilename(filename: string): string {
+  return `${filename.slice(0, 4)}-${filename.slice(4, 6)}-${filename.slice(6, 8)}`
+}
+
 export const months = [
   'January',
   'February',
@@ -273,6 +277,78 @@ export function calcOffsetDate(oldDateISO: string, interval: string): Date {
 
   return newDate
 }
+
+/**
+ * Return rough relative string version of difference between date and today.
+ * Don't return all the detail, but just the most significant unit (year, month, week, day)
+ * If date is in the past then adds 'ago'.
+ * @param {number} diffIn - number of days difference (positive or negative)
+ * @return {string} - relative date string (e.g. today, 3w ago, 2m, 4y ago.)
+ */
+export function relativeDateFromNumber(diffIn: number): string {
+  let output = ''
+  let diff = diffIn
+  let isPast = false
+  // console.log(`original diff = ${diff}`)
+  if (diff < 0) {
+    diff = Math.abs(diff)
+    isPast = true
+  }
+  if (diff === 1) {
+    output = `${diff} day`
+  } else if (diff < 9) {
+    output = `${diff} days`
+  } else if (diff < 12) {
+    output = `${Math.round(diff / 7.0)} wk`
+  } else if (diff < 29) {
+    output = `${Math.round(diff / 7.0)} wks`
+  } else if (diff < 550) {
+    output = `${Math.round(diff / 30.4)} mon`
+  } else {
+    output = `${Math.round(diff / 365.0)} yrs`
+  }
+  if (diff === 0) {
+    output = `today`
+  } else if (isPast) {
+    output += ` ago`
+  } else {
+    output = `in ${output}`
+  }
+  // console.log(`--> ${output}`)
+  return output
+}
+
+/**
+ * Return rough relative string version of difference between date and today.
+ * Don't return all the detail, but just the most significant unit (year, month, week, day)
+ * If date is in the past then adds 'ago'.
+ * @param {Date} date - calculate difference between this date and today
+ * @return {string} - relative date string (e.g. today, 3w ago, 2m, 4y ago.)
+ */
+export function relativeDateFromDate(date: Date): string {
+  // Wrapper to relativeDateFromNumber(), accepting JS date instead of number
+  const diff = Calendar.unitsBetween(date, new Date(), 'day')
+  return relativeDateFromNumber(diff)
+}
+// Code to test above functions
+// console.log(`\ntesting relativeDate`)
+// console.log(`-14 -> ${relativeDateFromNumber(-14)}`)
+// console.log(`-7 -> ${relativeDateFromNumber(-7)}`)
+// console.log(`-2 -> ${relativeDateFromNumber(-2)}`)
+// console.log(`-1 -> ${relativeDateFromNumber(-1)}`)
+// console.log(`0 -> ${relativeDateFromNumber(0)}`)
+// console.log(`1 -> ${relativeDateFromNumber(1)}`)
+// console.log(`2 -> ${relativeDateFromNumber(2)}`)
+// console.log(`7 -> ${relativeDateFromNumber(7)}`)
+// console.log(`14 -> ${relativeDateFromNumber(14)}`)
+// console.log(`29 -> ${relativeDateFromNumber(29)}`)
+// console.log(`30 -> ${relativeDateFromNumber(30)}`)
+// console.log(`31 -> ${relativeDateFromNumber(31)}`)
+// console.log(`123 -> ${relativeDateFromNumber(123)}`)
+// console.log(`264 -> ${relativeDateFromNumber(264)}`)
+// console.log(`364 -> ${relativeDateFromNumber(364)}`)
+// console.log(`365 -> ${relativeDateFromNumber(365)}`)
+// console.log(`366 -> ${relativeDateFromNumber(366)}`)
 
 //-------------------------------------------------------------------------------
 // Misc functions for NP
@@ -491,13 +567,4 @@ export function parasToText(paras: Array<TParagraph>): string {
   }
   const parasAsText = text.trimEnd() // remove extra newline not wanted after last line
   return parasAsText
-}
-
-export function isoDateStringFromCalendarFilename(filename: string): ?string {
-  if (!/[0-9]{8}/.test(filename)) {
-    return null
-  }
-  return new Date(
-    `${filename.slice(0, 4)}-${filename.slice(4, 6)}-${filename.slice(6)}`,
-  ).toISOString()
 }
