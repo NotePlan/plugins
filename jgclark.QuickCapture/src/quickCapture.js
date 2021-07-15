@@ -129,7 +129,7 @@ export async function addTaskToNoteHeading() {
   const re2 = await CommandBar.showOptions(
     headings.map((p) => p.prefix + p.content),
     `Select a heading from note '${note.title ?? ''}'`,
-  )
+  )   
   const heading = headings[re2.index]
   // console.log("Selected heading: " + heading.content)
   console.log(
@@ -246,6 +246,17 @@ export async function appendTaskToDailyJournal() {
 // This adds a task to a special 'inbox' note. Possible configuration:
 // - append or prepend to the inbox note (default: append)
 // - add to today's daily note (default) or to a particular named note
+
+// FIXME:
+// the / int inbox note plugin wants to create a new inbox note every time.
+// [17:10] Eduard: I tried with the root folder and with a subfolder. 
+// Somehow it can't find the note.
+// [17:14] Eduard: I found out why. It automatically creates the inbox folder,
+// but the filename in the configuration is different.
+// [17: 15]Eduard: In my case it created an inbox.txt and I added it to a subfolder.
+// The automatically created configuration is an inbox.md without a subfolder.
+// So they conflict each other.
+
 export async function addTaskToInbox() {
   console.log(`addTaskToInbox:`)
   // Get config settings from Template folder _configuration note
@@ -279,7 +290,7 @@ export async function addTaskToInbox() {
     // Create the inbox note if not existing, ask the user which folder
     if (inboxNote == null) {
       const folder = await chooseFolder(
-        'Inbox not found, choose a folder or cancel [ESC]',
+        'Inbox note not found, choose a folder or cancel [ESC]',
       )
       // $FlowFixMe -- don't know how to deal with apparent mixed type here
       newFilename = DataStore.newNote(pref_inboxTitle, folder) ?? ''

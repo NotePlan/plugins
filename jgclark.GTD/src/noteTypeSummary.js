@@ -20,6 +20,7 @@ import {
   toISODateString,
   toISOShortDateTimeString,
   calcOffsetDate,
+  relativeDateFromNumber,
 } from '../../helperFunctions.js'
 
 // Return list of notes in a folder with a particular hashtag
@@ -73,19 +74,28 @@ const RE_MENTION_DATE_CAPTURE = `\\((${RE_DATE})\\)` // capture date of form YYY
 const RE_MENTION_STRING_CAPTURE = '\\((.*?)\\)' // capture string inside parantheses
 
 // From an array of mentions, return the first string that matches the
+<<<<<<< Updated upstream
 // starting string
 function getMentionFromList(
   mentionList: $ReadOnlyArray<string>,
   mention: string,
 ): string {
   console.log(`getMentionFromList for: ${mention}`)
+=======
+// starting string, or empty string
+function getMentionFromList(mentionList: $ReadOnlyArray<string>, mention: string): string {
+  console.log(`\tgetMentionFromList for: ${mention}`)
+>>>>>>> Stashed changes
   const res = mentionList.filter((m) => m.startsWith(`${mention}(`))
   return res.length > 0 ? res[0] : ''
 }
 
 // Turn e.g. @due(2021-03-04) into a JS Date
 function getDateFromMention(mention: string): ?Date {
-  console.log(`getDateFromMention: ${mention}`)
+  if (mention === '') {
+    return // no text, so return nothing
+  }
+  console.log(`\tgetDateFromMention: ${mention}`)
   // TODO: TEST
   const res = mention.match(RE_MENTION_DATE_CAPTURE) ?? []
   if (res[1].length > 0) {
@@ -104,7 +114,10 @@ function getDateFromMention(mention: string): ?Date {
 
 // Turn e.g. @due(2021-03-04) into a JS Date
 function getStringFromMention(mention: string): ?string {
-  console.log(`getStringFromMention: ${mention}`)
+  if (mention === '') {
+    return // no text, so return nothing
+  }
+  console.log(`\tgetStringFromMention: ${mention}`)
   const res = mention.match(RE_MENTION_STRING_CAPTURE) ?? []
   if (res[1].length > 0) {
     return res[1]
@@ -121,7 +134,7 @@ function getStringFromMention(mention: string): ?string {
 class Project {
   // Types for the class properties
   note: TNote
-  title: ?string
+  title: string
   dueDate: ?Date
   reviewedDate: ?Date
   reviewInterval: ?string
@@ -130,10 +143,11 @@ class Project {
   openTasks: number
   completedTasks: number
   waitingTasks: number
+  active: boolean
 
   constructor(note: TNote) {
     this.note = note
-    this.title = note.title
+    this.title = note.title ?? '(error)'
 
     // RUBY CODE:
     // # Now process line 2 (rest of metadata)
@@ -143,6 +157,21 @@ class Project {
     // @metadata_line.scan(/(@completed|@finished)\(#{RE_DATES_FLEX_MATCH}\)/) { |m| @completed_date = Date.parse(m.join) }
     // @metadata_line.scan(/@reviewed\(#{RE_DATES_FLEX_MATCH}\)/) { |m| @last_review_date = Date.parse(m.join) }
     // @metadata_line.scan(/#{RE_REVIEW_WITH_INTERVALS_MATCH}/) { |m| @review_interval = m.join.downcase }
+<<<<<<< Updated upstream
+=======
+    
+    const mentions: $ReadOnlyArray<string> = note.mentions
+    this.dueDate = getDateFromMention( getMentionFromList(mentions, "@due") )
+    this.reviewedDate = getDateFromMention( getMentionFromList(mentions, "@reviewed") )
+    this.reviewInterval = getStringFromMention( getMentionFromList(mentions, "@review") )
+    this.nextReviewDate = (this.reviewedDate != null && this.reviewInterval != null)
+      ? calcNextReviewDate(this.reviewedDate, this.reviewInterval)
+      : null
+    this.completedDate = getDateFromMention( getMentionFromList(mentions, "@completed") )
+    this.openTasks = note.paragraphs.filter((p) => p.type === 'open').length
+    this.completedTasks = note.paragraphs.filter((p) => p.type === 'done').length
+    this.waitingTasks = 0 // TODO:
+>>>>>>> Stashed changes
 
     // # make completed if @completed_date set
     // @is_completed = true unless @completed_date.nil?
@@ -155,6 +184,7 @@ class Project {
     // # NEWER LOGIC:
     // # set note to active if #active is set or a @review date found, and not complete/cancelled
     // @is_active = true if (@metadata_line =~ /#active/ || !@review_interval.nil?) && !@is_cancelled && !@is_completed
+<<<<<<< Updated upstream
 
     const mentions: $ReadOnlyArray<string> = note.mentions
     this.dueDate = getDateFromMention(getMentionFromList(mentions, '@due'))
@@ -190,6 +220,35 @@ class Project {
       'day',
     )
     return `${diffDays}d`
+=======
+    this.active = true // TODO:
+    console.log(`Finished constructor for ${this.title}`)
+  }
+
+  timeUntilDue(): string {
+    // Class properties must always be used with `this.`
+    if (this.dueDate != null) {
+      // $FlowIgnore[incompatible-call]
+      const diffDays = Calendar.unitsBetween(new Date(), this.dueDate, 'day')
+      const diffStr = relativeDateFromNumber(diffDays)
+      return diffStr
+    } else {
+      return '-'
+    }
+  }
+
+  timeUntilReview(): string {
+    if (this.nextReviewDate != null) {
+      console.log(`tUR: ${this.nextReviewDate.toString()}`)
+      // $FlowIgnore[incompatible-call]
+      const diffDays = Calendar.unitsBetween(new Date(), this.nextReviewDate, 'day') // FIXME:
+      const diffStr = relativeDateFromNumber(diffDays)
+      console.log(diffStr)
+      return diffStr
+    } else {
+      return '-'
+    }
+>>>>>>> Stashed changes
   }
 
   basicSummaryLine(): string {
@@ -199,13 +258,16 @@ class Project {
   }
 
   detailedSummaryLine(): string {
-    // Class properties must always be used with `this.`
     const titleAsLink =
-      this.note.title !== undefined ? `[[${this.note.title ?? ''}]]` : '(error)'
+      this.title !== undefined ? `[[${this.title ?? ''}]]` : '(error)'
     let output = `- ${titleAsLink}\t${this.timeUntilDue()}\t${this.timeUntilReview()}`
+    console.log(output)
+    output += `\t${this.openTasks}/${this.completedTasks}/${this.waitingTasks}`
+    console.log(output)
     if (this.completedDate != null) {
-      output += ` [Completed ${toISODateString(this.completedDate)}]`
+      output += `\t[Completed ${toISODateString(this.completedDate)}]`
     }
+    console.log(output)
     return output
   }
 }
@@ -219,7 +281,8 @@ export async function noteTypeSummaries() {
     return
   }
   const p1 = new Project(note)
-  console.log(`For open note:\n\t${p1.detailedSummaryLine()}`)
+  const lline = p1.detailedSummaryLine() // FIXME:
+  console.log(`For open note:\n\t${lline}`)
 
   console.log(`\nnoteTypeSummaries`)
   const destination = 'note' // or 'show' or 'log'
