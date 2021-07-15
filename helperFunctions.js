@@ -34,7 +34,7 @@ export async function getInput(
  * Show a single-button dialog-box like message (modal) using CommandBar
  * @author @dwertheimer, updating @nmn
  * @param {string} message - text to display to user
- * @param {string='OK'} confirmTitle - the "button" (option) text (default: 'OK')
+ * @param {string} confirmTitle - the "button" (option) text (default: 'OK')
  */
 export async function showMessage(
   message: string,
@@ -47,7 +47,7 @@ export async function showMessage(
  * Helper function to show a simple yes/no (could be OK/Cancel, etc.) dialog using CommandBar
  * @param {string} message - text to display to user
  * @param {Array<string>} - an array of the choices to give (default: ['Yes', 'No'])
- * @returns {string} - returns the text from the input array provided
+ * @returns {string} - returns the user's choice - the actual *text* choice from the input array provided
  */
 export async function showMessageYesNo(
   message: string,
@@ -465,7 +465,7 @@ export function printNote(note: TNote) {
  * @author @dwertheimer
  * @param {string} fullPath
  * @param {string} desc
- * @param {boolean=true} useProjNoteByFilename
+ * @param {boolean} useProjNoteByFilename (default: true)
  * @returns {any} - the note that was opened
  */
 export async function noteOpener(
