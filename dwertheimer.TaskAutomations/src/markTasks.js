@@ -1,5 +1,5 @@
 // @flow
-import { chooseOption, getInput } from '../../nmn.sweep/src/userInput'
+import { showMessageYesNo, chooseOption } from '../../helperFunctions'
 
 type Direction = 'open' | 'done' | null
 
@@ -46,17 +46,17 @@ export default async function markTasks(
       'Cancel',
     )
   }
-  let res = '' //empty means go ahead and mark
   if (dir === 'Cancel') {
     console.log(`User chose Cancel`)
     return
   } else {
     const message = `Confirm: Mark ALL ${
       dir === 'open' ? 'Completed' : 'Open'
-    } tasks as: ${dir === 'open' ? 'Open' : 'Completed'}?`
+    } tasks as ${dir === 'open' ? 'Open' : 'Completed'}?`
     if (withConfirmation) {
-      res = await getInput(message, 'Yes')
-      console.log(`User said: ${!res ? 'Yes' : 'cancelled'}`)
+      const res = await showMessageYesNo(message)
+      console.log(`User said: ${res}`)
+      if (res === 'No') return
     }
   }
   await setTasks(dir)

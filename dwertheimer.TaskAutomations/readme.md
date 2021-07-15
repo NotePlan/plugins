@@ -1,5 +1,8 @@
 # Task Automations plugin
 
+# /mat - Mark All Tasks (as completed or open)
+This plugin will give you a choice of whether to mark all open tasks as completed or all completed tasks as open.
+
 ## /ts - Tasks Sort
 This plugin will sort your tasks in the open note in the Editor
 
