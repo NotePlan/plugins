@@ -30,7 +30,12 @@ export async function getInput(
   return await CommandBar.showInput(title, okLabel)
 }
 
-// Show feedback message using Command Bar (@dwertheimer, updating @nmn)
+/**
+ * Show a single-button dialog-box like message (modal) using CommandBar
+ * @author @dwertheimer, updating @nmn
+ * @param {string} message - text to display to user
+ * @param {string='OK'} confirmTitle - the "button" (option) text (default: 'OK')
+ */
 export async function showMessage(
   message: string,
   confirmTitle: string = 'OK',
@@ -38,7 +43,12 @@ export async function showMessage(
   await CommandBar.showOptions([confirmTitle], message)
 }
 
-// Show feedback Yes/No Question via Command Bar (@dwertheimer)
+/**
+ * Helper function to show a simple yes/no (could be OK/Cancel, etc.) dialog using CommandBar
+ * @param {string} message - text to display to user
+ * @param {Array<string>} - an array of the choices to give (default: ['Yes', 'No'])
+ * @returns {string} - returns the text from the input array provided
+ */
 export async function showMessageYesNo(
   message: string,
   choicesArray: Array<string> = ['Yes', 'No'],
@@ -139,7 +149,10 @@ export function dateStringFromCalendarFilename(filename: string): string {
 }
 
 export function isoDateStringFromCalendarFilename(filename: string): string {
-  return `${filename.slice(0, 4)}-${filename.slice(4, 6)}-${filename.slice(6, 8)}`
+  return `${filename.slice(0, 4)}-${filename.slice(4, 6)}-${filename.slice(
+    6,
+    8,
+  )}`
 }
 
 export const months = [
@@ -445,7 +458,16 @@ export function printNote(note: TNote) {
   }
 }
 
-// (@dwertheimer)
+/**
+ * Open a note using whatever method works (open by title, filename, etc.)
+ * Note: this function was used to debug/work-around API limitations. Probably not necessary anymore
+ * Leaving it here for the moment in case any plugins are still using it
+ * @author @dwertheimer
+ * @param {string} fullPath
+ * @param {string} desc
+ * @param {boolean=true} useProjNoteByFilename
+ * @returns {any} - the note that was opened
+ */
 export async function noteOpener(
   fullPath: string,
   desc: string,
@@ -471,8 +493,13 @@ export async function noteOpener(
   }
 }
 
-// Find a unique note title/filename so backlinks can work properly (@dwertheimer)
-// Keep adding numbers to the end of a filename (if already taken) until it works
+/**
+ * Find a unique note title for the given text (e.g. "Title", "Title 01" (if Title exists, etc.))
+ * Keep adding numbers to the end of a filename (if already taken) until it works
+ * @author @dwertheimer
+ * @param {string} title - the name of the file
+ * @returns {string} the title (not filename) that was created
+ */
 export function getUniqueNoteTitle(title: string): string {
   let i = 0,
     res = [],
