@@ -130,6 +130,7 @@ export async function insertMatchingTodaysEvents(): Promise<void> {
 }
 
 const DEFAULT_EVENTS_OPTIONS = `  events: {
+    addEventID: false,  // whether to add an [[event:ID]] internal link when creating an event from a time block
     processedTagName: "#event_created",   // optional tag to add after making a time block an event
     removeTimeBlocksWhenProcessed: true,  // whether to remove time block after making an event from it
     todaysEventsHeading: "### Events today",  // optional heading to put before list of today's events

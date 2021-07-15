@@ -26,6 +26,7 @@ const RE_SCHEDULED_DATE = '>\\d{4}-[01]\\d{1}-\\d{2}'
 export const RE_TIMEBLOCK_TYPE1 = `(${RE_SCHEDULED_DATE})? [0-2]?\\d:[0-5]\\d(AM|PM|am|pm)?(\\s?-\\s?[0-2]?\\d:[0-5]\\d(AM|PM|am|pm)?)?`
 // find '[>date] at 2(AM|PM|am|pm)[-11[AM|PM|am|pm]]'
 export const RE_TIMEBLOCK_TYPE2 = `(${RE_SCHEDULED_DATE})? at [0-2]?\\d(:[0-5]\\d|(AM|PM|am|pm)?)(\\s?-\\s?[0-2]?\\d(:[0-5]\\d|AM|PM|am|pm)?)?`
+const RE_EVENT_ID = '\\[\\[event:[A-F0-9-]*\\]\\]'
 
 // ------------------------------------------------------------------------------------
 
@@ -58,9 +59,13 @@ export async function timeBlocksToCalendar() {
       ? eventsConfig.processedTagName
       : '#event_created'
   const pref_removeTimeBlocksWhenProcessed =
-    eventsConfig.removeTimeBlocksWhenProcessed != null
-      ? eventsConfig.removeTimeBlocksWhenProcessed
-      : true
+    (eventsConfig.removeTimeBlocksWhenProcessed != null)
+    ? eventsConfig.removeTimeBlocksWhenProcessed
+    : true
+  const pref_addEventID =
+    (eventsConfig.addEventID != null)
+    ? eventsConfig.addEventID
+    : false
 
   // Look through open note to find time blocks
   const timeblockParas = paragraphs.filter(
@@ -91,9 +96,11 @@ export async function timeBlocksToCalendar() {
         timeBlockStringType1 !== ''
           ? timeBlockStringType1
           : timeBlockStringType2
-      // Check to see if this line has been processed before, by looking for the processed tag
+      // Check to see if this line has been processed before, by looking for the
+      // processed tag, or an [[event:ID]]
       // $FlowFixMe[incompatible-call]
-      if (thisPara.content.match(pref_processedTagName)) {
+      if (thisPara.content.match(pref_processedTagName)
+       || thisPara.content.match(RE_EVENT_ID)) {
         // $FlowFixMe[incompatible-type]
         console.log(
           `\tIgnoring timeblock '${timeBlockString}' as line contains ${pref_processedTagName}`,
@@ -113,10 +120,8 @@ export async function timeBlocksToCalendar() {
         const timeblockDateRange = Calendar.parseDateText(timeBlockString)[0]
         if (timeblockDateRange != null) {
           const title = thisPara.content.replace(timeBlockString, '')
-          console.log(
-            `\tWill process time block '${timeBlockString}' for '${title}'`,
-          )
-          createEventFromDateRange(title, timeblockDateRange)
+          console.log(`\tWill process time block '${timeBlockString}' for '${title}'`)
+          const eventID = createEventFromDateRange(title, timeblockDateRange)
 
           // Remove time block string (if wanted)
           if (pref_removeTimeBlocksWhenProcessed) {
@@ -126,6 +131,12 @@ export async function timeBlocksToCalendar() {
           if (pref_processedTagName !== '') {
             // $FlowFixMe[incompatible-type]
             thisPara.content += ` ${pref_processedTagName}`
+            console.log(`\t-> '${thisPara.content}'`)
+          }
+          // Add event ID (if wanted)
+          if (pref_addEventID) {
+            // $FlowFixMe[incompatible-type]
+            thisPara.content += ` [[event:${eventID}]]`
             console.log(`\t-> '${thisPara.content}'`)
           }
           Editor.updateParagraph(thisPara) // seems not to work twice in quick succession, so just do it once here
@@ -141,7 +152,7 @@ export async function timeBlocksToCalendar() {
 
 // Create a new calendar event
 // NB: we can't set which calendar to write to
-function createEventFromDateRange(eventTitle: string, dateRange: DateRange) {
+function createEventFromDateRange(eventTitle: string, dateRange: DateRange): ?string {
   // console.log(`\tStarting cEFDR with ${eventTitle}`)
   // CalendarItem.create(title, date, endDate, type, isAllDay)
   const event = CalendarItem.create(
@@ -154,12 +165,15 @@ function createEventFromDateRange(eventTitle: string, dateRange: DateRange) {
   const createdEvent = Calendar.add(event)
   if (createdEvent != null) {
     console.log(`\t-> Event created with id: ${createdEvent.id ?? 'undefined'}`)
+    return createdEvent.id
   } else {
     console.log('\t-> Error: failed to create event')
+    return '(error)'
   }
 }
 
 const DEFAULT_EVENTS_OPTIONS = `  events: {
+    addEventID: false,  // whether to add an [[event:ID]] internal link when creating an event from a time block
     processedTagName: "#event_created",   // optional tag to add after making a time block an event
     removeTimeBlocksWhenProcessed: true,  // whether to remove time block after making an event from it
     todaysEventsHeading: "### Events today",  // optional heading to put before list of today's events
