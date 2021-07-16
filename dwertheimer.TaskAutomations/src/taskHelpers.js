@@ -125,6 +125,8 @@ export function getTasksByType(paragraphs) {
       // console.log(`\t\tSkip: ${para.content}`) //not a task
     }
   }
-  console.log(`Tasks:${tasks.open.length} returning from getTasksByType`)
+  console.log(
+    `\tgetTasksByType Open Tasks:${tasks.open.length} returning from getTasksByType`,
+  )
   return tasks
 }
