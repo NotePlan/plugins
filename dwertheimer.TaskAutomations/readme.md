@@ -1,6 +1,6 @@
 # Task Automations plugin
 
-# /mat - Mark All Tasks (as completed or open)
+## /mat - Mark All Tasks (as completed or open)
 This plugin will give you a choice of whether to mark all open tasks as completed or all completed tasks as open.
 
 ## /ts - Tasks Sort
@@ -22,13 +22,14 @@ Note: Because the plugin needs to delete the tasks in order to sort and re-inser
 Note: At this time, the plugin will ignore headings that are attached to the tasks (e.g. tasks indented under root-level #headings). I need to understand/think more about this use case and how to deal with it in sorting.
 
 ## Configuration
+None required
 
 ## Future Features / Todo List
-- Sort by priority or by #tag or @context/person. 
 - Make silent shortcuts to do specific sorts
 - (optionally) Leave tasks with dates in place until they are overdue? [use getOverdueTasks()]
-## History
 
+## History
+0.0.5 Sort by priority or by #tag or @context/person or content/alphabetical
 0.0.4 Added /mat command to reset completed tasks (or to set all open as complete), per request from @JaredOS
 0.0.3 Adding 	"macOS.minVersion": "10.15.7"
 0.0.2 Initial /ts version
