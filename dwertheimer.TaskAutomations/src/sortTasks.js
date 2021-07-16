@@ -8,14 +8,17 @@
  * Find the extra space and think about just one separator
  */
 
-import { chooseOption } from '../../nmn.sweep/src/userInput'
+import { chooseOption, showMessageYesNo } from '../../helperFunctions'
 
 import { getTasksByType, sortListBy, TASK_TYPES } from './taskHelpers'
 // Note: not currently using getOverdueTasks from taskHelpers (because if it's open, we are moving it)
 // But the functions exist to look for open items with a date that is less than today
 
 const SORT_ORDERS = [
-  { sortFields: ['-priority', 'content'], name: 'Priority (!!! and (A))' },
+  {
+    sortFields: ['-priority', 'content'],
+    name: 'By Priority (!!! and (A)) then by content',
+  },
   /* FIXME non-priority fields not working yet */
   {
     sortFields: ['mentions', '-priority', 'content'],
@@ -35,11 +38,20 @@ const MAKE_BACKUP = true
 
 /**
  *
- * @param {*} todos
- * @param {*} heading
+ * @param {TNote} note
+ * @param {array} todos
+ * @param {string} heading
+ * @param {string} separator
+ * @param {string} subHeadingCategory
  * @returns {int} next line number
  */
-function insertTodos(note: TNote, todos, heading = '', separator = '') {
+function insertTodos(
+  note: TNote,
+  todos,
+  heading = '',
+  separator = '',
+  subHeadingCategory = '',
+) {
   // THE API IS SUPER SLOW TO INSERT TASKS ONE BY ONE
   // let currentLine = startingLine ? startingLine : heading ? 1 : 2
   // if (heading) {
@@ -51,9 +63,32 @@ function insertTodos(note: TNote, todos, heading = '', separator = '') {
   // }
   // return currentLine
   // SO INSTEAD, JUST PASTE THEM ALL IN ONE BIG STRING
+  let todosWithSubheadings = []
   const headingStr = heading ? `${heading}\n` : ''
-  const contentStr = todos.map((t) => t.raw).join(`\n`)
-  // console.log(`inserting tasks: \n${JSON.stringify(todos)}`)
+  if (subHeadingCategory) {
+    let lastSubcat = ''
+    for (const lineIndex in todos) {
+      const subCat =
+        todos[lineIndex][subHeadingCategory][0] ||
+        todos[lineIndex][subHeadingCategory] ||
+        ''
+      console.log(
+        `lastSubcat[${subHeadingCategory}]=${subCat} check: ${JSON.stringify(
+          todos[lineIndex],
+        )}`,
+      )
+      if (lastSubcat !== subCat) {
+        lastSubcat = subCat
+        todosWithSubheadings.push({ raw: `#### ${subCat}` })
+      }
+      todosWithSubheadings.push(todos[lineIndex])
+    }
+  } else {
+    todosWithSubheadings = todos
+  }
+
+  const contentStr = todosWithSubheadings.map((t) => t.raw).join(`\n`)
+  console.log(`inserting tasks: \n${JSON.stringify(todosWithSubheadings)}`)
   note.insertParagraph(
     `${headingStr}${contentStr}${separator ? `\n${separator}` : ''}`,
     1,
@@ -93,7 +128,7 @@ function sortTasksInNote(
       console.log(`\tAfter Sort - Open Tasks:${sortedList.open.length}`)
     }
   } else {
-    console.log(`sorttasksInNote: no note to sort`)
+    console.log(`\tsorttasksInNote: no note to sort`)
   }
   // console.log(JSON.stringify(sortedList))
   return sortedList
@@ -115,13 +150,17 @@ async function getUserSort(sortChoices = SORT_ORDERS) {
 }
 
 function findRawParagraph(note: TNote, content) {
-  const found = note.paragraphs.filter((p) => p.rawContent === content)
-  if (found && found.length > 1) {
-    console.log(
-      `** Found ${found.length} identical occurrences for "${content}". Deleting the first.`,
-    )
+  if (content) {
+    const found = note.paragraphs.filter((p) => p.rawContent === content)
+    if (found && found.length > 1) {
+      console.log(
+        `** Found ${found.length} identical occurrences for "${content}". Deleting the first.`,
+      )
+    }
+    return found[0] || null
+  } else {
+    return null
   }
-  return found[0] || null
 }
 
 //TODO: this does not work. creates 4 copies of the file but does not save the tasks
@@ -140,13 +179,15 @@ async function saveBackup(taskList) {
     // remove all this:
     await CommandBar.showOptions(
       ['OK'],
-      `Backing up todos in @Trash/${backupTitle}`,
+      `\tBacking up todos in @Trash/${backupTitle}`,
     )
     //
     console.log(`\tCreated ${filename ? filename : ''} for backups`)
     notes = await DataStore.projectNoteByTitle(backupTitle, false, true)
     // note = await DataStore.projectNoteByFilename(backupFilename)
-    console.log(`backup file contents:\n${notes ? JSON.stringify(notes) : ''}`)
+    console.log(
+      `\tbackup file contents:\n${notes ? JSON.stringify(notes) : ''}`,
+    )
   }
   if (notes && notes[0]) {
     notes[0].insertParagraph(`---`, 2, 'text')
@@ -164,21 +205,30 @@ async function deleteExistingTasks(note, tasks, shouldBackupTasks = true) {
     }
     try {
       const taskList = tasks[typ].map(
-        note ? (t) => findRawParagraph(note, t.raw) : false,
+        note ? (t) => findRawParagraph(note, t.raw || null) : false,
       )
       //$FlowIgnore
       Editor.note.removeParagraphs(taskList)
     } catch (e) {
-      console.log(JSON.stringify(e))
+      console.log(`**** ERROR deleting ${typ} ${JSON.stringify(e)}`)
     }
   }
 }
 
+/**
+ * Write the tasks list back into the top of the document
+ * @param {TNote} note
+ * @param {any} tasks list
+ * @param {any} drawSeparators=false
+ * @param {any} withHeadings=false
+ * @param {any} withSubheadings=null
+ */
 async function writeOutTasks(
   note,
   tasks,
   drawSeparators = false,
-  withHeadings,
+  withHeadings = false,
+  withSubheadings = null,
 ) {
   const headings = {
     open: 'Open Tasks',
@@ -200,6 +250,7 @@ async function writeOutTasks(
               drawSeparators
                 ? `${i === tasks[ty].length - 1 ? '---' : ''}`
                 : '',
+              withSubheadings,
             )
           : null
       } catch (e) {
@@ -220,15 +271,26 @@ async function wantHeadings() {
   )
 }
 
+async function wantSubHeadings() {
+  return (
+    (await showMessageYesNo(
+      `Include sort field subheadings in the output?`,
+    )) === 'Yes'
+  )
+}
+
+showMessageYesNo
+
 export default async function sortTasks(
   withUserInput: boolean = true,
   sortFields: Array<string> = SORT_ORDERS[DEFAULT_SORT_INDEX].sortFields,
   withHeadings: boolean | null = null,
+  withSubHeadings: boolean | null = null,
 ) {
   console.log(
-    `\n\nStarting sortTasks(${withUserInput},${JSON.stringify(
+    `\n\nStarting sortTasks(${String(withUserInput)},${JSON.stringify(
       sortFields,
-    )},${withHeadings}):`,
+    )},${String(withHeadings)}):`,
   )
   const sortOrder = withUserInput ? await getUserSort() : sortFields
   console.log(`\tUser specified sort=${JSON.stringify(sortOrder)}`)
@@ -237,13 +299,35 @@ export default async function sortTasks(
   console.log(
     `\tFinished wantHeadings()=${String(
       printHeadings,
+    )}, now running wantSubHeadings`,
+  )
+  const printSubHeadings =
+    withSubHeadings === null ? await wantSubHeadings() : true
+  const sortField1 =
+    sortOrder[0][0] === '-' ? sortOrder[0].substring(1) : sortOrder[0]
+
+  console.log(
+    `\twithSubHeadings=${String(withSubHeadings)} printSubHeadings=${String(
+      printSubHeadings,
+    )}  cat=${printSubHeadings ? sortField1 : ''}`,
+  )
+  console.log(
+    `\tFinished wantSubHeadings()=${String(
+      printSubHeadings,
     )}, now running sortTasksInNote`,
   )
   const sortedTasks = sortTasksInNote(Editor.note, sortOrder)
   console.log(`\tFinished sortTasksInNote, now running deleteExistingTasks`)
   await deleteExistingTasks(Editor.note, sortedTasks, MAKE_BACKUP) // need to do this before adding new lines to preserve line numbers
   console.log(`\tFinished deleteExistingTasks, now running writeOutTasks`)
-  await writeOutTasks(Editor.note, sortedTasks, false, printHeadings)
+
+  await writeOutTasks(
+    Editor.note,
+    sortedTasks,
+    false,
+    printHeadings,
+    printSubHeadings ? sortField1 : '',
+  )
   console.log(`\tFinished writeOutTasks, now finished`)
 
   console.log('Finished sortTasks()!')
