@@ -5,7 +5,7 @@
   "plugin.name": "✅ Task Automations", 
   "plugin.description": "Functions for handling Tasks", 
   "plugin.author": "@dwertheimer",
-  "plugin.version": "0.0.5", 
+  "plugin.version": "0.0.6", 
   "plugin.dependencies": [ ], 
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/dwertheimer/Noteplan-plugins/blob/main/dwertheimer.TaskAutomations/readme.md",
