@@ -3,13 +3,7 @@
 // Type checking reference: https://flow.org/
 // Specific how-to re: Noteplan: https://github.com/NotePlan/plugins/blob/main/Flow_Guide.md
 
-/**
- * TODO: see readme
- * Find the extra space and think about just one separator
- */
-
 import { chooseOption, showMessageYesNo } from '../../helperFunctions'
-
 import { getTasksByType, sortListBy, TASK_TYPES } from './taskHelpers'
 // Note: not currently using getOverdueTasks from taskHelpers (because if it's open, we are moving it)
 // But the functions exist to look for open items with a date that is less than today
@@ -33,6 +27,16 @@ const SORT_ORDERS = [
     name: 'Alphabetical, then by priority',
   },
 ]
+
+export async function sortTasksByPerson() {
+  console.log('Person!')
+  await sortTasks(false, ['mentions', '-priority', 'content'], true, true)
+}
+
+export async function sortTasksByTag() {
+  await sortTasks(false, ['hashtags', '-priority', 'content'], true, true)
+}
+
 const DEFAULT_SORT_INDEX = 0
 const MAKE_BACKUP = true
 
@@ -63,20 +67,34 @@ function insertTodos(
   // }
   // return currentLine
   // SO INSTEAD, JUST PASTE THEM ALL IN ONE BIG STRING
+  console.log(
+    `\tInsertTodos: subHeadingCategory=${String(subHeadingCategory)} ${
+      todos.length
+    } todos`,
+  )
   let todosWithSubheadings = []
   const headingStr = heading ? `${heading}\n` : ''
   if (subHeadingCategory) {
+    const leadingDigit = {
+      hashtags: '#',
+      mentions: '@',
+      priority: '',
+      content: '',
+    }
     let lastSubcat = ''
     for (const lineIndex in todos) {
       const subCat =
-        todos[lineIndex][subHeadingCategory][0] ||
+        // $FlowIgnore - complaining about -priority being missing.
+        (leadingDigit[subHeadingCategory]
+          ? leadingDigit[subHeadingCategory]
+          : '') + todos[lineIndex][subHeadingCategory][0] ||
         todos[lineIndex][subHeadingCategory] ||
         ''
-      console.log(
-        `lastSubcat[${subHeadingCategory}]=${subCat} check: ${JSON.stringify(
-          todos[lineIndex],
-        )}`,
-      )
+      // console.log(
+      //   `lastSubcat[${subHeadingCategory}]=${subCat} check: ${JSON.stringify(
+      //     todos[lineIndex],
+      //   )}`,
+      // )
       if (lastSubcat !== subCat) {
         lastSubcat = subCat
         todosWithSubheadings.push({ raw: `#### ${subCat}` })
@@ -88,7 +106,8 @@ function insertTodos(
   }
 
   const contentStr = todosWithSubheadings.map((t) => t.raw).join(`\n`)
-  console.log(`inserting tasks: \n${JSON.stringify(todosWithSubheadings)}`)
+  console.log(`Inserting tasks into Editor`)
+  // console.log(`inserting tasks: \n${JSON.stringify(todosWithSubheadings)}`)
   note.insertParagraph(
     `${headingStr}${contentStr}${separator ? `\n${separator}` : ''}`,
     1,
@@ -240,7 +259,9 @@ async function writeOutTasks(
   for (let i = 0; i < tasksTypesReverse.length; i++) {
     const ty = tasksTypesReverse[i]
     if (tasks[ty].length) {
-      console.log(`\tEDITOR_FILE TASK_TYPE=${ty}`)
+      console.log(
+        `\tEDITOR_FILE TASK_TYPE=${ty} -- withHeadings=${String(withHeadings)}`,
+      )
       try {
         note
           ? await insertTodos(
@@ -295,17 +316,22 @@ export default async function sortTasks(
   const sortOrder = withUserInput ? await getUserSort() : sortFields
   console.log(`\tUser specified sort=${JSON.stringify(sortOrder)}`)
   console.log(`\tFinished getUserSort, now running wantHeadings`)
-  const printHeadings = withHeadings === null ? await wantHeadings() : true
+
+  const printHeadings =
+    withHeadings === null ? await wantHeadings() : withHeadings
   console.log(
     `\tFinished wantHeadings()=${String(
       printHeadings,
     )}, now running wantSubHeadings`,
   )
-  const printSubHeadings =
-    withSubHeadings === null ? await wantSubHeadings() : true
   const sortField1 =
     sortOrder[0][0] === '-' ? sortOrder[0].substring(1) : sortOrder[0]
-
+  const printSubHeadings =
+    ['hashtags', 'mentions'].indexOf(sortField1) !== -1
+      ? withSubHeadings === null
+        ? await wantSubHeadings()
+        : true
+      : false
   console.log(
     `\twithSubHeadings=${String(withSubHeadings)} printSubHeadings=${String(
       printSubHeadings,

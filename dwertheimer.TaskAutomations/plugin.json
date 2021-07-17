@@ -12,7 +12,7 @@
   "plugin.commands": [ 
     {
       "name": "ts", 
-      "description": "Sort tasks on the page (e.g. after a sweep)", 
+      "description": "Tasks Sort - Sort tasks on the page (e.g. after a sweep)", 
       "jsFunction": "sortTasks",
     },  
     {
@@ -20,5 +20,20 @@
       "description": "Mark All Tasks (choose open or complete)", 
       "jsFunction": "markTasks",
     },  
+    {
+      "name": "tsm", 
+      "description": "Tasks Sort by @Mention - Sort tasks on the page by mention/person", 
+      "jsFunction": "sortTasksByPerson",
+    },  
+    {
+      "name": "tst", 
+      "description": "Tasks Sort by #Tag - Sort tasks on the page by hashtag", 
+      "jsFunction": "sortTasksByTag",
+    },         
+    {
+      "name": "mat", 
+      "description": "Mark All Tasks (choose open or complete)", 
+      "jsFunction": "markTasks",
+    },    
   ]
 } 
