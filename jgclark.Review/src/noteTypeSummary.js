@@ -11,20 +11,19 @@
 
 //-----------------------------------------------------------------------------
 // User settings: TODO: move to proper preferences system
-const pref_noteTypeTags = '#area' // or #area, #archive etc.
-const pref_groupedByFolder = true
 const pref_folderToStore = 'Summaries'
-const pref_orderBy = 'alpha' // 'due', 'review' or 'alpha'
+const pref_displayGroupedByFolder = true
+const pref_displayOrder = 'alpha' // 'due', 'review' or 'alpha'
+const pref_noteTypeTags = '#area' // or #area, #archive etc.
 
 //-----------------------------------------------------------------------------
 // Helper functions
 import {
   // chooseOption,
   showMessage,
-  nowLocaleShortDateTime,
+  nowLocaleDateTime,
   RE_DATE,
   toISODateString,
-  // toLocaleShortDateTimeString,
   calcOffsetDate,
   relativeDateFromNumber,
 } from '../../helperFunctions.js'
@@ -118,7 +117,7 @@ function getDateFromString(mention: string): ?Date {
       Number(res[1].slice(5, 7)) - 1, // only seems to be needed for months?!
       Number(res[1].slice(8, 10)),
     )
-    // console.log(toLocaleShortDateTimeString(date))
+    // console.log(toLocaleDateTimeString(date))
     return date
   } else {
     // console.log(`\tgetDateFromString: no date found`)
@@ -338,7 +337,7 @@ export function makeNoteTypeSummary(noteTag: string): Array<string> {
 
   // if we want a summary broken down by folder, create list of folders
   // otherwise use a single folder
-  const folderList = pref_groupedByFolder ? DataStore.folders : ['/']
+  const folderList = pref_displayGroupedByFolder ? DataStore.folders : ['/']
   console.log(`${folderList.length} folders`)
   // Iterate over the folders
   for (const folder of folderList) {
@@ -358,10 +357,10 @@ export function makeNoteTypeSummary(noteTag: string): Array<string> {
           overdue += 1
         }
       }
-      // sort this array by key set in pref_orderBy
+      // sort this array by key set in pref_displayOrder
       let sortedProjects = []
       // NB: the Compare function needs to return negative, zero, or positive values. 
-      switch (pref_orderBy) {
+      switch (pref_displayOrder) {
         case 'due': {
           sortedProjects = projects.sort(
             (first, second) => (first.dueDays ?? 0) - (second.dueDays ?? 0))
@@ -378,7 +377,7 @@ export function makeNoteTypeSummary(noteTag: string): Array<string> {
           break
         }
       }
-      if (pref_groupedByFolder) {
+      if (pref_displayGroupedByFolder) {
         outputArray.push(`### ${folder} (${sortedProjects.length} notes)`)
       }
       // iterate over this folder's notes, using Class functions
@@ -398,8 +397,8 @@ export function makeNoteTypeSummary(noteTag: string): Array<string> {
   // Add summary/ies onto the start (remember: unshift adds to the very front each time)
   outputArray.unshift(`_Key:\tTitle\t# open / complete / waiting tasks / next review date / due date_`)
   outputArray.unshift(`Total: **${noteCount} active notes**.${(overdue > 0) ? ` (${overdue} are overdue review)` : ''}`)
-  outputArray.unshift(`Last updated: ${nowLocaleShortDateTime()}`)
-  if (!pref_groupedByFolder) {
+  outputArray.unshift(`Last updated: ${nowLocaleDateTime}`)
+  if (!pref_displayGroupedByFolder) {
     outputArray.unshift(`### All folders (${noteCount} notes)`)
   }
   

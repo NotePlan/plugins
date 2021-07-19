@@ -78,6 +78,7 @@ export const RE_TIME = '[0-2]\\d{1}:[0-5]\\d{1}\\s?(?:AM|PM|am|pm)?' // find '12
 export const todaysDateISOString: string = new Date().toISOString().slice(0, 10)
 // TODO: make a friendlier string
 export const nowShortDateTime: string = new Date().toISOString().slice(0, 16)
+export const nowLocaleDateTime: string = new Date().toLocaleString()
 
 // @nmn
 export function getYearMonthDate(dateObj: Date): $ReadOnly<{

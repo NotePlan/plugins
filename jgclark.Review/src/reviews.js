@@ -7,7 +7,6 @@
 
 //-----------------------------------------------------------------------------
 // User settings: TODO: move to proper preferences system
-const pref_metadataLineIndex = 1
 const pref_noteTypeTags = '#area' // or #area, #archive etc.
 
 //-----------------------------------------------------------------------------
@@ -52,12 +51,7 @@ export async function nextReview() {
 //-------------------------------------------------------------------------------
 // Update the review list after completing a review
 async function updateReviewListWithComplete(note: TNote) {
-  if (note == null || note.type === 'Calendar') {
-    console.log(
-      'completeReviewUpdateList: error: called with null or Calendar note type',
-    )
-  }
-  console.log(`completeReviewUpdateList for '${note.title ?? ''}'`)
+  console.log(`updateReviewListWithComplete for '${note.title ?? ''}'`)
 
   // TODO: does this need to be async?
 }
@@ -66,7 +60,6 @@ async function updateReviewListWithComplete(note: TNote) {
 // Work out the next note to review (if any)
 export async function getNextNoteToReview(): Promise<?TNote> {
   console.log(`getNextNoteToReview`)
-  // TODO: does this need to be async?
 
   // Get note that contains the project list (or create if not found)
   // TODO: work through next pref being single or plural
@@ -82,12 +75,19 @@ export async function getNextNoteToReview(): Promise<?TNote> {
 
   // Now read contents and parse
   console.log(`\tAbout to read summary note ${note.title}`)
-
-  // Select those which are overdue, and order
-  console.log(`\tFound ... overdue project notes`)
-
-  // Trigger review of that note
-  console.log(`\tTriggering review of project note ...`)
+  // Get first code block and read into array
+  const firstCodeBlock = note.content.split('\n```')[1]
+  console.log(firstCodeBlock)
+  const firstCodeBlockLines = firstCodeBlock.split('\n')
+  console.log(firstCodeBlockLines)
+  if (firstCodeBlockLines.length > 0) {
+    const nextNoteTitle = firstCodeBlockLines[0]
+    console.log(`\tNext project note to review ${nextNoteTitle}`)
+    const nextNotes = DataStore.projectNoteByTitle(nextNoteTitle, true, false) ?? []
+    return nextNotes[0]
+  } else {
+    return
+  }
 }
 
 //-------------------------------------------------------------------------------
@@ -139,9 +139,9 @@ export async function editorSetReviewDate(): Promise<?TNote> {
   } else {
     // no existing mention, so append to note's default metadata line
     console.log(
-      `\tno matching ${reviewMentionString}(date) string found. Will append to line ${pref_metadataLineIndex}`,
+      `\tno matching ${reviewMentionString}(date) string found. Will append to line 1`,
     )
-    const metadataPara = Editor.note?.paragraphs[pref_metadataLineIndex]
+    const metadataPara = Editor.note?.paragraphs[1]
     if (metadataPara == null) {
       return null
     }
