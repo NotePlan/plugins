@@ -43,6 +43,7 @@
     "singleQuote": true
   },
   "dependencies": {
+    "docs": "^0.3.2-canary.0",
     "enquirer": "^2.3.6",
     "js-yaml": "^4.1.0",
     "json5": "^2.2.0",
