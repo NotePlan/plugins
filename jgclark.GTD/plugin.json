@@ -1,8 +1,9 @@
 {
 	"noteplan.minAppVersion": "3.0.23",
-	"plugin.id": "jgclark.GTDReview",
-	"plugin.name": "🔬GTD Review",
-	"plugin.description": "Commands to help with GTD Reviews",
+	"macOS.minVersion": "10.15.7",
+	"plugin.id": "jgclark.Review",
+	"plugin.name": "🔬Review Projects",
+	"plugin.description": "Commands to help periodic reviews of Project or Areas, GTD-style",
 	"plugin.icon": "",
 	"plugin.author": "Jonathan Clark",
 	"plugin.repoUrl": "",
@@ -12,8 +13,8 @@
 	"plugin.isRemote": "false",
 	"plugin.commands": [
 		{
-			"name": "prepare GTD review",
-			"description": "prepare project list for GTD review",
+			"name": "prepare for review",
+			"description": "prepare lists of project notes ready for review",
 			"jsFunction": "noteTypeSummaries"
 		},
 		{
@@ -23,7 +24,7 @@
 		},
 		{
 			"name": "next project review",
-			"description": "update this project's @reviewed() date, and jump to next review (GTD)",
+			"description": "update this project's @reviewed() date, and jump to next project review (GTD)",
 			"jsFunction": "nextReview"
 		}
 	],
