@@ -2,28 +2,33 @@
 	"noteplan.minAppVersion": "3.0.23",
 	"plugin.id": "jgclark.GTDReview",
 	"plugin.name": "🔬GTD Review",
-	"plugin.description": "Commands to help with GTD Reviews",
+	"plugin.description": "Commands to help review Project-based notes, GTD-style.",
 	"plugin.icon": "",
 	"plugin.author": "Jonathan Clark",
 	"plugin.repoUrl": "",
-	"plugin.version": "0.1.2",
+	"plugin.version": "0.2.0",
 	"plugin.dependencies": [],
 	"plugin.script": "script.js",
 	"plugin.isRemote": "false",
 	"plugin.commands": [
 		{
-			"name": "prepare GTD review",
-			"description": "prepare project list for GTD review",
-			"jsFunction": "noteTypeSummaries"
+			"name": "project lists",
+			"description": "creates/updates a human-readable list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete.",
+			"jsFunction": "projectLists"
+		},
+		{
+			"name": "start reviews",
+			"description": "creates/updates a machine-readable list of notes ready for review, and kicks off review of the first project note",
+			"jsFunction": "startReviews"
 		},
 		{
 			"name": "complete project review",
-			"description": "update project's @reviewed() date (GTD)",
-			"jsFunction": "editorSetReviewDate"
+			"description": "updates the current open project's @reviewed() date.",
+			"jsFunction": "completeReview"
 		},
 		{
 			"name": "next project review",
-			"description": "update this project's @reviewed() date, and jump to next review (GTD)",
+			"description": "updates this project's @reviewed() date, and jump to next project to review.",
 			"jsFunction": "nextReview"
 		}
 	],

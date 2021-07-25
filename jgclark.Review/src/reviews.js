@@ -1,47 +1,322 @@
 // @flow
 
 //-----------------------------------------------------------------------------
-// Supporting GTD Reviews
+// Commands for GTD-style Reviews.
 // by @jgclark
+// v0.2.0, 26.7.2021
 //-----------------------------------------------------------------------------
 
-//-----------------------------------------------------------------------------
-// User settings: TODO: move to proper preferences system
-const pref_noteTypeTags = '#area' // or #area, #archive etc.
+// Settings
+const DEFAULT_REVIEW_OPTIONS = `  review: {
+    noteTypeTags: "#area,#project",  // 
+    folderToStore: "Summaries",   // 
+    displayGroupedByFolder: true,  // 
+    displayOrder: "alpha" // 'due', 'review' or 'alpha'
+  },
+`
+let pref_noteTypeTags: string = '#project,#area'
+let pref_folderToStore: string = 'Summaries'
+let pref_displayGroupedByFolder: boolean = true
+let pref_displayOrder: string = 'alpha'
+
+// Constants
+const reviewListNoteTitle = '_reviews'
 
 //-----------------------------------------------------------------------------
-// Helper functions
+// Import Helper functions
 import {
   RE_DATE, // find dates of form YYYY-MM-DD
   showMessage,
-  // chooseOption,
-  // todaysDateISOString,
-  // getYearMonthDate,
+  showMessageYesNo,
   hyphenatedDate,
+  nowLocaleDateTime,
+  displayTitle,
+  // calcOffsetDate,
+  // relativeDateFromNumber,
 } from '../../helperFunctions'
 
-import { returnSummaryNote } from './noteTypeSummary'
+import {
+  getOrMakeConfigurationSection
+} from '../../nmn.Templates/src/configuration'
+
+import {
+  Project,
+  returnSummaryNote,
+  findNotesMatchingHashtags
+} from './reviewHelpers'
+
+
+
+//-------------------------------------------------------------------------------
+// Create human-readable lists of project notes for each tag of interest
+async function getConfig(): Promise<void> {
+    // Get config settings from Template folder _configuration note
+  const reviewConfig = await getOrMakeConfigurationSection(
+    'review',
+    DEFAULT_REVIEW_OPTIONS,
+  )
+  if (reviewConfig == null) {
+    console.log("\tCouldn't find 'review' settings in _configuration note.")
+    await showMessage("Couldn't find 'review' settings in _configuration note.")
+    return
+  }
+  console.log("\tFound 'review' settings in _configuration note.")
+  // now get the settings we need
+  if (reviewConfig.noteTypeTags != null &&
+    typeof reviewConfig.noteTypeTags === 'string') {
+      pref_noteTypeTags = reviewConfig.noteTypeTags
+  }
+  console.log(pref_noteTypeTags)
+  if (reviewConfig.folderToStore != null &&
+    typeof reviewConfig.folderToStore === 'string') {
+    pref_folderToStore = reviewConfig.folderToStore
+  }
+  console.log(pref_folderToStore)
+  if (reviewConfig.displayGroupedByFolder != null &&
+    typeof reviewConfig.displayGroupedByFolder === 'boolean') {
+    pref_displayGroupedByFolder = reviewConfig.displayGroupedByFolder
+  }
+  console.log(pref_displayGroupedByFolder)
+  if (reviewConfig.displayOrder != null &&
+    typeof reviewConfig.displayOrder === 'string') {
+    pref_displayOrder = reviewConfig.displayOrder
+  }
+  console.log(pref_displayOrder)
+}
+
+//-------------------------------------------------------------------------------
+// Create human-readable lists of project notes for each tag of interest
+export async function projectLists(): Promise<void> {
+  getConfig()
+  console.log(`\nprojectLists with pref_noteTypeTags = '${pref_noteTypeTags}':`)
+
+  if (pref_noteTypeTags != null && pref_noteTypeTags !== '') {
+    // We have defined tag(s) to filter and group by
+    const tags = pref_noteTypeTags.split(',')
+
+    for (const tag of tags) {
+      // Do the main work
+      const tagName = tag.slice(1) // remove leading # character
+      const noteTitle = `'${tagName}' notes summary`
+      const note: ?TNote = await returnSummaryNote(noteTitle, pref_folderToStore)
+      if (note != null) {
+        // Calculate the Summary list(s)
+        const outputArray = makeNoteTypeSummary(tag)
+        outputArray.unshift(`# ${noteTitle}`)
+
+        // Save the list(s) to this note
+        console.log(`\twriting results to the note with filename '${note.filename}'`)
+        note.content = outputArray.join('\n')
+        console.log(`\twritten results to note '${noteTitle}'`)
+      } else {
+        showMessage('Oops: failed to find or make project summary note', 'OK')
+        console.log(
+          "projectLists: error: shouldn't get here -- no valid note to write to",
+        )
+        return
+      }
+    }
+  } else {
+    // We will just use all notes with a @review() string, in one go     
+    const noteTitle = `Review notes summary`
+    const note: ?TNote = await returnSummaryNote(noteTitle, pref_folderToStore)
+    if (note != null) {
+      // Calculate the Summary list(s)
+      const outputArray = makeNoteTypeSummary('')
+      outputArray.unshift(`# ${noteTitle}`)
+
+      // Save the list(s) to this note
+      console.log(`\twriting results to the note with filename '${note.filename}'`)
+      note.content = outputArray.join('\n')
+      console.log(`\twritten results to note '${noteTitle}'`)
+    } else {
+      showMessage('Oops: failed to find or make project summary note', 'OK')
+      console.log(
+        "projectLists: error: shouldn't get here -- no valid note to write to",
+      )
+      return
+    }
+  }
+}
+
+//-------------------------------------------------------------------------------
+// Create machine-readable note listing project notes ready for review,
+// ordered by oldest next review date
+export async function startReviews() {
+  getConfig()
+  // Get or make _reviews note
+  const reviewsNote: ?TNote = await returnSummaryNote(reviewListNoteTitle, pref_folderToStore)
+  if (reviewsNote == null) {
+    showMessage(`Oops: failed to find or make _reviews note`, 'OK')
+    console.log(`\nstartReviews: error: can't get or make summary _reviews note`)
+    return
+  }
+
+  console.log(`\nstartReviews`)
+  const summaryArray = []
+  if (pref_noteTypeTags != null && pref_noteTypeTags !== '') {
+    // We have defined tag(s) to filter and group by
+    const tags = pref_noteTypeTags.split(',')
+    for (const tag of tags) {
+      // Read in all relevant notes, making Project objects
+      const notes = findNotesMatchingHashtags(tag)
+      const projectsReadyToReview = []
+      if (notes.length > 0) {
+        // Get Project class representation of each note,
+        // saving those which are ready for review in array
+        for (const n of notes) {
+          const np = new Project(n)
+          if (np.isReadyForReview) {
+            projectsReadyToReview.push(np)
+          }
+        }
+      }
+      // For each readyToReview note get the machine-readable summary line for it
+      for (const np of projectsReadyToReview) {
+        summaryArray.push(np.basicSummaryLine())
+        // console.log(np.basicSummaryLine())
+      }
+    }
+  } else {
+    // We will just use all notes with a @review() string, in one go
+    // Read in all relevant notes, making Project objects
+    const notes = findNotesMatchingHashtags('')
+    const projectsReadyToReview = []
+    if (notes.length > 0) {
+      // Get Project class representation of each note,
+      // saving those which are ready for review in array
+      for (const n of notes) {
+        const np = new Project(n)
+        if (np.isReadyForReview) {
+          projectsReadyToReview.push(np)
+        }
+      }
+    }
+    // For each readyToReview note get the machine-readable summary line for it
+    for (const np of projectsReadyToReview) {
+      summaryArray.push(np.basicSummaryLine())
+      // console.log(np.basicSummaryLine())
+    }
+  }
+  // sort the list
+  const outputArray = summaryArray.slice().sort(
+    // $FlowIgnore[unsafe-addition]
+    (first, second) => first.split('\t')[0] - second.split('\t')[0]) // order by first field
+    
+  // write summary to _reviews notes
+  outputArray.push("```")
+  outputArray.unshift("```")
+  outputArray.unshift("---")
+  outputArray.unshift(`Last updated: ${nowLocaleDateTime}`)
+  outputArray.unshift(`_NB: Do not edit manually. This is a machine-readable list of notes to review, used by \`/start review\` and \`/next review\` Plugin commands._`)
+  outputArray.unshift(`# _reviews`)
+  reviewsNote.content = outputArray.join('\n')
+  console.log(`\twritten ${summaryArray.length} summary lines to note '${reviewListNoteTitle}'`)
+
+  // Now trigger first review
+  const noteToReview = await getNextNoteToReview()
+  // Open that note in editor
+  if (noteToReview != null) {
+    Editor.openNoteByFilename(noteToReview.filename)
+  } else {
+    console.log('🎉 No notes to review!')
+    await showMessage('🎉 No notes to review!')
+  }
+}
+
+//-------------------------------------------------------------------------------
+// Return summary of notes that contain a particular tag, for all
+// relevant folders
+function makeNoteTypeSummary(noteTag: string): Array<string> {
+  console.log(`\nmakeNoteTypeSummary for '${noteTag}'`)
+
+  let noteCount = 0
+  let overdue = 0
+  const outputArray: Array<string> = []
+
+  // if we want a summary broken down by folder, create list of folders
+  // otherwise use a single folder
+  const folderList = pref_displayGroupedByFolder ? DataStore.folders : ['/']
+  // console.log(`${folderList.length} folders`)
+  // Iterate over the folders
+  for (const folder of folderList) {
+    const notes = findNotesMatchingHashtags(noteTag, folder)
+    if (notes.length > 0) {
+      // Create array of Project class representation of each note,
+      // ignoring any marked as .isArchived
+      const projects = []
+      for (const note of notes) {
+        const np = new Project(note)
+        if (!np.isArchived) {
+          projects.push(np)
+        }
+        if (np.nextReviewDays != null && np.nextReviewDays < 0) {
+          overdue += 1
+        }
+      }
+      // sort this array by key set in pref_displayOrder
+      let sortedProjects = []
+      // NB: the Compare function needs to return negative, zero, or positive values. 
+      switch (pref_displayOrder) {
+        case 'due': {
+          sortedProjects = projects.sort(
+            (first, second) => (first.dueDays ?? 0) - (second.dueDays ?? 0))
+          break
+        }
+        case 'review': {
+          sortedProjects = projects.sort(
+            (first, second) => (first.nextReviewDays ?? 0) - (second.nextReviewDays ?? 0))
+          break
+        }
+        default: {
+          sortedProjects = projects.sort(
+            (first, second) => (first.title ?? '').localeCompare(second.title ?? ''))
+          break
+        }
+      }
+      if (pref_displayGroupedByFolder) {
+        outputArray.push(`### ${folder} (${sortedProjects.length} notes)`)
+      }
+      // iterate over this folder's notes, using Class functions
+      for (const p of sortedProjects) {
+        outputArray.push(p.detailedSummaryLine())
+      }
+      noteCount += sortedProjects.length
+    }
+  }
+
+  // Add summary/ies onto the start (remember: unshift adds to the very front each time)
+  outputArray.unshift(`_Key:\tTitle\t# open / complete / waiting tasks / next review date / due date_`)
+  outputArray.unshift(`Total: **${noteCount} active notes**.${(overdue > 0) ? `, ${overdue} ready for review` : ''}`)
+  outputArray.unshift(`Last updated: ${nowLocaleDateTime}`)
+  if (!pref_displayGroupedByFolder) {
+    outputArray.unshift(`### All folders (${noteCount} notes)`)
+  }
+  
+  return outputArray
+}
 
 //-------------------------------------------------------------------------------
 // Complete current review, then jump to the next one to review
 export async function nextReview() {
+  console.log('\nnextReview')
   // First update @review(date) on current open note
-  const openNote: ?TNote = await editorSetReviewDate()
+  const openNote: ?TNote = await completeReview()
 
-  if (openNote == null) {
-    showMessage('Please open a note first', 'OK')
-    return
+  if (openNote != null) {
+    // Then update @review(date) in review list note
+    await updateReviewListWithComplete(openNote)
   }
-
-  // Then update @review(date) in review list note
-  await updateReviewListWithComplete(openNote)
 
   // Read review list to work out what's the next one to review
   const noteToReview: ?TNote = await getNextNoteToReview()
 
-  // Open that note in editor
+  // Offer to open that note in editor
   if (noteToReview != null) {
-    Editor.openNoteByFilename(noteToReview.filename)
+    const res = await showMessageYesNo(`Ready to review '${displayTitle(noteToReview)}'?`, ['OK', 'Cancel'])
+    if (res === 'OK') {
+      Editor.openNoteByFilename(noteToReview.filename)
+    }
   } else {
     console.log('nextReview: 🎉 No more notes to review!')
     await showMessage('🎉 No more notes to review!')
@@ -51,57 +326,84 @@ export async function nextReview() {
 //-------------------------------------------------------------------------------
 // Update the review list after completing a review
 async function updateReviewListWithComplete(note: TNote) {
-  console.log(`updateReviewListWithComplete for '${note.title ?? ''}'`)
+  const thisTitle = note.title ?? ''
+  console.log(`updateReviewListWithComplete for '${thisTitle}'`)
 
-  // TODO: does this need to be async?
+  // Get note that contains the project list (or create if not found)
+  const reviewNote: ?TNote = await returnSummaryNote(reviewListNoteTitle, pref_folderToStore)
+  if (reviewNote == null) {
+    showMessage(`Oops: I now can't find summary note _reviews`, 'OK')
+    console.log(`getNextNoteToReview: error: can't find summary note _reviews`)
+    return
+  }
+
+  // Now read contents and parse, this time as paragraphs
+  const paras = reviewNote.paragraphs
+  let inCodeblock = false
+  let lineNum: number = -1 // i.e. an invalid number
+  for (let i = 1; i < paras.length; i++) {
+    const pc = paras[i].content
+    if (pc.match('```')) { inCodeblock = !inCodeblock } // toggle state
+    if (pc.match(thisTitle) && inCodeblock) {
+      // console.log(`\tFound '${thisTitle}' in line '${pc}' at line ${i}`)
+      lineNum = i
+      break
+    }
+  }
+  if (lineNum >= 1) {
+    console.log(`\tRemove line ${lineNum} as its review is completed`)
+    reviewNote.removeParagraph(paras[lineNum])
+  } else {
+    console.log(`\tWarning: _reviews' codeblock unexpectedly missing or empty`)
+    return
+  }
 }
 
 //-------------------------------------------------------------------------------
 // Work out the next note to review (if any)
-export async function getNextNoteToReview(): Promise<?TNote> {
-  console.log(`getNextNoteToReview`)
+async function getNextNoteToReview(): Promise<?TNote> {
+  console.log(`\ngetNextNoteToReview`)
 
   // Get note that contains the project list (or create if not found)
-  // TODO: work through next pref being single or plural
-  const note: ?TNote = await returnSummaryNote(pref_noteTypeTags)
-  if (note != null) {
-    showMessage(`Oops: I now can't find summary note for ${pref_noteTypeTags}`, 'OK')
-    console.log(`getNextNoteToReview: error: can't find summary note for ${pref_noteTypeTags}`)
+  const note: ?TNote = await returnSummaryNote(reviewListNoteTitle, pref_folderToStore)
+  if (note == null) {
+    showMessage(`Oops: I now can't find summary note _reviews`, 'OK')
+    console.log(`getNextNoteToReview: error: can't find summary note _reviews`)
     return
   }
-  // Check date on project list: if its more than (say) 3 days old, offer to recreate it
-  // TODO
-  // console.log(`\tFound existing summary note, ... days old`)
 
   // Now read contents and parse
-  console.log(`\tAbout to read summary note ${note.title}`)
   // Get first code block and read into array
-  const firstCodeBlock = note.content.split('\n```')[1]
-  console.log(firstCodeBlock)
-  const firstCodeBlockLines = firstCodeBlock.split('\n')
-  console.log(firstCodeBlockLines)
-  if (firstCodeBlockLines.length > 0) {
-    const nextNoteTitle = firstCodeBlockLines[0]
-    console.log(`\tNext project note to review ${nextNoteTitle}`)
-    const nextNotes = DataStore.projectNoteByTitle(nextNoteTitle, true, false) ?? []
-    return nextNotes[0]
+  const firstCodeBlock = note.content?.split('\n```')[1]
+  // console.log(firstCodeBlock)
+  if (firstCodeBlock != null && firstCodeBlock !== '') {
+    const firstCodeBlockLines = firstCodeBlock.split('\n')
+    if (firstCodeBlockLines.length >= 1) {
+      const nextNoteTitle = firstCodeBlockLines[1].split('\t')[1] // ignore first line as it will be ```
+      console.log(`\tNext project note to review = '${nextNoteTitle}'`)
+      const nextNotes = DataStore.projectNoteByTitle(nextNoteTitle, true, false) ?? []
+      return nextNotes[0]
+    } else {
+      return
+    }
   } else {
+    console.log(`info: _reviews note codeblock was empty`)
     return
   }
 }
 
 //-------------------------------------------------------------------------------
 // Update the @reviewed(date) in the note in the Editor to today's date
-export async function editorSetReviewDate(): Promise<?TNote> {
+export async function completeReview(): Promise<?TNote> {
   const reviewMentionString = '@reviewed'
   const RE_REVIEW_MENTION = `${reviewMentionString}\\(${RE_DATE}\\)`
-  const reviewedTodayString = `${reviewMentionString}(${hyphenatedDate(
-    new Date(),
-  )})`
+  const reviewedTodayString = `${reviewMentionString}(${hyphenatedDate(new Date())})`
+
+  // TODO: Ideally add a check for project completion, and react accordingly
 
   // only proceed if we're in a valid Project note (with at least 2 lines)
   if (Editor.note == null || Editor.note.type === 'Calendar' || Editor.paragraphs?.length < 2 ) {
-    return undefined
+    return
   }
 
   let metadataPara: ?TParagraph
@@ -114,7 +416,6 @@ export async function editorSetReviewDate(): Promise<?TNote> {
     // find line in currently open note containing @reviewed() mention
     const firstMatch = firstReviewedMention
     // which line is this in?
-
     for (const para of Editor.paragraphs) {
       if (para.content.match(RE_REVIEW_MENTION)) {
         metadataPara = para
@@ -124,8 +425,12 @@ export async function editorSetReviewDate(): Promise<?TNote> {
       }
     }
     if (metadataPara == null) {
-      // What if Editor.paragraphs is an empty array?
-      return null
+      // If no metadataPara found, then insert one straight after the title
+      console.log(
+      `\tCan't find an existing metadata line, so will insert a new second line for it`,
+      )
+      Editor.insertParagraph('', 1, 'empty')
+      metadataPara = Editor.paragraphs[1]
     }
     const metaPara = metadataPara
     // replace with today's date
