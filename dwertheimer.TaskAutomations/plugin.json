@@ -29,11 +29,6 @@
       "name": "tst", 
       "description": "Tasks Sort by #Tag - Sort tasks on the page by hashtag", 
       "jsFunction": "sortTasksByTag",
-    },         
-    {
-      "name": "mat", 
-      "description": "Mark All Tasks (choose open or complete)", 
-      "jsFunction": "markTasks",
-    },    
+    },           
   ]
 } 
