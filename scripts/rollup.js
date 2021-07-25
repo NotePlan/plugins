@@ -2,22 +2,72 @@
 
 const fs = require('fs/promises')
 const path = require('path')
+const os = require('os')
 const inquirer = require('inquirer')
 const rollup = require('rollup')
 const commonjs = require('@rollup/plugin-commonjs')
 const { babel } = require('@rollup/plugin-babel')
 const resolve = require('@rollup/plugin-node-resolve').default
 const mkdirp = require('mkdirp')
-const username = require('os').userInfo().username
+const username = os.userInfo().username
 const { terser } = require('rollup-plugin-terser')
+const createPluginListing = require('./createPluginListing')
 
 const FOLDERS_TO_IGNORE = ['scripts', 'flow-typed', 'node_modules']
 const rootFolderPath = path.join(__dirname, '..')
 
 let watcher
 
+/**
+ * @description Rebuild the plugin commands list, checking for collisions. Runs every time a plugin is updated
+ * @param {string} pluginPath
+ * @returns {Promise<void>}
+ * @private
+ */
+async function checkPluginList(pluginPaths) {
+  const pluginCommands = {}
+  for (const pluginPath of pluginPaths) {
+    const jsonFile = path.join(pluginPath, 'plugin.json')
+    let pluginFile
+    try {
+      pluginFile = await JSON.parse(await fs.readFile(jsonFile, 'utf8'))
+      // console.log(`Read file ${pluginPath}`)
+    } catch (e) {
+      console.log(e)
+    }
+    // console.log(`**** READ\n${JSON.stringify(pluginFile)}`)
+    if (pluginFile) {
+      pluginFile['plugin.commands']?.forEach((command) => {
+        if (pluginCommands[command.name]) {
+          console.log(
+            `\n!!!!\nCommand collison: "${command.name}" exists already!`,
+          )
+          console.log(
+            `\tTrying to add: "${command.name}" from ${path.basename(
+              pluginPath,
+            )}`,
+          )
+          console.log(
+            `\tConflicts with "${pluginCommands[command.name].name}" in ${
+              pluginCommands[command.name].folder
+            }\nCommand will be added & will work but should should be changed to be unique!!!\n`,
+          )
+        } else {
+          pluginCommands[command.name] = command
+          pluginCommands[command.name].folder = path.basename(pluginPath)
+          pluginCommands[command.name].pluginName = pluginFile['plugin.name']
+        }
+      })
+    } else {
+      console.log(
+        `^^^ checkPluginList: For some reason could not parse file at: ${pluginPath}`,
+      )
+    }
+  }
+  await createPluginListing(pluginCommands)
+}
+
 async function main() {
-  console.log
   const rootFolder = await fs.readdir(rootFolderPath, {
     withFileTypes: true,
   })
@@ -78,6 +128,8 @@ async function main() {
           path.join(outputFolder, 'plugin.json'),
           path.join(targetFolder, 'plugin.json'),
         )
+        await checkPluginList(bundledPlugins)
+
         console.log(
           `Generated "${outputFile.replace(
             rootFolder,
