@@ -17,7 +17,7 @@ module.exports = async function createPluginListing(commandList) {
       tableStr += `| \`${command.name}\` | ${command.description} | ${command.pluginName} |\n`
     }
     const outputString = `# Plugin Command List\n\n${tableStr}`
-    console.log(`${outputString}`)
+    // console.log(`${outputString}`)
     try {
       await fs.writeFile(
         path.resolve(__dirname, pluginListingFile),
