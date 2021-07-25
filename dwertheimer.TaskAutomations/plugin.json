@@ -13,22 +13,22 @@
     {
       "name": "ts", 
       "description": "Tasks Sort - Sort tasks on the page (e.g. after a sweep)", 
-      "jsFunction": "sortTasks",
+      "jsFunction": "sortTasks"
     },  
     {
       "name": "mat", 
       "description": "Mark All Tasks (choose open or complete)", 
-      "jsFunction": "markTasks",
+      "jsFunction": "markTasks"
     },  
     {
       "name": "tsm", 
       "description": "Tasks Sort by @Mention - Sort tasks on the page by mention/person", 
-      "jsFunction": "sortTasksByPerson",
+      "jsFunction": "sortTasksByPerson"
     },  
     {
       "name": "tst", 
       "description": "Tasks Sort by #Tag - Sort tasks on the page by hashtag", 
-      "jsFunction": "sortTasksByTag",
-    },           
+      "jsFunction": "sortTasksByTag"
+    }           
   ]
 } 
