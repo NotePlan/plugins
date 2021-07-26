@@ -2,7 +2,7 @@
 
 | Command Name | Description | Plugin |
 | --- | --- | --- |
-| `complete project review` | updates the current open project's @reviewed() date. | 🔬GTD Review |
+| `complete project review` | update project's @reviewed() date (GTD) | 🔬Review Projects |
 | `date` | Insert date (without time) at cursor | 📅 Date Automations |
 | `dayReview` | Ask journal questions for an end-of-day review (requires configuring) | ☀️ Daily Journal |
 | `dayStart` | Start today's daily note with a template (requires configuring) | ☀️ Daily Journal |
@@ -23,11 +23,12 @@
 | `mn` | Moves the currently opened (non-calendar) note to a folder you select | 📙 Note Helpers |
 | `mp` | move (file) paragraphs to different notes | 🗃 Filer |
 | `nc` | Counts of all the notes in NotePlan | 🔢 Note Statistics |
-| `next project review` | updates this project's @reviewed() date, and jump to next project to review. | 🔬GTD Review |
+| `next project review` | update this project's @reviewed() date, and jump to next project review (GTD) | 🔬Review Projects |
 | `nn` | Create new note with title, in chosen folder with optional template | 🔩 Templates |
 | `nns` | New note from selection (and leave link to it in its place) | 🗃 Filer |
 | `now` | Insert (human readable) date+time at cursor | 📅 Date Automations |
-| `project lists` | creates/updates a human-readable list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete. | 🔬GTD Review |
+| `prepare GTD review` | prepare project list for GTD review | 🔬GTD Review |
+| `prepare for review` | prepare lists of project notes ready for review | 🔬Review Projects |
 | `qad` | Quickly append a task to a chosen daily note | ⚡️ Quick Capture |
 | `qaj` | Quickly append text to the Journal in today's note | ⚡️ Quick Capture |
 | `qalh` | Quickly add text at the top of a chosen note's heading | ⚡️ Quick Capture |
@@ -36,7 +37,6 @@
 | `qpd` | Quickly prepend a task to a chosen daily note | ⚡️ Quick Capture |
 | `qpt` | Quickly prepend a task to a chosen project note | ⚡️ Quick Capture |
 | `rpt` | Generate new @repeat() tasks from completed ones | 🔁 @repeat Extensions |
-| `start reviews` | creates/updates a machine-readable list of notes ready for review, and kicks off review of the first project note | 🔬GTD Review |
 | `stp` | Show stats of tags and mentions over a time period | 🔢 Note Statistics |
 | `swa` | Reschedule multiple notes interactively to today | 🧹 Task Sweeper |
 | `swt` | Move all open tasks from current note to today | 🧹 Task Sweeper |
