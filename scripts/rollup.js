@@ -13,7 +13,12 @@ const username = os.userInfo().username
 const { terser } = require('rollup-plugin-terser')
 const createPluginListing = require('./createPluginListing')
 
-const FOLDERS_TO_IGNORE = ['scripts', 'flow-typed', 'node_modules']
+const FOLDERS_TO_IGNORE = [
+  'scripts',
+  'flow-typed',
+  'node_modules',
+  'np.plugin-flow-skeleton',
+]
 const rootFolderPath = path.join(__dirname, '..')
 
 let watcher
@@ -220,7 +225,6 @@ function getConfig(pluginPath) {
       resolve({
         browser: false,
       }),
-      terser(),
     ],
     context: 'this',
   }
