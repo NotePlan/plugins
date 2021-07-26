@@ -225,7 +225,6 @@ function getConfig(pluginPath) {
       resolve({
         browser: false,
       }),
-      terser(),
     ],
     context: 'this',
   }
