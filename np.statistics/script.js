@@ -1,2 +1,10440 @@
-var exports=function(e){"use strict";async function u(e,u,t){var n,r;const{index:o}=await CommandBar.showOptions(u.map((e=>e.label)),e);return null!==(n=null===(r=u[o])||void 0===r?void 0:r.value)&&void 0!==n?n:t}async function t(e,u="OK"){return await CommandBar.showInput(e,u)}async function n(e,u="OK"){await CommandBar.showOptions([u],e)}function r(e,u){return"".concat(e.toLocaleString()," (").concat(Math.round(e/u*100),"%)")}const o=(new Date).toISOString().slice(0,10);function i(e){return e.slice(0,8)}(new Date).toISOString().slice(0,16);const a=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];function c(e){return a[e-1]}function s(e,u,t){return e>=u&&e<=t}function l(e){return"Calendar"===e.type&&null!=e.date?function(e){const{year:u,month:t,date:n}=function(e){return{year:e.getFullYear(),month:e.getMonth()+1,date:e.getDate()}}(e);return"".concat(u,"-").concat(t<10?"0":"").concat(t,"-").concat(n<10?"0":"").concat(n)}(e.date):null!==(u=e.title)&&void 0!==u?u:"";var u}var D=function(){function e(e,u,t,n,r,o){this.message=e,this.expected=u,this.found=t,this.offset=n,this.line=r,this.column=o,this.name="SyntaxError"}return function(e,u){function t(){this.constructor=e}t.prototype=u.prototype,e.prototype=new t}(e,Error),{SyntaxError:e,parse:function(u){var t,n=arguments.length>1?arguments[1]:{},r={},o={start:Tu},i=Tu,a=function(){return kt},c=r,s="#",l={type:"literal",value:"#",description:'"#"'},D=void 0,f={type:"any",description:"any character"},d="[",p={type:"literal",value:"[",description:'"["'},C="]",h={type:"literal",value:"]",description:'"]"'},A=function(e){Nt(It("ObjectPath",e,ku,Pu))},F=function(e){Nt(It("ArrayPath",e,ku,Pu))},g=function(e,u){return e.concat(u)},E=function(e){return[e]},m=function(e){return e},v=".",B={type:"literal",value:".",description:'"."'},y="=",b={type:"literal",value:"=",description:'"="'},w=function(e,u){Nt(It("Assign",u,ku,Pu,e))},x=function(e){return e.join("")},S=function(e){return e.value},k='"""',P={type:"literal",value:'"""',description:'"\\"\\"\\""'},N=null,I=function(e){return It("String",e.join(""),ku,Pu)},j='"',T={type:"literal",value:'"',description:'"\\""'},O="'''",M={type:"literal",value:"'''",description:"\"'''\""},L="'",U={type:"literal",value:"'",description:'"\'"'},_=function(e){return e},q=function(e){return e},H="\\",J={type:"literal",value:"\\",description:'"\\\\"'},$=function(){return""},R="e",V={type:"literal",value:"e",description:'"e"'},Y="E",W={type:"literal",value:"E",description:'"E"'},z=function(e,u){return It("Float",parseFloat(e+"e"+u),ku,Pu)},Z=function(e){return It("Float",parseFloat(e),ku,Pu)},K="+",G={type:"literal",value:"+",description:'"+"'},Q=function(e){return e.join("")},X="-",ee={type:"literal",value:"-",description:'"-"'},ue=function(e){return"-"+e.join("")},te=function(e){return It("Integer",parseInt(e,10),ku,Pu)},ne="true",re={type:"literal",value:"true",description:'"true"'},oe=function(){return It("Boolean",!0,ku,Pu)},ie="false",ae={type:"literal",value:"false",description:'"false"'},ce=function(){return It("Boolean",!1,ku,Pu)},se=function(){return It("Array",[],ku,Pu)},le=function(e){return It("Array",e?[e]:[],ku,Pu)},De=function(e){return It("Array",e,ku,Pu)},fe=function(e,u){return It("Array",e.concat(u),ku,Pu)},de=function(e){return e},pe=",",Ce={type:"literal",value:",",description:'","'},he="{",Ae={type:"literal",value:"{",description:'"{"'},Fe="}",ge={type:"literal",value:"}",description:'"}"'},Ee=function(e){return It("InlineTable",e,ku,Pu)},me=function(e,u){return It("InlineTableValue",u,ku,Pu,e)},ve=function(e){return"."+e},Be=function(e){return e.join("")},ye=":",be={type:"literal",value:":",description:'":"'},we=function(e){return e.join("")},xe="T",Se={type:"literal",value:"T",description:'"T"'},ke="Z",Pe={type:"literal",value:"Z",description:'"Z"'},Ne=function(e,u){return It("Date",new Date(e+"T"+u+"Z"),ku,Pu)},Ie=function(e,u){return It("Date",new Date(e+"T"+u),ku,Pu)},je=/^[ \t]/,Te={type:"class",value:"[ \\t]",description:"[ \\t]"},Oe="\n",Me={type:"literal",value:"\n",description:'"\\n"'},Le="\r",Ue={type:"literal",value:"\r",description:'"\\r"'},_e=/^[0-9a-f]/i,qe={type:"class",value:"[0-9a-f]i",description:"[0-9a-f]i"},He=/^[0-9]/,Je={type:"class",value:"[0-9]",description:"[0-9]"},$e="_",Re={type:"literal",value:"_",description:'"_"'},Ve=function(){return""},Ye=/^[A-Za-z0-9_\-]/,We={type:"class",value:"[A-Za-z0-9_\\-]",description:"[A-Za-z0-9_\\-]"},ze=function(e){return e.join("")},Ze='\\"',Ke={type:"literal",value:'\\"',description:'"\\\\\\""'},Ge=function(){return'"'},Qe="\\\\",Xe={type:"literal",value:"\\\\",description:'"\\\\\\\\"'},eu=function(){return"\\"},uu="\\b",tu={type:"literal",value:"\\b",description:'"\\\\b"'},nu=function(){return"\b"},ru="\\t",ou={type:"literal",value:"\\t",description:'"\\\\t"'},iu=function(){return"\t"},au="\\n",cu={type:"literal",value:"\\n",description:'"\\\\n"'},su=function(){return"\n"},lu="\\f",Du={type:"literal",value:"\\f",description:'"\\\\f"'},fu=function(){return"\f"},du="\\r",pu={type:"literal",value:"\\r",description:'"\\\\r"'},Cu=function(){return"\r"},hu="\\U",Au={type:"literal",value:"\\U",description:'"\\\\U"'},Fu=function(e){return jt(e.join(""))},gu="\\u",Eu={type:"literal",value:"\\u",description:'"\\\\u"'},mu=0,vu=0,Bu=0,yu={line:1,column:1,seenCR:!1},bu=0,wu=[],xu=0,Su={};if("startRule"in n){if(!(n.startRule in o))throw new Error("Can't start parsing from rule \""+n.startRule+'".');i=o[n.startRule]}function ku(){return Nu(vu).line}function Pu(){return Nu(vu).column}function Nu(e){return Bu!==e&&(Bu>e&&(Bu=0,yu={line:1,column:1,seenCR:!1}),function(e,t,n){var r,o;for(r=t;r<n;r++)"\n"===(o=u.charAt(r))?(e.seenCR||e.line++,e.column=1,e.seenCR=!1):"\r"===o||"\u2028"===o||"\u2029"===o?(e.line++,e.column=1,e.seenCR=!0):(e.column++,e.seenCR=!1)}(yu,Bu,e),Bu=e),yu}function Iu(e){mu<bu||(mu>bu&&(bu=mu,wu=[]),wu.push(e))}function ju(t,n,r){var o=Nu(r),i=r<u.length?u.charAt(r):null;return null!==n&&function(e){var u=1;for(e.sort((function(e,u){return e.description<u.description?-1:e.description>u.description?1:0}));u<e.length;)e[u-1]===e[u]?e.splice(u,1):u++}(n),new e(null!==t?t:function(e,u){var t,n=new Array(e.length);for(t=0;t<e.length;t++)n[t]=e[t].description;return"Expected "+(e.length>1?n.slice(0,-1).join(", ")+" or "+n[e.length-1]:n[0])+" but "+(u?'"'+function(e){function u(e){return e.charCodeAt(0).toString(16).toUpperCase()}return e.replace(/\\/g,"\\\\").replace(/"/g,'\\"').replace(/\x08/g,"\\b").replace(/\t/g,"\\t").replace(/\n/g,"\\n").replace(/\f/g,"\\f").replace(/\r/g,"\\r").replace(/[\x00-\x07\x0B\x0E\x0F]/g,(function(e){return"\\x0"+u(e)})).replace(/[\x10-\x1F\x80-\xFF]/g,(function(e){return"\\x"+u(e)})).replace(/[\u0180-\u0FFF]/g,(function(e){return"\\u0"+u(e)})).replace(/[\u1080-\uFFFF]/g,(function(e){return"\\u"+u(e)}))}(u)+'"':"end of input")+" found."}(n,i),n,i,r,o.line,o.column)}function Tu(){var e,u,t,n=49*mu+0,o=Su[n];if(o)return mu=o.nextPos,o.result;for(e=mu,u=[],t=Ou();t!==r;)u.push(t),t=Ou();return u!==r&&(vu=e,u=a()),e=u,Su[n]={nextPos:mu,result:e},e}function Ou(){var e,u,t,n,o,i,a,s=49*mu+1,l=Su[s];if(l)return mu=l.nextPos,l.result;for(e=mu,u=[],t=gt();t!==r;)u.push(t),t=gt();if(u!==r)if((t=Mu())!==r){for(n=[],o=gt();o!==r;)n.push(o),o=gt();if(n!==r){for(o=[],i=Lu();i!==r;)o.push(i),i=Lu();if(o!==r){if(i=[],(a=Et())!==r)for(;a!==r;)i.push(a),a=Et();else i=c;i===r&&(i=vt()),i!==r?e=u=[u,t,n,o,i]:(mu=e,e=c)}else mu=e,e=c}else mu=e,e=c}else mu=e,e=c;else mu=e,e=c;if(e===r){if(e=mu,u=[],(t=gt())!==r)for(;t!==r;)u.push(t),t=gt();else u=c;if(u!==r){if(t=[],(n=Et())!==r)for(;n!==r;)t.push(n),n=Et();else t=c;t===r&&(t=vt()),t!==r?e=u=[u,t]:(mu=e,e=c)}else mu=e,e=c;e===r&&(e=Et())}return Su[s]={nextPos:mu,result:e},e}function Mu(){var e,u=49*mu+2,t=Su[u];return t?(mu=t.nextPos,t.result):((e=Lu())===r&&(e=Uu())===r&&(e=_u())===r&&(e=$u()),Su[u]={nextPos:mu,result:e},e)}function Lu(){var e,t,n,o,i,a,d=49*mu+3,p=Su[d];if(p)return mu=p.nextPos,p.result;if(e=mu,35===u.charCodeAt(mu)?(t=s,mu++):(t=r,0===xu&&Iu(l)),t!==r){for(n=[],o=mu,i=mu,xu++,(a=Et())===r&&(a=vt()),xu--,a===r?i=D:(mu=i,i=c),i!==r?(u.length>mu?(a=u.charAt(mu),mu++):(a=r,0===xu&&Iu(f)),a!==r?o=i=[i,a]:(mu=o,o=c)):(mu=o,o=c);o!==r;)n.push(o),o=mu,i=mu,xu++,(a=Et())===r&&(a=vt()),xu--,a===r?i=D:(mu=i,i=c),i!==r?(u.length>mu?(a=u.charAt(mu),mu++):(a=r,0===xu&&Iu(f)),a!==r?o=i=[i,a]:(mu=o,o=c)):(mu=o,o=c);n!==r?e=t=[t,n]:(mu=e,e=c)}else mu=e,e=c;return Su[d]={nextPos:mu,result:e},e}function Uu(){var e,t,n,o,i,a,s=49*mu+4,l=Su[s];if(l)return mu=l.nextPos,l.result;if(e=mu,91===u.charCodeAt(mu)?(t=d,mu++):(t=r,0===xu&&Iu(p)),t!==r){for(n=[],o=gt();o!==r;)n.push(o),o=gt();if(n!==r)if((o=qu())!==r){for(i=[],a=gt();a!==r;)i.push(a),a=gt();i!==r?(93===u.charCodeAt(mu)?(a=C,mu++):(a=r,0===xu&&Iu(h)),a!==r?(vu=e,e=t=A(o)):(mu=e,e=c)):(mu=e,e=c)}else mu=e,e=c;else mu=e,e=c}else mu=e,e=c;return Su[s]={nextPos:mu,result:e},e}function _u(){var e,t,n,o,i,a,s,l,D=49*mu+5,f=Su[D];if(f)return mu=f.nextPos,f.result;if(e=mu,91===u.charCodeAt(mu)?(t=d,mu++):(t=r,0===xu&&Iu(p)),t!==r)if(91===u.charCodeAt(mu)?(n=d,mu++):(n=r,0===xu&&Iu(p)),n!==r){for(o=[],i=gt();i!==r;)o.push(i),i=gt();if(o!==r)if((i=qu())!==r){for(a=[],s=gt();s!==r;)a.push(s),s=gt();a!==r?(93===u.charCodeAt(mu)?(s=C,mu++):(s=r,0===xu&&Iu(h)),s!==r?(93===u.charCodeAt(mu)?(l=C,mu++):(l=r,0===xu&&Iu(h)),l!==r?(vu=e,e=t=F(i)):(mu=e,e=c)):(mu=e,e=c)):(mu=e,e=c)}else mu=e,e=c;else mu=e,e=c}else mu=e,e=c;else mu=e,e=c;return Su[D]={nextPos:mu,result:e},e}function qu(){var e,u,t,n=49*mu+6,o=Su[n];if(o)return mu=o.nextPos,o.result;if(e=mu,u=[],(t=Ju())!==r)for(;t!==r;)u.push(t),t=Ju();else u=c;return u!==r&&(t=Hu())!==r?(vu=e,e=u=g(u,t)):(mu=e,e=c),e===r&&(e=mu,(u=Hu())!==r&&(vu=e,u=E(u)),e=u),Su[n]={nextPos:mu,result:e},e}function Hu(){var e,u,t,n,o,i=49*mu+7,a=Su[i];if(a)return mu=a.nextPos,a.result;for(e=mu,u=[],t=gt();t!==r;)u.push(t),t=gt();if(u!==r)if((t=Ru())!==r){for(n=[],o=gt();o!==r;)n.push(o),o=gt();n!==r?(vu=e,e=u=m(t)):(mu=e,e=c)}else mu=e,e=c;else mu=e,e=c;if(e===r){for(e=mu,u=[],t=gt();t!==r;)u.push(t),t=gt();if(u!==r)if((t=Vu())!==r){for(n=[],o=gt();o!==r;)n.push(o),o=gt();n!==r?(vu=e,e=u=m(t)):(mu=e,e=c)}else mu=e,e=c;else mu=e,e=c}return Su[i]={nextPos:mu,result:e},e}function Ju(){var e,t,n,o,i,a,s,l=49*mu+8,D=Su[l];if(D)return mu=D.nextPos,D.result;for(e=mu,t=[],n=gt();n!==r;)t.push(n),n=gt();if(t!==r)if((n=Ru())!==r){for(o=[],i=gt();i!==r;)o.push(i),i=gt();if(o!==r)if(46===u.charCodeAt(mu)?(i=v,mu++):(i=r,0===xu&&Iu(B)),i!==r){for(a=[],s=gt();s!==r;)a.push(s),s=gt();a!==r?(vu=e,e=t=m(n)):(mu=e,e=c)}else mu=e,e=c;else mu=e,e=c}else mu=e,e=c;else mu=e,e=c;if(e===r){for(e=mu,t=[],n=gt();n!==r;)t.push(n),n=gt();if(t!==r)if((n=Vu())!==r){for(o=[],i=gt();i!==r;)o.push(i),i=gt();if(o!==r)if(46===u.charCodeAt(mu)?(i=v,mu++):(i=r,0===xu&&Iu(B)),i!==r){for(a=[],s=gt();s!==r;)a.push(s),s=gt();a!==r?(vu=e,e=t=m(n)):(mu=e,e=c)}else mu=e,e=c;else mu=e,e=c}else mu=e,e=c;else mu=e,e=c}return Su[l]={nextPos:mu,result:e},e}function $u(){var e,t,n,o,i,a,s=49*mu+9,l=Su[s];if(l)return mu=l.nextPos,l.result;if(e=mu,(t=Ru())!==r){for(n=[],o=gt();o!==r;)n.push(o),o=gt();if(n!==r)if(61===u.charCodeAt(mu)?(o=y,mu++):(o=r,0===xu&&Iu(b)),o!==r){for(i=[],a=gt();a!==r;)i.push(a),a=gt();i!==r&&(a=Yu())!==r?(vu=e,e=t=w(t,a)):(mu=e,e=c)}else mu=e,e=c;else mu=e,e=c}else mu=e,e=c;if(e===r)if(e=mu,(t=Vu())!==r){for(n=[],o=gt();o!==r;)n.push(o),o=gt();if(n!==r)if(61===u.charCodeAt(mu)?(o=y,mu++):(o=r,0===xu&&Iu(b)),o!==r){for(i=[],a=gt();a!==r;)i.push(a),a=gt();i!==r&&(a=Yu())!==r?(vu=e,e=t=w(t,a)):(mu=e,e=c)}else mu=e,e=c;else mu=e,e=c}else mu=e,e=c;return Su[s]={nextPos:mu,result:e},e}function Ru(){var e,u,t,n=49*mu+10,o=Su[n];if(o)return mu=o.nextPos,o.result;if(e=mu,u=[],(t=bt())!==r)for(;t!==r;)u.push(t),t=bt();else u=c;return u!==r&&(vu=e,u=x(u)),e=u,Su[n]={nextPos:mu,result:e},e}function Vu(){var e,u,t=49*mu+11,n=Su[t];return n?(mu=n.nextPos,n.result):(e=mu,(u=Zu())!==r&&(vu=e,u=S(u)),(e=u)===r&&(e=mu,(u=Gu())!==r&&(vu=e,u=S(u)),e=u),Su[t]={nextPos:mu,result:e},e)}function Yu(){var e,u=49*mu+12,t=Su[u];return t?(mu=t.nextPos,t.result):((e=Wu())===r&&(e=Ft())===r&&(e=nt())===r&&(e=ot())===r&&(e=at())===r&&(e=ct())===r&&(e=ft()),Su[u]={nextPos:mu,result:e},e)}function Wu(){var e,u=49*mu+13,t=Su[u];return t?(mu=t.nextPos,t.result):((e=zu())===r&&(e=Zu())===r&&(e=Ku())===r&&(e=Gu()),Su[u]={nextPos:mu,result:e},e)}function zu(){var e,t,n,o,i,a=49*mu+14,s=Su[a];if(s)return mu=s.nextPos,s.result;if(e=mu,u.substr(mu,3)===k?(t=k,mu+=3):(t=r,0===xu&&Iu(P)),t!==r)if((n=Et())===r&&(n=N),n!==r){for(o=[],i=et();i!==r;)o.push(i),i=et();o!==r?(u.substr(mu,3)===k?(i=k,mu+=3):(i=r,0===xu&&Iu(P)),i!==r?(vu=e,e=t=I(o)):(mu=e,e=c)):(mu=e,e=c)}else mu=e,e=c;else mu=e,e=c;return Su[a]={nextPos:mu,result:e},e}function Zu(){var e,t,n,o,i=49*mu+15,a=Su[i];if(a)return mu=a.nextPos,a.result;if(e=mu,34===u.charCodeAt(mu)?(t=j,mu++):(t=r,0===xu&&Iu(T)),t!==r){for(n=[],o=Qu();o!==r;)n.push(o),o=Qu();n!==r?(34===u.charCodeAt(mu)?(o=j,mu++):(o=r,0===xu&&Iu(T)),o!==r?(vu=e,e=t=I(n)):(mu=e,e=c)):(mu=e,e=c)}else mu=e,e=c;return Su[i]={nextPos:mu,result:e},e}function Ku(){var e,t,n,o,i,a=49*mu+16,s=Su[a];if(s)return mu=s.nextPos,s.result;if(e=mu,u.substr(mu,3)===O?(t=O,mu+=3):(t=r,0===xu&&Iu(M)),t!==r)if((n=Et())===r&&(n=N),n!==r){for(o=[],i=tt();i!==r;)o.push(i),i=tt();o!==r?(u.substr(mu,3)===O?(i=O,mu+=3):(i=r,0===xu&&Iu(M)),i!==r?(vu=e,e=t=I(o)):(mu=e,e=c)):(mu=e,e=c)}else mu=e,e=c;else mu=e,e=c;return Su[a]={nextPos:mu,result:e},e}function Gu(){var e,t,n,o,i=49*mu+17,a=Su[i];if(a)return mu=a.nextPos,a.result;if(e=mu,39===u.charCodeAt(mu)?(t=L,mu++):(t=r,0===xu&&Iu(U)),t!==r){for(n=[],o=Xu();o!==r;)n.push(o),o=Xu();n!==r?(39===u.charCodeAt(mu)?(o=L,mu++):(o=r,0===xu&&Iu(U)),o!==r?(vu=e,e=t=I(n)):(mu=e,e=c)):(mu=e,e=c)}else mu=e,e=c;return Su[i]={nextPos:mu,result:e},e}function Qu(){var e,t,n,o=49*mu+18,i=Su[o];return i?(mu=i.nextPos,i.result):((e=xt())===r&&(e=mu,t=mu,xu++,34===u.charCodeAt(mu)?(n=j,mu++):(n=r,0===xu&&Iu(T)),xu--,n===r?t=D:(mu=t,t=c),t!==r?(u.length>mu?(n=u.charAt(mu),mu++):(n=r,0===xu&&Iu(f)),n!==r?(vu=e,e=t=_(n)):(mu=e,e=c)):(mu=e,e=c)),Su[o]={nextPos:mu,result:e},e)}function Xu(){var e,t,n,o=49*mu+19,i=Su[o];return i?(mu=i.nextPos,i.result):(e=mu,t=mu,xu++,39===u.charCodeAt(mu)?(n=L,mu++):(n=r,0===xu&&Iu(U)),xu--,n===r?t=D:(mu=t,t=c),t!==r?(u.length>mu?(n=u.charAt(mu),mu++):(n=r,0===xu&&Iu(f)),n!==r?(vu=e,e=t=_(n)):(mu=e,e=c)):(mu=e,e=c),Su[o]={nextPos:mu,result:e},e)}function et(){var e,t,n,o=49*mu+20,i=Su[o];return i?(mu=i.nextPos,i.result):((e=xt())===r&&(e=ut())===r&&(e=mu,t=mu,xu++,u.substr(mu,3)===k?(n=k,mu+=3):(n=r,0===xu&&Iu(P)),xu--,n===r?t=D:(mu=t,t=c),t!==r?(u.length>mu?(n=u.charAt(mu),mu++):(n=r,0===xu&&Iu(f)),n!==r?(vu=e,e=t=q(n)):(mu=e,e=c)):(mu=e,e=c)),Su[o]={nextPos:mu,result:e},e)}function ut(){var e,t,n,o,i=49*mu+21,a=Su[i];if(a)return mu=a.nextPos,a.result;if(e=mu,92===u.charCodeAt(mu)?(t=H,mu++):(t=r,0===xu&&Iu(J)),t!==r)if(Et()!==r){for(n=[],o=mt();o!==r;)n.push(o),o=mt();n!==r?(vu=e,e=t=$()):(mu=e,e=c)}else mu=e,e=c;else mu=e,e=c;return Su[i]={nextPos:mu,result:e},e}function tt(){var e,t,n,o=49*mu+22,i=Su[o];return i?(mu=i.nextPos,i.result):(e=mu,t=mu,xu++,u.substr(mu,3)===O?(n=O,mu+=3):(n=r,0===xu&&Iu(M)),xu--,n===r?t=D:(mu=t,t=c),t!==r?(u.length>mu?(n=u.charAt(mu),mu++):(n=r,0===xu&&Iu(f)),n!==r?(vu=e,e=t=_(n)):(mu=e,e=c)):(mu=e,e=c),Su[o]={nextPos:mu,result:e},e)}function nt(){var e,t,n,o,i=49*mu+23,a=Su[i];return a?(mu=a.nextPos,a.result):(e=mu,(t=rt())===r&&(t=it()),t!==r?(101===u.charCodeAt(mu)?(n=R,mu++):(n=r,0===xu&&Iu(V)),n===r&&(69===u.charCodeAt(mu)?(n=Y,mu++):(n=r,0===xu&&Iu(W))),n!==r&&(o=it())!==r?(vu=e,e=t=z(t,o)):(mu=e,e=c)):(mu=e,e=c),e===r&&(e=mu,(t=rt())!==r&&(vu=e,t=Z(t)),e=t),Su[i]={nextPos:mu,result:e},e)}function rt(){var e,t,n,o,i,a,s=49*mu+24,l=Su[s];return l?(mu=l.nextPos,l.result):(e=mu,43===u.charCodeAt(mu)?(t=K,mu++):(t=r,0===xu&&Iu(G)),t===r&&(t=N),t!==r?(n=mu,(o=wt())!==r?(46===u.charCodeAt(mu)?(i=v,mu++):(i=r,0===xu&&Iu(B)),i!==r&&(a=wt())!==r?n=o=[o,i,a]:(mu=n,n=c)):(mu=n,n=c),n!==r?(vu=e,e=t=Q(n)):(mu=e,e=c)):(mu=e,e=c),e===r&&(e=mu,45===u.charCodeAt(mu)?(t=X,mu++):(t=r,0===xu&&Iu(ee)),t!==r?(n=mu,(o=wt())!==r?(46===u.charCodeAt(mu)?(i=v,mu++):(i=r,0===xu&&Iu(B)),i!==r&&(a=wt())!==r?n=o=[o,i,a]:(mu=n,n=c)):(mu=n,n=c),n!==r?(vu=e,e=t=ue(n)):(mu=e,e=c)):(mu=e,e=c)),Su[s]={nextPos:mu,result:e},e)}function ot(){var e,u,t=49*mu+25,n=Su[t];return n?(mu=n.nextPos,n.result):(e=mu,(u=it())!==r&&(vu=e,u=te(u)),e=u,Su[t]={nextPos:mu,result:e},e)}function it(){var e,t,n,o,i,a=49*mu+26,s=Su[a];if(s)return mu=s.nextPos,s.result;if(e=mu,43===u.charCodeAt(mu)?(t=K,mu++):(t=r,0===xu&&Iu(G)),t===r&&(t=N),t!==r){if(n=[],(o=yt())!==r)for(;o!==r;)n.push(o),o=yt();else n=c;n!==r?(o=mu,xu++,46===u.charCodeAt(mu)?(i=v,mu++):(i=r,0===xu&&Iu(B)),xu--,i===r?o=D:(mu=o,o=c),o!==r?(vu=e,e=t=Q(n)):(mu=e,e=c)):(mu=e,e=c)}else mu=e,e=c;if(e===r)if(e=mu,45===u.charCodeAt(mu)?(t=X,mu++):(t=r,0===xu&&Iu(ee)),t!==r){if(n=[],(o=yt())!==r)for(;o!==r;)n.push(o),o=yt();else n=c;n!==r?(o=mu,xu++,46===u.charCodeAt(mu)?(i=v,mu++):(i=r,0===xu&&Iu(B)),xu--,i===r?o=D:(mu=o,o=c),o!==r?(vu=e,e=t=ue(n)):(mu=e,e=c)):(mu=e,e=c)}else mu=e,e=c;return Su[a]={nextPos:mu,result:e},e}function at(){var e,t,n=49*mu+27,o=Su[n];return o?(mu=o.nextPos,o.result):(e=mu,u.substr(mu,4)===ne?(t=ne,mu+=4):(t=r,0===xu&&Iu(re)),t!==r&&(vu=e,t=oe()),(e=t)===r&&(e=mu,u.substr(mu,5)===ie?(t=ie,mu+=5):(t=r,0===xu&&Iu(ae)),t!==r&&(vu=e,t=ce()),e=t),Su[n]={nextPos:mu,result:e},e)}function ct(){var e,t,n,o,i,a=49*mu+28,s=Su[a];if(s)return mu=s.nextPos,s.result;if(e=mu,91===u.charCodeAt(mu)?(t=d,mu++):(t=r,0===xu&&Iu(p)),t!==r){for(n=[],o=Dt();o!==r;)n.push(o),o=Dt();n!==r?(93===u.charCodeAt(mu)?(o=C,mu++):(o=r,0===xu&&Iu(h)),o!==r?(vu=e,e=t=se()):(mu=e,e=c)):(mu=e,e=c)}else mu=e,e=c;if(e===r&&(e=mu,91===u.charCodeAt(mu)?(t=d,mu++):(t=r,0===xu&&Iu(p)),t!==r?((n=st())===r&&(n=N),n!==r?(93===u.charCodeAt(mu)?(o=C,mu++):(o=r,0===xu&&Iu(h)),o!==r?(vu=e,e=t=le(n)):(mu=e,e=c)):(mu=e,e=c)):(mu=e,e=c),e===r)){if(e=mu,91===u.charCodeAt(mu)?(t=d,mu++):(t=r,0===xu&&Iu(p)),t!==r){if(n=[],(o=lt())!==r)for(;o!==r;)n.push(o),o=lt();else n=c;n!==r?(93===u.charCodeAt(mu)?(o=C,mu++):(o=r,0===xu&&Iu(h)),o!==r?(vu=e,e=t=De(n)):(mu=e,e=c)):(mu=e,e=c)}else mu=e,e=c;if(e===r)if(e=mu,91===u.charCodeAt(mu)?(t=d,mu++):(t=r,0===xu&&Iu(p)),t!==r){if(n=[],(o=lt())!==r)for(;o!==r;)n.push(o),o=lt();else n=c;n!==r&&(o=st())!==r?(93===u.charCodeAt(mu)?(i=C,mu++):(i=r,0===xu&&Iu(h)),i!==r?(vu=e,e=t=fe(n,o)):(mu=e,e=c)):(mu=e,e=c)}else mu=e,e=c}return Su[a]={nextPos:mu,result:e},e}function st(){var e,u,t,n,o,i=49*mu+29,a=Su[i];if(a)return mu=a.nextPos,a.result;for(e=mu,u=[],t=Dt();t!==r;)u.push(t),t=Dt();if(u!==r)if((t=Yu())!==r){for(n=[],o=Dt();o!==r;)n.push(o),o=Dt();n!==r?(vu=e,e=u=de(t)):(mu=e,e=c)}else mu=e,e=c;else mu=e,e=c;return Su[i]={nextPos:mu,result:e},e}function lt(){var e,t,n,o,i,a,s,l=49*mu+30,D=Su[l];if(D)return mu=D.nextPos,D.result;for(e=mu,t=[],n=Dt();n!==r;)t.push(n),n=Dt();if(t!==r)if((n=Yu())!==r){for(o=[],i=Dt();i!==r;)o.push(i),i=Dt();if(o!==r)if(44===u.charCodeAt(mu)?(i=pe,mu++):(i=r,0===xu&&Iu(Ce)),i!==r){for(a=[],s=Dt();s!==r;)a.push(s),s=Dt();a!==r?(vu=e,e=t=de(n)):(mu=e,e=c)}else mu=e,e=c;else mu=e,e=c}else mu=e,e=c;else mu=e,e=c;return Su[l]={nextPos:mu,result:e},e}function Dt(){var e,u=49*mu+31,t=Su[u];return t?(mu=t.nextPos,t.result):((e=gt())===r&&(e=Et())===r&&(e=Lu()),Su[u]={nextPos:mu,result:e},e)}function ft(){var e,t,n,o,i,a,s=49*mu+32,l=Su[s];if(l)return mu=l.nextPos,l.result;if(e=mu,123===u.charCodeAt(mu)?(t=he,mu++):(t=r,0===xu&&Iu(Ae)),t!==r){for(n=[],o=gt();o!==r;)n.push(o),o=gt();if(n!==r){for(o=[],i=dt();i!==r;)o.push(i),i=dt();if(o!==r){for(i=[],a=gt();a!==r;)i.push(a),a=gt();i!==r?(125===u.charCodeAt(mu)?(a=Fe,mu++):(a=r,0===xu&&Iu(ge)),a!==r?(vu=e,e=t=Ee(o)):(mu=e,e=c)):(mu=e,e=c)}else mu=e,e=c}else mu=e,e=c}else mu=e,e=c;return Su[s]={nextPos:mu,result:e},e}function dt(){var e,t,n,o,i,a,s,l,D,f,d,p=49*mu+33,C=Su[p];if(C)return mu=C.nextPos,C.result;for(e=mu,t=[],n=gt();n!==r;)t.push(n),n=gt();if(t!==r)if((n=Ru())!==r){for(o=[],i=gt();i!==r;)o.push(i),i=gt();if(o!==r)if(61===u.charCodeAt(mu)?(i=y,mu++):(i=r,0===xu&&Iu(b)),i!==r){for(a=[],s=gt();s!==r;)a.push(s),s=gt();if(a!==r)if((s=Yu())!==r){for(l=[],D=gt();D!==r;)l.push(D),D=gt();if(l!==r)if(44===u.charCodeAt(mu)?(D=pe,mu++):(D=r,0===xu&&Iu(Ce)),D!==r){for(f=[],d=gt();d!==r;)f.push(d),d=gt();f!==r?(vu=e,e=t=me(n,s)):(mu=e,e=c)}else mu=e,e=c;else mu=e,e=c}else mu=e,e=c;else mu=e,e=c}else mu=e,e=c;else mu=e,e=c}else mu=e,e=c;else mu=e,e=c;if(e===r){for(e=mu,t=[],n=gt();n!==r;)t.push(n),n=gt();if(t!==r)if((n=Ru())!==r){for(o=[],i=gt();i!==r;)o.push(i),i=gt();if(o!==r)if(61===u.charCodeAt(mu)?(i=y,mu++):(i=r,0===xu&&Iu(b)),i!==r){for(a=[],s=gt();s!==r;)a.push(s),s=gt();a!==r&&(s=Yu())!==r?(vu=e,e=t=me(n,s)):(mu=e,e=c)}else mu=e,e=c;else mu=e,e=c}else mu=e,e=c;else mu=e,e=c}return Su[p]={nextPos:mu,result:e},e}function pt(){var e,t,n,o=49*mu+34,i=Su[o];return i?(mu=i.nextPos,i.result):(e=mu,46===u.charCodeAt(mu)?(t=v,mu++):(t=r,0===xu&&Iu(B)),t!==r&&(n=wt())!==r?(vu=e,e=t=ve(n)):(mu=e,e=c),Su[o]={nextPos:mu,result:e},e)}function Ct(){var e,t,n,o,i,a,s,l,D,f,d,p,C=49*mu+35,h=Su[C];return h?(mu=h.nextPos,h.result):(e=mu,t=mu,(n=yt())!==r&&(o=yt())!==r&&(i=yt())!==r&&(a=yt())!==r?(45===u.charCodeAt(mu)?(s=X,mu++):(s=r,0===xu&&Iu(ee)),s!==r&&(l=yt())!==r&&(D=yt())!==r?(45===u.charCodeAt(mu)?(f=X,mu++):(f=r,0===xu&&Iu(ee)),f!==r&&(d=yt())!==r&&(p=yt())!==r?t=n=[n,o,i,a,s,l,D,f,d,p]:(mu=t,t=c)):(mu=t,t=c)):(mu=t,t=c),t!==r&&(vu=e,t=Be(t)),e=t,Su[C]={nextPos:mu,result:e},e)}function ht(){var e,t,n,o,i,a,s,l,D,f,d,p=49*mu+36,C=Su[p];return C?(mu=C.nextPos,C.result):(e=mu,t=mu,(n=yt())!==r&&(o=yt())!==r?(58===u.charCodeAt(mu)?(i=ye,mu++):(i=r,0===xu&&Iu(be)),i!==r&&(a=yt())!==r&&(s=yt())!==r?(58===u.charCodeAt(mu)?(l=ye,mu++):(l=r,0===xu&&Iu(be)),l!==r&&(D=yt())!==r&&(f=yt())!==r?((d=pt())===r&&(d=N),d!==r?t=n=[n,o,i,a,s,l,D,f,d]:(mu=t,t=c)):(mu=t,t=c)):(mu=t,t=c)):(mu=t,t=c),t!==r&&(vu=e,t=we(t)),e=t,Su[p]={nextPos:mu,result:e},e)}function At(){var e,t,n,o,i,a,s,l,D,f,d,p,C,h,A,F,g,E=49*mu+37,m=Su[E];return m?(mu=m.nextPos,m.result):(e=mu,t=mu,(n=yt())!==r&&(o=yt())!==r?(58===u.charCodeAt(mu)?(i=ye,mu++):(i=r,0===xu&&Iu(be)),i!==r&&(a=yt())!==r&&(s=yt())!==r?(58===u.charCodeAt(mu)?(l=ye,mu++):(l=r,0===xu&&Iu(be)),l!==r&&(D=yt())!==r&&(f=yt())!==r?((d=pt())===r&&(d=N),d!==r?(45===u.charCodeAt(mu)?(p=X,mu++):(p=r,0===xu&&Iu(ee)),p===r&&(43===u.charCodeAt(mu)?(p=K,mu++):(p=r,0===xu&&Iu(G))),p!==r&&(C=yt())!==r&&(h=yt())!==r?(58===u.charCodeAt(mu)?(A=ye,mu++):(A=r,0===xu&&Iu(be)),A!==r&&(F=yt())!==r&&(g=yt())!==r?t=n=[n,o,i,a,s,l,D,f,d,p,C,h,A,F,g]:(mu=t,t=c)):(mu=t,t=c)):(mu=t,t=c)):(mu=t,t=c)):(mu=t,t=c)):(mu=t,t=c),t!==r&&(vu=e,t=we(t)),e=t,Su[E]={nextPos:mu,result:e},e)}function Ft(){var e,t,n,o,i,a=49*mu+38,s=Su[a];return s?(mu=s.nextPos,s.result):(e=mu,(t=Ct())!==r?(84===u.charCodeAt(mu)?(n=xe,mu++):(n=r,0===xu&&Iu(Se)),n!==r&&(o=ht())!==r?(90===u.charCodeAt(mu)?(i=ke,mu++):(i=r,0===xu&&Iu(Pe)),i!==r?(vu=e,e=t=Ne(t,o)):(mu=e,e=c)):(mu=e,e=c)):(mu=e,e=c),e===r&&(e=mu,(t=Ct())!==r?(84===u.charCodeAt(mu)?(n=xe,mu++):(n=r,0===xu&&Iu(Se)),n!==r&&(o=At())!==r?(vu=e,e=t=Ie(t,o)):(mu=e,e=c)):(mu=e,e=c)),Su[a]={nextPos:mu,result:e},e)}function gt(){var e,t=49*mu+39,n=Su[t];return n?(mu=n.nextPos,n.result):(je.test(u.charAt(mu))?(e=u.charAt(mu),mu++):(e=r,0===xu&&Iu(Te)),Su[t]={nextPos:mu,result:e},e)}function Et(){var e,t,n,o=49*mu+40,i=Su[o];return i?(mu=i.nextPos,i.result):(10===u.charCodeAt(mu)?(e=Oe,mu++):(e=r,0===xu&&Iu(Me)),e===r&&(e=mu,13===u.charCodeAt(mu)?(t=Le,mu++):(t=r,0===xu&&Iu(Ue)),t!==r?(10===u.charCodeAt(mu)?(n=Oe,mu++):(n=r,0===xu&&Iu(Me)),n!==r?e=t=[t,n]:(mu=e,e=c)):(mu=e,e=c)),Su[o]={nextPos:mu,result:e},e)}function mt(){var e,u=49*mu+41,t=Su[u];return t?(mu=t.nextPos,t.result):((e=Et())===r&&(e=gt()),Su[u]={nextPos:mu,result:e},e)}function vt(){var e,t,n=49*mu+42,o=Su[n];return o?(mu=o.nextPos,o.result):(e=mu,xu++,u.length>mu?(t=u.charAt(mu),mu++):(t=r,0===xu&&Iu(f)),xu--,t===r?e=D:(mu=e,e=c),Su[n]={nextPos:mu,result:e},e)}function Bt(){var e,t=49*mu+43,n=Su[t];return n?(mu=n.nextPos,n.result):(_e.test(u.charAt(mu))?(e=u.charAt(mu),mu++):(e=r,0===xu&&Iu(qe)),Su[t]={nextPos:mu,result:e},e)}function yt(){var e,t,n=49*mu+44,o=Su[n];return o?(mu=o.nextPos,o.result):(He.test(u.charAt(mu))?(e=u.charAt(mu),mu++):(e=r,0===xu&&Iu(Je)),e===r&&(e=mu,95===u.charCodeAt(mu)?(t=$e,mu++):(t=r,0===xu&&Iu(Re)),t!==r&&(vu=e,t=Ve()),e=t),Su[n]={nextPos:mu,result:e},e)}function bt(){var e,t=49*mu+45,n=Su[t];return n?(mu=n.nextPos,n.result):(Ye.test(u.charAt(mu))?(e=u.charAt(mu),mu++):(e=r,0===xu&&Iu(We)),Su[t]={nextPos:mu,result:e},e)}function wt(){var e,u,t,n=49*mu+46,o=Su[n];if(o)return mu=o.nextPos,o.result;if(e=mu,u=[],(t=yt())!==r)for(;t!==r;)u.push(t),t=yt();else u=c;return u!==r&&(vu=e,u=ze(u)),e=u,Su[n]={nextPos:mu,result:e},e}function xt(){var e,t,n=49*mu+47,o=Su[n];return o?(mu=o.nextPos,o.result):(e=mu,u.substr(mu,2)===Ze?(t=Ze,mu+=2):(t=r,0===xu&&Iu(Ke)),t!==r&&(vu=e,t=Ge()),(e=t)===r&&(e=mu,u.substr(mu,2)===Qe?(t=Qe,mu+=2):(t=r,0===xu&&Iu(Xe)),t!==r&&(vu=e,t=eu()),(e=t)===r&&(e=mu,u.substr(mu,2)===uu?(t=uu,mu+=2):(t=r,0===xu&&Iu(tu)),t!==r&&(vu=e,t=nu()),(e=t)===r&&(e=mu,u.substr(mu,2)===ru?(t=ru,mu+=2):(t=r,0===xu&&Iu(ou)),t!==r&&(vu=e,t=iu()),(e=t)===r&&(e=mu,u.substr(mu,2)===au?(t=au,mu+=2):(t=r,0===xu&&Iu(cu)),t!==r&&(vu=e,t=su()),(e=t)===r&&(e=mu,u.substr(mu,2)===lu?(t=lu,mu+=2):(t=r,0===xu&&Iu(Du)),t!==r&&(vu=e,t=fu()),(e=t)===r&&(e=mu,u.substr(mu,2)===du?(t=du,mu+=2):(t=r,0===xu&&Iu(pu)),t!==r&&(vu=e,t=Cu()),(e=t)===r&&(e=St()))))))),Su[n]={nextPos:mu,result:e},e)}function St(){var e,t,n,o,i,a,s,l,D,f,d,p=49*mu+48,C=Su[p];return C?(mu=C.nextPos,C.result):(e=mu,u.substr(mu,2)===hu?(t=hu,mu+=2):(t=r,0===xu&&Iu(Au)),t!==r?(n=mu,(o=Bt())!==r&&(i=Bt())!==r&&(a=Bt())!==r&&(s=Bt())!==r&&(l=Bt())!==r&&(D=Bt())!==r&&(f=Bt())!==r&&(d=Bt())!==r?n=o=[o,i,a,s,l,D,f,d]:(mu=n,n=c),n!==r?(vu=e,e=t=Fu(n)):(mu=e,e=c)):(mu=e,e=c),e===r&&(e=mu,u.substr(mu,2)===gu?(t=gu,mu+=2):(t=r,0===xu&&Iu(Eu)),t!==r?(n=mu,(o=Bt())!==r&&(i=Bt())!==r&&(a=Bt())!==r&&(s=Bt())!==r?n=o=[o,i,a,s]:(mu=n,n=c),n!==r?(vu=e,e=t=Fu(n)):(mu=e,e=c)):(mu=e,e=c)),Su[p]={nextPos:mu,result:e},e)}var kt=[];function Pt(e,u,t){var n=new Error(e);throw n.line=u,n.column=t,n}function Nt(e){kt.push(e)}function It(e,u,t,n,r){var o={type:e,value:u,line:t(),column:n()};return r&&(o.key=r),o}function jt(e,u,t){var n=parseInt("0x"+e);if(!(!isFinite(n)||Math.floor(n)!=n||n<0||n>1114111||n>55295&&n<57344))return Tt(n);Pt("Invalid Unicode escape code: "+e,u,t)}function Tt(){var e,u,t=16384,n=[],r=-1,o=arguments.length;if(!o)return"";for(var i="";++r<o;){var a=Number(arguments[r]);a<=65535?n.push(a):(e=55296+((a-=65536)>>10),u=a%1024+56320,n.push(e,u)),(r+1==o||n.length>t)&&(i+=String.fromCharCode.apply(null,n),n.length=0)}return i}if((t=i())!==r&&mu===u.length)return t;throw t!==r&&mu<u.length&&Iu({type:"end",description:"end of input"}),ju(null,wu,bu)}}}(),f={compile:function(e){var u=[],t=[],n="",r=Object.create(null),o=r;return function(e){for(var u,t=0;t<e.length;t++)switch((u=e[t]).type){case"Assign":a(u);break;case"ObjectPath":D(u);break;case"ArrayPath":f(u)}return r}(e);function i(e,u,t){var n=new Error(e);throw n.line=u,n.column=t,n}function a(e){var r,a=e.key,l=e.value,D=e.line,f=e.column;r=n?n+"."+a:a,void 0!==o[a]&&i("Cannot redefine existing key '"+r+"'.",D,f),o[a]=s(l),c(r)||(u.push(r),t.push(r))}function c(e){return-1!==u.indexOf(e)}function s(e){return"Array"===e.type?function(e){for(var u=null,t=0;t<e.length;t++){var n=e[t];null===u?u=n.type:n.type!==u&&i("Cannot add value of type "+n.type+" to array of type "+u+".",n.line,n.column)}return e.map(s)}(e.value):"InlineTable"===e.type?l(e.value):e.value}function l(e){for(var u=Object.create(null),t=0;t<e.length;t++){var n=e[t];"InlineTable"===n.value.type?u[n.key]=l(n.value.value):"InlineTableValue"===n.type&&(u[n.key]=s(n.value))}return u}function D(e){var t=e.value,a=t.map(p).join("."),s=e.line,l=e.column;c(a)&&i("Cannot redefine existing key '"+t+"'.",s,l),u.push(a),o=d(r,t,Object.create(null),s,l),n=t}function f(e){var t=e.value,a=t.map(p).join("."),s=e.line,l=e.column;if(c(a)||u.push(a),(u=u.filter((function(e){return 0!==e.indexOf(a)}))).push(a),o=d(r,t,[],s,l),n=a,o instanceof Array){var D=Object.create(null);o.push(D),o=D}else i("Cannot redefine existing key '"+t+"'.",s,l)}function d(e,u,n,r,o){var a=[],c="";u.join(".");for(var s=e,l=0;l<u.length;l++){var D=u[l];a.push(D),c=a.join("."),void 0===s[D]?l===u.length-1?s[D]=n:s[D]=Object.create(null):l!==u.length-1&&t.indexOf(c)>-1&&i("Cannot redefine existing key '"+c+"'.",r,o),(s=s[D])instanceof Array&&s.length&&l<u.length-1&&(s=s[s.length-1])}return s}function p(e){return e.indexOf(".")>-1?'"'+e+'"':e}}},d=function(e){var u=D.parse(e.toString());return f.compile(u)},p={Space_Separator:/[\u1680\u2000-\u200A\u202F\u205F\u3000]/,ID_Start:/[\xAA\xB5\xBA\xC0-\xD6\xD8-\xF6\xF8-\u02C1\u02C6-\u02D1\u02E0-\u02E4\u02EC\u02EE\u0370-\u0374\u0376\u0377\u037A-\u037D\u037F\u0386\u0388-\u038A\u038C\u038E-\u03A1\u03A3-\u03F5\u03F7-\u0481\u048A-\u052F\u0531-\u0556\u0559\u0561-\u0587\u05D0-\u05EA\u05F0-\u05F2\u0620-\u064A\u066E\u066F\u0671-\u06D3\u06D5\u06E5\u06E6\u06EE\u06EF\u06FA-\u06FC\u06FF\u0710\u0712-\u072F\u074D-\u07A5\u07B1\u07CA-\u07EA\u07F4\u07F5\u07FA\u0800-\u0815\u081A\u0824\u0828\u0840-\u0858\u0860-\u086A\u08A0-\u08B4\u08B6-\u08BD\u0904-\u0939\u093D\u0950\u0958-\u0961\u0971-\u0980\u0985-\u098C\u098F\u0990\u0993-\u09A8\u09AA-\u09B0\u09B2\u09B6-\u09B9\u09BD\u09CE\u09DC\u09DD\u09DF-\u09E1\u09F0\u09F1\u09FC\u0A05-\u0A0A\u0A0F\u0A10\u0A13-\u0A28\u0A2A-\u0A30\u0A32\u0A33\u0A35\u0A36\u0A38\u0A39\u0A59-\u0A5C\u0A5E\u0A72-\u0A74\u0A85-\u0A8D\u0A8F-\u0A91\u0A93-\u0AA8\u0AAA-\u0AB0\u0AB2\u0AB3\u0AB5-\u0AB9\u0ABD\u0AD0\u0AE0\u0AE1\u0AF9\u0B05-\u0B0C\u0B0F\u0B10\u0B13-\u0B28\u0B2A-\u0B30\u0B32\u0B33\u0B35-\u0B39\u0B3D\u0B5C\u0B5D\u0B5F-\u0B61\u0B71\u0B83\u0B85-\u0B8A\u0B8E-\u0B90\u0B92-\u0B95\u0B99\u0B9A\u0B9C\u0B9E\u0B9F\u0BA3\u0BA4\u0BA8-\u0BAA\u0BAE-\u0BB9\u0BD0\u0C05-\u0C0C\u0C0E-\u0C10\u0C12-\u0C28\u0C2A-\u0C39\u0C3D\u0C58-\u0C5A\u0C60\u0C61\u0C80\u0C85-\u0C8C\u0C8E-\u0C90\u0C92-\u0CA8\u0CAA-\u0CB3\u0CB5-\u0CB9\u0CBD\u0CDE\u0CE0\u0CE1\u0CF1\u0CF2\u0D05-\u0D0C\u0D0E-\u0D10\u0D12-\u0D3A\u0D3D\u0D4E\u0D54-\u0D56\u0D5F-\u0D61\u0D7A-\u0D7F\u0D85-\u0D96\u0D9A-\u0DB1\u0DB3-\u0DBB\u0DBD\u0DC0-\u0DC6\u0E01-\u0E30\u0E32\u0E33\u0E40-\u0E46\u0E81\u0E82\u0E84\u0E87\u0E88\u0E8A\u0E8D\u0E94-\u0E97\u0E99-\u0E9F\u0EA1-\u0EA3\u0EA5\u0EA7\u0EAA\u0EAB\u0EAD-\u0EB0\u0EB2\u0EB3\u0EBD\u0EC0-\u0EC4\u0EC6\u0EDC-\u0EDF\u0F00\u0F40-\u0F47\u0F49-\u0F6C\u0F88-\u0F8C\u1000-\u102A\u103F\u1050-\u1055\u105A-\u105D\u1061\u1065\u1066\u106E-\u1070\u1075-\u1081\u108E\u10A0-\u10C5\u10C7\u10CD\u10D0-\u10FA\u10FC-\u1248\u124A-\u124D\u1250-\u1256\u1258\u125A-\u125D\u1260-\u1288\u128A-\u128D\u1290-\u12B0\u12B2-\u12B5\u12B8-\u12BE\u12C0\u12C2-\u12C5\u12C8-\u12D6\u12D8-\u1310\u1312-\u1315\u1318-\u135A\u1380-\u138F\u13A0-\u13F5\u13F8-\u13FD\u1401-\u166C\u166F-\u167F\u1681-\u169A\u16A0-\u16EA\u16EE-\u16F8\u1700-\u170C\u170E-\u1711\u1720-\u1731\u1740-\u1751\u1760-\u176C\u176E-\u1770\u1780-\u17B3\u17D7\u17DC\u1820-\u1877\u1880-\u1884\u1887-\u18A8\u18AA\u18B0-\u18F5\u1900-\u191E\u1950-\u196D\u1970-\u1974\u1980-\u19AB\u19B0-\u19C9\u1A00-\u1A16\u1A20-\u1A54\u1AA7\u1B05-\u1B33\u1B45-\u1B4B\u1B83-\u1BA0\u1BAE\u1BAF\u1BBA-\u1BE5\u1C00-\u1C23\u1C4D-\u1C4F\u1C5A-\u1C7D\u1C80-\u1C88\u1CE9-\u1CEC\u1CEE-\u1CF1\u1CF5\u1CF6\u1D00-\u1DBF\u1E00-\u1F15\u1F18-\u1F1D\u1F20-\u1F45\u1F48-\u1F4D\u1F50-\u1F57\u1F59\u1F5B\u1F5D\u1F5F-\u1F7D\u1F80-\u1FB4\u1FB6-\u1FBC\u1FBE\u1FC2-\u1FC4\u1FC6-\u1FCC\u1FD0-\u1FD3\u1FD6-\u1FDB\u1FE0-\u1FEC\u1FF2-\u1FF4\u1FF6-\u1FFC\u2071\u207F\u2090-\u209C\u2102\u2107\u210A-\u2113\u2115\u2119-\u211D\u2124\u2126\u2128\u212A-\u212D\u212F-\u2139\u213C-\u213F\u2145-\u2149\u214E\u2160-\u2188\u2C00-\u2C2E\u2C30-\u2C5E\u2C60-\u2CE4\u2CEB-\u2CEE\u2CF2\u2CF3\u2D00-\u2D25\u2D27\u2D2D\u2D30-\u2D67\u2D6F\u2D80-\u2D96\u2DA0-\u2DA6\u2DA8-\u2DAE\u2DB0-\u2DB6\u2DB8-\u2DBE\u2DC0-\u2DC6\u2DC8-\u2DCE\u2DD0-\u2DD6\u2DD8-\u2DDE\u2E2F\u3005-\u3007\u3021-\u3029\u3031-\u3035\u3038-\u303C\u3041-\u3096\u309D-\u309F\u30A1-\u30FA\u30FC-\u30FF\u3105-\u312E\u3131-\u318E\u31A0-\u31BA\u31F0-\u31FF\u3400-\u4DB5\u4E00-\u9FEA\uA000-\uA48C\uA4D0-\uA4FD\uA500-\uA60C\uA610-\uA61F\uA62A\uA62B\uA640-\uA66E\uA67F-\uA69D\uA6A0-\uA6EF\uA717-\uA71F\uA722-\uA788\uA78B-\uA7AE\uA7B0-\uA7B7\uA7F7-\uA801\uA803-\uA805\uA807-\uA80A\uA80C-\uA822\uA840-\uA873\uA882-\uA8B3\uA8F2-\uA8F7\uA8FB\uA8FD\uA90A-\uA925\uA930-\uA946\uA960-\uA97C\uA984-\uA9B2\uA9CF\uA9E0-\uA9E4\uA9E6-\uA9EF\uA9FA-\uA9FE\uAA00-\uAA28\uAA40-\uAA42\uAA44-\uAA4B\uAA60-\uAA76\uAA7A\uAA7E-\uAAAF\uAAB1\uAAB5\uAAB6\uAAB9-\uAABD\uAAC0\uAAC2\uAADB-\uAADD\uAAE0-\uAAEA\uAAF2-\uAAF4\uAB01-\uAB06\uAB09-\uAB0E\uAB11-\uAB16\uAB20-\uAB26\uAB28-\uAB2E\uAB30-\uAB5A\uAB5C-\uAB65\uAB70-\uABE2\uAC00-\uD7A3\uD7B0-\uD7C6\uD7CB-\uD7FB\uF900-\uFA6D\uFA70-\uFAD9\uFB00-\uFB06\uFB13-\uFB17\uFB1D\uFB1F-\uFB28\uFB2A-\uFB36\uFB38-\uFB3C\uFB3E\uFB40\uFB41\uFB43\uFB44\uFB46-\uFBB1\uFBD3-\uFD3D\uFD50-\uFD8F\uFD92-\uFDC7\uFDF0-\uFDFB\uFE70-\uFE74\uFE76-\uFEFC\uFF21-\uFF3A\uFF41-\uFF5A\uFF66-\uFFBE\uFFC2-\uFFC7\uFFCA-\uFFCF\uFFD2-\uFFD7\uFFDA-\uFFDC]|\uD800[\uDC00-\uDC0B\uDC0D-\uDC26\uDC28-\uDC3A\uDC3C\uDC3D\uDC3F-\uDC4D\uDC50-\uDC5D\uDC80-\uDCFA\uDD40-\uDD74\uDE80-\uDE9C\uDEA0-\uDED0\uDF00-\uDF1F\uDF2D-\uDF4A\uDF50-\uDF75\uDF80-\uDF9D\uDFA0-\uDFC3\uDFC8-\uDFCF\uDFD1-\uDFD5]|\uD801[\uDC00-\uDC9D\uDCB0-\uDCD3\uDCD8-\uDCFB\uDD00-\uDD27\uDD30-\uDD63\uDE00-\uDF36\uDF40-\uDF55\uDF60-\uDF67]|\uD802[\uDC00-\uDC05\uDC08\uDC0A-\uDC35\uDC37\uDC38\uDC3C\uDC3F-\uDC55\uDC60-\uDC76\uDC80-\uDC9E\uDCE0-\uDCF2\uDCF4\uDCF5\uDD00-\uDD15\uDD20-\uDD39\uDD80-\uDDB7\uDDBE\uDDBF\uDE00\uDE10-\uDE13\uDE15-\uDE17\uDE19-\uDE33\uDE60-\uDE7C\uDE80-\uDE9C\uDEC0-\uDEC7\uDEC9-\uDEE4\uDF00-\uDF35\uDF40-\uDF55\uDF60-\uDF72\uDF80-\uDF91]|\uD803[\uDC00-\uDC48\uDC80-\uDCB2\uDCC0-\uDCF2]|\uD804[\uDC03-\uDC37\uDC83-\uDCAF\uDCD0-\uDCE8\uDD03-\uDD26\uDD50-\uDD72\uDD76\uDD83-\uDDB2\uDDC1-\uDDC4\uDDDA\uDDDC\uDE00-\uDE11\uDE13-\uDE2B\uDE80-\uDE86\uDE88\uDE8A-\uDE8D\uDE8F-\uDE9D\uDE9F-\uDEA8\uDEB0-\uDEDE\uDF05-\uDF0C\uDF0F\uDF10\uDF13-\uDF28\uDF2A-\uDF30\uDF32\uDF33\uDF35-\uDF39\uDF3D\uDF50\uDF5D-\uDF61]|\uD805[\uDC00-\uDC34\uDC47-\uDC4A\uDC80-\uDCAF\uDCC4\uDCC5\uDCC7\uDD80-\uDDAE\uDDD8-\uDDDB\uDE00-\uDE2F\uDE44\uDE80-\uDEAA\uDF00-\uDF19]|\uD806[\uDCA0-\uDCDF\uDCFF\uDE00\uDE0B-\uDE32\uDE3A\uDE50\uDE5C-\uDE83\uDE86-\uDE89\uDEC0-\uDEF8]|\uD807[\uDC00-\uDC08\uDC0A-\uDC2E\uDC40\uDC72-\uDC8F\uDD00-\uDD06\uDD08\uDD09\uDD0B-\uDD30\uDD46]|\uD808[\uDC00-\uDF99]|\uD809[\uDC00-\uDC6E\uDC80-\uDD43]|[\uD80C\uD81C-\uD820\uD840-\uD868\uD86A-\uD86C\uD86F-\uD872\uD874-\uD879][\uDC00-\uDFFF]|\uD80D[\uDC00-\uDC2E]|\uD811[\uDC00-\uDE46]|\uD81A[\uDC00-\uDE38\uDE40-\uDE5E\uDED0-\uDEED\uDF00-\uDF2F\uDF40-\uDF43\uDF63-\uDF77\uDF7D-\uDF8F]|\uD81B[\uDF00-\uDF44\uDF50\uDF93-\uDF9F\uDFE0\uDFE1]|\uD821[\uDC00-\uDFEC]|\uD822[\uDC00-\uDEF2]|\uD82C[\uDC00-\uDD1E\uDD70-\uDEFB]|\uD82F[\uDC00-\uDC6A\uDC70-\uDC7C\uDC80-\uDC88\uDC90-\uDC99]|\uD835[\uDC00-\uDC54\uDC56-\uDC9C\uDC9E\uDC9F\uDCA2\uDCA5\uDCA6\uDCA9-\uDCAC\uDCAE-\uDCB9\uDCBB\uDCBD-\uDCC3\uDCC5-\uDD05\uDD07-\uDD0A\uDD0D-\uDD14\uDD16-\uDD1C\uDD1E-\uDD39\uDD3B-\uDD3E\uDD40-\uDD44\uDD46\uDD4A-\uDD50\uDD52-\uDEA5\uDEA8-\uDEC0\uDEC2-\uDEDA\uDEDC-\uDEFA\uDEFC-\uDF14\uDF16-\uDF34\uDF36-\uDF4E\uDF50-\uDF6E\uDF70-\uDF88\uDF8A-\uDFA8\uDFAA-\uDFC2\uDFC4-\uDFCB]|\uD83A[\uDC00-\uDCC4\uDD00-\uDD43]|\uD83B[\uDE00-\uDE03\uDE05-\uDE1F\uDE21\uDE22\uDE24\uDE27\uDE29-\uDE32\uDE34-\uDE37\uDE39\uDE3B\uDE42\uDE47\uDE49\uDE4B\uDE4D-\uDE4F\uDE51\uDE52\uDE54\uDE57\uDE59\uDE5B\uDE5D\uDE5F\uDE61\uDE62\uDE64\uDE67-\uDE6A\uDE6C-\uDE72\uDE74-\uDE77\uDE79-\uDE7C\uDE7E\uDE80-\uDE89\uDE8B-\uDE9B\uDEA1-\uDEA3\uDEA5-\uDEA9\uDEAB-\uDEBB]|\uD869[\uDC00-\uDED6\uDF00-\uDFFF]|\uD86D[\uDC00-\uDF34\uDF40-\uDFFF]|\uD86E[\uDC00-\uDC1D\uDC20-\uDFFF]|\uD873[\uDC00-\uDEA1\uDEB0-\uDFFF]|\uD87A[\uDC00-\uDFE0]|\uD87E[\uDC00-\uDE1D]/,ID_Continue:/[\xAA\xB5\xBA\xC0-\xD6\xD8-\xF6\xF8-\u02C1\u02C6-\u02D1\u02E0-\u02E4\u02EC\u02EE\u0300-\u0374\u0376\u0377\u037A-\u037D\u037F\u0386\u0388-\u038A\u038C\u038E-\u03A1\u03A3-\u03F5\u03F7-\u0481\u0483-\u0487\u048A-\u052F\u0531-\u0556\u0559\u0561-\u0587\u0591-\u05BD\u05BF\u05C1\u05C2\u05C4\u05C5\u05C7\u05D0-\u05EA\u05F0-\u05F2\u0610-\u061A\u0620-\u0669\u066E-\u06D3\u06D5-\u06DC\u06DF-\u06E8\u06EA-\u06FC\u06FF\u0710-\u074A\u074D-\u07B1\u07C0-\u07F5\u07FA\u0800-\u082D\u0840-\u085B\u0860-\u086A\u08A0-\u08B4\u08B6-\u08BD\u08D4-\u08E1\u08E3-\u0963\u0966-\u096F\u0971-\u0983\u0985-\u098C\u098F\u0990\u0993-\u09A8\u09AA-\u09B0\u09B2\u09B6-\u09B9\u09BC-\u09C4\u09C7\u09C8\u09CB-\u09CE\u09D7\u09DC\u09DD\u09DF-\u09E3\u09E6-\u09F1\u09FC\u0A01-\u0A03\u0A05-\u0A0A\u0A0F\u0A10\u0A13-\u0A28\u0A2A-\u0A30\u0A32\u0A33\u0A35\u0A36\u0A38\u0A39\u0A3C\u0A3E-\u0A42\u0A47\u0A48\u0A4B-\u0A4D\u0A51\u0A59-\u0A5C\u0A5E\u0A66-\u0A75\u0A81-\u0A83\u0A85-\u0A8D\u0A8F-\u0A91\u0A93-\u0AA8\u0AAA-\u0AB0\u0AB2\u0AB3\u0AB5-\u0AB9\u0ABC-\u0AC5\u0AC7-\u0AC9\u0ACB-\u0ACD\u0AD0\u0AE0-\u0AE3\u0AE6-\u0AEF\u0AF9-\u0AFF\u0B01-\u0B03\u0B05-\u0B0C\u0B0F\u0B10\u0B13-\u0B28\u0B2A-\u0B30\u0B32\u0B33\u0B35-\u0B39\u0B3C-\u0B44\u0B47\u0B48\u0B4B-\u0B4D\u0B56\u0B57\u0B5C\u0B5D\u0B5F-\u0B63\u0B66-\u0B6F\u0B71\u0B82\u0B83\u0B85-\u0B8A\u0B8E-\u0B90\u0B92-\u0B95\u0B99\u0B9A\u0B9C\u0B9E\u0B9F\u0BA3\u0BA4\u0BA8-\u0BAA\u0BAE-\u0BB9\u0BBE-\u0BC2\u0BC6-\u0BC8\u0BCA-\u0BCD\u0BD0\u0BD7\u0BE6-\u0BEF\u0C00-\u0C03\u0C05-\u0C0C\u0C0E-\u0C10\u0C12-\u0C28\u0C2A-\u0C39\u0C3D-\u0C44\u0C46-\u0C48\u0C4A-\u0C4D\u0C55\u0C56\u0C58-\u0C5A\u0C60-\u0C63\u0C66-\u0C6F\u0C80-\u0C83\u0C85-\u0C8C\u0C8E-\u0C90\u0C92-\u0CA8\u0CAA-\u0CB3\u0CB5-\u0CB9\u0CBC-\u0CC4\u0CC6-\u0CC8\u0CCA-\u0CCD\u0CD5\u0CD6\u0CDE\u0CE0-\u0CE3\u0CE6-\u0CEF\u0CF1\u0CF2\u0D00-\u0D03\u0D05-\u0D0C\u0D0E-\u0D10\u0D12-\u0D44\u0D46-\u0D48\u0D4A-\u0D4E\u0D54-\u0D57\u0D5F-\u0D63\u0D66-\u0D6F\u0D7A-\u0D7F\u0D82\u0D83\u0D85-\u0D96\u0D9A-\u0DB1\u0DB3-\u0DBB\u0DBD\u0DC0-\u0DC6\u0DCA\u0DCF-\u0DD4\u0DD6\u0DD8-\u0DDF\u0DE6-\u0DEF\u0DF2\u0DF3\u0E01-\u0E3A\u0E40-\u0E4E\u0E50-\u0E59\u0E81\u0E82\u0E84\u0E87\u0E88\u0E8A\u0E8D\u0E94-\u0E97\u0E99-\u0E9F\u0EA1-\u0EA3\u0EA5\u0EA7\u0EAA\u0EAB\u0EAD-\u0EB9\u0EBB-\u0EBD\u0EC0-\u0EC4\u0EC6\u0EC8-\u0ECD\u0ED0-\u0ED9\u0EDC-\u0EDF\u0F00\u0F18\u0F19\u0F20-\u0F29\u0F35\u0F37\u0F39\u0F3E-\u0F47\u0F49-\u0F6C\u0F71-\u0F84\u0F86-\u0F97\u0F99-\u0FBC\u0FC6\u1000-\u1049\u1050-\u109D\u10A0-\u10C5\u10C7\u10CD\u10D0-\u10FA\u10FC-\u1248\u124A-\u124D\u1250-\u1256\u1258\u125A-\u125D\u1260-\u1288\u128A-\u128D\u1290-\u12B0\u12B2-\u12B5\u12B8-\u12BE\u12C0\u12C2-\u12C5\u12C8-\u12D6\u12D8-\u1310\u1312-\u1315\u1318-\u135A\u135D-\u135F\u1380-\u138F\u13A0-\u13F5\u13F8-\u13FD\u1401-\u166C\u166F-\u167F\u1681-\u169A\u16A0-\u16EA\u16EE-\u16F8\u1700-\u170C\u170E-\u1714\u1720-\u1734\u1740-\u1753\u1760-\u176C\u176E-\u1770\u1772\u1773\u1780-\u17D3\u17D7\u17DC\u17DD\u17E0-\u17E9\u180B-\u180D\u1810-\u1819\u1820-\u1877\u1880-\u18AA\u18B0-\u18F5\u1900-\u191E\u1920-\u192B\u1930-\u193B\u1946-\u196D\u1970-\u1974\u1980-\u19AB\u19B0-\u19C9\u19D0-\u19D9\u1A00-\u1A1B\u1A20-\u1A5E\u1A60-\u1A7C\u1A7F-\u1A89\u1A90-\u1A99\u1AA7\u1AB0-\u1ABD\u1B00-\u1B4B\u1B50-\u1B59\u1B6B-\u1B73\u1B80-\u1BF3\u1C00-\u1C37\u1C40-\u1C49\u1C4D-\u1C7D\u1C80-\u1C88\u1CD0-\u1CD2\u1CD4-\u1CF9\u1D00-\u1DF9\u1DFB-\u1F15\u1F18-\u1F1D\u1F20-\u1F45\u1F48-\u1F4D\u1F50-\u1F57\u1F59\u1F5B\u1F5D\u1F5F-\u1F7D\u1F80-\u1FB4\u1FB6-\u1FBC\u1FBE\u1FC2-\u1FC4\u1FC6-\u1FCC\u1FD0-\u1FD3\u1FD6-\u1FDB\u1FE0-\u1FEC\u1FF2-\u1FF4\u1FF6-\u1FFC\u203F\u2040\u2054\u2071\u207F\u2090-\u209C\u20D0-\u20DC\u20E1\u20E5-\u20F0\u2102\u2107\u210A-\u2113\u2115\u2119-\u211D\u2124\u2126\u2128\u212A-\u212D\u212F-\u2139\u213C-\u213F\u2145-\u2149\u214E\u2160-\u2188\u2C00-\u2C2E\u2C30-\u2C5E\u2C60-\u2CE4\u2CEB-\u2CF3\u2D00-\u2D25\u2D27\u2D2D\u2D30-\u2D67\u2D6F\u2D7F-\u2D96\u2DA0-\u2DA6\u2DA8-\u2DAE\u2DB0-\u2DB6\u2DB8-\u2DBE\u2DC0-\u2DC6\u2DC8-\u2DCE\u2DD0-\u2DD6\u2DD8-\u2DDE\u2DE0-\u2DFF\u2E2F\u3005-\u3007\u3021-\u302F\u3031-\u3035\u3038-\u303C\u3041-\u3096\u3099\u309A\u309D-\u309F\u30A1-\u30FA\u30FC-\u30FF\u3105-\u312E\u3131-\u318E\u31A0-\u31BA\u31F0-\u31FF\u3400-\u4DB5\u4E00-\u9FEA\uA000-\uA48C\uA4D0-\uA4FD\uA500-\uA60C\uA610-\uA62B\uA640-\uA66F\uA674-\uA67D\uA67F-\uA6F1\uA717-\uA71F\uA722-\uA788\uA78B-\uA7AE\uA7B0-\uA7B7\uA7F7-\uA827\uA840-\uA873\uA880-\uA8C5\uA8D0-\uA8D9\uA8E0-\uA8F7\uA8FB\uA8FD\uA900-\uA92D\uA930-\uA953\uA960-\uA97C\uA980-\uA9C0\uA9CF-\uA9D9\uA9E0-\uA9FE\uAA00-\uAA36\uAA40-\uAA4D\uAA50-\uAA59\uAA60-\uAA76\uAA7A-\uAAC2\uAADB-\uAADD\uAAE0-\uAAEF\uAAF2-\uAAF6\uAB01-\uAB06\uAB09-\uAB0E\uAB11-\uAB16\uAB20-\uAB26\uAB28-\uAB2E\uAB30-\uAB5A\uAB5C-\uAB65\uAB70-\uABEA\uABEC\uABED\uABF0-\uABF9\uAC00-\uD7A3\uD7B0-\uD7C6\uD7CB-\uD7FB\uF900-\uFA6D\uFA70-\uFAD9\uFB00-\uFB06\uFB13-\uFB17\uFB1D-\uFB28\uFB2A-\uFB36\uFB38-\uFB3C\uFB3E\uFB40\uFB41\uFB43\uFB44\uFB46-\uFBB1\uFBD3-\uFD3D\uFD50-\uFD8F\uFD92-\uFDC7\uFDF0-\uFDFB\uFE00-\uFE0F\uFE20-\uFE2F\uFE33\uFE34\uFE4D-\uFE4F\uFE70-\uFE74\uFE76-\uFEFC\uFF10-\uFF19\uFF21-\uFF3A\uFF3F\uFF41-\uFF5A\uFF66-\uFFBE\uFFC2-\uFFC7\uFFCA-\uFFCF\uFFD2-\uFFD7\uFFDA-\uFFDC]|\uD800[\uDC00-\uDC0B\uDC0D-\uDC26\uDC28-\uDC3A\uDC3C\uDC3D\uDC3F-\uDC4D\uDC50-\uDC5D\uDC80-\uDCFA\uDD40-\uDD74\uDDFD\uDE80-\uDE9C\uDEA0-\uDED0\uDEE0\uDF00-\uDF1F\uDF2D-\uDF4A\uDF50-\uDF7A\uDF80-\uDF9D\uDFA0-\uDFC3\uDFC8-\uDFCF\uDFD1-\uDFD5]|\uD801[\uDC00-\uDC9D\uDCA0-\uDCA9\uDCB0-\uDCD3\uDCD8-\uDCFB\uDD00-\uDD27\uDD30-\uDD63\uDE00-\uDF36\uDF40-\uDF55\uDF60-\uDF67]|\uD802[\uDC00-\uDC05\uDC08\uDC0A-\uDC35\uDC37\uDC38\uDC3C\uDC3F-\uDC55\uDC60-\uDC76\uDC80-\uDC9E\uDCE0-\uDCF2\uDCF4\uDCF5\uDD00-\uDD15\uDD20-\uDD39\uDD80-\uDDB7\uDDBE\uDDBF\uDE00-\uDE03\uDE05\uDE06\uDE0C-\uDE13\uDE15-\uDE17\uDE19-\uDE33\uDE38-\uDE3A\uDE3F\uDE60-\uDE7C\uDE80-\uDE9C\uDEC0-\uDEC7\uDEC9-\uDEE6\uDF00-\uDF35\uDF40-\uDF55\uDF60-\uDF72\uDF80-\uDF91]|\uD803[\uDC00-\uDC48\uDC80-\uDCB2\uDCC0-\uDCF2]|\uD804[\uDC00-\uDC46\uDC66-\uDC6F\uDC7F-\uDCBA\uDCD0-\uDCE8\uDCF0-\uDCF9\uDD00-\uDD34\uDD36-\uDD3F\uDD50-\uDD73\uDD76\uDD80-\uDDC4\uDDCA-\uDDCC\uDDD0-\uDDDA\uDDDC\uDE00-\uDE11\uDE13-\uDE37\uDE3E\uDE80-\uDE86\uDE88\uDE8A-\uDE8D\uDE8F-\uDE9D\uDE9F-\uDEA8\uDEB0-\uDEEA\uDEF0-\uDEF9\uDF00-\uDF03\uDF05-\uDF0C\uDF0F\uDF10\uDF13-\uDF28\uDF2A-\uDF30\uDF32\uDF33\uDF35-\uDF39\uDF3C-\uDF44\uDF47\uDF48\uDF4B-\uDF4D\uDF50\uDF57\uDF5D-\uDF63\uDF66-\uDF6C\uDF70-\uDF74]|\uD805[\uDC00-\uDC4A\uDC50-\uDC59\uDC80-\uDCC5\uDCC7\uDCD0-\uDCD9\uDD80-\uDDB5\uDDB8-\uDDC0\uDDD8-\uDDDD\uDE00-\uDE40\uDE44\uDE50-\uDE59\uDE80-\uDEB7\uDEC0-\uDEC9\uDF00-\uDF19\uDF1D-\uDF2B\uDF30-\uDF39]|\uD806[\uDCA0-\uDCE9\uDCFF\uDE00-\uDE3E\uDE47\uDE50-\uDE83\uDE86-\uDE99\uDEC0-\uDEF8]|\uD807[\uDC00-\uDC08\uDC0A-\uDC36\uDC38-\uDC40\uDC50-\uDC59\uDC72-\uDC8F\uDC92-\uDCA7\uDCA9-\uDCB6\uDD00-\uDD06\uDD08\uDD09\uDD0B-\uDD36\uDD3A\uDD3C\uDD3D\uDD3F-\uDD47\uDD50-\uDD59]|\uD808[\uDC00-\uDF99]|\uD809[\uDC00-\uDC6E\uDC80-\uDD43]|[\uD80C\uD81C-\uD820\uD840-\uD868\uD86A-\uD86C\uD86F-\uD872\uD874-\uD879][\uDC00-\uDFFF]|\uD80D[\uDC00-\uDC2E]|\uD811[\uDC00-\uDE46]|\uD81A[\uDC00-\uDE38\uDE40-\uDE5E\uDE60-\uDE69\uDED0-\uDEED\uDEF0-\uDEF4\uDF00-\uDF36\uDF40-\uDF43\uDF50-\uDF59\uDF63-\uDF77\uDF7D-\uDF8F]|\uD81B[\uDF00-\uDF44\uDF50-\uDF7E\uDF8F-\uDF9F\uDFE0\uDFE1]|\uD821[\uDC00-\uDFEC]|\uD822[\uDC00-\uDEF2]|\uD82C[\uDC00-\uDD1E\uDD70-\uDEFB]|\uD82F[\uDC00-\uDC6A\uDC70-\uDC7C\uDC80-\uDC88\uDC90-\uDC99\uDC9D\uDC9E]|\uD834[\uDD65-\uDD69\uDD6D-\uDD72\uDD7B-\uDD82\uDD85-\uDD8B\uDDAA-\uDDAD\uDE42-\uDE44]|\uD835[\uDC00-\uDC54\uDC56-\uDC9C\uDC9E\uDC9F\uDCA2\uDCA5\uDCA6\uDCA9-\uDCAC\uDCAE-\uDCB9\uDCBB\uDCBD-\uDCC3\uDCC5-\uDD05\uDD07-\uDD0A\uDD0D-\uDD14\uDD16-\uDD1C\uDD1E-\uDD39\uDD3B-\uDD3E\uDD40-\uDD44\uDD46\uDD4A-\uDD50\uDD52-\uDEA5\uDEA8-\uDEC0\uDEC2-\uDEDA\uDEDC-\uDEFA\uDEFC-\uDF14\uDF16-\uDF34\uDF36-\uDF4E\uDF50-\uDF6E\uDF70-\uDF88\uDF8A-\uDFA8\uDFAA-\uDFC2\uDFC4-\uDFCB\uDFCE-\uDFFF]|\uD836[\uDE00-\uDE36\uDE3B-\uDE6C\uDE75\uDE84\uDE9B-\uDE9F\uDEA1-\uDEAF]|\uD838[\uDC00-\uDC06\uDC08-\uDC18\uDC1B-\uDC21\uDC23\uDC24\uDC26-\uDC2A]|\uD83A[\uDC00-\uDCC4\uDCD0-\uDCD6\uDD00-\uDD4A\uDD50-\uDD59]|\uD83B[\uDE00-\uDE03\uDE05-\uDE1F\uDE21\uDE22\uDE24\uDE27\uDE29-\uDE32\uDE34-\uDE37\uDE39\uDE3B\uDE42\uDE47\uDE49\uDE4B\uDE4D-\uDE4F\uDE51\uDE52\uDE54\uDE57\uDE59\uDE5B\uDE5D\uDE5F\uDE61\uDE62\uDE64\uDE67-\uDE6A\uDE6C-\uDE72\uDE74-\uDE77\uDE79-\uDE7C\uDE7E\uDE80-\uDE89\uDE8B-\uDE9B\uDEA1-\uDEA3\uDEA5-\uDEA9\uDEAB-\uDEBB]|\uD869[\uDC00-\uDED6\uDF00-\uDFFF]|\uD86D[\uDC00-\uDF34\uDF40-\uDFFF]|\uD86E[\uDC00-\uDC1D\uDC20-\uDFFF]|\uD873[\uDC00-\uDEA1\uDEB0-\uDFFF]|\uD87A[\uDC00-\uDFE0]|\uD87E[\uDC00-\uDE1D]|\uDB40[\uDD00-\uDDEF]/},C={isSpaceSeparator:e=>"string"==typeof e&&p.Space_Separator.test(e),isIdStartChar:e=>"string"==typeof e&&(e>="a"&&e<="z"||e>="A"&&e<="Z"||"$"===e||"_"===e||p.ID_Start.test(e)),isIdContinueChar:e=>"string"==typeof e&&(e>="a"&&e<="z"||e>="A"&&e<="Z"||e>="0"&&e<="9"||"$"===e||"_"===e||"‌"===e||"‍"===e||p.ID_Continue.test(e)),isDigit:e=>"string"==typeof e&&/[0-9]/.test(e),isHexDigit:e=>"string"==typeof e&&/[0-9A-Fa-f]/.test(e)};let h,A,F,g,E,m,v,B,y;function b(e,u,t){const n=e[u];if(null!=n&&"object"==typeof n)for(const e in n){const u=b(n,e,t);void 0===u?delete n[e]:n[e]=u}return t.call(e,u,n)}let w,x,S,k,P;function N(){for(w="default",x="",S=!1,k=1;;){P=I();const e=T[w]();if(e)return e}}function I(){if(h[g])return String.fromCodePoint(h.codePointAt(g))}function j(){const e=I();return"\n"===e?(E++,m=0):e?m+=e.length:m++,e&&(g+=e.length),e}const T={default(){switch(P){case"\t":case"\v":case"\f":case" ":case" ":case"\ufeff":case"\n":case"\r":case"\u2028":case"\u2029":return void j();case"/":return j(),void(w="comment");case void 0:return j(),O("eof")}if(!C.isSpaceSeparator(P))return T[A]();j()},comment(){switch(P){case"*":return j(),void(w="multiLineComment");case"/":return j(),void(w="singleLineComment")}throw H(j())},multiLineComment(){switch(P){case"*":return j(),void(w="multiLineCommentAsterisk");case void 0:throw H(j())}j()},multiLineCommentAsterisk(){switch(P){case"*":return void j();case"/":return j(),void(w="default");case void 0:throw H(j())}j(),w="multiLineComment"},singleLineComment(){switch(P){case"\n":case"\r":case"\u2028":case"\u2029":return j(),void(w="default");case void 0:return j(),O("eof")}j()},value(){switch(P){case"{":case"[":return O("punctuator",j());case"n":return j(),M("ull"),O("null",null);case"t":return j(),M("rue"),O("boolean",!0);case"f":return j(),M("alse"),O("boolean",!1);case"-":case"+":return"-"===j()&&(k=-1),void(w="sign");case".":return x=j(),void(w="decimalPointLeading");case"0":return x=j(),void(w="zero");case"1":case"2":case"3":case"4":case"5":case"6":case"7":case"8":case"9":return x=j(),void(w="decimalInteger");case"I":return j(),M("nfinity"),O("numeric",1/0);case"N":return j(),M("aN"),O("numeric",NaN);case'"':case"'":return S='"'===j(),x="",void(w="string")}throw H(j())},identifierNameStartEscape(){if("u"!==P)throw H(j());j();const e=L();switch(e){case"$":case"_":break;default:if(!C.isIdStartChar(e))throw $()}x+=e,w="identifierName"},identifierName(){switch(P){case"$":case"_":case"‌":case"‍":return void(x+=j());case"\\":return j(),void(w="identifierNameEscape")}if(!C.isIdContinueChar(P))return O("identifier",x);x+=j()},identifierNameEscape(){if("u"!==P)throw H(j());j();const e=L();switch(e){case"$":case"_":case"‌":case"‍":break;default:if(!C.isIdContinueChar(e))throw $()}x+=e,w="identifierName"},sign(){switch(P){case".":return x=j(),void(w="decimalPointLeading");case"0":return x=j(),void(w="zero");case"1":case"2":case"3":case"4":case"5":case"6":case"7":case"8":case"9":return x=j(),void(w="decimalInteger");case"I":return j(),M("nfinity"),O("numeric",k*(1/0));case"N":return j(),M("aN"),O("numeric",NaN)}throw H(j())},zero(){switch(P){case".":return x+=j(),void(w="decimalPoint");case"e":case"E":return x+=j(),void(w="decimalExponent");case"x":case"X":return x+=j(),void(w="hexadecimal")}return O("numeric",0*k)},decimalInteger(){switch(P){case".":return x+=j(),void(w="decimalPoint");case"e":case"E":return x+=j(),void(w="decimalExponent")}if(!C.isDigit(P))return O("numeric",k*Number(x));x+=j()},decimalPointLeading(){if(C.isDigit(P))return x+=j(),void(w="decimalFraction");throw H(j())},decimalPoint(){switch(P){case"e":case"E":return x+=j(),void(w="decimalExponent")}return C.isDigit(P)?(x+=j(),void(w="decimalFraction")):O("numeric",k*Number(x))},decimalFraction(){switch(P){case"e":case"E":return x+=j(),void(w="decimalExponent")}if(!C.isDigit(P))return O("numeric",k*Number(x));x+=j()},decimalExponent(){switch(P){case"+":case"-":return x+=j(),void(w="decimalExponentSign")}if(C.isDigit(P))return x+=j(),void(w="decimalExponentInteger");throw H(j())},decimalExponentSign(){if(C.isDigit(P))return x+=j(),void(w="decimalExponentInteger");throw H(j())},decimalExponentInteger(){if(!C.isDigit(P))return O("numeric",k*Number(x));x+=j()},hexadecimal(){if(C.isHexDigit(P))return x+=j(),void(w="hexadecimalInteger");throw H(j())},hexadecimalInteger(){if(!C.isHexDigit(P))return O("numeric",k*Number(x));x+=j()},string(){switch(P){case"\\":return j(),void(x+=function(){switch(I()){case"b":return j(),"\b";case"f":return j(),"\f";case"n":return j(),"\n";case"r":return j(),"\r";case"t":return j(),"\t";case"v":return j(),"\v";case"0":if(j(),C.isDigit(I()))throw H(j());return"\0";case"x":return j(),function(){let e="",u=I();if(!C.isHexDigit(u))throw H(j());if(e+=j(),u=I(),!C.isHexDigit(u))throw H(j());return e+=j(),String.fromCodePoint(parseInt(e,16))}();case"u":return j(),L();case"\n":case"\u2028":case"\u2029":return j(),"";case"\r":return j(),"\n"===I()&&j(),"";case"1":case"2":case"3":case"4":case"5":case"6":case"7":case"8":case"9":case void 0:throw H(j())}return j()}());case'"':return S?(j(),O("string",x)):void(x+=j());case"'":return S?void(x+=j()):(j(),O("string",x));case"\n":case"\r":throw H(j());case"\u2028":case"\u2029":!function(e){console.warn(`JSON5: '${R(e)}' in strings is not valid ECMAScript; consider escaping`)}(P);break;case void 0:throw H(j())}x+=j()},start(){switch(P){case"{":case"[":return O("punctuator",j())}w="value"},beforePropertyName(){switch(P){case"$":case"_":return x=j(),void(w="identifierName");case"\\":return j(),void(w="identifierNameStartEscape");case"}":return O("punctuator",j());case'"':case"'":return S='"'===j(),void(w="string")}if(C.isIdStartChar(P))return x+=j(),void(w="identifierName");throw H(j())},afterPropertyName(){if(":"===P)return O("punctuator",j());throw H(j())},beforePropertyValue(){w="value"},afterPropertyValue(){switch(P){case",":case"}":return O("punctuator",j())}throw H(j())},beforeArrayValue(){if("]"===P)return O("punctuator",j());w="value"},afterArrayValue(){switch(P){case",":case"]":return O("punctuator",j())}throw H(j())},end(){throw H(j())}};function O(e,u){return{type:e,value:u,line:E,column:m}}function M(e){for(const u of e){if(I()!==u)throw H(j());j()}}function L(){let e="",u=4;for(;u-- >0;){const u=I();if(!C.isHexDigit(u))throw H(j());e+=j()}return String.fromCodePoint(parseInt(e,16))}const U={start(){if("eof"===v.type)throw J();_()},beforePropertyName(){switch(v.type){case"identifier":case"string":return B=v.value,void(A="afterPropertyName");case"punctuator":return void q();case"eof":throw J()}},afterPropertyName(){if("eof"===v.type)throw J();A="beforePropertyValue"},beforePropertyValue(){if("eof"===v.type)throw J();_()},beforeArrayValue(){if("eof"===v.type)throw J();"punctuator"!==v.type||"]"!==v.value?_():q()},afterPropertyValue(){if("eof"===v.type)throw J();switch(v.value){case",":return void(A="beforePropertyName");case"}":q()}},afterArrayValue(){if("eof"===v.type)throw J();switch(v.value){case",":return void(A="beforeArrayValue");case"]":q()}},end(){}};function _(){let e;switch(v.type){case"punctuator":switch(v.value){case"{":e={};break;case"[":e=[]}break;case"null":case"boolean":case"numeric":case"string":e=v.value}if(void 0===y)y=e;else{const u=F[F.length-1];Array.isArray(u)?u.push(e):u[B]=e}if(null!==e&&"object"==typeof e)F.push(e),A=Array.isArray(e)?"beforeArrayValue":"beforePropertyName";else{const e=F[F.length-1];A=null==e?"end":Array.isArray(e)?"afterArrayValue":"afterPropertyValue"}}function q(){F.pop();const e=F[F.length-1];A=null==e?"end":Array.isArray(e)?"afterArrayValue":"afterPropertyValue"}function H(e){return V(void 0===e?`JSON5: invalid end of input at ${E}:${m}`:`JSON5: invalid character '${R(e)}' at ${E}:${m}`)}function J(){return V(`JSON5: invalid end of input at ${E}:${m}`)}function $(){return m-=5,V(`JSON5: invalid identifier character at ${E}:${m}`)}function R(e){const u={"'":"\\'",'"':'\\"',"\\":"\\\\","\b":"\\b","\f":"\\f","\n":"\\n","\r":"\\r","\t":"\\t","\v":"\\v","\0":"\\0","\u2028":"\\u2028","\u2029":"\\u2029"};if(u[e])return u[e];if(e<" "){const u=e.charCodeAt(0).toString(16);return"\\x"+("00"+u).substring(u.length)}return e}function V(e){const u=new SyntaxError(e);return u.lineNumber=E,u.columnNumber=m,u}var Y={parse:function(e,u){h=String(e),A="start",F=[],g=0,E=1,m=0,v=void 0,B=void 0,y=void 0;do{v=N(),U[A]()}while("eof"!==v.type);return"function"==typeof u?b({"":y},"",u):y},stringify:function(e,u,t){const n=[];let r,o,i,a="",c="";if(null==u||"object"!=typeof u||Array.isArray(u)||(t=u.space,i=u.quote,u=u.replacer),"function"==typeof u)o=u;else if(Array.isArray(u)){r=[];for(const e of u){let u;"string"==typeof e?u=e:("number"==typeof e||e instanceof String||e instanceof Number)&&(u=String(e)),void 0!==u&&r.indexOf(u)<0&&r.push(u)}}return t instanceof Number?t=Number(t):t instanceof String&&(t=String(t)),"number"==typeof t?t>0&&(t=Math.min(10,Math.floor(t)),c="          ".substr(0,t)):"string"==typeof t&&(c=t.substr(0,10)),s("",{"":e});function s(e,u){let t=u[e];switch(null!=t&&("function"==typeof t.toJSON5?t=t.toJSON5(e):"function"==typeof t.toJSON&&(t=t.toJSON(e))),o&&(t=o.call(u,e,t)),t instanceof Number?t=Number(t):t instanceof String?t=String(t):t instanceof Boolean&&(t=t.valueOf()),t){case null:return"null";case!0:return"true";case!1:return"false"}return"string"==typeof t?l(t):"number"==typeof t?String(t):"object"==typeof t?Array.isArray(t)?function(e){if(n.indexOf(e)>=0)throw TypeError("Converting circular structure to JSON5");n.push(e);let u=a;a+=c;let t,r=[];for(let u=0;u<e.length;u++){const t=s(String(u),e);r.push(void 0!==t?t:"null")}if(0===r.length)t="[]";else if(""===c){t="["+r.join(",")+"]"}else{let e=",\n"+a,n=r.join(e);t="[\n"+a+n+",\n"+u+"]"}return n.pop(),a=u,t}(t):function(e){if(n.indexOf(e)>=0)throw TypeError("Converting circular structure to JSON5");n.push(e);let u=a;a+=c;let t,o=r||Object.keys(e),i=[];for(const u of o){const t=s(u,e);if(void 0!==t){let e=D(u)+":";""!==c&&(e+=" "),e+=t,i.push(e)}}if(0===i.length)t="{}";else{let e;if(""===c)e=i.join(","),t="{"+e+"}";else{let n=",\n"+a;e=i.join(n),t="{\n"+a+e+",\n"+u+"}"}}return n.pop(),a=u,t}(t):void 0}function l(e){const u={"'":.1,'"':.2},t={"'":"\\'",'"':'\\"',"\\":"\\\\","\b":"\\b","\f":"\\f","\n":"\\n","\r":"\\r","\t":"\\t","\v":"\\v","\0":"\\0","\u2028":"\\u2028","\u2029":"\\u2029"};let n="";for(let r=0;r<e.length;r++){const o=e[r];switch(o){case"'":case'"':u[o]++,n+=o;continue;case"\0":if(C.isDigit(e[r+1])){n+="\\x00";continue}}if(t[o])n+=t[o];else if(o<" "){let e=o.charCodeAt(0).toString(16);n+="\\x"+("00"+e).substring(e.length)}else n+=o}const r=i||Object.keys(u).reduce(((e,t)=>u[e]<u[t]?e:t));return n=n.replace(new RegExp(r,"g"),t[r]),r+n+r}function D(e){if(0===e.length)return l(e);const u=String.fromCodePoint(e.codePointAt(0));if(!C.isIdStartChar(u))return l(e);for(let t=u.length;t<e.length;t++)if(!C.isIdContinueChar(String.fromCodePoint(e.codePointAt(t))))return l(e);return e}}};
-/*! js-yaml 4.1.0 https://github.com/nodeca/js-yaml @license MIT */function W(e){return null==e}var z={isNothing:W,isObject:function(e){return"object"==typeof e&&null!==e},toArray:function(e){return Array.isArray(e)?e:W(e)?[]:[e]},repeat:function(e,u){var t,n="";for(t=0;t<u;t+=1)n+=e;return n},isNegativeZero:function(e){return 0===e&&Number.NEGATIVE_INFINITY===1/e},extend:function(e,u){var t,n,r,o;if(u)for(t=0,n=(o=Object.keys(u)).length;t<n;t+=1)e[r=o[t]]=u[r];return e}};function Z(e,u){var t="",n=e.reason||"(unknown reason)";return e.mark?(e.mark.name&&(t+='in "'+e.mark.name+'" '),t+="("+(e.mark.line+1)+":"+(e.mark.column+1)+")",!u&&e.mark.snippet&&(t+="\n\n"+e.mark.snippet),n+" "+t):n}function K(e,u){Error.call(this),this.name="YAMLException",this.reason=e,this.mark=u,this.message=Z(this,!1),Error.captureStackTrace?Error.captureStackTrace(this,this.constructor):this.stack=(new Error).stack||""}K.prototype=Object.create(Error.prototype),K.prototype.constructor=K,K.prototype.toString=function(e){return this.name+": "+Z(this,e)};var G=K;function Q(e,u,t,n,r){var o="",i="",a=Math.floor(r/2)-1;return n-u>a&&(u=n-a+(o=" ... ").length),t-n>a&&(t=n+a-(i=" ...").length),{str:o+e.slice(u,t).replace(/\t/g,"→")+i,pos:n-u+o.length}}function X(e,u){return z.repeat(" ",u-e.length)+e}var ee=function(e,u){if(u=Object.create(u||null),!e.buffer)return null;u.maxLength||(u.maxLength=79),"number"!=typeof u.indent&&(u.indent=1),"number"!=typeof u.linesBefore&&(u.linesBefore=3),"number"!=typeof u.linesAfter&&(u.linesAfter=2);for(var t,n=/\r?\n|\r|\0/g,r=[0],o=[],i=-1;t=n.exec(e.buffer);)o.push(t.index),r.push(t.index+t[0].length),e.position<=t.index&&i<0&&(i=r.length-2);i<0&&(i=r.length-1);var a,c,s="",l=Math.min(e.line+u.linesAfter,o.length).toString().length,D=u.maxLength-(u.indent+l+3);for(a=1;a<=u.linesBefore&&!(i-a<0);a++)c=Q(e.buffer,r[i-a],o[i-a],e.position-(r[i]-r[i-a]),D),s=z.repeat(" ",u.indent)+X((e.line-a+1).toString(),l)+" | "+c.str+"\n"+s;for(c=Q(e.buffer,r[i],o[i],e.position,D),s+=z.repeat(" ",u.indent)+X((e.line+1).toString(),l)+" | "+c.str+"\n",s+=z.repeat("-",u.indent+l+3+c.pos)+"^\n",a=1;a<=u.linesAfter&&!(i+a>=o.length);a++)c=Q(e.buffer,r[i+a],o[i+a],e.position-(r[i]-r[i+a]),D),s+=z.repeat(" ",u.indent)+X((e.line+a+1).toString(),l)+" | "+c.str+"\n";return s.replace(/\n$/,"")},ue=["kind","multi","resolve","construct","instanceOf","predicate","represent","representName","defaultStyle","styleAliases"],te=["scalar","sequence","mapping"];var ne=function(e,u){if(u=u||{},Object.keys(u).forEach((function(u){if(-1===ue.indexOf(u))throw new G('Unknown option "'+u+'" is met in definition of "'+e+'" YAML type.')})),this.options=u,this.tag=e,this.kind=u.kind||null,this.resolve=u.resolve||function(){return!0},this.construct=u.construct||function(e){return e},this.instanceOf=u.instanceOf||null,this.predicate=u.predicate||null,this.represent=u.represent||null,this.representName=u.representName||null,this.defaultStyle=u.defaultStyle||null,this.multi=u.multi||!1,this.styleAliases=function(e){var u={};return null!==e&&Object.keys(e).forEach((function(t){e[t].forEach((function(e){u[String(e)]=t}))})),u}(u.styleAliases||null),-1===te.indexOf(this.kind))throw new G('Unknown kind "'+this.kind+'" is specified for "'+e+'" YAML type.')};function re(e,u){var t=[];return e[u].forEach((function(e){var u=t.length;t.forEach((function(t,n){t.tag===e.tag&&t.kind===e.kind&&t.multi===e.multi&&(u=n)})),t[u]=e})),t}function oe(e){return this.extend(e)}oe.prototype.extend=function(e){var u=[],t=[];if(e instanceof ne)t.push(e);else if(Array.isArray(e))t=t.concat(e);else{if(!e||!Array.isArray(e.implicit)&&!Array.isArray(e.explicit))throw new G("Schema.extend argument should be a Type, [ Type ], or a schema definition ({ implicit: [...], explicit: [...] })");e.implicit&&(u=u.concat(e.implicit)),e.explicit&&(t=t.concat(e.explicit))}u.forEach((function(e){if(!(e instanceof ne))throw new G("Specified list of YAML types (or a single Type object) contains a non-Type object.");if(e.loadKind&&"scalar"!==e.loadKind)throw new G("There is a non-scalar type in the implicit list of a schema. Implicit resolving of such types is not supported.");if(e.multi)throw new G("There is a multi type in the implicit list of a schema. Multi tags can only be listed as explicit.")})),t.forEach((function(e){if(!(e instanceof ne))throw new G("Specified list of YAML types (or a single Type object) contains a non-Type object.")}));var n=Object.create(oe.prototype);return n.implicit=(this.implicit||[]).concat(u),n.explicit=(this.explicit||[]).concat(t),n.compiledImplicit=re(n,"implicit"),n.compiledExplicit=re(n,"explicit"),n.compiledTypeMap=function(){var e,u,t={scalar:{},sequence:{},mapping:{},fallback:{},multi:{scalar:[],sequence:[],mapping:[],fallback:[]}};function n(e){e.multi?(t.multi[e.kind].push(e),t.multi.fallback.push(e)):t[e.kind][e.tag]=t.fallback[e.tag]=e}for(e=0,u=arguments.length;e<u;e+=1)arguments[e].forEach(n);return t}(n.compiledImplicit,n.compiledExplicit),n};var ie=new oe({explicit:[new ne("tag:yaml.org,2002:str",{kind:"scalar",construct:function(e){return null!==e?e:""}}),new ne("tag:yaml.org,2002:seq",{kind:"sequence",construct:function(e){return null!==e?e:[]}}),new ne("tag:yaml.org,2002:map",{kind:"mapping",construct:function(e){return null!==e?e:{}}})]});var ae=new ne("tag:yaml.org,2002:null",{kind:"scalar",resolve:function(e){if(null===e)return!0;var u=e.length;return 1===u&&"~"===e||4===u&&("null"===e||"Null"===e||"NULL"===e)},construct:function(){return null},predicate:function(e){return null===e},represent:{canonical:function(){return"~"},lowercase:function(){return"null"},uppercase:function(){return"NULL"},camelcase:function(){return"Null"},empty:function(){return""}},defaultStyle:"lowercase"});var ce=new ne("tag:yaml.org,2002:bool",{kind:"scalar",resolve:function(e){if(null===e)return!1;var u=e.length;return 4===u&&("true"===e||"True"===e||"TRUE"===e)||5===u&&("false"===e||"False"===e||"FALSE"===e)},construct:function(e){return"true"===e||"True"===e||"TRUE"===e},predicate:function(e){return"[object Boolean]"===Object.prototype.toString.call(e)},represent:{lowercase:function(e){return e?"true":"false"},uppercase:function(e){return e?"TRUE":"FALSE"},camelcase:function(e){return e?"True":"False"}},defaultStyle:"lowercase"});function se(e){return 48<=e&&e<=57||65<=e&&e<=70||97<=e&&e<=102}function le(e){return 48<=e&&e<=55}function De(e){return 48<=e&&e<=57}var fe=new ne("tag:yaml.org,2002:int",{kind:"scalar",resolve:function(e){if(null===e)return!1;var u,t=e.length,n=0,r=!1;if(!t)return!1;if("-"!==(u=e[n])&&"+"!==u||(u=e[++n]),"0"===u){if(n+1===t)return!0;if("b"===(u=e[++n])){for(n++;n<t;n++)if("_"!==(u=e[n])){if("0"!==u&&"1"!==u)return!1;r=!0}return r&&"_"!==u}if("x"===u){for(n++;n<t;n++)if("_"!==(u=e[n])){if(!se(e.charCodeAt(n)))return!1;r=!0}return r&&"_"!==u}if("o"===u){for(n++;n<t;n++)if("_"!==(u=e[n])){if(!le(e.charCodeAt(n)))return!1;r=!0}return r&&"_"!==u}}if("_"===u)return!1;for(;n<t;n++)if("_"!==(u=e[n])){if(!De(e.charCodeAt(n)))return!1;r=!0}return!(!r||"_"===u)},construct:function(e){var u,t=e,n=1;if(-1!==t.indexOf("_")&&(t=t.replace(/_/g,"")),"-"!==(u=t[0])&&"+"!==u||("-"===u&&(n=-1),u=(t=t.slice(1))[0]),"0"===t)return 0;if("0"===u){if("b"===t[1])return n*parseInt(t.slice(2),2);if("x"===t[1])return n*parseInt(t.slice(2),16);if("o"===t[1])return n*parseInt(t.slice(2),8)}return n*parseInt(t,10)},predicate:function(e){return"[object Number]"===Object.prototype.toString.call(e)&&e%1==0&&!z.isNegativeZero(e)},represent:{binary:function(e){return e>=0?"0b"+e.toString(2):"-0b"+e.toString(2).slice(1)},octal:function(e){return e>=0?"0o"+e.toString(8):"-0o"+e.toString(8).slice(1)},decimal:function(e){return e.toString(10)},hexadecimal:function(e){return e>=0?"0x"+e.toString(16).toUpperCase():"-0x"+e.toString(16).toUpperCase().slice(1)}},defaultStyle:"decimal",styleAliases:{binary:[2,"bin"],octal:[8,"oct"],decimal:[10,"dec"],hexadecimal:[16,"hex"]}}),de=new RegExp("^(?:[-+]?(?:[0-9][0-9_]*)(?:\\.[0-9_]*)?(?:[eE][-+]?[0-9]+)?|\\.[0-9_]+(?:[eE][-+]?[0-9]+)?|[-+]?\\.(?:inf|Inf|INF)|\\.(?:nan|NaN|NAN))$");var pe=/^[-+]?[0-9]+e/;var Ce=new ne("tag:yaml.org,2002:float",{kind:"scalar",resolve:function(e){return null!==e&&!(!de.test(e)||"_"===e[e.length-1])},construct:function(e){var u,t;return t="-"===(u=e.replace(/_/g,"").toLowerCase())[0]?-1:1,"+-".indexOf(u[0])>=0&&(u=u.slice(1)),".inf"===u?1===t?Number.POSITIVE_INFINITY:Number.NEGATIVE_INFINITY:".nan"===u?NaN:t*parseFloat(u,10)},predicate:function(e){return"[object Number]"===Object.prototype.toString.call(e)&&(e%1!=0||z.isNegativeZero(e))},represent:function(e,u){var t;if(isNaN(e))switch(u){case"lowercase":return".nan";case"uppercase":return".NAN";case"camelcase":return".NaN"}else if(Number.POSITIVE_INFINITY===e)switch(u){case"lowercase":return".inf";case"uppercase":return".INF";case"camelcase":return".Inf"}else if(Number.NEGATIVE_INFINITY===e)switch(u){case"lowercase":return"-.inf";case"uppercase":return"-.INF";case"camelcase":return"-.Inf"}else if(z.isNegativeZero(e))return"-0.0";return t=e.toString(10),pe.test(t)?t.replace("e",".e"):t},defaultStyle:"lowercase"}),he=ie.extend({implicit:[ae,ce,fe,Ce]}),Ae=new RegExp("^([0-9][0-9][0-9][0-9])-([0-9][0-9])-([0-9][0-9])$"),Fe=new RegExp("^([0-9][0-9][0-9][0-9])-([0-9][0-9]?)-([0-9][0-9]?)(?:[Tt]|[ \\t]+)([0-9][0-9]?):([0-9][0-9]):([0-9][0-9])(?:\\.([0-9]*))?(?:[ \\t]*(Z|([-+])([0-9][0-9]?)(?::([0-9][0-9]))?))?$");var ge=new ne("tag:yaml.org,2002:timestamp",{kind:"scalar",resolve:function(e){return null!==e&&(null!==Ae.exec(e)||null!==Fe.exec(e))},construct:function(e){var u,t,n,r,o,i,a,c,s=0,l=null;if(null===(u=Ae.exec(e))&&(u=Fe.exec(e)),null===u)throw new Error("Date resolve error");if(t=+u[1],n=+u[2]-1,r=+u[3],!u[4])return new Date(Date.UTC(t,n,r));if(o=+u[4],i=+u[5],a=+u[6],u[7]){for(s=u[7].slice(0,3);s.length<3;)s+="0";s=+s}return u[9]&&(l=6e4*(60*+u[10]+ +(u[11]||0)),"-"===u[9]&&(l=-l)),c=new Date(Date.UTC(t,n,r,o,i,a,s)),l&&c.setTime(c.getTime()-l),c},instanceOf:Date,represent:function(e){return e.toISOString()}});var Ee=new ne("tag:yaml.org,2002:merge",{kind:"scalar",resolve:function(e){return"<<"===e||null===e}}),me="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\n\r";var ve=new ne("tag:yaml.org,2002:binary",{kind:"scalar",resolve:function(e){if(null===e)return!1;var u,t,n=0,r=e.length,o=me;for(t=0;t<r;t++)if(!((u=o.indexOf(e.charAt(t)))>64)){if(u<0)return!1;n+=6}return n%8==0},construct:function(e){var u,t,n=e.replace(/[\r\n=]/g,""),r=n.length,o=me,i=0,a=[];for(u=0;u<r;u++)u%4==0&&u&&(a.push(i>>16&255),a.push(i>>8&255),a.push(255&i)),i=i<<6|o.indexOf(n.charAt(u));return 0===(t=r%4*6)?(a.push(i>>16&255),a.push(i>>8&255),a.push(255&i)):18===t?(a.push(i>>10&255),a.push(i>>2&255)):12===t&&a.push(i>>4&255),new Uint8Array(a)},predicate:function(e){return"[object Uint8Array]"===Object.prototype.toString.call(e)},represent:function(e){var u,t,n="",r=0,o=e.length,i=me;for(u=0;u<o;u++)u%3==0&&u&&(n+=i[r>>18&63],n+=i[r>>12&63],n+=i[r>>6&63],n+=i[63&r]),r=(r<<8)+e[u];return 0===(t=o%3)?(n+=i[r>>18&63],n+=i[r>>12&63],n+=i[r>>6&63],n+=i[63&r]):2===t?(n+=i[r>>10&63],n+=i[r>>4&63],n+=i[r<<2&63],n+=i[64]):1===t&&(n+=i[r>>2&63],n+=i[r<<4&63],n+=i[64],n+=i[64]),n}}),Be=Object.prototype.hasOwnProperty,ye=Object.prototype.toString;var be=new ne("tag:yaml.org,2002:omap",{kind:"sequence",resolve:function(e){if(null===e)return!0;var u,t,n,r,o,i=[],a=e;for(u=0,t=a.length;u<t;u+=1){if(n=a[u],o=!1,"[object Object]"!==ye.call(n))return!1;for(r in n)if(Be.call(n,r)){if(o)return!1;o=!0}if(!o)return!1;if(-1!==i.indexOf(r))return!1;i.push(r)}return!0},construct:function(e){return null!==e?e:[]}}),we=Object.prototype.toString;var xe=new ne("tag:yaml.org,2002:pairs",{kind:"sequence",resolve:function(e){if(null===e)return!0;var u,t,n,r,o,i=e;for(o=new Array(i.length),u=0,t=i.length;u<t;u+=1){if(n=i[u],"[object Object]"!==we.call(n))return!1;if(1!==(r=Object.keys(n)).length)return!1;o[u]=[r[0],n[r[0]]]}return!0},construct:function(e){if(null===e)return[];var u,t,n,r,o,i=e;for(o=new Array(i.length),u=0,t=i.length;u<t;u+=1)n=i[u],r=Object.keys(n),o[u]=[r[0],n[r[0]]];return o}}),Se=Object.prototype.hasOwnProperty;var ke=new ne("tag:yaml.org,2002:set",{kind:"mapping",resolve:function(e){if(null===e)return!0;var u,t=e;for(u in t)if(Se.call(t,u)&&null!==t[u])return!1;return!0},construct:function(e){return null!==e?e:{}}}),Pe=he.extend({implicit:[ge,Ee],explicit:[ve,be,xe,ke]}),Ne=Object.prototype.hasOwnProperty,Ie=/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x84\x86-\x9F\uFFFE\uFFFF]|[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?:[^\uD800-\uDBFF]|^)[\uDC00-\uDFFF]/,je=/[\x85\u2028\u2029]/,Te=/[,\[\]\{\}]/,Oe=/^(?:!|!!|![a-z\-]+!)$/i,Me=/^(?:!|[^,\[\]\{\}])(?:%[0-9a-f]{2}|[0-9a-z\-#;\/\?:@&=\+\$,_\.!~\*'\(\)\[\]])*$/i;function Le(e){return Object.prototype.toString.call(e)}function Ue(e){return 10===e||13===e}function _e(e){return 9===e||32===e}function qe(e){return 9===e||32===e||10===e||13===e}function He(e){return 44===e||91===e||93===e||123===e||125===e}function Je(e){var u;return 48<=e&&e<=57?e-48:97<=(u=32|e)&&u<=102?u-97+10:-1}function $e(e){return 120===e?2:117===e?4:85===e?8:0}function Re(e){return 48<=e&&e<=57?e-48:-1}function Ve(e){return 48===e?"\0":97===e?"":98===e?"\b":116===e||9===e?"\t":110===e?"\n":118===e?"\v":102===e?"\f":114===e?"\r":101===e?"":32===e?" ":34===e?'"':47===e?"/":92===e?"\\":78===e?"":95===e?" ":76===e?"\u2028":80===e?"\u2029":""}function Ye(e){return e<=65535?String.fromCharCode(e):String.fromCharCode(55296+(e-65536>>10),56320+(e-65536&1023))}for(var We=new Array(256),ze=new Array(256),Ze=0;Ze<256;Ze++)We[Ze]=Ve(Ze)?1:0,ze[Ze]=Ve(Ze);function Ke(e,u){this.input=e,this.filename=u.filename||null,this.schema=u.schema||Pe,this.onWarning=u.onWarning||null,this.legacy=u.legacy||!1,this.json=u.json||!1,this.listener=u.listener||null,this.implicitTypes=this.schema.compiledImplicit,this.typeMap=this.schema.compiledTypeMap,this.length=e.length,this.position=0,this.line=0,this.lineStart=0,this.lineIndent=0,this.firstTabInLine=-1,this.documents=[]}function Ge(e,u){var t={name:e.filename,buffer:e.input.slice(0,-1),position:e.position,line:e.line,column:e.position-e.lineStart};return t.snippet=ee(t),new G(u,t)}function Qe(e,u){throw Ge(e,u)}function Xe(e,u){e.onWarning&&e.onWarning.call(null,Ge(e,u))}var eu={YAML:function(e,u,t){var n,r,o;null!==e.version&&Qe(e,"duplication of %YAML directive"),1!==t.length&&Qe(e,"YAML directive accepts exactly one argument"),null===(n=/^([0-9]+)\.([0-9]+)$/.exec(t[0]))&&Qe(e,"ill-formed argument of the YAML directive"),r=parseInt(n[1],10),o=parseInt(n[2],10),1!==r&&Qe(e,"unacceptable YAML version of the document"),e.version=t[0],e.checkLineBreaks=o<2,1!==o&&2!==o&&Xe(e,"unsupported YAML version of the document")},TAG:function(e,u,t){var n,r;2!==t.length&&Qe(e,"TAG directive accepts exactly two arguments"),n=t[0],r=t[1],Oe.test(n)||Qe(e,"ill-formed tag handle (first argument) of the TAG directive"),Ne.call(e.tagMap,n)&&Qe(e,'there is a previously declared suffix for "'+n+'" tag handle'),Me.test(r)||Qe(e,"ill-formed tag prefix (second argument) of the TAG directive");try{r=decodeURIComponent(r)}catch(u){Qe(e,"tag prefix is malformed: "+r)}e.tagMap[n]=r}};function uu(e,u,t,n){var r,o,i,a;if(u<t){if(a=e.input.slice(u,t),n)for(r=0,o=a.length;r<o;r+=1)9===(i=a.charCodeAt(r))||32<=i&&i<=1114111||Qe(e,"expected valid JSON character");else Ie.test(a)&&Qe(e,"the stream contains non-printable characters");e.result+=a}}function tu(e,u,t,n){var r,o,i,a;for(z.isObject(t)||Qe(e,"cannot merge mappings; the provided source object is unacceptable"),i=0,a=(r=Object.keys(t)).length;i<a;i+=1)o=r[i],Ne.call(u,o)||(u[o]=t[o],n[o]=!0)}function nu(e,u,t,n,r,o,i,a,c){var s,l;if(Array.isArray(r))for(s=0,l=(r=Array.prototype.slice.call(r)).length;s<l;s+=1)Array.isArray(r[s])&&Qe(e,"nested arrays are not supported inside keys"),"object"==typeof r&&"[object Object]"===Le(r[s])&&(r[s]="[object Object]");if("object"==typeof r&&"[object Object]"===Le(r)&&(r="[object Object]"),r=String(r),null===u&&(u={}),"tag:yaml.org,2002:merge"===n)if(Array.isArray(o))for(s=0,l=o.length;s<l;s+=1)tu(e,u,o[s],t);else tu(e,u,o,t);else e.json||Ne.call(t,r)||!Ne.call(u,r)||(e.line=i||e.line,e.lineStart=a||e.lineStart,e.position=c||e.position,Qe(e,"duplicated mapping key")),"__proto__"===r?Object.defineProperty(u,r,{configurable:!0,enumerable:!0,writable:!0,value:o}):u[r]=o,delete t[r];return u}function ru(e){var u;10===(u=e.input.charCodeAt(e.position))?e.position++:13===u?(e.position++,10===e.input.charCodeAt(e.position)&&e.position++):Qe(e,"a line break is expected"),e.line+=1,e.lineStart=e.position,e.firstTabInLine=-1}function ou(e,u,t){for(var n=0,r=e.input.charCodeAt(e.position);0!==r;){for(;_e(r);)9===r&&-1===e.firstTabInLine&&(e.firstTabInLine=e.position),r=e.input.charCodeAt(++e.position);if(u&&35===r)do{r=e.input.charCodeAt(++e.position)}while(10!==r&&13!==r&&0!==r);if(!Ue(r))break;for(ru(e),r=e.input.charCodeAt(e.position),n++,e.lineIndent=0;32===r;)e.lineIndent++,r=e.input.charCodeAt(++e.position)}return-1!==t&&0!==n&&e.lineIndent<t&&Xe(e,"deficient indentation"),n}function iu(e){var u,t=e.position;return!(45!==(u=e.input.charCodeAt(t))&&46!==u||u!==e.input.charCodeAt(t+1)||u!==e.input.charCodeAt(t+2)||(t+=3,0!==(u=e.input.charCodeAt(t))&&!qe(u)))}function au(e,u){1===u?e.result+=" ":u>1&&(e.result+=z.repeat("\n",u-1))}function cu(e,u){var t,n,r=e.tag,o=e.anchor,i=[],a=!1;if(-1!==e.firstTabInLine)return!1;for(null!==e.anchor&&(e.anchorMap[e.anchor]=i),n=e.input.charCodeAt(e.position);0!==n&&(-1!==e.firstTabInLine&&(e.position=e.firstTabInLine,Qe(e,"tab characters must not be used in indentation")),45===n)&&qe(e.input.charCodeAt(e.position+1));)if(a=!0,e.position++,ou(e,!0,-1)&&e.lineIndent<=u)i.push(null),n=e.input.charCodeAt(e.position);else if(t=e.line,Du(e,u,3,!1,!0),i.push(e.result),ou(e,!0,-1),n=e.input.charCodeAt(e.position),(e.line===t||e.lineIndent>u)&&0!==n)Qe(e,"bad indentation of a sequence entry");else if(e.lineIndent<u)break;return!!a&&(e.tag=r,e.anchor=o,e.kind="sequence",e.result=i,!0)}function su(e){var u,t,n,r,o=!1,i=!1;if(33!==(r=e.input.charCodeAt(e.position)))return!1;if(null!==e.tag&&Qe(e,"duplication of a tag property"),60===(r=e.input.charCodeAt(++e.position))?(o=!0,r=e.input.charCodeAt(++e.position)):33===r?(i=!0,t="!!",r=e.input.charCodeAt(++e.position)):t="!",u=e.position,o){do{r=e.input.charCodeAt(++e.position)}while(0!==r&&62!==r);e.position<e.length?(n=e.input.slice(u,e.position),r=e.input.charCodeAt(++e.position)):Qe(e,"unexpected end of the stream within a verbatim tag")}else{for(;0!==r&&!qe(r);)33===r&&(i?Qe(e,"tag suffix cannot contain exclamation marks"):(t=e.input.slice(u-1,e.position+1),Oe.test(t)||Qe(e,"named tag handle cannot contain such characters"),i=!0,u=e.position+1)),r=e.input.charCodeAt(++e.position);n=e.input.slice(u,e.position),Te.test(n)&&Qe(e,"tag suffix cannot contain flow indicator characters")}n&&!Me.test(n)&&Qe(e,"tag name cannot contain such characters: "+n);try{n=decodeURIComponent(n)}catch(u){Qe(e,"tag name is malformed: "+n)}return o?e.tag=n:Ne.call(e.tagMap,t)?e.tag=e.tagMap[t]+n:"!"===t?e.tag="!"+n:"!!"===t?e.tag="tag:yaml.org,2002:"+n:Qe(e,'undeclared tag handle "'+t+'"'),!0}function lu(e){var u,t;if(38!==(t=e.input.charCodeAt(e.position)))return!1;for(null!==e.anchor&&Qe(e,"duplication of an anchor property"),t=e.input.charCodeAt(++e.position),u=e.position;0!==t&&!qe(t)&&!He(t);)t=e.input.charCodeAt(++e.position);return e.position===u&&Qe(e,"name of an anchor node must contain at least one character"),e.anchor=e.input.slice(u,e.position),!0}function Du(e,u,t,n,r){var o,i,a,c,s,l,D,f,d,p=1,C=!1,h=!1;if(null!==e.listener&&e.listener("open",e),e.tag=null,e.anchor=null,e.kind=null,e.result=null,o=i=a=4===t||3===t,n&&ou(e,!0,-1)&&(C=!0,e.lineIndent>u?p=1:e.lineIndent===u?p=0:e.lineIndent<u&&(p=-1)),1===p)for(;su(e)||lu(e);)ou(e,!0,-1)?(C=!0,a=o,e.lineIndent>u?p=1:e.lineIndent===u?p=0:e.lineIndent<u&&(p=-1)):a=!1;if(a&&(a=C||r),1!==p&&4!==t||(f=1===t||2===t?u:u+1,d=e.position-e.lineStart,1===p?a&&(cu(e,d)||function(e,u,t){var n,r,o,i,a,c,s,l=e.tag,D=e.anchor,f={},d=Object.create(null),p=null,C=null,h=null,A=!1,F=!1;if(-1!==e.firstTabInLine)return!1;for(null!==e.anchor&&(e.anchorMap[e.anchor]=f),s=e.input.charCodeAt(e.position);0!==s;){if(A||-1===e.firstTabInLine||(e.position=e.firstTabInLine,Qe(e,"tab characters must not be used in indentation")),n=e.input.charCodeAt(e.position+1),o=e.line,63!==s&&58!==s||!qe(n)){if(i=e.line,a=e.lineStart,c=e.position,!Du(e,t,2,!1,!0))break;if(e.line===o){for(s=e.input.charCodeAt(e.position);_e(s);)s=e.input.charCodeAt(++e.position);if(58===s)qe(s=e.input.charCodeAt(++e.position))||Qe(e,"a whitespace character is expected after the key-value separator within a block mapping"),A&&(nu(e,f,d,p,C,null,i,a,c),p=C=h=null),F=!0,A=!1,r=!1,p=e.tag,C=e.result;else{if(!F)return e.tag=l,e.anchor=D,!0;Qe(e,"can not read an implicit mapping pair; a colon is missed")}}else{if(!F)return e.tag=l,e.anchor=D,!0;Qe(e,"can not read a block mapping entry; a multiline key may not be an implicit key")}}else 63===s?(A&&(nu(e,f,d,p,C,null,i,a,c),p=C=h=null),F=!0,A=!0,r=!0):A?(A=!1,r=!0):Qe(e,"incomplete explicit mapping pair; a key node is missed; or followed by a non-tabulated empty line"),e.position+=1,s=n;if((e.line===o||e.lineIndent>u)&&(A&&(i=e.line,a=e.lineStart,c=e.position),Du(e,u,4,!0,r)&&(A?C=e.result:h=e.result),A||(nu(e,f,d,p,C,h,i,a,c),p=C=h=null),ou(e,!0,-1),s=e.input.charCodeAt(e.position)),(e.line===o||e.lineIndent>u)&&0!==s)Qe(e,"bad indentation of a mapping entry");else if(e.lineIndent<u)break}return A&&nu(e,f,d,p,C,null,i,a,c),F&&(e.tag=l,e.anchor=D,e.kind="mapping",e.result=f),F}(e,d,f))||function(e,u){var t,n,r,o,i,a,c,s,l,D,f,d,p=!0,C=e.tag,h=e.anchor,A=Object.create(null);if(91===(d=e.input.charCodeAt(e.position)))i=93,s=!1,o=[];else{if(123!==d)return!1;i=125,s=!0,o={}}for(null!==e.anchor&&(e.anchorMap[e.anchor]=o),d=e.input.charCodeAt(++e.position);0!==d;){if(ou(e,!0,u),(d=e.input.charCodeAt(e.position))===i)return e.position++,e.tag=C,e.anchor=h,e.kind=s?"mapping":"sequence",e.result=o,!0;p?44===d&&Qe(e,"expected the node content, but found ','"):Qe(e,"missed comma between flow collection entries"),f=null,a=c=!1,63===d&&qe(e.input.charCodeAt(e.position+1))&&(a=c=!0,e.position++,ou(e,!0,u)),t=e.line,n=e.lineStart,r=e.position,Du(e,u,1,!1,!0),D=e.tag,l=e.result,ou(e,!0,u),d=e.input.charCodeAt(e.position),!c&&e.line!==t||58!==d||(a=!0,d=e.input.charCodeAt(++e.position),ou(e,!0,u),Du(e,u,1,!1,!0),f=e.result),s?nu(e,o,A,D,l,f,t,n,r):a?o.push(nu(e,null,A,D,l,f,t,n,r)):o.push(l),ou(e,!0,u),44===(d=e.input.charCodeAt(e.position))?(p=!0,d=e.input.charCodeAt(++e.position)):p=!1}Qe(e,"unexpected end of the stream within a flow collection")}(e,f)?h=!0:(i&&function(e,u){var t,n,r,o,i=1,a=!1,c=!1,s=u,l=0,D=!1;if(124===(o=e.input.charCodeAt(e.position)))n=!1;else{if(62!==o)return!1;n=!0}for(e.kind="scalar",e.result="";0!==o;)if(43===(o=e.input.charCodeAt(++e.position))||45===o)1===i?i=43===o?3:2:Qe(e,"repeat of a chomping mode identifier");else{if(!((r=Re(o))>=0))break;0===r?Qe(e,"bad explicit indentation width of a block scalar; it cannot be less than one"):c?Qe(e,"repeat of an indentation width identifier"):(s=u+r-1,c=!0)}if(_e(o)){do{o=e.input.charCodeAt(++e.position)}while(_e(o));if(35===o)do{o=e.input.charCodeAt(++e.position)}while(!Ue(o)&&0!==o)}for(;0!==o;){for(ru(e),e.lineIndent=0,o=e.input.charCodeAt(e.position);(!c||e.lineIndent<s)&&32===o;)e.lineIndent++,o=e.input.charCodeAt(++e.position);if(!c&&e.lineIndent>s&&(s=e.lineIndent),Ue(o))l++;else{if(e.lineIndent<s){3===i?e.result+=z.repeat("\n",a?1+l:l):1===i&&a&&(e.result+="\n");break}for(n?_e(o)?(D=!0,e.result+=z.repeat("\n",a?1+l:l)):D?(D=!1,e.result+=z.repeat("\n",l+1)):0===l?a&&(e.result+=" "):e.result+=z.repeat("\n",l):e.result+=z.repeat("\n",a?1+l:l),a=!0,c=!0,l=0,t=e.position;!Ue(o)&&0!==o;)o=e.input.charCodeAt(++e.position);uu(e,t,e.position,!1)}}return!0}(e,f)||function(e,u){var t,n,r;if(39!==(t=e.input.charCodeAt(e.position)))return!1;for(e.kind="scalar",e.result="",e.position++,n=r=e.position;0!==(t=e.input.charCodeAt(e.position));)if(39===t){if(uu(e,n,e.position,!0),39!==(t=e.input.charCodeAt(++e.position)))return!0;n=e.position,e.position++,r=e.position}else Ue(t)?(uu(e,n,r,!0),au(e,ou(e,!1,u)),n=r=e.position):e.position===e.lineStart&&iu(e)?Qe(e,"unexpected end of the document within a single quoted scalar"):(e.position++,r=e.position);Qe(e,"unexpected end of the stream within a single quoted scalar")}(e,f)||function(e,u){var t,n,r,o,i,a;if(34!==(a=e.input.charCodeAt(e.position)))return!1;for(e.kind="scalar",e.result="",e.position++,t=n=e.position;0!==(a=e.input.charCodeAt(e.position));){if(34===a)return uu(e,t,e.position,!0),e.position++,!0;if(92===a){if(uu(e,t,e.position,!0),Ue(a=e.input.charCodeAt(++e.position)))ou(e,!1,u);else if(a<256&&We[a])e.result+=ze[a],e.position++;else if((i=$e(a))>0){for(r=i,o=0;r>0;r--)(i=Je(a=e.input.charCodeAt(++e.position)))>=0?o=(o<<4)+i:Qe(e,"expected hexadecimal character");e.result+=Ye(o),e.position++}else Qe(e,"unknown escape sequence");t=n=e.position}else Ue(a)?(uu(e,t,n,!0),au(e,ou(e,!1,u)),t=n=e.position):e.position===e.lineStart&&iu(e)?Qe(e,"unexpected end of the document within a double quoted scalar"):(e.position++,n=e.position)}Qe(e,"unexpected end of the stream within a double quoted scalar")}(e,f)?h=!0:!function(e){var u,t,n;if(42!==(n=e.input.charCodeAt(e.position)))return!1;for(n=e.input.charCodeAt(++e.position),u=e.position;0!==n&&!qe(n)&&!He(n);)n=e.input.charCodeAt(++e.position);return e.position===u&&Qe(e,"name of an alias node must contain at least one character"),t=e.input.slice(u,e.position),Ne.call(e.anchorMap,t)||Qe(e,'unidentified alias "'+t+'"'),e.result=e.anchorMap[t],ou(e,!0,-1),!0}(e)?function(e,u,t){var n,r,o,i,a,c,s,l,D=e.kind,f=e.result;if(qe(l=e.input.charCodeAt(e.position))||He(l)||35===l||38===l||42===l||33===l||124===l||62===l||39===l||34===l||37===l||64===l||96===l)return!1;if((63===l||45===l)&&(qe(n=e.input.charCodeAt(e.position+1))||t&&He(n)))return!1;for(e.kind="scalar",e.result="",r=o=e.position,i=!1;0!==l;){if(58===l){if(qe(n=e.input.charCodeAt(e.position+1))||t&&He(n))break}else if(35===l){if(qe(e.input.charCodeAt(e.position-1)))break}else{if(e.position===e.lineStart&&iu(e)||t&&He(l))break;if(Ue(l)){if(a=e.line,c=e.lineStart,s=e.lineIndent,ou(e,!1,-1),e.lineIndent>=u){i=!0,l=e.input.charCodeAt(e.position);continue}e.position=o,e.line=a,e.lineStart=c,e.lineIndent=s;break}}i&&(uu(e,r,o,!1),au(e,e.line-a),r=o=e.position,i=!1),_e(l)||(o=e.position+1),l=e.input.charCodeAt(++e.position)}return uu(e,r,o,!1),!!e.result||(e.kind=D,e.result=f,!1)}(e,f,1===t)&&(h=!0,null===e.tag&&(e.tag="?")):(h=!0,null===e.tag&&null===e.anchor||Qe(e,"alias node should not have any properties")),null!==e.anchor&&(e.anchorMap[e.anchor]=e.result)):0===p&&(h=a&&cu(e,d))),null===e.tag)null!==e.anchor&&(e.anchorMap[e.anchor]=e.result);else if("?"===e.tag){for(null!==e.result&&"scalar"!==e.kind&&Qe(e,'unacceptable node kind for !<?> tag; it should be "scalar", not "'+e.kind+'"'),c=0,s=e.implicitTypes.length;c<s;c+=1)if((D=e.implicitTypes[c]).resolve(e.result)){e.result=D.construct(e.result),e.tag=D.tag,null!==e.anchor&&(e.anchorMap[e.anchor]=e.result);break}}else if("!"!==e.tag){if(Ne.call(e.typeMap[e.kind||"fallback"],e.tag))D=e.typeMap[e.kind||"fallback"][e.tag];else for(D=null,c=0,s=(l=e.typeMap.multi[e.kind||"fallback"]).length;c<s;c+=1)if(e.tag.slice(0,l[c].tag.length)===l[c].tag){D=l[c];break}D||Qe(e,"unknown tag !<"+e.tag+">"),null!==e.result&&D.kind!==e.kind&&Qe(e,"unacceptable node kind for !<"+e.tag+'> tag; it should be "'+D.kind+'", not "'+e.kind+'"'),D.resolve(e.result,e.tag)?(e.result=D.construct(e.result,e.tag),null!==e.anchor&&(e.anchorMap[e.anchor]=e.result)):Qe(e,"cannot resolve a node with !<"+e.tag+"> explicit tag")}return null!==e.listener&&e.listener("close",e),null!==e.tag||null!==e.anchor||h}function fu(e){var u,t,n,r,o=e.position,i=!1;for(e.version=null,e.checkLineBreaks=e.legacy,e.tagMap=Object.create(null),e.anchorMap=Object.create(null);0!==(r=e.input.charCodeAt(e.position))&&(ou(e,!0,-1),r=e.input.charCodeAt(e.position),!(e.lineIndent>0||37!==r));){for(i=!0,r=e.input.charCodeAt(++e.position),u=e.position;0!==r&&!qe(r);)r=e.input.charCodeAt(++e.position);for(n=[],(t=e.input.slice(u,e.position)).length<1&&Qe(e,"directive name must not be less than one character in length");0!==r;){for(;_e(r);)r=e.input.charCodeAt(++e.position);if(35===r){do{r=e.input.charCodeAt(++e.position)}while(0!==r&&!Ue(r));break}if(Ue(r))break;for(u=e.position;0!==r&&!qe(r);)r=e.input.charCodeAt(++e.position);n.push(e.input.slice(u,e.position))}0!==r&&ru(e),Ne.call(eu,t)?eu[t](e,t,n):Xe(e,'unknown document directive "'+t+'"')}ou(e,!0,-1),0===e.lineIndent&&45===e.input.charCodeAt(e.position)&&45===e.input.charCodeAt(e.position+1)&&45===e.input.charCodeAt(e.position+2)?(e.position+=3,ou(e,!0,-1)):i&&Qe(e,"directives end mark is expected"),Du(e,e.lineIndent-1,4,!1,!0),ou(e,!0,-1),e.checkLineBreaks&&je.test(e.input.slice(o,e.position))&&Xe(e,"non-ASCII line breaks are interpreted as content"),e.documents.push(e.result),e.position===e.lineStart&&iu(e)?46===e.input.charCodeAt(e.position)&&(e.position+=3,ou(e,!0,-1)):e.position<e.length-1&&Qe(e,"end of the stream or a document separator is expected")}function du(e,u){u=u||{},0!==(e=String(e)).length&&(10!==e.charCodeAt(e.length-1)&&13!==e.charCodeAt(e.length-1)&&(e+="\n"),65279===e.charCodeAt(0)&&(e=e.slice(1)));var t=new Ke(e,u),n=e.indexOf("\0");for(-1!==n&&(t.position=n,Qe(t,"null byte is not allowed in input")),t.input+="\0";32===t.input.charCodeAt(t.position);)t.lineIndent+=1,t.position+=1;for(;t.position<t.length-1;)fu(t);return t.documents}var pu={loadAll:function(e,u,t){null!==u&&"object"==typeof u&&void 0===t&&(t=u,u=null);var n=du(e,t);if("function"!=typeof u)return n;for(var r=0,o=n.length;r<o;r+=1)u(n[r])},load:function(e,u){var t=du(e,u);if(0!==t.length){if(1===t.length)return t[0];throw new G("expected a single document in the stream, but found more")}}}.load;async function Cu(e,u,t){var n,r;const{index:o}=await CommandBar.showOptions(u.map((e=>e.label)),e);return null!==(n=null===(r=u[o])||void 0===r?void 0:r.value)&&void 0!==n?n:t}async function hu(e,u="OK"){await CommandBar.showOptions([u],e)}const Au="📋 Templates";async function Fu(){console.log("getOrMakeTemplateFolder");let e=DataStore.folders.find((e=>e.includes(Au)));if(null==e){if(!await Cu("No templates folder found.",[{label:"✅ Create ".concat(Au," with samples"),value:!0},{label:"❌ Cancel command",value:!1}],!1))return;const u=await Cu("Select a location for the templates folder.",DataStore.folders.map((e=>({label:e,value:e+(e.endsWith("/")?"":"/")}))),"");e=u+Au,DataStore.newNote(gu,e),DataStore.newNote(Eu,e),DataStore.newNote(mu,e),DataStore.newNote(vu,e),console.log('-> "'.concat(Au,'" folder created with samples')),await hu('"'.concat(Au,'" folder created with samples')),await hu("Please re-start command.")}return e}const gu="Daily Note Template\n---\n## Tasks\n\n## Media\n{{quote()}}\n\n## Journal\n{{weather()}}\n",Eu="Meeting Note Template\n---\n## Project X Meeting on [[date]] with @Y and @Z\n\n## Notes\n\n## Actions\n",mu="Tags Template\n---\n# {{title}}\n\nCreated on {{date({locale: 'en-US', dateStyle: 'short'})}}\n",vu=" _configuration\n---\n# Template Tag Configuration\n\nThis file is used to configure how templates work. Use the code fence below to set global values for template tags.\n\nTo write your configuration you can use JSON5. JSON5 is a human-friendly\nsuperset of JSON that lets you write comments, unquoted keys and other common\npatterns available in Javscript.\n\nJust use the codeblock marked as `javascript` shown below to write your own\ncustom configurayion.\n\nThe first code-block within the note will always be used. So edit the default configuration below:\n\n```javascript\n{\n  // Even though it says, \"javacsript\" above, this actually just JSON5.\n\n  // configuration for dates, heavily based on javascript's Intl module\n  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat/DateTimeFormat\n  date: {\n    // Default timezone for date and time.\n    timezone: 'automatic',\n    // Default locale to format date and time.\n    // e.g. en-US will result in mm/dd/yyyy, while en_GB will be dd/mm/yyyy\n    locale: 'en-US',\n    // can be \"short\", \"medium\", \"long\" or \"full\"\n    dateStyle: 'short',\n    // optional key, can be \"short\", \"medium\", \"long\" or \"full\"\n    timeStyle: 'short',\n  },\n\n  // configuration for weather data\n  weather: {\n    // API key for https://openweathermap.org/\n    // !!REQUIRED!!\n    openWeatherAPIKey: '... put your API key here ...',\n    // Default location for weather forcast\n    latPosition: 0.0,\n    longPosition: 0.0,\n    // Default units. Can be 'metric' (for Celsius), or 'metric' (for Fahrenheit)\n    openWeatherUnits: 'metric',\n  },\n\n  // configuration for daily quote, all settings are optional\n  quote: {\n    // Available modes: [random (default), today, author]\n    mode: 'today',\n    // API key required, available authors: https://premium.zenquotes.io/available-authors/\n    author: 'anne-frank',\n    // Required for mode: 'author' (from https://premium.zenquotes.io/)\n    apiKey: '... put your API key here ...',\n  },\n\n  // default values for custom tags.\n  // These tags cannot be functions, but you may choose to have nested objects.\n  // feel free to edit this value however you see fit.\n  tagValue: {\n    me: {\n      // Can be used as {{me.firstName}}\n      firstName: 'John',\n      // Can be used as {{me.lastName}}\n      lastName: 'Doe',\n    }\n    // ...\n  },\n}\n```\n\n",Bu=["javascript","json","json5","yaml","toml","ini"],yu={javascript:"json5",ini:"toml"};async function bu(e){var u;if(null==e)return await hu("No configuration block found in configuration file."),{};let[t,...n]=e.split("\n");if(n=n.join("\n"),t=t.trim(),!Bu.includes(t))return await hu("Invalid configuration format in the config file."),{};switch(t=null!==(u=yu[t])&&void 0!==u?u:t,console.log("parseFirstCodeblock: will parse format ".concat(t," length ").concat(n.length)),t){case"json":return async function(e){try{return JSON.parse(e)}catch(e){return console.log(e),await hu("Invalid JSON in your configuration. Please fix it to use configuration"),{}}}(n);case"json5":return async function(e){try{return Y.parse(e)}catch(e){return console.log(e),await hu("Invalid JSON5 in your configuration. Please fix it to use configuration"),{}}}(n);case"yaml":return async function(e){try{const u=pu(e);return"object"==typeof u?u:{}}catch(u){return console.log(e),console.log(u),await hu("Invalid YAML in your configuration. Please fix it to use configuration"),{}}}(n);case"toml":return async function(e){try{const u=d(e);return"object"==typeof u?u:{}}catch(e){return console.log(e),await hu("Invalid TOML in your configuration. Please fix it to use configuration"),{}}}(n);default:console.log("parseFirstCodeblock: error: can't deal with format ".concat(t))}}let wu,xu,Su,ku,Pu=!1,Nu=[],Iu=[],ju=[],Tu=[];function Ou(e,u){let t=new Date,n=new Date;const r=(new Date).getTimezoneOffset();switch(e){case 1:t=Calendar.addUnitToDate(Calendar.dateFrom(u,1,1,0,0,0),"minute",-r),n=Calendar.addUnitToDate(Calendar.dateFrom(u,3,31,0,0,0),"minute",-r);break;case 2:t=Calendar.addUnitToDate(Calendar.dateFrom(u,4,1,0,0,0),"minute",-r),n=Calendar.addUnitToDate(Calendar.dateFrom(u,6,30,0,0,0),"minute",-r);break;case 3:t=Calendar.addUnitToDate(Calendar.dateFrom(u,7,1,0,0,0),"minute",-r),n=Calendar.addUnitToDate(Calendar.dateFrom(u,9,30,0,0,0),"minute",-r);break;case 4:t=Calendar.addUnitToDate(Calendar.dateFrom(u,10,1,0,0,0),"minute",-r),n=Calendar.addUnitToDate(Calendar.dateFrom(u,12,31,0,0,0),"minute",-r);break;default:console.log("error: invalid quarter given: ".concat(e))}return[t,n]}function Mu(e,u){var t;const n=e.paragraphs;let r=n.length;const o=null!==(t=e.title)&&void 0!==t?t:"";console.log("\t  removeSection '".concat(u,"' from note '").concat(o,"' with ").concat(n.length," paras:"));for(const e of n)"title"===e.type&&e.content.startsWith(u)&&(r=e.lineIndex);if(console.log("\t    heading at: ".concat(r)),void 0!==r&&r<n.length){e.removeParagraph(n[r]);let u=1;for(let t=r+1;t<n.length&&("title"!==n[t].type&&""!==n[t].content);t++)e.removeParagraph(n[t]),u++;return console.log("\t   Removed ".concat(u," paragraphs. ").concat(r)),r}return n.length}const Lu="  statistics: {\n    folderToStore: 'Summaries',\n    hashtagCountsHeading: '#hashtag counts',\n    mentionCountsHeading: '@mention counts',\n    countsHeadingLevel: 3, // headings use H3 (or ...)\n    showAsHashtagOrMention: true, // or false to hide # and @ characters\n    // In the following the includes (if specified) takes precedence over excludes ...\n    includeHashtags: [], // e.g. ['#holiday','#jog','#commute','#webinar']\n    excludeHashtags: [],\n    includeMentions: [], // e.g. ['@work','@fruitveg','@words']\n    excludeMentions: ['@done'],\n  },\n";return e.periodStats=async function(){var e,r,a,D,f;const d=await async function(e,u){var t;const n=await Fu();if(null==n)return{};console.log("getOrMakeConfigurationSection: got folder ".concat(n));const r=DataStore.projectNotes.filter((e=>{var u;return null===(u=e.filename)||void 0===u?void 0:u.startsWith(n)})).find((e=>{var u;return!(null===(u=e.title)||void 0===u||!u.startsWith("_configuration"))}));if(null==r)return{};const o=null==r?void 0:r.content;if(null==o)return await hu("Error: cannot find '_configuration' file"),{};console.log("getOrMakeConfigurationSection: got configFile content");const i=o.split("\n```")[1],a=null!==(t=await bu(i))&&void 0!==t?t:{};if(null==i||null==a[e]){if(!await Cu("No '".concat(e,"' configuration section found."),[{label:"✅ Create ".concat(e," configuration from its defaults"),value:!0},{label:"❌ Don't Create; cancel command",value:!1}],!1))return{};const t=r.paragraphs.filter((e=>e.content.match(/```/)));if(!(t.length>0&&t[0].content.endsWith("javascript"))){const t="``` javascript\n{\n".concat(u,"\n}\n```");return r.insertParagraph(t,2,"text"),await hu("Created default javascript-style configuration for ".concat(e,".\nPlease check before re-running command.")),Editor.openNoteByFilename(r.filename),{}}{const n=t[1].lineIndex-1;if(void 0===n)return await hu("Error: cannot create default configuration for ".concat(e)),{};r.insertParagraph(u,n,"text"),await hu("Inserted default javascript-style configuration for ".concat(e,".\nPlease check before re-running command.")),Editor.openNoteByFilename(r.filename)}}return a}("statistics",Lu),p=null!==(e=null==d?void 0:d.statistics)&&void 0!==e?e:null;if(null==p)return void console.log("\tCouldn't find 'statistics' settings in _configuration note.");console.log("\tFound 'statistics' settings in _configuration note."),wu=null!=p.folderToStore?p.folderToStore:"Summaries",Su=null!=p.hashtagCountsHeading?p.hashtagCountsHeading:"#hashtag counts",ku=null!=p.mentionCountsHeading?p.mentionCountsHeading:"@mention counts",xu=null!=p.countsHeadingLevel?p.countsHeadingLevel:2,Pu=null==p.showAsHashtagOrMention||p.showAsHashtagOrMention,Nu=null!=p.includeHashtags?p.includeHashtags:[],Iu=null!=p.excludeHashtags?p.excludeHashtags:[],ju=null!=p.includeMentions?p.includeMentions:[],Tu=null!=p.excludeMentions?p.excludeMentions:["@done","@repeat"];const C=new Date,h=C.getFullYear(),A=C.getMonth()+1,F=C.getDate(),g=await u("Create stats for which period?",[{label:"Last Month",value:"lm"},{label:"This Month (to date)",value:"mtd"},{label:"Other Month",value:"om"},{label:"Last Quarter",value:"lq"},{label:"This Quarter (to date)",value:"qtd"},{label:"Other Quarter",value:"oq"},{label:"Last Year",value:"ly"},{label:"Year to date",value:"ytd"},{label:"Other Year",value:"oy"}],"mtd");let E,m,v="",B="";const y=(new Date).getTimezoneOffset();switch(console.log("TimeZone Offset = ".concat(y)),g){case"lm":E=Calendar.addUnitToDate(Calendar.dateFrom(h,A,1,0,0,0),"minute",-y),E=Calendar.addUnitToDate(E,"month",-1),m=Calendar.addUnitToDate(E,"month",1),m=Calendar.addUnitToDate(m,"day",-1),v="".concat(c(E.getMonth()+1)," ").concat(h);break;case"mtd":E=Calendar.addUnitToDate(Calendar.dateFrom(h,A,1,0,0,0),"minute",-y),m=Calendar.dateFrom(h,A,F,0,0,0),v="".concat(c(A)," ").concat(h),B="(to ".concat(o,")");break;case"om":{const e=Number(await t("Choose month, (1-12)","OK")),u=Number(await t("Choose date, e.g. 2019","OK"));E=Calendar.addUnitToDate(Calendar.dateFrom(u,e,1,0,0,0),"minute",-y),m=Calendar.addUnitToDate(E,"month",1),m=Calendar.addUnitToDate(m,"day",-1),v="".concat(c(e)," ").concat(u);break}case"lq":{const e=Math.floor((A-1)/3)+1,u=e>0?e-1:4,t=4===u?h-1:h,[n,r]=Ou(u,t);E=n,m=r;const o=3*(u-1)+1;m=Calendar.addUnitToDate(E,"month",3),m=Calendar.addUnitToDate(m,"day",-1),v="".concat(t," Q").concat(u," (").concat(c(o),"-").concat(c(o+2),")");break}case"qtd":{const e=Math.floor((A-1)/3)+1,u=3*(e-1)+1;E=Calendar.addUnitToDate(Calendar.dateFrom(h,u,1,0,0,0),"minute",-y),m=Calendar.addUnitToDate(Calendar.dateFrom(h,A,F,0,0,0),"minute",-y),v="".concat(h," Q").concat(e," (").concat(c(u),"-").concat(c(u+2),")"),B="(to ".concat(o,")");break}case"oq":{const e=Number(await t("Choose quarter, (1-4)","OK")),u=Number(await t("Choose date, e.g. 2019","OK")),n=3*(e-1)+1,[r,o]=Ou(e,u);E=r,m=o,m=Calendar.addUnitToDate(E,"month",3),m=Calendar.addUnitToDate(m,"day",-1),v="".concat(u," Q").concat(e," (").concat(c(n),"-").concat(c(n+2),")");break}case"ly":E=Calendar.addUnitToDate(Calendar.dateFrom(h-1,1,1,0,0,0),"minute",-y),m=Calendar.addUnitToDate(Calendar.dateFrom(h-1,12,31,0,0,0),"minute",-y),v="".concat(h-1);break;case"ytd":E=Calendar.addUnitToDate(Calendar.dateFrom(h,1,1,0,0,0),"minute",-y),m=Calendar.addUnitToDate(Calendar.dateFrom(h,A,F,0,0,0),"minute",-y),v="".concat(h),B="(to ".concat(o,")");break;case"oy":{const e=Number(await t("Choose date, e.g. 2019","OK"));E=Calendar.addUnitToDate(Calendar.dateFrom(e,1,1,0,0,0),"minute",-y),m=Calendar.addUnitToDate(Calendar.dateFrom(e,12,31,0,0,0),"minute",-y),v="".concat(e);break}}if(null==E||null==m)return void console.log("dates could not be parsed");console.log("periodStats: calculating for ".concat(v," (").concat(E.toISOString(),"-").concat(m.toISOString(),")"));const b=E.toISOString().slice(0,10).replace(/-/g,""),w=m.toISOString().slice(0,10).replace(/-/g,"");console.log("\nperiodStats: calculating for ".concat(v," (").concat(b,"-").concat(w,"):"));const x=[];let S=function(e,u){const t=DataStore.calendarNotes.filter((t=>s(i(t.filename),e,u)));if(0===t.length)return void console.log("  warning: no matching daily notes found");console.log("  found ".concat(t.length," matching daily notes"));const n=Nu.length>0?Nu:[],r=Iu.length>0?Iu:[],o=new Map,a=new Map;for(const e of t){const u=e.hashtags;for(const e of u)if(n.length>0&&0===n.filter((u=>e.startsWith(u))).length);else if(r.filter((u=>e.startsWith(u))).length>0);else if(e.match(/\/\d+(\.\d+)?$/)){var c,l;const u=e.split("/"),t=u[0],n=Number(u[1]);o.set(t,(null!==(c=o.get(t))&&void 0!==c?c:0)+1),a.set(t,(null!==(l=a.get(t))&&void 0!==l?l:0)+n)}else{var D;o.set(e,(null!==(D=o.get(e))&&void 0!==D?D:0)+1)}}return[o,a]}(b,w);const k=null===(r=S)||void 0===r?void 0:r[0],P=null===(a=S)||void 0===a?void 0:a[1];if(null==P||null==k)return void console.log("no hSumTotals value");for(const[e,u]of P){const t=Pu?e:e.slice(1),n=k.get(e);if(null!=n){const r=u.toFixed(0),o=(u/n).toFixed(1);x.push("".concat(t,"\t").concat(n,"\t(total ").concat(r,"\taverage ").concat(o,")")),k.delete(e)}}for(const[e,u]of k){const t=Pu?e:e.slice(1);x.push("".concat(t,"\t").concat(u))}x.length>0?x.sort():x.push("(none)");const N=[];S=function(e,u){const t=DataStore.calendarNotes.filter((t=>s(i(t.filename),e,u)));if(0===t.length)return void console.log("  warning: no matching daily notes found");console.log("  found ".concat(t.length," matching daily notes"));const n=ju.length>0?ju:[],r=Tu.length>0?Tu:[],o=new Map,a=new Map;for(const e of t){const u=e.mentions;for(const e of u)if(n.length>0&&0===n.filter((u=>e.startsWith(u))).length);else if(r.filter((u=>e.startsWith(u))).length>0);else if(e.match(/\(\d+(\.\d+)?\)$/)){var c,l;const u=e.split("("),t=u[0],n=Number(u[1].slice(0,-1));o.set(t,(null!==(c=o.get(t))&&void 0!==c?c:0)+1),a.set(t,(null!==(l=a.get(t))&&void 0!==l?l:0)+n)}else{var D;o.set(e,(null!==(D=o.get(e))&&void 0!==D?D:0)+1)}}return[o,a]}(b,w);const I=null===(D=S)||void 0===D?void 0:D[0],j=null===(f=S)||void 0===f?void 0:f[1];if(null==I||null==j)return;for(const[e,u]of j){const t=Pu?e:e.slice(1),n=I.get(e);if(null!=n){const r=u.toFixed(0),o=(u/n).toFixed(1);N.push("".concat(t,"\t").concat(n,"\t(total ").concat(r,"\taverage ").concat(o,")")),I.delete(e)}}for(const[e,u]of I){const t=Pu?e:e.slice(1);N.push("".concat(t,"\t").concat(u))}N.length>0?N.sort():N.push("(none)");const T="🗒 Add/update note '".concat(v,"' in folder '").concat(String(wu),"'");switch(await u("Where to save the summary for ".concat(v,"?"),[{label:T,value:"note"},{label:"🖥 Pop-up display",value:"show"},{label:"🖊 Write to console log",value:"log"},{label:"❌ Cancel",value:"cancel"}],"show")){case"today":{const e=await DataStore.calendarNoteByDate(new Date);var O;if(null==e)console.log("\terror appending to today's note");else console.log("\tappending results to today's note (".concat(null!==(O=e.filename)&&void 0!==O?O:"",")")),e.appendParagraph("".concat(String(Su)," for ").concat(v," ").concat(B),"text"),e.appendParagraph(x.join("\n"),"text"),e.appendParagraph("".concat(String(ku)," for ").concat(v," ").concat(B),"empty"),e.appendParagraph(N.join("\n"),"text"),console.log("\tappended results to today's note");break}case"note":{var M;let e;const u=null!==(M=DataStore.projectNoteByTitle(v,!0,!1))&&void 0!==M?M:[];if(console.log("\tfound ".concat(u.length," existing summary notes for this period")),u.length>0)e=u[0],console.log("\tfilename of first matching note: ".concat(l(e)));else{const u=DataStore.newNote(v,wu);if(!u)return void await n("There was an error creating the new note");if(console.log("\tnewNote filename: ".concat(u)),e=DataStore.projectNoteByFilename(u),null==e)return void await n("There was an error getting the new note ready to write");console.log("\twriting results to the new note '".concat(l(e),"'"))}if(null==e)return console.log("tagStats: error: shouldn't get here -- no valid note to write to"),void await n("Please re-run this command (NP bug before release 636");{const u=e;let t=Mu(u,Su);console.log("\tHashtag insertionLineIndex: ".concat(String(t))),u.insertHeading("".concat(Su," ").concat(B),t,xu),u.insertParagraph(x.join("\n"),t+1,"text"),t=Mu(u,ku),console.log("\tMention insertionLineIndex: ".concat(t)),u.insertHeading("".concat(ku," ").concat(B),t,xu),u.insertParagraph(N.join("\n"),t+1,"text")}console.log("\twritten results to note '".concat(v,"'"));break}case"log":console.log("".concat(Su," for ").concat(v," ").concat(B)),console.log(x.join("\n")),console.log("".concat(ku," for ").concat(v," ").concat(B)),console.log(N.join("\n"));break;case"cancel":break;default:{const e=x.concat(N);null!==await CommandBar.showOptions(e,"(Select anything to copy)")&&(Clipboard.string="".concat(x.join("\n"),"\n\n").concat(N.join("\n")));break}}},e.showNoteCount=async function(){const e=DataStore.calendarNotes,u=DataStore.projectNotes,t=e.length+u.length,n=u.filter((e=>Calendar.unitsAgoFromNow(e.createdDate,"month")<1)),o=u.filter((e=>Calendar.unitsAgoFromNow(e.createdDate,"month")<3)),i=u.filter((e=>Calendar.unitsAgoFromNow(e.changedDate,"month")<1)),a=u.filter((e=>Calendar.unitsAgoFromNow(e.changedDate,"month")<3)),c=["🔢 Total: ".concat(t),"📅 Calendar notes: ".concat(e.length," (equivalent to ").concat(Math.round(e.length/36.5)/10," years)"),"🛠 Project notes: ".concat(u.length),"    - created in last month: ".concat(r(n.length,u.length)),"    - created in last quarter: ".concat(r(o.length,u.length)),"    - updated in last month: ".concat(r(i.length,u.length)),"    - updated in last quarter: ".concat(r(a.length,u.length))];null!==await CommandBar.showOptions(c,"Notes count. Select anything to copy.")&&(Clipboard.string=c.join("\n"))},e.showTaskCountNote=async function(){const e=Editor.paragraphs,u=function(u){return e.filter((e=>u.includes(e.type))).length},t=u(["open","done","scheduled","cancelled"]),n=["🔢 Total: ".concat(t),"✅ Done: ".concat(r(u(["done"]),t)),"⚪️ Open: ".concat(r(u(["open"]),t)),"🚫 Cancelled: ".concat(r(u(["cancelled"]),t)),"📆 Scheduled: ".concat(r(u(["scheduled"]),t)),"📤 Closed: ".concat(r(u(["done","cancelled"]),t))];null!==await CommandBar.showOptions(n,"Task count. Select anything to copy.")&&(Clipboard.string=n.join("\n"))},e.showTaskCountProjects=async function(){const e=DataStore.projectNotes,u=e.length;let t=0,n=0,o=0,i=0;const a=new Map;for(let r=0;r<u;r+=1){const u=e[r];t+=u.paragraphs.filter((e=>"done"===e.type)).length,n+=u.paragraphs.filter((e=>"open"===e.type)).length,o+=u.paragraphs.filter((e=>"cancelled"===e.type)).length,i+=u.paragraphs.filter((e=>"scheduled"===e.type)).length,a.set(u.title,u.paragraphs.filter((e=>"open"===e.type)).length)}const c=n+(t+o),s=r(t,c),l=r(o,c),D=["Task statistics from ".concat(e.length," project notes:  (select any to copy)"),"\t✅ Done: ".concat(s,"\t🚫 Cancelled: ").concat(l),"\t⚪️ Open: ".concat(r(n,c),"\t📆 Scheduled: ").concat(r(i,c))],f=new Map([...a.entries()].sort(((e,u)=>u[1]-e[1]))),d=[];let p=0;const C=[];C.push("Projects with most open tasks:  (select any to open)");for(const e of f.entries()){var h;if(p+=1,C.push("\t".concat(null!==(h=e[0])&&void 0!==h?h:""," (").concat(e[1]," open)")),d.push(e[0]),p>=5)break}const A=D.concat(C),F=await CommandBar.showOptions(A,"Task stats.  (Select to open/copy)");if(null!==F)if(F.index<=5)Clipboard.string=D.join("\n");else{const e=d[F.index-6];null!=e&&Editor.openNoteByTitle(e)}},e.showWordCount=async function(){var e,u;const t=Editor.paragraphs,n=Editor.note;if(null==n)return;let r=0,o=0,i=0;const a=n.mentions.length,c=n.hashtags.length;t.forEach((e=>{if(r+=e.content.length,e.content.length>0){const u=e.content.match(/\w+/g);null!=u&&(o+=u.length)}i+=1}));const s=null!==(e=null===(u=Editor.selectedText)||void 0===u?void 0:u.length)&&void 0!==e?e:0;let l=0;var D,f,d;s>0&&(l=null!==(D=null===(f=Editor.selectedText)||void 0===f||null===(d=f.match(/\w+/g))||void 0===d?void 0:d.length)&&void 0!==D?D:0);const p=Editor.selectedLinesText.length,C=["Characters: ".concat(s>0?"".concat(s.toLocaleString(),"/").concat(r.toLocaleString()):r.toLocaleString()),"Words: ".concat(l>0?"".concat(l.toLocaleString(),"/").concat(o.toLocaleString()):o.toLocaleString()),"Lines: ".concat(p>1?"".concat(p.toLocaleString(),"/").concat(i.toLocaleString()):i.toLocaleString()),"Mentions: ".concat(a.toLocaleString()),"Hashtags: ".concat(c.toLocaleString())];null!==await CommandBar.showOptions(C,"Word count. Select anything to copy.")&&(Clipboard.string=C.join("\n"))},Object.defineProperty(e,"__esModule",{value:!0}),e}({});Object.assign(globalThis,exports);
+var exports = (function (exports) {
+  'use strict';
+
+  //-------------------------------------------------------------------------------
+  // Input functions
+  // (from @nmn / nmn.sweep)
+  // (from @nmn / nmn.sweep)
+  async function chooseOption$1(title, options, defaultValue) {
+    var _options$index$value, _options$index;
+
+    const {
+      index
+    } = await CommandBar.showOptions(options.map(option => option.label), title);
+    return (_options$index$value = (_options$index = options[index]) === null || _options$index === void 0 ? void 0 : _options$index.value) !== null && _options$index$value !== void 0 ? _options$index$value : defaultValue;
+  } // (from @nmn / nmn.sweep)
+
+  async function getInput(title, okLabel = 'OK') {
+    return await CommandBar.showInput(title, okLabel);
+  }
+  /**
+   * Show a single-button dialog-box like message (modal) using CommandBar
+   * @author @dwertheimer, updating @nmn
+   * @param {string} message - text to display to user
+   * @param {string} confirmTitle - the "button" (option) text (default: 'OK')
+   */
+
+  async function showMessage$1(message, confirmTitle = 'OK') {
+    await CommandBar.showOptions([confirmTitle], message);
+  }
+  // Stats functions
+  // @jgclark except where shown
+  // Return string with percentage value appended
+  // export function percent(value, total) {
+  // @eduardme
+
+  function percent(value, total) {
+    return "".concat(value.toLocaleString(), " (").concat(Math.round(value / total * 100), "%)");
+  } //-------------------------------------------------------------------------------
+
+  const todaysDateISOString = new Date().toISOString().slice(0, 10); // TODO: make a friendlier string
+
+  new Date().toISOString().slice(0, 16);
+  new Date().toLocaleString(); // @nmn
+
+  function getYearMonthDate(dateObj) {
+    const year = dateObj.getFullYear();
+    const month = dateObj.getMonth() + 1;
+    const date = dateObj.getDate();
+    return {
+      year,
+      month,
+      date
+    };
+  }
+  function hyphenatedDate(dateObj) {
+    const {
+      year,
+      month,
+      date
+    } = getYearMonthDate(dateObj);
+    return "".concat(year, "-").concat(month < 10 ? '0' : '').concat(month, "-").concat(date < 10 ? '0' : '').concat(date);
+  }
+  function dateStringFromCalendarFilename(filename) {
+    return filename.slice(0, 8);
+  }
+  const monthsAbbrev = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  function monthNameAbbrev(m) {
+    return monthsAbbrev[m - 1];
+  }
+  function withinDateRange(testDate, fromDate, toDate) {
+    return testDate >= fromDate && testDate <= toDate;
+  } // Tests for the above
+  // console.log(`\ntesting relativeDate`)
+  // console.log(`-14 -> ${relativeDateFromNumber(-14)}`)
+  // console.log(`-7 -> ${relativeDateFromNumber(-7)}`)
+  // console.log(`-2 -> ${relativeDateFromNumber(-2)}`)
+  // console.log(`-1 -> ${relativeDateFromNumber(-1)}`)
+  // console.log(`0 -> ${relativeDateFromNumber(0)}`)
+  // console.log(`1 -> ${relativeDateFromNumber(1)}`)
+  // console.log(`2 -> ${relativeDateFromNumber(2)}`)
+  // console.log(`7 -> ${relativeDateFromNumber(7)}`)
+  // console.log(`14 -> ${relativeDateFromNumber(14)}`)
+  // console.log(`29 -> ${relativeDateFromNumber(29)}`)
+  // console.log(`30 -> ${relativeDateFromNumber(30)}`)
+  // console.log(`31 -> ${relativeDateFromNumber(31)}`)
+  // console.log(`123 -> ${relativeDateFromNumber(123)}`)
+  // console.log(`264 -> ${relativeDateFromNumber(264)}`)
+  // console.log(`364 -> ${relativeDateFromNumber(364)}`)
+  // console.log(`365 -> ${relativeDateFromNumber(365)}`)
+  // console.log(`366 -> ${relativeDateFromNumber(366)}`)
+  //-------------------------------------------------------------------------------
+  // Misc functions for NP
+
+  DataStore.defaultFileExtension != null ? DataStore.defaultFileExtension : 'md'; // Pretty print range information (@EduardMe)
+  // (@jgclark)
+
+  function displayTitle(n) {
+    if (n.type === 'Calendar' && n.date != null) {
+      return hyphenatedDate(n.date);
+    } else {
+      var _n$title;
+
+      return (_n$title = n.title) !== null && _n$title !== void 0 ? _n$title : '';
+    }
+  } // Print out all data for a paragraph (@EduardMe)
+
+  // Show note counts
+
+  async function showNoteCount() {
+    const calNotes = DataStore.calendarNotes;
+    const projNotes = DataStore.projectNotes;
+    const total = calNotes.length + projNotes.length;
+    const createdLastMonth = projNotes.filter(n => Calendar.unitsAgoFromNow(n.createdDate, 'month') < 1);
+    const createdLastQuarter = projNotes.filter(n => Calendar.unitsAgoFromNow(n.createdDate, 'month') < 3);
+    const updatedLastMonth = projNotes.filter(n => Calendar.unitsAgoFromNow(n.changedDate, 'month') < 1);
+    const updatedLastQuarter = projNotes.filter(n => Calendar.unitsAgoFromNow(n.changedDate, 'month') < 3); // Test code to track down where there's an error in the data reported 
+    // by the API. Seems not; the problems are elsewhere in NP, according to 
+    // what the OS says about the underlying files.
+    // console.log('\nCreated last Quarter')
+    // for (let i = 0; i < createdLastQuarter.length; i++) {
+    //   const n=createdLastQuarter[i]
+    //   printNote(n)
+    //   console.log(`  ${Calendar.unitsAgoFromNow(n.createdDate, 'Quarter')}`)
+    // }
+    // console.log('\nUpdated last Quarter')
+    // for (let i = 0; i < updatedLastQuarter.length; i++) {
+    //   const n=updatedLastQuarter[i]
+    //   printNote(n)
+    //   console.log(`  ${Calendar.unitsAgoFromNow(n.updatedDate, 'Quarter')}`)
+    // }
+
+    const display = ["\uD83D\uDD22 Total: ".concat(total), "\uD83D\uDCC5 Calendar notes: ".concat(calNotes.length, " (equivalent to ").concat(Math.round(calNotes.length / 36.5) / 10.0, " years)"), "\uD83D\uDEE0 Project notes: ".concat(projNotes.length), "    - created in last month: ".concat(percent(createdLastMonth.length, projNotes.length)), "    - created in last quarter: ".concat(percent(createdLastQuarter.length, projNotes.length)), "    - updated in last month: ".concat(percent(updatedLastMonth.length, projNotes.length)), "    - updated in last quarter: ".concat(percent(updatedLastQuarter.length, projNotes.length))];
+    const re = await CommandBar.showOptions(display, 'Notes count. Select anything to copy.');
+
+    if (re !== null) {
+      Clipboard.string = display.join('\n');
+    }
+  }
+
+  // Show word counts etc. for currently displayed note
+  async function showWordCount() {
+    var _Editor$selectedText$, _Editor$selectedText;
+
+    const paragraphs = Editor.paragraphs;
+    const note = Editor.note;
+
+    if (note == null) {
+      // No note open.
+      return;
+    }
+
+    let charCount = 0;
+    let wordCount = 0;
+    let lineCount = 0;
+    const mentionCount = note.mentions.length;
+    const tagCount = note.hashtags.length;
+    paragraphs.forEach(p => {
+      charCount += p.content.length;
+
+      if (p.content.length > 0) {
+        const match = p.content.match(/\w+/g);
+
+        if (match != null) {
+          wordCount += match.length;
+        }
+      }
+
+      lineCount += 1;
+    });
+    const selectedCharCount = (_Editor$selectedText$ = (_Editor$selectedText = Editor.selectedText) === null || _Editor$selectedText === void 0 ? void 0 : _Editor$selectedText.length) !== null && _Editor$selectedText$ !== void 0 ? _Editor$selectedText$ : 0;
+    let selectedWordCount = 0;
+
+    if (selectedCharCount > 0) {
+      var _Editor$selectedText$2, _Editor$selectedText2, _Editor$selectedText3;
+
+      selectedWordCount = (_Editor$selectedText$2 = (_Editor$selectedText2 = Editor.selectedText) === null || _Editor$selectedText2 === void 0 ? void 0 : (_Editor$selectedText3 = _Editor$selectedText2.match(/\w+/g)) === null || _Editor$selectedText3 === void 0 ? void 0 : _Editor$selectedText3.length) !== null && _Editor$selectedText$2 !== void 0 ? _Editor$selectedText$2 : 0;
+    }
+
+    const selectedLines = Editor.selectedLinesText.length;
+    const display = ["Characters: ".concat(selectedCharCount > 0 ? "".concat(selectedCharCount.toLocaleString(), "/").concat(charCount.toLocaleString()) : charCount.toLocaleString()), "Words: ".concat(selectedWordCount > 0 ? "".concat(selectedWordCount.toLocaleString(), "/").concat(wordCount.toLocaleString()) : wordCount.toLocaleString()), "Lines: ".concat(selectedLines > 1 ? "".concat(selectedLines.toLocaleString(), "/").concat(lineCount.toLocaleString()) : lineCount.toLocaleString()), "Mentions: ".concat(mentionCount.toLocaleString()), "Hashtags: ".concat(tagCount.toLocaleString())];
+    const re = await CommandBar.showOptions(display, 'Word count. Select anything to copy.');
+
+    if (re !== null) {
+      Clipboard.string = display.join('\n');
+    }
+  }
+
+  // Shows task statistics for project notes
+
+  async function showTaskCountProjects() {
+    const projNotes = DataStore.projectNotes;
+    const projNotesCount = projNotes.length;
+    let doneTotal = 0;
+    let openTotal = 0;
+    let cancelledTotal = 0;
+    let scheduledTotal = 0;
+    const open = new Map(); // track the open totals as an object
+    // Count task type for a single note
+    // The following stopped working for reasons I couldn't understand, so commented out.
+    // const countTaskTypeInNote = function (inType) {
+    //   return Editor.paragraphs.filter((p) => p.type === inType).length
+    // }
+    // Iterate over all project notes, counting
+
+    for (let i = 0; i < projNotesCount; i += 1) {
+      const n = projNotes[i];
+      doneTotal += n.paragraphs.filter(p => p.type === 'done').length;
+      openTotal += n.paragraphs.filter(p => p.type === 'open').length; // doesn't include scheduled
+
+      cancelledTotal += n.paragraphs.filter(p => p.type === 'cancelled').length;
+      scheduledTotal += n.paragraphs.filter(p => p.type === 'scheduled').length; // not quite the same as future
+
+      open.set(n.title, n.paragraphs.filter(p => p.type === 'open').length);
+    }
+
+    const closedTotal = doneTotal + cancelledTotal;
+    const total = openTotal + closedTotal;
+    const donePercent = percent(doneTotal, total);
+    const cancelledPercent = percent(cancelledTotal, total);
+    const display1 = ["Task statistics from ".concat(projNotes.length, " project notes:  (select any to copy)"), "\t\u2705 Done: ".concat(donePercent, "\t\uD83D\uDEAB Cancelled: ").concat(cancelledPercent), "\t\u26AA\uFE0F Open: ".concat(percent(openTotal, total), "\t\uD83D\uDCC6 Scheduled: ").concat(percent(scheduledTotal, total))]; // Now find top 5 project notes by open tasks
+    // (spread operator can be used to concisely convert a Map into an array)
+
+    const openSorted = new Map([...open.entries()].sort((a, b) => b[1] - a[1]));
+    const openSortedTitle = [];
+    let i = 0;
+    const display2 = [];
+    display2.push('Projects with most open tasks:  (select any to open)');
+
+    for (const elem of openSorted.entries()) {
+      var _elem$;
+
+      i += 1;
+      display2.push("\t".concat((_elem$ = elem[0]) !== null && _elem$ !== void 0 ? _elem$ : '', " (").concat(elem[1], " open)"));
+      openSortedTitle.push(elem[0]);
+
+      if (i >= 5) {
+        break;
+      }
+    }
+
+    const display = display1.concat(display2);
+    const re = await CommandBar.showOptions(display, 'Task stats.  (Select to open/copy)');
+
+    if (re !== null) {
+      if (re.index <= 5) {
+        // We want to copy the statistics
+        Clipboard.string = display1.join('\n');
+      } else {
+        // We want to open the relevant note
+        const title = openSortedTitle[re.index - 6];
+
+        if (title != null) {
+          Editor.openNoteByTitle(title);
+        }
+      }
+    }
+  }
+
+  // Show task counts for currently displayed note
+
+  async function showTaskCountNote() {
+    const paragraphs = Editor.paragraphs;
+
+    const countParagraphs = function (types) {
+      return paragraphs.filter(p => types.includes(p.type)).length;
+    };
+
+    const total = countParagraphs(["open", "done", "scheduled", "cancelled"]);
+    const display = ["\uD83D\uDD22 Total: ".concat(total), "\u2705 Done: ".concat(percent(countParagraphs(["done"]), total)), "\u26AA\uFE0F Open: ".concat(percent(countParagraphs(["open"]), total)), "\uD83D\uDEAB Cancelled: ".concat(percent(countParagraphs(["cancelled"]), total)), "\uD83D\uDCC6 Scheduled: ".concat(percent(countParagraphs(["scheduled"]), total)), "\uD83D\uDCE4 Closed: ".concat(percent(countParagraphs(["done", "cancelled"]), total))];
+    const re = await CommandBar.showOptions(display, "Task count. Select anything to copy.");
+
+    if (re !== null) {
+      Clipboard.string = display.join("\n");
+    }
+  }
+
+  var parser$1 = function () {
+    /*
+     * Generated by PEG.js 0.8.0.
+     *
+     * http://pegjs.majda.cz/
+     */
+    function peg$subclass(child, parent) {
+      function ctor() {
+        this.constructor = child;
+      }
+
+      ctor.prototype = parent.prototype;
+      child.prototype = new ctor();
+    }
+
+    function SyntaxError(message, expected, found, offset, line, column) {
+      this.message = message;
+      this.expected = expected;
+      this.found = found;
+      this.offset = offset;
+      this.line = line;
+      this.column = column;
+      this.name = "SyntaxError";
+    }
+
+    peg$subclass(SyntaxError, Error);
+
+    function parse(input) {
+      var options = arguments.length > 1 ? arguments[1] : {},
+          peg$FAILED = {},
+          peg$startRuleFunctions = {
+        start: peg$parsestart
+      },
+          peg$startRuleFunction = peg$parsestart,
+          peg$c1 = function () {
+        return nodes;
+      },
+          peg$c2 = peg$FAILED,
+          peg$c3 = "#",
+          peg$c4 = {
+        type: "literal",
+        value: "#",
+        description: "\"#\""
+      },
+          peg$c5 = void 0,
+          peg$c6 = {
+        type: "any",
+        description: "any character"
+      },
+          peg$c7 = "[",
+          peg$c8 = {
+        type: "literal",
+        value: "[",
+        description: "\"[\""
+      },
+          peg$c9 = "]",
+          peg$c10 = {
+        type: "literal",
+        value: "]",
+        description: "\"]\""
+      },
+          peg$c11 = function (name) {
+        addNode(node('ObjectPath', name, line, column));
+      },
+          peg$c12 = function (name) {
+        addNode(node('ArrayPath', name, line, column));
+      },
+          peg$c13 = function (parts, name) {
+        return parts.concat(name);
+      },
+          peg$c14 = function (name) {
+        return [name];
+      },
+          peg$c15 = function (name) {
+        return name;
+      },
+          peg$c16 = ".",
+          peg$c17 = {
+        type: "literal",
+        value: ".",
+        description: "\".\""
+      },
+          peg$c18 = "=",
+          peg$c19 = {
+        type: "literal",
+        value: "=",
+        description: "\"=\""
+      },
+          peg$c20 = function (key, value) {
+        addNode(node('Assign', value, line, column, key));
+      },
+          peg$c21 = function (chars) {
+        return chars.join('');
+      },
+          peg$c22 = function (node) {
+        return node.value;
+      },
+          peg$c23 = "\"\"\"",
+          peg$c24 = {
+        type: "literal",
+        value: "\"\"\"",
+        description: "\"\\\"\\\"\\\"\""
+      },
+          peg$c25 = null,
+          peg$c26 = function (chars) {
+        return node('String', chars.join(''), line, column);
+      },
+          peg$c27 = "\"",
+          peg$c28 = {
+        type: "literal",
+        value: "\"",
+        description: "\"\\\"\""
+      },
+          peg$c29 = "'''",
+          peg$c30 = {
+        type: "literal",
+        value: "'''",
+        description: "\"'''\""
+      },
+          peg$c31 = "'",
+          peg$c32 = {
+        type: "literal",
+        value: "'",
+        description: "\"'\""
+      },
+          peg$c33 = function (char) {
+        return char;
+      },
+          peg$c34 = function (char) {
+        return char;
+      },
+          peg$c35 = "\\",
+          peg$c36 = {
+        type: "literal",
+        value: "\\",
+        description: "\"\\\\\""
+      },
+          peg$c37 = function () {
+        return '';
+      },
+          peg$c38 = "e",
+          peg$c39 = {
+        type: "literal",
+        value: "e",
+        description: "\"e\""
+      },
+          peg$c40 = "E",
+          peg$c41 = {
+        type: "literal",
+        value: "E",
+        description: "\"E\""
+      },
+          peg$c42 = function (left, right) {
+        return node('Float', parseFloat(left + 'e' + right), line, column);
+      },
+          peg$c43 = function (text) {
+        return node('Float', parseFloat(text), line, column);
+      },
+          peg$c44 = "+",
+          peg$c45 = {
+        type: "literal",
+        value: "+",
+        description: "\"+\""
+      },
+          peg$c46 = function (digits) {
+        return digits.join('');
+      },
+          peg$c47 = "-",
+          peg$c48 = {
+        type: "literal",
+        value: "-",
+        description: "\"-\""
+      },
+          peg$c49 = function (digits) {
+        return '-' + digits.join('');
+      },
+          peg$c50 = function (text) {
+        return node('Integer', parseInt(text, 10), line, column);
+      },
+          peg$c51 = "true",
+          peg$c52 = {
+        type: "literal",
+        value: "true",
+        description: "\"true\""
+      },
+          peg$c53 = function () {
+        return node('Boolean', true, line, column);
+      },
+          peg$c54 = "false",
+          peg$c55 = {
+        type: "literal",
+        value: "false",
+        description: "\"false\""
+      },
+          peg$c56 = function () {
+        return node('Boolean', false, line, column);
+      },
+          peg$c57 = function () {
+        return node('Array', [], line, column);
+      },
+          peg$c58 = function (value) {
+        return node('Array', value ? [value] : [], line, column);
+      },
+          peg$c59 = function (values) {
+        return node('Array', values, line, column);
+      },
+          peg$c60 = function (values, value) {
+        return node('Array', values.concat(value), line, column);
+      },
+          peg$c61 = function (value) {
+        return value;
+      },
+          peg$c62 = ",",
+          peg$c63 = {
+        type: "literal",
+        value: ",",
+        description: "\",\""
+      },
+          peg$c64 = "{",
+          peg$c65 = {
+        type: "literal",
+        value: "{",
+        description: "\"{\""
+      },
+          peg$c66 = "}",
+          peg$c67 = {
+        type: "literal",
+        value: "}",
+        description: "\"}\""
+      },
+          peg$c68 = function (values) {
+        return node('InlineTable', values, line, column);
+      },
+          peg$c69 = function (key, value) {
+        return node('InlineTableValue', value, line, column, key);
+      },
+          peg$c70 = function (digits) {
+        return "." + digits;
+      },
+          peg$c71 = function (date) {
+        return date.join('');
+      },
+          peg$c72 = ":",
+          peg$c73 = {
+        type: "literal",
+        value: ":",
+        description: "\":\""
+      },
+          peg$c74 = function (time) {
+        return time.join('');
+      },
+          peg$c75 = "T",
+          peg$c76 = {
+        type: "literal",
+        value: "T",
+        description: "\"T\""
+      },
+          peg$c77 = "Z",
+          peg$c78 = {
+        type: "literal",
+        value: "Z",
+        description: "\"Z\""
+      },
+          peg$c79 = function (date, time) {
+        return node('Date', new Date(date + "T" + time + "Z"), line, column);
+      },
+          peg$c80 = function (date, time) {
+        return node('Date', new Date(date + "T" + time), line, column);
+      },
+          peg$c81 = /^[ \t]/,
+          peg$c82 = {
+        type: "class",
+        value: "[ \\t]",
+        description: "[ \\t]"
+      },
+          peg$c83 = "\n",
+          peg$c84 = {
+        type: "literal",
+        value: "\n",
+        description: "\"\\n\""
+      },
+          peg$c85 = "\r",
+          peg$c86 = {
+        type: "literal",
+        value: "\r",
+        description: "\"\\r\""
+      },
+          peg$c87 = /^[0-9a-f]/i,
+          peg$c88 = {
+        type: "class",
+        value: "[0-9a-f]i",
+        description: "[0-9a-f]i"
+      },
+          peg$c89 = /^[0-9]/,
+          peg$c90 = {
+        type: "class",
+        value: "[0-9]",
+        description: "[0-9]"
+      },
+          peg$c91 = "_",
+          peg$c92 = {
+        type: "literal",
+        value: "_",
+        description: "\"_\""
+      },
+          peg$c93 = function () {
+        return "";
+      },
+          peg$c94 = /^[A-Za-z0-9_\-]/,
+          peg$c95 = {
+        type: "class",
+        value: "[A-Za-z0-9_\\-]",
+        description: "[A-Za-z0-9_\\-]"
+      },
+          peg$c96 = function (d) {
+        return d.join('');
+      },
+          peg$c97 = "\\\"",
+          peg$c98 = {
+        type: "literal",
+        value: "\\\"",
+        description: "\"\\\\\\\"\""
+      },
+          peg$c99 = function () {
+        return '"';
+      },
+          peg$c100 = "\\\\",
+          peg$c101 = {
+        type: "literal",
+        value: "\\\\",
+        description: "\"\\\\\\\\\""
+      },
+          peg$c102 = function () {
+        return '\\';
+      },
+          peg$c103 = "\\b",
+          peg$c104 = {
+        type: "literal",
+        value: "\\b",
+        description: "\"\\\\b\""
+      },
+          peg$c105 = function () {
+        return '\b';
+      },
+          peg$c106 = "\\t",
+          peg$c107 = {
+        type: "literal",
+        value: "\\t",
+        description: "\"\\\\t\""
+      },
+          peg$c108 = function () {
+        return '\t';
+      },
+          peg$c109 = "\\n",
+          peg$c110 = {
+        type: "literal",
+        value: "\\n",
+        description: "\"\\\\n\""
+      },
+          peg$c111 = function () {
+        return '\n';
+      },
+          peg$c112 = "\\f",
+          peg$c113 = {
+        type: "literal",
+        value: "\\f",
+        description: "\"\\\\f\""
+      },
+          peg$c114 = function () {
+        return '\f';
+      },
+          peg$c115 = "\\r",
+          peg$c116 = {
+        type: "literal",
+        value: "\\r",
+        description: "\"\\\\r\""
+      },
+          peg$c117 = function () {
+        return '\r';
+      },
+          peg$c118 = "\\U",
+          peg$c119 = {
+        type: "literal",
+        value: "\\U",
+        description: "\"\\\\U\""
+      },
+          peg$c120 = function (digits) {
+        return convertCodePoint(digits.join(''));
+      },
+          peg$c121 = "\\u",
+          peg$c122 = {
+        type: "literal",
+        value: "\\u",
+        description: "\"\\\\u\""
+      },
+          peg$currPos = 0,
+          peg$reportedPos = 0,
+          peg$cachedPos = 0,
+          peg$cachedPosDetails = {
+        line: 1,
+        column: 1,
+        seenCR: false
+      },
+          peg$maxFailPos = 0,
+          peg$maxFailExpected = [],
+          peg$silentFails = 0,
+          peg$cache = {},
+          peg$result;
+
+      if ("startRule" in options) {
+        if (!(options.startRule in peg$startRuleFunctions)) {
+          throw new Error("Can't start parsing from rule \"" + options.startRule + "\".");
+        }
+
+        peg$startRuleFunction = peg$startRuleFunctions[options.startRule];
+      }
+
+      function line() {
+        return peg$computePosDetails(peg$reportedPos).line;
+      }
+
+      function column() {
+        return peg$computePosDetails(peg$reportedPos).column;
+      }
+
+      function peg$computePosDetails(pos) {
+        function advance(details, startPos, endPos) {
+          var p, ch;
+
+          for (p = startPos; p < endPos; p++) {
+            ch = input.charAt(p);
+
+            if (ch === "\n") {
+              if (!details.seenCR) {
+                details.line++;
+              }
+
+              details.column = 1;
+              details.seenCR = false;
+            } else if (ch === "\r" || ch === "\u2028" || ch === "\u2029") {
+              details.line++;
+              details.column = 1;
+              details.seenCR = true;
+            } else {
+              details.column++;
+              details.seenCR = false;
+            }
+          }
+        }
+
+        if (peg$cachedPos !== pos) {
+          if (peg$cachedPos > pos) {
+            peg$cachedPos = 0;
+            peg$cachedPosDetails = {
+              line: 1,
+              column: 1,
+              seenCR: false
+            };
+          }
+
+          advance(peg$cachedPosDetails, peg$cachedPos, pos);
+          peg$cachedPos = pos;
+        }
+
+        return peg$cachedPosDetails;
+      }
+
+      function peg$fail(expected) {
+        if (peg$currPos < peg$maxFailPos) {
+          return;
+        }
+
+        if (peg$currPos > peg$maxFailPos) {
+          peg$maxFailPos = peg$currPos;
+          peg$maxFailExpected = [];
+        }
+
+        peg$maxFailExpected.push(expected);
+      }
+
+      function peg$buildException(message, expected, pos) {
+        function cleanupExpected(expected) {
+          var i = 1;
+          expected.sort(function (a, b) {
+            if (a.description < b.description) {
+              return -1;
+            } else if (a.description > b.description) {
+              return 1;
+            } else {
+              return 0;
+            }
+          });
+
+          while (i < expected.length) {
+            if (expected[i - 1] === expected[i]) {
+              expected.splice(i, 1);
+            } else {
+              i++;
+            }
+          }
+        }
+
+        function buildMessage(expected, found) {
+          function stringEscape(s) {
+            function hex(ch) {
+              return ch.charCodeAt(0).toString(16).toUpperCase();
+            }
+
+            return s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\x08/g, '\\b').replace(/\t/g, '\\t').replace(/\n/g, '\\n').replace(/\f/g, '\\f').replace(/\r/g, '\\r').replace(/[\x00-\x07\x0B\x0E\x0F]/g, function (ch) {
+              return '\\x0' + hex(ch);
+            }).replace(/[\x10-\x1F\x80-\xFF]/g, function (ch) {
+              return '\\x' + hex(ch);
+            }).replace(/[\u0180-\u0FFF]/g, function (ch) {
+              return '\\u0' + hex(ch);
+            }).replace(/[\u1080-\uFFFF]/g, function (ch) {
+              return '\\u' + hex(ch);
+            });
+          }
+
+          var expectedDescs = new Array(expected.length),
+              expectedDesc,
+              foundDesc,
+              i;
+
+          for (i = 0; i < expected.length; i++) {
+            expectedDescs[i] = expected[i].description;
+          }
+
+          expectedDesc = expected.length > 1 ? expectedDescs.slice(0, -1).join(", ") + " or " + expectedDescs[expected.length - 1] : expectedDescs[0];
+          foundDesc = found ? "\"" + stringEscape(found) + "\"" : "end of input";
+          return "Expected " + expectedDesc + " but " + foundDesc + " found.";
+        }
+
+        var posDetails = peg$computePosDetails(pos),
+            found = pos < input.length ? input.charAt(pos) : null;
+
+        if (expected !== null) {
+          cleanupExpected(expected);
+        }
+
+        return new SyntaxError(message !== null ? message : buildMessage(expected, found), expected, found, pos, posDetails.line, posDetails.column);
+      }
+
+      function peg$parsestart() {
+        var s0, s1, s2;
+        var key = peg$currPos * 49 + 0,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$currPos;
+        s1 = [];
+        s2 = peg$parseline();
+
+        while (s2 !== peg$FAILED) {
+          s1.push(s2);
+          s2 = peg$parseline();
+        }
+
+        if (s1 !== peg$FAILED) {
+          peg$reportedPos = s0;
+          s1 = peg$c1();
+        }
+
+        s0 = s1;
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parseline() {
+        var s0, s1, s2, s3, s4, s5, s6;
+        var key = peg$currPos * 49 + 1,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$currPos;
+        s1 = [];
+        s2 = peg$parseS();
+
+        while (s2 !== peg$FAILED) {
+          s1.push(s2);
+          s2 = peg$parseS();
+        }
+
+        if (s1 !== peg$FAILED) {
+          s2 = peg$parseexpression();
+
+          if (s2 !== peg$FAILED) {
+            s3 = [];
+            s4 = peg$parseS();
+
+            while (s4 !== peg$FAILED) {
+              s3.push(s4);
+              s4 = peg$parseS();
+            }
+
+            if (s3 !== peg$FAILED) {
+              s4 = [];
+              s5 = peg$parsecomment();
+
+              while (s5 !== peg$FAILED) {
+                s4.push(s5);
+                s5 = peg$parsecomment();
+              }
+
+              if (s4 !== peg$FAILED) {
+                s5 = [];
+                s6 = peg$parseNL();
+
+                if (s6 !== peg$FAILED) {
+                  while (s6 !== peg$FAILED) {
+                    s5.push(s6);
+                    s6 = peg$parseNL();
+                  }
+                } else {
+                  s5 = peg$c2;
+                }
+
+                if (s5 === peg$FAILED) {
+                  s5 = peg$parseEOF();
+                }
+
+                if (s5 !== peg$FAILED) {
+                  s1 = [s1, s2, s3, s4, s5];
+                  s0 = s1;
+                } else {
+                  peg$currPos = s0;
+                  s0 = peg$c2;
+                }
+              } else {
+                peg$currPos = s0;
+                s0 = peg$c2;
+              }
+            } else {
+              peg$currPos = s0;
+              s0 = peg$c2;
+            }
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c2;
+          }
+        } else {
+          peg$currPos = s0;
+          s0 = peg$c2;
+        }
+
+        if (s0 === peg$FAILED) {
+          s0 = peg$currPos;
+          s1 = [];
+          s2 = peg$parseS();
+
+          if (s2 !== peg$FAILED) {
+            while (s2 !== peg$FAILED) {
+              s1.push(s2);
+              s2 = peg$parseS();
+            }
+          } else {
+            s1 = peg$c2;
+          }
+
+          if (s1 !== peg$FAILED) {
+            s2 = [];
+            s3 = peg$parseNL();
+
+            if (s3 !== peg$FAILED) {
+              while (s3 !== peg$FAILED) {
+                s2.push(s3);
+                s3 = peg$parseNL();
+              }
+            } else {
+              s2 = peg$c2;
+            }
+
+            if (s2 === peg$FAILED) {
+              s2 = peg$parseEOF();
+            }
+
+            if (s2 !== peg$FAILED) {
+              s1 = [s1, s2];
+              s0 = s1;
+            } else {
+              peg$currPos = s0;
+              s0 = peg$c2;
+            }
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c2;
+          }
+
+          if (s0 === peg$FAILED) {
+            s0 = peg$parseNL();
+          }
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parseexpression() {
+        var s0;
+        var key = peg$currPos * 49 + 2,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$parsecomment();
+
+        if (s0 === peg$FAILED) {
+          s0 = peg$parsepath();
+
+          if (s0 === peg$FAILED) {
+            s0 = peg$parsetablearray();
+
+            if (s0 === peg$FAILED) {
+              s0 = peg$parseassignment();
+            }
+          }
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parsecomment() {
+        var s0, s1, s2, s3, s4, s5;
+        var key = peg$currPos * 49 + 3,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$currPos;
+
+        if (input.charCodeAt(peg$currPos) === 35) {
+          s1 = peg$c3;
+          peg$currPos++;
+        } else {
+          s1 = peg$FAILED;
+
+          if (peg$silentFails === 0) {
+            peg$fail(peg$c4);
+          }
+        }
+
+        if (s1 !== peg$FAILED) {
+          s2 = [];
+          s3 = peg$currPos;
+          s4 = peg$currPos;
+          peg$silentFails++;
+          s5 = peg$parseNL();
+
+          if (s5 === peg$FAILED) {
+            s5 = peg$parseEOF();
+          }
+
+          peg$silentFails--;
+
+          if (s5 === peg$FAILED) {
+            s4 = peg$c5;
+          } else {
+            peg$currPos = s4;
+            s4 = peg$c2;
+          }
+
+          if (s4 !== peg$FAILED) {
+            if (input.length > peg$currPos) {
+              s5 = input.charAt(peg$currPos);
+              peg$currPos++;
+            } else {
+              s5 = peg$FAILED;
+
+              if (peg$silentFails === 0) {
+                peg$fail(peg$c6);
+              }
+            }
+
+            if (s5 !== peg$FAILED) {
+              s4 = [s4, s5];
+              s3 = s4;
+            } else {
+              peg$currPos = s3;
+              s3 = peg$c2;
+            }
+          } else {
+            peg$currPos = s3;
+            s3 = peg$c2;
+          }
+
+          while (s3 !== peg$FAILED) {
+            s2.push(s3);
+            s3 = peg$currPos;
+            s4 = peg$currPos;
+            peg$silentFails++;
+            s5 = peg$parseNL();
+
+            if (s5 === peg$FAILED) {
+              s5 = peg$parseEOF();
+            }
+
+            peg$silentFails--;
+
+            if (s5 === peg$FAILED) {
+              s4 = peg$c5;
+            } else {
+              peg$currPos = s4;
+              s4 = peg$c2;
+            }
+
+            if (s4 !== peg$FAILED) {
+              if (input.length > peg$currPos) {
+                s5 = input.charAt(peg$currPos);
+                peg$currPos++;
+              } else {
+                s5 = peg$FAILED;
+
+                if (peg$silentFails === 0) {
+                  peg$fail(peg$c6);
+                }
+              }
+
+              if (s5 !== peg$FAILED) {
+                s4 = [s4, s5];
+                s3 = s4;
+              } else {
+                peg$currPos = s3;
+                s3 = peg$c2;
+              }
+            } else {
+              peg$currPos = s3;
+              s3 = peg$c2;
+            }
+          }
+
+          if (s2 !== peg$FAILED) {
+            s1 = [s1, s2];
+            s0 = s1;
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c2;
+          }
+        } else {
+          peg$currPos = s0;
+          s0 = peg$c2;
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parsepath() {
+        var s0, s1, s2, s3, s4, s5;
+        var key = peg$currPos * 49 + 4,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$currPos;
+
+        if (input.charCodeAt(peg$currPos) === 91) {
+          s1 = peg$c7;
+          peg$currPos++;
+        } else {
+          s1 = peg$FAILED;
+
+          if (peg$silentFails === 0) {
+            peg$fail(peg$c8);
+          }
+        }
+
+        if (s1 !== peg$FAILED) {
+          s2 = [];
+          s3 = peg$parseS();
+
+          while (s3 !== peg$FAILED) {
+            s2.push(s3);
+            s3 = peg$parseS();
+          }
+
+          if (s2 !== peg$FAILED) {
+            s3 = peg$parsetable_key();
+
+            if (s3 !== peg$FAILED) {
+              s4 = [];
+              s5 = peg$parseS();
+
+              while (s5 !== peg$FAILED) {
+                s4.push(s5);
+                s5 = peg$parseS();
+              }
+
+              if (s4 !== peg$FAILED) {
+                if (input.charCodeAt(peg$currPos) === 93) {
+                  s5 = peg$c9;
+                  peg$currPos++;
+                } else {
+                  s5 = peg$FAILED;
+
+                  if (peg$silentFails === 0) {
+                    peg$fail(peg$c10);
+                  }
+                }
+
+                if (s5 !== peg$FAILED) {
+                  peg$reportedPos = s0;
+                  s1 = peg$c11(s3);
+                  s0 = s1;
+                } else {
+                  peg$currPos = s0;
+                  s0 = peg$c2;
+                }
+              } else {
+                peg$currPos = s0;
+                s0 = peg$c2;
+              }
+            } else {
+              peg$currPos = s0;
+              s0 = peg$c2;
+            }
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c2;
+          }
+        } else {
+          peg$currPos = s0;
+          s0 = peg$c2;
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parsetablearray() {
+        var s0, s1, s2, s3, s4, s5, s6, s7;
+        var key = peg$currPos * 49 + 5,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$currPos;
+
+        if (input.charCodeAt(peg$currPos) === 91) {
+          s1 = peg$c7;
+          peg$currPos++;
+        } else {
+          s1 = peg$FAILED;
+
+          if (peg$silentFails === 0) {
+            peg$fail(peg$c8);
+          }
+        }
+
+        if (s1 !== peg$FAILED) {
+          if (input.charCodeAt(peg$currPos) === 91) {
+            s2 = peg$c7;
+            peg$currPos++;
+          } else {
+            s2 = peg$FAILED;
+
+            if (peg$silentFails === 0) {
+              peg$fail(peg$c8);
+            }
+          }
+
+          if (s2 !== peg$FAILED) {
+            s3 = [];
+            s4 = peg$parseS();
+
+            while (s4 !== peg$FAILED) {
+              s3.push(s4);
+              s4 = peg$parseS();
+            }
+
+            if (s3 !== peg$FAILED) {
+              s4 = peg$parsetable_key();
+
+              if (s4 !== peg$FAILED) {
+                s5 = [];
+                s6 = peg$parseS();
+
+                while (s6 !== peg$FAILED) {
+                  s5.push(s6);
+                  s6 = peg$parseS();
+                }
+
+                if (s5 !== peg$FAILED) {
+                  if (input.charCodeAt(peg$currPos) === 93) {
+                    s6 = peg$c9;
+                    peg$currPos++;
+                  } else {
+                    s6 = peg$FAILED;
+
+                    if (peg$silentFails === 0) {
+                      peg$fail(peg$c10);
+                    }
+                  }
+
+                  if (s6 !== peg$FAILED) {
+                    if (input.charCodeAt(peg$currPos) === 93) {
+                      s7 = peg$c9;
+                      peg$currPos++;
+                    } else {
+                      s7 = peg$FAILED;
+
+                      if (peg$silentFails === 0) {
+                        peg$fail(peg$c10);
+                      }
+                    }
+
+                    if (s7 !== peg$FAILED) {
+                      peg$reportedPos = s0;
+                      s1 = peg$c12(s4);
+                      s0 = s1;
+                    } else {
+                      peg$currPos = s0;
+                      s0 = peg$c2;
+                    }
+                  } else {
+                    peg$currPos = s0;
+                    s0 = peg$c2;
+                  }
+                } else {
+                  peg$currPos = s0;
+                  s0 = peg$c2;
+                }
+              } else {
+                peg$currPos = s0;
+                s0 = peg$c2;
+              }
+            } else {
+              peg$currPos = s0;
+              s0 = peg$c2;
+            }
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c2;
+          }
+        } else {
+          peg$currPos = s0;
+          s0 = peg$c2;
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parsetable_key() {
+        var s0, s1, s2;
+        var key = peg$currPos * 49 + 6,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$currPos;
+        s1 = [];
+        s2 = peg$parsedot_ended_table_key_part();
+
+        if (s2 !== peg$FAILED) {
+          while (s2 !== peg$FAILED) {
+            s1.push(s2);
+            s2 = peg$parsedot_ended_table_key_part();
+          }
+        } else {
+          s1 = peg$c2;
+        }
+
+        if (s1 !== peg$FAILED) {
+          s2 = peg$parsetable_key_part();
+
+          if (s2 !== peg$FAILED) {
+            peg$reportedPos = s0;
+            s1 = peg$c13(s1, s2);
+            s0 = s1;
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c2;
+          }
+        } else {
+          peg$currPos = s0;
+          s0 = peg$c2;
+        }
+
+        if (s0 === peg$FAILED) {
+          s0 = peg$currPos;
+          s1 = peg$parsetable_key_part();
+
+          if (s1 !== peg$FAILED) {
+            peg$reportedPos = s0;
+            s1 = peg$c14(s1);
+          }
+
+          s0 = s1;
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parsetable_key_part() {
+        var s0, s1, s2, s3, s4;
+        var key = peg$currPos * 49 + 7,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$currPos;
+        s1 = [];
+        s2 = peg$parseS();
+
+        while (s2 !== peg$FAILED) {
+          s1.push(s2);
+          s2 = peg$parseS();
+        }
+
+        if (s1 !== peg$FAILED) {
+          s2 = peg$parsekey();
+
+          if (s2 !== peg$FAILED) {
+            s3 = [];
+            s4 = peg$parseS();
+
+            while (s4 !== peg$FAILED) {
+              s3.push(s4);
+              s4 = peg$parseS();
+            }
+
+            if (s3 !== peg$FAILED) {
+              peg$reportedPos = s0;
+              s1 = peg$c15(s2);
+              s0 = s1;
+            } else {
+              peg$currPos = s0;
+              s0 = peg$c2;
+            }
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c2;
+          }
+        } else {
+          peg$currPos = s0;
+          s0 = peg$c2;
+        }
+
+        if (s0 === peg$FAILED) {
+          s0 = peg$currPos;
+          s1 = [];
+          s2 = peg$parseS();
+
+          while (s2 !== peg$FAILED) {
+            s1.push(s2);
+            s2 = peg$parseS();
+          }
+
+          if (s1 !== peg$FAILED) {
+            s2 = peg$parsequoted_key();
+
+            if (s2 !== peg$FAILED) {
+              s3 = [];
+              s4 = peg$parseS();
+
+              while (s4 !== peg$FAILED) {
+                s3.push(s4);
+                s4 = peg$parseS();
+              }
+
+              if (s3 !== peg$FAILED) {
+                peg$reportedPos = s0;
+                s1 = peg$c15(s2);
+                s0 = s1;
+              } else {
+                peg$currPos = s0;
+                s0 = peg$c2;
+              }
+            } else {
+              peg$currPos = s0;
+              s0 = peg$c2;
+            }
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c2;
+          }
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parsedot_ended_table_key_part() {
+        var s0, s1, s2, s3, s4, s5, s6;
+        var key = peg$currPos * 49 + 8,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$currPos;
+        s1 = [];
+        s2 = peg$parseS();
+
+        while (s2 !== peg$FAILED) {
+          s1.push(s2);
+          s2 = peg$parseS();
+        }
+
+        if (s1 !== peg$FAILED) {
+          s2 = peg$parsekey();
+
+          if (s2 !== peg$FAILED) {
+            s3 = [];
+            s4 = peg$parseS();
+
+            while (s4 !== peg$FAILED) {
+              s3.push(s4);
+              s4 = peg$parseS();
+            }
+
+            if (s3 !== peg$FAILED) {
+              if (input.charCodeAt(peg$currPos) === 46) {
+                s4 = peg$c16;
+                peg$currPos++;
+              } else {
+                s4 = peg$FAILED;
+
+                if (peg$silentFails === 0) {
+                  peg$fail(peg$c17);
+                }
+              }
+
+              if (s4 !== peg$FAILED) {
+                s5 = [];
+                s6 = peg$parseS();
+
+                while (s6 !== peg$FAILED) {
+                  s5.push(s6);
+                  s6 = peg$parseS();
+                }
+
+                if (s5 !== peg$FAILED) {
+                  peg$reportedPos = s0;
+                  s1 = peg$c15(s2);
+                  s0 = s1;
+                } else {
+                  peg$currPos = s0;
+                  s0 = peg$c2;
+                }
+              } else {
+                peg$currPos = s0;
+                s0 = peg$c2;
+              }
+            } else {
+              peg$currPos = s0;
+              s0 = peg$c2;
+            }
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c2;
+          }
+        } else {
+          peg$currPos = s0;
+          s0 = peg$c2;
+        }
+
+        if (s0 === peg$FAILED) {
+          s0 = peg$currPos;
+          s1 = [];
+          s2 = peg$parseS();
+
+          while (s2 !== peg$FAILED) {
+            s1.push(s2);
+            s2 = peg$parseS();
+          }
+
+          if (s1 !== peg$FAILED) {
+            s2 = peg$parsequoted_key();
+
+            if (s2 !== peg$FAILED) {
+              s3 = [];
+              s4 = peg$parseS();
+
+              while (s4 !== peg$FAILED) {
+                s3.push(s4);
+                s4 = peg$parseS();
+              }
+
+              if (s3 !== peg$FAILED) {
+                if (input.charCodeAt(peg$currPos) === 46) {
+                  s4 = peg$c16;
+                  peg$currPos++;
+                } else {
+                  s4 = peg$FAILED;
+
+                  if (peg$silentFails === 0) {
+                    peg$fail(peg$c17);
+                  }
+                }
+
+                if (s4 !== peg$FAILED) {
+                  s5 = [];
+                  s6 = peg$parseS();
+
+                  while (s6 !== peg$FAILED) {
+                    s5.push(s6);
+                    s6 = peg$parseS();
+                  }
+
+                  if (s5 !== peg$FAILED) {
+                    peg$reportedPos = s0;
+                    s1 = peg$c15(s2);
+                    s0 = s1;
+                  } else {
+                    peg$currPos = s0;
+                    s0 = peg$c2;
+                  }
+                } else {
+                  peg$currPos = s0;
+                  s0 = peg$c2;
+                }
+              } else {
+                peg$currPos = s0;
+                s0 = peg$c2;
+              }
+            } else {
+              peg$currPos = s0;
+              s0 = peg$c2;
+            }
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c2;
+          }
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parseassignment() {
+        var s0, s1, s2, s3, s4, s5;
+        var key = peg$currPos * 49 + 9,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$currPos;
+        s1 = peg$parsekey();
+
+        if (s1 !== peg$FAILED) {
+          s2 = [];
+          s3 = peg$parseS();
+
+          while (s3 !== peg$FAILED) {
+            s2.push(s3);
+            s3 = peg$parseS();
+          }
+
+          if (s2 !== peg$FAILED) {
+            if (input.charCodeAt(peg$currPos) === 61) {
+              s3 = peg$c18;
+              peg$currPos++;
+            } else {
+              s3 = peg$FAILED;
+
+              if (peg$silentFails === 0) {
+                peg$fail(peg$c19);
+              }
+            }
+
+            if (s3 !== peg$FAILED) {
+              s4 = [];
+              s5 = peg$parseS();
+
+              while (s5 !== peg$FAILED) {
+                s4.push(s5);
+                s5 = peg$parseS();
+              }
+
+              if (s4 !== peg$FAILED) {
+                s5 = peg$parsevalue();
+
+                if (s5 !== peg$FAILED) {
+                  peg$reportedPos = s0;
+                  s1 = peg$c20(s1, s5);
+                  s0 = s1;
+                } else {
+                  peg$currPos = s0;
+                  s0 = peg$c2;
+                }
+              } else {
+                peg$currPos = s0;
+                s0 = peg$c2;
+              }
+            } else {
+              peg$currPos = s0;
+              s0 = peg$c2;
+            }
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c2;
+          }
+        } else {
+          peg$currPos = s0;
+          s0 = peg$c2;
+        }
+
+        if (s0 === peg$FAILED) {
+          s0 = peg$currPos;
+          s1 = peg$parsequoted_key();
+
+          if (s1 !== peg$FAILED) {
+            s2 = [];
+            s3 = peg$parseS();
+
+            while (s3 !== peg$FAILED) {
+              s2.push(s3);
+              s3 = peg$parseS();
+            }
+
+            if (s2 !== peg$FAILED) {
+              if (input.charCodeAt(peg$currPos) === 61) {
+                s3 = peg$c18;
+                peg$currPos++;
+              } else {
+                s3 = peg$FAILED;
+
+                if (peg$silentFails === 0) {
+                  peg$fail(peg$c19);
+                }
+              }
+
+              if (s3 !== peg$FAILED) {
+                s4 = [];
+                s5 = peg$parseS();
+
+                while (s5 !== peg$FAILED) {
+                  s4.push(s5);
+                  s5 = peg$parseS();
+                }
+
+                if (s4 !== peg$FAILED) {
+                  s5 = peg$parsevalue();
+
+                  if (s5 !== peg$FAILED) {
+                    peg$reportedPos = s0;
+                    s1 = peg$c20(s1, s5);
+                    s0 = s1;
+                  } else {
+                    peg$currPos = s0;
+                    s0 = peg$c2;
+                  }
+                } else {
+                  peg$currPos = s0;
+                  s0 = peg$c2;
+                }
+              } else {
+                peg$currPos = s0;
+                s0 = peg$c2;
+              }
+            } else {
+              peg$currPos = s0;
+              s0 = peg$c2;
+            }
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c2;
+          }
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parsekey() {
+        var s0, s1, s2;
+        var key = peg$currPos * 49 + 10,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$currPos;
+        s1 = [];
+        s2 = peg$parseASCII_BASIC();
+
+        if (s2 !== peg$FAILED) {
+          while (s2 !== peg$FAILED) {
+            s1.push(s2);
+            s2 = peg$parseASCII_BASIC();
+          }
+        } else {
+          s1 = peg$c2;
+        }
+
+        if (s1 !== peg$FAILED) {
+          peg$reportedPos = s0;
+          s1 = peg$c21(s1);
+        }
+
+        s0 = s1;
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parsequoted_key() {
+        var s0, s1;
+        var key = peg$currPos * 49 + 11,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$currPos;
+        s1 = peg$parsedouble_quoted_single_line_string();
+
+        if (s1 !== peg$FAILED) {
+          peg$reportedPos = s0;
+          s1 = peg$c22(s1);
+        }
+
+        s0 = s1;
+
+        if (s0 === peg$FAILED) {
+          s0 = peg$currPos;
+          s1 = peg$parsesingle_quoted_single_line_string();
+
+          if (s1 !== peg$FAILED) {
+            peg$reportedPos = s0;
+            s1 = peg$c22(s1);
+          }
+
+          s0 = s1;
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parsevalue() {
+        var s0;
+        var key = peg$currPos * 49 + 12,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$parsestring();
+
+        if (s0 === peg$FAILED) {
+          s0 = peg$parsedatetime();
+
+          if (s0 === peg$FAILED) {
+            s0 = peg$parsefloat();
+
+            if (s0 === peg$FAILED) {
+              s0 = peg$parseinteger();
+
+              if (s0 === peg$FAILED) {
+                s0 = peg$parseboolean();
+
+                if (s0 === peg$FAILED) {
+                  s0 = peg$parsearray();
+
+                  if (s0 === peg$FAILED) {
+                    s0 = peg$parseinline_table();
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parsestring() {
+        var s0;
+        var key = peg$currPos * 49 + 13,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$parsedouble_quoted_multiline_string();
+
+        if (s0 === peg$FAILED) {
+          s0 = peg$parsedouble_quoted_single_line_string();
+
+          if (s0 === peg$FAILED) {
+            s0 = peg$parsesingle_quoted_multiline_string();
+
+            if (s0 === peg$FAILED) {
+              s0 = peg$parsesingle_quoted_single_line_string();
+            }
+          }
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parsedouble_quoted_multiline_string() {
+        var s0, s1, s2, s3, s4;
+        var key = peg$currPos * 49 + 14,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$currPos;
+
+        if (input.substr(peg$currPos, 3) === peg$c23) {
+          s1 = peg$c23;
+          peg$currPos += 3;
+        } else {
+          s1 = peg$FAILED;
+
+          if (peg$silentFails === 0) {
+            peg$fail(peg$c24);
+          }
+        }
+
+        if (s1 !== peg$FAILED) {
+          s2 = peg$parseNL();
+
+          if (s2 === peg$FAILED) {
+            s2 = peg$c25;
+          }
+
+          if (s2 !== peg$FAILED) {
+            s3 = [];
+            s4 = peg$parsemultiline_string_char();
+
+            while (s4 !== peg$FAILED) {
+              s3.push(s4);
+              s4 = peg$parsemultiline_string_char();
+            }
+
+            if (s3 !== peg$FAILED) {
+              if (input.substr(peg$currPos, 3) === peg$c23) {
+                s4 = peg$c23;
+                peg$currPos += 3;
+              } else {
+                s4 = peg$FAILED;
+
+                if (peg$silentFails === 0) {
+                  peg$fail(peg$c24);
+                }
+              }
+
+              if (s4 !== peg$FAILED) {
+                peg$reportedPos = s0;
+                s1 = peg$c26(s3);
+                s0 = s1;
+              } else {
+                peg$currPos = s0;
+                s0 = peg$c2;
+              }
+            } else {
+              peg$currPos = s0;
+              s0 = peg$c2;
+            }
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c2;
+          }
+        } else {
+          peg$currPos = s0;
+          s0 = peg$c2;
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parsedouble_quoted_single_line_string() {
+        var s0, s1, s2, s3;
+        var key = peg$currPos * 49 + 15,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$currPos;
+
+        if (input.charCodeAt(peg$currPos) === 34) {
+          s1 = peg$c27;
+          peg$currPos++;
+        } else {
+          s1 = peg$FAILED;
+
+          if (peg$silentFails === 0) {
+            peg$fail(peg$c28);
+          }
+        }
+
+        if (s1 !== peg$FAILED) {
+          s2 = [];
+          s3 = peg$parsestring_char();
+
+          while (s3 !== peg$FAILED) {
+            s2.push(s3);
+            s3 = peg$parsestring_char();
+          }
+
+          if (s2 !== peg$FAILED) {
+            if (input.charCodeAt(peg$currPos) === 34) {
+              s3 = peg$c27;
+              peg$currPos++;
+            } else {
+              s3 = peg$FAILED;
+
+              if (peg$silentFails === 0) {
+                peg$fail(peg$c28);
+              }
+            }
+
+            if (s3 !== peg$FAILED) {
+              peg$reportedPos = s0;
+              s1 = peg$c26(s2);
+              s0 = s1;
+            } else {
+              peg$currPos = s0;
+              s0 = peg$c2;
+            }
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c2;
+          }
+        } else {
+          peg$currPos = s0;
+          s0 = peg$c2;
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parsesingle_quoted_multiline_string() {
+        var s0, s1, s2, s3, s4;
+        var key = peg$currPos * 49 + 16,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$currPos;
+
+        if (input.substr(peg$currPos, 3) === peg$c29) {
+          s1 = peg$c29;
+          peg$currPos += 3;
+        } else {
+          s1 = peg$FAILED;
+
+          if (peg$silentFails === 0) {
+            peg$fail(peg$c30);
+          }
+        }
+
+        if (s1 !== peg$FAILED) {
+          s2 = peg$parseNL();
+
+          if (s2 === peg$FAILED) {
+            s2 = peg$c25;
+          }
+
+          if (s2 !== peg$FAILED) {
+            s3 = [];
+            s4 = peg$parsemultiline_literal_char();
+
+            while (s4 !== peg$FAILED) {
+              s3.push(s4);
+              s4 = peg$parsemultiline_literal_char();
+            }
+
+            if (s3 !== peg$FAILED) {
+              if (input.substr(peg$currPos, 3) === peg$c29) {
+                s4 = peg$c29;
+                peg$currPos += 3;
+              } else {
+                s4 = peg$FAILED;
+
+                if (peg$silentFails === 0) {
+                  peg$fail(peg$c30);
+                }
+              }
+
+              if (s4 !== peg$FAILED) {
+                peg$reportedPos = s0;
+                s1 = peg$c26(s3);
+                s0 = s1;
+              } else {
+                peg$currPos = s0;
+                s0 = peg$c2;
+              }
+            } else {
+              peg$currPos = s0;
+              s0 = peg$c2;
+            }
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c2;
+          }
+        } else {
+          peg$currPos = s0;
+          s0 = peg$c2;
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parsesingle_quoted_single_line_string() {
+        var s0, s1, s2, s3;
+        var key = peg$currPos * 49 + 17,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$currPos;
+
+        if (input.charCodeAt(peg$currPos) === 39) {
+          s1 = peg$c31;
+          peg$currPos++;
+        } else {
+          s1 = peg$FAILED;
+
+          if (peg$silentFails === 0) {
+            peg$fail(peg$c32);
+          }
+        }
+
+        if (s1 !== peg$FAILED) {
+          s2 = [];
+          s3 = peg$parseliteral_char();
+
+          while (s3 !== peg$FAILED) {
+            s2.push(s3);
+            s3 = peg$parseliteral_char();
+          }
+
+          if (s2 !== peg$FAILED) {
+            if (input.charCodeAt(peg$currPos) === 39) {
+              s3 = peg$c31;
+              peg$currPos++;
+            } else {
+              s3 = peg$FAILED;
+
+              if (peg$silentFails === 0) {
+                peg$fail(peg$c32);
+              }
+            }
+
+            if (s3 !== peg$FAILED) {
+              peg$reportedPos = s0;
+              s1 = peg$c26(s2);
+              s0 = s1;
+            } else {
+              peg$currPos = s0;
+              s0 = peg$c2;
+            }
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c2;
+          }
+        } else {
+          peg$currPos = s0;
+          s0 = peg$c2;
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parsestring_char() {
+        var s0, s1, s2;
+        var key = peg$currPos * 49 + 18,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$parseESCAPED();
+
+        if (s0 === peg$FAILED) {
+          s0 = peg$currPos;
+          s1 = peg$currPos;
+          peg$silentFails++;
+
+          if (input.charCodeAt(peg$currPos) === 34) {
+            s2 = peg$c27;
+            peg$currPos++;
+          } else {
+            s2 = peg$FAILED;
+
+            if (peg$silentFails === 0) {
+              peg$fail(peg$c28);
+            }
+          }
+
+          peg$silentFails--;
+
+          if (s2 === peg$FAILED) {
+            s1 = peg$c5;
+          } else {
+            peg$currPos = s1;
+            s1 = peg$c2;
+          }
+
+          if (s1 !== peg$FAILED) {
+            if (input.length > peg$currPos) {
+              s2 = input.charAt(peg$currPos);
+              peg$currPos++;
+            } else {
+              s2 = peg$FAILED;
+
+              if (peg$silentFails === 0) {
+                peg$fail(peg$c6);
+              }
+            }
+
+            if (s2 !== peg$FAILED) {
+              peg$reportedPos = s0;
+              s1 = peg$c33(s2);
+              s0 = s1;
+            } else {
+              peg$currPos = s0;
+              s0 = peg$c2;
+            }
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c2;
+          }
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parseliteral_char() {
+        var s0, s1, s2;
+        var key = peg$currPos * 49 + 19,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$currPos;
+        s1 = peg$currPos;
+        peg$silentFails++;
+
+        if (input.charCodeAt(peg$currPos) === 39) {
+          s2 = peg$c31;
+          peg$currPos++;
+        } else {
+          s2 = peg$FAILED;
+
+          if (peg$silentFails === 0) {
+            peg$fail(peg$c32);
+          }
+        }
+
+        peg$silentFails--;
+
+        if (s2 === peg$FAILED) {
+          s1 = peg$c5;
+        } else {
+          peg$currPos = s1;
+          s1 = peg$c2;
+        }
+
+        if (s1 !== peg$FAILED) {
+          if (input.length > peg$currPos) {
+            s2 = input.charAt(peg$currPos);
+            peg$currPos++;
+          } else {
+            s2 = peg$FAILED;
+
+            if (peg$silentFails === 0) {
+              peg$fail(peg$c6);
+            }
+          }
+
+          if (s2 !== peg$FAILED) {
+            peg$reportedPos = s0;
+            s1 = peg$c33(s2);
+            s0 = s1;
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c2;
+          }
+        } else {
+          peg$currPos = s0;
+          s0 = peg$c2;
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parsemultiline_string_char() {
+        var s0, s1, s2;
+        var key = peg$currPos * 49 + 20,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$parseESCAPED();
+
+        if (s0 === peg$FAILED) {
+          s0 = peg$parsemultiline_string_delim();
+
+          if (s0 === peg$FAILED) {
+            s0 = peg$currPos;
+            s1 = peg$currPos;
+            peg$silentFails++;
+
+            if (input.substr(peg$currPos, 3) === peg$c23) {
+              s2 = peg$c23;
+              peg$currPos += 3;
+            } else {
+              s2 = peg$FAILED;
+
+              if (peg$silentFails === 0) {
+                peg$fail(peg$c24);
+              }
+            }
+
+            peg$silentFails--;
+
+            if (s2 === peg$FAILED) {
+              s1 = peg$c5;
+            } else {
+              peg$currPos = s1;
+              s1 = peg$c2;
+            }
+
+            if (s1 !== peg$FAILED) {
+              if (input.length > peg$currPos) {
+                s2 = input.charAt(peg$currPos);
+                peg$currPos++;
+              } else {
+                s2 = peg$FAILED;
+
+                if (peg$silentFails === 0) {
+                  peg$fail(peg$c6);
+                }
+              }
+
+              if (s2 !== peg$FAILED) {
+                peg$reportedPos = s0;
+                s1 = peg$c34(s2);
+                s0 = s1;
+              } else {
+                peg$currPos = s0;
+                s0 = peg$c2;
+              }
+            } else {
+              peg$currPos = s0;
+              s0 = peg$c2;
+            }
+          }
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parsemultiline_string_delim() {
+        var s0, s1, s2, s3, s4;
+        var key = peg$currPos * 49 + 21,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$currPos;
+
+        if (input.charCodeAt(peg$currPos) === 92) {
+          s1 = peg$c35;
+          peg$currPos++;
+        } else {
+          s1 = peg$FAILED;
+
+          if (peg$silentFails === 0) {
+            peg$fail(peg$c36);
+          }
+        }
+
+        if (s1 !== peg$FAILED) {
+          s2 = peg$parseNL();
+
+          if (s2 !== peg$FAILED) {
+            s3 = [];
+            s4 = peg$parseNLS();
+
+            while (s4 !== peg$FAILED) {
+              s3.push(s4);
+              s4 = peg$parseNLS();
+            }
+
+            if (s3 !== peg$FAILED) {
+              peg$reportedPos = s0;
+              s1 = peg$c37();
+              s0 = s1;
+            } else {
+              peg$currPos = s0;
+              s0 = peg$c2;
+            }
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c2;
+          }
+        } else {
+          peg$currPos = s0;
+          s0 = peg$c2;
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parsemultiline_literal_char() {
+        var s0, s1, s2;
+        var key = peg$currPos * 49 + 22,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$currPos;
+        s1 = peg$currPos;
+        peg$silentFails++;
+
+        if (input.substr(peg$currPos, 3) === peg$c29) {
+          s2 = peg$c29;
+          peg$currPos += 3;
+        } else {
+          s2 = peg$FAILED;
+
+          if (peg$silentFails === 0) {
+            peg$fail(peg$c30);
+          }
+        }
+
+        peg$silentFails--;
+
+        if (s2 === peg$FAILED) {
+          s1 = peg$c5;
+        } else {
+          peg$currPos = s1;
+          s1 = peg$c2;
+        }
+
+        if (s1 !== peg$FAILED) {
+          if (input.length > peg$currPos) {
+            s2 = input.charAt(peg$currPos);
+            peg$currPos++;
+          } else {
+            s2 = peg$FAILED;
+
+            if (peg$silentFails === 0) {
+              peg$fail(peg$c6);
+            }
+          }
+
+          if (s2 !== peg$FAILED) {
+            peg$reportedPos = s0;
+            s1 = peg$c33(s2);
+            s0 = s1;
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c2;
+          }
+        } else {
+          peg$currPos = s0;
+          s0 = peg$c2;
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parsefloat() {
+        var s0, s1, s2, s3;
+        var key = peg$currPos * 49 + 23,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$currPos;
+        s1 = peg$parsefloat_text();
+
+        if (s1 === peg$FAILED) {
+          s1 = peg$parseinteger_text();
+        }
+
+        if (s1 !== peg$FAILED) {
+          if (input.charCodeAt(peg$currPos) === 101) {
+            s2 = peg$c38;
+            peg$currPos++;
+          } else {
+            s2 = peg$FAILED;
+
+            if (peg$silentFails === 0) {
+              peg$fail(peg$c39);
+            }
+          }
+
+          if (s2 === peg$FAILED) {
+            if (input.charCodeAt(peg$currPos) === 69) {
+              s2 = peg$c40;
+              peg$currPos++;
+            } else {
+              s2 = peg$FAILED;
+
+              if (peg$silentFails === 0) {
+                peg$fail(peg$c41);
+              }
+            }
+          }
+
+          if (s2 !== peg$FAILED) {
+            s3 = peg$parseinteger_text();
+
+            if (s3 !== peg$FAILED) {
+              peg$reportedPos = s0;
+              s1 = peg$c42(s1, s3);
+              s0 = s1;
+            } else {
+              peg$currPos = s0;
+              s0 = peg$c2;
+            }
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c2;
+          }
+        } else {
+          peg$currPos = s0;
+          s0 = peg$c2;
+        }
+
+        if (s0 === peg$FAILED) {
+          s0 = peg$currPos;
+          s1 = peg$parsefloat_text();
+
+          if (s1 !== peg$FAILED) {
+            peg$reportedPos = s0;
+            s1 = peg$c43(s1);
+          }
+
+          s0 = s1;
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parsefloat_text() {
+        var s0, s1, s2, s3, s4, s5;
+        var key = peg$currPos * 49 + 24,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$currPos;
+
+        if (input.charCodeAt(peg$currPos) === 43) {
+          s1 = peg$c44;
+          peg$currPos++;
+        } else {
+          s1 = peg$FAILED;
+
+          if (peg$silentFails === 0) {
+            peg$fail(peg$c45);
+          }
+        }
+
+        if (s1 === peg$FAILED) {
+          s1 = peg$c25;
+        }
+
+        if (s1 !== peg$FAILED) {
+          s2 = peg$currPos;
+          s3 = peg$parseDIGITS();
+
+          if (s3 !== peg$FAILED) {
+            if (input.charCodeAt(peg$currPos) === 46) {
+              s4 = peg$c16;
+              peg$currPos++;
+            } else {
+              s4 = peg$FAILED;
+
+              if (peg$silentFails === 0) {
+                peg$fail(peg$c17);
+              }
+            }
+
+            if (s4 !== peg$FAILED) {
+              s5 = peg$parseDIGITS();
+
+              if (s5 !== peg$FAILED) {
+                s3 = [s3, s4, s5];
+                s2 = s3;
+              } else {
+                peg$currPos = s2;
+                s2 = peg$c2;
+              }
+            } else {
+              peg$currPos = s2;
+              s2 = peg$c2;
+            }
+          } else {
+            peg$currPos = s2;
+            s2 = peg$c2;
+          }
+
+          if (s2 !== peg$FAILED) {
+            peg$reportedPos = s0;
+            s1 = peg$c46(s2);
+            s0 = s1;
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c2;
+          }
+        } else {
+          peg$currPos = s0;
+          s0 = peg$c2;
+        }
+
+        if (s0 === peg$FAILED) {
+          s0 = peg$currPos;
+
+          if (input.charCodeAt(peg$currPos) === 45) {
+            s1 = peg$c47;
+            peg$currPos++;
+          } else {
+            s1 = peg$FAILED;
+
+            if (peg$silentFails === 0) {
+              peg$fail(peg$c48);
+            }
+          }
+
+          if (s1 !== peg$FAILED) {
+            s2 = peg$currPos;
+            s3 = peg$parseDIGITS();
+
+            if (s3 !== peg$FAILED) {
+              if (input.charCodeAt(peg$currPos) === 46) {
+                s4 = peg$c16;
+                peg$currPos++;
+              } else {
+                s4 = peg$FAILED;
+
+                if (peg$silentFails === 0) {
+                  peg$fail(peg$c17);
+                }
+              }
+
+              if (s4 !== peg$FAILED) {
+                s5 = peg$parseDIGITS();
+
+                if (s5 !== peg$FAILED) {
+                  s3 = [s3, s4, s5];
+                  s2 = s3;
+                } else {
+                  peg$currPos = s2;
+                  s2 = peg$c2;
+                }
+              } else {
+                peg$currPos = s2;
+                s2 = peg$c2;
+              }
+            } else {
+              peg$currPos = s2;
+              s2 = peg$c2;
+            }
+
+            if (s2 !== peg$FAILED) {
+              peg$reportedPos = s0;
+              s1 = peg$c49(s2);
+              s0 = s1;
+            } else {
+              peg$currPos = s0;
+              s0 = peg$c2;
+            }
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c2;
+          }
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parseinteger() {
+        var s0, s1;
+        var key = peg$currPos * 49 + 25,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$currPos;
+        s1 = peg$parseinteger_text();
+
+        if (s1 !== peg$FAILED) {
+          peg$reportedPos = s0;
+          s1 = peg$c50(s1);
+        }
+
+        s0 = s1;
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parseinteger_text() {
+        var s0, s1, s2, s3, s4;
+        var key = peg$currPos * 49 + 26,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$currPos;
+
+        if (input.charCodeAt(peg$currPos) === 43) {
+          s1 = peg$c44;
+          peg$currPos++;
+        } else {
+          s1 = peg$FAILED;
+
+          if (peg$silentFails === 0) {
+            peg$fail(peg$c45);
+          }
+        }
+
+        if (s1 === peg$FAILED) {
+          s1 = peg$c25;
+        }
+
+        if (s1 !== peg$FAILED) {
+          s2 = [];
+          s3 = peg$parseDIGIT_OR_UNDER();
+
+          if (s3 !== peg$FAILED) {
+            while (s3 !== peg$FAILED) {
+              s2.push(s3);
+              s3 = peg$parseDIGIT_OR_UNDER();
+            }
+          } else {
+            s2 = peg$c2;
+          }
+
+          if (s2 !== peg$FAILED) {
+            s3 = peg$currPos;
+            peg$silentFails++;
+
+            if (input.charCodeAt(peg$currPos) === 46) {
+              s4 = peg$c16;
+              peg$currPos++;
+            } else {
+              s4 = peg$FAILED;
+
+              if (peg$silentFails === 0) {
+                peg$fail(peg$c17);
+              }
+            }
+
+            peg$silentFails--;
+
+            if (s4 === peg$FAILED) {
+              s3 = peg$c5;
+            } else {
+              peg$currPos = s3;
+              s3 = peg$c2;
+            }
+
+            if (s3 !== peg$FAILED) {
+              peg$reportedPos = s0;
+              s1 = peg$c46(s2);
+              s0 = s1;
+            } else {
+              peg$currPos = s0;
+              s0 = peg$c2;
+            }
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c2;
+          }
+        } else {
+          peg$currPos = s0;
+          s0 = peg$c2;
+        }
+
+        if (s0 === peg$FAILED) {
+          s0 = peg$currPos;
+
+          if (input.charCodeAt(peg$currPos) === 45) {
+            s1 = peg$c47;
+            peg$currPos++;
+          } else {
+            s1 = peg$FAILED;
+
+            if (peg$silentFails === 0) {
+              peg$fail(peg$c48);
+            }
+          }
+
+          if (s1 !== peg$FAILED) {
+            s2 = [];
+            s3 = peg$parseDIGIT_OR_UNDER();
+
+            if (s3 !== peg$FAILED) {
+              while (s3 !== peg$FAILED) {
+                s2.push(s3);
+                s3 = peg$parseDIGIT_OR_UNDER();
+              }
+            } else {
+              s2 = peg$c2;
+            }
+
+            if (s2 !== peg$FAILED) {
+              s3 = peg$currPos;
+              peg$silentFails++;
+
+              if (input.charCodeAt(peg$currPos) === 46) {
+                s4 = peg$c16;
+                peg$currPos++;
+              } else {
+                s4 = peg$FAILED;
+
+                if (peg$silentFails === 0) {
+                  peg$fail(peg$c17);
+                }
+              }
+
+              peg$silentFails--;
+
+              if (s4 === peg$FAILED) {
+                s3 = peg$c5;
+              } else {
+                peg$currPos = s3;
+                s3 = peg$c2;
+              }
+
+              if (s3 !== peg$FAILED) {
+                peg$reportedPos = s0;
+                s1 = peg$c49(s2);
+                s0 = s1;
+              } else {
+                peg$currPos = s0;
+                s0 = peg$c2;
+              }
+            } else {
+              peg$currPos = s0;
+              s0 = peg$c2;
+            }
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c2;
+          }
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parseboolean() {
+        var s0, s1;
+        var key = peg$currPos * 49 + 27,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$currPos;
+
+        if (input.substr(peg$currPos, 4) === peg$c51) {
+          s1 = peg$c51;
+          peg$currPos += 4;
+        } else {
+          s1 = peg$FAILED;
+
+          if (peg$silentFails === 0) {
+            peg$fail(peg$c52);
+          }
+        }
+
+        if (s1 !== peg$FAILED) {
+          peg$reportedPos = s0;
+          s1 = peg$c53();
+        }
+
+        s0 = s1;
+
+        if (s0 === peg$FAILED) {
+          s0 = peg$currPos;
+
+          if (input.substr(peg$currPos, 5) === peg$c54) {
+            s1 = peg$c54;
+            peg$currPos += 5;
+          } else {
+            s1 = peg$FAILED;
+
+            if (peg$silentFails === 0) {
+              peg$fail(peg$c55);
+            }
+          }
+
+          if (s1 !== peg$FAILED) {
+            peg$reportedPos = s0;
+            s1 = peg$c56();
+          }
+
+          s0 = s1;
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parsearray() {
+        var s0, s1, s2, s3, s4;
+        var key = peg$currPos * 49 + 28,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$currPos;
+
+        if (input.charCodeAt(peg$currPos) === 91) {
+          s1 = peg$c7;
+          peg$currPos++;
+        } else {
+          s1 = peg$FAILED;
+
+          if (peg$silentFails === 0) {
+            peg$fail(peg$c8);
+          }
+        }
+
+        if (s1 !== peg$FAILED) {
+          s2 = [];
+          s3 = peg$parsearray_sep();
+
+          while (s3 !== peg$FAILED) {
+            s2.push(s3);
+            s3 = peg$parsearray_sep();
+          }
+
+          if (s2 !== peg$FAILED) {
+            if (input.charCodeAt(peg$currPos) === 93) {
+              s3 = peg$c9;
+              peg$currPos++;
+            } else {
+              s3 = peg$FAILED;
+
+              if (peg$silentFails === 0) {
+                peg$fail(peg$c10);
+              }
+            }
+
+            if (s3 !== peg$FAILED) {
+              peg$reportedPos = s0;
+              s1 = peg$c57();
+              s0 = s1;
+            } else {
+              peg$currPos = s0;
+              s0 = peg$c2;
+            }
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c2;
+          }
+        } else {
+          peg$currPos = s0;
+          s0 = peg$c2;
+        }
+
+        if (s0 === peg$FAILED) {
+          s0 = peg$currPos;
+
+          if (input.charCodeAt(peg$currPos) === 91) {
+            s1 = peg$c7;
+            peg$currPos++;
+          } else {
+            s1 = peg$FAILED;
+
+            if (peg$silentFails === 0) {
+              peg$fail(peg$c8);
+            }
+          }
+
+          if (s1 !== peg$FAILED) {
+            s2 = peg$parsearray_value();
+
+            if (s2 === peg$FAILED) {
+              s2 = peg$c25;
+            }
+
+            if (s2 !== peg$FAILED) {
+              if (input.charCodeAt(peg$currPos) === 93) {
+                s3 = peg$c9;
+                peg$currPos++;
+              } else {
+                s3 = peg$FAILED;
+
+                if (peg$silentFails === 0) {
+                  peg$fail(peg$c10);
+                }
+              }
+
+              if (s3 !== peg$FAILED) {
+                peg$reportedPos = s0;
+                s1 = peg$c58(s2);
+                s0 = s1;
+              } else {
+                peg$currPos = s0;
+                s0 = peg$c2;
+              }
+            } else {
+              peg$currPos = s0;
+              s0 = peg$c2;
+            }
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c2;
+          }
+
+          if (s0 === peg$FAILED) {
+            s0 = peg$currPos;
+
+            if (input.charCodeAt(peg$currPos) === 91) {
+              s1 = peg$c7;
+              peg$currPos++;
+            } else {
+              s1 = peg$FAILED;
+
+              if (peg$silentFails === 0) {
+                peg$fail(peg$c8);
+              }
+            }
+
+            if (s1 !== peg$FAILED) {
+              s2 = [];
+              s3 = peg$parsearray_value_list();
+
+              if (s3 !== peg$FAILED) {
+                while (s3 !== peg$FAILED) {
+                  s2.push(s3);
+                  s3 = peg$parsearray_value_list();
+                }
+              } else {
+                s2 = peg$c2;
+              }
+
+              if (s2 !== peg$FAILED) {
+                if (input.charCodeAt(peg$currPos) === 93) {
+                  s3 = peg$c9;
+                  peg$currPos++;
+                } else {
+                  s3 = peg$FAILED;
+
+                  if (peg$silentFails === 0) {
+                    peg$fail(peg$c10);
+                  }
+                }
+
+                if (s3 !== peg$FAILED) {
+                  peg$reportedPos = s0;
+                  s1 = peg$c59(s2);
+                  s0 = s1;
+                } else {
+                  peg$currPos = s0;
+                  s0 = peg$c2;
+                }
+              } else {
+                peg$currPos = s0;
+                s0 = peg$c2;
+              }
+            } else {
+              peg$currPos = s0;
+              s0 = peg$c2;
+            }
+
+            if (s0 === peg$FAILED) {
+              s0 = peg$currPos;
+
+              if (input.charCodeAt(peg$currPos) === 91) {
+                s1 = peg$c7;
+                peg$currPos++;
+              } else {
+                s1 = peg$FAILED;
+
+                if (peg$silentFails === 0) {
+                  peg$fail(peg$c8);
+                }
+              }
+
+              if (s1 !== peg$FAILED) {
+                s2 = [];
+                s3 = peg$parsearray_value_list();
+
+                if (s3 !== peg$FAILED) {
+                  while (s3 !== peg$FAILED) {
+                    s2.push(s3);
+                    s3 = peg$parsearray_value_list();
+                  }
+                } else {
+                  s2 = peg$c2;
+                }
+
+                if (s2 !== peg$FAILED) {
+                  s3 = peg$parsearray_value();
+
+                  if (s3 !== peg$FAILED) {
+                    if (input.charCodeAt(peg$currPos) === 93) {
+                      s4 = peg$c9;
+                      peg$currPos++;
+                    } else {
+                      s4 = peg$FAILED;
+
+                      if (peg$silentFails === 0) {
+                        peg$fail(peg$c10);
+                      }
+                    }
+
+                    if (s4 !== peg$FAILED) {
+                      peg$reportedPos = s0;
+                      s1 = peg$c60(s2, s3);
+                      s0 = s1;
+                    } else {
+                      peg$currPos = s0;
+                      s0 = peg$c2;
+                    }
+                  } else {
+                    peg$currPos = s0;
+                    s0 = peg$c2;
+                  }
+                } else {
+                  peg$currPos = s0;
+                  s0 = peg$c2;
+                }
+              } else {
+                peg$currPos = s0;
+                s0 = peg$c2;
+              }
+            }
+          }
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parsearray_value() {
+        var s0, s1, s2, s3, s4;
+        var key = peg$currPos * 49 + 29,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$currPos;
+        s1 = [];
+        s2 = peg$parsearray_sep();
+
+        while (s2 !== peg$FAILED) {
+          s1.push(s2);
+          s2 = peg$parsearray_sep();
+        }
+
+        if (s1 !== peg$FAILED) {
+          s2 = peg$parsevalue();
+
+          if (s2 !== peg$FAILED) {
+            s3 = [];
+            s4 = peg$parsearray_sep();
+
+            while (s4 !== peg$FAILED) {
+              s3.push(s4);
+              s4 = peg$parsearray_sep();
+            }
+
+            if (s3 !== peg$FAILED) {
+              peg$reportedPos = s0;
+              s1 = peg$c61(s2);
+              s0 = s1;
+            } else {
+              peg$currPos = s0;
+              s0 = peg$c2;
+            }
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c2;
+          }
+        } else {
+          peg$currPos = s0;
+          s0 = peg$c2;
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parsearray_value_list() {
+        var s0, s1, s2, s3, s4, s5, s6;
+        var key = peg$currPos * 49 + 30,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$currPos;
+        s1 = [];
+        s2 = peg$parsearray_sep();
+
+        while (s2 !== peg$FAILED) {
+          s1.push(s2);
+          s2 = peg$parsearray_sep();
+        }
+
+        if (s1 !== peg$FAILED) {
+          s2 = peg$parsevalue();
+
+          if (s2 !== peg$FAILED) {
+            s3 = [];
+            s4 = peg$parsearray_sep();
+
+            while (s4 !== peg$FAILED) {
+              s3.push(s4);
+              s4 = peg$parsearray_sep();
+            }
+
+            if (s3 !== peg$FAILED) {
+              if (input.charCodeAt(peg$currPos) === 44) {
+                s4 = peg$c62;
+                peg$currPos++;
+              } else {
+                s4 = peg$FAILED;
+
+                if (peg$silentFails === 0) {
+                  peg$fail(peg$c63);
+                }
+              }
+
+              if (s4 !== peg$FAILED) {
+                s5 = [];
+                s6 = peg$parsearray_sep();
+
+                while (s6 !== peg$FAILED) {
+                  s5.push(s6);
+                  s6 = peg$parsearray_sep();
+                }
+
+                if (s5 !== peg$FAILED) {
+                  peg$reportedPos = s0;
+                  s1 = peg$c61(s2);
+                  s0 = s1;
+                } else {
+                  peg$currPos = s0;
+                  s0 = peg$c2;
+                }
+              } else {
+                peg$currPos = s0;
+                s0 = peg$c2;
+              }
+            } else {
+              peg$currPos = s0;
+              s0 = peg$c2;
+            }
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c2;
+          }
+        } else {
+          peg$currPos = s0;
+          s0 = peg$c2;
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parsearray_sep() {
+        var s0;
+        var key = peg$currPos * 49 + 31,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$parseS();
+
+        if (s0 === peg$FAILED) {
+          s0 = peg$parseNL();
+
+          if (s0 === peg$FAILED) {
+            s0 = peg$parsecomment();
+          }
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parseinline_table() {
+        var s0, s1, s2, s3, s4, s5;
+        var key = peg$currPos * 49 + 32,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$currPos;
+
+        if (input.charCodeAt(peg$currPos) === 123) {
+          s1 = peg$c64;
+          peg$currPos++;
+        } else {
+          s1 = peg$FAILED;
+
+          if (peg$silentFails === 0) {
+            peg$fail(peg$c65);
+          }
+        }
+
+        if (s1 !== peg$FAILED) {
+          s2 = [];
+          s3 = peg$parseS();
+
+          while (s3 !== peg$FAILED) {
+            s2.push(s3);
+            s3 = peg$parseS();
+          }
+
+          if (s2 !== peg$FAILED) {
+            s3 = [];
+            s4 = peg$parseinline_table_assignment();
+
+            while (s4 !== peg$FAILED) {
+              s3.push(s4);
+              s4 = peg$parseinline_table_assignment();
+            }
+
+            if (s3 !== peg$FAILED) {
+              s4 = [];
+              s5 = peg$parseS();
+
+              while (s5 !== peg$FAILED) {
+                s4.push(s5);
+                s5 = peg$parseS();
+              }
+
+              if (s4 !== peg$FAILED) {
+                if (input.charCodeAt(peg$currPos) === 125) {
+                  s5 = peg$c66;
+                  peg$currPos++;
+                } else {
+                  s5 = peg$FAILED;
+
+                  if (peg$silentFails === 0) {
+                    peg$fail(peg$c67);
+                  }
+                }
+
+                if (s5 !== peg$FAILED) {
+                  peg$reportedPos = s0;
+                  s1 = peg$c68(s3);
+                  s0 = s1;
+                } else {
+                  peg$currPos = s0;
+                  s0 = peg$c2;
+                }
+              } else {
+                peg$currPos = s0;
+                s0 = peg$c2;
+              }
+            } else {
+              peg$currPos = s0;
+              s0 = peg$c2;
+            }
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c2;
+          }
+        } else {
+          peg$currPos = s0;
+          s0 = peg$c2;
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parseinline_table_assignment() {
+        var s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10;
+        var key = peg$currPos * 49 + 33,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$currPos;
+        s1 = [];
+        s2 = peg$parseS();
+
+        while (s2 !== peg$FAILED) {
+          s1.push(s2);
+          s2 = peg$parseS();
+        }
+
+        if (s1 !== peg$FAILED) {
+          s2 = peg$parsekey();
+
+          if (s2 !== peg$FAILED) {
+            s3 = [];
+            s4 = peg$parseS();
+
+            while (s4 !== peg$FAILED) {
+              s3.push(s4);
+              s4 = peg$parseS();
+            }
+
+            if (s3 !== peg$FAILED) {
+              if (input.charCodeAt(peg$currPos) === 61) {
+                s4 = peg$c18;
+                peg$currPos++;
+              } else {
+                s4 = peg$FAILED;
+
+                if (peg$silentFails === 0) {
+                  peg$fail(peg$c19);
+                }
+              }
+
+              if (s4 !== peg$FAILED) {
+                s5 = [];
+                s6 = peg$parseS();
+
+                while (s6 !== peg$FAILED) {
+                  s5.push(s6);
+                  s6 = peg$parseS();
+                }
+
+                if (s5 !== peg$FAILED) {
+                  s6 = peg$parsevalue();
+
+                  if (s6 !== peg$FAILED) {
+                    s7 = [];
+                    s8 = peg$parseS();
+
+                    while (s8 !== peg$FAILED) {
+                      s7.push(s8);
+                      s8 = peg$parseS();
+                    }
+
+                    if (s7 !== peg$FAILED) {
+                      if (input.charCodeAt(peg$currPos) === 44) {
+                        s8 = peg$c62;
+                        peg$currPos++;
+                      } else {
+                        s8 = peg$FAILED;
+
+                        if (peg$silentFails === 0) {
+                          peg$fail(peg$c63);
+                        }
+                      }
+
+                      if (s8 !== peg$FAILED) {
+                        s9 = [];
+                        s10 = peg$parseS();
+
+                        while (s10 !== peg$FAILED) {
+                          s9.push(s10);
+                          s10 = peg$parseS();
+                        }
+
+                        if (s9 !== peg$FAILED) {
+                          peg$reportedPos = s0;
+                          s1 = peg$c69(s2, s6);
+                          s0 = s1;
+                        } else {
+                          peg$currPos = s0;
+                          s0 = peg$c2;
+                        }
+                      } else {
+                        peg$currPos = s0;
+                        s0 = peg$c2;
+                      }
+                    } else {
+                      peg$currPos = s0;
+                      s0 = peg$c2;
+                    }
+                  } else {
+                    peg$currPos = s0;
+                    s0 = peg$c2;
+                  }
+                } else {
+                  peg$currPos = s0;
+                  s0 = peg$c2;
+                }
+              } else {
+                peg$currPos = s0;
+                s0 = peg$c2;
+              }
+            } else {
+              peg$currPos = s0;
+              s0 = peg$c2;
+            }
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c2;
+          }
+        } else {
+          peg$currPos = s0;
+          s0 = peg$c2;
+        }
+
+        if (s0 === peg$FAILED) {
+          s0 = peg$currPos;
+          s1 = [];
+          s2 = peg$parseS();
+
+          while (s2 !== peg$FAILED) {
+            s1.push(s2);
+            s2 = peg$parseS();
+          }
+
+          if (s1 !== peg$FAILED) {
+            s2 = peg$parsekey();
+
+            if (s2 !== peg$FAILED) {
+              s3 = [];
+              s4 = peg$parseS();
+
+              while (s4 !== peg$FAILED) {
+                s3.push(s4);
+                s4 = peg$parseS();
+              }
+
+              if (s3 !== peg$FAILED) {
+                if (input.charCodeAt(peg$currPos) === 61) {
+                  s4 = peg$c18;
+                  peg$currPos++;
+                } else {
+                  s4 = peg$FAILED;
+
+                  if (peg$silentFails === 0) {
+                    peg$fail(peg$c19);
+                  }
+                }
+
+                if (s4 !== peg$FAILED) {
+                  s5 = [];
+                  s6 = peg$parseS();
+
+                  while (s6 !== peg$FAILED) {
+                    s5.push(s6);
+                    s6 = peg$parseS();
+                  }
+
+                  if (s5 !== peg$FAILED) {
+                    s6 = peg$parsevalue();
+
+                    if (s6 !== peg$FAILED) {
+                      peg$reportedPos = s0;
+                      s1 = peg$c69(s2, s6);
+                      s0 = s1;
+                    } else {
+                      peg$currPos = s0;
+                      s0 = peg$c2;
+                    }
+                  } else {
+                    peg$currPos = s0;
+                    s0 = peg$c2;
+                  }
+                } else {
+                  peg$currPos = s0;
+                  s0 = peg$c2;
+                }
+              } else {
+                peg$currPos = s0;
+                s0 = peg$c2;
+              }
+            } else {
+              peg$currPos = s0;
+              s0 = peg$c2;
+            }
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c2;
+          }
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parsesecfragment() {
+        var s0, s1, s2;
+        var key = peg$currPos * 49 + 34,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$currPos;
+
+        if (input.charCodeAt(peg$currPos) === 46) {
+          s1 = peg$c16;
+          peg$currPos++;
+        } else {
+          s1 = peg$FAILED;
+
+          if (peg$silentFails === 0) {
+            peg$fail(peg$c17);
+          }
+        }
+
+        if (s1 !== peg$FAILED) {
+          s2 = peg$parseDIGITS();
+
+          if (s2 !== peg$FAILED) {
+            peg$reportedPos = s0;
+            s1 = peg$c70(s2);
+            s0 = s1;
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c2;
+          }
+        } else {
+          peg$currPos = s0;
+          s0 = peg$c2;
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parsedate() {
+        var s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11;
+        var key = peg$currPos * 49 + 35,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$currPos;
+        s1 = peg$currPos;
+        s2 = peg$parseDIGIT_OR_UNDER();
+
+        if (s2 !== peg$FAILED) {
+          s3 = peg$parseDIGIT_OR_UNDER();
+
+          if (s3 !== peg$FAILED) {
+            s4 = peg$parseDIGIT_OR_UNDER();
+
+            if (s4 !== peg$FAILED) {
+              s5 = peg$parseDIGIT_OR_UNDER();
+
+              if (s5 !== peg$FAILED) {
+                if (input.charCodeAt(peg$currPos) === 45) {
+                  s6 = peg$c47;
+                  peg$currPos++;
+                } else {
+                  s6 = peg$FAILED;
+
+                  if (peg$silentFails === 0) {
+                    peg$fail(peg$c48);
+                  }
+                }
+
+                if (s6 !== peg$FAILED) {
+                  s7 = peg$parseDIGIT_OR_UNDER();
+
+                  if (s7 !== peg$FAILED) {
+                    s8 = peg$parseDIGIT_OR_UNDER();
+
+                    if (s8 !== peg$FAILED) {
+                      if (input.charCodeAt(peg$currPos) === 45) {
+                        s9 = peg$c47;
+                        peg$currPos++;
+                      } else {
+                        s9 = peg$FAILED;
+
+                        if (peg$silentFails === 0) {
+                          peg$fail(peg$c48);
+                        }
+                      }
+
+                      if (s9 !== peg$FAILED) {
+                        s10 = peg$parseDIGIT_OR_UNDER();
+
+                        if (s10 !== peg$FAILED) {
+                          s11 = peg$parseDIGIT_OR_UNDER();
+
+                          if (s11 !== peg$FAILED) {
+                            s2 = [s2, s3, s4, s5, s6, s7, s8, s9, s10, s11];
+                            s1 = s2;
+                          } else {
+                            peg$currPos = s1;
+                            s1 = peg$c2;
+                          }
+                        } else {
+                          peg$currPos = s1;
+                          s1 = peg$c2;
+                        }
+                      } else {
+                        peg$currPos = s1;
+                        s1 = peg$c2;
+                      }
+                    } else {
+                      peg$currPos = s1;
+                      s1 = peg$c2;
+                    }
+                  } else {
+                    peg$currPos = s1;
+                    s1 = peg$c2;
+                  }
+                } else {
+                  peg$currPos = s1;
+                  s1 = peg$c2;
+                }
+              } else {
+                peg$currPos = s1;
+                s1 = peg$c2;
+              }
+            } else {
+              peg$currPos = s1;
+              s1 = peg$c2;
+            }
+          } else {
+            peg$currPos = s1;
+            s1 = peg$c2;
+          }
+        } else {
+          peg$currPos = s1;
+          s1 = peg$c2;
+        }
+
+        if (s1 !== peg$FAILED) {
+          peg$reportedPos = s0;
+          s1 = peg$c71(s1);
+        }
+
+        s0 = s1;
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parsetime() {
+        var s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10;
+        var key = peg$currPos * 49 + 36,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$currPos;
+        s1 = peg$currPos;
+        s2 = peg$parseDIGIT_OR_UNDER();
+
+        if (s2 !== peg$FAILED) {
+          s3 = peg$parseDIGIT_OR_UNDER();
+
+          if (s3 !== peg$FAILED) {
+            if (input.charCodeAt(peg$currPos) === 58) {
+              s4 = peg$c72;
+              peg$currPos++;
+            } else {
+              s4 = peg$FAILED;
+
+              if (peg$silentFails === 0) {
+                peg$fail(peg$c73);
+              }
+            }
+
+            if (s4 !== peg$FAILED) {
+              s5 = peg$parseDIGIT_OR_UNDER();
+
+              if (s5 !== peg$FAILED) {
+                s6 = peg$parseDIGIT_OR_UNDER();
+
+                if (s6 !== peg$FAILED) {
+                  if (input.charCodeAt(peg$currPos) === 58) {
+                    s7 = peg$c72;
+                    peg$currPos++;
+                  } else {
+                    s7 = peg$FAILED;
+
+                    if (peg$silentFails === 0) {
+                      peg$fail(peg$c73);
+                    }
+                  }
+
+                  if (s7 !== peg$FAILED) {
+                    s8 = peg$parseDIGIT_OR_UNDER();
+
+                    if (s8 !== peg$FAILED) {
+                      s9 = peg$parseDIGIT_OR_UNDER();
+
+                      if (s9 !== peg$FAILED) {
+                        s10 = peg$parsesecfragment();
+
+                        if (s10 === peg$FAILED) {
+                          s10 = peg$c25;
+                        }
+
+                        if (s10 !== peg$FAILED) {
+                          s2 = [s2, s3, s4, s5, s6, s7, s8, s9, s10];
+                          s1 = s2;
+                        } else {
+                          peg$currPos = s1;
+                          s1 = peg$c2;
+                        }
+                      } else {
+                        peg$currPos = s1;
+                        s1 = peg$c2;
+                      }
+                    } else {
+                      peg$currPos = s1;
+                      s1 = peg$c2;
+                    }
+                  } else {
+                    peg$currPos = s1;
+                    s1 = peg$c2;
+                  }
+                } else {
+                  peg$currPos = s1;
+                  s1 = peg$c2;
+                }
+              } else {
+                peg$currPos = s1;
+                s1 = peg$c2;
+              }
+            } else {
+              peg$currPos = s1;
+              s1 = peg$c2;
+            }
+          } else {
+            peg$currPos = s1;
+            s1 = peg$c2;
+          }
+        } else {
+          peg$currPos = s1;
+          s1 = peg$c2;
+        }
+
+        if (s1 !== peg$FAILED) {
+          peg$reportedPos = s0;
+          s1 = peg$c74(s1);
+        }
+
+        s0 = s1;
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parsetime_with_offset() {
+        var s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14, s15, s16;
+        var key = peg$currPos * 49 + 37,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$currPos;
+        s1 = peg$currPos;
+        s2 = peg$parseDIGIT_OR_UNDER();
+
+        if (s2 !== peg$FAILED) {
+          s3 = peg$parseDIGIT_OR_UNDER();
+
+          if (s3 !== peg$FAILED) {
+            if (input.charCodeAt(peg$currPos) === 58) {
+              s4 = peg$c72;
+              peg$currPos++;
+            } else {
+              s4 = peg$FAILED;
+
+              if (peg$silentFails === 0) {
+                peg$fail(peg$c73);
+              }
+            }
+
+            if (s4 !== peg$FAILED) {
+              s5 = peg$parseDIGIT_OR_UNDER();
+
+              if (s5 !== peg$FAILED) {
+                s6 = peg$parseDIGIT_OR_UNDER();
+
+                if (s6 !== peg$FAILED) {
+                  if (input.charCodeAt(peg$currPos) === 58) {
+                    s7 = peg$c72;
+                    peg$currPos++;
+                  } else {
+                    s7 = peg$FAILED;
+
+                    if (peg$silentFails === 0) {
+                      peg$fail(peg$c73);
+                    }
+                  }
+
+                  if (s7 !== peg$FAILED) {
+                    s8 = peg$parseDIGIT_OR_UNDER();
+
+                    if (s8 !== peg$FAILED) {
+                      s9 = peg$parseDIGIT_OR_UNDER();
+
+                      if (s9 !== peg$FAILED) {
+                        s10 = peg$parsesecfragment();
+
+                        if (s10 === peg$FAILED) {
+                          s10 = peg$c25;
+                        }
+
+                        if (s10 !== peg$FAILED) {
+                          if (input.charCodeAt(peg$currPos) === 45) {
+                            s11 = peg$c47;
+                            peg$currPos++;
+                          } else {
+                            s11 = peg$FAILED;
+
+                            if (peg$silentFails === 0) {
+                              peg$fail(peg$c48);
+                            }
+                          }
+
+                          if (s11 === peg$FAILED) {
+                            if (input.charCodeAt(peg$currPos) === 43) {
+                              s11 = peg$c44;
+                              peg$currPos++;
+                            } else {
+                              s11 = peg$FAILED;
+
+                              if (peg$silentFails === 0) {
+                                peg$fail(peg$c45);
+                              }
+                            }
+                          }
+
+                          if (s11 !== peg$FAILED) {
+                            s12 = peg$parseDIGIT_OR_UNDER();
+
+                            if (s12 !== peg$FAILED) {
+                              s13 = peg$parseDIGIT_OR_UNDER();
+
+                              if (s13 !== peg$FAILED) {
+                                if (input.charCodeAt(peg$currPos) === 58) {
+                                  s14 = peg$c72;
+                                  peg$currPos++;
+                                } else {
+                                  s14 = peg$FAILED;
+
+                                  if (peg$silentFails === 0) {
+                                    peg$fail(peg$c73);
+                                  }
+                                }
+
+                                if (s14 !== peg$FAILED) {
+                                  s15 = peg$parseDIGIT_OR_UNDER();
+
+                                  if (s15 !== peg$FAILED) {
+                                    s16 = peg$parseDIGIT_OR_UNDER();
+
+                                    if (s16 !== peg$FAILED) {
+                                      s2 = [s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14, s15, s16];
+                                      s1 = s2;
+                                    } else {
+                                      peg$currPos = s1;
+                                      s1 = peg$c2;
+                                    }
+                                  } else {
+                                    peg$currPos = s1;
+                                    s1 = peg$c2;
+                                  }
+                                } else {
+                                  peg$currPos = s1;
+                                  s1 = peg$c2;
+                                }
+                              } else {
+                                peg$currPos = s1;
+                                s1 = peg$c2;
+                              }
+                            } else {
+                              peg$currPos = s1;
+                              s1 = peg$c2;
+                            }
+                          } else {
+                            peg$currPos = s1;
+                            s1 = peg$c2;
+                          }
+                        } else {
+                          peg$currPos = s1;
+                          s1 = peg$c2;
+                        }
+                      } else {
+                        peg$currPos = s1;
+                        s1 = peg$c2;
+                      }
+                    } else {
+                      peg$currPos = s1;
+                      s1 = peg$c2;
+                    }
+                  } else {
+                    peg$currPos = s1;
+                    s1 = peg$c2;
+                  }
+                } else {
+                  peg$currPos = s1;
+                  s1 = peg$c2;
+                }
+              } else {
+                peg$currPos = s1;
+                s1 = peg$c2;
+              }
+            } else {
+              peg$currPos = s1;
+              s1 = peg$c2;
+            }
+          } else {
+            peg$currPos = s1;
+            s1 = peg$c2;
+          }
+        } else {
+          peg$currPos = s1;
+          s1 = peg$c2;
+        }
+
+        if (s1 !== peg$FAILED) {
+          peg$reportedPos = s0;
+          s1 = peg$c74(s1);
+        }
+
+        s0 = s1;
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parsedatetime() {
+        var s0, s1, s2, s3, s4;
+        var key = peg$currPos * 49 + 38,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$currPos;
+        s1 = peg$parsedate();
+
+        if (s1 !== peg$FAILED) {
+          if (input.charCodeAt(peg$currPos) === 84) {
+            s2 = peg$c75;
+            peg$currPos++;
+          } else {
+            s2 = peg$FAILED;
+
+            if (peg$silentFails === 0) {
+              peg$fail(peg$c76);
+            }
+          }
+
+          if (s2 !== peg$FAILED) {
+            s3 = peg$parsetime();
+
+            if (s3 !== peg$FAILED) {
+              if (input.charCodeAt(peg$currPos) === 90) {
+                s4 = peg$c77;
+                peg$currPos++;
+              } else {
+                s4 = peg$FAILED;
+
+                if (peg$silentFails === 0) {
+                  peg$fail(peg$c78);
+                }
+              }
+
+              if (s4 !== peg$FAILED) {
+                peg$reportedPos = s0;
+                s1 = peg$c79(s1, s3);
+                s0 = s1;
+              } else {
+                peg$currPos = s0;
+                s0 = peg$c2;
+              }
+            } else {
+              peg$currPos = s0;
+              s0 = peg$c2;
+            }
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c2;
+          }
+        } else {
+          peg$currPos = s0;
+          s0 = peg$c2;
+        }
+
+        if (s0 === peg$FAILED) {
+          s0 = peg$currPos;
+          s1 = peg$parsedate();
+
+          if (s1 !== peg$FAILED) {
+            if (input.charCodeAt(peg$currPos) === 84) {
+              s2 = peg$c75;
+              peg$currPos++;
+            } else {
+              s2 = peg$FAILED;
+
+              if (peg$silentFails === 0) {
+                peg$fail(peg$c76);
+              }
+            }
+
+            if (s2 !== peg$FAILED) {
+              s3 = peg$parsetime_with_offset();
+
+              if (s3 !== peg$FAILED) {
+                peg$reportedPos = s0;
+                s1 = peg$c80(s1, s3);
+                s0 = s1;
+              } else {
+                peg$currPos = s0;
+                s0 = peg$c2;
+              }
+            } else {
+              peg$currPos = s0;
+              s0 = peg$c2;
+            }
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c2;
+          }
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parseS() {
+        var s0;
+        var key = peg$currPos * 49 + 39,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        if (peg$c81.test(input.charAt(peg$currPos))) {
+          s0 = input.charAt(peg$currPos);
+          peg$currPos++;
+        } else {
+          s0 = peg$FAILED;
+
+          if (peg$silentFails === 0) {
+            peg$fail(peg$c82);
+          }
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parseNL() {
+        var s0, s1, s2;
+        var key = peg$currPos * 49 + 40,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        if (input.charCodeAt(peg$currPos) === 10) {
+          s0 = peg$c83;
+          peg$currPos++;
+        } else {
+          s0 = peg$FAILED;
+
+          if (peg$silentFails === 0) {
+            peg$fail(peg$c84);
+          }
+        }
+
+        if (s0 === peg$FAILED) {
+          s0 = peg$currPos;
+
+          if (input.charCodeAt(peg$currPos) === 13) {
+            s1 = peg$c85;
+            peg$currPos++;
+          } else {
+            s1 = peg$FAILED;
+
+            if (peg$silentFails === 0) {
+              peg$fail(peg$c86);
+            }
+          }
+
+          if (s1 !== peg$FAILED) {
+            if (input.charCodeAt(peg$currPos) === 10) {
+              s2 = peg$c83;
+              peg$currPos++;
+            } else {
+              s2 = peg$FAILED;
+
+              if (peg$silentFails === 0) {
+                peg$fail(peg$c84);
+              }
+            }
+
+            if (s2 !== peg$FAILED) {
+              s1 = [s1, s2];
+              s0 = s1;
+            } else {
+              peg$currPos = s0;
+              s0 = peg$c2;
+            }
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c2;
+          }
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parseNLS() {
+        var s0;
+        var key = peg$currPos * 49 + 41,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$parseNL();
+
+        if (s0 === peg$FAILED) {
+          s0 = peg$parseS();
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parseEOF() {
+        var s0, s1;
+        var key = peg$currPos * 49 + 42,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$currPos;
+        peg$silentFails++;
+
+        if (input.length > peg$currPos) {
+          s1 = input.charAt(peg$currPos);
+          peg$currPos++;
+        } else {
+          s1 = peg$FAILED;
+
+          if (peg$silentFails === 0) {
+            peg$fail(peg$c6);
+          }
+        }
+
+        peg$silentFails--;
+
+        if (s1 === peg$FAILED) {
+          s0 = peg$c5;
+        } else {
+          peg$currPos = s0;
+          s0 = peg$c2;
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parseHEX() {
+        var s0;
+        var key = peg$currPos * 49 + 43,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        if (peg$c87.test(input.charAt(peg$currPos))) {
+          s0 = input.charAt(peg$currPos);
+          peg$currPos++;
+        } else {
+          s0 = peg$FAILED;
+
+          if (peg$silentFails === 0) {
+            peg$fail(peg$c88);
+          }
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parseDIGIT_OR_UNDER() {
+        var s0, s1;
+        var key = peg$currPos * 49 + 44,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        if (peg$c89.test(input.charAt(peg$currPos))) {
+          s0 = input.charAt(peg$currPos);
+          peg$currPos++;
+        } else {
+          s0 = peg$FAILED;
+
+          if (peg$silentFails === 0) {
+            peg$fail(peg$c90);
+          }
+        }
+
+        if (s0 === peg$FAILED) {
+          s0 = peg$currPos;
+
+          if (input.charCodeAt(peg$currPos) === 95) {
+            s1 = peg$c91;
+            peg$currPos++;
+          } else {
+            s1 = peg$FAILED;
+
+            if (peg$silentFails === 0) {
+              peg$fail(peg$c92);
+            }
+          }
+
+          if (s1 !== peg$FAILED) {
+            peg$reportedPos = s0;
+            s1 = peg$c93();
+          }
+
+          s0 = s1;
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parseASCII_BASIC() {
+        var s0;
+        var key = peg$currPos * 49 + 45,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        if (peg$c94.test(input.charAt(peg$currPos))) {
+          s0 = input.charAt(peg$currPos);
+          peg$currPos++;
+        } else {
+          s0 = peg$FAILED;
+
+          if (peg$silentFails === 0) {
+            peg$fail(peg$c95);
+          }
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parseDIGITS() {
+        var s0, s1, s2;
+        var key = peg$currPos * 49 + 46,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$currPos;
+        s1 = [];
+        s2 = peg$parseDIGIT_OR_UNDER();
+
+        if (s2 !== peg$FAILED) {
+          while (s2 !== peg$FAILED) {
+            s1.push(s2);
+            s2 = peg$parseDIGIT_OR_UNDER();
+          }
+        } else {
+          s1 = peg$c2;
+        }
+
+        if (s1 !== peg$FAILED) {
+          peg$reportedPos = s0;
+          s1 = peg$c96(s1);
+        }
+
+        s0 = s1;
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parseESCAPED() {
+        var s0, s1;
+        var key = peg$currPos * 49 + 47,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$currPos;
+
+        if (input.substr(peg$currPos, 2) === peg$c97) {
+          s1 = peg$c97;
+          peg$currPos += 2;
+        } else {
+          s1 = peg$FAILED;
+
+          if (peg$silentFails === 0) {
+            peg$fail(peg$c98);
+          }
+        }
+
+        if (s1 !== peg$FAILED) {
+          peg$reportedPos = s0;
+          s1 = peg$c99();
+        }
+
+        s0 = s1;
+
+        if (s0 === peg$FAILED) {
+          s0 = peg$currPos;
+
+          if (input.substr(peg$currPos, 2) === peg$c100) {
+            s1 = peg$c100;
+            peg$currPos += 2;
+          } else {
+            s1 = peg$FAILED;
+
+            if (peg$silentFails === 0) {
+              peg$fail(peg$c101);
+            }
+          }
+
+          if (s1 !== peg$FAILED) {
+            peg$reportedPos = s0;
+            s1 = peg$c102();
+          }
+
+          s0 = s1;
+
+          if (s0 === peg$FAILED) {
+            s0 = peg$currPos;
+
+            if (input.substr(peg$currPos, 2) === peg$c103) {
+              s1 = peg$c103;
+              peg$currPos += 2;
+            } else {
+              s1 = peg$FAILED;
+
+              if (peg$silentFails === 0) {
+                peg$fail(peg$c104);
+              }
+            }
+
+            if (s1 !== peg$FAILED) {
+              peg$reportedPos = s0;
+              s1 = peg$c105();
+            }
+
+            s0 = s1;
+
+            if (s0 === peg$FAILED) {
+              s0 = peg$currPos;
+
+              if (input.substr(peg$currPos, 2) === peg$c106) {
+                s1 = peg$c106;
+                peg$currPos += 2;
+              } else {
+                s1 = peg$FAILED;
+
+                if (peg$silentFails === 0) {
+                  peg$fail(peg$c107);
+                }
+              }
+
+              if (s1 !== peg$FAILED) {
+                peg$reportedPos = s0;
+                s1 = peg$c108();
+              }
+
+              s0 = s1;
+
+              if (s0 === peg$FAILED) {
+                s0 = peg$currPos;
+
+                if (input.substr(peg$currPos, 2) === peg$c109) {
+                  s1 = peg$c109;
+                  peg$currPos += 2;
+                } else {
+                  s1 = peg$FAILED;
+
+                  if (peg$silentFails === 0) {
+                    peg$fail(peg$c110);
+                  }
+                }
+
+                if (s1 !== peg$FAILED) {
+                  peg$reportedPos = s0;
+                  s1 = peg$c111();
+                }
+
+                s0 = s1;
+
+                if (s0 === peg$FAILED) {
+                  s0 = peg$currPos;
+
+                  if (input.substr(peg$currPos, 2) === peg$c112) {
+                    s1 = peg$c112;
+                    peg$currPos += 2;
+                  } else {
+                    s1 = peg$FAILED;
+
+                    if (peg$silentFails === 0) {
+                      peg$fail(peg$c113);
+                    }
+                  }
+
+                  if (s1 !== peg$FAILED) {
+                    peg$reportedPos = s0;
+                    s1 = peg$c114();
+                  }
+
+                  s0 = s1;
+
+                  if (s0 === peg$FAILED) {
+                    s0 = peg$currPos;
+
+                    if (input.substr(peg$currPos, 2) === peg$c115) {
+                      s1 = peg$c115;
+                      peg$currPos += 2;
+                    } else {
+                      s1 = peg$FAILED;
+
+                      if (peg$silentFails === 0) {
+                        peg$fail(peg$c116);
+                      }
+                    }
+
+                    if (s1 !== peg$FAILED) {
+                      peg$reportedPos = s0;
+                      s1 = peg$c117();
+                    }
+
+                    s0 = s1;
+
+                    if (s0 === peg$FAILED) {
+                      s0 = peg$parseESCAPED_UNICODE();
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      function peg$parseESCAPED_UNICODE() {
+        var s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10;
+        var key = peg$currPos * 49 + 48,
+            cached = peg$cache[key];
+
+        if (cached) {
+          peg$currPos = cached.nextPos;
+          return cached.result;
+        }
+
+        s0 = peg$currPos;
+
+        if (input.substr(peg$currPos, 2) === peg$c118) {
+          s1 = peg$c118;
+          peg$currPos += 2;
+        } else {
+          s1 = peg$FAILED;
+
+          if (peg$silentFails === 0) {
+            peg$fail(peg$c119);
+          }
+        }
+
+        if (s1 !== peg$FAILED) {
+          s2 = peg$currPos;
+          s3 = peg$parseHEX();
+
+          if (s3 !== peg$FAILED) {
+            s4 = peg$parseHEX();
+
+            if (s4 !== peg$FAILED) {
+              s5 = peg$parseHEX();
+
+              if (s5 !== peg$FAILED) {
+                s6 = peg$parseHEX();
+
+                if (s6 !== peg$FAILED) {
+                  s7 = peg$parseHEX();
+
+                  if (s7 !== peg$FAILED) {
+                    s8 = peg$parseHEX();
+
+                    if (s8 !== peg$FAILED) {
+                      s9 = peg$parseHEX();
+
+                      if (s9 !== peg$FAILED) {
+                        s10 = peg$parseHEX();
+
+                        if (s10 !== peg$FAILED) {
+                          s3 = [s3, s4, s5, s6, s7, s8, s9, s10];
+                          s2 = s3;
+                        } else {
+                          peg$currPos = s2;
+                          s2 = peg$c2;
+                        }
+                      } else {
+                        peg$currPos = s2;
+                        s2 = peg$c2;
+                      }
+                    } else {
+                      peg$currPos = s2;
+                      s2 = peg$c2;
+                    }
+                  } else {
+                    peg$currPos = s2;
+                    s2 = peg$c2;
+                  }
+                } else {
+                  peg$currPos = s2;
+                  s2 = peg$c2;
+                }
+              } else {
+                peg$currPos = s2;
+                s2 = peg$c2;
+              }
+            } else {
+              peg$currPos = s2;
+              s2 = peg$c2;
+            }
+          } else {
+            peg$currPos = s2;
+            s2 = peg$c2;
+          }
+
+          if (s2 !== peg$FAILED) {
+            peg$reportedPos = s0;
+            s1 = peg$c120(s2);
+            s0 = s1;
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c2;
+          }
+        } else {
+          peg$currPos = s0;
+          s0 = peg$c2;
+        }
+
+        if (s0 === peg$FAILED) {
+          s0 = peg$currPos;
+
+          if (input.substr(peg$currPos, 2) === peg$c121) {
+            s1 = peg$c121;
+            peg$currPos += 2;
+          } else {
+            s1 = peg$FAILED;
+
+            if (peg$silentFails === 0) {
+              peg$fail(peg$c122);
+            }
+          }
+
+          if (s1 !== peg$FAILED) {
+            s2 = peg$currPos;
+            s3 = peg$parseHEX();
+
+            if (s3 !== peg$FAILED) {
+              s4 = peg$parseHEX();
+
+              if (s4 !== peg$FAILED) {
+                s5 = peg$parseHEX();
+
+                if (s5 !== peg$FAILED) {
+                  s6 = peg$parseHEX();
+
+                  if (s6 !== peg$FAILED) {
+                    s3 = [s3, s4, s5, s6];
+                    s2 = s3;
+                  } else {
+                    peg$currPos = s2;
+                    s2 = peg$c2;
+                  }
+                } else {
+                  peg$currPos = s2;
+                  s2 = peg$c2;
+                }
+              } else {
+                peg$currPos = s2;
+                s2 = peg$c2;
+              }
+            } else {
+              peg$currPos = s2;
+              s2 = peg$c2;
+            }
+
+            if (s2 !== peg$FAILED) {
+              peg$reportedPos = s0;
+              s1 = peg$c120(s2);
+              s0 = s1;
+            } else {
+              peg$currPos = s0;
+              s0 = peg$c2;
+            }
+          } else {
+            peg$currPos = s0;
+            s0 = peg$c2;
+          }
+        }
+
+        peg$cache[key] = {
+          nextPos: peg$currPos,
+          result: s0
+        };
+        return s0;
+      }
+
+      var nodes = [];
+
+      function genError(err, line, col) {
+        var ex = new Error(err);
+        ex.line = line;
+        ex.column = col;
+        throw ex;
+      }
+
+      function addNode(node) {
+        nodes.push(node);
+      }
+
+      function node(type, value, line, column, key) {
+        var obj = {
+          type: type,
+          value: value,
+          line: line(),
+          column: column()
+        };
+        if (key) obj.key = key;
+        return obj;
+      }
+
+      function convertCodePoint(str, line, col) {
+        var num = parseInt("0x" + str);
+
+        if (!isFinite(num) || Math.floor(num) != num || num < 0 || num > 0x10FFFF || num > 0xD7FF && num < 0xE000) {
+          genError("Invalid Unicode escape code: " + str, line, col);
+        } else {
+          return fromCodePoint(num);
+        }
+      }
+
+      function fromCodePoint() {
+        var MAX_SIZE = 0x4000;
+        var codeUnits = [];
+        var highSurrogate;
+        var lowSurrogate;
+        var index = -1;
+        var length = arguments.length;
+
+        if (!length) {
+          return '';
+        }
+
+        var result = '';
+
+        while (++index < length) {
+          var codePoint = Number(arguments[index]);
+
+          if (codePoint <= 0xFFFF) {
+            // BMP code point
+            codeUnits.push(codePoint);
+          } else {
+            // Astral code point; split in surrogate halves
+            // http://mathiasbynens.be/notes/javascript-encoding#surrogate-formulae
+            codePoint -= 0x10000;
+            highSurrogate = (codePoint >> 10) + 0xD800;
+            lowSurrogate = codePoint % 0x400 + 0xDC00;
+            codeUnits.push(highSurrogate, lowSurrogate);
+          }
+
+          if (index + 1 == length || codeUnits.length > MAX_SIZE) {
+            result += String.fromCharCode.apply(null, codeUnits);
+            codeUnits.length = 0;
+          }
+        }
+
+        return result;
+      }
+
+      peg$result = peg$startRuleFunction();
+
+      if (peg$result !== peg$FAILED && peg$currPos === input.length) {
+        return peg$result;
+      } else {
+        if (peg$result !== peg$FAILED && peg$currPos < input.length) {
+          peg$fail({
+            type: "end",
+            description: "end of input"
+          });
+        }
+
+        throw peg$buildException(null, peg$maxFailExpected, peg$maxFailPos);
+      }
+    }
+
+    return {
+      SyntaxError: SyntaxError,
+      parse: parse
+    };
+  }();
+
+  function compile(nodes) {
+    var assignedPaths = [];
+    var valueAssignments = [];
+    var currentPath = "";
+    var data = Object.create(null);
+    var context = data;
+    return reduce(nodes);
+
+    function reduce(nodes) {
+      var node;
+
+      for (var i = 0; i < nodes.length; i++) {
+        node = nodes[i];
+
+        switch (node.type) {
+          case "Assign":
+            assign(node);
+            break;
+
+          case "ObjectPath":
+            setPath(node);
+            break;
+
+          case "ArrayPath":
+            addTableArray(node);
+            break;
+        }
+      }
+
+      return data;
+    }
+
+    function genError(err, line, col) {
+      var ex = new Error(err);
+      ex.line = line;
+      ex.column = col;
+      throw ex;
+    }
+
+    function assign(node) {
+      var key = node.key;
+      var value = node.value;
+      var line = node.line;
+      var column = node.column;
+      var fullPath;
+
+      if (currentPath) {
+        fullPath = currentPath + "." + key;
+      } else {
+        fullPath = key;
+      }
+
+      if (typeof context[key] !== "undefined") {
+        genError("Cannot redefine existing key '" + fullPath + "'.", line, column);
+      }
+
+      context[key] = reduceValueNode(value);
+
+      if (!pathAssigned(fullPath)) {
+        assignedPaths.push(fullPath);
+        valueAssignments.push(fullPath);
+      }
+    }
+
+    function pathAssigned(path) {
+      return assignedPaths.indexOf(path) !== -1;
+    }
+
+    function reduceValueNode(node) {
+      if (node.type === "Array") {
+        return reduceArrayWithTypeChecking(node.value);
+      } else if (node.type === "InlineTable") {
+        return reduceInlineTableNode(node.value);
+      } else {
+        return node.value;
+      }
+    }
+
+    function reduceInlineTableNode(values) {
+      var obj = Object.create(null);
+
+      for (var i = 0; i < values.length; i++) {
+        var val = values[i];
+
+        if (val.value.type === "InlineTable") {
+          obj[val.key] = reduceInlineTableNode(val.value.value);
+        } else if (val.type === "InlineTableValue") {
+          obj[val.key] = reduceValueNode(val.value);
+        }
+      }
+
+      return obj;
+    }
+
+    function setPath(node) {
+      var path = node.value;
+      var quotedPath = path.map(quoteDottedString).join(".");
+      var line = node.line;
+      var column = node.column;
+
+      if (pathAssigned(quotedPath)) {
+        genError("Cannot redefine existing key '" + path + "'.", line, column);
+      }
+
+      assignedPaths.push(quotedPath);
+      context = deepRef(data, path, Object.create(null), line, column);
+      currentPath = path;
+    }
+
+    function addTableArray(node) {
+      var path = node.value;
+      var quotedPath = path.map(quoteDottedString).join(".");
+      var line = node.line;
+      var column = node.column;
+
+      if (!pathAssigned(quotedPath)) {
+        assignedPaths.push(quotedPath);
+      }
+
+      assignedPaths = assignedPaths.filter(function (p) {
+        return p.indexOf(quotedPath) !== 0;
+      });
+      assignedPaths.push(quotedPath);
+      context = deepRef(data, path, [], line, column);
+      currentPath = quotedPath;
+
+      if (context instanceof Array) {
+        var newObj = Object.create(null);
+        context.push(newObj);
+        context = newObj;
+      } else {
+        genError("Cannot redefine existing key '" + path + "'.", line, column);
+      }
+    } // Given a path 'a.b.c', create (as necessary) `start.a`,
+    // `start.a.b`, and `start.a.b.c`, assigning `value` to `start.a.b.c`.
+    // If `a` or `b` are arrays and have items in them, the last item in the
+    // array is used as the context for the next sub-path.
+
+
+    function deepRef(start, keys, value, line, column) {
+      var traversed = [];
+      var traversedPath = "";
+      keys.join(".");
+      var ctx = start;
+
+      for (var i = 0; i < keys.length; i++) {
+        var key = keys[i];
+        traversed.push(key);
+        traversedPath = traversed.join(".");
+
+        if (typeof ctx[key] === "undefined") {
+          if (i === keys.length - 1) {
+            ctx[key] = value;
+          } else {
+            ctx[key] = Object.create(null);
+          }
+        } else if (i !== keys.length - 1 && valueAssignments.indexOf(traversedPath) > -1) {
+          // already a non-object value at key, can't be used as part of a new path
+          genError("Cannot redefine existing key '" + traversedPath + "'.", line, column);
+        }
+
+        ctx = ctx[key];
+
+        if (ctx instanceof Array && ctx.length && i < keys.length - 1) {
+          ctx = ctx[ctx.length - 1];
+        }
+      }
+
+      return ctx;
+    }
+
+    function reduceArrayWithTypeChecking(array) {
+      // Ensure that all items in the array are of the same type
+      var firstType = null;
+
+      for (var i = 0; i < array.length; i++) {
+        var node = array[i];
+
+        if (firstType === null) {
+          firstType = node.type;
+        } else {
+          if (node.type !== firstType) {
+            genError("Cannot add value of type " + node.type + " to array of type " + firstType + ".", node.line, node.column);
+          }
+        }
+      } // Recursively reduce array of nodes into array of the nodes' values
+
+
+      return array.map(reduceValueNode);
+    }
+
+    function quoteDottedString(str) {
+      if (str.indexOf(".") > -1) {
+        return "\"" + str + "\"";
+      } else {
+        return str;
+      }
+    }
+  }
+
+  var compiler$1 = {
+    compile: compile
+  };
+
+  var parser = parser$1;
+
+  var compiler = compiler$1;
+
+  var toml = {
+    parse: function (input) {
+      var nodes = parser.parse(input.toString());
+      return compiler.compile(nodes);
+    }
+  };
+
+  // This is a generated file. Do not edit.
+  var Space_Separator = /[\u1680\u2000-\u200A\u202F\u205F\u3000]/;
+  var ID_Start = /[\xAA\xB5\xBA\xC0-\xD6\xD8-\xF6\xF8-\u02C1\u02C6-\u02D1\u02E0-\u02E4\u02EC\u02EE\u0370-\u0374\u0376\u0377\u037A-\u037D\u037F\u0386\u0388-\u038A\u038C\u038E-\u03A1\u03A3-\u03F5\u03F7-\u0481\u048A-\u052F\u0531-\u0556\u0559\u0561-\u0587\u05D0-\u05EA\u05F0-\u05F2\u0620-\u064A\u066E\u066F\u0671-\u06D3\u06D5\u06E5\u06E6\u06EE\u06EF\u06FA-\u06FC\u06FF\u0710\u0712-\u072F\u074D-\u07A5\u07B1\u07CA-\u07EA\u07F4\u07F5\u07FA\u0800-\u0815\u081A\u0824\u0828\u0840-\u0858\u0860-\u086A\u08A0-\u08B4\u08B6-\u08BD\u0904-\u0939\u093D\u0950\u0958-\u0961\u0971-\u0980\u0985-\u098C\u098F\u0990\u0993-\u09A8\u09AA-\u09B0\u09B2\u09B6-\u09B9\u09BD\u09CE\u09DC\u09DD\u09DF-\u09E1\u09F0\u09F1\u09FC\u0A05-\u0A0A\u0A0F\u0A10\u0A13-\u0A28\u0A2A-\u0A30\u0A32\u0A33\u0A35\u0A36\u0A38\u0A39\u0A59-\u0A5C\u0A5E\u0A72-\u0A74\u0A85-\u0A8D\u0A8F-\u0A91\u0A93-\u0AA8\u0AAA-\u0AB0\u0AB2\u0AB3\u0AB5-\u0AB9\u0ABD\u0AD0\u0AE0\u0AE1\u0AF9\u0B05-\u0B0C\u0B0F\u0B10\u0B13-\u0B28\u0B2A-\u0B30\u0B32\u0B33\u0B35-\u0B39\u0B3D\u0B5C\u0B5D\u0B5F-\u0B61\u0B71\u0B83\u0B85-\u0B8A\u0B8E-\u0B90\u0B92-\u0B95\u0B99\u0B9A\u0B9C\u0B9E\u0B9F\u0BA3\u0BA4\u0BA8-\u0BAA\u0BAE-\u0BB9\u0BD0\u0C05-\u0C0C\u0C0E-\u0C10\u0C12-\u0C28\u0C2A-\u0C39\u0C3D\u0C58-\u0C5A\u0C60\u0C61\u0C80\u0C85-\u0C8C\u0C8E-\u0C90\u0C92-\u0CA8\u0CAA-\u0CB3\u0CB5-\u0CB9\u0CBD\u0CDE\u0CE0\u0CE1\u0CF1\u0CF2\u0D05-\u0D0C\u0D0E-\u0D10\u0D12-\u0D3A\u0D3D\u0D4E\u0D54-\u0D56\u0D5F-\u0D61\u0D7A-\u0D7F\u0D85-\u0D96\u0D9A-\u0DB1\u0DB3-\u0DBB\u0DBD\u0DC0-\u0DC6\u0E01-\u0E30\u0E32\u0E33\u0E40-\u0E46\u0E81\u0E82\u0E84\u0E87\u0E88\u0E8A\u0E8D\u0E94-\u0E97\u0E99-\u0E9F\u0EA1-\u0EA3\u0EA5\u0EA7\u0EAA\u0EAB\u0EAD-\u0EB0\u0EB2\u0EB3\u0EBD\u0EC0-\u0EC4\u0EC6\u0EDC-\u0EDF\u0F00\u0F40-\u0F47\u0F49-\u0F6C\u0F88-\u0F8C\u1000-\u102A\u103F\u1050-\u1055\u105A-\u105D\u1061\u1065\u1066\u106E-\u1070\u1075-\u1081\u108E\u10A0-\u10C5\u10C7\u10CD\u10D0-\u10FA\u10FC-\u1248\u124A-\u124D\u1250-\u1256\u1258\u125A-\u125D\u1260-\u1288\u128A-\u128D\u1290-\u12B0\u12B2-\u12B5\u12B8-\u12BE\u12C0\u12C2-\u12C5\u12C8-\u12D6\u12D8-\u1310\u1312-\u1315\u1318-\u135A\u1380-\u138F\u13A0-\u13F5\u13F8-\u13FD\u1401-\u166C\u166F-\u167F\u1681-\u169A\u16A0-\u16EA\u16EE-\u16F8\u1700-\u170C\u170E-\u1711\u1720-\u1731\u1740-\u1751\u1760-\u176C\u176E-\u1770\u1780-\u17B3\u17D7\u17DC\u1820-\u1877\u1880-\u1884\u1887-\u18A8\u18AA\u18B0-\u18F5\u1900-\u191E\u1950-\u196D\u1970-\u1974\u1980-\u19AB\u19B0-\u19C9\u1A00-\u1A16\u1A20-\u1A54\u1AA7\u1B05-\u1B33\u1B45-\u1B4B\u1B83-\u1BA0\u1BAE\u1BAF\u1BBA-\u1BE5\u1C00-\u1C23\u1C4D-\u1C4F\u1C5A-\u1C7D\u1C80-\u1C88\u1CE9-\u1CEC\u1CEE-\u1CF1\u1CF5\u1CF6\u1D00-\u1DBF\u1E00-\u1F15\u1F18-\u1F1D\u1F20-\u1F45\u1F48-\u1F4D\u1F50-\u1F57\u1F59\u1F5B\u1F5D\u1F5F-\u1F7D\u1F80-\u1FB4\u1FB6-\u1FBC\u1FBE\u1FC2-\u1FC4\u1FC6-\u1FCC\u1FD0-\u1FD3\u1FD6-\u1FDB\u1FE0-\u1FEC\u1FF2-\u1FF4\u1FF6-\u1FFC\u2071\u207F\u2090-\u209C\u2102\u2107\u210A-\u2113\u2115\u2119-\u211D\u2124\u2126\u2128\u212A-\u212D\u212F-\u2139\u213C-\u213F\u2145-\u2149\u214E\u2160-\u2188\u2C00-\u2C2E\u2C30-\u2C5E\u2C60-\u2CE4\u2CEB-\u2CEE\u2CF2\u2CF3\u2D00-\u2D25\u2D27\u2D2D\u2D30-\u2D67\u2D6F\u2D80-\u2D96\u2DA0-\u2DA6\u2DA8-\u2DAE\u2DB0-\u2DB6\u2DB8-\u2DBE\u2DC0-\u2DC6\u2DC8-\u2DCE\u2DD0-\u2DD6\u2DD8-\u2DDE\u2E2F\u3005-\u3007\u3021-\u3029\u3031-\u3035\u3038-\u303C\u3041-\u3096\u309D-\u309F\u30A1-\u30FA\u30FC-\u30FF\u3105-\u312E\u3131-\u318E\u31A0-\u31BA\u31F0-\u31FF\u3400-\u4DB5\u4E00-\u9FEA\uA000-\uA48C\uA4D0-\uA4FD\uA500-\uA60C\uA610-\uA61F\uA62A\uA62B\uA640-\uA66E\uA67F-\uA69D\uA6A0-\uA6EF\uA717-\uA71F\uA722-\uA788\uA78B-\uA7AE\uA7B0-\uA7B7\uA7F7-\uA801\uA803-\uA805\uA807-\uA80A\uA80C-\uA822\uA840-\uA873\uA882-\uA8B3\uA8F2-\uA8F7\uA8FB\uA8FD\uA90A-\uA925\uA930-\uA946\uA960-\uA97C\uA984-\uA9B2\uA9CF\uA9E0-\uA9E4\uA9E6-\uA9EF\uA9FA-\uA9FE\uAA00-\uAA28\uAA40-\uAA42\uAA44-\uAA4B\uAA60-\uAA76\uAA7A\uAA7E-\uAAAF\uAAB1\uAAB5\uAAB6\uAAB9-\uAABD\uAAC0\uAAC2\uAADB-\uAADD\uAAE0-\uAAEA\uAAF2-\uAAF4\uAB01-\uAB06\uAB09-\uAB0E\uAB11-\uAB16\uAB20-\uAB26\uAB28-\uAB2E\uAB30-\uAB5A\uAB5C-\uAB65\uAB70-\uABE2\uAC00-\uD7A3\uD7B0-\uD7C6\uD7CB-\uD7FB\uF900-\uFA6D\uFA70-\uFAD9\uFB00-\uFB06\uFB13-\uFB17\uFB1D\uFB1F-\uFB28\uFB2A-\uFB36\uFB38-\uFB3C\uFB3E\uFB40\uFB41\uFB43\uFB44\uFB46-\uFBB1\uFBD3-\uFD3D\uFD50-\uFD8F\uFD92-\uFDC7\uFDF0-\uFDFB\uFE70-\uFE74\uFE76-\uFEFC\uFF21-\uFF3A\uFF41-\uFF5A\uFF66-\uFFBE\uFFC2-\uFFC7\uFFCA-\uFFCF\uFFD2-\uFFD7\uFFDA-\uFFDC]|\uD800[\uDC00-\uDC0B\uDC0D-\uDC26\uDC28-\uDC3A\uDC3C\uDC3D\uDC3F-\uDC4D\uDC50-\uDC5D\uDC80-\uDCFA\uDD40-\uDD74\uDE80-\uDE9C\uDEA0-\uDED0\uDF00-\uDF1F\uDF2D-\uDF4A\uDF50-\uDF75\uDF80-\uDF9D\uDFA0-\uDFC3\uDFC8-\uDFCF\uDFD1-\uDFD5]|\uD801[\uDC00-\uDC9D\uDCB0-\uDCD3\uDCD8-\uDCFB\uDD00-\uDD27\uDD30-\uDD63\uDE00-\uDF36\uDF40-\uDF55\uDF60-\uDF67]|\uD802[\uDC00-\uDC05\uDC08\uDC0A-\uDC35\uDC37\uDC38\uDC3C\uDC3F-\uDC55\uDC60-\uDC76\uDC80-\uDC9E\uDCE0-\uDCF2\uDCF4\uDCF5\uDD00-\uDD15\uDD20-\uDD39\uDD80-\uDDB7\uDDBE\uDDBF\uDE00\uDE10-\uDE13\uDE15-\uDE17\uDE19-\uDE33\uDE60-\uDE7C\uDE80-\uDE9C\uDEC0-\uDEC7\uDEC9-\uDEE4\uDF00-\uDF35\uDF40-\uDF55\uDF60-\uDF72\uDF80-\uDF91]|\uD803[\uDC00-\uDC48\uDC80-\uDCB2\uDCC0-\uDCF2]|\uD804[\uDC03-\uDC37\uDC83-\uDCAF\uDCD0-\uDCE8\uDD03-\uDD26\uDD50-\uDD72\uDD76\uDD83-\uDDB2\uDDC1-\uDDC4\uDDDA\uDDDC\uDE00-\uDE11\uDE13-\uDE2B\uDE80-\uDE86\uDE88\uDE8A-\uDE8D\uDE8F-\uDE9D\uDE9F-\uDEA8\uDEB0-\uDEDE\uDF05-\uDF0C\uDF0F\uDF10\uDF13-\uDF28\uDF2A-\uDF30\uDF32\uDF33\uDF35-\uDF39\uDF3D\uDF50\uDF5D-\uDF61]|\uD805[\uDC00-\uDC34\uDC47-\uDC4A\uDC80-\uDCAF\uDCC4\uDCC5\uDCC7\uDD80-\uDDAE\uDDD8-\uDDDB\uDE00-\uDE2F\uDE44\uDE80-\uDEAA\uDF00-\uDF19]|\uD806[\uDCA0-\uDCDF\uDCFF\uDE00\uDE0B-\uDE32\uDE3A\uDE50\uDE5C-\uDE83\uDE86-\uDE89\uDEC0-\uDEF8]|\uD807[\uDC00-\uDC08\uDC0A-\uDC2E\uDC40\uDC72-\uDC8F\uDD00-\uDD06\uDD08\uDD09\uDD0B-\uDD30\uDD46]|\uD808[\uDC00-\uDF99]|\uD809[\uDC00-\uDC6E\uDC80-\uDD43]|[\uD80C\uD81C-\uD820\uD840-\uD868\uD86A-\uD86C\uD86F-\uD872\uD874-\uD879][\uDC00-\uDFFF]|\uD80D[\uDC00-\uDC2E]|\uD811[\uDC00-\uDE46]|\uD81A[\uDC00-\uDE38\uDE40-\uDE5E\uDED0-\uDEED\uDF00-\uDF2F\uDF40-\uDF43\uDF63-\uDF77\uDF7D-\uDF8F]|\uD81B[\uDF00-\uDF44\uDF50\uDF93-\uDF9F\uDFE0\uDFE1]|\uD821[\uDC00-\uDFEC]|\uD822[\uDC00-\uDEF2]|\uD82C[\uDC00-\uDD1E\uDD70-\uDEFB]|\uD82F[\uDC00-\uDC6A\uDC70-\uDC7C\uDC80-\uDC88\uDC90-\uDC99]|\uD835[\uDC00-\uDC54\uDC56-\uDC9C\uDC9E\uDC9F\uDCA2\uDCA5\uDCA6\uDCA9-\uDCAC\uDCAE-\uDCB9\uDCBB\uDCBD-\uDCC3\uDCC5-\uDD05\uDD07-\uDD0A\uDD0D-\uDD14\uDD16-\uDD1C\uDD1E-\uDD39\uDD3B-\uDD3E\uDD40-\uDD44\uDD46\uDD4A-\uDD50\uDD52-\uDEA5\uDEA8-\uDEC0\uDEC2-\uDEDA\uDEDC-\uDEFA\uDEFC-\uDF14\uDF16-\uDF34\uDF36-\uDF4E\uDF50-\uDF6E\uDF70-\uDF88\uDF8A-\uDFA8\uDFAA-\uDFC2\uDFC4-\uDFCB]|\uD83A[\uDC00-\uDCC4\uDD00-\uDD43]|\uD83B[\uDE00-\uDE03\uDE05-\uDE1F\uDE21\uDE22\uDE24\uDE27\uDE29-\uDE32\uDE34-\uDE37\uDE39\uDE3B\uDE42\uDE47\uDE49\uDE4B\uDE4D-\uDE4F\uDE51\uDE52\uDE54\uDE57\uDE59\uDE5B\uDE5D\uDE5F\uDE61\uDE62\uDE64\uDE67-\uDE6A\uDE6C-\uDE72\uDE74-\uDE77\uDE79-\uDE7C\uDE7E\uDE80-\uDE89\uDE8B-\uDE9B\uDEA1-\uDEA3\uDEA5-\uDEA9\uDEAB-\uDEBB]|\uD869[\uDC00-\uDED6\uDF00-\uDFFF]|\uD86D[\uDC00-\uDF34\uDF40-\uDFFF]|\uD86E[\uDC00-\uDC1D\uDC20-\uDFFF]|\uD873[\uDC00-\uDEA1\uDEB0-\uDFFF]|\uD87A[\uDC00-\uDFE0]|\uD87E[\uDC00-\uDE1D]/;
+  var ID_Continue = /[\xAA\xB5\xBA\xC0-\xD6\xD8-\xF6\xF8-\u02C1\u02C6-\u02D1\u02E0-\u02E4\u02EC\u02EE\u0300-\u0374\u0376\u0377\u037A-\u037D\u037F\u0386\u0388-\u038A\u038C\u038E-\u03A1\u03A3-\u03F5\u03F7-\u0481\u0483-\u0487\u048A-\u052F\u0531-\u0556\u0559\u0561-\u0587\u0591-\u05BD\u05BF\u05C1\u05C2\u05C4\u05C5\u05C7\u05D0-\u05EA\u05F0-\u05F2\u0610-\u061A\u0620-\u0669\u066E-\u06D3\u06D5-\u06DC\u06DF-\u06E8\u06EA-\u06FC\u06FF\u0710-\u074A\u074D-\u07B1\u07C0-\u07F5\u07FA\u0800-\u082D\u0840-\u085B\u0860-\u086A\u08A0-\u08B4\u08B6-\u08BD\u08D4-\u08E1\u08E3-\u0963\u0966-\u096F\u0971-\u0983\u0985-\u098C\u098F\u0990\u0993-\u09A8\u09AA-\u09B0\u09B2\u09B6-\u09B9\u09BC-\u09C4\u09C7\u09C8\u09CB-\u09CE\u09D7\u09DC\u09DD\u09DF-\u09E3\u09E6-\u09F1\u09FC\u0A01-\u0A03\u0A05-\u0A0A\u0A0F\u0A10\u0A13-\u0A28\u0A2A-\u0A30\u0A32\u0A33\u0A35\u0A36\u0A38\u0A39\u0A3C\u0A3E-\u0A42\u0A47\u0A48\u0A4B-\u0A4D\u0A51\u0A59-\u0A5C\u0A5E\u0A66-\u0A75\u0A81-\u0A83\u0A85-\u0A8D\u0A8F-\u0A91\u0A93-\u0AA8\u0AAA-\u0AB0\u0AB2\u0AB3\u0AB5-\u0AB9\u0ABC-\u0AC5\u0AC7-\u0AC9\u0ACB-\u0ACD\u0AD0\u0AE0-\u0AE3\u0AE6-\u0AEF\u0AF9-\u0AFF\u0B01-\u0B03\u0B05-\u0B0C\u0B0F\u0B10\u0B13-\u0B28\u0B2A-\u0B30\u0B32\u0B33\u0B35-\u0B39\u0B3C-\u0B44\u0B47\u0B48\u0B4B-\u0B4D\u0B56\u0B57\u0B5C\u0B5D\u0B5F-\u0B63\u0B66-\u0B6F\u0B71\u0B82\u0B83\u0B85-\u0B8A\u0B8E-\u0B90\u0B92-\u0B95\u0B99\u0B9A\u0B9C\u0B9E\u0B9F\u0BA3\u0BA4\u0BA8-\u0BAA\u0BAE-\u0BB9\u0BBE-\u0BC2\u0BC6-\u0BC8\u0BCA-\u0BCD\u0BD0\u0BD7\u0BE6-\u0BEF\u0C00-\u0C03\u0C05-\u0C0C\u0C0E-\u0C10\u0C12-\u0C28\u0C2A-\u0C39\u0C3D-\u0C44\u0C46-\u0C48\u0C4A-\u0C4D\u0C55\u0C56\u0C58-\u0C5A\u0C60-\u0C63\u0C66-\u0C6F\u0C80-\u0C83\u0C85-\u0C8C\u0C8E-\u0C90\u0C92-\u0CA8\u0CAA-\u0CB3\u0CB5-\u0CB9\u0CBC-\u0CC4\u0CC6-\u0CC8\u0CCA-\u0CCD\u0CD5\u0CD6\u0CDE\u0CE0-\u0CE3\u0CE6-\u0CEF\u0CF1\u0CF2\u0D00-\u0D03\u0D05-\u0D0C\u0D0E-\u0D10\u0D12-\u0D44\u0D46-\u0D48\u0D4A-\u0D4E\u0D54-\u0D57\u0D5F-\u0D63\u0D66-\u0D6F\u0D7A-\u0D7F\u0D82\u0D83\u0D85-\u0D96\u0D9A-\u0DB1\u0DB3-\u0DBB\u0DBD\u0DC0-\u0DC6\u0DCA\u0DCF-\u0DD4\u0DD6\u0DD8-\u0DDF\u0DE6-\u0DEF\u0DF2\u0DF3\u0E01-\u0E3A\u0E40-\u0E4E\u0E50-\u0E59\u0E81\u0E82\u0E84\u0E87\u0E88\u0E8A\u0E8D\u0E94-\u0E97\u0E99-\u0E9F\u0EA1-\u0EA3\u0EA5\u0EA7\u0EAA\u0EAB\u0EAD-\u0EB9\u0EBB-\u0EBD\u0EC0-\u0EC4\u0EC6\u0EC8-\u0ECD\u0ED0-\u0ED9\u0EDC-\u0EDF\u0F00\u0F18\u0F19\u0F20-\u0F29\u0F35\u0F37\u0F39\u0F3E-\u0F47\u0F49-\u0F6C\u0F71-\u0F84\u0F86-\u0F97\u0F99-\u0FBC\u0FC6\u1000-\u1049\u1050-\u109D\u10A0-\u10C5\u10C7\u10CD\u10D0-\u10FA\u10FC-\u1248\u124A-\u124D\u1250-\u1256\u1258\u125A-\u125D\u1260-\u1288\u128A-\u128D\u1290-\u12B0\u12B2-\u12B5\u12B8-\u12BE\u12C0\u12C2-\u12C5\u12C8-\u12D6\u12D8-\u1310\u1312-\u1315\u1318-\u135A\u135D-\u135F\u1380-\u138F\u13A0-\u13F5\u13F8-\u13FD\u1401-\u166C\u166F-\u167F\u1681-\u169A\u16A0-\u16EA\u16EE-\u16F8\u1700-\u170C\u170E-\u1714\u1720-\u1734\u1740-\u1753\u1760-\u176C\u176E-\u1770\u1772\u1773\u1780-\u17D3\u17D7\u17DC\u17DD\u17E0-\u17E9\u180B-\u180D\u1810-\u1819\u1820-\u1877\u1880-\u18AA\u18B0-\u18F5\u1900-\u191E\u1920-\u192B\u1930-\u193B\u1946-\u196D\u1970-\u1974\u1980-\u19AB\u19B0-\u19C9\u19D0-\u19D9\u1A00-\u1A1B\u1A20-\u1A5E\u1A60-\u1A7C\u1A7F-\u1A89\u1A90-\u1A99\u1AA7\u1AB0-\u1ABD\u1B00-\u1B4B\u1B50-\u1B59\u1B6B-\u1B73\u1B80-\u1BF3\u1C00-\u1C37\u1C40-\u1C49\u1C4D-\u1C7D\u1C80-\u1C88\u1CD0-\u1CD2\u1CD4-\u1CF9\u1D00-\u1DF9\u1DFB-\u1F15\u1F18-\u1F1D\u1F20-\u1F45\u1F48-\u1F4D\u1F50-\u1F57\u1F59\u1F5B\u1F5D\u1F5F-\u1F7D\u1F80-\u1FB4\u1FB6-\u1FBC\u1FBE\u1FC2-\u1FC4\u1FC6-\u1FCC\u1FD0-\u1FD3\u1FD6-\u1FDB\u1FE0-\u1FEC\u1FF2-\u1FF4\u1FF6-\u1FFC\u203F\u2040\u2054\u2071\u207F\u2090-\u209C\u20D0-\u20DC\u20E1\u20E5-\u20F0\u2102\u2107\u210A-\u2113\u2115\u2119-\u211D\u2124\u2126\u2128\u212A-\u212D\u212F-\u2139\u213C-\u213F\u2145-\u2149\u214E\u2160-\u2188\u2C00-\u2C2E\u2C30-\u2C5E\u2C60-\u2CE4\u2CEB-\u2CF3\u2D00-\u2D25\u2D27\u2D2D\u2D30-\u2D67\u2D6F\u2D7F-\u2D96\u2DA0-\u2DA6\u2DA8-\u2DAE\u2DB0-\u2DB6\u2DB8-\u2DBE\u2DC0-\u2DC6\u2DC8-\u2DCE\u2DD0-\u2DD6\u2DD8-\u2DDE\u2DE0-\u2DFF\u2E2F\u3005-\u3007\u3021-\u302F\u3031-\u3035\u3038-\u303C\u3041-\u3096\u3099\u309A\u309D-\u309F\u30A1-\u30FA\u30FC-\u30FF\u3105-\u312E\u3131-\u318E\u31A0-\u31BA\u31F0-\u31FF\u3400-\u4DB5\u4E00-\u9FEA\uA000-\uA48C\uA4D0-\uA4FD\uA500-\uA60C\uA610-\uA62B\uA640-\uA66F\uA674-\uA67D\uA67F-\uA6F1\uA717-\uA71F\uA722-\uA788\uA78B-\uA7AE\uA7B0-\uA7B7\uA7F7-\uA827\uA840-\uA873\uA880-\uA8C5\uA8D0-\uA8D9\uA8E0-\uA8F7\uA8FB\uA8FD\uA900-\uA92D\uA930-\uA953\uA960-\uA97C\uA980-\uA9C0\uA9CF-\uA9D9\uA9E0-\uA9FE\uAA00-\uAA36\uAA40-\uAA4D\uAA50-\uAA59\uAA60-\uAA76\uAA7A-\uAAC2\uAADB-\uAADD\uAAE0-\uAAEF\uAAF2-\uAAF6\uAB01-\uAB06\uAB09-\uAB0E\uAB11-\uAB16\uAB20-\uAB26\uAB28-\uAB2E\uAB30-\uAB5A\uAB5C-\uAB65\uAB70-\uABEA\uABEC\uABED\uABF0-\uABF9\uAC00-\uD7A3\uD7B0-\uD7C6\uD7CB-\uD7FB\uF900-\uFA6D\uFA70-\uFAD9\uFB00-\uFB06\uFB13-\uFB17\uFB1D-\uFB28\uFB2A-\uFB36\uFB38-\uFB3C\uFB3E\uFB40\uFB41\uFB43\uFB44\uFB46-\uFBB1\uFBD3-\uFD3D\uFD50-\uFD8F\uFD92-\uFDC7\uFDF0-\uFDFB\uFE00-\uFE0F\uFE20-\uFE2F\uFE33\uFE34\uFE4D-\uFE4F\uFE70-\uFE74\uFE76-\uFEFC\uFF10-\uFF19\uFF21-\uFF3A\uFF3F\uFF41-\uFF5A\uFF66-\uFFBE\uFFC2-\uFFC7\uFFCA-\uFFCF\uFFD2-\uFFD7\uFFDA-\uFFDC]|\uD800[\uDC00-\uDC0B\uDC0D-\uDC26\uDC28-\uDC3A\uDC3C\uDC3D\uDC3F-\uDC4D\uDC50-\uDC5D\uDC80-\uDCFA\uDD40-\uDD74\uDDFD\uDE80-\uDE9C\uDEA0-\uDED0\uDEE0\uDF00-\uDF1F\uDF2D-\uDF4A\uDF50-\uDF7A\uDF80-\uDF9D\uDFA0-\uDFC3\uDFC8-\uDFCF\uDFD1-\uDFD5]|\uD801[\uDC00-\uDC9D\uDCA0-\uDCA9\uDCB0-\uDCD3\uDCD8-\uDCFB\uDD00-\uDD27\uDD30-\uDD63\uDE00-\uDF36\uDF40-\uDF55\uDF60-\uDF67]|\uD802[\uDC00-\uDC05\uDC08\uDC0A-\uDC35\uDC37\uDC38\uDC3C\uDC3F-\uDC55\uDC60-\uDC76\uDC80-\uDC9E\uDCE0-\uDCF2\uDCF4\uDCF5\uDD00-\uDD15\uDD20-\uDD39\uDD80-\uDDB7\uDDBE\uDDBF\uDE00-\uDE03\uDE05\uDE06\uDE0C-\uDE13\uDE15-\uDE17\uDE19-\uDE33\uDE38-\uDE3A\uDE3F\uDE60-\uDE7C\uDE80-\uDE9C\uDEC0-\uDEC7\uDEC9-\uDEE6\uDF00-\uDF35\uDF40-\uDF55\uDF60-\uDF72\uDF80-\uDF91]|\uD803[\uDC00-\uDC48\uDC80-\uDCB2\uDCC0-\uDCF2]|\uD804[\uDC00-\uDC46\uDC66-\uDC6F\uDC7F-\uDCBA\uDCD0-\uDCE8\uDCF0-\uDCF9\uDD00-\uDD34\uDD36-\uDD3F\uDD50-\uDD73\uDD76\uDD80-\uDDC4\uDDCA-\uDDCC\uDDD0-\uDDDA\uDDDC\uDE00-\uDE11\uDE13-\uDE37\uDE3E\uDE80-\uDE86\uDE88\uDE8A-\uDE8D\uDE8F-\uDE9D\uDE9F-\uDEA8\uDEB0-\uDEEA\uDEF0-\uDEF9\uDF00-\uDF03\uDF05-\uDF0C\uDF0F\uDF10\uDF13-\uDF28\uDF2A-\uDF30\uDF32\uDF33\uDF35-\uDF39\uDF3C-\uDF44\uDF47\uDF48\uDF4B-\uDF4D\uDF50\uDF57\uDF5D-\uDF63\uDF66-\uDF6C\uDF70-\uDF74]|\uD805[\uDC00-\uDC4A\uDC50-\uDC59\uDC80-\uDCC5\uDCC7\uDCD0-\uDCD9\uDD80-\uDDB5\uDDB8-\uDDC0\uDDD8-\uDDDD\uDE00-\uDE40\uDE44\uDE50-\uDE59\uDE80-\uDEB7\uDEC0-\uDEC9\uDF00-\uDF19\uDF1D-\uDF2B\uDF30-\uDF39]|\uD806[\uDCA0-\uDCE9\uDCFF\uDE00-\uDE3E\uDE47\uDE50-\uDE83\uDE86-\uDE99\uDEC0-\uDEF8]|\uD807[\uDC00-\uDC08\uDC0A-\uDC36\uDC38-\uDC40\uDC50-\uDC59\uDC72-\uDC8F\uDC92-\uDCA7\uDCA9-\uDCB6\uDD00-\uDD06\uDD08\uDD09\uDD0B-\uDD36\uDD3A\uDD3C\uDD3D\uDD3F-\uDD47\uDD50-\uDD59]|\uD808[\uDC00-\uDF99]|\uD809[\uDC00-\uDC6E\uDC80-\uDD43]|[\uD80C\uD81C-\uD820\uD840-\uD868\uD86A-\uD86C\uD86F-\uD872\uD874-\uD879][\uDC00-\uDFFF]|\uD80D[\uDC00-\uDC2E]|\uD811[\uDC00-\uDE46]|\uD81A[\uDC00-\uDE38\uDE40-\uDE5E\uDE60-\uDE69\uDED0-\uDEED\uDEF0-\uDEF4\uDF00-\uDF36\uDF40-\uDF43\uDF50-\uDF59\uDF63-\uDF77\uDF7D-\uDF8F]|\uD81B[\uDF00-\uDF44\uDF50-\uDF7E\uDF8F-\uDF9F\uDFE0\uDFE1]|\uD821[\uDC00-\uDFEC]|\uD822[\uDC00-\uDEF2]|\uD82C[\uDC00-\uDD1E\uDD70-\uDEFB]|\uD82F[\uDC00-\uDC6A\uDC70-\uDC7C\uDC80-\uDC88\uDC90-\uDC99\uDC9D\uDC9E]|\uD834[\uDD65-\uDD69\uDD6D-\uDD72\uDD7B-\uDD82\uDD85-\uDD8B\uDDAA-\uDDAD\uDE42-\uDE44]|\uD835[\uDC00-\uDC54\uDC56-\uDC9C\uDC9E\uDC9F\uDCA2\uDCA5\uDCA6\uDCA9-\uDCAC\uDCAE-\uDCB9\uDCBB\uDCBD-\uDCC3\uDCC5-\uDD05\uDD07-\uDD0A\uDD0D-\uDD14\uDD16-\uDD1C\uDD1E-\uDD39\uDD3B-\uDD3E\uDD40-\uDD44\uDD46\uDD4A-\uDD50\uDD52-\uDEA5\uDEA8-\uDEC0\uDEC2-\uDEDA\uDEDC-\uDEFA\uDEFC-\uDF14\uDF16-\uDF34\uDF36-\uDF4E\uDF50-\uDF6E\uDF70-\uDF88\uDF8A-\uDFA8\uDFAA-\uDFC2\uDFC4-\uDFCB\uDFCE-\uDFFF]|\uD836[\uDE00-\uDE36\uDE3B-\uDE6C\uDE75\uDE84\uDE9B-\uDE9F\uDEA1-\uDEAF]|\uD838[\uDC00-\uDC06\uDC08-\uDC18\uDC1B-\uDC21\uDC23\uDC24\uDC26-\uDC2A]|\uD83A[\uDC00-\uDCC4\uDCD0-\uDCD6\uDD00-\uDD4A\uDD50-\uDD59]|\uD83B[\uDE00-\uDE03\uDE05-\uDE1F\uDE21\uDE22\uDE24\uDE27\uDE29-\uDE32\uDE34-\uDE37\uDE39\uDE3B\uDE42\uDE47\uDE49\uDE4B\uDE4D-\uDE4F\uDE51\uDE52\uDE54\uDE57\uDE59\uDE5B\uDE5D\uDE5F\uDE61\uDE62\uDE64\uDE67-\uDE6A\uDE6C-\uDE72\uDE74-\uDE77\uDE79-\uDE7C\uDE7E\uDE80-\uDE89\uDE8B-\uDE9B\uDEA1-\uDEA3\uDEA5-\uDEA9\uDEAB-\uDEBB]|\uD869[\uDC00-\uDED6\uDF00-\uDFFF]|\uD86D[\uDC00-\uDF34\uDF40-\uDFFF]|\uD86E[\uDC00-\uDC1D\uDC20-\uDFFF]|\uD873[\uDC00-\uDEA1\uDEB0-\uDFFF]|\uD87A[\uDC00-\uDFE0]|\uD87E[\uDC00-\uDE1D]|\uDB40[\uDD00-\uDDEF]/;
+  var unicode = {
+    Space_Separator: Space_Separator,
+    ID_Start: ID_Start,
+    ID_Continue: ID_Continue
+  };
+  var util = {
+    isSpaceSeparator(c) {
+      return typeof c === 'string' && unicode.Space_Separator.test(c);
+    },
+
+    isIdStartChar(c) {
+      return typeof c === 'string' && (c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c === '$' || c === '_' || unicode.ID_Start.test(c));
+    },
+
+    isIdContinueChar(c) {
+      return typeof c === 'string' && (c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c === '$' || c === '_' || c === '\u200C' || c === '\u200D' || unicode.ID_Continue.test(c));
+    },
+
+    isDigit(c) {
+      return typeof c === 'string' && /[0-9]/.test(c);
+    },
+
+    isHexDigit(c) {
+      return typeof c === 'string' && /[0-9A-Fa-f]/.test(c);
+    }
+
+  };
+  let source;
+  let parseState;
+  let stack;
+  let pos;
+  let line;
+  let column;
+  let token;
+  let key;
+  let root;
+
+  var parse = function parse(text, reviver) {
+    source = String(text);
+    parseState = 'start';
+    stack = [];
+    pos = 0;
+    line = 1;
+    column = 0;
+    token = undefined;
+    key = undefined;
+    root = undefined;
+
+    do {
+      token = lex(); // This code is unreachable.
+      // if (!parseStates[parseState]) {
+      //     throw invalidParseState()
+      // }
+
+      parseStates[parseState]();
+    } while (token.type !== 'eof');
+
+    if (typeof reviver === 'function') {
+      return internalize({
+        '': root
+      }, '', reviver);
+    }
+
+    return root;
+  };
+
+  function internalize(holder, name, reviver) {
+    const value = holder[name];
+
+    if (value != null && typeof value === 'object') {
+      for (const key in value) {
+        const replacement = internalize(value, key, reviver);
+
+        if (replacement === undefined) {
+          delete value[key];
+        } else {
+          value[key] = replacement;
+        }
+      }
+    }
+
+    return reviver.call(holder, name, value);
+  }
+
+  let lexState;
+  let buffer;
+  let doubleQuote;
+  let sign;
+  let c;
+
+  function lex() {
+    lexState = 'default';
+    buffer = '';
+    doubleQuote = false;
+    sign = 1;
+
+    for (;;) {
+      c = peek(); // This code is unreachable.
+      // if (!lexStates[lexState]) {
+      //     throw invalidLexState(lexState)
+      // }
+
+      const token = lexStates[lexState]();
+
+      if (token) {
+        return token;
+      }
+    }
+  }
+
+  function peek() {
+    if (source[pos]) {
+      return String.fromCodePoint(source.codePointAt(pos));
+    }
+  }
+
+  function read() {
+    const c = peek();
+
+    if (c === '\n') {
+      line++;
+      column = 0;
+    } else if (c) {
+      column += c.length;
+    } else {
+      column++;
+    }
+
+    if (c) {
+      pos += c.length;
+    }
+
+    return c;
+  }
+
+  const lexStates = {
+    default() {
+      switch (c) {
+        case '\t':
+        case '\v':
+        case '\f':
+        case ' ':
+        case '\u00A0':
+        case '\uFEFF':
+        case '\n':
+        case '\r':
+        case '\u2028':
+        case '\u2029':
+          read();
+          return;
+
+        case '/':
+          read();
+          lexState = 'comment';
+          return;
+
+        case undefined:
+          read();
+          return newToken('eof');
+      }
+
+      if (util.isSpaceSeparator(c)) {
+        read();
+        return;
+      } // This code is unreachable.
+      // if (!lexStates[parseState]) {
+      //     throw invalidLexState(parseState)
+      // }
+
+
+      return lexStates[parseState]();
+    },
+
+    comment() {
+      switch (c) {
+        case '*':
+          read();
+          lexState = 'multiLineComment';
+          return;
+
+        case '/':
+          read();
+          lexState = 'singleLineComment';
+          return;
+      }
+
+      throw invalidChar(read());
+    },
+
+    multiLineComment() {
+      switch (c) {
+        case '*':
+          read();
+          lexState = 'multiLineCommentAsterisk';
+          return;
+
+        case undefined:
+          throw invalidChar(read());
+      }
+
+      read();
+    },
+
+    multiLineCommentAsterisk() {
+      switch (c) {
+        case '*':
+          read();
+          return;
+
+        case '/':
+          read();
+          lexState = 'default';
+          return;
+
+        case undefined:
+          throw invalidChar(read());
+      }
+
+      read();
+      lexState = 'multiLineComment';
+    },
+
+    singleLineComment() {
+      switch (c) {
+        case '\n':
+        case '\r':
+        case '\u2028':
+        case '\u2029':
+          read();
+          lexState = 'default';
+          return;
+
+        case undefined:
+          read();
+          return newToken('eof');
+      }
+
+      read();
+    },
+
+    value() {
+      switch (c) {
+        case '{':
+        case '[':
+          return newToken('punctuator', read());
+
+        case 'n':
+          read();
+          literal('ull');
+          return newToken('null', null);
+
+        case 't':
+          read();
+          literal('rue');
+          return newToken('boolean', true);
+
+        case 'f':
+          read();
+          literal('alse');
+          return newToken('boolean', false);
+
+        case '-':
+        case '+':
+          if (read() === '-') {
+            sign = -1;
+          }
+
+          lexState = 'sign';
+          return;
+
+        case '.':
+          buffer = read();
+          lexState = 'decimalPointLeading';
+          return;
+
+        case '0':
+          buffer = read();
+          lexState = 'zero';
+          return;
+
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+        case '6':
+        case '7':
+        case '8':
+        case '9':
+          buffer = read();
+          lexState = 'decimalInteger';
+          return;
+
+        case 'I':
+          read();
+          literal('nfinity');
+          return newToken('numeric', Infinity);
+
+        case 'N':
+          read();
+          literal('aN');
+          return newToken('numeric', NaN);
+
+        case '"':
+        case "'":
+          doubleQuote = read() === '"';
+          buffer = '';
+          lexState = 'string';
+          return;
+      }
+
+      throw invalidChar(read());
+    },
+
+    identifierNameStartEscape() {
+      if (c !== 'u') {
+        throw invalidChar(read());
+      }
+
+      read();
+      const u = unicodeEscape();
+
+      switch (u) {
+        case '$':
+        case '_':
+          break;
+
+        default:
+          if (!util.isIdStartChar(u)) {
+            throw invalidIdentifier();
+          }
+
+          break;
+      }
+
+      buffer += u;
+      lexState = 'identifierName';
+    },
+
+    identifierName() {
+      switch (c) {
+        case '$':
+        case '_':
+        case '\u200C':
+        case '\u200D':
+          buffer += read();
+          return;
+
+        case '\\':
+          read();
+          lexState = 'identifierNameEscape';
+          return;
+      }
+
+      if (util.isIdContinueChar(c)) {
+        buffer += read();
+        return;
+      }
+
+      return newToken('identifier', buffer);
+    },
+
+    identifierNameEscape() {
+      if (c !== 'u') {
+        throw invalidChar(read());
+      }
+
+      read();
+      const u = unicodeEscape();
+
+      switch (u) {
+        case '$':
+        case '_':
+        case '\u200C':
+        case '\u200D':
+          break;
+
+        default:
+          if (!util.isIdContinueChar(u)) {
+            throw invalidIdentifier();
+          }
+
+          break;
+      }
+
+      buffer += u;
+      lexState = 'identifierName';
+    },
+
+    sign() {
+      switch (c) {
+        case '.':
+          buffer = read();
+          lexState = 'decimalPointLeading';
+          return;
+
+        case '0':
+          buffer = read();
+          lexState = 'zero';
+          return;
+
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+        case '6':
+        case '7':
+        case '8':
+        case '9':
+          buffer = read();
+          lexState = 'decimalInteger';
+          return;
+
+        case 'I':
+          read();
+          literal('nfinity');
+          return newToken('numeric', sign * Infinity);
+
+        case 'N':
+          read();
+          literal('aN');
+          return newToken('numeric', NaN);
+      }
+
+      throw invalidChar(read());
+    },
+
+    zero() {
+      switch (c) {
+        case '.':
+          buffer += read();
+          lexState = 'decimalPoint';
+          return;
+
+        case 'e':
+        case 'E':
+          buffer += read();
+          lexState = 'decimalExponent';
+          return;
+
+        case 'x':
+        case 'X':
+          buffer += read();
+          lexState = 'hexadecimal';
+          return;
+      }
+
+      return newToken('numeric', sign * 0);
+    },
+
+    decimalInteger() {
+      switch (c) {
+        case '.':
+          buffer += read();
+          lexState = 'decimalPoint';
+          return;
+
+        case 'e':
+        case 'E':
+          buffer += read();
+          lexState = 'decimalExponent';
+          return;
+      }
+
+      if (util.isDigit(c)) {
+        buffer += read();
+        return;
+      }
+
+      return newToken('numeric', sign * Number(buffer));
+    },
+
+    decimalPointLeading() {
+      if (util.isDigit(c)) {
+        buffer += read();
+        lexState = 'decimalFraction';
+        return;
+      }
+
+      throw invalidChar(read());
+    },
+
+    decimalPoint() {
+      switch (c) {
+        case 'e':
+        case 'E':
+          buffer += read();
+          lexState = 'decimalExponent';
+          return;
+      }
+
+      if (util.isDigit(c)) {
+        buffer += read();
+        lexState = 'decimalFraction';
+        return;
+      }
+
+      return newToken('numeric', sign * Number(buffer));
+    },
+
+    decimalFraction() {
+      switch (c) {
+        case 'e':
+        case 'E':
+          buffer += read();
+          lexState = 'decimalExponent';
+          return;
+      }
+
+      if (util.isDigit(c)) {
+        buffer += read();
+        return;
+      }
+
+      return newToken('numeric', sign * Number(buffer));
+    },
+
+    decimalExponent() {
+      switch (c) {
+        case '+':
+        case '-':
+          buffer += read();
+          lexState = 'decimalExponentSign';
+          return;
+      }
+
+      if (util.isDigit(c)) {
+        buffer += read();
+        lexState = 'decimalExponentInteger';
+        return;
+      }
+
+      throw invalidChar(read());
+    },
+
+    decimalExponentSign() {
+      if (util.isDigit(c)) {
+        buffer += read();
+        lexState = 'decimalExponentInteger';
+        return;
+      }
+
+      throw invalidChar(read());
+    },
+
+    decimalExponentInteger() {
+      if (util.isDigit(c)) {
+        buffer += read();
+        return;
+      }
+
+      return newToken('numeric', sign * Number(buffer));
+    },
+
+    hexadecimal() {
+      if (util.isHexDigit(c)) {
+        buffer += read();
+        lexState = 'hexadecimalInteger';
+        return;
+      }
+
+      throw invalidChar(read());
+    },
+
+    hexadecimalInteger() {
+      if (util.isHexDigit(c)) {
+        buffer += read();
+        return;
+      }
+
+      return newToken('numeric', sign * Number(buffer));
+    },
+
+    string() {
+      switch (c) {
+        case '\\':
+          read();
+          buffer += escape();
+          return;
+
+        case '"':
+          if (doubleQuote) {
+            read();
+            return newToken('string', buffer);
+          }
+
+          buffer += read();
+          return;
+
+        case "'":
+          if (!doubleQuote) {
+            read();
+            return newToken('string', buffer);
+          }
+
+          buffer += read();
+          return;
+
+        case '\n':
+        case '\r':
+          throw invalidChar(read());
+
+        case '\u2028':
+        case '\u2029':
+          separatorChar(c);
+          break;
+
+        case undefined:
+          throw invalidChar(read());
+      }
+
+      buffer += read();
+    },
+
+    start() {
+      switch (c) {
+        case '{':
+        case '[':
+          return newToken('punctuator', read());
+        // This code is unreachable since the default lexState handles eof.
+        // case undefined:
+        //     return newToken('eof')
+      }
+
+      lexState = 'value';
+    },
+
+    beforePropertyName() {
+      switch (c) {
+        case '$':
+        case '_':
+          buffer = read();
+          lexState = 'identifierName';
+          return;
+
+        case '\\':
+          read();
+          lexState = 'identifierNameStartEscape';
+          return;
+
+        case '}':
+          return newToken('punctuator', read());
+
+        case '"':
+        case "'":
+          doubleQuote = read() === '"';
+          lexState = 'string';
+          return;
+      }
+
+      if (util.isIdStartChar(c)) {
+        buffer += read();
+        lexState = 'identifierName';
+        return;
+      }
+
+      throw invalidChar(read());
+    },
+
+    afterPropertyName() {
+      if (c === ':') {
+        return newToken('punctuator', read());
+      }
+
+      throw invalidChar(read());
+    },
+
+    beforePropertyValue() {
+      lexState = 'value';
+    },
+
+    afterPropertyValue() {
+      switch (c) {
+        case ',':
+        case '}':
+          return newToken('punctuator', read());
+      }
+
+      throw invalidChar(read());
+    },
+
+    beforeArrayValue() {
+      if (c === ']') {
+        return newToken('punctuator', read());
+      }
+
+      lexState = 'value';
+    },
+
+    afterArrayValue() {
+      switch (c) {
+        case ',':
+        case ']':
+          return newToken('punctuator', read());
+      }
+
+      throw invalidChar(read());
+    },
+
+    end() {
+      // This code is unreachable since it's handled by the default lexState.
+      // if (c === undefined) {
+      //     read()
+      //     return newToken('eof')
+      // }
+      throw invalidChar(read());
+    }
+
+  };
+
+  function newToken(type, value) {
+    return {
+      type,
+      value,
+      line,
+      column
+    };
+  }
+
+  function literal(s) {
+    for (const c of s) {
+      const p = peek();
+
+      if (p !== c) {
+        throw invalidChar(read());
+      }
+
+      read();
+    }
+  }
+
+  function escape() {
+    const c = peek();
+
+    switch (c) {
+      case 'b':
+        read();
+        return '\b';
+
+      case 'f':
+        read();
+        return '\f';
+
+      case 'n':
+        read();
+        return '\n';
+
+      case 'r':
+        read();
+        return '\r';
+
+      case 't':
+        read();
+        return '\t';
+
+      case 'v':
+        read();
+        return '\v';
+
+      case '0':
+        read();
+
+        if (util.isDigit(peek())) {
+          throw invalidChar(read());
+        }
+
+        return '\0';
+
+      case 'x':
+        read();
+        return hexEscape();
+
+      case 'u':
+        read();
+        return unicodeEscape();
+
+      case '\n':
+      case '\u2028':
+      case '\u2029':
+        read();
+        return '';
+
+      case '\r':
+        read();
+
+        if (peek() === '\n') {
+          read();
+        }
+
+        return '';
+
+      case '1':
+      case '2':
+      case '3':
+      case '4':
+      case '5':
+      case '6':
+      case '7':
+      case '8':
+      case '9':
+        throw invalidChar(read());
+
+      case undefined:
+        throw invalidChar(read());
+    }
+
+    return read();
+  }
+
+  function hexEscape() {
+    let buffer = '';
+    let c = peek();
+
+    if (!util.isHexDigit(c)) {
+      throw invalidChar(read());
+    }
+
+    buffer += read();
+    c = peek();
+
+    if (!util.isHexDigit(c)) {
+      throw invalidChar(read());
+    }
+
+    buffer += read();
+    return String.fromCodePoint(parseInt(buffer, 16));
+  }
+
+  function unicodeEscape() {
+    let buffer = '';
+    let count = 4;
+
+    while (count-- > 0) {
+      const c = peek();
+
+      if (!util.isHexDigit(c)) {
+        throw invalidChar(read());
+      }
+
+      buffer += read();
+    }
+
+    return String.fromCodePoint(parseInt(buffer, 16));
+  }
+
+  const parseStates = {
+    start() {
+      if (token.type === 'eof') {
+        throw invalidEOF();
+      }
+
+      push();
+    },
+
+    beforePropertyName() {
+      switch (token.type) {
+        case 'identifier':
+        case 'string':
+          key = token.value;
+          parseState = 'afterPropertyName';
+          return;
+
+        case 'punctuator':
+          // This code is unreachable since it's handled by the lexState.
+          // if (token.value !== '}') {
+          //     throw invalidToken()
+          // }
+          pop();
+          return;
+
+        case 'eof':
+          throw invalidEOF();
+      } // This code is unreachable since it's handled by the lexState.
+      // throw invalidToken()
+
+    },
+
+    afterPropertyName() {
+      // This code is unreachable since it's handled by the lexState.
+      // if (token.type !== 'punctuator' || token.value !== ':') {
+      //     throw invalidToken()
+      // }
+      if (token.type === 'eof') {
+        throw invalidEOF();
+      }
+
+      parseState = 'beforePropertyValue';
+    },
+
+    beforePropertyValue() {
+      if (token.type === 'eof') {
+        throw invalidEOF();
+      }
+
+      push();
+    },
+
+    beforeArrayValue() {
+      if (token.type === 'eof') {
+        throw invalidEOF();
+      }
+
+      if (token.type === 'punctuator' && token.value === ']') {
+        pop();
+        return;
+      }
+
+      push();
+    },
+
+    afterPropertyValue() {
+      // This code is unreachable since it's handled by the lexState.
+      // if (token.type !== 'punctuator') {
+      //     throw invalidToken()
+      // }
+      if (token.type === 'eof') {
+        throw invalidEOF();
+      }
+
+      switch (token.value) {
+        case ',':
+          parseState = 'beforePropertyName';
+          return;
+
+        case '}':
+          pop();
+      } // This code is unreachable since it's handled by the lexState.
+      // throw invalidToken()
+
+    },
+
+    afterArrayValue() {
+      // This code is unreachable since it's handled by the lexState.
+      // if (token.type !== 'punctuator') {
+      //     throw invalidToken()
+      // }
+      if (token.type === 'eof') {
+        throw invalidEOF();
+      }
+
+      switch (token.value) {
+        case ',':
+          parseState = 'beforeArrayValue';
+          return;
+
+        case ']':
+          pop();
+      } // This code is unreachable since it's handled by the lexState.
+      // throw invalidToken()
+
+    },
+
+    end() {// This code is unreachable since it's handled by the lexState.
+      // if (token.type !== 'eof') {
+      //     throw invalidToken()
+      // }
+    }
+
+  };
+
+  function push() {
+    let value;
+
+    switch (token.type) {
+      case 'punctuator':
+        switch (token.value) {
+          case '{':
+            value = {};
+            break;
+
+          case '[':
+            value = [];
+            break;
+        }
+
+        break;
+
+      case 'null':
+      case 'boolean':
+      case 'numeric':
+      case 'string':
+        value = token.value;
+        break;
+      // This code is unreachable.
+      // default:
+      //     throw invalidToken()
+    }
+
+    if (root === undefined) {
+      root = value;
+    } else {
+      const parent = stack[stack.length - 1];
+
+      if (Array.isArray(parent)) {
+        parent.push(value);
+      } else {
+        parent[key] = value;
+      }
+    }
+
+    if (value !== null && typeof value === 'object') {
+      stack.push(value);
+
+      if (Array.isArray(value)) {
+        parseState = 'beforeArrayValue';
+      } else {
+        parseState = 'beforePropertyName';
+      }
+    } else {
+      const current = stack[stack.length - 1];
+
+      if (current == null) {
+        parseState = 'end';
+      } else if (Array.isArray(current)) {
+        parseState = 'afterArrayValue';
+      } else {
+        parseState = 'afterPropertyValue';
+      }
+    }
+  }
+
+  function pop() {
+    stack.pop();
+    const current = stack[stack.length - 1];
+
+    if (current == null) {
+      parseState = 'end';
+    } else if (Array.isArray(current)) {
+      parseState = 'afterArrayValue';
+    } else {
+      parseState = 'afterPropertyValue';
+    }
+  } // This code is unreachable.
+  // function invalidParseState () {
+  //     return new Error(`JSON5: invalid parse state '${parseState}'`)
+  // }
+  // This code is unreachable.
+  // function invalidLexState (state) {
+  //     return new Error(`JSON5: invalid lex state '${state}'`)
+  // }
+
+
+  function invalidChar(c) {
+    if (c === undefined) {
+      return syntaxError(`JSON5: invalid end of input at ${line}:${column}`);
+    }
+
+    return syntaxError(`JSON5: invalid character '${formatChar(c)}' at ${line}:${column}`);
+  }
+
+  function invalidEOF() {
+    return syntaxError(`JSON5: invalid end of input at ${line}:${column}`);
+  } // This code is unreachable.
+  // function invalidToken () {
+  //     if (token.type === 'eof') {
+  //         return syntaxError(`JSON5: invalid end of input at ${line}:${column}`)
+  //     }
+  //     const c = String.fromCodePoint(token.value.codePointAt(0))
+  //     return syntaxError(`JSON5: invalid character '${formatChar(c)}' at ${line}:${column}`)
+  // }
+
+
+  function invalidIdentifier() {
+    column -= 5;
+    return syntaxError(`JSON5: invalid identifier character at ${line}:${column}`);
+  }
+
+  function separatorChar(c) {
+    console.warn(`JSON5: '${formatChar(c)}' in strings is not valid ECMAScript; consider escaping`);
+  }
+
+  function formatChar(c) {
+    const replacements = {
+      "'": "\\'",
+      '"': '\\"',
+      '\\': '\\\\',
+      '\b': '\\b',
+      '\f': '\\f',
+      '\n': '\\n',
+      '\r': '\\r',
+      '\t': '\\t',
+      '\v': '\\v',
+      '\0': '\\0',
+      '\u2028': '\\u2028',
+      '\u2029': '\\u2029'
+    };
+
+    if (replacements[c]) {
+      return replacements[c];
+    }
+
+    if (c < ' ') {
+      const hexString = c.charCodeAt(0).toString(16);
+      return '\\x' + ('00' + hexString).substring(hexString.length);
+    }
+
+    return c;
+  }
+
+  function syntaxError(message) {
+    const err = new SyntaxError(message);
+    err.lineNumber = line;
+    err.columnNumber = column;
+    return err;
+  }
+
+  var stringify = function stringify(value, replacer, space) {
+    const stack = [];
+    let indent = '';
+    let propertyList;
+    let replacerFunc;
+    let gap = '';
+    let quote;
+
+    if (replacer != null && typeof replacer === 'object' && !Array.isArray(replacer)) {
+      space = replacer.space;
+      quote = replacer.quote;
+      replacer = replacer.replacer;
+    }
+
+    if (typeof replacer === 'function') {
+      replacerFunc = replacer;
+    } else if (Array.isArray(replacer)) {
+      propertyList = [];
+
+      for (const v of replacer) {
+        let item;
+
+        if (typeof v === 'string') {
+          item = v;
+        } else if (typeof v === 'number' || v instanceof String || v instanceof Number) {
+          item = String(v);
+        }
+
+        if (item !== undefined && propertyList.indexOf(item) < 0) {
+          propertyList.push(item);
+        }
+      }
+    }
+
+    if (space instanceof Number) {
+      space = Number(space);
+    } else if (space instanceof String) {
+      space = String(space);
+    }
+
+    if (typeof space === 'number') {
+      if (space > 0) {
+        space = Math.min(10, Math.floor(space));
+        gap = '          '.substr(0, space);
+      }
+    } else if (typeof space === 'string') {
+      gap = space.substr(0, 10);
+    }
+
+    return serializeProperty('', {
+      '': value
+    });
+
+    function serializeProperty(key, holder) {
+      let value = holder[key];
+
+      if (value != null) {
+        if (typeof value.toJSON5 === 'function') {
+          value = value.toJSON5(key);
+        } else if (typeof value.toJSON === 'function') {
+          value = value.toJSON(key);
+        }
+      }
+
+      if (replacerFunc) {
+        value = replacerFunc.call(holder, key, value);
+      }
+
+      if (value instanceof Number) {
+        value = Number(value);
+      } else if (value instanceof String) {
+        value = String(value);
+      } else if (value instanceof Boolean) {
+        value = value.valueOf();
+      }
+
+      switch (value) {
+        case null:
+          return 'null';
+
+        case true:
+          return 'true';
+
+        case false:
+          return 'false';
+      }
+
+      if (typeof value === 'string') {
+        return quoteString(value);
+      }
+
+      if (typeof value === 'number') {
+        return String(value);
+      }
+
+      if (typeof value === 'object') {
+        return Array.isArray(value) ? serializeArray(value) : serializeObject(value);
+      }
+
+      return undefined;
+    }
+
+    function quoteString(value) {
+      const quotes = {
+        "'": 0.1,
+        '"': 0.2
+      };
+      const replacements = {
+        "'": "\\'",
+        '"': '\\"',
+        '\\': '\\\\',
+        '\b': '\\b',
+        '\f': '\\f',
+        '\n': '\\n',
+        '\r': '\\r',
+        '\t': '\\t',
+        '\v': '\\v',
+        '\0': '\\0',
+        '\u2028': '\\u2028',
+        '\u2029': '\\u2029'
+      };
+      let product = '';
+
+      for (let i = 0; i < value.length; i++) {
+        const c = value[i];
+
+        switch (c) {
+          case "'":
+          case '"':
+            quotes[c]++;
+            product += c;
+            continue;
+
+          case '\0':
+            if (util.isDigit(value[i + 1])) {
+              product += '\\x00';
+              continue;
+            }
+
+        }
+
+        if (replacements[c]) {
+          product += replacements[c];
+          continue;
+        }
+
+        if (c < ' ') {
+          let hexString = c.charCodeAt(0).toString(16);
+          product += '\\x' + ('00' + hexString).substring(hexString.length);
+          continue;
+        }
+
+        product += c;
+      }
+
+      const quoteChar = quote || Object.keys(quotes).reduce((a, b) => quotes[a] < quotes[b] ? a : b);
+      product = product.replace(new RegExp(quoteChar, 'g'), replacements[quoteChar]);
+      return quoteChar + product + quoteChar;
+    }
+
+    function serializeObject(value) {
+      if (stack.indexOf(value) >= 0) {
+        throw TypeError('Converting circular structure to JSON5');
+      }
+
+      stack.push(value);
+      let stepback = indent;
+      indent = indent + gap;
+      let keys = propertyList || Object.keys(value);
+      let partial = [];
+
+      for (const key of keys) {
+        const propertyString = serializeProperty(key, value);
+
+        if (propertyString !== undefined) {
+          let member = serializeKey(key) + ':';
+
+          if (gap !== '') {
+            member += ' ';
+          }
+
+          member += propertyString;
+          partial.push(member);
+        }
+      }
+
+      let final;
+
+      if (partial.length === 0) {
+        final = '{}';
+      } else {
+        let properties;
+
+        if (gap === '') {
+          properties = partial.join(',');
+          final = '{' + properties + '}';
+        } else {
+          let separator = ',\n' + indent;
+          properties = partial.join(separator);
+          final = '{\n' + indent + properties + ',\n' + stepback + '}';
+        }
+      }
+
+      stack.pop();
+      indent = stepback;
+      return final;
+    }
+
+    function serializeKey(key) {
+      if (key.length === 0) {
+        return quoteString(key);
+      }
+
+      const firstChar = String.fromCodePoint(key.codePointAt(0));
+
+      if (!util.isIdStartChar(firstChar)) {
+        return quoteString(key);
+      }
+
+      for (let i = firstChar.length; i < key.length; i++) {
+        if (!util.isIdContinueChar(String.fromCodePoint(key.codePointAt(i)))) {
+          return quoteString(key);
+        }
+      }
+
+      return key;
+    }
+
+    function serializeArray(value) {
+      if (stack.indexOf(value) >= 0) {
+        throw TypeError('Converting circular structure to JSON5');
+      }
+
+      stack.push(value);
+      let stepback = indent;
+      indent = indent + gap;
+      let partial = [];
+
+      for (let i = 0; i < value.length; i++) {
+        const propertyString = serializeProperty(String(i), value);
+        partial.push(propertyString !== undefined ? propertyString : 'null');
+      }
+
+      let final;
+
+      if (partial.length === 0) {
+        final = '[]';
+      } else {
+        if (gap === '') {
+          let properties = partial.join(',');
+          final = '[' + properties + ']';
+        } else {
+          let separator = ',\n' + indent;
+          let properties = partial.join(separator);
+          final = '[\n' + indent + properties + ',\n' + stepback + ']';
+        }
+      }
+
+      stack.pop();
+      indent = stepback;
+      return final;
+    }
+  };
+
+  const JSON5 = {
+    parse,
+    stringify
+  };
+  var lib = JSON5;
+
+  /*! js-yaml 4.1.0 https://github.com/nodeca/js-yaml @license MIT */
+  function isNothing(subject) {
+    return typeof subject === 'undefined' || subject === null;
+  }
+
+  function isObject(subject) {
+    return typeof subject === 'object' && subject !== null;
+  }
+
+  function toArray(sequence) {
+    if (Array.isArray(sequence)) return sequence;else if (isNothing(sequence)) return [];
+    return [sequence];
+  }
+
+  function extend(target, source) {
+    var index, length, key, sourceKeys;
+
+    if (source) {
+      sourceKeys = Object.keys(source);
+
+      for (index = 0, length = sourceKeys.length; index < length; index += 1) {
+        key = sourceKeys[index];
+        target[key] = source[key];
+      }
+    }
+
+    return target;
+  }
+
+  function repeat(string, count) {
+    var result = '',
+        cycle;
+
+    for (cycle = 0; cycle < count; cycle += 1) {
+      result += string;
+    }
+
+    return result;
+  }
+
+  function isNegativeZero(number) {
+    return number === 0 && Number.NEGATIVE_INFINITY === 1 / number;
+  }
+
+  var isNothing_1 = isNothing;
+  var isObject_1 = isObject;
+  var toArray_1 = toArray;
+  var repeat_1 = repeat;
+  var isNegativeZero_1 = isNegativeZero;
+  var extend_1 = extend;
+  var common = {
+    isNothing: isNothing_1,
+    isObject: isObject_1,
+    toArray: toArray_1,
+    repeat: repeat_1,
+    isNegativeZero: isNegativeZero_1,
+    extend: extend_1
+  }; // YAML error class. http://stackoverflow.com/questions/8458984
+
+  function formatError(exception, compact) {
+    var where = '',
+        message = exception.reason || '(unknown reason)';
+    if (!exception.mark) return message;
+
+    if (exception.mark.name) {
+      where += 'in "' + exception.mark.name + '" ';
+    }
+
+    where += '(' + (exception.mark.line + 1) + ':' + (exception.mark.column + 1) + ')';
+
+    if (!compact && exception.mark.snippet) {
+      where += '\n\n' + exception.mark.snippet;
+    }
+
+    return message + ' ' + where;
+  }
+
+  function YAMLException$1(reason, mark) {
+    // Super constructor
+    Error.call(this);
+    this.name = 'YAMLException';
+    this.reason = reason;
+    this.mark = mark;
+    this.message = formatError(this, false); // Include stack trace in error object
+
+    if (Error.captureStackTrace) {
+      // Chrome and NodeJS
+      Error.captureStackTrace(this, this.constructor);
+    } else {
+      // FF, IE 10+ and Safari 6+. Fallback for others
+      this.stack = new Error().stack || '';
+    }
+  } // Inherit from Error
+
+
+  YAMLException$1.prototype = Object.create(Error.prototype);
+  YAMLException$1.prototype.constructor = YAMLException$1;
+
+  YAMLException$1.prototype.toString = function toString(compact) {
+    return this.name + ': ' + formatError(this, compact);
+  };
+
+  var exception = YAMLException$1; // get snippet for a single line, respecting maxLength
+
+  function getLine(buffer, lineStart, lineEnd, position, maxLineLength) {
+    var head = '';
+    var tail = '';
+    var maxHalfLength = Math.floor(maxLineLength / 2) - 1;
+
+    if (position - lineStart > maxHalfLength) {
+      head = ' ... ';
+      lineStart = position - maxHalfLength + head.length;
+    }
+
+    if (lineEnd - position > maxHalfLength) {
+      tail = ' ...';
+      lineEnd = position + maxHalfLength - tail.length;
+    }
+
+    return {
+      str: head + buffer.slice(lineStart, lineEnd).replace(/\t/g, '→') + tail,
+      pos: position - lineStart + head.length // relative position
+
+    };
+  }
+
+  function padStart(string, max) {
+    return common.repeat(' ', max - string.length) + string;
+  }
+
+  function makeSnippet(mark, options) {
+    options = Object.create(options || null);
+    if (!mark.buffer) return null;
+    if (!options.maxLength) options.maxLength = 79;
+    if (typeof options.indent !== 'number') options.indent = 1;
+    if (typeof options.linesBefore !== 'number') options.linesBefore = 3;
+    if (typeof options.linesAfter !== 'number') options.linesAfter = 2;
+    var re = /\r?\n|\r|\0/g;
+    var lineStarts = [0];
+    var lineEnds = [];
+    var match;
+    var foundLineNo = -1;
+
+    while (match = re.exec(mark.buffer)) {
+      lineEnds.push(match.index);
+      lineStarts.push(match.index + match[0].length);
+
+      if (mark.position <= match.index && foundLineNo < 0) {
+        foundLineNo = lineStarts.length - 2;
+      }
+    }
+
+    if (foundLineNo < 0) foundLineNo = lineStarts.length - 1;
+    var result = '',
+        i,
+        line;
+    var lineNoLength = Math.min(mark.line + options.linesAfter, lineEnds.length).toString().length;
+    var maxLineLength = options.maxLength - (options.indent + lineNoLength + 3);
+
+    for (i = 1; i <= options.linesBefore; i++) {
+      if (foundLineNo - i < 0) break;
+      line = getLine(mark.buffer, lineStarts[foundLineNo - i], lineEnds[foundLineNo - i], mark.position - (lineStarts[foundLineNo] - lineStarts[foundLineNo - i]), maxLineLength);
+      result = common.repeat(' ', options.indent) + padStart((mark.line - i + 1).toString(), lineNoLength) + ' | ' + line.str + '\n' + result;
+    }
+
+    line = getLine(mark.buffer, lineStarts[foundLineNo], lineEnds[foundLineNo], mark.position, maxLineLength);
+    result += common.repeat(' ', options.indent) + padStart((mark.line + 1).toString(), lineNoLength) + ' | ' + line.str + '\n';
+    result += common.repeat('-', options.indent + lineNoLength + 3 + line.pos) + '^' + '\n';
+
+    for (i = 1; i <= options.linesAfter; i++) {
+      if (foundLineNo + i >= lineEnds.length) break;
+      line = getLine(mark.buffer, lineStarts[foundLineNo + i], lineEnds[foundLineNo + i], mark.position - (lineStarts[foundLineNo] - lineStarts[foundLineNo + i]), maxLineLength);
+      result += common.repeat(' ', options.indent) + padStart((mark.line + i + 1).toString(), lineNoLength) + ' | ' + line.str + '\n';
+    }
+
+    return result.replace(/\n$/, '');
+  }
+
+  var snippet = makeSnippet;
+  var TYPE_CONSTRUCTOR_OPTIONS = ['kind', 'multi', 'resolve', 'construct', 'instanceOf', 'predicate', 'represent', 'representName', 'defaultStyle', 'styleAliases'];
+  var YAML_NODE_KINDS = ['scalar', 'sequence', 'mapping'];
+
+  function compileStyleAliases(map) {
+    var result = {};
+
+    if (map !== null) {
+      Object.keys(map).forEach(function (style) {
+        map[style].forEach(function (alias) {
+          result[String(alias)] = style;
+        });
+      });
+    }
+
+    return result;
+  }
+
+  function Type$1(tag, options) {
+    options = options || {};
+    Object.keys(options).forEach(function (name) {
+      if (TYPE_CONSTRUCTOR_OPTIONS.indexOf(name) === -1) {
+        throw new exception('Unknown option "' + name + '" is met in definition of "' + tag + '" YAML type.');
+      }
+    }); // TODO: Add tag format check.
+
+    this.options = options; // keep original options in case user wants to extend this type later
+
+    this.tag = tag;
+    this.kind = options['kind'] || null;
+
+    this.resolve = options['resolve'] || function () {
+      return true;
+    };
+
+    this.construct = options['construct'] || function (data) {
+      return data;
+    };
+
+    this.instanceOf = options['instanceOf'] || null;
+    this.predicate = options['predicate'] || null;
+    this.represent = options['represent'] || null;
+    this.representName = options['representName'] || null;
+    this.defaultStyle = options['defaultStyle'] || null;
+    this.multi = options['multi'] || false;
+    this.styleAliases = compileStyleAliases(options['styleAliases'] || null);
+
+    if (YAML_NODE_KINDS.indexOf(this.kind) === -1) {
+      throw new exception('Unknown kind "' + this.kind + '" is specified for "' + tag + '" YAML type.');
+    }
+  }
+
+  var type = Type$1;
+  /*eslint-disable max-len*/
+
+  function compileList(schema, name) {
+    var result = [];
+    schema[name].forEach(function (currentType) {
+      var newIndex = result.length;
+      result.forEach(function (previousType, previousIndex) {
+        if (previousType.tag === currentType.tag && previousType.kind === currentType.kind && previousType.multi === currentType.multi) {
+          newIndex = previousIndex;
+        }
+      });
+      result[newIndex] = currentType;
+    });
+    return result;
+  }
+
+  function compileMap()
+  /* lists... */
+  {
+    var result = {
+      scalar: {},
+      sequence: {},
+      mapping: {},
+      fallback: {},
+      multi: {
+        scalar: [],
+        sequence: [],
+        mapping: [],
+        fallback: []
+      }
+    },
+        index,
+        length;
+
+    function collectType(type) {
+      if (type.multi) {
+        result.multi[type.kind].push(type);
+        result.multi['fallback'].push(type);
+      } else {
+        result[type.kind][type.tag] = result['fallback'][type.tag] = type;
+      }
+    }
+
+    for (index = 0, length = arguments.length; index < length; index += 1) {
+      arguments[index].forEach(collectType);
+    }
+
+    return result;
+  }
+
+  function Schema$1(definition) {
+    return this.extend(definition);
+  }
+
+  Schema$1.prototype.extend = function extend(definition) {
+    var implicit = [];
+    var explicit = [];
+
+    if (definition instanceof type) {
+      // Schema.extend(type)
+      explicit.push(definition);
+    } else if (Array.isArray(definition)) {
+      // Schema.extend([ type1, type2, ... ])
+      explicit = explicit.concat(definition);
+    } else if (definition && (Array.isArray(definition.implicit) || Array.isArray(definition.explicit))) {
+      // Schema.extend({ explicit: [ type1, type2, ... ], implicit: [ type1, type2, ... ] })
+      if (definition.implicit) implicit = implicit.concat(definition.implicit);
+      if (definition.explicit) explicit = explicit.concat(definition.explicit);
+    } else {
+      throw new exception('Schema.extend argument should be a Type, [ Type ], ' + 'or a schema definition ({ implicit: [...], explicit: [...] })');
+    }
+
+    implicit.forEach(function (type$1) {
+      if (!(type$1 instanceof type)) {
+        throw new exception('Specified list of YAML types (or a single Type object) contains a non-Type object.');
+      }
+
+      if (type$1.loadKind && type$1.loadKind !== 'scalar') {
+        throw new exception('There is a non-scalar type in the implicit list of a schema. Implicit resolving of such types is not supported.');
+      }
+
+      if (type$1.multi) {
+        throw new exception('There is a multi type in the implicit list of a schema. Multi tags can only be listed as explicit.');
+      }
+    });
+    explicit.forEach(function (type$1) {
+      if (!(type$1 instanceof type)) {
+        throw new exception('Specified list of YAML types (or a single Type object) contains a non-Type object.');
+      }
+    });
+    var result = Object.create(Schema$1.prototype);
+    result.implicit = (this.implicit || []).concat(implicit);
+    result.explicit = (this.explicit || []).concat(explicit);
+    result.compiledImplicit = compileList(result, 'implicit');
+    result.compiledExplicit = compileList(result, 'explicit');
+    result.compiledTypeMap = compileMap(result.compiledImplicit, result.compiledExplicit);
+    return result;
+  };
+
+  var schema = Schema$1;
+  var str = new type('tag:yaml.org,2002:str', {
+    kind: 'scalar',
+    construct: function (data) {
+      return data !== null ? data : '';
+    }
+  });
+  var seq = new type('tag:yaml.org,2002:seq', {
+    kind: 'sequence',
+    construct: function (data) {
+      return data !== null ? data : [];
+    }
+  });
+  var map = new type('tag:yaml.org,2002:map', {
+    kind: 'mapping',
+    construct: function (data) {
+      return data !== null ? data : {};
+    }
+  });
+  var failsafe = new schema({
+    explicit: [str, seq, map]
+  });
+
+  function resolveYamlNull(data) {
+    if (data === null) return true;
+    var max = data.length;
+    return max === 1 && data === '~' || max === 4 && (data === 'null' || data === 'Null' || data === 'NULL');
+  }
+
+  function constructYamlNull() {
+    return null;
+  }
+
+  function isNull(object) {
+    return object === null;
+  }
+
+  var _null = new type('tag:yaml.org,2002:null', {
+    kind: 'scalar',
+    resolve: resolveYamlNull,
+    construct: constructYamlNull,
+    predicate: isNull,
+    represent: {
+      canonical: function () {
+        return '~';
+      },
+      lowercase: function () {
+        return 'null';
+      },
+      uppercase: function () {
+        return 'NULL';
+      },
+      camelcase: function () {
+        return 'Null';
+      },
+      empty: function () {
+        return '';
+      }
+    },
+    defaultStyle: 'lowercase'
+  });
+
+  function resolveYamlBoolean(data) {
+    if (data === null) return false;
+    var max = data.length;
+    return max === 4 && (data === 'true' || data === 'True' || data === 'TRUE') || max === 5 && (data === 'false' || data === 'False' || data === 'FALSE');
+  }
+
+  function constructYamlBoolean(data) {
+    return data === 'true' || data === 'True' || data === 'TRUE';
+  }
+
+  function isBoolean(object) {
+    return Object.prototype.toString.call(object) === '[object Boolean]';
+  }
+
+  var bool = new type('tag:yaml.org,2002:bool', {
+    kind: 'scalar',
+    resolve: resolveYamlBoolean,
+    construct: constructYamlBoolean,
+    predicate: isBoolean,
+    represent: {
+      lowercase: function (object) {
+        return object ? 'true' : 'false';
+      },
+      uppercase: function (object) {
+        return object ? 'TRUE' : 'FALSE';
+      },
+      camelcase: function (object) {
+        return object ? 'True' : 'False';
+      }
+    },
+    defaultStyle: 'lowercase'
+  });
+
+  function isHexCode(c) {
+    return 0x30
+    /* 0 */
+    <= c && c <= 0x39
+    /* 9 */
+    || 0x41
+    /* A */
+    <= c && c <= 0x46
+    /* F */
+    || 0x61
+    /* a */
+    <= c && c <= 0x66
+    /* f */
+    ;
+  }
+
+  function isOctCode(c) {
+    return 0x30
+    /* 0 */
+    <= c && c <= 0x37
+    /* 7 */
+    ;
+  }
+
+  function isDecCode(c) {
+    return 0x30
+    /* 0 */
+    <= c && c <= 0x39
+    /* 9 */
+    ;
+  }
+
+  function resolveYamlInteger(data) {
+    if (data === null) return false;
+    var max = data.length,
+        index = 0,
+        hasDigits = false,
+        ch;
+    if (!max) return false;
+    ch = data[index]; // sign
+
+    if (ch === '-' || ch === '+') {
+      ch = data[++index];
+    }
+
+    if (ch === '0') {
+      // 0
+      if (index + 1 === max) return true;
+      ch = data[++index]; // base 2, base 8, base 16
+
+      if (ch === 'b') {
+        // base 2
+        index++;
+
+        for (; index < max; index++) {
+          ch = data[index];
+          if (ch === '_') continue;
+          if (ch !== '0' && ch !== '1') return false;
+          hasDigits = true;
+        }
+
+        return hasDigits && ch !== '_';
+      }
+
+      if (ch === 'x') {
+        // base 16
+        index++;
+
+        for (; index < max; index++) {
+          ch = data[index];
+          if (ch === '_') continue;
+          if (!isHexCode(data.charCodeAt(index))) return false;
+          hasDigits = true;
+        }
+
+        return hasDigits && ch !== '_';
+      }
+
+      if (ch === 'o') {
+        // base 8
+        index++;
+
+        for (; index < max; index++) {
+          ch = data[index];
+          if (ch === '_') continue;
+          if (!isOctCode(data.charCodeAt(index))) return false;
+          hasDigits = true;
+        }
+
+        return hasDigits && ch !== '_';
+      }
+    } // base 10 (except 0)
+    // value should not start with `_`;
+
+
+    if (ch === '_') return false;
+
+    for (; index < max; index++) {
+      ch = data[index];
+      if (ch === '_') continue;
+
+      if (!isDecCode(data.charCodeAt(index))) {
+        return false;
+      }
+
+      hasDigits = true;
+    } // Should have digits and should not end with `_`
+
+
+    if (!hasDigits || ch === '_') return false;
+    return true;
+  }
+
+  function constructYamlInteger(data) {
+    var value = data,
+        sign = 1,
+        ch;
+
+    if (value.indexOf('_') !== -1) {
+      value = value.replace(/_/g, '');
+    }
+
+    ch = value[0];
+
+    if (ch === '-' || ch === '+') {
+      if (ch === '-') sign = -1;
+      value = value.slice(1);
+      ch = value[0];
+    }
+
+    if (value === '0') return 0;
+
+    if (ch === '0') {
+      if (value[1] === 'b') return sign * parseInt(value.slice(2), 2);
+      if (value[1] === 'x') return sign * parseInt(value.slice(2), 16);
+      if (value[1] === 'o') return sign * parseInt(value.slice(2), 8);
+    }
+
+    return sign * parseInt(value, 10);
+  }
+
+  function isInteger(object) {
+    return Object.prototype.toString.call(object) === '[object Number]' && object % 1 === 0 && !common.isNegativeZero(object);
+  }
+
+  var int = new type('tag:yaml.org,2002:int', {
+    kind: 'scalar',
+    resolve: resolveYamlInteger,
+    construct: constructYamlInteger,
+    predicate: isInteger,
+    represent: {
+      binary: function (obj) {
+        return obj >= 0 ? '0b' + obj.toString(2) : '-0b' + obj.toString(2).slice(1);
+      },
+      octal: function (obj) {
+        return obj >= 0 ? '0o' + obj.toString(8) : '-0o' + obj.toString(8).slice(1);
+      },
+      decimal: function (obj) {
+        return obj.toString(10);
+      },
+
+      /* eslint-disable max-len */
+      hexadecimal: function (obj) {
+        return obj >= 0 ? '0x' + obj.toString(16).toUpperCase() : '-0x' + obj.toString(16).toUpperCase().slice(1);
+      }
+    },
+    defaultStyle: 'decimal',
+    styleAliases: {
+      binary: [2, 'bin'],
+      octal: [8, 'oct'],
+      decimal: [10, 'dec'],
+      hexadecimal: [16, 'hex']
+    }
+  });
+  var YAML_FLOAT_PATTERN = new RegExp( // 2.5e4, 2.5 and integers
+  '^(?:[-+]?(?:[0-9][0-9_]*)(?:\\.[0-9_]*)?(?:[eE][-+]?[0-9]+)?' + // .2e4, .2
+  // special case, seems not from spec
+  '|\\.[0-9_]+(?:[eE][-+]?[0-9]+)?' + // .inf
+  '|[-+]?\\.(?:inf|Inf|INF)' + // .nan
+  '|\\.(?:nan|NaN|NAN))$');
+
+  function resolveYamlFloat(data) {
+    if (data === null) return false;
+
+    if (!YAML_FLOAT_PATTERN.test(data) || // Quick hack to not allow integers end with `_`
+    // Probably should update regexp & check speed
+    data[data.length - 1] === '_') {
+      return false;
+    }
+
+    return true;
+  }
+
+  function constructYamlFloat(data) {
+    var value, sign;
+    value = data.replace(/_/g, '').toLowerCase();
+    sign = value[0] === '-' ? -1 : 1;
+
+    if ('+-'.indexOf(value[0]) >= 0) {
+      value = value.slice(1);
+    }
+
+    if (value === '.inf') {
+      return sign === 1 ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
+    } else if (value === '.nan') {
+      return NaN;
+    }
+
+    return sign * parseFloat(value, 10);
+  }
+
+  var SCIENTIFIC_WITHOUT_DOT = /^[-+]?[0-9]+e/;
+
+  function representYamlFloat(object, style) {
+    var res;
+
+    if (isNaN(object)) {
+      switch (style) {
+        case 'lowercase':
+          return '.nan';
+
+        case 'uppercase':
+          return '.NAN';
+
+        case 'camelcase':
+          return '.NaN';
+      }
+    } else if (Number.POSITIVE_INFINITY === object) {
+      switch (style) {
+        case 'lowercase':
+          return '.inf';
+
+        case 'uppercase':
+          return '.INF';
+
+        case 'camelcase':
+          return '.Inf';
+      }
+    } else if (Number.NEGATIVE_INFINITY === object) {
+      switch (style) {
+        case 'lowercase':
+          return '-.inf';
+
+        case 'uppercase':
+          return '-.INF';
+
+        case 'camelcase':
+          return '-.Inf';
+      }
+    } else if (common.isNegativeZero(object)) {
+      return '-0.0';
+    }
+
+    res = object.toString(10); // JS stringifier can build scientific format without dots: 5e-100,
+    // while YAML requres dot: 5.e-100. Fix it with simple hack
+
+    return SCIENTIFIC_WITHOUT_DOT.test(res) ? res.replace('e', '.e') : res;
+  }
+
+  function isFloat(object) {
+    return Object.prototype.toString.call(object) === '[object Number]' && (object % 1 !== 0 || common.isNegativeZero(object));
+  }
+
+  var float = new type('tag:yaml.org,2002:float', {
+    kind: 'scalar',
+    resolve: resolveYamlFloat,
+    construct: constructYamlFloat,
+    predicate: isFloat,
+    represent: representYamlFloat,
+    defaultStyle: 'lowercase'
+  });
+  var json = failsafe.extend({
+    implicit: [_null, bool, int, float]
+  });
+  var core = json;
+  var YAML_DATE_REGEXP = new RegExp('^([0-9][0-9][0-9][0-9])' + // [1] year
+  '-([0-9][0-9])' + // [2] month
+  '-([0-9][0-9])$'); // [3] day
+
+  var YAML_TIMESTAMP_REGEXP = new RegExp('^([0-9][0-9][0-9][0-9])' + // [1] year
+  '-([0-9][0-9]?)' + // [2] month
+  '-([0-9][0-9]?)' + // [3] day
+  '(?:[Tt]|[ \\t]+)' + // ...
+  '([0-9][0-9]?)' + // [4] hour
+  ':([0-9][0-9])' + // [5] minute
+  ':([0-9][0-9])' + // [6] second
+  '(?:\\.([0-9]*))?' + // [7] fraction
+  '(?:[ \\t]*(Z|([-+])([0-9][0-9]?)' + // [8] tz [9] tz_sign [10] tz_hour
+  '(?::([0-9][0-9]))?))?$'); // [11] tz_minute
+
+  function resolveYamlTimestamp(data) {
+    if (data === null) return false;
+    if (YAML_DATE_REGEXP.exec(data) !== null) return true;
+    if (YAML_TIMESTAMP_REGEXP.exec(data) !== null) return true;
+    return false;
+  }
+
+  function constructYamlTimestamp(data) {
+    var match,
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        second,
+        fraction = 0,
+        delta = null,
+        tz_hour,
+        tz_minute,
+        date;
+    match = YAML_DATE_REGEXP.exec(data);
+    if (match === null) match = YAML_TIMESTAMP_REGEXP.exec(data);
+    if (match === null) throw new Error('Date resolve error'); // match: [1] year [2] month [3] day
+
+    year = +match[1];
+    month = +match[2] - 1; // JS month starts with 0
+
+    day = +match[3];
+
+    if (!match[4]) {
+      // no hour
+      return new Date(Date.UTC(year, month, day));
+    } // match: [4] hour [5] minute [6] second [7] fraction
+
+
+    hour = +match[4];
+    minute = +match[5];
+    second = +match[6];
+
+    if (match[7]) {
+      fraction = match[7].slice(0, 3);
+
+      while (fraction.length < 3) {
+        // milli-seconds
+        fraction += '0';
+      }
+
+      fraction = +fraction;
+    } // match: [8] tz [9] tz_sign [10] tz_hour [11] tz_minute
+
+
+    if (match[9]) {
+      tz_hour = +match[10];
+      tz_minute = +(match[11] || 0);
+      delta = (tz_hour * 60 + tz_minute) * 60000; // delta in mili-seconds
+
+      if (match[9] === '-') delta = -delta;
+    }
+
+    date = new Date(Date.UTC(year, month, day, hour, minute, second, fraction));
+    if (delta) date.setTime(date.getTime() - delta);
+    return date;
+  }
+
+  function representYamlTimestamp(object
+  /*, style*/
+  ) {
+    return object.toISOString();
+  }
+
+  var timestamp = new type('tag:yaml.org,2002:timestamp', {
+    kind: 'scalar',
+    resolve: resolveYamlTimestamp,
+    construct: constructYamlTimestamp,
+    instanceOf: Date,
+    represent: representYamlTimestamp
+  });
+
+  function resolveYamlMerge(data) {
+    return data === '<<' || data === null;
+  }
+
+  var merge = new type('tag:yaml.org,2002:merge', {
+    kind: 'scalar',
+    resolve: resolveYamlMerge
+  });
+  /*eslint-disable no-bitwise*/
+  // [ 64, 65, 66 ] -> [ padding, CR, LF ]
+
+  var BASE64_MAP = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\n\r';
+
+  function resolveYamlBinary(data) {
+    if (data === null) return false;
+    var code,
+        idx,
+        bitlen = 0,
+        max = data.length,
+        map = BASE64_MAP; // Convert one by one.
+
+    for (idx = 0; idx < max; idx++) {
+      code = map.indexOf(data.charAt(idx)); // Skip CR/LF
+
+      if (code > 64) continue; // Fail on illegal characters
+
+      if (code < 0) return false;
+      bitlen += 6;
+    } // If there are any bits left, source was corrupted
+
+
+    return bitlen % 8 === 0;
+  }
+
+  function constructYamlBinary(data) {
+    var idx,
+        tailbits,
+        input = data.replace(/[\r\n=]/g, ''),
+        // remove CR/LF & padding to simplify scan
+    max = input.length,
+        map = BASE64_MAP,
+        bits = 0,
+        result = []; // Collect by 6*4 bits (3 bytes)
+
+    for (idx = 0; idx < max; idx++) {
+      if (idx % 4 === 0 && idx) {
+        result.push(bits >> 16 & 0xFF);
+        result.push(bits >> 8 & 0xFF);
+        result.push(bits & 0xFF);
+      }
+
+      bits = bits << 6 | map.indexOf(input.charAt(idx));
+    } // Dump tail
+
+
+    tailbits = max % 4 * 6;
+
+    if (tailbits === 0) {
+      result.push(bits >> 16 & 0xFF);
+      result.push(bits >> 8 & 0xFF);
+      result.push(bits & 0xFF);
+    } else if (tailbits === 18) {
+      result.push(bits >> 10 & 0xFF);
+      result.push(bits >> 2 & 0xFF);
+    } else if (tailbits === 12) {
+      result.push(bits >> 4 & 0xFF);
+    }
+
+    return new Uint8Array(result);
+  }
+
+  function representYamlBinary(object
+  /*, style*/
+  ) {
+    var result = '',
+        bits = 0,
+        idx,
+        tail,
+        max = object.length,
+        map = BASE64_MAP; // Convert every three bytes to 4 ASCII characters.
+
+    for (idx = 0; idx < max; idx++) {
+      if (idx % 3 === 0 && idx) {
+        result += map[bits >> 18 & 0x3F];
+        result += map[bits >> 12 & 0x3F];
+        result += map[bits >> 6 & 0x3F];
+        result += map[bits & 0x3F];
+      }
+
+      bits = (bits << 8) + object[idx];
+    } // Dump tail
+
+
+    tail = max % 3;
+
+    if (tail === 0) {
+      result += map[bits >> 18 & 0x3F];
+      result += map[bits >> 12 & 0x3F];
+      result += map[bits >> 6 & 0x3F];
+      result += map[bits & 0x3F];
+    } else if (tail === 2) {
+      result += map[bits >> 10 & 0x3F];
+      result += map[bits >> 4 & 0x3F];
+      result += map[bits << 2 & 0x3F];
+      result += map[64];
+    } else if (tail === 1) {
+      result += map[bits >> 2 & 0x3F];
+      result += map[bits << 4 & 0x3F];
+      result += map[64];
+      result += map[64];
+    }
+
+    return result;
+  }
+
+  function isBinary(obj) {
+    return Object.prototype.toString.call(obj) === '[object Uint8Array]';
+  }
+
+  var binary = new type('tag:yaml.org,2002:binary', {
+    kind: 'scalar',
+    resolve: resolveYamlBinary,
+    construct: constructYamlBinary,
+    predicate: isBinary,
+    represent: representYamlBinary
+  });
+  var _hasOwnProperty$3 = Object.prototype.hasOwnProperty;
+  var _toString$2 = Object.prototype.toString;
+
+  function resolveYamlOmap(data) {
+    if (data === null) return true;
+    var objectKeys = [],
+        index,
+        length,
+        pair,
+        pairKey,
+        pairHasKey,
+        object = data;
+
+    for (index = 0, length = object.length; index < length; index += 1) {
+      pair = object[index];
+      pairHasKey = false;
+      if (_toString$2.call(pair) !== '[object Object]') return false;
+
+      for (pairKey in pair) {
+        if (_hasOwnProperty$3.call(pair, pairKey)) {
+          if (!pairHasKey) pairHasKey = true;else return false;
+        }
+      }
+
+      if (!pairHasKey) return false;
+      if (objectKeys.indexOf(pairKey) === -1) objectKeys.push(pairKey);else return false;
+    }
+
+    return true;
+  }
+
+  function constructYamlOmap(data) {
+    return data !== null ? data : [];
+  }
+
+  var omap = new type('tag:yaml.org,2002:omap', {
+    kind: 'sequence',
+    resolve: resolveYamlOmap,
+    construct: constructYamlOmap
+  });
+  var _toString$1 = Object.prototype.toString;
+
+  function resolveYamlPairs(data) {
+    if (data === null) return true;
+    var index,
+        length,
+        pair,
+        keys,
+        result,
+        object = data;
+    result = new Array(object.length);
+
+    for (index = 0, length = object.length; index < length; index += 1) {
+      pair = object[index];
+      if (_toString$1.call(pair) !== '[object Object]') return false;
+      keys = Object.keys(pair);
+      if (keys.length !== 1) return false;
+      result[index] = [keys[0], pair[keys[0]]];
+    }
+
+    return true;
+  }
+
+  function constructYamlPairs(data) {
+    if (data === null) return [];
+    var index,
+        length,
+        pair,
+        keys,
+        result,
+        object = data;
+    result = new Array(object.length);
+
+    for (index = 0, length = object.length; index < length; index += 1) {
+      pair = object[index];
+      keys = Object.keys(pair);
+      result[index] = [keys[0], pair[keys[0]]];
+    }
+
+    return result;
+  }
+
+  var pairs = new type('tag:yaml.org,2002:pairs', {
+    kind: 'sequence',
+    resolve: resolveYamlPairs,
+    construct: constructYamlPairs
+  });
+  var _hasOwnProperty$2 = Object.prototype.hasOwnProperty;
+
+  function resolveYamlSet(data) {
+    if (data === null) return true;
+    var key,
+        object = data;
+
+    for (key in object) {
+      if (_hasOwnProperty$2.call(object, key)) {
+        if (object[key] !== null) return false;
+      }
+    }
+
+    return true;
+  }
+
+  function constructYamlSet(data) {
+    return data !== null ? data : {};
+  }
+
+  var set = new type('tag:yaml.org,2002:set', {
+    kind: 'mapping',
+    resolve: resolveYamlSet,
+    construct: constructYamlSet
+  });
+
+  var _default = core.extend({
+    implicit: [timestamp, merge],
+    explicit: [binary, omap, pairs, set]
+  });
+  /*eslint-disable max-len,no-use-before-define*/
+
+
+  var _hasOwnProperty$1 = Object.prototype.hasOwnProperty;
+  var CONTEXT_FLOW_IN = 1;
+  var CONTEXT_FLOW_OUT = 2;
+  var CONTEXT_BLOCK_IN = 3;
+  var CONTEXT_BLOCK_OUT = 4;
+  var CHOMPING_CLIP = 1;
+  var CHOMPING_STRIP = 2;
+  var CHOMPING_KEEP = 3;
+  var PATTERN_NON_PRINTABLE = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x84\x86-\x9F\uFFFE\uFFFF]|[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?:[^\uD800-\uDBFF]|^)[\uDC00-\uDFFF]/;
+  var PATTERN_NON_ASCII_LINE_BREAKS = /[\x85\u2028\u2029]/;
+  var PATTERN_FLOW_INDICATORS = /[,\[\]\{\}]/;
+  var PATTERN_TAG_HANDLE = /^(?:!|!!|![a-z\-]+!)$/i;
+  var PATTERN_TAG_URI = /^(?:!|[^,\[\]\{\}])(?:%[0-9a-f]{2}|[0-9a-z\-#;\/\?:@&=\+\$,_\.!~\*'\(\)\[\]])*$/i;
+
+  function _class(obj) {
+    return Object.prototype.toString.call(obj);
+  }
+
+  function is_EOL(c) {
+    return c === 0x0A
+    /* LF */
+    || c === 0x0D
+    /* CR */
+    ;
+  }
+
+  function is_WHITE_SPACE(c) {
+    return c === 0x09
+    /* Tab */
+    || c === 0x20
+    /* Space */
+    ;
+  }
+
+  function is_WS_OR_EOL(c) {
+    return c === 0x09
+    /* Tab */
+    || c === 0x20
+    /* Space */
+    || c === 0x0A
+    /* LF */
+    || c === 0x0D
+    /* CR */
+    ;
+  }
+
+  function is_FLOW_INDICATOR(c) {
+    return c === 0x2C
+    /* , */
+    || c === 0x5B
+    /* [ */
+    || c === 0x5D
+    /* ] */
+    || c === 0x7B
+    /* { */
+    || c === 0x7D
+    /* } */
+    ;
+  }
+
+  function fromHexCode(c) {
+    var lc;
+
+    if (0x30
+    /* 0 */
+    <= c && c <= 0x39
+    /* 9 */
+    ) {
+      return c - 0x30;
+    }
+    /*eslint-disable no-bitwise*/
+
+
+    lc = c | 0x20;
+
+    if (0x61
+    /* a */
+    <= lc && lc <= 0x66
+    /* f */
+    ) {
+      return lc - 0x61 + 10;
+    }
+
+    return -1;
+  }
+
+  function escapedHexLen(c) {
+    if (c === 0x78
+    /* x */
+    ) {
+        return 2;
+      }
+
+    if (c === 0x75
+    /* u */
+    ) {
+        return 4;
+      }
+
+    if (c === 0x55
+    /* U */
+    ) {
+        return 8;
+      }
+
+    return 0;
+  }
+
+  function fromDecimalCode(c) {
+    if (0x30
+    /* 0 */
+    <= c && c <= 0x39
+    /* 9 */
+    ) {
+      return c - 0x30;
+    }
+
+    return -1;
+  }
+
+  function simpleEscapeSequence(c) {
+    /* eslint-disable indent */
+    return c === 0x30
+    /* 0 */
+    ? '\x00' : c === 0x61
+    /* a */
+    ? '\x07' : c === 0x62
+    /* b */
+    ? '\x08' : c === 0x74
+    /* t */
+    ? '\x09' : c === 0x09
+    /* Tab */
+    ? '\x09' : c === 0x6E
+    /* n */
+    ? '\x0A' : c === 0x76
+    /* v */
+    ? '\x0B' : c === 0x66
+    /* f */
+    ? '\x0C' : c === 0x72
+    /* r */
+    ? '\x0D' : c === 0x65
+    /* e */
+    ? '\x1B' : c === 0x20
+    /* Space */
+    ? ' ' : c === 0x22
+    /* " */
+    ? '\x22' : c === 0x2F
+    /* / */
+    ? '/' : c === 0x5C
+    /* \ */
+    ? '\x5C' : c === 0x4E
+    /* N */
+    ? '\x85' : c === 0x5F
+    /* _ */
+    ? '\xA0' : c === 0x4C
+    /* L */
+    ? '\u2028' : c === 0x50
+    /* P */
+    ? '\u2029' : '';
+  }
+
+  function charFromCodepoint(c) {
+    if (c <= 0xFFFF) {
+      return String.fromCharCode(c);
+    } // Encode UTF-16 surrogate pair
+    // https://en.wikipedia.org/wiki/UTF-16#Code_points_U.2B010000_to_U.2B10FFFF
+
+
+    return String.fromCharCode((c - 0x010000 >> 10) + 0xD800, (c - 0x010000 & 0x03FF) + 0xDC00);
+  }
+
+  var simpleEscapeCheck = new Array(256); // integer, for fast access
+
+  var simpleEscapeMap = new Array(256);
+
+  for (var i = 0; i < 256; i++) {
+    simpleEscapeCheck[i] = simpleEscapeSequence(i) ? 1 : 0;
+    simpleEscapeMap[i] = simpleEscapeSequence(i);
+  }
+
+  function State$1(input, options) {
+    this.input = input;
+    this.filename = options['filename'] || null;
+    this.schema = options['schema'] || _default;
+    this.onWarning = options['onWarning'] || null; // (Hidden) Remove? makes the loader to expect YAML 1.1 documents
+    // if such documents have no explicit %YAML directive
+
+    this.legacy = options['legacy'] || false;
+    this.json = options['json'] || false;
+    this.listener = options['listener'] || null;
+    this.implicitTypes = this.schema.compiledImplicit;
+    this.typeMap = this.schema.compiledTypeMap;
+    this.length = input.length;
+    this.position = 0;
+    this.line = 0;
+    this.lineStart = 0;
+    this.lineIndent = 0; // position of first leading tab in the current line,
+    // used to make sure there are no tabs in the indentation
+
+    this.firstTabInLine = -1;
+    this.documents = [];
+    /*
+    this.version;
+    this.checkLineBreaks;
+    this.tagMap;
+    this.anchorMap;
+    this.tag;
+    this.anchor;
+    this.kind;
+    this.result;*/
+  }
+
+  function generateError(state, message) {
+    var mark = {
+      name: state.filename,
+      buffer: state.input.slice(0, -1),
+      // omit trailing \0
+      position: state.position,
+      line: state.line,
+      column: state.position - state.lineStart
+    };
+    mark.snippet = snippet(mark);
+    return new exception(message, mark);
+  }
+
+  function throwError(state, message) {
+    throw generateError(state, message);
+  }
+
+  function throwWarning(state, message) {
+    if (state.onWarning) {
+      state.onWarning.call(null, generateError(state, message));
+    }
+  }
+
+  var directiveHandlers = {
+    YAML: function handleYamlDirective(state, name, args) {
+      var match, major, minor;
+
+      if (state.version !== null) {
+        throwError(state, 'duplication of %YAML directive');
+      }
+
+      if (args.length !== 1) {
+        throwError(state, 'YAML directive accepts exactly one argument');
+      }
+
+      match = /^([0-9]+)\.([0-9]+)$/.exec(args[0]);
+
+      if (match === null) {
+        throwError(state, 'ill-formed argument of the YAML directive');
+      }
+
+      major = parseInt(match[1], 10);
+      minor = parseInt(match[2], 10);
+
+      if (major !== 1) {
+        throwError(state, 'unacceptable YAML version of the document');
+      }
+
+      state.version = args[0];
+      state.checkLineBreaks = minor < 2;
+
+      if (minor !== 1 && minor !== 2) {
+        throwWarning(state, 'unsupported YAML version of the document');
+      }
+    },
+    TAG: function handleTagDirective(state, name, args) {
+      var handle, prefix;
+
+      if (args.length !== 2) {
+        throwError(state, 'TAG directive accepts exactly two arguments');
+      }
+
+      handle = args[0];
+      prefix = args[1];
+
+      if (!PATTERN_TAG_HANDLE.test(handle)) {
+        throwError(state, 'ill-formed tag handle (first argument) of the TAG directive');
+      }
+
+      if (_hasOwnProperty$1.call(state.tagMap, handle)) {
+        throwError(state, 'there is a previously declared suffix for "' + handle + '" tag handle');
+      }
+
+      if (!PATTERN_TAG_URI.test(prefix)) {
+        throwError(state, 'ill-formed tag prefix (second argument) of the TAG directive');
+      }
+
+      try {
+        prefix = decodeURIComponent(prefix);
+      } catch (err) {
+        throwError(state, 'tag prefix is malformed: ' + prefix);
+      }
+
+      state.tagMap[handle] = prefix;
+    }
+  };
+
+  function captureSegment(state, start, end, checkJson) {
+    var _position, _length, _character, _result;
+
+    if (start < end) {
+      _result = state.input.slice(start, end);
+
+      if (checkJson) {
+        for (_position = 0, _length = _result.length; _position < _length; _position += 1) {
+          _character = _result.charCodeAt(_position);
+
+          if (!(_character === 0x09 || 0x20 <= _character && _character <= 0x10FFFF)) {
+            throwError(state, 'expected valid JSON character');
+          }
+        }
+      } else if (PATTERN_NON_PRINTABLE.test(_result)) {
+        throwError(state, 'the stream contains non-printable characters');
+      }
+
+      state.result += _result;
+    }
+  }
+
+  function mergeMappings(state, destination, source, overridableKeys) {
+    var sourceKeys, key, index, quantity;
+
+    if (!common.isObject(source)) {
+      throwError(state, 'cannot merge mappings; the provided source object is unacceptable');
+    }
+
+    sourceKeys = Object.keys(source);
+
+    for (index = 0, quantity = sourceKeys.length; index < quantity; index += 1) {
+      key = sourceKeys[index];
+
+      if (!_hasOwnProperty$1.call(destination, key)) {
+        destination[key] = source[key];
+        overridableKeys[key] = true;
+      }
+    }
+  }
+
+  function storeMappingPair(state, _result, overridableKeys, keyTag, keyNode, valueNode, startLine, startLineStart, startPos) {
+    var index, quantity; // The output is a plain object here, so keys can only be strings.
+    // We need to convert keyNode to a string, but doing so can hang the process
+    // (deeply nested arrays that explode exponentially using aliases).
+
+    if (Array.isArray(keyNode)) {
+      keyNode = Array.prototype.slice.call(keyNode);
+
+      for (index = 0, quantity = keyNode.length; index < quantity; index += 1) {
+        if (Array.isArray(keyNode[index])) {
+          throwError(state, 'nested arrays are not supported inside keys');
+        }
+
+        if (typeof keyNode === 'object' && _class(keyNode[index]) === '[object Object]') {
+          keyNode[index] = '[object Object]';
+        }
+      }
+    } // Avoid code execution in load() via toString property
+    // (still use its own toString for arrays, timestamps,
+    // and whatever user schema extensions happen to have @@toStringTag)
+
+
+    if (typeof keyNode === 'object' && _class(keyNode) === '[object Object]') {
+      keyNode = '[object Object]';
+    }
+
+    keyNode = String(keyNode);
+
+    if (_result === null) {
+      _result = {};
+    }
+
+    if (keyTag === 'tag:yaml.org,2002:merge') {
+      if (Array.isArray(valueNode)) {
+        for (index = 0, quantity = valueNode.length; index < quantity; index += 1) {
+          mergeMappings(state, _result, valueNode[index], overridableKeys);
+        }
+      } else {
+        mergeMappings(state, _result, valueNode, overridableKeys);
+      }
+    } else {
+      if (!state.json && !_hasOwnProperty$1.call(overridableKeys, keyNode) && _hasOwnProperty$1.call(_result, keyNode)) {
+        state.line = startLine || state.line;
+        state.lineStart = startLineStart || state.lineStart;
+        state.position = startPos || state.position;
+        throwError(state, 'duplicated mapping key');
+      } // used for this specific key only because Object.defineProperty is slow
+
+
+      if (keyNode === '__proto__') {
+        Object.defineProperty(_result, keyNode, {
+          configurable: true,
+          enumerable: true,
+          writable: true,
+          value: valueNode
+        });
+      } else {
+        _result[keyNode] = valueNode;
+      }
+
+      delete overridableKeys[keyNode];
+    }
+
+    return _result;
+  }
+
+  function readLineBreak(state) {
+    var ch;
+    ch = state.input.charCodeAt(state.position);
+
+    if (ch === 0x0A
+    /* LF */
+    ) {
+        state.position++;
+      } else if (ch === 0x0D
+    /* CR */
+    ) {
+        state.position++;
+
+        if (state.input.charCodeAt(state.position) === 0x0A
+        /* LF */
+        ) {
+            state.position++;
+          }
+      } else {
+      throwError(state, 'a line break is expected');
+    }
+
+    state.line += 1;
+    state.lineStart = state.position;
+    state.firstTabInLine = -1;
+  }
+
+  function skipSeparationSpace(state, allowComments, checkIndent) {
+    var lineBreaks = 0,
+        ch = state.input.charCodeAt(state.position);
+
+    while (ch !== 0) {
+      while (is_WHITE_SPACE(ch)) {
+        if (ch === 0x09
+        /* Tab */
+        && state.firstTabInLine === -1) {
+          state.firstTabInLine = state.position;
+        }
+
+        ch = state.input.charCodeAt(++state.position);
+      }
+
+      if (allowComments && ch === 0x23
+      /* # */
+      ) {
+          do {
+            ch = state.input.charCodeAt(++state.position);
+          } while (ch !== 0x0A
+          /* LF */
+          && ch !== 0x0D
+          /* CR */
+          && ch !== 0);
+        }
+
+      if (is_EOL(ch)) {
+        readLineBreak(state);
+        ch = state.input.charCodeAt(state.position);
+        lineBreaks++;
+        state.lineIndent = 0;
+
+        while (ch === 0x20
+        /* Space */
+        ) {
+          state.lineIndent++;
+          ch = state.input.charCodeAt(++state.position);
+        }
+      } else {
+        break;
+      }
+    }
+
+    if (checkIndent !== -1 && lineBreaks !== 0 && state.lineIndent < checkIndent) {
+      throwWarning(state, 'deficient indentation');
+    }
+
+    return lineBreaks;
+  }
+
+  function testDocumentSeparator(state) {
+    var _position = state.position,
+        ch;
+    ch = state.input.charCodeAt(_position); // Condition state.position === state.lineStart is tested
+    // in parent on each call, for efficiency. No needs to test here again.
+
+    if ((ch === 0x2D
+    /* - */
+    || ch === 0x2E
+    /* . */
+    ) && ch === state.input.charCodeAt(_position + 1) && ch === state.input.charCodeAt(_position + 2)) {
+      _position += 3;
+      ch = state.input.charCodeAt(_position);
+
+      if (ch === 0 || is_WS_OR_EOL(ch)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  function writeFoldedLines(state, count) {
+    if (count === 1) {
+      state.result += ' ';
+    } else if (count > 1) {
+      state.result += common.repeat('\n', count - 1);
+    }
+  }
+
+  function readPlainScalar(state, nodeIndent, withinFlowCollection) {
+    var preceding,
+        following,
+        captureStart,
+        captureEnd,
+        hasPendingContent,
+        _line,
+        _lineStart,
+        _lineIndent,
+        _kind = state.kind,
+        _result = state.result,
+        ch;
+
+    ch = state.input.charCodeAt(state.position);
+
+    if (is_WS_OR_EOL(ch) || is_FLOW_INDICATOR(ch) || ch === 0x23
+    /* # */
+    || ch === 0x26
+    /* & */
+    || ch === 0x2A
+    /* * */
+    || ch === 0x21
+    /* ! */
+    || ch === 0x7C
+    /* | */
+    || ch === 0x3E
+    /* > */
+    || ch === 0x27
+    /* ' */
+    || ch === 0x22
+    /* " */
+    || ch === 0x25
+    /* % */
+    || ch === 0x40
+    /* @ */
+    || ch === 0x60
+    /* ` */
+    ) {
+        return false;
+      }
+
+    if (ch === 0x3F
+    /* ? */
+    || ch === 0x2D
+    /* - */
+    ) {
+        following = state.input.charCodeAt(state.position + 1);
+
+        if (is_WS_OR_EOL(following) || withinFlowCollection && is_FLOW_INDICATOR(following)) {
+          return false;
+        }
+      }
+
+    state.kind = 'scalar';
+    state.result = '';
+    captureStart = captureEnd = state.position;
+    hasPendingContent = false;
+
+    while (ch !== 0) {
+      if (ch === 0x3A
+      /* : */
+      ) {
+          following = state.input.charCodeAt(state.position + 1);
+
+          if (is_WS_OR_EOL(following) || withinFlowCollection && is_FLOW_INDICATOR(following)) {
+            break;
+          }
+        } else if (ch === 0x23
+      /* # */
+      ) {
+          preceding = state.input.charCodeAt(state.position - 1);
+
+          if (is_WS_OR_EOL(preceding)) {
+            break;
+          }
+        } else if (state.position === state.lineStart && testDocumentSeparator(state) || withinFlowCollection && is_FLOW_INDICATOR(ch)) {
+        break;
+      } else if (is_EOL(ch)) {
+        _line = state.line;
+        _lineStart = state.lineStart;
+        _lineIndent = state.lineIndent;
+        skipSeparationSpace(state, false, -1);
+
+        if (state.lineIndent >= nodeIndent) {
+          hasPendingContent = true;
+          ch = state.input.charCodeAt(state.position);
+          continue;
+        } else {
+          state.position = captureEnd;
+          state.line = _line;
+          state.lineStart = _lineStart;
+          state.lineIndent = _lineIndent;
+          break;
+        }
+      }
+
+      if (hasPendingContent) {
+        captureSegment(state, captureStart, captureEnd, false);
+        writeFoldedLines(state, state.line - _line);
+        captureStart = captureEnd = state.position;
+        hasPendingContent = false;
+      }
+
+      if (!is_WHITE_SPACE(ch)) {
+        captureEnd = state.position + 1;
+      }
+
+      ch = state.input.charCodeAt(++state.position);
+    }
+
+    captureSegment(state, captureStart, captureEnd, false);
+
+    if (state.result) {
+      return true;
+    }
+
+    state.kind = _kind;
+    state.result = _result;
+    return false;
+  }
+
+  function readSingleQuotedScalar(state, nodeIndent) {
+    var ch, captureStart, captureEnd;
+    ch = state.input.charCodeAt(state.position);
+
+    if (ch !== 0x27
+    /* ' */
+    ) {
+        return false;
+      }
+
+    state.kind = 'scalar';
+    state.result = '';
+    state.position++;
+    captureStart = captureEnd = state.position;
+
+    while ((ch = state.input.charCodeAt(state.position)) !== 0) {
+      if (ch === 0x27
+      /* ' */
+      ) {
+          captureSegment(state, captureStart, state.position, true);
+          ch = state.input.charCodeAt(++state.position);
+
+          if (ch === 0x27
+          /* ' */
+          ) {
+              captureStart = state.position;
+              state.position++;
+              captureEnd = state.position;
+            } else {
+            return true;
+          }
+        } else if (is_EOL(ch)) {
+        captureSegment(state, captureStart, captureEnd, true);
+        writeFoldedLines(state, skipSeparationSpace(state, false, nodeIndent));
+        captureStart = captureEnd = state.position;
+      } else if (state.position === state.lineStart && testDocumentSeparator(state)) {
+        throwError(state, 'unexpected end of the document within a single quoted scalar');
+      } else {
+        state.position++;
+        captureEnd = state.position;
+      }
+    }
+
+    throwError(state, 'unexpected end of the stream within a single quoted scalar');
+  }
+
+  function readDoubleQuotedScalar(state, nodeIndent) {
+    var captureStart, captureEnd, hexLength, hexResult, tmp, ch;
+    ch = state.input.charCodeAt(state.position);
+
+    if (ch !== 0x22
+    /* " */
+    ) {
+        return false;
+      }
+
+    state.kind = 'scalar';
+    state.result = '';
+    state.position++;
+    captureStart = captureEnd = state.position;
+
+    while ((ch = state.input.charCodeAt(state.position)) !== 0) {
+      if (ch === 0x22
+      /* " */
+      ) {
+          captureSegment(state, captureStart, state.position, true);
+          state.position++;
+          return true;
+        } else if (ch === 0x5C
+      /* \ */
+      ) {
+          captureSegment(state, captureStart, state.position, true);
+          ch = state.input.charCodeAt(++state.position);
+
+          if (is_EOL(ch)) {
+            skipSeparationSpace(state, false, nodeIndent); // TODO: rework to inline fn with no type cast?
+          } else if (ch < 256 && simpleEscapeCheck[ch]) {
+            state.result += simpleEscapeMap[ch];
+            state.position++;
+          } else if ((tmp = escapedHexLen(ch)) > 0) {
+            hexLength = tmp;
+            hexResult = 0;
+
+            for (; hexLength > 0; hexLength--) {
+              ch = state.input.charCodeAt(++state.position);
+
+              if ((tmp = fromHexCode(ch)) >= 0) {
+                hexResult = (hexResult << 4) + tmp;
+              } else {
+                throwError(state, 'expected hexadecimal character');
+              }
+            }
+
+            state.result += charFromCodepoint(hexResult);
+            state.position++;
+          } else {
+            throwError(state, 'unknown escape sequence');
+          }
+
+          captureStart = captureEnd = state.position;
+        } else if (is_EOL(ch)) {
+        captureSegment(state, captureStart, captureEnd, true);
+        writeFoldedLines(state, skipSeparationSpace(state, false, nodeIndent));
+        captureStart = captureEnd = state.position;
+      } else if (state.position === state.lineStart && testDocumentSeparator(state)) {
+        throwError(state, 'unexpected end of the document within a double quoted scalar');
+      } else {
+        state.position++;
+        captureEnd = state.position;
+      }
+    }
+
+    throwError(state, 'unexpected end of the stream within a double quoted scalar');
+  }
+
+  function readFlowCollection(state, nodeIndent) {
+    var readNext = true,
+        _line,
+        _lineStart,
+        _pos,
+        _tag = state.tag,
+        _result,
+        _anchor = state.anchor,
+        following,
+        terminator,
+        isPair,
+        isExplicitPair,
+        isMapping,
+        overridableKeys = Object.create(null),
+        keyNode,
+        keyTag,
+        valueNode,
+        ch;
+
+    ch = state.input.charCodeAt(state.position);
+
+    if (ch === 0x5B
+    /* [ */
+    ) {
+        terminator = 0x5D;
+        /* ] */
+
+        isMapping = false;
+        _result = [];
+      } else if (ch === 0x7B
+    /* { */
+    ) {
+        terminator = 0x7D;
+        /* } */
+
+        isMapping = true;
+        _result = {};
+      } else {
+      return false;
+    }
+
+    if (state.anchor !== null) {
+      state.anchorMap[state.anchor] = _result;
+    }
+
+    ch = state.input.charCodeAt(++state.position);
+
+    while (ch !== 0) {
+      skipSeparationSpace(state, true, nodeIndent);
+      ch = state.input.charCodeAt(state.position);
+
+      if (ch === terminator) {
+        state.position++;
+        state.tag = _tag;
+        state.anchor = _anchor;
+        state.kind = isMapping ? 'mapping' : 'sequence';
+        state.result = _result;
+        return true;
+      } else if (!readNext) {
+        throwError(state, 'missed comma between flow collection entries');
+      } else if (ch === 0x2C
+      /* , */
+      ) {
+          // "flow collection entries can never be completely empty", as per YAML 1.2, section 7.4
+          throwError(state, "expected the node content, but found ','");
+        }
+
+      keyTag = keyNode = valueNode = null;
+      isPair = isExplicitPair = false;
+
+      if (ch === 0x3F
+      /* ? */
+      ) {
+          following = state.input.charCodeAt(state.position + 1);
+
+          if (is_WS_OR_EOL(following)) {
+            isPair = isExplicitPair = true;
+            state.position++;
+            skipSeparationSpace(state, true, nodeIndent);
+          }
+        }
+
+      _line = state.line; // Save the current line.
+
+      _lineStart = state.lineStart;
+      _pos = state.position;
+      composeNode(state, nodeIndent, CONTEXT_FLOW_IN, false, true);
+      keyTag = state.tag;
+      keyNode = state.result;
+      skipSeparationSpace(state, true, nodeIndent);
+      ch = state.input.charCodeAt(state.position);
+
+      if ((isExplicitPair || state.line === _line) && ch === 0x3A
+      /* : */
+      ) {
+          isPair = true;
+          ch = state.input.charCodeAt(++state.position);
+          skipSeparationSpace(state, true, nodeIndent);
+          composeNode(state, nodeIndent, CONTEXT_FLOW_IN, false, true);
+          valueNode = state.result;
+        }
+
+      if (isMapping) {
+        storeMappingPair(state, _result, overridableKeys, keyTag, keyNode, valueNode, _line, _lineStart, _pos);
+      } else if (isPair) {
+        _result.push(storeMappingPair(state, null, overridableKeys, keyTag, keyNode, valueNode, _line, _lineStart, _pos));
+      } else {
+        _result.push(keyNode);
+      }
+
+      skipSeparationSpace(state, true, nodeIndent);
+      ch = state.input.charCodeAt(state.position);
+
+      if (ch === 0x2C
+      /* , */
+      ) {
+          readNext = true;
+          ch = state.input.charCodeAt(++state.position);
+        } else {
+        readNext = false;
+      }
+    }
+
+    throwError(state, 'unexpected end of the stream within a flow collection');
+  }
+
+  function readBlockScalar(state, nodeIndent) {
+    var captureStart,
+        folding,
+        chomping = CHOMPING_CLIP,
+        didReadContent = false,
+        detectedIndent = false,
+        textIndent = nodeIndent,
+        emptyLines = 0,
+        atMoreIndented = false,
+        tmp,
+        ch;
+    ch = state.input.charCodeAt(state.position);
+
+    if (ch === 0x7C
+    /* | */
+    ) {
+        folding = false;
+      } else if (ch === 0x3E
+    /* > */
+    ) {
+        folding = true;
+      } else {
+      return false;
+    }
+
+    state.kind = 'scalar';
+    state.result = '';
+
+    while (ch !== 0) {
+      ch = state.input.charCodeAt(++state.position);
+
+      if (ch === 0x2B
+      /* + */
+      || ch === 0x2D
+      /* - */
+      ) {
+          if (CHOMPING_CLIP === chomping) {
+            chomping = ch === 0x2B
+            /* + */
+            ? CHOMPING_KEEP : CHOMPING_STRIP;
+          } else {
+            throwError(state, 'repeat of a chomping mode identifier');
+          }
+        } else if ((tmp = fromDecimalCode(ch)) >= 0) {
+        if (tmp === 0) {
+          throwError(state, 'bad explicit indentation width of a block scalar; it cannot be less than one');
+        } else if (!detectedIndent) {
+          textIndent = nodeIndent + tmp - 1;
+          detectedIndent = true;
+        } else {
+          throwError(state, 'repeat of an indentation width identifier');
+        }
+      } else {
+        break;
+      }
+    }
+
+    if (is_WHITE_SPACE(ch)) {
+      do {
+        ch = state.input.charCodeAt(++state.position);
+      } while (is_WHITE_SPACE(ch));
+
+      if (ch === 0x23
+      /* # */
+      ) {
+          do {
+            ch = state.input.charCodeAt(++state.position);
+          } while (!is_EOL(ch) && ch !== 0);
+        }
+    }
+
+    while (ch !== 0) {
+      readLineBreak(state);
+      state.lineIndent = 0;
+      ch = state.input.charCodeAt(state.position);
+
+      while ((!detectedIndent || state.lineIndent < textIndent) && ch === 0x20
+      /* Space */
+      ) {
+        state.lineIndent++;
+        ch = state.input.charCodeAt(++state.position);
+      }
+
+      if (!detectedIndent && state.lineIndent > textIndent) {
+        textIndent = state.lineIndent;
+      }
+
+      if (is_EOL(ch)) {
+        emptyLines++;
+        continue;
+      } // End of the scalar.
+
+
+      if (state.lineIndent < textIndent) {
+        // Perform the chomping.
+        if (chomping === CHOMPING_KEEP) {
+          state.result += common.repeat('\n', didReadContent ? 1 + emptyLines : emptyLines);
+        } else if (chomping === CHOMPING_CLIP) {
+          if (didReadContent) {
+            // i.e. only if the scalar is not empty.
+            state.result += '\n';
+          }
+        } // Break this `while` cycle and go to the funciton's epilogue.
+
+
+        break;
+      } // Folded style: use fancy rules to handle line breaks.
+
+
+      if (folding) {
+        // Lines starting with white space characters (more-indented lines) are not folded.
+        if (is_WHITE_SPACE(ch)) {
+          atMoreIndented = true; // except for the first content line (cf. Example 8.1)
+
+          state.result += common.repeat('\n', didReadContent ? 1 + emptyLines : emptyLines); // End of more-indented block.
+        } else if (atMoreIndented) {
+          atMoreIndented = false;
+          state.result += common.repeat('\n', emptyLines + 1); // Just one line break - perceive as the same line.
+        } else if (emptyLines === 0) {
+          if (didReadContent) {
+            // i.e. only if we have already read some scalar content.
+            state.result += ' ';
+          } // Several line breaks - perceive as different lines.
+
+        } else {
+          state.result += common.repeat('\n', emptyLines);
+        } // Literal style: just add exact number of line breaks between content lines.
+
+      } else {
+        // Keep all line breaks except the header line break.
+        state.result += common.repeat('\n', didReadContent ? 1 + emptyLines : emptyLines);
+      }
+
+      didReadContent = true;
+      detectedIndent = true;
+      emptyLines = 0;
+      captureStart = state.position;
+
+      while (!is_EOL(ch) && ch !== 0) {
+        ch = state.input.charCodeAt(++state.position);
+      }
+
+      captureSegment(state, captureStart, state.position, false);
+    }
+
+    return true;
+  }
+
+  function readBlockSequence(state, nodeIndent) {
+    var _line,
+        _tag = state.tag,
+        _anchor = state.anchor,
+        _result = [],
+        following,
+        detected = false,
+        ch; // there is a leading tab before this token, so it can't be a block sequence/mapping;
+    // it can still be flow sequence/mapping or a scalar
+
+
+    if (state.firstTabInLine !== -1) return false;
+
+    if (state.anchor !== null) {
+      state.anchorMap[state.anchor] = _result;
+    }
+
+    ch = state.input.charCodeAt(state.position);
+
+    while (ch !== 0) {
+      if (state.firstTabInLine !== -1) {
+        state.position = state.firstTabInLine;
+        throwError(state, 'tab characters must not be used in indentation');
+      }
+
+      if (ch !== 0x2D
+      /* - */
+      ) {
+          break;
+        }
+
+      following = state.input.charCodeAt(state.position + 1);
+
+      if (!is_WS_OR_EOL(following)) {
+        break;
+      }
+
+      detected = true;
+      state.position++;
+
+      if (skipSeparationSpace(state, true, -1)) {
+        if (state.lineIndent <= nodeIndent) {
+          _result.push(null);
+
+          ch = state.input.charCodeAt(state.position);
+          continue;
+        }
+      }
+
+      _line = state.line;
+      composeNode(state, nodeIndent, CONTEXT_BLOCK_IN, false, true);
+
+      _result.push(state.result);
+
+      skipSeparationSpace(state, true, -1);
+      ch = state.input.charCodeAt(state.position);
+
+      if ((state.line === _line || state.lineIndent > nodeIndent) && ch !== 0) {
+        throwError(state, 'bad indentation of a sequence entry');
+      } else if (state.lineIndent < nodeIndent) {
+        break;
+      }
+    }
+
+    if (detected) {
+      state.tag = _tag;
+      state.anchor = _anchor;
+      state.kind = 'sequence';
+      state.result = _result;
+      return true;
+    }
+
+    return false;
+  }
+
+  function readBlockMapping(state, nodeIndent, flowIndent) {
+    var following,
+        allowCompact,
+        _line,
+        _keyLine,
+        _keyLineStart,
+        _keyPos,
+        _tag = state.tag,
+        _anchor = state.anchor,
+        _result = {},
+        overridableKeys = Object.create(null),
+        keyTag = null,
+        keyNode = null,
+        valueNode = null,
+        atExplicitKey = false,
+        detected = false,
+        ch; // there is a leading tab before this token, so it can't be a block sequence/mapping;
+    // it can still be flow sequence/mapping or a scalar
+
+
+    if (state.firstTabInLine !== -1) return false;
+
+    if (state.anchor !== null) {
+      state.anchorMap[state.anchor] = _result;
+    }
+
+    ch = state.input.charCodeAt(state.position);
+
+    while (ch !== 0) {
+      if (!atExplicitKey && state.firstTabInLine !== -1) {
+        state.position = state.firstTabInLine;
+        throwError(state, 'tab characters must not be used in indentation');
+      }
+
+      following = state.input.charCodeAt(state.position + 1);
+      _line = state.line; // Save the current line.
+      //
+      // Explicit notation case. There are two separate blocks:
+      // first for the key (denoted by "?") and second for the value (denoted by ":")
+      //
+
+      if ((ch === 0x3F
+      /* ? */
+      || ch === 0x3A
+      /* : */
+      ) && is_WS_OR_EOL(following)) {
+        if (ch === 0x3F
+        /* ? */
+        ) {
+            if (atExplicitKey) {
+              storeMappingPair(state, _result, overridableKeys, keyTag, keyNode, null, _keyLine, _keyLineStart, _keyPos);
+              keyTag = keyNode = valueNode = null;
+            }
+
+            detected = true;
+            atExplicitKey = true;
+            allowCompact = true;
+          } else if (atExplicitKey) {
+          // i.e. 0x3A/* : */ === character after the explicit key.
+          atExplicitKey = false;
+          allowCompact = true;
+        } else {
+          throwError(state, 'incomplete explicit mapping pair; a key node is missed; or followed by a non-tabulated empty line');
+        }
+
+        state.position += 1;
+        ch = following; //
+        // Implicit notation case. Flow-style node as the key first, then ":", and the value.
+        //
+      } else {
+        _keyLine = state.line;
+        _keyLineStart = state.lineStart;
+        _keyPos = state.position;
+
+        if (!composeNode(state, flowIndent, CONTEXT_FLOW_OUT, false, true)) {
+          // Neither implicit nor explicit notation.
+          // Reading is done. Go to the epilogue.
+          break;
+        }
+
+        if (state.line === _line) {
+          ch = state.input.charCodeAt(state.position);
+
+          while (is_WHITE_SPACE(ch)) {
+            ch = state.input.charCodeAt(++state.position);
+          }
+
+          if (ch === 0x3A
+          /* : */
+          ) {
+              ch = state.input.charCodeAt(++state.position);
+
+              if (!is_WS_OR_EOL(ch)) {
+                throwError(state, 'a whitespace character is expected after the key-value separator within a block mapping');
+              }
+
+              if (atExplicitKey) {
+                storeMappingPair(state, _result, overridableKeys, keyTag, keyNode, null, _keyLine, _keyLineStart, _keyPos);
+                keyTag = keyNode = valueNode = null;
+              }
+
+              detected = true;
+              atExplicitKey = false;
+              allowCompact = false;
+              keyTag = state.tag;
+              keyNode = state.result;
+            } else if (detected) {
+            throwError(state, 'can not read an implicit mapping pair; a colon is missed');
+          } else {
+            state.tag = _tag;
+            state.anchor = _anchor;
+            return true; // Keep the result of `composeNode`.
+          }
+        } else if (detected) {
+          throwError(state, 'can not read a block mapping entry; a multiline key may not be an implicit key');
+        } else {
+          state.tag = _tag;
+          state.anchor = _anchor;
+          return true; // Keep the result of `composeNode`.
+        }
+      } //
+      // Common reading code for both explicit and implicit notations.
+      //
+
+
+      if (state.line === _line || state.lineIndent > nodeIndent) {
+        if (atExplicitKey) {
+          _keyLine = state.line;
+          _keyLineStart = state.lineStart;
+          _keyPos = state.position;
+        }
+
+        if (composeNode(state, nodeIndent, CONTEXT_BLOCK_OUT, true, allowCompact)) {
+          if (atExplicitKey) {
+            keyNode = state.result;
+          } else {
+            valueNode = state.result;
+          }
+        }
+
+        if (!atExplicitKey) {
+          storeMappingPair(state, _result, overridableKeys, keyTag, keyNode, valueNode, _keyLine, _keyLineStart, _keyPos);
+          keyTag = keyNode = valueNode = null;
+        }
+
+        skipSeparationSpace(state, true, -1);
+        ch = state.input.charCodeAt(state.position);
+      }
+
+      if ((state.line === _line || state.lineIndent > nodeIndent) && ch !== 0) {
+        throwError(state, 'bad indentation of a mapping entry');
+      } else if (state.lineIndent < nodeIndent) {
+        break;
+      }
+    } //
+    // Epilogue.
+    //
+    // Special case: last mapping's node contains only the key in explicit notation.
+
+
+    if (atExplicitKey) {
+      storeMappingPair(state, _result, overridableKeys, keyTag, keyNode, null, _keyLine, _keyLineStart, _keyPos);
+    } // Expose the resulting mapping.
+
+
+    if (detected) {
+      state.tag = _tag;
+      state.anchor = _anchor;
+      state.kind = 'mapping';
+      state.result = _result;
+    }
+
+    return detected;
+  }
+
+  function readTagProperty(state) {
+    var _position,
+        isVerbatim = false,
+        isNamed = false,
+        tagHandle,
+        tagName,
+        ch;
+
+    ch = state.input.charCodeAt(state.position);
+    if (ch !== 0x21
+    /* ! */
+    ) return false;
+
+    if (state.tag !== null) {
+      throwError(state, 'duplication of a tag property');
+    }
+
+    ch = state.input.charCodeAt(++state.position);
+
+    if (ch === 0x3C
+    /* < */
+    ) {
+        isVerbatim = true;
+        ch = state.input.charCodeAt(++state.position);
+      } else if (ch === 0x21
+    /* ! */
+    ) {
+        isNamed = true;
+        tagHandle = '!!';
+        ch = state.input.charCodeAt(++state.position);
+      } else {
+      tagHandle = '!';
+    }
+
+    _position = state.position;
+
+    if (isVerbatim) {
+      do {
+        ch = state.input.charCodeAt(++state.position);
+      } while (ch !== 0 && ch !== 0x3E
+      /* > */
+      );
+
+      if (state.position < state.length) {
+        tagName = state.input.slice(_position, state.position);
+        ch = state.input.charCodeAt(++state.position);
+      } else {
+        throwError(state, 'unexpected end of the stream within a verbatim tag');
+      }
+    } else {
+      while (ch !== 0 && !is_WS_OR_EOL(ch)) {
+        if (ch === 0x21
+        /* ! */
+        ) {
+            if (!isNamed) {
+              tagHandle = state.input.slice(_position - 1, state.position + 1);
+
+              if (!PATTERN_TAG_HANDLE.test(tagHandle)) {
+                throwError(state, 'named tag handle cannot contain such characters');
+              }
+
+              isNamed = true;
+              _position = state.position + 1;
+            } else {
+              throwError(state, 'tag suffix cannot contain exclamation marks');
+            }
+          }
+
+        ch = state.input.charCodeAt(++state.position);
+      }
+
+      tagName = state.input.slice(_position, state.position);
+
+      if (PATTERN_FLOW_INDICATORS.test(tagName)) {
+        throwError(state, 'tag suffix cannot contain flow indicator characters');
+      }
+    }
+
+    if (tagName && !PATTERN_TAG_URI.test(tagName)) {
+      throwError(state, 'tag name cannot contain such characters: ' + tagName);
+    }
+
+    try {
+      tagName = decodeURIComponent(tagName);
+    } catch (err) {
+      throwError(state, 'tag name is malformed: ' + tagName);
+    }
+
+    if (isVerbatim) {
+      state.tag = tagName;
+    } else if (_hasOwnProperty$1.call(state.tagMap, tagHandle)) {
+      state.tag = state.tagMap[tagHandle] + tagName;
+    } else if (tagHandle === '!') {
+      state.tag = '!' + tagName;
+    } else if (tagHandle === '!!') {
+      state.tag = 'tag:yaml.org,2002:' + tagName;
+    } else {
+      throwError(state, 'undeclared tag handle "' + tagHandle + '"');
+    }
+
+    return true;
+  }
+
+  function readAnchorProperty(state) {
+    var _position, ch;
+
+    ch = state.input.charCodeAt(state.position);
+    if (ch !== 0x26
+    /* & */
+    ) return false;
+
+    if (state.anchor !== null) {
+      throwError(state, 'duplication of an anchor property');
+    }
+
+    ch = state.input.charCodeAt(++state.position);
+    _position = state.position;
+
+    while (ch !== 0 && !is_WS_OR_EOL(ch) && !is_FLOW_INDICATOR(ch)) {
+      ch = state.input.charCodeAt(++state.position);
+    }
+
+    if (state.position === _position) {
+      throwError(state, 'name of an anchor node must contain at least one character');
+    }
+
+    state.anchor = state.input.slice(_position, state.position);
+    return true;
+  }
+
+  function readAlias(state) {
+    var _position, alias, ch;
+
+    ch = state.input.charCodeAt(state.position);
+    if (ch !== 0x2A
+    /* * */
+    ) return false;
+    ch = state.input.charCodeAt(++state.position);
+    _position = state.position;
+
+    while (ch !== 0 && !is_WS_OR_EOL(ch) && !is_FLOW_INDICATOR(ch)) {
+      ch = state.input.charCodeAt(++state.position);
+    }
+
+    if (state.position === _position) {
+      throwError(state, 'name of an alias node must contain at least one character');
+    }
+
+    alias = state.input.slice(_position, state.position);
+
+    if (!_hasOwnProperty$1.call(state.anchorMap, alias)) {
+      throwError(state, 'unidentified alias "' + alias + '"');
+    }
+
+    state.result = state.anchorMap[alias];
+    skipSeparationSpace(state, true, -1);
+    return true;
+  }
+
+  function composeNode(state, parentIndent, nodeContext, allowToSeek, allowCompact) {
+    var allowBlockStyles,
+        allowBlockScalars,
+        allowBlockCollections,
+        indentStatus = 1,
+        // 1: this>parent, 0: this=parent, -1: this<parent
+    atNewLine = false,
+        hasContent = false,
+        typeIndex,
+        typeQuantity,
+        typeList,
+        type,
+        flowIndent,
+        blockIndent;
+
+    if (state.listener !== null) {
+      state.listener('open', state);
+    }
+
+    state.tag = null;
+    state.anchor = null;
+    state.kind = null;
+    state.result = null;
+    allowBlockStyles = allowBlockScalars = allowBlockCollections = CONTEXT_BLOCK_OUT === nodeContext || CONTEXT_BLOCK_IN === nodeContext;
+
+    if (allowToSeek) {
+      if (skipSeparationSpace(state, true, -1)) {
+        atNewLine = true;
+
+        if (state.lineIndent > parentIndent) {
+          indentStatus = 1;
+        } else if (state.lineIndent === parentIndent) {
+          indentStatus = 0;
+        } else if (state.lineIndent < parentIndent) {
+          indentStatus = -1;
+        }
+      }
+    }
+
+    if (indentStatus === 1) {
+      while (readTagProperty(state) || readAnchorProperty(state)) {
+        if (skipSeparationSpace(state, true, -1)) {
+          atNewLine = true;
+          allowBlockCollections = allowBlockStyles;
+
+          if (state.lineIndent > parentIndent) {
+            indentStatus = 1;
+          } else if (state.lineIndent === parentIndent) {
+            indentStatus = 0;
+          } else if (state.lineIndent < parentIndent) {
+            indentStatus = -1;
+          }
+        } else {
+          allowBlockCollections = false;
+        }
+      }
+    }
+
+    if (allowBlockCollections) {
+      allowBlockCollections = atNewLine || allowCompact;
+    }
+
+    if (indentStatus === 1 || CONTEXT_BLOCK_OUT === nodeContext) {
+      if (CONTEXT_FLOW_IN === nodeContext || CONTEXT_FLOW_OUT === nodeContext) {
+        flowIndent = parentIndent;
+      } else {
+        flowIndent = parentIndent + 1;
+      }
+
+      blockIndent = state.position - state.lineStart;
+
+      if (indentStatus === 1) {
+        if (allowBlockCollections && (readBlockSequence(state, blockIndent) || readBlockMapping(state, blockIndent, flowIndent)) || readFlowCollection(state, flowIndent)) {
+          hasContent = true;
+        } else {
+          if (allowBlockScalars && readBlockScalar(state, flowIndent) || readSingleQuotedScalar(state, flowIndent) || readDoubleQuotedScalar(state, flowIndent)) {
+            hasContent = true;
+          } else if (readAlias(state)) {
+            hasContent = true;
+
+            if (state.tag !== null || state.anchor !== null) {
+              throwError(state, 'alias node should not have any properties');
+            }
+          } else if (readPlainScalar(state, flowIndent, CONTEXT_FLOW_IN === nodeContext)) {
+            hasContent = true;
+
+            if (state.tag === null) {
+              state.tag = '?';
+            }
+          }
+
+          if (state.anchor !== null) {
+            state.anchorMap[state.anchor] = state.result;
+          }
+        }
+      } else if (indentStatus === 0) {
+        // Special case: block sequences are allowed to have same indentation level as the parent.
+        // http://www.yaml.org/spec/1.2/spec.html#id2799784
+        hasContent = allowBlockCollections && readBlockSequence(state, blockIndent);
+      }
+    }
+
+    if (state.tag === null) {
+      if (state.anchor !== null) {
+        state.anchorMap[state.anchor] = state.result;
+      }
+    } else if (state.tag === '?') {
+      // Implicit resolving is not allowed for non-scalar types, and '?'
+      // non-specific tag is only automatically assigned to plain scalars.
+      //
+      // We only need to check kind conformity in case user explicitly assigns '?'
+      // tag, for example like this: "!<?> [0]"
+      //
+      if (state.result !== null && state.kind !== 'scalar') {
+        throwError(state, 'unacceptable node kind for !<?> tag; it should be "scalar", not "' + state.kind + '"');
+      }
+
+      for (typeIndex = 0, typeQuantity = state.implicitTypes.length; typeIndex < typeQuantity; typeIndex += 1) {
+        type = state.implicitTypes[typeIndex];
+
+        if (type.resolve(state.result)) {
+          // `state.result` updated in resolver if matched
+          state.result = type.construct(state.result);
+          state.tag = type.tag;
+
+          if (state.anchor !== null) {
+            state.anchorMap[state.anchor] = state.result;
+          }
+
+          break;
+        }
+      }
+    } else if (state.tag !== '!') {
+      if (_hasOwnProperty$1.call(state.typeMap[state.kind || 'fallback'], state.tag)) {
+        type = state.typeMap[state.kind || 'fallback'][state.tag];
+      } else {
+        // looking for multi type
+        type = null;
+        typeList = state.typeMap.multi[state.kind || 'fallback'];
+
+        for (typeIndex = 0, typeQuantity = typeList.length; typeIndex < typeQuantity; typeIndex += 1) {
+          if (state.tag.slice(0, typeList[typeIndex].tag.length) === typeList[typeIndex].tag) {
+            type = typeList[typeIndex];
+            break;
+          }
+        }
+      }
+
+      if (!type) {
+        throwError(state, 'unknown tag !<' + state.tag + '>');
+      }
+
+      if (state.result !== null && type.kind !== state.kind) {
+        throwError(state, 'unacceptable node kind for !<' + state.tag + '> tag; it should be "' + type.kind + '", not "' + state.kind + '"');
+      }
+
+      if (!type.resolve(state.result, state.tag)) {
+        // `state.result` updated in resolver if matched
+        throwError(state, 'cannot resolve a node with !<' + state.tag + '> explicit tag');
+      } else {
+        state.result = type.construct(state.result, state.tag);
+
+        if (state.anchor !== null) {
+          state.anchorMap[state.anchor] = state.result;
+        }
+      }
+    }
+
+    if (state.listener !== null) {
+      state.listener('close', state);
+    }
+
+    return state.tag !== null || state.anchor !== null || hasContent;
+  }
+
+  function readDocument(state) {
+    var documentStart = state.position,
+        _position,
+        directiveName,
+        directiveArgs,
+        hasDirectives = false,
+        ch;
+
+    state.version = null;
+    state.checkLineBreaks = state.legacy;
+    state.tagMap = Object.create(null);
+    state.anchorMap = Object.create(null);
+
+    while ((ch = state.input.charCodeAt(state.position)) !== 0) {
+      skipSeparationSpace(state, true, -1);
+      ch = state.input.charCodeAt(state.position);
+
+      if (state.lineIndent > 0 || ch !== 0x25
+      /* % */
+      ) {
+          break;
+        }
+
+      hasDirectives = true;
+      ch = state.input.charCodeAt(++state.position);
+      _position = state.position;
+
+      while (ch !== 0 && !is_WS_OR_EOL(ch)) {
+        ch = state.input.charCodeAt(++state.position);
+      }
+
+      directiveName = state.input.slice(_position, state.position);
+      directiveArgs = [];
+
+      if (directiveName.length < 1) {
+        throwError(state, 'directive name must not be less than one character in length');
+      }
+
+      while (ch !== 0) {
+        while (is_WHITE_SPACE(ch)) {
+          ch = state.input.charCodeAt(++state.position);
+        }
+
+        if (ch === 0x23
+        /* # */
+        ) {
+            do {
+              ch = state.input.charCodeAt(++state.position);
+            } while (ch !== 0 && !is_EOL(ch));
+
+            break;
+          }
+
+        if (is_EOL(ch)) break;
+        _position = state.position;
+
+        while (ch !== 0 && !is_WS_OR_EOL(ch)) {
+          ch = state.input.charCodeAt(++state.position);
+        }
+
+        directiveArgs.push(state.input.slice(_position, state.position));
+      }
+
+      if (ch !== 0) readLineBreak(state);
+
+      if (_hasOwnProperty$1.call(directiveHandlers, directiveName)) {
+        directiveHandlers[directiveName](state, directiveName, directiveArgs);
+      } else {
+        throwWarning(state, 'unknown document directive "' + directiveName + '"');
+      }
+    }
+
+    skipSeparationSpace(state, true, -1);
+
+    if (state.lineIndent === 0 && state.input.charCodeAt(state.position) === 0x2D
+    /* - */
+    && state.input.charCodeAt(state.position + 1) === 0x2D
+    /* - */
+    && state.input.charCodeAt(state.position + 2) === 0x2D
+    /* - */
+    ) {
+        state.position += 3;
+        skipSeparationSpace(state, true, -1);
+      } else if (hasDirectives) {
+      throwError(state, 'directives end mark is expected');
+    }
+
+    composeNode(state, state.lineIndent - 1, CONTEXT_BLOCK_OUT, false, true);
+    skipSeparationSpace(state, true, -1);
+
+    if (state.checkLineBreaks && PATTERN_NON_ASCII_LINE_BREAKS.test(state.input.slice(documentStart, state.position))) {
+      throwWarning(state, 'non-ASCII line breaks are interpreted as content');
+    }
+
+    state.documents.push(state.result);
+
+    if (state.position === state.lineStart && testDocumentSeparator(state)) {
+      if (state.input.charCodeAt(state.position) === 0x2E
+      /* . */
+      ) {
+          state.position += 3;
+          skipSeparationSpace(state, true, -1);
+        }
+
+      return;
+    }
+
+    if (state.position < state.length - 1) {
+      throwError(state, 'end of the stream or a document separator is expected');
+    } else {
+      return;
+    }
+  }
+
+  function loadDocuments(input, options) {
+    input = String(input);
+    options = options || {};
+
+    if (input.length !== 0) {
+      // Add tailing `\n` if not exists
+      if (input.charCodeAt(input.length - 1) !== 0x0A
+      /* LF */
+      && input.charCodeAt(input.length - 1) !== 0x0D
+      /* CR */
+      ) {
+          input += '\n';
+        } // Strip BOM
+
+
+      if (input.charCodeAt(0) === 0xFEFF) {
+        input = input.slice(1);
+      }
+    }
+
+    var state = new State$1(input, options);
+    var nullpos = input.indexOf('\0');
+
+    if (nullpos !== -1) {
+      state.position = nullpos;
+      throwError(state, 'null byte is not allowed in input');
+    } // Use 0 as string terminator. That significantly simplifies bounds check.
+
+
+    state.input += '\0';
+
+    while (state.input.charCodeAt(state.position) === 0x20
+    /* Space */
+    ) {
+      state.lineIndent += 1;
+      state.position += 1;
+    }
+
+    while (state.position < state.length - 1) {
+      readDocument(state);
+    }
+
+    return state.documents;
+  }
+
+  function loadAll$1(input, iterator, options) {
+    if (iterator !== null && typeof iterator === 'object' && typeof options === 'undefined') {
+      options = iterator;
+      iterator = null;
+    }
+
+    var documents = loadDocuments(input, options);
+
+    if (typeof iterator !== 'function') {
+      return documents;
+    }
+
+    for (var index = 0, length = documents.length; index < length; index += 1) {
+      iterator(documents[index]);
+    }
+  }
+
+  function load$1(input, options) {
+    var documents = loadDocuments(input, options);
+
+    if (documents.length === 0) {
+      /*eslint-disable no-undefined*/
+      return undefined;
+    } else if (documents.length === 1) {
+      return documents[0];
+    }
+
+    throw new exception('expected a single document in the stream, but found more');
+  }
+
+  var loadAll_1 = loadAll$1;
+  var load_1 = load$1;
+  var loader = {
+    loadAll: loadAll_1,
+    load: load_1
+  };
+  var load = loader.load;
+
+  async function chooseOption(title, options, defaultValue) {
+    var _options$index$value, _options$index;
+
+    const {
+      index
+    } = await CommandBar.showOptions(options.map(option => option.label), title);
+    return (_options$index$value = (_options$index = options[index]) === null || _options$index === void 0 ? void 0 : _options$index.value) !== null && _options$index$value !== void 0 ? _options$index$value : defaultValue;
+  }
+  async function showMessage(title, okLabel = 'OK') {
+    await CommandBar.showOptions([okLabel], title);
+  }
+
+  const staticTemplateFolder = '📋 Templates';
+  function getTemplateFolder() {
+    return DataStore.folders.find(f => f.includes(staticTemplateFolder));
+  } // get the template folder path, without leading '/'
+  // if it doesn't exist, offer to create it and populate it with samples
+
+  async function getOrMakeTemplateFolder() {
+    console.log('  getOrMakeTemplateFolder start');
+    let folder = getTemplateFolder();
+
+    if (folder == null) {
+      // No template folder yet, so offer to make it and populate it
+      const shouldCreateFolder = await chooseOption$1('No templates folder found.', [{
+        label: "\u2705 Create ".concat(staticTemplateFolder, " with samples"),
+        value: true
+      }, {
+        label: '❌ Cancel command',
+        value: false
+      }], false);
+
+      if (!shouldCreateFolder) {
+        return;
+      }
+
+      const subFolder = await chooseOption$1('Select a location for the templates folder.', DataStore.folders.map(folder => ({
+        label: folder,
+        value: folder + (folder.endsWith('/') ? '' : '/') // ensure ends with '/'
+
+      })), '');
+      folder = subFolder + staticTemplateFolder; // Now create a sample note in that folder, then we got the folder also created
+
+      DataStore.newNote(DAILY_NOTE_TEMPLATE, folder);
+      DataStore.newNote(MEETING_NOTE_TEMPLATE, folder);
+      DataStore.newNote(TAGS_TEMPLATE, folder);
+      DataStore.newNote(CONFIG, folder); // for 'folder' to be useful straight away we need to strip off any leading '/'
+
+      folder = folder.startsWith('/') ? folder.slice(1) : folder;
+      console.log("-> \"".concat(folder, "\" folder created with samples"));
+      await showMessage$1("\"".concat(folder, "\" folder created with samples"));
+    }
+
+    return folder;
+  }
+  /*
+
+  DEFAULT TEMPLATE NOTES FOLLOW
+
+  */
+
+  const DAILY_NOTE_TEMPLATE = "Daily Note Template\n---\n## Tasks\n\n## Media\n> {{quote()}}\n\n## Journal\nWeather: {{weather()}}\n";
+  const MEETING_NOTE_TEMPLATE = "Meeting Note Template\n---\n## Project X Meeting on [[{{date-as-YYYY-MM-DD}}]] with {{people list}}\n\n## Notes\n\n## Actions\n";
+  const TAGS_TEMPLATE = "Tags Template\n---\n# {{title}}\n\nCreated on {{date({locale: 'en-US', dateStyle: 'short'})}}\n";
+  const CONFIG = " _configuration\n---\n# Template Tag Configuration\n\nThis file is used to configure how templates work. \nUse the code fence below (which comes after a line made by 3 dashes)\nto set global values for template tags.\n\nTo write your configuration you can use JSON5. JSON5 is a human-friendly\nsuperset of JSON that lets you write comments, unquoted keys and other common\npatterns available in Javscript.\n(NB: even JSON5 doesn't fully support multi-line strings, so to include\nthem you need to use \"\n\" for linebreaks rather than actual linebreaks.)\n\nJust use the codeblock marked as `javascript` shown below to write your own\ncustom configurayion.\n\nThe *first* code-block within the note will always be used. So edit the default configuration below:\n\nIMPORTANT: The configuration code blocks below are validated in realtime by Noteplan as you edit. \nIf the configuration passes the validation, you will see configuration settings in color (e.g. orange, \ngreen, purple, black, etc.). If there is a mistake in your configuration settings, the configuration\nsettings below will all be black. If you have a quoted \"string\" that you want to have a line break\nin it, insert a \"\n\" where you want the line break, e.g. \"This\nIs\nThreelines\"\n\n```javascript\n{\n  // Even though it says, \"javascript\" above, this is actually JSON5.\n\n  // configuration for dates, heavily based on javascript's Intl module\n  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat/DateTimeFormat\n  date: {\n    // Default timezone for date and time.\n    timezone: 'automatic',\n    // Default locale to format date and time.\n    // e.g. en-US will result in mm/dd/yyyy, while en_GB will be dd/mm/yyyy\n    locale: 'en-US',\n    // can be \"short\", \"medium\", \"long\" or \"full\"\n    dateStyle: 'short',\n    // optional key, can be \"short\", \"medium\", \"long\" or \"full\"\n    timeStyle: 'short',\n  },\n\n  // configuration for weather data (used in Daily Note Template, for example)\n  weather: {\n    // API key for https://openweathermap.org/\n    // !!REQUIRED!!\n    openWeatherAPIKey: '... put your API key here ...',\n    // Required location for weather forecast\n    latPosition: 0.0,\n    longPosition: 0.0,\n    // Default units. Can be 'metric' (for Celsius), or 'metric' (for Fahrenheit)\n    openWeatherUnits: 'metric',\n  },\n\n  // configuration for daily quote (used in Daily Note Template, for example)\n  quote: {\n    // Available modes: [random (default), today, author]\n    mode: 'today',\n    // API key required, available authors: https://premium.zenquotes.io/available-authors/\n    author: 'anne-frank',\n    // Required for mode: 'author' (from https://premium.zenquotes.io/)\n    apiKey: '... put your API key here ...',\n  },\n\n  // default values for custom tags.\n  // These tags cannot be functions, but you may choose to have nested objects.\n  // feel free to edit this value however you see fit.\n  tagValue: {\n    me: {\n      // Can be used as {{me.firstName}}\n      firstName: 'John',\n      // Can be used as {{me.lastName}}\n      lastName: 'Doe',\n    }\n    // ...\n  },\n}\n```\n\n";
+
+  const ALLOWED_FORMATS = ['javascript', 'json', 'json5', 'yaml', 'toml', 'ini'];
+  const FORMAT_MAP = {
+    javascript: 'json5',
+    ini: 'toml'
+  }; // @nmn original, but split up by @jgclark
+
+  async function parseFirstCodeblock(block) {
+    var _FORMAT_MAP$format;
+
+    if (block == null) {
+      await showMessage('No configuration block found in configuration file.');
+      return {};
+    }
+
+    let [format, ...contents] = block.split('\n');
+    contents = contents.join('\n');
+    format = format.trim();
+
+    if (!ALLOWED_FORMATS.includes(format)) {
+      await showMessage('Invalid configuration format in the config file.');
+      return {};
+    }
+
+    format = (_FORMAT_MAP$format = FORMAT_MAP[format]) !== null && _FORMAT_MAP$format !== void 0 ? _FORMAT_MAP$format : format;
+    console.log("\tparseFirstCodeblock: will parse ".concat(contents.length, " bytes of ").concat(format));
+
+    switch (format) {
+      case 'json':
+        return parseJSON(contents);
+
+      case 'json5':
+        return parseJSON5(contents);
+
+      case 'yaml':
+        return parseYAML(contents);
+
+      case 'toml':
+        return parseTOML(contents);
+
+      default:
+        console.log("\tparseFirstCodeblock: error: can't deal with format ".concat(format));
+    }
+  } // Get configuration section, or if not present, save into _configuraiton file
+  // Only deals with json5 case
+  // @jgclark
+
+  async function getOrMakeConfigurationSection(configSectionName, configSectionDefault) {
+    var _await$parseFirstCode;
+
+    let templateFolder = await getOrMakeTemplateFolder();
+
+    if (templateFolder == null) {
+      console.log("  getOrMakeConfigurationSection: couldn't find the templateFolder ... will try to create it ...");
+      templateFolder = getOrMakeTemplateFolder();
+      return {};
+    }
+
+    console.log("  getOrMakeConfigurationSection: got folder ".concat(templateFolder));
+    const configFile = DataStore.projectNotes // $FlowIgnore[incompatible-call]
+    .filter(n => {
+      var _n$filename2;
+
+      return (_n$filename2 = n.filename) === null || _n$filename2 === void 0 ? void 0 : _n$filename2.startsWith(templateFolder);
+    }).find(n => {
+      var _n$title2;
+
+      return !!((_n$title2 = n.title) !== null && _n$title2 !== void 0 && _n$title2.startsWith('_configuration'));
+    });
+
+    if (configFile == null) {
+      console.log("  getOrMakeConfigurationSection: Error: cannot find '_configuration' file");
+      await showMessage("Error: cannot find '_configuration' file. Please check."); // Really strange to get here: won't code a response, but will just stop.
+
+      return {};
+    }
+
+    const content = configFile === null || configFile === void 0 ? void 0 : configFile.content;
+
+    if (content == null) {
+      console.log("  getOrMakeConfigurationSection: Error: '_configuration' file is empty");
+      await showMessage("Error: empty '_configuration' file. Please check."); // Really strange to get here: won't code a response, but will just stop.
+
+      return {};
+    }
+
+    console.log('  getOrMakeConfigurationSection: got _configuration file'); // Get config contents
+
+    const firstCodeblock = content.split('\n```')[1];
+    const config = (_await$parseFirstCode = await parseFirstCodeblock(firstCodeblock)) !== null && _await$parseFirstCode !== void 0 ? _await$parseFirstCode : {}; // Does it contain the section we want?
+
+    if (firstCodeblock == null || config[configSectionName] // alternative to dot notation that allows variables
+    == null) {
+      // No, so offer to make it and populate it
+      const shouldAddDefaultConfig = await chooseOption("No '".concat(configSectionName, "' configuration section found."), [{
+        label: "\u2705 Create ".concat(configSectionName, " configuration from its defaults"),
+        value: true
+      }, {
+        label: "\u274C Don't Create; cancel command",
+        value: false
+      }], false);
+
+      if (!shouldAddDefaultConfig) {
+        return {};
+      } // Add default configuration
+
+
+      const backtickParas = configFile.paragraphs.filter(p => p.content.match(/```/)); // const startJSFirstBlockParas = configFile.paragraphs.filter((p) => p.content.match(/^```\s*javascript/))
+
+      if (backtickParas.length > 0 && backtickParas[0].content.endsWith('javascript')) {
+        // Insert new default configuration at the top of the current _configuration block
+        const startFirstBlockLineNumber = backtickParas[0].lineIndex + 2; // const endFirstBlockLineNumber = backtickParas[1].lineIndex - 1 // this used to do the bottom of the block
+        // insert paragraph just before second ``` line
+
+        if (startFirstBlockLineNumber !== undefined) {
+          configFile.insertParagraph(configSectionDefault, startFirstBlockLineNumber, 'text');
+          await showMessage("Inserted default configuration for ".concat(configSectionName, "."), "OK: I will check this before re-running the command.");
+          Editor.openNoteByFilename(configFile.filename);
+          return {};
+        } else {
+          await showMessage("Error: cannot create default configuration for ".concat(configSectionName), "OK: I will check this before re-running the command.");
+          Editor.openNoteByFilename(configFile.filename);
+          return {};
+        }
+      } else {
+        // Couldn't find javascript first codeblock, so insert it at line 2
+        const configAsJSBlock = "``` javascript\n{\n".concat(configSectionDefault, "\n}\n```");
+        configFile.insertParagraph(configAsJSBlock, 2, 'text');
+        await showMessage("Created default configuration for ".concat(configSectionName, "."), "OK: I will check this before re-running the command.");
+        Editor.openNoteByFilename(configFile.filename);
+        return {};
+      }
+    } // We have the configuration, so return it
+    // $FlowIgnore
+
+
+    return config[configSectionName];
+  }
+
+  async function parseJSON(contents) {
+    try {
+      return JSON.parse(contents);
+    } catch (e) {
+      console.log(e);
+      await showMessage('Invalid JSON in your configuration. Please fix it to use configuration');
+      return {};
+    }
+  }
+
+  async function parseJSON5(contents) {
+    try {
+      const value = lib.parse(contents);
+      return value;
+    } catch (e) {
+      console.log(e);
+      await showMessage('Invalid JSON5 in your configuration. Please fix it to use configuration');
+      return {};
+    }
+  }
+
+  async function parseYAML(contents) {
+    try {
+      const value = load(contents);
+
+      if (typeof value === 'object') {
+        return value;
+      } else {
+        return {};
+      }
+    } catch (e) {
+      console.log(contents);
+      console.log(e);
+      await showMessage('Invalid YAML in your configuration. Please fix it to use configuration');
+      return {};
+    }
+  }
+
+  async function parseTOML(contents) {
+    try {
+      const value = toml.parse(contents);
+
+      if (typeof value === 'object') {
+        return value;
+      } else {
+        return {};
+      }
+    } catch (e) {
+      console.log(e);
+      await showMessage('Invalid TOML in your configuration. Please fix it to use configuration');
+      return {};
+    }
+  }
+
+  //-----------------------------------------------------------------------------
+  // Create statistics for hasthtags and mentions for time periods
+  // Jonathan Clark
+  // v0.3.3, 2.7.2021 - unreleased
+  //-----------------------------------------------------------------------------
+  // TODO:
+  // - When weekly/monthly notes are made possible in NP, then output changes there as well
+  //-----------------------------------------------------------------------------
+  // Globals, to be looked up later
+  let pref_folderToStore;
+  let pref_countsHeadingLevel;
+  let pref_hashtagCountsHeading;
+  let pref_mentionCountsHeading;
+  let pref_showAsHashtagOrMention = false;
+  let pref_includeHashtags = [];
+  let pref_excludeHashtags = [];
+  let pref_includeMentions = [];
+  let pref_excludeMentions = []; //-----------------------------------------------------------------------------
+
+  function quarterStartEnd(qtr, year) {
+    // Default values are needed to account for the
+    // default case of the switch statement below.
+    // Otherwise, these variables will never get initialized before
+    // being used.
+    let fromDate = new Date();
+    let toDate = new Date(); // We appear to need to take timezone offset into account in order to avoid landing
+    // up crossing date boundaries.
+    // I.e. when in BST (=UTC+0100) it's calculating dates which are often 1 too early.
+    // Get TZOffset in minutes. If positive then behind UTC; if negative then ahead.
+
+    const TZOffset = new Date().getTimezoneOffset();
+
+    switch (qtr) {
+      case 1:
+        {
+          fromDate = Calendar.addUnitToDate(Calendar.dateFrom(year, 1, 1, 0, 0, 0), 'minute', -TZOffset);
+          toDate = Calendar.addUnitToDate(Calendar.dateFrom(year, 3, 31, 0, 0, 0), 'minute', -TZOffset);
+          break;
+        }
+
+      case 2:
+        {
+          fromDate = Calendar.addUnitToDate(Calendar.dateFrom(year, 4, 1, 0, 0, 0), 'minute', -TZOffset);
+          toDate = Calendar.addUnitToDate(Calendar.dateFrom(year, 6, 30, 0, 0, 0), 'minute', -TZOffset);
+          break;
+        }
+
+      case 3:
+        {
+          fromDate = Calendar.addUnitToDate(Calendar.dateFrom(year, 7, 1, 0, 0, 0), 'minute', -TZOffset);
+          toDate = Calendar.addUnitToDate(Calendar.dateFrom(year, 9, 30, 0, 0, 0), 'minute', -TZOffset);
+          break;
+        }
+
+      case 4:
+        {
+          fromDate = Calendar.addUnitToDate(Calendar.dateFrom(year, 10, 1, 0, 0, 0), 'minute', -TZOffset);
+          toDate = Calendar.addUnitToDate(Calendar.dateFrom(year, 12, 31, 0, 0, 0), 'minute', -TZOffset);
+          break;
+        }
+
+      default:
+        {
+          console.log("error: invalid quarter given: ".concat(qtr));
+          break;
+        }
+    }
+
+    return [fromDate, toDate];
+  } //-------------------------------------------------------------------------------
+  // Ask user which period to cover, call main stats function, and present results
+
+
+  async function periodStats() {
+    var _config$statistics, _results, _results2, _results3, _results4;
+
+    // Get config settings from Template folder _configuration note
+    const config = await getOrMakeConfigurationSection('statistics', DEFAULT_STATS_OPTIONS);
+    const statsConfig = (_config$statistics = config === null || config === void 0 ? void 0 : config.statistics) !== null && _config$statistics !== void 0 ? _config$statistics : null;
+
+    if (statsConfig == null) {
+      console.log("\tCouldn't find 'statistics' settings in _configuration note.");
+      return;
+    }
+
+    console.log("\tFound 'statistics' settings in _configuration note."); // now get each setting
+
+    pref_folderToStore = statsConfig.folderToStore != null ? statsConfig.folderToStore : 'Summaries'; // console.log(pref_folderToStore)
+
+    pref_hashtagCountsHeading = statsConfig.hashtagCountsHeading != null ? statsConfig.hashtagCountsHeading : '#hashtag counts'; // console.log(pref_hashtagCountsHeading)
+
+    pref_mentionCountsHeading = statsConfig.mentionCountsHeading != null ? statsConfig.mentionCountsHeading : '@mention counts'; // console.log(pref_mentionCountsHeading)
+
+    pref_countsHeadingLevel = statsConfig.countsHeadingLevel != null ? statsConfig.countsHeadingLevel : 2; // console.log(pref_countsHeadingLevel)
+
+    pref_showAsHashtagOrMention = statsConfig.showAsHashtagOrMention != null ? statsConfig.showAsHashtagOrMention : true; // console.log(pref_showAsHashtagOrMention)
+
+    pref_includeHashtags = statsConfig.includeHashtags != null ? statsConfig.includeHashtags : []; // this takes precedence over any excludes ...
+    // console.log(pref_includeHashtags)
+
+    pref_excludeHashtags = statsConfig.excludeHashtags != null ? statsConfig.excludeHashtags : []; // console.log(pref_excludeHashtags)
+
+    pref_includeMentions = statsConfig.includeMentions != null ? statsConfig.includeMentions : []; // this takes precedence over any excludes ...
+    // console.log(pref_includeMentions)
+
+    pref_excludeMentions = statsConfig.excludeMentions != null ? statsConfig.excludeMentions : ['@done', '@repeat']; // console.log(pref_excludeMentions)
+
+    const todaysDate = new Date(); // couldn't get const { y, m, d } = getYearMonthDate(todaysDate) to work ??
+
+    const y = todaysDate.getFullYear();
+    const m = todaysDate.getMonth() + 1;
+    const d = todaysDate.getDate(); // Ask user what time interval to do tag counts for
+
+    const period = await chooseOption$1('Create stats for which period?', [{
+      label: 'Last Month',
+      value: 'lm'
+    }, {
+      label: 'This Month (to date)',
+      value: 'mtd'
+    }, {
+      label: 'Other Month',
+      value: 'om'
+    }, {
+      label: 'Last Quarter',
+      value: 'lq'
+    }, {
+      label: 'This Quarter (to date)',
+      value: 'qtd'
+    }, {
+      label: 'Other Quarter',
+      value: 'oq'
+    }, {
+      label: 'Last Year',
+      value: 'ly'
+    }, {
+      label: 'Year to date',
+      value: 'ytd'
+    }, {
+      label: 'Other Year',
+      value: 'oy'
+    }], 'mtd');
+    let fromDate;
+    let toDate;
+    let periodString = '';
+    let countsHeadingAdd = ''; // We appear to need to take timezone offset into account in order to avoid landing
+    // up crossing date boundaries.
+    // I.e. when in BST (=UTC+0100) it's calculating dates which are often 1 too early.
+    // Get TZOffset in minutes. If positive then behind UTC; if negative then ahead.
+
+    const TZOffset = new Date().getTimezoneOffset();
+    console.log("TimeZone Offset = ".concat(TZOffset));
+
+    switch (period) {
+      case 'lm':
+        {
+          fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, 1, 0, 0, 0), 'minute', -TZOffset); // go to start of this month
+
+          fromDate = Calendar.addUnitToDate(fromDate, 'month', -1); // -1 month
+
+          toDate = Calendar.addUnitToDate(fromDate, 'month', 1); // + 1 month
+
+          toDate = Calendar.addUnitToDate(toDate, 'day', -1); // -1 day, to get last day of last month
+
+          periodString = "".concat(monthNameAbbrev(fromDate.getMonth() + 1), " ").concat(y);
+          break;
+        }
+
+      case 'mtd':
+        {
+          fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, 1, 0, 0, 0), 'minute', -TZOffset); // start of this month
+
+          toDate = Calendar.dateFrom(y, m, d, 0, 0, 0);
+          periodString = "".concat(monthNameAbbrev(m), " ").concat(y);
+          countsHeadingAdd = "(to ".concat(todaysDateISOString, ")");
+          break;
+        }
+
+      case 'om':
+        {
+          const theM = Number(await getInput('Choose month, (1-12)', 'OK'));
+          const theY = Number(await getInput('Choose date, e.g. 2019', 'OK'));
+          fromDate = Calendar.addUnitToDate(Calendar.dateFrom(theY, theM, 1, 0, 0, 0), 'minute', -TZOffset); // start of this month
+
+          toDate = Calendar.addUnitToDate(fromDate, 'month', 1); // + 1 month
+
+          toDate = Calendar.addUnitToDate(toDate, 'day', -1); // -1 day, to get last day of last month
+
+          periodString = "".concat(monthNameAbbrev(theM), " ").concat(theY);
+          break;
+        }
+
+      case 'lq':
+        {
+          const thisQ = Math.floor((m - 1) / 3) + 1; // quarter 1-4
+
+          const theQ = thisQ > 0 ? thisQ - 1 : 4; // last quarter
+
+          const theY = theQ === 4 ? y - 1 : y; // change the year if we want Q4
+
+          const [f, t] = quarterStartEnd(theQ, theY);
+          fromDate = f;
+          toDate = t;
+          const theQStartMonth = (theQ - 1) * 3 + 1;
+          toDate = Calendar.addUnitToDate(fromDate, 'month', 3); // +1 quarter
+
+          toDate = Calendar.addUnitToDate(toDate, 'day', -1); // -1 day, to get last day of last month
+
+          periodString = "".concat(theY, " Q").concat(theQ, " (").concat(monthNameAbbrev(theQStartMonth), "-").concat(monthNameAbbrev(theQStartMonth + 2), ")");
+          break;
+        }
+
+      case 'qtd':
+        {
+          const thisQ = Math.floor((m - 1) / 3) + 1;
+          const thisQStartMonth = (thisQ - 1) * 3 + 1;
+          fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y, thisQStartMonth, 1, 0, 0, 0), 'minute', -TZOffset); // start of this quarter
+
+          toDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset);
+          periodString = "".concat(y, " Q").concat(thisQ, " (").concat(monthNameAbbrev(thisQStartMonth), "-").concat(monthNameAbbrev(thisQStartMonth + 2), ")");
+          countsHeadingAdd = "(to ".concat(todaysDateISOString, ")");
+          break;
+        }
+
+      case 'oq':
+        {
+          const theQ = Number(await getInput('Choose quarter, (1-4)', 'OK'));
+          const theY = Number(await getInput('Choose date, e.g. 2019', 'OK'));
+          const theQStartMonth = (theQ - 1) * 3 + 1;
+          const [f, t] = quarterStartEnd(theQ, theY);
+          fromDate = f;
+          toDate = t;
+          toDate = Calendar.addUnitToDate(fromDate, 'month', 3); // +1 quarter
+
+          toDate = Calendar.addUnitToDate(toDate, 'day', -1); // -1 day, to get last day of last month
+
+          periodString = "".concat(theY, " Q").concat(theQ, " (").concat(monthNameAbbrev(theQStartMonth), "-").concat(monthNameAbbrev(theQStartMonth + 2), ")");
+          break;
+        }
+
+      case 'ly':
+        {
+          fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y - 1, 1, 1, 0, 0, 0), 'minute', -TZOffset); // start of last year
+
+          toDate = Calendar.addUnitToDate(Calendar.dateFrom(y - 1, 12, 31, 0, 0, 0), 'minute', -TZOffset); // end of last year
+
+          periodString = "".concat(y - 1);
+          break;
+        }
+
+      case 'ytd':
+        {
+          fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y, 1, 1, 0, 0, 0), 'minute', -TZOffset); // start of this year
+
+          toDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset);
+          periodString = "".concat(y);
+          countsHeadingAdd = "(to ".concat(todaysDateISOString, ")");
+          break;
+        }
+
+      case 'oy':
+        {
+          const theYear = Number(await getInput('Choose date, e.g. 2019', 'OK'));
+          fromDate = Calendar.addUnitToDate(Calendar.dateFrom(theYear, 1, 1, 0, 0, 0), 'minute', -TZOffset); // start of this year
+
+          toDate = Calendar.addUnitToDate(Calendar.dateFrom(theYear, 12, 31, 0, 0, 0), 'minute', -TZOffset);
+          periodString = "".concat(theYear);
+          break;
+        }
+    }
+
+    if (fromDate == null || toDate == null) {
+      console.log('dates could not be parsed');
+      return;
+    }
+
+    console.log("periodStats: calculating for ".concat(periodString, " (").concat(fromDate.toISOString(), "-").concat(toDate.toISOString(), ")"));
+    const fromDateStr = fromDate.toISOString().slice(0, 10).replace(/-/g, '');
+    const toDateStr = toDate.toISOString().slice(0, 10).replace(/-/g, '');
+    console.log("\nperiodStats: calculating for ".concat(periodString, " (").concat(fromDateStr, "-").concat(toDateStr, "):")); // Calc hashtags stats (returns two maps)
+
+    const hOutputArray = [];
+    let results = calcHashtagStatsPeriod(fromDateStr, toDateStr);
+    const hCounts = (_results = results) === null || _results === void 0 ? void 0 : _results[0];
+    const hSumTotals = (_results2 = results) === null || _results2 === void 0 ? void 0 : _results2[1];
+
+    if (hSumTotals == null || hCounts == null) {
+      console.log('no hSumTotals value');
+      return;
+    } // Custom sort method to sort arrays of two values each
+    // const sortedHCounts = new Map(
+    //   [...(hCounts?.entries() ?? [])].sort(([key1, _v1], [key2, _v2]) =>
+    //     key1.localeCompare(key2),
+    //   ),
+    // )
+    // First process more complex 'SumTotals', calculating appropriately
+
+
+    for (const [key, value] of hSumTotals) {
+      // .entries() implied
+      const hashtagString = pref_showAsHashtagOrMention ? key : key.slice(1);
+      const count = hCounts.get(key);
+
+      if (count != null) {
+        const total = value.toFixed(0);
+        const average = (value / count).toFixed(1);
+        hOutputArray.push("".concat(hashtagString, "\t").concat(count, "\t(total ").concat(total, "\taverage ").concat(average, ")"));
+        hCounts.delete(key); // remove the entry from the next map, as not longer needed
+      }
+    } // Then process simpler 'Counts'
+
+
+    for (const [key, value] of hCounts) {
+      // .entries() implied
+      const hashtagString = pref_showAsHashtagOrMention ? key : key.slice(1);
+      hOutputArray.push("".concat(hashtagString, "\t").concat(value));
+    } // If there's nothing to report, let's make that clear, otherwise sort output
+
+
+    if (hOutputArray.length > 0) {
+      hOutputArray.sort();
+    } else {
+      hOutputArray.push('(none)');
+    } // Calc mentions stats (returns two maps)
+
+
+    const mOutputArray = [];
+    results = calcMentionStatsPeriod(fromDateStr, toDateStr);
+    const mCounts = (_results3 = results) === null || _results3 === void 0 ? void 0 : _results3[0];
+    const mSumTotals = (_results4 = results) === null || _results4 === void 0 ? void 0 : _results4[1];
+
+    if (mCounts == null || mSumTotals == null) {
+      return;
+    } // Custom sort method to sort arrays of two values each
+    // const sortedMResults = new Map(
+    //   [...(mCounts?.entries() ?? [])].sort(([key1, _v1], [key2, _v2]) =>
+    //     key1.localeCompare(key2),
+    //   ),
+    // )
+    // First process more complex 'SumTotals', calculating appropriately
+
+
+    for (const [key, value] of mSumTotals) {
+      // .entries() implied
+      const mentionString = pref_showAsHashtagOrMention ? key : key.slice(1);
+      const count = mCounts.get(key);
+
+      if (count != null) {
+        const total = value.toFixed(0);
+        const average = (value / count).toFixed(1);
+        mOutputArray.push("".concat(mentionString, "\t").concat(count, "\t(total ").concat(total, "\taverage ").concat(average, ")"));
+        mCounts.delete(key); // remove the entry from the next map, as not longer needed
+      }
+    } // Then process simpler 'Counts'
+
+
+    for (const [key, value] of mCounts) {
+      const mentionString = pref_showAsHashtagOrMention ? key : key.slice(1);
+      mOutputArray.push("".concat(mentionString, "\t").concat(value));
+    } // If there's nothing to report, let's make that clear, otherwise sort output
+
+
+    if (mOutputArray.length > 0) {
+      mOutputArray.sort();
+    } else {
+      mOutputArray.push('(none)');
+    } // Ask where to save this summary to
+
+
+    const labelString = "\uD83D\uDDD2 Add/update note '".concat(periodString, "' in folder '").concat(String(pref_folderToStore), "'");
+    const destination = await chooseOption$1("Where to save the summary for ".concat(periodString, "?"), [{
+      // TODO: When weekly/monthly notes are made possible in NP, then add options like this
+      //   label: "📅 Append to this month's note",
+      //   value: "today"
+      // }, {
+      label: labelString,
+      value: 'note'
+    }, {
+      label: '🖥 Pop-up display',
+      value: 'show'
+    }, {
+      label: '🖊 Write to console log',
+      value: 'log'
+    }, {
+      label: '❌ Cancel',
+      value: 'cancel'
+    }], 'show'); // Ask where to send the results
+
+    switch (destination) {
+      case 'today':
+        {
+          const todaysNote = await DataStore.calendarNoteByDate(new Date());
+
+          if (todaysNote == null) {
+            console.log("\terror appending to today's note");
+          } else {
+            var _todaysNote$filename;
+
+            console.log("\tappending results to today's note (".concat((_todaysNote$filename = todaysNote.filename) !== null && _todaysNote$filename !== void 0 ? _todaysNote$filename : '', ")"));
+            todaysNote.appendParagraph("".concat(String(pref_hashtagCountsHeading), " for ").concat(periodString, " ").concat(countsHeadingAdd), 'text');
+            todaysNote.appendParagraph(hOutputArray.join('\n'), 'text');
+            todaysNote.appendParagraph("".concat(String(pref_mentionCountsHeading), " for ").concat(periodString, " ").concat(countsHeadingAdd), 'empty');
+            todaysNote.appendParagraph(mOutputArray.join('\n'), 'text');
+            console.log("\tappended results to today's note");
+          }
+
+          break;
+        }
+
+      case 'note':
+        {
+          var _DataStore$projectNot;
+
+          let note; // first see if this note has already been created
+          // (look only in active notes, not Archive or Trash)
+
+          const existingNotes = (_DataStore$projectNot = DataStore.projectNoteByTitle(periodString, true, false)) !== null && _DataStore$projectNot !== void 0 ? _DataStore$projectNot : [];
+          console.log("\tfound ".concat(existingNotes.length, " existing summary notes for this period"));
+
+          if (existingNotes.length > 0) {
+            note = existingNotes[0]; // pick the first if more than one
+
+            console.log("\tfilename of first matching note: ".concat(displayTitle(note)));
+          } else {
+            // make a new note for this. NB: filename here = folder + filename
+            const noteFilename = DataStore.newNote(periodString, pref_folderToStore);
+
+            if (!noteFilename) {
+              await showMessage$1('There was an error creating the new note');
+              return;
+            }
+
+            console.log("\tnewNote filename: ".concat(noteFilename));
+            note = DataStore.projectNoteByFilename(noteFilename);
+
+            if (note == null) {
+              await showMessage$1('There was an error getting the new note ready to write');
+              return;
+            }
+
+            console.log("\twriting results to the new note '".concat(displayTitle(note), "'"));
+          }
+
+          if (note != null) {
+            // This is a bug in flow. Creating a temporary const is a workaround.
+            const nonNullNote = note; // Do we have an existing Hashtag counts section? If so, delete it.
+
+            let insertionLineIndex = removeSection(nonNullNote, pref_hashtagCountsHeading);
+            console.log("\tHashtag insertionLineIndex: ".concat(String(insertionLineIndex))); // Set place to insert either after the found section heading, or at end of note
+            // write in reverse order to avoid having to calculate insertion point again
+
+            nonNullNote.insertHeading("".concat(pref_hashtagCountsHeading, " ").concat(countsHeadingAdd), insertionLineIndex, pref_countsHeadingLevel);
+            nonNullNote.insertParagraph(hOutputArray.join('\n'), insertionLineIndex + 1, 'text'); // nonNullNote.insertHeading(countsHeading, insertionLineIndex, pref_countsHeadingLevel)
+            // Do we have an existing Mentions counts section? If so, delete it.
+
+            insertionLineIndex = removeSection(nonNullNote, pref_mentionCountsHeading);
+            console.log("\tMention insertionLineIndex: ".concat(insertionLineIndex));
+            nonNullNote.insertHeading("".concat(pref_mentionCountsHeading, " ").concat(countsHeadingAdd), insertionLineIndex, pref_countsHeadingLevel);
+            nonNullNote.insertParagraph(mOutputArray.join('\n'), insertionLineIndex + 1, 'text');
+          } else {
+            // Shouldn't get here, but will because of a bug in <=r635
+            console.log("tagStats: error: shouldn't get here -- no valid note to write to");
+            await showMessage$1('Please re-run this command (NP bug before release 636');
+            return;
+          }
+
+          console.log("\twritten results to note '".concat(periodString, "'"));
+          break;
+        }
+
+      case 'log':
+        {
+          console.log("".concat(pref_hashtagCountsHeading, " for ").concat(periodString, " ").concat(countsHeadingAdd));
+          console.log(hOutputArray.join('\n'));
+          console.log("".concat(pref_mentionCountsHeading, " for ").concat(periodString, " ").concat(countsHeadingAdd));
+          console.log(mOutputArray.join('\n'));
+          break;
+        }
+
+      case 'cancel':
+        {
+          break;
+        }
+
+      default:
+        {
+          const outputs = hOutputArray.concat(mOutputArray);
+          const re = await CommandBar.showOptions(outputs, '(Select anything to copy)');
+
+          if (re !== null) {
+            Clipboard.string = "".concat(hOutputArray.join('\n'), "\n\n").concat(mOutputArray.join('\n'));
+          }
+
+          break;
+        }
+    }
+  } //------------------------------------------------------------------------------
+  // remove all paragraphs in a section, given:
+  // - Section heading line to look for (needs to match from start but not end)
+  // - Array of paragraphs
+  // Returns the lineIndex of the found heading, or if not found the last line of the note
+
+  function removeSection(note, heading) {
+    var _note$title;
+
+    const ps = note.paragraphs;
+    let existingHeadingIndex = ps.length;
+    const thisTitle = (_note$title = note.title) !== null && _note$title !== void 0 ? _note$title : '';
+    console.log("\t  removeSection '".concat(heading, "' from note '").concat(thisTitle, "' with ").concat(ps.length, " paras:"));
+
+    for (const p of ps) {
+      if (p.type === 'title' && p.content.startsWith(heading)) {
+        existingHeadingIndex = p.lineIndex;
+      }
+    }
+
+    console.log("\t    heading at: ".concat(existingHeadingIndex));
+
+    if (existingHeadingIndex !== undefined && existingHeadingIndex < ps.length) {
+      // Work out the set of paragraphs to remove
+      // let psToRemove = []
+      note.removeParagraph(ps[existingHeadingIndex]);
+      let removed = 1;
+
+      for (let i = existingHeadingIndex + 1; i < ps.length; i++) {
+        if (ps[i].type === 'title' || ps[i].content === '') {
+          break;
+        } // psToRemove.push(ps[i])
+
+
+        note.removeParagraph(ps[i]);
+        removed++;
+      }
+
+      console.log("\t   Removed ".concat(removed, " paragraphs. ").concat(existingHeadingIndex)); // Delete the saved set of paragraphs
+      // TODO: think this is hitting NP API bug?
+      // console.log(`About to remove ${psToRemove.length} paragraphs`)
+      // note.removeParagraphs(psToRemove)
+      // console.log(`Removed ${psToRemove.length} paragraphs`);
+
+      return existingHeadingIndex;
+    } else {
+      return ps.length;
+    }
+  } //-------------------------------------------------------------------------------
+  // Calculate hashtag statistics for daily notes of a given time period
+  // Returns
+  // - Map of { tag, count } for all tags included or not excluded
+  // - Map of { tag, total } for the subset of all tags above that finish with a /number
+
+
+  function calcHashtagStatsPeriod(fromDateStr, toDateStr) {
+    // Get all daily notes that are within this time period
+    const periodDailyNotes = DataStore.calendarNotes.filter(p => withinDateRange(dateStringFromCalendarFilename(p.filename), fromDateStr, toDateStr));
+
+    if (periodDailyNotes.length === 0) {
+      console.log('  warning: no matching daily notes found');
+      return;
+    } else {
+      console.log("  found ".concat(periodDailyNotes.length, " matching daily notes"));
+    } // work out what set of mentions to look for (or ignore)
+
+
+    const hashtagsToLookFor = pref_includeHashtags.length > 0 ? pref_includeHashtags : []; // console.log(JSON.stringify({ hashtagsToLookFor }, null, 2))
+
+    const hashtagsToIgnore = pref_excludeHashtags.length > 0 ? pref_excludeHashtags : []; // console.log(JSON.stringify({ hashtagsToIgnore }, null, 2))
+    // For each matching date, find and store the tags in Map
+
+    const tagCounts = new Map(); // key: tagname; value: count
+    // Also define map to count and total hashtags with a final /number part.
+
+    const tagSumTotals = new Map(); // key: tagname (except last part); value: total
+
+    for (const n of periodDailyNotes) {
+      const seenTags = n.hashtags; // console.log(`${n.date} -> ${n.hashtags.join(' / ')}`)
+
+      for (const t of seenTags) {
+        // check this is on inclusion, or not on exclusion list, before adding
+        if (hashtagsToLookFor.length > 0 && hashtagsToLookFor.filter(a => t.startsWith(a)).length === 0) ; else if (hashtagsToIgnore.filter(a => t.startsWith(a)).length > 0) ; else {
+          // if this is tag that finishes /number, then
+          if (t.match(/\/\d+(\.\d+)?$/)) {
+            var _tagCounts$get, _tagSumTotals$get;
+
+            const tagParts = t.split('/');
+            const k = tagParts[0];
+            const v = Number(tagParts[1]); // console.log(`found tagParts ${k} / ${v}`)
+
+            tagCounts.set(k, ((_tagCounts$get = tagCounts.get(k)) !== null && _tagCounts$get !== void 0 ? _tagCounts$get : 0) + 1);
+            tagSumTotals.set(k, ((_tagSumTotals$get = tagSumTotals.get(k)) !== null && _tagSumTotals$get !== void 0 ? _tagSumTotals$get : 0) + v); // console.log(`  ${k} -> ${tagSumTotals.get(k)} from ${tagCounts.get(k)}`)
+          } else {
+            var _tagCounts$get2;
+
+            // just save this to the main map
+            tagCounts.set(t, ((_tagCounts$get2 = tagCounts.get(t)) !== null && _tagCounts$get2 !== void 0 ? _tagCounts$get2 : 0) + 1); // console.log(`  ${t} -> ${tagCounts.get(t)}`)
+          }
+        }
+      }
+    } // Test output of totals arithmetic
+    // for (let k of tagSumTotals.keys()) {
+    //   const count = tagCounts.get(k)
+    //   const average = tagSumTotals.get(k) / count
+    //   console.log(`${k}: count ${count.toString()} average ${average.toString()}`)
+    // }
+
+
+    return [tagCounts, tagSumTotals];
+  } //-------------------------------------------------------------------------------
+  // Calculate mention statistics for daily notes of a given time period.
+  // If an 'include' list is set, only include things from that list.
+  // If not, include all, except those on an 'exclude' list (if set).
+  // Returns a Map of {tag, count}
+
+
+  function calcMentionStatsPeriod(fromDateStr, toDateStr) {
+    // Get all daily notes that are within this time period
+    const periodDailyNotes = DataStore.calendarNotes.filter(p => withinDateRange(dateStringFromCalendarFilename(p.filename), fromDateStr, toDateStr));
+
+    if (periodDailyNotes.length === 0) {
+      console.log('  warning: no matching daily notes found');
+      return;
+    } else {
+      console.log("  found ".concat(periodDailyNotes.length, " matching daily notes"));
+    } // work out what set of mentions to look for (or ignore)
+
+
+    const mentionsToLookFor = pref_includeMentions.length > 0 ? pref_includeMentions : []; // console.log(JSON.stringify({ mentionsToLookFor }, null, 2))
+
+    const mentionsToIgnore = pref_excludeMentions.length > 0 ? pref_excludeMentions : []; // console.log(JSON.stringify({ mentionsToIgnore }, null, 2))
+    // For each matching date, find and store the mentions in Map
+
+    const mentionCounts = new Map(); // key: tagname; value: count
+    // Also define map to count and total hashtags with a final /number part.
+
+    const mentionSumTotals = new Map(); // key: mention name (except last part); value: total
+
+    for (const n of periodDailyNotes) {
+      const seenMentions = n.mentions; // console.log(`${n.date} -> ${n.mentions.join(' / ')}`)
+
+      for (const m of seenMentions) {
+        // check this is on inclusion, or not on exclusion list, before adding
+        if (mentionsToLookFor.length > 0 && // TODO: does this work for #run and #runav?
+        mentionsToLookFor.filter(a => m.startsWith(a)).length === 0) ; else if (mentionsToIgnore.filter(a => m.startsWith(a)).length > 0) ; else {
+          // if this is menion that finishes (number), then
+          if (m.match(/\(\d+(\.\d+)?\)$/)) {
+            var _mentionCounts$get, _mentionSumTotals$get;
+
+            const mentionParts = m.split('(');
+            const k = mentionParts[0];
+            const v = Number(mentionParts[1].slice(0, -1)); // chop off final ')' character
+            // console.log(`found mentionParts ${k} / ${v}`)
+
+            mentionCounts.set(k, ((_mentionCounts$get = mentionCounts.get(k)) !== null && _mentionCounts$get !== void 0 ? _mentionCounts$get : 0) + 1);
+            mentionSumTotals.set(k, ((_mentionSumTotals$get = mentionSumTotals.get(k)) !== null && _mentionSumTotals$get !== void 0 ? _mentionSumTotals$get : 0) + v); // console.log(`  ${k} -> ${mentionSumTotals.get(k)} from ${mentionCounts.get(k)}`)
+          } else {
+            var _mentionCounts$get2;
+
+            // just save this to the main map
+            mentionCounts.set(m, ((_mentionCounts$get2 = mentionCounts.get(m)) !== null && _mentionCounts$get2 !== void 0 ? _mentionCounts$get2 : 0) + 1); // console.log(`  -> ${m} = ${mentionCounts.get(m)}`)
+          }
+        }
+      }
+    } // Test output of totals arithmetic
+    // for (let k of mentionSumTotals.keys()) {
+    //   const count = mentionCounts.get(k)
+    //   const average = mentionSumTotals.get(k) / count
+    //   console.log(`${k}: count ${count.toString()} average ${average.toString()}`)
+    // }
+
+
+    return [mentionCounts, mentionSumTotals];
+  }
+
+  const DEFAULT_STATS_OPTIONS = "  statistics: {\n    folderToStore: 'Summaries',\n    hashtagCountsHeading: '#hashtag counts',\n    mentionCountsHeading: '@mention counts',\n    countsHeadingLevel: 3, // headings use H3 (or ...)\n    showAsHashtagOrMention: true, // or false to hide # and @ characters\n    // In the following the includes (if specified) takes precedence over excludes ...\n    includeHashtags: [], // e.g. ['#holiday','#jog','#commute','#webinar']\n    excludeHashtags: [],\n    includeMentions: [], // e.g. ['@work','@fruitveg','@words']\n    excludeMentions: ['@done'],\n  },\n";
+
+  exports.periodStats = periodStats;
+  exports.showNoteCount = showNoteCount;
+  exports.showTaskCountNote = showTaskCountNote;
+  exports.showTaskCountProjects = showTaskCountProjects;
+  exports.showWordCount = showWordCount;
+
+  Object.defineProperty(exports, '__esModule', { value: true });
+
+  return exports;
+
+}({}));
+Object.assign(globalThis, exports)

@@ -1,1 +1,507 @@
-var exports=function(t){"use strict";async function e(t,e="OK"){await CommandBar.showOptions([e],t)}async function n(){const{selectedLinesText:t,selectedText:n,selectedParagraphs:o,note:a}=Editor;if(null!=a&&t.length&&""!==n){console.log("\nnewNoteFromSelection (running v".concat("0.4.1",") ").concat(o.length," selected:"));const n=["title","text","empty"].indexOf(o[0].type)>=0,r=o[0].content;let s=await CommandBar.showInput("Title of new note ([enter] to use text below)",r);s||(s=r,n&&t.shift());const d=t.join("\n"),g=function(t){let e=0,n=[],o=t;for(;1==++e||n.length>0;)o=1===e?t:"".concat(t," ").concat(e),n=DataStore.projectNoteByTitle(o,!0,!1);return o}(s);s!==g&&(await e('Title exists. Using "'.concat(g,'" instead')),s=g);const p=await async function(t){let e;const n=DataStore.folders;e=n.length>0?n[(await CommandBar.showOptions(n,t)).index]:"/";return console.log("\tfolder=".concat(e)),e}("Select folder to add note in:");if(s){var l;const t="Calendar"===(c=a).type&&null!=c.date?function(t){const{year:e,month:n,date:o}=function(t){return{year:t.getFullYear(),month:t.getMonth()+1,date:t.getDate()}}(t);return"".concat(e,"-").concat(n<10?"0":"").concat(n,"-").concat(o<10?"0":"").concat(o)}(c.date):null!==(i=c.title)&&void 0!==i?i:"";console.log("\torigFile: ".concat(t));const n=null!==(l=await DataStore.newNote(s,p))&&void 0!==l?l:"";console.log("\tnewNote() -> filename: ".concat(n));const o=await CommandBar.showOptions(["Yes","No"],"Insert link to new file where selection was?"),r=await async function(t,e,n=!0){console.log('\tAbout to open filename: "'.concat(t,'" (').concat(e,") using ").concat(n?"projectNoteByFilename":"noteByFilename"));const o=n?await DataStore.projectNoteByFilename(t):await DataStore.noteByFilename(t,"Notes");if(null!=o)return console.log("\t\tOpened ".concat(t," (").concat(e," version) ")),o;console.log("\t\tDidn't work! ".concat(n?"projectNoteByFilename":"noteByFilename"," returned ").concat(o))}(n,"using filename");if(r){console.log("\tnewNote's title: ".concat(String(r.title))),console.log("\tnewNote's content: ".concat(String(r.content)," ..."));const e=0===o.index;Editor.replaceSelectionWithText&&(e?Editor.replaceSelectionWithText("[[".concat(s,"]]")):Editor.replaceSelectionWithText("")),r.appendParagraph(d,"empty"),e&&r.appendParagraph("^^^ Moved from [[".concat(t,"]]:"),"text"),"Yes"===await async function(t,e=["Yes","No"]){return e[(await CommandBar.showOptions(e,t)).index]}("New Note created. Open it now?")&&await Editor.openNoteByFilename(n)}else console.log("\tCould not open new note: ".concat(n)),e("Could not open new note ".concat(n))}else console.log("\tError: undefined or empty title")}else console.log("\tNo text was selected, so nothing to do."),e("No text was selected, so nothing to do.","OK, I'll try again!");var c,i;console.log("newNoteFromSelection (finished)")}return(new Date).toISOString().slice(0,10),(new Date).toISOString().slice(0,16),globalThis.newNoteFromSelection=n,t.fileParas=async function(){var t,e;const{content:n,selectedParagraphs:o,note:a}=Editor;if(null==n||null==o||null==a)return void console.log("fileParse: warning: No note open.");const l=Editor.paragraphs,c=Editor.selection;if(null==c)return;const i=Editor.paragraphRangeAtCharacterIndex(c.start);console.log("\nfileParse: selection ".concat(JSON.stringify(i)));let r=0;for(let t=0;t<l.length;t++){var s;if((null===(s=l[t].contentRange)||void 0===s?void 0:s.start)===i.start){r=t;break}}console.log("  First para index: ".concat(r));let d=[];if(o.length>1)d=[...o],console.log("  Found ".concat(d.length," selected paras"));else{const t=o[0];if(console.log("  Para '".concat(t.content,"' type: ").concat(t.type,", index: ").concat(r)),"title"===t.type){const e=t.headingLevel;console.log("  Found heading level ".concat(e)),d.push(t);for(let t=r+1;t<l.length;t++){const n=l[t];if("title"===n.type&&n.headingLevel<=e)break;d.push(n)}console.log("  Found ".concat(d.length," heading section lines"))}else{const e=t.indents;console.log("  Found single line with indent level ".concat(e)),d.push(t);for(let t=r+1;t<l.length;t++){const n=l[t];if(n.indents<=e)break;d.push(n)}console.log("  Found ".concat(d.length-1," indented paras"))}}if("Calendar"===a.type){const t=(new Date).toISOString().slice(0,10);d[0].content="".concat(d[0].content," >").concat(t)}const g=function(t){let e="";for(let n=0;n<t.length;n++){const o=t[n];e+="".concat(o.rawContent,"\n")}return e.trimEnd()}(d),p=function(){const t=DataStore.projectNotes.slice(),e=DataStore.calendarNotes.slice();return t.concat(e).sort(((t,e)=>e.changedDate-t.changedDate))}();let u=await CommandBar.showOptions(p.map((t=>{var e;return null!==(e=t.title)&&void 0!==e?e:"untitled"})),"Select note to move ".concat(d.length," lines to"));const h=p[u.index];console.log("  Moving to note: ".concat(null!==(t=h.title)&&void 0!==t?t:"untitled"));let f=[];const w=h.paragraphs.filter((t=>"title"===t.type));f=w.length>0?w.map((t=>{let e="";for(let n=1;n<t.headingLevel;n++)e+="    ";return e+t.content})):["(top of note)"],f.push("(bottom of note)"),u=await CommandBar.showOptions(f,"Select a heading from note '".concat(null!==(e=h.title)&&void 0!==e?e:"Untitled","' to move after"));const m=f[u.index].trim();console.log("    under heading: ".concat(m));const y=h.paragraphs;let v=null;if("(top of note)"===m)v=0;else if("(bottom of note)"===m)v=y.length+1;else for(let t=0;t<y.length;t++){const e=y[t];if(e.content===m&&"title"===e.type){v=t+1;break}}if(null!==v){console.log("  Inserting at index ".concat(v)),await h.insertParagraph(g,v,"empty");for(let t=r+d.length-1;t>=r;t--)console.log("  Remove original para # ".concat(t)),a.removeParagraphAtIndex(t)}},t.newNoteFromSelection=n,Object.defineProperty(t,"__esModule",{value:!0}),t}({});Object.assign(globalThis,exports);
+var exports = (function (exports) {
+  'use strict';
+
+  // -----------------------------------------------------------------------------
+  // Helper Functions
+  // Return list of all notes, sorted by changed date (newest to oldest)
+
+  function allNotesSortedByChanged() {
+    const projectNotes = DataStore.projectNotes.slice();
+    const calendarNotes = DataStore.calendarNotes.slice();
+    const allNotes = projectNotes.concat(calendarNotes);
+    const allNotesSortedByDate = allNotes.sort((first, second) => second.changedDate - first.changedDate); // most recent first
+
+    return allNotesSortedByDate;
+  } // Convert paragraph(s) to single raw text string
+
+
+  function parasToText(paras) {
+    // console.log('parasToText: starting with ' + paras.length + ' paragraphs')
+    let text = '';
+
+    for (let i = 0; i < paras.length; i++) {
+      const p = paras[i]; // paraDetails(p)
+
+      text += "".concat(p.rawContent, "\n");
+    }
+
+    const parasAsText = text.trimEnd(); // remove extra newline not wanted after last line
+
+    return parasAsText;
+  } // -----------------------------------------------------------------------------
+
+
+  async function fileParas() {
+    var _noteToMoveTo$title, _noteToMoveTo$title2;
+
+    // identify out what we're moving (in priority order):
+    // - current selection
+    // - current heading + its following section
+    // - current line
+    // - current line (plus any indented paragraphs)
+    const {
+      content,
+      selectedParagraphs,
+      note
+    } = Editor;
+
+    if (content == null || selectedParagraphs == null || note == null) {
+      // No note open, or no paragraph selection (perhaps empty note), so don't do anything.
+      console.log('fileParse: warning: No note open.');
+      return;
+    }
+
+    const allParas = Editor.paragraphs;
+    const selection = Editor.selection;
+
+    if (selection == null) {
+      return;
+    }
+
+    const range = Editor.paragraphRangeAtCharacterIndex(selection.start); // const firstSelPara = selectedParagraphs[0]; // needed?
+
+    console.log("\nfileParse: selection ".concat(JSON.stringify(range))); // Work out what paragraph number this selected para is
+
+    let firstSelParaIndex = 0;
+
+    for (let i = 0; i < allParas.length; i++) {
+      var _p$contentRange;
+
+      const p = allParas[i];
+
+      if (((_p$contentRange = p.contentRange) === null || _p$contentRange === void 0 ? void 0 : _p$contentRange.start) === range.start) {
+        firstSelParaIndex = i;
+        break;
+      }
+    }
+
+    console.log("  First para index: ".concat(firstSelParaIndex));
+    let parasToMove = [];
+
+    if (selectedParagraphs.length > 1) {
+      // we have a selection of paragraphs, so use them
+      parasToMove = [...selectedParagraphs];
+      console.log("  Found ".concat(parasToMove.length, " selected paras"));
+    } else {
+      // we have just one paragraph selected -- the current one
+      const para = selectedParagraphs[0]; // paraDetails(para)
+
+      console.log("  Para '".concat(para.content, "' type: ").concat(para.type, ", index: ").concat(firstSelParaIndex)); // if this is a heading, find the rest of the sections
+
+      if (para.type === 'title') {
+        // includes all heading levels
+        const thisHeadingLevel = para.headingLevel;
+        console.log("  Found heading level ".concat(thisHeadingLevel));
+        parasToMove.push(para); // make this the first line to move
+        // Work out how far this section extends. (NB: headingRange doesn't help us here.)
+
+        for (let i = firstSelParaIndex + 1; i < allParas.length; i++) {
+          const p = allParas[i];
+
+          if (p.type === 'title' && p.headingLevel <= thisHeadingLevel) {
+            break;
+          } // stop as new heading of same or higher level
+
+
+          parasToMove.push(p);
+        }
+
+        console.log("  Found ".concat(parasToMove.length, " heading section lines"));
+      } else {
+        // This isn't a heading.
+        // Now see if there are following indented lines to move as well
+        const startingIndentLevel = para.indents;
+        console.log("  Found single line with indent level ".concat(startingIndentLevel));
+        parasToMove.push(para);
+
+        for (let i = firstSelParaIndex + 1; i < allParas.length; i++) {
+          const p = allParas[i];
+
+          if (p.indents <= startingIndentLevel) {
+            // stop as this para is same or less indented than the starting line
+            break;
+          }
+
+          parasToMove.push(p);
+        }
+
+        console.log("  Found ".concat(parasToMove.length - 1, " indented paras"));
+      }
+    } // If this is a calendar note we've moving from, and the user wants to
+    // create a date backlink, then append backlink to the first para in parasToMove
+
+
+    if (note.type === 'Calendar') {
+      const todaysDate = new Date().toISOString().slice(0, 10);
+      parasToMove[0].content = "".concat(parasToMove[0].content, " >").concat(todaysDate);
+    } // There's no API function to work on multiple paragraphs,
+    // or one to insert an indented paragraph, so we need to convert the paragraphs
+    // to a raw text version which we can include
+
+
+    const parasAsText = parasToText(parasToMove); // Decide where to move to
+    // Ask for the note we want to add the paras
+
+    const notes = allNotesSortedByChanged();
+    let res = await CommandBar.showOptions(notes.map(n => {
+      var _n$title;
+
+      return (_n$title = n.title) !== null && _n$title !== void 0 ? _n$title : 'untitled';
+    }), "Select note to move ".concat(parasToMove.length, " lines to"));
+    const noteToMoveTo = notes[res.index];
+    console.log("  Moving to note: ".concat((_noteToMoveTo$title = noteToMoveTo.title) !== null && _noteToMoveTo$title !== void 0 ? _noteToMoveTo$title : 'untitled')); // ask to which heading to add the paras
+
+    let headingStrings = [];
+    const headingParas = noteToMoveTo.paragraphs.filter(p => p.type === 'title'); // = all headings, not just the top 'title'
+    // console.log(headingParas.length);
+
+    if (headingParas.length > 0) {
+      headingStrings = headingParas.map(p => {
+        let prefix = '';
+
+        for (let i = 1; i < p.headingLevel; i++) {
+          prefix += '    ';
+        }
+
+        return prefix + p.content;
+      });
+    } else {
+      // Cope with case where there are no headings or titles, pointed out by @dwertheimer
+      headingStrings = ['(top of note)'];
+    } // and add a bottom of note option
+    // headingStrings.unshift('(top of note)'); // add at start
+
+
+    headingStrings.push('(bottom of note)'); // add at end
+
+    res = await CommandBar.showOptions(headingStrings, "Select a heading from note '".concat((_noteToMoveTo$title2 = noteToMoveTo.title) !== null && _noteToMoveTo$title2 !== void 0 ? _noteToMoveTo$title2 : 'Untitled', "' to move after"));
+    const headingToFind = headingStrings[res.index].trim();
+    console.log("    under heading: ".concat(headingToFind)); // Add to new location
+    // Currently there's no API function to deal with multiple paragraphs, but we can
+    // insert a raw text string
+    // Add text directly under the heading in the note
+    // note.addParagraphBelowHeadingTitle(parasToMove, 'empty', heading.content, false, false);
+
+    const destParas = noteToMoveTo.paragraphs;
+    let insertionIndex = null;
+
+    if (headingToFind === '(top of note)') {
+      insertionIndex = 0;
+    } else if (headingToFind === '(bottom of note)') {
+      insertionIndex = destParas.length + 1;
+    } else {
+      for (let i = 0; i < destParas.length; i++) {
+        const p = destParas[i];
+
+        if (p.content === headingToFind && p.type === 'title') {
+          insertionIndex = i + 1;
+          break;
+        }
+      }
+    }
+
+    if (insertionIndex === null) {
+      return;
+    }
+
+    console.log("  Inserting at index ".concat(insertionIndex));
+    await noteToMoveTo.insertParagraph(parasAsText, insertionIndex, 'empty'); // delete from existing location
+    // TODO: waiting for a fix to the preferred .removeParagraph call
+    // but this alternative works.
+    // In r634 "fixed removeParagraph. It will now look for the paragraph first at the lineIndex,
+    // and if not found it will look for a paragraph with the same the content and indentation and
+    // type. Additionally, I have added removeParagraphs(arrayOfParagraphs), to make this a bit safer."
+
+    for (let i = firstSelParaIndex + parasToMove.length - 1; i >= firstSelParaIndex; i--) {
+      console.log("  Remove original para # ".concat(i));
+      note.removeParagraphAtIndex(i);
+    }
+  }
+
+  //-------------------------------------------------------------------------------
+  // Input functions
+  // (from @nmn / nmn.sweep)
+  // (from @nmn / nmn.sweep)
+  async function chooseOption(title, options, defaultValue) {
+    var _options$index$value, _options$index;
+
+    const {
+      index
+    } = await CommandBar.showOptions(options.map(option => option.label), title);
+    return (_options$index$value = (_options$index = options[index]) === null || _options$index === void 0 ? void 0 : _options$index.value) !== null && _options$index$value !== void 0 ? _options$index$value : defaultValue;
+  } // (from @nmn / nmn.sweep)
+  /**
+   * Show a single-button dialog-box like message (modal) using CommandBar
+   * @author @dwertheimer, updating @nmn
+   * @param {string} message - text to display to user
+   * @param {string} confirmTitle - the "button" (option) text (default: 'OK')
+   */
+
+  async function showMessage(message, confirmTitle = 'OK') {
+    await CommandBar.showOptions([confirmTitle], message);
+  }
+  /**
+   * Helper function to show a simple yes/no (could be OK/Cancel, etc.) dialog using CommandBar
+   * @param {string} message - text to display to user
+   * @param {Array<string>} - an array of the choices to give (default: ['Yes', 'No'])
+   * @returns {string} - returns the user's choice - the actual *text* choice from the input array provided
+   */
+
+  async function showMessageYesNo(message, choicesArray = ['Yes', 'No']) {
+    const answer = await CommandBar.showOptions(choicesArray, message);
+    return choicesArray[answer.index];
+  } //-------------------------------------------------------------------------------
+
+  new Date().toISOString().slice(0, 10); // TODO: make a friendlier string
+
+  new Date().toISOString().slice(0, 16);
+  new Date().toLocaleString(); // @nmn
+
+  function getYearMonthDate(dateObj) {
+    const year = dateObj.getFullYear();
+    const month = dateObj.getMonth() + 1;
+    const date = dateObj.getDate();
+    return {
+      year,
+      month,
+      date
+    };
+  }
+  function hyphenatedDate(dateObj) {
+    const {
+      year,
+      month,
+      date
+    } = getYearMonthDate(dateObj);
+    return "".concat(year, "-").concat(month < 10 ? '0' : '').concat(month, "-").concat(date < 10 ? '0' : '').concat(date);
+  }
+  // console.log(`\ntesting relativeDate`)
+  // console.log(`-14 -> ${relativeDateFromNumber(-14)}`)
+  // console.log(`-7 -> ${relativeDateFromNumber(-7)}`)
+  // console.log(`-2 -> ${relativeDateFromNumber(-2)}`)
+  // console.log(`-1 -> ${relativeDateFromNumber(-1)}`)
+  // console.log(`0 -> ${relativeDateFromNumber(0)}`)
+  // console.log(`1 -> ${relativeDateFromNumber(1)}`)
+  // console.log(`2 -> ${relativeDateFromNumber(2)}`)
+  // console.log(`7 -> ${relativeDateFromNumber(7)}`)
+  // console.log(`14 -> ${relativeDateFromNumber(14)}`)
+  // console.log(`29 -> ${relativeDateFromNumber(29)}`)
+  // console.log(`30 -> ${relativeDateFromNumber(30)}`)
+  // console.log(`31 -> ${relativeDateFromNumber(31)}`)
+  // console.log(`123 -> ${relativeDateFromNumber(123)}`)
+  // console.log(`264 -> ${relativeDateFromNumber(264)}`)
+  // console.log(`364 -> ${relativeDateFromNumber(364)}`)
+  // console.log(`365 -> ${relativeDateFromNumber(365)}`)
+  // console.log(`366 -> ${relativeDateFromNumber(366)}`)
+  //-------------------------------------------------------------------------------
+  // Misc functions for NP
+
+  DataStore.defaultFileExtension != null ? DataStore.defaultFileExtension : 'md'; // Pretty print range information (@EduardMe)
+  // (@jgclark)
+
+  function displayTitle(n) {
+    if (n.type === 'Calendar' && n.date != null) {
+      return hyphenatedDate(n.date);
+    } else {
+      var _n$title;
+
+      return (_n$title = n.title) !== null && _n$title !== void 0 ? _n$title : '';
+    }
+  } // Print out all data for a paragraph (@EduardMe)
+  /**
+   * Open a note using whatever method works (open by title, filename, etc.)
+   * Note: this function was used to debug/work-around API limitations. Probably not necessary anymore
+   * Leaving it here for the moment in case any plugins are still using it
+   * @author @dwertheimer
+   * @param {string} fullPath
+   * @param {string} desc
+   * @param {boolean} useProjNoteByFilename (default: true)
+   * @returns {any} - the note that was opened
+   */
+
+  async function noteOpener(fullPath, desc, useProjNoteByFilename = true) {
+    console.log("\tAbout to open filename: \"".concat(fullPath, "\" (").concat(desc, ") using ").concat(useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename'));
+    const newNote = useProjNoteByFilename ? await DataStore.projectNoteByFilename(fullPath) : await DataStore.noteByFilename(fullPath, 'Notes');
+
+    if (newNote != null) {
+      console.log("\t\tOpened ".concat(fullPath, " (").concat(desc, " version) "));
+      return newNote;
+    } else {
+      console.log("\t\tDidn't work! ".concat(useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename', " returned ").concat(newNote));
+    }
+  }
+  /**
+   * Find a unique note title for the given text (e.g. "Title", "Title 01" (if Title exists, etc.))
+   * Keep adding numbers to the end of a filename (if already taken) until it works
+   * @author @dwertheimer
+   * @param {string} title - the name of the file
+   * @returns {string} the title (not filename) that was created
+   */
+
+  function getUniqueNoteTitle(title) {
+    let i = 0,
+        res = [],
+        newTitle = title;
+
+    while (++i === 1 || res.length > 0) {
+      newTitle = i === 1 ? title : "".concat(title, " ").concat(i);
+      res = DataStore.projectNoteByTitle(newTitle, true, false);
+    }
+
+    return newTitle;
+  } // Return user's pick from list of available folders (or return / if none) (@jgclark)
+
+  async function chooseFolder(msg) {
+    let folder;
+    const folders = DataStore.folders; // excludes Trash and Archive
+
+    if (folders.length > 0) {
+      // make a slightly fancy list with indented labels, different from plain values
+      const folderOptionList = [];
+
+      for (const f of folders) {
+        if (f !== '/') {
+          const folderParts = f.split('/');
+
+          for (let i = 0; i < folderParts.length - 1; i++) {
+            folderParts[i] = '     ';
+          }
+
+          folderParts[folderParts.length - 1] = "\uD83D\uDCC1 ".concat(folderParts[folderParts.length - 1]);
+          const folderLabel = folderParts.join('');
+          console.log(folderLabel);
+          folderOptionList.push({
+            label: folderLabel,
+            value: f
+          });
+        } else {
+          // deal with special case for root folder
+          folderOptionList.push({
+            label: '📁 /',
+            value: '/'
+          });
+        }
+      } // const re = await CommandBar.showOptions(folders, msg)
+
+
+      const re = await chooseOption(msg, folderOptionList, '/');
+      folder = re;
+    } else {
+      // no Folders so go to root
+      folder = '/';
+    }
+
+    console.log("\tfolder=".concat(folder));
+    return folder;
+  } // Return list of all notes, sorted by changed date (newest to oldest)
+
+  //------------------------------------------------------------------
+  async function newNoteFromSelection() {
+    const version = "0.4.1";
+    const {
+      selectedLinesText,
+      selectedText,
+      selectedParagraphs,
+      note
+    } = Editor;
+
+    if (note != null && selectedLinesText.length && selectedText !== '') {
+      console.log("\nnewNoteFromSelection (running v".concat(version, ") ").concat(selectedParagraphs.length, " selected:")); // console.log(
+      //   `\t1st Para Type = ${selectedParagraphs[0].type} = "${selectedParagraphs[0].content}"`,
+      // )
+      // Get title for this note
+
+      const isTextContent = ['title', 'text', 'empty'].indexOf(selectedParagraphs[0].type) >= 0;
+      const strippedFirstLine = selectedParagraphs[0].content;
+      let title = await CommandBar.showInput('Title of new note ([enter] to use text below)', strippedFirstLine); // If user just hit [enter], then use the first line as suggested
+
+      if (!title) {
+        title = strippedFirstLine;
+
+        if (isTextContent) {
+          // the types don't allow you to mutate selectedLinesText. Should this change?
+          // $FlowFixMe
+          selectedLinesText.shift();
+        }
+      }
+
+      const movedText = selectedLinesText.join('\n');
+      const uniqueTitle = getUniqueNoteTitle(title);
+
+      if (title !== uniqueTitle) {
+        await showMessage("Title exists. Using \"".concat(uniqueTitle, "\" instead"));
+        title = uniqueTitle;
+      }
+
+      const currentFolder = await chooseFolder('Select folder to add note in:');
+
+      if (title) {
+        var _await$DataStore$newN;
+
+        // Create new note in the specific folder
+        const origFile = displayTitle(note); // Calendar notes have no title, so need to make one
+
+        console.log("\torigFile: ".concat(origFile));
+        const filename = (_await$DataStore$newN = await DataStore.newNote(title, currentFolder)) !== null && _await$DataStore$newN !== void 0 ? _await$DataStore$newN : '';
+        console.log("\tnewNote() -> filename: ".concat(filename)); // The following was duplicating the path, in at least some cases. Removed all fullPath references ...
+        // const fullPath = `${
+        //   currentFolder !== '/' ? `${currentFolder}/` : ''
+        // }${filename}`
+        // This question needs to be here after newNote and before noteOpener
+        // to force a cache refresh after newNote. This API bug will eventually be fixed.
+
+        const iblq = await CommandBar.showOptions(['Yes', 'No'], 'Insert link to new file where selection was?'); // const newNote = await noteOpener(fullPath, 'no leading slash')
+
+        const newNote = await noteOpener(filename, 'using filename');
+
+        if (newNote) {
+          console.log("\tnewNote's title: ".concat(String(newNote.title)));
+          console.log("\tnewNote's content: ".concat(String(newNote.content), " ..."));
+          const insertBackLink = iblq.index === 0;
+
+          if (Editor.replaceSelectionWithText) {
+            // for compatibility, make sure the function exists
+            if (insertBackLink) {
+              Editor.replaceSelectionWithText("[[".concat(title, "]]"));
+            } else {
+              Editor.replaceSelectionWithText("");
+            }
+          }
+
+          newNote.appendParagraph(movedText, 'empty');
+
+          if (insertBackLink) {
+            newNote.appendParagraph("^^^ Moved from [[".concat(origFile, "]]:"), 'text');
+          }
+
+          if ((await showMessageYesNo('New Note created. Open it now?')) === 'Yes') {
+            // await Editor.openNoteByFilename(fullPath)
+            await Editor.openNoteByFilename(filename);
+          }
+        } else {
+          // console.log(`\tCould not open file: "${fullPath}"`)
+          // showMessage(`\tCould not open file ${fullPath}`)
+          console.log("\tCould not open new note: ".concat(filename));
+          showMessage("Could not open new note ".concat(filename));
+        }
+      } else {
+        console.log('\tError: undefined or empty title');
+      }
+    } else {
+      console.log('\tNo text was selected, so nothing to do.');
+      showMessage('No text was selected, so nothing to do.', "OK, I'll try again!");
+    }
+
+    console.log('newNoteFromSelection (finished)');
+  }
+  globalThis.newNoteFromSelection = newNoteFromSelection;
+
+  exports.fileParas = fileParas;
+  exports.newNoteFromSelection = newNoteFromSelection;
+
+  Object.defineProperty(exports, '__esModule', { value: true });
+
+  return exports;
+
+}({}));
+Object.assign(globalThis, exports)
