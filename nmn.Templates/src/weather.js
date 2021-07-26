@@ -60,8 +60,8 @@ export async function getWeatherSummary(
   }
 
   const getWeatherURL = `https://api.openweathermap.org/data/2.5/onecall?lat=${encodeURIComponent(
-    latPosition,
-  )}&lon=${longPosition}&exclude=current,hourly,minutely&units=${encodeURIComponent(
+    latPosition.toString())
+  }&lon=${encodeURIComponent(longPosition.toString())}&exclude=current,hourly,minutely&units=${encodeURIComponent(
     openWeatherUnits,
   )}&appid=${encodeURIComponent(openWeatherAPIKey)}`
 

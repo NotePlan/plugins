@@ -8,3 +8,4 @@ package-lock.json
 */.eslintrc
 *test*.yaml
 *.code-workspace
+*.dict

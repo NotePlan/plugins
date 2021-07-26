@@ -4,7 +4,7 @@ import toml from 'toml'
 import json5 from 'json5'
 import { load } from 'js-yaml'
 import { showMessage, chooseOption } from '../../nmn.sweep/src/userInput'
-import { getOrMakeTemplateFolder } from './template-folder'
+import { getOrMakeTemplateFolder, createDefaultConfigNote } from './template-folder'
 
 const ALLOWED_FORMATS = ['javascript', 'json', 'json5', 'yaml', 'toml', 'ini']
 const FORMAT_MAP = {
@@ -85,16 +85,18 @@ export async function getOrMakeConfigurationSection(
   }
 
   console.log(`  getOrMakeConfigurationSection: got folder ${templateFolder}`)
-  const configFile = DataStore.projectNotes
+  let configFile = DataStore.projectNotes
     // $FlowIgnore[incompatible-call]
     .filter((n) => n.filename?.startsWith(templateFolder))
     .find((n) => !!n.title?.startsWith('_configuration'))
 
   if (configFile == null) {
-    console.log(`  getOrMakeConfigurationSection: Error: cannot find '_configuration' file`)
-    await showMessage(`Error: cannot find '_configuration' file. Please check.`)
-    // Really strange to get here: won't code a response, but will just stop.
-    return {}
+    console.log(`  getOrMakeConfigurationSection: Error: cannot find '_configuration' fil. Will create from default.`)
+    createDefaultConfigNote()
+    configFile = DataStore.projectNotes
+      // $FlowIgnore[incompatible-call]
+      .filter((n) => n.filename?.startsWith(templateFolder))
+      .find((n) => !!n.title?.startsWith('_configuration'))
   }
 
   const content: ?string = configFile?.content

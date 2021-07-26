@@ -1,7 +1,7 @@
 // @flow
 
 //-----------------------------------------------------------------------------
-// Commands for GTD-style Reviews.
+// Commands for Reviewing project notes, GTD-style.
 // by @jgclark
 // v0.2.0, 26.7.2021
 //-----------------------------------------------------------------------------
@@ -66,22 +66,22 @@ async function getConfig(): Promise<void> {
     typeof reviewConfig.noteTypeTags === 'string') {
       pref_noteTypeTags = reviewConfig.noteTypeTags
   }
-  console.log(pref_noteTypeTags)
+  // console.log(pref_noteTypeTags)
   if (reviewConfig.folderToStore != null &&
     typeof reviewConfig.folderToStore === 'string') {
     pref_folderToStore = reviewConfig.folderToStore
   }
-  console.log(pref_folderToStore)
+  // console.log(pref_folderToStore)
   if (reviewConfig.displayGroupedByFolder != null &&
     typeof reviewConfig.displayGroupedByFolder === 'boolean') {
     pref_displayGroupedByFolder = reviewConfig.displayGroupedByFolder
   }
-  console.log(pref_displayGroupedByFolder)
+  // console.log(pref_displayGroupedByFolder)
   if (reviewConfig.displayOrder != null &&
     typeof reviewConfig.displayOrder === 'string') {
     pref_displayOrder = reviewConfig.displayOrder
   }
-  console.log(pref_displayOrder)
+  // console.log(pref_displayOrder)
 }
 
 //-------------------------------------------------------------------------------
@@ -217,7 +217,10 @@ export async function startReviews() {
   const noteToReview = await getNextNoteToReview()
   // Open that note in editor
   if (noteToReview != null) {
-    Editor.openNoteByFilename(noteToReview.filename)
+    const res = await showMessageYesNo(`Ready to review '${displayTitle(noteToReview)}'?`, ['OK', 'Cancel'])
+    if (res === 'OK') {
+      Editor.openNoteByFilename(noteToReview.filename)
+    }
   } else {
     console.log('🎉 No notes to review!')
     await showMessage('🎉 No notes to review!')

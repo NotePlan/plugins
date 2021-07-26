@@ -4,12 +4,32 @@ import { chooseOption, showMessage } from '../../helperFunctions'
 
 const staticTemplateFolder = '📋 Templates'
 
+/**
+ * Get the Templates folder path, if it exists
+ * @author @nmn
+ * @return { ?string } - folder pathname
+ */
 export function getTemplateFolder(): ?string {
   return DataStore.folders.find((f) => f.includes(staticTemplateFolder))
 }
 
-// get the template folder path, without leading '/'
-// if it doesn't exist, offer to create it and populate it with samples
+/**
+ * Write out a new _configuration file
+ * @author @jgclark
+ */
+export function createDefaultConfigNote(): void {
+  const folder = getTemplateFolder()
+  if (folder != null) {
+    DataStore.newNote(CONFIG, folder)
+  }
+}
+
+/**
+ * Get the Templates folder path, without leading '/'
+ * If it doesn't exist, offer to create it and populate it with samples
+ * @author @nmn
+ * @return { ?string } - relative folder pathname (without leading '/')
+ */
 export async function getOrMakeTemplateFolder(): Promise<?string> {
   console.log('  getOrMakeTemplateFolder start')
   let folder = getTemplateFolder()
