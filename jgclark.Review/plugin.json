@@ -1,5 +1,5 @@
 {
-	"noteplan.minAppVersion": "3.0.23",
+	"noteplan.minAppVersion": "3.0.26",
 	"plugin.id": "jgclark.Reviews",
 	"plugin.name": "🔬Reviews",
 	"plugin.description": "Commands to help review Project-based notes, GTD-style.",

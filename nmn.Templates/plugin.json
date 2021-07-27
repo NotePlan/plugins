@@ -1,6 +1,5 @@
 {
   "noteplan.minAppVersion": "3.0.21",
-  "macOS.minVersion": "10.15.7",
   "plugin.id": "nmn.templates",
   "plugin.name": "🔩 Templates",
   "plugin.description": "Create Notes with Custom Templates",

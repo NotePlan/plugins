@@ -1,6 +1,5 @@
 {
   "noteplan.min_version": "3.0.21",
-	"macOS.minVersion": "10.15.7",
   "plugin.id": "jgclark.DailyJournal",
   "plugin.name": "☀️ Daily Journal",
   "plugin.description": "Support for daily journalling in NotePlan, including start-of-day template, and end-of-day review questions. Before use it requires some configuration: please see website for details.",

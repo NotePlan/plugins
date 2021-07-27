@@ -1,6 +1,5 @@
 {
   "noteplan.min_version": "3.0.23",
-  "macOS.minVersion": "10.15.7",
   "plugin.id": "jgclark.NoteHelpers",
   "plugin.name": "📙 Note Helpers",
   "plugin.description": "Commands to quickly jump around and manage notes",

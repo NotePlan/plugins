@@ -1,6 +1,5 @@
 {
   "noteplan.min_version": "3.0.23",
-  "macOS.minVersion": "10.15.7",
   "plugin.id": "jgclark.QuickCapture",
   "plugin.name": "⚡️ Quick Capture",
   "plugin.description": "Commands to quickly add tasks/todos or general text to NotePlan notes. See website for configuration of special Inbox note.",

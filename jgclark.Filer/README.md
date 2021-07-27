@@ -17,7 +17,7 @@ If you want to stop date backlinks being added change the line at the top of the
 
 ## History
 ### v0.4.2 27.7.2021
-- minor improvement to folder list
+- minor improvement to folder list display
 
 ### v0.4.1 5.7.2021
 - fixes to /nns (not working with subfolders)

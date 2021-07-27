@@ -1,6 +1,5 @@
 {
   "noteplan.min_version": "3.0.23",
-	"macOS.minVersion": "10.15.7",
   "plugin.id": "jgclark.Filer",
   "plugin.name": "🗃 Filer",
   "plugin.description": "Help file (move) the current paragraph, selected paragraphs, or heading and its section, to different notes. Please see website for more details.",  "plugin.icon": "",
