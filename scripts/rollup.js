@@ -10,7 +10,6 @@ const { babel } = require('@rollup/plugin-babel')
 const resolve = require('@rollup/plugin-node-resolve').default
 const mkdirp = require('mkdirp')
 const username = os.userInfo().username
-const { terser } = require('rollup-plugin-terser')
 const createPluginListing = require('./createPluginListing')
 
 const FOLDERS_TO_IGNORE = [
