@@ -2,7 +2,7 @@
 // -----------------------------------------------------------------------------
 // Plugin to help move selected paragraphs to other notes
 // Jonathan Clark
-// v0.3.3, 11.6.2021
+// v0.4.2, 27.7.2021
 // -----------------------------------------------------------------------------
 
 // Preference that needs to get added when there is a proper config system
@@ -151,12 +151,9 @@ export async function fileParas() {
       }
       return prefix + p.content
     })
-  } else {
-    // Cope with case where there are no headings or titles, pointed out by @dwertheimer
-    headingStrings = ['(top of note)']
   }
-  // and add a bottom of note option
-  // headingStrings.unshift('(top of note)'); // add at start
+  // Ensure we can always add at top and bottom of note
+  headingStrings.unshift('(top of note)') // add at start
   headingStrings.push('(bottom of note)') // add at end
   res = await CommandBar.showOptions(
     headingStrings,
@@ -194,9 +191,8 @@ export async function fileParas() {
   await noteToMoveTo.insertParagraph(parasAsText, insertionIndex, 'empty')
 
   // delete from existing location
-  // TODO: waiting for a fix to the preferred .removeParagraph call
-  // but this alternative works.
-  // In r634 "fixed removeParagraph. It will now look for the paragraph first at the lineIndex,
+  // TODO: replace this workaround now that a fix appeared in r634:
+  // EM: "fixed removeParagraph. It will now look for the paragraph first at the lineIndex,
   // and if not found it will look for a paragraph with the same the content and indentation and
   // type. Additionally, I have added removeParagraphs(arrayOfParagraphs), to make this a bit safer."
   for (

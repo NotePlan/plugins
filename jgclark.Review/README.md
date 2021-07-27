@@ -1,4 +1,4 @@
-# 🔬 Review Projects plugin
+# 🔬 Reviews  plugin
 This plugin provides commands to help review with Project-based notes. This will be of interest for those who use NotePlan to plan and track work in different areas, which could be loosely referred to as 'Projects'. This will be familiar to people who use David Allen's **Getting Things Done** approach, or any other where **regular reviews** are important. It probably won't have much applicability to people who use NotePlan as a Zettelkasten-style knowledge base.
 
 ## Using NotePlan for Project-like work
@@ -27,7 +27,7 @@ Similarly, if you follow the PARA method, then you will also have "**Areas** of 
 ```markdown
 # Car maintenance
 #area @review(1m) @reviewed(2021-06-25)
-Aim: Make sure car runs well, is legal etc.
+Aim: Make sure car continues to run well, is legal etc.
 
 * check tyres @repeat(+1m) >2021-07-23
 * pay car/road tax @repeat(1y) >2021-10-11

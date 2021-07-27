@@ -11,6 +11,8 @@
 //   And, you don't have to define an end time."
 // ------------------------------------------------------------------------------------
 
+// TODO: Need to add ability to cope with 'at 5-5.30pm' and similar 
+
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 import {
   // printDateRange,

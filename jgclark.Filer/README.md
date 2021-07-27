@@ -16,6 +16,8 @@ It also provides the **`/nns`** **new note from selection** command, which exten
 If you want to stop date backlinks being added change the line at the top of the plugin'\ `fileItems.js` file to: `const pref_addDateBacklink = false;`
 
 ## History
+### v0.4.2 27.7.2021
+- minor improvement to folder list
 
 ### v0.4.1 5.7.2021
 - fixes to /nns (not working with subfolders)

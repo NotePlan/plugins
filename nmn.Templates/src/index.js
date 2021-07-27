@@ -54,9 +54,9 @@ export async function applyTemplate(newNote?: [string, string]) {
   const templateFolder = await getOrMakeTemplateFolder()
   if (templateFolder == null) {
     console.log(`applyTemplate: warning: templateFolder is null`)
-    // await makeTemplateFolder()
     await showMessage('Template Folder Not Found')
-    return
+    // await makeTemplateFolder()
+    return // TODO: activate the 'makeTemplateFolder()' again?
   }
   console.log(`applyTemplate: templateFolder = '${templateFolder}'`)
 
