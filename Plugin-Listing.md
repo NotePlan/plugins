@@ -36,7 +36,6 @@
 | `qpd` | Quickly prepend a task to a chosen daily note | ⚡️ Quick Capture |
 | `qpt` | Quickly prepend a task to a chosen project note | ⚡️ Quick Capture |
 | `rpt` | Generate new @repeat() tasks from completed ones | 🔁 @repeat Extensions |
-| `shortPluginCommandHere` | description goes here. displays in plugins install panel | Main Heading/Title for your plugin collection (e.g. Note Helpers) |
 | `start reviews` | creates/updates a machine-readable list of notes ready for review, and kicks off review of the first project note | 🔬Reviews |
 | `stp` | Show stats of tags and mentions over a time period | 🔢 Note Statistics |
 | `swa` | Reschedule multiple notes interactively to today | 🧹 Task Sweeper |
