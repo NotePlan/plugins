@@ -6,12 +6,18 @@ You do not need all of this scaffolding for a basic NP plugin. As the instructio
 
 However, for more complex plugins, you may find that it's easier to write code in multiple files, incorporating code (helper functions, etc.) written (and *TESTED*) previously by others. You also may want type checking (e.g. Flow.io) to help validate the code you write. If either of those is interesting to you, you're in the right place. Before going any further, make sure you follow the dev environment setup instructions (https://github.com/NotePlan/plugins). 
 
+Clone the entire plugins repository.
+
 Then create a copy of this skeleton, do a global find/replace for `insertPluginFunctionNameHere` for the function name of your plugin's JS entry point (it will be listed in the plugin.json). And change the filename `insertPluginFunctionNameHere.js` to match. Give the skeleton folder a name (e.g. your githubUsername.pluginOrCollectionOfCommandsName)
+
+Open up a terminal folder and change directory to the plugins repository root. Run the command `npm run autowatch` which will keep looking for changes to plugin files and will re-compile when Javascript changes are made. It will also transpile ES6 and ES7 code down to ES5 which will run on virtually all Macs.
 
 That's it. Happy coding! 
 
 Hat-tip to @eduard, @nmn & @jgclark, who made all this fancy cool stuff.
 
+Best,
+@dwertheimer
 ## Configuration
 
 ## History
