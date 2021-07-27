@@ -28,7 +28,9 @@ This includes setting up [eslint](https://eslint.org/) (for checking code conven
 
 These are the most common commands you will use while developing:
 
-- **`npm run autowatch` and your multi-file JS plugins will be compiled for you, and optionally be copied to your running NotePlan instance for testing**.  In most cases you shouldn't then need to run the following individual commands, but they're listed for completeness.
+- **`npm run autowatch` and your multi-file JS plugins will be compiled for you, and optionally be copied to your running NotePlan instance for testing**.  In most cases you shouldn't then need to run the following individual commands, but they're listed for completeness. Note, by default, this command will rebuild all plugins just in case shared files affect another plugin. If you want to focus autowatch on one or N plugins, you can pass the plugin folder name to autowatch like so:
+
+- `npm run autowatch jgclark.DailyJournal dwertheimer.TaskAutomations`
 
 Note: The previous command is typically the only one you will use. These others are rarely used, especially if you use an IDE (e.g. VSCode) that does typechecking:
 - `npm run build`: Will build all the plugins into single files (where needed)

@@ -72,6 +72,27 @@ async function checkPluginList(pluginPaths) {
 }
 
 async function main() {
+  const args = process.argv.slice(2)
+  const limitToFolders = []
+  if (args.length) {
+    console.log(`Autowatching will be limited to: ${JSON.stringify(args)}`)
+    args.forEach((arg) => {
+      fs.stat(path.join(rootFolderPath, arg))
+        .then(() => {
+          limitToFolders.push(arg)
+        })
+        .catch((e) => {
+          console.log(
+            `\nERROR: Invalid Argument: "${arg}"\n${e.path} does not exist. Make sure you are invoking with just the top-level folder name, e.g. \n---> npm run autowatch jgclark.DailyJournal\nStopping script. Try again!\n`,
+          )
+          process.exit(0)
+        })
+    })
+    console.log(
+      `\nWARNING: Keep in mind that if you are editing shared files used by other plugins that you could be affecting them by not rebuilding/testing them all here. You have been warned. :)\n`,
+    )
+  }
+
   const rootFolder = await fs.readdir(rootFolderPath, {
     withFileTypes: true,
   })
@@ -82,7 +103,8 @@ async function main() {
       (dirent) =>
         dirent.isDirectory() &&
         !dirent.name.startsWith('.') &&
-        !FOLDERS_TO_IGNORE.includes(dirent.name),
+        !FOLDERS_TO_IGNORE.includes(dirent.name) &&
+        (limitToFolders.length === 0 || limitToFolders.includes(dirent.name)),
     )
     .map(async (dirent) => {
       const pluginFolder = path.join(__dirname, '..', dirent.name)
@@ -132,7 +154,9 @@ async function main() {
           path.join(outputFolder, 'plugin.json'),
           path.join(targetFolder, 'plugin.json'),
         )
-        await checkPluginList(bundledPlugins)
+        if (limitToFolders.length === 0) {
+          await checkPluginList(bundledPlugins)
+        }
 
         console.log(
           `Generated "${outputFile.replace(
