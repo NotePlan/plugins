@@ -9291,17 +9291,41 @@ var exports = (function (exports) {
   DataStore.defaultFileExtension != null ? DataStore.defaultFileExtension : 'md'; // Pretty print range information (@EduardMe)
 
   const staticTemplateFolder = '📋 Templates';
+  /**
+   * Get the Templates folder path, if it exists
+   * @author @nmn
+   * @return { ?string } - folder pathname
+   */
+
   function getTemplateFolder() {
     return DataStore.folders.find(f => f.includes(staticTemplateFolder));
-  } // get the template folder path, without leading '/'
-  // if it doesn't exist, offer to create it and populate it with samples
+  }
+  /**
+   * Write out a new _configuration file
+   * @author @jgclark
+   */
+
+  function createDefaultConfigNote() {
+    const folder = getTemplateFolder();
+
+    if (folder != null) {
+      DataStore.newNote(CONFIG, folder);
+    }
+  }
+  /**
+   * Get the Templates folder path, without leading '/'
+   * If it doesn't exist, offer to create it and populate it with samples
+   * @author @nmn
+   * @return { ?string } - relative folder pathname (without leading '/')
+   */
 
   async function getOrMakeTemplateFolder() {
-    console.log('  getOrMakeTemplateFolder start');
+    // console.log('  getOrMakeTemplateFolder start')
     let folder = getTemplateFolder();
 
     if (folder == null) {
-      // No template folder yet, so offer to make it and populate it
+      console.log('  getOrMakeTemplateFolder: no folder found'); // No template folder yet, so offer to make it and populate it
+
       const shouldCreateFolder = await chooseOption('No templates folder found.', [{
         label: "\u2705 Create ".concat(staticTemplateFolder, " with samples"),
         value: true
@@ -9417,7 +9441,7 @@ var exports = (function (exports) {
   // @jgclark
 
   async function getOrMakeConfigurationSection(configSectionName, configSectionDefault) {
-    var _await$parseFirstCode;
+    var _configFile, _await$parseFirstCode;
 
     let templateFolder = await getOrMakeTemplateFolder();
 
@@ -9428,7 +9452,7 @@ var exports = (function (exports) {
     }
 
     console.log("  getOrMakeConfigurationSection: got folder ".concat(templateFolder));
-    const configFile = DataStore.projectNotes // $FlowIgnore[incompatible-call]
+    let configFile = DataStore.projectNotes // $FlowIgnore[incompatible-call]
     .filter(n => {
       var _n$filename2;
 
@@ -9440,13 +9464,21 @@ var exports = (function (exports) {
     });
 
     if (configFile == null) {
-      console.log("  getOrMakeConfigurationSection: Error: cannot find '_configuration' file");
-      await showMessage$1("Error: cannot find '_configuration' file. Please check."); // Really strange to get here: won't code a response, but will just stop.
+      console.log("  getOrMakeConfigurationSection: Error: cannot find '_configuration' fil. Will create from default.");
+      createDefaultConfigNote();
+      configFile = DataStore.projectNotes // $FlowIgnore[incompatible-call]
+      .filter(n => {
+        var _n$filename3;
 
-      return {};
+        return (_n$filename3 = n.filename) === null || _n$filename3 === void 0 ? void 0 : _n$filename3.startsWith(templateFolder);
+      }).find(n => {
+        var _n$title3;
+
+        return !!((_n$title3 = n.title) !== null && _n$title3 !== void 0 && _n$title3.startsWith('_configuration'));
+      });
     }
 
-    const content = configFile === null || configFile === void 0 ? void 0 : configFile.content;
+    const content = (_configFile = configFile) === null || _configFile === void 0 ? void 0 : _configFile.content;
 
     if (content == null) {
       console.log("  getOrMakeConfigurationSection: Error: '_configuration' file is empty");
@@ -9652,32 +9684,89 @@ var exports = (function (exports) {
   }
 
   // ------------------------------------------------------------------------------------
-  // Return MD list of today's events
+  // Get settings
 
-  async function listTodaysEvents() {
-    // TODO: Work out if there's an issue running this between 11PM and midnight on BST?
-    // Get config settings from Template folder _configuration note
+  const DEFAULT_EVENTS_OPTIONS = "  events: {\n    addEventID: false,  // whether to add an [[event:ID]] internal link when creating an event from a time block\n    processedTagName: \"#event_created\",   // optional tag to add after making a time block an event\n    removeTimeBlocksWhenProcessed: true,  // whether to remove time block after making an event from it\n    todaysEventsHeading: \"### Events today\",  // optional heading to put before list of today's events\n    addMatchingEvents: {   // match events with string on left, and add this into daily note prepending by string on the right (which can be empty)\n      \"#meeting\": \"### \",\n      \"#webinar\": \"### \",\n      \"#holiday\": \"\",\n    },\n  },\n";
+  let pref_todaysEventsHeading = '### Events today';
+  let pref_addMatchingEvents = null; //------------------------------------------------------------------------------
+  // Get config settings from Template folder _configuration note
+
+  async function getSettings() {
     const eventsConfig = await getOrMakeConfigurationSection('events', DEFAULT_EVENTS_OPTIONS); // const eventsConfig: any = config?.events ?? null
 
     if (eventsConfig == null) {
       console.log("\tCouldn't find 'events' settings in _configuration note.");
       await showMessage("Couldn't find 'events' settings in _configuration note.");
-      return '';
-    } // console.log("\tFound 'events' settings in _configuration note.")
-    // now get setting we need
+      return;
+    }
+
+    console.log("\tFound 'events' settings in _configuration note."); // now get settings we need
+
+    if (eventsConfig.todaysEventsHeading != null && typeof eventsConfig.todaysEventsHeading === 'string') {
+      pref_todaysEventsHeading = eventsConfig.todaysEventsHeading;
+    } // console.log(pref_todaysEventsHeading)
 
 
-    const pref_todaysEventsHeading = eventsConfig.todaysEventsHeading != null && typeof eventsConfig.todaysEventsHeading === 'string' ? eventsConfig.todaysEventsHeading : '### Events today'; // console.log(pref_todaysEventsHeading)
+    if (eventsConfig.addMatchingEvents != null) {
+      // $FlowFixMe
+      pref_addMatchingEvents = eventsConfig.addMatchingEvents;
+    } else {
+      console.log("\nError: empty find 'addMatchingEvents' setting in _configuration note.");
+    }
+  } //------------------------------------------------------------------------------
+  // Get a particular parameter setting from parameter string
 
+
+  function getParams(paramString, wantedParam) {
+    var _paramString$match;
+
+    console.log("\tgetParams for '".concat(wantedParam, "' in '").concat(paramString, "'")); // const paramMap = new Map()
+    // const paramItemIterable = paramString.matchAll(/(.*?):"(.*?)"/g)
+    // const paramItemArray = Array.from(paramItemIterable)
+    // for (const p in paramItemArray[0]) {
+    //   console.log(`  ${p[1]} / ${p[2]}`)
+    //   paramMap.set(p[1], p[2])
+    // }
+    // Following voodoo copied from @nmn in interpolation.js. 
+    // FIXME: get this working
+    // console.log(`\tgetParams ->`)
+    // const paramStringTrimmed = paramString.trim()
+    // // const paramConfig = json5.parse(paramStringTrimmed)
+    // const paramConfig =
+    //   paramStringTrimmed.startsWith('{') && paramStringTrimmed.endsWith('}')
+    //     ? await parseJSON5(paramString)
+    //     : paramStringTrimmed !== ''
+    //       ? await parseJSON5(`{${paramString}}`)
+    //       : {}
+    // console.log(JSON.stringify(paramConfig, null, 2))
+    // const paramMap: { [string]: mixed } = { ... paramConfig } // FIXME: size -> undefined
+    // console.log(paramMap.size)
+    // for (const aa of paramMap) {
+    //   console.log(`${aa}`)
+    // }
+
+    const res = (_paramString$match = paramString.match("".concat(wantedParam, ":\"(.*?)\""))) !== null && _paramString$match !== void 0 ? _paramString$match : [];
+    return res.length > 0 ? res[1] : '';
+  } //------------------------------------------------------------------------------
+  // Return MD list of today's events
+
+
+  async function listTodaysEvents(paramString) {
+    console.log("\nlistTodaysEvents:"); // Get config settings from Template folder _configuration note
+
+    await getSettings(); // Work out template for output line (from params, or if blank, a default)
+
+    const template = paramString != null ? getParams(paramString, 'template') : '- TITLE (START)';
+    console.log("\toutput template: '".concat(template, "'"));
     const eA = await Calendar.eventsToday();
     const outputArray = [];
 
     for (const e of eA) {
-      let outputLine = "- ".concat(e.title);
+      let outputLine = template; // `- ${e.title}`
 
-      if (!e.isAllDay) {
-        outputLine += " (".concat(toLocaleShortTime(e.date), ")");
-      }
+      outputLine = outputLine.replace('TITLE', e.title);
+      outputLine = outputLine.replace('START', !e.isAllDay ? toLocaleShortTime(e.date) : '');
+      outputLine = outputLine.replace('END', e.endDate != null ? toLocaleShortTime(e.endDate) : ''); // as endDate is optional
 
       outputArray.push(outputLine);
     }
@@ -9689,37 +9778,26 @@ var exports = (function (exports) {
     const output = outputArray.join('\n');
     console.log(output);
     return output;
-  } // Insert list of today's events at cursor positions
+  } //------------------------------------------------------------------------------
+  // Return string list of matching events in today's note, from list in keys of
   // pref_addMatchingEvents.
   // Prepend any with value of the values in pref_addMatchingEvents.
+  // NB: the parameter isn't currently used, but is provided for future expansion.
 
-  async function listMatchingTodaysEvents() {
-    var _ref;
-
+  async function listMatchingTodaysEvents(params) {
     console.log("\nalistMatchingTodaysEvents:"); // Get config settings from Template folder _configuration note
 
-    const eventsConfig = await getOrMakeConfigurationSection('events', DEFAULT_EVENTS_OPTIONS); // const eventsConfig: any = config?.events ?? null
-
-    if (eventsConfig == null) {
-      console.log("\tCouldn't find 'events' settings in _configuration note.");
-      return '';
-    } // now get the setting we need
-
-
-    const pref_addMatchingEvents = (_ref = eventsConfig.addMatchingEvents) !== null && _ref !== void 0 ? _ref : null;
+    await getSettings();
 
     if (pref_addMatchingEvents == null) {
-      console.log("\nError: empty find 'addMatchingEvents' setting in _configuration note.");
-      await showMessage("Warning: Empty 'addMatchingEvents' setting in _configuration note");
-      return '';
+      await showMessage("Error: Empty 'addMatchingEvents' setting in _configuration note. Stopping");
+      return "(Error: found no 'addMatchingEvents' settings in _configuration note.)";
     }
 
     const textToMatch = Object.keys(pref_addMatchingEvents);
     const textToPrepend = Object.values(pref_addMatchingEvents);
     console.log("\tFrom settings found ".concat(textToMatch.length, " match strings to look for"));
     const eA = await Calendar.eventsToday();
-    await fetch('https://noteplan.co'); // TODO: WAIT: remove on next beta!
-
     const outputArray = [];
 
     for (const e of eA) {
@@ -9742,8 +9820,7 @@ var exports = (function (exports) {
     const output = outputArray.join('\n');
     console.log(output);
     return output;
-  } // Add matching events to today's note.
-  const DEFAULT_EVENTS_OPTIONS = "  events: {\n    addEventID: false,  // whether to add an [[event:ID]] internal link when creating an event from a time block\n    processedTagName: \"#event_created\",   // optional tag to add after making a time block an event\n    removeTimeBlocksWhenProcessed: true,  // whether to remove time block after making an event from it\n    todaysEventsHeading: \"### Events today\",  // optional heading to put before list of today's events\n    addMatchingEvents: {   // match events with string on left, and add this into daily note prepending by string on the right (which can be empty)\n      \"#meeting\": \"### \",\n      \"#webinar\": \"### \",\n      \"#holiday\": \"\",\n    },\n  },\n";
+  } //------------------------------------------------------------------------------
 
   // TODO:
   // Using https://openweathermap.org/api/one-call-api#data, for which you can get a free API key
@@ -9774,7 +9851,7 @@ var exports = (function (exports) {
       return "Invalid configuration provided";
     }
 
-    const getWeatherURL = "https://api.openweathermap.org/data/2.5/onecall?lat=".concat(encodeURIComponent(latPosition), "&lon=").concat(longPosition, "&exclude=current,hourly,minutely&units=").concat(encodeURIComponent(openWeatherUnits), "&appid=").concat(encodeURIComponent(openWeatherAPIKey)); // ** The following is the more correct way, but doesn't work.
+    const getWeatherURL = "https://api.openweathermap.org/data/2.5/onecall?lat=".concat(encodeURIComponent(latPosition.toString()), "&lon=").concat(encodeURIComponent(longPosition.toString()), "&exclude=current,hourly,minutely&units=").concat(encodeURIComponent(openWeatherUnits), "&appid=").concat(encodeURIComponent(openWeatherAPIKey)); // ** The following is the more correct way, but doesn't work.
     //    So have to use a way that Flow doesn't like.
     //    See Issue 7 **
     // const response = await fetch(getWeatherURL)
@@ -9908,18 +9985,21 @@ var exports = (function (exports) {
   } // Apply any matching tag functions
 
   async function processTags(tag, config) {
+    var _tag$match$;
+
     console.log("processTag: ".concat(tag));
+    const enclosedString = (_tag$match$ = tag.match(/\((.*)\)/)[1]) !== null && _tag$match$ !== void 0 ? _tag$match$ : [];
 
     if (tag.startsWith('date(') && tag.endsWith(')')) {
-      return await processDate(tag.slice(5, tag.length - 1), config);
+      return await processDate(enclosedString, config);
     } else if (tag.startsWith('weather(') && tag.endsWith(')')) {
-      return await getWeatherSummary(tag.slice(8, tag.length - 1));
+      return await getWeatherSummary();
     } else if (tag.startsWith('listTodaysEvents(') && tag.endsWith(')')) {
-      return await listTodaysEvents();
+      return await listTodaysEvents(enclosedString);
     } else if (tag.startsWith('listMatchingEvents(') && tag.endsWith(')')) {
       return await listMatchingTodaysEvents();
     } else if (tag.startsWith('quote(') && tag.endsWith(')')) {
-      return await getDailyQuote(tag.slice(6, tag.length - 1), config);
+      return await getDailyQuote(enclosedString, config);
     } // **Add other extension function calls here**
     // Can call functions defined in other plugins, by appropriate use
     // of imports at top of file (e.g. getWeatherSummary)
@@ -9950,8 +10030,9 @@ var exports = (function (exports) {
     const defaultConfig = (_config$date = config.date) !== null && _config$date !== void 0 ? _config$date : {};
     const dateParamsTrimmed = dateParams.trim();
     const paramConfig = dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}') ? await parseJSON5(dateParams) : dateParamsTrimmed !== '' ? await parseJSON5("{".concat(dateParams, "}")) : {}; // console.log(`param config: ${dateParams} as ${JSON.stringify(paramConfig)}`);
+    // ... = "gather the remaining parameters into an array"
 
-    const finalArguments = _objectSpread2(_objectSpread2({}, defaultConfig), paramConfig); // ... = "gather the remaining parameters into an array"
+    const finalArguments = _objectSpread2(_objectSpread2({}, defaultConfig), paramConfig); // Grab just locale parameter
 
 
     const _ref = finalArguments,
@@ -10003,10 +10084,10 @@ var exports = (function (exports) {
     const templateFolder = await getOrMakeTemplateFolder();
 
     if (templateFolder == null) {
-      console.log("applyTemplate: warning: templateFolder is null"); // await makeTemplateFolder()
+      console.log("applyTemplate: warning: templateFolder is null");
+      await showMessage$1('Template Folder Not Found'); // await makeTemplateFolder()
 
-      await showMessage$1('Template Folder Not Found');
-      return;
+      return; // TODO: activate the 'makeTemplateFolder()' again?
     }
 
     console.log("applyTemplate: templateFolder = '".concat(templateFolder, "'"));

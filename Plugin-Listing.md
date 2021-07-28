@@ -9,8 +9,8 @@
 | `dp` | (Date Picker) Choose format and insert date/time time at cursor | 📅 Date Automations |
 | `fp` | file (move) paragraphs to different notes | 🗃 Filer |
 | `index` | Make/Update note link Indexes for one or more folders | 📙 Note Helpers |
-| `insert matching events` | insert matching events into today's note | 🕓 Event Helpers |
-| `insert today's events as list` | insert list of Today's calendar events at cursor | 🕓 Event Helpers |
+| `insert matching events` | inserts today's calendar events matching certain patterns at cursor | 🕓 Event Helpers |
+| `insert today's events as list` | insert list of today's calendar events at cursor | 🕓 Event Helpers |
 | `int` | Quickly add a task to your '📥 Inbox' note | ⚡️ Quick Capture |
 | `iso` | Insert date+time (in ISO format) at cursor | 📅 Date Automations |
 | `it` | Choose a Template to apply to an existing Note | 🔩 Templates |
