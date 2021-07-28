@@ -9480,9 +9480,9 @@ var exports = (function (exports) {
 
     const content = (_configFile = configFile) === null || _configFile === void 0 ? void 0 : _configFile.content;
 
-    if (content == null) {
-      console.log("  getOrMakeConfigurationSection: Error: '_configuration' file is empty");
-      await showMessage$1("Error: empty '_configuration' file. Please check."); // Really strange to get here: won't code a response, but will just stop.
+    if (configFile == null || content == null) {
+      console.log("  getOrMakeConfigurationSection: Error: '_configuration' file not found or empty");
+      await showMessage$1("Error: missing or empty '_configuration' file. Please check."); // Really strange to get here: won't code a response, but will just stop.
 
       return {};
     }
@@ -9985,10 +9985,11 @@ var exports = (function (exports) {
   } // Apply any matching tag functions
 
   async function processTags(tag, config) {
-    var _tag$match$;
+    var _tag$match;
 
     console.log("processTag: ".concat(tag));
-    const enclosedString = (_tag$match$ = tag.match(/\((.*)\)/)[1]) !== null && _tag$match$ !== void 0 ? _tag$match$ : [];
+    const res = (_tag$match = tag.match(/\((.*)\)/)) !== null && _tag$match !== void 0 ? _tag$match : [];
+    const enclosedString = res[1];
 
     if (tag.startsWith('date(') && tag.endsWith(')')) {
       return await processDate(enclosedString, config);

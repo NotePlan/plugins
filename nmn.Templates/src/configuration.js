@@ -100,9 +100,9 @@ export async function getOrMakeConfigurationSection(
   }
 
   const content: ?string = configFile?.content
-  if (content == null) {
-    console.log(`  getOrMakeConfigurationSection: Error: '_configuration' file is empty`)
-    await showMessage(`Error: empty '_configuration' file. Please check.`)
+  if (configFile == null || content == null) {
+    console.log(`  getOrMakeConfigurationSection: Error: '_configuration' file not found or empty`)
+    await showMessage(`Error: missing or empty '_configuration' file. Please check.`)
     // Really strange to get here: won't code a response, but will just stop.
     return {}
   }
@@ -136,51 +136,51 @@ export async function getOrMakeConfigurationSection(
       return {}
     }
 
-    // Add default configuration
-    const backtickParas = configFile.paragraphs.filter((p) =>
-      p.content.match(/```/),
-    )
-    // const startJSFirstBlockParas = configFile.paragraphs.filter((p) => p.content.match(/^```\s*javascript/))
-    if (
-      backtickParas.length > 0 &&
-      backtickParas[0].content.endsWith('javascript')
-    ) {
-      // Insert new default configuration at the top of the current _configuration block
-      const startFirstBlockLineNumber = backtickParas[0].lineIndex + 2
-      // const endFirstBlockLineNumber = backtickParas[1].lineIndex - 1 // this used to do the bottom of the block
-      // insert paragraph just before second ``` line
-      if (startFirstBlockLineNumber !== undefined) {
-        configFile.insertParagraph(
-          configSectionDefault,
-          startFirstBlockLineNumber,
-          'text',
-        )
-        await showMessage(
-          `Inserted default configuration for ${configSectionName}.`,
-          `OK: I will check this before re-running the command.`,
-        )
-        Editor.openNoteByFilename(configFile.filename)
-        return {}
+      // Add default configuration
+      const backtickParas = configFile.paragraphs.filter((p) =>
+        p.content.match(/```/),
+      )
+      // const startJSFirstBlockParas = configFile.paragraphs.filter((p) => p.content.match(/^```\s*javascript/))
+      if (
+        backtickParas.length > 0 &&
+        backtickParas[0].content.endsWith('javascript')
+      ) {
+        // Insert new default configuration at the top of the current _configuration block
+        const startFirstBlockLineNumber = backtickParas[0].lineIndex + 2
+        // const endFirstBlockLineNumber = backtickParas[1].lineIndex - 1 // this used to do the bottom of the block
+        // insert paragraph just before second ``` line
+        if (startFirstBlockLineNumber !== undefined) {
+          configFile.insertParagraph(
+            configSectionDefault,
+            startFirstBlockLineNumber,
+            'text',
+          )
+          await showMessage(
+            `Inserted default configuration for ${configSectionName}.`,
+            `OK: I will check this before re-running the command.`,
+          )
+          Editor.openNoteByFilename(configFile.filename)
+          return {}
+        } else {
+          await showMessage(
+            `Error: cannot create default configuration for ${configSectionName}`,
+            `OK: I will check this before re-running the command.`,
+          )
+          Editor.openNoteByFilename(configFile.filename)
+          return {}
+        }
       } else {
+        // Couldn't find javascript first codeblock, so insert it at line 2
+        const configAsJSBlock = `\`\`\` javascript\n{\n${configSectionDefault}\n}\n\`\`\``
+        configFile.insertParagraph(configAsJSBlock, 2, 'text')
+      
         await showMessage(
-          `Error: cannot create default configuration for ${configSectionName}`,
+          `Created default configuration for ${configSectionName}.`,
           `OK: I will check this before re-running the command.`,
         )
         Editor.openNoteByFilename(configFile.filename)
         return {}
       }
-    } else {
-      // Couldn't find javascript first codeblock, so insert it at line 2
-      const configAsJSBlock = `\`\`\` javascript\n{\n${configSectionDefault}\n}\n\`\`\``
-      configFile.insertParagraph(configAsJSBlock, 2, 'text')
-      
-      await showMessage(
-        `Created default configuration for ${configSectionName}.`,
-        `OK: I will check this before re-running the command.`,
-      )
-      Editor.openNoteByFilename(configFile.filename)
-      return {}
-    }
   }
 
   // We have the configuration, so return it

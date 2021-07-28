@@ -38,7 +38,8 @@ export async function processTags(
   config: { [string]: ?mixed },
 ): Promise<string> {
   console.log(`processTag: ${tag}`)
-  const enclosedString = tag.match(/\((.*)\)/)[1] ?? []
+  const res = tag.match(/\((.*)\)/) ?? []
+  const enclosedString = res[1]
   if (tag.startsWith('date(') && tag.endsWith(')')) {
     return await processDate(enclosedString, config)
 
