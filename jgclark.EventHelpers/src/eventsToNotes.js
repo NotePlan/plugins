@@ -98,7 +98,7 @@ function getParams(paramString: string, wantedParam: string): string {
 
 //------------------------------------------------------------------------------
 // Return MD list of today's events
-export async function listTodaysEvents(paramString: ?string): Promise<string> {
+export async function listTodaysEvents(paramString: string): Promise<string> {
   console.log(`\nlistTodaysEvents:`)
 
   // Get config settings from Template folder _configuration note
@@ -115,21 +115,11 @@ export async function listTodaysEvents(paramString: ?string): Promise<string> {
     outputLine = outputLine.replace('TITLE', e.title)
     outputLine = outputLine.replace(
       'START',
-      !e.isAllDay
-        ? e.date.toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-          })
-        : '',
+      !e.isAllDay ? toLocaleShortTime(e.date) : '',
     )
     outputLine = outputLine.replace(
       'END',
-      e.endDate != null
-        ? e.endDate.toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-          })
-        : '',
+      e.endDate != null ? toLocaleShortTime(e.endDate) : '',
     ) // as endDate is optional
     outputArray.push(outputLine)
   }

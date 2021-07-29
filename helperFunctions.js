@@ -65,7 +65,9 @@ export async function showMessageYesNo(
 // export function percent(value, total) {
 // @eduardme
 export function percent(value: number, total: number): string {
-  return (total > 0) ? `${value.toLocaleString()} (${Math.round((value / total) * 100)}%)` : `${value.toLocaleString()}`
+  return total > 0
+    ? `${value.toLocaleString()} (${Math.round((value / total) * 100)}%)`
+    : `${value.toLocaleString()}`
 }
 
 //-------------------------------------------------------------------------------
@@ -117,7 +119,12 @@ export function toISOShortTime(dateObj: Date): string {
 }
 
 export function toLocaleShortTime(dateObj: Date): string {
-  return dateObj.toLocaleTimeString().slice(0, 5)
+  return dateObj
+    .toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+    .slice(0, 5)
 }
 
 export function printDateRange(dr: DateRange) {
