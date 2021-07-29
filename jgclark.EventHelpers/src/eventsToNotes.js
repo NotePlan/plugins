@@ -45,10 +45,12 @@ async function getSettings(): Promise<void> {
   console.log(`\tFound 'events' settings in _configuration note.`)
 
   // now get settings we need
-  if (eventsConfig.todaysEventsHeading != null &&
-    typeof eventsConfig.todaysEventsHeading === 'string') {
-      pref_todaysEventsHeading = eventsConfig.todaysEventsHeading
-    }
+  if (
+    eventsConfig.todaysEventsHeading != null &&
+    typeof eventsConfig.todaysEventsHeading === 'string'
+  ) {
+    pref_todaysEventsHeading = eventsConfig.todaysEventsHeading
+  }
   // console.log(pref_todaysEventsHeading)
   if (eventsConfig.addMatchingEvents != null) {
     // $FlowFixMe
@@ -72,7 +74,7 @@ function getParams(paramString: string, wantedParam: string): string {
   //   paramMap.set(p[1], p[2])
   // }
 
-  // Following voodoo copied from @nmn in interpolation.js. 
+  // Following voodoo copied from @nmn in interpolation.js.
   // FIXME: get this working
   // console.log(`\tgetParams ->`)
   // const paramStringTrimmed = paramString.trim()
@@ -91,7 +93,7 @@ function getParams(paramString: string, wantedParam: string): string {
   // }
 
   const res = paramString.match(`${wantedParam}:"(.*?)"`) ?? []
-  return (res.length > 0) ? res[1] : ''
+  return res.length > 0 ? res[1] : ''
 }
 
 //------------------------------------------------------------------------------
@@ -102,7 +104,8 @@ export async function listTodaysEvents(paramString: ?string): Promise<string> {
   // Get config settings from Template folder _configuration note
   await getSettings()
   // Work out template for output line (from params, or if blank, a default)
-  const template = (paramString != null) ? getParams(paramString, 'template') : '- TITLE (START)'
+  const template =
+    paramString !== '' ? getParams(paramString, 'template') : '- TITLE (START)'
   console.log(`\toutput template: '${template}'`)
 
   const eA: Array<TCalendarItem> = await Calendar.eventsToday()
@@ -110,8 +113,14 @@ export async function listTodaysEvents(paramString: ?string): Promise<string> {
   for (const e of eA) {
     let outputLine = template // `- ${e.title}`
     outputLine = outputLine.replace('TITLE', e.title)
-    outputLine = outputLine.replace('START', (!e.isAllDay) ? toLocaleShortTime(e.date) : '')
-    outputLine = outputLine.replace('END', (e.endDate != null) ? toLocaleShortTime(e.endDate) : '') // as endDate is optional
+    outputLine = outputLine.replace(
+      'START',
+      !e.isAllDay ? toLocaleShortTime(e.date) : '',
+    )
+    outputLine = outputLine.replace(
+      'END',
+      e.endDate != null ? toLocaleShortTime(e.endDate) : '',
+    ) // as endDate is optional
     outputArray.push(outputLine)
   }
   if (pref_todaysEventsHeading !== '') {
@@ -142,12 +151,16 @@ export async function insertListTodaysEvents(params: ?string): Promise<void> {
 // pref_addMatchingEvents.
 // Prepend any with value of the values in pref_addMatchingEvents.
 // NB: the parameter isn't currently used, but is provided for future expansion.
-export async function listMatchingTodaysEvents(params: string): Promise<string> {
+export async function listMatchingTodaysEvents(
+  params: string,
+): Promise<string> {
   console.log(`\nalistMatchingTodaysEvents:`)
   // Get config settings from Template folder _configuration note
   await getSettings()
   if (pref_addMatchingEvents == null) {
-    await showMessage(`Error: Empty 'addMatchingEvents' setting in _configuration note. Stopping`)
+    await showMessage(
+      `Error: Empty 'addMatchingEvents' setting in _configuration note. Stopping`,
+    )
     return `(Error: found no 'addMatchingEvents' settings in _configuration note.)`
   }
 
