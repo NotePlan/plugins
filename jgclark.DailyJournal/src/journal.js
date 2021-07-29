@@ -32,11 +32,11 @@ function isInt(value) {
 //------------------------------------------------------------------
 // Start today's daily note with a template, including local weather lookup if configured
 export async function dayStart() {
-  console.log(`\\ndayStart for ${todaysDateString}`)
+  console.log(`\ndayStart for ${todaysDateString}`)
 
   // open today's date in the main window, and read content
   await Editor.openNoteByDate(new Date(), false)
-  // apply daily template, using @nmn Template system
+  // apply daily template, using Template system
   await applyNamedTemplateTitle(pref_templateTitle)
 }
 
@@ -46,11 +46,11 @@ export async function dayReview() {
   console.log(`\ndailyReview for ${todaysDateString}`)
 
   // Get config settings from Template folder _configuration note
-  const config = (await getOrMakeConfigurationSection(
+  const journalConfig = (await getOrMakeConfigurationSection(
     'dailyJournal',
     DEFAULT_JOURNAL_OPTIONS,
   ))
-  const journalConfig = config.dailyJournal ?? null
+  // const journalConfig = config.dailyJournal ?? null
   if (journalConfig == null) {
     // Almost certainly because we've just written default settings to _configuration.
     // If so, we should just stop, as that will need checking.
@@ -178,22 +178,18 @@ export async function dayReview() {
         break
       }
     }
-    // console.log("\tAnswer to '" + question[i] + "' = " + reviewLine[i])
+    // console.log(`\tAnswer to '${question[i]}' = ${reviewLine[i]}`)
     if (reviewLine !== '') {
-      output += `${reviewLine  }\n`
+      output += `${reviewLine}\n`
     }
   }
 
   // add the finished review text to the current daily note,
   // appending after the line found in pref_reviewSectionHeading.
   // If this doesn't exist, then append it first.
-  console.log(
-    `\tAppending to heading '${ 
-      pref_reviewSectionHeading 
-      }' the text:${ 
-      output}`,
-  )
-  // FIXME: If sectionHeading isn't present then it lands up writing '# ## Heading'
+  console.log(`\tAppending to heading '${pref_reviewSectionHeading}' the text:${output}`)
+  // If sectionHeading isn't present then it lands up writing '# ## Heading'
+  // FIXME: a bug in the API?
   Editor.note.addParagraphBelowHeadingTitle(
     output,
     'empty',

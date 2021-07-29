@@ -46,6 +46,8 @@ In more detail:
 
 
 ## History
+### v0.6.8, 28.7.2021
+- under-the-hood changes responding to underlying API and framework changes
 
 ### v0.6.7, 8.7.2021
 - add ability to check for `<number>` as well as `<int>` values in daily review questions
