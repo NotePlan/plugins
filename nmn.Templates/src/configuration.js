@@ -206,6 +206,7 @@ export async function getOrMakeConfigurationSection(
   if (Object.keys(minimumRequiredConfig) && config[configSectionName]) {
     // $FlowIgnore
     return validateMinimumConfig(
+      // $FlowIgnore
       config[configSectionName],
       minimumRequiredConfig,
     )
@@ -215,7 +216,10 @@ export async function getOrMakeConfigurationSection(
   }
 }
 
-function validateMinimumConfig(config, validations): { [string]: mixed } {
+function validateMinimumConfig(
+  config: { [string]: mixed },
+  validations: { [string]: mixed },
+): { [string]: mixed } {
   let failed = false
   if (Object.keys(validations).length) {
     Object.keys(validations).forEach((v) => {
