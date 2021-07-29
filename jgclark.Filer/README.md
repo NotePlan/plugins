@@ -1,4 +1,4 @@
-# Filer plugin
+# 🗃 Filer plugin
 This plugin provides the **`/fp`** and **`/mp`** commands to help quickly **file** (**move**) any paragraphs (any sort of line, not just tasks) to different notes in NotePlan.
 
 It works out what you want moving from the current open note using this priority order:
@@ -16,6 +16,9 @@ It also provides the **`/nns`** **new note from selection** command, which exten
 If you want to stop date backlinks being added change the line at the top of the plugin'\ `fileItems.js` file to: `const pref_addDateBacklink = false;`
 
 ## History
+### v0.4.3 29.7.2021
+- will prepend at a smarter point (i.e. after any frontmatter or metadata lines)
+
 ### v0.4.2 27.7.2021
 - minor improvement to folder list display
 

@@ -2,47 +2,29 @@
 // -----------------------------------------------------------------------------
 // Plugin to help move selected paragraphs to other notes
 // Jonathan Clark
-// v0.4.2, 27.7.2021
+// v0.4.3, 29.7.2021
 // -----------------------------------------------------------------------------
 
-// Preference that needs to get added when there is a proper config system
+import {
+  allNotesSortedByChanged,
+  parasToText,
+  calcSmartPrependPoint,
+} from '../../helperFunctions'
+
+// Setting(s)
 const pref_addDateBacklink = true
 
 // -----------------------------------------------------------------------------
-// Helper Functions
 
-// Return list of all notes, sorted by changed date (newest to oldest)
-function allNotesSortedByChanged(): Array<TNote> {
-  const projectNotes = DataStore.projectNotes.slice()
-  const calendarNotes = DataStore.calendarNotes.slice()
-  const allNotes = projectNotes.concat(calendarNotes)
-  const allNotesSortedByDate = allNotes.sort(
-    (first, second) => second.changedDate - first.changedDate,
-  ) // most recent first
-  return allNotesSortedByDate
-}
-
-// Convert paragraph(s) to single raw text string
-function parasToText(paras: Array<TParagraph>): string {
-  // console.log('parasToText: starting with ' + paras.length + ' paragraphs')
-  let text = ''
-  for (let i = 0; i < paras.length; i++) {
-    const p = paras[i]
-    // paraDetails(p)
-    text += `${p.rawContent}\n`
-  }
-  const parasAsText = text.trimEnd() // remove extra newline not wanted after last line
-  return parasAsText
-}
-
-// -----------------------------------------------------------------------------
-
-export async function fileParas() {
-  // identify out what we're moving (in priority order):
-  // - current selection
-  // - current heading + its following section
-  // - current line
-  // - current line (plus any indented paragraphs)
+/**
+ * identify what we're moving (in priority order):
+ * - current selection
+ * - current heading + its following section
+ * - current line
+ * - current line (plus any indented paragraphs)
+ * @author @jgclark
+ */
+export async function fileParas(): Promise<void> {
   const { content, selectedParagraphs, note } = Editor
   if (content == null || selectedParagraphs == null || note == null) {
     // No note open, or no paragraph selection (perhaps empty note), so don't do anything.
@@ -172,7 +154,7 @@ export async function fileParas() {
   const destParas = noteToMoveTo.paragraphs
   let insertionIndex = null
   if (headingToFind === '(top of note)') {
-    insertionIndex = 0
+    insertionIndex = calcSmartPrependPoint(noteToMoveTo)
   } else if (headingToFind === '(bottom of note)') {
     insertionIndex = destParas.length + 1
   } else {
@@ -191,16 +173,6 @@ export async function fileParas() {
   await noteToMoveTo.insertParagraph(parasAsText, insertionIndex, 'empty')
 
   // delete from existing location
-  // TODO: replace this workaround now that a fix appeared in r634:
-  // EM: "fixed removeParagraph. It will now look for the paragraph first at the lineIndex,
-  // and if not found it will look for a paragraph with the same the content and indentation and
-  // type. Additionally, I have added removeParagraphs(arrayOfParagraphs), to make this a bit safer."
-  for (
-    let i = firstSelParaIndex + parasToMove.length - 1;
-    i >= firstSelParaIndex;
-    i--
-  ) {
-    console.log(`  Remove original para # ${i}`)
-    note.removeParagraphAtIndex(i)
-  }
+  console.log(`  About to remove ${parasToMove.length} paras (parasToMove)`)
+  note.removeParagraphs(parasToMove)
 }

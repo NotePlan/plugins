@@ -1,19 +1,134 @@
 var exports = (function (exports) {
   'use strict';
 
-  // -----------------------------------------------------------------------------
-  // Helper Functions
-  // Return list of all notes, sorted by changed date (newest to oldest)
+  //-------------------------------------------------------------------------------
+  // Input functions
+  // (from @nmn / nmn.sweep)
+  // (from @nmn / nmn.sweep)
+  async function chooseOption(title, options, defaultValue) {
+    var _options$index$value, _options$index;
 
-  function allNotesSortedByChanged() {
-    const projectNotes = DataStore.projectNotes.slice();
-    const calendarNotes = DataStore.calendarNotes.slice();
-    const allNotes = projectNotes.concat(calendarNotes);
-    const allNotesSortedByDate = allNotes.sort((first, second) => second.changedDate - first.changedDate); // most recent first
+    const {
+      index
+    } = await CommandBar.showOptions(options.map(option => option.label), title);
+    return (_options$index$value = (_options$index = options[index]) === null || _options$index === void 0 ? void 0 : _options$index.value) !== null && _options$index$value !== void 0 ? _options$index$value : defaultValue;
+  } // (from @nmn / nmn.sweep)
+  /**
+   * Show a single-button dialog-box like message (modal) using CommandBar
+   * @author @dwertheimer, updating @nmn
+   * @param {string} message - text to display to user
+   * @param {string} confirmTitle - the "button" (option) text (default: 'OK')
+   */
 
-    return allNotesSortedByDate;
-  } // Convert paragraph(s) to single raw text string
+  async function showMessage(message, confirmTitle = 'OK') {
+    await CommandBar.showOptions([confirmTitle], message);
+  }
+  /**
+   * Helper function to show a simple yes/no (could be OK/Cancel, etc.) dialog using CommandBar
+   * @param {string} message - text to display to user
+   * @param {Array<string>} - an array of the choices to give (default: ['Yes', 'No'])
+   * @returns {string} - returns the user's choice - the actual *text* choice from the input array provided
+   */
 
+  async function showMessageYesNo(message, choicesArray = ['Yes', 'No']) {
+    const answer = await CommandBar.showOptions(choicesArray, message);
+    return choicesArray[answer.index];
+  }
+  /**
+   * Let user pick from a nicely-indented list of available folders (or return / for root)
+   * @author @jgclark
+   * @param {string} message - text to display to user
+   * @returns {string} - returns the user's folder choice (or / for root)
+   */
+
+  async function chooseFolder(msg) {
+    let folder;
+    const folders = DataStore.folders; // excludes Trash and Archive
+
+    if (folders.length > 0) {
+      // make a slightly fancy list with indented labels, different from plain values
+      const folderOptionList = [];
+
+      for (const f of folders) {
+        if (f !== '/') {
+          const folderParts = f.split('/');
+
+          for (let i = 0; i < folderParts.length - 1; i++) {
+            folderParts[i] = '     ';
+          }
+
+          folderParts[folderParts.length - 1] = "\uD83D\uDCC1 ".concat(folderParts[folderParts.length - 1]);
+          const folderLabel = folderParts.join('');
+          console.log(folderLabel);
+          folderOptionList.push({
+            label: folderLabel,
+            value: f
+          });
+        } else {
+          // deal with special case for root folder
+          folderOptionList.push({
+            label: '📁 /',
+            value: '/'
+          });
+        }
+      } // const re = await CommandBar.showOptions(folders, msg)
+
+
+      const re = await chooseOption(msg, folderOptionList, '/');
+      folder = re;
+    } else {
+      // no Folders so go to root
+      folder = '/';
+    }
+
+    console.log("\tfolder=".concat(folder));
+    return folder;
+  } //-------------------------------------------------------------------------------
+
+  new Date().toISOString().slice(0, 10); // TODO: make a friendlier string
+
+  new Date().toISOString().slice(0, 16);
+  new Date().toLocaleString(); // @nmn
+
+  function getYearMonthDate(dateObj) {
+    const year = dateObj.getFullYear();
+    const month = dateObj.getMonth() + 1;
+    const date = dateObj.getDate();
+    return {
+      year,
+      month,
+      date
+    };
+  }
+  function hyphenatedDate(dateObj) {
+    const {
+      year,
+      month,
+      date
+    } = getYearMonthDate(dateObj);
+    return "".concat(year, "-").concat(month < 10 ? '0' : '').concat(month, "-").concat(date < 10 ? '0' : '').concat(date);
+  }
+  // console.log(`\ntesting relativeDate`)
+  // console.log(`-14 -> ${relativeDateFromNumber(-14)}`)
+  // console.log(`-7 -> ${relativeDateFromNumber(-7)}`)
+  // console.log(`-2 -> ${relativeDateFromNumber(-2)}`)
+  // console.log(`-1 -> ${relativeDateFromNumber(-1)}`)
+  // console.log(`0 -> ${relativeDateFromNumber(0)}`)
+  // console.log(`1 -> ${relativeDateFromNumber(1)}`)
+  // console.log(`2 -> ${relativeDateFromNumber(2)}`)
+  // console.log(`7 -> ${relativeDateFromNumber(7)}`)
+  // console.log(`14 -> ${relativeDateFromNumber(14)}`)
+  // console.log(`29 -> ${relativeDateFromNumber(29)}`)
+  // console.log(`30 -> ${relativeDateFromNumber(30)}`)
+  // console.log(`31 -> ${relativeDateFromNumber(31)}`)
+  // console.log(`123 -> ${relativeDateFromNumber(123)}`)
+  // console.log(`264 -> ${relativeDateFromNumber(264)}`)
+  // console.log(`364 -> ${relativeDateFromNumber(364)}`)
+  // console.log(`365 -> ${relativeDateFromNumber(365)}`)
+  // console.log(`366 -> ${relativeDateFromNumber(366)}`)
+  //-------------------------------------------------------------------------------
+  // Paragraph-level Functions
+  // Convert paragraph(s) to single raw text string
 
   function parasToText(paras) {
     // console.log('parasToText: starting with ' + paras.length + ' paragraphs')
@@ -28,17 +143,143 @@ var exports = (function (exports) {
     const parasAsText = text.trimEnd(); // remove extra newline not wanted after last line
 
     return parasAsText;
-  } // -----------------------------------------------------------------------------
+  }
+  /**
+   * Works out which line to insert at top of file. Rather than just after title line,
+   * go after any YAML frontmatter or a metadata line (= starts with a hashtag).
+   * @author @jgclark
+   * @param {TNote} note - the note of interest
+   * @return {number} line - the calculated line to insert/prepend at
+   */
 
+  function calcSmartPrependPoint(note) {
+    var _note$content$split, _note$content;
+
+    const lines = (_note$content$split = (_note$content = note.content) === null || _note$content === void 0 ? void 0 : _note$content.split('\n')) !== null && _note$content$split !== void 0 ? _note$content$split : ['']; // By default we prepend at line 1, i.e. right after the Title line
+
+    let insertionLine = 1; // If we have any content, check for these special cases
+
+    if (lines.length > 0) {
+      if (lines[0] === '---') {
+        // console.log(`YAML start found. Will check ${lines.length} lines`)
+        // We (probably) have a YAML block
+        // Find end of YAML/frontmatter
+        // TODO(@jgclark): check my ruby code to see what I did here
+        for (let i = 1; i < lines.length; i++) {
+          if (lines[i] === '---' || lines[i] === '...') {
+            // console.log(`YAML end at ${i}`)
+            insertionLine = i + 1;
+            break;
+          }
+        }
+
+        if (insertionLine === 1) {
+          // If we get here we haven't found an end to the YAML block.
+          console.log("Warning: couldn't find end of YAML frontmatter in note ".concat(displayTitle(note))); // It's not clear what to do at this point, so will leave insertion point as is
+        }
+      } else if (lines[1].match(/^#[A-z]/)) {
+        // We have a hashtag at the start of the line, making this a metadata line
+        // Move insertion point to after the next blank line, or before the next 
+        // heading line, whichever is sooner.
+        // console.log(`Metadata line found`)
+        for (let i = 2; i < lines.length; i++) {
+          // console.log(`${i}: ${lines[i]}`)
+          if (lines[i].match(/^#{1,5}\s/)) {
+            // console.log(`  Heading at ${i}`)
+            insertionLine = i + 1;
+            break;
+          } else if (lines[i] === '') {
+            // console.log(`  Blank line at ${i}`)
+            insertionLine = i + 1;
+            break;
+          }
+        }
+      }
+    } // Return the smarter insertionLine number
+
+
+    return insertionLine;
+  }
+  /**
+   * Open a note using whatever method works (open by title, filename, etc.)
+   * Note: this function was used to debug/work-around API limitations. Probably not necessary anymore
+   * Leaving it here for the moment in case any plugins are still using it
+   * @author @dwertheimer
+   * @param {string} fullPath
+   * @param {string} desc
+   * @param {boolean} useProjNoteByFilename (default: true)
+   * @returns {any} - the note that was opened
+   */
+
+  async function noteOpener(fullPath, desc, useProjNoteByFilename = true) {
+    console.log("\tAbout to open filename: \"".concat(fullPath, "\" (").concat(desc, ") using ").concat(useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename'));
+    const newNote = useProjNoteByFilename ? await DataStore.projectNoteByFilename(fullPath) : await DataStore.noteByFilename(fullPath, 'Notes');
+
+    if (newNote != null) {
+      console.log("\t\tOpened ".concat(fullPath, " (").concat(desc, " version) "));
+      return newNote;
+    } else {
+      console.log("\t\tDidn't work! ".concat(useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename', " returned ").concat(newNote));
+    }
+  }
+  /**
+   * Find a unique note title for the given text (e.g. "Title", "Title 01" (if Title exists, etc.))
+   * Keep adding numbers to the end of a filename (if already taken) until it works
+   * @author @dwertheimer
+   * @param {string} title - the name of the file
+   * @returns {string} the title (not filename) that was created
+   */
+
+  function getUniqueNoteTitle(title) {
+    let i = 0,
+        res = [],
+        newTitle = title;
+
+    while (++i === 1 || res.length > 0) {
+      newTitle = i === 1 ? title : "".concat(title, " ").concat(i);
+      res = DataStore.projectNoteByTitle(newTitle, true, false);
+    }
+
+    return newTitle;
+  } // Return list of all notes, sorted by changed date (newest to oldest)
+
+  function allNotesSortedByChanged() {
+    const projectNotes = DataStore.projectNotes.slice();
+    const calendarNotes = DataStore.calendarNotes.slice();
+    const allNotes = projectNotes.concat(calendarNotes);
+    const allNotesSorted = allNotes.sort((first, second) => second.changedDate - first.changedDate); // most recent first
+
+    return allNotesSorted;
+  } // Return list of calendar notes, sorted by changed date (newest to oldest)
+  // Misc functions for NP
+
+  DataStore.defaultFileExtension != null ? DataStore.defaultFileExtension : 'md'; // Pretty print range information (@EduardMe)
+  // (@jgclark)
+
+  function displayTitle(n) {
+    if (n.type === 'Calendar' && n.date != null) {
+      return hyphenatedDate(n.date);
+    } else {
+      var _n$title;
+
+      return (_n$title = n.title) !== null && _n$title !== void 0 ? _n$title : '';
+    }
+  }
+
+  // -----------------------------------------------------------------------------
+
+  /**
+   * identify what we're moving (in priority order):
+   * - current selection
+   * - current heading + its following section
+   * - current line
+   * - current line (plus any indented paragraphs)
+   * @author @jgclark
+   */
 
   async function fileParas() {
     var _noteToMoveTo$title, _noteToMoveTo$title2;
 
-    // identify out what we're moving (in priority order):
-    // - current selection
-    // - current heading + its following section
-    // - current line
-    // - current line (plus any indented paragraphs)
     const {
       content,
       selectedParagraphs,
@@ -184,7 +425,7 @@ var exports = (function (exports) {
     let insertionIndex = null;
 
     if (headingToFind === '(top of note)') {
-      insertionIndex = 0;
+      insertionIndex = calcSmartPrependPoint(noteToMoveTo);
     } else if (headingToFind === '(bottom of note)') {
       insertionIndex = destParas.length + 1;
     } else {
@@ -204,193 +445,10 @@ var exports = (function (exports) {
 
     console.log("  Inserting at index ".concat(insertionIndex));
     await noteToMoveTo.insertParagraph(parasAsText, insertionIndex, 'empty'); // delete from existing location
-    // TODO: replace this workaround now that a fix appeared in r634:
-    // EM: "fixed removeParagraph. It will now look for the paragraph first at the lineIndex,
-    // and if not found it will look for a paragraph with the same the content and indentation and
-    // type. Additionally, I have added removeParagraphs(arrayOfParagraphs), to make this a bit safer."
 
-    for (let i = firstSelParaIndex + parasToMove.length - 1; i >= firstSelParaIndex; i--) {
-      console.log("  Remove original para # ".concat(i));
-      note.removeParagraphAtIndex(i);
-    }
+    console.log("  About to remove ".concat(parasToMove.length, " paras (parasToMove)"));
+    note.removeParagraphs(parasToMove);
   }
-
-  //-------------------------------------------------------------------------------
-  // Input functions
-  // (from @nmn / nmn.sweep)
-  // (from @nmn / nmn.sweep)
-  async function chooseOption(title, options, defaultValue) {
-    var _options$index$value, _options$index;
-
-    const {
-      index
-    } = await CommandBar.showOptions(options.map(option => option.label), title);
-    return (_options$index$value = (_options$index = options[index]) === null || _options$index === void 0 ? void 0 : _options$index.value) !== null && _options$index$value !== void 0 ? _options$index$value : defaultValue;
-  } // (from @nmn / nmn.sweep)
-  /**
-   * Show a single-button dialog-box like message (modal) using CommandBar
-   * @author @dwertheimer, updating @nmn
-   * @param {string} message - text to display to user
-   * @param {string} confirmTitle - the "button" (option) text (default: 'OK')
-   */
-
-  async function showMessage(message, confirmTitle = 'OK') {
-    await CommandBar.showOptions([confirmTitle], message);
-  }
-  /**
-   * Helper function to show a simple yes/no (could be OK/Cancel, etc.) dialog using CommandBar
-   * @param {string} message - text to display to user
-   * @param {Array<string>} - an array of the choices to give (default: ['Yes', 'No'])
-   * @returns {string} - returns the user's choice - the actual *text* choice from the input array provided
-   */
-
-  async function showMessageYesNo(message, choicesArray = ['Yes', 'No']) {
-    const answer = await CommandBar.showOptions(choicesArray, message);
-    return choicesArray[answer.index];
-  } //-------------------------------------------------------------------------------
-
-  new Date().toISOString().slice(0, 10); // TODO: make a friendlier string
-
-  new Date().toISOString().slice(0, 16);
-  new Date().toLocaleString(); // @nmn
-
-  function getYearMonthDate(dateObj) {
-    const year = dateObj.getFullYear();
-    const month = dateObj.getMonth() + 1;
-    const date = dateObj.getDate();
-    return {
-      year,
-      month,
-      date
-    };
-  }
-  function hyphenatedDate(dateObj) {
-    const {
-      year,
-      month,
-      date
-    } = getYearMonthDate(dateObj);
-    return "".concat(year, "-").concat(month < 10 ? '0' : '').concat(month, "-").concat(date < 10 ? '0' : '').concat(date);
-  }
-  // console.log(`\ntesting relativeDate`)
-  // console.log(`-14 -> ${relativeDateFromNumber(-14)}`)
-  // console.log(`-7 -> ${relativeDateFromNumber(-7)}`)
-  // console.log(`-2 -> ${relativeDateFromNumber(-2)}`)
-  // console.log(`-1 -> ${relativeDateFromNumber(-1)}`)
-  // console.log(`0 -> ${relativeDateFromNumber(0)}`)
-  // console.log(`1 -> ${relativeDateFromNumber(1)}`)
-  // console.log(`2 -> ${relativeDateFromNumber(2)}`)
-  // console.log(`7 -> ${relativeDateFromNumber(7)}`)
-  // console.log(`14 -> ${relativeDateFromNumber(14)}`)
-  // console.log(`29 -> ${relativeDateFromNumber(29)}`)
-  // console.log(`30 -> ${relativeDateFromNumber(30)}`)
-  // console.log(`31 -> ${relativeDateFromNumber(31)}`)
-  // console.log(`123 -> ${relativeDateFromNumber(123)}`)
-  // console.log(`264 -> ${relativeDateFromNumber(264)}`)
-  // console.log(`364 -> ${relativeDateFromNumber(364)}`)
-  // console.log(`365 -> ${relativeDateFromNumber(365)}`)
-  // console.log(`366 -> ${relativeDateFromNumber(366)}`)
-  //-------------------------------------------------------------------------------
-  // Misc functions for NP
-
-  DataStore.defaultFileExtension != null ? DataStore.defaultFileExtension : 'md'; // Pretty print range information (@EduardMe)
-  // (@jgclark)
-
-  function displayTitle(n) {
-    if (n.type === 'Calendar' && n.date != null) {
-      return hyphenatedDate(n.date);
-    } else {
-      var _n$title;
-
-      return (_n$title = n.title) !== null && _n$title !== void 0 ? _n$title : '';
-    }
-  } // Print out all data for a paragraph (@EduardMe)
-  /**
-   * Open a note using whatever method works (open by title, filename, etc.)
-   * Note: this function was used to debug/work-around API limitations. Probably not necessary anymore
-   * Leaving it here for the moment in case any plugins are still using it
-   * @author @dwertheimer
-   * @param {string} fullPath
-   * @param {string} desc
-   * @param {boolean} useProjNoteByFilename (default: true)
-   * @returns {any} - the note that was opened
-   */
-
-  async function noteOpener(fullPath, desc, useProjNoteByFilename = true) {
-    console.log("\tAbout to open filename: \"".concat(fullPath, "\" (").concat(desc, ") using ").concat(useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename'));
-    const newNote = useProjNoteByFilename ? await DataStore.projectNoteByFilename(fullPath) : await DataStore.noteByFilename(fullPath, 'Notes');
-
-    if (newNote != null) {
-      console.log("\t\tOpened ".concat(fullPath, " (").concat(desc, " version) "));
-      return newNote;
-    } else {
-      console.log("\t\tDidn't work! ".concat(useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename', " returned ").concat(newNote));
-    }
-  }
-  /**
-   * Find a unique note title for the given text (e.g. "Title", "Title 01" (if Title exists, etc.))
-   * Keep adding numbers to the end of a filename (if already taken) until it works
-   * @author @dwertheimer
-   * @param {string} title - the name of the file
-   * @returns {string} the title (not filename) that was created
-   */
-
-  function getUniqueNoteTitle(title) {
-    let i = 0,
-        res = [],
-        newTitle = title;
-
-    while (++i === 1 || res.length > 0) {
-      newTitle = i === 1 ? title : "".concat(title, " ").concat(i);
-      res = DataStore.projectNoteByTitle(newTitle, true, false);
-    }
-
-    return newTitle;
-  } // Return user's pick from list of available folders (or return / if none) (@jgclark)
-
-  async function chooseFolder(msg) {
-    let folder;
-    const folders = DataStore.folders; // excludes Trash and Archive
-
-    if (folders.length > 0) {
-      // make a slightly fancy list with indented labels, different from plain values
-      const folderOptionList = [];
-
-      for (const f of folders) {
-        if (f !== '/') {
-          const folderParts = f.split('/');
-
-          for (let i = 0; i < folderParts.length - 1; i++) {
-            folderParts[i] = '     ';
-          }
-
-          folderParts[folderParts.length - 1] = "\uD83D\uDCC1 ".concat(folderParts[folderParts.length - 1]);
-          const folderLabel = folderParts.join('');
-          console.log(folderLabel);
-          folderOptionList.push({
-            label: folderLabel,
-            value: f
-          });
-        } else {
-          // deal with special case for root folder
-          folderOptionList.push({
-            label: '📁 /',
-            value: '/'
-          });
-        }
-      } // const re = await CommandBar.showOptions(folders, msg)
-
-
-      const re = await chooseOption(msg, folderOptionList, '/');
-      folder = re;
-    } else {
-      // no Folders so go to root
-      folder = '/';
-    }
-
-    console.log("\tfolder=".concat(folder));
-    return folder;
-  } // Return list of all notes, sorted by changed date (newest to oldest)
 
   //------------------------------------------------------------------
   async function newNoteFromSelection() {
