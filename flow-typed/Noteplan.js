@@ -194,6 +194,37 @@ type TEditor = {
    * Scrolls to and highlights the given range defined by the character index and the character length it should cover. If the paragraph is folded, it will be unfolded.
    */
   highlightByIndex(index: number, length: number): void,
+  /**
+  * Note: Available from v3.0.26
+  * Shows or hides a window with a loading indicator or a progress ring (if progress is defined) and an info text (optional).
+  * `text` is optional, if you define it, it will be shown below the loading indicator.
+  * `progress` is also optional. If it's defined, the loading indicator will change into a progress ring. Use float numbers from 0-1 to define how much the ring is filled.
+  * When you are done, call `showLoading(false)` to hide the window.
+  * @param {Bool} 
+  * @param {String?} 
+  * @param {Float?} 
+  */
+  showLoading(visible: boolean, text?: string, progress?: number): void,
+  /**
+  * Note: Available from v3.0.26
+  * If you call this, anything after `await CommandBar.onAsyncThread()` will run on an asynchronous thread. 
+  * Use this together with `showLoading`, so that the work you do is not blocking the user interface. 
+  * Otherwise the loading window will be also blocked.
+  *
+  * Warning: Don't use any user interface calls (other than showLoading) on an asynchronous thread. The app might crash. 
+  * You need to return to the main thread before you change anything in the window (such as Editor functions do).
+  * Use `onMainThread()` to return to the main thread.
+  * @return {Promise}
+  */
+  onAsyncThread(): Promise<void>,
+  /**
+  * Note: Available from v3.0.26
+  * If you call this, anything after `await CommandBar.onMainThread()` will run on the main thread. 
+  * Call this after `onAsyncThread`, once your background work is done. 
+  * It is safe to call Editor and other user interface functions on the main thread.
+  * @return {Promise}
+  */
+  onMainThread(): Promise<void>,
 }
 
 /**
