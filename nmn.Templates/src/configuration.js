@@ -4,7 +4,10 @@ import toml from 'toml'
 import json5 from 'json5'
 import { load } from 'js-yaml'
 import { showMessage, chooseOption } from '../../nmn.sweep/src/userInput'
-import { getOrMakeTemplateFolder, createDefaultConfigNote } from './template-folder'
+import {
+  getOrMakeTemplateFolder,
+  createDefaultConfigNote,
+} from './template-folder'
 
 const ALLOWED_FORMATS = ['javascript', 'json', 'json5', 'yaml', 'toml', 'ini']
 const FORMAT_MAP = {
@@ -52,7 +55,9 @@ export async function parseFirstCodeblock(
     return {}
   }
   format = FORMAT_MAP[format] ?? format
-  console.log(`\tparseFirstCodeblock: will parse ${contents.length} bytes of ${format}`)
+  console.log(
+    `\tparseFirstCodeblock: will parse ${contents.length} bytes of ${format}`,
+  )
 
   switch (format) {
     case 'json':
@@ -72,14 +77,19 @@ export async function parseFirstCodeblock(
 
 // Get configuration section, or if not present, save into _configuraiton file
 // Only deals with json5 case
+// minimumRequiredConfig contains fields which must exist and type, e.g.
+// { openWeatherAPIKey:'string' } @dwertheimer
 // @jgclark
 export async function getOrMakeConfigurationSection(
   configSectionName: string,
   configSectionDefault: string,
+  minimumRequiredConfig: { [string]: ?mixed } = {},
 ): Promise<?{ [string]: ?mixed }> {
   let templateFolder = await getOrMakeTemplateFolder()
   if (templateFolder == null) {
-    console.log(`  getOrMakeConfigurationSection: couldn't find the templateFolder ... will try to create it ...`)
+    console.log(
+      `  getOrMakeConfigurationSection: couldn't find the templateFolder ... will try to create it ...`,
+    )
     templateFolder = getOrMakeTemplateFolder()
     return {}
   }
@@ -91,7 +101,9 @@ export async function getOrMakeConfigurationSection(
     .find((n) => !!n.title?.startsWith('_configuration'))
 
   if (configFile == null) {
-    console.log(`  getOrMakeConfigurationSection: Error: cannot find '_configuration' fil. Will create from default.`)
+    console.log(
+      `  getOrMakeConfigurationSection: Error: cannot find '_configuration' fil. Will create from default.`,
+    )
     createDefaultConfigNote()
     configFile = DataStore.projectNotes
       // $FlowIgnore[incompatible-call]
@@ -101,7 +113,9 @@ export async function getOrMakeConfigurationSection(
 
   const content: ?string = configFile?.content
   if (content == null) {
-    console.log(`  getOrMakeConfigurationSection: Error: '_configuration' file is empty`)
+    console.log(
+      `  getOrMakeConfigurationSection: Error: '_configuration' file is empty`,
+    )
     await showMessage(`Error: empty '_configuration' file. Please check.`)
     // Really strange to get here: won't code a response, but will just stop.
     return {}
@@ -114,9 +128,11 @@ export async function getOrMakeConfigurationSection(
     (await parseFirstCodeblock(firstCodeblock)) ?? {}
 
   // Does it contain the section we want?
-  if (firstCodeblock == null ||
-    config[configSectionName] // alternative to dot notation that allows variables
-    == null) { 
+  if (
+    firstCodeblock == null ||
+    config[configSectionName] == // alternative to dot notation that allows variables
+      null
+  ) {
     // No, so offer to make it and populate it
     const shouldAddDefaultConfig = await chooseOption<boolean, boolean>(
       `No '${configSectionName}' configuration section found.`,
@@ -159,6 +175,7 @@ export async function getOrMakeConfigurationSection(
           `Inserted default configuration for ${configSectionName}.`,
           `OK: I will check this before re-running the command.`,
         )
+        //$FlowIgnore
         Editor.openNoteByFilename(configFile.filename)
         return {}
       } else {
@@ -166,6 +183,7 @@ export async function getOrMakeConfigurationSection(
           `Error: cannot create default configuration for ${configSectionName}`,
           `OK: I will check this before re-running the command.`,
         )
+        //$FlowIgnore
         Editor.openNoteByFilename(configFile.filename)
         return {}
       }
@@ -173,19 +191,57 @@ export async function getOrMakeConfigurationSection(
       // Couldn't find javascript first codeblock, so insert it at line 2
       const configAsJSBlock = `\`\`\` javascript\n{\n${configSectionDefault}\n}\n\`\`\``
       configFile.insertParagraph(configAsJSBlock, 2, 'text')
-      
+
       await showMessage(
         `Created default configuration for ${configSectionName}.`,
         `OK: I will check this before re-running the command.`,
       )
+      //$FlowIgnore
       Editor.openNoteByFilename(configFile.filename)
       return {}
     }
   }
 
   // We have the configuration, so return it
-  // $FlowIgnore
-  return config[configSectionName]
+  if (Object.keys(minimumRequiredConfig) && config[configSectionName]) {
+    // $FlowIgnore
+    return validateMinimumConfig(
+      config[configSectionName],
+      minimumRequiredConfig,
+    )
+  } else {
+    // $FlowIgnore
+    return config[configSectionName]
+  }
+}
+
+function validateMinimumConfig(config, validations): { [string]: mixed } {
+  let failed = false
+  if (Object.keys(validations).length) {
+    Object.keys(validations).forEach((v) => {
+      //$FlowIgnore
+      if (config[v] == null) {
+        console.log(`Config required field: ${v} is missing`)
+        failed = true
+      }
+      if (typeof config[v] !== validations[v]) {
+        console.log(
+          `Config required field: ${v} is not of type ${String(
+            validations[v],
+          )}`,
+        )
+        failed = true
+      }
+    })
+  }
+  if (failed) {
+    console.log(`Config failed minimum validation spec!`)
+    return {}
+  } else {
+    console.log(`Config passed minimum validation spec`)
+    //$FlowIgnore
+    return config
+  }
 }
 
 async function parseJSON(contents: string): Promise<?{ [string]: ?mixed }> {
