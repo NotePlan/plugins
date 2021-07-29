@@ -31,11 +31,10 @@ export function createDefaultConfigNote(): void {
  * @return { ?string } - relative folder pathname (without leading '/')
  */
 export async function getOrMakeTemplateFolder(): Promise<?string> {
-  // console.log('  getOrMakeTemplateFolder start')
+  console.log('  getOrMakeTemplateFolder start')
   let folder = getTemplateFolder()
 
   if (folder == null) {
-    console.log('  getOrMakeTemplateFolder: no folder found')
     // No template folder yet, so offer to make it and populate it
     const shouldCreateFolder = await chooseOption<boolean, boolean>(
       'No templates folder found.',

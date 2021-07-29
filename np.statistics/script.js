@@ -34,7 +34,7 @@ var exports = (function (exports) {
   // @eduardme
 
   function percent(value, total) {
-    return total > 0 ? "".concat(value.toLocaleString(), " (").concat(Math.round(value / total * 100), "%)") : "".concat(value.toLocaleString());
+    return "".concat(value.toLocaleString(), " (").concat(Math.round(value / total * 100), "%)");
   } //-------------------------------------------------------------------------------
 
   const todaysDateISOString = new Date().toISOString().slice(0, 10); // TODO: make a friendlier string
@@ -9508,41 +9508,17 @@ var exports = (function (exports) {
   }
 
   const staticTemplateFolder = '📋 Templates';
-  /**
-   * Get the Templates folder path, if it exists
-   * @author @nmn
-   * @return { ?string } - folder pathname
-   */
-
   function getTemplateFolder() {
     return DataStore.folders.find(f => f.includes(staticTemplateFolder));
-  }
-  /**
-   * Write out a new _configuration file
-   * @author @jgclark
-   */
-
-  function createDefaultConfigNote() {
-    const folder = getTemplateFolder();
-
-    if (folder != null) {
-      DataStore.newNote(CONFIG, folder);
-    }
-  }
-  /**
-   * Get the Templates folder path, without leading '/'
-   * If it doesn't exist, offer to create it and populate it with samples
-   * @author @nmn
-   * @return { ?string } - relative folder pathname (without leading '/')
-   */
+  } // get the template folder path, without leading '/'
+  // if it doesn't exist, offer to create it and populate it with samples
 
   async function getOrMakeTemplateFolder() {
-    // console.log('  getOrMakeTemplateFolder start')
+    console.log('  getOrMakeTemplateFolder start');
     let folder = getTemplateFolder();
 
     if (folder == null) {
-      console.log('  getOrMakeTemplateFolder: no folder found'); // No template folder yet, so offer to make it and populate it
-
+      // No template folder yet, so offer to make it and populate it
       const shouldCreateFolder = await chooseOption$1('No templates folder found.', [{
         label: "\u2705 Create ".concat(staticTemplateFolder, " with samples"),
         value: true
@@ -9608,7 +9584,8 @@ var exports = (function (exports) {
       return {};
     }
 
-    format = (_FORMAT_MAP$format = FORMAT_MAP[format]) !== null && _FORMAT_MAP$format !== void 0 ? _FORMAT_MAP$format : format; // console.log(`\tparseFirstCodeblock: will parse ${contents.length} bytes of ${format}`)
+    format = (_FORMAT_MAP$format = FORMAT_MAP[format]) !== null && _FORMAT_MAP$format !== void 0 ? _FORMAT_MAP$format : format;
+    console.log("\tparseFirstCodeblock: will parse ".concat(contents.length, " bytes of ").concat(format));
 
     switch (format) {
       case 'json':
@@ -9631,7 +9608,7 @@ var exports = (function (exports) {
   // @jgclark
 
   async function getOrMakeConfigurationSection(configSectionName, configSectionDefault) {
-    var _configFile, _await$parseFirstCode;
+    var _await$parseFirstCode;
 
     let templateFolder = await getOrMakeTemplateFolder();
 
@@ -9639,10 +9616,10 @@ var exports = (function (exports) {
       console.log("  getOrMakeConfigurationSection: couldn't find the templateFolder ... will try to create it ...");
       templateFolder = getOrMakeTemplateFolder();
       return {};
-    } // console.log(`  getOrMakeConfigurationSection: got folder ${templateFolder}`)
+    }
 
-
-    let configFile = DataStore.projectNotes // $FlowIgnore[incompatible-call]
+    console.log("  getOrMakeConfigurationSection: got folder ".concat(templateFolder));
+    const configFile = DataStore.projectNotes // $FlowIgnore[incompatible-call]
     .filter(n => {
       var _n$filename2;
 
@@ -9654,21 +9631,13 @@ var exports = (function (exports) {
     });
 
     if (configFile == null) {
-      console.log("  getOrMakeConfigurationSection: Error: cannot find '_configuration' fil. Will create from default.");
-      createDefaultConfigNote();
-      configFile = DataStore.projectNotes // $FlowIgnore[incompatible-call]
-      .filter(n => {
-        var _n$filename3;
+      console.log("  getOrMakeConfigurationSection: Error: cannot find '_configuration' file");
+      await showMessage("Error: cannot find '_configuration' file. Please check."); // Really strange to get here: won't code a response, but will just stop.
 
-        return (_n$filename3 = n.filename) === null || _n$filename3 === void 0 ? void 0 : _n$filename3.startsWith(templateFolder);
-      }).find(n => {
-        var _n$title3;
-
-        return !!((_n$title3 = n.title) !== null && _n$title3 !== void 0 && _n$title3.startsWith('_configuration'));
-      });
+      return {};
     }
 
-    const content = (_configFile = configFile) === null || _configFile === void 0 ? void 0 : _configFile.content;
+    const content = configFile === null || configFile === void 0 ? void 0 : configFile.content;
 
     if (content == null) {
       console.log("  getOrMakeConfigurationSection: Error: '_configuration' file is empty");
@@ -9724,9 +9693,8 @@ var exports = (function (exports) {
         return {};
       }
     } // We have the configuration, so return it
+    // $FlowIgnore
 
-
-    console.log('  getOrMakeConfigurationSection: found first code block'); // $FlowIgnore
 
     return config[configSectionName];
   }
