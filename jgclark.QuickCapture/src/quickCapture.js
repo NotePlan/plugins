@@ -2,7 +2,7 @@
 // --------------------------------------------------------------------------------------------------------------------
 // QuickCapture plugin for NotePlan
 // Jonathan Clark
-// v0.4.5, 12.7.2021
+// v0.4.6, 29.7.2021
 // --------------------------------------------------------------------------------------------------------------------
 
 import {
@@ -17,61 +17,20 @@ import {
   todaysDateISOString,
   displayTitle,
   chooseFolder,
+  smartPrependPara,
+  calendarNotesSortedByChanged,
+  projectNotesSortedByChanged,
 } from '../../helperFunctions'
 
 // ------------------------------------------------------------------
-// Prepends a task to a chosen note, but more smartly that usual. 
-// I.e. if the note starts with YAML frontmatter (e.g. https://docs.zettlr.com/en/core/yaml-frontmatter/)
-// or a metadata line (= starts with a hashtag), then add after that.
-export function smartPrependPara(note: TNote,
-  paraText: string,
-  paragraphType: ParagraphType): void {
-  
-  const lines = note.content?.split('\n') ?? ['']
 
-  // By default we prepend at line 1, i.e. right after the Title line
-  let insertionLine = 1
-  // If we have any content, check for these special cases
-  if (lines.length > 0) {
-    if (lines[0] === '---') {
-      // console.log(`YAML start found. Will check ${lines.length} lines`)
-      // We (probably) have a YAML block
-      // Find end of YAML/frontmatter
-      // TODO: check my ruby code to see what I did here
-      for (let i = 1; i < lines.length; i++) {
-        if (lines[i] === '---' || lines[i] === '...') {
-          // console.log(`YAML end at ${i}`)
-          insertionLine = i + 1
-          break
-        }
-      }
-      if (insertionLine === 1) {
-        // If we get here we haven't found an end to the YAML block.
-        console.log(`Warning: couldn't find end of YAML frontmatter in note ${displayTitle(note)}`)
-        // It's not clear what to do at this point, so will leave insertion point as is
-      }
-    } else if (lines[1].match(/^#[A-z]/)) {
-      // We have a hashtag at the start of the line, making this a metadata line
-      // Move insertion point to after the next blank line, or before the next 
-      // heading line, whichever is sooner.
-      // console.log(`Metadata line found`)
-      for (let i = 2; i < 13 /*lines.length*/; i++) {
-        // console.log(`${i}: ${lines[i]}`)
-        if (lines[i].match(/^#{1,5}\s/)) {
-            // console.log(`  Heading at ${i}`)
-            insertionLine = i + 1
-            break
-          } else if (lines[i] === '') {
-            // console.log(`  Blank line at ${i}`)
-            insertionLine = i + 1
-            break
-          }
-      }
-    }
-  }
-  // Insert the text at the insertionLine line
-  note.insertParagraph(paraText, insertionLine, paragraphType)
-}
+const DEFAULT_INBOX_CONFIG = `
+  inbox: {
+    inboxFilename: "📥 Inbox.md",
+    inboxTitle: "📥 Inbox",
+    addInboxPosition: "prepend",
+  },
+`
 
 // ------------------------------------------------------------------
 // Prepends a task to a chosen note
@@ -86,9 +45,6 @@ export async function prependTaskToNote() {
     notes.map((n) => n.title).filter(Boolean),
     'Select note to prepend',
   )
-  // Old way
-  // notes[re.index].prependTodo(taskName)
-  // Newer way
   smartPrependPara(notes[re.index], taskName, 'open')
 }
 
@@ -325,24 +281,4 @@ export async function addTaskToInbox() {
     // $FlowFixMe -- don't know how to deal with apparent mixed type here
     console.log(`\tERROR: Couldn't find Inbox note '${pref_inboxFilename}'`)
   }
-}
-
-const DEFAULT_INBOX_CONFIG = `
-  inbox: {
-    inboxFilename: "📥 Inbox.md",
-    inboxTitle: "📥 Inbox",
-    addInboxPosition: "prepend",
-  },
-`
-
-function calendarNotesSortedByChanged(): Array<TNote> {
-  return DataStore.calendarNotes
-    .slice()
-    .sort((first, second) => second.changedDate - first.changedDate)
-}
-
-function projectNotesSortedByChanged(): Array<TNote> {
-  return DataStore.projectNotes
-    .slice()
-    .sort((first, second) => second.changedDate - first.changedDate)
 }
