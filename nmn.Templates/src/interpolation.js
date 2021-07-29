@@ -38,16 +38,23 @@ export async function processTags(
   config: { [string]: ?mixed },
 ): Promise<string> {
   console.log(`processTag: ${tag}`)
+  const res = tag.match(/\((.*)\)/) ?? []
+  const enclosedString = res[1]
   if (tag.startsWith('date(') && tag.endsWith(')')) {
-    return await processDate(tag.slice(5, tag.length - 1), config)
+    return await processDate(enclosedString, config)
+
   } else if (tag.startsWith('weather(') && tag.endsWith(')')) {
-    return await getWeatherSummary(tag.slice(8, tag.length - 1))
+    return await getWeatherSummary(enclosedString)
+
   } else if (tag.startsWith('listTodaysEvents(') && tag.endsWith(')')) {
-    return await listTodaysEvents()
+    return await listTodaysEvents(enclosedString)
+
   } else if (tag.startsWith('listMatchingEvents(') && tag.endsWith(')')) {
-    return await listMatchingTodaysEvents()
+    return await listMatchingTodaysEvents(enclosedString)
+
   } else if (tag.startsWith('quote(') && tag.endsWith(')')) {
-    return await getDailyQuote(tag.slice(6, tag.length - 1), config)
+    return await getDailyQuote(enclosedString, config)
+
   }
 
   // **Add other extension function calls here**
@@ -98,12 +105,13 @@ export async function processDate(
       ? await parseJSON5(`{${dateParams}}`)
       : {}
   // console.log(`param config: ${dateParams} as ${JSON.stringify(paramConfig)}`);
+  // ... = "gather the remaining parameters into an array"
   const finalArguments: { [string]: mixed } = {
     ...defaultConfig,
     ...paramConfig,
   }
 
-  // ... = "gather the remaining parameters into an array"
+  // Grab just locale parameter
   const { locale, ...otherParams } = (finalArguments: any)
 
   const localeParam = locale != null ? String(locale) : []
