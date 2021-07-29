@@ -20,17 +20,39 @@ export async function getWeatherSummary(
     'sunny intervals',
     'partly sunny',
     'sunny',
+    'clear sky',
     'cloud',
     'snow ',
     'thunderstorm',
+    // eslint-disable-next-line comma-dangle
     'tornado',
   ]
-  const weatherDescIcons = ['🌦️', '🌧️', '🌤', '⛅', '☀️', '☁️', '🌨️', '⛈', '🌪']
+  //$FlowIgnore
+  const weatherDescIcons = [
+    '🌦️',
+    '🌧️',
+    '🌤',
+    '⛅',
+    '☀️',
+    '☀️',
+    '☁️',
+    '🌨️',
+    '⛈',
+    '🌪',
+  ]
+
+  const minimumConfig = {
+    openWeatherAPIKey: 'string',
+    latPosition: 'number',
+    longPosition: 'number',
+    openWeatherUnits: 'string',
+  }
 
   // Get config settings from Template folder _configuration note
   const weatherConfig = await getOrMakeConfigurationSection(
     'weather',
     DEFAULT_WEATHER_CONFIG,
+    minimumConfig,
   )
 
   // Get config settings from Template folder _configuration note
@@ -43,8 +65,14 @@ export async function getWeatherSummary(
     return "Error: Cannot find 'weather' settings in Templates/_configuration note."
   }
 
-  const { openWeatherAPIKey, latPosition, longPosition, openWeatherUnits } =
-    weatherConfig
+  const {
+    openWeatherAPIKey,
+    latPosition,
+    longPosition,
+    openWeatherUnits,
+    showFeelsLike,
+    includeTimezone,
+  } = weatherConfig
 
   if (
     openWeatherAPIKey == null ||
@@ -60,8 +88,10 @@ export async function getWeatherSummary(
   }
 
   const getWeatherURL = `https://api.openweathermap.org/data/2.5/onecall?lat=${encodeURIComponent(
-    latPosition.toString())
-  }&lon=${encodeURIComponent(longPosition.toString())}&exclude=current,hourly,minutely&units=${encodeURIComponent(
+    latPosition.toString(),
+  )}&lon=${encodeURIComponent(
+    longPosition.toString(),
+  )}&exclude=current,hourly,minutely&units=${encodeURIComponent(
     openWeatherUnits,
   )}&appid=${encodeURIComponent(openWeatherAPIKey)}`
 
@@ -81,8 +111,7 @@ export async function getWeatherSummary(
   // }
 
   // console.log(getWeatherURL)
-  let jsonIn
-  let weatherTodayAll
+  let jsonIn, allWeatherData
   try {
     jsonIn = await fetch(getWeatherURL)
     // console.log(`  HTTP response ${jsonIn.status}`) //  .status always returns 'undefined', even when it works?!
@@ -95,18 +124,29 @@ export async function getWeatherSummary(
   if (jsonIn != null) {
     try {
       // $FlowIgnore[incompatible-call]
-      weatherTodayAll = JSON.parse(jsonIn)?.daily['0']
+      allWeatherData = JSON.parse(jsonIn)
     } catch (err) {
       console.log(
         `Error ${err.message} parsing Weather data lookup. Please check your _configuration note.`,
       )
       return `Error ${err.message} parsing Weather data lookup. Please check your _configuration note.`
     }
-    // const weatherTodayAll = jsonIn.daily['0']
-    const maxTemp = weatherTodayAll.feels_like.day.toFixed(0)
-    const minTemp = weatherTodayAll.feels_like.night.toFixed(0)
-    const weatherDesc = weatherTodayAll.weather['0'].description ?? ''
+    console.log(`WeatherData: ${JSON.stringify(allWeatherData)}`)
+    if (allWeatherData.cod === 401)
+      return `Weather: Invalid configuration settings. ${allWeatherData.message}`
 
+    // const weatherTodayAll = jsonIn.daily['0']
+    const weatherTodayAll = allWeatherData?.daily['0']
+    const fMax = weatherTodayAll.feels_like.day.toFixed(0)
+    const fMin = weatherTodayAll.feels_like.night.toFixed(0)
+    const minTemp = weatherTodayAll.temp.min.toFixed(0)
+    const maxTemp = weatherTodayAll.temp.max.toFixed(0)
+    const weatherDesc = weatherTodayAll.weather['0'].description ?? ''
+    const units = openWeatherUnits === 'imperial' ? '°F' : '°C'
+    const feelsLine = `${
+      showFeelsLike ? `, Feels like ${fMin}${units}-${fMax}${units} ` : ''
+    }`
+    const timezone = allWeatherData.timezone
     // see if we can fix an icon for this as well, according to returned description. Main terms are:
     // thunderstorm, drizzle, shower > rain, snow, sleet, clear sky, mist, fog, dust, tornado, overcast > clouds
     // with 'light' modifier for rain and snow
@@ -127,7 +167,10 @@ export async function getWeatherSummary(
     //   : {}
     // console.log(paramConfig)
 
-    const summaryLine = `${weatherIcon}${weatherDesc} ${maxTemp}/${minTemp}`
+    let summaryLine = `Weather: ${weatherIcon}${weatherDesc} ${minTemp}${units}-${maxTemp}${units}${feelsLine}`
+    if (includeTimezone) {
+      summaryLine += ` in ${timezone}`
+    }
     console.log(`\t${summaryLine}`)
     return summaryLine
   } else {
@@ -145,7 +188,10 @@ const DEFAULT_WEATHER_CONFIG = `
     // Required location for weather forecast
     latPosition: 0.0,
     longPosition: 0.0,
-    // Default units. Can be 'metric' (for Celsius), or 'metric' (for Fahrenheit)
+    // Default units. Can be 'metric' (for Celsius), or 'imperial' (for Fahrenheit)
     openWeatherUnits: 'metric',
+    // prefer feels_like over actual temperature
+    showFeelsLike: false,
+    includeTimezone: false,
   },
 `
