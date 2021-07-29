@@ -115,11 +115,21 @@ export async function listTodaysEvents(paramString: ?string): Promise<string> {
     outputLine = outputLine.replace('TITLE', e.title)
     outputLine = outputLine.replace(
       'START',
-      !e.isAllDay ? toLocaleShortTime(e.date) : '',
+      !e.isAllDay
+        ? e.date.toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+        : '',
     )
     outputLine = outputLine.replace(
       'END',
-      e.endDate != null ? toLocaleShortTime(e.endDate) : '',
+      e.endDate != null
+        ? e.endDate.toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+        : '',
     ) // as endDate is optional
     outputArray.push(outputLine)
   }
