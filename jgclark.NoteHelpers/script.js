@@ -13,49 +13,12 @@ var exports = (function (exports) {
     } = await CommandBar.showOptions(options.map(option => option.label), title);
     return (_options$index$value = (_options$index = options[index]) === null || _options$index === void 0 ? void 0 : _options$index.value) !== null && _options$index$value !== void 0 ? _options$index$value : defaultValue;
   } // (from @nmn / nmn.sweep)
-
-  new Date().toISOString().slice(0, 10); // TODO: make a friendlier string
-
-  const nowShortDateTime = new Date().toISOString().slice(0, 16);
-  new Date().toLocaleString(); // @nmn
-  // console.log(`\ntesting relativeDate`)
-  // console.log(`-14 -> ${relativeDateFromNumber(-14)}`)
-  // console.log(`-7 -> ${relativeDateFromNumber(-7)}`)
-  // console.log(`-2 -> ${relativeDateFromNumber(-2)}`)
-  // console.log(`-1 -> ${relativeDateFromNumber(-1)}`)
-  // console.log(`0 -> ${relativeDateFromNumber(0)}`)
-  // console.log(`1 -> ${relativeDateFromNumber(1)}`)
-  // console.log(`2 -> ${relativeDateFromNumber(2)}`)
-  // console.log(`7 -> ${relativeDateFromNumber(7)}`)
-  // console.log(`14 -> ${relativeDateFromNumber(14)}`)
-  // console.log(`29 -> ${relativeDateFromNumber(29)}`)
-  // console.log(`30 -> ${relativeDateFromNumber(30)}`)
-  // console.log(`31 -> ${relativeDateFromNumber(31)}`)
-  // console.log(`123 -> ${relativeDateFromNumber(123)}`)
-  // console.log(`264 -> ${relativeDateFromNumber(264)}`)
-  // console.log(`364 -> ${relativeDateFromNumber(364)}`)
-  // console.log(`365 -> ${relativeDateFromNumber(365)}`)
-  // console.log(`366 -> ${relativeDateFromNumber(366)}`)
-  //-------------------------------------------------------------------------------
-  // Misc functions for NP
-
-  const defaultFileExt = DataStore.defaultFileExtension != null ? DataStore.defaultFileExtension : 'md'; // Pretty print range information (@EduardMe)
-  function printNote(note) {
-    if (note == null) {
-      console.log('Note not found!');
-      return;
-    }
-
-    if (note.type === 'Notes') {
-      var _note$title, _note$filename, _String, _String2, _note$hashtags$join, _note$hashtags, _note$mentions$join, _note$mentions;
-
-      console.log("title: ".concat((_note$title = note.title) !== null && _note$title !== void 0 ? _note$title : '', "\n\tfilename: ").concat((_note$filename = note.filename) !== null && _note$filename !== void 0 ? _note$filename : '', "\n\tcreated: ").concat((_String = String(note.createdDate)) !== null && _String !== void 0 ? _String : '', "\n\tchanged: ").concat((_String2 = String(note.changedDate)) !== null && _String2 !== void 0 ? _String2 : '', "\n\thashtags: ").concat((_note$hashtags$join = (_note$hashtags = note.hashtags) === null || _note$hashtags === void 0 ? void 0 : _note$hashtags.join(',')) !== null && _note$hashtags$join !== void 0 ? _note$hashtags$join : '', "\n\tmentions: ").concat((_note$mentions$join = (_note$mentions = note.mentions) === null || _note$mentions === void 0 ? void 0 : _note$mentions.join(',')) !== null && _note$mentions$join !== void 0 ? _note$mentions$join : ''));
-    } else {
-      var _note$filename2, _String3, _String4, _note$hashtags$join2, _note$hashtags2, _note$mentions$join2, _note$mentions2;
-
-      console.log("filename: ".concat((_note$filename2 = note.filename) !== null && _note$filename2 !== void 0 ? _note$filename2 : '', "\n\tcreated: ").concat((_String3 = String(note.createdDate)) !== null && _String3 !== void 0 ? _String3 : '', "\n\tchanged: ").concat((_String4 = String(note.changedDate)) !== null && _String4 !== void 0 ? _String4 : '', "\n\thashtags: ").concat((_note$hashtags$join2 = (_note$hashtags2 = note.hashtags) === null || _note$hashtags2 === void 0 ? void 0 : _note$hashtags2.join(',')) !== null && _note$hashtags$join2 !== void 0 ? _note$hashtags$join2 : '', "\n\tmentions: ").concat((_note$mentions$join2 = (_note$mentions2 = note.mentions) === null || _note$mentions2 === void 0 ? void 0 : _note$mentions2.join(',')) !== null && _note$mentions$join2 !== void 0 ? _note$mentions$join2 : ''));
-    }
-  }
+  /**
+   * Let user pick from a nicely-indented list of available folders (or return / for root)
+   * @author @jgclark
+   * @param {string} message - text to display to user
+   * @returns {string} - returns the user's folder choice (or / for root)
+   */
 
   async function chooseFolder(msg) {
     let folder;
@@ -99,14 +62,71 @@ var exports = (function (exports) {
 
     console.log("\tfolder=".concat(folder));
     return folder;
-  } // Return list of all notes, sorted by changed date (newest to oldest)
+  } //-------------------------------------------------------------------------------
+
+  new Date().toISOString().slice(0, 10); // TODO: make a friendlier string
+
+  const nowShortDateTime = new Date().toISOString().slice(0, 16);
+  new Date().toLocaleString(); // @nmn
+  // Note-level Functions
+
+  function printNote(note) {
+    if (note == null) {
+      console.log('Note not found!');
+      return;
+    }
+
+    if (note.type === 'Notes') {
+      var _note$title, _note$filename, _String, _String2, _note$hashtags$join, _note$hashtags, _note$mentions$join, _note$mentions;
+
+      console.log("title: ".concat((_note$title = note.title) !== null && _note$title !== void 0 ? _note$title : '', "\n\tfilename: ").concat((_note$filename = note.filename) !== null && _note$filename !== void 0 ? _note$filename : '', "\n\tcreated: ").concat((_String = String(note.createdDate)) !== null && _String !== void 0 ? _String : '', "\n\tchanged: ").concat((_String2 = String(note.changedDate)) !== null && _String2 !== void 0 ? _String2 : '', "\n\thashtags: ").concat((_note$hashtags$join = (_note$hashtags = note.hashtags) === null || _note$hashtags === void 0 ? void 0 : _note$hashtags.join(',')) !== null && _note$hashtags$join !== void 0 ? _note$hashtags$join : '', "\n\tmentions: ").concat((_note$mentions$join = (_note$mentions = note.mentions) === null || _note$mentions === void 0 ? void 0 : _note$mentions.join(',')) !== null && _note$mentions$join !== void 0 ? _note$mentions$join : ''));
+    } else {
+      var _note$filename2, _String3, _String4, _note$hashtags$join2, _note$hashtags2, _note$mentions$join2, _note$mentions2;
+
+      console.log("filename: ".concat((_note$filename2 = note.filename) !== null && _note$filename2 !== void 0 ? _note$filename2 : '', "\n\tcreated: ").concat((_String3 = String(note.createdDate)) !== null && _String3 !== void 0 ? _String3 : '', "\n\tchanged: ").concat((_String4 = String(note.changedDate)) !== null && _String4 !== void 0 ? _String4 : '', "\n\thashtags: ").concat((_note$hashtags$join2 = (_note$hashtags2 = note.hashtags) === null || _note$hashtags2 === void 0 ? void 0 : _note$hashtags2.join(',')) !== null && _note$hashtags$join2 !== void 0 ? _note$hashtags$join2 : '', "\n\tmentions: ").concat((_note$mentions$join2 = (_note$mentions2 = note.mentions) === null || _note$mentions2 === void 0 ? void 0 : _note$mentions2.join(',')) !== null && _note$mentions$join2 !== void 0 ? _note$mentions$join2 : ''));
+    }
+  }
 
   function projectNotesSortedByChanged() {
-    const projectNotes = DataStore.projectNotes.slice();
-    const notesSorted = projectNotes.sort((first, second) => second.changedDate - first.changedDate); // most recent first
-
-    return notesSorted;
+    return DataStore.projectNotes.slice().sort((first, second) => second.changedDate - first.changedDate);
   } // Return list of project notes, sorted by title (ascending)
+
+  function notesInFolderSortedByName(folder) {
+    let notesInFolder; // If folder given (not empty) then filter using it
+
+    if (folder !== '') {
+      notesInFolder = DataStore.projectNotes.slice().filter(n => getFolderFromFilename(n.filename) === folder);
+    } else {
+      notesInFolder = DataStore.projectNotes.slice();
+    } // Sort alphabetically on note's title
+
+
+    const notesSortedByName = notesInFolder.sort((first, second) => {
+      var _first$title2, _second$title2;
+
+      return ((_first$title2 = first.title) !== null && _first$title2 !== void 0 ? _first$title2 : '').localeCompare((_second$title2 = second.title) !== null && _second$title2 !== void 0 ? _second$title2 : '');
+    });
+    return notesSortedByName;
+  } //-------------------------------------------------------------------------------
+  // Misc functions for NP
+
+  const defaultFileExt = DataStore.defaultFileExtension != null ? DataStore.defaultFileExtension : 'md'; // Pretty print range information (@EduardMe)
+
+  function titleAsLink(note) {
+    var _note$title2;
+
+    return note.title !== undefined ? "[[".concat((_note$title2 = note.title) !== null && _note$title2 !== void 0 ? _note$title2 : '', "]]") : '(error)';
+  } // Get the folder name from the full NP (project) note filename
+
+  function getFolderFromFilename(fullFilename) {
+    const filenameParts = fullFilename.split('/'); // console.log(filenameParts)
+
+    return filenameParts.slice(0, filenameParts.length - 1).join('/');
+  } // Tests for gFFF function above
+  // console.log(`gFFF('one/two/three/four.txt') -> ${getFolderFromFilename('one/two/three/four.txt')}`)
+  // console.log(`gFFF('one/two/three/four and a bit.md') -> ${getFolderFromFilename('one/two/three/four and a bit.md')}`)
+  // console.log(`gFFF('one/two or three/fifteen.txt') -> ${getFolderFromFilename('one/two or three/fifteen.txt')}`)
+  // console.log(`gFFF('/sixes and sevenses/calm one.md') -> ${getFolderFromFilename('sixes and sevenses/calm one.md')}`)
 
   //--------------------------------------------------------------------------------------------------------------------
   // Command from Eduard to move a note to a different folder
@@ -133,6 +153,16 @@ var exports = (function (exports) {
     } else {
       console.log('\tmoving note was NOT successful');
     }
+  } //------------------------------------------------------------------
+  // Open a user-selected note in a new window.
+
+  async function openNoteNewWindow() {
+    // Ask for the note we want to add the task
+    const notes = projectNotesSortedByChanged();
+    const re = await CommandBar.showOptions(notes.map(n => n.title).filter(Boolean), 'Select note to open in new window');
+    const note = notes[re.index];
+    const filename = note.filename;
+    await Editor.openNoteByFilename(filename, true);
   } //------------------------------------------------------------------
   // Jumps the cursor to the heading of the current note that the user selects
   // NB: need to update to allow this to work with sub-windows, when EM updates API
@@ -279,47 +309,9 @@ var exports = (function (exports) {
   }
 
   //--------------------------------------------------------------------------------------------------------------------
-
-  function getFolderFromFilename(fullFilename) {
-    const filenameParts = fullFilename.split('/'); // console.log(filenameParts)
-
-    return filenameParts.slice(0, filenameParts.length - 1).join('/');
-  } // Tests for gFFF function above
-  // console.log(`gFFF('one/two/three/four.txt') -> ${getFolderFromFilename('one/two/three/four.txt')}`)
-  // console.log(`gFFF('one/two/three/four and a bit.md') -> ${getFolderFromFilename('one/two/three/four and a bit.md')}`)
-  // console.log(`gFFF('one/two or three/fifteen.txt') -> ${getFolderFromFilename('one/two or three/fifteen.txt')}`)
-  // console.log(`gFFF('/sixes and sevenses/calm one.md') -> ${getFolderFromFilename('sixes and sevenses/calm one.md')}`)
-  // Return (project) note title as a [[link]]
-
-
-  function titleAsLink(note) {
-    var _note$title;
-
-    return note.title !== undefined ? "[[".concat((_note$title = note.title) !== null && _note$title !== void 0 ? _note$title : '', "]]") : '(error)';
-  } // Return list of notes in a folder with a particular hashtag
-
-
-  function notesInFolderSortedByName(folder) {
-    let notesInFolder; // If folder given (not empty) then filter using it
-
-    if (folder !== '') {
-      notesInFolder = DataStore.projectNotes.slice().filter(n => getFolderFromFilename(n.filename) === folder);
-    } else {
-      notesInFolder = DataStore.projectNotes.slice();
-    } // Sort alphabetically on note's title
-
-
-    const notesSortedByName = notesInFolder.sort((first, second) => {
-      var _first$title, _second$title;
-
-      return ((_first$title = first.title) !== null && _first$title !== void 0 ? _first$title : '').localeCompare((_second$title = second.title) !== null && _second$title !== void 0 ? _second$title : '');
-    });
-    return notesSortedByName;
-  } //-----------------------------------------------------------------
   // Command to calculate the index of a specified folder.
   // Input is folder name (without trailling /)
   // Returns an array of strings, one for each output line.
-
 
   function makeFolderIndex(folder, includeSubfolders) {
     console.log("\nmakeFolderIndex for '".concat(folder, "' (").concat(includeSubfolders ? 'with' : 'without', " subfolders)"));
@@ -343,7 +335,7 @@ var exports = (function (exports) {
       if (notes.length > 0) {
         // If this is a sub-folder level, then prefix with ### for a 3rd level heading,
         // otherwise leave blank, as a suitable header gets added elsewhere.
-        outputArray.push(noteCount > 0 ? "### ".concat(f, " Index") : "".concat(f, " Index"));
+        outputArray.push(noteCount > 0 ? "### ".concat(f, " Index") : "_index ".concat(f));
         outputArray.push("(".concat(notes.length, " notes, last updated: ").concat(nowShortDateTime, ")")); // iterate over this folder's notes
 
         for (const note of notes) {
@@ -453,6 +445,7 @@ var exports = (function (exports) {
   exports.jumpToHeading = jumpToHeading;
   exports.jumpToNoteHeading = jumpToNoteHeading;
   exports.moveNote = moveNote;
+  exports.openNoteNewWindow = openNoteNewWindow;
   exports.setTitleFromYAML = setTitleFromYAML;
 
   Object.defineProperty(exports, '__esModule', { value: true });

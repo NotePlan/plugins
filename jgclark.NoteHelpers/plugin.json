@@ -6,7 +6,7 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark & Eduard Metzger",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/",
-  "plugin.version": "0.10.1",
+  "plugin.version": "0.10.2",
   "plugin.changelog": "See plugin README.md",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
@@ -36,6 +36,11 @@
       "name": "index",
       "description": "Make/Update note link Indexes for one or more folders",
       "jsFunction": "indexFolders"
+    },
+    {
+      "name": "onw",
+      "description": "Open a user-selected note in a new window.",
+      "jsFunction": "openNoteNewWindow"
     }
   ],
   "plugin.preferences": [

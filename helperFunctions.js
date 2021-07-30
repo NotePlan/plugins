@@ -672,6 +672,23 @@ export function projectNotesSortedByTitle(): Array<TNote> {
   return notesSorted
 }
 
+// Return list of notes in a folder with a particular hashtag
+export function notesInFolderSortedByName(folder: string): Array<TNote> {
+  let notesInFolder: Array<TNote>
+  // If folder given (not empty) then filter using it
+  if (folder !== '') {
+    notesInFolder = DataStore.projectNotes
+      .slice()
+      .filter((n) => getFolderFromFilename(n.filename) === folder)
+  } else {
+    notesInFolder = DataStore.projectNotes.slice()
+  }
+  // Sort alphabetically on note's title
+  const notesSortedByName = notesInFolder.sort((first, second) =>
+    (first.title ?? '').localeCompare(second.title ?? ''),
+  )
+  return notesSortedByName
+}
 
 //-------------------------------------------------------------------------------
 // Misc functions for NP
@@ -697,3 +714,19 @@ export function displayTitle(n: TNote): string {
   }
 }
 
+// Return (project) note title as a [[link]]
+export function titleAsLink(note: TNote): string {
+  return note.title !== undefined ? `[[${note.title ?? ''}]]` : '(error)'
+}
+
+// Get the folder name from the full NP (project) note filename
+export function getFolderFromFilename(fullFilename: string): string {
+  const filenameParts = fullFilename.split('/')
+  // console.log(filenameParts)
+  return filenameParts.slice(0, filenameParts.length - 1).join('/')
+}
+// Tests for gFFF function above
+// console.log(`gFFF('one/two/three/four.txt') -> ${getFolderFromFilename('one/two/three/four.txt')}`)
+// console.log(`gFFF('one/two/three/four and a bit.md') -> ${getFolderFromFilename('one/two/three/four and a bit.md')}`)
+// console.log(`gFFF('one/two or three/fifteen.txt') -> ${getFolderFromFilename('one/two or three/fifteen.txt')}`)
+// console.log(`gFFF('/sixes and sevenses/calm one.md') -> ${getFolderFromFilename('sixes and sevenses/calm one.md')}`)

@@ -2,10 +2,14 @@
 //--------------------------------------------------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// v0.9.0, 29.6.2021
+// v0.10.2, 30.7.2021
 //--------------------------------------------------------------------------------------------------------------------
 
-import { projectNotesSortedByChanged, printNote, chooseFolder } from '../../helperFunctions'
+import {
+  projectNotesSortedByChanged,
+  printNote, 
+  chooseFolder,
+} from '../../helperFunctions'
 
 //-----------------------------------------------------------------
 // Command from Eduard to move a note to a different folder
@@ -27,6 +31,20 @@ export async function moveNote() {
   } else {
     console.log('\tmoving note was NOT successful')
   }
+}
+
+//------------------------------------------------------------------
+// Open a user-selected note in a new window.
+export async function openNoteNewWindow() {
+  // Ask for the note we want to add the task
+  const notes = projectNotesSortedByChanged()
+  const re = await CommandBar.showOptions(
+    notes.map((n) => n.title).filter(Boolean),
+    'Select note to open in new window',
+  )
+  const note = notes[re.index]
+  const filename = note.filename
+  await Editor.openNoteByFilename(filename, true)
 }
 
 //------------------------------------------------------------------

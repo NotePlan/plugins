@@ -2,51 +2,18 @@
 //--------------------------------------------------------------------------------------------------------------------
 // Part of Note Helpers plugin for NotePlan
 // Jonathan Clark
-// at v0.10.1, 8.7.2021
+// at v0.10.2, 30.7.2021
 //--------------------------------------------------------------------------------------------------------------------
 
 import {
-  // projectNotesSortedByChanged, printNote, chooseFolder,
   nowShortDateTime,
   chooseOption,
   chooseFolder,
   defaultFileExt,
+  getFolderFromFilename,
+  titleAsLink,
+  notesInFolderSortedByName,
 } from '../../helperFunctions'
-
-// Get the folder name from the full NP (project) note filename
-function getFolderFromFilename(fullFilename: string): string {
-  const filenameParts = fullFilename.split('/')
-  // console.log(filenameParts)
-  return filenameParts.slice(0, filenameParts.length - 1).join('/')
-}
-// Tests for gFFF function above
-// console.log(`gFFF('one/two/three/four.txt') -> ${getFolderFromFilename('one/two/three/four.txt')}`)
-// console.log(`gFFF('one/two/three/four and a bit.md') -> ${getFolderFromFilename('one/two/three/four and a bit.md')}`)
-// console.log(`gFFF('one/two or three/fifteen.txt') -> ${getFolderFromFilename('one/two or three/fifteen.txt')}`)
-// console.log(`gFFF('/sixes and sevenses/calm one.md') -> ${getFolderFromFilename('sixes and sevenses/calm one.md')}`)
-
-// Return (project) note title as a [[link]]
-function titleAsLink(note: TNote): string {
-  return note.title !== undefined ? `[[${note.title ?? ''}]]` : '(error)'
-}
-
-// Return list of notes in a folder with a particular hashtag
-function notesInFolderSortedByName(folder: string): Array<TNote> {
-  let notesInFolder: Array<TNote>
-  // If folder given (not empty) then filter using it
-  if (folder !== '') {
-    notesInFolder = DataStore.projectNotes
-      .slice()
-      .filter((n) => getFolderFromFilename(n.filename) === folder)
-  } else {
-    notesInFolder = DataStore.projectNotes.slice()
-  }
-  // Sort alphabetically on note's title
-  const notesSortedByName = notesInFolder.sort((first, second) =>
-    (first.title ?? '').localeCompare(second.title ?? ''),
-  )
-  return notesSortedByName
-}
 
 //-----------------------------------------------------------------
 // Command to calculate the index of a specified folder.
@@ -81,7 +48,7 @@ function makeFolderIndex(
     if (notes.length > 0) {
       // If this is a sub-folder level, then prefix with ### for a 3rd level heading,
       // otherwise leave blank, as a suitable header gets added elsewhere.
-      outputArray.push(noteCount > 0 ? `### ${f} Index` : `${f} Index`)
+      outputArray.push(noteCount > 0 ? `### ${f} Index` : `_index ${f}`)
       outputArray.push(
         `(${notes.length} notes, last updated: ${nowShortDateTime})`,
       )
