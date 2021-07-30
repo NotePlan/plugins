@@ -3,19 +3,23 @@
 //-----------------------------------------------------------------------------
 // Commands for Reviewing project notes, GTD-style.
 // by @jgclark
-// v0.2.0, 26.7.2021
+// v0.2.1, 30.7.2021
 //-----------------------------------------------------------------------------
+
+// TODO:s below
 
 // Settings
 const DEFAULT_REVIEW_OPTIONS = `  review: {
-    noteTypeTags: "#area,#project",  // 
-    folderToStore: "Summaries",   // 
-    displayGroupedByFolder: true,  // 
+    folderToStore: "Summaries",
+    foldersToIgnore: ["Templates", "Summaries"], // can be empty
+    noteTypeTags: "#area,#project",
+    displayGroupedByFolder: true,
     displayOrder: "alpha" // 'due', 'review' or 'alpha'
   },
 `
 let pref_noteTypeTags: string = '#project,#area'
 let pref_folderToStore: string = 'Summaries'
+let pref_foldersToIgnore: Array<string> = ["Templates", "Summaries"]
 let pref_displayGroupedByFolder: boolean = true
 let pref_displayOrder: string = 'alpha'
 
@@ -72,6 +76,11 @@ async function getConfig(): Promise<void> {
     pref_folderToStore = reviewConfig.folderToStore
   }
   // console.log(pref_folderToStore)
+  if (reviewConfig.foldersToIgnore != null) {
+    // $FlowFixMe -- don't know how to make this array not just object
+    pref_foldersToIgnore = reviewConfig.foldersToIgnore
+  }
+  // console.log(pref_foldersToIgnore)
   if (reviewConfig.displayGroupedByFolder != null &&
     typeof reviewConfig.displayGroupedByFolder === 'boolean') {
     pref_displayGroupedByFolder = reviewConfig.displayGroupedByFolder
@@ -152,7 +161,7 @@ export async function startReviews() {
     return
   }
 
-  console.log(`\nstartReviews`)
+  console.log(`\nstartReviews:`)
   const summaryArray = []
   if (pref_noteTypeTags != null && pref_noteTypeTags !== '') {
     // We have defined tag(s) to filter and group by
@@ -166,6 +175,7 @@ export async function startReviews() {
         // saving those which are ready for review in array
         for (const n of notes) {
           const np = new Project(n)
+          // TODO: somewhere here ignore ones from certain folders
           if (np.isReadyForReview) {
             projectsReadyToReview.push(np)
           }
@@ -178,6 +188,7 @@ export async function startReviews() {
       }
     }
   } else {
+    // TODO: merge into the above if clause
     // We will just use all notes with a @review() string, in one go
     // Read in all relevant notes, making Project objects
     const notes = findNotesMatchingHashtags('')
@@ -187,6 +198,7 @@ export async function startReviews() {
       // saving those which are ready for review in array
       for (const n of notes) {
         const np = new Project(n)
+        // TODO: somewhere here ignore ones from certain folders
         if (np.isReadyForReview) {
           projectsReadyToReview.push(np)
         }
@@ -241,13 +253,18 @@ function makeNoteTypeSummary(noteTag: string): Array<string> {
   // otherwise use a single folder
   const folderList = pref_displayGroupedByFolder ? DataStore.folders : ['/']
   // console.log(`${folderList.length} folders`)
-  // Iterate over the folders
+  // Iterate over the folders, ignoring any in the pref_foldersToIgnore list
   for (const folder of folderList) {
-    const notes = findNotesMatchingHashtags(noteTag, folder)
+    if (pref_foldersToIgnore.includes(folder)) {
+      continue
+    }
+    // Get notes that include noteTag in this folder, ignoring subfolders
+    const notes = findNotesMatchingHashtags(noteTag, folder, false)
     if (notes.length > 0) {
       // Create array of Project class representation of each note,
       // ignoring any marked as .isArchived
       const projects = []
+      // TODO: somewhere here ignore ones from certain folders
       for (const note of notes) {
         const np = new Project(note)
         if (!np.isArchived) {
@@ -287,10 +304,11 @@ function makeNoteTypeSummary(noteTag: string): Array<string> {
       noteCount += sortedProjects.length
     }
   }
-
   // Add summary/ies onto the start (remember: unshift adds to the very front each time)
-  outputArray.unshift(`_Key:\tTitle\t# open / complete / waiting tasks / next review date / due date_`)
-  outputArray.unshift(`Total: **${noteCount} active notes**.${(overdue > 0) ? `, ${overdue} ready for review` : ''}`)
+  if (noteCount > 0) {
+    outputArray.unshift(`_Key:\tTitle\t# open / complete / waiting tasks / next review date / due date_`)
+  }
+  outputArray.unshift(`Total: **${noteCount} active notes**${(overdue > 0) ? `, ${overdue} ready for review` : ''}`)
   outputArray.unshift(`Last updated: ${nowLocaleDateTime}`)
   if (!pref_displayGroupedByFolder) {
     outputArray.unshift(`### All folders (${noteCount} notes)`)

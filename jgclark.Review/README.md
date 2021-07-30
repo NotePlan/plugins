@@ -44,9 +44,12 @@ When you have configured the plugin, and added suitable metadata to notes, use s
 
 ### `/project lists`
 This creates/updates a human-readable list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete. This is stored in summary note(s) in the 'Summaries' folder (or whatever you set `folderToStore` setting to be).
+You can specify folders to ignore using the `foldersToIgnore` setting.
+
 
 ### `/start reviews`
 This creates/updates a machine-readable list of notes ready for review, in the `_reviews` note in the folder given by the `folderToStore` setting. It then kicks off the most overdue review by opening that note in the editor. When you have finished the review run one of the next two commands ...
+You can specify folders to ignore using the `foldersToIgnore` setting.
 
 ### `/completeProjectReview`
 This updates the current open project's @reviewed() date.
@@ -63,6 +66,7 @@ Alternatively, in the `Templates/_configuration` note, include the following set
 ...
   review: {
     folderToStore: 'Summaries' // will be created if necessary
+    foldersToIgnore: ["Templates", "Summaries"], // an array, which can be empty
     noteTypeTags: '#area,#project' // comma separated list of hashtags to indicate notes to include in this review system
     displayGroupedByFolder: true // in `/project lists` whether to group the notes by folder
     displayOrder: 'alpha' // in `/project lists`  the sort options  are 'due', 'review' or 'alpha'
@@ -76,6 +80,9 @@ Alternatively, in the `Templates/_configuration` note, include the following set
 - if NotePlan adds support  for frontmatter or YAML blocks, update the plugin to take advantage of them
 
 ## History
+### v0.2.1, 30.7.2021
+- ???
+- add setting `foldersToIgnore` that allows an array of folder names to ignore in the commands
 
 ### v0.2.0, 26.7.2021
 - first release.  See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Review), and how to configure.

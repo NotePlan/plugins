@@ -12,6 +12,7 @@ import {
   toISODateString,
   calcOffsetDate,
   relativeDateFromNumber,
+  getFolderFromFilename,
 } from '../../helperFunctions.js'
 
 
@@ -59,21 +60,32 @@ export async function returnSummaryNote(
 
 /*
  * Return list of notes with a particular hashtag, optionally in the given folder.
- * @param {string} - tag name to look for (or blank, in which case no filtering by tag)
- * @param {?string} - optional folder to limit to
+ * @param {string} tag - tag name to look for (or blank, in which case no filtering by tag)
+ * @param {?string} folder - optional folder to limit to
+ * @param {?boolean} includeSubfolders - if folder given, whether to look in subfolders of this folder or not (optional, defaults to false)
  * @return {Array<TNote>}
  */
 export function findNotesMatchingHashtags(
   tag: string,
   folder: ?string,
+  includeSubfolders: ?boolean = false
 ): Array<TNote> {
   let projectNotesInFolder: Array<TNote>
   // If folder given (not empty) then filter using it
   if (folder != null) {
-    projectNotesInFolder = DataStore.projectNotes
-      .slice()
-      .filter((n) => n.filename.startsWith(`${folder}/`))
+    if (includeSubfolders) {
+      // use startsWith as filter to include subfolders
+      projectNotesInFolder = DataStore.projectNotes
+        .slice()
+        .filter((n) => n.filename.startsWith(`${folder}/`))
+    } else {
+      // use match as filter to exclude subfolders
+      projectNotesInFolder = DataStore.projectNotes
+        .slice()
+        .filter((n) => (getFolderFromFilename(n.filename) === folder))
+    }
   } else {
+    // no folder specified, so grab all notes from DataStore
     projectNotesInFolder = DataStore.projectNotes.slice()
   }
   // Filter by tag (if one has been given)
@@ -298,7 +310,8 @@ export class Project {
   */
   basicSummaryLine(): string {
     const numString = this.nextReviewDays?.toString() ?? ''
-    return `${numString}\t${this.title}\t${this.isActive.toString()}\t${this.completedDays?.toString() ?? ''}`
+    return `${numString}\t${this.title}`
+    // return `${numString}\t${this.title}\t${this.isActive.toString()}\t${this.completedDays?.toString() ?? ''}`
   }
 
   /* Returns line showing more detailed summary of the note, treated as a project

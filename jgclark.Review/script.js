@@ -33,7 +33,7 @@ var exports = (function (exports) {
   async function showMessageYesNo(message, choicesArray = ['Yes', 'No']) {
     const answer = await CommandBar.showOptions(choicesArray, message);
     return choicesArray[answer.index];
-  } //-------------------------------------------------------------------------------
+  }
   // Date functions
   // @jgclark except where shown
 
@@ -185,25 +185,6 @@ var exports = (function (exports) {
 
     return output;
   }
-  // console.log(`\ntesting relativeDate`)
-  // console.log(`-14 -> ${relativeDateFromNumber(-14)}`)
-  // console.log(`-7 -> ${relativeDateFromNumber(-7)}`)
-  // console.log(`-2 -> ${relativeDateFromNumber(-2)}`)
-  // console.log(`-1 -> ${relativeDateFromNumber(-1)}`)
-  // console.log(`0 -> ${relativeDateFromNumber(0)}`)
-  // console.log(`1 -> ${relativeDateFromNumber(1)}`)
-  // console.log(`2 -> ${relativeDateFromNumber(2)}`)
-  // console.log(`7 -> ${relativeDateFromNumber(7)}`)
-  // console.log(`14 -> ${relativeDateFromNumber(14)}`)
-  // console.log(`29 -> ${relativeDateFromNumber(29)}`)
-  // console.log(`30 -> ${relativeDateFromNumber(30)}`)
-  // console.log(`31 -> ${relativeDateFromNumber(31)}`)
-  // console.log(`123 -> ${relativeDateFromNumber(123)}`)
-  // console.log(`264 -> ${relativeDateFromNumber(264)}`)
-  // console.log(`364 -> ${relativeDateFromNumber(364)}`)
-  // console.log(`365 -> ${relativeDateFromNumber(365)}`)
-  // console.log(`366 -> ${relativeDateFromNumber(366)}`)
-  //-------------------------------------------------------------------------------
   // Misc functions for NP
 
   DataStore.defaultFileExtension != null ? DataStore.defaultFileExtension : 'md'; // Pretty print range information (@EduardMe)
@@ -217,7 +198,17 @@ var exports = (function (exports) {
 
       return (_n$title = n.title) !== null && _n$title !== void 0 ? _n$title : '';
     }
-  } // Print out all data for a paragraph (@EduardMe)
+  } // Return (project) note title as a [[link]]
+
+  function getFolderFromFilename(fullFilename) {
+    const filenameParts = fullFilename.split('/'); // console.log(filenameParts)
+
+    return filenameParts.slice(0, filenameParts.length - 1).join('/');
+  } // Tests for gFFF function above
+  // console.log(`gFFF('one/two/three/four.txt') -> ${getFolderFromFilename('one/two/three/four.txt')}`)
+  // console.log(`gFFF('one/two/three/four and a bit.md') -> ${getFolderFromFilename('one/two/three/four and a bit.md')}`)
+  // console.log(`gFFF('one/two or three/fifteen.txt') -> ${getFolderFromFilename('one/two or three/fifteen.txt')}`)
+  // console.log(`gFFF('/sixes and sevenses/calm one.md') -> ${getFolderFromFilename('sixes and sevenses/calm one.md')}`)
 
   var parser$1 = function () {
     /*
@@ -9453,17 +9444,41 @@ var exports = (function (exports) {
   }
 
   const staticTemplateFolder = '📋 Templates';
+  /**
+   * Get the Templates folder path, if it exists
+   * @author @nmn
+   * @return { ?string } - folder pathname
+   */
+
   function getTemplateFolder() {
     return DataStore.folders.find(f => f.includes(staticTemplateFolder));
-  } // get the template folder path, without leading '/'
-  // if it doesn't exist, offer to create it and populate it with samples
+  }
+  /**
+   * Write out a new _configuration file
+   * @author @jgclark
+   */
+
+  function createDefaultConfigNote() {
+    const folder = getTemplateFolder();
+
+    if (folder != null) {
+      DataStore.newNote(CONFIG, folder);
+    }
+  }
+  /**
+   * Get the Templates folder path, without leading '/'
+   * If it doesn't exist, offer to create it and populate it with samples
+   * @author @nmn
+   * @return { ?string } - relative folder pathname (without leading '/')
+   */
 
   async function getOrMakeTemplateFolder() {
-    console.log('  getOrMakeTemplateFolder start');
+    // console.log('  getOrMakeTemplateFolder start')
     let folder = getTemplateFolder();
 
     if (folder == null) {
-      // No template folder yet, so offer to make it and populate it
+      console.log('  getOrMakeTemplateFolder: no folder found'); // No template folder yet, so offer to make it and populate it
+
       const shouldCreateFolder = await chooseOption$1('No templates folder found.', [{
         label: "\u2705 Create ".concat(staticTemplateFolder, " with samples"),
         value: true
@@ -9553,7 +9568,7 @@ var exports = (function (exports) {
   // @jgclark
 
   async function getOrMakeConfigurationSection(configSectionName, configSectionDefault) {
-    var _await$parseFirstCode;
+    var _configFile, _await$parseFirstCode;
 
     let templateFolder = await getOrMakeTemplateFolder();
 
@@ -9564,7 +9579,7 @@ var exports = (function (exports) {
     }
 
     console.log("  getOrMakeConfigurationSection: got folder ".concat(templateFolder));
-    const configFile = DataStore.projectNotes // $FlowIgnore[incompatible-call]
+    let configFile = DataStore.projectNotes // $FlowIgnore[incompatible-call]
     .filter(n => {
       var _n$filename2;
 
@@ -9576,17 +9591,25 @@ var exports = (function (exports) {
     });
 
     if (configFile == null) {
-      console.log("  getOrMakeConfigurationSection: Error: cannot find '_configuration' file");
-      await showMessage("Error: cannot find '_configuration' file. Please check."); // Really strange to get here: won't code a response, but will just stop.
+      console.log("  getOrMakeConfigurationSection: Error: cannot find '_configuration' fil. Will create from default.");
+      createDefaultConfigNote();
+      configFile = DataStore.projectNotes // $FlowIgnore[incompatible-call]
+      .filter(n => {
+        var _n$filename3;
 
-      return {};
+        return (_n$filename3 = n.filename) === null || _n$filename3 === void 0 ? void 0 : _n$filename3.startsWith(templateFolder);
+      }).find(n => {
+        var _n$title3;
+
+        return !!((_n$title3 = n.title) !== null && _n$title3 !== void 0 && _n$title3.startsWith('_configuration'));
+      });
     }
 
-    const content = configFile === null || configFile === void 0 ? void 0 : configFile.content;
+    const content = (_configFile = configFile) === null || _configFile === void 0 ? void 0 : _configFile.content;
 
-    if (content == null) {
-      console.log("  getOrMakeConfigurationSection: Error: '_configuration' file is empty");
-      await showMessage("Error: empty '_configuration' file. Please check."); // Really strange to get here: won't code a response, but will just stop.
+    if (configFile == null || content == null) {
+      console.log("  getOrMakeConfigurationSection: Error: '_configuration' file not found or empty");
+      await showMessage("Error: missing or empty '_configuration' file. Please check."); // Really strange to get here: won't code a response, but will just stop.
 
       return {};
     }
@@ -9596,8 +9619,8 @@ var exports = (function (exports) {
     const firstCodeblock = content.split('\n```')[1];
     const config = (_await$parseFirstCode = await parseFirstCodeblock(firstCodeblock)) !== null && _await$parseFirstCode !== void 0 ? _await$parseFirstCode : {}; // Does it contain the section we want?
 
-    if (firstCodeblock == null || config[configSectionName] // alternative to dot notation that allows variables
-    == null) {
+    if (firstCodeblock == null || config[configSectionName] == // alternative to dot notation that allows variables
+    null) {
       // No, so offer to make it and populate it
       const shouldAddDefaultConfig = await chooseOption("No '".concat(configSectionName, "' configuration section found."), [{
         label: "\u2705 Create ".concat(configSectionName, " configuration from its defaults"),
@@ -9754,17 +9777,25 @@ var exports = (function (exports) {
   }
   /*
    * Return list of notes with a particular hashtag, optionally in the given folder.
-   * @param {string} - tag name to look for (or blank, in which case no filtering by tag)
-   * @param {?string} - optional folder to limit to
+   * @param {string} tag - tag name to look for (or blank, in which case no filtering by tag)
+   * @param {?string} folder - optional folder to limit to
+   * @param {?boolean} includeSubfolders - if folder given, whether to look in subfolders of this folder or not (optional, defaults to false)
    * @return {Array<TNote>}
    */
 
-  function findNotesMatchingHashtags(tag, folder) {
+  function findNotesMatchingHashtags(tag, folder, includeSubfolders = false) {
     let projectNotesInFolder; // If folder given (not empty) then filter using it
 
     if (folder != null) {
-      projectNotesInFolder = DataStore.projectNotes.slice().filter(n => n.filename.startsWith("".concat(folder, "/")));
+      if (includeSubfolders) {
+        // use startsWith as filter to include subfolders
+        projectNotesInFolder = DataStore.projectNotes.slice().filter(n => n.filename.startsWith("".concat(folder, "/")));
+      } else {
+        // use match as filter to exclude subfolders
+        projectNotesInFolder = DataStore.projectNotes.slice().filter(n => getFolderFromFilename(n.filename) === folder);
+      }
     } else {
+      // no folder specified, so grab all notes from DataStore
       projectNotesInFolder = DataStore.projectNotes.slice();
     } // Filter by tag (if one has been given)
 
@@ -9990,10 +10021,10 @@ var exports = (function (exports) {
 
 
     basicSummaryLine() {
-      var _this$nextReviewDays$, _this$nextReviewDays, _this$completedDays$t, _this$completedDays;
+      var _this$nextReviewDays$, _this$nextReviewDays;
 
       const numString = (_this$nextReviewDays$ = (_this$nextReviewDays = this.nextReviewDays) === null || _this$nextReviewDays === void 0 ? void 0 : _this$nextReviewDays.toString()) !== null && _this$nextReviewDays$ !== void 0 ? _this$nextReviewDays$ : '';
-      return "".concat(numString, "\t").concat(this.title, "\t").concat(this.isActive.toString(), "\t").concat((_this$completedDays$t = (_this$completedDays = this.completedDays) === null || _this$completedDays === void 0 ? void 0 : _this$completedDays.toString()) !== null && _this$completedDays$t !== void 0 ? _this$completedDays$t : '');
+      return "".concat(numString, "\t").concat(this.title); // return `${numString}\t${this.title}\t${this.isActive.toString()}\t${this.completedDays?.toString() ?? ''}`
     }
     /* Returns line showing more detailed summary of the note, treated as a project
      * @return {string}
@@ -10018,14 +10049,16 @@ var exports = (function (exports) {
   }
 
   //-----------------------------------------------------------------------------
-  // Commands for GTD-style Reviews.
+  // Commands for Reviewing project notes, GTD-style.
   // by @jgclark
-  // v0.2.0, 26.7.2021
+  // v0.2.1, 30.7.2021
   //-----------------------------------------------------------------------------
+  // TODO:s below
   // Settings
-  const DEFAULT_REVIEW_OPTIONS = "  review: {\n    noteTypeTags: \"#area,#project\",  // \n    folderToStore: \"Summaries\",   // \n    displayGroupedByFolder: true,  // \n    displayOrder: \"alpha\" // 'due', 'review' or 'alpha'\n  },\n";
+  const DEFAULT_REVIEW_OPTIONS = "  review: {\n    folderToStore: \"Summaries\",\n    foldersToIgnore: [\"Templates\", \"Summaries\"], // can be empty\n    noteTypeTags: \"#area,#project\",\n    displayGroupedByFolder: true,\n    displayOrder: \"alpha\" // 'due', 'review' or 'alpha'\n  },\n";
   let pref_noteTypeTags = '#project,#area';
   let pref_folderToStore = 'Summaries';
+  let pref_foldersToIgnore = ["Templates", "Summaries"];
   let pref_displayGroupedByFolder = true;
   let pref_displayOrder = 'alpha'; // Constants
 
@@ -10046,27 +10079,29 @@ var exports = (function (exports) {
 
     if (reviewConfig.noteTypeTags != null && typeof reviewConfig.noteTypeTags === 'string') {
       pref_noteTypeTags = reviewConfig.noteTypeTags;
-    }
+    } // console.log(pref_noteTypeTags)
 
-    console.log(pref_noteTypeTags);
 
     if (reviewConfig.folderToStore != null && typeof reviewConfig.folderToStore === 'string') {
       pref_folderToStore = reviewConfig.folderToStore;
-    }
+    } // console.log(pref_folderToStore)
 
-    console.log(pref_folderToStore);
+
+    if (reviewConfig.foldersToIgnore != null) {
+      // $FlowFixMe -- don't know how to make this array not just object
+      pref_foldersToIgnore = reviewConfig.foldersToIgnore;
+    } // console.log(pref_foldersToIgnore)
+
 
     if (reviewConfig.displayGroupedByFolder != null && typeof reviewConfig.displayGroupedByFolder === 'boolean') {
       pref_displayGroupedByFolder = reviewConfig.displayGroupedByFolder;
-    }
+    } // console.log(pref_displayGroupedByFolder)
 
-    console.log(pref_displayGroupedByFolder);
 
     if (reviewConfig.displayOrder != null && typeof reviewConfig.displayOrder === 'string') {
       pref_displayOrder = reviewConfig.displayOrder;
-    }
+    } // console.log(pref_displayOrder)
 
-    console.log(pref_displayOrder);
   } //-------------------------------------------------------------------------------
   // Create human-readable lists of project notes for each tag of interest
 
@@ -10134,7 +10169,7 @@ var exports = (function (exports) {
       return;
     }
 
-    console.log("\nstartReviews");
+    console.log("\nstartReviews:");
     const summaryArray = [];
 
     if (pref_noteTypeTags != null && pref_noteTypeTags !== '') {
@@ -10150,7 +10185,7 @@ var exports = (function (exports) {
           // Get Project class representation of each note,
           // saving those which are ready for review in array
           for (const n of notes) {
-            const np = new Project(n);
+            const np = new Project(n); // TODO: somewhere here ignore ones from certain folders
 
             if (np.isReadyForReview) {
               projectsReadyToReview.push(np);
@@ -10164,6 +10199,7 @@ var exports = (function (exports) {
         }
       }
     } else {
+      // TODO: merge into the above if clause
       // We will just use all notes with a @review() string, in one go
       // Read in all relevant notes, making Project objects
       const notes = findNotesMatchingHashtags('');
@@ -10173,7 +10209,7 @@ var exports = (function (exports) {
         // Get Project class representation of each note,
         // saving those which are ready for review in array
         for (const n of notes) {
-          const np = new Project(n);
+          const np = new Project(n); // TODO: somewhere here ignore ones from certain folders
 
           if (np.isReadyForReview) {
             projectsReadyToReview.push(np);
@@ -10204,7 +10240,11 @@ var exports = (function (exports) {
     const noteToReview = await getNextNoteToReview(); // Open that note in editor
 
     if (noteToReview != null) {
-      Editor.openNoteByFilename(noteToReview.filename);
+      const res = await showMessageYesNo("Ready to review '".concat(displayTitle(noteToReview), "'?"), ['OK', 'Cancel']);
+
+      if (res === 'OK') {
+        Editor.openNoteByFilename(noteToReview.filename);
+      }
     } else {
       console.log('🎉 No notes to review!');
       await showMessage$1('🎉 No notes to review!');
@@ -10221,15 +10261,20 @@ var exports = (function (exports) {
     // otherwise use a single folder
 
     const folderList = pref_displayGroupedByFolder ? DataStore.folders : ['/']; // console.log(`${folderList.length} folders`)
-    // Iterate over the folders
+    // Iterate over the folders, ignoring any in the pref_foldersToIgnore list
 
     for (const folder of folderList) {
-      const notes = findNotesMatchingHashtags(noteTag, folder);
+      if (pref_foldersToIgnore.includes(folder)) {
+        continue;
+      } // Get notes that include noteTag in this folder, ignoring subfolders
+
+
+      const notes = findNotesMatchingHashtags(noteTag, folder, false);
 
       if (notes.length > 0) {
         // Create array of Project class representation of each note,
         // ignoring any marked as .isArchived
-        const projects = [];
+        const projects = []; // TODO: somewhere here ignore ones from certain folders
 
         for (const note of notes) {
           const np = new Project(note);
@@ -10292,8 +10337,11 @@ var exports = (function (exports) {
     } // Add summary/ies onto the start (remember: unshift adds to the very front each time)
 
 
-    outputArray.unshift("_Key:\tTitle\t# open / complete / waiting tasks / next review date / due date_");
-    outputArray.unshift("Total: **".concat(noteCount, " active notes**.").concat(overdue > 0 ? ", ".concat(overdue, " ready for review") : ''));
+    if (noteCount > 0) {
+      outputArray.unshift("_Key:\tTitle\t# open / complete / waiting tasks / next review date / due date_");
+    }
+
+    outputArray.unshift("Total: **".concat(noteCount, " active notes**").concat(overdue > 0 ? ", ".concat(overdue, " ready for review") : ''));
     outputArray.unshift("Last updated: ".concat(nowLocaleDateTime));
 
     if (!pref_displayGroupedByFolder) {
