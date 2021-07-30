@@ -77,10 +77,13 @@ export async function parseFirstCodeblock(
 
 // Get configuration section, or if not present, save into _configuraiton file
 // Only deals with json5 case
+// minimumRequiredConfig contains fields which must exist and type, e.g.
+// { openWeatherAPIKey:'string' } @dwertheimer
 // @jgclark
 export async function getOrMakeConfigurationSection(
   configSectionName: string,
   configSectionDefault: string,
+  minimumRequiredConfig: { [string]: ?mixed } = {},
 ): Promise<?{ [string]: ?mixed }> {
   let templateFolder = await getOrMakeTemplateFolder()
   if (templateFolder == null) {
@@ -199,8 +202,49 @@ export async function getOrMakeConfigurationSection(
   }
 
   // We have the configuration, so return it
-  // $FlowIgnore
-  return config[configSectionName]
+  if (Object.keys(minimumRequiredConfig) && config[configSectionName]) {
+    // $FlowIgnore
+    return validateMinimumConfig(
+      // $FlowIgnore
+      config[configSectionName],
+      minimumRequiredConfig,
+    )
+  } else {
+    // $FlowIgnore
+    return config[configSectionName]
+  }
+}
+
+function validateMinimumConfig(
+  config: { [string]: mixed },
+  validations: { [string]: mixed },
+): { [string]: mixed } {
+  let failed = false
+  if (Object.keys(validations).length) {
+    Object.keys(validations).forEach((v) => {
+      //$FlowIgnore
+      if (config[v] == null) {
+        console.log(`Config required field: ${v} is missing`)
+        failed = true
+      }
+      if (typeof config[v] !== validations[v]) {
+        console.log(
+          `Config required field: ${v} is not of type ${String(
+            validations[v],
+          )}`,
+        )
+        failed = true
+      }
+    })
+  }
+  if (failed) {
+    console.log(`Config failed minimum validation spec!`)
+    return {}
+  } else {
+    console.log(`Config passed minimum validation spec`)
+    //$FlowIgnore
+    return config
+  }
 }
 
 async function parseJSON(contents: string): Promise<?{ [string]: ?mixed }> {
