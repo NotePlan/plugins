@@ -751,3 +751,42 @@ export function stringReplace(
   })
   return outputString
 }
+
+/** ------------------------------------------------------------------------------
+ * Get a particular parameter setting from parameter string
+ * @author @jgclark
+ * @param {string} paramString - the contents of the template tag, e.g. {{weather(template:FOO)}}
+ * @param {string} paramName - the name of the parameter to get (e.g. 'template')
+ * @returns {string} the value of the desired parameter (e.g. 'FOO')
+ */
+export function getTagParams(paramString: string, wantedParam: string): string {
+  console.log(`\tgetParams for '${wantedParam}' in '${paramString}'`)
+  // const paramMap = new Map()
+  // const paramItemIterable = paramString.matchAll(/(.*?):"(.*?)"/g)
+  // const paramItemArray = Array.from(paramItemIterable)
+  // for (const p in paramItemArray[0]) {
+  //   console.log(`  ${p[1]} / ${p[2]}`)
+  //   paramMap.set(p[1], p[2])
+  // }
+
+  // Following voodoo copied from @nmn in interpolation.js.
+  // FIXME: get this working
+  // console.log(`\tgetParams ->`)
+  // const paramStringTrimmed = paramString.trim()
+  // // const paramConfig = json5.parse(paramStringTrimmed)
+  // const paramConfig =
+  //   paramStringTrimmed.startsWith('{') && paramStringTrimmed.endsWith('}')
+  //     ? await parseJSON5(paramString)
+  //     : paramStringTrimmed !== ''
+  //       ? await parseJSON5(`{${paramString}}`)
+  //       : {}
+  // console.log(JSON.stringify(paramConfig, null, 2))
+  // const paramMap: { [string]: mixed } = { ... paramConfig } // FIXME: size -> undefined
+  // console.log(paramMap.size)
+  // for (const aa of paramMap) {
+  //   console.log(`${aa}`)
+  // }
+
+  const res = paramString.match(`${wantedParam}:"(.*?)"`) ?? []
+  return res.length > 0 ? res[1] : ''
+}

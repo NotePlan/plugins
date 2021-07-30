@@ -9,6 +9,7 @@ import {
   showMessage,
   toLocaleShortTime,
   stringReplace,
+  getTagParams,
 } from '../../helperFunctions'
 import {
   getOrMakeConfigurationSection,
@@ -67,40 +68,6 @@ async function getSettings(): Promise<void> {
 }
 
 //------------------------------------------------------------------------------
-// Get a particular parameter setting from parameter string
-function getParams(paramString: string, wantedParam: string): string {
-  console.log(`\tgetParams for '${wantedParam}' in '${paramString}'`)
-  // const paramMap = new Map()
-  // const paramItemIterable = paramString.matchAll(/(.*?):"(.*?)"/g)
-  // const paramItemArray = Array.from(paramItemIterable)
-  // for (const p in paramItemArray[0]) {
-  //   console.log(`  ${p[1]} / ${p[2]}`)
-  //   paramMap.set(p[1], p[2])
-  // }
-
-  // Following voodoo copied from @nmn in interpolation.js.
-  // FIXME: get this working
-  // console.log(`\tgetParams ->`)
-  // const paramStringTrimmed = paramString.trim()
-  // // const paramConfig = json5.parse(paramStringTrimmed)
-  // const paramConfig =
-  //   paramStringTrimmed.startsWith('{') && paramStringTrimmed.endsWith('}')
-  //     ? await parseJSON5(paramString)
-  //     : paramStringTrimmed !== ''
-  //       ? await parseJSON5(`{${paramString}}`)
-  //       : {}
-  // console.log(JSON.stringify(paramConfig, null, 2))
-  // const paramMap: { [string]: mixed } = { ... paramConfig } // FIXME: size -> undefined
-  // console.log(paramMap.size)
-  // for (const aa of paramMap) {
-  //   console.log(`${aa}`)
-  // }
-
-  const res = paramString.match(`${wantedParam}:"(.*?)"`) ?? []
-  return res.length > 0 ? res[1] : ''
-}
-
-//------------------------------------------------------------------------------
 // Return MD list of today's events
 export async function listTodaysEvents(paramString: string): Promise<string> {
   console.log(`\nlistTodaysEvents:`)
@@ -109,7 +76,9 @@ export async function listTodaysEvents(paramString: string): Promise<string> {
   await getSettings()
   // Work out template for output line (from params, or if blank, a default)
   const template =
-    paramString !== '' ? getParams(paramString, 'template') : '- TITLE (START)'
+    paramString !== ''
+      ? getTagParams(paramString, 'template')
+      : '- TITLE (START)'
   console.log(`\toutput template: '${template}'`)
 
   const eA: Array<TCalendarItem> = await Calendar.eventsToday()
