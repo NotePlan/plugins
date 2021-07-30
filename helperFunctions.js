@@ -747,7 +747,7 @@ export function stringReplace(
 ): string {
   let outputString = inputString
   replacementArray.forEach((r) => {
-    outputString = outputString.replace(r.key, r.value)
+    outputString = outputString.replaceAll(r.key, r.value)
   })
   return outputString
 }
@@ -789,4 +789,14 @@ export function getTagParams(paramString: string, wantedParam: string): string {
 
   const res = paramString.match(`${wantedParam}:"(.*?)"`) ?? []
   return res.length > 0 ? res[1] : ''
+}
+
+/**
+ * @param {string} paramString - the string to capitalize
+ * @returns {string} the string capitalized
+ * @description Capitalizes the first letter of a string
+ */
+export function capitalize(s) {
+  if (typeof s !== 'string') return ''
+  return s.charAt(0).toUpperCase() + s.slice(1)
 }

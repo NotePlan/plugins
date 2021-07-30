@@ -241,7 +241,11 @@ function validateMinimumConfig(
     console.log(`Config failed minimum validation spec!`)
     return {}
   } else {
-    console.log(`Config passed minimum validation spec`)
+    console.log(
+      `Config passed minimum validation spec; config=\n${JSON.stringify(
+        config,
+      )}`,
+    )
     //$FlowIgnore
     return config
   }
