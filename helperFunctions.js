@@ -503,25 +503,29 @@ export function calcSmartPrependPoint(note: TNote): number {
       }
       if (insertionLine === 1) {
         // If we get here we haven't found an end to the YAML block.
-        console.log(`Warning: couldn't find end of YAML frontmatter in note ${displayTitle(note)}`)
+        console.log(
+          `Warning: couldn't find end of YAML frontmatter in note ${displayTitle(
+            note,
+          )}`,
+        )
         // It's not clear what to do at this point, so will leave insertion point as is
       }
     } else if (lines[1].match(/^#[A-z]/)) {
       // We have a hashtag at the start of the line, making this a metadata line
-      // Move insertion point to after the next blank line, or before the next 
+      // Move insertion point to after the next blank line, or before the next
       // heading line, whichever is sooner.
       // console.log(`Metadata line found`)
       for (let i = 2; i < lines.length; i++) {
         // console.log(`${i}: ${lines[i]}`)
         if (lines[i].match(/^#{1,5}\s/)) {
-            // console.log(`  Heading at ${i}`)
-            insertionLine = i + 1
-            break
-          } else if (lines[i] === '') {
-            // console.log(`  Blank line at ${i}`)
-            insertionLine = i + 1
-            break
-          }
+          // console.log(`  Heading at ${i}`)
+          insertionLine = i + 1
+          break
+        } else if (lines[i] === '') {
+          // console.log(`  Blank line at ${i}`)
+          insertionLine = i + 1
+          break
+        }
       }
     }
   }
@@ -530,7 +534,7 @@ export function calcSmartPrependPoint(note: TNote): number {
 }
 
 /**
- * Prepends a task to a chosen note, but more smartly than usual. 
+ * Prepends a task to a chosen note, but more smartly than usual.
  * I.e. if the note starts with YAML frontmatter (e.g. https://docs.zettlr.com/en/core/yaml-frontmatter/)
  * or a metadata line (= starts with a hashtag), then add after that.
  * @author @jgclark
@@ -541,8 +545,8 @@ export function calcSmartPrependPoint(note: TNote): number {
 export function smartPrependPara(
   note: TNote,
   paraText: string,
-  paragraphType: ParagraphType): void {
-  
+  paragraphType: ParagraphType,
+): void {
   // Insert the text at the smarter insertionLine line
   note.insertParagraph(paraText, calcSmartPrependPoint(note), paragraphType)
 }
@@ -730,3 +734,20 @@ export function getFolderFromFilename(fullFilename: string): string {
 // console.log(`gFFF('one/two/three/four and a bit.md') -> ${getFolderFromFilename('one/two/three/four and a bit.md')}`)
 // console.log(`gFFF('one/two or three/fifteen.txt') -> ${getFolderFromFilename('one/two or three/fifteen.txt')}`)
 // console.log(`gFFF('/sixes and sevenses/calm one.md') -> ${getFolderFromFilename('sixes and sevenses/calm one.md')}`)
+
+type Replacement = { key: string, value: string }
+/**
+ * @param {string} inputString
+ * @param {array} replacementArray // array of objects with {key: stringToLookFor, value: replacementValue}
+ * @returns {string} inputString with all replacements made
+ */
+export function stringReplace(
+  inputString: string = '',
+  replacementArray: Array<Replacement>,
+): string {
+  let outputString = inputString
+  replacementArray.forEach((r) => {
+    outputString = outputString.replace(r.key, r.value)
+  })
+  return outputString
+}

@@ -5,7 +5,11 @@
 // @jgclark
 // ------------------------------------------------------------------------------------
 
-import { showMessage, toLocaleShortTime } from '../../helperFunctions'
+import {
+  showMessage,
+  toLocaleShortTime,
+  stringReplace,
+} from '../../helperFunctions'
 import {
   getOrMakeConfigurationSection,
   // parseJSON5
@@ -110,18 +114,17 @@ export async function listTodaysEvents(paramString: string): Promise<string> {
 
   const eA: Array<TCalendarItem> = await Calendar.eventsToday()
   const outputArray: Array<string> = []
+
   for (const e of eA) {
-    let outputLine = template // `- ${e.title}`
-    outputLine = outputLine.replace('TITLE', e.title)
-    outputLine = outputLine.replace(
-      'START',
-      !e.isAllDay ? toLocaleShortTime(e.date) : '',
-    )
-    outputLine = outputLine.replace(
-      'END',
-      e.endDate != null ? toLocaleShortTime(e.endDate) : '',
-    ) // as endDate is optional
-    outputArray.push(outputLine)
+    const replacements = [
+      { key: 'TITLE', value: e.title },
+      { key: 'START', value: !e.isAllDay ? toLocaleShortTime(e.date) : '' },
+      {
+        key: 'END',
+        value: e.endDate != null ? toLocaleShortTime(e.endDate) : '',
+      },
+    ]
+    outputArray.push(stringReplace(template, replacements))
   }
   if (pref_todaysEventsHeading !== '') {
     outputArray.unshift(pref_todaysEventsHeading)
