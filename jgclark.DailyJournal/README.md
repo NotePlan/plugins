@@ -49,6 +49,10 @@ In more detail:
 
 
 ## History
+
+### v0.6.9, 30.7.2021 @dwertheimer
+- changes to weather() template macro to add more fields and use string replacements
+
 ### v0.6.8, 28.7.2021
 - under-the-hood changes responding to underlying API and framework changes
 
