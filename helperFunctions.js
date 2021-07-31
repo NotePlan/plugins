@@ -796,7 +796,7 @@ export function getTagParams(paramString: string, wantedParam: string): string {
  * @returns {string} the string capitalized
  * @description Capitalizes the first letter of a string
  */
-export function capitalize(s) {
+export function capitalize(s: string): string {
   if (typeof s !== 'string') return ''
   return s.charAt(0).toUpperCase() + s.slice(1)
 }
