@@ -1,5 +1,8 @@
 // @flow
 
+//TODO: add releases instructions to README.md
+//TODO: search for gh command and tell people what to do
+
 // $FlowIgnore
 const fs = require('fs/promises')
 const path = require('path')
@@ -52,8 +55,8 @@ async function getExistingRelease(pluginName) {
       if (parts.length > 3) {
         const name = parts[0]
         const tag = parts[2]
-        console.log(`>>Releases: found existing release name: ${name}`)
-        console.log(`>>Releases: found existing release tag : ${tag}`)
+        // console.log(`>>Releases: found on github release name: ${name}`)
+        console.log(`>>Releases: found on github release tagged: ${tag}`)
         return { name, tag }
       } else {
         console.log(
@@ -179,7 +182,7 @@ async function releasePlugin(versionedTagName, fileList, sendToGithub = false) {
       )
       const resp = await runShellCommand(releaseCommand)
       console.log(
-        `New release posted (check on github):\n\t${JSON.stringify(
+        `>>Releases: New release posted (check on github):\n\t${JSON.stringify(
           resp.trim(),
         )}`,
       )
@@ -194,8 +197,9 @@ async function removePlugin(versionedTagName, sendToGithub = false) {
   } else {
     if (removeCommand) {
       console.log(
-        `>>Release: Removing previous version "${versionedTagName}" on github...`,
+        `>>Releases: Removing previous version "${versionedTagName}" on github...`,
       )
+      // eslint-disable-next-line no-unused-vars
       const resp = await runShellCommand(removeCommand)
       // console.log(`...response: ${JSON.stringify(resp.trim())}`)
     }
@@ -218,7 +222,14 @@ async function main() {
     ensureVersionIsNew(existingRelease, versionedTagName)
     await releasePlugin(versionedTagName, fileList, true)
     if (existingRelease) await removePlugin(existingRelease.tag, true)
-    console.log(`Finished`)
+    const newReleaseList = await getExistingRelease(pluginName)
+    if (newReleaseList && newReleaseList.tag === versionedTagName) {
+      console.log(
+        `>>Releases: Release & Clean ran successfully. "${versionedTagName}" is now live.`,
+      )
+    } else {
+      console.log(`>>Releases: Something went wrong. Pls check logs.`)
+    }
   } else {
     wrongArgsMessage()
   }
