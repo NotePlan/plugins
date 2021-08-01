@@ -9,3 +9,4 @@ package-lock.json
 *test*.yaml
 *.code-workspace
 *.dict
+.vscode/launch.json

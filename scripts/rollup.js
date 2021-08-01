@@ -11,7 +11,7 @@ const resolve = require('@rollup/plugin-node-resolve').default
 const mkdirp = require('mkdirp')
 const username = os.userInfo().username
 const createPluginListing = require('./createPluginListing')
-
+const { getFolderFromCommandLine, getPluginFileContents } = require('./shared')
 const FOLDERS_TO_IGNORE = [
   'scripts',
   'flow-typed',
@@ -31,14 +31,7 @@ let watcher
 async function checkPluginList(pluginPaths) {
   const pluginCommands = {}
   for (const pluginPath of pluginPaths) {
-    const jsonFile = path.join(pluginPath, 'plugin.json')
-    let pluginFile
-    try {
-      pluginFile = await JSON.parse(await fs.readFile(jsonFile, 'utf8'))
-      // console.log(`Read file ${pluginPath}`)
-    } catch (e) {
-      console.log(e)
-    }
+    const pluginFile = await getPluginFileContents(pluginPath)
     // console.log(`**** READ\n${JSON.stringify(pluginFile)}`)
     if (pluginFile) {
       pluginFile['plugin.commands']?.forEach((command) => {
@@ -72,27 +65,12 @@ async function checkPluginList(pluginPaths) {
 }
 
 async function main() {
-  const args = process.argv.slice(2)
-  const limitToFolders = []
-  if (args.length) {
-    console.log(`Autowatching will be limited to: ${JSON.stringify(args)}`)
-    args.forEach((arg) => {
-      fs.stat(path.join(rootFolderPath, arg))
-        .then(() => {
-          limitToFolders.push(arg)
-        })
-        .catch((e) => {
-          console.log(
-            `\nERROR: Invalid Argument: "${arg}"\n${e.path} does not exist. Make sure you are invoking with just the top-level folder name, e.g. \n---> npm run autowatch jgclark.DailyJournal\nStopping script. Try again!\n`,
-          )
-          process.exit(0)
-        })
-    })
+  const limitToFolders = await getFolderFromCommandLine(rootFolderPath)
+  if (limitToFolders.length) {
     console.log(
       `\nWARNING: Keep in mind that if you are editing shared files used by other plugins that you could be affecting them by not rebuilding/testing them all here. You have been warned. :)\n`,
     )
   }
-
   const rootFolder = await fs.readdir(rootFolderPath, {
     withFileTypes: true,
   })
@@ -157,14 +135,18 @@ async function main() {
         if (limitToFolders.length === 0) {
           await checkPluginList(bundledPlugins)
         }
-
+        const pluginFolder = outputFolder
+          .replace(rootFolderPath, '')
+          .substring(1)
         console.log(
-          `Generated "${outputFile.replace(
-            rootFolder,
-            '',
-          )}"\nand copied to the "Plugins" folder\nat ${new Date()
+          `${new Date()
             .toISOString()
-            .slice(0, 16)}\n`,
+            .slice(
+              0,
+              16,
+            )} "${pluginFolder}"\n                 Built and copied to the "Plugins" folder. \n\
+                 To release this plugin, update the changelog.md and run:\
+            \n${`                 npm run release "${pluginFolder}"`}`,
         )
       } else {
         console.log(`Generated "${outputFile.replace(rootFolder, '')}"`)
