@@ -174,7 +174,9 @@ async function releasePlugin(versionedTagName, fileList, sendToGithub = false) {
     console.log(`\nRelease create command: \n${releaseCommand}\n`)
   } else {
     if (releaseCommand) {
-      console.log(`Creating release "${versionedTagName}" on github...`)
+      console.log(
+        `>>Release: Creating release "${versionedTagName}" on github...`,
+      )
       const resp = await runShellCommand(releaseCommand)
       console.log(
         `New release posted (check on github):\n\t${JSON.stringify(
@@ -192,7 +194,7 @@ async function removePlugin(versionedTagName, sendToGithub = false) {
   } else {
     if (removeCommand) {
       console.log(
-        `Removing previous version "${versionedTagName}" on github...`,
+        `>>Release: Removing previous version "${versionedTagName}" on github...`,
       )
       const resp = await runShellCommand(removeCommand)
       // console.log(`...response: ${JSON.stringify(resp.trim())}`)
@@ -216,6 +218,7 @@ async function main() {
     ensureVersionIsNew(existingRelease, versionedTagName)
     await releasePlugin(versionedTagName, fileList, true)
     if (existingRelease) await removePlugin(existingRelease.tag, true)
+    console.log(`Finished`)
   } else {
     wrongArgsMessage()
   }
