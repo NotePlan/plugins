@@ -1,7 +1,7 @@
 // @flow
 // ------------------------------------------------------------------------------------
 // Command to bring calendar events into notes
-// v0.2.3, 28.7.2021
+// v0.2.5, 1.8.2021
 // @jgclark
 // ------------------------------------------------------------------------------------
 
@@ -11,9 +11,9 @@ import {
   stringReplace,
   getTagParams,
 } from '../../helperFunctions'
+
 import {
   getOrMakeConfigurationSection,
-  // parseJSON5
 } from '../../nmn.Templates/src/configuration'
 
 //------------------------------------------------------------------------------
@@ -23,10 +23,10 @@ const DEFAULT_EVENTS_OPTIONS = `  events: {
     processedTagName: "#event_created",   // optional tag to add after making a time block an event
     removeTimeBlocksWhenProcessed: true,  // whether to remove time block after making an event from it
     todaysEventsHeading: "### Events today",  // optional heading to put before list of today's events
-    addMatchingEvents: {   // match events with string on left, and add this into daily note prepending by string on the right (which can be empty)
-      "#meeting": "### ",
-      "#webinar": "### ",
-      "#holiday": "",
+    addMatchingEvents: {   // match events with string on left, and then the string on the right is the template for how to insert this event (see README for details)
+      "#meeting": "### TITLE (START)",
+      "#webinar": "### TITLE (START)",
+      "#holiday": "TITLE",
     },
   },
 `
@@ -41,7 +41,6 @@ async function getSettings(): Promise<void> {
     'events',
     DEFAULT_EVENTS_OPTIONS,
   )
-  // const eventsConfig: any = config?.events ?? null
   if (eventsConfig == null) {
     console.log(`\tCouldn't find 'events' settings in _configuration note.`)
     await showMessage(`Couldn't find 'events' settings in _configuration note.`)
@@ -69,19 +68,20 @@ async function getSettings(): Promise<void> {
 
 //------------------------------------------------------------------------------
 // Return MD list of today's events
-export async function listTodaysEvents(paramString: string): Promise<string> {
+export async function listTodaysEvents(paramString?: string): Promise<string> {
   console.log(`\nlistTodaysEvents:`)
 
   // Get config settings from Template folder _configuration note
   await getSettings()
   // Work out template for output line (from params, or if blank, a default)
   const template =
-    paramString !== ''
+    (paramString != null && paramString !== '')
       ? getTagParams(paramString, 'template')
       : '- TITLE (START)'
   console.log(`\toutput template: '${template}'`)
 
   const eA: Array<TCalendarItem> = await Calendar.eventsToday()
+  console.log(`\tFound ${eA.length} events (including possible dupes)`)
   const outputArray: Array<string> = []
 
   let lastEventStr = '' // keep duplicates from multiple calendars out
@@ -127,9 +127,10 @@ export async function insertListTodaysEvents(params: ?string): Promise<void> {
 // Return string list of matching events in today's note, from list in keys of
 // pref_addMatchingEvents.
 // Prepend any with value of the values in pref_addMatchingEvents.
-// NB: the parameter isn't currently used, but is provided for future expansion.
 export async function listMatchingTodaysEvents(
-  params: string,
+  /*eslint-disable */
+  paramString: ?string, // NB: the parameter isn't currently used, but is provided for future expansion.
+  /*eslint-enable */
 ): Promise<string> {
   console.log(`\nalistMatchingTodaysEvents:`)
   // Get config settings from Template folder _configuration note
@@ -141,27 +142,41 @@ export async function listMatchingTodaysEvents(
     return `(Error: found no 'addMatchingEvents' settings in _configuration note.)`
   }
 
-  const textToMatch = Object.keys(pref_addMatchingEvents)
-  const textToPrepend = Object.values(pref_addMatchingEvents)
+  const textToMatchA = Object.keys(pref_addMatchingEvents)
+  const templateA = Object.values(pref_addMatchingEvents)
   console.log(
-    `\tFrom settings found ${textToMatch.length} match strings to look for`,
+    `\tFrom settings found ${textToMatchA.length} match strings to look for`,
   )
   const eA: Array<TCalendarItem> = await Calendar.eventsToday()
 
   const outputArray: Array<string> = []
   for (const e of eA) {
-    for (let i = 0; i < textToMatch.length; i++) {
-      const m = textToMatch[i]
+    for (let i = 0; i < textToMatchA.length; i++) {
+      const m = textToMatchA[i]
+      const template = templateA[i]
       if (e.title.match(m)) {
+        console.log(`\tFound match to event '${e.title}'`)
+        const replacements = [
+          { key: 'TITLE', value: e.title },
+          { key: 'START', value: !e.isAllDay ? toLocaleShortTime(e.date) : '' },
+          {
+            key: 'END',
+            value: e.endDate != null ? toLocaleShortTime(e.endDate) : '',
+          },
+        ]
         // $FlowFixMe -- not sure how to deal with mixed coercing to strings
-        let outputLine = `${textToPrepend[i]}${e.title}`
-        if (!e.isAllDay) {
-          outputLine += ` (${toLocaleShortTime(e.date)})`
-        }
-        outputArray.push(outputLine)
+        const thisEventStr = stringReplace(template, replacements)
+        outputArray.push(thisEventStr)
       }
     }
   }
+    //     let outputLine = `${textToPrepend[i]}${e.title}`
+    //     if (!e.isAllDay) {
+    //       outputLine += ` (${toLocaleShortTime(e.date)})`
+    //     }
+    //     outputArray.push(outputLine)
+    //   }
+    // }
   const output = outputArray.join('\n')
   console.log(output)
   return output

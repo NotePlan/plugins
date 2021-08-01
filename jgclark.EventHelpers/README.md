@@ -2,6 +2,7 @@
 This plugin provides commands to help work with Calendars and Events:
 
 - `/insert today's events as list`: insert list of today's calendar events at cursor
+- `/list today's events to log`: write list of today's calendar events to console log
 - `/insert matching events`: adds today's calendar events matching certain patterns at cursor
 - `/time blocks to calendar`: takes [NotePlan-defined time blocks](https://help.noteplan.co/article/52-part-2-tasks-events-and-reminders#timeblocking) and converts to full Calendar events, in your current default calendar, as set by iCal.
 
@@ -17,10 +18,10 @@ Alternatively, in the `Templates/_configuration` note include the following sett
     processedTagName: "#event_created",   // optional tag to add after making a time block an event
     removeTimeBlocksWhenProcessed: true,  // whether to remove time block after making an event from it
     todaysEventsHeading: "### Events today",  // optional heading to put before list of today's events
-    addMatchingEvents: {   // match events with string on left, and add this into daily note prepending by string on the right (which can be empty). Can be empty.
-      "#meeting": "### ",
-      "#webinar": "### ",
-      "#holiday": "",
+    addMatchingEvents: {   // match events with string on left, and then the string on the right is the template for how to insert this event (see README for details)
+      "#meeting": "### TITLE (START)",
+      "#webinar": "### TITLE (START)",
+      "#holiday": "TITLE",
     },
 ...
 ```
@@ -32,7 +33,7 @@ Alternatively, in the `Templates/_configuration` note include the following sett
 - processedTag: if this is set, then this tag will get added on the end of the line with the time block, to show that it has been processed. Otherwise, next time this command is run, it will create another event. This can be used with or without addEventID.
 - removeTimeBlocksWhenProcessed: in `time blocks...` whether to remove time block after making an event from it
 - todaysEventsHeading: in `/insert today's events as list` the heading to put before the list of today's events. Optional.
-- addMatchingEvents: for `/add matching events` is a set of pairs of strings. The first string is what is matched for in an event's title. If it does match the second string is prepended to it, and added at the cursor.  Can be empty: `{  }`.
+- addMatchingEvents: for `/add matching events` is a set of pairs of strings. The first string is what is matched for in an event's title. If it does match the second string is used as the template for how to insert the event details at the cursor.  This uses the same `TITLE`, `START` and `END` template items below ...
 
 ### Using Event Lists from a Template
 If you use Templates, this command can be called when a Template is inserted (including in the `/day start` command which applies your `Daily Note Template` file). To do this insert `{{listTodaysEvents()}}` wherever you wish it to appear in the Template.  By default it gives a simple markdown list of event title and start time.  To **customise the list display**, you can add a `'template:"..."'` parameter to the `{{listTodaysEvents()}}` template command that sets how to present the list. For example:
@@ -46,6 +47,10 @@ The TITLE, START and END can be mixed with whatever markdown characters or other
 You can also place  `{{listMatchingEvents()}}` in Templates in a similar way. However, it has a different sort of customisation. This simply has a prefix string defined in the _configuration file above, _for each different string to match_.
 
 ## History
+### v0.2.5 1.8.2021
+- adds ability to customise the addMatchingEvents lines with template strings, not just prepended string
+- fixed issue with running list today's events, due to change in configuration mechanism
+
 ### v0.2.4 30.07.2021 @dwertheimer
 - (bump) Minor tweak to use template replacement from helperFunctions.js
 
