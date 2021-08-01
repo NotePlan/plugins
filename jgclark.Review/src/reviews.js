@@ -398,7 +398,7 @@ export async function completeReview(): Promise<?TNote> {
     return
   }
 
-  const metadataLine = getOrMakeMetadataLine(Editor.note)
+  const metadataLine = getOrMakeMetadataLine()
   let metadataPara: ?TParagraph
 
   // get list of @mentions
@@ -432,7 +432,7 @@ export async function completeReview(): Promise<?TNote> {
     console.log(
       `\tno matching ${reviewMentionString}(date) string found. Will append to line 1`,
     )
-    const metadataPara = Editor.note?.paragraphs[1]
+    const metadataPara = Editor.note?.paragraphs[metadataLine]
     if (metadataPara == null) {
       return null
     }
@@ -447,7 +447,7 @@ export async function completeReview(): Promise<?TNote> {
 
 //-------------------------------------------------------------------------------
 // Update the @reviewed(date) in the note in the Editor to today's date
-export async function completeProject(): Promise<?TNote> {
+export async function completeProject(): Promise<void> {
   const completedMentionString = '@completed'
   const completedTodayString = `${completedMentionString}(${hyphenatedDate(new Date())})`
 
@@ -456,20 +456,20 @@ export async function completeProject(): Promise<?TNote> {
     return
   }
 
-  const metadataLine = getOrMakeMetadataLine(Editor.note)
+  const metadataLine = getOrMakeMetadataLine()
   // append to note's default metadata line
   console.log(
     `\twill append ${completedTodayString} string to line ${metadataLine}`,
   )
   const metadataPara = Editor.note?.paragraphs[metadataLine]
   if (metadataPara == null) {
-    return null
+    return
   }
   const metaPara = metadataPara
   metaPara.content += ` ${completedTodayString}`
   // send update to Editor
   await Editor.updateParagraph(metaPara)
-
-  // return current note, to help next function
-  return Editor.note
-}
+  // remove this note from the review list
+  // $FlowIgnore[incompatible-call]
+  await updateReviewListWithComplete(Editor.note)
+ }

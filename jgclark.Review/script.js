@@ -9827,37 +9827,38 @@ var exports = (function (exports) {
     }
   }
   /**
-   * Works out which line (if any) is a metadata line, defined (in preference order) as
+   * Works out which line (if any) of the current note is a metadata line, defined as
    * - line starting 'project:' or 'medadata:'
    * - first line containing a @review() mention
    * - first line starting with a hashtag
-   * - the first line after the title
+   * If these can't be found, then create a new line for this after the title
+   * Only to be called when Editor known to have an open note.
    * @author @jgclark
-   * @param {TNote} note - the note of interest
    * @return {number} line - the calculated line
    */
 
-  function getOrMakeMetadataLine(note) {
-    var _note$content$split, _note$content;
+  function getOrMakeMetadataLine() {
+    var _Editor$content$split;
 
-    let lineNumber;
-    const lines = (_note$content$split = (_note$content = note.content) === null || _note$content === void 0 ? void 0 : _note$content.split('\n')) !== null && _note$content$split !== void 0 ? _note$content$split : [''];
-    const pLines = lines.slice().filter(a => a.match(/^project:/i) || a.match(/^metadata:/i));
+    let lineNumber; // $FlowIgnore[incompatible-use] as we know Editor.content != null
 
-    if (pLines.length > 0) {
-      lineNumber = 2; // TODO:
-      // if () {
-      // } else if () {
-      // } else if (lines[1].match(/^#[A-z]/)) {
-      // We have a hashtag at the start of the line, making this a metadata line
+    const lines = (_Editor$content$split = Editor.content.split('\n')) !== null && _Editor$content$split !== void 0 ? _Editor$content$split : [''];
+
+    for (let i = 1; i < lines.length; i++) {
+      if (lines[i].match(/^project:/i) || lines[i].match(/^metadata:/i) || lines[i].match(/^#[\w]/) || lines[i].match(/@review\(.+\)/)) {
+        lineNumber = i;
+        break;
+      }
     }
 
-    if (lineNumber == undefined) {
+    if (lineNumber === undefined) {
       // If no metadataPara found, then insert one straight after the title
       console.log("\tCan't find an existing metadata line, so will insert a new second line for it");
       Editor.insertParagraph('', 1, 'empty');
-      lineNumber = 2;
-    }
+      lineNumber = 1;
+    } // console.log(`Metadata line = ${lineNumber}`)
+    // $FlowIgnore
+
 
     return lineNumber;
   }
@@ -10539,7 +10540,7 @@ var exports = (function (exports) {
       return;
     }
 
-    const metadataLine = getOrMakeMetadataLine(Editor.note);
+    const metadataLine = getOrMakeMetadataLine();
 
     const firstReviewedMention = (_Editor$note = Editor.note) === null || _Editor$note === void 0 ? void 0 : _Editor$note.mentions.find(m => m.match(RE_REVIEW_MENTION));
 
@@ -10568,7 +10569,7 @@ var exports = (function (exports) {
 
       // no existing mention, so append to note's default metadata line
       console.log("\tno matching ".concat(reviewMentionString, "(date) string found. Will append to line 1"));
-      const metadataPara = (_Editor$note3 = Editor.note) === null || _Editor$note3 === void 0 ? void 0 : _Editor$note3.paragraphs[1];
+      const metadataPara = (_Editor$note3 = Editor.note) === null || _Editor$note3 === void 0 ? void 0 : _Editor$note3.paragraphs[metadataLine];
 
       if (metadataPara == null) {
         return null;
@@ -10595,25 +10596,27 @@ var exports = (function (exports) {
       return;
     }
 
-    const metadataLine = getOrMakeMetadataLine(Editor.note); // append to note's default metadata line
+    const metadataLine = getOrMakeMetadataLine(); // append to note's default metadata line
 
     console.log("\twill append ".concat(completedTodayString, " string to line ").concat(metadataLine));
     const metadataPara = (_Editor$note4 = Editor.note) === null || _Editor$note4 === void 0 ? void 0 : _Editor$note4.paragraphs[metadataLine];
 
     if (metadataPara == null) {
-      return null;
+      return;
     }
 
     const metaPara = metadataPara;
     metaPara.content += " ".concat(completedTodayString); // send update to Editor
 
-    await Editor.updateParagraph(metaPara); // return current note, to help next function
+    await Editor.updateParagraph(metaPara); // remove this note from the review list
+    // $FlowIgnore[incompatible-call]
 
-    return Editor.note;
+    await updateReviewListWithComplete(Editor.note);
   }
 
   exports.completeProject = completeProject;
   exports.completeReview = completeReview;
+  exports.getOrMakeMetadataLine = getOrMakeMetadataLine;
   exports.nextReview = nextReview;
   exports.projectLists = projectLists;
   exports.startReviews = startReviews;

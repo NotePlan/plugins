@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // @jgclark
 // Helper functions for Review plugin
-// v0.1.6, 25.7.2021
+// v0.2.3, 1.8.2021
 //-----------------------------------------------------------------------------
 
 import {
@@ -14,7 +14,6 @@ import {
   relativeDateFromNumber,
   getFolderFromFilename,
 } from '../../helperFunctions.js'
-
 
 /*
  * Get or create the relevant note in the Summary folder
@@ -59,34 +58,39 @@ export async function returnSummaryNote(
 }
 
 /**
- * Works out which line (if any) is a metadata line, defined (in preference order) as
+ * Works out which line (if any) of the current note is a metadata line, defined as
  * - line starting 'project:' or 'medadata:'
  * - first line containing a @review() mention
  * - first line starting with a hashtag
- * - the first line after the title
+ * If these can't be found, then create a new line for this after the title
+ * Only to be called when Editor known to have an open note.
  * @author @jgclark
- * @param {TNote} note - the note of interest
  * @return {number} line - the calculated line
  */
-export function getOrMakeMetadataLine(note: TNote): number {
+export function getOrMakeMetadataLine(): number {
   let lineNumber
-  const lines = note.content?.split('\n') ?? ['']
-  const pLines = lines.slice().filter((a) => (a.match(/^project:/i) || a.match(/^metadata:/i)))
-  if (pLines.length > 0) {
-    lineNumber = 2 // TODO:
-  // if () {
-  // } else if () {
-  // } else if (lines[1].match(/^#[A-z]/)) {
-    // We have a hashtag at the start of the line, making this a metadata line
+  // $FlowIgnore[incompatible-use] as we know Editor.content != null
+  const lines = Editor.content.split('\n') ?? ['']
+  for (let i = 1; i < lines.length; i++) {
+    if (lines[i].match(/^project:/i)
+      || lines[i].match(/^metadata:/i)
+      || lines[i].match(/^#[\w]/)
+      || lines[i].match(/@review\(.+\)/))
+    {
+      lineNumber = i
+      break
+    }
   }
-  if (lineNumber == undefined) {
+  if (lineNumber === undefined) {
     // If no metadataPara found, then insert one straight after the title
     console.log(
     `\tCan't find an existing metadata line, so will insert a new second line for it`,
     )
     Editor.insertParagraph('', 1, 'empty')
-    lineNumber = 2
+    lineNumber = 1
   }
+  // console.log(`Metadata line = ${lineNumber}`)
+  // $FlowIgnore
   return lineNumber
 }
 

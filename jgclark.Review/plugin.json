@@ -27,20 +27,20 @@
 			"name": "complete project",
 			"alias": ["gtd", "complete"],
 			"description": "add @completed(today) date to the open project",
-			"jsFunction": "completeReview"
+			"jsFunction": "completeProject"
 		},
 		{
 			"name": "finish project review",
 			"alias": ["gtd", "reviewed"],
 			"description": "updates the current open project's @reviewed() date",
-			"jsFunction": "completeProject"
+			"jsFunction": "completeReview"
 		},
 		{
 			"name": "next project review",
 			"alias": ["gtd"],
 			"description": "updates this project's @reviewed() date, and jump to next project to review",
 			"jsFunction": "nextReview"
-		}
+		},
 	],
 	"plugin.preferences": []
 }
