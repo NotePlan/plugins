@@ -70,25 +70,6 @@ var exports = (function (exports) {
   function withinDateRange(testDate, fromDate, toDate) {
     return testDate >= fromDate && testDate <= toDate;
   } // Tests for the above
-  // console.log(`\ntesting relativeDate`)
-  // console.log(`-14 -> ${relativeDateFromNumber(-14)}`)
-  // console.log(`-7 -> ${relativeDateFromNumber(-7)}`)
-  // console.log(`-2 -> ${relativeDateFromNumber(-2)}`)
-  // console.log(`-1 -> ${relativeDateFromNumber(-1)}`)
-  // console.log(`0 -> ${relativeDateFromNumber(0)}`)
-  // console.log(`1 -> ${relativeDateFromNumber(1)}`)
-  // console.log(`2 -> ${relativeDateFromNumber(2)}`)
-  // console.log(`7 -> ${relativeDateFromNumber(7)}`)
-  // console.log(`14 -> ${relativeDateFromNumber(14)}`)
-  // console.log(`29 -> ${relativeDateFromNumber(29)}`)
-  // console.log(`30 -> ${relativeDateFromNumber(30)}`)
-  // console.log(`31 -> ${relativeDateFromNumber(31)}`)
-  // console.log(`123 -> ${relativeDateFromNumber(123)}`)
-  // console.log(`264 -> ${relativeDateFromNumber(264)}`)
-  // console.log(`364 -> ${relativeDateFromNumber(364)}`)
-  // console.log(`365 -> ${relativeDateFromNumber(365)}`)
-  // console.log(`366 -> ${relativeDateFromNumber(366)}`)
-  //-------------------------------------------------------------------------------
   // Misc functions for NP
 
   DataStore.defaultFileExtension != null ? DataStore.defaultFileExtension : 'md'; // Pretty print range information (@EduardMe)
@@ -102,7 +83,7 @@ var exports = (function (exports) {
 
       return (_n$title = n.title) !== null && _n$title !== void 0 ? _n$title : '';
     }
-  } // Print out all data for a paragraph (@EduardMe)
+  } // Return (project) note title as a [[link]]
 
   // Show note counts
 
@@ -9589,7 +9570,13 @@ var exports = (function (exports) {
   const FORMAT_MAP = {
     javascript: 'json5',
     ini: 'toml'
-  }; // @nmn original, but split up by @jgclark
+  };
+  /**
+   * Parse first codeblock as JSON/JSON5/YAML/TOML
+   * @author @nmn
+   * @param {string} block - contents of first codeblock as string (exludes ``` delimiters)
+   * @return {mixed} structured version of this data, in the format specified by the first line of the codeblock
+   */
 
   async function parseFirstCodeblock(block) {
     var _FORMAT_MAP$format;
@@ -9608,7 +9595,8 @@ var exports = (function (exports) {
       return {};
     }
 
-    format = (_FORMAT_MAP$format = FORMAT_MAP[format]) !== null && _FORMAT_MAP$format !== void 0 ? _FORMAT_MAP$format : format; // console.log(`\tparseFirstCodeblock: will parse ${contents.length} bytes of ${format}`)
+    format = (_FORMAT_MAP$format = FORMAT_MAP[format]) !== null && _FORMAT_MAP$format !== void 0 ? _FORMAT_MAP$format : format;
+    console.log("\tparseFirstCodeblock: will parse ".concat(contents.length, " bytes of ").concat(format));
 
     switch (format) {
       case 'json':
@@ -9626,11 +9614,18 @@ var exports = (function (exports) {
       default:
         console.log("\tparseFirstCodeblock: error: can't deal with format ".concat(format));
     }
-  } // Get configuration section, or if not present, save into _configuraiton file
-  // Only deals with json5 case
-  // @jgclark
+  }
+  /**
+   * Get configuration section, or if not present, save into _configuration file.
+   * Only deals with json5 case.
+   * @author @nmn, @jgclark, @dwertheimer
+   * @param {string} configSectionName - name of configuration section to retrieve
+   * @param {string} configSectionDefault - JSON5 string to use as default values for this configuration section
+   * @param {string} minimumRequiredConfig - contains fields which must exist and type, e.g. "{ openWeatherAPIKey: 'string' }"
+   * @return {mixed} return this as structured data, in the format specified by the first line of the first codeblock
+   */
 
-  async function getOrMakeConfigurationSection(configSectionName, configSectionDefault) {
+  async function getOrMakeConfigurationSection(configSectionName, configSectionDefault, minimumRequiredConfig = {}) {
     var _configFile, _await$parseFirstCode;
 
     let templateFolder = await getOrMakeTemplateFolder();
@@ -9639,9 +9634,9 @@ var exports = (function (exports) {
       console.log("  getOrMakeConfigurationSection: couldn't find the templateFolder ... will try to create it ...");
       templateFolder = getOrMakeTemplateFolder();
       return {};
-    } // console.log(`  getOrMakeConfigurationSection: got folder ${templateFolder}`)
+    }
 
-
+    console.log("  getOrMakeConfigurationSection: got folder ".concat(templateFolder));
     let configFile = DataStore.projectNotes // $FlowIgnore[incompatible-call]
     .filter(n => {
       var _n$filename2;
@@ -9670,9 +9665,9 @@ var exports = (function (exports) {
 
     const content = (_configFile = configFile) === null || _configFile === void 0 ? void 0 : _configFile.content;
 
-    if (content == null) {
-      console.log("  getOrMakeConfigurationSection: Error: '_configuration' file is empty");
-      await showMessage("Error: empty '_configuration' file. Please check."); // Really strange to get here: won't code a response, but will just stop.
+    if (configFile == null || content == null) {
+      console.log("  getOrMakeConfigurationSection: Error: '_configuration' file not found or empty");
+      await showMessage("Error: missing or empty '_configuration' file. Please check."); // Really strange to get here: won't code a response, but will just stop.
 
       return {};
     }
@@ -9682,8 +9677,8 @@ var exports = (function (exports) {
     const firstCodeblock = content.split('\n```')[1];
     const config = (_await$parseFirstCode = await parseFirstCodeblock(firstCodeblock)) !== null && _await$parseFirstCode !== void 0 ? _await$parseFirstCode : {}; // Does it contain the section we want?
 
-    if (firstCodeblock == null || config[configSectionName] // alternative to dot notation that allows variables
-    == null) {
+    if (firstCodeblock == null || config[configSectionName] == // alternative to dot notation that allows variables
+    null) {
       // No, so offer to make it and populate it
       const shouldAddDefaultConfig = await chooseOption("No '".concat(configSectionName, "' configuration section found."), [{
         label: "\u2705 Create ".concat(configSectionName, " configuration from its defaults"),
@@ -9726,9 +9721,50 @@ var exports = (function (exports) {
     } // We have the configuration, so return it
 
 
-    console.log('  getOrMakeConfigurationSection: found first code block'); // $FlowIgnore
+    if (Object.keys(minimumRequiredConfig) && config[configSectionName]) {
+      // $FlowIgnore
+      return validateMinimumConfig( // $FlowIgnore
+      config[configSectionName], minimumRequiredConfig);
+    } else {
+      // $FlowIgnore
+      return config[configSectionName];
+    }
+  }
+  /**
+   * Get configuration section, or if not present, save into _configuration file.
+   * Only deals with json5 case.
+   * @author @dwertheimer
+   * @param {mixed} config - configuration as structured JSON5 object
+   * @param {mixed} validations - JSON5 string to use as default values for this configuration section
+   * @return {mixed} return this as structured data, in the format specified by the first line of the first codeblock
+   */
 
-    return config[configSectionName];
+  function validateMinimumConfig(config, validations) {
+    let failed = false;
+
+    if (Object.keys(validations).length) {
+      Object.keys(validations).forEach(v => {
+        //$FlowIgnore
+        if (config[v] == null) {
+          console.log("Config required field: ".concat(v, " is missing"));
+          failed = true;
+        }
+
+        if (typeof config[v] !== validations[v]) {
+          console.log("Config required field: ".concat(v, " is not of type ").concat(String(validations[v])));
+          failed = true;
+        }
+      });
+    }
+
+    if (failed) {
+      console.log("Config failed minimum validation spec!");
+      return {};
+    } else {
+      console.log("Config passed minimum validation spec; config=\n".concat(JSON.stringify(config))); //$FlowIgnore
+
+      return config;
+    }
   }
 
   async function parseJSON(contents) {
@@ -9793,7 +9829,9 @@ var exports = (function (exports) {
   // TODO:
   // - When weekly/monthly notes are made possible in NP, then output changes there as well
   //-----------------------------------------------------------------------------
-  // Globals, to be looked up later
+  // Config settings
+  const DEFAULT_STATS_OPTIONS = "  statistics: {\n    folderToStore: 'Summaries',\n    hashtagCountsHeading: '#hashtag counts',\n    mentionCountsHeading: '@mention counts',\n    countsHeadingLevel: 3, // headings use H3 (or ...)\n    showAsHashtagOrMention: true, // or false to hide # and @ characters\n    // In the following the includes (if specified) takes precedence over excludes ...\n    includeHashtags: [], // e.g. ['#holiday','#jog','#commute','#webinar']\n    excludeHashtags: [],\n    includeMentions: [], // e.g. ['@work','@fruitveg','@words']\n    excludeMentions: ['@done'],\n  },\n"; // Globals, to be looked up later
+
   let pref_folderToStore;
   let pref_countsHeadingLevel;
   let pref_hashtagCountsHeading;
@@ -9859,11 +9897,11 @@ var exports = (function (exports) {
 
 
   async function periodStats() {
-    var _config$statistics, _results, _results2, _results3, _results4;
+    var _results, _results2, _results3, _results4;
 
     // Get config settings from Template folder _configuration note
-    const config = await getOrMakeConfigurationSection('statistics', DEFAULT_STATS_OPTIONS);
-    const statsConfig = (_config$statistics = config === null || config === void 0 ? void 0 : config.statistics) !== null && _config$statistics !== void 0 ? _config$statistics : null;
+    const statsConfig = await getOrMakeConfigurationSection('statistics', DEFAULT_STATS_OPTIONS // no minimum config required, as all defaults are given below
+    ); // const statsConfig: any = config?.statistics ?? null
 
     if (statsConfig == null) {
       console.log("\tCouldn't find 'statistics' settings in _configuration note.");
@@ -10319,7 +10357,7 @@ var exports = (function (exports) {
       }
 
       console.log("\t   Removed ".concat(removed, " paragraphs. ").concat(existingHeadingIndex)); // Delete the saved set of paragraphs
-      // TODO: think this is hitting NP API bug?
+      // TODO: NP API bug should be resolved, so could revert to this instead of above
       // console.log(`About to remove ${psToRemove.length} paragraphs`)
       // note.removeParagraphs(psToRemove)
       // console.log(`Removed ${psToRemove.length} paragraphs`);
@@ -10445,18 +10483,10 @@ var exports = (function (exports) {
           }
         }
       }
-    } // Test output of totals arithmetic
-    // for (let k of mentionSumTotals.keys()) {
-    //   const count = mentionCounts.get(k)
-    //   const average = mentionSumTotals.get(k) / count
-    //   console.log(`${k}: count ${count.toString()} average ${average.toString()}`)
-    // }
-
+    }
 
     return [mentionCounts, mentionSumTotals];
   }
-
-  const DEFAULT_STATS_OPTIONS = "  statistics: {\n    folderToStore: 'Summaries',\n    hashtagCountsHeading: '#hashtag counts',\n    mentionCountsHeading: '@mention counts',\n    countsHeadingLevel: 3, // headings use H3 (or ...)\n    showAsHashtagOrMention: true, // or false to hide # and @ characters\n    // In the following the includes (if specified) takes precedence over excludes ...\n    includeHashtags: [], // e.g. ['#holiday','#jog','#commute','#webinar']\n    excludeHashtags: [],\n    includeMentions: [], // e.g. ['@work','@fruitveg','@words']\n    excludeMentions: ['@done'],\n  },\n";
 
   exports.periodStats = periodStats;
   exports.showNoteCount = showNoteCount;

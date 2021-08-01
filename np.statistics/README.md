@@ -34,6 +34,9 @@ statistics: {
 (This example fragment is in JSON5 format: ensure there are commas at the end of all that lines that need them.)
 
 ## History
+### v0.3.5, 1.8.2021
+- fix: list todays events broke after a config framework change
+
 ### v0.3.4, 28.7.2021
 - fix edge case of zero tasks → NaN
 

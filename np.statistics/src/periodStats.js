@@ -10,10 +10,24 @@
 // - When weekly/monthly notes are made possible in NP, then output changes there as well
 
 //-----------------------------------------------------------------------------
-// Globals, to be looked up later
+// Config settings
+const DEFAULT_STATS_OPTIONS = `  statistics: {
+    folderToStore: 'Summaries',
+    hashtagCountsHeading: '#hashtag counts',
+    mentionCountsHeading: '@mention counts',
+    countsHeadingLevel: 3, // headings use H3 (or ...)
+    showAsHashtagOrMention: true, // or false to hide # and @ characters
+    // In the following the includes (if specified) takes precedence over excludes ...
+    includeHashtags: [], // e.g. ['#holiday','#jog','#commute','#webinar']
+    excludeHashtags: [],
+    includeMentions: [], // e.g. ['@work','@fruitveg','@words']
+    excludeMentions: ['@done'],
+  },
+`
 
+// Globals, to be looked up later
 let pref_folderToStore: string
-let pref_countsHeadingLevel: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
+let pref_countsHeadingLevel: 1 | 2 | 3 | 4 | 5
 let pref_hashtagCountsHeading: string
 let pref_mentionCountsHeading: string
 let pref_showAsHashtagOrMention: boolean = false
@@ -29,7 +43,6 @@ import {
   chooseOption,
   getInput,
   showMessage,
-  //printNote,
   todaysDateISOString,
   monthNameAbbrev,
   withinDateRange,
@@ -87,11 +100,12 @@ function quarterStartEnd(qtr: number, year: number): [Date, Date] {
 // Ask user which period to cover, call main stats function, and present results
 export async function periodStats(): Promise<void> {
   // Get config settings from Template folder _configuration note
-  const config = await getOrMakeConfigurationSection(
+  const statsConfig = await getOrMakeConfigurationSection(
     'statistics',
     DEFAULT_STATS_OPTIONS,
+    // no minimum config required, as all defaults are given below
   )
-  const statsConfig: any = config?.statistics ?? null
+  // const statsConfig: any = config?.statistics ?? null
   if (statsConfig == null) {
     console.log("\tCouldn't find 'statistics' settings in _configuration note.")
     return
@@ -600,7 +614,7 @@ function removeSection(note: TNote, heading: string): number {
     console.log(`\t   Removed ${removed} paragraphs. ${existingHeadingIndex}`)
 
     // Delete the saved set of paragraphs
-    // TODO: think this is hitting NP API bug?
+    // TODO: NP API bug should be resolved, so could revert to this instead of above
     // console.log(`About to remove ${psToRemove.length} paragraphs`)
     // note.removeParagraphs(psToRemove)
     // console.log(`Removed ${psToRemove.length} paragraphs`);
@@ -759,26 +773,5 @@ function calcMentionStatsPeriod(
     }
   }
 
-  // Test output of totals arithmetic
-  // for (let k of mentionSumTotals.keys()) {
-  //   const count = mentionCounts.get(k)
-  //   const average = mentionSumTotals.get(k) / count
-  //   console.log(`${k}: count ${count.toString()} average ${average.toString()}`)
-  // }
-
   return [mentionCounts, mentionSumTotals]
 }
-
-const DEFAULT_STATS_OPTIONS = `  statistics: {
-    folderToStore: 'Summaries',
-    hashtagCountsHeading: '#hashtag counts',
-    mentionCountsHeading: '@mention counts',
-    countsHeadingLevel: 3, // headings use H3 (or ...)
-    showAsHashtagOrMention: true, // or false to hide # and @ characters
-    // In the following the includes (if specified) takes precedence over excludes ...
-    includeHashtags: [], // e.g. ['#holiday','#jog','#commute','#webinar']
-    excludeHashtags: [],
-    includeMentions: [], // e.g. ['@work','@fruitveg','@words']
-    excludeMentions: ['@done'],
-  },
-`
