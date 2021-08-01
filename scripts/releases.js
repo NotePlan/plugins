@@ -1,17 +1,37 @@
 // @flow
 
-//TODO: add releases instructions to README.md
-//TODO: search for gh command and tell people what to do
-
 // $FlowIgnore
 const fs = require('fs/promises')
 const path = require('path')
-
 const {
   getFolderFromCommandLine,
   runShellCommand,
   getPluginFileContents,
+  fileExists,
 } = require('./shared')
+
+const installInstructions = `
+In order to create a release on the Noteplan github server (so the entire community can see your plugin), you need to have the proper permissions on the github repository from @eduardme. So get that sorted out before moving any further. More than likely, you'll simply want to create a Pull Request for your plugin code to the Noteplan repository and get it reviewed so someone can create a release to get it out to the community.
+
+If you do have permissions to create a release, then here's the next step:\n
+In order to do releases from the commandline, you need the "gh" command line tool from github.
+The following commands should get you up and running. Note: the first two commands may take awhile (5 minutes each) to run:
+git -C /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core fetch --unshallow
+git -C /usr/local/Homebrew/Library/Taps/homebrew/homebrew-cask fetch --unshallow
+brew update
+brew install gh
+gh auth login
+[ Select: Github.com > HTTPS > Yes Credentials > Login with web browser ]
+[ Log in using your github account and press Enter ]
+[ copy the OTP code from command line ]
+[ Paste OTP code in browser window ]
+
+If the above doesn't work for you, check out the detailed instructions from github:
+https://github.com/cli/cli#installation
+
+Then, once you have "gh" installed, come back here to run the command you ran to get this message.
+`
+
 /**
  *
  * @param {string} pluginFullPath
@@ -45,7 +65,9 @@ async function getExistingRelease(pluginName) {
         process.exit(0)
       } else if (checkForLines.length === 0) {
         console.log(
-          `>>Releases: Did not find pre-existing release for "${pluginName}" on github.\nThat's ok if this is the first release. Here are the existing releases on github:\n${releases}`,
+          `>>Releases: Did not find a pre-existing release that matched the pattern for this plugin folder: "${pluginName}" on github.\
+          \nThat's ok if this is the first release. Or it could be that a pre-existing release did not match this naming convention.\
+          Here are all the currently existing releases on github:\n---\n${releases}\nYou can always delete the old release at:\n\thttps://github.com/NotePlan/plugins/releases`,
         )
         failed = true
       }
@@ -206,8 +228,18 @@ async function removePlugin(versionedTagName, sendToGithub = false) {
   }
 }
 
+async function checkForGh() {
+  if (!(await fileExists(`/usr/local/bin/gh`))) {
+    console.log(
+      `>>Releases: ERROR: Could not find "gh" command.\n${installInstructions}`,
+    )
+    process.exit(0)
+  }
+}
+
 async function main() {
   console.log(`----------`)
+  await checkForGh()
   const rootFolderPath = path.join(__dirname, '..')
   const limitToFolders = await getFolderFromCommandLine(rootFolderPath)
   if (limitToFolders.length === 1) {
