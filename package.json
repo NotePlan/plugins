@@ -27,6 +27,7 @@
   },
   "scripts": {
     "autowatch": "node scripts/rollup.js",
+    "release": "node scripts/releases.js",
     "lint": "eslint .",
     "lint-fix": "eslint . --fix",
     "format": "prettier -w ./**/*.js ./**/**/*.js ./**/**/**/*.js",

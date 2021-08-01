@@ -9277,7 +9277,10 @@ var exports = (function (exports) {
     };
   }
   function toLocaleShortTime(dateObj) {
-    return dateObj.toLocaleTimeString().slice(0, 5);
+    return dateObj.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit'
+    }).slice(0, 5);
   }
   function hyphenatedDate(dateObj) {
     const {
@@ -9290,25 +9293,6 @@ var exports = (function (exports) {
   function isoDateStringFromCalendarFilename(filename) {
     return "".concat(filename.slice(0, 4), "-").concat(filename.slice(4, 6), "-").concat(filename.slice(6, 8));
   }
-  // console.log(`\ntesting relativeDate`)
-  // console.log(`-14 -> ${relativeDateFromNumber(-14)}`)
-  // console.log(`-7 -> ${relativeDateFromNumber(-7)}`)
-  // console.log(`-2 -> ${relativeDateFromNumber(-2)}`)
-  // console.log(`-1 -> ${relativeDateFromNumber(-1)}`)
-  // console.log(`0 -> ${relativeDateFromNumber(0)}`)
-  // console.log(`1 -> ${relativeDateFromNumber(1)}`)
-  // console.log(`2 -> ${relativeDateFromNumber(2)}`)
-  // console.log(`7 -> ${relativeDateFromNumber(7)}`)
-  // console.log(`14 -> ${relativeDateFromNumber(14)}`)
-  // console.log(`29 -> ${relativeDateFromNumber(29)}`)
-  // console.log(`30 -> ${relativeDateFromNumber(30)}`)
-  // console.log(`31 -> ${relativeDateFromNumber(31)}`)
-  // console.log(`123 -> ${relativeDateFromNumber(123)}`)
-  // console.log(`264 -> ${relativeDateFromNumber(264)}`)
-  // console.log(`364 -> ${relativeDateFromNumber(364)}`)
-  // console.log(`365 -> ${relativeDateFromNumber(365)}`)
-  // console.log(`366 -> ${relativeDateFromNumber(366)}`)
-  //-------------------------------------------------------------------------------
   // Misc functions for NP
 
   DataStore.defaultFileExtension != null ? DataStore.defaultFileExtension : 'md'; // Pretty print range information (@EduardMe)
@@ -9322,7 +9306,63 @@ var exports = (function (exports) {
 
       return (_n$title = n.title) !== null && _n$title !== void 0 ? _n$title : '';
     }
-  } // Print out all data for a paragraph (@EduardMe)
+  } // Return (project) note title as a [[link]]
+  // console.log(`gFFF('one/two/three/four.txt') -> ${getFolderFromFilename('one/two/three/four.txt')}`)
+  // console.log(`gFFF('one/two/three/four and a bit.md') -> ${getFolderFromFilename('one/two/three/four and a bit.md')}`)
+  // console.log(`gFFF('one/two or three/fifteen.txt') -> ${getFolderFromFilename('one/two or three/fifteen.txt')}`)
+  // console.log(`gFFF('/sixes and sevenses/calm one.md') -> ${getFolderFromFilename('sixes and sevenses/calm one.md')}`)
+
+  /**
+   * @param {string} inputString
+   * @param {array} replacementArray // array of objects with {key: stringToLookFor, value: replacementValue}
+   * @returns {string} inputString with all replacements made
+   */
+  function stringReplace(inputString = '', replacementArray) {
+    let outputString = inputString;
+    replacementArray.forEach(r => {
+      outputString = outputString.replaceAll(r.key, r.value);
+    });
+    return outputString;
+  }
+  /** ------------------------------------------------------------------------------
+   * Get a particular parameter setting from parameter string
+   * @author @jgclark
+   * @param {string} paramString - the contents of the template tag, e.g. {{weather(template:FOO)}}
+   * @param {string} paramName - the name of the parameter to get (e.g. 'template')
+   * @returns {string} the value of the desired parameter (e.g. 'FOO')
+   */
+
+  function getTagParams(paramString, wantedParam) {
+    var _paramString$match;
+
+    console.log("\tgetParams for '".concat(wantedParam, "' in '").concat(paramString, "'")); // const paramMap = new Map()
+    // const paramItemIterable = paramString.matchAll(/(.*?):"(.*?)"/g)
+    // const paramItemArray = Array.from(paramItemIterable)
+    // for (const p in paramItemArray[0]) {
+    //   console.log(`  ${p[1]} / ${p[2]}`)
+    //   paramMap.set(p[1], p[2])
+    // }
+    // Following voodoo copied from @nmn in interpolation.js.
+    // FIXME: get this working
+    // console.log(`\tgetParams ->`)
+    // const paramStringTrimmed = paramString.trim()
+    // // const paramConfig = json5.parse(paramStringTrimmed)
+    // const paramConfig =
+    //   paramStringTrimmed.startsWith('{') && paramStringTrimmed.endsWith('}')
+    //     ? await parseJSON5(paramString)
+    //     : paramStringTrimmed !== ''
+    //       ? await parseJSON5(`{${paramString}}`)
+    //       : {}
+    // console.log(JSON.stringify(paramConfig, null, 2))
+    // const paramMap: { [string]: mixed } = { ... paramConfig } // FIXME: size -> undefined
+    // console.log(paramMap.size)
+    // for (const aa of paramMap) {
+    //   console.log(`${aa}`)
+    // }
+
+    const res = (_paramString$match = paramString.match("".concat(wantedParam, ":\"(.*?)\""))) !== null && _paramString$match !== void 0 ? _paramString$match : [];
+    return res.length > 0 ? res[1] : '';
+  }
 
   const staticTemplateFolder = '📋 Templates';
   /**
@@ -9406,7 +9446,13 @@ var exports = (function (exports) {
   const FORMAT_MAP = {
     javascript: 'json5',
     ini: 'toml'
-  }; // @nmn original, but split up by @jgclark
+  };
+  /**
+   * Parse first codeblock as JSON/JSON5/YAML/TOML
+   * @author @nmn
+   * @param {string} block - contents of first codeblock as string (exludes ``` delimiters)
+   * @return {mixed} structured version of this data, in the format specified by the first line of the codeblock
+   */
 
   async function parseFirstCodeblock(block) {
     var _FORMAT_MAP$format;
@@ -9444,11 +9490,18 @@ var exports = (function (exports) {
       default:
         console.log("\tparseFirstCodeblock: error: can't deal with format ".concat(format));
     }
-  } // Get configuration section, or if not present, save into _configuraiton file
-  // Only deals with json5 case
-  // @jgclark
+  }
+  /**
+   * Get configuration section, or if not present, save into _configuration file.
+   * Only deals with json5 case.
+   * @author @nmn, @jgclark, @dwertheimer
+   * @param {string} configSectionName - name of configuration section to retrieve
+   * @param {string} configSectionDefault - JSON5 string to use as default values for this configuration section
+   * @param {string} minimumRequiredConfig - contains fields which must exist and type, e.g. "{ openWeatherAPIKey: 'string' }"
+   * @return {mixed} return this as structured data, in the format specified by the first line of the first codeblock
+   */
 
-  async function getOrMakeConfigurationSection(configSectionName, configSectionDefault) {
+  async function getOrMakeConfigurationSection(configSectionName, configSectionDefault, minimumRequiredConfig = {}) {
     var _configFile, _await$parseFirstCode;
 
     let templateFolder = await getOrMakeTemplateFolder();
@@ -9500,8 +9553,8 @@ var exports = (function (exports) {
     const firstCodeblock = content.split('\n```')[1];
     const config = (_await$parseFirstCode = await parseFirstCodeblock(firstCodeblock)) !== null && _await$parseFirstCode !== void 0 ? _await$parseFirstCode : {}; // Does it contain the section we want?
 
-    if (firstCodeblock == null || config[configSectionName] // alternative to dot notation that allows variables
-    == null) {
+    if (firstCodeblock == null || config[configSectionName] == // alternative to dot notation that allows variables
+    null) {
       // No, so offer to make it and populate it
       const shouldAddDefaultConfig = await chooseOption$1("No '".concat(configSectionName, "' configuration section found."), [{
         label: "\u2705 Create ".concat(configSectionName, " configuration from its defaults"),
@@ -9542,10 +9595,52 @@ var exports = (function (exports) {
         return {};
       }
     } // We have the configuration, so return it
-    // $FlowIgnore
 
 
-    return config[configSectionName];
+    if (Object.keys(minimumRequiredConfig) && config[configSectionName]) {
+      // $FlowIgnore
+      return validateMinimumConfig( // $FlowIgnore
+      config[configSectionName], minimumRequiredConfig);
+    } else {
+      // $FlowIgnore
+      return config[configSectionName];
+    }
+  }
+  /**
+   * Get configuration section, or if not present, save into _configuration file.
+   * Only deals with json5 case.
+   * @author @dwertheimer
+   * @param {mixed} config - configuration as structured JSON5 object
+   * @param {mixed} validations - JSON5 string to use as default values for this configuration section
+   * @return {mixed} return this as structured data, in the format specified by the first line of the first codeblock
+   */
+
+  function validateMinimumConfig(config, validations) {
+    let failed = false;
+
+    if (Object.keys(validations).length) {
+      Object.keys(validations).forEach(v => {
+        //$FlowIgnore
+        if (config[v] == null) {
+          console.log("Config required field: ".concat(v, " is missing"));
+          failed = true;
+        }
+
+        if (typeof config[v] !== validations[v]) {
+          console.log("Config required field: ".concat(v, " is not of type ").concat(String(validations[v])));
+          failed = true;
+        }
+      });
+    }
+
+    if (failed) {
+      console.log("Config failed minimum validation spec!");
+      return {};
+    } else {
+      console.log("Config passed minimum validation spec; config=\n".concat(JSON.stringify(config))); //$FlowIgnore
+
+      return config;
+    }
   }
 
   async function parseJSON(contents) {
@@ -9760,13 +9855,13 @@ var exports = (function (exports) {
   // ------------------------------------------------------------------------------------
   // Get settings
 
-  const DEFAULT_EVENTS_OPTIONS = "  events: {\n    addEventID: false,  // whether to add an [[event:ID]] internal link when creating an event from a time block\n    processedTagName: \"#event_created\",   // optional tag to add after making a time block an event\n    removeTimeBlocksWhenProcessed: true,  // whether to remove time block after making an event from it\n    todaysEventsHeading: \"### Events today\",  // optional heading to put before list of today's events\n    addMatchingEvents: {   // match events with string on left, and add this into daily note prepending by string on the right (which can be empty)\n      \"#meeting\": \"### \",\n      \"#webinar\": \"### \",\n      \"#holiday\": \"\",\n    },\n  },\n";
+  const DEFAULT_EVENTS_OPTIONS = "  events: {\n    addEventID: false,  // whether to add an [[event:ID]] internal link when creating an event from a time block\n    processedTagName: \"#event_created\",   // optional tag to add after making a time block an event\n    removeTimeBlocksWhenProcessed: true,  // whether to remove time block after making an event from it\n    todaysEventsHeading: \"### Events today\",  // optional heading to put before list of today's events\n    addMatchingEvents: {   // match events with string on left, and then the string on the right is the template for how to insert this event (see README for details)\n      \"#meeting\": \"### TITLE (START)\",\n      \"#webinar\": \"### TITLE (START)\",\n      \"#holiday\": \"TITLE\",\n    },\n  },\n";
   let pref_todaysEventsHeading = '### Events today';
   let pref_addMatchingEvents = null; //------------------------------------------------------------------------------
   // Get config settings from Template folder _configuration note
 
   async function getSettings() {
-    const eventsConfig = await getOrMakeConfigurationSection('events', DEFAULT_EVENTS_OPTIONS); // const eventsConfig: any = config?.events ?? null
+    const eventsConfig = await getOrMakeConfigurationSection('events', DEFAULT_EVENTS_OPTIONS);
 
     if (eventsConfig == null) {
       console.log("\tCouldn't find 'events' settings in _configuration note.");
@@ -9788,40 +9883,6 @@ var exports = (function (exports) {
       console.log("\nError: empty find 'addMatchingEvents' setting in _configuration note.");
     }
   } //------------------------------------------------------------------------------
-  // Get a particular parameter setting from parameter string
-
-
-  function getParams(paramString, wantedParam) {
-    var _paramString$match;
-
-    console.log("\tgetParams for '".concat(wantedParam, "' in '").concat(paramString, "'")); // const paramMap = new Map()
-    // const paramItemIterable = paramString.matchAll(/(.*?):"(.*?)"/g)
-    // const paramItemArray = Array.from(paramItemIterable)
-    // for (const p in paramItemArray[0]) {
-    //   console.log(`  ${p[1]} / ${p[2]}`)
-    //   paramMap.set(p[1], p[2])
-    // }
-    // Following voodoo copied from @nmn in interpolation.js. 
-    // FIXME: get this working
-    // console.log(`\tgetParams ->`)
-    // const paramStringTrimmed = paramString.trim()
-    // // const paramConfig = json5.parse(paramStringTrimmed)
-    // const paramConfig =
-    //   paramStringTrimmed.startsWith('{') && paramStringTrimmed.endsWith('}')
-    //     ? await parseJSON5(paramString)
-    //     : paramStringTrimmed !== ''
-    //       ? await parseJSON5(`{${paramString}}`)
-    //       : {}
-    // console.log(JSON.stringify(paramConfig, null, 2))
-    // const paramMap: { [string]: mixed } = { ... paramConfig } // FIXME: size -> undefined
-    // console.log(paramMap.size)
-    // for (const aa of paramMap) {
-    //   console.log(`${aa}`)
-    // }
-
-    const res = (_paramString$match = paramString.match("".concat(wantedParam, ":\"(.*?)\""))) !== null && _paramString$match !== void 0 ? _paramString$match : [];
-    return res.length > 0 ? res[1] : '';
-  } //------------------------------------------------------------------------------
   // Return MD list of today's events
 
 
@@ -9830,19 +9891,30 @@ var exports = (function (exports) {
 
     await getSettings(); // Work out template for output line (from params, or if blank, a default)
 
-    const template = paramString != null ? getParams(paramString, 'template') : '- TITLE (START)';
+    const template = paramString != null && paramString !== '' ? getTagParams(paramString, 'template') : '- TITLE (START)';
     console.log("\toutput template: '".concat(template, "'"));
     const eA = await Calendar.eventsToday();
+    console.log("\tFound ".concat(eA.length, " events (including possible dupes)"));
     const outputArray = [];
+    let lastEventStr = ''; // keep duplicates from multiple calendars out
 
     for (const e of eA) {
-      let outputLine = template; // `- ${e.title}`
+      const replacements = [{
+        key: 'TITLE',
+        value: e.title
+      }, {
+        key: 'START',
+        value: !e.isAllDay ? toLocaleShortTime(e.date) : ''
+      }, {
+        key: 'END',
+        value: e.endDate != null ? toLocaleShortTime(e.endDate) : ''
+      }];
+      const thisEventStr = stringReplace(template, replacements);
 
-      outputLine = outputLine.replace('TITLE', e.title);
-      outputLine = outputLine.replace('START', !e.isAllDay ? toLocaleShortTime(e.date) : '');
-      outputLine = outputLine.replace('END', e.endDate != null ? toLocaleShortTime(e.endDate) : ''); // as endDate is optional
-
-      outputArray.push(outputLine);
+      if (lastEventStr !== thisEventStr) {
+        outputArray.push(thisEventStr);
+        lastEventStr = thisEventStr;
+      }
     }
 
     if (pref_todaysEventsHeading !== '') {
@@ -9870,9 +9942,10 @@ var exports = (function (exports) {
   // Return string list of matching events in today's note, from list in keys of
   // pref_addMatchingEvents.
   // Prepend any with value of the values in pref_addMatchingEvents.
-  // NB: the parameter isn't currently used, but is provided for future expansion.
 
-  async function listMatchingTodaysEvents(params) {
+  async function listMatchingTodaysEvents(
+  /*eslint-disable */
+  paramString) {
     console.log("\nalistMatchingTodaysEvents:"); // Get config settings from Template folder _configuration note
 
     await getSettings();
@@ -9882,28 +9955,42 @@ var exports = (function (exports) {
       return "(Error: found no 'addMatchingEvents' settings in _configuration note.)";
     }
 
-    const textToMatch = Object.keys(pref_addMatchingEvents);
-    const textToPrepend = Object.values(pref_addMatchingEvents);
-    console.log("\tFrom settings found ".concat(textToMatch.length, " match strings to look for"));
+    const textToMatchA = Object.keys(pref_addMatchingEvents);
+    const templateA = Object.values(pref_addMatchingEvents);
+    console.log("\tFrom settings found ".concat(textToMatchA.length, " match strings to look for"));
     const eA = await Calendar.eventsToday();
     const outputArray = [];
 
     for (const e of eA) {
-      for (let i = 0; i < textToMatch.length; i++) {
-        const m = textToMatch[i];
+      for (let i = 0; i < textToMatchA.length; i++) {
+        const m = textToMatchA[i];
+        const template = templateA[i];
 
         if (e.title.match(m)) {
-          // $FlowFixMe -- not sure how to deal with mixed coercing to strings
-          let outputLine = "".concat(textToPrepend[i]).concat(e.title);
+          console.log("\tFound match to event '".concat(e.title, "'"));
+          const replacements = [{
+            key: 'TITLE',
+            value: e.title
+          }, {
+            key: 'START',
+            value: !e.isAllDay ? toLocaleShortTime(e.date) : ''
+          }, {
+            key: 'END',
+            value: e.endDate != null ? toLocaleShortTime(e.endDate) : ''
+          }]; // $FlowFixMe -- not sure how to deal with mixed coercing to strings
 
-          if (!e.isAllDay) {
-            outputLine += " (".concat(toLocaleShortTime(e.date), ")");
-          }
-
-          outputArray.push(outputLine);
+          const thisEventStr = stringReplace(template, replacements);
+          outputArray.push(thisEventStr);
         }
       }
-    }
+    } //     let outputLine = `${textToPrepend[i]}${e.title}`
+    //     if (!e.isAllDay) {
+    //       outputLine += ` (${toLocaleShortTime(e.date)})`
+    //     }
+    //     outputArray.push(outputLine)
+    //   }
+    // }
+
 
     const output = outputArray.join('\n');
     console.log(output);

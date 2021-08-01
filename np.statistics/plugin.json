@@ -6,33 +6,38 @@
 	"plugin.icon": "",
 	"plugin.author": "Jonathan & Eduard",
 	"plugin.repoUrl": "",
-	"plugin.version": "0.3.4",
+	"plugin.version": "0.3.5",
 	"plugin.dependencies": [],
 	"plugin.script": "script.js",
 	"plugin.isRemote": "false",
 	"plugin.commands": [
 		{
 			"name": "nc",
+			"alias": ["note", "stats", "count"],
 			"description": "Counts of all the notes in NotePlan",
 			"jsFunction": "showNoteCount"
 		},
 		{
 			"name": "tsp",
+			"alias": ["task", "stats", "count"],
 			"description": "Shows task statistics for project notes",
 			"jsFunction": "showTaskCountProjects"
 		},
 		{
 			"name": "tc",
+			"alias": ["task", "stats", "count"],
 			"description": "Shows task counts for the current note",
 			"jsFunction": "showTaskCountNote"
 		},
 		{
 			"name": "wc",
+			"alias": ["word", "stats", "count"],
 			"description": "Shows word count and other numbers for the note",
 			"jsFunction": "showWordCount"
 		},
 		{
 			"name": "stp",
+			"alias": ["period", "stats", "count"],
 			"description": "Show stats of tags and mentions over a time period",
 			"jsFunction": "periodStats"
 		}
