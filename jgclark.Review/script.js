@@ -9521,7 +9521,13 @@ var exports = (function (exports) {
   const FORMAT_MAP = {
     javascript: 'json5',
     ini: 'toml'
-  }; // @nmn original, but split up by @jgclark
+  };
+  /**
+   * Parse first codeblock as JSON/JSON5/YAML/TOML
+   * @author @nmn
+   * @param {string} block - contents of first codeblock as string (exludes ``` delimiters)
+   * @return {mixed} structured version of this data, in the format specified by the first line of the codeblock
+   */
 
   async function parseFirstCodeblock(block) {
     var _FORMAT_MAP$format;
@@ -9559,11 +9565,18 @@ var exports = (function (exports) {
       default:
         console.log("\tparseFirstCodeblock: error: can't deal with format ".concat(format));
     }
-  } // Get configuration section, or if not present, save into _configuraiton file
-  // Only deals with json5 case
-  // @jgclark
+  }
+  /**
+   * Get configuration section, or if not present, save into _configuration file.
+   * Only deals with json5 case.
+   * @author @nmn, @jgclark, @dwertheimer
+   * @param {string} configSectionName - name of configuration section to retrieve
+   * @param {string} configSectionDefault - JSON5 string to use as default values for this configuration section
+   * @param {string} minimumRequiredConfig - contains fields which must exist and type, e.g. "{ openWeatherAPIKey: 'string' }"
+   * @return {mixed} return this as structured data, in the format specified by the first line of the first codeblock
+   */
 
-  async function getOrMakeConfigurationSection(configSectionName, configSectionDefault) {
+  async function getOrMakeConfigurationSection(configSectionName, configSectionDefault, minimumRequiredConfig = {}) {
     var _configFile, _await$parseFirstCode;
 
     let templateFolder = await getOrMakeTemplateFolder();
@@ -9657,10 +9670,52 @@ var exports = (function (exports) {
         return {};
       }
     } // We have the configuration, so return it
-    // $FlowIgnore
 
 
-    return config[configSectionName];
+    if (Object.keys(minimumRequiredConfig) && config[configSectionName]) {
+      // $FlowIgnore
+      return validateMinimumConfig( // $FlowIgnore
+      config[configSectionName], minimumRequiredConfig);
+    } else {
+      // $FlowIgnore
+      return config[configSectionName];
+    }
+  }
+  /**
+   * Get configuration section, or if not present, save into _configuration file.
+   * Only deals with json5 case.
+   * @author @dwertheimer
+   * @param {mixed} config - configuration as structured JSON5 object
+   * @param {mixed} validations - JSON5 string to use as default values for this configuration section
+   * @return {mixed} return this as structured data, in the format specified by the first line of the first codeblock
+   */
+
+  function validateMinimumConfig(config, validations) {
+    let failed = false;
+
+    if (Object.keys(validations).length) {
+      Object.keys(validations).forEach(v => {
+        //$FlowIgnore
+        if (config[v] == null) {
+          console.log("Config required field: ".concat(v, " is missing"));
+          failed = true;
+        }
+
+        if (typeof config[v] !== validations[v]) {
+          console.log("Config required field: ".concat(v, " is not of type ").concat(String(validations[v])));
+          failed = true;
+        }
+      });
+    }
+
+    if (failed) {
+      console.log("Config failed minimum validation spec!");
+      return {};
+    } else {
+      console.log("Config passed minimum validation spec; config=\n".concat(JSON.stringify(config))); //$FlowIgnore
+
+      return config;
+    }
   }
 
   async function parseJSON(contents) {
@@ -9770,6 +9825,41 @@ var exports = (function (exports) {
         return;
       }
     }
+  }
+  /**
+   * Works out which line (if any) is a metadata line, defined (in preference order) as
+   * - line starting 'project:' or 'medadata:'
+   * - first line containing a @review() mention
+   * - first line starting with a hashtag
+   * - the first line after the title
+   * @author @jgclark
+   * @param {TNote} note - the note of interest
+   * @return {number} line - the calculated line
+   */
+
+  function getOrMakeMetadataLine(note) {
+    var _note$content$split, _note$content;
+
+    let lineNumber;
+    const lines = (_note$content$split = (_note$content = note.content) === null || _note$content === void 0 ? void 0 : _note$content.split('\n')) !== null && _note$content$split !== void 0 ? _note$content$split : [''];
+    const pLines = lines.slice().filter(a => a.match(/^project:/i) || a.match(/^metadata:/i));
+
+    if (pLines.length > 0) {
+      lineNumber = 2; // TODO:
+      // if () {
+      // } else if () {
+      // } else if (lines[1].match(/^#[A-z]/)) {
+      // We have a hashtag at the start of the line, making this a metadata line
+    }
+
+    if (lineNumber == undefined) {
+      // If no metadataPara found, then insert one straight after the title
+      console.log("\tCan't find an existing metadata line, so will insert a new second line for it");
+      Editor.insertParagraph('', 1, 'empty');
+      lineNumber = 2;
+    }
+
+    return lineNumber;
   }
   /*
    * Return list of notes with a particular hashtag, optionally in the given folder.
@@ -10050,7 +10140,7 @@ var exports = (function (exports) {
   //-----------------------------------------------------------------------------
   // Commands for Reviewing project notes, GTD-style.
   // by @jgclark
-  // v0.2.2, 30.7.2021
+  // v0.2.3, 1.8.2021
   //-----------------------------------------------------------------------------
   // Settings
   const DEFAULT_REVIEW_OPTIONS = "  review: {\n    folderToStore: \"Reviews\",\n    foldersToIgnore: [\"Templates\", \"Reviews\", \"Summaries\"], // can be empty list\n    noteTypeTags: \"#area,#project\", // comma-separated list of hashtags without spaces\n    displayGroupedByFolder: true,\n    displayOrder: \"alpha\" // 'due', 'review' or 'alpha'\n  },\n";
@@ -10066,7 +10156,8 @@ var exports = (function (exports) {
 
   async function getConfig() {
     // Get config settings from Template folder _configuration note
-    const reviewConfig = await getOrMakeConfigurationSection('review', DEFAULT_REVIEW_OPTIONS);
+    const reviewConfig = await getOrMakeConfigurationSection('review', DEFAULT_REVIEW_OPTIONS // no minimumConfig needed for this
+    );
 
     if (reviewConfig == null) {
       console.log("\tCouldn't find 'review' settings in _configuration note.");
@@ -10251,7 +10342,7 @@ var exports = (function (exports) {
         const projects = [];
 
         for (const note of notes) {
-          const np = new Project(note); // TODO: somewhere here ignore ones from certain folders
+          const np = new Project(note);
 
           if (!np.isArchived && !pref_foldersToIgnore.includes(np.folder)) {
             projects.push(np);
@@ -10442,36 +10533,29 @@ var exports = (function (exports) {
 
     const reviewMentionString = '@reviewed';
     const RE_REVIEW_MENTION = "".concat(reviewMentionString, "\\(").concat(RE_DATE, "\\)");
-    const reviewedTodayString = "".concat(reviewMentionString, "(").concat(hyphenatedDate(new Date()), ")"); // TODO: Ideally add a check for project completion, and react accordingly
-    // only proceed if we're in a valid Project note (with at least 2 lines)
+    const reviewedTodayString = "".concat(reviewMentionString, "(").concat(hyphenatedDate(new Date()), ")"); // only proceed if we're in a valid Project note (with at least 2 lines)
 
     if (Editor.note == null || Editor.note.type === 'Calendar' || ((_Editor$paragraphs = Editor.paragraphs) === null || _Editor$paragraphs === void 0 ? void 0 : _Editor$paragraphs.length) < 2) {
       return;
     }
 
-    let metadataPara; // get list of @mentions
+    const metadataLine = getOrMakeMetadataLine(Editor.note);
 
     const firstReviewedMention = (_Editor$note = Editor.note) === null || _Editor$note === void 0 ? void 0 : _Editor$note.mentions.find(m => m.match(RE_REVIEW_MENTION));
 
     if (firstReviewedMention != null) {
+      var _Editor$note2;
+
       // find line in currently open note containing @reviewed() mention
       const firstMatch = firstReviewedMention; // which line is this in?
 
       for (const para of Editor.paragraphs) {
         if (para.content.match(RE_REVIEW_MENTION)) {
-          metadataPara = para;
           console.log("\tFound existing ".concat(reviewMentionString, "(date) in line ").concat(para.lineIndex));
         }
       }
 
-      if (metadataPara == null) {
-        // If no metadataPara found, then insert one straight after the title
-        console.log("\tCan't find an existing metadata line, so will insert a new second line for it");
-        Editor.insertParagraph('', 1, 'empty');
-        metadataPara = Editor.paragraphs[1];
-      }
-
-      const metaPara = metadataPara; // replace with today's date
+      const metaPara = (_Editor$note2 = Editor.note) === null || _Editor$note2 === void 0 ? void 0 : _Editor$note2.paragraphs[metadataLine]; // replace with today's date
 
       const older = metaPara.content;
       const newer = older.replace(firstMatch, reviewedTodayString);
@@ -10480,11 +10564,11 @@ var exports = (function (exports) {
 
       await Editor.updateParagraph(metaPara);
     } else {
-      var _Editor$note2;
+      var _Editor$note3;
 
       // no existing mention, so append to note's default metadata line
       console.log("\tno matching ".concat(reviewMentionString, "(date) string found. Will append to line 1"));
-      const metadataPara = (_Editor$note2 = Editor.note) === null || _Editor$note2 === void 0 ? void 0 : _Editor$note2.paragraphs[1];
+      const metadataPara = (_Editor$note3 = Editor.note) === null || _Editor$note3 === void 0 ? void 0 : _Editor$note3.paragraphs[1];
 
       if (metadataPara == null) {
         return null;
@@ -10498,8 +10582,37 @@ var exports = (function (exports) {
 
 
     return Editor.note;
+  } //-------------------------------------------------------------------------------
+  // Update the @reviewed(date) in the note in the Editor to today's date
+
+  async function completeProject() {
+    var _Editor$paragraphs2, _Editor$note4;
+
+    const completedMentionString = '@completed';
+    const completedTodayString = "".concat(completedMentionString, "(").concat(hyphenatedDate(new Date()), ")"); // only proceed if we're in a valid Project note (with at least 2 lines)
+
+    if (Editor.note == null || Editor.note.type === 'Calendar' || ((_Editor$paragraphs2 = Editor.paragraphs) === null || _Editor$paragraphs2 === void 0 ? void 0 : _Editor$paragraphs2.length) < 2) {
+      return;
+    }
+
+    const metadataLine = getOrMakeMetadataLine(Editor.note); // append to note's default metadata line
+
+    console.log("\twill append ".concat(completedTodayString, " string to line ").concat(metadataLine));
+    const metadataPara = (_Editor$note4 = Editor.note) === null || _Editor$note4 === void 0 ? void 0 : _Editor$note4.paragraphs[metadataLine];
+
+    if (metadataPara == null) {
+      return null;
+    }
+
+    const metaPara = metadataPara;
+    metaPara.content += " ".concat(completedTodayString); // send update to Editor
+
+    await Editor.updateParagraph(metaPara); // return current note, to help next function
+
+    return Editor.note;
   }
 
+  exports.completeProject = completeProject;
   exports.completeReview = completeReview;
   exports.nextReview = nextReview;
   exports.projectLists = projectLists;

@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Commands for Reviewing project notes, GTD-style.
 // by @jgclark
-// v0.2.2, 30.7.2021
+// v0.2.3, 1.8.2021
 //-----------------------------------------------------------------------------
 
 // Settings
@@ -38,13 +38,14 @@ import {
 } from '../../helperFunctions'
 
 import {
-  getOrMakeConfigurationSection
+  getOrMakeConfigurationSection,
 } from '../../nmn.Templates/src/configuration'
 
 import {
   Project,
   returnSummaryNote,
-  findNotesMatchingHashtags
+  findNotesMatchingHashtags,
+  getOrMakeMetadataLine,
 } from './reviewHelpers'
 
 //-------------------------------------------------------------------------------
@@ -54,6 +55,7 @@ async function getConfig(): Promise<void> {
   const reviewConfig = await getOrMakeConfigurationSection(
     'review',
     DEFAULT_REVIEW_OPTIONS,
+    // no minimumConfig needed for this
   )
   if (reviewConfig == null) {
     console.log("\tCouldn't find 'review' settings in _configuration note.")
@@ -238,7 +240,6 @@ function makeNoteTypeSummary(noteTag: string): Array<string> {
       const projects = []
       for (const note of notes) {
         const np = new Project(note)
-        // TODO: somewhere here ignore ones from certain folders
         if (!np.isArchived && !pref_foldersToIgnore.includes(np.folder)) {
           projects.push(np)
         }
@@ -392,13 +393,12 @@ export async function completeReview(): Promise<?TNote> {
   const RE_REVIEW_MENTION = `${reviewMentionString}\\(${RE_DATE}\\)`
   const reviewedTodayString = `${reviewMentionString}(${hyphenatedDate(new Date())})`
 
-  // TODO: Ideally add a check for project completion, and react accordingly
-
   // only proceed if we're in a valid Project note (with at least 2 lines)
   if (Editor.note == null || Editor.note.type === 'Calendar' || Editor.paragraphs?.length < 2 ) {
     return
   }
 
+  const metadataLine = getOrMakeMetadataLine(Editor.note)
   let metadataPara: ?TParagraph
 
   // get list of @mentions
@@ -417,15 +417,8 @@ export async function completeReview(): Promise<?TNote> {
         )
       }
     }
-    if (metadataPara == null) {
-      // If no metadataPara found, then insert one straight after the title
-      console.log(
-      `\tCan't find an existing metadata line, so will insert a new second line for it`,
-      )
-      Editor.insertParagraph('', 1, 'empty')
-      metadataPara = Editor.paragraphs[1]
-    }
-    const metaPara = metadataPara
+    
+    const metaPara = Editor.note?.paragraphs[metadataLine]
     // replace with today's date
     const older = metaPara.content
     const newer = older.replace(firstMatch, reviewedTodayString)
@@ -448,6 +441,35 @@ export async function completeReview(): Promise<?TNote> {
     // send update to Editor
     await Editor.updateParagraph(metaPara)
   }
+  // return current note, to help next function
+  return Editor.note
+}
+
+//-------------------------------------------------------------------------------
+// Update the @reviewed(date) in the note in the Editor to today's date
+export async function completeProject(): Promise<?TNote> {
+  const completedMentionString = '@completed'
+  const completedTodayString = `${completedMentionString}(${hyphenatedDate(new Date())})`
+
+  // only proceed if we're in a valid Project note (with at least 2 lines)
+  if (Editor.note == null || Editor.note.type === 'Calendar' || Editor.paragraphs?.length < 2 ) {
+    return
+  }
+
+  const metadataLine = getOrMakeMetadataLine(Editor.note)
+  // append to note's default metadata line
+  console.log(
+    `\twill append ${completedTodayString} string to line ${metadataLine}`,
+  )
+  const metadataPara = Editor.note?.paragraphs[metadataLine]
+  if (metadataPara == null) {
+    return null
+  }
+  const metaPara = metadataPara
+  metaPara.content += ` ${completedTodayString}`
+  // send update to Editor
+  await Editor.updateParagraph(metaPara)
+
   // return current note, to help next function
   return Editor.note
 }

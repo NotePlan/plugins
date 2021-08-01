@@ -79,6 +79,9 @@ Alternatively, in the `Templates/_configuration` note, include the following set
 - if NotePlan adds support  for frontmatter or YAML blocks, update the plugin to take advantage of them
 
 ## History
+### v0.2.3, 1.8.2021
+- new: command `/complete project` that adds a `@completed(today)` date,
+
 ### v0.2.2, 1.8.2021
 - new: setting `foldersToIgnore` that allows an array of folder names to ignore in the commands
 - fix: contents of sub-folders were being duplicated in the lists
