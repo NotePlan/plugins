@@ -220,12 +220,14 @@ export class Project {
   isArchived: boolean // TODO: Does this make any sense to keep?
   isActive: boolean
   noteType: string // project, area, other
+  folder: string
 
   constructor(note: TNote) {
     const mentions: $ReadOnlyArray<string> = note.mentions
     const hashtags: $ReadOnlyArray<string> = note.hashtags
     this.note = note
     this.title = note.title ?? '(error)'
+    this.folder = getFolderFromFilename(note.filename)
     this.dueDate = getDateFromString(getParamMentionFromList(mentions, "@due"))
     // this.dueDate = getDateFromString(getParamMentionFromList(mentions, "@due"))
     // FIXME(Eduard): Error in next API function so use my own instead

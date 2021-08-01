@@ -205,10 +205,6 @@ var exports = (function (exports) {
 
     return filenameParts.slice(0, filenameParts.length - 1).join('/');
   } // Tests for gFFF function above
-  // console.log(`gFFF('one/two/three/four.txt') -> ${getFolderFromFilename('one/two/three/four.txt')}`)
-  // console.log(`gFFF('one/two/three/four and a bit.md') -> ${getFolderFromFilename('one/two/three/four and a bit.md')}`)
-  // console.log(`gFFF('one/two or three/fifteen.txt') -> ${getFolderFromFilename('one/two or three/fifteen.txt')}`)
-  // console.log(`gFFF('/sixes and sevenses/calm one.md') -> ${getFolderFromFilename('sixes and sevenses/calm one.md')}`)
 
   var parser$1 = function () {
     /*
@@ -9940,10 +9936,13 @@ var exports = (function (exports) {
 
       _defineProperty(this, "noteType", void 0);
 
+      _defineProperty(this, "folder", void 0);
+
       const mentions = note.mentions;
       const hashtags = note.hashtags;
       this.note = note;
       this.title = (_note$title = note.title) !== null && _note$title !== void 0 ? _note$title : '(error)';
+      this.folder = getFolderFromFilename(note.filename);
       this.dueDate = getDateFromString(getParamMentionFromList(mentions, "@due")); // this.dueDate = getDateFromString(getParamMentionFromList(mentions, "@due"))
       // FIXME(Eduard): Error in next API function so use my own instead
       // this.dueDays = (this.dueDate !== '') ? Calendar.unitsBetween(new Date(), this.dueDate, 'day') : undefined
@@ -10051,13 +10050,13 @@ var exports = (function (exports) {
   //-----------------------------------------------------------------------------
   // Commands for Reviewing project notes, GTD-style.
   // by @jgclark
-  // v0.2.1, 30.7.2021
+  // v0.2.2, 30.7.2021
   //-----------------------------------------------------------------------------
-  // TODO:s below
   // Settings
-  const DEFAULT_REVIEW_OPTIONS = "  review: {\n    folderToStore: \"Summaries\",\n    foldersToIgnore: [\"Templates\", \"Summaries\"], // can be empty\n    noteTypeTags: \"#area,#project\",\n    displayGroupedByFolder: true,\n    displayOrder: \"alpha\" // 'due', 'review' or 'alpha'\n  },\n";
-  let pref_noteTypeTags = '#project,#area';
-  let pref_folderToStore = 'Summaries';
+  const DEFAULT_REVIEW_OPTIONS = "  review: {\n    folderToStore: \"Reviews\",\n    foldersToIgnore: [\"Templates\", \"Reviews\", \"Summaries\"], // can be empty list\n    noteTypeTags: \"#area,#project\", // comma-separated list of hashtags without spaces\n    displayGroupedByFolder: true,\n    displayOrder: \"alpha\" // 'due', 'review' or 'alpha'\n  },\n";
+  let pref_noteTypeTags = "#project,#area"; // TODO: make proper array. But first time I tried this it didn't work.
+
+  let pref_folderToStore = "Reviews";
   let pref_foldersToIgnore = ["Templates", "Summaries"];
   let pref_displayGroupedByFolder = true;
   let pref_displayOrder = 'alpha'; // Constants
@@ -10116,9 +10115,7 @@ var exports = (function (exports) {
 
       for (const tag of tags) {
         // Do the main work
-        const tagName = tag.slice(1); // remove leading # character
-
-        const noteTitle = "'".concat(tagName, "' notes summary");
+        const noteTitle = "".concat(tag, " notes summary");
         const note = await returnSummaryNote(noteTitle, pref_folderToStore);
 
         if (note != null) {
@@ -10170,39 +10167,15 @@ var exports = (function (exports) {
     }
 
     console.log("\nstartReviews:");
-    const summaryArray = [];
+    const summaryArray = []; // Either we have defined tag(s) to filter and group by, or just use ''
 
-    if (pref_noteTypeTags != null && pref_noteTypeTags !== '') {
-      // We have defined tag(s) to filter and group by
-      const tags = pref_noteTypeTags.split(',');
+    const tags = pref_noteTypeTags != null && pref_noteTypeTags !== '' ? pref_noteTypeTags.split(',') : '';
 
-      for (const tag of tags) {
-        // Read in all relevant notes, making Project objects
-        const notes = findNotesMatchingHashtags(tag);
-        const projectsReadyToReview = [];
-
-        if (notes.length > 0) {
-          // Get Project class representation of each note,
-          // saving those which are ready for review in array
-          for (const n of notes) {
-            const np = new Project(n); // TODO: somewhere here ignore ones from certain folders
-
-            if (np.isReadyForReview) {
-              projectsReadyToReview.push(np);
-            }
-          }
-        } // For each readyToReview note get the machine-readable summary line for it
-
-
-        for (const np of projectsReadyToReview) {
-          summaryArray.push(np.basicSummaryLine()); // console.log(np.basicSummaryLine())
-        }
-      }
-    } else {
-      // TODO: merge into the above if clause
-      // We will just use all notes with a @review() string, in one go
+    for (const tag of tags) {
+      // or just empty tag
       // Read in all relevant notes, making Project objects
-      const notes = findNotesMatchingHashtags('');
+      const notes = findNotesMatchingHashtags(tag); // or const notes = findNotesMatchingHashtags('')
+
       const projectsReadyToReview = [];
 
       if (notes.length > 0) {
@@ -10211,7 +10184,7 @@ var exports = (function (exports) {
         for (const n of notes) {
           const np = new Project(n); // TODO: somewhere here ignore ones from certain folders
 
-          if (np.isReadyForReview) {
+          if (np.isReadyForReview && !pref_foldersToIgnore.includes(np.folder)) {
             projectsReadyToReview.push(np);
           }
         }
@@ -10261,10 +10234,11 @@ var exports = (function (exports) {
     // otherwise use a single folder
 
     const folderList = pref_displayGroupedByFolder ? DataStore.folders : ['/']; // console.log(`${folderList.length} folders`)
-    // Iterate over the folders, ignoring any in the pref_foldersToIgnore list
+    // Iterate over the folders ...
 
     for (const folder of folderList) {
       if (pref_foldersToIgnore.includes(folder)) {
+        // ... but ignoring any in the pref_foldersToIgnore list
         continue;
       } // Get notes that include noteTag in this folder, ignoring subfolders
 
@@ -10273,13 +10247,13 @@ var exports = (function (exports) {
 
       if (notes.length > 0) {
         // Create array of Project class representation of each note,
-        // ignoring any marked as .isArchived
-        const projects = []; // TODO: somewhere here ignore ones from certain folders
+        // ignoring any marked as .isArchived, or in a folder to ignore
+        const projects = [];
 
         for (const note of notes) {
-          const np = new Project(note);
+          const np = new Project(note); // TODO: somewhere here ignore ones from certain folders
 
-          if (!np.isArchived) {
+          if (!np.isArchived && !pref_foldersToIgnore.includes(np.folder)) {
             projects.push(np);
           }
 
