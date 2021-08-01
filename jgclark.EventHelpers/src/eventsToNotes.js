@@ -84,6 +84,7 @@ export async function listTodaysEvents(paramString: string): Promise<string> {
   const eA: Array<TCalendarItem> = await Calendar.eventsToday()
   const outputArray: Array<string> = []
 
+  let lastEventStr = '' // keep duplicates from multiple calendars out
   for (const e of eA) {
     const replacements = [
       { key: 'TITLE', value: e.title },
@@ -93,7 +94,11 @@ export async function listTodaysEvents(paramString: string): Promise<string> {
         value: e.endDate != null ? toLocaleShortTime(e.endDate) : '',
       },
     ]
-    outputArray.push(stringReplace(template, replacements))
+    const thisEventStr = stringReplace(template, replacements)
+    if (lastEventStr !== thisEventStr) {
+      outputArray.push(thisEventStr)
+      lastEventStr = thisEventStr
+    }
   }
   if (pref_todaysEventsHeading !== '') {
     outputArray.unshift(pref_todaysEventsHeading)

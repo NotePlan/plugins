@@ -22,7 +22,10 @@ If you want to include a short summary of the weather forecast, include a `{{wea
 }
 ```
 (This example is in JSON5 format: see the help text in `_configuration` note.)
-
+NOTE: If you want to customize the weather output format in your daily note/template, you can pass a "template" with the format you want. Here's an example with every field:
+`{{weather({template:"Weather: |WEATHER_ICON| |DESCRIPTION| |LOW_TEMP||UNITS|-|HIGH_TEMP||UNITS|; Feels like: |FEELS_LIKE_LOW||UNITS|-|FEELS_LIKE_HIGH||UNITS| in |TIMEZONE|")}}`
+If you were to insert that entire string in your Daily Note template, it would return something like:
+`Weather: ☁️ Broken clouds 68°F-86°F; Feels like: 71°F-83°F in America/Los_Angeles`
 ### /dayReview
 `/dayReview` now uses the `Daily Note Template` note found in the `Templates` folder. If this note has not been added, it should prompt you to create one.
 
@@ -46,6 +49,10 @@ In more detail:
 
 
 ## History
+
+### v0.6.9, 30.7.2021 @dwertheimer
+- changes to weather() template macro to add more fields and use string replacements
+
 ### v0.6.8, 28.7.2021
 - under-the-hood changes responding to underlying API and framework changes
 

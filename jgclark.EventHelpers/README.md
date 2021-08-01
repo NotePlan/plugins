@@ -46,6 +46,9 @@ The TITLE, START and END can be mixed with whatever markdown characters or other
 You can also place  `{{listMatchingEvents()}}` in Templates in a similar way. However, it has a different sort of customisation. This simply has a prefix string defined in the _configuration file above, _for each different string to match_.
 
 ## History
+### v0.2.4 30.07.2021 @dwertheimer
+- (bump) Minor tweak to use template replacement from helperFunctions.js
+
 ### v0.2.3, 28.7.2021
 - adds ability to pass a parameter to the `{{listTodaysEvents()}}` template command to customise how to present the list of today's events. See 'Using Event Lists from a Template' in the README.
 
