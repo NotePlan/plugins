@@ -6,7 +6,7 @@
 // --------------------------------------------------------------------------------------------------------------------
 
 import {
-  // getDefaultConfiguration,
+  // getStructuredConfiguration,
   getOrMakeConfigurationSection,
 } from '../../nmn.Templates/src/configuration'
   

@@ -3,22 +3,20 @@
 //-----------------------------------------------------------------------------
 // Commands for Reviewing project notes, GTD-style.
 // by @jgclark
-// v0.2.1, 30.7.2021
+// v0.2.3, 1.8.2021
 //-----------------------------------------------------------------------------
-
-// TODO:s below
 
 // Settings
 const DEFAULT_REVIEW_OPTIONS = `  review: {
-    folderToStore: "Summaries",
-    foldersToIgnore: ["Templates", "Summaries"], // can be empty
-    noteTypeTags: "#area,#project",
+    folderToStore: "Reviews",
+    foldersToIgnore: ["Templates", "Reviews", "Summaries"], // can be empty list
+    noteTypeTags: "#area,#project", // comma-separated list of hashtags without spaces
     displayGroupedByFolder: true,
     displayOrder: "alpha" // 'due', 'review' or 'alpha'
   },
 `
-let pref_noteTypeTags: string = '#project,#area'
-let pref_folderToStore: string = 'Summaries'
+let pref_noteTypeTags: string = "#project,#area" // TODO: make proper array. But first time I tried this it didn't work.
+let pref_folderToStore: string = "Reviews"
 let pref_foldersToIgnore: Array<string> = ["Templates", "Summaries"]
 let pref_displayGroupedByFolder: boolean = true
 let pref_displayOrder: string = 'alpha'
@@ -40,16 +38,15 @@ import {
 } from '../../helperFunctions'
 
 import {
-  getOrMakeConfigurationSection
+  getOrMakeConfigurationSection,
 } from '../../nmn.Templates/src/configuration'
 
 import {
   Project,
   returnSummaryNote,
-  findNotesMatchingHashtags
+  findNotesMatchingHashtags,
+  getOrMakeMetadataLine,
 } from './reviewHelpers'
-
-
 
 //-------------------------------------------------------------------------------
 // Create human-readable lists of project notes for each tag of interest
@@ -58,6 +55,7 @@ async function getConfig(): Promise<void> {
   const reviewConfig = await getOrMakeConfigurationSection(
     'review',
     DEFAULT_REVIEW_OPTIONS,
+    // no minimumConfig needed for this
   )
   if (reviewConfig == null) {
     console.log("\tCouldn't find 'review' settings in _configuration note.")
@@ -105,8 +103,7 @@ export async function projectLists(): Promise<void> {
 
     for (const tag of tags) {
       // Do the main work
-      const tagName = tag.slice(1) // remove leading # character
-      const noteTitle = `'${tagName}' notes summary`
+      const noteTitle = `${tag} notes summary`
       const note: ?TNote = await returnSummaryNote(noteTitle, pref_folderToStore)
       if (note != null) {
         // Calculate the Summary list(s)
@@ -163,35 +160,11 @@ export async function startReviews() {
 
   console.log(`\nstartReviews:`)
   const summaryArray = []
-  if (pref_noteTypeTags != null && pref_noteTypeTags !== '') {
-    // We have defined tag(s) to filter and group by
-    const tags = pref_noteTypeTags.split(',')
-    for (const tag of tags) {
-      // Read in all relevant notes, making Project objects
-      const notes = findNotesMatchingHashtags(tag)
-      const projectsReadyToReview = []
-      if (notes.length > 0) {
-        // Get Project class representation of each note,
-        // saving those which are ready for review in array
-        for (const n of notes) {
-          const np = new Project(n)
-          // TODO: somewhere here ignore ones from certain folders
-          if (np.isReadyForReview) {
-            projectsReadyToReview.push(np)
-          }
-        }
-      }
-      // For each readyToReview note get the machine-readable summary line for it
-      for (const np of projectsReadyToReview) {
-        summaryArray.push(np.basicSummaryLine())
-        // console.log(np.basicSummaryLine())
-      }
-    }
-  } else {
-    // TODO: merge into the above if clause
-    // We will just use all notes with a @review() string, in one go
+  // Either we have defined tag(s) to filter and group by, or just use ''
+  const tags = (pref_noteTypeTags != null && pref_noteTypeTags !== '') ? pref_noteTypeTags.split(',') : ''
+  for (const tag of tags) { // or just empty tag
     // Read in all relevant notes, making Project objects
-    const notes = findNotesMatchingHashtags('')
+    const notes = findNotesMatchingHashtags(tag) // or const notes = findNotesMatchingHashtags('')
     const projectsReadyToReview = []
     if (notes.length > 0) {
       // Get Project class representation of each note,
@@ -199,7 +172,7 @@ export async function startReviews() {
       for (const n of notes) {
         const np = new Project(n)
         // TODO: somewhere here ignore ones from certain folders
-        if (np.isReadyForReview) {
+        if (np.isReadyForReview && !pref_foldersToIgnore.includes(np.folder)) {
           projectsReadyToReview.push(np)
         }
       }
@@ -253,21 +226,21 @@ function makeNoteTypeSummary(noteTag: string): Array<string> {
   // otherwise use a single folder
   const folderList = pref_displayGroupedByFolder ? DataStore.folders : ['/']
   // console.log(`${folderList.length} folders`)
-  // Iterate over the folders, ignoring any in the pref_foldersToIgnore list
+  // Iterate over the folders ...
   for (const folder of folderList) {
     if (pref_foldersToIgnore.includes(folder)) {
+      // ... but ignoring any in the pref_foldersToIgnore list
       continue
     }
     // Get notes that include noteTag in this folder, ignoring subfolders
     const notes = findNotesMatchingHashtags(noteTag, folder, false)
     if (notes.length > 0) {
       // Create array of Project class representation of each note,
-      // ignoring any marked as .isArchived
+      // ignoring any marked as .isArchived, or in a folder to ignore
       const projects = []
-      // TODO: somewhere here ignore ones from certain folders
       for (const note of notes) {
         const np = new Project(note)
-        if (!np.isArchived) {
+        if (!np.isArchived && !pref_foldersToIgnore.includes(np.folder)) {
           projects.push(np)
         }
         if (np.nextReviewDays != null && np.nextReviewDays < 0) {
@@ -420,13 +393,12 @@ export async function completeReview(): Promise<?TNote> {
   const RE_REVIEW_MENTION = `${reviewMentionString}\\(${RE_DATE}\\)`
   const reviewedTodayString = `${reviewMentionString}(${hyphenatedDate(new Date())})`
 
-  // TODO: Ideally add a check for project completion, and react accordingly
-
   // only proceed if we're in a valid Project note (with at least 2 lines)
   if (Editor.note == null || Editor.note.type === 'Calendar' || Editor.paragraphs?.length < 2 ) {
     return
   }
 
+  const metadataLine = getOrMakeMetadataLine(Editor.note)
   let metadataPara: ?TParagraph
 
   // get list of @mentions
@@ -445,15 +417,8 @@ export async function completeReview(): Promise<?TNote> {
         )
       }
     }
-    if (metadataPara == null) {
-      // If no metadataPara found, then insert one straight after the title
-      console.log(
-      `\tCan't find an existing metadata line, so will insert a new second line for it`,
-      )
-      Editor.insertParagraph('', 1, 'empty')
-      metadataPara = Editor.paragraphs[1]
-    }
-    const metaPara = metadataPara
+    
+    const metaPara = Editor.note?.paragraphs[metadataLine]
     // replace with today's date
     const older = metaPara.content
     const newer = older.replace(firstMatch, reviewedTodayString)
@@ -476,6 +441,35 @@ export async function completeReview(): Promise<?TNote> {
     // send update to Editor
     await Editor.updateParagraph(metaPara)
   }
+  // return current note, to help next function
+  return Editor.note
+}
+
+//-------------------------------------------------------------------------------
+// Update the @reviewed(date) in the note in the Editor to today's date
+export async function completeProject(): Promise<?TNote> {
+  const completedMentionString = '@completed'
+  const completedTodayString = `${completedMentionString}(${hyphenatedDate(new Date())})`
+
+  // only proceed if we're in a valid Project note (with at least 2 lines)
+  if (Editor.note == null || Editor.note.type === 'Calendar' || Editor.paragraphs?.length < 2 ) {
+    return
+  }
+
+  const metadataLine = getOrMakeMetadataLine(Editor.note)
+  // append to note's default metadata line
+  console.log(
+    `\twill append ${completedTodayString} string to line ${metadataLine}`,
+  )
+  const metadataPara = Editor.note?.paragraphs[metadataLine]
+  if (metadataPara == null) {
+    return null
+  }
+  const metaPara = metadataPara
+  metaPara.content += ` ${completedTodayString}`
+  // send update to Editor
+  await Editor.updateParagraph(metaPara)
+
   // return current note, to help next function
   return Editor.note
 }

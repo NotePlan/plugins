@@ -9265,30 +9265,80 @@ var exports = (function (exports) {
   new Date().toISOString().slice(0, 16);
   new Date().toLocaleString(); // @nmn
   function toLocaleShortTime(dateObj) {
-    return dateObj.toLocaleTimeString().slice(0, 5);
+    return dateObj.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit'
+    }).slice(0, 5);
   }
-  // console.log(`\ntesting relativeDate`)
-  // console.log(`-14 -> ${relativeDateFromNumber(-14)}`)
-  // console.log(`-7 -> ${relativeDateFromNumber(-7)}`)
-  // console.log(`-2 -> ${relativeDateFromNumber(-2)}`)
-  // console.log(`-1 -> ${relativeDateFromNumber(-1)}`)
-  // console.log(`0 -> ${relativeDateFromNumber(0)}`)
-  // console.log(`1 -> ${relativeDateFromNumber(1)}`)
-  // console.log(`2 -> ${relativeDateFromNumber(2)}`)
-  // console.log(`7 -> ${relativeDateFromNumber(7)}`)
-  // console.log(`14 -> ${relativeDateFromNumber(14)}`)
-  // console.log(`29 -> ${relativeDateFromNumber(29)}`)
-  // console.log(`30 -> ${relativeDateFromNumber(30)}`)
-  // console.log(`31 -> ${relativeDateFromNumber(31)}`)
-  // console.log(`123 -> ${relativeDateFromNumber(123)}`)
-  // console.log(`264 -> ${relativeDateFromNumber(264)}`)
-  // console.log(`364 -> ${relativeDateFromNumber(364)}`)
-  // console.log(`365 -> ${relativeDateFromNumber(365)}`)
-  // console.log(`366 -> ${relativeDateFromNumber(366)}`)
-  //-------------------------------------------------------------------------------
   // Misc functions for NP
 
   DataStore.defaultFileExtension != null ? DataStore.defaultFileExtension : 'md'; // Pretty print range information (@EduardMe)
+  // console.log(`gFFF('one/two/three/four.txt') -> ${getFolderFromFilename('one/two/three/four.txt')}`)
+  // console.log(`gFFF('one/two/three/four and a bit.md') -> ${getFolderFromFilename('one/two/three/four and a bit.md')}`)
+  // console.log(`gFFF('one/two or three/fifteen.txt') -> ${getFolderFromFilename('one/two or three/fifteen.txt')}`)
+  // console.log(`gFFF('/sixes and sevenses/calm one.md') -> ${getFolderFromFilename('sixes and sevenses/calm one.md')}`)
+
+  /**
+   * @param {string} inputString
+   * @param {array} replacementArray // array of objects with {key: stringToLookFor, value: replacementValue}
+   * @returns {string} inputString with all replacements made
+   */
+  function stringReplace(inputString = '', replacementArray) {
+    let outputString = inputString;
+    replacementArray.forEach(r => {
+      outputString = outputString.replaceAll(r.key, r.value);
+    });
+    return outputString;
+  }
+  /** ------------------------------------------------------------------------------
+   * Get a particular parameter setting from parameter string
+   * @author @jgclark
+   * @param {string} paramString - the contents of the template tag, e.g. {{weather(template:FOO)}}
+   * @param {string} paramName - the name of the parameter to get (e.g. 'template')
+   * @returns {string} the value of the desired parameter (e.g. 'FOO')
+   */
+
+  function getTagParams(paramString, wantedParam) {
+    var _paramString$match;
+
+    console.log("\tgetParams for '".concat(wantedParam, "' in '").concat(paramString, "'")); // const paramMap = new Map()
+    // const paramItemIterable = paramString.matchAll(/(.*?):"(.*?)"/g)
+    // const paramItemArray = Array.from(paramItemIterable)
+    // for (const p in paramItemArray[0]) {
+    //   console.log(`  ${p[1]} / ${p[2]}`)
+    //   paramMap.set(p[1], p[2])
+    // }
+    // Following voodoo copied from @nmn in interpolation.js.
+    // FIXME: get this working
+    // console.log(`\tgetParams ->`)
+    // const paramStringTrimmed = paramString.trim()
+    // // const paramConfig = json5.parse(paramStringTrimmed)
+    // const paramConfig =
+    //   paramStringTrimmed.startsWith('{') && paramStringTrimmed.endsWith('}')
+    //     ? await parseJSON5(paramString)
+    //     : paramStringTrimmed !== ''
+    //       ? await parseJSON5(`{${paramString}}`)
+    //       : {}
+    // console.log(JSON.stringify(paramConfig, null, 2))
+    // const paramMap: { [string]: mixed } = { ... paramConfig } // FIXME: size -> undefined
+    // console.log(paramMap.size)
+    // for (const aa of paramMap) {
+    //   console.log(`${aa}`)
+    // }
+
+    const res = (_paramString$match = paramString.match("".concat(wantedParam, ":\"(.*?)\""))) !== null && _paramString$match !== void 0 ? _paramString$match : [];
+    return res.length > 0 ? res[1] : '';
+  }
+  /**
+   * @param {string} paramString - the string to capitalize
+   * @returns {string} the string capitalized
+   * @description Capitalizes the first letter of a string
+   */
+
+  function capitalize(s) {
+    if (typeof s !== 'string') return '';
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
 
   const staticTemplateFolder = '📋 Templates';
   /**
@@ -9372,9 +9422,14 @@ var exports = (function (exports) {
   const FORMAT_MAP = {
     javascript: 'json5',
     ini: 'toml'
-  }; // @nmn original, but split up by @jgclark
+  };
+  /**
+   * Get configuration as JSON/JSON5/YAML/TOML from <template folder>_configuration file
+   * @author @nmn split up by @jgclark
+   * @return return this as structured data, in the format specified by the first line of the codeblock
+   */
 
-  async function getDefaultConfiguration() {
+  async function getStructuredConfiguration() {
     const templateFolder = await getOrMakeTemplateFolder();
 
     if (templateFolder == null) {
@@ -9398,7 +9453,13 @@ var exports = (function (exports) {
 
     const firstCodeblock = content.split('\n```')[1];
     return await parseFirstCodeblock(firstCodeblock);
-  } // Parse first codeblock as JSON/JSON5/YAML/TOML
+  }
+  /**
+   * Parse first codeblock as JSON/JSON5/YAML/TOML
+   * @author @nmn
+   * @param {string} block - contents of first codeblock as string (exludes ``` delimiters)
+   * @return {mixed} structured version of this data, in the format specified by the first line of the codeblock
+   */
 
   async function parseFirstCodeblock(block) {
     var _FORMAT_MAP$format;
@@ -9436,11 +9497,18 @@ var exports = (function (exports) {
       default:
         console.log("\tparseFirstCodeblock: error: can't deal with format ".concat(format));
     }
-  } // Get configuration section, or if not present, save into _configuraiton file
-  // Only deals with json5 case
-  // @jgclark
+  }
+  /**
+   * Get configuration section, or if not present, save into _configuration file.
+   * Only deals with json5 case.
+   * @author @nmn, @jgclark, @dwertheimer
+   * @param {string} configSectionName - name of configuration section to retrieve
+   * @param {string} configSectionDefault - JSON5 string to use as default values for this configuration section
+   * @param {string} minimumRequiredConfig - contains fields which must exist and type, e.g. "{ openWeatherAPIKey: 'string' }"
+   * @return {mixed} return this as structured data, in the format specified by the first line of the first codeblock
+   */
 
-  async function getOrMakeConfigurationSection(configSectionName, configSectionDefault) {
+  async function getOrMakeConfigurationSection(configSectionName, configSectionDefault, minimumRequiredConfig = {}) {
     var _configFile, _await$parseFirstCode;
 
     let templateFolder = await getOrMakeTemplateFolder();
@@ -9492,8 +9560,8 @@ var exports = (function (exports) {
     const firstCodeblock = content.split('\n```')[1];
     const config = (_await$parseFirstCode = await parseFirstCodeblock(firstCodeblock)) !== null && _await$parseFirstCode !== void 0 ? _await$parseFirstCode : {}; // Does it contain the section we want?
 
-    if (firstCodeblock == null || config[configSectionName] // alternative to dot notation that allows variables
-    == null) {
+    if (firstCodeblock == null || config[configSectionName] == // alternative to dot notation that allows variables
+    null) {
       // No, so offer to make it and populate it
       const shouldAddDefaultConfig = await chooseOption$1("No '".concat(configSectionName, "' configuration section found."), [{
         label: "\u2705 Create ".concat(configSectionName, " configuration from its defaults"),
@@ -9534,10 +9602,52 @@ var exports = (function (exports) {
         return {};
       }
     } // We have the configuration, so return it
-    // $FlowIgnore
 
 
-    return config[configSectionName];
+    if (Object.keys(minimumRequiredConfig) && config[configSectionName]) {
+      // $FlowIgnore
+      return validateMinimumConfig( // $FlowIgnore
+      config[configSectionName], minimumRequiredConfig);
+    } else {
+      // $FlowIgnore
+      return config[configSectionName];
+    }
+  }
+  /**
+   * Get configuration section, or if not present, save into _configuration file.
+   * Only deals with json5 case.
+   * @author @dwertheimer
+   * @param {mixed} config - configuration as structured JSON5 object
+   * @param {mixed} validations - JSON5 string to use as default values for this configuration section
+   * @return {mixed} return this as structured data, in the format specified by the first line of the first codeblock
+   */
+
+  function validateMinimumConfig(config, validations) {
+    let failed = false;
+
+    if (Object.keys(validations).length) {
+      Object.keys(validations).forEach(v => {
+        //$FlowIgnore
+        if (config[v] == null) {
+          console.log("Config required field: ".concat(v, " is missing"));
+          failed = true;
+        }
+
+        if (typeof config[v] !== validations[v]) {
+          console.log("Config required field: ".concat(v, " is not of type ").concat(String(validations[v])));
+          failed = true;
+        }
+      });
+    }
+
+    if (failed) {
+      console.log("Config failed minimum validation spec!");
+      return {};
+    } else {
+      console.log("Config passed minimum validation spec; config=\n".concat(JSON.stringify(config))); //$FlowIgnore
+
+      return config;
+    }
   }
 
   async function parseJSON(contents) {
@@ -9714,40 +9824,6 @@ var exports = (function (exports) {
       console.log("\nError: empty find 'addMatchingEvents' setting in _configuration note.");
     }
   } //------------------------------------------------------------------------------
-  // Get a particular parameter setting from parameter string
-
-
-  function getParams(paramString, wantedParam) {
-    var _paramString$match;
-
-    console.log("\tgetParams for '".concat(wantedParam, "' in '").concat(paramString, "'")); // const paramMap = new Map()
-    // const paramItemIterable = paramString.matchAll(/(.*?):"(.*?)"/g)
-    // const paramItemArray = Array.from(paramItemIterable)
-    // for (const p in paramItemArray[0]) {
-    //   console.log(`  ${p[1]} / ${p[2]}`)
-    //   paramMap.set(p[1], p[2])
-    // }
-    // Following voodoo copied from @nmn in interpolation.js. 
-    // FIXME: get this working
-    // console.log(`\tgetParams ->`)
-    // const paramStringTrimmed = paramString.trim()
-    // // const paramConfig = json5.parse(paramStringTrimmed)
-    // const paramConfig =
-    //   paramStringTrimmed.startsWith('{') && paramStringTrimmed.endsWith('}')
-    //     ? await parseJSON5(paramString)
-    //     : paramStringTrimmed !== ''
-    //       ? await parseJSON5(`{${paramString}}`)
-    //       : {}
-    // console.log(JSON.stringify(paramConfig, null, 2))
-    // const paramMap: { [string]: mixed } = { ... paramConfig } // FIXME: size -> undefined
-    // console.log(paramMap.size)
-    // for (const aa of paramMap) {
-    //   console.log(`${aa}`)
-    // }
-
-    const res = (_paramString$match = paramString.match("".concat(wantedParam, ":\"(.*?)\""))) !== null && _paramString$match !== void 0 ? _paramString$match : [];
-    return res.length > 0 ? res[1] : '';
-  } //------------------------------------------------------------------------------
   // Return MD list of today's events
 
 
@@ -9756,19 +9832,29 @@ var exports = (function (exports) {
 
     await getSettings(); // Work out template for output line (from params, or if blank, a default)
 
-    const template = paramString != null ? getParams(paramString, 'template') : '- TITLE (START)';
+    const template = paramString !== '' ? getTagParams(paramString, 'template') : '- TITLE (START)';
     console.log("\toutput template: '".concat(template, "'"));
     const eA = await Calendar.eventsToday();
     const outputArray = [];
+    let lastEventStr = ''; // keep duplicates from multiple calendars out
 
     for (const e of eA) {
-      let outputLine = template; // `- ${e.title}`
+      const replacements = [{
+        key: 'TITLE',
+        value: e.title
+      }, {
+        key: 'START',
+        value: !e.isAllDay ? toLocaleShortTime(e.date) : ''
+      }, {
+        key: 'END',
+        value: e.endDate != null ? toLocaleShortTime(e.endDate) : ''
+      }];
+      const thisEventStr = stringReplace(template, replacements);
 
-      outputLine = outputLine.replace('TITLE', e.title);
-      outputLine = outputLine.replace('START', !e.isAllDay ? toLocaleShortTime(e.date) : '');
-      outputLine = outputLine.replace('END', e.endDate != null ? toLocaleShortTime(e.endDate) : ''); // as endDate is optional
-
-      outputArray.push(outputLine);
+      if (lastEventStr !== thisEventStr) {
+        outputArray.push(thisEventStr);
+        lastEventStr = thisEventStr;
+      }
     }
 
     if (pref_todaysEventsHeading !== '') {
@@ -9823,17 +9909,31 @@ var exports = (function (exports) {
   } //------------------------------------------------------------------------------
 
   // TODO:
-  // Using https://openweathermap.org/api/one-call-api#data, for which you can get a free API key
+  // Preference Settings
 
-  async function getWeatherSummary( // eslint-disable-next-line no-unused-vars
-  weatherParams) {
-    const weatherDescText = ['showers', 'rain', 'sunny intervals', 'partly sunny', 'sunny', 'cloud', 'snow ', 'thunderstorm', 'tornado'];
-    const weatherDescIcons = ['🌦️', '🌧️', '🌤', '⛅', '☀️', '☁️', '🌨️', '⛈', '🌪']; // Get config settings from Template folder _configuration note
+  const DEFAULT_WEATHER_CONFIG = "\n// configuration for weather data (used in Daily Note Template, for example)\nweather: {\n  // API key for https://openweathermap.org/\n  openWeatherAPIKey: '... put your API key here ...', // !!REQUIRED!!\n  // Required location for weather forecast\n  latPosition: 0.0,  // !!REQUIRED!!\n  longPosition: 0.0, // !!REQUIRED!!\n  // Default units. Can be 'metric' (for Celsius), or 'imperial' (for Fahrenheit)\n  openWeatherUnits: 'metric',\n},\n";
+  const minimumConfig = {
+    openWeatherAPIKey: 'string',
+    latPosition: 'number',
+    longPosition: 'number',
+    openWeatherUnits: 'string'
+  }; //------------------------------------------------------------------------------
 
-    const weatherConfig = await getOrMakeConfigurationSection('weather', DEFAULT_WEATHER_CONFIG); // Get config settings from Template folder _configuration note
+  /** 
+   * Get summary of today's weather in a line, using
+   * https://openweathermap.org/api/one-call-api#data, for which you can get a free API key
+   * @author @jgclark, with customisation by @dwertheimer
+   * @param {string} weatherParams - optional customisation for how to display the results
+   */
+
+  async function getWeatherSummary(weatherParams) {
+    const weatherDescText = ['showers', 'rain', 'sunny intervals', 'partly sunny', 'sunny', 'clear sky', 'cloud', 'snow ', 'thunderstorm', 'tornado'];
+    const weatherDescIcons = ['🌦️', '🌧️', '🌤', '⛅', '☀️', '☀️', '☁️', '🌨️', '⛈', '🌪']; // Get config settings from Template folder _configuration note
+
+    const weatherConfig = await getOrMakeConfigurationSection('weather', DEFAULT_WEATHER_CONFIG, minimumConfig); // Get config settings from Template folder _configuration note
     // $FlowIgnore[incompatible-type]
 
-    console.log("\tSettings are ".concat(JSON.stringify(weatherConfig)));
+    console.log("\tWeather settings are ".concat(JSON.stringify(weatherConfig)));
 
     if (weatherConfig == null) {
       console.log("Cannot find 'weather' settings in Templates/_configuration note.");
@@ -9846,12 +9946,11 @@ var exports = (function (exports) {
       longPosition,
       openWeatherUnits
     } = weatherConfig;
-
-    if (openWeatherAPIKey == null || typeof openWeatherAPIKey !== 'string' || latPosition == null || typeof latPosition !== 'number' || longPosition == null || typeof longPosition !== 'number' || openWeatherUnits == null || typeof openWeatherUnits !== 'string') {
-      return "Invalid configuration provided";
-    }
-
-    const getWeatherURL = "https://api.openweathermap.org/data/2.5/onecall?lat=".concat(encodeURIComponent(latPosition.toString()), "&lon=").concat(encodeURIComponent(longPosition.toString()), "&exclude=current,hourly,minutely&units=").concat(encodeURIComponent(openWeatherUnits), "&appid=").concat(encodeURIComponent(openWeatherAPIKey)); // ** The following is the more correct way, but doesn't work.
+    const getWeatherURL = "https://api.openweathermap.org/data/2.5/onecall?lat=".concat(encodeURIComponent( // $FlowFixMe
+    latPosition.toString()) // $FlowFixMe
+    , "&lon=").concat(encodeURIComponent(longPosition.toString()) // $FlowFixMe
+    , "&exclude=current,hourly,minutely&units=").concat(encodeURIComponent(openWeatherUnits) // $FlowFixMe
+    , "&appid=").concat(encodeURIComponent(openWeatherAPIKey)); // ** The following is the more correct way, but doesn't work.
     //    So have to use a way that Flow doesn't like.
     //    See Issue 7 **
     // const response = await fetch(getWeatherURL)
@@ -9867,8 +9966,7 @@ var exports = (function (exports) {
     // }
     // console.log(getWeatherURL)
 
-    let jsonIn;
-    let weatherTodayAll;
+    let jsonIn, allWeatherData;
 
     try {
       jsonIn = await fetch(getWeatherURL); // console.log(`  HTTP response ${jsonIn.status}`) //  .status always returns 'undefined', even when it works?!
@@ -9878,22 +9976,30 @@ var exports = (function (exports) {
     }
 
     if (jsonIn != null) {
-      var _weatherTodayAll$weat;
+      var _allWeatherData, _weatherTodayAll$weat;
 
       try {
-        var _JSON$parse;
-
         // $FlowIgnore[incompatible-call]
-        weatherTodayAll = (_JSON$parse = JSON.parse(jsonIn)) === null || _JSON$parse === void 0 ? void 0 : _JSON$parse.daily['0'];
+        allWeatherData = JSON.parse(jsonIn);
       } catch (err) {
         console.log("Error ".concat(err.message, " parsing Weather data lookup. Please check your _configuration note."));
         return "Error ".concat(err.message, " parsing Weather data lookup. Please check your _configuration note.");
-      } // const weatherTodayAll = jsonIn.daily['0']
+      }
 
+      console.log("WeatherData: ".concat(JSON.stringify(allWeatherData)));
 
-      const maxTemp = weatherTodayAll.feels_like.day.toFixed(0);
-      const minTemp = weatherTodayAll.feels_like.night.toFixed(0);
-      const weatherDesc = (_weatherTodayAll$weat = weatherTodayAll.weather['0'].description) !== null && _weatherTodayAll$weat !== void 0 ? _weatherTodayAll$weat : ''; // see if we can fix an icon for this as well, according to returned description. Main terms are:
+      if (allWeatherData.cod === 401) {
+        return "Weather: Invalid configuration settings. ".concat(allWeatherData.message);
+      }
+
+      const weatherTodayAll = (_allWeatherData = allWeatherData) === null || _allWeatherData === void 0 ? void 0 : _allWeatherData.daily['0'];
+      const fMax = weatherTodayAll.feels_like.day.toFixed(0);
+      const fMin = weatherTodayAll.feels_like.night.toFixed(0);
+      const minTemp = weatherTodayAll.temp.min.toFixed(0);
+      const maxTemp = weatherTodayAll.temp.max.toFixed(0);
+      const weatherDesc = (_weatherTodayAll$weat = weatherTodayAll.weather['0'].description) !== null && _weatherTodayAll$weat !== void 0 ? _weatherTodayAll$weat : '';
+      const units = openWeatherUnits === 'imperial' ? '°F' : '°C';
+      const timezone = allWeatherData.timezone; // see if we can fix an icon for this as well, according to returned description. Main terms are:
       // thunderstorm, drizzle, shower > rain, snow, sleet, clear sky, mist, fog, dust, tornado, overcast > clouds
       // with 'light' modifier for rain and snow
 
@@ -9904,25 +10010,42 @@ var exports = (function (exports) {
           weatherIcon = weatherDescIcons[i];
           break;
         }
-      } // TODO: Allow for more customisation of what is pulled out from the API's data structure
-      // using weatherParams
-      // Future use, if we want to do more customisation with parameters
-      // console.log(`getWeatherSummary: Params: '${weatherParams}'`)
-      // const paramConfig = weatherParams.trim()
-      //   ? await parseJSON5(weatherParams)
-      //   : {}
-      // console.log(paramConfig)
+      }
 
-
-      const summaryLine = "".concat(weatherIcon).concat(weatherDesc, " ").concat(maxTemp, "/").concat(minTemp);
-      console.log("\t".concat(summaryLine));
-      return summaryLine;
+      const replacements = [{
+        key: '|FEELS_LIKE_LOW|',
+        value: fMin
+      }, {
+        key: '|FEELS_LIKE_HIGH|',
+        value: fMax
+      }, {
+        key: '|LOW_TEMP|',
+        value: minTemp
+      }, {
+        key: '|HIGH_TEMP|',
+        value: maxTemp
+      }, {
+        key: '|DESCRIPTION|',
+        value: capitalize(weatherDesc)
+      }, {
+        key: '|TIMEZONE|',
+        value: timezone
+      }, {
+        key: '|UNITS|',
+        value: units
+      }, {
+        key: '|WEATHER_ICON|',
+        value: weatherIcon
+      }];
+      const defaultWeatherLine = "Weather: |WEATHER_ICON| |DESCRIPTION| |LOW_TEMP||UNITS|-|HIGH_TEMP||UNITS|; Feels like: |FEELS_LIKE_LOW||UNITS|-|FEELS_LIKE_HIGH||UNITS|";
+      const template = weatherParams !== '' ? getTagParams(weatherParams, 'template') : defaultWeatherLine;
+      console.log("\toutput template: '".concat(template, "' ; about to call stringReplace"));
+      return stringReplace(template, replacements);
     } else {
       // $FlowFixMe[incompatible-type]
       return "Problem in Weather data lookup for ".concat(latPosition, "/").concat(longPosition, ". Please check your _configuration note.");
     }
   }
-  const DEFAULT_WEATHER_CONFIG = "\n  // configuration for weather data (used in Daily Note Template, for example)\n  weather: {\n    // API key for https://openweathermap.org/\n    // !!REQUIRED!!\n    openWeatherAPIKey: '... put your API key here ...',\n    // Required location for weather forecast\n    latPosition: 0.0,\n    longPosition: 0.0,\n    // Default units. Can be 'metric' (for Celsius), or 'metric' (for Fahrenheit)\n    openWeatherUnits: 'metric',\n  },\n";
 
   async function getDailyQuote(params, config) {
     var _config$quote;
@@ -9989,12 +10112,12 @@ var exports = (function (exports) {
 
     console.log("processTag: ".concat(tag));
     const res = (_tag$match = tag.match(/\((.*)\)/)) !== null && _tag$match !== void 0 ? _tag$match : [];
-    const enclosedString = res[1];
+    const enclosedString = res[1]; // may be an empty string
 
     if (tag.startsWith('date(') && tag.endsWith(')')) {
       return await processDate(enclosedString, config);
     } else if (tag.startsWith('weather(') && tag.endsWith(')')) {
-      return await getWeatherSummary();
+      return await getWeatherSummary(enclosedString);
     } else if (tag.startsWith('listTodaysEvents(') && tag.endsWith(')')) {
       return await listTodaysEvents(enclosedString);
     } else if (tag.startsWith('listMatchingEvents(') && tag.endsWith(')')) {
@@ -10056,7 +10179,7 @@ var exports = (function (exports) {
   // Apply a folder based on an existing Template's title
 
   async function applyNamedTemplateTitle(templateTitle) {
-    var _DataStore$projectNot, _await$getDefaultConf;
+    var _DataStore$projectNot, _await$getStructuredC;
 
     console.log("applyNamedTemplateTitle: for template '".concat(templateTitle, "'")); // const templateFolder = await getOrMakeTemplateFolder()
     // if (templateFolder == null) {
@@ -10075,12 +10198,12 @@ var exports = (function (exports) {
     }
 
     templateContent = templateContent.split('\n---\n').slice(1).join('\n---\n');
-    const config = (_await$getDefaultConf = await getDefaultConfiguration()) !== null && _await$getDefaultConf !== void 0 ? _await$getDefaultConf : {};
+    const config = (_await$getStructuredC = await getStructuredConfiguration()) !== null && _await$getStructuredC !== void 0 ? _await$getStructuredC : {};
     const processedTemplateContent = await processTemplate(templateContent, config);
     Editor.content = [Editor.content, processedTemplateContent].filter(Boolean).join('\n');
   }
   async function applyTemplate(newNote) {
-    var _await$getDefaultConf2;
+    var _await$getStructuredC2;
 
     const templateFolder = await getOrMakeTemplateFolder();
 
@@ -10114,7 +10237,7 @@ var exports = (function (exports) {
     }
 
     templateContent = templateContent.split('\n---\n').slice(1).join('\n---\n');
-    const config = (_await$getDefaultConf2 = await getDefaultConfiguration()) !== null && _await$getDefaultConf2 !== void 0 ? _await$getDefaultConf2 : {};
+    const config = (_await$getStructuredC2 = await getStructuredConfiguration()) !== null && _await$getStructuredC2 !== void 0 ? _await$getStructuredC2 : {};
     const processedTemplateContent = await processTemplate(templateContent, config);
 
     if (newNote != null) {

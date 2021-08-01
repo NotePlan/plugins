@@ -1,7 +1,7 @@
 // @flow
 // TODO: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat
 
-import { getDefaultConfiguration } from '../../nmn.Templates/src/configuration'
+import { getStructuredConfiguration } from '../../nmn.Templates/src/configuration'
 import { hyphenatedDateString } from '../../nmn.sweep/src/dateHelpers'
 
 type DateConfig = $ReadOnly<{
@@ -35,7 +35,7 @@ function asDateConfig(obj: mixed): ?DateConfig {
 }
 
 async function getDateConfig(): Promise<DateConfig> {
-  const config = await getDefaultConfiguration()
+  const config = await getStructuredConfiguration()
   // Verify that the config.date value is a `DateConfig`
   const dateConfig = asDateConfig(config?.date)
   if (dateConfig) {

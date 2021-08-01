@@ -39,7 +39,7 @@ export async function processTags(
 ): Promise<string> {
   console.log(`processTag: ${tag}`)
   const res = tag.match(/\((.*)\)/) ?? []
-  const enclosedString = res[1]
+  const enclosedString = res[1] // may be an empty string
   if (tag.startsWith('date(') && tag.endsWith(')')) {
     return await processDate(enclosedString, config)
 

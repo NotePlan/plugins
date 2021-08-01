@@ -15,8 +15,13 @@ const FORMAT_MAP = {
   ini: 'toml',
 }
 
-// @nmn original, but split up by @jgclark
-export async function getDefaultConfiguration(): Promise<?{
+/**
+ * Get configuration as JSON/JSON5/YAML/TOML from <template folder>_configuration file
+ * @author @nmn split up by @jgclark
+ * @return return this as structured data, in the format specified by the first line of the codeblock
+ */
+
+export async function getStructuredConfiguration(): Promise<?{
   [string]: ?mixed,
 }> {
   const templateFolder = await getOrMakeTemplateFolder()
@@ -37,7 +42,12 @@ export async function getDefaultConfiguration(): Promise<?{
   return await parseFirstCodeblock(firstCodeblock)
 }
 
-// Parse first codeblock as JSON/JSON5/YAML/TOML
+/**
+ * Parse first codeblock as JSON/JSON5/YAML/TOML
+ * @author @nmn
+ * @param {string} block - contents of first codeblock as string (exludes ``` delimiters)
+ * @return {mixed} structured version of this data, in the format specified by the first line of the codeblock
+ */
 export async function parseFirstCodeblock(
   block: string,
 ): Promise<?{ [string]: ?mixed }> {
@@ -75,11 +85,15 @@ export async function parseFirstCodeblock(
   }
 }
 
-// Get configuration section, or if not present, save into _configuraiton file
-// Only deals with json5 case
-// minimumRequiredConfig contains fields which must exist and type, e.g.
-// { openWeatherAPIKey:'string' } @dwertheimer
-// @jgclark
+/**
+ * Get configuration section, or if not present, save into _configuration file.
+ * Only deals with json5 case.
+ * @author @nmn, @jgclark, @dwertheimer
+ * @param {string} configSectionName - name of configuration section to retrieve
+ * @param {string} configSectionDefault - JSON5 string to use as default values for this configuration section
+ * @param {string} minimumRequiredConfig - contains fields which must exist and type, e.g. "{ openWeatherAPIKey: 'string' }"
+ * @return {mixed} return this as structured data, in the format specified by the first line of the first codeblock
+ */
 export async function getOrMakeConfigurationSection(
   configSectionName: string,
   configSectionDefault: string,
@@ -215,6 +229,14 @@ export async function getOrMakeConfigurationSection(
   }
 }
 
+/**
+ * Get configuration section, or if not present, save into _configuration file.
+ * Only deals with json5 case.
+ * @author @dwertheimer
+ * @param {mixed} config - configuration as structured JSON5 object
+ * @param {mixed} validations - JSON5 string to use as default values for this configuration section
+ * @return {mixed} return this as structured data, in the format specified by the first line of the first codeblock
+ */
 function validateMinimumConfig(
   config: { [string]: mixed },
   validations: { [string]: mixed },

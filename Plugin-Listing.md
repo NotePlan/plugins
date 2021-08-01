@@ -2,11 +2,12 @@
 
 | Command Name | Description | Plugin |
 | --- | --- | --- |
-| `complete project review` | updates the current open project's @reviewed() date. | 🔬Reviews |
+| `complete project` | add @completed(today) date to the open project | 🔬Reviews |
 | `date` | Insert date (without time) at cursor | 📅 Date Automations |
 | `dayReview` | Ask journal questions for an end-of-day review (requires configuring) | ☀️ Daily Journal |
 | `dayStart` | Start today's daily note with a template (requires configuring) | ☀️ Daily Journal |
 | `dp` | (Date Picker) Choose format and insert date/time time at cursor | 📅 Date Automations |
+| `finish project review` | updates the current open project's @reviewed() date | 🔬Reviews |
 | `fp` | file (move) paragraphs to different notes | 🗃 Filer |
 | `index` | Make/Update note link Indexes for one or more folders | 📙 Note Helpers |
 | `insert matching events` | inserts today's calendar events matching certain patterns at cursor | 🕓 Event Helpers |
@@ -23,7 +24,7 @@
 | `mn` | Moves the currently opened (non-calendar) note to a folder you select | 📙 Note Helpers |
 | `mp` | move (file) paragraphs to different notes | 🗃 Filer |
 | `nc` | Counts of all the notes in NotePlan | 🔢 Note Statistics |
-| `next project review` | updates this project's @reviewed() date, and jump to next project to review. | 🔬Reviews |
+| `next project review` | updates this project's @reviewed() date, and jump to next project to review | 🔬Reviews |
 | `nn` | Create new note with title, in chosen folder with optional template | 🔩 Templates |
 | `nns` | New note from selection (and leave link to it in its place) | 🗃 Filer |
 | `now` | Insert (human readable) date+time at cursor | 📅 Date Automations |

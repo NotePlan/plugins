@@ -58,6 +58,38 @@ export async function returnSummaryNote(
   }
 }
 
+/**
+ * Works out which line (if any) is a metadata line, defined (in preference order) as
+ * - line starting 'project:' or 'medadata:'
+ * - first line containing a @review() mention
+ * - first line starting with a hashtag
+ * - the first line after the title
+ * @author @jgclark
+ * @param {TNote} note - the note of interest
+ * @return {number} line - the calculated line
+ */
+export function getOrMakeMetadataLine(note: TNote): number {
+  let lineNumber
+  const lines = note.content?.split('\n') ?? ['']
+  const pLines = lines.slice().filter((a) => (a.match(/^project:/i) || a.match(/^metadata:/i)))
+  if (pLines.length > 0) {
+    lineNumber = 2 // TODO:
+  // if () {
+  // } else if () {
+  // } else if (lines[1].match(/^#[A-z]/)) {
+    // We have a hashtag at the start of the line, making this a metadata line
+  }
+  if (lineNumber == undefined) {
+    // If no metadataPara found, then insert one straight after the title
+    console.log(
+    `\tCan't find an existing metadata line, so will insert a new second line for it`,
+    )
+    Editor.insertParagraph('', 1, 'empty')
+    lineNumber = 2
+  }
+  return lineNumber
+}
+
 /*
  * Return list of notes with a particular hashtag, optionally in the given folder.
  * @param {string} tag - tag name to look for (or blank, in which case no filtering by tag)
@@ -220,12 +252,14 @@ export class Project {
   isArchived: boolean // TODO: Does this make any sense to keep?
   isActive: boolean
   noteType: string // project, area, other
+  folder: string
 
   constructor(note: TNote) {
     const mentions: $ReadOnlyArray<string> = note.mentions
     const hashtags: $ReadOnlyArray<string> = note.hashtags
     this.note = note
     this.title = note.title ?? '(error)'
+    this.folder = getFolderFromFilename(note.filename)
     this.dueDate = getDateFromString(getParamMentionFromList(mentions, "@due"))
     // this.dueDate = getDateFromString(getParamMentionFromList(mentions, "@due"))
     // FIXME(Eduard): Error in next API function so use my own instead
