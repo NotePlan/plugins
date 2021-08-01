@@ -8,7 +8,7 @@ import {
   getInput,
 } from '../../nmn.sweep/src/userInput'
 
-import { getDefaultConfiguration } from './configuration'
+import { getStructuredConfiguration } from './configuration'
 import { processTemplate } from './interpolation'
 import { getOrMakeTemplateFolder } from './template-folder'
 
@@ -38,7 +38,7 @@ export async function applyNamedTemplateTitle(templateTitle: string) {
   }
   templateContent = templateContent.split('\n---\n').slice(1).join('\n---\n')
 
-  const config = (await getDefaultConfiguration()) ?? {}
+  const config = (await getStructuredConfiguration()) ?? {}
 
   const processedTemplateContent = await processTemplate(
     templateContent,
@@ -81,7 +81,7 @@ export async function applyTemplate(newNote?: [string, string]) {
   }
   templateContent = templateContent.split('\n---\n').slice(1).join('\n---\n')
 
-  const config = (await getDefaultConfiguration()) ?? {}
+  const config = (await getStructuredConfiguration()) ?? {}
 
   const processedTemplateContent = await processTemplate(
     templateContent,

@@ -5,14 +5,39 @@
 //   with await Location.current()
 //   and has a Location.reverseGeocode(latitude, longitude) field -> postal town etc.
 
-// import { showMessage } from '../../helperFunctions'
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 import { getTagParams, stringReplace, capitalize } from '../../helperFunctions'
 
-// Get summary of today's weather in a line
-// Using https://openweathermap.org/api/one-call-api#data, for which you can get a free API key
+//------------------------------------------------------------------------------
+// Preference Settings
+const DEFAULT_WEATHER_CONFIG = `
+// configuration for weather data (used in Daily Note Template, for example)
+weather: {
+  // API key for https://openweathermap.org/
+  openWeatherAPIKey: '... put your API key here ...', // !!REQUIRED!!
+  // Required location for weather forecast
+  latPosition: 0.0,  // !!REQUIRED!!
+  longPosition: 0.0, // !!REQUIRED!!
+  // Default units. Can be 'metric' (for Celsius), or 'imperial' (for Fahrenheit)
+  openWeatherUnits: 'metric',
+},
+`
+
+const minimumConfig = {
+  openWeatherAPIKey: 'string',
+  latPosition: 'number',
+  longPosition: 'number',
+  openWeatherUnits: 'string',
+}
+
+//------------------------------------------------------------------------------
+/** 
+ * Get summary of today's weather in a line, using
+ * https://openweathermap.org/api/one-call-api#data, for which you can get a free API key
+ * @author @jgclark, with customisation by @dwertheimer
+ * @param {string} weatherParams - optional customisation for how to display the results
+ */
 export async function getWeatherSummary(
-  // eslint-disable-next-line no-unused-vars
   weatherParams: string,
 ): Promise<string> {
   const weatherDescText = [
@@ -27,7 +52,6 @@ export async function getWeatherSummary(
     'thunderstorm',
     'tornado',
   ]
-  //$FlowIgnore
   const weatherDescIcons = [
     '🌦️',
     '🌧️',
@@ -40,13 +64,6 @@ export async function getWeatherSummary(
     '⛈',
     '🌪',
   ]
-
-  const minimumConfig = {
-    openWeatherAPIKey: 'string',
-    latPosition: 'number',
-    longPosition: 'number',
-    openWeatherUnits: 'string',
-  }
 
   // Get config settings from Template folder _configuration note
   const weatherConfig = await getOrMakeConfigurationSection(
@@ -68,28 +85,15 @@ export async function getWeatherSummary(
   const { openWeatherAPIKey, latPosition, longPosition, openWeatherUnits } =
     weatherConfig
 
-  // This is not necessary because we are doing minimum spec validation in the get call
-  // but leaving it in to make Flow happy
-  if (
-    openWeatherAPIKey == null ||
-    typeof openWeatherAPIKey !== 'string' ||
-    latPosition == null ||
-    typeof latPosition !== 'number' ||
-    longPosition == null ||
-    typeof longPosition !== 'number' ||
-    openWeatherUnits == null ||
-    typeof openWeatherUnits !== 'string'
-  ) {
-    return `Invalid configuration provided`
-  }
-
   const getWeatherURL = `https://api.openweathermap.org/data/2.5/onecall?lat=${encodeURIComponent(
-    latPosition.toString(),
-  )}&lon=${encodeURIComponent(
-    longPosition.toString(),
-  )}&exclude=current,hourly,minutely&units=${encodeURIComponent(
-    openWeatherUnits,
-  )}&appid=${encodeURIComponent(openWeatherAPIKey)}`
+    // $FlowFixMe
+    latPosition.toString())
+    // $FlowFixMe
+    }&lon=${encodeURIComponent(longPosition.toString())
+    // $FlowFixMe
+    }&exclude=current,hourly,minutely&units=${encodeURIComponent(openWeatherUnits)
+    // $FlowFixMe
+    }&appid=${encodeURIComponent(openWeatherAPIKey)}`
 
   // ** The following is the more correct way, but doesn't work.
   //    So have to use a way that Flow doesn't like.
@@ -132,7 +136,6 @@ export async function getWeatherSummary(
       return `Weather: Invalid configuration settings. ${allWeatherData.message}`
     }
 
-    // const weatherTodayAll = jsonIn.daily['0']
     const weatherTodayAll = allWeatherData?.daily['0']
     const fMax = weatherTodayAll.feels_like.day.toFixed(0)
     const fMin = weatherTodayAll.feels_like.night.toFixed(0)
@@ -162,12 +165,12 @@ export async function getWeatherSummary(
       { key: '|WEATHER_ICON|', value: weatherIcon },
     ]
 
-    const weatherLine = `Weather: |WEATHER_ICON| |DESCRIPTION| |LOW_TEMP||UNITS|-|HIGH_TEMP||UNITS|; Feels like: |FEELS_LIKE_LOW||UNITS|-|FEELS_LIKE_HIGH||UNITS|`
+    const defaultWeatherLine = `Weather: |WEATHER_ICON| |DESCRIPTION| |LOW_TEMP||UNITS|-|HIGH_TEMP||UNITS|; Feels like: |FEELS_LIKE_LOW||UNITS|-|FEELS_LIKE_HIGH||UNITS|`
 
     const template =
       weatherParams !== ''
         ? getTagParams(weatherParams, 'template')
-        : weatherLine
+        : defaultWeatherLine
     console.log(
       `\toutput template: '${template}' ; about to call stringReplace`,
     )
@@ -177,17 +180,3 @@ export async function getWeatherSummary(
     return `Problem in Weather data lookup for ${latPosition}/${longPosition}. Please check your _configuration note.`
   }
 }
-
-const DEFAULT_WEATHER_CONFIG = `
-  // configuration for weather data (used in Daily Note Template, for example)
-  weather: {
-    // API key for https://openweathermap.org/
-    // !!REQUIRED!!
-    openWeatherAPIKey: '... put your API key here ...',
-    // Required location for weather forecast
-    latPosition: 0.0,
-    longPosition: 0.0,
-    // Default units. Can be 'metric' (for Celsius), or 'imperial' (for Fahrenheit)
-    openWeatherUnits: 'metric',
-  },
-`
