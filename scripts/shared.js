@@ -57,14 +57,20 @@ async function runShellCommand(command) {
 
 async function getPluginFileContents(pluginPath) {
   const jsonFile = path.join(pluginPath, 'plugin.json')
-  let pluginFile
+  let pluginFile, pluginObj
   try {
-    pluginFile = await JSON.parse(await fs.readFile(jsonFile, 'utf8'))
+    // console.log(`getPluginFileContents: ${jsonFile}`)
+    pluginFile = await fs.readFile(jsonFile, 'utf8')
+    pluginObj = await JSON.parse(pluginFile)
     // console.log(`Read file ${pluginPath}`)
   } catch (e) {
+    console.log(`getPluginFileContents: Problem reading JSON file: ${jsonFile}`)
+    console.log(
+      `Often this is simply a non-standard trailing comma that the parser doesn't like.`,
+    )
     console.log(e)
   }
-  return pluginFile || {}
+  return pluginObj || {}
 }
 
 module.exports = {
