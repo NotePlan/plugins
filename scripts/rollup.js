@@ -31,7 +31,8 @@ let watcher
 async function checkPluginList(pluginPaths) {
   const pluginCommands = {}
   for (const pluginPath of pluginPaths) {
-    const pluginFile = getPluginFileContents(pluginPath) // console.log(`*** * READ\n${JSON.stringify(pluginFile)}`)
+    // console.log(`About to read ${pluginPath}`)
+    const pluginFile = await getPluginFileContents(pluginPath) // console.log(`*** * READ\n${JSON.stringify(pluginFile)}`)
     if (pluginFile) {
       pluginFile['plugin.commands']?.forEach((command) => {
         if (pluginCommands[command.name]) {
