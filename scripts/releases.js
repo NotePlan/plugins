@@ -99,13 +99,13 @@ function getReleaseTagName(pluginName, version) {
   return `${pluginName}-v${version}`
 }
 
-function getVersionFromPluginJson(pluginData) {
-  const version = pluginData['plugin.version'] || null
-  if (!version) {
-    console.log(`Could not find plugin.version in plugin.json`)
+function getPluginDataField(pluginData, field) {
+  const data = pluginData[field] || null
+  if (!data) {
+    console.log(`Could not find value for "${field}" in plugin.json`)
     process.exit(0)
   }
-  return version
+  return data
 }
 
 /**
@@ -178,9 +178,14 @@ function ensureVersionIsNew(existingRelease, versionedTagName) {
   }
 }
 
-function getReleaseCommand(version, fileList, sendToGithub = false) {
+function getReleaseCommand(
+  version,
+  pluginTitle,
+  fileList,
+  sendToGithub = false,
+) {
   const changeLog = fileList.changelog ? `-F ${fileList.changelog}` : ''
-  return `gh release create "${version}" -t "${version}" ${changeLog} ${
+  return `gh release create "${version}" -t "${pluginTitle}" ${changeLog} ${
     !sendToGithub ? `--draft` : ''
   } ${fileList.files.join(' ')}`
 }
@@ -189,9 +194,16 @@ function getRemoveCommand(version, fileList, sendToGithub = false) {
   return `gh release delete "${version}" ${sendToGithub ? `` : '-y'}` // -y removes the release without prompting
 }
 
-async function releasePlugin(versionedTagName, fileList, sendToGithub = false) {
+async function releasePlugin(
+  versionedTagName,
+  pluginData,
+  fileList,
+  sendToGithub = false,
+) {
+  const pluginTitle = getPluginDataField(pluginData, 'plugin.name')
   const releaseCommand = getReleaseCommand(
     versionedTagName,
+    pluginTitle,
     fileList,
     sendToGithub,
   )
@@ -247,12 +259,12 @@ async function main() {
     const pluginFullPath = path.join(rootFolderPath, pluginName)
     const existingRelease = await getExistingRelease(pluginName)
     const pluginData = await getPluginFileContents(pluginFullPath)
-    const versionNumber = getVersionFromPluginJson(pluginData)
+    const versionNumber = getPluginDataField(pluginData, 'plugin.version')
     const fileList = await getReleaseFileList(pluginFullPath)
     const versionedTagName = getReleaseTagName(pluginName, versionNumber)
     // console.log(`>>Releases: This version/tag will be:\n\t${versionedTagName}`)
     ensureVersionIsNew(existingRelease, versionedTagName)
-    await releasePlugin(versionedTagName, fileList, true)
+    await releasePlugin(versionedTagName, pluginData, fileList, true)
     if (existingRelease) await removePlugin(existingRelease.tag, true)
     const newReleaseList = await getExistingRelease(pluginName)
     if (newReleaseList && newReleaseList.tag === versionedTagName) {
