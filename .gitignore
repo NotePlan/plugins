@@ -10,3 +10,4 @@ package-lock.json
 *.code-workspace
 *.dict
 .vscode/launch.json
+*/script.js
