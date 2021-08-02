@@ -40,7 +40,7 @@
 			"alias": ["gtd"],
 			"description": "updates this project's @reviewed() date, and jump to next project to review",
 			"jsFunction": "nextReview"
-		},
+		}
 	],
 	"plugin.preferences": []
 }
