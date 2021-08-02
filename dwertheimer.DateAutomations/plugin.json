@@ -6,7 +6,7 @@
   "plugin.description": "Helping you move faster with dates", 
   "plugin.author": "David Wertheimer, with help from code by @nmn", 
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.DateAutomations/README.md", 
-  "plugin.version": "0.0.5", 
+  "plugin.version": "0.0.7", 
   "plugin.dependencies": [ ], 
   "plugin.script": "script.js",
   "plugin.commands": [ 
