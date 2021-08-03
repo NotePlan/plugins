@@ -4,7 +4,7 @@ const fs = require('fs/promises')
 const path = require('path')
 const util = require('util')
 const exec = util.promisify(require('child_process').exec)
-const json5 = require('json5')
+const JSON5 = require('json5')
 
 const pluginPathFile = path.join(__dirname, '..', '.pluginpath')
 
@@ -63,8 +63,8 @@ async function getPluginFileContents(pluginPath) {
   let pluginFile, pluginObj
   try {
     pluginFile = await fs.readFile(pluginPath, 'utf8')
-    // pluginObj = await json5.parse(pluginFile)
-    pluginObj = await JSON.parse(pluginFile)
+    pluginObj = await JSON5.parse(pluginFile)
+    // pluginObj = await JSON.parse(pluginFile)
   } catch (e) {
     console.log(
       `getPluginFileContents: Problem reading JSON file:\n  ${pluginPath}`,
@@ -85,7 +85,7 @@ async function getPluginFileContents(pluginPath) {
 async function writeMinifiedPluginFileContents(pathToRead, pathToWrite) {
   try {
     const contents = await fs.readFile(pathToRead, 'utf8')
-    const j5 = json5.parse(contents)
+    const j5 = JSON5.parse(contents)
     await fs.writeFile(pathToWrite, JSON.stringify(j5, null, 2))
   } catch (e) {
     console.log(
