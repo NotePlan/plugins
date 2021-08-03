@@ -104,11 +104,14 @@ export async function chooseFolder(msg: string): Promise<string> {
 
 //-------------------------------------------------------------------------------
 // Stats functions
-// @jgclark except where shown
 
-// Return string with percentage value appended
-// export function percent(value, total) {
-// @eduardme
+/** 
+ * Return string of percentage value
+ * @author @eduardme
+ * @param {number} value - 
+ * @param {number} total - 
+ * @returns {string} - return as a ..% string
+ */
 export function percent(value: number, total: number): string {
   return total > 0
     ? `${value.toLocaleString()} (${Math.round((value / total) * 100)}%)`

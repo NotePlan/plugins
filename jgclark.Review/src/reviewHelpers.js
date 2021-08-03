@@ -257,7 +257,8 @@ export class Project {
   isActive: boolean
   noteType: string // project, area, other
   folder: string
-
+  // TODO: - bring 'cancelled' in as a valid project state
+  
   constructor(note: TNote) {
     const mentions: $ReadOnlyArray<string> = note.mentions
     const hashtags: $ReadOnlyArray<string> = note.hashtags
