@@ -47,7 +47,11 @@ The TITLE, START and END can be mixed with whatever markdown characters or other
 You can also place  `{{listMatchingEvents()}}` in Templates in a similar way. However, it has a different sort of customisation. This simply has a prefix string defined in the _configuration file above, _for each different string to match_.
 
 ## History
-### v0.2.5 1.8.2021
+### v0.2.7 3.8.2021
+- adds ability to recognise timeblocks of form `at 5-5:30pm` alongside the others
+- adds ability to ignore potential timeblocks in lines containing `@done(YYYY-MM-DD HH:MM)`
+
+### v0.2.6 1.8.2021
 - adds ability to customise the addMatchingEvents lines with template strings, not just prepended string
 - fixed issue with running list today's events, due to change in configuration mechanism
 

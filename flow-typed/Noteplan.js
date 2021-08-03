@@ -413,7 +413,12 @@ type TCommandBar = {
    * It returns a Promise, so you can wait (using "await...") for the user
    * input with the entered text as success result.
    */
-  showInput(placeholder: string, submitText: string): Promise<string>,
+  showInput(placeholder: string, submitText: string): Promise < string >,
+  /**
+   * Show working progress indicator
+   * ???
+   */
+  showLoading(show: boolean, text?: string, progress?: number): void,
 }
 
 /**

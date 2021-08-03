@@ -3,6 +3,7 @@
 // ------------------------------------------------------------------------------------
 // Command to turn time blocks into full calendar events
 // @jgclark
+// v0.2.7, 3.8.2021
 //
 // See https://help.noteplan.co/article/52-part-2-tasks-events-and-reminders#timeblocking
 // for definition of time blocks. In summary:
@@ -11,11 +12,12 @@
 //   And, you don't have to define an end time."
 // ------------------------------------------------------------------------------------
 
-// TODO: Need to add ability to cope with 'at 5-5.30pm' and similar 
-
-import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 import {
-  // printDateRange,
+  getOrMakeConfigurationSection
+} from '../../nmn.Templates/src/configuration'
+
+import {
+  printDateRange,
   todaysDateISOString,
   isoDateStringFromCalendarFilename,
   RE_DATE,
@@ -23,17 +25,29 @@ import {
 } from '../../helperFunctions'
 
 // find dates of form YYYY-MM-DD
-const RE_SCHEDULED_DATE = '>\\d{4}-[01]\\d{1}-\\d{2}'
+const RE_ISO_DATE = '\\d{4}-[01]\\d{1}-\\d{2}'
+const RE_SCHEDULED_DATE = `>${RE_ISO_DATE}`
+const RE_HOUR = '[0-2]?\\d'
+const RE_MINUTE = '[0-5]\\d'
+const RE_TIME = `${RE_HOUR}:${RE_MINUTE}`
+const RE_AMPM = `(AM|PM|am|pm)`
+const RE_OPT_AMPM = `${RE_AMPM}?`
 // find '[>date] 12:30[AM|PM|am|pm][-14:45[AM|PM|am|pm]]'
-export const RE_TIMEBLOCK_TYPE1 = `(${RE_SCHEDULED_DATE})? [0-2]?\\d:[0-5]\\d(AM|PM|am|pm)?(\\s?-\\s?[0-2]?\\d:[0-5]\\d(AM|PM|am|pm)?)?`
+const RE_TIMEBLOCK_TYPE1 = `(${RE_SCHEDULED_DATE})? ${RE_TIME}${RE_OPT_AMPM}(\\s?-\\s?${RE_TIME}${RE_OPT_AMPM})?`
 // find '[>date] at 2(AM|PM|am|pm)[-11[AM|PM|am|pm]]'
-export const RE_TIMEBLOCK_TYPE2 = `(${RE_SCHEDULED_DATE})? at [0-2]?\\d(:[0-5]\\d|(AM|PM|am|pm)?)(\\s?-\\s?[0-2]?\\d(:[0-5]\\d|AM|PM|am|pm)?)?`
-const RE_EVENT_ID = '\\[\\[event:[A-F0-9-]*\\]\\]'
+const RE_TIMEBLOCK_TYPE2 = `(${RE_SCHEDULED_DATE})? at ${RE_HOUR}(:${RE_MINUTE}|(AM|PM|am|pm)?)(\\s?-\\s?${RE_HOUR}(:${RE_MINUTE}|AM|PM|am|pm)?)?`
+// find '[>date] at 9(AM|PM|am|pm)-11:30(AM|PM|am|pm)'
+const RE_TIMEBLOCK_TYPE3 = `(${RE_SCHEDULED_DATE})?\\s+(at\\s+)?${RE_HOUR}${RE_OPT_AMPM}\\s?-\\s?${RE_HOUR}:${RE_MINUTE}${RE_AMPM}`
+const RE_DONE_DATETIME = `@done\\(${RE_ISO_DATE} ${RE_TIME}${RE_OPT_AMPM}\\)`
+const RE_EVENT_ID = `\\[\\[event:[A-F0-9-]*\\]\\]`
 
 // ------------------------------------------------------------------------------------
 
 // Go through current Editor note and identify time blocks to turn into events
 export async function timeBlocksToCalendar() {
+
+  printDateRange(Calendar.parseDateText("5-5:45pm")[0])
+
   const { paragraphs, note } = Editor
   if (paragraphs == null || note == null) {
     console.log('\ntimeBlocksToCalendar: warning: no content found')
@@ -69,14 +83,22 @@ export async function timeBlocksToCalendar() {
     ? eventsConfig.addEventID
     : false
 
-  // Look through open note to find time blocks
+  // Look through open note to find time blocks, but ignore @done(...) lines
+  // which can look like timeblocks
   const timeblockParas = paragraphs.filter(
     (p) =>
-      p.content.match(RE_TIMEBLOCK_TYPE1) ||
-      p.content.match(RE_TIMEBLOCK_TYPE2),
+      (p.content.match(RE_TIMEBLOCK_TYPE1) ||
+       p.content.match(RE_TIMEBLOCK_TYPE2) ||
+       p.content.match(RE_TIMEBLOCK_TYPE3)) &&
+      !p.content.match(RE_DONE_DATETIME)
   )
   if (timeblockParas.length > 0) {
     console.log(`  found ${timeblockParas.length} in '${noteTitle}'`)
+    // Show the loading indicator with text
+    CommandBar.showLoading(true, "Creating events from time blocks")
+    // Begin an asynchronous thread, so the loading indicator won't be blocked
+    // await CommandBar.onAsyncThread()
+
     // Work out our current date context (as YYYY-MM-DD):
     // - if a calendar note -> date of note
     // - if a project note -> today's date
@@ -94,10 +116,14 @@ export async function timeBlocksToCalendar() {
       const timeBlockStringType1 = tempArray[0]
       tempArray = thisPara.content?.match(RE_TIMEBLOCK_TYPE2) ?? ['']
       const timeBlockStringType2 = tempArray[0]
+      tempArray = thisPara.content?.match(RE_TIMEBLOCK_TYPE3) ?? ['']
+      const timeBlockStringType3 = tempArray[0]
       let timeBlockString =
         timeBlockStringType1 !== ''
           ? timeBlockStringType1
-          : timeBlockStringType2
+          : timeBlockStringType2 !== ''
+            ? timeBlockStringType2
+            : timeBlockStringType3
       // Check to see if this line has been processed before, by looking for the
       // processed tag, or an [[event:ID]]
       // $FlowFixMe[incompatible-call]
@@ -146,7 +172,15 @@ export async function timeBlocksToCalendar() {
           console.log(`\tError getting DateRange from '${timeBlockString}'`)
         }
       }
+
+      // update loading indicator
+      CommandBar.showLoading(true, "Creating events from time blocks", i / timeblockParas.length)
     }
+    // Switch back to the main thread, so we can make edits to the Editor
+    // await CommandBar.onMainThread()
+    // close loading indicator
+    CommandBar.showLoading(false)
+
   } else {
     console.log(`  -> No time blocks found.`)
   }
@@ -211,3 +245,29 @@ const DEFAULT_EVENTS_OPTIONS = `  events: {
 // printDateRange(Calendar.parseDateText("2021-06-02 2:15-3:45")[0])
 // printDateRange(Calendar.parseDateText("2021-06-02 16:00-16:45")[0])
 // printDateRange(Calendar.parseDateText("16:00-16:45")[0])
+// printDateRange(Calendar.parseDateText("at 5-5:45pm")[0])
+
+// Markdown to test timeblock function. All should create apart from ones listed
+// - TBT-1a 2:30-3:45
+// - TBT-1b @done(2021-12-12) 2:30-3:45
+// - TBT-2a at 2PM-3PM
+// - TBT-2b shouldn't create @done(2021-12-12 12:34) at 2PM-3PM
+// - TBT-3 at 2-3
+// - TBT-4 at 2-3PM
+// - TBT-5 at 2PM-3
+// - TBT-6 at 2:30-3:45
+// - TBT-7 >2021-06-02 at 2-3
+// - TBT-8 >2021-06-02 at 2:30-3:45
+// - TBT-9 >2021-06-02 at 2am-3PM
+// - TBT-10 >2021-06-02 at 2am-3AM
+// - TBT-11a >2021-06-02 2:15 - 3:45
+// - TBT-11b 2021-06-02 2:15 - 3:45
+// - TBT-12a >2021-06-02 16:00 - 16:45
+// - TBT-12b 2021-06-02 16:00 - 16:45
+// - TBT-13 16:00-16:45
+// - TBT-14 at 5-5:45pm
+// - TBT-15 shouldn't create 2021-06-02 2.15PM-3.45PM
+// - TBT-16 shouldn't create 2PM-3PM
+// - TBT-18 shouldn't create 2-3
+// - TBT-19 shouldn't create 2-3PM
+// - TBT-20 shouldn't create 2PM-3

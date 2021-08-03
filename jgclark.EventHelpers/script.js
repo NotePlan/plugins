@@ -9276,11 +9276,17 @@ var exports = (function (exports) {
       date
     };
   }
+  function toISOShortDateTimeString(dateObj) {
+    return dateObj.toISOString().slice(0, 16);
+  }
   function toLocaleShortTime(dateObj) {
     return dateObj.toLocaleTimeString([], {
       hour: '2-digit',
       minute: '2-digit'
     }).slice(0, 5);
+  }
+  function printDateRange(dr) {
+    console.log("DateRange <".concat(toISOShortDateTimeString(dr.start), " - ").concat(toISOShortDateTimeString(dr.end), ">"));
   }
   function hyphenatedDate(dateObj) {
     const {
@@ -9394,7 +9400,7 @@ var exports = (function (exports) {
    */
 
   async function getOrMakeTemplateFolder() {
-    // console.log('  getOrMakeTemplateFolder start')
+    console.log('  getOrMakeTemplateFolder start');
     let folder = getTemplateFolder();
 
     if (folder == null) {
@@ -9699,15 +9705,25 @@ var exports = (function (exports) {
 
   // ------------------------------------------------------------------------------------
 
-  const RE_SCHEDULED_DATE = '>\\d{4}-[01]\\d{1}-\\d{2}'; // find '[>date] 12:30[AM|PM|am|pm][-14:45[AM|PM|am|pm]]'
+  const RE_ISO_DATE = '\\d{4}-[01]\\d{1}-\\d{2}';
+  const RE_SCHEDULED_DATE = ">".concat(RE_ISO_DATE);
+  const RE_HOUR = '[0-2]?\\d';
+  const RE_MINUTE = '[0-5]\\d';
+  const RE_TIME = "".concat(RE_HOUR, ":").concat(RE_MINUTE);
+  const RE_AMPM = "(AM|PM|am|pm)";
+  const RE_OPT_AMPM = "".concat(RE_AMPM, "?"); // find '[>date] 12:30[AM|PM|am|pm][-14:45[AM|PM|am|pm]]'
 
-  const RE_TIMEBLOCK_TYPE1 = "(".concat(RE_SCHEDULED_DATE, ")? [0-2]?\\d:[0-5]\\d(AM|PM|am|pm)?(\\s?-\\s?[0-2]?\\d:[0-5]\\d(AM|PM|am|pm)?)?"); // find '[>date] at 2(AM|PM|am|pm)[-11[AM|PM|am|pm]]'
+  const RE_TIMEBLOCK_TYPE1 = "(".concat(RE_SCHEDULED_DATE, ")? ").concat(RE_TIME).concat(RE_OPT_AMPM, "(\\s?-\\s?").concat(RE_TIME).concat(RE_OPT_AMPM, ")?"); // find '[>date] at 2(AM|PM|am|pm)[-11[AM|PM|am|pm]]'
 
-  const RE_TIMEBLOCK_TYPE2 = "(".concat(RE_SCHEDULED_DATE, ")? at [0-2]?\\d(:[0-5]\\d|(AM|PM|am|pm)?)(\\s?-\\s?[0-2]?\\d(:[0-5]\\d|AM|PM|am|pm)?)?");
-  const RE_EVENT_ID = '\\[\\[event:[A-F0-9-]*\\]\\]'; // ------------------------------------------------------------------------------------
+  const RE_TIMEBLOCK_TYPE2 = "(".concat(RE_SCHEDULED_DATE, ")? at ").concat(RE_HOUR, "(:").concat(RE_MINUTE, "|(AM|PM|am|pm)?)(\\s?-\\s?").concat(RE_HOUR, "(:").concat(RE_MINUTE, "|AM|PM|am|pm)?)?"); // find '[>date] at 9(AM|PM|am|pm)-11:30(AM|PM|am|pm)'
+
+  const RE_TIMEBLOCK_TYPE3 = "(".concat(RE_SCHEDULED_DATE, ")?\\s+(at\\s+)?").concat(RE_HOUR).concat(RE_OPT_AMPM, "\\s?-\\s?").concat(RE_HOUR, ":").concat(RE_MINUTE).concat(RE_AMPM);
+  const RE_DONE_DATETIME = "@done\\(".concat(RE_ISO_DATE, " ").concat(RE_TIME).concat(RE_OPT_AMPM, "\\)");
+  const RE_EVENT_ID = "\\[\\[event:[A-F0-9-]*\\]\\]"; // ------------------------------------------------------------------------------------
   // Go through current Editor note and identify time blocks to turn into events
 
   async function timeBlocksToCalendar() {
+    printDateRange(Calendar.parseDateText("5-5:45pm")[0]);
     const {
       paragraphs,
       note
@@ -9732,14 +9748,19 @@ var exports = (function (exports) {
 
     const pref_processedTagName = eventsConfig.processedTagName != null && typeof eventsConfig.processedTagName === 'string' ? eventsConfig.processedTagName : '#event_created';
     const pref_removeTimeBlocksWhenProcessed = eventsConfig.removeTimeBlocksWhenProcessed != null ? eventsConfig.removeTimeBlocksWhenProcessed : true;
-    const pref_addEventID = eventsConfig.addEventID != null ? eventsConfig.addEventID : false; // Look through open note to find time blocks
+    const pref_addEventID = eventsConfig.addEventID != null ? eventsConfig.addEventID : false; // Look through open note to find time blocks, but ignore @done(...) lines
+    // which can look like timeblocks
 
-    const timeblockParas = paragraphs.filter(p => p.content.match(RE_TIMEBLOCK_TYPE1) || p.content.match(RE_TIMEBLOCK_TYPE2));
+    const timeblockParas = paragraphs.filter(p => (p.content.match(RE_TIMEBLOCK_TYPE1) || p.content.match(RE_TIMEBLOCK_TYPE2) || p.content.match(RE_TIMEBLOCK_TYPE3)) && !p.content.match(RE_DONE_DATETIME));
 
     if (timeblockParas.length > 0) {
       var _isoDateStringFromCal;
 
-      console.log("  found ".concat(timeblockParas.length, " in '").concat(noteTitle, "'")); // Work out our current date context (as YYYY-MM-DD):
+      console.log("  found ".concat(timeblockParas.length, " in '").concat(noteTitle, "'")); // Show the loading indicator with text
+
+      CommandBar.showLoading(true, "Creating events from time blocks"); // Begin an asynchronous thread, so the loading indicator won't be blocked
+      // await CommandBar.onAsyncThread()
+      // Work out our current date context (as YYYY-MM-DD):
       // - if a calendar note -> date of note
       // - if a project note -> today's date
       // NB: But these are ignored if there's an actual date in the time block
@@ -9747,14 +9768,16 @@ var exports = (function (exports) {
       const dateContext = note.type === 'Calendar' ? (_isoDateStringFromCal = isoDateStringFromCalendarFilename(note.filename)) !== null && _isoDateStringFromCal !== void 0 ? _isoDateStringFromCal : todaysDateISOString : todaysDateISOString; // Iterate over timeblocks
 
       for (let i = 0; i < timeblockParas.length; i++) {
-        var _thisPara$content$mat, _thisPara$content, _thisPara$content$mat2, _thisPara$content2;
+        var _thisPara$content$mat, _thisPara$content, _thisPara$content$mat2, _thisPara$content2, _thisPara$content$mat3, _thisPara$content3;
 
         const thisPara = timeblockParas[i];
         let tempArray = (_thisPara$content$mat = (_thisPara$content = thisPara.content) === null || _thisPara$content === void 0 ? void 0 : _thisPara$content.match(RE_TIMEBLOCK_TYPE1)) !== null && _thisPara$content$mat !== void 0 ? _thisPara$content$mat : [''];
         const timeBlockStringType1 = tempArray[0];
         tempArray = (_thisPara$content$mat2 = (_thisPara$content2 = thisPara.content) === null || _thisPara$content2 === void 0 ? void 0 : _thisPara$content2.match(RE_TIMEBLOCK_TYPE2)) !== null && _thisPara$content$mat2 !== void 0 ? _thisPara$content$mat2 : [''];
         const timeBlockStringType2 = tempArray[0];
-        let timeBlockString = timeBlockStringType1 !== '' ? timeBlockStringType1 : timeBlockStringType2; // Check to see if this line has been processed before, by looking for the
+        tempArray = (_thisPara$content$mat3 = (_thisPara$content3 = thisPara.content) === null || _thisPara$content3 === void 0 ? void 0 : _thisPara$content3.match(RE_TIMEBLOCK_TYPE3)) !== null && _thisPara$content$mat3 !== void 0 ? _thisPara$content$mat3 : [''];
+        const timeBlockStringType3 = tempArray[0];
+        let timeBlockString = timeBlockStringType1 !== '' ? timeBlockStringType1 : timeBlockStringType2 !== '' ? timeBlockStringType2 : timeBlockStringType3; // Check to see if this line has been processed before, by looking for the
         // processed tag, or an [[event:ID]]
         // $FlowFixMe[incompatible-call]
 
@@ -9801,8 +9824,16 @@ var exports = (function (exports) {
           } else {
             console.log("\tError getting DateRange from '".concat(timeBlockString, "'"));
           }
-        }
-      }
+        } // update loading indicator
+
+
+        CommandBar.showLoading(true, "Creating events from time blocks", i / timeblockParas.length);
+      } // Switch back to the main thread, so we can make edits to the Editor
+      // await CommandBar.onMainThread()
+      // close loading indicator
+
+
+      CommandBar.showLoading(false);
     } else {
       console.log("  -> No time blocks found.");
     }
@@ -9851,6 +9882,31 @@ var exports = (function (exports) {
   // printDateRange(Calendar.parseDateText("2021-06-02 2:15-3:45")[0])
   // printDateRange(Calendar.parseDateText("2021-06-02 16:00-16:45")[0])
   // printDateRange(Calendar.parseDateText("16:00-16:45")[0])
+  // printDateRange(Calendar.parseDateText("at 5-5:45pm")[0])
+  // Markdown to test timeblock function. All should create apart from ones listed
+  // - TBT-1a 2:30-3:45
+  // - TBT-1b @done(2021-12-12) 2:30-3:45
+  // - TBT-2a at 2PM-3PM
+  // - TBT-2b shouldn't create @done(2021-12-12 12:34) at 2PM-3PM
+  // - TBT-3 at 2-3
+  // - TBT-4 at 2-3PM
+  // - TBT-5 at 2PM-3
+  // - TBT-6 at 2:30-3:45
+  // - TBT-7 >2021-06-02 at 2-3
+  // - TBT-8 >2021-06-02 at 2:30-3:45
+  // - TBT-9 >2021-06-02 at 2am-3PM
+  // - TBT-10 >2021-06-02 at 2am-3AM
+  // - TBT-11a >2021-06-02 2:15 - 3:45
+  // - TBT-11b 2021-06-02 2:15 - 3:45
+  // - TBT-12a >2021-06-02 16:00 - 16:45
+  // - TBT-12b 2021-06-02 16:00 - 16:45
+  // - TBT-13 16:00-16:45
+  // - TBT-14 at 5-5:45pm
+  // - TBT-15 shouldn't create 2021-06-02 2.15PM-3.45PM
+  // - TBT-16 shouldn't create 2PM-3PM
+  // - TBT-18 shouldn't create 2-3
+  // - TBT-19 shouldn't create 2-3PM
+  // - TBT-20 shouldn't create 2PM-3
 
   // ------------------------------------------------------------------------------------
   // Get settings
@@ -9860,8 +9916,10 @@ var exports = (function (exports) {
   let pref_addMatchingEvents = null; //------------------------------------------------------------------------------
   // Get config settings from Template folder _configuration note
 
-  async function getSettings() {
-    const eventsConfig = await getOrMakeConfigurationSection('events', DEFAULT_EVENTS_OPTIONS);
+  async function getEventsSettings() {
+    console.log("\nStart of getEventsSettings()");
+    const eventsConfig = await getOrMakeConfigurationSection('events', DEFAULT_EVENTS_OPTIONS // not including a minimum required configuration list
+    );
 
     if (eventsConfig == null) {
       console.log("\tCouldn't find 'events' settings in _configuration note.");
@@ -9880,8 +9938,10 @@ var exports = (function (exports) {
       // $FlowFixMe
       pref_addMatchingEvents = eventsConfig.addMatchingEvents;
     } else {
-      console.log("\nError: empty find 'addMatchingEvents' setting in _configuration note.");
+      console.log("\tError: empty find 'addMatchingEvents' setting in _configuration note.");
     }
+
+    console.log("\tEnd of getEventsSettings()");
   } //------------------------------------------------------------------------------
   // Return MD list of today's events
 
@@ -9889,7 +9949,7 @@ var exports = (function (exports) {
   async function listTodaysEvents(paramString) {
     console.log("\nlistTodaysEvents:"); // Get config settings from Template folder _configuration note
 
-    await getSettings(); // Work out template for output line (from params, or if blank, a default)
+    await getEventsSettings(); // Work out template for output line (from params, or if blank, a default)
 
     const template = paramString != null && paramString !== '' ? getTagParams(paramString, 'template') : '- TITLE (START)';
     console.log("\toutput template: '".concat(template, "'"));
@@ -9948,7 +10008,7 @@ var exports = (function (exports) {
   paramString) {
     console.log("\nalistMatchingTodaysEvents:"); // Get config settings from Template folder _configuration note
 
-    await getSettings();
+    await getEventsSettings();
 
     if (pref_addMatchingEvents == null) {
       await showMessage("Error: Empty 'addMatchingEvents' setting in _configuration note. Stopping");

@@ -1,7 +1,7 @@
 // @flow
 // ------------------------------------------------------------------------------------
 // Command to bring calendar events into notes
-// v0.2.5, 1.8.2021
+// v0.2.6, 1.8.2021
 // @jgclark
 // ------------------------------------------------------------------------------------
 
@@ -36,10 +36,12 @@ let pref_addMatchingEvents: ?{ [string]: mixed } = null
 
 //------------------------------------------------------------------------------
 // Get config settings from Template folder _configuration note
-async function getSettings(): Promise<void> {
+async function getEventsSettings(): Promise<void> {
+  console.log(`\nStart of getEventsSettings()`)
   const eventsConfig = await getOrMakeConfigurationSection(
     'events',
     DEFAULT_EVENTS_OPTIONS,
+    // not including a minimum required configuration list
   )
   if (eventsConfig == null) {
     console.log(`\tCouldn't find 'events' settings in _configuration note.`)
@@ -61,9 +63,10 @@ async function getSettings(): Promise<void> {
     pref_addMatchingEvents = eventsConfig.addMatchingEvents
   } else {
     console.log(
-      `\nError: empty find 'addMatchingEvents' setting in _configuration note.`,
+      `\tError: empty find 'addMatchingEvents' setting in _configuration note.`,
     )
   }
+  console.log(`\tEnd of getEventsSettings()`)
 }
 
 //------------------------------------------------------------------------------
@@ -72,7 +75,7 @@ export async function listTodaysEvents(paramString?: string): Promise<string> {
   console.log(`\nlistTodaysEvents:`)
 
   // Get config settings from Template folder _configuration note
-  await getSettings()
+  await getEventsSettings()
   // Work out template for output line (from params, or if blank, a default)
   const template =
     (paramString != null && paramString !== '')
@@ -134,7 +137,7 @@ export async function listMatchingTodaysEvents(
 ): Promise<string> {
   console.log(`\nalistMatchingTodaysEvents:`)
   // Get config settings from Template folder _configuration note
-  await getSettings()
+  await getEventsSettings()
   if (pref_addMatchingEvents == null) {
     await showMessage(
       `Error: Empty 'addMatchingEvents' setting in _configuration note. Stopping`,
