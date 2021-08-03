@@ -16,6 +16,7 @@ const {
   getFolderFromCommandLine,
   getPluginFileContents,
   writeMinifiedPluginFileContents,
+  getCopyTargetPath,
 } = require('./shared')
 const FOLDERS_TO_IGNORE = [
   'scripts',
@@ -166,61 +167,6 @@ async function main() {
   })
 
   console.log('Building and Watching for changes...\n')
-}
-
-const pluginPathFile = path.join(__dirname, '..', '.pluginpath')
-async function getCopyTargetPath(dirents) {
-  const hasPluginPathFile = dirents.some(
-    (dirent) => dirent.name === '.pluginpath',
-  )
-  if (hasPluginPathFile) {
-    const path = await fs.readFile(pluginPathFile, 'utf8')
-    return path
-  }
-
-  const { shouldCopy } = await inquirer.prompt([
-    {
-      type: 'list',
-      name: 'shouldCopy',
-      message:
-        'Could not a find a file called ".pluginpath". Do you want to auto-copy compiled plugins to the Noteplan plugin directory?',
-      choices: [
-        { name: 'Yes', value: true },
-        { name: 'No', value: false },
-      ],
-    },
-  ])
-  if (!shouldCopy) {
-    return null
-  }
-  let pluginPath
-  do {
-    const { inputPath } = await inquirer.prompt([
-      {
-        type: 'input',
-        name: 'inputPath',
-        default: `/Users/${username}/Library/Containers/co.noteplan.NotePlan3/Data/Library/Application Support/co.noteplan.NotePlan3/Plugins`,
-        message: `Enter the absolute path to the noteplan Plugins folder below. (Should start with "/" end with "/Plugins" -- No trailing slash and no escapes (backslashes) in the path. On a Mac, it would be something like the suggestion below\n[type path or enter to accept this suggestion.]\n>>`,
-      },
-    ])
-    pluginPath = inputPath
-  } while (!pluginPath.endsWith('/Plugins') || !pluginPath.startsWith('/'))
-
-  const { shouldCreateFile } = await inquirer.prompt([
-    {
-      type: 'list',
-      name: 'shouldCreateFile',
-      message: 'Do you want to save this file for later?',
-      choices: [
-        { name: 'Yes', value: true },
-        { name: 'No', value: false },
-      ],
-    },
-  ])
-  if (shouldCreateFile) {
-    await fs.writeFile(pluginPathFile, pluginPath)
-  }
-  return pluginPath
 }
 
 function getConfig(pluginPath) {

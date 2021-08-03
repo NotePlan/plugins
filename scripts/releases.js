@@ -8,6 +8,7 @@ const {
   runShellCommand,
   getPluginFileContents,
   fileExists,
+  getCopyTargetPath,
 } = require('./shared')
 
 const installInstructions = `
@@ -112,7 +113,7 @@ function getPluginDataField(pluginData, field) {
  * @param {string} pluginFullPath
  * @returns {Promise<{ changelog: string | null, files: Array<string> }>>}
  */
-async function getReleaseFileList(pluginFullPath) {
+async function getReleaseFileList(pluginFullPath, appPluginsPath) {
   const fileList = { changelog: null, files: [] }
   const filesInPluginFolder = await fs.readdir(pluginFullPath, {
     withFileTypes: true,
@@ -142,8 +143,10 @@ async function getReleaseFileList(pluginFullPath) {
       )
     }
   }
-  if ((name = existingFileName('plugin.json'))) {
-    fileList.files.push(fullPath(name))
+  // Grab the minified/cleaned version of the plugin.json file
+  const pluginInAppPluginDirectory = path.join(appPluginsPath, 'plugin.json')
+  if (fileExists(pluginInAppPluginDirectory)) {
+    fileList.files.push(`"${pluginInAppPluginDirectory}"`)
   }
   if ((name = existingFileName('script.js'))) {
     fileList.files.push(fullPath(name))
@@ -253,14 +256,23 @@ async function main() {
   console.log(`----------`)
   await checkForGh()
   const rootFolderPath = path.join(__dirname, '..')
+  const rootFolderDirs = await fs.readdir(rootFolderPath, {
+    withFileTypes: true,
+  })
   const limitToFolders = await getFolderFromCommandLine(rootFolderPath)
   if (limitToFolders.length === 1) {
     const pluginName = limitToFolders[0]
     const pluginFullPath = path.join(rootFolderPath, pluginName)
     const existingRelease = await getExistingRelease(pluginName)
-    const pluginData = await getPluginFileContents(pluginFullPath)
+    const pluginData = await getPluginFileContents(
+      path.join(pluginFullPath, 'plugin.json'),
+    )
     const versionNumber = getPluginDataField(pluginData, 'plugin.version')
-    const fileList = await getReleaseFileList(pluginFullPath)
+    const copyTargetPath = await getCopyTargetPath(rootFolderDirs)
+    const fileList = await getReleaseFileList(
+      pluginFullPath,
+      path.join(copyTargetPath, pluginName),
+    )
     const versionedTagName = getReleaseTagName(pluginName, versionNumber)
     // console.log(`>>Releases: This version/tag will be:\n\t${versionedTagName}`)
     ensureVersionIsNew(existingRelease, versionedTagName)
