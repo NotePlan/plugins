@@ -4,6 +4,9 @@ const fs = require('fs/promises')
 const path = require('path')
 const util = require('util')
 const exec = util.promisify(require('child_process').exec)
+const username = os.userInfo().username
+const os = require('os')
+const inquirer = require('inquirer')
 const JSON5 = require('json5')
 
 const pluginPathFile = path.join(__dirname, '..', '.pluginpath')

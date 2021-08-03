@@ -2,15 +2,11 @@
 
 const fs = require('fs/promises')
 const path = require('path')
-const os = require('os')
-const inquirer = require('inquirer')
-const json5 = require('json5')
 const rollup = require('rollup')
 const commonjs = require('@rollup/plugin-commonjs')
 const { babel } = require('@rollup/plugin-babel')
 const resolve = require('@rollup/plugin-node-resolve').default
 const mkdirp = require('mkdirp')
-const username = os.userInfo().username
 const createPluginListing = require('./createPluginListing')
 const {
   getFolderFromCommandLine,
