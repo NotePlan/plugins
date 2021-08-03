@@ -22,3 +22,10 @@ export function filenameDateString(dateObj: Date): string {
   const { year, month, date } = getYearMonthDate(dateObj)
   return `${year}${month < 10 ? '0' : ''}${month}${date < 10 ? '0' : ''}${date}`
 }
+
+export function removeDateTags(content: string): string {
+  return content
+    .replace(/<\d{4}-\d{2}-\d{2}/g, '')
+    .replace(/>\d{4}-\d{2}-\d{2}/g, '')
+    .trim()
+}

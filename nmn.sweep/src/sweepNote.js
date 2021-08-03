@@ -1,13 +1,18 @@
 // @flow strict
 
-import { hyphenatedDateString } from './dateHelpers'
+import { hyphenatedDateString, removeDateTags } from './dateHelpers'
 import { chooseOption } from './userInput'
 
-export default async function sweepCalendarNote(
+type ReturnStatus = { status: string, msg: string, tasks?: number }
+
+/* eslint-disable no-unused-vars */
+export default async function sweepNote(
   note: TNote,
   withUserConfirm: boolean = true,
   notifyNoChanges: boolean = true,
-): Promise<void> {
+  overdueOnly: boolean = false,
+  isProjectNote: boolean = false,
+): Promise<ReturnStatus> {
   const paragraphs = note.paragraphs
 
   const paragraphsToMove: Array<TParagraph> = []
@@ -21,22 +26,27 @@ export default async function sweepCalendarNote(
   let lastRootItem: ?TParagraph = null
 
   paragraphs.forEach((p) => {
+    // console.log(`type:${p.type} indents:${p.indents} "${p.content}"`)
+    // ['scheduled', 'cancelled', 'done']
     if (nonMovableTypes.includes(p.type)) {
       return
     }
 
     // Remember the last item which is not indented and open, or a bullet
+    // ['open']
     if (mainItemTypes.includes(p.type) && p.indents === 0) {
       lastRootItem = p
     }
 
     // Reset the root item to null if a heading comes in between
+    // ['title', 'empty']
     if (resetTypes.includes(p.type) && p.indents === 0) {
       lastRootItem = null
     }
 
     // Either all movable types, or anything indented, if the parent is indented as well.
     if (
+      // ['open', 'title']
       moveableTypes.includes(p.type) ||
       ((p.indents > 0 || p.type === 'empty') && lastRootItem != null)
     ) {
@@ -55,7 +65,8 @@ export default async function sweepCalendarNote(
   const today = new Date()
   const todayNote = DataStore.calendarNoteByDate(today)
   if (todayNote == null) {
-    return
+    console.log(`Couldn't open Today's Calendar Note`)
+    return { status: 'error', msg: `Couldn't open Today's Calendar Note` }
   }
 
   type RescheduleType = 'move' | 'reschedule' | false
@@ -65,18 +76,19 @@ export default async function sweepCalendarNote(
   ).length
 
   if (numTasksToMove > 0) {
-    let rescheduleTasks: RescheduleType = 'move'
+    console.log(`\t\t${note.filename} has ${numTasksToMove} open tasks`)
+    let rescheduleTasks: RescheduleType = isProjectNote ? 'reschedule' : 'move'
     if (withUserConfirm) {
       Editor.openNoteByFilename(note.filename)
       rescheduleTasks = await chooseOption<RescheduleType>(
-        '🧹 Ready to sweep?',
+        `Move or Copy ${numTasksToMove} open task(s) to TODAY?`,
         [
           {
-            label: `✂️ Move (cut & paste) ${numTasksToMove} task(s) to today`,
+            label: `✂️ Move (cut & paste) task(s) to today's Calendar Note`,
             value: 'move',
           },
           {
-            label: `🗓 Reschedule (copy) ${numTasksToMove} task(s) to today`,
+            label: `🗓 Leave original here and copy/link to Calendar Note`,
             value: 'reschedule',
           },
           {
@@ -92,22 +104,24 @@ export default async function sweepCalendarNote(
       // Add Tasks to Today
       todayNote.paragraphs = [...todayNote.paragraphs, ...paragraphsToMove]
 
-      paragraphsToRemove.forEach((para) => {
-        if (Editor.filename === note.filename) {
-          Editor.removeParagraph(para)
-        } else {
-          note.removeParagraph(para)
-        }
-      })
+      // paragraphsToRemove.forEach((para) => {
+      if (Editor.filename === note.filename) {
+        Editor.removeParagraphs(paragraphsToRemove)
+      } else {
+        note.removeParagraphs(paragraphsToRemove)
+      }
+      // })
     }
     if (rescheduleTasks === 'reschedule') {
       const noteDate = note.date
       const dateTag =
         noteDate != null ? ` <${hyphenatedDateString(noteDate)}` : ''
+      const projNote = note.title ?? ''
+      const link = isProjectNote ? ` <[[${projNote}]]` : dateTag
       const paragraphsWithDateTag = paragraphsToMove.map((para) => {
         const paraClone = para.duplicate()
         if (para.type === 'open') {
-          paraClone.content = removeDateTags(paraClone.content) + dateTag
+          paraClone.content = removeDateTags(paraClone.content) + link
         }
         return paraClone
       })
@@ -126,19 +140,22 @@ export default async function sweepCalendarNote(
         }
       })
     }
+    console.log(
+      `\t\t${String(rescheduleTasks)}-ing  ${
+        paragraphsToMove.length
+      } paragraphs; ${numTasksToMove} tasks`,
+    )
   } else {
     if (notifyNoChanges && withUserConfirm) {
       await CommandBar.showInput(
         'There are no open tasks to move in this note.',
         "OK, I'll open another date.",
       )
+      return {
+        status: 'error',
+        msg: 'There are no open tasks to move in this note.',
+      }
     }
   }
-}
-
-function removeDateTags(content: string): string {
-  return content
-    .replace(/<\d{4}-\d{2}-\d{2}/g, '')
-    .replace(/>\d{4}-\d{2}-\d{2}/g, '')
-    .trim()
+  return { status: 'ok', msg: `Moved ${numTasksToMove}`, tasks: numTasksToMove }
 }
