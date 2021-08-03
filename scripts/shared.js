@@ -104,7 +104,8 @@ async function getCopyTargetPath(dirents) {
   )
   if (hasPluginPathFile) {
     const path = await fs.readFile(pluginPathFile, 'utf8')
-    return path
+    console.log('path:', path)
+    return path.replace(/\r?\n|\r/g, '')
   }
 
   const { shouldCopy } = await inquirer.prompt([
@@ -129,7 +130,7 @@ async function getCopyTargetPath(dirents) {
         type: 'input',
         name: 'inputPath',
         default: `/Users/${username}/Library/Containers/co.noteplan.NotePlan3/Data/Library/Application Support/co.noteplan.NotePlan3/Plugins`,
-        message: `Enter the absolute path to the noteplan Plugins folder below. (Should start with "/" end with "/Plugins" -- No trailing slash and no escapes (backslashes) in the path. On a Mac, it would be something like the suggestion below\n[type path or enter to accept this suggestion.]\n>>`,
+        message: `Enter the absolute path to the noteplan Plugins folder below. (Should start with "/" end with "/Plugins" -- No trailing slash and no escapes (backslashes, e.g. avoid "\\ ") in the path. On a Mac, it would be something like the suggestion below\n[type path or enter to accept this suggestion.]\n>>`,
       },
     ])
     pluginPath = inputPath
