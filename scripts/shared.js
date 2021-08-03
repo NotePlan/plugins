@@ -4,6 +4,7 @@ const fs = require('fs/promises')
 const path = require('path')
 const util = require('util')
 const exec = util.promisify(require('child_process').exec)
+const json5 = require('json5')
 
 /**
  * @returns {boolean} whether file exists
@@ -56,15 +57,14 @@ async function runShellCommand(command) {
 }
 
 async function getPluginFileContents(pluginPath) {
-  const jsonFile = path.join(pluginPath, 'plugin.json')
   let pluginFile, pluginObj
   try {
-    // console.log(`getPluginFileContents: ${jsonFile}`)
-    pluginFile = await fs.readFile(jsonFile, 'utf8')
-    pluginObj = await JSON.parse(pluginFile)
-    // console.log(`Read file ${pluginPath}`)
+    pluginFile = await fs.readFile(pluginPath, 'utf8')
+    pluginObj = await json5.parse(pluginFile)
   } catch (e) {
-    console.log(`getPluginFileContents: Problem reading JSON file: ${jsonFile}`)
+    console.log(
+      `getPluginFileContents: Problem reading JSON file:\n  ${pluginPath}`,
+    )
     console.log(
       `Often this is simply a non-standard trailing comma that the parser doesn't like.`,
     )
@@ -73,9 +73,28 @@ async function getPluginFileContents(pluginPath) {
   return pluginObj || {}
 }
 
+/**
+ * @param {string} pluginPath
+ * @returns {Promise<void>}
+ * @description Copies plugin contents for distribution but minifies/removes comments first
+ */
+async function writeMinifiedPluginFileContents(pathToRead, pathToWrite) {
+  try {
+    const contents = await fs.readFile(pathToRead, 'utf8')
+    const j5 = json5.parse(contents)
+    await fs.writeFile(pathToWrite, json5.stringify(j5))
+  } catch (e) {
+    console.log(
+      `writePluginFileContents: Problem writing JSON file: ${pathToWrite}`,
+    )
+    console.log(e)
+  }
+}
+
 module.exports = {
   fileExists,
   getPluginFileContents,
   runShellCommand,
   getFolderFromCommandLine,
+  writeMinifiedPluginFileContents,
 }

@@ -4,6 +4,7 @@ const fs = require('fs/promises')
 const path = require('path')
 const os = require('os')
 const inquirer = require('inquirer')
+const json5 = require('json5')
 const rollup = require('rollup')
 const commonjs = require('@rollup/plugin-commonjs')
 const { babel } = require('@rollup/plugin-babel')
@@ -11,7 +12,11 @@ const resolve = require('@rollup/plugin-node-resolve').default
 const mkdirp = require('mkdirp')
 const username = os.userInfo().username
 const createPluginListing = require('./createPluginListing')
-const { getFolderFromCommandLine, getPluginFileContents } = require('./shared')
+const {
+  getFolderFromCommandLine,
+  getPluginFileContents,
+  writeMinifiedPluginFileContents,
+} = require('./shared')
 const FOLDERS_TO_IGNORE = [
   'scripts',
   'flow-typed',
@@ -32,7 +37,9 @@ async function checkPluginList(pluginPaths) {
   const pluginCommands = {}
   for (const pluginPath of pluginPaths) {
     // console.log(`About to read ${pluginPath}`)
-    const pluginFile = await getPluginFileContents(pluginPath) // console.log(`*** * READ\n${JSON.stringify(pluginFile)}`)
+    const pluginFile = await getPluginFileContents(
+      path.join(pluginPath, 'plugin.json'),
+    ) // console.log(`*** * READ\n${JSON.stringify(pluginFile)}`)
     if (pluginFile) {
       pluginFile['plugin.commands']?.forEach((command) => {
         if (pluginCommands[command.name]) {
@@ -128,10 +135,12 @@ async function main() {
           path.join(outputFolder, 'script.js'),
           path.join(targetFolder, 'script.js'),
         )
-        await fs.copyFile(
-          path.join(outputFolder, 'plugin.json'),
+        const pluginJson = path.join(outputFolder, 'plugin.json')
+        await writeMinifiedPluginFileContents(
+          pluginJson,
           path.join(targetFolder, 'plugin.json'),
         )
+        // await fs.copyFile(pluginJson, path.join(targetFolder, 'plugin.json')) //the non-minified version
         if (limitToFolders.length === 0) {
           await checkPluginList(bundledPlugins)
         }
