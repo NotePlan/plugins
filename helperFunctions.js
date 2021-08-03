@@ -22,7 +22,12 @@ export async function chooseOption<T, TDefault = T>(
   return options[index]?.value ?? defaultValue
 }
 
-// (from @nmn / nmn.sweep)
+/**
+ * Show a single-button dialog-box like message (modal) using CommandBar
+ * @author @nmn
+ * @param {string} title - main text to appear in the command bar
+ * @param {string} okLabel - the "button" (option) text (default: 'OK')
+ */
 export async function getInput(
   title: string,
   okLabel: string = 'OK',
