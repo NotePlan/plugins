@@ -137,6 +137,7 @@ async function main() {
           path.join(targetFolder, 'script.js'),
         )
         const pluginJson = path.join(outputFolder, 'plugin.json')
+        // FIXME: Wanted to use JSON5 here but it was adding commas that stopped NP from working
         await writeMinifiedPluginFileContents(
           pluginJson,
           path.join(targetFolder, 'plugin.json'),
