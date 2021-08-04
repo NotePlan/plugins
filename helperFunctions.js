@@ -1,5 +1,7 @@
 // @flow
 
+import json5 from 'json5'
+
 //-------------------------------------------------------------------------------
 // Input functions
 
@@ -699,8 +701,10 @@ export function notesInFolderSortedByName(folder: string): Array<TNote> {
 export const defaultFileExt: string =
   DataStore.defaultFileExtension != null ? DataStore.defaultFileExtension : 'md'
 
-export const defaultTodoCharacter: ('*' | '-') =
-  DataStore.preference("defaultTodoCharacter") != null ? DataStore.preference("defaultTodoCharacter") : '*'
+export const defaultTodoCharacter: '*' | '-' =
+  DataStore.preference('defaultTodoCharacter') != null
+    ? DataStore.preference('defaultTodoCharacter')
+    : '*'
 
 // Pretty print range information (@EduardMe)
 export function rangeToString(r: Range): string {
@@ -791,6 +795,29 @@ export function getTagParams(paramString: string, wantedParam: string): string {
 
   const res = paramString.match(`${wantedParam}:"(.*?)"`) ?? []
   return res.length > 0 ? res[1] : ''
+}
+
+// @dwertheimer - trying another way to get the tag params, may eventurally replace the above
+export async function getTagParamsFromString(
+  paramString: string,
+  wantedParam: string,
+  defaultValue: mixed = null,
+): mixed {
+  console.log(`getTagParamsFromString for '${wantedParam}' in '${paramString}'`)
+  if (paramString !== '') {
+    try {
+      //$FlowIgnore
+      const paramObj: {} = await json5.parse(paramString)
+      console.log(`\t--> ${String(JSON.stringify(paramObj[wantedParam]))}`)
+      // eslint-disable-next-line no-prototype-builtins
+      return paramObj.hasOwnProperty(wantedParam)
+        ? paramObj[wantedParam]
+        : defaultValue
+    } catch (e) {
+      console.log(`\tError parsing ${paramString} ${e}`)
+    }
+  }
+  return defaultValue
 }
 
 /**

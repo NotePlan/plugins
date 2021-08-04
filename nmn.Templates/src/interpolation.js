@@ -1,7 +1,11 @@
 // @flow
 
 import { getInput } from '../../nmn.sweep/src/userInput'
-import { listTodaysEvents, listMatchingTodaysEvents } from '../../jgclark.EventHelpers/src/eventsToNotes'
+import {
+  listTodaysEvents,
+  listMatchingTodaysEvents,
+} from '../../jgclark.EventHelpers/src/eventsToNotes'
+import { sweepTemplate } from '../../nmn.sweep/src/sweepAll'
 import { getWeatherSummary } from './weather'
 import { getDailyQuote } from './quote'
 import { parseJSON5 } from './configuration'
@@ -37,31 +41,27 @@ export async function processTags(
   tag: string,
   config: { [string]: ?mixed },
 ): Promise<string> {
-  console.log(`processTag: ${tag}`)
   const res = tag.match(/\((.*)\)/) ?? []
   const enclosedString = res[1] // may be an empty string
+  console.log(`processTag: ${tag} param:${enclosedString}`)
   if (tag.startsWith('date(') && tag.endsWith(')')) {
     return await processDate(enclosedString, config)
-
   } else if (tag.startsWith('weather(') && tag.endsWith(')')) {
     return await getWeatherSummary(enclosedString)
-
   } else if (tag.startsWith('listTodaysEvents(') && tag.endsWith(')')) {
     return await listTodaysEvents(enclosedString)
-
   } else if (tag.startsWith('listMatchingEvents(') && tag.endsWith(')')) {
     return await listMatchingTodaysEvents(enclosedString)
-
   } else if (tag.startsWith('quote(') && tag.endsWith(')')) {
     return await getDailyQuote(enclosedString, config)
-
+  } else if (tag.startsWith('sweepTasks(') && tag.endsWith(')')) {
+    return await sweepTemplate(enclosedString)
   }
 
   // **Add other extension function calls here**
   // Can call functions defined in other plugins, by appropriate use
   // of imports at top of file (e.g. getWeatherSummary)
   // Or declare below (e.g. processDate)
-    
   else {
     // no matching funcs, so now attempt to match defined tag values instead
     return processTagValues(tag, config)
