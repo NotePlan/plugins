@@ -1,5 +1,6 @@
 // @flow strict
 
+import { getTagParams, getTagParamsFromString } from '../../helperFunctions'
 import { default as sweepNote } from './sweepNote'
 import { filenameDateString } from './dateHelpers'
 import { chooseOption, showMessage } from './userInput'
@@ -23,7 +24,40 @@ const OPTIONS = [
 const DEFAULT_OPTION: Option1 = { unit: 'day', num: 0 }
 
 export async function sweep7(): Promise<void> {
-  sweepAll(false, false, { num: 7, unit: 'day' })
+  await sweepAll(false, false, { num: 7, unit: 'day' })
+}
+
+export async function sweepTemplate(paramStr: string): Promise<string> {
+  if (paramStr === '') {
+    return String(await sweepAll(false, true, undefined, true))
+  } else {
+    //$FlowIgnore
+    // const limit: Option1 = JSON.parse(getTagParams(paramStr, 'limit'))
+    // const includeHeadings: boolean = Boolean(
+    //   getTagParams(paramStr, 'includeHeadings'),
+    // )
+    // $FlowIgnore
+    const limit: Option1 = await getTagParamsFromString(paramStr, 'limit', {})
+    // $FlowIgnore
+    const includeHeadings: boolean = await getTagParamsFromString(
+      paramStr,
+      'includeHeadings',
+      false,
+    )
+    console.log(
+      `Running template command sweepAll with params: limit=${JSON.stringify(
+        limit,
+      )} includeHeadings=${String(includeHeadings)}`,
+    )
+    // let paramObj
+    // try {
+    //   paramObj = JSON.parse(paramStr)
+    // } catch (e) {
+    //   console.log(`Error: ${e}`)
+    //   return `Could not parse template parameter: ${paramStr}. Check the documentation. Error: ${e}`
+    // }
+    return String(await sweepAll(false, false, limit, true, includeHeadings))
+  }
 }
 
 /**
@@ -33,18 +67,26 @@ export async function sweep7(): Promise<void> {
  * 2. Add option to reschedule instead of move Calendar notes
  * 3. Add option to change target date from "Today" to something you can choose
  *  */
+/**
+ * returnValue is true if you should retur the value (string) for insertion rather than putting in the note directly
+ */
 export default async function sweepAll(
   overdueOnly: boolean = false,
   requireUserAction: boolean = true,
   periodToCheck: Option1 = DEFAULT_OPTION,
-): Promise<void> {
+  returnValue: boolean = false,
+  includeHeadings: boolean = false,
+): Promise<void | string> {
   let { unit, num } = periodToCheck
+  let foundTasks: Array<TParagraph> = []
   console.log(
     `Starting sweepAll overdueOnly:${String(
       overdueOnly,
     )} requireUserAction:${String(
       requireUserAction,
-    )} periodToCheck:${JSON.stringify(periodToCheck)}`,
+    )} periodToCheck:${JSON.stringify(periodToCheck)} returnValue:${String(
+      returnValue,
+    )}`,
   )
   if (requireUserAction) {
     const setPeriod = await chooseOption<Option1>(
@@ -84,17 +126,24 @@ export default async function sweepAll(
   //   tasks: Array<>,
   //   count: { files: number, tasks: number },
   //   status: 'ok' | 'error',
+  //   msg: string,
+  //   taskArray: Array<TParagraph>,
   // }
-  const processResult = (res) => {
-    console.log(JSON.stringify(res))
+  const processResult = (res, title) => {
     if (res.status === 'ok') {
       if (res.tasks) {
         count.files += 1
         count.tasks += res.tasks
       }
+      foundTasks = [...foundTasks, ...res.taskArray]
     } else {
       console.log(`Error: ${res.msg}`)
     }
+    console.log(
+      `[${String(title)}]: ${JSON.stringify(res)}; total foundTasks is now:${
+        foundTasks.length
+      }`,
+    )
   }
 
   // PROJECT NOTES FIRST
@@ -116,9 +165,17 @@ export default async function sweepAll(
     )
     console.log(`\tProject Notes to search: ${recentProjNotes.length}`)
     for (const note of recentProjNotes) {
-      processResult(
-        await sweepNote(note, withUserConfirm, false, overdueOnly, true),
+      console.log(`About to sweep Project Note: ${note.title || note.filename}`)
+      const result = await sweepNote(
+        note,
+        withUserConfirm,
+        false,
+        overdueOnly,
+        true,
+        returnValue,
+        includeHeadings,
       )
+      processResult(result, note.title)
     }
   }
 
@@ -142,7 +199,16 @@ export default async function sweepAll(
 
     console.log(`\tCalendar Notes to search: ${recentCalNotes.length}`)
     for (const note of recentCalNotes) {
-      processResult(await sweepNote(note, withUserConfirm, false))
+      const result = await sweepNote(
+        note,
+        withUserConfirm,
+        false,
+        overdueOnly,
+        false,
+        returnValue,
+        includeHeadings,
+      )
+      processResult(result, note.title)
     }
   }
 
@@ -150,7 +216,12 @@ export default async function sweepAll(
     count.tasks > 0
       ? `Moved ${count.tasks} tasks from ${count.files} files.`
       : ``
-  await showMessage(`All Done! ${msg}`)
-  await Editor.openNoteByDate(new Date())
+  if (withUserConfirm) await showMessage(`sweepAll: Done! ${msg}`)
   console.log(`Finished sweepAll`)
+  if (foundTasks.length) {
+    return foundTasks.map((t) => t.rawContent).join('\n')
+  } else {
+    await Editor.openNoteByDate(new Date())
+    return ''
+  }
 }

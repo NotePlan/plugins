@@ -1,9 +1,15 @@
 // @flow strict
+// Consolidated files by @dwertheimer
 
 import { hyphenatedDateString, removeDateTags } from './dateHelpers'
 import { chooseOption } from './userInput'
 
-type ReturnStatus = { status: string, msg: string, tasks?: number }
+type ReturnStatus = {
+  status: string,
+  msg: string,
+  tasks?: number,
+  taskArray?: Array<TParagraph>,
+}
 
 /* eslint-disable no-unused-vars */
 export default async function sweepNote(
@@ -12,11 +18,14 @@ export default async function sweepNote(
   notifyNoChanges: boolean = true,
   overdueOnly: boolean = false,
   isProjectNote: boolean = false,
+  returnValue: boolean = false,
+  includeHeadings: boolean = false,
 ): Promise<ReturnStatus> {
   const paragraphs = note.paragraphs
 
   const paragraphsToMove: Array<TParagraph> = []
   const paragraphsToRemove: Array<TParagraph> = []
+  let paragraphsToReturn: Array<TParagraph> = []
 
   const moveableTypes = ['open', 'title']
   const mainItemTypes = ['open']
@@ -25,6 +34,11 @@ export default async function sweepNote(
 
   let lastRootItem: ?TParagraph = null
 
+  // console.log(
+  //   `sweepNote [${note.title || note.filename}] ParagraphCount=${
+  //     paragraphs.length
+  //   }`,
+  // )
   paragraphs.forEach((p) => {
     // console.log(`type:${p.type} indents:${p.indents} "${p.content}"`)
     // ['scheduled', 'cancelled', 'done']
@@ -56,6 +70,17 @@ export default async function sweepNote(
         paragraphsToRemove.push(p)
       }
     }
+
+    if (!includeHeadings && returnValue && p.type === 'open') {
+      paragraphsToReturn.push(p)
+      // console.log(`sweepNote pushed rawContent: ${p.rawContent}`)
+    } else {
+      // console.log(
+      //   `sweepNote ${note.title || note.filename} returning:${returnValue} ${
+      //     p.type
+      //   }:  ${p.rawContent}`,
+      // )
+    }
   })
 
   // TODO: Match existing headings
@@ -77,7 +102,11 @@ export default async function sweepNote(
 
   if (numTasksToMove > 0) {
     console.log(`\t\t${note.filename} has ${numTasksToMove} open tasks`)
-    let rescheduleTasks: RescheduleType = isProjectNote ? 'reschedule' : 'move'
+    let rescheduleTasks: RescheduleType = returnValue
+      ? 'reschedule'
+      : isProjectNote
+      ? 'reschedule'
+      : 'move'
     if (withUserConfirm) {
       Editor.openNoteByFilename(note.filename)
       rescheduleTasks = await chooseOption<RescheduleType>(
@@ -102,8 +131,13 @@ export default async function sweepNote(
 
     if (rescheduleTasks === 'move') {
       // Add Tasks to Today
-      todayNote.paragraphs = [...todayNote.paragraphs, ...paragraphsToMove]
-
+      if (!returnValue) {
+        todayNote.paragraphs = [...todayNote.paragraphs, ...paragraphsToMove]
+      } else {
+        if (includeHeadings) {
+          paragraphsToReturn = [...paragraphsToReturn, ...paragraphsToMove]
+        }
+      }
       // paragraphsToRemove.forEach((para) => {
       if (Editor.filename === note.filename) {
         Editor.removeParagraphs(paragraphsToRemove)
@@ -126,7 +160,16 @@ export default async function sweepNote(
         return paraClone
       })
 
-      todayNote.paragraphs = [...todayNote.paragraphs, ...paragraphsWithDateTag]
+      if (!returnValue) {
+        todayNote.paragraphs = [
+          ...todayNote.paragraphs,
+          ...paragraphsWithDateTag,
+        ]
+      } else {
+        if (includeHeadings) {
+          paragraphsToReturn = [...paragraphsToReturn, ...paragraphsWithDateTag]
+        }
+      }
 
       paragraphsToRemove.forEach((para) => {
         para.type = 'scheduled'
@@ -157,5 +200,11 @@ export default async function sweepNote(
       }
     }
   }
-  return { status: 'ok', msg: `Moved ${numTasksToMove}`, tasks: numTasksToMove }
+  // console.log(`About to return: ${JSON.stringify(paragraphsToReturn)}`) //does not print paragraphs...
+  return {
+    status: 'ok',
+    msg: `Moved ${numTasksToMove}`,
+    tasks: numTasksToMove,
+    taskArray: paragraphsToReturn,
+  }
 }
