@@ -65,9 +65,7 @@ export async function parseFirstCodeblock(
     return {}
   }
   format = FORMAT_MAP[format] ?? format
-  console.log(
-    `\tparseFirstCodeblock: will parse ${contents.length} bytes of ${format}`,
-  )
+  // console.log(`\tparseFirstCodeblock: will parse ${contents.length} bytes of ${format}`)
 
   switch (format) {
     case 'json':
@@ -217,9 +215,8 @@ export async function getOrMakeConfigurationSection(
 
   // We have the configuration, so return it
   if (Object.keys(minimumRequiredConfig) && config[configSectionName]) {
-    // $FlowIgnore
     return validateMinimumConfig(
-      // $FlowIgnore
+      // $FlowIgnore[incompatible-call]
       config[configSectionName],
       minimumRequiredConfig,
     )
@@ -244,31 +241,25 @@ function validateMinimumConfig(
   let failed = false
   if (Object.keys(validations).length) {
     Object.keys(validations).forEach((v) => {
-      //$FlowIgnore
       if (config[v] == null) {
-        console.log(`Config required field: ${v} is missing`)
+        console.log(`    validateMinimumConfig: Config required field: ${v} is missing`)
         failed = true
       }
       if (typeof config[v] !== validations[v]) {
         console.log(
-          `Config required field: ${v} is not of type ${String(
-            validations[v],
-          )}`,
+          `    validateMinimumConfig: Config required field: ${v} is not of type ${String(validations[v])}`,
         )
         failed = true
       }
     })
   }
   if (failed) {
-    console.log(`Config failed minimum validation spec!`)
+    console.log(`    validateMinimumConfig: Config failed minimum validation spec!`)
     return {}
   } else {
     console.log(
-      `Config passed minimum validation spec; config=\n${JSON.stringify(
-        config,
-      )}`,
+      `    validateMinimumConfig: passed minimum validation spec` // ; config=\n${JSON.stringify(config)}`
     )
-    //$FlowIgnore
     return config
   }
 }

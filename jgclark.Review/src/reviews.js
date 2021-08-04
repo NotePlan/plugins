@@ -407,8 +407,6 @@ export async function completeReview(): Promise<?TNote> {
   )
   if (firstReviewedMention != null) {
     // find line in currently open note containing @reviewed() mention
-    const firstMatch = firstReviewedMention
-    // which line is this in?
     for (const para of Editor.paragraphs) {
       if (para.content.match(RE_REVIEW_MENTION)) {
         metadataPara = para
@@ -418,10 +416,10 @@ export async function completeReview(): Promise<?TNote> {
       }
     }
     
-    const metaPara = Editor.note?.paragraphs[metadataLine]
+    const metaPara = Editor.paragraphs[metadataLine]
     // replace with today's date
     const older = metaPara.content
-    const newer = older.replace(firstMatch, reviewedTodayString)
+    const newer = older.replace(firstReviewedMention, reviewedTodayString)
     metaPara.content = newer
     console.log(`\tupdating para to '${newer}'`)
 
@@ -432,7 +430,7 @@ export async function completeReview(): Promise<?TNote> {
     console.log(
       `\tno matching ${reviewMentionString}(date) string found. Will append to line 1`,
     )
-    const metadataPara = Editor.note?.paragraphs[metadataLine]
+    metadataPara = Editor.note?.paragraphs[metadataLine]
     if (metadataPara == null) {
       return null
     }
