@@ -12,10 +12,11 @@
   "plugin.commands": [
     {
       "name": "fp",
+      "alias": ["mp", "file", "move", "paragraph"],
       "description": "file (move) paragraphs to different notes",
       "jsFunction": "fileParas"
     },
-    {
+    { /* TODO: remove me when aliasing comes in */
       "name": "mp",
       "description": "move (file) paragraphs to different notes",
       "jsFunction": "fileParas"

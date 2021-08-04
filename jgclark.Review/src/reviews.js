@@ -103,7 +103,7 @@ export async function projectLists(): Promise<void> {
 
     for (const tag of tags) {
       // Do the main work
-      const noteTitle = `${tag} notes summary`
+      const noteTitle = `${tag} List`
       const note: ?TNote = await returnSummaryNote(noteTitle, pref_folderToStore)
       if (note != null) {
         // Calculate the Summary list(s)
@@ -124,7 +124,7 @@ export async function projectLists(): Promise<void> {
     }
   } else {
     // We will just use all notes with a @review() string, in one go     
-    const noteTitle = `Review notes summary`
+    const noteTitle = `Review List`
     const note: ?TNote = await returnSummaryNote(noteTitle, pref_folderToStore)
     if (note != null) {
       // Calculate the Summary list(s)
