@@ -1,0 +1,11 @@
+See Template Plugin [README](https://github.com/NotePlan/plugins/blob/main/nmn.Templates/README.md) for details
+
+# What's Changed?
+
+### 0.5.0 Readme/Changelog addition
+
+### 0.4.0 Added sweepTasks() functionality (@dwertheimer)
+
+### Previous versions: @jgclark & @nmn
+
+
