@@ -165,7 +165,7 @@ export default async function sweepAll(
     )
     console.log(`\tProject Notes to search: ${recentProjNotes.length}`)
     for (const note of recentProjNotes) {
-      console.log(`About to sweep Project Note: ${note.title || note.filename}`)
+      // console.log(`About to sweep Project Note: ${note.title || note.filename}`)
       const result = await sweepNote(
         note,
         withUserConfirm,
