@@ -1,7 +1,7 @@
 // @flow
 // ------------------------------------------------------------------------------------
 // Command to bring calendar events into notes
-// v0.2.6, 4.8.2021
+// v0.3.0, 4.8.2021
 // @jgclark, with additions by @dwertheimer
 // ------------------------------------------------------------------------------------
 
@@ -22,9 +22,9 @@ const DEFAULT_EVENTS_OPTIONS = `  events: {
     removeTimeBlocksWhenProcessed: true,  // whether to remove time block after making an event from it
     todaysEventsHeading: "### Events today",  // optional heading to put before list of today's events
     addMatchingEvents: {   // match events with string on left, and then the string on the right is the template for how to insert this event (see README for details)
-      "#meeting": "### TITLE (START)",
-      "#webinar": "### TITLE (START)",
-      "#holiday": "TITLE",
+      "#meeting": "### *|TITLE|* (*|START|*)",
+      "#webinar": "### *|TITLE|* (*|START|*)",
+      "#holiday": "*|TITLE|*",
     },
     locale: "en-US",
 	  timeOptions: { hour: '2-digit', minute: '2-digit', hour12: false }
@@ -98,8 +98,8 @@ export async function listTodaysEvents(paramString?: string): Promise<string> {
     paramString != null && paramString !== ''
       ? getTagParams(paramString, 'allday_template')
       : ''
-  template = template === '' ? '- TITLE (START)' : template
-  allday = allday === '' ? '- TITLE' : allday
+  template = template === '' ? '- *|TITLE|* (*|START|*)' : template
+  allday = allday === '' ? '- *|TITLE|*' : allday
 
   console.log(`\toutput template: '${template}' and '${allday}'`)
 
@@ -111,22 +111,22 @@ export async function listTodaysEvents(paramString?: string): Promise<string> {
   for (const e of eA) {
     // console.log(`      for e: ${e.title}: ${JSON.stringify(e)}`)
       const replacements = [
-        { key: 'TITLE', value: e.title },
+        { key: '*|TITLE|*', value: e.title },
         {
-          key: 'START',
+          key: '*|START|*',
           value: !e.isAllDay
             ? toLocaleShortTime(e.date, pref_locale, pref_timeOptions)
             : '',
         },
         {
-          key: 'END',
+          key: '*|END|*',
           value:
             e.endDate != null && !e.isAllDay
               ? toLocaleShortTime(e.endDate, pref_locale, pref_timeOptions)
               : '',
         },
       ]
-    // FIXME: the following will replace any mentions of the keywords in the e.title string itself
+    // NB: the following will replace any mentions of the keywords in the e.title string itself
       const thisEventStr = stringReplace(
         e.isAllDay ? allday : template,
         replacements,
@@ -196,10 +196,10 @@ export async function listMatchingTodaysEvents(
       if (e.title.match(m)) {
         console.log(`\tFound match to event '${e.title}'`)
         const replacements = [
-          { key: 'TITLE', value: e.title },
-          { key: 'START', value: !e.isAllDay ? toLocaleShortTime(e.date) : '' },
+          { key: '*|TITLE|*', value: e.title },
+          { key: '*|START|*', value: !e.isAllDay ? toLocaleShortTime(e.date) : '' },
           {
-            key: 'END',
+            key: '*|END|*',
             value: e.endDate != null ? toLocaleShortTime(e.endDate) : '',
           },
         ]

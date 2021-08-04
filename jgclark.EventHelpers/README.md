@@ -19,9 +19,9 @@ Alternatively, in the `Templates/_configuration` note include the following sett
     removeTimeBlocksWhenProcessed: true,  // whether to remove time block after making an event from it
     todaysEventsHeading: "### Events today",  // optional heading to put before list of today's events
     addMatchingEvents: {   // match events with string on left, and then the string on the right is the template for how to insert this event (see README for details)
-      "#meeting": "### TITLE (START)",
-      "#webinar": "### TITLE (START)",
-      "#holiday": "TITLE",
+      "#meeting": "### *|TITLE|* (*|START|*)",
+      "#webinar": "### *|TITLE|* (*|START|*)",
+      "#holiday": "*|TITLE|*",
     },
 ...
 ```
@@ -42,6 +42,6 @@ If you use Templates, this command can be called when a Template is inserted (in
   {{listTodaysEvents({template:"### START-END: TITLE",allday_template:"### TITLE"})}}
 ```
 
-The TITLE, START and END can be mixed with whatever markdown characters or other text you like, and they will get replaced accordingly for each event found. (Note the difference between the } and ) bracket types, and use of double quotes around the template string. I didn't design all of this!)
+The *|TITLE|*, *|START|* and *|END|* can be mixed with whatever markdown characters or other text you like, and they will get replaced accordingly for each event found. (Note the difference between the } and ) bracket types, and use of double quotes around the template string. I didn't design all of this!)
 
 You can also place  `{{listMatchingEvents()}}` in Templates in a similar way, and similar customisation is possible. However, it is defined in a different way, using the matches and template strings defined in the \_configuration file's `addMatchingEvents` array, as shown above.

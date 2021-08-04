@@ -1,15 +1,16 @@
 # Changelog
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
-### v.0.3.0 8.3.2021 @dwertheimer
+### v.0.3.0, 4.8.2021 @dwertheimer
 - Updated ::toLocaleShortTime() to deal with locales and timeStrings.
 - Updated events config to use:
  `locale: "en-US",
   timeOptions: { hour: '2-digit', minute: '2-digit', hour12: false }`
-- Also added optional template for allday items (so you don't get an errant "-" etc):
-`{{listTodaysEvents({template:"### START-END: TITLE",allday_template:"### TITLE"})}}`
+- Updated: the TITLE, START and END times are now shown in templates as *|TITLE|*, *|START|* and *|END|*, to allow for these words to be used in event titles
+- Also added optional template for all-day events
+`{{listTodaysEvents({template:"### START-END: *|TITLE|*",allday_template:"### *|TITLE|*"})}}`
 
-### v0.2.7 3.8.2021
+### v0.2.7, 3.8.2021
 - adds ability to recognise time blocks of form `at 5-5:30pm` alongside the others
 - adds ability to ignore misleading time-only time blocks in lines containing `@done(YYYY-MM-DD HH:MM)`
 
