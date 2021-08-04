@@ -40,8 +40,9 @@
 | `rpt` | Generate new @repeat() tasks from completed ones | 🔁 @repeat Extensions |
 | `start reviews` | creates/updates a machine-readable list of notes ready for review, and kicks off review of the first project note | 🔬Reviews |
 | `stp` | Show stats of tags and mentions over a time period | 🔢 Note Statistics |
-| `swa` | Reschedule multiple notes interactively to today | 🧹 Task Sweeper |
-| `swt` | Move all open tasks from current note to today | 🧹 Task Sweeper |
+| `sw7` | Find all open tasks for last 7 days & silently move/reschedule to today | 🧹 Task Sweeper |
+| `swa` | Find ALL open tasks & move/reschedule to today | 🧹 Task Sweeper |
+| `swt` | Move/Reschedule all open tasks in current note to TODAY | 🧹 Task Sweeper |
 | `tc` | Shows task counts for the current note | 🔢 Note Statistics |
 | `time` | Insert (human readable) time at cursor | 📅 Date Automations |
 | `time blocks to calendar` | promote time blocks to be full calendar events | 🕓 Event Helpers |
