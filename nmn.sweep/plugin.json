@@ -2,23 +2,23 @@
   "noteplan.minAppVersion": "3.0.23",
   "plugin.id": "nmn.sweep",
   "plugin.name": "🧹 Task Sweeper",
-  "plugin.description": "Move Overdue Tasks to selected date",
+  "plugin.description": "Move Overdue Tasks to selected date. This plugin also adds template functionality to sweep still-open tasks from project notes and previous calendar days into a template file. \n{{sweepTasks({limit:{ unit: day, num: 7 },includeHeadings:false})}}",
   "plugin.icon": "f120",
   "plugin.author": "Naman Goel & Eduard",
   "plugin.repoUrl": "tbd",
-  "plugin.version": "1.0.0",
+  "plugin.version": "1.0.1",
   "plugin.dependencies": [ ],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
   "plugin.commands": [
     {
       "name": "swt",
-      "description": "Move/Reschedule all open tasks in current note to TODAY",
+      "description": "Move/Reschedule all open tasks in current note to today's Calendar Note",
       "jsFunction": "sweepFile"
     },
     {
       "name": "swa",
-      "description": "Find ALL open tasks & move/reschedule to today",
+      "description": "Find ALL open tasks & move/reschedule to today's Calendar Note",
       "jsFunction": "sweepAll"
     },
     {
