@@ -13,7 +13,7 @@ import {
 import {
   // printNote,
   showMessage,
-  unhyphenateDateString,
+  unhyphenateString,
   todaysDateISOString,
   displayTitle,
   chooseFolder,
@@ -180,7 +180,7 @@ export async function appendTaskToDailyNote() {
 // ------------------------------------------------------------------
 // Quickly append text to today's journal
 export async function appendTaskToDailyJournal() {
-  const todaysDateStr = unhyphenateDateString(todaysDateISOString)
+  const todaysDateStr = unhyphenateString(todaysDateISOString)
   // Ask for the text
   const text = await CommandBar.showInput('Type the text', `Add text '%@' to ${todaysDateStr}`)
 
@@ -260,7 +260,7 @@ export async function addTaskToInbox() {
     }
   } else {
     inboxNote = DataStore.calendarNoteByDateString(
-      unhyphenateDateString(todaysDateISOString)
+      unhyphenateString(todaysDateISOString)
     )
   }
 

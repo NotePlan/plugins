@@ -44,6 +44,8 @@ import {
   getInput,
   showMessage,
   todaysDateISOString,
+  unhyphenatedDate,
+  toISOShortDateTimeString,
   monthNameAbbrev,
   withinDateRange,
   dateStringFromCalendarFilename,
@@ -61,8 +63,8 @@ function quarterStartEnd(qtr: number, year: number): [Date, Date] {
   let fromDate: Date = new Date()
   let toDate: Date = new Date()
 
-  // We appear to need to take timezone offset into account in order to avoid landing
-  // up crossing date boundaries.
+  // Because this seems to use ISO dates, we appear to need to take timezone
+  // offset into account in order to avoid landing up crossing date boundaries.
   // I.e. when in BST (=UTC+0100) it's calculating dates which are often 1 too early.
   // Get TZOffset in minutes. If positive then behind UTC; if negative then ahead.
   const TZOffset = new Date().getTimezoneOffset()
@@ -105,7 +107,6 @@ export async function periodStats(): Promise<void> {
     DEFAULT_STATS_OPTIONS,
     // no minimum config required, as all defaults are given below
   )
-  // const statsConfig: any = config?.statistics ?? null
   if (statsConfig == null) {
     console.log("\tCouldn't find 'statistics' settings in _configuration note.")
     return
@@ -114,45 +115,56 @@ export async function periodStats(): Promise<void> {
   console.log("\tFound 'statistics' settings in _configuration note.")
   // now get each setting
   pref_folderToStore =
-    statsConfig.folderToStore != null ? statsConfig.folderToStore : 'Summaries'
+    statsConfig.folderToStore != null
+      // $FlowIgnore[incompatible-type]
+      ? statsConfig.folderToStore
+      : 'Summaries'
   // console.log(pref_folderToStore)
   pref_hashtagCountsHeading =
     statsConfig.hashtagCountsHeading != null
+      // $FlowIgnore[incompatible-type]
       ? statsConfig.hashtagCountsHeading
       : '#hashtag counts'
   // console.log(pref_hashtagCountsHeading)
   pref_mentionCountsHeading =
     statsConfig.mentionCountsHeading != null
+      // $FlowIgnore[incompatible-type]
       ? statsConfig.mentionCountsHeading
       : '@mention counts'
   // console.log(pref_mentionCountsHeading)
   pref_countsHeadingLevel =
     statsConfig.countsHeadingLevel != null
-    ? statsConfig.countsHeadingLevel
-    : 2
+      // $FlowIgnore[incompatible-type]
+      ? statsConfig.countsHeadingLevel
+      : 2
   // console.log(pref_countsHeadingLevel)
   pref_showAsHashtagOrMention =
     statsConfig.showAsHashtagOrMention != null
+      // $FlowIgnore[incompatible-type]
       ? statsConfig.showAsHashtagOrMention
       : true
   // console.log(pref_showAsHashtagOrMention)
   pref_includeHashtags =
     statsConfig.includeHashtags != null
+      // $FlowIgnore[incompatible-type]
       ? statsConfig.includeHashtags
       : [] // this takes precedence over any excludes ...
   // console.log(pref_includeHashtags)
   pref_excludeHashtags =
     statsConfig.excludeHashtags != null
-    ? statsConfig.excludeHashtags
-    : []
+      // $FlowIgnore[incompatible-type]
+      ? statsConfig.excludeHashtags
+      : []
   // console.log(pref_excludeHashtags)
   pref_includeMentions =
     statsConfig.includeMentions != null
+      // $FlowIgnore[incompatible-type]
       ? statsConfig.includeMentions
       : [] // this takes precedence over any excludes ...
   // console.log(pref_includeMentions)
   pref_excludeMentions =
     statsConfig.excludeMentions != null
+      // $FlowIgnore[incompatible-type]
       ? statsConfig.excludeMentions
       : ['@done', '@repeat']
   // console.log(pref_excludeMentions)
@@ -310,11 +322,11 @@ export async function periodStats(): Promise<void> {
   }
 
   console.log(
-    `periodStats: calculating for ${periodString} (${fromDate.toISOString()}-${toDate.toISOString()})`,
+    `periodStats: calculating for ${periodString} (${toISOShortDateTimeString(fromDate)}-${toISOShortDateTimeString(toDate)})`,
   )
 
-  const fromDateStr = fromDate.toISOString().slice(0, 10).replace(/-/g, '')
-  const toDateStr = toDate.toISOString().slice(0, 10).replace(/-/g, '')
+  const fromDateStr = unhyphenatedDate(fromDate) //fromDate.toISOString().slice(0, 10).replace(/-/g, '')
+  const toDateStr = unhyphenatedDate(toDate) // toDate.toISOString().slice(0, 10).replace(/-/g, '')
   console.log(
     `\nperiodStats: calculating for ${periodString} (${fromDateStr}-${toDateStr}):`,
   )
@@ -614,7 +626,7 @@ function removeSection(note: TNote, heading: string): number {
     console.log(`\t   Removed ${removed} paragraphs. ${existingHeadingIndex}`)
 
     // Delete the saved set of paragraphs
-    // TODO: NP API bug should be resolved, so could revert to this instead of above
+    // TODO: when NP API bug is resolved, revert to this instead of above
     // console.log(`About to remove ${psToRemove.length} paragraphs`)
     // note.removeParagraphs(psToRemove)
     // console.log(`Removed ${psToRemove.length} paragraphs`);
@@ -626,7 +638,9 @@ function removeSection(note: TNote, heading: string): number {
 
 //-------------------------------------------------------------------------------
 // Calculate hashtag statistics for daily notes of a given time period
-// Returns
+// @param {string} fromDateStr - YYYYMMDD string of start date
+// @param {string} toDateStr - YYYYMMDD string of start date
+// @return {Map, Map}
 // - Map of { tag, count } for all tags included or not excluded
 // - Map of { tag, total } for the subset of all tags above that finish with a /number
 function calcHashtagStatsPeriod(
@@ -748,7 +762,7 @@ function calcMentionStatsPeriod(
     for (const m of seenMentions) {
       // check this is on inclusion, or not on exclusion list, before adding
       if (
-        mentionsToLookFor.length > 0 && // TODO: does this work for #run and #runav?
+        mentionsToLookFor.length > 0 &&
         mentionsToLookFor.filter((a) => m.startsWith(a)).length === 0
       ) {
         // console.log(`\tIgnoring '${m}' as not on inclusion list`)

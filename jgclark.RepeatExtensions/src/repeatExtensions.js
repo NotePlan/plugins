@@ -5,7 +5,7 @@
 //--------------------------------------------------------------------------------------------------------------------
 
 import {
-  unhyphenateDateString,
+  unhyphenateString,
   RE_DATE, // find dates of form YYYY-MM-DD
   RE_TIME, // find '12:23' with optional '[ ][AM|PM|am|pm]'
   calcOffsetDateStr,
@@ -152,7 +152,7 @@ export async function repeats() {
         } else {
           // ... or in the future daily note (prepend)
           // console.log('    -> ' + outline)
-          const newRepeatDateShorter = unhyphenateDateString(newRepeatDate)
+          const newRepeatDateShorter = unhyphenateString(newRepeatDate)
           const newDailyNote =
             await DataStore.calendarNoteByDateString(newRepeatDateShorter)
           if (newDailyNote.title != null) {

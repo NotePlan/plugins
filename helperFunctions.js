@@ -140,7 +140,7 @@ export function getYearMonthDate(dateObj: Date): $ReadOnly<{
   }
 }
 
-export function unhyphenateDateString(dateString: string): string {
+export function unhyphenateString(dateString: string): string {
   return dateString.replace(/-/g, '')
 }
 
@@ -742,7 +742,9 @@ export function getFolderFromFilename(fullFilename: string): string {
 // console.log(`gFFF('/sixes and sevenses/calm one.md') -> ${getFolderFromFilename('sixes and sevenses/calm one.md')}`)
 
 type Replacement = { key: string, value: string }
+
 /**
+ * Replace all mentions of array key with value in inputString
  * @param {string} inputString
  * @param {array} replacementArray // array of objects with {key: stringToLookFor, value: replacementValue}
  * @returns {string} inputString with all replacements made
@@ -753,6 +755,7 @@ export function stringReplace(
 ): string {
   let outputString = inputString
   replacementArray.forEach((r) => {
+    // TODO: Why is this next function not recognised?
     outputString = outputString.replaceAll(r.key, r.value)
   })
   return outputString
@@ -765,34 +768,11 @@ export function stringReplace(
  * @param {string} paramName - the name of the parameter to get (e.g. 'template')
  * @returns {string} the value of the desired parameter (e.g. 'FOO')
  */
-export function getTagParams(paramString: string, wantedParam: string): string {
+export function getTagParams(
+  paramString: string,
+  wantedParam: string
+): string {
   console.log(`\tgetParams for '${wantedParam}' in '${paramString}'`)
-  // const paramMap = new Map()
-  // const paramItemIterable = paramString.matchAll(/(.*?):"(.*?)"/g)
-  // const paramItemArray = Array.from(paramItemIterable)
-  // for (const p in paramItemArray[0]) {
-  //   console.log(`  ${p[1]} / ${p[2]}`)
-  //   paramMap.set(p[1], p[2])
-  // }
-
-  // Following voodoo copied from @nmn in interpolation.js.
-  // FIXME: get this working
-  // console.log(`\tgetParams ->`)
-  // const paramStringTrimmed = paramString.trim()
-  // // const paramConfig = json5.parse(paramStringTrimmed)
-  // const paramConfig =
-  //   paramStringTrimmed.startsWith('{') && paramStringTrimmed.endsWith('}')
-  //     ? await parseJSON5(paramString)
-  //     : paramStringTrimmed !== ''
-  //       ? await parseJSON5(`{${paramString}}`)
-  //       : {}
-  // console.log(JSON.stringify(paramConfig, null, 2))
-  // const paramMap: { [string]: mixed } = { ... paramConfig } // FIXME: size -> undefined
-  // console.log(paramMap.size)
-  // for (const aa of paramMap) {
-  //   console.log(`${aa}`)
-  // }
-
   const res = paramString.match(`${wantedParam}:"(.*?)"`) ?? []
   return res.length > 0 ? res[1] : ''
 }
@@ -803,7 +783,7 @@ export async function getTagParamsFromString(
   wantedParam: string,
   defaultValue: mixed = null,
 ): mixed {
-  console.log(`getTagParamsFromString for '${wantedParam}' in '${paramString}'`)
+  console.log(`\tgetTagParamsFromString for '${wantedParam}' in '${paramString}'`)
   if (paramString !== '') {
     try {
       //$FlowIgnore
