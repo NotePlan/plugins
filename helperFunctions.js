@@ -22,12 +22,7 @@ export async function chooseOption<T, TDefault = T>(
   return options[index]?.value ?? defaultValue
 }
 
-/**
- * Show a single-button dialog-box like message (modal) using CommandBar
- * @author @nmn
- * @param {string} title - main text to appear in the command bar
- * @param {string} okLabel - the "button" (option) text (default: 'OK')
- */
+// (from @nmn / nmn.sweep)
 export async function getInput(
   title: string,
   okLabel: string = 'OK',
@@ -104,14 +99,11 @@ export async function chooseFolder(msg: string): Promise<string> {
 
 //-------------------------------------------------------------------------------
 // Stats functions
+// @jgclark except where shown
 
-/** 
- * Return string of percentage value
- * @author @eduardme
- * @param {number} value - 
- * @param {number} total - 
- * @returns {string} - return as a ..% string
- */
+// Return string with percentage value appended
+// export function percent(value, total) {
+// @eduardme
 export function percent(value: number, total: number): string {
   return total > 0
     ? `${value.toLocaleString()} (${Math.round((value / total) * 100)}%)`
@@ -166,13 +158,12 @@ export function toISOShortTime(dateObj: Date): string {
   return dateObj.toISOString().slice(11, 16)
 }
 
-export function toLocaleShortTime(dateObj: Date): string {
-  return dateObj
-    .toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-    .slice(0, 5)
+export function toLocaleShortTime(
+  dateObj: Date,
+  locale = [],
+  options = {},
+): string {
+  return dateObj.toLocaleTimeString(locale, options)
 }
 
 export function printDateRange(dr: DateRange) {

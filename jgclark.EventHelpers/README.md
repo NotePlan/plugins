@@ -36,10 +36,10 @@ Alternatively, in the `Templates/_configuration` note include the following sett
 - addMatchingEvents: for `/add matching events` is a set of pairs of strings. The first string is what is matched for in an event's title. If it does match the second string is used as the template for how to insert the event details at the cursor.  This uses the same `TITLE`, `START` and `END` template items below ...
 
 ### Using Event Lists from a Template
-If you use Templates, this command can be called when a Template is inserted (including in the `/day start` command which applies your `Daily Note Template` file). To do this insert `{{listTodaysEvents()}}` wherever you wish it to appear in the Template.  By default it gives a simple markdown list of event title and start time.  To **customise the list display**, you can add a `'template:"..."'` parameter to the `{{listTodaysEvents()}}` template command that sets how to present the list. For example:
+If you use Templates, this command can be called when a Template is inserted (including in the `/day start` command which applies your `Daily Note Template` file). To do this insert `{{listTodaysEvents()}}` wherever you wish it to appear in the Template.  By default it gives a simple markdown list of event title and start time.  To **customise the list display**, you can add a `'template:"..."'` parameter to the `{{listTodaysEvents()}}` template command that sets how to present the list, and a separate template for items with no start/end times (allday_template). For example:
 
 ```
-  {{listTodaysEvents({template:"- TITLE (START-END)"})}}
+  {{listTodaysEvents({template:"### START-END: TITLE",allday_template:"### TITLE"})}}
 ```
 
 The TITLE, START and END can be mixed with whatever markdown characters or other text you like, and they will get replaced accordingly for each event found. (Note the difference between the } and ) bracket types, and use of double quotes around the template string. I didn't design all of this!)

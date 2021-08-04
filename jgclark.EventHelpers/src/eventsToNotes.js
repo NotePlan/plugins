@@ -12,9 +12,7 @@ import {
   getTagParams,
 } from '../../helperFunctions'
 
-import {
-  getOrMakeConfigurationSection,
-} from '../../nmn.Templates/src/configuration'
+import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 
 //------------------------------------------------------------------------------
 // Get settings
@@ -28,11 +26,15 @@ const DEFAULT_EVENTS_OPTIONS = `  events: {
       "#webinar": "### TITLE (START)",
       "#holiday": "TITLE",
     },
+    locale: "en-US",
+	  timeOptions: { hour: '2-digit', minute: '2-digit', hour12: false }
   },
 `
 
 let pref_todaysEventsHeading: string = '### Events today'
 let pref_addMatchingEvents: ?{ [string]: mixed } = null
+let pref_locale = null
+let pref_timeOptions = null
 
 //------------------------------------------------------------------------------
 // Get config settings from Template folder _configuration note
@@ -48,7 +50,11 @@ async function getEventsSettings(): Promise<void> {
     await showMessage(`Couldn't find 'events' settings in _configuration note.`)
     return
   }
-  console.log(`\tFound 'events' settings in _configuration note.`)
+  console.log(
+    `\tFound 'events' settings in _configuration note.\nConfig=\n${JSON.stringify(
+      eventsConfig,
+    )}`,
+  )
 
   // now get settings we need
   if (
@@ -66,22 +72,35 @@ async function getEventsSettings(): Promise<void> {
       `\tError: empty find 'addMatchingEvents' setting in _configuration note.`,
     )
   }
+  if (eventsConfig.locale != null) {
+    pref_locale = eventsConfig.locale
+  }
+  if (eventsConfig.timeOptions != null) {
+    pref_timeOptions = eventsConfig.timeOptions
+  }
   console.log(`\tEnd of getEventsSettings()`)
 }
 
 //------------------------------------------------------------------------------
 // Return MD list of today's events
 export async function listTodaysEvents(paramString?: string): Promise<string> {
-  console.log(`\nlistTodaysEvents:`)
+  console.log(`\nlistTodaysEvents: paramString=${String(paramString)}`)
 
   // Get config settings from Template folder _configuration note
   await getEventsSettings()
   // Work out template for output line (from params, or if blank, a default)
-  const template =
-    (paramString != null && paramString !== '')
+  let template =
+    paramString != null && paramString !== ''
       ? getTagParams(paramString, 'template')
-      : '- TITLE (START)'
-  console.log(`\toutput template: '${template}'`)
+      : ''
+  let allday =
+    paramString != null && paramString !== ''
+      ? getTagParams(paramString, 'allday_template')
+      : ''
+  template = template === '' ? '- TITLE (START)' : template
+  allday = allday === '' ? '- TITLE' : allday
+
+  console.log(`\toutput template: '${template} and ${allday}'`)
 
   const eA: Array<TCalendarItem> = await Calendar.eventsToday()
   console.log(`\tFound ${eA.length} events (including possible dupes)`)
@@ -91,13 +110,29 @@ export async function listTodaysEvents(paramString?: string): Promise<string> {
   for (const e of eA) {
     const replacements = [
       { key: 'TITLE', value: e.title },
-      { key: 'START', value: !e.isAllDay ? toLocaleShortTime(e.date) : '' },
+      {
+        key: 'START',
+        value: !e.isAllDay
+          ? toLocaleShortTime(e.date, pref_locale, pref_timeOptions)
+          : '',
+      },
       {
         key: 'END',
-        value: e.endDate != null ? toLocaleShortTime(e.endDate) : '',
+        value:
+          e.endDate != null && !e.isAllDay
+            ? toLocaleShortTime(e.endDate, pref_locale, pref_timeOptions)
+            : '',
       },
     ]
-    const thisEventStr = stringReplace(template, replacements)
+    const thisEventStr = stringReplace(
+      e.isAllDay ? allday : template,
+      replacements,
+    )
+    console.log(
+      `Event: ${JSON.stringify(e)} * ${
+        e.isAllDay ? allday : template
+      } = ${thisEventStr} } `,
+    )
     if (lastEventStr !== thisEventStr) {
       outputArray.push(thisEventStr)
       lastEventStr = thisEventStr
@@ -121,7 +156,7 @@ export async function insertListTodaysEvents(params: ?string): Promise<void> {
   }
 
   // Get list of events happening today
-  let output: string = await listTodaysEvents(params)
+  let output: string = await listTodaysEvents(params || '')
   output += output.length === 0 ? '\nnone\n' : '\n'
   Editor.insertTextAtCursor(output)
 }
@@ -173,13 +208,13 @@ export async function listMatchingTodaysEvents(
       }
     }
   }
-    //     let outputLine = `${textToPrepend[i]}${e.title}`
-    //     if (!e.isAllDay) {
-    //       outputLine += ` (${toLocaleShortTime(e.date)})`
-    //     }
-    //     outputArray.push(outputLine)
-    //   }
-    // }
+  //     let outputLine = `${textToPrepend[i]}${e.title}`
+  //     if (!e.isAllDay) {
+  //       outputLine += ` (${toLocaleShortTime(e.date)})`
+  //     }
+  //     outputArray.push(outputLine)
+  //   }
+  // }
   const output = outputArray.join('\n')
   console.log(output)
   return output
