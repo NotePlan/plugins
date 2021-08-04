@@ -6,12 +6,12 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 - Updated events config to use:
  `locale: "en-US",
   timeOptions: { hour: '2-digit', minute: '2-digit', hour12: false }`
--Also added template for allday items (so you don't get an errant "-" etc) 
+- Also added optional template for allday items (so you don't get an errant "-" etc):
 `{{listTodaysEvents({template:"### START-END: TITLE",allday_template:"### TITLE"})}}`
 
 ### v0.2.7 3.8.2021
-- adds ability to recognise timeblocks of form `at 5-5:30pm` alongside the others
-- adds ability to ignore potential timeblocks in lines containing `@done(YYYY-MM-DD HH:MM)`
+- adds ability to recognise time blocks of form `at 5-5:30pm` alongside the others
+- adds ability to ignore misleading time-only time blocks in lines containing `@done(YYYY-MM-DD HH:MM)`
 
 ### v0.2.6 1.8.2021
 - adds ability to customise the addMatchingEvents lines with template strings, not just prepended string

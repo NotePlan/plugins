@@ -1,8 +1,8 @@
 // @flow
 // ------------------------------------------------------------------------------------
 // Command to bring calendar events into notes
-// v0.2.6, 1.8.2021
-// @jgclark
+// v0.2.6, 4.8.2021
+// @jgclark, with additions by @dwertheimer
 // ------------------------------------------------------------------------------------
 
 import {
@@ -33,8 +33,8 @@ const DEFAULT_EVENTS_OPTIONS = `  events: {
 
 let pref_todaysEventsHeading: string = '### Events today'
 let pref_addMatchingEvents: ?{ [string]: mixed } = null
-let pref_locale = null
-let pref_timeOptions = null
+let pref_locale: string = 'en-US' // default setting as a backup
+let pref_timeOptions = { hour: '2-digit', minute: '2-digit', hour12: false } // default setting as a backup
 
 //------------------------------------------------------------------------------
 // Get config settings from Template folder _configuration note
@@ -73,6 +73,7 @@ async function getEventsSettings(): Promise<void> {
     )
   }
   if (eventsConfig.locale != null) {
+    // $FlowFixMe
     pref_locale = eventsConfig.locale
   }
   if (eventsConfig.timeOptions != null) {
@@ -100,7 +101,7 @@ export async function listTodaysEvents(paramString?: string): Promise<string> {
   template = template === '' ? '- TITLE (START)' : template
   allday = allday === '' ? '- TITLE' : allday
 
-  console.log(`\toutput template: '${template} and ${allday}'`)
+  console.log(`\toutput template: '${template}' and '${allday}'`)
 
   const eA: Array<TCalendarItem> = await Calendar.eventsToday()
   console.log(`\tFound ${eA.length} events (including possible dupes)`)
@@ -108,35 +109,35 @@ export async function listTodaysEvents(paramString?: string): Promise<string> {
 
   let lastEventStr = '' // keep duplicates from multiple calendars out
   for (const e of eA) {
-    const replacements = [
-      { key: 'TITLE', value: e.title },
-      {
-        key: 'START',
-        value: !e.isAllDay
-          ? toLocaleShortTime(e.date, pref_locale, pref_timeOptions)
-          : '',
-      },
-      {
-        key: 'END',
-        value:
-          e.endDate != null && !e.isAllDay
-            ? toLocaleShortTime(e.endDate, pref_locale, pref_timeOptions)
+    // console.log(`      for e: ${e.title}: ${JSON.stringify(e)}`)
+      const replacements = [
+        { key: 'TITLE', value: e.title },
+        {
+          key: 'START',
+          value: !e.isAllDay
+            ? toLocaleShortTime(e.date, pref_locale, pref_timeOptions)
             : '',
-      },
-    ]
-    const thisEventStr = stringReplace(
-      e.isAllDay ? allday : template,
-      replacements,
-    )
-    console.log(
-      `Event: ${JSON.stringify(e)} * ${
-        e.isAllDay ? allday : template
-      } = ${thisEventStr} } `,
-    )
-    if (lastEventStr !== thisEventStr) {
-      outputArray.push(thisEventStr)
-      lastEventStr = thisEventStr
-    }
+        },
+        {
+          key: 'END',
+          value:
+            e.endDate != null && !e.isAllDay
+              ? toLocaleShortTime(e.endDate, pref_locale, pref_timeOptions)
+              : '',
+        },
+      ]
+    // FIXME: the following will replace any mentions of the keywords in the e.title string itself
+      const thisEventStr = stringReplace(
+        e.isAllDay ? allday : template,
+        replacements,
+      )
+      console.log(
+        `Event: ${e.isAllDay ? allday : template} = ${thisEventStr}`,
+      )
+      if (lastEventStr !== thisEventStr) {
+        outputArray.push(thisEventStr)
+        lastEventStr = thisEventStr
+      }
   }
   if (pref_todaysEventsHeading !== '') {
     outputArray.unshift(pref_todaysEventsHeading)
