@@ -36,45 +36,12 @@ Alternatively, in the `Templates/_configuration` note include the following sett
 - addMatchingEvents: for `/add matching events` is a set of pairs of strings. The first string is what is matched for in an event's title. If it does match the second string is used as the template for how to insert the event details at the cursor.  This uses the same `TITLE`, `START` and `END` template items below ...
 
 ### Using Event Lists from a Template
-If you use Templates, this command can be called when a Template is inserted (including in the `/day start` command which applies your `Daily Note Template` file). To do this insert `{{listTodaysEvents()}}` wherever you wish it to appear in the Template.  By default it gives a simple markdown list of event title and start time.  To **customise the list display**, you can add a `'template:"..."'` parameter to the `{{listTodaysEvents()}}` template command that sets how to present the list. For example:
+If you use Templates, this command can be called when a Template is inserted (including in the `/day start` command which applies your `Daily Note Template` file). To do this insert `{{listTodaysEvents()}}` wherever you wish it to appear in the Template.  By default it gives a simple markdown list of event title and start time.  To **customise the list display**, you can add a `'template:"..."'` parameter to the `{{listTodaysEvents()}}` template command that sets how to present the list, and a separate template for items with no start/end times (`'allday_template:"..."`). For example:
 
-```
-  {{listTodaysEvents({template:"- TITLE (START-END)"})}}
+```javascript
+  {{listTodaysEvents({template:"### START-END: TITLE",allday_template:"### TITLE"})}}
 ```
 
 The TITLE, START and END can be mixed with whatever markdown characters or other text you like, and they will get replaced accordingly for each event found. (Note the difference between the } and ) bracket types, and use of double quotes around the template string. I didn't design all of this!)
 
-You can also place  `{{listMatchingEvents()}}` in Templates in a similar way. However, it has a different sort of customisation. This simply has a prefix string defined in the _configuration file above, _for each different string to match_.
-
-## History
-### v0.2.7 3.8.2021
-- adds ability to recognise timeblocks of form `at 5-5:30pm` alongside the others
-- adds ability to ignore potential timeblocks in lines containing `@done(YYYY-MM-DD HH:MM)`
-
-### v0.2.6 1.8.2021
-- adds ability to customise the addMatchingEvents lines with template strings, not just prepended string
-- fixed issue with running list today's events, due to change in configuration mechanism
-
-### v0.2.4 30.07.2021 @dwertheimer
-- (bump) Minor tweak to use template replacement from helperFunctions.js
-
-### v0.2.3, 28.7.2021
-- adds ability to pass a parameter to the `{{listTodaysEvents()}}` template command to customise how to present the list of today's events. See 'Using Event Lists from a Template' in the README.
-
-### v0.2.2, 13.7.2021
-- add: ability to add `[[event:ID]]` link when creating an event from a time block
-- fix: time block parse error (tip off by @nikolaus)
-
-### v0.2.1, 13.7.2021
-- refactor to allow to be called from Daily Note Template as either:
-  -  `{{listTodaysEvents()}}` or
-  -  `{{listMatchingEvents()}}`
-
-### v0.2.0, 12.7.2021
-- add: `/add matching events`: adds matching events to today's note
-- add: `/insert today's events as list`: insert list of Today's calendar events at cursor
-
-See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
-
-### v0.1.1, 2.7.2021
-- first release, with `/timeblock` command, and configuration system
+You can also place  `{{listMatchingEvents()}}` in Templates in a similar way, and similar customisation is possible. However, it is defined in a different way, using the matches and template strings defined in the \_configuration file's `addMatchingEvents` array, as shown above.

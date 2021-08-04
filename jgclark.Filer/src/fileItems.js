@@ -9,12 +9,20 @@ import {
   allNotesSortedByChanged,
   parasToText,
   calcSmartPrependPoint,
+  // defaultTodoCharacter,
+  todaysDateISOString,
 } from '../../helperFunctions'
 
 // Setting(s)
 const pref_addDateBacklink = true
 
 // -----------------------------------------------------------------------------
+
+// FIXME: If I use /mp to move a Todo from a Daily Notes page to a project note, 
+// all the Todos on the Daily Notes page convert to Bullets(Unordered List) after the 
+// target is moved to the project note.Please advise. [NotePlan 3.0.23(637), macOS 11.4]
+
+// TODO: Add proper configuration for the one setting above
 
 /**
  * identify what we're moving (in priority order):
@@ -28,9 +36,10 @@ export async function fileParas(): Promise<void> {
   const { content, selectedParagraphs, note } = Editor
   if (content == null || selectedParagraphs == null || note == null) {
     // No note open, or no paragraph selection (perhaps empty note), so don't do anything.
-    console.log('fileParse: warning: No note open.')
+    console.log('fileParas: warning: No note open.')
     return
   }
+
   const allParas = Editor.paragraphs
   const selection = Editor.selection
   if (selection == null) {
@@ -38,7 +47,7 @@ export async function fileParas(): Promise<void> {
   }
   const range = Editor.paragraphRangeAtCharacterIndex(selection.start)
   // const firstSelPara = selectedParagraphs[0]; // needed?
-  console.log(`\nfileParse: selection ${JSON.stringify(range)}`)
+  console.log(`\nfileParas: selection ${JSON.stringify(range)}`)
 
   // Work out what paragraph number this selected para is
   let firstSelParaIndex = 0
@@ -101,8 +110,7 @@ export async function fileParas(): Promise<void> {
   // If this is a calendar note we've moving from, and the user wants to
   // create a date backlink, then append backlink to the first para in parasToMove
   if (pref_addDateBacklink && note.type === 'Calendar') {
-    const todaysDate = new Date().toISOString().slice(0, 10)
-    parasToMove[0].content = `${parasToMove[0].content} >${todaysDate}`
+    parasToMove[0].content = `${parasToMove[0].content} >${todaysDateISOString}`
   }
 
   // There's no API function to work on multiple paragraphs,
@@ -122,6 +130,7 @@ export async function fileParas(): Promise<void> {
   console.log(`  Moving to note: ${noteToMoveTo.title ?? 'untitled'}`)
 
   // ask to which heading to add the paras
+  // TODO: update this to use my function: chooseFolder(msg: string): Promise<string>
   let headingStrings = []
   const headingParas = noteToMoveTo.paragraphs.filter((p) => p.type === 'title') // = all headings, not just the top 'title'
   // console.log(headingParas.length);
@@ -151,15 +160,15 @@ export async function fileParas(): Promise<void> {
   // insert a raw text string
   // Add text directly under the heading in the note
   // note.addParagraphBelowHeadingTitle(parasToMove, 'empty', heading.content, false, false);
-  const destParas = noteToMoveTo.paragraphs
+  const destNoteParas = noteToMoveTo.paragraphs
   let insertionIndex = null
   if (headingToFind === '(top of note)') {
     insertionIndex = calcSmartPrependPoint(noteToMoveTo)
   } else if (headingToFind === '(bottom of note)') {
-    insertionIndex = destParas.length + 1
+    insertionIndex = destNoteParas.length + 1
   } else {
-    for (let i = 0; i < destParas.length; i++) {
-      const p = destParas[i]
+    for (let i = 0; i < destNoteParas.length; i++) {
+      const p = destNoteParas[i]
       if (p.content === headingToFind && p.type === 'title') {
         insertionIndex = i + 1
         break
@@ -174,5 +183,5 @@ export async function fileParas(): Promise<void> {
 
   // delete from existing location
   console.log(`  About to remove ${parasToMove.length} paras (parasToMove)`)
-  note.removeParagraphs(parasToMove)
+  note.removeParagraphs(parasToMove) // FIXME: This seems to change * to - in note?
 }

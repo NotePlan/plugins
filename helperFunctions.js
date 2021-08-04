@@ -158,13 +158,12 @@ export function toISOShortTime(dateObj: Date): string {
   return dateObj.toISOString().slice(11, 16)
 }
 
-export function toLocaleShortTime(dateObj: Date): string {
-  return dateObj
-    .toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-    .slice(0, 5)
+export function toLocaleShortTime(
+  dateObj: Date,
+  locale: string | Array<string> = [],
+  options = {}, // should be type Intl.DateTimeFormatOptions but it doesn't recognise it
+): string {
+  return dateObj.toLocaleTimeString(locale, options)
 }
 
 export function printDateRange(dr: DateRange) {
@@ -699,6 +698,9 @@ export function notesInFolderSortedByName(folder: string): Array<TNote> {
 
 export const defaultFileExt: string =
   DataStore.defaultFileExtension != null ? DataStore.defaultFileExtension : 'md'
+
+export const defaultTodoCharacter: ('*' | '-') =
+  DataStore.preference("defaultTodoCharacter") != null ? DataStore.preference("defaultTodoCharacter") : '*'
 
 // Pretty print range information (@EduardMe)
 export function rangeToString(r: Range): string {

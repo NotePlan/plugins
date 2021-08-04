@@ -43,18 +43,21 @@ Aim: Make sure car continues to run well, is legal etc.
 When you have configured the plugin, and added suitable metadata to notes, use some or all of the following commands:
 
 ### `/project lists`
-This creates/updates a human-readable list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete. This is stored in summary note(s) in the 'Summaries' folder (or whatever you set `folderToStore` setting to be).
+This creates/updates a **human-readable** list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete. This is stored in summary note(s) in the 'Summaries' folder (or whatever you set `folderToStore` setting to be).
 You can specify folders to ignore using the `foldersToIgnore` setting.
 
 ### `/start reviews`
-This creates/updates a machine-readable list of notes ready for review, in the `_reviews` note in the folder given by the `folderToStore` setting. It then kicks off the most overdue review by opening that note in the editor. When you have finished the review run one of the next two commands ...
+This creates/updates a **machine-readable** list of notes ready for review, in the `_reviews` note in the folder given by the `folderToStore` setting. It then kicks off the most overdue review by opening that note in the editor. When you have finished the review run one of the next two commands ...
 You can specify folders to ignore using the `foldersToIgnore` setting.
 
-### `/completeProjectReview`
+### `/completeReview`
 This updates the current open project's @reviewed() date.
 
-### `/nextProjectReview`
-This updates this project's @reviewed() date, and jump to next project to review. If there are none left ready for review it will show a congratulations message.
+### `/nextReview`
+This updates this project's @reviewed() date, and jumps to the next project to review. If there are none left ready for review it will show a congratulations message.
+
+### `/completeProject`
+This add @completed(today) date to the open project.
 
 ## Configuration
 These commands require configuration; the first time they're run they should detect they don't have configuration, and offer to write default configuration to the first configuration block of the `Templates/_configuration` note (as used by the Templates system). 
@@ -75,16 +78,5 @@ Alternatively, in the `Templates/_configuration` note, include the following set
 
 ## To do
 - update the `/project lists` output to use a table view, _when then this is available in NotePlan_.
-- add commands to help start and close projects, by automating some writing of the metadata
+- add commands to help start projects, by automating some writing of the metadata
 - if NotePlan adds support  for frontmatter or YAML blocks, update the plugin to take advantage of them
-
-## History
-### v0.2.3, 1.8.2021
-- new: command `/complete project` that adds a `@completed(today)` date,
-
-### v0.2.2, 1.8.2021
-- new: setting `foldersToIgnore` that allows an array of folder names to ignore in the commands
-- fix: contents of sub-folders were being duplicated in the lists
-
-### v0.2.0, 26.7.2021
-- first release.  See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Review), and how to configure.
