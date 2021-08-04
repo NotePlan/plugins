@@ -14,13 +14,3 @@ Template:
 or
 `{{sweepTasks({limit:{ "unit": "day", "num": 7 },includeHeadings:false})}}`  // Sweep open tasks from the 7 days, but include the headings or indents that the task was under in the original note
 
-# History
-## 1.0.0 (@dwertheimer)
-- Combined Calendar and Notes processing into one file for consistency (sweepNote.js)
-- File sweepCalendarNote.js to be removed
-- Edited messaging for clarity for user
-- Added additional messaging for user feedback
-- Added /sw7 command to silently sweep notes from the last 7 days (sweep7() in sweepAll.js)
-- Added comments for understanding the indents logic and console.logging
-- Started fleshing out this README
-- added template tag to insert swept tasks in daily note
