@@ -131,7 +131,7 @@ export async function getWeatherSummary(
       )
       return `Error ${err.message} parsing Weather data lookup. Please check your _configuration note.`
     }
-    console.log(`WeatherData: ${JSON.stringify(allWeatherData)}`)
+    // console.log(`WeatherData: ${JSON.stringify(allWeatherData)}`)
     if (allWeatherData.cod === 401) {
       return `Weather: Invalid configuration settings. ${allWeatherData.message}`
     }
