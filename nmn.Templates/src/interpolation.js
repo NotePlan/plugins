@@ -10,11 +10,71 @@ import { getWeatherSummary } from './weather'
 import { getDailyQuote } from './quote'
 import { parseJSON5 } from './configuration'
 
+/*
+ * Tags are added below in the form:
+ * addTag(tagName, tagFunction, includeConfig)
+ * the second function takes in a parameter string, and an optional configuration object, and returns a string for insertion
+ */
+addTag('date', processDate, true)
+addTag('weather', getWeatherSummary)
+addTag('listTodaysEvents', listTodaysEvents)
+addTag('listMatchingEvents', listMatchingTodaysEvents)
+addTag('quote', getDailyQuote, true)
+addTag('sweepTasks', sweepTemplate)
+// **Add other extension function calls here**
+
+type TagListType = {
+  tagName: string,
+  tagFunction: Function,
+  includeConfig?: boolean,
+}
+const tagList: Array<TagListType> = []
+
+/**
+ * @description - Add a tag and function to call when searching templates
+ * @param {string} tagName - the string name of the tag
+ * @param {Function} tagFunction - the function to call (usually an import above)
+ * @param {boolean} includeConfig - whether to include the config in that function call
+ */
+function addTag(
+  tagName: string,
+  tagFunction: Function,
+  includeConfig?: boolean = false,
+) {
+  tagList.push({ tagName, tagFunction, includeConfig })
+}
+
+async function checkForTags(
+  tagString,
+  enclosedString,
+  config,
+): Promise<string> {
+  let found = false
+  for (const t of tagList) {
+    if (tagString.startsWith(`${t.tagName}(`) && tagString.endsWith(`)`)) {
+      console.log(`** Tag matched "${t.tagName}"`)
+      const params = [enclosedString]
+      if (t.includeConfig) {
+        params.push(config)
+      }
+      found = true
+      const result = await t.tagFunction(...params)
+      console.log(`${t.tagName} RESULT = ${result}`)
+      return result
+    }
+  }
+  if (!found) {
+    // no matching funcs, so now attempt to match defined tag values instead
+    return await processTagValues(tagString, config)
+  }
+  return ''
+}
+
 export async function processTemplate(
   content: string,
   config: { [string]: ?mixed },
 ): Promise<string> {
-  console.log(`processTemplate: ${content}`)
+  console.log(`processTemplate`)
   const tagStart = content.indexOf('{{')
   const tagEnd = content.indexOf('}}')
   const hasTag = tagStart !== -1 && tagEnd !== -1 && tagStart < tagEnd
@@ -36,36 +96,19 @@ export async function processTemplate(
   }
 }
 
+function getEnclosedParameter(tagString: string): string {
+  const res = tagString.match(/\((.*)\)/) ?? []
+  return res[1] // may be an empty string
+}
+
 // Apply any matching tag functions
 export async function processTags(
   tag: string,
   config: { [string]: ?mixed },
 ): Promise<string> {
-  const res = tag.match(/\((.*)\)/) ?? []
-  const enclosedString = res[1] // may be an empty string
+  const enclosedString = getEnclosedParameter(tag)
   console.log(`processTag: ${tag} param:${enclosedString}`)
-  if (tag.startsWith('date(') && tag.endsWith(')')) {
-    return await processDate(enclosedString, config)
-  } else if (tag.startsWith('weather(') && tag.endsWith(')')) {
-    return await getWeatherSummary(enclosedString)
-  } else if (tag.startsWith('listTodaysEvents(') && tag.endsWith(')')) {
-    return await listTodaysEvents(enclosedString)
-  } else if (tag.startsWith('listMatchingEvents(') && tag.endsWith(')')) {
-    return await listMatchingTodaysEvents(enclosedString)
-  } else if (tag.startsWith('quote(') && tag.endsWith(')')) {
-    return await getDailyQuote(enclosedString, config)
-  } else if (tag.startsWith('sweepTasks(') && tag.endsWith(')')) {
-    return await sweepTemplate(enclosedString)
-  }
-
-  // **Add other extension function calls here**
-  // Can call functions defined in other plugins, by appropriate use
-  // of imports at top of file (e.g. getWeatherSummary)
-  // Or declare below (e.g. processDate)
-  else {
-    // no matching funcs, so now attempt to match defined tag values instead
-    return processTagValues(tag, config)
-  }
+  return checkForTags(tag, enclosedString, config)
 }
 
 // Apply any matching tag values, asking user for value if not found in configuration

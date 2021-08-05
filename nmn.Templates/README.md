@@ -40,6 +40,9 @@ If you use Templates, this command can be called when a Template is inserted (in
 ```javascript
   {{listTodaysEvents({template:"### *|START|*-*|END|*: *|TITLE|*",allday_template:"### *|TITLE|*"})}}
 ```
+Now uses date/time mentions which follow your chosen locale settings -- which can now be set specifically in _configuration in the `events` section:
+   locale: "en-US",
+    timeOptions: { hour: '2-digit', minute: '2-digit', hour12: false }
 
 The *|TITLE|*, *|START|* and *|END|* can be mixed with whatever markdown characters or other text you like, and they will get replaced accordingly for each event found. (Note the difference between the } and ) bracket types, and use of double quotes around the template string. I didn't design all of this!)
 
