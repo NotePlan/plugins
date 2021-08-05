@@ -139,11 +139,11 @@ export default async function sweepAll(
     } else {
       console.log(`Error: ${res.msg}`)
     }
-    console.log(
-      `[${String(title)}]: ${JSON.stringify(res)}; total foundTasks is now:${
-        foundTasks.length
-      }`,
-    )
+    // console.log(
+    //   `[${String(title)}]: ${JSON.stringify(res)}; total foundTasks is now:${
+    //     foundTasks.length
+    //   }`,
+    // )
   }
 
   // PROJECT NOTES FIRST
