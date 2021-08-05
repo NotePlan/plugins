@@ -59,7 +59,7 @@ async function checkForTags(
       }
       found = true
       const result = await t.tagFunction(...params)
-      console.log(`${t.tagName} RESULT = ${result}`)
+      // console.log(`${t.tagName} RESULT = ${result}`)
       return result
     }
   }
