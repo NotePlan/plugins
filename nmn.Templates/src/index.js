@@ -9,7 +9,7 @@ import {
 } from '../../nmn.sweep/src/userInput'
 
 import { getStructuredConfiguration } from './configuration'
-import { processTemplate } from './interpolation'
+import { processTemplate } from './templateController'
 import { getOrMakeTemplateFolder } from './template-folder'
 
 //------------------------------------------------------------------------------
