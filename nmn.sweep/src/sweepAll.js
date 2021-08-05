@@ -1,6 +1,6 @@
 // @flow strict
 
-import { getTagParams, getTagParamsFromString } from '../../helperFunctions'
+import { getTagParamsFromString } from '../../helperFunctions'
 import { default as sweepNote } from './sweepNote'
 import { filenameDateString } from './dateHelpers'
 import { chooseOption, showMessage } from './userInput'
