@@ -161,7 +161,7 @@ async function main() {
     } else if (event.code === 'BUNDLE_END') {
       console.log('no copyTargetPath', copyTargetPath)
     } else if (event.code === 'ERROR') {
-      console.log(`!!!!!!!!!!!!!!!\nRollup {event.error}\n!!!!!!!!!!!!!!!\n`)
+      console.log(`!!!!!!!!!!!!!!!\nRollup ${event.error}\n!!!!!!!!!!!!!!!\n`)
     }
   })
 
