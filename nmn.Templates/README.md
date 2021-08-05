@@ -1,11 +1,22 @@
 # Templates
 
 ## About Templates
-The Templates plugin allows you to create templates for note formats you use frequently (like a meeting note or a daily note). The base capability is essentially a copy/paste of a template file into a new note
+The Templates plugin allows you to create templates for note formats you use frequently (like a meeting note or a daily note). The base capability is essentially a copy/paste of a template file into a new note. So if you just want to have a basic form to fill in when you need it, you can run:
+- `/nn` command to create a new note from a template of your choice/making
+- `/it` pastes the template to the note you are already in (inserts the template text at the bottom)
 
 Templates gets more interesting when you include tags in your template which get filled in when the template is **first loaded** (keep this in mind...the template tags don't update after the first load).
 
+Any {{tag}} that is unknown by the system will be a prompt for user input
+
+## Template:
+![Template](https://user-images.githubusercontent.com/3582514/120062159-8dc0c880-c015-11eb-842e-80473dc663f0.png)
+## Result:
+![Result](https://user-images.githubusercontent.com/3582514/120062165-90bbb900-c015-11eb-8e5c-2912ff33dc87.png)
+
 Some examples (more detail below):
+- {{meetingName}} -- a tag unknown by the system, so the user will be prompted to enter a meeting name
+- {{date({locale: 'sv-SE', dateStyle: 'short'})}} -- Date borrowing the Swedish "Locale" yields ISO-8601 date like `2021-06-21`
 - {{weather()}} -- Pulls and insert the current weather into your note (requires configuration)
 - {{quote()}} -- Pulls and insert a random quote into your note (requires configuration)
 - {{sweepTasks()}} -- Pulls open tasks from previous Project Notes and calendar notes and inserts them in the place of the tag
