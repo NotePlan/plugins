@@ -10,6 +10,8 @@ import { getWeatherSummary } from './weather'
 import { getDailyQuote } from './quote'
 import { parseJSON5 } from './configuration'
 
+const tagList: Array<TagListType> = []
+
 /*
  * Tags are added below in the form:
  * addTag(tagName, tagFunction, includeConfig)
@@ -28,7 +30,6 @@ type TagListType = {
   tagFunction: Function,
   includeConfig?: boolean,
 }
-const tagList: Array<TagListType> = []
 
 /**
  * @description - Add a tag and function to call when searching templates
