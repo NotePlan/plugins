@@ -94,9 +94,14 @@ async function getEventsForDay(dateStr: string): Promise<Array<TCalendarItem>> {
 //------------------------------------------------------------------------------
 // Return MD list of today's events
 export async function listDaysEvents(
-  dateStr: string,
   paramString?: string
 ): Promise<string> {
+  if (Editor.note == null || Editor.type !== 'Calendar') {
+    await showMessage('Please run again with a calendar note open.')
+    return ''
+  }
+  // $FlowIgnore[incompatible-call]
+  const dateStr = dateStringFromCalendarFilename(Editor.filename)
   console.log(`\nlistDaysEvents for ${dateStr} with paramString=${String(paramString)}`)
 
   // Get config settings from Template folder _configuration note
@@ -156,13 +161,13 @@ export async function listDaysEvents(
   if (pref_eventsHeading !== '') {
     outputArray.unshift(pref_eventsHeading)
   }
-  const output = outputArray.join('\n')
+  const output = outputArray.join('\n') // If this the array is empty -> empty string
   console.log(output)
   return output
 }
 
 //------------------------------------------------------------------------------
-// Insert list of today's events at cursor positions
+// Insert list of today's events at cursor position
 // This is called by UI.
 export async function insertDaysEvents(
   paramString: ?string
@@ -171,24 +176,24 @@ export async function insertDaysEvents(
     await showMessage('Please run again with a calendar note open.')
     return
   }
+  console.log(`\ninsertDaysEvents:`)
 
   // Get list of events happening on the day of the open note
-  // $FlowIgnore[incompatible-call]
-  const dateStr = dateStringFromCalendarFilename(Editor.filename)
-  let output: string = await listDaysEvents(dateStr, paramString || '')
+  let output: string = await listDaysEvents(paramString || '')
   output += (output.length === 0) ? '\nnone\n' : '\n'
-  Editor.insertTextAtCursor(`::${output}::`)
+  Editor.insertTextAtCursor(output)
 }
 
 //------------------------------------------------------------------------------
 // Return string list of matching events in the current day's note, from list 
 // in keys of pref_addMatchingEvents. Apply template before returning.
 export async function listMatchingDaysEvents(
-  dateStr: string,
   /*eslint-disable */
   paramString: ?string, // NB: the parameter isn't currently used, but is provided for future expansion.
   /*eslint-enable */
 ): Promise<string> {
+  // $FlowIgnore[incompatible-call]
+  const dateStr = dateStringFromCalendarFilename(Editor.filename)
   console.log(`\nlistMatchingDaysEvents for date ${dateStr}:`)
   // Get config settings from Template folder _configuration note
   await getEventsSettings()
@@ -229,7 +234,7 @@ export async function listMatchingDaysEvents(
       }
     }
   }
-  const output = outputArray.join('\n')
+  const output = outputArray.join('\n') // If this the array is empty -> empty string
   console.log(output)
   return output
 }
@@ -244,11 +249,9 @@ export async function insertMatchingDaysEvents(
     await showMessage('Please run again with a calendar note open.')
     return
   }
-  // $FlowIgnore
-  const dateStr = dateStringFromCalendarFilename(Editor.filename)
-  console.log(`\ninsertMatchingDaysEvents for date ${dateStr}:`)
+  console.log(`\ninsertMatchingDaysEvents:`)
 
   // Get config settings from Template folder _configuration note
-  const output = await listMatchingDaysEvents(dateStr, paramString || '')
-  Editor.insertTextAtCursor(`::${output}::`)
+  const output = await listMatchingDaysEvents(paramString || '')
+  Editor.insertTextAtCursor(output)
 }

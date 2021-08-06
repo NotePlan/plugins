@@ -2,8 +2,8 @@
 
 import { getInput } from '../../nmn.sweep/src/userInput'
 import {
-  insertDaysEvents,
-  insertMatchingDaysEvents,
+  listDaysEvents,
+  listMatchingDaysEvents,
 } from '../../jgclark.EventHelpers/src/eventsToNotes'
 import { sweepTemplate } from '../../nmn.sweep/src/sweepAll'
 import { getWeatherSummary } from './weather'
@@ -20,10 +20,10 @@ const tagList: Array<TagListType> = []
  */
 addTag('date', processDate, true)
 addTag('weather', getWeatherSummary)
-addTag('events', insertDaysEvents)
-addTag('listTodaysEvents', insertDaysEvents)
-addTag('matchingEvents', insertMatchingDaysEvents)
-addTag('listMatchingEvents', insertMatchingDaysEvents)
+addTag('events', listDaysEvents)
+addTag('listTodaysEvents', listDaysEvents)
+addTag('matchingEvents', listMatchingDaysEvents)
+addTag('listMatchingEvents', listMatchingDaysEvents)
 addTag('quote', getDailyQuote, true)
 addTag('sweepTasks', sweepTemplate)
 // **Add other extension function calls here**
