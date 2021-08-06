@@ -109,6 +109,9 @@ function getPluginDataField(pluginData, field) {
   return data
 }
 
+// $FlowFix - tried to use this type below, but flow doesn't like it
+// type FileList = { changelog: string | null, files: Array<string> }
+
 /**
  * @param {string} pluginFullPath
  * @returns {Promise<{ changelog: string | null, files: Array<string> }>>}
@@ -128,8 +131,7 @@ async function getReleaseFileList(pluginFullPath, appPluginsPath) {
       return null
     }
   }
-  const fullPath = (name) =>
-    name ? `"${path.join(pluginFullPath, name)}"` : null
+  const fullPath = (name) => `"${path.join(pluginFullPath, name)}"`
 
   let name
   if ((name = existingFileName('changelog.md'))) {
@@ -284,7 +286,9 @@ async function main() {
         `>>Releases: SUCCESS - Release & Clean ran successfully. "${versionedTagName}" is now live.`,
       )
     } else {
-      console.log(`>>Releases: Something went wrong. Pls check logs.`)
+      console.log(
+        `>>Releases: ERROR: Something went wrong. Pls check log ^^^^^`,
+      )
     }
   } else {
     wrongArgsMessage()
