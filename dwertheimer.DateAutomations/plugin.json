@@ -1,12 +1,11 @@
   {
-    "noteplan.minAppVersion": "3.0.23", 
-  "macOS.minVersion": "10.15.7",
+  "noteplan.minAppVersion": "3.0.23", 
   "plugin.id": "dwertheimer.DateAutomations", 
   "plugin.name": "📅 Date Automations", 
   "plugin.description": "Helping you move faster with dates", 
   "plugin.author": "David Wertheimer, with help from code by @nmn", 
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.DateAutomations/README.md", 
-  "plugin.version": "1.0.0", 
+  "plugin.version": "1.0.1", 
   "plugin.dependencies": [ ], 
   "plugin.script": "script.js",
   "plugin.commands": [ 

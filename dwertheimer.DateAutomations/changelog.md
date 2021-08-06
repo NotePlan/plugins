@@ -2,6 +2,8 @@ See Template Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwert
 
 # What's Changed?
 
+## 1.0.1    Removing "macOS.minVersion" - no longer necessary with transpiling
+
 ## 1.0.0    Adding /now - ISO 8601 standard
             Fix bug in /time
 
