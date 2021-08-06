@@ -5,13 +5,13 @@
 | `complete project` | add @completed(today) date to the open project | 🔬Reviews |
 | `date` | Insert date (without time) at cursor | 📅 Date Automations |
 | `dayReview` | Ask journal questions for an end-of-day review (requires configuring) | ☀️ Daily Journal |
-| `dayStart` | Start today's daily note with a template (requires configuring) | ☀️ Daily Journal |
+| `dayStart` | Apply Daily Note Template (requires configuring) | ☀️ Daily Journal |
 | `dp` | (Date Picker) Choose format and insert date/time time at cursor | 📅 Date Automations |
 | `finish project review` | updates the current open project's @reviewed() date | 🔬Reviews |
 | `fp` | file (move) paragraphs to different notes | 🗃 Filer |
 | `index` | Make/Update note link Indexes for one or more folders | 📙 Note Helpers |
-| `insert matching events` | inserts today's calendar events matching certain patterns at cursor | 🕓 Event Helpers |
-| `insert today's events as list` | insert list of today's calendar events at cursor | 🕓 Event Helpers |
+| `insert day's events as list` | insert list of this day's calendar events at cursor | 🕓 Event Helpers |
+| `insert matching events` | inserts this day's calendar events matching certain patterns at cursor | 🕓 Event Helpers |
 | `int` | Quickly add a task to your '📥 Inbox' note | ⚡️ Quick Capture |
 | `iso` | Insert date+time (in ISO format) at cursor | 📅 Date Automations |
 | `it` | Choose a Template to apply to an existing Note | 🔩 Templates |
@@ -19,7 +19,7 @@
 | `jh` | Jumps to the heading that the user selects. (Currently only works in main window) | 📙 Note Helpers |
 | `jn` | Jump to a different note, and then selected heading. (Currently only works in main window) | 📙 Note Helpers |
 | `ldn` | Create link to today's Calendar Note at cursor | 📅 Date Automations |
-| `list today's events to log` | list Today's calendar events to the log | 🕓 Event Helpers |
+| `list day's events to log` | list this day's calendar events to the log | 🕓 Event Helpers |
 | `mat` | Mark All Tasks (choose open or complete) | ✅ Task Automations |
 | `mn` | Moves the currently opened (non-calendar) note to a folder you select | 📙 Note Helpers |
 | `mp` | move (file) paragraphs to different notes | 🗃 Filer |

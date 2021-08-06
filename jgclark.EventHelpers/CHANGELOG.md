@@ -1,12 +1,16 @@
 # Changelog
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
+### v.0.3.1, 6.8.2021
+- adds ability to list events for whichever daily calendar page is open, not just Today
+- adds shorter `{{events()}}` tag option as an alias of `{{listTodaysEvents()}}` and `{{matchingEvents()}}` as an alias of `{{listMatchingEvents()}}`
+
 ### v.0.3.0, 4.8.2021 @dwertheimer
 - Updated ::toLocaleShortTime() to deal with locales and timeStrings.
 - Updated events config to use:
  `locale: "en-US",
   timeOptions: { hour: '2-digit', minute: '2-digit', hour12: false }`
-- Updated: the TITLE, START and END times are now shown in templates as *|TITLE|*, *|START|* and *|END|*, to allow for these words to be used in event titles
+- Updated: the TITLE, START and END times are now shown in templates as `*|TITLE|*`, `*|START|*` and `*|END|*`, to allow for these words to be used in event titles
 - Also added optional template for all-day events
 `{{listTodaysEvents({template:"### START-END: *|TITLE|*",allday_template:"### *|TITLE|*"})}}`
 

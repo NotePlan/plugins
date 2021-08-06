@@ -6,19 +6,21 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/README.md",
-  "plugin.version": "0.6.9",
+  "plugin.version": "0.7.0",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
   "plugin.commands": [
     {
       "name": "dayStart",
-      "description": "Start today's daily note with a template (requires configuring)",
+      "alias": ["daily", "template"],
+      "description": "Apply Daily Note Template (requires configuring)",
       "jsFunction": "dayStart",
       "requested_interval": "24h"
     },
     {
       "name": "dayReview",
+      "alias": ["daily", "journal", "review"],
       "description": "Ask journal questions for an end-of-day review (requires configuring)",
       "jsFunction": "dayReview",
       "requested_interval": "8h"

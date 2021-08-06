@@ -1,23 +1,30 @@
 //--------------------------------------------------------------------------------------------------------------------
 // Daily Journal plugin for NotePlan
 // Jonathan Clark
-// v0.6.7, 8.7.2021
+// v0.7.0, 6.8.2021
 //--------------------------------------------------------------------------------------------------------------------
 
 import {
   showMessage,
-  todaysDateISOString,
-  unhyphenateDateString,
 } from '../../helperFunctions'
 import {
   getOrMakeConfigurationSection,
 } from '../../nmn.Templates/src/configuration'
 import { applyNamedTemplateTitle } from '../../nmn.Templates/src/index'
 
+
+//--------------------------------------------------------------------------------------------------------------------
+// Settings
+const DEFAULT_JOURNAL_OPTIONS = `
+  dailyJournal: {
+    reviewSectionHeading: "Journal",
+    moods: "🤩 Great,🙂 Good,😇 Blessed,🥱 Tired,😫 Stressed,😤 Frustrated,😔 Low,🥵 Sick,Other",
+    reviewQuestions: "@sleep(<number>)\\n@work(<number>)\\n@fruitveg(<int>)\\nMood:: <mood>\\nExercise:: <string>\\nGratitude:: <string>\\nGod was:: <string>\\nAlive:: <string>\\nNot Great:: <string>\\nWife:: <string>\\nRemember:: <string>"
+  },
+
+`
 // Title of template note to use as Daily template
 const pref_templateTitle = 'Daily Note Template'
-
-const todaysDateString = unhyphenateDateString(todaysDateISOString)
 
 //------------------------------------------------------------------
 // Helper functions
@@ -32,10 +39,14 @@ function isInt(value) {
 //------------------------------------------------------------------
 // Start today's daily note with a template, including local weather lookup if configured
 export async function dayStart() {
-  console.log(`\ndayStart for ${todaysDateString}`)
+  if (Editor.note == null || Editor.type !== 'Calendar') {
+    await showMessage('Please run again with a calendar note open.')
+    return
+  }
+  console.log(`\ndayStart:`)
 
   // open today's date in the main window, and read content
-  await Editor.openNoteByDate(new Date(), false)
+  // await Editor.openNoteByDate(new Date(), false)
   // apply daily template, using Template system
   await applyNamedTemplateTitle(pref_templateTitle)
 }
@@ -43,14 +54,18 @@ export async function dayStart() {
 //------------------------------------------------------------------
 // Gather answers to set questions, and append to the daily note
 export async function dayReview() {
-  console.log(`\ndailyReview for ${todaysDateString}`)
+  if (Editor.note == null || Editor.type !== 'Calendar') {
+    await showMessage('Please run again with a calendar note open.')
+    return
+  }
+  console.log(`\ndailyReview:`)
 
   // Get config settings from Template folder _configuration note
   const journalConfig = (await getOrMakeConfigurationSection(
     'dailyJournal',
     DEFAULT_JOURNAL_OPTIONS,
+    // TODO: minimum config?
   ))
-  // const journalConfig = config.dailyJournal ?? null
   if (journalConfig == null) {
     // Almost certainly because we've just written default settings to _configuration.
     // If so, we should just stop, as that will need checking.
@@ -85,7 +100,7 @@ export async function dayReview() {
   ].join(',')
   const pref_moodArray = pref_moods.split(',') // with a proper config system, this won't be needed
 
-  Editor.openNoteByDate(new Date()) // open today's date in main window
+  // Editor.openNoteByDate(new Date()) // open today's date in main window
 
   const question = []
   const questionType = []
@@ -198,12 +213,3 @@ export async function dayReview() {
     true,
   )
 }
-
-const DEFAULT_JOURNAL_OPTIONS = `
-  dailyJournal: {
-    reviewSectionHeading: "Journal",
-    moods: "🤩 Great,🙂 Good,😇 Blessed,🥱 Tired,😫 Stressed,😤 Frustrated,😔 Low,🥵 Sick,Other",
-    reviewQuestions: "@sleep(<number>)\\n@work(<number>)\\n@fruitveg(<int>)\\nMood:: <mood>\\nExercise:: <string>\\nGratitude:: <string>\\nGod was:: <string>\\nAlive:: <string>\\nNot Great:: <string>\\nWife:: <string>\\nRemember:: <string>"
-  },
-
-`

@@ -6,7 +6,7 @@
   "plugin.icon": "",
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers",
-  "plugin.version": "0.3.0",
+  "plugin.version": "0.3.1",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -17,19 +17,19 @@
       "jsFunction": "timeBlocksToCalendar"
     },
     {
-      "name": "insert today's events as list",
-      "description": "insert list of today's calendar events at cursor",
-      "jsFunction": "insertListTodaysEvents"
+      "name": "insert day's events as list",
+      "description": "insert list of this day's calendar events at cursor",
+      "jsFunction": "insertDaysEvents"
     },
     {
-      "name": "list today's events to log",
-      "description": "list Today's calendar events to the log",
-      "jsFunction": "listTodaysEvents"
+      "name": "list day's events to log",
+      "description": "list this day's calendar events to the log",
+      "jsFunction": "listDaysEvents"
     },
     {
       "name": "insert matching events",
-      "description": "inserts today's calendar events matching certain patterns at cursor",
-      "jsFunction": "insertMatchingTodaysEvents"
+      "description": "inserts this day's calendar events matching certain patterns at cursor",
+      "jsFunction": "insertMatchingDaysEvents"
     }
   ],
   "plugin.preferences": [

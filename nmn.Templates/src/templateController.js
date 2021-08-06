@@ -2,8 +2,8 @@
 
 import { getInput } from '../../nmn.sweep/src/userInput'
 import {
-  listTodaysEvents,
-  listMatchingTodaysEvents,
+  insertDaysEvents,
+  insertMatchingDaysEvents,
 } from '../../jgclark.EventHelpers/src/eventsToNotes'
 import { sweepTemplate } from '../../nmn.sweep/src/sweepAll'
 import { getWeatherSummary } from './weather'
@@ -15,12 +15,15 @@ const tagList: Array<TagListType> = []
 /*
  * Tags are added below in the form:
  * addTag(tagName, tagFunction, includeConfig)
- * the second function takes in a parameter string, and an optional configuration object, and returns a string for insertion
+ * the second function takes in a parameter string, and an optional configuration object,
+ * and returns a string for insertion
  */
 addTag('date', processDate, true)
 addTag('weather', getWeatherSummary)
-addTag('listTodaysEvents', listTodaysEvents)
-addTag('listMatchingEvents', listMatchingTodaysEvents)
+addTag('events', insertDaysEvents)
+addTag('listTodaysEvents', insertDaysEvents)
+addTag('matchingEvents', insertMatchingDaysEvents)
+addTag('listMatchingEvents', insertMatchingDaysEvents)
 addTag('quote', getDailyQuote, true)
 addTag('sweepTasks', sweepTemplate)
 // **Add other extension function calls here**
@@ -32,7 +35,7 @@ type TagListType = {
 }
 
 /**
- * @description - Add a tag and function to call when searching templates
+ * @description - Add a tag and function to call from templates
  * @param {string} tagName - the string name of the tag
  * @param {Function} tagFunction - the function to call (usually an import above)
  * @param {boolean} includeConfig - whether to include the config in that function call
@@ -88,7 +91,7 @@ export async function processTemplate(
   const tag = content.slice(tagStart + 2, tagEnd)
 
   try {
-    const tagProcessed = await processTags(tag, config)
+    const tagProcessed = await processTag(tag, config)
     const restProcessed = await processTemplate(afterTag, config)
     return beforeTag + tagProcessed + restProcessed
   } catch (e) {
@@ -102,8 +105,8 @@ function getEnclosedParameter(tagString: string): string {
   return res[1] // may be an empty string
 }
 
-// Apply any matching tag functions
-export async function processTags(
+// Apply any matching functions for this tag
+export async function processTag(
   tag: string,
   config: { [string]: ?mixed },
 ): Promise<string> {
