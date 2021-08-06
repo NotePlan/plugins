@@ -79,7 +79,7 @@ async function getExistingRelease(pluginName) {
         const name = parts[0]
         const tag = parts[2]
         // console.log(`>>Releases: found on github release name: ${name}`)
-        console.log(`>>Releases: found on github release tagged: ${tag}`)
+        console.log(`>>Releases: Found on github release tagged: ${tag}`)
         return { name, tag }
       } else {
         console.log(
@@ -281,7 +281,7 @@ async function main() {
     const newReleaseList = await getExistingRelease(pluginName)
     if (newReleaseList && newReleaseList.tag === versionedTagName) {
       console.log(
-        `>>Releases: Release & Clean ran successfully. "${versionedTagName}" is now live.`,
+        `>>Releases: SUCCESS - Release & Clean ran successfully. "${versionedTagName}" is now live.`,
       )
     } else {
       console.log(`>>Releases: Something went wrong. Pls check logs.`)
