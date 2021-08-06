@@ -2,8 +2,8 @@
 
 import { getInput } from '../../nmn.sweep/src/userInput'
 import {
-  insertDaysEvents,
-  insertMatchingDaysEvents,
+  listDaysEvents,
+  listMatchingDaysEvents,
 } from '../../jgclark.EventHelpers/src/eventsToNotes'
 import { sweepTemplate } from '../../nmn.sweep/src/sweepAll'
 import { getWeatherSummary } from './weather'
@@ -20,10 +20,10 @@ const tagList: Array<TagListType> = []
  */
 addTag('date', processDate, true)
 addTag('weather', getWeatherSummary)
-addTag('events', insertDaysEvents)
-addTag('listTodaysEvents', insertDaysEvents)
-addTag('matchingEvents', insertMatchingDaysEvents)
-addTag('listMatchingEvents', insertMatchingDaysEvents)
+addTag('events', listDaysEvents)
+addTag('listTodaysEvents', listDaysEvents)
+addTag('matchingEvents', listMatchingDaysEvents)
+addTag('listMatchingEvents', listMatchingDaysEvents)
 addTag('quote', getDailyQuote, true)
 addTag('sweepTasks', sweepTemplate)
 // **Add other extension function calls here**
@@ -48,7 +48,7 @@ function addTag(
   tagList.push({ tagName, tagFunction, includeConfig })
 }
 
-async function checkForTags(
+async function checkForTagFuncsOrValues(
   tagString,
   enclosedString,
   config,
@@ -56,14 +56,14 @@ async function checkForTags(
   let found = false
   for (const t of tagList) {
     if (tagString.startsWith(`${t.tagName}(`) && tagString.endsWith(`)`)) {
-      console.log(`** Tag matched "${t.tagName}"`)
+      // console.log(`** Tag matched "${t.tagName}"`)
       const params = [enclosedString]
       if (t.includeConfig) {
         params.push(config)
       }
       found = true
       const result = await t.tagFunction(...params)
-      // console.log(`${t.tagName} RESULT = ${result}`)
+      console.log(`** Tag ${t.tagName} -> RESULT = ${result}`)
       return result
     }
   }
@@ -112,7 +112,7 @@ export async function processTag(
 ): Promise<string> {
   const enclosedString = getEnclosedParameter(tag)
   console.log(`processTag: ${tag} param:${enclosedString}`)
-  return checkForTags(tag, enclosedString, config)
+  return checkForTagFuncsOrValues(tag, enclosedString, config)
 }
 
 // Apply any matching tag values, asking user for value if not found in configuration
