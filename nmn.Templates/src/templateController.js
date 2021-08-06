@@ -88,7 +88,7 @@ export async function processTemplate(
 
   const beforeTag = content.slice(0, tagStart)
   const afterTag = content.slice(tagEnd + 2)
-  const tag = content.slice(tagStart + 2, tagEnd)
+  const tag = content.slice(tagStart + 2, tagEnd).trim()
 
   try {
     const tagProcessed = await processTag(tag, config)
