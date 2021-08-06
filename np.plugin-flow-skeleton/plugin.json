@@ -4,7 +4,7 @@
   "plugin.name": "Main Heading/Title for your plugin collection (e.g. Note Helpers)", 
   "plugin.description": "More descriptive subtitle for your collection of commands.", 
   "plugin.author": "Your Name",
-  "plugin.version": "0.0.2", 
+  "plugin.version": "0.1.0", 
   "plugin.dependencies": [ ], 
   "plugin.script": "script.js",
   "plugin.url": "Put a link to a web page or your github readme file here, and it will be displayed as the 'website' in the plugin preference pane to give users more info on the plugin before/after install, e.g.  https://github.com/dwertheimer/Noteplan-plugins/blob/main/np.plugin-flow-skeleton/readme.md",
@@ -12,7 +12,8 @@
     {
       "name": "shortPluginCommandHere", 
       "description": "description goes here. displays in plugins install panel", 
-      "jsFunction": "insertPluginFunctionNameHere"
+      "jsFunction": "insertPluginFunctionNameHere",
+      "alias": ["other names you want your plugin","to be found when a user searches"]
     }
   ]
 }
