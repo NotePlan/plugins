@@ -48,7 +48,7 @@ function addTag(
   tagList.push({ tagName, tagFunction, includeConfig })
 }
 
-async function checkForTags(
+async function execTagListFunctionForTag(
   tagString,
   enclosedString,
   config,
@@ -56,20 +56,25 @@ async function checkForTags(
   let found = false
   for (const t of tagList) {
     if (tagString.startsWith(`${t.tagName}(`) && tagString.endsWith(`)`)) {
-      console.log(`** Tag matched "${t.tagName}"`)
+      console.log(`execTagListFunctionForTag() Tag matched "${t.tagName}"`)
       const params = [enclosedString]
       if (t.includeConfig) {
         params.push(config)
       }
       found = true
       const result = await t.tagFunction(...params)
-      // console.log(`${t.tagName} RESULT = ${result}`)
-      return result
+      console.log(
+        `---- execTagListFunctionForTag(${t.tagName}) RESULT="${result}"\n`,
+      )
+      return result || ''
     }
   }
   if (!found) {
     // no matching funcs, so now attempt to match defined tag values instead
-    return await processTagValues(tagString, config)
+    return (
+      (await processTagValues(tagString, config)) ||
+      `[no text entered for ${tagString}]`
+    )
   }
   return ''
 }
@@ -78,7 +83,6 @@ export async function processTemplate(
   content: string,
   config: { [string]: ?mixed },
 ): Promise<string> {
-  console.log(`processTemplate`)
   const tagStart = content.indexOf('{{')
   const tagEnd = content.indexOf('}}')
   const hasTag = tagStart !== -1 && tagEnd !== -1 && tagStart < tagEnd
@@ -89,6 +93,7 @@ export async function processTemplate(
   const beforeTag = content.slice(0, tagStart)
   const afterTag = content.slice(tagEnd + 2)
   const tag = content.slice(tagStart + 2, tagEnd).trim()
+  console.log(`processTemplate() found tag ${tag}`)
 
   try {
     const tagProcessed = await processTag(tag, config)
@@ -106,13 +111,14 @@ function getEnclosedParameter(tagString: string): string {
 }
 
 // Apply any matching functions for this tag
+// Or get user input if not found
 export async function processTag(
   tag: string,
   config: { [string]: ?mixed },
 ): Promise<string> {
   const enclosedString = getEnclosedParameter(tag)
-  console.log(`processTag: ${tag} param:${enclosedString}`)
-  return checkForTags(tag, enclosedString, config)
+  console.log(`processTag(${tag}) param:${enclosedString}`)
+  return execTagListFunctionForTag(tag, enclosedString, config)
 }
 
 // Apply any matching tag values, asking user for value if not found in configuration
