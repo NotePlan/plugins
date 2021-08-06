@@ -1,11 +1,10 @@
 {
   "noteplan.minAppVersion": "3.0.23", 
-  "macOS.minVersion": "10.15.7",
   "plugin.id": "dwertheimer.TaskAutomations", 
   "plugin.name": "✅ Task Automations", 
   "plugin.description": "Functions for handling Tasks", 
   "plugin.author": "@dwertheimer",
-  "plugin.version": "0.0.6", 
+  "plugin.version": "1.0.0", 
   "plugin.dependencies": [ ], 
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/dwertheimer/Noteplan-plugins/blob/main/dwertheimer.TaskAutomations/readme.md",
