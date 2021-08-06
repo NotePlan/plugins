@@ -104,7 +104,7 @@ async function getCopyTargetPath(dirents) {
   )
   if (hasPluginPathFile) {
     const path = await fs.readFile(pluginPathFile, 'utf8')
-    console.log('path:', path)
+    // Cleanup any newlines from the path value
     return path.replace(/\r?\n|\r/g, '')
   }
 
