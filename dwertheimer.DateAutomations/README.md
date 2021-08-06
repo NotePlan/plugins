@@ -7,6 +7,8 @@ Create a link to the daily Calendar Note and insert it at the cursor
 ## /now - Insert date and time at cursor
 e.g. `6/19/2021 06:55:22` (date/time should be your local time -- see note below)
 
+## //now - ISO-8601 standard -- Insert ISO-8601 date+time at cursor 
+e.g. `2021-08-06 17:20:11`
 ## /date - Insert Date at cursor
 e.g. `6/19/2021` (date/time should be your local time -- see note below)
 
@@ -23,8 +25,3 @@ If you install this plugin and run /dp, you will get some ideas for dateStyle an
 
 ...or see [Date Time Formats](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat/DateTimeFormat) for more choices/details
 
-## History
-
-0.0.2   Adding 	"macOS.minVersion": "10.15.7"
-
-0.0.1   Initial version

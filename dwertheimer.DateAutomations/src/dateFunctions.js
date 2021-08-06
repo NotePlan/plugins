@@ -74,9 +74,16 @@ async function getFormattedDateTime() {
   // Get user default locale
   const locales = []
   locales.push((dateConfig && dateConfig.locale) || 'en-US')
-  if (dateConfig.locale !== 'sv-SE') locales.push('sv-SE')
-
-  const options = []
+  // if (dateConfig.locale !== 'sv-SE') locales.push('sv-SE')
+  const str8601 = get8601String()
+  const options = [
+    {
+      dateStyle: 'sv-SE',
+      timeStyle: 'medium',
+      label: `${str8601} (sv-SE,short,medium,[not set])`,
+      text: `${str8601}`,
+    },
+  ]
   locales.forEach((loc) => {
     dateStyles.forEach((ds) =>
       timeStyles.forEach((ts) => {
@@ -147,12 +154,27 @@ export async function insertDateTime() {
   Editor.insertTextAtCursor(`${dateText}`)
 }
 
+function get8601String() {
+  return new Intl.DateTimeFormat('sv-SE', {
+    dateStyle: 'short',
+    timeStyle: 'medium',
+    hour12: false,
+  }).format()
+}
+// /now
+export async function insertDateTime8601() {
+  Editor.insertTextAtCursor(`${get8601String()}`)
+}
+
 // /time
 export async function insertTime() {
   const { dateStyle: _, ...dateConfig } = await getDateConfig()
+  const editableConfig = { ...dateConfig }
+  if (!editableConfig.timeStyle) editableConfig.timeStyle = 'medium'
+  console.log(`insertTime:${JSON.stringify(editableConfig)}`)
   const timeText = new Intl.DateTimeFormat(
     dateConfig.locale,
-    dateConfig,
+    editableConfig,
   ).format()
   Editor.insertTextAtCursor(timeText)
 }
