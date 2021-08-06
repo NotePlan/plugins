@@ -10,10 +10,7 @@ If you are a user and have plugin ideas, [submit them here](https://feedback.not
 
 If you are a developer and want to contribute and build your plugins, see the [plugin writing documentation](https://help.noteplan.co/article/67-create-command-bar-plugins) and discuss this with other developers on [Discord](https://discord.gg/D4268MT) `#plugin-dev` channel.  Your might want to consult this [good modern JavaScript tutorial](https://javascript.info/).
 
-# Contributing
-
-## Development Guide
-
+More instructions below:
 ### Set Up
 
 1. Clone this repository
@@ -47,6 +44,7 @@ You may find these commands useful too:
 
 ## Editor Setup
 
+Use the setup guide for your preferred editor (we prefer Visual Studio Code), and then read the section on Working with Multiple Files
 ### Visual Studio Code (recommended)
 
 1. Install extensions for the following tools:
@@ -82,12 +80,14 @@ You may find these commands useful too:
 Noteplan plugins need to be packaged as a single Javascript file, but that's not always a nice way to work.
 So we use tools to package up multiple files into one.
 
-After making any changes, you can simply run `npm run build`.
-
-Even better, you can run `npm run watch` and it will automatically watch the source files for changes and continuously
-compile the final plugin file.
+Open up a terminal, and run:
+   `npm run autowatch`
+...which will keep watching for JS file changes and will package up the plugin and copy it to your app Plugins directory
 
 If you don't have an editor set up to lint on the fly for you, run `npm run test` and it will give a list of problems
 to fix.
+## Read the basic of how to use Flow type checking in the [Flow Guide](https://github.com/NotePlan/plugins/blob/main/Flow_Guide.md)
 
-## Read the basic of how to use Flow typing in `Flow_Guide.md`
+# Contributing
+
+The easiest way to contribute is to make addtions/changes using Gitub and issue a Pull Request on the Noteplan github.
