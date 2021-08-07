@@ -11,40 +11,50 @@ If you are a user and have plugin ideas, [submit them here](https://feedback.not
 If you are a developer and want to contribute and build your plugins, see the [plugin writing documentation](https://help.noteplan.co/article/67-create-command-bar-plugins) and discuss this with other developers on [Discord](https://discord.gg/D4268MT) `#plugin-dev` channel.  Your might want to consult this [good modern JavaScript tutorial](https://javascript.info/).
 
 More instructions below:
-### Set Up
+### Set up Repo and Tools
 
 1. Clone this repository
 2.  Make sure you have a recent version of `node` and `npm` installed. `brew install node` should do the trick.
 3.  Run `npm install` from the root of your local GitHub repository for `noteplan/plugins`. This will install all the dependencies.
 3. Copy the `np.plugin-flow-skeleton` folder and rename it per the instructions in the readme (here's where you'll create your plugin)
-4.  Run `npm run autowatch` from a terminal the root folder. The first time you run the script it will ask you for the full path to you Plugins folder and if you provide it, it will automatically copy the final js file and the plugin.json file in there automatically.
+4.  Run `npm run autowatch` from a terminal in the GitHub root folder. The first time you run the script it will ask you for the full path to your live Plugins folder, and if you provide it, it will automatically copy the final js file and the plugin.json file in there automatically.<br />
+   This includes setting up [eslint](https://eslint.org/) (for checking code conventions), [flow](https://flow.org/) (for type checking), [babel](https://babeljs.io/) (a JS compiler), and [rollup](https://rollupjs.org/guide/en/) (for bundling multiple source files into a single release).  Each have their own configuration files in the root; they can be overridden if needed by placing a more specific config file in the respective plugin's folders.
 
-This includes setting up [eslint](https://eslint.org/) (for checking code conventions), [flow](https://flow.org/) (for type checking), [babel](https://babeljs.io/) (a JS compiler), and [rollup](https://rollupjs.org/guide/en/) (for bundling multiple source files into a single release).  Each have their own configuration files in the root; they can be overridden if needed by placing a more specific config file in the respective plugin's folders.
+5. Install GitHub command line tools `gh` and authorise it for future use:
+   ```
+   > brew install gh
+   > gh auth login
+   Github.com > HTTPS > Yes Credentials > Login with web browser
+   Enter (copy OTP code from command line)
+   [Paste OTP code in browser window]
+   ```
 
-### Commands
+### Developer Automation Commands
 
-These are the most common commands you will use while developing:
+These are the two most common commands you will use while developing:
 
-- **`npm run autowatch` and your multi-file JS plugins will be compiled for you, and optionally be copied to your running NotePlan instance for testing**.  In most cases you shouldn't then need to run the following individual commands, but they're listed for completeness. Note, by default, this command will rebuild all plugins just in case shared files affect another plugin. If you want to focus autowatch on one or N plugins, you can pass the plugin folder name to autowatch like so:
+1. **`npm run autowatch` from the root of your local GitHub `NotePlan/plugins` repo and your multi-file JS plugins will be compiled for you, and optionally be copied to your running NotePlan instance for testing**.  Not only that but it will then continue to _watch_ the folder and re-compile every time you save changes to a code file. NB: by default, this command will rebuild _all_ plugins just in case shared files affect another plugin. If you want to focus autowatch on a subset of plugins, you can pass the plugin folder name to autowatch like so:
 
 - `npm run autowatch jgclark.DailyJournal dwertheimer.TaskAutomations`
 
-Note: The previous command is typically the only one you will use. These others are rarely used, especially if you use an IDE (e.g. VSCode) that does typechecking:
+2. **`gh release create <plugin folder name>`** (e.g. `gh release create jgclark.DailyJournal`) which will do all the work necessary to create/update a release in GitHub for the plugin. This will then automatically be available to all NotePlan users from the Plugins preference pane.
+
+Note: The `autowatch` command is typically the only one you will need to use, especially if you use an IDE (e.g. VSCode) that does typechecking.
+
+However, the following ones may be needed at times:
 - `npm run build`: Will build all the plugins into single files (where needed)
 - `npm run watch`: Will watch *all* files for changes and automatically compile them into single javascript files (where needed)
 - `npm run typecheck`: Will typecheck all the javascript files with `Flow`. Only files with a `// @flow` comment are checked.
 - `npm run fix`: Will lint and autoformat
 - `npm run test`: Will lint and typecheck all Javascript files and report, but not fix anything
-
-You may find these commands useful too:
-
 - `npm run lint`: Will run ESlint on the entire repo
 - `npm run lint-fix`: Will run ESlint on the entire repo and fix whatever it can automatically fix
 - `npm run format`: Will autoformat all Javascript files.
-
+- `gh release delete <release name>`: Will delete the release from the repository, so making it unavailable in NotePlan as well. (Though it won't remove it from anyone who has already downloaded it.)
 ## Editor Setup
 
-Use the setup guide for your preferred editor (we prefer Visual Studio Code), and then read the section on Working with Multiple Files
+Use the setup guide for your preferred editor (we prefer Visual Studio Code), and then read the section on Working with Multiple Files.
+
 ### Visual Studio Code (recommended)
 
 1. Install extensions for the following tools:
@@ -80,12 +90,10 @@ Use the setup guide for your preferred editor (we prefer Visual Studio Code), an
 Noteplan plugins need to be packaged as a single Javascript file, but that's not always a nice way to work.
 So we use tools to package up multiple files into one.
 
-Open up a terminal, and run:
-   `npm run autowatch`
-...which will keep watching for JS file changes and will package up the plugin and copy it to your app Plugins directory
+Open up a terminal, and run `npm run autowatch` which will keep watching for JS file changes and will package up the plugin and copy it to your app Plugins directory.
 
-If you don't have an editor set up to lint on the fly for you, run `npm run test` and it will give a list of problems
-to fix.
+If you don't have an editor set up to lint on the fly for you, run `npm run test` and it will give a list of problems to fix.
+
 ## Read the basic of how to use Flow type checking in the [Flow Guide](https://github.com/NotePlan/plugins/blob/main/Flow_Guide.md)
 
 # Contributing
