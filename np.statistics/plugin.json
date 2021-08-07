@@ -1,5 +1,6 @@
 {
 	"noteplan.minAppVersion": "3.0.23",
+  "macOS.minVersion": "10.13.0",
 	"plugin.id": "np.statistics",
 	"plugin.name": "🔢 Note Statistics",
 	"plugin.description": "Show statistics for notes, tasks, words, and hashtags and mentions over periods of time. See website for more details, including how to tailor some of the stats.",
