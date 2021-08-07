@@ -10,6 +10,7 @@ import {
   toLocaleShortTime,
   stringReplace,
   getTagParams,
+  getTagParamsFromString,
   dateStringFromCalendarFilename,
 } from '../../helperFunctions'
 
@@ -80,29 +81,32 @@ async function getEventsSettings(): Promise<void> {
 }
 
 async function getEventsForDay(dateStr: string): Promise<Array<TCalendarItem>> {
-  const y = parseInt(dateStr.slice(0,4))
-  const m = parseInt(dateStr.slice(4,6))
-  const d = parseInt(dateStr.slice(6,8))
+  const y = parseInt(dateStr.slice(0, 4))
+  const m = parseInt(dateStr.slice(4, 6))
+  const d = parseInt(dateStr.slice(6, 8))
   const startOfDay = Calendar.dateFrom(y, m, d, 0, 0, 0)
   const endOfDay = Calendar.dateFrom(y, m, d, 23, 59, 59)
   console.log(`  ${startOfDay.toString()} - ${endOfDay.toString()}`)
-  const eA: Array<TCalendarItem> = await Calendar.eventsBetween(startOfDay, endOfDay)
+  const eA: Array<TCalendarItem> = await Calendar.eventsBetween(
+    startOfDay,
+    endOfDay,
+  )
   console.log(`\tFound ${eA.length} events`)
   return eA
 }
 
 //------------------------------------------------------------------------------
 // Return MD list of today's events
-export async function listDaysEvents(
-  paramString?: string
-): Promise<string> {
+export async function listDaysEvents(paramString?: string): Promise<string> {
   if (Editor.note == null || Editor.type !== 'Calendar') {
     await showMessage('Please run again with a calendar note open.')
     return ''
   }
   // $FlowIgnore[incompatible-call]
   const dateStr = dateStringFromCalendarFilename(Editor.filename)
-  console.log(`\nlistDaysEvents for ${dateStr} with paramString=${String(paramString)}`)
+  console.log(
+    `\nlistDaysEvents for ${dateStr} with paramString=${String(paramString)}`,
+  )
 
   // Get config settings from Template folder _configuration note
   await getEventsSettings()
@@ -115,6 +119,11 @@ export async function listDaysEvents(
     paramString != null && paramString !== ''
       ? getTagParams(paramString, 'allday_template')
       : ''
+  const includeHeadings: boolean = await getTagParamsFromString(
+    paramString,
+    'includeHeadings',
+    true,
+  )
   template = template === '' ? '- *|TITLE|* (*|START|*)' : template
   allday = allday === '' ? '- *|TITLE|*' : allday
 
@@ -129,36 +138,34 @@ export async function listDaysEvents(
   let lastEventStr = '' // keep duplicates from multiple calendars out
   for (const e of eA) {
     // console.log(`      for e: ${e.title}: ${JSON.stringify(e)}`)
-      const replacements = [
-        { key: '*|TITLE|*', value: e.title },
-        {
-          key: '*|START|*',
-          value: !e.isAllDay
-            ? toLocaleShortTime(e.date, pref_locale, pref_timeOptions)
+    const replacements = [
+      { key: '*|TITLE|*', value: e.title },
+      {
+        key: '*|START|*',
+        value: !e.isAllDay
+          ? toLocaleShortTime(e.date, pref_locale, pref_timeOptions)
+          : '',
+      },
+      {
+        key: '*|END|*',
+        value:
+          e.endDate != null && !e.isAllDay
+            ? toLocaleShortTime(e.endDate, pref_locale, pref_timeOptions)
             : '',
-        },
-        {
-          key: '*|END|*',
-          value:
-            e.endDate != null && !e.isAllDay
-              ? toLocaleShortTime(e.endDate, pref_locale, pref_timeOptions)
-              : '',
-        },
-      ]
+      },
+    ]
     // NB: the following will replace any mentions of the keywords in the e.title string itself
-      const thisEventStr = stringReplace(
-        e.isAllDay ? allday : template,
-        replacements,
-      )
-      console.log(
-        `Event: ${e.isAllDay ? allday : template} = ${thisEventStr}`,
-      )
-      if (lastEventStr !== thisEventStr) {
-        outputArray.push(thisEventStr)
-        lastEventStr = thisEventStr
-      }
+    const thisEventStr = stringReplace(
+      e.isAllDay ? allday : template,
+      replacements,
+    )
+    console.log(`Event: ${e.isAllDay ? allday : template} = ${thisEventStr}`)
+    if (lastEventStr !== thisEventStr) {
+      outputArray.push(thisEventStr)
+      lastEventStr = thisEventStr
+    }
   }
-  if (pref_eventsHeading !== '') {
+  if (pref_eventsHeading !== '' && includeHeadings !== false) {
     outputArray.unshift(pref_eventsHeading)
   }
   const output = outputArray.join('\n') // If this the array is empty -> empty string
@@ -169,9 +176,7 @@ export async function listDaysEvents(
 //------------------------------------------------------------------------------
 // Insert list of today's events at cursor position
 // This is called by UI.
-export async function insertDaysEvents(
-  paramString: ?string
-): Promise<void> {
+export async function insertDaysEvents(paramString: ?string): Promise<void> {
   if (Editor.note == null || Editor.type !== 'Calendar') {
     await showMessage('Please run again with a calendar note open.')
     return
@@ -180,12 +185,12 @@ export async function insertDaysEvents(
 
   // Get list of events happening on the day of the open note
   let output: string = await listDaysEvents(paramString || '')
-  output += (output.length === 0) ? '\nnone\n' : '\n'
+  output += output.length === 0 ? '\nnone\n' : '\n'
   Editor.insertTextAtCursor(output)
 }
 
 //------------------------------------------------------------------------------
-// Return string list of matching events in the current day's note, from list 
+// Return string list of matching events in the current day's note, from list
 // in keys of pref_addMatchingEvents. Apply template before returning.
 export async function listMatchingDaysEvents(
   /*eslint-disable */
@@ -222,7 +227,10 @@ export async function listMatchingDaysEvents(
         console.log(`\tFound match to event '${e.title}'`)
         const replacements = [
           { key: '*|TITLE|*', value: e.title },
-          { key: '*|START|*', value: !e.isAllDay ? toLocaleShortTime(e.date) : '' },
+          {
+            key: '*|START|*',
+            value: !e.isAllDay ? toLocaleShortTime(e.date) : '',
+          },
           {
             key: '*|END|*',
             value: e.endDate != null ? toLocaleShortTime(e.endDate) : '',
@@ -240,7 +248,7 @@ export async function listMatchingDaysEvents(
 }
 
 //------------------------------------------------------------------------------
-// Insert list of matching events in the current day's note, from list 
+// Insert list of matching events in the current day's note, from list
 // in keys of pref_addMatchingEvents. Apply template too.
 export async function insertMatchingDaysEvents(
   paramString: ?string,
