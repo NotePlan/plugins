@@ -1,5 +1,8 @@
 # CHANGELOG
 
+### v0.7.1, 7.8.2021
+- now supporting macOS back to v10.13
+
 ### v0.7.0, 6.8.2021
 - the commands now work on whatever daily calendar note is open, not only on today's note
 
