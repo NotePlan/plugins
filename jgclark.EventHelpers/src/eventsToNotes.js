@@ -1,7 +1,7 @@
 // @flow
 // ------------------------------------------------------------------------------------
 // Command to bring calendar events into notes
-// v0.3.1, 6.8.2021
+// v0.3.2, 7.8.2021
 // @jgclark, with additions by @dwertheimer
 // ------------------------------------------------------------------------------------
 
@@ -32,7 +32,6 @@ const DEFAULT_EVENTS_OPTIONS = `  events: {
 	  timeOptions: { hour: '2-digit', minute: '2-digit', hour12: false }
   },
 `
-
 let pref_eventsHeading: string = '### Events today'
 let pref_addMatchingEvents: ?{ [string]: mixed } = null
 let pref_locale: string = 'en-US' // default setting as a backup
@@ -129,9 +128,7 @@ export async function listDaysEvents(paramString?: string): Promise<string> {
 
   console.log(`\toutput template: '${template}' and '${allday}'`)
 
-  // When it was simply getting *today's* events:
-  // const eA: Array<TCalendarItem> = await Calendar.eventsToday()
-  // Now get the start and end date for the date of the open daily note
+  // Get all the events for this day
   const eA: Array<TCalendarItem> = await getEventsForDay(dateStr)
 
   const outputArray: Array<string> = []
@@ -159,7 +156,7 @@ export async function listDaysEvents(paramString?: string): Promise<string> {
       e.isAllDay ? allday : template,
       replacements,
     )
-    console.log(`Event: ${e.isAllDay ? allday : template} = ${thisEventStr}`)
+    // console.log(`Event: ${e.isAllDay ? allday : template} = ${thisEventStr}`)
     if (lastEventStr !== thisEventStr) {
       outputArray.push(thisEventStr)
       lastEventStr = thisEventStr
@@ -200,6 +197,7 @@ export async function listMatchingDaysEvents(
   // $FlowIgnore[incompatible-call]
   const dateStr = dateStringFromCalendarFilename(Editor.filename)
   console.log(`\nlistMatchingDaysEvents for date ${dateStr}:`)
+
   // Get config settings from Template folder _configuration note
   await getEventsSettings()
   if (pref_addMatchingEvents == null) {
@@ -208,19 +206,20 @@ export async function listMatchingDaysEvents(
     )
     return `(Error: found no 'addMatchingEvents' settings in _configuration note.)`
   }
-
   const textToMatchA = Object.keys(pref_addMatchingEvents)
   const templateA = Object.values(pref_addMatchingEvents)
   console.log(
     `\tFrom settings found ${textToMatchA.length} match strings to look for`,
   )
 
+  // Get all events for this day
   const eA: Array<TCalendarItem> = await getEventsForDay(dateStr)
 
   const outputArray: Array<string> = []
+  // for each event, check each of the hashtags we want to match
+  let lastEventStr = '' // keep duplicates from multiple calendars out
   for (const e of eA) {
     for (let i = 0; i < textToMatchA.length; i++) {
-      // FIXME: de-dupe events
       const m = textToMatchA[i]
       const template = templateA[i]
       if (e.title.match(m)) {
@@ -238,7 +237,10 @@ export async function listMatchingDaysEvents(
         ]
         // $FlowFixMe -- not sure how to deal with mixed coercing to strings
         const thisEventStr = stringReplace(template, replacements)
-        outputArray.push(thisEventStr)
+        if (lastEventStr !== thisEventStr) {
+          outputArray.push(thisEventStr)
+          lastEventStr = thisEventStr
+        }
       }
     }
   }
