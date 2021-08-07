@@ -5,6 +5,7 @@ import {
   listDaysEvents,
   listMatchingDaysEvents,
 } from '../../jgclark.EventHelpers/src/eventsToNotes'
+import { listReminders } from '../../weyert.ReminderHelpers/src/reminders'
 import { sweepTemplate } from '../../nmn.sweep/src/sweepAll'
 import { getWeatherSummary } from './weather'
 import { getDailyQuote } from './quote'
@@ -26,6 +27,8 @@ addTag('matchingEvents', listMatchingDaysEvents)
 addTag('listMatchingEvents', listMatchingDaysEvents)
 addTag('quote', getDailyQuote, true)
 addTag('sweepTasks', sweepTemplate)
+addTag('reminders', listReminders)
+addTag('listReminders', listReminders)
 // **Add other extension function calls here**
 
 type TagListType = {

@@ -38,6 +38,7 @@
 | `qath` | Quickly add a task at the top of a chosen note's heading | ⚡️ Quick Capture |
 | `qpd` | Quickly prepend a task to a chosen daily note | ⚡️ Quick Capture |
 | `qpt` | Quickly prepend a task to a chosen project note | ⚡️ Quick Capture |
+| `reminders` | generates a list of all available reminders | 🕓 Reminder Helpers |
 | `rpt` | Generate new @repeat() tasks from completed ones | 🔁 @repeat Extensions |
 | `start reviews` | creates/updates a machine-readable list of notes ready for review, and kicks off review of the first project note | 🔬Reviews |
 | `stp` | Show stats of tags and mentions over a time period | 🔢 Note Statistics |
