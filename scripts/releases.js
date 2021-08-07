@@ -114,9 +114,10 @@ function getPluginDataField(pluginData, field) {
 
 /**
  * @param {string} pluginFullPath
- * @returns {Promise<{ changelog: string | null, files: Array<string> }>>}
+ * @returns {Promise<{ changelog: string | null, files: Array<string> } | null >}
  */
 async function getReleaseFileList(pluginFullPath, appPluginsPath) {
+  let goodToGo = true
   const fileList = { changelog: null, files: [] }
   const filesInPluginFolder = await fs.readdir(pluginFullPath, {
     withFileTypes: true,
@@ -135,9 +136,11 @@ async function getReleaseFileList(pluginFullPath, appPluginsPath) {
 
   let name
   if ((name = existingFileName('changelog.md'))) {
+    //$FlowFixMe - see note above
     fileList.changelog = fullPath(name)
   } else {
     if ((name = existingFileName('readme.md'))) {
+      //$FlowFixMe - see note above
       fileList.changelog = fullPath(name)
     } else {
       console.log(
@@ -152,12 +155,30 @@ async function getReleaseFileList(pluginFullPath, appPluginsPath) {
   }
   if ((name = existingFileName('script.js'))) {
     fileList.files.push(fullPath(name))
+  } else {
+    console.log(`ABORT! No script.js file`)
+    goodToGo = false
   }
   if ((name = existingFileName('readme.md'))) {
     fileList.files.push(fullPath(name))
   }
+  if (!fileList.changelog) {
+    console.log(
+      `>>Releases: FYI: No Readme file for plugin. Not critical, but you probably should have one.`,
+    )
+  }
   // console.log(`>> Releases fileList:\n${JSON.stringify(fileList)}`)
-  return fileList
+  if (fileList.files.length < 2) goodToGo = false
+  if (goodToGo === false) {
+    console.log(
+      `>> Releases: ERROR: Not enough files to create a release. Minimum 2 files required are: plugin.json and script.js. Here are the files I found:\n${JSON.stringify(
+        fileList.files,
+      )}`,
+    )
+    return null
+  } else {
+    return fileList
+  }
 }
 
 function wrongArgsMessage(limitToFolders) {
@@ -275,20 +296,22 @@ async function main() {
       pluginFullPath,
       path.join(copyTargetPath, pluginName),
     )
-    const versionedTagName = getReleaseTagName(pluginName, versionNumber)
-    // console.log(`>>Releases: This version/tag will be:\n\t${versionedTagName}`)
-    ensureVersionIsNew(existingRelease, versionedTagName)
-    await releasePlugin(versionedTagName, pluginData, fileList, true)
-    if (existingRelease) await removePlugin(existingRelease.tag, true)
-    const newReleaseList = await getExistingRelease(pluginName)
-    if (newReleaseList && newReleaseList.tag === versionedTagName) {
-      console.log(
-        `>>Releases: SUCCESS - Release & Clean ran successfully. "${versionedTagName}" is now live.`,
-      )
-    } else {
-      console.log(
-        `>>Releases: ERROR: Something went wrong. Pls check log ^^^^^`,
-      )
+    if (fileList) {
+      const versionedTagName = getReleaseTagName(pluginName, versionNumber)
+      // console.log(`>>Releases: This version/tag will be:\n\t${versionedTagName}`)
+      ensureVersionIsNew(existingRelease, versionedTagName)
+      await releasePlugin(versionedTagName, pluginData, fileList, true)
+      if (existingRelease) await removePlugin(existingRelease.tag, true)
+      const newReleaseList = await getExistingRelease(pluginName)
+      if (newReleaseList && newReleaseList.tag === versionedTagName) {
+        console.log(
+          `>>Releases: SUCCESS - Release & Clean ran successfully. "${versionedTagName}" is now live.`,
+        )
+      } else {
+        console.log(
+          `>>Releases: ERROR: Something went wrong. Pls check log ^^^^^`,
+        )
+      }
     }
   } else {
     wrongArgsMessage()
