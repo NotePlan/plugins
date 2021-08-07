@@ -1,6 +1,9 @@
 # Changelog
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
+### v.0.3.2, 7.8.2021
+- adds: identical events deduping in /insert matching events
+
 ### v.0.3.1, 6.8.2021
 - adds ability to list events for whichever daily calendar page is open, not just Today
 - adds shorter `{{events()}}` tag option as an alias of `{{listTodaysEvents()}}` and `{{matchingEvents()}}` as an alias of `{{listMatchingEvents()}}`
