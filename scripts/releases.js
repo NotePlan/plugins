@@ -1,4 +1,5 @@
 // @flow
+const TEST = false // when set to true, doesn't actually create or delete anything. Just a dry run
 
 // $FlowIgnore
 const fs = require('fs/promises')
@@ -32,6 +33,11 @@ https://github.com/cli/cli#installation
 
 Then, once you have "gh" installed, come back here to run the command you ran to get this message.
 `
+if (TEST) {
+  console.log(
+    'RUNNING IN TEST MODE: Creating draft release (which should be deleted) and not deleting existing release without permission',
+  )
+}
 
 /**
  *
@@ -109,11 +115,16 @@ function getPluginDataField(pluginData, field) {
   return data
 }
 
+// $FlowFix - tried to use this type below, but flow doesn't like it
+// type FileList = { changelog: string | null, files: Array<string> }
+
 /**
  * @param {string} pluginFullPath
- * @returns {Promise<{ changelog: string | null, files: Array<string> }>>}
+ * @returns {Promise<{ changelog: string | null, files: Array<string> } | null >}
  */
+// eslint-disable-next-line no-unused-vars
 async function getReleaseFileList(pluginFullPath, appPluginsPath) {
+  let goodToGo = true
   const fileList = { changelog: null, files: [] }
   const filesInPluginFolder = await fs.readdir(pluginFullPath, {
     withFileTypes: true,
@@ -128,14 +139,15 @@ async function getReleaseFileList(pluginFullPath, appPluginsPath) {
       return null
     }
   }
-  const fullPath = (name) =>
-    name ? `"${path.join(pluginFullPath, name)}"` : null
+  const fullPath = (name) => path.join(pluginFullPath, name)
 
   let name
   if ((name = existingFileName('changelog.md'))) {
+    //$FlowFixMe - see note above
     fileList.changelog = fullPath(name)
   } else {
     if ((name = existingFileName('readme.md'))) {
+      //$FlowFixMe - see note above
       fileList.changelog = fullPath(name)
     } else {
       console.log(
@@ -144,18 +156,41 @@ async function getReleaseFileList(pluginFullPath, appPluginsPath) {
     }
   }
   // Grab the minified/cleaned version of the plugin.json file
-  const pluginInAppPluginDirectory = path.join(appPluginsPath, 'plugin.json')
-  if (fileExists(pluginInAppPluginDirectory)) {
-    fileList.files.push(`"${pluginInAppPluginDirectory}"`)
+  // Commenting out: Does not work. JSON5 adds commas that NP doesn't like
+  // const pluginInAppPluginDirectory = path.join(appPluginsPath, 'plugin.json')
+  // if (fileExists(pluginInAppPluginDirectory)) {
+  //   fileList.files.push(`${pluginInAppPluginDirectory}`)
+  // }
+  if ((name = existingFileName('plugin.json'))) {
+    fileList.files.push(fullPath(name))
+  } else {
+    goodToGo = false
   }
   if ((name = existingFileName('script.js'))) {
     fileList.files.push(fullPath(name))
+  } else {
+    goodToGo = false
   }
   if ((name = existingFileName('readme.md'))) {
     fileList.files.push(fullPath(name))
   }
+  if (!fileList.changelog) {
+    console.log(
+      `>>Releases: FYI: No Readme file for plugin. Not critical, but you probably should have one.`,
+    )
+  }
   // console.log(`>> Releases fileList:\n${JSON.stringify(fileList)}`)
-  return fileList
+  if (fileList.files.length < 2) goodToGo = false
+  if (goodToGo === false) {
+    console.log(
+      `>> Releases: ERROR. ABORTING: Not enough files to create a release. Minimum 2 files required are: plugin.json and script.js. Here are the files I found:\n${JSON.stringify(
+        fileList,
+      )}`,
+    )
+    return null
+  } else {
+    return fileList
+  }
 }
 
 function wrongArgsMessage(limitToFolders) {
@@ -187,14 +222,26 @@ function getReleaseCommand(
   fileList,
   sendToGithub = false,
 ) {
-  const changeLog = fileList.changelog ? `-F ${fileList.changelog}` : ''
-  return `gh release create "${version}" -t "${pluginTitle}" ${changeLog} ${
+  const changeLog = fileList.changelog ? `-F "${fileList.changelog}"` : ''
+  const cmd = `gh release create "${version}" -t "${pluginTitle}" ${changeLog} ${
     !sendToGithub ? `--draft` : ''
-  } ${fileList.files.join(' ')}`
+  } ${fileList.files.map((m) => `"${m}"`).join(' ')}`
+  if (!sendToGithub) {
+    console.log(
+      `>>Releases: Release command:\n\t${cmd}\n\nYou can run that by hand. The script is not doing it in TEST mode.\n`,
+    )
+  }
+  return cmd
 }
 
-function getRemoveCommand(version, fileList, sendToGithub = false) {
-  return `gh release delete "${version}" ${sendToGithub ? `` : '-y'}` // -y removes the release without prompting
+function getRemoveCommand(version, sendToGithub = false) {
+  const cmd = `gh release delete "${version}" ${sendToGithub ? `` : '-y'}` // -y removes the release without prompting
+  if (!sendToGithub) {
+    console.log(
+      `>>Releases: Pre-existing release remove command:\n\t${cmd}\n\nYou can run that by hand. The script is not doing it in TEST mode.\n`,
+    )
+  }
+  return cmd
 }
 
 async function releasePlugin(
@@ -210,9 +257,7 @@ async function releasePlugin(
     fileList,
     sendToGithub,
   )
-  if (!sendToGithub) {
-    console.log(`\nRelease create command: \n${releaseCommand}\n`)
-  } else {
+  if (sendToGithub) {
     if (releaseCommand) {
       console.log(
         `>>Release: Creating release "${versionedTagName}" on github...`,
@@ -229,9 +274,7 @@ async function releasePlugin(
 
 async function removePlugin(versionedTagName, sendToGithub = false) {
   const removeCommand = getRemoveCommand(versionedTagName, sendToGithub)
-  if (!sendToGithub) {
-    console.log(`\nPrevious release remove command: \n${removeCommand}\n`)
-  } else {
+  if (sendToGithub) {
     if (removeCommand) {
       console.log(
         `>>Releases: Removing previous version "${versionedTagName}" on github...`,
@@ -273,18 +316,22 @@ async function main() {
       pluginFullPath,
       path.join(copyTargetPath, pluginName),
     )
-    const versionedTagName = getReleaseTagName(pluginName, versionNumber)
-    // console.log(`>>Releases: This version/tag will be:\n\t${versionedTagName}`)
-    ensureVersionIsNew(existingRelease, versionedTagName)
-    await releasePlugin(versionedTagName, pluginData, fileList, true)
-    if (existingRelease) await removePlugin(existingRelease.tag, true)
-    const newReleaseList = await getExistingRelease(pluginName)
-    if (newReleaseList && newReleaseList.tag === versionedTagName) {
-      console.log(
-        `>>Releases: SUCCESS - Release & Clean ran successfully. "${versionedTagName}" is now live.`,
-      )
-    } else {
-      console.log(`>>Releases: Something went wrong. Pls check logs.`)
+    if (fileList) {
+      const versionedTagName = getReleaseTagName(pluginName, versionNumber)
+      // console.log(`>>Releases: This version/tag will be:\n\t${versionedTagName}`)
+      ensureVersionIsNew(existingRelease, versionedTagName)
+      await releasePlugin(versionedTagName, pluginData, fileList, !TEST)
+      if (existingRelease) await removePlugin(existingRelease.tag, !TEST)
+      const newReleaseList = await getExistingRelease(pluginName)
+      if (newReleaseList && newReleaseList.tag === versionedTagName) {
+        console.log(
+          `>>Releases: SUCCESS - Release ran successfully. "${versionedTagName}" is now live.`,
+        )
+      } else {
+        console.log(
+          `>>Releases: ^^^ ERROR: Something went wrong. Pls check log ^^^^^`,
+        )
+      }
     }
   } else {
     wrongArgsMessage()

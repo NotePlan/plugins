@@ -1,4 +1,6 @@
 {
+  "COMMENT1": "Note If you are not going to use the `npm run autowatch` command to compile, then delete the macOS.minVersion line below",
+  "macOS.minVersion": "10.13.0",
   "noteplan.minAppVersion": "3.0.21", 
   "plugin.id": "yourGitID.yourPluginCollectionName", 
   "plugin.name": "Main Heading/Title for your plugin collection (e.g. Note Helpers)", 

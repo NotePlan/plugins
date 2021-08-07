@@ -55,7 +55,7 @@ async function runShellCommand(command) {
     if (stderr.length) console.log('runShellCommand stderr:', stderr)
     return String(stdout)
   } catch (err) {
-    console.log(`\n**\n**\**\n[shared.js] command "${command}" did not work.`)
+    console.log(`\n**\n**\n**\n[shared.js] command "${command}" did not work.`)
     console.error(err)
     process.exit(0)
     return ''
