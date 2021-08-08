@@ -2,7 +2,7 @@
   "noteplan.min_version": "3.0.25",
   "plugin.id": "weyert.ReminderHelpers",
   "plugin.name": "🕓 Reminder Helpers",
-  "plugin.description": "Commands to extend NotePlan's Reminders handling, including time blocks. See website for more details, and configuration.",
+  "plugin.description": "Commands to extend NotePlan's Reminders handling.",
   "plugin.icon": "",
   "plugin.author": "weyert",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/weyert.ReminderHelpers",
@@ -16,6 +16,12 @@
       "alias": ["rmv"],
       "description": "generates a list of all available reminders",
       "jsFunction": "insertReminders"
+    },
+    {
+      "name": "syncreminders",
+      "alias": ["rms"],
+      "description": "synchronise tasks with reminders",
+      "jsFunction": "syncReminders"
     }
   ],
   "plugin.preferences": [
