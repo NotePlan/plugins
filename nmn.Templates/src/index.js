@@ -6,17 +6,20 @@ import {
   showMessage,
   chooseOption,
   getInput,
-} from '../../nmn.sweep/src/userInput'
+} from '../../helperFunctions' // TODO: '../../helperFunctions/inputFunctions'
 
 import { getStructuredConfiguration } from './configuration'
 import { processTemplate } from './templateController'
 import { getOrMakeTemplateFolder } from './template-folder'
 
 //------------------------------------------------------------------------------
-// Apply a folder based on an existing Template's title
-export async function applyNamedTemplateTitle(templateTitle: string) {
-  console.log(`applyNamedTemplateTitle: for template '${templateTitle}'`)
 
+/**
+ * Process the named template ready for inclusion somewhere
+ * @author @nmn, split out into this helper function by @jgclark
+ * @param {string} templateTitle - name of an existing template to process
+ */
+async function getProcessedTemplate(templateTitle: string): Promise<string> {
   // const templateFolder = await getOrMakeTemplateFolder()
   // if (templateFolder == null) {
   //   console.log(`\twarning: templateFolder is null`)
@@ -34,29 +37,52 @@ export async function applyNamedTemplateTitle(templateTitle: string) {
   let templateContent = selectedTemplate?.content
   if (templateContent == null || templateContent.length === 0) {
     console.log(`\twarning: template '${templateTitle}' is null or empty`)
-    return
+    return '<template was empty>'
   }
+
   templateContent = templateContent.split('\n---\n').slice(1).join('\n---\n')
 
+  // Read all _configuration settings
   const config = (await getStructuredConfiguration()) ?? {}
-
+  // Go through template running any function tags
   const processedTemplateContent = await processTemplate(
     templateContent,
     config,
   )
+  return processedTemplateContent
+}
+
+/**
+ * Apply (append) a Template, selected by its title
+ * @author @nmn, split into two funcs by @jgclark
+ * @param {string} templateTitle - name of an existing template to append to the current note
+ */
+export async function applyNamedTemplateTitle(templateTitle: string) {
+  if (Editor == null) {
+    await showMessage('Please run again with a note open in the editor')
+    return
+  }
+  console.log(`applyNamedTemplateTitle: for template '${templateTitle}'`)
+
+  const processedTemplateContent = await getProcessedTemplate(templateTitle)
 
   Editor.content = [Editor.content, processedTemplateContent]
     .filter(Boolean)
     .join('\n')
 }
 
+/** 
+ * Apply (append) a Template, chosen by the user from a list, creating a new note if wanted
+ * @author @nmn
+ * @param {[string, string]} newNote [title, folder] - optional object that contains title then folder of note to create before applying the template
+ */
 export async function applyTemplate(newNote?: [string, string]) {
   const templateFolder = await getOrMakeTemplateFolder()
   if (templateFolder == null) {
     console.log(`applyTemplate: warning: templateFolder is null`)
     await showMessage('Template Folder Not Found')
-    // await makeTemplateFolder()
-    return // TODO: activate the 'makeTemplateFolder()' again?
+    // TODO: activate the 'makeTemplateFolder()' again?
+    return
   }
   console.log(`applyTemplate: templateFolder = '${templateFolder}'`)
 
@@ -68,9 +94,9 @@ export async function applyTemplate(newNote?: [string, string]) {
     )
     .filter(Boolean)
 
-  console.log(`applyTemplate: found ${options.length} options`)
+  console.log(`applyTemplate: found ${options.length} defined templates`)
 
-  // console.log(`applyTemplate: asking user which template:`)
+  // asking user which template to apply
   const selectedTemplate = await chooseOption<TNote, void>(
     'Choose Template',
     options,
@@ -88,10 +114,12 @@ export async function applyTemplate(newNote?: [string, string]) {
     config,
   )
 
+  // if we specified a new note's details, make it first
   if (newNote != null) {
     const [title, folder] = newNote
     const filename = DataStore.newNote(title, folder)
     if (!filename) {
+      console.log(`applyTemplate: There was an error creating new note '${title}' in '${folder}'`)
       await showMessage('There was an error creating your note :(')
       return
     }
@@ -104,6 +132,55 @@ export async function applyTemplate(newNote?: [string, string]) {
   }
 }
 
+/** 
+ * Insert a Template (chosen by user from list) at the cursor position
+ * @author @jgclark, based on @nmn original
+ * @param {string} templateTitle - name of an existing template to append to the current note
+ */
+export async function insertTemplate() {
+  if (Editor == null) {
+    await showMessage('Please run again with a note open in the editor')
+    return
+  }
+  const templateFolder = await getOrMakeTemplateFolder()
+  if (templateFolder == null) {
+    console.log(`applyTemplate: warning: templateFolder is null`)
+    await showMessage('Oops: Template Folder Not Found')
+    return
+  }
+  console.log(`insertTemplate: templateFolder = '${templateFolder}'`)
+
+  const options = DataStore.projectNotes
+    .filter((n) => n.filename?.startsWith(templateFolder))
+    .filter((n) => !n.title?.startsWith('_configuration'))
+    .map((note) =>
+      note.title == null ? null : { label: note.title, value: note },
+    )
+    .filter(Boolean)
+
+  console.log(`insertTemplate: found ${options.length} defined templates`)
+
+  // asking user which template to apply
+  const selectedTemplate = await chooseOption<TNote, void>(
+    'Choose Template',
+    options,
+  )
+  
+  const templateTitle = selectedTemplate?.title
+  if (templateTitle == null) {
+    console.log(`insertTemplate: error: can't get template title`)
+    await showMessage(`Oops: can't get template title`)
+    return
+  }
+
+  const processedTemplateContent = await getProcessedTemplate(templateTitle)
+  Editor.insertTextAtCursor(processedTemplateContent)
+}
+
+/** 
+ * Create a new note from a template, asking user title of note, where to put it, and which template to use
+ * @author @nmn
+ */
 export async function newNoteWithTemplate() {
   const title = await getInput(
     'Enter title of the new note',
@@ -123,7 +200,7 @@ export async function newNoteWithTemplate() {
   }
 
   if (!title) {
-    console.log('\tError: undefined or empty title')
+    console.log('newNoteWithTemplate: Error: undefined or empty title')
     await showMessage('Cannot create a note with an empty title')
     return
   }
@@ -149,6 +226,7 @@ export async function newNoteWithTemplate() {
   const filename = DataStore.newNote(title, folder)
 
   if (!filename) {
+    console.log(`applyTemplate: There was an error creating new note '${title}' in '${folder}'`)
     await showMessage('There was an error creating your note :(')
     return
   }
