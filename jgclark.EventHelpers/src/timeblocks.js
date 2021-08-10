@@ -3,7 +3,7 @@
 // ------------------------------------------------------------------------------------
 // Command to turn time blocks into full calendar events
 // @jgclark
-// v0.2.7, 3.8.2021
+// v0.3.3, 10.8.2021
 //
 // See https://help.noteplan.co/article/52-part-2-tasks-events-and-reminders#timeblocking
 // for definition of time blocks. In summary:
@@ -20,24 +20,41 @@ import {
   printDateRange,
   todaysDateISOString,
   isoDateStringFromCalendarFilename,
-  RE_DATE,
   displayTitle,
+  showMessageYesNo,
 } from '../../helperFunctions'
 
+// ------------------------------------------------------------------------------------
+// Settings
+const DEFAULT_EVENTS_OPTIONS = `  events: {
+    addEventID: false,  // whether to add an [[event:ID]] internal link when creating an event from a time block
+    confirmEventCreation: true, // whether to check with user before creating each event
+    processedTagName: "#event_created",   // optional tag to add after making a time block an event
+    removeTimeBlocksWhenProcessed: true,  // whether to remove time block after making an event from it
+    todaysEventsHeading: "### Events today",  // optional heading to put before list of today's events
+    addMatchingEvents: {   // match events with string on left, and add this into daily note prepending by string on the right (which can be empty)
+      "#meeting": "### ",
+      "#webinar": "### ",
+      "#holiday": "",
+    },
+  },
+`
+
+// ------------------------------------------------------------------------------------
+// Regular Expressions
 // find dates of form YYYY-MM-DD
 const RE_ISO_DATE = '\\d{4}-[01]\\d{1}-\\d{2}'
-const RE_SCHEDULED_DATE = `>${RE_ISO_DATE}`
 const RE_HOUR = '[0-2]?\\d'
 const RE_MINUTE = '[0-5]\\d'
 const RE_TIME = `${RE_HOUR}:${RE_MINUTE}`
 const RE_AMPM = `(AM|PM|am|pm)`
 const RE_OPT_AMPM = `${RE_AMPM}?`
-// find '[>date] 12:30[AM|PM|am|pm][-14:45[AM|PM|am|pm]]'
-const RE_TIMEBLOCK_TYPE1 = `(${RE_SCHEDULED_DATE})? ${RE_TIME}${RE_OPT_AMPM}(\\s?-\\s?${RE_TIME}${RE_OPT_AMPM})?`
-// find '[>date] at 2(AM|PM|am|pm)[-11[AM|PM|am|pm]]'
-const RE_TIMEBLOCK_TYPE2 = `(${RE_SCHEDULED_DATE})? at ${RE_HOUR}(:${RE_MINUTE}|(AM|PM|am|pm)?)(\\s?-\\s?${RE_HOUR}(:${RE_MINUTE}|AM|PM|am|pm)?)?`
-// find '[>date] at 9(AM|PM|am|pm)-11:30(AM|PM|am|pm)'
-const RE_TIMEBLOCK_TYPE3 = `(${RE_SCHEDULED_DATE})?\\s+(at\\s+)?${RE_HOUR}${RE_OPT_AMPM}\\s?-\\s?${RE_HOUR}:${RE_MINUTE}${RE_AMPM}`
+// find ' 12:30[AM|PM|am|pm][-14:45[AM|PM|am|pm]]'
+const RE_TIMEBLOCK_TYPE1 = `\\s+${RE_TIME}${RE_OPT_AMPM}(\\s?-\\s?${RE_TIME}${RE_OPT_AMPM})?`
+// find ' at 2(AM|PM|am|pm)[-11[AM|PM|am|pm]]'
+const RE_TIMEBLOCK_TYPE2 = `\\s+at\\s+${RE_HOUR}(:${RE_MINUTE}|(AM|PM|am|pm)?)(\\s?-\\s?${RE_HOUR}(:${RE_MINUTE}|AM|PM|am|pm)?)?`
+// find ' at 9(AM|PM|am|pm)-11:30(AM|PM|am|pm)'
+const RE_TIMEBLOCK_TYPE3 = `\\s+(at\\s+)?${RE_HOUR}${RE_OPT_AMPM}\\s?-\\s?${RE_HOUR}:${RE_MINUTE}${RE_AMPM}`
 const RE_DONE_DATETIME = `@done\\(${RE_ISO_DATE} ${RE_TIME}${RE_OPT_AMPM}\\)`
 const RE_EVENT_ID = `\\[\\[event:[A-F0-9-]*\\]\\]`
 
@@ -82,6 +99,10 @@ export async function timeBlocksToCalendar() {
     (eventsConfig.addEventID != null)
     ? eventsConfig.addEventID
     : false
+  const pref_confirmEventCreation =
+    (eventsConfig.confirmEventCreation != null)
+    ? eventsConfig.confirmEventCreation
+    : false
 
   // Look through open note to find time blocks, but ignore @done(...) lines
   // which can look like timeblocks
@@ -94,10 +115,6 @@ export async function timeBlocksToCalendar() {
   )
   if (timeblockParas.length > 0) {
     console.log(`  found ${timeblockParas.length} in '${noteTitle}'`)
-    // Show the loading indicator with text
-    CommandBar.showLoading(true, "Creating events from time blocks")
-    // Begin an asynchronous thread, so the loading indicator won't be blocked
-    // await CommandBar.onAsyncThread()
 
     // Work out our current date context (as YYYY-MM-DD):
     // - if a calendar note -> date of note
@@ -112,11 +129,12 @@ export async function timeBlocksToCalendar() {
     // Iterate over timeblocks
     for (let i = 0; i < timeblockParas.length; i++) {
       const thisPara = timeblockParas[i]
-      let tempArray = thisPara.content?.match(RE_TIMEBLOCK_TYPE1) ?? ['']
+      const thisParaContent = thisPara.content ?? ''
+      let tempArray = thisParaContent.match(RE_TIMEBLOCK_TYPE1) ?? ['']
       const timeBlockStringType1 = tempArray[0]
-      tempArray = thisPara.content?.match(RE_TIMEBLOCK_TYPE2) ?? ['']
+      tempArray = thisParaContent.match(RE_TIMEBLOCK_TYPE2) ?? ['']
       const timeBlockStringType2 = tempArray[0]
-      tempArray = thisPara.content?.match(RE_TIMEBLOCK_TYPE3) ?? ['']
+      tempArray = thisParaContent.match(RE_TIMEBLOCK_TYPE3) ?? ['']
       const timeBlockStringType3 = tempArray[0]
       let timeBlockString =
         timeBlockStringType1 !== ''
@@ -124,63 +142,67 @@ export async function timeBlocksToCalendar() {
           : timeBlockStringType2 !== ''
             ? timeBlockStringType2
             : timeBlockStringType3
+
       // Check to see if this line has been processed before, by looking for the
       // processed tag, or an [[event:ID]]
       // $FlowFixMe[incompatible-call]
-      if (thisPara.content.match(pref_processedTagName)
-       || thisPara.content.match(RE_EVENT_ID)) {
+      if (thisParaContent.match(pref_processedTagName)
+       || thisParaContent.match(RE_EVENT_ID)) {
         // $FlowFixMe[incompatible-type]
         console.log(
-          `\tIgnoring timeblock '${timeBlockString}' as line contains ${pref_processedTagName}`,
+          `\tIgnoring timeblock in '${thisParaContent}' as it has already been processed`,
         )
       } else {
+        // Go ahead and process this time block
         console.log(`\tFound timeblock '${timeBlockString}'`)
-
-        // Now add dateContext if there isn't one set already
+        let datePart = ''
+        // Now add date part (or dateContext if there wasn't one in the paragraph)
         const origTimeBlockString = timeBlockString
-        if (!timeBlockString.match(RE_DATE)) {
+        if (!thisParaContent.match(RE_ISO_DATE)) {
           console.log(
             `\tNo date in time block so will add current dateContext (${dateContext})`,
           )
-          timeBlockString = `${dateContext} ${timeBlockString}`
+          datePart = dateContext
+        } else {
+          const temp = thisParaContent.match(RE_ISO_DATE) ?? []
+          datePart = temp[0]
         }
+        timeBlockString = `${datePart} ${timeBlockString}`
         // NB: parseDateText returns an array, so we'll use the first one as most likely
         const timeblockDateRange = Calendar.parseDateText(timeBlockString)[0]
+
         if (timeblockDateRange != null) {
-          const title = thisPara.content.replace(timeBlockString, '')
+          const title = thisParaContent.replace(timeBlockString, '')
+          if (pref_confirmEventCreation) {
+            const res = await showMessageYesNo(`Create '${timeBlockString}' for '${title}'?`)
+            if (res === 'No') {
+              continue // go to next time block
+            }
+          }
+
           console.log(`\tWill process time block '${timeBlockString}' for '${title}'`)
           const eventID = createEventFromDateRange(title, timeblockDateRange)
 
           // Remove time block string (if wanted)
           if (pref_removeTimeBlocksWhenProcessed) {
-            thisPara.content = thisPara.content.replace(origTimeBlockString, '')
+            thisPara.content = thisParaContent.replace(origTimeBlockString, '')
           }
           // Add processedTag (if not empty)
           if (pref_processedTagName !== '') {
             // $FlowFixMe[incompatible-type]
             thisPara.content += ` ${pref_processedTagName}`
-            console.log(`\t-> '${thisPara.content}'`)
           }
           // Add event ID (if wanted)
           if (pref_addEventID) {
             // $FlowFixMe[incompatible-type]
             thisPara.content += ` [[event:${eventID}]]`
-            console.log(`\t-> '${thisPara.content}'`)
           }
           Editor.updateParagraph(thisPara) // seems not to work twice in quick succession, so just do it once here
         } else {
           console.log(`\tError getting DateRange from '${timeBlockString}'`)
         }
       }
-
-      // update loading indicator
-      CommandBar.showLoading(true, "Creating events from time blocks", i / timeblockParas.length)
     }
-    // Switch back to the main thread, so we can make edits to the Editor
-    // await CommandBar.onMainThread()
-    // close loading indicator
-    CommandBar.showLoading(false)
-
   } else {
     console.log(`  -> No time blocks found.`)
   }
@@ -190,7 +212,6 @@ export async function timeBlocksToCalendar() {
 // NB: we can't set which calendar to write to
 function createEventFromDateRange(eventTitle: string, dateRange: DateRange): ?string {
   // console.log(`\tStarting cEFDR with ${eventTitle}`)
-  // CalendarItem.create(title, date, endDate, type, isAllDay)
   const event = CalendarItem.create(
     eventTitle,
     dateRange.start,
@@ -207,19 +228,6 @@ function createEventFromDateRange(eventTitle: string, dateRange: DateRange): ?st
     return '(error)'
   }
 }
-
-const DEFAULT_EVENTS_OPTIONS = `  events: {
-    addEventID: false,  // whether to add an [[event:ID]] internal link when creating an event from a time block
-    processedTagName: "#event_created",   // optional tag to add after making a time block an event
-    removeTimeBlocksWhenProcessed: true,  // whether to remove time block after making an event from it
-    todaysEventsHeading: "### Events today",  // optional heading to put before list of today's events
-    addMatchingEvents: {   // match events with string on left, and add this into daily note prepending by string on the right (which can be empty)
-      "#meeting": "### ",
-      "#webinar": "### ",
-      "#holiday": "",
-    },
-  },
-`
 
 //----------------------------------------------------------------------
 // Testing finding time blocks in text string:
