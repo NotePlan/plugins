@@ -16,11 +16,10 @@ const FORMAT_MAP = {
 }
 
 /**
- * Get configuration as JSON/JSON5/YAML/TOML from <template folder>_configuration file
+ * Get configuration as JSON/JSON5/YAML/TOML from <template folder>/_configuration file
  * @author @nmn split up by @jgclark
  * @return return this as structured data, in the format specified by the first line of the codeblock
  */
-
 export async function getStructuredConfiguration(): Promise<?{
   [string]: ?mixed,
 }> {

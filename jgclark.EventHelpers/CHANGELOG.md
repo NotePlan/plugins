@@ -1,12 +1,16 @@
 # Changelog
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
+### v.0.3.3, 10.8.2021
+- new: new setting `confirmEventCreation` for `/time blocks to calendar` that if true asks user to confirm each event to be created
+- updated: improved placement of the processedTagName (if used) after an event has been created
+
 ### v.0.3.2, 7.8.2021
-- adds: identical events deduping in /insert matching events
+- new: identical events deduping in /insert matching events
 
 ### v.0.3.1, 6.8.2021
-- adds ability to list events for whichever daily calendar page is open, not just Today
-- adds shorter `{{events()}}` tag option as an alias of `{{listTodaysEvents()}}` and `{{matchingEvents()}}` as an alias of `{{listMatchingEvents()}}`
+- new: ability to list events for whichever daily calendar page is open, not just Today
+- new: shorter `{{events()}}` tag option as an alias of `{{listTodaysEvents()}}` and `{{matchingEvents()}}` as an alias of `{{listMatchingEvents()}}`
 
 ### v.0.3.0, 4.8.2021 @dwertheimer
 - Updated ::toLocaleShortTime() to deal with locales and timeStrings.
