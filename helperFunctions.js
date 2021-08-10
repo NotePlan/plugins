@@ -755,7 +755,7 @@ export function stringReplace(
 ): string {
   let outputString = inputString
   replacementArray.forEach((r) => {
-    // TODO: Why is this next function not recognised?
+    //FlowFixMe - .replaceAll is a new-ish JS function
     outputString = outputString.replaceAll(r.key, r.value)
   })
   return outputString
@@ -768,10 +768,7 @@ export function stringReplace(
  * @param {string} paramName - the name of the parameter to get (e.g. 'template')
  * @returns {string} the value of the desired parameter (e.g. 'FOO')
  */
-export function getTagParams(
-  paramString: string,
-  wantedParam: string
-): string {
+export function getTagParams(paramString: string, wantedParam: string): string {
   console.log(`\tgetParams for '${wantedParam}' in '${paramString}'`)
   const res = paramString.match(`${wantedParam}:"(.*?)"`) ?? []
   return res.length > 0 ? res[1] : ''
@@ -783,7 +780,9 @@ export async function getTagParamsFromString(
   wantedParam: string,
   defaultValue: mixed = null,
 ): mixed {
-  console.log(`\tgetTagParamsFromString for '${wantedParam}' in '${paramString}'`)
+  console.log(
+    `\tgetTagParamsFromString for '${wantedParam}' in '${paramString}'`,
+  )
   if (paramString !== '') {
     try {
       //$FlowIgnore
