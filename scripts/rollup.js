@@ -5,6 +5,7 @@ const path = require('path')
 const rollup = require('rollup')
 const commonjs = require('@rollup/plugin-commonjs')
 const { babel } = require('@rollup/plugin-babel')
+const { terser } = require('rollup-plugin-terser')
 const resolve = require('@rollup/plugin-node-resolve').default
 const mkdirp = require('mkdirp')
 const createPluginListing = require('./createPluginListing')
@@ -183,6 +184,15 @@ function getConfig(pluginPath) {
       commonjs(),
       resolve({
         browser: false,
+      }),
+      terser({
+        compress: false,
+        mangle: false,
+        output: {
+          comments: false,
+          beautify: true,
+          indent_level: 2,
+        },
       }),
     ],
     context: 'this',
