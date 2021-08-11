@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Commands for Reviewing project notes, GTD-style.
 // by @jgclark
-// v0.2.3, 1.8.2021
+// v0.3.0, 9.8.2021
 //-----------------------------------------------------------------------------
 
 // Settings
@@ -50,7 +50,8 @@ import {
 
 //-------------------------------------------------------------------------------
 // Create human-readable lists of project notes for each tag of interest
-async function getConfig(): Promise<void> {
+// TODO: Should this be moved to reviewHelpers?
+export async function getConfig(): Promise<void> {
     // Get config settings from Template folder _configuration note
   const reviewConfig = await getOrMakeConfigurationSection(
     'review',
@@ -319,7 +320,7 @@ export async function nextReview() {
 
 //-------------------------------------------------------------------------------
 // Update the review list after completing a review
-async function updateReviewListWithComplete(note: TNote) {
+export async function updateReviewListWithComplete(note: TNote) {
   const thisTitle = note.title ?? ''
   console.log(`updateReviewListWithComplete for '${thisTitle}'`)
 
@@ -442,32 +443,3 @@ export async function completeReview(): Promise<?TNote> {
   // return current note, to help next function
   return Editor.note
 }
-
-//-------------------------------------------------------------------------------
-// Update the @reviewed(date) in the note in the Editor to today's date
-export async function completeProject(): Promise<void> {
-  const completedMentionString = '@completed'
-  const completedTodayString = `${completedMentionString}(${hyphenatedDate(new Date())})`
-
-  // only proceed if we're in a valid Project note (with at least 2 lines)
-  if (Editor.note == null || Editor.note.type === 'Calendar' || Editor.paragraphs?.length < 2 ) {
-    return
-  }
-
-  const metadataLine = getOrMakeMetadataLine()
-  // append to note's default metadata line
-  console.log(
-    `\twill append ${completedTodayString} string to line ${metadataLine}`,
-  )
-  const metadataPara = Editor.note?.paragraphs[metadataLine]
-  if (metadataPara == null) {
-    return
-  }
-  const metaPara = metadataPara
-  metaPara.content += ` ${completedTodayString}`
-  // send update to Editor
-  await Editor.updateParagraph(metaPara)
-  // remove this note from the review list
-  // $FlowIgnore[incompatible-call]
-  await updateReviewListWithComplete(Editor.note)
- }

@@ -37,7 +37,7 @@ These are the two most common commands you will use while developing:
 
 - `npm run autowatch jgclark.DailyJournal dwertheimer.TaskAutomations`
 
-2. **`gh release create <plugin folder name>`** (e.g. `gh release create jgclark.DailyJournal`) which will do all the work necessary to create/update a release in GitHub for the plugin. This will then automatically be available to all NotePlan users from the Plugins preference pane.
+2. **`npm run release "<plugin folder name>"`** (e.g. `npm run release "jgclark.DailyJournal"`) which will do all the work necessary to create/update a release in GitHub for the plugin. This will then automatically be available to all NotePlan users from the Plugins preference pane.
 
 Note: The `autowatch` command is typically the only one you will need to use, especially if you use an IDE (e.g. VSCode) that does typechecking.
 
