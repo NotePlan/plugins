@@ -116,33 +116,40 @@ const CONFIG = ` _configuration
 ---
 # Template Tag Configuration
 
-This file is used to configure how templates work. 
-Use the code fence below (which comes after a line made by 3 dashes)
-to set global values for template tags.
+This note provides a central location where you can configure various plugin options:
 
-To write your configuration you can use JSON5. JSON5 is a human-friendly
-superset of JSON that lets you write comments, unquoted keys and other common
-patterns available in Javscript.
-(NB: even JSON5 doesn't fully support multi-line strings, so to include
-them you need to use "\n" for linebreaks rather than actual linebreaks.)
+- Use the fenced code block below (which comes after a line made by 3 dashes)
+to customize global values for the various template tags.
 
-Just use the codeblock marked as \`javascript\` shown below to write your own
-custom configurayion.
+NotePlan plugin configuration uses JSON5, which is a human-friendly
+superset of JSON, providing things such as comments, unquoted keys and other common
+patterns available in standard JavaScript objects.
 
-The *first* code-block within the note will always be used. So edit the default configuration below:
+*Note: Despite JSON5 enhancements, multi-line strings are not supported, so to include*
+*them you need to use "\n" (new line) for linebreaks rather than actual linebreaks.*
 
-IMPORTANT: The configuration code blocks below are validated in realtime by Noteplan as you edit. 
-If the configuration passes the validation, you will see configuration settings in color (e.g. orange, 
-green, purple, black, etc.). If there is a mistake in your configuration settings, the configuration
+Use the codeblock marked as \`javascript\` shown below to write your own
+custom custom configurations.
+
+While it is possible to have multiple \`javascript\` code blocks in this document, only the **first** code
+block will be used.
+
+IMPORTANT: The configuration code blocks below are validated in realtime by Noteplan as you edit.
+If the configuration passes the validation, you will see configuration settings will be formatted based
+on your current theme (e.g. orange, green, purple, black, etc.).
+
+If there is a mistake in your configuration settings, the configuration
 settings below will all be black. If you have a quoted "string" that you want to have a line break
 in it, insert a "\n" where you want the line break, e.g. "This\nIs\nThreelines"
 
 \`\`\`javascript
+
 {
-  // Even though it says, "javascript" above, this is actually JSON5.
+  // Note Even though it is fenced as "javascript", this configuration is actually JSON5.
 
   // configuration for dates, heavily based on javascript's Intl module
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat/DateTimeFormat
+
   date: {
     // Default timezone for date and time.
     timezone: 'automatic',
@@ -154,6 +161,7 @@ in it, insert a "\n" where you want the line break, e.g. "This\nIs\nThreelines"
     // optional key, can be "short", "medium", "long" or "full"
     timeStyle: 'short',
   },
+
 
   // configuration for weather data (used in Daily Note Template, for example)
   weather: {
@@ -167,6 +175,7 @@ in it, insert a "\n" where you want the line break, e.g. "This\nIs\nThreelines"
     openWeatherUnits: 'metric',
   },
 
+
   // configuration for daily quote (used in Daily Note Template, for example)
   quote: {
     // Available modes: [random (default), today, author]
@@ -176,6 +185,7 @@ in it, insert a "\n" where you want the line break, e.g. "This\nIs\nThreelines"
     // Required for mode: 'author' (from https://premium.zenquotes.io/)
     apiKey: '... put your API key here ...',
   },
+
 
   // default values for custom tags.
   // These tags cannot be functions, but you may choose to have nested objects.
@@ -190,6 +200,7 @@ in it, insert a "\n" where you want the line break, e.g. "This\nIs\nThreelines"
     // ...
   },
 }
+
 \`\`\`
 
 `
