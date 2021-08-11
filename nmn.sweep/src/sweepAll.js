@@ -46,7 +46,7 @@ export async function sweepTemplate(paramStr: string): Promise<string> {
       'includeHeadings',
       false,
     )
-    const noteTypes: boolean = await getTagParamsFromString(
+    const noteTypes: NoteTypes[] = await getTagParamsFromString(
       paramStr,
       'noteTypes',
       ['note', 'calendar'],
