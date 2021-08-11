@@ -177,7 +177,7 @@ function getConfig(pluginPath) {
       file: path.join(pluginPath, 'script.js'),
       format: 'iife',
       name: 'exports',
-      footer: 'Object.assign(globalThis, exports)',
+      footer: 'Object.assign(globalThis || this, exports)',
     },
     plugins: [
       babel({ babelHelpers: 'bundled' }),
