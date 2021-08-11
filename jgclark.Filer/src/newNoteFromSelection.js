@@ -106,8 +106,10 @@ export async function newNoteFromSelection() {
     }
   } else {
     console.log('\tNo text was selected, so nothing to do.')
-    showMessage('No text was selected, so nothing to do.', "OK, I'll try again!")
+    showMessage(
+      'No text was selected, so nothing to do.',
+      "OK, I'll try again!",
+    )
   }
   console.log('newNoteFromSelection (finished)')
 }
-globalThis.newNoteFromSelection = newNoteFromSelection
