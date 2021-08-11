@@ -162,7 +162,7 @@ export async function listDaysEvents(paramString?: string): Promise<string> {
       lastEventStr = thisEventStr
     }
   }
-  if (pref_eventsHeading !== '' && includeHeadings !== false) {
+  if (pref_eventsHeading !== '' && includeHeadings) {
     outputArray.unshift(pref_eventsHeading)
   }
   const output = outputArray.join('\n') // If this the array is empty -> empty string
