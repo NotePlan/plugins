@@ -16,6 +16,7 @@ Alternatively, in the `Templates/_configuration` note include the following sett
   events: {
     addEventID: false,  // whether to add an [[event:ID]] internal link when creating an event from a time block
     processedTagName: "#event_created",   // optional tag to add after making a time block an event
+    confirmEventCreation: false, // optional tag to indicate whether to ask user to confirm each event to be created
     removeTimeBlocksWhenProcessed: true,  // whether to remove time block after making an event from it
     eventsHeading: "### Events today",  // optional heading to put before list of today's events
     addMatchingEvents: {   // match events with string on left, and then the string on the right is the template for how to insert this event (see README for details)
@@ -30,7 +31,8 @@ Alternatively, in the `Templates/_configuration` note include the following sett
 
 **Notes**:
 - addEventID: whether to add an `[[event:ID]]` internal link when creating an event from a time block. This returns rather long strings (e.g. `[[event:287B39C1-4D0A-46DC-BD72-84D79167EFDF]]`) and so you might want to use a theme option to shorten them until needed.
-- processedTag: if this is set, then this tag will get added on the end of the line with the time block, to show that it has been processed. Otherwise, next time this command is run, it will create another event. This can be used with or without addEventID.
+- processedTagName: if this is set, then this tag will get added on the end of the line with the time block, to show that it has been processed. Otherwise, next time this command is run, it will create another event. This can be used with or without addEventID.
+- confirmEventCreation: optional boolean tag to indicate whether to ask user to confirm each event to be created
 - removeTimeBlocksWhenProcessed: in `time blocks...` whether to remove time block after making an event from it
 - todaysEventsHeading: in `/insert today's events as list` the heading to put before the list of today's events. Optional.
 - addMatchingEvents: for `/add matching events` is a set of pairs of strings. The first string is what is matched for in an event's title. If it does match the second string is used as the template for how to insert the event details at the cursor.  This uses the same `TITLE`, `START` and `END` template items below ...
