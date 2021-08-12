@@ -31,11 +31,17 @@ More instructions below:
 
 ### Developer Automation Commands
 
-These are the two most common commands you will use while developing:
+These are the most common commands you will use while developing:
 
 1. **`npm run autowatch` from the root of your local GitHub `NotePlan/plugins` repo and your multi-file JS plugins will be compiled for you, and optionally be copied to your running NotePlan instance for testing**.  Not only that but it will then continue to _watch_ the folder and re-compile every time you save changes to a code file. NB: by default, this command will rebuild _all_ plugins just in case shared files affect another plugin. If you want to focus autowatch on a subset of plugins, you can pass the plugin folder name to autowatch like so:
 
-- `npm run autowatch jgclark.DailyJournal dwertheimer.TaskAutomations`
+- `npm run autowatch dwertheimer.TaskAutomations`
+
+Note: by default, for compatibility with older Macs, the plugins are transpiled into ES5 Javascript before they are copied to the Plugins folder. This works great, but if you want to try to debug in the Javascript debugger, the transpiled code won't match your code. So for Javascript debugging purposes, use this command instead:
+
+- `npm run autowatch dwertheimer.TaskAutomations -- -debug`
+
+Then, when you are done debugging, build the plugin properly for release using the non-debug version above.
 
 2. **`npm run release "<plugin folder name>"`** (e.g. `npm run release "jgclark.DailyJournal"`) which will do all the work necessary to create/update a release in GitHub for the plugin. This will then automatically be available to all NotePlan users from the Plugins preference pane.
 

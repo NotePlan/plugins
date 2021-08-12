@@ -1,4 +1,5 @@
 'use strict'
+// @flow
 
 const fs = require('fs/promises')
 const os = require('os')
@@ -23,8 +24,8 @@ async function fileExists(fullPath) {
   }
 }
 
-async function getFolderFromCommandLine(rootFolderPath) {
-  const args = process.argv.slice(2)
+async function getFolderFromCommandLine(rootFolderPath, args) {
+  // const args = process.argv.slice(2)
   const limitToFolders = []
   if (args.length) {
     console.log(`[Shared] Script will be limited to: ${JSON.stringify(args)}`)

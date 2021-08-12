@@ -1,7 +1,7 @@
 //--------------------------------------------------------------------------------------------------------------------
 // Daily Journal plugin for NotePlan
 // Jonathan Clark
-// v0.7.0, 6.8.2021
+// v0.7.0, 12.8.2021
 //--------------------------------------------------------------------------------------------------------------------
 
 import {
@@ -10,7 +10,7 @@ import {
 import {
   getOrMakeConfigurationSection,
 } from '../../nmn.Templates/src/configuration'
-import { applyNamedTemplateTitle } from '../../nmn.Templates/src/index'
+import { applyNamedTemplate } from '../../nmn.Templates/src/index'
 
 
 //--------------------------------------------------------------------------------------------------------------------
@@ -48,7 +48,7 @@ export async function dayStart() {
   // open today's date in the main window, and read content
   // await Editor.openNoteByDate(new Date(), false)
   // apply daily template, using Template system
-  await applyNamedTemplateTitle(pref_templateTitle)
+  await applyNamedTemplate(pref_templateTitle)
 }
 
 //------------------------------------------------------------------
