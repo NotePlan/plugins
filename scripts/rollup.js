@@ -33,11 +33,11 @@ program.parse(process.argv)
 const options = program.opts()
 const DEBUGGING = options.debug | false
 
-if (DEBUGGING)
+if (DEBUGGING) {
   console.log(
     `Running in DEBUG mode for purposes of seeing the Javascript script.js code exactly as it appears in your editor. This means no cleaning and no transpiling. Good for debugging, but bad for deployment to older machines. Make sure you run the autowatch command without the -debug flag before you release!\n`,
   )
-
+}
 let watcher
 
 /**
@@ -171,13 +171,13 @@ async function main() {
           .slice(
             0,
             16,
-          )} "${pluginFolder}"\n                 Built and copied to the "Plugins" folder. \n`
+          )} "${pluginFolder}"\n     Built and copied to the "Plugins" folder. \n`
         if (DEBUGGING) {
-          msg += `                 Built in DEBUG mode. Not ready to deploy.`
+          msg += `     Built in DEBUG mode. Not ready to deploy.`
         } else {
-          msg += `                 To debug this plugin without transpiling use: ${`npm run autowatch "${pluginFolder}" -- -debug`}\n\
-                 To release this plugin, update the changelog.md and run:\
-            \n${`                    npm run release "${pluginFolder}"`}`
+          msg += `     To debug this plugin without transpiling use: ${`npm run autowatch "${pluginFolder}" -- -debug`}\n\
+     To release this plugin, update the changelog.md and run:\
+            \n${`        npm run release "${pluginFolder}"`}`
         }
         console.log(msg)
       } else {
