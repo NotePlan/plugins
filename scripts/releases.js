@@ -4,6 +4,7 @@ const TEST = false // when set to true, doesn't actually create or delete anythi
 // $FlowIgnore
 const fs = require('fs/promises')
 const path = require('path')
+const { program } = require('commander')
 const {
   getFolderFromCommandLine,
   runShellCommand,
@@ -11,6 +12,15 @@ const {
   fileExists,
   getCopyTargetPath,
 } = require('./shared')
+
+// Command line options
+program.option(
+  '-d, --debug',
+  'Rollup: allow for better JS debugging - no minification or transpiling',
+)
+program.parse(process.argv)
+const options = program.opts()
+const DEBUGGING = options.debug | false
 
 const installInstructions = `
 In order to create a release on the Noteplan github server (so the entire community can see your plugin), you need to have the proper permissions on the github repository from @eduardme. So get that sorted out before moving any further. More than likely, you'll simply want to create a Pull Request for your plugin code to the Noteplan repository and get it reviewed so someone can create a release to get it out to the community.
@@ -302,7 +312,10 @@ async function main() {
   const rootFolderDirs = await fs.readdir(rootFolderPath, {
     withFileTypes: true,
   })
-  const limitToFolders = await getFolderFromCommandLine(rootFolderPath)
+  const limitToFolders = await getFolderFromCommandLine(
+    rootFolderPath,
+    program.args,
+  )
   if (limitToFolders.length === 1) {
     const pluginName = limitToFolders[0]
     const pluginFullPath = path.join(rootFolderPath, pluginName)
