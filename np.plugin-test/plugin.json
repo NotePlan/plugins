@@ -6,7 +6,7 @@
   "plugin.name": "🔌 Plugin Tester", 
   "plugin.description": "The most basic plugin ever. Designed to test if your plugins are working.", 
   "plugin.author": "@dwertheimer",
-  "plugin.version": "1.1.1", 
+  "plugin.version": "1.1.2", 
   "plugin.dependencies": [ ], 
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/np.plugin-test/README.md",
