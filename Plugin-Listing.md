@@ -54,3 +54,4 @@
 | `tsp` | Shows task statistics for project notes | 🔢 Note Statistics |
 | `tst` | Tasks Sort by #Tag - Sort tasks on the page by hashtag | ✅ Task Automations |
 | `wc` | Shows word count and other numbers for the note | 🔢 Note Statistics |
+| `🔌 Plugin Tester` | Simple plugin test to check that plugins are working for you | 🔌 Plugin Tester |
