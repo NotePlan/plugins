@@ -201,7 +201,8 @@ function getConfig(pluginPath) {
       file: path.join(pluginPath, 'script.js'),
       format: 'iife',
       name: 'exports',
-      footer: 'Object.assign(globalThis || this, exports)',
+      footer:
+        'Object.assign(typeof(globalThis) == "undefined" ? this : globalThis, exports)',
     },
     plugins: DEBUGGING
       ? [

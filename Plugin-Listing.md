@@ -2,6 +2,8 @@
 
 | Command Name | Description | Plugin |
 | --- | --- | --- |
+| `add project` | add a new note representing a project, asking for its metadata | 🔬Reviews |
+| `apply template` | Choose a Template to apply (append) to the current Note | 🔩 Templates |
 | `complete project` | add @completed(today) date to the open project | 🔬Reviews |
 | `date` | Insert date (without time) at cursor | 📅 Date Automations |
 | `dayReview` | Ask journal questions for an end-of-day review (requires configuring) | ☀️ Daily Journal |
@@ -12,9 +14,9 @@
 | `index` | Make/Update note link Indexes for one or more folders | 📙 Note Helpers |
 | `insert day's events as list` | insert list of this day's calendar events at cursor | 🕓 Event Helpers |
 | `insert matching events` | inserts this day's calendar events matching certain patterns at cursor | 🕓 Event Helpers |
+| `insert template` | Choose a Template to insert into the current Note | 🔩 Templates |
 | `int` | Quickly add a task to your '📥 Inbox' note | ⚡️ Quick Capture |
 | `iso` | Insert date+time (in ISO format) at cursor | 📅 Date Automations |
-| `it` | Choose a Template to apply to an existing Note | 🔩 Templates |
 | `jd` | Jump to the '## Done' section. (Currently only works in main window) | 📙 Note Helpers |
 | `jh` | Jumps to the heading that the user selects. (Currently only works in main window) | 📙 Note Helpers |
 | `jn` | Jump to a different note, and then selected heading. (Currently only works in main window) | 📙 Note Helpers |
@@ -24,8 +26,8 @@
 | `mn` | Moves the currently opened (non-calendar) note to a folder you select | 📙 Note Helpers |
 | `mp` | move (file) paragraphs to different notes | 🗃 Filer |
 | `nc` | Counts of all the notes in NotePlan | 🔢 Note Statistics |
+| `new note` | Create new note with title, in chosen folder with optional template | 🔩 Templates |
 | `next project review` | updates this project's @reviewed() date, and jump to next project to review | 🔬Reviews |
-| `nn` | Create new note with title, in chosen folder with optional template | 🔩 Templates |
 | `nns` | New note from selection (and leave link to it in its place) | 🗃 Filer |
 | `now` | Insert (human readable) date+time at cursor | 📅 Date Automations |
 | `now - ISO-8601 standard` | Insert ISO-8601 date+time at cursor (e.g. 2021-08-06 17:20:11) | 📅 Date Automations |
@@ -52,3 +54,4 @@
 | `tsp` | Shows task statistics for project notes | 🔢 Note Statistics |
 | `tst` | Tasks Sort by #Tag - Sort tasks on the page by hashtag | ✅ Task Automations |
 | `wc` | Shows word count and other numbers for the note | 🔢 Note Statistics |
+| `🔌 Plugin Tester` | Simple plugin test to check that plugins are working for you | 🔌 Plugin Tester |
