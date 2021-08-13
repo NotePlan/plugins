@@ -144,13 +144,13 @@ export default async function sweepAll(
   //   msg: string,
   //   taskArray: Array<TParagraph>,
   // }
-  const processResult = (res, title) => {
+  const processResult = (res, _title) => {
     if (res.status === 'ok') {
       if (res.tasks) {
         count.files += 1
         count.tasks += res.tasks
       }
-      foundTasks = [...foundTasks, ...res.taskArray]
+      foundTasks = [...foundTasks, ...(res.taskArray ?? [])]
     } else {
       console.log(`Error: ${res.msg}`)
     }
