@@ -2,7 +2,10 @@ See Template Plugin [README](https://github.com/NotePlan/plugins/blob/main/nmn.T
 
 # What's Changed in this Plugin?
 
+### 0.8.0 Change to allow for limiting task sweeping to notes or calendars
+
 ### 0.7.1 Change name from nmn.templates to nmn.Templates (@dwertheimer)
+
 ### 0.6.1 Fix script crasher (@dwertheimer)
 
 ### 0.6.0 Lots of tweaks to make inserting templates more obvious (@dwertheimer)
