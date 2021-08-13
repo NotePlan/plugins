@@ -19,8 +19,8 @@ program.option(
   'Rollup: allow for better JS debugging - no minification or transpiling',
 )
 program.parse(process.argv)
-const options = program.opts()
-const DEBUGGING = options.debug | false
+// const options = program.opts() //see rollup.js for how to add command line options
+// const DEBUGGING = Boolean(options.debug) | false
 
 const installInstructions = `
 In order to create a release on the Noteplan github server (so the entire community can see your plugin), you need to have the proper permissions on the github repository from @eduardme. So get that sorted out before moving any further. More than likely, you'll simply want to create a Pull Request for your plugin code to the Noteplan repository and get it reviewed so someone can create a release to get it out to the community.
