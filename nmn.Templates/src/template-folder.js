@@ -123,7 +123,7 @@ This note provides a central location where you can configure various plugin opt
 - NotePlan plugin configuration uses JSON5 [JSON5 | JSON for Humans](https://json5.org/), which is a human-friendly superset of JSON, providing things such as comments, unquoted keys and other common patterns available in standard JavaScript objects.
 
 	*Note: Despite JSON5 enhancements, multi-line strings are not supported, therefore to include*
-	*them you need to use "\n" (new line) for line breaks rather than actual line breaks.*
+	*them you need to use "\\n" (new line) for line breaks rather than actual line breaks.*
 
 - Use the code block marked as \`javascript\` shown below to write your own custom custom configurations.
 
@@ -138,7 +138,7 @@ The configuration code blocks below are validated in **realtime** by NotePlan as
 **TIP:** If your configuration is invalid, you can copy/paste the configuration block to [JSON5 Validator Online - JSON5 lint Tool to validate JSON5 data](https://codebeautify.org/json5-validator) which will provide details about the error(s) in your code block, indicating which line(s) contain the error(s).
 
 ### Line Breaks
-If you have a quoted "string" which you want to have a line break, insert a "\n" where you want the line break, e.g., "This\nIs\nThreelines"
+If you have a quoted "string" which you want to have a line break, insert a "\\n" where you want the line break, e.g., "This\\nIs\\nThreelines"
 
 ### Reporting Plugin Issues
 Should you run into an issue with a NotePlan plugin, you can use one of the following methods (in order of priority)
