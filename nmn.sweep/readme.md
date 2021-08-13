@@ -17,3 +17,5 @@ or
 If you want to limit the sweepTask command in your templates you can use the `noteTypes` option to cherry pick which
 kind of types should be sweeped. If you only want calendar notes you can use:
 `{{sweepTasks({limit:{ "unit": "day", "num": 3 }, includeHeadings: false, noteTypes: ['calendar'] })}}`
+or to limit task sweeping to project notes (no calendar notes)
+`{{sweepTasks({limit:{ "unit": "day", "num": 3 }, includeHeadings: false, noteTypes: ['note'] })}}`
