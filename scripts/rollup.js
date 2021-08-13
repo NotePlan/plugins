@@ -8,6 +8,7 @@ const { babel } = require('@rollup/plugin-babel')
 const { terser } = require('rollup-plugin-terser')
 const resolve = require('@rollup/plugin-node-resolve').default
 const mkdirp = require('mkdirp')
+const { program } = require('commander')
 const createPluginListing = require('./createPluginListing')
 const {
   getFolderFromCommandLine,
@@ -23,6 +24,20 @@ const FOLDERS_TO_IGNORE = [
 ]
 const rootFolderPath = path.join(__dirname, '..')
 
+// Command line options
+program.option(
+  '-d, --debug',
+  'Rollup: allow for better JS debugging - no minification or transpiling',
+)
+program.parse(process.argv)
+const options = program.opts()
+const DEBUGGING = options.debug | false
+
+if (DEBUGGING) {
+  console.log(
+    `Running in DEBUG mode for purposes of seeing the Javascript script.js code exactly as it appears in your editor. This means no cleaning and no transpiling. Good for debugging, but bad for deployment to older machines. Make sure you run the autowatch command without the -debug flag before you release!\n`,
+  )
+}
 let watcher
 
 /**
@@ -70,7 +85,12 @@ async function checkPluginList(pluginPaths) {
 }
 
 async function main() {
-  const limitToFolders = await getFolderFromCommandLine(rootFolderPath)
+  // const args = getArgs()
+
+  const limitToFolders = await getFolderFromCommandLine(
+    rootFolderPath,
+    program.args,
+  )
   if (limitToFolders.length) {
     console.log(
       `\nWARNING: Keep in mind that if you are editing shared files used by other plugins that you could be affecting them by not rebuilding/testing them all here. You have been warned. :)\n`,
@@ -146,16 +166,20 @@ async function main() {
         const pluginFolder = outputFolder
           .replace(rootFolderPath, '')
           .substring(1)
-        console.log(
-          `${new Date()
-            .toISOString()
-            .slice(
-              0,
-              16,
-            )} "${pluginFolder}"\n                 Built and copied to the "Plugins" folder. \n\
-                 To release this plugin, update the changelog.md and run:\
-            \n${`                 npm run release "${pluginFolder}"`}`,
-        )
+        let msg = `${new Date()
+          .toISOString()
+          .slice(
+            0,
+            16,
+          )} "${pluginFolder}"\n     Built and copied to the "Plugins" folder. \n`
+        if (DEBUGGING) {
+          msg += `     Built in DEBUG mode. Not ready to deploy.`
+        } else {
+          msg += `     To debug this plugin without transpiling use: ${`npm run autowatch "${pluginFolder}" -- -debug`}\n\
+     To release this plugin, update the changelog.md and run:\
+            \n${`        npm run release "${pluginFolder}"`}`
+        }
+        console.log(msg)
       } else {
         console.log(`Generated "${outputFile.replace(rootFolder, '')}"`)
       }
@@ -177,24 +201,33 @@ function getConfig(pluginPath) {
       file: path.join(pluginPath, 'script.js'),
       format: 'iife',
       name: 'exports',
-      footer: 'Object.assign(globalThis, exports)',
+      footer:
+        'Object.assign(typeof(globalThis) == "undefined" ? this : globalThis, exports)',
     },
-    plugins: [
-      babel({ babelHelpers: 'bundled' }),
-      commonjs(),
-      resolve({
-        browser: false,
-      }),
-      terser({
-        compress: false,
-        mangle: false,
-        output: {
-          comments: false,
-          beautify: true,
-          indent_level: 2,
-        },
-      }),
-    ],
+    plugins: DEBUGGING
+      ? [
+          babel({
+            presets: ['@babel/flow'],
+            babelHelpers: 'bundled',
+            babelrc: false,
+          }),
+        ]
+      : [
+          babel({ babelHelpers: 'bundled' }),
+          commonjs(),
+          resolve({
+            browser: false,
+          }),
+          terser({
+            compress: false,
+            mangle: false,
+            output: {
+              comments: false,
+              beautify: true,
+              indent_level: 2,
+            },
+          }),
+        ],
     context: 'this',
   }
 }

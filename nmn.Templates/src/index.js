@@ -57,12 +57,12 @@ async function getProcessedTemplate(templateTitle: string): Promise<string> {
  * @author @nmn, split into two funcs by @jgclark
  * @param {string} templateTitle - name of an existing template to append to the current note
  */
-export async function applyNamedTemplateTitle(templateTitle: string) {
+export async function applyNamedTemplate(templateTitle: string) {
   if (Editor == null) {
     await showMessage('Please run again with a note open in the editor')
     return
   }
-  console.log(`applyNamedTemplateTitle: for template '${templateTitle}'`)
+  console.log(`applyNamedTemplate: for template '${templateTitle}'`)
 
   const processedTemplateContent = await getProcessedTemplate(templateTitle)
 
@@ -174,6 +174,30 @@ export async function insertTemplate() {
   }
 
   const processedTemplateContent = await getProcessedTemplate(templateTitle)
+  Editor.insertTextAtCursor(processedTemplateContent)
+}
+
+/** 
+ * Insert a Template (chosen by user from list) at the cursor position
+ * @author @jgclark, based on @nmn original
+ * @param {string} templateTitle - name of an existing template to append to the current note
+ */
+export async function insertNamedTemplate(templateTitle: string):
+  Promise<void> {
+  if (Editor == null) {
+    await showMessage('Please run again with a note open in the editor')
+    return
+  }
+  console.log(`insertNamedTemplateTitle: for template '${templateTitle}'`)
+
+  const processedTemplateContent = await getProcessedTemplate(templateTitle)
+
+  if (templateTitle == null) {
+    console.log(`insertTemplate: error: can't get template title`)
+    await showMessage(`Oops: can't get template title`)
+    return
+  }
+
   Editor.insertTextAtCursor(processedTemplateContent)
 }
 

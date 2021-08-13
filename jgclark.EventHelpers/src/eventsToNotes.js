@@ -10,7 +10,7 @@ import {
   toLocaleShortTime,
   stringReplace,
   getTagParams,
-  getTagParamsFromString,
+  // getTagParamsFromString,
   dateStringFromCalendarFilename,
 } from '../../helperFunctions'
 
@@ -118,11 +118,10 @@ export async function listDaysEvents(paramString?: string): Promise<string> {
     paramString != null && paramString !== ''
       ? getTagParams(paramString, 'allday_template')
       : ''
-  const includeHeadings: boolean = await getTagParamsFromString(
-    paramString,
-    'includeHeadings',
-    true,
-  )
+  const includeHeadings =
+    paramString != null && paramString !== ''
+      ? getTagParams(paramString, 'includeHeaings')
+      : true
   template = template === '' ? '- *|TITLE|* (*|START|*)' : template
   allday = allday === '' ? '- *|TITLE|*' : allday
 
