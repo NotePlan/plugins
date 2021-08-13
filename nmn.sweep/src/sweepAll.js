@@ -10,6 +10,8 @@ type Option1 = $ReadOnly<{
   unit: 'day' | 'month' | 'year',
 }>
 
+type NoteTypes = 'calendar' | 'note'
+
 const OPTIONS = [
   { label: '7 days', value: { num: 7, unit: 'day' } },
   { label: '14 days', value: { num: 14, unit: 'day' } },
@@ -44,10 +46,18 @@ export async function sweepTemplate(paramStr: string): Promise<string> {
       'includeHeadings',
       false,
     )
+    const noteTypes: NoteTypes[] = await getTagParamsFromString(
+      paramStr,
+      'noteTypes',
+      ['note', 'calendar'],
+    )
+
     console.log(
       `Running template command sweepAll with params: limit=${JSON.stringify(
         limit,
-      )} includeHeadings=${String(includeHeadings)}`,
+      )} includeHeadings=${String(includeHeadings)} noteTypes=${JSON.stringify(
+        noteTypes,
+      )}`,
     )
     // let paramObj
     // try {
@@ -56,7 +66,9 @@ export async function sweepTemplate(paramStr: string): Promise<string> {
     //   console.log(`Error: ${e}`)
     //   return `Could not parse template parameter: ${paramStr}. Check the documentation. Error: ${e}`
     // }
-    return String(await sweepAll(false, false, limit, true, includeHeadings))
+    return String(
+      await sweepAll(false, false, limit, true, includeHeadings, noteTypes),
+    )
   }
 }
 
@@ -68,7 +80,7 @@ export async function sweepTemplate(paramStr: string): Promise<string> {
  * 3. Add option to change target date from "Today" to something you can choose
  *  */
 /**
- * returnValue is true if you should retur the value (string) for insertion rather than putting in the note directly
+ * returnValue is true if you should return the value (string) for insertion rather than putting in the note directly
  */
 export default async function sweepAll(
   overdueOnly: boolean = false,
@@ -76,6 +88,7 @@ export default async function sweepAll(
   periodToCheck: Option1 = DEFAULT_OPTION,
   returnValue: boolean = false,
   includeHeadings: boolean = false,
+  noteTypes: NoteTypes[] = ['calendar', 'note'],
 ): Promise<void | string> {
   let { unit, num } = periodToCheck
   let foundTasks: Array<TParagraph> = []
@@ -84,7 +97,9 @@ export default async function sweepAll(
       overdueOnly,
     )} requireUserAction:${String(
       requireUserAction,
-    )} periodToCheck:${JSON.stringify(periodToCheck)} returnValue:${String(
+    )} periodToCheck:${JSON.stringify(
+      periodToCheck,
+    )} noteTypes: ${JSON.stringify(noteTypes)} returnValue:${String(
       returnValue,
     )}`,
   )
@@ -139,6 +154,7 @@ export default async function sweepAll(
     } else {
       console.log(`Error: ${res.msg}`)
     }
+
     // console.log(
     //   `[${String(title)}]: ${JSON.stringify(res)}; total foundTasks is now:${
     //     foundTasks.length
@@ -155,11 +171,12 @@ export default async function sweepAll(
     )
   }
 
+  const includeProjectNotes =
+    noteTypes.includes('note') ||
+    (withUserConfirm && typeof res.index !== 'undefined' && res.index === 0)
+
   // Narrow project note search to notes edited in last N days
-  if (
-    !withUserConfirm ||
-    (typeof res.index !== 'undefined' && res.index === 0)
-  ) {
+  if (includeProjectNotes) {
     const recentProjNotes = DataStore.projectNotes.filter(
       (note) => note.changedDate >= afterDate,
     )
@@ -180,17 +197,19 @@ export default async function sweepAll(
   }
 
   //  CALENDAR NOTES
-
   if (withUserConfirm) {
     res = await CommandBar.showOptions(
       ['✅ OK', '❌ Skip'],
       `Done. Now Scan Daily Calendar Notes 🗓?`,
     )
   }
-  if (
-    !withUserConfirm ||
-    (typeof res.index !== 'undefined' && res.index === 0)
-  ) {
+
+  // Resolve whether calendar notes task sweeping is requested
+  const includeCalendarNotes =
+    noteTypes.includes('calendar') ||
+    (withUserConfirm && typeof res.index !== 'undefined' && res.index === 0)
+
+  if (includeCalendarNotes) {
     const todayFileName = filenameDateString(new Date())
     const recentCalNotes = DataStore.calendarNotes.filter(
       (note) =>
