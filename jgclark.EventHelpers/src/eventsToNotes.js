@@ -10,7 +10,7 @@ import {
   toLocaleShortTime,
   stringReplace,
   getTagParams,
-  getTagParamsFromString,
+  // getTagParamsFromString,
   dateStringFromCalendarFilename,
 } from '../../helperFunctions'
 

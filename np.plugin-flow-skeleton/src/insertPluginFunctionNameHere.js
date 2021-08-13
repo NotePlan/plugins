@@ -4,7 +4,7 @@
 // export default async function [name of the function called by Noteplan]
 // Type checking reference: https://flow.org/
 // Specific how-to re: Noteplan: https://github.com/NotePlan/plugins/blob/main/Flow_Guide.md
-export async function insertPluginFunctionNameHere(): Promise<void> {
+export default async function insertPluginFunctionNameHere(): Promise<void> {
   // write code here
   console.log(
     `Hello World. This text shows up in the Noteplan > Help > Plugin Console`,
