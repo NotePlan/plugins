@@ -81,21 +81,19 @@ export async function chooseFolder(msg: string): Promise<string> {
           folderParts[folderParts.length - 1]
         }`
         const folderLabel = folderParts.join('')
-        console.log(folderLabel)
+        // console.log(folderLabel)
         folderOptionList.push({ label: folderLabel, value: f })
       } else {
         // deal with special case for root folder
         folderOptionList.push({ label: '📁 /', value: '/' })
       }
     }
-    // const re = await CommandBar.showOptions(folders, msg)
-    const re = await chooseOption(msg, folderOptionList, '/')
-    folder = re
+    folder = await chooseOption(msg, folderOptionList, '/')
   } else {
     // no Folders so go to root
     folder = '/'
   }
-  console.log(`\tfolder=${folder}`)
+  console.log(`chooseFolder -> ${folder}`)
   return folder
 }
 
