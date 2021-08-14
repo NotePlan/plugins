@@ -1,6 +1,11 @@
 // @flow
 
-import { getInput } from '../../nmn.sweep/src/userInput'
+import {
+  getInput,
+  askForFutureISODate,
+  datePicker,
+  askDateInterval,
+} from '../../helperFunctions/userInput'
 import {
   listDaysEvents,
   listMatchingDaysEvents,
@@ -19,6 +24,8 @@ const tagList: Array<TagListType> = []
  * and returns a string for insertion
  */
 addTag('date', processDate, true)
+addTag('pickDate', datePicker, true)
+addTag('pickDateInterval', askDateInterval, true)
 addTag('weather', getWeatherSummary)
 addTag('events', listDaysEvents)
 addTag('listTodaysEvents', listDaysEvents)
