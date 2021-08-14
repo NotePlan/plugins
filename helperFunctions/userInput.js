@@ -2,10 +2,11 @@
 //--------------------------------------------------------------------------------------------------------------------
 // Specialised user input functions
 // @jgclark, @nmn
-// Last updated 11.8.2021
+// Last updated 13.8.2021
 //--------------------------------------------------------------------------------------------------------------------
 
-import { RE_DATE } from '../helperFunctions'
+import { RE_DATE, RE_DATE_INTERVAL } from '../helperFunctions/dateFunctions'
+import { parseJSON5 } from '../nmn.Templates/src/configuration'
 
 // (from @nmn / nmn.sweep)
 export type Option<T> = $ReadOnly<{
@@ -83,7 +84,7 @@ export async function chooseFolder(msg: string): Promise<string> {
           folderParts[folderParts.length - 1]
         }`
         const folderLabel = folderParts.join('')
-        console.log(folderLabel)
+        // console.log(folderLabel)
         folderOptionList.push({ label: folderLabel, value: f })
       } else {
         // deal with special case for root folder
@@ -91,22 +92,90 @@ export async function chooseFolder(msg: string): Promise<string> {
       }
     }
     // const re = await CommandBar.showOptions(folders, msg)
-    const re = await chooseOption(msg, folderOptionList, '/')
-    folder = re
+    folder = await chooseOption(msg, folderOptionList, '/')
   } else {
     // no Folders so go to root
     folder = '/'
   }
-  console.log(`\tfolder=${folder}`)
+  console.log(`chooseFolder -> ${folder}`)
   return folder
 }
 
-// ask for a date from user
+/**
+ * ask for a date interval from user
+ * @author @jgclark
+ * @param {string} question - string to put in the command bar
+ * @return {string} - the returned interval string, or empty if an invalid string given
+ */
+export async function askDateInterval(question: string): Promise<string> {
+  const reply = await CommandBar.showInput(question, `Date interval: %@`) ?? ''
+  const reply2 = reply.trim()
+  if (!reply2.match(RE_DATE_INTERVAL)) {  // TODO: need to TEST this
+    await showMessage(`Sorry: ${reply2} is not a valid date interval`, `OK, I'll try again`)
+    return ''
+  }
+  return reply2
+}
+
+/**
+ * ask for a date from user (very simple: they need to enter an ISO date)
+ * @author @jgclark
+ * @param {string} question - string to put in the command bar
+ * @return {string} - the returned ISO date as a string, or empty if an invalid string given
+ */
 // NB: in time @EduardMe should produce a native API call that can improve this
 export async function askForFutureISODate(question: string): Promise<string> {
   const reply = await CommandBar.showInput(question, `Date: %@`) ?? ''
   const reply2 = reply.replace('>', '').trim() // remove leading '>' and trim
-  if (!reply2.match(RE_DATE)) {
+  if (!reply2.match(RE_DATE)) { // TODO: TEST this more
+    await showMessage(`Sorry: ${reply2} is not a date of form YYYY-MM-DD`, `OK, I'll try again`)
+    return ''
+  }
+  return reply2
+}
+
+/**
+ * ask for a date from user (very simple: they need to enter an ISO date)
+ * @author @jgclark, based on @nmn code
+ * @param {string} dateParams - string included in the template tag
+ * @param {[string]: ?mixed} config - relevant settings from _configuration note
+ * @return {string} - the returned ISO date as a string, or empty if an invalid string given
+ */
+export async function datePicker(
+  dateParams: string,
+  config: { [string]: ?mixed },
+): Promise<string> {
+  // console.log(`processDate: ${dateConfig}`)
+  const defaultConfig = config.date ?? {}
+  const dateParamsTrimmed = dateParams.trim()
+  const paramConfig =
+    dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}')
+      ? await parseJSON5(dateParams)
+      : dateParamsTrimmed !== ''
+        ? await parseJSON5(`{${dateParams}}`)
+        : {}
+  console.log(`param config: ${dateParams} as ${JSON.stringify(paramConfig)}`);
+  // ... = "gather the remaining parameters into an array"
+  const allSettings: { [string]: mixed } = {
+    ...defaultConfig,
+    ...paramConfig,
+  }
+  console.log(allSettings.toString())
+  // Grab just locale parameter
+  // const { locale, ...otherParams } = (allSettings: any)
+  // grab just question parameter
+  const { question, ...otherParams } = (allSettings: any)
+  console.log(question)
+  // const localeParam = locale != null ? String(locale) : []
+  // const secondParam = {
+  //   dateStyle: 'short',
+  //   ...otherParams,
+  // }
+  // console.log(`${JSON.stringify(localeParam)}, ${JSON.stringify(secondParam)}`);
+  // return new Intl.DateTimeFormat(localeParam, secondParam).format(new Date())
+  const reply = await CommandBar.showInput(question, `Date: %@`) ?? ''
+  const reply2 = reply.replace('>', '').trim() // remove leading '>' and trim
+  if (!reply2.match(RE_DATE)) { // TODO: TEST this more
     await showMessage(`Sorry: ${reply2} is not a date of form YYYY-MM-DD`, `OK, I'll try again`)
     return ''
   }
