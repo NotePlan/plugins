@@ -7,7 +7,7 @@ This plugin provides commands to help work with Calendars and Events:
 - `/time blocks to calendar`: takes [NotePlan-defined time blocks](https://help.noteplan.co/article/52-part-2-tasks-events-and-reminders#timeblocking) and converts to full Calendar events, in your current default calendar, as set by iCal.
 
 ## Configuration
-These commands require configuration; the first time they're run they should detect they don't have configuration, and offer to write some to the first configuration block of the `Templates/_configuration` note (as used by the Templates system). 
+These commands require configuration; the first time they're run they should detect they don't have configuration, and offer to write some to the first configuration block of the `Templates/_configuration` note (as used by the Templates system).
 
 Alternatively, in the `Templates/_configuration` note include the following settings you want in the note's first configuration block:
 
@@ -38,7 +38,11 @@ Alternatively, in the `Templates/_configuration` note include the following sett
 - addMatchingEvents: for `/add matching events` is a set of pairs of strings. The first string is what is matched for in an event's title. If it does match the second string is used as the template for how to insert the event details at the cursor.  This uses the same `TITLE`, `START` and `END` template items below ...
 
 ### Using Event Lists from a Template
-If you use Templates, this command can be called when a Template is inserted (including in the `/day start` command which applies your `Daily Note Template` file). To do this insert `{{events()}}` wherever you wish it to appear in the Template.  By default it gives a simple markdown list of event title and start time.  To **customise the list display**, you can add a `'template:"..."'` parameter to the `{{events()}}` template command that sets how to present the list, and a separate template for items with no start/end times (`'allday_template:"..."`). For example:
+If you use Templates, this command can be called when a Template is inserted (including in the `/day start` command which applies your `Daily Note Template` file). To do this insert `{{events()}}` wherever you wish it to appear in the Template.  By default it gives a simple markdown list of event title and start time.  To **customise the list display**, you can add a `'template:"..."'` parameter to the `{{events()}}` template command that sets how to present the list, and a separate template for items with no start/end times (`'allday_template:"..."`).
+
+If you want you can disable the adding of the heading by applying the `includeHeadings`-flag and set it to `false`.
+
+For example:
 
 ```javascript
   {{events({template:"### START-END: TITLE",allday_template:"### TITLE"})}}

@@ -18,8 +18,8 @@ const pref_addDateBacklink = true
 
 // -----------------------------------------------------------------------------
 
-// FIXME: If I use /mp to move a Todo from a Daily Notes page to a project note, 
-// all the Todos on the Daily Notes page convert to Bullets(Unordered List) after the 
+// FIXME: If I use /mp to move a Todo from a Daily Notes page to a project note,
+// all the Todos on the Daily Notes page convert to Bullets(Unordered List) after the
 // target is moved to the project note.Please advise. [NotePlan 3.0.23(637), macOS 11.4]
 
 // TODO: Add proper configuration for the one setting above

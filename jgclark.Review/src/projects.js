@@ -9,7 +9,12 @@
 //-----------------------------------------------------------------------------
 // Import Helper functions
 import {
-  showMessage,
+  // applyNamedTemplate,
+  insertNamedTemplate,
+} from '../../nmn.Templates/src/index'
+
+import {
+  // showMessage,
   hyphenatedDate,
   // showMessageYesNo,
   // nowLocaleDateTime,
@@ -29,8 +34,12 @@ import {
 //-------------------------------------------------------------------------------
 // Create a new project
 export async function addProject(): Promise<void> {
-  await showMessage(`This function is not yet implemented.`)
-  // TODO: WAITING until Eduard adds a date picker
+  
+  // NB: WAITING: Update when @EduardMe adds a native date picker
+  console.log(`\naddProject (very basic version):`)
+
+  // Simply apply daily template, using Template system
+  await insertNamedTemplate('New Project Template')
 }
 
 //-------------------------------------------------------------------------------

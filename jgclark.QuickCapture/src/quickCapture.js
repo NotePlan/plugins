@@ -2,7 +2,7 @@
 // --------------------------------------------------------------------------------------------------------------------
 // QuickCapture plugin for NotePlan
 // Jonathan Clark
-// v0.4.6, 29.7.2021
+// v0.4.7, 11.8.2021
 // --------------------------------------------------------------------------------------------------------------------
 
 import {
@@ -21,6 +21,10 @@ import {
   calendarNotesSortedByChanged,
   projectNotesSortedByChanged,
 } from '../../helperFunctions'
+
+import {
+  askForFutureISODate,
+} from '../../helperFunctions/userInput'
 
 // ------------------------------------------------------------------
 
@@ -161,20 +165,29 @@ export async function prependTaskToDailyNote() {
 
 // ------------------------------------------------------------------
 // Quickly append a task to a daily note
-export async function appendTaskToDailyNote() {
+export async function appendTaskToDailyNote(): Promise<void> {
   // Ask for the task title
   const todoTitle = await CommandBar.showInput('Type the task', "Add task '%@'")
 
   // Then ask for the daily note we want to add the todo
-  const notes = calendarNotesSortedByChanged()
-  const res = await CommandBar.showOptions(
-    notes.map((n) => displayTitle(n)).filter(Boolean),
-    'Select daily note for new todo',
-  )
-  const note = notes[res.index]
+  const dateStr = await askForFutureISODate('Select daily note for new todo')
+  console.log(`got date ${dateStr}`)
+  const note = DataStore.calendarNoteByDateString(unhyphenateString(dateStr))
+  
+  // OLDER METHOD
+  // const notes = calendarNotesSortedByChanged()
+  // const res = await CommandBar.showOptions(
+  //   notes.map((n) => displayTitle(n)).filter(Boolean),
+  //   'Select daily note for new todo',
+  // )
+  // const note = notes[res.index]
 
-  console.log(`Appending task: ${todoTitle} to ${displayTitle(note)}`)
-  note.appendTodo(todoTitle)
+  if (note != null) {
+    console.log(`Appending task: ${todoTitle} to ${displayTitle(note)}`)
+    note.appendTodo(todoTitle)
+  } else {
+    console.log(`appendTaskToDailyNote: error: cannot get calendar note for ${dateStr}`)
+  }
 }
 
 // ------------------------------------------------------------------

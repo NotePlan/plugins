@@ -200,18 +200,18 @@ type TEditor = {
   * `text` is optional, if you define it, it will be shown below the loading indicator.
   * `progress` is also optional. If it's defined, the loading indicator will change into a progress ring. Use float numbers from 0-1 to define how much the ring is filled.
   * When you are done, call `showLoading(false)` to hide the window.
-  * @param {Bool} 
-  * @param {String?} 
-  * @param {Float?} 
+  * @param {Bool}
+  * @param {String?}
+  * @param {Float?}
   */
-  showLoading(visible: boolean, text?: string, progress?: number): void,
+  showLoading(visible: boolean, text?: ?string, progress?: number): void,
   /**
   * Note: Available from v3.0.26
-  * If you call this, anything after `await CommandBar.onAsyncThread()` will run on an asynchronous thread. 
-  * Use this together with `showLoading`, so that the work you do is not blocking the user interface. 
+  * If you call this, anything after `await CommandBar.onAsyncThread()` will run on an asynchronous thread.
+  * Use this together with `showLoading`, so that the work you do is not blocking the user interface.
   * Otherwise the loading window will be also blocked.
   *
-  * Warning: Don't use any user interface calls (other than showLoading) on an asynchronous thread. The app might crash. 
+  * Warning: Don't use any user interface calls (other than showLoading) on an asynchronous thread. The app might crash.
   * You need to return to the main thread before you change anything in the window (such as Editor functions do).
   * Use `onMainThread()` to return to the main thread.
   * @return {Promise}
@@ -219,8 +219,8 @@ type TEditor = {
   onAsyncThread(): Promise<void>,
   /**
   * Note: Available from v3.0.26
-  * If you call this, anything after `await CommandBar.onMainThread()` will run on the main thread. 
-  * Call this after `onAsyncThread`, once your background work is done. 
+  * If you call this, anything after `await CommandBar.onMainThread()` will run on the main thread.
+  * Call this after `onAsyncThread`, once your background work is done.
   * It is safe to call Editor and other user interface functions on the main thread.
   * @return {Promise}
   */
@@ -420,26 +420,26 @@ type TCommandBar = {
   * `text` is optional, if you define it, it will be shown below the loading indicator.
   * `progress` is also optional. If it's defined, the loading indicator will change into a progress ring. Use float numbers from 0-1 to define how much the ring is filled.
   * When you are done, call `showLoading(false)` to hide the window.
-  * @param {Bool} 
-  * @param {String?} 
-  * @param {Float?} 
+  * @param {Bool}
+  * @param {String?}
+  * @param {Float?}
   */
   showLoading(visible: boolean, text?: string, progress?: number): void,
   /**
   * Note: Available from v3.0.26
-  * If you call this, anything after `await CommandBar.onAsyncThread()` will run on an asynchronous thread. 
-  * Use this together with `showLoading`, so that the work you do is not blocking the user interface. 
+  * If you call this, anything after `await CommandBar.onAsyncThread()` will run on an asynchronous thread.
+  * Use this together with `showLoading`, so that the work you do is not blocking the user interface.
   * Otherwise the loading window will be also blocked.
   *
-  * Warning: Don't use any user interface calls (other than showLoading) on an asynchronous thread. The app might crash. 
+  * Warning: Don't use any user interface calls (other than showLoading) on an asynchronous thread. The app might crash.
   * You need to return to the main thread before you change anything in the window (such as Editor functions do).
   * Use `onMainThread()` to return to the main thread.
   */
-  onAsyncThread(): Promise <void>,    
+  onAsyncThread(): Promise <void>,
   /**
   * Note: Available from v3.0.26
-  * If you call this, anything after `await CommandBar.onMainThread()` will run on the main thread. 
-  * Call this after `onAsyncThread`, once your background work is done. 
+  * If you call this, anything after `await CommandBar.onMainThread()` will run on the main thread.
+  * Call this after `onAsyncThread`, once your background work is done.
   * It is safe to call Editor and other user interface functions on the main thread.
   */
   onMainThread(): Promise <void>,
@@ -532,49 +532,51 @@ type TCalendar = {
    * unit types using `dateUnits`.
    */
   unitsBetween(date1: Date, date2: Date, type: CalendarDateUnit): number,
-    
+
   /**
   * Note: Available from v3.0.25
   * Returns all events between the `startDate` and `endDate`. Use `filter` to search for specific events (keyword in the title).
   * This function fetches events asynchronously, so use async/await.
-  * @param {Date} 
-  * @param {Date} 
-  * @param {String?} 
+  * @param {Date}
+  * @param {Date}
+  * @param {String?}
   * @return {Promise}
   */
-  eventsBetween(startDate: Date,
+  eventsBetween(
+    startDate: Date,
     endDate: Date,
-    filter: ?string
+    filter?: ?string
   ): Promise<Array<TCalendarItem>>,
 
   /**
   * Note: Available from v3.0.25
-  * Returns all reminders between the `startDate` and `endDate`. Use `filter` to search for specific reminders (keyword in the title). 
+  * Returns all reminders between the `startDate` and `endDate`. Use `filter` to search for specific reminders (keyword in the title).
   * This function fetches reminders asynchronously, so use async/await.
-  * @param {Date} 
-  * @param {Date} 
-  * @param {String?}  
+  * @param {Date}
+  * @param {Date}
+  * @param {String?}
   * @return {Promise}
   */
-  remindersBetween(startDate: Date,
+  remindersBetween(
+    startDate: Date,
     endDate: Date,
-    filter: ?string
+    filter?: ?string
   ): Promise<Array<TCalendarItem>>,
-      
+
   /**
   * Note: Available from v3.0.25
-  * Returns all events for today. Use `filter` to search for specific events (keyword in the title). 
+  * Returns all events for today. Use `filter` to search for specific events (keyword in the title).
   * This function fetches events asynchronously, so use async/await.
-  * @param {String?} 
+  * @param {String?}
   * @return {Promise}
   */
   eventsToday(filter: ?string): Promise<Array<TCalendarItem>>,
-      
+
   /**
   * Note: Available from v3.0.25
-  * Returns all reminders between for today. Use `filter` to search for specific reminders (keyword in the title). 
+  * Returns all reminders between for today. Use `filter` to search for specific reminders (keyword in the title).
   * This function fetches reminders asynchronously, so use async/await.
-  * @param {String?} 
+  * @param {String?}
   * @return {Promise}
   */
   remindersToday(filter: ?string): Promise<Array<TCalendarItem>>,

@@ -44,6 +44,7 @@
     "singleQuote": true
   },
   "dependencies": {
+    "commander": "^8.1.0",
     "enquirer": "^2.3.6",
     "js-yaml": "^4.1.0",
     "json5": "^2.2.0",

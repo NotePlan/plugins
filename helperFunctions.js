@@ -163,7 +163,7 @@ export function toISOShortTime(dateObj: Date): string {
 export function toLocaleShortTime(
   dateObj: Date,
   locale: string | Array<string> = [],
-  options = {}, // should be type Intl.DateTimeFormatOptions but it doesn't recognise it
+  options: Intl$DateTimeFormatOptions = {}, // should be type Intl.DateTimeFormatOptions but it doesn't recognise it
 ): string {
   return dateObj.toLocaleTimeString(locale, options)
 }
@@ -755,8 +755,9 @@ export function stringReplace(
 ): string {
   let outputString = inputString
   replacementArray.forEach((r) => {
-    //FlowFixMe - .replaceAll is a new-ish JS function
-    outputString = outputString.replaceAll(r.key, r.value)
+    while (outputString.includes(r.key)) {
+      outputString = outputString.replace(r.key, r.value)
+    }
   })
   return outputString
 }
