@@ -13,13 +13,10 @@ If you are a developer and want to contribute and build your plugins, see the [p
 More instructions below:
 ### Set up Repo and Tools
 
-1. Clone this repository
+1.  Clone this repository
 2.  Make sure you have a recent version of `node` and `npm` installed. `brew install node` should do the trick.
-3.  Run `npm install` from the root of your local GitHub repository for `noteplan/plugins`. This will install all the dependencies.
-3. Copy the `np.plugin-flow-skeleton` folder and rename it per the instructions in the readme (here's where you'll create your plugin)
-4.  Run `npm run autowatch` from a terminal in the GitHub root folder. The first time you run the script it will ask you for the full path to your live Plugins folder, and if you provide it, it will automatically copy the final js file and the plugin.json file in there automatically.<br />
-   This includes setting up [eslint](https://eslint.org/) (for checking code conventions), [flow](https://flow.org/) (for type checking), [babel](https://babeljs.io/) (a JS compiler), and [rollup](https://rollupjs.org/guide/en/) (for bundling multiple source files into a single release).  Each have their own configuration files in the root; they can be overridden if needed by placing a more specific config file in the respective plugin's folders.
-
+3.  Run `npm install` from the root of your local GitHub repository for `noteplan/plugins`. This will install all the dependencies. This includes setting up [eslint](https://eslint.org/) (for checking code conventions), [flow](https://flow.org/) (for type checking), [babel](https://babeljs.io/) (a JS compiler), and [rollup](https://rollupjs.org/guide/en/) (for bundling multiple source files into a single release).  Each have their own configuration files in the root; they can be overridden if needed by placing a more specific config file in the respective plugin's folders.
+4.  Run `npm run autowatch` from a terminal in the GitHub root folder. The first time you run the script it will ask you for the full path to your live Plugins folder, and if you provide it, it will automatically copy the final js file and the plugin.json file in there automatically.
 5. Install GitHub command line tools `gh` and authorise it for future use:
    ```
    > brew install gh
@@ -28,22 +25,25 @@ More instructions below:
    Enter (copy OTP code from command line)
    [Paste OTP code in browser window]
    ```
-
+6. If you want to create a new plugin, an easy way is to copy the `np.plugin-flow-skeleton` folder and rename it per the instructions in the readme (here's where you'll create your plugin)
+7. Now get your IDE set up per the instructions below (Editor Setup)
 ### Developer Automation Commands
 
 These are the most common commands you will use while developing:
 
-1. **`npm run autowatch` from the root of your local GitHub `NotePlan/plugins` repo and your multi-file JS plugins will be compiled for you, and optionally be copied to your running NotePlan instance for testing**.  Not only that but it will then continue to _watch_ the folder and re-compile every time you save changes to a code file. NB: by default, this command will rebuild _all_ plugins just in case shared files affect another plugin. If you want to focus autowatch on a subset of plugins, you can pass the plugin folder name to autowatch like so:
+1. **`npm run autowatch` from the root of your local GitHub `NotePlan/plugins` repo and your multi-file JS plugins will be compiled for you and copied from your repository directory to your Plugins folder in the running NotePlan data directory for testing**.  Not only that but it will then continue to _watch_ the folder and re-compile every time you save changes to a Javascript file. NB: by default, `autowatch` (without any other arguments) command will rebuild _all_ plugins just in case shared files affect another plugin. If you want to focus autowatch on a subset of plugins, you can pass the plugin folder name to autowatch like so:
 
-- `npm run autowatch dwertheimer.TaskAutomations`
+   `npm run autowatch dwertheimer.TaskAutomations`
 
-Note: by default, for compatibility with older Macs, the plugins are transpiled into ES5 Javascript before they are copied to the Plugins folder. This works great, but if you want to try to debug in the Javascript debugger, the transpiled code won't match your code. So for Javascript debugging purposes, use this command instead:
+Note: by default, for compatibility with older Macs, the plugins are transpiled into ES5 Javascript before they are copied to the Plugins folder. This works great, but if you want to try to debug in the [Javascript debugger](https://help.noteplan.co/article/103-debugging-plugins), the transpiled code won't match your code. So for [Javascript debugging](https://help.noteplan.co/article/103-debugging-plugins) purposes, use this command instead:
 
-- `npm run autowatch dwertheimer.TaskAutomations -- -debug`
+   `npm run autowatch dwertheimer.TaskAutomations -- -debug`
+
+That will bundle your code together into one script.js file but will not transpile it to ES5.
 
 Then, when you are done debugging, build the plugin properly for release using the non-debug version above.
 
-2. **`npm run release "<plugin folder name>"`** (e.g. `npm run release "jgclark.DailyJournal"`) which will do all the work necessary to create/update a release in GitHub for the plugin. This will then automatically be available to all NotePlan users from the Plugins preference pane.
+2. If you have write permissions on the repository and want to release the plugin for all Noteplan users to see, run **`npm run release "<plugin folder name>"`** (e.g. `npm run release "jgclark.DailyJournal"`) which will do all the work necessary to create/update a release in GitHub for the plugin. This will then automatically be available to all NotePlan users from the Plugins preference pane.
 
 Note: The `autowatch` command is typically the only one you will need to use, especially if you use an IDE (e.g. VSCode) that does typechecking.
 
