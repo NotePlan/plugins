@@ -8,10 +8,11 @@ import {
   unhyphenateString,
   RE_DATE, // find dates of form YYYY-MM-DD
   RE_TIME, // find '12:23' with optional '[ ][AM|PM|am|pm]'
+  RE_DATE_INTERVAL,
   calcOffsetDateStr,
   // toISODateString,
   // rangeToString,
-} from '../../helperFunctions'
+} from '../../helperFunctions/dateFunctions'
 
 //------------------------------------------------------------------
 // Process any completed(or cancelled) tasks with my extended @repeat(..) tags,
@@ -29,12 +30,12 @@ export async function repeats() {
   // the @repeat tag from the task in NotePlan.
 
   // const RE_DUE_DATE = '\\s+>' + RE_DATE; // find ' >2021-02-23' etc.
-  const RE_DUE_DATE_CAPTURE = `\\s+>(${  RE_DATE  })` // find ' >2021-02-23' and return just date part
-  const RE_DATE_TIME = `${RE_DATE  } ${  RE_TIME}` // YYYY-MM-DD HH:MM[AM|PM]
-  const RE_DONE_DATE_TIME = `@done\\(${  RE_DATE_TIME  }\\)` // find @done(...) and return date-time part
-  const RE_DONE_DATE_CAPTURE = `@done\\((${  RE_DATE  })( ${  RE_TIME  })\\)` // find @done(...) and return date-time part
-  const RE_EXTENDED_REPEAT = '@repeat\\(\\+?\\d+[bdwmqy]\\)' // find @repeat()
-  const RE_EXTENDED_REPEAT_CAPTURE = '@repeat\\((.*?)\\)' // find @repeat() and return part inside brackets
+  const RE_DUE_DATE_CAPTURE = `\\s+>(${RE_DATE})` // find ' >2021-02-23' and return just date part
+  const RE_DATE_TIME = `${RE_DATE} ${RE_TIME}` // YYYY-MM-DD HH:MM[AM|PM]
+  const RE_DONE_DATE_TIME = `@done\\(${RE_DATE_TIME}\\)` // find @done(...) and return date-time part
+  const RE_DONE_DATE_CAPTURE = `@done\\((${RE_DATE})( ${RE_TIME})\\)` // find @done(...) and return date-time part
+  const RE_EXTENDED_REPEAT = `@repeat\\(${RE_DATE_INTERVAL}\\)` // find @repeat()
+  const RE_EXTENDED_REPEAT_CAPTURE = `@repeat\\((.*?)\\)` // find @repeat() and return part inside brackets
 
   // Get current note details
   const { paragraphs, title } = Editor
