@@ -31,9 +31,9 @@
     },
   {
       "name": "now - ISO-8601 standard", 
+      "alias": ["date","8601","t"],
       "description": "Insert ISO-8601 date+time at cursor (e.g. 2021-08-06 17:20:11)", 
-      "jsFunction": "insertDateTime8601",
-      "alias": ["date","8601","t"]
+      "jsFunction": "insertDateTime8601"
     },
       {
       "name": "time", 
@@ -43,6 +43,6 @@
   {
       "name": "dp", 
       "description": "(Date Picker) Choose format and insert date/time time at cursor", 
-      "jsFunction": "datePicker" 
+      "jsFunction": "dateFormatPicker" 
     }  ]
 }

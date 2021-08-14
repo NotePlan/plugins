@@ -185,7 +185,7 @@ export function insertCalendarNoteLink() {
 }
 
 // /dp
-export async function datePicker() {
+export async function dateFormatPicker() {
   const dateChoices = await getFormattedDateTime()
   const re = await CommandBar.showOptions(
     dateChoices.map((d) => d.label),
