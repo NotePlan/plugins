@@ -1,4 +1,4 @@
-# QuickCapture plugin
+# ⚡️ QuickCapture plugin
 This plugin provides commands to quickly add tasks/todos or general text to NotePlan notes:
 
 - `/int`: Quickly add a task to your '📥 Inbox' note. (To configure this, see below.)
