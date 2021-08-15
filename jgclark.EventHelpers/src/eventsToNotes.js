@@ -1,8 +1,8 @@
 // @flow
 // ------------------------------------------------------------------------------------
 // Command to bring calendar events into notes
-// v0.3.2, 7.8.2021
-// @jgclark, with additions by @dwertheimer
+// v0.3.4, 15.8.2021
+// @jgclark, with additions by @dwertheimer, @weyert
 // ------------------------------------------------------------------------------------
 
 import {
@@ -110,21 +110,18 @@ export async function listDaysEvents(paramString?: string): Promise<string> {
   // Get config settings from Template folder _configuration note
   await getEventsSettings()
   // Work out template for output line (from params, or if blank, a default)
-  let template =
+  const template =
     paramString != null && paramString !== ''
       ? getTagParams(paramString, 'template')
-      : ''
-  let allday =
+      : '- *|TITLE|* (*|START|*)'
+  const allday =
     paramString != null && paramString !== ''
       ? getTagParams(paramString, 'allday_template')
-      : ''
+      : '- *|TITLE|*'
   const includeHeadings =
     paramString != null && paramString !== ''
       ? getTagParams(paramString, 'includeHeaings')
       : true
-  template = template === '' ? '- *|TITLE|* (*|START|*)' : template
-  allday = allday === '' ? '- *|TITLE|*' : allday
-
   console.log(`\toutput template: '${template}' and '${allday}'`)
 
   // Get all the events for this day
@@ -139,6 +136,7 @@ export async function listDaysEvents(paramString?: string): Promise<string> {
       {
         key: '*|START|*',
         value: !e.isAllDay
+          // $FlowFixMe
           ? toLocaleShortTime(e.date, pref_locale, pref_timeOptions)
           : '',
       },
@@ -146,6 +144,7 @@ export async function listDaysEvents(paramString?: string): Promise<string> {
         key: '*|END|*',
         value:
           e.endDate != null && !e.isAllDay
+            // $FlowFixMe
             ? toLocaleShortTime(e.endDate, pref_locale, pref_timeOptions)
             : '',
       },
@@ -227,11 +226,17 @@ export async function listMatchingDaysEvents(
           { key: '*|TITLE|*', value: e.title },
           {
             key: '*|START|*',
-            value: !e.isAllDay ? toLocaleShortTime(e.date) : '',
+            value: !e.isAllDay
+              // $FlowFixMe
+              ? toLocaleShortTime(e.date, pref_locale, pref_timeOptions)
+              : ''
           },
           {
             key: '*|END|*',
-            value: e.endDate != null ? toLocaleShortTime(e.endDate) : '',
+            value: e.endDate != null && !e.isAllDay
+              // $FlowFixMe
+              ? toLocaleShortTime(e.endDate, pref_locale, pref_timeOptions)
+              : ''
           },
         ]
         // $FlowFixMe -- not sure how to deal with mixed coercing to strings

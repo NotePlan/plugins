@@ -24,10 +24,12 @@ Alternatively, in the `Templates/_configuration` note include the following sett
       "#webinar": "### *|TITLE|* (*|START|*)",
       "#holiday": "*|TITLE|*",
     },
+    locale: "en-US",
+    timeOptions: { hour: '2-digit', minute: '2-digit', hour12: false }, // optional settings for time outputs
+  }
 ...
 ```
 (This uses JSON5 format: ensure there are commas at the end of all that lines that need them.)
-
 
 **Notes**:
 - addEventID: whether to add an `[[event:ID]]` internal link when creating an event from a time block. This returns rather long strings (e.g. `[[event:287B39C1-4D0A-46DC-BD72-84D79167EFDF]]`) and so you might want to use a theme option to shorten them until needed.
@@ -40,14 +42,14 @@ Alternatively, in the `Templates/_configuration` note include the following sett
 ### Using Event Lists from a Template
 If you use Templates, this command can be called when a Template is inserted (including in the `/day start` command which applies your `Daily Note Template` file). To do this insert `{{events()}}` wherever you wish it to appear in the Template.  By default it gives a simple markdown list of event title and start time.  To **customise the list display**, you can add a `'template:"..."'` parameter to the `{{events()}}` template command that sets how to present the list, and a separate template for items with no start/end times (`'allday_template:"..."`).
 
-If you want you can disable the adding of the heading by applying the `includeHeadings`-flag and set it to `false`.
+If you want you can disable the adding of the heading by applying the `includeHeadings` flag and set it to `false`.
 
 For example:
 
 ```javascript
-  {{events({template:"### START-END: TITLE",allday_template:"### TITLE"})}}
+  {{events({template:"### START-END: TITLE",allday_template:"### TITLE",includeHeadings:false})}}
 ```
 
-The `*|TITLE|*`, `*|START|*` and `*|END|*` can be mixed with whatever markdown characters or other text you like, and they will get replaced accordingly for each event found. (Note the difference between the } and ) bracket types, and use of double quotes around the template string. I didn't design all of this!)
+The `*|TITLE|*`, `*|START|*` and `*|END|*` can be mixed with whatever markdown characters or other text you like, and they will get replaced accordingly for each event found. (Note the difference between the } and ) bracket types, and use of double quotes around the template string. I didn't design all of this ...)
 
 You can also place  `{{listMatchingEvents()}}` in Templates in a similar way, and similar customisation is possible. However, it is defined in a different way, using the matches and template strings defined in the `_configuration` file's `addMatchingEvents` array, as shown above.

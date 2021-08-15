@@ -1,22 +1,27 @@
-# Changelog
+# What's changed in 🕓 Event Helpers?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
-### v.0.3.3, 10.8.2021
-- new: new setting `confirmEventCreation` for `/time blocks to calendar` that if true asks user to confirm each event to be created
+### v0.3.4, 15.8.2021
+- updated: now compiled for macOS versions back to 10.13.0.
+- updated: the `locale` and `timeOptions` settings now apply to calls to get matching events as well.
+
+### v0.3.3, 10.8.2021
+- new: new optional setting `confirmEventCreation` for `/time blocks to calendar` that if true asks user to confirm each event to be created
 - updated: improved placement of the processedTagName (if used) after an event has been created
 
-### v.0.3.2, 7.8.2021
-- new: identical events deduping in /insert matching events
+### v0.3.2, 7.8.2021
+- new: identical events de-duping in /insert matching events
 
-### v.0.3.1, 6.8.2021
+### v0.3.1, 6.8.2021
 - new: ability to list events for whichever daily calendar page is open, not just Today
 - new: shorter `{{events()}}` tag option as an alias of `{{listTodaysEvents()}}` and `{{matchingEvents()}}` as an alias of `{{listMatchingEvents()}}`
 
-### v.0.3.0, 4.8.2021 @dwertheimer
+### v0.3.0, 4.8.2021 @dwertheimer
 - Updated ::toLocaleShortTime() to deal with locales and timeStrings.
 - Updated events config to use:
  `locale: "en-US",
   timeOptions: { hour: '2-digit', minute: '2-digit', hour12: false }`
+  For more details on the options here, please see [Intl.DateTimeFormat](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat/DateTimeFormat)
 - Updated: the TITLE, START and END times are now shown in templates as `*|TITLE|*`, `*|START|*` and `*|END|*`, to allow for these words to be used in event titles
 - Also added optional template for all-day events
 `{{listTodaysEvents({template:"### START-END: *|TITLE|*",allday_template:"### *|TITLE|*"})}}`
