@@ -1,4 +1,7 @@
-# What's Changed?
+# What's Changed in 🔢 np.Statistics plugin?
+
+### v0.3.6, 16.8.2021
+- updated: re-compiled for macOS versions back to 10.13.0.
 
 ### v0.3.5, 1.8.2021
 - fix: list todays events broke after a config framework change
