@@ -107,10 +107,28 @@ export async function chooseFolder(msg: string): Promise<string> {
  * @param {string} question - string to put in the command bar
  * @return {string} - the returned interval string, or empty if an invalid string given
  */
-export async function askDateInterval(question: string): Promise<string> {
+export async function askDateInterval(dateParams: string): Promise<string> {
+  // console.log(`askDateInterval(${dateParams}):`)
+  const dateParamsTrimmed = dateParams.trim()
+  const paramConfig =
+    dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}')
+      ? await parseJSON5(dateParams)
+      : dateParamsTrimmed !== ''
+        ? await parseJSON5(`{${dateParams}}`)
+        : {}
+  // $FlowFixMe
+  console.log(`param config: ${dateParams} as ${JSON.stringify(paramConfig)}`);
+  // ... = "gather the remaining parameters into an array"
+  const allSettings: { [string]: mixed } = { ...paramConfig }
+  console.log(allSettings.toString())
+  // grab just question parameter
+  // const { question, ...otherParams } = (allSettings: any)
+  const { question } = (allSettings: any)
+  console.log(question)
+
   const reply = await CommandBar.showInput(question, `Date interval: %@`) ?? ''
   const reply2 = reply.trim()
-  if (!reply2.match(RE_DATE_INTERVAL)) {  // TODO: need to TEST this
+  if (reply2.match(RE_DATE_INTERVAL) == null) {
     await showMessage(`Sorry: ${reply2} is not a valid date interval`, `OK, I'll try again`)
     return ''
   }
@@ -118,6 +136,7 @@ export async function askDateInterval(question: string): Promise<string> {
 }
 
 /**
+ * NOT CURRENTLY USED, I THINK
  * ask for a date from user (very simple: they need to enter an ISO date)
  * @author @jgclark
  * @param {string} question - string to put in the command bar
@@ -125,9 +144,10 @@ export async function askDateInterval(question: string): Promise<string> {
  */
 // NB: in time @EduardMe should produce a native API call that can improve this
 export async function askForFutureISODate(question: string): Promise<string> {
+  // console.log(`askForFutureISODate():`)
   const reply = await CommandBar.showInput(question, `Date: %@`) ?? ''
   const reply2 = reply.replace('>', '').trim() // remove leading '>' and trim
-  if (!reply2.match(RE_DATE)) { // TODO: TEST this more
+  if (reply2.match(RE_DATE) == null) { // TODO: TEST this more
     await showMessage(`Sorry: ${reply2} is not a date of form YYYY-MM-DD`, `OK, I'll try again`)
     return ''
   }
@@ -154,6 +174,7 @@ export async function datePicker(
       : dateParamsTrimmed !== ''
         ? await parseJSON5(`{${dateParams}}`)
         : {}
+  // $FlowFixMe
   console.log(`param config: ${dateParams} as ${JSON.stringify(paramConfig)}`);
   // ... = "gather the remaining parameters into an array"
   const allSettings: { [string]: mixed } = {
@@ -161,10 +182,9 @@ export async function datePicker(
     ...paramConfig,
   }
   console.log(allSettings.toString())
-  // Grab just locale parameter
-  // const { locale, ...otherParams } = (allSettings: any)
   // grab just question parameter
-  const { question, ...otherParams } = (allSettings: any)
+  // const { question, ...otherParams } = (allSettings: any)
+  const { question } = (allSettings: any)
   console.log(question)
   // const localeParam = locale != null ? String(locale) : []
   // const secondParam = {
