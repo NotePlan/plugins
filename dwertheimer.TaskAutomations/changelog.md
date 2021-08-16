@@ -2,6 +2,9 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Ta
 
 # What's Changed in this Plugin?
 
+## 1.0.1 
+- updated: now compiled for macOS versions back to 10.13.0
+
 1.0.0 Removing "macOS.minVersion" which is no longer necessary due to transpiling
 0.0.6 Added subheadings for tags/mentions & headless commands /tsm and /tst
 0.0.5 Sort by priority or by #tag or @context/person or content/alphabetical
