@@ -168,6 +168,9 @@ Should you run into an issue with a NotePlan plugin, you can use one of the foll
     dateStyle: 'short',
     // optional key, can be "short", "medium", "long" or "full"
     timeStyle: 'short',
+    // optional custom format (uses strftime format)
+    // see https://www.strfti.me/ to aid in creating custom formats)
+    format: '%Y-%m-%d %I:%M:%S %P'
   },
 
 
@@ -179,7 +182,7 @@ Should you run into an issue with a NotePlan plugin, you can use one of the foll
     // Required location for weather forecast
     latPosition: 0.0,
     longPosition: 0.0,
-    // Default units. Can be 'metric' (for Celsius), or 'metric' (for Fahrenheit)
+    // Default units. Can be 'metric' (for Celsius), or 'imperial' (for Fahrenheit)
     openWeatherUnits: 'metric',
   },
 
