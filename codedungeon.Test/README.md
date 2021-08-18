@@ -1,4 +1,4 @@
-# {{pluginName}} Noteplan Plugin
+# MyPlugin Noteplan Plugin
 
 [You will delete this text and replace it with a readme about your plugin -- not ever seen by users, but good for people looking at your code. Before you delete though, you should know:]
 

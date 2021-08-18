@@ -7,26 +7,43 @@
     "plugin:flowtype/recommended",
     "prettier"
   ],
-  "plugins": ["import", "flowtype"],
+  "plugins": [
+    "import",
+    "flowtype"
+  ],
   "parser": "@babel/eslint-parser",
   "parserOptions": {
     "ecmaVersion": 2020,
     "sourceType": "module",
     "requireConfigFile": false,
     "babelOptions": {
-      "presets": ["@babel/flow"]
+      "presets": [
+        "@babel/flow"
+      ]
     }
   },
   "rules": {
     "prefer-template": "warn",
-    "eqeqeq": ["error", "smart"],
-    "semi": ["error", "never"],
-    "curly": ["error", "multi-line"],
-    "linebreak-style": ["error", "unix"],
+    "eqeqeq": [
+      "error",
+      "smart"
+    ],
+    "semi": [
+      "error",
+      "never"
+    ],
+    "curly": [
+      "error",
+      "multi-line"
+    ],
+    "linebreak-style": [
+      "error",
+      "unix"
+    ],
     "max-len": [
       "error",
       {
-        "code": 80,
+        "code": 120,
         "ignoreComments": true,
         "ignoreStrings": true,
         "ignoreTemplateLiterals": true
@@ -36,13 +53,8 @@
     "no-case-declarations": "error",
     "no-var": "error",
     "prefer-const": "error",
-    "no-unused-vars": [
-      "error",
-      { 
-        "varsIgnorePattern": "^_",
-        "argsIgnorePattern": "^_" 
-      }
-    ],
+    "no-prototype-builtins": "off",
+    "no-unused-vars": "off",
     "import/order": "error"
   },
   "env": {

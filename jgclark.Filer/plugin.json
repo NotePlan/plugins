@@ -3,7 +3,8 @@
   "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.Filer",
   "plugin.name": "🗃 Filer",
-  "plugin.description": "Help file (move) the current paragraph, selected paragraphs, or heading and its section, to different notes. Please see website for more details.",  "plugin.icon": "",
+  "plugin.description": "Help file (move) the current paragraph, selected paragraphs, or heading and its section, to different notes. Please see website for more details.",
+  "plugin.icon": "",
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Filer",
   "plugin.version": "0.4.3",
@@ -13,11 +14,16 @@
   "plugin.commands": [
     {
       "name": "fp",
-      "alias": ["mp", "file", "move", "paragraph"],
+      "alias": [
+        "mp",
+        "file",
+        "move",
+        "paragraph"
+      ],
       "description": "file (move) paragraphs to different notes",
       "jsFunction": "fileParas"
     },
-    { /* TODO: remove me when aliasing comes in */
+    {
       "name": "mp",
       "description": "move (file) paragraphs to different notes",
       "jsFunction": "fileParas"
@@ -28,6 +34,5 @@
       "jsFunction": "newNoteFromSelection"
     }
   ],
-  "plugin.preferences": [
-  ]
+  "plugin.preferences": []
 }

@@ -1,4 +1,4 @@
-# {{pluginId}} Changelog
+# codedungeon.Test Changelog
 
 ## Changelog
 
@@ -11,9 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 All NotePlan plugins follow `semver` versioning. For details, please refer to [semver website](https://semver.org/)
 
-## About {{pluginId}} Plugin
+## About codedungeon.Test Plugin
 
-See Plugin [README](https://github.com/NotePlan/plugins/blob/main/{{pluginId}}/README.md) for details on available commands and use case.
+See Plugin [README](https://github.com/NotePlan/plugins/blob/main/codedungeon.Test/README.md) for details on available commands and use case.
 
 ## [0.0.1] - 2021-08-17
 

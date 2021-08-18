@@ -3,7 +3,7 @@
   "macOS.minVersion": "10.13.0",
   "noteplan.minAppVersion": "3.0.21",
   "plugin.id": "codedungeon.Toolbox",
-  "plugin.name": "🧩 Dungeon",
+  "plugin.name": "🧰 Codedungeon Toolbox",
   "plugin.description": "Workflow Plugins from Codedungeon",
   "plugin.author": "Mike Erickson",
   "plugin.version": "0.0.1",
