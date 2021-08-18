@@ -11,3 +11,4 @@ package-lock.json
 *.dict
 .vscode/launch.json
 */script.js
+.vscode/
