@@ -1,6 +1,8 @@
 // @flow
 // TODO: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat
 
+import strftime from 'strftime'
+
 import { getStructuredConfiguration } from '../../nmn.Templates/src/configuration'
 import { hyphenatedDateString } from '../../nmn.sweep/src/dateHelpers'
 
@@ -10,6 +12,7 @@ type DateConfig = $ReadOnly<{
   dateStyle?: string,
   timeStyle?: string,
   hour12?: boolean,
+  format?: string,
   ...
 }>
 // This is a function that verifies that an object is of the type
@@ -22,11 +25,13 @@ function asDateConfig(obj: mixed): ?DateConfig {
     typeof obj.timezone === 'string' &&
     typeof obj.locale === 'string'
   ) {
-    const { timezone, locale, dateStyle, timeStyle, hour12, ...other } = obj
+    const { format, timezone, locale, dateStyle, timeStyle, hour12, ...other } =
+      obj
     return {
       ...other,
       timezone,
       locale,
+      format: typeof format === 'string' ? format : undefined,
       dateStyle: typeof dateStyle === 'string' ? dateStyle : undefined,
       timeStyle: typeof timeStyle === 'string' ? timeStyle : undefined,
       hour12: typeof hour12 === 'boolean' ? hour12 : undefined,
@@ -53,6 +58,8 @@ async function getDateConfig(): Promise<DateConfig> {
       timeStyle: 'short',
       // can force 24 hour time format, even in america!
       hour12: true,
+      // custom format using strftime
+      format: '%Y-%m-%d %I:%M:%S %P',
     }
   }
 }
@@ -68,6 +75,8 @@ async function getFormattedDateTime() {
   const timeStyles = ['', 'short', 'medium', 'long'] // pulling out 'full' for now
   const hour12 = [false, true]
 
+  const format = dateConfig?.format ? dateConfig.format : '%Y-%m-%d %I:%M:%S %P'
+
   // Pluck all values except `dateStyle` and `timeStyle`
   const { dateStyle: _1, timeStyle: _2, ...config } = { ...dateConfig }
 
@@ -76,7 +85,16 @@ async function getFormattedDateTime() {
   locales.push((dateConfig && dateConfig.locale) || 'en-US')
   // if (dateConfig.locale !== 'sv-SE') locales.push('sv-SE')
   const str8601 = get8601String()
+
+  const formatted = strftime(format)
+
   const options = [
+    {
+      dateStyle: 'formatted',
+      timeStyle: '',
+      label: `${formatted} (formatted date/time)`,
+      text: formatted,
+    },
     {
       dateStyle: 'sv-SE',
       timeStyle: 'medium',
@@ -99,7 +117,7 @@ async function getFormattedDateTime() {
             config.timeStyle = ts
           }
           config.hour12 = h12
-          // console.log(`${JSON.stringify(config)}`)
+
           const text = new Intl.DateTimeFormat(
             loc,
             // $FlowFixMe
@@ -119,7 +137,6 @@ async function getFormattedDateTime() {
     )
   })
 
-  console.log(JSON.stringify(options, null, 2))
   return options
 }
 
@@ -171,7 +188,7 @@ export async function insertTime() {
   const { dateStyle: _, ...dateConfig } = await getDateConfig()
   const editableConfig = { ...dateConfig }
   if (!editableConfig.timeStyle) editableConfig.timeStyle = 'medium'
-  console.log(`insertTime:${JSON.stringify(editableConfig)}`)
+
   const timeText = new Intl.DateTimeFormat(
     dateConfig.locale,
     editableConfig,
@@ -187,9 +204,21 @@ export function insertCalendarNoteLink() {
 // /dp
 export async function dateFormatPicker() {
   const dateChoices = await getFormattedDateTime()
+
   const re = await CommandBar.showOptions(
     dateChoices.map((d) => d.label),
     'Choose format (locale/dateStyle/timeStyle/hour12)',
   )
   Editor.insertTextAtCursor(dateChoices[re.index].text)
+}
+
+// /formatted
+export async function insertStrftime() {
+  const dateConfig = await getDateConfig()
+
+  const format = dateConfig?.format ? dateConfig.format : '%Y-%m-%d %I:%M:%S %P'
+
+  const strftimeFormatted = strftime('%Y-%m-%d %I:%M:%S %P')
+
+  Editor.insertTextAtCursor(strftimeFormatted)
 }
