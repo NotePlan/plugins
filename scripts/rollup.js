@@ -1,5 +1,7 @@
+// @flow
 'use strict'
 
+const colors = require('chalk')
 const fs = require('fs/promises')
 const path = require('path')
 const rollup = require('rollup')
@@ -10,6 +12,7 @@ const resolve = require('@rollup/plugin-node-resolve').default
 const mkdirp = require('mkdirp')
 const { program } = require('commander')
 const createPluginListing = require('./createPluginListing')
+
 const {
   getFolderFromCommandLine,
   getPluginFileContents,
@@ -25,17 +28,30 @@ const FOLDERS_TO_IGNORE = [
 const rootFolderPath = path.join(__dirname, '..')
 
 // Command line options
-program.option(
-  '-d, --debug',
-  'Rollup: allow for better JS debugging - no minification or transpiling',
-)
-program.parse(process.argv)
+program
+  .option(
+    '-d, --debug',
+    'Rollup: allow for better JS debugging - no minification or transpiling',
+  )
+  .option('-c, --compact', 'Rollup: use more compact output')
+  .parse(process.argv)
 const options = program.opts()
-const DEBUGGING = options.debug | false
+const DEBUGGING = options.debug || false
+const COMPACT = options.compact || false
 
-if (DEBUGGING) {
+if (DEBUGGING && !COMPACT) {
   console.log(
-    `Running in DEBUG mode for purposes of seeing the Javascript script.js code exactly as it appears in your editor. This means no cleaning and no transpiling. Good for debugging, but bad for deployment to older machines. Make sure you run the autowatch command without the -debug flag before you release!\n`,
+    colors.yellow.bold(
+      `Running in DEBUG mode for purposes of seeing the Javascript script.js code exactly as it appears in your editor. This means no cleaning and no transpiling. Good for debugging, but bad for deployment to older machines. Make sure you run the autowatch command without the -debug flag before you release!\n`,
+    ),
+  )
+}
+if (COMPACT) {
+  console.log('')
+  console.log(
+    colors.green.bold(
+      `Rollup autowatch running. Will use compact output when there are no errors\n`,
+    ),
   )
 }
 let watcher
@@ -43,7 +59,6 @@ let watcher
 /**
  * @description Rebuild the plugin commands list, checking for collisions. Runs every time a plugin is updated
  * @param {string} pluginPath
- * @returns {Promise<void>}
  * @private
  */
 async function checkPluginList(pluginPaths) {
@@ -57,7 +72,9 @@ async function checkPluginList(pluginPaths) {
       pluginFile['plugin.commands']?.forEach((command) => {
         if (pluginCommands[command.name]) {
           console.log(
-            `\n!!!!\nCommand collison: "${command.name}" exists already!`,
+            colors.red.bold(
+              `\n!!!!\nCommand collison: "${command.name}" exists already!`,
+            ),
           )
           console.log(
             `\tTrying to add: "${command.name}" from ${path.basename(
@@ -65,9 +82,11 @@ async function checkPluginList(pluginPaths) {
             )}`,
           )
           console.log(
-            `\tConflicts with "${pluginCommands[command.name].name}" in ${
-              pluginCommands[command.name].folder
-            }\nCommand will be added & will work but should should be changed to be unique!!!\n`,
+            colors.yellow(
+              `\tConflicts with "${pluginCommands[command.name].name}" in ${
+                pluginCommands[command.name].folder
+              }\nCommand will be added & will work but should should be changed to be unique!!!\n`,
+            ),
           )
         } else {
           pluginCommands[command.name] = command
@@ -77,7 +96,9 @@ async function checkPluginList(pluginPaths) {
       })
     } else {
       console.log(
-        `^^^ checkPluginList: For some reason could not parse file at: ${pluginPath}`,
+        colors.red(
+          `^^^ checkPluginList: For some reason could not parse file at: ${pluginPath}`,
+        ),
       )
     }
   }
@@ -91,9 +112,11 @@ async function main() {
     rootFolderPath,
     program.args,
   )
-  if (limitToFolders.length) {
+  if (limitToFolders.length && !COMPACT) {
     console.log(
-      `\nWARNING: Keep in mind that if you are editing shared files used by other plugins that you could be affecting them by not rebuilding/testing them all here. You have been warned. :)\n`,
+      colors.yellow.bold(
+        `\nWARNING: Keep in mind that if you are editing shared files used by other plugins that you could be affecting them by not rebuilding/testing them all here. You have been warned. :)\n`,
+      ),
     )
   }
   const rootFolder = await fs.readdir(rootFolderPath, {
@@ -166,18 +189,21 @@ async function main() {
         const pluginFolder = outputFolder
           .replace(rootFolderPath, '')
           .substring(1)
-        let msg = `${new Date()
-          .toISOString()
-          .slice(
-            0,
-            16,
-          )} "${pluginFolder}"\n     Built and copied to the "Plugins" folder. \n`
+        let msg = COMPACT
+          ? `${new Date().toISOString().slice(0, 16)}  ${pluginFolder}`
+          : `${new Date()
+              .toISOString()
+              .slice(
+                0,
+                16,
+              )} "${pluginFolder}"\n     Built and copied to the "Plugins" folder.`
         if (DEBUGGING) {
-          msg += `     Built in DEBUG mode. Not ready to deploy.`
+          msg += `\n     Built in DEBUG mode. Not ready to deploy.\n`
         } else {
-          msg += `     To debug this plugin without transpiling use: ${`npm run autowatch "${pluginFolder}" -- -debug`}\n\
-     To release this plugin, update the changelog.md and run:\
-            \n${`        npm run release "${pluginFolder}"`}`
+          if (!COMPACT) {
+            msg += `\n     To debug this plugin without transpiling use: ${`npm run autowatch "${pluginFolder}" -- -debug`}\n\
+     To release this plugin, update changelog.md and run: ${`npm run release "${pluginFolder}"\n`}`
+          }
         }
         console.log(msg)
       } else {
@@ -190,7 +216,9 @@ async function main() {
     }
   })
 
-  console.log('Building and Watching for changes...\n')
+  if (!COMPACT) {
+    console.log('Building and Watching for changes...\n')
+  }
 }
 
 function getConfig(pluginPath) {
