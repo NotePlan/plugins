@@ -27,20 +27,25 @@ const rootFolderPath = path.join(__dirname, '..')
 
 // Command line options
 program
-  .option('-d, --debug',   'Rollup: allow for better JS debugging - no minification or transpiling')
+  .option(
+    '-d, --debug',
+    'Rollup: allow for better JS debugging - no minification or transpiling',
+  )
   .option('-c, --compact', 'Rollup: use more compact output')
   .parse(process.argv)
 const options = program.opts()
 const DEBUGGING = options.debug || false
 const COMPACT = options.compact || false
 
-if (DEBUGGING) {
+if (DEBUGGING && !COMPACT) {
   console.log(
     `Running in DEBUG mode for purposes of seeing the Javascript script.js code exactly as it appears in your editor. This means no cleaning and no transpiling. Good for debugging, but bad for deployment to older machines. Make sure you run the autowatch command without the -debug flag before you release!\n`,
   )
 }
 if (COMPACT) {
-  console.log(`Will use compact output when there are no errors\n`)
+  console.log(
+    `Rollup autowatch running. Will use compact output when there are no errors\n`,
+  )
 }
 let watcher
 
@@ -94,7 +99,7 @@ async function main() {
     rootFolderPath,
     program.args,
   )
-  if (limitToFolders.length) {
+  if (limitToFolders.length && !COMPACT) {
     console.log(
       `\nWARNING: Keep in mind that if you are editing shared files used by other plugins that you could be affecting them by not rebuilding/testing them all here. You have been warned. :)\n`,
     )
@@ -169,9 +174,14 @@ async function main() {
         const pluginFolder = outputFolder
           .replace(rootFolderPath, '')
           .substring(1)
-        let msg = (COMPACT)
-          ? `${new Date().toISOString().slice(0, 16)}  ${pluginFolder}  built and copied to the "Plugins" folder.`
-          : `${new Date().toISOString().slice(0, 16)} "${pluginFolder}"\n     Built and copied to the "Plugins" folder.`
+        let msg = COMPACT
+          ? `${new Date().toISOString().slice(0, 16)}  ${pluginFolder}`
+          : `${new Date()
+              .toISOString()
+              .slice(
+                0,
+                16,
+              )} "${pluginFolder}"\n     Built and copied to the "Plugins" folder.`
         if (DEBUGGING) {
           msg += `\n     Built in DEBUG mode. Not ready to deploy.\n`
         } else {
@@ -191,7 +201,9 @@ async function main() {
     }
   })
 
-  console.log('Building and Watching for changes...\n')
+  if (!COMPACT) {
+    console.log('Building and Watching for changes...\n')
+  }
 }
 
 function getConfig(pluginPath) {
