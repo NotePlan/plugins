@@ -532,7 +532,6 @@ type TCalendar = {
    * unit types using `dateUnits`.
    */
   unitsBetween(date1: Date, date2: Date, type: CalendarDateUnit): number,
-
   /**
   * Note: Available from v3.0.25
   * Returns all events between the `startDate` and `endDate`. Use `filter` to search for specific events (keyword in the title).
@@ -547,7 +546,6 @@ type TCalendar = {
     endDate: Date,
     filter?: ?string
   ): Promise<Array<TCalendarItem>>,
-
   /**
   * Note: Available from v3.0.25
   * Returns all reminders between the `startDate` and `endDate`. Use `filter` to search for specific reminders (keyword in the title).
@@ -562,7 +560,6 @@ type TCalendar = {
     endDate: Date,
     filter?: ?string
   ): Promise<Array<TCalendarItem>>,
-
   /**
   * Note: Available from v3.0.25
   * Returns all events for today. Use `filter` to search for specific events (keyword in the title).
@@ -571,7 +568,6 @@ type TCalendar = {
   * @return {Promise}
   */
   eventsToday(filter: ?string): Promise<Array<TCalendarItem>>,
-
   /**
   * Note: Available from v3.0.25
   * Returns all reminders between for today. Use `filter` to search for specific reminders (keyword in the title).
@@ -580,6 +576,44 @@ type TCalendar = {
   * @return {Promise}
   */
   remindersToday(filter: ?string): Promise<Array<TCalendarItem>>,
+  /**
+  * Note: Available from v3.0.26
+  * Updates an event or reminder based on the given CalendarItem, which needs to have an ID. 
+  * A CalendarItem has an ID, when you have used `.add(...)` and saved the return value or when you query 
+  * the event using `eventsBetween(...)`, `remindersBetween(...)`, `eventByID(...)`, `reminderByID(...)`, etc.
+  * Returns a promise, because it needs to fetch the original event objects first in the background, 
+  * then updates it. Use it with `await`.
+  * @param {CalendarItem} 
+  * @return {Promise}
+  */
+  update(calendarItem: TCalendarItem): Promise<void>,
+  /**
+  * Note: Available from v3.0.26
+  * Removes an event or reminder based on the given CalendarItem, which needs to have an ID. 
+  * A CalendarItem has an ID, when you have used `.add(...)` and saved the return value or when you query 
+  * the event using `eventsBetween(...)`, `remindersBetween(...)`, `eventByID(...)`, `reminderByID(...)`, etc.
+  * Returns a promise, because it needs to fetch the original event objects first in the background, 
+  * then updates it. Use it with `await`.
+  * @param {CalendarItem} 
+  * @return {Promise}
+  */
+  remove(calendarItem: TCalendarItem): Promise<void>,
+  /**
+  * Note: Available from v3.0.26
+  * Returns the event by the given ID. You can get the ID from a CalendarItem, which you got from using `.add(...)` (the return value is a CalendarItem with ID) or when you query the event using `eventsBetween(...)`, `eventByID(...)`, etc.
+  * This function fetches reminders asynchronously, so use async/await.
+  * @param {String} 
+  * @return {Promise(CalendarItem)}
+  */
+  eventByID(id: string): Promise<Array<TCalendarItem>>,
+  /**
+  * Note: Available from v3.0.26
+  * Returns the reminder by the given ID. You can get the ID from a CalendarItem, which you got from using `.add(...)` (the return value is a CalendarItem with ID) or when you query the event using `remindersBetween(...)`, `reminderByID(...)`, etc.
+  * Use with async/await.
+  * @param {String} 
+  * @return {Promise(CalendarItem)}
+  */
+  reminderByID(id: string): Promise<Array<TCalendarItem>>,
 }
 
 /**
@@ -779,6 +813,16 @@ type TCalendarItem = {
    * If the calendar item is all-day, means it has no specific time.
    */
   +isAllDay: boolean,
+  /**
+  * Text saved in the "Notes" field of the event or reminder.
+  * Note: Available from v3.0.26
+  */
+  +notes: string,  
+  /**
+  * URL saved with the event or reminder.
+  * Note: Available from v3.0.26
+  */
+  +url: string,
   /**
    * Creates a CalendarItem. The .endDate is optional, but recommended for events.
    * Reminders don't use this field.
