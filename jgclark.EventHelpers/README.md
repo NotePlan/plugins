@@ -20,9 +20,9 @@ Alternatively, in the `Templates/_configuration` note include the following sett
     removeTimeBlocksWhenProcessed: true,  // whether to remove time block after making an event from it
     eventsHeading: "### Events today",  // optional heading to put before list of today's events
     addMatchingEvents: {   // match events with string on left, and then the string on the right is the template for how to insert this event (see README for details)
-      "#meeting": "### *|TITLE|* (*|START|*)",
-      "#webinar": "### *|TITLE|* (*|START|*)",
-      "#holiday": "*|TITLE|*",
+      "meeting": "### *|TITLE|* (*|START|*) *|NOTES|*",
+      "webinar": "### *|TITLE|* (*|START|*) *|URL|*",
+      "holiday": "*|TITLE|* *|NOTES|*",
     },
     locale: "en-US",
     timeOptions: { hour: '2-digit', minute: '2-digit', hour12: false }, // optional settings for time outputs

@@ -1,7 +1,7 @@
 // @flow
 // ------------------------------------------------------------------------------------
 // Command to bring calendar events into notes
-// v0.3.4, 15.8.2021
+// v0.3.6, 18.8.2021
 // @jgclark, with additions by @dwertheimer, @weyert
 // ------------------------------------------------------------------------------------
 
@@ -24,9 +24,9 @@ const DEFAULT_EVENTS_OPTIONS = `  events: {
     removeTimeBlocksWhenProcessed: true,  // whether to remove time block after making an event from it
     eventsHeading: "### Events today",  // optional heading to put before list of today's events
     addMatchingEvents: {   // match events with string on left, and then the string on the right is the template for how to insert this event (see README for details)
-      "#meeting": "### *|TITLE|* (*|START|*)",
-      "#webinar": "### *|TITLE|* (*|START|*)",
-      "#holiday": "*|TITLE|*",
+      "meeting": "### *|TITLE|* (*|START|*)\n*|NOTES|*",
+      "webinar": "### *|TITLE|* (*|START|*) *|URL|*",
+      "holiday": "*|TITLE|* *|NOTES|*",
     },
     locale: "en-US",
 	  timeOptions: { hour: '2-digit', minute: '2-digit', hour12: false }
@@ -148,13 +148,14 @@ export async function listDaysEvents(paramString?: string): Promise<string> {
             ? toLocaleShortTime(e.endDate, pref_locale, pref_timeOptions)
             : '',
       },
+      { key: '*|NOTES|*', value: e.notes },
+      { key: '*|URL|*', value: e.url },
     ]
     // NB: the following will replace any mentions of the keywords in the e.title string itself
     const thisEventStr = stringReplace(
       e.isAllDay ? allday : template,
-      replacements,
-    )
-    // console.log(`Event: ${e.isAllDay ? allday : template} = ${thisEventStr}`)
+      replacements
+    ).trimEnd()
     if (lastEventStr !== thisEventStr) {
       outputArray.push(thisEventStr)
       lastEventStr = thisEventStr
@@ -214,13 +215,14 @@ export async function listMatchingDaysEvents(
   const eA: Array<TCalendarItem> = await getEventsForDay(dateStr)
 
   const outputArray: Array<string> = []
-  // for each event, check each of the hashtags we want to match
+  // for each event, check each of the strings we want to match
   let lastEventStr = '' // keep duplicates from multiple calendars out
   for (const e of eA) {
     for (let i = 0; i < textToMatchA.length; i++) {
-      const m = textToMatchA[i]
+      // const m = textToMatchA[i]
       const template = templateA[i]
-      if (e.title.match(m)) {
+      const reMatch = new RegExp(textToMatchA[i], "i");
+      if (e.title.match(reMatch)) {
         console.log(`\tFound match to event '${e.title}'`)
         const replacements = [
           { key: '*|TITLE|*', value: e.title },
@@ -238,6 +240,8 @@ export async function listMatchingDaysEvents(
               ? toLocaleShortTime(e.endDate, pref_locale, pref_timeOptions)
               : ''
           },
+          { key: '*|NOTES|*', value: e.notes },
+          { key: '*|URL|*', value: e.url },
         ]
         // $FlowFixMe -- not sure how to deal with mixed coercing to strings
         const thisEventStr = stringReplace(template, replacements)
@@ -245,6 +249,8 @@ export async function listMatchingDaysEvents(
           outputArray.push(thisEventStr)
           lastEventStr = thisEventStr
         }
+      } else {
+        console.log(`No match to ${e.title}`)
       }
     }
   }
