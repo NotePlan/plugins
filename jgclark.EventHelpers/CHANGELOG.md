@@ -1,6 +1,9 @@
 # What's changed in 🕓 Event Helpers?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
+### v0.3.6, 18.8.2021
+- updated: can include `*|NOTES|*` and `*|URL|*` in templates, as they're now available from the API.
+
 ### v0.3.4, 15.8.2021
 - updated: now compiled for macOS versions back to 10.13.0.
 - updated: the `locale` and `timeOptions` settings now apply to calls to get matching events as well.
