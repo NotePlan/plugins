@@ -35,13 +35,15 @@ These are the most common commands you will use while developing:
 
    `npm run autowatch dwertheimer.TaskAutomations`
 
-Note: by default, for compatibility with older Macs, the plugins are transpiled into ES5 Javascript before they are copied to the Plugins folder. This works great, but if you want to try to debug in the [Javascript debugger](https://help.noteplan.co/article/103-debugging-plugins), the transpiled code won't match your code. So for [Javascript debugging](https://help.noteplan.co/article/103-debugging-plugins) purposes, use this command instead:
+Note: by default, for compatibility with older Macs, the plugins are transpiled into ES5 Javascript before they are copied to the Plugins folder. This works great, but if you want to try to **debug** in the [Javascript debugger](https://help.noteplan.co/article/103-debugging-plugins), the transpiled code won't match your code. So for [Javascript debugging](https://help.noteplan.co/article/103-debugging-plugins) purposes, use this command instead:
 
-   `npm run autowatch dwertheimer.TaskAutomations -- -debug`
+   `npm run autowatch dwertheimer.TaskAutomations -- --debug`
 
 That will bundle your code together into one script.js file but will not transpile it to ES5.
 
 Then, when you are done debugging, build the plugin properly for release using the non-debug version above.
+
+Note: if you wish to have a more **compact output**, without listing the debug and release commands to use each time, then append the `-- --compact` flag.
 
 2. If you have write permissions on the repository and want to release the plugin for all Noteplan users to see, run **`npm run release "<plugin folder name>"`** (e.g. `npm run release "jgclark.DailyJournal"`) which will do all the work necessary to create/update a release in GitHub for the plugin. This will then automatically be available to all NotePlan users from the Plugins preference pane.
 
