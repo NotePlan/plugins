@@ -23,11 +23,17 @@ async function fileExists(fullPath) {
   }
 }
 
-async function getFolderFromCommandLine(rootFolderPath, args) {
+async function getFolderFromCommandLine(
+  rootFolderPath,
+  args,
+  minimalOutput = false,
+) {
   // const args = process.argv.slice(2)
   const limitToFolders = []
   if (args.length) {
-    console.log(`[Shared] Script will be limited to: ${JSON.stringify(args)}`)
+    if (!minimalOutput) {
+      console.log(`[Shared] Script will be limited to: ${JSON.stringify(args)}`)
+    }
 
     for (const arg of args) {
       if (await fileExists(path.join(rootFolderPath, arg))) {

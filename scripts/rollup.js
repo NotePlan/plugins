@@ -27,13 +27,14 @@ const rootFolderPath = path.join(__dirname, '..')
 // Command line options
 program.option(
   '-d, --debug',
-  'Rollup: allow for better JS debugging - no minification or transpiling',
+  'debug version - no Javacript minification or transpiling',
 )
+program.option('-m, --minimal', 'Rollup: minimal output')
 program.parse(process.argv)
 const options = program.opts()
 const DEBUGGING = options.debug | false
 
-if (DEBUGGING) {
+if (DEBUGGING && !options.minimal) {
   console.log(
     `Running in DEBUG mode for purposes of seeing the Javascript script.js code exactly as it appears in your editor. This means no cleaning and no transpiling. Good for debugging, but bad for deployment to older machines. Make sure you run the autowatch command without the -debug flag before you release!\n`,
   )
@@ -90,8 +91,9 @@ async function main() {
   const limitToFolders = await getFolderFromCommandLine(
     rootFolderPath,
     program.args,
+    options.minimal,
   )
-  if (limitToFolders.length) {
+  if (limitToFolders.length && !options.minimal) {
     console.log(
       `\nWARNING: Keep in mind that if you are editing shared files used by other plugins that you could be affecting them by not rebuilding/testing them all here. You have been warned. :)\n`,
     )
@@ -166,18 +168,21 @@ async function main() {
         const pluginFolder = outputFolder
           .replace(rootFolderPath, '')
           .substring(1)
-        let msg = `${new Date()
-          .toISOString()
-          .slice(
-            0,
-            16,
-          )} "${pluginFolder}"\n     Built and copied to the "Plugins" folder. \n`
+        let msg = `${new Date().toISOString().slice(0, 16)} "${pluginFolder}"${
+          options.minimal
+            ? ''
+            : '\n     Built and copied to the "Plugins" folder. \n'
+        }`
         if (DEBUGGING) {
-          msg += `     Built in DEBUG mode. Not ready to deploy.`
+          msg += options.minimal
+            ? ` (JS Debug)`
+            : `     Built in DEBUG mode. Not ready to deploy.`
         } else {
-          msg += `     To debug this plugin without transpiling use: ${`npm run autowatch "${pluginFolder}" -- -debug`}\n\
+          if (!options.minimal) {
+            msg += `     To debug this plugin without transpiling use: ${`npm run autowatch "${pluginFolder}" -- -debug`}\n\
      To release this plugin, update the changelog.md and run:\
             \n${`        npm run release "${pluginFolder}"`}`
+          }
         }
         console.log(msg)
       } else {
@@ -190,7 +195,9 @@ async function main() {
     }
   })
 
-  console.log('Building and Watching for changes...\n')
+  if (!options.minimal) {
+    console.log('Building and Watching for changes...\n')
+  }
 }
 
 function getConfig(pluginPath) {
