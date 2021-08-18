@@ -1,5 +1,4 @@
 const { colors, helpers, print, path } = require('@codedungeon/gunner')
-const { defaultsDeep } = require('lodash')
 const createPlugin = require('./support/create-plugin')
 
 module.exports = {

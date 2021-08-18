@@ -63,6 +63,7 @@
   "scripts": {
     "init": "npm install && npm link",
     "autowatch": "node scripts/rollup.js",
+    "autowatch:compact": "node scripts/rollup.js --compact",
     "release": "node scripts/releases.js",
     "lint": "eslint .",
     "lint-fix": "eslint . --fix",
@@ -73,14 +74,14 @@
     "docs": "documentation build '*.js' -f md -o README-helperFunctions.md"
   },
   "prettier": {
-    "printWidth": 80,
+    "printWidth": 120,
     "parser": "flow",
     "semi": false,
     "trailingComma": "all",
     "singleQuote": true
   },
   "dependencies": {
-    "@codedungeon/gunner": "0.62.0",
+    "@codedungeon/gunner": "0.63.0",
     "commander": "^8.1.0",
     "enquirer": "^2.3.6",
     "findup-sync": "4.0.0",

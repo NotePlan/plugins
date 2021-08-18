@@ -1,11 +1,4 @@
-const {
-  helpers,
-  filesystem,
-  system,
-  strings,
-  print,
-  path,
-} = require('@codedungeon/gunner')
+const { helpers, filesystem, system, strings, print, path } = require('@codedungeon/gunner')
 const toolbox = require('@codedungeon/gunner')
 
 const execa = require('execa')
@@ -23,13 +16,8 @@ module.exports = {
     const composerFilename = path.join(process.cwd(), 'composer.json')
     if (!filesystem.existsSync(composerFilename)) {
       console.log('')
-      toolbox.print.error(
-        'Unable to locate `composer.json` in current directory.',
-        'ERROR',
-      )
-      toolbox.print.error(
-        '        Make sure you are executing command from project root.\n',
-      )
+      toolbox.print.error('Unable to locate `composer.json` in current directory.', 'ERROR')
+      toolbox.print.error('        Make sure you are executing command from project root.\n')
       process.exit()
     }
   },
@@ -63,8 +51,7 @@ module.exports = {
     }
     // merge config
     const appConfigData = JSON.parse(appConfig)
-    const projectConfigData =
-      projectConfig.length >= 2 ? JSON.parse(projectConfig) : {}
+    const projectConfigData = projectConfig.length >= 2 ? JSON.parse(projectConfig) : {}
 
     const configData = merge(appConfigData, projectConfigData)
 
@@ -96,9 +83,7 @@ module.exports = {
   },
 
   getProjectConfig() {
-    return filesystem.existsSync(projectConfigPath)
-      ? require(projectConfigPath)
-      : {}
+    return filesystem.existsSync(projectConfigPath) ? require(projectConfigPath) : {}
   },
 
   config(key = null, value = null, options = {}) {
@@ -262,10 +247,7 @@ module.exports = {
     }
 
     // third attempt will be to locate template in user defined templatePath
-    templateFilename = path.join(
-      this.getAppTemplatePath(),
-      `${configTemplate}.mustache`,
-    )
+    templateFilename = path.join(this.getAppTemplatePath(), `${configTemplate}.mustache`)
     if (filesystem.existsSync(templateFilename)) {
       return templateFilename // all good, return result
     }
@@ -276,21 +258,11 @@ module.exports = {
 
     if (template.length === 0) {
       // get default template, it will be overridden if project template exists
-      template = path.join(
-        __dirname,
-        '../..',
-        this.config(`templates.${configTemplate}`),
-      )
+      template = path.join(__dirname, '../..', this.config(`templates.${configTemplate}`))
 
       const projectConfigData = this.getProjectConfig()
-      if (
-        projectConfigData?.templates &&
-        projectConfigData.templates?.[configTemplate]
-      ) {
-        templateFilename = projectConfigData.templates[configTemplate].replace(
-          '<project>',
-          process.cwd(),
-        )
+      if (projectConfigData?.templates && projectConfigData.templates?.[configTemplate]) {
+        templateFilename = projectConfigData.templates[configTemplate].replace('<project>', process.cwd())
         if (toolbox.filesystem.existsSync(templateFilename)) {
           template = templateFilename
         }
@@ -328,14 +300,8 @@ module.exports = {
         if (command.flags[key]?.aliases) {
           names = names.concat(command.flags[key].aliases)
         }
-        const defaultValue = command.flags[key]?.default
-          ? command.flags[key].default
-          : false
-        const result = toolbox.getOptionValue(
-          toolbox.arguments,
-          names,
-          defaultValue,
-        )
+        const defaultValue = command.flags[key]?.default ? command.flags[key].default : false
+        const result = toolbox.getOptionValue(toolbox.arguments, names, defaultValue)
         data[key] = result
       }
     }
@@ -405,11 +371,7 @@ module.exports = {
 
     if (result) {
       if (result.includes('ERROR')) {
-        filename = result
-          .replace('ERROR ', '')
-          .replace(' Already Exists', '')
-          .replace('~/', '')
-          .trim()
+        filename = result.replace('ERROR ', '').replace(' Already Exists', '').replace('~/', '').trim()
       }
 
       if (result.includes('SUCCESS')) {
@@ -459,19 +421,9 @@ module.exports = {
 
     Object.keys(args).forEach((key) => {
       if (!validKeys.includes(key)) {
-        const r1 = globalOptions.find(
-          (globalKey) => globalKey.indexOf(`--${key}`) > 0,
-        )
-        const r2 = globalOptions.find(
-          (globalKey) => globalKey.indexOf(`-${key}`) > 0,
-        )
-        if (
-          !r1 &&
-          !r2 &&
-          key !== 'log' &&
-          key !== 'logDir' &&
-          key !== 'log-dir'
-        ) {
+        const r1 = globalOptions.find((globalKey) => globalKey.indexOf(`--${key}`) > 0)
+        const r2 = globalOptions.find((globalKey) => globalKey.indexOf(`-${key}`) > 0)
+        if (!r1 && !r2 && key !== 'log' && key !== 'logDir' && key !== 'log-dir') {
           invalidKeys.push(key)
         }
       }
@@ -496,23 +448,17 @@ module.exports = {
   },
 
   success(toolbox = null, response = null) {
-    const quiet =
-      toolbox.getOptionValue(toolbox.arguments, ['quiet', 'q']) || false
-    const fullpath =
-      toolbox.getOptionValue(toolbox.arguments, ['fullpath']) || false
+    const quiet = toolbox.getOptionValue(toolbox.arguments, ['quiet', 'q']) || false
+    const fullpath = toolbox.getOptionValue(toolbox.arguments, ['fullpath']) || false
 
     !quiet ? console.log('') : null
     const filename = fullpath ? response.dest : response.shortFilename
-    !quiet
-      ? toolbox.print.success(`${filename} Created Successfully\n`, 'SUCCESS')
-      : null
+    !quiet ? toolbox.print.success(`${filename} Created Successfully\n`, 'SUCCESS') : null
   },
 
   error(toolbox = null, response = null) {
-    const quiet =
-      toolbox.getOptionValue(toolbox.arguments, ['quiet', 'q']) || false
-    const fullpath =
-      toolbox.getOptionValue(toolbox.arguments, ['fullpath']) || false
+    const quiet = toolbox.getOptionValue(toolbox.arguments, ['quiet', 'q']) || false
+    const fullpath = toolbox.getOptionValue(toolbox.arguments, ['fullpath']) || false
 
     !quiet ? console.log('') : null
     const filename = fullpath ? response.dest : response.shortFilename
@@ -524,9 +470,7 @@ module.exports = {
 
     const flags = (command?.flags && Object.keys(command.flags)) || []
     flags.forEach((flag) => {
-      command.flags[flag]?.required && command.flags[flag].required
-        ? requiredArguments.push(flag)
-        : null
+      command.flags[flag]?.required && command.flags[flag].required ? requiredArguments.push(flag) : null
     })
 
     return requiredArguments
@@ -550,9 +494,7 @@ module.exports = {
   async execute(toolbox, command) {
     const args = helpers.getArguments(toolbox.arguments, command.flags)
 
-    const answers = command.usePrompts
-      ? await toolbox.prompts.run(toolbox, command)
-      : {}
+    const answers = command.usePrompts ? await toolbox.prompts.run(toolbox, command) : {}
     const result = { ...args, ...answers }
 
     // if user did not supply resource name, it will be supplied via prompt
@@ -596,10 +538,7 @@ module.exports = {
   },
 
   getLogDirectory(args, defaultLocation = 'system') {
-    const logDir =
-      args?.logDir || args?.['log-dir']
-        ? args.logDir || args['log-dir']
-        : defaultLocation
+    const logDir = args?.logDir || args?.['log-dir'] ? args.logDir || args['log-dir'] : defaultLocation
     return logDir.length > 0 ? logDir : defaultLocation
   },
 
@@ -610,28 +549,15 @@ module.exports = {
 
     let cmd = ''
     Object.keys(args).forEach((item) => {
-      if (
-        item !== 'anonymous' &&
-        item !== 'sub' &&
-        item !== 'log' &&
-        item !== 'commandName' &&
-        item.length > 1
-      ) {
+      if (item !== 'anonymous' && item !== 'sub' && item !== 'log' && item !== 'commandName' && item.length > 1) {
         if (args[item]) {
-          cmd +=
-            typeof args[item] === 'boolean'
-              ? `-- ${item} `
-              : `--${item} ${args[item]} `
+          cmd += typeof args[item] === 'boolean' ? `-- ${item} ` : `--${item} ${args[item]} `
         }
       }
     })
     cmd = `${command} ${resource} ${cmd}`.trim()
 
-    Messenger.initLogger(
-      false,
-      this.getLogDirectory(args, 'system'),
-      'laravel-craftsman-2',
-    )
+    Messenger.initLogger(false, this.getLogDirectory(args, 'system'), 'laravel-craftsman-2')
     Messenger.loggerLog(cmd)
   },
 
@@ -646,20 +572,18 @@ module.exports = {
       if (filesystem.existsSync(jsonFilename)) {
         // load json object, sweet and simple using require, no transforming required
         const pluginObj = require(jsonFilename)
-
         if (pluginObj && pluginObj.hasOwnProperty('plugin.commands')) {
           pluginObj['plugin.commands'].forEach((command) => {
-            pluginCommands.push({
-              pluginId: pluginObj.hasOwnProperty('plugin.id')
-                ? pluginObj['plugin.id']
-                : 'missing plugin-id',
-              pluginName: pluginObj.hasOwnProperty('plugin.name')
-                ? pluginObj['plugin.name']
-                : 'missing plugin-name',
-              name: command.name,
-              description: command.description,
-              jsFunction: command.jsFunction,
-            })
+            if (pluginObj.hasOwnProperty('plugin.id') && pluginObj['plugin.id'] !== '{{pluginId}}') {
+              pluginCommands.push({
+                pluginId: pluginObj.hasOwnProperty('plugin.id') ? pluginObj['plugin.id'] : 'missing plugin-id',
+                pluginName: pluginObj.hasOwnProperty('plugin.name') ? pluginObj['plugin.name'] : 'missing plugin-name',
+                name: command.name,
+                description: command.description,
+                jsFunction: command.jsFunction,
+                author: pluginObj['plugin.author'],
+              })
+            }
           })
         }
       }
