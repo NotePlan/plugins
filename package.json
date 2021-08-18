@@ -3,7 +3,7 @@
   "packageName": "noteplan-cli",
   "info": "noteplan plugin development toolbox",
   "version": "2.0.0",
-  "build": "23",
+  "build": "123",
   "description": "noteplan-cli",
   "repository": "https://github.com/NotePlan/plugins",
   "contributors": [
@@ -13,12 +13,12 @@
       "url": "https://github.com/NotePlan"
     },
     {
-      "name": "David Wertheimer",
-      "url": "https://github.com/dwertheimer"
-    },
-    {
       "name": "Jonathan Clark",
       "url": "https://github.com/jgclark"
+    },
+    {
+      "name": "David Wertheimer",
+      "url": "https://github.com/dwertheimer"
     },
     {
       "name": "Mike Erickson",
@@ -61,6 +61,7 @@
     "simple-input": "^1.0.1"
   },
   "scripts": {
+    "init": "npm install && npm link",
     "autowatch": "node scripts/rollup.js",
     "release": "node scripts/releases.js",
     "lint": "eslint .",
