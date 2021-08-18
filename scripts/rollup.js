@@ -1,3 +1,4 @@
+// @flow
 'use strict'
 
 const fs = require('fs/promises')
@@ -25,26 +26,27 @@ const FOLDERS_TO_IGNORE = [
 const rootFolderPath = path.join(__dirname, '..')
 
 // Command line options
-program.option(
-  '-d, --debug',
-  'debug version - no Javacript minification or transpiling',
-)
-program.option('-m, --minimal', 'Rollup: minimal output')
-program.parse(process.argv)
+program
+  .option('-d, --debug',   'Rollup: allow for better JS debugging - no minification or transpiling')
+  .option('-c, --compact', 'Rollup: use more compact output')
+  .parse(process.argv)
 const options = program.opts()
-const DEBUGGING = options.debug | false
+const DEBUGGING = options.debug || false
+const COMPACT = options.compact || false
 
-if (DEBUGGING && !options.minimal) {
+if (DEBUGGING) {
   console.log(
     `Running in DEBUG mode for purposes of seeing the Javascript script.js code exactly as it appears in your editor. This means no cleaning and no transpiling. Good for debugging, but bad for deployment to older machines. Make sure you run the autowatch command without the -debug flag before you release!\n`,
   )
+}
+if (COMPACT) {
+  console.log(`Will use compact output when there are no errors\n`)
 }
 let watcher
 
 /**
  * @description Rebuild the plugin commands list, checking for collisions. Runs every time a plugin is updated
  * @param {string} pluginPath
- * @returns {Promise<void>}
  * @private
  */
 async function checkPluginList(pluginPaths) {
@@ -91,9 +93,8 @@ async function main() {
   const limitToFolders = await getFolderFromCommandLine(
     rootFolderPath,
     program.args,
-    options.minimal,
   )
-  if (limitToFolders.length && !options.minimal) {
+  if (limitToFolders.length) {
     console.log(
       `\nWARNING: Keep in mind that if you are editing shared files used by other plugins that you could be affecting them by not rebuilding/testing them all here. You have been warned. :)\n`,
     )
@@ -168,20 +169,15 @@ async function main() {
         const pluginFolder = outputFolder
           .replace(rootFolderPath, '')
           .substring(1)
-        let msg = `${new Date().toISOString().slice(0, 16)} "${pluginFolder}"${
-          options.minimal
-            ? ''
-            : '\n     Built and copied to the "Plugins" folder. \n'
-        }`
+        let msg = (COMPACT)
+          ? `${new Date().toISOString().slice(0, 16)}  ${pluginFolder}  built and copied to the "Plugins" folder.`
+          : `${new Date().toISOString().slice(0, 16)} "${pluginFolder}"\n     Built and copied to the "Plugins" folder.`
         if (DEBUGGING) {
-          msg += options.minimal
-            ? ` (JS Debug)`
-            : `     Built in DEBUG mode. Not ready to deploy.`
+          msg += `\n     Built in DEBUG mode. Not ready to deploy.\n`
         } else {
-          if (!options.minimal) {
-            msg += `     To debug this plugin without transpiling use: ${`npm run autowatch "${pluginFolder}" -- -debug`}\n\
-     To release this plugin, update the changelog.md and run:\
-            \n${`        npm run release "${pluginFolder}"`}`
+          if (!COMPACT) {
+            msg += `\n     To debug this plugin without transpiling use: ${`npm run autowatch "${pluginFolder}" -- -debug`}\n\
+     To release this plugin, update changelog.md and run: ${`npm run release "${pluginFolder}"\n`}`
           }
         }
         console.log(msg)
@@ -195,9 +191,7 @@ async function main() {
     }
   })
 
-  if (!options.minimal) {
-    console.log('Building and Watching for changes...\n')
-  }
+  console.log('Building and Watching for changes...\n')
 }
 
 function getConfig(pluginPath) {
