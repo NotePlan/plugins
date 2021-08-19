@@ -3,7 +3,7 @@
   "packageName": "noteplan-cli",
   "info": "noteplan plugin development toolbox",
   "version": "2.0.0",
-  "build": "123",
+  "build": "12",
   "description": "noteplan-cli",
   "repository": "https://github.com/NotePlan/plugins",
   "contributors": [
