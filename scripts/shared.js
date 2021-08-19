@@ -69,12 +69,8 @@ async function getPluginFileContents(pluginPath) {
     pluginObj = await JSON5.parse(pluginFile)
     // pluginObj = await JSON.parse(pluginFile)
   } catch (e) {
-    console.log(
-      `getPluginFileContents: Problem reading JSON file:\n  ${pluginPath}`,
-    )
-    console.log(
-      `Often this is simply a non-standard trailing comma that the parser doesn't like.`,
-    )
+    console.log(`getPluginFileContents: Problem reading JSON file:\n  ${pluginPath}`)
+    console.log(`Often this is simply a non-standard trailing comma that the parser doesn't like.`)
     console.log(e)
   }
   return pluginObj || {}
@@ -91,17 +87,13 @@ async function writeMinifiedPluginFileContents(pathToRead, pathToWrite) {
     const j5 = JSON5.parse(contents)
     await fs.writeFile(pathToWrite, JSON.stringify(j5, null, 2))
   } catch (e) {
-    console.log(
-      `writePluginFileContents: Problem writing JSON file: ${pathToWrite}`,
-    )
+    console.log(`writePluginFileContents: Problem writing JSON file: ${pathToWrite}`)
     console.log(e)
   }
 }
 
 async function getCopyTargetPath(dirents) {
-  const hasPluginPathFile = dirents.some(
-    (dirent) => dirent.name === '.pluginpath',
-  )
+  const hasPluginPathFile = dirents.some((dirent) => dirent.name === '.pluginpath')
   if (hasPluginPathFile) {
     const path = await fs.readFile(pluginPathFile, 'utf8')
     // Cleanup any newlines from the path value
@@ -153,6 +145,23 @@ async function getCopyTargetPath(dirents) {
   return pluginPath
 }
 
+async function getPluginConfig(key = null, defaultValue = null) {
+  try {
+    const data = await fs.readFile('.pluginsrc')
+    if (data && !key) {
+      return data
+    } else {
+      if (data) {
+        const configData = await JSON5.parse(data)
+        return configData.hasOwnProperty(key) ? configData[key] : defaultValue || null
+      }
+      return defaultValue
+    }
+  } catch (error) {
+    //
+  }
+}
+
 module.exports = {
   fileExists,
   getPluginFileContents,
@@ -160,4 +169,5 @@ module.exports = {
   getFolderFromCommandLine,
   writeMinifiedPluginFileContents,
   getCopyTargetPath,
+  getPluginConfig,
 }

@@ -2,6 +2,7 @@
 'use strict'
 
 const colors = require('chalk')
+const strftime = require('strftime')
 const fs = require('fs/promises')
 const path = require('path')
 const rollup = require('rollup')
@@ -18,21 +19,14 @@ const {
   getPluginFileContents,
   writeMinifiedPluginFileContents,
   getCopyTargetPath,
+  getPluginConfig,
 } = require('./shared')
-const FOLDERS_TO_IGNORE = [
-  'scripts',
-  'flow-typed',
-  'node_modules',
-  'np.plugin-flow-skeleton',
-]
+const FOLDERS_TO_IGNORE = ['scripts', 'flow-typed', 'node_modules', 'np.plugin-flow-skeleton']
 const rootFolderPath = path.join(__dirname, '..')
 
 // Command line options
 program
-  .option(
-    '-d, --debug',
-    'Rollup: allow for better JS debugging - no minification or transpiling',
-  )
+  .option('-d, --debug', 'Rollup: allow for better JS debugging - no minification or transpiling')
   .option('-c, --compact', 'Rollup: use more compact output')
   .parse(process.argv)
 const options = program.opts()
@@ -48,11 +42,7 @@ if (DEBUGGING && !COMPACT) {
 }
 if (COMPACT) {
   console.log('')
-  console.log(
-    colors.green.bold(
-      `Rollup autowatch running. Will use compact output when there are no errors\n`,
-    ),
-  )
+  console.log(colors.green.bold(`Rollup autowatch running. Will use compact output when there are no errors\n`))
 }
 let watcher
 
@@ -65,22 +55,12 @@ async function checkPluginList(pluginPaths) {
   const pluginCommands = {}
   for (const pluginPath of pluginPaths) {
     // console.log(`About to read ${pluginPath}`)
-    const pluginFile = await getPluginFileContents(
-      path.join(pluginPath, 'plugin.json'),
-    ) // console.log(`*** * READ\n${JSON.stringify(pluginFile)}`)
+    const pluginFile = await getPluginFileContents(path.join(pluginPath, 'plugin.json')) // console.log(`*** * READ\n${JSON.stringify(pluginFile)}`)
     if (pluginFile) {
       pluginFile['plugin.commands']?.forEach((command) => {
         if (pluginCommands[command.name]) {
-          console.log(
-            colors.red.bold(
-              `\n!!!!\nCommand collison: "${command.name}" exists already!`,
-            ),
-          )
-          console.log(
-            `\tTrying to add: "${command.name}" from ${path.basename(
-              pluginPath,
-            )}`,
-          )
+          console.log(colors.red.bold(`\n!!!!\nCommand collison: "${command.name}" exists already!`))
+          console.log(`\tTrying to add: "${command.name}" from ${path.basename(pluginPath)}`)
           console.log(
             colors.yellow(
               `\tConflicts with "${pluginCommands[command.name].name}" in ${
@@ -95,11 +75,7 @@ async function checkPluginList(pluginPaths) {
         }
       })
     } else {
-      console.log(
-        colors.red(
-          `^^^ checkPluginList: For some reason could not parse file at: ${pluginPath}`,
-        ),
-      )
+      console.log(colors.red(`^^^ checkPluginList: For some reason could not parse file at: ${pluginPath}`))
     }
   }
   await createPluginListing(pluginCommands)
@@ -108,10 +84,7 @@ async function checkPluginList(pluginPaths) {
 async function main() {
   // const args = getArgs()
 
-  const limitToFolders = await getFolderFromCommandLine(
-    rootFolderPath,
-    program.args,
-  )
+  const limitToFolders = await getFolderFromCommandLine(rootFolderPath, program.args)
   if (limitToFolders.length && !COMPACT) {
     console.log(
       colors.yellow.bold(
@@ -137,9 +110,7 @@ async function main() {
       const pluginContents = await fs.readdir(pluginFolder, {
         withFileTypes: true,
       })
-      const isBundled = pluginContents.some(
-        (dirent) => dirent.name === 'src' && dirent.isDirectory,
-      )
+      const isBundled = pluginContents.some((dirent) => dirent.name === 'src' && dirent.isDirectory)
       if (!isBundled) {
         return null
       }
@@ -162,43 +133,32 @@ async function main() {
     }
     if (event.code === 'BUNDLE_END' && copyTargetPath != null) {
       const outputFile = event.output[0]
-      const outputFolder = bundledPlugins.find((pluginFolder) =>
-        outputFile.includes(pluginFolder),
-      )
+      const outputFolder = bundledPlugins.find((pluginFolder) => outputFile.includes(pluginFolder))
 
       if (outputFolder != null) {
-        const targetFolder = path.join(
-          copyTargetPath,
-          outputFolder.replace(rootFolderPath, ''),
-        )
+        const targetFolder = path.join(copyTargetPath, outputFolder.replace(rootFolderPath, ''))
         await mkdirp(targetFolder)
-        await fs.copyFile(
-          path.join(outputFolder, 'script.js'),
-          path.join(targetFolder, 'script.js'),
-        )
+        await fs.copyFile(path.join(outputFolder, 'script.js'), path.join(targetFolder, 'script.js'))
         const pluginJson = path.join(outputFolder, 'plugin.json')
         // FIXME: Wanted to use JSON5 here but it was adding commas that stopped NP from working
-        await writeMinifiedPluginFileContents(
-          pluginJson,
-          path.join(targetFolder, 'plugin.json'),
-        )
+        await writeMinifiedPluginFileContents(pluginJson, path.join(targetFolder, 'plugin.json'))
         // await fs.copyFile(pluginJson, path.join(targetFolder, 'plugin.json')) //the non-minified version
         if (limitToFolders.length === 0) {
           await checkPluginList(bundledPlugins)
         }
-        const pluginFolder = outputFolder
-          .replace(rootFolderPath, '')
-          .substring(1)
+        const pluginFolder = outputFolder.replace(rootFolderPath, '').substring(1)
+
+        // default dateTime, uses .pluginsrc if exists
+        // see https://www.strfti.me/ for formatting
+        const dateTimeFormat = await getPluginConfig('dateTimeFormat')
+        const dateTime = dateTimeFormat.length > 0 ? strftime(dateTimeFormat) : new Date().toISOString().slice(0, 16)
+
         let msg = COMPACT
-          ? `${new Date().toISOString().slice(0, 16)}  ${pluginFolder}`
-          : `${new Date()
-              .toISOString()
-              .slice(
-                0,
-                16,
-              )} "${pluginFolder}"\n     Built and copied to the "Plugins" folder.`
+          ? `${dateTime}  ${pluginFolder}`
+          : `${dateTime} "${pluginFolder}"\n     Built and copied to the "Plugins" folder.`
+
         if (DEBUGGING) {
-          msg += `\n     Built in DEBUG mode. Not ready to deploy.\n`
+          msg += colors.yellow(`\n     Built in DEBUG mode. Not ready to deploy.\n`)
         } else {
           if (!COMPACT) {
             msg += `\n     To debug this plugin without transpiling use: ${`npm run autowatch "${pluginFolder}" -- -debug`}\n\
@@ -229,8 +189,7 @@ function getConfig(pluginPath) {
       file: path.join(pluginPath, 'script.js'),
       format: 'iife',
       name: 'exports',
-      footer:
-        'Object.assign(typeof(globalThis) == "undefined" ? this : globalThis, exports)',
+      footer: 'Object.assign(typeof(globalThis) == "undefined" ? this : globalThis, exports)',
     },
     plugins: DEBUGGING
       ? [

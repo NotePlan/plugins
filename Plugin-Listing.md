@@ -5,7 +5,6 @@
 | `add project` | add a new note representing a project, asking for its metadata | 🔬Reviews |
 | `apply template` | Choose a Template to apply (append) to the current Note | 🔩 Templates |
 | `complete project` | add @completed(today) date to the open project | 🔬Reviews |
-| `daily` | Creates daily checklist | 🧰 Codedungeon Toolbox |
 | `date` | Insert date (without time) at cursor | 📅 Date Automations |
 | `dayReview` | Ask journal questions for an end-of-day review (requires configuring) | ☀️ Daily Journal |
 | `dayStart` | Apply Daily Note Template (requires configuring) | ☀️ Daily Journal |
