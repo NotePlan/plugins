@@ -7,17 +7,14 @@ const createPluginListing = require('../../scripts/createPluginListing')
 const pluginInfo = require('./support/plugin-info')
 
 module.exports = {
-  name: 'plugin-info',
+  name: 'plugin:info',
   description: 'Show Current NotePlan Plugin Commands',
   disabled: false,
   hidden: false,
-  usage1: `noteplan-cli plugin-info\n  noteplan-cli plugin-info --check formatted ${colors.gray(
-    '(check if "formatted" command is available)\n  noteplan-cli plugin-info',
-  )}`,
   usage: [
-    `noteplan-cli plugin-info ${colors.gray('(displays report of all plug-ins)')}`,
-    `  noteplan-cli plugin-info --check ${colors.gray('(check if "formatted" command is available)')}`,
-    `  noteplan-cli plugin-info --save ${colors.gray('(generates ./Plugin-Listing.md)')}`,
+    `noteplan-cli plugin:info ${colors.gray('(displays report of all plug-ins)')}`,
+    `  noteplan-cli plugin:info --check ${colors.gray('(check if "formatted" command is available)')}`,
+    `  noteplan-cli plugin:info --save ${colors.gray('(generates ./Plugin-Listing.md)')}`,
   ].join('\n'),
   usePrompts: true,
   arguments: {},
@@ -62,9 +59,11 @@ module.exports = {
     if (check && check.length > 0) {
       const result = _findIndex(commands, { name: check })
       if (result >= 0) {
-        toolbox.print.warn(`command '${check}' exists in ${commands[result].pluginName}.`)
+        toolbox.print.error(` 🚫 '${check}' exists in ${commands[result].pluginName}.`)
       } else {
-        toolbox.print.success(`command '${check}' is currently not used by any NotePlan plugin and can be used.`)
+        toolbox.print.success(
+          ` ✅ '${check}' is currently not used by any NotePlan plugin and can be used in your plugin.`,
+        )
       }
       process.exit()
     }

@@ -8,6 +8,7 @@ const util = require('util')
 const exec = util.promisify(require('child_process').exec)
 const inquirer = require('inquirer')
 const JSON5 = require('json5')
+const colors = require('colors')
 
 const pluginPathFile = path.join(__dirname, '..', '.pluginpath')
 
@@ -35,10 +36,12 @@ async function getFolderFromCommandLine(rootFolderPath, args) {
         //   console.log(`stat returned: ${JSON.stringify(stat)}`)
       } else {
         console.log(
-          `\nERROR: Invalid Argument: "${arg}"\n  Path: "${path.join(
-            rootFolderPath,
-            arg,
-          )}" does not exist.\n  Make sure you are invoking with just the top-level folder name, e.g. \n  jgclark.DailyJournal\nStopping script. Try again!\n`,
+          colors.red(
+            `\nERROR: Invalid Argument: "${arg}"\n \n Path: "${path.join(
+              rootFolderPath,
+              arg,
+            )}" does not exist.\n\n Make sure you are invoking with just the top-level folder name, \n  e.g., jgclark.DailyJournal`,
+          ),
         )
         process.exit(0)
       }

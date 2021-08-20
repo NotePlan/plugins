@@ -25,25 +25,18 @@ const getLogDirectory = (argv, defaultLocation = 'system') => {
 }
 
 new CLI(process.argv, __dirname)
-  .usage(
-    `${pkgInfo.packageName} ${colors.magenta('<resource>')} ${colors.cyan(
-      '[options]',
-    )}`,
-  )
+  .usage(`${pkgInfo.packageName} ${colors.magenta('<resource>')} ${colors.cyan('[options]')}`)
   .options(options)
   .version(/* version string override, if not supplied default version info will be displayed */)
   .examples(
     /* if not called, examples will be suppressed in help dialog */
     [
-      `noteplan-cli create-plugin ${colors.gray(
-        '(creates noteplan plugin project)',
-      )}`,
-      `  noteplan-cli plugin-info ${colors.gray(
-        '(show information about current plugins)',
-      )}`,
-      `  noteplan-cli plugin-info --check formatted ${colors.gray(
+      `noteplan-cli plugin:create ${colors.gray('(creates noteplan plugin project)')}`,
+      `  noteplan-cli plugin:info ${colors.gray('(show information about current plugins)')}`,
+      `  noteplan-cli plugin:info --check formatted ${colors.gray(
         '(checks to see if "formatted" command is available to use)',
       )}`,
+      `  noteplan-cli plugin:release ${colors.gray('(publishes new plugin release)')}`,
     ].join('\n'),
   )
   .logger({ directory: getLogDirectory(process.argv), alwaysLog: true })

@@ -28,7 +28,8 @@
   ],
   "main": "index.js",
   "bin": {
-    "noteplan-cli": "index.js"
+    "noteplan-cli": "index.js",
+    "np-cli": "index.js"
   },
   "engines": {
     "node": ">=12.15.0"
@@ -81,7 +82,7 @@
     "singleQuote": true
   },
   "dependencies": {
-    "@codedungeon/gunner": "0.63.0",
+    "@codedungeon/gunner": "0.65.0",
     "commander": "^8.1.0",
     "enquirer": "^2.3.6",
     "findup-sync": "4.0.0",

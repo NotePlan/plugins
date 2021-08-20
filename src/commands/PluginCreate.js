@@ -1,14 +1,12 @@
 const { colors, helpers, print, path } = require('@codedungeon/gunner')
-const createPlugin = require('./support/create-plugin')
+const createPlugin = require('./support/plugin-create')
 
 module.exports = {
-  name: 'create-plugin',
+  name: 'plugin:create',
   description: 'Creates NotePlan Plugin Project',
   disabled: false,
   hidden: false,
-  usage: `create-project ${colors.magenta('<resource>')} ${colors.blue(
-    '[options]',
-  )}`,
+  usage: `plugin:create ${colors.magenta('<resource>')} ${colors.blue('[options]')}`,
   usePrompts: true,
   arguments: {
     name: {},
@@ -17,9 +15,7 @@ module.exports = {
     pluginId: {
       type: 'string',
       aliases: ['i'],
-      description: `Unique PluginId (recommend githubUserName.Name) ${colors.gray(
-        'e.g., codedungeon.Toolbox',
-      )}`,
+      description: `Unique PluginId (recommend githubUserName.Name) ${colors.gray('e.g., codedungeon.Toolbox')}`,
       required: true,
       prompt: {
         type: 'input',
@@ -28,9 +24,7 @@ module.exports = {
     pluginName: {
       type: 'string',
       aliases: ['n'],
-      description: `Plugin Name ${colors.gray(
-        '(this will appear in NotePlugin Plugins menu)',
-      )}`,
+      description: `Plugin Name ${colors.gray('(this will appear in NotePlugin Plugins menu)')}`,
       required: true,
       prompt: {
         type: 'input',
@@ -50,9 +44,7 @@ module.exports = {
     pluginAuthor: {
       type: 'string',
       aliases: ['a'],
-      description: `Plugin Author ${colors.gray(
-        'Can be an individual or organization',
-      )}`,
+      description: `Plugin Author ${colors.gray('Can be an individual or organization')}`,
       required: true,
       prompt: {
         type: 'input',
@@ -66,19 +58,13 @@ module.exports = {
     let flags = null
 
     const hasCommandLineItems =
-      cliArgs.pluginId ||
-      cliArgs.pluginName ||
-      cliArgs.pluginDescription ||
-      cliArgs.pluginAuthor ||
-      false
+      cliArgs.pluginId || cliArgs.pluginName || cliArgs.pluginDescription || cliArgs.pluginAuthor || false
 
     if (!hasCommandLineItems) {
       console.log('')
       print.note('', 'INSTRUCTIONS')
       console.log('')
-      print.note(
-        'The following items will be used to generate your new NotePlan plugin:',
-      )
+      print.note('The following items will be used to generate your new NotePlan plugin:')
       print.note(` • Supply values for each field in ${colors.cyan('blue')}`)
       print.note(' • Press <tab> to move between fields')
       print.note(' • Press <cmd-c> to abort')
@@ -95,17 +81,13 @@ module.exports = {
     } else {
       const promptArgs = helpers.getArguments(toolbox.arguments, this.flags)
 
-      const answers = this.usePrompts
-        ? await toolbox.prompts.run(toolbox, this)
-        : []
+      const answers = this.usePrompts ? await toolbox.prompts.run(toolbox, this) : []
 
-      // merge args and answers
       flags = {
         ...{
           pluginId: promptArgs.pluginId || answers.pluginId,
           pluginName: promptArgs.pluginName || answers.pluginName,
-          pluginDescription:
-            promptArgs.pluginDescription || answers.pluginDescription,
+          pluginDescription: promptArgs.pluginDescription || answers.pluginDescription,
           pluginAuthor: promptArgs.pluginAuthor || answers.pluginAuthor,
         },
       }
@@ -119,11 +101,7 @@ module.exports = {
     const createResult = createPlugin.createPlugin(pluginPath, flags)
 
     console.log('')
-    console.log(
-      colors.green.bold(
-        `✔ ✨ Project Initialized in ${colors.yellow.bold(pluginPath)}`,
-      ),
-    )
+    console.log(colors.green.bold(`✔ ✨ Project Initialized in ${colors.yellow.bold(pluginPath)}`))
     console.log(colors.green.bold('✔ 📦 Project Files Created'))
     console.log(colors.green.bold('✔ 🧩 Project Creation Complete'))
 
@@ -133,9 +111,6 @@ module.exports = {
     print.info(`   - If NotePlan is running, quit and reopen`)
     print.info(`   - run your new plugin command /helloWorld`)
     console.log('')
-    print.note(
-      'Use "noteplugin-cli --check xxx" to check if desired command is available',
-      'TIP',
-    )
+    print.note('Use "noteplugin-cli --check xxx" to check if desired command is available', 'TIP')
   },
 }

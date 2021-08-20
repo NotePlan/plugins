@@ -16,8 +16,7 @@
       "description": "Your first plugin!",
       "jsFunction": "helloWorld",
       "alias": [
-        "other names you want your plugin",
-        "to be found when a user searches"
+        "helloWorld Alias"
       ]
     }
   ]
