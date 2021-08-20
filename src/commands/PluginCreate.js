@@ -12,28 +12,28 @@ module.exports = {
     name: {},
   },
   flags: {
-    pluginId: {
+    id: {
       type: 'string',
       aliases: ['i'],
-      description: `Unique PluginId (recommend githubUserName.Name) ${colors.gray('e.g., codedungeon.Toolbox')}`,
+      description: `Unique Plugin ID (recommend githubUserName.PluginName) ${colors.gray('e.g., codedungeon.Toolbox')}`,
       required: true,
       prompt: {
         type: 'input',
       },
     },
-    pluginName: {
+    name: {
       type: 'string',
       aliases: ['n'],
-      description: `Plugin Name ${colors.gray('(this will appear in NotePlugin Plugins menu)')}`,
+      description: `Plugin Name ${colors.gray('(this will appear in NotePlan Plugins menu)')}`,
       required: true,
       prompt: {
         type: 'input',
       },
     },
-    pluginDescription: {
+    description: {
       type: 'string',
       aliases: ['d'],
-      description: `Plugin Description (as it will appear in NotePlugin Plugins menu) ${colors.gray(
+      description: `Plugin Description (as it will appear in NotePlan Plugins Prefrences) ${colors.gray(
         'e.g., Workflow Helpers',
       )}`,
       required: true,
@@ -41,7 +41,7 @@ module.exports = {
         type: 'input',
       },
     },
-    pluginAuthor: {
+    author: {
       type: 'string',
       aliases: ['a'],
       description: `Plugin Author ${colors.gray('Can be an individual or organization')}`,
@@ -57,8 +57,7 @@ module.exports = {
 
     let flags = null
 
-    const hasCommandLineItems =
-      cliArgs.pluginId || cliArgs.pluginName || cliArgs.pluginDescription || cliArgs.pluginAuthor || false
+    const hasCommandLineItems = cliArgs.id || cliArgs.name || cliArgs.description || cliArgs.author || false
 
     if (!hasCommandLineItems) {
       console.log('')
@@ -85,10 +84,10 @@ module.exports = {
 
       flags = {
         ...{
-          pluginId: promptArgs.pluginId || answers.pluginId,
-          pluginName: promptArgs.pluginName || answers.pluginName,
-          pluginDescription: promptArgs.pluginDescription || answers.pluginDescription,
-          pluginAuthor: promptArgs.pluginAuthor || answers.pluginAuthor,
+          pluginId: promptArgs.id || answers.id,
+          pluginName: promptArgs.name || answers.name,
+          pluginDescription: promptArgs.description || answers.description,
+          pluginAuthor: promptArgs.author || answers.author,
         },
       }
     }
@@ -108,9 +107,9 @@ module.exports = {
     print.info('\n👉 Next Steps:\n')
     print.info(`   ${toolbox.colors.gray('$')} cd ${flags.pluginId}`)
     print.info(`   ${toolbox.colors.gray('$')} npm run autowatch`)
-    print.info(`   - If NotePlan is running, quit and reopen`)
-    print.info(`   - run your new plugin command /helloWorld`)
+    print.info(`   - If NotePlan is running, quit and relaunch`)
+    print.info(`   - run your new plugin command /helloWorld from NotePlan Command Bar or in inline`)
     console.log('')
-    print.note('Use "noteplugin-cli --check xxx" to check if desired command is available', 'TIP')
+    print.note('Use "noteplan-cli --check xxx" to check if desired command is available', 'TIP')
   },
 }

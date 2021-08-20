@@ -36,7 +36,6 @@ new CLI(process.argv, __dirname)
       `  noteplan-cli plugin:info --check formatted ${colors.gray(
         '(checks to see if "formatted" command is available to use)',
       )}`,
-      `  noteplan-cli plugin:release ${colors.gray('(publishes new plugin release)')}`,
     ].join('\n'),
   )
   .logger({ directory: getLogDirectory(process.argv), alwaysLog: true })

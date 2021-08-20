@@ -1,12 +1,10 @@
 const { filesystem, colors, print, path } = require('@codedungeon/gunner')
 const { Snippet } = require('enquirer')
-const { defaultsDeep } = require('lodash')
+const tildify = require('tildify')
 
 const prompt = new Snippet({
   name: 'username',
-  message: `Fill out the following fields in ${colors.yellow.bold(
-    'plugin.json',
-  )}`,
+  message: `Fill out the following fields in ${colors.yellow.bold('plugin.json')}`,
   required: true,
   fields: [
     {
@@ -15,7 +13,7 @@ const prompt = new Snippet({
     },
     {
       name: 'pluginName',
-      message: 'Name as it will appear in NotePlugin Plugins menu',
+      message: 'Name as it will appear in NotePlan Plugins menu',
     },
     {
       name: 'pluginDescription',
@@ -48,10 +46,8 @@ module.exports = {
     const src = path.resolve('./np.plugin-flow-skeleton')
     const dest = path.resolve(pluginDest)
 
-    console.log({ pluginInfo })
-
     if (filesystem.existsSync(pluginDest)) {
-      print.error(`${dest} Already Exits`, 'ERROR')
+      print.error(`${tildify(dest)} Already Exits`, 'ERROR')
       process.exit()
     }
 
@@ -62,17 +58,12 @@ module.exports = {
       result = await this.merge(path.join(dest, 'plugin.json'), pluginInfo)
       result = await this.merge(path.join(dest, 'README.md'), pluginInfo)
       result = await this.merge(path.join(dest, 'changelog.md'), pluginInfo)
-      result = await this.merge(
-        path.join(dest, 'src', 'helloWorld.js'),
-        pluginInfo,
-      )
+      result = await this.merge(path.join(dest, 'src', 'helloWorld.js'), pluginInfo)
 
       await filesystem.delete(path.join(dest, 'script.js'))
     } catch (error) {
       print.error('An error occcured creating plugin', 'ERROR')
-      const message = error.message
-        .replace('ENOENT: ', '')
-        .replace(', stat ', '')
+      const message = error.message.replace('ENOENT: ', '').replace(', stat ', '')
       print.error(`        • ${message}`)
       process.exit()
     }

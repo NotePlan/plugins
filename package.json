@@ -3,13 +3,13 @@
   "packageName": "noteplan-cli",
   "info": "noteplan plugin development toolbox",
   "version": "2.0.0",
-  "build": "12",
+  "build": "14",
   "description": "noteplan-cli",
   "repository": "https://github.com/NotePlan/plugins",
   "contributors": [
     {
       "name": "Eduard Metzger",
-      "email": "info@noteplan.co",
+      "email": "hello@noteplan.co",
       "url": "https://github.com/NotePlan"
     },
     {
