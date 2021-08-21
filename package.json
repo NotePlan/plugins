@@ -3,7 +3,7 @@
   "packageName": "noteplan-cli",
   "info": "noteplan plugin development toolbox",
   "version": "2.0.0",
-  "build": "14",
+  "build": "15",
   "description": "noteplan-cli",
   "repository": "https://github.com/NotePlan/plugins",
   "contributors": [
@@ -62,7 +62,7 @@
     "simple-input": "^1.0.1"
   },
   "scripts": {
-    "init": "npm install && npm link",
+    "init": "node ./tasks/init.js",
     "autowatch": "node scripts/rollup.js",
     "autowatch:compact": "node scripts/rollup.js --compact",
     "release": "node scripts/releases.js",
