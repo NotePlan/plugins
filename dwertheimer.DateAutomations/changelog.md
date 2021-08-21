@@ -12,12 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added `formatted` option (using /formatted) and selecting `formatted` from `/dp` choice
 
-<<<<<<< HEAD
-## 1.0.9    
-- updated: now compiled for macOS versions back to 10.13.0.
-=======
-## 1.1.0    Added `formatted` option (using /formatted) and selecting `formatted` from `/dp` choice
->>>>>>> 2216198 (add formatted command)
+## 1.0.9    Now compiled for macOS versions back to 10.13.0.
 
 ## 1.0.1    Removing "macOS.minVersion" - no longer necessary with transpiling
 
