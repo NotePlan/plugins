@@ -1,6 +1,9 @@
 # What's changed in 🕓 Event Helpers?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
+### v0.3.7, 21.8.2021
+- fix: error in `includeHeadings` setting lookup
+
 ### v0.3.6, 18.8.2021
 - updated: can include `*|NOTES|*` and `*|URL|*` in templates, as they're now available from the API.
 

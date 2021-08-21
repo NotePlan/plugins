@@ -1,7 +1,7 @@
 // @flow
 // ------------------------------------------------------------------------------------
 // Command to bring calendar events into notes
-// v0.3.6, 18.8.2021
+// v0.3.7, 21.8.2021
 // @jgclark, with additions by @dwertheimer, @weyert
 // ------------------------------------------------------------------------------------
 
@@ -120,7 +120,7 @@ export async function listDaysEvents(paramString?: string): Promise<string> {
       : '- *|TITLE|*'
   const includeHeadings =
     paramString != null && paramString !== ''
-      ? getTagParams(paramString, 'includeHeaings')
+      ? getTagParams(paramString, 'includeHeadings')
       : true
   console.log(`\toutput template: '${template}' and '${allday}'`)
 
@@ -221,7 +221,7 @@ export async function listMatchingDaysEvents(
     for (let i = 0; i < textToMatchA.length; i++) {
       // const m = textToMatchA[i]
       const template = templateA[i]
-      const reMatch = new RegExp(textToMatchA[i], "i");
+      const reMatch = new RegExp(textToMatchA[i], "i")
       if (e.title.match(reMatch)) {
         console.log(`\tFound match to event '${e.title}'`)
         const replacements = [
