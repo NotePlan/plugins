@@ -16,7 +16,6 @@ const options = [
   //   option: 'template, -t',
   //   description: 'Template path (override default template)',
   // },
-  // { option: 'log-dir', description: 'Log directory (if different than default)' },
 ]
 
 const getLogDirectory = (argv, defaultLocation = 'system') => {

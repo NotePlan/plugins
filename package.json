@@ -82,7 +82,7 @@
     "singleQuote": true
   },
   "dependencies": {
-    "@codedungeon/gunner": "0.65.0",
+    "@codedungeon/gunner": "0.67.0",
     "commander": "^8.1.0",
     "enquirer": "^2.3.6",
     "findup-sync": "4.0.0",

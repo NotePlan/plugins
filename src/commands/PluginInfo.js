@@ -58,6 +58,7 @@ module.exports = {
 
     if (check && check.length > 0) {
       const result = _findIndex(commands, { name: check })
+
       if (result >= 0) {
         toolbox.print.error(` 🚫 '${check}' exists in ${commands[result].pluginName}.`)
       } else {
