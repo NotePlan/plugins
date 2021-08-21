@@ -1,8 +1,27 @@
-# What's Changed in this Plugin?
-_Insert your changes below every time you update the Plugin._
-_This changelog will be visible in the "release" of your plugin on github._
+# {{pluginId}} Changelog
 
-See Plugin [README](https://github.com/NotePlan/plugins/blob/main/<your plugin folder name here>/README.md) for details on commands and how to use it
+## Changelog
 
-### 0.1.0 Initial commit
-... details ...
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## Plugin Versioning Uses Semver
+
+All NotePlan plugins follow `semver` versioning. For details, please refer to [semver website](https://semver.org/)
+
+## About {{pluginId}} Plugin
+
+See Plugin [README](https://github.com/NotePlan/plugins/blob/main/{{pluginId}}/README.md) for details on available commands and use case.
+
+## [x.x.x] - yyyy-mm-dd (githubUserName)
+
+### Added
+List what has been added. If nothing has been changed, this section can be removed.
+
+### Changed
+List what has changed. If nothing has been changed, this section can be removed.
+
+### Removed
+List what has removed. If nothing has been removed, this section can be removed.

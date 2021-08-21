@@ -1,109 +1,198 @@
 # NotePlan Plugins
 
-This is the initial repository for [NotePlan app](https://noteplan.co/) plugins, available from release v3.0.22 (Mac & iOS).
+## Overview
+NotePlan Plugins provides an extensive API for extending default editing and task management and work across all platforms (macOS and iOS).
 
-The plugins work through [Command Bar Plugins](https://help.noteplan.co/article/65-commandbar-plugins)
-for example:
+Each plugin command can be invoked using the [NotePlan Command Bar](https://help.noteplan.co/article/65-commandbar-plugins), or by entering any of available commands directly in the editor by entering `/command` (NotePlan will auto update the list of possible commands as you type)
 ![](https://d33v4339jhl8k0.cloudfront.net/docs/assets/6081f7f4c9133261f23f4b41/images/608c5886f8c0ef2d98df845c/file-fLVrMGjoZr.png)
 
-If you are a user and have plugin ideas, [submit them here](https://feedback.noteplan.co/plugins-scripting) or ask in the [NotePlan Discord community](https://discord.gg/D4268MT)'s `#plugin-ideas` channel.
+## Prerequisite
+The following items are required for NotePlan Plugin Development
 
-If you are a developer and want to contribute and build your plugins, see the [plugin writing documentation](https://help.noteplan.co/article/67-create-command-bar-plugins) and discuss this with other developers on [Discord](https://discord.gg/D4268MT) `#plugin-dev` channel.  Your might want to consult this [good modern JavaScript tutorial](https://javascript.info/).
+- Node 12.15 or greater
+- NotePlan 3.0.21 or greater
+- macOS Catalina 10.15.2 or greater (strongly recommend macOS Big Sur 11.x)
+- github `gh` is strongly recommended
 
-More instructions below:
-### Set up Repo and Tools
+## Plugin Information
+If you have an idea for a plugin, [submit them here](https://feedback.noteplan.co/plugins-scripting) or inquire in the [NotePlan Discord community](https://discord.gg/D4268MT)'s `#plugin-ideas` channel.
 
-1.  Clone this repository
-2.  Make sure you have a recent version of `node` and `npm` installed. `brew install node` should do the trick.
-3.  Run `npm install` from the root of your local GitHub repository for `noteplan/plugins`. This will install all the dependencies. This includes setting up [eslint](https://eslint.org/) (for checking code conventions), [flow](https://flow.org/) (for type checking), [babel](https://babeljs.io/) (a JS compiler), and [rollup](https://rollupjs.org/guide/en/) (for bundling multiple source files into a single release).  Each have their own configuration files in the root; they can be overridden if needed by placing a more specific config file in the respective plugin's folders.
-4.  Run `npm run autowatch` from a terminal in the GitHub root folder. The first time you run the script it will ask you for the full path to your live Plugins folder, and if you provide it, it will automatically copy the final js file and the plugin.json file in there automatically.
-5. Install GitHub command line tools `gh` and authorise it for future use:
-   ```
-   > brew install gh
-   > gh auth login
-   Github.com > HTTPS > Yes Credentials > Login with web browser
-   Enter (copy OTP code from command line)
-   [Paste OTP code in browser window]
-   ```
-6. If you want to create a new plugin, an easy way is to copy the `np.plugin-flow-skeleton` folder and rename it per the instructions in the readme (here's where you'll create your plugin)
-7. Now get your IDE set up per the instructions below (Editor Setup)
-### Developer Automation Commands
+If you are a developer and want to contribute and build your plugins, see the [plugin writing documentation](https://help.noteplan.co/article/67-create-command-bar-plugins) and discuss this with other developers on [Discord](https://discord.gg/D4268MT) `#plugin-dev` channel.  You might want to consult this [good modern JavaScript tutorial](https://javascript.info/).
 
+### Getting Started with Plugin Development
+
+**Step 1: Clone NotePlan Plugin Repository**
+
+[Clone this repository](https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository-from-github/cloning-a-repository)
+
+**Step 2: Install Node (if not installed)**
+
+Make sure you have a recent version of `node` and `npm` installed (if you need to install node, `brew install node` is the quickest method, you can follow instructions on [node website](https://nodejs.org/en/download/)).
+
+**Step 3: Initialize Local Development Environment**
+
+Run `npm run init` from the root of your local GitHub repository for `NotePlan/plugins`. This will install the necessary npm dependencies and initialize your plugin working directory, including:
+
+ - Configure `eslint` [eslint](https://eslint.org/) (for checking code conventions)
+ - Configure `flow` [flow](https://flow.org/) (for type checking)
+ - Configure `babel` [babel](https://babeljs.io/) (a JS compiler)
+ - Configure `rollup` [rollup](https://rollupjs.org/guide/en/) (for bundling multiple source files into a single release).
+
+Each of these tools have their own configuration files at the root directory (e.g., `.flowconfig` or `.eslintrc`)
+
+*Note: Each of these configuration files can be overridden if needed by placing a project specific configuration file in you project plugin, however, for consistency with other NotePlan plugins, we encourage to use the defaults wherever possible.*
+
+### Creating your first NotePlan Plugin
+Using the NotePlan CLI, perform the following actions:
+
+**Step 1: Review List of Available Plugins**
+
+`noteplan-cli plugin:info` to see a list of all available commands across all existing NotePlan plugins.
+
+**Step 2: Check if your desired plugin command is available**
+
+You will need to make sure there are no duplicate plugin command names, otherwise NotePlan will activate the first matched command name
+`noteplan-cli plugin:info --check <name>` to see if your plugin command is available
+
+**Step 3: Create your plugin using NotePlan CLI**
+Answer the prompt questions (or supply all the necessary options from command line (see `noteplan-cli plugin:create --help` for details)
+
+`noteplan-cli plugin:create`
+
+**Step 4: Startup Auto Watch Process**
+
+`npm run autowatch <your_plugin_folder>` from the root directory to build your plugin as you develop so it can be tested in NotePlan.
+
+**Step 5: Start your plugin command develop and test locally**
+
+You can now develop and test your plugin locally,
+
+**Step 6: Create Pull Request (if you wish to make your plugin public)**
+
+At this point, if you would like to make your plugin available publicly, you can proceed to [creating Pull Request](https://docs.github.com/en/github/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request) to the NotePlan Plugin Repository (see information below)
+
+
+
+### Common Development Actions
 These are the most common commands you will use while developing:
 
-1. **`npm run autowatch` from the root of your local GitHub `NotePlan/plugins` repo and your multi-file JS plugins will be compiled for you and copied from your repository directory to your Plugins folder in the running NotePlan data directory for testing**.  Not only that but it will then continue to _watch_ the folder and re-compile every time you save changes to a Javascript file. NB: by default, `autowatch` (without any other arguments) command will rebuild _all_ plugins just in case shared files affect another plugin. If you want to focus autowatch on a subset of plugins, you can pass the plugin folder name to autowatch like so:
+#### File Watcher
+The default watch command `npm run autowatch` (without any other arguments) command will rebuild _all_ plugins just in case shared files affect another plugin. If you want to focus autowatch on a subset of plugins, you can pass the plugin folder name to autowatch like so:
 
-   `npm run autowatch dwertheimer.TaskAutomations`
+**npm run autowatch**
 
-Note: by default, for compatibility with older Macs, the plugins are transpiled into ES5 Javascript before they are copied to the Plugins folder. This works great, but if you want to try to **debug** in the [Javascript debugger](https://help.noteplan.co/article/103-debugging-plugins), the transpiled code won't match your code. So for [Javascript debugging](https://help.noteplan.co/article/103-debugging-plugins) purposes, use this command instead:
+`npm run autowatch` from the root of your local `NotePlan/plugins` repository which will bundle all the files in your `/src` directory into single file `scripts.js` and will be copied from your repository directory to your Plugins folder in the running NotePlan data directory for testing.
 
-   `npm run autowatch dwertheimer.TaskAutomations -- --debug`
+*Note: The watcher will remain running, _watching_ the NotePlan directory and re-compile whenever changes have been made to your `<your_plugin>/src` JavaScript files.*
 
-That will bundle your code together into one script.js file but will not transpile it to ES5.
+**npm run autowatch <your_plugin_directory>**
 
-Then, when you are done debugging, build the plugin properly for release using the non-debug version above.
+For example, running `npm run autowatch dwertheimer.TaskAutomations` will perform the same watching operations for the `dwertheimer.TaskAutomations` plugin only.
 
-Note: if you wish to have a more **compact output**, without listing the debug and release commands to use each time, then append the `-- --compact` flag.
+#### Create Pull Request
 
-2. If you have write permissions on the repository and want to release the plugin for all Noteplan users to see, run **`npm run release "<plugin folder name>"`** (e.g. `npm run release "jgclark.DailyJournal"`) which will do all the work necessary to create/update a release in GitHub for the plugin. This will then automatically be available to all NotePlan users from the Plugins preference pane.
+Once you are finished editing and testing your plugin, you can [submit a Pull Request](https://docs.github.com/en/github/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request) to the NotePlan/plugins repository and it will be reviewed for inclusion. Once it has been approved, it will be available from **NotePlan > Preferences > Plugins** section, enabling it to be installed by other NotePlan users
 
-Note: The `autowatch` command is typically the only one you will need to use, especially if you use an IDE (e.g. VSCode) that does typechecking.
+#### Using NotePlan Debugger
+If you need to use your IDE JavaScript Debugger This works great, but if you want to try to debug in the [Javascript debugger](https://help.noteplan.co/article/103-debugging-plugins) you can use the following watching syntax:
 
-However, the following ones may be needed at times:
+`npm run autowatch dwertheimer.TaskAutomations -- -debug`
+
+This process will bundle your code into single `script.js` file, but will skip the ES transpiling process. When you have completed debugging process, make sure the code has been transpiled (using `npm run autowatch...` process outlined above)
+
+### Frequently Used Commands
+The common script you will run `npm run autowatch` however, you may need to use any of the following
+
+- `noteplan-cli plugin:info --check <name>` to check if you desired command name is in use by any other NotPlan Plugins
 - `npm run build`: Will build all the plugins into single files (where needed)
 - `npm run watch`: Will watch *all* files for changes and automatically compile them into single javascript files (where needed)
 - `npm run typecheck`: Will typecheck all the javascript files with `Flow`. Only files with a `// @flow` comment are checked.
-- `npm run fix`: Will lint and autoformat
+- `npm run fix`: Will lint and auto-format
 - `npm run test`: Will lint and typecheck all Javascript files and report, but not fix anything
 - `npm run lint`: Will run ESlint on the entire repo
 - `npm run lint-fix`: Will run ESlint on the entire repo and fix whatever it can automatically fix
-- `npm run format`: Will autoformat all Javascript files.
+- `npm run format`: Will auto-format all Javascript files.
 - `gh release delete <release name>`: Will delete the release from the repository, so making it unavailable in NotePlan as well. (Though it won't remove it from anyone who has already downloaded it.)
+
 ## Editor Setup
 
 Use the setup guide for your preferred editor (we prefer Visual Studio Code), and then read the section on Working with Multiple Files.
 
 ### Visual Studio Code (recommended)
 
-1. Install extensions for the following tools:
-   1. `flow` "Flow Language Support" by flowtype
-   2. `eslint` "ESLint" by Dirk Baeumer
-   3. `prettier` "Prettier - Code formatter" by Prettier
-2. Update Settings:
-3. Set `prettier` to be the default formatter for js files.
+**Install VSCode Extensions**
+
+1. Install the following extensions for the following tools:
+      - `flow` "Flow Language Support" by flowtype
+      - `eslint` "ESLint" by Dirk Baeumer
+      - `prettier` "Prettier - Code formatter" by Prettier
+
+**Update Settings**
+
+1. Set `prettier` to be the default formatter for js files.
    - You can open the Command Bar using `CMD+SHIFT+P` and then search for `Format Document`.
    - When you do this, you may get asked for a formatter of choice. Choose "Prettier"
    - If it asks you if this should be your default for all JS files, choose Yes.
-4. Restart the editor to ensure the plug-ins are working.
+2. Restart the editor to ensure the plug-ins are working.
    - You should see type errors when you make those
    - You should see lint errors when you format code wrong
-   - You should see your code get autoformatted when you save
-5. Make sure to open this folder directly in VSCode and not the entire repo as the ESLint plug-in can be annoying about that
+   - You should see your code get auto formatted when you save
+3. Make sure to open this folder directly in VSCode and not the entire repo as the ESLint plug-in can be annoying about that
 
 ### Sublime Text 3 and 4
 
 1. Install the following extensions using Package Control
-   1. `SublimeLinter` This allows various linters to work
-   2. `SublimeLinter-eslint`
-   3. `SublimeLinter-flow`
-   4. `jsPrettier`
-   5. `Babel` Syntax definitions for ES6 Javascript and React JSX extensions
+   - `SublimeLinter` This allows various linters to work
+   - `SublimeLinter-eslint`
+   - `SublimeLinter-flow`
+   - `jsPrettier`
+   - `Babel` Syntax definitions for ES6 Javascript and React JSX extensions
 2. Configure your packages:
-   1. Open a `.js` file
-   2. From the View menu, select Syntax → Open all with current extension as… → Babel → JavaScript (Babel)
-   3. Open the package settings for `jsPrettier` and add `"auto_format_on_save": true,`
+   - Open a `.js` file
+   - From the View menu, select Syntax → Open all with current extension as… → Babel → JavaScript (Babel)
+   - Open the package settings for `jsPrettier` and add `"auto_format_on_save": true,`
 
-## Working with multiple files
+### Linting Code
+If you don't have an editor set up to lint as you code, you can run `npm run test` and it will give a list of problems to fix.
 
-Noteplan plugins need to be packaged as a single Javascript file, but that's not always a nice way to work.
-So we use tools to package up multiple files into one.
+### Using Flow
+By practice, NotePlan plugins use [flow](https://flow.org/) for static type checking. You can get more information by referencing [NotePlan Flow Guide](https://github.com/NotePlan/plugins/blob/main/Flow_Guide.md)
 
-Open up a terminal, and run `npm run autowatch` which will keep watching for JS file changes and will package up the plugin and copy it to your app Plugins directory.
+## Using NotePlan CLI
+NotePlan CLI can be used throughout your development process.  For more information about available NotePlan CLI commands, you can use:
 
-If you don't have an editor set up to lint on the fly for you, run `npm run test` and it will give a list of problems to fix.
+```bash
+noteplan-cli <command>
+or
+np-cli <command>
+```
 
-## Read the basic of how to use Flow type checking in the [Flow Guide](https://github.com/NotePlan/plugins/blob/main/Flow_Guide.md)
+The following commands are available:
 
-# Contributing
+### plugin:info
+Provides information about the installed NotePlan Plugins (see `noteplan-cli plugin:info --help` for available options)
 
-The easiest way to contribute is to make addtions/changes using Gitub and issue a Pull Request on the Noteplan github.
+### plugin:create
+Used to create new NotePlan Plugins (see `noteplan-cli plugin:create --help` for available options)
+
+## NotePlan Plugin Support
+Should you need support for anything related to NotePlan Plugins, you can reach us at the following:
+
+### Email
+If you would prefer email, you can reach us at:
+
+- [NotePlan Info](hello@noteplan.co)
+
+### Discord
+Perhaps the fastest method would be at our Discord channel, where you will have access to the widest amount of resources:
+
+- [Discord Plugins Channel](https://discord.com/channels/763107030223290449/784376250771832843)
+
+### Github Issues
+This is a great resource to request assistance, either in the form of a bug report, or feature request for a current or future NotePlan Plugin
+
+- [GitHub Issues](https://github.com/NotePlan/plugins/issues/new/choose)
+
+## Contributing
+
+If you would like to contribute to the NotePlan Plugin repository, feel free to submit a [Pull Request] (https://docs.github.com/en/github/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests) for any existing NotePlan Plugin, or any of the support materials.

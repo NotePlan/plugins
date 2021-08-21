@@ -4,6 +4,8 @@ const TEST = false // when set to true, doesn't actually create or delete anythi
 // $FlowIgnore
 const fs = require('fs/promises')
 const path = require('path')
+const colors = require('chalk')
+
 const { program } = require('commander')
 const {
   getFolderFromCommandLine,
@@ -13,35 +15,48 @@ const {
   getCopyTargetPath,
 } = require('./shared')
 
-// Command line options -- see rollup.js for how to add command line options
-// program.option(
-//   '-d, --debug',
-//   'Rollup: allow for better JS debugging - no minification or transpiling',
-// )
-// program.parse(process.argv)
-// const options = program.opts()
-// const DEBUGGING = Boolean(options.debug) || false
+// Command line options
+program.option('-d, --debug', 'Rollup: allow for better JS debugging - no minification or transpiling')
+program.parse(process.argv)
+// const options = program.opts() //see rollup.js for how to add command line options
+// const DEBUGGING = Boolean(options.debug) | false
 
 const installInstructions = `
-In order to create a release on the Noteplan github server (so the entire community can see your plugin), you need to have the proper permissions on the github repository from @eduardme. So get that sorted out before moving any further. More than likely, you'll simply want to create a Pull Request for your plugin code to the Noteplan repository and get it reviewed so someone can create a release to get it out to the community.
 
-If you do have permissions to create a release, then here's the next step:\n
-In order to do releases from the commandline, you need the "gh" command line tool from github.
-The following commands should get you up and running. Note: the first two commands may take awhile (5 minutes each) to run:
-git -C /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core fetch --unshallow
-git -C /usr/local/Homebrew/Library/Taps/homebrew/homebrew-cask fetch --unshallow
-brew update
-brew install gh
-gh auth login
-[ Select: Github.com > HTTPS > Yes Credentials > Login with web browser ]
-[ Log in using your github account and press Enter ]
-[ copy the OTP code from command line ]
-[ Paste OTP code in browser window ]
+${colors.yellow(
+  `Getting Started
+===============
 
-If the above doesn't work for you, check out the detailed instructions from github:
-https://github.com/cli/cli#installation
+In order to create a public release on the NotePlan github repository, you will need to obtain proper permissions on the github repository from @eduardme.
+So get that sorted out before moving any further. More than likely, you'll simply want to create a Pull Request for your plugin code to the NotePlan/plugins repository
+and get it reviewed so someone can create a release to get it out to the community.`,
+)}
 
-Then, once you have "gh" installed, come back here to run the command you ran to get this message.
+If you have necessary permissions to create a release, then here's the next step:\n
+- In order to do releases from the command line, you need the "gh" command line tool from github.
+  The following commands should get you up and running.
+${colors.cyan.italic(
+  `
+  Note: the first two commands may take awhile (5 minutes each) to run:
+  `,
+)}
+  git -C /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core fetch --unshallow
+  git -C /usr/local/Homebrew/Library/Taps/homebrew/homebrew-cask fetch --unshallow
+  brew update
+  brew install gh
+  gh auth login
+
+  Actions/Prompts:
+
+   [ Select: Github.com > HTTPS > Yes Credentials > Login with web browser ]
+   [ Log in using your github account and press Enter ]
+   [ copy the OTP code from command line ]
+   [ Paste OTP code in browser window ]
+
+ If the above doesn't work for you, check out the detailed instructions from github:
+  - https://github.com/cli/cli#installation
+
+- Once you have "gh" installed and you have received access to repository, come back here to run the command again!
 `
 if (TEST) {
   console.log(
@@ -68,9 +83,7 @@ async function getExistingRelease(pluginName) {
     let checkForLines = []
     let failed = false
     const lines = releases.split('\n')
-    console.log(
-      `>>Releases: Found ${lines.length} releases. Searching for release named: "${pluginName}"`,
-    )
+    console.log(`>>Releases: Found ${lines.length} releases. Searching for release named: "${pluginName}"`)
     if (lines.length) {
       checkForLines = lines.filter((line) => line.includes(pluginName))
       if (checkForLines.length > 1 && checkForLines[1] !== '') {
@@ -98,11 +111,7 @@ async function getExistingRelease(pluginName) {
         console.log(`>>Releases: Found on github release tagged: ${tag}`)
         return { name, tag }
       } else {
-        console.log(
-          `>>Releases: couldn't find proper fields in: ${JSON.stringify(
-            parts,
-          )}`,
-        )
+        console.log(`>>Releases: couldn't find proper fields in: ${JSON.stringify(parts)}`)
       }
     } else {
       return null
@@ -139,8 +148,7 @@ async function getReleaseFileList(pluginFullPath, appPluginsPath) {
   const filesInPluginFolder = await fs.readdir(pluginFullPath, {
     withFileTypes: true,
   })
-  const fileLowerMatch = (str) =>
-    filesInPluginFolder.filter((f) => f.name.toLowerCase() === str)
+  const fileLowerMatch = (str) => filesInPluginFolder.filter((f) => f.name.toLowerCase() === str)
   const existingFileName = (lowercaseName) => {
     const match = fileLowerMatch(lowercaseName)
     if (match.length) {
@@ -160,9 +168,7 @@ async function getReleaseFileList(pluginFullPath, appPluginsPath) {
       //$FlowFixMe - see note above
       fileList.changelog = fullPath(name)
     } else {
-      console.log(
-        `>>Releases: NOTE there is no changelog or README file in ${pluginFullPath}`,
-      )
+      console.log(`>>Releases: NOTE there is no changelog or README file in ${pluginFullPath}`)
     }
   }
   // Grab the minified/cleaned version of the plugin.json file
@@ -185,17 +191,17 @@ async function getReleaseFileList(pluginFullPath, appPluginsPath) {
     fileList.files.push(fullPath(name))
   }
   if (!fileList.changelog) {
-    console.log(
-      `>>Releases: FYI: No Readme file for plugin. Not critical, but you probably should have one.`,
-    )
+    console.log(`>>Releases: FYI: No Readme file for plugin. Not critical, but you probably should have one.`)
   }
   // console.log(`>> Releases fileList:\n${JSON.stringify(fileList)}`)
   if (fileList.files.length < 2) goodToGo = false
   if (goodToGo === false) {
     console.log(
-      `>> Releases: ERROR. ABORTING: Not enough files to create a release. Minimum 2 files required are: plugin.json and script.js. Here are the files I found:\n${JSON.stringify(
-        fileList,
-      )}`,
+      colors.red(
+        `>> Releases: ERROR. ABORTING: Not enough files to create a release. Minimum 2 files required are: plugin.json and script.js. Here are the files I found:\n${JSON.stringify(
+          fileList,
+        )}`,
+      ),
     )
     return null
   } else {
@@ -205,13 +211,13 @@ async function getReleaseFileList(pluginFullPath, appPluginsPath) {
 
 function wrongArgsMessage(limitToFolders) {
   console.log(
-    `>>Releases: ${
-      limitToFolders ? String(limitToFolders.length) : ''
-    } file(s): ${JSON.stringify(limitToFolders) || ''}`,
+    `>>Releases: ${limitToFolders ? String(limitToFolders.length) : ''} file(s): ${
+      JSON.stringify(limitToFolders) || ''
+    }`,
   )
   console.log(
-    `>>Releases: Wrong # of arguments...You can only release one plugin/folder at a time!\nUsage:\n \
-      npm run release "dwertheimer.dateAutomations"`,
+    colors.red(`\nERROR:\n Invalid Arguments (you may only release one plugin at a time)`),
+    colors.yellow(`\n\nUsage:\n npm run release "dwertheimer.dateAutomations"`),
   )
 }
 
@@ -226,12 +232,7 @@ function ensureVersionIsNew(existingRelease, versionedTagName) {
   }
 }
 
-function getReleaseCommand(
-  version,
-  pluginTitle,
-  fileList,
-  sendToGithub = false,
-) {
+function getReleaseCommand(version, pluginTitle, fileList, sendToGithub = false) {
   const changeLog = fileList.changelog ? `-F "${fileList.changelog}"` : ''
   const cmd = `gh release create "${version}" -t "${pluginTitle}" ${changeLog} ${
     !sendToGithub ? `--draft` : ''
@@ -254,30 +255,14 @@ function getRemoveCommand(version, sendToGithub = false) {
   return cmd
 }
 
-async function releasePlugin(
-  versionedTagName,
-  pluginData,
-  fileList,
-  sendToGithub = false,
-) {
+async function releasePlugin(versionedTagName, pluginData, fileList, sendToGithub = false) {
   const pluginTitle = getPluginDataField(pluginData, 'plugin.name')
-  const releaseCommand = getReleaseCommand(
-    versionedTagName,
-    pluginTitle,
-    fileList,
-    sendToGithub,
-  )
+  const releaseCommand = getReleaseCommand(versionedTagName, pluginTitle, fileList, sendToGithub)
   if (sendToGithub) {
     if (releaseCommand) {
-      console.log(
-        `>>Release: Creating release "${versionedTagName}" on github...`,
-      )
+      console.log(`>>Release: Creating release "${versionedTagName}" on github...`)
       const resp = await runShellCommand(releaseCommand)
-      console.log(
-        `>>Releases: New release posted (check on github):\n\t${JSON.stringify(
-          resp.trim(),
-        )}`,
-      )
+      console.log(`>>Releases: New release posted (check on github):\n\t${JSON.stringify(resp.trim())}`)
     }
   }
 }
@@ -286,9 +271,7 @@ async function removePlugin(versionedTagName, sendToGithub = false) {
   const removeCommand = getRemoveCommand(versionedTagName, sendToGithub)
   if (sendToGithub) {
     if (removeCommand) {
-      console.log(
-        `>>Releases: Removing previous version "${versionedTagName}" on github...`,
-      )
+      console.log(`>>Releases: Removing previous version "${versionedTagName}" on github...`)
       // eslint-disable-next-line no-unused-vars
       const resp = await runShellCommand(removeCommand)
       // console.log(`...response: ${JSON.stringify(resp.trim())}`)
@@ -298,37 +281,27 @@ async function removePlugin(versionedTagName, sendToGithub = false) {
 
 async function checkForGh() {
   if (!(await fileExists(`/usr/local/bin/gh`))) {
-    console.log(
-      `>>Releases: ERROR: Could not find "gh" command.\n${installInstructions}`,
-    )
+    console.log(`${colors.red('>>Releases: ERROR: Could not find "gh" command.')}\n${installInstructions}`)
     process.exit(0)
   }
 }
 
 async function main() {
-  console.log(`----------`)
+  console.log(`----------\n`)
   await checkForGh()
   const rootFolderPath = path.join(__dirname, '..')
   const rootFolderDirs = await fs.readdir(rootFolderPath, {
     withFileTypes: true,
   })
-  const limitToFolders = await getFolderFromCommandLine(
-    rootFolderPath,
-    program.args,
-  )
+  const limitToFolders = await getFolderFromCommandLine(rootFolderPath, program.args)
   if (limitToFolders.length === 1) {
     const pluginName = limitToFolders[0]
     const pluginFullPath = path.join(rootFolderPath, pluginName)
     const existingRelease = await getExistingRelease(pluginName)
-    const pluginData = await getPluginFileContents(
-      path.join(pluginFullPath, 'plugin.json'),
-    )
+    const pluginData = await getPluginFileContents(path.join(pluginFullPath, 'plugin.json'))
     const versionNumber = getPluginDataField(pluginData, 'plugin.version')
     const copyTargetPath = await getCopyTargetPath(rootFolderDirs)
-    const fileList = await getReleaseFileList(
-      pluginFullPath,
-      path.join(copyTargetPath, pluginName),
-    )
+    const fileList = await getReleaseFileList(pluginFullPath, path.join(copyTargetPath, pluginName))
     if (fileList) {
       const versionedTagName = getReleaseTagName(pluginName, versionNumber)
       // console.log(`>>Releases: This version/tag will be:\n\t${versionedTagName}`)
@@ -337,13 +310,9 @@ async function main() {
       if (existingRelease) await removePlugin(existingRelease.tag, !TEST)
       const newReleaseList = await getExistingRelease(pluginName)
       if (newReleaseList && newReleaseList.tag === versionedTagName) {
-        console.log(
-          `>>Releases: SUCCESS - Release ran successfully. "${versionedTagName}" is now live.`,
-        )
+        console.log(`>>Releases: SUCCESS - Release ran successfully. "${versionedTagName}" is now live.`)
       } else {
-        console.log(
-          `>>Releases: ^^^ ERROR: Something went wrong. Pls check log ^^^^^`,
-        )
+        console.log(colors.red(`>>Releases: ^^^ ERROR: Something went wrong. Pls check log ^^^^^`))
       }
     }
   } else {

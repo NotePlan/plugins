@@ -1,53 +1,4 @@
   {
-<<<<<<< HEAD
-  "noteplan.minAppVersion": "3.0.23", 
-  "plugin.id": "dwertheimer.DateAutomations", 
-  "plugin.name": "📅 Date Automations", 
-  "plugin.description": "Helping you move faster with dates", 
-  "plugin.author": "David Wertheimer, with help from code by @nmn", 
-  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.DateAutomations/README.md", 
-  "plugin.version": "1.0.9", 
-  "plugin.dependencies": [ ], 
-  "plugin.script": "script.js",
-  "plugin.commands": [ 
-    { 
-      "name": "ldn", 
-      "description": "Create link to today's Calendar Note at cursor", 
-      "jsFunction": "insertCalendarNoteLink"
-    },
-    { 
-      "name": "date", 
-      "description": "Insert date (without time) at cursor", 
-      "jsFunction": "insertDate"
-    },    
-    {
-      "name": "iso", 
-      "description": "Insert date+time (in ISO format) at cursor", 
-      "jsFunction": "insertISODate"
-    },
-  {
-      "name": "now", 
-      "description": "Insert (human readable) date+time at cursor", 
-      "jsFunction": "insertDateTime" 
-    },
-  {
-      "name": "now - ISO-8601 standard", 
-      "alias": ["date","8601","t"],
-      "description": "Insert ISO-8601 date+time at cursor (e.g. 2021-08-06 17:20:11)", 
-      "jsFunction": "insertDateTime8601"
-    },
-      {
-      "name": "time", 
-      "description": "Insert (human readable) time at cursor", 
-      "jsFunction": "insertTime" 
-    },
-  {
-      "name": "dp", 
-      "description": "(Date Picker) Choose format and insert date/time time at cursor", 
-      "jsFunction": "dateFormatPicker" 
-    }  ]
-}
-=======
     "noteplan.minAppVersion": "3.0.23",
     "plugin.id": "dwertheimer.DateAutomations",
     "plugin.name": "📅 Date Automations",
@@ -96,7 +47,7 @@
       {
         "name": "dp",
         "description": "(Date Picker) Choose format and insert date/time time at cursor",
-        "jsFunction": "datePicker"
+        "jsFunction": "dateFormatPicker"
       },
       {
         "name": "formatted",
@@ -108,4 +59,3 @@
       }
     ]
   }
->>>>>>> 2216198 (add formatted command)

@@ -4,12 +4,12 @@
 // export default async function [name of the function called by Noteplan]
 // Type checking reference: https://flow.org/
 // Specific how-to re: Noteplan: https://github.com/NotePlan/plugins/blob/main/Flow_Guide.md
-export async function insertPluginFunctionNameHere(): Promise<void> {
-  // write code here
-  console.log(
-    `Hello World. This text shows up in the Noteplan > Help > Plugin Console`,
-  )
-  Editor.insertTextAtCursor(
-    `This text shows up at the cursor in the note you're editing`,
-  )
+export async function helloWorld(): Promise<void> {
+  const message = 'Hello World from {{pluginName}}!'
+
+  // this will appear in NotePlan Plugin Console (NotePlan > Help > Plugin Console)
+  console.log(message)
+
+  // this will be inserted at cursor position
+  Editor.insertTextAtCursor(message)
 }

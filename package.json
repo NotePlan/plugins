@@ -1,7 +1,43 @@
 {
   "name": "np.plugins",
-  "main": "lib/script.src.js",
-  "version": "1.0.0",
+  "packageName": "noteplan-cli",
+  "info": "noteplan plugin development toolbox",
+  "version": "2.0.0",
+  "build": "15",
+  "description": "noteplan-cli",
+  "repository": "https://github.com/NotePlan/plugins",
+  "contributors": [
+    {
+      "name": "Eduard Metzger",
+      "email": "hello@noteplan.co",
+      "url": "https://github.com/NotePlan"
+    },
+    {
+      "name": "Jonathan Clark",
+      "url": "https://github.com/jgclark"
+    },
+    {
+      "name": "David Wertheimer",
+      "url": "https://github.com/dwertheimer"
+    },
+    {
+      "name": "Mike Erickson",
+      "email": "codedungeon@gmail.com",
+      "url": "https://github.com/mikeerickson"
+    }
+  ],
+  "main": "index.js",
+  "bin": {
+    "noteplan-cli": "index.js",
+    "np-cli": "index.js"
+  },
+  "engines": {
+    "node": ">=12.15.0"
+  },
+  "keywords": [
+    "noteplan",
+    "plugins"
+  ],
   "devDependencies": {
     "@babel/cli": "^7.13.16",
     "@babel/core": "^7.14.2",
@@ -26,7 +62,9 @@
     "simple-input": "^1.0.1"
   },
   "scripts": {
+    "init": "node ./tasks/init.js",
     "autowatch": "node scripts/rollup.js",
+    "autowatch:compact": "node scripts/rollup.js --compact",
     "release": "node scripts/releases.js",
     "lint": "eslint .",
     "lint-fix": "eslint . --fix",
@@ -37,17 +75,20 @@
     "docs": "documentation build '*.js' -f md -o README-helperFunctions.md"
   },
   "prettier": {
-    "printWidth": 80,
+    "printWidth": 120,
     "parser": "flow",
     "semi": false,
     "trailingComma": "all",
     "singleQuote": true
   },
   "dependencies": {
+    "@codedungeon/gunner": "0.67.0",
     "commander": "^8.1.0",
     "enquirer": "^2.3.6",
+    "findup-sync": "4.0.0",
     "js-yaml": "^4.1.0",
     "json5": "^2.2.0",
+    "strftime": "0.10.0",
     "toml": "^3.0.0"
   }
 }

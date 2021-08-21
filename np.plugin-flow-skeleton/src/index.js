@@ -10,4 +10,5 @@
 // you can immmediately test the new code with NP
 // Add a line below for each function that you want NP to have access to.
 // Typically, listed below are only the top-level plug-in functions listed in plugin.json
-export { insertPluginFunctionNameHere } from './insertPluginFunctionNameHere'
+
+export { helloWorld } from './helloWorld'
