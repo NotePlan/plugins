@@ -3,7 +3,7 @@
 
 import strftime from 'strftime'
 
-import { getStructuredConfiguration } from '../../nmn.Templates/src/configuration'
+import { getOrMakeConfigurationSection, getStructuredConfiguration } from '../../nmn.Templates/src/configuration'
 import { hyphenatedDateString } from '../../nmn.sweep/src/dateHelpers'
 
 type DateConfig = $ReadOnly<{
@@ -19,14 +19,8 @@ type DateConfig = $ReadOnly<{
 // DateConfig. If it is, it returns an object with the correct type
 // If it's not, it returns undefined.
 function asDateConfig(obj: mixed): ?DateConfig {
-  if (
-    typeof obj === 'object' &&
-    obj != null &&
-    typeof obj.timezone === 'string' &&
-    typeof obj.locale === 'string'
-  ) {
-    const { format, timezone, locale, dateStyle, timeStyle, hour12, ...other } =
-      obj
+  if (typeof obj === 'object' && obj != null && typeof obj.timezone === 'string' && typeof obj.locale === 'string') {
+    const { format, timezone, locale, dateStyle, timeStyle, hour12, ...other } = obj
     return {
       ...other,
       timezone,
@@ -127,9 +121,7 @@ async function getFormattedDateTime() {
           options.push({
             dateStyle: ds !== '' ? ds : null,
             timeStyle: ts !== '' ? ds : null,
-            label: `${text} (${loc}/${ds ? ds : '[not set]'}/${
-              ts ? ts : '[not-set]'
-            }/${String(h12)})`,
+            label: `${text} (${loc}/${ds ? ds : '[not set]'}/${ts ? ts : '[not-set]'}/${String(h12)})`,
             text: `${text}`,
           })
         })
@@ -149,10 +141,7 @@ export async function insertISODate() {
 // /date
 export async function insertDate() {
   const { timeStyle: _, ...dateConfig } = await getDateConfig()
-  const dateText = new Intl.DateTimeFormat(
-    dateConfig.locale,
-    dateConfig,
-  ).format()
+  const dateText = new Intl.DateTimeFormat(dateConfig.locale, dateConfig).format()
   Editor.insertTextAtCursor(dateText)
 }
 
@@ -164,10 +153,7 @@ export async function insertDateTime() {
     dateStyle: _dateConfig.dateStyle ?? 'full',
     timeStyle: _dateConfig.timeStyle ?? 'short',
   }
-  const dateText = new Intl.DateTimeFormat(
-    dateConfig.locale,
-    dateConfig,
-  ).format()
+  const dateText = new Intl.DateTimeFormat(dateConfig.locale, dateConfig).format()
   Editor.insertTextAtCursor(`${dateText}`)
 }
 
@@ -189,10 +175,7 @@ export async function insertTime() {
   const editableConfig = { ...dateConfig }
   if (!editableConfig.timeStyle) editableConfig.timeStyle = 'medium'
 
-  const timeText = new Intl.DateTimeFormat(
-    dateConfig.locale,
-    editableConfig,
-  ).format()
+  const timeText = new Intl.DateTimeFormat(dateConfig.locale, editableConfig).format()
   Editor.insertTextAtCursor(timeText)
 }
 
@@ -202,19 +185,35 @@ export function insertCalendarNoteLink() {
 }
 
 // /dp
-export async function datePicker() {
+export async function dateFormatPicker() {
   const dateChoices = await getFormattedDateTime()
 
   const re = await CommandBar.showOptions(
     dateChoices.map((d) => d.label),
-    'Choose format (locale/dateStyle/timeStyle/hour12)',
+    'Choose format (formatted/locale/dateStyle/timeStyle/hour12)',
   )
   Editor.insertTextAtCursor(dateChoices[re.index].text)
 }
 
+const DEFAULT_DATE_OPTIONS = `
+  date: {
+    // Default timezone for date and time.
+    timezone: 'automatic',
+    // Default locale to format date and time.
+    // e.g. en-US will result in mm/dd/yyyy, while en_GB will be dd/mm/yyyy
+    locale: 'en-US',
+    // can be "short", "medium", "long" or "full"
+    dateStyle: 'medium',
+    // optional key, can be "short", "medium", "long" or "full"
+    timeStyle: 'short',
+    // optional custom format (uses strftime format)
+    // see https://www.strfti.me/ to aid in creating custom formats)
+    format: '%Y-%m-%d %I:%M:%S %P'
+  }
+`
 // /formatted
 export async function insertStrftime() {
-  const dateConfig = await getDateConfig()
+  const dateConfig = await getOrMakeConfigurationSection('date', DEFAULT_DATE_OPTIONS)
 
   const format = dateConfig?.format ? dateConfig.format : '%Y-%m-%d %I:%M:%S %P'
 
