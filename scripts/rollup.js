@@ -1,5 +1,6 @@
 // @flow
 'use strict'
+const pkgInfo = require('../package.json')
 
 const colors = require('chalk')
 const strftime = require('strftime')
@@ -21,8 +22,11 @@ const {
   getCopyTargetPath,
   getPluginConfig,
 } = require('./shared')
+const { DefaultDeserializer } = require('v8')
 const FOLDERS_TO_IGNORE = ['scripts', 'flow-typed', 'node_modules', 'np.plugin-flow-skeleton']
 const rootFolderPath = path.join(__dirname, '..')
+
+console.log(colors.yellow.bold(`🧩 NotePlan Plugin Environment v${pkgInfo.version} (${pkgInfo.build})`))
 
 // Command line options
 program
@@ -42,7 +46,7 @@ if (DEBUGGING && !COMPACT) {
 }
 if (COMPACT) {
   console.log('')
-  console.log(colors.green.bold(`Rollup autowatch running. Will use compact output when there are no errors\n`))
+  console.log(colors.green.bold(`==> Rollup autowatch running. Will use compact output when there are no errors\n`))
 }
 let watcher
 
@@ -56,6 +60,7 @@ async function checkPluginList(pluginPaths) {
   for (const pluginPath of pluginPaths) {
     // console.log(`About to read ${pluginPath}`)
     const pluginFile = await getPluginFileContents(path.join(pluginPath, 'plugin.json')) // console.log(`*** * READ\n${JSON.stringify(pluginFile)}`)
+
     if (pluginFile) {
       pluginFile['plugin.commands']?.forEach((command) => {
         if (pluginCommands[command.name]) {
@@ -143,6 +148,7 @@ async function main() {
         // FIXME: Wanted to use JSON5 here but it was adding commas that stopped NP from working
         await writeMinifiedPluginFileContents(pluginJson, path.join(targetFolder, 'plugin.json'))
         // await fs.copyFile(pluginJson, path.join(targetFolder, 'plugin.json')) //the non-minified version
+        let pluginJsonData = JSON.parse(await fs.readFile(pluginJson))
         if (limitToFolders.length === 0) {
           await checkPluginList(bundledPlugins)
         }
@@ -154,15 +160,16 @@ async function main() {
         const dateTime = dateTimeFormat.length > 0 ? strftime(dateTimeFormat) : new Date().toISOString().slice(0, 16)
 
         let msg = COMPACT
-          ? `${dateTime}  ${pluginFolder}`
-          : `${dateTime} "${pluginFolder}"\n     Built and copied to the "Plugins" folder.`
+          ? `${dateTime}  ${pluginFolder} (v${pluginJsonData['plugin.version']})`
+          : colors.cyan(`${dateTime} -- ${pluginFolder} (v${pluginJsonData['plugin.version']})`) +
+            '\n   Built and copied to the "Plugins" folder.'
 
         if (DEBUGGING) {
-          msg += colors.yellow(`\n     Built in DEBUG mode. Not ready to deploy.\n`)
+          msg += colors.yellow(`\n   Built in DEBUG mode. Not ready to deploy.\n`)
         } else {
           if (!COMPACT) {
-            msg += `\n     To debug this plugin without transpiling use: ${`npm run autowatch "${pluginFolder}" -- -debug`}\n\
-     To release this plugin, update changelog.md and run: ${`npm run release "${pluginFolder}"\n`}`
+            msg += `\n   To debug this plugin without transpiling use: ${`npm run autowatch "${pluginFolder}" -- -debug`}\n\
+   To release this plugin, update changelog.md and run: ${`npm run release "${pluginFolder}"\n`}`
           }
         }
         console.log(msg)
@@ -177,7 +184,8 @@ async function main() {
   })
 
   if (!COMPACT) {
-    console.log('Building and Watching for changes...\n')
+    console.log('')
+    console.log(colors.green('==> Building and Watching for changes\n'))
   }
 }
 
