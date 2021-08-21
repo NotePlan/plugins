@@ -3,23 +3,25 @@
 //-----------------------------------------------------------------------------
 // Commands for Reviewing project notes, GTD-style.
 // by @jgclark
-// v0.3.0, 9.8.2021
+// v0.3.0, 21.8.2021
 //-----------------------------------------------------------------------------
 
 // Settings
 const DEFAULT_REVIEW_OPTIONS = `  review: {
     folderToStore: "Reviews",
-    foldersToIgnore: ["Templates", "Reviews", "Summaries"], // can be empty list
-    noteTypeTags: "#area,#project", // comma-separated list of hashtags without spaces
-    displayGroupedByFolder: true,
-    displayOrder: "alpha" // 'due', 'review' or 'alpha'
+    foldersToIgnore: ["📋 Templates", "Reviews", "Summaries"], // can be empty list
+    noteTypeTags: ["#project", "#area"], // array of hashtags without spaces
+    displayOrder: "alpha" // in '/project lists' the sort options  are "due" date, "review" date or "alpha"
+    displayGroupedByFolder: true, // in '/project lists' whether to group the notes by folder
+    displayArchivedProjects: true, // in '/project lists' whether to display project notes marked #archive
   },
 `
-let pref_noteTypeTags: string = "#project,#area" // TODO: make proper array. But first time I tried this it didn't work.
 let pref_folderToStore: string = "Reviews"
-let pref_foldersToIgnore: Array<string> = ["Templates", "Summaries"]
+let pref_foldersToIgnore: Array<string> = ["📋 Templates", "Summaries", "Reviews"]
+let pref_noteTypeTags: Array<string> = ["#project", "#area"]
+let pref_displayOrder: string = "alpha"
 let pref_displayGroupedByFolder: boolean = true
-let pref_displayOrder: string = 'alpha'
+let pref_displayArchivedProjects: boolean = true
 
 // Constants
 const reviewListNoteTitle = '_reviews'
@@ -27,15 +29,20 @@ const reviewListNoteTitle = '_reviews'
 //-----------------------------------------------------------------------------
 // Import Helper functions
 import {
-  RE_DATE, // find dates of form YYYY-MM-DD
   showMessage,
   showMessageYesNo,
-  hyphenatedDate,
-  nowLocaleDateTime,
   displayTitle,
   // calcOffsetDate,
   // relativeDateFromNumber,
 } from '../../helperFunctions'
+
+import {
+  RE_DATE, // find dates of form YYYY-MM-DD
+  hyphenatedDate,
+  nowLocaleDateTime,
+  // calcOffsetDate,
+  // relativeDateFromNumber,
+} from '../../helperFunctions/dateFunctions'
 
 import {
   getOrMakeConfigurationSection,
@@ -50,7 +57,6 @@ import {
 
 //-------------------------------------------------------------------------------
 // Create human-readable lists of project notes for each tag of interest
-// TODO: Should this be moved to reviewHelpers?
 export async function getConfig(): Promise<void> {
     // Get config settings from Template folder _configuration note
   const reviewConfig = await getOrMakeConfigurationSection(
@@ -63,13 +69,13 @@ export async function getConfig(): Promise<void> {
     await showMessage("Couldn't find 'review' settings in _configuration note.")
     return
   }
-  console.log("\tFound 'review' settings in _configuration note.")
+  console.log(`\tFound 'review' settings in _configuration note.`)
   // now get the settings we need
-  if (reviewConfig.noteTypeTags != null &&
-    typeof reviewConfig.noteTypeTags === 'string') {
-      pref_noteTypeTags = reviewConfig.noteTypeTags
+  if (reviewConfig.noteTypeTags != null) {
+    // $FlowFixMe -- don't know how to make this array not just object
+    pref_noteTypeTags = reviewConfig.noteTypeTags
   }
-  // console.log(pref_noteTypeTags)
+  // console.log(pref_noteTypeTags.toString())
   if (reviewConfig.folderToStore != null &&
     typeof reviewConfig.folderToStore === 'string') {
     pref_folderToStore = reviewConfig.folderToStore
@@ -79,7 +85,7 @@ export async function getConfig(): Promise<void> {
     // $FlowFixMe -- don't know how to make this array not just object
     pref_foldersToIgnore = reviewConfig.foldersToIgnore
   }
-  // console.log(pref_foldersToIgnore)
+  // console.log(pref_foldersToIgnore.toString())
   if (reviewConfig.displayGroupedByFolder != null &&
     typeof reviewConfig.displayGroupedByFolder === 'boolean') {
     pref_displayGroupedByFolder = reviewConfig.displayGroupedByFolder
@@ -90,19 +96,23 @@ export async function getConfig(): Promise<void> {
     pref_displayOrder = reviewConfig.displayOrder
   }
   // console.log(pref_displayOrder)
+  if (reviewConfig.displayArchivedProjects != null &&
+    typeof reviewConfig.displayArchivedProjects === 'boolean') {
+    pref_displayArchivedProjects = reviewConfig.displayArchivedProjects
+  }
+  // console.log(pref_displayArchivedProjects)
 }
 
 //-------------------------------------------------------------------------------
 // Create human-readable lists of project notes for each tag of interest
 export async function projectLists(): Promise<void> {
   getConfig()
-  console.log(`\nprojectLists with pref_noteTypeTags = '${pref_noteTypeTags}':`)
+  console.log(`\nprojectLists():`)
 
-  if (pref_noteTypeTags != null && pref_noteTypeTags !== '') {
+  if (pref_noteTypeTags != null && pref_noteTypeTags.length > 0) {
     // We have defined tag(s) to filter and group by
-    const tags = pref_noteTypeTags.split(',')
-
-    for (const tag of tags) {
+     // $FlowFixMe -- why is this not an $Iterable as it is an array??
+    for (const tag of pref_noteTypeTags) {
       // Do the main work
       const noteTitle = `${tag} List`
       const note: ?TNote = await returnSummaryNote(noteTitle, pref_folderToStore)
@@ -159,29 +169,42 @@ export async function startReviews() {
     return
   }
 
-  console.log(`\nstartReviews:`)
+  console.log(`\nstartReviews():`)
   const summaryArray = []
-  // Either we have defined tag(s) to filter and group by, or just use ''
-  const tags = (pref_noteTypeTags != null && pref_noteTypeTags !== '') ? pref_noteTypeTags.split(',') : ''
-  for (const tag of tags) { // or just empty tag
-    // Read in all relevant notes, making Project objects
-    const notes = findNotesMatchingHashtags(tag) // or const notes = findNotesMatchingHashtags('')
-    const projectsReadyToReview = []
-    if (notes.length > 0) {
-      // Get Project class representation of each note,
-      // saving those which are ready for review in array
-      for (const n of notes) {
-        const np = new Project(n)
-        // TODO: somewhere here ignore ones from certain folders
-        if (np.isReadyForReview && !pref_foldersToIgnore.includes(np.folder)) {
-          projectsReadyToReview.push(np)
+  // create list of folders
+  const folderList = DataStore.folders
+  console.log(`  Processing ${folderList.length} folders`)
+  // Iterate over the folders ...
+  for (const folder of folderList) {
+    if (pref_foldersToIgnore.includes(folder)) {
+      // ... but ignoring any in the pref_foldersToIgnore list
+      console.log(`\tFolder '${folder}' ignored due to config`)
+      continue
+    }
+
+    // Either we have defined tag(s) to filter and group by, or just use ''
+    const tags = (pref_noteTypeTags != null && pref_noteTypeTags.length > 0)
+      ? pref_noteTypeTags
+      : []
+    for (const tag of tags) {
+      // Get notes that include noteTag in this folder, ignoring subfolders
+      const notes = findNotesMatchingHashtags(tag, folder, false)
+      const projectsReadyToReview = []
+      if (notes.length > 0) {
+        // Get Project class representation of each note,
+        // saving those which are ready for review in projectsReadyToReview array
+        for (const n of notes) {
+          const np = new Project(n)
+          if (np.isReadyForReview && !pref_foldersToIgnore.includes(np.folder)) {
+            projectsReadyToReview.push(np)
+          }
         }
       }
-    }
-    // For each readyToReview note get the machine-readable summary line for it
-    for (const np of projectsReadyToReview) {
-      summaryArray.push(np.basicSummaryLine())
-      // console.log(np.basicSummaryLine())
+      // For each readyToReview note get the machine-readable summary line for it
+      for (const thisProject of projectsReadyToReview) {
+        summaryArray.push(thisProject.machineSummaryLine())
+        // console.log(thisProject.machineSummaryLine())
+      }
     }
   }
   // sort the list
@@ -226,23 +249,28 @@ function makeNoteTypeSummary(noteTag: string): Array<string> {
   // if we want a summary broken down by folder, create list of folders
   // otherwise use a single folder
   const folderList = pref_displayGroupedByFolder ? DataStore.folders : ['/']
-  // console.log(`${folderList.length} folders`)
+  // console.log(`  Processing ${folderList.length} folders`)
   // Iterate over the folders ...
   for (const folder of folderList) {
     if (pref_foldersToIgnore.includes(folder)) {
       // ... but ignoring any in the pref_foldersToIgnore list
+      console.log(`\tFolder '${folder}' ignored due to config`)
       continue
     }
     // Get notes that include noteTag in this folder, ignoring subfolders
     const notes = findNotesMatchingHashtags(noteTag, folder, false)
     if (notes.length > 0) {
       // Create array of Project class representation of each note,
-      // ignoring any marked as .isArchived, or in a folder to ignore
+      // ignoring any in a folder to ignore
       const projects = []
       for (const note of notes) {
         const np = new Project(note)
-        if (!np.isArchived && !pref_foldersToIgnore.includes(np.folder)) {
-          projects.push(np)
+        if (!pref_foldersToIgnore.includes(np.folder)) {
+          if (!np.isArchived || pref_displayArchivedProjects) {
+            projects.push(np)
+          } else {
+            console.log(`\t    Ignoring ${np.title} as archived and don't want to show them}`)
+          }
         }
         if (np.nextReviewDays != null && np.nextReviewDays < 0) {
           overdue += 1
@@ -278,6 +306,7 @@ function makeNoteTypeSummary(noteTag: string): Array<string> {
       noteCount += sortedProjects.length
     }
   }
+  // console.log(`\tFinished makeNoteTypeSummary main loop for '${noteTag}'`)
   // Add summary/ies onto the start (remember: unshift adds to the very front each time)
   if (noteCount > 0) {
     outputArray.unshift(`_Key:\tTitle\t# open / complete / waiting tasks / next review date / due date_`)
@@ -287,7 +316,6 @@ function makeNoteTypeSummary(noteTag: string): Array<string> {
   if (!pref_displayGroupedByFolder) {
     outputArray.unshift(`### All folders (${noteCount} notes)`)
   }
-  
   return outputArray
 }
 
@@ -300,7 +328,7 @@ export async function nextReview() {
 
   if (openNote != null) {
     // Then update @review(date) in review list note
-    await updateReviewListWithComplete(openNote)
+    await updateReviewListAfterReview(openNote)
   }
 
   // Read review list to work out what's the next one to review
@@ -320,15 +348,15 @@ export async function nextReview() {
 
 //-------------------------------------------------------------------------------
 // Update the review list after completing a review
-export async function updateReviewListWithComplete(note: TNote) {
+export async function updateReviewListAfterReview(note: TNote) {
   const thisTitle = note.title ?? ''
-  console.log(`updateReviewListWithComplete for '${thisTitle}'`)
+  console.log(`updateReviewListAfterReview for '${thisTitle}'`)
 
   // Get note that contains the project list (or create if not found)
   const reviewNote: ?TNote = await returnSummaryNote(reviewListNoteTitle, pref_folderToStore)
   if (reviewNote == null) {
     showMessage(`Oops: I now can't find summary note _reviews`, 'OK')
-    console.log(`getNextNoteToReview: error: can't find summary note _reviews`)
+    console.log(`updateReviewListAfterReview: error: can't find summary note _reviews`)
     return
   }
 
@@ -346,7 +374,7 @@ export async function updateReviewListWithComplete(note: TNote) {
     }
   }
   if (lineNum >= 1) {
-    console.log(`\tRemove line ${lineNum} as its review is completed`)
+    // console.log(`\tRemove line ${lineNum} from _reviews note as its review is completed`)
     reviewNote.removeParagraph(paras[lineNum])
   } else {
     console.log(`\tWarning: _reviews' codeblock unexpectedly missing or empty`)
@@ -392,7 +420,7 @@ async function getNextNoteToReview(): Promise<?TNote> {
 export async function completeReview(): Promise<?TNote> {
   const reviewMentionString = '@reviewed'
   const RE_REVIEW_MENTION = `${reviewMentionString}\\(${RE_DATE}\\)`
-  const reviewedTodayString = `${reviewMentionString}(${hyphenatedDate(new Date())})`
+  const reviewedTodayString = `@reviewed(${hyphenatedDate(new Date())})`
 
   // only proceed if we're in a valid Project note (with at least 2 lines)
   if (Editor.note == null || Editor.note.type === 'Calendar' || Editor.paragraphs?.length < 2 ) {
@@ -440,6 +468,10 @@ export async function completeReview(): Promise<?TNote> {
     // send update to Editor
     await Editor.updateParagraph(metaPara)
   }
+  // remove this note from the review list
+  // $FlowFixMe[incompatible-call]
+  await updateReviewListAfterReview(Editor.note)
+
   // return current note, to help next function
   return Editor.note
 }

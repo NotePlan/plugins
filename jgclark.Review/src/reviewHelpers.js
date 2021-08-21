@@ -2,18 +2,24 @@
 //-----------------------------------------------------------------------------
 // @jgclark
 // Helper functions for Review plugin
-// v0.2.3, 1.8.2021
+// v0.3.0, 21.8.2021
 //-----------------------------------------------------------------------------
 
 import {
-  // chooseOption,
   showMessage,
-  RE_DATE,
+} from '../../helperFunctions/userInput'
+
+import {
+  daysBetween,
   toISODateString,
   calcOffsetDate,
   relativeDateFromNumber,
+  getDateFromString,
+} from '../../helperFunctions/dateFunctions'
+
+import {
   getFolderFromFilename,
-} from '../../helperFunctions.js'
+} from '../../helperFunctions'
 
 /*
  * Get or create the relevant note in the Summary folder
@@ -128,7 +134,7 @@ export function findNotesMatchingHashtags(
   const projectNotesWithTag = (tag !== '')
     ? projectNotesInFolder.filter((n) => n.hashtags.includes(tag))
     : projectNotesInFolder
-  console.log(`\tFound ${projectNotesWithTag.length} notes matching tag '${tag}'`)
+  console.log(`\tIn folder '${folder ?? "<all>"}' found ${projectNotesWithTag.length} notes matching '${tag}'`)
   return projectNotesWithTag
 }
 
@@ -141,10 +147,6 @@ export function calcNextReviewDate(lastReviewDate: Date, interval: string): Date
       ? calcOffsetDate(toISODateString(lastReviewDate), interval)
       : new Date() // today's date
   return reviewDate
-}
-
-export function isoDateStringFromCalendarFilename(filename: string): string {
-  return `${filename.slice(0, 4)}-${filename.slice(4, 6)}-${filename.slice(6, 8)}`
 }
 
 /* From an array of strings, return the first string that matches the
@@ -175,34 +177,6 @@ export function getStringFromList(
   return res.length > 0 ? res[0] : ''
 }
 
-/* Turn a string that includes YYYY-MM-DD into a JS Date
-* @param {string} - string that contains a date e.g. @due(2021-03-04)
-* @return {?Date} - JS Date version, if valid date found
-*/
-export function getDateFromString(mention: string): ?Date {
-  const RE_DATE_CAPTURE = `(${RE_DATE})` // capture date of form YYYY-MM-DD
-
-  if (mention === '') {
-    // console.log(`\tgetDateFromString: empty string`)
-    return // no text, so return nothing
-  }
-  // console.log(`\tgetDateFromString: ${mention}`)
-  const res = mention.match(RE_DATE_CAPTURE) ?? []
-  // Use first match, if found
-  if (res[1].length > 0) {
-    const date = new Date(
-      Number(res[1].slice(0, 4)),
-      Number(res[1].slice(5, 7)) - 1, // only seems to be needed for months?!
-      Number(res[1].slice(8, 10)),
-    )
-    // console.log(toLocaleDateTimeString(date))
-    return date
-  } else {
-    // console.log(`\tgetDateFromString: no date found`)
-    return
-  }
-}
-
 /* Extract bracketed part of an '@mention(something)' string
 * @param {string} - string that contains a bracketed mention e.g. @review(2w)
 * @return {?string} - string from between the brackets, if found (e.g. '2w')
@@ -221,15 +195,6 @@ export function getStringFromMention(mention: string): ?string {
   } else {
     return
   }
-}
-
-/* Return difference between start and end dates
-* @param {Date} d1 - start Date
-* @param {Date} d2 - end Date
-* @return {number} - number of days between d1 and d2 (rounded to nearest integer)
-*/
-export function daysBetween(d1: Date, d2: Date): number {
-  return Math.round((d2 - d1) / 1000 / 60 / 60 / 24) // i.e. milliseconds -> days
 }
 
 //-------------------------------------------------------------------------------
@@ -253,23 +218,22 @@ export class Project {
   openTasks: number
   completedTasks: number
   waitingTasks: number
-  isArchived: boolean // TODO: Does this make any sense to keep?
+  isArchived: boolean
   isActive: boolean
+  isCancelled: boolean
   noteType: string // project, area, other
   folder: string
-  // TODO: - bring 'cancelled' in as a valid project state
   
   constructor(note: TNote) {
     const mentions: $ReadOnlyArray<string> = note.mentions
     const hashtags: $ReadOnlyArray<string> = note.hashtags
     this.note = note
     this.title = note.title ?? '(error)'
+    // console.log(`\tnew Project: ${this.title}`)
     this.folder = getFolderFromFilename(note.filename)
     this.dueDate = getDateFromString(getParamMentionFromList(mentions, "@due"))
-    // this.dueDate = getDateFromString(getParamMentionFromList(mentions, "@due"))
-    // FIXME(Eduard): Error in next API function so use my own instead
-    // this.dueDays = (this.dueDate !== '') ? Calendar.unitsBetween(new Date(), this.dueDate, 'day') : undefined
     if (this.dueDate != null && this.dueDate !== '') {
+      // NB: Written while there was an error in EM's Calendar.unitsBetween() function
       // $FlowIgnore[incompatible-call]
       this.dueDays = daysBetween(new Date(), this.dueDate)
     }
@@ -278,8 +242,7 @@ export class Project {
     if (this.reviewInterval != null) {
       if (this.reviewedDate != null) {
         this.nextReviewDate = calcNextReviewDate(this.reviewedDate, this.reviewInterval)
-        // FIXME(Eduard): Error in next API function so use my own instead
-        // this.nextReviewDays = (this.nextReviewDate !== '') ? Calendar.unitsBetween(new Date(), this.dueDate, 'day') : undefined
+        // NB: Written while there was an error in EM's Calendar.unitsBetween() function
         // $FlowIgnore[incompatible-call]
         this.nextReviewDays = daysBetween(new Date(), this.nextReviewDate)
         // console.log(`  ${this.nextReviewDate.toString()} -> ${this.nextReviewDays}`)
@@ -310,15 +273,18 @@ export class Project {
     // make archived if #archive tag present
     this.isArchived = getStringFromList(hashtags, '#archive') !== ''
     // make cancelled if #cancelled or #someday flag set
-    // @is_cancelled = true if @metadata_line =~ /(#cancelled|#someday)/
+    this.isCancelled = getStringFromList(hashtags, '#cancelled') !== ''
+                    || getStringFromList(hashtags, '#someday') !== ''
 
     // set note to active if #active is set or a @review date found,
     // and not completed / cancelled.
     this.isActive = (
       (getStringFromList(hashtags, '#active') !== '' || this.reviewInterval != null)
       && !this.isCompleted
+      && !this.isCancelled
       && !this.isArchived
     ) ? true : false
+    // console.log(`\t  created OK`)
   }
 
   /* return title of note as internal link, also showing complete or cancelled where relevant
@@ -329,6 +295,8 @@ export class Project {
       return `[x] [[${this.title ?? ''}]]`
     } else if (this.isArchived) {
       return `[-] [[${this.title ?? ''}]]`
+    } else if (this.isCancelled) {
+      return `[-] (cancelled) [[${this.title ?? ''}]]`
     } else {
       return `[[${this.title ?? ''}]]`
     }
@@ -347,7 +315,7 @@ export class Project {
   /* Returns CSV line showing days until next review + title
    * @return {string}
   */
-  basicSummaryLine(): string {
+  machineSummaryLine(): string {
     const numString = this.nextReviewDays?.toString() ?? ''
     return `${numString}\t${this.title}`
     // return `${numString}\t${this.title}\t${this.isActive.toString()}\t${this.completedDays?.toString() ?? ''}`

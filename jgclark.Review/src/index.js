@@ -2,8 +2,8 @@
 
 //-----------------------------------------------------------------------------
 // Statistic commands for notes and projects
-// Jonathan Clark & Eduard Metzger
-// v0.3.0, 9.8.2021
+// Jonathan Clark
+// v0.3.0, 21.8.2021
 //-----------------------------------------------------------------------------
 
 export {
@@ -13,7 +13,3 @@ export {
 export {
   addProject, completeProject,
 } from './projects'
-
-export {
-  getOrMakeMetadataLine,
-} from './reviewHelpers'

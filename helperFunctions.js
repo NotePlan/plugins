@@ -777,7 +777,7 @@ export function getTagParams(paramString: string, wantedParam: string): string {
 export async function getTagParamsFromString(
   paramString: string,
   wantedParam: string,
-  defaultValue: mixed = null,
+  defaultValue: mixed | any = null,
 ): mixed {
   console.log(
     `\tgetTagParamsFromString for '${wantedParam}' in '${paramString}'`,

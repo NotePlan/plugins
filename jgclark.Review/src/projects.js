@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Commands for working with project, seen in NotePlan notes.
 // by @jgclark
-// v0.3.0, 9.8.2021
+// v0.3.0, 21.8.2021
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -24,7 +24,7 @@ import {
 } from '../../helperFunctions'
 
 import {
-  updateReviewListWithComplete,
+  updateReviewListAfterReview,
 } from './reviews'
 
 import {
@@ -36,7 +36,7 @@ import {
 export async function addProject(): Promise<void> {
   
   // NB: WAITING: Update when @EduardMe adds a native date picker
-  console.log(`\naddProject (very basic version):`)
+  console.log(`\naddProject(very basic version):`)
 
   // Simply apply daily template, using Template system
   await insertNamedTemplate('New Project Template')
@@ -45,6 +45,7 @@ export async function addProject(): Promise<void> {
 //-------------------------------------------------------------------------------
 // Update the @reviewed(date) in the note in the Editor to today's date
 export async function completeProject(): Promise<void> {
+  console.log(`\ncompleteProject():`)
   const completedMentionString = '@completed'
   const completedTodayString = `${completedMentionString}(${hyphenatedDate(new Date())})`
 
@@ -68,5 +69,5 @@ export async function completeProject(): Promise<void> {
   await Editor.updateParagraph(metaPara)
   // remove this note from the review list
   // $FlowIgnore[incompatible-call]
-  await updateReviewListWithComplete(Editor.note)
+  await updateReviewListAfterReview(Editor.note)
  }

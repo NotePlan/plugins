@@ -45,9 +45,10 @@ export function toISOShortDateTimeString(dateObj: Date): string {
   return dateObj.toISOString().slice(0, 16)
 }
 
-export function toISOShortTime(dateObj: Date): string {
-  return dateObj.toISOString().slice(11, 16)
-}
+// DEPRECATING THIS in favour of Locale version
+// export function toISOShortTime(dateObj: Date): string {
+//   return dateObj.toISOString().slice(11, 16)
+// }
 
 export function toLocaleShortTime(
   dateObj: Date,
@@ -124,6 +125,15 @@ export const monthsAbbrev = [
 
 export function monthNameAbbrev(m: number): string {
   return monthsAbbrev[m - 1]
+}
+
+/* Return difference between start and end dates
+* @param {Date} d1 - start Date
+* @param {Date} d2 - end Date
+* @return {number} - number of days between d1 and d2 (rounded to nearest integer)
+*/
+export function daysBetween(d1: Date, d2: Date): number {
+  return Math.round((d2 - d1) / 1000 / 60 / 60 / 24) // i.e. milliseconds -> days
 }
 
 export function withinDateRange(
@@ -267,6 +277,34 @@ export function relativeDateFromNumber(diffIn: number): string {
   }
   // console.log(`--> ${output}`)
   return output
+}
+
+/* Turn a string that includes YYYY-MM-DD into a JS Date
+* @param {string} - string that contains a date e.g. @due(2021-03-04)
+* @return {?Date} - JS Date version, if valid date found
+*/
+export function getDateFromString(mention: string): ?Date {
+  const RE_DATE_CAPTURE = `(${RE_DATE})` // capture date of form YYYY-MM-DD
+
+  if (mention === '') {
+    // console.log(`\tgetDateFromString: empty string`)
+    return // no text, so return nothing
+  }
+  // console.log(`\tgetDateFromString: ${mention}`)
+  const res = mention.match(RE_DATE_CAPTURE) ?? []
+  // Use first match, if found
+  if (res[1].length > 0) {
+    const date = new Date(
+      Number(res[1].slice(0, 4)),
+      Number(res[1].slice(5, 7)) - 1, // only seems to be needed for months?!
+      Number(res[1].slice(8, 10)),
+    )
+    // console.log(toISOShortDateTimeString(date))
+    return date
+  } else {
+    // console.log(`\tgetDateFromString: no date found`)
+    return
+  }
 }
 
 /**

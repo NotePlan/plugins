@@ -44,7 +44,7 @@ When you have configured the plugin, and added suitable metadata to notes, use s
 
 ### `/project lists`
 This creates/updates a **human-readable** list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete. This is stored in summary note(s) in the 'Summaries' folder (or whatever you set `folderToStore` setting to be).
-You can specify folders to ignore using the `foldersToIgnore` setting.
+You can specify folders to ignore using the `foldersToIgnore` setting, and see Configuration below for more details on the `displayOrder`, `displayGroupedByFolder` and `displayArchivedProjects` settings.
 
 ### `/start reviews`
 This creates/updates a **machine-readable** list of notes ready for review, in the `_reviews` note in the folder given by the `folderToStore` setting. It then kicks off the most overdue review by opening that note in the editor. When you have finished the review run one of the next two commands ...
@@ -55,6 +55,9 @@ This updates the current open project's @reviewed() date.
 
 ### `/nextReview`
 This updates this project's @reviewed() date, and jumps to the next project to review. If there are none left ready for review it will show a congratulations message.
+
+### `/addProject`
+Add a new note representing a project, asking for its metadata.  For now it's simply a shortcut to insert your `New Project Template` template to the current note.
 
 ### `/completeProject`
 This add @completed(today) date to the open project.
@@ -68,15 +71,17 @@ Alternatively, in the `Templates/_configuration` note, include the following set
 ...
   review: {
     folderToStore: "Reviews" // will be created if necessary
-    foldersToIgnore: ["Templates", "Reviews", "Summaries"], // an array, which can be empty
-    noteTypeTags: '#area,#project' // comma separated list of hashtags to indicate notes to include in this review system
-    displayGroupedByFolder: true // in `/project lists` whether to group the notes by folder
-    displayOrder: 'alpha' // in `/project lists`  the sort options  are 'due', 'review' or 'alpha'
+    foldersToIgnore: ["📋 Templates", "Reviews", "Summaries"], // an array of folder names, which can be empty
+    noteTypeTags: ["#area", "#project"], // an array of hashtags to indicate notes to include in this review system
+    displayOrder: "alpha", // in '/project lists'  the sort options  are "due" date, "review" date or "alpha"
+    displayGroupedByFolder: true, // in '/project lists' whether to group the notes by folder
+    displayArchivedProjects: true,  // in '/project lists' whether to display project notes marked #archive
+
 ...
 ```
 (This uses JSON5 format: ensure there are commas at the end of all that lines that need them.)
 
 ## To do
-- update the `/project lists` output to use a table view, _when then this is available in NotePlan_.
-- add commands to help start projects, by automating some writing of the metadata
+- update the `/project lists` output to use a table view, _when then this is available in NotePlan_
+- update the `/addProject` to use better date pickers, _when then this is available in NotePlan_
 - if NotePlan adds support  for frontmatter or YAML blocks, update the plugin to take advantage of them
