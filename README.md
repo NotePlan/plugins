@@ -31,7 +31,13 @@ Make sure you have a recent version of `node` and `npm` installed (if you need t
 
 **Step 3: Initialize Local Development Environment**
 
-Run `npm run init` from the root of your local GitHub repository for `NotePlan/plugins`. This will install the necessary npm dependencies and initialize your plugin working directory, including:
+Run the following commands from the root of your local GitHub repository for `NotePlan/plugins`. 
+
+`
+npm install && npm run init
+`
+
+This will install the necessary npm dependencies and initialize your plugin working directory, including:
 
  - Configure `eslint` [eslint](https://eslint.org/) (for checking code conventions)
  - Configure `flow` [flow](https://flow.org/) (for type checking)
