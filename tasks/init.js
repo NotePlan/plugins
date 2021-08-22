@@ -9,7 +9,7 @@ async function init(cwd = null) {
 
   const cliPath = path.join(path.dirname(system.run('which node')), 'noteplan-cli')
   if (!filesystem.existsSync(cliPath)) {
-    system.run('npm install')
+    system.run('npm link')
   }
 
   const pluginPathFilename = path.join(cwd, '.pluginpath')
