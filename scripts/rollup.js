@@ -40,7 +40,7 @@ const COMPACT = options.compact || false
 if (DEBUGGING && !COMPACT) {
   console.log(
     colors.yellow.bold(
-      `Running in DEBUG mode for purposes of seeing the Javascript script.js code exactly as it appears in your editor. This means no cleaning and no transpiling. Good for debugging, but bad for deployment to older machines. Make sure you run the autowatch command without the -debug flag before you release!\n`,
+      `Running in DEBUG mode for purposes of seeing the Javascript script.js code exactly as it appears in your editor. This means no cleaning and no transpiling. Good for debugging, but bad for deployment to older machines. Make sure you run the autowatch command without the --debug flag before you release!\n`,
     ),
   )
 }
@@ -168,7 +168,7 @@ async function main() {
           msg += colors.yellow(`\n   Built in DEBUG mode. Not ready to deploy.\n`)
         } else {
           if (!COMPACT) {
-            msg += `\n   To debug this plugin without transpiling use: ${`npm run autowatch "${pluginFolder}" -- -debug`}\n\
+            msg += `\n   To debug this plugin without transpiling use: ${`npm run autowatch "${pluginFolder}" -- --debug`}\n\
    To release this plugin, update changelog.md and run: ${`npm run release "${pluginFolder}"\n`}`
           }
         }
