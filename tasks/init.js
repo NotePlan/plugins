@@ -23,7 +23,7 @@ async function init(cwd = null) {
   print.success('NotePlan Plugin Development Environment Ready!', 'SUCCESS')
   console.log('')
   print.info(colors.bold('👉  Whats next?'))
-  print.info('    • You can use `noteplan-cli plugin:create` to create your first NotePlan Plugin')
+  print.info('    • You can use `noteplan-cli create-plugin` to create your first NotePlan Plugin')
   print.info(
     '    • You can read code from other NotePlan Plugins to gain more insight how you can interact with NotePlan',
   )

@@ -109,15 +109,15 @@ This process will bundle your code into single `script.js` file, but will skip t
 ### Frequently Used Commands
 The common script you will run `npm run autowatch` however, you may need to use any of the following
 
-- `npm run autowatch:compact` a less verbose version of `autowatch` that might suit more experienced developers
 - `noteplan-cli plugin:info --check <name>` to check if you desired command name is in use by any other NotPlan Plugins
-<!-- - `npm run build`: Will build all the plugins into single files (where needed) -->
-- `npm run typecheck`: typecheck all javascript files with `Flow`. Only files with a `// @flow` comment are checked.
-- `npm run fix`: lint and auto-format
-- `npm run docs`:  build documentation for javascript files
-- `npm run lint`: run ESlint on the entire repo
-- `npm run lint-fix`: run ESlint on the entire repo and fix whatever it can automatically fix
-- `npm run format`: auto-format all Javascript files using `prettier`
+- `npm run build`: Will build all the plugins into single files (where needed)
+- `npm run watch`: Will watch *all* files for changes and automatically compile them into single javascript files (where needed)
+- `npm run typecheck`: Will typecheck all the javascript files with `Flow`. Only files with a `// @flow` comment are checked.
+- `npm run fix`: Will lint and auto-format
+- `npm run test`: Will lint and typecheck all Javascript files and report, but not fix anything
+- `npm run lint`: Will run ESlint on the entire repo
+- `npm run lint-fix`: Will run ESlint on the entire repo and fix whatever it can automatically fix
+- `npm run format`: Will auto-format all Javascript files.
 - `gh release delete <release name>`: Will delete the release from the repository, so making it unavailable in NotePlan as well. (Though it won't remove it from anyone who has already downloaded it.)
 
 ## Editor Setup

@@ -4,20 +4,20 @@
 
 You do not need all of this scaffolding for a basic NP plugin. As the instructions state [Creating Plugins](https://help.noteplan.co/article/65-commandbar-plugins), you can create a plugin with just two files: `plugin.json` and `script.js`. Please read that whole page before proceeding here.
 
-However, for more complex plugins, you may find that it's easier to write code in multiple files, incorporating code (helper functions, etc.) written (and *TESTED*) previously by others. We strongly suggest you use type checking (e.g. [Flow.io](https://flow.io)) to help validate the code you write. If either of those is interesting to you, you're in the right place. Before going any further, make sure you follow the development environment [setup instructions](https://github.com/NotePlan/plugins).
+However, for more complex plugins, you may find that it's easier to write code in multiple files, incorporating code (helper functions, etc.) written (and *TESTED*) previously by others. You also may want type checking (e.g. [Flow.io](https://flow.io)) to help validate the code you write. If either of those is interesting to you, you're in the right place. Before going any further, make sure you follow the development environment [setup instructions](https://github.com/NotePlan/plugins).
 
 ## Creating NotePlan Plugin
 
 You can create a NotePlan plugin by executing:
 
 ```bash
-noteplan-cli plugin:create
+noteplan-cli create-plugin
 ```
 
-Open up a terminal folder and change directory to the plugins repository root. Run the command `npm run autowatch` which will keep looking for changes to all plugin files and will re-compile when JavaScript changes are made. It will also transpile ES6 and ES7 code to ES5 which will run on virtually all Macs, and will copy the file(s) to the NotePlan Plugins folder, so you can immediately test in Noteplan.
+Open up a terminal folder and change directory to the plugins repository root. Run the command `npm run autowatch` which will keep looking for changes to plugin files and will re-compile when JavaScript changes are made. It will also transpile ES6 and ES7 code to ES5 which will run on virtually all Macs, and will copy the file(s) to the NotePlan Plugins folder, so you can immediately test in Noteplan.
 
 ### NotePlan Plugins Directory
-You can find all your installed NotePlan Plugins here
+You can find all the NotePlan Plugins here
 
 ```bash
 /Users/<user>/Library/Containers/co.noteplan.NotePlan3/Data/Library/Application Support/co.noteplan.NotePlan3/Plugins
