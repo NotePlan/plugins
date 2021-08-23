@@ -1,12 +1,13 @@
 # ☀️ Daily Journal plugin
 This plugin provides two commands for daily journalling, including start-of-day template, and end-of-day review questions. Both work on the currently open daily calendar note:
 
-- `/dayStart`: Apply your `Daily Note Template` to the currently open calendar note, which by default includes list of today's events and local weather lookup.
+- `/dayStart`: Apply your `Daily Note Template` to the currently open calendar note (which by default includes list of today's events and local weather lookup)
+- `/todayStart`: Apply your `Daily Note Template` to today's calendar note (which by default includes list of today's events and local weather lookup)
 - `/dayReview`: Ask journal questions for an end-of-day review in the currently open calendar note.
 
 ## Configuration
-### /dayStart
-`/dayStart` uses the `Daily Note Template` note found in the `Templates` folder. If this note has not been added, it should prompt you to create one.
+### /dayStart and /todayStart
+`/dayStart` and `/todayStart` use the `Daily Note Template` note found in the `Templates` folder. If this note has not been added, it should prompt you to create one.
 For details of the commands you can use, including a list of events, a quote-of-the-day or summary weather forecast, see [Templates plugin README](https://github.com/NotePlan/plugins/tree/main/nmn.Templates/).
 
 ### /dayReview
