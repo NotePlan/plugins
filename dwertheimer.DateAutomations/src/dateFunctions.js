@@ -217,7 +217,7 @@ export async function insertStrftime() {
 
   const format = dateConfig?.format ? dateConfig.format : '%Y-%m-%d %I:%M:%S %P'
 
-  const strftimeFormatted = strftime('%Y-%m-%d %I:%M:%S %P')
+  const strftimeFormatted = strftime(format)
 
   Editor.insertTextAtCursor(strftimeFormatted)
 }
