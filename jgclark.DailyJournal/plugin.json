@@ -7,11 +7,18 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/README.md",
-  "plugin.version": "0.7.1",
+  "plugin.version": "0.8.0",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
   "plugin.commands": [
+    {
+      "name": "todayStart",
+      "alias": ["day", "today", "template"],
+      "description": "Apply Daily Note Template to Today's Calendar Note (requires configuring)",
+      "jsFunction": "todayStart",
+      "requested_interval": "24h"
+    },
     {
       "name": "dayStart",
       "alias": ["daily", "template"],

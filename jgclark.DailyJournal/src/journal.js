@@ -4,14 +4,9 @@
 // v0.7.0, 12.8.2021
 //--------------------------------------------------------------------------------------------------------------------
 
-import {
-  showMessage,
-} from '../../helperFunctions'
-import {
-  getOrMakeConfigurationSection,
-} from '../../nmn.Templates/src/configuration'
+import { showMessage } from '../../helperFunctions'
+import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 import { applyNamedTemplate } from '../../nmn.Templates/src/index'
-
 
 //--------------------------------------------------------------------------------------------------------------------
 // Settings
@@ -36,17 +31,23 @@ function isInt(value) {
   return !isNaN(value) && (x | 0) === x
 }
 
+export async function todayStart() {
+  await dayStart(true)
+}
+
 //------------------------------------------------------------------
 // Start today's daily note with a template, including local weather lookup if configured
-export async function dayStart() {
+export async function dayStart(today = false) {
+  console.log(`\ndayStart:`)
+  if (today) {
+    // open today's date in the main window, and read content
+    await Editor.openNoteByDate(new Date(), false)
+    console.log(`Opened: ${Editor.note.title || Editor.note.filename} in Editor.type=${Editor.type}`)
+  }
   if (Editor.note == null || Editor.type !== 'Calendar') {
     await showMessage('Please run again with a calendar note open.')
     return
   }
-  console.log(`\ndayStart:`)
-
-  // open today's date in the main window, and read content
-  // await Editor.openNoteByDate(new Date(), false)
   // apply daily template, using Template system
   await applyNamedTemplate(pref_templateTitle)
 }
@@ -61,11 +62,11 @@ export async function dayReview() {
   console.log(`\ndailyReview:`)
 
   // Get config settings from Template folder _configuration note
-  const journalConfig = (await getOrMakeConfigurationSection(
+  const journalConfig = await getOrMakeConfigurationSection(
     'dailyJournal',
     DEFAULT_JOURNAL_OPTIONS,
     // TODO: minimum config?
-  ))
+  )
   if (journalConfig == null) {
     // Almost certainly because we've just written default settings to _configuration.
     // If so, we should just stop, as that will need checking.
@@ -81,23 +82,25 @@ export async function dayReview() {
     console.log("\tWarning: Cannot find any 'reviewQuestions' setting in Templates/_configuration note. Stopping.")
     await showMessage(
       "Cannot find any 'reviewQuestions' setting in _configuration",
-      "OK, I'll check my _configuration settings."
+      "OK, I'll check my _configuration settings.",
     )
     return
   }
-  const pref_reviewSectionHeading = journalConfig.reviewSectionHeading ?? "Journal"
-  const pref_moods = journalConfig.moods ?? [
-    '🤩 Great',
-    '🙂 Good',
-    '😇 Blessed',
-    '🥱 Tired',
-    '😫 Stressed',
-    '😤 Frustrated',
-    '😡 Angry',
-    '😔 Low',
-    '🥵 Sick',
-    'Other',
-  ].join(',')
+  const pref_reviewSectionHeading = journalConfig.reviewSectionHeading ?? 'Journal'
+  const pref_moods =
+    journalConfig.moods ??
+    [
+      '🤩 Great',
+      '🙂 Good',
+      '😇 Blessed',
+      '🥱 Tired',
+      '😫 Stressed',
+      '😤 Frustrated',
+      '😡 Angry',
+      '😔 Low',
+      '🥵 Sick',
+      'Other',
+    ].join(',')
   const pref_moodArray = pref_moods.split(',') // with a proper config system, this won't be needed
 
   // Editor.openNoteByDate(new Date()) // open today's date in main window
@@ -114,9 +117,7 @@ export async function dayReview() {
   console.log(`\tFound ${numQs} question lines`)
   for (i = 0; i < numQs; i++) {
     // remove type indicators from the question string
-    question[i] = questionLines[i]
-      .replace(/:|\(|\)|<string>|<int>|<number>|<mood>/g, '')
-      .trim()
+    question[i] = questionLines[i].replace(/:|\(|\)|<string>|<int>|<number>|<mood>/g, '').trim()
     const reArray = questionLines[i].match(typeRE)
     questionType[i] = reArray[1]
     // console.log("\t" + i + ": " + question[i] + " / " + questionType[i])
@@ -129,61 +130,34 @@ export async function dayReview() {
     console.log(`\t${i}: ${question[i]} / ${questionType[i]}`)
     switch (questionType[i]) {
       case 'int': {
-        const reply = await CommandBar.showInput(
-          questionType[i],
-          `${question[i]  }: %@`,
-        )
+        const reply = await CommandBar.showInput(questionType[i], `${question[i]}: %@`)
         if (reply != null && isInt(reply)) {
           reviewLine = questionLines[i].replace(/<int>/, reply)
         } else {
-          console.log(
-            `\tERROR trying to get integer answer for question '${ 
-              question[i] 
-              }'`,
-          )
+          console.log(`\tERROR trying to get integer answer for question '${question[i]}'`)
         }
         break
       }
       case 'number': {
-        const reply = await CommandBar.showInput(
-          questionType[i],
-          `${question[i]  }: %@`,
-        )
+        const reply = await CommandBar.showInput(questionType[i], `${question[i]}: %@`)
         if (reply != null && Number(reply)) {
           reviewLine = questionLines[i].replace(/<number>/, reply)
         } else {
-          console.log(
-            `\tERROR trying to get number answer for question '${ 
-              question[i] 
-              }'`,
-          )
+          console.log(`\tERROR trying to get number answer for question '${question[i]}'`)
         }
         break
       }
       case 'string': {
-        const replyString = await CommandBar.showInput(
-          questionType[i],
-          `${question[i]  }: %@`,
-        )
+        const replyString = await CommandBar.showInput(questionType[i], `${question[i]}: %@`)
         if (replyString != null) {
-          reviewLine =
-            replyString !== ''
-              ? questionLines[i].replace(/<string>/, replyString)
-              : ''
+          reviewLine = replyString !== '' ? questionLines[i].replace(/<string>/, replyString) : ''
         } else {
-          console.log(
-            `\tERROR trying to get string answer for question '${ 
-              question[i] 
-              }'`,
-          )
+          console.log(`\tERROR trying to get string answer for question '${question[i]}'`)
         }
         break
       }
       case 'mood': {
-        const reply = await CommandBar.showOptions(
-          pref_moodArray,
-          'Choose appropriate mood',
-        )
+        const reply = await CommandBar.showOptions(pref_moodArray, 'Choose appropriate mood')
         const replyMood = pref_moodArray[reply.index]
         if (replyMood != null && replyMood !== '') {
           reviewLine = questionLines[i].replace(/<mood>/, replyMood)
@@ -205,11 +179,5 @@ export async function dayReview() {
   console.log(`\tAppending to heading '${pref_reviewSectionHeading}' the text:${output}`)
   // If sectionHeading isn't present then it lands up writing '# ## Heading'
   // FIXME: a bug in the API?
-  Editor.note.addParagraphBelowHeadingTitle(
-    output,
-    'empty',
-    pref_reviewSectionHeading,
-    true,
-    true,
-  )
+  Editor.note.addParagraphBelowHeadingTitle(output, 'empty', pref_reviewSectionHeading, true, true)
 }
