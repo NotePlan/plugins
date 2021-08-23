@@ -25,10 +25,7 @@ export async function chooseOption<T, TDefault = T>(
 }
 
 // (from @nmn / nmn.sweep)
-export async function getInput(
-  title: string,
-  okLabel: string = 'OK',
-): Promise<string> {
+export async function getInput(title: string, okLabel: string = 'OK'): Promise<string> {
   return await CommandBar.showInput(title, okLabel)
 }
 
@@ -38,10 +35,7 @@ export async function getInput(
  * @param {string} message - text to display to user
  * @param {string} confirmTitle - the "button" (option) text (default: 'OK')
  */
-export async function showMessage(
-  message: string,
-  confirmTitle: string = 'OK',
-): Promise<void> {
+export async function showMessage(message: string, confirmTitle: string = 'OK'): Promise<void> {
   await CommandBar.showOptions([confirmTitle], message)
 }
 
@@ -51,10 +45,7 @@ export async function showMessage(
  * @param {Array<string>} - an array of the choices to give (default: ['Yes', 'No'])
  * @returns {string} - returns the user's choice - the actual *text* choice from the input array provided
  */
-export async function showMessageYesNo(
-  message: string,
-  choicesArray: Array<string> = ['Yes', 'No'],
-): Promise<string> {
+export async function showMessageYesNo(message: string, choicesArray: Array<string> = ['Yes', 'No']): Promise<string> {
   const answer = await CommandBar.showOptions(choicesArray, message)
   return choicesArray[answer.index]
 }
@@ -77,9 +68,7 @@ export async function chooseFolder(msg: string): Promise<string> {
         for (let i = 0; i < folderParts.length - 1; i++) {
           folderParts[i] = '     '
         }
-        folderParts[folderParts.length - 1] = `📁 ${
-          folderParts[folderParts.length - 1]
-        }`
+        folderParts[folderParts.length - 1] = `📁 ${folderParts[folderParts.length - 1]}`
         const folderLabel = folderParts.join('')
         // console.log(folderLabel)
         folderOptionList.push({ label: folderLabel, value: f })
@@ -105,9 +94,7 @@ export async function chooseFolder(msg: string): Promise<string> {
 // export function percent(value, total) {
 // @eduardme
 export function percent(value: number, total: number): string {
-  return total > 0
-    ? `${value.toLocaleString()} (${Math.round((value / total) * 100)}%)`
-    : `${value.toLocaleString()}`
+  return total > 0 ? `${value.toLocaleString()} (${Math.round((value / total) * 100)}%)` : `${value.toLocaleString()}`
 }
 
 //-------------------------------------------------------------------------------
@@ -167,11 +154,7 @@ export function toLocaleShortTime(
 }
 
 export function printDateRange(dr: DateRange) {
-  console.log(
-    `DateRange <${toISOShortDateTimeString(
-      dr.start,
-    )} - ${toISOShortDateTimeString(dr.end)}>`,
-  )
+  console.log(`DateRange <${toISOShortDateTimeString(dr.start)} - ${toISOShortDateTimeString(dr.end)}>`)
 }
 
 export function unhyphenatedDate(dateObj: Date): string {
@@ -181,9 +164,7 @@ export function unhyphenatedDate(dateObj: Date): string {
 
 export function hyphenatedDate(dateObj: Date): string {
   const { year, month, date } = getYearMonthDate(dateObj)
-  return `${year}-${month < 10 ? '0' : ''}${month}-${
-    date < 10 ? '0' : ''
-  }${date}`
+  return `${year}-${month < 10 ? '0' : ''}${month}-${date < 10 ? '0' : ''}${date}`
 }
 
 export function filenameDateString(dateObj: Date): string {
@@ -196,10 +177,7 @@ export function dateStringFromCalendarFilename(filename: string): string {
 }
 
 export function isoDateStringFromCalendarFilename(filename: string): string {
-  return `${filename.slice(0, 4)}-${filename.slice(4, 6)}-${filename.slice(
-    6,
-    8,
-  )}`
+  return `${filename.slice(0, 4)}-${filename.slice(4, 6)}-${filename.slice(6, 8)}`
 }
 
 export const months = [
@@ -216,30 +194,13 @@ export const months = [
   'November',
   'December',
 ]
-export const monthsAbbrev = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-]
+export const monthsAbbrev = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 export function monthNameAbbrev(m: number): string {
   return monthsAbbrev[m - 1]
 }
 
-export function withinDateRange(
-  testDate: string,
-  fromDate: string,
-  toDate: string,
-): boolean {
+export function withinDateRange(testDate: string, fromDate: string, toDate: string): boolean {
   return testDate >= fromDate && testDate <= toDate
 }
 
@@ -251,10 +212,7 @@ export function withinDateRange(
 // console.log(withinDateRange(unhyphenateDate('2021-06-24'), '20210501', '20210531')) // false
 
 // Calculate an offset date, returning ISO datestring
-export function calcOffsetDateStr(
-  oldDateISO: string,
-  interval: string,
-): string {
+export function calcOffsetDateStr(oldDateISO: string, interval: string): string {
   // Calculate an offset date, assuming:
   // - oldDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type
   // - interval is string of form nn[bdwmq], and could be negative
@@ -502,11 +460,7 @@ export function calcSmartPrependPoint(note: TNote): number {
       }
       if (insertionLine === 1) {
         // If we get here we haven't found an end to the YAML block.
-        console.log(
-          `Warning: couldn't find end of YAML frontmatter in note ${displayTitle(
-            note,
-          )}`,
-        )
+        console.log(`Warning: couldn't find end of YAML frontmatter in note ${displayTitle(note)}`)
         // It's not clear what to do at this point, so will leave insertion point as is
       }
     } else if (lines[1].match(/^#[A-z]/)) {
@@ -541,11 +495,7 @@ export function calcSmartPrependPoint(note: TNote): number {
  * @param {string} paraText - the text to prepend
  * @param {ParagraphType} paragraphType - the usual paragraph type to prepend
  */
-export function smartPrependPara(
-  note: TNote,
-  paraText: string,
-  paragraphType: ParagraphType,
-): void {
+export function smartPrependPara(note: TNote, paraText: string, paragraphType: ParagraphType): void {
   // Insert the text at the smarter insertionLine line
   note.insertParagraph(paraText, calcSmartPrependPoint(note), paragraphType)
 }
@@ -561,21 +511,17 @@ export function printNote(note: TNote) {
 
   if (note.type === 'Notes') {
     console.log(
-      `title: ${note.title ?? ''}\n\tfilename: ${
-        note.filename ?? ''
-      }\n\tcreated: ${String(note.createdDate) ?? ''}\n\tchanged: ${
-        String(note.changedDate) ?? ''
-      }\n\thashtags: ${note.hashtags?.join(',') ?? ''}\n\tmentions: ${
+      `title: ${note.title ?? ''}\n\tfilename: ${note.filename ?? ''}\n\tcreated: ${
+        String(note.createdDate) ?? ''
+      }\n\tchanged: ${String(note.changedDate) ?? ''}\n\thashtags: ${note.hashtags?.join(',') ?? ''}\n\tmentions: ${
         note.mentions?.join(',') ?? ''
       }`,
     )
   } else {
     console.log(
-      `filename: ${note.filename ?? ''}\n\tcreated: ${
-        String(note.createdDate) ?? ''
-      }\n\tchanged: ${String(note.changedDate) ?? ''}\n\thashtags: ${
-        note.hashtags?.join(',') ?? ''
-      }\n\tmentions: ${note.mentions?.join(',') ?? ''}`,
+      `filename: ${note.filename ?? ''}\n\tcreated: ${String(note.createdDate) ?? ''}\n\tchanged: ${
+        String(note.changedDate) ?? ''
+      }\n\thashtags: ${note.hashtags?.join(',') ?? ''}\n\tmentions: ${note.mentions?.join(',') ?? ''}`,
     )
   }
 }
@@ -615,6 +561,26 @@ export async function noteOpener(
   }
 }
 
+//function to get project notes for a folder
+/**
+ * Get all notes in a folder
+ * @author @dwertheimer
+ * @param {string} folder name (e.g. 'myFolderName')
+ * @returns {Array<TNote>} - array of notes in the folder
+ */
+export async function getProjectNotes(forFolder: string = ''): Promise<$ReadOnlyArray<TNote>> {
+  const notes: $ReadOnlyArray<TNote> = await DataStore.projectNotes
+  if (forFolder === '') {
+    return notes
+  } else {
+    // if last character is a slash, remove it
+    const folderWithSlash = forFolder.charAt(forFolder.length - 1) === '/' ? forFolder : `${forFolder}/`
+    const filteredNotes = notes.filter((note) => note.filename.includes(folderWithSlash))
+    console.log(`getProjectNotes() Found ${filteredNotes.length} notes in folder ${forFolder}`)
+    return filteredNotes
+  }
+}
+
 /**
  * Find a unique note title for the given text (e.g. "Title", "Title 01" (if Title exists, etc.))
  * Keep adding numbers to the end of a filename (if already taken) until it works
@@ -638,24 +604,18 @@ export function allNotesSortedByChanged(): Array<TNote> {
   const projectNotes = DataStore.projectNotes.slice()
   const calendarNotes = DataStore.calendarNotes.slice()
   const allNotes = projectNotes.concat(calendarNotes)
-  const allNotesSorted = allNotes.sort(
-    (first, second) => second.changedDate - first.changedDate,
-  ) // most recent first
+  const allNotesSorted = allNotes.sort((first, second) => second.changedDate - first.changedDate) // most recent first
   return allNotesSorted
 }
 
 // Return list of calendar notes, sorted by changed date (newest to oldest)
 export function calendarNotesSortedByChanged(): Array<TNote> {
-  return DataStore.calendarNotes
-    .slice()
-    .sort((first, second) => second.changedDate - first.changedDate)
+  return DataStore.calendarNotes.slice().sort((first, second) => second.changedDate - first.changedDate)
 }
 
 // Return list of project notes, sorted by changed date (newest to oldest)
 export function projectNotesSortedByChanged(): Array<TNote> {
-  return DataStore.projectNotes
-    .slice()
-    .sort((first, second) => second.changedDate - first.changedDate)
+  return DataStore.projectNotes.slice().sort((first, second) => second.changedDate - first.changedDate)
 }
 
 // Return list of project notes, sorted by title (ascending)
@@ -680,29 +640,22 @@ export function notesInFolderSortedByName(folder: string): Array<TNote> {
   let notesInFolder: Array<TNote>
   // If folder given (not empty) then filter using it
   if (folder !== '') {
-    notesInFolder = DataStore.projectNotes
-      .slice()
-      .filter((n) => getFolderFromFilename(n.filename) === folder)
+    notesInFolder = DataStore.projectNotes.slice().filter((n) => getFolderFromFilename(n.filename) === folder)
   } else {
     notesInFolder = DataStore.projectNotes.slice()
   }
   // Sort alphabetically on note's title
-  const notesSortedByName = notesInFolder.sort((first, second) =>
-    (first.title ?? '').localeCompare(second.title ?? ''),
-  )
+  const notesSortedByName = notesInFolder.sort((first, second) => (first.title ?? '').localeCompare(second.title ?? ''))
   return notesSortedByName
 }
 
 //-------------------------------------------------------------------------------
 // Misc functions for NP
 
-export const defaultFileExt: string =
-  DataStore.defaultFileExtension != null ? DataStore.defaultFileExtension : 'md'
+export const defaultFileExt: string = DataStore.defaultFileExtension != null ? DataStore.defaultFileExtension : 'md'
 
 export const defaultTodoCharacter: '*' | '-' =
-  DataStore.preference('defaultTodoCharacter') != null
-    ? DataStore.preference('defaultTodoCharacter')
-    : '*'
+  DataStore.preference('defaultTodoCharacter') != null ? DataStore.preference('defaultTodoCharacter') : '*'
 
 // Pretty print range information (@EduardMe)
 export function rangeToString(r: Range): string {
@@ -747,10 +700,7 @@ type Replacement = { key: string, value: string }
  * @param {array} replacementArray // array of objects with {key: stringToLookFor, value: replacementValue}
  * @returns {string} inputString with all replacements made
  */
-export function stringReplace(
-  inputString: string = '',
-  replacementArray: Array<Replacement>,
-): string {
+export function stringReplace(inputString: string = '', replacementArray: Array<Replacement>): string {
   let outputString = inputString
   replacementArray.forEach((r) => {
     while (outputString.includes(r.key)) {
@@ -779,18 +729,14 @@ export async function getTagParamsFromString(
   wantedParam: string,
   defaultValue: mixed | any = null,
 ): mixed {
-  console.log(
-    `\tgetTagParamsFromString for '${wantedParam}' in '${paramString}'`,
-  )
+  console.log(`\tgetTagParamsFromString for '${wantedParam}' in '${paramString}'`)
   if (paramString !== '') {
     try {
       //$FlowIgnore
       const paramObj: {} = await json5.parse(paramString)
       console.log(`\t--> ${String(JSON.stringify(paramObj[wantedParam]))}`)
       // eslint-disable-next-line no-prototype-builtins
-      return paramObj.hasOwnProperty(wantedParam)
-        ? paramObj[wantedParam]
-        : defaultValue
+      return paramObj.hasOwnProperty(wantedParam) ? paramObj[wantedParam] : defaultValue
     } catch (e) {
       console.log(`\tError parsing ${paramString} ${e}`)
     }
