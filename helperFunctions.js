@@ -566,7 +566,7 @@ export async function noteOpener(
  * Get all notes in a folder
  * @author @dwertheimer
  * @param {string} folder name (e.g. 'myFolderName')
- * @returns {Array<TNote>} - array of notes in the folder
+ * @returns {Promise<$ReadOnlyArray<TNote>>} - array of notes in the folder
  */
 export async function getProjectNotes(forFolder: string = ''): Promise<$ReadOnlyArray<TNote>> {
   const notes: $ReadOnlyArray<TNote> = await DataStore.projectNotes
