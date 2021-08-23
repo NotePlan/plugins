@@ -1,6 +1,10 @@
 # What's changed in 🕓 Event Helpers?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
+### v0.3.8, 23.8.2021
+- fix: time block not being detected at start of task (thanks, @stacey)
+- fix: remove time string from appearing in the event title in the calendar
+
 ### v0.3.7, 21.8.2021
 - fix: error in `includeHeadings` setting lookup
 
