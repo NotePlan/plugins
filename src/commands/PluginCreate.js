@@ -3,7 +3,7 @@ const createPlugin = require('./support/plugin-create')
 
 module.exports = {
   name: 'plugin:create',
-  description: 'Creates NotePlan Plugin Project',
+  description: 'Creates New NotePlan Plugin Project',
   disabled: false,
   hidden: false,
   usage: `plugin:create ${colors.magenta('<resource>')} ${colors.blue('[options]')}`,
@@ -53,7 +53,7 @@ module.exports = {
   },
 
   async execute(toolbox) {
-    const cliArgs = helpers.getArguments(toolbox.arguments, this.flags)
+    const cliArgs = helpers.getArguments(toolbox.arguments, this)
 
     let flags = null
 
@@ -78,7 +78,7 @@ module.exports = {
         process.exit()
       }
     } else {
-      const promptArgs = helpers.getArguments(toolbox.arguments, this.flags)
+      const promptArgs = helpers.getArguments(toolbox.arguments, this)
 
       const answers = this.usePrompts ? await toolbox.prompts.run(toolbox, this) : []
 

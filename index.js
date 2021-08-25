@@ -35,6 +35,14 @@ new CLI(process.argv, __dirname)
       `  noteplan-cli plugin:info --check formatted ${colors.gray(
         '(checks to see if "formatted" command is available to use)',
       )}`,
+      `  noteplan-cli plugin:dev ${colors.gray('(NotePlan Build All Plugins)')}`,
+      `  noteplan-cli plugin:dev codedungeon.Toolbox --test ${colors.gray(
+        '(NotePlan Plugin Test codedungeon.Toolbox)',
+      )}`,
+      `  noteplan-cli plugin:dev codedungeon.Toolbox --test --watch ${colors.gray(
+        '(NotePlan Plugin Test - Watch Mode)',
+      )}`,
+      `  noteplan-cli plugin:dev --watch ${colors.gray('(NotePlan Plugin Development - Watch Mode)')}`,
     ].join('\n'),
   )
   .logger({ directory: getLogDirectory(process.argv), alwaysLog: true })

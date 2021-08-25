@@ -11,11 +11,11 @@ module.exports = {
   description: 'Show Current NotePlan Plugin Commands',
   disabled: false,
   hidden: false,
-  usage: [
-    `noteplan-cli plugin:info ${colors.gray('(displays report of all plug-ins)')}`,
-    `  noteplan-cli plugin:info --check ${colors.gray('(check if "formatted" command is available)')}`,
-    `  noteplan-cli plugin:info --save ${colors.gray('(generates ./Plugin-Listing.md)')}`,
-  ].join('\n'),
+  usage: `plugin:info ${colors.magenta('<plugin name>')} ${colors.blue('[options]')}`,
+  examples: [
+    `plugin:info ${colors.magenta('codedungeon.Toolbox')} ${colors.cyan('--check helloWorld')}`,
+    `plugin:info ${colors.magenta('codedungeon.Toolbox')} ${colors.cyan('--sanity')}`,
+  ],
   usePrompts: true,
   arguments: {},
   flags: {
@@ -40,7 +40,7 @@ module.exports = {
     // example retrieving global option
     const quiet = toolbox.getOptionValue(toolbox.arguments, ['quiet', 'q'])
 
-    const args = helpers.getArguments(toolbox.arguments, this.flags)
+    const args = helpers.getArguments(toolbox.arguments, this)
     const answers = this.usePrompts ? await toolbox.prompts.run(toolbox, this) : []
 
     const check = toolbox.getOptionValue(toolbox.arguments, ['check', 'c'])

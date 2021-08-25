@@ -1,6 +1,7 @@
 // @flow
 'use strict'
 const pkgInfo = require('../package.json')
+const messenger = require('@codedungeon/messenger')
 
 const colors = require('chalk')
 const strftime = require('strftime')
@@ -31,11 +32,13 @@ console.log(colors.yellow.bold(`🧩 NotePlan Plugin Environment v${pkgInfo.vers
 // Command line options
 program
   .option('-d, --debug', 'Rollup: allow for better JS debugging - no minification or transpiling')
-  .option('-c, --compact', 'Rollup: use more compact output')
+  .option('-c, --compact', 'Rollup: use compact output')
+  .option('-b, --build', 'Rollup: build plugin only (no watcher)')
   .parse(process.argv)
 const options = program.opts()
 const DEBUGGING = options.debug || false
 const COMPACT = options.compact || false
+const BUILD = options.build || false
 
 if (DEBUGGING && !COMPACT) {
   console.log(
@@ -90,6 +93,7 @@ async function main() {
   // const args = getArgs()
 
   const limitToFolders = await getFolderFromCommandLine(rootFolderPath, program.args)
+
   if (limitToFolders.length && !COMPACT) {
     console.log(
       colors.yellow.bold(
@@ -189,6 +193,72 @@ async function main() {
   }
 }
 
+async function build() {
+  console.log('')
+
+  const limitToFolders = await getFolderFromCommandLine(rootFolderPath, program.args, true)
+
+  const rootFolder = await fs.readdir(rootFolderPath, {
+    withFileTypes: true,
+  })
+  const copyTargetPath = await getCopyTargetPath(rootFolder)
+
+  const rootLevelFolders = rootFolder
+    .filter(
+      (dirent) =>
+        dirent.isDirectory() &&
+        !dirent.name.startsWith('.') &&
+        !FOLDERS_TO_IGNORE.includes(dirent.name) &&
+        (limitToFolders.length === 0 || limitToFolders.includes(dirent.name)),
+    )
+    .map(async (dirent) => {
+      const pluginFolder = path.join(__dirname, '..', dirent.name)
+      const pluginContents = await fs.readdir(pluginFolder, {
+        withFileTypes: true,
+      })
+      const isBundled = pluginContents.some((dirent) => dirent.name === 'src' && dirent.isDirectory)
+      if (!isBundled) {
+        return null
+      }
+      const srcFiles = await fs.readdir(path.join(pluginFolder, 'src'))
+      const hasIndexFile = srcFiles.includes('index.js')
+      if (!hasIndexFile) {
+        return null
+      }
+      return pluginFolder
+    })
+  const bundledPlugins = (await Promise.all(rootLevelFolders)).filter(Boolean)
+
+  for (const plugin of bundledPlugins) {
+    const pluginJsonFilename = path.join(plugin, 'plugin.json')
+    const pluginJsonData = JSON.parse(await fs.readFile(pluginJsonFilename))
+
+    messenger.info(`  Building ${path.basename(plugin)} (${pluginJsonData['plugin.version']})`)
+    const options = getConfig(path.resolve('./codedungeon.Toolbox'))
+
+    const inputOptions = {
+      external: options.external,
+      input: options.input,
+      plugins: options.plugins,
+      context: options.context,
+    }
+
+    const outputOptions = options.output
+
+    // create a bundle
+    const bundle = await rollup.rollup(inputOptions)
+
+    const { output } = await bundle.generate(outputOptions)
+
+    await bundle.write(outputOptions)
+
+    await bundle.close()
+  }
+
+  console.log('')
+  messenger.success('Build Process Complete', 'SUCCESS')
+}
+
 function getConfig(pluginPath) {
   return {
     external: [],
@@ -227,11 +297,17 @@ function getConfig(pluginPath) {
   }
 }
 
-process.on('SIGINT', function () {
-  console.log('Quitting...\n')
-  if (watcher) {
-    watcher.close()
-  }
-})
+if (!BUILD) {
+  process.on('SIGINT', function () {
+    console.log('Quitting...\n')
+    if (watcher) {
+      watcher.close()
+    }
+  })
+}
 
-main()
+if (BUILD) {
+  build()
+} else {
+  main()
+}

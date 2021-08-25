@@ -9,9 +9,11 @@
 | `dayReview` | Ask journal questions for an end-of-day review (requires configuring) | ☀️ Daily Journal |
 | `dayStart` | Apply Daily Note Template (requires configuring) | ☀️ Daily Journal |
 | `dp` | (Date Picker) Choose format and insert date/time time at cursor | 📅 Date Automations |
+| `environment` | Environment Information | 🧩 Codedungeon Toolbox |
 | `finish project review` | updates the current open project's @reviewed() date | 🔬Reviews |
 | `formatted` | Insert custom formatted (format) date/time | 📅 Date Automations |
 | `fp` | file (move) paragraphs to different notes | 🗃 Filer |
+| `helloWorld` | Your first plugin! | 🧩 Codedungeon Toolbox |
 | `index` | Make/Update note link Indexes for one or more folders | 📙 Note Helpers |
 | `insert day's events as list` | insert list of this day's calendar events at cursor | 🕓 Event Helpers |
 | `insert matching events` | inserts this day's calendar events matching certain patterns at cursor | 🕓 Event Helpers |
