@@ -1,4 +1,5 @@
 const { colors, helpers, print, system } = require('@codedungeon/gunner')
+const pluginTest = require('./support/plugin-test')
 
 module.exports = {
   name: 'plugin:test',
@@ -25,13 +26,20 @@ module.exports = {
 
   async execute(toolbox) {
     const args = helpers.getArguments(toolbox.arguments, this, { initializeNullValues: true })
-    dd('here')
-    const plugin = args.plugin
-    const watch = args.watch
-    dd({ args, plugin, watch })
 
-    const directory = plugin.length > 0 ? `./${plugin}` : './'
-    const cmd = `./node_modules/.bin/jest ${directory} ${watch ? '--watch' : ''}`
+    const plugin = args.plugin || toolbox.plugin || ''
+    const watch = args.watch
+
+    const testDirectories = pluginTest.directoriesWithTestFiles()
+
+    let directory = ''
+    if (plugin.length > 0) {
+      directory = `./${plugin}`
+    } else {
+      directory = testDirectories.join(' ')
+    }
+
+    const cmd = `./node_modules/.bin/jest ${directory} ${watch ? '--watch' : ''}`.trim()
 
     system.run(cmd, true)
   },

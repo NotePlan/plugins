@@ -32,6 +32,6 @@ module.exports = {
     const cliArgs = helpers.getArguments(toolbox.arguments, this)
 
     const answers = { name: pluginName, ...cliArgs }
-    console.log(answers)
+    toolbox.print.warn(`Release Plugin ${JSON.stringify(answers)}`, 'INFO')
   },
 }

@@ -64,7 +64,7 @@ module.exports = {
 
   async getCommandList() {
     const commandPath = await this.getCommandPath()
-
+    dd(commandPath)
     const commands = []
     if (commandPath) {
       const files = filesystem.readdirSync(commandPath)
@@ -144,25 +144,6 @@ module.exports = {
     return this.config(`output.${type}`)
   },
 
-  getFactoriesPath() {
-    return this.config('output.factories')
-  },
-
-  getMigrationsPath() {
-    return this.config('output.migrations')
-  },
-
-  getClassName(name = '') {
-    if (!name) {
-      return ''
-    }
-    const parts = name.split('/')
-    let className = parts.pop()
-    className = toolbox.strings.titleCase(className).replace(/_/gi, '')
-
-    return className
-  },
-
   getFilename(type = '', name = '') {
     const parts = name.split('/')
     if (parts.length === 1) {
@@ -183,26 +164,6 @@ module.exports = {
     if (tablename.length === 0) tablename = name // incase user supplied --table=""
 
     return strings.plural(tablename).toLowerCase()
-  },
-
-  getNamespace(configPath = '', name = '') {
-    if (!name) {
-      return ''
-    }
-    let parts = name.split('/')
-    if (parts.length >= 2) {
-      parts.pop()
-    } else {
-      const value = this.config(`output.${configPath}`.toLowerCase())
-      const namespace = value.replace(/\//gi, '\\')
-      parts = namespace.split('\\')
-    }
-
-    return parts
-      .map((item) => {
-        return toolbox.strings.titleCase(item)
-      })
-      .join('\\')
   },
 
   isValidTemplateKey(key = null) {
@@ -602,5 +563,15 @@ module.exports = {
       }
     })
     return pluginCommands
+  },
+
+  getPluginList() {
+    const commands = this.getPluginCommands()
+      .map((command) => command.pluginId)
+      .filter((value, index, self) => {
+        return self.indexOf(value) === index
+      })
+
+    return commands
   },
 }

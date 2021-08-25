@@ -45,7 +45,7 @@ module.exports = {
 
   async execute(toolbox) {
     const args = helpers.getArguments(toolbox.arguments, this, { initializeNullValues: true })
-    const plugin = args.plugin || toolbox.plugin || null
+    const plugin = args.plugin || toolbox.plugin || ''
     const watch = args.watch
     const compact = args.compact
     const test = args.test
@@ -56,8 +56,9 @@ module.exports = {
         ? `node scripts/rollup.js ${compact ? '--compact' : ''} ${plugin}`
         : `node scripts/rollup.js ${plugin} --build`
     } else {
-      const directory = plugin.length > 0 ? `./${plugin}` : './'
+      const directory = plugin.length > 0 ? `${plugin}` : ''
       cmd = `./node_modules/.bin/jest ${directory} ${watch ? '--watch' : ''}`
+      cmd = `noteplan-cli plugin:test ${directory} ${watch ? '--watch' : ''}`
     }
 
     system.run(cmd, true)
