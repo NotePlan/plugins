@@ -29,7 +29,7 @@ export async function sweep7(): Promise<void> {
   await sweepAll(false, false, { num: 7, unit: 'day' })
 }
 
-export async function sweepTemplate(paramStr: string): Promise<string> {
+export async function sweepTemplate(paramStr: string = ''): Promise<string> {
   if (paramStr === '') {
     return String(await sweepAll(false, true, undefined, true))
   } else {
@@ -174,13 +174,14 @@ export default async function sweepAll(
     noteTypes.includes('calendar') || (withUserConfirm && typeof res.index !== 'undefined' && res.index === 0)
 
   if (includeCalendarNotes) {
-    const todayFileName = filenameDateString(new Date())
+    const todayFileName = `${filenameDateString(new Date())}.${DataStore.defaultFileExtension}`
     const recentCalNotes = DataStore.calendarNotes.filter(
       (note) => note.filename < todayFileName && note.filename >= afterDateFileName,
     )
 
     console.log(`\tCalendar Notes to search: ${recentCalNotes.length}`)
     for (const note of recentCalNotes) {
+      console.log(`Sweep Calendar Note? ${note.filename} | Today is: ${todayFileName}`)
       if (note.filename !== todayFileName) {
         const result = await sweepNote(note, withUserConfirm, false, overdueOnly, false, returnValue, includeHeadings)
         processResult(result, note.title)
