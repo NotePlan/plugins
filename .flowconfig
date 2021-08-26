@@ -1,5 +1,7 @@
 [ignore]
-<PROJECT_ROOT>/node_modules/.*
+# removed to fix issue with flow reporting errors with non-typed modules
+# details here - https://github.com/facebook/flow/issues/6646#issuecomment-447272772
+# <PROJECT_ROOT>/node_modules/.*
 
 [include]
 
