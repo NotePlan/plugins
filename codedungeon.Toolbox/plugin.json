@@ -1,0 +1,24 @@
+{
+  "macOS.minVersion": "10.13.0",
+  "noteplan.minAppVersion": "3.0.21",
+  "plugin.id": "codedungeon.Toolbox",
+  "plugin.name": "🧩 Codedungeon Toolbox",
+  "plugin.description": "General Purpose Utility Commands",
+  "plugin.author": "codedungeon",
+  "plugin.version": "1.0.0",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.url": "https://github.com/dwertheimer/Noteplan-plugins/blob/main/codedungeon.Toolbox/README.md",
+  "plugin.commands": [
+    {
+      "name": "convertToHtml",
+      "description": "Convert current note to HTML",
+      "jsFunction": "convertToHtml"
+    },
+    {
+      "name": "convertSelectionToHtml",
+      "description": "Convert current selection to HTML",
+      "jsFunction": "convertSelectionToHtml"
+    }
+  ]
+}

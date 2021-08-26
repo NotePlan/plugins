@@ -1,6 +1,9 @@
 Plugin usage instructions: [README](https://github.com/NotePlan/plugins/blob/main/nmn.sweep/readme.md)
 # What's Changed?
 
+## 1.2.0
+- adding separators to the carry-along-with-task list per request from @BorisAnthony
+
 ## 1.1.1 
 - updated: now compiled for macOS versions back to 10.13.0
 
