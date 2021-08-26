@@ -50,6 +50,7 @@
 | `tc` | Shows task counts for the current note | 🔢 Note Statistics |
 | `time` | Insert (human readable) time at cursor | 📅 Date Automations |
 | `time blocks to calendar` | promote time blocks to be full calendar events | 🕓 Event Helpers |
+| `todayStart` | Apply Daily Note Template to Today's Calendar Note (requires configuring) | ☀️ Daily Journal |
 | `ts` | Tasks Sort - Sort tasks on the page (e.g. after a sweep) | ✅ Task Automations |
 | `tsm` | Tasks Sort by @Mention - Sort tasks on the page by mention/person | ✅ Task Automations |
 | `tsp` | Shows task statistics for project notes | 🔢 Note Statistics |

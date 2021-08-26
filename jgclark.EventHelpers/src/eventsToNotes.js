@@ -1,7 +1,7 @@
 // @flow
 // ------------------------------------------------------------------------------------
 // Command to bring calendar events into notes
-// v0.3.7, 21.8.2021
+// v0.3.8, 23.8.2021
 // @jgclark, with additions by @dwertheimer, @weyert
 // ------------------------------------------------------------------------------------
 
@@ -32,10 +32,11 @@ const DEFAULT_EVENTS_OPTIONS = `  events: {
 	  timeOptions: { hour: '2-digit', minute: '2-digit', hour12: false }
   },
 `
+// global variables, including default settings
 let pref_eventsHeading: string = '### Events today'
 let pref_addMatchingEvents: ?{ [string]: mixed } = null
-let pref_locale: string = 'en-US' // default setting as a backup
-let pref_timeOptions = { hour: '2-digit', minute: '2-digit', hour12: false } // default setting as a backup
+let pref_locale: string = 'en-US'
+let pref_timeOptions = { hour: '2-digit', minute: '2-digit', hour12: false }
 
 //------------------------------------------------------------------------------
 // Get config settings from Template folder _configuration note

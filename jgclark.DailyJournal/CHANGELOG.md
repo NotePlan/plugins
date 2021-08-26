@@ -1,5 +1,8 @@
 # CHANGELOG
 
+### v0.8.0 @dwertheimer
+- Bringing back the OG /dayStart as /todayStart ;) 
+
 ### v0.7.1, 7.8.2021
 - now supporting macOS back to v10.13
 
