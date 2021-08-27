@@ -43,7 +43,7 @@ module.exports = {
     }
   },
   createPlugin: async function (pluginDest = '', pluginInfo = {}) {
-    const src = path.resolve('./np.plugin-flow-skeleton')
+    const src = path.resolve('./src/templates/np.plugin.starter')
     const dest = path.resolve(pluginDest)
 
     if (filesystem.existsSync(pluginDest)) {

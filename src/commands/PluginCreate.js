@@ -1,4 +1,6 @@
 const { colors, helpers, print, path } = require('@codedungeon/gunner')
+const gitUserLocal = require('git-user-local')
+const githubUsername = require('github-username')
 const createPlugin = require('./support/plugin-create')
 
 module.exports = {
@@ -53,6 +55,9 @@ module.exports = {
   },
 
   async execute(toolbox) {
+    const ghUserLocal = await gitUserLocal()
+    const ghUserName = await githubUsername(ghUserLocal.user.email)
+
     const cliArgs = helpers.getArguments(toolbox.arguments, this)
 
     let flags = null
@@ -97,6 +102,8 @@ module.exports = {
     // all good, createPlugin
     const pluginPath = path.join(process.cwd(), flags.pluginId)
     console.log()
+    flags.ghUserName = ghUserName
+
     const createResult = createPlugin.createPlugin(pluginPath, flags)
 
     console.log('')
