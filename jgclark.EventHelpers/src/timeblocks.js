@@ -3,7 +3,7 @@
 // ------------------------------------------------------------------------------------
 // Command to turn time blocks into full calendar events
 // @jgclark
-// v0.3.3, 10.8.2021
+// v0.4.0, 26.8.2021
 //
 // See https://help.noteplan.co/article/52-part-2-tasks-events-and-reminders#timeblocking
 // for definition of time blocks. In summary:
@@ -12,23 +12,20 @@
 //   And, you don't have to define an end time."
 // ------------------------------------------------------------------------------------
 
-import {
-  getOrMakeConfigurationSection
-} from '../../nmn.Templates/src/configuration'
-
+import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
+import { showMessageYesNo } from '../../helperFunctions/userInput'
+import { displayTitle } from '../../helperFunctions'
 import {
   printDateRange,
   todaysDateISOString,
   isoDateStringFromCalendarFilename,
-  displayTitle,
-  showMessageYesNo,
-} from '../../helperFunctions'
+} from '../../helperFunctions/dateFunctions'
 
 // ------------------------------------------------------------------------------------
 // Settings
 const DEFAULT_EVENTS_OPTIONS = `  events: {
-    addEventID: false,  // whether to add an [[event:ID]] internal link when creating an event from a time block
     confirmEventCreation: true, // whether to check with user before creating each event
+    addEventID: false,  // whether to add an '⏰event:ID' string when creating an event from a time block
     processedTagName: "#event_created",   // optional tag to add after making a time block an event
     removeTimeBlocksWhenProcessed: true,  // whether to remove time block after making an event from it
     todaysEventsHeading: "### Events today",  // optional heading to put before list of today's events
@@ -56,7 +53,7 @@ const RE_TIMEBLOCK_TYPE2 = `\\s+at\\s+${RE_HOUR}(:${RE_MINUTE}|(AM|PM|am|pm)?)(\
 // find ' at 9(AM|PM|am|pm)-11:30(AM|PM|am|pm)'
 const RE_TIMEBLOCK_TYPE3 = `\\s+(at\\s+)?${RE_HOUR}${RE_OPT_AMPM}\\s?-\\s?${RE_HOUR}:${RE_MINUTE}${RE_AMPM}`
 const RE_DONE_DATETIME = `@done\\(${RE_ISO_DATE} ${RE_TIME}${RE_OPT_AMPM}\\)`
-const RE_EVENT_ID = `\\[\\[event:[A-F0-9-]*\\]\\]`
+const RE_EVENT_ID = `event:[A-F0-9-]{32}`
 
 // ------------------------------------------------------------------------------------
 
@@ -146,8 +143,8 @@ export async function timeBlocksToCalendar() {
       // Check to see if this line has been processed before, by looking for the
       // processed tag, or an [[event:ID]]
       // $FlowFixMe[incompatible-call]
-      if (thisParaContent.match(pref_processedTagName)
-       || thisParaContent.match(RE_EVENT_ID)) {
+      if ((pref_processedTagName !== "" && thisParaContent.match(pref_processedTagName))
+          || thisParaContent.match(RE_EVENT_ID)) {
         // $FlowFixMe[incompatible-type]
         console.log(
           `\tIgnoring timeblock in '${thisParaContent}' as it has already been processed`,
@@ -195,7 +192,7 @@ export async function timeBlocksToCalendar() {
           // Add event ID (if wanted)
           if (pref_addEventID) {
             // $FlowFixMe[incompatible-type]
-            thisPara.content += ` [[event:${eventID}]]`
+            thisPara.content += ` ⏰event:${eventID}`
           }
           Editor.updateParagraph(thisPara) // seems not to work twice in quick succession, so just do it once here
         } else {
