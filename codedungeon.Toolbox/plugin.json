@@ -8,7 +8,7 @@
   "plugin.version": "1.0.0",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
-  "plugin.url": "https://github.com/dwertheimer/Noteplan-plugins/blob/main/codedungeon.Toolbox/README.md",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/codedungeon.Toolbox/README.md",
   "plugin.commands": [
     {
       "name": "convertToHtml",
