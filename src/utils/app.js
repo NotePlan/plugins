@@ -156,33 +156,6 @@ module.exports = {
     return path.resolve(filename)
   },
 
-  getTablename(name, args = null) {
-    const parts = name.split('/')
-    let tablename = parts.length >= 2 ? parts.pop() : name
-    tablename = args?.table ? args.table : tablename
-
-    if (tablename.length === 0) tablename = name // incase user supplied --table=""
-
-    return strings.plural(tablename).toLowerCase()
-  },
-
-  isValidTemplateKey(key = null) {
-    const appConfigData = this.getAppConfigData()
-    return appConfigData.templates.hasOwnProperty(key)
-  },
-
-  isValidOutputKey(key = null) {
-    const appConfigData = this.getAppConfigData()
-
-    return appConfigData.output.hasOwnProperty(key)
-  },
-
-  isValidAppKey(key = null) {
-    const appConfigData = this.getAppConfigData()
-
-    return appConfigData.app.hasOwnProperty(key)
-  },
-
   getTemplate(configTemplate = null, args = null) {
     let templateFilename = ''
 
@@ -317,37 +290,6 @@ module.exports = {
     return defaultValue
   },
 
-  getCraftedFilename(result = null) {
-    let filename = ''
-
-    const lines = result.split('\n')
-
-    for (let index = 0; index < lines.length; index++) {
-      const element = lines[index]
-      if (element.includes('SUCCESS')) {
-        result = element
-        break
-      }
-    }
-
-    if (result) {
-      if (result.includes('ERROR')) {
-        filename = result.replace('ERROR ', '').replace(' Already Exists', '').replace('~/', '').trim()
-      }
-
-      if (result.includes('SUCCESS')) {
-        filename = result
-          .replace('SUCCESS ', '')
-          .replace(' Created Successfully', '')
-          .replace('~/', '')
-          .trim()
-          .replace(/\n/gi, '')
-      }
-    }
-
-    return strings.raw(filename).trim()
-  },
-
   createParentDirectories(dir = null) {
     filesystem.mkdirSync(dir, { recursive: true })
   },
@@ -366,39 +308,6 @@ module.exports = {
     const pkgInfo = require(pkgFilename)
 
     return `v${pkgInfo.version}`
-  },
-
-  verifyFlags(args = {}, flags = {}, globalOptions = []) {
-    const invalidKeys = []
-    globalOptions.push('--sub')
-
-    let validKeys = [] // specific overrides
-
-    Object.keys(flags).forEach((flag) => {
-      validKeys.push(flag) // add primary key
-      const flagAliases = flags[flag]?.aliases ? flags[flag].aliases : []
-      validKeys = validKeys.concat(flagAliases)
-    })
-
-    Object.keys(args).forEach((key) => {
-      if (!validKeys.includes(key)) {
-        const r1 = globalOptions.find((globalKey) => globalKey.indexOf(`--${key}`) > 0)
-        const r2 = globalOptions.find((globalKey) => globalKey.indexOf(`-${key}`) > 0)
-        if (!r1 && !r2 && key !== 'log' && key !== 'logDir' && key !== 'log-dir') {
-          invalidKeys.push(key)
-        }
-      }
-    })
-
-    if (invalidKeys.length > 0) {
-      console.log('')
-      toolbox.print.error('Invalid Options:\n', 'ERROR')
-      invalidKeys.forEach((key) => {
-        toolbox.print.error(` - ${key}`)
-      })
-      console.log('')
-      process.exit()
-    }
   },
 
   verifyTemplate(templatePath = null) {
@@ -492,7 +401,6 @@ module.exports = {
   },
 
   async run(cmd = null) {
-    // TODO: This is not working when calling craft which has prompts
     execa('noteplan-cli', [cmd, '--help'], {
       env: { FORCE_COLOR: 'true' },
     }).then((data) => console.log(data.stdout))
@@ -573,5 +481,10 @@ module.exports = {
       })
 
     return commands
+  },
+
+  isValidPlugin(pluginName = null) {
+    const plugins = this.getPluginList()
+    return plugins.includes(pluginName)
   },
 }

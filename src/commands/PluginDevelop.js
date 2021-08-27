@@ -1,4 +1,5 @@
 const { colors, helpers, print, system } = require('@codedungeon/gunner')
+const appUtils = require('../utils/app')
 
 module.exports = {
   name: 'plugin:dev',
@@ -31,6 +32,11 @@ module.exports = {
       aliases: ['c'],
       description: `Use Compact Display ${colors.gray('(available in watch mode)')}`,
     },
+    coverage: {
+      type: 'boolean',
+      aliases: ['o'],
+      description: `Create Test Coverage Report ${colors.gray('(located in ./coverage directory)')}`,
+    },
     test: {
       type: 'boolean',
       aliases: ['t'],
@@ -45,20 +51,31 @@ module.exports = {
 
   async execute(toolbox) {
     const args = helpers.getArguments(toolbox.arguments, this, { initializeNullValues: true })
+
     const plugin = args.plugin || toolbox.plugin || ''
     const watch = args.watch
     const compact = args.compact
     const test = args.test
+    const coverage = args.coverage
+
+    if (plugin.length > 0) {
+      if (!appUtils.isValidPlugin(plugin)) {
+        console.log('')
+        toolbox.print.error(`Invalid Plugin "${plugin}"`, 'ERROR')
+        toolbox.print.warn(`        Make sure plugin name is spelled correct (case sensitive matters)`)
+        process.exit()
+      }
+    }
 
     let cmd = ''
     if (!test) {
       cmd = watch
-        ? `node scripts/rollup.js ${compact ? '--compact' : ''} ${plugin}`
+        ? `node scripts/rollup.js ${plugin} ${compact ? '--compact' : ''}`
         : `node scripts/rollup.js ${plugin} --build`
     } else {
       const directory = plugin.length > 0 ? `${plugin}` : ''
-      cmd = `./node_modules/.bin/jest ${directory} ${watch ? '--watch' : ''}`
-      cmd = `noteplan-cli plugin:test ${directory} ${watch ? '--watch' : ''}`
+      cmd = `./node_modules/.bin/jest ${directory} ${watch ? '--watch' : ''} ${coverage ? '--coverage' : ''}`
+      cmd = `noteplan-cli plugin:test ${directory} ${watch ? '--watch' : ''} ${coverage ? '--coverage' : ''}`
     }
 
     system.run(cmd, true)

@@ -2,5 +2,5 @@
 	// see https://www.strfti.me/ for formatting options
 	// used by rollup date/time echo (better for desired date display)
 	// set to empty string if you dont want to use formatting
-	"dateTimeFormat": "%Y-%m-%d %I:%M:%S %P"
+	"dateTimeFormat": "%Y-%m-%d %I:%M:%S %p"
 }

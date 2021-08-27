@@ -93,6 +93,7 @@ async function main() {
   // const args = getArgs()
 
   const limitToFolders = await getFolderFromCommandLine(rootFolderPath, program.args)
+  console.log('')
 
   if (limitToFolders.length && !COMPACT) {
     console.log(
@@ -164,7 +165,7 @@ async function main() {
         const dateTime = dateTimeFormat.length > 0 ? strftime(dateTimeFormat) : new Date().toISOString().slice(0, 16)
 
         let msg = COMPACT
-          ? `${dateTime}  ${pluginFolder} (v${pluginJsonData['plugin.version']})`
+          ? `${dateTime} - ${pluginFolder} (v${pluginJsonData['plugin.version']})`
           : colors.cyan(`${dateTime} -- ${pluginFolder} (v${pluginJsonData['plugin.version']})`) +
             '\n   Built and copied to the "Plugins" folder.'
 

@@ -17,7 +17,10 @@ module.exports = {
     },
   },
   flags: {
-    // example flag, adjust accordingly
+    coverage: {
+      aliases: ['o'],
+      description: `Create Test Coverage Report ${colors.gray('(located in ./coverage directory)')}`,
+    },
     watch: {
       aliases: ['w'],
       description: 'Run Command in Watch Mode',
@@ -29,6 +32,7 @@ module.exports = {
 
     const plugin = args.plugin || toolbox.plugin || ''
     const watch = args.watch
+    const coverage = args.coverage
 
     const testDirectories = pluginTest.directoriesWithTestFiles()
 
@@ -39,7 +43,7 @@ module.exports = {
       directory = testDirectories.join(' ')
     }
 
-    const cmd = `./node_modules/.bin/jest ${directory} ${watch ? '--watch' : ''}`.trim()
+    const cmd = `./node_modules/.bin/jest ${directory} ${watch ? '--watch' : ''} ${coverage ? '--coverage' : ''}`.trim()
 
     system.run(cmd, true)
   },
