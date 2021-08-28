@@ -12,7 +12,7 @@ Silently sweep notes from the last 7 days (no user interaction required) to toda
 Template:
 `{{sweepTasks({limit:{ "unit": "month", "num": 1 }})}}` // Sweep open tasks from the last month from project and calendar notes, pasting just the tasks, no headings or indents above
 or
-`{{sweepTasks({limit:{ "unit": "day", "num": 7 },includeHeadings:true})}}`  // Sweep open tasks from the 7 days, and include the headings or indents that the tasks were under in the original note
+`{{sweepTasks({limit:{ "unit": "day", "num": 7 },includeHeadings:true, ignoreFolders:['📋 Templates',"AnotherFolderNotToSweep"]})}}`  // Sweep open tasks from the 7 days, and include the headings or indents that the tasks were under in the original note, and **do not** sweep items in a note inside a folder named "AnotherFolderNotToSweep"
 
 If you want to limit the sweepTask command in your templates you can use the `noteTypes` option to cherry pick which
 kind of types should be sweeped. If you only want calendar notes you can use:
