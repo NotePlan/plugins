@@ -2,30 +2,36 @@
 // -----------------------------------------------------------------------------
 // Plugin to help move selected paragraphs to other notes
 // Jonathan Clark
-// v0.4.3, 29.7.2021
+// v0.5.0, 29.8.2021
 // -----------------------------------------------------------------------------
 
 import {
-  allNotesSortedByChanged,
   parasToText,
   calcSmartPrependPoint,
-  // defaultTodoCharacter,
-  todaysDateISOString,
-} from '../../helperFunctions'
+} from '../../helperFunctions/paragraphFunctions'
+import { allNotesSortedByChanged } from '../../helperFunctions/noteFunctions'
+import { todaysDateISOString } from '../../helperFunctions/dateFunctions'
+import { chooseHeading } from '../../helperFunctions/userInput'
+import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 
-// Setting(s)
-const pref_addDateBacklink = true
+
+//--------------------------------------------------------------------------------------------------------------------
+// Settings
+const DEFAULT_FILER_OPTIONS = `  filer: {
+    addDateBacklink: true, // whether to insert date link in place of the moved text
+  },
+
+`
+
+let pref_addDateBacklink = true
 
 // -----------------------------------------------------------------------------
 
-// FIXME: If I use /mp to move a Todo from a Daily Notes page to a project note,
-// all the Todos on the Daily Notes page convert to Bullets(Unordered List) after the
-// target is moved to the project note.Please advise. [NotePlan 3.0.23(637), macOS 11.4]
-
-// TODO: Add proper configuration for the one setting above
-
 /**
- * identify what we're moving (in priority order):
+ * Move text to a different note. 
+ * FIXME: doesn't work when the destination daily note doesn't already exist.
+ *   Waiting for better date picker from Eduard before working further on this.
+ * This is how we identify what we're moving (in priority order):
  * - current selection
  * - current heading + its following section
  * - current line
@@ -39,6 +45,17 @@ export async function fileParas(): Promise<void> {
     console.log('fileParas: warning: No note open.')
     return
   }
+
+  // Get config settings from Template folder _configuration note
+  const filerConfig = await getOrMakeConfigurationSection(
+    'filer',
+    DEFAULT_FILER_OPTIONS,
+    // no minimum config
+  )
+  // for once it doesn't matter if filerConfig returns null (though it shouldn't)
+  // $FlowIgnore[incompatible-use]
+  pref_addDateBacklink = filerConfig.addDateBacklink ?? true
+  console.log(pref_addDateBacklink)
 
   const allParas = Editor.paragraphs
   const selection = Editor.selection
@@ -122,66 +139,45 @@ export async function fileParas(): Promise<void> {
   // Ask for the note we want to add the paras
   const notes = allNotesSortedByChanged()
 
-  let res = await CommandBar.showOptions(
+  const res = await CommandBar.showOptions(
     notes.map((n) => n.title ?? 'untitled'),
     `Select note to move ${parasToMove.length} lines to`,
   )
-  const noteToMoveTo = notes[res.index]
-  console.log(`  Moving to note: ${noteToMoveTo.title ?? 'untitled'}`)
+  const destNote = notes[res.index]
+  console.log(`  Moving to note: ${destNote.title ?? 'untitled'}`)
 
-  // ask to which heading to add the paras
-  // TODO: update this to use my function: chooseFolder(msg: string): Promise<string>
-  let headingStrings = []
-  const headingParas = noteToMoveTo.paragraphs.filter((p) => p.type === 'title') // = all headings, not just the top 'title'
-  // console.log(headingParas.length);
-  if (headingParas.length > 0) {
-    headingStrings = headingParas.map((p) => {
-      let prefix = ''
-      for (let i = 1; i < p.headingLevel; i++) {
-        prefix += '    '
-      }
-      return prefix + p.content
-    })
-  }
-  // Ensure we can always add at top and bottom of note
-  headingStrings.unshift('(top of note)') // add at start
-  headingStrings.push('(bottom of note)') // add at end
-  res = await CommandBar.showOptions(
-    headingStrings,
-    `Select a heading from note '${
-      noteToMoveTo.title ?? 'Untitled'
-    }' to move after`,
-  )
-  const headingToFind = headingStrings[res.index].trim()
-  console.log(`    under heading: ${headingToFind}`)
+  // Ask to which heading to add the paras
+  const headingToFind = (await chooseHeading(destNote, true)).toString() // don't know why this coercion is required for flow
+  console.log(`    under heading: '${headingToFind}'`)
 
   // Add to new location
   // Currently there's no API function to deal with multiple paragraphs, but we can
   // insert a raw text string
   // Add text directly under the heading in the note
   // note.addParagraphBelowHeadingTitle(parasToMove, 'empty', heading.content, false, false);
-  const destNoteParas = noteToMoveTo.paragraphs
+  const destNoteParas = destNote.paragraphs
   let insertionIndex = null
-  if (headingToFind === '(top of note)') {
-    insertionIndex = calcSmartPrependPoint(noteToMoveTo)
+  if (headingToFind === destNote.title || headingToFind === '(top of note)') { // i.e. the first line in project or calendar note
+    insertionIndex = calcSmartPrependPoint(destNote)
   } else if (headingToFind === '(bottom of note)') {
     insertionIndex = destNoteParas.length + 1
   } else {
     for (let i = 0; i < destNoteParas.length; i++) {
       const p = destNoteParas[i]
-      if (p.content === headingToFind && p.type === 'title') {
+      if (p.content.trim() === headingToFind && p.type === 'title') {
         insertionIndex = i + 1
         break
       }
     }
   }
   if (insertionIndex === null) {
+    console.log(`  Error: insertionIndex is null. Stopping.`)
     return
   }
   console.log(`  Inserting at index ${insertionIndex}`)
-  await noteToMoveTo.insertParagraph(parasAsText, insertionIndex, 'empty')
+  await destNote.insertParagraph(parasAsText, insertionIndex, 'empty')
 
   // delete from existing location
   console.log(`  About to remove ${parasToMove.length} paras (parasToMove)`)
-  note.removeParagraphs(parasToMove) // FIXME: This seems to change * to - in note?
+  note.removeParagraphs(parasToMove)
 }
