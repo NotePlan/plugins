@@ -13,4 +13,12 @@ It pops up the command bar to choose the note you want to move it to, followed b
 It also provides the **`/nns`** **new note from selection** command, which extends the **`/nn`** command. It is interactive, prompting various questions as it works.
 
 ## Configuration
-If you want to stop date backlinks being added change the line at the top of the plugin'\ `fileItems.js` file to: `const pref_addDateBacklink = false;`
+If you want to stop date backlinks being added, please insert the following in the first codeblock in your `Templates/_configuration` note:
+
+```javascript
+  {
+	filer: {
+    addDateBacklink = false,
+  },
+```
+The plugin should offer to write the default for you the first time it runs.
