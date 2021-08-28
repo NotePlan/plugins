@@ -4,9 +4,17 @@
 // Specific how-to re: Noteplan: https://github.com/NotePlan/plugins/blob/main/Flow_Guide.md
 
 import { chooseOption, showMessageYesNo } from '../../helperFunctions'
+import { default as sweepNote, type ReturnStatus } from '../../nmn.sweep/src/sweepNote'
 import { getTasksByType, sortListBy, TASK_TYPES } from './taskHelpers'
+
 // Note: not currently using getOverdueTasks from taskHelpers (because if it's open, we are moving it)
 // But the functions exist to look for open items with a date that is less than today
+//
+/* TODO: from @colin
+When I used it on a note: there were two items. 1- I didn’t want the completed and cancelled items to migrate to the top. 
+2- I didn’t need the sorting. Sorting didn’t matter but the migration messed up some completed and cancelled actions that 
+I wanted to remain with the header. A reference to the header would be very helpful for me.
+*/
 
 const SORT_ORDERS = [
   {
@@ -26,8 +34,44 @@ const SORT_ORDERS = [
     sortFields: ['content', '-priority'],
     name: 'Alphabetical, then by priority',
   },
+  {
+    sortFields: [],
+    name: 'Unsorted, bring to top in same order',
+  },
 ]
 
+/**
+ * @param {string} heading The text that goes above the tasks. Should have a \n at the end.
+ * @param {string} separator The line that goes beneath the tasks. Should have a \n at the end.
+ */
+export async function openTasksToTop(heading: string = '## Tasks:\n', separator: string = '---\n') {
+  console.log(`openTasksToTop(): Bringing open tasks to top`)
+  //FIXME: need to make this work
+  // MAYBE ADD A QUESTION IN THE FLOW FOR WHICH TASKS TO MOVE
+
+  let sweptTasks: ReturnStatus
+  if (Editor.type === 'Calendar') {
+    sweptTasks = await sweepNote(Editor.note, false, true, false, false, true, true, 'move')
+  } else {
+    sweptTasks = await sweepNote(Editor.note, false, true, false, true, true, true, 'move')
+  }
+  console.log(`openTasksToTop(): ${sweptTasks.taskArray.length} open tasks:`)
+  console.log(JSON.stringify(sweptTasks))
+  if (sweptTasks.taskArray?.length) {
+    if (sweptTasks.taskArray[0].content === Editor.title) {
+      sweptTasks.taskArray.shift()
+    }
+    Editor.prependParagraph(
+      heading.concat(sweptTasks.taskArray.map((m) => m.rawContent).join('\n')).concat(`\n${separator}`),
+      'text',
+    )
+  }
+}
+
+/**
+ * @description Bring tasks (tasks only, no surrounding text) to top of note
+ * @returns {Promise<void>}
+ */
 export async function tasksToTop() {
   console.log(`tasksToTop(): Bringing tasks to top`)
   await sortTasks(false, [], true, true)
@@ -163,7 +207,6 @@ function findRawParagraph(note: TNote, content) {
   }
 }
 
-//TODO: this does not work. creates 4 copies of the file but does not save the tasks
 // seems like somewheer there's not an await where there should be
 async function saveBackup(taskList) {
   const backupPath = `@Trash`
