@@ -2,6 +2,9 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Ta
 
 # What's Changed in this Plugin?
 
+## 1.2.0
+- Added /ott to bring OPEN tasks (only) to the top without sorting
+
 ## 1.1.0
 - Added /tt command to bring tasks to the top of a note without sorting
 - Turned off the pre-flight task backup

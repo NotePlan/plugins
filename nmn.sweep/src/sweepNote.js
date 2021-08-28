@@ -4,12 +4,14 @@
 import { hyphenatedDateString, removeDateTags } from './dateHelpers'
 import { chooseOption } from './userInput'
 
-type ReturnStatus = {
+export type ReturnStatus = {
   status: string,
   msg: string,
   tasks?: number,
   taskArray?: Array<TParagraph>,
 }
+
+type RescheduleType = 'move' | 'reschedule' | false
 
 /* eslint-disable no-unused-vars */
 export default async function sweepNote(
@@ -20,6 +22,7 @@ export default async function sweepNote(
   isProjectNote: boolean = false,
   returnValue: boolean = false,
   includeHeadings: boolean = false,
+  moveType: RescheduleType = false,
 ): Promise<ReturnStatus> {
   const paragraphs = note.paragraphs
 
@@ -98,13 +101,17 @@ export default async function sweepNote(
     return { status: 'error', msg: `Couldn't open Today's Calendar Note` }
   }
 
-  type RescheduleType = 'move' | 'reschedule' | false
-
   const numTasksToMove = paragraphsToMove.filter((p) => p.type === 'open').length
 
   if (numTasksToMove > 0) {
     console.log(`\t\t${note.filename} has ${numTasksToMove} open tasks`)
-    let rescheduleTasks: RescheduleType = returnValue ? 'reschedule' : isProjectNote ? 'reschedule' : 'move'
+    // TODO: Refactor this and get rid of rescheduleType (use moveType instead)
+    let rescheduleTasks: RescheduleType
+    if (moveType) {
+      rescheduleTasks = moveType
+    } else {
+      rescheduleTasks = returnValue ? 'reschedule' : isProjectNote ? 'reschedule' : 'move'
+    }
     if (withUserConfirm) {
       Editor.openNoteByFilename(note.filename)
       rescheduleTasks = await chooseOption<RescheduleType>(
