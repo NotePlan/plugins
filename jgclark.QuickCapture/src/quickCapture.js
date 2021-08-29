@@ -23,6 +23,7 @@ import {
 import {
   showMessage,
   askForFutureISODate,
+  chooseHeading,
 } from '../../helperFunctions/userInput'
 
 import {
@@ -81,7 +82,7 @@ async function getInboxSettings(createIfMissing: boolean): Promise<void> {
   // console.log(pref_textToAppendToTasks)
 }
 
-/**
+/** /qpt
  * Prepend a task to a note the user picks
  * @author @jgclark
  */
@@ -100,7 +101,7 @@ export async function prependTaskToNote(): Promise<void> {
   smartPrependPara(notes[re.index], `${taskTitle} ${pref_textToAppendToTasks}`, 'open')
 }
 
-/**
+/** /qat
  * Append a task to a note the user picks
  * @author @jgclark
  */
@@ -119,9 +120,9 @@ export async function appendTaskToNote(): Promise<void> {
   notes[re.index].appendTodo(`${taskTitle} ${pref_textToAppendToTasks}`)
 }
 
-/**
- * Add a task to a heading the user picks, based on EM's 'example25'.
- * Problem here is that duplicate headings are not respected.
+/** /qath
+ * Add a task to a heading the user picks.
+ * NB: note that duplicate headings not properly handled.
  * @author @jgclark
  */
 export async function addTaskToNoteHeading(): Promise<void> {
@@ -141,25 +142,21 @@ export async function addTaskToNoteHeading(): Promise<void> {
   const note = notes[re.index]
 
   // Finally, ask to which heading to add the task
-  const headings = note.paragraphs.filter((p) => p.type === 'title')
-  const re2 = await CommandBar.showOptions(
-    headings.map((p) => p.prefix + p.content),
-    `Select a heading from note '${note.title ?? ''}'`,
-  )   
-  const heading = headings[re2.index]
-  // console.log(`Adding todo: ${taskTitle} ${pref_textToAppendToTasks} to ${note.title ?? ''} in heading: ${heading.content}`)
+  // (use function that allows us to add a new heading at start/end of note first)
+  const heading = await chooseHeading(note, false, true)
+  // console.log(`Adding todo: ${taskTitle} ${pref_textToAppendToTasks} to ${note.title ?? ''} in heading: ${heading}`)
 
   // Add todo to the heading in the note (and add the heading if it doesn't exist)
   note.addTodoBelowHeadingTitle(
     `${taskTitle} ${pref_textToAppendToTasks}`,
-    heading.content,
+    heading, //.content,
     false,
     true)
 }
 
-/**
- * Add general text to a note's heading the use picks.
- * Problem here is that duplicate headings are not respected.
+/** /qalh
+ * Add general text to a note's heading the user picks.
+ * NB: duplicate headings are not properly handled.
  * @author @jgclark
  */
 export async function addTextToNoteHeading(): Promise<void> {
@@ -180,30 +177,20 @@ export async function addTextToNoteHeading(): Promise<void> {
   const note = notes[re.index]
 
   // Finally, ask to which heading to add the text
-  const headings = note.paragraphs.filter((p) => p.type === 'title')
-  const re2 = await CommandBar.showOptions(
-    headings.map((p) => p.prefix + p.content),
-    `Select a heading from note '${note.title ?? ''}'`,
-  )
-  const heading = headings[re2.index]
-  // console.log("Selected heading: " + heading.content)
-  console.log(
-    `Adding text: ${text} to ${note.title ?? ''} in heading: ${
-      heading.content
-    }`,
-  )
+  // use function that allows us to add a new heading at start/end of note first
+  const heading = await chooseHeading(note, false, true)
 
   // Add text to the heading in the note (and add the heading if it doesn't exist)
   note.addParagraphBelowHeadingTitle(
     `${text} ${pref_textToAppendToTasks}`,
     'empty',
-    heading.content,
+    heading, //.content,
     false,
     true,
   )
 }
 
-/**
+/** /qpd
  * Quickly prepend a task to a daily note
  * @author @jgclark
  */
@@ -226,7 +213,7 @@ export async function prependTaskToDailyNote(): Promise<void> {
   note.prependTodo(`${taskTitle} ${pref_textToAppendToTasks}`)
 }
 
-/**
+/** /qad
  * Quickly append a task to a daily note
  * @author @jgclark
  */
@@ -250,7 +237,7 @@ export async function appendTaskToDailyNote(): Promise<void> {
   }
 }
 
-/**
+/** /qaj
  * Quickly append text to today's journal
  * @author @jgclark
  */
@@ -275,7 +262,7 @@ export async function appendTextToDailyJournal(): Promise<void> {
   }
 }
 
-/**
+/** /int
  * This adds a task to a special 'inbox' note. Possible configuration:
  * - append or prepend to the inbox note (default: append)
  * - add to the particular named note, or if empty, to today's daily note

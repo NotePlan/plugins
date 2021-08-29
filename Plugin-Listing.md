@@ -5,6 +5,8 @@
 | `add project` | add a new note representing a project, asking for its metadata | 🔬Reviews |
 | `apply template` | Choose a Template to apply (append) to the current Note | 🔩 Templates |
 | `complete project` | add @completed(today) date to the open project | 🔬Reviews |
+| `convertSelectionToHtml` | Convert current selection to HTML | 🧩 Codedungeon Toolbox |
+| `convertToHtml` | Convert current note to HTML | 🧩 Codedungeon Toolbox |
 | `date` | Insert date (without time) at cursor | 📅 Date Automations |
 | `dayReview` | Ask journal questions for an end-of-day review (requires configuring) | ☀️ Daily Journal |
 | `dayStart` | Apply Daily Note Template (requires configuring) | ☀️ Daily Journal |
@@ -12,6 +14,7 @@
 | `finish project review` | updates the current open project's @reviewed() date | 🔬Reviews |
 | `formatted` | Insert custom formatted (format) date/time | 📅 Date Automations |
 | `fp` | file (move) paragraphs to different notes | 🗃 Filer |
+| `helloWorld` | Your first plugin! | 🧩 Test |
 | `index` | Make/Update note link Indexes for one or more folders | 📙 Note Helpers |
 | `insert day's events as list` | insert list of this day's calendar events at cursor | 🕓 Event Helpers |
 | `insert matching events` | inserts this day's calendar events matching certain patterns at cursor | 🕓 Event Helpers |
@@ -50,9 +53,11 @@
 | `tc` | Shows task counts for the current note | 🔢 Note Statistics |
 | `time` | Insert (human readable) time at cursor | 📅 Date Automations |
 | `time blocks to calendar` | promote time blocks to be full calendar events | 🕓 Event Helpers |
+| `todayStart` | Apply Daily Note Template to Today's Calendar Note (requires configuring) | ☀️ Daily Journal |
 | `ts` | Tasks Sort - Sort tasks on the page (e.g. after a sweep) | ✅ Task Automations |
 | `tsm` | Tasks Sort by @Mention - Sort tasks on the page by mention/person | ✅ Task Automations |
 | `tsp` | Shows task statistics for project notes | 🔢 Note Statistics |
 | `tst` | Tasks Sort by #Tag - Sort tasks on the page by hashtag | ✅ Task Automations |
+| `tt` | Tasks to Top - Bring tasks in note to top | ✅ Task Automations |
 | `wc` | Shows word count and other numbers for the note | 🔢 Note Statistics |
 | `🔌 Plugin Tester` | Simple plugin test to check that plugins are working for you | 🔌 Plugin Tester |

@@ -80,9 +80,11 @@ So if you were to insert that entire string in your Daily Note template, it woul
 Returns a random quote from Zenquotes.
 
 ### sweepTasks() - Pulls open tasks from previous Project Notes and calendar notes and inserts them in the place of the tag
-Does not require any configuration, but if you choose to, you can pass parameters to the function. For example:
-```{{sweepTasks({limit:{ "unit": "day", "num": 7 },includeHeadings:true})}}```
-sweeps open tasks from the previous 7 days, but includes the headings or indents that the task was under in the original note.
+Does not require any configuration, you can run the simple version (which will prompt you for various parameters):
+`{{sweepTasks()}}`
+but if you choose to, you can pass parameters to the function to have it run automatically. For example:
+`{{sweepTasks({limit:{ "unit": "day", "num": 7 },includeHeadings:true, noteTypes: ['note','calendar'], ignoreFolders:['📋 Templates',"AnotherFolderNotToSweep"]})}}`
+sweeps open tasks from the previous 7 days (Project notes & Calendar notes), and includes the headings or indents that the task was under in the original note, but omitting the '📋 Templates' and "AnotherFolderNotToSweep" directories
 
 ### events() & listMatchingEvents() -- Using Event Lists from a Template
 See the [**Event Helpers** plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers) for more details, including configuring this. But in summary:

@@ -47,11 +47,11 @@ const RE_TIME = `${RE_HOUR}:${RE_MINUTE}`
 const RE_AMPM = `(AM|PM|am|pm)`
 const RE_OPT_AMPM = `${RE_AMPM}?`
 // find ' 12:30[AM|PM|am|pm][-14:45[AM|PM|am|pm]]'
-const RE_TIMEBLOCK_TYPE1 = `\\s+${RE_TIME}${RE_OPT_AMPM}(\\s?-\\s?${RE_TIME}${RE_OPT_AMPM})?`
+const RE_TIMEBLOCK_TYPE1 = `\\s*${RE_TIME}${RE_OPT_AMPM}(\\s?-\\s?${RE_TIME}${RE_OPT_AMPM})?`
 // find ' at 2(AM|PM|am|pm)[-11[AM|PM|am|pm]]'
-const RE_TIMEBLOCK_TYPE2 = `\\s+at\\s+${RE_HOUR}(:${RE_MINUTE}|(AM|PM|am|pm)?)(\\s?-\\s?${RE_HOUR}(:${RE_MINUTE}|AM|PM|am|pm)?)?`
+const RE_TIMEBLOCK_TYPE2 = `\\s*at\\s+${RE_HOUR}(:${RE_MINUTE}|(AM|PM|am|pm)?)(\\s?-\\s?${RE_HOUR}(:${RE_MINUTE}|AM|PM|am|pm)?)?`
 // find ' at 9(AM|PM|am|pm)-11:30(AM|PM|am|pm)'
-const RE_TIMEBLOCK_TYPE3 = `\\s+(at\\s+)?${RE_HOUR}${RE_OPT_AMPM}\\s?-\\s?${RE_HOUR}:${RE_MINUTE}${RE_AMPM}`
+const RE_TIMEBLOCK_TYPE3 = `\\s*(at\\s+)?${RE_HOUR}${RE_OPT_AMPM}\\s?-\\s?${RE_HOUR}:${RE_MINUTE}${RE_AMPM}`
 const RE_DONE_DATETIME = `@done\\(${RE_ISO_DATE} ${RE_TIME}${RE_OPT_AMPM}\\)`
 const RE_EVENT_ID = `event:[A-F0-9-]{32}`
 
@@ -169,7 +169,7 @@ export async function timeBlocksToCalendar() {
         const timeblockDateRange = Calendar.parseDateText(timeBlockString)[0]
 
         if (timeblockDateRange != null) {
-          const title = thisParaContent.replace(timeBlockString, '')
+          const title = thisParaContent.replace(origTimeBlockString, '')
           if (pref_confirmEventCreation) {
             const res = await showMessageYesNo(`Create '${timeBlockString}' for '${title}'?`)
             if (res === 'No') {

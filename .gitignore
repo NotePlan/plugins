@@ -13,3 +13,4 @@ package-lock.json
 */script.js
 .vscode/
 .pluginpath
+.pluginsrc

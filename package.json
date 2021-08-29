@@ -2,7 +2,7 @@
   "name": "np.plugins",
   "packageName": "noteplan-cli",
   "info": "noteplan plugin development toolbox",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "build": "15",
   "description": "noteplan-cli",
   "repository": "https://github.com/NotePlan/plugins",
@@ -59,6 +59,7 @@
     "eslint-plugin-import": "^2.23.2",
     "flow-bin": "^0.151.0",
     "inquirer": "^8.1.0",
+    "jest": "27.0.6",
     "mkdirp": "^1.0.4",
     "prettier": "^2.3.0",
     "rollup": "^2.48.0",
@@ -88,10 +89,12 @@
   "dependencies": {
     "@codedungeon/gunner": "0.67.0",
     "commander": "^8.1.0",
+    "contentful-html-rich-text-converter": "1.0.9",
     "enquirer": "^2.3.6",
     "findup-sync": "4.0.0",
     "js-yaml": "^4.1.0",
     "json5": "^2.2.0",
+    "showdown": "1.9.1",
     "strftime": "0.10.0",
     "toml": "^3.0.0"
   }

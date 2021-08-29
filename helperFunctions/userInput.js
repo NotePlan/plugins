@@ -5,6 +5,7 @@
 // Last updated 29.8.2021
 //--------------------------------------------------------------------------------------------------------------------
 
+import { calcSmartPrependPoint } from '../helperFunctions'
 import { RE_DATE, RE_DATE_INTERVAL } from '../helperFunctions/dateFunctions'
 import { parseJSON5 } from '../helperFunctions'
 
@@ -14,25 +15,39 @@ export type Option<T> = $ReadOnly<{
   value: T,
 }>
 
-// (from @nmn / nmn.sweep)
+
+/** 
+ * ask user to choose from a set of options (from nmn.sweep)
+ * @author @nmn
+ * @param {string} message - text to display to user
+ * @param {Array<T>} options - array of label:value options to present to the user
+ * @param {TDefault} defaultValue - default label:value to use
+ * @return {TDefault} - string that the user enters. Maybe be the empty string.
+ */ 
 export async function chooseOption<T, TDefault = T>(
-  title: string,
+  message: string,
   options: $ReadOnlyArray<Option<T>>,
   defaultValue: TDefault,
 ): Promise<T | TDefault> {
   const { index } = await CommandBar.showOptions(
     options.map((option) => option.label),
-    title,
+    message,
   )
   return options[index]?.value ?? defaultValue
 }
 
-// (from @nmn / nmn.sweep)
+/** 
+ * ask user to give arbitary input (from nmn.sweep)
+ * @author @nmn
+ * @param {string} message - text to display to user
+ * @param {string} okLabel - the "button" (option) text (default: 'OK')
+ * @return {string} - string that the user enters. Maybe be the empty string.
+ */ 
 export async function getInput(
-  title: string,
+  message: string,
   okLabel: string = 'OK',
 ): Promise<string> {
-  return await CommandBar.showInput(title, okLabel)
+  return await CommandBar.showInput(message, okLabel)
 }
 
 /**
@@ -101,6 +116,65 @@ export async function chooseFolder(msg: string): Promise<string> {
   return folder
 }
 
+/** ask user to select a heading from those in a given note
+ * @author @jgclark
+ * @param {TNote} note - note to draw headings from
+ * @param {boolean} optionAddAtBottom - whether to add '(top of note)' and '(bottom of note)' options. Default: true
+ * @param {boolean} optionCreateNewHeading - whether to offer to create a new heading at the top of bottom of the note. Default: false
+ * @return {string} - the selected heading as text without any markdown heading markers
+ */
+export async function chooseHeading(
+  note: TNote,
+  optionAddAtBottom: boolean = true,
+  optionCreateNewHeading: boolean = false
+): Promise<string> {
+  let headingStrings = []
+  const headingParas = note.paragraphs.filter((p) => p.type === 'title') // = all headings, not just the top 'title'
+  if (headingParas.length > 0) {
+    headingStrings = headingParas.map((p) => {
+      let prefix = ''
+      for (let i = 1; i < p.headingLevel; i++) {
+        prefix += '    '
+      }
+      return prefix + p.content
+    })
+  }
+  if (optionCreateNewHeading) {
+    // Add options to add new heading at top or bottom of note
+    headingStrings.splice(1, 0, '➕ ⬆️ (first insert new heading at the start of the note)') // insert at second item
+    headingStrings.push('➕ ⬇️ (first insert new heading at the end of the note)')
+  }
+  if (note.type === 'Calendar') {
+    headingStrings.unshift('⬆️ (top of note)') // add at start (as it has no title)
+  }
+  if (optionAddAtBottom) {
+    // Ensure we can always add at top and bottom of note
+    headingStrings.push('⬇️ (bottom of note)') // add at end
+  }
+  const result = await CommandBar.showOptions(
+    headingStrings,
+    `Select a heading from note '${note.title ?? 'Untitled'}'`
+  )
+  let headingToFind = headingStrings[result.index].trim()
+  if (headingToFind === '➕ ⬆️ (first insert new heading at the start of the note)') {
+    // ask for new heading, find smart insertion position, and insert it
+    const newHeading = await getInput(`Enter heading to add at the start of the note`)
+    const startPos = calcSmartPrependPoint(note)
+    console.log(`prepending new heading ${newHeading} at line ${startPos}`)
+    note.insertHeading(newHeading, startPos, 2)
+    headingToFind = newHeading
+  }
+  if (headingToFind === '➕ ⬇️ (first insert new heading at the end of the note)') {
+    // ask for new heading, and then append it
+    const newHeading = await getInput(`Enter heading to add at the end of the note`)
+    const endPos = note.paragraphs.length
+    console.log(`appending new heading ${newHeading} at line ${endPos}`)
+    note.insertHeading(newHeading, endPos, 2)
+    headingToFind = newHeading
+  }
+  return headingToFind
+}
+
 /**
  * ask for a date interval from user
  * @author @jgclark
@@ -161,10 +235,7 @@ export async function askForFutureISODate(question: string): Promise<string> {
  * @param {[string]: ?mixed} config - relevant settings from _configuration note
  * @return {string} - the returned ISO date as a string, or empty if an invalid string given
  */
-export async function datePicker(
-  dateParams: string,
-  config: { [string]: ?mixed },
-): Promise<string> {
+export async function datePicker(dateParams: string, config: { [string]: ?mixed }): Promise<string> {
   // console.log(`processDate: ${dateConfig}`)
   const defaultConfig = config.date ?? {}
   const dateParamsTrimmed = dateParams.trim()

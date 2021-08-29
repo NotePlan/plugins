@@ -6,4 +6,4 @@
 // v0.6.5, 28.6.2021
 //-----------------------------------------------------------------------------
 
-export { dayStart, dayReview } from './journal'
+export { dayStart, dayReview, todayStart } from './journal'

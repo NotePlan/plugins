@@ -4,12 +4,14 @@
 import { hyphenatedDateString, removeDateTags } from './dateHelpers'
 import { chooseOption } from './userInput'
 
-type ReturnStatus = {
+export type ReturnStatus = {
   status: string,
   msg: string,
   tasks?: number,
   taskArray?: Array<TParagraph>,
 }
+
+type RescheduleType = 'move' | 'reschedule' | false
 
 /* eslint-disable no-unused-vars */
 export default async function sweepNote(
@@ -20,6 +22,7 @@ export default async function sweepNote(
   isProjectNote: boolean = false,
   returnValue: boolean = false,
   includeHeadings: boolean = false,
+  moveType: RescheduleType = false,
 ): Promise<ReturnStatus> {
   const paragraphs = note.paragraphs
 
@@ -39,8 +42,13 @@ export default async function sweepNote(
   //     paragraphs.length
   //   }`,
   // )
+  console.log(`---\nStarting sweepNote for file: "${note.filename}" paragraphs:${paragraphs.length}`)
   paragraphs.forEach((p) => {
-    // console.log(`type:${p.type} indents:${p.indents} "${p.content}"`)
+    const isSeparatorLine = /^---/.test(p.content)
+    console.log(
+      `type:${p.type} indents:${p.indents} sep:${isSeparatorLine} heading:"${p.heading}" Level:${p.headingLevel} content: "${p.content} "`,
+    )
+
     // ['scheduled', 'cancelled', 'done']
     if (nonMovableTypes.includes(p.type)) {
       return
@@ -61,12 +69,13 @@ export default async function sweepNote(
     // Either all movable types, or anything indented, if the parent is indented as well.
     if (
       // ['open', 'title']
+      isSeparatorLine ||
       moveableTypes.includes(p.type) ||
       ((p.indents > 0 || p.type === 'empty') && lastRootItem != null)
     ) {
       paragraphsToMove.push(p)
 
-      if (!['title', 'empty'].includes(p.type)) {
+      if (!(isSeparatorLine || ['title', 'empty'].includes(p.type))) {
         paragraphsToRemove.push(p)
       }
     }
@@ -94,19 +103,17 @@ export default async function sweepNote(
     return { status: 'error', msg: `Couldn't open Today's Calendar Note` }
   }
 
-  type RescheduleType = 'move' | 'reschedule' | false
-
-  const numTasksToMove = paragraphsToMove.filter(
-    (p) => p.type === 'open',
-  ).length
+  const numTasksToMove = paragraphsToMove.filter((p) => p.type === 'open').length
 
   if (numTasksToMove > 0) {
     console.log(`\t\t${note.filename} has ${numTasksToMove} open tasks`)
-    let rescheduleTasks: RescheduleType = returnValue
-      ? 'reschedule'
-      : isProjectNote
-      ? 'reschedule'
-      : 'move'
+    // TODO: Refactor this and get rid of rescheduleType (use moveType instead)
+    let rescheduleTasks: RescheduleType
+    if (moveType) {
+      rescheduleTasks = moveType
+    } else {
+      rescheduleTasks = returnValue ? 'reschedule' : isProjectNote ? 'reschedule' : 'move'
+    }
     if (withUserConfirm) {
       Editor.openNoteByFilename(note.filename)
       rescheduleTasks = await chooseOption<RescheduleType>(
@@ -148,8 +155,7 @@ export default async function sweepNote(
     }
     if (rescheduleTasks === 'reschedule') {
       const noteDate = note.date
-      const dateTag =
-        noteDate != null ? ` <${hyphenatedDateString(noteDate)}` : ''
+      const dateTag = noteDate != null ? ` <${hyphenatedDateString(noteDate)}` : ''
       const projNote = note.title ?? ''
       const link = isProjectNote ? ` <[[${projNote}]]` : dateTag
       const paragraphsWithDateTag = paragraphsToMove.map((para) => {
@@ -161,10 +167,7 @@ export default async function sweepNote(
       })
 
       if (!returnValue) {
-        todayNote.paragraphs = [
-          ...todayNote.paragraphs,
-          ...paragraphsWithDateTag,
-        ]
+        todayNote.paragraphs = [...todayNote.paragraphs, ...paragraphsWithDateTag]
       } else {
         if (includeHeadings) {
           paragraphsToReturn = [...paragraphsToReturn, ...paragraphsWithDateTag]
@@ -173,9 +176,7 @@ export default async function sweepNote(
 
       paragraphsToRemove.forEach((para) => {
         para.type = 'scheduled'
-        para.content = `${removeDateTags(para.content)} >${hyphenatedDateString(
-          today,
-        )}`
+        para.content = `${removeDateTags(para.content)} >${hyphenatedDateString(today)}`
         if (Editor.filename === note.filename) {
           Editor.updateParagraph(para)
         } else {
@@ -183,17 +184,10 @@ export default async function sweepNote(
         }
       })
     }
-    console.log(
-      `\t\t${String(rescheduleTasks)}-ing  ${
-        paragraphsToMove.length
-      } paragraphs; ${numTasksToMove} tasks`,
-    )
+    console.log(`\t\t${String(rescheduleTasks)}-ing  ${paragraphsToMove.length} paragraphs; ${numTasksToMove} tasks`)
   } else {
     if (notifyNoChanges && withUserConfirm) {
-      await CommandBar.showInput(
-        'There are no open tasks to move in this note.',
-        "OK, I'll open another date.",
-      )
+      await CommandBar.showInput('There are no open tasks to move in this note.', "OK, I'll open another date.")
       return {
         status: 'error',
         msg: 'There are no open tasks to move in this note.',

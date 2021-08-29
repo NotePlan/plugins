@@ -20,7 +20,7 @@ Alternatively, in the `Templates/_configuration` note include the following sett
     removeTimeBlocksWhenProcessed: true,  // whether to remove time block after making an event from it
     eventsHeading: "### Events today",  // optional heading to put before list of today's events
     addMatchingEvents: {   // match events with string on left, and then the string on the right is the template for how to insert this event (see README for details)
-      "meeting": "### *|TITLE|* (*|START|*) *|NOTES|*",
+      "meeting": "### *|TITLE|* (*|START|*)\n*|NOTES|*",
       "webinar": "### *|TITLE|* (*|START|*) *|URL|*",
       "holiday": "*|TITLE|* *|NOTES|*",
     },
@@ -29,7 +29,7 @@ Alternatively, in the `Templates/_configuration` note include the following sett
   }
 ...
 ```
-(This uses JSON5 format: ensure there are commas at the end of all that lines that need them.)
+This uses JSON5 format: ensure there are commas at the end of all that lines that need them.
 
 **Notes**:
 - addEventID: whether to add an `⏰event:ID` string when creating an event from a time block. This returns rather long strings (e.g. `⏰event:287B39C1-4D0A-46DC-BD72-84D79167EFDF`) and so you might want to use a theme option to shorten them until needed. For example, to hide the `event:ID` string until you move the cursor to the ⏰ marker, [customise your theme](https://help.noteplan.co/article/44-customize-themes) to add:
@@ -46,7 +46,7 @@ Alternatively, in the `Templates/_configuration` note include the following sett
 - confirmEventCreation: optional boolean tag to indicate whether to ask user to confirm each event to be created
 - removeTimeBlocksWhenProcessed: in `time blocks...` whether to remove time block after making an event from it
 - todaysEventsHeading: in `/insert today's events as list` the heading to put before the list of today's events. Optional.
-- addMatchingEvents: for `/add matching events` is a set of pairs of strings. The first string is what is matched for in an event's title. If it does match the second string is used as the template for how to insert the event details at the cursor.  This uses the same `TITLE`, `START` and `END` template items below ...
+- addMatchingEvents: for `/add matching events` is a set of pairs of strings. The first string is what is matched for in an event's title. If it does match the second string is used as the template for how to insert the event details at the cursor.  This uses the same `*|TITLE|*`, `*|START|*`, `*|END|*`, `*|NOTES|*` and `*|URL|*` template items below ...
 
 ### Using Event Lists from a Template
 If you use Templates, this command can be called when a Template is inserted (including in the `/day start` command which applies your `Daily Note Template` file). To do this insert `{{events()}}` wherever you wish it to appear in the Template.  By default it gives a simple markdown list of event title and start time.  To **customise the list display**, you can add a `'template:"..."'` parameter to the `{{events()}}` template command that sets how to present the list, and a separate template for items with no start/end times (`'allday_template:"..."`).
@@ -56,9 +56,9 @@ If you want you can disable the adding of the heading by applying the `includeHe
 For example:
 
 ```javascript
-  {{events({template:"### START-END: TITLE",allday_template:"### TITLE",includeHeadings:false})}}
+  {{events({template:"### *|TITLE|* (*|START|*-*|END|*)\n*|NOTES|*",allday_template:"### TITLE",includeHeadings:false})}}
 ```
 
-The `*|TITLE|*`, `*|START|*` and `*|END|*` can be mixed with whatever markdown characters or other text you like, and they will get replaced accordingly for each event found. (Note the difference between the } and ) bracket types, and use of double quotes around the template string. I didn't design all of this ...)
+The `*|TITLE|*`, `*|START|*`, `*|END|*`, `*|NOTES|*` and `*|URL|*` can be mixed with whatever markdown characters or other text you like, and they will get replaced accordingly with the fields from each matching event found. (Note the difference between the } and ) bracket types, and use of double quotes around the template string. I didn't design this syntax ...)
 
 You can also place  `{{listMatchingEvents()}}` in Templates in a similar way, and similar customisation is possible. However, it is defined in a different way, using the matches and template strings defined in the `_configuration` file's `addMatchingEvents` array, as shown above.

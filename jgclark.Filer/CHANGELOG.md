@@ -1,4 +1,9 @@
 # Changelog
+<!-- - fix: /fp and /mp now create the destination daily note if it doesn't already exist -->
+### v0.5.0 29.8.2021
+- add: the setting `addDateBacklink` can now be specified in the (new) `Filer` section in your _configuration note. The default for this is still `true`.
+- minor improvement to the heading selection dialog
+
 ### v0.4.3 29.7.2021
 - will prepend at a smarter point (i.e. after any frontmatter or metadata lines)
 
