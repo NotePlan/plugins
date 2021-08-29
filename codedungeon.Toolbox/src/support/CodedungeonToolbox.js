@@ -1,5 +1,5 @@
 import showdown from 'showdown'
-const { parseHtml } = require('contentful-html-rich-text-converter')
+// import { parseHtml } from 'contentful-html-rich-text-converter'
 
 export default class CodedungeonToolbox {
   markdownToHtml(text = '') {
@@ -13,8 +13,14 @@ export default class CodedungeonToolbox {
   async markdownToRtf(text = '') {
     const html = '<ul><li><p>a</p></li><li><p>b</p></li><li><p>c</p></li></ul><p></p>'
 
-    const result = parseHtml(html)
+    // const result = parseHtml(html)
 
+    const result = 'DEBUG_INCOMPLETE'
     console.log(JSON.stringify(result))
+  }
+
+  async reorderList(listData = '') {
+    console.log(listData)
+    return listData
   }
 }
