@@ -12,7 +12,7 @@ export async function convertToRtf(): Promise<void> {
 
   const note = Editor.content || ''
 
-  const rtf = toolbox.markdownToRtf(note)
+  const rtf = await toolbox.markdownToRtf(note)
 
   Clipboard.string = rtf
 

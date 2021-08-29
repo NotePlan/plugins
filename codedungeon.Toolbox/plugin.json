@@ -23,7 +23,7 @@
     {
       "name": "convertToRtf",
       "description": "Convert current note to RTF",
-      "jsFunction": "converToRtf"
+      "jsFunction": "convertToRtf"
     },
     {
       "name": "reorderList",
