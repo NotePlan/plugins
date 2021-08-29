@@ -20,7 +20,25 @@ export default class CodedungeonToolbox {
   }
 
   async reorderList(listData = '') {
-    console.log(listData)
-    return listData
+    const workingData = [...listData]
+
+    let lineItem = 0
+    for (let index = 0; index < workingData.length; index++) {
+      if (workingData[index].charCodeAt(0) !== 9) {
+        const startsWithIndex = new RegExp('[0-9]+.')
+        if (startsWithIndex.test(workingData[index])) {
+          lineItem++
+          const starting = workingData[index].indexOf('.')
+          if (starting >= 0) {
+            const numberIndex = workingData[index].substring(0, starting)
+            workingData[index] = workingData[index].replace(numberIndex, `${lineItem}`)
+            console.log(workingData[index])
+          }
+        }
+      }
+    }
+
+    console.log(workingData)
+    return workingData
   }
 }
