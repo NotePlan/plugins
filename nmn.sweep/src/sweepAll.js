@@ -33,21 +33,23 @@ export async function sweepTemplate(paramStr: string = ''): Promise<string> {
   if (paramStr === '') {
     return String(await sweepAll(false, true, undefined, true))
   } else {
-    //$FlowIgnore
     // const limit: Option1 = JSON.parse(getTagParams(paramStr, 'limit'))
     // const includeHeadings: boolean = Boolean(
     //   getTagParams(paramStr, 'includeHeadings'),
     // )
-    // $FlowIgnore
+    // $FlowFixMe
     const limit: Option1 = await getTagParamsFromString(paramStr, 'limit', {})
     // $FlowIgnore
     const includeHeadings: boolean = await getTagParamsFromString(paramStr, 'includeHeadings', false)
+    // $FlowFixMe
     const noteTypes: NoteTypes[] = await getTagParamsFromString(paramStr, 'noteTypes', ['note', 'calendar'])
+    // $FlowFixMe
+    const ignoreFolders: string[] = await getTagParamsFromString(paramStr, 'ignoreFolders', ['📋 Templates'])
 
     console.log(
       `Running template command sweepAll with params: limit=${JSON.stringify(limit)} includeHeadings=${String(
         includeHeadings,
-      )} noteTypes=${JSON.stringify(noteTypes)}`,
+      )} noteTypes=${JSON.stringify(noteTypes)} ignoreFolders:${JSON.stringify(ignoreFolders)}`,
     )
     // let paramObj
     // try {
@@ -56,7 +58,7 @@ export async function sweepTemplate(paramStr: string = ''): Promise<string> {
     //   console.log(`Error: ${e}`)
     //   return `Could not parse template parameter: ${paramStr}. Check the documentation. Error: ${e}`
     // }
-    return String(await sweepAll(false, false, limit, true, includeHeadings, noteTypes))
+    return String(await sweepAll(false, false, limit, true, includeHeadings, noteTypes, ignoreFolders))
   }
 }
 
@@ -77,6 +79,7 @@ export default async function sweepAll(
   returnValue: boolean = false,
   includeHeadings: boolean = false,
   noteTypes: NoteTypes[] = ['calendar', 'note'],
+  ignoreFolders: string[] = ['📋 Templates'],
 ): Promise<void | string> {
   let { unit, num } = periodToCheck
   let foundTasks: Array<TParagraph> = []
@@ -85,7 +88,7 @@ export default async function sweepAll(
       requireUserAction,
     )} periodToCheck:${JSON.stringify(periodToCheck)} noteTypes: ${JSON.stringify(noteTypes)} returnValue:${String(
       returnValue,
-    )}`,
+    )} ignoreFolders: ${JSON.stringify(ignoreFolders)}`,
   )
   if (requireUserAction) {
     const setPeriod = await chooseOption<Option1>(
@@ -158,9 +161,15 @@ export default async function sweepAll(
     const recentProjNotes = DataStore.projectNotes.filter((note) => note.changedDate >= afterDate)
     console.log(`\tProject Notes to search: ${recentProjNotes.length}`)
     for (const note of recentProjNotes) {
-      // console.log(`About to sweep Project Note: ${note.title || note.filename}`)
-      const result = await sweepNote(note, withUserConfirm, false, overdueOnly, true, returnValue, includeHeadings)
-      processResult(result, note.title)
+      const ignoreThisFolder =
+        ignoreFolders.length && !!ignoreFolders.filter((folder) => note.filename.includes(`${folder}/`)).length
+      if (!ignoreThisFolder) {
+        // console.log(`About to sweep Project Note: ${note.title || note.filename}`)
+        const result = await sweepNote(note, withUserConfirm, false, overdueOnly, true, returnValue, includeHeadings)
+        processResult(result, note.title)
+      } else {
+        console.log(`Skipping note "${note.filename}" due to ignoreFolders param: ${JSON.stringify(ignoreFolders)}`)
+      }
     }
   }
 
@@ -181,12 +190,18 @@ export default async function sweepAll(
 
     console.log(`\tCalendar Notes to search: ${recentCalNotes.length}`)
     for (const note of recentCalNotes) {
-      console.log(`Sweep Calendar Note? ${note.filename} | Today is: ${todayFileName}`)
-      if (note.filename !== todayFileName) {
-        const result = await sweepNote(note, withUserConfirm, false, overdueOnly, false, returnValue, includeHeadings)
-        processResult(result, note.title)
+      const ignoreThisFolder =
+        ignoreFolders.length && !!ignoreFolders.filter((folder) => note.filename.includes(`${folder}/`)).length
+      if (!ignoreThisFolder) {
+        if (note.filename !== todayFileName) {
+          console.log(`Calling sweepNote ${note.filename} | Today is: ${todayFileName}`)
+          const result = await sweepNote(note, withUserConfirm, false, overdueOnly, false, returnValue, includeHeadings)
+          processResult(result, note.title)
+        } else {
+          console.log(`...Skipping today's note ${todayFileName}`)
+        }
       } else {
-        console.log(`...Skipping today's note ${todayFileName}`)
+        console.log(`Skipping note "${note.filename}" due to ignoreFolders param: ${JSON.stringify(ignoreFolders)}`)
       }
     }
   }

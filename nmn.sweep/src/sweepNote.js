@@ -42,10 +42,12 @@ export default async function sweepNote(
   //     paragraphs.length
   //   }`,
   // )
-  console.log(`paragraphs:${paragraphs.length}`)
+  console.log(`---\nStarting sweepNote for file: "${note.filename}" paragraphs:${paragraphs.length}`)
   paragraphs.forEach((p) => {
     const isSeparatorLine = /^---/.test(p.content)
-    console.log(`sep:${isSeparatorLine} type:${p.type} indents:${p.indents} "${p.content} "`)
+    console.log(
+      `type:${p.type} indents:${p.indents} sep:${isSeparatorLine} heading:"${p.heading}" Level:${p.headingLevel} content: "${p.content} "`,
+    )
 
     // ['scheduled', 'cancelled', 'done']
     if (nonMovableTypes.includes(p.type)) {
