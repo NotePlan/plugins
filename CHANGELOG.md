@@ -9,16 +9,23 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/README.md) for
 
 ## [2.1.0] - 2021-08-21 (mikeerickson)
 
+### added
 - Added testing framework (using [Jest](https://jestjs.io/))
 - Added build command `run build [plugin]`
 - Added CLI command `noteplan-cli plugin:dev`
   - Review `noteplan-cli plugin:dev --help` for all options
+- Added CLI command `noteplan-cli plugin:release`
+- Added CLI command `noteplan-cli plugin:test`
+
+### changed
+- Adjusted NotePlan Plugin initalization task
+- Moved `np.plugin.starter` into CLI templates to remove root exposure
 
 ## [2.0.0] - 2021-08-21 (mikeerickson)
 
 ### Added
-
 - Added NotePlan CLI
   - Added plugin:create
   - Added plugin:info
-  -
+- Adjusted `scripts/rollup`
+- Adjusted `scripts/releases`
