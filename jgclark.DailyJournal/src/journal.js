@@ -65,16 +65,15 @@ export async function dayReview() {
   const journalConfig = await getOrMakeConfigurationSection(
     'dailyJournal',
     DEFAULT_JOURNAL_OPTIONS,
-    // TODO: minimum config?
-  )
-  if (journalConfig == null) {
-    // Almost certainly because we've just written default settings to _configuration.
-    // If so, we should just stop, as that will need checking.
-    // console.log("\tWarning: Cannot find 'dailyJournal' settings in Templates/_configuration note. Stopping.")
-    // await showMessage(
-    //   "Cannot find 'dailyJournal' settings in _configuration.",
-    //   "Yes, I'll check my _configuration settings."
-    // )
+    // TODO: add minimum config, to make following section easier
+  ))
+  if (journalConfig == null) { // TODO: and {} check?
+    // Shouldn't get here
+    console.log("\tWarning: Cannot find 'dailyJournal' settings in Templates/_configuration note. Stopping.")
+    await showMessage(
+      "Cannot find 'dailyJournal' settings in _configuration.",
+      "Yes, I'll check my _configuration settings."
+    )
     return
   }
   const pref_reviewQuestions = journalConfig.reviewQuestions ?? null

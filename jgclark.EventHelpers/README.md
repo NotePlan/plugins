@@ -14,7 +14,7 @@ Alternatively, in the `Templates/_configuration` note include the following sett
 ```javascript
 ...
   events: {
-    addEventID: false,  // whether to add an [[event:ID]] internal link when creating an event from a time block
+    addEventID: false,  // whether to add an '⏰event:ID' string when creating an event from a time block
     processedTagName: "#event_created",   // optional tag to add after making a time block an event
     confirmEventCreation: false, // optional tag to indicate whether to ask user to confirm each event to be created
     removeTimeBlocksWhenProcessed: true,  // whether to remove time block after making an event from it
@@ -32,7 +32,16 @@ Alternatively, in the `Templates/_configuration` note include the following sett
 This uses JSON5 format: ensure there are commas at the end of all that lines that need them.
 
 **Notes**:
-- addEventID: whether to add an `[[event:ID]]` internal link when creating an event from a time block. This returns rather long strings (e.g. `[[event:287B39C1-4D0A-46DC-BD72-84D79167EFDF]]`) and so you might want to use a special theme to shorten them until needed.
+- addEventID: whether to add an `⏰event:ID` string when creating an event from a time block. This returns rather long strings (e.g. `⏰event:287B39C1-4D0A-46DC-BD72-84D79167EFDF`) and so you might want to use a theme option to shorten them until needed. For example, to hide the `event:ID` string until you move the cursor to the ⏰ marker, [customise your theme](https://help.noteplan.co/article/44-customize-themes) to add:
+```json
+    "eventID": {
+      "regex": "(event:[A-F0-9-]{36})",
+      "matchPosition": 1,
+      "color": "#444444",
+      "isHiddenWithoutCursor": true,
+      "isRevealOnCursorRange": true
+     }
+```
 - processedTagName: if this is set, then this tag will get added on the end of the line with the time block, to show that it has been processed. Otherwise, next time this command is run, it will create another event. This can be used with or without addEventID.
 - confirmEventCreation: optional boolean tag to indicate whether to ask user to confirm each event to be created
 - removeTimeBlocksWhenProcessed: in `time blocks...` whether to remove time block after making an event from it

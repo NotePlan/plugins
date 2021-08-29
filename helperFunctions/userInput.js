@@ -7,7 +7,7 @@
 
 import { calcSmartPrependPoint } from '../helperFunctions'
 import { RE_DATE, RE_DATE_INTERVAL } from '../helperFunctions/dateFunctions'
-import { parseJSON5 } from '../nmn.Templates/src/configuration'
+import { parseJSON5 } from '../helperFunctions'
 
 // (from @nmn / nmn.sweep)
 export type Option<T> = $ReadOnly<{

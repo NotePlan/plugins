@@ -11,7 +11,7 @@ export {
   addTaskToNoteHeading,
   addTextToNoteHeading,
   appendTaskToDailyNote,
-  appendTaskToDailyJournal,
+  appendTextToDailyJournal,
   prependTaskToDailyNote,
   appendTaskToNote,
   prependTaskToNote
