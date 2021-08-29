@@ -7,18 +7,18 @@
 import { showMessage } from '../../helperFunctions'
 import CodedungeonToolbox from './support/CodedungeonToolbox'
 
-export async function convertSelectionToHtml(): Promise<void> {
+export async function convertToRtf(): Promise<void> {
   const toolbox = new CodedungeonToolbox()
 
-  const note = Editor.selectedLinesText.join('\n') || ''
+  const note = Editor.content || ''
 
-  const html = toolbox.markdownToHtml(note)
+  const rtf = await toolbox.markdownToRtf(note)
 
-  Clipboard.string = html
+  Clipboard.string = rtf
 
-  if (html.length > 0) {
+  if (rtf.length > 0) {
     await showMessage('Content Copied To Clipboard')
   } else {
-    await showMessage('An error occured converting content to HTML')
+    await showMessage('An error occured converting content to RTF')
   }
 }

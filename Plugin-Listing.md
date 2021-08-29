@@ -14,6 +14,7 @@
 | `finish project review` | updates the current open project's @reviewed() date | 🔬Reviews |
 | `formatted` | Insert custom formatted (format) date/time | 📅 Date Automations |
 | `fp` | file (move) paragraphs to different notes | 🗃 Filer |
+| `helloWorld` | Your first plugin! | 🧩 Test |
 | `index` | Make/Update note link Indexes for one or more folders | 📙 Note Helpers |
 | `insert day's events as list` | insert list of this day's calendar events at cursor | 🕓 Event Helpers |
 | `insert matching events` | inserts this day's calendar events matching certain patterns at cursor | 🕓 Event Helpers |
@@ -35,7 +36,6 @@
 | `now` | Insert (human readable) date+time at cursor | 📅 Date Automations |
 | `now - ISO-8601 standard` | Insert ISO-8601 date+time at cursor (e.g. 2021-08-06 17:20:11) | 📅 Date Automations |
 | `onw` | Open a user-selected note in a new window. | 📙 Note Helpers |
-| `ott` | Open Tasks to Top - Bring open tasks in note to top | ✅ Task Automations |
 | `project lists` | creates/updates a human-readable list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete. | 🔬Reviews |
 | `qad` | Quickly append a task to a chosen daily note | ⚡️ Quick Capture |
 | `qaj` | Quickly append text to the Journal in today's note | ⚡️ Quick Capture |
@@ -58,6 +58,6 @@
 | `tsm` | Tasks Sort by @Mention - Sort tasks on the page by mention/person | ✅ Task Automations |
 | `tsp` | Shows task statistics for project notes | 🔢 Note Statistics |
 | `tst` | Tasks Sort by #Tag - Sort tasks on the page by hashtag | ✅ Task Automations |
-| `tt` | Tasks to Top - Bring all tasks in note to top | ✅ Task Automations |
+| `tt` | Tasks to Top - Bring tasks in note to top | ✅ Task Automations |
 | `wc` | Shows word count and other numbers for the note | 🔢 Note Statistics |
 | `🔌 Plugin Tester` | Simple plugin test to check that plugins are working for you | 🔌 Plugin Tester |
