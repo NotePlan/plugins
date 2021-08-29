@@ -101,6 +101,42 @@ export async function chooseFolder(msg: string): Promise<string> {
   return folder
 }
 
+/** ask user to select a heading from those in a given note
+ * @author @jgclark
+ * @param {TNote} note - note to draw headings from
+ * @param {?boolean} addTopBottomOption - whether to add '(top of note)' and '(bottom of note)' options. Default: true.
+ * @return {string} - the selected heading as text without any markdown heading markers
+ */
+export async function chooseHeading(
+  note: TNote,
+  addAtBottomOption: boolean = true
+): Promise<string> {
+  let headingStrings = []
+  const headingParas = note.paragraphs.filter((p) => p.type === 'title') // = all headings, not just the top 'title'
+  if (headingParas.length > 0) {
+    headingStrings = headingParas.map((p) => {
+      let prefix = ''
+      for (let i = 1; i < p.headingLevel; i++) {
+        prefix += '    '
+      }
+      return prefix + p.content
+    })
+  }
+  if (note.type === 'Calendar') {
+    headingStrings.unshift('(top of note)') // add at start (as it has no title)
+  }
+  if (addAtBottomOption) {
+    // Ensure we can always add at top and bottom of note
+    headingStrings.push('(bottom of note)') // add at end
+  }
+  const result = await CommandBar.showOptions(
+    headingStrings,
+    `Select a heading from note '${note.title ?? 'Untitled'}'`
+  )
+  const headingToFind = headingStrings[result.index].trim()
+  return headingToFind
+}
+
 /**
  * ask for a date interval from user
  * @author @jgclark
@@ -117,7 +153,7 @@ export async function askDateInterval(dateParams: string): Promise<string> {
         ? await parseJSON5(`{${dateParams}}`)
         : {}
   // $FlowFixMe
-  console.log(`param config: ${dateParams} as ${JSON.stringify(paramConfig)}`);
+  console.log(`param config: ${dateParams} as ${JSON.stringify(paramConfig)}`)
   // ... = "gather the remaining parameters into an array"
   const allSettings: { [string]: mixed } = { ...paramConfig }
   console.log(allSettings.toString())
@@ -161,10 +197,7 @@ export async function askForFutureISODate(question: string): Promise<string> {
  * @param {[string]: ?mixed} config - relevant settings from _configuration note
  * @return {string} - the returned ISO date as a string, or empty if an invalid string given
  */
-export async function datePicker(
-  dateParams: string,
-  config: { [string]: ?mixed },
-): Promise<string> {
+export async function datePicker(dateParams: string, config: { [string]: ?mixed }): Promise<string> {
   // console.log(`processDate: ${dateConfig}`)
   const defaultConfig = config.date ?? {}
   const dateParamsTrimmed = dateParams.trim()
@@ -175,7 +208,7 @@ export async function datePicker(
         ? await parseJSON5(`{${dateParams}}`)
         : {}
   // $FlowFixMe
-  console.log(`param config: ${dateParams} as ${JSON.stringify(paramConfig)}`);
+  console.log(`param config: ${dateParams} as ${JSON.stringify(paramConfig)}`)
   // ... = "gather the remaining parameters into an array"
   const allSettings: { [string]: mixed } = {
     ...defaultConfig,
