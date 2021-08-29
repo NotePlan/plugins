@@ -55,7 +55,8 @@
     "prefer-const": "error",
     "no-prototype-builtins": "off",
     "no-unused-vars": "off",
-    "import/order": "error"
+    "import/order": "error",
+    "no-useless-escape": "off"
   },
   "env": {
     "node": true,

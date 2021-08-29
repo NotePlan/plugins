@@ -7,18 +7,12 @@
 import { showMessage } from '../../helperFunctions'
 import CodedungeonToolbox from './support/CodedungeonToolbox'
 
-export async function convertSelectionToHtml(): Promise<void> {
+export async function reorderList(): Promise<void> {
   const toolbox = new CodedungeonToolbox()
 
-  const note = Editor.selectedLinesText.join('\n') || ''
+  const listData = Editor.selectedLinesText
 
-  const html = toolbox.markdownToHtml(note)
+  const newList = await toolbox.reorderList(listData)
 
-  Clipboard.string = html
-
-  if (html.length > 0) {
-    await showMessage('Content Copied To Clipboard')
-  } else {
-    await showMessage('An error occured converting content to HTML')
-  }
+  Editor.replaceSelectionWithText(newList.join('\n'))
 }

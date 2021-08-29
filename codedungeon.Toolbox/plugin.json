@@ -5,7 +5,7 @@
   "plugin.name": "🧩 Codedungeon Toolbox",
   "plugin.description": "General Purpose Utility Commands",
   "plugin.author": "codedungeon",
-  "plugin.version": "1.0.2",
+  "plugin.version": "1.1.0",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/codedungeon.Toolbox/README.md",
@@ -19,6 +19,16 @@
       "name": "convertSelectionToHtml",
       "description": "Convert current selection to HTML",
       "jsFunction": "convertSelectionToHtml"
+    },
+    {
+      "name": "convertToRtf",
+      "description": "Convert current note to RTF",
+      "jsFunction": "convertToRtf"
+    },
+    {
+      "name": "reorderList",
+      "description": "Reorder current ordered list",
+      "jsFunction": "reorderList"
     }
   ]
 }
