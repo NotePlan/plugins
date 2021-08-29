@@ -1,6 +1,8 @@
 // @flow
 
 import json5 from 'json5'
+// import toml from 'toml'
+// import { load } from 'js-yaml'
 
 //-------------------------------------------------------------------------------
 // Input functions
@@ -695,6 +697,60 @@ export function notesInFolderSortedByName(folder: string): Array<TNote> {
 
 //-------------------------------------------------------------------------------
 // Misc functions for NP
+
+// export async function parseJSON(contents: string): Promise<?{ [string]: ?mixed }> {
+//   try {
+//     return JSON.parse(contents)
+//   } catch (e) {
+//     console.log(e)
+//     await showMessage('Invalid JSON in your configuration. Please fix it to use configuration')
+//     return {}
+//   }
+// }
+
+export async function parseJSON5(
+  contents: string,
+): Promise<?{ [string]: ?mixed }> {
+  try {
+    const value = json5.parse(contents)
+    return (value: any)
+  } catch (e) {
+    console.log(e)
+    await showMessage('Invalid JSON5 in your configuration. Please fix it to use configuration')
+    return {}
+  }
+}
+
+// export async function parseYAML(contents: string): Promise<?{ [string]: ?mixed }> {
+//   try {
+//     const value = load(contents)
+//     if (typeof value === 'object') {
+//       return (value: any)
+//     } else {
+//       return {}
+//     }
+//   } catch (e) {
+//     console.log(contents)
+//     console.log(e)
+//     await showMessage('Invalid YAML in your configuration. Please fix it to use configuration')
+//     return {}
+//   }
+// }
+
+// export async function parseTOML(contents: string): Promise<?{ [string]: ?mixed }> {
+//   try {
+//     const value = toml.parse(contents)
+//     if (typeof value === 'object') {
+//       return (value: any)
+//     } else {
+//       return {}
+//     }
+//   } catch (e) {
+//     console.log(e)
+//     await showMessage('Invalid TOML in your configuration. Please fix it to use configuration')
+//     return {}
+//   }
+// }
 
 export const defaultFileExt: string =
   DataStore.defaultFileExtension != null ? DataStore.defaultFileExtension : 'md'

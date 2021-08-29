@@ -2,11 +2,11 @@
 //--------------------------------------------------------------------------------------------------------------------
 // Specialised user input functions
 // @jgclark, @nmn
-// Last updated 13.8.2021
+// Last updated 29.8.2021
 //--------------------------------------------------------------------------------------------------------------------
 
 import { RE_DATE, RE_DATE_INTERVAL } from '../helperFunctions/dateFunctions'
-import { parseJSON5 } from '../nmn.Templates/src/configuration'
+import { parseJSON5 } from '../helperFunctions'
 
 // (from @nmn / nmn.sweep)
 export type Option<T> = $ReadOnly<{
@@ -117,7 +117,7 @@ export async function askDateInterval(dateParams: string): Promise<string> {
         ? await parseJSON5(`{${dateParams}}`)
         : {}
   // $FlowFixMe
-  console.log(`param config: ${dateParams} as ${JSON.stringify(paramConfig)}`);
+  console.log(`param config: ${dateParams} as ${JSON.stringify(paramConfig)}`)
   // ... = "gather the remaining parameters into an array"
   const allSettings: { [string]: mixed } = { ...paramConfig }
   console.log(allSettings.toString())
@@ -175,7 +175,7 @@ export async function datePicker(
         ? await parseJSON5(`{${dateParams}}`)
         : {}
   // $FlowFixMe
-  console.log(`param config: ${dateParams} as ${JSON.stringify(paramConfig)}`);
+  console.log(`param config: ${dateParams} as ${JSON.stringify(paramConfig)}`)
   // ... = "gather the remaining parameters into an array"
   const allSettings: { [string]: mixed } = {
     ...defaultConfig,
