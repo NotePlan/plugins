@@ -31,10 +31,6 @@ new CLI(process.argv, __dirname)
     /* if not called, examples will be suppressed in help dialog */
     [
       `noteplan-cli plugin:create ${colors.gray('(creates noteplan plugin project)')}`,
-      `  noteplan-cli plugin:info ${colors.gray('(show information about current plugins)')}`,
-      `  noteplan-cli plugin:info --check formatted ${colors.gray(
-        '(checks to see if "formatted" command is available to use)',
-      )}`,
       `  noteplan-cli plugin:dev ${colors.gray('(NotePlan Build All Plugins)')}`,
       `  noteplan-cli plugin:dev codedungeon.Toolbox --test ${colors.gray(
         '(NotePlan Plugin Test codedungeon.Toolbox)',
@@ -43,6 +39,10 @@ new CLI(process.argv, __dirname)
         '(NotePlan Plugin Test - Watch Mode)',
       )}`,
       `  noteplan-cli plugin:dev --watch ${colors.gray('(NotePlan Plugin Development - Watch Mode)')}`,
+      `  noteplan-cli plugin:info ${colors.gray('(show information about current plugins)')}`,
+      `  noteplan-cli plugin:info --check formatted ${colors.gray(
+        '(checks to see if "formatted" command is available to use)',
+      )}`,
     ].join('\n'),
   )
   .logger({ directory: getLogDirectory(process.argv), alwaysLog: true })
