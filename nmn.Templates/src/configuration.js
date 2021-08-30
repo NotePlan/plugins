@@ -3,7 +3,7 @@
 import {
   showMessage,
   chooseOption,
-  showMessageYesNo
+  showMessageYesNo,
 } from '../../helperFunctions/userInput'
 import {
   // parseJSON,
@@ -136,8 +136,8 @@ export async function getOrMakeConfigurationSection(
   // console.log('  getOrMakeConfigurationSection: got _configuration file')
 
   // Get config contents
-  const firstCodeblock = content.split('\n```')[1]
-  const config: { [string]: mixed } =
+  let firstCodeblock = content.split('\n```')[1]
+  let config: { [string]: mixed } =
     (await parseFirstCodeblock(firstCodeblock)) ?? {}
 
   // Does it contain the section we want?
@@ -150,11 +150,9 @@ export async function getOrMakeConfigurationSection(
       console.log(`  getOrMakeConfigurationSection: no default given`)
       return {}
     }
-
     console.log(`  getOrMakeConfigurationSection: default available`)
 
     // If a default configuration given, offer to make it and populate it
-    // FIXME: following doesn't appear when called by getInboxSettings()
     const shouldAddDefaultConfig = await chooseOption(
       `No '${configSectionName}' configuration section found.`,
       [
@@ -169,11 +167,7 @@ export async function getOrMakeConfigurationSection(
       ],
       false
     )
-    // FIXME: following doesn't appear when called by getInboxSettings()
-    // const res = await showMessageYesNo(`Create ${configSectionName} configuration from its defaults?`)
-    console.log(`  getOrMakeConfigurationSection: after SMYN`)
-    // if (res === "No") {
-    if (shouldAddDefaultConfig) {
+    if (!shouldAddDefaultConfig) {
       return {}
     }
 
@@ -181,15 +175,14 @@ export async function getOrMakeConfigurationSection(
     const backtickParas = configFile.paragraphs.filter((p) =>
       p.content.match(/```/),
     )
-    // const startJSFirstBlockParas = configFile.paragraphs.filter((p) => p.content.match(/^```\s*javascript/))
     if (
       backtickParas.length > 0 &&
       backtickParas[0].content.endsWith('javascript')
     ) {
-      // Insert new default configuration at the top of the current _configuration block
+      // We have an existing codeblock, so insert new default configuration at the top of it
       const startFirstBlockLineNumber = backtickParas[0].lineIndex + 2
-      // const endFirstBlockLineNumber = backtickParas[1].lineIndex - 1 // this used to do the bottom of the block
-      // insert paragraph just before second ``` line
+      // USED TO DO: insert paragraph just before second ``` line
+      // const endFirstBlockLineNumber = backtickParas[1].lineIndex - 1
       if (startFirstBlockLineNumber !== undefined) {
         configFile.insertParagraph(
           configSectionDefault,
@@ -198,14 +191,14 @@ export async function getOrMakeConfigurationSection(
         )
         await showMessage(
           `Inserted default configuration for ${configSectionName}.`,
-          `OK: I will check this before re-running the command.`,
+          `OK: I will cancel and check this before re-running the command.`,
         )
-        Editor.openNoteByFilename(configFile.filename)
+        // Editor.openNoteByFilename(configFile.filename)
         return {}
       } else {
         await showMessage(
           `Error: cannot create default configuration for ${configSectionName}`,
-          `OK: I will check this before re-running the command.`,
+          `OK: I will cancel and check this before re-running the command.`,
         )
         Editor.openNoteByFilename(configFile.filename)
         return {}
@@ -214,18 +207,16 @@ export async function getOrMakeConfigurationSection(
       // Couldn't find javascript first codeblock, so insert it at line 2
       const configAsJSBlock = `\`\`\` javascript\n{\n${configSectionDefault}\n}\n\`\`\``
       configFile.insertParagraph(configAsJSBlock, 2, 'text')
-
       await showMessage(
         `Created default configuration for ${configSectionName}.`,
-        `OK: I will check this before re-running the command.`,
+        `OK: I will cancel and check this before re-running the command.`,
       )
-      Editor.openNoteByFilename(configFile.filename)
       return {}
     }
   }
 
   // Yes, we have the configuration, so return it
-  if (Object.keys(minimumRequiredConfig) && config[configSectionName]) { // TODO: ask @dwertheimer about me
+  if (Object.keys(minimumRequiredConfig) && config[configSectionName]) {
     return validateMinimumConfig(
       // $FlowIgnore[incompatible-call]
       config[configSectionName],

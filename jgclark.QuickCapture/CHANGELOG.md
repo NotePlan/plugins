@@ -1,5 +1,9 @@
 # What's changed in ⚡️ Quick Capture
 
+### v0.7.1, 30.8.2021
+- fix: finally tracked down configuration bug (thanks to tip from @dwertheimer)
+- fix: broke ability to write to daily note in trying to fix the configuration bug (thanks to tip from @bcohen44 and @elessar)
+
 ### v0.7.0, 29.8.2021
 - new: this feature requested by @bcohen44: "with a new _configuration setting `textToAppendToTasks`, you can specify text (including hashtags or mentions) that will be appended to all new tasks created using the `/int` command." I've extended this to cover all the other relevant commands provided by this plugin.
 
