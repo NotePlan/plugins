@@ -29,8 +29,6 @@ export async function chooseOption<T, TDefault = T>(
   options: $ReadOnlyArray<Option<T>>,
   defaultValue: TDefault,
 ): Promise<T | TDefault> {
-  //FINDME
-  CommandBar.hide() // FIXME: just trying this out to see if its needed
   const { index } = await CommandBar.showOptions(
     options.map((option) => option.label),
     message,
@@ -101,7 +99,6 @@ export async function chooseFolder(msg: string): Promise<string> {
           folderParts[folderParts.length - 1]
         }`
         const folderLabel = folderParts.join('')
-        // console.log(folderLabel)
         folderOptionList.push({ label: folderLabel, value: f })
       } else {
         // deal with special case for root folder
@@ -114,7 +111,7 @@ export async function chooseFolder(msg: string): Promise<string> {
     // no Folders so go to root
     folder = '/'
   }
-  console.log(`chooseFolder -> ${folder}`)
+  // console.log(`chooseFolder -> ${folder}`)
   return folder
 }
 
