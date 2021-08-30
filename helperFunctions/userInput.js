@@ -29,6 +29,8 @@ export async function chooseOption<T, TDefault = T>(
   options: $ReadOnlyArray<Option<T>>,
   defaultValue: TDefault,
 ): Promise<T | TDefault> {
+  //FINDME
+  CommandBar.hide() // FIXME: just trying this out to see if its needed
   const { index } = await CommandBar.showOptions(
     options.map((option) => option.label),
     message,

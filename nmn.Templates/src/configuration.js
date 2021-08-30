@@ -94,7 +94,7 @@ export async function parseFirstCodeblock(
  * @author @nmn, @jgclark, @dwertheimer
  * @param {string} configSectionName - name of configuration section to retrieve
  * @param {string?} configSectionDefault - optional JSON5 string to use as default values for this configuration section
- * @param {string?} minimumRequiredConfig - optional map of fields which must exist and type, e.g. "{ openWeatherAPIKey: 'string' }"
+ * @param {mixed?} minimumRequiredConfig - optional map of fields which must exist and type, e.g. "{ openWeatherAPIKey: 'string' }"
  * @return {mixed} return config as structured data, in the format specified by the first line of the first codeblock
  */
 export async function getOrMakeConfigurationSection(
@@ -150,10 +150,11 @@ export async function getOrMakeConfigurationSection(
       console.log(`  getOrMakeConfigurationSection: no default given`)
       return {}
     }
+
     console.log(`  getOrMakeConfigurationSection: default available`)
 
     // If a default configuration given, offer to make it and populate it
-    // FIXME: doesn't fire this off
+    // FIXME: following doesn't appear when called by getInboxSettings()
     const shouldAddDefaultConfig = await chooseOption(
       `No '${configSectionName}' configuration section found.`,
       [
@@ -168,7 +169,7 @@ export async function getOrMakeConfigurationSection(
       ],
       false
     )
-    // FIXME: doesn't fire this off
+    // FIXME: following doesn't appear when called by getInboxSettings()
     // const res = await showMessageYesNo(`Create ${configSectionName} configuration from its defaults?`)
     console.log(`  getOrMakeConfigurationSection: after SMYN`)
     // if (res === "No") {

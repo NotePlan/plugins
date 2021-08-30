@@ -49,6 +49,7 @@ async function getInboxSettings(createIfMissing: boolean): Promise<void> {
   // But only give default configuration if we want to offer to have this config section created if its missing
   if (createIfMissing) {
     const inboxConfig = await getOrMakeConfigurationSection('inbox', DEFAULT_INBOX_CONFIG)
+    //FINDME
     console.log(JSON.stringify(inboxConfig))
     if (inboxConfig == null || inboxConfig === {}) {
       console.log(

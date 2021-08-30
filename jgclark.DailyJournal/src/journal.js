@@ -66,7 +66,7 @@ export async function dayReview() {
     'dailyJournal',
     DEFAULT_JOURNAL_OPTIONS,
     // TODO: add minimum config, to make following section easier
-  ))
+  )
   if (journalConfig == null) { // TODO: and {} check?
     // Shouldn't get here
     console.log("\tWarning: Cannot find 'dailyJournal' settings in Templates/_configuration note. Stopping.")
