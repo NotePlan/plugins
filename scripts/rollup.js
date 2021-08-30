@@ -206,6 +206,10 @@ function getConfig(pluginPath) {
             babelHelpers: 'bundled',
             babelrc: false,
           }),
+          commonjs(),
+          resolve({
+            browser: false,
+          }),
         ]
       : [
           babel({ babelHelpers: 'bundled' }),
