@@ -35,7 +35,7 @@ module.exports = {
     description: {
       type: 'string',
       aliases: ['d'],
-      description: `Plugin Description (as it will appear in NotePlan Plugins Prefrences) ${colors.gray(
+      description: `Plugin Description (as it will appear in NotePlan Plugins Preferences) ${colors.gray(
         'e.g., Workflow Helpers',
       )}`,
       required: true,
@@ -85,7 +85,7 @@ module.exports = {
     } else {
       const promptArgs = helpers.getArguments(toolbox.arguments, this)
 
-      const answers = this.usePrompts ? await toolbox.prompts.run(toolbox, this) : []
+      const answers = await toolbox.prompts.run(toolbox, this)
 
       flags = {
         ...{
@@ -114,6 +114,7 @@ module.exports = {
     print.info('\n👉 Next Steps:\n')
     print.info(`   ${toolbox.colors.gray('$')} cd ${flags.pluginId}`)
     print.info(`   ${toolbox.colors.gray('$')} npm run autowatch`)
+    console.log('')
     print.info(`   - If NotePlan is running, quit and relaunch`)
     print.info(`   - run your new plugin command /helloWorld from NotePlan Command Bar or in inline`)
     console.log('')

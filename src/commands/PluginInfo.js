@@ -37,11 +37,7 @@ module.exports = {
   },
 
   async execute(toolbox) {
-    // example retrieving global option
-    const quiet = toolbox.getOptionValue(toolbox.arguments, ['quiet', 'q'])
-
-    const args = helpers.getArguments(toolbox.arguments, this)
-    const answers = this.usePrompts ? await toolbox.prompts.run(toolbox, this) : []
+    console.log('')
 
     const check = toolbox.getOptionValue(toolbox.arguments, ['check', 'c'])
     const savePluginListing = toolbox.getOptionValue(toolbox.arguments, ['save', 's'])

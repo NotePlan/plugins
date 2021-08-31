@@ -22,7 +22,7 @@ module.exports = {
     plugin: {
       type: 'string',
       aliases: ['p'],
-      description: 'Plugin Name (use all if not supplied)',
+      description: `Plugin Name ${colors.gray('(processes all plugins if not supplied)')}`,
       required: false,
     },
   },
@@ -32,15 +32,15 @@ module.exports = {
       aliases: ['c'],
       description: `Use Compact Display ${colors.gray('(available in watch mode)')}`,
     },
-    coverage: {
-      type: 'boolean',
-      aliases: ['o'],
-      description: `Create Test Coverage Report ${colors.gray('(located in ./coverage directory)')}`,
-    },
     test: {
       type: 'boolean',
       aliases: ['t'],
       description: 'Plugin Testing Mode (running Jest)',
+    },
+    coverage: {
+      type: 'boolean',
+      aliases: ['o'],
+      description: `Create Test Coverage Report ${colors.gray('(located in ./coverage directory)')}`,
     },
     watch: {
       type: 'boolean',

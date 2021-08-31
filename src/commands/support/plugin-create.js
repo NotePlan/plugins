@@ -42,6 +42,7 @@ module.exports = {
       console.error(error)
     }
   },
+
   createPlugin: async function (pluginDest = '', pluginInfo = {}) {
     const src = path.resolve('./src/templates/np.plugin.starter')
     const dest = path.resolve(pluginDest)
