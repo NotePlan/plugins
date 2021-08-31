@@ -1,5 +1,8 @@
 # What's changed in 📙 Note Helpers plugin?
 
+### v0.10.4, 31.8.2021
+- update: now allows notes to be moved to the special @Archive directory (requested by @brokosz)
+
 ### v0.10.3, 16.8.2021
 - update: now compiled for versions of macOS back to 10.13.0
 
