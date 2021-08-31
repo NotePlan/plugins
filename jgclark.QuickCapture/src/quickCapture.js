@@ -48,8 +48,8 @@ async function getInboxSettings(createIfMissing: boolean): Promise<void> {
   // But only give default configuration if we want to offer to have this config section created if its missing
   if (createIfMissing) {
     const inboxConfig = await getOrMakeConfigurationSection('inbox', DEFAULT_INBOX_CONFIG)
-    console.log(`found config: ${JSON.stringify(inboxConfig)}`)
-    if (inboxConfig == null || inboxConfig === {}) {
+    // console.log(`found config: ${JSON.stringify(inboxConfig)}`)
+    if (inboxConfig == null || Object.keys(inboxConfig).length === 0) { // check for empty object
       console.log(
         "\tWarning: Cannot find 'inbox' settings in Templates/_configuration note. Stopping.",
       )
@@ -63,7 +63,7 @@ async function getInboxSettings(createIfMissing: boolean): Promise<void> {
   } else {
     // Don't mind if no config section is found
     const inboxConfig = await getOrMakeConfigurationSection('inbox')
-    console.log(`found config: ${JSON.stringify(inboxConfig)}`)
+    // console.log(`found config: ${JSON.stringify(inboxConfig)}`)
     // Read settings from _configuration, or if missing set a default
     pref_inboxTitle = String(inboxConfig?.inboxTitle) ?? "📥 Inbox"
     pref_addInboxPosition = String(inboxConfig?.addInboxPosition) ?? "prepend"
