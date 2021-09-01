@@ -91,7 +91,6 @@ async function getExistingRelease(pluginName) {
     if (lines.length) {
       checkForLines = lines.filter((line) => line.includes(pluginName))
       if (checkForLines.length > 1 && checkForLines[1] !== '') {
-        Messenger.error('An error occured', 'ERROR')
         Messenger.error(
           `Found more than one matching release for "${pluginName}" on github\nYou will need to delete one of them on github before running this script. Go to:\n\thttps://github.com/NotePlan/plugins/releases\nand delete one of these:\n${checkForLines.join(
             '\n',
@@ -272,6 +271,7 @@ function getRemoveCommand(version, sendToGithub = false) {
 async function releasePlugin(versionedTagName, pluginData, fileList, sendToGithub = false) {
   const pluginTitle = getPluginDataField(pluginData, 'plugin.name')
   const releaseCommand = getReleaseCommand(versionedTagName, pluginTitle, fileList, sendToGithub)
+
   if (sendToGithub) {
     if (releaseCommand) {
       console.log(`>>Release: Creating release "${versionedTagName}" on github...`)
@@ -307,6 +307,7 @@ async function main() {
     withFileTypes: true,
   })
   const limitToFolders = await getFolderFromCommandLine(rootFolderPath, program.args)
+
   if (limitToFolders.length === 1) {
     const pluginName = limitToFolders[0]
     const pluginFullPath = path.join(rootFolderPath, pluginName)
@@ -315,6 +316,7 @@ async function main() {
     const versionNumber = getPluginDataField(pluginData, 'plugin.version')
     const copyTargetPath = await getCopyTargetPath(rootFolderDirs)
     const fileList = await getReleaseFileList(pluginFullPath, path.join(copyTargetPath, pluginName))
+
     if (fileList) {
       const versionedTagName = getReleaseTagName(pluginName, versionNumber)
       // console.log(`==> ${COMMAND}: This version/tag will be:\n\t${versionedTagName}`)

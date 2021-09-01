@@ -1,4 +1,7 @@
 const { colors, helpers, print, system } = require('@codedungeon/gunner')
+const Messenger = require('@codedungeon/messenger')
+const appUtils = require('../utils/app')
+const pluginRelease = require('./support/plugin-release')
 
 module.exports = {
   name: 'plugin:release',
@@ -36,12 +39,40 @@ module.exports = {
   },
 
   async execute(toolbox) {
-    const pluginName = toolbox.arguments.plugin
+    let result = {}
+
     const args = helpers.getArguments(toolbox.arguments, this, { initializeNullValues: true })
 
+    const pluginName = args.plugin || toolbox.arguments.plugin || null
     const dryRun = args.dryRun || false
     const force = args.force || false
 
-    const result = await system.exec('node', ['scripts/releases.js', pluginName])
+    const configData = appUtils.getPluginConfig(pluginName)
+    const pluginVersion = configData['plugin.version']
+
+    if (dryRun) {
+      Messenger.line('-')
+      print.log(args, 'DEBUG')
+      Messenger.line('-')
+      console.log('')
+    }
+
+    result = await pluginRelease.validate(pluginName, args)
+
+    if (!result.status) {
+      appUtils.errorMessage(result)
+      process.exit(0)
+    } else {
+      // all cood, continue
+      result = await pluginRelease.release(pluginName, args)
+    }
+
+    if (!dryRun) {
+      appUtils.successMessage({ message: `${pluginName} v${pluginVersion} Published Successfully` })
+    } else {
+      print.warn(`${pluginName} v${pluginVersion} will be published using command`, 'DRY RUN')
+      console.log('')
+      print.warn(result.message)
+    }
   },
 }

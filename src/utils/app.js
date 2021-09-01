@@ -64,7 +64,6 @@ module.exports = {
 
   async getCommandList() {
     const commandPath = await this.getCommandPath()
-    dd(commandPath)
     const commands = []
     if (commandPath) {
       const files = filesystem.readdirSync(commandPath)
@@ -486,5 +485,36 @@ module.exports = {
   isValidPlugin(pluginName = null) {
     const plugins = this.getPluginList()
     return plugins.includes(pluginName)
+  },
+
+  getPluginConfig(pluginName = null) {
+    const pluginJsonFilename = path.join(pluginName, 'plugin.json')
+    if (filesystem.existsSync(pluginJsonFilename)) {
+      const configData = filesystem.readFileSync(pluginJsonFilename)
+      if (configData.length > 0) {
+        return JSON.parse(configData)
+      }
+      return {}
+    }
+  },
+
+  errorMessage(response = {}) {
+    const message = response?.message ? response.message : 'An Error Occurred'
+    print.error(message, 'ERROR')
+    if (response.hasOwnProperty('args')) {
+      response.args.forEach((arg) => {
+        print.warn(`        ${arg}`)
+      })
+    }
+  },
+
+  successMessage(response = {}) {
+    const message = response?.message ? response.message : 'Process Completed Successfully'
+    print.success(message, 'SUCCESS')
+    if (response.hasOwnProperty('args')) {
+      response.args.forEach((arg) => {
+        print.debug(`          ${arg}`)
+      })
+    }
   },
 }
