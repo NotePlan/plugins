@@ -1,4 +1,4 @@
-const { colors, helpers, print } = require('@codedungeon/gunner')
+const { colors, helpers, print, system } = require('@codedungeon/gunner')
 
 module.exports = {
   name: 'plugin:release',
@@ -8,30 +8,40 @@ module.exports = {
   usage: `plugin:release ${colors.magenta('<plugin>')} ${colors.blue('[options]')}`,
   usePrompts: true,
   arguments: {
-    name: {
-      description: `Plugin Name ${colors.gray('(e.g., codedungeon.Toolbox')}`,
+    plugin: {
+      type: 'string',
+      aliases: ['p'],
+      description: 'Plugin Name',
       required: true,
       prompt: {
         type: 'input',
-        hint: '(as it will be saved on disk)',
+        description: 'Plugin Name',
+        hint: 'e.g., codedungeon.Toolbox',
+        required: true,
       },
     },
   },
   flags: {
-    // example flag, adjust accordingly
     force: {
       aliases: ['f'],
       type: 'boolean',
       description: `Force Plugin Publish ${colors.gray('(will ignore all validation)')}`,
       required: false,
     },
+    dryRun: {
+      aliases: ['d'],
+      type: 'boolean',
+      description: `Execute Dry Run (plugin is not actually released)`,
+    },
   },
 
   async execute(toolbox) {
-    const pluginName = toolbox.arguments.name
-    const cliArgs = helpers.getArguments(toolbox.arguments, this)
+    const pluginName = toolbox.arguments.plugin
+    const args = helpers.getArguments(toolbox.arguments, this, { initializeNullValues: true })
 
-    const answers = { name: pluginName, ...cliArgs }
-    toolbox.print.warn(`Release Plugin ${JSON.stringify(answers)}`, 'INFO')
+    const dryRun = args.dryRun || false
+    const force = args.force || false
+
+    const result = await system.exec('node', ['scripts/releases.js', pluginName])
   },
 }

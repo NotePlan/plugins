@@ -5,8 +5,8 @@ const github = require('./support/github')
 module.exports = {
   name: 'plugin:pr',
   description: 'Create Pull Request',
-  disabled: false,
-  hidden: false,
+  disabled: true,
+  hidden: true,
   usage: `plugin:pr ${colors.magenta('<plugin>')} ${colors.blue('[options]')}`,
   usePrompts: true,
   arguments: {
@@ -58,7 +58,7 @@ module.exports = {
 
     // all systems go, proceed with create PR (will call gh pr craete)
     const prResult = await system.exec('gh', ['pr', 'create', '--title', `"${title}"`, '--body', `"${body}"`], {
-      quiet: true,
+      quiet: false,
     })
   },
 }
