@@ -1,12 +1,13 @@
-const { colors, helpers, print } = require('@codedungeon/gunner')
+const { colors, helpers, print, system } = require('@codedungeon/gunner')
 const pluginPullRequest = require('./support/plugin-pull-request')
+const github = require('./support/github')
 
 module.exports = {
   name: 'plugin:pr',
   description: 'Create Pull Request',
-  disabled: true,
-  hidden: true,
-  usage: `plugin:pr ${colors.magenta('<resource>')} ${colors.blue('[options]')}`,
+  disabled: false,
+  hidden: false,
+  usage: `plugin:pr ${colors.magenta('<plugin>')} ${colors.blue('[options]')}`,
   usePrompts: true,
   arguments: {
     plugin: {
@@ -19,9 +20,13 @@ module.exports = {
     },
   },
   flags: {
-    // example flag, adjust accordingly
-    subject: {
-      description: 'Pull Request Subject',
+    title: {
+      description: 'Pull Request Title',
+      required: true,
+      prompt: { type: 'input' },
+    },
+    body: {
+      description: 'Pull Request Body',
       required: true,
       prompt: { type: 'input' },
     },
@@ -30,9 +35,30 @@ module.exports = {
   async execute(toolbox) {
     const args = helpers.getArguments(toolbox.arguments, this, { initializeNullValues: true })
 
+    if (!github.ghInstalled()) {
+      toolbox.print.error('"plugin:pr" requires github to be installed.', 'ERROR')
+      toolbox.print.warn('        Please install github and try again')
+      toolbox.print.warn('        Installation Instructions: https://github.com/cli/cli')
+      process.exit()
+    }
     const plugin = args.plugin || toolbox.plugin || ''
-    const subject = args.subject || null
+    const title = args.title || null
+    const body = args.body || ''
 
-    console.log({ plugin, subject })
+    const currentBranch = await github.currentBranch()
+    if (currentBranch === 'main') {
+      toolbox.print.error('You must be on a feature branch in order to create pull request', 'ERROR')
+      toolbox.print.warn(
+        `        You can use ${colors.cyan(
+          'git checkout -b <branch>',
+        )} to create a new branch which can then be used to create pull request`,
+      )
+      process.exit()
+    }
+
+    // all systems go, proceed with create PR (will call gh pr craete)
+    const prResult = await system.exec('gh', ['pr', 'create', '--title', `"${title}"`, '--body', `"${body}"`], {
+      quiet: true,
+    })
   },
 }
