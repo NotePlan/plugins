@@ -2,7 +2,7 @@
 // --------------------------------------------------------------------------------------------------------------------
 // QuickCapture plugin for NotePlan
 // Jonathan Clark
-// v0.5.0, 14.8.2021
+// v0.7.1, 30.8.2021
 // --------------------------------------------------------------------------------------------------------------------
 
 import {
@@ -11,7 +11,6 @@ import {
   
 import {
   displayTitle,
-  chooseFolder,
   smartPrependPara,
 } from '../../helperFunctions'
 
@@ -22,8 +21,9 @@ import {
 
 import {
   showMessage,
-  askForFutureISODate,
+  chooseFolder,
   chooseHeading,
+  askForFutureISODate,
 } from '../../helperFunctions/userInput'
 
 import {
@@ -32,22 +32,58 @@ import {
 } from '../../helperFunctions/noteFunctions'
 
 // ------------------------------------------------------------------
-
-const DEFAULT_INBOX_CONFIG = `
-  inbox: {
+// settings
+const DEFAULT_INBOX_CONFIG = `  inbox: {
     inboxTitle: "📥 Inbox", // name of your inbox note, or leave empty ("") to use the daily note instead. (If the setting is missing, or doesn't match a note, then the plugin will try to create it, from default settings if necessary.)
-    addInboxPosition: "prepend", // or "append"
+    addInboxPosition: "prepend", // "prepend" or "append"
+    textToAppendToTasks: "", // text to append to any tasks captured to the inbox through /int
   },
 `
+let pref_inboxTitle: string
+let pref_addInboxPosition: string
+let pref_textToAppendToTasks: string
+
+async function getInboxSettings(createIfMissing: boolean): Promise<void> {
+  // Get or make config settings from _configuration, with no minimum required config
+  // But only give default configuration if we want to offer to have this config section created if its missing
+  if (createIfMissing) {
+    const inboxConfig = await getOrMakeConfigurationSection('inbox', DEFAULT_INBOX_CONFIG)
+    console.log(`found config: ${JSON.stringify(inboxConfig)}`)
+    if (inboxConfig == null || inboxConfig === {}) {
+      console.log(
+        "\tWarning: Cannot find 'inbox' settings in Templates/_configuration note. Stopping.",
+      )
+      await showMessage("Error: please check 'inbox' settings in '_configuration' note")
+    } else {
+      // Read settings from _configuration, or if missing set a default
+      pref_inboxTitle = String(inboxConfig?.inboxTitle) ?? "📥 Inbox"
+      pref_addInboxPosition = String(inboxConfig?.addInboxPosition) ?? "prepend"
+      pref_textToAppendToTasks = String(inboxConfig?.textToAppendToTasks) ?? ""
+    }
+  } else {
+    // Don't mind if no config section is found
+    const inboxConfig = await getOrMakeConfigurationSection('inbox')
+    console.log(`found config: ${JSON.stringify(inboxConfig)}`)
+    // Read settings from _configuration, or if missing set a default
+    pref_inboxTitle = String(inboxConfig?.inboxTitle) ?? "📥 Inbox"
+    pref_addInboxPosition = String(inboxConfig?.addInboxPosition) ?? "prepend"
+    pref_textToAppendToTasks = String(inboxConfig?.textToAppendToTasks) ?? ""
+  }
+  // console.log(`Inbox settings (3 lines):`)
+  // console.log(pref_inboxTitle)
+  // console.log(pref_addInboxPosition)
+  // console.log(pref_textToAppendToTasks)
+}
 
 /** /qpt
  * Prepend a task to a note the user picks
  * @author @jgclark
  */
-export async function prependTaskToNote(): Promise<void>  {
-  const taskName = await CommandBar.showInput(
-    'Type the task name',
-    "Prepend '%@'...",
+export async function prependTaskToNote(): Promise<void> {
+  await getInboxSettings(false)
+  const taskTitle = await CommandBar.showInput(
+    `Type the task`,
+    `Prepend '%@' ${pref_textToAppendToTasks}`,
   )
   const notes = projectNotesSortedByChanged()
 
@@ -55,7 +91,7 @@ export async function prependTaskToNote(): Promise<void>  {
     notes.map((n) => n.title).filter(Boolean),
     'Select note to prepend',
   )
-  smartPrependPara(notes[re.index], taskName, 'open')
+  smartPrependPara(notes[re.index], `${taskTitle} ${pref_textToAppendToTasks}`, 'open')
 }
 
 /** /qat
@@ -63,9 +99,10 @@ export async function prependTaskToNote(): Promise<void>  {
  * @author @jgclark
  */
 export async function appendTaskToNote(): Promise<void> {
-  const taskName = await CommandBar.showInput(
-    'Type the task name',
-    "Append '%@'...",
+  await getInboxSettings(false)
+  const taskTitle = await CommandBar.showInput(
+    `Type the task`,
+    `Append '%@' ${pref_textToAppendToTasks}`,
   )
   const notes = projectNotesSortedByChanged()
 
@@ -73,7 +110,7 @@ export async function appendTaskToNote(): Promise<void> {
     notes.map((n) => n.title).filter(Boolean),
     'Select note to append',
   )
-  notes[re.index].appendTodo(taskName)
+  notes[re.index].appendTodo(`${taskTitle} ${pref_textToAppendToTasks}`)
 }
 
 /** /qath
@@ -82,8 +119,11 @@ export async function appendTaskToNote(): Promise<void> {
  * @author @jgclark
  */
 export async function addTaskToNoteHeading(): Promise<void> {
-  // Ask for the task title
-  const todoTitle = await CommandBar.showInput('Type the task', "Add task '%@'")
+  await getInboxSettings(false)
+  const taskTitle = await CommandBar.showInput(
+    `Type the task to add`,
+    `Add task '%@' ${pref_textToAppendToTasks}`
+  )
 
   // Then ask for the note we want to add the task
   const notes = projectNotesSortedByChanged()
@@ -97,9 +137,11 @@ export async function addTaskToNoteHeading(): Promise<void> {
   // Finally, ask to which heading to add the task
   // (use function that allows us to add a new heading at start/end of note first)
   const heading = await chooseHeading(note, false, true)
+  // console.log(`Adding todo: ${taskTitle} ${pref_textToAppendToTasks} to ${note.title ?? ''} in heading: ${heading}`)
 
   // Add todo to the heading in the note (and add the heading if it doesn't exist)
-  note.addTodoBelowHeadingTitle(todoTitle,
+  note.addTodoBelowHeadingTitle(
+    `${taskTitle} ${pref_textToAppendToTasks}`,
     heading, //.content,
     false,
     true)
@@ -111,6 +153,7 @@ export async function addTaskToNoteHeading(): Promise<void> {
  * @author @jgclark
  */
 export async function addTextToNoteHeading(): Promise<void> {
+  await getInboxSettings(false)
   // Ask for the note text
   const text = await CommandBar.showInput(
     'Type the text to add',
@@ -132,7 +175,7 @@ export async function addTextToNoteHeading(): Promise<void> {
 
   // Add text to the heading in the note (and add the heading if it doesn't exist)
   note.addParagraphBelowHeadingTitle(
-    text,
+    `${text} ${pref_textToAppendToTasks}`,
     'empty',
     heading, //.content,
     false,
@@ -145,8 +188,11 @@ export async function addTextToNoteHeading(): Promise<void> {
  * @author @jgclark
  */
 export async function prependTaskToDailyNote(): Promise<void> {
-  // Ask for the task title
-  const todoTitle = await CommandBar.showInput('Type the task', "Add task '%@'")
+  await getInboxSettings(false)
+  const taskTitle = await CommandBar.showInput(
+    `Type the task to add`,
+    `Add task '%@' ${pref_textToAppendToTasks}`
+  )
 
   // Then ask for the daily note we want to add the todo
   const notes = calendarNotesSortedByChanged()
@@ -156,8 +202,8 @@ export async function prependTaskToDailyNote(): Promise<void> {
   )
   const note = notes[res.index]
 
-  console.log(`Prepending task: ${todoTitle} to ${displayTitle(note)}`)
-  note.prependTodo(todoTitle)
+  // console.log(`Prepending task: ${taskTitle} to ${displayTitle(note)}`)
+  note.prependTodo(`${taskTitle} ${pref_textToAppendToTasks}`)
 }
 
 /** /qad
@@ -165,25 +211,20 @@ export async function prependTaskToDailyNote(): Promise<void> {
  * @author @jgclark
  */
 export async function appendTaskToDailyNote(): Promise<void> {
-  // Ask for the task title
-  const todoTitle = await CommandBar.showInput('Type the task', "Add task '%@'")
+  await getInboxSettings(false)
+  const taskTitle = await CommandBar.showInput(
+    `Type the task to add`,
+    `Add task '%@' ${pref_textToAppendToTasks}`
+  )
 
   // Then ask for the daily note we want to add the todo
   const dateStr = await askForFutureISODate('Select daily note for new todo')
   console.log(`got date ${dateStr}`)
   const note = DataStore.calendarNoteByDateString(unhyphenateString(dateStr))
   
-  // OLDER METHOD
-  // const notes = calendarNotesSortedByChanged()
-  // const res = await CommandBar.showOptions(
-  //   notes.map((n) => displayTitle(n)).filter(Boolean),
-  //   'Select daily note for new todo',
-  // )
-  // const note = notes[res.index]
-
   if (note != null) {
-    console.log(`Appending task: ${todoTitle} to ${displayTitle(note)}`)
-    note.appendTodo(todoTitle)
+    // console.log(`Appending task: ${taskTitle} ${pref_textToAppendToTasks} to ${displayTitle(note)}`)
+    note.appendTodo(`${taskTitle} ${pref_textToAppendToTasks}`)
   } else {
     console.log(`appendTaskToDailyNote: error: cannot get calendar note for ${dateStr}`)
   }
@@ -193,10 +234,12 @@ export async function appendTaskToDailyNote(): Promise<void> {
  * Quickly append text to today's journal
  * @author @jgclark
  */
-export async function appendTaskToDailyJournal(): Promise<void> {
+export async function appendTextToDailyJournal(): Promise<void> {
   const todaysDateStr = unhyphenateString(todaysDateISOString)
-  // Ask for the text
-  const text = await CommandBar.showInput('Type the text', `Add text '%@' to ${todaysDateStr}`)
+  const text = await CommandBar.showInput(
+    'Type the text to add',
+    `Add text '%@' to ${todaysDateStr}`
+  )
 
   const note = DataStore.calendarNoteByDateString(todaysDateStr)
   if (note != null) {
@@ -216,27 +259,12 @@ export async function appendTaskToDailyJournal(): Promise<void> {
  * This adds a task to a special 'inbox' note. Possible configuration:
  * - append or prepend to the inbox note (default: append)
  * - add to the particular named note, or if empty, to today's daily note
+ * - if config section is missing, offer to add it
  * @author @jgclark
  */
 export async function addTaskToInbox(): Promise<void> {
   console.log(`addTaskToInbox:`)
-  // Get config settings from Template folder _configuration note
-  const inboxConfig = await getOrMakeConfigurationSection('inbox', DEFAULT_INBOX_CONFIG)
-  // console.log(JSON.stringify(inboxConfig))
-  if (inboxConfig == null) {
-    console.log(
-      "\tWarning: Cannot find 'inbox' settings in Templates/_configuration note. Stopping.",
-    )
-    await showMessage("Error: please check 'inbox' settings in '_configuration' note")
-    return
-  }
-
-  // Read settings from _configuration note,
-  // with some pre-defined settings as a final fallback
-  const pref_inboxTitle: string = String(inboxConfig.inboxTitle) ?? "📥 Inbox"
-  console.log(inboxConfig.inboxTitle)
-  const pref_addInboxPosition: string = String(inboxConfig.addInboxPosition) ?? "prepend"
-  console.log(inboxConfig.addInboxPosition)
+  await getInboxSettings(true)
 
   // Get or setup the inbox note from the Datastore
   let newFilename: ?string
@@ -254,34 +282,33 @@ export async function addTaskToInbox(): Promise<void> {
     // Create the inbox note if not existing, ask the user which folder
     if (inboxNote == null) {
       const folder = await chooseFolder(
-        'Inbox note not found, choose a folder or cancel [ESC]',
+        'Choose a folder for your inbox note (or cancel [ESC])',
       )
-      // $FlowFixMe -- don't know how to deal with apparent mixed type here
       newFilename = DataStore.newNote(pref_inboxTitle, folder) ?? ''
       // NB: this returns a filename not of our choosing
       if (newFilename != null) {
-        // console.log(`\tmade new inbox note, filename = ${newFilename}`)
+        console.log(`\tmade new inbox note, filename = ${newFilename}`)
         // $FlowIgnore[incompatible-call]
         inboxNote = DataStore.projectNoteByFilename(newFilename)
-        // console.log('\tgot the new inbox note')
       }
     }
   }
 
   // Ask for the task title
-  const todoTitle = await CommandBar.showInput(
-    'Type the task to add to your Inbox note',
-    "Add task '%@'",
+  let taskTitle = await CommandBar.showInput(
+    `Type the task to add to your Inbox note`,
+    `Add task '%@' ${pref_textToAppendToTasks}`,
   )
+  taskTitle += ` ${pref_textToAppendToTasks}`
 
   if (inboxNote != null) {
     if (pref_addInboxPosition === 'append') {
-      inboxNote.appendTodo(todoTitle)
+      inboxNote.appendTodo(taskTitle)
     } else {
-      inboxNote.prependTodo(todoTitle)
+      inboxNote.prependTodo(taskTitle)
     }
     // $FlowIgnore[incompatible-call]
-    console.log(`\tAdded todo to Inbox note '${displayTitle(inboxNote)}'`)
+    // console.log(`\tAdded todo to Inbox note '${displayTitle(inboxNote)}'`)
   } else {
     console.log(`\tERROR: Despite everything I couldn't find or make the Inbox note.`)
   }

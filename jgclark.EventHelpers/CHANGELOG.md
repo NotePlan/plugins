@@ -1,6 +1,9 @@
 # What's changed in 🕓 Event Helpers?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
+### v0.4.0, 27.8.2021
+- updated: when using `/time blocks to calendar` command with the `addEventID` setting set to true, the string is tweaked to read `⏰event:ID` rather than making it a pseudo-link. This makes it easier to style (and normally hide) the ID using theme customisation. See the README for an example of how to do this.
+
 ### v0.3.8, 23.8.2021
 - fix: time block not being detected at start of task (thanks, @stacey)
 - fix: remove time string from appearing in the event title in the calendar

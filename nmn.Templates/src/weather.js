@@ -2,8 +2,8 @@
 
 // TODO:
 // - ideally find a way to get current location. It must be possible as Scriptable achieves this
-//   with await Location.current()
-//   and has a Location.reverseGeocode(latitude, longitude) field -> postal town etc.
+//   with await Location.current() and has a 
+//   Location.reverseGeocode(latitude, longitude) field -> postal town etc.
 
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 import { getTagParams, stringReplace, capitalize } from '../../helperFunctions'
@@ -84,6 +84,13 @@ export async function getWeatherSummary(
 
   const { openWeatherAPIKey, latPosition, longPosition, openWeatherUnits } =
     weatherConfig
+  // $FlowIgnore[incompatible-use]
+  if (openWeatherAPIKey !== null && !openWeatherAPIKey?.match(/[a-f0-9]{32}/)) {
+    console.log(
+      "Cannot find a valid API Key 'weather' settings in Templates/_configuration note.",
+    )
+    return "Error: Cannot find a valid API Key 'weather' settings in Templates/_configuration note."
+  }
 
   const getWeatherURL = `https://api.openweathermap.org/data/2.5/onecall?lat=${encodeURIComponent(
     // $FlowFixMe

@@ -1,12 +1,13 @@
 {
   "noteplan.min_version": "3.0.23",
+  "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.QuickCapture",
   "plugin.name": "⚡️ Quick Capture",
   "plugin.description": "Commands to quickly add tasks/todos or general text to NotePlan notes. See website for configuration of special Inbox note.",
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark & Eduard Metzger",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.QuickCapture/",
-  "plugin.version": "0.6.0",
+  "plugin.version": "0.7.1",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -34,7 +35,7 @@
     {
       "name": "qaj",
       "description": "Quickly append text to the Journal in today's note",
-      "jsFunction": "appendTaskToDailyJournal"
+      "jsFunction": "appendTextToDailyJournal"
     },
     {
       "name": "qpd",

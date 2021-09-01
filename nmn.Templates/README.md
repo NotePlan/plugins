@@ -1,11 +1,11 @@
-# Templates
+# Templates plugin
 
 ## About Templates
 The Templates plugin allows you to create Markdown templates for note formats you use frequently (like a meeting note or a daily note). The base capability is essentially a copy/paste of a template file into a new note. So if you just want to have a basic form to fill in when you need it, you can run:
 - `/nn` command to create a new note from a template of your choice/making
 - `/it` pastes the template to the note you are already in (inserts the template text at the bottom)
 
-Templates gets more interesting when you include tags in your template which get filled in when the template is **first loaded** (keep this in mind...the template tags don't update after the first load).
+Templates gets more interesting when you include tags in your template which get filled in when the template is **inserted or applied** (keep this in mind ... the template tags don't update after this).
 
 Any {{tag}} that is unknown by the system will pop up a dialog box asking for user input, which is then included in the output.
 
@@ -60,7 +60,7 @@ The first time you run the command, it will insert various fields into your `Tem
 {
   ...
 	weather: {
-		openWeatherAPIKey: "<secret>", // need to get your own API key from openWeather
+		openWeatherAPIKey: "<secret>", // you need to get your own API key from https://openweathermap.org/
   		latPosition: "51.3", // use your own latitude as a decimal
   		longPosition: "-1.0", // use your own longitude as a decimal
   		openWeatherUnits: "metric", // or "imperial"
@@ -74,7 +74,7 @@ NOTE: If you want to customize the weather output format in your daily note/temp
 `{{weather({template:"Weather: |WEATHER_ICON| |DESCRIPTION| |LOW_TEMP||UNITS|-|HIGH_TEMP||UNITS|; Feels like: |FEELS_LIKE_LOW||UNITS|-|FEELS_LIKE_HIGH||UNITS| in |TIMEZONE|")}}`
 
 So if you were to insert that entire string in your Daily Note template, it would return something like:
-`Weather: ☁️ Broken clouds 68°F-86°F; Feels like: 71°F-83°F in America/Los_Angeles`
+`Weather: ☁️ Broken clouds 12°C-19°C; Feels like: 14°C-21°C in London/London`
 
 ### quote() - Insert quote of the day
 Returns a random quote from Zenquotes.

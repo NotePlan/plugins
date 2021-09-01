@@ -7,7 +7,7 @@
 
 import { calcSmartPrependPoint } from '../helperFunctions'
 import { RE_DATE, RE_DATE_INTERVAL } from '../helperFunctions/dateFunctions'
-import { parseJSON5 } from '../nmn.Templates/src/configuration'
+import { parseJSON5 } from '../helperFunctions'
 
 // (from @nmn / nmn.sweep)
 export type Option<T> = $ReadOnly<{
@@ -83,9 +83,15 @@ export async function showMessageYesNo(
  * @param {string} message - text to display to user
  * @returns {string} - returns the user's folder choice (or / for root)
  */
-export async function chooseFolder(msg: string): Promise<string> {
+export async function chooseFolder(
+  msg: string,
+  includeArchive: boolean = false,
+): Promise<string> {
   let folder: string
   const folders = DataStore.folders // excludes Trash and Archive
+  if (includeArchive) {
+    folders.push("@Archive")
+  }
   if (folders.length > 0) {
     // make a slightly fancy list with indented labels, different from plain values
     const folderOptionList: Array<any> = []
@@ -99,7 +105,6 @@ export async function chooseFolder(msg: string): Promise<string> {
           folderParts[folderParts.length - 1]
         }`
         const folderLabel = folderParts.join('')
-        // console.log(folderLabel)
         folderOptionList.push({ label: folderLabel, value: f })
       } else {
         // deal with special case for root folder
@@ -112,7 +117,7 @@ export async function chooseFolder(msg: string): Promise<string> {
     // no Folders so go to root
     folder = '/'
   }
-  console.log(`chooseFolder -> ${folder}`)
+  // console.log(`chooseFolder -> ${folder}`)
   return folder
 }
 

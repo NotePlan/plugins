@@ -46,7 +46,7 @@ export default async function sweepNote(
   paragraphs.forEach((p) => {
     const isSeparatorLine = /^---/.test(p.content)
     console.log(
-      `type:${p.type} indents:${p.indents} sep:${isSeparatorLine} heading:"${p.heading}" Level:${p.headingLevel} content: "${p.content} "`,
+      `{type:"${p.type}", indents:${p.indents}, heading:"${p.heading}" headingLevel:${p.headingLevel}, content:"${p.content}"},`,
     )
 
     // ['scheduled', 'cancelled', 'done']

@@ -7,6 +7,7 @@
 | `complete project` | add @completed(today) date to the open project | 🔬Reviews |
 | `convertSelectionToHtml` | Convert current selection to HTML | 🧩 Codedungeon Toolbox |
 | `convertToHtml` | Convert current note to HTML | 🧩 Codedungeon Toolbox |
+| `convertToRtf` | Convert current note to RTF | 🧩 Codedungeon Toolbox |
 | `date` | Insert date (without time) at cursor | 📅 Date Automations |
 | `dayReview` | Ask journal questions for an end-of-day review (requires configuring) | ☀️ Daily Journal |
 | `dayStart` | Apply Daily Note Template (requires configuring) | ☀️ Daily Journal |
@@ -14,7 +15,6 @@
 | `finish project review` | updates the current open project's @reviewed() date | 🔬Reviews |
 | `formatted` | Insert custom formatted (format) date/time | 📅 Date Automations |
 | `fp` | file (move) paragraphs to different notes | 🗃 Filer |
-| `helloWorld` | Your first plugin! | 🧩 Test |
 | `index` | Make/Update note link Indexes for one or more folders | 📙 Note Helpers |
 | `insert day's events as list` | insert list of this day's calendar events at cursor | 🕓 Event Helpers |
 | `insert matching events` | inserts this day's calendar events matching certain patterns at cursor | 🕓 Event Helpers |
@@ -45,6 +45,7 @@
 | `qath` | Quickly add a task at the top of a chosen note's heading | ⚡️ Quick Capture |
 | `qpd` | Quickly prepend a task to a chosen daily note | ⚡️ Quick Capture |
 | `qpt` | Quickly prepend a task to a chosen project note | ⚡️ Quick Capture |
+| `reorderList` | Reorder current ordered list | 🧩 Codedungeon Toolbox |
 | `rpt` | Generate new @repeat() tasks from completed ones | 🔁 @repeat Extensions |
 | `start reviews` | creates/updates a machine-readable list of notes ready for review, and kicks off review of the first project note | 🔬Reviews |
 | `stp` | Show stats of tags and mentions over a time period | 🔢 Note Statistics |
@@ -59,10 +60,6 @@
 | `tsm` | Tasks Sort by @Mention - Sort tasks on the page by mention/person | ✅ Task Automations |
 | `tsp` | Shows task statistics for project notes | 🔢 Note Statistics |
 | `tst` | Tasks Sort by #Tag - Sort tasks on the page by hashtag | ✅ Task Automations |
-<<<<<<< HEAD
-| `tt` | Tasks to Top - Bring tasks in note to top | ✅ Task Automations |
-=======
 | `tt` | Tasks to Top - Bring all tasks in note to top | ✅ Task Automations |
->>>>>>> 80bdda86e25686191bc9193ec5f351480ee263ef
 | `wc` | Shows word count and other numbers for the note | 🔢 Note Statistics |
 | `🔌 Plugin Tester` | Simple plugin test to check that plugins are working for you | 🔌 Plugin Tester |

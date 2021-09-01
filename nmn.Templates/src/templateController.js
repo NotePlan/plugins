@@ -1,5 +1,6 @@
 // @flow
 
+import { parseJSON5 } from '../../helperFunctions'
 import {
   getInput,
   // askForFutureISODate,
@@ -13,7 +14,6 @@ import {
 import { sweepTemplate } from '../../nmn.sweep/src/sweepAll'
 import { getWeatherSummary } from './weather'
 import { getDailyQuote } from './quote'
-import { parseJSON5 } from './configuration'
 
 const tagList: Array<TagListType> = []
 

@@ -2,14 +2,16 @@
 //--------------------------------------------------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// v0.10.2, 30.7.2021
+// v0.10.4, 31.8.2021
 //--------------------------------------------------------------------------------------------------------------------
 
 import {
   projectNotesSortedByChanged,
-  printNote, 
+  printNote,
+} from '../../helperFunctions/noteFunctions'
+import {
   chooseFolder,
-} from '../../helperFunctions'
+} from '../../helperFunctions/userInput'
 
 //-----------------------------------------------------------------
 // Command from Eduard to move a note to a different folder
@@ -20,7 +22,7 @@ export async function moveNote() {
     console.log('moveNote: warning: No note open.')
     return
   }
-  const selectedFolder = await chooseFolder(`Select a folder for '${  title  }'`)
+  const selectedFolder = await chooseFolder(`Select a folder for '${  title  }'`, true) // include @Archive as an option
   console.log(`move ${title} (filename = ${filename}) to ${selectedFolder}`)
 
   const newFilename = DataStore.moveNote(filename, selectedFolder)
