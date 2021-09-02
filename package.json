@@ -95,6 +95,7 @@
     "contentful-html-rich-text-converter": "1.0.9",
     "enquirer": "^2.3.6",
     "findup-sync": "4.0.0",
+    "git-state": "4.1.0",
     "js-yaml": "^4.1.0",
     "json5": "^2.2.0",
     "showdown": "1.9.1",
