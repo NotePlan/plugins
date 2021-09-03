@@ -4,7 +4,7 @@
 // v0.7.0, 12.8.2021
 //--------------------------------------------------------------------------------------------------------------------
 
-import { showMessage } from '../../helperFunctions'
+import { showMessage } from '../../helpers/userInput'
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 import { applyNamedTemplate } from '../../nmn.Templates/src/index'
 

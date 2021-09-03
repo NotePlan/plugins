@@ -4,13 +4,15 @@
 // Create new note from currently selected text
 // and (optionally) leave backlink to it where selection was
 import {
+  getUniqueNoteTitle,
+  noteOpener,
+} from '../../helpers/note'
+import { displayTitle } from '../../helpers/general'
+import {
+  chooseFolder,
   showMessage,
   showMessageYesNo,
-  noteOpener,
-  getUniqueNoteTitle,
-  displayTitle,
-  chooseFolder,
-} from '../../helperFunctions'
+} from '../../helpers/userInput'
 
 export async function newNoteFromSelection() {
   const version = `0.4.1`

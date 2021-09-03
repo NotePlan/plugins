@@ -1,6 +1,6 @@
 // @flow
 
-import { showMessage } from '../../nmn.sweep/src/userInput'
+import { showMessage } from '../../helpers/userInput'
 
 export async function getDailyQuote(
   params: string,

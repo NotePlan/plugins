@@ -9,7 +9,6 @@ export const RE_TIME = '[0-2]\\d{1}:[0-5]\\d{1}\\s?(?:AM|PM|am|pm)?' // find '12
 export const RE_DATE_INTERVAL = `\\+?\\d+[bdwmqy]`
 
 export const todaysDateISOString: string = new Date().toISOString().slice(0, 10)
-// TODO: make a friendlier string
 export const nowShortDateTime: string = new Date().toISOString().slice(0, 16)
 export const nowLocaleDateTime: string = new Date().toLocaleString()
 
@@ -38,7 +37,7 @@ export function toISODateString(dateObj: Date): string {
 }
 
 export function toLocaleDateString(dateObj: Date): string {
-  return dateObj.toLocaleString().slice(0, 10)
+  return dateObj.toLocaleString().slice(0, 10) // TODO: won't always have this length
 }
 
 export function toISOShortDateTimeString(dateObj: Date): string {
@@ -71,13 +70,15 @@ export function unhyphenatedDate(dateObj: Date): string {
   return `${year}${month < 10 ? '0' : ''}${month}${date < 10 ? '0' : ''}${date}`
 }
 
-export function hyphenatedDate(dateObj: Date): string {
+// @nmn
+export function hyphenatedDateString(dateObj: Date): string {
   const { year, month, date } = getYearMonthDate(dateObj)
   return `${year}-${month < 10 ? '0' : ''}${month}-${
     date < 10 ? '0' : ''
   }${date}`
 }
 
+// @nmn
 export function filenameDateString(dateObj: Date): string {
   const { year, month, date } = getYearMonthDate(dateObj)
   return `${year}${month < 10 ? '0' : ''}${month}${date < 10 ? '0' : ''}${date}`
@@ -92,6 +93,14 @@ export function isoDateStringFromCalendarFilename(filename: string): string {
     6,
     8,
   )}`
+}
+
+// @nmn
+export function removeDateTags(content: string): string {
+  return content
+    .replace(/<\d{4}-\d{2}-\d{2}/g, '')
+    .replace(/>\d{4}-\d{2}-\d{2}/g, '')
+    .trim()
 }
 
 export const months = [
@@ -319,22 +328,3 @@ export function relativeDateFromDate(date: Date): string {
   const diff = Calendar.unitsBetween(date, new Date(), 'day')
   return relativeDateFromNumber(diff)
 }
-// Code to test above functions
-// console.log(`\ntesting relativeDate`)
-// console.log(`-14 -> ${relativeDateFromNumber(-14)}`)
-// console.log(`-7 -> ${relativeDateFromNumber(-7)}`)
-// console.log(`-2 -> ${relativeDateFromNumber(-2)}`)
-// console.log(`-1 -> ${relativeDateFromNumber(-1)}`)
-// console.log(`0 -> ${relativeDateFromNumber(0)}`)
-// console.log(`1 -> ${relativeDateFromNumber(1)}`)
-// console.log(`2 -> ${relativeDateFromNumber(2)}`)
-// console.log(`7 -> ${relativeDateFromNumber(7)}`)
-// console.log(`14 -> ${relativeDateFromNumber(14)}`)
-// console.log(`29 -> ${relativeDateFromNumber(29)}`)
-// console.log(`30 -> ${relativeDateFromNumber(30)}`)
-// console.log(`31 -> ${relativeDateFromNumber(31)}`)
-// console.log(`123 -> ${relativeDateFromNumber(123)}`)
-// console.log(`264 -> ${relativeDateFromNumber(264)}`)
-// console.log(`364 -> ${relativeDateFromNumber(364)}`)
-// console.log(`365 -> ${relativeDateFromNumber(365)}`)
-// console.log(`366 -> ${relativeDateFromNumber(366)}`)

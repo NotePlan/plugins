@@ -1,9 +1,9 @@
 // @flow strict
 
-import { getTagParamsFromString } from '../../helperFunctions'
+import { getTagParamsFromString } from '../../helpers/general'
+import { filenameDateString } from '../../helpers/dateTime'
+import { chooseOption, showMessage } from '../../helpers/userInput'
 import { default as sweepNote } from './sweepNote'
-import { filenameDateString } from './dateHelpers'
-import { chooseOption, showMessage } from './userInput'
 
 type Option1 = $ReadOnly<{
   num: number,

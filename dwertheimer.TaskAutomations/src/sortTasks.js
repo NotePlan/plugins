@@ -3,7 +3,7 @@
 // Type checking reference: https://flow.org/
 // Specific how-to re: Noteplan: https://github.com/NotePlan/plugins/blob/main/Flow_Guide.md
 
-import { chooseOption, showMessageYesNo } from '../../helperFunctions'
+import { chooseOption, showMessageYesNo } from '../../helpers/userInput'
 import { default as sweepNote, type ReturnStatus } from '../../nmn.sweep/src/sweepNote'
 import { getTasksByType, sortListBy, TASK_TYPES } from './taskHelpers'
 
@@ -11,8 +11,8 @@ import { getTasksByType, sortListBy, TASK_TYPES } from './taskHelpers'
 // But the functions exist to look for open items with a date that is less than today
 //
 /* TODO: from @colin
-When I used it on a note: there were two items. 1- I didn’t want the completed and cancelled items to migrate to the top. 
-2- I didn’t need the sorting. Sorting didn’t matter but the migration messed up some completed and cancelled actions that 
+When I used it on a note: there were two items. 1- I didn't want the completed and cancelled items to migrate to the top. 
+2- I didn't need the sorting. Sorting didn't matter but the migration messed up some completed and cancelled actions that 
 I wanted to remain with the header. A reference to the header would be very helpful for me.
 */
 
@@ -21,7 +21,7 @@ const SORT_ORDERS = [
     sortFields: ['-priority', 'content'],
     name: 'By Priority (!!! and (A)) then by content',
   },
-  /* FIXME non-priority fields not working yet */
+  /* FIXME: non-priority fields not working yet */
   {
     sortFields: ['mentions', '-priority', 'content'],
     name: 'By @Person in task, then by priority',
@@ -45,6 +45,9 @@ const SORT_ORDERS = [
  * @param {string} separator The line that goes beneath the tasks. Should have a \n at the end.
  */
 export async function openTasksToTop(heading: string = '## Tasks:\n', separator: string = '---\n') {
+  if (Editor.note == null) {
+    return // if no note, stop. Should resolve 2 flow errors below, but doesn't :-(
+  }
   console.log(`openTasksToTop(): Bringing open tasks to top`)
   //FIXME: need to make this work
   // MAYBE ADD A QUESTION IN THE FLOW FOR WHICH TASKS TO MOVE
@@ -92,11 +95,11 @@ const MAKE_BACKUP = false
 /**
  *
  * @param {TNote} note
- * @param {array} todos
+ * @param {array} todos // @jgclark comment: needs type not just array. Perhaps Array<TParagraph> ?
  * @param {string} heading
  * @param {string} separator
  * @param {string} subHeadingCategory
- * @returns {int} next line number
+ * @return {int} next line number  // @jgclark comment: no such type as 'int'
  */
 function insertTodos(note: TNote, todos, heading = '', separator = '', subHeadingCategory = '') {
   // THE API IS SUPER SLOW TO INSERT TASKS ONE BY ONE
@@ -150,8 +153,8 @@ function insertTodos(note: TNote, todos, heading = '', separator = '', subHeadin
 }
 
 /**
- *  @param {TNote} the note
- *  @param {array} sort fields order
+ *  @param {TNote} note - the note
+ *  @param {array} sortOrder - sort fields order  // @jgclark comment: needs type not just array
  *  sortOrder can be an array-order of:
  *        content,
  *        priority,
@@ -162,7 +165,7 @@ function insertTodos(note: TNote, todos, heading = '', separator = '', subHeadin
  *        exclamations,
  *        parensPriority,
  *  any item can be in DESC order by placing a minus in front, e.g. "-priority"
- *  @returns the a sorted list of the tasks from the note
+ *  @return the a sorted list of the tasks from the note
  */
 function sortTasksInNote(note, sortOrder = SORT_ORDERS[DEFAULT_SORT_INDEX].sortFields) {
   const sortedList = {}
@@ -207,7 +210,7 @@ function findRawParagraph(note: TNote, content) {
   }
 }
 
-// seems like somewheer there's not an await where there should be
+// TODO: seems like somewhere there's not an await where there should be
 async function saveBackup(taskList) {
   const backupPath = `@Trash`
   const backupTitle = `_Task-sort-backup`
@@ -254,12 +257,18 @@ async function deleteExistingTasks(note, tasks, shouldBackupTasks = true) {
 /**
  * Write the tasks list back into the top of the document
  * @param {TNote} note
- * @param {any} tasks list
- * @param {any} drawSeparators=false
- * @param {any} withHeadings=false
- * @param {any} withSubheadings=null
+ * @param {any} tasks // @jgclark comment: is this really 'any'?
+ * @param {boolean} drawSeparators
+ * @param {boolean} withHeadings
+ * @param {any|null|string} withSubheadings // @jgclark comment: suggest change name to subHeadingCategory, as otherwise it sounds like a boolean
  */
-async function writeOutTasks(note, tasks, drawSeparators = false, withHeadings = false, withSubheadings = null) {
+async function writeOutTasks(
+  note: TNote,
+  tasks: any,
+  drawSeparators = false,
+  withHeadings = false,
+  withSubheadings = null
+): Promise<void> {
   const headings = {
     open: 'Open Tasks',
     scheduled: 'Scheduled Tasks',
@@ -303,7 +312,7 @@ async function wantSubHeadings() {
   return (await showMessageYesNo(`Include sort field subheadings in the output?`)) === 'Yes'
 }
 
-showMessageYesNo
+showMessageYesNo  // @jgclark comment: this looks strange!
 
 export default async function sortTasks(
   withUserInput: boolean = true,
@@ -311,6 +320,9 @@ export default async function sortTasks(
   withHeadings: boolean | null = null,
   withSubHeadings: boolean | null = null,
 ) {
+    if (Editor.note == null) {
+    return // if no note, stop. Should resolve 2 flow errors below, but only resolves 1 :-(
+  }
   console.log(`\n\nStarting sortTasks(${String(withUserInput)},${JSON.stringify(sortFields)},${String(withHeadings)}):`)
   const sortOrder = withUserInput ? await getUserSort() : sortFields
   console.log(`\tUser specified sort=${JSON.stringify(sortOrder)}`)

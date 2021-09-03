@@ -6,8 +6,7 @@ import {
   showMessage,
   chooseOption,
   getInput,
-} from '../../helperFunctions' // TODO: '../../helperFunctions/inputFunctions'
-
+} from '../../helpers/userInput'
 import { getStructuredConfiguration } from './configuration'
 import { processTemplate } from './templateController'
 import { getOrMakeTemplateFolder } from './template-folder'

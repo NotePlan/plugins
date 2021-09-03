@@ -8,28 +8,22 @@
 import {
   getOrMakeConfigurationSection,
 } from '../../nmn.Templates/src/configuration'
-  
-import {
-  displayTitle,
-  smartPrependPara,
-} from '../../helperFunctions'
-
+import { displayTitle } from '../../helpers/general'
+import { smartPrependPara } from '../../helpers/paragraph'
 import {
   unhyphenateString,
   todaysDateISOString,
-} from '../../helperFunctions/dateFunctions'
-
+} from '../../helpers/dateTime'
 import {
   showMessage,
   chooseFolder,
   chooseHeading,
   askForFutureISODate,
-} from '../../helperFunctions/userInput'
-
+} from '../../helpers/userInput'
 import {
   calendarNotesSortedByChanged,
   projectNotesSortedByChanged,
-} from '../../helperFunctions/noteFunctions'
+} from '../../helpers/note'
 
 // ------------------------------------------------------------------
 // settings
@@ -48,6 +42,7 @@ async function getInboxSettings(createIfMissing: boolean): Promise<void> {
   // But only give default configuration if we want to offer to have this config section created if its missing
   if (createIfMissing) {
     const inboxConfig = await getOrMakeConfigurationSection('inbox', DEFAULT_INBOX_CONFIG)
+    // $FlowFixMe
     console.log(`found config: ${JSON.stringify(inboxConfig)}`)
     if (inboxConfig == null || inboxConfig === {}) {
       console.log(
@@ -63,6 +58,7 @@ async function getInboxSettings(createIfMissing: boolean): Promise<void> {
   } else {
     // Don't mind if no config section is found
     const inboxConfig = await getOrMakeConfigurationSection('inbox')
+    // $FlowFixMe
     console.log(`found config: ${JSON.stringify(inboxConfig)}`)
     // Read settings from _configuration, or if missing set a default
     pref_inboxTitle = String(inboxConfig?.inboxTitle) ?? "📥 Inbox"

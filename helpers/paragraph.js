@@ -2,7 +2,17 @@
 //-------------------------------------------------------------------------------
 // Paragraph-level Functions
 
-import { displayTitle } from '../helperFunctions'
+import { hyphenatedDateString } from './dateTime'
+
+// return title of note useful for display, even for calendar notes (the YYYYMMDD)
+// NB: this fn is a local copy of the one in helpers/general.js to avoid circular dependency
+function displayTitle(n: TNote): string {
+  if (n.type === 'Calendar' && n.date != null) {
+    return hyphenatedDateString(n.date)
+  } else {
+    return n.title ?? ''
+  }
+}
 
 // Convert paragraph(s) to single raw text string
 export function parasToText(paras: Array<TParagraph>): string {
