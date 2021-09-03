@@ -10,6 +10,10 @@ assignees: ''
 **Describe the bug**
 A clear and concise description of what the bug is.
 
+**Plugin Console Log**
+Please open the Plugin Console by going to `Noteplan > Help > Plugin Console`
+Run the plugin console
+
 **To Reproduce**
 Steps to reproduce the behavior:
 1. Go to '...'
@@ -31,3 +35,13 @@ If applicable, add screenshots to help explain your problem.
 
 **Additional context**
 Add any other context about the problem here.
+
+**Plugin Console Log**
+To provide us with more clues about where the bug/error is occurring...
+1. Open the Plugin Console by going to `Noteplan > Help > Plugin Console`
+1. Run the plugin you're reporting
+1. Copy the output from the Plugin Console and paste it below
+1. Delete any output that has personal information you don't want in there
+```javascript
+    PASTE_PLUGIN_CONSOLE_OUTPUT_HERE
+```
