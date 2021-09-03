@@ -6,12 +6,15 @@ This plugin provides commands to help work with Calendars and Events:
 - `/insert matching events`: adds this day's calendar events matching certain patterns at cursor
 - `/time blocks to calendar`: takes [NotePlan-defined time blocks](https://help.noteplan.co/article/52-part-2-tasks-events-and-reminders#timeblocking) and converts to full Calendar events, in your current default calendar, as set by iCal.
 
+## Changes
+Please see the [CHANGELOG](CHANGELOG.md).
+
 ## Configuration
 These commands require configuration; the first time they're run they should detect they don't have configuration, and offer to write some to the first configuration block of the `Templates/_configuration` note (as used by the Templates system).
 
 Alternatively, in the `Templates/_configuration` note include the following settings you want in the note's first configuration block:
 
-```javascript
+```jsonc
 ...
   events: {
     addEventID: false,  // whether to add an '⏰event:ID' string when creating an event from a time block
@@ -33,7 +36,7 @@ This uses JSON5 format: ensure there are commas at the end of all that lines tha
 
 **Notes**:
 - addEventID: whether to add an `⏰event:ID` string when creating an event from a time block. This returns rather long strings (e.g. `⏰event:287B39C1-4D0A-46DC-BD72-84D79167EFDF`) and so you might want to use a theme option to shorten them until needed. For example, to hide the `event:ID` string until you move the cursor to the ⏰ marker, [customise your theme](https://help.noteplan.co/article/44-customize-themes) to add:
-```json
+```jsonc
     "eventID": {
       "regex": "(event:[A-F0-9-]{36})",
       "matchPosition": 1,
@@ -55,7 +58,7 @@ If you want you can disable the adding of the heading by applying the `includeHe
 
 For example:
 
-```javascript
+```jsonc
   {{events({template:"### *|TITLE|* (*|START|*-*|END|*)\n*|NOTES|*",allday_template:"### TITLE",includeHeadings:false})}}
 ```
 

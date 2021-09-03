@@ -15,7 +15,7 @@ The first time you  use `/int` it should write some default configuration to the
 
 In this note, include the following settings you want in the first code block. For example:
 
-```
+```jsonc
 ...
 inbox: {
   inboxTitle: "📥 Inbox", // name of your inbox note, or leave empty ("") to use the daily note instead. (If the setting is missing, or doesn't match a note, then the plugin will try to create it, from default settings if necessary.)

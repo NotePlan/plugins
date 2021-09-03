@@ -10,11 +10,14 @@ It also provides the `/stp` way of generating some statistics and summaries over
 If first asks what time period you want to generate over.
 Then it asks where to save its output: to screen, to console log, or to a specially-created note in the Summaries folder.  (If the latter it will update a previous note for that same time period.)
 
+## History
+Please see the [CHANGELOG](CHANGELOG.md).
+
 ## Configuration
 The `/stp` command requires configuration; the first time its run it should detect it doesn't have configuration, and offer to write some to the first configuration block of the `Templates/_configuration` note (as used by the Templates system). 
 Alternatively, in the `Templates/_configuration` note, include the following settings you want in the note's first configuration block. For example:
 
-```javascript
+```jsonc
 ...
 statistics: {
   folderToStore: 'Summaries',

@@ -67,7 +67,7 @@ These commands require configuration; the first time they're run they should det
 
 Alternatively, in the `Templates/_configuration` note, include the following settings you want in the note's first configuration block. For example:
 
-```javascript
+```jsonc
 ...
   review: {
     folderToStore: "Reviews" // will be created if necessary
@@ -81,7 +81,10 @@ Alternatively, in the `Templates/_configuration` note, include the following set
 ```
 (This uses JSON5 format: ensure there are commas at the end of all that lines that need them.)
 
+## Changes
+Please see the [CHANGELOG](CHANGELOG.md).
+
 ## To do
 - update the `/project lists` output to use a table view, _when then this is available in NotePlan_
 - update the `/addProject` to use better date pickers, _when then this is available in NotePlan_
-- if NotePlan adds support  for frontmatter or YAML blocks, update the plugin to take advantage of them
+- _if NotePlan adds support  for frontmatter or YAML blocks_, update the plugin to take advantage of them
