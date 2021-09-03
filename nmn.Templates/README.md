@@ -11,7 +11,7 @@ Any {{tag}} that is unknown by the system will pop up a dialog box asking for us
 
 ### For example
 This template:
- ```json
+ ```markdown
  # Daily Note Template
 ---
 {{quote()}}
@@ -56,7 +56,7 @@ Most naturally require some configuration before they're useful. These details l
 This uses OpenWeather service, which is free for simple lookups. 
 The first time you run the command, it will insert various fields into your `Templates/_configuration` note:
 
-```javascript
+```jsonc
 {
   ...
 	weather: {
@@ -71,8 +71,9 @@ The first time you run the command, it will insert various fields into your `Tem
 (This example is in JSON5 format: see the help text in `_configuration` note.)
 
 NOTE: If you want to customize the weather output format in your daily note/template, you can pass a "template" with the format you want. Here's an example with every field:
-`{{weather({template:"Weather: |WEATHER_ICON| |DESCRIPTION| |LOW_TEMP||UNITS|-|HIGH_TEMP||UNITS|; Feels like: |FEELS_LIKE_LOW||UNITS|-|FEELS_LIKE_HIGH||UNITS| in |TIMEZONE|")}}`
-
+```jsonc
+{{weather({template:"Weather: |WEATHER_ICON| |DESCRIPTION| |LOW_TEMP||UNITS|-|HIGH_TEMP||UNITS|; Feels like: |FEELS_LIKE_LOW||UNITS|-|FEELS_LIKE_HIGH||UNITS| in |TIMEZONE|")}}
+```
 So if you were to insert that entire string in your Daily Note template, it would return something like:
 `Weather: ☁️ Broken clouds 12°C-19°C; Feels like: 14°C-21°C in London/London`
 
@@ -83,7 +84,9 @@ Returns a random quote from Zenquotes.
 Does not require any configuration, you can run the simple version (which will prompt you for various parameters):
 `{{sweepTasks()}}`
 but if you choose to, you can pass parameters to the function to have it run automatically. For example:
-`{{sweepTasks({limit:{ "unit": "day", "num": 7 },includeHeadings:true, noteTypes: ['note','calendar'], ignoreFolders:['📋 Templates',"AnotherFolderNotToSweep"]})}}`
+```jsonc
+{{sweepTasks({limit:{ "unit": "day", "num": 7 },includeHeadings:true, noteTypes: ['note','calendar'], ignoreFolders:['📋 Templates',"AnotherFolderNotToSweep"]})}}
+```
 sweeps open tasks from the previous 7 days (Project notes & Calendar notes), and includes the headings or indents that the task was under in the original note, but omitting the '📋 Templates' and "AnotherFolderNotToSweep" directories
 
 ### events() & listMatchingEvents() -- Using Event Lists from a Template
@@ -91,9 +94,9 @@ See the [**Event Helpers** plugin's README](https://github.com/NotePlan/plugins/
 
 Insert `{{events()}}` wherever you wish it to appear in the Template.  By default it gives a simple markdown list of event title and start time.  To **customise the list display**, you can add a `'template:"..."'` parameter to the `{{events()}}` command that sets how to present the list, and a separate template for items with no start/end times (`'allday_template:"..."`). For example:
 
-  ```javascript
+```jsonc
 {{events({template:"### *|START|*-*|END|*: *|TITLE|*",allday_template:"### *|TITLE|*"})}}
-  ```
+```
 It uses date/time mentions which follow your chosen locale settings -- which can now be set specifically in _configuration in the `events` section:
    locale: "en-US",
     timeOptions: { hour: '2-digit', minute: '2-digit', hour12: false }
@@ -101,3 +104,6 @@ It uses date/time mentions which follow your chosen locale settings -- which can
 The `*|TITLE|*`, `*|START|*` and `*|END|*` can be mixed with whatever markdown characters or other text you like, and they will get replaced accordingly for each event found. (Note the difference between the } and ) bracket types, and use of double quotes around the template string. I didn't design all of this!)
 
 You can also place  `{{matchingEvents()}}` or `{{listMatchingEvents()}}` in Templates in a similar way, and similar customisation is possible. However, it is defined in a different way, using the matches and template strings defined in the \_configuration file's `addMatchingEvents` array, as shown above.
+
+## Changes
+Please see the [CHANGELOG](changelog.md).

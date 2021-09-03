@@ -20,7 +20,6 @@ import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configura
 const DEFAULT_FILER_OPTIONS = `  filer: {
     addDateBacklink: true, // whether to insert date link in place of the moved text
   },
-
 `
 
 let pref_addDateBacklink = true
@@ -55,7 +54,7 @@ export async function fileParas(): Promise<void> {
   // for once it doesn't matter if filerConfig returns null (though it shouldn't)
   // $FlowIgnore[incompatible-use]
   pref_addDateBacklink = filerConfig.addDateBacklink ?? true
-  console.log(pref_addDateBacklink)
+  // console.log(pref_addDateBacklink)
 
   const allParas = Editor.paragraphs
   const selection = Editor.selection
@@ -63,7 +62,6 @@ export async function fileParas(): Promise<void> {
     return
   }
   const range = Editor.paragraphRangeAtCharacterIndex(selection.start)
-  // const firstSelPara = selectedParagraphs[0]; // needed?
   console.log(`\nfileParas: selection ${JSON.stringify(range)}`)
 
   // Work out what paragraph number this selected para is
@@ -144,11 +142,11 @@ export async function fileParas(): Promise<void> {
     `Select note to move ${parasToMove.length} lines to`,
   )
   const destNote = notes[res.index]
-  console.log(`  Moving to note: ${destNote.title ?? 'untitled'}`)
 
   // Ask to which heading to add the paras
   const headingToFind = (await chooseHeading(destNote, true)).toString() // don't know why this coercion is required for flow
-  console.log(`    under heading: '${headingToFind}'`)
+
+  console.log(`  Moving to note: ${destNote.title ?? 'untitled'} under heading: '${headingToFind}'`)
 
   // Add to new location
   // Currently there's no API function to deal with multiple paragraphs, but we can
@@ -174,10 +172,10 @@ export async function fileParas(): Promise<void> {
     console.log(`  Error: insertionIndex is null. Stopping.`)
     return
   }
-  console.log(`  Inserting at index ${insertionIndex}`)
+  // console.log(`  Inserting at index ${insertionIndex}`)
   await destNote.insertParagraph(parasAsText, insertionIndex, 'empty')
 
   // delete from existing location
-  console.log(`  About to remove ${parasToMove.length} paras (parasToMove)`)
+  // console.log(`  About to remove ${parasToMove.length} paras (parasToMove)`)
   note.removeParagraphs(parasToMove)
 }

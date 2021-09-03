@@ -1,7 +1,8 @@
+// @flow
 //--------------------------------------------------------------------------------------------------------------------
 // Daily Journal plugin for NotePlan
 // Jonathan Clark
-// v0.7.0, 12.8.2021
+// v0.8.1, 31.8.2021
 //--------------------------------------------------------------------------------------------------------------------
 
 import { showMessage } from '../../helpers/userInput'
@@ -10,16 +11,21 @@ import { applyNamedTemplate } from '../../nmn.Templates/src/index'
 
 //--------------------------------------------------------------------------------------------------------------------
 // Settings
-const DEFAULT_JOURNAL_OPTIONS = `
-  dailyJournal: {
+const DEFAULT_JOURNAL_OPTIONS = `  dailyJournal: {
     reviewSectionHeading: "Journal",
     moods: "🤩 Great,🙂 Good,😇 Blessed,🥱 Tired,😫 Stressed,😤 Frustrated,😔 Low,🥵 Sick,Other",
     reviewQuestions: "@sleep(<number>)\\n@work(<number>)\\n@fruitveg(<int>)\\nMood:: <mood>\\nExercise:: <string>\\nGratitude:: <string>\\nGod was:: <string>\\nAlive:: <string>\\nNot Great:: <string>\\nWife:: <string>\\nRemember:: <string>"
   },
-
 `
+const MINIMUM_JOURNAL_OPTIONS = {
+  reviewQuestions: 'string',
+}
+
 // Title of template note to use as Daily template
 const pref_templateTitle = 'Daily Note Template'
+let pref_reviewSectionHeading: string
+let pref_moods: string
+let pref_moodArray: Array<string>
 
 //------------------------------------------------------------------
 // Helper functions
@@ -37,24 +43,26 @@ export async function todayStart() {
 
 //------------------------------------------------------------------
 // Start today's daily note with a template, including local weather lookup if configured
-export async function dayStart(today = false) {
+export async function dayStart(today: boolean = false) {
   console.log(`\ndayStart:`)
-  if (today) {
-    // open today's date in the main window, and read content
-    await Editor.openNoteByDate(new Date(), false)
-    console.log(`Opened: ${Editor.note.title || Editor.note.filename} in Editor.type=${Editor.type}`)
-  }
   if (Editor.note == null || Editor.type !== 'Calendar') {
     await showMessage('Please run again with a calendar note open.')
     return
   }
-  // apply daily template, using Template system
-  await applyNamedTemplate(pref_templateTitle)
+  if (today) {
+    // open today's date in the main window, and read content
+    await Editor.openNoteByDate(new Date(), false)
+    // $FlowIgnore[incompatible-call]
+    console.log(`Opened: ${displayTitle(Editor.note)}`)
+  } else {
+    // apply daily template in the currently open daily note
+    await applyNamedTemplate(pref_templateTitle)
+  }
 }
 
 //------------------------------------------------------------------
 // Gather answers to set questions, and append to the daily note
-export async function dayReview() {
+export async function dayReview(): Promise<void> {
   if (Editor.note == null || Editor.type !== 'Calendar') {
     await showMessage('Please run again with a calendar note open.')
     return
@@ -65,29 +73,22 @@ export async function dayReview() {
   const journalConfig = await getOrMakeConfigurationSection(
     'dailyJournal',
     DEFAULT_JOURNAL_OPTIONS,
-    // TODO: add minimum config, to make following section easier
+    MINIMUM_JOURNAL_OPTIONS
   )
-  if (journalConfig == null) { // TODO: and {} check?
-    // Shouldn't get here
-    console.log("\tWarning: Cannot find 'dailyJournal' settings in Templates/_configuration note. Stopping.")
+  // console.log(JSON.stringify(journalConfig))
+  if (journalConfig == null || Object.keys(journalConfig).length === 0) { // this is how to check for empty object
+    console.log("\tWarning: Cannot find suitable 'dailyJournal' settings in Templates/_configuration note. Stopping.")
     await showMessage(
       "Cannot find 'dailyJournal' settings in _configuration.",
       "Yes, I'll check my _configuration settings."
     )
     return
   }
-  const pref_reviewQuestions = journalConfig.reviewQuestions ?? null
-  if (pref_reviewQuestions == null) {
-    console.log("\tWarning: Cannot find any 'reviewQuestions' setting in Templates/_configuration note. Stopping.")
-    await showMessage(
-      "Cannot find any 'reviewQuestions' setting in _configuration",
-      "OK, I'll check my _configuration settings.",
-    )
-    return
-  }
-  const pref_reviewSectionHeading = journalConfig.reviewSectionHeading ?? 'Journal'
+  // Finalise config settings
+  const pref_reviewQuestions = String(journalConfig?.reviewQuestions) ?? null
+  pref_reviewSectionHeading = String(journalConfig?.reviewSectionHeading) ?? 'Journal'
   const pref_moods =
-    journalConfig.moods ??
+    String(journalConfig.moods) ??
     [
       '🤩 Great',
       '🙂 Good',
@@ -100,9 +101,8 @@ export async function dayReview() {
       '🥵 Sick',
       'Other',
     ].join(',')
-  const pref_moodArray = pref_moods.split(',') // with a proper config system, this won't be needed
-
-  // Editor.openNoteByDate(new Date()) // open today's date in main window
+  
+  pref_moodArray = pref_moods.split(',') // with a proper config system, this won't be needed
 
   const question = []
   const questionType = []
@@ -175,8 +175,8 @@ export async function dayReview() {
   // add the finished review text to the current daily note,
   // appending after the line found in pref_reviewSectionHeading.
   // If this doesn't exist, then append it first.
-  console.log(`\tAppending to heading '${pref_reviewSectionHeading}' the text:${output}`)
+  console.log(`\tAppending answers to heading '${pref_reviewSectionHeading}'`)
   // If sectionHeading isn't present then it lands up writing '# ## Heading'
-  // FIXME: a bug in the API?
-  Editor.note.addParagraphBelowHeadingTitle(output, 'empty', pref_reviewSectionHeading, true, true)
+  // FIXME: a bug in the API
+  Editor.addParagraphBelowHeadingTitle(output, 'empty', pref_reviewSectionHeading, true, true)
 }
