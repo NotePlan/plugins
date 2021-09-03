@@ -1,12 +1,11 @@
 // @flow
 'use strict'
-const pkgInfo = require('../package.json')
-const messenger = require('@codedungeon/messenger')
-
-const colors = require('chalk')
-const strftime = require('strftime')
 const fs = require('fs/promises')
 const path = require('path')
+const colors = require('chalk')
+const messenger = require('@codedungeon/messenger')
+
+const strftime = require('strftime')
 const rollup = require('rollup')
 const commonjs = require('@rollup/plugin-commonjs')
 const { babel } = require('@rollup/plugin-babel')
@@ -14,6 +13,7 @@ const { terser } = require('rollup-plugin-terser')
 const resolve = require('@rollup/plugin-node-resolve').default
 const mkdirp = require('mkdirp')
 const { program } = require('commander')
+const pkgInfo = require('../package.json')
 const createPluginListing = require('./createPluginListing')
 
 const {
@@ -23,7 +23,7 @@ const {
   getCopyTargetPath,
   getPluginConfig,
 } = require('./shared')
-const { DefaultDeserializer } = require('v8')
+
 const FOLDERS_TO_IGNORE = ['scripts', 'flow-typed', 'node_modules', 'np.plugin-flow-skeleton']
 const rootFolderPath = path.join(__dirname, '..')
 
@@ -153,7 +153,7 @@ async function main() {
         // FIXME: Wanted to use JSON5 here but it was adding commas that stopped NP from working
         await writeMinifiedPluginFileContents(pluginJson, path.join(targetFolder, 'plugin.json'))
         // await fs.copyFile(pluginJson, path.join(targetFolder, 'plugin.json')) //the non-minified version
-        let pluginJsonData = JSON.parse(await fs.readFile(pluginJson))
+        const pluginJsonData = JSON.parse(await fs.readFile(pluginJson))
         if (limitToFolders.length === 0) {
           await checkPluginList(bundledPlugins)
         }

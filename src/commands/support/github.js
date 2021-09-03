@@ -1,5 +1,9 @@
 // github utilties
+const util = require('util')
+const git = require('git-state')
 const { filesystem, colors, print, path, system, shell, execa } = require('@codedungeon/gunner')
+
+const gitCheck = util.promisify(git.check)
 
 module.exports = {
   ghInstalled: function () {
@@ -16,8 +20,7 @@ module.exports = {
   },
 
   currentBranch: async function () {
-    const result = await system.exec('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { quiet: true })
-    return result
+    return await system.exec('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { quiet: true })
   },
 
   releaseList: async function (pluginName = '') {
@@ -46,5 +49,13 @@ module.exports = {
     } ${fileList.files.map((m) => `"${m}"`).join(' ')}`
 
     return cmd
+  },
+
+  check: async function (gitPath = '') {
+    return await gitCheck(gitPath)
+  },
+
+  getRemoteUrl: async function () {
+    return await system.exec('git', ['config', '--get', 'remote.origin.url'], { quiet: true })
   },
 }

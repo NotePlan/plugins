@@ -91,6 +91,7 @@
   },
   "dependencies": {
     "@codedungeon/gunner": "0.69.0",
+    "bump-regex": "4.1.0",
     "commander": "^8.1.0",
     "contentful-html-rich-text-converter": "1.0.9",
     "enquirer": "^2.3.6",

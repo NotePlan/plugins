@@ -58,17 +58,22 @@ module.exports = {
     }
 
     result = await pluginRelease.validate(pluginName, args)
+    const nextVersion = result.args[0].nextVersion
 
     if (!result.status) {
       appUtils.errorMessage(result)
       process.exit(0)
     } else {
       // all cood, continue
-      result = await pluginRelease.release(pluginName, args)
+      result = await pluginRelease.release(pluginName, nextVersion, args)
+      if (!result) {
+        print.error(`An error occured publish ${pluginName}`, 'ERROR')
+        process.exit()
+      }
     }
 
     if (!dryRun) {
-      appUtils.successMessage({ message: `${pluginName} v${pluginVersion} Published Successfully` })
+      appUtils.successMessage({ message: `${pluginName} v${nextVersion} Published Successfully` })
     } else {
       print.warn(`${pluginName} v${pluginVersion} will be published using command`, 'DRY RUN')
       console.log('')
