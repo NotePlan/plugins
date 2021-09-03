@@ -148,7 +148,7 @@ async function main() {
         // FIXME: Wanted to use JSON5 here but it was adding commas that stopped NP from working
         await writeMinifiedPluginFileContents(pluginJson, path.join(targetFolder, 'plugin.json'))
         // await fs.copyFile(pluginJson, path.join(targetFolder, 'plugin.json')) //the non-minified version
-        let pluginJsonData = JSON.parse(await fs.readFile(pluginJson))
+        const pluginJsonData = JSON.parse(await fs.readFile(pluginJson))
         if (limitToFolders.length === 0) {
           await checkPluginList(bundledPlugins)
         }
@@ -161,8 +161,8 @@ async function main() {
 
         let msg = COMPACT
           ? `${dateTime}  ${pluginFolder} (v${pluginJsonData['plugin.version']})`
-          : colors.cyan(`${dateTime} -- ${pluginFolder} (v${pluginJsonData['plugin.version']})`) +
-            '\n   Built and copied to the "Plugins" folder.'
+          : `${colors.cyan(`${dateTime} -- ${pluginFolder} (v${pluginJsonData['plugin.version']})`) 
+            }\n   Built and copied to the "Plugins" folder.`
 
         if (DEBUGGING) {
           msg += colors.yellow(`\n   Built in DEBUG mode. Not ready to deploy.\n`)
