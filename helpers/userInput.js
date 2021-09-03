@@ -5,9 +5,24 @@
 // Last updated 29.8.2021
 //--------------------------------------------------------------------------------------------------------------------
 
-import { calcSmartPrependPoint } from '../helperFunctions'
-import { RE_DATE, RE_DATE_INTERVAL } from '../helperFunctions/dateFunctions'
-import { parseJSON5 } from '../helperFunctions'
+import json5 from 'json5'
+import { calcSmartPrependPoint } from './paragraph'
+import { RE_DATE, RE_DATE_INTERVAL } from './dateTime'
+
+
+// NB: This fn is a local copy from helpers/general.js, to avoid a circular dependency
+async function parseJSON5(
+  contents: string,
+): Promise<?{ [string]: ?mixed }> {
+  try {
+    const value = json5.parse(contents)
+    return (value: any)
+  } catch (e) {
+    console.log(e)
+    await showMessage('Invalid JSON5 in your configuration. Please fix it to use configuration')
+    return {}
+  }
+}
 
 // (from @nmn / nmn.sweep)
 export type Option<T> = $ReadOnly<{
@@ -90,6 +105,7 @@ export async function chooseFolder(
   let folder: string
   const folders = DataStore.folders // excludes Trash and Archive
   if (includeArchive) {
+    // $FlowFixMe
     folders.push("@Archive")
   }
   if (folders.length > 0) {

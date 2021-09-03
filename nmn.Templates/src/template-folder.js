@@ -1,6 +1,6 @@
 // @flow
 
-import { chooseOption, showMessage } from '../../helperFunctions'
+import { chooseOption, showMessage } from '../../helpers/userInput'
 
 const staticTemplateFolder = '📋 Templates'
 

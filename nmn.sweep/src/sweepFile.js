@@ -1,6 +1,6 @@
 // @flow
 
-import { filenameDateString } from './dateHelpers'
+import { filenameDateString } from '../../helpers/dateTime'
 import { default as sweepNote } from './sweepNote'
 
 export default async function sweepFile(): Promise<void> {

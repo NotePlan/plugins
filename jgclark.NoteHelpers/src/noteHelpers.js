@@ -8,10 +8,8 @@
 import {
   projectNotesSortedByChanged,
   printNote,
-} from '../../helperFunctions/noteFunctions'
-import {
-  chooseFolder,
-} from '../../helperFunctions/userInput'
+} from '../../helpers/note'
+import { chooseFolder } from '../../helpers/userInput'
 
 //-----------------------------------------------------------------
 // Command from Eduard to move a note to a different folder

@@ -2,9 +2,14 @@
 //-------------------------------------------------------------------------------
 // Note-level Functions
 
-import {getFolderFromFilename} from '../helperFunctions'
+import { getFolderFromFilename } from './general'
 
-export function printNote(note: TNote) {
+/**
+ * Print summary of note details to log
+ * @author @eduardmet
+ * @param {TNote} note
+ */
+export function printNote(note: TNote): void {
   if (note == null) {
     console.log('Note not found!')
     return
@@ -63,6 +68,25 @@ export async function noteOpener(
         useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename'
       } returned ${(newNote: any)}`,
     )
+  }
+}
+
+/**
+ * Get all notes in a folder
+ * @author @dwertheimer
+ * @param {string} folder name (e.g. 'myFolderName')
+ * @returns {Promise<$ReadOnlyArray<TNote>>} - array of notes in the folder
+ */
+export async function getProjectNotes(forFolder: string = ''): Promise<$ReadOnlyArray<TNote>> {
+  const notes: $ReadOnlyArray<TNote> = await DataStore.projectNotes
+  if (forFolder === '') {
+    return notes
+  } else {
+    // if last character is a slash, remove it
+    const folderWithSlash = forFolder.charAt(forFolder.length - 1) === '/' ? forFolder : `${forFolder}/`
+    const filteredNotes = notes.filter((note) => note.filename.includes(folderWithSlash))
+    console.log(`getProjectNotes() Found ${filteredNotes.length} notes in folder ${forFolder}`)
+    return filteredNotes
   }
 }
 

@@ -1,9 +1,8 @@
 // @flow strict
 // Consolidated files by @dwertheimer
 
-import { hyphenatedDateString, removeDateTags } from './dateHelpers'
-import { chooseOption } from './userInput'
-
+import { hyphenatedDateString, removeDateTags } from '../../helpers/dateTime'
+import { chooseOption } from '../../helpers/userInput'
 export type ReturnStatus = {
   status: string,
   msg: string,

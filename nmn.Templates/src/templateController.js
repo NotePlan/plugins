@@ -1,12 +1,12 @@
 // @flow
 
-import { parseJSON5 } from '../../helperFunctions'
+import { parseJSON5 } from '../../helpers/general'
 import {
   getInput,
   // askForFutureISODate,
   datePicker,
   askDateInterval,
-} from '../../helperFunctions/userInput'
+} from '../../helpers/userInput'
 import {
   listDaysEvents,
   listMatchingDaysEvents,

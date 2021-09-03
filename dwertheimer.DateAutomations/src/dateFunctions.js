@@ -4,7 +4,7 @@
 import strftime from 'strftime'
 
 import { getOrMakeConfigurationSection, getStructuredConfiguration } from '../../nmn.Templates/src/configuration'
-import { hyphenatedDateString } from '../../nmn.sweep/src/dateHelpers'
+import { hyphenatedDateString } from '../../helpers/dateTime'
 
 type DateConfig = $ReadOnly<{
   timezone: string,

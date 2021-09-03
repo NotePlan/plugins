@@ -6,14 +6,17 @@
 //--------------------------------------------------------------------------------------------------------------------
 
 import {
-  nowShortDateTime,
+  showMessage,
   chooseOption,
   chooseFolder,
+} from '../../helpers/userInput'
+import { nowShortDateTime } from '../../helpers/dateTime'
+import { notesInFolderSortedByName } from '../../helpers/note'
+import {
   defaultFileExt,
   getFolderFromFilename,
   titleAsLink,
-  notesInFolderSortedByName,
-} from '../../helperFunctions'
+} from '../../helpers/general'
 
 //-----------------------------------------------------------------
 // Command to calculate the index of a specified folder.

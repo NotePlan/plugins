@@ -31,23 +31,18 @@ const reviewListNoteTitle = '_reviews'
 import {
   showMessage,
   showMessageYesNo,
+} from '../../helpers/userInput'
+import {
   displayTitle,
-  // calcOffsetDate,
-  // relativeDateFromNumber,
-} from '../../helperFunctions'
-
+} from '../../helpers/general'
 import {
   RE_DATE, // find dates of form YYYY-MM-DD
-  hyphenatedDate,
+  hyphenatedDateString,
   nowLocaleDateTime,
-  // calcOffsetDate,
-  // relativeDateFromNumber,
-} from '../../helperFunctions/dateFunctions'
-
+} from '../../helpers/dateTime'
 import {
   getOrMakeConfigurationSection,
 } from '../../nmn.Templates/src/configuration'
-
 import {
   Project,
   returnSummaryNote,
@@ -420,7 +415,7 @@ async function getNextNoteToReview(): Promise<?TNote> {
 export async function completeReview(): Promise<?TNote> {
   const reviewMentionString = '@reviewed'
   const RE_REVIEW_MENTION = `${reviewMentionString}\\(${RE_DATE}\\)`
-  const reviewedTodayString = `@reviewed(${hyphenatedDate(new Date())})`
+  const reviewedTodayString = `@reviewed(${hyphenatedDateString(new Date())})`
 
   // only proceed if we're in a valid Project note (with at least 2 lines)
   if (Editor.note == null || Editor.note.type === 'Calendar' || Editor.paragraphs?.length < 2 ) {

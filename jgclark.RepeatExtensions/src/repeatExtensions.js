@@ -12,7 +12,7 @@ import {
   calcOffsetDateStr,
   // toISODateString,
   // rangeToString,
-} from '../../helperFunctions/dateFunctions'
+} from '../../helpers/dateTime'
 
 //------------------------------------------------------------------
 // Process any completed(or cancelled) tasks with my extended @repeat(..) tags,

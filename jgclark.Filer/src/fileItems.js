@@ -8,10 +8,10 @@
 import {
   parasToText,
   calcSmartPrependPoint,
-} from '../../helperFunctions/paragraphFunctions'
-import { allNotesSortedByChanged } from '../../helperFunctions/noteFunctions'
-import { todaysDateISOString } from '../../helperFunctions/dateFunctions'
-import { chooseHeading } from '../../helperFunctions/userInput'
+} from '../../helpers/paragraph'
+import { allNotesSortedByChanged } from '../../helpers/note'
+import { todaysDateISOString } from '../../helpers/dateTime'
+import { chooseHeading } from '../../helpers/userInput'
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 
 

@@ -6,7 +6,7 @@
 //   Location.reverseGeocode(latitude, longitude) field -> postal town etc.
 
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
-import { getTagParams, stringReplace, capitalize } from '../../helperFunctions'
+import { getTagParams, stringReplace, capitalize } from '../../helpers/general'
 
 //------------------------------------------------------------------------------
 // Preference Settings

@@ -6,13 +6,18 @@
 // ------------------------------------------------------------------------------------
 
 import {
-  showMessage,
-  toLocaleShortTime,
   stringReplace,
   getTagParams,
   // getTagParamsFromString,
+} from '../../helpers/general'
+import {
+  showMessage,
+} from '../../helpers/userInput'
+import {
+  toLocaleShortTime,
   dateStringFromCalendarFilename,
-} from '../../helperFunctions'
+} from '../../helpers/dateTime'
+
 
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 

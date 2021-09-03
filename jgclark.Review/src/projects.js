@@ -12,21 +12,12 @@ import {
   // applyNamedTemplate,
   insertNamedTemplate,
 } from '../../nmn.Templates/src/index'
-
 import {
-  // showMessage,
-  hyphenatedDate,
-  // showMessageYesNo,
-  // nowLocaleDateTime,
-  // displayTitle,
-  // calcOffsetDate,
-  // relativeDateFromNumber,
-} from '../../helperFunctions'
-
+  hyphenatedDateString,
+} from '../../helpers/dateTime'
 import {
   updateReviewListAfterReview,
 } from './reviews'
-
 import {
   getOrMakeMetadataLine,
 } from './reviewHelpers'
@@ -47,7 +38,7 @@ export async function addProject(): Promise<void> {
 export async function completeProject(): Promise<void> {
   console.log(`\ncompleteProject():`)
   const completedMentionString = '@completed'
-  const completedTodayString = `${completedMentionString}(${hyphenatedDate(new Date())})`
+  const completedTodayString = `${completedMentionString}(${hyphenatedDateString(new Date())})`
 
   // only proceed if we're in a valid Project note (with at least 2 lines)
   if (Editor.note == null || Editor.note.type === 'Calendar' || Editor.paragraphs?.length < 2 ) {
