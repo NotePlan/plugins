@@ -96,12 +96,12 @@ module.exports = {
       }
     }
 
-    const currentBranch = await github.currentBranch()
+    // const currentBranch = await github.currentBranch()
+    // if (!preview && currentBranch !== 'main') {
+    //   print.warn('You must be on "main" branch to release plugins', 'ABORT')
+    //   process.exit()
+    // }
 
-    if (!preview && currentBranch !== 'main') {
-      print.warn('You must be on "main" branch to release plugins', 'ABORT')
-      process.exit()
-    }
     const runner = pluginRelease.run(pluginName, nextVersion, args)
   },
 }
