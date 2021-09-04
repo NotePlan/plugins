@@ -30,6 +30,7 @@ module.exports = {
     const releases = []
 
     releaseLines.forEach((release) => {
+      console.log(release)
       const parts = release.split('\t')
       const name = parts[0]
       const tag = parts[2]

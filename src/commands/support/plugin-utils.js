@@ -10,6 +10,7 @@ module.exports = {
     const pluginVersion = configData['plugin.version']
 
     const releaseList = await github.releaseList(pluginName, pluginVersion)
+    dd(releaseList)
 
     const matching = releaseList.filter((release) => {
       return release.tag.includes(`${pluginName}-v${pluginVersion}`)
