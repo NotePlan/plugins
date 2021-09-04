@@ -67,7 +67,7 @@ module.exports = {
 
     // const pluginJsonFilename = path.resolve(pluginName, 'plugin.json')
     let nextVersion = configData['plugin.version']
-    if (!(await pluginUtils.checkVersion(pluginName))) {
+    if (!(await pluginUtils.checkVersion(pluginName, nextVersion))) {
       const existingReleaseName = `${pluginName} v${configData['plugin.version']}`
       print.warn(`Release matching ${colors.cyan(existingReleaseName)} has already been published.`, 'HALT')
       print.info(`       https://github.com/NotePlan/plugins/releases/tag/codedungeon.Toolbox-v${nextVersion}`)

@@ -30,10 +30,8 @@ module.exports = {
     const releases = []
 
     releaseLines.forEach((release) => {
-      console.log(release)
       const parts = release.split('\t')
-      const name = parts[0]
-      const tag = parts[2]
+      const [name, , tag] = parts
       if (tag.includes(pluginName)) {
         const dt = parts.length >= 4 ? parts[3].replace('T', ' ').replace('Z', '') : ''
         releases.push({ name, tag, released: dt })

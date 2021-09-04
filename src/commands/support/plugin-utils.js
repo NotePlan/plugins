@@ -4,13 +4,10 @@ const { filesystem, path } = require('@codedungeon/gunner')
 const github = require('./github')
 
 module.exports = {
-  checkVersion: async function (pluginName) {
+  checkVersion: async function (pluginName, pluginVersion) {
     const pluginPath = path.resolve(pluginName)
-    const configData = this.getPluginConfig(pluginPath)
-    const pluginVersion = configData['plugin.version']
 
     const releaseList = await github.releaseList(pluginName, pluginVersion)
-    dd(releaseList)
 
     const matching = releaseList.filter((release) => {
       return release.tag.includes(`${pluginName}-v${pluginVersion}`)
