@@ -15,7 +15,7 @@ All NotePlan plugins follow `semver` versioning. For details, please refer to [s
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/codedungeon.Toolbox/README.md) for details on available commands and use case.
 
-## [1.2.0] - 2021-09-04 (@mikeerickson)
+## [1.2.1] - 2021-09-04 (@mikeerickson)
 
 ### Added
 - Updated to use new NotePlan helper modules
