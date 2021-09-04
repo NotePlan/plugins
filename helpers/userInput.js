@@ -199,7 +199,7 @@ export async function chooseHeading(
 /**
  * ask for a date interval from user
  * @author @jgclark
- * @param {string} question - string to put in the command bar
+ * @param {string} dateParams - given parameters -- currently only looks for {question:'question test'} parameter
  * @return {string} - the returned interval string, or empty if an invalid string given
  */
 export async function askDateInterval(dateParams: string): Promise<string> {
@@ -215,16 +215,16 @@ export async function askDateInterval(dateParams: string): Promise<string> {
   console.log(`param config: ${dateParams} as ${JSON.stringify(paramConfig)}`)
   // ... = "gather the remaining parameters into an array"
   const allSettings: { [string]: mixed } = { ...paramConfig }
-  console.log(allSettings.toString())
-  // grab just question parameter
-  // const { question, ...otherParams } = (allSettings: any)
-  const { question } = (allSettings: any)
-  console.log(question)
+  // console.log(allSettings.toString())
+  // grab just question parameter, or provide a default
+  let { question } = (allSettings: any)
+  question = (question) ? question : "Please enter a date interval"
+  // console.log(question)
 
-  const reply = await CommandBar.showInput(question, `Date interval: %@`) ?? ''
+  const reply = await CommandBar.showInput(question, `Date interval (in form nn[bdwmqy]): %@`) ?? ''
   const reply2 = reply.trim()
   if (reply2.match(RE_DATE_INTERVAL) == null) {
-    await showMessage(`Sorry: ${reply2} is not a valid date interval`, `OK, I'll try again`)
+    await showMessage(`Sorry: ${reply2} wasn't a valid date interval`, `OK`)
     return ''
   }
   return reply2
@@ -240,10 +240,10 @@ export async function askDateInterval(dateParams: string): Promise<string> {
 // NB: in time @EduardMe should produce a native API call that can improve this
 export async function askForFutureISODate(question: string): Promise<string> {
   // console.log(`askForFutureISODate():`)
-  const reply = await CommandBar.showInput(question, `Date: %@`) ?? ''
+  const reply = await CommandBar.showInput(question, `Date (YYYY-MM-DD): %@`) ?? ''
   const reply2 = reply.replace('>', '').trim() // remove leading '>' and trim
-  if (reply2.match(RE_DATE) == null) { // TODO: TEST this more
-    await showMessage(`Sorry: ${reply2} is not a date of form YYYY-MM-DD`, `OK, I'll try again`)
+  if (reply2.match(RE_DATE) == null) {
+    await showMessage(`Sorry: ${reply2} wasn't a valid date of form YYYY-MM-DD`, `OK`)
     return ''
   }
   return reply2
@@ -252,7 +252,7 @@ export async function askForFutureISODate(question: string): Promise<string> {
 /**
  * ask for a date from user (very simple: they need to enter an ISO date)
  * @author @jgclark, based on @nmn code
- * @param {string} dateParams - string included in the template tag
+ * @param {string} dateParams - given parameters -- currently only looks for {question:'question test'} parameter
  * @param {[string]: ?mixed} config - relevant settings from _configuration note
  * @return {string} - the returned ISO date as a string, or empty if an invalid string given
  */
@@ -273,11 +273,11 @@ export async function datePicker(dateParams: string, config: { [string]: ?mixed 
     ...defaultConfig,
     ...paramConfig,
   }
-  console.log(allSettings.toString())
-  // grab just question parameter
-  // const { question, ...otherParams } = (allSettings: any)
-  const { question } = (allSettings: any)
-  console.log(question)
+  // console.log(allSettings.toString())
+  // grab just question parameter, or provide a default
+  let { question } = (allSettings: any)
+  question = (question) ? question : "Please enter a date"
+  // console.log(question)
   // const localeParam = locale != null ? String(locale) : []
   // const secondParam = {
   //   dateStyle: 'short',
@@ -285,10 +285,10 @@ export async function datePicker(dateParams: string, config: { [string]: ?mixed 
   // }
   // console.log(`${JSON.stringify(localeParam)}, ${JSON.stringify(secondParam)}`);
   // return new Intl.DateTimeFormat(localeParam, secondParam).format(new Date())
-  const reply = await CommandBar.showInput(question, `Date: %@`) ?? ''
+  const reply = await CommandBar.showInput(question, `Date (YYYY-MM-DD): %@`) ?? ''
   const reply2 = reply.replace('>', '').trim() // remove leading '>' and trim
-  if (!reply2.match(RE_DATE)) { // TODO: TEST this more
-    await showMessage(`Sorry: ${reply2} is not a date of form YYYY-MM-DD`, `OK, I'll try again`)
+  if (!reply2.match(RE_DATE)) {
+    await showMessage(`Sorry: ${reply2} wasn't a date of form YYYY-MM-DD`, `OK`)
     return ''
   }
   return reply2
