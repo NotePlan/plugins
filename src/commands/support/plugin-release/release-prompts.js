@@ -61,7 +61,6 @@ module.exports = {
       let version = ''
       if (answer.length > 0) {
         if (answer[0].value === 'Other (Specify)') {
-          console.log('show imput')
           answer = await prompt.input('Enter version', {
             validate(value, state, item, index) {
               if (!semver.valid(value)) {
@@ -82,4 +81,6 @@ module.exports = {
       return version
     }
   },
+
+  changelogPrompt: async function (pluginName, pluginVersion) {},
 }

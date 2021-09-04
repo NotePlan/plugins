@@ -18,6 +18,16 @@ module.exports = {
     return matching.length === 0
   },
 
+  checkChangelogNotes: async function (pluginName = null, version = null) {
+    const changelogFilename = path.resolve(path.join(pluginName, 'CHANGELOG.md'))
+    if (filesystem.existsSync(changelogFilename)) {
+      const data = filesystem.readFileSync(changelogFilename)
+      return data.includes(`## ${version}`) || data.includes(`## [${version}]`)
+    }
+
+    return true
+  },
+
   getFileList: function (pluginName = null) {
     if (!pluginName) {
       throw new Error('getFileList Missing pluginName')

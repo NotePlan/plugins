@@ -1,9 +1,10 @@
-const { colors, helpers, print, strings, system } = require('@codedungeon/gunner')
+const { colors, helpers, print, strings, system, prompt } = require('@codedungeon/gunner')
 const Messenger = require('@codedungeon/messenger')
 const appUtils = require('../utils/app')
 const pluginUtils = require('./support/plugin-utils')
 const pluginRelease = require('./support/plugin-release')
 const releasePrompts = require('./support/plugin-release/release-prompts')
+const github = require('./support/github')
 
 module.exports = {
   name: 'plugin:release',
@@ -84,6 +85,23 @@ module.exports = {
       }
     }
 
+    if (!args.force && !(await pluginUtils.checkChangelogNotes(pluginName, nextVersion))) {
+      print.warn(`Your ${colors.cyan('CHANGELOG.md')} does not contain information for v${nextVersion}`, 'WARN')
+      console.log('')
+      const changelogPrompt = await prompt.toggle('Would you like to continue without updating CHANGELOG.md?')
+      if (!changelogPrompt || !changelogPrompt.answer) {
+        console.log('')
+        print.warn('Release Cancelled', 'ABORT')
+        process.exit()
+      }
+    }
+
+    const currentBranch = await github.currentBranch()
+
+    if (!preview && currentBranch !== 'main') {
+      print.warn('You must be on "main" branch to release plugins', 'ABORT')
+      process.exit()
+    }
     const runner = pluginRelease.run(pluginName, nextVersion, args)
   },
 }

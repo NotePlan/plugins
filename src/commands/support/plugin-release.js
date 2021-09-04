@@ -132,7 +132,7 @@ module.exports = {
 
     tasks.add([
       {
-        title: 'Publishing please',
+        title: 'Publishing release',
         skip: async () => {
           const cmd = await releaseTasks(pluginName, pluginVersion, args)
           if (args.preview) {
@@ -141,6 +141,10 @@ module.exports = {
         },
         task: async () => {
           const cmd = await releaseTasks(pluginName, pluginVersion, args)
+          dd(cmd)
+          if (cmd.includes(`gh release create "${pluginVersion}" -t "${pluginName}" -F`)) {
+            const result = await system.run(cmd, true)
+          }
         },
       },
     ])
