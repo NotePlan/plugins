@@ -1,5 +1,5 @@
 const { colors, helpers, print, system } = require('@codedungeon/gunner')
-const appUtils = require('../utils/app')
+const pluginUtils = require('./support/plugin-utils')
 
 module.exports = {
   name: 'plugin:dev',
@@ -59,7 +59,7 @@ module.exports = {
     const coverage = args.coverage
 
     if (plugin.length > 0) {
-      if (!appUtils.isValidPlugin(plugin)) {
+      if (!pluginUtils.isValidPlugin(plugin)) {
         console.log('')
         toolbox.print.error(`Invalid Plugin "${plugin}"`, 'ERROR')
         toolbox.print.warn(`        Make sure plugin name is spelled correct (case sensitive matters)`)

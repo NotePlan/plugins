@@ -3,8 +3,7 @@
 const { colors, filesystem, path, print, strings } = require('@codedungeon/gunner')
 const Listr = require('listr')
 const tildify = require('tildify')
-const pluginRelease = require('../plugin-release')
-const appUtils = require('../../../utils/app')
+const pluginUtils = require('../plugin-utils')
 
 module.exports = (pluginName, options) => {
   const tasks = [
@@ -43,9 +42,9 @@ module.exports = (pluginName, options) => {
       task: async () => {
         const pluginPath = path.resolve(pluginName)
 
-        const configData = appUtils.getPluginConfig(pluginPath)
+        const configData = pluginUtils.getPluginConfig(pluginPath)
 
-        const missingItems = await pluginRelease.verifyPluginData(pluginName)
+        const missingItems = await pluginUtils.verifyPluginData(pluginName)
         if (missingItems.length > 0) {
           print.error('Missing configuration items', 'ERROR')
           print.warn(`        ${missingItems.join(', ')}`)

@@ -2,8 +2,8 @@ const _findIndex = require('lodash.findindex')
 const colors = require('chalk')
 const Table = require('cli-table3')
 const { print, helpers } = require('@codedungeon/gunner')
-const appUtils = require('../utils/app')
 const createPluginListing = require('../../scripts/createPluginListing')
+const pluginUtils = require('./support/plugin-utils')
 const pluginInfo = require('./support/plugin-info')
 
 module.exports = {
@@ -49,7 +49,7 @@ module.exports = {
       process.exit()
     }
 
-    const commands = appUtils.getPluginCommands('./')
+    const commands = pluginUtils.getPluginCommands('./')
     const tableItems = []
 
     if (check && check.length > 0) {

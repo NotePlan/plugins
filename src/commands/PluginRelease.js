@@ -1,7 +1,8 @@
 const { colors, helpers, print, strings, system } = require('@codedungeon/gunner')
 const Messenger = require('@codedungeon/messenger')
 const appUtils = require('../utils/app')
-const pluginRelease = require('./support/plugin-release-np')
+const pluginUtils = require('./support/plugin-utils')
+const pluginRelease = require('./support/plugin-release')
 const releasePrompts = require('./support/plugin-release/release-prompts')
 
 module.exports = {
@@ -53,12 +54,12 @@ module.exports = {
     const force = args.force || false
     const noTests = args.noTests || false
 
-    const configData = appUtils.getPluginConfig(pluginName)
+    const configData = pluginUtils.getPluginConfig(pluginName)
     const pluginVersion = configData['plugin.version']
 
     // const pluginJsonFilename = path.resolve(pluginName, 'plugin.json')
     let nextVersion = configData['plugin.version']
-    if (!(await pluginRelease.checkVersion(pluginName))) {
+    if (!(await pluginUtils.checkVersion(pluginName))) {
       const existingReleaseName = `${pluginName} v${configData['plugin.version']}`
       print.warn(`Release matching ${colors.cyan(existingReleaseName)} has already been published.`, 'HALT')
       print.info(`       https://github.com/NotePlan/plugins/releases/tag/codedungeon.Toolbox-v${nextVersion}`)
