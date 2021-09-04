@@ -33,6 +33,12 @@ module.exports = {
       description: `Force Plugin Publish ${colors.gray('(will ignore all non required validations)')}`,
       required: false,
     },
+    noBuild: {
+      aliases: ['b'],
+      type: 'boolean',
+      description: `Skip Build Process ${colors.gray('(will use current build)')}`,
+      required: false,
+    },
     noTests: {
       aliases: ['t'],
       type: 'boolean',
@@ -53,6 +59,7 @@ module.exports = {
     const preview = args.preview || false
     const force = args.force || false
     const noTests = args.noTests || false
+    const noBuild = args.noBuild || false
 
     const configData = pluginUtils.getPluginConfig(pluginName)
     const pluginVersion = configData['plugin.version']

@@ -1,5 +1,5 @@
 // @flow
-import { showMessageYesNo, chooseOption } from '../../helperFunctions'
+import { showMessageYesNo, chooseOption } from '../../helpers/userInput'
 
 type Direction = 'open' | 'done' | null
 

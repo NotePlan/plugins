@@ -7,7 +7,7 @@
   "plugin.icon": "",
   "plugin.author": "Naman Goel & Jonathan Clark",
 	"plugin.url": "https://github.com/NotePlan/plugins/tree/main/nmn.Templates/",
-  "plugin.version": "0.8.2",
+  "plugin.version": "0.10.0",
   "plugin.dependencies": [ ],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",

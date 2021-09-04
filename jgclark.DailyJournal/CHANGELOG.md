@@ -1,16 +1,19 @@
 # CHANGELOG
 
+### v0.8.1, 31.8.2021
+- under-the-hood changes responding to underlying framework changes
+
 ### v0.8.0 @dwertheimer
-- Bringing back the OG /dayStart as /todayStart ;) 
+- new: Brought back the original /dayStart as /todayStart ;) 
 
 ### v0.7.1, 7.8.2021
-- now supporting macOS back to v10.13
+- new: now supporting macOS back to v10.13
 
 ### v0.7.0, 6.8.2021
-- the commands now work on whatever daily calendar note is open, not only on today's note
+- new: the commands now work on whatever daily calendar note is open, not only on today's note
 
 ### v0.6.9, 30.7.2021 @dwertheimer
-- changes to weather() template macro to add more fields and use string replacements
+- new: additions to weather() template macro to add more fields and use string replacements
 
 ### v0.6.8, 28.7.2021
 - under-the-hood changes responding to underlying API and framework changes

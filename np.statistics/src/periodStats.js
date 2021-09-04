@@ -40,17 +40,25 @@ let pref_excludeMentions: $ReadOnlyArray<string> = []
 // Helper functions
 
 import {
+  displayTitle,
+  stringReplace,
+  getTagParams,
+} from '../../helpers/general'
+import {
+  showMessage,
   chooseOption,
   getInput,
-  showMessage,
+} from '../../helpers/userInput'
+import {
   todaysDateISOString,
   unhyphenatedDate,
   toISOShortDateTimeString,
   monthNameAbbrev,
   withinDateRange,
   dateStringFromCalendarFilename,
-  displayTitle,
-} from '../../helperFunctions'
+  toLocaleShortTime,
+} from '../../helpers/dateTime'
+
 
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 

@@ -4,13 +4,13 @@ import {
   showMessage,
   chooseOption,
   showMessageYesNo,
-} from '../../helperFunctions/userInput'
+} from '../../helpers/userInput'
 import {
   // parseJSON,
   parseJSON5,
   // parseTOML,
   // parseYAML
-} from '../../helperFunctions'
+} from '../../helpers/general'
 import {
   getOrMakeTemplateFolder,
   createDefaultConfigNote,
@@ -136,8 +136,8 @@ export async function getOrMakeConfigurationSection(
   // console.log('  getOrMakeConfigurationSection: got _configuration file')
 
   // Get config contents
-  let firstCodeblock = content.split('\n```')[1]
-  let config: { [string]: mixed } =
+  const firstCodeblock = content.split('\n```')[1]
+  const config: { [string]: mixed } =
     (await parseFirstCodeblock(firstCodeblock)) ?? {}
 
   // Does it contain the section we want?

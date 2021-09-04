@@ -7,7 +7,7 @@
 
 import {
   showMessage,
-} from '../../helperFunctions/userInput'
+} from '../../helpers/userInput'
 
 import {
   daysBetween,
@@ -15,11 +15,11 @@ import {
   calcOffsetDate,
   relativeDateFromNumber,
   getDateFromString,
-} from '../../helperFunctions/dateFunctions'
+} from '../../helpers/dateTime'
 
 import {
   getFolderFromFilename,
-} from '../../helperFunctions'
+} from '../../helpers/general'
 
 /*
  * Get or create the relevant note in the Summary folder

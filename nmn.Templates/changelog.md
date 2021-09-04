@@ -2,6 +2,8 @@ See Template Plugin [README](https://github.com/NotePlan/plugins/blob/main/nmn.T
 
 # What's Changed in this Plugin?
 
+### 0.10.0 Added {{date8601()}}, {{formattedDateTime('%Y-%m-%d %I:%M:%S %P')}}, {{weekDates()}}
+
 ### 0.8.2 Now checks for valid-looking API key before making openweathermap.org request
 
 ### 0.8.1 Now compiled for macOS versions back to 10.13.0

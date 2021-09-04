@@ -29,9 +29,11 @@ const exec = (cmd, args) => {
 module.exports = {
   run: async (pluginName = '', pluginVersion = '', args = {}) => {
     const runTests = !args?.noTests
+    const runBuild = !args?.noBuild
     const preview = args?.preview
     const testRunner = `./node_modules/.bin/jest`
     const testCommand = ['run', 'test:dev', pluginName]
+    const buildCommand = ['run', 'build', pluginName]
 
     if (args.preview) {
       print.info('Preview Mode')
@@ -62,6 +64,20 @@ module.exports = {
       { showSubtaks: false },
     )
 
+    tasks.add([
+      {
+        title: 'Updating version',
+        skip: () => {
+          if (args.preview) {
+            return `[Preview] update version ${pluginName} ${pluginVersion}`
+          }
+        },
+        task: () => {
+          const result = updateVersionTasks(pluginName, pluginVersion)
+        },
+      },
+    ])
+
     if (runTests) {
       tasks.add([
         {
@@ -88,23 +104,35 @@ module.exports = {
       ])
     }
 
-    tasks.add([
-      {
-        title: 'Updating version',
-        skip: () => {
-          if (args.preview) {
-            return `[Preview] update version ${pluginName} ${pluginVersion}`
-          }
+    if (runBuild) {
+      tasks.add([
+        {
+          title: 'Buliding release',
+          enabled: () => {
+            return true
+          },
+          skip: () => {
+            if (preview) {
+              return `[Preview] npm run build ${pluginName}`
+            }
+          },
+          task: () =>
+            exec('npm', buildCommand).pipe(
+              catchError(async (error) => {
+                console.log(error.stderr)
+                console.log('')
+                print.error('Build failed, release aborted', 'ERROR')
+                process.exit()
+                return throwError(error)
+              }),
+            ),
         },
-        task: () => {
-          const result = updateVersionTasks(pluginName, pluginVersion)
-        },
-      },
-    ])
+      ])
+    }
 
     tasks.add([
       {
-        title: 'Publishing Release',
+        title: 'Publishing please',
         skip: async () => {
           const cmd = await releaseTasks(pluginName, pluginVersion, args)
           if (args.preview) {

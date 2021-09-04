@@ -13,13 +13,13 @@
 // ------------------------------------------------------------------------------------
 
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
-import { showMessageYesNo } from '../../helperFunctions/userInput'
-import { displayTitle } from '../../helperFunctions'
+import { showMessageYesNo } from '../../helpers/userInput'
+import { displayTitle } from '../../helpers/general'
 import {
   printDateRange,
   todaysDateISOString,
   isoDateStringFromCalendarFilename,
-} from '../../helperFunctions/dateFunctions'
+} from '../../helpers/dateTime'
 
 // ------------------------------------------------------------------------------------
 // Settings

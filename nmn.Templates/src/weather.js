@@ -6,24 +6,23 @@
 //   Location.reverseGeocode(latitude, longitude) field -> postal town etc.
 
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
-import { getTagParams, stringReplace, capitalize } from '../../helperFunctions'
+import { getTagParams, stringReplace, capitalize } from '../../helpers/general'
 
 //------------------------------------------------------------------------------
 // Preference Settings
-const DEFAULT_WEATHER_CONFIG = `
-// configuration for weather data (used in Daily Note Template, for example)
-weather: {
-  // API key for https://openweathermap.org/
-  openWeatherAPIKey: '... put your API key here ...', // !!REQUIRED!!
-  // Required location for weather forecast
-  latPosition: 0.0,  // !!REQUIRED!!
-  longPosition: 0.0, // !!REQUIRED!!
-  // Default units. Can be 'metric' (for Celsius), or 'imperial' (for Fahrenheit)
-  openWeatherUnits: 'metric',
-},
+const DEFAULT_WEATHER_CONFIG = `// configuration for weather data (used in Daily Note Template, for example)
+  weather: {
+    // API key for https://openweathermap.org/
+    openWeatherAPIKey: '... put your API key here ...', // !!REQUIRED!!
+    // Required location for weather forecast
+    latPosition: 0.0,  // !!REQUIRED!!
+    longPosition: 0.0, // !!REQUIRED!!
+    // Default units. Can be 'metric' (for Celsius), or 'imperial' (for Fahrenheit)
+    openWeatherUnits: 'metric',
+  },
 `
 
-const minimumConfig = {
+const MINIMUM_WEATHER_CONFIG = {
   openWeatherAPIKey: 'string',
   latPosition: 'number',
   longPosition: 'number',
@@ -69,7 +68,7 @@ export async function getWeatherSummary(
   const weatherConfig = await getOrMakeConfigurationSection(
     'weather',
     DEFAULT_WEATHER_CONFIG,
-    minimumConfig,
+    MINIMUM_WEATHER_CONFIG,
   )
 
   // Get config settings from Template folder _configuration note

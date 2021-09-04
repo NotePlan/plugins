@@ -5,7 +5,7 @@
     "plugin.description": "Helping you move faster with dates",
     "plugin.author": "David Wertheimer, with help from code by @nmn",
     "plugin.url": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.DateAutomations/README.md",
-    "plugin.version": "1.1.1",
+    "plugin.version": "1.2.0",
     "plugin.dependencies": [],
     "plugin.script": "script.js",
     "plugin.commands": [
@@ -56,6 +56,13 @@
         "alias": [
           "strftime"
         ]
-      }
-    ]
+      },
+      {
+        "name": "wd",
+        "description": "Insert dates of current week",
+        "jsFunction": "insertWeekDates",
+        "alias": [
+          "weekDates","week"
+        ]
+      }    ]
   }

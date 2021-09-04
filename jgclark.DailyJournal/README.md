@@ -5,6 +5,9 @@ This plugin provides two commands for daily journalling, including start-of-day 
 - `/todayStart`: Apply your `Daily Note Template` to today's calendar note (which by default includes list of today's events and local weather lookup)
 - `/dayReview`: Ask journal questions for an end-of-day review in the currently open calendar note.
 
+## Changes
+Please see the [CHANGELOG](CHANGELOG.md).
+
 ## Configuration
 ### /dayStart and /todayStart
 `/dayStart` and `/todayStart` use the `Daily Note Template` note found in the `Templates` folder. If this note has not been added, it should prompt you to create one.
@@ -13,7 +16,7 @@ For details of the commands you can use, including a list of events, a quote-of-
 ### /dayReview
 You configure the set of questions to ask in the `Templates/_configuration` note. For example:
 
-```javascript
+```jsonc
 {
 	...
 	dailyJournal: {
