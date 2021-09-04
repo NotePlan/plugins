@@ -1,14 +1,13 @@
-const { colors, helpers, print, strings, system } = require('@codedungeon/gunner')
+const { colors, helpers, print, system } = require('@codedungeon/gunner')
 const Messenger = require('@codedungeon/messenger')
 const appUtils = require('../utils/app')
-const pluginRelease = require('./support/plugin-release-np')
-const releasePrompts = require('./support/plugin-release/release-prompts')
+const pluginRelease = require('./support/plugin-release')
 
 module.exports = {
-  name: 'plugin:release',
+  name: 'plugin:release-old',
   description: 'Releases Plugin to Public Directory',
-  disabled: false,
-  hidden: false,
+  disabled: true,
+  hidden: true,
   usage: `plugin:release ${colors.magenta('<plugin>')} ${colors.blue('[options]')}`,
   usePrompts: true,
   arguments: {
@@ -46,6 +45,8 @@ module.exports = {
   },
 
   async execute(toolbox) {
+    let result = {}
+
     const args = helpers.getArguments(toolbox.arguments, this, { initializeNullValues: true })
 
     const pluginName = args.plugin || toolbox.arguments.plugin || null
@@ -56,26 +57,32 @@ module.exports = {
     const configData = appUtils.getPluginConfig(pluginName)
     const pluginVersion = configData['plugin.version']
 
-    // const pluginJsonFilename = path.resolve(pluginName, 'plugin.json')
-    let nextVersion = configData['plugin.version']
-    if (!(await pluginRelease.checkVersion(pluginName))) {
-      const existingReleaseName = `${pluginName} v${configData['plugin.version']}`
-      print.warn(`Release matching ${colors.cyan(existingReleaseName)} has already been published.`, 'HALT')
-      print.info(`       https://github.com/NotePlan/plugins/releases/tag/codedungeon.Toolbox-v${nextVersion}`)
+    if (preview) {
+      Messenger.line('-')
+      print.log(args, 'DEBUG')
+      Messenger.line('-')
       console.log('')
-      const version = await releasePrompts.versionPrompt(configData['plugin.version'])
-      if (!version) {
-        print.warn('Release Cancelled', 'ABORT')
+    }
+
+    if (!noTests) {
+      result = await pluginRelease.runTests(pluginName)
+      if (!result) {
+        console.log('')
+        print.error('Testing failed, release cancelled.', 'ERROR')
         process.exit()
       } else {
-        nextVersion = strings.raw(version)
-        if (version === 'Abort') {
-          print.warn('Release Cancelled', 'ABORT')
-          process.exit()
-        }
+        console.log('')
       }
     }
 
-    const runner = pluginRelease.run(pluginName, nextVersion, args)
+    result = await pluginRelease.validate(pluginName, args)
+    const nextVersion = result.args[0].nextVersion
+
+    if (!result.status) {
+      appUtils.errorMessage(result)
+      process.exit(0)
+    } else {
+      const runner = pluginRelease.run(pluginName, nextVersion, args)
+    }
   },
 }

@@ -22,4 +22,5 @@ test('codedungeon.Toolbox reorderList', async () => {
   expect(result[4]).toBe('3. item 3')
   expect(result[5]).toBe('4. item 4')
   expect(result[6]).toBe('5. item 5')
+  // expect(true).toBe(false)
 })

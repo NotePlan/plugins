@@ -79,7 +79,7 @@
     "typecheck": "flow check",
     "fix": "npm run lint-fix && npm run format",
     "test": "npm run lint && npm run typecheck",
-    "test:dev": "jest ./codedungeon.Toolbox",
+    "test:dev": "jest",
     "docs": "documentation build '*.js' -f md -o README-helperFunctions.md"
   },
   "prettier": {
@@ -91,6 +91,7 @@
   },
   "dependencies": {
     "@codedungeon/gunner": "0.69.0",
+    "@samverschueren/stream-to-observable": "0.3.1",
     "bump-regex": "4.1.0",
     "commander": "^8.1.0",
     "contentful-html-rich-text-converter": "1.0.9",
@@ -99,7 +100,10 @@
     "git-state": "4.1.0",
     "js-yaml": "^4.1.0",
     "json5": "^2.2.0",
+    "listr": "0.14.3",
+    "rxjs": "6.6.7",
     "showdown": "1.9.1",
+    "split": "1.0.1",
     "strftime": "0.10.0",
     "toml": "^3.0.0"
   }

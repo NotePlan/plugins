@@ -3,10 +3,14 @@ const { filesystem, colors, print, path, system, prompt, strings } = require('@c
 const semver = require('semver')
 const tildify = require('tildify')
 const bump = require('bump-regex')
+const Ora = require('ora')
+const execa = require('execa')
+const { thisExpression } = require('@babel/types')
+const bumpVersion = util.promisify(bump)
 const appUtils = require('../../utils/app')
 const github = require('./github')
 
-const bumpVersion = util.promisify(bump)
+const spinner = new Ora({ discardStdin: false, color: 'blue', text: '' })
 
 module.exports = {
   fail: function (message, ...args) {
@@ -92,8 +96,9 @@ module.exports = {
     let nextVersion = configData['plugin.version']
     if (!(await this.checkVersion(pluginName))) {
       const existingReleaseName = `${pluginName} v${configData['plugin.version']}`
-      print.error(`Release matching ${colors.cyan(existingReleaseName)} has already been published.`, 'ERROR')
-      print.warn('        You will need to bump version number, or delete existing release')
+      print.warn(`Release matching ${colors.cyan(existingReleaseName)} has already been published.`, 'HALT')
+      // print.warn('       You will need to bump version number, or delete existing release')
+      print.info(`       https://github.com/NotePlan/plugins/releases/tag/codedungeon.Toolbox-v${nextVersion}`)
       console.log('')
       const version = await this.versionPrompt(configData['plugin.version'])
       if (!version) {
@@ -111,7 +116,7 @@ module.exports = {
     if (!flags.force && !(await this.checkChangelogNotes(pluginName, nextVersion))) {
       print.warn(`Your ${colors.cyan('CHANGELOG.md')} does not contain information for v${nextVersion}`, 'WARN')
       console.log('')
-      const changelogPrompt = await prompt.boolean('Would you like to continue without updating CHANGELOG.md?')
+      const changelogPrompt = await prompt.toggle('Would you like to continue without updating CHANGELOG.md?')
       if (!changelogPrompt || !changelogPrompt.answer) {
         console.log('')
         print.warn('Release Cancelled', 'ABORT')
@@ -121,7 +126,7 @@ module.exports = {
 
     const fileList = this.getFileList(pluginName)
 
-    const cmd = await github.getReleaseCommand(nextVersion, configData['plugin.name'], fileList, flags.dryRun)
+    const cmd = await github.getReleaseCommand(nextVersion, configData['plugin.name'], fileList, flags.preview)
 
     return this.success(cmd, { nextVersion })
   },
@@ -143,9 +148,12 @@ module.exports = {
       'Abort',
     ]
 
-    const result = await prompt.select('Select semver increment or specify new version', choices, '', {
-      hint: '(use arrow keys to select itme)',
-    })
+    const result = await prompt.select(
+      `${colors.white('Which version would you like to use for this release?')}'`,
+      choices,
+      '',
+      { hint: '(use arrow keys to select item)' },
+    )
 
     if (result) {
       let answer = choices.filter((item) => {
@@ -216,21 +224,40 @@ module.exports = {
     return response
   },
 
+  runTests: async function (pluginName = null) {
+    const cmd = `./node_modules/.bin/jest ./${pluginName}`.trim()
+    try {
+      await system.run(cmd, false)
+      return true
+    } catch (error) {
+      return false
+    }
+  },
+
   release: async function (pluginName = null, nextVersion = null, flags = {}) {
+    this.spinner.start()
+    this.spinner.color = 'blue'
+    this.spinner.indent = 0
+    this.spinner.text = 'Publishing Release'
+
     const configData = appUtils.getPluginConfig(path.resolve(pluginName))
     const fileList = this.getFileList(pluginName)
 
-    const cmd = await github.getReleaseCommand(nextVersion, pluginName, fileList, flags.dryRun)
-    if (flags.dryRun) {
+    const cmd = await github.getReleaseCommand(nextVersion, pluginName, fileList, flags.preview)
+    if (flags.preview) {
+      this.spinner.succeed()
       return { status: true, message: cmd }
     } else {
-      // const executeResult = system.run(cmd, true)
-      print.note('version update disabled', 'NOTE')
       console.log('')
       const executeResult = true
       if (executeResult) {
         await this.updatePluginJsonVersion(pluginName, nextVersion)
       }
+      // const result = system.run(cmd, true)
+      this.spinner.text = 'Plugin Published'
+      this.spinner.succeed()
+      console.log('')
+      print.success(`${pluginName} v${nextVersion} Published Successfully`, 'SUCCESS')
 
       return true
     }
@@ -257,5 +284,76 @@ module.exports = {
     remainder = remainder ? `.${remainder}` : ''
 
     return `${major}.${minor}.${patch}`
+  },
+
+  setup: async function (pluginName, pluginVersion) {
+    this.spinner = spinner
+    this.spinner.start()
+    this.spinner.text = `Preparing ${pluginName} Release`
+    return true
+  },
+
+  initializeRelease: async function (pluginName, pluginVersion) {
+    this.spinner.color = 'blue'
+    this.spinner.text = colors.blue('Initializing Release')
+    this.spinner.color = 'white'
+    this.getFileList(pluginName)
+    this.spinner.text = colors.white('Initalized')
+    this.spinner.succeed()
+    return true
+  },
+
+  prepareSourceFiles: async function (pluginName, pluginVersion) {
+    this.spinner.color = 'blue'
+    this.spinner.text = 'Preparing Source Files...'
+    this.spinner.start()
+    this.spinner.text = 'Files Prepared'
+    this.spinner.succeed()
+    return true
+  },
+
+  executeTests: async function (pluginName, pluginVersion) {
+    this.spinner.start()
+    this.spinner.color = 'blue'
+    this.spinner.indent = 0
+    this.spinner.text = 'Running Tests...'
+
+    execa('./node_modules/.bin/jest', [`./${pluginName}`])
+      .then((result) => {
+        this.spinner.text = 'Testing Completed'
+        this.spinner.succeed()
+        return true
+      })
+      .catch((err) => {
+        console.log('')
+        console.log('')
+        this.spinner.fail('Testing failed, processed aborted')
+        print.error('Testing failed, processed aborted', 'ERROR')
+        process.exit()
+      })
+  },
+
+  run: async function (pluginName, pluginVersion, flags) {
+    console.log()
+
+    setTimeout(() => {
+      this.setup(pluginName, pluginVersion, flags)
+    }, 500)
+
+    setTimeout(() => {
+      this.initializeRelease(pluginName, pluginVersion, flags)
+    }, 2000)
+
+    setTimeout(() => {
+      this.prepareSourceFiles(pluginName, pluginVersion, flags)
+    }, 3000)
+
+    setTimeout(() => {
+      this.executeTests(pluginName, pluginVersion, flags)
+    }, 7500)
+
+    setTimeout(() => {
+      this.release(pluginName, pluginVersion, flags)
+    }, 9000)
   },
 }
