@@ -6,6 +6,7 @@
 //--------------------------------------------------------------------------------------------------------------------
 
 import { showMessage } from '../../helpers/userInput'
+import { displayTitle } from '../../helpers/general'
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 import { applyNamedTemplate } from '../../nmn.Templates/src/index'
 
@@ -37,12 +38,15 @@ function isInt(value) {
   return !isNaN(value) && (x | 0) === x
 }
 
+//------------------------------------------------------------------
+// Main functions
+
+// Start today's daily note with the user's Daily Note Template
 export async function todayStart() {
   await dayStart(true)
 }
 
-//------------------------------------------------------------------
-// Start today's daily note with a template, including local weather lookup if configured
+// Start the currently open daily note with the user's Daily Note Template
 export async function dayStart(today: boolean = false) {
   console.log(`\ndayStart:`)
   if (Editor.note == null || Editor.type !== 'Calendar') {
@@ -118,7 +122,7 @@ export async function dayReview(): Promise<void> {
     // remove type indicators from the question string
     question[i] = questionLines[i].replace(/:|\(|\)|<string>|<int>|<number>|<mood>/g, '').trim()
     const reArray = questionLines[i].match(typeRE)
-    questionType[i] = reArray[1]
+    questionType[i] = reArray?.[1] ?? '<error in question type>'
     // console.log("\t" + i + ": " + question[i] + " / " + questionType[i])
   }
   // Ask each question in turn
@@ -177,6 +181,6 @@ export async function dayReview(): Promise<void> {
   // If this doesn't exist, then append it first.
   console.log(`\tAppending answers to heading '${pref_reviewSectionHeading}'`)
   // If sectionHeading isn't present then it lands up writing '# ## Heading'
-  // FIXME: a bug in the API
+  // FIXME(@EduardMe): a bug in the API
   Editor.addParagraphBelowHeadingTitle(output, 'empty', pref_reviewSectionHeading, true, true)
 }
