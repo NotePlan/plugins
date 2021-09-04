@@ -28,6 +28,12 @@ module.exports = {
     },
   },
   flags: {
+    draft: {
+      aliases: ['d'],
+      type: 'boolean',
+      description: `Create Draft Release`,
+      required: false,
+    },
     force: {
       aliases: ['f'],
       type: 'boolean',
@@ -57,6 +63,7 @@ module.exports = {
     const args = helpers.getArguments(toolbox.arguments, this, { initializeNullValues: true })
 
     const pluginName = args.plugin || toolbox.arguments.plugin || null
+    const draft = args.draft || false
     const preview = args.preview || false
     const force = args.force || false
     const noTests = args.noTests || false

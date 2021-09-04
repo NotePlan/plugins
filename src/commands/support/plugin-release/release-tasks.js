@@ -8,9 +8,9 @@ module.exports = async (pluginName, pluginVersion, flags) => {
   const configData = pluginUtils.getPluginConfig(path.resolve(pluginName))
   const releaseFileList = pluginUtils.getFileList(pluginName)
 
-  const publishRelease = !flags.preview
+  const isDraft = flags?.draft || false
 
-  const cmd = await github.getReleaseCommand(pluginVersion, pluginName, releaseFileList, publishRelease)
+  const cmd = await github.getReleaseCommand(pluginVersion, pluginName, releaseFileList, isDraft)
 
   return cmd
 }
