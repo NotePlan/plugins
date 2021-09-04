@@ -3,6 +3,8 @@
 // Date functions
 // @jgclark except where shown
 
+import strftime from 'strftime'
+
 export const RE_DATE = '\\d{4}-[01]\\d{1}-\\d{2}' // find dates of form YYYY-MM-DD
 export const RE_ISO_DATE = '\\d{4}-[01]\\d{1}-\\d{2}' // find dates of form YYYY-MM-DD
 export const RE_TIME = '[0-2]\\d{1}:[0-5]\\d{1}\\s?(?:AM|PM|am|pm)?' // find '12:23' with optional '[ ][AM|PM|am|pm]'
@@ -11,6 +13,7 @@ export const RE_DATE_INTERVAL = `\\+?\\d+[bdwmqy]`
 export const todaysDateISOString: string = new Date().toISOString().slice(0, 10)
 export const nowShortDateTime: string = new Date().toISOString().slice(0, 16)
 export const nowLocaleDateTime: string = new Date().toLocaleString()
+export const getFormattedTime = (format: string = '%Y-%m-%d %I:%M:%S %P'): string => strftime(format)
 
 // @nmn
 export function getYearMonthDate(dateObj: Date): $ReadOnly<{
@@ -58,11 +61,7 @@ export function toLocaleShortTime(
 }
 
 export function printDateRange(dr: DateRange) {
-  console.log(
-    `DateRange <${toISOShortDateTimeString(
-      dr.start,
-    )} - ${toISOShortDateTimeString(dr.end)}>`,
-  )
+  console.log(`DateRange <${toISOShortDateTimeString(dr.start)} - ${toISOShortDateTimeString(dr.end)}>`)
 }
 
 export function unhyphenatedDate(dateObj: Date): string {
@@ -73,9 +72,7 @@ export function unhyphenatedDate(dateObj: Date): string {
 // @nmn
 export function hyphenatedDateString(dateObj: Date): string {
   const { year, month, date } = getYearMonthDate(dateObj)
-  return `${year}-${month < 10 ? '0' : ''}${month}-${
-    date < 10 ? '0' : ''
-  }${date}`
+  return `${year}-${month < 10 ? '0' : ''}${month}-${date < 10 ? '0' : ''}${date}`
 }
 
 // @nmn
@@ -89,10 +86,7 @@ export function dateStringFromCalendarFilename(filename: string): string {
 }
 
 export function isoDateStringFromCalendarFilename(filename: string): string {
-  return `${filename.slice(0, 4)}-${filename.slice(4, 6)}-${filename.slice(
-    6,
-    8,
-  )}`
+  return `${filename.slice(0, 4)}-${filename.slice(4, 6)}-${filename.slice(6, 8)}`
 }
 
 // @nmn
@@ -117,39 +111,22 @@ export const months = [
   'November',
   'December',
 ]
-export const monthsAbbrev = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-]
+export const monthsAbbrev = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 export function monthNameAbbrev(m: number): string {
   return monthsAbbrev[m - 1]
 }
 
 /* Return difference between start and end dates
-* @param {Date} d1 - start Date
-* @param {Date} d2 - end Date
-* @return {number} - number of days between d1 and d2 (rounded to nearest integer)
-*/
+ * @param {Date} d1 - start Date
+ * @param {Date} d2 - end Date
+ * @return {number} - number of days between d1 and d2 (rounded to nearest integer)
+ */
 export function daysBetween(d1: Date, d2: Date): number {
   return Math.round((d2 - d1) / 1000 / 60 / 60 / 24) // i.e. milliseconds -> days
 }
 
-export function withinDateRange(
-  testDate: string,
-  fromDate: string,
-  toDate: string,
-): boolean {
+export function withinDateRange(testDate: string, fromDate: string, toDate: string): boolean {
   return testDate >= fromDate && testDate <= toDate
 }
 
@@ -161,10 +138,7 @@ export function withinDateRange(
 // console.log(withinDateRange(unhyphenateDate('2021-06-24'), '20210501', '20210531')) // false
 
 // Calculate an offset date, returning ISO datestring
-export function calcOffsetDateStr(
-  oldDateISO: string,
-  interval: string,
-): string {
+export function calcOffsetDateStr(oldDateISO: string, interval: string): string {
   // Calculate an offset date, assuming:
   // - oldDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type
   // - interval is string of form nn[bdwmq], and could be negative
@@ -289,9 +263,9 @@ export function relativeDateFromNumber(diffIn: number): string {
 }
 
 /* Turn a string that includes YYYY-MM-DD into a JS Date
-* @param {string} - string that contains a date e.g. @due(2021-03-04)
-* @return {?Date} - JS Date version, if valid date found
-*/
+ * @param {string} - string that contains a date e.g. @due(2021-03-04)
+ * @return {?Date} - JS Date version, if valid date found
+ */
 export function getDateFromString(mention: string): ?Date {
   const RE_DATE_CAPTURE = `(${RE_DATE})` // capture date of form YYYY-MM-DD
 

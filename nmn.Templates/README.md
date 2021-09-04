@@ -44,7 +44,9 @@ Weather: 🌧️ Moderate rain 14/19°C
 Some examples (more detail below):
 - `{{meetingName}}` -- a tag unknown by the system, so the user will be prompted to enter a meeting name
 - `{{date({locale: 'sv-SE', dateStyle: 'short'})}}` -- Date borrowing the Swedish "Locale" yields ISO-8601 date like `2021-06-21`
-- `{{weather()}}` -- Pulls and insert the current weather into your note (requires configuration)
+- `{{date8601()}}` -- ISO-8601 date like `2021-06-21` (shorter tag, no options)
+- `{{formattedDateTime('%Y-%m-%d %I:%M:%S %P')}}` -- date/time now using [strftime](https://www.strfti.me/) format (pass the version you want)
+-  {{weekDates({startMonday:true, format:`'EEE yyyy-MM-dd'})}} get the span of this week (sun-sat by default) //see [date-fns format](https://date-fns.org/v2.23.0/docs/format)
 - `{{quote()}}` -- Pulls and insert a random quote into your note (requires configuration)
 - `{{sweepTasks()}}` -- Pulls open tasks from previous Project Notes and calendar notes and inserts them in the place of the tag
 - `{{events()}}` or `{{listTodaysEvents()}}` -- insert list of this day's calendar events (requires configuration)
@@ -85,7 +87,7 @@ Does not require any configuration, you can run the simple version (which will p
 `{{sweepTasks()}}`
 but if you choose to, you can pass parameters to the function to have it run automatically. For example:
 ```jsonc
-{{sweepTasks({limit:{ "unit": "day", "num": 7 },includeHeadings:true, noteTypes: ['note','calendar'], ignoreFolders:['📋 Templates',"AnotherFolderNotToSweep"]})}}
+{{sweepTasks({limit:{ "unit": "day", "num": 7 }, requireConfirmation: true, includeHeadings:true, noteTypes: ['note','calendar'], ignoreFolders:['📋 Templates',"AnotherFolderNotToSweep"]})}}
 ```
 sweeps open tasks from the previous 7 days (Project notes & Calendar notes), and includes the headings or indents that the task was under in the original note, but omitting the '📋 Templates' and "AnotherFolderNotToSweep" directories
 

@@ -2,9 +2,18 @@
 // TODO: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat
 
 import strftime from 'strftime'
-
+import {
+  format as dateFormat,
+  formatDistance,
+  formatRelative,
+  subDays,
+  startOfWeek,
+  endOfWeek,
+  lightFormat,
+} from 'date-fns'
 import { getOrMakeConfigurationSection, getStructuredConfiguration } from '../../nmn.Templates/src/configuration'
-import { hyphenatedDateString } from '../../helpers/dateTime'
+import { hyphenatedDateString, getFormattedTime } from '../../helpers/dateTime'
+import { getTagParamsFromString } from '../../helpers/general'
 
 type DateConfig = $ReadOnly<{
   timezone: string,
@@ -157,13 +166,10 @@ export async function insertDateTime() {
   Editor.insertTextAtCursor(`${dateText}`)
 }
 
-function get8601String() {
-  return new Intl.DateTimeFormat('sv-SE', {
-    dateStyle: 'short',
-    timeStyle: 'medium',
-    hour12: false,
-  }).format()
+export function get8601String() {
+  return strftime(`%Y-%m-%d`)
 }
+
 // /now
 export async function insertDateTime8601() {
   Editor.insertTextAtCursor(`${get8601String()}`)
@@ -220,4 +226,50 @@ export async function insertStrftime() {
   const strftimeFormatted = strftime(format)
 
   Editor.insertTextAtCursor(strftimeFormatted)
+}
+
+export async function formattedDateTimeTemplate(paramStr: string = ''): Promise<string> {
+  let retVal = ''
+  if (paramStr === '') {
+    retVal = getFormattedTime() // default
+  } else {
+    const format = await getTagParamsFromString(paramStr, 'format', '')
+    retVal = getFormattedTime(format ? String(format) : undefined)
+  }
+  return retVal
+}
+
+//TODO figure out formats and locales - WIP because
+// {startMonday:true, format:`'EEE yyyy-MM-dd'} // see [date-fns format](https://date-fns.org/v2.23.0/docs/format)
+export async function getWeekDates(paramStr: string = ''): Promise<string> {
+  const startMonday = await getTagParamsFromString(paramStr, 'startMonday', true)
+  const format = await getTagParamsFromString(paramStr, 'format', `%Y-%m-%d`)
+  console.log(startOfWeek(new Date(), { weekStartsOn: 0 }))
+  console.log(startOfWeek(new Date(), { weekStartsOn: 1 }))
+  console.log(startMonday)
+
+  console.log(lightFormat(new Date(startOfWeek(new Date(), { weekStartsOn: startMonday ? 1 : 0 })), 'yyyy-MM-dd'))
+
+  const start = dateFormat(new Date(startOfWeek(new Date(), { weekStartsOn: startMonday ? 1 : 0 })), 'EEE yyyy-MM-dd')
+  console.log(start)
+  const end = dateFormat(new Date(endOfWeek(new Date(), { weekStartsOn: startMonday ? 1 : 0 })), 'EEE yyyy-MM-dd')
+  console.log(end)
+
+  // const curr = new Date() // get current date
+  // const first = curr.getDate() - curr.getDay() - (startMonday ? 0 : 1) // First day is the day of the month - the day of the week
+
+  // const last = first + 6 // last day is the first day + 6
+  // const firstday = new Date(curr.setDate(first)).toDateString()
+  // const lastday = new Date(curr.setDate(last)).toDateString()
+
+  // const myDate = new Date('July 20, 2016 15:00:00')
+  // const nextDayOfMonth = myDate.getDate() + 20
+  // myDate.setDate(nextDayOfMonth)
+  // const newDate = myDate.toLocaleString()
+
+  return `${start} - ${end}`
+}
+
+export async function insertWeekDates() {
+  await Editor.insertTextAtCursor(await getWeekDates())
 }

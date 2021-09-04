@@ -24,9 +24,7 @@ import { hyphenatedDateString } from './dateTime'
 // }
 
 // NB: There is a local copy of this fn in helpers/paragraph.js to avoid a circular dependency
-export async function parseJSON5(
-  contents: string,
-): Promise<?{ [string]: ?mixed }> {
+export async function parseJSON5(contents: string): Promise<?{ [string]: ?mixed }> {
   try {
     const value = json5.parse(contents)
     return (value: any)
@@ -160,12 +158,12 @@ export function getTagParams(paramString: string, wantedParam: string): string {
  * @returns {string} the value of the desired parameter (e.g. 'FOO')
  */
 export async function getTagParamsFromString(
-  paramString: string,
-  wantedParam: string,
+  paramString: string = '',
+  wantedParam: string = '',
   defaultValue: mixed | any = null,
 ): mixed {
-  console.log(`\tgetTagParamsFromString for '${wantedParam}' in '${paramString}'`)
-  if (paramString !== '') {
+  console.log(`\tgetTagParamsFromString look for '${wantedParam}' in '${paramString}'`)
+  if (paramString !== '' && wantedParam !== '') {
     try {
       //$FlowIgnore
       const paramObj: {} = await json5.parse(paramString)
