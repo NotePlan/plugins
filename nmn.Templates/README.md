@@ -46,7 +46,7 @@ Some examples (more detail below):
 - `{{date({locale: 'sv-SE', dateStyle: 'short'})}}` -- Date borrowing the Swedish "Locale" yields ISO-8601 date like `2021-06-21`
 - `{{date8601()}}` -- ISO-8601 date like `2021-06-21` (shorter tag, no options)
 - `{{formattedDateTime('%Y-%m-%d %I:%M:%S %P')}}` -- date/time now using [strftime](https://www.strfti.me/) format (pass the version you want)
--  {{weekDates({startMonday:true, format:`'EEE yyyy-MM-dd'})}} get the span of this week (sun-sat by default) //see [date-fns format](https://date-fns.org/v2.23.0/docs/format)
+- `{{weekDates({startMonday:true, format:'EEE yyyy-MM-dd'})}} get the span of this week (sun-sat by default) //see [date-fns format](https://date-fns.org/v2.23.0/docs/format)`
 - `{{quote()}}` -- Pulls and insert a random quote into your note (requires configuration)
 - `{{sweepTasks()}}` -- Pulls open tasks from previous Project Notes and calendar notes and inserts them in the place of the tag
 - `{{events()}}` or `{{listTodaysEvents()}}` -- insert list of this day's calendar events (requires configuration)
