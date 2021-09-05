@@ -207,12 +207,14 @@ export async function newNoteWithTemplate(
   let folder = targetFolder
   console.log(`newNoteWithTemplate() template="${template}" fileName="${fileName}" targetFolder=${targetFolder}`)
   const folderList = await DataStore.folders.slice().sort()
+  let folderFail = false
   if (targetFolder !== '/' && !folderList.includes(targetFolder)) {
     console.log(
       `newNoteWithTemplate() template="${template}" Folder "${folder}" doesn't exist. Check config. For now. Will ask:`,
     )
     await showMessage(`Can't find folder '${targetFolder}' Pls check _config.`)
     folder = '/'
+    folderFail = true
   }
   if (folderList.length > 0) {
     folder =
@@ -227,7 +229,9 @@ export async function newNoteWithTemplate(
             '/',
           )
   }
-
+  if (folderFail) {
+    await showMessage(`That folder is: "${folder}"`)
+  }
   if (!title) {
     console.log('newNoteWithTemplate: Error: undefined or empty title')
     await showMessage('Cannot create a note with an empty title')
