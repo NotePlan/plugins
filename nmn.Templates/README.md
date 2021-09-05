@@ -118,20 +118,20 @@ You can also place  `{{matchingEvents()}}` or `{{listMatchingEvents()}}` in Temp
 
 ## `/qtn - Quick Template Note` 
 - For templates you use frequently to create documents in a certain place, you can put the details in the _configuration file and run `/qtn` to choose from your pre-configured template/output-folder combinations. 
-### Configuration:
+### Configuration (in the 📋 Templates > `_configuration` note):
 ```jsonc
   quickNotes: [
     { template: 'Daily Note Template', label: 'Daily Note', title: 'Daily Note for {{date8601()}}', folder: '/', editThis: true /* delete this comment and the editThis after you have edited this */  },
   ],
 ```
 ### Features:
-	- NOTE: the first time you run the command, it will put a single-line template into your _configuration folder. Edit that template, delete the `editThis` field and comment and add multiple other fields in the array (separated by commas)
-	Parameters in config:
-	- `template`: The title of the template you want to use
-	- `label`: The short/friendly name you will see when the Command Bar asks you which quickTemplate you want to use
-	- `title`: The title of the note that will be created. Important note: This field can have {{templateTag}} fields in it to either prompt the user for input or to create dynamic data. For instance, if the title is set to `'Daily Note for {{date8601()}}'` (as stated above), the title of the note generated will be: 
-	`Daily Note for 2020-12-12`
-	- `folder`: The full folder path of the folder to create the note in (`"/" for the root, but no leading or trailing slashes for anything else -- e.g. `MyTopLevel/MyNextLevel`)
+- NOTE: the first time you run the command, it will put a single-line template into your _configuration folder. Edit that template, delete the `editThis` field and comment and add multiple other fields in the array (separated by commas)
+Parameters in config:
+- `template`: The title of the template you want to use
+- `label`: The short/friendly name you will see when the Command Bar asks you which quickTemplate you want to use
+- `title`: The title of the note that will be created. Important note: This field can have {{templateTag}} fields in it to either prompt the user for input or to create dynamic data. For instance, if the title is set to `'Daily Note for {{date8601()}}'` (as stated above), the title of the note generated will be: 
+`Daily Note for 2020-12-12`
+- `folder`: The full folder path of the folder to create the note in (`"/" for the root, but no leading or trailing slashes for anything else -- e.g. `MyTopLevel/MyNextLevel`)
 
 ## Changes
 Please see the [CHANGELOG](changelog.md).
