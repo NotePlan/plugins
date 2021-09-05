@@ -31,7 +31,7 @@ Make sure you have a recent version of `node` and `npm` installed (if you need t
 
 **Step 3: Initialize Local Development Environment**
 
-Run the following commands from the root of your local GitHub repository for `NotePlan/plugins`. 
+Run the following commands from the root of your local GitHub repository for `NotePlan/plugins`.
 
 `
 npm install && npm run init
@@ -76,8 +76,6 @@ You can now develop and test your plugin locally,
 **Step 6: Create Pull Request (if you wish to make your plugin public)**
 
 At this point, if you would like to make your plugin available publicly, you can proceed to [creating Pull Request](https://docs.github.com/en/github/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request) to the NotePlan Plugin Repository (see information below)
-
-
 
 ### Common Development Actions
 These are the most common commands you will use while developing:
