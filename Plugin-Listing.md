@@ -62,4 +62,5 @@
 | `tst` | Tasks Sort by #Tag - Sort tasks on the page by hashtag | ✅ Task Automations |
 | `tt` | Tasks to Top - Bring all tasks in note to top | ✅ Task Automations |
 | `wc` | Shows word count and other numbers for the note | 🔢 Note Statistics |
+| `wd` | Insert dates of current week | 📅 Date Automations |
 | `🔌 Plugin Tester` | Simple plugin test to check that plugins are working for you | 🔌 Plugin Tester |

@@ -280,7 +280,7 @@ export async function quickTemplateNote() {
   const quickNotesArray = await getOrMakeConfigurationSection(
     'quickNotes',
     `  quickNotes: [
-    { template: 'Daily Note Template', label: 'Daily Note', title: 'Daily Note for {{date8601()}}', folder: '/', editThis: true /* delete this comment and the editThis after you have edited this */},
+    { template: 'Daily Note Template', label: 'Daily Note', title: 'Daily Note for {{date8601()}}', folder: '/',       editThis: true   /* delete this comment and the editThis after you have edited this */       },
   ],`,
   )
   console.log(`\nquickTemplateNote: quickNotesArray=${String(JSON.stringify(quickNotesArray))}`)
