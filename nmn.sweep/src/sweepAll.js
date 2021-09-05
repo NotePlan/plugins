@@ -41,6 +41,8 @@ export async function sweepTemplate(paramStr: string = ''): Promise<string> {
     const limit: Option1 = await getTagParamsFromString(paramStr, 'limit', {})
     // $FlowIgnore
     const includeHeadings: boolean = await getTagParamsFromString(paramStr, 'includeHeadings', false)
+    //
+    const requireConfirmation: boolean = await getTagParamsFromString(paramStr, 'requireConfirmation', false)
     // $FlowFixMe
     const noteTypes: NoteTypes[] = await getTagParamsFromString(paramStr, 'noteTypes', ['note', 'calendar'])
     // $FlowFixMe
@@ -58,7 +60,8 @@ export async function sweepTemplate(paramStr: string = ''): Promise<string> {
     //   console.log(`Error: ${e}`)
     //   return `Could not parse template parameter: ${paramStr}. Check the documentation. Error: ${e}`
     // }
-    return String(await sweepAll(false, false, limit, true, includeHeadings, noteTypes, ignoreFolders))
+    const retVal = await sweepAll(false, requireConfirmation, limit, true, includeHeadings, noteTypes, ignoreFolders)
+    return String(retVal ?? '')
   }
 }
 

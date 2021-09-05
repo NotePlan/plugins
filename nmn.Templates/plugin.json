@@ -29,7 +29,13 @@
       "alias": ["nn", "template"],
       "description": "Create new note with title, in chosen folder with optional template",
       "jsFunction": "newNoteWithTemplate"
-    }
+    },
+    {
+      "name": "qtn - Quick template note",
+      "alias": ["quick", "template"],
+      "description": "Choose a note and create it based on _configuration settings quickNotes",
+      "jsFunction": "quickTemplateNote"
+    } 
   ],
   "plugin.preferences": []
 }

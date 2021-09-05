@@ -44,15 +44,15 @@ Weather: 🌧️ Moderate rain 14/19°C
 - `{{date({locale: 'sv-SE', dateStyle: 'short'})}}` -- Date borrowing the Swedish "Locale" yields ISO-8601 date like `2021-06-21`
 - `{{date8601()}}` -- ISO-8601 date like `2021-06-21` (shorter tag, no options)
 - `{{formattedDateTime('%Y-%m-%d %I:%M:%S %P')}}` -- date/time now using [strftime](https://www.strfti.me/) format (pass the version you want)
--  `{{weekDates({startMonday:true, format:`'EEE yyyy-MM-dd'})}} get the span of this week (sun-sat by default) //see [date-fns format](https://date-fns.org/v2.23.0/docs/format)
--  `{{datePicker({question:'Enter date for X'})}}` -- Asks user for a date in YYYY-MM-DD format. If no question parameter is specified a default is used.
--  `{{pickDateInterval({question:'Enter date interval for X'})}}` -- Asks user for a date interval, specified as `nn[bdwmqy]`. For more details of this see [Repeat Extensions plugin(https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions/). If no question parameter is specified a default is used.
+- `{{weekDates({startMonday:true, format:'EEE yyyy-MM-dd'})}}` get the span of this week (sun-sat by default) //see [date-fns format](https://date-fns.org/v2.23.0/docs/format)
+- `{{datePicker({question:'Enter date for X'})}}` -- Asks user for a date in YYYY-MM-DD format. If no question parameter is specified a default is used.
+- `{{pickDateInterval({question:'Enter date interval for X'})}}` -- Asks user for a date interval, specified as `nn[bdwmqy]`. For more details of this see [Repeat Extensions plugin(https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions/). If no question parameter is specified a default is used.
 - `{{quote()}}` -- Pulls and insert a random quote into your note (requires configuration)
 - `{{sweepTasks()}}` -- Pulls open tasks from previous Project Notes and calendar notes and inserts them in the place of the tag
 - `{{events()}}` or `{{listTodaysEvents()}}` -- insert list of this day's calendar events (requires configuration)
 - `{{matchingEvents()}}` or `{{listMatchingEvents()}}` -- insert list of this day's calendar events matching user-defined hashtags (requires configuration)
 
-Most naturally require some configuration before they're useful. These details live in the `_configuration` note in NotePlan's `📋 Templates` folder.
+Most naturally require some configuration before they're useful. These settings live in the `_configuration` note in NotePlan's `📋 Templates` folder. For more details see sections below.
 
 - `{{meetingName}}` -- this is a tag unknown by the system, so the user will be prompted to enter a meeting name
 

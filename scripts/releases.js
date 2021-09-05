@@ -76,6 +76,7 @@ async function getExistingRelease(pluginName) {
   console.log(`>>Releases: Getting full release list from Github`)
 
   const releases = await runShellCommand(command)
+
   //   console.log(
   //     `>>Releases Command: "${command}" returned:\n ${JSON.stringify(release)}`,
   //   )
@@ -280,7 +281,7 @@ async function removePlugin(versionedTagName, sendToGithub = false) {
 }
 
 async function checkForGh() {
-  if ( !(await fileExists(`/usr/local/bin/gh`) || await fileExists(`/opt/homebrew/bin/gh`)) ) {
+  if (!((await fileExists(`/usr/local/bin/gh`)) || (await fileExists(`/opt/homebrew/bin/gh`)))) {
     console.log(`${colors.red('>>Releases: ERROR: Could not find "gh" command.')}\n${installInstructions}`)
     process.exit(0)
   }
