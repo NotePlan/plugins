@@ -3,7 +3,7 @@
 //------------------------------------------------------------------------------
 
 import { showMessage, chooseOption, getInput } from '../../helpers/userInput'
-import { getOrMakeConfigurationSection, getStructuredConfiguration } from './configuration'
+import { getOrMakeConfigurationSection, getStructuredConfiguration, openConfigFile } from './configuration'
 import { processTemplate } from './templateController'
 import { getOrMakeTemplateFolder } from './template-folder'
 
@@ -272,10 +272,6 @@ export async function newNoteWithTemplate(
   return
 }
 
-async function openConfig() {
-  await Editor.openNoteByFilename('_configuration')
-}
-
 export async function quickTemplateNote() {
   const quickNotesArray = await getOrMakeConfigurationSection(
     'quickNotes',
@@ -290,7 +286,8 @@ export async function quickTemplateNote() {
     if (quickNotesArray.length === 1 && quickNotesArray[0].editThis) {
       console.log(`quickTemplateNote: editThis=true, so user should edit config`)
       await showMessage(`Please edit the configuration file to add your quick notes.`)
-      await openConfig()
+      await openConfigFile()
+      return
     }
     //$FlowFixMe
     const options = quickNotesArray.map((q) => ({ label: q.label, value: q }))
