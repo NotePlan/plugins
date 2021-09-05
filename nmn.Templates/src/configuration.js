@@ -1,25 +1,37 @@
 // @flow
 
-import {
-  showMessage,
-  chooseOption,
-  showMessageYesNo,
-} from '../../helpers/userInput'
+import { showMessage, chooseOption, showMessageYesNo } from '../../helpers/userInput'
 import {
   // parseJSON,
   parseJSON5,
   // parseTOML,
   // parseYAML
 } from '../../helpers/general'
-import {
-  getOrMakeTemplateFolder,
-  createDefaultConfigNote,
-} from './template-folder'
+import { getOrMakeTemplateFolder, createDefaultConfigNote } from './template-folder'
 
 const ALLOWED_FORMATS = ['javascript', 'json', 'json5', 'yaml', 'toml', 'ini']
 const FORMAT_MAP = {
   javascript: 'json5',
   ini: 'toml',
+}
+
+export async function openConfigFile(): Promise<void> {
+  const templateFolder = await getOrMakeTemplateFolder()
+  if (templateFolder == null) {
+    await ShowMessage('No template folder found')
+    return
+  }
+
+  const configFile = DataStore.projectNotes
+    .filter((n) => n.filename?.startsWith(templateFolder))
+    .find((n) => !!n.title?.startsWith('_configuration'))
+
+  if (configFile == null) {
+    await ShowMessage('No _configuration file found')
+    return
+  }
+
+  await Editor.openNoteByFilename(configFile.filename)
 }
 
 /**
@@ -54,9 +66,7 @@ export async function getStructuredConfiguration(): Promise<?{
  * @param {string} block - contents of first codeblock as string (exludes ``` delimiters)
  * @return {mixed} structured version of this data, in the format specified by the first line of the codeblock
  */
-export async function parseFirstCodeblock(
-  block: string,
-): Promise<?{ [string]: ?mixed }> {
+export async function parseFirstCodeblock(block: string): Promise<?{ [string]: ?mixed }> {
   if (block == null) {
     await showMessage('No configuration block found in configuration file.')
     return {}
@@ -128,17 +138,14 @@ export async function getOrMakeConfigurationSection(
   if (configFile == null || content == null) {
     // Really strange to get here: won't code a response, but will just error.
     console.log(`  getOrMakeConfigurationSection: Error: '_configuration' file not found or empty`)
-    await showMessage(
-      `Error: missing or empty '_configuration' file. Please check.`,
-    )
+    await showMessage(`Error: missing or empty '_configuration' file. Please check.`)
     return {}
   }
   // console.log('  getOrMakeConfigurationSection: got _configuration file')
 
   // Get config contents
   const firstCodeblock = content.split('\n```')[1]
-  const config: { [string]: mixed } =
-    (await parseFirstCodeblock(firstCodeblock)) ?? {}
+  const config: { [string]: mixed } = (await parseFirstCodeblock(firstCodeblock)) ?? {}
 
   // Does it contain the section we want?
   // (use an alternative to dot notation that allows variables)
@@ -165,30 +172,21 @@ export async function getOrMakeConfigurationSection(
           value: false,
         },
       ],
-      false
+      false,
     )
     if (!shouldAddDefaultConfig) {
       return {}
     }
 
     // Add default configuration
-    const backtickParas = configFile.paragraphs.filter((p) =>
-      p.content.match(/```/),
-    )
-    if (
-      backtickParas.length > 0 &&
-      backtickParas[0].content.endsWith('javascript')
-    ) {
+    const backtickParas = configFile.paragraphs.filter((p) => p.content.match(/```/))
+    if (backtickParas.length > 0 && backtickParas[0].content.endsWith('javascript')) {
       // We have an existing codeblock, so insert new default configuration at the top of it
       const startFirstBlockLineNumber = backtickParas[0].lineIndex + 2
       // USED TO DO: insert paragraph just before second ``` line
       // const endFirstBlockLineNumber = backtickParas[1].lineIndex - 1
       if (startFirstBlockLineNumber !== undefined) {
-        configFile.insertParagraph(
-          configSectionDefault,
-          startFirstBlockLineNumber,
-          'text',
-        )
+        configFile.insertParagraph(configSectionDefault, startFirstBlockLineNumber, 'text')
         await showMessage(
           `Inserted default configuration for ${configSectionName}.`,
           `OK: I will cancel and check this before re-running the command.`,
@@ -235,10 +233,7 @@ export async function getOrMakeConfigurationSection(
  * @param {mixed} validations - JSON5 string to use as default values for this configuration section
  * @return {mixed} return this as structured data, in the format specified by the first line of the first codeblock
  */
-function validateMinimumConfig(
-  config: { [string]: mixed },
-  validations: { [string]: mixed },
-): { [string]: mixed } {
+function validateMinimumConfig(config: { [string]: mixed }, validations: { [string]: mixed }): { [string]: mixed } {
   let failed = false
   if (Object.keys(validations).length) {
     Object.keys(validations).forEach((v) => {
@@ -247,9 +242,7 @@ function validateMinimumConfig(
         failed = true
       }
       if (typeof config[v] !== validations[v]) {
-        console.log(
-          `    validateMinimumConfig: Config required field: ${v} is not of type ${String(validations[v])}`,
-        )
+        console.log(`    validateMinimumConfig: Config required field: ${v} is not of type ${String(validations[v])}`)
         failed = true
       }
     })
@@ -259,7 +252,7 @@ function validateMinimumConfig(
     return {}
   } else {
     console.log(
-      `    validateMinimumConfig: passed minimum validation spec` // ; config=\n${JSON.stringify(config)}`
+      `    validateMinimumConfig: passed minimum validation spec`, // ; config=\n${JSON.stringify(config)}`
     )
     return config
   }
