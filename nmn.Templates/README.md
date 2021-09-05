@@ -121,7 +121,7 @@ You can also place  `{{matchingEvents()}}` or `{{listMatchingEvents()}}` in Temp
 ### Configuration (in the 📋 Templates > `_configuration` note):
 ```jsonc
   quickNotes: [
-    { template: 'Daily Note Template', label: 'Daily Note', title: 'Daily Note for {{date8601()}}', folder: '/', editThis: true /* delete this comment and the editThis after you have edited this */  },
+    { template: 'Title of a template here', label: 'Short descriptive name for this quickNote combination', title: 'Title for the created note, can include template tags to be dynamic, e.g. Meeting with {{askForName}} on {{date8601()}}', folder: 'MyRootFolder/MySubFolder',    editThis: true  /* delete this comment and the editThis after you have edited this */   },
   ],
 ```
 ### Features:
