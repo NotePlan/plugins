@@ -116,13 +116,14 @@ You can also place  `{{matchingEvents()}}` or `{{listMatchingEvents()}}` in Temp
 	- weekStartsOn parameter is 1 (Monday) by default. Change it to 0 (Sunday) or another day to start the weeks on a different day
 	- see [date-fns format](https://date-fns.org/v2.23.0/docs/format) for formatting details.
 
-## Command `/qtn - Quick Template Note` 
+## `/qtn - Quick Template Note` 
 - For templates you use frequently to create documents in a certain place, you can put the details in the _configuration file and run `/qtn` to choose from your pre-configured template/output-folder combinations. 
 ### Configuration:
 ```jsonc
   quickNotes: [
     { template: 'Daily Note Template', label: 'Daily Note', title: 'Daily Note for {{date8601()}}', folder: '/', editThis: true /* delete this comment and the editThis after you have edited this */  },
-  ],````
+  ],
+```
 ### Features:
 	- NOTE: the first time you run the command, it will put a single-line template into your _configuration folder. Edit that template, delete the `editThis` field and comment and add multiple other fields in the array (separated by commas)
 	Parameters in config:
