@@ -33,11 +33,6 @@ module.exports = (pluginName, options) => {
     },
 
     {
-      title: 'Version Check',
-      task: async () => {},
-    },
-
-    {
       title: 'Verifying Plugin Configuration',
       task: async () => {
         const pluginPath = path.resolve(pluginName)

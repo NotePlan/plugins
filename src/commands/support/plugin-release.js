@@ -61,7 +61,7 @@ module.exports = {
           task: () => gitTasks(pluginName, args),
         },
       ],
-      { showSubtaks: false },
+      { showSubtaks: true },
     )
 
     tasks.add([

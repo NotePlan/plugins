@@ -10,7 +10,7 @@ module.exports = async (pluginName, pluginVersion, flags) => {
 
   const isDraft = flags?.draft || false
 
-  const cmd = await github.getReleaseCommand(pluginVersion, pluginName, releaseFileList, isDraft)
+  const cmd = await github.getReleaseCommand(pluginVersion, pluginName, releaseFileList, !isDraft)
 
   return cmd
 }
