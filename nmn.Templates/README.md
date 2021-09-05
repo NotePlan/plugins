@@ -125,7 +125,7 @@ You can also place  `{{matchingEvents()}}` or `{{listMatchingEvents()}}` in Temp
   ],
 ```
 ### Features:
-- NOTE: the first time you run the command, it will put a single-line template into your _configuration folder. Edit that template, delete the `editThis` field and comment and add multiple other fields in the array (separated by commas)
+- NOTE: the first time you run the command, it will put a single-line example into your _configuration folder. Edit that example's fields, then delete the `editThis` field and comment (preserving the closing `}`) and add other lines using the same format beneath  (separated by commas)
 Parameters in config:
 - `template`: The title of the template you want to use
 - `label`: The short/friendly name you will see when the Command Bar asks you which quickTemplate you want to use
