@@ -131,7 +131,7 @@ Parameters in config:
 - `label`: The short/friendly name you will see when the Command Bar asks you which quickTemplate you want to use
 - `title`: The title of the note that will be created. Important note: This field can have {{templateTag}} fields in it to either prompt the user for input or to create dynamic data. For instance, if the title is set to `'Daily Note for {{date8601()}}'` (as stated above), the title of the note generated will be: 
 `Daily Note for 2020-12-12`
-- `folder`: The full folder path of the folder to create the note in (`"/" for the root, but no leading or trailing slashes for anything else -- e.g. `MyTopLevel/MyNextLevel`)
+- `folder`: The full folder path of the folder to create the note in (`"/"` for the root, but no leading or trailing slashes for anything else -- e.g. `MyTopLevel/MyNextLevel`)
 
 ## Changes
 Please see the [CHANGELOG](changelog.md).
