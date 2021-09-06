@@ -40,7 +40,8 @@ module.exports = {
     // example retrieving global option
     const quiet = toolbox.getOptionValue(toolbox.arguments, ['quiet', 'q'])
 
-    const args = helpers.getArguments(toolbox.arguments, this.flags)
+    const args = helpers.getArguments(toolbox.arguments, this, { initializeNullValues: true })
+
     const answers = this.usePrompts ? await toolbox.prompts.run(toolbox, this) : []
 
     const check = toolbox.getOptionValue(toolbox.arguments, ['check', 'c'])

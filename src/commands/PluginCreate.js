@@ -53,7 +53,7 @@ module.exports = {
   },
 
   async execute(toolbox) {
-    const cliArgs = helpers.getArguments(toolbox.arguments, this.flags)
+    const cliArgs = helpers.getArguments(toolbox.arguments, this, { initializeNullValues: true })
 
     let flags = null
 
@@ -78,7 +78,7 @@ module.exports = {
         process.exit()
       }
     } else {
-      const promptArgs = helpers.getArguments(toolbox.arguments, this.flags)
+      const promptArgs = helpers.getArguments(toolbox.arguments, this, { initializeNullValues: true })
 
       const answers = this.usePrompts ? await toolbox.prompts.run(toolbox, this) : []
 

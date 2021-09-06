@@ -15,6 +15,12 @@ All NotePlan plugins follow `semver` versioning. For details, please refer to [s
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/codedungeon.Toolbox/README.md) for details on available commands and use case.
 
+## [2.2.0] - 2021-09-06 (@mikeerickson)
+
+### Fixed
+- fixed `plugin:create` command to use latest `@codedungeon/gunner`
+- fixed `plugin:info` command to use latest `@codedungeon/gunner`
+
 ## [2.1.0] - 2021-08-26 (@mikeerickson)
 
 ### Added
