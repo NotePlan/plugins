@@ -198,7 +198,7 @@ const processTemplateTags = async (templateContent: string): Promise<string> => 
 export async function newNoteWithTemplate(
   template: string = '',
   fileName: string = '',
-  targetFolder: string = '/',
+  targetFolder: string = '',
 ): Promise<void> {
   const title = fileName
     ? await processTemplateTags(fileName)
@@ -208,12 +208,12 @@ export async function newNoteWithTemplate(
   console.log(`newNoteWithTemplate() template="${template}" fileName="${fileName}" targetFolder=${targetFolder}`)
   const folderList = await DataStore.folders.slice().sort()
   let folderFail = false
-  if (targetFolder !== '/' && !folderList.includes(targetFolder)) {
+  if (targetFolder !== '' && !folderList.includes(targetFolder)) {
     console.log(
       `newNoteWithTemplate() template="${template}" Folder "${folder}" doesn't exist. Check config. For now. Will ask:`,
     )
     await showMessage(`Can't find folder '${targetFolder}' Pls check _config.`)
-    folder = '/'
+    await openConfigFile()
     folderFail = true
   }
   if (folderList.length > 0) {
@@ -231,6 +231,8 @@ export async function newNoteWithTemplate(
   }
   if (folderFail) {
     await showMessage(`That folder is: "${folder}"`)
+    await openConfigFile()
+    return
   }
   if (!title) {
     console.log('newNoteWithTemplate: Error: undefined or empty title')

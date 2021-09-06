@@ -2,6 +2,8 @@ See Template Plugin [README](https://github.com/NotePlan/plugins/blob/main/nmn.T
 
 # What's Changed in this Plugin?
 
+### 0.10.1 Fixed "/" bug in /qtn (thanks @jgclark!)
+
 ### 0.10.0 Added {{date8601()}}, {{formattedDateTime('%Y-%m-%d %I:%M:%S %P')}}, {{weekDates()}} and /qtn command
 
 ### 0.8.2 Now checks for valid-looking API key before making openweathermap.org request
