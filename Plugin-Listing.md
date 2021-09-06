@@ -45,6 +45,7 @@
 | `qath` | Quickly add a task at the top of a chosen note's heading | ⚡️ Quick Capture |
 | `qpd` | Quickly prepend a task to a chosen daily note | ⚡️ Quick Capture |
 | `qpt` | Quickly prepend a task to a chosen project note | ⚡️ Quick Capture |
+| `qtn - Quick template note` | Choose a note and create it based on _configuration settings quickNotes | 🔩 Templates |
 | `reorderList` | Reorder current ordered list | 🧩 Codedungeon Toolbox |
 | `rpt` | Generate new @repeat() tasks from completed ones | 🔁 @repeat Extensions |
 | `start reviews` | creates/updates a machine-readable list of notes ready for review, and kicks off review of the first project note | 🔬Reviews |
@@ -62,4 +63,5 @@
 | `tst` | Tasks Sort by #Tag - Sort tasks on the page by hashtag | ✅ Task Automations |
 | `tt` | Tasks to Top - Bring all tasks in note to top | ✅ Task Automations |
 | `wc` | Shows word count and other numbers for the note | 🔢 Note Statistics |
+| `wd` | Insert dates of current week | 📅 Date Automations |
 | `🔌 Plugin Tester` | Simple plugin test to check that plugins are working for you | 🔌 Plugin Tester |

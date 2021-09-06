@@ -7,7 +7,7 @@
   "plugin.icon": "",
   "plugin.author": "Naman Goel & Jonathan Clark",
 	"plugin.url": "https://github.com/NotePlan/plugins/tree/main/nmn.Templates/",
-  "plugin.version": "0.10.0",
+  "plugin.version": "0.10.2",
   "plugin.dependencies": [ ],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -29,7 +29,13 @@
       "alias": ["nn", "template"],
       "description": "Create new note with title, in chosen folder with optional template",
       "jsFunction": "newNoteWithTemplate"
-    }
+    },
+    {
+      "name": "qtn - Quick template note",
+      "alias": ["quick", "template", "qnt"],
+      "description": "Choose a note and create it based on _configuration settings quickNotes",
+      "jsFunction": "quickTemplateNote"
+    } 
   ],
   "plugin.preferences": []
 }

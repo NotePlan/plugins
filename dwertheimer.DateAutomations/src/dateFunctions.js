@@ -14,6 +14,7 @@ import {
 import { getOrMakeConfigurationSection, getStructuredConfiguration } from '../../nmn.Templates/src/configuration'
 import { hyphenatedDateString, getFormattedTime } from '../../helpers/dateTime'
 import { getTagParamsFromString } from '../../helpers/general'
+import { showMessage } from '../../helpers/userInput'
 
 type DateConfig = $ReadOnly<{
   timezone: string,
@@ -166,7 +167,7 @@ export async function insertDateTime() {
   Editor.insertTextAtCursor(`${dateText}`)
 }
 
-export function get8601String() {
+export function get8601String(): string {
   return strftime(`%Y-%m-%d`)
 }
 
@@ -239,35 +240,24 @@ export async function formattedDateTimeTemplate(paramStr: string = ''): Promise<
   return retVal
 }
 
-//TODO figure out formats and locales - WIP because
-// {startMonday:true, format:`'EEE yyyy-MM-dd'} // see [date-fns format](https://date-fns.org/v2.23.0/docs/format)
+//TODO FIXME: figure out formats and locales - WIP because the startMondy doesn't work
+// {weekStartsOn:1, format:`'EEE yyyy-MM-dd'} // see [date-fns format](https://date-fns.org/v2.23.0/docs/format)
 export async function getWeekDates(paramStr: string = ''): Promise<string> {
-  const startMonday = await getTagParamsFromString(paramStr, 'startMonday', true)
-  const format = await getTagParamsFromString(paramStr, 'format', `%Y-%m-%d`)
-  console.log(startOfWeek(new Date(), { weekStartsOn: 0 }))
-  console.log(startOfWeek(new Date(), { weekStartsOn: 1 }))
-  console.log(startMonday)
-
-  console.log(lightFormat(new Date(startOfWeek(new Date(), { weekStartsOn: startMonday ? 1 : 0 })), 'yyyy-MM-dd'))
-
-  const start = dateFormat(new Date(startOfWeek(new Date(), { weekStartsOn: startMonday ? 1 : 0 })), 'EEE yyyy-MM-dd')
-  console.log(start)
-  const end = dateFormat(new Date(endOfWeek(new Date(), { weekStartsOn: startMonday ? 1 : 0 })), 'EEE yyyy-MM-dd')
-  console.log(end)
-
-  // const curr = new Date() // get current date
-  // const first = curr.getDate() - curr.getDay() - (startMonday ? 0 : 1) // First day is the day of the month - the day of the week
-
-  // const last = first + 6 // last day is the first day + 6
-  // const firstday = new Date(curr.setDate(first)).toDateString()
-  // const lastday = new Date(curr.setDate(last)).toDateString()
-
-  // const myDate = new Date('July 20, 2016 15:00:00')
-  // const nextDayOfMonth = myDate.getDate() + 20
-  // myDate.setDate(nextDayOfMonth)
-  // const newDate = myDate.toLocaleString()
-
-  return `${start} - ${end}`
+  const weekStartsOn = Number(await getTagParamsFromString(paramStr, 'weekStartsOn', 1))
+  const format = String(await getTagParamsFromString(paramStr, 'format', 'EEE yyyy-MM-dd'))
+  // $FlowFixme complains about number literals even though I am checking them as numbers in arange
+  if (weekStartsOn >= 0 && weekStartsOn <= 6) {
+    // $FlowIgnore
+    console.log(dateFormat(new Date(startOfWeek(new Date(), { weekStartsOn: weekStartsOn })), 'yyyy-MM-dd'))
+    // $FlowIgnore
+    const start = dateFormat(new Date(startOfWeek(new Date(), { weekStartsOn: weekStartsOn })), format)
+    // $FlowIgnore
+    const end = dateFormat(new Date(endOfWeek(new Date(), { weekStartsOn: weekStartsOn })), format)
+    return `${start} - ${end}`
+  } else {
+    showMessage('Error in your format string')
+    return ''
+  }
 }
 
 export async function insertWeekDates() {
