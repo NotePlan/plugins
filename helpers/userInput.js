@@ -9,11 +9,8 @@ import json5 from 'json5'
 import { calcSmartPrependPoint } from './paragraph'
 import { RE_DATE, RE_DATE_INTERVAL } from './dateTime'
 
-
 // NB: This fn is a local copy from helpers/general.js, to avoid a circular dependency
-async function parseJSON5(
-  contents: string,
-): Promise<?{ [string]: ?mixed }> {
+async function parseJSON5(contents: string): Promise<?{ [string]: ?mixed }> {
   try {
     const value = json5.parse(contents)
     return (value: any)
@@ -30,15 +27,14 @@ export type Option<T> = $ReadOnly<{
   value: T,
 }>
 
-
-/** 
+/**
  * ask user to choose from a set of options (from nmn.sweep)
  * @author @nmn
  * @param {string} message - text to display to user
  * @param {Array<T>} options - array of label:value options to present to the user
  * @param {TDefault} defaultValue - default label:value to use
  * @return {TDefault} - string that the user enters. Maybe be the empty string.
- */ 
+ */
 export async function chooseOption<T, TDefault = T>(
   message: string,
   options: $ReadOnlyArray<Option<T>>,
@@ -51,17 +47,14 @@ export async function chooseOption<T, TDefault = T>(
   return options[index]?.value ?? defaultValue
 }
 
-/** 
+/**
  * ask user to give arbitary input (from nmn.sweep)
  * @author @nmn
  * @param {string} message - text to display to user
  * @param {string} okLabel - the "button" (option) text (default: 'OK')
  * @return {string} - string that the user enters. Maybe be the empty string.
- */ 
-export async function getInput(
-  message: string,
-  okLabel: string = 'OK',
-): Promise<string> {
+ */
+export async function getInput(message: string, okLabel: string = 'OK'): Promise<string> {
   return await CommandBar.showInput(message, okLabel)
 }
 
@@ -71,10 +64,7 @@ export async function getInput(
  * @param {string} message - text to display to user
  * @param {string} confirmTitle - the "button" (option) text (default: 'OK')
  */
-export async function showMessage(
-  message: string,
-  confirmTitle: string = 'OK',
-): Promise<void> {
+export async function showMessage(message: string, confirmTitle: string = 'OK'): Promise<void> {
   await CommandBar.showOptions([confirmTitle], message)
 }
 
@@ -84,10 +74,7 @@ export async function showMessage(
  * @param {Array<string>} - an array of the choices to give (default: ['Yes', 'No'])
  * @returns {string} - returns the user's choice - the actual *text* choice from the input array provided
  */
-export async function showMessageYesNo(
-  message: string,
-  choicesArray: Array<string> = ['Yes', 'No'],
-): Promise<string> {
+export async function showMessageYesNo(message: string, choicesArray: Array<string> = ['Yes', 'No']): Promise<string> {
   const answer = await CommandBar.showOptions(choicesArray, message)
   return choicesArray[answer.index]
 }
@@ -98,15 +85,12 @@ export async function showMessageYesNo(
  * @param {string} message - text to display to user
  * @returns {string} - returns the user's folder choice (or / for root)
  */
-export async function chooseFolder(
-  msg: string,
-  includeArchive: boolean = false,
-): Promise<string> {
+export async function chooseFolder(msg: string, includeArchive: boolean = false): Promise<string> {
   let folder: string
   const folders = DataStore.folders // excludes Trash and Archive
   if (includeArchive) {
     // $FlowFixMe
-    folders.push("@Archive")
+    folders.push('@Archive')
   }
   if (folders.length > 0) {
     // make a slightly fancy list with indented labels, different from plain values
@@ -117,9 +101,7 @@ export async function chooseFolder(
         for (let i = 0; i < folderParts.length - 1; i++) {
           folderParts[i] = '     '
         }
-        folderParts[folderParts.length - 1] = `📁 ${
-          folderParts[folderParts.length - 1]
-        }`
+        folderParts[folderParts.length - 1] = `📁 ${folderParts[folderParts.length - 1]}`
         const folderLabel = folderParts.join('')
         folderOptionList.push({ label: folderLabel, value: f })
       } else {
@@ -147,7 +129,7 @@ export async function chooseFolder(
 export async function chooseHeading(
   note: TNote,
   optionAddAtBottom: boolean = true,
-  optionCreateNewHeading: boolean = false
+  optionCreateNewHeading: boolean = false,
 ): Promise<string> {
   let headingStrings = []
   const headingParas = note.paragraphs.filter((p) => p.type === 'title') // = all headings, not just the top 'title'
@@ -174,7 +156,7 @@ export async function chooseHeading(
   }
   const result = await CommandBar.showOptions(
     headingStrings,
-    `Select a heading from note '${note.title ?? 'Untitled'}'`
+    `Select a heading from note '${note.title ?? 'Untitled'}'`,
   )
   let headingToFind = headingStrings[result.index].trim()
   if (headingToFind === '➕ ⬆️ (first insert new heading at the start of the note)') {
@@ -209,8 +191,8 @@ export async function askDateInterval(dateParams: string): Promise<string> {
     dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}')
       ? await parseJSON5(dateParams)
       : dateParamsTrimmed !== ''
-        ? await parseJSON5(`{${dateParams}}`)
-        : {}
+      ? await parseJSON5(`{${dateParams}}`)
+      : {}
   // $FlowFixMe
   console.log(`param config: ${dateParams} as ${JSON.stringify(paramConfig)}`)
   // ... = "gather the remaining parameters into an array"
@@ -218,10 +200,10 @@ export async function askDateInterval(dateParams: string): Promise<string> {
   // console.log(allSettings.toString())
   // grab just question parameter, or provide a default
   let { question } = (allSettings: any)
-  question = (question) ? question : "Please enter a date interval"
+  question = question ? question : 'Please enter a date interval'
   // console.log(question)
 
-  const reply = await CommandBar.showInput(question, `Date interval (in form nn[bdwmqy]): %@`) ?? ''
+  const reply = (await CommandBar.showInput(question, `Date interval (in form nn[bdwmqy]): %@`)) ?? ''
   const reply2 = reply.trim()
   if (reply2.match(RE_DATE_INTERVAL) == null) {
     await showMessage(`Sorry: ${reply2} wasn't a valid date interval`, `OK`)
@@ -240,7 +222,7 @@ export async function askDateInterval(dateParams: string): Promise<string> {
 // NB: in time @EduardMe should produce a native API call that can improve this
 export async function askForFutureISODate(question: string): Promise<string> {
   // console.log(`askForFutureISODate():`)
-  const reply = await CommandBar.showInput(question, `Date (YYYY-MM-DD): %@`) ?? ''
+  const reply = (await CommandBar.showInput(question, `Date (YYYY-MM-DD): %@`)) ?? ''
   const reply2 = reply.replace('>', '').trim() // remove leading '>' and trim
   if (reply2.match(RE_DATE) == null) {
     await showMessage(`Sorry: ${reply2} wasn't a valid date of form YYYY-MM-DD`, `OK`)
@@ -264,8 +246,8 @@ export async function datePicker(dateParams: string, config: { [string]: ?mixed 
     dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}')
       ? await parseJSON5(dateParams)
       : dateParamsTrimmed !== ''
-        ? await parseJSON5(`{${dateParams}}`)
-        : {}
+      ? await parseJSON5(`{${dateParams}}`)
+      : {}
   // $FlowFixMe
   console.log(`param config: ${dateParams} as ${JSON.stringify(paramConfig)}`)
   // ... = "gather the remaining parameters into an array"
@@ -276,7 +258,7 @@ export async function datePicker(dateParams: string, config: { [string]: ?mixed 
   // console.log(allSettings.toString())
   // grab just question parameter, or provide a default
   let { question } = (allSettings: any)
-  question = (question) ? question : "Please enter a date"
+  question = question ? question : 'Please enter a date'
   // console.log(question)
   // const localeParam = locale != null ? String(locale) : []
   // const secondParam = {
@@ -285,7 +267,7 @@ export async function datePicker(dateParams: string, config: { [string]: ?mixed 
   // }
   // console.log(`${JSON.stringify(localeParam)}, ${JSON.stringify(secondParam)}`);
   // return new Intl.DateTimeFormat(localeParam, secondParam).format(new Date())
-  const reply = await CommandBar.showInput(question, `Date (YYYY-MM-DD): %@`) ?? ''
+  const reply = (await CommandBar.showInput(question, `Date (YYYY-MM-DD): %@`)) ?? ''
   const reply2 = reply.replace('>', '').trim() // remove leading '>' and trim
   if (!reply2.match(RE_DATE)) {
     await showMessage(`Sorry: ${reply2} wasn't a date of form YYYY-MM-DD`, `OK`)
@@ -304,26 +286,22 @@ export function isInt(value: string): boolean {
 
 // ask for a (floating point) number from user
 export async function inputInteger(question: string): Promise<number> {
-  const reply = await CommandBar.showInput(question,`Answer: %@`)
+  const reply = await CommandBar.showInput(question, `Answer: %@`)
   if (reply != null && isInt(reply)) {
     return Number(reply)
   } else {
-    console.log(
-      `\tERROR trying to get number answer for question '${question}'`,
-    )
+    console.log(`\tERROR trying to get number answer for question '${question}'`)
     return NaN
   }
 }
 
 // ask for an integer from user
 export async function inputNumber(question: string): Promise<number> {
-  const reply = await CommandBar.showInput(question,`Answer: %@`)
+  const reply = await CommandBar.showInput(question, `Answer: %@`)
   if (reply != null && Number(reply)) {
     return Number(reply)
   } else {
-    console.log(
-      `\tERROR trying to get integer answer for question '${question}'`,
-    )
+    console.log(`\tERROR trying to get integer answer for question '${question}'`)
     return NaN
   }
 }
@@ -336,10 +314,7 @@ export async function inputNumber(question: string): Promise<number> {
  */
 // $FlowFixMe
 export async function inputMood(moodArray: Array<string>): Promise<string> {
-  const reply = await CommandBar.showOptions(
-    moodArray,
-    `Please choose appropriate mood`,
-  )
+  const reply = await CommandBar.showOptions(moodArray, `Please choose appropriate mood`)
   const replyMood = moodArray[reply.index]
   if (replyMood != null && replyMood !== '') {
     return replyMood

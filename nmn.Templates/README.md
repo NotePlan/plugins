@@ -4,6 +4,7 @@
 The Templates plugin allows you to create Markdown templates for note formats you use frequently (like a meeting note or a daily note). The base capability is essentially a copy/paste of a template file into a new note. So if you just want to have a basic form to fill in when you need it, you can run:
 - `/nn` command to create a new note from a template of your choice/making
 - `/it` pastes the template to the note you are already in (inserts the template text at the bottom)
+- `/qtn` - Quick Template Note - For templates you use frequently to create documents in a certain place, you can put the details in the _configuration file and run `/qtn` to choose from your pre-configured template/output-folder combinations. Requires configuration, read [details below](##-Command-`/qtn---Quick-Template-Note`).
 
 Templates gets more interesting when you include tags in your template which get filled in when the template is **inserted or applied** (keep this in mind ... the template tags don't update after this).
 
@@ -43,16 +44,16 @@ Weather: 🌧️ Moderate rain 14/19°C
 ## Available Tags
 - `{{date({locale: 'sv-SE', dateStyle: 'short'})}}` -- Date borrowing the Swedish "Locale" yields ISO-8601 date like `2021-06-21`
 - `{{date8601()}}` -- ISO-8601 date like `2021-06-21` (shorter tag, no options)
-- `{{formattedDateTime('%Y-%m-%d %I:%M:%S %P')}}` -- date/time now using [strftime](https://www.strfti.me/) format (pass the version you want)
-- `{{weekDates({startMonday:true, format:'EEE yyyy-MM-dd'})}}` get the span of this week (sun-sat by default) //see [date-fns format](https://date-fns.org/v2.23.0/docs/format)
-- `{{datePicker({question:'Enter date for X'})}}` -- Asks user for a date in YYYY-MM-DD format. If no question parameter is specified a default is used.
-- `{{pickDateInterval({question:'Enter date interval for X'})}}` -- Asks user for a date interval, specified as `nn[bdwmqy]`. For more details of this see [Repeat Extensions plugin(https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions/). If no question parameter is specified a default is used.
+- `{{formattedDateTime({format:'%Y-%m-%d %I:%M:%S %P'})}}` -- date/time now using [strftime](https://www.strfti.me/) format (pass the version you want)
+-  `{{weekDates({startMonday:true, format:`'EEE yyyy-MM-dd'})}} -- get the span of this week (e.g. "Mon 2021-08-30 - Sun 2021-09-05" -- mon-sun by default) //see below and [date-fns format](https://date-fns.org/v2.23.0/docs/format)
+-  `{{datePicker({question:'Enter date for X'})}}` -- Asks user for a date in YYYY-MM-DD format. If no question parameter is specified a default is used.
+-  `{{pickDateInterval({question:'Enter date interval for X'})}}` -- Asks user for a date interval, specified as `nn[bdwmqy]`. For more details of this see [Repeat Extensions plugin(https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions/). If no question parameter is specified a default is used.
 - `{{quote()}}` -- Pulls and insert a random quote into your note (requires configuration)
 - `{{sweepTasks()}}` -- Pulls open tasks from previous Project Notes and calendar notes and inserts them in the place of the tag
 - `{{events()}}` or `{{listTodaysEvents()}}` -- insert list of this day's calendar events (requires configuration)
 - `{{matchingEvents()}}` or `{{listMatchingEvents()}}` -- insert list of this day's calendar events matching user-defined hashtags (requires configuration)
 
-Most naturally require some configuration before they're useful. These settings live in the `_configuration` note in NotePlan's `📋 Templates` folder. For more details see sections below.
+Most naturally require some configuration before they're useful. These details live in the `_configuration` note in NotePlan's `📋 Templates` folder.
 
 - `{{meetingName}}` -- this is a tag unknown by the system, so the user will be prompted to enter a meeting name
 
@@ -108,6 +109,29 @@ It uses date/time mentions which follow your chosen locale settings -- which can
 The `*|TITLE|*`, `*|START|*` and `*|END|*` can be mixed with whatever markdown characters or other text you like, and they will get replaced accordingly for each event found. (Note the difference between the } and ) bracket types, and use of double quotes around the template string. I didn't design all of this!)
 
 You can also place  `{{matchingEvents()}}` or `{{listMatchingEvents()}}` in Templates in a similar way, and similar customisation is possible. However, it is defined in a different way, using the matches and template strings defined in the \_configuration file's `addMatchingEvents` array, as shown above.
+
+### weekDates - ouput the beginning and end span/dates of the current week (e.g. Mon-Sun)
+-  `{{weekDates({weekStartsOn:1, format:"EEE yyyy-MM-dd"})}}` -- get the span of this week 
+	- e.g. `Mon 2021-08-30 - Sun 2021-09-05` (mon-sun by default) 
+	- weekStartsOn parameter is 1 (Monday) by default. Change it to 0 (Sunday) or another day to start the weeks on a different day
+	- see [date-fns format](https://date-fns.org/v2.23.0/docs/format) for formatting details.
+
+## `/qtn - Quick Template Note` 
+- For templates you use frequently to create documents in a certain place, you can put the details in the _configuration file and run `/qtn` to choose from your pre-configured template/output-folder combinations. 
+### Configuration (in the 📋 Templates > `_configuration` note):
+```jsonc
+  quickNotes: [
+    { template: 'Title of a template here', label: 'Short descriptive name for this quickNote combination', title: 'Title for the created note, can include template tags to be dynamic, e.g. Meeting with {{askForName}} on {{date8601()}}', folder: 'MyRootFolder/MySubFolder',    editThis: true  /* delete this comment and the editThis after you have edited this */   },
+  ],
+```
+### Features:
+- NOTE: the first time you run the command, it will put a single-line example into your _configuration folder. Edit that example's fields, then delete the `editThis` field and comment (preserving the closing `}`) and add other lines using the same format beneath  (separated by commas)
+Parameters in config:
+- `template`: The title of the template you want to use
+- `label`: The short/friendly name you will see when the Command Bar asks you which quickTemplate you want to use
+- `title`: The title of the note that will be created. Important note: This field can have {{templateTag}} fields in it to either prompt the user for input or to create dynamic data. For instance, if the title is set to `'Daily Note for {{date8601()}}'` (as stated above), the title of the note generated will be: 
+`Daily Note for 2020-12-12`
+- `folder`: The full folder path of the folder to create the note in (`"/"` for the root, but no leading or trailing slashes for anything else -- e.g. `MyTopLevel/MyNextLevel`)
 
 ## Changes
 Please see the [CHANGELOG](changelog.md).

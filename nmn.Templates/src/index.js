@@ -3,7 +3,7 @@
 //------------------------------------------------------------------------------
 
 import { showMessage, chooseOption, getInput } from '../../helpers/userInput'
-import { getOrMakeConfigurationSection, getStructuredConfiguration } from './configuration'
+import { getOrMakeConfigurationSection, getStructuredConfiguration, openConfigFile } from './configuration'
 import { processTemplate } from './templateController'
 import { getOrMakeTemplateFolder } from './template-folder'
 
@@ -198,7 +198,7 @@ const processTemplateTags = async (templateContent: string): Promise<string> => 
 export async function newNoteWithTemplate(
   template: string = '',
   fileName: string = '',
-  targetFolder: string = '/',
+  targetFolder: string = '',
 ): Promise<void> {
   const title = fileName
     ? await processTemplateTags(fileName)
@@ -208,12 +208,12 @@ export async function newNoteWithTemplate(
   console.log(`newNoteWithTemplate() template="${template}" fileName="${fileName}" targetFolder=${targetFolder}`)
   const folderList = await DataStore.folders.slice().sort()
   let folderFail = false
-  if (targetFolder !== '/' && !folderList.includes(targetFolder)) {
+  if (targetFolder !== '' && !folderList.includes(targetFolder)) {
     console.log(
       `newNoteWithTemplate() template="${template}" Folder "${folder}" doesn't exist. Check config. For now. Will ask:`,
     )
     await showMessage(`Can't find folder '${targetFolder}' Pls check _config.`)
-    folder = '/'
+    await openConfigFile()
     folderFail = true
   }
   if (folderList.length > 0) {
@@ -231,6 +231,8 @@ export async function newNoteWithTemplate(
   }
   if (folderFail) {
     await showMessage(`That folder is: "${folder}"`)
+    await openConfigFile()
+    return
   }
   if (!title) {
     console.log('newNoteWithTemplate: Error: undefined or empty title')
@@ -272,15 +274,11 @@ export async function newNoteWithTemplate(
   return
 }
 
-async function openConfig() {
-  await Editor.openNoteByFilename('_configuration')
-}
-
 export async function quickTemplateNote() {
   const quickNotesArray = await getOrMakeConfigurationSection(
     'quickNotes',
     `  quickNotes: [
-    { template: 'Daily Note Template', label: 'Daily Note', title: 'Daily Note for {{date8601()}}', folder: '/', editThis: true /* delete this comment and the editThis after you have edited this */},
+    { template: "Title of a template here", label: "Short descriptive name for this quickNote combination", title: "Title for the created note, can include template tags to be dynamic, e.g. Meeting with {{askForName}} on {{date8601()}}", folder: "MyRootFolder/MySubFolder",    editThis: true  /* delete this comment and the editThis after you have edited this */   },
   ],`,
   )
   console.log(`\nquickTemplateNote: quickNotesArray=${String(JSON.stringify(quickNotesArray))}`)
@@ -290,7 +288,8 @@ export async function quickTemplateNote() {
     if (quickNotesArray.length === 1 && quickNotesArray[0].editThis) {
       console.log(`quickTemplateNote: editThis=true, so user should edit config`)
       await showMessage(`Please edit the configuration file to add your quick notes.`)
-      await openConfig()
+      await openConfigFile()
+      return
     }
     //$FlowFixMe
     const options = quickNotesArray.map((q) => ({ label: q.label, value: q }))

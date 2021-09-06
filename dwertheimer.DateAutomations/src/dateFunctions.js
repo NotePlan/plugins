@@ -240,18 +240,14 @@ export async function formattedDateTimeTemplate(paramStr: string = ''): Promise<
 }
 
 //TODO FIXME: figure out formats and locales - WIP because the startMondy doesn't work
-// {startMonday:true, format:`'EEE yyyy-MM-dd'} // see [date-fns format](https://date-fns.org/v2.23.0/docs/format)
+// {weekStartsOn:1, format:`'EEE yyyy-MM-dd'} // see [date-fns format](https://date-fns.org/v2.23.0/docs/format)
 export async function getWeekDates(paramStr: string = ''): Promise<string> {
-  const startMonday = await getTagParamsFromString(paramStr, 'startMonday', true)
-  const format = await getTagParamsFromString(paramStr, 'format', 'EEE yyyy-MM-dd')
-  console.log(startOfWeek(new Date(), { weekStartsOn: 0 }))
-  console.log(startOfWeek(new Date(), { weekStartsOn: 1 }))
-  console.log(startMonday)
-  console.log(dateFormat(new Date(startOfWeek(new Date(), { weekStartsOn: startMonday ? 1 : 0 })), 'yyyy-MM-dd'))
-  const start = dateFormat(new Date(startOfWeek(new Date(), { weekStartsOn: startMonday ? 1 : 0 })), 'EEE yyyy-MM-dd')
-  console.log(start)
-  const end = dateFormat(new Date(endOfWeek(new Date(), { weekStartsOn: startMonday ? 1 : 0 })), 'EEE yyyy-MM-dd')
-  console.log(end)
+  const weekStartsOn = Number(await getTagParamsFromString(paramStr, 'weekStartsOn', 1))
+  const format = String(await getTagParamsFromString(paramStr, 'format', 'EEE yyyy-MM-dd'))
+  // $FlowFixme
+  console.log(dateFormat(new Date(startOfWeek(new Date(), { weekStartsOn: weekStartsOn })), 'yyyy-MM-dd'))
+  const start = dateFormat(new Date(startOfWeek(new Date(), { weekStartsOn: weekStartsOn })), format)
+  const end = dateFormat(new Date(endOfWeek(new Date(), { weekStartsOn: weekStartsOn })), format)
   return `${start} - ${end}`
 }
 
