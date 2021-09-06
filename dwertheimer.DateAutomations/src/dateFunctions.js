@@ -14,6 +14,7 @@ import {
 import { getOrMakeConfigurationSection, getStructuredConfiguration } from '../../nmn.Templates/src/configuration'
 import { hyphenatedDateString, getFormattedTime } from '../../helpers/dateTime'
 import { getTagParamsFromString } from '../../helpers/general'
+import { showMessage } from '../../helpers/userInput'
 
 type DateConfig = $ReadOnly<{
   timezone: string,
@@ -166,7 +167,7 @@ export async function insertDateTime() {
   Editor.insertTextAtCursor(`${dateText}`)
 }
 
-export function get8601String() {
+export function get8601String(): string {
   return strftime(`%Y-%m-%d`)
 }
 
@@ -244,11 +245,19 @@ export async function formattedDateTimeTemplate(paramStr: string = ''): Promise<
 export async function getWeekDates(paramStr: string = ''): Promise<string> {
   const weekStartsOn = Number(await getTagParamsFromString(paramStr, 'weekStartsOn', 1))
   const format = String(await getTagParamsFromString(paramStr, 'format', 'EEE yyyy-MM-dd'))
-  // $FlowFixme
-  console.log(dateFormat(new Date(startOfWeek(new Date(), { weekStartsOn: weekStartsOn })), 'yyyy-MM-dd'))
-  const start = dateFormat(new Date(startOfWeek(new Date(), { weekStartsOn: weekStartsOn })), format)
-  const end = dateFormat(new Date(endOfWeek(new Date(), { weekStartsOn: weekStartsOn })), format)
-  return `${start} - ${end}`
+  // $FlowFixme complains about number literals even though I am checking them as numbers in arange
+  if (weekStartsOn >= 0 && weekStartsOn <= 6) {
+    // $FlowIgnore
+    console.log(dateFormat(new Date(startOfWeek(new Date(), { weekStartsOn: weekStartsOn })), 'yyyy-MM-dd'))
+    // $FlowIgnore
+    const start = dateFormat(new Date(startOfWeek(new Date(), { weekStartsOn: weekStartsOn })), format)
+    // $FlowIgnore
+    const end = dateFormat(new Date(endOfWeek(new Date(), { weekStartsOn: weekStartsOn })), format)
+    return `${start} - ${end}`
+  } else {
+    showMessage('Error in your format string')
+    return ''
+  }
 }
 
 export async function insertWeekDates() {
