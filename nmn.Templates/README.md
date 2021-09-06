@@ -44,7 +44,7 @@ Weather: 🌧️ Moderate rain 14/19°C
 ## Available Tags
 - `{{date({locale: 'sv-SE', dateStyle: 'short'})}}` -- Date borrowing the Swedish "Locale" yields ISO-8601 date like `2021-06-21`
 - `{{date8601()}}` -- ISO-8601 date like `2021-06-21` (shorter tag, no options)
-- `{{formattedDateTime({format:'%Y-%m-%d %I:%M:%S %P'})}}` -- date/time now using [strftime](https://www.strfti.me/) format (pass the version you want)
+- `{{formattedDateTime({format: '%Y-%m-%d %I:%M:%S %P'})}}` -- date/time now using [strftime](https://www.strfti.me/) format (pass the version you want)
 -  `{{weekDates({startMonday:true, format:`'EEE yyyy-MM-dd'})}} -- get the span of this week (e.g. "Mon 2021-08-30 - Sun 2021-09-05" -- mon-sun by default) //see below and [date-fns format](https://date-fns.org/v2.23.0/docs/format)
 -  `{{datePicker({question:'Enter date for X'})}}` -- Asks user for a date in YYYY-MM-DD format. If no question parameter is specified a default is used.
 -  `{{pickDateInterval({question:'Enter date interval for X'})}}` -- Asks user for a date interval, specified as `nn[bdwmqy]`. For more details of this see [Repeat Extensions plugin(https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions/). If no question parameter is specified a default is used.
