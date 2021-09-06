@@ -15,10 +15,10 @@ const FORMAT_MAP = {
   ini: 'toml',
 }
 
-export async function openConfigFile(): Promise<void> {
+export async function openConfigFileInEditor(): Promise<void> {
   const templateFolder = await getOrMakeTemplateFolder()
   if (templateFolder == null) {
-    await ShowMessage('No template folder found')
+    await showMessage('No template folder found')
     return
   }
 
@@ -27,7 +27,7 @@ export async function openConfigFile(): Promise<void> {
     .find((n) => !!n.title?.startsWith('_configuration'))
 
   if (configFile == null) {
-    await ShowMessage('No _configuration file found')
+    await showMessage('No _configuration file found')
     return
   }
 

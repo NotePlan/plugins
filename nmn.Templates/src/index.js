@@ -3,7 +3,7 @@
 //------------------------------------------------------------------------------
 
 import { showMessage, chooseOption, getInput } from '../../helpers/userInput'
-import { getOrMakeConfigurationSection, getStructuredConfiguration, openConfigFile } from './configuration'
+import { getOrMakeConfigurationSection, getStructuredConfiguration, openConfigFileInEditor } from './configuration'
 import { processTemplate } from './templateController'
 import { getOrMakeTemplateFolder } from './template-folder'
 
@@ -213,12 +213,12 @@ export async function newNoteWithTemplate(
       `newNoteWithTemplate() template="${template}" Folder "${folder}" doesn't exist. Check config. For now. Will ask:`,
     )
     await showMessage(`Can't find folder '${targetFolder}' Pls check _config.`)
-    await openConfigFile()
+    await openConfigFileInEditor()
     folderFail = true
   }
   if (folderList.length > 0) {
     folder =
-      folder !== '/'
+      folder !== ''
         ? folder
         : await chooseOption(
             'Select folder to add note in:',
@@ -231,7 +231,7 @@ export async function newNoteWithTemplate(
   }
   if (folderFail) {
     await showMessage(`That folder is: "${folder}"`)
-    await openConfigFile()
+    await openConfigFileInEditor()
     return
   }
   if (!title) {
@@ -288,7 +288,7 @@ export async function quickTemplateNote() {
     if (quickNotesArray.length === 1 && quickNotesArray[0].editThis) {
       console.log(`quickTemplateNote: editThis=true, so user should edit config`)
       await showMessage(`Please edit the configuration file to add your quick notes.`)
-      await openConfigFile()
+      await openConfigFileInEditor()
       return
     }
     //$FlowFixMe
