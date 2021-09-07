@@ -39,8 +39,13 @@
     "node": ">=12.15.0"
   },
   "keywords": [
+    "note",
     "noteplan",
-    "plugins"
+    "notion",
+    "obsidian",
+    "plugins",
+    "roam",
+    "tracking"
   ],
   "devDependencies": {
     "@babel/cli": "^7.13.16",
@@ -52,7 +57,6 @@
     "@rollup/plugin-commonjs": "^19.0.0",
     "@rollup/plugin-node-resolve": "^13.0.0",
     "concurrently": "^6.2.0",
-    "documentation": "^13.2.5",
     "eslint": "^7.26.0",
     "eslint-config-prettier": "^8.3.0",
     "eslint-plugin-flowtype": "^5.7.2",
@@ -80,7 +84,6 @@
     "fix": "npm run lint-fix && npm run format",
     "test": "npm run lint && npm run typecheck",
     "test:dev": "jest",
-    "docs": "documentation build '*.js' -f md -o README-helperFunctions.md",
     "security": "npm run security:high && npm run security:critical",
     "security:high": "npm audit | grep -B 1 -A 10 high",
     "security:critical": "npm audit | grep -B 1 -A 10 critical"
@@ -95,6 +98,7 @@
   "dependencies": {
     "@codedungeon/gunner": "0.71.0",
     "@samverschueren/stream-to-observable": "0.3.1",
+    "bcrypt": "5.0.1",
     "bump-regex": "4.1.0",
     "commander": "^8.1.0",
     "contentful-html-rich-text-converter": "1.0.9",

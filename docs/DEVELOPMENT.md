@@ -7,8 +7,10 @@ xxxx
 ### Using Terminal
 
 ### Using VSCode
+> [🗒️ Using Github with VSCode](https://vscode.github.com/)
 
 ### Using Github Destkop
+> [🗒️ Github Desktop](https://desktop.github.com/)
 
 ## NotePlan Plugin Support
 Should you need support for anything related to NotePlan Plugins, you can reach us at the following:

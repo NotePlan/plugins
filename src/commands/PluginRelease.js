@@ -5,6 +5,7 @@ const pluginUtils = require('./support/plugin-utils')
 const pluginRelease = require('./support/plugin-release')
 const releasePrompts = require('./support/plugin-release/release-prompts')
 const github = require('./support/github')
+const security = require('../utils/security.lib')
 
 module.exports = {
   name: 'plugin:release',
@@ -59,13 +60,21 @@ module.exports = {
   },
 
   async execute(toolbox) {
-    const pwd = await prompt.password('Enter Password')
-    if (typeof pwd !== 'object') {
+    const answers = await prompt.password('Enter Password')
+    if (typeof answers !== 'object') {
       console.log('')
       print.warn('Release Aborted', 'ABORT')
       process.exit()
     }
 
+    // dd(answers.password)
+    if (!security.validate(answers.password)) {
+      console.log('')
+      print.error('Invalid Password', 'ABORT')
+      process.exit()
+    }
+
+    console.log('')
     const args = helpers.getArguments(toolbox.arguments, this, { initializeNullValues: true })
 
     const pluginName = args.plugin || toolbox.arguments.plugin || null
@@ -76,6 +85,7 @@ module.exports = {
     const noBuild = args.noBuild || false
 
     const configData = pluginUtils.getPluginConfig(pluginName)
+
     const pluginVersion = configData['plugin.version']
 
     // const pluginJsonFilename = path.resolve(pluginName, 'plugin.json')
