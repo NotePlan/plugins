@@ -225,6 +225,19 @@ type TEditor = {
   * @return {Promise}
   */
   onMainThread(): Promise<void>,
+  /**
+  * Note: Available from NotePlan v3.1+
+  * Get the names of all supported themes (including custom themes imported into the Theme folder).
+  * Use together with `.setTheme(name)`
+  * @return {[String]}
+  */
+  availableThemes(): $ReadOnlyArray<string>,
+  /**
+  * Note: Available from NotePlan v3.1+
+  * Change the current theme. Get all available theme names using `.availableThemes`. Custom themes are also supported. Use the filename in this case.
+  * @param {String}
+  */
+  setTheme(name: string): void,
 }
 
 /**
