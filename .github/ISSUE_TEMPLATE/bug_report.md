@@ -10,10 +10,6 @@ assignees: ''
 **Describe the bug**
 A clear and concise description of what the bug is.
 
-**Plugin Console Log**
-Please open the Plugin Console by going to `Noteplan > Help > Plugin Console`
-Run the plugin console
-
 **To Reproduce**
 Steps to reproduce the behavior:
 1. Go to '...'
@@ -34,7 +30,7 @@ If applicable, add screenshots to help explain your problem.
  - Plugin Name & Version [e.g. "Templates" v0.2]
 
 **Additional context**
-Add any other context about the problem here.
+Add any other context about the problem here. 
 
 **Plugin Console Log**
 To provide us with more clues about where the bug/error is occurring...
