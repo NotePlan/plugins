@@ -60,8 +60,8 @@ export async function dayStart(today: boolean = false) {
       await showMessage('Please run again with a calendar note open.')
       return
     }
-    await applyNamedTemplate(pref_templateTitle)
   }
+  await applyNamedTemplate(pref_templateTitle)
 }
 
 //------------------------------------------------------------------
