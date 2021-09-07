@@ -228,6 +228,8 @@ The common script you will run `npm run autowatch` however, you may need to use 
 - `npm run lint-fix`: run ESlint on the entire repo and fix whatever it can automatically fix
 - `npm run format`: auto-format all Javascript files using `prettier`
 
+
+
 ## NotePlan Plugin Support
 Should you need support for anything related to NotePlan Plugins, you can reach us at the following:
 
@@ -249,6 +251,16 @@ This is a great resource to request assistance, either in the form of a bug repo
 ## Contributing
 
 If you would like to contribute to the NotePlan Plugin repository, feel free to submit a [Pull Request] (https://docs.github.com/en/github/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests) for any existing NotePlan Plugin, or any of the support materials.
+
+## Code of Conduct
+
+NotePlan Plugin follows all parameters defined by the [Open Source Guide](https://opensource.guide/code-of-conduct/)
+
+Please refer to our [Contributor Code of Conduct](docs/CODE_OF_CONDUCT.md)
+
+## Security
+
+Please refer to our [Security Policy](docs/SECURITY.md)
 
 ## License
 
