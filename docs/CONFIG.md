@@ -8,7 +8,7 @@ NotePlan Plugins use a configuration file `plugin.json` which resides in the roo
 </h1>
 
 #### Example `plugin.json`
-Example configuration file, all fields are required
+Example configuration file, all fields (except `plugin.depedencies`) are required
 
 ```json
 {

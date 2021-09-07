@@ -80,7 +80,10 @@
     "fix": "npm run lint-fix && npm run format",
     "test": "npm run lint && npm run typecheck",
     "test:dev": "jest",
-    "docs": "documentation build '*.js' -f md -o README-helperFunctions.md"
+    "docs": "documentation build '*.js' -f md -o README-helperFunctions.md",
+    "security": "npm run security:high && npm run security:critical",
+    "security:high": "npm audit | grep -B 1 -A 10 high",
+    "security:critical": "npm audit | grep -B 1 -A 10 critical"
   },
   "prettier": {
     "printWidth": 120,

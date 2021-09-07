@@ -3,7 +3,7 @@ const toolbox = require('@codedungeon/gunner')
 
 const execa = require('execa')
 const dotProp = require('dot-prop')
-const merge = require('lodash.merge')
+const _ = require('lodash')
 const findup = require('findup-sync')
 const Configstore = require('configstore')
 const Messenger = require('@codedungeon/messenger')
@@ -49,11 +49,12 @@ module.exports = {
     if (filesystem.existsSync(projectConfigPath)) {
       projectConfig = filesystem.readFileSync(projectConfigPath)
     }
+
     // merge config
     const appConfigData = JSON.parse(appConfig)
     const projectConfigData = projectConfig.length >= 2 ? JSON.parse(projectConfig) : {}
 
-    const configData = merge(appConfigData, projectConfigData)
+    const configData = _.merge(appConfigData, projectConfigData)
 
     return configData
   },

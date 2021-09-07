@@ -1,4 +1,4 @@
-const _findIndex = require('lodash.findindex')
+const _ = require('lodash')
 const colors = require('chalk')
 const Table = require('cli-table3')
 const { print, helpers } = require('@codedungeon/gunner')
@@ -53,7 +53,7 @@ module.exports = {
     const tableItems = []
 
     if (check && check.length > 0) {
-      const result = _findIndex(commands, { name: check })
+      const result = _.findIndex(commands, { name: check })
 
       if (result >= 0) {
         toolbox.print.error(` 🚫 '${check}' exists in ${commands[result].pluginName}.`)

@@ -1,6 +1,14 @@
 # NotePlan Plugin Development Tools and Workflows
 
 ## Overview
+xxxx
+
+## Worflows
+### Using Terminal
+
+### Using VSCode
+
+### Using Github Destkop
 
 ## NotePlan Plugin Support
 Should you need support for anything related to NotePlan Plugins, you can reach us at the following:
