@@ -31,7 +31,15 @@ async function getProcessedTemplate(templateTitle: string): Promise<string> {
     return '<template was empty>'
   }
 
-  templateContent = templateContent.split('\n---\n').slice(1).join('\n---\n')
+  const sections = templateContent.split('\n---\n')
+  if (sections.length < 2) {
+    console.log(
+      `\twarning: template '${templateTitle}' is missing horizontal rule "---". Will try to continue without it.`,
+    )
+    templateContent = templateContent.split('\n').slice(1).join('\n') // remove title line
+  } else {
+    templateContent = sections.slice(1).join('\n---\n')
+  }
 
   // Read all _configuration settings
   const config = (await getStructuredConfiguration()) ?? {}
@@ -98,7 +106,17 @@ export async function applyTemplate(newNote?: [string, string, string]) {
   if (templateContent == null) {
     return
   }
-  templateContent = templateContent.split('\n---\n').slice(1).join('\n---\n')
+  const sections = templateContent.split('\n---\n')
+  if (sections.length < 2) {
+    console.log(
+      `\twarning: template '${String(
+        templateName,
+      )}' is missing horizontal rule "---". Will try to continue without it.`,
+    )
+    templateContent = templateContent.split('\n').slice(1).join('\n') // remove title line
+  } else {
+    templateContent = sections.slice(1).join('\n---\n')
+  }
 
   const config = (await getStructuredConfiguration()) ?? {}
 
