@@ -2,7 +2,7 @@
   "name": "np.plugins",
   "packageName": "noteplan-cli",
   "info": "noteplan plugin development toolbox",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "build": "15",
   "description": "noteplan-cli",
   "repository": "https://github.com/NotePlan/plugins",
@@ -87,7 +87,7 @@
     "singleQuote": true
   },
   "dependencies": {
-    "@codedungeon/gunner": "0.67.0",
+    "@codedungeon/gunner": "0.70.0",
     "commander": "^8.1.0",
     "contentful-html-rich-text-converter": "1.0.9",
     "date-fns": "^2.23.0",
