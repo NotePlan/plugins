@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/README.md) for details on available commands and use case.
 
-## [2.1.0] - 2021-08-29 (mikeerickson)
+## [3.0.0] - 2021-09-06 (mikeerickson)
 
 ### added
 - Added testing framework (using [Jest](https://jestjs.io/))
@@ -20,6 +20,12 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/README.md) for
 ### changed
 - Adjusted NotePlan Plugin initalization task
 - Moved `np.plugin.starter` into CLI templates to remove root exposure
+
+## [2.2.0] - 2021-09-06 (@mikeerickson)
+
+### Fixed
+- fixed `plugin:create` command to use latest `@codedungeon/gunner`
+- fixed `plugin:info` command to use latest `@codedungeon/gunner`
 
 ## [2.0.0] - 2021-08-21 (mikeerickson)
 

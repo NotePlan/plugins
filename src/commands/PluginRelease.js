@@ -8,7 +8,7 @@ const github = require('./support/github')
 
 module.exports = {
   name: 'plugin:release',
-  description: 'Releases Plugin to Public Directory',
+  description: `Releases Plugin to Public Directory ${colors.red('** Access Required **')}`,
   disabled: false,
   hidden: false,
   usage: `plugin:release ${colors.magenta('<plugin>')} ${colors.blue('[options]')}`,
@@ -31,8 +31,7 @@ module.exports = {
     draft: {
       aliases: ['d'],
       type: 'boolean',
-      description: `Create Draft Release`,
-      required: false,
+      description: `Create Draft Github Release`,
     },
     force: {
       aliases: ['f'],
@@ -60,6 +59,13 @@ module.exports = {
   },
 
   async execute(toolbox) {
+    const pwd = await prompt.password('Enter Password')
+    if (typeof pwd !== 'object') {
+      console.log('')
+      print.warn('Release Aborted', 'ABORT')
+      process.exit()
+    }
+
     const args = helpers.getArguments(toolbox.arguments, this, { initializeNullValues: true })
 
     const pluginName = args.plugin || toolbox.arguments.plugin || null
