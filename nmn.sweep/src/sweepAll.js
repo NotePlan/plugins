@@ -42,7 +42,7 @@ export async function sweepTemplate(paramStr: string = ''): Promise<string> {
     // $FlowIgnore
     const includeHeadings: boolean = await getTagParamsFromString(paramStr, 'includeHeadings', false)
     //
-    const requireConfirmation: boolean = await getTagParamsFromString(paramStr, 'requireConfirmation', false)
+    const requireConfirmation: boolean = Boolean(await getTagParamsFromString(paramStr, 'requireConfirmation', false))
     // $FlowFixMe
     const noteTypes: NoteTypes[] = await getTagParamsFromString(paramStr, 'noteTypes', ['note', 'calendar'])
     // $FlowFixMe
