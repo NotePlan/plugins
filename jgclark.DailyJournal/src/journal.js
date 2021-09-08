@@ -49,10 +49,6 @@ export async function todayStart() {
 // Start the currently open daily note with the user's Daily Note Template
 export async function dayStart(today: boolean = false) {
   console.log(`\ndayStart:`)
-  if (Editor.note == null || Editor.type !== 'Calendar') {
-    await showMessage('Please run again with a calendar note open.')
-    return
-  }
   if (today) {
     // open today's date in the main window, and read content
     await Editor.openNoteByDate(new Date(), false)
@@ -60,8 +56,12 @@ export async function dayStart(today: boolean = false) {
     console.log(`Opened: ${displayTitle(Editor.note)}`)
   } else {
     // apply daily template in the currently open daily note
-    await applyNamedTemplate(pref_templateTitle)
+    if (Editor.note == null || Editor.type !== 'Calendar') {
+      await showMessage('Please run again with a calendar note open.')
+      return
+    }
   }
+  await applyNamedTemplate(pref_templateTitle)
 }
 
 //------------------------------------------------------------------
@@ -77,14 +77,15 @@ export async function dayReview(): Promise<void> {
   const journalConfig = await getOrMakeConfigurationSection(
     'dailyJournal',
     DEFAULT_JOURNAL_OPTIONS,
-    MINIMUM_JOURNAL_OPTIONS
+    MINIMUM_JOURNAL_OPTIONS,
   )
   // console.log(JSON.stringify(journalConfig))
-  if (journalConfig == null || Object.keys(journalConfig).length === 0) { // this is how to check for empty object
+  if (journalConfig == null || Object.keys(journalConfig).length === 0) {
+    // this is how to check for empty object
     console.log("\tWarning: Cannot find suitable 'dailyJournal' settings in Templates/_configuration note. Stopping.")
     await showMessage(
       "Cannot find 'dailyJournal' settings in _configuration.",
-      "Yes, I'll check my _configuration settings."
+      "Yes, I'll check my _configuration settings.",
     )
     return
   }
@@ -105,7 +106,7 @@ export async function dayReview(): Promise<void> {
       '🥵 Sick',
       'Other',
     ].join(',')
-  
+
   pref_moodArray = pref_moods.split(',') // with a proper config system, this won't be needed
 
   const question = []
