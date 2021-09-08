@@ -1,5 +1,9 @@
 # CHANGELOG
 
+
+### v0.8.2, 7.9.2021
+- fix: fixed an error in /todayStart that kept it from running if the note wasn't open
+
 ### v0.8.1, 31.8.2021
 - under-the-hood changes responding to underlying framework changes
 

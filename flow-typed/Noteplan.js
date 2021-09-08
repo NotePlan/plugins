@@ -225,6 +225,29 @@ type TEditor = {
   * @return {Promise}
   */
   onMainThread(): Promise<void>,
+  /**
+  * Note: Available from NotePlan v3.1+
+  * Get the names of all supported themes (including custom themes imported into the Theme folder).
+  * Use together with `.setTheme(name)`
+  * @return {[String]}
+  */
+  availableThemes(): $ReadOnlyArray<string>,
+  /**
+  * Note: Available from NotePlan v3.1+
+  * Change the current theme. Get all available theme names using `.availableThemes`. Custom themes are also supported. Use the filename in this case.
+  * @param {String}
+  */
+  setTheme(name: string): void,
+  /**
+  * Note: Available from NotePlan v3.1+
+  * Add a new theme using the raw json string. It will be added as a custom theme and you can load it right away with `.setTheme(name)` using the filename defined as second parameter. Use ".json" as file extension.
+  * It returns true if adding was successful and false if not. An error will be also printed into the console.
+  * Adding a theme might fail, if the given json text was invalid.
+  * @param {string} json
+  * @param {string} filename
+  * @return {Boolean}
+  */
+  addTheme(json: string, filename: string): boolean
 }
 
 /**
@@ -291,6 +314,16 @@ type TDataStore = {
     ((key: 'isSmartMarkdownLink') => ?boolean) &
     ((key: 'fontSize') => number) &
     ((key: 'fontFamily') => string),
+
+  /**
+  * Note: Available from NotePlan v3.1+
+  * Change a saved preference or create a new one. It will most likely be picked up by NotePlan after a restart, if you use one of the keys utilized by NotePlan. 
+  * To change a NotePlan preference, use the keys found in the description of the function `.preference(key)`.
+  * You can also save custom preferences specific to the plugin, if you need any. Prepend it with the plugin id or similar to avoid collisions with existing keys.
+  * @param {string} key
+  * @param {any} value
+  */
+  setPreference(key: string, value: any): void,
 
   /**
    * Returns the calendar note for the given date
