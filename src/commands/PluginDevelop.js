@@ -32,6 +32,12 @@ module.exports = {
       aliases: ['c'],
       description: `Use Compact Display ${colors.gray('(available in watch mode)')}`,
     },
+    lint: {
+      type: 'boolean',
+      aliases: ['c'],
+      description: `Lint Plugin ${colors.gray('(using eslint)')}`,
+      initial: false,
+    },
     test: {
       type: 'boolean',
       aliases: ['t'],
@@ -50,9 +56,17 @@ module.exports = {
   },
 
   async execute(toolbox) {
-    const args = helpers.getArguments(toolbox.arguments, this, { initializeNullValues: true })
+    console.log('')
+    print.warn('This call to .getArguments is not initializing all flags', 'WARNING')
+    print.warn('          - Test with latest version of @gunner')
+    print.warn('          - It is working as expected in the test version')
+    print.warn('          - In latest version, use `setDefaultFlags`')
 
+    // const args = helpers.setDefaultFlags(toolbox.arguments, this, { initializeNullValues: true })
+    const args = helpers.getArguments(toolbox.arguments, this, { initializeNullValues: true })
+    dd(args)
     const plugin = args.plugin || toolbox.plugin || ''
+    const lint = args.lint || toolbox.lint || ''
     const watch = args.watch
     const compact = args.compact
     const test = args.test
