@@ -115,21 +115,21 @@ Created on {{date({locale: 'en-US', dateStyle: 'short'})}}
 const CONFIG = ` _configuration
 ---
 # Template Tag Configuration
-
 This note provides a central location where you can configure various plugin options:
 
 - Use the fenced code block below (which comes after a line made by 3 dashes) to customize global values for the various template tags.
 
 - NotePlan plugin configuration uses JSON5 [JSON5 | JSON for Humans](https://json5.org/), which is a human-friendly superset of JSON, providing things such as comments, unquoted keys and other common patterns available in standard JavaScript objects.
 
-	*Note: Despite JSON5 enhancements, multi-line strings are not supported, therefore to include*
-	*them you need to use "\\n" (new line) for line breaks rather than actual line breaks.*
+	*Note: Despite JSON5 enhancements, multi-line strings are not supported, therefore to include them you need to use "\\n" (new line) for line breaks rather than actual line breaks.*
 
 - Use the code block marked as \`javascript\` shown below to write your own custom custom configurations.
 
-While it is possible to have multiple \`javascript\` code blocks in this document, only the **first** code block will be used.
+- While it is possible to have multiple \`javascript\` code blocks in this document, only the **first** code block will be used.
 
-## Validating Configuration
+- If you have a quoted "string" which you want to have a **line break**, insert a "\\n" (i.e. backslash-n) where you want the line break, e.g., "These\\nAre\\nThree lines".
+
+### Validating Configuration
 The configuration code blocks below are validated in **realtime** by NotePlan as you edit:
 
 - If there is a configuration mistake, all code below will all be a single color (based on theme).
@@ -137,21 +137,16 @@ The configuration code blocks below are validated in **realtime** by NotePlan as
 
 **TIP:** If your configuration is invalid, you can copy/paste the configuration block to [JSON5 Validator Online - JSON5 lint Tool to validate JSON5 data](https://codebeautify.org/json5-validator) which will provide details about the error(s) in your code block, indicating which line(s) contain the error(s).
 
-### Line Breaks
-If you have a quoted "string" which you want to have a line break, insert a "\\n" where you want the line break, e.g., "This\\nIs\\nThreelines"
-
 ### Reporting Plugin Issues
 Should you run into an issue with a NotePlan plugin, you can use one of the following methods (in order of priority)
-
-🐞 [NotePlan Plugin Issues](https://github.com/NotePlan/plugins/issues/new/choose)
-🧩 [Discord](https://discord.com/channels/763107030223290449/784376250771832843)
-📪 [NotePlan Support](hello@noteplan.io)
+- 🐞 [NotePlan Plugin Issues](https://github.com/NotePlan/plugins/issues/new/choose)
+- 🧩 [Discord](https://discord.com/channels/763107030223290449/784376250771832843)
+- 📪 [NotePlan Support](hello@noteplan.io)
 *****
 ## Plugin Configuration
 *Note: While the following code block is marked as \`javascript\` it is actually \`JSON5\` and is only marked as \`javascript\` so that your theme will provide the appropriate syntax highlighting.*
 
 \`\`\`javascript
-
 {
   // Note Even though it is fenced as "javascript", this configuration is actually JSON5.
 
