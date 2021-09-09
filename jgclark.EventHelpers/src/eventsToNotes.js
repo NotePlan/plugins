@@ -23,18 +23,19 @@ import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configura
 
 //------------------------------------------------------------------------------
 // Get settings
-const DEFAULT_EVENTS_OPTIONS = `  events: {
+const DEFAULT_EVENTS_OPTIONS = `
+  events: {
     addEventID: false,  // whether to add an [[event:ID]] internal link when creating an event from a time block
     processedTagName: "#event_created",   // optional tag to add after making a time block an event
     removeTimeBlocksWhenProcessed: true,  // whether to remove time block after making an event from it
     eventsHeading: "### Events today",  // optional heading to put before list of today's events
     addMatchingEvents: {   // match events with string on left, and then the string on the right is the template for how to insert this event (see README for details)
-      "meeting": "### *|TITLE|* (*|START|*)\n*|NOTES|*",
+      "meeting": "### *|TITLE|* (*|START|*)\\n*|NOTES|*",
       "webinar": "### *|TITLE|* (*|START|*) *|URL|*",
       "holiday": "*|TITLE|* *|NOTES|*",
     },
     locale: "en-US",
-	  timeOptions: { hour: '2-digit', minute: '2-digit', hour12: false }
+	  timeOptions: { hour: '2-digit', minute: '2-digit', hour12: false },
   },
 `
 // global variables, including default settings

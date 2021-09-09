@@ -2,6 +2,8 @@ See Template Plugin [README](https://github.com/NotePlan/plugins/blob/main/nmn.T
 
 # What's Changed in this Plugin?
 
+### 0.10.3 Fixed configuration JSON bug (reported by @colingold and @MrCoffee)
+
 ### 0.10.2 Fixed "/" bug (again) in /qtn (thanks @jgclark!)
 
 ### 0.10.1 Fixed "/" bug in /qtn (thanks @jgclark!)
