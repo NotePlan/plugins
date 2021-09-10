@@ -275,9 +275,6 @@ type TDataStore = {
    */
   +projectNotes: $ReadOnlyArray<TNote>,
 
-  // `DataStorePreference` is a function that takes a string and returns
-  // different values based on what the string is.
-  // Think of `&` as Function Overloading.
   /**
    * Returns the value of a given preference.
    * Available keys for built-in NotePlan preferences:
@@ -332,7 +329,7 @@ type TDataStore = {
    */
   projectNoteByTitle(
     title: string,
-    caseInsensitive: boolean,
+    caseInsensitive?: boolean,
     searchAllFolders?: boolean,
   ): ?$ReadOnlyArray<TNote>,
   /**

@@ -107,7 +107,7 @@ export async function projectLists(): Promise<void> {
 
   if (pref_noteTypeTags != null && pref_noteTypeTags.length > 0) {
     // We have defined tag(s) to filter and group by
-    // $FlowFixme[incompatible-type]
+    // $FlowFixMe[incompatible-type]
     for (const tag of pref_noteTypeTags) {
       // Do the main work
       const noteTitle = `${tag} List`
@@ -371,7 +371,7 @@ export async function updateReviewListAfterReview(note: TNote) {
   // Now read contents and parse, this time as lines
   const lines = reviewList.split('\n')
   // console.log(`\t(pref: has ${lines.length} items, starting ${lines[0]})`)
-  // $FlowFixme
+  // $FlowFixMe
   let lineNum: number // deliberately undefined
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]

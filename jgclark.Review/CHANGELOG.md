@@ -3,7 +3,7 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 
 ### v0.4.0, 10.9.2021
 - new: command `/addProject` that adds a new note using your template 'New Project Template' (if defined)
-- under-the-hood change: the `/start review` and `next project review` commands now use the (invisible) preferences system available from v3.1.0, rather than the (visible) `_reviews` note.
+- under-the-hood change: the `/start review` and `next project review` commands now use the (invisible) preferences system available from v3.1.0, rather than the (visible) `_reviews` note. _This requires NotePlan v3.1.0 (build 654) or greater._
 
 ### v0.3.0, 21.8.2021
 - update: changes the `noteTypeTags` setting to be an array of strings not a comma-separated string. E.g. `noteTypeTags: ["#area", "#project"]`
