@@ -190,7 +190,7 @@ type TEditor = {
    */
   highlightByRange(range: Range): void,
   /**
-   * NOTE: Available from v3.0.23+ (Mac: Build 636+, iOS: Build 562+)
+   * Note: Available from v3.0.23+ (Mac: Build 636+, iOS: Build 562+)
    * Scrolls to and highlights the given range defined by the character index and the character length it should cover. If the paragraph is folded, it will be unfolded.
    */
   highlightByIndex(index: number, length: number): void,
@@ -280,41 +280,26 @@ type TDataStore = {
   // Think of `&` as Function Overloading.
   /**
    * Returns the value of a given preference.
-   * Available keys:
-   * "themeLight"              // theme used in light mode
-   * "themeDark"               // theme used in dark mode
-   * "fontDelta"               // delta to default font size
-   * "firstDayOfWeek"          // first day of calendar week
-   * "isAgendaVisible"         // only iOS, indicates if the calendar and note below calendar are visible
-   * "isAgendaExpanded"        // only iOS, indicates if calendar above note is shown as week (true) or month (false)
-   * "isAsteriskTodo"          // "Recognize * as todo" = checked in markdown preferences
-   * "isDashTodo"              // "Recognize - as todo" = checked in markdown preferences
-   * "isNumbersTodo"           // "Recognize 1. as todo" = checked in markdown preferences
-   * "defaultTodoCharacter"    // returns * or -
-   * "isAppendScheduleLinks"   // "Append links when scheduling" checked in todo preferences
-   * "isAppendCompletionLinks" // "Append completion date" checked in todo preferences
-   * "isCopyScheduleGeneralNoteTodos" // "Only add date when scheduling in notes" checked in todo preferences
-   * "isSmartMarkdownLink"     // "Smart Markdown Links" checked in markdown preferences
-   * "fontSize"                // Font size defined in editor preferences (might be overwritten by custom theme)
-   * "fontFamily"              // Font family defined in editor preferences (might be overwritten by custom theme)
+   * Available keys for built-in NotePlan preferences:
+   *   "themeLight"              // theme used in light mode
+   *   "themeDark"               // theme used in dark mode
+   *   "fontDelta"               // delta to default font size
+   *   "firstDayOfWeek"          // first day of calendar week
+   *   "isAgendaVisible"         // only iOS, indicates if the calendar and note below calendar are visible
+   *   "isAgendaExpanded"        // only iOS, indicates if calendar above note is shown as week (true) or month (false)
+   *   "isAsteriskTodo"          // "Recognize * as todo" = checked in markdown preferences
+   *   "isDashTodo"              // "Recognize - as todo" = checked in markdown preferences
+   *   "isNumbersTodo"           // "Recognize 1. as todo" = checked in markdown preferences
+   *   "defaultTodoCharacter"    // returns * or -
+   *   "isAppendScheduleLinks"   // "Append links when scheduling" checked in todo preferences
+   *   "isAppendCompletionLinks" // "Append completion date" checked in todo preferences
+   *   "isCopyScheduleGeneralNoteTodos" // "Only add date when scheduling in notes" checked in todo preferences
+   *   "isSmartMarkdownLink"     // "Smart Markdown Links" checked in markdown preferences
+   *   "fontSize"                // Font size defined in editor preferences (might be overwritten by custom theme)
+   *   "fontFamily"              // Font family defined in editor preferences (might be overwritten by custom theme)
+   * Others can be set by plugins.
    */
-  +preference: ((key: 'themeLight') => ?string) &
-    ((key: 'themeDark') => ?string) &
-    ((key: 'fontDelta') => number) &
-    ((key: 'firstDayOfWeek') => number) &
-    ((key: 'isAgendaVisible') => ?boolean) &
-    ((key: 'isAgendaExpanded') => ?boolean) &
-    ((key: 'isAsteriskTodo') => ?boolean) &
-    ((key: 'isDashTodo') => ?boolean) &
-    ((key: 'isNumbersTodo') => ?boolean) &
-    ((key: 'defaultTodoCharacter') => '*' | '-') &
-    ((key: 'isAppendScheduleLinks') => ?boolean) &
-    ((key: 'isAppendCompletionLinks') => ?boolean) &
-    ((key: 'isCopyScheduleGeneralNoteTodos') => ?boolean) &
-    ((key: 'isSmartMarkdownLink') => ?boolean) &
-    ((key: 'fontSize') => number) &
-    ((key: 'fontFamily') => string),
-
+  +preference: ((key: string) => any),
   /**
   * Note: Available from NotePlan v3.1+
   * Change a saved preference or create a new one. It will most likely be picked up by NotePlan after a restart, if you use one of the keys utilized by NotePlan. 
