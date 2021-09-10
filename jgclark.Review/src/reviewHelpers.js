@@ -100,7 +100,7 @@ export function getOrMakeMetadataLine(): number {
   return lineNumber
 }
 
-/*
+/**
  * Return list of notes with a particular hashtag, optionally in the given folder.
  * @param {string} tag - tag name to look for (or blank, in which case no filtering by tag)
  * @param {?string} folder - optional folder to limit to
@@ -138,10 +138,14 @@ export function findNotesMatchingHashtags(
   return projectNotesWithTag
 }
 
+/**
+ * Calculate the next date to review, based on last review date and date interval.
+ * If no last review date, then the answer is always today's date
+ * @param {Date} lastReviewDate - JS Date
+ * @param {string} interval - interval specified as nn[bdwmqy]
+ * @return {Date} - JS Date
+ */
 export function calcNextReviewDate(lastReviewDate: Date, interval: string): Date {
-  // RUBY:
-  // @next_review_date = !@last_review_date.nil? ? calc_offset_date(@last_review_date, @review_interval) : TODAYS_DATE
-
   const reviewDate: Date =
     lastReviewDate != null
       ? calcOffsetDate(toISODateString(lastReviewDate), interval)
@@ -149,12 +153,13 @@ export function calcNextReviewDate(lastReviewDate: Date, interval: string): Date
   return reviewDate
 }
 
-/* From an array of strings, return the first string that matches the
-*  wanted parameterised @mention, or empty String
-* @param {Array<string>} mentionList - list of strings to search
-* @param {string} metnion - string to match (with a following '(' to indicate start of parameter)
-* @return {?Date} - JS Date version, if valid date found
-*/
+/**
+ * From an array of strings, return the first string that matches the
+ * wanted parameterised @mention, or empty String
+ * @param {Array<string>} mentionList - list of strings to search
+ * @param {string} mention - string to match (with a following '(' to indicate start of parameter)
+ * @return {?Date} - JS Date version, if valid date found
+ */
 export  function getParamMentionFromList(
   mentionList: $ReadOnlyArray<string>,
   mention: string,
@@ -164,10 +169,11 @@ export  function getParamMentionFromList(
   return res.length > 0 ? res[0] : ''
 }
 
-/* From an array of strings, return the first string that matches the wanted string
-* @param {Array<string>} list - list of strings to search
-* @param {string} search - string to match
-*/
+/**
+ * From an array of strings, return the first string that matches the wanted string
+ * @param {Array<string>} list - list of strings to search
+ * @param {string} search - string to match
+ */
 export function getStringFromList(
   list: $ReadOnlyArray<string>,
   search: string,
@@ -177,10 +183,11 @@ export function getStringFromList(
   return res.length > 0 ? res[0] : ''
 }
 
-/* Extract bracketed part of an '@mention(something)' string
-* @param {string} - string that contains a bracketed mention e.g. @review(2w)
-* @return {?string} - string from between the brackets, if found (e.g. '2w')
-*/
+/**
+ * Extract bracketed part of an '@mention(something)' string
+ * @param {string} - string that contains a bracketed mention e.g. @review(2w)
+ * @return {?string} - string from between the brackets, if found (e.g. '2w')
+ */
 export function getStringFromMention(mention: string): ?string {
   const RE_MENTION_STRING_CAPTURE = '\\((.*?)\\)' // capture string inside parantheses
 

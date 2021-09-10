@@ -1,12 +1,12 @@
 {
-	"noteplan.minAppVersion": "3.0.26",
+	"noteplan.minAppVersion": "3.1.0",
 	"plugin.id": "jgclark.Reviews",
 	"plugin.name": "🔬Reviews",
-	"plugin.description": "Commands to help review Project-based notes, GTD-style.",
+	"plugin.description": "Commands to help review Project-style notes, GTD-style.",
 	"plugin.icon": "",
 	"plugin.author": "Jonathan Clark",
 	"plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Review/",
-	"plugin.version": "0.3.0",
+	"plugin.version": "0.4.0",
 	"plugin.dependencies": [],
 	"plugin.script": "script.js",
 	"plugin.isRemote": "false",
@@ -20,7 +20,7 @@
 		{
 			"name": "start reviews",
 			"alias": ["gtd"],
-			"description": "creates/updates a machine-readable list of notes ready for review, and kicks off review of the first project note",
+			"description": "start a new series of reviews, deciding which are now ready for review, and kicking off the first one",
 			"jsFunction": "startReviews"
 		},
 		{
