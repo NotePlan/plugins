@@ -1,6 +1,7 @@
 'use strict'
 
 const { filesystem, path } = require('@codedungeon/gunner')
+const { defaultsDeep } = require('lodash')
 const github = require('./github')
 
 module.exports = {
@@ -89,7 +90,7 @@ module.exports = {
   },
 
   getPluginList() {
-    const commands = this.getPluginCommands()
+    const commands = this.getPluginCommands(this.getProjectRootDirectory())
       .map((command) => command.pluginId)
       .filter((value, index, self) => {
         return self.indexOf(value) === index
@@ -103,9 +104,9 @@ module.exports = {
     return plugins.includes(pluginName)
   },
 
-  getPluginCommands(directory = '') {
+  getPluginCommands() {
     const pluginCommands = []
-    const directories = filesystem.directoryList(directory, {
+    const directories = filesystem.directoryList(this.getProjectRootDirectory(), {
       directoriesOnly: true,
     })
 
@@ -144,5 +145,13 @@ module.exports = {
       }
     })
     return pluginCommands
+  },
+
+  getProjectRootDirectory() {
+    return path.resolve(__dirname, '..', '..', '..')
+  },
+
+  isPluginRootDirectory() {
+    return process.cwd() === this.getProjectRootDirectory()
   },
 }

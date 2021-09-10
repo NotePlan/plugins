@@ -3,7 +3,7 @@
   "packageName": "noteplan-cli",
   "info": "noteplan plugin development toolbox",
   "version": "3.0.0",
-  "build": "25",
+  "build": "26",
   "description": "noteplan-cli",
   "repository": "https://github.com/NotePlan/plugins",
   "contributors": [
@@ -96,7 +96,7 @@
     "singleQuote": true
   },
   "dependencies": {
-    "@codedungeon/gunner": "0.71.0",
+    "@codedungeon/gunner": "0.73.0",
     "@samverschueren/stream-to-observable": "0.3.1",
     "bcrypt": "5.0.1",
     "bump-regex": "4.1.0",
@@ -110,6 +110,7 @@
     "json5": "^2.2.0",
     "listr": "0.14.3",
     "lodash": "4.17.21",
+    "progress": "2.0.3",
     "rxjs": "6.6.7",
     "showdown": "1.9.1",
     "split": "1.0.1",

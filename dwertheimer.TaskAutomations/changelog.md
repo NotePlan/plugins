@@ -9,7 +9,7 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Ta
 - Added /tt command to bring tasks to the top of a note without sorting
 - Turned off the pre-flight task backup
 
-## 1.0.1 
+## 1.0.1
 - updated: now compiled for macOS versions back to 10.13.0
 
 1.0.0 Removing "macOS.minVersion" which is no longer necessary due to transpiling

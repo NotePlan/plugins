@@ -1,4 +1,5 @@
-const { colors, helpers, print, system } = require('@codedungeon/gunner')
+const { colors, helpers, print, prompt, system } = require('@codedungeon/gunner')
+const tildify = require('tildify')
 const pluginUtils = require('./support/plugin-utils')
 
 module.exports = {
@@ -34,7 +35,7 @@ module.exports = {
     },
     lint: {
       type: 'boolean',
-      aliases: ['c'],
+      aliases: ['l'],
       description: `Lint Plugin ${colors.gray('(using eslint)')}`,
       initial: false,
     },
@@ -57,14 +58,9 @@ module.exports = {
 
   async execute(toolbox) {
     console.log('')
-    print.warn('This call to .getArguments is not initializing all flags', 'WARNING')
-    print.warn('          - Test with latest version of @gunner')
-    print.warn('          - It is working as expected in the test version')
-    print.warn('          - In latest version, use `setDefaultFlags`')
 
-    // const args = helpers.setDefaultFlags(toolbox.arguments, this, { initializeNullValues: true })
-    const args = helpers.getArguments(toolbox.arguments, this, { initializeNullValues: true })
-    dd(args)
+    const args = helpers.setDefaultFlags(toolbox.arguments, this.flags)
+
     const plugin = args.plugin || toolbox.plugin || ''
     const lint = args.lint || toolbox.lint || ''
     const watch = args.watch
@@ -75,14 +71,34 @@ module.exports = {
     if (plugin.length > 0) {
       if (!pluginUtils.isValidPlugin(plugin)) {
         console.log('')
-        toolbox.print.error(`Invalid Plugin "${plugin}"`, 'ERROR')
+        toolbox.print.error(`Unable to locate plugin "${plugin}" in current directory`, 'ERROR')
         toolbox.print.warn(`        Make sure plugin name is spelled correct (case sensitive matters)`)
+        process.exit()
+      }
+
+      if (!pluginUtils.isPluginRootDirectory()) {
+        console.log('')
+        toolbox.print.error(`You must be in project root directory`, 'ERROR')
+        toolbox.print.log(
+          `        Check to make sure you are in ${colors.yellow(
+            tildify(pluginUtils.getProjectRootDirectory()),
+          )} directory`,
+        )
         process.exit()
       }
     }
 
     let cmd = ''
     if (!test) {
+      const pluginList = pluginUtils.getPluginList()
+      if (plugin.length === 0 && !watch) {
+        const response = await prompt.confirm(
+          `You are about to build ${colors.cyan.bold(pluginList.length)} plugins.  Would you like to continue`,
+        )
+        if (!response.answer) {
+          process.exit()
+        }
+      }
       cmd = watch
         ? `node scripts/rollup.js ${plugin} ${compact ? '--compact' : ''}`
         : `node scripts/rollup.js ${plugin} --build`

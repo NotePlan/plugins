@@ -13,8 +13,11 @@ const { terser } = require('rollup-plugin-terser')
 const resolve = require('@rollup/plugin-node-resolve').default
 const mkdirp = require('mkdirp')
 const { program } = require('commander')
+const ProgressBar = require('progress')
 const pkgInfo = require('../package.json')
 const createPluginListing = require('./createPluginListing')
+
+let progress
 
 const {
   getFolderFromCommandLine,
@@ -27,7 +30,8 @@ const {
 const FOLDERS_TO_IGNORE = ['scripts', 'flow-typed', 'node_modules', 'np.plugin-flow-skeleton']
 const rootFolderPath = path.join(__dirname, '..')
 
-console.log(colors.yellow.bold(`🧩 NotePlan Plugin Environment v${pkgInfo.version} (${pkgInfo.build})`))
+console.log('')
+console.log(colors.yellow.bold(`🧩 NotePlan Plugin Development v${pkgInfo.version} (${pkgInfo.build})`))
 
 // Command line options
 program
@@ -196,68 +200,93 @@ async function main() {
 
 async function build() {
   console.log('')
+  try {
+    const limitToFolders = await getFolderFromCommandLine(rootFolderPath, program.args, true)
 
-  const limitToFolders = await getFolderFromCommandLine(rootFolderPath, program.args, true)
-
-  const rootFolder = await fs.readdir(rootFolderPath, {
-    withFileTypes: true,
-  })
-  const copyTargetPath = await getCopyTargetPath(rootFolder)
-
-  const rootLevelFolders = rootFolder
-    .filter(
-      (dirent) =>
-        dirent.isDirectory() &&
-        !dirent.name.startsWith('.') &&
-        !FOLDERS_TO_IGNORE.includes(dirent.name) &&
-        (limitToFolders.length === 0 || limitToFolders.includes(dirent.name)),
-    )
-    .map(async (dirent) => {
-      const pluginFolder = path.join(__dirname, '..', dirent.name)
-      const pluginContents = await fs.readdir(pluginFolder, {
-        withFileTypes: true,
-      })
-      const isBundled = pluginContents.some((dirent) => dirent.name === 'src' && dirent.isDirectory)
-      if (!isBundled) {
-        return null
-      }
-      const srcFiles = await fs.readdir(path.join(pluginFolder, 'src'))
-      const hasIndexFile = srcFiles.includes('index.js')
-      if (!hasIndexFile) {
-        return null
-      }
-      return pluginFolder
+    const rootFolder = await fs.readdir(rootFolderPath, {
+      withFileTypes: true,
     })
-  const bundledPlugins = (await Promise.all(rootLevelFolders)).filter(Boolean)
+    const copyTargetPath = await getCopyTargetPath(rootFolder)
 
-  for (const plugin of bundledPlugins) {
-    const pluginJsonFilename = path.join(plugin, 'plugin.json')
-    const pluginJsonData = JSON.parse(await fs.readFile(pluginJsonFilename))
+    const rootLevelFolders = rootFolder
+      .filter(
+        (dirent) =>
+          dirent.isDirectory() &&
+          !dirent.name.startsWith('.') &&
+          !FOLDERS_TO_IGNORE.includes(dirent.name) &&
+          (limitToFolders.length === 0 || limitToFolders.includes(dirent.name)),
+      )
+      .map(async (dirent) => {
+        const pluginFolder = path.join(__dirname, '..', dirent.name)
+        const pluginContents = await fs.readdir(pluginFolder, {
+          withFileTypes: true,
+        })
+        const isBundled = pluginContents.some((dirent) => dirent.name === 'src' && dirent.isDirectory)
+        if (!isBundled) {
+          return null
+        }
+        const srcFiles = await fs.readdir(path.join(pluginFolder, 'src'))
+        const hasIndexFile = srcFiles.includes('index.js')
+        if (!hasIndexFile) {
+          return null
+        }
+        return pluginFolder
+      })
+    const bundledPlugins = (await Promise.all(rootLevelFolders)).filter(Boolean)
 
-    messenger.info(`  Building ${path.basename(plugin)} (${pluginJsonData['plugin.version']})`)
-    const options = getConfig(path.resolve('./codedungeon.Toolbox'))
-
-    const inputOptions = {
-      external: options.external,
-      input: options.input,
-      plugins: options.plugins,
-      context: options.context,
+    if (bundledPlugins.length > 1) {
+      progress = new ProgressBar(`${colors.yellow('[:bar] :percent built :eta/secs remaining')}`, {
+        clear: true,
+        total: bundledPlugins.length,
+        width: 75,
+      })
     }
 
-    const outputOptions = options.output
+    let processed = 0
+    for (const plugin of bundledPlugins) {
+      const pluginJsonFilename = path.join(plugin, 'plugin.json')
+      const pluginJsonData = JSON.parse(await fs.readFile(pluginJsonFilename))
 
-    // create a bundle
-    const bundle = await rollup.rollup(inputOptions)
+      if (bundledPlugins.length === 1) {
+        messenger.info(`  Building ${path.basename(plugin)} (${pluginJsonData['plugin.version']})`)
+      }
 
-    const { output } = await bundle.generate(outputOptions)
+      const options = getConfig(plugin)
 
-    await bundle.write(outputOptions)
+      const inputOptions = {
+        external: options.external,
+        input: options.input,
+        plugins: options.plugins,
+        context: options.context,
+      }
 
-    await bundle.close()
+      const outputOptions = options.output
+
+      // create a bundle
+      const bundle = await rollup.rollup(inputOptions)
+
+      const { output } = await bundle.generate(outputOptions)
+
+      await bundle.write(outputOptions)
+
+      await bundle.close()
+
+      if (bundledPlugins.length > 1) {
+        processed++
+        progress.tick()
+      }
+    }
+
+    console.log('')
+    if (bundledPlugins.length > 1) {
+      messenger.success(`${bundledPlugins.length} Plugins Built Successfully`, 'SUCCESS')
+    } else {
+      messenger.success('Build Process Complete', 'SUCCESS')
+    }
+  } catch (error) {
+    console.log('Build Process Aborted')
+    process.exit()
   }
-
-  console.log('')
-  messenger.success('Build Process Complete', 'SUCCESS')
 }
 
 function getConfig(pluginPath) {
@@ -304,10 +333,17 @@ function getConfig(pluginPath) {
 
 if (!BUILD) {
   process.on('SIGINT', function () {
-    console.log('Quitting...\n')
+    console.log('\n\n')
+    console.log(colors.yellow('Quitting...\n'))
     if (watcher) {
       watcher.close()
     }
+  })
+} else {
+  process.on('SIGINT', function () {
+    console.log('\n\n')
+    messenger.warn('Build Process Aborted', 'ABORT')
+    process.exit()
   })
 }
 

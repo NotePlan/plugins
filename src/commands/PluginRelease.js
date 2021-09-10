@@ -1,11 +1,11 @@
 const { colors, helpers, print, strings, system, prompt } = require('@codedungeon/gunner')
 const Messenger = require('@codedungeon/messenger')
 const appUtils = require('../utils/app')
+const security = require('../utils/security.lib')
 const pluginUtils = require('./support/plugin-utils')
 const pluginRelease = require('./support/plugin-release')
 const releasePrompts = require('./support/plugin-release/release-prompts')
 const github = require('./support/github')
-const security = require('../utils/security.lib')
 
 module.exports = {
   name: 'plugin:release',
@@ -13,18 +13,18 @@ module.exports = {
   disabled: false,
   hidden: false,
   usage: `plugin:release ${colors.magenta('<plugin>')} ${colors.blue('[options]')}`,
-  usePrompts: true,
+  usePrompts: false,
   arguments: {
     plugin: {
       type: 'string',
       aliases: ['p'],
       description: 'Plugin Name',
-      required: true,
+      required: false,
       prompt: {
         type: 'input',
         description: 'Plugin Name',
         hint: 'e.g., codedungeon.Toolbox',
-        required: true,
+        disabled: false,
       },
     },
   },
@@ -67,11 +67,20 @@ module.exports = {
       process.exit()
     }
 
-    // dd(answers.password)
     if (!security.validate(answers.password)) {
       console.log('')
       print.error('Invalid Password', 'ABORT')
       process.exit()
+    }
+
+    if (toolbox.plugin.length === 0) {
+      // no plugin supplied, use `plugin.prompt` interface
+      this.arguments.plugin.prompt.disabled = false
+      this.arguments.plugin.prompt.type = 'select'
+      this.arguments.plugin.prompt.choices = pluginUtils.getPluginList()
+
+      const answers = await toolbox.prompts.run(toolbox, this)
+      toolbox.arguments.plugin = answers.commandName
     }
 
     console.log('')
@@ -93,7 +102,7 @@ module.exports = {
     if (!(await pluginUtils.checkVersion(pluginName, nextVersion))) {
       const existingReleaseName = `${pluginName} v${configData['plugin.version']}`
       print.warn(`Release matching ${colors.cyan(existingReleaseName)} has already been published.`, 'HALT')
-      print.info(`       https://github.com/NotePlan/plugins/releases/tag/codedungeon.Toolbox-v${nextVersion}`)
+      print.info(`       https://github.com/NotePlan/plugins/releases/tag/${pluginName}-v${nextVersion}`)
       console.log('')
       const version = await releasePrompts.versionPrompt(configData['plugin.version'])
       if (!version) {
