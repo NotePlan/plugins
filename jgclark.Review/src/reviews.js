@@ -1,9 +1,9 @@
 // @flow
 
 //-----------------------------------------------------------------------------
-// Commands for Reviewing project notes, GTD-style.
+// Commands for Reviewing project-style notes, GTD-style.
 // by @jgclark
-// v0.3.0, 21.8.2021
+// v0.4.0, 10.9.2021
 //-----------------------------------------------------------------------------
 
 // Settings
@@ -25,6 +25,7 @@ let pref_displayArchivedProjects: boolean = true
 
 // Constants
 const reviewListNoteTitle = '_reviews'
+const reviewListPref = 'jgclark.Review.reviewList'
 
 //-----------------------------------------------------------------------------
 // Import Helper functions
@@ -106,7 +107,7 @@ export async function projectLists(): Promise<void> {
 
   if (pref_noteTypeTags != null && pref_noteTypeTags.length > 0) {
     // We have defined tag(s) to filter and group by
-     // $FlowFixMe -- why is this not an $Iterable as it is an array??
+    // $FlowFixMe[incompatible-type]
     for (const tag of pref_noteTypeTags) {
       // Do the main work
       const noteTitle = `${tag} List`
@@ -154,17 +155,22 @@ export async function projectLists(): Promise<void> {
 //-------------------------------------------------------------------------------
 // Create machine-readable note listing project notes ready for review,
 // ordered by oldest next review date
+// V2, using reviewList pref
 export async function startReviews() {
   getConfig()
   // Get or make _reviews note
-  const reviewsNote: ?TNote = await returnSummaryNote(reviewListNoteTitle, pref_folderToStore)
-  if (reviewsNote == null) {
-    showMessage(`Oops: failed to find or make _reviews note`, 'OK')
-    console.log(`\nstartReviews: error: can't get or make summary _reviews note`)
-    return
-  }
+  // const reviewsNote: ?TNote = await returnSummaryNote(reviewListNoteTitle, pref_folderToStore)
+  // if (reviewsNote == null) {
+  //   showMessage(`Oops: failed to find or make _reviews note`, 'OK')
+  //   console.log(`\nstartReviews: error: can't get or make summary _reviews note`)
+  //   return
+  // }
 
   console.log(`\nstartReviews():`)
+
+  // Temporary check to see if we can delete an absolete '_reviews' file.
+  deleteOldListFile()
+
   const summaryArray = []
   // create list of folders
   const folderList = DataStore.folders
@@ -207,15 +213,19 @@ export async function startReviews() {
     // $FlowIgnore[unsafe-addition]
     (first, second) => first.split('\t')[0] - second.split('\t')[0]) // order by first field
     
-  // write summary to _reviews notes
-  outputArray.push("```")
-  outputArray.unshift("```")
-  outputArray.unshift("---")
-  outputArray.unshift(`Last updated: ${nowLocaleDateTime}`)
-  outputArray.unshift(`_NB: Do not edit manually. This is a machine-readable list of notes to review, used by \`/start review\` and \`/next review\` Plugin commands._`)
-  outputArray.unshift(`# _reviews`)
-  reviewsNote.content = outputArray.join('\n')
-  console.log(`\twritten ${summaryArray.length} summary lines to note '${reviewListNoteTitle}'`)
+  // create summary and write to _reviews notes
+  // outputArray.push("```")
+  // outputArray.unshift("```")
+  // outputArray.unshift("---")
+  // outputArray.unshift(`Last updated: ${nowLocaleDateTime}`)
+  // outputArray.unshift(`_NB: Do not edit manually. This is a machine-readable list of notes to review, used by \`/start review\` and \`/next review\` Plugin commands._`)
+  // outputArray.unshift(`# _reviews`)
+  // reviewsNote.content = outputArray.join('\n')
+  // console.log(`\twritten ${summaryArray.length} summary lines to note '${reviewListNoteTitle}'`)
+
+  // write summary to reviewList pref
+  DataStore.setPreference(reviewListPref, outputArray.join('\n'))
+  console.log(`\twritten ${summaryArray.length} summary lines to reviewList pref`)
 
   // Now trigger first review
   const noteToReview = await getNextNoteToReview()
@@ -256,7 +266,7 @@ function makeNoteTypeSummary(noteTag: string): Array<string> {
     const notes = findNotesMatchingHashtags(noteTag, folder, false)
     if (notes.length > 0) {
       // Create array of Project class representation of each note,
-      // ignoring any in a folder to ignore
+      // ignoring any in a folder we want to ignore (by one of the settings)
       const projects = []
       for (const note of notes) {
         const np = new Project(note)
@@ -316,15 +326,17 @@ function makeNoteTypeSummary(noteTag: string): Array<string> {
 
 //-------------------------------------------------------------------------------
 // Complete current review, then jump to the next one to review
+// V2: now using preference not note
 export async function nextReview() {
   console.log('\nnextReview')
   // First update @review(date) on current open note
   const openNote: ?TNote = await completeReview()
 
-  if (openNote != null) {
-    // Then update @review(date) in review list note
-    await updateReviewListAfterReview(openNote)
-  }
+  // NB: The following is now done in completeReview() ...
+  // if (openNote != null) {
+  //   // Then update @review(date) in review list note
+  //   await updateReviewListAfterReview(openNote)
+  // }
 
   // Read review list to work out what's the next one to review
   const noteToReview: ?TNote = await getNextNoteToReview()
@@ -343,69 +355,68 @@ export async function nextReview() {
 
 //-------------------------------------------------------------------------------
 // Update the review list after completing a review
+// V2: now using preference not note
 export async function updateReviewListAfterReview(note: TNote) {
   const thisTitle = note.title ?? ''
-  console.log(`updateReviewListAfterReview for '${thisTitle}'`)
+  console.log(`updateReviewListAfterReview V2 for '${thisTitle}'`)
 
-  // Get note that contains the project list (or create if not found)
-  const reviewNote: ?TNote = await returnSummaryNote(reviewListNoteTitle, pref_folderToStore)
-  if (reviewNote == null) {
-    showMessage(`Oops: I now can't find summary note _reviews`, 'OK')
-    console.log(`updateReviewListAfterReview: error: can't find summary note _reviews`)
+  // Get pref that contains the project list
+  const reviewList = DataStore.preference(reviewListPref)
+  if (reviewList === undefined) {
+    showMessage(`Oops: I now can't find my pref`, 'OK')
+    console.log(`updateReviewListAfterReview: error: can't find pref jgclark.Review.reviewList`)
     return
   }
 
-  // Now read contents and parse, this time as paragraphs
-  const paras = reviewNote.paragraphs
-  let inCodeblock = false
-  let lineNum: number = -1 // i.e. an invalid number
-  for (let i = 1; i < paras.length; i++) {
-    const pc = paras[i].content
-    if (pc.match('```')) { inCodeblock = !inCodeblock } // toggle state
-    if (pc.match(thisTitle) && inCodeblock) {
-      // console.log(`\tFound '${thisTitle}' in line '${pc}' at line ${i}`)
+  // Now read contents and parse, this time as lines
+  const lines = reviewList.split('\n')
+  // console.log(`\t(pref: has ${lines.length} items, starting ${lines[0]})`)
+  // $FlowFixMe
+  let lineNum: number // deliberately undefined
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    if (line.match(thisTitle)) {
+      // console.log(`\tFound '${thisTitle}' in line '${line}' at line number ${i}`)
       lineNum = i
       break
     }
   }
-  if (lineNum >= 1) {
-    // console.log(`\tRemove line ${lineNum} from _reviews note as its review is completed`)
-    reviewNote.removeParagraph(paras[lineNum])
+
+  if (lineNum !== undefined) {
+    lines.splice(lineNum, 1) // delete this one line
+    DataStore.setPreference(reviewListPref, lines.join('\n'))
+    // console.log(`\tRemoved line ${lineNum} from reviewList pref as its review is completed`)
   } else {
-    console.log(`\tWarning: _reviews' codeblock unexpectedly missing or empty`)
+    console.log(`\tInfo: couldn't find '${thisTitle}' to remove from review list`)
     return
   }
 }
 
 //-------------------------------------------------------------------------------
 // Work out the next note to review (if any)
+// V2: now using preference not note
 async function getNextNoteToReview(): Promise<?TNote> {
-  console.log(`\ngetNextNoteToReview`)
+  console.log(`\ngetNextNoteToReview V2`)
 
-  // Get note that contains the project list (or create if not found)
-  const note: ?TNote = await returnSummaryNote(reviewListNoteTitle, pref_folderToStore)
-  if (note == null) {
-    showMessage(`Oops: I now can't find summary note _reviews`, 'OK')
-    console.log(`getNextNoteToReview: error: can't find summary note _reviews`)
+  // Get pref that contains the project list
+  const reviewList = DataStore.preference(reviewListPref)
+  if (reviewList === undefined) {
+    showMessage(`Oops: I now can't find my pref`, 'OK')
+    console.log(`getNextNoteToReview: error: can't find pref jgclark.Review.reviewList`)
     return
   }
 
-  // Now read contents and parse
-  // Get first code block and read into array
-  const firstCodeBlock = note.content?.split('\n```')[1]
-  // console.log(firstCodeBlock)
-  if (firstCodeBlock != null && firstCodeBlock !== '') {
-    const firstCodeBlockLines = firstCodeBlock.split('\n')
-    if (firstCodeBlockLines.length >= 1) {
-      const nextNoteTitle = firstCodeBlockLines[1].split('\t')[1] // ignore first line as it will be ```
-      console.log(`\tNext project note to review = '${nextNoteTitle}'`)
-      const nextNotes = DataStore.projectNoteByTitle(nextNoteTitle, true, false) ?? []
-      return nextNotes[0]
-    } else {
-      return
-    }
+  // Now read off the first line
+  if (reviewList.length > 0) {
+    const lines = reviewList.split('\n')
+    const firstLine = lines[0]
+    // console.log(`pref: has ${lines.length} items, starting ${firstLine}`)
+    const nextNoteTitle = firstLine.split('\t')[1] // get second field in list
+    console.log(`\tNext project note to review = '${nextNoteTitle}'`)
+    const nextNotes = DataStore.projectNoteByTitle(nextNoteTitle, true, false) ?? []
+    return nextNotes[0] // return first matching note
   } else {
-    console.log(`info: _reviews note codeblock was empty`)
+    console.log(`info: review list was empty`)
     return
   }
 }
@@ -445,14 +456,14 @@ export async function completeReview(): Promise<?TNote> {
     const older = metaPara.content
     const newer = older.replace(firstReviewedMention, reviewedTodayString)
     metaPara.content = newer
-    console.log(`\tupdating para to '${newer}'`)
+    // console.log(`\tupdating para to '${newer}'`)
 
     // send update to Editor
     await Editor.updateParagraph(metaPara)
   } else {
     // no existing mention, so append to note's default metadata line
     console.log(
-      `\tno matching ${reviewMentionString}(date) string found. Will append to line 1`,
+      `\tInfo: no matching ${reviewMentionString}(date) string found. Will append to line 1`,
     )
     metadataPara = Editor.note?.paragraphs[metadataLine]
     if (metadataPara == null) {
@@ -464,9 +475,29 @@ export async function completeReview(): Promise<?TNote> {
     await Editor.updateParagraph(metaPara)
   }
   // remove this note from the review list
-  // $FlowFixMe[incompatible-call]
+  // $FlowIgnore[incompatible-call]
   await updateReviewListAfterReview(Editor.note)
 
   // return current note, to help next function
   return Editor.note
+}
+
+// To help transition from the previous method which used a machine-readable
+// file '_reviews' for persistent storage, this will remove it if found.
+// TODO: remove this after some months, as no longer needed
+function deleteOldListFile(): void {
+  const notes = DataStore.projectNoteByTitle('_reviews', false, false) ?? [] // don't link in Trash
+  if (notes?.length > 0) {
+    const reviewNote = notes[0]
+    // Following doesn't seem to work
+    // const temp = DataStore.moveNote(reviewListNoteTitle, "@Trash")
+    // So try to rename instead
+    const titlePara = reviewNote.paragraphs[0]
+    const firstLinePara = reviewNote.paragraphs[1]
+    titlePara.content = `PLEASE DELETE ME: _reviews`
+    reviewNote.updateParagraph(titlePara)
+    firstLinePara.content = `**This note has now been replaced by a newer preference mechanism.** It can now safely be deleted.`
+    reviewNote.updateParagraph(firstLinePara)
+    console.log(`Info: the old '${reviewListNoteTitle}' note has been updated to say it is no longer needed to operate the Review plugin commands.`)
+  }
 }
