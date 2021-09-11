@@ -235,11 +235,15 @@ async function build() {
     const bundledPlugins = (await Promise.all(rootLevelFolders)).filter(Boolean)
 
     if (bundledPlugins.length > 1) {
-      progress = new ProgressBar(`${colors.yellow('[:bar] :percent built :eta/secs remaining')}`, {
+      const progressOptions = {
         clear: true,
+        complete: '\u001b[42m \u001b[0m',
+        incomplete: '\u001b[40m \u001b[0m',
         total: bundledPlugins.length,
-        width: 75,
-      })
+        width: 50,
+      }
+
+      progress = new ProgressBar(`${colors.yellow(':bar :percent built :eta/secs remaining')}`, progressOptions)
     }
 
     let processed = 0
@@ -284,7 +288,9 @@ async function build() {
       messenger.success('Build Process Complete', 'SUCCESS')
     }
   } catch (error) {
-    console.log('Build Process Aborted')
+    console.log(error.message)
+    console.log('')
+    messenger.error('Build Error Occurred', 'ERROR')
     process.exit()
   }
 }
