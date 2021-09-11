@@ -100,7 +100,12 @@ export async function timeBlocksToCalendar() {
   if (pref_calendarToWriteTo != null && pref_calendarToWriteTo !== '') {
     // TODO: we should check that the calendar name we've been given is writable
     // when API calls are available from r655
-    console.log(`\twill write to calendar ${pref_calendarToWriteTo}`)
+    // const writableCalendars = Calendar.availableCalendarTitles(true)
+    // if (writableCalendars.filter((f) => f.match(pref_calendarToWriteTo)).length > 0) {
+    //   console.log(`\twill write to calendar '${pref_calendarToWriteTo}'`)
+    // } else {
+    //   console.log(`\trequested calendar '${pref_calendarToWriteTo}' is not writeable. Will use default calendar instead.`)
+    // }
   }
 
   // const pref_processedTagName: string =
@@ -250,11 +255,12 @@ function createEventFromDateRange(eventTitle: string, dateRange: DateRange): ?st
     )
   }
   const createdEvent = Calendar.add(event)
+  const calendarDisplayName = (pref_calendarToWriteTo !== '') ? pref_calendarToWriteTo : 'system default'
   if (createdEvent != null) {
-    console.log(`-> Event created with id: ${createdEvent.id ?? 'undefined'} in calendar ${pref_calendarToWriteTo}`)
+    console.log(`-> Event created with id: ${createdEvent.id ?? 'undefined'} in ${calendarDisplayName} calendar `)
     return createdEvent.id
   } else {
-    console.log(`-> Error: failed to create event in calendar ${pref_calendarToWriteTo}`)
+    console.log(`-> Error: failed to create event in ${calendarDisplayName} calendar`)
     return '(error)'
   }
 }
