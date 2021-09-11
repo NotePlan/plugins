@@ -3,7 +3,7 @@
 // ------------------------------------------------------------------------------------
 // Command to turn time blocks into full calendar events
 // @jgclark
-// v0.4.0, 26.8.2021
+// v0.5.0, 12.9.2021
 //
 // See https://help.noteplan.co/article/52-part-2-tasks-events-and-reminders#timeblocking
 // for definition of time blocks. In summary:
@@ -25,6 +25,7 @@ import {
 // Settings
 const DEFAULT_EVENTS_OPTIONS = `
   events: {
+    calendarToWriteTo: "" // specify calendar name to write events to. Must be writable calendar. If empty, then the default system calendar will be used.
     addEventID: false,  // whether to add an [[event:ID]] internal link when creating an event from a time block
     processedTagName: "#event_created",   // optional tag to add after making a time block an event
     removeTimeBlocksWhenProcessed: true,  // whether to remove time block after making an event from it
@@ -38,6 +39,12 @@ const DEFAULT_EVENTS_OPTIONS = `
 	  timeOptions: { hour: '2-digit', minute: '2-digit', hour12: false },
   },
 `
+
+let pref_processedTagName: string
+let pref_removeTimeBlocksWhenProcessed: boolean
+let pref_addEventID: boolean
+let pref_confirmEventCreation: boolean
+let pref_calendarToWriteTo: string
 
 // ------------------------------------------------------------------------------------
 // Regular Expressions
@@ -76,32 +83,47 @@ export async function timeBlocksToCalendar() {
   const eventsConfig = await getOrMakeConfigurationSection(
     'events',
     DEFAULT_EVENTS_OPTIONS,
+    // no minimum config needed, as can use defaults if need be
   )
   // const eventsConfig: any = config?.events ?? null
   if (eventsConfig == null) {
-    console.log("\tCouldn't find 'events' settings in _configuration note.")
-    return
+    console.log("\tInfo: couldn't find 'events' settings in _configuration note. Will use defaults.")
+  }
+  console.log("\tFound 'events' settings in _configuration note.")
+
+  // now get settings we need
+  pref_processedTagName = String(eventsConfig?.processedTagName) ?? '#event_created'
+  pref_removeTimeBlocksWhenProcessed = eventsConfig?.removeTimeBlocksWhenProcessed ?? true
+  pref_addEventID = eventsConfig?.addEventID ?? false
+  pref_confirmEventCreation = eventsConfig?.confirmEventCreation ?? false
+  pref_calendarToWriteTo = eventsConfig?.calendarToWriteTo ?? ''
+  if (pref_calendarToWriteTo != null && pref_calendarToWriteTo !== '') {
+    // TODO: we should check that the calendar name we've been given is writable
+    // when API calls are available from r655
+    console.log(`\twill write to calendar ${pref_calendarToWriteTo}`)
   }
 
-  console.log("\tFound 'events' settings in _configuration note.")
-  // now get each setting we need
-  const pref_processedTagName: string =
-    eventsConfig.processedTagName != null &&
-    typeof eventsConfig.processedTagName === 'string'
-      ? eventsConfig.processedTagName
-      : '#event_created'
-  const pref_removeTimeBlocksWhenProcessed =
-    (eventsConfig.removeTimeBlocksWhenProcessed != null)
-    ? eventsConfig.removeTimeBlocksWhenProcessed
-    : true
-  const pref_addEventID =
-    (eventsConfig.addEventID != null)
-    ? eventsConfig.addEventID
-    : false
-  const pref_confirmEventCreation =
-    (eventsConfig.confirmEventCreation != null)
-    ? eventsConfig.confirmEventCreation
-    : false
+  // const pref_processedTagName: string =
+  //   eventsConfig.processedTagName != null &&
+  //   typeof eventsConfig.processedTagName === 'string'
+  //     ? eventsConfig.processedTagName
+  //     : '#event_created'
+  // const pref_removeTimeBlocksWhenProcessed =
+  //   (eventsConfig.removeTimeBlocksWhenProcessed != null)
+  //   ? eventsConfig.removeTimeBlocksWhenProcessed
+  //   : true
+  // const pref_addEventID =
+  //   (eventsConfig.addEventID != null)
+  //   ? eventsConfig.addEventID
+  //   : false
+  // const pref_confirmEventCreation =
+  //   (eventsConfig.confirmEventCreation != null)
+  //   ? eventsConfig.confirmEventCreation
+  //   : false
+  // const pref_calendarToWriteTo =
+  //   (eventsConfig.calendarToWriteTo != null)
+  //   ? eventsConfig.calendarToWriteTo
+  //   : "" // if blank then we will use the default from the Operating System
 
   // Look through open note to find time blocks, but ignore @done(...) lines
   // which can look like timeblocks
@@ -147,7 +169,6 @@ export async function timeBlocksToCalendar() {
       // $FlowFixMe[incompatible-call]
       if ((pref_processedTagName !== "" && thisParaContent.match(pref_processedTagName))
           || thisParaContent.match(RE_EVENT_ID)) {
-        // $FlowFixMe[incompatible-type]
         console.log(
           `\tIgnoring timeblock in '${thisParaContent}' as it has already been processed`,
         )
@@ -188,12 +209,10 @@ export async function timeBlocksToCalendar() {
           }
           // Add processedTag (if not empty)
           if (pref_processedTagName !== '') {
-            // $FlowFixMe[incompatible-type]
             thisPara.content += ` ${pref_processedTagName}`
           }
           // Add event ID (if wanted)
           if (pref_addEventID) {
-            // $FlowFixMe[incompatible-type]
             thisPara.content += ` ⏰event:${eventID}`
           }
           Editor.updateParagraph(thisPara) // seems not to work twice in quick succession, so just do it once here
@@ -208,22 +227,34 @@ export async function timeBlocksToCalendar() {
 }
 
 // Create a new calendar event
-// NB: we can't set which calendar to write to
 function createEventFromDateRange(eventTitle: string, dateRange: DateRange): ?string {
-  // console.log(`\tStarting cEFDR with ${eventTitle}`)
-  const event = CalendarItem.create(
-    eventTitle,
-    dateRange.start,
-    dateRange.end,
-    'event', // not 'reminder'
-    false, // not 'isAllDay'
-  )
+  // console.log(`\tStarting cEFDR with ${eventTitle} for calendar ${pref_calendarToWriteTo}`)
+  // If we have a pref_calendarToWriteTo setting, then include that in the call
+  let event: TCalendarItem
+  if (pref_calendarToWriteTo !== '') {
+    event = CalendarItem.create(
+      eventTitle,
+      dateRange.start,
+      dateRange.end,
+      'event', // not 'reminder'
+      false, // not 'isAllDay'
+      pref_calendarToWriteTo,
+    )
+  } else {
+    event = CalendarItem.create(
+      eventTitle,
+      dateRange.start,
+      dateRange.end,
+      'event', // not 'reminder'
+      false, // not 'isAllDay'
+    )
+  }
   const createdEvent = Calendar.add(event)
   if (createdEvent != null) {
-    console.log(`\t-> Event created with id: ${createdEvent.id ?? 'undefined'}`)
+    console.log(`-> Event created with id: ${createdEvent.id ?? 'undefined'} in calendar ${pref_calendarToWriteTo}`)
     return createdEvent.id
   } else {
-    console.log('\t-> Error: failed to create event')
+    console.log(`-> Error: failed to create event in calendar ${pref_calendarToWriteTo}`)
     return '(error)'
   }
 }
