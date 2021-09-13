@@ -1,4 +1,5 @@
-const { colors, helpers, print, prompt, system } = require('@codedungeon/gunner')
+const { colors, helpers, print, prompt, system, filesystem, path } = require('@codedungeon/gunner')
+const { defaultsDeep } = require('lodash')
 const tildify = require('tildify')
 const pluginUtils = require('./support/plugin-utils')
 
@@ -33,10 +34,19 @@ module.exports = {
       aliases: ['c'],
       description: `Use Compact Display ${colors.gray('(available in watch mode)')}`,
     },
+    fix: {
+      type: 'boolean',
+      aliases: ['f'],
+      hidden: true,
+      description: `Fix Linting Errors ${colors.gray('(used when --lint flag supplied)')}`,
+      initial: false,
+    },
     lint: {
       type: 'boolean',
       aliases: ['l'],
-      description: `Lint Plugin ${colors.gray('(using eslint)')}`,
+      description: `Lint Plugin ${colors.gray('(using eslint)')}\n                              ${colors.gray(
+        '| use --fix,-f to attempt fixing linting errors',
+      )}`,
       initial: false,
     },
     test: {
@@ -63,10 +73,37 @@ module.exports = {
 
     const plugin = args.plugin || toolbox.plugin || ''
     const lint = args.lint || toolbox.lint || ''
+    const fix = args.fix || toolbox.fix || ''
     const watch = args.watch
     const compact = args.compact
     const test = args.test
     const coverage = args.coverage
+
+    if (lint) {
+      if (fix) {
+        print.info('Linting fix enabled, will attempt to fix linting errors...')
+      } else {
+        print.info('Linting In Progress...')
+      }
+
+      let ignorePath = ''
+      if (filesystem.existsSync(path.join(plugin, '.eslintignore'))) {
+        ignorePath = ` --ignore-path "${plugin}/.eslintignore"`
+      }
+
+      try {
+        const cmd = `./node_modules/.bin/eslint${ignorePath} ./${plugin}/**/*.js ${fix ? '--fix' : ''}`.trim()
+
+        const result = await system.run(cmd, true)
+
+        console.log('')
+        print.success('No Linting Errors', 'SUCCESS')
+        process.exit()
+      } catch (error) {
+        print.error('Linting Errors Found', 'FAIL')
+      }
+      process.exit()
+    }
 
     if (plugin.length > 0) {
       if (!pluginUtils.isValidPlugin(plugin)) {

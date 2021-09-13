@@ -61,6 +61,8 @@ module.exports = {
       result = await this.merge(path.join(dest, 'changelog.md'), pluginInfo)
       result = await this.merge(path.join(dest, 'src', 'helloWorld.js'), pluginInfo)
 
+      result = await this.merge(path.join(dest, '__tests__', 'hello-world.test.js'), pluginInfo)
+
       await filesystem.delete(path.join(dest, 'script.js'))
     } catch (error) {
       print.error('An error occcured creating plugin', 'ERROR')

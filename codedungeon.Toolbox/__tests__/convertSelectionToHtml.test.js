@@ -5,7 +5,7 @@
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
  * -----------------------------------------------------------------------------------------*/
 
-import CodedungeonToolbox from './support/CodedungeonToolbox'
+import CodedungeonToolbox from '../src/support/CodedungeonToolbox'
 
 let toolbox
 beforeEach(() => {

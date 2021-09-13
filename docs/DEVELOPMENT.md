@@ -1,16 +1,32 @@
 # NotePlan Plugin Development Tools and Workflows
 
 ## Overview
-xxxx
+NotePlan Plugin Development CLI tool has a number of commands to help you with your plugin development efforts.
 
 ## Worflows
+There are a variety of tools you can use during NotePlugin plugin development.  The following is a quick overview of the various tools to be used for github interaction
+
+- Terminal
+- VSCode Built-in Github Tools
+- Github Desktop
+- Tower
+
 ### Using Terminal
+If you would like to use terminal for managing your github interactions, the following comamnds are the most commonly used
+
+`git status`
+`git add`
+`git commit`
+`git push`
 
 ### Using VSCode
-> [🗒️ Using Github with VSCode](https://vscode.github.com/)
+> 🗒️ [Using Github with VSCode](https://vscode.github.com/)
 
 ### Using Github Destkop
-> [🗒️ Github Desktop](https://desktop.github.com/)
+> 🗒️ [Github Desktop](https://desktop.github.com/)
+
+### Using Tower
+> 🗒️ [Tower](https://www.git-tower.com/mac)
 
 ## NotePlan Plugin Support
 Should you need support for anything related to NotePlan Plugins, you can reach us at the following:

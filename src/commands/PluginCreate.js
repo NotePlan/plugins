@@ -65,7 +65,6 @@ module.exports = {
     const hasCommandLineItems = cliArgs.id || cliArgs.name || cliArgs.description || cliArgs.author || false
 
     if (!hasCommandLineItems) {
-      console.log('')
       print.note('', 'INSTRUCTIONS')
       console.log('')
       print.note('The following items will be used to generate your new NotePlan plugin:')
@@ -106,20 +105,21 @@ module.exports = {
 
     const createResult = createPlugin.createPlugin(pluginPath, flags)
 
-    console.log('')
     console.log(colors.green.bold(`✔ ✨ Project Initialized in ${colors.yellow.bold(pluginPath)}`))
     console.log(colors.green.bold('✔ 📦 Project Files Created'))
     console.log(colors.green.bold('✔ 🧩 Project Creation Complete'))
 
     print.info('\n👉 Next Steps:\n')
     print.info(`   ${toolbox.colors.gray('$')} cd ${flags.pluginId}`)
-    print.info(`   ${toolbox.colors.gray('$')} npm run autowatch`)
+    print.info(`   ${toolbox.colors.gray('$')} noteplan-cli plugin:dev ${flags.pluginId} --watch`)
     console.log('')
     print.info(`   - If NotePlan is running, quit and relaunch`)
-    print.info(`   - run your new plugin command /helloWorld from NotePlan Command Bar or in inline`)
+    print.info(
+      `   - run your new plugin command ${colors.yellow('/helloWorld')} from NotePlan Command Bar or in inline`,
+    )
     console.log('')
-    print.note(
-      `Use ${colors.cyan('noteplan-cli plugin:info --check xxx')} to check if desired command is available`,
+    print.warn(
+      `Use ${colors.cyan('noteplan-cli plugin:info --check <your_command>')} to check if desired command is available`,
       'TIP',
     )
   },

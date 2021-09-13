@@ -5,8 +5,6 @@
 
 import showdown from 'showdown'
 
-function convertHtmlToRtf(html) {}
-
 export default class CodedungeonToolbox {
   markdownToHtml(text = '') {
     const showdownConverter = new showdown.Converter()

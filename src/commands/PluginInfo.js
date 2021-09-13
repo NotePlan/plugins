@@ -17,12 +17,24 @@ module.exports = {
     `plugin:info ${colors.magenta('codedungeon.Toolbox')} ${colors.cyan('--sanity')}`,
   ],
   usePrompts: true,
-  arguments: {},
+  arguments: {
+    plugin: {
+      type: 'string',
+      aliases: ['p'],
+      description: `Plugin Name ${colors.gray('(processes all plugins if not supplied)')}`,
+      required: false,
+    },
+  },
   flags: {
     check: {
       type: 'string',
       aliases: ['c'],
       description: `Check if desired plugin command is available ${colors.gray('(supply desired command e.g. dp)')}`,
+    },
+    docs: {
+      type: 'boolean',
+      aliases: ['d'],
+      description: `Generates and Displays Plugin Documetation`,
     },
     sanity: {
       type: 'boolean',
@@ -39,9 +51,22 @@ module.exports = {
   async execute(toolbox) {
     console.log('')
 
+    const args = helpers.setDefaultFlags(toolbox.arguments, this.flags)
+
+    const plugin = args.plugin || toolbox.plugin || ''
+
     const check = toolbox.getOptionValue(toolbox.arguments, ['check', 'c'])
+    const docs = toolbox.getOptionValue(toolbox.arguments, ['docs', 'd'])
     const savePluginListing = toolbox.getOptionValue(toolbox.arguments, ['save', 's'])
 
+    if (docs) {
+      if (plugin.length > 0) {
+        print.warn(`Generate and Display ${colors.blue(plugin)} Plugin Documentation`, 'INFO')
+      } else {
+        print.warn(`Generate and Display Documentation for all Plugins`, 'INFO')
+      }
+      process.exit()
+    }
     const performSanityCheck = toolbox.getOptionValue(toolbox.arguments, ['sanity', 'a'])
     if (performSanityCheck) {
       const result = await pluginInfo.sanityCheck()
