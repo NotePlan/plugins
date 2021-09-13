@@ -25,6 +25,7 @@ import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configura
 // Get settings
 const DEFAULT_EVENTS_OPTIONS = `
   events: {
+    calendarToWriteTo: "" // specify calendar name to write events to. Must be writable calendar. If empty, then the default system calendar will be used.
     addEventID: false,  // whether to add an [[event:ID]] internal link when creating an event from a time block
     processedTagName: "#event_created",   // optional tag to add after making a time block an event
     removeTimeBlocksWhenProcessed: true,  // whether to remove time block after making an event from it
@@ -45,18 +46,18 @@ let pref_locale: string = 'en-US'
 let pref_timeOptions = { hour: '2-digit', minute: '2-digit', hour12: false }
 
 //------------------------------------------------------------------------------
+// Local functions
+
 // Get config settings from Template folder _configuration note
 async function getEventsSettings(): Promise<void> {
   console.log(`\nStart of getEventsSettings()`)
   const eventsConfig = await getOrMakeConfigurationSection(
     'events',
     DEFAULT_EVENTS_OPTIONS,
-    // not including a minimum required configuration list
+    // no minimum config needed, as can use defaults if need be
   )
   if (eventsConfig == null) {
-    console.log(`\tCouldn't find 'events' settings in _configuration note.`)
-    await showMessage(`Couldn't find 'events' settings in _configuration note.`)
-    return
+    console.log(`\tInfo: couldn't find 'events' settings in _configuration note. Will use defaults.`)
   }
   console.log(`\tFound 'events' settings in _configuration note.`)
 
@@ -93,12 +94,12 @@ async function getEventsForDay(dateStr: string): Promise<Array<TCalendarItem>> {
   const startOfDay = Calendar.dateFrom(y, m, d, 0, 0, 0)
   const endOfDay = Calendar.dateFrom(y, m, d, 23, 59, 59)
   console.log(`  ${startOfDay.toString()} - ${endOfDay.toString()}`)
-  const eA: Array<TCalendarItem> = await Calendar.eventsBetween(
+  const eArr: Array<TCalendarItem> = await Calendar.eventsBetween(
     startOfDay,
     endOfDay,
   )
-  console.log(`\tFound ${eA.length} events`)
-  return eA
+  console.log(`\tFound ${eArr.length} events`)
+  return eArr
 }
 
 //------------------------------------------------------------------------------
@@ -118,25 +119,26 @@ export async function listDaysEvents(paramString?: string): Promise<string> {
   await getEventsSettings()
   // Work out template for output line (from params, or if blank, a default)
   const template =
-    paramString != null && paramString !== ''
+    (paramString != null && paramString !== '' && getTagParams(paramString, 'template') !== '')
       ? getTagParams(paramString, 'template')
       : '- *|TITLE|* (*|START|*)'
   const allday =
-    paramString != null && paramString !== ''
+    (paramString != null && paramString !== '' && getTagParams(paramString, 'allday_template') !== '')
       ? getTagParams(paramString, 'allday_template')
       : '- *|TITLE|*'
   const includeHeadings =
-    paramString != null && paramString !== ''
-      ? getTagParams(paramString, 'includeHeadings')
+    (paramString != null && paramString !== '' && getTagParams(paramString, 'includeHeadings') === 'false')
+      ? false
       : true
+  console.log(`includeHeadings = '${includeHeadings.toString()}'`)
   console.log(`\toutput template: '${template}' and '${allday}'`)
 
   // Get all the events for this day
-  const eA: Array<TCalendarItem> = await getEventsForDay(dateStr)
+  const eArr: Array<TCalendarItem> = await getEventsForDay(dateStr)
 
   const outputArray: Array<string> = []
   let lastEventStr = '' // keep duplicates from multiple calendars out
-  for (const e of eA) {
+  for (const e of eArr) {
     // console.log(`      for e: ${e.title}: ${JSON.stringify(e)}`)
     const replacements = [
       { key: '*|TITLE|*', value: e.title },
@@ -172,7 +174,7 @@ export async function listDaysEvents(paramString?: string): Promise<string> {
     outputArray.unshift(pref_eventsHeading)
   }
   const output = outputArray.join('\n') // If this the array is empty -> empty string
-  console.log(output)
+  // console.log(output)
   return output
 }
 
@@ -213,21 +215,21 @@ export async function listMatchingDaysEvents(
     return `(Error: found no 'addMatchingEvents' settings in _configuration note.)`
   }
   const textToMatchA = Object.keys(pref_addMatchingEvents)
-  const templateA = Object.values(pref_addMatchingEvents)
+  const templateArr = Object.values(pref_addMatchingEvents)
   console.log(
     `\tFrom settings found ${textToMatchA.length} match strings to look for`,
   )
 
   // Get all events for this day
-  const eA: Array<TCalendarItem> = await getEventsForDay(dateStr)
+  const eArr: Array<TCalendarItem> = await getEventsForDay(dateStr)
 
   const outputArray: Array<string> = []
   // for each event, check each of the strings we want to match
   let lastEventStr = '' // keep duplicates from multiple calendars out
-  for (const e of eA) {
+  for (const e of eArr) {
     for (let i = 0; i < textToMatchA.length; i++) {
       // const m = textToMatchA[i]
-      const template = templateA[i]
+      const template = templateArr[i]
       const reMatch = new RegExp(textToMatchA[i], "i")
       if (e.title.match(reMatch)) {
         console.log(`\tFound match to event '${e.title}'`)
@@ -257,11 +259,11 @@ export async function listMatchingDaysEvents(
           lastEventStr = thisEventStr
         }
       } else {
-        console.log(`No match to ${e.title}`)
+        // console.log(`No match to ${e.title}`)
       }
     }
   }
-  const output = outputArray.join('\n') // If this the array is empty -> empty string
+  const output = outputArray.join('') // This used to be '\n' but now that seems to add blank lines for some reason. If this array is empty -> empty string.
   console.log(output)
   return output
 }

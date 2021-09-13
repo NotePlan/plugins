@@ -48,7 +48,6 @@
 | `qtn - Quick template note` | Choose a note and create it based on _configuration settings quickNotes | 🔩 Templates |
 | `reorderList` | Reorder current ordered list | 🧩 Codedungeon Toolbox |
 | `rpt` | Generate new @repeat() tasks from completed ones | 🔁 @repeat Extensions |
-| `setPref` | Write a preference | 🧩 Preferences Tester |
 | `start reviews` | start a new series of reviews, deciding which are now ready for review, and kicking off the first one | 🔬Reviews |
 | `stp` | Show stats of tags and mentions over a time period | 🔢 Note Statistics |
 | `sw7` | Find all open tasks for last 7 days & silently move/reschedule to today | 🧹 Task Sweeper |

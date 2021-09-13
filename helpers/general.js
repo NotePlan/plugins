@@ -137,20 +137,21 @@ export function stringReplace(inputString: string = '', replacementArray: Array<
 
 /**
  * Get a particular parameter setting from parameter string
+ * TODO: Could do with improvement, as currently a boolean value needs to be enclosed in double quotes
  * @author @jgclark
  * @param {string} paramString - the contents of the template tag, e.g. {{weather(template:FOO)}}
  * @param {string} paramName - the name of the parameter to get (e.g. 'template')
- * @returns {string} the value of the desired parameter (e.g. 'FOO')
+ * @returns {string} the value of the desired parameter (e.g. 'FOO') or blank if not present
  */
 export function getTagParams(paramString: string, wantedParam: string): string {
   console.log(`\tgetParams for '${wantedParam}' in '${paramString}'`)
-  const res = paramString.match(`${wantedParam}:"(.*?)"`) ?? []
+  const res = paramString.match(`${wantedParam}:"(.+)"`) ?? []
   return res.length > 0 ? res[1] : ''
 }
 
 /**
  * Get a particular parameter setting from parameter string
- * (Trying another way to get the tag params, may eventurally replace the above)
+ * (TODO: Trying another way to get the tag params, may eventurally replace the above)
  * @author @dwertheimer
  * @param {string} paramString - the contents of the template tag, e.g. {{weather(template:FOO)}}
  * @param {string} wanterParam - the name of the parameter to get (e.g. 'template')
