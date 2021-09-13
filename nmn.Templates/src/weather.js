@@ -174,7 +174,7 @@ export async function getWeatherSummary(
     const defaultWeatherLine = `Weather: |WEATHER_ICON| |DESCRIPTION| |LOW_TEMP||UNITS|-|HIGH_TEMP||UNITS|; Feels like: |FEELS_LIKE_LOW||UNITS|-|FEELS_LIKE_HIGH||UNITS|`
 
     const template =
-      weatherParams !== ''
+      (weatherParams !== '' && getTagParams(weatherParams, 'template') !== '')
         ? getTagParams(weatherParams, 'template')
         : defaultWeatherLine
     console.log(

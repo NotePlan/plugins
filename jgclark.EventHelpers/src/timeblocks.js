@@ -3,7 +3,7 @@
 // ------------------------------------------------------------------------------------
 // Command to turn time blocks into full calendar events
 // @jgclark
-// v0.5.0, 12.9.2021
+// v0.5.0, 13.9.2021
 //
 // See https://help.noteplan.co/article/52-part-2-tasks-events-and-reminders#timeblocking
 // for definition of time blocks. In summary:
@@ -99,7 +99,7 @@ export async function timeBlocksToCalendar() {
   pref_calendarToWriteTo = eventsConfig?.calendarToWriteTo ?? ''
   if (pref_calendarToWriteTo != null && pref_calendarToWriteTo !== '') {
     // TODO: we should check that the calendar name we've been given is writable
-    // when API calls are available from r655
+    // when these API calls are available from r655
     // const writableCalendars = Calendar.availableCalendarTitles(true)
     // if (writableCalendars.filter((f) => f.match(pref_calendarToWriteTo)).length > 0) {
     //   console.log(`\twill write to calendar '${pref_calendarToWriteTo}'`)
@@ -107,28 +107,6 @@ export async function timeBlocksToCalendar() {
     //   console.log(`\trequested calendar '${pref_calendarToWriteTo}' is not writeable. Will use default calendar instead.`)
     // }
   }
-
-  // const pref_processedTagName: string =
-  //   eventsConfig.processedTagName != null &&
-  //   typeof eventsConfig.processedTagName === 'string'
-  //     ? eventsConfig.processedTagName
-  //     : '#event_created'
-  // const pref_removeTimeBlocksWhenProcessed =
-  //   (eventsConfig.removeTimeBlocksWhenProcessed != null)
-  //   ? eventsConfig.removeTimeBlocksWhenProcessed
-  //   : true
-  // const pref_addEventID =
-  //   (eventsConfig.addEventID != null)
-  //   ? eventsConfig.addEventID
-  //   : false
-  // const pref_confirmEventCreation =
-  //   (eventsConfig.confirmEventCreation != null)
-  //   ? eventsConfig.confirmEventCreation
-  //   : false
-  // const pref_calendarToWriteTo =
-  //   (eventsConfig.calendarToWriteTo != null)
-  //   ? eventsConfig.calendarToWriteTo
-  //   : "" // if blank then we will use the default from the Operating System
 
   // Look through open note to find time blocks, but ignore @done(...) lines
   // which can look like timeblocks
