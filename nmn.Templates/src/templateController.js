@@ -72,18 +72,18 @@ function addTag(tagName: string, tagFunction: Function, includeConfig?: boolean 
   tagList.push({ tagName, tagFunction, includeConfig })
 }
 
-async function execTagListFunctionForTag(tagString, enclosedString, config): Promise<string> {
+async function execTagListFunction(tagString, enclosedString, config): Promise<string> {
   let found = false
   for (const t of tagList) {
     if (tagString.startsWith(`${t.tagName}(`) && tagString.endsWith(`)`)) {
-      console.log(`execTagListFunctionForTag() Tag matched "${t.tagName}"`)
+      console.log(`execTagListFunction() Tag matched "${t.tagName}"`)
       const params = [enclosedString]
       if (t.includeConfig) {
         params.push(config)
       }
       found = true
       const result = await t.tagFunction(...params)
-      console.log(`---- execTagListFunctionForTag(${t.tagName}) RESULT="${result}"\n`)
+      console.log(`---- execTagListFunction(${t.tagName}) RESULT="${result}"\n`)
       return result || ''
     }
   }
@@ -127,7 +127,7 @@ function getEnclosedParameter(tagString: string): string {
 export async function processTag(tag: string, config: { [string]: ?mixed }): Promise<string> {
   const enclosedString = getEnclosedParameter(tag)
   console.log(`processTag(${tag}) param:${enclosedString}`)
-  return execTagListFunctionForTag(tag, enclosedString, config)
+  return execTagListFunction(tag, enclosedString, config)
 }
 
 // Apply any matching tag values, asking user for value if not found in configuration
