@@ -6,7 +6,7 @@
 //   Location.reverseGeocode(latitude, longitude) field -> postal town etc.
 
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
-import { getTagParams, stringReplace, capitalize } from '../../helpers/general'
+import { getTagParamsFromString, stringReplace, capitalize } from '../../helpers/general'
 
 //------------------------------------------------------------------------------
 // Preference Settings
@@ -173,10 +173,11 @@ export async function getWeatherSummary(
 
     const defaultWeatherLine = `Weather: |WEATHER_ICON| |DESCRIPTION| |LOW_TEMP||UNITS|-|HIGH_TEMP||UNITS|; Feels like: |FEELS_LIKE_LOW||UNITS|-|FEELS_LIKE_HIGH||UNITS|`
 
-    const template =
-      (weatherParams !== '' && getTagParams(weatherParams, 'template') !== '')
-        ? getTagParams(weatherParams, 'template')
-        : defaultWeatherLine
+    const template = await getTagParamsFromString(weatherParams, 'template', defaultWeatherLine)
+    // const template =
+    //   (weatherParams !== '' && getTagParams(weatherParams, 'template') !== '')
+    //     ? getTagParams(weatherParams, 'template')
+    //     : defaultWeatherLine
     console.log(
       `\toutput template: '${template}' ; about to call stringReplace`,
     )

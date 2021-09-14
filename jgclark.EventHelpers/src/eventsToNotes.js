@@ -1,14 +1,14 @@
 // @flow
 // ------------------------------------------------------------------------------------
 // Command to bring calendar events into notes
-// v0.3.8, 23.8.2021
+// v0.5.1, 14.9.2021
 // @jgclark, with additions by @dwertheimer, @weyert
 // ------------------------------------------------------------------------------------
 
 import {
   stringReplace,
-  getTagParams,
-  // getTagParamsFromString,
+  // getTagParams,
+  getTagParamsFromString,
 } from '../../helpers/general'
 import {
   showMessage,
@@ -118,20 +118,11 @@ export async function listDaysEvents(paramString?: string): Promise<string> {
   // Get config settings from Template folder _configuration note
   await getEventsSettings()
   // Work out template for output line (from params, or if blank, a default)
-  const template =
-    (paramString != null && paramString !== '' && getTagParams(paramString, 'template') !== '')
-      ? getTagParams(paramString, 'template')
-      : '- *|TITLE|* (*|START|*)'
-  const allday =
-    (paramString != null && paramString !== '' && getTagParams(paramString, 'allday_template') !== '')
-      ? getTagParams(paramString, 'allday_template')
-      : '- *|TITLE|*'
-  const includeHeadings =
-    (paramString != null && paramString !== '' && getTagParams(paramString, 'includeHeadings') === 'false')
-      ? false
-      : true
-  console.log(`includeHeadings = '${includeHeadings.toString()}'`)
-  console.log(`\toutput template: '${template}' and '${allday}'`)
+  // NB: be aware that this call doesn't do type checking
+  const template = await getTagParamsFromString(paramString, 'template', '- *|TITLE|* (*|START|*)')
+  const allday = await getTagParamsFromString(paramString, 'allday_template', '- *|TITLE|*')
+  const includeHeadings = await getTagParamsFromString(paramString, 'includeHeadings', true)
+  // console.log(`\toutput template: '${template}' and '${allday}'`)
 
   // Get all the events for this day
   const eArr: Array<TCalendarItem> = await getEventsForDay(dateStr)
@@ -180,7 +171,7 @@ export async function listDaysEvents(paramString?: string): Promise<string> {
 
 //------------------------------------------------------------------------------
 // Insert list of today's events at cursor position
-// This is called by UI.
+// NB: When this is called by UI as a command, *it doesn't have any params passed with it*.
 export async function insertDaysEvents(paramString: ?string): Promise<void> {
   if (Editor.note == null || Editor.type !== 'Calendar') {
     await showMessage('Please run again with a calendar note open.')

@@ -1,6 +1,9 @@
 # What's changed in 🕓 Event Helpers?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
+### v0.5.1, 14.9.2021
+- update: now using smarter way of using parameters that means `includeHeadings:false` will work rather than `includeHeadings:"false"`, to be more in keeping with JSON (thanks, @dwertheimer)
+
 ### v0.5.0, 13.9.2021
 - new: can now set specific calendar to write time block entries to, using the new `calendarToWriteTo` setting. If it's not specified, or empty, then the system-wide default calendar will be used, as before.
 
