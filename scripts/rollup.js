@@ -1,5 +1,6 @@
 // @flow
 'use strict'
+
 const fs = require('fs/promises')
 const path = require('path')
 const colors = require('chalk')
@@ -8,6 +9,10 @@ const messenger = require('@codedungeon/messenger')
 const strftime = require('strftime')
 const rollup = require('rollup')
 const commonjs = require('@rollup/plugin-commonjs')
+
+const json = require('@rollup/plugin-json')
+const { nodeResolve } = require('@rollup/plugin-node-resolve')
+
 const { babel } = require('@rollup/plugin-babel')
 const { terser } = require('rollup-plugin-terser')
 const resolve = require('@rollup/plugin-node-resolve').default
@@ -311,15 +316,20 @@ function getConfig(pluginPath) {
             presets: ['@babel/flow'],
             babelHelpers: 'bundled',
             babelrc: false,
+            exclude: ['node_modules/**', '*.json'],
           }),
           commonjs(),
+          json(),
           resolve({
             browser: false,
           }),
+          nodeResolve({ browser: true }),
         ]
       : [
           babel({ babelHelpers: 'bundled' }),
           commonjs(),
+          json(),
+          nodeResolve({ browser: true }),
           resolve({
             browser: false,
           }),
