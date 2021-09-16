@@ -8,6 +8,9 @@ const fs = require('fs/promises')
 const path = require('path')
 const rollup = require('rollup')
 const commonjs = require('@rollup/plugin-commonjs')
+const json = require('@rollup/plugin-json')
+const { nodeResolve } = require('@rollup/plugin-node-resolve')
+
 const { babel } = require('@rollup/plugin-babel')
 const { terser } = require('rollup-plugin-terser')
 const resolve = require('@rollup/plugin-node-resolve').default
@@ -161,8 +164,9 @@ async function main() {
 
         let msg = COMPACT
           ? `${dateTime}  ${pluginFolder} (v${pluginJsonData['plugin.version']})`
-          : `${colors.cyan(`${dateTime} -- ${pluginFolder} (v${pluginJsonData['plugin.version']})`) 
-            }\n   Built and copied to the "Plugins" folder.`
+          : `${colors.cyan(
+              `${dateTime} -- ${pluginFolder} (v${pluginJsonData['plugin.version']})`,
+            )}\n   Built and copied to the "Plugins" folder.`
 
         if (DEBUGGING) {
           msg += colors.yellow(`\n   Built in DEBUG mode. Not ready to deploy.\n`)
@@ -214,6 +218,8 @@ function getConfig(pluginPath) {
       : [
           babel({ babelHelpers: 'bundled' }),
           commonjs(),
+          json(),
+          nodeResolve({ browser: true }),
           resolve({
             browser: false,
           }),
