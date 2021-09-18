@@ -30,6 +30,7 @@ const DEFAULT_EVENTS_OPTIONS = `
     processedTagName: "#event_created",   // optional tag to add after making a time block an event
     removeTimeBlocksWhenProcessed: true,  // whether to remove time block after making an event from it
     eventsHeading: "### Events today",  // optional heading to put before list of today's events
+    calendarSet: [],  // optional list of calendar names to filter by when showing list of events. If empty, no filtering will be done.
     addMatchingEvents: {   // match events with string on left, and then the string on the right is the template for how to insert this event (see README for details)
       "meeting": "### *|TITLE|* (*|START|*)\\n*|NOTES|*",
       "webinar": "### *|TITLE|* (*|START|*) *|URL|*",
@@ -40,10 +41,11 @@ const DEFAULT_EVENTS_OPTIONS = `
   },
 `
 // global variables, including default settings
-let pref_eventsHeading: string = '### Events today'
-let pref_addMatchingEvents: ?{ [string]: mixed } = null
-let pref_locale: string = 'en-US'
-let pref_timeOptions = { hour: '2-digit', minute: '2-digit', hour12: false }
+let pref_eventsHeading: string
+let pref_addMatchingEvents: ?{ [string]: mixed }
+let pref_locale: string
+let pref_timeOptions
+let pref_calendarSet: Array<string>
 
 //------------------------------------------------------------------------------
 // Local functions
@@ -62,31 +64,39 @@ async function getEventsSettings(): Promise<void> {
   console.log(`\tFound 'events' settings in _configuration note.`)
 
   // now get settings we need
-  if (
-    eventsConfig.todaysEventsHeading != null &&
-    typeof eventsConfig.todaysEventsHeading === 'string'
-  ) {
-    pref_eventsHeading = eventsConfig.todaysEventsHeading
-  }
-  // console.log(pref_eventsHeading)
-  if (eventsConfig.addMatchingEvents != null) {
-    // $FlowFixMe
-    pref_addMatchingEvents = eventsConfig.addMatchingEvents
-  } else {
-    console.log(
-      `\tError: empty find 'addMatchingEvents' setting in _configuration note.`,
-    )
-  }
-  if (eventsConfig.locale != null) {
-    // $FlowFixMe
-    pref_locale = eventsConfig.locale
-  }
-  if (eventsConfig.timeOptions != null) {
-    pref_timeOptions = eventsConfig.timeOptions
-  }
+  pref_eventsHeading = String(eventsConfig?.eventsHeading) ?? '### Events today'
+  // if (
+  //   eventsConfig.eventsHeading != null &&
+  //   typeof eventsConfig.eventsHeading === 'string'
+  // ) {
+  //   pref_eventsHeading = eventsConfig.eventsHeading
+  // }
+  console.log(pref_eventsHeading)
+  // $FlowFixMe
+  pref_calendarSet = (eventsConfig?.calendarSet) ?? []
+  console.log(pref_calendarSet)
+  // $FlowFixMe
+  pref_addMatchingEvents = (eventsConfig?.addMatchingEvents) ?? null
+  // if (eventsConfig?.addMatchingEvents != null) {
+  //   // $FlowFixMe
+  //   pref_addMatchingEvents = eventsConfig.addMatchingEvents
+  // } else {
+  //   console.log(
+  //     `\tInfo: empty find 'addMatchingEvents' setting in _configuration note.`,
+  //   )
+  // }
+  pref_locale = String(eventsConfig?.locale) ?? 'en-US'
+  // if (eventsConfig.locale != null) {
+  //   pref_locale = eventsConfig.locale
+  // }
+  pref_timeOptions = (eventsConfig?.timeOptions) ?? { hour: '2-digit', minute: '2-digit', hour12: false }
+  // if (eventsConfig.timeOptions != null) {
+  //   pref_timeOptions = eventsConfig.timeOptions
+  // }
   console.log(`\tEnd of getEventsSettings()`)
 }
 
+// Get list of events for the given day (specified as YYYYMMDD)
 async function getEventsForDay(dateStr: string): Promise<Array<TCalendarItem>> {
   const y = parseInt(dateStr.slice(0, 4))
   const m = parseInt(dateStr.slice(4, 6))
@@ -98,13 +108,16 @@ async function getEventsForDay(dateStr: string): Promise<Array<TCalendarItem>> {
     startOfDay,
     endOfDay,
   )
+  // TODO: Add filtering on calendarSet
+  // Now walk through the set deleting if .calendar doesn't match the pref_calendarSet
+  const filteredEventArray = eArr.slice().filter(function(e){ return pref_calendarSet.indexOf(e) >= 0})
   console.log(`\tFound ${eArr.length} events`)
   return eArr
 }
 
 //------------------------------------------------------------------------------
 // Return MD list of today's events
-export async function listDaysEvents(paramString?: string): Promise<string> {
+export async function listDaysEvents(paramString?: string = ''): Promise<string> {
   if (Editor.note == null || Editor.type !== 'Calendar') {
     await showMessage('Please run again with a calendar note open.')
     return ''
@@ -119,10 +132,10 @@ export async function listDaysEvents(paramString?: string): Promise<string> {
   await getEventsSettings()
   // Work out template for output line (from params, or if blank, a default)
   // NB: be aware that this call doesn't do type checking
-  const template = await getTagParamsFromString(paramString, 'template', '- *|TITLE|* (*|START|*)')
-  const allday = await getTagParamsFromString(paramString, 'allday_template', '- *|TITLE|*')
-  const includeHeadings = await getTagParamsFromString(paramString, 'includeHeadings', true)
-  // console.log(`\toutput template: '${template}' and '${allday}'`)
+  const template = String(await getTagParamsFromString(paramString, 'template', '- *|TITLE|* (*|START|*)'))
+  const alldayTemplate = String(await getTagParamsFromString(paramString, 'allday_template', '- *|TITLE|*'))
+  const includeHeadings = await getTagParamsFromString(paramString, 'includeHeadings', true) ?? true
+  // console.log(`\toutput template: '${template}' and '${alldayTemplate}'`)
 
   // Get all the events for this day
   const eArr: Array<TCalendarItem> = await getEventsForDay(dateStr)
@@ -153,7 +166,7 @@ export async function listDaysEvents(paramString?: string): Promise<string> {
     ]
     // NB: the following will replace any mentions of the keywords in the e.title string itself
     const thisEventStr = stringReplace(
-      e.isAllDay ? allday : template,
+      e.isAllDay ? alldayTemplate : template,
       replacements
     ).trimEnd()
     if (lastEventStr !== thisEventStr) {

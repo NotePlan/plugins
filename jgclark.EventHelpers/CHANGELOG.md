@@ -1,6 +1,9 @@
 # What's changed in 🕓 Event Helpers?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
+### v0.6.0, ???.9.2021
+- add: can now specify a subset of calendars of interest when listing today's events, or matching events. This is useful if you want to ignore certain calendars. To use this add the list to the new `calendarSet` setting.
+
 ### v0.5.1, 14.9.2021
 - update: now using smarter way of using parameters that means `includeHeadings:false` will work rather than `includeHeadings:"false"`, to be more in keeping with JSON (thanks, @dwertheimer)
 

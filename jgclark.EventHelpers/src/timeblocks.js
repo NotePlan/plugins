@@ -93,10 +93,13 @@ export async function timeBlocksToCalendar() {
 
   // now get settings we need
   pref_processedTagName = String(eventsConfig?.processedTagName) ?? '#event_created'
+  // $FlowFixMe[incompatible-type]
   pref_removeTimeBlocksWhenProcessed = eventsConfig?.removeTimeBlocksWhenProcessed ?? true
+  // $FlowFixMe[incompatible-type]
   pref_addEventID = eventsConfig?.addEventID ?? false
+  // $FlowFixMe[incompatible-type]
   pref_confirmEventCreation = eventsConfig?.confirmEventCreation ?? false
-  pref_calendarToWriteTo = eventsConfig?.calendarToWriteTo ?? ''
+  pref_calendarToWriteTo = String(eventsConfig?.calendarToWriteTo) ?? ''
   if (pref_calendarToWriteTo != null && pref_calendarToWriteTo !== '') {
     // TODO: we should check that the calendar name we've been given is writable
     // when these API calls are available from r655
@@ -184,7 +187,7 @@ export async function timeBlocksToCalendar() {
           }
 
           console.log(`\tWill process time block '${timeBlockString}' for '${title}'`)
-          const eventID = createEventFromDateRange(title, timeblockDateRange)
+          const eventID = createEventFromDateRange(title, timeblockDateRange) ?? '<error getting eventID>'
 
           // Remove time block string (if wanted)
           if (pref_removeTimeBlocksWhenProcessed) {
