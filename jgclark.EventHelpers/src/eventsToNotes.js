@@ -1,7 +1,7 @@
 // @flow
 // ------------------------------------------------------------------------------------
 // Command to bring calendar events into notes
-// v0.5.1, 14.9.2021
+// v0.6.0, 18.9.2021
 // @jgclark, with additions by @dwertheimer, @weyert
 // ------------------------------------------------------------------------------------
 
@@ -30,7 +30,7 @@ const DEFAULT_EVENTS_OPTIONS = `
     processedTagName: "#event_created",   // optional tag to add after making a time block an event
     removeTimeBlocksWhenProcessed: true,  // whether to remove time block after making an event from it
     eventsHeading: "### Events today",  // optional heading to put before list of today's events
-    calendarSet: [],  // optional list of calendar names to filter by when showing list of events. If empty, no filtering will be done.
+    calendarSet: [],  // optional ["array","of calendar","names"] to filter by when showing list of events. If empty or missing, no filtering will be done.
     addMatchingEvents: {   // match events with string on left, and then the string on the right is the template for how to insert this event (see README for details)
       "meeting": "### *|TITLE|* (*|START|*)\\n*|NOTES|*",
       "webinar": "### *|TITLE|* (*|START|*) *|URL|*",
@@ -96,7 +96,10 @@ async function getEventsSettings(): Promise<void> {
   console.log(`\tEnd of getEventsSettings()`)
 }
 
+//------------------------------------------------------------------------------
 // Get list of events for the given day (specified as YYYYMMDD)
+// Now also filters out any that don't come from one of the calendars specified
+// in pref_calendarSet.
 async function getEventsForDay(dateStr: string): Promise<Array<TCalendarItem>> {
   const y = parseInt(dateStr.slice(0, 4))
   const m = parseInt(dateStr.slice(4, 6))
@@ -104,14 +107,18 @@ async function getEventsForDay(dateStr: string): Promise<Array<TCalendarItem>> {
   const startOfDay = Calendar.dateFrom(y, m, d, 0, 0, 0)
   const endOfDay = Calendar.dateFrom(y, m, d, 23, 59, 59)
   console.log(`  ${startOfDay.toString()} - ${endOfDay.toString()}`)
-  const eArr: Array<TCalendarItem> = await Calendar.eventsBetween(
+  let eArr: Array<TCalendarItem> = await Calendar.eventsBetween(
     startOfDay,
     endOfDay,
   )
-  // TODO: Add filtering on calendarSet
-  // Now walk through the set deleting if .calendar doesn't match the pref_calendarSet
-  const filteredEventArray = eArr.slice().filter(function(e){ return pref_calendarSet.indexOf(e) >= 0})
-  console.log(`\tFound ${eArr.length} events`)
+  console.log(`\tRetrieved ${eArr.length} events from NP Calendar store`)
+  
+  // If we have a setCalendar list, use to weed out events that don't match .calendar
+  if (pref_calendarSet.length > 0) {
+    // const filteredEventArray = pref_calendarSet.slice().filter(c => eArr.some(e => e.calendar === c))
+    eArr = eArr.filter(e => pref_calendarSet.some(c => e.calendar === c))
+    console.log(`\t${eArr.length} Events kept after filtering with ${pref_calendarSet.toString()}`)
+  }
   return eArr
 }
 
@@ -178,7 +185,7 @@ export async function listDaysEvents(paramString?: string = ''): Promise<string>
     outputArray.unshift(pref_eventsHeading)
   }
   const output = outputArray.join('\n') // If this the array is empty -> empty string
-  // console.log(output)
+  console.log(output)
   return output
 }
 

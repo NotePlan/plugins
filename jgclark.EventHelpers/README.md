@@ -49,7 +49,7 @@ This uses JSON5 format: ensure there are commas at the end of all that lines tha
 - **confirmEventCreation**: optional boolean tag to indicate whether to ask user to confirm each event to be created
 - **removeTimeBlocksWhenProcessed**: in `time blocks...` whether to remove time block after making an event from it
 - **eventsHeading**: in `/insert today's events as list` the heading to put before the list of today's events. Optional.
-- **calendarSet**: in ???
+- **calendarSet**: optional ["array","of calendar","names"] to filter by when showing list of events. If empty or missing, no filtering will be done.
 - **addMatchingEvents**: for `/add matching events` is a set of pairs of strings. The first string is what is matched for in an event's title. If it does match the second string is used as the template for how to insert the event details at the cursor.  This uses the same `*|TITLE|*`, `*|START|*`, `*|END|*`, `*|NOTES|*` and `*|URL|*` template items below ...
 
 ### Using Event Lists from a Template

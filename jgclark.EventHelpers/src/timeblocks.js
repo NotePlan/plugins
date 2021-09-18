@@ -30,6 +30,7 @@ const DEFAULT_EVENTS_OPTIONS = `
     processedTagName: "#event_created",   // optional tag to add after making a time block an event
     removeTimeBlocksWhenProcessed: true,  // whether to remove time block after making an event from it
     eventsHeading: "### Events today",  // optional heading to put before list of today's events
+    calendarSet: [],  // optional ["array","of calendar","names"] to filter by when showing list of events. If empty or missing, no filtering will be done.
     addMatchingEvents: {   // match events with string on left, and then the string on the right is the template for how to insert this event (see README for details)
       "meeting": "### *|TITLE|* (*|START|*)\\n*|NOTES|*",
       "webinar": "### *|TITLE|* (*|START|*) *|URL|*",
