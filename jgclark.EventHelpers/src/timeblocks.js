@@ -30,6 +30,7 @@ const DEFAULT_EVENTS_OPTIONS = `
     processedTagName: "#event_created",   // optional tag to add after making a time block an event
     removeTimeBlocksWhenProcessed: true,  // whether to remove time block after making an event from it
     eventsHeading: "### Events today",  // optional heading to put before list of today's events
+    calendarSet: [],  // optional ["array","of calendar","names"] to filter by when showing list of events. If empty or missing, no filtering will be done.
     addMatchingEvents: {   // match events with string on left, and then the string on the right is the template for how to insert this event (see README for details)
       "meeting": "### *|TITLE|* (*|START|*)\\n*|NOTES|*",
       "webinar": "### *|TITLE|* (*|START|*) *|URL|*",
@@ -93,10 +94,13 @@ export async function timeBlocksToCalendar() {
 
   // now get settings we need
   pref_processedTagName = String(eventsConfig?.processedTagName) ?? '#event_created'
+  // $FlowFixMe[incompatible-type]
   pref_removeTimeBlocksWhenProcessed = eventsConfig?.removeTimeBlocksWhenProcessed ?? true
+  // $FlowFixMe[incompatible-type]
   pref_addEventID = eventsConfig?.addEventID ?? false
+  // $FlowFixMe[incompatible-type]
   pref_confirmEventCreation = eventsConfig?.confirmEventCreation ?? false
-  pref_calendarToWriteTo = eventsConfig?.calendarToWriteTo ?? ''
+  pref_calendarToWriteTo = String(eventsConfig?.calendarToWriteTo) ?? ''
   if (pref_calendarToWriteTo != null && pref_calendarToWriteTo !== '') {
     // TODO: we should check that the calendar name we've been given is writable
     // when these API calls are available from r655
@@ -184,7 +188,7 @@ export async function timeBlocksToCalendar() {
           }
 
           console.log(`\tWill process time block '${timeBlockString}' for '${title}'`)
-          const eventID = createEventFromDateRange(title, timeblockDateRange)
+          const eventID = createEventFromDateRange(title, timeblockDateRange) ?? '<error getting eventID>'
 
           // Remove time block string (if wanted)
           if (pref_removeTimeBlocksWhenProcessed) {
