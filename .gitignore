@@ -13,3 +13,5 @@ package-lock.json
 */script.js
 .vscode/
 .pluginsrc
+np.Templating/
+np.Templates/
