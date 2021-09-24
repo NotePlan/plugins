@@ -71,6 +71,17 @@ export async function openTasksToTop(heading: string = '## Tasks:\n', separator:
   }
 }
 
+//FIXME: need to finish this...
+export async function sortTasksViaTemplate(
+  withUserInput: boolean = true,
+  sortFields: Array<string> = SORT_ORDERS[DEFAULT_SORT_INDEX].sortFields,
+  withHeadings: boolean | null = null,
+  withSubHeadings: boolean | null = null,
+) {
+  console.log(`tasksortTasksViaTemplateToTop(): calling sortTasks`)
+  await sortTasks(withUserInput, sortFields, withHeadings, withSubHeadings)
+}
+
 /**
  * @description Bring tasks (tasks only, no surrounding text) to top of note
  * @returns {Promise<void>}
@@ -146,8 +157,16 @@ function insertTodos(note: TNote, todos, heading = '', separator = '', subHeadin
     todosWithSubheadings = todos
   }
 
-  const contentStr = todosWithSubheadings.map((t) => t.raw).join(`\n`)
-  console.log(`Inserting tasks into Editor`)
+  const contentStr = todosWithSubheadings
+    .map((t) => {
+      let str = t.raw
+      if (t.children && t.children.length) {
+        str += `\n${t.children.map((c) => c.raw).join('\n')}`
+      }
+      return str
+    })
+    .join(`\n`)
+  console.log(`Inserting tasks into Editor:\n${contentStr}`)
   // console.log(`inserting tasks: \n${JSON.stringify(todosWithSubheadings)}`)
   note.insertParagraph(`${headingStr}${contentStr}${separator ? `\n${separator}` : ''}`, 1, 'text')
 }
@@ -245,9 +264,24 @@ async function deleteExistingTasks(note, tasks, shouldBackupTasks = true) {
       await saveBackup(tasks[typ])
     }
     try {
-      const taskList = tasks[typ].map(note ? (t) => findRawParagraph(note, t.raw || null) : false)
+      let tasksAndIndented = []
+      tasks[typ].forEach((taskPara) => {
+        tasksAndIndented = [...tasksAndIndented, taskPara]
+        if (taskPara.children.length) {
+          tasksAndIndented = [...tasksAndIndented, ...taskPara.children]
+        }
+      })
+      console.log(`tasksAndIndented=${tasksAndIndented.length} \n${JSON.stringify(tasksAndIndented)}`)
+      const deleteList = note
+        ? tasksAndIndented.map((t) => {
+            // $FlowFixMe
+            return findRawParagraph(note, t.raw || null)
+          })
+        : []
       //$FlowIgnore
-      Editor.note.removeParagraphs(taskList)
+      console.log(`deleteList=${deleteList.length} \n${JSON.stringify(deleteList)}`)
+      // $FlowFixMe
+      if (deleteList && deleteList.length) Editor.note.removeParagraphs(deleteList)
     } catch (e) {
       console.log(`**** ERROR deleting ${typ} ${JSON.stringify(e)}`)
     }

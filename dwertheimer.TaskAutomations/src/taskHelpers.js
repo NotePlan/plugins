@@ -78,9 +78,7 @@ export function sortListBy(list, fields) {
 // Note: nmn.sweep limits how far back you look with: && hyphenatedDateString(p.date) >= afterHyphenatedDate,
 // For now, we are assuming that sweep was already done, and we're just looking at this one note
 const isOverdue = (t) => {
-  t.type === 'open' &&
-    t.date !== null &&
-    hyphenatedDateString(t.date) < hyphenatedDateString(new Date())
+  t.type === 'open' && t.date !== null && hyphenatedDateString(t.date) < hyphenatedDateString(new Date())
 }
 
 /*
@@ -97,9 +95,12 @@ export function getTasksByType(paragraphs) {
   const tasks = {}
   // * @type {"open", "done", "scheduled", "cancelled", "title", "quote", "list" (= bullet), "empty" (no content) or "text" (= plain text)}
   TASK_TYPES.forEach((t) => (tasks[t] = []))
+  let lastParent = { indents: 999 }
   for (let index = 0; index < paragraphs.length; index++) {
     const para = paragraphs[index]
-    if (TASK_TYPES.indexOf(para.type) >= 0) {
+    // FIXME: non tasks are not going to get through this filter. What to do?
+    const isTask = TASK_TYPES.indexOf(para.type) >= 0
+    if (isTask || para.indents > lastParent.indents) {
       const content = para.content
       // console.log(`${index}: ${para.type}: ${para.content}`)
       try {
@@ -115,9 +116,17 @@ export function getTasksByType(paragraphs) {
           mentions,
           exclamations,
           parensPriority,
+          indents: para.indents,
+          children: [],
         }
+        console.log(`${index}: indents:${para.indents} ${para.rawContent}`)
         task.priority = getNumericPriority(task)
-        tasks[para.type].push(task)
+        if (lastParent.indents < para.indents) {
+          lastParent.children.push(task)
+        } else {
+          const len = tasks[para.type].push(task)
+          lastParent = tasks[para.type][len - 1]
+        }
       } catch (error) {
         console.log(error, para.content, index)
       }
@@ -125,8 +134,6 @@ export function getTasksByType(paragraphs) {
       // console.log(`\t\tSkip: ${para.content}`) //not a task
     }
   }
-  console.log(
-    `\tgetTasksByType Open Tasks:${tasks.open.length} returning from getTasksByType`,
-  )
+  console.log(`\tgetTasksByType Open Tasks:${tasks.open.length} returning from getTasksByType`)
   return tasks
 }
