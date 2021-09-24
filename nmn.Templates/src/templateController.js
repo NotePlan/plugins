@@ -14,6 +14,7 @@ import {
   formattedDateTimeTemplate,
   getWeekDates,
 } from '../../dwertheimer.DateAutomations/src/dateFunctions'
+import { sortTasksViaTemplate } from '../../dwertheimer.TaskAutomations/src/sortTasks'
 import { getWeatherSummary } from './weather'
 import { getDailyQuote } from './quote'
 
@@ -38,6 +39,7 @@ addTag('quote', getDailyQuote, true)
 addTag('sweepTasks', sweepTemplate)
 addTag('formattedDateTime', formattedDateTimeTemplate)
 addTag('weekDates', getWeekDates)
+addTag('sortTasks', sortTasksViaTemplate)
 // **Add other template/macro function calls here SEE COMMENTED CODE BELOW **
 
 // Example function for processing template with or without an object value, e.g. formattedDate({format:'%Y-%m-%d %I:%M:%S %P'})
