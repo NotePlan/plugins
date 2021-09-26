@@ -302,11 +302,27 @@ type TDataStore = {
   * Change a saved preference or create a new one. It will most likely be picked up by NotePlan after a restart, if you use one of the keys utilized by NotePlan. 
   * To change a NotePlan preference, use the keys found in the description of the function `.preference(key)`.
   * You can also save custom preferences specific to the plugin, if you need any. Prepend it with the plugin id or similar to avoid collisions with existing keys.
-  * @param {string} key
-  * @param {any} value
+  * @param {string}
+  * @param {any}
   */
   setPreference(key: string, value: any): void,
-
+  /**
+  * Save a JavaScript object to the Plugins folder as JSON file.
+  * This can be used to save preferences or other persistent data.
+  * Note: Available from NotePlan v3.1
+  * @param {Object} 
+  * @param {string} 
+  * @return {boolean}
+  */
+  saveJSON(object: Object, filename?: string): boolean,
+  /**
+   * Load a JavaScript object from a JSON file located in the Plugins folder.
+   * You can access the json files of other plugins as well, if the filename is known.
+   * Note: Available from NotePlan v3.1
+   * @param {string}
+   * @return {Object}
+   */
+  loadJSON(filename?: string): Object,
   /**
    * Returns the calendar note for the given date
    * (can be undefined, if the daily note was not created yet)
@@ -490,6 +506,19 @@ type TCalendar = {
    * Get all available date units: "year", "month", "day", "hour", "minute", "second"
    */
   +dateUnits: $ReadOnlyArray<CalendarDateUnit>,
+  /**
+   * Get the titles of all calendars the user has access to. Set `writeOnly` true, if you want to get only the calendars the user has write access to (some calendars, like holidays are not writable).
+   * Note: Available from NotePlan v3.1
+   * @param {boolean}
+   * @return {[string]}
+   */
+  availableCalendarTitles(writeOnly: boolean): $ReadOnlyArray<string>,
+  /**
+   * Get the titles of all reminders the user has access to.
+   * Note: Available from NotePlan v3.1
+   * @return {[string]}
+   */
+  availableReminderListTitles(): $ReadOnlyArray<string>,
   /**
    * Create an event or reminder based on the given CalendarItem.
    * Returns the created CalendarItem with the assigned id, so you can
@@ -812,6 +841,11 @@ type TCalendarItem = {
    */
   +title: string,
   /**
+   * The calendar or reminders list where this event or reminder is (or should be) saved. If you set nothing, the event or reminder will be added to the default and this field will be set after adding.
+   * Note: Available from v3.0.15.
+   */
+  +calendar: string,
+  /**
    * The date (with time) of the event or reminder.
    */
   +date: Date,
@@ -844,13 +878,22 @@ type TCalendarItem = {
    *
    * The type can be "event" or "reminder". And isAllDay can be used if you
    * don't want to define a specific time, like holidays.
+   * Use the calendar variable, if you want to add the event or reminder to another
+   * calendar or reminders list other than the default. This is optional: if you set
+   * nothing, it will use the default.
+   * Use isCompleted only for reminders, by default it's false if you set nothing.
+   * Note: some available from v3.0.26.
    */
   create(
     title: string,
     date: Date,
     endDate: Date | void,
     type: CalenderItemType,
-    isAllDay: boolean,
+    isAllDay?: boolean,
+    calendar?: string,
+    isCompleted ?: boolean,
+    notes ?: string,
+    url?: string
   ): TCalendarItem,
 }
 

@@ -22,8 +22,7 @@ const MINIMUM_JOURNAL_OPTIONS = {
   reviewQuestions: 'string',
 }
 
-// Title of template note to use as Daily template
-const pref_templateTitle = 'Daily Note Template'
+const pref_templateTitle = 'Daily Note Template' // fixed
 let pref_reviewSectionHeading: string
 let pref_moods: string
 let pref_moodArray: Array<string>
@@ -80,8 +79,9 @@ export async function dayReview(): Promise<void> {
     MINIMUM_JOURNAL_OPTIONS,
   )
   // console.log(JSON.stringify(journalConfig))
-  if (journalConfig == null || Object.keys(journalConfig).length === 0) {
-    // this is how to check for empty object
+  if (journalConfig == null
+    || Object.keys(journalConfig).length === 0) // this is how to check for empty object
+  {
     console.log("\tWarning: Cannot find suitable 'dailyJournal' settings in Templates/_configuration note. Stopping.")
     await showMessage(
       "Cannot find 'dailyJournal' settings in _configuration.",

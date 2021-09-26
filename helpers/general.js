@@ -137,35 +137,21 @@ export function stringReplace(inputString: string = '', replacementArray: Array<
 
 /**
  * Get a particular parameter setting from parameter string
- * @author @jgclark
- * @param {string} paramString - the contents of the template tag, e.g. {{weather(template:FOO)}}
- * @param {string} paramName - the name of the parameter to get (e.g. 'template')
- * @returns {string} the value of the desired parameter (e.g. 'FOO')
- */
-export function getTagParams(paramString: string, wantedParam: string): string {
-  console.log(`\tgetParams for '${wantedParam}' in '${paramString}'`)
-  const res = paramString.match(`${wantedParam}:"(.*?)"`) ?? []
-  return res.length > 0 ? res[1] : ''
-}
-
-/**
- * Get a particular parameter setting from parameter string
- * (Trying another way to get the tag params, may eventurally replace the above)
+ * (Replaces an earlier version called getTagParams)
  * @author @dwertheimer
  * @param {string} paramString - the contents of the template tag, e.g. {{weather(template:FOO)}}
- * @param {string} wanterParam - the name of the parameter to get (e.g. 'template')
+ * @param {string} wantedParam - the name of the parameter to get (e.g. 'template')
  * @param {mixed | any} defaultValue - default value to use if parameter not found
- * @returns {string} the value of the desired parameter (e.g. 'FOO')
+ * @returns {string} the value of the desired parameter if found (e.g. 'FOO'), or defaultValue if it isn't
  */
 export async function getTagParamsFromString(
-  paramString: string = '',
-  wantedParam: string = '',
-  defaultValue: mixed | any = null,
+  paramString: string,
+  wantedParam: string,
+  defaultValue: mixed | any,
 ): mixed {
-  console.log(`\tgetTagParamsFromString look for '${wantedParam}' in '${paramString}'`)
+  console.log(`\tgetTagParamsFromString for '${wantedParam}' in '${paramString}'`)
   if (paramString !== '' && wantedParam !== '') {
     try {
-      //$FlowIgnore
       const paramObj: {} = await json5.parse(paramString)
       console.log(`\t--> ${String(JSON.stringify(paramObj[wantedParam]))}`)
       // eslint-disable-next-line no-prototype-builtins
