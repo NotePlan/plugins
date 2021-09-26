@@ -97,6 +97,7 @@
     "js-yaml": "^4.1.0",
     "json5": "^2.2.0",
     "lodash": "^4.17.21",
+    "lodash.findindex": "4.6.0",
     "showdown": "1.9.1",
     "strftime": "0.10.0",
     "toml": "^3.0.0"
