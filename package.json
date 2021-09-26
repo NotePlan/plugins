@@ -98,7 +98,7 @@
     "singleQuote": true
   },
   "dependencies": {
-    "@codedungeon/gunner": "0.73.0",
+    "@codedungeon/gunner": "0.74.0",
     "@samverschueren/stream-to-observable": "0.3.1",
     "axios": "0.21.4",
     "bcrypt": "5.0.1",
@@ -106,6 +106,7 @@
     "commander": "^8.1.0",
     "contentful-html-rich-text-converter": "1.0.9",
     "date-fns": "2.23.0",
+    "dayjs": "1.10.6",
     "enquirer": "^2.3.6",
     "eta": "1.12.3",
     "findup-sync": "4.0.0",
