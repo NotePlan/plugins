@@ -94,6 +94,7 @@
     "date-fns": "^2.23.0",
     "enquirer": "^2.3.6",
     "findup-sync": "4.0.0",
+    "git-state": "4.1.0",
     "js-yaml": "^4.1.0",
     "json5": "^2.2.0",
     "lodash": "^4.17.21",
