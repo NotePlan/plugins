@@ -5,14 +5,37 @@
 
 import showdown from 'showdown'
 
+const removeAttributes = (str = '', attrs = []) => {
+  if (str.length === 0) {
+    return ''
+  }
+
+  const reg = /<\s*(\w+).*?>/gm
+  const reg2 = /\s*(\w+)=\"[^\"]+\"/gm
+
+  str = str.replace(reg, (match, i) => {
+    const result = match.replace(reg2, (match_, i) => {
+      const matchFound = reg2.exec(match_)
+      if (matchFound) {
+        return attrs.indexOf(matchFound[1]) >= 0 ? match_ : ''
+      }
+      return ''
+    })
+    return result
+  })
+  return str
+}
+
 function convertHtmlToRtf(html) {}
 
 export default class CodedungeonToolbox {
-  markdownToHtml(text = '') {
+  markdownToHtml(text = '', options = { removeAttributes: true }) {
     const showdownConverter = new showdown.Converter()
 
-    const html = showdownConverter.makeHtml(text)
-
+    let html = showdownConverter.makeHtml(text)
+    if (options?.removeAttributes && options.removeAttributes) {
+      html = removeAttributes(html, [])
+    }
     return html
   }
 

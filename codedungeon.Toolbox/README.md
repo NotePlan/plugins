@@ -18,13 +18,12 @@ Once the command bar is displayed, you can continue typing any of the following 
 
 | Command                 | Available Inline | Description                                                                                       |
 | ----------------------- | ---------------- | ------------------------------------------------------------------------------------------------- |
-| convertToHtml           | Yes_(1)_         | Converts the current note to HTML and places on clipboard                                         |
+| convertToHtml           | Yes [^1]        | Converts the current note to HTML and places on clipboard                                         |
 | convertSelectionToHtml  | No               | Converts the current selection to HTML and places on clipboard                                    |
-| convertToRtf            | Yes_(1)_         | Converts the current note to RTF and places on clipboard                                          |
+| convertToRtf            | Yes [^1]        | Converts the current note to RTF and places on clipboard                                          |
 | reorderList             | No               | Reorders selected unordered list items (starting at **1** and increase each line at same level)   |
 
-#### Notes
-1) Can be triggered inline but contents will appear in converted HTML document
+[^1]: Can be triggered inline but contents will appear in converted HTML document
 
 ## License
 
