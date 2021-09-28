@@ -116,6 +116,7 @@
     "listr": "0.14.3",
     "lodash": "4.17.21",
     "moment": "2.29.1",
+    "node-libcurl": "2.3.3",
     "progress": "2.0.3",
     "rxjs": "6.6.7",
     "showdown": "1.9.1",

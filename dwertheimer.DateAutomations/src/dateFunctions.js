@@ -202,7 +202,7 @@ export async function dateFormatPicker() {
   Editor.insertTextAtCursor(dateChoices[re.index].text)
 }
 
-const DEFAULT_DATE_OPTIONS = `
+export const DEFAULT_DATE_OPTIONS = `
   date: {
     // Default timezone for date and time.
     timezone: 'automatic',

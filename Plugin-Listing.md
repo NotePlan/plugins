@@ -4,6 +4,16 @@
 | --- | --- | --- |
 | `add project` | add a new note representing a project, asking for its metadata | 🔬Reviews |
 | `apply template` | Choose a Template to apply (append) to the current Note | 🔩 Templates |
+| `cd:daily` | Create Daily Note for current date using `Templates/Dungeon/Daily Notes` template | 🧩 Codedungeon NotePlan |
+| `cd:date` | Enters current date, using `YYYY-MM-DD` format | 🧩 Codedungeon NotePlan |
+| `cd:now` | Enters current date and time, using `YYYY-MM-DD hh:mm:ss P` format | 🧩 Codedungeon NotePlan |
+| `cd:quote` | Enters random quote | 🧩 Codedungeon NotePlan |
+| `cd:time` | Enters current time, using `hh:mm:ss P` format | 🧩 Codedungeon NotePlan |
+| `cd:today` | Performs all the current day actions | 🧩 Codedungeon NotePlan |
+| `cd:tomorrow` | Performs all the current day actions but for tomorrow | 🧩 Codedungeon NotePlan |
+| `cd:weather` | Insert weather information (ala todayStart) | 🧩 Codedungeon NotePlan |
+| `cd:weekday` | Creates weekday daily note using `Templates/Dungeon/Weekday Overview` template | 🧩 Codedungeon NotePlan |
+| `cd:weekend` | Creates weekend daily note using `Templates/Dungeon/Weekend Overview` template | 🧩 Codedungeon NotePlan |
 | `complete project` | add @completed(today) date to the open project | 🔬Reviews |
 | `convertSelectionToHtml` | Convert current selection to HTML | 🧩 Codedungeon Toolbox |
 | `convertToHtml` | Convert current note to HTML | 🧩 Codedungeon Toolbox |

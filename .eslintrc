@@ -23,7 +23,7 @@
     }
   },
   "rules": {
-    "prefer-template": "warn",
+    "prefer-template": "off",
     "eqeqeq": [
       "error",
       "smart"

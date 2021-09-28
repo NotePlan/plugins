@@ -2,6 +2,8 @@
 'use strict'
 
 const fs = require('fs/promises')
+const { existsSync } = require('fs')
+
 const path = require('path')
 const colors = require('chalk')
 const messenger = require('@codedungeon/messenger')
@@ -34,6 +36,51 @@ const {
 
 const FOLDERS_TO_IGNORE = ['scripts', 'flow-typed', 'node_modules', 'np.plugin-flow-skeleton']
 const rootFolderPath = path.join(__dirname, '..')
+
+const copyBuild = async (outputFile = '') => {
+  if (!existsSync(outputFile)) {
+    messenger.error(`Invalid Script: ${outputFile}`)
+  }
+
+  const outputFolder = path.dirname(outputFile)
+  const rootFolder = await fs.readdir(rootFolderPath, { withFileTypes: true })
+  const copyTargetPath = await getCopyTargetPath(rootFolder)
+
+  if (outputFolder != null) {
+    const targetFolder = path.join(copyTargetPath, outputFolder.replace(rootFolderPath, ''))
+    await mkdirp(targetFolder)
+    await fs.copyFile(path.join(outputFolder, 'script.js'), path.join(targetFolder, 'script.js'))
+    const pluginJson = path.join(outputFolder, 'plugin.json')
+
+    await writeMinifiedPluginFileContents(pluginJson, path.join(targetFolder, 'plugin.json'))
+    // await fs.copyFile(pluginJson, path.join(targetFolder, 'plugin.json')) //the non-minified version
+    const pluginJsonData = JSON.parse(await fs.readFile(pluginJson))
+
+    const pluginFolder = outputFolder.replace(rootFolderPath, '').substring(1)
+
+    // default dateTime, uses .pluginsrc if exists
+    // see https://www.strfti.me/ for formatting
+    const dateTimeFormat = await getPluginConfig('dateTimeFormat')
+    const dateTime = dateTimeFormat.length > 0 ? strftime(dateTimeFormat) : new Date().toISOString().slice(0, 16)
+
+    let msg = COMPACT
+      ? `${dateTime} - ${pluginFolder} (v${pluginJsonData['plugin.version']})`
+      : colors.cyan(`${dateTime} -- ${pluginFolder} (v${pluginJsonData['plugin.version']})`) +
+        '\n   Built and copied to the "Plugins" folder.'
+
+    if (DEBUGGING) {
+      msg += colors.yellow(`\n   Built in DEBUG mode. Not ready to deploy.\n`)
+    } else {
+      if (!COMPACT) {
+        msg += `\n   To debug this plugin without transpiling use: ${`npm run autowatch "${pluginFolder}" -- --debug`}\n\
+   To release this plugin, update changelog.md and run: ${`npm run release "${pluginFolder}"\n`}`
+      }
+    }
+    console.log(msg)
+  } else {
+    console.log(`Generated "${outputFile.replace(rootFolder, '')}"`)
+  }
+}
 
 console.log('')
 console.log(colors.yellow.bold(`🧩 NotePlan Plugin Development v${pkgInfo.version} (${pkgInfo.build})`))
@@ -155,45 +202,14 @@ async function main() {
       const outputFolder = bundledPlugins.find((pluginFolder) => outputFile.includes(pluginFolder))
 
       if (outputFolder != null) {
-        const targetFolder = path.join(copyTargetPath, outputFolder.replace(rootFolderPath, ''))
-        await mkdirp(targetFolder)
-        await fs.copyFile(path.join(outputFolder, 'script.js'), path.join(targetFolder, 'script.js'))
-        const pluginJson = path.join(outputFolder, 'plugin.json')
-        // FIXME: Wanted to use JSON5 here but it was adding commas that stopped NP from working
-        await writeMinifiedPluginFileContents(pluginJson, path.join(targetFolder, 'plugin.json'))
-        // await fs.copyFile(pluginJson, path.join(targetFolder, 'plugin.json')) //the non-minified version
-        const pluginJsonData = JSON.parse(await fs.readFile(pluginJson))
-        if (limitToFolders.length === 0) {
-          await checkPluginList(bundledPlugins)
-        }
-        const pluginFolder = outputFolder.replace(rootFolderPath, '').substring(1)
-
-        // default dateTime, uses .pluginsrc if exists
-        // see https://www.strfti.me/ for formatting
-        const dateTimeFormat = await getPluginConfig('dateTimeFormat')
-        const dateTime = dateTimeFormat.length > 0 ? strftime(dateTimeFormat) : new Date().toISOString().slice(0, 16)
-
-        let msg = COMPACT
-          ? `${dateTime} - ${pluginFolder} (v${pluginJsonData['plugin.version']})`
-          : colors.cyan(`${dateTime} -- ${pluginFolder} (v${pluginJsonData['plugin.version']})`) +
-            '\n   Built and copied to the "Plugins" folder.'
-
-        if (DEBUGGING) {
-          msg += colors.yellow(`\n   Built in DEBUG mode. Not ready to deploy.\n`)
-        } else {
-          if (!COMPACT) {
-            msg += `\n   To debug this plugin without transpiling use: ${`npm run autowatch "${pluginFolder}" -- --debug`}\n\
-   To release this plugin, update changelog.md and run: ${`npm run release "${pluginFolder}"\n`}`
-          }
-        }
-        console.log(msg)
+        await copyBuild(outputFile)
       } else {
         console.log(`Generated "${outputFile.replace(rootFolder, '')}"`)
       }
     } else if (event.code === 'BUNDLE_END') {
       console.log('no copyTargetPath', copyTargetPath)
     } else if (event.code === 'ERROR') {
-      console.log(`!!!!!!!!!!!!!!!\nRollup ${event.error}\n!!!!!!!!!!!!!!!\n`)
+      messenger.error(`!!!!!!!!!!!!!!!\nRollup ${event.error}\n!!!!!!!!!!!!!!!\n`)
     }
   })
 
@@ -277,6 +293,8 @@ async function build() {
       const { output } = await bundle.generate(outputOptions)
 
       await bundle.write(outputOptions)
+
+      const result = await copyBuild(path.join(plugin, 'script.js'))
 
       await bundle.close()
 
