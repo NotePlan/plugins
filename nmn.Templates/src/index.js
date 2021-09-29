@@ -99,6 +99,8 @@ export async function applyTemplate(newNote?: [string, string, string]) {
     return
   }
   templateContent = templateContent.split('\n---\n').slice(1).join('\n---\n')
+  // TODO: replace that separator definition with this regex:
+  // Separator regexp: "(?:^|\\v)([\\-\\_]{3,}|\\*\\*\\* |(\\-(\\h|$)){3,}|\\*{5,})(?:$|\\v)"
 
   const config = (await getStructuredConfiguration()) ?? {}
 
