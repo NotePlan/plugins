@@ -1,9 +1,8 @@
 // @flow
-
 //-----------------------------------------------------------------------------
 // Create statistics for hasthtags and mentions for time periods
 // Jonathan Clark
-// v0.3.3, 2.7.2021 - unreleased
+// v0.3.4, 29.9.2021 - unreleased???
 //-----------------------------------------------------------------------------
 
 // TODO:
@@ -42,7 +41,6 @@ let pref_excludeMentions: $ReadOnlyArray<string> = []
 import {
   displayTitle,
   stringReplace,
-  getTagParams,
 } from '../../helpers/general'
 import {
   showMessage,
