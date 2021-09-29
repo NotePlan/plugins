@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Commands for Reviewing project-style notes, GTD-style.
 // by @jgclark
-// v0.4.0, 10.9.2021
+// v0.4.1, 27.9.2021
 //-----------------------------------------------------------------------------
 
 // Settings
@@ -11,7 +11,7 @@ const DEFAULT_REVIEW_OPTIONS = `  review: {
     folderToStore: "Reviews",
     foldersToIgnore: ["📋 Templates", "Reviews", "Summaries"], // can be empty list
     noteTypeTags: ["#project", "#area"], // array of hashtags without spaces
-    displayOrder: "alpha" // in '/project lists' the sort options  are "due" date, "review" date or "alpha"
+    displayOrder: "alpha", // in '/project lists' the sort options  are "due" date, "review" date or "alpha"
     displayGroupedByFolder: true, // in '/project lists' whether to group the notes by folder
     displayArchivedProjects: true, // in '/project lists' whether to display project notes marked #archive
   },
@@ -212,16 +212,6 @@ export async function startReviews() {
   const outputArray = summaryArray.slice().sort(
     // $FlowIgnore[unsafe-addition]
     (first, second) => first.split('\t')[0] - second.split('\t')[0]) // order by first field
-    
-  // create summary and write to _reviews notes
-  // outputArray.push("```")
-  // outputArray.unshift("```")
-  // outputArray.unshift("---")
-  // outputArray.unshift(`Last updated: ${nowLocaleDateTime}`)
-  // outputArray.unshift(`_NB: Do not edit manually. This is a machine-readable list of notes to review, used by \`/start review\` and \`/next review\` Plugin commands._`)
-  // outputArray.unshift(`# _reviews`)
-  // reviewsNote.content = outputArray.join('\n')
-  // console.log(`\twritten ${summaryArray.length} summary lines to note '${reviewListNoteTitle}'`)
 
   // write summary to reviewList pref
   DataStore.setPreference(reviewListPref, outputArray.join('\n'))

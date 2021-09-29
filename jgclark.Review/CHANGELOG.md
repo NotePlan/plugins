@@ -1,6 +1,9 @@
 # Changelog
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Review), and how to configure.
 
+### v0.4.1, 27.9.2021
+- fix: typo in default configuration that gets copied to _configuration
+
 ### v0.4.0, 10.9.2021
 - new: command `/addProject` that adds a new note using your template 'New Project Template' (if defined)
 - under-the-hood change: the `/start review` and `next project review` commands now use the (invisible) preferences system available from v3.1.0, rather than the (visible) `_reviews` note. _This requires NotePlan v3.1.0 (build 654) or greater._

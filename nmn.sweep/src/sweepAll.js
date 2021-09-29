@@ -48,6 +48,8 @@ export async function sweepTemplate(paramStr: string = ''): Promise<string> {
     // $FlowFixMe
     const ignoreFolders: string[] = await getTagParamsFromString(paramStr, 'ignoreFolders', ['📋 Templates'])
 
+    //TODO: add sorting support
+
     console.log(
       `Running template command sweepAll with params: limit=${JSON.stringify(limit)} includeHeadings=${String(
         includeHeadings,

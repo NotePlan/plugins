@@ -36,17 +36,15 @@ export default async function sweepNote(
 
   let lastRootItem: ?TParagraph = null
 
-  // console.log(
-  //   `sweepNote [${note.title || note.filename}] ParagraphCount=${
-  //     paragraphs.length
-  //   }`,
-  // )
-  console.log(`---\nStarting sweepNote for file: "${note.filename}" paragraphs:${paragraphs.length}`)
+  console.log(
+    `---\nStarting sweepNote for file: "${note.filename}" noteDate:${note.date} paragraphs:${paragraphs.length}`,
+  )
   paragraphs.forEach((p) => {
     const isSeparatorLine = /^---/.test(p.content)
-    console.log(
-      `{type:"${p.type}", indents:${p.indents}, heading:"${p.heading}" headingLevel:${p.headingLevel}, content:"${p.content}"},`,
-    )
+    // use this console.log for creating Jest tests
+    // console.log(
+    //   `{type:"${p.type}", indents:${p.indents}, heading:"${p.heading}" headingLevel:${p.headingLevel}, content:"${p.content}"},`,
+    // )
 
     // ['scheduled', 'cancelled', 'done']
     if (nonMovableTypes.includes(p.type)) {
@@ -111,7 +109,9 @@ export default async function sweepNote(
     if (moveType) {
       rescheduleTasks = moveType
     } else {
-      rescheduleTasks = returnValue ? 'reschedule' : isProjectNote ? 'reschedule' : 'move'
+      const runningTemplate = Boolean(returnValue)
+      // rescheduleTasks = returnValue ? 'reschedule' : isProjectNote ? 'reschedule' : 'move'
+      rescheduleTasks = isProjectNote ? 'reschedule' : 'move'
     }
     if (withUserConfirm) {
       Editor.openNoteByFilename(note.filename)
@@ -154,7 +154,9 @@ export default async function sweepNote(
     }
     if (rescheduleTasks === 'reschedule') {
       const noteDate = note.date
-      const dateTag = noteDate != null ? ` <${hyphenatedDateString(noteDate)}` : ''
+      console.log(`sweepNote: noteDate=${noteDate} todayNote.date={todayNote.date}`)
+      const dateTag =
+        noteDate != null && note.filename !== todayNote.filename ? ` <${hyphenatedDateString(noteDate)}` : ''
       const projNote = note.title ?? ''
       const link = isProjectNote ? ` <[[${projNote}]]` : dateTag
       const paragraphsWithDateTag = paragraphsToMove.map((para) => {

@@ -5,6 +5,7 @@
 
 import { chooseOption, showMessageYesNo } from '../../helpers/userInput'
 import { default as sweepNote, type ReturnStatus } from '../../nmn.sweep/src/sweepNote'
+import { getTagParamsFromString } from '../../helpers/general'
 import { getTasksByType, sortListBy, TASK_TYPES } from './taskHelpers'
 
 // Note: not currently using getOverdueTasks from taskHelpers (because if it's open, we are moving it)
@@ -72,13 +73,20 @@ export async function openTasksToTop(heading: string = '## Tasks:\n', separator:
 }
 
 //FIXME: need to finish this...
-export async function sortTasksViaTemplate(
-  withUserInput: boolean = true,
-  sortFields: Array<string> = SORT_ORDERS[DEFAULT_SORT_INDEX].sortFields,
-  withHeadings: boolean | null = null,
-  withSubHeadings: boolean | null = null,
-) {
+/**
+ * This template/macro is going to headlessly sort all tasks in the note based on certain criteria.
+ * e.g. {{sortTasks({withUserInput: false, withHeadings: true, withSubHeadings: true, sortOrder: ['-priority', 'content'], })}}
+ */
+export async function sortTasksViaTemplate(paramStr: string = ''): Promise<void> {
   console.log(`tasksortTasksViaTemplateToTop(): calling sortTasks`)
+  const withUserInput: boolean = await getTagParamsFromString(paramStr, 'withUserInput', true)
+  const sortFields: string[] = await getTagParamsFromString(
+    paramStr,
+    'sortFields',
+    SORT_ORDERS[DEFAULT_SORT_INDEX].sortFields,
+  )
+  const withHeadings: boolean = await getTagParamsFromString(paramStr, 'withHeadings', false)
+  const withSubHeadings: boolean = await getTagParamsFromString(paramStr, 'withSubHeadings', false)
   await sortTasks(withUserInput, sortFields, withHeadings, withSubHeadings)
 }
 

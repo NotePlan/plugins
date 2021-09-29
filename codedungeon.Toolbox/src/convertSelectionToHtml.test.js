@@ -15,7 +15,7 @@ beforeEach(() => {
 test('codedungeon.Toolbox convertToHtml - headings', () => {
   const markdown = `#Heading1\n##Heading2\n###Heading3\n####Heading4\n**TODO Items:**\n* Item 1\n*Item 2`
 
-  const html = toolbox.markdownToHtml(markdown)
+  const html = toolbox.markdownToHtml(markdown, { removeAttributes: false })
 
   expect(html).toContain('<h1 id="heading1">Heading1</h1>')
   expect(html).toContain('<h2 id="heading2">Heading2</h2>')

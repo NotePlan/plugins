@@ -144,11 +144,7 @@ export function stringReplace(inputString: string = '', replacementArray: Array<
  * @param {mixed | any} defaultValue - default value to use if parameter not found
  * @returns {string} the value of the desired parameter if found (e.g. 'FOO'), or defaultValue if it isn't
  */
-export async function getTagParamsFromString(
-  paramString: string,
-  wantedParam: string,
-  defaultValue: mixed | any,
-): mixed {
+export async function getTagParamsFromString(paramString: string, wantedParam: string, defaultValue: mixed | any): any {
   console.log(`\tgetTagParamsFromString for '${wantedParam}' in '${paramString}'`)
   if (paramString !== '' && wantedParam !== '') {
     try {
