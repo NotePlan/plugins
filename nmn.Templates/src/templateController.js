@@ -39,7 +39,7 @@ addTag('quote', getDailyQuote, true)
 addTag('sweepTasks', sweepTemplate)
 addTag('formattedDateTime', formattedDateTimeTemplate)
 addTag('weekDates', getWeekDates)
-addTag('sortTasks', sortTasksViaTemplate)
+// addTag('sortTasks', sortTasksViaTemplate)
 // **Add other template/macro function calls here SEE COMMENTED CODE BELOW **
 
 // Example function for processing template with or without an object value, e.g. formattedDate({format:'%Y-%m-%d %I:%M:%S %P'})

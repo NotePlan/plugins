@@ -2,6 +2,9 @@ See Template Plugin [README](https://github.com/NotePlan/plugins/blob/main/nmn.T
 
 # What's Changed in this Plugin?
 
+### 0.10.5 Keeping people from running sortTasks in a template until it's been tested further 
+
+
 ### 0.10.4 
 - Fixed bug in that caused swept tasks to be labeled as rescheduled from today
 - Changed default on template sweeping to move tasks (not leave them in place)
