@@ -577,9 +577,9 @@ type TCalendar = {
    */
   unitsBetween(date1: Date, date2: Date, type: CalendarDateUnit): number,
   /**
-  * Note: Available from v3.0.25
   * Returns all events between the `startDate` and `endDate`. Use `filter` to search for specific events (keyword in the title).
   * This function fetches events asynchronously, so use async/await.
+  * Note: Available from v3.0.25
   * @param {Date}
   * @param {Date}
   * @param {String?}
@@ -591,9 +591,9 @@ type TCalendar = {
     filter?: ?string
   ): Promise<Array<TCalendarItem>>,
   /**
-  * Note: Available from v3.0.25
   * Returns all reminders between the `startDate` and `endDate`. Use `filter` to search for specific reminders (keyword in the title).
   * This function fetches reminders asynchronously, so use async/await.
+  * Note: Available from v3.0.25
   * @param {Date}
   * @param {Date}
   * @param {String?}
@@ -605,39 +605,39 @@ type TCalendar = {
     filter?: ?string
   ): Promise<Array<TCalendarItem>>,
   /**
-  * Note: Available from v3.0.25
   * Returns all events for today. Use `filter` to search for specific events (keyword in the title).
   * This function fetches events asynchronously, so use async/await.
+  * Note: Available from v3.0.25
   * @param {String?}
   * @return {Promise}
   */
   eventsToday(filter: ?string): Promise<Array<TCalendarItem>>,
   /**
-  * Note: Available from v3.0.25
   * Returns all reminders between for today. Use `filter` to search for specific reminders (keyword in the title).
   * This function fetches reminders asynchronously, so use async/await.
+  * Note: Available from v3.0.25
   * @param {String?}
   * @return {Promise}
   */
   remindersToday(filter: ?string): Promise<Array<TCalendarItem>>,
   /**
-  * Note: Available from v3.0.26
   * Updates an event or reminder based on the given CalendarItem, which needs to have an ID. 
   * A CalendarItem has an ID, when you have used `.add(...)` and saved the return value or when you query 
   * the event using `eventsBetween(...)`, `remindersBetween(...)`, `eventByID(...)`, `reminderByID(...)`, etc.
   * Returns a promise, because it needs to fetch the original event objects first in the background, 
   * then updates it. Use it with `await`.
+  * Note: Available from v3.0.26
   * @param {CalendarItem} 
   * @return {Promise}
   */
   update(calendarItem: TCalendarItem): Promise<void>,
   /**
-  * Note: Available from v3.0.26
   * Removes an event or reminder based on the given CalendarItem, which needs to have an ID. 
   * A CalendarItem has an ID, when you have used `.add(...)` and saved the return value or when you query 
   * the event using `eventsBetween(...)`, `remindersBetween(...)`, `eventByID(...)`, `reminderByID(...)`, etc.
   * Returns a promise, because it needs to fetch the original event objects first in the background, 
   * then updates it. Use it with `await`.
+  * Note: Available from v3.0.26
   * @param {CalendarItem} 
   * @return {Promise}
   */
@@ -788,7 +788,7 @@ type TNote = {
    * If you set the content, NotePlan will write it immediately to file.
    * If you get the content, it will be read directly from the file.
    */
-  content: string | void,
+  +content: string | void,
   /**
    * Get or set paragraphs contained in this note
    * (these can be tasks, plain text, headings...).
@@ -796,7 +796,24 @@ type TNote = {
    * If you set the paragraph array, it will join them and save the new content
    * to file.
    */
-  paragraphs: $ReadOnlyArray<TParagraph>,
+  +paragraphs: $ReadOnlyArray<TParagraph>,
+  /**
+   * Get paragraphs contained in this note which contain a link to another [[project note]] or [[YYYY-MM-DD]] daily note.
+   * Note: Available from v3.2
+   */
+  +linkedItems: $ReadOnlyArray<TParagraph>,
+  /**
+   * Get paragraphs contained in this note which contain a link to a daily note.
+   * Specifically this includes paragraphs with >YYYY-MM-DD, @YYYY-MM-DD, <YYYY-MM-DD, >today, @done(YYYY-MM-DD HH:mm), but only in non-calendar notes (because currently NotePlan doesn't create references between daily notes).
+   * Note: Available from v3.2
+   */
+  +datedTodos: $ReadOnlyArray<TParagraph>,
+  /**
+   * Get all backlinks pointing to the current note as Paragraph objects. In this array, the toplevel items are all notes linking to the current note and the 'subItems' attributes (of the paragraph objects) contain the paragraphs with a link to the current note. The heading of the linked paragraphs are also listed here, although they don't have to contain a link.
+   * NB: Backlinks are all [[note name]] and >date links.
+   * Note: Available from v3.2
+   */
+  +backlinks: $ReadOnlyArray<TParagraph>,
 }
 
 /**
