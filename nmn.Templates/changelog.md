@@ -2,6 +2,10 @@ See Template Plugin [README](https://github.com/NotePlan/plugins/blob/main/nmn.T
 
 # What's Changed in this Plugin?
 
+### 0.10.4 
+- Fixed bug in that caused swept tasks to be labeled as rescheduled from today
+- Changed default on template sweeping to move tasks (not leave them in place)
+
 ### 0.10.3 Fixed configuration JSON bug (reported by @colingold and @MrCoffee)
 
 ### 0.10.2 Fixed "/" bug (again) in /qtn (thanks @jgclark!)
