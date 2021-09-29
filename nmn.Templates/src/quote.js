@@ -7,14 +7,14 @@ export async function getDailyQuote(
   config: { [string]: ?mixed },
 ): Promise<string> {
   // TODO: Eventually support API options
-  console.log('getDailyQuote():')
+  console.log(`getDailyQuote() with ${quoteParams}:`)
   const availableModes = [
     'today', // Zenquotes
     'random', // Zenquotes
     'author', // Zenquotes (premium account required)
     'readwise' // Readwise (account required)
   ]
-  if (quoteParams != null) {
+  if (quoteParams !== undefined && quoteParams !== '') {
     await showMessage(
       "\tInfo: {{quote()}} tag parameters are not currently supported",
     )
