@@ -2,6 +2,10 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Ta
 
 # What's Changed in this Plugin?
 
+## 1.3.0
+- taskSorter: Added support for bringing indented content under tasks with the tasks
+- taskSorter: Started to add support for task sorting in templates [WIP]
+
 ## 1.2.0
 - Added /ott to bring OPEN tasks (only) to the top without sorting
 
