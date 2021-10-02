@@ -121,6 +121,7 @@
     "rxjs": "6.6.7",
     "showdown": "1.9.1",
     "split": "1.0.1",
+    "sprintf-js": "1.0.3",
     "strftime": "0.10.0",
     "toml": "^3.0.0"
   }

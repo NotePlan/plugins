@@ -37,7 +37,7 @@ const {
 const FOLDERS_TO_IGNORE = ['scripts', 'flow-typed', 'node_modules', 'np.plugin-flow-skeleton']
 const rootFolderPath = path.join(__dirname, '..')
 
-const copyBuild = async (outputFile = '') => {
+const copyBuild = async (outputFile = '', isBuildTask = false) => {
   if (!existsSync(outputFile)) {
     messenger.error(`Invalid Script: ${outputFile}`)
   }
@@ -76,7 +76,10 @@ const copyBuild = async (outputFile = '') => {
    To release this plugin, update changelog.md and run: ${`npm run release "${pluginFolder}"\n`}`
       }
     }
-    console.log(msg)
+
+    if (!isBuildTask) {
+      console.log(msg)
+    }
   } else {
     console.log(`Generated "${outputFile.replace(rootFolder, '')}"`)
   }
@@ -294,7 +297,7 @@ async function build() {
 
       await bundle.write(outputOptions)
 
-      const result = await copyBuild(path.join(plugin, 'script.js'))
+      const result = await copyBuild(path.join(plugin, 'script.js'), true)
 
       await bundle.close()
 
@@ -320,7 +323,7 @@ async function build() {
 
 function getConfig(pluginPath) {
   return {
-    external: [],
+    external: ['fs'],
     input: path.join(pluginPath, 'src/index.js'),
     output: {
       file: path.join(pluginPath, 'script.js'),
@@ -341,13 +344,13 @@ function getConfig(pluginPath) {
           resolve({
             browser: false,
           }),
-          nodeResolve({ browser: true }),
+          nodeResolve({ browser: true, jsnext: true }),
         ]
       : [
           babel({ babelHelpers: 'bundled' }),
           commonjs(),
           json(),
-          nodeResolve({ browser: true }),
+          nodeResolve({ browser: true, jsnext: true }),
           resolve({
             browser: false,
           }),

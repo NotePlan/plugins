@@ -39,16 +39,8 @@ let pref_excludeMentions: $ReadOnlyArray<string> = []
 //-----------------------------------------------------------------------------
 // Helper functions
 
-import {
-  displayTitle,
-  stringReplace,
-  getTagParams,
-} from '../../helpers/general'
-import {
-  showMessage,
-  chooseOption,
-  getInput,
-} from '../../helpers/userInput'
+import { displayTitle, stringReplace } from '../../helpers/general'
+import { showMessage, chooseOption, getInput } from '../../helpers/userInput'
 import {
   todaysDateISOString,
   unhyphenatedDate,
@@ -58,7 +50,6 @@ import {
   dateStringFromCalendarFilename,
   toLocaleShortTime,
 } from '../../helpers/dateTime'
-
 
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 
@@ -124,56 +115,56 @@ export async function periodStats(): Promise<void> {
   // now get each setting
   pref_folderToStore =
     statsConfig.folderToStore != null
-      // $FlowIgnore[incompatible-type]
-      ? statsConfig.folderToStore
+      ? // $FlowIgnore[incompatible-type]
+        statsConfig.folderToStore
       : 'Summaries'
   // console.log(pref_folderToStore)
   pref_hashtagCountsHeading =
     statsConfig.hashtagCountsHeading != null
-      // $FlowIgnore[incompatible-type]
-      ? statsConfig.hashtagCountsHeading
+      ? // $FlowIgnore[incompatible-type]
+        statsConfig.hashtagCountsHeading
       : '#hashtag counts'
   // console.log(pref_hashtagCountsHeading)
   pref_mentionCountsHeading =
     statsConfig.mentionCountsHeading != null
-      // $FlowIgnore[incompatible-type]
-      ? statsConfig.mentionCountsHeading
+      ? // $FlowIgnore[incompatible-type]
+        statsConfig.mentionCountsHeading
       : '@mention counts'
   // console.log(pref_mentionCountsHeading)
   pref_countsHeadingLevel =
     statsConfig.countsHeadingLevel != null
-      // $FlowIgnore[incompatible-type]
-      ? statsConfig.countsHeadingLevel
+      ? // $FlowIgnore[incompatible-type]
+        statsConfig.countsHeadingLevel
       : 2
   // console.log(pref_countsHeadingLevel)
   pref_showAsHashtagOrMention =
     statsConfig.showAsHashtagOrMention != null
-      // $FlowIgnore[incompatible-type]
-      ? statsConfig.showAsHashtagOrMention
+      ? // $FlowIgnore[incompatible-type]
+        statsConfig.showAsHashtagOrMention
       : true
   // console.log(pref_showAsHashtagOrMention)
   pref_includeHashtags =
     statsConfig.includeHashtags != null
-      // $FlowIgnore[incompatible-type]
-      ? statsConfig.includeHashtags
+      ? // $FlowIgnore[incompatible-type]
+        statsConfig.includeHashtags
       : [] // this takes precedence over any excludes ...
   // console.log(pref_includeHashtags)
   pref_excludeHashtags =
     statsConfig.excludeHashtags != null
-      // $FlowIgnore[incompatible-type]
-      ? statsConfig.excludeHashtags
+      ? // $FlowIgnore[incompatible-type]
+        statsConfig.excludeHashtags
       : []
   // console.log(pref_excludeHashtags)
   pref_includeMentions =
     statsConfig.includeMentions != null
-      // $FlowIgnore[incompatible-type]
-      ? statsConfig.includeMentions
+      ? // $FlowIgnore[incompatible-type]
+        statsConfig.includeMentions
       : [] // this takes precedence over any excludes ...
   // console.log(pref_includeMentions)
   pref_excludeMentions =
     statsConfig.excludeMentions != null
-      // $FlowIgnore[incompatible-type]
-      ? statsConfig.excludeMentions
+      ? // $FlowIgnore[incompatible-type]
+        statsConfig.excludeMentions
       : ['@done', '@repeat']
   // console.log(pref_excludeMentions)
 
@@ -273,9 +264,7 @@ export async function periodStats(): Promise<void> {
       const theQStartMonth = (theQ - 1) * 3 + 1
       toDate = Calendar.addUnitToDate(fromDate, 'month', 3) // +1 quarter
       toDate = Calendar.addUnitToDate(toDate, 'day', -1) // -1 day, to get last day of last month
-      periodString = `${theY} Q${theQ} (${monthNameAbbrev(
-        theQStartMonth,
-      )}-${monthNameAbbrev(theQStartMonth + 2)})`
+      periodString = `${theY} Q${theQ} (${monthNameAbbrev(theQStartMonth)}-${monthNameAbbrev(theQStartMonth + 2)})`
       break
     }
     case 'qtd': {
@@ -283,9 +272,7 @@ export async function periodStats(): Promise<void> {
       const thisQStartMonth = (thisQ - 1) * 3 + 1
       fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y, thisQStartMonth, 1, 0, 0, 0), 'minute', -TZOffset) // start of this quarter
       toDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset)
-      periodString = `${y} Q${thisQ} (${monthNameAbbrev(
-        thisQStartMonth,
-      )}-${monthNameAbbrev(thisQStartMonth + 2)})`
+      periodString = `${y} Q${thisQ} (${monthNameAbbrev(thisQStartMonth)}-${monthNameAbbrev(thisQStartMonth + 2)})`
       countsHeadingAdd = `(to ${todaysDateISOString})`
       break
     }
@@ -298,9 +285,7 @@ export async function periodStats(): Promise<void> {
       toDate = t
       toDate = Calendar.addUnitToDate(fromDate, 'month', 3) // +1 quarter
       toDate = Calendar.addUnitToDate(toDate, 'day', -1) // -1 day, to get last day of last month
-      periodString = `${theY} Q${theQ} (${monthNameAbbrev(
-        theQStartMonth,
-      )}-${monthNameAbbrev(theQStartMonth + 2)})`
+      periodString = `${theY} Q${theQ} (${monthNameAbbrev(theQStartMonth)}-${monthNameAbbrev(theQStartMonth + 2)})`
       break
     }
     case 'ly': {
@@ -330,14 +315,14 @@ export async function periodStats(): Promise<void> {
   }
 
   console.log(
-    `periodStats: calculating for ${periodString} (${toISOShortDateTimeString(fromDate)}-${toISOShortDateTimeString(toDate)})`,
+    `periodStats: calculating for ${periodString} (${toISOShortDateTimeString(fromDate)}-${toISOShortDateTimeString(
+      toDate,
+    )})`,
   )
 
   const fromDateStr = unhyphenatedDate(fromDate) //fromDate.toISOString().slice(0, 10).replace(/-/g, '')
   const toDateStr = unhyphenatedDate(toDate) // toDate.toISOString().slice(0, 10).replace(/-/g, '')
-  console.log(
-    `\nperiodStats: calculating for ${periodString} (${fromDateStr}-${toDateStr}):`,
-  )
+  console.log(`\nperiodStats: calculating for ${periodString} (${fromDateStr}-${toDateStr}):`)
 
   // Calc hashtags stats (returns two maps)
   const hOutputArray = []
@@ -364,9 +349,7 @@ export async function periodStats(): Promise<void> {
     if (count != null) {
       const total: string = value.toFixed(0)
       const average: string = (value / count).toFixed(1)
-      hOutputArray.push(
-        `${hashtagString}\t${count}\t(total ${total}\taverage ${average})`,
-      )
+      hOutputArray.push(`${hashtagString}\t${count}\t(total ${total}\taverage ${average})`)
       hCounts.delete(key) // remove the entry from the next map, as not longer needed
     }
   }
@@ -407,9 +390,7 @@ export async function periodStats(): Promise<void> {
     if (count != null) {
       const total = value.toFixed(0)
       const average = (value / count).toFixed(1)
-      mOutputArray.push(
-        `${mentionString}\t${count}\t(total ${total}\taverage ${average})`,
-      )
+      mOutputArray.push(`${mentionString}\t${count}\t(total ${total}\taverage ${average})`)
       mCounts.delete(key) // remove the entry from the next map, as not longer needed
     }
   }
@@ -426,9 +407,7 @@ export async function periodStats(): Promise<void> {
   }
 
   // Ask where to save this summary to
-  const labelString = `🗒 Add/update note '${periodString}' in folder '${String(
-    pref_folderToStore,
-  )}'`
+  const labelString = `🗒 Add/update note '${periodString}' in folder '${String(pref_folderToStore)}'`
   const destination = await chooseOption(
     `Where to save the summary for ${periodString}?`,
     [
@@ -463,20 +442,14 @@ export async function periodStats(): Promise<void> {
       if (todaysNote == null) {
         console.log(`\terror appending to today's note`)
       } else {
-        console.log(
-          `\tappending results to today's note (${todaysNote.filename ?? ''})`,
-        )
+        console.log(`\tappending results to today's note (${todaysNote.filename ?? ''})`)
         todaysNote.appendParagraph(
-          `${String(
-            pref_hashtagCountsHeading,
-          )} for ${periodString} ${countsHeadingAdd}`,
+          `${String(pref_hashtagCountsHeading)} for ${periodString} ${countsHeadingAdd}`,
           'text',
         )
         todaysNote.appendParagraph(hOutputArray.join('\n'), 'text')
         todaysNote.appendParagraph(
-          `${String(
-            pref_mentionCountsHeading,
-          )} for ${periodString} ${countsHeadingAdd}`,
+          `${String(pref_mentionCountsHeading)} for ${periodString} ${countsHeadingAdd}`,
           'empty',
         )
         todaysNote.appendParagraph(mOutputArray.join('\n'), 'text')
@@ -488,12 +461,9 @@ export async function periodStats(): Promise<void> {
       let note: ?TNote
       // first see if this note has already been created
       // (look only in active notes, not Archive or Trash)
-      const existingNotes: $ReadOnlyArray<TNote> =
-        DataStore.projectNoteByTitle(periodString, true, false) ?? []
+      const existingNotes: $ReadOnlyArray<TNote> = DataStore.projectNoteByTitle(periodString, true, false) ?? []
 
-      console.log(
-        `\tfound ${existingNotes.length} existing summary notes for this period`,
-      )
+      console.log(`\tfound ${existingNotes.length} existing summary notes for this period`)
 
       if (existingNotes.length > 0) {
         note = existingNotes[0] // pick the first if more than one
@@ -518,10 +488,7 @@ export async function periodStats(): Promise<void> {
         // This is a bug in flow. Creating a temporary const is a workaround.
         const nonNullNote = note
         // Do we have an existing Hashtag counts section? If so, delete it.
-        let insertionLineIndex = removeSection(
-          nonNullNote,
-          pref_hashtagCountsHeading,
-        )
+        let insertionLineIndex = removeSection(nonNullNote, pref_hashtagCountsHeading)
         console.log(`\tHashtag insertionLineIndex: ${String(insertionLineIndex)}`)
         // Set place to insert either after the found section heading, or at end of note
         // write in reverse order to avoid having to calculate insertion point again
@@ -530,34 +497,21 @@ export async function periodStats(): Promise<void> {
           insertionLineIndex,
           pref_countsHeadingLevel,
         )
-        nonNullNote.insertParagraph(
-          hOutputArray.join('\n'),
-          insertionLineIndex + 1,
-          'text',
-        )
+        nonNullNote.insertParagraph(hOutputArray.join('\n'), insertionLineIndex + 1, 'text')
         // nonNullNote.insertHeading(countsHeading, insertionLineIndex, pref_countsHeadingLevel)
 
         // Do we have an existing Mentions counts section? If so, delete it.
-        insertionLineIndex = removeSection(
-          nonNullNote,
-          pref_mentionCountsHeading,
-        )
+        insertionLineIndex = removeSection(nonNullNote, pref_mentionCountsHeading)
         console.log(`\tMention insertionLineIndex: ${insertionLineIndex}`)
         nonNullNote.insertHeading(
           `${pref_mentionCountsHeading} ${countsHeadingAdd}`,
           insertionLineIndex,
           pref_countsHeadingLevel,
         )
-        nonNullNote.insertParagraph(
-          mOutputArray.join('\n'),
-          insertionLineIndex + 1,
-          'text',
-        )
+        nonNullNote.insertParagraph(mOutputArray.join('\n'), insertionLineIndex + 1, 'text')
       } else {
         // Shouldn't get here, but will because of a bug in <=r635
-        console.log(
-          "tagStats: error: shouldn't get here -- no valid note to write to",
-        )
+        console.log("tagStats: error: shouldn't get here -- no valid note to write to")
         await showMessage('Please re-run this command (NP bug before release 636')
         return
       }
@@ -567,13 +521,9 @@ export async function periodStats(): Promise<void> {
     }
 
     case 'log': {
-      console.log(
-        `${pref_hashtagCountsHeading} for ${periodString} ${countsHeadingAdd}`,
-      )
+      console.log(`${pref_hashtagCountsHeading} for ${periodString} ${countsHeadingAdd}`)
       console.log(hOutputArray.join('\n'))
-      console.log(
-        `${pref_mentionCountsHeading} for ${periodString} ${countsHeadingAdd}`,
-      )
+      console.log(`${pref_mentionCountsHeading} for ${periodString} ${countsHeadingAdd}`)
       console.log(mOutputArray.join('\n'))
       break
     }
@@ -584,14 +534,9 @@ export async function periodStats(): Promise<void> {
 
     default: {
       const outputs = hOutputArray.concat(mOutputArray)
-      const re = await CommandBar.showOptions(
-        outputs,
-        '(Select anything to copy)',
-      )
+      const re = await CommandBar.showOptions(outputs, '(Select anything to copy)')
       if (re !== null) {
-        Clipboard.string = `${hOutputArray.join('\n')}\n\n${mOutputArray.join(
-          '\n',
-        )}`
+        Clipboard.string = `${hOutputArray.join('\n')}\n\n${mOutputArray.join('\n')}`
       }
       break
     }
@@ -607,9 +552,7 @@ function removeSection(note: TNote, heading: string): number {
   const ps = note.paragraphs
   let existingHeadingIndex = ps.length
   const thisTitle = note.title ?? ''
-  console.log(
-    `\t  removeSection '${heading}' from note '${thisTitle}' with ${ps.length} paras:`,
-  )
+  console.log(`\t  removeSection '${heading}' from note '${thisTitle}' with ${ps.length} paras:`)
 
   for (const p of ps) {
     if (p.type === 'title' && p.content.startsWith(heading)) {
@@ -651,17 +594,10 @@ function removeSection(note: TNote, heading: string): number {
 // @return {Map, Map}
 // - Map of { tag, count } for all tags included or not excluded
 // - Map of { tag, total } for the subset of all tags above that finish with a /number
-function calcHashtagStatsPeriod(
-  fromDateStr,
-  toDateStr,
-): ?[Map<string, number>, Map<string, number>] {
+function calcHashtagStatsPeriod(fromDateStr, toDateStr): ?[Map<string, number>, Map<string, number>] {
   // Get all daily notes that are within this time period
   const periodDailyNotes = DataStore.calendarNotes.filter((p) =>
-    withinDateRange(
-      dateStringFromCalendarFilename(p.filename),
-      fromDateStr,
-      toDateStr,
-    ),
+    withinDateRange(dateStringFromCalendarFilename(p.filename), fromDateStr, toDateStr),
   )
 
   if (periodDailyNotes.length === 0) {
@@ -672,11 +608,9 @@ function calcHashtagStatsPeriod(
   }
 
   // work out what set of mentions to look for (or ignore)
-  const hashtagsToLookFor =
-    pref_includeHashtags.length > 0 ? pref_includeHashtags : []
+  const hashtagsToLookFor = pref_includeHashtags.length > 0 ? pref_includeHashtags : []
   // console.log(JSON.stringify({ hashtagsToLookFor }, null, 2))
-  const hashtagsToIgnore =
-    pref_excludeHashtags.length > 0 ? pref_excludeHashtags : []
+  const hashtagsToIgnore = pref_excludeHashtags.length > 0 ? pref_excludeHashtags : []
   // console.log(JSON.stringify({ hashtagsToIgnore }, null, 2))
 
   // For each matching date, find and store the tags in Map
@@ -688,10 +622,7 @@ function calcHashtagStatsPeriod(
     // console.log(`${n.date} -> ${n.hashtags.join(' / ')}`)
     for (const t of seenTags) {
       // check this is on inclusion, or not on exclusion list, before adding
-      if (
-        hashtagsToLookFor.length > 0 &&
-        hashtagsToLookFor.filter((a) => t.startsWith(a)).length === 0
-      ) {
+      if (hashtagsToLookFor.length > 0 && hashtagsToLookFor.filter((a) => t.startsWith(a)).length === 0) {
         // console.log(`\tIgnoring '${t}' as not on inclusion list`)
       } else if (hashtagsToIgnore.filter((a) => t.startsWith(a)).length > 0) {
         // console.log(`\tIgnoring '${t}' as on exclusion list`)
@@ -730,17 +661,10 @@ function calcHashtagStatsPeriod(
 // If not, include all, except those on an 'exclude' list (if set).
 // Returns a Map of {tag, count}
 
-function calcMentionStatsPeriod(
-  fromDateStr,
-  toDateStr,
-): ?[Map<string, number>, Map<string, number>] {
+function calcMentionStatsPeriod(fromDateStr, toDateStr): ?[Map<string, number>, Map<string, number>] {
   // Get all daily notes that are within this time period
   const periodDailyNotes = DataStore.calendarNotes.filter((p) =>
-    withinDateRange(
-      dateStringFromCalendarFilename(p.filename),
-      fromDateStr,
-      toDateStr,
-    ),
+    withinDateRange(dateStringFromCalendarFilename(p.filename), fromDateStr, toDateStr),
   )
 
   if (periodDailyNotes.length === 0) {
@@ -751,12 +675,10 @@ function calcMentionStatsPeriod(
   }
 
   // work out what set of mentions to look for (or ignore)
-  const mentionsToLookFor =
-    pref_includeMentions.length > 0 ? pref_includeMentions : []
+  const mentionsToLookFor = pref_includeMentions.length > 0 ? pref_includeMentions : []
   // console.log(JSON.stringify({ mentionsToLookFor }, null, 2))
 
-  const mentionsToIgnore =
-    pref_excludeMentions.length > 0 ? pref_excludeMentions : []
+  const mentionsToIgnore = pref_excludeMentions.length > 0 ? pref_excludeMentions : []
   // console.log(JSON.stringify({ mentionsToIgnore }, null, 2))
 
   // For each matching date, find and store the mentions in Map
@@ -769,10 +691,7 @@ function calcMentionStatsPeriod(
     // console.log(`${n.date} -> ${n.mentions.join(' / ')}`)
     for (const m of seenMentions) {
       // check this is on inclusion, or not on exclusion list, before adding
-      if (
-        mentionsToLookFor.length > 0 &&
-        mentionsToLookFor.filter((a) => m.startsWith(a)).length === 0
-      ) {
+      if (mentionsToLookFor.length > 0 && mentionsToLookFor.filter((a) => m.startsWith(a)).length === 0) {
         // console.log(`\tIgnoring '${m}' as not on inclusion list`)
       } else if (mentionsToIgnore.filter((a) => m.startsWith(a)).length > 0) {
         // console.log(`\tIgnoring '${m} as on exclusion list`)

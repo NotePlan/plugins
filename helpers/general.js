@@ -3,10 +3,14 @@
 // General helper functions for NotePlan plugins
 //-------------------------------------------------------------------------------
 
+// TODO: Need to remove dead code, or move to unused files
+// TODO: Need to remove spurious console.log calls (or even better, move to `log`)
+// TODO:  so that console.log can be disabled globally to reduce noise
+
 import json5 from 'json5'
 // import toml from 'toml'
 // import { load } from 'js-yaml'
-import { showMessage } from './userInput'
+import { showMessage, showMessageYesNo } from './userInput'
 import { hyphenatedDateString } from './dateTime'
 
 //-------------------------------------------------------------------------------
@@ -171,4 +175,41 @@ export async function getTagParamsFromString(
 export function capitalize(s: string): string {
   if (typeof s !== 'string') return ''
   return s.charAt(0).toUpperCase() + s.slice(1)
+}
+
+/**
+ * @param {mixed} paramString - debug label
+ * @param {mixed} paramString - debug label
+ * @description Created formatted debug console message
+ */
+export function debug(label: mixed = '', msg: mixed = null): void {
+  let message: string = ''
+
+  if (msg) {
+    // $FlowFixMe
+    message = typeof msg === 'object' ? JSON.stringify(msg).replaceAll(':', ': ').replaceAll(',', ', ') : msg
+  } else {
+    // $FlowFixMe
+    message = typeof label === 'object' ? JSON.stringify(label).replaceAll(':', ': ').replaceAll(',', ', ') : label
+  }
+
+  // $FlowFixMe
+  let padLength = message.length / 2
+  padLength = padLength < 10 ? 20 : padLength + 10
+
+  console.log('')
+  console.log('*'.repeat(padLength) + ' DEBUG ' + '*'.repeat(padLength))
+  console.log('')
+
+  // only show if msg supplied
+  if (msg) {
+    // $FlowFixMe
+    console.log(`     ${label}:`)
+  }
+
+  // $FlowFixMe.
+  console.log(`     ${message}:`)
+  console.log('')
+  console.log('*'.repeat(padLength) + ' DEBUG ' + '*'.repeat(padLength))
+  console.log('')
 }
