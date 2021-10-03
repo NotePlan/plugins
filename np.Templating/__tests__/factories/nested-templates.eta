@@ -1,0 +1,5 @@
+<%~ displayBooks({
+    books,
+    full: "**|AUTHOR|**: |TITLE|",
+    partial: "**|AUTHOR|**"
+})%>

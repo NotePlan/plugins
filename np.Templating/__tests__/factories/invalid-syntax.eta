@@ -1,0 +1,2 @@
+<% names.forEach((name, i) => {
+%> <%= i === names.length - 1 ? titleCase(name) : titleCase(name) + '\n' %><%});

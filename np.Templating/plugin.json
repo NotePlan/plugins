@@ -1,0 +1,26 @@
+{
+  "macOS.minVersion": "10.13.0",
+  "noteplan.minAppVersion": "3.0.21",
+  "plugin.id": "np.Templating",
+  "plugin.name": "📙 NotePlan Templating",
+  "plugin.version": "0.0.1",
+  "plugin.description": "NotePlan Templating Plugin",
+  "plugin.author": "Mike Erickson",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md",
+  "plugin.commands": [
+    {
+      "name": "np:tester-standard",
+      "alias": [],
+      "description": "np.Templating Tester (Standard)",
+      "jsFunction": "testTemplateStandard"
+    },
+    {
+      "name": "np:tester-extended",
+      "alias": [],
+      "description": "np.Templating Tester (Extended)",
+      "jsFunction": "testTemplateExtended"
+    }
+  ]
+}
