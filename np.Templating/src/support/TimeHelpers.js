@@ -1,10 +1,13 @@
-// @flow
-
-import moment from 'moment'
+import moment from 'moment/min/moment-with-locales'
+import { getUserLocale } from 'get-user-locale'
 
 const TimeHelpers = {
-  now(format: string = 'HH:mm:ss A'): string {
+  now(format = 'HH:mm:ss A') {
     return moment().format(format)
+  },
+
+  isValid(timeObj = null) {
+    return timeObj
   },
 }
 

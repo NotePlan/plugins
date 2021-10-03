@@ -1,25 +1,26 @@
 // @flow
 
+import { getUserLocale } from 'get-user-locale'
 import { debug } from '../../../helpers/general'
 import { getOrMakeTemplateFolder } from '../../../nmn.Templates/src/template-folder'
 import { parseFirstCodeblock } from './configuration'
-
 import eta from './eta.dev'
 
-import DateHelpers from './DateHelpers'
-import TimeHelpers from './TimeHelpers'
 import UtilsHelpers from './UtilsHelpers'
+import DateModule from './modules/DateModule'
+import TimeModule from './modules/TimeModule'
 
 const DEFAULT_TEMPLATE_CONFIG = {
-  date: {
-    now: 'YYYY-MM-DD',
-  },
-  time: {
-    now: 'HH:mm:ss A',
+  locale: 'en-US',
+  defaultFormats: {
+    dateFormat: 'YYYY-MM-DD',
+    timeFormat: 'HH:mm:ss A',
   },
   user: {
     first: '',
     last: '',
+    email: '',
+    phone: '',
   },
 }
 
@@ -67,7 +68,7 @@ export default class Templating {
     }
 
     // $FlowFixMe
-    const configData = await this.getTemplateConfig()
+    const templateConfig = await this.getTemplateConfig()
 
     const options = { ...{ extended: false, tags: [] }, ...userOptions }
 
@@ -84,16 +85,24 @@ export default class Templating {
     const weather = templateData.includes('web.weather') ? await UtilsHelpers.weather() : ''
     const quote = templateData.includes('web.quote') ? await UtilsHelpers.quote() : ''
 
+    // let osLocale = getUserLocale()
+    // if (templateConfig?.templates?.locale.length > 0) {
+    //   osLocale = templateConfig?.templates?.locale
+    // }
+
+    const dateInstance = new DateModule(templateConfig.templates)
+    const timeInstance = new DateModule(templateConfig.templates)
+
     const helpers = {
-      date: DateHelpers,
-      time: TimeHelpers,
+      date: dateInstance,
+      time: timeInstance,
       note: {},
       utils: UtilsHelpers,
       user: {
-        first: configData?.templates?.user?.first || '',
-        last: configData?.templates?.user?.last || '',
-        email: configData?.templates?.user?.email || '',
-        phone: configData?.templates?.user?.phone || '',
+        first: templateConfig?.templates?.user?.first || '',
+        last: templateConfig?.templates?.user?.last || '',
+        email: templateConfig?.templates?.user?.email || '',
+        phone: templateConfig?.templates?.user?.phone || '',
       },
       web: {
         quote: () => {
@@ -135,5 +144,16 @@ export default class Templating {
     const firstCodeblock = content.split('\n```')[1]
 
     return await parseFirstCodeblock(firstCodeblock)
+  }
+
+  static async getDefaultFormat(formatType: string = 'date'): Promise<string> {
+    const templateConfig = await this.getTemplateConfig()
+    let format = formatType === 'date' ? 'YYYY-MM-DD' : 'HH:mm:ss A'
+    if (templateConfig?.templates?.defaultFormats?.[formatType]) {
+      format = templateConfig?.templates?.defaultFormats?.[formatType]
+    }
+
+    format = formatType === 'date' ? 'YYYY-MM-DD' : 'HH:mm:ss A'
+    return format
   }
 }
