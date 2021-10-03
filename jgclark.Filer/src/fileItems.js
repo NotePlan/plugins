@@ -2,7 +2,7 @@
 // -----------------------------------------------------------------------------
 // Plugin to help move selected paragraphs to other notes
 // Jonathan Clark
-// v0.5.0, 29.8.2021
+// v0.5.1, 3.10.2021
 // -----------------------------------------------------------------------------
 
 import {
@@ -28,8 +28,9 @@ let pref_addDateBacklink = true
 
 /**
  * Move text to a different note. 
- * FIXME: doesn't work when the destination daily note doesn't already exist.
+ * TODO(@EduardMe): doesn't work when the destination daily note doesn't already exist.
  *   Waiting for better date picker from Eduard before working further on this.
+ * 
  * This is how we identify what we're moving (in priority order):
  * - current selection
  * - current heading + its following section
@@ -155,10 +156,12 @@ export async function fileParas(): Promise<void> {
   // note.addParagraphBelowHeadingTitle(parasToMove, 'empty', heading.content, false, false);
   const destNoteParas = destNote.paragraphs
   let insertionIndex = null
-  if (headingToFind === destNote.title || headingToFind === '(top of note)') { // i.e. the first line in project or calendar note
+  if (headingToFind === destNote.title || headingToFind.includes('(top of note)')) { // i.e. the first line in project or calendar note
     insertionIndex = calcSmartPrependPoint(destNote)
-  } else if (headingToFind === '(bottom of note)') {
+    console.log(`  -> top of note, line ${insertionIndex}`)
+  } else if (headingToFind.includes('(bottom of note)')) {
     insertionIndex = destNoteParas.length + 1
+    console.log(`  -> bottom of note, line ${insertionIndex}`)
   } else {
     for (let i = 0; i < destNoteParas.length; i++) {
       const p = destNoteParas[i]
@@ -167,6 +170,7 @@ export async function fileParas(): Promise<void> {
         break
       }
     }
+    console.log(`  -> other heading, line ${insertionIndex}`)
   }
   if (insertionIndex === null) {
     console.log(`  Error: insertionIndex is null. Stopping.`)
