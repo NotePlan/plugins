@@ -298,10 +298,10 @@ type TDataStore = {
    */
   +preference: ((key: string) => any),
   /**
-  * Note: Available from NotePlan v3.1+
   * Change a saved preference or create a new one. It will most likely be picked up by NotePlan after a restart, if you use one of the keys utilized by NotePlan. 
   * To change a NotePlan preference, use the keys found in the description of the function `.preference(key)`.
   * You can also save custom preferences specific to the plugin, if you need any. Prepend it with the plugin id or similar to avoid collisions with existing keys.
+  * Note: Available from NotePlan v3.1
   * @param {string}
   * @param {any}
   */
@@ -309,16 +309,18 @@ type TDataStore = {
   /**
   * Save a JavaScript object to the Plugins folder as JSON file.
   * This can be used to save preferences or other persistent data.
-  * Note: Available from NotePlan v3.1
+  * It's saved automatically into a new folder "data" in the Plugins folder. 
+  * But you can "escape" this folder using relative paths: ../Plugins/<folder or filename>.
+  * Note: Available from NotePlan v3.1 (r655/r588)
   * @param {Object} 
   * @param {string} 
   * @return {boolean}
   */
   saveJSON(object: Object, filename?: string): boolean,
   /**
-   * Load a JavaScript object from a JSON file located in the Plugins folder.
-   * You can access the json files of other plugins as well, if the filename is known.
-   * Note: Available from NotePlan v3.1
+   * Load a JavaScript object from a JSON file located (by default) in the <Plugin>/data folder.
+   * But you can also use relative paths: ../Plugins/<folder or filename>.
+   * Note: Available from NotePlan v3.1 (r655/r588)
    * @param {string}
    * @return {Object}
    */
