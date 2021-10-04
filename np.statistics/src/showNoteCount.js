@@ -7,6 +7,10 @@ import { percent } from '../../helpers/general'
 export default async function showNoteCount(): Promise<void> {
   const calNotes = DataStore.calendarNotes
   const projNotes = DataStore.projectNotes
+  const templates = DataStore.projectNotes.filter(
+    (n) => n.filename.startsWith('📋 Templates')
+  )
+  const projNotesLen = projNotes.length - templates.length
   const total = calNotes.length + projNotes.length
   const createdLastMonth = projNotes.filter(
     (n) => Calendar.unitsAgoFromNow(n.createdDate, 'month') < 1,
@@ -44,23 +48,24 @@ export default async function showNoteCount(): Promise<void> {
     `📅 Calendar notes: ${calNotes.length} (equivalent to ${
       Math.round(calNotes.length / 36.5) / 10.0
     } years)`,
-    `🛠 Project notes: ${projNotes.length}`,
-    `    - created in last month: ${percent(
+    `🛠 Project notes: ${projNotesLen}`,
+    `\t- created in last month: ${percent(
       createdLastMonth.length,
       projNotes.length,
     )}`,
-    `    - created in last quarter: ${percent(
+    `\t- created in last quarter: ${percent(
       createdLastQuarter.length,
       projNotes.length,
     )}`,
-    `    - updated in last month: ${percent(
+    `\t- updated in last month: ${percent(
       updatedLastMonth.length,
       projNotes.length,
     )}`,
-    `    - updated in last quarter: ${percent(
+    `\t- updated in last quarter: ${percent(
       updatedLastQuarter.length,
       projNotes.length,
     )}`,
+    `📋 Templates: ${templates.length}`,
   ]
 
   const re = await CommandBar.showOptions(

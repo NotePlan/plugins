@@ -3,9 +3,11 @@
 import { percent } from '../../helpers/general'
 
 //-----------------------------------------------------------------------------
-// Shows task statistics for project notes
-export default async function showTaskCountProjects() {
-  const projNotes = DataStore.projectNotes
+// Shows task statistics for project notes, ignoring Templates
+export default async function showTaskCountProjects(): void {
+  const projNotes = DataStore.projectNotes.filter(
+    (n) => !n.filename.startsWith("📋 Templates") // ignore notes in Templates folder
+  )
   const projNotesCount = projNotes.length
   let doneTotal = 0
   let openTotal = 0
