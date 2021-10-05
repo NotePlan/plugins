@@ -1,7 +1,7 @@
 // @flow
 // ------------------------------------------------------------------------------------
 // Command to bring calendar events into notes
-// v0.6.0, 18.9.2021
+// v0.6.1, 5.10.2021
 // @jgclark, with additions by @dwertheimer, @weyert
 // ------------------------------------------------------------------------------------
 
@@ -64,7 +64,7 @@ async function getEventsSettings(): Promise<void> {
   console.log(`\tFound 'events' settings in _configuration note.`)
 
   // now get settings we need
-  pref_eventsHeading = String(eventsConfig?.eventsHeading) ?? '### Events today'
+  pref_eventsHeading = (eventsConfig?.eventsHeading != null) ? String(eventsConfig?.eventsHeading) : '### Events today'
   // if (
   //   eventsConfig.eventsHeading != null &&
   //   typeof eventsConfig.eventsHeading === 'string'
@@ -85,10 +85,11 @@ async function getEventsSettings(): Promise<void> {
   //     `\tInfo: empty find 'addMatchingEvents' setting in _configuration note.`,
   //   )
   // }
-  pref_locale = String(eventsConfig?.locale) ?? 'en-US'
+  pref_locale = (eventsConfig?.locale != null) ? String(eventsConfig?.locale) : 'en-US'
   // if (eventsConfig.locale != null) {
   //   pref_locale = eventsConfig.locale
   // }
+  console.log(pref_locale)
   pref_timeOptions = (eventsConfig?.timeOptions) ?? { hour: '2-digit', minute: '2-digit', hour12: false }
   // if (eventsConfig.timeOptions != null) {
   //   pref_timeOptions = eventsConfig.timeOptions
@@ -141,7 +142,7 @@ export async function listDaysEvents(paramString?: string = ''): Promise<string>
   // NB: be aware that this call doesn't do type checking
   const template = String(await getTagParamsFromString(paramString, 'template', '- *|TITLE|* (*|START|*)'))
   const alldayTemplate = String(await getTagParamsFromString(paramString, 'allday_template', '- *|TITLE|*'))
-  const includeHeadings = await getTagParamsFromString(paramString, 'includeHeadings', true) ?? true
+  const includeHeadings = await getTagParamsFromString(paramString, 'includeHeadings', true)
   // console.log(`\toutput template: '${template}' and '${alldayTemplate}'`)
 
   // Get all the events for this day
