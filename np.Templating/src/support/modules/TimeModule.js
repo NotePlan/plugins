@@ -14,10 +14,15 @@ export default class TimeModule {
   }
 
   now(format = '', offset = '') {
-    const configFormat = this.config?.defaultFormats?.time || 'HH:mm:ss A'
+    const configFormat = this.config?.defaultFormats?.time || 'HH:mm A'
     format = format.length > 0 ? format : configFormat
     const formattedTime = moment(new Date()).format(format)
 
     return this.isValid(formattedTime)
+  }
+
+  isValid(timeObj = null) {
+    return timeObj
+    // return timeObj && moment(timeObj).isValid() ? timeObj : 'INVALID_TIME_FORMAT'
   }
 }

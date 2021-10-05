@@ -17,6 +17,24 @@
       "jsFunction": "testTemplateStandard"
     },
     {
+      "name": "np:custom",
+      "alias": [],
+      "description": "np.Templating Custom Methods",
+      "jsFunction": "testTemplateCustom"
+    },
+    {
+      "name": "np:tasks",
+      "alias": [],
+      "description": "np.Templating Task List",
+      "jsFunction": "testTemplateTasks"
+    },
+    {
+      "name": "np:books",
+      "alias": [],
+      "description": "np.Templating Book List",
+      "jsFunction": "testTemplateBooks"
+    },
+    {
       "name": "np:tester-extended",
       "alias": [],
       "description": "np.Templating Tester (Extended)",

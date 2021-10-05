@@ -20,12 +20,7 @@ export async function testTemplateStandard(): Promise<void> {
 
   const templateContent = await Templating.getTemplate(templateName)
 
-  const custom = {
-    format: function (str) {
-      return str
-    },
-  }
-  const result = await Templating.render(templateContent, custom, { extended: false })
+  const result = await Templating.render(templateContent, {}, { extended: false })
 
   Editor.insertTextAtCursor(result)
 }
@@ -39,6 +34,66 @@ export async function testTemplateExtended(): Promise<void> {
     hello: function (str) {
       return `Hello ${str}`
     },
+  }
+
+  const result = await Templating.render(templateContent, custom, { extended: true })
+
+  Editor.insertTextAtCursor(result)
+}
+
+export async function testTemplateCustom(): Promise<void> {
+  const templateName = 'np.Templating Tester (Custom)'
+
+  const templateContent = await Templating.getTemplate(templateName)
+
+  const custom = {
+    hello: function (str) {
+      return `Hello ${str}`
+    },
+    name: 'John Doe',
+    names: ['mike', 'kira', 'joelle', 'brady', 'bailey', 'trevor'],
+  }
+
+  const result = await Templating.render(templateContent, custom, { extended: true })
+
+  Editor.insertTextAtCursor(result)
+}
+
+export async function testTemplateTasks(): Promise<void> {
+  const templateName = 'np.Templating Tester (Tasks)'
+
+  const templateContent = await Templating.getTemplate(templateName)
+
+  const custom = {
+    tasks: [
+      { name: 'Item 1', completed: true },
+      { name: 'Item 2', completed: false },
+      { name: 'Item 3', completed: true },
+      { name: 'Item 4', completed: false },
+      { name: 'Item 5', completed: true },
+    ],
+  }
+
+  const result = await Templating.render(templateContent, custom, { extended: true })
+
+  Editor.insertTextAtCursor(result)
+}
+
+export async function testTemplateBooks(): Promise<void> {
+  const templateName = 'np.Templating Tester (Books)'
+
+  const templateContent = await Templating.getTemplate(templateName)
+
+  const custom = {
+    books: [
+      { TITLE: 'The Sobbing School: Poems', AUTHOR: 'Joshua Bennett' },
+      { TITLE: `Ain't No Mo'`, AUTHOR: 'Jordan E. Cooper' },
+      { TITLE: 'A Particular Kind of Black Man', AUTHOR: 'Tope Folarin' },
+      { TITLE: 'Where We Stand', AUTHOR: 'Donnetta Lavinia Grays' },
+      { TITLE: 'Invasive species', AUTHOR: 'Marwa Helal' },
+      { TITLE: 'The Sirens of Mars', AUTHOR: 'Sarah Stewart Johnson' },
+      { TITLE: 'The NotePlan Templating Guide', AUTHOR: 'Mike Erickson' },
+    ],
   }
 
   const result = await Templating.render(templateContent, custom, { extended: true })

@@ -4,7 +4,7 @@ import { getUserLocale } from 'get-user-locale'
 import { debug } from '../../../helpers/general'
 import { getOrMakeTemplateFolder } from '../../../nmn.Templates/src/template-folder'
 import { parseFirstCodeblock } from './configuration'
-import eta from './eta.dev'
+import eta from './eta.lib'
 
 import UtilsHelpers from './UtilsHelpers'
 import DateModule from './modules/DateModule'
@@ -15,6 +15,7 @@ const DEFAULT_TEMPLATE_CONFIG = {
   defaultFormats: {
     dateFormat: 'YYYY-MM-DD',
     timeFormat: 'HH:mm:ss A',
+    now: 'YYYY-MM-DD h:mm:ss A',
   },
   user: {
     first: '',
@@ -53,10 +54,19 @@ export default class Templating {
 
   static async getTemplate(templateName: string = ''): Promise<string> {
     const selectedTemplate = await DataStore.projectNoteByTitle(templateName, true, false)?.[0]
-    const templateContent = selectedTemplate?.content
+    let templateContent = selectedTemplate?.content
     if (templateContent == null || templateContent.length === 0) {
       const message = `Template "${templateName}" Not Found or Empty`
       return this.templateErrorMessage('Templating.getTemplate', message)
+    }
+
+    const lines = templateContent.split('\n')
+    if (lines.length >= 1) {
+      if (lines.length >= 2 && lines[1] === '---') {
+        templateContent = lines.splice(2).join('\n')
+      } else {
+        templateContent = lines.splice(1).join('\n')
+      }
     }
 
     return templateContent
@@ -90,19 +100,19 @@ export default class Templating {
     //   osLocale = templateConfig?.templates?.locale
     // }
 
-    const dateInstance = new DateModule(templateConfig.templates)
-    const timeInstance = new DateModule(templateConfig.templates)
+    const dateInstance = new DateModule(templateConfig)
+    const timeInstance = new TimeModule(templateConfig)
 
     const helpers = {
       date: dateInstance,
       time: timeInstance,
-      note: {},
       utils: UtilsHelpers,
+      note: {},
       user: {
-        first: templateConfig?.templates?.user?.first || '',
-        last: templateConfig?.templates?.user?.last || '',
-        email: templateConfig?.templates?.user?.email || '',
-        phone: templateConfig?.templates?.user?.phone || '',
+        first: templateConfig?.user?.first || '',
+        last: templateConfig?.user?.last || '',
+        email: templateConfig?.user?.email || '',
+        phone: templateConfig?.user?.phone || '',
       },
       web: {
         quote: () => {
@@ -143,7 +153,11 @@ export default class Templating {
 
     const firstCodeblock = content.split('\n```')[1]
 
-    return await parseFirstCodeblock(firstCodeblock)
+    const templateData = await parseFirstCodeblock(firstCodeblock)
+    if (templateData && templateData.hasOwnProperty('templates')) {
+      return templateData.templates
+    }
+    return DEFAULT_TEMPLATE_CONFIG
   }
 
   static async getDefaultFormat(formatType: string = 'date'): Promise<string> {
