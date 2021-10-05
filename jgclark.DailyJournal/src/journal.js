@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------------------------------------------------
 // Daily Journal plugin for NotePlan
 // Jonathan Clark
-// v0.8.1, 31.8.2021
+// v0.8.2, 5.10.2021
 //--------------------------------------------------------------------------------------------------------------------
 
 import { showMessage } from '../../helpers/userInput'
@@ -90,8 +90,12 @@ export async function dayReview(): Promise<void> {
     return
   }
   // Finalise config settings
-  const pref_reviewQuestions = String(journalConfig?.reviewQuestions) ?? null
-  pref_reviewSectionHeading = String(journalConfig?.reviewSectionHeading) ?? 'Journal'
+  const pref_reviewQuestions = (journalConfig?.reviewQuestions != null)
+    ? String(journalConfig?.reviewQuestions)
+    : "@sleep(<number>)\\n@work(<number>)\\n@fruitveg(<int>)\\nMood:: <mood>\\nExercise:: <string>\\nGratitude:: <string>\\nGod was:: <string>\\nAlive:: <string>\\nNot Great:: <string>\\nWife:: <string>\\nRemember:: <string>"
+  pref_reviewSectionHeading = (journalConfig?.reviewSectionHeading != null)
+    ? String(journalConfig?.reviewSectionHeading)
+    : 'Journal'
   const pref_moods =
     String(journalConfig.moods) ??
     [
