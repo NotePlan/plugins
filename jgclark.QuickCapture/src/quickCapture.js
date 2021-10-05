@@ -2,7 +2,7 @@
 // --------------------------------------------------------------------------------------------------------------------
 // QuickCapture plugin for NotePlan
 // Jonathan Clark
-// v0.7.1, 30.8.2021
+// v0.7.2, 5.10.2021
 // --------------------------------------------------------------------------------------------------------------------
 
 import {
@@ -41,6 +41,7 @@ async function getInboxSettings(createIfMissing: boolean): Promise<void> {
   // Get or make config settings from _configuration, with no minimum required config
   // But only give default configuration if we want to offer to have this config section created if its missing
   if (createIfMissing) {
+    // TODO: could use the minimum configuration option here
     const inboxConfig = await getOrMakeConfigurationSection('inbox', DEFAULT_INBOX_CONFIG)
     // console.log(`found config: ${JSON.stringify(inboxConfig)}`)
     if (inboxConfig == null || Object.keys(inboxConfig).length === 0) { // check for empty object
@@ -50,24 +51,37 @@ async function getInboxSettings(createIfMissing: boolean): Promise<void> {
       await showMessage("Error: please check 'inbox' settings in '_configuration' note")
     } else {
       // Read settings from _configuration, or if missing set a default
-      pref_inboxTitle = String(inboxConfig?.inboxTitle) ?? "📥 Inbox"
-      pref_addInboxPosition = String(inboxConfig?.addInboxPosition) ?? "prepend"
-      pref_textToAppendToTasks = String(inboxConfig?.textToAppendToTasks) ?? ""
+      pref_inboxTitle = (inboxConfig?.inboxTitle != null) // legitimate than inboxTitle can be '' (the empty string)
+        ? String(inboxConfig?.inboxTitle)
+        : "📥 Inbox"
+      pref_addInboxPosition = (inboxConfig?.addInboxPosition != null && inboxConfig?.addInboxPosition !== '')
+        ? String(inboxConfig?.addInboxPosition)
+        : "prepend"
+      pref_textToAppendToTasks = (inboxConfig?.textToAppendToTasks != null)
+        ? String(inboxConfig?.textToAppendToTasks)
+        : ""
     }
   } else {
     // Don't mind if no config section is found
+    // TODO: could use the minimum configuration option here
     const inboxConfig = await getOrMakeConfigurationSection('inbox')
     // console.log(`found config: ${JSON.stringify(inboxConfig)}`)
 
     // Read settings from _configuration, or if missing set a default
-    pref_inboxTitle = String(inboxConfig?.inboxTitle) ?? "📥 Inbox"
-    pref_addInboxPosition = String(inboxConfig?.addInboxPosition) ?? "prepend"
-    pref_textToAppendToTasks = String(inboxConfig?.textToAppendToTasks) ?? ""
+    pref_inboxTitle = (inboxConfig?.inboxTitle != null) // legitimate than inboxTitle can be '' (the empty string)
+      ? String(inboxConfig?.inboxTitle)
+      : "📥 Inbox"
+    pref_addInboxPosition = (inboxConfig?.addInboxPosition != null && inboxConfig?.addInboxPosition !== '')
+      ? String(inboxConfig?.addInboxPosition)
+      : "prepend"
+    pref_textToAppendToTasks = (inboxConfig?.textToAppendToTasks != null)
+      ? String(inboxConfig?.textToAppendToTasks)
+      : ""
   }
-  // console.log(`Inbox settings (3 lines):`)
-  // console.log(pref_inboxTitle)
-  // console.log(pref_addInboxPosition)
-  // console.log(pref_textToAppendToTasks)
+  console.log(`Inbox settings (3 lines):`)
+  console.log(pref_inboxTitle)
+  console.log(pref_addInboxPosition)
+  console.log(pref_textToAppendToTasks)
 }
 
 /** /qpt

@@ -1,5 +1,8 @@
 # What's changed in ⚡️ Quick Capture
 
+### v0.7.2, 5.10.2021
+- fix: potential bug in configuration
+
 ### v0.7.1, 30.8.2021
 - fix: finally tracked down configuration bug (thanks to tip from @dwertheimer)
 - fix: broke ability to write to daily note in trying to fix the configuration bug (thanks to tip from @bcohen44 and @elessar)
