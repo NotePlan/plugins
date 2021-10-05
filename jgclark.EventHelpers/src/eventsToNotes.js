@@ -64,7 +64,9 @@ async function getEventsSettings(): Promise<void> {
   console.log(`\tFound 'events' settings in _configuration note.`)
 
   // now get settings we need
-  pref_eventsHeading = (eventsConfig?.eventsHeading != null) ? String(eventsConfig?.eventsHeading) : '### Events today'
+  pref_eventsHeading = (eventsConfig?.eventsHeading != null)
+    ? String(eventsConfig?.eventsHeading)
+    : '### Events today'
   // if (
   //   eventsConfig.eventsHeading != null &&
   //   typeof eventsConfig.eventsHeading === 'string'
@@ -74,7 +76,7 @@ async function getEventsSettings(): Promise<void> {
   console.log(pref_eventsHeading)
   // $FlowFixMe
   pref_calendarSet = (eventsConfig?.calendarSet) ?? []
-  console.log(pref_calendarSet)
+  // console.log(pref_calendarSet)
   // $FlowFixMe
   pref_addMatchingEvents = (eventsConfig?.addMatchingEvents) ?? null
   // if (eventsConfig?.addMatchingEvents != null) {
@@ -85,7 +87,9 @@ async function getEventsSettings(): Promise<void> {
   //     `\tInfo: empty find 'addMatchingEvents' setting in _configuration note.`,
   //   )
   // }
-  pref_locale = (eventsConfig?.locale != null) ? String(eventsConfig?.locale) : 'en-US'
+  pref_locale = (eventsConfig?.locale != null && eventsConfig?.locale !== '')
+    ? String(eventsConfig?.locale)
+    : 'en-US'
   // if (eventsConfig.locale != null) {
   //   pref_locale = eventsConfig.locale
   // }
