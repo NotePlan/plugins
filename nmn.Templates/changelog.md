@@ -2,6 +2,11 @@ See Template Plugin [README](https://github.com/NotePlan/plugins/blob/main/nmn.T
 
 # What's Changed in this Plugin?
 
+## [0.11.0] - 2021-10-05
+#### Added New Tags
+- affirmation()
+- advice() to get random affirmations and advice
+
 ### 0.10.5 Keeping people from running sortTasks in a template until it's been tested further 
 
 
