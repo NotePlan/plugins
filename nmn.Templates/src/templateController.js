@@ -17,6 +17,7 @@ import {
 import { sortTasksViaTemplate } from '../../dwertheimer.TaskAutomations/src/sortTasks'
 import { getWeatherSummary } from './weather'
 import { getDailyQuote } from './quote'
+import { getAffirmation, getAdvice } from './affirmations'
 
 const tagList: Array<TagListType> = []
 
@@ -39,6 +40,9 @@ addTag('quote', getDailyQuote, true)
 addTag('sweepTasks', sweepTemplate)
 addTag('formattedDateTime', formattedDateTimeTemplate)
 addTag('weekDates', getWeekDates)
+addTag('affirmation', getAffirmation)
+addTag('advice', getAdvice)
+
 // addTag('sortTasks', sortTasksViaTemplate)
 // **Add other template/macro function calls here SEE COMMENTED CODE BELOW **
 
@@ -77,6 +81,7 @@ function addTag(tagName: string, tagFunction: Function, includeConfig?: boolean 
 async function execTagListFunction(tagString, enclosedString, config): Promise<string> {
   let found = false
   for (const t of tagList) {
+    // console.log(`Checking for tag ${t.tagName}`)
     if (tagString.startsWith(`${t.tagName}(`) && tagString.endsWith(`)`)) {
       console.log(`execTagListFunction() Tag matched "${t.tagName}"`)
       const params = [enclosedString]

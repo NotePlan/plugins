@@ -52,6 +52,8 @@ Weather: 🌧️ Moderate rain 14/19°C
 - `{{sweepTasks()}}` -- Pulls open tasks from previous Project Notes and calendar notes and inserts them in the place of the tag
 - `{{events()}}` or `{{listTodaysEvents()}}` -- insert list of this day's calendar events (requires configuration)
 - `{{matchingEvents()}}` or `{{listMatchingEvents()}}` -- insert list of this day's calendar events matching user-defined hashtags (requires configuration)
+- {{affirmation()}} - get a random affirmation from [Affirmations.dev](https://www.affirmations.dev/)
+- {{advice()}} - get a random bit of advice from [AdviceSlip](https://api.adviceslip.com/advice)
 
 Most naturally require some configuration before they're useful. These details live in the `_configuration` note in NotePlan's `📋 Templates` folder.
 
