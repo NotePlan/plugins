@@ -276,7 +276,7 @@ export async function newNoteWithTemplate(
   return
 }
 
-export async function quickTemplateNote() {
+export async function quickTemplateNote(noteName: string = ''): Promise<boolean> {
   const quickNotesArray = await getOrMakeConfigurationSection(
     'quickNotes',
     `  quickNotes: [
@@ -291,7 +291,7 @@ export async function quickTemplateNote() {
       console.log(`quickTemplateNote: editThis=true, so user should edit config`)
       await showMessage(`Please edit the configuration file to add your quick notes.`)
       await openConfigFileInEditor()
-      return
+      return false
     }
     //$FlowFixMe
     const options = quickNotesArray.map((q) => ({ label: q.label, value: q }))
@@ -302,16 +302,19 @@ export async function quickTemplateNote() {
     //$FlowIgnore
     console.log(`quickTemplateNote did not work. quickNotesArray=${JSON.stringify(quickNotesArray)}`)
     await showMessage('Requires Configuration. Read Templates Plugin Instructions')
-    return
+    return false
   }
   if (chosenItem) {
     //$FlowFixMe
     const { template, title, folder } = chosenItem
+    // FIXME do something with noteName here
     if (template !== '' && title !== '' && folder !== '') {
-      await newNoteWithTemplate(template, title, folder)
+      const fullName = noteName ? `${noteName} ${title}` : title
+      await newNoteWithTemplate(template, fullName, folder)
     } else {
       console.log(`Chosen template data invalid. chosenItem=${String(JSON.stringify(chosenItem))}`)
       // await showMessage('Check your _configuration for that setting')
     }
   }
+  return true
 }

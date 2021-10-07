@@ -15,6 +15,10 @@ export const nowShortDateTime: string = new Date().toISOString().slice(0, 16)
 export const nowLocaleDateTime: string = new Date().toLocaleString()
 export const getFormattedTime = (format: string = '%Y-%m-%d %I:%M:%S %P'): string => strftime(format)
 
+export function getTodaysDateUnhyphenated(): string {
+  return strftime(`%Y%m%d`)
+}
+
 // @nmn
 export function getYearMonthDate(dateObj: Date): $ReadOnly<{
   year: number,

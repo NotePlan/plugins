@@ -10,14 +10,8 @@ import {
   // getTagParams,
   getTagParamsFromString,
 } from '../../helpers/general'
-import {
-  showMessage,
-} from '../../helpers/userInput'
-import {
-  toLocaleShortTime,
-  dateStringFromCalendarFilename,
-} from '../../helpers/dateTime'
-
+import { showMessage } from '../../helpers/userInput'
+import { toLocaleShortTime, dateStringFromCalendarFilename } from '../../helpers/dateTime'
 
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 
@@ -64,9 +58,7 @@ async function getEventsSettings(): Promise<void> {
   console.log(`\tFound 'events' settings in _configuration note.`)
 
   // now get settings we need
-  pref_eventsHeading = (eventsConfig?.eventsHeading != null)
-    ? String(eventsConfig?.eventsHeading)
-    : '### Events today'
+  pref_eventsHeading = eventsConfig?.eventsHeading != null ? String(eventsConfig?.eventsHeading) : '### Events today'
   // if (
   //   eventsConfig.eventsHeading != null &&
   //   typeof eventsConfig.eventsHeading === 'string'
@@ -75,10 +67,10 @@ async function getEventsSettings(): Promise<void> {
   // }
   console.log(pref_eventsHeading)
   // $FlowFixMe
-  pref_calendarSet = (eventsConfig?.calendarSet) ?? []
+  pref_calendarSet = eventsConfig?.calendarSet ?? []
   // console.log(pref_calendarSet)
   // $FlowFixMe
-  pref_addMatchingEvents = (eventsConfig?.addMatchingEvents) ?? null
+  pref_addMatchingEvents = eventsConfig?.addMatchingEvents ?? null
   // if (eventsConfig?.addMatchingEvents != null) {
   //   // $FlowFixMe
   //   pref_addMatchingEvents = eventsConfig.addMatchingEvents
@@ -87,41 +79,42 @@ async function getEventsSettings(): Promise<void> {
   //     `\tInfo: empty find 'addMatchingEvents' setting in _configuration note.`,
   //   )
   // }
-  pref_locale = (eventsConfig?.locale != null && eventsConfig?.locale !== '')
-    ? String(eventsConfig?.locale)
-    : 'en-US'
+  pref_locale = eventsConfig?.locale != null && eventsConfig?.locale !== '' ? String(eventsConfig?.locale) : 'en-US'
   // if (eventsConfig.locale != null) {
   //   pref_locale = eventsConfig.locale
   // }
   console.log(pref_locale)
-  pref_timeOptions = (eventsConfig?.timeOptions) ?? { hour: '2-digit', minute: '2-digit', hour12: false }
+  pref_timeOptions = eventsConfig?.timeOptions ?? { hour: '2-digit', minute: '2-digit', hour12: false }
   // if (eventsConfig.timeOptions != null) {
   //   pref_timeOptions = eventsConfig.timeOptions
   // }
   console.log(`\tEnd of getEventsSettings()`)
 }
 
+export type HourMinObj = { h: number, m: number }
+
 //------------------------------------------------------------------------------
 // Get list of events for the given day (specified as YYYYMMDD)
 // Now also filters out any that don't come from one of the calendars specified
 // in pref_calendarSet.
-async function getEventsForDay(dateStr: string): Promise<Array<TCalendarItem>> {
+export async function getEventsForDay(
+  dateStr: string,
+  start: HourMinObj = { h: 0, m: 0 },
+  end: HourMinObj = { h: 23, m: 59 },
+): Promise<Array<TCalendarItem>> {
   const y = parseInt(dateStr.slice(0, 4))
   const m = parseInt(dateStr.slice(4, 6))
   const d = parseInt(dateStr.slice(6, 8))
-  const startOfDay = Calendar.dateFrom(y, m, d, 0, 0, 0)
-  const endOfDay = Calendar.dateFrom(y, m, d, 23, 59, 59)
-  console.log(`  ${startOfDay.toString()} - ${endOfDay.toString()}`)
-  let eArr: Array<TCalendarItem> = await Calendar.eventsBetween(
-    startOfDay,
-    endOfDay,
-  )
-  console.log(`\tRetrieved ${eArr.length} events from NP Calendar store`)
-  
+  const startOfDay = Calendar.dateFrom(y, m, d, start.h, start.m, 0)
+  const endOfDay = Calendar.dateFrom(y, m, d, end.h, end.m, 59)
+  console.log(`  getEventsForDay: ${startOfDay.toString()} - ${endOfDay.toString()}`)
+  let eArr: Array<TCalendarItem> = await Calendar.eventsBetween(startOfDay, endOfDay)
+  console.log(`\tgetEventsForDay: Retrieved ${eArr.length} events from NP Calendar store`)
+
   // If we have a setCalendar list, use to weed out events that don't match .calendar
-  if (pref_calendarSet.length > 0) {
+  if (pref_calendarSet && pref_calendarSet.length > 0) {
     // const filteredEventArray = pref_calendarSet.slice().filter(c => eArr.some(e => e.calendar === c))
-    eArr = eArr.filter(e => pref_calendarSet.some(c => e.calendar === c))
+    eArr = eArr.filter((e) => pref_calendarSet.some((c) => e.calendar === c))
     console.log(`\t${eArr.length} Events kept after filtering with ${pref_calendarSet.toString()}`)
   }
   return eArr
@@ -136,9 +129,7 @@ export async function listDaysEvents(paramString?: string = ''): Promise<string>
   }
   // $FlowIgnore[incompatible-call]
   const dateStr = dateStringFromCalendarFilename(Editor.filename)
-  console.log(
-    `\nlistDaysEvents for ${dateStr} with paramString=${String(paramString)}`,
-  )
+  console.log(`\nlistDaysEvents for ${dateStr} with paramString=${String(paramString)}`)
 
   // Get config settings from Template folder _configuration note
   await getEventsSettings()
@@ -161,26 +152,23 @@ export async function listDaysEvents(paramString?: string = ''): Promise<string>
       {
         key: '*|START|*',
         value: !e.isAllDay
-          // $FlowFixMe
-          ? toLocaleShortTime(e.date, pref_locale, pref_timeOptions)
+          ? // $FlowFixMe
+            toLocaleShortTime(e.date, pref_locale, pref_timeOptions)
           : '',
       },
       {
         key: '*|END|*',
         value:
           e.endDate != null && !e.isAllDay
-            // $FlowFixMe
-            ? toLocaleShortTime(e.endDate, pref_locale, pref_timeOptions)
+            ? // $FlowFixMe
+              toLocaleShortTime(e.endDate, pref_locale, pref_timeOptions)
             : '',
       },
       { key: '*|NOTES|*', value: e.notes },
       { key: '*|URL|*', value: e.url },
     ]
     // NB: the following will replace any mentions of the keywords in the e.title string itself
-    const thisEventStr = stringReplace(
-      e.isAllDay ? alldayTemplate : template,
-      replacements
-    ).trimEnd()
+    const thisEventStr = stringReplace(e.isAllDay ? alldayTemplate : template, replacements).trimEnd()
     if (lastEventStr !== thisEventStr) {
       outputArray.push(thisEventStr)
       lastEventStr = thisEventStr
@@ -225,16 +213,12 @@ export async function listMatchingDaysEvents(
   // Get config settings from Template folder _configuration note
   await getEventsSettings()
   if (pref_addMatchingEvents == null) {
-    await showMessage(
-      `Error: Empty 'addMatchingEvents' setting in _configuration note. Stopping`,
-    )
+    await showMessage(`Error: Empty 'addMatchingEvents' setting in _configuration note. Stopping`)
     return `(Error: found no 'addMatchingEvents' settings in _configuration note.)`
   }
   const textToMatchA = Object.keys(pref_addMatchingEvents)
   const templateArr = Object.values(pref_addMatchingEvents)
-  console.log(
-    `\tFrom settings found ${textToMatchA.length} match strings to look for`,
-  )
+  console.log(`\tFrom settings found ${textToMatchA.length} match strings to look for`)
 
   // Get all events for this day
   const eArr: Array<TCalendarItem> = await getEventsForDay(dateStr)
@@ -246,7 +230,7 @@ export async function listMatchingDaysEvents(
     for (let i = 0; i < textToMatchA.length; i++) {
       // const m = textToMatchA[i]
       const template = templateArr[i]
-      const reMatch = new RegExp(textToMatchA[i], "i")
+      const reMatch = new RegExp(textToMatchA[i], 'i')
       if (e.title.match(reMatch)) {
         console.log(`\tFound match to event '${e.title}'`)
         const replacements = [
@@ -254,16 +238,17 @@ export async function listMatchingDaysEvents(
           {
             key: '*|START|*',
             value: !e.isAllDay
-              // $FlowFixMe
-              ? toLocaleShortTime(e.date, pref_locale, pref_timeOptions)
-              : ''
+              ? // $FlowFixMe
+                toLocaleShortTime(e.date, pref_locale, pref_timeOptions)
+              : '',
           },
           {
             key: '*|END|*',
-            value: e.endDate != null && !e.isAllDay
-              // $FlowFixMe
-              ? toLocaleShortTime(e.endDate, pref_locale, pref_timeOptions)
-              : ''
+            value:
+              e.endDate != null && !e.isAllDay
+                ? // $FlowFixMe
+                  toLocaleShortTime(e.endDate, pref_locale, pref_timeOptions)
+                : '',
           },
           { key: '*|NOTES|*', value: e.notes },
           { key: '*|URL|*', value: e.url },
@@ -287,9 +272,7 @@ export async function listMatchingDaysEvents(
 //------------------------------------------------------------------------------
 // Insert list of matching events in the current day's note, from list
 // in keys of pref_addMatchingEvents. Apply template too.
-export async function insertMatchingDaysEvents(
-  paramString: ?string,
-): Promise<void> {
+export async function insertMatchingDaysEvents(paramString: ?string): Promise<void> {
   if (Editor.note == null || Editor.type !== 'Calendar') {
     await showMessage('Please run again with a calendar note open.')
     return
