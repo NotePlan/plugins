@@ -302,3 +302,52 @@ export function relativeDateFromDate(date: Date): string {
   const diff = Calendar.unitsBetween(date, new Date(), 'day')
   return relativeDateFromNumber(diff)
 }
+
+/** 
+ * Return quarter start and end dates for a given quarter
+ * @param {number} qtr - quarter number in year (1-4)
+ * @param {number} year - year (4-digits)
+ * @return {[Date, Date]}} - start and end dates (as JS Dates)
+ */
+export function quarterStartEnd(qtr: number, year: number): [Date, Date] {
+  // Default values are needed to account for the
+  // default case of the switch statement below.
+  // Otherwise, these variables will never get initialized before
+  // being used.
+  let startDate: Date = new Date()
+  let endDate: Date = new Date()
+
+  // Because this seems to use ISO dates, we appear to need to take timezone
+  // offset into account in order to avoid landing up crossing date boundaries.
+  // I.e. when in BST (=UTC+0100) it's calculating dates which are often 1 too early.
+  // Get TZOffset in minutes. If positive then behind UTC; if negative then ahead.
+  const TZOffset = new Date().getTimezoneOffset()
+
+  switch (qtr) {
+    case 1: {
+      startDate = Calendar.addUnitToDate(Calendar.dateFrom(year, 1, 1, 0, 0, 0), 'minute', -TZOffset)
+      endDate = Calendar.addUnitToDate(Calendar.dateFrom(year, 3, 31, 0, 0, 0), 'minute', -TZOffset)
+      break
+    }
+    case 2: {
+      startDate = Calendar.addUnitToDate(Calendar.dateFrom(year, 4, 1, 0, 0, 0), 'minute', -TZOffset)
+      endDate = Calendar.addUnitToDate(Calendar.dateFrom(year, 6, 30, 0, 0, 0), 'minute', -TZOffset)
+      break
+    }
+    case 3: {
+      startDate = Calendar.addUnitToDate(Calendar.dateFrom(year, 7, 1, 0, 0, 0), 'minute', -TZOffset)
+      endDate = Calendar.addUnitToDate(Calendar.dateFrom(year, 9, 30, 0, 0, 0), 'minute', -TZOffset)
+      break
+    }
+    case 4: {
+      startDate = Calendar.addUnitToDate(Calendar.dateFrom(year, 10, 1, 0, 0, 0), 'minute', -TZOffset)
+      endDate = Calendar.addUnitToDate(Calendar.dateFrom(year, 12, 31, 0, 0, 0), 'minute', -TZOffset)
+      break
+    }
+    default: {
+      console.log(`error: invalid quarter given: ${qtr}`)
+      break
+    }
+  }
+  return [startDate, endDate]
+}

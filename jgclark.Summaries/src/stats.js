@@ -2,38 +2,11 @@
 //-----------------------------------------------------------------------------
 // Create statistics for hasthtags and mentions for time periods
 // Jonathan Clark
-// v0.3.4, 29.9.2021 - unreleased???
+// v0.1.0, 11.10.2021, (previously v0.3.4 in np.statistics plugin)
 //-----------------------------------------------------------------------------
 
 // TODO:
 // - When weekly/monthly notes are made possible in NP, then output changes there as well
-
-//-----------------------------------------------------------------------------
-// Config settings
-const DEFAULT_STATS_OPTIONS = `  statistics: {
-    folderToStore: 'Summaries',
-    hashtagCountsHeading: '#hashtag counts',
-    mentionCountsHeading: '@mention counts',
-    countsHeadingLevel: 3, // headings use H3 (or ...)
-    showAsHashtagOrMention: true, // or false to hide # and @ characters
-    // In the following the includes (if specified) takes precedence over excludes ...
-    includeHashtags: [], // e.g. ['#holiday','#jog','#commute','#webinar']
-    excludeHashtags: [],
-    includeMentions: [], // e.g. ['@work','@fruitveg','@words']
-    excludeMentions: ['@done'],
-  },
-`
-
-// Globals, to be looked up later
-let pref_folderToStore: string
-let pref_countsHeadingLevel: 1 | 2 | 3 | 4 | 5
-let pref_hashtagCountsHeading: string
-let pref_mentionCountsHeading: string
-let pref_showAsHashtagOrMention: boolean = false
-let pref_includeHashtags: $ReadOnlyArray<string> = []
-let pref_excludeHashtags: $ReadOnlyArray<string> = []
-let pref_includeMentions: $ReadOnlyArray<string> = []
-let pref_excludeMentions: $ReadOnlyArray<string> = []
 
 //-----------------------------------------------------------------------------
 // Helper functions
@@ -48,6 +21,7 @@ import {
   getInput,
 } from '../../helpers/userInput'
 import {
+  quarterStartEnd,
   todaysDateISOString,
   unhyphenatedDate,
   toISOShortDateTimeString,
@@ -56,285 +30,108 @@ import {
   dateStringFromCalendarFilename,
   toLocaleShortTime,
 } from '../../helpers/dateTime'
-
-
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
+import {
+  getPeriodStartEndDates,
+  removeSection,
+  DEFAULT_SUMMARIES_OPTIONS,
+} from './summaryHelpers'
 
-// Return quarter start and end dates for a given quarter
-function quarterStartEnd(qtr: number, year: number): [Date, Date] {
-  // Default values are needed to account for the
-  // default case of the switch statement below.
-  // Otherwise, these variables will never get initialized before
-  // being used.
-  let fromDate: Date = new Date()
-  let toDate: Date = new Date()
-
-  // Because this seems to use ISO dates, we appear to need to take timezone
-  // offset into account in order to avoid landing up crossing date boundaries.
-  // I.e. when in BST (=UTC+0100) it's calculating dates which are often 1 too early.
-  // Get TZOffset in minutes. If positive then behind UTC; if negative then ahead.
-  const TZOffset = new Date().getTimezoneOffset()
-
-  switch (qtr) {
-    case 1: {
-      fromDate = Calendar.addUnitToDate(Calendar.dateFrom(year, 1, 1, 0, 0, 0), 'minute', -TZOffset)
-      toDate = Calendar.addUnitToDate(Calendar.dateFrom(year, 3, 31, 0, 0, 0), 'minute', -TZOffset)
-      break
-    }
-    case 2: {
-      fromDate = Calendar.addUnitToDate(Calendar.dateFrom(year, 4, 1, 0, 0, 0), 'minute', -TZOffset)
-      toDate = Calendar.addUnitToDate(Calendar.dateFrom(year, 6, 30, 0, 0, 0), 'minute', -TZOffset)
-      break
-    }
-    case 3: {
-      fromDate = Calendar.addUnitToDate(Calendar.dateFrom(year, 7, 1, 0, 0, 0), 'minute', -TZOffset)
-      toDate = Calendar.addUnitToDate(Calendar.dateFrom(year, 9, 30, 0, 0, 0), 'minute', -TZOffset)
-      break
-    }
-    case 4: {
-      fromDate = Calendar.addUnitToDate(Calendar.dateFrom(year, 10, 1, 0, 0, 0), 'minute', -TZOffset)
-      toDate = Calendar.addUnitToDate(Calendar.dateFrom(year, 12, 31, 0, 0, 0), 'minute', -TZOffset)
-      break
-    }
-    default: {
-      console.log(`error: invalid quarter given: ${qtr}`)
-      break
-    }
-  }
-  return [fromDate, toDate]
-}
+//-----------------------------------------------------------------------------
+// Config settings
+// Globals, to be looked up later
+let pref_folderToStore: string
+let pref_countsHeadingLevel: 1 | 2 | 3 | 4 | 5
+let pref_hashtagCountsHeading: string
+let pref_mentionCountsHeading: string
+let pref_showAsHashtagOrMention: boolean = false
+let pref_includeHashtags: $ReadOnlyArray<string> = []
+let pref_excludeHashtags: $ReadOnlyArray<string> = []
+let pref_includeMentions: $ReadOnlyArray<string> = []
+let pref_excludeMentions: $ReadOnlyArray<string> = []
 
 //-------------------------------------------------------------------------------
 // Ask user which period to cover, call main stats function, and present results
-export async function periodStats(): Promise<void> {
+export async function statsPeriod(): Promise<void> {
   // Get config settings from Template folder _configuration note
-  const statsConfig = await getOrMakeConfigurationSection(
-    'statistics',
-    DEFAULT_STATS_OPTIONS,
+  const summConfig = await getOrMakeConfigurationSection(
+    'summaries',
+    DEFAULT_SUMMARIES_OPTIONS,
     // no minimum config required, as all defaults are given below
   )
-  if (statsConfig == null) {
-    console.log("\tCouldn't find 'statistics' settings in _configuration note.")
+  if (summConfig == null) {
+    console.log("\tCouldn't find 'summaries' settings in _configuration note.")
     return
   }
 
-  console.log("\tFound 'statistics' settings in _configuration note.")
+  console.log("\tFound 'summaries' settings in _configuration note.")
   // now get each setting
   pref_folderToStore =
-    statsConfig.folderToStore != null
+    summConfig.folderToStore != null
       // $FlowIgnore[incompatible-type]
-      ? statsConfig.folderToStore
+      ? summConfig.folderToStore
       : 'Summaries'
   // console.log(pref_folderToStore)
   pref_hashtagCountsHeading =
-    statsConfig.hashtagCountsHeading != null
+    summConfig.hashtagCountsHeading != null
       // $FlowIgnore[incompatible-type]
-      ? statsConfig.hashtagCountsHeading
+      ? summConfig.hashtagCountsHeading
       : '#hashtag counts'
   // console.log(pref_hashtagCountsHeading)
   pref_mentionCountsHeading =
-    statsConfig.mentionCountsHeading != null
+    summConfig.mentionCountsHeading != null
       // $FlowIgnore[incompatible-type]
-      ? statsConfig.mentionCountsHeading
+      ? summConfig.mentionCountsHeading
       : '@mention counts'
   // console.log(pref_mentionCountsHeading)
   pref_countsHeadingLevel =
-    statsConfig.countsHeadingLevel != null
+    summConfig.countsHeadingLevel != null
       // $FlowIgnore[incompatible-type]
-      ? statsConfig.countsHeadingLevel
+      ? summConfig.countsHeadingLevel
       : 2
   // console.log(pref_countsHeadingLevel)
   pref_showAsHashtagOrMention =
-    statsConfig.showAsHashtagOrMention != null
+    summConfig.showAsHashtagOrMention != null
       // $FlowIgnore[incompatible-type]
-      ? statsConfig.showAsHashtagOrMention
+      ? summConfig.showAsHashtagOrMention
       : true
   // console.log(pref_showAsHashtagOrMention)
   pref_includeHashtags =
-    statsConfig.includeHashtags != null
+    summConfig.includeHashtags != null
       // $FlowIgnore[incompatible-type]
-      ? statsConfig.includeHashtags
+      ? summConfig.includeHashtags
       : [] // this takes precedence over any excludes ...
   // console.log(pref_includeHashtags)
   pref_excludeHashtags =
-    statsConfig.excludeHashtags != null
+    summConfig.excludeHashtags != null
       // $FlowIgnore[incompatible-type]
-      ? statsConfig.excludeHashtags
+      ? summConfig.excludeHashtags
       : []
   // console.log(pref_excludeHashtags)
   pref_includeMentions =
-    statsConfig.includeMentions != null
+    summConfig.includeMentions != null
       // $FlowIgnore[incompatible-type]
-      ? statsConfig.includeMentions
+      ? summConfig.includeMentions
       : [] // this takes precedence over any excludes ...
   // console.log(pref_includeMentions)
   pref_excludeMentions =
-    statsConfig.excludeMentions != null
+    summConfig.excludeMentions != null
       // $FlowIgnore[incompatible-type]
-      ? statsConfig.excludeMentions
+      ? summConfig.excludeMentions
       : ['@done', '@repeat']
   // console.log(pref_excludeMentions)
 
-  const todaysDate = new Date()
-  // couldn't get const { y, m, d } = getYearMonthDate(todaysDate) to work ??
-  const y = todaysDate.getFullYear()
-  const m = todaysDate.getMonth() + 1
-  const d = todaysDate.getDate()
-
-  // Ask user what time interval to do tag counts for
-  const period = await chooseOption(
-    'Create stats for which period?',
-    [
-      {
-        label: 'Last Month',
-        value: 'lm',
-      },
-      {
-        label: 'This Month (to date)',
-        value: 'mtd',
-      },
-      {
-        label: 'Other Month',
-        value: 'om',
-      },
-      {
-        label: 'Last Quarter',
-        value: 'lq',
-      },
-      {
-        label: 'This Quarter (to date)',
-        value: 'qtd',
-      },
-      {
-        label: 'Other Quarter',
-        value: 'oq',
-      },
-      {
-        label: 'Last Year',
-        value: 'ly',
-      },
-      {
-        label: 'Year to date',
-        value: 'ytd',
-      },
-      {
-        label: 'Other Year',
-        value: 'oy',
-      },
-    ],
-    'mtd',
-  )
-
-  let fromDate
-  let toDate
-  let periodString = ''
-  let countsHeadingAdd = ''
-
-  // We appear to need to take timezone offset into account in order to avoid landing
-  // up crossing date boundaries.
-  // I.e. when in BST (=UTC+0100) it's calculating dates which are often 1 too early.
-  // Get TZOffset in minutes. If positive then behind UTC; if negative then ahead.
-  const TZOffset = new Date().getTimezoneOffset()
-  console.log(`TimeZone Offset = ${TZOffset}`)
-  switch (period) {
-    case 'lm': {
-      fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, 1, 0, 0, 0), 'minute', -TZOffset) // go to start of this month
-      fromDate = Calendar.addUnitToDate(fromDate, 'month', -1) // -1 month
-      toDate = Calendar.addUnitToDate(fromDate, 'month', 1) // + 1 month
-      toDate = Calendar.addUnitToDate(toDate, 'day', -1) // -1 day, to get last day of last month
-      periodString = `${monthNameAbbrev(fromDate.getMonth() + 1)} ${y}`
-      break
-    }
-    case 'mtd': {
-      fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, 1, 0, 0, 0), 'minute', -TZOffset) // start of this month
-      toDate = Calendar.dateFrom(y, m, d, 0, 0, 0)
-      periodString = `${monthNameAbbrev(m)} ${y}`
-      countsHeadingAdd = `(to ${todaysDateISOString})`
-      break
-    }
-    case 'om': {
-      const theM = Number(await getInput('Choose month, (1-12)', 'OK'))
-      const theY = Number(await getInput('Choose date, e.g. 2019', 'OK'))
-      fromDate = Calendar.addUnitToDate(Calendar.dateFrom(theY, theM, 1, 0, 0, 0), 'minute', -TZOffset) // start of this month
-      toDate = Calendar.addUnitToDate(fromDate, 'month', 1) // + 1 month
-      toDate = Calendar.addUnitToDate(toDate, 'day', -1) // -1 day, to get last day of last month
-      periodString = `${monthNameAbbrev(theM)} ${theY}`
-      break
-    }
-    case 'lq': {
-      const thisQ = Math.floor((m - 1) / 3) + 1 // quarter 1-4
-      const theQ = thisQ > 0 ? thisQ - 1 : 4 // last quarter
-      const theY = theQ === 4 ? y - 1 : y // change the year if we want Q4
-      const [f, t] = quarterStartEnd(theQ, theY)
-      fromDate = f
-      toDate = t
-      const theQStartMonth = (theQ - 1) * 3 + 1
-      toDate = Calendar.addUnitToDate(fromDate, 'month', 3) // +1 quarter
-      toDate = Calendar.addUnitToDate(toDate, 'day', -1) // -1 day, to get last day of last month
-      periodString = `${theY} Q${theQ} (${monthNameAbbrev(
-        theQStartMonth,
-      )}-${monthNameAbbrev(theQStartMonth + 2)})`
-      break
-    }
-    case 'qtd': {
-      const thisQ = Math.floor((m - 1) / 3) + 1
-      const thisQStartMonth = (thisQ - 1) * 3 + 1
-      fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y, thisQStartMonth, 1, 0, 0, 0), 'minute', -TZOffset) // start of this quarter
-      toDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset)
-      periodString = `${y} Q${thisQ} (${monthNameAbbrev(
-        thisQStartMonth,
-      )}-${monthNameAbbrev(thisQStartMonth + 2)})`
-      countsHeadingAdd = `(to ${todaysDateISOString})`
-      break
-    }
-    case 'oq': {
-      const theQ = Number(await getInput('Choose quarter, (1-4)', 'OK'))
-      const theY = Number(await getInput('Choose date, e.g. 2019', 'OK'))
-      const theQStartMonth = (theQ - 1) * 3 + 1
-      const [f, t] = quarterStartEnd(theQ, theY)
-      fromDate = f
-      toDate = t
-      toDate = Calendar.addUnitToDate(fromDate, 'month', 3) // +1 quarter
-      toDate = Calendar.addUnitToDate(toDate, 'day', -1) // -1 day, to get last day of last month
-      periodString = `${theY} Q${theQ} (${monthNameAbbrev(
-        theQStartMonth,
-      )}-${monthNameAbbrev(theQStartMonth + 2)})`
-      break
-    }
-    case 'ly': {
-      fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y - 1, 1, 1, 0, 0, 0), 'minute', -TZOffset) // start of last year
-      toDate = Calendar.addUnitToDate(Calendar.dateFrom(y - 1, 12, 31, 0, 0, 0), 'minute', -TZOffset) // end of last year
-      periodString = `${y - 1}`
-      break
-    }
-    case 'ytd': {
-      fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y, 1, 1, 0, 0, 0), 'minute', -TZOffset) // start of this year
-      toDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset)
-      periodString = `${y}`
-      countsHeadingAdd = `(to ${todaysDateISOString})`
-      break
-    }
-    case 'oy': {
-      const theYear = Number(await getInput('Choose date, e.g. 2019', 'OK'))
-      fromDate = Calendar.addUnitToDate(Calendar.dateFrom(theYear, 1, 1, 0, 0, 0), 'minute', -TZOffset) // start of this year
-      toDate = Calendar.addUnitToDate(Calendar.dateFrom(theYear, 12, 31, 0, 0, 0), 'minute', -TZOffset)
-      periodString = `${theYear}`
-      break
-    }
-  }
+  const [fromDate, toDate, periodString, periodPartStr] = await getPeriodStartEndDates()
+  
   if (fromDate == null || toDate == null) {
-    console.log('dates could not be parsed')
+    console.log('\nstatsPeriod: error in calculating dates for chosen time period')
     return
   }
-
-  console.log(
-    `periodStats: calculating for ${periodString} (${toISOShortDateTimeString(fromDate)}-${toISOShortDateTimeString(toDate)})`,
-  )
 
   const fromDateStr = unhyphenatedDate(fromDate) //fromDate.toISOString().slice(0, 10).replace(/-/g, '')
   const toDateStr = unhyphenatedDate(toDate) // toDate.toISOString().slice(0, 10).replace(/-/g, '')
   console.log(
-    `\nperiodStats: calculating for ${periodString} (${fromDateStr}-${toDateStr}):`,
+    `\nstatsPeriod: calculating for ${periodString} (${fromDateStr}-${toDateStr}):`,
   )
 
   // Calc hashtags stats (returns two maps)
@@ -424,7 +221,7 @@ export async function periodStats(): Promise<void> {
   }
 
   // Ask where to save this summary to
-  const labelString = `🗒 Add/update note '${periodString}' in folder '${String(
+  const labelString = `🖊 Add/update note '${periodString}' in folder '${String(
     pref_folderToStore,
   )}'`
   const destination = await chooseOption(
@@ -439,11 +236,11 @@ export async function periodStats(): Promise<void> {
         value: 'note',
       },
       {
-        label: '🖥 Pop-up display',
-        value: 'show',
+        label: '🖊 Append to current note',
+        value: 'current',
       },
       {
-        label: '🖊 Write to console log',
+        label: '📋 Write to console log',
         value: 'log',
       },
       {
@@ -451,34 +248,34 @@ export async function periodStats(): Promise<void> {
         value: 'cancel',
       },
     ],
-    'show',
+    'note',
   )
 
   // Ask where to send the results
   switch (destination) {
-    case 'today': {
-      const todaysNote = await DataStore.calendarNoteByDate(new Date())
-      if (todaysNote == null) {
-        console.log(`\terror appending to today's note`)
+    case 'current': {
+      const currentNote = Editor.note
+      if (currentNote == null) {
+        console.log(`\terror: no note is open`)
       } else {
         console.log(
-          `\tappending results to today's note (${todaysNote.filename ?? ''})`,
+          `\tappending results to current note (${currentNote.filename ?? ''})`,
         )
-        todaysNote.appendParagraph(
+        currentNote.appendParagraph(
           `${String(
             pref_hashtagCountsHeading,
-          )} for ${periodString} ${countsHeadingAdd}`,
+          )} for ${periodString} ${periodPartStr}`,
           'text',
         )
-        todaysNote.appendParagraph(hOutputArray.join('\n'), 'text')
-        todaysNote.appendParagraph(
+        currentNote.appendParagraph(hOutputArray.join('\n'), 'text')
+        currentNote.appendParagraph(
           `${String(
             pref_mentionCountsHeading,
-          )} for ${periodString} ${countsHeadingAdd}`,
+          )} for ${periodString} ${periodPartStr}`,
           'empty',
         )
-        todaysNote.appendParagraph(mOutputArray.join('\n'), 'text')
-        console.log(`\tappended results to today's note`)
+        currentNote.appendParagraph(mOutputArray.join('\n'), 'text')
+        console.log(`\tappended results to current note`)
       }
       break
     }
@@ -495,70 +292,65 @@ export async function periodStats(): Promise<void> {
 
       if (existingNotes.length > 0) {
         note = existingNotes[0] // pick the first if more than one
-        console.log(`\tfilename of first matching note: ${displayTitle(note)}`)
+        // console.log(`\tfilename of first matching note: ${displayTitle(note)}`)
       } else {
         // make a new note for this. NB: filename here = folder + filename
         const noteFilename = DataStore.newNote(periodString, pref_folderToStore)
         if (!noteFilename) {
+          console.log(`\tError creating new note (filename: ${noteFilename})`)
           await showMessage('There was an error creating the new note')
           return
         }
         console.log(`\tnewNote filename: ${noteFilename}`)
         note = DataStore.projectNoteByFilename(noteFilename)
         if (note == null) {
+          console.log(`\tError getting new note (filename: ${noteFilename})`)
           await showMessage('There was an error getting the new note ready to write')
           return
         }
         console.log(`\twriting results to the new note '${displayTitle(note)}'`)
       }
 
-      if (note != null) {
         // This is a bug in flow. Creating a temporary const is a workaround.
-        const nonNullNote = note
+        // const nonNullNote = note
         // Do we have an existing Hashtag counts section? If so, delete it.
         let insertionLineIndex = removeSection(
-          nonNullNote,
+          note,
           pref_hashtagCountsHeading,
         )
         console.log(`\tHashtag insertionLineIndex: ${String(insertionLineIndex)}`)
         // Set place to insert either after the found section heading, or at end of note
         // write in reverse order to avoid having to calculate insertion point again
-        nonNullNote.insertHeading(
-          `${pref_hashtagCountsHeading} ${countsHeadingAdd}`,
+        note.insertHeading(
+          `${pref_hashtagCountsHeading} ${periodPartStr}`,
           insertionLineIndex,
           pref_countsHeadingLevel,
         )
-        nonNullNote.insertParagraph(
+        note.insertParagraph(
           hOutputArray.join('\n'),
           insertionLineIndex + 1,
           'text',
         )
-        // nonNullNote.insertHeading(countsHeading, insertionLineIndex, pref_countsHeadingLevel)
+        // note.insertHeading(countsHeading, insertionLineIndex, pref_countsHeadingLevel)
 
         // Do we have an existing Mentions counts section? If so, delete it.
         insertionLineIndex = removeSection(
-          nonNullNote,
+          note,
           pref_mentionCountsHeading,
         )
         console.log(`\tMention insertionLineIndex: ${insertionLineIndex}`)
-        nonNullNote.insertHeading(
-          `${pref_mentionCountsHeading} ${countsHeadingAdd}`,
+        note.insertHeading(
+          `${pref_mentionCountsHeading} ${periodPartStr}`,
           insertionLineIndex,
           pref_countsHeadingLevel,
         )
-        nonNullNote.insertParagraph(
+        note.insertParagraph(
           mOutputArray.join('\n'),
           insertionLineIndex + 1,
           'text',
         )
-      } else {
-        // Shouldn't get here, but will because of a bug in <=r635
-        console.log(
-          "tagStats: error: shouldn't get here -- no valid note to write to",
-        )
-        await showMessage('Please re-run this command (NP bug before release 636')
-        return
-      }
+        // open this note in the Editor
+        Editor.openNoteByFilename(note.filename)
 
       console.log(`\twritten results to note '${periodString}'`)
       break
@@ -566,11 +358,11 @@ export async function periodStats(): Promise<void> {
 
     case 'log': {
       console.log(
-        `${pref_hashtagCountsHeading} for ${periodString} ${countsHeadingAdd}`,
+        `${pref_hashtagCountsHeading} for ${periodString} ${periodPartStr}`,
       )
       console.log(hOutputArray.join('\n'))
       console.log(
-        `${pref_mentionCountsHeading} for ${periodString} ${countsHeadingAdd}`,
+        `${pref_mentionCountsHeading} for ${periodString} ${periodPartStr}`,
       )
       console.log(mOutputArray.join('\n'))
       break
@@ -579,66 +371,6 @@ export async function periodStats(): Promise<void> {
     case 'cancel': {
       break
     }
-
-    default: {
-      const outputs = hOutputArray.concat(mOutputArray)
-      const re = await CommandBar.showOptions(
-        outputs,
-        '(Select anything to copy)',
-      )
-      if (re !== null) {
-        Clipboard.string = `${hOutputArray.join('\n')}\n\n${mOutputArray.join(
-          '\n',
-        )}`
-      }
-      break
-    }
-  }
-}
-
-//------------------------------------------------------------------------------
-// remove all paragraphs in a section, given:
-// - Section heading line to look for (needs to match from start but not end)
-// - Array of paragraphs
-// Returns the lineIndex of the found heading, or if not found the last line of the note
-function removeSection(note: TNote, heading: string): number {
-  const ps = note.paragraphs
-  let existingHeadingIndex = ps.length
-  const thisTitle = note.title ?? ''
-  console.log(
-    `\t  removeSection '${heading}' from note '${thisTitle}' with ${ps.length} paras:`,
-  )
-
-  for (const p of ps) {
-    if (p.type === 'title' && p.content.startsWith(heading)) {
-      existingHeadingIndex = p.lineIndex
-    }
-  }
-  console.log(`\t    heading at: ${existingHeadingIndex}`)
-
-  if (existingHeadingIndex !== undefined && existingHeadingIndex < ps.length) {
-    // Work out the set of paragraphs to remove
-    // let psToRemove = []
-    note.removeParagraph(ps[existingHeadingIndex])
-    let removed = 1
-    for (let i = existingHeadingIndex + 1; i < ps.length; i++) {
-      if (ps[i].type === 'title' || ps[i].content === '') {
-        break
-      }
-      // psToRemove.push(ps[i])
-      note.removeParagraph(ps[i])
-      removed++
-    }
-    console.log(`\t   Removed ${removed} paragraphs. ${existingHeadingIndex}`)
-
-    // Delete the saved set of paragraphs
-    // TODO: when NP API bug is resolved, revert to this instead of above
-    // console.log(`About to remove ${psToRemove.length} paragraphs`)
-    // note.removeParagraphs(psToRemove)
-    // console.log(`Removed ${psToRemove.length} paragraphs`);
-    return existingHeadingIndex
-  } else {
-    return ps.length
   }
 }
 
