@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Summary commands for notes
 // Jonathan Clark
-// v0.1.0, 10.10.2021
+// v0.1.0, 11.10.2021
 //-----------------------------------------------------------------------------
 
 import {
@@ -18,6 +18,7 @@ import {
 
 export const DEFAULT_SUMMARIES_OPTIONS = `  summaries: {
     folderToStore: 'Summaries',
+    // settings for 'countsInPeriod':
     hashtagCountsHeading: '#hashtag counts',
     mentionCountsHeading: '@mention counts',
     countsHeadingLevel: 2, // use level 1-5 headings
@@ -27,10 +28,11 @@ export const DEFAULT_SUMMARIES_OPTIONS = `  summaries: {
     excludeHashtags: [],
     includeMentions: [], // e.g. ['@work','@fruitveg','@words']
     excludeMentions: ['@done', '@repeat'],
+    // settings for 'occurrencesInPeriod':
     occurrencesHeading: 'Occurrences',
     occurrencesHeadingLevel: 2, // use level 1-5 headings
     occurrencesToMatch: ['idea', '@review', '#question'],
-    highlightOccurrences: false, // use ==highlight== in output
+    highlightOccurrences: false, // use ==highlight== of matched occurrences in output
     showEmptyOccurrences: false, // if no occurrences found of this string to match, make this clear
   },
 `
@@ -186,46 +188,51 @@ export async function getPeriodStartEndDates(): [Date, Date, string, string] {
 }
 
 //------------------------------------------------------------------------------
-// remove all paragraphs in a section, given:
-// - Section heading line to look for (needs to match from start but not end)
-// - Array of paragraphs
+// Remove all paragraphs in a section, given:
+// - Note to use
+// - Section heading line to look for (needs to match from start of line but not necessarily the end)
+// A section is defined (here at least) as all the lines between the heading,
+// and the next heading of that same or higher level, or the end of the file 
+// if that's sooner.
+//
 // Returns the lineIndex of the found heading, or if not found the last line of the note
-// FIXME: sort out H3 as well as H2 levels
 export function removeSection(note: TNote, heading: string): number {
   const ps = note.paragraphs
-  let existingHeadingIndex = ps.length
-  const thisTitle = note.title ?? ''
+  let existingHeadingIndex = ps.length // start at end of file
+  let sectionHeadingLevel = 2
   console.log(
-    `\t  removeSection '${heading}' from note '${thisTitle}' with ${ps.length} paras:`,
+    `\tremoveSection: '${heading}' from note '${note.title ?? ''}' with ${ps.length} paras:`,
   )
 
   for (const p of ps) {
     if (p.type === 'title' && p.content.startsWith(heading)) {
       existingHeadingIndex = p.lineIndex
+      sectionHeadingLevel = p.headingLevel
     }
   }
-  console.log(`\t    heading at: ${existingHeadingIndex}`)
+  // console.log(`\t    heading level ${sectionHeadingLevel} at line ${existingHeadingIndex}`)
 
   if (existingHeadingIndex !== undefined && existingHeadingIndex < ps.length) {
     // Work out the set of paragraphs to remove
-    // let psToRemove = []
+    const psToRemove = []
     note.removeParagraph(ps[existingHeadingIndex])
     let removed = 1
     for (let i = existingHeadingIndex + 1; i < ps.length; i++) {
-      if (ps[i].type === 'title' || ps[i].content === '') {
+      // stop removing when we reach heading of same or higher level
+      // if (ps[i].type === 'title' || ps[i].content === '') {
+      if (ps[i].type === 'title' && ps[i].headingLevel <= sectionHeadingLevel) {
         break
       }
-      // psToRemove.push(ps[i])
-      note.removeParagraph(ps[i])
+      psToRemove.push(ps[i])
+      // note.removeParagraph(ps[i])
       removed++
     }
-    console.log(`\t   Removed ${removed} paragraphs. ${existingHeadingIndex}`)
+    // console.log(`\t   Removed ${removed} paragraphs. ${existingHeadingIndex}`)
 
     // Delete the saved set of paragraphs
     // TODO: when NP API bug is resolved, revert to this instead of above
-    // console.log(`About to remove ${psToRemove.length} paragraphs`)
-    // note.removeParagraphs(psToRemove)
-    // console.log(`Removed ${psToRemove.length} paragraphs`);
+    note.removeParagraphs(psToRemove)
+    console.log(`\t  -> removed ${psToRemove.length} paragraphs`)
     return existingHeadingIndex
   } else {
     return ps.length

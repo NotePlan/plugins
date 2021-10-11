@@ -257,7 +257,6 @@ export async function occurrencesPeriod(): Promise<void> {
         insertionLineIndex,
         pref_occurrencesHeadingLevel,
       )
-      console.log(outputArray.join('\n'))
       note.insertParagraph(
         outputArray.join('\n'),
         insertionLineIndex + 1,
