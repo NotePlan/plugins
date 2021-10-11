@@ -1,7 +1,7 @@
 // @flow
 
-import { getTagParamsFromString, stringReplace, capitalize } from '../../../helpers/general'
-import { getOrMakeConfigurationSection } from './configuration'
+import { getTagParamsFromString, stringReplace, capitalize } from '../../../../helpers/general'
+import { getOrMakeConfigurationSection } from '../configuration'
 
 export const DEFAULT_WEATHER_CONFIG = `// configuration for weather data (used in Daily Note Template, for example)
   weather: {
@@ -50,19 +50,11 @@ export async function getWeatherSummary(weatherParams: string): Promise<string> 
     return `Invalid Weather API in "Templates/_configuration"`
   }
 
-  const getWeatherURL = `https://api.openweathermap.org/data/2.5/onecall?lat=${
-    encodeURIComponent(
-      // $FlowFixMe
-      latPosition.toString(),
-    )
-    // $FlowFixMe
-  }&lon=${
-    encodeURIComponent(longPosition.toString())
-    // $FlowFixMe
-  }&exclude=current,hourly,minutely&units=${
-    encodeURIComponent(openWeatherUnits)
-    // $FlowFixMe
-  }&appid=${encodeURIComponent(openWeatherAPIKey)}`
+  const getWeatherURL = `https://api.openweathermap.org/data/2.5/onecall?lat=${encodeURIComponent(
+    latPosition.toString(),
+  )}&lon=${encodeURIComponent(longPosition.toString())}&exclude=current,hourly,minutely&units=${encodeURIComponent(
+    openWeatherUnits,
+  )}&appid=${encodeURIComponent(openWeatherAPIKey)}`
 
   let jsonIn, allWeatherData
   try {
@@ -124,14 +116,14 @@ export async function getWeatherSummary(weatherParams: string): Promise<string> 
 }
 
 export async function getWeather(): Promise<string> {
-  const dateConfig = await getOrMakeConfigurationSection('weather', DEFAULT_WEATHER_CONFIG)
+  const weatherConfig = await getOrMakeConfigurationSection('weather', DEFAULT_WEATHER_CONFIG)
   let weather = null
 
   // name sure weather config exists, and it is a vaild API key (using simple length comparison)
   if (
-    dateConfig?.openWeatherAPIKey &&
-    dateConfig.openWeatherAPIKey !== '... put your API key here ...' &&
-    dateConfig.openWeatherAPIKey.length === 32
+    weatherConfig?.openWeatherAPIKey &&
+    weatherConfig.openWeatherAPIKey !== '... put your API key here ...' &&
+    weatherConfig.openWeatherAPIKey.length === 32
   ) {
     weather = await getWeatherSummary('')
     if (weather.includes('Cannot find a valid API Key')) {

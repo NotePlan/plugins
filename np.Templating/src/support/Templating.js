@@ -6,15 +6,17 @@ import { getOrMakeTemplateFolder } from '../../../nmn.Templates/src/template-fol
 import { parseFirstCodeblock } from './configuration'
 import eta from './eta.lib'
 
-import UtilsHelpers from './UtilsHelpers'
+import WebModule from './modules/WebModule'
 import DateModule from './modules/DateModule'
 import TimeModule from './modules/TimeModule'
+import NoteModule from './modules/NoteModule'
+import UtilsModule from './modules/UtilsModule'
 
-const DEFAULT_TEMPLATE_CONFIG = {
+export const DEFAULT_TEMPLATE_CONFIG = {
   locale: 'en-US',
   defaultFormats: {
-    dateFormat: 'YYYY-MM-DD',
-    timeFormat: 'HH:mm:ss A',
+    date: 'YYYY-MM-DD',
+    time: 'HH:mm:ss A',
     now: 'YYYY-MM-DD h:mm:ss A',
   },
   user: {
@@ -27,7 +29,7 @@ const DEFAULT_TEMPLATE_CONFIG = {
 
 export default class Templating {
   // default templating config
-  static async renderConfig(): Promise<mixed> {
+  static async renderConfig(): Promise<any> {
     return {
       varName: 'np',
       parse: {
@@ -61,19 +63,25 @@ export default class Templating {
     }
 
     const lines = templateContent.split('\n')
-    if (lines.length >= 1) {
-      if (lines.length >= 2 && lines[1] === '---') {
-        templateContent = lines.splice(2).join('\n')
-      } else {
-        templateContent = lines.splice(1).join('\n')
-      }
+    const dividerIndex = lines.indexOf('*****') || lines.indexOf('---')
+    if (dividerIndex > 0) {
+      templateContent = lines.splice(dividerIndex + 1).join('\n')
     }
 
     return templateContent
   }
 
-  static async render(templateData: string = '', userData: mixed = {}, userOptions: mixed = {}): Promise<string> {
-    const s = (data: mixed = {}) => {
+  static async renderTemplate(templateName: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
+    console.log(templateName)
+    const templateContent = await this.getTemplate(templateName)
+
+    const result = await this.render(templateContent, userData)
+
+    return result
+  }
+
+  static async render(templateData: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
+    const s = (data: any = {}) => {
       return JSON.stringify(data, null, 4)
     }
 
@@ -92,29 +100,32 @@ export default class Templating {
       renderOptions.tags = options.tags
     }
 
-    const weather = templateData.includes('web.weather') ? await UtilsHelpers.weather() : ''
-    const quote = templateData.includes('web.quote') ? await UtilsHelpers.quote() : ''
-
-    // let osLocale = getUserLocale()
-    // if (templateConfig?.templates?.locale.length > 0) {
-    //   osLocale = templateConfig?.templates?.locale
-    // }
-
-    const dateInstance = new DateModule(templateConfig)
-    const timeInstance = new TimeModule(templateConfig)
+    // WebModule methods are async, will be converted to synchronous methods below
+    // need to handle async calls before render templates as templating method are synchronous
+    const weather = templateData.includes('web.weather') ? await WebModule.weather() : ''
+    const quote = templateData.includes('web.quote') ? await WebModule.quote() : ''
+    const affirmation = templateData.includes('web.affirmation') ? await WebModule.affirmation() : ''
+    const advice = templateData.includes('web.advice') ? await WebModule.advice() : ''
 
     const helpers = {
-      date: dateInstance,
-      time: timeInstance,
-      utils: UtilsHelpers,
-      note: {},
+      date: new DateModule(templateConfig),
+      time: new TimeModule(templateConfig),
+      utils: new UtilsModule(templateConfig),
+      note: new NoteModule(templateConfig),
       user: {
         first: templateConfig?.user?.first || '',
         last: templateConfig?.user?.last || '',
         email: templateConfig?.user?.email || '',
         phone: templateConfig?.user?.phone || '',
       },
+      // expose web module as synchronous methods (each method converted )
       web: {
+        advice: () => {
+          return advice
+        },
+        affirmation: () => {
+          return affirmation
+        },
         quote: () => {
           return quote
         },
@@ -139,7 +150,7 @@ export default class Templating {
     }
   }
 
-  static async getTemplateConfig(): Promise<mixed> {
+  static async getTemplateConfig(): Promise<any> {
     const templateFolder = await getOrMakeTemplateFolder()
     const configFile = DataStore.projectNotes
       // $FlowIgnore[incompatible-call]
@@ -161,6 +172,7 @@ export default class Templating {
   }
 
   static async getDefaultFormat(formatType: string = 'date'): Promise<string> {
+    // $FlowFixMe
     const templateConfig = await this.getTemplateConfig()
     let format = formatType === 'date' ? 'YYYY-MM-DD' : 'HH:mm:ss A'
     if (templateConfig?.templates?.defaultFormats?.[formatType]) {

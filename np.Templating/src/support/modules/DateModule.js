@@ -13,8 +13,15 @@ export default class DateModule {
     moment.locale(osLocale)
   }
 
+  format(format = '', date = '') {
+    const dateValue = date.length > 0 ? date : new Date()
+    const configFormat = this.config?.defaultFormats?.date || 'YYYY-MM-DD'
+    format = format.length > 0 ? format : configFormat
+
+    return moment(dateValue).format(format)
+  }
+
   now(format = '', offset = '') {
-    // console.log('here ' + this.config.locale)
     const configFormat = this.config?.defaultFormats?.date || 'YYYY-MM-DD'
     format = format.length > 0 ? format : configFormat
     const dateValue = new Date()
@@ -64,6 +71,15 @@ export default class DateModule {
     return moment(new Date())
       .weekday(++offsetValue)
       .format(format)
+  }
+
+  isWeekend(date = '') {
+    const dt = date.length > 0 ? new Date(moment(date).format('YYYY-MM-DD HH:mm:ss')) : new Date()
+    return dt.getDay() === 0 || dt.getDay() === 7
+  }
+
+  isWeekday() {
+    return !this.isWeekend()
   }
 
   isValid(dateObj = null) {
