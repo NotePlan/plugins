@@ -1,5 +1,7 @@
 # CHANGELOG
 
+### v0.8.3, 2021-10-11
+- changed: recompiled to bring in knowledge of recent functions
 
 ### v0.8.2, 7.9.2021
 - fix: fixed an error in /todayStart that kept it from running if the note wasn't open
