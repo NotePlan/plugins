@@ -52,3 +52,36 @@ Alternatively, in that note, include the following settings you want in its firs
 }
 ```
 (This example fragment is in JSON5 format: ensure there are commas at the end of all that lines that need them.)
+
+To see highlighting of matching terms in the occurrences output, you'll need to be using a theme that includes highlighting using `==this style==`. Or you could customise an existing one, adding something like:
+```jsonc
+{
+  ...
+    "highlighted": {
+      "regex": "(==)([^\\s].+)(==)",
+      "backgroundColor": "#55D2D21B",
+      "order": 35,
+      "matchPosition": 2,
+      "isRevealOnCursorRange": true
+    },
+    "highlighted-left-colon": {
+      "regex": "(==)([^\\s].+)(==)",
+      "color": "#AA45A2E5",
+      "backgroundColor": "#7745A2E5",
+      "isMarkdownCharacter": true,
+      "isHiddenWithoutCursor": true,
+      "isRevealOnCursorRange": true,
+      "matchPosition": 1
+    },
+    "highlighted-right-colon": {
+      "regex": "(==)([^\\s].+)(==)",
+      "color": "#AA45A2E5",
+      "backgroundColor": "#7745A2E5",
+      "isMarkdownCharacter": true,
+      "isHiddenWithoutCursor": true,
+      "isRevealOnCursorRange": true,
+      "matchPosition": 3
+    },
+  ...
+}
+```
