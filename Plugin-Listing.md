@@ -8,6 +8,7 @@
 | `convertSelectionToHtml` | Convert current selection to HTML | 🧩 Codedungeon Toolbox |
 | `convertToHtml` | Convert current note to HTML | 🧩 Codedungeon Toolbox |
 | `convertToRtf` | Convert current note to RTF | 🧩 Codedungeon Toolbox |
+| `countsInPeriod` | Generate counts (and other stats) of tags and mentions for a time period | 🗃 Summaries |
 | `date` | Insert date (without time) at cursor | 📅 Date Automations |
 | `dayReview` | Ask journal questions for an end-of-day review (requires configuring) | ☀️ Daily Journal |
 | `dayStart` | Apply Daily Note Template (requires configuring) | ☀️ Daily Journal |
@@ -35,6 +36,7 @@
 | `nns` | New note from selection (and leave link to it in its place) | 🗃 Filer |
 | `now` | Insert (human readable) date+time at cursor | 📅 Date Automations |
 | `now - ISO-8601 standard` | Insert ISO-8601 date+time at cursor (e.g. 2021-08-06 17:20:11) | 📅 Date Automations |
+| `occurrencesInPeriod` | Generate list of occurrences of specified tags or mentions for a time period | 🗃 Summaries |
 | `onw` | Open a user-selected note in a new window. | 📙 Note Helpers |
 | `ott` | Open Tasks to Top - Bring open tasks in note to top | ✅ Task Automations |
 | `project lists` | creates/updates a human-readable list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete. | 🔬Reviews |
@@ -49,7 +51,7 @@
 | `reorderList` | Reorder current ordered list | 🧩 Codedungeon Toolbox |
 | `rpt` | Generate new @repeat() tasks from completed ones | 🔁 @repeat Extensions |
 | `start reviews` | start a new series of reviews, deciding which are now ready for review, and kicking off the first one | 🔬Reviews |
-| `stp` | Show stats of tags and mentions over a time period | 🔢 Note Statistics |
+| `stpx` | [MOVED] Show stats of tags and mentions over a time period | 🔢 Note Statistics |
 | `sw7` | Find all open tasks for last 7 days & silently move/reschedule to today | 🧹 Task Sweeper |
 | `swa` | Find ALL open tasks & move/reschedule to today's Calendar Note | 🧹 Task Sweeper |
 | `swt` | Move/Reschedule all open tasks in current note to today's Calendar Note | 🧹 Task Sweeper |
