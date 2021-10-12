@@ -3,7 +3,7 @@
   "macOS.minVersion": "10.13.0",
 	"plugin.id": "jgclark.Summaries",
 	"plugin.name": "🗃 Summaries",
-	"plugin.description": "Generate summaries from notes for a given time period and save to Summary notes. Click link for more details and settings.",
+	"plugin.description": "Generate summaries from notes for a given time period and save to Summary notes. Requires configuring to suit your use of NotePlan. Click link for more details and settings.",
 	"plugin.icon": "",
 	"plugin.author": "Jonathan Clark",
 	"plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",

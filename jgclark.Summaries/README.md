@@ -6,6 +6,7 @@ This plugin lets you do the following:
 - counted all the times you've met with staff member `@alice` this year so far.
 - lists out all the clever `#idea`s you noted down
 - shows all the things you had `Gratitude:` for in your journal entries.
+<!-- - save the results of a search term given at run time -->
 
 ## About
 This plugin generates two different sorts of **summaries from your daily notes**, that are saved back into special NotePlan notes in the Summaries folder. They both start by asking for the time period you wish to operate over:
@@ -15,11 +16,6 @@ This plugin generates two different sorts of **summaries from your daily notes**
 - **`countsInPeriod`** generates some simple counts and other statistics of #hashtags or @mentions that you specify. It asks where to save its output: to screen, to the Plugin Console, or to a specially-created note in the Summaries folder.  (If the latter it will update a previous note for that same time period.)
 
 - **`occurrencesInPeriod`** generates lists of terms you specify found in the daily notes of that time period. This can be words, phrases, #hashtags or @mentions.
-
-## History
-NB: `countsInPeriod` command started life as `/stp` (stats for time period) in the Statistics plugin.
-
-Please see the [CHANGELOG](CHANGELOG.md).
 
 ## Configuration
 These commands require configuration; the first time either is run it should detect it doesn't have configuration, and offer to write some to the first configuration block of the `Templates/_configuration` note (as used by the Templates system). 
@@ -85,3 +81,12 @@ To see highlighting of matching terms in the occurrences output, you'll need to 
   ...
 }
 ```
+
+## To do
+- create a version of occurrences to save the results of a search term given at run time
+- add ability to have dates as date-links 
+
+## History
+NB: `countsInPeriod` command started life as `/stp` (stats for time period) in the Statistics plugin.
+
+Please see the [CHANGELOG](CHANGELOG.md).
