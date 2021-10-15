@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Summary commands for notes
 // Jonathan Clark
-// v0.1.0, 11.10.2021
+// v0.2.0, 11.10.2021
 //-----------------------------------------------------------------------------
 
 import {
@@ -16,12 +16,15 @@ import {
   getInput
 } from '../../helpers/userInput'
 
+import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
+
 export const DEFAULT_SUMMARIES_OPTIONS = `  summaries: {
-    folderToStore: 'Summaries',
+    folderToStore: 'Summaries', // folder to store any output files in
+    foldersToIgnore: ['📋 Templates', 'Summaries'], // list of folders to exlude in these commands. Note that @Trash and @Archive are always excluded
+    headingLevel: 2, // use level 1-5 headings when writing output to notes
     // settings for 'countsInPeriod':
     hashtagCountsHeading: '#hashtag counts',
     mentionCountsHeading: '@mention counts',
-    countsHeadingLevel: 2, // use level 1-5 headings
     showAsHashtagOrMention: true, // or false to hide # and @ characters
     // In the following the includes (if specified) takes precedence over excludes ...
     includeHashtags: [], // e.g. ['#holiday','#jog','#commute','#webinar']
@@ -30,13 +33,14 @@ export const DEFAULT_SUMMARIES_OPTIONS = `  summaries: {
     excludeMentions: ['@done', '@repeat'],
     // settings for 'occurrencesInPeriod':
     occurrencesHeading: 'Occurrences',
-    occurrencesHeadingLevel: 2, // use level 1-5 headings
     occurrencesToMatch: ['idea', '@review', '#question'],
     highlightOccurrences: false, // use ==highlight== of matched occurrences in output
     showEmptyOccurrences: false, // if no occurrences found of this string to match, make this clear
+    addDates: 'links', // 'none', as 'links', or plain 'dates'
   },
 `
-export async function getPeriodStartEndDates(): [Date, Date, string, string] {
+
+export async function getPeriodStartEndDates(): Promise<[Date, Date, string, string]> {
   // Ask user what time interval to do tag counts for
   const period = await chooseOption(
     'Create stats for which period?',
@@ -81,8 +85,8 @@ export async function getPeriodStartEndDates(): [Date, Date, string, string] {
     'mtd',
   )
 
-  let fromDate: Date
-  let toDate: Date
+  let fromDate: Date = new Date()
+  let toDate: Date = new Date()
   let periodString = ''
   let periodPartStr = ''
 

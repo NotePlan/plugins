@@ -41,12 +41,18 @@ function isInt(value) {
 // Main functions
 
 // Start today's daily note with the user's Daily Note Template
-export async function todayStart() {
-  await dayStart(true)
+export async function todayStart(): Promise<void> {
+  try {
+    await dayStart(true)
+    await showMessage('Completed /todayStart')
+  }
+  catch (error) {
+    await showMessage(error)
+  }
 }
 
 // Start the currently open daily note with the user's Daily Note Template
-export async function dayStart(today: boolean = false) {
+export async function dayStart(today: boolean = false): Promise<void> {
   console.log(`\ndayStart:`)
   if (today) {
     // open today's date in the main window, and read content

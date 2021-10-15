@@ -45,7 +45,7 @@ async function getProcessedTemplate(templateTitle: string): Promise<string> {
  * @author @nmn, split into two funcs by @jgclark
  * @param {string} templateTitle - name of an existing template to append to the current note
  */
-export async function applyNamedTemplate(templateTitle: string) {
+export async function applyNamedTemplate(templateTitle: string): Promise<void> {
   if (Editor == null) {
     await showMessage('Please run again with a note open in the editor')
     return

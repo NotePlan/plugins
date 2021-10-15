@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Create statistics for hasthtags and mentions for time periods
 // Jonathan Clark
-// v0.1.0, 11.10.2021, (previously v0.3.4 in np.statistics plugin)
+// v0.2.0, 15.10.2021, (previously v0.3.4 in np.statistics plugin)
 //-----------------------------------------------------------------------------
 
 // TODO:
@@ -41,7 +41,7 @@ import {
 // Config settings
 // Globals, to be looked up later
 let pref_folderToStore: string
-let pref_countsHeadingLevel: 1 | 2 | 3 | 4 | 5
+let pref_headingLevel: 1 | 2 | 3 | 4 | 5
 let pref_hashtagCountsHeading: string
 let pref_mentionCountsHeading: string
 let pref_showAsHashtagOrMention: boolean = false
@@ -50,9 +50,7 @@ let pref_excludeHashtags: $ReadOnlyArray<string> = []
 let pref_includeMentions: $ReadOnlyArray<string> = []
 let pref_excludeMentions: $ReadOnlyArray<string> = []
 
-//-------------------------------------------------------------------------------
-// Ask user which period to cover, call main stats function, and present results
-export async function statsPeriod(): Promise<void> {
+async function getPluginSettings(): Promise<void> {
   // Get config settings from Template folder _configuration note
   const summConfig = await getOrMakeConfigurationSection(
     'summaries',
@@ -84,12 +82,12 @@ export async function statsPeriod(): Promise<void> {
       ? summConfig.mentionCountsHeading
       : '@mention counts'
   // console.log(pref_mentionCountsHeading)
-  pref_countsHeadingLevel =
-    summConfig.countsHeadingLevel != null
+  pref_headingLevel =
+    summConfig.headingLevel != null
       // $FlowIgnore[incompatible-type]
-      ? summConfig.countsHeadingLevel
+      ? summConfig.headingLevel
       : 2
-  // console.log(pref_countsHeadingLevel)
+  // console.log(pref_headingLevel)
   pref_showAsHashtagOrMention =
     summConfig.showAsHashtagOrMention != null
       // $FlowIgnore[incompatible-type]
@@ -120,14 +118,20 @@ export async function statsPeriod(): Promise<void> {
       ? summConfig.excludeMentions
       : ['@done', '@repeat']
   // console.log(pref_excludeMentions)
+}
 
-  const [fromDate, toDate, periodString, periodPartStr] = await getPeriodStartEndDates()
-  
+//-------------------------------------------------------------------------------
+// Ask user which period to cover, call main stats function, and present results
+export async function statsPeriod(): Promise<void> {
+  // Get config settings from Template folder _configuration note
+  await getPluginSettings()
+
+  // Get time period
+  const [fromDate, toDate, periodString, periodPartStr] = await getPeriodStartEndDates()  
   if (fromDate == null || toDate == null) {
     console.log('\nstatsPeriod: error in calculating dates for chosen time period')
     return
   }
-
   const fromDateStr = unhyphenatedDate(fromDate) //fromDate.toISOString().slice(0, 10).replace(/-/g, '')
   const toDateStr = unhyphenatedDate(toDate) // toDate.toISOString().slice(0, 10).replace(/-/g, '')
   console.log(
@@ -221,9 +225,7 @@ export async function statsPeriod(): Promise<void> {
   }
 
   // Ask where to save this summary to
-  const labelString = `🖊 Add/update note '${periodString}' in folder '${String(
-    pref_folderToStore,
-  )}'`
+  const labelString = `🖊 Create/update a note in folder '${pref_folderToStore}'`
   const destination = await chooseOption(
     `Where to save the summary for ${periodString}?`,
     [
@@ -280,7 +282,7 @@ export async function statsPeriod(): Promise<void> {
       break
     }
     case 'note': {
-      let note: ?TNote
+      let note: TNote
       // first see if this note has already been created
       // (look only in active notes, not Archive or Trash)
       const existingNotes: $ReadOnlyArray<TNote> =
@@ -295,62 +297,62 @@ export async function statsPeriod(): Promise<void> {
         // console.log(`\tfilename of first matching note: ${displayTitle(note)}`)
       } else {
         // make a new note for this. NB: filename here = folder + filename
-        const noteFilename = DataStore.newNote(periodString, pref_folderToStore)
+        const noteFilename = DataStore.newNote(periodString, pref_folderToStore) ?? ''
         if (!noteFilename) {
-          console.log(`\tError creating new note (filename: ${noteFilename})`)
+          console.log(`\tError creating new note (filename '${noteFilename}')`)
           await showMessage('There was an error creating the new note')
           return
         }
         console.log(`\tnewNote filename: ${noteFilename}`)
+        // $FlowIgnore[incompatible-type]
         note = DataStore.projectNoteByFilename(noteFilename)
         if (note == null) {
-          console.log(`\tError getting new note (filename: ${noteFilename})`)
+          console.log(`\tError getting new note (filename '${noteFilename}')`)
           await showMessage('There was an error getting the new note ready to write')
           return
         }
         console.log(`\twriting results to the new note '${displayTitle(note)}'`)
       }
 
-        // This is a bug in flow. Creating a temporary const is a workaround.
-        // const nonNullNote = note
-        // Do we have an existing Hashtag counts section? If so, delete it.
-        let insertionLineIndex = removeSection(
-          note,
-          pref_hashtagCountsHeading,
-        )
-        console.log(`\tHashtag insertionLineIndex: ${String(insertionLineIndex)}`)
-        // Set place to insert either after the found section heading, or at end of note
-        // write in reverse order to avoid having to calculate insertion point again
-        note.insertHeading(
-          `${pref_hashtagCountsHeading} ${periodPartStr}`,
-          insertionLineIndex,
-          pref_countsHeadingLevel,
-        )
-        note.insertParagraph(
-          hOutputArray.join('\n'),
-          insertionLineIndex + 1,
-          'text',
-        )
-        // note.insertHeading(countsHeading, insertionLineIndex, pref_countsHeadingLevel)
+      // This is a bug in flow. Creating a temporary const is a workaround.
+      // Do we have an existing Hashtag counts section? If so, delete it.
+      let insertionLineIndex = removeSection(
+        note,
+        pref_hashtagCountsHeading,
+      )
+      console.log(`\tHashtag insertionLineIndex: ${String(insertionLineIndex)}`)
+      // Set place to insert either after the found section heading, or at end of note
+      // write in reverse order to avoid having to calculate insertion point again
+      note.insertHeading(
+        `${pref_hashtagCountsHeading} ${periodPartStr}`,
+        insertionLineIndex,
+        pref_headingLevel,
+      )
+      note.insertParagraph(
+        hOutputArray.join('\n'),
+        insertionLineIndex + 1,
+        'text',
+      )
+      // note.insertHeading(countsHeading, insertionLineIndex, pref_headingLevel)
 
-        // Do we have an existing Mentions counts section? If so, delete it.
-        insertionLineIndex = removeSection(
-          note,
-          pref_mentionCountsHeading,
-        )
-        console.log(`\tMention insertionLineIndex: ${insertionLineIndex}`)
-        note.insertHeading(
-          `${pref_mentionCountsHeading} ${periodPartStr}`,
-          insertionLineIndex,
-          pref_countsHeadingLevel,
-        )
-        note.insertParagraph(
-          mOutputArray.join('\n'),
-          insertionLineIndex + 1,
-          'text',
-        )
-        // open this note in the Editor
-        Editor.openNoteByFilename(note.filename)
+      // Do we have an existing Mentions counts section? If so, delete it.
+      insertionLineIndex = removeSection(
+        note,
+        pref_mentionCountsHeading,
+      )
+      console.log(`\tMention insertionLineIndex: ${insertionLineIndex}`)
+      note.insertHeading(
+        `${pref_mentionCountsHeading} ${periodPartStr}`,
+        insertionLineIndex,
+        pref_headingLevel,
+      )
+      note.insertParagraph(
+        mOutputArray.join('\n'),
+        insertionLineIndex + 1,
+        'text',
+      )
+      // open this note in the Editor
+      Editor.openNoteByFilename(note.filename)
 
       console.log(`\twritten results to note '${periodString}'`)
       break
@@ -476,8 +478,8 @@ function calcMentionStatsPeriod(
   if (periodDailyNotes.length === 0) {
     console.log('  warning: no matching daily notes found')
     return
-  } else {
-    console.log(`  found ${periodDailyNotes.length} matching daily notes`)
+  // } else {
+  //   console.log(`  found ${periodDailyNotes.length} matching daily notes`)
   }
 
   // work out what set of mentions to look for (or ignore)

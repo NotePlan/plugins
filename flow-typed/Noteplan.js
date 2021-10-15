@@ -752,7 +752,7 @@ type TNote = {
   // All the keys from TParagraphBridge
   ...TParagaraphBridge,
   /**
-   * Relative path of the note, so folder/filename including.
+   * Folder + Filename of the note (the path is relative to the root of the chosen storage location)
    */
   +filename: string,
   /**

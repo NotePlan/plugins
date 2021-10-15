@@ -1,8 +1,10 @@
 # What's Changed in 🗃 Summaries plugin?
 
-## [Unreleased]
-- version of occurrences to save the results of a search term
-- add ability to have dates as date-links 
+## [0.2.0] - 2021-10-14
+### Added
+- new `/saveSearchResult` command that asks user for a search term, and then saves a copy of all matching lines in a note of your choosing. This search is simple and non-fuzzy matching.
+- new setting `addDates` that controls whether dates are added in `/occurrencesInPeriod`, and if so as date links.
+- new setting `foldersToIgnore` that allows you to ignore notes from one or more folders from these commands.
 
 ## [0.1.0] - 2021-10-10
 ### Added

@@ -15,7 +15,7 @@
 | `dp` | (Date Picker) Choose format and insert date/time time at cursor | 📅 Date Automations |
 | `finish project review` | updates the current open project's @reviewed() date | 🔬Reviews |
 | `formatted` | Insert custom formatted (format) date/time | 📅 Date Automations |
-| `fp` | file (move) paragraphs to different notes | 🗃 Filer |
+| `fp` | file (move) paragraphs to different notes | 📦 Filer |
 | `index` | Make/Update note link Indexes for one or more folders | 📙 Note Helpers |
 | `insert day's events as list` | insert list of this day's calendar events at cursor | 🕓 Event Helpers |
 | `insert matching events` | inserts this day's calendar events matching certain patterns at cursor | 🕓 Event Helpers |
@@ -29,11 +29,11 @@
 | `list day's events to log` | list this day's calendar events to the log | 🕓 Event Helpers |
 | `mat` | Mark All Tasks (choose open or complete) | ✅ Task Automations |
 | `mn` | Moves the currently opened (non-calendar) note to a folder you select | 📙 Note Helpers |
-| `mp` | move (file) paragraphs to different notes | 🗃 Filer |
+| `mp` | move (file) paragraphs to different notes | 📦 Filer |
 | `nc` | Counts of all the notes in NotePlan | 🔢 Note Statistics |
 | `new note` | Create new note with title, in chosen folder with optional template | 🔩 Templates |
 | `next project review` | updates this project's @reviewed() date, and jump to next project to review | 🔬Reviews |
-| `nns` | New note from selection (and leave link to it in its place) | 🗃 Filer |
+| `nns` | New note from selection (and leave link to it in its place) | 📦 Filer |
 | `now` | Insert (human readable) date+time at cursor | 📅 Date Automations |
 | `now - ISO-8601 standard` | Insert ISO-8601 date+time at cursor (e.g. 2021-08-06 17:20:11) | 📅 Date Automations |
 | `occurrencesInPeriod` | Generate list of occurrences of specified tags or mentions for a time period | 🗃 Summaries |
@@ -50,6 +50,7 @@
 | `qtn - Quick template note` | Choose a note and create it based on _configuration settings quickNotes | 🔩 Templates |
 | `reorderList` | Reorder current ordered list | 🧩 Codedungeon Toolbox |
 | `rpt` | Generate new @repeat() tasks from completed ones | 🔁 @repeat Extensions |
+| `saveSearchResults` | Save results from a search over all notes | 🗃 Summaries |
 | `start reviews` | start a new series of reviews, deciding which are now ready for review, and kicking off the first one | 🔬Reviews |
 | `stpx` | [MOVED] Show stats of tags and mentions over a time period | 🔢 Note Statistics |
 | `sw7` | Find all open tasks for last 7 days & silently move/reschedule to today | 🧹 Task Sweeper |
