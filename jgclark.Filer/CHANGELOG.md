@@ -1,7 +1,8 @@
-# Changelog for Filer plugin
+# What's changed in 📦 Filer plugin?
 ## [Unreleased]
 ### Added
-- fix: /fp and /mp now create the destination daily note if it doesn't already exist
+- /fp and /mp now create the destination daily note if it doesn't already exist
+- add ability to default to moving to the end of a heading's section, not the start of it. See setting ???
 
 ## [0.5.1] - 2021-10-03
 ### Fixed
@@ -33,6 +34,7 @@
 ### Changed
 - update code to work with today's API fixes
 - bug fixes and additions to README
+
 ## [0.2.0..0.2.2] - 2021-05-26
 ### Added
 - add ability to move paragraphs to top or bottom of note. (Top of note comes after title if there is one.)

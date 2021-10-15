@@ -1,49 +1,41 @@
-# CHANGELOG
+# What's changed in ☀️ Daily Journal Plugin?
 
-### v0.8.3, 2021-10-11
-- changed: recompiled to bring in knowledge of recent functions
+## [0.8.3] - 2021-10-11
+### Changed
+- recompiled to bring in knowledge of recently-added functions in other plugins
 
-### v0.8.2, 7.9.2021
-- fix: fixed an error in /todayStart that kept it from running if the note wasn't open
+## [0.8.2] - 2021-09-07
+### Fixed
+- fixed an error in /todayStart that kept it from running if the note wasn't open
 
-### v0.8.1, 31.8.2021
+## [0.8.1] - 2021-08-31
+### Changed
 - under-the-hood changes responding to underlying framework changes
 
-### v0.8.0 @dwertheimer
+## [0.8.0] -@dwertheimer
 - new: Brought back the original /dayStart as /todayStart ;) 
 
-### v0.7.1, 7.8.2021
-- new: now supporting macOS back to v10.13
+### [0.7.0..0.7.1], 2021-08-07
+### Added
+- now supports macOS back to v10.13
+- the commands now work on whatever daily calendar note is open, not only on today's note
 
-### v0.7.0, 6.8.2021
-- new: the commands now work on whatever daily calendar note is open, not only on today's note
+### [0.6.0..0.6.9] - 2021-07-30 
+### Added
+- additions to weather() template macro to add more fields and use string replacements (@dwertheimer)
+- ability to check for `<number>` as well as `<int>` values in daily review questions
 
-### v0.6.9, 30.7.2021 @dwertheimer
-- new: additions to weather() template macro to add more fields and use string replacements
-
-### v0.6.8, 28.7.2021
-- under-the-hood changes responding to underlying API and framework changes
-
-### v0.6.7, 8.7.2021
-- add ability to check for `<number>` as well as `<int>` values in daily review questions
-
-### v0.6.6, 6.7.2021
-- on first use it now offers to populate default configuration (as shown above) into the _configuration file
+### Changed
+- under-the-hood changes responding to underlying API and framework changes, and other plugins' changes
 - more informative pop ups as it works
-
-### v0.6.4, 29.6.2021
-- internal code changes only, responding to other plugins' changes
-
-### v0.6.2, 12.6.2021 -- includes **BREAKING CHANGES**
+- on first use it now offers to populate default configuration (as shown above) into the _configuration file
 - now `/dayStart` calls the Templates plugin to apply the `Daily Note Template` template. To include a weather forecast, now include the `{{weather()}}` tag in that template, and configure the OpenWeather calls as described in the `Templates/_configuration` file. 
 - now `/dayReview` also uses the `Templates/_configuration` file to get settings for this command.
 
-### v0.5.0, 27.5.2021
-- change: use Template system (from '**NoteHelpers**' plugin) to provide the `Daily Note Template`. This template title defaults to 'Daily Note Template', but can be configured in `pref_templateText ` (as above).
-- update code to use newer NotePlan APIs
+## [0.5.0] - 2021-05-27
+### Changed
+- use Template system (from '**NoteHelpers**' plugin) to provide the `Daily Note Template`. This template title defaults to 'Daily Note Template', but can be configured in `pref_templateText ` (as above).
+- updated code to use newer NotePlan APIs
 
-### v0.4.1, 16.5.2021
-- add this README.md
-
-### v0.4.0, 24.4.2021
+## [0.4.0] - 2021-04-24
 - first main release
