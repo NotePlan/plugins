@@ -1,5 +1,7 @@
 import moment from 'moment/min/moment-with-locales'
 import { getUserLocale } from 'get-user-locale'
+import { debug } from '../../../../helpers/general'
+import dayjs from 'dayjs'
 
 export default class TimeModule {
   constructor(config) {
@@ -11,6 +13,17 @@ export default class TimeModule {
     }
 
     moment.locale(osLocale)
+  }
+  format(format = '', date = '') {
+    const dateValue = date.length > 0 ? date : new Date()
+    const configFormat = this.config?.defaultFormats?.time || 'HH:mm A'
+    format = format.length > 0 ? format : configFormat
+
+    if (date instanceof Date) {
+      return moment(date).format(format)
+    } else {
+      return moment(new Date(dateValue)).format(format)
+    }
   }
 
   now(format = '', offset = '') {

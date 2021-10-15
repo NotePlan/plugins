@@ -72,7 +72,6 @@ export default class Templating {
   }
 
   static async renderTemplate(templateName: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
-    console.log(templateName)
     const templateContent = await this.getTemplate(templateName)
 
     const result = await this.render(templateContent, userData)
@@ -81,10 +80,6 @@ export default class Templating {
   }
 
   static async render(templateData: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
-    const s = (data: any = {}) => {
-      return JSON.stringify(data, null, 4)
-    }
-
     // $FlowFixMe
     const templateConfig = await this.getTemplateConfig()
 
@@ -135,10 +130,9 @@ export default class Templating {
       },
     }
 
-    const renderData = {
-      ...helpers,
-      ...userData,
-    }
+    let renderData = { ...helpers, ...userData }
+    renderData = userData?.data ? { ...userData.data, ...renderData } : renderData
+    renderData = userData?.methods ? { ...userData.methods, ...renderData } : renderData
 
     try {
       let result = eta.render(templateData, renderData, renderOptions)

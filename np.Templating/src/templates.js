@@ -31,11 +31,17 @@ export async function testTemplateExtended(): Promise<void> {
   const templateContent = await Templating.getTemplate(templateName)
 
   const custom = {
-    hello: function (str) {
-      return `Hello ${str}`
+    data: {
+      firstBorn: 'Joelle',
+    },
+    methods: {
+      hello: function (str) {
+        return `Hello ${str}`
+      },
     },
   }
 
+  // const result = await Templating.render(templateContent, custom, { extended: true })
   const result = await Templating.render(templateContent, custom, { extended: true })
 
   Editor.insertTextAtCursor(result)
