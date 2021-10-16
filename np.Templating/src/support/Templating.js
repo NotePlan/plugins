@@ -1,10 +1,13 @@
 // @flow
 
 import { getUserLocale } from 'get-user-locale'
+import { alert } from '../../../helpers/userInput'
 import { debug } from '../../../helpers/general'
 import { getOrMakeTemplateFolder } from '../../../nmn.Templates/src/template-folder'
 import { parseFirstCodeblock } from './configuration'
+
 import eta from './eta.lib'
+import ejs from './ejs'
 
 import WebModule from './modules/WebModule'
 import DateModule from './modules/DateModule'
@@ -32,6 +35,7 @@ export default class Templating {
   static async renderConfig(): Promise<any> {
     return {
       varName: 'np',
+      async: false,
       parse: {
         exec: '*',
         interpolate: '',
@@ -63,7 +67,8 @@ export default class Templating {
     }
 
     const lines = templateContent.split('\n')
-    const dividerIndex = lines.indexOf('*****') || lines.indexOf('---')
+
+    const dividerIndex = lines.findIndex((element) => element === '---' || element === '*****')
     if (dividerIndex > 0) {
       templateContent = lines.splice(dividerIndex + 1).join('\n')
     }
@@ -101,6 +106,7 @@ export default class Templating {
     const quote = templateData.includes('web.quote') ? await WebModule.quote() : ''
     const affirmation = templateData.includes('web.affirmation') ? await WebModule.affirmation() : ''
     const advice = templateData.includes('web.advice') ? await WebModule.advice() : ''
+    const service = templateData.includes('web.services') ? await WebModule.service : ''
 
     const helpers = {
       date: new DateModule(templateConfig),
@@ -127,6 +133,9 @@ export default class Templating {
         weather: () => {
           return weather.replace('\n', '')
         },
+        services: (url = '', key = '') => {
+          return service(url, key)
+        },
       },
     }
 
@@ -135,7 +144,9 @@ export default class Templating {
     renderData = userData?.methods ? { ...userData.methods, ...renderData } : renderData
 
     try {
-      let result = eta.render(templateData, renderData, renderOptions)
+      // let result = await eta.render(templateData, renderData, renderOptions)
+      let result = await ejs.render(templateData, renderData, { async: true })
+
       result = result.replaceAll('undefined', '')
 
       return result

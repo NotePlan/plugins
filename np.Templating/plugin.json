@@ -35,10 +35,16 @@
       "jsFunction": "testTemplateBooks"
     },
     {
-      "name": "np:tester-extended",
+      "name": "np:tester-kitchen-sink",
       "alias": [],
-      "description": "np.Templating Tester (Extended)",
-      "jsFunction": "testTemplateExtended"
+      "description": "np.Templating Tester (Kitchen Sink)",
+      "jsFunction": "testTemplateKitchenSink"
+    },
+    {
+      "name": "np:tester-artic",
+      "alias": [],
+      "description": "np.Templating (ArticWolf)",
+      "jsFunction": "testArticWolf"
     }
   ]
 }

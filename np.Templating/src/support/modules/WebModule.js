@@ -1,11 +1,12 @@
 // @flow
 
-import { getOrMakeConfigurationSection, getStructuredConfiguration } from '../configuration'
+import { getOrMakeConfigurationSection } from '../configuration'
 
 import { getDailyQuote } from './quote'
 import { getWeather } from './weather'
 import { getAffirmation } from './affirmation'
 import { getAdvice } from './advice'
+import { getService } from './service'
 
 export default class WebModule {
   constructor(config: any = {}) {
@@ -29,5 +30,9 @@ export default class WebModule {
 
   static async weather(): Promise<string> {
     return await getWeather()
+  }
+
+  static async service(serviceUrl: string = '', key: string = ''): Promise<string> {
+    return await getService(serviceUrl, key)
   }
 }

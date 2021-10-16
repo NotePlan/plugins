@@ -1,7 +1,6 @@
 import moment from 'moment/min/moment-with-locales'
 import { getUserLocale } from 'get-user-locale'
 import { debug } from '../../../../helpers/general'
-import dayjs from 'dayjs'
 
 export default class TimeModule {
   constructor(config) {

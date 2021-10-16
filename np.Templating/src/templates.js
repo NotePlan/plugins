@@ -1,5 +1,8 @@
 // @flow
 
+import { debug } from '../../helpers/general'
+import { alert } from '../../helpers/userInput'
+
 import { getOrMakeTemplateFolder } from '../../nmn.Templates/src/template-folder'
 import Templating from './support/Templating'
 
@@ -25,26 +28,37 @@ export async function testTemplateStandard(): Promise<void> {
   Editor.insertTextAtCursor(result)
 }
 
-export async function testTemplateExtended(): Promise<void> {
-  const templateName = 'np.Templating Tester (Extended)'
+export async function testTemplateKitchenSink(): Promise<void> {
+  try {
+    const currentNote = Editor.content || ''
 
-  const templateContent = await Templating.getTemplate(templateName)
+    Editor.insertTextAtCursor('Please Wait...')
 
-  const custom = {
-    data: {
-      firstBorn: 'Joelle',
-    },
-    methods: {
-      hello: function (str) {
-        return `Hello ${str}`
+    const templateName = 'np.Templating (Kitchen Sink)'
+
+    const templateContent = await Templating.getTemplate(templateName)
+
+    const custom = {
+      data: {
+        firstBorn: 'Joelle',
       },
-    },
+      methods: {
+        hello: function (str) {
+          return `Hello ${str}`
+        },
+        hello2: async function (str) {
+          return `Hello ${str} (async)`
+        },
+      },
+    }
+
+    // const result = await Templating.render(templateContent, custom, { extended: true })
+    const result = await Templating.render(templateContent, custom, { extended: true })
+
+    Editor.replaceTextInCharacterRange(result, currentNote.length - 5, 255)
+  } catch (error) {
+    debug('testTemplateExtended', error)
   }
-
-  // const result = await Templating.render(templateContent, custom, { extended: true })
-  const result = await Templating.render(templateContent, custom, { extended: true })
-
-  Editor.insertTextAtCursor(result)
 }
 
 export async function testTemplateCustom(): Promise<void> {
@@ -105,4 +119,21 @@ export async function testTemplateBooks(): Promise<void> {
   const result = await Templating.render(templateContent, custom, { extended: true })
 
   Editor.insertTextAtCursor(result)
+}
+
+export async function testArticWolf(): Promise<void> {
+  const templateName = 'np.Templating (ArticWolf)'
+
+  const templateContent = await Templating.getTemplate(templateName)
+
+  console.log(templateContent)
+
+  const custom = {
+    type: 'meeting',
+  }
+
+  const result = await Templating.render(templateContent, custom, { extended: true })
+
+  // Editor.insertTextAtCursor(result)
+  Editor.insertTextAtCursor(templateContent)
 }
