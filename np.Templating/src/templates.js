@@ -4,51 +4,78 @@ import { debug } from '../../helpers/general'
 import { alert } from '../../helpers/userInput'
 
 import { getOrMakeTemplateFolder } from '../../nmn.Templates/src/template-folder'
-import Templating from './support/Templating'
+import { getOrMakeConfigurationSection } from './support/configuration'
 
-export async function templateRender(templateTitle: string = '', data: mixed = {}, options: mixed = {}): Promise<void> {
-  const templateFolder = await getOrMakeTemplateFolder()
+import Templating from './Templating'
 
-  const templateData = await DataStore.projectNoteByTitle(templateTitle, true, false)?.[0]
+async function templateConfig(): Promise<any> {
+  return await getOrMakeConfigurationSection('templates')
+}
 
-  const renderedData = await Templating.render(templateData, data, options)
+async function showError(method: string = '', message: string = ''): Promise<void> {
+  const line = '*'.repeat(message.length + 30)
+  console.log(line)
+  console.log(`   ERROR`)
+  console.log(`   Method: ${method}:`)
+  console.log(`   Message: ${message}`)
+  console.log(line)
+  console.log('\n')
+  Editor.insertTextAtCursor(`**Error: ${method}**\n- **${message}**`)
+}
 
-  console.log(renderedData)
+export async function templateInsatiation(): Promise<void> {
+  try {
+    const templating = new Templating(await templateConfig())
 
-  Editor.insertTextAtCursor(renderedData)
+    const response = await templating.heartbeat()
+
+    Editor.insertTextAtCursor(response)
+  } catch (error) {
+    showError('templateInstantiation', error)
+  }
 }
 
 export async function testFullTemplate(): Promise<void> {
-  const templateName = 'np.Templating (Full Template)'
+  try {
+    const templateConfig: any = await getOrMakeConfigurationSection('templates')
 
-  const templateContent = await Templating.getTemplate(templateName)
+    const templateInstance = new Templating(templateConfig)
+    const templateContent = await templateInstance.getTemplate('np.Templating (Full Template)')
 
-  const result = await Templating.render(templateContent, {}, { extended: false })
+    const result = await templateInstance.render(templateContent, {}, { extended: false })
 
-  Editor.insertTextAtCursor(result)
+    Editor.insertTextAtCursor(result)
+  } catch (error) {
+    showError('testFullTemplate', error)
+  }
 }
 
 export async function testTemplateStandard(): Promise<void> {
-  const templateName = 'np.Templating (Standard)'
+  try {
+    const templateConfig: any = await getOrMakeConfigurationSection('templates')
 
-  const templateContent = await Templating.getTemplate(templateName)
+    const templateInstance = new Templating(templateConfig)
+    const templateContent = await templateInstance.getTemplate('np.Templating (Standard)')
 
-  const result = await Templating.render(templateContent, {}, { extended: false })
+    const result = await templateInstance.render(templateContent, {}, { extended: false })
 
-  Editor.insertTextAtCursor(result)
+    Editor.insertTextAtCursor(result)
+  } catch (error) {
+    showError('testTemplateStandard', error)
+  }
 }
 
 export async function testTemplateKitchenSink(): Promise<void> {
   try {
-    const currentNote = Editor.content || ''
-    const noteLength = currentNote.length
-    console.log(noteLength)
+    const templateConfig: any = await getOrMakeConfigurationSection('templates')
 
-    Editor.insertTextAtCursor('Please wait...')
+    // const currentNote = Editor.content || ''
+    // const noteLength = currentNote.length
 
-    const templateName = 'np.Templating (Kitchen Sink)'
+    // Editor.insertTextAtCursor('Please wait...')
 
-    const templateContent = await Templating.getTemplate(templateName)
+    const templateInstance = new Templating(templateConfig)
+    const templateContent = await templateInstance.getTemplate('np.Templating (Kitchen Sink)')
 
     const custom = {
       data: {
@@ -64,88 +91,106 @@ export async function testTemplateKitchenSink(): Promise<void> {
       },
     }
 
-    // const result = await Templating.render(templateContent, custom, { extended: true })
-    const result = await Templating.render(templateContent, custom, { extended: true })
+    const result = await templateInstance.render(templateContent, custom, { extended: true })
 
-    Editor.replaceTextInCharacterRange(result, noteLength - 5, 16384)
+    // Editor.replaceTextInCharacterRange(result, noteLength, 16384)
+    Editor.insertTextAtCursor(result)
   } catch (error) {
     debug('testTemplateExtended', error)
   }
 }
 
 export async function testTemplateCustom(): Promise<void> {
-  const templateName = 'np.Templating (Custom)'
+  try {
+    const templateConfig: any = await getOrMakeConfigurationSection('templates')
 
-  const templateContent = await Templating.getTemplate(templateName)
+    const templateInstance = new Templating(templateConfig)
+    const templateContent = await templateInstance.getTemplate('np.Templating (Custom)')
 
-  const custom = {
-    hello: function (str) {
-      return `Hello ${str}`
-    },
-    name: 'John Doe',
-    names: ['mike', 'kira', 'joelle', 'brady', 'bailey', 'trevor'],
+    const custom = {
+      hello: function (str) {
+        return `Hello ${str}`
+      },
+      name: 'John Doe',
+      names: ['mike', 'kira', 'joelle', 'brady', 'bailey', 'trevor'],
+    }
+
+    const result = await templateInstance.render(templateContent, custom, { extended: true })
+
+    Editor.insertTextAtCursor(result)
+  } catch (error) {
+    showError('testTemplateCustom', error)
   }
-
-  const result = await Templating.render(templateContent, custom, { extended: true })
-
-  Editor.insertTextAtCursor(result)
 }
 
 export async function testTemplateTasks(): Promise<void> {
-  const templateName = 'np.Templating (Tasks)'
+  try {
+    const templateConfig: any = await getOrMakeConfigurationSection('templates')
 
-  const templateContent = await Templating.getTemplate(templateName)
+    const templateInstance = new Templating(templateConfig)
+    const templateContent = await templateInstance.getTemplate('np.Templating (Tasks)')
 
-  const custom = {
-    tasks: [
-      { name: 'Item 1', completed: true },
-      { name: 'Item 2', completed: false },
-      { name: 'Item 3', completed: true },
-      { name: 'Item 4', completed: false },
-      { name: 'Item 5', completed: true },
-    ],
+    const custom = {
+      tasks: [
+        { name: 'Item 1', completed: true },
+        { name: 'Item 2', completed: false },
+        { name: 'Item 3', completed: true },
+        { name: 'Item 4', completed: false },
+        { name: 'Item 5', completed: true },
+      ],
+    }
+
+    const result = await templateInstance.render(templateContent, custom, { extended: true })
+
+    Editor.insertTextAtCursor(result)
+  } catch (error) {
+    showError('testTemplateTask', error)
   }
-
-  const result = await Templating.render(templateContent, custom, { extended: true })
-
-  Editor.insertTextAtCursor(result)
 }
 
 export async function testTemplateBooks(): Promise<void> {
-  const templateName = 'np.Templating (Books)'
+  try {
+    const templateConfig: any = await getOrMakeConfigurationSection('templates')
 
-  const templateContent = await Templating.getTemplate(templateName)
+    const templateInstance = new Templating(templateConfig)
+    const templateContent = await templateInstance.getTemplate('np.Templating (Books)')
 
-  const custom = {
-    books: [
-      { TITLE: 'The Sobbing School: Poems', AUTHOR: 'Joshua Bennett' },
-      { TITLE: `Ain't No Mo'`, AUTHOR: 'Jordan E. Cooper' },
-      { TITLE: 'A Particular Kind of Black Man', AUTHOR: 'Tope Folarin' },
-      { TITLE: 'Where We Stand', AUTHOR: 'Donnetta Lavinia Grays' },
-      { TITLE: 'Invasive species', AUTHOR: 'Marwa Helal' },
-      { TITLE: 'The Sirens of Mars', AUTHOR: 'Sarah Stewart Johnson' },
-      { TITLE: 'The NotePlan Templating Guide', AUTHOR: 'Mike Erickson' },
-    ],
+    const custom = {
+      books: [
+        { TITLE: 'The Sobbing School: Poems', AUTHOR: 'Joshua Bennett' },
+        { TITLE: `Ain't No Mo'`, AUTHOR: 'Jordan E. Cooper' },
+        { TITLE: 'A Particular Kind of Black Man', AUTHOR: 'Tope Folarin' },
+        { TITLE: 'Where We Stand', AUTHOR: 'Donnetta Lavinia Grays' },
+        { TITLE: 'Invasive species', AUTHOR: 'Marwa Helal' },
+        { TITLE: 'The Sirens of Mars', AUTHOR: 'Sarah Stewart Johnson' },
+        { TITLE: 'The NotePlan Templating Guide', AUTHOR: 'Mike Erickson' },
+      ],
+    }
+
+    const result = await templateInstance.render(templateContent, custom, { extended: true })
+
+    Editor.insertTextAtCursor(result)
+  } catch (error) {
+    showError(error)
   }
-
-  const result = await Templating.render(templateContent, custom, { extended: true })
-
-  Editor.insertTextAtCursor(result)
 }
 
 export async function testArticWolf(): Promise<void> {
-  const templateName = 'np.Templating (ArticWolf)'
+  try {
+    const templateConfig: any = await getOrMakeConfigurationSection('templates')
 
-  const templateContent = await Templating.getTemplate(templateName)
+    const templateInstance = new Templating(templateConfig)
+    const templateContent = await templateInstance.getTemplate('np.Templating (ArticWolf)')
 
-  console.log(templateContent)
+    const custom = {
+      type: 'meeting',
+    }
 
-  const custom = {
-    type: 'meeting',
+    const result = await templateInstance.render(templateContent, custom)
+
+    // Editor.insertTextAtCursor(result)
+    Editor.insertTextAtCursor(result)
+  } catch (error) {
+    showError(error)
   }
-
-  const result = await Templating.render(templateContent, custom, { extended: true })
-
-  // Editor.insertTextAtCursor(result)
-  Editor.insertTextAtCursor(templateContent)
 }

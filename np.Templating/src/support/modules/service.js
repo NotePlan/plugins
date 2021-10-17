@@ -1,9 +1,10 @@
 // @flow
-import { debug } from '../../../../helpers/general'
-import { getOrMakeConfigurationSection } from '../configuration'
 
+// TODO: Check status on `dot-prop` to see if supported yet (as of 2021-10-15 it was still WIP)
+// Temporary Implementation until `dot-prop` is ready
+// https://github.com/sindresorhus/dot-prop/issues/87
 // $FlowFixMe
-Object.byString = function (o, s) {
+Object.arrayReference = function (o, s) {
   // $FlowFixMe
   s = s.replace(/\[(\w+)\]/g, '.$1') // convert indexes to properties
   // $FlowFixMe
@@ -21,8 +22,7 @@ Object.byString = function (o, s) {
   return o
 }
 
-export async function getService(section: string = '', key: string = ''): Promise<string> {
-  const templateConfig = await getOrMakeConfigurationSection('templates')
+export async function getService(templateConfig: any, section: string = '', key: string = ''): Promise<string> {
   const serviceConfig = templateConfig?.services
   if (serviceConfig) {
     // $FlowFixMe
@@ -31,7 +31,7 @@ export async function getService(section: string = '', key: string = ''): Promis
       const response: any = await fetch(URL)
       const data = JSON.parse(response)
       // $FlowFixMe
-      return Object.byString(data, `${key}`)
+      return Object.arrayReference(data, `${key}`)
     } catch (error) {
       return error
     }

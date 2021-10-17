@@ -3,6 +3,6 @@
 ## Tools
 
 ### Visual Studio Code Extension
-> 📖 https://marketplace.visualstudio.com/items?itemName=shadowtime2000.eta-vscode
+> 📖 https://marketplace.visualstudio.com/items?itemName=DigitalBrainstem.javascript-ejs-support
 
 ## References

@@ -11,6 +11,12 @@
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md",
   "plugin.commands": [
     {
+      "name": "np:tester-heartbeat",
+      "alias": [],
+      "description": "np.Templating Heartbeta",
+      "jsFunction": "templateInsatiation"
+    },
+    {
       "name": "np:tester-standard",
       "alias": [],
       "description": "np.Templating Tester (Standard)",

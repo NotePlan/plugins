@@ -1,6 +1,6 @@
 // @flow
 
-export { templateRender } from './templates.js'
+export { templateInsatiation } from './templates.js'
 export { testTemplateStandard } from './templates.js'
 export { testTemplateKitchenSink } from './templates.js'
 export { testTemplateCustom } from './templates.js'

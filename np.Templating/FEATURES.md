@@ -1,6 +1,6 @@
 # np.Templating Features
 
-- [x] Implement eta library
+- [x] Implement EJS library
 - [x] Support global and namespace (template objects begin with `np`)
 - [x] Support Variables
 - [x] Support Custom Methods

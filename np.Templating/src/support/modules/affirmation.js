@@ -7,6 +7,6 @@ export async function getAffirmation(): Promise<string> {
     const data = JSON.parse(response)
     return data.affirmation
   } catch (error) {
-    return 'An error occurred accessing quoting service, please review configurtation'
+    return '**An error occurred accessing quoting service**'
   }
 }

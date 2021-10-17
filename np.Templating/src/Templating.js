@@ -6,19 +6,15 @@
  * -----------------------------------------------------------------------------------------*/
 
 import { getUserLocale } from 'get-user-locale'
-import { alert } from '../../../helpers/userInput'
-import { debug } from '../../../helpers/general'
-import { getOrMakeTemplateFolder } from '../../../nmn.Templates/src/template-folder'
-import { parseFirstCodeblock } from './configuration'
 
 // import eta from './eta.lib'
-import ejs from './ejs'
+import ejs from './support/ejs'
 
-import WebModule from './modules/WebModule'
-import DateModule from './modules/DateModule'
-import TimeModule from './modules/TimeModule'
-import NoteModule from './modules/NoteModule'
-import UtilsModule from './modules/UtilsModule'
+import WebModule from './support/modules/WebModule'
+import DateModule from './support/modules/DateModule'
+import TimeModule from './support/modules/TimeModule'
+import NoteModule from './support/modules/NoteModule'
+import UtilsModule from './support/modules/UtilsModule'
 
 export const DEFAULT_TEMPLATE_CONFIG = {
   locale: 'en-US',
@@ -33,26 +29,20 @@ export const DEFAULT_TEMPLATE_CONFIG = {
     email: '',
     phone: '',
   },
+  services: {},
 }
 
 export default class Templating {
-  // default templating config
-  static async renderConfig(): Promise<any> {
-    return {
-      varName: 'np',
-      async: false,
-      parse: {
-        exec: '*',
-        interpolate: '',
-        raw: '',
-      },
-      autoTrim: false,
-      globalAwait: true,
-      useWith: true,
-    }
+  templateConfig: any
+  constructor(config: any) {
+    this.templateConfig = config
   }
 
-  static async templateErrorMessage(method: string = '', message: string = ''): Promise<string> {
+  async heartbeat(): Promise<string> {
+    return '```\n' + JSON.stringify(this.templateConfig, null, 2) + '\n```\n'
+  }
+
+  async templateErrorMessage(method: string = '', message: string = ''): Promise<string> {
     const line = '*'.repeat(message.length + 30)
     console.log(line)
     console.log(`   ERROR`)
@@ -63,7 +53,7 @@ export default class Templating {
     return `**Error: ${method}**\n- **${message}**`
   }
 
-  static async getTemplate(templateName: string = ''): Promise<string> {
+  async getTemplate(templateName: string = ''): Promise<string> {
     try {
       const selectedTemplate = await DataStore.projectNoteByTitle(templateName, true, false)?.[0]
       let templateContent = selectedTemplate?.content
@@ -85,7 +75,7 @@ export default class Templating {
     }
   }
 
-  static async renderTemplate(templateName: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
+  async renderTemplate(templateName: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
     try {
       const templateContent = await this.getTemplate(templateName)
 
@@ -97,21 +87,8 @@ export default class Templating {
     }
   }
 
-  static async render(templateData: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
-    // $FlowFixMe
-    const templateConfig = await this.getTemplateConfig()
-
+  async render(templateData: any = '', userData: any = {}, userOptions: any = {}): Promise<string> {
     const options = { ...{ extended: false, tags: [] }, ...userOptions }
-
-    // $FlowFixMe
-    const renderOptions = await this.renderConfig()
-    if (options.extended) {
-      delete renderOptions.parse
-    }
-
-    if (options?.tags?.length > 0) {
-      renderOptions.tags = options.tags
-    }
 
     // WebModule methods are async, will be converted to synchronous methods below
     // need to handle async calls before render templates as templating method are synchronous
@@ -122,15 +99,15 @@ export default class Templating {
     const service = templateData.includes('web.services') ? await WebModule.service : ''
 
     const helpers = {
-      date: new DateModule(templateConfig),
-      time: new TimeModule(templateConfig),
-      utils: new UtilsModule(templateConfig),
-      note: new NoteModule(templateConfig),
+      date: new DateModule(this.templateConfig),
+      time: new TimeModule(this.templateConfig),
+      utils: new UtilsModule(this.templateConfig),
+      note: new NoteModule(this.templateConfig),
       user: {
-        first: templateConfig?.user?.first || '',
-        last: templateConfig?.user?.last || '',
-        email: templateConfig?.user?.email || '',
-        phone: templateConfig?.user?.phone || '',
+        first: this.templateConfig?.user?.first || '',
+        last: this.templateConfig?.user?.last || '',
+        email: this.templateConfig?.user?.email || '',
+        phone: this.templateConfig?.user?.phone || '',
       },
       // expose web module as synchronous methods (each method converted )
       web: {
@@ -147,7 +124,7 @@ export default class Templating {
           return weather.replace('\n', '')
         },
         services: (url = '', key = '') => {
-          return service(url, key)
+          return service(this.templateConfig, url, key)
         },
       },
     }
@@ -158,7 +135,6 @@ export default class Templating {
     renderData.np = { ...renderData }
 
     try {
-      // let result = await eta.render(templateData, renderData, renderOptions)
       let result = await ejs.render(templateData, renderData, { async: true })
 
       result = result.replaceAll('undefined', '')
@@ -169,32 +145,7 @@ export default class Templating {
     }
   }
 
-  static async getTemplateConfig(): Promise<any> {
-    try {
-      const templateFolder = await getOrMakeTemplateFolder()
-      const configFile = DataStore.projectNotes
-        // $FlowIgnore[incompatible-call]
-        .filter((n) => n.filename?.startsWith(templateFolder))
-        .find((n) => !!n.title?.startsWith('_configuration'))
-
-      const content: ?string = configFile?.content
-      if (content == null) {
-        return {}
-      }
-
-      const firstCodeblock = content.split('\n```')[1]
-
-      const templateData = await parseFirstCodeblock(firstCodeblock)
-      if (templateData && templateData.hasOwnProperty('templates')) {
-        return templateData.templates
-      }
-      return DEFAULT_TEMPLATE_CONFIG
-    } catch (error) {
-      return this.templateErrorMessage('getTemplateConfig', error)
-    }
-  }
-
-  static async getDefaultFormat(formatType: string = 'date'): Promise<string> {
+  async getDefaultFormat(formatType: string = 'date'): Promise<string> {
     try {
       // $FlowFixMe
       const templateConfig = await this.getTemplateConfig()
