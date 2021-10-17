@@ -1,12 +1,17 @@
 // @flow
 
+/*-------------------------------------------------------------------------------------------
+ * Copyright (c) 2021-2022 Mike Erickson / Codedungeon.  All rights reserved.
+ * Licensed under the MIT license.  See LICENSE in the project root for license information.
+ * -----------------------------------------------------------------------------------------*/
+
 import { getUserLocale } from 'get-user-locale'
 import { alert } from '../../../helpers/userInput'
 import { debug } from '../../../helpers/general'
 import { getOrMakeTemplateFolder } from '../../../nmn.Templates/src/template-folder'
 import { parseFirstCodeblock } from './configuration'
 
-import eta from './eta.lib'
+// import eta from './eta.lib'
 import ejs from './ejs'
 
 import WebModule from './modules/WebModule'
@@ -59,29 +64,37 @@ export default class Templating {
   }
 
   static async getTemplate(templateName: string = ''): Promise<string> {
-    const selectedTemplate = await DataStore.projectNoteByTitle(templateName, true, false)?.[0]
-    let templateContent = selectedTemplate?.content
-    if (templateContent == null || templateContent.length === 0) {
-      const message = `Template "${templateName}" Not Found or Empty`
-      return this.templateErrorMessage('Templating.getTemplate', message)
+    try {
+      const selectedTemplate = await DataStore.projectNoteByTitle(templateName, true, false)?.[0]
+      let templateContent = selectedTemplate?.content
+      if (templateContent == null || templateContent.length === 0) {
+        const message = `Template "${templateName}" Not Found or Empty`
+        return this.templateErrorMessage('Templating.getTemplate', message)
+      }
+
+      const lines = templateContent.split('\n')
+
+      const dividerIndex = lines.findIndex((element) => element === '---' || element === '*****')
+      if (dividerIndex > 0) {
+        templateContent = lines.splice(dividerIndex + 1).join('\n')
+      }
+
+      return templateContent
+    } catch (error) {
+      return this.templateErrorMessage('getTemplate', error)
     }
-
-    const lines = templateContent.split('\n')
-
-    const dividerIndex = lines.findIndex((element) => element === '---' || element === '*****')
-    if (dividerIndex > 0) {
-      templateContent = lines.splice(dividerIndex + 1).join('\n')
-    }
-
-    return templateContent
   }
 
   static async renderTemplate(templateName: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
-    const templateContent = await this.getTemplate(templateName)
+    try {
+      const templateContent = await this.getTemplate(templateName)
 
-    const result = await this.render(templateContent, userData)
+      const result = await this.render(templateContent, userData)
 
-    return result
+      return result
+    } catch (error) {
+      return this.templateErrorMessage(error)
+    }
   }
 
   static async render(templateData: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
@@ -142,6 +155,7 @@ export default class Templating {
     let renderData = { ...helpers, ...userData }
     renderData = userData?.data ? { ...userData.data, ...renderData } : renderData
     renderData = userData?.methods ? { ...userData.methods, ...renderData } : renderData
+    renderData.np = { ...renderData }
 
     try {
       // let result = await eta.render(templateData, renderData, renderOptions)
@@ -156,35 +170,43 @@ export default class Templating {
   }
 
   static async getTemplateConfig(): Promise<any> {
-    const templateFolder = await getOrMakeTemplateFolder()
-    const configFile = DataStore.projectNotes
-      // $FlowIgnore[incompatible-call]
-      .filter((n) => n.filename?.startsWith(templateFolder))
-      .find((n) => !!n.title?.startsWith('_configuration'))
+    try {
+      const templateFolder = await getOrMakeTemplateFolder()
+      const configFile = DataStore.projectNotes
+        // $FlowIgnore[incompatible-call]
+        .filter((n) => n.filename?.startsWith(templateFolder))
+        .find((n) => !!n.title?.startsWith('_configuration'))
 
-    const content: ?string = configFile?.content
-    if (content == null) {
-      return {}
+      const content: ?string = configFile?.content
+      if (content == null) {
+        return {}
+      }
+
+      const firstCodeblock = content.split('\n```')[1]
+
+      const templateData = await parseFirstCodeblock(firstCodeblock)
+      if (templateData && templateData.hasOwnProperty('templates')) {
+        return templateData.templates
+      }
+      return DEFAULT_TEMPLATE_CONFIG
+    } catch (error) {
+      return this.templateErrorMessage('getTemplateConfig', error)
     }
-
-    const firstCodeblock = content.split('\n```')[1]
-
-    const templateData = await parseFirstCodeblock(firstCodeblock)
-    if (templateData && templateData.hasOwnProperty('templates')) {
-      return templateData.templates
-    }
-    return DEFAULT_TEMPLATE_CONFIG
   }
 
   static async getDefaultFormat(formatType: string = 'date'): Promise<string> {
-    // $FlowFixMe
-    const templateConfig = await this.getTemplateConfig()
-    let format = formatType === 'date' ? 'YYYY-MM-DD' : 'HH:mm:ss A'
-    if (templateConfig?.templates?.defaultFormats?.[formatType]) {
-      format = templateConfig?.templates?.defaultFormats?.[formatType]
-    }
+    try {
+      // $FlowFixMe
+      const templateConfig = await this.getTemplateConfig()
+      let format = formatType === 'date' ? 'YYYY-MM-DD' : 'HH:mm:ss A'
+      if (templateConfig?.templates?.defaultFormats?.[formatType]) {
+        format = templateConfig?.templates?.defaultFormats?.[formatType]
+      }
 
-    format = formatType === 'date' ? 'YYYY-MM-DD' : 'HH:mm:ss A'
-    return format
+      format = formatType === 'date' ? 'YYYY-MM-DD' : 'HH:mm:ss A'
+      return format
+    } catch (error) {
+      return this.templateErrorMessage('getDefaultFormat', error)
+    }
   }
 }

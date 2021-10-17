@@ -18,8 +18,18 @@ export async function templateRender(templateTitle: string = '', data: mixed = {
   Editor.insertTextAtCursor(renderedData)
 }
 
+export async function testFullTemplate(): Promise<void> {
+  const templateName = 'np.Templating (Full Template)'
+
+  const templateContent = await Templating.getTemplate(templateName)
+
+  const result = await Templating.render(templateContent, {}, { extended: false })
+
+  Editor.insertTextAtCursor(result)
+}
+
 export async function testTemplateStandard(): Promise<void> {
-  const templateName = 'np.Templating Tester (Standard)'
+  const templateName = 'np.Templating (Standard)'
 
   const templateContent = await Templating.getTemplate(templateName)
 
@@ -31,8 +41,10 @@ export async function testTemplateStandard(): Promise<void> {
 export async function testTemplateKitchenSink(): Promise<void> {
   try {
     const currentNote = Editor.content || ''
+    const noteLength = currentNote.length
+    console.log(noteLength)
 
-    Editor.insertTextAtCursor('Please Wait...')
+    Editor.insertTextAtCursor('Please wait...')
 
     const templateName = 'np.Templating (Kitchen Sink)'
 
@@ -55,14 +67,14 @@ export async function testTemplateKitchenSink(): Promise<void> {
     // const result = await Templating.render(templateContent, custom, { extended: true })
     const result = await Templating.render(templateContent, custom, { extended: true })
 
-    Editor.replaceTextInCharacterRange(result, currentNote.length - 5, 255)
+    Editor.replaceTextInCharacterRange(result, noteLength - 5, 16384)
   } catch (error) {
     debug('testTemplateExtended', error)
   }
 }
 
 export async function testTemplateCustom(): Promise<void> {
-  const templateName = 'np.Templating Tester (Custom)'
+  const templateName = 'np.Templating (Custom)'
 
   const templateContent = await Templating.getTemplate(templateName)
 
@@ -80,7 +92,7 @@ export async function testTemplateCustom(): Promise<void> {
 }
 
 export async function testTemplateTasks(): Promise<void> {
-  const templateName = 'np.Templating Tester (Tasks)'
+  const templateName = 'np.Templating (Tasks)'
 
   const templateContent = await Templating.getTemplate(templateName)
 
@@ -100,7 +112,7 @@ export async function testTemplateTasks(): Promise<void> {
 }
 
 export async function testTemplateBooks(): Promise<void> {
-  const templateName = 'np.Templating Tester (Books)'
+  const templateName = 'np.Templating (Books)'
 
   const templateContent = await Templating.getTemplate(templateName)
 

@@ -45,6 +45,12 @@
       "alias": [],
       "description": "np.Templating (ArticWolf)",
       "jsFunction": "testArticWolf"
+    },
+    {
+      "name": "np:tester-full-template",
+      "alias": [],
+      "description": "np.Templating (Full Template)",
+      "jsFunction": "testFullTemplate"
     }
   ]
 }
