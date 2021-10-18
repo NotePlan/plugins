@@ -1,7 +1,6 @@
 // @flow
 
 import { sprintf } from 'sprintf-js'
-import { getOrMakeConfigurationSection, getStructuredConfiguration } from '../configuration'
 
 export default class UtilsModule {
   constructor(config: any = {}) {

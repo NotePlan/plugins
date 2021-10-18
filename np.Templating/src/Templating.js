@@ -7,7 +7,6 @@
 
 import { getUserLocale } from 'get-user-locale'
 
-// import eta from './eta.lib'
 import ejs from './support/ejs'
 
 import WebModule from './support/modules/WebModule'
@@ -29,13 +28,14 @@ export const DEFAULT_TEMPLATE_CONFIG = {
     email: '',
     phone: '',
   },
+  // $FlowFixMe
   services: {},
 }
 
 export default class Templating {
   templateConfig: any
   constructor(config: any) {
-    this.templateConfig = config
+    this.templateConfig = config || DEFAULT_TEMPLATE_CONFIG
   }
 
   async heartbeat(): Promise<string> {
@@ -137,11 +137,12 @@ export default class Templating {
     try {
       let result = await ejs.render(templateData, renderData, { async: true })
 
-      result = result.replaceAll('undefined', '')
+      result = (result && result?.replace(/undefined/g, '')) || ''
 
       return result
-    } catch (err) {
-      return this.templateErrorMessage('Templating.render', err.message)
+    } catch (error) {
+      return error
+      // return this.templateErrorMessage('Templating.render', err.message)
     }
   }
 

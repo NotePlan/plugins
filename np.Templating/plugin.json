@@ -57,6 +57,12 @@
       "alias": [],
       "description": "np.Templating (Full Template)",
       "jsFunction": "testFullTemplate"
+    },
+    {
+      "name": "np:tester-missing-variable",
+      "alias": [],
+      "description": "np.Templating (Missing Variable)",
+      "jsFunction": "testMissingVariable"
     }
   ]
 }
