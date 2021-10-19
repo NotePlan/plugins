@@ -6,7 +6,7 @@ export default class DateModule {
     this.config = config
 
     let osLocale = getUserLocale()
-    if (this.config?.locale.length > 0) {
+    if (this.config?.locale?.length > 0) {
       osLocale = this.config?.locale
     }
 
@@ -74,12 +74,18 @@ export default class DateModule {
   }
 
   isWeekend(date = '') {
-    const dt = date.length > 0 ? new Date(moment(date).format('YYYY-MM-DD HH:mm:ss')) : new Date()
-    return dt.getDay() === 0 || dt.getDay() === 7
+    let localeDate = date.length > 0 ? new Date(date).toLocaleString() : new Date().toLocaleString()
+
+    // if only supply date, append time and reformat
+    if (date.length === 10) {
+      localeDate = new Date(`${date} 00:59:00`).toLocaleString()
+    }
+
+    return new Date(localeDate).getDay() % 6 === 0
   }
 
-  isWeekday() {
-    return !this.isWeekend()
+  isWeekday(date = '') {
+    return !this.isWeekend(date)
   }
 
   isValid(dateObj = null) {

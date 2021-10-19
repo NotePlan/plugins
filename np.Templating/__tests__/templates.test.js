@@ -9,8 +9,8 @@ import Templating from '../src/Templating'
 import { DEFAULT_TEMPLATE_CONFIG } from '../src/Templating'
 import helpers from '../custom/template-helpers'
 
-const PLUGIN_NAME = `${colors.yellow('np.Templating')}`
-const section = colors.cyan
+const PLUGIN_NAME = `📙 ${colors.yellow('np.Templating')}`
+const section = colors.blue
 
 const titleCase = (str = '') => {
   return str
