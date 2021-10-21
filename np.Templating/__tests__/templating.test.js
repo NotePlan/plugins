@@ -7,7 +7,7 @@ import { existsSync } from 'fs'
 
 import Templating from '../src/Templating'
 import { DEFAULT_TEMPLATE_CONFIG } from '../src/Templating'
-import helpers from '../custom/template-helpers'
+import DateModule from '../src/support/modules/DateModule'
 
 const PLUGIN_NAME = `📙 ${colors.yellow('np.Templating')}`
 const section = colors.blue
@@ -37,7 +37,7 @@ describe(`${PLUGIN_NAME}`, () => {
   })
 
   describe(section('DateModule'), () => {
-    test(`should render data using variable`, async () => {
+    it(`should render data using variable`, async () => {
       const templateData = await factory('simple.ejs')
 
       let renderedData = await templateInstance.render(templateData, { name: 'Mike' })
@@ -46,7 +46,7 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(renderedData).toContain(`console.log('Hello Mike')\n`)
     })
 
-    test(`should render data using inline function`, async () => {
+    it(`should render data using inline function`, async () => {
       const templateData = await factory('simple-function.ejs')
 
       const data = {
@@ -62,7 +62,7 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(renderedData).toContain('Hello via function call: test')
     })
 
-    test(`should render data using extended template`, async () => {
+    it(`should render data using extended template`, async () => {
       const templateData = await factory('extended.ejs')
 
       const data = {
@@ -88,95 +88,95 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(renderedData).toContain('Trevor')
     })
 
-    test(`should render default date object`, async () => {
+    it(`should render default date object`, async () => {
       const templateData = await factory('dates.ejs')
 
       let renderedData = await templateInstance.render(templateData)
 
-      let currentDate = helpers().date.now()
+      let currentDate = new DateModule().now()
 
       expect(templateData).not.toBe('FACTORY_NOT_FOUND')
       expect(renderedData).toContain(`Current Date: ${currentDate}`)
     })
 
-    test(`should render formatted date object`, async () => {
+    it(`should render formatted date object`, async () => {
       const templateData = await factory('dates.ejs')
 
       let renderedData = await templateInstance.render(templateData)
 
-      let currentDate = helpers().date.now('YYYY-MM-DD')
+      let currentDate = new DateModule().now('YYYY-MM-DD')
 
       expect(templateData).not.toBe('FACTORY_NOT_FOUND')
       expect(renderedData).toContain(`Current Date: ${currentDate}`)
     })
 
-    test(`should render formatted date object adding 1 day`, async () => {
+    it(`should render formatted date object adding 1 day`, async () => {
       const templateData = await factory('dates.ejs')
 
       let renderedData = await templateInstance.render(templateData)
 
-      let currentDate = helpers().date.now('YYYY-MM-DD', 1)
+      let currentDate = new DateModule().now('YYYY-MM-DD', 1)
 
       expect(templateData).not.toBe('FACTORY_NOT_FOUND')
       expect(renderedData).toContain(`Add Day: ${currentDate}`)
     })
 
-    test(`should render formatted date object subtracting 1 day`, async () => {
+    it(`should render formatted date object subtracting 1 day`, async () => {
       const templateData = await factory('dates.ejs')
 
       let renderedData = await templateInstance.render(templateData)
 
-      let currentDate = helpers().date.now('YYYY-MM-DD', -1)
+      let currentDate = new DateModule().now('YYYY-MM-DD', -1)
 
       expect(templateData).not.toBe('FACTORY_NOT_FOUND')
       expect(renderedData).toContain(`Subtract Day: ${currentDate}`)
     })
 
-    test(`should render tomorrow`, async () => {
+    it(`should render tomorrow`, async () => {
       const templateData = await factory('dates.ejs')
 
       let renderedData = await templateInstance.render(templateData)
 
-      let currentDate = helpers().date.tomorrow()
+      let currentDate = new DateModule().tomorrow()
 
       expect(templateData).not.toBe('FACTORY_NOT_FOUND')
       expect(renderedData).toContain(`Tomorrow: ${currentDate}`)
     })
 
-    test(`should render yesterday`, async () => {
+    it(`should render yesterday`, async () => {
       const templateData = await factory('dates.ejs')
 
       let renderedData = await templateInstance.render(templateData)
 
-      let currentDate = helpers().date.yesterday()
+      let currentDate = new DateModule().yesterday()
 
       expect(templateData).not.toBe('FACTORY_NOT_FOUND')
       expect(renderedData).toContain(`Yesterday: ${currentDate}`)
     })
 
-    test(`should render weekday`, async () => {
+    it(`should render weekday`, async () => {
       const templateData = await factory('dates.ejs')
 
       let renderedData = await templateInstance.render(templateData)
 
-      let currentDate = helpers().date.weekday('YYYY-MM-DD', 3)
+      let currentDate = new DateModule().weekday('YYYY-MM-DD', 3)
 
       expect(templateData).not.toBe('FACTORY_NOT_FOUND')
       expect(renderedData).toContain(`Weekday (Add): ${currentDate}`)
     })
 
-    test(`should render weekday`, async () => {
+    it(`should render weekday`, async () => {
       const templateData = await factory('dates.ejs')
 
       let renderedData = await templateInstance.render(templateData)
 
-      let currentDate = helpers().date.weekday('YYYY-MM-DD', -3)
+      let currentDate = new DateModule().weekday('YYYY-MM-DD', -3)
 
       expect(templateData).not.toBe('FACTORY_NOT_FOUND')
       expect(renderedData).toContain(`Weekday (Subtract): ${currentDate}`)
     })
 
-    test(`should process various date formats`, async () => {
+    it(`should process various date formats`, async () => {
       const templateData = await factory('dates-various.ejs')
 
       let renderedData = await templateInstance.render(templateData)
@@ -188,24 +188,24 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(typeof renderedData).toBe('string')
 
       // now validate results
-      let now = helpers().date.now('Do MMMM YYYY')
+      let now = new DateModule().now('Do MMMM YYYY')
 
-      expect(renderedData).toContain('Date now: ' + helpers().date.now())
-      expect(renderedData).toContain('Date now with format: ', helpers().date.now('Do MMMM YYYY'))
+      expect(renderedData).toContain('Date now: ' + new DateModule().now())
+      expect(renderedData).toContain('Date now with format: ', new DateModule().now('Do MMMM YYYY'))
 
-      expect(renderedData).toContain('Last week: ' + helpers().date.now('dddd Do MMMM YYYY', -7))
-      expect(renderedData).toContain('Today: ' + helpers().date.now('dddd Do MMMM YYYY, ddd'))
-      expect(renderedData).toContain('Next week: ' + helpers().date.now('dddd Do MMMM YYYY', 7))
+      expect(renderedData).toContain('Last week: ' + new DateModule().now('dddd Do MMMM YYYY', -7))
+      expect(renderedData).toContain('Today: ' + new DateModule().now('dddd Do MMMM YYYY, ddd'))
+      expect(renderedData).toContain('Next week: ' + new DateModule().now('dddd Do MMMM YYYY', 7))
 
-      expect(renderedData).toContain('Last month: ' + helpers().date.now('YYYY-MM-DD', 'P-1M'))
-      expect(renderedData).toContain('Next year: ' + helpers().date.now('YYYY-MM-DD', 'P1Y'))
+      expect(renderedData).toContain('Last month: ' + new DateModule().now('YYYY-MM-DD', 'P-1M'))
+      expect(renderedData).toContain('Next year: ' + new DateModule().now('YYYY-MM-DD', 'P1Y'))
 
-      expect(renderedData).toContain('Date tomorrow with format: ' + helpers().date.tomorrow('Do MMMM YYYY'))
+      expect(renderedData).toContain('Date tomorrow with format: ' + new DateModule().tomorrow('Do MMMM YYYY'))
 
-      expect(renderedData).toContain("This week's monday: " + helpers().date.weekday('YYYY-MM-DD', 0))
-      expect(renderedData).toContain('Next monday: ' + helpers().date.weekday('YYYY-MM-DD', 7))
+      expect(renderedData).toContain("This week's monday: " + new DateModule().weekday('YYYY-MM-DD', 0))
+      expect(renderedData).toContain('Next monday: ' + new DateModule().weekday('YYYY-MM-DD', 7))
 
-      expect(renderedData).toContain('Date yesterday with format: ' + helpers().date.yesterday('Do MMMM YYYY'))
+      expect(renderedData).toContain('Date yesterday with format: ' + new DateModule().yesterday('Do MMMM YYYY'))
     })
 
     test.skip('should use date format from configuration', () => {})
@@ -230,11 +230,11 @@ describe(`${PLUGIN_NAME}`, () => {
 
     test.skip('should return weather', () => {})
 
-    test('should return service item', () => {})
+    it('should return service item', () => {})
   })
 
   describe(section('Error Handling'), () => {
-    test(`should return error with missing object`, async () => {
+    it(`should return error with missing object`, async () => {
       const templateData = await factory('missing-object.ejs')
 
       let renderedData = await templateInstance.render(templateData)
@@ -243,7 +243,7 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(renderedData.message).toContain('name2 is not defined')
     })
 
-    test(`should return error with invalid syntax`, async () => {
+    it(`should return error with invalid syntax`, async () => {
       const templateData = await factory('invalid-syntax.ejs')
 
       let renderedData = await templateInstance.render(templateData)
@@ -251,13 +251,13 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(renderedData.message).toContain(`Could not find matching close tag for \"<%\".`)
     })
 
-    test(`should use templating error handler`, async () => {
+    it(`should use templating error handler`, async () => {
       expect(true).toEqual(true)
     })
   })
 
   describe(section('Custom Tags'), () => {
-    test(`should use 'note' object tags (pending)`, async () => {
+    it(`should use 'note' object tags (pending)`, async () => {
       const templateData = await factory('invalid-syntax.ejs')
 
       let renderedData = await templateInstance.render(templateData)
@@ -293,7 +293,7 @@ describe(`${PLUGIN_NAME}`, () => {
   })
 
   describe(section('Miscellaneous'), () => {
-    test(`should render complex event data`, async () => {
+    it(`should render complex event data`, async () => {
       const templateData = await factory('invalid-syntax.eta')
 
       const eventData = {
@@ -338,7 +338,7 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(renderedData).toContain('Trevor')
     })
 
-    test(`should support ternary operations`, async () => {
+    it(`should support ternary operations`, async () => {
       const templateData = await factory('ternary.ejs')
 
       // missing `name`
@@ -350,7 +350,7 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(renderedData).toContain('Hello Recipient')
     })
 
-    test(`should support ternary operations`, async () => {
+    it(`should support ternary operations`, async () => {
       const templateData = await factory('ternary.ejs')
 
       // supplied `name`
@@ -362,7 +362,7 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(renderedData).toContain('Hello Mike')
     })
 
-    test(`should produce tasks`, async () => {
+    it(`should produce tasks`, async () => {
       const templateData = await factory('simulate-tasks.ejs')
 
       // supplied `name`
@@ -394,7 +394,7 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(renderedData).toContain(' - [ ] Item 4')
     })
 
-    test(`should use proxy to template logic`, async () => {
+    it(`should use proxy to template logic`, async () => {
       const templateData = await factory('template-logic.ejs')
 
       const data = {

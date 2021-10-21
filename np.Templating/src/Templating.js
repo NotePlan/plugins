@@ -54,6 +54,12 @@ export default class Templating {
   }
 
   async getTemplate(templateName: string = ''): Promise<string> {
+    // const result = DataStore.projectNoteByFilename('📋 Templates/Templating Samples/Test (Standard).md')
+    // const result = DataStore.projectNoteByFilename('Test/Folder Name/New Note - 14.9410.md')
+    // const result = DataStore.projectNoteByFilename(`📋 Templates/Templating Samples/Test (Standard).md`)
+    // console.log(result)
+    console.log(templateName)
+
     try {
       const selectedTemplate = await DataStore.projectNoteByTitle(templateName, true, false)?.[0]
       let templateContent = selectedTemplate?.content

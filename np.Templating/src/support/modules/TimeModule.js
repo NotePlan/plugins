@@ -6,20 +6,22 @@ export default class TimeModule {
     this.config = config
 
     let osLocale = getUserLocale()
-    if (this.config?.locale.length > 0) {
+    if (this.config?.locale?.length > 0) {
       osLocale = this.config?.locale
     }
 
     moment.locale(osLocale)
   }
+
   format(format = '', date = '') {
-    const dateValue = date.length > 0 ? date : new Date()
+    let dateValue = date.length > 0 ? date : new Date()
     const configFormat = this.config?.defaultFormats?.time || 'HH:mm A'
     format = format.length > 0 ? format : configFormat
 
     if (date instanceof Date) {
       return moment(date).format(format)
     } else {
+      dateValue = new Date(date).toLocaleString()
       return moment(new Date(dateValue)).format(format)
     }
   }
