@@ -279,7 +279,7 @@ export async function listMatchingDaysEvents(
       }
     }
   }
-  const output = outputArray.join('') // This used to be '\n' but now that seems to add blank lines for some reason. If this array is empty -> empty string.
+  const output = outputArray.join('\n') // This used to be '\n' but now that seems to add blank lines for some reason. If this array is empty -> empty string.
   console.log(output)
   return output
 }
@@ -296,7 +296,6 @@ export async function insertMatchingDaysEvents(
   }
   console.log(`\ninsertMatchingDaysEvents:`)
 
-  // Get config settings from Template folder _configuration note
   const output = await listMatchingDaysEvents(paramString || '')
   Editor.insertTextAtCursor(output)
 }

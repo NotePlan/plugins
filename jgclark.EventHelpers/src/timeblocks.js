@@ -3,7 +3,7 @@
 // ------------------------------------------------------------------------------------
 // Command to turn time blocks into full calendar events
 // @jgclark
-// v0.5.0, 13.9.2021
+// v0.6.2, 21.10.2021
 //
 // See https://help.noteplan.co/article/52-part-2-tasks-events-and-reminders#timeblocking
 // for definition of time blocks. In summary:
@@ -13,7 +13,7 @@
 // ------------------------------------------------------------------------------------
 
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
-import { showMessageYesNo } from '../../helpers/userInput'
+import { showMessage, showMessageYesNo } from '../../helpers/userInput'
 import { displayTitle } from '../../helpers/general'
 import {
   printDateRange,
@@ -181,14 +181,14 @@ export async function timeBlocksToCalendar() {
         if (timeblockDateRange != null) {
           const title = thisParaContent.replace(origTimeBlockString, '')
           if (pref_confirmEventCreation) {
-            const res = await showMessageYesNo(`Create '${timeBlockString}' for '${title}'?`)
+            const res = await showMessageYesNo(`Create event from '${timeBlockString}' for '${title}'?`)
             if (res === 'No') {
               continue // go to next time block
             }
           }
 
           console.log(`\tWill process time block '${timeBlockString}' for '${title}'`)
-          const eventID = createEventFromDateRange(title, timeblockDateRange) ?? '<error getting eventID>'
+          const eventID = await createEventFromDateRange(title, timeblockDateRange) ?? '<error getting eventID>'
 
           // Remove time block string (if wanted)
           if (pref_removeTimeBlocksWhenProcessed) {
@@ -210,11 +210,12 @@ export async function timeBlocksToCalendar() {
     }
   } else {
     console.log(`  -> No time blocks found.`)
+    await showMessage(`Sorry, no time blocks found.`)
   }
 }
 
 // Create a new calendar event
-function createEventFromDateRange(eventTitle: string, dateRange: DateRange): ?string {
+async function createEventFromDateRange(eventTitle: string, dateRange: DateRange): Promise<string> {
   // console.log(`\tStarting cEFDR with ${eventTitle} for calendar ${pref_calendarToWriteTo}`)
   // If we have a pref_calendarToWriteTo setting, then include that in the call
   let event: TCalendarItem
@@ -239,11 +240,13 @@ function createEventFromDateRange(eventTitle: string, dateRange: DateRange): ?st
   const createdEvent = Calendar.add(event)
   const calendarDisplayName = (pref_calendarToWriteTo !== '') ? pref_calendarToWriteTo : 'system default'
   if (createdEvent != null) {
-    console.log(`-> Event created with id: ${createdEvent.id ?? 'undefined'} in ${calendarDisplayName} calendar `)
-    return createdEvent.id
+    const newID = createdEvent.id ?? 'undefined'
+    console.log(`-> Event created with id: ${newID} in ${calendarDisplayName} calendar `)
+    return newID
   } else {
     console.log(`-> Error: failed to create event in ${calendarDisplayName} calendar`)
-    return '(error)'
+    await showMessage(`Sorry, I failed to create event in ${calendarDisplayName} calendar`)
+    return 'error'
   }
 }
 
