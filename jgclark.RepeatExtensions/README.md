@@ -23,6 +23,8 @@ Notes:
 - When _interval_ is of the form `+2w` it will duplicate the task for 2 weeks after the date the _task was completed_.
 - When _interval_ is of the form `2w` it will duplicate the task for 2 weeks after the date the _task was last due_. This is found from a `>yyyy-mm-dd` scheduled date. If this can't be determined, then it defaults to the first option.
 
+**NB: Mac NotePlan versions around 657-660 have a bug that means this plugin fails _unless you include a `>yyyy-mm-dd` string in the line of the task_.**
+
 ## Changes
 Please see the [CHANGELOG](CHANGELOG.md).
 
