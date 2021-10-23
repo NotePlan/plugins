@@ -8,6 +8,9 @@ This plugin provides two commands for daily journalling, including start-of-day 
 ## Changes
 Please see the [CHANGELOG](CHANGELOG.md).
 
+## Requirements
+This template requires prior installation of the [Templates plugin](https://github.com/NotePlan/plugins/tree/main/nmn.Templates/).
+
 ## Configuration
 ### /dayStart and /todayStart
 `/dayStart` and `/todayStart` use the `Daily Note Template` note found in the `Templates` folder. If this note has not been added, it should prompt you to create one.
