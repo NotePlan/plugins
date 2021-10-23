@@ -89,14 +89,12 @@ type TEditor = {
    * Get the selected text.
    */
   +selectedText: ?string,
-
   /**
    * Inserts the given text at the given character position (index)
    * @param text 	  - Text to insert
    * @param index   - Position to insert at (you can get this using 'renderedSelection' for example)
    */
   insertTextAtCharacterIndex(text: string, index: number): void,
-
   /**
    * Inserts the given text at the current cursor position
    * @param text - Text to insert
@@ -164,6 +162,11 @@ type TEditor = {
     highlightEnd?: number,
   ): Promise<TNote | void>,
   /**
+  * Selects the full text in the editor.
+  * NB: Available from NotePlan v3.2 (Mac Build: 662, iOS Build: 593)
+  */
+  selectAll(): void,
+  /**
    * (Raw) select text in the editor
    * (like select 10 characters = length fromposition 2 = start)
    *
@@ -179,6 +182,18 @@ type TEditor = {
    * hidden, including Markdown links and folded text.
    */
   renderedSelect(start: number, length: number): void,
+  /**
+  * Copies the currently selected text in the editor to the system clipboard.
+  * NB: See also Clipboard object.
+  * NB: Available from NotePlan v3.2 (Mac Build: 662, iOS Build: 593)
+  */
+  copySelection(): void,
+  /**
+  * Pastes the current content in the system clipboard into the current selection in the editor.
+  * NB: See also Clipboard object.
+  * NB: Available from NotePlan v3.2 (Mac Build: 662, iOS Build: 593)
+  */
+  pasteClipboard(): void,
   /**
    * Scrolls to and highlights the given paragraph. If the paragraph is folded,
    * it will be unfolded.
@@ -918,6 +933,7 @@ type TCalendarItem = {
 
 /**
  * Access and set the data inside the current clipboard.
+ * NB: See also 2 methods in the TEditor object.
  */
 declare var Clipboard: {
   /**
