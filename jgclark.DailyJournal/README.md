@@ -9,7 +9,7 @@ This plugin provides two commands for daily journalling, including start-of-day 
 Please see the [CHANGELOG](CHANGELOG.md).
 
 ## Requirements
-This template requires prior installation of the [Templates plugin](https://github.com/NotePlan/plugins/tree/main/nmn.Templates/).
+This plugin requires prior installation of the [Templates plugin](https://github.com/NotePlan/plugins/tree/main/nmn.Templates/).
 
 ## Configuration
 ### /dayStart and /todayStart
