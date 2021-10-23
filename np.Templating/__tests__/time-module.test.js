@@ -10,8 +10,8 @@ const section = colors.blue
 describe(`${PLUGIN_NAME}`, () => {
   describe(section('TimeModule'), () => {
     it(`should render .now`, async () => {
-      const result = new TimeModule().now()
-      expect(result).toEqual(moment(new Date()).format('hh:mm A'))
+      const result = new TimeModule().now('h:mm A')
+      expect(result).toEqual(moment(new Date()).format('h:mm A'))
     })
 
     it(`should render .now using custom format`, async () => {

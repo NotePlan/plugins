@@ -8,6 +8,7 @@ import {
   // parseYAML
 } from '../../../helpers/general'
 import { getOrMakeTemplateFolder, createDefaultConfigNote } from '../../../nmn.Templates/src/template-folder'
+import { DEFAULT_TEMPLATE_CONFIG } from '../Templating'
 
 const ALLOWED_FORMATS = ['javascript', 'json', 'json5', 'yaml', 'toml', 'ini']
 const FORMAT_MAP = {
@@ -219,6 +220,10 @@ export async function getOrMakeConfigurationSection(
     // $FlowIgnore
     return config[configSectionName]
   }
+}
+
+export async function getOrMakeTemplateSection(): Promise<?{ [string]: ?mixed }> {
+  return await getOrMakeConfigurationSection('templates', JSON.stringify(DEFAULT_TEMPLATE_CONFIG))
 }
 
 /**

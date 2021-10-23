@@ -63,6 +63,18 @@
       "alias": [],
       "description": "np.Templating (Missing Variable)",
       "jsFunction": "testMissingVariable"
+    },
+    {
+      "name": "np:tester-frontmatter",
+      "alias": [],
+      "description": "np.Templating (Frontmatter)",
+      "jsFunction": "testFrontmatter"
+    },
+    {
+      "name": "np:tester-async",
+      "alias": [],
+      "description": "np.Templating (Async)",
+      "jsFunction": "testTemplateAsync"
     }
   ]
 }

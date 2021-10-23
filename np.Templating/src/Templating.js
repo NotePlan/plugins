@@ -7,6 +7,8 @@
 
 import { getUserLocale } from 'get-user-locale'
 
+// this is a customized versioin of `ejs` adding support for async actions (use await in template)
+// review `Test (Async)` template for example`
 import ejs from './support/ejs'
 
 import WebModule from './support/modules/WebModule'
@@ -14,6 +16,7 @@ import DateModule from './support/modules/DateModule'
 import TimeModule from './support/modules/TimeModule'
 import NoteModule from './support/modules/NoteModule'
 import UtilsModule from './support/modules/UtilsModule'
+import FrontmatterModule from './support/modules/FrontmatterModule'
 
 export const DEFAULT_TEMPLATE_CONFIG = {
   locale: 'en-US',
@@ -30,6 +33,12 @@ export const DEFAULT_TEMPLATE_CONFIG = {
   },
   // $FlowFixMe
   services: {},
+}
+
+const TEMPLATE_FOLDER_NAME = '📋 Templates'
+
+export function getTemplateFolder(): ?string {
+  return DataStore.folders.find((f) => f.includes(TEMPLATE_FOLDER_NAME))
 }
 
 export default class Templating {
@@ -53,16 +62,37 @@ export default class Templating {
     return `**Error: ${method}**\n- **${message}**`
   }
 
-  async getTemplate(templateName: string = ''): Promise<string> {
-    // const result = DataStore.projectNoteByFilename('📋 Templates/Templating Samples/Test (Standard).md')
-    // const result = DataStore.projectNoteByFilename('Test/Folder Name/New Note - 14.9410.md')
-    // const result = DataStore.projectNoteByFilename(`📋 Templates/Templating Samples/Test (Standard).md`)
-    // console.log(result)
-    console.log(templateName)
+  async isFrontmatter(templateData: string): Promise<boolean> {
+    return templateData.length > 0 ? new FrontmatterModule().isFrontmatterTemplate(templateData.substring(1)) : false
+  }
 
+  async getTemplate(templateName: string = ''): Promise<string> {
+    // $FlowFixMe
+    let templateFilename = `${getTemplateFolder()}/${templateName}.md`
     try {
-      const selectedTemplate = await DataStore.projectNoteByTitle(templateName, true, false)?.[0]
-      let templateContent = selectedTemplate?.content
+      let selectedTemplate = await DataStore.projectNoteByFilename(templateFilename)
+
+      // if the template can't be found using actual filename (as it is on disk)
+      // this will occur due to a bug in NotePlan which is not properly renaming files on disk to match note name
+      if (!selectedTemplate) {
+        console.log('-'.repeat(140))
+        console.log(
+          ' Templating.getTemplate unable to locate "${templateFilename}" attempting to locate based on note title',
+        )
+        console.log('-'.repeat(140))
+        const parts = templateName.split('/')
+        templateFilename = parts[parts.length - 1]
+        selectedTemplate = await DataStore.projectNoteByTitle(templateFilename, true, false)?.[0]
+      }
+
+      let templateContent = selectedTemplate?.content || ''
+
+      const isFrontmatterTemplate =
+        templateContent.length > 0 ? new FrontmatterModule().isFrontmatterTemplate(templateContent.substring(1)) : false
+
+      if (isFrontmatterTemplate) {
+        return templateContent || ''
+      }
       if (templateContent == null || templateContent.length === 0) {
         const message = `Template "${templateName}" Not Found or Empty`
         return this.templateErrorMessage('Templating.getTemplate', message)
@@ -84,8 +114,7 @@ export default class Templating {
   async renderTemplate(templateName: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
     try {
       const templateContent = await this.getTemplate(templateName)
-
-      const result = await this.render(templateContent, userData)
+      const result = await this.render(templateContent, userData, userOptions)
 
       return result
     } catch (error) {
@@ -140,8 +169,24 @@ export default class Templating {
     renderData = userData?.methods ? { ...userData.methods, ...renderData } : renderData
     renderData.np = { ...renderData }
 
+    let processedTemplateData = templateData
+
+    // check if templateData is frontmatter
+    let frontmatterBlock = new FrontmatterModule().getFrontmatterBlock(processedTemplateData)
+    frontmatterBlock = frontmatterBlock.replace(/--/g, '---')
+
+    const frontmatterData = new FrontmatterModule().render(frontmatterBlock)
+    if (frontmatterData.hasOwnProperty('attributes') && frontmatterData.hasOwnProperty('body')) {
+      if (Object.keys(frontmatterData.attributes).length > 0) {
+        renderData.frontmatter = { ...frontmatterData.attributes }
+      }
+      if (frontmatterData.body.length > 0) {
+        processedTemplateData = frontmatterData.body
+      }
+    }
+
     try {
-      let result = await ejs.render(templateData, renderData, { async: true })
+      let result = await ejs.render(processedTemplateData, renderData, { async: true })
 
       result = (result && result?.replace(/undefined/g, '')) || ''
 
