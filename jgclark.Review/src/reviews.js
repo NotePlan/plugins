@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Commands for Reviewing project-style notes, GTD-style.
 // by @jgclark
-// v0.4.1, 27.9.2021
+// v0.4.3, 24.10.2021
 //-----------------------------------------------------------------------------
 
 // Settings
@@ -126,7 +126,7 @@ export async function projectLists(): Promise<void> {
         note.content = outputArray.join('\n')
         console.log(`\twritten results to note '${noteTitle}'`)
       } else {
-        showMessage('Oops: failed to find or make project summary note', 'OK')
+        await showMessage('Oops: failed to find or make project summary note', 'OK')
         console.log(
           "projectLists: error: shouldn't get here -- no valid note to write to",
         )
@@ -147,7 +147,7 @@ export async function projectLists(): Promise<void> {
       note.content = outputArray.join('\n')
       console.log(`\twritten results to note '${noteTitle}'`)
     } else {
-      showMessage('Oops: failed to find or make project summary note', 'OK')
+      await showMessage('Oops: failed to find or make project summary note', 'OK')
       console.log(
         "projectLists: error: shouldn't get here -- no valid note to write to",
       )
@@ -357,8 +357,7 @@ export async function updateReviewListAfterReview(note: TNote) {
   // Get pref that contains the project list
   const reviewList = DataStore.preference(reviewListPref)
   if (reviewList === undefined) {
-    showMessage(`Oops: I now can't find my pref`, 'OK')
-    console.log(`updateReviewListAfterReview: error: can't find pref jgclark.Review.reviewList`)
+    console.log(`updateReviewListAfterReview V2: warning: can't find pref jgclark.Review.reviewList`)
     return
   }
 
@@ -395,7 +394,7 @@ async function getNextNoteToReview(): Promise<?TNote> {
   // Get pref that contains the project list
   const reviewList = DataStore.preference(reviewListPref)
   if (reviewList === undefined) {
-    showMessage(`Oops: I now can't find my pref`, 'OK')
+    await showMessage(`Oops: I now can't find my pref`, 'OK')
     console.log(`getNextNoteToReview: error: can't find pref jgclark.Review.reviewList`)
     return
   }

@@ -1,12 +1,10 @@
 # What's changed in 🔬 Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Review), and how to configure.
 
-## [0.4.2] - 2021-10-23
+## [0.4.1..0.4.3] - 2021-10-24
 ### Fixed
+- updated some warning messages
 - found that NP strips out hash symbols from note titles; this led to duplicate Review notes
-
-## [0.4.1] - 2021-09-27
-### Fixed
 - typo in default configuration that gets copied to _configuration
 
 ## [0.4.0] - 2021-09-10
