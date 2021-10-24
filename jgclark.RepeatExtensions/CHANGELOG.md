@@ -1,17 +1,23 @@
 # What's changed in 🔁 Repeat Extensions plugin?
 
-### v0.2.4, 29.6.2021
+## [0.3.0] - 2021-10-24
+### Added
+- now tells user if no suitable repeats were found to process, to make it clear that it did run
+
+### Fixed
+- the new repeats now don't show as 'scheduled' (i.e. starting `* [>]`) but just as ordinary open taks (`* [ ] `), which then makes them visible in the referenes area, as intended (thanks to @orionp for pointing this out)
+
+## [0.2.1..0.2.4] - 2021-06-29
+### Added
+- new: where the repeat is in a daily note, now 'throw' the new repeat of the task into the future date. (Note this is currently waiting on a fix to the API to be implemented fully.)
+### Changed
 - updated: now compiled for macOS versions back to 10.13.0.
-
-### v0.2.3, 29.6.2021
 - improve: quality of month interval calculations
-
-### v0.2.2, 11.6.2021
 - update: following API fix, future repeats are created OK in daily notes
 
-### v0.2.1, 30.5.2021
+## Fixed
 - fix: allow for other date localisations (that make `@done()` include versions of AM/PM string as well)
-- new: where the repeat is in a daily note, now 'throw' the new repeat of the task into the future date. (Note this is currently waiting on a fix to the API to be implemented fully.)
 
-### v0.2.0, 27.5.2021
+## [0.2.0] - 2021-05-27
+### Added
 - first released version for plugin, ported to JavaScript plugin framework from my [npTools Ruby script](https://github.com/jgclark/NotePlan-tools/).
