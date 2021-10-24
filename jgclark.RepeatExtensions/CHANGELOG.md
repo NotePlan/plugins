@@ -5,7 +5,7 @@
 - now tells user if no suitable repeats were found to process, to make it clear that it did run
 
 ### Fixed
-- the new repeats now don't show as 'scheduled' (i.e. starting `* [>]`) but just as ordinary open taks (`* [ ] `), which then makes them visible in the referenes area, as intended (thanks to @orionp for pointing this out)
+- the new repeats now don't show as 'scheduled' (i.e. starting `* [>]`) but just as ordinary open tasks (`* [ ] `), which then makes them visible in the references area, as intended (thanks to @orionp for pointing this out)
 
 ## [0.2.1..0.2.4] - 2021-06-29
 ### Added

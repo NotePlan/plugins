@@ -6,7 +6,7 @@
 //--------------------------------------------------------------------------------------------------------------------
 
 import {
-  projectNotesSortedByChanged,
+  allNotesSortedByChanged,
   printNote,
 } from '../../helpers/note'
 import { chooseFolder } from '../../helpers/userInput'
@@ -37,7 +37,7 @@ export async function moveNote() {
 // Open a user-selected note in a new window.
 export async function openNoteNewWindow() {
   // Ask for the note we want to add the task
-  const notes = projectNotesSortedByChanged()
+  const notes = allNotesSortedByChanged()
   const re = await CommandBar.showOptions(
     notes.map((n) => n.title).filter(Boolean),
     'Select note to open in new window',
@@ -94,7 +94,7 @@ export async function jumpToHeading() {
 // NB: need to update to allow this to work with sub-windows, when EM updates API
 export async function jumpToNoteHeading() {
   // first jump to the note of interest, then to the heading
-  const notesList = projectNotesSortedByChanged()
+  const notesList = allNotesSortedByChanged()
   const re = await CommandBar.showOptions(
     notesList.map((n) => n.title ?? 'untitled'),
     'Select note to jump to',

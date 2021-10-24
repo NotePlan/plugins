@@ -1,5 +1,8 @@
 # What's changed in 📙 Note Helpers plugin?
 
+### v0.10.5, 2021-10-24
+- now 'move' or 'jump' to daily notes, not just project notes
+
 ### v0.10.4, 31.8.2021
 - update: now allows notes to be moved to the special @Archive directory (requested by @brokosz)
 
