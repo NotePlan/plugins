@@ -35,8 +35,10 @@ export async function templateInsatiation(): Promise<void> {
 
 export async function testFullTemplate(): Promise<void> {
   try {
-    const templateInstance = new Templating(await getOrMakeTemplateSection())
-    const result = await templateInstance.renderTemplate(templateFilenamePath('Test (Full Template)'), {})
+    const result = await new Templating(await getOrMakeTemplateSection()).renderTemplate(
+      templateFilenamePath('Test (Full Template)'),
+      {},
+    )
 
     Editor.insertTextAtCursor(result)
   } catch (error) {
@@ -46,8 +48,10 @@ export async function testFullTemplate(): Promise<void> {
 
 export async function testTemplateStandard(): Promise<void> {
   try {
-    const templateInstance = new Templating(await getOrMakeTemplateSection())
-    const result = await templateInstance.renderTemplate(templateFilenamePath('Test (Standard)'), {})
+    const result = await new Templating(await getOrMakeTemplateSection()).renderTemplate(
+      templateFilenamePath('Test (Standard)'),
+      {},
+    )
 
     Editor.insertTextAtCursor(result)
   } catch (error) {
@@ -75,8 +79,7 @@ export async function testTemplateKitchenSink(): Promise<void> {
       },
     }
 
-    const templateInstance = new Templating(await getOrMakeTemplateSection())
-    const result = await templateInstance.renderTemplate('Test (Kitchen Sink)', custom)
+    const result = await new Templating(await getOrMakeTemplateSection()).renderTemplate('Test (Kitchen Sink)', custom)
 
     // Editor.replaceTextInCharacterRange(result, noteLength, 16384)
     Editor.insertTextAtCursor(result)
@@ -95,8 +98,8 @@ export async function testTemplateCustom(): Promise<void> {
       names: ['mike', 'kira', 'joelle', 'brady', 'bailey', 'trevor'],
     }
 
-    const templateInstance = new Templating(await getOrMakeTemplateSection())
-    const result = await templateInstance.renderTemplate('Test (Custom)', custom)
+    // const templateInstance = new Templating(await getOrMakeTemplateSection())
+    const result = await new Templating(await getOrMakeTemplateSection()).renderTemplate('Test (Custom)', custom)
 
     Editor.insertTextAtCursor(result)
   } catch (error) {
@@ -116,8 +119,8 @@ export async function testTemplateTasks(): Promise<void> {
       ],
     }
 
-    const templateInstance = new Templating(await getOrMakeTemplateSection())
-    const result = await templateInstance.renderTemplate('Test (Tasks)', custom)
+    // const templateInstance = new Templating(await getOrMakeTemplateSection())
+    const result = await new Templating(await getOrMakeTemplateSection()).renderTemplate('Test (Tasks)', custom)
 
     Editor.insertTextAtCursor(result)
   } catch (error) {
@@ -139,8 +142,7 @@ export async function testTemplateBooks(): Promise<void> {
       ],
     }
 
-    const templateInstance = new Templating(await getOrMakeTemplateSection())
-    const result = await templateInstance.renderTemplate('Test (Books)', custom)
+    const result = await new Templating(await getOrMakeTemplateSection()).renderTemplate('Test (Books)', custom)
 
     Editor.insertTextAtCursor(result)
   } catch (error) {
@@ -154,8 +156,8 @@ export async function testArticWolf(): Promise<void> {
       type: 'meeting',
     }
 
-    const templateInstance = new Templating(await getOrMakeTemplateSection())
-    const result = await templateInstance.renderTemplate('Test (ArticWolf)', custom)
+    // const templateInstance = new Templating(await getOrMakeTemplateSection())
+    const result = await new Templating(await getOrMakeTemplateSection()).renderTemplate('Test (ArticWolf)', custom)
 
     Editor.insertTextAtCursor(result)
   } catch (error) {
@@ -165,8 +167,7 @@ export async function testArticWolf(): Promise<void> {
 
 export async function testMissingVariable(): Promise<void> {
   try {
-    const templateInstance = new Templating(await getOrMakeTemplateSection())
-    const result = await templateInstance.renderTemplate('Test (Missing Variable)', {})
+    const result = await new Templating(await getOrMakeTemplateSection()).renderTemplate('Test (Missing Variable)', {})
 
     Editor.insertTextAtCursor(result)
   } catch (error) {
@@ -176,8 +177,10 @@ export async function testMissingVariable(): Promise<void> {
 
 export async function testFrontmatter(): Promise<void> {
   try {
-    const templateInstance = new Templating(await getOrMakeTemplateSection())
-    const result = await templateInstance.renderTemplate(templateFilenamePath('Test (Frontmatter)'), {})
+    const result = await new Templating(await getOrMakeTemplateSection()).renderTemplate(
+      templateFilenamePath('Test (Frontmatter)'),
+      {},
+    )
 
     Editor.insertTextAtCursor(result)
   } catch (error) {
@@ -187,8 +190,7 @@ export async function testFrontmatter(): Promise<void> {
 
 export async function testTemplateAsync(): Promise<void> {
   try {
-    const templateInstance = new Templating(await getOrMakeTemplateSection())
-    const result = await templateInstance.renderTemplate('Test (Async)', {})
+    const result = await new Templating(await getOrMakeTemplateSection()).renderTemplate('Test (Async)', {})
 
     Editor.insertTextAtCursor(result)
   } catch (error) {

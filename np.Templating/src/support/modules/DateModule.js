@@ -74,13 +74,7 @@ export default class DateModule {
   }
 
   isWeekend(date = '') {
-    let localeDate = date.length > 0 ? new Date(date).toLocaleString() : new Date().toLocaleString()
-
-    // if only supply date, append time and reformat
-    if (date.length === 10) {
-      localeDate = new Date(`${date} 00:59:00`).toLocaleString()
-    }
-
+    const localeDate = date.length > 0 ? new Date(`${date} 1:00 AM`).toLocaleString() : new Date().toLocaleString()
     return new Date(localeDate).getDay() % 6 === 0
   }
 

@@ -75,11 +75,6 @@ export default class Templating {
       // if the template can't be found using actual filename (as it is on disk)
       // this will occur due to a bug in NotePlan which is not properly renaming files on disk to match note name
       if (!selectedTemplate) {
-        console.log('-'.repeat(140))
-        console.log(
-          ' Templating.getTemplate unable to locate "${templateFilename}" attempting to locate based on note title',
-        )
-        console.log('-'.repeat(140))
         const parts = templateName.split('/')
         templateFilename = parts[parts.length - 1]
         selectedTemplate = await DataStore.projectNoteByTitle(templateFilename, true, false)?.[0]
@@ -138,6 +133,7 @@ export default class Templating {
       time: new TimeModule(this.templateConfig),
       utils: new UtilsModule(this.templateConfig),
       note: new NoteModule(this.templateConfig),
+      frontmatter: {},
       user: {
         first: this.templateConfig?.user?.first || '',
         last: this.templateConfig?.user?.last || '',
@@ -172,21 +168,33 @@ export default class Templating {
     let processedTemplateData = templateData
 
     // check if templateData is frontmatter
-    let frontmatterBlock = new FrontmatterModule().getFrontmatterBlock(processedTemplateData)
-    frontmatterBlock = frontmatterBlock.replace(/--/g, '---')
+    let frontmatterBlock = new FrontmatterModule().getFrontmatterBlock(processedTemplateData).replace(/--/g, '---')
+    if (frontmatterBlock.length > 0) {
+      // process template first to see if frontmatter block has template variables
+      processedTemplateData = await ejs.render(processedTemplateData, renderData, {
+        async: true,
+        openDelimiter: '{',
+        closeDelimiter: '}',
+      })
 
-    const frontmatterData = new FrontmatterModule().render(frontmatterBlock)
-    if (frontmatterData.hasOwnProperty('attributes') && frontmatterData.hasOwnProperty('body')) {
-      if (Object.keys(frontmatterData.attributes).length > 0) {
-        renderData.frontmatter = { ...frontmatterData.attributes }
-      }
-      if (frontmatterData.body.length > 0) {
-        processedTemplateData = frontmatterData.body
+      frontmatterBlock = new FrontmatterModule().getFrontmatterBlock(processedTemplateData).replace(/--/g, '---')
+      const frontmatterData = new FrontmatterModule().render(frontmatterBlock)
+      if (frontmatterData.hasOwnProperty('attributes') && frontmatterData.hasOwnProperty('body')) {
+        if (Object.keys(frontmatterData.attributes).length > 0) {
+          renderData.frontmatter = { ...frontmatterData.attributes }
+        }
+        if (frontmatterData.body.length > 0) {
+          processedTemplateData = frontmatterData.body
+        }
       }
     }
 
     try {
-      let result = await ejs.render(processedTemplateData, renderData, { async: true })
+      let result = await ejs.render(processedTemplateData, renderData, {
+        async: true,
+        openDelimter: '<',
+        closeDelimiter: '>',
+      })
 
       result = (result && result?.replace(/undefined/g, '')) || ''
 
