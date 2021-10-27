@@ -86,6 +86,7 @@
     "fix": "npm run lint-fix && npm run format",
     "test": "npm run lint && npm run typecheck",
     "test:dev": "jest",
+    "test:watch": "jest --watch",
     "security": "npm run security:high && npm run security:critical",
     "security:high": "npm audit | grep -B 1 -A 10 high",
     "security:critical": "npm audit | grep -B 1 -A 10 critical"
@@ -108,8 +109,9 @@
     "date-fns": "2.23.0",
     "dayjs": "1.10.6",
     "enquirer": "^2.3.6",
-    "eta": "1.12.3",
     "findup-sync": "4.0.0",
+    "front-matter": "4.0.2",
+    "get-user-locale": "1.4.0",
     "git-state": "4.1.0",
     "js-yaml": "^4.1.0",
     "json5": "^2.2.0",
