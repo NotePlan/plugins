@@ -8,6 +8,8 @@ import { existsSync } from 'fs'
 import Templating from '../src/Templating'
 import { DEFAULT_TEMPLATE_CONFIG } from '../src/Templating'
 import DateModule from '../src/support/modules/DateModule'
+import TimeModule from '../src/support/modules/TimeModule'
+import { render } from '../src/support/ejs'
 
 const PLUGIN_NAME = `📙 ${colors.yellow('np.Templating')}`
 const section = colors.blue
@@ -36,58 +38,7 @@ describe(`${PLUGIN_NAME}`, () => {
     templateInstance = new Templating(DEFAULT_TEMPLATE_CONFIG)
   })
 
-  describe(section('DateModule'), () => {
-    it(`should render data using variable`, async () => {
-      const templateData = await factory('simple.ejs')
-
-      let renderedData = await templateInstance.render(templateData, { name: 'Mike' })
-      expect(templateData).not.toBe('FACTORY_NOT_FOUND')
-      expect(renderedData).not.toBe(false)
-      expect(renderedData).toContain(`console.log('Hello Mike')\n`)
-    })
-
-    it(`should render data using inline function`, async () => {
-      const templateData = await factory('simple-function.ejs')
-
-      const data = {
-        helloWorld: (param = '') => {
-          return param
-        },
-      }
-
-      let renderedData = await templateInstance.render(templateData, data)
-
-      expect(templateData).not.toBe('FACTORY_NOT_FOUND')
-      expect(renderedData).not.toBe(false)
-      expect(renderedData).toContain('Hello via function call: test')
-    })
-
-    it(`should render data using extended template`, async () => {
-      const templateData = await factory('extended.ejs')
-
-      const data = {
-        name: 'Mike Erickson',
-        titleCase: (str = null) => {
-          return titleCase(str)
-        },
-        names: ['mike', 'kira', 'joelle', 'brady', 'bailey', 'trevor'],
-      }
-      let renderedData = await templateInstance.render(templateData, data)
-
-      expect(templateData).not.toBe('FACTORY_NOT_FOUND')
-      expect(renderedData).not.toBe(false)
-
-      expect(renderedData).toContain('mike, kira, joelle, brady, bailey, trevor')
-
-      // check if names echo'd as list (and using titleCase function)
-      expect(renderedData).toContain('Mike\n')
-      expect(renderedData).toContain('Kira\n')
-      expect(renderedData).toContain('Joelle\n')
-      expect(renderedData).toContain('Brady\n')
-      expect(renderedData).toContain('Bailey\n')
-      expect(renderedData).toContain('Trevor')
-    })
-
+  describe(section('Template: DateModule'), () => {
     it(`should render default date object`, async () => {
       const templateData = await factory('dates.ejs')
 
@@ -207,30 +158,20 @@ describe(`${PLUGIN_NAME}`, () => {
 
       expect(renderedData).toContain('Date yesterday with format: ' + new DateModule().yesterday('Do MMMM YYYY'))
     })
-
-    test.skip('should use date format from configuration', () => {})
   })
 
-  describe(section('TimeModule'), () => {
-    test.skip('should use time format from configuration', () => {})
-  })
+  describe(section('Template: TimeModule'), () => {
+    it(`should render time data using variable`, async () => {
+      const templateData = await factory('times.ejs')
 
-  describe(section('UserModule'), () => {
-    test.skip('should display user information (from configuration)', () => {})
-  })
+      const renderedData = await templateInstance.render(templateData)
 
-  describe(section('UtilsModule'), () => {})
+      const time = new TimeModule().now('hh:mm:ss A')
+      expect(renderedData).toContain(time)
 
-  describe(section('WebModule'), () => {
-    test.skip('should return quote', () => {})
-
-    test.skip('should return affirmation', () => {})
-
-    test.skip('should return advice', () => {})
-
-    test.skip('should return weather', () => {})
-
-    it('should return service item', () => {})
+      const time2 = new TimeModule().now('hh:mm')
+      expect(renderedData).toContain(time2)
+    })
   })
 
   describe(section('Error Handling'), () => {
@@ -256,7 +197,7 @@ describe(`${PLUGIN_NAME}`, () => {
     })
   })
 
-  describe(section('Custom Tags'), () => {
+  describe(section('Invalid Template'), () => {
     it(`should use 'note' object tags (pending)`, async () => {
       const templateData = await factory('invalid-syntax.ejs')
 
@@ -264,31 +205,43 @@ describe(`${PLUGIN_NAME}`, () => {
 
       expect(renderedData.message).toContain('Could not find matching close tag for')
     })
+  })
 
-    test.skip(`should use custom tags (pending)`, async () => {
-      const templateData = await factory('tags.ejs')
+  describe(section('Custom Tags'), () => {
+    it(`should use custom tags`, async () => {
+      const templateData = await factory('custom-tags.ejs')
 
-      let renderedData = await templateInstance.render(templateData, { name: 'Mike' }, { tags: ['{{', '}}'] })
+      let renderedData = await templateInstance.render(
+        templateData,
+        {
+          hello: (str = '') => {
+            return `Hello ${str}`
+          },
+        },
+        {
+          openDelimiter: '{',
+          closeDelimiter: '}',
+        },
+      )
 
-      expect(renderedData).toContain('Mike')
+      let date = new DateModule().now('YYYY-MM-DD h:mm A')
+      expect(renderedData).toContain(date)
+
+      expect(renderedData).toContain('Hello Mike')
     })
+  })
 
-    test.skip(`should use custom tags with function`, async () => {
-      const templateData = await factory('tags-function.ejs')
+  describe(section('Async'), () => {
+    it(`process async tags`, async () => {
+      const templateData = await factory('async.ejs')
 
-      let data = {
-        helloWorld: () => {
-          return 'hello world'
+      let renderedData = await templateInstance.render(templateData, {
+        hello: async (str = '') => {
+          return `Hello ${str}`
         },
-        titleCase: (str = null) => {
-          return titleCase(str)
-        },
-      }
-      let renderedData = await template.render(templateData, data, { tags: ['{{', '}}'] })
+      })
 
-      expect(renderedData).toContain('hello world')
-
-      expect(renderedData).toContain('Hello World')
+      expect(renderedData).toContain('Hello Mike')
     })
   })
 
@@ -312,8 +265,8 @@ describe(`${PLUGIN_NAME}`, () => {
       console.log(renderedData)
     })
 
-    test.skip(`should render data using extended template`, async () => {
-      const templateData = await factory('tags-extended.eta')
+    test(`should render data using extended template`, async () => {
+      const templateData = await factory('tags-extended.ejs')
 
       const data = {
         name: 'Mike Erickson',
@@ -322,19 +275,19 @@ describe(`${PLUGIN_NAME}`, () => {
         },
         names: ['mike', 'kira', 'joelle', 'brady', 'bailey', 'trevor'],
       }
-      let renderedData = await templateInstance.render(templateData, data, { extended: true, tags: ['{{', '}}'] })
+      let renderedData = await templateInstance.render(templateData, data)
 
-      expect(templateData).not.toBe('FACTORY_NOT_FOUND')
+      // expect(renderedData).not.toBe('FACTORY_NOT_FOUND')
       expect(renderedData).not.toBe(false)
 
       expect(renderedData).toContain('mike, kira, joelle, brady, bailey, trevor')
 
       // check if names echo'd as list (and using titleCase function)
-      expect(renderedData).toContain('Mike\n')
-      expect(renderedData).toContain('Kira\n')
-      expect(renderedData).toContain('Joelle\n')
-      expect(renderedData).toContain('Brady\n')
-      expect(renderedData).toContain('Bailey\n')
+      expect(renderedData).toContain('Mike')
+      expect(renderedData).toContain('Kira')
+      expect(renderedData).toContain('Joelle')
+      expect(renderedData).toContain('Brady')
+      expect(renderedData).toContain('Bailey')
       expect(renderedData).toContain('Trevor')
     })
 

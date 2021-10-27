@@ -1,0 +1,39 @@
+/* eslint-disable */
+
+import colors from 'chalk'
+import WebModule from '../src/support/modules/WebModule'
+
+const PLUGIN_NAME = `📙 ${colors.yellow('np.Templating')}`
+const section = colors.blue
+
+describe.only(`${PLUGIN_NAME}`, () => {
+  let moduleInstance
+  beforeEach(() => {
+    moduleInstance = new WebModule()
+  })
+  describe(section('WebModule'), () => {
+    it(`should fetch advice`, async () => {
+      const advice = jest.spyOn(moduleInstance, 'advice')
+      await moduleInstance.advice()
+      expect(advice).toBeCalled()
+    })
+
+    it(`should fetch affirmation`, async () => {
+      const affirmation = jest.spyOn(moduleInstance, 'affirmation')
+      await moduleInstance.affirmation()
+      expect(affirmation).toBeCalled()
+    })
+
+    it(`should fetch weather`, async () => {
+      const advice = jest.spyOn(moduleInstance, 'weather')
+      await moduleInstance.weather()
+      expect(advice).toBeCalled()
+    })
+
+    it(`should fetch service`, async () => {
+      const service = jest.spyOn(moduleInstance, 'service')
+      await moduleInstance.service()
+      expect(service).toBeCalled()
+    })
+  })
+})

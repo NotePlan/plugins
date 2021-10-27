@@ -7,23 +7,23 @@ import { getAdvice } from './advice'
 import { getService } from './service'
 
 export default class WebModule {
-  static async advice(): Promise<string> {
+  async advice(): Promise<string> {
     return await getAdvice()
   }
 
-  static async affirmation(): Promise<string> {
+  async affirmation(): Promise<string> {
     return await getAffirmation()
   }
 
-  static async quote(): Promise<string> {
+  async quote(): Promise<string> {
     return await getDailyQuote()
   }
 
-  static async weather(): Promise<string> {
+  async weather(): Promise<string> {
     return await getWeather()
   }
 
-  static async service(templateConfig: any, serviceUrl: string = '', key: string = ''): Promise<string> {
+  async service(templateConfig: any, serviceUrl: string = '', key: string = ''): Promise<string> {
     return await getService(templateConfig, serviceUrl, key)
   }
 }

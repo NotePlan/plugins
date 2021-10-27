@@ -76,8 +76,10 @@ export default class Templating {
       // this will occur due to a bug in NotePlan which is not properly renaming files on disk to match note name
       if (!selectedTemplate) {
         const parts = templateName.split('/')
-        templateFilename = parts[parts.length - 1]
-        selectedTemplate = await DataStore.projectNoteByTitle(templateFilename, true, false)?.[0]
+        if (parts.length > 0) {
+          templateFilename = parts[parts.length - 1]
+          selectedTemplate = await DataStore.projectNoteByTitle(templateFilename, true, false)?.[0]
+        }
       }
 
       let templateContent = selectedTemplate?.content || ''
@@ -118,15 +120,15 @@ export default class Templating {
   }
 
   async render(templateData: any = '', userData: any = {}, userOptions: any = {}): Promise<string> {
-    const options = { ...{ extended: false, tags: [] }, ...userOptions }
+    const options = { ...{ async: true }, ...userOptions }
 
     // WebModule methods are async, will be converted to synchronous methods below
     // need to handle async calls before render templates as templating method are synchronous
-    const weather = templateData.includes('web.weather') ? await WebModule.weather() : ''
-    const quote = templateData.includes('web.quote') ? await WebModule.quote() : ''
-    const affirmation = templateData.includes('web.affirmation') ? await WebModule.affirmation() : ''
-    const advice = templateData.includes('web.advice') ? await WebModule.advice() : ''
-    const service = templateData.includes('web.services') ? await WebModule.service : ''
+    const weather = templateData.includes('web.weather') ? await new WebModule().weather() : ''
+    const quote = templateData.includes('web.quote') ? await new WebModule().quote() : ''
+    const affirmation = templateData.includes('web.affirmation') ? await new WebModule().affirmation() : ''
+    const advice = templateData.includes('web.advice') ? await new WebModule().advice() : ''
+    const service = templateData.includes('web.services') ? await new WebModule().service : ''
 
     const helpers = {
       date: new DateModule(this.templateConfig),
@@ -190,11 +192,7 @@ export default class Templating {
     }
 
     try {
-      let result = await ejs.render(processedTemplateData, renderData, {
-        async: true,
-        openDelimter: '<',
-        closeDelimiter: '>',
-      })
+      let result = await ejs.render(processedTemplateData, renderData, options)
 
       result = (result && result?.replace(/undefined/g, '')) || ''
 
