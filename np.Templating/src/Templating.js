@@ -18,6 +18,16 @@ import NoteModule from './support/modules/NoteModule'
 import UtilsModule from './support/modules/UtilsModule'
 import FrontmatterModule from './support/modules/FrontmatterModule'
 
+export function objectToCode(obj: any): string {
+  return JSON.stringify(obj, null, 2)
+    .replace(/\\/g, ' ')
+    .replace(/, /g, ',\n   ')
+    .replace(/"{/g, '{\n  ')
+    .replace(/}"/g, '\n}')
+    .replace(/ ",/g, '",')
+    .replace(/ ":/g, '":')
+}
+
 export const DEFAULT_TEMPLATE_CONFIG = {
   locale: 'en-US',
   defaultFormats: {

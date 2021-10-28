@@ -22,6 +22,16 @@ Object.arrayReference = function (o, s) {
   return o
 }
 
+const objectToCode = (obj: any) => {
+  return JSON.stringify(obj, null, 2)
+    .replace(/\\/g, ' ')
+    .replace(/, /g, ',\n   ')
+    .replace(/"{/g, '{\n  ')
+    .replace(/}"/g, '\n}')
+    .replace(/ ",/g, '",')
+    .replace(/ ":/g, '":')
+}
+
 // Utilities
 const isJson = (str) => {
   try {
@@ -48,7 +58,10 @@ export async function getService(templateConfig: any, section: string = '', key:
       }
 
       const data = JSON.parse(response)
-      // $FlowFixMe
+      if (key === '*') {
+        return objectToCode(data)
+      }
+      // $FlowF8ixMe
       let result = ''
       if (Array.isArray(key)) {
         key.forEach((item) => {

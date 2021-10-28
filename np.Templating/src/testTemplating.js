@@ -195,9 +195,12 @@ export async function testFrontmatter(): Promise<void> {
 
 export async function testTemplateAsync(): Promise<void> {
   try {
+    const content: string = Editor.content || ''
+    Editor.insertTextAtCursor('Please wait...')
+
     const result = await new Templating(await getOrMakeTemplateSection()).renderTemplate('Test (Async)', {})
 
-    Editor.insertTextAtCursor(result)
+    Editor.replaceTextInCharacterRange(content + result, 0, MAX_NOTE)
   } catch (error) {
     showError(error)
   }
