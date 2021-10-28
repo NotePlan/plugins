@@ -22,7 +22,7 @@ export const DEFAULT_TEMPLATE_CONFIG = {
   locale: 'en-US',
   defaultFormats: {
     date: 'YYYY-MM-DD',
-    time: 'HH:mm:ss A',
+    time: 'h:mm A',
     now: 'YYYY-MM-DD h:mm:ss A',
   },
   user: {
@@ -157,6 +157,7 @@ export default class Templating {
           return weather.replace('\n', '')
         },
         services: (url = '', key = '') => {
+          // $FlowFixMe
           return service(this.templateConfig, url, key)
         },
       },

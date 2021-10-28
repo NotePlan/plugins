@@ -1,6 +1,5 @@
 // @flow
 
-import { alert } from '../../helpers/userInput'
 import { getOrMakeTemplateSection } from './support/configuration'
 import Templating from './Templating'
 import { DEFAULT_TEMPLATE_CONFIG } from './Templating'
@@ -9,6 +8,8 @@ const testTemplateFolder = '🧩 Templating Samples'
 const templateFilenamePath = (templateName: string): string => {
   return `${testTemplateFolder}/${templateName}`
 }
+
+const MAX_NOTE = 262144
 
 async function showError(method: string = '', message: string = ''): Promise<void> {
   const line = '*'.repeat(message.length + 30)
@@ -35,12 +36,15 @@ export async function templateInsatiation(): Promise<void> {
 
 export async function testFullTemplate(): Promise<void> {
   try {
+    const content: string = Editor.content || ''
+    Editor.insertTextAtCursor('Please wait...')
+
     const result = await new Templating(await getOrMakeTemplateSection()).renderTemplate(
       templateFilenamePath('Test (Full Template)'),
       {},
     )
 
-    Editor.insertTextAtCursor(result)
+    Editor.replaceTextInCharacterRange(content + result, 0, MAX_NOTE)
   } catch (error) {
     showError('testFullTemplate', error)
   }
@@ -48,12 +52,15 @@ export async function testFullTemplate(): Promise<void> {
 
 export async function testTemplateStandard(): Promise<void> {
   try {
+    const content: string = Editor.content || ''
+    Editor.insertTextAtCursor('Please wait...')
+
     const result = await new Templating(await getOrMakeTemplateSection()).renderTemplate(
       templateFilenamePath('Test (Standard)'),
       {},
     )
 
-    Editor.insertTextAtCursor(result)
+    Editor.replaceTextInCharacterRange(content + result, 0, MAX_NOTE)
   } catch (error) {
     showError('testTemplateStandard', error)
   }
@@ -61,9 +68,8 @@ export async function testTemplateStandard(): Promise<void> {
 
 export async function testTemplateKitchenSink(): Promise<void> {
   try {
-    // const currentNote = Editor.content || ''
-    // const noteLength = currentNote.length
-    // Editor.insertTextAtCursor('Please wait...')
+    const content: string = Editor.content || ''
+    Editor.insertTextAtCursor('Please wait...')
 
     const custom = {
       data: {
@@ -81,8 +87,7 @@ export async function testTemplateKitchenSink(): Promise<void> {
 
     const result = await new Templating(await getOrMakeTemplateSection()).renderTemplate('Test (Kitchen Sink)', custom)
 
-    // Editor.replaceTextInCharacterRange(result, noteLength, 16384)
-    Editor.insertTextAtCursor(result)
+    Editor.replaceTextInCharacterRange(content + result, 0, MAX_NOTE)
   } catch (error) {
     showError('testTemplateExtended', error)
   }

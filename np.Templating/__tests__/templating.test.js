@@ -166,7 +166,7 @@ describe(`${PLUGIN_NAME}`, () => {
 
       const renderedData = await templateInstance.render(templateData)
 
-      const time = new TimeModule().now('hh:mm:ss A')
+      const time = new TimeModule().now('h:mm A')
       expect(renderedData).toContain(time)
 
       const time2 = new TimeModule().now('hh:mm')

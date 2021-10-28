@@ -22,16 +22,50 @@ Object.arrayReference = function (o, s) {
   return o
 }
 
-export async function getService(templateConfig: any, section: string = '', key: string = ''): Promise<string> {
+// Utilities
+const isJson = (str) => {
+  try {
+    JSON.parse(str)
+  } catch (e) {
+    return false
+  }
+  return true
+}
+
+const isURL = (str) => {
+  return str.indexOf('http') >= 0
+}
+
+export async function getService(templateConfig: any, section: string = '', key: mixed = ''): Promise<string> {
   const serviceConfig = templateConfig?.services
   if (serviceConfig) {
     // $FlowFixMe
-    const URL = serviceConfig[section]
+    const URL = isURL(section) ? section : serviceConfig[section]
     try {
       const response: any = await fetch(URL)
+      if (!isJson(response)) {
+        return response.replace('\n', '')
+      }
+
       const data = JSON.parse(response)
       // $FlowFixMe
-      return Object.arrayReference(data, `${key}`)
+      let result = ''
+      if (Array.isArray(key)) {
+        key.forEach((item) => {
+          // $FlowFixMe
+          const value = Object.arrayReference(data, item)
+          // $FlowFixMe
+          result += value ? value : item
+        })
+
+        return result
+      } else {
+        if (data.hasOwnProperty('error')) {
+          return JSON.stringify(data.error, null, 1)
+        }
+        // $FlowFixMe
+        return Object.arrayReference(data, `${key}`)
+      }
     } catch (error) {
       return error
     }
