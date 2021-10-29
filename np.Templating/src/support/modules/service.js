@@ -22,7 +22,7 @@ Object.arrayReference = function (o, s) {
   return o
 }
 
-const objectToCode = (obj: any) => {
+const formatData = (obj: any) => {
   return JSON.stringify(obj, null, 2)
     .replace(/\\/g, ' ')
     .replace(/, /g, ',\n   ')
@@ -54,12 +54,16 @@ export async function getService(templateConfig: any, section: string = '', key:
     try {
       const response: any = await fetch(URL)
       if (!isJson(response)) {
+        if (response.indexOf('error') >= 0) {
+          const endpoint = isURL(section) ? ' API' : ' service'
+          throw new Error(`Accessing ${section}${endpoint}`)
+        }
         return response.replace('\n', '')
       }
 
       const data = JSON.parse(response)
       if (key === '*') {
-        return objectToCode(data)
+        return formatData(data)
       }
       // $FlowF8ixMe
       let result = ''

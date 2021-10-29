@@ -27,9 +27,15 @@ export default class TimeModule {
   }
 
   now(format = '', offset = '') {
+    const locale = this.config?.locale || 'en-US'
     const configFormat = this.config?.defaultFormats?.time || 'HH:mm A'
+
     format = format.length > 0 ? format : configFormat
-    const formattedTime = moment(new Date()).format(format)
+    let formattedTime = moment(new Date()).format(format)
+
+    if (format === 'short' || format === 'medium' || format === 'long' || format === 'full') {
+      formattedTime = new Intl.DateTimeFormat(locale, { timeStyle: format }).format(new Date())
+    }
 
     return this.isValid(formattedTime)
   }

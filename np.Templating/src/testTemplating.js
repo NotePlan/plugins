@@ -1,10 +1,9 @@
 // @flow
 
-import { getOrMakeTemplateSection } from './support/configuration'
 import Templating from './Templating'
-import { DEFAULT_TEMPLATE_CONFIG } from './Templating'
 
 const testTemplateFolder = '🧩 Templating Samples'
+
 const templateFilenamePath = (templateName: string): string => {
   return `${testTemplateFolder}/${templateName}`
 }
@@ -22,11 +21,9 @@ async function showError(method: string = '', message: string = ''): Promise<voi
   Editor.insertTextAtCursor(`**Error: ${method}**\n- **${message}**`)
 }
 
-export async function templateInsatiation(): Promise<void> {
+export async function templateInstantiation(): Promise<void> {
   try {
-    const templating = new Templating(await getOrMakeTemplateSection())
-
-    const response = await templating.heartbeat()
+    const response = await new Templating().heartbeat()
 
     Editor.insertTextAtCursor(response)
   } catch (error) {
@@ -39,10 +36,7 @@ export async function testFullTemplate(): Promise<void> {
     const content: string = Editor.content || ''
     Editor.insertTextAtCursor('Please wait...')
 
-    const result = await new Templating(await getOrMakeTemplateSection()).renderTemplate(
-      templateFilenamePath('Test (Full Template)'),
-      {},
-    )
+    const result = await new Templating().renderTemplate(templateFilenamePath('Test (Full Template)'), {})
 
     Editor.replaceTextInCharacterRange(content + result, 0, MAX_NOTE)
   } catch (error) {
@@ -55,10 +49,7 @@ export async function testTemplateStandard(): Promise<void> {
     const content: string = Editor.content || ''
     Editor.insertTextAtCursor('Please wait...')
 
-    const result = await new Templating(await getOrMakeTemplateSection()).renderTemplate(
-      templateFilenamePath('Test (Standard)'),
-      {},
-    )
+    const result = await new Templating().renderTemplate(templateFilenamePath('Test (Standard)'), {})
 
     Editor.replaceTextInCharacterRange(content + result, 0, MAX_NOTE)
   } catch (error) {
@@ -85,7 +76,7 @@ export async function testTemplateKitchenSink(): Promise<void> {
       },
     }
 
-    const result = await new Templating(await getOrMakeTemplateSection()).renderTemplate('Test (Kitchen Sink)', custom)
+    const result = await new Templating().renderTemplate('Test (Kitchen Sink)', custom)
 
     Editor.replaceTextInCharacterRange(content + result, 0, MAX_NOTE)
   } catch (error) {
@@ -103,8 +94,7 @@ export async function testTemplateCustom(): Promise<void> {
       names: ['mike', 'kira', 'joelle', 'brady', 'bailey', 'trevor'],
     }
 
-    // const templateInstance = new Templating(await getOrMakeTemplateSection())
-    const result = await new Templating(await getOrMakeTemplateSection()).renderTemplate('Test (Custom)', custom)
+    const result = await new Templating().renderTemplate('Test (Custom)', custom)
 
     Editor.insertTextAtCursor(result)
   } catch (error) {
@@ -124,8 +114,7 @@ export async function testTemplateTasks(): Promise<void> {
       ],
     }
 
-    // const templateInstance = new Templating(await getOrMakeTemplateSection())
-    const result = await new Templating(await getOrMakeTemplateSection()).renderTemplate('Test (Tasks)', custom)
+    const result = await new Templating().renderTemplate('Test (Tasks)', custom)
 
     Editor.insertTextAtCursor(result)
   } catch (error) {
@@ -147,7 +136,7 @@ export async function testTemplateBooks(): Promise<void> {
       ],
     }
 
-    const result = await new Templating(await getOrMakeTemplateSection()).renderTemplate('Test (Books)', custom)
+    const result = await new Templating().renderTemplate('Test (Books)', custom)
 
     Editor.insertTextAtCursor(result)
   } catch (error) {
@@ -162,7 +151,7 @@ export async function testArticWolf(): Promise<void> {
     }
 
     // const templateInstance = new Templating(await getOrMakeTemplateSection())
-    const result = await new Templating(await getOrMakeTemplateSection()).renderTemplate('Test (ArticWolf)', custom)
+    const result = await new Templating().renderTemplate('Test (ArticWolf)', custom)
 
     Editor.insertTextAtCursor(result)
   } catch (error) {
@@ -172,7 +161,7 @@ export async function testArticWolf(): Promise<void> {
 
 export async function testMissingVariable(): Promise<void> {
   try {
-    const result = await new Templating(await getOrMakeTemplateSection()).renderTemplate('Test (Missing Variable)', {})
+    const result = await new Templating().renderTemplate('Test (Missing Variable)', {})
 
     Editor.insertTextAtCursor(result)
   } catch (error) {
@@ -182,10 +171,7 @@ export async function testMissingVariable(): Promise<void> {
 
 export async function testFrontmatter(): Promise<void> {
   try {
-    const result = await new Templating(await getOrMakeTemplateSection()).renderTemplate(
-      templateFilenamePath('Test (Frontmatter)'),
-      {},
-    )
+    const result = await new Templating().renderTemplate(templateFilenamePath('Test (Frontmatter)'), {})
 
     Editor.insertTextAtCursor(result)
   } catch (error) {
@@ -198,7 +184,7 @@ export async function testTemplateAsync(): Promise<void> {
     const content: string = Editor.content || ''
     Editor.insertTextAtCursor('Please wait...')
 
-    const result = await new Templating(await getOrMakeTemplateSection()).renderTemplate('Test (Async)', {})
+    const result = await new Templating().renderTemplate('Test (Async)', {})
 
     Editor.replaceTextInCharacterRange(content + result, 0, MAX_NOTE)
   } catch (error) {

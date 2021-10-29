@@ -14,6 +14,38 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(moment(new Date()).format('YYYY-MM-DD'))
     })
 
+    it(`should render .now using 'short' format`, () => {
+      const result = new DateModule().now('short')
+
+      const test = new Intl.DateTimeFormat('en-US', { dateStyle: 'short' }).format(new Date())
+
+      expect(result).toEqual(test)
+    })
+
+    it(`should render .now using 'medium' format`, () => {
+      const result = new DateModule().now('medium')
+
+      const test = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date())
+
+      expect(result).toEqual(test)
+    })
+
+    it(`should render .now using 'long' format`, () => {
+      const result = new DateModule().now('long')
+
+      const test = new Intl.DateTimeFormat('en-US', { dateStyle: 'long' }).format(new Date())
+
+      expect(result).toEqual(test)
+    })
+
+    it(`should render .now using 'full' format`, () => {
+      const result = new DateModule().now('full')
+
+      const test = new Intl.DateTimeFormat('en-US', { dateStyle: 'full' }).format(new Date())
+
+      expect(result).toEqual(test)
+    })
+
     it(`should render .now using custom format`, async () => {
       const result = new DateModule().now('YYYY-MM')
       expect(result).toEqual(moment(new Date()).format('YYYY-MM'))

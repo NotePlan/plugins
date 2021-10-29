@@ -22,6 +22,8 @@ export default class DateModule {
   }
 
   now(format = '', offset = '') {
+    const locale = this.config?.locale || 'en-US'
+
     const configFormat = this.config?.defaultFormats?.date || 'YYYY-MM-DD'
     format = format.length > 0 ? format : configFormat
     const dateValue = new Date()
@@ -40,6 +42,10 @@ export default class DateModule {
       }
 
       formattedDate = moment(newDate).format(format)
+    }
+
+    if (format === 'short' || format === 'medium' || format === 'long' || format === 'full') {
+      formattedDate = new Intl.DateTimeFormat(locale, { dateStyle: format }).format(new Date())
     }
 
     return this.isValid(formattedDate)

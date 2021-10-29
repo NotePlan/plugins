@@ -14,6 +14,38 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(moment(new Date()).format('h:mm A'))
     })
 
+    it(`should render .now using 'short' format`, () => {
+      const result = new TimeModule().now('short')
+
+      const test = new Intl.DateTimeFormat('en-US', { timeStyle: 'short' }).format(new Date())
+
+      expect(result).toEqual(test)
+    })
+
+    it(`should render .now using 'medium' format`, () => {
+      const result = new TimeModule().now('medium')
+
+      const test = new Intl.DateTimeFormat('en-US', { timeStyle: 'medium' }).format(new Date())
+
+      expect(result).toEqual(test)
+    })
+
+    it(`should render .now using 'long' format`, () => {
+      const result = new TimeModule().now('long')
+
+      const test = new Intl.DateTimeFormat('en-US', { timeStyle: 'long' }).format(new Date())
+
+      expect(result).toEqual(test)
+    })
+
+    it(`should render .now using 'full' format`, () => {
+      const result = new TimeModule().now('full')
+
+      const test = new Intl.DateTimeFormat('en-US', { timeStyle: 'full' }).format(new Date())
+
+      expect(result).toEqual(test)
+    })
+
     it(`should render .now using custom format`, async () => {
       const result = new TimeModule().now('hh:mm')
       expect(result).toEqual(moment(new Date()).format('hh:mm'))

@@ -3,8 +3,22 @@
 import colors from 'chalk'
 import FrontmatterModule from '../src/support/modules/FrontmatterModule'
 
-import Templating from '../src/Templating'
-import { DEFAULT_TEMPLATE_CONFIG } from '../src/Templating'
+export const DEFAULT_TEMPLATE_CONFIG = {
+  locale: 'en-US',
+  defaultFormats: {
+    date: 'YYYY-MM-DD',
+    time: 'h:mm A',
+    now: 'YYYY-MM-DD h:mm:ss A',
+  },
+  user: {
+    first: '',
+    last: '',
+    email: '',
+    phone: '',
+  },
+  // $FlowFixMe
+  services: {},
+}
 
 const PLUGIN_NAME = `📙 ${colors.yellow('np.Templating')}`
 const section = colors.blue
@@ -89,28 +103,6 @@ modified: 2021-10-22 11:50:43 AM
       expect(result.body).toContain('<%= name %>')
       expect(result.body).toContain('<%= phone %>')
       expect(result.body).toContain('<%= modified %>')
-    })
-
-    it(`render body template using attributes as data`, async () => {
-      const data = `--
-name: Mike Erickson
-phone: 714.454.4236
-modified: 2021-10-22 11:50:43 AM
---
-<%= name %>
-<%= phone %>
-<%= modified %>`.replace(/--/g, '---')
-
-      const result = new FrontmatterModule().render(data)
-      const templateData = result.body
-
-      const templateInstance = new Templating(DEFAULT_TEMPLATE_CONFIG)
-
-      const templateResult = await templateInstance.render(templateData, result.attributes)
-
-      expect(templateResult).toContain('Mike Erickson')
-      expect(templateResult).toContain('714.454.4236')
-      expect(templateResult).toContain('2021-10-22 11:50:43 AM')
     })
   })
 })

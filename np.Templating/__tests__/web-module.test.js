@@ -6,7 +6,7 @@ import WebModule from '../src/support/modules/WebModule'
 const PLUGIN_NAME = `📙 ${colors.yellow('np.Templating')}`
 const section = colors.blue
 
-describe.only(`${PLUGIN_NAME}`, () => {
+describe(`${PLUGIN_NAME}`, () => {
   let moduleInstance
   beforeEach(() => {
     moduleInstance = new WebModule()

@@ -5,29 +5,13 @@
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
  * -----------------------------------------------------------------------------------------*/
 
-import { getUserLocale } from 'get-user-locale'
-
-// this is a customized versioin of `ejs` adding support for async actions (use await in template)
-// review `Test (Async)` template for example`
 import ejs from './support/ejs'
 
-import WebModule from './support/modules/WebModule'
-import DateModule from './support/modules/DateModule'
-import TimeModule from './support/modules/TimeModule'
-import NoteModule from './support/modules/NoteModule'
-import UtilsModule from './support/modules/UtilsModule'
-import FrontmatterModule from './support/modules/FrontmatterModule'
+import FrontMatterModule from './support/modules/FrontmatterModule'
+import TemplatingEngine from './TemplatingEngine'
+import { getOrMakeConfigurationSection, getStructuredConfiguration } from './support/configuration'
 
-export function objectToCode(obj: any): string {
-  return JSON.stringify(obj, null, 2)
-    .replace(/\\/g, ' ')
-    .replace(/, /g, ',\n   ')
-    .replace(/"{/g, '{\n  ')
-    .replace(/}"/g, '\n}')
-    .replace(/ ",/g, '",')
-    .replace(/ ":/g, '":')
-}
-
+const TEMPLATE_FOLDER_NAME = '📋 Templates'
 export const DEFAULT_TEMPLATE_CONFIG = {
   locale: 'en-US',
   defaultFormats: {
@@ -45,7 +29,41 @@ export const DEFAULT_TEMPLATE_CONFIG = {
   services: {},
 }
 
-const TEMPLATE_FOLDER_NAME = '📋 Templates'
+export async function TEMPLATE_CONFIG_BLOCK(): Promise<string> {
+  const config = await getStructuredConfiguration()
+
+  // migrate existing configuration values
+
+  // $FlowFixMe
+  const locale = config?.date?.locale || ''
+  // $FlowFixMe
+  const first = config?.tagValue?.me?.firstName || ''
+  // $FlowFixMe
+  const last = config?.tagValue?.me?.lastName || ''
+
+  // $FlowFixMe
+  const dateFormat = config?.date?.dateStyle || DEFAULT_TEMPLATE_CONFIG.defaultFormats.date
+
+  // $FlowFixMe
+  const timeFormat = config?.date?.timeStyle || DEFAULT_TEMPLATE_CONFIG.defaultFormats.time
+
+  return `  templates: {
+    locale: "${locale}",
+    defaultFormats: {
+      date: "${dateFormat}",
+      time: "${timeFormat}",
+      now: "${DEFAULT_TEMPLATE_CONFIG.defaultFormats.now}"
+    },
+    user: {
+      first: "${first}",
+      last: "${last}",
+      email: "",
+      phone: ""
+    },
+    services: {}
+  },
+  `
+}
 
 export function getTemplateFolder(): ?string {
   return DataStore.folders.find((f) => f.includes(TEMPLATE_FOLDER_NAME))
@@ -53,12 +71,17 @@ export function getTemplateFolder(): ?string {
 
 export default class Templating {
   templateConfig: any
-  constructor(config: any) {
-    this.templateConfig = config || DEFAULT_TEMPLATE_CONFIG
+  constructor() {
+    //
   }
 
   async heartbeat(): Promise<string> {
+    await this.setup()
     return '```\n' + JSON.stringify(this.templateConfig, null, 2) + '\n```\n'
+  }
+
+  async setup() {
+    this.templateConfig = await getOrMakeConfigurationSection('templates', await TEMPLATE_CONFIG_BLOCK())
   }
 
   async templateErrorMessage(method: string = '', message: string = ''): Promise<string> {
@@ -70,10 +93,6 @@ export default class Templating {
     console.log(line)
     console.log('\n')
     return `**Error: ${method}**\n- **${message}**`
-  }
-
-  async isFrontmatter(templateData: string): Promise<boolean> {
-    return templateData.length > 0 ? new FrontmatterModule().isFrontmatterTemplate(templateData.substring(1)) : false
   }
 
   async getTemplate(templateName: string = ''): Promise<string> {
@@ -95,7 +114,7 @@ export default class Templating {
       let templateContent = selectedTemplate?.content || ''
 
       const isFrontmatterTemplate =
-        templateContent.length > 0 ? new FrontmatterModule().isFrontmatterTemplate(templateContent.substring(1)) : false
+        templateContent.length > 0 ? new FrontMatterModule().isFrontmatterTemplate(templateContent.substring(1)) : false
 
       if (isFrontmatterTemplate) {
         return templateContent || ''
@@ -120,113 +139,21 @@ export default class Templating {
 
   async renderTemplate(templateName: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
     try {
-      const templateContent = await this.getTemplate(templateName)
-      const result = await this.render(templateContent, userData, userOptions)
+      await this.setup()
 
-      return result
+      const templateData = await this.getTemplate(templateName)
+      return await new TemplatingEngine(this.templateConfig).render(templateData, userData, userOptions)
     } catch (error) {
       return this.templateErrorMessage(error)
     }
   }
 
   async render(templateData: any = '', userData: any = {}, userOptions: any = {}): Promise<string> {
-    const options = { ...{ async: true }, ...userOptions }
-
-    // WebModule methods are async, will be converted to synchronous methods below
-    // need to handle async calls before render templates as templating method are synchronous
-    const weather = templateData.includes('web.weather') ? await new WebModule().weather() : ''
-    const quote = templateData.includes('web.quote') ? await new WebModule().quote() : ''
-    const affirmation = templateData.includes('web.affirmation') ? await new WebModule().affirmation() : ''
-    const advice = templateData.includes('web.advice') ? await new WebModule().advice() : ''
-    const service = templateData.includes('web.services') ? await new WebModule().service : ''
-
-    const helpers = {
-      date: new DateModule(this.templateConfig),
-      time: new TimeModule(this.templateConfig),
-      utils: new UtilsModule(this.templateConfig),
-      note: new NoteModule(this.templateConfig),
-      frontmatter: {},
-      user: {
-        first: this.templateConfig?.user?.first || '',
-        last: this.templateConfig?.user?.last || '',
-        email: this.templateConfig?.user?.email || '',
-        phone: this.templateConfig?.user?.phone || '',
-      },
-      // expose web module as synchronous methods (each method converted )
-      web: {
-        advice: () => {
-          return advice
-        },
-        affirmation: () => {
-          return affirmation
-        },
-        quote: () => {
-          return quote
-        },
-        weather: () => {
-          return weather.replace('\n', '')
-        },
-        services: (url = '', key = '') => {
-          // $FlowFixMe
-          return service(this.templateConfig, url, key)
-        },
-      },
-    }
-
-    let renderData = { ...helpers, ...userData }
-    renderData = userData?.data ? { ...userData.data, ...renderData } : renderData
-    renderData = userData?.methods ? { ...userData.methods, ...renderData } : renderData
-    renderData.np = { ...renderData }
-
-    let processedTemplateData = templateData
-
-    // check if templateData is frontmatter
-    let frontmatterBlock = new FrontmatterModule().getFrontmatterBlock(processedTemplateData).replace(/--/g, '---')
-    if (frontmatterBlock.length > 0) {
-      // process template first to see if frontmatter block has template variables
-      processedTemplateData = await ejs.render(processedTemplateData, renderData, {
-        async: true,
-        openDelimiter: '{',
-        closeDelimiter: '}',
-      })
-
-      frontmatterBlock = new FrontmatterModule().getFrontmatterBlock(processedTemplateData).replace(/--/g, '---')
-      const frontmatterData = new FrontmatterModule().render(frontmatterBlock)
-      if (frontmatterData.hasOwnProperty('attributes') && frontmatterData.hasOwnProperty('body')) {
-        if (Object.keys(frontmatterData.attributes).length > 0) {
-          renderData.frontmatter = { ...frontmatterData.attributes }
-        }
-        if (frontmatterData.body.length > 0) {
-          processedTemplateData = frontmatterData.body
-        }
-      }
-    }
-
     try {
-      let result = await ejs.render(processedTemplateData, renderData, options)
-
-      result = (result && result?.replace(/undefined/g, '')) || ''
-
-      return result
+      await this.setup()
+      return await new TemplatingEngine(this.templateConfig).render(templateData, userData, userOptions)
     } catch (error) {
-      return error
-      // return this.templateErrorMessage('Templating.render', err.message)
-    }
-  }
-
-  async getDefaultFormat(formatType: string = 'date'): Promise<string> {
-    try {
-      // $FlowFixMe
-      const templateConfig = await this.getTemplateConfig()
-      let format = formatType === 'date' ? 'YYYY-MM-DD' : 'HH:mm:ss A'
-      if (templateConfig?.templates?.defaultFormats?.[formatType]) {
-        format = templateConfig?.templates?.defaultFormats?.[formatType]
-      }
-
-      format = formatType === 'date' ? 'YYYY-MM-DD' : 'HH:mm:ss A'
-      return format
-    } catch (error) {
-      return this.templateErrorMessage('getDefaultFormat', error)
+      return this.templateErrorMessage(error)
     }
   }
 }

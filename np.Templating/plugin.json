@@ -13,8 +13,8 @@
     {
       "name": "np:tester-heartbeat",
       "alias": [],
-      "description": "np.Templating Heartbeta",
-      "jsFunction": "templateInsatiation"
+      "description": "np.Templating Heartbeat",
+      "jsFunction": "templateInstantiation"
     },
     {
       "name": "np:tester-standard",
