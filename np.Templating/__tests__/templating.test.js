@@ -5,9 +5,9 @@ import colors from 'chalk'
 import fs from 'fs/promises'
 import { existsSync } from 'fs'
 
-import TemplatingEngine from '../src/TemplatingEngine'
-import DateModule from '../src/support/modules/DateModule'
-import TimeModule from '../src/support/modules/TimeModule'
+import TemplatingEngine from '../lib/TemplatingEngine'
+import DateModule from '../lib/support/modules/DateModule'
+import TimeModule from '../lib/support/modules/TimeModule'
 
 const DEFAULT_TEMPLATE_CONFIG = {
   locale: 'en-US',

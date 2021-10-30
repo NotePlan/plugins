@@ -1,7 +1,7 @@
 /* eslint-disable */
 
 import colors from 'chalk'
-import WebModule from '../src/support/modules/WebModule'
+import WebModule from '../lib/support/modules/WebModule'
 
 const PLUGIN_NAME = `📙 ${colors.yellow('np.Templating')}`
 const section = colors.blue

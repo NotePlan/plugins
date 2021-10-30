@@ -1,179 +1,123 @@
 // @flow
 
-/*-------------------------------------------------------------------------------------------
- * Copyright (c) 2021-2022 Mike Erickson / Codedungeon.  All rights reserved.
- * Licensed under the MIT license.  See LICENSE in the project root for license information.
- * -----------------------------------------------------------------------------------------*/
+import { showMessage, chooseOption, getInput } from '../../helpers/userInput'
+import { getOrMakeTemplateFolder } from '../../nmn.Templates/src/template-folder'
+import Templating from '../lib/Templating'
 
-import ejs from './support/ejs'
+export async function templateInsert(): Promise<void> {
+  if (Editor == null) {
+    await showMessage('Open desired note you wish to insert template')
+    return
+  }
 
-import FrontMatterModule from './support/modules/FrontmatterModule'
-import TemplatingEngine from './TemplatingEngine'
-import { getOrMakeConfigurationSection, getStructuredConfiguration } from './support/configuration'
+  const templateFolder = await getOrMakeTemplateFolder()
+  if (templateFolder == null) {
+    await showMessage('An error occured locating 📋 Templates folder')
+    return
+  }
 
-const TEMPLATE_FOLDER_NAME = '📋 Templates'
-export const DEFAULT_TEMPLATE_CONFIG = {
-  locale: 'en-US',
-  defaultFormats: {
-    date: 'YYYY-MM-DD',
-    time: 'h:mm A',
-    now: 'YYYY-MM-DD h:mm:ss A',
-  },
-  user: {
-    first: '',
-    last: '',
-    email: '',
-    phone: '',
-  },
-  // $FlowFixMe
-  services: {},
+  const options = DataStore.projectNotes
+    .filter((n) => n.filename?.startsWith(templateFolder))
+    .filter((n) => !n.title?.startsWith('_configuration'))
+    .map((note) => (note.title == null ? null : { label: note.title, value: note }))
+    .filter(Boolean)
+
+  const selectedTemplate = await chooseOption<TNote, void>('Choose Template', options)
+
+  const templateTitle = selectedTemplate?.title
+
+  const result = await new Templating().renderTemplate(templateTitle)
+
+  Editor.insertTextAtCursor(result)
 }
 
-export async function TEMPLATE_CONFIG_BLOCK(): Promise<string> {
-  const config = await getStructuredConfiguration()
+export async function templateAppend(): Promise<void> {
+  if (Editor == null) {
+    await showMessage('Open desired note you wish to insert template')
+    return
+  }
 
-  // migrate existing configuration values
+  const content: string = Editor.content || ''
 
-  // $FlowFixMe
-  const locale = config?.date?.locale || ''
-  // $FlowFixMe
-  const first = config?.tagValue?.me?.firstName || ''
-  // $FlowFixMe
-  const last = config?.tagValue?.me?.lastName || ''
+  const templateFolder = await getOrMakeTemplateFolder()
+  if (templateFolder == null) {
+    await showMessage('An error occured locating 📋 Templates folder')
+    return
+  }
 
-  // $FlowFixMe
-  const dateFormat = config?.date?.dateStyle || DEFAULT_TEMPLATE_CONFIG.defaultFormats.date
+  const options = DataStore.projectNotes
+    .filter((n) => n.filename?.startsWith(templateFolder))
+    .filter((n) => !n.title?.startsWith('_configuration'))
+    .map((note) => (note.title == null ? null : { label: note.title, value: note }))
+    .filter(Boolean)
 
-  // $FlowFixMe
-  const timeFormat = config?.date?.timeStyle || DEFAULT_TEMPLATE_CONFIG.defaultFormats.time
+  const selectedTemplate = await chooseOption<TNote, void>('Choose Template', options)
 
-  return `  templates: {
-    locale: "${locale}",
-    defaultFormats: {
-      date: "${dateFormat}",
-      time: "${timeFormat}",
-      now: "${DEFAULT_TEMPLATE_CONFIG.defaultFormats.now}"
-    },
-    user: {
-      first: "${first}",
-      last: "${last}",
-      email: "",
-      phone: ""
-    },
-    services: {}
-  },
-  `
+  const templateTitle = selectedTemplate?.title
+
+  const result = await new Templating().renderTemplate(templateTitle)
+
+  Editor.insertTextAtCharacterIndex(result, content.length)
 }
 
-export function getTemplateFolder(): ?string {
-  return DataStore.folders.find((f) => f.includes(TEMPLATE_FOLDER_NAME))
-}
+export async function templateNew(): Promise<void> {
+  const title = await getInput('Enter title of the new note', "Create a new note with title '%@'")
 
-export default class Templating {
-  templateConfig: any
-  constructor() {
-    //
+  const folderList = await DataStore.folders.slice().sort()
+
+  const folder = await chooseOption(
+    'Select folder to add note in:',
+    folderList.map((folder) => ({
+      label: folder,
+      value: folder,
+    })),
+    '/',
+  )
+
+  if (!title) {
+    await showMessage('Cannot create a note with an empty title')
+    return
   }
 
-  async heartbeat(): Promise<string> {
-    await this.setup()
-    return '```\n' + JSON.stringify(this.templateConfig, null, 2) + '\n```\n'
+  const startWithTemplate = await chooseOption(
+    'Do you want to get started with a template?',
+    [
+      { label: 'Yes', value: true },
+      { label: 'No', value: false },
+    ],
+    false,
+  )
+
+  const templateName = startWithTemplate ? await selectTemplate() : ''
+
+  let templateResult = ''
+  if (templateName.length > 0) {
+    templateResult = await new Templating().renderTemplate(templateName)
   }
 
-  async setup() {
-    this.templateConfig = await getOrMakeConfigurationSection('templates', await TEMPLATE_CONFIG_BLOCK())
-  }
-
-  async templateErrorMessage(method: string = '', message: string = ''): Promise<string> {
-    const line = '*'.repeat(message.length + 30)
-    console.log(line)
-    console.log(`   ERROR`)
-    console.log(`   Method: ${method}:`)
-    console.log(`   Message: ${message}`)
-    console.log(line)
-    console.log('\n')
-    return `**Error: ${method}**\n- **${message}**`
-  }
-
-  async getTemplate(templateName: string = ''): Promise<string> {
-    // $FlowFixMe
-    let templateFilename = `${getTemplateFolder()}/${templateName}.md`
-    try {
-      let selectedTemplate = await DataStore.projectNoteByFilename(templateFilename)
-
-      // if the template can't be found using actual filename (as it is on disk)
-      // this will occur due to a bug in NotePlan which is not properly renaming files on disk to match note name
-      if (!selectedTemplate) {
-        const parts = templateName.split('/')
-        if (parts.length > 0) {
-          templateFilename = parts[parts.length - 1]
-          selectedTemplate = await DataStore.projectNoteByTitle(templateFilename, true, false)?.[0]
-        }
-      }
-
-      let templateContent = selectedTemplate?.content || ''
-
-      const isFrontmatterTemplate =
-        templateContent.length > 0 ? new FrontMatterModule().isFrontmatterTemplate(templateContent.substring(1)) : false
-
-      if (isFrontmatterTemplate) {
-        return templateContent || ''
-      }
-      if (templateContent == null || templateContent.length === 0) {
-        const message = `Template "${templateName}" Not Found or Empty`
-        return this.templateErrorMessage('Templating.getTemplate', message)
-      }
-
-      const lines = templateContent.split('\n')
-
-      const dividerIndex = lines.findIndex((element) => element === '---' || element === '*****')
-      if (dividerIndex > 0) {
-        templateContent = lines.splice(dividerIndex + 1).join('\n')
-      } else {
-        templateContent = lines.splice(1).join('\n')
-      }
-
-      return templateContent
-    } catch (error) {
-      return this.templateErrorMessage('getTemplate', error)
-    }
-  }
-
-  async getTemplateConfig(): mixed {
-    return this.templateConfig
-  }
-
-  async renderTemplate(templateName: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
-    try {
-      await this.setup()
-
-      const templateData = await this.getTemplate(templateName)
-      return await new TemplatingEngine(this.templateConfig).render(templateData, userData, userOptions)
-    } catch (error) {
-      return this.templateErrorMessage(error)
-    }
-  }
-
-  async render(templateData: any = '', userData: any = {}, userOptions: any = {}): Promise<string> {
-    try {
-      await this.setup()
-      return await new TemplatingEngine(this.templateConfig).render(templateData, userData, userOptions)
-    } catch (error) {
-      return this.templateErrorMessage(error)
-    }
+  const filename = DataStore.newNote(title, folder) || ''
+  if (filename) {
+    await Editor.openNoteByFilename(filename)
+    Editor.content = `# ${title}\n${templateResult}`
   }
 }
 
-/**
- * Show alert (like modal) using CommandBar
- * @author @codedungeon
- * @param {string} message - text to display to user (parses each line as separate 'option')
- * @param {string} label - label text (appears in CommandBar filter field)
- */
-export async function alert(message: any = '', label: string = 'press <return> to continue'): Promise<string> {
-  const lines = Array.isArray(message) ? message : message.split('\n')
-  const optionItem = await CommandBar.showOptions(lines, label)
-  const result = lines[optionItem.index]
-  await CommandBar.hide()
-  return result
+export async function selectTemplate(): Promise<string> {
+  const templateFolder = await getOrMakeTemplateFolder()
+  if (templateFolder == null) {
+    await showMessage('An error occured locating 📋 Templates folder')
+    return ''
+  }
+
+  const options = DataStore.projectNotes
+    .filter((n) => n.filename?.startsWith(templateFolder))
+    .filter((n) => !n.title?.startsWith('_configuration'))
+    .map((note) => (note.title == null ? null : { label: note.title, value: note }))
+    .filter(Boolean)
+
+  const selectedTemplate = await chooseOption<TNote, void>('Choose Template', options)
+
+  const templateTitle = selectedTemplate?.title || ''
+
+  return templateTitle
 }

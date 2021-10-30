@@ -1,7 +1,7 @@
 /* eslint-disable */
 
 import colors from 'chalk'
-import DateModule from '../src/support/modules/DateModule'
+import DateModule from '../lib/support/modules/DateModule'
 import moment from 'moment'
 
 const PLUGIN_NAME = `📙 ${colors.yellow('np.Templating')}`
