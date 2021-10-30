@@ -1,5 +1,6 @@
 // @flow
 
+import { getWeatherSummary } from '../../nmn.Templates/src/weather'
 import Templating from './Templating'
 
 const testTemplateFolder = '🧩 Templating Samples'
@@ -185,6 +186,24 @@ export async function testTemplateAsync(): Promise<void> {
     Editor.insertTextAtCursor('Please wait...')
 
     const result = await new Templating().renderTemplate('Test (Async)', {})
+
+    Editor.replaceTextInCharacterRange(content + result, 0, MAX_NOTE)
+  } catch (error) {
+    showError(error)
+  }
+}
+
+export async function testWeatherSummary(): Promise<void> {
+  try {
+    const content: string = Editor.content || ''
+    Editor.insertTextAtCursor('Please wait...')
+
+    const renderObj = {
+      weather: async () => {
+        return await getWeatherSummary('')
+      },
+    }
+    const result = await new Templating().renderTemplate('Test (Weather)', renderObj)
 
     Editor.replaceTextInCharacterRange(content + result, 0, MAX_NOTE)
   } catch (error) {

@@ -11,6 +11,24 @@
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md",
   "plugin.commands": [
     {
+      "name": "np:insert",
+      "alias": [],
+      "description": "Insert template to current note",
+      "jsFunction": "templateInsert"
+    },
+    {
+      "name": "np:append",
+      "alias": [],
+      "description": "Append template to end of current note",
+      "jsFunction": "templateAppend"
+    },
+    {
+      "name": "np:new",
+      "alias": [],
+      "description": "Create new note with title, in chosen folder with optional template",
+      "jsFunction": "templateNew"
+    },
+    {
       "name": "np:tester-heartbeat",
       "alias": [],
       "description": "np.Templating Heartbeat",
@@ -75,6 +93,12 @@
       "alias": [],
       "description": "np.Templating (Async)",
       "jsFunction": "testTemplateAsync"
+    },
+    {
+      "name": "np:tester-weather",
+      "alias": [],
+      "description": "np.Templating (Weather Summary)",
+      "jsFunction": "testWeatherSummary"
     }
   ]
 }

@@ -83,6 +83,12 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(moment(new Date()).format('YYYY-MM-DD'))
     })
 
+    it(`should render today w/ custom format`, async () => {
+      const result = new DateModule({ defaultFormats: { date: 'short' } }).today()
+
+      expect(result).toEqual(moment(new Date()).format('MM/DD/YY'))
+    })
+
     it(`should render yesterday`, async () => {
       const result = new DateModule().yesterday()
 
@@ -91,10 +97,42 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(assertValue)
     })
 
+    it(`should render yesterday w/ intl format`, async () => {
+      const result = new DateModule({ defaultFormats: { date: 'short' } }).yesterday()
+
+      const assertValue = moment(new Date()).subtract(1, 'days').format('MM/DD/YY')
+
+      expect(result).toEqual(assertValue)
+    })
+
+    it(`should render yesterday w/ custom format`, async () => {
+      const result = new DateModule({ defaultFormats: { date: 'short' } }).yesterday('YYYY/MM/DD')
+
+      const assertValue = moment(new Date()).subtract(1, 'days').format('YYYY/MM/DD')
+
+      expect(result).toEqual(assertValue)
+    })
+
     it(`should render tomorrow`, async () => {
       const result = new DateModule().tomorrow()
 
       const assertValue = moment(new Date()).add(1, 'days').format('YYYY-MM-DD')
+
+      expect(result).toEqual(assertValue)
+    })
+
+    it(`should render tomorrow w/ intl format`, async () => {
+      const result = new DateModule({ defaultFormats: { date: 'short' } }).tomorrow()
+
+      const assertValue = moment(new Date()).add(1, 'days').format('MM/DD/YY')
+
+      expect(result).toEqual(assertValue)
+    })
+
+    it(`should render tomorrow w/ custom format`, async () => {
+      const result = new DateModule({ defaultFormats: { date: 'short' } }).tomorrow('YYYY/MM/DD')
+
+      const assertValue = moment(new Date()).add(1, 'days').format('YYYY/MM/DD')
 
       expect(result).toEqual(assertValue)
     })

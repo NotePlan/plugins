@@ -129,12 +129,18 @@ export default class Templating {
       const dividerIndex = lines.findIndex((element) => element === '---' || element === '*****')
       if (dividerIndex > 0) {
         templateContent = lines.splice(dividerIndex + 1).join('\n')
+      } else {
+        templateContent = lines.splice(1).join('\n')
       }
 
       return templateContent
     } catch (error) {
       return this.templateErrorMessage('getTemplate', error)
     }
+  }
+
+  async getTemplateConfig(): mixed {
+    return this.templateConfig
   }
 
   async renderTemplate(templateName: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
@@ -156,4 +162,18 @@ export default class Templating {
       return this.templateErrorMessage(error)
     }
   }
+}
+
+/**
+ * Show alert (like modal) using CommandBar
+ * @author @codedungeon
+ * @param {string} message - text to display to user (parses each line as separate 'option')
+ * @param {string} label - label text (appears in CommandBar filter field)
+ */
+export async function alert(message: any = '', label: string = 'press <return> to continue'): Promise<string> {
+  const lines = Array.isArray(message) ? message : message.split('\n')
+  const optionItem = await CommandBar.showOptions(lines, label)
+  const result = lines[optionItem.index]
+  await CommandBar.hide()
+  return result
 }

@@ -11,3 +11,8 @@ export { testFullTemplate } from './testTemplating.js'
 export { testMissingVariable } from './testTemplating.js'
 export { testFrontmatter } from './testTemplating.js'
 export { testTemplateAsync } from './testTemplating.js'
+export { testWeatherSummary } from './testTemplating.js'
+
+export { templateInsert } from './templatingUtils'
+export { templateAppend } from './templatingUtils'
+export { templateNew } from './templatingUtils'

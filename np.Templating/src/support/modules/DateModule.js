@@ -14,11 +14,21 @@ export default class DateModule {
   }
 
   format(format = '', date = '') {
-    const dateValue = date.length > 0 ? date : new Date()
+    let dateValue = date.length > 0 ? new Date(date) : new Date()
+    if (date instanceof moment) {
+      dateValue = new Date(date)
+    }
+
     const configFormat = this.config?.defaultFormats?.date || 'YYYY-MM-DD'
+    const locale = this.config?.locale || 'en-US'
     format = format.length > 0 ? format : configFormat
 
-    return moment(dateValue).format(format)
+    let formattedDate = moment(dateValue).format(format)
+    if (format === 'short' || format === 'medium' || format === 'long' || format === 'full') {
+      formattedDate = new Intl.DateTimeFormat(locale, { dateStyle: format }).format(dateValue)
+    }
+
+    return formattedDate
   }
 
   now(format = '', offset = '') {
@@ -52,21 +62,29 @@ export default class DateModule {
   }
 
   today(format = '') {
-    const configFormat = this.config?.defaultFormats?.date || 'YYYY-MM-DD'
-    format = format.length > 0 ? format : configFormat
-    return moment().format(format)
+    return this.format(format, new Date())
   }
 
   tomorrow(format = '') {
     const configFormat = this.config?.defaultFormats?.date || 'YYYY-MM-DD'
     format = format.length > 0 ? format : configFormat
-    return this.isValid(moment(new Date()).add(1, 'days')).format(format)
+
+    const dateValue = moment(new Date()).add(1, 'days')
+
+    const formattedValue = this.format(format, dateValue)
+
+    return formattedValue
   }
 
   yesterday(format = '') {
     const configFormat = this.config?.defaultFormats?.date || 'YYYY-MM-DD'
     format = format.length > 0 ? format : configFormat
-    return moment(new Date()).subtract(1, 'days').format(format)
+
+    const dateValue = moment(new Date()).subtract(1, 'days')
+
+    const formattedValue = this.format(format, dateValue)
+
+    return formattedValue
   }
 
   weekday(format = '', offset = 1) {
