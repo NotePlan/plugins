@@ -77,7 +77,7 @@ export function sortListBy(list, fields) {
 
 // Note: nmn.sweep limits how far back you look with: && hyphenatedDateString(p.date) >= afterHyphenatedDate,
 // For now, we are assuming that sweep was already done, and we're just looking at this one note
-const isOverdue = (t) => {
+export const isOverdue = (t) => {
   t.type === 'open' && t.date !== null && hyphenatedDateString(t.date) < hyphenatedDateString(new Date())
 }
 

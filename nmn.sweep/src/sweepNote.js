@@ -3,6 +3,8 @@
 
 import { hyphenatedDateString, removeDateTags } from '../../helpers/dateTime'
 import { chooseOption } from '../../helpers/userInput'
+import { isOverdue } from '../../dwertheimer.TaskAutomations/src/taskHelpers'
+
 export type ReturnStatus = {
   status: string,
   msg: string,
@@ -63,11 +65,13 @@ export default async function sweepNote(
       lastRootItem = null
     }
 
+    const checkOverdue = !overdueOnly || isOverdue(p)
+
     // Either all movable types, or anything indented, if the parent is indented as well.
     if (
       // ['open', 'title']
       isSeparatorLine ||
-      moveableTypes.includes(p.type) ||
+      (moveableTypes.includes(p.type) && checkOverdue) ||
       ((p.indents > 0 || p.type === 'empty') && lastRootItem != null)
     ) {
       paragraphsToMove.push(p)
@@ -100,6 +104,7 @@ export default async function sweepNote(
     return { status: 'error', msg: `Couldn't open Today's Calendar Note` }
   }
 
+  paragraphsToMove
   const numTasksToMove = paragraphsToMove.filter((p) => p.type === 'open').length
 
   if (numTasksToMove > 0) {

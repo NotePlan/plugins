@@ -78,7 +78,7 @@ export async function sweepTemplate(paramStr: string = ''): Promise<string> {
  * returnValue is true if you should return the value (string) for insertion rather than putting in the note directly
  */
 export default async function sweepAll(
-  overdueOnly: boolean = false,
+  pOverdueOnly: boolean = false,
   requireUserAction: boolean = true,
   periodToCheck: Option1 = DEFAULT_OPTION,
   returnValue: boolean = false,
@@ -89,7 +89,7 @@ export default async function sweepAll(
   let { unit, num } = periodToCheck
   let foundTasks: Array<TParagraph> = []
   console.log(
-    `Starting sweepAll overdueOnly:${String(overdueOnly)} requireUserAction:${String(
+    `Starting sweepAll overdueOnly:${String(pOverdueOnly)} requireUserAction:${String(
       requireUserAction,
     )} periodToCheck:${JSON.stringify(periodToCheck)} noteTypes: ${JSON.stringify(noteTypes)} returnValue:${String(
       returnValue,
@@ -151,6 +151,15 @@ export default async function sweepAll(
     //   }`,
     // )
   }
+
+  if (withUserConfirm) {
+    // res = await CommandBar.showOptions(['✅ Yes', '❌ No'], `Sweep Overdue tasks only?`)
+    res = await CommandBar.showOptions(
+      ['All Open Tasks', 'Open+Scheduled+Overdue Tasks Only'],
+      `What type of tasks to include?`,
+    )
+  }
+  const overdueOnly = pOverdueOnly || res.index === 1
 
   // PROJECT NOTES FIRST
 
