@@ -47,6 +47,9 @@ export async function sweepTemplate(paramStr: string = ''): Promise<string> {
     const noteTypes: NoteTypes[] = await getTagParamsFromString(paramStr, 'noteTypes', ['note', 'calendar'])
     // $FlowFixMe
     const ignoreFolders: string[] = await getTagParamsFromString(paramStr, 'ignoreFolders', ['📋 Templates'])
+    // $FlowFixMe
+
+    const overdueOnly: boolean = Boolean(await getTagParamsFromString(paramStr, 'overdueOnly', false))
 
     //TODO: add sorting support
 
@@ -62,7 +65,15 @@ export async function sweepTemplate(paramStr: string = ''): Promise<string> {
     //   console.log(`Error: ${e}`)
     //   return `Could not parse template parameter: ${paramStr}. Check the documentation. Error: ${e}`
     // }
-    const retVal = await sweepAll(false, requireConfirmation, limit, true, includeHeadings, noteTypes, ignoreFolders)
+    const retVal = await sweepAll(
+      overdueOnly,
+      requireConfirmation,
+      limit,
+      true,
+      includeHeadings,
+      noteTypes,
+      ignoreFolders,
+    )
     return String(retVal ?? '')
   }
 }
@@ -153,9 +164,8 @@ export default async function sweepAll(
   }
 
   if (withUserConfirm) {
-    // res = await CommandBar.showOptions(['✅ Yes', '❌ No'], `Sweep Overdue tasks only?`)
     res = await CommandBar.showOptions(
-      ['All Open Tasks', 'Open+Scheduled+Overdue Tasks Only'],
+      ['Open/Unscheduled Tasks', 'Scheduled+Overdue Tasks Only'],
       `What type of tasks to include?`,
     )
   }

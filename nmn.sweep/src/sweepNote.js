@@ -31,15 +31,15 @@ export default async function sweepNote(
   const paragraphsToRemove: Array<TParagraph> = []
   let paragraphsToReturn: Array<TParagraph> = []
 
-  const moveableTypes = ['open', 'title']
+  const moveableTypes = ['open', 'title', 'scheduled']
   const mainItemTypes = ['open']
-  const nonMovableTypes = ['scheduled', 'cancelled', 'done']
+  const nonMovableTypes = ['cancelled', 'done']
   const resetTypes = ['title', 'empty']
 
   let lastRootItem: ?TParagraph = null
 
   console.log(
-    `---\nStarting sweepNote for file: "${note.filename}" noteDate:${note.date} paragraphs:${paragraphs.length}`,
+    `---\nStarting sweepNote for file: "${note.filename}" noteDate:${note.date} paragraphs:${paragraphs.length} overdueOnly:${overdueOnly}`,
   )
   paragraphs.forEach((p) => {
     const isSeparatorLine = /^---/.test(p.content)
@@ -53,9 +53,12 @@ export default async function sweepNote(
       return
     }
 
+    const checkOverdue = !overdueOnly || isOverdue(p)
+
     // Remember the last item which is not indented and open, or a bullet
     // ['open']
-    if (mainItemTypes.includes(p.type) && p.indents === 0) {
+    if ((mainItemTypes.includes(p.type) || checkOverdue) && p.indents === 0) {
+      if (checkOverdue) console.log(`${p.content} *** overdue`)
       lastRootItem = p
     }
 
@@ -64,8 +67,6 @@ export default async function sweepNote(
     if (resetTypes.includes(p.type) && p.indents === 0) {
       lastRootItem = null
     }
-
-    const checkOverdue = !overdueOnly || isOverdue(p)
 
     // Either all movable types, or anything indented, if the parent is indented as well.
     if (

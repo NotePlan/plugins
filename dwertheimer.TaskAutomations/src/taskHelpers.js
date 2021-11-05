@@ -75,10 +75,16 @@ export function sortListBy(list, fields) {
   // return list.sort(fieldSorterOptimized(sortBy))
 }
 
+// returns a date object if it exists, and null if there is no forward date
+const hasTypedDate = (t) => (/>\d{4}-\d{2}-\d{2}/g.test(t.content) ? t.date : null)
+
 // Note: nmn.sweep limits how far back you look with: && hyphenatedDateString(p.date) >= afterHyphenatedDate,
 // For now, we are assuming that sweep was already done, and we're just looking at this one note
 export const isOverdue = (t) => {
-  t.type === 'open' && t.date !== null && hyphenatedDateString(t.date) < hyphenatedDateString(new Date())
+  let theDate = null
+  if (t.type === 'scheduled') theDate = t.date
+  if (t.type === 'open') theDate = hasTypedDate(t)
+  return theDate && hyphenatedDateString(theDate) < hyphenatedDateString(new Date())
 }
 
 /*
