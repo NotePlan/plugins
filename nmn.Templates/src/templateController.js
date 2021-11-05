@@ -96,7 +96,7 @@ async function execTagListFunction(tagString, enclosedString, config): Promise<s
   }
   if (!found) {
     // no matching funcs, so now attempt to match defined tag values instead
-    return (await processTagValues(tagString, config)) || `[no text entered for ${tagString}]`
+    return (await processTagValues(tagString, config)) || `` //[no text entered for ${tagString}]
   }
   return ''
 }
