@@ -1,0 +1,35 @@
+{
+	"noteplan.minAppVersion": "3.0.23",
+  "macOS.minVersion": "10.13.0",
+	"plugin.id": "jgclark.Summaries",
+	"plugin.name": "🗃 Summaries",
+	"plugin.description": "Generate summaries from notes for a given time period, and save to notes. And save search results over all notes. Requires configuring to suit your use of NotePlan. Click link for more details and settings.",
+	"plugin.icon": "",
+	"plugin.author": "Jonathan Clark",
+	"plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
+	"plugin.version": "0.2.0",
+	"plugin.dependencies": [],
+	"plugin.script": "script.js",
+	"plugin.isRemote": "false",
+	"plugin.commands": [
+		{
+			"name": "countsInPeriod",
+			"alias": ["stp", "period", "stats", "count"],
+			"description": "Generate counts (and other stats) of tags and mentions for a time period",
+			"jsFunction": "statsPeriod"
+		},
+		{
+			"name": "occurrencesInPeriod",
+			"alias": ["period", "summary", "occurrence"],
+			"description": "Generate list of occurrences of specified tags or mentions for a time period",
+			"jsFunction": "occurrencesPeriod"
+		},
+		{
+			"name": "saveSearchResults",
+			"alias": ["period", "search", "occurrence"],
+			"description": "Save results from a search over all notes",
+			"jsFunction": "saveSearch"
+		}
+	],
+	"plugin.preferences": []
+}

@@ -1,5 +1,12 @@
 # What's changed in 🕓 Event Helpers?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
+## Future / Unreleased
+- tighten timeblock-finding regex if Eduard does
+- add further fields (e.g. location) if Eduard adds to the API
+
+## [0.6.2] - 2021-10-21
+### Changed
+- now shows a warning if no timeblocks could be found, rather than apparently just doing nothing
 
 ## [0.6.1] - 2021-10-05
 ### Fixed

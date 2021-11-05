@@ -1,7 +1,7 @@
 //--------------------------------------------------------------------------------------------------------------------
 // Repeat Extensions plugin for NotePlan
 // Jonathan Clark
-// v0.2.2, 11.6.2021
+// v0.3.0, 24.10.2021
 //--------------------------------------------------------------------------------------------------------------------
 
 import {
@@ -13,6 +13,7 @@ import {
   // toISODateString,
   // rangeToString,
 } from '../../helpers/dateTime'
+import { showMessage } from '../../helpers/userInput'
 
 //------------------------------------------------------------------
 // Process any completed(or cancelled) tasks with my extended @repeat(..) tags,
@@ -45,7 +46,7 @@ export async function repeats() {
     return
   }
   let lineCount = paragraphs.length
-  console.log(`\nrepeats: from note '${  title  }'`)
+  console.log(`\nrepeats: from note '${title}'`)
 
   // check if the last paragraph is undefined, and if so delete it from our copy
   if (paragraphs[lineCount] === null) {
@@ -57,7 +58,6 @@ export async function repeats() {
   let cancelledHeaderLine = 0
   for (let i = 0; i < lineCount; i++) {
     const p = paragraphs[i]
-    // console.log(i.toString() + "/" + p.lineIndex + ": " + p.content)
     if (p.headingLevel === 2 && p.content === 'Done') {
       doneHeaderLine = i
     }
@@ -65,11 +65,11 @@ export async function repeats() {
       cancelledHeaderLine = i
     }
   }
-  // console.log('  dHL = ' + doneHeaderLine + ', cHL = ' + cancelledHeaderLine);
   const endOfActive = (doneHeaderLine > 0) ? doneHeaderLine :
     ((cancelledHeaderLine > 0) ? cancelledHeaderLine : lineCount)
+  // console.log(`  dHL = ${doneHeaderLine}, cHL = ${cancelledHeaderLine} endOfActive = ${endOfActive}`)
 
-  let n = 0
+  let repeatCount = 0
   let line = ''
   let updatedLine = ''
   let completedDate = ''
@@ -77,30 +77,33 @@ export async function repeats() {
   let reReturnArray = []
 
   // Go through each line in the active part of the file
-  for (n = 0; n < endOfActive; n++) {
+  for (let n = 0; n < endOfActive; n++) {
     const p = paragraphs[n]
+    // line = p.content
     line = p.content
     updatedLine = ''
     completedDate = ''
 
     // find lines with datetime to shorten, and capture date part of it
     // i.e. @done(YYYY-MM-DD HH:MM[AM|PM])
-    // console.log("  [" + n + "] " + line)
+    // console.log(`  [${n}] ${line}`)
     if (p.content.match(RE_DONE_DATE_TIME)) {
       // get completed date and time
       reReturnArray = line.match(RE_DONE_DATE_CAPTURE)
       completedDate = reReturnArray[1]
       completedTime = reReturnArray[2]
-      console.log(`  Found completed repeat ${ completedDate }/${ completedTime } in line ${n}`)
+      console.log(`  Found completed repeat ${completedDate} /${completedTime} in line ${n}`)
+      
+      // remove time string from completed date-time
       updatedLine = line.replace(completedTime, '') // couldn't get a regex to work here
       p.content = updatedLine
-
       // Send the update to the Editor
       await Editor.updateParagraph(p)
-      // console.log('    updated Paragraph ' + p.lineIndex);
+      // console.log(`    updated Paragraph ${p.lineIndex}`)
 
       // Test if this is one of my special extended repeats
       if (updatedLine.match(RE_EXTENDED_REPEAT)) {
+        repeatCount++
         let newRepeatDate = ''
         let outline = ''
         // get repeat to apply
@@ -118,14 +121,14 @@ export async function repeats() {
           console.log(`\tAdding from completed date --> ${newRepeatDate}`)
           // Remove any >date
           updatedLine = updatedLine.replace(/\s+>\d{4}-[01]\d{1}-\d{2}/, '') // i.e. RE_DUE_DATE, but can't get regex to work with variables like this
-          // console.log(`\tupdatedLine: ${  updatedLine}`)
+          // console.log(`\tupdatedLine: ${updatedLine}`)
 
         } else {
           // New repeat date = due date + interval
           // look for the due date(>YYYY-MM-DD)
           let dueDate = ''
           const resArray = updatedLine.match(RE_DUE_DATE_CAPTURE) ?? []
-          console.log(resArray.length)
+          // console.log(resArray.length)
           if (resArray[1] != null) {
             console.log(`\tmatch => ${resArray[1]}`)
             dueDate = resArray[1]
@@ -146,9 +149,9 @@ export async function repeats() {
         // Create and add the new repeat line ...
         if (Editor.type === 'Notes') {
           // ...either in same project note
-          outline += ` >${  newRepeatDate}`
-          // console.log(`\toutline: ${  outline}`)
-          await Editor.insertParagraphAfterParagraph(outline, p, 'scheduled')
+          outline += ` >${newRepeatDate}`
+          // console.log(`\toutline: ${outline}`)
+          await Editor.insertParagraphAfterParagraph(outline, p, 'open')
           console.log(`\tInserted new para after line ${p.lineIndex}`)
         } else {
           // ... or in the future daily note (prepend)
@@ -166,11 +169,15 @@ export async function repeats() {
             outline += ` >${newRepeatDate}`
             console.log(`\toutline: ${outline}`)
 
-            await Editor.insertParagraphAfterParagraph(outline, p, 'scheduled')
+            await Editor.insertParagraphAfterParagraph(outline, p, 'open')
             console.log('\tInserted new repeat in original daily note')
           }
         }        
       }
     }
+  }
+  if (repeatCount === 0) {
+    await showMessage('No suitable completed repeats found')
+    console.log('\tNote: no suitable completed repeats found')
   }
 }

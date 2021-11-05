@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Commands for Reviewing project-style notes, GTD-style.
 // by @jgclark
-// v0.4.1, 27.9.2021
+// v0.4.3, 24.10.2021
 //-----------------------------------------------------------------------------
 
 // Settings
@@ -46,7 +46,7 @@ import {
 } from '../../nmn.Templates/src/configuration'
 import {
   Project,
-  returnSummaryNote,
+  getOrMakeNote,
   findNotesMatchingHashtags,
   getOrMakeMetadataLine,
 } from './reviewHelpers'
@@ -109,9 +109,13 @@ export async function projectLists(): Promise<void> {
     // We have defined tag(s) to filter and group by
     // $FlowFixMe[incompatible-type]
     for (const tag of pref_noteTypeTags) {
-      // Do the main work
+      // handle #hashtags in the note title (which get stripped out by NP, it seems)
+      const tagWithoutHash = tag.replace('#','')
       const noteTitle = `${tag} List`
-      const note: ?TNote = await returnSummaryNote(noteTitle, pref_folderToStore)
+      const noteTitleWithoutHash = `${tagWithoutHash} List`
+
+      // Do the main work
+      const note: ?TNote = await getOrMakeNote(noteTitleWithoutHash, pref_folderToStore)
       if (note != null) {
         // Calculate the Summary list(s)
         const outputArray = makeNoteTypeSummary(tag)
@@ -122,7 +126,7 @@ export async function projectLists(): Promise<void> {
         note.content = outputArray.join('\n')
         console.log(`\twritten results to note '${noteTitle}'`)
       } else {
-        showMessage('Oops: failed to find or make project summary note', 'OK')
+        await showMessage('Oops: failed to find or make project summary note', 'OK')
         console.log(
           "projectLists: error: shouldn't get here -- no valid note to write to",
         )
@@ -132,7 +136,7 @@ export async function projectLists(): Promise<void> {
   } else {
     // We will just use all notes with a @review() string, in one go     
     const noteTitle = `Review List`
-    const note: ?TNote = await returnSummaryNote(noteTitle, pref_folderToStore)
+    const note: ?TNote = await getOrMakeNote(noteTitle, pref_folderToStore)
     if (note != null) {
       // Calculate the Summary list(s)
       const outputArray = makeNoteTypeSummary('')
@@ -143,7 +147,7 @@ export async function projectLists(): Promise<void> {
       note.content = outputArray.join('\n')
       console.log(`\twritten results to note '${noteTitle}'`)
     } else {
-      showMessage('Oops: failed to find or make project summary note', 'OK')
+      await showMessage('Oops: failed to find or make project summary note', 'OK')
       console.log(
         "projectLists: error: shouldn't get here -- no valid note to write to",
       )
@@ -159,7 +163,7 @@ export async function projectLists(): Promise<void> {
 export async function startReviews() {
   getConfig()
   // Get or make _reviews note
-  // const reviewsNote: ?TNote = await returnSummaryNote(reviewListNoteTitle, pref_folderToStore)
+  // const reviewsNote: ?TNote = await getOrMakeNote(reviewListNoteTitle, pref_folderToStore)
   // if (reviewsNote == null) {
   //   showMessage(`Oops: failed to find or make _reviews note`, 'OK')
   //   console.log(`\nstartReviews: error: can't get or make summary _reviews note`)
@@ -353,8 +357,7 @@ export async function updateReviewListAfterReview(note: TNote) {
   // Get pref that contains the project list
   const reviewList = DataStore.preference(reviewListPref)
   if (reviewList === undefined) {
-    showMessage(`Oops: I now can't find my pref`, 'OK')
-    console.log(`updateReviewListAfterReview: error: can't find pref jgclark.Review.reviewList`)
+    console.log(`updateReviewListAfterReview V2: warning: can't find pref jgclark.Review.reviewList`)
     return
   }
 
@@ -391,7 +394,7 @@ async function getNextNoteToReview(): Promise<?TNote> {
   // Get pref that contains the project list
   const reviewList = DataStore.preference(reviewListPref)
   if (reviewList === undefined) {
-    showMessage(`Oops: I now can't find my pref`, 'OK')
+    await showMessage(`Oops: I now can't find my pref`, 'OK')
     console.log(`getNextNoteToReview: error: can't find pref jgclark.Review.reviewList`)
     return
   }

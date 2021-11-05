@@ -21,13 +21,13 @@ import {
   getFolderFromFilename,
 } from '../../helpers/general'
 
-/*
+/**
  * Get or create the relevant note in the Summary folder
  * @param {string} noteTitle - title of summary note
  * @param {string} noteFolder - folder to look in
  * @return {Promise<TNote>} - note object
  */
-export async function returnSummaryNote(
+export async function getOrMakeNote(
   noteTitle: string,
   noteFolder: string
 ): Promise<?TNote> {
@@ -35,7 +35,7 @@ export async function returnSummaryNote(
   const existingNotes: $ReadOnlyArray<TNote> =
     DataStore.projectNoteByTitle(noteTitle, true, false) ?? []
   console.log(
-    `\tfound ${existingNotes.length} existing summary note(s)`,
+    `\tfound ${existingNotes.length} existing '${noteTitle}' note(s)`,
   )
 
   if (existingNotes.length > 0) {
