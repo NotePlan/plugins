@@ -280,10 +280,17 @@ export async function quickTemplateNote(noteName: string = ''): Promise<boolean>
   const quickNotesArray = await getOrMakeConfigurationSection(
     'quickNotes',
     `  quickNotes: [
-    { template: "Title of a template here", label: "Short descriptive name for this quickNote combination", title: "Title for the created note, can include template tags to be dynamic, e.g. Meeting with {{askForName}} on {{date8601()}}", folder: "MyRootFolder/MySubFolder",    editThis: true  /* delete this comment and the editThis after you have edited this */   },
-  ],`,
+          { 
+            template: "Title of an existing template here", 
+            label: "Short descriptive name for this quickNote combination", 
+            title: "Title for the created note, can include template tags to be dynamic, e.g. Meeting with {{askForName}} on {{date8601()}}", 
+            folder: "MyRootFolder/MySubFolder",    
+            editThis: true  /* delete this comment and the editThis after you have edited this */   
+          },
+        ],
+    `,
   )
-  console.log(`\nquickTemplateNote: quickNotesArray=${String(JSON.stringify(quickNotesArray))}`)
+  // console.log(`\nquickTemplateNote: quickNotesArray=${String(JSON.stringify(quickNotesArray))}`)
   let chosenItem
   if (quickNotesArray && quickNotesArray.length) {
     //$FlowIgnore
@@ -302,18 +309,19 @@ export async function quickTemplateNote(noteName: string = ''): Promise<boolean>
     //$FlowIgnore
     console.log(`quickTemplateNote did not work. quickNotesArray=${JSON.stringify(quickNotesArray)}`)
     await showMessage('Requires Configuration. Read Templates Plugin Instructions')
+    await openConfigFileInEditor()
     return false
   }
   if (chosenItem) {
     //$FlowFixMe
     const { template, title, folder } = chosenItem
     // FIXME do something with noteName here
-    if (template !== '' && title !== '' && folder !== '') {
-      const fullName = noteName ? `${noteName} ${title}` : title
+    if (template !== '' && folder !== '') {
+      const fullName = noteName ? `${noteName ? `${noteName} ` : ''}${title}` : title
       await newNoteWithTemplate(template, fullName, folder)
     } else {
       console.log(`Chosen template data invalid. chosenItem=${String(JSON.stringify(chosenItem))}`)
-      // await showMessage('Check your _configuration for that setting')
+      await showMessage('Template name was invalid. Check settings.')
     }
   }
   return true

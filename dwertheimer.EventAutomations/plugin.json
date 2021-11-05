@@ -4,12 +4,12 @@
   "noteplan.minAppVersion": "3.0.21",
   "plugin.id": "dwertheimer.EventAutomations",
   "plugin.name": "🧩 Event Automations",
-  "plugin.description": "Event Automations",
+  "plugin.description": "Create a note from an event on your calendar!",
   "plugin.author": "dwertheimer",
   "plugin.version": "0.1.0",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
-  "plugin.url": "Put a link to a web page or your github readme file here, and it will be displayed as the 'website' in the plugin preference pane to give users more info on the plugin before/after install, e.g.  https://github.com/dwertheimer/Noteplan-plugins/blob/main/np.plugin-flow-skeleton/readme.md",
+  "plugin.url": "",
   "plugin.commands": [
     {
       "name": "Create Note From Calendar Item w/QuickTemplate",

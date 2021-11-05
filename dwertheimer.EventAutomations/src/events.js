@@ -3,7 +3,7 @@ import { add } from 'date-fns'
 import { getEventsForDay, type HourMinObj } from '../../jgclark.EventHelpers/src/eventsToNotes'
 import { getTodaysDateUnhyphenated, toLocaleShortTime } from '../../helpers/dateTime'
 import { chooseOption } from '../../helpers/userInput'
-import { quickTemplateNote } from '../../nmn.Templates/src/index'
+import { quickTemplateNote, newNoteWithTemplate } from '../../nmn.Templates/src/index'
 
 function getTimeOffset(offset: HourMinObj = { h: 0, m: 0 }) {
   const now = new Date()
@@ -29,7 +29,6 @@ export async function createNoteForCalendarItemWithoutQuickTemplate(): Promise<v
 }
 
 export async function createNoteForCalendarItem(useQuickTemplate: boolean = true): Promise<void> {
-  const message = 'Hello World from Events!'
   const date = getTodaysDateUnhyphenated()
   console.log(`Creating note for today's date: ${date}`)
   const allDaysEvents = await getEventsForDay(date)
@@ -40,14 +39,28 @@ export async function createNoteForCalendarItem(useQuickTemplate: boolean = true
   if (nowIshEvents.length > 0) {
     events = [...nowIshEvents, ...[{ title: '---' }], ...allDaysEvents]
   }
+  // $FlowIgnore
   const selections = allDaysEvents.map((event, i) => {
+    // $FlowIgnore
     const time = toLocaleShortTime(event.date, [], { hour: '2-digit', minute: '2-digit', hour12: false })
-    if (event.title) return { label: `${time}: ${event.title}`, value: event.title }
+    // $FlowIgnore
+    if (event.title) return { label: `${time}: ${event.title}`, value: event.title, time }
   })
-  const selectedEvent = await chooseOption('Choose an event to create a note for', selections, null)
-  console.log(`Selected event: ${selectedEvent}`)
+  // $FlowIgnore
+  const selectedEvent = await chooseOption('Choose an event to create a note for', selections, '')
   // Override the quickTemplateNote title with the selected event
-  if (useQuickTemplate) quickTemplateNote(`${selectedEvent}`)
+  // $FlowIgnore
+  const selEvent = selections.find((event) => event.value === selectedEvent)
+  // $FlowIgnore
+  const theTime = selEvent.time === '00:00' ? '' : selEvent.time
+  console.log(`Selected event: ${selectedEvent} ${String(JSON.stringify(selEvent))}`)
+  // $FlowIgnore
+  const theTitle = `${selectedEvent} {{date8601()}} ${theTime || ''}`
+  if (selectedEvent && useQuickTemplate) {
+    await quickTemplateNote(theTitle)
+    return
+  }
+  await newNoteWithTemplate('', theTitle)
 }
 
 function printEventsToConsole(events: Array<Object>): void {
