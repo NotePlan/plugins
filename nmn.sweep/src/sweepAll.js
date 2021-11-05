@@ -5,6 +5,8 @@ import { filenameDateString } from '../../helpers/dateTime'
 import { chooseOption, showMessage } from '../../helpers/userInput'
 import { default as sweepNote } from './sweepNote'
 
+type RescheduleType = 'move' | 'reschedule' | 'updateDate' | 'makeToday' | false
+
 type Option1 = $ReadOnly<{
   num: number,
   unit: 'day' | 'month' | 'year',
@@ -48,8 +50,9 @@ export async function sweepTemplate(paramStr: string = ''): Promise<string> {
     // $FlowFixMe
     const ignoreFolders: string[] = await getTagParamsFromString(paramStr, 'ignoreFolders', ['📋 Templates'])
     // $FlowFixMe
-
     const overdueOnly: boolean = Boolean(await getTagParamsFromString(paramStr, 'overdueOnly', false))
+    // $FlowFixMe
+    const moveType: RescheduleType = await getTagParamsFromString(paramStr, 'moveType', 'reschedule')
 
     //TODO: add sorting support
 
@@ -73,6 +76,7 @@ export async function sweepTemplate(paramStr: string = ''): Promise<string> {
       includeHeadings,
       noteTypes,
       ignoreFolders,
+      moveType,
     )
     return String(retVal ?? '')
   }
@@ -96,6 +100,7 @@ export default async function sweepAll(
   includeHeadings: boolean = false,
   noteTypes: NoteTypes[] = ['calendar', 'note'],
   ignoreFolders: string[] = ['📋 Templates'],
+  moveType: RescheduleType = 'reschedule',
 ): Promise<void | string> {
   let { unit, num } = periodToCheck
   let foundTasks: Array<TParagraph> = []

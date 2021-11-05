@@ -92,12 +92,16 @@ Does not require any configuration, you can run the simple version (which will p
 `{{sweepTasks()}}`
 but if you choose to, you can pass parameters to the function to have it run automatically. For example:
 ```jsonc
-{{sweepTasks({limit:{ "unit": "day", "num": 7 }, requireConfirmation: true, includeHeadings:true, noteTypes: ['note','calendar'], ignoreFolders:['📋 Templates',"AnotherFolderNotToSweep"],overdueOnly:true})}}
+{{sweepTasks({limit:{ "unit": "day", "num": 7 }, requireConfirmation: true, includeHeadings:true, noteTypes: ['note','calendar'], ignoreFolders:['📋 Templates',"AnotherFolderNotToSweep"],overdueOnly:true, moveType:'updateOnly'})}}
 ```
-sweeps open tasks from the previous 7 days (Project notes & Calendar notes), and includes the headings or indents that the task was under in the original note, but omitting the '📋 Templates' and "AnotherFolderNotToSweep" directories
+This example sweeps open tasks from the previous 7 days (Project notes & Calendar notes), and includes the headings or indents that the task was under in the original note, but omitting the '📋 Templates' and "AnotherFolderNotToSweep" directories
 
-- overdueOnly limits the sweep to items which were scheduled (using the app or open tasks which were "scheduled" by typing a date on the task line ">2020-01-01" )
-
+- overdueOnly limits the sweep to items which were scheduled (using the app or open tasks which were "scheduled" by typing a date on the task line ">2020-01-01" ). When overdueOnly is set, you can also specify the way you want to deal with overdue tasks (using the `moveType` parameter):
+	- `moveType: 'updateDate'` (relevant for overdueOnly mode) means: Replace original due date with today's date (e.g. `>YYYY-MM-DD`)
+	- `moveType: 'makeToday'` (relevant for overdueOnly mode) means: Replace overdue date with `>today`
+	- `moveType: 'move'` (for any type of sweep) means: Move (cut & paste) task(s) to today's Calendar Note
+	- `moveType: 'reschedule'` (for any type of sweep) means: Replace overdue date with `>today`
+	
 ### events() & listMatchingEvents() -- Using Event Lists from a Template
 See the [**Event Helpers** plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers) for more details, including configuring this. But in summary:
 

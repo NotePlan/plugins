@@ -2,8 +2,8 @@
 
 | Command Name | Description | Plugin |
 | --- | --- | --- |
-| `Create Note From Calendar Item` | creates a note from a calendar item | 🧩 Event Automations |
-| `Create Note From Calendar Item w/QuickTemplate` | creates a note from a calendar item | 🧩 Event Automations |
+| `Create Note From Calendar Event` | creates a note from a calendar event | 🧩 Event Automations |
+| `Create Note From Calendar Event w/QuickTemplate` | creates a note from a calendar event | 🧩 Event Automations |
 | `add project` | add a new note representing a project, asking for its metadata | 🔬Reviews |
 | `apply template` | Choose a Template to apply (append) to the current Note | 🔩 Templates |
 | `complete project` | add @completed(today) date to the open project | 🔬Reviews |
