@@ -5,6 +5,8 @@ import { filenameDateString } from '../../helpers/dateTime'
 import { chooseOption, showMessage } from '../../helpers/userInput'
 import { default as sweepNote } from './sweepNote'
 
+type RescheduleType = 'move' | 'reschedule' | 'updateDate' | 'makeToday' | false
+
 type Option1 = $ReadOnly<{
   num: number,
   unit: 'day' | 'month' | 'year',
@@ -47,6 +49,10 @@ export async function sweepTemplate(paramStr: string = ''): Promise<string> {
     const noteTypes: NoteTypes[] = await getTagParamsFromString(paramStr, 'noteTypes', ['note', 'calendar'])
     // $FlowFixMe
     const ignoreFolders: string[] = await getTagParamsFromString(paramStr, 'ignoreFolders', ['📋 Templates'])
+    // $FlowFixMe
+    const overdueOnly: boolean = Boolean(await getTagParamsFromString(paramStr, 'overdueOnly', false))
+    // $FlowFixMe
+    const moveType: RescheduleType = await getTagParamsFromString(paramStr, 'moveType', 'reschedule')
 
     //TODO: add sorting support
 
@@ -62,7 +68,16 @@ export async function sweepTemplate(paramStr: string = ''): Promise<string> {
     //   console.log(`Error: ${e}`)
     //   return `Could not parse template parameter: ${paramStr}. Check the documentation. Error: ${e}`
     // }
-    const retVal = await sweepAll(false, requireConfirmation, limit, true, includeHeadings, noteTypes, ignoreFolders)
+    const retVal = await sweepAll(
+      overdueOnly,
+      requireConfirmation,
+      limit,
+      true,
+      includeHeadings,
+      noteTypes,
+      ignoreFolders,
+      moveType,
+    )
     return String(retVal ?? '')
   }
 }
@@ -78,18 +93,19 @@ export async function sweepTemplate(paramStr: string = ''): Promise<string> {
  * returnValue is true if you should return the value (string) for insertion rather than putting in the note directly
  */
 export default async function sweepAll(
-  overdueOnly: boolean = false,
+  pOverdueOnly: boolean = false,
   requireUserAction: boolean = true,
   periodToCheck: Option1 = DEFAULT_OPTION,
   returnValue: boolean = false,
   includeHeadings: boolean = false,
   noteTypes: NoteTypes[] = ['calendar', 'note'],
   ignoreFolders: string[] = ['📋 Templates'],
+  moveType: RescheduleType = 'reschedule',
 ): Promise<void | string> {
   let { unit, num } = periodToCheck
   let foundTasks: Array<TParagraph> = []
   console.log(
-    `Starting sweepAll overdueOnly:${String(overdueOnly)} requireUserAction:${String(
+    `Starting sweepAll overdueOnly:${String(pOverdueOnly)} requireUserAction:${String(
       requireUserAction,
     )} periodToCheck:${JSON.stringify(periodToCheck)} noteTypes: ${JSON.stringify(noteTypes)} returnValue:${String(
       returnValue,
@@ -151,6 +167,14 @@ export default async function sweepAll(
     //   }`,
     // )
   }
+
+  if (withUserConfirm) {
+    res = await CommandBar.showOptions(
+      ['Open/Unscheduled Tasks', 'Scheduled+Overdue Tasks Only'],
+      `What type of tasks to include?`,
+    )
+  }
+  const overdueOnly = pOverdueOnly || res.index === 1
 
   // PROJECT NOTES FIRST
 
