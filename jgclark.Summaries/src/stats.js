@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Create statistics for hasthtags and mentions for time periods
 // Jonathan Clark
-// v0.2.0, 15.10.2021, (previously v0.3.4 in np.statistics plugin)
+// v0.4.0, 3.11.2021
 //-----------------------------------------------------------------------------
 
 // TODO:
@@ -28,7 +28,9 @@ import {
   monthNameAbbrev,
   withinDateRange,
   dateStringFromCalendarFilename,
-  toLocaleShortTime,
+  getWeek,
+  weekStartEnd,
+  // toLocaleTime,
 } from '../../helpers/dateTime'
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 import {
@@ -134,8 +136,9 @@ export async function statsPeriod(): Promise<void> {
   }
   const fromDateStr = unhyphenatedDate(fromDate) //fromDate.toISOString().slice(0, 10).replace(/-/g, '')
   const toDateStr = unhyphenatedDate(toDate) // toDate.toISOString().slice(0, 10).replace(/-/g, '')
+  console.log('')
   console.log(
-    `\nstatsPeriod: calculating for ${periodString} (${fromDateStr}-${toDateStr}):`,
+    `statsPeriod: calculating for ${periodString} (${fromDateStr} - ${toDateStr}):`,
   )
 
   // Calc hashtags stats (returns two maps)
@@ -374,6 +377,201 @@ export async function statsPeriod(): Promise<void> {
       break
     }
   }
+}
+
+//-------------------------------------------------------------------------------
+// Generate stats for a period of weeks, and write as a CSV table in a note
+export async function weeklyStats(): Promise<void> {
+  // Get config settings from Template folder _configuration note
+  await getPluginSettings()
+
+  // Get time period
+  // For now, this is simply all the current year so far
+  // TODO: Decide what to do better: all time? All time up to N weeks?
+  const todaysDate = new Date()
+  const thisYear = todaysDate.getFullYear()
+  const startWeek = 1
+  const startYear = thisYear
+  const endWeek = getWeek(todaysDate)
+  const endYear = thisYear
+  // const [fromDate, toDate, periodString, periodPartStr] = await getPeriodStartEndDates()  
+  // const fromDateStr = unhyphenatedDate(fromDate) //fromDate.toISOString().slice(0, 10).replace(/-/g, '')
+  // const toDateStr = unhyphenatedDate(toDate) // toDate.toISOString().slice(0, 10).replace(/-/g, '')
+  console.log('')
+  console.log(
+    `weeklyStats: calculating for ${startYear} ${startWeek} - ${endYear} ${endWeek}`,
+  )
+
+  // For every week of interest ...
+  let allHCounts = []
+  let allHTotals = []
+  const hOutputArray = []
+  for (let i = startWeek; i <= endWeek; i++) {
+    const [weekStartDate, weekEndDate] = weekStartEnd(i, thisYear)
+    // Calc hashtags stats (returns two maps)
+    const weekResults = calcHashtagStatsPeriod(unhyphenatedDate(weekStartDate), unhyphenatedDate(weekEndDate))
+    const hCounts = weekResults?.[0]
+    const hSumTotals = weekResults?.[1]
+    if (hSumTotals == null || hCounts == null) {
+      console.log('no hSumTotals value')
+      return
+    }
+    // Add this week's results to larger list
+    // TODO: fold next section in here
+  }
+
+  // First process more complex 'SumTotals', calculating appropriately
+  for (const [key, value] of hSumTotals) {
+    // .entries() implied
+    const hashtagString = pref_showAsHashtagOrMention ? key : key.slice(1)
+    const count = hCounts.get(key)
+    if (count != null) {
+      const total: string = value.toFixed(0)
+      const average: string = (value / count).toFixed(1)
+      hOutputArray.push(
+        `${hashtagString}\t${count}\t(total ${total}\taverage ${average})`,
+      )
+      hCounts.delete(key) // remove the entry from the next map, as not longer needed
+    }
+  }
+  // Then process simpler 'Counts'
+  for (const [key, value] of hCounts) {
+    // .entries() implied
+    const hashtagString = pref_showAsHashtagOrMention ? key : key.slice(1)
+    hOutputArray.push(`${hashtagString}\t${value}`)
+  }
+  // If there's nothing to report, let's make that clear, otherwise sort output
+  if (hOutputArray.length > 0) {
+    hOutputArray.sort()
+  } else {
+    hOutputArray.push('(none)')
+  }
+
+  // Calc mentions stats (returns two maps)
+  const mOutputArray = []
+  results = calcMentionStatsPeriod(fromDateStr, toDateStr)
+  const mCounts = results?.[0]
+  const mSumTotals = results?.[1]
+  if (mCounts == null || mSumTotals == null) {
+    return
+  }
+
+  // Custom sort method to sort arrays of two values each
+  // const sortedMResults = new Map(
+  //   [...(mCounts?.entries() ?? [])].sort(([key1, _v1], [key2, _v2]) =>
+  //     key1.localeCompare(key2),
+  //   ),
+  // )
+
+  // First process more complex 'SumTotals', calculating appropriately
+  for (const [key, value] of mSumTotals) {
+    // .entries() implied
+    const mentionString = pref_showAsHashtagOrMention ? key : key.slice(1)
+    const count = mCounts.get(key)
+    if (count != null) {
+      const total = value.toFixed(0)
+      const average = (value / count).toFixed(1)
+      mOutputArray.push(
+        `${mentionString}\t${count}\t(total ${total}\taverage ${average})`,
+      )
+      mCounts.delete(key) // remove the entry from the next map, as not longer needed
+    }
+  }
+  // Then process simpler 'Counts'
+  for (const [key, value] of mCounts) {
+    const mentionString = pref_showAsHashtagOrMention ? key : key.slice(1)
+    mOutputArray.push(`${mentionString}\t${value}`)
+  }
+  // If there's nothing to report, let's make that clear, otherwise sort output
+  if (mOutputArray.length > 0) {
+    mOutputArray.sort()
+  } else {
+    mOutputArray.push('(none)')
+  }
+
+  /** 
+   * Write results out to note as a CSV ready to be charted using gnuplot
+   * Format:
+   * tag/mention name
+   * YYYY-MM-DD,count,total,average
+   * <2 blank lines>
+   * <repeat>
+   * ...
+   */
+
+  let note: TNote
+  // first see if this note has already been created
+  // (look only in active notes, not Archive or Trash)
+  const existingNotes: $ReadOnlyArray<TNote> =
+    DataStore.projectNoteByTitle(periodString, true, false) ?? []
+
+  console.log(
+    `\tfound ${existingNotes.length} existing summary notes for this period`,
+  )
+
+  if (existingNotes.length > 0) {
+    note = existingNotes[0] // pick the first if more than one
+    // console.log(`\tfilename of first matching note: ${displayTitle(note)}`)
+  } else {
+    // make a new note for this. NB: filename here = folder + filename
+    const noteFilename = DataStore.newNote(periodString, pref_folderToStore) ?? ''
+    if (!noteFilename) {
+      console.log(`\tError creating new note (filename '${noteFilename}')`)
+      await showMessage('There was an error creating the new note')
+      return
+    }
+    console.log(`\tnewNote filename: ${noteFilename}`)
+    // $FlowIgnore[incompatible-type]
+    note = DataStore.projectNoteByFilename(noteFilename)
+    if (note == null) {
+      console.log(`\tError getting new note (filename '${noteFilename}')`)
+      await showMessage('There was an error getting the new note ready to write')
+      return
+    }
+    console.log(`\twriting results to the new note '${displayTitle(note)}'`)
+  }
+
+  // This is a bug in flow. Creating a temporary const is a workaround.
+  // Do we have an existing Hashtag counts section? If so, delete it.
+  let insertionLineIndex = removeSection(
+    note,
+    pref_hashtagCountsHeading,
+  )
+  console.log(`\tHashtag insertionLineIndex: ${String(insertionLineIndex)}`)
+  // Set place to insert either after the found section heading, or at end of note
+  // write in reverse order to avoid having to calculate insertion point again
+  note.insertHeading(
+    `${pref_hashtagCountsHeading} ${periodPartStr}`,
+    insertionLineIndex,
+    pref_headingLevel,
+  )
+  note.insertParagraph(
+    hOutputArray.join('\n'),
+    insertionLineIndex + 1,
+    'text',
+  )
+  // note.insertHeading(countsHeading, insertionLineIndex, pref_headingLevel)
+
+  // Do we have an existing Mentions counts section? If so, delete it.
+  insertionLineIndex = removeSection(
+    note,
+    pref_mentionCountsHeading,
+  )
+  console.log(`\tMention insertionLineIndex: ${insertionLineIndex}`)
+  note.insertHeading(
+    `${pref_mentionCountsHeading} ${periodPartStr}`,
+    insertionLineIndex,
+    pref_headingLevel,
+  )
+  note.insertParagraph(
+    mOutputArray.join('\n'),
+    insertionLineIndex + 1,
+    'text',
+  )
+  // open this note in the Editor
+  Editor.openNoteByFilename(note.filename)
+
+  console.log(`\twritten results to note '${periodString}'`)
 }
 
 //-------------------------------------------------------------------------------

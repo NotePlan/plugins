@@ -3,7 +3,7 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// v0.2.0, 15.10.2021
+// v0.2.1, 16.10.2021
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -20,20 +20,21 @@ import {
 } from '../../helpers/userInput'
 import {
   quarterStartEnd,
-  todaysDateISOString,
   unhyphenatedDate,
-  toISODateString,
-  toISOShortDateTimeString,
   toLocaleDateString,
   monthNameAbbrev,
   withinDateRange,
   dateStringFromCalendarFilename,
-  toLocaleShortTime,
+  // toLocaleTime,
+  // todaysDateISOString,
+  // toISODateString,
+  // toISOShortDateTimeString,
 } from '../../helpers/dateTime'
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 import {
   getPeriodStartEndDates,
   removeSection,
+  gatherMatchingLines,
   DEFAULT_SUMMARIES_OPTIONS,
 } from './summaryHelpers'
 
@@ -46,7 +47,7 @@ let pref_headingLevel: 1 | 2 | 3 | 4 | 5
 let pref_occurrencesToMatch: $ReadOnlyArray<string> = []
 let pref_highlightOccurrences: boolean
 let pref_showEmptyOccurrences: boolean
-let pref_addDates: string
+let pref_dateStyle: string
 
 async function getPluginSettings(): Promise<void> {
   // Get config settings from Template folder _configuration note
@@ -64,14 +65,12 @@ async function getPluginSettings(): Promise<void> {
   // now get each setting
   pref_folderToStore =
     summConfig.folderToStore != null
-      // $FlowIgnore[incompatible-type]
-      ? summConfig.folderToStore
+      ? String(summConfig.folderToStore)
       : 'Summaries'
   // console.log(pref_folderToStore)
   pref_occurrencesHeading =
     summConfig.occurrencesHeading != null
-      // $FlowIgnore[incompatible-type]
-      ? summConfig.occurrencesHeading
+      ? String(summConfig.occurrencesHeading)
       : 'Occurrences'
   // console.log(pref_occurrencesHeading)
   pref_headingLevel =
@@ -93,12 +92,11 @@ async function getPluginSettings(): Promise<void> {
       ? summConfig.highlightOccurrences
       : false
   // console.log(pref_highlightOccurrences)
-  pref_addDates =
-    summConfig.addDates != null
-      // $FlowIgnore[incompatible-type]
-      ? summConfig.addDates
-      : 'links'
-  // console.log(pref_addDates)
+  pref_dateStyle =
+    summConfig.dateStyle != null
+      ? String(summConfig.dateStyle)
+      : 'link'
+  console.log(`  pref_dateStyle = '${pref_dateStyle}'`)
 }
 
 //-------------------------------------------------------------------------------
@@ -107,7 +105,7 @@ export async function occurrencesPeriod(): Promise<void> {
   // Get config settings from Template folder _configuration note
   await getPluginSettings()
 
-  // Generate main data
+  // Work time period to cover
   const [fromDate, toDate, periodString, periodPartStr] = await getPeriodStartEndDates()
 
   if (fromDate == null || toDate == null) {
@@ -143,21 +141,15 @@ export async function occurrencesPeriod(): Promise<void> {
   for (const toMatch of stringsToMatch) {
     // output a heading first
     // get list of matching paragraphs for this string
-    const results = await gatherMatchingLinesInPeriod(periodDailyNotes, toMatch)
+    const results = await gatherMatchingLines(periodDailyNotes, toMatch, pref_highlightOccurrences, pref_dateStyle)
     const lines = results?.[0]
-    const dates = results?.[1]
+    const context = results?.[1]
     if (lines.length > 0) {
       console.log(`  Found ${lines.length} results for ${toMatch}`)
       outputArray.push(`### ${toMatch}`)
-      // format the output
+      // form the output
       for (let i = 0; i < lines.length; i++) {
-        // datePart depends on pref_addDates setting
-        const datePart = (pref_addDates === 'links')
-          ? ` >${toISODateString(dates[i])}`
-          : (pref_addDates === 'dates')
-            ? ` (${toLocaleDateString(dates[i])})`
-            : ''
-        outputArray.push(`- ${lines[i]}${datePart}`)
+        outputArray.push(`- ${lines[i]}${context[i]}`)
       }
     } else if (pref_showEmptyOccurrences) {
       // If there's nothing to report, make that clear
@@ -293,25 +285,26 @@ export async function occurrencesPeriod(): Promise<void> {
 }
 
 //-------------------------------------------------------------------------------
-// Return list of lines matching the specified string in daily notes of a given time period.
-// @param {string} periodDailyNotes - array of Notes to look over
+// Return list of lines matching the specified string in the supplied set of notes
+// @param {string} notes - array of Notes to look over
 // @param {string} stringToLookFor - string to look for
-// @return [Array, Array] - array of lines with matching hashtag, and array of dates of those lines
+// @return [Array, Array] - array of lines with matching term, and array of 
+//   contexts for those lines (dates for daily notes; title for project notes).
 async function gatherMatchingLinesInPeriod(
-  periodDailyNotes,
+  notes,
   stringToLookFor
 ): Promise<[Array<string>, Array<Date>]> {
-  console.log(`Looking for '${stringToLookFor}' in ${periodDailyNotes.length} notes`)
-  CommandBar.showLoading(true, `Searching in ${periodDailyNotes.length} notes ...`)
+  console.log(`Looking for '${stringToLookFor}' in ${notes.length} notes`)
+  CommandBar.showLoading(true, `Searching in ${notes.length} notes ...`)
   await CommandBar.onAsyncThread()
 
   // work out what set of mentions to look for (or ignore)
-  // console.log(`Looking for '${stringToLookFor}' in ${periodDailyNotes.length} relevant daily notes`)
+  // console.log(`Looking for '${stringToLookFor}' in ${notes.length} relevant daily notes`)
 
   const matches = []
   const dates: Array<Date> = []
   let i = 0
-  for (const n of periodDailyNotes) {
+  for (const n of notes) {
     i += 1
     const noteDate = n.date
     // find any matches
@@ -331,11 +324,10 @@ async function gatherMatchingLinesInPeriod(
       }
       // console.log(`    -> ${matchLine}`)
       matches.push(matchLine.trim())
-      // $FlowFixMe[incompatible-call]
       dates.push(noteDate)
     }
     if (i % 10 === 0) {
-      CommandBar.showLoading(true, `Searching in ${periodDailyNotes.length} notes ...`, (i / periodDailyNotes.length))
+      CommandBar.showLoading(true, `Searching in ${notes.length} notes ...`, (i / notes.length))
     }
   }
   await CommandBar.onMainThread()

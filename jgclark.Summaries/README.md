@@ -11,12 +11,12 @@ This plugin lets you do the following with your daily (calendar) notes:
 You can also save results of any search over all notes.
 
 ## About
-The first command this Plugin provides is **`/saveSearchResults`** which searches across all notes (both calendar and projects) for a text string you give. It asks where to save its output: to the curre note, to the Plugin Console, or to a specially-created note in the Summaries folder.  (If the latter, it will update the previous note with that same title, if it exists.)
-
-The other commands generate two different sorts of **summaries from your daily notes**, that are saved back into special NotePlan notes in the Summaries folder. They both start by asking for the time period you wish to operate over:
+This Plugin provides commands that generate several different sorts of **summaries from your daily notes**, that are saved back into special NotePlan notes in the Summaries folder. They all start by asking for the time period you wish to operate over:
 
 ![time period selection](time-period-selection.jpg)
 
+- **`/saveSearchResults`** searches across all notes (both calendar and projects) for a text string you give. It asks where to save its output: to the curre note, to the Plugin Console, or to a specially-created note in the Summaries folder.  (If the latter, it will update the previous note with that same title, if it exists.)
+- 
 - **`/countsInPeriod`** generates some simple counts and other statistics of #hashtags or @mentions that you specify. It asks where to save its output: to screen, to the Plugin Console, or to a specially-created note in the Summaries folder.  (If the latter, it will update the previous note for that same time period, if it exists.)
 
 - **`/occurrencesInPeriod`** generates all occurences of one or more search terms (from the settings) found in the daily notes of the time period you select.
@@ -51,7 +51,7 @@ Alternatively, in that note, include the following settings you want in its firs
     occurrencesToMatch: ['idea', '@review', '#question'],
     highlightOccurrences: false, // use ==highlight== of matched occurrences in output
     showEmptyOccurrences: false, // if no occurrences found of this string to match, make this clear
-    addDates: 'links', // 'none', 'links', 'dates'
+    dateStyle: 'link', // where the context for an occurrence is a date, does it get appended as a 'date' using your locale, or as a NP date 'link' (`>date`) or 'none'
   },
   ...
 }

@@ -3,7 +3,7 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// v0.2.0, 15.10.2021
+// v0.2.1, 16.10.2021
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -29,13 +29,14 @@ import {
   monthNameAbbrev,
   withinDateRange,
   dateStringFromCalendarFilename,
-  // toLocaleShortTime,
+  // toLocaleTime,
   nowLocaleDateTime,
 } from '../../helpers/dateTime'
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 import {
   getPeriodStartEndDates,
   removeSection,
+  gatherMatchingLines,
   DEFAULT_SUMMARIES_OPTIONS,
 } from './summaryHelpers'
 
@@ -46,7 +47,7 @@ let pref_folderToStore: string
 let pref_foldersToIgnore: Array<string> = []
 let pref_headingLevel: 1 | 2 | 3 | 4 | 5
 let pref_highlightOccurrences: boolean
-let pref_addDates: string
+let pref_dateStyle: string
 
 async function getPluginSettings(): Promise<void> {
   // Get config settings from Template folder _configuration note
@@ -64,8 +65,7 @@ async function getPluginSettings(): Promise<void> {
   // now get each setting
   pref_folderToStore =
     summConfig.folderToStore != null
-      // $FlowIgnore[incompatible-type]
-      ? summConfig.folderToStore
+      ? String(summConfig.folderToStore)
       : 'Summaries'
   // console.log(pref_folderToStore)
   pref_foldersToIgnore =
@@ -86,12 +86,11 @@ async function getPluginSettings(): Promise<void> {
       ? summConfig.highlightOccurrences
       : false
   // console.log(pref_highlightOccurrences)
-  pref_addDates =
-    summConfig.addDates != null
-      // $FlowIgnore[incompatible-type]
-      ? summConfig.addDates
-      : 'links'
-  // console.log(pref_addDates)
+  pref_dateStyle =
+    summConfig.dateStyle != null
+      ? String(summConfig.dateStyle)
+      : 'link'
+  console.log(`  pref_dateStyle = '${pref_dateStyle}'`)
 }
 
 //-------------------------------------------------------------------------------
@@ -100,6 +99,32 @@ export async function saveSearch(): Promise<void> {
   // get relevant settings
   await getPluginSettings()
 
+  // Ask user for search term
+  const searchTerm = await getInput(`Exact word/phrase to search for`)
+
+  // Work time period to cover
+  const [fromDate, toDate, periodString, periodPartStr] = await getPeriodStartEndDates(`Search over which period?`)
+
+  if (fromDate == null || toDate == null) {
+    console.log('dates could not be parsed')
+    return
+  }
+  const fromDateStr = unhyphenatedDate(fromDate) //fromDate.toISOString().slice(0, 10).replace(/-/g, '')
+  const toDateStr = unhyphenatedDate(toDate) // toDate.toISOString().slice(0, 10).replace(/-/g, '')
+  
+  // Get array of all daily notes that are within this time period
+  const periodDailyNotes = DataStore.calendarNotes.filter((p) =>
+    withinDateRange(
+      dateStringFromCalendarFilename(p.filename),
+      fromDateStr,
+      toDateStr,
+    ),
+  )
+  if (periodDailyNotes.length === 0) {
+    console.log('  warning: no matching daily notes found')
+  }
+
+  // TODO: Ignore list
   // Create list of project notes not in excluded folders
   const allProjectNotes = DataStore.projectNotes
   const projectNotesToInclude = []
@@ -116,13 +141,10 @@ export async function saveSearch(): Promise<void> {
   // Add all the calendar notes
   const notes = DataStore.calendarNotes.concat(projectNotesToInclude)
 
-  // Ask user for search term
-  const searchTerm = await getInput(`Exact word/phrase to search for`)
-
   // Find matches in this set of notes for the time period
   const outputArray = []
   // output a heading first
-  const results = await gatherMatchingLines(notes, searchTerm)
+  const results = await gatherMatchingLines(notes, searchTerm, pref_highlightOccurrences, pref_dateStyle)
   const lines = results?.[0]
   const contexts = results?.[1]
   if (lines.length > 0) {
@@ -265,55 +287,4 @@ export async function saveSearch(): Promise<void> {
       break
     }
   }
-}
-
-//-------------------------------------------------------------------------------
-// Return list of lines matching the specified string in project or daily notes.
-// @param {string} notes - array of Notes to look over
-// @param {string} stringToLookFor - string to look for
-// @return [Array, Array] - array of lines with matching hashtag, and array of 
-//   contexts for those lines (dates for daily notes; title for project notes).
-async function gatherMatchingLines(
-  notes,
-  stringToLookFor
-): Promise<[Array<string>, Array<string>]> {
-
-  console.log(`Looking for '${stringToLookFor}' in ${notes.length} notes`)
-  CommandBar.showLoading(true, `Searching in ${notes.length} notes ...`)
-  await CommandBar.onAsyncThread()
-
-  const matches: Array<string> = []
-  const noteContexts: Array<string> = []
-  let i = 0
-  for (const n of notes) {
-    i += 1
-    const noteContext = (n.date != null)
-      ? `>${toISODateString(n.date)}`
-      : `[[${n.title ?? ''}]]`
-    // find any matches
-    const matchingParas = n.paragraphs.filter((q) => q.content.includes(stringToLookFor))
-    for (const p of matchingParas) {
-      // If the stringToLookFor is in the form of an 'attribute::' and found at the start of a line,
-      // then remove it from the output line
-      let matchLine = p.content
-      // console.log(`  Found '${stringToLookFor}' in ${matchLine} (${noteContext})`)
-      if (stringToLookFor.endsWith('::') && matchLine.startsWith(stringToLookFor)) {
-        matchLine = matchLine.replace(stringToLookFor, '') // NB: only removes first instance
-        // console.log(`    -> ${matchLine}`)
-      }
-      // highlight matches if requested
-      if (pref_highlightOccurrences) {
-        matchLine = matchLine.replace(stringToLookFor, `==${stringToLookFor}==`)
-      }
-      // console.log(`    -> ${matchLine}`)
-      matches.push(matchLine.trim())
-      noteContexts.push(noteContext)
-    }
-    if (i % 20 === 0) {
-      CommandBar.showLoading(true, `Searching in ${notes.length} notes ...`, (i / notes.length))
-    }
-  }
-  await CommandBar.onMainThread()
-  CommandBar.showLoading(false)
-  return [matches, noteContexts]
 }

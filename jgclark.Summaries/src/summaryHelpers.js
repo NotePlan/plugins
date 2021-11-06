@@ -2,13 +2,19 @@
 //-----------------------------------------------------------------------------
 // Summary commands for notes
 // Jonathan Clark
-// v0.2.0, 11.10.2021
+// v0.4.0, 2.11.2021
 //-----------------------------------------------------------------------------
 
 import {
   monthNameAbbrev,
   quarterStartEnd,
   todaysDateISOString,
+  toISODateString,
+  toLocaleDateString,
+  toLocaleDateTimeString,
+  getWeek,
+  weekStartEnd,
+  hyphenatedDate,
 } from '../../helpers/dateTime'
 
 import {
@@ -36,15 +42,28 @@ export const DEFAULT_SUMMARIES_OPTIONS = `  summaries: {
     occurrencesToMatch: ['idea', '@review', '#question'],
     highlightOccurrences: false, // use ==highlight== of matched occurrences in output
     showEmptyOccurrences: false, // if no occurrences found of this string to match, make this clear
-    addDates: 'links', // 'none', as 'links', or plain 'dates'
+    dateStyle: 'link', // where the context for an occurrence is a date, does it get appended as a 'date' using your locale, or as a NP date 'link' (>date) or 'none'
   },
 `
 
-export async function getPeriodStartEndDates(): Promise<[Date, Date, string, string]> {
+export async function getPeriodStartEndDates(question: string = 'Create stats for which period?'):
+  Promise<[Date, Date, string, string]> {
   // Ask user what time interval to do tag counts for
   const period = await chooseOption(
-    'Create stats for which period?',
+    question,
     [
+      {
+        label: 'Last Week',
+        value: 'lw',
+      },
+      {
+        label: 'This week so far',
+        value: 'wtd',
+      },
+      {
+        label: 'Other Week',
+        value: 'ow',
+      },
       {
         label: 'Last Month',
         value: 'lm',
@@ -127,19 +146,20 @@ export async function getPeriodStartEndDates(): Promise<[Date, Date, string, str
       periodString = `${monthNameAbbrev(theM)} ${theY}`
       break
     }
+
     case 'lq': {
       const thisQ = Math.floor((m - 1) / 3) + 1 // quarter 1-4
-      const theQ = thisQ > 0 ? thisQ - 1 : 4 // last quarter
-      const theY = theQ === 4 ? y - 1 : y // change the year if we want Q4
-      const [f, t] = quarterStartEnd(theQ, theY)
+      const lastQ = thisQ > 0 ? thisQ - 1 : 4 // last quarter
+      const lastY = lastQ === 4 ? y - 1 : y // change the year if we want Q4
+      const [f, t] = quarterStartEnd(lastQ, lastY)
       fromDate = f
       toDate = t
-      const theQStartMonth = (theQ - 1) * 3 + 1
+      const lastQStartMonth = (lastQ - 1) * 3 + 1
       toDate = Calendar.addUnitToDate(fromDate, 'month', 3) // +1 quarter
       toDate = Calendar.addUnitToDate(toDate, 'day', -1) // -1 day, to get last day of last month
-      periodString = `${theY} Q${theQ} (${monthNameAbbrev(
-        theQStartMonth,
-      )}-${monthNameAbbrev(theQStartMonth + 2)})`
+      periodString = `${lastY} Q${lastQ} (${monthNameAbbrev(
+        lastQStartMonth,
+      )}-${monthNameAbbrev(lastQStartMonth + 2)})`
       break
     }
     case 'qtd': {
@@ -167,6 +187,41 @@ export async function getPeriodStartEndDates(): Promise<[Date, Date, string, str
       )}-${monthNameAbbrev(theQStartMonth + 2)})`
       break
     }
+    
+    case 'lw': { // last week
+      const currentWeekNum = getWeek(todaysDate)
+      let lastWeekNum = 0
+      let newY = y
+      if (currentWeekNum === 1) {
+        lastWeekNum = 52
+        newY--
+      } else {
+        lastWeekNum = currentWeekNum - 1
+      }
+      [ fromDate, toDate ] = weekStartEnd(lastWeekNum, newY)
+      periodString = `W${lastWeekNum} ${newY}`
+      break
+    }
+    case 'wtd': { // week to date
+      const currentWeekNum = getWeek(todaysDate)
+      // I don't know why the [from, to] construct doesn't work here, but using tempObj instead
+      const tempObj = weekStartEnd(currentWeekNum, y)
+      fromDate = tempObj[0]
+      toDate = tempObj[1]
+      periodString = `W${currentWeekNum} ${y}`
+      break
+    }
+    case 'ow': { // other week
+      const weekNum = Number(await getInput('Choose week number, 1-53', 'OK'))
+      const theYear = Number(await getInput('Choose date, e.g. 2021', 'OK'))
+      // I don't know why the [from, to] form doesn't work here, but using tempObj instead
+      const tempObj = weekStartEnd(weekNum, theYear)
+      fromDate = tempObj[0]
+      toDate = tempObj[1]
+      periodString = `W${weekNum} ${theYear}`
+      break
+    }
+
     case 'ly': {
       fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y - 1, 1, 1, 0, 0, 0), 'minute', -TZOffset) // start of last year
       toDate = Calendar.addUnitToDate(Calendar.dateFrom(y - 1, 12, 31, 0, 0, 0), 'minute', -TZOffset) // end of last year
@@ -241,4 +296,68 @@ export function removeSection(note: TNote, heading: string): number {
   } else {
     return ps.length
   }
+}
+
+/** -------------------------------------------------------------------------------
+ * Return list of lines matching the specified string in project or daily notes.
+ * @param {array} notes - array of Notes to look over
+ * @param {string} stringToLookFor - string to look for
+ * @param {boolean} highlightOccurrences - whether to enclose found string in ==marks==
+ * @param {string} dateStyle - where the context for an occurrence is a date, does it get appended as a 'date' using your locale, or as a NP date 'link' (`>date`) or 'none'
+ * @return [Array, Array] - array of lines with matching term, and array of 
+ *   contexts for those lines (dates for daily notes; title for project notes).
+ */
+export async function gatherMatchingLines(
+  notes: Array<TNote>,
+  stringToLookFor: string,
+  highlightOccurrences: boolean = true,
+  dateStyle: string = 'link',
+): Promise<[Array<string>, Array<string>]> {
+
+  console.log(`Looking for '${stringToLookFor}' in ${notes.length} notes`)
+  CommandBar.showLoading(true, `Searching in ${notes.length} notes ...`)
+  await CommandBar.onAsyncThread()
+
+  const matches: Array<string> = []
+  const noteContexts: Array<string> = []
+  let i = 0
+  for (const n of notes) {
+    i += 1
+    const noteContext = (n.date == null)
+      ? `[[${n.title ?? ''}]]`
+      : (dateStyle.startsWith('link')) // to deal with earlier typo where default was set to 'links'
+        // ? `>${toISODateString(n.date)}` // FIXME: This returns a day early
+        // $FlowIgnore(incompatible-call)
+        ? `>${hyphenatedDate(n.date)}`
+        : (dateStyle === 'date')
+          // $FlowIgnore(incompatible-call)
+          ? `(${toLocaleDateTimeString(n.date)})`
+          : ''
+    // find any matches
+    const matchingParas = n.paragraphs.filter((q) => q.content.includes(stringToLookFor))
+    for (const p of matchingParas) {
+      let matchLine = p.content
+      // If the stringToLookFor is in the form of an 'attribute::' and found at the start of a line,
+      // then remove it from the output line
+      // console.log(`  Found '${stringToLookFor}' in ${matchLine} (${noteContext})`)
+      if (stringToLookFor.endsWith('::') && matchLine.startsWith(stringToLookFor)) {
+        matchLine = matchLine.replace(stringToLookFor, '') // NB: only removes first instance
+        // console.log(`    -> ${matchLine}`)
+      }
+      // highlight matches if requested
+      if (highlightOccurrences) {
+        matchLine = matchLine.replace(stringToLookFor, `==${stringToLookFor}==`)
+      }
+      // console.log(`    -> ${matchLine}`)
+      matches.push(matchLine.trim())
+      // $FlowFixMe[incompatible-call]
+      noteContexts.push(noteContext)
+    }
+    if (i % 10 === 0) {
+      CommandBar.showLoading(true, `Searching in ${notes.length} notes ...`, (i / notes.length))
+    }
+  }
+  await CommandBar.onMainThread()
+  CommandBar.showLoading(false)
+  return [matches, noteContexts]
 }
