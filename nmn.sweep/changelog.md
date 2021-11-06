@@ -1,6 +1,9 @@
 Plugin usage instructions: [README](https://github.com/NotePlan/plugins/blob/main/nmn.sweep/readme.md)
 # What's Changed?
 
+## [1.4.2] 2021-11-06 @dwertheimer
+- Fixed (hopefully) bug where it was asking for confirm for 0 tasks
+
 ## [1.4.1] 2021-11-05 @dwertheimer
 - Made overdue conform to usage in Noteplan UI (for tasks to show up in References section)
 - Added ability to leave tasks in place with ">today" or today's date 
