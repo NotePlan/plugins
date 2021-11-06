@@ -40,7 +40,7 @@ export default async function sweepNote(
   let lastRootItem: ?TParagraph = null
 
   console.log(
-    `---\nStarting sweepNote for file: "${note.filename}" noteDate:${note.date} paragraphs:${paragraphs.length} overdueOnly:${overdueOnly}`,
+    `\tStarting sweepNote for file: "${note.filename}" paragraphs:${paragraphs.length} overdueOnly:${overdueOnly}`,
   )
   paragraphs.forEach((p) => {
     const isSeparatorLine = /^---/.test(p.content)
@@ -61,7 +61,7 @@ export default async function sweepNote(
     // Remember the last item which is not indented and open, or a bullet
     // ['open']
     if ((mainItemTypes.includes(p.type) || checkOverdue) && p.indents === 0) {
-      if (checkOverdue) console.log(`${p.content} *** overdue`)
+      console.log(`Task "${p.content}" ${itemIsOverdue ? `*** overdue` : ''}`)
       lastRootItem = p
     }
 
@@ -108,10 +108,14 @@ export default async function sweepNote(
     return { status: 'error', msg: `Couldn't open Today's Calendar Note` }
   }
 
-  const numTasksToMove = paragraphsToMove.filter((p) => p.type === 'open').length
+  const openTasks = paragraphsToMove.filter((p) => p.type === 'open').length
+  const numTasksToMove = overdueOnly ? overdueParagraphs.length : openTasks
 
   if (numTasksToMove > 0) {
-    console.log(`\t\t${note.filename} has ${numTasksToMove} open tasks`)
+    console.log(
+      `${note.filename} overdueOnly=${overdueOnly} openTasks=${openTasks} overdueParagraphs:${overdueParagraphs.length} numTasksToMove=${numTasksToMove}`,
+    )
+    // console.log(`${note.filename} has ${numTasksToMove} open tasks`)
     // TODO: Refactor this and get rid of rescheduleType (use moveType instead)
     let rescheduleTasks: RescheduleType
     if (moveType) {
@@ -151,11 +155,7 @@ export default async function sweepNote(
       })
 
       Editor.openNoteByFilename(note.filename)
-      rescheduleTasks = await chooseOption<RescheduleType>(
-        `Found ${overdueOnly ? overdueParagraphs.length : numTasksToMove} tasks`,
-        choices,
-        false,
-      )
+      rescheduleTasks = await chooseOption<RescheduleType>(`Found ${numTasksToMove} tasks`, choices, false)
     }
 
     if (rescheduleTasks === 'move') {
@@ -196,7 +196,7 @@ export default async function sweepNote(
         p.content = `${removeDateTags(p.content)} >today`
         p.type = 'open' // References section will only see >today tasks when they are "open"
         note.updateParagraph(p)
-        console.log(`Before: ${before} AfterSting: ${p.content} should be updated`)
+        // console.log(`Before: ${before} After: ${p.content} should be updated`)
       })
     }
 
@@ -206,7 +206,7 @@ export default async function sweepNote(
         p.content = `${removeDateTags(p.content)} >${hyphenatedDateString(today)}`
         p.type = 'scheduled' // References section will only see >dated tasks when they are "scheduled"
         note.updateParagraph(p)
-        console.log(`Before: ${before} AfterSting: ${p.content} should be updated`)
+        // console.log(`Before: ${before} After: ${p.content} should be updated`)
       })
     }
 
@@ -233,7 +233,7 @@ export default async function sweepNote(
       }
     }
 
-    console.log(`\t\t${String(rescheduleTasks)}-ing  ${paragraphsToMove.length} paragraphs; ${numTasksToMove} tasks`)
+    console.log(`{String(rescheduleTasks)}-ing  ${paragraphsToMove.length} paragraphs; ${numTasksToMove} tasks`)
   } else {
     if (notifyNoChanges && withUserConfirm) {
       await CommandBar.showInput('There are no open tasks to move in this note.', "OK, I'll open another date.")

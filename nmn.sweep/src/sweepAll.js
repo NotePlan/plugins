@@ -223,14 +223,14 @@ export default async function sweepAll(
         ignoreFolders.length && !!ignoreFolders.filter((folder) => note.filename.includes(`${folder}/`)).length
       if (!ignoreThisFolder) {
         if (note.filename !== todayFileName) {
-          console.log(`Calling sweepNote ${note.filename} | Today is: ${todayFileName}`)
+          console.log(`===\nCalling sweepNote ${note.filename} | Today is: ${todayFileName}`)
           const result = await sweepNote(note, withUserConfirm, false, overdueOnly, false, returnValue, includeHeadings)
           processResult(result, note.title)
         } else {
           console.log(`...Skipping today's note ${todayFileName}`)
         }
       } else {
-        console.log(`Skipping note "${note.filename}" due to ignoreFolders param: ${JSON.stringify(ignoreFolders)}`)
+        // console.log(`Skipping note "${note.filename}" due to ignoreFolders param: ${JSON.stringify(ignoreFolders)}`)
       }
     }
   }
