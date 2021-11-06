@@ -1,7 +1,7 @@
 // @flow
 import { add } from 'date-fns'
 import { getEventsForDay, type HourMinObj } from '../../jgclark.EventHelpers/src/eventsToNotes'
-import { getTodaysDateUnhyphenated, toLocaleShortTime } from '../../helpers/dateTime'
+import { getTodaysDateUnhyphenated, toLocaleTime } from '../../helpers/dateTime'
 import { chooseOption } from '../../helpers/userInput'
 import { quickTemplateNote, newNoteWithTemplate } from '../../nmn.Templates/src/index'
 
@@ -42,7 +42,7 @@ export async function createNoteForCalendarItem(useQuickTemplate: boolean = true
   // $FlowIgnore
   const selections = allDaysEvents.map((event, i) => {
     // $FlowIgnore
-    const time = toLocaleShortTime(event.date, [], { hour: '2-digit', minute: '2-digit', hour12: false })
+    const time = toLocaleTime(event.date, [], { hour: '2-digit', minute: '2-digit', hour12: false })
     // $FlowIgnore
     if (event.title) return { label: `${time}: ${event.title}`, value: event.title, time }
   })

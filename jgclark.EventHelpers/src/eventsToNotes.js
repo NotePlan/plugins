@@ -11,7 +11,7 @@ import {
   getTagParamsFromString,
 } from '../../helpers/general'
 import { showMessage } from '../../helpers/userInput'
-import { toLocaleShortTime, dateStringFromCalendarFilename } from '../../helpers/dateTime'
+import { toLocaleTime, dateStringFromCalendarFilename } from '../../helpers/dateTime'
 
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 
@@ -153,7 +153,7 @@ export async function listDaysEvents(paramString?: string = ''): Promise<string>
         key: '*|START|*',
         value: !e.isAllDay
           ? // $FlowFixMe
-            toLocaleShortTime(e.date, pref_locale, pref_timeOptions)
+            toLocaleTime(e.date, pref_locale, pref_timeOptions)
           : '',
       },
       {
@@ -161,7 +161,7 @@ export async function listDaysEvents(paramString?: string = ''): Promise<string>
         value:
           e.endDate != null && !e.isAllDay
             ? // $FlowFixMe
-              toLocaleShortTime(e.endDate, pref_locale, pref_timeOptions)
+              toLocaleTime(e.endDate, pref_locale, pref_timeOptions)
             : '',
       },
       { key: '*|NOTES|*', value: e.notes },
@@ -239,7 +239,7 @@ export async function listMatchingDaysEvents(
             key: '*|START|*',
             value: !e.isAllDay
               ? // $FlowFixMe
-                toLocaleShortTime(e.date, pref_locale, pref_timeOptions)
+                toLocaleTime(e.date, pref_locale, pref_timeOptions)
               : '',
           },
           {
@@ -247,7 +247,7 @@ export async function listMatchingDaysEvents(
             value:
               e.endDate != null && !e.isAllDay
                 ? // $FlowFixMe
-                  toLocaleShortTime(e.endDate, pref_locale, pref_timeOptions)
+                  toLocaleTime(e.endDate, pref_locale, pref_timeOptions)
                 : '',
           },
           { key: '*|NOTES|*', value: e.notes },
