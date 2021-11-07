@@ -1,5 +1,5 @@
 // @flow
 
-export { templateInsert } from './templating'
-export { templateAppend } from './templating'
-export { templateNew } from './templating'
+export { templateInsert } from './Templating'
+export { templateAppend } from './Templating'
+export { templateNew } from './Templating'

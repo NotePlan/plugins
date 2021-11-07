@@ -7,9 +7,11 @@
 
 import FrontMatterModule from './support/modules/FrontmatterModule'
 import TemplatingEngine from './TemplatingEngine'
-import { getOrMakeConfigurationSection, getStructuredConfiguration } from './support/configuration'
+import { getOrMakeConfigurationSection } from './support/configuration'
 
 const TEMPLATE_FOLDER_NAME = '📋 Templates'
+
+// Important: Replicate _configuration.templates object in TEMPLATE_CONFIG_BLOCK
 export const DEFAULT_TEMPLATE_CONFIG = {
   locale: 'en-US',
   defaultFormats: {
@@ -28,7 +30,7 @@ export const DEFAULT_TEMPLATE_CONFIG = {
 }
 
 export async function TEMPLATE_CONFIG_BLOCK(): Promise<string> {
-  const config = await getStructuredConfiguration()
+  const config = DEFAULT_TEMPLATE_CONFIG
 
   // migrate existing configuration values
 
@@ -58,7 +60,8 @@ export async function TEMPLATE_CONFIG_BLOCK(): Promise<string> {
       email: "",
       phone: ""
     },
-    services: {}
+    // check https://github.com/public-apis/public-apis for other services
+    servicesa: {}
   },
   `
 }
@@ -73,16 +76,16 @@ export default class Templating {
     //
   }
 
-  async heartbeat(): Promise<string> {
+  static async heartbeat(): Promise<string> {
     await this.setup()
-    return '```\n' + JSON.stringify(this.templateConfig, null, 2) + '\n```\n'
+    return '```\n' + JSON.stringify(this.constructor.templateConfig, null, 2) + '\n```\n'
   }
 
-  async setup() {
-    this.templateConfig = await getOrMakeConfigurationSection('templates', await TEMPLATE_CONFIG_BLOCK())
+  static async setup() {
+    this.constructor.templateConfig = await getOrMakeConfigurationSection('templates', await TEMPLATE_CONFIG_BLOCK())
   }
 
-  async templateErrorMessage(method: string = '', message: string = ''): Promise<string> {
+  static async templateErrorMessage(method: string = '', message: string = ''): Promise<string> {
     const line = '*'.repeat(message.length + 30)
     console.log(line)
     console.log(`   ERROR`)
@@ -93,7 +96,7 @@ export default class Templating {
     return `**Error: ${method}**\n- **${message}**`
   }
 
-  async getTemplate(templateName: string = ''): Promise<string> {
+  static async getTemplate(templateName: string = ''): Promise<string> {
     // $FlowFixMe
     let templateFilename = `${getTemplateFolder()}/${templateName}.md`
     try {
@@ -137,41 +140,27 @@ export default class Templating {
     }
   }
 
-  async getTemplateConfig(): mixed {
-    return this.templateConfig
+  static async getTemplateConfig(): mixed {
+    return this.constructor.templateConfig
   }
 
-  async renderTemplate(templateName: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
+  static async renderTemplate(templateName: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
     try {
       await this.setup()
 
       const templateData = await this.getTemplate(templateName)
-      return await new TemplatingEngine(this.templateConfig).render(templateData, userData, userOptions)
+      return await new TemplatingEngine(this.constructor.templateConfig).render(templateData, userData, userOptions)
     } catch (error) {
       return this.templateErrorMessage(error)
     }
   }
 
-  async render(templateData: any = '', userData: any = {}, userOptions: any = {}): Promise<string> {
+  static async render(templateData: any = '', userData: any = {}, userOptions: any = {}): Promise<string> {
     try {
       await this.setup()
-      return await new TemplatingEngine(this.templateConfig).render(templateData, userData, userOptions)
+      return await new TemplatingEngine(this.constructor.templateConfig).render(templateData, userData, userOptions)
     } catch (error) {
       return this.templateErrorMessage(error)
     }
   }
-}
-
-/**
- * Show alert (like modal) using CommandBar
- * @author @codedungeon
- * @param {string} message - text to display to user (parses each line as separate 'option')
- * @param {string} label - label text (appears in CommandBar filter field)
- */
-export async function alert(message: any = '', label: string = 'press <return> to continue'): Promise<string> {
-  const lines = Array.isArray(message) ? message : message.split('\n')
-  const optionItem = await CommandBar.showOptions(lines, label)
-  const result = lines[optionItem.index]
-  await CommandBar.hide()
-  return result
 }

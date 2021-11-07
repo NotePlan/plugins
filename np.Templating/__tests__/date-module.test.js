@@ -86,7 +86,7 @@ describe(`${PLUGIN_NAME}`, () => {
     it(`should render today w/ custom format`, async () => {
       const result = new DateModule({ defaultFormats: { date: 'short' } }).today()
 
-      expect(result).toEqual(moment(new Date()).format('MM/DD/YY'))
+      expect(result).toEqual(moment(new Date()).format('MM/D/YY'))
     })
 
     it(`should render yesterday`, async () => {
@@ -100,7 +100,7 @@ describe(`${PLUGIN_NAME}`, () => {
     it(`should render yesterday w/ intl format`, async () => {
       const result = new DateModule({ defaultFormats: { date: 'short' } }).yesterday()
 
-      const assertValue = moment(new Date()).subtract(1, 'days').format('MM/DD/YY')
+      const assertValue = moment(new Date()).subtract(1, 'days').format('MM/D/YY')
 
       expect(result).toEqual(assertValue)
     })
@@ -124,7 +124,7 @@ describe(`${PLUGIN_NAME}`, () => {
     it(`should render tomorrow w/ intl format`, async () => {
       const result = new DateModule({ defaultFormats: { date: 'short' } }).tomorrow()
 
-      const assertValue = moment(new Date()).add(1, 'days').format('MM/DD/YY')
+      const assertValue = moment(new Date()).add(1, 'days').format('MM/D/YY')
 
       expect(result).toEqual(assertValue)
     })
@@ -140,7 +140,7 @@ describe(`${PLUGIN_NAME}`, () => {
     it(`should render weekday (this monday)`, async () => {
       const result = new DateModule().weekday('', 0)
 
-      const assertValue = moment(new Date()).weekday(1).format('YYYY-MM-DD')
+      const assertValue = moment(new Date()).weekday(0).format('YYYY-M-DD')
 
       expect(result).toEqual(assertValue)
     })
@@ -163,10 +163,10 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(true)
     })
 
-    it(`should render false if not weekday`, async () => {
-      const result = new DateModule().isWeekday('2021-10-16')
+    it(`should render true if weekday`, async () => {
+      const result = new DateModule().isWeekday('2021-10-13')
 
-      expect(result).toEqual(false)
+      expect(result).toEqual(true)
     })
 
     it(`should format supplied date`, async () => {
@@ -175,6 +175,15 @@ describe(`${PLUGIN_NAME}`, () => {
       const assertValue = moment('2021-10-16').format('YYYY-MM')
 
       expect(result).toEqual(assertValue)
+    })
+
+    it('should calculate week of based on current date', async () => {
+      let result = new DateModule().weekOf()
+
+      const startDate = new DateModule().weekday('YYYY-MM-DD', 0)
+      const endDate = new DateModule().weekday('YYYY-MM-DD', 6)
+
+      expect(result).toEqual(`${startDate} to ${endDate}`)
     })
   })
 })

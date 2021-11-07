@@ -1,38 +1,21 @@
 // @flow
 
 import { showMessage, chooseOption, showMessageYesNo } from '../../../helpers/userInput'
-import {
-  // parseJSON,
-  parseJSON5,
-  // parseTOML,
-  // parseYAML
-} from '../../../helpers/general'
+import { parseJSON5 } from '../../../helpers/general'
 import { getOrMakeTemplateFolder, createDefaultConfigNote } from '../../../nmn.Templates/src/template-folder'
-// import { TEMPLATE_CONFIG_BLOCK } from '../Templating'
 
-const ALLOWED_FORMATS = ['javascript', 'json', 'json5', 'yaml', 'toml', 'ini']
-const FORMAT_MAP = {
-  javascript: 'json5',
-  ini: 'toml',
-}
+const ALLOWED_FORMATS = ['javascript', 'json', 'json5']
+const FORMAT_MAP = { javascript: 'json5' }
 
-export async function openConfigFileInEditor(): Promise<void> {
-  const templateFolder = await getOrMakeTemplateFolder()
-  if (templateFolder == null) {
-    await showMessage('No template folder found')
-    return
-  }
-
-  const configFile = DataStore.projectNotes
-    .filter((n) => n.filename?.startsWith(templateFolder))
-    .find((n) => !!n.title?.startsWith('_configuration'))
-
-  if (configFile == null) {
-    await showMessage('No _configuration file found')
-    return
-  }
-
-  await Editor.openNoteByFilename(configFile.filename)
+/**
+ * Get NotePlan Templating Configuration (helper for getStructuredConfiguration)
+ * @author @codedungeon
+ * @return return this as structured data, in the format specified by the first line of the codeblock (should be `javascript`)
+ */
+export async function getConfiguration(): Promise<?{
+  [string]: ?mixed,
+}> {
+  return getStructuredConfiguration()
 }
 
 /**
@@ -84,16 +67,10 @@ export async function parseFirstCodeblock(block: string): Promise<?{ [string]: ?
   format = FORMAT_MAP[format] ?? format
 
   switch (format) {
-    // case 'json':
-    //   return parseJSON(contents)
     case 'json5':
       return parseJSON5(contents)
-    // case 'yaml':
-    //   return parseYAML(contents)
-    // case 'toml':
-    //   return parseTOML(contents)
     default:
-      console.log(`\tparseFirstCodeblock: error: can't deal with format ${format}`)
+      console.log(`\tparseFirstCodeblock: error: unspported format "${format}""`)
   }
 }
 
@@ -101,7 +78,7 @@ export async function parseFirstCodeblock(block: string): Promise<?{ [string]: ?
  * Get configuration section, validating its config if requested.
  * If configuration section not present, add a default one into the _configuration file (if given)
  * Only deals with json5 case.
- * @author @nmn, @jgclark, @dwertheimer
+ * @author @nmn, @jgclark, @dwertheimer, adapted from `nmn.Templates`
  * @param {string} configSectionName - name of configuration section to retrieve
  * @param {string?} configSectionDefault - optional JSON5 string to use as default values for this configuration section
  * @param {mixed?} minimumRequiredConfig - optional map of fields which must exist and type, e.g. "{ openWeatherAPIKey: 'string' }"
@@ -125,7 +102,9 @@ export async function getOrMakeConfigurationSection(
     .find((n) => !!n.title?.startsWith('_configuration'))
 
   if (configFile == null) {
-    console.log(`  getOrMakeConfigurationSection: Error: cannot find '_configuration' file. Will create from default.`)
+    console.log(
+      `  getOrMakeConfigurationSection: Error: unable to locate '_configuration' file. Will create from default.`,
+    )
     createDefaultConfigNote()
     configFile = DataStore.projectNotes
       // $FlowIgnore[incompatible-call]
@@ -137,7 +116,7 @@ export async function getOrMakeConfigurationSection(
   if (configFile == null || content == null) {
     // Really strange to get here: won't code a response, but will just error.
     console.log(`  getOrMakeConfigurationSection: Error: '_configuration' file not found or empty`)
-    await showMessage(`Error: missing or empty '_configuration' file. Please check.`)
+    await showMessage(`Error: missing or empty '_configuration' file in Templates folder.`)
     return {}
   }
 
@@ -224,7 +203,7 @@ export async function getOrMakeConfigurationSection(
 
 /**
  * Check whether this config meets a minimum defined spec of keys and types.
- * @author @dwertheimer
+ * @author @dwertheimer adapted from `nmn.Templates`
  * @param {mixed} config - configuration as structured JSON5 object
  * @param {mixed} validations - JSON5 string to use as default values for this configuration section
  * @return {mixed} return this as structured data, in the format specified by the first line of the first codeblock

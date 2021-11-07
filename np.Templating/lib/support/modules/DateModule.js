@@ -1,5 +1,6 @@
 import moment from 'moment/min/moment-with-locales'
 import { getUserLocale } from 'get-user-locale'
+import dayjs from 'dayjs'
 
 export default class DateModule {
   constructor(config) {
@@ -15,6 +16,10 @@ export default class DateModule {
 
   format(format = '', date = '') {
     let dateValue = date.length > 0 ? new Date(date) : new Date()
+    if (date.length === 10) {
+      const tempDate = dayjs(new Date(date)).format('MM/DD/YYYY') + ' 11:00 AM'
+      dateValue = new Date(tempDate)
+    }
     if (date instanceof moment) {
       dateValue = new Date(date)
     }
@@ -24,6 +29,7 @@ export default class DateModule {
     format = format.length > 0 ? format : configFormat
 
     let formattedDate = moment(dateValue).format(format)
+
     if (format === 'short' || format === 'medium' || format === 'long' || format === 'full') {
       formattedDate = new Intl.DateTimeFormat(locale, { dateStyle: format }).format(dateValue)
     }
@@ -90,20 +96,31 @@ export default class DateModule {
   weekday(format = '', offset = 1) {
     const configFormat = this.config?.defaultFormats?.date || 'YYYY-MM-DD'
     format = format.length > 0 ? format : configFormat
-    let offsetValue = typeof offset === 'number' ? offset : parseInt(offset)
+    const offsetValue = typeof offset === 'number' ? offset : parseInt(offset)
 
-    return moment(new Date())
-      .weekday(++offsetValue)
-      .format(format)
+    return moment(new Date()).weekday(offsetValue).format(format)
   }
 
   isWeekend(date = '') {
-    const localeDate = date.length > 0 ? new Date(`${date} 1:00 AM`).toLocaleString() : new Date().toLocaleString()
-    return new Date(localeDate).getDay() % 6 === 0
+    let localeDate = new Date().toLocaleString()
+    if (date.length > 0 && date.length === 10) {
+      localeDate = new Date(date + ' 12:00 AM')
+    }
+
+    const day = new Date(new Date(localeDate).toLocaleString()).getDay()
+
+    return day === 6 || day === 0
   }
 
   isWeekday(date = '') {
     return !this.isWeekend(date)
+  }
+
+  weekOf(startDay = 0, endDay = 6, format = '') {
+    const configFormat = this.config?.defaultFormats?.date || 'YYYY-MM-DD'
+    format = format.length > 0 ? format : configFormat
+
+    return this.weekday(format, startDay) + ' to ' + this.weekday(format, endDay)
   }
 
   isValid(dateObj = null) {

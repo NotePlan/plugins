@@ -50,6 +50,11 @@ export async function getService(templateConfig: any, section: string = '', key:
   const serviceConfig = templateConfig?.services
   if (serviceConfig) {
     // $FlowFixMe
+
+    if (!isURL(section) && !serviceConfig.hasOwnProperty(section)) {
+      return `**invalid section "${section}"**`
+    }
+
     const URL = isURL(section) ? section : serviceConfig[section]
     try {
       const response: any = await fetch(URL)

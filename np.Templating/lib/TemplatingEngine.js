@@ -9,7 +9,6 @@ import { getUserLocale } from 'get-user-locale'
 
 // this is a customized versioin of `ejs` adding support for async actions (use await in template)
 // review `Test (Async)` template for example`
-// import { getStructuredConfiguration } from './support/configuration'
 import ejs from './support/ejs'
 
 import WebModule from './support/modules/WebModule'
@@ -18,64 +17,12 @@ import TimeModule from './support/modules/TimeModule'
 import NoteModule from './support/modules/NoteModule'
 import UtilsModule from './support/modules/UtilsModule'
 import FrontmatterModule from './support/modules/FrontmatterModule'
-
-export const DEFAULT_TEMPLATE_CONFIG = {
-  locale: 'en-US',
-  defaultFormats: {
-    date: 'YYYY-MM-DD',
-    time: 'h:mm A',
-    now: 'YYYY-MM-DD h:mm:ss A',
-  },
-  user: {
-    first: '',
-    last: '',
-    email: '',
-    phone: '',
-  },
-  // $FlowFixMe
-  services: {},
-}
-
-export async function TEMPLATE_CONFIG_BLOCK(): Promise<string> {
-  const config = {} // await getStructuredConfiguration()
-
-  // migrate existing configuration values
-
-  // $FlowFixMe
-  const locale = config?.date?.locale || ''
-  // $FlowFixMe
-  const first = config?.tagValue?.me?.firstName || ''
-  // $FlowFixMe
-  const last = config?.tagValue?.me?.lastName || ''
-
-  // $FlowFixMe
-  const dateFormat = config?.date?.dateStyle || DEFAULT_TEMPLATE_CONFIG.defaultFormats.date
-
-  // $FlowFixMe
-  const timeFormat = config?.date?.timeStyle || DEFAULT_TEMPLATE_CONFIG.defaultFormats.time
-
-  return `  templates: {
-    locale: "${locale}",
-    defaultFormats: {
-      date: "${dateFormat}",
-      time: "${timeFormat}",
-      now: "${DEFAULT_TEMPLATE_CONFIG.defaultFormats.now}"
-    },
-    user: {
-      first: "${first}",
-      last: "${last}",
-      email: "",
-      phone: ""
-    },
-    services: {}
-  },
-  `
-}
+import { getConfiguration } from './support/configuration'
 
 export default class TemplatingEngine {
   templateConfig: any
   constructor(config: any) {
-    this.templateConfig = config || DEFAULT_TEMPLATE_CONFIG
+    this.templateConfig = config || {}
   }
 
   async heartbeat(): Promise<string> {
@@ -177,7 +124,8 @@ export default class TemplatingEngine {
 
       return result
     } catch (error) {
-      return error
+      const message = error.message
+      return message.replace(/ejs:/g, '**Template Error:** ')
       // return this.templateErrorMessage('Templating.render', err.message)
     }
   }

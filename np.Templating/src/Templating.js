@@ -26,7 +26,7 @@ export async function templateInsert(): Promise<void> {
 
   const templateTitle = selectedTemplate?.title
 
-  const result = await new Templating().renderTemplate(templateTitle)
+  const result = await Templating.renderTemplate(templateTitle)
 
   Editor.insertTextAtCursor(result)
 }
@@ -55,7 +55,7 @@ export async function templateAppend(): Promise<void> {
 
   const templateTitle = selectedTemplate?.title
 
-  const result = await new Templating().renderTemplate(templateTitle)
+  const result = await Templating.renderTemplate(templateTitle)
 
   Editor.insertTextAtCharacterIndex(result, content.length)
 }
@@ -92,7 +92,7 @@ export async function templateNew(): Promise<void> {
 
   let templateResult = ''
   if (templateName.length > 0) {
-    templateResult = await new Templating().renderTemplate(templateName)
+    templateResult = await Templating.renderTemplate(templateName)
   }
 
   const filename = DataStore.newNote(title, folder) || ''
