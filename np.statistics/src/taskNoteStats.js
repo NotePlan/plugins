@@ -4,7 +4,7 @@ import { percent } from '../../helpers/general'
 
 //-----------------------------------------------------------------------------
 // Show task counts for currently displayed note
-export default async function showTaskCountNote() {
+export async function showTaskCountNote() {
   const paragraphs = Editor.paragraphs
 
   const countParagraphs = function (types) {

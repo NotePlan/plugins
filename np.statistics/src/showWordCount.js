@@ -1,7 +1,7 @@
 // @flow
 
 // Show word counts etc. for currently displayed note
-export default async function showWordCount(): Promise<void> {
+export async function showWordCount(): Promise<void> {
   const paragraphs = Editor.paragraphs
   const note = Editor.note
   if (note == null) {

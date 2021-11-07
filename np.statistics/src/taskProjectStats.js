@@ -4,7 +4,7 @@ import { percent } from '../../helpers/general'
 
 //-----------------------------------------------------------------------------
 // Shows task statistics for project notes, ignoring Templates
-export default async function showTaskCountProjects(): void {
+export async function showTaskCountProjects(): Promise<void> {
   const projNotes = DataStore.projectNotes.filter(
     (n) => !n.filename.startsWith("📋 Templates") // ignore notes in Templates folder
   )

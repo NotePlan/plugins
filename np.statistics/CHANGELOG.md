@@ -1,4 +1,9 @@
 # What's Changed in 🔢 Statistics plugin?
+## [0.5.1] - 2021-11-07
+### Changed
+- A little code cleanup.
+- Removed pointed to old command /stp which has now been in Summaries plugin for a while.
+
 ## [0.5.0] - 2021-10-11
 ### Changed
 - **`/stp` (stats for time period) command now moved to the new Summaries plugin**

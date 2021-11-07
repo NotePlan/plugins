@@ -54,7 +54,6 @@
 | `rpt` | Generate new @repeat() tasks from completed ones | 🔁 @repeat Extensions |
 | `saveSearchResults` | Save results from a search over all notes | 🗃 Summaries |
 | `start reviews` | start a new series of reviews, deciding which are now ready for review, and kicking off the first one | 🔬Reviews |
-| `stpx` | [MOVED] Show stats of tags and mentions over a time period | 🔢 Note Statistics |
 | `sw7` | Find all open tasks for last 7 days & silently move/reschedule to today | 🧹 Task Sweeper |
 | `swa` | Find ALL open tasks & move/reschedule to today's Calendar Note | 🧹 Task Sweeper |
 | `swt` | Move/Reschedule all open tasks in current note to today's Calendar Note | 🧹 Task Sweeper |
@@ -69,4 +68,5 @@
 | `tt` | Tasks to Top - Bring all tasks in note to top | ✅ Task Automations |
 | `wc` | Shows word count and other numbers for the note | 🔢 Note Statistics |
 | `wd` | Insert dates of current week | 📅 Date Automations |
+| `weeklyStats` | Generate stats for tags and mentions for all weeks this year, and write CSV to a note | 🗃 Summaries |
 | `🔌 Plugin Tester` | Simple plugin test to check that plugins are working for you | 🔌 Plugin Tester |

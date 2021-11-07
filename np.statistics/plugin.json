@@ -7,7 +7,7 @@
 	"plugin.icon": "",
 	"plugin.author": "Jonathan & Eduard",
 	"plugin.url": "https://github.com/NotePlan/plugins/tree/main/np.statistics/",
-	"plugin.version": "0.5.0",
+	"plugin.version": "0.5.1",
 	"plugin.dependencies": [],
 	"plugin.script": "script.js",
 	"plugin.isRemote": "false",
@@ -35,12 +35,6 @@
 			"alias": ["word", "stats", "count"],
 			"description": "Shows word count and other numbers for the note",
 			"jsFunction": "showWordCount"
-		},
-		{
-			"name": "stpx",
-			"alias": [],
-			"description": "[MOVED] Show stats of tags and mentions over a time period",
-			"jsFunction": "periodStatsPlaceholder"
 		}
 	],
 	"plugin.preferences": []
