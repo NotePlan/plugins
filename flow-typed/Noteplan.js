@@ -907,7 +907,23 @@ type TCalendarItem = {
   */
   +url: string,
   /**
-   * Creates a CalendarItem. The .endDate is optional, but recommended for events.
+  * If supported, shows the availability for the event. The default is 0 = busy.
+  * notSupported = -1
+  * busy = 0
+  * free = 1
+  * tentative = 2
+  * unavailable = 3
+  * Note: Available from v3.3
+  * @type {Int}
+  */
+  +availability: number,
+  // /**
+  // * Location of the event
+  // * Note: Not yet available but hoped for from ~3.3
+  // */
+  // +location: string,
+  /**
+   * Create a CalendarItem. The .endDate is optional, but recommended for events.
    * Reminders don't use this field.
    *
    * The type can be "event" or "reminder". And isAllDay can be used if you
@@ -933,7 +949,7 @@ type TCalendarItem = {
 
 /**
  * Access and set the data inside the current clipboard.
- * NB: See also 2 methods in the TEditor object.
+ * Note: See also 2 methods in the TEditor object.
  */
 declare var Clipboard: {
   /**
