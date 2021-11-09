@@ -4,7 +4,7 @@
 The Templates plugin allows you to create Markdown templates for note formats you use frequently (like a meeting note or a daily note). The base capability is essentially a copy/paste of a template file into a new note. So if you just want to have a basic form to fill in when you need it, you can run:
 - `/nn` command to create a new note from a template of your choice/making
 - `/it` pastes the template to the note you are already in (inserts the template text at the bottom)
-- `/qtn` - Quick Template Note - For templates you use frequently to create documents in a certain place, you can put the details in the _configuration file and run `/qtn` to choose from your pre-configured template/output-folder combinations. Requires configuration, read [details below](##-Command-`/qtn---Quick-Template-Note`).
+- `/qtn` - Quick Template Note - For templates you use frequently to create documents in a certain place, you can put the details in the _configuration file and run `/qtn` to choose from your pre-configured template/output-folder combinations. Requires configuration, read [details below](#/qtn---quick-template-note`).
 
 Templates gets more interesting when you include tags in your template which get filled in when the template is **inserted or applied** (keep this in mind ... the template tags don't update after this).
 
@@ -129,7 +129,16 @@ You can also place  `{{matchingEvents()}}` or `{{listMatchingEvents()}}` in Temp
 ### Configuration (in the 📋 Templates > `_configuration` note):
 ```jsonc
   quickNotes: [
-    { template: 'Title of a template here', label: 'Short descriptive name for this quickNote combination', title: 'Title for the created note, can include template tags to be dynamic, e.g. Meeting with {{askForName}} on {{date8601()}}', folder: 'MyRootFolder/MySubFolder',    editThis: true  /* delete this comment and the editThis after you have edited this */   },
+    { label: 'Short descriptive name for this quickNote combination (shows up in the picker)', 
+      template: 'Title of a template to use from your _Templates folder', 
+      title: 'Title for the created note, can include template tags to be dynamic, e.g. Meeting with {{askForName}} on {{date8601()}}', 
+      folder: 'MyRootFolder/MySubFolder',
+    },
+    { label: 'Short name for this 2nd quickNote combination', 
+      template: 'Title of a template to use from your _Templates folder', 
+      title: 'Title for the created note, can include template tags to be dynamic, e.g. Standing Meeting with Bob on {{date8601()}}', 
+      folder: 'MyRootFolder/MySubFolder',
+    },
   ],
 ```
 ### Features:
