@@ -16,6 +16,7 @@ Alternatively, in the `Templates/_configuration` note include the following sett
 ```jsonc
 ...
   events: {
+    calendarToWriteTo: "", // specify calendar name to write events to. Must be writable calendar. If empty, then the default system calendar will be used.
     addEventID: false,  // whether to add an '⏰event:ID' string when creating an event from a time block
     processedTagName: "#event_created",   // optional tag to add after making a time block an event
     confirmEventCreation: false, // optional tag to indicate whether to ask user to confirm each event to be created
@@ -35,6 +36,7 @@ Alternatively, in the `Templates/_configuration` note include the following sett
 This uses JSON5 format: ensure there are commas at the end of all that lines that need them.
 
 **Notes**:
+- **calendarToWriteTo**: the name of the calendar for `/time blocks to calendar` to write events to. Must be a writable calendar. If empty, then the default system calendar will be used.
 - **addEventID**: whether to add an `⏰event:ID` string when creating an event from a time block. This returns rather long strings (e.g. `⏰event:287B39C1-4D0A-46DC-BD72-84D79167EFDF`) and so you might want to use a theme option to shorten them until needed. For example, to hide the `event:ID` string until you move the cursor to the ⏰ marker, [customise your theme](https://help.noteplan.co/article/44-customize-themes) to add:
 ```jsonc
     "eventID": {
