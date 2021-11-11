@@ -4,6 +4,10 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 - tighten timeblock-finding regex if Eduard does
 - add further fields (e.g. location) if Eduard adds to the API
 
+## [0.6.3] - 2021-11-11
+### Fixed
+- typo in default settings, that caused JSON5 errors (Spotted by @dwertheimer from reports by @aliembee, @temisphere)
+
 ## [0.6.2] - 2021-10-21
 ### Changed
 - now shows a warning if no timeblocks could be found, rather than apparently just doing nothing

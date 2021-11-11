@@ -1,7 +1,7 @@
 // @flow
 // ------------------------------------------------------------------------------------
 // Command to bring calendar events into notes
-// v0.6.1, 5.10.2021
+// v0.6.3, 11.11.2021
 // @jgclark, with additions by @dwertheimer, @weyert
 // ------------------------------------------------------------------------------------
 
@@ -19,8 +19,8 @@ import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configura
 // Get settings
 const DEFAULT_EVENTS_OPTIONS = `
   events: {
-    calendarToWriteTo: "" // specify calendar name to write events to. Must be writable calendar. If empty, then the default system calendar will be used.
-    addEventID: false,  // whether to add an [[event:ID]] internal link when creating an event from a time block
+    calendarToWriteTo: "", // specify calendar name to write events to. Must be writable calendar. If empty, then the default system calendar will be used.
+    addEventID: false,  // whether to add an '⏰event:ID' internal link when creating an event from a time block
     processedTagName: "#event_created",   // optional tag to add after making a time block an event
     removeTimeBlocksWhenProcessed: true,  // whether to remove time block after making an event from it
     eventsHeading: "### Events today",  // optional heading to put before list of today's events

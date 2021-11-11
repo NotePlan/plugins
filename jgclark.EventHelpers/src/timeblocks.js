@@ -3,7 +3,7 @@
 // ------------------------------------------------------------------------------------
 // Command to turn time blocks into full calendar events
 // @jgclark
-// v0.6.2, 21.10.2021
+// v0.6.3, 11.11.2021
 //
 // See https://help.noteplan.co/article/52-part-2-tasks-events-and-reminders#timeblocking
 // for definition of time blocks. In summary:
@@ -25,8 +25,8 @@ import {
 // Settings
 const DEFAULT_EVENTS_OPTIONS = `
   events: {
-    calendarToWriteTo: "" // specify calendar name to write events to. Must be writable calendar. If empty, then the default system calendar will be used.
-    addEventID: false,  // whether to add an [[event:ID]] internal link when creating an event from a time block
+    calendarToWriteTo: "", // specify calendar name to write events to. Must be writable calendar. If empty, then the default system calendar will be used.
+    addEventID: false,  // whether to add an '⏰event:ID' internal link when creating an event from a time block
     processedTagName: "#event_created",   // optional tag to add after making a time block an event
     removeTimeBlocksWhenProcessed: true,  // whether to remove time block after making an event from it
     eventsHeading: "### Events today",  // optional heading to put before list of today's events
@@ -65,6 +65,35 @@ const RE_TIMEBLOCK_TYPE3 = `\\s*(at\\s+)?${RE_HOUR}${RE_OPT_AMPM}\\s?-\\s?${RE_H
 const RE_DONE_DATETIME = `@done\\(${RE_ISO_DATE} ${RE_TIME}${RE_OPT_AMPM}\\)`
 const RE_EVENT_ID = `event:[A-F0-9-]{32}`
 
+/**
+ * Eduard published the Regex he uses in timeblock code, on 10.11.2021
+ * The FIRST... one is for start time, and
+ * the second SECOND is for optional end time.
+ */
+// private let FIRST_REG_PATTERN = "(^|\\s|T)" +
+//     "(?:(?:at|from)\\s*)?" +
+//     "(\\d{1,2}|noon|midnight)" +
+//     "(?:" +
+//         "(?:\\:|\\：)(\\d{1,2})" +
+//         "(?:" +
+//             "(?:\\:|\\：)(\\d{2})" +
+//         ")?" +
+//     ")?" +
+//     "(?:\\s*(A\\.M\\.|P\\.M\\.|AM?|PM?))?" +
+//     "(?=\\W|$)"
+
+// private let SECOND_REG_PATTERN = "^\\s*" +
+//     "(\\-|\\–|\\~|\\〜|to|\\?)\\s*" +
+//     "(\\d{1,4})" +
+//     "(?:" +
+//         "(?:\\:|\\：)(\\d{1,2})" +
+//         "(?:" +
+//             "(?:\\:|\\：)(\\d{1,2})" +
+//         ")?" +
+//     ")?" +
+//     "(?:\\s*(A\\.M\\.|P\\.M\\.|AM?|PM?))?" +
+//   "(?=\\W|$)"
+    
 // ------------------------------------------------------------------------------------
 
 // Go through current Editor note and identify time blocks to turn into events
