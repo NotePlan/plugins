@@ -93,18 +93,28 @@ export default class DateModule {
     return formattedValue
   }
 
-  weekday(format = '', offset = 1) {
+  weekday(format = '', offset = 1, pivotDate = '') {
     const configFormat = this.config?.defaultFormats?.date || 'YYYY-MM-DD'
     format = format.length > 0 ? format : configFormat
     const offsetValue = typeof offset === 'number' ? offset : parseInt(offset)
 
-    return moment(new Date()).weekday(offsetValue).format(format)
+    const dateValue = pivotDate.length === 0 ? new Date() : new Date(pivotDate)
+
+    return moment(dateValue).weekday(offsetValue).format(format)
   }
 
-  isWeekend(date = '') {
+  weeknumber(pivotDate = '') {
+    const dateValue = pivotDate.length === new Date() ? pivotDate : new Date(pivotDate)
+    const dateStr = moment(dateValue).format('YYYY-MM-DD')
+    const weeknumber = this.format('W', dateStr)
+
+    return weeknumber
+  }
+
+  isWeekend(pivotDate = '') {
     let localeDate = new Date().toLocaleString()
-    if (date.length > 0 && date.length === 10) {
-      localeDate = new Date(date + ' 12:00 AM')
+    if (pivotDate.length > 0 && pivotDate.length === 10) {
+      localeDate = new Date(pivotDate + ' 12:00 AM')
     }
 
     const day = new Date(new Date(localeDate).toLocaleString()).getDay()
@@ -112,15 +122,29 @@ export default class DateModule {
     return day === 6 || day === 0
   }
 
-  isWeekday(date = '') {
-    return !this.isWeekend(date)
+  isWeekday(pivotDate = '') {
+    return !this.isWeekend(pivotDate)
   }
 
-  weekOf(startDay = 0, endDay = 6, format = '') {
-    const configFormat = this.config?.defaultFormats?.date || 'YYYY-MM-DD'
-    format = format.length > 0 ? format : configFormat
+  weekOf(startDay = 0, endDay = 6, userPivotDate = '') {
+    // if only pivotDate supplied, apply defaults
+    let startDayNumber = 0
+    let endDayNumber = 6
+    let pivotDate = ''
+    if (typeof startDay === 'string') {
+      // this will occur when pivotDate passed as first parameter
+      pivotDate = startDay
+    } else {
+      startDayNumber = startDay ? startDay : 0
+      endDayNumber = endDay ? endDay : 6
+      pivotDate = userPivotDate
+    }
 
-    return this.weekday(format, startDay) + ' to ' + this.weekday(format, endDay)
+    const startDate = this.weekday('YYYY-MM-DD', startDayNumber, pivotDate)
+    const endDate = this.weekday('MM/DD', endDayNumber, pivotDate)
+    const weekNumber = this.weeknumber(startDate)
+
+    return `W${weekNumber} (${startDate}..${endDate})`
   }
 
   isValid(dateObj = null) {

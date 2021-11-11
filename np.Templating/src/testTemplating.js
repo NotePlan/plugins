@@ -15,7 +15,7 @@ async function showError(method: string = '', message: string = ''): Promise<voi
 
 export async function templateInstantiation(): Promise<void> {
   try {
-    const response = await new Templating().heartbeat()
+    const response = await Templating.heartbeat()
 
     Editor.insertTextAtCursor(response)
   } catch (error) {

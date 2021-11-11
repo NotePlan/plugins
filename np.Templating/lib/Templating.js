@@ -73,16 +73,17 @@ export function getTemplateFolder(): ?string {
 export default class Templating {
   templateConfig: any
   constructor() {
-    //
+    // DON'T DELETE
+    // constructor method required to access instance config (see setup method)
+  }
+
+  static async setup() {
+    this.constructor.templateConfig = await getOrMakeConfigurationSection('templates', await TEMPLATE_CONFIG_BLOCK())
   }
 
   static async heartbeat(): Promise<string> {
     await this.setup()
     return '```\n' + JSON.stringify(this.constructor.templateConfig, null, 2) + '\n```\n'
-  }
-
-  static async setup() {
-    this.constructor.templateConfig = await getOrMakeConfigurationSection('templates', await TEMPLATE_CONFIG_BLOCK())
   }
 
   static async templateErrorMessage(method: string = '', message: string = ''): Promise<string> {

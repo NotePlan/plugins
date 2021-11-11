@@ -6,15 +6,16 @@ import moment from 'moment'
 
 const PLUGIN_NAME = `📙 ${colors.yellow('np.Templating')}`
 const section = colors.blue
+const method = colors.magenta.bold
 
 describe(`${PLUGIN_NAME}`, () => {
   describe(section('DateModule'), () => {
-    it(`should render .now`, async () => {
+    it(`should render ${method('.now')}`, async () => {
       const result = new DateModule().now()
       expect(result).toEqual(moment(new Date()).format('YYYY-MM-DD'))
     })
 
-    it(`should render .now using 'short' format`, () => {
+    it(`should render ${method('.now')} using short format`, () => {
       const result = new DateModule().now('short')
 
       const test = new Intl.DateTimeFormat('en-US', { dateStyle: 'short' }).format(new Date())
@@ -22,7 +23,7 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(test)
     })
 
-    it(`should render .now using 'medium' format`, () => {
+    it(`should render ${method('.now')} using 'medium' format`, () => {
       const result = new DateModule().now('medium')
 
       const test = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date())
@@ -30,7 +31,7 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(test)
     })
 
-    it(`should render .now using 'long' format`, () => {
+    it(`should render ${method('.now')} using 'long' format`, () => {
       const result = new DateModule().now('long')
 
       const test = new Intl.DateTimeFormat('en-US', { dateStyle: 'long' }).format(new Date())
@@ -38,7 +39,7 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(test)
     })
 
-    it(`should render .now using 'full' format`, () => {
+    it(`should render ${method('.now')} using 'full' format`, () => {
       const result = new DateModule().now('full')
 
       const test = new Intl.DateTimeFormat('en-US', { dateStyle: 'full' }).format(new Date())
@@ -46,12 +47,12 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(test)
     })
 
-    it(`should render .now using custom format`, async () => {
+    it(`should render ${method('.now')} using custom format`, async () => {
       const result = new DateModule().now('YYYY-MM')
       expect(result).toEqual(moment(new Date()).format('YYYY-MM'))
     })
 
-    it(`should render .now using configuration`, async () => {
+    it(`should render ${method('.now')} using configuration`, async () => {
       const testConfig = {
         defaultFormats: {
           date: 'YYYY-MM',
@@ -61,7 +62,7 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(moment(new Date()).format('YYYY-MM'))
     })
 
-    it(`should render .now using positive offset`, async () => {
+    it(`should render ${method('.now')} using positive offset`, async () => {
       const result = new DateModule().now('', 7)
 
       const assertValue = moment(new Date()).add(7, 'days').format('YYYY-MM-DD')
@@ -69,7 +70,7 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(assertValue)
     })
 
-    it(`should render .now using negative offset`, async () => {
+    it(`should render ${method('.now')} using negative offset`, async () => {
       const result = new DateModule().now('', -7)
 
       const assertValue = moment(new Date()).subtract(7, 'days').format('YYYY-MM-DD')
@@ -77,19 +78,19 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(assertValue)
     })
 
-    it(`should render today`, async () => {
+    it(`should render ${method('.today')}`, async () => {
       const result = new DateModule().today()
 
       expect(result).toEqual(moment(new Date()).format('YYYY-MM-DD'))
     })
 
-    it(`should render today w/ custom format`, async () => {
+    it(`should render ${method('.today')} w/ custom format`, async () => {
       const result = new DateModule({ defaultFormats: { date: 'short' } }).today()
 
       expect(result).toEqual(moment(new Date()).format('MM/D/YY'))
     })
 
-    it(`should render yesterday`, async () => {
+    it(`should render ${method('.yesterday')}`, async () => {
       const result = new DateModule().yesterday()
 
       const assertValue = moment(new Date()).subtract(1, 'days').format('YYYY-MM-DD')
@@ -97,7 +98,7 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(assertValue)
     })
 
-    it(`should render yesterday w/ intl format`, async () => {
+    it(`should render ${method('.yesterday')} w/ intl format`, async () => {
       const result = new DateModule({ defaultFormats: { date: 'short' } }).yesterday()
 
       const assertValue = moment(new Date()).subtract(1, 'days').format('MM/D/YY')
@@ -105,7 +106,7 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(assertValue)
     })
 
-    it(`should render yesterday w/ custom format`, async () => {
+    it(`should render ${method('.yesterday')} w/ custom format`, async () => {
       const result = new DateModule({ defaultFormats: { date: 'short' } }).yesterday('YYYY/MM/DD')
 
       const assertValue = moment(new Date()).subtract(1, 'days').format('YYYY/MM/DD')
@@ -113,7 +114,7 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(assertValue)
     })
 
-    it(`should render tomorrow`, async () => {
+    it(`should render ${method('.tomorrow')}`, async () => {
       const result = new DateModule().tomorrow()
 
       const assertValue = moment(new Date()).add(1, 'days').format('YYYY-MM-DD')
@@ -121,7 +122,7 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(assertValue)
     })
 
-    it(`should render tomorrow w/ intl format`, async () => {
+    it(`should render ${method('.tomorrow')} w/ intl format`, async () => {
       const result = new DateModule({ defaultFormats: { date: 'short' } }).tomorrow()
 
       const assertValue = moment(new Date()).add(1, 'days').format('MM/D/YY')
@@ -129,7 +130,7 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(assertValue)
     })
 
-    it(`should render tomorrow w/ custom format`, async () => {
+    it(`should render ${method('.tomorrow')} w/ custom format`, async () => {
       const result = new DateModule({ defaultFormats: { date: 'short' } }).tomorrow('YYYY/MM/DD')
 
       const assertValue = moment(new Date()).add(1, 'days').format('YYYY/MM/DD')
@@ -137,7 +138,7 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(assertValue)
     })
 
-    it(`should render weekday (this monday)`, async () => {
+    it(`should render ${method('.weekday')} (this monday)`, async () => {
       const result = new DateModule().weekday('', 0)
 
       const assertValue = moment(new Date()).weekday(0).format('YYYY-M-DD')
@@ -145,31 +146,31 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(assertValue)
     })
 
-    it(`should render true if weekend`, async () => {
+    it(`should render ${method('.weekday')} (this monday) using pivotDate`, async () => {
+      const result = new DateModule().weekday('', 0, '2021-11-03')
+
+      expect(result).toEqual('2021-10-31')
+    })
+
+    it(`should render true if ${method('.isWeekend')}`, async () => {
       const result = new DateModule().isWeekend('10-16-2021')
 
       expect(result).toEqual(true)
     })
 
-    it(`should render false if not weekend`, async () => {
+    it(`should render false if not ${method('.isWeekend')}`, async () => {
       const result = new DateModule().isWeekend('10-15-2021')
 
       expect(result).toEqual(false)
     })
 
-    it(`should render true if weekday`, async () => {
+    it(`should render true if ${method('.isWeekday')}`, async () => {
       const result = new DateModule().isWeekday('10-15-2021')
 
       expect(result).toEqual(true)
     })
 
-    it(`should render true if weekday`, async () => {
-      const result = new DateModule().isWeekday('2021-10-13')
-
-      expect(result).toEqual(true)
-    })
-
-    it(`should format supplied date`, async () => {
+    it(`should ${method('.format')} supplied date`, async () => {
       const result = new DateModule().format('YYYY-MM', '2021-10-16')
 
       const assertValue = moment('2021-10-16').format('YYYY-MM')
@@ -177,13 +178,43 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(assertValue)
     })
 
-    it('should calculate week of based on current date', async () => {
+    it(`should calculate ${method('.weekOf')} based on current date`, async () => {
       let result = new DateModule().weekOf()
 
       const startDate = new DateModule().weekday('YYYY-MM-DD', 0)
-      const endDate = new DateModule().weekday('YYYY-MM-DD', 6)
+      const endDate = new DateModule().weekday('MM/DD', 6)
+      const weekNumber = new DateModule().weeknumber(startDate)
 
-      expect(result).toEqual(`${startDate} to ${endDate}`)
+      // W44 (2021-10-31..11/06)
+      const assertValue = `W${weekNumber} (${startDate}..${endDate})`
+
+      expect(result).toEqual(assertValue)
+    })
+
+    it(`should calculate ${method('.weekOf')} based on pivotDate`, async () => {
+      const pivotDate = '2021-11-03'
+      let result = new DateModule().weekOf(null, null, pivotDate)
+      const startDate = new DateModule().weekday('YYYY-MM-DD', 0, pivotDate)
+      const endDate = new DateModule().weekday('MM/DD', 6, pivotDate)
+      const weekNumber = new DateModule().weeknumber(startDate)
+
+      // W44 (2021-10-31..11/06)
+      const assertValue = `W${weekNumber} (${startDate}..${endDate})`
+
+      expect(result).toEqual(assertValue)
+    })
+
+    it(`should calculate ${method('.weekOf')} based on pivotDate only`, async () => {
+      const pivotDate = '2021-11-03'
+      let result = new DateModule().weekOf(pivotDate)
+
+      const startDate = new DateModule().weekday('YYYY-MM-DD', 0, pivotDate)
+      const endDate = new DateModule().weekday('MM/DD', 6, pivotDate)
+      const weekNumber = new DateModule().weeknumber(startDate)
+
+      const assertValue = `W${weekNumber} (${startDate}..${endDate})`
+
+      expect(result).toEqual(assertValue)
     })
   })
 })

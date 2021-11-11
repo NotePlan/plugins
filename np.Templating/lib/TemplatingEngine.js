@@ -17,7 +17,6 @@ import TimeModule from './support/modules/TimeModule'
 import NoteModule from './support/modules/NoteModule'
 import UtilsModule from './support/modules/UtilsModule'
 import FrontmatterModule from './support/modules/FrontmatterModule'
-import { getConfiguration } from './support/configuration'
 
 export default class TemplatingEngine {
   templateConfig: any
