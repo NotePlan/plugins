@@ -14,3 +14,5 @@ package-lock.json
 .vscode/
 .pluginpath
 .pluginsrc
+lcov*
+coverage/
