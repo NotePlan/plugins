@@ -142,6 +142,7 @@ export default class Templating {
   }
 
   static async getTemplateConfig(): mixed {
+    await this.setup()
     return this.constructor.templateConfig
   }
 
@@ -163,5 +164,9 @@ export default class Templating {
     } catch (error) {
       return this.templateErrorMessage(error)
     }
+  }
+
+  async renderEx(templateData: any = '', userData: any = {}, userOptions: any = {}) {
+    console.log('renderEx')
   }
 }

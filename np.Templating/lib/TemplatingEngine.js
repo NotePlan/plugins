@@ -20,8 +20,10 @@ import FrontmatterModule from './support/modules/FrontmatterModule'
 
 export default class TemplatingEngine {
   templateConfig: any
+  templatePlugins: any
   constructor(config: any) {
     this.templateConfig = config || {}
+    this.templatePlugins = []
   }
 
   async heartbeat(): Promise<string> {
@@ -116,6 +118,11 @@ export default class TemplatingEngine {
       }
     }
 
+    // include any custom plugins
+    this.templatePlugins.forEach((item) => {
+      renderData[item.name] = item.method
+    })
+
     try {
       let result = await ejs.render(processedTemplateData, renderData, options)
 
@@ -142,6 +149,15 @@ export default class TemplatingEngine {
       return format
     } catch (error) {
       return this.templateErrorMessage('getDefaultFormat', error)
+    }
+  }
+
+  async register(name: string = '', method: function): Promise<void> {
+    const result = this.templatePlugins.find((item) => {
+      return item.name === name
+    })
+    if (!result) {
+      this.templatePlugins.push({ name, method })
     }
   }
 }
