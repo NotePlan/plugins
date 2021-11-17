@@ -6,7 +6,7 @@
   "plugin.name": "⭐️ Favorites",
   "plugin.description": "Save notes as favorites",
   "plugin.author": "@dwertheimer",
-  "plugin.version": "0.0.1",
+  "plugin.version": "1.0.0",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "Put a link to a web page or your github readme file here, and it will be displayed as the 'website' in the plugin preference pane to give users more info on the plugin before/after install, e.g.  https://github.com/dwertheimer/Noteplan-plugins/blob/main/np.plugin-flow-skeleton/readme.md",

@@ -16,3 +16,4 @@ Somewhere on the Noteplan roadmap is (hopefully) the concept of pinned notes (se
 - Thanks @codedungeon for pushing me to Jest my code and for helping the Noteplan plugin community with tools and knowledge
 - Thanks @jgclark for teaching me how to do this plugin stuff, and
 - Thanks @stacey for helping get the "This is How I Noteplan" effort going!
+- And of course, thanks @EduardMe#2529 because none of us would be here learning from each other if not for your awesome tool
