@@ -4,7 +4,7 @@
   "noteplan.minAppVersion": "3.0.21",
   "plugin.id": "dwertheimer.Favorites",
   "plugin.name": "⭐️ Favorites",
-  "plugin.description": "Save notes as favorites",
+  "plugin.description": "Set commonly used Project Notes as Favorites and have quick access to choose/open them",
   "plugin.author": "@dwertheimer",
   "plugin.version": "1.0.0",
   "plugin.dependencies": [],
@@ -12,15 +12,7 @@
   "plugin.url": "Put a link to a web page or your github readme file here, and it will be displayed as the 'website' in the plugin preference pane to give users more info on the plugin before/after install, e.g.  https://github.com/dwertheimer/Noteplan-plugins/blob/main/np.plugin-flow-skeleton/readme.md",
   "plugin.commands": [
     {
-      "name": "Make this file a Favorite (⭐️)",
-      "description": "Set open file to be a favorite (add ⭐️)",
-      "jsFunction": "setFavorite",
-      "alias": [
-        "fave"
-      ]
-    },
-    {
-      "name": "Open Favorite (⭐️) file",
+      "name": "faves - Choose+Open Favorite (⭐️) Note",
       "description": "Open one of the saved Favorites",
       "jsFunction": "openFavorite",
       "alias": [
@@ -28,8 +20,16 @@
       ]
     },
     {
-      "name": "Remove from Favorites (⭐️)",
-      "description": "Remove this file from saved Favorites (remove ⭐️ from name)",
+      "name": "fave - Make this Note a Favorite (⭐️)",
+      "description": "Set open Note to be a Favorite (add ⭐️)",
+      "jsFunction": "setFavorite",
+      "alias": [
+        "fave"
+      ]
+    },
+    {
+      "name": "unfave - Remove this Note from Favorites List (⭐️)",
+      "description": "Remove this Note from saved Favorites (remove ⭐️ from name)",
       "jsFunction": "removeFavorite",
       "alias": [ "unfave"
       ]
