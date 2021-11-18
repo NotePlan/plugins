@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// v0.10.4, 31.8.2021
+// v0.10.6, 17.11.2021
 //--------------------------------------------------------------------------------------------------------------------
 
 import {
@@ -77,10 +77,10 @@ export async function jumpToHeading() {
     // find out position of this heading, ready to set insertion point
     const startPos = headingParas[re.index].contentRange?.start ?? 0
     // console.log(startPos)
-    Editor.renderedSelect(startPos, 0)
+    // Editor.renderedSelect(startPos, 0) // feels the better one to use, but doesn't seem to work
+    Editor.select(startPos, 0)
     CommandBar.hide() // shouldn't be needed, but seems to...
 
-    // Editor.select(startPos, 0)
 
     // Earlier version:
     // Editor.highlight(headingParas[re.index])
@@ -130,8 +130,9 @@ export function jumpToDone() {
 
   if (matches != null) {
     const startPos = matches[0].contentRange?.start ?? 0
-    Editor.renderedSelect(startPos, 0)
-    // Editor.select(startPos, 0)
+    console.log(`  Found ## Done at position ${startPos}`)
+    // Editor.renderedSelect(startPos, 0) // sometimes doesn't work
+    Editor.select(startPos, 0)
 
     // Earlier version
     // Editor.highlight(p)
