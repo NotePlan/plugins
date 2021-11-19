@@ -554,6 +554,7 @@ type TCalendar = {
   parseDateText(text: string): $ReadOnlyArray<DateRange>,
   /**
    * Create a date object from parts. Like year could be 2021 as a number.
+   * Note: month uses Swift counting (1-12) not Javascript counting (0-11).
    */
   dateFrom(
     year: number,
@@ -775,7 +776,7 @@ type TNote = {
    */
   +type: NoteType,
   /**
-   * Title = first line of the note.
+   * Title = first line of the note. (NB: Getter only.)
    */
   +title: string | void,
   /**
