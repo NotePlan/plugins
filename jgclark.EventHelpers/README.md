@@ -5,13 +5,34 @@ This plugin provides commands to help work with Calendars and Events:
 - `/list day's events to log`: write list of this day's calendar events to console log
 - `/insert matching events`: adds this day's calendar events matching certain patterns at cursor
 - `/time blocks to calendar`: takes [NotePlan-defined time blocks](https://help.noteplan.co/article/52-part-2-tasks-events-and-reminders#timeblocking) and converts to full Calendar events, in your current default calendar, as set by iCal.
+- `/process date offsets`: finds date offset patterns and turns them into due dates, based on date at start of section. (See [Templates for Dates](#template-for-dates) below for full details.)
 
-Each of these have a number of options described below ...
+The first four of these have a number of [options described below](#configuration).
+## Templates for Dates
+This is best understood with a quick example:
+
+| For example ...                                                                                                                                                                        | ... becomes                                                                                                                                                                                                 |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| \#\#\# Christmas Cards 25/12/2020<br />\* Write cards {-20d}<br />\* Post overseas cards {-15d}<br />\* Post cards to this country {-10d}<br />\* Store spare cards for next year {+3d} | \#\#\# Christmas Cards 25/12/2020<br />\* Write cards >2020-12-05<br />\* Post overseas cards >2020-12-10<br />* Post cards to this country >2020-12-15<br />\* Store spare cards for next year >2020-12-28 |
+| \* Bob's birthday on 14/09/2020<br />&nbsp;&nbsp;\* Find present {-6d}<br />&nbsp;&nbsp;\* Wrap & post present {-3d} <br />&nbsp;&nbsp;\* Call Bob {0d}                                 | \* Bob's birthday on 14/09/2020<br />&nbsp;&nbsp;\* Find present >2020-09-08<br />&nbsp;&nbsp;\* Wrap & post present >2020-09-11<br />&nbsp;&nbsp;\* Call Bob >2020-09-14                                   |
+
+You can use this within a line to have both a **deadline** and a calculated **start date**:
+
+| For example ...                                                      | ... becomes                                                                       |
+| ---------------------------------------------------------- | -------------------------------------------------------------------- |
+| * Post cards deadline 2020-12-18 {-10d} | * Post cards deadline 2020-12-18 >2020-12-08 |
+
+The `/process date offsets` command looks for a valid date pattern in the previous heading, previous main task if it has sub-tasks, or in the line itself. If it does, then it changes any **date offset patterns** (such as `{-10d}`, `{+2w}`, `{-3m}`) into **scheduled dates** (e.g. `>2020-02-27`). This allows for users to define **templates** and when applied to a note, set the due date at the start, and the other dates to be calculated for you.
+
+In more detail:
+
+- Valid **date offsets** are specified as `[+/-][0-9][bdwmqy]`. This allows for `b`usiness days,  `d`ays, `w`eeks, `m`onths, `q`uarters or `y`ears. (Business days skip weekends. If the existing date happens to be on a weekend, it's treated as being the next working day. Public holidays aren't accounted for.)  There's also the special case `{0d}` meaning on the day itself.
+- The base date is by default of the form `YYYY-MM-DD`, not preceded by characters `0-9(<`, all of which could confuse.
 
 ## Configuration
-These commands require configuration; the first time they're run they should detect they don't have configuration, and offer to write some to the first configuration block of the `Templates/_configuration` note (as used by the Templates system).
+Most of these commands require configuration; the first time they're run they should detect they don't have configuration, and offer to write some default to the first configuration block of the `Templates/_configuration` note (as used by the Templates system).
 
-Alternatively, in the `Templates/_configuration` note include the following settings you want in the note's first configuration block:
+Or add the following settings into the `Templates/_configuration` note's first configuration block:
 
 ```jsonc
 ...

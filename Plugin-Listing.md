@@ -40,6 +40,7 @@
 | `occurrencesInPeriod` | Generate list of occurrences of specified tags or mentions for a time period | 🗃 Summaries |
 | `onw` | Open a user-selected note in a new window. | 📙 Note Helpers |
 | `ott` | Open Tasks to Top - Bring open tasks in note to top | ✅ Task Automations |
+| `process date offsets` | finds date offset patterns and turns them into due dates, based on date at start of section | 🕓 Event Helpers |
 | `project lists` | creates/updates a human-readable list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete. | 🔬Reviews |
 | `qtn - Quick template note` | Choose a note and create it based on _configuration settings quickNotes | 🔩 Templates |
 | `quick add line under heading` | Quickly add text at the top of a chosen note's heading | ⚡️ Quick Capture |

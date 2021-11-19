@@ -4,6 +4,10 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 - tighten timeblock-finding regex if Eduard does
 - add further fields (e.g. location) if Eduard adds to the API
 
+## [0.7.0] - 2021-19-11
+### Added
+- added `/process date offsets` command: find date offset patterns and turn them into due dates, based on date at start of section, or a less-indented line, or the line itself.
+
 ## [0.6.3] - 2021-11-11
 ### Fixed
 - typo in default settings, that caused JSON5 errors (Spotted by @dwertheimer from reports by @aliembee, @temisphere)
