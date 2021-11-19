@@ -5,7 +5,7 @@ This plugin provides these commands to help jump quickly between NotePlan notes,
 - `/jn`: jump to a different note, and then selected heading
 - `/jd`: simply jumps the cursor to the `## Done` section of the current note (if it exists)
 - `/mn`: which moves a note to a different folder the user selects
-- `/onw`: open a user-selected note in a new window
+- `/onw`: open a user-selected note in a new NotePlan window
 
 It now has added the `/index` command to make/update note link Indexes for one or more folders.
 
