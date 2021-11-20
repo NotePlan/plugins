@@ -1,5 +1,9 @@
 # What's changed in ⚡️ Quick Capture
 
+## [0.8.1] - 2021-11-20
+### Fixed
+- For some date locales, /int and /qaj were adding to tomorrow's note, not today's (thanks to @colingold for the report)
+
 ## [0.8.0] - 2021-11-19
 ### Changed
 - changed back to using long command names

@@ -11,13 +11,18 @@ export const RE_TIME = '[0-2]\\d{1}:[0-5]\\d{1}\\s?(?:AM|PM|am|pm)?' // find '12
 export const RE_DATE_INTERVAL = `\\+?\\d+[bdwmqy]`
 
 export const todaysDateISOString: string = new Date().toISOString().slice(0, 10)
-export const nowShortDateTime: string = new Date().toISOString().slice(0, 16)
+export const nowShortDateTime: string = new Date().toISOString().slice(0, 16) // TODO: Deprecate for a locale version?
 export const nowLocaleDateTime: string = new Date().toLocaleString()
 export const getFormattedTime = (format: string = '%Y-%m-%d %I:%M:%S %P'): string => strftime(format)
+
+export function getTodaysDateHyphenated(): string {
+  return hyphenatedDate(new Date())
+}
 
 export function getTodaysDateUnhyphenated(): string {
   return strftime(`%Y%m%d`)
 }
+
 
 // @nmn
 export function getYearMonthDate(dateObj: Date): $ReadOnly<{
@@ -49,13 +54,12 @@ export function toISODateString(dateObj: Date): string {
 // As ISODateString() doesn't work reliably across date boundaries except at GMT,
 // this version creates YYYY-MM-DD format using the slight cheat of the sv-SE locale,
 // which happens to be identical.
-// TODO: Though can this be replaced by earlier function below?
 export function hyphenatedDate(date: Date): string {
   if (date != null) {
     // console.log(`hyphenatedDateFromNote: ${toLocaleDateTimeString(date)} -> ${toLocaleDateString(date, 'sv-SE')}`)
     return toLocaleDateString(date, 'sv-SE')
   } else {
-    return 'error: not a daily note'
+    return 'hyphenatedDate: error: not a valid JS Date'
   }
 }
 
