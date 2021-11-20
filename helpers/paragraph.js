@@ -150,3 +150,35 @@ export function smartPrependPara(
   // Insert the text at the smarter insertionLine line
   note.insertParagraph(paraText, calcSmartPrependPoint(note), paragraphType)
 }
+
+// 
+/**
+ * Works out where the first ## Done or ## Cancelled section starts, if present.
+ * If not, return the last paragraph index.
+ * @author @jgclark
+ * @param {TNote} note - the note to assess
+ * @return {number} - the index number
+ */
+export function findEndOfActivePartOfNote(note: TNote): number {
+  const paras = note.paragraphs
+  const lineCount = paras.length
+  let doneHeaderLine = 0
+  let cancelledHeaderLine = 0
+  for (let i = 0; i < lineCount; i++) {
+    const p = paras[i]
+    if (p.headingLevel === 2 && p.content === 'Done') {
+      doneHeaderLine = i
+    }
+    if (p.headingLevel === 2 && p.content === 'Cancelled') {
+      cancelledHeaderLine = i
+    }
+  }
+  const endOfActive =
+    (doneHeaderLine > 0)
+      ? doneHeaderLine
+      : ((cancelledHeaderLine > 0)
+        ? cancelledHeaderLine
+        : lineCount)
+  // console.log(`  dHL = ${doneHeaderLine}, cHL = ${cancelledHeaderLine} endOfActive = ${endOfActive}`)
+  return endOfActive
+}
