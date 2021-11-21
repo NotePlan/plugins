@@ -153,12 +153,10 @@ export default class TemplatingEngine {
   }
 
   async register(name: string = '', method: function): Promise<void> {
-    console.log(`register ${name}`)
     const result = this.templatePlugins.find((item) => {
       return item.name === name
     })
     if (!result) {
-      console.log(`push ${name}`)
       this.templatePlugins.push({ name, method })
     }
   }

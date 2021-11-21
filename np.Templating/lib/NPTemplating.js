@@ -152,8 +152,6 @@ export default class NPTemplating {
       await this.setup()
 
       let sessionData = { ...userData }
-
-      // $FlowFixMe
       let templateData = (await this.getTemplate(templateName)) || ''
 
       if (userOptions?.usePrompts) {
@@ -162,13 +160,7 @@ export default class NPTemplating {
         sessionData = promptData.sessionData
       }
 
-      const tempResult = await new TemplatingEngine(this.constructor.templateConfig).render(
-        templateData,
-        sessionData,
-        userOptions,
-      )
-
-      return tempResult
+      return await new TemplatingEngine(this.constructor.templateConfig).render(templateData, sessionData, userOptions)
     } catch (error) {
       return this.templateErrorMessage(error)
     }
@@ -204,17 +196,17 @@ export default class NPTemplating {
       const tag = items[index]
       let promptResult = ''
       let varName = items[index].replace(/<%=/gi, '').replace(/%>/gi, '').trim()
+      let promptMessage = `${varName} value...`
       if (!sessionData.hasOwnProperty(varName)) {
         if (varName.includes('prompt')) {
-          varName = varName.replace('prompt', '').replace('(', '').replace(')', '')
+          varName = varName.replace('prompt', '').replace(/[()]/g, '')
           const parts = varName.split(',')
-          const message = parts.length >= 2 ? parts[1].replace(/'/gi, '') : ''
+          promptMessage = parts.length >= 2 ? parts[1].replace(/'/gi, '') : ''
           varName = parts[0].replace(/'/gi, '')
-          promptResult = await getInput(message)
-          sessionTemplateData = templateData.replace(tag, `<%= ${varName} %>`)
-        } else {
-          promptResult = await getInput(`${varName} value...`)
+          sessionTemplateData = templateData.replace(tag, `${startTag}= ${varName} ${endTag}`)
         }
+
+        promptResult = await getInput(promptMessage)
         sessionData[varName] = promptResult
       }
     }
