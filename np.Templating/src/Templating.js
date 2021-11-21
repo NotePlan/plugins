@@ -2,7 +2,7 @@
 
 import { showMessage, chooseOption, getInput } from '../../helpers/userInput'
 import { getOrMakeTemplateFolder } from '../../nmn.Templates/src/template-folder'
-import Templating from '../lib/Templating'
+import NPTemplating from '../lib/NPTemplating'
 
 export async function templateInsert(): Promise<void> {
   if (Editor == null) {
@@ -26,7 +26,7 @@ export async function templateInsert(): Promise<void> {
 
   const templateTitle = selectedTemplate?.title
 
-  const result = await Templating.renderTemplate(templateTitle)
+  const result = await NPTemplating.renderTemplate(templateTitle)
 
   Editor.insertTextAtCursor(result)
 }
@@ -55,7 +55,7 @@ export async function templateAppend(): Promise<void> {
 
   const templateTitle = selectedTemplate?.title
 
-  const result = await Templating.renderTemplate(templateTitle)
+  const result = await NPTemplating.renderTemplate(templateTitle)
 
   Editor.insertTextAtCharacterIndex(result, content.length)
 }
@@ -92,7 +92,7 @@ export async function templateNew(): Promise<void> {
 
   let templateResult = ''
   if (templateName.length > 0) {
-    templateResult = await Templating.renderTemplate(templateName)
+    templateResult = await NPTemplating.renderTemplate(templateName)
   }
 
   const filename = DataStore.newNote(title, folder) || ''

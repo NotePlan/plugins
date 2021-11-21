@@ -5,6 +5,7 @@
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
  * -----------------------------------------------------------------------------------------*/
 
+import { showMessage, chooseOption, getInput } from '../../helpers/userInput'
 import FrontMatterModule from './support/modules/FrontmatterModule'
 import TemplatingEngine from './TemplatingEngine'
 import { getOrMakeConfigurationSection } from './support/configuration'
@@ -70,7 +71,7 @@ export function getTemplateFolder(): ?string {
   return DataStore.folders.find((f) => f.includes(TEMPLATE_FOLDER_NAME))
 }
 
-export default class Templating {
+export default class NPTemplating {
   templateConfig: any
   constructor() {
     // DON'T DELETE
@@ -150,14 +151,30 @@ export default class Templating {
     try {
       await this.setup()
 
-      const templateData = await this.getTemplate(templateName)
-      return await new TemplatingEngine(this.constructor.templateConfig).render(templateData, userData, userOptions)
+      let sessionData = { ...userData }
+
+      // $FlowFixMe
+      let templateData = (await this.getTemplate(templateName)) || ''
+
+      if (userOptions?.usePrompts) {
+        const promptData = await this.processPrompts(templateData, userData, '<%', '%>')
+        templateData = promptData.sessionTemplateData
+        sessionData = promptData.sessionData
+      }
+
+      const tempResult = await new TemplatingEngine(this.constructor.templateConfig).render(
+        templateData,
+        sessionData,
+        userOptions,
+      )
+
+      return tempResult
     } catch (error) {
       return this.templateErrorMessage(error)
     }
   }
 
-  static async render(templateData: any = '', userData: any = {}, userOptions: any = {}): Promise<string> {
+  static async render(templateData: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
     try {
       await this.setup()
       return await new TemplatingEngine(this.constructor.templateConfig).render(templateData, userData, userOptions)
@@ -166,7 +183,42 @@ export default class Templating {
     }
   }
 
-  async renderEx(templateData: any = '', userData: any = {}, userOptions: any = {}) {
-    console.log('renderEx')
+  static async getTags(templateData: string = '', startTag: string = '<%', endTag: string = '%>'): Promise<any> {
+    const TAGS_PATTERN = /(\<%(?:\[??[^\[]*?\%>))/gi
+    const items = templateData.match(TAGS_PATTERN)
+
+    return items
+  }
+
+  static async processPrompts(
+    templateData: string,
+    userData: any,
+    startTag: string = '<%',
+    endTag: string = '%>',
+  ): Promise<any> {
+    const sessionData = { ...userData }
+    let sessionTemplateData = templateData
+
+    const items = await this.getTags(templateData)
+    for (const index in items) {
+      const tag = items[index]
+      let promptResult = ''
+      let varName = items[index].replace(/<%=/gi, '').replace(/%>/gi, '').trim()
+      if (!sessionData.hasOwnProperty(varName)) {
+        if (varName.includes('prompt')) {
+          varName = varName.replace('prompt', '').replace('(', '').replace(')', '')
+          const parts = varName.split(',')
+          const message = parts.length >= 2 ? parts[1].replace(/'/gi, '') : ''
+          varName = parts[0].replace(/'/gi, '')
+          promptResult = await getInput(message)
+          sessionTemplateData = templateData.replace(tag, `<%= ${varName} %>`)
+        } else {
+          promptResult = await getInput(`${varName} value...`)
+        }
+        sessionData[varName] = promptResult
+      }
+    }
+
+    return { sessionTemplateData, sessionData }
   }
 }
