@@ -36,8 +36,7 @@ const prompt = new Snippet({
 module.exports = {
   run: async () => {
     try {
-      const answers = await prompt.run()
-      return answers
+      return await prompt.run()
     } catch (error) {
       console.error(error)
     }

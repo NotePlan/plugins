@@ -4,7 +4,6 @@ const username = os.userInfo().username
 const { filesystem, system, path, print, colors } = require('@codedungeon/gunner')
 
 async function init(cwd = null) {
-  const pluginDirectory = cwd
   let result = -''
 
   const cliPath = path.join(path.dirname(system.run('which node')), 'noteplan-cli')

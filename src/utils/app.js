@@ -53,9 +53,7 @@ module.exports = {
     const appConfigData = JSON.parse(appConfig)
     const projectConfigData = projectConfig.length >= 2 ? JSON.parse(projectConfig) : {}
 
-    const configData = merge(appConfigData, projectConfigData)
-
-    return configData
+    return merge(appConfigData, projectConfigData)
   },
 
   async getCommandPath() {
@@ -111,8 +109,7 @@ module.exports = {
         configPath: projectConfigPath,
       })
       config.set(key, value)
-      const configValue = value.replace('<project>', process.cwd())
-      return configValue
+      return value.replace('<project>', process.cwd())
     } else {
       let configValue = dotProp.get(configData, key)
 
@@ -301,8 +298,7 @@ module.exports = {
           names = names.concat(command.flags[key].aliases)
         }
         const defaultValue = command.flags[key]?.default ? command.flags[key].default : false
-        const result = toolbox.getOptionValue(toolbox.arguments, names, defaultValue)
-        data[key] = result
+        data[key] = toolbox.getOptionValue(toolbox.arguments, names, defaultValue)
       }
     }
     return data
@@ -441,10 +437,7 @@ module.exports = {
   },
 
   verifyTemplate(templatePath = null) {
-    if (templatePath) {
-      return true
-    }
-    return false
+    return !!templatePath
   },
 
   success(toolbox = null, response = null) {

@@ -1,13 +1,12 @@
 // @flow
 'use strict'
-const pkgInfo = require('../package.json')
-
-const colors = require('chalk')
-const strftime = require('strftime')
 const fs = require('fs/promises')
 const path = require('path')
+const strftime = require('strftime')
 const rollup = require('rollup')
 const commonjs = require('@rollup/plugin-commonjs')
+
+const colors = require('chalk')
 const json = require('@rollup/plugin-json')
 const { nodeResolve } = require('@rollup/plugin-node-resolve')
 
@@ -16,6 +15,7 @@ const { terser } = require('rollup-plugin-terser')
 const resolve = require('@rollup/plugin-node-resolve').default
 const mkdirp = require('mkdirp')
 const { program } = require('commander')
+const pkgInfo = require('../package.json')
 const createPluginListing = require('./createPluginListing')
 
 const {
@@ -25,7 +25,6 @@ const {
   getCopyTargetPath,
   getPluginConfig,
 } = require('./shared')
-const { DefaultDeserializer } = require('v8')
 const FOLDERS_TO_IGNORE = ['scripts', 'flow-typed', 'node_modules', 'np.plugin-flow-skeleton']
 const rootFolderPath = path.join(__dirname, '..')
 
@@ -55,7 +54,7 @@ let watcher
 
 /**
  * @description Rebuild the plugin commands list, checking for collisions. Runs every time a plugin is updated
- * @param {string} pluginPath
+ * @param pluginPaths
  * @private
  */
 async function checkPluginList(pluginPaths) {
@@ -165,8 +164,8 @@ async function main() {
         let msg = COMPACT
           ? `${dateTime}  ${pluginFolder} (v${pluginJsonData['plugin.version']})`
           : `${colors.cyan(
-              `${dateTime} -- ${pluginFolder} (v${pluginJsonData['plugin.version']})`,
-            )}\n   Built and copied to the "Plugins" folder.`
+            `${dateTime} -- ${pluginFolder} (v${pluginJsonData['plugin.version']})`,
+          )}\n   Built and copied to the "Plugins" folder.`
 
         if (DEBUGGING) {
           msg += colors.yellow(`\n   Built in DEBUG mode. Not ready to deploy.\n`)

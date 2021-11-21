@@ -12,7 +12,7 @@ module.exports = {
   disabled: false,
   hidden: false,
   usage: [
-    `noteplan-cli plugin:info ${colors.gray('(displays report of all plug-ins)')}`,
+    `noteplan-cli plugin:info ${colors.gray('(displays report of all plugins)')}`,
     `  noteplan-cli plugin:info --check ${colors.gray('(check if "formatted" command is available)')}`,
     `  noteplan-cli plugin:info --save ${colors.gray('(generates ./Plugin-Listing.md)')}`,
   ].join('\n'),

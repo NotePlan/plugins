@@ -66,8 +66,8 @@ if (TEST) {
 
 /**
  *
- * @param {string} pluginFullPath
- * @returns {Promise<{name:string,tag:string} | null>
+ * @param {string} pluginName
+ * @returns {Promise<{name:string,tag:string} | null>}
  */
 async function getExistingRelease(pluginName) {
   // const command = `gh release upload --clobber "dwertheimer.TaskAutomations" /tmp/test.txt`
@@ -140,6 +140,7 @@ function getPluginDataField(pluginData, field) {
 
 /**
  * @param {string} pluginFullPath
+ * @param appPluginsPath
  * @returns {Promise<{ changelog: string | null, files: Array<string> } | null >}
  */
 // eslint-disable-next-line no-unused-vars

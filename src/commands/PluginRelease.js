@@ -1,4 +1,4 @@
-const { colors, helpers, print } = require('@codedungeon/gunner')
+const { colors } = require('@codedungeon/gunner')
 
 module.exports = {
   name: 'plugin:release',

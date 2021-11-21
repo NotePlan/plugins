@@ -1,4 +1,4 @@
-const { filesystem, colors, print, path } = require('@codedungeon/gunner')
+const { filesystem } = require('@codedungeon/gunner')
 
 module.exports = {
   githubInstalled: function () {
