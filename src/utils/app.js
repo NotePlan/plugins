@@ -441,10 +441,7 @@ module.exports = {
   },
 
   verifyTemplate(templatePath = null) {
-    if (templatePath) {
-      return true
-    }
-    return false
+    return !!templatePath
   },
 
   success(toolbox = null, response = null) {
