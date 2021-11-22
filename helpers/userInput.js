@@ -71,7 +71,7 @@ export async function showMessage(message: string, confirmTitle: string = 'OK'):
 /**
  * Helper function to show a simple yes/no (could be OK/Cancel, etc.) dialog using CommandBar
  * @param {string} message - text to display to user
- * @param {Array<string>} - an array of the choices to give (default: ['Yes', 'No'])
+ * @param {Array<string>} choicesArray - an array of the choices to give (default: ['Yes', 'No'])
  * @returns {string} - returns the user's choice - the actual *text* choice from the input array provided
  */
 export async function showMessageYesNo(message: string, choicesArray: Array<string> = ['Yes', 'No']): Promise<string> {
@@ -82,7 +82,8 @@ export async function showMessageYesNo(message: string, choicesArray: Array<stri
 /**
  * Let user pick from a nicely-indented list of available folders (or return / for root)
  * @author @jgclark
- * @param {string} message - text to display to user
+ * @param {string} msg - text to display to user
+ * @param {boolean} includeArchive - include archive or not
  * @returns {string} - returns the user's folder choice (or / for root)
  */
 export async function chooseFolder(msg: string, includeArchive: boolean = false): Promise<string> {

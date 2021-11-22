@@ -55,7 +55,7 @@ let watcher
 
 /**
  * @description Rebuild the plugin commands list, checking for collisions. Runs every time a plugin is updated
- * @param {string} pluginPath
+ * @param pluginPaths
  * @private
  */
 async function checkPluginList(pluginPaths) {
