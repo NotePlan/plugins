@@ -3,3 +3,14 @@ node_modules/
 dist/
 .cache/
 */ts-template/*.*
+package-lock.json
+.pluginpath
+*/.eslintrc
+*test*.yaml
+*.code-workspace
+*.dict
+.vscode/launch.json
+*/script.js
+.vscode/
+.pluginsrc
+.idea/

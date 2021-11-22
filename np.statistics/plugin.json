@@ -1,36 +1,41 @@
 {
-  "noteplan.minAppVersion": "3.0.21", 
-  "plugin.id": "np.statistics",
-  "plugin.name": "🔢 Note Statistics",
-  "plugin.description": "",
-  "plugin.icon": "",
-  "plugin.author": "Jonathan & Eduard",
-  "plugin.repoUrl": "", 
-  "plugin.version": "0.2.0",
-  "plugin.dependencies": [], 
-  "plugin.script": "script.js",
-  "plugin.isRemote": "false",
-  "plugin.commands": [ 
-    {
-      "name": "nc",
-      "description": "Counts of all the notes in NotePlan",
-      "jsFunction": "showNoteCount"
-    },
-    {
-      "name": "tsp",
-      "description": "Shows task statistics for project notes",
-      "jsFunction": "showTaskCountProjects"
-    },
-    {
-      "name": "tc",
-      "description": "Shows task counts for the current note",
-      "jsFunction": "showTaskCountNote"
-    },
-    {
-      "name": "wc",
-      "description": "Shows word count and other numbers for the note",
-      "jsFunction": "showWordCount"
-    }
-  ],
-  "plugin.preferences": []
+	"noteplan.minAppVersion": "3.0.23",
+  "macOS.minVersion": "10.13.0",
+	"plugin.id": "np.statistics",
+	"plugin.name": "🔢 Note Statistics",
+	"plugin.description": "Show statistics for notes, tasks, words, and hashtags and mentions over periods of time. See website for more details, including how to tailor some of the stats.",
+	"plugin.icon": "",
+	"plugin.author": "Jonathan & Eduard",
+	"plugin.url": "https://github.com/NotePlan/plugins/tree/main/np.statistics/",
+	"plugin.version": "0.5.1",
+	"plugin.dependencies": [],
+	"plugin.script": "script.js",
+	"plugin.isRemote": "false",
+	"plugin.commands": [
+		{
+			"name": "nc",
+			"alias": ["note", "stats", "count"],
+			"description": "Counts of all the notes in NotePlan",
+			"jsFunction": "showNoteCount"
+		},
+		{
+			"name": "tsp",
+			"alias": ["task", "stats", "count"],
+			"description": "Shows task statistics for project notes",
+			"jsFunction": "showTaskCountProjects"
+		},
+		{
+			"name": "tc",
+			"alias": ["task", "stats", "count"],
+			"description": "Shows task counts for the current note",
+			"jsFunction": "showTaskCountNote"
+		},
+		{
+			"name": "wc",
+			"alias": ["word", "stats", "count"],
+			"description": "Shows word count and other numbers for the note",
+			"jsFunction": "showWordCount"
+		}
+	],
+	"plugin.preferences": []
 }

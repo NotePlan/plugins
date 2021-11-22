@@ -34,7 +34,7 @@
  *
  * Here are the available functions you can call with the Editor object:
  */
-declare var Editor: TEditor;
+declare var Editor: TEditor
 type TEditor = {
   /**
    * Also all the keys from this object
@@ -57,7 +57,7 @@ type TEditor = {
    */
   +type: ?NoteType,
   /**
-   * Get the filename of the note
+   * Get the filename of the **note**
    */
   +filename: ?string,
   /**
@@ -89,6 +89,32 @@ type TEditor = {
    * Get the selected text.
    */
   +selectedText: ?string,
+  /**
+   * Inserts the given text at the given character position (index)
+   * @param text 	  - Text to insert
+   * @param index   - Position to insert at (you can get this using 'renderedSelection' for example)
+   */
+  insertTextAtCharacterIndex(text: string, index: number): void,
+  /**
+   * Inserts the given text at the current cursor position
+   * @param text - Text to insert
+   */
+  insertTextAtCursor(text: string): void,
+  /**
+   * Inserts a plain paragrah before the selected paragraph (or the paragraph the cursor is currently positioned)
+   * @param name - Text of the paragraph
+   * @param type - paragraph type
+   * @param indents - How much it should be indented
+   */
+  insertParagraphAtCursor(name: string,
+    type: ParagraphType,
+    indents: number
+  ): void,
+  /**
+   * Replaces the current cursor selection with the given text
+   * @param text - Text to insert
+   */
+  replaceSelectionWithText(text: string): void,
   /**
    * Opens a note using the given filename
    */
@@ -136,6 +162,11 @@ type TEditor = {
     highlightEnd?: number,
   ): Promise<TNote | void>,
   /**
+  * Selects the full text in the editor.
+  * NB: Available from NotePlan v3.2 (Mac Build: 662, iOS Build: 593)
+  */
+  selectAll(): void,
+  /**
    * (Raw) select text in the editor
    * (like select 10 characters = length fromposition 2 = start)
    *
@@ -152,6 +183,18 @@ type TEditor = {
    */
   renderedSelect(start: number, length: number): void,
   /**
+  * Copies the currently selected text in the editor to the system clipboard.
+  * NB: See also Clipboard object.
+  * NB: Available from NotePlan v3.2 (Mac Build: 662, iOS Build: 593)
+  */
+  copySelection(): void,
+  /**
+  * Pastes the current content in the system clipboard into the current selection in the editor.
+  * NB: See also Clipboard object.
+  * NB: Available from NotePlan v3.2 (Mac Build: 662, iOS Build: 593)
+  */
+  pasteClipboard(): void,
+  /**
    * Scrolls to and highlights the given paragraph. If the paragraph is folded,
    * it will be unfolded.
    */
@@ -161,13 +204,72 @@ type TEditor = {
    * will be unfolded.
    */
   highlightByRange(range: Range): void,
-};
+  /**
+   * Note: Available from v3.0.23+ (Mac: Build 636+, iOS: Build 562+)
+   * Scrolls to and highlights the given range defined by the character index and the character length it should cover. If the paragraph is folded, it will be unfolded.
+   */
+  highlightByIndex(index: number, length: number): void,
+  /**
+  * Note: Available from v3.0.26
+  * Shows or hides a window with a loading indicator or a progress ring (if progress is defined) and an info text (optional).
+  * `text` is optional, if you define it, it will be shown below the loading indicator.
+  * `progress` is also optional. If it's defined, the loading indicator will change into a progress ring. Use float numbers from 0-1 to define how much the ring is filled.
+  * When you are done, call `showLoading(false)` to hide the window.
+  * @param {Bool}
+  * @param {String?}
+  * @param {Float?}
+  */
+  showLoading(visible: boolean, text?: ?string, progress?: number): void,
+  /**
+  * Note: Available from v3.0.26
+  * If you call this, anything after `await CommandBar.onAsyncThread()` will run on an asynchronous thread.
+  * Use this together with `showLoading`, so that the work you do is not blocking the user interface.
+  * Otherwise the loading window will be also blocked.
+  *
+  * Warning: Don't use any user interface calls (other than showLoading) on an asynchronous thread. The app might crash.
+  * You need to return to the main thread before you change anything in the window (such as Editor functions do).
+  * Use `onMainThread()` to return to the main thread.
+  * @return {Promise}
+  */
+  onAsyncThread(): Promise<void>,
+  /**
+  * Note: Available from v3.0.26
+  * If you call this, anything after `await CommandBar.onMainThread()` will run on the main thread.
+  * Call this after `onAsyncThread`, once your background work is done.
+  * It is safe to call Editor and other user interface functions on the main thread.
+  * @return {Promise}
+  */
+  onMainThread(): Promise<void>,
+  /**
+  * Note: Available from NotePlan v3.1+
+  * Get the names of all supported themes (including custom themes imported into the Theme folder).
+  * Use together with `.setTheme(name)`
+  * @return {[String]}
+  */
+  availableThemes(): $ReadOnlyArray<string>,
+  /**
+  * Note: Available from NotePlan v3.1+
+  * Change the current theme. Get all available theme names using `.availableThemes`. Custom themes are also supported. Use the filename in this case.
+  * @param {String}
+  */
+  setTheme(name: string): void,
+  /**
+  * Note: Available from NotePlan v3.1+
+  * Add a new theme using the raw json string. It will be added as a custom theme and you can load it right away with `.setTheme(name)` using the filename defined as second parameter. Use ".json" as file extension.
+  * It returns true if adding was successful and false if not. An error will be also printed into the console.
+  * Adding a theme might fail, if the given json text was invalid.
+  * @param {string} json
+  * @param {string} filename
+  * @return {Boolean}
+  */
+  addTheme(json: string, filename: string): boolean
+}
 
 /**
  * With DataStore you can query, create and move notes which are cached by
  * NotePlan. It allows you to query a set of user preferences, too.
  */
-declare var DataStore: TDataStore;
+declare var DataStore: TDataStore
 type TDataStore = {
   /**
    * Get the preference for the default file (note) extension,
@@ -188,46 +290,56 @@ type TDataStore = {
    */
   +projectNotes: $ReadOnlyArray<TNote>,
 
-  // `DataStorePreference` is a function that takes a string and returns
-  // different values based on what the string is.
-  // Think of `&` as Function Overloading.
   /**
    * Returns the value of a given preference.
-   * Available keys:
-   * "themeLight"              // theme used in light mode
-   * "themeDark"               // theme used in dark mode
-   * "fontDelta"               // delta to default font size
-   * "firstDayOfWeek"          // first day of calendar week
-   * "isAgendaVisible"         // only iOS, indicates if the calendar and note below calendar are visible
-   * "isAgendaExpanded"        // only iOS, indicates if calendar above note is shown as week (true) or month (false)
-   * "isAsteriskTodo"          // "Recognize * as todo" = checked in markdown preferences
-   * "isDashTodo"              // "Recognize - as todo" = checked in markdown preferences
-   * "isNumbersTodo"           // "Recognize 1. as todo" = checked in markdown preferences
-   * "defaultTodoCharacter"    // returns * or -
-   * "isAppendScheduleLinks"   // "Append links when scheduling" checked in todo preferences
-   * "isAppendCompletionLinks" // "Append completion date" checked in todo preferences
-   * "isCopyScheduleGeneralNoteTodos" // "Only add date when scheduling in notes" checked in todo preferences
-   * "isSmartMarkdownLink"     // "Smart Markdown Links" checked in markdown preferences
-   * "fontSize"                // Font size defined in editor preferences (might be overwritten by custom theme)
-   * "fontFamily"              // Font family defined in editor preferences (might be overwritten by custom theme)
+   * Available keys for built-in NotePlan preferences:
+   *   "themeLight"              // theme used in light mode
+   *   "themeDark"               // theme used in dark mode
+   *   "fontDelta"               // delta to default font size
+   *   "firstDayOfWeek"          // first day of calendar week
+   *   "isAgendaVisible"         // only iOS, indicates if the calendar and note below calendar are visible
+   *   "isAgendaExpanded"        // only iOS, indicates if calendar above note is shown as week (true) or month (false)
+   *   "isAsteriskTodo"          // "Recognize * as todo" = checked in markdown preferences
+   *   "isDashTodo"              // "Recognize - as todo" = checked in markdown preferences
+   *   "isNumbersTodo"           // "Recognize 1. as todo" = checked in markdown preferences
+   *   "defaultTodoCharacter"    // returns * or -
+   *   "isAppendScheduleLinks"   // "Append links when scheduling" checked in todo preferences
+   *   "isAppendCompletionLinks" // "Append completion date" checked in todo preferences
+   *   "isCopyScheduleGeneralNoteTodos" // "Only add date when scheduling in notes" checked in todo preferences
+   *   "isSmartMarkdownLink"     // "Smart Markdown Links" checked in markdown preferences
+   *   "fontSize"                // Font size defined in editor preferences (might be overwritten by custom theme)
+   *   "fontFamily"              // Font family defined in editor preferences (might be overwritten by custom theme)
+   * Others can be set by plugins.
    */
-  +preference: ((key: 'themeLight') => ?string) &
-    ((key: 'themeDark') => ?string) &
-    ((key: 'fontDelta') => number) &
-    ((key: 'firstDayOfWeek') => number) &
-    ((key: 'isAgendaVisible') => ?boolean) &
-    ((key: 'isAgendaExpanded') => ?boolean) &
-    ((key: 'isAsteriskTodo') => ?boolean) &
-    ((key: 'isDashTodo') => ?boolean) &
-    ((key: 'isNumbersTodo') => ?boolean) &
-    ((key: 'defaultTodoCharacter') => '*' | '-') &
-    ((key: 'isAppendScheduleLinks') => ?boolean) &
-    ((key: 'isAppendCompletionLinks') => ?boolean) &
-    ((key: 'isCopyScheduleGeneralNoteTodos') => ?boolean) &
-    ((key: 'isSmartMarkdownLink') => ?boolean) &
-    ((key: 'fontSize') => number) &
-    ((key: 'fontFamily') => string),
-
+  +preference: ((key: string) => any),
+  /**
+  * Change a saved preference or create a new one. It will most likely be picked up by NotePlan after a restart, if you use one of the keys utilized by NotePlan. 
+  * To change a NotePlan preference, use the keys found in the description of the function `.preference(key)`.
+  * You can also save custom preferences specific to the plugin, if you need any. Prepend it with the plugin id or similar to avoid collisions with existing keys.
+  * Note: Available from NotePlan v3.1
+  * @param {string}
+  * @param {any}
+  */
+  setPreference(key: string, value: any): void,
+  /**
+  * Save a JavaScript object to the Plugins folder as JSON file.
+  * This can be used to save preferences or other persistent data.
+  * It's saved automatically into a new folder "data" in the Plugins folder. 
+  * But you can "escape" this folder using relative paths: ../Plugins/<folder or filename>.
+  * Note: Available from NotePlan v3.1 (r655/r588)
+  * @param {Object} 
+  * @param {string} 
+  * @return {boolean}
+  */
+  saveJSON(object: Object, filename?: string): boolean,
+  /**
+   * Load a JavaScript object from a JSON file located (by default) in the <Plugin>/data folder.
+   * But you can also use relative paths: ../Plugins/<folder or filename>.
+   * Note: Available from NotePlan v3.1 (r655/r588)
+   * @param {string}
+   * @return {Object}
+   */
+  loadJSON(filename?: string): Object,
   /**
    * Returns the calendar note for the given date
    * (can be undefined, if the daily note was not created yet)
@@ -243,10 +355,15 @@ type TDataStore = {
   /**
    * Returns all regular notes with the given title (first line in editor).
    * Since multiple notes can have the same title, an array is returned.
+   * Use 'caseSensitive' (default = false) to search for a note ignoring
+   * the case and set 'searchAllFolders' to true if you want to look for
+   * notes in trash and archive as well.
+   * By default NotePlan won't return notes in trash and archive.
    */
   projectNoteByTitle(
     title: string,
-    caseInsensitive: boolean,
+    caseInsensitive?: boolean,
+    searchAllFolders?: boolean,
   ): ?$ReadOnlyArray<TNote>,
   /**
    * Returns all regular notes with the given case insenstivie title
@@ -284,7 +401,7 @@ type TDataStore = {
    * (if the there is a duplicate, it will add a number).
    */
   newNote(noteTitle: string, folder: string): ?string,
-};
+}
 
 /**
  * Use CommandBar to get user input. Either by asking the user to type in a
@@ -292,7 +409,7 @@ type TDataStore = {
  * This list can be "fuzzy-search" filtered by the user. So, it's fine to show
  * a long list of options, like all folders or notes or tasks in a note.
  */
-declare var CommandBar: TCommandBar;
+declare var CommandBar: TCommandBar
 type TCommandBar = {
   /**
    * Get or set the current text input placeholder (what you can read when no
@@ -344,8 +461,37 @@ type TCommandBar = {
    * It returns a Promise, so you can wait (using "await...") for the user
    * input with the entered text as success result.
    */
-  showInput(placeholder: string, submitText: string): Promise<string>,
-};
+  showInput(placeholder: string, submitText: string): Promise < string >,
+  /**
+  * Note: Available from v3.0.26
+  * Shows or hides a window with a loading indicator or a progress ring (if progress is defined) and an info text (optional).
+  * `text` is optional, if you define it, it will be shown below the loading indicator.
+  * `progress` is also optional. If it's defined, the loading indicator will change into a progress ring. Use float numbers from 0-1 to define how much the ring is filled.
+  * When you are done, call `showLoading(false)` to hide the window.
+  * @param {Bool}
+  * @param {String?}
+  * @param {Float?}
+  */
+  showLoading(visible: boolean, text?: string, progress?: number): void,
+  /**
+  * Note: Available from v3.0.26
+  * If you call this, anything after `await CommandBar.onAsyncThread()` will run on an asynchronous thread.
+  * Use this together with `showLoading`, so that the work you do is not blocking the user interface.
+  * Otherwise the loading window will be also blocked.
+  *
+  * Warning: Don't use any user interface calls (other than showLoading) on an asynchronous thread. The app might crash.
+  * You need to return to the main thread before you change anything in the window (such as Editor functions do).
+  * Use `onMainThread()` to return to the main thread.
+  */
+  onAsyncThread(): Promise <void>,
+  /**
+  * Note: Available from v3.0.26
+  * If you call this, anything after `await CommandBar.onMainThread()` will run on the main thread.
+  * Call this after `onAsyncThread`, once your background work is done.
+  * It is safe to call Editor and other user interface functions on the main thread.
+  */
+  onMainThread(): Promise <void>,
+}
 
 /**
  * Use Calendar to create events, reminders, and to parse dates, like
@@ -355,8 +501,8 @@ type TCommandBar = {
  *
  * See also `CalendarItem` if you want to create an event or reminder.
  */
-declare var Calendar: TCalendar;
-type CalendarDateUnit = 'year' | 'month' | 'day' | 'hour' | 'minute' | 'second';
+declare var Calendar: TCalendar
+type CalendarDateUnit = 'year' | 'month' | 'day' | 'hour' | 'minute' | 'second'
 type DateRange = {
   /**
    * The start date of the parsed date text.
@@ -371,12 +517,25 @@ type DateRange = {
    * respective times and dates set.
    */
   +end: Date,
-};
+}
 type TCalendar = {
   /**
    * Get all available date units: "year", "month", "day", "hour", "minute", "second"
    */
   +dateUnits: $ReadOnlyArray<CalendarDateUnit>,
+  /**
+   * Get the titles of all calendars the user has access to. Set `writeOnly` true, if you want to get only the calendars the user has write access to (some calendars, like holidays are not writable).
+   * Note: Available from NotePlan v3.1
+   * @param {boolean}
+   * @return {[string]}
+   */
+  availableCalendarTitles(writeOnly: boolean): $ReadOnlyArray<string>,
+  /**
+   * Get the titles of all reminders the user has access to.
+   * Note: Available from NotePlan v3.1
+   * @return {[string]}
+   */
+  availableReminderListTitles(): $ReadOnlyArray<string>,
   /**
    * Create an event or reminder based on the given CalendarItem.
    * Returns the created CalendarItem with the assigned id, so you can
@@ -395,6 +554,7 @@ type TCalendar = {
   parseDateText(text: string): $ReadOnlyArray<DateRange>,
   /**
    * Create a date object from parts. Like year could be 2021 as a number.
+   * Note: month uses Swift counting (1-12) not Javascript counting (0-11).
    */
   dateFrom(
     year: number,
@@ -434,14 +594,96 @@ type TCalendar = {
    * unit types using `dateUnits`.
    */
   unitsBetween(date1: Date, date2: Date, type: CalendarDateUnit): number,
-};
+  /**
+  * Returns all events between the `startDate` and `endDate`. Use `filter` to search for specific events (keyword in the title).
+  * This function fetches events asynchronously, so use async/await.
+  * Note: Available from v3.0.25
+  * @param {Date}
+  * @param {Date}
+  * @param {String?}
+  * @return {Promise}
+  */
+  eventsBetween(
+    startDate: Date,
+    endDate: Date,
+    filter?: ?string
+  ): Promise<Array<TCalendarItem>>,
+  /**
+  * Returns all reminders between the `startDate` and `endDate`. Use `filter` to search for specific reminders (keyword in the title).
+  * This function fetches reminders asynchronously, so use async/await.
+  * Note: Available from v3.0.25
+  * @param {Date}
+  * @param {Date}
+  * @param {String?}
+  * @return {Promise}
+  */
+  remindersBetween(
+    startDate: Date,
+    endDate: Date,
+    filter?: ?string
+  ): Promise<Array<TCalendarItem>>,
+  /**
+  * Returns all events for today. Use `filter` to search for specific events (keyword in the title).
+  * This function fetches events asynchronously, so use async/await.
+  * Note: Available from v3.0.25
+  * @param {String?}
+  * @return {Promise}
+  */
+  eventsToday(filter: ?string): Promise<Array<TCalendarItem>>,
+  /**
+  * Returns all reminders between for today. Use `filter` to search for specific reminders (keyword in the title).
+  * This function fetches reminders asynchronously, so use async/await.
+  * Note: Available from v3.0.25
+  * @param {String?}
+  * @return {Promise}
+  */
+  remindersToday(filter: ?string): Promise<Array<TCalendarItem>>,
+  /**
+  * Updates an event or reminder based on the given CalendarItem, which needs to have an ID. 
+  * A CalendarItem has an ID, when you have used `.add(...)` and saved the return value or when you query 
+  * the event using `eventsBetween(...)`, `remindersBetween(...)`, `eventByID(...)`, `reminderByID(...)`, etc.
+  * Returns a promise, because it needs to fetch the original event objects first in the background, 
+  * then updates it. Use it with `await`.
+  * Note: Available from v3.0.26
+  * @param {CalendarItem} 
+  * @return {Promise}
+  */
+  update(calendarItem: TCalendarItem): Promise<void>,
+  /**
+  * Removes an event or reminder based on the given CalendarItem, which needs to have an ID. 
+  * A CalendarItem has an ID, when you have used `.add(...)` and saved the return value or when you query 
+  * the event using `eventsBetween(...)`, `remindersBetween(...)`, `eventByID(...)`, `reminderByID(...)`, etc.
+  * Returns a promise, because it needs to fetch the original event objects first in the background, 
+  * then updates it. Use it with `await`.
+  * Note: Available from v3.0.26
+  * @param {CalendarItem} 
+  * @return {Promise}
+  */
+  remove(calendarItem: TCalendarItem): Promise<void>,
+  /**
+  * Note: Available from v3.0.26
+  * Returns the event by the given ID. You can get the ID from a CalendarItem, which you got from using `.add(...)` (the return value is a CalendarItem with ID) or when you query the event using `eventsBetween(...)`, `eventByID(...)`, etc.
+  * This function fetches reminders asynchronously, so use async/await.
+  * @param {String} 
+  * @return {Promise(CalendarItem)}
+  */
+  eventByID(id: string): Promise<Array<TCalendarItem>>,
+  /**
+  * Note: Available from v3.0.26
+  * Returns the reminder by the given ID. You can get the ID from a CalendarItem, which you got from using `.add(...)` (the return value is a CalendarItem with ID) or when you query the event using `remindersBetween(...)`, `reminderByID(...)`, etc.
+  * Use with async/await.
+  * @param {String} 
+  * @return {Promise(CalendarItem)}
+  */
+  reminderByID(id: string): Promise<Array<TCalendarItem>>,
+}
 
 /**
  * You can get paragraphs from `Editor` or `Note`.
  * They represent blocks or lines of text (delimited by linebreaks = \n).
  * A task for example is a paragraph, a list item (bullet), heading, etc.
  */
-declare var Paragraph: TParagraph;
+declare var Paragraph: TParagraph
 type TParagraph = {
   /**
    * Get or set the type of the paragraph
@@ -512,9 +754,9 @@ type TParagraph = {
    * original object
    */
   duplicate(): TParagraph,
-};
+}
 
-type NoteType = 'Calendar' | 'Notes';
+type NoteType = 'Calendar' | 'Notes'
 /**
  * Notes can be queried by DataStore. You can change the complete text of the
  * note, which will be saved to file or query, add, remove, or modify
@@ -526,7 +768,7 @@ type TNote = {
   // All the keys from TParagraphBridge
   ...TParagaraphBridge,
   /**
-   * Relative path of the note, so folder/filename including.
+   * Folder + Filename of the note (the path is relative to the root of the chosen storage location)
    */
   +filename: string,
   /**
@@ -534,7 +776,7 @@ type TNote = {
    */
   +type: NoteType,
   /**
-   * Title = first line of the note.
+   * Title = first line of the note. (NB: Getter only.)
    */
   +title: string | void,
   /**
@@ -564,7 +806,7 @@ type TNote = {
    * If you set the content, NotePlan will write it immediately to file.
    * If you get the content, it will be read directly from the file.
    */
-  content: string | void,
+  +content: string | void,
   /**
    * Get or set paragraphs contained in this note
    * (these can be tasks, plain text, headings...).
@@ -572,8 +814,25 @@ type TNote = {
    * If you set the paragraph array, it will join them and save the new content
    * to file.
    */
-  paragraphs: $ReadOnlyArray<TParagraph>,
-};
+  +paragraphs: $ReadOnlyArray<TParagraph>,
+  /**
+   * Get paragraphs contained in this note which contain a link to another [[project note]] or [[YYYY-MM-DD]] daily note.
+   * Note: Available from v3.2
+   */
+  +linkedItems: $ReadOnlyArray<TParagraph>,
+  /**
+   * Get paragraphs contained in this note which contain a link to a daily note.
+   * Specifically this includes paragraphs with >YYYY-MM-DD, @YYYY-MM-DD, <YYYY-MM-DD, >today, @done(YYYY-MM-DD HH:mm), but only in non-calendar notes (because currently NotePlan doesn't create references between daily notes).
+   * Note: Available from v3.2
+   */
+  +datedTodos: $ReadOnlyArray<TParagraph>,
+  /**
+   * Get all backlinks pointing to the current note as Paragraph objects. In this array, the toplevel items are all notes linking to the current note and the 'subItems' attributes (of the paragraph objects) contain the paragraphs with a link to the current note. The heading of the linked paragraphs are also listed here, although they don't have to contain a link.
+   * NB: Backlinks are all [[note name]] and >date links.
+   * Note: Available from v3.2
+   */
+  +backlinks: $ReadOnlyArray<TParagraph>,
+}
 
 /**
  * Ranges are used when you deal with selections or need to know where a
@@ -592,15 +851,15 @@ type Range = {
    * Character length of the range (end - start).
    */
   +length: number,
-};
+}
 
-type CalenderItemType = 'event' | 'reminder';
+type CalenderItemType = 'event' | 'reminder'
 /**
  * The CalendarItem is used in combination with
  * [Calendar](https://help.noteplan.co/article/70-javascript-plugin-api#calendar)
  * to create events or reminders.
  */
-declare var CalendarItem: TCalendarItem;
+declare var CalendarItem: TCalendarItem
 type TCalendarItem = {
   /**
    * The ID of the event or reminder after it has been created by
@@ -616,6 +875,11 @@ type TCalendarItem = {
    * The title of the event or reminder.
    */
   +title: string,
+  /**
+   * The calendar or reminders list where this event or reminder is (or should be) saved. If you set nothing, the event or reminder will be added to the default and this field will be set after adding.
+   * Note: Available from v3.0.15.
+   */
+  +calendar: string,
   /**
    * The date (with time) of the event or reminder.
    */
@@ -634,23 +898,59 @@ type TCalendarItem = {
    */
   +isAllDay: boolean,
   /**
-   * Creates a CalendarItem. The .endDate is optional, but recommended for events.
+  * Text saved in the "Notes" field of the event or reminder.
+  * Note: Available from v3.0.26
+  */
+  +notes: string,  
+  /**
+  * URL saved with the event or reminder.
+  * Note: Available from v3.0.26
+  */
+  +url: string,
+  /**
+  * If supported, shows the availability for the event. The default is 0 = busy.
+  * notSupported = -1
+  * busy = 0
+  * free = 1
+  * tentative = 2
+  * unavailable = 3
+  * Note: Available from v3.3
+  * @type {Int}
+  */
+  +availability: number,
+  // /**
+  // * Location of the event
+  // * Note: Not yet available but hoped for from ~3.3
+  // */
+  // +location: string,
+  /**
+   * Create a CalendarItem. The .endDate is optional, but recommended for events.
    * Reminders don't use this field.
    *
    * The type can be "event" or "reminder". And isAllDay can be used if you
    * don't want to define a specific time, like holidays.
+   * Use the calendar variable, if you want to add the event or reminder to another
+   * calendar or reminders list other than the default. This is optional: if you set
+   * nothing, it will use the default.
+   * Use isCompleted only for reminders, by default it's false if you set nothing.
+   * Note: some available from v3.0.26.
    */
   create(
     title: string,
     date: Date,
     endDate: Date | void,
     type: CalenderItemType,
-    isAllDay: boolean,
+    isAllDay?: boolean,
+    calendar?: string,
+    isCompleted ?: boolean,
+    notes ?: string,
+    url?: string
   ): TCalendarItem,
-};
+}
 
 /**
  * Access and set the data inside the current clipboard.
+ * Note: See also 2 methods in the TEditor object.
  */
 declare var Clipboard: {
   /**
@@ -685,7 +985,7 @@ declare var Clipboard: {
    * Pass in the types you are interested in and get the available type back.
    */
   availableType(fromTypes: $ReadOnlyArray<string>): ?string,
-};
+}
 
 type ParagraphType =
   | 'open'
@@ -695,9 +995,10 @@ type ParagraphType =
   | 'title'
   | 'quote'
   | 'list'
-  | 'empty';
+  | 'empty'
+  | 'text'
 
-declare var ParagaraphBridge: TParagaraphBridge;
+declare var ParagaraphBridge: TParagaraphBridge
 type TParagaraphBridge = {
   /**
    * Returns a range object of the full paragraph of the given character
@@ -870,15 +1171,36 @@ type TParagaraphBridge = {
   removeParagraph(paragraph: TParagraph): void,
 
   /**
+   * Removes given paragraphs
+   * @param paragraphs - Array of Paragraph object to remove, get it from `.paragraphs`
+   */
+  removeParagraphs(paragraphs: $ReadOnlyArray<TParagraph>): void,
+
+  /**
    * Updates a given paragraph. Get the paragraph, then modify it and update the text in the note or editor using this method.
    * @param {ParagraphObject} paragraph - Paragraph object to update, get it from `.paragraphs`
    */
   updateParagraph(paragraph: TParagraph): void,
-};
 
-// This is the built-in `fetch` function from Javascript.
-declare function fetch(url: string): Promise<{ [string]: mixed }>;
+  /**
+   * Updates an array paragraphs. Get the paragraphs, then modify them and update the text in the note or editor using this method.
+   * @param paragraphs - Paragraph objects to update, get it from `.paragraphs`
+   */
+  updateParagraphs(paragraphs: $ReadOnlyArray<TParagraph>): void,
+
+  /**
+   * Replaces the text at the given range with the given text
+   * @param text - Text to insert
+   * @param location - Position to insert at (you can get this using 'renderedSelection' for example)
+   * @param length - Amount of characters to replace from the location
+   */
+  replaceTextInCharacterRange(
+    text: string,
+    location: number,
+    length: number,
+  ): void,
+}
 
 // Every function made available must be assigned to `globalThis`
 // This type ensures that only functions are made available as plugins
-declare var globalThis: { [string]: () => mixed };
+declare var globalThis: { [string]: () => mixed }

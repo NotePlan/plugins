@@ -1,54 +1,134 @@
 {
-  "noteplan.min_version": "3.0.21",
+  "noteplan.min_version": "3.0.23",
+  "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.QuickCapture",
   "plugin.name": "⚡️ Quick Capture",
   "plugin.description": "Commands to quickly add tasks/todos or general text to NotePlan notes. See website for configuration of special Inbox note.",
   "plugin.icon": "",
-  "plugin.author": "Eduard & Jonathan",
+  "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.QuickCapture/",
-  "plugin.version": "0.3.2",
+  "plugin.version": "0.8.1",
   "plugin.dependencies": [],
-  "plugin.script": "plugin.js",
+  "plugin.script": "script.js",
   "plugin.isRemote": "false",
   "plugin.commands": [
     {
-      "name": "int",
+      "name": "quick add task to inbox",
+      "alias": [
+        "int",
+        "quick",
+        "inbox",
+        "add"
+      ],
       "description": "Quickly add a task to your '📥 Inbox' note",
       "jsFunction": "addTaskToInbox"
     },
     {
-      "name": "qath",
+      "name": "quick add task under heading",
+      "alias": [
+        "qath",
+        "quick",
+        "add"
+      ],
       "description": "Quickly add a task at the top of a chosen note's heading",
       "jsFunction": "addTaskToNoteHeading"
     },
     {
-      "name": "qalh",
+      "name": "quick add line under heading",
+      "alias": [
+        "qalh",
+        "quick",
+        "add"
+      ],
       "description": "Quickly add text at the top of a chosen note's heading",
       "jsFunction": "addTextToNoteHeading"
     },
     {
-      "name": "qpt",
-      "description": "Quickly prepend a task to a chosen note",
-      "jsFunction": "prependTaskToNote"
+      "name": "quick add to daily note",
+      "alias": [
+        "qad",
+        "quick",
+        "daily",
+        "add",
+        "append"
+      ],
+      "description": "Quickly append a task to a chosen daily note",
+      "jsFunction": "appendTaskToDailyNote"
     },
     {
-      "name": "qat",
-      "description": "Quickly append a task to a chosen note",
+      "name": "quick add to journal today",
+      "alias": [
+        "qaj",
+        "quick",
+        "journal",
+        "add"
+      ],
+      "description": "Quickly append text to the Journal in today's note",
+      "jsFunction": "appendTextToDailyJournal"
+    },
+    {
+      "name": "quick prepend task to daily note",
+      "alias": [
+        "qpd",
+        "quick",
+        "daily",
+        "prepend"
+      ],
+      "description": "Quickly prepend a task to a chosen daily note",
+      "jsFunction": "prependTaskToDailyNote"
+    },
+    {
+      "name": "quick append task to note",
+      "alias": [
+        "qat",
+        "quick",
+        "note",
+        "add"
+      ],
+      "description": "Quickly append a task to a chosen project note",
       "jsFunction": "appendTaskToNote"
+    },
+    {
+      "name": "quick prepend task to note",
+      "alias": [
+        "qpt",
+        "quick",
+        "note",
+        "prepend"
+      ],
+      "description": "Quickly prepend a task to a chosen project note",
+      "jsFunction": "prependTaskToNote"
     }
   ],
-  "plugin.preferences": [
+  "plugin.settings": [
     {
-      "name": "inboxFilename",
-      "description": "leave blank for daily note, or give relative filename (e.g. 'Folder/Inbox.md')",
-      "type": "string",
-      "default": ""
+        "type": "Heading",
+        "title": "Inbox note settings"
     },
     {
-      "name": "addInboxPosition",
-      "description": "whether to 'append' or 'prepend' new tasks to the Inbox note",
-      "type": "string",
-      "default": "append"
+        "key": "inboxTitle",
+        "title": "Inbox note title",
+        "description": "The Title of your Inbox note, or leave empty (\"\") to use the daily note instead. Default \"📥 Inbox\"",
+        "type": "string",
+        "default": "📥 Inbox",
+        "required": true
+    },
+    {
+        "key": "addInboxPosition",
+        "title": "Where to Add to Inbox note",
+        "description": "Where to Add to Inbox note: start (prepend) or end (append)",
+        "type": "string",
+        "choices": ["append", "prepend"],
+        "default": "prepend",
+        "required": true
+    },
+    {
+        "type": "string",
+        "key": "textToAppendToTasks",
+        "title": "Text to append to new inbox tasks",
+        "description": "specify text (including hashtags or mentions) that will be appended to all new tasks created using the `/int` command",
+        "default": "",
+        "required": false
     }
   ]
 }

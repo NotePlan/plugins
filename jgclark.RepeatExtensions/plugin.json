@@ -1,25 +1,21 @@
 {
-  "noteplan.min_version": "3.0.21",
+  "noteplan.min_version": "3.0.23",
+  "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.RepeatExtensions",
   "plugin.name": "🔁 @repeat Extensions",
-  "plugin.description": "Commands to extend the built-in @repeat() mechanism. See README.md in this plugin's directory for more details.",
+  "plugin.description": "Commands to extend the built-in @repeat() mechanism. See website for more details.",
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions/",
-  "plugin.version": "0.2.1",
+  "plugin.version": "0.3.0",
   "plugin.dependencies": [],
-  "plugin.script": "repeatExtensions.js",
+  "plugin.script": "script.js",
   "plugin.isRemote": "false",
   "plugin.commands": [
     {
       "name": "rpt",
       "description": "Generate new @repeat() tasks from completed ones",
       "jsFunction": "repeats"
-    },
-    {
-      "name": "readInEditorNote",
-      "description": "readInEditorNote",
-      "jsFunction": "readInEditorNote"
     }
   ],
   "plugin.preferences": []

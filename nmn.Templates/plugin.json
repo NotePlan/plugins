@@ -1,0 +1,41 @@
+{
+  "noteplan.minAppVersion": "3.0.21",
+  "macOS.minVersion": "10.13.0",
+  "plugin.id": "nmn.Templates",
+  "plugin.name": "🔩 Templates",
+  "plugin.description": "Create Notes with Custom Templates",
+  "plugin.icon": "",
+  "plugin.author": "Naman Goel, Jonathan Clark, David Wertheimer",
+	"plugin.url": "https://github.com/NotePlan/plugins/tree/main/nmn.Templates/",
+  "plugin.version": "0.12.0",
+  "plugin.dependencies": [ ],
+  "plugin.script": "script.js",
+  "plugin.isRemote": "false",
+  "plugin.commands": [
+    {
+      "name": "apply template",
+      "alias": ["at", "append", "template"],
+      "description": "Choose a Template to apply (append) to the current Note",
+      "jsFunction": "applyTemplate"
+    },
+    {
+      "name": "insert template",
+      "alias": ["it", "template"],
+      "description": "Choose a Template to insert into the current Note",
+      "jsFunction": "insertTemplate"
+    },
+    {
+      "name": "new note",
+      "alias": ["nn", "template"],
+      "description": "Create new note with title, in chosen folder with optional template",
+      "jsFunction": "newNoteWithTemplate"
+    },
+    {
+      "name": "qtn - Quick template note",
+      "alias": ["quick", "template", "qnt"],
+      "description": "Choose a note and create it based on _configuration settings quickNotes",
+      "jsFunction": "quickTemplateNote"
+    } 
+  ],
+  "plugin.preferences": []
+}

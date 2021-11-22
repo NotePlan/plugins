@@ -1,77 +1,39 @@
 {
-  "noteplan.min_version": "3.0.21",
+  "noteplan.min_version": "3.0.23",
+  "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.DailyJournal",
   "plugin.name": "☀️ Daily Journal",
-  "plugin.description": "Support for daily journalling in NotePlan, including start-of-day template, and end-of-day review questions. Before use it requires configuration: please see website for details.",
+  "plugin.description": "Support for daily journalling in NotePlan, including start-of-day template, and end-of-day review questions. Before use it requires some configuration: please see website for details.",
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/README.md",
-  "plugin.version": "0.4.1",
+  "plugin.version": "0.8.3",
   "plugin.dependencies": [],
-  "plugin.script": "plugin.js",
+  "plugin.script": "script.js",
   "plugin.isRemote": "false",
   "plugin.commands": [
     {
+      "name": "todayStart",
+      "alias": ["day", "today", "template"],
+      "description": "Apply Daily Note Template to Today's Calendar Note (requires configuring)",
+      "jsFunction": "todayStart",
+      "requested_interval": "24h"
+    },
+    {
       "name": "dayStart",
-      "description": "Start today's daily note with a template, including local weather lookup (requires configuring)",
+      "alias": ["daily", "template"],
+      "description": "Apply Daily Note Template (requires configuring)",
       "jsFunction": "dayStart",
       "requested_interval": "24h"
     },
     {
       "name": "dayReview",
+      "alias": ["daily", "journal", "review"],
       "description": "Ask journal questions for an end-of-day review (requires configuring)",
       "jsFunction": "dayReview",
       "requested_interval": "8h"
     }
   ],
   "plugin.preferences": [
-    {
-      "name": "openWeatherAPIKey",
-      "description": "API key to use the openWeather service",
-      "type": "string",
-      "default": ""
-    },
-    {
-      "name": "latPosition",
-      "description": "Latitude position to send to the openWeather service",
-      "type": "string",
-      "default": ""
-    },
-    {
-      "name": "longPosition",
-      "description": "Longitude position to send to the openWeather service",
-      "type": "string",
-      "default": ""
-    },
-    {
-      "name": "openWeatherUnits",
-      "description": "Units that the openWeather service returns",
-      "type": "string",
-      "default": "metric"
-    },
-    {
-      "name": "templateText",
-      "description": "Template text to add to each daily note at the start of day",
-      "type": "string",
-      "default": "\n### Media\n\n### Journal\n"
-    },
-    {
-      "name": "reviewSectionHeading",
-      "description": "Heading after which to put  the review responses",
-      "type": "string",
-      "default": "Journal"
-    },
-    {
-      "name": "reviewQuestions",
-      "description": "Comma-separated list of review questions to ask",
-      "type": "string",
-      "default": "@work(<int>)\n@fruitveg(<int>)\nMood:: <mood>\nGratitude:: <string>\nGod was:: <string>\nAlive:: <string>\nNot Great:: <string>\nWife:: <string>\nRemember:: <string>"
-    },
-    {
-      "name": "mood",
-      "description": "Comma-separated set of possible moods to choose between",
-      "type": "string",
-      "default": "🤩 Great,🙂 Good,😇 Blessed,🥱 Tired,😫 Stressed,😤 Frustrated,😔 Low,🥵 Sick,Other"
-    }
   ]
 }

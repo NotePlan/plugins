@@ -1,0 +1,23 @@
+{
+  "COMMENT1": "Note If you are not going to use the `npm run autowatch` command to compile, then delete the macOS.minVersion line below",
+  "macOS.minVersion": "10.13.0",
+  "noteplan.minAppVersion": "3.0.21",
+  "plugin.id": "{{pluginId}}",
+  "plugin.name": "🧩 {{pluginName}}",
+  "plugin.description": "{{pluginDescription}}",
+  "plugin.author": "{{pluginAuthor}}",
+  "plugin.version": "0.0.1",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.url": "Put a link to a web page or your github readme file here, and it will be displayed as the 'website' in the plugin preference pane to give users more info on the plugin before/after install, e.g.  https://github.com/dwertheimer/Noteplan-plugins/blob/main/np.plugin-flow-skeleton/readme.md",
+  "plugin.commands": [
+    {
+      "name": "helloWorld",
+      "description": "Your first plugin!",
+      "jsFunction": "helloWorld",
+      "alias": [
+        "helloWorld Alias"
+      ]
+    }
+  ]
+}

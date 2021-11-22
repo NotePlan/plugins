@@ -1,61 +1,49 @@
 {
-  "noteplan.min_version": "3.0.21",
+  "noteplan.min_version": "3.0.23",
+  "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.NoteHelpers",
   "plugin.name": "📙 Note Helpers",
-  "plugin.description": "Commands to help manage NotePlan notes",
+  "plugin.description": "Commands to quickly jump around and manage notes",
   "plugin.icon": "",
-  "plugin.author": "Jonathan Clark",
+  "plugin.author": "Jonathan Clark & Eduard Metzger",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/",
-  "plugin.version": "0.7.2",
+  "plugin.version": "0.10.6",
   "plugin.changelog": "See plugin README.md",
   "plugin.dependencies": [],
-  "plugin.script": "noteHelpers.js",
+  "plugin.script": "script.js",
   "plugin.isRemote": "false",
   "plugin.commands": [
     {
-      "name": "it",
-      "description": "Choose a Template to apply to an existing Note",
-      "jsFunction": "applyTemplate"
-    },
-    {
-      "name": "nn",
-      "description": "Create new note in the current folder, with title, optional template, and optional current text selection",
-      "jsFunction": "newNote"
-    },
-    {
       "name": "mn",
       "description": "Moves the currently opened (non-calendar) note to a folder you select",
-      "jsFunction": "selectFolder"
+      "jsFunction": "moveNote"
     },
     {
       "name": "jh",
-      "description": "Jumps the cursor to the heading of the current note that the user selects. (Currently only works in the main window.)",
+      "description": "Jumps to the heading that the user selects. (Currently only works in main window)",
       "jsFunction": "jumpToHeading"
     },
     {
+      "name": "jn",
+      "description": "Jump to a different note, and then selected heading. (Currently only works in main window)",
+      "jsFunction": "jumpToNoteHeading"
+    },
+    {
       "name": "jd",
-      "description": "Jump in the current note to the ## Done section. (Currently only works in the main window.)",
+      "description": "Jump to the '## Done' section. (Currently only works in main window)",
       "jsFunction": "jumpToDone"
+    },
+    {
+      "name": "index",
+      "description": "Make/Update note link Indexes for one or more folders",
+      "jsFunction": "indexFolders"
+    },
+    {
+      "name": "onw",
+      "description": "Open a user-selected note in a new window.",
+      "jsFunction": "openNoteNewWindow"
     }
   ],
   "plugin.preferences": [
-    {
-      "name": "templateName",
-      "description": "Array of names for the templates, to be displayed as a choice to the user",
-      "type": "array",
-      "default": [
-        "Daily note structure",
-        "Project Meeting note"
-      ]
-    },
-    {
-      "name": "templateText",
-      "description": "Array of text for the templates",
-      "type": "array",
-      "default": [
-        "### Tasks\n\n### Media\n\n### Journal\n",
-        "### Project X Meeting on [[date]] with @Y and @Z\n\n### Notes\n\n### Actions\n"
-      ]
-    }
   ]
 }

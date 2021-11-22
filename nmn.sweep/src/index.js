@@ -1,7 +1,6 @@
 // @flow
+//TODO: > scheduled task [[NoteTitle]] @stacey suggestion
 
-import sweepFile from './sweepFile';
-import sweepAll from './sweepAll';
-
-globalThis.sweepAll = sweepAll;
-globalThis.sweepFile = sweepFile;
+export { default as sweepFile } from './sweepFile'
+export { default as sweepAll } from './sweepAll'
+export { sweep7 } from './sweepAll'

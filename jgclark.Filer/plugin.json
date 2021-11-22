@@ -1,21 +1,38 @@
 {
-  "noteplan.min_version": "3.0.21",
+  "noteplan.min_version": "3.0.23",
+  "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.Filer",
-  "plugin.name": "🗃 Filer",
-"plugin.description": "Help file (move) the current paragraph, selected paragraphs, or heading and its section, to different notes. Please see website for more details.",  "plugin.icon": "",
+  "plugin.name": "📦 Filer",
+  "plugin.description": "Help file (move) the current paragraph, selected paragraphs, or heading and its section, to different notes. Please see details for more, err, details.",
+  "plugin.icon": "",
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Filer",
-  "plugin.version": "0.2.0",
+  "plugin.version": "0.5.1",
   "plugin.dependencies": [],
-  "plugin.script": "fileItems.js",
+  "plugin.script": "script.js",
   "plugin.isRemote": "false",
   "plugin.commands": [
     {
       "name": "fp",
-      "description": "file paragraphs to different notes",
+      "alias": [
+        "mp",
+        "file",
+        "move",
+        "paragraph"
+      ],
+      "description": "file (move) paragraphs to different notes",
       "jsFunction": "fileParas"
+    },
+    {
+      "name": "mp",
+      "description": "move (file) paragraphs to different notes",
+      "jsFunction": "fileParas"
+    },
+    {
+      "name": "nns",
+      "description": "New note from selection (and leave link to it in its place)",
+      "jsFunction": "newNoteFromSelection"
     }
   ],
-  "plugin.preferences": [
-  ]
+  "plugin.preferences": []
 }
