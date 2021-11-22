@@ -1,11 +1,11 @@
 // @flow
 'use strict'
-const pkgInfo = require('../package.json')
 
-const colors = require('chalk')
-const strftime = require('strftime')
 const fs = require('fs/promises')
 const path = require('path')
+const colors = require('chalk')
+const strftime = require('strftime')
+
 const rollup = require('rollup')
 const commonjs = require('@rollup/plugin-commonjs')
 const json = require('@rollup/plugin-json')
@@ -16,6 +16,7 @@ const { terser } = require('rollup-plugin-terser')
 const resolve = require('@rollup/plugin-node-resolve').default
 const mkdirp = require('mkdirp')
 const { program } = require('commander')
+const pkgInfo = require('../package.json')
 const createPluginListing = require('./createPluginListing')
 
 const {
@@ -25,7 +26,6 @@ const {
   getCopyTargetPath,
   getPluginConfig,
 } = require('./shared')
-const { DefaultDeserializer } = require('v8')
 const FOLDERS_TO_IGNORE = ['scripts', 'flow-typed', 'node_modules', 'np.plugin-flow-skeleton']
 const rootFolderPath = path.join(__dirname, '..')
 

@@ -26,8 +26,9 @@ export function getAllPropertyNames(obj) {
   const p = []
   for (; obj != null; obj = Object.getPrototypeOf(obj)) {
     const op = Object.getOwnPropertyNames(obj)
-    for (let i = 0; i < op.length; i++)
+    for (let i = 0; i < op.length; i++) {
       if (/^__/.test(op[i]) === false && op[i] !== 'constructor' && p.indexOf(op[i]) === -1) p.push(op[i])
+    }
   }
   return p
 }

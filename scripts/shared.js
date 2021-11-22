@@ -8,7 +8,7 @@ const util = require('util')
 const exec = util.promisify(require('child_process').exec)
 const inquirer = require('inquirer')
 const JSON5 = require('json5')
-const colors = require('colors')
+const colors = require('chalk')
 
 const pluginPathFile = path.join(__dirname, '..', '.pluginpath')
 
