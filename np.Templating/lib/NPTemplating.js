@@ -199,11 +199,12 @@ export default class NPTemplating {
       let promptMessage = `${varName} value...`
       if (!sessionData.hasOwnProperty(varName)) {
         if (varName.includes('prompt')) {
-          varName = varName.replace('prompt', '').replace(/[()]/g, '')
+          varName = varName.replace('prompt', '').replace(/[()']/g, '')
           const parts = varName.split(',')
-          promptMessage = parts.length >= 2 ? parts[1].replace(/'/gi, '') : ''
-          varName = parts[0].replace(/'/gi, '')
-          sessionTemplateData = templateData.replace(tag, `${startTag}= ${varName} ${endTag}`)
+          varName = parts[0]
+          promptMessage = parts.length >= 2 ? parts[1] : `${varName} value...`
+          varName = varName.replace(/ /gi, '_')
+          sessionTemplateData = sessionTemplateData.replace(tag, `${startTag}= ${varName} ${endTag}`)
         }
 
         promptResult = await getInput(promptMessage)
