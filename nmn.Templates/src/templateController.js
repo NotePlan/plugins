@@ -148,7 +148,6 @@ async function processTagValues(tag: string, config: { [string]: ?mixed }): Prom
     return String(valueInConfig)
   }
   const res = await getInput(`Value for ${tag}`)
-  CommandBar.hide() // TODO: understand why this is needed: without it the CommandBar hangs around after it should
   return res
 }
 
