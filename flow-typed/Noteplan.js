@@ -4,7 +4,7 @@
  * # How Flow Definitions work:
  *
  * ## The `+` before keys within object types means that key is read-only.
- * - Flow editor plug-ins should give autocomplete for various keys.
+ * - Flow editor plugins should give autocomplete for various keys.
  * - Some editor plugins should also show you documentation during autocomplete
  *
  * ## Declaring Global Variables
