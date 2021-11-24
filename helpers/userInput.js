@@ -290,7 +290,7 @@ export async function inputInteger(question: string): Promise<number> {
   if (reply != null && isInt(reply)) {
     return Number(reply)
   } else {
-    console.log(`\tERROR trying to get number answer for question '${question}'`)
+    console.log(`\tERROR trying to get integer answer for question '${question}'`)
     return NaN
   }
 }
@@ -301,7 +301,7 @@ export async function inputNumber(question: string): Promise<number> {
   if (reply != null && Number(reply)) {
     return Number(reply)
   } else {
-    console.log(`\tERROR trying to get integer answer for question '${question}'`)
+    console.log(`\tERROR trying to get number answer for question '${question}'`)
     return NaN
   }
 }
