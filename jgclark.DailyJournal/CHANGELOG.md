@@ -1,5 +1,10 @@
 # What's changed in ☀️ Daily Journal Plugin?
 
+## [0.9.0] - 2021-11-25
+### Added
+- it is now possible to add subheadings in the review questions string
+- you can also add bullet points
+
 ## [0.8.3] - 2021-10-11
 ### Changed
 - recompiled to bring in knowledge of recently-added functions in other plugins
