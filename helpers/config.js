@@ -1,0 +1,66 @@
+// @flow
+
+/**
+ * Check whether this config meets a minimum defined spec of keys and types. This function replaces
+ * the old validateMinimumConfig function
+ * @author @dwertheimer
+ * @param {object} config - configuration object as structured JSON5 object
+ * @param {object} validations - JSON5 object to use as types for this configuration section (see example below). All properties are required unless set as optional
+ * @return {object} return config if it passes, or __error field with description of what failed
+ * @example validations = {
+ *   // the format of the validations object is:
+ *   fieldName: 'type' // where type is one of: string, number, boolean, regex, array, object
+ *   // type can be 'string' for any string, or a /regex/ if the string must match the regex
+ *   propertyThatShouldBeAnyString: 'string',
+ *   propertyThatIsStringButShouldMatchRegex: /^[a-zA-Z0-9]+$/,
+ *   propertyThatShouldBeNumber: 'number',
+ *   propertyThatShouldBeBoolean: 'boolean',
+ *   propertyThatShouldBeArray: 'array',
+ *   propertyThatShouldBeObject: 'object',
+ * // all the aforementioned properties are required. here's an optional property:
+ *   propertyThatIsOptional: {type: 'string', optional: true},
+ * }
+ */
+export function validateConfigProperties(
+  config: { [string]: mixed },
+  validations: { [string]: mixed },
+): { [string]: mixed } {
+  let failed = ''
+  const propsToValidate = Object.keys(validations)
+  if (propsToValidate.length) {
+    propsToValidate.forEach((v) => {
+      const isOptional = typeof validations[v] === 'object' && validations[v]?.optional
+      // $FlowIgnore
+      const requiredType = isOptional && validations[v]?.type ? validations[v].type : validations[v]
+      const configFieldValue = config[v]
+
+      if (configFieldValue === null || configFieldValue === undefined) {
+        if (!isOptional) {
+          failed = `validateConfigProperties: Config required field: "${v}" is missing;`
+        }
+      } else {
+        if (requiredType instanceof RegExp) {
+          if (typeof configFieldValue !== 'string' || !requiredType.test(configFieldValue)) {
+            failed += `validateConfigProperties: Config field: "${v}" failed RegEx test "${String(requiredType)}";`
+          }
+        } else {
+          const test =
+            requiredType === 'array' ? Array.isArray(configFieldValue) : typeof configFieldValue === requiredType
+          if (!test) {
+            failed += `validateConfigProperties: Config required field: "${v}" is not of type "${String(
+              requiredType,
+            )}";`
+          }
+        }
+      }
+    })
+  } else {
+    failed += 'validateConfigProperties: No validations provided'
+  }
+  if (failed !== '') {
+    // console.log(`validateConfigProperties: Config failed minimum validation spec!\n${failed}`)
+    return { __error: failed }
+  } else {
+    return config
+  }
+}
