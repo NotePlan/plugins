@@ -40,11 +40,13 @@ You configure the set of questions to ask in the `Templates/_configuration` note
   - `<int>` -> input a integer number
   - `<number>` -> input a float number
   - `<string>` -> input a string
-  - you can also add bulletpoints with an idenfitier e.g. `-(thoughts) <string>` -> the identifier doesnt get rendered
+  - you can also add bulletpoints with an idenfitier e.g. `-(thoughts) <string>` -> the identifier doesn't get rendered
+  - the purpose of the identifier is to see on which question the user currently is (otherwise one would only have a lot of `-`)
+  - if the user doesn't answer a bulletpoint, then it doesn't appear in the final note
 - then there is the mood dropdown:
   - `<mood>`-> select one of the configured moods
-- there is also another "qustion type" but no question is asked here:
-  - `<subheeading>` -> input a subheading (which gets rendered as `### Subheading`)
+- there is also another "question type" but no question is asked here:
+  - `<subheading>` -> input a subheading (which gets rendered as `### Subheading`)
 - you can indicate new lines with `\n` characters 
 #### moods
 - a comma-separated list of possible moods to select from.  They don't have to have emoji, but I rather like them.
@@ -56,7 +58,7 @@ following reviewQuestions string:
 - (Thought 3/3) <string>\nGratitude <subheading>\n- (Gratitude 1/3) <string>\n- (Gratitude 2/3) <string>\n- (Gratitude 3/3) <string>\n
 ```
 gets rendered as following note:  
-(Tipp: you can also avoid answering like in Thought 3/3 - then there is also no bullet point in the final note)
+(Tip: you can also avoid answering like in Thought 3/3 - then there is also no bullet point in the final note)
 ```markdown
 ## Journalling
 @work(3)
