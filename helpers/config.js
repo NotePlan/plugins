@@ -6,7 +6,7 @@
  * @author @dwertheimer
  * @param {object} config - configuration object as structured JSON5 object
  * @param {object} validations - JSON5 object to use as types for this configuration section (see example below). All properties are required unless set as optional
- * @return {object} return config if it passes, throws an error with description of what failed (wrap call to this function in tr/catch)
+ * @return {object} return config if it passes OR throws an error with description of what failed (wrap call to this function in tr/catch)
  * @example validations = {
  *   // the format of the validations object is:
  *   fieldName: 'type' // where type is one of: string, number, boolean, regex, array, object
