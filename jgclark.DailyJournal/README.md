@@ -4,7 +4,7 @@ Both work on the currently open daily calendar note:
 
 - `/dayStart`: Apply your `Daily Note Template` to the currently open calendar note (which by default includes list of today's events and local weather lookup)
 - `/todayStart`: Apply your `Daily Note Template` to today's calendar note (which by default includes list of today's events and local weather lookup)
-- `/dayReview`: Ask journal questions for an end-of-day review in the currently open calendar note.
+- `/dayReview`: Ask journal questions for an end-of-day review in the currently open calendar note. See below for details and examples.
 
 ## Changes
 Please see the [CHANGELOG](CHANGELOG.md).
@@ -30,40 +30,39 @@ You configure the set of questions to ask in the `Templates/_configuration` note
   }
 }
 ```
-(This example is in JSON5 format (though labelled 'javascript' for code display purposes): see the help text in `_configuration` note.)
+(This example is in JSON5 format: see the help text in `_configuration` note.)
 
 #### reviewSectionHeading
-- the name of an existing markdown heading after which the review answers are added - if it doesn't exist, it is added at the end of the note
+The name of an existing markdown heading after which the review answers are added - if it doesn't exist, it is added at the end of the note
 #### reviewQuestions
-- a string that includes both the questions and how to layout the answers in the daily note
-- there are several possible question types:
-  - `<int>` -> input a integer number
-  - `<number>` -> input a float number
-  - `<string>` -> input a string
-  - you can also add bulletpoints with an idenfitier e.g. `-(thoughts) <string>` -> the identifier doesn't get rendered
-  - the purpose of the identifier is to see on which question the user currently is (otherwise one would only have a lot of `-`)
-  - if the user doesn't answer a bulletpoint, then it doesn't appear in the final note
-- then there is the mood dropdown:
-  - `<mood>`-> select one of the configured moods
-- there is also another "question type" but no question is asked here:
-  - `<subheading>` -> input a subheading (which gets rendered as `### Subheading`)
-- you can indicate new lines with `\n` characters 
-#### moods
-- a comma-separated list of possible moods to select from.  They don't have to have emoji, but I rather like them.
+This string includes both the questions and how to layout the answers in the daily note. There are several possible question types:
+- `<int>` -> input a integer number
+- `<number>` -> input a float number
+- `<string>` -> input a string
+- You can also add bulletpoints with an idenfitier e.g. `-(thoughts) <string>` -> the identifier doesn't get rendered. (The purpose of the identifier is to see on which question the user currently is, otherwise one would only have a lot of `-`.) If the user doesn't answer a bulletpoint, then it doesn't appear in the final note.
+- `<mood>`-> select one of the configured moods
 
-#### example
-following reviewQuestions string:  
+There is also another "question type" but no question is asked here:
+- `<subheading>` -> input a subheading (which gets rendered as `### Subheading`)
+
+You can indicate new lines with `\n` characters.
+
+#### moods
+A comma-separated list of possible moods to select from.  They don't have to have emoji, but I rather like them.
+
+### /dayReview Example
+The following `reviewQuestions` string:  
 ```
 @work(<int>)\n@fruitveg(<int>)\nMood -> <mood>\nThoughts <subheading>\n- (Thought 1/3) <string>\n- (Thought 2/3) <string>\n
 - (Thought 3/3) <string>\nGratitude <subheading>\n- (Gratitude 1/3) <string>\n- (Gratitude 2/3) <string>\n- (Gratitude 3/3) <string>\n
 ```
-gets rendered as following note:  
-(Tip: you can also avoid answering like in Thought 3/3 - then there is also no bullet point in the final note)
+would get rendered something like this in today's note:  
+
 ```markdown
 ## Journalling
 @work(3)
 @fruitveg(2)
-**Mood -> 😇 Blessed**
+Mood -> 😇 Blessed
 
 ### Thoughts
 - Thought 1
@@ -74,3 +73,4 @@ gets rendered as following note:
 - Thankful 2
 - Thankful 3
 ```
+Tip: you can also avoid answering like in Thought 3/3 - then there is also no bullet point in the final note.

@@ -2,7 +2,7 @@
 
 ## [0.9.0] - 2021-11-25
 ### Added
-- it is now possible to add subheadings in the review questions string
+- it is now possible to add `<subheading>`s in the review questions string
 - you can also add bullet points
 
 ## [0.8.3] - 2021-10-11

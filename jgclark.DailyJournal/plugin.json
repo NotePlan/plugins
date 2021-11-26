@@ -7,7 +7,7 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/README.md",
-  "plugin.version": "0.8.3",
+  "plugin.version": "0.9.0",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -34,6 +34,34 @@
       "requested_interval": "8h"
     }
   ],
-  "plugin.preferences": [
+  "plugin.settings": [
+    {
+        "type": "Heading",
+        "title": "Daily Journal settings"
+    },
+    {
+        "key": "reviewSectionHeading",
+        "title": "Review Section Heading",
+        "description": "The name of an existing markdown heading after which the review answers are added - if it doesn't exist, it is added at the end of the note.",
+        "type": "string",
+        "default": "Journal",
+        "required": false
+    },
+    {
+        "key": "reviewQuestions",
+        "title": "Review Questions",
+        "description": "This string includes both the questions and how to layout the answers in the daily note. (NB: you need to use \"\n\" for linebreaks rather than actual linebreaks, as even JSON5 doesn't fully support multi-line strings.)",
+        "type": "string",
+        "default": "@work(<int>)\n@fruitveg(<int>)\nMood:: <mood>\nGratitude:: <string>\nGod was:: <string>\nAlive:: <string>\nNot Great:: <string>\nWife:: <string>\nRemember:: <string>",
+        "required": true
+    },
+    {
+        "key": "moods",
+        "type": "string",
+        "title": "List of moods",
+        "description": "A comma-separated list of possible moods to select from.",
+        "default": "🤩 Great,🙂 Good,😇 Blessed,🥱 Tired,😫 Stressed,😤 Frustrated,😔 Low,🥵 Sick,Other",
+        "required": false
+    }
   ]
 }

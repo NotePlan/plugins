@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------------------------------------------------
 // Daily Journal plugin for NotePlan
 // Jonathan Clark
-// v0.9.0, 25.11.2021
+// last update v0.9.0, 25.11.2021 by @jgclark/@m1well
 //--------------------------------------------------------------------------------------------------------------------
 
 import { isInt, showMessage } from '../../helpers/userInput'
@@ -174,7 +174,7 @@ export async function dayReview(): Promise<void> {
         const reply = await CommandBar.showOptions(pref_moodArray, 'Choose appropriate mood')
         const replyMood = pref_moodArray[reply.index]
         if (replyMood != null && replyMood !== '') {
-          reviewLine = `**${questionLines[i].replace(/<mood>/, replyMood)}**`
+          reviewLine = `${questionLines[i].replace(/<mood>/, replyMood)}`
         } else {
           console.log('\tERROR trying to get mood answer')
         }
