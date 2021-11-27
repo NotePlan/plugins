@@ -1,4 +1,5 @@
-import moment from 'moment/min/moment-with-locales'
+import moment from 'moment-business-days'
+// import moment from 'moment/min/moment-with-locales'
 import { getUserLocale } from 'get-user-locale'
 import dayjs from 'dayjs'
 
@@ -12,6 +13,17 @@ export default class DateModule {
     }
 
     moment.locale(osLocale)
+  }
+
+  // convert supplied date value into something that NotePlan can actually handle
+  // requiring YYYY-MM-DDThh:mm:ss format
+  createDateTime(userDateString = '') {
+    let dt = new Date().toLocaleString()
+    if (userDateString.length === 10) {
+      dt = new Date(`${userDateString}T00:01:00`).toLocaleString()
+    }
+
+    return dt
   }
 
   format(format = '', date = '') {
@@ -145,6 +157,50 @@ export default class DateModule {
     const weekNumber = this.weeknumber(startDate)
 
     return `W${weekNumber} (${startDate}..${endDate})`
+  }
+
+  businessAdd(numDays = 1, pivotDate = '', format = '') {
+    const configFormat = this.config?.defaultFormats?.date || 'YYYY-MM-DD'
+    const dtFormat = format.length > 0 ? format : configFormat
+    const localeDate = this.createDateTime(pivotDate)
+
+    const result = moment(new Date(localeDate), dtFormat).businessAdd(numDays)
+
+    return result.format(dtFormat)
+  }
+
+  businessSubtract(numDays = 1, pivotDate = '', format = '') {
+    const configFormat = this.config?.defaultFormats?.date || 'YYYY-MM-DD'
+    const dtFormat = format.length > 0 ? format : configFormat
+    const localeDate = this.createDateTime(pivotDate)
+
+    const result = moment(new Date(localeDate), dtFormat).businessSubtract(numDays)
+
+    return result.format(dtFormat)
+  }
+
+  nextBusinessDay(pivotDate = '', format = '') {
+    const configFormat = this.config?.defaultFormats?.date || 'YYYY-MM-DD'
+    const dtFormat = format.length > 0 ? format : configFormat
+    const localeDate = this.createDateTime(pivotDate)
+
+    const nextBusinessDay = moment(new Date(localeDate), dtFormat).nextBusinessDay()
+
+    const result = new Date(nextBusinessDay)
+
+    return moment(result).format(dtFormat)
+  }
+
+  previousBusinessDay(pivotDate = '', format = '') {
+    const configFormat = this.config?.defaultFormats?.date || 'YYYY-MM-DD'
+    const dtFormat = format.length > 0 ? format : configFormat
+    const localeDate = this.createDateTime(pivotDate)
+
+    const nextBusinessDay = moment(new Date(localeDate), dtFormat).prevBusinessDay()
+
+    const result = new Date(nextBusinessDay)
+
+    return moment(result).format(dtFormat)
   }
 
   isValid(dateObj = null) {
