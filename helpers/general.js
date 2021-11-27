@@ -156,6 +156,7 @@ export async function getTagParamsFromString(
   console.log(`\tgetTagParamsFromString for '${wantedParam}' in '${paramString}'`)
   if (paramString !== '' && wantedParam !== '') {
     try {
+      // $FlowFixMe
       const paramObj: {} = await json5.parse(paramString)
       console.log(`\t--> ${String(JSON.stringify(paramObj[wantedParam]))}`)
       // eslint-disable-next-line no-prototype-builtins
@@ -201,14 +202,14 @@ export function debug(label: mixed = '', msg: mixed = null): void {
   console.log('*'.repeat(padLength) + ' DEBUG ' + '*'.repeat(padLength))
   console.log('')
 
-  // only show if msg supplied
+  // only show if only msg supplied
   if (msg) {
     // $FlowFixMe
     console.log(`     ${label}:`)
   }
 
   // $FlowFixMe.
-  console.log(`     ${message}:`)
+  console.log(`     ${message}`)
   console.log('')
   console.log('*'.repeat(padLength) + ' DEBUG ' + '*'.repeat(padLength))
   console.log('')

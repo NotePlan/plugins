@@ -49,6 +49,13 @@ module.exports = {
       )}`,
       initial: false,
     },
+    notify: {
+      type: 'boolean',
+      aliases: ['n'],
+      hidden: false,
+      description: `Show Notification ${colors.gray('(used when building)')}`,
+      initial: false,
+    },
     test: {
       type: 'boolean',
       aliases: ['t'],
@@ -74,6 +81,7 @@ module.exports = {
     const plugin = args.plugin || toolbox.plugin || ''
     const lint = args.lint || toolbox.lint || ''
     const fix = args.fix || toolbox.fix || ''
+    const notify = args.notify || toolbox.notify || ''
     const watch = args.watch
     const compact = args.compact
     const test = args.test
@@ -137,8 +145,8 @@ module.exports = {
         }
       }
       cmd = watch
-        ? `node scripts/rollup.js ${plugin} ${compact ? '--compact' : ''}`
-        : `node scripts/rollup.js ${plugin} --build`
+        ? `node scripts/rollup.js ${plugin} ${compact ? '--compact' : ''} ${notify ? '--notify' : ''}`
+        : `node scripts/rollup.js ${plugin} --build ${notify ? '--notify' : ''}`
     } else {
       const directory = plugin.length > 0 ? `${plugin}` : ''
       cmd = `./node_modules/.bin/jest ${directory} ${watch ? '--watch' : ''} ${coverage ? '--coverage' : ''}`

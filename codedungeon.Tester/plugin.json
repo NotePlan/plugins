@@ -1,0 +1,110 @@
+{
+  "macOS.minVersion": "10.13.0",
+  "noteplan.minAppVersion": "3.0.21",
+  "plugin.id": "codedungeon.Tester",
+  "plugin.name": "🧪 codedungeon.Tester",
+  "plugin.version": "0.0.3",
+  "plugin.description": "NotePlan Plugin Tester",
+  "plugin.author": "Codedungeon",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/codedungeon.Tester/README.md",
+  "plugin.commands": [
+    {
+      "name": "tester",
+      "description": "Tester Heartbeat",
+      "jsFunction": "testerHeartbeat",
+      "alias": []
+    },
+    {
+      "name": "np:templating-heartbeat",
+      "alias": [],
+      "description": "np.Templating Heartbeat",
+      "jsFunction": "templatingHeartbeat"
+    },
+    {
+      "name": "np:templating-async",
+      "alias": [],
+      "description": "np.Templating (Async)",
+      "jsFunction": "templatingAsync"
+    },
+    {
+      "name": "np:templating-standard",
+      "alias": [],
+      "description": "np.Templating (Standard)",
+      "jsFunction": "templatingStandard"
+    },
+    {
+      "name": "np:templating-books",
+      "alias": [],
+      "description": "np.Templating (Book List)",
+      "jsFunction": "templatingBooks"
+    },
+    {
+      "name": "np:templating-custom",
+      "alias": [],
+      "description": "np.Templating (Custom)",
+      "jsFunction": "templatingCustom"
+    },
+    {
+      "name": "np:templating-full-template",
+      "alias": [],
+      "description": "np.Templating (Full Template)",
+      "jsFunction": "templatingFullTemplate"
+    },
+    {
+      "name": "np:templating-frontmatter",
+      "alias": [],
+      "description": "np.Templating (Frontmatter)",
+      "jsFunction": "templatingFrontmatter"
+    },
+    {
+      "name": "np:templating-tasks",
+      "alias": [],
+      "description": "np.Templating (Task List)",
+      "jsFunction": "templatingTasks"
+    },
+    {
+      "name": "np:templating-kitchen-sink",
+      "alias": [],
+      "description": "np.Templating (Kitchen Sink)",
+      "jsFunction": "templatingKitchenSink"
+    },
+    {
+      "name": "np:templating-missing-variable",
+      "alias": [],
+      "description": "np.Templating (Missing Variable)",
+      "jsFunction": "templatingMissingVariable"
+    },
+    {
+      "name": "np:templating-weather",
+      "alias": [],
+      "description": "np.Templating (Weather)",
+      "jsFunction": "templatingWeather"
+    },
+    {
+      "name": "np:templating-artic-wolf",
+      "alias": [],
+      "description": "np.Templating (ArticWolf)",
+      "jsFunction": "templatingArticWolf"
+    },
+    {
+      "name": "np:templating-render",
+      "alias": [],
+      "description": "np.Templating (Render)",
+      "jsFunction": "templatingRender"
+    },
+    {
+      "name": "np:templating-custom-plugin",
+      "alias": [],
+      "description": "np.Templating Plugin Interface",
+      "jsFunction": "templatingPlugin"
+    },
+    {
+      "name": "np:templating-prompt",
+      "alias": [],
+      "description": "np.Templating Prompt",
+      "jsFunction": "templatingPrompt"
+    }
+  ]
+}

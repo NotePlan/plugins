@@ -27,10 +27,8 @@ module.exports = {
         ? `${API}quotes/${pref_mode}/${pref_author}/${pref_zenquotes_key}`
         : `${API}${pref_mode}`
 
-    console.log(URL)
-    console.log(`Before API call: ${URL}`)
     const response = await fetch(URL)
-    console.log(response.body)
+
     if (response != null) {
       //$FlowIgnore[incompatible-call]
       const data = JSON.parse(response)[0]

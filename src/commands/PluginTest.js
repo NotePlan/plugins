@@ -43,6 +43,7 @@ module.exports = {
       directory = testDirectories.join(' ')
     }
 
+    directory += '/__tests__/*.test.js'
     const cmd = `./node_modules/.bin/jest ${directory} ${watch ? '--watch' : ''} ${coverage ? '--coverage' : ''}`.trim()
 
     system.run(cmd, true)

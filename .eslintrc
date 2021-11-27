@@ -23,6 +23,7 @@
     }
   },
   "rules": {
+    "import/no-duplicates": "off",
     "prefer-template": "off",
     "eqeqeq": [
       "error",

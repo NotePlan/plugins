@@ -1,10 +1,12 @@
 // @flow
 'use strict'
 
+// $FlowFixMe
 const fs = require('fs/promises')
 const { existsSync } = require('fs')
-
 const path = require('path')
+const notifier = require('node-notifier')
+
 const colors = require('chalk')
 const messenger = require('@codedungeon/messenger')
 
@@ -77,6 +79,13 @@ const copyBuild = async (outputFile = '', isBuildTask = false) => {
       }
     }
 
+    if (NOTIFY) {
+      notifier.notify({
+        title: 'NotePlan Plugin Build',
+        message: `${pluginJsonData['plugin.name']} Complete`,
+      })
+    }
+
     if (!isBuildTask) {
       console.log(msg)
     }
@@ -92,12 +101,14 @@ console.log(colors.yellow.bold(`🧩 NotePlan Plugin Development v${pkgInfo.vers
 program
   .option('-d, --debug', 'Rollup: allow for better JS debugging - no minification or transpiling')
   .option('-c, --compact', 'Rollup: use compact output')
+  .option('-n, --notify', 'Show Notification')
   .option('-b, --build', 'Rollup: build plugin only (no watcher)')
   .parse(process.argv)
 const options = program.opts()
 const DEBUGGING = options.debug || false
 const COMPACT = options.compact || false
 const BUILD = options.build || false
+const NOTIFY = options.notify || false
 
 if (DEBUGGING && !COMPACT) {
   console.log(
@@ -213,6 +224,12 @@ async function main() {
       console.log('no copyTargetPath', copyTargetPath)
     } else if (event.code === 'ERROR') {
       messenger.error(`!!!!!!!!!!!!!!!\nRollup ${event.error}\n!!!!!!!!!!!!!!!\n`)
+      if (NOTIFY) {
+        notifier.notify({
+          title: 'NotePlan Plugins Build',
+          message: `An error occurred during build process.\nSee console for more information`,
+        })
+      }
     }
   })
 
@@ -338,6 +355,7 @@ function getConfig(pluginPath) {
             babelHelpers: 'bundled',
             babelrc: false,
             exclude: ['node_modules/**', '*.json'],
+            compact: false,
           }),
           commonjs(),
           json(),
@@ -347,7 +365,7 @@ function getConfig(pluginPath) {
           nodeResolve({ browser: true, jsnext: true }),
         ]
       : [
-          babel({ babelHelpers: 'bundled' }),
+          babel({ babelHelpers: 'bundled', compact: false }),
           commonjs(),
           json(),
           nodeResolve({ browser: true, jsnext: true }),

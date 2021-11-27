@@ -89,7 +89,9 @@
     "test:watch": "jest --watch",
     "security": "npm run security:high && npm run security:critical",
     "security:high": "npm audit | grep -B 1 -A 10 high",
-    "security:critical": "npm audit | grep -B 1 -A 10 critical"
+    "security:critical": "npm audit | grep -B 1 -A 10 critical",
+    "dev": "node ./tasks/start.js",
+    "start": "node ./tasks/start.js"
   },
   "prettier": {
     "printWidth": 120,
@@ -104,6 +106,7 @@
     "axios": "0.21.4",
     "bcrypt": "5.0.1",
     "bump-regex": "4.1.0",
+    "clipboardy": "3.0.0",
     "commander": "^8.1.0",
     "contentful-html-rich-text-converter": "1.0.9",
     "date-fns": "2.23.0",
@@ -118,7 +121,9 @@
     "listr": "0.14.3",
     "lodash": "4.17.21",
     "moment": "2.29.1",
+    "moment-business-days": "1.2.0",
     "node-libcurl": "2.3.3",
+    "node-notifier": "10.0.0",
     "progress": "2.0.3",
     "rxjs": "6.6.7",
     "showdown": "1.9.1",
