@@ -69,7 +69,7 @@ export function removeDateTagsAndToday(tag: string): string {
 export function blockTimeFor(
   timeMap: IntervalMap,
   blockdata: BlockData,
-  config: TimeBlockDefaults,
+  config: { [key: string]: any },
 ): { newMap: IntervalMap, itemText: string } {
   const { start, end, title } = blockdata
   const newMap = timeMap.map((t) => {
@@ -87,7 +87,7 @@ export function attachTimeblockTag(content: string, timeblockTag: string): strin
   return `${content.replace(regEx, '')} ${timeblockTag}`
 }
 
-export function createTimeBlockLine(blockData: BlockData, config: TimeBlockDefaults): string {
+export function createTimeBlockLine(blockData: BlockData, config: { [key: string]: any }): string {
   if (blockData.title && blockData.title.length > 0) {
     let newContentLine = blockData.title
     if (config.removeDuration) {
@@ -162,7 +162,7 @@ export function getTimeStringFromDate(date: Date): string {
 export function blockOutEvents(
   events: Array<PartialCalendarItem>,
   timeMap: IntervalMap,
-  config: TimeBlockDefaults,
+  config: { [key: string]: any },
 ): IntervalMap {
   let newTimeMap = [...timeMap]
   events.forEach((event) => {
@@ -332,7 +332,7 @@ export function addMinutesToTimeText(startTimeText: string, minutesToAdd: number
 export function findOptimalTimeForEvent(
   timeMap: IntervalMap,
   todo: { [string]: [mixed] },
-  config: TimeBlockDefaults,
+  config: { [key: string]: any },
 ): any {
   const newMap = timeMap.map((t) => {})
   return newMap
@@ -349,7 +349,7 @@ export function findOptimalTimeForEvent(
 export function blockTimeAndCreateTimeBlockText(
   tbm: TimeBlocksWithMap,
   block: BlockData,
-  config: TimeBlockDefaults,
+  config: { [key: string]: any },
 ): TimeBlocksWithMap {
   const timeBlockTextList = tbm.timeBlockTextList || []
   const obj = blockTimeFor(tbm.timeMap, block, config) //returns newMap, itemText
@@ -424,11 +424,12 @@ export function matchTasksToSlots(
 
 export const addDurationToTasks = (
   tasks: Array<TParagraph>,
-  config: TimeBlockDefaults,
+  config: { [key: string]: any },
 ): Array<{ [key: string]: any }> => {
   const dTasks = tasks.map((t) => {
-    t.duration = getDurationFromLine(t.content, config.durationMarker) || config.defaultDuration
-    return t
+    const copy = { ...t }
+    copy.duration = getDurationFromLine(t.content, config.durationMarker) || config.defaultDuration
+    return copy
   })
   return dTasks
 }
