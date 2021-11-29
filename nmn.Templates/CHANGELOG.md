@@ -2,8 +2,17 @@ See Template Plugin [README](https://github.com/NotePlan/plugins/blob/main/nmn.T
 
 # What's Changed in this Plugin?
 
+## [0.13.0] - 2021-11-29 (@m1well)
+
+### Changed
+* added `@flow` to `affirmations.js`
+* from now on it is possible to configure affirmations in the `_configuration` and get a random one of it
+
+
 ## [0.12.0] - 2021-11-04
 - Added overdueOnly to taskSweeper and README
+
+
 ## [0.11.0] - 2021-10-05
 #### Added New Tags
 - affirmation()

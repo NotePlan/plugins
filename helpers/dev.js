@@ -44,3 +44,14 @@ export function logAllPropertyNames(obj) {
   console.log(Object.getOwnPropertyNames(obj).filter((x) => /^__/.test(x) === false))
   logAllPropertyNames(Object.getPrototypeOf(obj))
 }
+
+/**
+ * @description get a random element of an array
+ * @author m1well
+ *
+ * @param array array with n elements
+ * @returns {any} random element
+ */
+export const getRandomElementFromArray = (array) => {
+  return array[Math.floor((Math.random() * array.length))]
+}
