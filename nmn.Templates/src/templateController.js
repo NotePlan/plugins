@@ -74,7 +74,7 @@ type TagListType = {
  * @param {Function} tagFunction - the function to call (usually an import above)
  * @param {boolean} includeConfig - whether to include the config in that function call
  */
-function addTag(tagName: string, tagFunction: Function, includeConfig?: boolean = false) {
+function addTag(tagName: string, tagFunction: Function, includeConfig: boolean = false) {
   tagList.push({ tagName, tagFunction, includeConfig })
 }
 

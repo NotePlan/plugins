@@ -122,7 +122,7 @@ export async function getEventsForDay(
 
 //------------------------------------------------------------------------------
 // Return MD list of today's events
-export async function listDaysEvents(paramString?: string = ''): Promise<string> {
+export async function listDaysEvents(paramString: string = ''): Promise<string> {
   if (Editor.note == null || Editor.type !== 'Calendar') {
     await showMessage('Please run again with a calendar note open.')
     return ''

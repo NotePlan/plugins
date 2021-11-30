@@ -403,6 +403,7 @@ export async function weeklyStats(): Promise<void> {
   )
 
   // For every week of interest ...
+  // m1well: these arrays are empty and never changed again?
   let allHCounts = []
   let allHTotals = []
   const hOutputArray = []
@@ -421,6 +422,7 @@ export async function weeklyStats(): Promise<void> {
   }
 
   // First process more complex 'SumTotals', calculating appropriately
+  // m1well: in this file a some errors - e.g. 'hSumTotals' and 'hCounts' is only defined in the for-loop ?
   for (const [key, value] of hSumTotals) {
     // .entries() implied
     const hashtagString = pref_showAsHashtagOrMention ? key : key.slice(1)
@@ -449,7 +451,7 @@ export async function weeklyStats(): Promise<void> {
 
   // Calc mentions stats (returns two maps)
   const mOutputArray = []
-  results = calcMentionStatsPeriod(fromDateStr, toDateStr)
+  const results = calcMentionStatsPeriod(fromDateStr, toDateStr)
   const mCounts = results?.[0]
   const mSumTotals = results?.[1]
   if (mCounts == null || mSumTotals == null) {
