@@ -142,10 +142,10 @@ export function stringReplace(inputString: string = '', replacementArray: Array<
  * @author @dwertheimer
  * @param {string} paramString - the contents of the template tag, e.g. {{weather(template:FOO)}}
  * @param {string} wantedParam - the name of the parameter to get (e.g. 'template')
- * @param {mixed | any} defaultValue - default value to use if parameter not found
+ * @param {any} defaultValue - default value to use if parameter not found
  * @returns {string} the value of the desired parameter if found (e.g. 'FOO'), or defaultValue if it isn't
  */
-export async function getTagParamsFromString(paramString: string, wantedParam: string, defaultValue: mixed | any): any {
+export async function getTagParamsFromString(paramString: string, wantedParam: string, defaultValue: any): any {
   console.log(`\tgetTagParamsFromString for '${wantedParam}' in '${paramString}'`)
   if (paramString !== '' && wantedParam !== '') {
     try {
@@ -161,7 +161,7 @@ export async function getTagParamsFromString(paramString: string, wantedParam: s
 }
 
 /**
- * @param {string} paramString - the string to capitalize
+ * @param {string} s - the string to capitalize
  * @returns {string} the string capitalized
  * @description Capitalizes the first letter of a string
  */

@@ -13,7 +13,9 @@ const colors = require('colors')
 const pluginPathFile = path.join(__dirname, '..', '.pluginpath')
 
 /**
- * @returns {boolean} whether file exists
+ *
+ * @param {string} fullPath
+ * @returns {Promise<boolean>} whether file exists
  */
 async function fileExists(fullPath) {
   try {
@@ -86,7 +88,8 @@ async function getPluginFileContents(pluginPath) {
 }
 
 /**
- * @param {string} pluginPath
+ * @param {string} pathToRead
+ * @param {string} pathToWrite
  * @returns {Promise<void>}
  * @description Copies plugin contents for distribution but minifies/removes comments first
  */
