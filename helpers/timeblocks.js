@@ -31,6 +31,12 @@ export const isTimeBlockLine = (contentString: string): boolean =>
 export const findLongestStringInArray = (arr: string[]): string =>
   arr.length ? arr.reduce((a, b) => (a.length > b.length ? a : b)) : ''
 
+/**
+ * Get the time portion of a timeblock line (also is a way to check if it's a timeblock line)
+ * Does not return the text after the timeblock (you can use isTimeBlockLine to check if it's a timeblock line)
+ * @param {string} contentString
+ * @returns {string} the time portion of the timeblock line
+ */
 export const getTimeBlockString = (contentString: string): string => {
   // const reMatches = RE_TB_TYPES.filter((re) => contentString.match(re))
   const matchedStrings = []

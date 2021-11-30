@@ -6,8 +6,9 @@
 import { chooseOption, showMessageYesNo } from '../../helpers/userInput'
 import { default as sweepNote, type ReturnStatus } from '../../nmn.sweep/src/sweepNote'
 import { getTagParamsFromString } from '../../helpers/general'
-import { getTasksByType, sortListBy, TASK_TYPES } from './taskHelpers'
-
+import { sortListBy } from '../../helpers/sorting'
+import { deleteParagraphsContainingString } from '../../dwertheimer.EventAutomations/src/NPTimeblocking'
+import { getTasksByType, TASK_TYPES } from './taskHelpers'
 // Note: not currently using getOverdueTasks from taskHelpers (because if it's open, we are moving it)
 // But the functions exist to look for open items with a date that is less than today
 //
@@ -134,7 +135,7 @@ function insertTodos(note: TNote, todos, heading = '', separator = '', subHeadin
   // SO INSTEAD, JUST PASTE THEM ALL IN ONE BIG STRING
   console.log(`\tInsertTodos: subHeadingCategory=${String(subHeadingCategory)} ${todos.length} todos`)
   let todosWithSubheadings = []
-  const headingStr = heading ? `${heading}\n` : ''
+  const headingStr = heading ? `\n${heading}\n` : ''
   if (subHeadingCategory) {
     const leadingDigit = {
       hashtags: '#',
@@ -157,7 +158,7 @@ function insertTodos(note: TNote, todos, heading = '', separator = '', subHeadin
       // )
       if (lastSubcat !== subCat) {
         lastSubcat = subCat
-        todosWithSubheadings.push({ raw: `#### ${subCat}` })
+        todosWithSubheadings.push({ raw: `\n#### ${subCat}` })
       }
       todosWithSubheadings.push(todos[lineIndex])
     }
@@ -395,6 +396,10 @@ export default async function sortTasks(
   console.log(`\tFinished deleteExistingTasks, now running writeOutTasks`)
 
   if (Editor.note) {
+    if (printSubHeadings) {
+      // TODO: come back to this with new template fields
+      // await deleteParagraphsContainingString(Editor)
+    }
     await writeOutTasks(Editor.note, sortedTasks, false, printHeadings, printSubHeadings ? sortField1 : '')
   }
   console.log(`\tFinished writeOutTasks, now finished`)
