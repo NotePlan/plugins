@@ -63,7 +63,10 @@ export function getBlankDayMap(intervalMins: number): IntervalMap {
 }
 
 export function removeDateTagsAndToday(tag: string): string {
-  return removeDateTags(tag).replace(/ >today/, '')
+  return removeDateTags(tag)
+    .replace(/>today/, '')
+    .replace(/  /gm, ' ')
+    .trim()
 }
 
 export function blockTimeFor(

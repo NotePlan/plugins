@@ -71,8 +71,14 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result.length).toEqual(288)
     })
     describe('removeDateTagsAndToday ', () => {
-      test('should remove ">today" ', () => {
+      test('should remove ">today at end" ', () => {
         expect(tb.removeDateTagsAndToday(`test >today`)).toEqual('test')
+      })
+      test('should remove ">today at beginning" ', () => {
+        expect(tb.removeDateTagsAndToday(`>today test`)).toEqual('test')
+      })
+      test('should remove ">today in middle" ', () => {
+        expect(tb.removeDateTagsAndToday(`this is a >today test`)).toEqual('this is a test')
       })
       test('should remove >YYYY-MM-DD date ', () => {
         expect(tb.removeDateTagsAndToday(`test >2021-11-09`)).toEqual('test')
