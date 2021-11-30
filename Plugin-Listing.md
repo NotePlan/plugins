@@ -2,10 +2,11 @@
 
 | Command Name | Description | Plugin |
 | --- | --- | --- |
-| `Create Note From Calendar Event` | creates a note from a calendar event | 🧩 Event Automations |
-| `Create Note From Calendar Event w/QuickTemplate` | creates a note from a calendar event | 🧩 Event Automations |
+| `Create Note From Calendar Event` | creates a note from a calendar event | 🗓 Event Automations |
+| `Create Note From Calendar Event w/QuickTemplate` | creates a note from a calendar event | 🗓 Event Automations |
 | `add project` | add a new note representing a project, asking for its metadata | 🔬Reviews |
 | `apply template` | Choose a Template to apply (append) to the current Note | 🔩 Templates |
+| `atb - Create AutoTimeBlocks for >today's Tasks` | Read >today todos and insert them into today's calendar note as timeblocks | 🗓 Event Automations |
 | `complete project` | add @completed(today) date to the open project | 🔬Reviews |
 | `convertSelectionToHtml` | Convert current selection to HTML | 🧩 Codedungeon Toolbox |
 | `convertToHtml` | Convert current note to HTML | 🧩 Codedungeon Toolbox |
