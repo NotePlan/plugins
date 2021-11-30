@@ -9,7 +9,8 @@
   ],
   "plugins": [
     "import",
-    "flowtype"
+    "flowtype",
+    "unused-imports"
   ],
   "parser": "@babel/eslint-parser",
   "parserOptions": {
@@ -56,7 +57,9 @@
     "no-prototype-builtins": "off",
     "no-unused-vars": "off",
     "import/order": "error",
-    "no-useless-escape": "off"
+    "no-useless-escape": "off",
+    "unused-imports/no-unused-imports": "error",
+    "unused-imports/no-unused-vars": "off"
   },
   "env": {
     "node": true,
