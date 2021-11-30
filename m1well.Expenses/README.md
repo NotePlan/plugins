@@ -1,4 +1,5 @@
-# Expenses Plugin
+# m1well.Expense Plugin
+
 With this plugin you can write down and store your daily/monthly expenses.  
 This is meant to be used for further analysis.
 
