@@ -139,11 +139,11 @@ Use the setup guide for your preferred editor (we prefer Visual Studio Code), an
    - You can open the Command Bar using `CMD+SHIFT+P` and then search for `Format Document`.
    - When you do this, you may get asked for a formatter of choice. Choose "Prettier"
    - If it asks you if this should be your default for all JS files, choose Yes.
-2. Restart the editor to ensure the plug-ins are working.
+2. Restart the editor to ensure the plugins are working.
    - You should see type errors when you make those
    - You should see lint errors when you format code wrong
    - You should see your code get auto formatted when you save
-3. Make sure to open this folder directly in VSCode and not the entire repo as the ESLint plug-in can be annoying about that
+3. Make sure to open this folder directly in VSCode and not the entire repo as the ESLint plugin can be annoying about that
 
 ### Sublime Text 3 and 4
 

@@ -111,6 +111,7 @@ export function getFolderFromFilename(fullFilename: string): string {
   // console.log(filenameParts)
   return filenameParts.slice(0, filenameParts.length - 1).join('/')
 }
+
 // Tests for gFFF function above
 // console.log(`gFFF('one/two/three/four.txt') -> ${getFolderFromFilename('one/two/three/four.txt')}`)
 // console.log(`gFFF('one/two/three/four and a bit.md') -> ${getFolderFromFilename('one/two/three/four and a bit.md')}`)
@@ -141,10 +142,10 @@ export function stringReplace(inputString: string = '', replacementArray: Array<
  * @author @dwertheimer
  * @param {string} paramString - the contents of the template tag, e.g. {{weather(template:FOO)}}
  * @param {string} wantedParam - the name of the parameter to get (e.g. 'template')
- * @param {mixed | any} defaultValue - default value to use if parameter not found
+ * @param {any} defaultValue - default value to use if parameter not found
  * @returns {string} the value of the desired parameter if found (e.g. 'FOO'), or defaultValue if it isn't
  */
-export async function getTagParamsFromString(paramString: string, wantedParam: string, defaultValue: mixed | any): any {
+export async function getTagParamsFromString(paramString: string, wantedParam: string, defaultValue: any): any {
   console.log(`\tgetTagParamsFromString for '${wantedParam}' in '${paramString}'`)
   if (paramString !== '' && wantedParam !== '') {
     try {
@@ -160,11 +161,23 @@ export async function getTagParamsFromString(paramString: string, wantedParam: s
 }
 
 /**
- * @param {string} paramString - the string to capitalize
+ * @param {string} s - the string to capitalize
  * @returns {string} the string capitalized
  * @description Capitalizes the first letter of a string
  */
 export function capitalize(s: string): string {
   if (typeof s !== 'string') return ''
   return s.charAt(0).toUpperCase() + s.slice(1)
+}
+
+/**
+ * @description here you can left pad your number with zeros - e.g. a '5' with 3 targetDigits is getting a '005'
+ * @author m1well
+ *
+ * @param current the current number
+ * @param targetDigits how many digits should the target number have
+ * @returns {string} the left padded value as string
+ */
+export const leftPadWithZeros = (current: number, targetDigits: number): string => {
+  return String(Array(Math.max(targetDigits - String(current).length + 1, 0)).join('0') + current)
 }

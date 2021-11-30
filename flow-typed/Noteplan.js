@@ -4,7 +4,7 @@
  * # How Flow Definitions work:
  *
  * ## The `+` before keys within object types means that key is read-only.
- * - Flow editor plug-ins should give autocomplete for various keys.
+ * - Flow editor plugins should give autocomplete for various keys.
  * - Some editor plugins should also show you documentation during autocomplete
  *
  * ## Declaring Global Variables
@@ -554,6 +554,7 @@ type TCalendar = {
   parseDateText(text: string): $ReadOnlyArray<DateRange>,
   /**
    * Create a date object from parts. Like year could be 2021 as a number.
+   * Note: month uses Swift counting (1-12) not Javascript counting (0-11).
    */
   dateFrom(
     year: number,
@@ -775,7 +776,7 @@ type TNote = {
    */
   +type: NoteType,
   /**
-   * Title = first line of the note.
+   * Title = first line of the note. (NB: Getter only.)
    */
   +title: string | void,
   /**

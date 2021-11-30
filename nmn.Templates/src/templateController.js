@@ -74,7 +74,7 @@ type TagListType = {
  * @param {Function} tagFunction - the function to call (usually an import above)
  * @param {boolean} includeConfig - whether to include the config in that function call
  */
-function addTag(tagName: string, tagFunction: Function, includeConfig?: boolean = false) {
+function addTag(tagName: string, tagFunction: Function, includeConfig: boolean = false) {
   tagList.push({ tagName, tagFunction, includeConfig })
 }
 
@@ -148,7 +148,6 @@ async function processTagValues(tag: string, config: { [string]: ?mixed }): Prom
     return String(valueInConfig)
   }
   const res = await getInput(`Value for ${tag}`)
-  CommandBar.hide() // TODO: understand why this is needed: without it the CommandBar hangs around after it should
   return res
 }
 

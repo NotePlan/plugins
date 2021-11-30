@@ -79,8 +79,6 @@ export async function jumpToHeading() {
     // console.log(startPos)
     // Editor.renderedSelect(startPos, 0) // feels the better one to use, but doesn't seem to work
     Editor.select(startPos, 0)
-    CommandBar.hide() // shouldn't be needed, but seems to...
-
 
     // Earlier version:
     // Editor.highlight(headingParas[re.index])

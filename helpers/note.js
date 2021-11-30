@@ -74,7 +74,7 @@ export async function noteOpener(
 /**
  * Get all notes in a folder
  * @author @dwertheimer
- * @param {string} folder name (e.g. 'myFolderName')
+ * @param {string} forFolder name (e.g. 'myFolderName')
  * @returns {Promise<$ReadOnlyArray<TNote>>} - array of notes in the folder
  */
 export async function getProjectNotes(forFolder: string = ''): Promise<$ReadOnlyArray<TNote>> {

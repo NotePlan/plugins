@@ -8,16 +8,21 @@ import strftime from 'strftime'
 export const RE_DATE = '\\d{4}-[01]\\d{1}-\\d{2}' // find dates of form YYYY-MM-DD
 export const RE_ISO_DATE = '\\d{4}-[01]\\d{1}-\\d{2}' // find dates of form YYYY-MM-DD
 export const RE_TIME = '[0-2]\\d{1}:[0-5]\\d{1}\\s?(?:AM|PM|am|pm)?' // find '12:23' with optional '[ ][AM|PM|am|pm]'
-export const RE_DATE_INTERVAL = `\\+?\\d+[bdwmqy]`
+export const RE_DATE_INTERVAL = `[+\\-]?\\d+[bdwmqy]`
 
 export const todaysDateISOString: string = new Date().toISOString().slice(0, 10)
-export const nowShortDateTime: string = new Date().toISOString().slice(0, 16)
+export const nowShortDateTime: string = new Date().toISOString().slice(0, 16) // TODO: Deprecate for a locale version?
 export const nowLocaleDateTime: string = new Date().toLocaleString()
 export const getFormattedTime = (format: string = '%Y-%m-%d %I:%M:%S %P'): string => strftime(format)
+
+export function getTodaysDateHyphenated(): string {
+  return hyphenatedDate(new Date())
+}
 
 export function getTodaysDateUnhyphenated(): string {
   return strftime(`%Y%m%d`)
 }
+
 
 // @nmn
 export function getYearMonthDate(dateObj: Date): $ReadOnly<{
@@ -49,13 +54,12 @@ export function toISODateString(dateObj: Date): string {
 // As ISODateString() doesn't work reliably across date boundaries except at GMT,
 // this version creates YYYY-MM-DD format using the slight cheat of the sv-SE locale,
 // which happens to be identical.
-// TODO: Though can this be replaced by earlier function below?
 export function hyphenatedDate(date: Date): string {
   if (date != null) {
     // console.log(`hyphenatedDateFromNote: ${toLocaleDateTimeString(date)} -> ${toLocaleDateString(date, 'sv-SE')}`)
     return toLocaleDateString(date, 'sv-SE')
   } else {
-    return 'error: not a daily note'
+    return 'hyphenatedDate: error: not a valid JS Date'
   }
 }
 
@@ -169,28 +173,24 @@ export function withinDateRange(testDate: string, fromDate: string, toDate: stri
 // console.log(withinDateRange(unhyphenateDate('2021-05-31'), '20210501', '20210531')) // true
 // console.log(withinDateRange(unhyphenateDate('2021-06-24'), '20210501', '20210531')) // false
 
-// Calculate an offset date, returning ISO datestring
+// Calculate an offset date, returning ISO datestring. Assumes:
+// - oldDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type
+// - interval is string of form +nn[bdwmq] or -nn[bdwmq]
+// - where 'b' is weekday (i.e. Monday - Friday in English)
+// Return new date also in ISO Date format
+// v2 method, using built-in NotePlan function 'Calendar.addUnitToDate(date, type, num)'
 export function calcOffsetDateStr(oldDateISO: string, interval: string): string {
-  // Calculate an offset date, assuming:
-  // - oldDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type
-  // - interval is string of form nn[bdwmq], and could be negative
-  // - where 'b' is weekday (i.e. Monday - Friday in English)
-  // Return new date also in ISO Date format
-  // v2 method, using built-in NotePlan function 'Calendar.addUnitToDate(date, type, num)'
-
   const newDate = calcOffsetDate(oldDateISO, interval)
   return toISODateString(newDate)
 }
 
-// Calculate an offset date, returning Date object
+// Calculate an offset date, as a JS Date. Assumes:
+// - oldDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type
+// - interval is string of form +nn[bdwmq] or -nn[bdwmq]
+// - where 'b' is weekday (i.e. Monday - Friday in English)
+// Return new date as a JS Date
+// v2 method, using built-in NotePlan function 'Calendar.addUnitToDate(date, type, num)'
 export function calcOffsetDate(oldDateISO: string, interval: string): Date {
-  // Calculate an offset date, assuming:
-  // - oldDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type
-  // - interval is string of form nn[bdwmq], and could be negative
-  // - where 'b' is weekday (i.e. Monday - Friday in English)
-  // Return new date as a JS Date
-  // v2 method, using built-in NotePlan function 'Calendar.addUnitToDate(date, type, num)'
-
   const oldDate = new Date(oldDateISO)
   let daysToAdd = 0
   let monthsToAdd = 0
@@ -242,12 +242,13 @@ export function calcOffsetDate(oldDateISO: string, interval: string): Date {
       break
   }
 
+  // Now add (or subtract) the number, using NP's built-in helper
   const newDate =
-    daysToAdd > 0
+    Math.abs(daysToAdd) > 0
       ? Calendar.addUnitToDate(oldDate, 'day', daysToAdd)
-      : monthsToAdd > 0
+      : Math.abs(monthsToAdd) > 0
       ? Calendar.addUnitToDate(oldDate, 'month', monthsToAdd)
-      : yearsToAdd > 0
+      : Math.abs(yearsToAdd) > 0
       ? Calendar.addUnitToDate(oldDate, 'year', yearsToAdd)
       : oldDate // if nothing else, leave date the same
 

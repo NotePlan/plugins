@@ -7,7 +7,7 @@
   "plugin.icon": "",
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers",
-  "plugin.version": "0.6.3",
+  "plugin.version": "0.7.0",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -31,6 +31,11 @@
       "name": "insert matching events",
       "description": "inserts this day's calendar events matching certain patterns at cursor",
       "jsFunction": "insertMatchingDaysEvents"
+    },
+    {
+      "name": "process date offsets",
+      "description": "finds date offset patterns and turns them into due dates, based on date at start of section",
+      "jsFunction": "processDateOffsets"
     }
   ],
   "plugin.preferences": [

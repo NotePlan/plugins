@@ -12,7 +12,7 @@ package-lock.json
 .vscode/launch.json
 */script.js
 .vscode/
-.pluginpath
 .pluginsrc
+.idea/
 lcov*
 coverage/

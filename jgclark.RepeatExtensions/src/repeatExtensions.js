@@ -1,7 +1,7 @@
 //--------------------------------------------------------------------------------------------------------------------
 // Repeat Extensions plugin for NotePlan
 // Jonathan Clark
-// v0.3.0, 24.10.2021
+// last updated v0.3.0+, 18.11.2021
 //--------------------------------------------------------------------------------------------------------------------
 
 import {
@@ -14,6 +14,7 @@ import {
   // rangeToString,
 } from '../../helpers/dateTime'
 import { showMessage } from '../../helpers/userInput'
+import { findEndOfActivePartOfNote } from '../../helpers/paragraph'
 
 //------------------------------------------------------------------
 // Process any completed(or cancelled) tasks with my extended @repeat(..) tags,
@@ -54,20 +55,7 @@ export async function repeats() {
   }
 
   // work out where ## Done or ## Cancelled sections start, if present
-  let doneHeaderLine = 0
-  let cancelledHeaderLine = 0
-  for (let i = 0; i < lineCount; i++) {
-    const p = paragraphs[i]
-    if (p.headingLevel === 2 && p.content === 'Done') {
-      doneHeaderLine = i
-    }
-    if (p.headingLevel === 2 && p.content === 'Cancelled') {
-      cancelledHeaderLine = i
-    }
-  }
-  const endOfActive = (doneHeaderLine > 0) ? doneHeaderLine :
-    ((cancelledHeaderLine > 0) ? cancelledHeaderLine : lineCount)
-  // console.log(`  dHL = ${doneHeaderLine}, cHL = ${cancelledHeaderLine} endOfActive = ${endOfActive}`)
+  const endOfActive = findEndOfActivePartOfNote(Editor.note)
 
   let repeatCount = 0
   let line = ''

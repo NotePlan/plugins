@@ -1,5 +1,8 @@
 # What's changed in 🔁 Repeat Extensions plugin?
 
+## [unreleased]
+- just moving code around
+
 ## [0.3.0] - 2021-10-24
 ### Added
 - now tells user if no suitable repeats were found to process, to make it clear that it did run

@@ -170,7 +170,7 @@ export async function fileParas(): Promise<void> {
         break
       }
     }
-    console.log(`  -> other heading, line ${insertionIndex}`)
+    console.log(`  -> other heading, line ${String(insertionIndex)}`)
   }
   if (insertionIndex === null) {
     console.log(`  Error: insertionIndex is null. Stopping.`)

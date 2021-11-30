@@ -65,16 +65,17 @@ export async function getInput(message: string, okLabel: string = 'OK'): Promise
  * @param {string} confirmTitle - the "button" (option) text (default: 'OK')
  */
 export async function showMessage(message: string, confirmTitle: string = 'OK'): Promise<void> {
-  await CommandBar.showOptions([confirmTitle], message)
+  await CommandBar.showOptions([ confirmTitle ], message)
 }
 
 /**
  * Helper function to show a simple yes/no (could be OK/Cancel, etc.) dialog using CommandBar
  * @param {string} message - text to display to user
- * @param {Array<string>} - an array of the choices to give (default: ['Yes', 'No'])
+ * @param {Array<string>} choicesArray - an array of the choices to give (default: ['Yes', 'No'])
  * @returns {string} - returns the user's choice - the actual *text* choice from the input array provided
  */
-export async function showMessageYesNo(message: string, choicesArray: Array<string> = ['Yes', 'No']): Promise<string> {
+export async function showMessageYesNo(message: string, choicesArray: Array<string> = [ 'Yes',
+  'No' ]): Promise<string> {
   const answer = await CommandBar.showOptions(choicesArray, message)
   return choicesArray[answer.index]
 }
@@ -82,7 +83,8 @@ export async function showMessageYesNo(message: string, choicesArray: Array<stri
 /**
  * Let user pick from a nicely-indented list of available folders (or return / for root)
  * @author @jgclark
- * @param {string} message - text to display to user
+ * @param {string} msg - text to display to user
+ * @param {boolean} includeArchive - include archive or not
  * @returns {string} - returns the user's folder choice (or / for root)
  */
 export async function chooseFolder(msg: string, includeArchive: boolean = false): Promise<string> {
@@ -156,7 +158,8 @@ export async function chooseHeading(
   }
   const result = await CommandBar.showOptions(
     headingStrings,
-    `Select a heading from note '${note.title ?? 'Untitled'}'`,
+    `Select a heading
+     from note '${note.title ?? 'Untitled'}'`,
   )
   let headingToFind = headingStrings[result.index].trim()
   if (headingToFind === '➕ ⬆️ (first insert new heading at the start of the note)') {
@@ -191,8 +194,8 @@ export async function askDateInterval(dateParams: string): Promise<string> {
     dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}')
       ? await parseJSON5(dateParams)
       : dateParamsTrimmed !== ''
-      ? await parseJSON5(`{${dateParams}}`)
-      : {}
+        ? await parseJSON5(`{${dateParams}}`)
+        : {}
   // $FlowFixMe
   console.log(`param config: ${dateParams} as ${JSON.stringify(paramConfig)}`)
   // ... = "gather the remaining parameters into an array"
@@ -246,8 +249,8 @@ export async function datePicker(dateParams: string, config: { [string]: ?mixed 
     dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}')
       ? await parseJSON5(dateParams)
       : dateParamsTrimmed !== ''
-      ? await parseJSON5(`{${dateParams}}`)
-      : {}
+        ? await parseJSON5(`{${dateParams}}`)
+        : {}
   // $FlowFixMe
   console.log(`param config: ${dateParams} as ${JSON.stringify(paramConfig)}`)
   // ... = "gather the remaining parameters into an array"
@@ -284,24 +287,34 @@ export function isInt(value: string): boolean {
   return !isNaN(value) && (x | 0) === x
 }
 
-// ask for a (floating point) number from user
+/**
+ * @description ask for a (floating point) number from user
+ *
+ * @param question question for the commandbar
+ * @returns {Promise<number|*>} returns integer or NaN
+ */
 export async function inputInteger(question: string): Promise<number> {
   const reply = await CommandBar.showInput(question, `Answer: %@`)
   if (reply != null && isInt(reply)) {
     return Number(reply)
   } else {
-    console.log(`\tERROR trying to get number answer for question '${question}'`)
+    console.log(`\tERROR trying to get integer answer for question '${question}'`)
     return NaN
   }
 }
 
-// ask for an integer from user
+/**
+ * @description ask for an integer from user
+ *
+ * @param question question for the commandbar
+ * @returns {Promise<number|*>} returns number or NaN
+ */
 export async function inputNumber(question: string): Promise<number> {
   const reply = await CommandBar.showInput(question, `Answer: %@`)
   if (reply != null && Number(reply)) {
     return Number(reply)
   } else {
-    console.log(`\tERROR trying to get integer answer for question '${question}'`)
+    console.log(`\tERROR trying to get number answer for question '${question}'`)
     return NaN
   }
 }

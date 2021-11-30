@@ -22,7 +22,6 @@
 | `insert day's events as list` | insert list of this day's calendar events at cursor | 🕓 Event Helpers |
 | `insert matching events` | inserts this day's calendar events matching certain patterns at cursor | 🕓 Event Helpers |
 | `insert template` | Choose a Template to insert into the current Note | 🔩 Templates |
-| `int` | Quickly add a task to your '📥 Inbox' note | ⚡️ Quick Capture |
 | `iso` | Insert date+time (in ISO format) at cursor | 📅 Date Automations |
 | `jd` | Jump to the '## Done' section. (Currently only works in main window) | 📙 Note Helpers |
 | `jh` | Jumps to the heading that the user selects. (Currently only works in main window) | 📙 Note Helpers |
@@ -41,15 +40,17 @@
 | `occurrencesInPeriod` | Generate list of occurrences of specified tags or mentions for a time period | 🗃 Summaries |
 | `onw` | Open a user-selected note in a new window. | 📙 Note Helpers |
 | `ott` | Open Tasks to Top - Bring open tasks in note to top | ✅ Task Automations |
+| `process date offsets` | finds date offset patterns and turns them into due dates, based on date at start of section | 🕓 Event Helpers |
 | `project lists` | creates/updates a human-readable list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete. | 🔬Reviews |
-| `qad` | Quickly append a task to a chosen daily note | ⚡️ Quick Capture |
-| `qaj` | Quickly append text to the Journal in today's note | ⚡️ Quick Capture |
-| `qalh` | Quickly add text at the top of a chosen note's heading | ⚡️ Quick Capture |
-| `qat` | Quickly append a task to a chosen project note | ⚡️ Quick Capture |
-| `qath` | Quickly add a task at the top of a chosen note's heading | ⚡️ Quick Capture |
-| `qpd` | Quickly prepend a task to a chosen daily note | ⚡️ Quick Capture |
-| `qpt` | Quickly prepend a task to a chosen project note | ⚡️ Quick Capture |
 | `qtn - Quick template note` | Choose a note and create it based on _configuration settings quickNotes | 🔩 Templates |
+| `quick add line under heading` | Quickly add text at the top of a chosen note's heading | ⚡️ Quick Capture |
+| `quick add task to inbox` | Quickly add a task to your '📥 Inbox' note | ⚡️ Quick Capture |
+| `quick add task under heading` | Quickly add a task at the top of a chosen note's heading | ⚡️ Quick Capture |
+| `quick add to daily note` | Quickly append a task to a chosen daily note | ⚡️ Quick Capture |
+| `quick add to journal today` | Quickly append text to the Journal in today's note | ⚡️ Quick Capture |
+| `quick append task to note` | Quickly append a task to a chosen project note | ⚡️ Quick Capture |
+| `quick prepend task to daily note` | Quickly prepend a task to a chosen daily note | ⚡️ Quick Capture |
+| `quick prepend task to note` | Quickly prepend a task to a chosen project note | ⚡️ Quick Capture |
 | `reorderList` | Reorder current ordered list | 🧩 Codedungeon Toolbox |
 | `rpt` | Generate new @repeat() tasks from completed ones | 🔁 @repeat Extensions |
 | `saveSearchResults` | Save results from a search over all notes | 🗃 Summaries |
