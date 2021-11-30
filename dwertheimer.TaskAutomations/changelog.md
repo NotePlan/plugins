@@ -2,6 +2,10 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Ta
 
 # What's Changed in this Plugin?
 
+## [1.4.0] 2021-11-29 @dwertheimer
+- Minor under-the-hood refactors -- changed imports to use functions that were moved to the helpers/sorting file (deleted them from here)
+- Added a line break in one line for output
+
 ## 1.3.0
 - taskSorter: Added support for bringing indented content under tasks with the tasks
 - taskSorter: Started to add support for task sorting in templates [WIP]
