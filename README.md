@@ -93,7 +93,9 @@ The default watch command `npm run autowatch` (without any other arguments) comm
 
 **npm run autowatch <your_plugin_directory>**
 
-For example, running `npm run autowatch dwertheimer.TaskAutomations` will perform the same watching operations for the `dwertheimer.TaskAutomations` plugin only.
+For example, running `npm run autowatch jgclark.EventHelpers` will perform the same watching operations for the `jgclark.EventHelpers` plugin only.  
+> Important hint: You have to choose the plugin to watch, which is the "entrance point" in Noteplan, it does not necessarily have to be the one where something was changed.  
+> For example: If you use jgclark.EventHelpers via a Template and changed something in jgclark.EventHelpers, then you nevertheless have to autowatch the nmn.Templates instead of jgclark.EventHelpers
 
 #### Create Pull Request
 
