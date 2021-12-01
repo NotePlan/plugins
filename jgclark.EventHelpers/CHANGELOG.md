@@ -4,7 +4,12 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 - tighten timeblock-finding regex if Eduard does
 - add further fields (e.g. location) if Eduard adds to the API
 
-## [0.7.0] - 2021-19-11
+## [0.8.0] - 2021-12-01 (@m1well)
+### Added
+- added boolean variable to config to render calendar name in eventslist
+- added possibility to map a calendar name to a given string (maybe for formatting purposes)
+
+## [0.7.0] - 2021-11-19
 ### Added
 - added `/process date offsets` command: find date offset patterns and turn them into due dates, based on date at start of section, or a less-indented line, or the line itself.
 

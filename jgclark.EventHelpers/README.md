@@ -37,20 +37,24 @@ Or add the following settings into the `Templates/_configuration` note's first c
 ```jsonc
 ...
   events: {
-    calendarToWriteTo: "", // specify calendar name to write events to. Must be writable calendar. If empty, then the default system calendar will be used.
+    calendarToWriteTo: "",  // specify calendar name to write events to. Must be writable calendar. If empty, then the default system calendar will be used.
     addEventID: false,  // whether to add an '⏰event:ID' string when creating an event from a time block
-    processedTagName: "#event_created",   // optional tag to add after making a time block an event
-    confirmEventCreation: false, // optional tag to indicate whether to ask user to confirm each event to be created
+    processedTagName: "#event_created",  // optional tag to add after making a time block an event
+    confirmEventCreation: false,  // optional tag to indicate whether to ask user to confirm each event to be created
     removeTimeBlocksWhenProcessed: true,  // whether to remove time block after making an event from it
     eventsHeading: "### Events today",  // optional heading to put before list of today's events
     calendarSet: [],  // optional list of calendar names to filter by when showing list of events. If empty, no filtering will be done.
-    addMatchingEvents: {   // match events with string on left, and then the string on the right is the template for how to insert this event (see README for details)
+    addMatchingEvents: {  // match events with string on left, and then the string on the right is the template for how to insert this event (see README for details)
       "meeting": "### *|TITLE|* (*|START|*)\n*|NOTES|*",
       "webinar": "### *|TITLE|* (*|START|*) *|URL|*",
       "holiday": "*|TITLE|* *|NOTES|*",
     },
     locale: "en-US",
     timeOptions: { hour: '2-digit', minute: '2-digit', hour12: false }, // optional settings for time outputs
+    showCalendarName: false, // set to true if you want to have the calendarname
+    calendarNameMappings: [  // here you can map a calendar name to a new string - e.g. "Thomas" to "Me" with "Thomas;Me"
+      "From;To",
+    ],
   }
 ...
 ```
@@ -74,6 +78,8 @@ This uses JSON5 format: ensure there are commas at the end of all that lines tha
 - **eventsHeading**: in `/insert today's events as list` the heading to put before the list of today's events. Optional.
 - **calendarSet**: optional ["array","of calendar","names"] to filter by when showing list of events. If empty or missing, no filtering will be done.
 - **addMatchingEvents**: for `/add matching events` is a set of pairs of strings. The first string is what is matched for in an event's title. If it does match the second string is used as the template for how to insert the event details at the cursor.  This uses the same `*|TITLE|*`, `*|START|*` (time), `*|END|*` (time), `*|NOTES|*` and `*|URL|*` template items below ...  NB: At this point the 'location' field is unfortunately _not_ available through the API.
+- **showCalendarName**: optional - set to true if you want to see the calendarname (also add it to your string template!)
+- **calendarNameMappings**: optional - add mappings for your calendarnames - e.g. "Thomas;Me" - then in the Note following appears: `- Me: Event 1 (15:00)` (obviously it depends on your template) - maybe for formatting purposes
 
 ### Using Event Lists from a Template
 If you use Templates, this command can be called when a Template is inserted (including in the `/day start` command which applies your `Daily Note Template` file). To do this insert `{{events()}}` wherever you wish it to appear in the Template.  By default it gives a simple markdown list of event title and start time.  To **customise the list display**, you can add a `'template:"..."'` parameter to the `{{events()}}` template command that sets how to present the list, and a separate template for items with no start/end times (`'allday_template:"..."`).
@@ -83,10 +89,10 @@ If you want to disable the adding of the heading, add the following parameter `i
 For example:
 
 ```jsonc
-{{events({template:"### *|TITLE|* (*|START|*-*|END|*)\n*|NOTES|*",allday_template:"### TITLE",includeHeadings:false})}}
+{{events({template:"### *|CAL|**|TITLE|* (*|START|*-*|END|*)\n*|NOTES|*",allday_template:"### TITLE",includeHeadings:false})}}
 ```
 
-The `*|TITLE|*`, `*|START|*`, `*|END|*`, `*|NOTES|*` and `*|URL|*` can be mixed with whatever markdown characters or other text you like, and they will get replaced accordingly with the fields from each matching event found. (Note the difference between the } and ) bracket types, and use of double quotes around the template string. I didn't design this syntax ...)
+The `*|CAL|*`, `*|TITLE|*`, `*|START|*`, `*|END|*`, `*|NOTES|*` and `*|URL|*` can be mixed with whatever markdown characters or other text you like, and they will get replaced accordingly with the fields from each matching event found. (Note the difference between the } and ) bracket types, and use of double quotes around the template string. I didn't design this syntax ...)
 
 You can also place  `{{listMatchingEvents()}}` in Templates in a similar way, and similar customisation is possible. However, it is defined in a different way, using the matches and template strings defined in the `_configuration` file's `addMatchingEvents` array, as shown above.
 
