@@ -1,12 +1,11 @@
 # m1well.Expense Plugin
 
-With this plugin you can write down and store your daily/monthly expenses.  
+With this plugin you can write down and store your daily/monthly expenses.
 This is meant to be used for further analysis.
 
-
 ## Configuration
-For a good start and to get the structure, you can just use the example config,  
-which will be added to the `_configuration` on the first usage!
+For a good start and to get the structure, you can just use the example config,
+which will be added to the NotePlan `_configuration` on the first usage!
 
 ### Content
 * `folderPath`
@@ -19,6 +18,7 @@ which will be added to the `_configuration` on the first usage!
   * Fix expenses in your life e.g. the monthly flat rent, the yearly car insurance or the monthly spotify subscription (which is deactivated in the example for show reasons)
 
 ### Example
+
 ```json5
 {
   expenses: {
@@ -62,18 +62,16 @@ which will be added to the `_configuration` on the first usage!
 }
 ```
 
-
 ## Hints
 * for the sake of simplicity you can't change written lines or add older entries
   * for that you have to add/change/remove the lines manually
 * For reasons of space the shortcuts have to be in the format `cluster;text`
-* To avoid problems with separator over different countries, only use integer values please  
+* To avoid problems with separator over different countries, only use integer values please
   (e.g. instead of '9.99' use '10') - the plugin does a `Math.round()` anyways
 * Avoid empty lines in the Note, the plugin does not recognize them
 
-
 ## Commands
-You can enter a command in every note just by hitting the `/`
+Using the NotePlan Plugin Shortcut `/`
 
 ### ->> exptra <<-
 Provides multiple possibilities to track your expenses
@@ -85,22 +83,25 @@ Provides multiple possibilities to track your expenses
 4. third popup: enter the amount of the expenses
 
 #### shortcuts
-With this mode you can add configured shortcuts to skip the input of cluster and text  
+With this mode you can add configured shortcuts to skip the input of cluster and text
 e.g. for your weekly groceries shopping in the same market or for refuelling the car
+
 1. opens the note `{currentYear} Expenses Tracking` (if note doesn't exist, it gets created)
 2. first popup: choose a shortcut
 3. second popup: enter the amount of the expenses
 
 #### fix
 With this mode you can add fix expenses each month to your Daily Expenses Note
+
 1. opens the note `{currentYear} Expenses Tracking` (if note doesn't exist, it gets created)
 2. all fix expenses from the `_configuration` which has attributes set:
    * ctive = true
    * month = current month or 0 (zero is for monthly fix expenses e.g. a flat rent)
 
 ### ->> expagg <<-
-Aggregates the tracked expenses of the chosen year to a new expenses aggregated note  
+Aggregates the tracked expenses of the chosen year to a new expenses aggregated note
 You can do this every time in the year to have a new aggregated view over your expenses
+
 1. first popup: input a year for which tracking note you want to aggregate
 2. opens the note `{chosenYear} Expenses Tracking`
 3. aggregates all the expenses by month and cluster
@@ -108,9 +109,8 @@ You can do this every time in the year to have a new aggregated view over your e
    * if note doesn't exist, it gets created
    * if it exists, it gets cleared
 
-
 ## Example Workflow (also for Testing)
-To get a better understanding of the plugin here is an example workflow with dates ;)  
+To get a better understanding of the plugin here is an example workflow with dates.
 Let's say we have the fix expenses from the example above.
 
 ### Daily Input
@@ -131,6 +131,7 @@ Let's say we have the fix expenses from the example above.
 
 ### Yearly Note
 This generates following Note:
+
 ```csv
 2021;01;Living;Flat Rent;670
 2021;01;Insurances;Car Insurance;399
@@ -151,7 +152,8 @@ This generates following Note:
   * to create some diagrams
 * You can let the plugin aggregate the expenses by month and cluster to have a better overview
   * this generages following Note: (there you can see e.g. all Groceries in January are aggregated)
-```
+
+```text
 2021;01;Living;670
 2021;01;Insurances;399
 2021;01;Groceries;407
@@ -161,11 +163,9 @@ This generates following Note:
 2021;02;Groceries;89
 ```
 
-
 ## Changelog
-Here you can find the [Changelog](./CHANGELOG.md)  
-If you change something in the code, please create a new version and update the changelog file :)
-
+Here you can find the [Changelog](./CHANGELOG.md)
+If you change something in the code, please create a new version and update the changelog file
 
 ## Author
 Michael Wellner | [Github](https://github.com/m1well) | [Twitter](https://twitter.com/m1well) | [Homepage](https://m1well.com)
