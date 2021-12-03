@@ -218,7 +218,6 @@ const fixTracking = async (config: Config, year: number, month: number, noteTitl
     .forEach(exp => {
       const line = `${year};${leftPadWithZeros(month, 2)};${exp.cluster};${exp.text};${Math.round(exp.amount)}`
       Editor.appendParagraph(line, 'text')
-      console.log('--- aa')
     })
 
   return true
@@ -242,7 +241,7 @@ const provideConfig = (): Promise<Config> => {
           fixExpenses: []
         }
       } else {
-        logMessage(`loaded config >>${JSON.stringify(result)}<<`)
+        logMessage(`loaded config\n${JSON.stringify(result)}\n`)
         const config: Config = {
           folderPath: extractStringFromMixed(result, CONFIG_KEYS.folderPath),
           clusters: extractStringArrayFromMixed(result, CONFIG_KEYS.clusters),
@@ -294,11 +293,20 @@ const provideAndCheckNote = async (noteTitle: string,
  */
 const checkDataQualityBeforeAggregate = (rows: ExpenseRow[], year: number, config: Config): boolean => {
   for (const row of rows) {
-    if (row.year !== year
-      || (Number(row.month) < 1 || Number(row.month) > 12)
-      || (!row.cluster || config.clusters.findIndex(cl => cl === row.cluster) === -1)
-      || (isNaN(row.amount) || row.amount < 0)) {
-      logError(`Error at: ${row.year};${row.month};${row.cluster};${row.text ?? ''};${row.amount}`)
+    if (row.year !== year) {
+      logError(`year at: ${leftPadWithZeros(row.month, 2)};${row.cluster};${row.text ?? ''};${row.amount}`)
+      return false
+    }
+    if (Number(row.month) < 1 || Number(row.month) > 12) {
+      logError(`month at: ${leftPadWithZeros(row.month, 2)};${row.cluster};${row.text ?? ''};${row.amount}`)
+      return false
+    }
+    if (!row.cluster || config.clusters.findIndex(cl => cl === row.cluster) === -1) {
+      logError(`cluster not found at: ${leftPadWithZeros(row.month, 2)};${row.cluster};${row.text ?? ''};${row.amount}`)
+      return false
+    }
+    if (isNaN(row.amount) || row.amount < 0) {
+      logError(`amount at: ${leftPadWithZeros(row.month, 2)};${row.cluster};${row.text ?? ''};${row.amount}`)
       return false
     }
   }

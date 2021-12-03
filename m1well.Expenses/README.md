@@ -1,6 +1,6 @@
 # m1well.Expense Plugin
 
-With this plugin you can write down and store your daily/monthly expenses.
+With this plugin you can write down and store your daily/monthly expenses with an ease.
 This is meant to be used for further analysis.
 
 ## Configuration
@@ -73,7 +73,7 @@ which will be added to the NotePlan `_configuration` on the first usage!
 ## Commands
 Using the NotePlan Plugin Shortcut `/`
 
-### ->> exptra <<-
+### ->> `/exptra` <<-
 Provides multiple possibilities to track your expenses
 
 #### individual
@@ -98,7 +98,7 @@ With this mode you can add fix expenses each month to your Daily Expenses Note
    * ctive = true
    * month = current month or 0 (zero is for monthly fix expenses e.g. a flat rent)
 
-### ->> expagg <<-
+### ->> `/expagg` <<-
 Aggregates the tracked expenses of the chosen year to a new expenses aggregated note
 You can do this every time in the year to have a new aggregated view over your expenses
 
@@ -120,14 +120,13 @@ Let's say we have the fix expenses from the example above.
 | 03.01.2021 | `exptra - shortcuts` 'Groceries', 'XYZ Market','89' |
 | 05.01.2021 | `exptra - individual` 'Media', 'Apple TV Movie Rent','4' |
 | 11.01.2021 | `exptra - shortcuts` 'Groceries', 'XYZ Market','105' |
-| 02.01.2021 | `exptra - individual` 'Fun', 'Coffee at Starbucks with Friends','22' |
+| 12.01.2021 | `exptra - individual` 'Fun', 'Coffee at Starbucks with Friends','22' |
 | 19.01.2021 | `exptra - shortcuts` 'Groceries', 'XYZ Market','81' |
 | 20.01.2021 | `exptra - individual` 'Groceries', 'Beverages','55' |
 | 25.01.2021 | `exptra - shortcuts` 'Groceries', 'XYZ Market','77' |
 | 01.02.2021 | `exptra - fix` -> to add fix expenses for February |
 | 04.02.2021 | `exptra - shortcuts` 'Groceries', 'XYZ Market','89' |
 | ... | ... |
-(for testing just change the month of the last to entries to another month ;))
 
 ### Yearly Note
 This generates following Note:
@@ -144,6 +143,7 @@ This generates following Note:
 2021;01;Groceries;XYZ Market;77
 2021;02;Living;Flat Rent;670
 2021;02;Groceries;XYZ Market;89
+...
 ```
 
 ### Analyses
