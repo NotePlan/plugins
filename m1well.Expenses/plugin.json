@@ -1,0 +1,29 @@
+{
+  "noteplan.min_version": "3.0.25",
+  "macOS.minVersion": "10.13.0",
+  "plugin.id": "m1well.Expenses",
+  "plugin.name": "💶️ Expenses",
+  "plugin.description": "Plugin to track your expenses for further analyis",
+  "plugin.icon": "",
+  "plugin.author": "@m1well",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/m1well.Expenses/README.md",
+  "plugin.version": "1.0.0",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.isRemote": "false",
+  "plugin.commands": [
+    {
+      "name": "expensesTracking",
+      "alias": ["exptra", "expenses"],
+      "description": "Provides multiple possibilities to track your expenses",
+      "jsFunction": "expensesTracking"
+    },
+    {
+      "name": "expensesAggregate",
+      "alias": ["expagg", "expenses"],
+      "description": "Aggregates the tracked expenses of the chosen year to a new expenses aggregated note",
+      "jsFunction": "expensesAggregate"
+    }
+  ],
+  "plugin.preferences": []
+}
