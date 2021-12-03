@@ -1,7 +1,7 @@
 // @flow
 
 import { showMessage } from '../../helpers/userInput'
-import type { ExpenseRow, FixExpenses } from './expensesModels'
+import type { ExpenseRow, FixedExpense } from './expensesModels'
 
 export const extractStringFromMixed = (mixedValue: { [string]: ?mixed }, key: string): string => {
   console.log(mixedValue.hasOwnProperty(key))
@@ -13,8 +13,8 @@ export const extractStringArrayFromMixed = (mixedValue: { [string]: ?mixed }, ke
   return mixedValue.hasOwnProperty(key) ? ((mixedValue[key]: any): string[]) : []
 }
 
-export const extractFixExpensesArrayFromMixed = (mixedValue: { [string]: ?mixed }, key: string): FixExpenses[] => {
-  return mixedValue.hasOwnProperty(key) ? ((mixedValue[key]: any): FixExpenses[]) : []
+export const extractFixedExpensesArrayFromMixed = (mixedValue: { [string]: ?mixed }, key: string): FixedExpense[] => {
+  return mixedValue.hasOwnProperty(key) ? ((mixedValue[key]: any): FixedExpense[]) : []
 }
 
 export const extractExpenseRowFromCsvRow = (row: string): ExpenseRow => {
@@ -22,14 +22,14 @@ export const extractExpenseRowFromCsvRow = (row: string): ExpenseRow => {
   return {
     year: Number(splitted[0]),
     month: Number(splitted[1]),
-    cluster: splitted[2],
+    category: splitted[2],
     text: splitted[3],
     amount: Number(splitted[4]),
   }
 }
 
-export const aggregateClustersPerMonth = (values: ExpenseRow[]): ExpenseRow[] => {
-  const getGroupIdentifier = (row) => `${row.month};${row.cluster}`
+export const aggregateCategoriesPerMonth = (values: ExpenseRow[]): ExpenseRow[] => {
+  const getGroupIdentifier = (row) => `${row.month};${row.category}`
 
   return [ ...values.reduce((sum, row) => {
     const identifier = getGroupIdentifier(row)
@@ -37,7 +37,7 @@ export const aggregateClustersPerMonth = (values: ExpenseRow[]): ExpenseRow[] =>
     const temp = sum.get(identifier) || {
       year: row.year,
       month: row.month,
-      cluster: row.cluster,
+      category: row.category,
       amount: 0,
     }
     temp.amount += row.amount

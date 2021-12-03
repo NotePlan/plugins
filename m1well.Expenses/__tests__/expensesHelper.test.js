@@ -1,28 +1,28 @@
 /* global describe, expect, test, jest */
 
 import {
-  aggregateClustersPerMonth,
+  aggregateCategoriesPerMonth,
   extractExpenseRowFromCsvRow,
-  extractFixExpensesArrayFromMixed,
+  extractFixedExpensesArrayFromMixed,
   extractStringArrayFromMixed,
   logError,
   logMessage
-} from './expensesHelper'
+} from '../src/expensesHelper'
 import 'jest'
 
 const mixed = {
-  clusters: [
+  categories: [
     'Living', 'Media'
   ],
-  fixExpenses: [
+  fixedExpenses: [
     {
-      cluster: 'Living',
+      category: 'Living',
       text: 'Flat Rent',
       amount: 600,
       active: true,
     },
     {
-      cluster: 'Media',
+      category: 'Media',
       text: 'Spotify',
       amount: 10,
       active: true,
@@ -36,15 +36,15 @@ describe('expenses', () => {
     test('should extract string array from mixed config', () => {
       const expectedArray = [ 'Living', 'Media' ]
 
-      const result = extractStringArrayFromMixed(mixed, 'clusters')
+      const result = extractStringArrayFromMixed(mixed, 'categories')
 
       expect(result).toEqual(expectedArray)
     })
 
-    test('should extract FixExpenses array from mixed config', () => {
+    test('should extract FixedExpenses array from mixed config', () => {
       const expectedFlatRentAmount = 600
 
-      const result = extractFixExpensesArrayFromMixed(mixed, 'fixExpenses')
+      const result = extractFixedExpensesArrayFromMixed(mixed, 'fixedExpenses')
 
       const rent = result.filter(exp => exp.text === 'Flat Rent').pop()
       expect(rent.amount).toEqual(expectedFlatRentAmount)
@@ -54,7 +54,7 @@ describe('expenses', () => {
       const expectedExpenseRow = {
         year: 2021,
         month: 11,
-        cluster: 'Living',
+        category: 'Living',
         text: 'Flat Rent',
         amount: 600
       }
@@ -64,25 +64,25 @@ describe('expenses', () => {
       expect(result).toEqual(expectedExpenseRow)
     })
 
-    test('should aggregate clusters per month', () => {
+    test('should aggregate categories per month', () => {
       const data = [
-        { year: 2021, month: 10, cluster: 'Living', text: 'Flat Rent', amount: 670 },
-        { year: 2021, month: 10, cluster: 'Living', text: 'Garage Rent', amount: 70 },
-        { year: 2021, month: 10, cluster: 'Insurances', text: 'Car Insurance', amount: 44 },
-        { year: 2021, month: 11, cluster: 'Living', text: 'Flat Rent', amount: 670 },
-        { year: 2021, month: 11, cluster: 'Living', text: 'Garage Rent', amount: 70 },
-        { year: 2021, month: 11, cluster: 'Insurances', text: 'Car Insurance', amount: 44 },
-        { year: 2021, month: 11, cluster: 'Insurances', text: 'Work Insurance', amount: 30 },
+        { year: 2021, month: 10, category: 'Living', text: 'Flat Rent', amount: 670 },
+        { year: 2021, month: 10, category: 'Living', text: 'Garage Rent', amount: 70 },
+        { year: 2021, month: 10, category: 'Insurances', text: 'Car Insurance', amount: 44 },
+        { year: 2021, month: 11, category: 'Living', text: 'Flat Rent', amount: 670 },
+        { year: 2021, month: 11, category: 'Living', text: 'Garage Rent', amount: 70 },
+        { year: 2021, month: 11, category: 'Insurances', text: 'Car Insurance', amount: 44 },
+        { year: 2021, month: 11, category: 'Insurances', text: 'Work Insurance', amount: 30 },
       ]
 
       const expectedAggregates = [
-        { year: 2021, month: 10, cluster: 'Living', amount: 740 },
-        { year: 2021, month: 10, cluster: 'Insurances', amount: 44 },
-        { year: 2021, month: 11, cluster: 'Living', amount: 740 },
-        { year: 2021, month: 11, cluster: 'Insurances', amount: 74 },
+        { year: 2021, month: 10, category: 'Living', amount: 740 },
+        { year: 2021, month: 10, category: 'Insurances', amount: 44 },
+        { year: 2021, month: 11, category: 'Living', amount: 740 },
+        { year: 2021, month: 11, category: 'Insurances', amount: 74 },
       ]
 
-      const result = aggregateClustersPerMonth(data)
+      const result = aggregateCategoriesPerMonth(data)
 
       expect(result).toEqual(expectedAggregates)
     })

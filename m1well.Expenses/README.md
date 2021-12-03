@@ -1,6 +1,6 @@
 # m1well.Expense Plugin
 
-With this plugin you can write down and store your daily/monthly expenses.
+With this plugin you can write down and store your daily/monthly expenses with an ease.
 This is meant to be used for further analysis.
 
 ## Configuration
@@ -10,12 +10,12 @@ which will be added to the NotePlan `_configuration` on the first usage!
 ### Content
 * `folderPath`
   * Path of the folder for the expenses Notes (if you change the path later on, then you also have to move the note(s)!)
-* `clusters`
-  * Clusters of your expenses, e.g. 'Living', 'Groceries', 'Insurances', 'Media'
+* `categories`
+  * Categories of your expenses, e.g. 'Living', 'Groceries', 'Insurances', 'Media'
 * `shortcuts`
-  * Shortcuts to skip the input of cluster and text
-* `fixExpenses`
-  * Fix expenses in your life e.g. the monthly flat rent, the yearly car insurance or the monthly spotify subscription (which is deactivated in the example for show reasons)
+  * Shortcuts to skip the input of category and text
+* `fixedExpenses`
+  * Fixed expenses in your life e.g. the monthly flat rent, the yearly car insurance or the monthly spotify subscription (which is deactivated in the example for show reasons)
 
 ### Example
 
@@ -23,7 +23,7 @@ which will be added to the NotePlan `_configuration` on the first usage!
 {
   expenses: {
     folderPath: 'finances',
-    clusters: [
+    categories: [
       'Living',
       'Groceries',
       'Insurances',
@@ -35,23 +35,23 @@ which will be added to the NotePlan `_configuration` on the first usage!
       'Mobility;Refuel',
       'Groceries;XYZ Market',
     ],
-    fixExpenses: [
+    fixedExpenses: [
       {
-        cluster: 'Living',
+        category: 'Living',
         text: 'Flat Rent',
         amount: 670,
         month: 0,
         active: true,
       },
       {
-        cluster: 'Insurances',
+        category: 'Insurances',
         text: 'Car Insurance',
         amount: 399,
         month: 1,
         active: true,
       },
       {
-        cluster: 'Media',
+        category: 'Media',
         text: 'Spotify',
         amount: 10,
         month: 0,
@@ -65,7 +65,7 @@ which will be added to the NotePlan `_configuration` on the first usage!
 ## Hints
 * for the sake of simplicity you can't change written lines or add older entries
   * for that you have to add/change/remove the lines manually
-* For reasons of space the shortcuts have to be in the format `cluster;text`
+* For reasons of space the shortcuts have to be in the format `category;text`
 * To avoid problems with separator over different countries, only use integer values please
   (e.g. instead of '9.99' use '10') - the plugin does a `Math.round()` anyways
 * Avoid empty lines in the Note, the plugin does not recognize them
@@ -73,61 +73,60 @@ which will be added to the NotePlan `_configuration` on the first usage!
 ## Commands
 Using the NotePlan Plugin Shortcut `/`
 
-### ->> exptra <<-
+### ->> `/exptra` <<-
 Provides multiple possibilities to track your expenses
 
 #### individual
 1. opens the note `{currentYear} Expenses Tracking` (if note doesn't exist, it gets created)
-2. first popup: choose a cluster from his configuration
+2. first popup: choose a category from his configuration
 3. second popup: enter a special text for the entry
 4. third popup: enter the amount of the expenses
 
 #### shortcuts
-With this mode you can add configured shortcuts to skip the input of cluster and text
+With this mode you can add configured shortcuts to skip the input of category and text
 e.g. for your weekly groceries shopping in the same market or for refuelling the car
 
 1. opens the note `{currentYear} Expenses Tracking` (if note doesn't exist, it gets created)
 2. first popup: choose a shortcut
 3. second popup: enter the amount of the expenses
 
-#### fix
-With this mode you can add fix expenses each month to your Daily Expenses Note
+#### fixed
+With this mode you can add fixed expenses each month to your Daily Expenses Note
 
 1. opens the note `{currentYear} Expenses Tracking` (if note doesn't exist, it gets created)
-2. all fix expenses from the `_configuration` which has attributes set:
+2. all fixed expenses from the `_configuration` which has attributes set:
    * ctive = true
-   * month = current month or 0 (zero is for monthly fix expenses e.g. a flat rent)
+   * month = current month or 0 (zero is for monthly fixed expenses e.g. a flat rent)
 
-### ->> expagg <<-
+### ->> `/expagg` <<-
 Aggregates the tracked expenses of the chosen year to a new expenses aggregated note
 You can do this every time in the year to have a new aggregated view over your expenses
 
 1. first popup: input a year for which tracking note you want to aggregate
 2. opens the note `{chosenYear} Expenses Tracking`
-3. aggregates all the expenses by month and cluster
+3. aggregates all the expenses by month and category
 4. opens the note `{currentYear} Expenses Aggregate`
    * if note doesn't exist, it gets created
    * if it exists, it gets cleared
 
 ## Example Workflow (also for Testing)
 To get a better understanding of the plugin here is an example workflow with dates.
-Let's say we have the fix expenses from the example above.
+Let's say we have the fixed expenses from the example above.
 
 ### Daily Input
 | Date of Tracking | Commmand |
 |:----------:|----------------|
-| 01.01.2021 | `exptra - fix` -> to add fix expenses for January |
+| 01.01.2021 | `exptra - fixed` -> to add fixed expenses for January |
 | 03.01.2021 | `exptra - shortcuts` 'Groceries', 'XYZ Market','89' |
 | 05.01.2021 | `exptra - individual` 'Media', 'Apple TV Movie Rent','4' |
 | 11.01.2021 | `exptra - shortcuts` 'Groceries', 'XYZ Market','105' |
-| 02.01.2021 | `exptra - individual` 'Fun', 'Coffee at Starbucks with Friends','22' |
+| 12.01.2021 | `exptra - individual` 'Fun', 'Coffee at Starbucks with Friends','22' |
 | 19.01.2021 | `exptra - shortcuts` 'Groceries', 'XYZ Market','81' |
 | 20.01.2021 | `exptra - individual` 'Groceries', 'Beverages','55' |
 | 25.01.2021 | `exptra - shortcuts` 'Groceries', 'XYZ Market','77' |
-| 01.02.2021 | `exptra - fix` -> to add fix expenses for February |
+| 01.02.2021 | `exptra - fixed` -> to add fixed expenses for February |
 | 04.02.2021 | `exptra - shortcuts` 'Groceries', 'XYZ Market','89' |
 | ... | ... |
-(for testing just change the month of the last to entries to another month ;))
 
 ### Yearly Note
 This generates following Note:
@@ -144,13 +143,14 @@ This generates following Note:
 2021;01;Groceries;XYZ Market;77
 2021;02;Living;Flat Rent;670
 2021;02;Groceries;XYZ Market;89
+...
 ```
 
 ### Analyses
 * You can put this Note then in Excel and generate e.g. a pivot table
   * to also aggregate the expenses for each month
   * to create some diagrams
-* You can let the plugin aggregate the expenses by month and cluster to have a better overview
+* You can let the plugin aggregate the expenses by month and category to have a better overview
   * this generages following Note: (there you can see e.g. all Groceries in January are aggregated)
 
 ```text

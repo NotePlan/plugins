@@ -2,21 +2,21 @@
 
 export type Config = {
   folderPath: string,
-  clusters: string[],
+  categories: string[],
   shortcuts: string[],
-  fixExpenses: FixExpenses[],
+  fixedExpenses: FixedExpense[],
 }
 
 export type ExpenseRow = {
   year: number,
   month: number,
-  cluster: string,
+  category: string,
   text?: string,
   amount: number,
 }
 
-export type FixExpenses = {
-  cluster: string,
+export type FixedExpense = {
+  category: string,
   text: string,
   amount: number,
   month: number,
