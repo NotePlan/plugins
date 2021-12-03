@@ -29,8 +29,9 @@ export default class DateModule {
   format(format = '', date = '') {
     let dateValue = date.length > 0 ? new Date(date) : new Date()
     if (date.length === 10) {
-      const tempDate = dayjs(new Date(date)).format('MM/DD/YYYY') + ' 11:00 AM'
-      dateValue = new Date(tempDate)
+      const tempDate = moment(date).format('YYYY-MM-DD')
+      // dateValue = this.createDateTime(tempDate)
+      dateValue = tempDate
     }
     if (date instanceof moment) {
       dateValue = new Date(date)
@@ -40,7 +41,7 @@ export default class DateModule {
     const locale = this.config?.locale || 'en-US'
     format = format.length > 0 ? format : configFormat
 
-    let formattedDate = moment(dateValue).format(format)
+    let formattedDate = moment(date).format(format)
 
     if (format === 'short' || format === 'medium' || format === 'long' || format === 'full') {
       formattedDate = new Intl.DateTimeFormat(locale, { dateStyle: format }).format(dateValue)

@@ -147,6 +147,17 @@ module.exports = {
     return pluginCommands
   },
 
+  findPluginByName(name = '') {
+    const commands = this.getPluginCommands('./')
+    let result = null
+    for (const command of commands) {
+      if (command.name.indexOf(name) >= 0) {
+        result = command
+      }
+    }
+    return result
+  },
+
   getProjectRootDirectory() {
     return path.resolve(__dirname, '..', '..', '..')
   },

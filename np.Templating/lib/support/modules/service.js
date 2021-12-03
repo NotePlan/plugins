@@ -55,8 +55,13 @@ export async function getService(templateConfig: any, section: string = '', key:
       return `**invalid section "${section}"**`
     }
 
-    const URL = isURL(section) ? section : serviceConfig[section]
+    let URL = isURL(section) ? section : serviceConfig[section]
+    let dataKey = key
     try {
+      if (typeof URL === 'object') {
+        dataKey = URL.keys
+        URL = URL.url
+      }
       const response: any = await fetch(URL)
       if (!isJson(response)) {
         if (response.indexOf('error') >= 0) {
@@ -67,13 +72,13 @@ export async function getService(templateConfig: any, section: string = '', key:
       }
 
       const data = JSON.parse(response)
-      if (key === '*') {
+      if (dataKey === '*') {
         return formatData(data)
       }
       // $FlowF8ixMe
       let result = ''
-      if (Array.isArray(key)) {
-        key.forEach((item) => {
+      if (Array.isArray(dataKey)) {
+        dataKey.forEach((item) => {
           // $FlowFixMe
           const value = Object.arrayReference(data, item)
           // $FlowFixMe
@@ -86,7 +91,7 @@ export async function getService(templateConfig: any, section: string = '', key:
           return JSON.stringify(data.error, null, 1)
         }
         // $FlowFixMe
-        return Object.arrayReference(data, `${key}`)
+        return Object.arrayReference(data, `${dataKey}`)
       }
     } catch (error) {
       return error

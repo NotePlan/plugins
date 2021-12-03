@@ -1,4 +1,8 @@
-const _ = require('lodash')
+/*-------------------------------------------------------------------------------------------
+ * Copyright (c) 2021 Mike Erickson / Codedungeon.  All rights reserved.
+ * Licensed under the MIT license.  See LICENSE in the project root for license information.
+ * -----------------------------------------------------------------------------------------*/
+
 const colors = require('chalk')
 const Table = require('cli-table3')
 const { print, helpers } = require('@codedungeon/gunner')
@@ -78,10 +82,10 @@ module.exports = {
     const tableItems = []
 
     if (check && check.length > 0) {
-      const result = _.findIndex(commands, { name: check })
-
-      if (result >= 0) {
-        toolbox.print.error(` 🚫 '${check}' exists in ${commands[result].pluginName}.`)
+      const pluginNames = ''
+      const plugin = pluginUtils.findPluginByName(check)
+      if (plugin) {
+        toolbox.print.error(` 🚫 '${check}' exists in ${plugin.pluginName} [${plugin.pluginId}].`)
       } else {
         toolbox.print.success(
           ` ✅ '${check}' is currently not used by any NotePlan plugin and can be used in your plugin.`,
