@@ -5,9 +5,9 @@ import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configura
 import { leftPadWithZeros } from '../../helpers/general'
 import { inputNumber } from '../../helpers/userInput'
 import {
-  aggregateClustersPerMonth,
+  aggregateCategoriesPerMonth,
   extractExpenseRowFromCsvRow,
-  extractFixExpensesArrayFromMixed,
+  extractFixedExpensesArrayFromMixed,
   extractStringArrayFromMixed,
   extractStringFromMixed,
   logError,
@@ -17,13 +17,13 @@ import type { Config, ExpenseRow } from './expensesModels'
 
 const CONFIG_KEYS = {
   folderPath: 'folderPath',
-  clusters: 'clusters',
+  categories: 'categories',
   shortcuts: 'shortcuts',
-  fixExpenses: 'fixExpenses',
+  fixedExpenses: 'fixedExpenses',
 }
 
 const TRACKING_MODE = [
-  'Individual', 'Shortcuts', 'Fix'
+  'Individual', 'Shortcuts', 'Fixed'
 ]
 
 // if there is no config in the '_configuration' file, then provide an example config
@@ -34,8 +34,8 @@ const EXAMPLE_CONFIG = `
   expenses: {
     // just an example folderPath - please adapt to your needs
     ${CONFIG_KEYS.folderPath}: 'finances',
-    // just some example clusters - please adapt to your needs
-    ${CONFIG_KEYS.clusters}: [
+    // just some example categories - please adapt to your needs
+    ${CONFIG_KEYS.categories}: [
       'Living',
       'Groceries',
       'Insurances',
@@ -48,24 +48,24 @@ const EXAMPLE_CONFIG = `
       'Mobility;Refuel',
       'Groceries;XYZ Market',
     ],
-    // just some example fix expenses - please adapt to your needs
-    ${CONFIG_KEYS.fixExpenses}: [
+    // just some example fixed expenses - please adapt to your needs
+    ${CONFIG_KEYS.fixedExpenses}: [
       {
-        cluster: 'Living',
+        category: 'Living',
         text: 'Flat Rent',
         amount: 670,
         month: 0,
         active: true,
       },
       {
-        cluster: 'Insurances',
+        category: 'Insurances',
         text: 'Car Insurance',
         amount: 399,
         month: 1,
         active: true,
       },
       {
-        cluster: 'Media',
+        category: 'Media',
         text: 'Spotify',
         amount: 9.99,
         month: 0,
@@ -77,7 +77,7 @@ const EXAMPLE_CONFIG = `
 `
 
 /**
- * @description expenses tracking with three posibilities (individual, shortcuts, fix)
+ * @description expenses tracking with three posibilities (individual, shortcuts, fixed)
  * @returns {Promise<boolean>}
  */
 const expensesTracking = async (): Promise<boolean> => {
@@ -88,9 +88,9 @@ const expensesTracking = async (): Promise<boolean> => {
 
   const { year, month } = getYearMonthDate(new Date())
 
-  if (config.clusters.length < 1) {
-    // if there are no clusters configured, then stop
-    logError('no clusters configured')
+  if (config.categories.length < 1) {
+    // if there are no categories configured, then stop
+    logError('no categories configured')
     return false
   }
 
@@ -108,7 +108,7 @@ const expensesTracking = async (): Promise<boolean> => {
     case TRACKING_MODE[1]:
       return shortcutsTracking(config, year, month, noteTitle)
     case TRACKING_MODE[2]:
-      return fixTracking(config, year, month, noteTitle)
+      return fixedTracking(config, year, month, noteTitle)
     default:
       return false
   }
@@ -140,7 +140,7 @@ const expensesAggregate = async (): Promise<boolean> => {
     return false
   }
 
-  trackingData = aggregateClustersPerMonth(trackingData)
+  trackingData = aggregateCategoriesPerMonth(trackingData)
 
   const noteTitleAggregate = `${year} Expenses Aggregate`
   if (!await provideAndCheckNote(noteTitleAggregate, config.folderPath, true)) {
@@ -154,7 +154,7 @@ const expensesAggregate = async (): Promise<boolean> => {
     // add results
     trackingData.forEach(res => {
       if (res.year) {
-        const line = `${year};${leftPadWithZeros(res.month, 2)};${res.cluster};${Math.round(res.amount)}`
+        const line = `${year};${leftPadWithZeros(res.month, 2)};${res.category};${Math.round(res.amount)}`
         Editor.appendParagraph(line, 'text')
       }
     })
@@ -169,18 +169,18 @@ const expensesAggregate = async (): Promise<boolean> => {
  * @private
  */
 const individualTracking = async (config: Config, year: number, month: number, noteTitle: string): Promise<boolean> => {
-  const cluster = await CommandBar.showOptions(config.clusters, 'Please choose cluster')
+  const category = await CommandBar.showOptions(config.categories, 'Please choose category')
   const text = await CommandBar.showInput('Please type in some text (no semicolon)', 'Add text to expenses line')
   const amount = await inputNumber('Please type in amount (only integer numbers)')
 
-  if (!cluster || !text || isNaN(amount)) {
+  if (!category || !text || isNaN(amount)) {
     // if user missed some input, then stop
     logError('an input was missing')
     return false
   }
 
   await Editor.openNoteByTitle(noteTitle)
-  const line = `${year};${leftPadWithZeros(month, 2)};${cluster.value};${text};${Math.round(amount)}`
+  const line = `${year};${leftPadWithZeros(month, 2)};${category.value};${text};${Math.round(amount)}`
   Editor.appendParagraph(line, 'text')
 
   return true
@@ -211,14 +211,13 @@ const shortcutsTracking = async (config: Config, year: number, month: number, no
 /**
  * @private
  */
-const fixTracking = async (config: Config, year: number, month: number, noteTitle: string): Promise<boolean> => {
+const fixedTracking = async (config: Config, year: number, month: number, noteTitle: string): Promise<boolean> => {
   await Editor.openNoteByTitle(noteTitle)
-  config.fixExpenses
+  config.fixedExpenses
     .filter(exp => exp.active && (exp.month === 0 || exp.month === Number(month)))
     .forEach(exp => {
-      const line = `${year};${leftPadWithZeros(month, 2)};${exp.cluster};${exp.text};${Math.round(exp.amount)}`
+      const line = `${year};${leftPadWithZeros(month, 2)};${exp.category};${exp.text};${Math.round(exp.amount)}`
       Editor.appendParagraph(line, 'text')
-      console.log('--- aa')
     })
 
   return true
@@ -237,17 +236,17 @@ const provideConfig = (): Promise<Config> => {
         logError('exptected config could not be found in the _configuration file')
         return {
           folderPath: '',
-          clusters: [],
+          categories: [],
           shortcuts: [],
-          fixExpenses: []
+          fixedExpenses: []
         }
       } else {
-        logMessage(`loaded config >>${JSON.stringify(result)}<<`)
+        logMessage(`loaded config\n${JSON.stringify(result)}\n`)
         const config: Config = {
           folderPath: extractStringFromMixed(result, CONFIG_KEYS.folderPath),
-          clusters: extractStringArrayFromMixed(result, CONFIG_KEYS.clusters),
+          categories: extractStringArrayFromMixed(result, CONFIG_KEYS.categories),
           shortcuts: extractStringArrayFromMixed(result, CONFIG_KEYS.shortcuts),
-          fixExpenses: extractFixExpensesArrayFromMixed(result, CONFIG_KEYS.fixExpenses),
+          fixedExpenses: extractFixedExpensesArrayFromMixed(result, CONFIG_KEYS.fixedExpenses),
         }
         return config
       }
@@ -294,11 +293,20 @@ const provideAndCheckNote = async (noteTitle: string,
  */
 const checkDataQualityBeforeAggregate = (rows: ExpenseRow[], year: number, config: Config): boolean => {
   for (const row of rows) {
-    if (row.year !== year
-      || (Number(row.month) < 1 || Number(row.month) > 12)
-      || (!row.cluster || config.clusters.findIndex(cl => cl === row.cluster) === -1)
-      || (isNaN(row.amount) || row.amount < 0)) {
-      logError(`Error at: ${row.year};${row.month};${row.cluster};${row.text ?? ''};${row.amount}`)
+    if (row.year !== year) {
+      logError(`year at: ${leftPadWithZeros(row.month, 2)};${row.category};${row.text ?? ''};${row.amount}`)
+      return false
+    }
+    if (Number(row.month) < 1 || Number(row.month) > 12) {
+      logError(`month at: ${leftPadWithZeros(row.month, 2)};${row.category};${row.text ?? ''};${row.amount}`)
+      return false
+    }
+    if (!row.category || config.categories.findIndex(cl => cl === row.category) === -1) {
+      logError(`category not found at: ${leftPadWithZeros(row.month, 2)};${row.category};${row.text ?? ''};${row.amount}`)
+      return false
+    }
+    if (isNaN(row.amount) || row.amount < 0) {
+      logError(`amount at: ${leftPadWithZeros(row.month, 2)};${row.category};${row.text ?? ''};${row.amount}`)
       return false
     }
   }
