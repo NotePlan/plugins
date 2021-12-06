@@ -33,7 +33,7 @@ import type {
 } from './timeblocking-flow-types'
 
 /**
- * Create a map of the time intervals for the day
+ * Create a map of the time intervals for a portion of day
  * @param {*} start
  * @param {*} end
  * @param {*} valueToSet
@@ -65,7 +65,7 @@ export function getBlankDayMap(intervalMins: number): IntervalMap {
 export function removeDateTagsAndToday(tag: string): string {
   return removeDateTags(tag)
     .replace(/>today/, '')
-    .replace(/  /gm, ' ')
+    .replace(/ {2,}/gm, ' ')
     .trim()
 }
 
@@ -476,4 +476,17 @@ export function getTimeBlockTimesForEvents(
     )
   }
   return newInfo
+}
+
+export function includeTasksWithPatterns(tasks: Array<TParagraph>, pattern: string | Array<string>): Array<TParagraph> {
+  if (Array.isArray(pattern)) {
+    return tasks.filter((t) => pattern.some((p) => t.content.match(p)))
+  }
+  return tasks.filter((t) => t.content.match(pattern))
+}
+
+export function excludeTasksWithPatterns(tasks: Array<TParagraph>, pattern: string | Array<string>): Array<TParagraph> {
+  return tasks.filter((task) => {
+    return !task.content.match(pattern)
+  })
 }

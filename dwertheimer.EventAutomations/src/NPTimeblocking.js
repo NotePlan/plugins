@@ -2,6 +2,8 @@
 
 /**
  * WHERE AM I?
+ * TODO: update docs for limittotags, presets
+ * impolement limitToTags[] but make it a textfilter regex
  */
 import {
   differenceInCalendarDays,
@@ -23,10 +25,9 @@ import {
 } from '../../helpers/dateTime'
 import { getTasksByType } from '../../dwertheimer.TaskAutomations/src/taskHelpers'
 import { sortListBy } from '../../helpers/sorting'
-import { showMessage } from '../../helpers/userInput'
+import { showMessage, chooseOption } from '../../helpers/userInput'
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 import { isTimeBlockLine, getTimeBlockString } from '../../helpers/timeblocks'
-import { validateConfigProperties } from '../../helpers/config'
 import { calcSmartPrependPoint } from '../../helpers/paragraph'
 import { logAllPropertyNames, getAllPropertyNames, JSP } from '../../helpers/dev'
 import {
@@ -43,8 +44,11 @@ import {
   getTimeBlockTimesForEvents,
   makeAllItemsTodos,
   keepTodayPortionOnly,
+  includeTasksWithPatterns,
+  excludeTasksWithPatterns,
 } from './timeblocking-helpers'
-
+import { getPresetOptions, setConfigForPreset } from './presets'
+import { getTimeBlockingDefaults, validateTimeBlockConfig } from './config'
 import type { IntervalMap, TimeBlockDefaults, PartialCalendarItem, EditorOrNote } from './timeblocking-flow-types'
 
 const PLUGIN_ID = 'autoTimeBlocking'
@@ -64,68 +68,22 @@ const PLUGIN_ID = 'autoTimeBlocking'
   ): TCalendarItem, 
 */
 
-export function getTimeBlockingDefaults(): { [key: string]: any } {
-  return {
-    todoChar: '-' /* character at the front of a timeblock line - can be *,-,or a heading, e.g. #### */,
-    timeBlockTag: `#🕑` /* placed at the end of the timeblock to show it was created by this plugin */,
-    timeBlockHeading: 'Time Blocks' /* if this heading exists in the note, timeblocks will be placed under it */,
-    workDayStart: '08:00' /* needs to be in 24 hour format (two digits, leading zero) */,
-    workDayEnd: '18:00' /* needs to be in 24 hour format (two digits, leading zero) */,
-    durationMarker:
-      "'" /* signifies how long a task is, e.g. apostrophe: '2h5m or use another character, e.g. tilde: ~2h5m */,
-    intervalMins: 5 /* inverval on which to calculate time blocks */,
-    removeDuration: true /* remove duration when creating timeblock text */,
-    defaultDuration: 15 /* default duration of a task that has no duration/end time */,
-    mode: 'PRIORITY_FIRST' /* 'PRIORITY_FIRST' or 'LARGEST_FIRST' */,
-    allowEventSplits: false /* allow tasks to be split into multiple timeblocks */,
-    insertIntoEditor: true /* insert timeblocks into the editor */,
-    passBackResults: false /* pass back the results to the caller (e.g. for template calls) */,
-    createCalendarEntries: false /* create calendar entries for the timeblocks */,
-    eventEnteredOnCalTag: '#event_created' /* needs to match @jgclark config/events/processedTagName */,
-    deletePreviousCalendarEntries:
-      false /* before creating new calendar entries, delete previous calendar entries for the timeblocks; 
-               to keep a calendar entry around, just remove the timeBlockTag */,
-    /* OPTIONAL: nowStrOverride: "00:00" for testing, e.g. '00:00' */
-  }
-}
-
-export function validateTimeBlockConfig(config: { [key: string]: any }): { [key: string]: any } {
-  const configTypeCheck = {
-    todoChar: /^(?!(?:.*\*){2})[\*|\-|#{1,}]+$/,
-    timeBlockTag: 'string',
-    timeBlockHeading: /^[^#+].*/,
-    workDayStart: /^\d{2}:\d{2}$/,
-    workDayEnd: /^\d{2}:\d{2}$/,
-    durationMarker: 'string',
-    intervalMins: 'number',
-    removeDuration: 'boolean',
-    defaultDuration: 'number',
-    mode: 'string',
-    allowEventSplits: 'boolean',
-    insertIntoEditor: 'boolean',
-    passBackResults: 'boolean',
-    createCalendarEntries: 'boolean',
-    deletePreviousCalendarEntries: 'boolean',
-    eventEnteredOnCalTag: 'string',
-    nowStrOverride: { type: /^\d{2}:\d{2}$/, optional: true },
-  }
-  try {
-    // $FlowIgnore
-    const validatedConfig = validateConfigProperties(config, configTypeCheck)
-    return validatedConfig
-  } catch (error) {
-    showMessage(`${error}. Using defaults.`)
-    console.error(
-      `NPTimeblocking::validateTimeBlockConfig: ${String(error)}\nInvalid config:\n${JSON.stringify(config)}`,
-    )
-    return getTimeBlockingDefaults()
-  }
-}
-
 export async function getConfig(): Promise<{ [key: string]: any }> {
   const defaultConfig = getTimeBlockingDefaults()
   // $FlowIgnore
-  return await getOrMakeConfigurationSection(PLUGIN_ID, `${PLUGIN_ID}: ${JSON.stringify(defaultConfig, null, 2)},\n`)
+  const config = await getOrMakeConfigurationSection(
+    PLUGIN_ID,
+    `${PLUGIN_ID}: ${JSON.stringify(defaultConfig, null, 2)},\n`,
+  )
+  try {
+    // $FlowIgnore
+    validateTimeBlockConfig(config)
+    // $FlowIgnore
+    return config
+  } catch (error) {
+    showMessage(error)
+    return defaultConfig
+  }
 }
 
 // $FlowIgnore
@@ -267,6 +225,8 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: an
     passBackResults,
     deletePreviousCalendarEntries,
     eventEnteredOnCalTag,
+    includeTasksWithText,
+    excludeTasksWithText,
   } = config
   const date = getTodaysDateUnhyphenated()
   const note = Editor // placeholder. we may pass a note in future revs
@@ -274,7 +234,13 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: an
 
   if (dateStr && dateStr === date) {
     const backlinkParas = getTodaysReferences()
-    const todosParagraphs = makeAllItemsTodos(backlinkParas) //some items may not be todos but we want to pretend they are and timeblock for them
+    let todosParagraphs = makeAllItemsTodos(backlinkParas) //some items may not be todos but we want to pretend they are and timeblock for them
+    todosParagraphs = includeTasksWithText
+      ? includeTasksWithPatterns(todosParagraphs, includeTasksWithText)
+      : todosParagraphs
+    todosParagraphs = excludeTasksWithText
+      ? excludeTasksWithPatterns(todosParagraphs, excludeTasksWithText)
+      : todosParagraphs
     const cleanTodayTodoParas = removeDateTagsFromArray(todosParagraphs)
     const tasksByType = cleanTodayTodoParas.length ? getTasksByType(cleanTodayTodoParas) : null // puts in object by type of task and enriches with sort info (like priority)
     if (deletePreviousCalendarEntries) {
@@ -314,5 +280,26 @@ export async function insertTodosAsTimeblocks(note: TNote): Promise<void> {
   const config = await getConfig()
   if (config) {
     await createTimeBlocksForTodaysTasks(config)
+  }
+}
+
+export async function insertTodosAsTimeblocksWithPresets(note: TNote): Promise<void> {
+  await Editor.openNoteByDate(new Date(), false) //open editor to today
+  let config = await getConfig()
+  if (config) {
+    if (config.presets && config.presets.length) {
+      const options = getPresetOptions(config.presets)
+      const presetIndex = await chooseOption('Choose an AutoTimeBlocking Preset:', options, -1)
+      const overrides = config.presets[presetIndex]
+      config = setConfigForPreset(config, overrides)
+      try {
+        validateTimeBlockConfig(config) //  check to make sure the overrides were valid
+      } catch (error) {
+        showMessage(error)
+      }
+      await createTimeBlocksForTodaysTasks(config)
+    } else {
+      await showMessage('No presets found. Please read docs.')
+    }
   }
 }
