@@ -1,5 +1,9 @@
 # m1well.Expenses Plugin Changelog
 
+## [1.2.0] - 2021-12-06 (@m1well)
+### Changed
+* trim input from user for the text @individual tracking
+
 ## [1.1.0] - 2021-12-03 (@m1well)
 ### Changed
 * changed exception handling for aggregation quality check

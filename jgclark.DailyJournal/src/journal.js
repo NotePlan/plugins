@@ -5,7 +5,7 @@
 // last update v0.9.0, 25.11.2021 by @jgclark/@m1well
 //--------------------------------------------------------------------------------------------------------------------
 
-import { isInt, showMessage } from '../../helpers/userInput'
+import { getInputTrimmed, isInt, showMessage } from '../../helpers/userInput'
 import { displayTitle } from '../../helpers/general'
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 import { applyNamedTemplate } from '../../nmn.Templates/src/index'
@@ -132,7 +132,7 @@ export async function dayReview(): Promise<void> {
     console.log(`\t${i}: ${question[i]} / ${questionType[i]}`)
     switch (questionType[i]) {
       case 'int': {
-        const reply = await CommandBar.showInput(questionType[i], `${question[i]}: %@`)
+        const reply = await getInputTrimmed(questionType[i], `${question[i]}: %@`)
         if (reply != null && isInt(reply)) {
           if (questionLines[i].startsWith('-')) {
             reviewLine = `- ${reply}`
@@ -145,7 +145,7 @@ export async function dayReview(): Promise<void> {
         break
       }
       case 'number': {
-        const reply = await CommandBar.showInput(questionType[i], `${question[i]}: %@`)
+        const reply = await getInputTrimmed(questionType[i], `${question[i]}: %@`)
         if (reply != null && Number(reply)) {
           if (questionLines[i].startsWith('-')) {
             reviewLine = `- ${reply}`
@@ -158,7 +158,7 @@ export async function dayReview(): Promise<void> {
         break
       }
       case 'string': {
-        const replyString = await CommandBar.showInput(questionType[i], `${question[i]}: %@`)
+        const replyString = await getInputTrimmed(questionType[i], `${question[i]}: %@`)
         if (replyString != null && replyString !== '') {
           if (questionLines[i].startsWith('-')) {
             reviewLine = `- ${replyString}`
@@ -198,4 +198,5 @@ export async function dayReview(): Promise<void> {
   // If sectionHeading isn't present then it lands up writing '# ## Heading'
   // FIXME(@EduardMe): a bug in the API
   Editor.addParagraphBelowHeadingTitle(output, 'empty', pref_reviewSectionHeading, true, true)
+
 }

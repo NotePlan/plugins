@@ -3,7 +3,7 @@
 import { getYearMonthDate } from '../../helpers/dateTime'
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 import { leftPadWithZeros } from '../../helpers/general'
-import { inputNumber } from '../../helpers/userInput'
+import { getInputTrimmed, inputNumber } from '../../helpers/userInput'
 import {
   aggregateCategoriesPerMonth,
   extractExpenseRowFromCsvRow,
@@ -170,7 +170,7 @@ const expensesAggregate = async (): Promise<boolean> => {
  */
 const individualTracking = async (config: Config, year: number, month: number, noteTitle: string): Promise<boolean> => {
   const category = await CommandBar.showOptions(config.categories, 'Please choose category')
-  const text = await CommandBar.showInput('Please type in some text (no semicolon)', 'Add text to expenses line')
+  const text = await getInputTrimmed('Please type in some text (no semicolon)', 'Add text to expenses line')
   const amount = await inputNumber('Please type in amount (only integer numbers)')
 
   if (!category || !text || isNaN(amount)) {

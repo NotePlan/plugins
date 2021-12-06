@@ -335,3 +335,16 @@ export async function inputMood(moodArray: Array<string>): Promise<string> {
     console.log('\tERROR trying to get mood answer')
   }
 }
+
+/**
+ * @description get trimmed userinput
+ * @author @m1well
+ *
+ * @param placeholder value to display a question
+ * @param submitText describe what happens with the input
+ * @returns {Promise<string>} value input from the user
+ */
+export const getInputTrimmed = async (placeholder: string, submitText: string): Promise<string> => {
+  const reply = await CommandBar.showInput(placeholder, submitText)
+  return reply.trim()
+}

@@ -1,6 +1,10 @@
 # What's changed in ☀️ Daily Journal Plugin?
 
-## [0.9.0] - 2021-11-25
+## [0.10.0] - 2021-11-25 (@m1well)
+### Changed
+- trim input from user for the text @dayReview
+
+## [0.9.0] - 2021-11-25  (@m1well)
 ### Added
 - it is now possible to add `<subheading>`s in the review questions string
 - you can also add bullet points
