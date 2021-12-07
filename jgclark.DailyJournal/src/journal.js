@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------------------------------------------------
 // Daily Journal plugin for NotePlan
 // Jonathan Clark
-// last update v0.9.0, 25.11.2021 by @jgclark/@m1well
+// last update v0.10.0, 07.12.2021 by @jgclark/@m1well
 //--------------------------------------------------------------------------------------------------------------------
 
 import { isInt, showMessage } from '../../helpers/userInput'
@@ -13,16 +13,18 @@ import { applyNamedTemplate } from '../../nmn.Templates/src/index'
 //--------------------------------------------------------------------------------------------------------------------
 // Settings
 const DEFAULT_JOURNAL_OPTIONS = `  dailyJournal: {
-    reviewSectionHeading: "Journal",
-    moods: "🤩 Great,🙂 Good,😇 Blessed,🥱 Tired,😫 Stressed,😤 Frustrated,😔 Low,🥵 Sick,Other",
-    reviewQuestions: "@sleep(<number>)\\n@work(<number>)\\n@fruitveg(<int>)\\nMood:: <mood>\\nExercise:: <string>\\nGratitude:: <string>\\nGod was:: <string>\\nAlive:: <string>\\nNot Great:: <string>\\nWife:: <string>\\nRemember:: <string>"
+    nameOfDailyNoteTemplate: 'Daily Note Template',
+    reviewSectionHeading: 'Journal',
+    moods: '🤩 Great,🙂 Good,😇 Blessed,🥱 Tired,😫 Stressed,😤 Frustrated,😔 Low,🥵 Sick,Other',
+    reviewQuestions: '@sleep(<number>)\\n@work(<number>)\\n@fruitveg(<int>)\\nMood:: <mood>\\nExercise:: <string>\\nGratitude:: <string>\\nGod was:: <string>\\nAlive:: <string>\\nNot Great:: <string>\\nWife:: <string>\\nRemember:: <string>'
   },
 `
 const MINIMUM_JOURNAL_OPTIONS = {
   reviewQuestions: 'string',
 }
 
-const pref_templateTitle = 'Daily Note Template' // fixed
+const defaultTemplateTitle = 'Daily Note Template'
+let pref_templateTitle: string
 let pref_reviewSectionHeading: string
 let pref_moodArray: Array<string>
 
@@ -54,6 +56,29 @@ export async function dayStart(today: boolean = false): Promise<void> {
       return
     }
   }
+
+  // Get config settings from Template folder _configuration note
+  const journalConfig = await getOrMakeConfigurationSection(
+    'dailyJournal',
+    DEFAULT_JOURNAL_OPTIONS,
+    MINIMUM_JOURNAL_OPTIONS,
+  )
+  // console.log(JSON.stringify(journalConfig))
+  if (journalConfig == null
+    || Object.keys(journalConfig).length === 0) // this is how to check for empty object
+  {
+    console.log('\tWarning: Cannot find suitable \'dailyJournal\' settings in Templates/_configuration note. Stopping.')
+    await showMessage(
+      'Cannot find \'dailyJournal\' settings in _configuration.',
+      'Yes, I\'ll check my _configuration settings.',
+    )
+    return
+  }
+
+  pref_templateTitle = (journalConfig?.nameOfDailyNoteTemplate != null)
+    ? String(journalConfig?.nameOfDailyNoteTemplate)
+    : defaultTemplateTitle
+
   await applyNamedTemplate(pref_templateTitle)
 }
 
