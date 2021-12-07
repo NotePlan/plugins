@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Commands for Reviewing project-style notes, GTD-style.
 // by @jgclark
-// v0.4.3, 24.10.2021
+// v0.4.4, 7.12.2021
 //-----------------------------------------------------------------------------
 
 // Settings
@@ -71,7 +71,7 @@ export async function getConfig(): Promise<void> {
     // $FlowFixMe -- don't know how to make this array not just object
     pref_noteTypeTags = reviewConfig.noteTypeTags
   }
-  // console.log(pref_noteTypeTags.toString())
+  console.log(pref_noteTypeTags.toString())
   if (reviewConfig.folderToStore != null &&
     typeof reviewConfig.folderToStore === 'string') {
     pref_folderToStore = reviewConfig.folderToStore
@@ -102,10 +102,10 @@ export async function getConfig(): Promise<void> {
 //-------------------------------------------------------------------------------
 // Create human-readable lists of project notes for each tag of interest
 export async function projectLists(): Promise<void> {
-  getConfig()
-  console.log(`\nprojectLists():`)
+  await getConfig()
+  console.log(`\nprojectLists() for ${pref_noteTypeTags.toString()} tags:`)
 
-  if (pref_noteTypeTags != null && pref_noteTypeTags.length > 0) {
+  if (pref_noteTypeTags.length > 0) {
     // We have defined tag(s) to filter and group by
     // $FlowFixMe[incompatible-type]
     for (const tag of pref_noteTypeTags) {
@@ -161,7 +161,7 @@ export async function projectLists(): Promise<void> {
 // ordered by oldest next review date
 // V2, using reviewList pref
 export async function startReviews() {
-  getConfig()
+  await getConfig()
   // Get or make _reviews note
   // const reviewsNote: ?TNote = await getOrMakeNote(reviewListNoteTitle, pref_folderToStore)
   // if (reviewsNote == null) {
@@ -475,6 +475,7 @@ export async function completeReview(): Promise<?TNote> {
   return Editor.note
 }
 
+//-------------------------------------------------------------------------------
 // To help transition from the previous method which used a machine-readable
 // file '_reviews' for persistent storage, this will remove it if found.
 // TODO: remove this after some months, as no longer needed
