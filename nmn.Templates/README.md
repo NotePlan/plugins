@@ -45,15 +45,15 @@ Weather: 🌧️ Moderate rain 14/19°C
 - `{{date({locale: 'sv-SE', dateStyle: 'short'})}}` -- Date borrowing the Swedish "Locale" yields ISO-8601 date like `2021-06-21`
 - `{{date8601()}}` -- ISO-8601 date like `2021-06-21` (shorter tag, no options)
 - `{{formattedDateTime({format: '%Y-%m-%d %I:%M:%S %P'})}}` -- date/time now using [strftime](https://www.strfti.me/) format (pass the version you want)
--  `{{weekDates({weekStartsOn:1, format:`'EEE yyyy-MM-dd'})}} -- get the span of this week (e.g. "Mon 2021-08-30 - Sun 2021-09-05" -- mon-sun by default) //see below and [date-fns format](https://date-fns.org/v2.23.0/docs/format)
--  `{{datePicker({question:'Enter date for X'})}}` -- Asks user for a date in YYYY-MM-DD format. If no question parameter is specified a default is used.
--  `{{pickDateInterval({question:'Enter date interval for X'})}}` -- Asks user for a date interval, specified as `nn[bdwmqy]`. For more details of this see [Repeat Extensions plugin(https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions/). If no question parameter is specified a default is used.
+- `{{weekDates({weekStartsOn:1, format:`'EEE yyyy-MM-dd'})}} -- get the span of this week (e.g. "Mon 2021-08-30 - Sun 2021-09-05" -- mon-sun by default) //see below and [date-fns format](https://date-fns.org/v2.23.0/docs/format)
+- `{{datePicker({question:'Enter date for X'})}}` -- Asks user for a date in YYYY-MM-DD format. If no question parameter is specified a default is used.
+- `{{pickDateInterval({question:'Enter date interval for X'})}}` -- Asks user for a date interval, specified as `nn[bdwmqy]`. For more details of this see [Repeat Extensions plugin(https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions/). If no question parameter is specified a default is used.
 - `{{quote()}}` -- Pulls and insert a random quote into your note (requires configuration)
 - `{{sweepTasks()}}` -- Pulls open tasks from previous Project Notes and calendar notes and inserts them in the place of the tag
 - `{{events()}}` or `{{listTodaysEvents()}}` -- insert list of this day's calendar events (requires configuration)
 - `{{matchingEvents()}}` or `{{listMatchingEvents()}}` -- insert list of this day's calendar events matching user-defined hashtags (requires configuration)
-- {{affirmation()}} - get a random affirmation from [Affirmations.dev](https://www.affirmations.dev/)
-- {{advice()}} - get a random bit of advice from [AdviceSlip](https://api.adviceslip.com/advice)
+- `{{affirmation()}}` -- get a random affirmation from [Affirmations.dev](https://www.affirmations.dev/)
+- `{{advice()}}` -- get a random bit of advice from [AdviceSlip](https://api.adviceslip.com/advice)
 
 Most naturally require some configuration before they're useful. These details live in the `_configuration` note in NotePlan's `📋 Templates` folder.
 
@@ -66,12 +66,17 @@ The first time you run the command, it will insert various fields into your `Tem
 ```jsonc
 {
   ...
-	weather: {
-		openWeatherAPIKey: "<secret>", // you need to get your own API key from https://openweathermap.org/
-  		latPosition: "51.3", // use your own latitude as a decimal
-  		longPosition: "-1.0", // use your own longitude as a decimal
-  		openWeatherUnits: "metric", // or "imperial"
-	}
+  weather: {
+    // API key for https://openweathermap.org/
+    openWeatherAPIKey: '... put your API key here ...', // !!REQUIRED!!
+    // Required location for weather forecast
+    latPosition: 0.0,  // !!REQUIRED!!
+    longPosition: 0.0, // !!REQUIRED!!
+    // Default units. Can be 'metric' (for Celsius), or 'imperial' (for Fahrenheit)
+    openWeatherUnits: 'metric',
+    // Choose your language (default is 'en') - for more languages look at the api description
+    openWeatherLanguage: 'en',
+  },
   ...
 }
 ```

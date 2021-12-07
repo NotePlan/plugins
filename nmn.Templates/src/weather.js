@@ -5,12 +5,13 @@
 //   with await Location.current() and has a 
 //   Location.reverseGeocode(latitude, longitude) field -> postal town etc.
 
-import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
-import { getTagParamsFromString, stringReplace, capitalize } from '../../helpers/general'
+import { capitalize, getTagParamsFromString, stringReplace } from '../../helpers/general'
+import { getOrMakeConfigurationSection } from './configuration'
 
 //------------------------------------------------------------------------------
 // Preference Settings
-const DEFAULT_WEATHER_CONFIG = `// configuration for weather data (used in Daily Note Template, for example)
+const DEFAULT_WEATHER_CONFIG = `
+  // configuration for weather data (used in Daily Note Template, for example)
   weather: {
     // API key for https://openweathermap.org/
     openWeatherAPIKey: '... put your API key here ...', // !!REQUIRED!!
@@ -19,6 +20,8 @@ const DEFAULT_WEATHER_CONFIG = `// configuration for weather data (used in Daily
     longPosition: 0.0, // !!REQUIRED!!
     // Default units. Can be 'metric' (for Celsius), or 'imperial' (for Fahrenheit)
     openWeatherUnits: 'metric',
+    // Choose your language (default is 'en') - for more languages look at the api description
+    openWeatherLanguage: 'en',
   },
 `
 
@@ -30,7 +33,7 @@ const MINIMUM_WEATHER_CONFIG = {
 }
 
 //------------------------------------------------------------------------------
-/** 
+/**
  * Get summary of today's weather in a line, using
  * https://openweathermap.org/api/one-call-api#data, for which you can get a free API key
  * @author @jgclark, with customisation by @dwertheimer
@@ -74,15 +77,16 @@ export async function getWeatherSummary(
   // Get config settings from Template folder _configuration note
   // $FlowIgnore[incompatible-type]
   console.log(`\tWeather settings are ${JSON.stringify(weatherConfig)}`)
-  if (weatherConfig == null) {
+  if (weatherConfig == null || Object.keys(weatherConfig).length === 0) {
     console.log(
       "Cannot find 'weather' settings in Templates/_configuration note.",
     )
     return "Error: Cannot find 'weather' settings in Templates/_configuration note."
   }
 
-  const { openWeatherAPIKey, latPosition, longPosition, openWeatherUnits } =
-    weatherConfig
+  // Extract data from weather config
+  const { openWeatherAPIKey, latPosition, longPosition, openWeatherUnits, openWeatherLanguage } = weatherConfig
+
   // $FlowIgnore[incompatible-use]
   if (openWeatherAPIKey !== null && !openWeatherAPIKey?.match(/[a-f0-9]{32}/)) {
     console.log(
@@ -90,6 +94,9 @@ export async function getWeatherSummary(
     )
     return "Error: Cannot find a valid API Key 'weather' settings in Templates/_configuration note."
   }
+
+  // default language 'en' to be downward compatible
+  const lang = openWeatherLanguage ?? 'en'
 
   const getWeatherURL = `https://api.openweathermap.org/data/2.5/onecall?lat=${encodeURIComponent(
     // $FlowFixMe
@@ -99,7 +106,9 @@ export async function getWeatherSummary(
     // $FlowFixMe
     }&exclude=current,hourly,minutely&units=${encodeURIComponent(openWeatherUnits)
     // $FlowFixMe
-    }&appid=${encodeURIComponent(openWeatherAPIKey)}`
+    }&appid=${encodeURIComponent(openWeatherAPIKey)
+    // $FlowFixMe
+    }&lang=${encodeURIComponent(lang)}`
 
   // ** The following is the more correct way, but doesn't work.
   //    So have to use a way that Flow doesn't like.
@@ -178,9 +187,7 @@ export async function getWeatherSummary(
     //   (weatherParams !== '' && getTagParams(weatherParams, 'template') !== '')
     //     ? getTagParams(weatherParams, 'template')
     //     : defaultWeatherLine
-    console.log(
-      `\toutput template: '${template}' ; about to call stringReplace`,
-    )
+    console.log(`\toutput template: '${template}' ; about to call stringReplace`)
     return stringReplace(template, replacements)
   } else {
     // $FlowFixMe[incompatible-type]
