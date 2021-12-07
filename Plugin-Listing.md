@@ -2,10 +2,11 @@
 
 | Command Name | Description | Plugin |
 | --- | --- | --- |
-| `Create Note From Calendar Event` | creates a note from a calendar event | 🧩 Event Automations |
-| `Create Note From Calendar Event w/QuickTemplate` | creates a note from a calendar event | 🧩 Event Automations |
+| `Create Note From Calendar Event` | creates a note from a calendar event | 🗓 Event Automations |
+| `Create Note From Calendar Event w/QuickTemplate` | creates a note from a calendar event | 🗓 Event Automations |
 | `add project` | add a new note representing a project, asking for its metadata | 🔬Reviews |
 | `apply template` | Choose a Template to apply (append) to the current Note | 🔩 Templates |
+| `atb - Create AutoTimeBlocks for >today's Tasks` | Read >today todos and insert them into today's calendar note as timeblocks | 🗓 Event Automations |
 | `complete project` | add @completed(today) date to the open project | 🔬Reviews |
 | `convertSelectionToHtml` | Convert current selection to HTML | 🧩 Codedungeon Toolbox |
 | `convertToHtml` | Convert current note to HTML | 🧩 Codedungeon Toolbox |
@@ -15,6 +16,8 @@
 | `dayReview` | Ask journal questions for an end-of-day review (requires configuring) | ☀️ Daily Journal |
 | `dayStart` | Apply Daily Note Template (requires configuring) | ☀️ Daily Journal |
 | `dp` | (Date Picker) Choose format and insert date/time time at cursor | 📅 Date Automations |
+| `expensesAggregate` | Aggregates the tracked expenses of the chosen year to a new expenses aggregated note | 💶️ Expenses |
+| `expensesTracking` | Provides multiple possibilities to track your expenses | 💶️ Expenses |
 | `finish project review` | updates the current open project's @reviewed() date | 🔬Reviews |
 | `formatted` | Insert custom formatted (format) date/time | 📅 Date Automations |
 | `fp` | file (move) paragraphs to different notes | 📦 Filer |
