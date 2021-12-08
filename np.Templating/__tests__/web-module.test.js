@@ -30,6 +30,12 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(advice).toBeCalled()
     })
 
+    it(`should fetch verse`, async () => {
+      const service = jest.spyOn(moduleInstance, 'verse')
+      await moduleInstance.verse()
+      expect(service).toBeCalled()
+    })
+
     it(`should fetch service`, async () => {
       const service = jest.spyOn(moduleInstance, 'service')
       await moduleInstance.service()

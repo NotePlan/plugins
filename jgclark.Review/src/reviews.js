@@ -16,10 +16,10 @@ const DEFAULT_REVIEW_OPTIONS = `  review: {
     displayArchivedProjects: true, // in '/project lists' whether to display project notes marked #archive
   },
 `
-let pref_folderToStore: string = "Reviews"
-let pref_foldersToIgnore: Array<string> = ["📋 Templates", "Summaries", "Reviews"]
-let pref_noteTypeTags: Array<string> = ["#project", "#area"]
-let pref_displayOrder: string = "alpha"
+let pref_folderToStore: string = 'Reviews'
+let pref_foldersToIgnore: Array<string> = ['📋 Templates', 'Summaries', 'Reviews']
+let pref_noteTypeTags: Array<string> = ['#project', '#area']
+let pref_displayOrder: string = 'alpha'
 let pref_displayGroupedByFolder: boolean = true
 let pref_displayArchivedProjects: boolean = true
 
@@ -29,37 +29,28 @@ const reviewListPref = 'jgclark.Review.reviewList'
 
 //-----------------------------------------------------------------------------
 // Import Helper functions
-import {
-  showMessage,
-  showMessageYesNo,
-} from '../../helpers/userInput'
-import {
-  displayTitle,
-} from '../../helpers/general'
+import { showMessage, showMessageYesNo } from '../../helpers/userInput'
+import { displayTitle } from '../../helpers/general'
 import {
   RE_DATE, // find dates of form YYYY-MM-DD
   hyphenatedDateString,
   nowLocaleDateTime,
 } from '../../helpers/dateTime'
-import {
-  getOrMakeConfigurationSection,
-} from '../../nmn.Templates/src/configuration'
-import {
-  Project,
-  returnSummaryNote,
-  findNotesMatchingHashtags,
-  getOrMakeMetadataLine,
-} from './reviewHelpers'
+import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
+import { Project, returnSummaryNote, findNotesMatchingHashtags, getOrMakeMetadataLine } from './reviewHelpers'
 
 //-------------------------------------------------------------------------------
 // Create human-readable lists of project notes for each tag of interest
 export async function getConfig(): Promise<void> {
-    // Get config settings from Template folder _configuration note
+  // Get config settings from Template folder _configuration note
   const reviewConfig = await getOrMakeConfigurationSection(
     'review',
     DEFAULT_REVIEW_OPTIONS,
     // no minimumConfig needed for this
   )
+
+  console.log(JSON.stringify(reviewConfig))
+
   if (reviewConfig == null) {
     console.log("\tCouldn't find 'review' settings in _configuration note.")
     await showMessage("Couldn't find 'review' settings in _configuration note.")
@@ -72,8 +63,7 @@ export async function getConfig(): Promise<void> {
     pref_noteTypeTags = reviewConfig.noteTypeTags
   }
   // console.log(pref_noteTypeTags.toString())
-  if (reviewConfig.folderToStore != null &&
-    typeof reviewConfig.folderToStore === 'string') {
+  if (reviewConfig.folderToStore != null && typeof reviewConfig.folderToStore === 'string') {
     pref_folderToStore = reviewConfig.folderToStore
   }
   // console.log(pref_folderToStore)
@@ -82,18 +72,15 @@ export async function getConfig(): Promise<void> {
     pref_foldersToIgnore = reviewConfig.foldersToIgnore
   }
   // console.log(pref_foldersToIgnore.toString())
-  if (reviewConfig.displayGroupedByFolder != null &&
-    typeof reviewConfig.displayGroupedByFolder === 'boolean') {
+  if (reviewConfig.displayGroupedByFolder != null && typeof reviewConfig.displayGroupedByFolder === 'boolean') {
     pref_displayGroupedByFolder = reviewConfig.displayGroupedByFolder
   }
   // console.log(pref_displayGroupedByFolder)
-  if (reviewConfig.displayOrder != null &&
-    typeof reviewConfig.displayOrder === 'string') {
+  if (reviewConfig.displayOrder != null && typeof reviewConfig.displayOrder === 'string') {
     pref_displayOrder = reviewConfig.displayOrder
   }
   // console.log(pref_displayOrder)
-  if (reviewConfig.displayArchivedProjects != null &&
-    typeof reviewConfig.displayArchivedProjects === 'boolean') {
+  if (reviewConfig.displayArchivedProjects != null && typeof reviewConfig.displayArchivedProjects === 'boolean') {
     pref_displayArchivedProjects = reviewConfig.displayArchivedProjects
   }
   // console.log(pref_displayArchivedProjects)
@@ -104,6 +91,7 @@ export async function getConfig(): Promise<void> {
 export async function projectLists(): Promise<void> {
   getConfig()
   console.log(`\nprojectLists():`)
+  console.log(JSON.stringify(pref_noteTypeTags))
 
   if (pref_noteTypeTags != null && pref_noteTypeTags.length > 0) {
     // We have defined tag(s) to filter and group by
@@ -123,14 +111,12 @@ export async function projectLists(): Promise<void> {
         console.log(`\twritten results to note '${noteTitle}'`)
       } else {
         showMessage('Oops: failed to find or make project summary note', 'OK')
-        console.log(
-          "projectLists: error: shouldn't get here -- no valid note to write to",
-        )
+        console.log("projectLists: error: shouldn't get here -- no valid note to write to")
         return
       }
     }
   } else {
-    // We will just use all notes with a @review() string, in one go     
+    // We will just use all notes with a @review() string, in one go
     const noteTitle = `Review List`
     const note: ?TNote = await returnSummaryNote(noteTitle, pref_folderToStore)
     if (note != null) {
@@ -144,9 +130,7 @@ export async function projectLists(): Promise<void> {
       console.log(`\twritten results to note '${noteTitle}'`)
     } else {
       showMessage('Oops: failed to find or make project summary note', 'OK')
-      console.log(
-        "projectLists: error: shouldn't get here -- no valid note to write to",
-      )
+      console.log("projectLists: error: shouldn't get here -- no valid note to write to")
       return
     }
   }
@@ -184,9 +168,7 @@ export async function startReviews() {
     }
 
     // Either we have defined tag(s) to filter and group by, or just use ''
-    const tags = (pref_noteTypeTags != null && pref_noteTypeTags.length > 0)
-      ? pref_noteTypeTags
-      : []
+    const tags = pref_noteTypeTags != null && pref_noteTypeTags.length > 0 ? pref_noteTypeTags : []
     for (const tag of tags) {
       // Get notes that include noteTag in this folder, ignoring subfolders
       const notes = findNotesMatchingHashtags(tag, folder, false)
@@ -211,8 +193,9 @@ export async function startReviews() {
   // sort the list
   const outputArray = summaryArray.slice().sort(
     // $FlowIgnore[unsafe-addition]
-    (first, second) => first.split('\t')[0] - second.split('\t')[0]) // order by first field
-    
+    (first, second) => first.split('\t')[0] - second.split('\t')[0],
+  ) // order by first field
+
   // create summary and write to _reviews notes
   // outputArray.push("```")
   // outputArray.unshift("```")
@@ -283,21 +266,18 @@ function makeNoteTypeSummary(noteTag: string): Array<string> {
       }
       // sort this array by key set in pref_displayOrder
       let sortedProjects = []
-      // NB: the Compare function needs to return negative, zero, or positive values. 
+      // NB: the Compare function needs to return negative, zero, or positive values.
       switch (pref_displayOrder) {
         case 'due': {
-          sortedProjects = projects.sort(
-            (first, second) => (first.dueDays ?? 0) - (second.dueDays ?? 0))
+          sortedProjects = projects.sort((first, second) => (first.dueDays ?? 0) - (second.dueDays ?? 0))
           break
         }
         case 'review': {
-          sortedProjects = projects.sort(
-            (first, second) => (first.nextReviewDays ?? 0) - (second.nextReviewDays ?? 0))
+          sortedProjects = projects.sort((first, second) => (first.nextReviewDays ?? 0) - (second.nextReviewDays ?? 0))
           break
         }
         default: {
-          sortedProjects = projects.sort(
-            (first, second) => (first.title ?? '').localeCompare(second.title ?? ''))
+          sortedProjects = projects.sort((first, second) => (first.title ?? '').localeCompare(second.title ?? ''))
           break
         }
       }
@@ -316,7 +296,7 @@ function makeNoteTypeSummary(noteTag: string): Array<string> {
   if (noteCount > 0) {
     outputArray.unshift(`_Key:\tTitle\t# open / complete / waiting tasks / next review date / due date_`)
   }
-  outputArray.unshift(`Total: **${noteCount} active notes**${(overdue > 0) ? `, ${overdue} ready for review` : ''}`)
+  outputArray.unshift(`Total: **${noteCount} active notes**${overdue > 0 ? `, ${overdue} ready for review` : ''}`)
   outputArray.unshift(`Last updated: ${nowLocaleDateTime}`)
   if (!pref_displayGroupedByFolder) {
     outputArray.unshift(`### All folders (${noteCount} notes)`)
@@ -429,7 +409,7 @@ export async function completeReview(): Promise<?TNote> {
   const reviewedTodayString = `@reviewed(${hyphenatedDateString(new Date())})`
 
   // only proceed if we're in a valid Project note (with at least 2 lines)
-  if (Editor.note == null || Editor.note.type === 'Calendar' || Editor.paragraphs?.length < 2 ) {
+  if (Editor.note == null || Editor.note.type === 'Calendar' || Editor.paragraphs?.length < 2) {
     return
   }
 
@@ -437,20 +417,16 @@ export async function completeReview(): Promise<?TNote> {
   let metadataPara: ?TParagraph
 
   // get list of @mentions
-  const firstReviewedMention = Editor.note?.mentions.find((m) =>
-    m.match(RE_REVIEW_MENTION),
-  )
+  const firstReviewedMention = Editor.note?.mentions.find((m) => m.match(RE_REVIEW_MENTION))
   if (firstReviewedMention != null) {
     // find line in currently open note containing @reviewed() mention
     for (const para of Editor.paragraphs) {
       if (para.content.match(RE_REVIEW_MENTION)) {
         metadataPara = para
-        console.log(
-          `\tFound existing ${reviewMentionString}(date) in line ${para.lineIndex}`,
-        )
+        console.log(`\tFound existing ${reviewMentionString}(date) in line ${para.lineIndex}`)
       }
     }
-    
+
     const metaPara = Editor.paragraphs[metadataLine]
     // replace with today's date
     const older = metaPara.content
@@ -462,9 +438,7 @@ export async function completeReview(): Promise<?TNote> {
     await Editor.updateParagraph(metaPara)
   } else {
     // no existing mention, so append to note's default metadata line
-    console.log(
-      `\tInfo: no matching ${reviewMentionString}(date) string found. Will append to line 1`,
-    )
+    console.log(`\tInfo: no matching ${reviewMentionString}(date) string found. Will append to line 1`)
     metadataPara = Editor.note?.paragraphs[metadataLine]
     if (metadataPara == null) {
       return null
@@ -498,6 +472,8 @@ function deleteOldListFile(): void {
     reviewNote.updateParagraph(titlePara)
     firstLinePara.content = `**This note has now been replaced by a newer preference mechanism.** It can now safely be deleted.`
     reviewNote.updateParagraph(firstLinePara)
-    console.log(`Info: the old '${reviewListNoteTitle}' note has been updated to say it is no longer needed to operate the Review plugin commands.`)
+    console.log(
+      `Info: the old '${reviewListNoteTitle}' note has been updated to say it is no longer needed to operate the Review plugin commands.`,
+    )
   }
 }

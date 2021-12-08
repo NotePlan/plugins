@@ -54,6 +54,7 @@ export default class TemplatingEngine {
     const quote = templateData.includes('web.quote') ? await new WebModule().quote() : ''
     const affirmation = templateData.includes('web.affirmation') ? await new WebModule().affirmation() : ''
     const advice = templateData.includes('web.advice') ? await new WebModule().advice() : ''
+    const verse = templateData.includes('web.verse') ? await new WebModule().verse() : ''
     const service = templateData.includes('web.services') ? await new WebModule().service : ''
 
     const helpers = {
@@ -78,6 +79,9 @@ export default class TemplatingEngine {
         },
         quote: () => {
           return quote
+        },
+        verse: () => {
+          return verse
         },
         weather: () => {
           return weather.replace('\n', '')

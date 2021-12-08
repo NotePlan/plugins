@@ -5,7 +5,6 @@ import { getOrMakeTemplateFolder } from '../../nmn.Templates/src/template-folder
 import NPTemplating from '../lib/NPTemplating'
 
 export async function templateInsert(): Promise<void> {
-  console.log('här')
   if (Editor == null) {
     await showMessage('Open desired note you wish to insert template')
     return

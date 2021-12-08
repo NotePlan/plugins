@@ -1,6 +1,8 @@
 // @flow
 
 // TODO: Check status on `dot-prop` to see if supported yet (as of 2021-10-15 it was still WIP)
+// INFO: This is a test
+
 // Temporary Implementation until `dot-prop` is ready
 // https://github.com/sindresorhus/dot-prop/issues/87
 // $FlowFixMe
@@ -58,10 +60,12 @@ export async function getService(templateConfig: any, section: string = '', key:
     let URL = isURL(section) ? section : serviceConfig[section]
     let dataKey = key
     try {
+      // this will the case when service object contains object with URL and Key
       if (typeof URL === 'object') {
         dataKey = URL.keys
         URL = URL.url
       }
+
       const response: any = await fetch(URL)
       if (!isJson(response)) {
         if (response.indexOf('error') >= 0) {

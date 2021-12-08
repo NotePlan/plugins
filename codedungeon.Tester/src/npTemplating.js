@@ -201,6 +201,19 @@ export async function templatingWeather(): Promise<void> {
   }
 }
 
+export async function templatingVerse(): Promise<void> {
+  try {
+    const content: string = Editor.content || ''
+    Editor.insertTextAtCursor('Please wait...')
+
+    const result = await NPTemplating.renderTemplate('Test (Verse)')
+
+    Editor.replaceTextInCharacterRange(content + result, 0, MAX_NOTE)
+  } catch (error) {
+    showError(error)
+  }
+}
+
 export async function templatingRender(): Promise<void> {
   try {
     const tmpData = {

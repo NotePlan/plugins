@@ -118,10 +118,10 @@ export default class DateModule {
 
   weeknumber(pivotDate = '') {
     const dateValue = pivotDate.length === new Date() ? pivotDate : new Date(pivotDate)
-    const dateStr = moment(dateValue).format('YYYY-MM-DD')
-    const weeknumber = this.format('W', dateStr)
 
-    return weeknumber
+    const dateStr = moment(dateValue).format('YYYY-MM-DD')
+
+    return this.format('W', dateStr)
   }
 
   isWeekend(pivotDate = '') {
@@ -154,8 +154,9 @@ export default class DateModule {
     }
 
     const startDate = this.weekday('YYYY-MM-DD', startDayNumber, pivotDate)
-    const endDate = this.weekday('MM/DD', endDayNumber, pivotDate)
-    const weekNumber = this.weeknumber(startDate)
+    const endDate = this.weekday('YYYY-MM-DD', endDayNumber, pivotDate)
+
+    const weekNumber = moment(pivotDate).format('W')
 
     return `W${weekNumber} (${startDate}..${endDate})`
   }

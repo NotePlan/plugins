@@ -4,6 +4,7 @@ import { getDailyQuote } from './quote'
 import { getWeather } from './weather'
 import { getAffirmation } from './affirmation'
 import { getAdvice } from './advice'
+import { getVerse } from './verse'
 import { getService } from './service'
 
 export default class WebModule {
@@ -21,6 +22,10 @@ export default class WebModule {
 
   async weather(): Promise<string> {
     return await getWeather()
+  }
+
+  async verse(): Promise<string> {
+    return await getVerse()
   }
 
   async service(templateConfig: any, serviceUrl: string = '', key: string = ''): Promise<string> {

@@ -9,7 +9,7 @@ const method = colors.magenta.bold
 
 describe(`${PLUGIN_NAME}`, () => {
   describe(section('Templating Editor Module'), () => {
-    it(`should execute ${method('.insertTextAtCursor')} method`, async () => {
+    it.only(`should execute ${method('.insertTextAtCursor')} method`, async () => {
       const spy = jest.spyOn(Editor, 'insertTextAtCursor')
       let result = await Editor.insertTextAtCursor('hello world')
 
