@@ -2,7 +2,7 @@
 import { add } from 'date-fns'
 import { getEventsForDay, type HourMinObj } from '../../jgclark.EventHelpers/src/eventsToNotes'
 import { getTodaysDateUnhyphenated, toLocaleTime } from '../../helpers/dateTime'
-import { chooseOption } from '../../helpers/userInput'
+import { chooseOption, chooseFolder } from '../../helpers/userInput'
 import { quickTemplateNote, newNoteWithTemplate } from '../../nmn.Templates/src/index'
 
 function getTimeOffset(offset: HourMinObj = { h: 0, m: 0 }) {
@@ -44,7 +44,8 @@ export async function createNoteForCalendarItem(useQuickTemplate: boolean = true
     // $FlowIgnore
     const time = toLocaleTime(event.date, [], { hour: '2-digit', minute: '2-digit', hour12: false })
     // $FlowIgnore
-    if (event.title) return { label: `${time}: ${event.title}`, value: event.title, time }
+    if (event.title)
+      return { label: `${time}: ${event.title}`, value: event.title, time, date: event.date.toLocaleDateString() }
   })
   // $FlowIgnore
   const selectedEvent = await chooseOption('Choose an event to create a note for', selections, '')
@@ -60,7 +61,29 @@ export async function createNoteForCalendarItem(useQuickTemplate: boolean = true
     await quickTemplateNote(theTitle)
     return
   }
-  await newNoteWithTemplate('', theTitle)
+  const useTemplate = await chooseOption(
+    'Use a template?',
+    [
+      { label: 'Yes', value: 'Yes' },
+      { label: 'No', value: 'No' },
+    ],
+    'Yes',
+  )
+  if (useTemplate !== 'No') {
+    await newNoteWithTemplate('', theTitle)
+  } else {
+    const folder = await chooseFolder('What folder should the note be in?')
+    if (selEvent) {
+      const title = `${selEvent.value} ${selEvent.date} ${
+        selEvent.time && selEvent.time !== '00:00' ? selEvent.time : ''
+      }`
+      const fname = await DataStore.newNote(title, folder)
+      console.log(`Creating note with title: ${title}, fname=${fname}`)
+      if (fname) {
+        await Editor.openNoteByFilename(fname, false)
+      }
+    }
+  }
 }
 
 function printEventsToConsole(events: Array<Object>): void {
