@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------------------------------------------------
 // Daily Journal plugin for NotePlan
 // Jonathan Clark
-// last update v0.10.0, 07.12.2021 by @jgclark/@m1well
+// last update v0.10.0, 07.12.2021 by @m1well
 //--------------------------------------------------------------------------------------------------------------------
 
 import { isInt, showMessage } from '../../helpers/userInput'
@@ -13,7 +13,7 @@ import { applyNamedTemplate } from '../../nmn.Templates/src/index'
 //--------------------------------------------------------------------------------------------------------------------
 // Settings
 const DEFAULT_JOURNAL_OPTIONS = `  dailyJournal: {
-    nameOfDailyNoteTemplate: 'Daily Note Template',
+    templateTitle: 'Daily Note Template',
     reviewSectionHeading: 'Journal',
     moods: '🤩 Great,🙂 Good,😇 Blessed,🥱 Tired,😫 Stressed,😤 Frustrated,😔 Low,🥵 Sick,Other',
     reviewQuestions: '@sleep(<number>)\\n@work(<number>)\\n@fruitveg(<int>)\\nMood:: <mood>\\nExercise:: <string>\\nGratitude:: <string>\\nGod was:: <string>\\nAlive:: <string>\\nNot Great:: <string>\\nWife:: <string>\\nRemember:: <string>'
@@ -75,8 +75,8 @@ export async function dayStart(today: boolean = false): Promise<void> {
     return
   }
 
-  pref_templateTitle = (journalConfig?.nameOfDailyNoteTemplate != null)
-    ? String(journalConfig?.nameOfDailyNoteTemplate)
+  pref_templateTitle = (journalConfig?.templateTitle != null)
+    ? String(journalConfig?.templateTitle)
     : defaultTemplateTitle
 
   await applyNamedTemplate(pref_templateTitle)

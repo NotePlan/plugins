@@ -25,6 +25,7 @@ You configure the set of questions to ask in the `Templates/_configuration` note
 ```json5
 {
   dailyJournal: {
+    templateTitle: 'Daily Note Template',
     reviewSectionHeading: "Journal",
     reviewQuestions: "@work(<int>)\n@fruitveg(<int>)\nMood:: <mood>\nGratitude:: <string>\nGod was:: <string>\nAlive:: <string>\nNot Great:: <string>\nWife:: <string>\nRemember:: <string>",
     // NB: need to use "\n" for linebreaks rather than actual linebreaks, as even JSON5 doesn't fully support multi-line strings.
@@ -34,6 +35,8 @@ You configure the set of questions to ask in the `Templates/_configuration` note
 ```
 (This example is in JSON5 format: see the help text in `_configuration` note.)
 
+#### templateTitle
+The name of the template for `/dayStart` and `/todayStart`
 #### reviewSectionHeading
 The name of an existing markdown heading after which the review answers are added - if it doesn't exist, it is added at the end of the note
 #### reviewQuestions
