@@ -3,13 +3,13 @@
 //-----------------------------------------------------------------------------
 // Commands for Reviewing project-style notes, GTD-style.
 // by @jgclark
-// v0.4.4, 7.12.2021
+// Last updated for v0.4.5, 9.12.2021
 //-----------------------------------------------------------------------------
 
 // Settings
 const DEFAULT_REVIEW_OPTIONS = `  review: {
     folderToStore: "Reviews",
-    foldersToIgnore: ["📋 Templates", "Reviews", "Summaries"], // can be empty list
+    foldersToIgnore: ["@Archive", "📋 Templates", "Reviews", "Summaries"], // can be empty list
     noteTypeTags: ["#project", "#area"], // array of hashtags without spaces
     displayOrder: "alpha", // in '/project lists' the sort options  are "due" date, "review" date or "alpha"
     displayGroupedByFolder: true, // in '/project lists' whether to group the notes by folder
@@ -17,7 +17,7 @@ const DEFAULT_REVIEW_OPTIONS = `  review: {
   },
 `
 let pref_folderToStore: string = "Reviews"
-let pref_foldersToIgnore: Array<string> = ["📋 Templates", "Summaries", "Reviews"]
+let pref_foldersToIgnore: Array<string> = ["@Archive", "📋 Templates", "Summaries", "Reviews"]
 let pref_noteTypeTags: Array<string> = ["#project", "#area"]
 let pref_displayOrder: string = "alpha"
 let pref_displayGroupedByFolder: boolean = true
@@ -268,7 +268,7 @@ function makeNoteTypeSummary(noteTag: string): Array<string> {
           if (!np.isArchived || pref_displayArchivedProjects) {
             projects.push(np)
           } else {
-            console.log(`\t    Ignoring ${np.title} as archived and don't want to show them}`)
+            console.log(`\t    Ignoring ${np.title} as archived and don't want to show them`)
           }
         }
         if (np.nextReviewDays != null && np.nextReviewDays < 0) {

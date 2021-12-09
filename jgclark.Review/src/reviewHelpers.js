@@ -1,8 +1,8 @@
 // @flow
 //-----------------------------------------------------------------------------
-// @jgclark
 // Helper functions for Review plugin
-// v0.3.0, 21.8.2021
+// @jgclark
+// Last updated for v0.4.5, 9.12.2021
 //-----------------------------------------------------------------------------
 
 import {
@@ -236,16 +236,19 @@ export class Project {
     const hashtags: $ReadOnlyArray<string> = note.hashtags
     this.note = note
     this.title = note.title ?? '(error)'
-    // console.log(`\tnew Project: ${this.title}`)
+    console.log(`\tnew Project: ${this.title}`)
     this.folder = getFolderFromFilename(note.filename)
-    this.dueDate = getDateFromString(getParamMentionFromList(mentions, "@due"))
-    if (this.dueDate != null && this.dueDate !== '') {
+    const tempDueDateStr = getParamMentionFromList(mentions, "@due")
+    this.dueDate = tempDueDateStr !== '' ? getDateFromString(tempDueDateStr) : undefined
+    if (this.dueDate != null) { // && this.dueDate !== undefined) {
       // NB: Written while there was an error in EM's Calendar.unitsBetween() function
       // $FlowIgnore[incompatible-call]
       this.dueDays = daysBetween(new Date(), this.dueDate)
     }
-    this.reviewedDate = getDateFromString(getParamMentionFromList(mentions, "@reviewed"))
-    this.reviewInterval = getStringFromMention(getParamMentionFromList(mentions, "@review"))
+    // this.reviewedDate = getDateFromString(getParamMentionFromList(mentions, "@reviewed")) ?? undefined
+    const tempReviewedDateStr = getParamMentionFromList(mentions, "@reviewed")
+    this.reviewedDate = tempReviewedDateStr !== '' ? getDateFromString(tempReviewedDateStr) : undefined
+    this.reviewInterval = getStringFromMention(getParamMentionFromList(mentions, "@review")) ?? undefined
     if (this.reviewInterval != null) {
       if (this.reviewedDate != null) {
         this.nextReviewDate = calcNextReviewDate(this.reviewedDate, this.reviewInterval)
@@ -259,8 +262,10 @@ export class Project {
         this.nextReviewDays = 0
       }
     }
-    this.completedDate = getDateFromString(getParamMentionFromList(mentions, "@completed"))
-    this.completedDays = (this.completedDate !== '')
+    // this.completedDate = getDateFromString(getParamMentionFromList(mentions, "@completed")) ?? undefined
+    const tempCompletedDateStr = getParamMentionFromList(mentions, "@completed")
+    this.completedDate = tempCompletedDateStr !== '' ? getDateFromString(tempCompletedDateStr) : undefined
+    this.completedDays = (this.completedDate != null)
       // $FlowIgnore[incompatible-call]
       ? daysBetween(new Date(), this.completedDate)
       : undefined
