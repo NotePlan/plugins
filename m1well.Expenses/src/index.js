@@ -6,4 +6,4 @@
 // v1.1.0, 04.12.2021
 // -----------------------------------------------------------------------------
 
-export { expensesTracking, expensesAggregate } from './expenses'
+export { expensesTracking, expensesAggregate, individualTracking, shortcutsTracking, fixedTracking } from './expenses'
