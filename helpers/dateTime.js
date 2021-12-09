@@ -298,18 +298,15 @@ export function relativeDateFromNumber(diffIn: number): string {
 /* Turn a string that includes YYYY-MM-DD into a JS Date
  * @param {string} - string that contains a date e.g. @due(2021-03-04)
  * @return {?Date} - JS Date version, if valid date found
+ * @test - available in jest file
  */
 export function getDateFromString(mention: string): ?Date {
   const RE_DATE_CAPTURE = `(${RE_DATE})` // capture date of form YYYY-MM-DD
 
-  if (mention === '') {
-    // console.log(`\tgetDateFromString: empty string`)
-    return // no text, so return nothing
-  }
   // console.log(`\tgetDateFromString: ${mention}`)
   const res = mention.match(RE_DATE_CAPTURE) ?? []
   // Use first match, if found
-  if (res[1].length > 0) {
+  if (res[1]?.length > 0) {
     const date = new Date(
       Number(res[1].slice(0, 4)),
       Number(res[1].slice(5, 7)) - 1, // only seems to be needed for months?!
@@ -318,7 +315,7 @@ export function getDateFromString(mention: string): ?Date {
     // console.log(toISOShortDateTimeString(date))
     return date
   } else {
-    // console.log(`\tgetDateFromString: no date found`)
+    console.log(`\t\tgetDateFromString: no valid date found in '${mention}'`)
     return
   }
 }
@@ -439,6 +436,7 @@ export function getWeek(inDate: Date): number {
  * @param {number} week - week number in year (1-53)
  * @param {number} year - year (4-digits)
  * @return {[Date, Date]}} - start and end dates (as JS Dates)
+ * @test - defined in Jest, but won't work until Calendar.addUnitToDate can be stubbed out
  */
 export function weekStartEnd(week: number, year: number): [Date, Date] {
   if (week > 53 || week < 1) {

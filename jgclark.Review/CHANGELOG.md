@@ -1,9 +1,9 @@
 # What's changed in 🔬 Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Review), and how to configure.
 
-## [0.4.4] - 2021-12-07
+## [0.4.4..0.4.5] - 2021-12-09
 ### Fixed
-- in some cases /projectList output was failing to be written, which should fix issue #137 (thanks to @brettnotbritt)
+- /projectList could fail on invalid `@due()` dates; made the metadata line reader more resilient
 
 ## [0.4.1..0.4.3] - 2021-10-24
 ### Fixed
