@@ -169,15 +169,3 @@ export function capitalize(s: string): string {
   if (typeof s !== 'string') return ''
   return s.charAt(0).toUpperCase() + s.slice(1)
 }
-
-/**
- * @description here you can left pad your number with zeros - e.g. a '5' with 3 targetDigits is getting a '005'
- * @author m1well
- *
- * @param current the current number
- * @param targetDigits how many digits should the target number have
- * @returns {string} the left padded value as string
- */
-export const leftPadWithZeros = (current: number, targetDigits: number): string => {
-  return String(Array(Math.max(targetDigits - String(current).length + 1, 0)).join('0') + current)
-}

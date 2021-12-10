@@ -10,9 +10,17 @@ which will be added to the NotePlan `_configuration` on the first usage!
 ### Content
 * `folderPath`
   * Path of the folder for the expenses Notes (if you change the path later on, then you also have to move the note(s)!)
+* `delimiter`
+  * Chose a delimiter (if none is set - default is `;` - currently allowed are `;`, `%`, `TAB`)
+  * the `TAB` gets rendered by the original tab `\t`
+* `dateFormat`
+  * choose custom date format like `yyyy-MM-dd` or `yyyy-MM` if you don't care about the days
+  * ATTENTION: don't use your chosen delimiter here in the date format
+* `columnOrder`
+  * choose column order - e.g. `['date', 'category', 'text', 'amount']`
 * `categories`
   * Categories of your expenses, e.g. 'Living', 'Groceries', 'Insurances', 'Media'
-* `shortcuts`
+* `shortcutExpenses`
   * Shortcuts to skip the input of category and text
 * `fixedExpenses`
   * Fixed expenses in your life e.g. the monthly flat rent, the yearly car insurance or the monthly spotify subscription (which is deactivated in the example for show reasons)
@@ -23,6 +31,14 @@ which will be added to the NotePlan `_configuration` on the first usage!
 {
   expenses: {
     folderPath: 'finances',
+    delimiter: ';',
+    dateFormat: 'yyyy-MM-dd',
+    columnOrder: [
+      'date',
+      'category',
+      'text',
+      'amount',
+    ],
     categories: [
       'Living',
       'Groceries',
@@ -31,9 +47,22 @@ which will be added to the NotePlan `_configuration` on the first usage!
       'Media',
       'Fun',
     ],
-    shortcuts: [
-      'Mobility;Refuel',
-      'Groceries;XYZ Market',
+    shortcutExpenses: [
+      {
+        category: 'Mobility',
+        text: 'Refuel',
+        amount: null,
+      },
+      {
+        category: 'Groceries',
+        text: 'XYZ Market',
+        amount: null,
+      },
+      {
+        category: 'Fun',
+        text: 'Coffee at Starbucks',
+        amount: 8,
+      },
     ],
     fixedExpenses: [
       {
@@ -65,7 +94,6 @@ which will be added to the NotePlan `_configuration` on the first usage!
 ## Hints
 * for the sake of simplicity you can't change written lines or add older entries
   * for that you have to add/change/remove the lines manually
-* For reasons of space the shortcuts have to be in the format `category;text`
 * To avoid problems with separator over different countries, only use integer values please
   (e.g. instead of '9.99' use '10') - the plugin does a `Math.round()` anyways
 * Avoid empty lines in the Note, the plugin does not recognize them
@@ -73,32 +101,34 @@ which will be added to the NotePlan `_configuration` on the first usage!
 ## Commands
 Using the NotePlan Plugin Shortcut `/`
 
-### ->> `/exptra` <<-
-Provides multiple possibilities to track your expenses
+### ->> `/exp:tra` <<-
+Provides multiple possibilities to track your expenses.  
+here you can choose if you want to track individual, shortcuts or fixed expenses.  
+but you can also call a direct command (see the 3 below).
 
-#### individual
+### ->> `/exp:ind` <<- (Individual tracking)
 1. opens the note `{currentYear} Expenses Tracking` (if note doesn't exist, it gets created)
 2. first popup: choose a category from his configuration
 3. second popup: enter a special text for the entry
 4. third popup: enter the amount of the expenses
 
-#### shortcuts
-With this mode you can add configured shortcuts to skip the input of category and text
+### ->> `/exp:sho` <<- (Shortcuts tracking)
+With this mode you can add configured shortcut expenses to skip the input of category and text
 e.g. for your weekly groceries shopping in the same market or for refuelling the car
 
 1. opens the note `{currentYear} Expenses Tracking` (if note doesn't exist, it gets created)
 2. first popup: choose a shortcut
-3. second popup: enter the amount of the expenses
+3. second popup: enter the amount of the expenses (doesn't appear if you configured an amount to this shortcut)
 
-#### fixed
+### ->> `/exp:fix` <<- (Fixed tracking)
 With this mode you can add fixed expenses each month to your Daily Expenses Note
 
 1. opens the note `{currentYear} Expenses Tracking` (if note doesn't exist, it gets created)
 2. all fixed expenses from the `_configuration` which has attributes set:
-   * ctive = true
+   * active = true
    * month = current month or 0 (zero is for monthly fixed expenses e.g. a flat rent)
-
-### ->> `/expagg` <<-
+   
+### ->> `/exp:agg` <<-
 Aggregates the tracked expenses of the chosen year to a new expenses aggregated note
 You can do this every time in the year to have a new aggregated view over your expenses
 
@@ -129,20 +159,37 @@ Let's say we have the fixed expenses from the example above.
 | ... | ... |
 
 ### Yearly Note
-This generates following Note:
+This generates following Note (with default delimiter `;`) and date format `yyyy-MM-dd`:
 
 ```csv
-2021;01;Living;Flat Rent;670
-2021;01;Insurances;Car Insurance;399
-2021;01;Groceries;XYZ Market;89
-2021;01;Media;Apple TV Movie Rent;4
-2021;01;Groceries;XYZ Market;105
-2021;01;Fun;Coffee at Starbucks with Friends;22
-2021;01;Groceries;XYZ Market;81
-2021;01;Groceries;Beverages;55
-2021;01;Groceries;XYZ Market;77
-2021;02;Living;Flat Rent;670
-2021;02;Groceries;XYZ Market;89
+2021-01-01;Living;Flat Rent;670
+2021-01-01;Insurances;Car Insurance;399
+2021-01-03;Groceries;XYZ Market;89
+2021-01-05;Media;Apple TV Movie Rent;4
+2021-01-11;Groceries;XYZ Market;105
+2021-01-12;Fun;Coffee at Starbucks with Friends;22
+2021-01-19;Groceries;XYZ Market;81
+2021-01-20;Groceries;Beverages;55
+2021-01-25;Groceries;XYZ Market;77
+2021-02-01;Living;Flat Rent;670
+2021-02-04;Groceries;XYZ Market;89
+...
+```
+
+same with date format `yyyy-MM`
+
+```csv
+2021-01;Living;Flat Rent;670
+2021-01;Insurances;Car Insurance;399
+2021-01;Groceries;XYZ Market;89
+2021-01;Media;Apple TV Movie Rent;4
+2021-01;Groceries;XYZ Market;105
+2021-01;Fun;Coffee at Starbucks with Friends;22
+2021-01;Groceries;XYZ Market;81
+2021-01;Groceries;Beverages;55
+2021-01;Groceries;XYZ Market;77
+2021-02;Living;Flat Rent;670
+2021-02;Groceries;XYZ Market;89
 ...
 ```
 
@@ -152,6 +199,7 @@ This generates following Note:
   * to create some diagrams
 * You can let the plugin aggregate the expenses by month and category to have a better overview
   * this generages following Note: (there you can see e.g. all Groceries in January are aggregated)
+  * with default delimiter `;`
 
 ```text
 2021;01;Living;670

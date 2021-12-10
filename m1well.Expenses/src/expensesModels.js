@@ -2,16 +2,31 @@
 
 export type Config = {
   folderPath: string,
+  delimiter: string,
+  dateFormat: string,
+  columnOrder: string[],
   categories: string[],
-  shortcuts: string[],
+  shortcutExpenses: ShortcutExpense[],
   fixedExpenses: FixedExpense[],
 }
 
-export type ExpenseRow = {
-  year: number,
-  month: number,
+export type ShortcutExpense = {
+  category: string,
+  text: string,
+  amount?: number,
+}
+
+export type ExpenseTrackingRow = {
+  date: Date,
   category: string,
   text?: string,
+  amount: number,
+}
+
+export type ExpenseAggregateRow = {
+  year: number,
+  month: string,
+  category: string,
   amount: number,
 }
 
