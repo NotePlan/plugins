@@ -1,7 +1,8 @@
+// @flow
 //--------------------------------------------------------------------------------------------------------------------
 // Repeat Extensions plugin for NotePlan
 // Jonathan Clark
-// last updated v0.3.0+, 18.11.2021
+// last updated v0.3.0+, 10.12.2021
 //--------------------------------------------------------------------------------------------------------------------
 
 import {
@@ -17,9 +18,12 @@ import { showMessage } from '../../helpers/userInput'
 import { findEndOfActivePartOfNote } from '../../helpers/paragraph'
 
 //------------------------------------------------------------------
-// Process any completed(or cancelled) tasks with my extended @repeat(..) tags,
-// and also remove the HH: MM portion of any @done(...) tasks.
-export async function repeats() {
+/**
+ * Process any completed(or cancelled) tasks with my extended @repeat(..) tags,
+ * and also remove the HH: MM portion of any @done(...) tasks.
+ * 
+ */
+export async function repeats(): Promise<void> {
   // When interval is of the form '+2w' it will duplicate the task for 2 weeks
   // after the date is was completed.
   // When interval is of the form '2w' it will duplicate the task for 2 weeks
@@ -40,13 +44,14 @@ export async function repeats() {
   const RE_EXTENDED_REPEAT_CAPTURE = `@repeat\\((.*?)\\)` // find @repeat() and return part inside brackets
 
   // Get current note details
-  const { paragraphs, title } = Editor
+  const { paragraphs, title, note, type } = Editor
   if (paragraphs === null) {
     // No note open, or no paragraphs (perhaps empty note), so don't do anything.
     console.log('repeat: warning: No note open, or empty note.')
     return
   }
   let lineCount = paragraphs.length
+  // $FlowIgnore[incompatible-type]
   console.log(`\nrepeats: from note '${title}'`)
 
   // check if the last paragraph is undefined, and if so delete it from our copy
@@ -55,7 +60,8 @@ export async function repeats() {
   }
 
   // work out where ## Done or ## Cancelled sections start, if present
-  const endOfActive = findEndOfActivePartOfNote(Editor.note)
+  // $FlowIgnore[incompatible-call]
+  const endOfActive = findEndOfActivePartOfNote(note)
 
   let repeatCount = 0
   let line = ''
@@ -77,7 +83,7 @@ export async function repeats() {
     // console.log(`  [${n}] ${line}`)
     if (p.content.match(RE_DONE_DATE_TIME)) {
       // get completed date and time
-      reReturnArray = line.match(RE_DONE_DATE_CAPTURE)
+      reReturnArray = line.match(RE_DONE_DATE_CAPTURE) ?? []
       completedDate = reReturnArray[1]
       completedTime = reReturnArray[2]
       console.log(`  Found completed repeat ${completedDate} /${completedTime} in line ${n}`)
@@ -135,7 +141,7 @@ export async function repeats() {
         outline = updatedLine.replace(/@done\(.*\)/, '').trim()
 
         // Create and add the new repeat line ...
-        if (Editor.type === 'Notes') {
+        if (type === 'Notes') {
           // ...either in same project note
           outline += ` >${newRepeatDate}`
           // console.log(`\toutline: ${outline}`)
@@ -145,9 +151,8 @@ export async function repeats() {
           // ... or in the future daily note (prepend)
           // console.log('    -> ' + outline)
           const newRepeatDateShorter = unhyphenateString(newRepeatDate)
-          const newDailyNote =
-            await DataStore.calendarNoteByDateString(newRepeatDateShorter)
-          if (newDailyNote.title != null) {
+          const newDailyNote = await DataStore.calendarNoteByDateString(newRepeatDateShorter)
+          if (newDailyNote?.title != null) {
             // console.log(newDailyNote.filename)
             await newDailyNote.appendTodo(outline)
             console.log(`\tInserted new repeat in daily note ${newRepeatDateShorter}`)

@@ -4,6 +4,10 @@
 - /fp and /mp now create the destination daily note if it doesn't already exist
 - add ability to default to moving to the end of a heading's section, not the start of it. See setting ???
 
+## [0.6.0] - 2021-12-09
+### Added
+- ???. Also refactored code to allow re-use of my paragraph block finding code.
+
 ## [0.5.1] - 2021-10-03
 ### Fixed
 - moving to the special '(bottom of note)' pseudo-heading
