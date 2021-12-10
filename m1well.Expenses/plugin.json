@@ -7,22 +7,40 @@
   "plugin.icon": "",
   "plugin.author": "@m1well",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/m1well.Expenses/README.md",
-  "plugin.version": "1.2.0",
+  "plugin.version": "1.3.0",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
   "plugin.commands": [
     {
       "name": "expensesTracking",
-      "alias": ["exptra", "expenses"],
+      "alias": ["exp:tra", "exp"],
       "description": "Provides multiple possibilities to track your expenses",
       "jsFunction": "expensesTracking"
     },
     {
       "name": "expensesAggregate",
-      "alias": ["expagg", "expenses"],
+      "alias": ["exp:agg", "exp"],
       "description": "Aggregates the tracked expenses of the chosen year to a new expenses aggregated note",
       "jsFunction": "expensesAggregate"
+    },
+    {
+      "name": "expensesIndividualTracking",
+      "alias": ["exp:ind", "exp"],
+      "description": "Track your individual expenses",
+      "jsFunction": "individualTracking"
+    },
+    {
+      "name": "expensesShortcutsTracking",
+      "alias": ["exp:sho", "exp"],
+      "description": "Track your shortcuts expenses",
+      "jsFunction": "shortcutsTracking"
+    },
+    {
+      "name": "expensesFixedTracking",
+      "alias": ["exp:fix", "exp"],
+      "description": "Track your fixed expenses",
+      "jsFunction": "fixedTracking"
     }
   ],
   "plugin.preferences": []

@@ -1,5 +1,18 @@
 # m1well.Expenses Plugin Changelog
 
+## [1.3.0] - 2021-12-09 (@m1well) (some ideas from @dwertheimer)
+because of breaking changes, normally this should give a new major version.  
+but because I assume that no one has yet installed this plugin, a minor version would be ok
+### Changed
+* config: added configurable delimiter
+* config: added configurable date format
+* config: added configurable column order
+* config: changed shortcuts from string to object datastructure
+* tracking: added some more checks (if category is configured and amount is "ok")
+* commands: added 3 new commands for individual tracking, shortcuts tracking and fixed tracking
+* aggratation: changed whole aggregation because of new date and column order
+* tests: added tests
+
 ## [1.2.0] - 2021-12-06 (@m1well)
 ### Changed
 * trim input from user for the text @individual tracking
