@@ -667,5 +667,36 @@ describe(`${PLUGIN_NAME}`, () => {
     test('findOptimalTimeForEvent ', () => {
       expect(tb.findOptimalTimeForEvent([], [], config)).toEqual([])
     })
+    describe('includeTasksWithPatterns', () => {
+      test('should include only tasks that contain a string', () => {
+        const tasks = [{ content: 'foo' }, { content: 'bar' }, { content: 'baz' }]
+        const result = tb.includeTasksWithPatterns(tasks, 'ba')
+        expect(result.length).toEqual(2)
+        expect(result[0].content).toEqual('bar')
+        expect(result[1].content).toEqual('baz')
+      })
+      test('should include only tasks that match a regex', () => {
+        const tasks = [{ content: 'foo' }, { content: 'bar' }, { content: 'baz' }]
+        const result = tb.includeTasksWithPatterns(tasks, /ba/)
+        expect(result.length).toEqual(2)
+        expect(result[0].content).toEqual('bar')
+        expect(result[1].content).toEqual('baz')
+      })
+      test('should include tasks that match an array of patterns', () => {
+        const tasks = [{ content: 'foo' }, { content: 'bar' }, { content: 'baz' }]
+        const result = tb.includeTasksWithPatterns(tasks, ['az', /^f/])
+        expect(result.length).toEqual(2)
+        expect(result[0].content).toEqual('foo')
+        expect(result[1].content).toEqual('baz')
+      })
+    })
+    describe('excludeTasksWithPatterns', () => {
+      test('should include only tasks that contain the string/regex', () => {
+        const tasks = [{ content: 'foo' }, { content: 'bar' }, { content: 'baz' }]
+        const result = tb.excludeTasksWithPatterns(tasks, 'ba')
+        expect(result.length).toEqual(1)
+        expect(result[0].content).toEqual('foo')
+      })
+    })
   })
 })

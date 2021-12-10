@@ -27,7 +27,13 @@
       "name": "atb - Create AutoTimeBlocks for >today's Tasks",
       "description": "Read >today todos and insert them into today's calendar note as timeblocks",
       "jsFunction": "insertTodosAsTimeblocks",
-      "alias": ["atb","timeblocks","block","todoblocks"]
+      "alias": ["atb","abt","timeblocks","block","todoblocks"]
+    },
+        {
+      "name": "Create AutoTimeBlocks using presets",
+      "description": "Read >today todos and insert them into today's calendar note as timeblocks, but using presets defined in _configuration note",
+      "jsFunction": "insertTodosAsTimeblocksWithPresets",
+      "no-alias": ["atb","abt","timeblocks","block","todoblocks"]
     }
   ]
 }

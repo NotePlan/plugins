@@ -1,10 +1,14 @@
 # What's changed in 🔬 Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Review), and how to configure.
 
+## [0.4.4..0.4.5] - 2021-12-09
+### Fixed
+- /projectList could fail on invalid `@due()` dates; made the metadata line reader more resilient
+
 ## [0.4.1..0.4.3] - 2021-10-24
 ### Fixed
 - updated some warning messages
-- found that NP strips out hash symbols from note titles; this led to duplicate Review notes
+- found that NP strips out hash symbols from note titles; this led to duplicate Review notes (later reported as #138 by @codedungeon)
 - typo in default configuration that gets copied to _configuration
 
 ## [0.4.0] - 2021-09-10

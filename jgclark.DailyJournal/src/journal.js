@@ -2,10 +2,10 @@
 //--------------------------------------------------------------------------------------------------------------------
 // Daily Journal plugin for NotePlan
 // Jonathan Clark
-// last update v0.9.0, 25.11.2021 by @jgclark/@m1well
+// last update v0.10.0, 07.12.2021 by @m1well
 //--------------------------------------------------------------------------------------------------------------------
 
-import { isInt, showMessage } from '../../helpers/userInput'
+import { getInputTrimmed, isInt, showMessage } from '../../helpers/userInput'
 import { displayTitle } from '../../helpers/general'
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 import { applyNamedTemplate } from '../../nmn.Templates/src/index'
@@ -13,16 +13,18 @@ import { applyNamedTemplate } from '../../nmn.Templates/src/index'
 //--------------------------------------------------------------------------------------------------------------------
 // Settings
 const DEFAULT_JOURNAL_OPTIONS = `  dailyJournal: {
-    reviewSectionHeading: "Journal",
-    moods: "🤩 Great,🙂 Good,😇 Blessed,🥱 Tired,😫 Stressed,😤 Frustrated,😔 Low,🥵 Sick,Other",
-    reviewQuestions: "@sleep(<number>)\\n@work(<number>)\\n@fruitveg(<int>)\\nMood:: <mood>\\nExercise:: <string>\\nGratitude:: <string>\\nGod was:: <string>\\nAlive:: <string>\\nNot Great:: <string>\\nWife:: <string>\\nRemember:: <string>"
+    templateTitle: 'Daily Note Template',
+    reviewSectionHeading: 'Journal',
+    moods: '🤩 Great,🙂 Good,😇 Blessed,🥱 Tired,😫 Stressed,😤 Frustrated,😔 Low,🥵 Sick,Other',
+    reviewQuestions: '@sleep(<number>)\\n@work(<number>)\\n@fruitveg(<int>)\\nMood:: <mood>\\nExercise:: <string>\\nGratitude:: <string>\\nGod was:: <string>\\nAlive:: <string>\\nNot Great:: <string>\\nWife:: <string>\\nRemember:: <string>'
   },
 `
 const MINIMUM_JOURNAL_OPTIONS = {
   reviewQuestions: 'string',
 }
 
-const pref_templateTitle = 'Daily Note Template' // fixed
+const defaultTemplateTitle = 'Daily Note Template'
+let pref_templateTitle: string
 let pref_reviewSectionHeading: string
 let pref_moodArray: Array<string>
 
@@ -54,6 +56,29 @@ export async function dayStart(today: boolean = false): Promise<void> {
       return
     }
   }
+
+  // Get config settings from Template folder _configuration note
+  const journalConfig = await getOrMakeConfigurationSection(
+    'dailyJournal',
+    DEFAULT_JOURNAL_OPTIONS,
+    MINIMUM_JOURNAL_OPTIONS,
+  )
+  // console.log(JSON.stringify(journalConfig))
+  if (journalConfig == null
+    || Object.keys(journalConfig).length === 0) // this is how to check for empty object
+  {
+    console.log('\tWarning: Cannot find suitable \'dailyJournal\' settings in Templates/_configuration note. Stopping.')
+    await showMessage(
+      'Cannot find \'dailyJournal\' settings in _configuration.',
+      'Yes, I\'ll check my _configuration settings.',
+    )
+    return
+  }
+
+  pref_templateTitle = (journalConfig?.templateTitle != null)
+    ? String(journalConfig?.templateTitle)
+    : defaultTemplateTitle
+
   await applyNamedTemplate(pref_templateTitle)
 }
 
@@ -132,7 +157,7 @@ export async function dayReview(): Promise<void> {
     console.log(`\t${i}: ${question[i]} / ${questionType[i]}`)
     switch (questionType[i]) {
       case 'int': {
-        const reply = await CommandBar.showInput(questionType[i], `${question[i]}: %@`)
+        const reply = await getInputTrimmed(questionType[i], `${question[i]}: %@`)
         if (reply != null && isInt(reply)) {
           if (questionLines[i].startsWith('-')) {
             reviewLine = `- ${reply}`
@@ -145,7 +170,7 @@ export async function dayReview(): Promise<void> {
         break
       }
       case 'number': {
-        const reply = await CommandBar.showInput(questionType[i], `${question[i]}: %@`)
+        const reply = await getInputTrimmed(questionType[i], `${question[i]}: %@`)
         if (reply != null && Number(reply)) {
           if (questionLines[i].startsWith('-')) {
             reviewLine = `- ${reply}`
@@ -158,7 +183,7 @@ export async function dayReview(): Promise<void> {
         break
       }
       case 'string': {
-        const replyString = await CommandBar.showInput(questionType[i], `${question[i]}: %@`)
+        const replyString = await getInputTrimmed(questionType[i], `${question[i]}: %@`)
         if (replyString != null && replyString !== '') {
           if (questionLines[i].startsWith('-')) {
             reviewLine = `- ${replyString}`
@@ -198,4 +223,5 @@ export async function dayReview(): Promise<void> {
   // If sectionHeading isn't present then it lands up writing '# ## Heading'
   // FIXME(@EduardMe): a bug in the API
   Editor.addParagraphBelowHeadingTitle(output, 'empty', pref_reviewSectionHeading, true, true)
+
 }
