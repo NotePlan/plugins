@@ -2,7 +2,7 @@
 // ------------------------------------------------------------------------------------
 // Command to turn time blocks into full calendar events
 // @jgclark
-// Last updated for v0.8.0, 11.12.2021 by @m1well
+// Last updated for v0.9.0, 11.12.2021 by @jgclark
 //
 // See https://help.noteplan.co/article/52-part-2-tasks-events-and-reminders#timeblocking
 // for definition of time blocks. In summary:
@@ -19,6 +19,22 @@ import {
   printDateRange,
   todaysDateISOString,
 } from '../../helpers/dateTime'
+import {
+  RE_ISO_DATE,
+  RE_HOURS,
+  RE_MINUTES,
+  RE_TIME,
+  RE_AMPM,
+  RE_AMPM_OPT,
+  RE_DONE_DATETIME,
+  RE_DONE_DATE_OPT_TIME,
+  // RE_TIMEBLOCK_START,
+  // RE_TIMEBLOCK_END,
+  RE_TIMEBLOCK,
+  RE_TIMEBLOCK_FOR_THEMES,
+  isTimeBlockPara,
+  getTimeBlockString,
+} from '../../helpers/timeblocks'
 
 // ------------------------------------------------------------------------------------
 // Settings
@@ -51,58 +67,15 @@ let pref_confirmEventCreation: boolean
 let pref_calendarToWriteTo: string
 
 // ------------------------------------------------------------------------------------
-// Regular Expressions
-// find dates of form YYYY-MM-DD
-const RE_ISO_DATE = '\\d{4}-[01]\\d{1}-\\d{2}'
-const RE_HOUR = '[0-2]?\\d'
-const RE_MINUTE = '[0-5]\\d'
-const RE_TIME = `${RE_HOUR}:${RE_MINUTE}`
-const RE_AMPM = `(AM|PM|am|pm)`
-const RE_OPT_AMPM = `${RE_AMPM}?`
-// find ' 12:30[AM|PM|am|pm][-14:45[AM|PM|am|pm]]'
-const RE_TIMEBLOCK_TYPE1 = `\\s*${RE_TIME}${RE_OPT_AMPM}(\\s?-\\s?${RE_TIME}${RE_OPT_AMPM})?`
-// find ' at 2(AM|PM|am|pm)[-11[AM|PM|am|pm]]'
-const RE_TIMEBLOCK_TYPE2 = `\\s*at\\s+${RE_HOUR}(:${RE_MINUTE}|(AM|PM|am|pm)?)(\\s?-\\s?${RE_HOUR}(:${RE_MINUTE}|AM|PM|am|pm)?)?`
-// find ' at 9(AM|PM|am|pm)-11:30(AM|PM|am|pm)'
-const RE_TIMEBLOCK_TYPE3 = `\\s*(at\\s+)?${RE_HOUR}${RE_OPT_AMPM}\\s?-\\s?${RE_HOUR}:${RE_MINUTE}${RE_AMPM}`
-const RE_DONE_DATETIME = `@done\\(${RE_ISO_DATE} ${RE_TIME}${RE_OPT_AMPM}\\)`
-const RE_EVENT_ID = `event:[A-F0-9-]{32}`
+// Additional Regular Expressions
 
-/**
- * Eduard published the Regex he uses in timeblock code, on 10.11.2021
- * The FIRST... one is for start time, and
- * the second SECOND is for optional end time.
- */
-// private let FIRST_REG_PATTERN = "(^|\\s|T)" +
-//     "(?:(?:at|from)\\s*)?" +
-//     "(\\d{1,2}|noon|midnight)" +
-//     "(?:" +
-//         "(?:\\:|\\：)(\\d{1,2})" +
-//         "(?:" +
-//             "(?:\\:|\\：)(\\d{2})" +
-//         ")?" +
-//     ")?" +
-//     "(?:\\s*(A\\.M\\.|P\\.M\\.|AM?|PM?))?" +
-//     "(?=\\W|$)"
+const RE_EVENT_ID = `event:[A-F0-9-]{32,33}`
 
-// private let SECOND_REG_PATTERN = "^\\s*" +
-//     "(\\-|\\–|\\~|\\〜|to|\\?)\\s*" +
-//     "(\\d{1,4})" +
-//     "(?:" +
-//         "(?:\\:|\\：)(\\d{1,2})" +
-//         "(?:" +
-//             "(?:\\:|\\：)(\\d{1,2})" +
-//         ")?" +
-//     ")?" +
-//     "(?:\\s*(A\\.M\\.|P\\.M\\.|AM?|PM?))?" +
-//   "(?=\\W|$)"
-    
 // ------------------------------------------------------------------------------------
 
 // Go through current Editor note and identify time blocks to turn into events
 export async function timeBlocksToCalendar() {
-
-  printDateRange(Calendar.parseDateText("5-5:45pm")[0])
+  console.log(RE_TIMEBLOCK)
 
   const { paragraphs, note } = Editor
   if (paragraphs == null || note == null) {
@@ -133,56 +106,43 @@ export async function timeBlocksToCalendar() {
   // $FlowFixMe[incompatible-type]
   pref_confirmEventCreation = eventsConfig?.confirmEventCreation ?? false
   pref_calendarToWriteTo = String(eventsConfig?.calendarToWriteTo) ?? ''
+
+  let calendarToWriteTo = '' // NP will then use the default
   if (pref_calendarToWriteTo != null && pref_calendarToWriteTo !== '') {
-    // TODO: we should check that the calendar name we've been given is writable
-    // when these API calls are available from r655
-    // const writableCalendars = Calendar.availableCalendarTitles(true)
-    // if (writableCalendars.filter((f) => f.match(pref_calendarToWriteTo)).length > 0) {
-    //   console.log(`\twill write to calendar '${pref_calendarToWriteTo}'`)
-    // } else {
-    //   console.log(`\trequested calendar '${pref_calendarToWriteTo}' is not writeable. Will use default calendar instead.`)
-    // }
+    // Check that the calendar name we've been given is in the list and is writable
+    const writableCalendars: $ReadOnlyArray<string> = Calendar.availableCalendarTitles(true)
+    if (writableCalendars.includes(pref_calendarToWriteTo)) {
+      calendarToWriteTo = pref_calendarToWriteTo
+      console.log(`\twill write to calendar '${calendarToWriteTo}'`)
+    } else {
+      console.log(`\trequested calendar '${pref_calendarToWriteTo}' is not writeable. Will use default calendar instead.`)
+    }
   }
 
   // Look through open note to find time blocks, but ignore @done(...) lines
   // which can look like timeblocks
-  const timeblockParas = paragraphs.filter(
-    (p) =>
-      (p.content.match(RE_TIMEBLOCK_TYPE1) ||
-       p.content.match(RE_TIMEBLOCK_TYPE2) ||
-       p.content.match(RE_TIMEBLOCK_TYPE3)) &&
-      !p.content.match(RE_DONE_DATETIME)
-  )
+  const timeblockParas = paragraphs.filter( (p) => isTimeBlockPara(p) )
   if (timeblockParas.length > 0) {
     console.log(`  found ${timeblockParas.length} in '${noteTitle}'`)
-
     // Work out our current date context (as YYYY-MM-DD):
     // - if a calendar note -> date of note
     // - if a project note -> today's date
     // NB: But these are ignored if there's an actual date in the time block
     const dateContext =
       note.type === 'Calendar'
-        ? isoDateStringFromCalendarFilename(note.filename) ??
-          todaysDateISOString
+        ? isoDateStringFromCalendarFilename(note.filename) ?? todaysDateISOString
         : todaysDateISOString
 
     // Iterate over timeblocks
     for (let i = 0; i < timeblockParas.length; i++) {
       const thisPara = timeblockParas[i]
       const thisParaContent = thisPara.content ?? ''
-      let tempArray = thisParaContent.match(RE_TIMEBLOCK_TYPE1) ?? ['']
-      const timeBlockStringType1 = tempArray[0]
-      tempArray = thisParaContent.match(RE_TIMEBLOCK_TYPE2) ?? ['']
-      const timeBlockStringType2 = tempArray[0]
-      tempArray = thisParaContent.match(RE_TIMEBLOCK_TYPE3) ?? ['']
-      const timeBlockStringType3 = tempArray[0]
-      let timeBlockString =
-        timeBlockStringType1 !== ''
-          ? timeBlockStringType1
-          : timeBlockStringType2 !== ''
-            ? timeBlockStringType2
-            : timeBlockStringType3
-
+      console.log(`${i}: ${thisParaContent}`)
+      const reResults = thisParaContent.match(RE_TIMEBLOCK) ?? ['']
+      // console.log(reResults.toString())
+      let timeBlockString = reResults[0].trim() // or ...
+      timeBlockString = getTimeBlockString(thisParaContent).trim()
+      
       // Check to see if this line has been processed before, by looking for the
       // processed tag, or an [[event:ID]]
       // $FlowFixMe[incompatible-call]
@@ -211,20 +171,20 @@ export async function timeBlocksToCalendar() {
         const timeblockDateRange = Calendar.parseDateText(timeBlockString)[0]
 
         if (timeblockDateRange != null) {
-          const title = thisParaContent.replace(origTimeBlockString, '')
+          const title = thisParaContent.replace(origTimeBlockString, '').trim()
           if (pref_confirmEventCreation) {
-            const res = await showMessageYesNo(`Create event from '${timeBlockString}' for '${title}'?`)
+            const res = await showMessageYesNo(`Add event at '${timeBlockString}' for '${title}'?`)
             if (res === 'No') {
               continue // go to next time block
             }
           }
 
           console.log(`\tWill process time block '${timeBlockString}' for '${title}'`)
-          const eventID = await createEventFromDateRange(title, timeblockDateRange) ?? '<error getting eventID>'
+          const eventID = await createEventFromDateRange(title, timeblockDateRange, calendarToWriteTo) ?? '<error getting eventID>'
 
           // Remove time block string (if wanted)
           if (pref_removeTimeBlocksWhenProcessed) {
-            thisPara.content = thisParaContent.replace(origTimeBlockString, '')
+            thisPara.content = thisParaContent.replace(origTimeBlockString, '').trim()
           }
           // Add processedTag (if not empty)
           if (pref_processedTagName !== '') {
@@ -247,30 +207,33 @@ export async function timeBlocksToCalendar() {
 }
 
 // Create a new calendar event
-async function createEventFromDateRange(eventTitle: string, dateRange: DateRange): Promise<string> {
+async function createEventFromDateRange(
+  eventTitle: string,
+  dateRange: DateRange,
+  calendarName: string): Promise<string> {
   // console.log(`\tStarting cEFDR with ${eventTitle} for calendar ${pref_calendarToWriteTo}`)
   // If we have a pref_calendarToWriteTo setting, then include that in the call
   let event: TCalendarItem
-  if (pref_calendarToWriteTo !== '') {
+  // if (pref_calendarToWriteTo !== '') {
     event = CalendarItem.create(
       eventTitle,
       dateRange.start,
       dateRange.end,
       'event', // not 'reminder'
-      false,   // not 'isAllDay'
-      pref_calendarToWriteTo,
+      false, // not 'isAllDay'
+      calendarName,
     )
-  } else {
-    event = CalendarItem.create(
-      eventTitle,
-      dateRange.start,
-      dateRange.end,
-      'event', // not 'reminder'
-      false,   // not 'isAllDay'
-    )
-  }
+  // } else {
+  //   event = CalendarItem.create(
+  //     eventTitle,
+  //     dateRange.start,
+  //     dateRange.end,
+  //     'event', // not 'reminder'
+  //     false, // not 'isAllDay'
+  //   )
+  // }
   const createdEvent = Calendar.add(event)
-  const calendarDisplayName = (pref_calendarToWriteTo !== '') ? pref_calendarToWriteTo : 'system default'
+  const calendarDisplayName = (calendarName !== '') ? calendarName : 'system default'
   if (createdEvent != null) {
     const newID = createdEvent.id ?? 'undefined'
     console.log(`-> Event created with id: ${newID} in ${calendarDisplayName} calendar `)

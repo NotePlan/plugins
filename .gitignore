@@ -16,4 +16,4 @@ package-lock.json
 .idea/
 lcov*
 coverage/
-.history/**/*.*
+.history/**/*
