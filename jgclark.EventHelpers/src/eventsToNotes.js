@@ -1,8 +1,8 @@
 // @flow
 // ------------------------------------------------------------------------------------
 // Command to bring calendar events into notes
-// v0.6.3, 11.11.2021
-// @jgclark, with additions by @dwertheimer, @weyert
+// Last updated for v0.8.0, 11.12.2021
+// @jgclark, with additions by @dwertheimer, @weyert, @m1well
 // ------------------------------------------------------------------------------------
 
 import { getTagParamsFromString, stringReplace, } from '../../helpers/general'
@@ -162,7 +162,7 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
   if (pref_eventsHeading !== '' && includeHeadings) {
     outputArray.unshift(pref_eventsHeading)
   }
-  const output = outputArray.join('\n').replace(/ {2,}/g,' ') // If this the array is empty -> empty string
+  const output = outputArray.join('\n').replace(/\\s{2,}/g,' ') // If this the array is empty -> empty string
   console.log(output)
   return output
 }
@@ -230,8 +230,8 @@ export async function listMatchingDaysEvents(
       }
     }
   }
-  const output = outputArray.join('\n').replace(/ {2,}/g,' ') // This used to be '\n' but now that seems to add blank lines for some reason. If this array is empty -> empty string.
-  console.log(output)
+  const output = outputArray.join('\n').replace(/\\s{2,}/g,' ') // If this array is empty -> empty string.
+  // console.log(output)
   return output
 }
 
@@ -249,8 +249,10 @@ export async function insertMatchingDaysEvents(paramString: ?string): Promise<vo
   Editor.insertTextAtCursor(output)
 }
 
+//------------------------------------------------------------------------------
 /**
  * @private
+ * @author @m1well
  */
 const getReplacements = (item: TCalendarItem): { key: string, value: string }[] => {
   return [
@@ -281,6 +283,7 @@ const getReplacements = (item: TCalendarItem): { key: string, value: string }[] 
 
 /**
  * @private
+ * @author @m1well
  */
 const calendarNameWithMapping = (name: string, mappings: Array<string>): string => {
   let mapped = name

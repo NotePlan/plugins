@@ -1,9 +1,8 @@
 // @flow
-
 // ------------------------------------------------------------------------------------
 // Command to turn time blocks into full calendar events
 // @jgclark
-// v0.6.3, 11.11.2021
+// Last updated for v0.8.0, 11.12.2021 by @m1well
 //
 // See https://help.noteplan.co/article/52-part-2-tasks-events-and-reminders#timeblocking
 // for definition of time blocks. In summary:
@@ -16,9 +15,9 @@ import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configura
 import { showMessage, showMessageYesNo } from '../../helpers/userInput'
 import { displayTitle } from '../../helpers/general'
 import {
+  isoDateStringFromCalendarFilename,
   printDateRange,
   todaysDateISOString,
-  isoDateStringFromCalendarFilename,
 } from '../../helpers/dateTime'
 
 // ------------------------------------------------------------------------------------
@@ -38,8 +37,7 @@ const DEFAULT_EVENTS_OPTIONS = `
       "holiday": "*|TITLE|* *|NOTES|*",
     },
     locale: "en-US",
-	timeOptions: { hour: '2-digit', minute: '2-digit', hour12: false },
-	showCalendarName: false, // set to true if you want to have the calendarname
+    timeOptions: { hour: '2-digit', minute: '2-digit', hour12: false },
     calendarNameMappings: [  // here you can map a calendar name to a new string - e.g. "Thomas" to "Me" with "Thomas;Me"
       "From;To",
     ],
@@ -259,7 +257,7 @@ async function createEventFromDateRange(eventTitle: string, dateRange: DateRange
       dateRange.start,
       dateRange.end,
       'event', // not 'reminder'
-      false, // not 'isAllDay'
+      false,   // not 'isAllDay'
       pref_calendarToWriteTo,
     )
   } else {
@@ -268,7 +266,7 @@ async function createEventFromDateRange(eventTitle: string, dateRange: DateRange
       dateRange.start,
       dateRange.end,
       'event', // not 'reminder'
-      false, // not 'isAllDay'
+      false,   // not 'isAllDay'
     )
   }
   const createdEvent = Calendar.add(event)
@@ -285,31 +283,6 @@ async function createEventFromDateRange(eventTitle: string, dateRange: DateRange
 }
 
 //----------------------------------------------------------------------
-// Testing finding time blocks in text string:
-// - The following *don't work*:
-// printDateRange(Calendar.parseDateText("2021-06-02 2.15PM-3.45PM")[0])
-// printDateRange(Calendar.parseDateText("2021-06-02 at 2PM")[0])
-// printDateRange(Calendar.parseDateText("2PM-3PM")[0])
-// printDateRange(Calendar.parseDateText("2-3")[0]) // thinks of this as Feb 3rd
-// printDateRange(Calendar.parseDateText("2-3PM")[0])
-// printDateRange(Calendar.parseDateText("2PM-3")[0])
-
-// - The following *do* work as hoped:
-// printDateRange(Calendar.parseDateText("2:30-3:45")[0]) // = AM
-// printDateRange(Calendar.parseDateText("at 2PM-3PM")[0])
-// printDateRange(Calendar.parseDateText("at 2-3")[0]) // = AM
-// printDateRange(Calendar.parseDateText("at 2-3PM")[0]) // = PM
-// printDateRange(Calendar.parseDateText("at 2PM-3")[0]) // = PM->next AM
-// printDateRange(Calendar.parseDateText("at 2:30-3:45")[0]) // = AM
-// printDateRange(Calendar.parseDateText("2021-06-02 at 2-3")[0]) // = AM
-// printDateRange(Calendar.parseDateText("2021-06-02 at 2:30-3:45")[0]) // = AM
-// printDateRange(Calendar.parseDateText("2021-06-02 at 2am-3PM")[0])
-// printDateRange(Calendar.parseDateText("2021-06-02 at 2am-3AM")[0])
-// printDateRange(Calendar.parseDateText("2021-06-02 2:15-3:45")[0])
-// printDateRange(Calendar.parseDateText("2021-06-02 16:00-16:45")[0])
-// printDateRange(Calendar.parseDateText("16:00-16:45")[0])
-// printDateRange(Calendar.parseDateText("at 5-5:45pm")[0])
-
 // Markdown to test timeblock function. All should create apart from ones listed
 // - TBT-1a 2:30-3:45
 // - TBT-1b @done(2021-12-12) 2:30-3:45
