@@ -25,19 +25,24 @@ import {
 // Settings
 const DEFAULT_EVENTS_OPTIONS = `
   events: {
-    calendarToWriteTo: "", // specify calendar name to write events to. Must be writable calendar. If empty, then the default system calendar will be used.
+    calendarToWriteTo: "",  // specify calendar name to write events to. Must be writable calendar. If empty, then the default system calendar will be used.
     addEventID: false,  // whether to add an '⏰event:ID' internal link when creating an event from a time block
-    processedTagName: "#event_created",   // optional tag to add after making a time block an event
+    processedTagName: "#event_created",  // optional tag to add after making a time block an event
+    confirmEventCreation: false,  // optional tag to indicate whether to ask user to confirm each event to be created
     removeTimeBlocksWhenProcessed: true,  // whether to remove time block after making an event from it
     eventsHeading: "### Events today",  // optional heading to put before list of today's events
     calendarSet: [],  // optional ["array","of calendar","names"] to filter by when showing list of events. If empty or missing, no filtering will be done.
-    addMatchingEvents: {   // match events with string on left, and then the string on the right is the template for how to insert this event (see README for details)
+    addMatchingEvents: {  // match events with string on left, and then the string on the right is the template for how to insert this event (see README for details)
       "meeting": "### *|TITLE|* (*|START|*)\\n*|NOTES|*",
       "webinar": "### *|TITLE|* (*|START|*) *|URL|*",
       "holiday": "*|TITLE|* *|NOTES|*",
     },
     locale: "en-US",
-	  timeOptions: { hour: '2-digit', minute: '2-digit', hour12: false },
+	timeOptions: { hour: '2-digit', minute: '2-digit', hour12: false },
+	showCalendarName: false, // set to true if you want to have the calendarname
+    calendarNameMappings: [  // here you can map a calendar name to a new string - e.g. "Thomas" to "Me" with "Thomas;Me"
+      "From;To",
+    ],
   },
 `
 

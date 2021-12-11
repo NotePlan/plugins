@@ -5,13 +5,9 @@
 // @jgclark, with additions by @dwertheimer, @weyert
 // ------------------------------------------------------------------------------------
 
-import {
-  stringReplace,
-  // getTagParams,
-  getTagParamsFromString,
-} from '../../helpers/general'
+import { getTagParamsFromString, stringReplace, } from '../../helpers/general'
 import { showMessage } from '../../helpers/userInput'
-import { toLocaleTime, dateStringFromCalendarFilename } from '../../helpers/dateTime'
+import { dateStringFromCalendarFilename, toLocaleTime } from '../../helpers/dateTime'
 
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 
@@ -19,19 +15,23 @@ import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configura
 // Get settings
 const DEFAULT_EVENTS_OPTIONS = `
   events: {
-    calendarToWriteTo: "", // specify calendar name to write events to. Must be writable calendar. If empty, then the default system calendar will be used.
+    calendarToWriteTo: "",  // specify calendar name to write events to. Must be writable calendar. If empty, then the default system calendar will be used.
     addEventID: false,  // whether to add an '⏰event:ID' internal link when creating an event from a time block
-    processedTagName: "#event_created",   // optional tag to add after making a time block an event
+    processedTagName: "#event_created",  // optional tag to add after making a time block an event
+    confirmEventCreation: false,  // optional tag to indicate whether to ask user to confirm each event to be created
     removeTimeBlocksWhenProcessed: true,  // whether to remove time block after making an event from it
     eventsHeading: "### Events today",  // optional heading to put before list of today's events
     calendarSet: [],  // optional ["array","of calendar","names"] to filter by when showing list of events. If empty or missing, no filtering will be done.
-    addMatchingEvents: {   // match events with string on left, and then the string on the right is the template for how to insert this event (see README for details)
+    addMatchingEvents: {  // match events with string on left, and then the string on the right is the template for how to insert this event (see README for details)
       "meeting": "### *|TITLE|* (*|START|*)\\n*|NOTES|*",
       "webinar": "### *|TITLE|* (*|START|*) *|URL|*",
       "holiday": "*|TITLE|* *|NOTES|*",
     },
     locale: "en-US",
-	  timeOptions: { hour: '2-digit', minute: '2-digit', hour12: false },
+    timeOptions: { hour: '2-digit', minute: '2-digit', hour12: false },
+    calendarNameMappings: [  // here you can map a calendar name to a new string - e.g. "Thomas" to "Me" with "Thomas;Me"
+      "From;To",
+    ],
   },
 `
 // global variables, including default settings
@@ -40,6 +40,7 @@ let pref_addMatchingEvents: ?{ [string]: mixed }
 let pref_locale: string
 let pref_timeOptions
 let pref_calendarSet: Array<string>
+let pref_calendarNameMappings: Array<string>
 
 //------------------------------------------------------------------------------
 // Local functions
@@ -88,6 +89,8 @@ async function getEventsSettings(): Promise<void> {
   // if (eventsConfig.timeOptions != null) {
   //   pref_timeOptions = eventsConfig.timeOptions
   // }
+  // $FlowFixMe
+  pref_calendarNameMappings = eventsConfig?.calendarNameMappings ?? []
   console.log(`\tEnd of getEventsSettings()`)
 }
 
@@ -135,8 +138,8 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
   await getEventsSettings()
   // Work out template for output line (from params, or if blank, a default)
   // NB: be aware that this call doesn't do type checking
-  const template = String(await getTagParamsFromString(paramString, 'template', '- *|TITLE|* (*|START|*)'))
-  const alldayTemplate = String(await getTagParamsFromString(paramString, 'allday_template', '- *|TITLE|*'))
+  const template = String(await getTagParamsFromString(paramString, 'template', '- *|CAL|*: *|TITLE|* (*|START|*)'))
+  const alldayTemplate = String(await getTagParamsFromString(paramString, 'allday_template', '- *|CAL|*: *|TITLE|*'))
   const includeHeadings = await getTagParamsFromString(paramString, 'includeHeadings', true)
   // console.log(`\toutput template: '${template}' and '${alldayTemplate}'`)
 
@@ -147,26 +150,8 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
   let lastEventStr = '' // keep duplicates from multiple calendars out
   for (const e of eArr) {
     // console.log(`      for e: ${e.title}: ${JSON.stringify(e)}`)
-    const replacements = [
-      { key: '*|TITLE|*', value: e.title },
-      {
-        key: '*|START|*',
-        value: !e.isAllDay
-          ? // $FlowFixMe
-            toLocaleTime(e.date, pref_locale, pref_timeOptions)
-          : '',
-      },
-      {
-        key: '*|END|*',
-        value:
-          e.endDate != null && !e.isAllDay
-            ? // $FlowFixMe
-              toLocaleTime(e.endDate, pref_locale, pref_timeOptions)
-            : '',
-      },
-      { key: '*|NOTES|*', value: e.notes },
-      { key: '*|URL|*', value: e.url },
-    ]
+    const replacements = getReplacements(e)
+
     // NB: the following will replace any mentions of the keywords in the e.title string itself
     const thisEventStr = stringReplace(e.isAllDay ? alldayTemplate : template, replacements).trimEnd()
     if (lastEventStr !== thisEventStr) {
@@ -177,7 +162,7 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
   if (pref_eventsHeading !== '' && includeHeadings) {
     outputArray.unshift(pref_eventsHeading)
   }
-  const output = outputArray.join('\n') // If this the array is empty -> empty string
+  const output = outputArray.join('\n').replace(/ {2,}/g,' ') // If this the array is empty -> empty string
   console.log(output)
   return output
 }
@@ -233,26 +218,7 @@ export async function listMatchingDaysEvents(
       const reMatch = new RegExp(textToMatchA[i], 'i')
       if (e.title.match(reMatch)) {
         console.log(`\tFound match to event '${e.title}'`)
-        const replacements = [
-          { key: '*|TITLE|*', value: e.title },
-          {
-            key: '*|START|*',
-            value: !e.isAllDay
-              ? // $FlowFixMe
-                toLocaleTime(e.date, pref_locale, pref_timeOptions)
-              : '',
-          },
-          {
-            key: '*|END|*',
-            value:
-              e.endDate != null && !e.isAllDay
-                ? // $FlowFixMe
-                  toLocaleTime(e.endDate, pref_locale, pref_timeOptions)
-                : '',
-          },
-          { key: '*|NOTES|*', value: e.notes },
-          { key: '*|URL|*', value: e.url },
-        ]
+        const replacements = getReplacements(e)
         // $FlowFixMe -- not sure how to deal with mixed coercing to strings
         const thisEventStr = stringReplace(template, replacements)
         if (lastEventStr !== thisEventStr) {
@@ -264,7 +230,7 @@ export async function listMatchingDaysEvents(
       }
     }
   }
-  const output = outputArray.join('\n') // This used to be '\n' but now that seems to add blank lines for some reason. If this array is empty -> empty string.
+  const output = outputArray.join('\n').replace(/ {2,}/g,' ') // This used to be '\n' but now that seems to add blank lines for some reason. If this array is empty -> empty string.
   console.log(output)
   return output
 }
@@ -281,4 +247,48 @@ export async function insertMatchingDaysEvents(paramString: ?string): Promise<vo
 
   const output = await listMatchingDaysEvents(paramString || '')
   Editor.insertTextAtCursor(output)
+}
+
+/**
+ * @private
+ */
+const getReplacements = (item: TCalendarItem): { key: string, value: string }[] => {
+  return [
+    {
+      key: '*|CAL|*',
+      value: calendarNameWithMapping(item.calendar, pref_calendarNameMappings)
+    },
+    { key: '*|TITLE|*', value: item.title },
+    {
+      key: '*|START|*',
+      value: !item.isAllDay
+        ? // $FlowFixMe
+        toLocaleTime(item.date, pref_locale, pref_timeOptions)
+        : '',
+    },
+    {
+      key: '*|END|*',
+      value:
+        item.endDate != null && !item.isAllDay
+          ? // $FlowFixMe
+          toLocaleTime(item.endDate, pref_locale, pref_timeOptions)
+          : '',
+    },
+    { key: '*|NOTES|*', value: item.notes },
+    { key: '*|URL|*', value: item.url },
+  ]
+}
+
+/**
+ * @private
+ */
+const calendarNameWithMapping = (name: string, mappings: Array<string>): string => {
+  let mapped = name
+  mappings.forEach(mapping => {
+    const splitted = mapping.split(';')
+    if (splitted.length === 2 && name === splitted[0]) {
+      mapped = splitted[1]
+    }
+  })
+  return mapped
 }
