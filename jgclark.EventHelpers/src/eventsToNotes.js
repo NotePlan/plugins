@@ -29,7 +29,6 @@ const DEFAULT_EVENTS_OPTIONS = `
     },
     locale: "en-US",
     timeOptions: { hour: '2-digit', minute: '2-digit', hour12: false },
-    showCalendarName: false, // set to true if you want to have the calendarname
     calendarNameMappings: [  // here you can map a calendar name to a new string - e.g. "Thomas" to "Me" with "Thomas;Me"
       "From;To",
     ],
@@ -41,7 +40,6 @@ let pref_addMatchingEvents: ?{ [string]: mixed }
 let pref_locale: string
 let pref_timeOptions
 let pref_calendarSet: Array<string>
-let pref_showCalendarName: boolean
 let pref_calendarNameMappings: Array<string>
 
 //------------------------------------------------------------------------------
@@ -91,7 +89,6 @@ async function getEventsSettings(): Promise<void> {
   // if (eventsConfig.timeOptions != null) {
   //   pref_timeOptions = eventsConfig.timeOptions
   // }
-  pref_showCalendarName = eventsConfig?.showCalendarName != null ? Boolean(eventsConfig?.showCalendarName) : false
   // $FlowFixMe
   pref_calendarNameMappings = eventsConfig?.calendarNameMappings ?? []
   console.log(`\tEnd of getEventsSettings()`)
@@ -141,8 +138,8 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
   await getEventsSettings()
   // Work out template for output line (from params, or if blank, a default)
   // NB: be aware that this call doesn't do type checking
-  const template = String(await getTagParamsFromString(paramString, 'template', '- *|CAL|**|TITLE|* (*|START|*)'))
-  const alldayTemplate = String(await getTagParamsFromString(paramString, 'allday_template', '- *|CAL|**|TITLE|*'))
+  const template = String(await getTagParamsFromString(paramString, 'template', '- *|CAL|*: *|TITLE|* (*|START|*)'))
+  const alldayTemplate = String(await getTagParamsFromString(paramString, 'allday_template', '- *|CAL|*: *|TITLE|*'))
   const includeHeadings = await getTagParamsFromString(paramString, 'includeHeadings', true)
   // console.log(`\toutput template: '${template}' and '${alldayTemplate}'`)
 
@@ -165,7 +162,7 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
   if (pref_eventsHeading !== '' && includeHeadings) {
     outputArray.unshift(pref_eventsHeading)
   }
-  const output = outputArray.join('\n') // If this the array is empty -> empty string
+  const output = outputArray.join('\n').replace(/ {2,}/g,' ') // If this the array is empty -> empty string
   console.log(output)
   return output
 }
@@ -233,7 +230,7 @@ export async function listMatchingDaysEvents(
       }
     }
   }
-  const output = outputArray.join('\n') // This used to be '\n' but now that seems to add blank lines for some reason. If this array is empty -> empty string.
+  const output = outputArray.join('\n').replace(/ {2,}/g,' ') // This used to be '\n' but now that seems to add blank lines for some reason. If this array is empty -> empty string.
   console.log(output)
   return output
 }
@@ -259,7 +256,7 @@ const getReplacements = (item: TCalendarItem): { key: string, value: string }[] 
   return [
     {
       key: '*|CAL|*',
-      value: pref_showCalendarName ? calendarNameWithMapping(item.calendar, pref_calendarNameMappings) : ''
+      value: calendarNameWithMapping(item.calendar, pref_calendarNameMappings)
     },
     { key: '*|TITLE|*', value: item.title },
     {
@@ -293,5 +290,5 @@ const calendarNameWithMapping = (name: string, mappings: Array<string>): string 
       mapped = splitted[1]
     }
   })
-  return `${mapped}: `
+  return mapped
 }

@@ -51,7 +51,6 @@ Or add the following settings into the `Templates/_configuration` note's first c
     },
     locale: "en-US",
     timeOptions: { hour: '2-digit', minute: '2-digit', hour12: false }, // optional settings for time outputs
-    showCalendarName: false, // set to true if you want to have the calendarname
     calendarNameMappings: [  // here you can map a calendar name to a new string - e.g. "Thomas" to "Me" with "Thomas;Me"
       "From;To",
     ],
@@ -78,7 +77,6 @@ This uses JSON5 format: ensure there are commas at the end of all that lines tha
 - **eventsHeading**: in `/insert today's events as list` the heading to put before the list of today's events. Optional.
 - **calendarSet**: optional ["array","of calendar","names"] to filter by when showing list of events. If empty or missing, no filtering will be done.
 - **addMatchingEvents**: for `/add matching events` is a set of pairs of strings. The first string is what is matched for in an event's title. If it does match the second string is used as the template for how to insert the event details at the cursor.  This uses the same `*|TITLE|*`, `*|START|*` (time), `*|END|*` (time), `*|NOTES|*` and `*|URL|*` template items below ...  NB: At this point the 'location' field is unfortunately _not_ available through the API.
-- **showCalendarName**: optional - set to true if you want to see the calendarname (also add it to your string template!)
 - **calendarNameMappings**: optional - add mappings for your calendarnames - e.g. "Thomas;Me" - then in the Note following appears: `- Me: Event 1 (15:00)` (obviously it depends on your template) - maybe for formatting purposes
 
 ### Using Event Lists from a Template
@@ -89,7 +87,7 @@ If you want to disable the adding of the heading, add the following parameter `i
 For example:
 
 ```jsonc
-{{events({template:"### *|CAL|**|TITLE|* (*|START|*-*|END|*)\n*|NOTES|*",allday_template:"### TITLE",includeHeadings:false})}}
+{{events({template:"### *|CAL|*: *|TITLE|* (*|START|*-*|END|*)\n*|NOTES|*",allday_template:"### TITLE",includeHeadings:false})}}
 ```
 
 The `*|CAL|*`, `*|TITLE|*`, `*|START|*`, `*|END|*`, `*|NOTES|*` and `*|URL|*` can be mixed with whatever markdown characters or other text you like, and they will get replaced accordingly with the fields from each matching event found. (Note the difference between the } and ) bracket types, and use of double quotes around the template string. I didn't design this syntax ...)
