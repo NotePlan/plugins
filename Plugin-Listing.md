@@ -2,6 +2,7 @@
 
 | Command Name | Description | Plugin |
 | --- | --- | --- |
+| `Create AutoTimeBlocks using presets` | Read >today todos and insert them into today's calendar note as timeblocks, but using presets defined in _configuration note | 🗓 Event Automations |
 | `Create Note From Calendar Event` | creates a note from a calendar event | 🗓 Event Automations |
 | `Create Note From Calendar Event w/QuickTemplate` | creates a note from a calendar event | 🗓 Event Automations |
 | `add project` | add a new note representing a project, asking for its metadata | 🔬Reviews |
@@ -17,7 +18,12 @@
 | `dayStart` | Apply Daily Note Template (requires configuring) | ☀️ Daily Journal |
 | `dp` | (Date Picker) Choose format and insert date/time time at cursor | 📅 Date Automations |
 | `expensesAggregate` | Aggregates the tracked expenses of the chosen year to a new expenses aggregated note | 💶️ Expenses |
+| `expensesFixedTracking` | Track your fixed expenses | 💶️ Expenses |
+| `expensesIndividualTracking` | Track your individual expenses | 💶️ Expenses |
+| `expensesShortcutsTracking` | Track your shortcuts expenses | 💶️ Expenses |
 | `expensesTracking` | Provides multiple possibilities to track your expenses | 💶️ Expenses |
+| `fave - Make this Note a Favorite (⭐️)` | Set open Note to be a Favorite (add ⭐️) | ⭐️ Favorites |
+| `faves - Choose+Open Favorite (⭐️) Note` | Open one of the saved Favorites | ⭐️ Favorites |
 | `finish project review` | updates the current open project's @reviewed() date | 🔬Reviews |
 | `formatted` | Insert custom formatted (format) date/time | 📅 Date Automations |
 | `fp` | file (move) paragraphs to different notes | 📦 Filer |
@@ -70,6 +76,7 @@
 | `tsp` | Shows task statistics for project notes | 🔢 Note Statistics |
 | `tst` | Tasks Sort by #Tag - Sort tasks on the page by hashtag | ✅ Task Automations |
 | `tt` | Tasks to Top - Bring all tasks in note to top | ✅ Task Automations |
+| `unfave - Remove this Note from Favorites List (⭐️)` | Remove this Note from saved Favorites (remove ⭐️ from name) | ⭐️ Favorites |
 | `wc` | Shows word count and other numbers for the note | 🔢 Note Statistics |
 | `wd` | Insert dates of current week | 📅 Date Automations |
 | `weeklyStats` | Generate stats for tags and mentions for all weeks this year, and write CSV to a note | 🗃 Summaries |
