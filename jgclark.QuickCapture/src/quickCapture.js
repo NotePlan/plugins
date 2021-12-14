@@ -2,7 +2,7 @@
 // --------------------------------------------------------------------------------------------------------------------
 // QuickCapture plugin for NotePlan
 // Jonathan Clark
-// last update v0.8.1, 20.11.2021
+// last update v0.8.2, 14.12.2021
 // --------------------------------------------------------------------------------------------------------------------
 
 import {
@@ -272,19 +272,18 @@ export async function appendTextToDailyJournal(): Promise<void> {
  * @author @jgclark
  */
 export async function addTaskToInbox(): Promise<void> {
-  console.log(`\naddTaskToInbox:`)
   await getInboxSettings(true)
 
   // Get or setup the inbox note from the Datastore
-  let newFilename: ?string
+  let newFilename: string
   let inboxNote: ?TNote
   if (pref_inboxTitle === '') {
     // use today's daily note
-    console.log(`\tWill use daily note`)
+    console.log(`\naddTaskToInbox: using daily note`)
     inboxNote = DataStore.calendarNoteByDateString(
       getTodaysDateUnhyphenated())
   } else {
-    console.log(`\tAttempting to use inbox title: ${pref_inboxTitle}`)
+    console.log(`\naddTaskToInbox: using inbox title: ${pref_inboxTitle}`)
     const matchingNotes =
       DataStore.projectNoteByTitleCaseInsensitive(pref_inboxTitle) ?? []
     inboxNote = matchingNotes[0] ?? null
@@ -295,29 +294,26 @@ export async function addTaskToInbox(): Promise<void> {
       )
       newFilename = DataStore.newNote(pref_inboxTitle, folder) ?? ''
       // NB: this returns a filename not of our choosing
-      if (newFilename != null) {
+      if (newFilename != null && newFilename !== '') {
         console.log(`\tmade new inbox note, filename = ${newFilename}`)
-        // $FlowIgnore[incompatible-call]
         inboxNote = DataStore.projectNoteByFilename(newFilename)
       }
     }
   }
 
-  // Ask for the task title
-  let taskTitle = await CommandBar.showInput(
-    `Type the task to add to your Inbox note`,
-    `Add task '%@' ${pref_textToAppendToTasks}`,
-  )
-  taskTitle += ` ${pref_textToAppendToTasks}`
-
   if (inboxNote != null) {
+    // Ask for the task title
+    let taskTitle = await CommandBar.showInput(
+      `Type the task to add to ${displayTitle(inboxNote)}`,
+      `Add task '%@' ${pref_textToAppendToTasks}`,
+    )
+    taskTitle += ` ${pref_textToAppendToTasks}`
+
     if (pref_addInboxPosition === 'append') {
       inboxNote.appendTodo(taskTitle)
     } else {
       inboxNote.prependTodo(taskTitle)
     }
-    // $FlowIgnore[incompatible-call]
-    // console.log(`\tAdded todo to Inbox note '${displayTitle(inboxNote)}'`)
   } else {
     console.log(`\tERROR: Despite everything I couldn't find or make the Inbox note.`)
   }
