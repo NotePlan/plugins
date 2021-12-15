@@ -14,6 +14,7 @@ import {
 const simpleConfig = {
   delimiter: ';',
   dateFormat: 'yyyy-MM-dd',
+  amountFormat: 'short',
   columnOrder: [
     'date', 'category', 'text', 'amount'
   ],
@@ -128,6 +129,21 @@ describe('expensesHelper', () => {
       const result = createTrackingExpenseRowWithConfig(row, simpleConfig)
 
       expect(result).toEqual('2021-11-01;Living;Flat Rent;600')
+    })
+
+    test('should create line in given order with full amount format', () => {
+      const row = {
+        date: new Date(2021, 10, 1),
+        category: 'Living',
+        text: 'Flat Rent',
+        amount: 600.55,
+      }
+
+      const changedSimpleConfig = { ...simpleConfig, amountFormat: 'full' }
+
+      const result = createTrackingExpenseRowWithConfig(row, changedSimpleConfig)
+
+      expect(result).toEqual('2021-11-01;Living;Flat Rent;600.55')
     })
 
     test('should left pad with zeros', () => {

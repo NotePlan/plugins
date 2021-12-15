@@ -16,8 +16,13 @@ which will be added to the NotePlan `_configuration` on the first usage!
 * `dateFormat`
   * choose custom date format like `yyyy-MM-dd` or `yyyy-MM` if you don't care about the days
   * ATTENTION: don't use your chosen delimiter here in the date format
+  * ATTENTION: please don't change this after first tracking
+* `amountFormat`
+  * choose either `full` to have always 2 fraction digits with localized separator and exact amount, or `short` to have no fraction digits and rounded amount
+  * ATTENTION: please don't change this after first tracking
 * `columnOrder`
   * choose column order - e.g. `['date', 'category', 'text', 'amount']`
+  * ATTENTION: please don't change this after first tracking
 * `categories`
   * Categories of your expenses, e.g. 'Living', 'Groceries', 'Insurances', 'Media'
 * `shortcutExpenses`
@@ -33,6 +38,7 @@ which will be added to the NotePlan `_configuration` on the first usage!
     folderPath: 'finances',
     delimiter: ';',
     dateFormat: 'yyyy-MM-dd',
+    amountFormat: 'short',
     columnOrder: [
       'date',
       'category',
@@ -82,7 +88,7 @@ which will be added to the NotePlan `_configuration` on the first usage!
       {
         category: 'Media',
         text: 'Spotify',
-        amount: 10,
+        amount: 9.99,
         month: 0,
         active: false,
       },
@@ -94,8 +100,6 @@ which will be added to the NotePlan `_configuration` on the first usage!
 ## Hints
 * for the sake of simplicity you can't change written lines or add older entries
   * for that you have to add/change/remove the lines manually
-* To avoid problems with separator over different countries, only use integer values please
-  (e.g. instead of '9.99' use '10') - the plugin does a `Math.round()` anyways
 * Avoid empty lines in the Note, the plugin does not recognize them
 
 ## Commands
