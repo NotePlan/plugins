@@ -1,5 +1,11 @@
 # What's changed in ⚡️ Quick Capture
 
+## [0.8.3] - 2021-12-15 (@m1well)
+### Fixed
+- Flow Error in the last part of `quickCapture.js
+### Changed
+- Some reformatting in the code
+
 ## [0.8.2] - 2021-11-20
 ### Changed
 - Tweaks the `/int` command's prompt text to remind user the title of the designated Inbox note (or today's daily note). (Thanks to @dwertheimer for the suggestion.)

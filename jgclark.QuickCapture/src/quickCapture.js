@@ -2,28 +2,15 @@
 // --------------------------------------------------------------------------------------------------------------------
 // QuickCapture plugin for NotePlan
 // Jonathan Clark
-// last update v0.8.2, 14.12.2021
+// last update v0.8.3, 15.12.2021
 // --------------------------------------------------------------------------------------------------------------------
 
-import {
-  getOrMakeConfigurationSection,
-} from '../../nmn.Templates/src/configuration'
+import { getOrMakeConfigurationSection, } from '../../nmn.Templates/src/configuration'
 import { displayTitle } from '../../helpers/general'
 import { smartPrependPara } from '../../helpers/paragraph'
-import {
-  getTodaysDateUnhyphenated,
-  unhyphenateString,
-} from '../../helpers/dateTime'
-import {
-  showMessage,
-  chooseFolder,
-  chooseHeading,
-  askForFutureISODate,
-} from '../../helpers/userInput'
-import {
-  calendarNotesSortedByChanged,
-  projectNotesSortedByChanged,
-} from '../../helpers/note'
+import { getTodaysDateUnhyphenated, unhyphenateString, } from '../../helpers/dateTime'
+import { askForFutureISODate, chooseFolder, chooseHeading, showMessage, } from '../../helpers/userInput'
+import { calendarNotesSortedByChanged, projectNotesSortedByChanged, } from '../../helpers/note'
 
 // ------------------------------------------------------------------
 // settings
@@ -48,20 +35,20 @@ async function getInboxSettings(createIfMissing: boolean): Promise<void> {
     // console.log(`found config: ${JSON.stringify(inboxConfig)}`)
     if (inboxConfig == null || Object.keys(inboxConfig).length === 0) { // check for empty object
       console.log(
-        "\tWarning: Cannot find 'inbox' settings in Templates/_configuration note. Stopping.",
+        `\tWarning: Cannot find 'inbox' settings in Templates/_configuration note. Stopping.`,
       )
-      await showMessage("Error: please check 'inbox' settings in '_configuration' note")
+      await showMessage(`Error: please check 'inbox' settings in '_configuration' note`)
     } else {
       // Read settings from _configuration, or if missing set a default
       pref_inboxTitle = (inboxConfig?.inboxTitle != null) // legitimate than inboxTitle can be '' (the empty string)
         ? String(inboxConfig?.inboxTitle)
-        : "📥 Inbox"
+        : `📥 Inbox`
       pref_addInboxPosition = (inboxConfig?.addInboxPosition != null && inboxConfig?.addInboxPosition !== '')
         ? String(inboxConfig?.addInboxPosition)
-        : "prepend"
+        : 'prepend'
       pref_textToAppendToTasks = (inboxConfig?.textToAppendToTasks != null)
         ? String(inboxConfig?.textToAppendToTasks)
-        : ""
+        : ''
     }
   } else {
     // Read settings from _configuration, or if missing set a default
@@ -70,13 +57,13 @@ async function getInboxSettings(createIfMissing: boolean): Promise<void> {
     // console.log(`found config: ${JSON.stringify(inboxConfig)}`)
     pref_inboxTitle = (inboxConfig?.inboxTitle != null) // legitimate than inboxTitle can be '' (the empty string)
       ? String(inboxConfig?.inboxTitle)
-      : "📥 Inbox"
+      : `📥 Inbox`
     pref_addInboxPosition = (inboxConfig?.addInboxPosition != null && inboxConfig?.addInboxPosition !== '')
       ? String(inboxConfig?.addInboxPosition)
-      : "prepend"
+      : 'prepend'
     pref_textToAppendToTasks = (inboxConfig?.textToAppendToTasks != null)
       ? String(inboxConfig?.textToAppendToTasks)
-      : ""
+      : ''
   }
   // console.log(`Inbox settings (3 lines):`)
   // console.log(pref_inboxTitle)
@@ -166,7 +153,7 @@ export async function addTextToNoteHeading(): Promise<void> {
   // Ask for the note text
   const text = await CommandBar.showInput(
     'Type the text to add',
-    "Add text '%@'",
+    `Add text '%@'`,
   )
 
   // Then ask for the note we want to add the text
@@ -230,7 +217,7 @@ export async function appendTaskToDailyNote(): Promise<void> {
   const dateStr = await askForFutureISODate('Select daily note for new todo')
   console.log(`\nappendTaskToDailyNote: adding to date ${dateStr}`)
   const note = DataStore.calendarNoteByDateString(unhyphenateString(dateStr))
-  
+
   if (note != null) {
     // console.log(`Appending task: ${taskTitle} ${pref_textToAppendToTasks} to ${displayTitle(note)}`)
     note.appendTodo(`${taskTitle} ${pref_textToAppendToTasks}`)
@@ -276,16 +263,12 @@ export async function addTaskToInbox(): Promise<void> {
 
   // Get or setup the inbox note from the Datastore
   let newFilename: string
-  let inboxNote: ?TNote
-  if (pref_inboxTitle === '') {
-    // use today's daily note
-    console.log(`\naddTaskToInbox: using daily note`)
-    inboxNote = DataStore.calendarNoteByDateString(
-      getTodaysDateUnhyphenated())
-  } else {
+
+  console.log(`\naddTaskToInbox: using daily note`)
+  let inboxNote: ?TNote = DataStore.calendarNoteByDateString(getTodaysDateUnhyphenated())
+  if (pref_inboxTitle !== '') {
     console.log(`\naddTaskToInbox: using inbox title: ${pref_inboxTitle}`)
-    const matchingNotes =
-      DataStore.projectNoteByTitleCaseInsensitive(pref_inboxTitle) ?? []
+    const matchingNotes = DataStore.projectNoteByTitleCaseInsensitive(pref_inboxTitle) ?? []
     inboxNote = matchingNotes[0] ?? null
     // Create the inbox note if not existing, ask the user which folder
     if (inboxNote == null) {
@@ -301,7 +284,7 @@ export async function addTaskToInbox(): Promise<void> {
     }
   }
 
-  if (inboxNote != null) {
+  if (inboxNote) {
     // Ask for the task title
     let taskTitle = await CommandBar.showInput(
       `Type the task to add to ${displayTitle(inboxNote)}`,
