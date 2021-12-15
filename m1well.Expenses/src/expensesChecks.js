@@ -34,8 +34,8 @@ export const categoryOk = (category: string, categories: string[]): boolean => {
  * @description just do some checks on the privided config and e.g. add a default delimiter if none is set
  *
  * @param config casted config from _configuration
- * @param currentDate current date - to have always the same
- * @returns {Config|null} return the config if everything is ok, otherwise null
+ * @param currentDate current date - example of date to check if configured date format is valid
+ * @returns {Config} return the config if everything is ok, otherwise an empty config
  */
 export const validateConfig = (config: Config, currentDate: Date): Config => {
 
