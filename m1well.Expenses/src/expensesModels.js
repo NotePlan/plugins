@@ -4,6 +4,7 @@ export type Config = {
   folderPath: string,
   delimiter: string,
   dateFormat: string,
+  amountFormat: string,
   columnOrder: string[],
   categories: string[],
   shortcutExpenses: ShortcutExpense[],

@@ -4,6 +4,11 @@ import { format } from 'date-fns'
 import { showMessage } from '../../helpers/userInput'
 import type { Config } from './expensesModels'
 
+const DEFAULT_DELIMITER = ';'
+const ALLOWED_DELIMTER = [ ';', '%', 'TAB' ]
+const MINIMAL_COLUMNS = [ 'date', 'category', 'amount' ]
+const ALLOWED_AMOUNT_FORMATS = [ 'full', 'short' ]
+
 /**
  * @description check if the amount is smaller than 1_000_000 and greater than -1_000_000 and is not 0 or null or NaN
  *
@@ -30,19 +35,15 @@ export const categoryOk = (category: string, categories: string[]): boolean => {
  *
  * @param config casted config from _configuration
  * @param currentDate current date - to have always the same
- * @param defaultDelimiter default delimiter from code
- * @param allowedDelimiter allowed delimiter from code
  * @returns {Config|null} return the config if everything is ok, otherwise null
  */
-export const validateConfig = (config: Config,
-                               currentDate: Date,
-                               defaultDelimiter: string,
-                               allowedDelimiter: string[]): Config => {
+export const validateConfig = (config: Config, currentDate: Date): Config => {
 
-  const emptyConfig = {
+  const emptyConfig: Config = {
     folderPath: '',
     delimiter: '',
     dateFormat: '',
+    amountFormat: '',
     columnOrder: [],
     categories: [],
     shortcutExpenses: [],
@@ -57,20 +58,25 @@ export const validateConfig = (config: Config,
 
   if (!config.delimiter) {
     // if there is no delimiter configured, then set default
-    logMessage(`no delimiter configured - set default to '${defaultDelimiter}'`)
-    config.delimiter = defaultDelimiter
+    logMessage(`no delimiter configured - set default to '${DEFAULT_DELIMITER}'`)
+    config.delimiter = DEFAULT_DELIMITER
   } else {
-    if (!allowedDelimiter.includes(config.delimiter)) {
+    if (!ALLOWED_DELIMTER.includes(config.delimiter)) {
       // if wrong delimiter configured, then stop
       logError(`wrong delimiter configured (${config.delimiter})`)
       return emptyConfig
     }
   }
 
-  const minimalColumns = [ 'date', 'category', 'amount' ]
-  if (config.columnOrder.every(col => minimalColumns.includes(col))) {
+  if (config.columnOrder.every(col => MINIMAL_COLUMNS.includes(col))) {
     // if minimal columns config is not provided, then stop
     logError('minimal columns config not provided (at least date, category, amount)')
+    return emptyConfig
+  }
+
+  if (!config.amountFormat || !ALLOWED_AMOUNT_FORMATS.includes(config.amountFormat)) {
+    // if no amount format or wrong amount format, then stop
+    logError('no or wrong amount format provided')
     return emptyConfig
   }
 

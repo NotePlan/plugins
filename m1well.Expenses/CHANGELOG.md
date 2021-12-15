@@ -1,5 +1,9 @@
 # m1well.Expenses Plugin Changelog
 
+## [1.4.0] - 2021-12-15 (@m1well)
+### Changed
+* configurable amount format (`full` with always 2 fraction digits or `short` with no fraction digits and always rounded)
+
 ## [1.3.0] - 2021-12-09 (@m1well) (some ideas from @dwertheimer)
 because of breaking changes, normally this should give a new major version.  
 but because I assume that no one has yet installed this plugin, a minor version would be ok

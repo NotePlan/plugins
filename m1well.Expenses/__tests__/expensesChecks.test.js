@@ -6,6 +6,7 @@ const SIMPLE_CONFIG = {
   folderPath: 'folder',
   delimiter: '%',
   dateFormat: 'yyyy-MM-dd',
+  amountFormat: 'short',
   columnOrder: [
     'date', 'category', 'text', 'amount'
   ],
@@ -77,6 +78,7 @@ describe('expensesChecks', () => {
       expect(result).toEqual(SIMPLE_CONFIG)
       expect(CONSOLE_SPY).toHaveBeenCalledWith('\texpenses log: no delimiter configured - set default to \';\'')
     })
+
     test('should check incomplete config and throw error because no folder path', () => {
       const defaultDelimiter = ';'
       delete SIMPLE_CONFIG.folderPath

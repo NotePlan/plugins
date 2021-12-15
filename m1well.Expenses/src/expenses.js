@@ -17,13 +17,11 @@ import {
 import type { Config, ExpenseTrackingRow } from './expensesModels'
 import { amountOk, categoryOk, logError, logMessage, validateConfig } from './expensesChecks'
 
-const DEFAULT_DELIMITER = ';'
-const ALLOWED_DELIMTER = [ ';', '%', 'TAB' ]
-
 const CONFIG_KEYS = {
   folderPath: 'folderPath',
   delimiter: 'delimiter',
   dateFormat: 'dateFormat',
+  amountFormat: 'amountFormat',
   columnOrder: 'columnOrder',
   categories: 'categories',
   shortcutExpenses: 'shortcutExpenses',
@@ -43,11 +41,18 @@ const EXAMPLE_CONFIG = `
     // just an example folderPath - please adapt to your needs
     ${CONFIG_KEYS.folderPath}: 'finances',
     // just an example delimiter - you can use ';', '%' or 'TAB'
-    ${CONFIG_KEYS.delimiter}: '${DEFAULT_DELIMITER}',
+    ${CONFIG_KEYS.delimiter}: ';',
+    // please choose date format before first tracking!
+    // there is no eventlistener in the config - to change existing data after changing the order here
     // custom date format - e.g. one date '2021-12-08', or only year and month as columns '2021;12'
     // so the format should be like 'yyyy-MM-dd' or 'yyyy-MM' - ATTENTION: don't use your chosen delimiter here
     ${CONFIG_KEYS.dateFormat}: 'yyyy-MM-dd',
-    // please choose your column order before first tracking
+    // please choose amount format before first tracking!
+    // there is no eventlistener in the config - to change existing data after changing the order here
+    // choose 'full' to have always 2 fraction digits with localized separator
+    // or choose 'short' to have no fraction digits and always rounded amounts!
+    ${CONFIG_KEYS.amountFormat}: 'short',
+    // please choose your column order before first tracking!
     // there is no eventlistener in the config - to change existing data after changing the order here
     ${CONFIG_KEYS.columnOrder}: [
       'date',
@@ -103,7 +108,7 @@ const EXAMPLE_CONFIG = `
       {
         category: 'Media',
         text: 'Spotify',
-        amount: 10,
+        amount: 9.99,
         month: 0,
         active: false,
       },
@@ -139,7 +144,7 @@ const expensesTracking = async (): Promise<boolean> => {
  */
 const expensesAggregate = async (): Promise<boolean> => {
   let config = await provideConfig()
-  config = validateConfig(config, new Date(), DEFAULT_DELIMITER, ALLOWED_DELIMTER)
+  config = validateConfig(config, new Date())
 
   if (!config.folderPath) {
     return false
@@ -175,7 +180,7 @@ const expensesAggregate = async (): Promise<boolean> => {
     // add results
     aggregatedData.forEach(aggregated => {
       if (aggregated.year) {
-        const line = createAggregationExpenseRowWithDelimiter(aggregated, config.delimiter)
+        const line = createAggregationExpenseRowWithDelimiter(aggregated, config)
         Editor.appendParagraph(line, 'text')
       }
     })
@@ -194,7 +199,7 @@ const expensesAggregate = async (): Promise<boolean> => {
 const individualTracking = async (): Promise<boolean> => {
   const currentDate = new Date()
   let config = await provideConfig()
-  config = validateConfig(config, currentDate, DEFAULT_DELIMITER, ALLOWED_DELIMTER)
+  config = validateConfig(config, currentDate)
 
   if (!config.folderPath) {
     return false
@@ -208,11 +213,13 @@ const individualTracking = async (): Promise<boolean> => {
 
   const category = await CommandBar.showOptions(config.categories, 'Please choose category')
   const text = await getInputTrimmed('Please type in some text (no semicolon)', 'Add text to expenses line')
-  const amount = await inputNumber('Please type in amount (only integer numbers)')
+  let amount = await inputNumber('Please type in amount')
 
-  if (!amountOk(amount)) {
+  let amountCheck = amountOk(amount)
+  while (!amountCheck) {
     logError('amount too big or not a number')
-    return false
+    amount = await inputNumber('Please type in correct amount')
+    amountCheck = amountOk(amount)
   }
 
   if (!category || !text) {
@@ -226,7 +233,7 @@ const individualTracking = async (): Promise<boolean> => {
     date: currentDate,
     category: category.value,
     text: text,
-    amount: Math.round(amount),
+    amount: config.amountFormat === 'full' ? amount : Math.round(amount),
   }
   const line = createTrackingExpenseRowWithConfig(expenseRow, config)
   Editor.appendParagraph(line, 'text')
@@ -242,7 +249,7 @@ const individualTracking = async (): Promise<boolean> => {
 const shortcutsTracking = async (): Promise<boolean> => {
   const currentDate = new Date()
   let config = await provideConfig()
-  config = validateConfig(config, currentDate, DEFAULT_DELIMITER, ALLOWED_DELIMTER)
+  config = validateConfig(config, currentDate)
 
   if (!config.folderPath) {
     return false
@@ -285,7 +292,7 @@ const shortcutsTracking = async (): Promise<boolean> => {
     date: currentDate,
     category: selected.category,
     text: selected.text,
-    amount: Math.round(amount),
+    amount: config.amountFormat === 'full' ? amount : Math.round(amount),
   }
   const line = createTrackingExpenseRowWithConfig(expenseRow, config)
   Editor.appendParagraph(line, 'text')
@@ -301,7 +308,7 @@ const shortcutsTracking = async (): Promise<boolean> => {
 const fixedTracking = async (): Promise<boolean> => {
   const currentDate = new Date()
   let config = await provideConfig()
-  config = validateConfig(config, currentDate, DEFAULT_DELIMITER, ALLOWED_DELIMTER)
+  config = validateConfig(config, currentDate)
 
   if (!config.folderPath) {
     return false
@@ -329,7 +336,7 @@ const fixedTracking = async (): Promise<boolean> => {
         date: currentDate,
         category: exp.category,
         text: exp.text,
-        amount: Math.round(exp.amount),
+        amount: config.amountFormat === 'full' ? exp.amount : Math.round(exp.amount),
       }
       const line = createTrackingExpenseRowWithConfig(expenseRow, config)
       Editor.appendParagraph(line, 'text')
@@ -355,6 +362,7 @@ const provideConfig = (): Promise<Config> => {
           folderPath: '',
           delimiter: '',
           dateFormat: '',
+          amountFormat: '',
           columnOrder: [],
           categories: [],
           shortcutExpenses: [],
@@ -366,6 +374,7 @@ const provideConfig = (): Promise<Config> => {
           folderPath: castStringFromMixed(result, CONFIG_KEYS.folderPath),
           delimiter: castStringFromMixed(result, CONFIG_KEYS.delimiter),
           dateFormat: castStringFromMixed(result, CONFIG_KEYS.dateFormat),
+          amountFormat: castStringFromMixed(result, CONFIG_KEYS.amountFormat),
           columnOrder: castStringArrayFromMixed(result, CONFIG_KEYS.columnOrder),
           categories: castStringArrayFromMixed(result, CONFIG_KEYS.categories),
           shortcutExpenses: castShortcutExpensesArrayFromMixed(result, CONFIG_KEYS.shortcutExpenses),

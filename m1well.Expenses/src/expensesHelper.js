@@ -3,6 +3,12 @@
 import { format, getMonth, getYear, parse } from 'date-fns'
 import type { Config, ExpenseAggregateRow, ExpenseTrackingRow, FixedExpense, ShortcutExpense } from './expensesModels'
 
+const fullAmountConfig = {
+  useGrouping: false,
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+}
+
 /**
  * @description cast string from the config mixed
  *
@@ -69,11 +75,19 @@ export const extractExpenseRowFromCsvRow = (row: string, config: Config): Expens
     date = parsed
   }
 
+  let amount = 0
+  if (config.amountFormat === 'full') {
+    const separator = Number(0.1).toLocaleString().replace(/\d/g, '')
+    amount = Number(splitted[indexAmount].replace(separator, '.'))
+  } else {
+    amount = Number(splitted[indexAmount])
+  }
+
   return {
     date: date,
     category: splitted[indexCategory],
     text: splitted[indexText],
-    amount: Number(splitted[indexAmount]),
+    amount: amount,
   }
 }
 
@@ -115,26 +129,39 @@ export const createTrackingExpenseRowWithConfig = (row: ExpenseTrackingRow, conf
     .map(col => {
       return Object.entries(row)
         .filter(entry => entry[0] === col)
-        .map(entry => (entry[1] instanceof Date) ? format(((entry[1]: any): Date), config.dateFormat) : entry[1])
+        .map(entry => {
+          if (entry[1] instanceof Date) {
+            return format(((entry[1]: any): Date), config.dateFormat)
+          }
+          if (typeof entry[1] === 'number' && config.amountFormat === 'full') {
+            return entry[1].toLocaleString(undefined, fullAmountConfig)
+          }
+          return entry[1]
+        })
     })
     .join(config.delimiter === 'TAB' ? '\t' : config.delimiter)
 }
 
 /**
- *@description create new string aggregated row with delimiter
+ * @description create new string aggregated row with delimiter
  *
  * @param row row from the aggregated function
- * @param delimiter delimiter for the new row
+ * @param config the config
  * @returns {string} string row for the aggregated note
  */
-export const createAggregationExpenseRowWithDelimiter = (row: ExpenseAggregateRow, delimiter: string): string => {
+export const createAggregationExpenseRowWithDelimiter = (row: ExpenseAggregateRow, config: Config): string => {
   return [ 'year', 'month', 'category', 'amount' ]
     .map(col => {
       return Object.entries(row)
         .filter(entry => entry[0] === col)
-        .map(entry => entry[1])
+        .map(entry => {
+          if (typeof entry[1] === 'number' && entry[0] === 'amount' && config.amountFormat === 'full') {
+            return entry[1].toLocaleString(undefined, fullAmountConfig)
+          }
+          return entry[1]
+        })
     })
-    .join(delimiter === 'TAB' ? '\t' : delimiter)
+    .join(config.delimiter === 'TAB' ? '\t' : config.delimiter)
 }
 
 /**
