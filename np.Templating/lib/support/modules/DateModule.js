@@ -117,7 +117,7 @@ export default class DateModule {
   }
 
   weeknumber(pivotDate = '') {
-    const dateValue = pivotDate.length === new Date() ? pivotDate : new Date(pivotDate)
+    const dateValue = pivotDate.length === 10 ? pivotDate : new Date()
 
     const dateStr = moment(dateValue).format('YYYY-MM-DD')
 
@@ -150,7 +150,7 @@ export default class DateModule {
     } else {
       startDayNumber = startDay ? startDay : 0
       endDayNumber = endDay ? endDay : 6
-      pivotDate = userPivotDate
+      pivotDate = userPivotDate.length > 0 ? userPivotDate : moment(new Date()).format('YYYY-MM-DD')
     }
 
     const startDate = this.weekday('YYYY-MM-DD', startDayNumber, pivotDate)

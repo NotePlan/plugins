@@ -202,9 +202,10 @@ describe(`${PLUGIN_NAME}`, () => {
     it(`should calculate ${method('.weekOf')} based on current date`, async () => {
       let result = new DateModule().weekOf()
 
+      const pivotDate = moment(new Date()).format('YYYY-MM-DD')
       const startDate = new DateModule().weekday('YYYY-MM-DD', 0)
-      const endDate = new DateModule().weekday('MM/DD', 6)
-      const weekNumber = new DateModule().weeknumber(startDate)
+      const endDate = new DateModule().weekday('YYYY-MM-DD', 6)
+      const weekNumber = new DateModule().weeknumber(pivotDate)
 
       // W44 (2021-10-31..11/06)
       const assertValue = `W${weekNumber} (${startDate}..${endDate})`
@@ -216,8 +217,8 @@ describe(`${PLUGIN_NAME}`, () => {
       const pivotDate = '2021-11-03'
       let result = new DateModule().weekOf(null, null, pivotDate)
       const startDate = new DateModule().weekday('YYYY-MM-DD', 0, pivotDate)
-      const endDate = new DateModule().weekday('MM/DD', 6, pivotDate)
-      const weekNumber = new DateModule().weeknumber(startDate)
+      const endDate = new DateModule().weekday('YYYY-MM-DD', 6, pivotDate)
+      const weekNumber = new DateModule().weeknumber(pivotDate)
 
       // W44 (2021-10-31..11/06)
       const assertValue = `W${weekNumber} (${startDate}..${endDate})`
@@ -230,8 +231,8 @@ describe(`${PLUGIN_NAME}`, () => {
       let result = new DateModule().weekOf(pivotDate)
 
       const startDate = new DateModule().weekday('YYYY-MM-DD', 0, pivotDate)
-      const endDate = new DateModule().weekday('MM/DD', 6, pivotDate)
-      const weekNumber = new DateModule().weeknumber(startDate)
+      const endDate = new DateModule().weekday('YYYY-MM-DD', 6, pivotDate)
+      const weekNumber = new DateModule().weeknumber(pivotDate)
 
       const assertValue = `W${weekNumber} (${startDate}..${endDate})`
 
