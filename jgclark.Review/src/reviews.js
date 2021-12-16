@@ -452,7 +452,7 @@ export async function completeReview(): Promise<?TNote> {
     // console.log(`\tupdating para to '${newer}'`)
 
     // send update to Editor
-    await Editor.updateParagraph(metaPara)
+    Editor.updateParagraph(metaPara)
   } else {
     // no existing mention, so append to note's default metadata line
     console.log(
@@ -465,7 +465,7 @@ export async function completeReview(): Promise<?TNote> {
     const metaPara = metadataPara
     metaPara.content += ` ${reviewedTodayString}`
     // send update to Editor
-    await Editor.updateParagraph(metaPara)
+    Editor.updateParagraph(metaPara)
   }
   // remove this note from the review list
   // $FlowIgnore[incompatible-call]

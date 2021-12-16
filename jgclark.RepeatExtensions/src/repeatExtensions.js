@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------------------------------------------------
 // Repeat Extensions plugin for NotePlan
 // Jonathan Clark
-// last updated v0.3.0+, 10.12.2021
+// last updated v0.3.0+, 16.12.2021
 //--------------------------------------------------------------------------------------------------------------------
 
 import {
@@ -92,7 +92,7 @@ export async function repeats(): Promise<void> {
       updatedLine = line.replace(completedTime, '') // couldn't get a regex to work here
       p.content = updatedLine
       // Send the update to the Editor
-      await Editor.updateParagraph(p)
+      Editor.updateParagraph(p)
       // console.log(`    updated Paragraph ${p.lineIndex}`)
 
       // Test if this is one of my special extended repeats
@@ -102,10 +102,11 @@ export async function repeats(): Promise<void> {
         let outline = ''
         // get repeat to apply
         reReturnArray = updatedLine.match(RE_EXTENDED_REPEAT_CAPTURE)
-        let dateIntervalString = reReturnArray[1]
-        console.log(`\tFound EXTENDED @repeat syntax: ${dateIntervalString}`)
+        // $FlowIgnore[incompatible-use]
+        let dateIntervalString = (reReturnArray.length > 0) ? reReturnArray[1] : ''
+        console.log(`\tFound EXTENDED @repeat syntax: '${dateIntervalString}'`)
 
-        if (dateIntervalString[0] === '+') {
+        if (dateIntervalString[0].startsWith('+')) {
           // New repeat date = completed date + interval
           dateIntervalString = dateIntervalString.substring(
             1,

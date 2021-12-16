@@ -57,7 +57,7 @@ export async function completeProject(): Promise<void> {
   const metaPara = metadataPara
   metaPara.content += ` ${completedTodayString}`
   // send update to Editor
-  await Editor.updateParagraph(metaPara)
+  Editor.updateParagraph(metaPara)
   // remove this note from the review list
   // $FlowIgnore[incompatible-call]
   await updateReviewListAfterReview(Editor.note)
