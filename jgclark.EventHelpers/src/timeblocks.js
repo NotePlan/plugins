@@ -28,8 +28,6 @@ import {
   RE_AMPM_OPT,
   RE_DONE_DATETIME,
   RE_DONE_DATE_OPT_TIME,
-  // RE_TIMEBLOCK_START,
-  // RE_TIMEBLOCK_END,
   RE_TIMEBLOCK,
   RE_TIMEBLOCK_FOR_THEMES,
   isTimeBlockPara,
@@ -69,13 +67,17 @@ let pref_calendarToWriteTo: string
 // ------------------------------------------------------------------------------------
 // Additional Regular Expressions
 
-const RE_EVENT_ID = `event:[A-F0-9-]{32,33}`
+const RE_EVENT_ID = `event:[A-F0-9-]{36,37}`
 
 // ------------------------------------------------------------------------------------
 
-// Go through current Editor note and identify time blocks to turn into events
-export async function timeBlocksToCalendar() {
+/**
+ * Go through current Editor note and identify time blocks to turn into events
+ * @author @jgclark
+ */
+export async function timeBlocksToCalendar(): Promise<void> {
   console.log(RE_TIMEBLOCK)
+  console.log(RE_TIMEBLOCK_FOR_THEMES)
 
   const { paragraphs, note } = Editor
   if (paragraphs == null || note == null) {
@@ -118,6 +120,18 @@ export async function timeBlocksToCalendar() {
       console.log(`\trequested calendar '${pref_calendarToWriteTo}' is not writeable. Will use default calendar instead.`)
     }
   }
+//   const ps = paragraphs.filter( (p) => p.type === 'open' )
+//   if (ps.length > 0) {
+//     for (let i = 0; i < ps.length; i++) {
+//       const thisPara = ps[i]
+//       const thisParaContent = thisPara.content ?? ''
+//       const restOfTask = thisParaContent.replace('2-4P', '') //.trim()
+//       console.log(`${i}: ${restOfTask}`)
+//       thisPara.content = restOfTask
+//       Editor.updateParagraph(thisPara)
+//     }
+//   }
+// }
 
   // Look through open note to find time blocks, but ignore @done(...) lines
   // which can look like timeblocks
@@ -170,31 +184,37 @@ export async function timeBlocksToCalendar() {
         // NB: parseDateText returns an array, so we'll use the first one as most likely
         const timeblockDateRange = Calendar.parseDateText(timeBlockString)[0]
 
-        if (timeblockDateRange != null) {
-          const title = thisParaContent.replace(origTimeBlockString, '').trim()
+        if (timeblockDateRange) {
+          // We have a valid timeblock, so let's make the event etc.
+          const restOfTask = thisPara.content.replace(origTimeBlockString, '').trim()
           if (pref_confirmEventCreation) {
-            const res = await showMessageYesNo(`Add event at '${timeBlockString}' for '${title}'?`)
+            const res = await showMessageYesNo(`Add event at '${timeBlockString}' for '${restOfTask}'?`)
             if (res === 'No') {
               continue // go to next time block
             }
           }
 
-          console.log(`\tWill process time block '${timeBlockString}' for '${title}'`)
-          const eventID = await createEventFromDateRange(title, timeblockDateRange, calendarToWriteTo) ?? '<error getting eventID>'
+          console.log(`\tWill process time block '${timeBlockString}' for '${restOfTask}'`)
+          const eventID = await createEventFromDateRange(restOfTask, timeblockDateRange, calendarToWriteTo) ?? '<error getting eventID>'
 
           // Remove time block string (if wanted)
+          let thisParaContent = thisPara.content
+          // console.log(`\tstarting with thisPara.content: '${thisParaContent}'`)
           if (pref_removeTimeBlocksWhenProcessed) {
-            thisPara.content = thisParaContent.replace(origTimeBlockString, '').trim()
+            thisParaContent = restOfTask
           }
           // Add processedTag (if not empty)
           if (pref_processedTagName !== '') {
-            thisPara.content += ` ${pref_processedTagName}`
+            thisParaContent += ` ${pref_processedTagName}`
           }
           // Add event ID (if wanted)
           if (pref_addEventID) {
-            thisPara.content += ` ⏰event:${eventID}`
+            thisParaContent += ` ⏰event:${eventID}`
           }
-          Editor.updateParagraph(thisPara) // seems not to work twice in quick succession, so just do it once here
+          thisPara.content = thisParaContent
+          // console.log(`\tsetting thisPara.content -> '${thisParaContent}'`)
+          // FIXME: there's something odd going on here. Often 3 characters are left or repeated at the end of the line as a result of this
+          Editor.updateParagraph(thisPara) // FIXME(@EduardMe): there's a subtle bug here on long notes
         } else {
           console.log(`\tError getting DateRange from '${timeBlockString}'`)
         }
@@ -206,16 +226,21 @@ export async function timeBlocksToCalendar() {
   }
 }
 
-// Create a new calendar event
+/**
+ * Create a new calendar event
+ * @author @jgclark
+ * @param {string} - eventTitle: title to use for this event
+ * @param {DateRange} - dateRange: date range for this event
+ * @param {string} - calendarName: name of calendar to write to. Needs to be writable!
+ * @return {string} Calendar ID of new event (or 'error')
+ */
 async function createEventFromDateRange(
   eventTitle: string,
   dateRange: DateRange,
   calendarName: string): Promise<string> {
   // console.log(`\tStarting cEFDR with ${eventTitle} for calendar ${pref_calendarToWriteTo}`)
   // If we have a pref_calendarToWriteTo setting, then include that in the call
-  let event: TCalendarItem
-  // if (pref_calendarToWriteTo !== '') {
-    event = CalendarItem.create(
+  const event: TCalendarItem = CalendarItem.create(
       eventTitle,
       dateRange.start,
       dateRange.end,
@@ -223,15 +248,6 @@ async function createEventFromDateRange(
       false, // not 'isAllDay'
       calendarName,
     )
-  // } else {
-  //   event = CalendarItem.create(
-  //     eventTitle,
-  //     dateRange.start,
-  //     dateRange.end,
-  //     'event', // not 'reminder'
-  //     false, // not 'isAllDay'
-  //   )
-  // }
   const createdEvent = Calendar.add(event)
   const calendarDisplayName = (calendarName !== '') ? calendarName : 'system default'
   if (createdEvent != null) {
