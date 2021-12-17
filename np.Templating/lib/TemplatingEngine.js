@@ -1,3 +1,4 @@
+/* eslint-disable no-case-declarations */
 // @flow
 
 /*-------------------------------------------------------------------------------------------
@@ -21,9 +22,11 @@ import FrontmatterModule from './support/modules/FrontmatterModule'
 export default class TemplatingEngine {
   templateConfig: any
   templatePlugins: any
+  templateModules: any
   constructor(config: any) {
     this.templateConfig = config || {}
     this.templatePlugins = []
+    this.templateModules = []
   }
 
   async heartbeat(): Promise<string> {
@@ -96,6 +99,17 @@ export default class TemplatingEngine {
     let renderData = { ...helpers, ...userData }
     renderData = userData?.data ? { ...userData.data, ...renderData } : renderData
     renderData = userData?.methods ? { ...userData.methods, ...renderData } : renderData
+
+    // apply custom plugin modules
+    this.templateModules.forEach((moduleItem) => {
+      for (const [key, method] of Object.entries(moduleItem.module)) {
+        renderData[moduleItem.moduleNamespace] = {}
+        for (const [moduleKey, moduleMethod] of Object.entries(moduleItem.module)) {
+          renderData[moduleItem.moduleNamespace][moduleKey] = moduleMethod
+        }
+      }
+    })
+
     renderData.np = { ...renderData }
 
     let processedTemplateData = templateData
@@ -156,12 +170,28 @@ export default class TemplatingEngine {
     }
   }
 
-  async register(name: string = '', method: function): Promise<void> {
-    const result = this.templatePlugins.find((item) => {
-      return item.name === name
-    })
-    if (!result) {
-      this.templatePlugins.push({ name, method })
+  async register(name: string = '', methodOrModule: any): Promise<void> {
+    const methodOrModuleType = typeof methodOrModule
+    switch (methodOrModuleType) {
+      case 'function':
+        const result = this.templatePlugins.find((item) => {
+          return item.name === name
+        })
+        if (!result) {
+          this.templatePlugins.push({ name, method: methodOrModule })
+        }
+        break
+      case 'object':
+        const moduleNmae = this.templateModules.find((item) => {
+          return item.moduleNamespace === name
+        })
+        if (!moduleNmae) {
+          this.templateModules.push({ moduleNamespace: name, module: methodOrModule })
+        }
+        break
+      default:
+        // what happens if we get here
+        break
     }
   }
 }

@@ -4,6 +4,7 @@ import { getWeatherSummary } from '../../nmn.Templates/src/weather'
 import NPTemplating from '../../np.Templating/lib/NPTemplating'
 import TemplatingEngine from '../../np.Templating/lib/TemplatingEngine'
 import { showError } from './lib/testerUtils'
+import BiblePlugin from './plugins/templating/BiblePlugin'
 
 const MAX_NOTE = 262144
 
@@ -244,7 +245,7 @@ export async function templatingPlugin(): Promise<void> {
 
     const name = 'Miguel'
     const count = 5
-    const result = await templateInstance.render('<%- testPlugin(`${name}`,`${count}`) %>', { name, count })
+    const result = await templateInstance.render('<%- await testPlugin(`${name}`,`${count}`) %>', { name, count })
 
     Editor.insertTextAtCursor(result)
   } catch (error) {
@@ -255,6 +256,23 @@ export async function templatingPlugin(): Promise<void> {
 export async function templatingPrompt(): Promise<void> {
   try {
     const result = await NPTemplating.renderTemplate('Test (Prompt)', { lname: 'Erickson' }, { usePrompts: true })
+
+    Editor.insertTextAtCursor(result)
+  } catch (error) {
+    showError(error)
+  }
+}
+
+// test using Templating Plugin instead of using simple method
+export async function templatingPluginModule(): Promise<void> {
+  try {
+    const templateInstance = new TemplatingEngine()
+
+    await templateInstance.register('bible', BiblePlugin)
+
+    const templateData: string = await NPTemplating.getTemplate('Test (Plugin Module)')
+
+    const result = await templateInstance.render(templateData)
 
     Editor.insertTextAtCursor(result)
   } catch (error) {

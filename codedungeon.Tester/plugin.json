@@ -3,7 +3,7 @@
   "noteplan.minAppVersion": "3.0.21",
   "plugin.id": "codedungeon.Tester",
   "plugin.name": "🧪 codedungeon.Tester",
-  "plugin.version": "0.0.4",
+  "plugin.version": "0.0.5",
   "plugin.description": "NotePlan Plugin Tester",
   "plugin.author": "Codedungeon",
   "plugin.dependencies": [],
@@ -111,6 +111,12 @@
       "alias": [],
       "description": "np.Templating Prompt",
       "jsFunction": "templatingPrompt"
+    },
+    {
+      "name": "np:templating-plugin-module",
+      "alias": [],
+      "description": "np.Templating Plugin Module",
+      "jsFunction": "templatingPluginModule"
     }
   ]
 }
