@@ -18,6 +18,7 @@ import TimeModule from './support/modules/TimeModule'
 import NoteModule from './support/modules/NoteModule'
 import UtilsModule from './support/modules/UtilsModule'
 import FrontmatterModule from './support/modules/FrontmatterModule'
+import { showError } from '../../codedungeon.Tester/src/lib/testerUtils'
 
 export default class TemplatingEngine {
   templateConfig: any
@@ -102,10 +103,15 @@ export default class TemplatingEngine {
 
     // apply custom plugin modules
     this.templateModules.forEach((moduleItem) => {
-      for (const [key, method] of Object.entries(moduleItem.module)) {
-        renderData[moduleItem.moduleNamespace] = {}
-        for (const [moduleKey, moduleMethod] of Object.entries(moduleItem.module)) {
-          renderData[moduleItem.moduleNamespace][moduleKey] = moduleMethod
+      if (this.isClass(moduleItem.module)) {
+        const methods = Object.getOwnPropertyNames(moduleItem.module.prototype)
+        console.log(`np.Templating Error: ES6 Classes are not supported [${moduleItem.moduleNamespace}]`)
+      } else {
+        for (const [key, method] of Object.entries(moduleItem.module)) {
+          renderData[moduleItem.moduleNamespace] = {}
+          for (const [moduleKey, moduleMethod] of Object.entries(moduleItem.module)) {
+            renderData[moduleItem.moduleNamespace][moduleKey] = moduleMethod
+          }
         }
       }
     })
@@ -171,7 +177,11 @@ export default class TemplatingEngine {
   }
 
   async register(name: string = '', methodOrModule: any): Promise<void> {
-    const methodOrModuleType = typeof methodOrModule
+    let methodOrModuleType = typeof methodOrModule
+    if (this.isClass(methodOrModule)) {
+      methodOrModuleType = 'class'
+    }
+
     switch (methodOrModuleType) {
       case 'function':
         const result = this.templatePlugins.find((item) => {
@@ -180,6 +190,10 @@ export default class TemplatingEngine {
         if (!result) {
           this.templatePlugins.push({ name, method: methodOrModule })
         }
+        break
+      case 'class':
+        console.log(`np.Templating Error: ES6 Classes are not supported [${name}]`)
+        console.log(`Please refer to np.Templating Documentation [Templating Plugins]`)
         break
       case 'object':
         const moduleNmae = this.templateModules.find((item) => {
@@ -193,5 +207,18 @@ export default class TemplatingEngine {
         // what happens if we get here
         break
     }
+  }
+
+  // $FlowFixMe
+  isClass(obj) {
+    const isCtorClass = obj.constructor && obj.constructor.toString().substring(0, 5) === 'class'
+    if (obj.prototype === undefined) {
+      return isCtorClass
+    }
+    const isPrototypeCtorClass =
+      obj.prototype.constructor &&
+      obj.prototype.constructor.toString &&
+      obj.prototype.constructor.toString().substring(0, 5) === 'class'
+    return isCtorClass || isPrototypeCtorClass
   }
 }
