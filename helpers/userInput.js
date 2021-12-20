@@ -348,3 +348,34 @@ export const getInputTrimmed = async (placeholder: string, submitText: string): 
   const reply = await CommandBar.showInput(placeholder, submitText)
   return reply.trim()
 }
+
+/**
+ * @description ask one question and get a flexible amount of answers from the user. either he reached the
+ *              maximum answer amount, or he leaves the input empty - of course you can set a minimum amount so
+ *              that the user have to input an answer (e.g. at least once)
+ * @example `await multipleInputAnswersAsArray('What went well last week', 'Leave empty to finish answers', true, 1, 3)`
+ * @author @m1well
+ *
+ * @param question question as input placeholder
+ * @param submit submit text
+ * @param showCounter show counter as placeholder - e.g.: "what went well last week (1/3)",
+ *                                                        "what went well last week (2/3)",
+ *                                                        "what went well last week (3/3)"
+ * @param minAnswers minimum amount of answers the user has to type in (optional)
+ * @param maxAnswers maximum amount of answers the user could type in (optional)
+ * @returns {Promise<string[]>} all the answers as an array
+ */
+export const multipleInputAnswersAsArray = async (question: string, submit: string, showCounter: boolean,
+                                                  minAnswers: number = 0, maxAnswers?: number): Promise<string[]> => {
+  let input = '-'
+  const answers = []
+
+  while ((maxAnswers ? answers.length < maxAnswers : true) && (input || answers.length < minAnswers)) {
+    const placeholder = maxAnswers && showCounter ? `${question} (${answers.length + 1}/${maxAnswers})` : question
+    input = await CommandBar.showInput(placeholder, submit)
+    if (input) {
+      answers.push(input.trim())
+    }
+  }
+  return answers
+}
