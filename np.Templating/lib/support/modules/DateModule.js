@@ -1,38 +1,44 @@
-import moment from 'moment-business-days'
+/*-------------------------------------------------------------------------------------------
+ * Copyright (c) 2021 Mike Erickson / Codedungeon.  All rights reserved.
+ * Licensed under the MIT license.  See LICENSE in the project root for license information.
+ * -----------------------------------------------------------------------------------------*/
+
 // import moment from 'moment/min/moment-with-locales'
+import moment from 'moment-business-days'
 import { getUserLocale } from 'get-user-locale'
-import dayjs from 'dayjs'
 
 export default class DateModule {
   constructor(config) {
     this.config = config
 
-    let osLocale = getUserLocale()
-    if (this.config?.locale?.length > 0) {
-      osLocale = this.config?.locale
-    }
-
+    // setup date/time local, using configuration locale if exists, otherwise fallback to system locale
+    const osLocale = this.config?.locale?.length > 0 ? this.config?.locale : getUserLocale()
     moment.locale(osLocale)
+
+    // module constants
+    this.DAY_NUMBER_SUNDAY = 0
+    this.DAY_NUMBER_MONDAY = 1
+    this.DAY_NUMBER_TUESDAY = 2
+    this.DAY_NUMBER_WEDNESDAY = 3
+    this.DAY_NUMBER_THURSDAY = 4
+    this.DAY_NUMBER_FRIDAY = 5
+    this.DAY_NUMBER_SATURDAY = 6
   }
 
   // convert supplied date value into something that NotePlan can actually handle
   // requiring YYYY-MM-DDThh:mm:ss format
   createDateTime(userDateString = '') {
-    let dt = new Date().toLocaleString()
-    if (userDateString.length === 10) {
-      dt = new Date(`${userDateString}T00:01:00`).toLocaleString()
-    }
-
-    return dt
+    return userDateString.length === 10
+      ? new Date(`${userDateString}T00:01:00`).toLocaleString()
+      : new Date().toLocaleString()
   }
 
   format(format = '', date = '') {
     let dateValue = date.length > 0 ? new Date(date) : new Date()
     if (date.length === 10) {
-      const tempDate = moment(date).format('YYYY-MM-DD')
-      // dateValue = this.createDateTime(tempDate)
-      dateValue = tempDate
+      dateValue = moment(date).format('YYYY-MM-DD')
     }
+
     if (date instanceof moment) {
       dateValue = new Date(date)
     }
@@ -90,9 +96,7 @@ export default class DateModule {
 
     const dateValue = moment(new Date()).add(1, 'days')
 
-    const formattedValue = this.format(format, dateValue)
-
-    return formattedValue
+    return this.format(format, dateValue)
   }
 
   yesterday(format = '') {
@@ -101,9 +105,7 @@ export default class DateModule {
 
     const dateValue = moment(new Date()).subtract(1, 'days')
 
-    const formattedValue = this.format(format, dateValue)
-
-    return formattedValue
+    return this.format(format, dateValue)
   }
 
   weekday(format = '', offset = 1, pivotDate = '') {
@@ -111,17 +113,30 @@ export default class DateModule {
     format = format.length > 0 ? format : configFormat
     const offsetValue = typeof offset === 'number' ? offset : parseInt(offset)
 
-    const dateValue = pivotDate.length === 0 ? new Date() : new Date(pivotDate)
+    const dateValue = pivotDate.length === 0 ? new Date() : new Date(this.createDateTime(pivotDate))
 
     return moment(dateValue).weekday(offsetValue).format(format)
   }
 
-  weeknumber(pivotDate = '') {
+  weekNumber(pivotDate = '') {
     const dateValue = pivotDate.length === 10 ? pivotDate : new Date()
-
     const dateStr = moment(dateValue).format('YYYY-MM-DD')
+    let weekNumber = parseInt(this.format('W', dateStr))
 
-    return this.format('W', dateStr)
+    if (this.dayNumber(pivotDate) === 0) {
+      weekNumber++
+    }
+
+    return weekNumber
+  }
+
+  dayNumber(pivotDate = '') {
+    let localeDate = new Date().toLocaleString()
+    if (pivotDate.length > 0 && pivotDate.length === 10) {
+      localeDate = this.createDateTime(pivotDate)
+    }
+
+    return new Date(new Date(localeDate).toLocaleString()).getDay()
   }
 
   isWeekend(pivotDate = '') {
@@ -155,8 +170,7 @@ export default class DateModule {
 
     const startDate = this.weekday('YYYY-MM-DD', startDayNumber, pivotDate)
     const endDate = this.weekday('YYYY-MM-DD', endDayNumber, pivotDate)
-
-    const weekNumber = moment(pivotDate).format('W')
+    const weekNumber = this.weekNumber(pivotDate)
 
     return `W${weekNumber} (${startDate}..${endDate})`
   }

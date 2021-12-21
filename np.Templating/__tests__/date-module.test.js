@@ -199,15 +199,26 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(assertValue)
     })
 
+    it(`should return dayNumber of given date`, () => {
+      const result = new DateModule().dayNumber('2021-12-15')
+
+      expect(result).toEqual(3)
+    })
+
+    it(`should return weekNumber of given date`, () => {
+      const result = new DateModule().weekNumber('2021-12-15')
+
+      expect(result).toEqual(50)
+    })
+
     it(`should calculate ${method('.weekOf')} based on current date`, async () => {
       let result = new DateModule().weekOf()
 
       const pivotDate = moment(new Date()).format('YYYY-MM-DD')
       const startDate = new DateModule().weekday('YYYY-MM-DD', 0)
       const endDate = new DateModule().weekday('YYYY-MM-DD', 6)
-      const weekNumber = new DateModule().weeknumber(pivotDate)
+      const weekNumber = new DateModule().weekNumber(pivotDate)
 
-      // W44 (2021-10-31..11/06)
       const assertValue = `W${weekNumber} (${startDate}..${endDate})`
 
       expect(result).toEqual(assertValue)
@@ -218,7 +229,7 @@ describe(`${PLUGIN_NAME}`, () => {
       let result = new DateModule().weekOf(null, null, pivotDate)
       const startDate = new DateModule().weekday('YYYY-MM-DD', 0, pivotDate)
       const endDate = new DateModule().weekday('YYYY-MM-DD', 6, pivotDate)
-      const weekNumber = new DateModule().weeknumber(pivotDate)
+      const weekNumber = new DateModule().weekNumber(pivotDate)
 
       // W44 (2021-10-31..11/06)
       const assertValue = `W${weekNumber} (${startDate}..${endDate})`
@@ -232,9 +243,17 @@ describe(`${PLUGIN_NAME}`, () => {
 
       const startDate = new DateModule().weekday('YYYY-MM-DD', 0, pivotDate)
       const endDate = new DateModule().weekday('YYYY-MM-DD', 6, pivotDate)
-      const weekNumber = new DateModule().weeknumber(pivotDate)
+      const weekNumber = new DateModule().weekNumber(pivotDate)
 
       const assertValue = `W${weekNumber} (${startDate}..${endDate})`
+
+      expect(result).toEqual(assertValue)
+    })
+
+    it(`should calculate ${method('.weekOf')} based on pivotDate starting on Sunday`, async () => {
+      const result = new DateModule().weekOf('2021-12-19')
+
+      const assertValue = `W51 (2021-12-19..2021-12-25)`
 
       expect(result).toEqual(assertValue)
     })
