@@ -681,7 +681,7 @@ type TCalendar = {
 /**
  * You can get paragraphs from `Editor` or `Note`.
  * They represent blocks or lines of text (delimited by linebreaks = \n).
- * A task for example is a paragraph, a list item (bullet), heading, etc.
+ * A task for example is a paragraph, a list item (bullet), heading, etc. (See .type)
  */
 declare var Paragraph: TParagraph
 type TParagraph = {
@@ -729,11 +729,16 @@ type TParagraph = {
    */
   +headingLevel: number,
   /**
+   * Returns indented children paragraphs (bullets, tasks, and quotes, but not plain text).
+   * Note: Available from v3.3 (builds 692/694)
+   */
+  +children: $ReadOnlyArray<TParagraph>,
+  /**
    * If the task is a recurring one (contains '@repeat(...)')
    */
   +isRecurring: boolean,
   /**
-   * Get the amount of indentations.
+   * Get the amount of indentations. (TODO: is this spaces or tabs?)
    */
   +indents: number,
   /**
