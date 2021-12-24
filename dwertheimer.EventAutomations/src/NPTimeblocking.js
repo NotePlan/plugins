@@ -3,6 +3,7 @@
 /**
  * WHERE AM I?
  * TODO: update docs for limittotags, presets
+ *  * TODO: feedback if no items to timeblock
  * impolement limitToTags[] but make it a textfilter regex
  */
 import {
@@ -167,14 +168,18 @@ function getExistingTimeBlocksFromNoteAsEvents(note: TEditor | TNote, defaultDur
     const timeblockDateRangePotentials = Calendar.parseDateText(p.content)
     if (timeblockDateRangePotentials?.length) {
       const e = timeblockDateRangePotentials[0] //use Noteplan/Chrono's best guess
-      const eventInfo = p.content.replace(getTimeBlockString(p.content), '').trim()
-      timeBlocksAsEvents.push({
-        title: eventInfo,
-        date: e.start,
-        endDate: e.end !== e.start ? e.end : addMinutes(e.start, defaultDuration),
-        type: 'event',
-        availability: 0,
-      })
+      // but this may not actually be a timeblock, so keep looking
+      const tbs = getTimeBlockString(p.content)
+      if (tbs && tbs.length > 0) {
+        const eventInfo = p.content.replace(tbs, '').trim()
+        timeBlocksAsEvents.push({
+          title: eventInfo,
+          date: e.start,
+          endDate: e.end !== e.start ? e.end : addMinutes(e.start, defaultDuration),
+          type: 'event',
+          availability: 0,
+        })
+      }
     }
   })
   return timeBlocksAsEvents

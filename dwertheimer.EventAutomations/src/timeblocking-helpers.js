@@ -262,16 +262,33 @@ export function filterTimeMapToOpenSlots(timeMap: IntervalMap, config: { [key: s
  * Used for comparing times in a day
  * @param {string} dateString - in form "YYYY-MM-DD"
  * @param {string} timeString - in form "HH:MM" e.g. "08:20"
- * @returns
+ * @returns {Date} - the date object
  */
 export const makeDateFromTimeString = (dateString: string, timeString: string): Date | null => {
-  const dateStr = `${dateString}T${timeString}:00`
-  const date = new Date(dateStr)
-  if (date.toString() === 'Invalid Date') {
-    console.log(`makeDateFromTimeString - new Date("${dateStr}") returns an Invalid Date`)
+  const fullTime = `${timeString}:00`
+  // const dateStr = `${dateString}T${fullTime}`
+  // let date = new Date(dateStr) // this would have worked in node/current OS but not Catalina and previous
+  // Most of the following is a workaround to make sure we get the right date for all OS versions
+  let timeParts = timeString.split(':')
+  let dateParts = dateString.split('-')
+  if (timeParts.length !== 2 || dateParts.length !== 3) {
+    console.log(`makeDateFromTimeString - timeParts:${timeString} dateParts:${dateString} not in expected format`)
     return null
   }
-  return new Date(dateStr)
+  timeParts = timeParts.map((t) => Number(t))
+  dateParts = dateParts.map((d) => Number(d))
+  dateParts[1] = dateParts[1] - 1 // Months is an index from 0-11
+  const date = new Date(...dateParts, ...timeParts)
+  if (date.toString() === 'Invalid Date') {
+    console.log(`makeDateFromTimeString - new Date("${dateString} ${timeString}") returns an Invalid Date`)
+    return null
+  }
+  // Double-check for Catalina and previous JS versions dates (which do GMT conversion on the way in)
+  if (!date.toTimeString().startsWith(fullTime)) {
+    console.log(`In Catalina date hell. incoming time:${fullTime} generated:${date.toTimeString()} `)
+    return null
+  }
+  return date
 }
 
 export function createOpenBlockObject(
