@@ -361,10 +361,34 @@ describe(`${PLUGIN_NAME}`, () => {
       })
     })
 
-    test('makeDateFromTimeString ', () => {
-      expect(tb.makeDateFromTimeString('2021-01-01', '00:00').toISOString()).toEqual('2021-01-01T08:00:00.000Z')
-      //bad date
-      expect(tb.makeDateFromTimeString('foo', '00:00')).toEqual(null)
+    describe('makeDateFromTimeString ', () => {
+      test('should work properly in pacific timezone w/ mins & no seconds', () => {
+        expect(tb.makeDateFromTimeString('2021-01-01 00:00').toISOString()).toEqual('2021-01-01T08:00:00.000Z')
+      })
+      test('should work with seconds specified', () => {
+        expect(tb.makeDateFromTimeString('2021-01-01 00:00:01').toISOString()).toEqual('2021-01-01T08:00:01.000Z')
+      })
+      // Errors should throw
+      test('should throw error when date format is incorrect', () => {
+        expect(() => {
+          tb.makeDateFromTimeString(`foo 00:00`)
+        }).toThrow(/not in expected format/)
+      })
+      test('should throw error when date format is incorrect (no day)', () => {
+        expect(() => {
+          tb.makeDateFromTimeString(`2020-01 02:02`)
+        }).toThrow(/not in expected format/)
+      })
+      test('should throw error when time format is incorrect', () => {
+        expect(() => {
+          tb.makeDateFromTimeString(`2020-01-01 02`)
+        }).toThrow(/not in expected format/)
+      })
+      test('should throw error when time format is incorrect', () => {
+        expect(() => {
+          tb.makeDateFromTimeString(`2020-01-01 aa:00`)
+        }).toThrow(/Invalid Date/)
+      })
     })
 
     test('findTimeBlocks ', () => {

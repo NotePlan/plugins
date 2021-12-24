@@ -258,35 +258,32 @@ export function filterTimeMapToOpenSlots(timeMap: IntervalMap, config: { [key: s
 }
 
 /**
- * Take in an HH:MM time string and return a Date object for that time
- * Used for comparing times in a day
- * @param {string} dateString - in form "YYYY-MM-DD"
- * @param {string} timeString - in form "HH:MM" e.g. "08:20"
+ * Take in an "YYYY-MM-DD HH:MM time" string and return a Date object for that time
+ * Note: there needs to be a space separating the date and time strings
+ * Time string can include seconds, e.g. "2020-01-01 12:00:00"
+ * Most of the code in this function is a workaround to make sure we get the right date for all OS versions
+ * @param {string} dateTimeString - in form "YYYY-MM-DD HH:MM"
  * @returns {Date} - the date object
+ * @throws {Error} - if the dateTimeString is not in the correct format
  */
-export const makeDateFromTimeString = (dateString: string, timeString: string): Date | null => {
-  const fullTime = `${timeString}:00`
-  // const dateStr = `${dateString}T${fullTime}`
-  // let date = new Date(dateStr) // this would have worked in node/current OS but not Catalina and previous
-  // Most of the following is a workaround to make sure we get the right date for all OS versions
+export const makeDateFromTimeString = (dateTimeString: string): Date => {
+  let [dateString, timeString] = dateTimeString.split(' ')
+  if (timeString.split(':').length === 2) timeString = `${timeString}:00`
   let timeParts = timeString.split(':')
   let dateParts = dateString.split('-')
-  if (timeParts.length !== 2 || dateParts.length !== 3) {
-    console.log(`makeDateFromTimeString - timeParts:${timeString} dateParts:${dateString} not in expected format`)
-    return null
+  if (timeParts.length !== 3 || dateParts.length !== 3) {
+    throw `makeDateFromTimeString - timeParts:${timeString} dateParts:${dateString} not in expected format`
   }
   timeParts = timeParts.map((t) => Number(t))
   dateParts = dateParts.map((d) => Number(d))
   dateParts[1] = dateParts[1] - 1 // Months is an index from 0-11
   const date = new Date(...dateParts, ...timeParts)
   if (date.toString() === 'Invalid Date') {
-    console.log(`makeDateFromTimeString - new Date("${dateString} ${timeString}") returns an Invalid Date`)
-    return null
+    throw `makeDateFromTimeString - new Date("${dateTimeString}") returns an Invalid Date`
   }
   // Double-check for Catalina and previous JS versions dates (which do GMT conversion on the way in)
-  if (!date.toTimeString().startsWith(fullTime)) {
-    console.log(`In Catalina date hell. incoming time:${fullTime} generated:${date.toTimeString()} `)
-    return null
+  if (!date.toTimeString().startsWith(timeString)) {
+    throw `In Catalina date hell. incoming time:${dateTimeString} generated:${date.toTimeString()}`
   }
   return date
 }
@@ -296,8 +293,8 @@ export function createOpenBlockObject(
   config: { [key: string]: any },
   includeLastSlotTime: boolean = true,
 ): OpenBlock | null {
-  const startTime = makeDateFromTimeString('2021-01-01', block.start || '00:00')
-  let endTime = makeDateFromTimeString('2021-01-01', block.end || '23:59')
+  const startTime = makeDateFromTimeString(`2021-01-01 ${block.start || '00:00'}`)
+  let endTime = makeDateFromTimeString(`2021-01-01 ${block.end || '23:59'}`)
   endTime = endTime ? (includeLastSlotTime ? addMinutes(endTime, config.intervalMins) : endTime) : null
   if (!startTime || !endTime) return null
   return {
@@ -345,7 +342,7 @@ export function findTimeBlocks(timeMap: IntervalMap, config: { [key: string]: an
 }
 
 export function addMinutesToTimeText(startTimeText: string, minutesToAdd: number): string {
-  const startTime = makeDateFromTimeString('2021-01-01', startTimeText)
+  const startTime = makeDateFromTimeString(`2021-01-01 ${startTimeText}`)
   return startTime ? getTimeStringFromDate(addMinutes(startTime, minutesToAdd)) : ''
 }
 
