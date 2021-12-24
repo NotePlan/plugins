@@ -6,7 +6,7 @@ describe('dwertheimer.EventAutomations AutoTimeBlocking', () => {
     describe('getTimeBlockingDefaults', () => {
       test('should return timeblocks config', () => {
         const keys = Object.keys(c.getTimeBlockingDefaults())
-        expect(keys.length).toBe(18)
+        expect(keys.length).toBe(19)
       })
     })
     describe('validateTimeBlockConfig', () => {
