@@ -362,11 +362,14 @@ describe(`${PLUGIN_NAME}`, () => {
     })
 
     describe('getDateObjFromString ', () => {
-      test('should create date and time from string, no seconds', () => {
+      test('should create date and HH:MM from string, no seconds', () => {
         expect(tb.getDateObjFromString('2021-01-01 09:40').toTimeString()).toMatch(/09:40:00/) //not checking date b/c it's locale-dependent
       })
       test('should work with seconds specified', () => {
         expect(tb.getDateObjFromString('2021-01-01 00:00:01').toTimeString()).toMatch(/00:00:01/)
+      })
+      test('should work with only date, no time given', () => {
+        expect(tb.getDateObjFromString('2021-01-01').toTimeString()).toMatch(/00:00:00/) //not checking date b/c it's locale-dependent
       })
       // Errors should throw
       test('should throw error when date format is incorrect', () => {

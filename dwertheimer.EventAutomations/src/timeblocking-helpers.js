@@ -269,6 +269,9 @@ export function filterTimeMapToOpenSlots(timeMap: IntervalMap, config: { [key: s
 export const getDateObjFromString = (dateTimeString: string): Date => {
   // eslint-disable-next-line prefer-const -- using let so we can use destructuring
   let [dateString, timeString] = dateTimeString.split(' ')
+  if (!timeString) {
+    timeString = '00:00'
+  }
   if (timeString.split(':').length === 2) timeString = `${timeString}:00`
   let timeParts = timeString.split(':')
   let dateParts = dateString.split('-')
