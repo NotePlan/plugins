@@ -283,9 +283,8 @@ export const getDateObjFromString = (dateTimeString: string): Date => {
     throw `New Date("${dateTimeString}") returns an Invalid Date`
   }
   // Double-check for Catalina and previous JS versions dates (which do GMT conversion on the way in)
-  // I don't know how to mock/test this in Jest, so just leaving this here for @codedungeon to test later
   if (!date.toTimeString().startsWith(timeString)) {
-    throw `In Catalina date hell. incoming time:${dateTimeString} generated:${date.toTimeString()}`
+    throw `Date mismatch (Catalina date hell). Incoming time:${dateTimeString} !== generated:${date.toTimeString()}`
   }
   return date
 }

@@ -1,4 +1,4 @@
-/* globals describe, expect, it, test */
+/* globals describe, expect, it, test, jest */
 import colors from 'chalk'
 import { exportAllDeclaration } from '@babel/types'
 import { differenceInCalendarDays, endOfDay, startOfDay, eachMinuteOfInterval, formatISO9075 } from 'date-fns'
@@ -388,6 +388,20 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(() => {
           tb.getDateObjFromString(`2020-01-01 aa:00`)
         }).toThrow(/Invalid Date/)
+      })
+
+      describe('getDateObjFromString mocked date', () => {
+        beforeEach(() => {
+          jest.spyOn(Date.prototype, 'toTimeString').mockReturnValue('99:99:99')
+        })
+        test('should throw error when Date object time does not match time sent in', () => {
+          expect(() => {
+            tb.getDateObjFromString(`2020-01-01 22:00`)
+          }).toThrow(/Catalina date hell/)
+        })
+        afterEach(() => {
+          jest.restoreAllMocks()
+        })
       })
     })
 
