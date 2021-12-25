@@ -267,6 +267,7 @@ export function filterTimeMapToOpenSlots(timeMap: IntervalMap, config: { [key: s
  * @throws {Error} - if the dateTimeString is not in the correct format
  */
 export const makeDateFromTimeString = (dateTimeString: string): Date => {
+  // eslint-disable-next-line prefer-const -- using let so we can use destructuring
   let [dateString, timeString] = dateTimeString.split(' ')
   if (timeString.split(':').length === 2) timeString = `${timeString}:00`
   let timeParts = timeString.split(':')
@@ -282,6 +283,7 @@ export const makeDateFromTimeString = (dateTimeString: string): Date => {
     throw `makeDateFromTimeString - new Date("${dateTimeString}") returns an Invalid Date`
   }
   // Double-check for Catalina and previous JS versions dates (which do GMT conversion on the way in)
+  // I don't know how to mock/test this in Jest, so just leaving this here for @codedungeon to test later
   if (!date.toTimeString().startsWith(timeString)) {
     throw `In Catalina date hell. incoming time:${dateTimeString} generated:${date.toTimeString()}`
   }
@@ -293,13 +295,21 @@ export function createOpenBlockObject(
   config: { [key: string]: any },
   includeLastSlotTime: boolean = true,
 ): OpenBlock | null {
-  const startTime = makeDateFromTimeString(`2021-01-01 ${block.start || '00:00'}`)
-  let endTime = makeDateFromTimeString(`2021-01-01 ${block.end || '23:59'}`)
+  let startTime, endTime
+  try {
+    startTime = makeDateFromTimeString(`2021-01-01 ${block.start || '00:00'}`)
+    endTime = makeDateFromTimeString(`2021-01-01 ${block.end || '23:59'}`)
+  } catch (error) {
+    console.log(error)
+    return null
+  }
   endTime = endTime ? (includeLastSlotTime ? addMinutes(endTime, config.intervalMins) : endTime) : null
   if (!startTime || !endTime) return null
   return {
     start: getTimeStringFromDate(startTime),
+    // $FlowIgnore
     end: getTimeStringFromDate(endTime),
+    // $FlowIgnore
     minsAvailable: differenceInMinutes(endTime, startTime),
   }
 }
@@ -342,8 +352,13 @@ export function findTimeBlocks(timeMap: IntervalMap, config: { [key: string]: an
 }
 
 export function addMinutesToTimeText(startTimeText: string, minutesToAdd: number): string {
-  const startTime = makeDateFromTimeString(`2021-01-01 ${startTimeText}`)
-  return startTime ? getTimeStringFromDate(addMinutes(startTime, minutesToAdd)) : ''
+  try {
+    const startTime = makeDateFromTimeString(`2021-01-01 ${startTimeText}`)
+    return startTime ? getTimeStringFromDate(addMinutes(startTime, minutesToAdd)) : ''
+  } catch (error) {
+    console.log(error)
+    return ``
+  }
 }
 
 export function findOptimalTimeForEvent(
