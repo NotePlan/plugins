@@ -152,7 +152,9 @@ async function insertItemsIntoNote(note, list, config) {
     // $FlowIgnore
     await insertContentUnderHeading(note, timeBlockHeading, list.join('\n'))
   } else {
-    await showMessage('No >today tasks or work hours left')
+    if (!config.passBackResults) {
+      await showMessage('No work hours left. Check config/presents.')
+    }
   }
 }
 
@@ -222,6 +224,8 @@ export async function deleteCalendarEventsWithTag(tag: string, dateStr: string):
 }
 
 export async function createTimeBlocksForTodaysTasks(config: { [key: string]: any } = {}): Promise<?Array<string>> {
+  console.log(`Starting createTimeBlocksForTodaysTasks. Time is ${new Date().toLocaleTimeString()}`)
+  console.log(`config is: ${JSON.stringify(config, null, 2)}`)
   const {
     timeBlockTag,
     intervalMins,
@@ -236,34 +240,48 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: an
   const date = getTodaysDateUnhyphenated()
   const note = Editor // placeholder. we may pass a note in future revs
   const dateStr = Editor.filename ? dateStringFromCalendarFilename(Editor.filename) : null
-
   if (dateStr && dateStr === date) {
     const backlinkParas = getTodaysReferences()
+    console.log(`Found ${backlinkParas.length} backlinks (may include completed items)`)
     let todosParagraphs = makeAllItemsTodos(backlinkParas) //some items may not be todos but we want to pretend they are and timeblock for them
-    todosParagraphs = includeTasksWithText
+    todosParagraphs = includeTasksWithText?.length
       ? includeTasksWithPatterns(todosParagraphs, includeTasksWithText)
       : todosParagraphs
-    todosParagraphs = excludeTasksWithText
+    console.log(`After includeTasksWithText, ${todosParagraphs.length} potential items`)
+    todosParagraphs = excludeTasksWithText?.length
       ? excludeTasksWithPatterns(todosParagraphs, excludeTasksWithText)
       : todosParagraphs
+    console.log(`After excludeTasksWithText, ${todosParagraphs.length} potential items`)
     const cleanTodayTodoParas = removeDateTagsFromArray(todosParagraphs)
+    console.log(`After removeDateTagsFromArray, ${cleanTodayTodoParas.length} potential items`)
     const tasksByType = cleanTodayTodoParas.length ? getTasksByType(cleanTodayTodoParas) : null // puts in object by type of task and enriches with sort info (like priority)
+    console.log(`After getTasksByType, ${tasksByType?.open.length ?? 0} OPEN items`)
     if (deletePreviousCalendarEntries) {
       await deleteCalendarEventsWithTag(timeBlockTag, dateStr)
     }
+    console.log(`After deleteCalendarEventsWithTag, ${tasksByType?.open.length ?? 0} open items (still)`)
     if (tasksByType && tasksByType['open'].length) {
       const sortedTodos = tasksByType['open'].length ? sortListBy(tasksByType['open'], '-priority') : []
+      console.log(`After sortListBy, ${sortedTodos.length} open items`)
       // $FlowIgnore
       await deleteParagraphsContainingString(editorOrNote(note), timeBlockTag) // Delete our timeblocks before scanning note for user-entered timeblocks
       // $FlowIgnore
       await deleteParagraphsContainingString(editorOrNote(note), eventEnteredOnCalTag) // Delete @jgclark timeblocks->calendar breadcrumbs also
       const calendarMapWithEvents = await getPopulatedTimeMapForToday(dateStr, intervalMins, config)
+      console.log(`After getPopulatedTimeMapForToday, ${calendarMapWithEvents.length} timeMap slots`)
       const eventsToTimeblock = getTimeBlockTimesForEvents(calendarMapWithEvents, sortedTodos, config)
-      const { timeBlockTextList } = eventsToTimeblock
+      const { timeBlockTextList, blockList } = eventsToTimeblock
+      console.log(
+        `After getTimeBlockTimesForEvents, blocks:\n\tblockList=${JSON.stringify(
+          blockList,
+        )} \n\ttimeBlockTextList=${JSON.stringify(timeBlockTextList)}`,
+      )
       if (insertIntoEditor || createCalendarEntries) {
+        console.log(`About to insert ${timeBlockTextList.length} timeblock items into note`)
         // $FlowIgnore -- Delete any previous timeblocks we created
         await insertItemsIntoNote(editorOrNote(note), timeBlockTextList, config)
         if (createCalendarEntries) {
+          console.log(`About to create calendar entries`)
           await timeBlocksToCalendar() //using @jgclark's method for now
           if (!insertIntoEditor) {
             // If user didn't want the timeblocks inserted into the editor, then we delete them now that they're in calendar
@@ -273,38 +291,56 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: an
         }
       }
       return passBackResults ? timeBlockTextList : []
+    } else {
+      console.log('No todos/references marked for >today')
+      if (!passBackResults) {
+        await showMessage(`No todos/references marked for >today`)
+      }
     }
   } else {
-    await showMessage(`You need to be in Today's Calendar Note to use this function`)
+    if (!passBackResults) {
+      console.log(`You need to be in Today's Calendar Note to use this function`)
+      await showMessage(`You need to be in Today's Calendar Note to use this function`)
+    }
   }
   return []
 }
 
 export async function insertTodosAsTimeblocks(note: TNote): Promise<void> {
+  console.log(`====== /atb =======\nStarting insertTodosAsTimeblocks`)
   await Editor.openNoteByDate(new Date(), false) //open editor to today
   const config = await getConfig()
   if (config) {
+    console.log(`Config found. Calling createTimeBlocksForTodaysTasks`)
     await createTimeBlocksForTodaysTasks(config)
+  } else {
+    console.log(`insertTodosAsTimeblocks: no config`)
   }
 }
 
 export async function insertTodosAsTimeblocksWithPresets(note: TNote): Promise<void> {
+  console.log(`====== /atbp =======\nStarting insertTodosAsTimeblocksWithPresets`)
   await Editor.openNoteByDate(new Date(), false) //open editor to today
   let config = await getConfig()
   if (config) {
+    console.log(`Config found. Checking for presets`)
     if (config.presets && config.presets.length) {
       const options = getPresetOptions(config.presets)
       const presetIndex = await chooseOption('Choose an AutoTimeBlocking Preset:', options, -1)
       const overrides = config.presets[presetIndex]
+      console.log(`Utilizing preset: ${JSON.stringify(config.presets[presetIndex])}`)
       config = setConfigForPreset(config, overrides)
       try {
         validateTimeBlockConfig(config) //  check to make sure the overrides were valid
       } catch (error) {
         showMessage(error)
+        console.log(`insertTodosAsTimeblocksWithPresets: invalid config: ${error}`)
       }
       await createTimeBlocksForTodaysTasks(config)
     } else {
       await showMessage('No presets found. Please read docs.')
     }
+  } else {
+    console.log(`insertTodosAsTimeblocksWithPresets: no config`)
   }
 }
