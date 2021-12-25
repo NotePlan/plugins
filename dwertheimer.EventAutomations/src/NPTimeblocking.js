@@ -91,7 +91,8 @@ export async function getConfig(): Promise<{ [key: string]: any }> {
 const editorOrNote: EditorOrNote = (note: EditorOrNote) => (Editor.filename === note?.filename || !note ? Editor : note)
 
 async function insertContentUnderHeading(destNote: TNote, headingToFind: string, parasAsText: string) {
-  let insertionIndex = 1 // top of note by default
+  const topOfNote = destNote.type === 'Calendar' ? 0 : 1
+  let insertionIndex = topOfNote // top of note by default
   //   console.log(`insertionIndex:${insertionIndex}`)
   for (let i = 0; i < destNote.paragraphs.length; i++) {
     const p = destNote.paragraphs[i]
@@ -100,8 +101,10 @@ async function insertContentUnderHeading(destNote: TNote, headingToFind: string,
       break
     }
   }
+  const paraText =
+    insertionIndex === topOfNote && headingToFind !== '' ? `## ${headingToFind}\n${parasAsText}\n` : parasAsText
   // $FlowIgnore
-  await editorOrNote(destNote).insertParagraph(parasAsText, insertionIndex, 'text')
+  await editorOrNote(destNote).insertParagraph(paraText, insertionIndex, 'text')
 }
 
 export async function deleteParagraphsContainingString(destNote: TNote, timeBlockTag: string): Promise<void> {
