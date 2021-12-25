@@ -266,21 +266,21 @@ export function filterTimeMapToOpenSlots(timeMap: IntervalMap, config: { [key: s
  * @returns {Date} - the date object
  * @throws {Error} - if the dateTimeString is not in the correct format
  */
-export const makeDateFromTimeString = (dateTimeString: string): Date => {
+export const getDateObjFromString = (dateTimeString: string): Date => {
   // eslint-disable-next-line prefer-const -- using let so we can use destructuring
   let [dateString, timeString] = dateTimeString.split(' ')
   if (timeString.split(':').length === 2) timeString = `${timeString}:00`
   let timeParts = timeString.split(':')
   let dateParts = dateString.split('-')
   if (timeParts.length !== 3 || dateParts.length !== 3) {
-    throw `makeDateFromTimeString - timeParts:${timeString} dateParts:${dateString} not in expected format`
+    throw `dateTimeString "${dateTimeString}" is not in expected format`
   }
   timeParts = timeParts.map((t) => Number(t))
   dateParts = dateParts.map((d) => Number(d))
   dateParts[1] = dateParts[1] - 1 // Months is an index from 0-11
   const date = new Date(...dateParts, ...timeParts)
   if (date.toString() === 'Invalid Date') {
-    throw `makeDateFromTimeString - new Date("${dateTimeString}") returns an Invalid Date`
+    throw `New Date("${dateTimeString}") returns an Invalid Date`
   }
   // Double-check for Catalina and previous JS versions dates (which do GMT conversion on the way in)
   // I don't know how to mock/test this in Jest, so just leaving this here for @codedungeon to test later
@@ -297,8 +297,8 @@ export function createOpenBlockObject(
 ): OpenBlock | null {
   let startTime, endTime
   try {
-    startTime = makeDateFromTimeString(`2021-01-01 ${block.start || '00:00'}`)
-    endTime = makeDateFromTimeString(`2021-01-01 ${block.end || '23:59'}`)
+    startTime = getDateObjFromString(`2021-01-01 ${block.start || '00:00'}`)
+    endTime = getDateObjFromString(`2021-01-01 ${block.end || '23:59'}`)
   } catch (error) {
     console.log(error)
     return null
@@ -353,7 +353,7 @@ export function findTimeBlocks(timeMap: IntervalMap, config: { [key: string]: an
 
 export function addMinutesToTimeText(startTimeText: string, minutesToAdd: number): string {
   try {
-    const startTime = makeDateFromTimeString(`2021-01-01 ${startTimeText}`)
+    const startTime = getDateObjFromString(`2021-01-01 ${startTimeText}`)
     return startTime ? getTimeStringFromDate(addMinutes(startTime, minutesToAdd)) : ''
   } catch (error) {
     console.log(error)
