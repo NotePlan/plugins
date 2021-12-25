@@ -362,11 +362,11 @@ describe(`${PLUGIN_NAME}`, () => {
     })
 
     describe('getDateObjFromString ', () => {
-      test('should work properly in pacific timezone w/ mins & no seconds', () => {
-        expect(tb.getDateObjFromString('2021-01-01 00:00').toISOString()).toEqual('2021-01-01T08:00:00.000Z')
+      test('should create date and time from string, no seconds', () => {
+        expect(tb.getDateObjFromString('2021-01-01 09:40').toTimeString()).toMatch(/09:40:00/) //not checking date b/c it's locale-dependent
       })
       test('should work with seconds specified', () => {
-        expect(tb.getDateObjFromString('2021-01-01 00:00:01').toISOString()).toEqual('2021-01-01T08:00:01.000Z')
+        expect(tb.getDateObjFromString('2021-01-01 00:00:01').toTimeString()).toMatch(/00:00:01/)
       })
       // Errors should throw
       test('should throw error when date format is incorrect', () => {
