@@ -2,6 +2,9 @@
 
 ## Changelog
 
+[0.4.0] 2021-12-25 @dwertheimer
+- Search today's note for items tagged as >today or >dated
+
 [0.3.4] 2021-12-25 @dwertheimer
 - Fixed include/exclude bug thanks to @stacey and @4nd3rs for helping me find it
 

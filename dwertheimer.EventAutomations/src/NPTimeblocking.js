@@ -19,6 +19,7 @@ import { timeBlocksToCalendar } from '../../jgclark.EventHelpers/src/timeblocks'
 import {
   toLocaleTime,
   getTodaysDateUnhyphenated,
+  getTodaysDateHyphenated,
   dateStringFromCalendarFilename,
   removeDateTags,
   toISODateString,
@@ -47,6 +48,7 @@ import {
   keepTodayPortionOnly,
   includeTasksWithPatterns,
   excludeTasksWithPatterns,
+  getDateObjFromString,
 } from './timeblocking-helpers'
 import { getPresetOptions, setConfigForPreset } from './presets'
 import { getTimeBlockingDefaults, validateTimeBlockConfig } from './config'
@@ -90,6 +92,29 @@ export async function getConfig(): Promise<{ [key: string]: any }> {
 // $FlowIgnore
 const editorOrNote: EditorOrNote = (note: EditorOrNote) => (Editor.filename === note?.filename || !note ? Editor : note)
 
+/**
+ * Find paragraphs in note which are open and tagged for today (either >today or hyphenated date)
+ * @param {*} note
+ * @param {*} config
+ * @returns {array} of paragraphs
+ */
+function findTodosInNote(note, config) {
+  const hyphDate = getTodaysDateHyphenated()
+  const toDate = getDateObjFromString(hyphDate)
+  const isTodayItem = (text) => [hyphDate, '>today'].filter((a) => text.indexOf(a) > -1).length > 0
+  const todos = []
+  if (note.paragraphs) {
+    note.paragraphs.forEach((p) => {
+      if (p.type === 'open' && isTodayItem(p.content)) {
+        console.log(`  --> findTodosInNote adding todo`)
+        todos.push(p)
+      }
+    })
+  }
+  console.log(`findTodosInNote found ${todos.length} todos - adding to list`)
+  return todos
+}
+
 async function insertContentUnderHeading(destNote: TNote, headingToFind: string, parasAsText: string) {
   const topOfNote = destNote.type === 'Calendar' ? 0 : 1
   let insertionIndex = topOfNote // top of note by default
@@ -129,12 +154,12 @@ export async function deleteParagraphsContainingString(destNote: TNote, timeBloc
  * backlinks[0].subItems[0] =JSLog: {"type":"open","content":"scheduled for 10/4 using app >today","rawContent":"* scheduled for 10/4 using app
  * ","prefix":"* ","contentRange":{},"lineIndex":2,"date":"2021-11-07T07:00:00.000Z","heading":"_Testing scheduled sweeping","headingRange":{},"headingLevel":1,"isRecurring":0,"indents":0,"filename":"zDELETEME/Test scheduled.md","noteType":"Notes","linkedNoteTitles":[],"subItems":[]}
  */
-function getTodaysReferences(pNote: TNote | null = null): Array<TParagraph> {
+function getTodaysReferences(pNote: TNote | null = null, config): Array<TParagraph> {
   const note = pNote || Editor.note
   if (note) {
     const backlinks = [...(note.backlinks || {})] // an array of notes which link to this note
 
-    const todayParas = []
+    let todayParas = []
     backlinks.forEach((link, i) => {
       // $FlowIgnore
       const subItems = link.subItems
@@ -142,6 +167,10 @@ function getTodaysReferences(pNote: TNote | null = null): Array<TParagraph> {
         todayParas.push(subItem)
       })
     })
+    console.log(
+      `getTodaysReferences note.filename=${note.filename} backlinks.length=${backlinks.length} todayParas.length=${todayParas.length}`,
+    )
+    todayParas = [...todayParas, ...findTodosInNote(note, config)]
     return todayParas
   } else {
     console.log(`timeblocking could not open Note`)
@@ -240,12 +269,13 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: an
     includeTasksWithText,
     excludeTasksWithText,
   } = config
+  const hypenatedDate = getTodaysDateHyphenated()
   const date = getTodaysDateUnhyphenated()
   const note = Editor // placeholder. we may pass a note in future revs
   const dateStr = Editor.filename ? dateStringFromCalendarFilename(Editor.filename) : null
   if (dateStr && dateStr === date) {
-    const backlinkParas = getTodaysReferences()
-    console.log(`Found ${backlinkParas.length} backlinks (may include completed items)`)
+    const backlinkParas = getTodaysReferences(Editor.note, config)
+    console.log(`Found ${backlinkParas.length} backlinks+today-note items (may include completed items)`)
     let todosParagraphs = makeAllItemsTodos(backlinkParas) //some items may not be todos but we want to pretend they are and timeblock for them
     todosParagraphs = includeTasksWithText?.length
       ? includeTasksWithPatterns(todosParagraphs, includeTasksWithText)
