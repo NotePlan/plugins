@@ -78,14 +78,16 @@ export async function getConfig(): Promise<{ [key: string]: any }> {
     PLUGIN_ID,
     `${PLUGIN_ID}: ${JSON.stringify(defaultConfig, null, 2)},\n`,
   )
-  try {
-    // $FlowIgnore
-    validateTimeBlockConfig(config)
-    // $FlowIgnore
-    return config
-  } catch (error) {
-    showMessage(error)
-    return defaultConfig
+  if (Object.keys(config).length > 0) {
+    try {
+      // $FlowIgnore
+      validateTimeBlockConfig(config)
+      // $FlowIgnore
+      return config
+    } catch (error) {
+      showMessage(error)
+      return defaultConfig
+    }
   }
 }
 
@@ -347,7 +349,7 @@ export async function insertTodosAsTimeblocks(note: TNote): Promise<void> {
     console.log(`Config found. Calling createTimeBlocksForTodaysTasks`)
     await createTimeBlocksForTodaysTasks(config)
   } else {
-    console.log(`insertTodosAsTimeblocks: no config`)
+    console.log(`insertTodosAsTimeblocks: stopping after config create`)
   }
 }
 
