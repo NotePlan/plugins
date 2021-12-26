@@ -143,11 +143,15 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
   const includeHeadings = await getTagParamsFromString(paramString, 'includeHeadings', true)
   // console.log(`\toutput template: '${template}' and '${alldayTemplate}'`)
 
+  const withCalendarName = template.includes('CAL')
+
   // Get all the events for this day
   const eArr: Array<TCalendarItem> = await getEventsForDay(dateStr)
 
   const outputArray: Array<string> = []
+  const mapForSorting: { cal: string; start: string, text: string }[] = []
   let lastEventStr = '' // keep duplicates from multiple calendars out
+
   for (const e of eArr) {
     // console.log(`      for e: ${e.title}: ${JSON.stringify(e)}`)
     const replacements = getReplacements(e)
@@ -158,13 +162,28 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
       outputArray.push(thisEventStr)
       lastEventStr = thisEventStr
     }
+    if (withCalendarName) {
+      mapForSorting.push({
+        cal: calendarNameWithMapping(e.calendar, pref_calendarNameMappings),
+        start: toLocaleTime(e.date),
+        text: thisEventStr
+      })
+    }
   }
   if (pref_eventsHeading !== '' && includeHeadings) {
     outputArray.unshift(pref_eventsHeading)
   }
-  const output = outputArray.join('\n').replace(/\\s{2,}/g,' ') // If this the array is empty -> empty string
-  console.log(output)
-  return output
+
+  if (withCalendarName) {
+    mapForSorting.sort(sortByCalendarNameAndStartTime())
+  }
+
+  let output = outputArray.join('\n')
+  if (withCalendarName) {
+    output = mapForSorting.map(element => element.text).join('\n')
+  }
+
+  return output.replace(/\\s{2,}/g, ' ') // If this the array is empty -> empty string
 }
 
 //------------------------------------------------------------------------------
@@ -230,7 +249,7 @@ export async function listMatchingDaysEvents(
       }
     }
   }
-  const output = outputArray.join('\n').replace(/\\s{2,}/g,' ') // If this array is empty -> empty string.
+  const output = outputArray.join('\n').replace(/\\s{2,}/g, ' ') // If this array is empty -> empty string.
   // console.log(output)
   return output
 }
@@ -294,4 +313,30 @@ const calendarNameWithMapping = (name: string, mappings: Array<string>): string 
     }
   })
   return mapped
+}
+
+/**
+ * @private
+ * @author @m1well
+ */
+const sortByCalendarNameAndStartTime = (): Function => {
+  return (b, a) => {
+    if (a.cal !== b.cal) {
+      if (a.cal > b.cal) {
+        return -1
+      }
+      if (b.cal > a.cal) {
+        return 1
+      }
+    } else {
+      if (a.start > b.start) {
+        return -1
+      }
+      if (b.start > a.start) {
+        return 1
+      }
+      return 0
+    }
+    return 0
+  }
 }
