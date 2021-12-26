@@ -30,6 +30,7 @@ export function parasToText(paras: Array<TParagraph>): string {
 /**
  * Print out all data for a paragraph as JSON-style string
  * @author @EduardMe
+ *
  * @param {TParagraph} p - paragraph to print
  */
 export function printParagraph(p: TParagraph) {
@@ -79,11 +80,12 @@ export function printParagraph(p: TParagraph) {
  * Works out which line to insert at top of file. Rather than just after title line,
  * go after any YAML frontmatter or a metadata line (= starts with a hashtag).
  * @author @jgclark
+ *
  * @param {TNote} note - the note of interest
  * @return {number} line - the calculated line to insert/prepend at
  */
 export function calcSmartPrependPoint(note: TNote): number {
-  const lines = note.content?.split('\n') ?? ['']
+  const lines = note.content?.split('\n') ?? [ '' ]
 
   // By default we prepend at line 1, i.e. right after the Title line
   let insertionLine = note.type === 'Calendar' ? 0 : 1
@@ -134,6 +136,7 @@ export function calcSmartPrependPoint(note: TNote): number {
  * I.e. if the note starts with YAML frontmatter (e.g. https://docs.zettlr.com/en/core/yaml-frontmatter/)
  * or a metadata line (= starts with a hashtag), then add after that.
  * @author @jgclark
+ *
  * @param {TNote} note - the note to prepend to
  * @param {string} paraText - the text to prepend
  * @param {ParagraphType} paragraphType - the usual paragraph type to prepend
@@ -147,11 +150,11 @@ export function smartPrependPara(
   note.insertParagraph(paraText, calcSmartPrependPoint(note), paragraphType)
 }
 
-//
 /**
  * Works out where the first ## Done or ## Cancelled section starts, if present.
  * If not, return the last paragraph index.
  * @author @jgclark
+ *
  * @param {TNote} note - the note to assess
  * @return {number} - the index number
  */
@@ -177,4 +180,33 @@ export function findEndOfActivePartOfNote(note: TNote): number {
         : lineCount
   // console.log(`  dHL = ${doneHeaderLine}, cHL = ${cancelledHeaderLine} endOfActive = ${endOfActive}`)
   return endOfActive
+}
+
+/**
+ * Function to map a TParagraph to a SimpleParagraph, to only have content and type
+ * @author @m1well
+ * @example note.paragraphs.map(paragraphToSimpleParagraphMapper(())
+ *
+ * @returns {function(TParagraph): {type: ParagraphType, content: string}|null}
+ */
+export const paragraphToSimpleParagraphMapper = (): Function => {
+  return (paragraph: TParagraph) => {
+    return paragraph.content ? {
+      content: paragraph.content,
+      type: paragraph.type,
+    } : emptySimpleParagraph()
+  }
+}
+
+/**
+ * Add an empty line to your array of SimpleParagraphs
+ * @author @m1well
+ *
+ * @returns {SimpleParagraph} empty SimpleParagraph
+ */
+export const emptySimpleParagraph = (): SimpleParagraph => {
+  return {
+    content: '',
+    type: 'empty',
+  }
 }

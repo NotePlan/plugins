@@ -761,6 +761,31 @@ type TParagraph = {
   duplicate(): TParagraph,
 }
 
+/**
+ * Just a simple mapping of the TParagraph to generate array "cache" of them and append them all
+ * to your note at the end of the code and not during code processing
+ * @author @m1well
+ *
+ * @example
+ *    const lines: SimpleParagraph[] = []
+ *    ...
+ *    line.push({content: 'hello world', type: 'list'})
+ *    ...
+ *    lines.forEach(line => note.appendParagraph(line.content, line.type))
+ */
+type SimpleParagraph = {
+  /**
+   * Get or set the content of the paragraph
+   * (without the Markdown 'type' prefix, such as '* [ ]' for open task)
+   */
+  content: string,
+
+  /**
+   * Get or set the type of the paragraph
+   */
+  type: ParagraphType,
+}
+
 type NoteType = 'Calendar' | 'Notes'
 /**
  * Notes can be queried by DataStore. You can change the complete text of the
