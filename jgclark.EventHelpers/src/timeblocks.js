@@ -263,26 +263,26 @@ async function createEventFromDateRange(
 
 //----------------------------------------------------------------------
 // Markdown to test timeblock function. All should create apart from ones listed
-// - TBT-1a 2:30-3:45
-// - TBT-1b @done(2021-12-12) 2:30-3:45
-// - TBT-2a at 2PM-3PM
-// - TBT-2b shouldn't create @done(2021-12-12 12:34) at 2PM-3PM
-// - TBT-3 at 2-3
-// - TBT-4 at 2-3PM
-// - TBT-5 at 2PM-3
-// - TBT-6 at 2:30-3:45
-// - TBT-7 >2021-06-02 at 2-3
-// - TBT-8 >2021-06-02 at 2:30-3:45
-// - TBT-9 >2021-06-02 at 2am-3PM
-// - TBT-10 >2021-06-02 at 2am-3AM
-// - TBT-11a >2021-06-02 2:15 - 3:45
-// - TBT-11b 2021-06-02 2:15 - 3:45
-// - TBT-12a >2021-06-02 16:00 - 16:45
-// - TBT-12b 2021-06-02 16:00 - 16:45
-// - TBT-13 16:00-16:45
-// - TBT-14 at 5-5:45pm
-// - TBT-15 shouldn't create 2021-06-02 2.15PM-3.45PM
-// - TBT-16 shouldn't create 2PM-3PM
-// - TBT-18 shouldn't create 2-3
-// - TBT-19 shouldn't create 2-3PM
-// - TBT-20 shouldn't create 2PM-3
+// * TBT-1a 2:30-3:45
+// * TBT-1b @done(2021-12-12) 2:30-3:45
+// * TBT-2a at 2PM-3PM
+// * TBT-2b shouldn't create @done(2021-12-12 12:34) at 2PM-3PM
+// * TBT-3 at 2-3
+// * TBT-4 at 2-3PM
+// * TBT-5 at 2PM-3
+// * TBT-6 at 2:30-3:45
+// * TBT-7 >2021-06-02 at 2-3
+// * TBT-8 >2021-06-02 at 2:30-3:45
+// * TBT-9 >2021-06-02 at 2am-3PM
+// * TBT-10 >2021-06-02 at 2am-3AM
+// * TBT-11a >2021-06-02 2:15 - 3:45
+// * TBT-11b 2021-06-02 2:15 - 3:45
+// * TBT-12a >2021-06-02 16:00 - 16:45
+// * TBT-12b 2021-06-02 16:00 - 16:45
+// * TBT-13 16:00-16:45
+// * TBT-14 at 5-5:45pm
+// * TBT-15 shouldn't create 2021-06-02 2.15PM-3.45PM
+// * TBT-16 shouldn't create 2PM-3PM
+// * TBT-18 shouldn't create 2-3
+// * TBT-19 shouldn't create 2-3PM
+// * TBT-20 shouldn't create 2PM-3

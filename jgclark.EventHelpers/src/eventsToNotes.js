@@ -1,7 +1,7 @@
 // @flow
 // ------------------------------------------------------------------------------------
 // Command to bring calendar events into notes
-// Last updated for v0.8.0, 11.12.2021
+// Last updated for v0.10.0, 26.12.2021 by @m1well
 // @jgclark, with additions by @dwertheimer, @weyert, @m1well
 // ------------------------------------------------------------------------------------
 
