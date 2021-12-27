@@ -174,7 +174,7 @@ export function notesInFolderSortedByName(folder: string): Array<TNote> {
  *
  * @param {TNote} note input note to clear
  */
-const clearNote = (note: TNote) => {
+export const clearNote = (note: TNote) => {
   if (note.type === 'Calendar' || (note.type === 'Notes' && note.paragraphs.length > 1)) {
     const paras = note.type === 'Calendar' ? note.paragraphs : note.paragraphs.filter(para => para.lineIndex !== 0)
     note.removeParagraphs(paras)
