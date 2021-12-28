@@ -54,7 +54,8 @@ if (COMPACT) {
 let watcher
 
 /**
- * @description Rebuild the plugin commands list, checking for collisions. Runs every time a plugin is updated
+ * Rebuild the plugin commands list, checking for collisions. Runs every time a plugin is updated
+ *
  * @param pluginPaths
  * @private
  */

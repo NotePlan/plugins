@@ -104,7 +104,8 @@ export function createTimeBlockLine(blockData: BlockData, config: { [key: string
 }
 
 /**
- * @description This function takes a list of calendar items and returns a list of calendar items that are not all day
+ * This function takes a list of calendar items and returns a list of calendar items that are not all day
+ *
  * @param {*} input - array of calendar items
  * @returns arry of calendar items without all day events
  */
@@ -205,7 +206,8 @@ export const removeDurationParameter = (text: string, durationMarker: string): s
   text.replace(durationRegEx(durationMarker), '').trim()
 
 /**
- * @description Scans a line for a delimiter and a time signature, e.g. '2h5m or '2.5h
+ * Scans a line for a delimiter and a time signature, e.g. '2h5m or '2.5h
+ *
  * @param {*} line - input line
  * @returns { Int } number of minutes in duration (or zero)
  */
@@ -223,7 +225,9 @@ export function getDurationFromLine(line: string, durationMarker: string): numbe
 }
 
 /**
- * @description Remove >date and >today tags from a paragraphs array and return only the most important parts
+ *
+ * Remove >date and >today tags from a paragraphs array and return only the most important parts
+ *
  * @param {*} paragraphsArray
  * @returns
  */
@@ -244,7 +248,8 @@ export const timeIsAfterWorkHours = (nowStr: string, config: TimeBlockDefaults):
 }
 
 /**
- * @description Get the day map with only the slots that are open, after now and inside of the workday
+ * Get the day map with only the slots that are open, after now and inside of the workday
+ *
  * @param {*} timeMap
  * @param {*} config
  * @returns {IntervalMap} remaining time map

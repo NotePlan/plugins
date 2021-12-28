@@ -161,9 +161,10 @@ export async function getTagParamsFromString(paramString: string, wantedParam: s
 }
 
 /**
+ * Capitalizes the first letter of a string
+ *
  * @param {string} s - the string to capitalize
  * @returns {string} the string capitalized
- * @description Capitalizes the first letter of a string
  */
 export function capitalize(s: string): string {
   if (typeof s !== 'string') return ''

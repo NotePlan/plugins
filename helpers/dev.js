@@ -17,7 +17,8 @@ export function JSP(obj, prettyPrint = 2) {
 }
 
 /**
- * @description Create a list of the properties of an object, including inherited properties (which are not typically visible in JSON.stringify)
+ * Create a list of the properties of an object, including inherited properties (which are not typically visible in JSON.stringify)
+ *
  * @param {object} obj
  * @returns [string]
  * @reference https://stackoverflow.com/questions/13796360/javascript-get-all-properties-of-an-object
@@ -33,7 +34,8 @@ export function getAllPropertyNames(obj) {
 }
 
 /**
- * @description Print to the console log, the properties of an object (including its prototype/private methods). This works and is good if you want to know which properties are on the object vs the prototype because it will display in two lines, but it's more succinct to use getAllPropertyNames()
+ * Print to the console log, the properties of an object (including its prototype/private methods). This works and is good if you want to know which properties are on the object vs the prototype because it will display in two lines, but it's more succinct to use getAllPropertyNames()
+ *
  * @param {object} obj
  * @returns {void}
  */

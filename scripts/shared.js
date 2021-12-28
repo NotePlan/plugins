@@ -88,10 +88,11 @@ async function getPluginFileContents(pluginPath) {
 }
 
 /**
+ * Copies plugin contents for distribution but minifies/removes comments first
+ * 
  * @param {string} pathToRead
  * @param {string} pathToWrite
  * @returns {Promise<void>}
- * @description Copies plugin contents for distribution but minifies/removes comments first
  */
 async function writeMinifiedPluginFileContents(pathToRead, pathToWrite) {
   try {

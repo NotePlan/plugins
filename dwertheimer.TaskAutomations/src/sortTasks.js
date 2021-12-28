@@ -92,7 +92,8 @@ export async function sortTasksViaTemplate(paramStr: string = ''): Promise<void>
 }
 
 /**
- * @description Bring tasks (tasks only, no surrounding text) to top of note
+ * Bring tasks (tasks only, no surrounding text) to top of note
+ *
  * @returns {Promise<void>}
  */
 export async function tasksToTop() {

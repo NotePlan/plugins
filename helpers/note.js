@@ -169,7 +169,7 @@ export function notesInFolderSortedByName(folder: string): Array<TNote> {
 }
 
 /**
- * @description clears the complete note (but takes care of title in project note)
+ * clears the complete note (but takes care of title in project note)
  * @author @m1well
  *
  * @param {TNote} note input note to clear
