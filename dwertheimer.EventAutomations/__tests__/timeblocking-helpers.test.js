@@ -1,4 +1,4 @@
-/* globals describe, expect, it, test */
+/* globals describe, expect, it, test, jest */
 import colors from 'chalk'
 import { exportAllDeclaration } from '@babel/types'
 import { differenceInCalendarDays, endOfDay, startOfDay, eachMinuteOfInterval, formatISO9075 } from 'date-fns'
@@ -361,10 +361,51 @@ describe(`${PLUGIN_NAME}`, () => {
       })
     })
 
-    test('makeDateFromTimeString ', () => {
-      expect(tb.makeDateFromTimeString('2021-01-01', '00:00').toISOString()).toEqual('2021-01-01T08:00:00.000Z')
-      //bad date
-      expect(tb.makeDateFromTimeString('foo', '00:00')).toEqual(null)
+    describe('getDateObjFromString ', () => {
+      test('should create date and HH:MM from string, no seconds', () => {
+        expect(tb.getDateObjFromString('2021-01-01 09:40').toTimeString()).toMatch(/09:40:00/) //not checking date b/c it's locale-dependent
+      })
+      test('should work with seconds specified', () => {
+        expect(tb.getDateObjFromString('2021-01-01 00:00:01').toTimeString()).toMatch(/00:00:01/)
+      })
+      test('should work with only date, no time given', () => {
+        expect(tb.getDateObjFromString('2021-01-01').toTimeString()).toMatch(/00:00:00/) //not checking date b/c it's locale-dependent
+      })
+      // Errors should throw
+      test('should throw error when date format is incorrect', () => {
+        expect(() => {
+          tb.getDateObjFromString(`foo 00:00`)
+        }).toThrow(/not in expected format/)
+      })
+      test('should throw error when date format is incorrect (no day)', () => {
+        expect(() => {
+          tb.getDateObjFromString(`2020-01 02:02`)
+        }).toThrow(/not in expected format/)
+      })
+      test('should throw error when time format is incorrect', () => {
+        expect(() => {
+          tb.getDateObjFromString(`2020-01-01 02`)
+        }).toThrow(/not in expected format/)
+      })
+      test('should throw error when time format is incorrect', () => {
+        expect(() => {
+          tb.getDateObjFromString(`2020-01-01 aa:00`)
+        }).toThrow(/Invalid Date/)
+      })
+
+      describe('getDateObjFromString mocked date', () => {
+        beforeEach(() => {
+          jest.spyOn(Date.prototype, 'toTimeString').mockReturnValue('99:99:99')
+        })
+        test('should throw error when Date object time does not match time sent in', () => {
+          expect(() => {
+            tb.getDateObjFromString(`2020-01-01 22:00`)
+          }).toThrow(/Catalina date hell/)
+        })
+        afterEach(() => {
+          jest.restoreAllMocks()
+        })
+      })
     })
 
     test('findTimeBlocks ', () => {

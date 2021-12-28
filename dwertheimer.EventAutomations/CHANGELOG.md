@@ -2,7 +2,16 @@
 
 ## Changelog
 
-[0.3.0] 2021-11-04 @dwertheimer
+[0.4.0] 2021-12-25 @dwertheimer
+- Search today's note for items tagged as >today or >dated
+
+[0.3.4] 2021-12-25 @dwertheimer
+- Fixed include/exclude bug thanks to @stacey and @4nd3rs for helping me find it
+
+[0.3.3] 2021-12-24 @dwertheimer
+- Added tons of console.logging to help with debugging in NP
+
+[0.3.0] 2021-12-24 @dwertheimer
 - Fixed Catalina (and previous OS) date math inconsistency
 
 [0.1.0] 2021-11-04 @dwertheimer
