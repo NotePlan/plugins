@@ -1171,6 +1171,7 @@ type TParagaraphBridge = {
 
   /**
    * Removes a given paragraph
+   * Note: Each use triggers creation of a new note version.
    * @param paragraph - Paragraph object to remove, get it from `.paragraphs`
    */
   removeParagraph(paragraph: TParagraph): void,

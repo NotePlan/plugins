@@ -4,10 +4,17 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 - tighten timeblock-finding regex if Eduard does
 - add further fields (e.g. location) if Eduard adds to the API
 
+## [0.10.0] - 2021-12-26 (@m1well)
+### Changed
+- in `/listDaysEvents` if user want to output calendar name, then the output now gets sorted by calendar name and start time
+
+## [0.9.0] - 2021-12-17 (unreleased)
+### Changed
+- `/timeblock` now uses more advanced time block detection regex that now matches the time blocks NotePlan finds, rather than the ones the documentation said it detects
+
 ## [0.8.0] - 2021-12-01 (@m1well)
 ### Added
-- added boolean variable to config to render calendar name in eventslist
-- added possibility to map a calendar name to a given string (maybe for formatting purposes)
+- added ability to map a calendar name to a given string (e.g. to shorten calendar name in output)
 
 ## [0.7.0] - 2021-11-19
 ### Added

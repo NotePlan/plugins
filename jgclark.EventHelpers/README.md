@@ -8,7 +8,7 @@ This plugin provides commands to help work with Calendars and Events:
 - `/process date offsets`: finds date offset patterns and turns them into due dates, based on date at start of section. (See [Templates for Dates](#template-for-dates) below for full details.)
 
 The first four of these have a number of [options described below](#configuration).
-## Templates for Dates
+## Date Offsets
 This is best understood with a quick example:
 
 | For example ...                                                                                                                                                                        | ... becomes                                                                                                                                                                                                 |
@@ -77,7 +77,7 @@ This uses JSON5 format: ensure there are commas at the end of all that lines tha
 - **eventsHeading**: in `/insert today's events as list` the heading to put before the list of today's events. Optional.
 - **calendarSet**: optional ["array","of calendar","names"] to filter by when showing list of events. If empty or missing, no filtering will be done.
 - **addMatchingEvents**: for `/add matching events` is a set of pairs of strings. The first string is what is matched for in an event's title. If it does match the second string is used as the template for how to insert the event details at the cursor.  This uses the same `*|TITLE|*`, `*|START|*` (time), `*|END|*` (time), `*|NOTES|*` and `*|URL|*` template items below ...  NB: At this point the 'location' field is unfortunately _not_ available through the API.
-- **calendarNameMappings**: optional - add mappings for your calendarnames - e.g. "Thomas;Me" - then in the Note following appears: `- Me: Event 1 (15:00)` (obviously it depends on your template) - maybe for formatting purposes
+- **calendarNameMappings**: optional - add mappings for your calendar names to appear in the output - e.g. from "Thomas" to "Me" with "Thomas;Me".
 
 ### Using Event Lists from a Template
 If you use Templates, this command can be called when a Template is inserted (including in the `/day start` command which applies your `Daily Note Template` file). To do this insert `{{events()}}` wherever you wish it to appear in the Template.  By default it gives a simple markdown list of event title and start time.  To **customise the list display**, you can add a `'template:"..."'` parameter to the `{{events()}}` template command that sets how to present the list, and a separate template for items with no start/end times (`'allday_template:"..."`).
@@ -93,6 +93,8 @@ For example:
 The `*|CAL|*`, `*|TITLE|*`, `*|START|*`, `*|END|*`, `*|NOTES|*` and `*|URL|*` can be mixed with whatever markdown characters or other text you like, and they will get replaced accordingly with the fields from each matching event found. (Note the difference between the } and ) bracket types, and use of double quotes around the template string. I didn't design this syntax ...)
 
 You can also place  `{{listMatchingEvents()}}` in Templates in a similar way, and similar customisation is possible. However, it is defined in a different way, using the matches and template strings defined in the `_configuration` file's `addMatchingEvents` array, as shown above.
+
+NB: adding the `*|CAL|*` item to the template also triggers sorting the output list by calendar name and then time.
 
 ## Changes
 Please see the [CHANGELOG](CHANGELOG.md).

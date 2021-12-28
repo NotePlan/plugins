@@ -167,3 +167,16 @@ export function notesInFolderSortedByName(folder: string): Array<TNote> {
   )
   return notesSortedByName
 }
+
+/**
+ * @description clears the complete note (but takes care of title in project note)
+ * @author @m1well
+ *
+ * @param {TNote} note input note to clear
+ */
+export const clearNote = (note: TNote) => {
+  if (note.type === 'Calendar' || (note.type === 'Notes' && note.paragraphs.length > 1)) {
+    const paras = note.type === 'Calendar' ? note.paragraphs : note.paragraphs.filter(para => para.lineIndex !== 0)
+    note.removeParagraphs(paras)
+  }
+}
