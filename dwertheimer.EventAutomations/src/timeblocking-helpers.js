@@ -227,6 +227,7 @@ export function getDurationFromLine(line: string, durationMarker: string): numbe
 /**
  *
  * Remove >date and >today tags from a paragraphs array and return only the most important parts
+ *
  * @param {*} paragraphsArray
  * @returns
  */
