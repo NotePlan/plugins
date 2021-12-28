@@ -1,8 +1,10 @@
+// @flow
+
 /**
- * Return list of folders, excluding those on the given list 
- * (and any of their sub-folders).
+ * @description Return list of folders, excluding those on the given list (and any of their sub-folders).
  * @author @jgclark
- * @param {[string]} exclusions 
+ *
+ * @param {[string]} exclusions
  * @returns {[string]} array of folder names
  */
 export function filterFolderList(exclusions: Array<string>): $ReadOnlyArray<string> {
@@ -18,20 +20,19 @@ export function filterFolderList(exclusions: Array<string>): $ReadOnlyArray<stri
     }
   } else {
     console.log(`filterFolderList: warning: empty excluded folder list`)
-    reducedList = folderList.slice()
+    reducedList.push(...folderList.slice())
   }
   return reducedList
 }
 
-/** 
- * Get the folder name from the full NP (project) note filename.
+/**
+ * @description Get the folder name from the full NP (project) note filename.
  * @author @jgclark
+ *
  * @param {string} fullFilename - full filename to get folder name part from
  * @returns {string} folder/subfolder name
  */
 export function getFolderFromFilename(fullFilename: string): string {
   const filenameParts = fullFilename.split('/')
-  // console.log(filenameParts)
-  // TODO: Test whether this works for notes in root folder
   return filenameParts.slice(0, filenameParts.length - 1).join('/')
 }
