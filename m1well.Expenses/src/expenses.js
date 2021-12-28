@@ -118,7 +118,7 @@ const EXAMPLE_CONFIG = `
 `
 
 /**
- * @description expenses tracking with three possibilities (individual, shortcuts, fixed)
+ * expenses tracking with three possibilities (individual, shortcuts, fixed)
  *
  * @returns {Promise<boolean>}
  */
@@ -138,7 +138,7 @@ const expensesTracking = async (): Promise<boolean> => {
 }
 
 /**
- * @description aggregates expenses of given year to a new note
+ * aggregates expenses of given year to a new note
  *
  * @returns {Promise<boolean>}
  */
@@ -192,7 +192,7 @@ const expensesAggregate = async (): Promise<boolean> => {
 }
 
 /**
- * @description tracking of individual expenses
+ * tracking of individual expenses
  *
  * @returns {Promise<boolean>}
  */
@@ -242,7 +242,7 @@ const individualTracking = async (): Promise<boolean> => {
 }
 
 /**
- * @description tracking of shortcut expenses
+ * tracking of shortcut expenses
  *
  * @returns {Promise<boolean>}
  */
@@ -301,7 +301,7 @@ const shortcutsTracking = async (): Promise<boolean> => {
 }
 
 /**
- * @description tracking of fixed expenses
+ * tracking of fixed expenses
  *
  * @returns {Promise<boolean>}
  */
@@ -346,7 +346,7 @@ const fixedTracking = async (): Promise<boolean> => {
 }
 
 /**
- * @description provide config from _configuration and cast content to real objects
+ * provide config from _configuration and cast content to real objects
  *
  * @private
  */
@@ -386,7 +386,7 @@ const provideConfig = (): Promise<Config> => {
 }
 
 /**
- * @description check if one note exists by name, if mulitple exists - throw error, of none extist -> create it
+ * check if one note exists by name, if mulitple exists - throw error, of none extist -> create it
  *
  * @private
  */
@@ -423,7 +423,7 @@ const provideAndCheckNote = async (title: string,
 }
 
 /**
- * @description check data quality of tracked data before we aggregate it
+ * check data quality of tracked data before we aggregate it
  *
  * @private
  */

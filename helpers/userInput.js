@@ -288,7 +288,7 @@ export function isInt(value: string): boolean {
 }
 
 /**
- * @description ask for a (floating point) number from user
+ * ask for a (floating point) number from user
  *
  * @param question question for the commandbar
  * @returns {Promise<number|*>} returns integer or NaN
@@ -304,7 +304,7 @@ export async function inputInteger(question: string): Promise<number> {
 }
 
 /**
- * @description ask for an integer from user
+ * ask for an integer from user
  *
  * @param question question for the commandbar
  * @returns {Promise<number|*>} returns number or NaN
@@ -337,7 +337,7 @@ export async function inputMood(moodArray: Array<string>): Promise<string> {
 }
 
 /**
- * @description get trimmed userinput
+ * get trimmed userinput
  * @author @m1well
  *
  * @param placeholder value to display a question
@@ -350,11 +350,11 @@ export const getInputTrimmed = async (placeholder: string, submitText: string): 
 }
 
 /**
- * @description ask one question and get a flexible amount of answers from the user. either he reached the
- *              maximum answer amount, or he leaves the input empty - of course you can set a minimum amount so
- *              that the user have to input an answer (e.g. at least once)
- * @example `await multipleInputAnswersAsArray('What went well last week', 'Leave empty to finish answers', true, 1, 3)`
+ * ask one question and get a flexible amount of answers from the user. either he reached the
+ * maximum answer amount, or he leaves the input empty - of course you can set a minimum amount so
+ * that the user have to input an answer (e.g. at least once)
  * @author @m1well
+ * @example `await multipleInputAnswersAsArray('What went well last week', 'Leave empty to finish answers', true, 1, 3)`
  *
  * @param question question as input placeholder
  * @param submit submit text

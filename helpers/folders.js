@@ -1,7 +1,7 @@
 // @flow
 
 /**
- * @description Return list of folders, excluding those on the given list (and any of their sub-folders).
+ * Return list of folders, excluding those on the given list (and any of their sub-folders).
  * @author @jgclark
  *
  * @param {[string]} exclusions
@@ -26,7 +26,7 @@ export function filterFolderList(exclusions: Array<string>): $ReadOnlyArray<stri
 }
 
 /**
- * @description Get the folder name from the full NP (project) note filename.
+ * Get the folder name from the full NP (project) note filename.
  * @author @jgclark
  *
  * @param {string} fullFilename - full filename to get folder name part from

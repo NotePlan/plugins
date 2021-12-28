@@ -10,7 +10,7 @@ const fullAmountConfig = {
 }
 
 /**
- * @description cast string from the config mixed
+ * cast string from the config mixed
  *
  * @param val the config mixed
  * @param key name of the property you want to cast
@@ -21,7 +21,7 @@ export const castStringFromMixed = (val: { [string]: ?mixed }, key: string): str
 }
 
 /**
- * @description cast string array from the config mixed
+ * cast string array from the config mixed
  *
  * @param val the config mixed
  * @param key name of the property you want to cast
@@ -32,7 +32,7 @@ export const castStringArrayFromMixed = (val: { [string]: ?mixed }, key: string)
 }
 
 /**
- * @description cast ShortcutExpenses array from the config mixed
+ * cast ShortcutExpenses array from the config mixed
  *
  * @param val the config mixed
  * @param key name of the property you want to cast
@@ -43,7 +43,7 @@ export const castShortcutExpensesArrayFromMixed = (val: { [string]: ?mixed }, ke
 }
 
 /**
- * @description cast FixedExpenses array from the config mixed
+ * cast FixedExpenses array from the config mixed
  *
  * @param val the config mixed
  * @param key name of the property you want to cast
@@ -54,7 +54,7 @@ export const castFixedExpensesArrayFromMixed = (val: { [string]: ?mixed }, key: 
 }
 
 /**
- * @description extract a expense row from the string of the tracking note
+ * extract a expense row from the string of the tracking note
  *
  * @param row string value from the tracking note
  * @param config the config
@@ -92,7 +92,7 @@ export const extractExpenseRowFromCsvRow = (row: string, config: Config): Expens
 }
 
 /**
- * @description aggregates a tracking note by categories and month
+ * aggregates a tracking note by categories and month
  *
  * @param values rows from the tracking note
  * @param delimiter configured delimiter
@@ -118,7 +118,7 @@ export const aggregateByCategoriesAndMonth = (values: ExpenseTrackingRow[],
 }
 
 /**
- * @description create new string tracking row with some configured properties (e.g. delimiter)
+ * create new string tracking row with some configured properties (e.g. delimiter)
  *
  * @param row row from the user input
  * @param config the config
@@ -143,7 +143,7 @@ export const createTrackingExpenseRowWithConfig = (row: ExpenseTrackingRow, conf
 }
 
 /**
- * @description create new string aggregated row with delimiter
+ * create new string aggregated row with delimiter
  *
  * @param row row from the aggregated function
  * @param config the config
@@ -165,7 +165,7 @@ export const createAggregationExpenseRowWithDelimiter = (row: ExpenseAggregateRo
 }
 
 /**
- * @description stringify the objects from the shortcut list to show them as input options
+ * stringify the objects from the shortcut list to show them as input options
  *
  * @param shortcuts shortcuts from the config
  * @param delimiter delimiter for the shortcuts
@@ -182,7 +182,7 @@ export const stringifyShortcutList = (shortcuts: ShortcutExpense[], delimiter: s
 }
 
 /**
- * @description here you can left pad your number with zeros - e.g. a '5' with 3 targetDigits is getting a '005'
+ * here you can left pad your number with zeros - e.g. a '5' with 3 targetDigits is getting a '005'
  *
  * @param current the current number
  * @param targetDigits how many digits should the target number have

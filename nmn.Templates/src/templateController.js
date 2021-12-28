@@ -69,7 +69,8 @@ type TagListType = {
 }
 
 /**
- * @description - Add a tag and function to call from templates
+ * Add a tag and function to call from templates
+ *
  * @param {string} tagName - the string name of the tag
  * @param {Function} tagFunction - the function to call (usually an import above)
  * @param {boolean} includeConfig - whether to include the config in that function call
