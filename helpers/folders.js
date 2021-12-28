@@ -1,38 +1,65 @@
 // @flow
 
 /**
- * @description Return list of folders, excluding those on the given list (and any of their sub-folders).
+ * Exclude: T, H/A, E
+ * So no to T, T/A, H/A/B, E, E/A
+ * but yes to H
+ * Exclude: T/, H/A/, E/
+ * So no to T/, T/A/, H/A/B/, E/, E/A/
+ * but yes to H/
+ */
+
+/**
+ * Return list of folders, excluding those on the given list (and any of their sub-folders).
  * @author @jgclark
  *
  * @param {[string]} exclusions
  * @returns {[string]} array of folder names
  */
-export function filterFolderList(exclusions: Array<string>): $ReadOnlyArray<string> {
+export function filterFolderList(exclusions: Array<string>): Array<string> {
   const folderList = DataStore.folders
   const reducedList: Array<string> = []
+  console.log(`filterFolderList: Starting with exclusions ${exclusions.toString()}`)
   if (exclusions.length > 0) {
+    const exclusionsTerminatedWithSlash: Array<string> = []
+    for (const e of exclusions) {
+      exclusionsTerminatedWithSlash.push( e.endsWith('/') ? e : e+'/' )
+    }
+    const folderListTerminatedWithSlash: Array<string> = []
     for (const f of folderList) {
-      const firstPart = f.split('/')[0]
-      // TODO: Check if this works specifying a sub-folder to exclude
-      if (!exclusions.includes(firstPart)) {
-        reducedList.push(f)
+      folderListTerminatedWithSlash.push( f.endsWith('/') ? f : f+'/' )
+    }
+    for (const ff of folderListTerminatedWithSlash) {
+      let matchedAnExcludedFolder = false
+      for (const ee of exclusionsTerminatedWithSlash) {
+        if (ff.startsWith(ee)) {
+          matchedAnExcludedFolder = true
+          // console.log(`  ${ee} starts with ${ff}`)
+          break
+        }
+      }
+      if (!matchedAnExcludedFolder) {
+        reducedList.push(ff.substr(0, ff.length-1))
+        // console.log(`  ${ff} didn't match`)
       }
     }
   } else {
-    console.log(`filterFolderList: warning: empty excluded folder list`)
+    console.log(`\twarning: empty excluded folder list`)
     reducedList.push(...folderList.slice())
   }
   return reducedList
 }
 
 /**
- * @description Get the folder name from the full NP (project) note filename.
+ * Get the folder name from the full NP (project) note filename.
  * @author @jgclark
  *
  * @param {string} fullFilename - full filename to get folder name part from
  * @returns {string} folder/subfolder name
  */
 export function getFolderFromFilename(fullFilename: string): string {
-  const filenameParts = fullFilename.split('/')
+  // drop first character if it's a slash
+  const filename = (fullFilename.startsWith('/')) ? fullFilename.substr(1) : fullFilename
+  const filenameParts = filename.split('/')
   return filenameParts.slice(0, filenameParts.length - 1).join('/')
 }

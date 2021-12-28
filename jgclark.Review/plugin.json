@@ -6,7 +6,7 @@
 	"plugin.icon": "",
 	"plugin.author": "Jonathan Clark",
 	"plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Review/",
-	"plugin.version": "0.4.5",
+	"plugin.version": "0.5.0",
 	"plugin.dependencies": [],
 	"plugin.script": "script.js",
 	"plugin.isRemote": "false",
@@ -48,5 +48,63 @@
 			"jsFunction": "addProject"
 		}
 	],
-	"plugin.preferences": []
+	"plugin.preferences": [
+    {
+			"type": "Heading",
+			"title": "Review Plugin settings"
+    },
+    {
+			"key": "folderToStore",
+			"title": "Folder to store review notes",
+			"description": "Folder where review notes will be stored (will be created if necessary)",
+			"type": "string",
+			"default": "Reviews",
+			"required": false
+		},
+    {
+			"key": "foldersToIgnore",
+			"title": "Folder to store review notes",
+			"description": "An array of folders (and their sub-folders) to ignore in reviews. Can be empty.",
+			"type": "[string]",
+			"default": ["📋 Templates", "Reviews", "Summaries"],
+			"required": false
+		},
+    {
+			"key": "noteTypeTags",
+			"title": "Note type hashtags",
+			"description": "An array of hashtags to indicate notes to include in this review system",
+			"type": "[string]",
+			"default": ["#area", "#project"],
+			"required": false
+		},
+		{
+			"type": "Subheading",
+			"title": "Settings for '/projectLists' command"
+    },
+		{
+			"key": "displayOrder",
+			"title": "Displayed order of notes titles",
+			"description": "The sort options  are 'due' date, 'review' date or 'alpha'",
+			"type": "string",
+			"choice": ["alpha", "due", "review"],
+			"default": "alpha",
+			"required": false
+		},
+		{
+      "key": "displayGroupedByFolder",
+      "title": "Display grouped by folder?",
+      "description": "Whether to group the notes by folder",
+      "type": "boolean",
+      "default": true,
+      "required": false
+    },
+    {
+      "key": "displayArchivedProjects",
+      "title": "Display archived projects?",
+      "description": "Whether to display project notes marked #archive",
+      "type": "boolean",
+      "default": true,
+      "required": false
+    }
+	]
 }

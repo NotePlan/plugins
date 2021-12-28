@@ -1,4 +1,4 @@
-/* globals describe, expect, test, afterAll */
+/* globals describe, expect, test, DataStore, afterAll */
 import * as f from '../folders'
 
 global.DataStore = {
@@ -10,7 +10,7 @@ global.DataStore = {
     '📋 Templates',
     'TEST',
     'TEST/TEST LEVEL 2',
-    'TEST/TEST LEVEL 2/TEST LEVEL 3', ]
+    'TEST/TEST LEVEL 2/TEST LEVEL 3' ]
 }
 
 afterAll(() => {
@@ -25,15 +25,30 @@ describe('helpers/folders', () => {
       const folders = Object.keys(f.filterFolderList(exclusions))
       expect(folders.length).toBe(9)
     })
-    test('TEST exclusions -> 6', () => {
+    test('TEST exclusions -> 6 left', () => {
       const exclusions = [ 'TEST' ]
       const folders = Object.keys(f.filterFolderList(exclusions))
       expect(folders.length).toBe(6)
     })
-    test('📋 Templates exclusions -> 8', () => {
+    test('TEST+CCC Areas exclusions -> 4 left', () => {
+      const exclusions = ['TEST', 'CCC Areas' ]
+      const folders = Object.keys(f.filterFolderList(exclusions))
+      expect(folders.length).toBe(4)
+    })
+    test('📋 Templates exclusions -> 8 left', () => {
       const exclusions = [ '📋 Templates' ]
       const folders = Object.keys(f.filterFolderList(exclusions))
       expect(folders.length).toBe(8)
+    })
+    test('Subfolder exclusion -> 7 left', () => {
+      const exclusions = [ 'TEST/TEST LEVEL 2' ]
+      const folders = Object.keys(f.filterFolderList(exclusions))
+      expect(folders.length).toBe(7)
+    })
+    test('Subfolder exclusion not matching -> 9 left', () => {
+      const exclusions = [ 'TEST/TEST LEVEL 3' ]
+      const folders = Object.keys(f.filterFolderList(exclusions))
+      expect(folders.length).toBe(9)
     })
   })
 
@@ -51,7 +66,7 @@ describe('helpers/folders', () => {
       expect(f.getFolderFromFilename('one/two or three/fifteen.md')).toEqual('one/two or three')
     })
     test('leading slash', () => {
-      expect(f.getFolderFromFilename('/sixes and sevenses/calm one.md')).toEqual('/sixes and sevenses')
+      expect(f.getFolderFromFilename('/sixes and sevenses/calm one.md')).toEqual('sixes and sevenses')
     })
   })
 

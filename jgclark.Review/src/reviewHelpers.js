@@ -2,27 +2,27 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // @jgclark
-// Last updated for v0.4.5, 9.12.2021
+// Last updated for v0.5.0, 28.12.2021
 //-----------------------------------------------------------------------------
 
+import {
+  calcOffsetDate,
+  daysBetween,
+  getDateFromString,
+  relativeDateFromNumber,
+  toISODateString,
+} from '../../helpers/dateTime'
+import {
+  getFolderFromFilename,
+} from '../../helpers/folders'
 import {
   showMessage,
 } from '../../helpers/userInput'
 
-import {
-  daysBetween,
-  toISODateString,
-  calcOffsetDate,
-  relativeDateFromNumber,
-  getDateFromString,
-} from '../../helpers/dateTime'
-
-import {
-  getFolderFromFilename,
-} from '../../helpers/general'
-
+//-----------------------------------------------------------------------------
 /**
  * Get or create the relevant note in the Summary folder
+ * @author @jgclark
  * @param {string} noteTitle - title of summary note
  * @param {string} noteFolder - folder to look in
  * @return {Promise<TNote>} - note object
@@ -51,13 +51,13 @@ export async function getOrMakeNote(
       if (note != null) {
         return note
       } else {
-        showMessage(`Oops: I can't make new _reviews note`, 'OK')
-        console.log(`returnSummaryNote: error: can't read new _reviews note`)
+        showMessage(`Oops: I can't make new ${noteTitle} note`, 'OK')
+        console.log(`returnSummaryNote: error: can't read new ${noteTitle} note`)
         return
       }
     } else {
-      showMessage(`Oops: I can't make new _reviews note`, 'OK')
-      console.log(`returnSummaryNote: error: empty filename of new _reviews note`)
+      showMessage(`Oops: I can't make new ${noteTitle} note`, 'OK')
+      console.log(`returnSummaryNote: error: empty filename of new ${noteTitle} note`)
       return
     }
   }
@@ -71,7 +71,7 @@ export async function getOrMakeNote(
  * If these can't be found, then create a new line for this after the title
  * Only to be called when Editor known to have an open note.
  * @author @jgclark
- * @return {number} line - the calculated line
+ * @return {number} the line number for the metadata line
  */
 export function getOrMakeMetadataLine(): number {
   let lineNumber
@@ -96,12 +96,12 @@ export function getOrMakeMetadataLine(): number {
     lineNumber = 1
   }
   // console.log(`Metadata line = ${lineNumber}`)
-  // $FlowIgnore
   return lineNumber
 }
 
 /**
  * Return list of notes with a particular hashtag, optionally in the given folder.
+ * @author @jgclark
  * @param {string} tag - tag name to look for (or blank, in which case no filtering by tag)
  * @param {?string} folder - optional folder to limit to
  * @param {?boolean} includeSubfolders - if folder given, whether to look in subfolders of this folder or not (optional, defaults to false)
@@ -117,6 +117,7 @@ export function findNotesMatchingHashtags(
   if (folder != null) {
     if (includeSubfolders) {
       // use startsWith as filter to include subfolders
+      // FIXME: not working for root-level notes
       projectNotesInFolder = DataStore.projectNotes
         .slice()
         .filter((n) => n.filename.startsWith(`${folder}/`))
@@ -140,7 +141,8 @@ export function findNotesMatchingHashtags(
 
 /**
  * Calculate the next date to review, based on last review date and date interval.
- * If no last review date, then the answer is always today's date
+ * If no last review date, then the answer is today's date.
+ * @author @jgclark
  * @param {Date} lastReviewDate - JS Date
  * @param {string} interval - interval specified as nn[bdwmqy]
  * @return {Date} - JS Date
@@ -155,7 +157,8 @@ export function calcNextReviewDate(lastReviewDate: Date, interval: string): Date
 
 /**
  * From an array of strings, return the first string that matches the
- * wanted parameterised @mention, or empty String
+ * wanted parameterised @mention, or empty String.
+ * @author @jgclark
  * @param {Array<string>} mentionList - list of strings to search
  * @param {string} mention - string to match (with a following '(' to indicate start of parameter)
  * @return {?Date} - JS Date version, if valid date found
@@ -170,7 +173,8 @@ export  function getParamMentionFromList(
 }
 
 /**
- * From an array of strings, return the first string that matches the wanted string
+ * From an array of strings, return the first string that matches the wanted string.
+ * @author @jgclark
  * @param {Array<string>} list - list of strings to search
  * @param {string} search - string to match
  */
@@ -184,7 +188,8 @@ export function getStringFromList(
 }
 
 /**
- * Extract bracketed part of an '@mention(something)' string
+ * Extract bracketed part of an '@mention(something)' string.
+ * @author @jgclark
  * @param {string} - string that contains a bracketed mention e.g. @review(2w)
  * @return {?string} - string from between the brackets, if found (e.g. '2w')
  */
@@ -192,10 +197,8 @@ export function getStringFromMention(mention: string): ?string {
   const RE_MENTION_STRING_CAPTURE = '\\((.*?)\\)' // capture string inside parantheses
 
   if (mention === '') {
-    // console.log(`\tgetStringFromMention: empty string`)
     return // no text, so return nothing
   }
-  // console.log(`\tgetStringFromMention: ${mention}`)
   const res = mention.match(RE_MENTION_STRING_CAPTURE) ?? []
   if (res[1].length > 0) {
     return res[1]
@@ -205,10 +208,13 @@ export function getStringFromMention(mention: string): ?string {
 }
 
 //-------------------------------------------------------------------------------
-// Define 'Project' class to use in GTD.
-// Holds title, last reviewed date, due date, review interval, completion date,
-// number of closed, open & waiting for tasks
-// NOTE: @nmn says class syntax is likely not supported in Safari 11.
+
+/**
+ * Define 'Project' class to use in GTD.
+ * Holds title, last reviewed date, due date, review interval, completion date,
+ * number of closed, open & waiting for tasks.
+ * @author @jgclark
+*/
 export class Project {
   // Types for the class properties
   note: TNote
@@ -299,8 +305,9 @@ export class Project {
     // console.log(`\t  created OK`)
   }
 
-  /* return title of note as internal link, also showing complete or cancelled where relevant
-  * @return {string} - title as wikilink
+  /*
+   * return title of note as internal link, also showing complete or cancelled where relevant
+   * @return {string} - title as wikilink
   */
   get decoratedProjectTitle(): string {
     if (this.isCompleted) {
@@ -314,8 +321,10 @@ export class Project {
     }
   }
 
-  /* return true if review is overdue and not archived or completed
-  * @return {boolean} - is this ready for review?
+  /*
+   * Is this project ready for review?
+   * Return true if review is overdue and not archived or completed
+   * @return {boolean}
   */
   get isReadyForReview(): boolean {
     // console.log(`isReadyForReview: ${this.title}:  ${this.nextReviewDays} ${this.isActive}`)
@@ -324,7 +333,8 @@ export class Project {
       && this.isActive)
   }
 
-  /* Returns CSV line showing days until next review + title
+  /*
+   * Returns CSV line showing days until next review + title
    * @return {string}
   */
   machineSummaryLine(): string {
@@ -333,7 +343,9 @@ export class Project {
     // return `${numString}\t${this.title}\t${this.isActive.toString()}\t${this.completedDays?.toString() ?? ''}`
   }
 
-  /* Returns line showing more detailed summary of the note, treated as a project
+  /* 
+   * Returns line showing more detailed summary of the project, for output to a note.
+   * TODO: when tables are supported, make this write a table row.
    * @return {string}
   */
   detailedSummaryLine(): string {
@@ -344,7 +356,9 @@ export class Project {
     } else {
       output += `\to${this.openTasks} / c${this.completedTasks} / w${this.waitingTasks}`
       output = (this.nextReviewDays != null)
-        ? `${output} / ${relativeDateFromNumber(this.nextReviewDays)}`
+        ? ( (this.nextReviewDays > 0)
+          ? `${output} / ${relativeDateFromNumber(this.nextReviewDays)}`
+          : `${output} / **${relativeDateFromNumber(this.nextReviewDays)}**`) 
         : `${output} / -`
       output = (this.dueDays != null)
         ? `${output} / ${relativeDateFromNumber(this.dueDays)}`

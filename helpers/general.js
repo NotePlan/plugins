@@ -105,19 +105,6 @@ export function titleAsLink(note: TNote): string {
   return note.title !== undefined ? `[[${note.title ?? ''}]]` : '(error)'
 }
 
-// Get the folder name from the full NP (project) note filename
-export function getFolderFromFilename(fullFilename: string): string {
-  const filenameParts = fullFilename.split('/')
-  // console.log(filenameParts)
-  return filenameParts.slice(0, filenameParts.length - 1).join('/')
-}
-
-// Tests for gFFF function above
-// console.log(`gFFF('one/two/three/four.txt') -> ${getFolderFromFilename('one/two/three/four.txt')}`)
-// console.log(`gFFF('one/two/three/four and a bit.md') -> ${getFolderFromFilename('one/two/three/four and a bit.md')}`)
-// console.log(`gFFF('one/two or three/fifteen.txt') -> ${getFolderFromFilename('one/two or three/fifteen.txt')}`)
-// console.log(`gFFF('/sixes and sevenses/calm one.md') -> ${getFolderFromFilename('sixes and sevenses/calm one.md')}`)
-
 type Replacement = { key: string, value: string }
 
 /**
