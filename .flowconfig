@@ -17,6 +17,10 @@ experimental.const_params=true
 module.use_strict=true
 suppress_type=$FlowFixMe
 suppress_type=$FlowTODO
-
+module.name_mapper='^@helpers' ->'<PROJECT_ROOT>/helpers'
+module.name_mapper='^NPTemplating' ->'<PROJECT_ROOT>/np.Templating/lib/NPTemplating'
+module.name_mapper='^TemplatingEngine' ->'<PROJECT_ROOT>/np.Templating/lib/TemplatingEngine'
+module.name_mapper='^@templating' ->'<PROJECT_ROOT>/np.Templating/lib'
+module.name_mapper='^@templatingModules' ->'<PROJECT_ROOT>/np.Templating/lib/support/modules'
 
 [strict]

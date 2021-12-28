@@ -2,9 +2,10 @@
 
 export { testerHeartbeat } from './cdTester'
 
-// npTemplating
+// np.Templating
 export { templatingHeartbeat } from './npTemplating'
-export { templatingStandard } from './npTemplating'
+export { templatingHelloWorld } from './npTemplating'
+export { templatingDateModule } from './npTemplating'
 export { templatingCustom } from './npTemplating'
 export { templatingTasks } from './npTemplating'
 export { templatingKitchenSink } from './npTemplating'

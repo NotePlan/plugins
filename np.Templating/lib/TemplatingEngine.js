@@ -8,17 +8,17 @@
 
 import { getUserLocale } from 'get-user-locale'
 
+import WebModule from '@templatingModules/WebModule'
+import DateModule from '@templatingModules/DateModule'
+import TimeModule from '@templatingModules/TimeModule'
+import NoteModule from '@templatingModules/NoteModule'
+import UtilsModule from '@templatingModules/UtilsModule'
+import FrontmatterModule from '@templatingModules/FrontmatterModule'
+
+import { showError } from '../../codedungeon.Tester/src/lib/testerUtils'
 // this is a customized versioin of `ejs` adding support for async actions (use await in template)
 // review `Test (Async)` template for example`
 import ejs from './support/ejs'
-
-import WebModule from './support/modules/WebModule'
-import DateModule from './support/modules/DateModule'
-import TimeModule from './support/modules/TimeModule'
-import NoteModule from './support/modules/NoteModule'
-import UtilsModule from './support/modules/UtilsModule'
-import FrontmatterModule from './support/modules/FrontmatterModule'
-import { showError } from '../../codedungeon.Tester/src/lib/testerUtils'
 
 export default class TemplatingEngine {
   templateConfig: any

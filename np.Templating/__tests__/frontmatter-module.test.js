@@ -1,7 +1,7 @@
 /* eslint-disable */
 
 import colors from 'chalk'
-import FrontmatterModule from '../lib/support/modules/FrontmatterModule'
+import FrontmatterModule from '@templateModules/FrontmatterModule'
 
 export const DEFAULT_TEMPLATE_CONFIG = {
   locale: 'en-US',

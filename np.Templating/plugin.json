@@ -2,14 +2,20 @@
   "macOS.minVersion": "10.13.0",
   "noteplan.minAppVersion": "3.0.21",
   "plugin.id": "np.Templating",
-  "plugin.name": "📙 NotePlan Templating",
-  "plugin.version": "0.0.5",
-  "plugin.description": "NotePlan Templating Plugin",
+  "plugin.name": " 📒 NotePlan Templating",
+  "plugin.version": "0.0.10",
+  "plugin.description": "Templating Plugin for NotePlan",
   "plugin.author": "Mike Erickson",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md",
   "plugin.commands": [
+    {
+      "name": "np:init",
+      "alias": [],
+      "description": "Initialize np.Templating Configuration",
+      "jsFunction": "templateInit"
+    },
     {
       "name": "np:insert",
       "alias": [],

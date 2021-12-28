@@ -24,6 +24,7 @@
   },
   "rules": {
     "import/no-duplicates": "off",
+    "import/no-unresolved": "off",
     "prefer-template": "off",
     "eqeqeq": [
       "error",

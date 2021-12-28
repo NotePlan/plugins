@@ -1,7 +1,7 @@
 // @flow
 
-import { getTagParamsFromString, stringReplace, capitalize } from '../../../../helpers/general'
-import { getOrMakeConfigurationSection } from '../configuration'
+import { getTagParamsFromString, stringReplace, capitalize } from '@helpers/general'
+import { getOrMakeConfigurationSection } from '@templating/toolbox'
 
 export const DEFAULT_WEATHER_CONFIG = `// configuration for weather data (used in Daily Note Template, for example)
   weather: {

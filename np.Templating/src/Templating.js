@@ -5,9 +5,14 @@
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
  * -----------------------------------------------------------------------------------------*/
 
-import { showMessage, chooseOption, getInput } from '../../helpers/userInput'
-import { getOrMakeTemplateFolder } from '../../nmn.Templates/src/template-folder'
-import NPTemplating from '../lib/NPTemplating'
+import NPTemplating from 'NPTemplating'
+
+import { showMessage, chooseOption, getInput } from '@helpers/userInput'
+import { getOrMakeTemplateFolder } from '@templating/toolbox'
+
+export async function templateInit(): Promise<void> {
+  await getOrMakeTemplateFolder()
+}
 
 export async function templateInsert(): Promise<void> {
   if (Editor == null) {

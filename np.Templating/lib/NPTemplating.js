@@ -5,10 +5,10 @@
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
  * -----------------------------------------------------------------------------------------*/
 
-import { showMessage, chooseOption, getInput } from '../../helpers/userInput'
-import FrontMatterModule from './support/modules/FrontmatterModule'
+import { showMessage, chooseOption, getInput } from '@helpers/userInput'
+import FrontmatterModule from '@templatingModules/FrontmatterModule'
 import TemplatingEngine from './TemplatingEngine'
-import { getOrMakeConfigurationSection } from './support/configuration'
+import { getOrMakeConfigurationSection } from './toolbox'
 
 const TEMPLATE_FOLDER_NAME = '📋 Templates'
 
@@ -117,7 +117,7 @@ export default class NPTemplating {
       let templateContent = selectedTemplate?.content || ''
 
       const isFrontmatterTemplate =
-        templateContent.length > 0 ? new FrontMatterModule().isFrontmatterTemplate(templateContent.substring(1)) : false
+        templateContent.length > 0 ? new FrontmatterModule().isFrontmatterTemplate(templateContent.substring(1)) : false
 
       if (isFrontmatterTemplate) {
         return templateContent || ''

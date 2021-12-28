@@ -5,8 +5,8 @@
 //   with await Location.current() and has a
 //   Location.reverseGeocode(latitude, longitude) field -> postal town etc.
 
-import { getOrMakeConfigurationSection } from '../configuration'
-import { getTagParamsFromString, stringReplace, capitalize } from '../../../../helpers/general'
+import { getTagParamsFromString, stringReplace, capitalize } from '@helpers/general'
+import { getOrMakeConfigurationSection } from '@templating/toolbox'
 
 //------------------------------------------------------------------------------
 // Preference Settings

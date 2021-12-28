@@ -6,6 +6,7 @@ const fs = require('fs/promises')
 const { existsSync } = require('fs')
 const path = require('path')
 const notifier = require('node-notifier')
+const alias = require('@rollup/plugin-alias')
 
 const colors = require('chalk')
 const messenger = require('@codedungeon/messenger')
@@ -24,6 +25,7 @@ const mkdirp = require('mkdirp')
 const { program } = require('commander')
 const ProgressBar = require('progress')
 const pkgInfo = require('../package.json')
+const pluginConfig = require('../plugins.config')
 const createPluginListing = require('./createPluginListing')
 
 let progress
@@ -104,6 +106,7 @@ program
   .option('-n, --notify', 'Show Notification')
   .option('-b, --build', 'Rollup: build plugin only (no watcher)')
   .parse(process.argv)
+
 const options = program.opts()
 const DEBUGGING = options.debug || false
 const COMPACT = options.compact || false
@@ -350,6 +353,9 @@ function getConfig(pluginPath) {
     },
     plugins: DEBUGGING
       ? [
+          alias({
+            entries: pluginConfig.aliasEntries,
+          }),
           babel({
             presets: ['@babel/flow'],
             babelHelpers: 'bundled',
@@ -365,6 +371,9 @@ function getConfig(pluginPath) {
           nodeResolve({ browser: true, jsnext: true }),
         ]
       : [
+          alias({
+            entries: pluginConfig.aliasEntries,
+          }),
           babel({ babelHelpers: 'bundled', compact: false }),
           commonjs(),
           json(),
