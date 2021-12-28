@@ -2,8 +2,13 @@ See Template Plugin [README](https://github.com/NotePlan/plugins/blob/main/nmn.T
 
 # What's Changed in this Plugin?
 
+## [0.13.0] - 2021-12-28 (@m1well)
+### Added
+- Possibility to add a selection to a template
+
 ## [0.12.0] - 2021-11-04
 - Added overdueOnly to taskSweeper and README
+
 ## [0.11.0] - 2021-10-05
 #### Added New Tags
 - affirmation()
