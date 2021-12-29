@@ -2,7 +2,7 @@
 //-------------------------------------------------------------------------------
 // Note-level Functions
 
-import { getFolderFromFilename } from './general'
+import { getFolderFromFilename } from './folders'
 
 /**
  * Print summary of note details to log
@@ -108,7 +108,12 @@ export function getUniqueNoteTitle(title: string): string {
   return newTitle
 }
 
-// Return list of all notes, sorted by changed date (newest to oldest)
+/** 
+ * Return list of all notes, sorted by changed date (newest to oldest)
+ * @author @jgclark
+ * 
+ * @return {Array<TNote>} - list of notes
+ */
 export function allNotesSortedByChanged(): Array<TNote> {
   const projectNotes = DataStore.projectNotes.slice()
   const calendarNotes = DataStore.calendarNotes.slice()
@@ -119,21 +124,36 @@ export function allNotesSortedByChanged(): Array<TNote> {
   return allNotesSorted
 }
 
-// Return list of calendar notes, sorted by changed date (newest to oldest)
+/** 
+ * Return list of calendar notes, sorted by changed date (newest to oldest)
+ * @author @jgclark
+ * 
+ * @return {Array<TNote>} - list of notes
+ */
 export function calendarNotesSortedByChanged(): Array<TNote> {
   return DataStore.calendarNotes
     .slice()
     .sort((first, second) => second.changedDate - first.changedDate)
 }
 
-// Return list of project notes, sorted by changed date (newest to oldest)
+/** 
+ * Return list of project notes, sorted by changed date (newest to oldest)
+ * @author @jgclark
+ * 
+ * @return {Array<TNote>} - list of notes
+ */
 export function projectNotesSortedByChanged(): Array<TNote> {
   return DataStore.projectNotes
     .slice()
     .sort((first, second) => second.changedDate - first.changedDate)
 }
 
-// Return list of project notes, sorted by title (ascending)
+/** 
+ * Return list of project notes, sorted by title (ascending)
+ * @author @jgclark
+ * 
+ * @return {Array<TNote>} - list of notes
+ */
 export function projectNotesSortedByTitle(): Array<TNote> {
   const projectNotes = DataStore.projectNotes.slice()
   const notesSorted = projectNotes.sort(function (first, second) {
@@ -150,7 +170,13 @@ export function projectNotesSortedByTitle(): Array<TNote> {
   return notesSorted
 }
 
-// Return list of notes in a folder with a particular hashtag
+/** 
+ * Return list of notes in a folder with a particular hashtag
+ * @author @jgclark
+ * 
+ * @param {string} folder - folder to scan
+ * @return {Array<TNote>} - list of notes
+ */
 export function notesInFolderSortedByName(folder: string): Array<TNote> {
   let notesInFolder: Array<TNote>
   // If folder given (not empty) then filter using it
@@ -169,7 +195,7 @@ export function notesInFolderSortedByName(folder: string): Array<TNote> {
 }
 
 /**
- * @description clears the complete note (but takes care of title in project note)
+ * clears the complete note (but takes care of title in project note)
  * @author @m1well
  *
  * @param {TNote} note input note to clear
