@@ -72,8 +72,10 @@ export async function noteOpener(
 }
 
 /**
- * Get all notes in a folder
+ * Get all notes in a given folder (or all project notes if no folder given)
+ * TODO(@dwertheimer): I don't think the 'await DataStore.projectNotes' should be async.
  * @author @dwertheimer
+
  * @param {string} forFolder name (e.g. 'myFolderName')
  * @returns {Promise<$ReadOnlyArray<TNote>>} - array of notes in the folder
  */
@@ -88,6 +90,31 @@ export async function getProjectNotes(forFolder: string = ''): Promise<$ReadOnly
     console.log(`getProjectNotes() Found ${filteredNotes.length} notes in folder ${forFolder}`)
     return filteredNotes
   }
+}
+
+/** 
+ * Get all notes in a given folder (or all project notes if no folder given),
+ * sorted by note title
+ * @author @jgclark
+ * 
+ * @param {string} folder - folder to scan
+ * @return {Array<TNote>} - list of notes
+ */
+export function notesInFolderSortedByTitle(folder: string): Array<TNote> {
+  let notesInFolder: Array<TNote>
+  // If folder given (not empty) then filter using it
+  if (folder !== '') {
+    notesInFolder = DataStore.projectNotes
+      .slice()
+      .filter((n) => getFolderFromFilename(n.filename) === folder)
+  } else {
+    notesInFolder = DataStore.projectNotes.slice()
+  }
+  // Sort alphabetically on note's title
+  const notesSortedByTitle = notesInFolder.sort((first, second) =>
+    (first.title ?? '').localeCompare(second.title ?? ''),
+  )
+  return notesSortedByTitle
 }
 
 /**
@@ -170,32 +197,8 @@ export function projectNotesSortedByTitle(): Array<TNote> {
   return notesSorted
 }
 
-/** 
- * Return list of notes in a folder with a particular hashtag
- * @author @jgclark
- * 
- * @param {string} folder - folder to scan
- * @return {Array<TNote>} - list of notes
- */
-export function notesInFolderSortedByName(folder: string): Array<TNote> {
-  let notesInFolder: Array<TNote>
-  // If folder given (not empty) then filter using it
-  if (folder !== '') {
-    notesInFolder = DataStore.projectNotes
-      .slice()
-      .filter((n) => getFolderFromFilename(n.filename) === folder)
-  } else {
-    notesInFolder = DataStore.projectNotes.slice()
-  }
-  // Sort alphabetically on note's title
-  const notesSortedByName = notesInFolder.sort((first, second) =>
-    (first.title ?? '').localeCompare(second.title ?? ''),
-  )
-  return notesSortedByName
-}
-
 /**
- * clears the complete note (but takes care of title in project note)
+ * Clears the complete note (but leaves the title in project note)
  * @author @m1well
  *
  * @param {TNote} note input note to clear

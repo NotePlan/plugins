@@ -1,9 +1,6 @@
 // @flow
-//--------------------------------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 // Specialised user input functions
-// @jgclark, @nmn
-// Last updated 29.8.2021
-//--------------------------------------------------------------------------------------------------------------------
 
 import json5 from 'json5'
 import { calcSmartPrependPoint } from './paragraph'
@@ -28,7 +25,7 @@ export type Option<T> = $ReadOnly<{
 }>
 
 /**
- * ask user to choose from a set of options (from nmn.sweep)
+ * Ask user to choose from a set of options (from nmn.sweep) using CommandBar
  * @author @nmn
  * @param {string} message - text to display to user
  * @param {Array<T>} options - array of label:value options to present to the user
@@ -48,7 +45,7 @@ export async function chooseOption<T, TDefault = T>(
 }
 
 /**
- * ask user to give arbitary input (from nmn.sweep)
+ * Ask user to give arbitary input (from nmn.sweep) using CommandBar
  * @author @nmn
  * @param {string} message - text to display to user
  * @param {string} okLabel - the "button" (option) text (default: 'OK')
@@ -69,7 +66,7 @@ export async function showMessage(message: string, confirmTitle: string = 'OK'):
 }
 
 /**
- * Helper function to show a simple yes/no (could be OK/Cancel, etc.) dialog using CommandBar
+ * Show a simple yes/no (could be OK/Cancel, etc.) dialog using CommandBar
  * @param {string} message - text to display to user
  * @param {Array<string>} choicesArray - an array of the choices to give (default: ['Yes', 'No'])
  * @returns {string} - returns the user's choice - the actual *text* choice from the input array provided
@@ -89,9 +86,8 @@ export async function showMessageYesNo(message: string, choicesArray: Array<stri
  */
 export async function chooseFolder(msg: string, includeArchive: boolean = false): Promise<string> {
   let folder: string
-  const folders = DataStore.folders // excludes Trash and Archive
+  const folders = DataStore.folders.slice() // excludes Trash and Archive
   if (includeArchive) {
-    // $FlowFixMe
     folders.push('@Archive')
   }
   if (folders.length > 0) {
@@ -121,7 +117,8 @@ export async function chooseFolder(msg: string, includeArchive: boolean = false)
   return folder
 }
 
-/** ask user to select a heading from those in a given note
+/** 
+ * Ask user to select a heading from those in a given note
  * @author @jgclark
  * @param {TNote} note - note to draw headings from
  * @param {boolean} optionAddAtBottom - whether to add '(top of note)' and '(bottom of note)' options. Default: true
@@ -182,7 +179,7 @@ export async function chooseHeading(
 }
 
 /**
- * ask for a date interval from user
+ * Ask for a date interval from user, using CommandBar
  * @author @jgclark
  * @param {string} dateParams - given parameters -- currently only looks for {question:'question test'} parameter
  * @return {string} - the returned interval string, or empty if an invalid string given
@@ -216,13 +213,12 @@ export async function askDateInterval(dateParams: string): Promise<string> {
 }
 
 /**
- * NOT CURRENTLY USED, I THINK
- * ask for a date from user (very simple: they need to enter an ISO date)
+ * Ask for a date from user (very simple: they need to enter an ISO date).
+ * TODO: in time @EduardMe should produce a native API call that can improve this.
  * @author @jgclark
  * @param {string} question - string to put in the command bar
  * @return {string} - the returned ISO date as a string, or empty if an invalid string given
  */
-// NB: in time @EduardMe should produce a native API call that can improve this
 export async function askForFutureISODate(question: string): Promise<string> {
   // console.log(`askForFutureISODate():`)
   const reply = (await CommandBar.showInput(question, `Date (YYYY-MM-DD): %@`)) ?? ''
@@ -235,7 +231,8 @@ export async function askForFutureISODate(question: string): Promise<string> {
 }
 
 /**
- * ask for a date from user (very simple: they need to enter an ISO date)
+ * Ask for a date from user (very simple: they need to enter an ISO date)
+ * TODO: in time @EduardMe should produce a native API call that can improve this.
  * @author @jgclark, based on @nmn code
  * @param {string} dateParams - given parameters -- currently only looks for {question:'question test'} parameter
  * @param {[string]: ?mixed} config - relevant settings from _configuration note
@@ -251,7 +248,7 @@ export async function datePicker(dateParams: string, config: { [string]: ?mixed 
       : dateParamsTrimmed !== ''
         ? await parseJSON5(`{${dateParams}}`)
         : {}
-  // $FlowFixMe
+  // $FlowIgnore[incompatible-type] -- TODO: Is there a @dwertheimer function that can help here?
   console.log(`param config: ${dateParams} as ${JSON.stringify(paramConfig)}`)
   // ... = "gather the remaining parameters into an array"
   const allSettings: { [string]: mixed } = {
@@ -279,17 +276,9 @@ export async function datePicker(dateParams: string, config: { [string]: ?mixed 
   return reply2
 }
 
-// test for integer
-// taken from https://stackoverflow.com/questions/14636536/how-to-check-if-a-variable-is-an-integer-in-javascript
-// @jgclark
-export function isInt(value: string): boolean {
-  const x = parseFloat(value)
-  return !isNaN(value) && (x | 0) === x
-}
-
 /**
- * @description ask for a (floating point) number from user
- *
+ * Ask for a (floating point) number from user
+ * @author @jgclark and @m1well
  * @param question question for the commandbar
  * @returns {Promise<number|*>} returns integer or NaN
  */
@@ -304,8 +293,20 @@ export async function inputInteger(question: string): Promise<number> {
 }
 
 /**
- * @description ask for an integer from user
- *
+ * Test for integer
+ * Method taken from https://stackoverflow.com/questions/14636536/how-to-check-if-a-variable-is-an-integer-in-javascript
+ * @author @jgclark
+ * @param {string} value - input value to check
+ * @result {boolean}
+ */
+export function isInt(value: string): boolean {
+  const x = parseFloat(value)
+  return !isNaN(value) && (x | 0) === x
+}
+
+/**
+ * Ask for an integer from user
+ * @author @jgclark
  * @param question question for the commandbar
  * @returns {Promise<number|*>} returns number or NaN
  */
@@ -320,24 +321,20 @@ export async function inputNumber(question: string): Promise<number> {
 }
 
 /**
- * ask user to choose a mood
+ * Ask user to choose a mood
  * @author @jgclark
  * @param {Array<string>} moodArray - list of moods to pick from
  * @return {string} - selected mood
  */
-// $FlowFixMe
+// FlowFixMe
 export async function inputMood(moodArray: Array<string>): Promise<string> {
   const reply = await CommandBar.showOptions(moodArray, `Please choose appropriate mood`)
-  const replyMood = moodArray[reply.index]
-  if (replyMood != null && replyMood !== '') {
-    return replyMood
-  } else {
-    console.log('\tERROR trying to get mood answer')
-  }
+  const replyMood = moodArray[reply.index] ?? '<error>'
+  return replyMood
 }
 
 /**
- * @description get trimmed userinput
+ * Get user input, trimmed at both ends
  * @author @m1well
  *
  * @param placeholder value to display a question
@@ -350,9 +347,9 @@ export const getInputTrimmed = async (placeholder: string, submitText: string): 
 }
 
 /**
- * @description ask one question and get a flexible amount of answers from the user. either he reached the
- *              maximum answer amount, or he leaves the input empty - of course you can set a minimum amount so
- *              that the user have to input an answer (e.g. at least once)
+ * Ask one question and get a flexible amount of answers from the user. either he reached
+ * the maximum answer amount, or he leaves the input empty - of course you can set a 
+ * minimum amount so that the user have to input an answer (e.g. at least once)
  * @example `await multipleInputAnswersAsArray('What went well last week', 'Leave empty to finish answers', true, 1, 3)`
  * @author @m1well
  *

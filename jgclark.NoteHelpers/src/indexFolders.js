@@ -5,18 +5,18 @@
 // at v0.10.2, 30.7.2021
 //--------------------------------------------------------------------------------------------------------------------
 
-import {
-  chooseFolder,
-  chooseOption,
-  showMessage,
-} from '../../helpers/userInput'
 import { nowShortDateTime } from '../../helpers/dateTime'
-import { notesInFolderSortedByName } from '../../helpers/note'
 import { getFolderFromFilename } from '../../helpers/folders'
 import {
   defaultFileExt,
   titleAsLink,
 } from '../../helpers/general'
+import { notesInFolderSortedByTitle } from '../../helpers/note'
+import {
+  chooseFolder,
+  chooseOption,
+  showMessage,
+} from '../../helpers/userInput'
 
 //-----------------------------------------------------------------
 // Command to calculate the index of a specified folder.
@@ -46,7 +46,7 @@ function makeFolderIndex(
   // Iterate over the folders
   // A for-of loop is cleaner and less error prone than a regular for-loop
   for (const f of folderList) {
-    const notes = notesInFolderSortedByName(f)
+    const notes = notesInFolderSortedByTitle(f)
     // console.log(notes.length)
     if (notes.length > 0) {
       // If this is a sub-folder level, then prefix with ### for a 3rd level heading,

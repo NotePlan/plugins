@@ -1,4 +1,6 @@
 // @flow
+//-------------------------------------------------------------------------------
+// Folder-level Functions
 
 /**
  * Return list of folders, excluding those on the given list (and any of their sub-folders).
