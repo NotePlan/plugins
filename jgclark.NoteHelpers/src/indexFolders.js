@@ -6,15 +6,15 @@
 //--------------------------------------------------------------------------------------------------------------------
 
 import {
-  showMessage,
-  chooseOption,
   chooseFolder,
+  chooseOption,
+  showMessage,
 } from '../../helpers/userInput'
 import { nowShortDateTime } from '../../helpers/dateTime'
 import { notesInFolderSortedByName } from '../../helpers/note'
+import { getFolderFromFilename } from '../../helpers/folders'
 import {
   defaultFileExt,
-  getFolderFromFilename,
   titleAsLink,
 } from '../../helpers/general'
 

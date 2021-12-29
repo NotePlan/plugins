@@ -1,15 +1,6 @@
 // @flow
 
 /**
- * Exclude: T, H/A, E
- * So no to T, T/A, H/A/B, E, E/A
- * but yes to H
- * Exclude: T/, H/A/, E/
- * So no to T/, T/A/, H/A/B/, E/, E/A/
- * but yes to H/
- */
-
-/**
  * Return list of folders, excluding those on the given list (and any of their sub-folders).
  * @author @jgclark
  *
