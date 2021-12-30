@@ -6,7 +6,7 @@
 //   Location.reverseGeocode(latitude, longitude) field -> postal town etc.
 
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
-import { getTagParamsFromString, stringReplace, capitalize } from '../../helpers/general'
+import { capitalize, getTagParamsFromString, stringReplace } from '../../helpers/general'
 
 //------------------------------------------------------------------------------
 // Preference Settings
@@ -30,10 +30,11 @@ const MINIMUM_WEATHER_CONFIG = {
 }
 
 //------------------------------------------------------------------------------
-/** 
+/**
  * Get summary of today's weather in a line, using
  * https://openweathermap.org/api/one-call-api#data, for which you can get a free API key
  * @author @jgclark, with customisation by @dwertheimer
+ *
  * @param {string} weatherParams - optional customisation for how to display the results
  */
 export async function getWeatherSummary(
@@ -74,11 +75,11 @@ export async function getWeatherSummary(
   // Get config settings from Template folder _configuration note
   // $FlowIgnore[incompatible-type]
   console.log(`\tWeather settings are ${JSON.stringify(weatherConfig)}`)
-  if (weatherConfig == null) {
+  if (weatherConfig == null || Object.keys(weatherConfig).length === 0) {
     console.log(
-      "Cannot find 'weather' settings in Templates/_configuration note.",
+      'Cannot find \'weather\' settings in Templates/_configuration note.',
     )
-    return "Error: Cannot find 'weather' settings in Templates/_configuration note."
+    return 'Error: Cannot find \'weather\' settings in Templates/_configuration note.'
   }
 
   const { openWeatherAPIKey, latPosition, longPosition, openWeatherUnits } =
@@ -86,9 +87,9 @@ export async function getWeatherSummary(
   // $FlowIgnore[incompatible-use]
   if (openWeatherAPIKey !== null && !openWeatherAPIKey?.match(/[a-f0-9]{32}/)) {
     console.log(
-      "Cannot find a valid API Key 'weather' settings in Templates/_configuration note.",
+      'Cannot find a valid API Key \'weather\' settings in Templates/_configuration note.',
     )
-    return "Error: Cannot find a valid API Key 'weather' settings in Templates/_configuration note."
+    return 'Error: Cannot find a valid API Key \'weather\' settings in Templates/_configuration note.'
   }
 
   const getWeatherURL = `https://api.openweathermap.org/data/2.5/onecall?lat=${encodeURIComponent(
@@ -186,4 +187,5 @@ export async function getWeatherSummary(
     // $FlowFixMe[incompatible-type]
     return `Problem in Weather data lookup for ${latPosition}/${longPosition}. Please check your _configuration note.`
   }
+
 }

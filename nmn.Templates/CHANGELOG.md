@@ -2,6 +2,10 @@ See Template Plugin [README](https://github.com/NotePlan/plugins/blob/main/nmn.T
 
 # What's Changed in this Plugin?
 
+## [0.14.0] - 2021-12-31 (@m1well)
+### Changed
+- Fixed weather api (config null check and README)
+
 ## [0.13.0] - 2021-12-28 (@m1well)
 ### Added
 - Possibility to add a selection to a template

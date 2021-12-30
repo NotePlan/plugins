@@ -67,12 +67,15 @@ The first time you run the command, it will insert various fields into your `Tem
 ```jsonc
 {
   ...
-	weather: {
-		openWeatherAPIKey: "<secret>", // you need to get your own API key from https://openweathermap.org/
-  		latPosition: "51.3", // use your own latitude as a decimal
-  		longPosition: "-1.0", // use your own longitude as a decimal
-  		openWeatherUnits: "metric", // or "imperial"
-	}
+  weather: {
+    // API key for https://openweathermap.org/
+    openWeatherAPIKey: '... put your API key here ...', // !!REQUIRED!!
+    // Required location for weather forecast
+    latPosition: 0.0,  // !!REQUIRED!!
+    longPosition: 0.0, // !!REQUIRED!!
+    // Default units. Can be 'metric' (for Celsius), or 'imperial' (for Fahrenheit)
+    openWeatherUnits: 'metric',
+  },
   ...
 }
 ```
