@@ -1,5 +1,8 @@
 # Task Automations plugin
 
+## /tt - Tasks to Top
+This command brings all the tasks inside of the currently open note to the top of the note. You can choose whether you want headings (e.g. "Open Tasks", "Sheduled Tasks" etc.) or whether you want just the sorted tasks brought to the top. Note: brings only task lines (not indented underneath)
+
 ## /mat - Mark All Tasks (as completed or open)
 This plugin will give you a choice of whether to mark all open tasks as completed or all completed tasks as open.
 
