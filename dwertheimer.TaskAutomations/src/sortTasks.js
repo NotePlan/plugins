@@ -56,9 +56,9 @@ export async function openTasksToTop(heading: string = '## Tasks:\n', separator:
 
   let sweptTasks: ReturnStatus = { msg: '', status: '', taskArray: [], tasks: 0 }
   if (Editor.type === 'Calendar') {
-    if (Editor.note) sweptTasks = await sweepNote(Editor.note, false, true, false, false, true, true, 'move')
+    if (Editor.note) sweptTasks = await sweepNote(Editor.note, false, true, false, false, true, false, 'move')
   } else {
-    if (Editor.note) sweptTasks = await sweepNote(Editor.note, false, true, false, true, true, true, 'move')
+    if (Editor.note) sweptTasks = await sweepNote(Editor.note, false, true, false, true, true, false, 'move')
   }
   if (sweptTasks) console.log(`openTasksToTop(): ${sweptTasks?.taskArray?.length || 0} open tasks:`)
   console.log(JSON.stringify(sweptTasks))
@@ -97,7 +97,7 @@ export async function sortTasksViaTemplate(paramStr: string = ''): Promise<void>
  */
 export async function tasksToTop() {
   console.log(`tasksToTop(): Bringing tasks to top`)
-  await sortTasks(false, [], true, true)
+  await sortTasks(false, [])
 }
 
 export async function sortTasksByPerson() {
@@ -135,7 +135,7 @@ function insertTodos(note: TNote, todos, heading = '', separator = '', subHeadin
   // SO INSTEAD, JUST PASTE THEM ALL IN ONE BIG STRING
   console.log(`\tInsertTodos: subHeadingCategory=${String(subHeadingCategory)} ${todos.length} todos`)
   let todosWithSubheadings = []
-  const headingStr = heading ? `\n${heading}\n` : ''
+  const headingStr = heading ? `${heading}\n` : ''
   if (subHeadingCategory) {
     const leadingDigit = {
       hashtags: '#',

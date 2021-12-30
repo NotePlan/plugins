@@ -4,10 +4,10 @@
   "plugin.name": "✅ Task Automations", 
   "plugin.description": "Functions for handling Tasks", 
   "plugin.author": "@dwertheimer",
-  "plugin.version": "1.4.0", 
+  "plugin.version": "1.5.0", 
   "plugin.dependencies": [ ], 
   "plugin.script": "script.js",
-  "plugin.url": "https://github.com/dwertheimer/Noteplan-plugins/blob/main/dwertheimer.TaskAutomations/readme.md",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.TaskAutomations/readme.md",
   "plugin.commands": [ 
     {
       "name": "ts", 
@@ -19,11 +19,6 @@
       "description": "Tasks to Top - Bring all tasks in note to top", 
       "jsFunction": "tasksToTop"
     },     
-    {
-      "name": "ott", 
-      "description": "Open Tasks to Top - Bring open tasks in note to top", 
-      "jsFunction": "openTasksToTop"
-    },  
     {
       "name": "mat", 
       "description": "Mark All Tasks (choose open or complete)", 
@@ -39,5 +34,12 @@
       "description": "Tasks Sort by #Tag - Sort tasks on the page by hashtag", 
       "jsFunction": "sortTasksByTag"
     }           
+  ],
+  "disabled": [
+    {
+      "name": "ott", 
+      "description": "Open Tasks to Top - Bring open tasks in note to top", 
+      "jsFunction": "openTasksToTop"
+    }  
   ]
 } 
