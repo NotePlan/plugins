@@ -2,6 +2,9 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Ta
 
 # What's Changed in this Plugin?
 
+## [1.5.1] 2021-12-30 @dwertheimer (thx @jgclark for all the bug reports)
+- Fixed edge case where insertion index is different for Project Notes and Calendar Notes
+
 ## [1.5.0] 2021-12-30 @dwertheimer (thx @jgclark for all the bug reports)
 - Removing /ott for time being due to bugs (swallowing tasks) in the underlying sweepNote code which needs refactoring
 - Added question in /tt whether you want headings 

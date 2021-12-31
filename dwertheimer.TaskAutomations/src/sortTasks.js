@@ -177,7 +177,11 @@ function insertTodos(note: TNote, todos, heading = '', separator = '', subHeadin
     .join(`\n`)
   console.log(`Inserting tasks into Editor:\n${contentStr}`)
   // console.log(`inserting tasks: \n${JSON.stringify(todosWithSubheadings)}`)
-  note.insertParagraph(`${headingStr}${contentStr}${separator ? `\n${separator}` : ''}`, 1, 'text')
+  note.insertParagraph(
+    `${headingStr}${contentStr}${separator ? `\n${separator}` : ''}`,
+    note.type === 'Calendar' ? 0 : 1,
+    'text',
+  )
 }
 
 /**
