@@ -3,21 +3,20 @@
 import { parseJSON5 } from '../../helpers/general'
 import {
   getInput,
-  // askForFutureISODate,
   datePicker,
   askDateInterval,
 } from '../../helpers/userInput'
-import { listDaysEvents, listMatchingDaysEvents } from '../../jgclark.EventHelpers/src/eventsToNotes'
+import { listDaysEvents, listMatchingDaysEvents } from '../../jgclark.EventHelpers/src'
 import { sweepTemplate } from '../../nmn.sweep/src/sweepAll'
 import {
   get8601String,
   formattedDateTimeTemplate,
   getWeekDates,
 } from '../../dwertheimer.DateAutomations/src/dateFunctions'
-import { sortTasksViaTemplate } from '../../dwertheimer.TaskAutomations/src/sortTasks'
 import { getWeatherSummary } from './weather'
 import { getDailyQuote } from './quote'
 import { getAffirmation, getAdvice } from './affirmations'
+import { selection } from './selection'
 
 const tagList: Array<TagListType> = []
 
@@ -42,6 +41,7 @@ addTag('formattedDateTime', formattedDateTimeTemplate)
 addTag('weekDates', getWeekDates)
 addTag('affirmation', getAffirmation)
 addTag('advice', getAdvice)
+addTag('selection', selection)
 
 // addTag('sortTasks', sortTasksViaTemplate)
 // **Add other template/macro function calls here SEE COMMENTED CODE BELOW **
