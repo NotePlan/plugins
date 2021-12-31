@@ -1,16 +1,16 @@
 // @flow
-//--------------------------------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 // Daily Journal plugin for NotePlan
 // Jonathan Clark
-// last update v0.10.0, 07.12.2021 by @m1well
-//--------------------------------------------------------------------------------------------------------------------
+// last update v0.10.0+, 31.12.2021 by @jgclark
+//-----------------------------------------------------------------------------
 
 import { getInputTrimmed, isInt, showMessage } from '../../helpers/userInput'
 import { displayTitle } from '../../helpers/general'
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 import { applyNamedTemplate } from '../../nmn.Templates/src/index'
 
-//--------------------------------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 // Settings
 const DEFAULT_JOURNAL_OPTIONS = `  dailyJournal: {
     templateTitle: 'Daily Note Template',
@@ -35,7 +35,6 @@ let pref_moodArray: Array<string>
 export async function todayStart(): Promise<void> {
   try {
     await dayStart(true)
-    await showMessage('Completed /todayStart')
   } catch (error) {
     await showMessage(error)
   }
@@ -51,8 +50,14 @@ export async function dayStart(today: boolean = false): Promise<void> {
     console.log(`Opened: ${displayTitle(Editor.note)}`)
   } else {
     // apply daily template in the currently open daily note
-    if (Editor.note == null || Editor.type !== 'Calendar') {
+    if (Editor.type !== 'Calendar') {
+      // TODO(EduardMe): turns out this can happen when Calendar is open but there is note yet initialized
       await showMessage('Please run again with a calendar note open.')
+      return
+    }
+    else if (Editor.note == null) {
+      // we must be in an uninitialized Calendar note
+      await showMessage('API Bug: This calendar note is not initialized.')
       return
     }
   }
