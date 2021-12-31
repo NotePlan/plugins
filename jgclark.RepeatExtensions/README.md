@@ -26,8 +26,8 @@ Notes:
 - When _interval_ is of the form `+2w` it will duplicate the task for 2 weeks after the date the _task was completed_.
 - When _interval_ is of the form `2w` it will duplicate the task for 2 weeks after the date the _task was last due_. This is found from a `>yyyy-mm-dd` scheduled date. If this can't be determined, then it defaults to the first option.
 
+## Configuration
+For this feature to work, you need to have the '**Append Completion Date**' NotePlan setting turned on in the Preferences (and not to mind the time portion of the `@done(...)` tag being removed, as a sign that the line has been processed).
+
 ## Changes
 Please see the [CHANGELOG](CHANGELOG.md).
-
-## Configuration
-For this feature to work, you need to have the 'Append Completion Date' NotePlan setting turned on in the Preferences (and not to mind the time portion of the `@done(...)` tag being removed, as a sign that the line has been processed).
