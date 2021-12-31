@@ -2,6 +2,15 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Ta
 
 # What's Changed in this Plugin?
 
+## [1.5.1] 2021-12-30 @dwertheimer (thx @jgclark for all the bug reports)
+- Fixed edge case where insertion index is different for Project Notes and Calendar Notes
+
+## [1.5.0] 2021-12-30 @dwertheimer (thx @jgclark for all the bug reports)
+- Removing /ott for time being due to bugs (swallowing tasks) in the underlying sweepNote code which needs refactoring
+- Added question in /tt whether you want headings 
+- Removed blank line
+- Fix readme link
+
 ## [1.4.0] 2021-11-29 @dwertheimer
 - Minor under-the-hood refactors -- changed imports to use functions that were moved to the helpers/sorting file (deleted them from here)
 - Added a line break in one line for output
@@ -11,7 +20,7 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Ta
 - taskSorter: Started to add support for task sorting in templates [WIP]
 
 ## 1.2.0
-- Added /ott to bring OPEN tasks (only) to the top without sorting
+- Added  to bring OPEN tasks (only) to the top without sorting
 
 ## 1.1.0
 - Added /tt command to bring tasks to the top of a note without sorting
