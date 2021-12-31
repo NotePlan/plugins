@@ -67,10 +67,10 @@ The first time you run the command, it will insert various fields into your `Tem
 {
   ...
 	weather: {
-		openWeatherAPIKey: "<secret>", // you need to get your own API key from https://openweathermap.org/
-  		latPosition: "51.3", // use your own latitude as a decimal
-  		longPosition: "-1.0", // use your own longitude as a decimal
-  		openWeatherUnits: "metric", // or "imperial"
+		openWeatherAPIKey: '<secret>', // you need to get your own API key from https://openweathermap.org/
+  		latPosition: 51.3, // use your own latitude as a decimal
+  		longPosition: -1.0, // use your own longitude as a decimal
+  		openWeatherUnits: 'metric', // or 'imperial'
 	}
   ...
 }
