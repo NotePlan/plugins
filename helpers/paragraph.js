@@ -138,7 +138,11 @@ export function calcSmartPrependPoint(note: TNote): number {
  * @param {string} paraText - the text to prepend
  * @param {ParagraphType} paragraphType - the usual paragraph type to prepend
  */
-export function smartPrependPara(note: TNote, paraText: string, paragraphType: ParagraphType): void {
+export function smartPrependPara(
+  note: TNote,
+  paraText: string,
+  paragraphType: ParagraphType,
+): void {
   // Insert the text at the smarter insertionLine line
   note.insertParagraph(paraText, calcSmartPrependPoint(note), paragraphType)
 }
@@ -165,7 +169,12 @@ export function findEndOfActivePartOfNote(note: TNote): number {
       cancelledHeaderLine = i
     }
   }
-  const endOfActive = doneHeaderLine > 0 ? doneHeaderLine : cancelledHeaderLine > 0 ? cancelledHeaderLine : lineCount
+  const endOfActive =
+    doneHeaderLine > 0
+      ? doneHeaderLine
+      : cancelledHeaderLine > 0
+        ? cancelledHeaderLine
+        : lineCount
   // console.log(`  dHL = ${doneHeaderLine}, cHL = ${cancelledHeaderLine} endOfActive = ${endOfActive}`)
   return endOfActive
 }
