@@ -10,16 +10,6 @@
 // Helper functions
 
 import {
-  displayTitle,
-  stringReplace,
-  getFolderFromFilename,
-} from '../../helpers/general'
-import {
-  showMessage,
-  chooseOption,
-  getInput,
-} from '../../helpers/userInput'
-import {
   quarterStartEnd,
   todaysDateISOString,
   unhyphenatedDate,
@@ -32,6 +22,16 @@ import {
   // toLocaleTime,
   nowLocaleDateTime,
 } from '../../helpers/dateTime'
+import { getFolderFromFilename } from '../../helpers/folders'
+import {
+  displayTitle,
+  stringReplace,
+} from '../../helpers/general'
+import {
+  showMessage,
+  chooseOption,
+  getInput,
+} from '../../helpers/userInput'
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 import {
   getPeriodStartEndDates,

@@ -3,9 +3,37 @@
 //-----------------------------------------------------------------------------
 // Commands for Reviewing project-style notes, GTD-style.
 // by @jgclark
-// Last updated for v0.4.5, 9.12.2021
+// Last updated for v0.5.0, 27.12.2021
 //-----------------------------------------------------------------------------
 
+// Import Helper functions
+import {
+  findNotesMatchingHashtags,
+  getOrMakeMetadataLine,
+  getOrMakeNote,
+  Project,
+} from './reviewHelpers'
+import {
+  hyphenatedDateString,
+  nowLocaleDateTime,
+  RE_DATE, // find dates of form YYYY-MM-DD
+} from '../../helpers/dateTime'
+import {
+  filterFolderList,
+  getFolderFromFilename
+} from '../../helpers/folders'
+import {
+  displayTitle,
+} from '../../helpers/general'
+import {
+  showMessage,
+  showMessageYesNo,
+} from '../../helpers/userInput'
+import {
+  getOrMakeConfigurationSection,
+} from '../../nmn.Templates/src/configuration'
+
+//-----------------------------------------------------------------------------
 // Settings
 const DEFAULT_REVIEW_OPTIONS = `  review: {
     folderToStore: "Reviews",
@@ -22,34 +50,11 @@ let pref_noteTypeTags: Array<string> = ["#project", "#area"]
 let pref_displayOrder: string = "alpha"
 let pref_displayGroupedByFolder: boolean = true
 let pref_displayArchivedProjects: boolean = true
+let filteredFolderList: Array<string> = []
 
 // Constants
 const reviewListNoteTitle = '_reviews'
 const reviewListPref = 'jgclark.Review.reviewList'
-
-//-----------------------------------------------------------------------------
-// Import Helper functions
-import {
-  showMessage,
-  showMessageYesNo,
-} from '../../helpers/userInput'
-import {
-  displayTitle,
-} from '../../helpers/general'
-import {
-  RE_DATE, // find dates of form YYYY-MM-DD
-  hyphenatedDateString,
-  nowLocaleDateTime,
-} from '../../helpers/dateTime'
-import {
-  getOrMakeConfigurationSection,
-} from '../../nmn.Templates/src/configuration'
-import {
-  Project,
-  getOrMakeNote,
-  findNotesMatchingHashtags,
-  getOrMakeMetadataLine,
-} from './reviewHelpers'
 
 //-------------------------------------------------------------------------------
 // Create human-readable lists of project notes for each tag of interest
@@ -71,7 +76,7 @@ export async function getConfig(): Promise<void> {
     // $FlowFixMe -- don't know how to make this array not just object
     pref_noteTypeTags = reviewConfig.noteTypeTags
   }
-  console.log(pref_noteTypeTags.toString())
+  // console.log(pref_noteTypeTags.toString())
   if (reviewConfig.folderToStore != null &&
     typeof reviewConfig.folderToStore === 'string') {
     pref_folderToStore = reviewConfig.folderToStore
@@ -82,6 +87,7 @@ export async function getConfig(): Promise<void> {
     pref_foldersToIgnore = reviewConfig.foldersToIgnore
   }
   // console.log(pref_foldersToIgnore.toString())
+  filteredFolderList = filterFolderList(pref_foldersToIgnore)
   if (reviewConfig.displayGroupedByFolder != null &&
     typeof reviewConfig.displayGroupedByFolder === 'boolean') {
     pref_displayGroupedByFolder = reviewConfig.displayGroupedByFolder
@@ -103,11 +109,10 @@ export async function getConfig(): Promise<void> {
 // Create human-readable lists of project notes for each tag of interest
 export async function projectLists(): Promise<void> {
   await getConfig()
-  console.log(`\nprojectLists() for ${pref_noteTypeTags.toString()} tags:`)
+  console.log(`\nprojectLists: starting for ${pref_noteTypeTags.toString()} tags:`)
 
   if (pref_noteTypeTags.length > 0) {
     // We have defined tag(s) to filter and group by
-    // $FlowFixMe[incompatible-type]
     for (const tag of pref_noteTypeTags) {
       // handle #hashtags in the note title (which get stripped out by NP, it seems)
       const tagWithoutHash = tag.replace('#','')
@@ -160,7 +165,7 @@ export async function projectLists(): Promise<void> {
 // Create machine-readable note listing project notes ready for review,
 // ordered by oldest next review date
 // V2, using reviewList pref
-export async function startReviews() {
+export async function startReviews(): Promise<void> {
   await getConfig()
   // Get or make _reviews note
   // const reviewsNote: ?TNote = await getOrMakeNote(reviewListNoteTitle, pref_folderToStore)
@@ -180,13 +185,8 @@ export async function startReviews() {
   const folderList = DataStore.folders
   console.log(`  Processing ${folderList.length} folders`)
   // Iterate over the folders ...
-  for (const folder of folderList) {
-    if (pref_foldersToIgnore.includes(folder)) {
-      // ... but ignoring any in the pref_foldersToIgnore list
-      console.log(`\tFolder '${folder}' ignored due to config`)
-      continue
-    }
-
+  // ... but ignoring any in the pref_foldersToIgnore list
+  for (const folder of filteredFolderList) {
     // Either we have defined tag(s) to filter and group by, or just use ''
     const tags = (pref_noteTypeTags != null && pref_noteTypeTags.length > 0)
       ? pref_noteTypeTags
@@ -212,14 +212,13 @@ export async function startReviews() {
       }
     }
   }
-  // sort the list
-  const outputArray = summaryArray.slice().sort(
-    // $FlowIgnore[unsafe-addition]
-    (first, second) => first.split('\t')[0] - second.split('\t')[0]) // order by first field
+  // sort the list by first field
+  // $FlowIgnore[unsafe-addition]
+  const outputArray = summaryArray.slice().sort((first, second) => first.split('\t')[0] - second.split('\t')[0])
 
   // write summary to reviewList pref
   DataStore.setPreference(reviewListPref, outputArray.join('\n'))
-  console.log(`\twritten ${summaryArray.length} summary lines to reviewList pref`)
+  logPreference(reviewListPref)
 
   // Now trigger first review
   const noteToReview = await getNextNoteToReview()
@@ -236,8 +235,20 @@ export async function startReviews() {
 }
 
 //-------------------------------------------------------------------------------
-// Return summary of notes that contain a particular tag, for all
-// relevant folders
+/**
+ * Write the contents of a given preference to the log
+ * @param {string} prefName
+ */
+function logPreference(prefName: string): void {
+  console.log(`${prefName} contents:\n${DataStore.preference(prefName)}`)
+}
+
+//-------------------------------------------------------------------------------
+/** 
+ * Return summary of notes that contain a particular tag, for all relevant folders
+ * @param {string} noteTag - hashtag to look for
+ * @return {Array<string>} summary lines to write out to a note
+ */
 function makeNoteTypeSummary(noteTag: string): Array<string> {
   console.log(`\nmakeNoteTypeSummary for '${noteTag}'`)
 
@@ -249,13 +260,8 @@ function makeNoteTypeSummary(noteTag: string): Array<string> {
   // otherwise use a single folder
   const folderList = pref_displayGroupedByFolder ? DataStore.folders : ['/']
   // console.log(`  Processing ${folderList.length} folders`)
-  // Iterate over the folders ...
-  for (const folder of folderList) {
-    if (pref_foldersToIgnore.includes(folder)) {
-      // ... but ignoring any in the pref_foldersToIgnore list
-      console.log(`\tFolder '${folder}' ignored due to config`)
-      continue
-    }
+  // Iterate over the folders (ignoring any in the pref_foldersToIgnore list)
+  for (const folder of filteredFolderList) {
     // Get notes that include noteTag in this folder, ignoring subfolders
     const notes = findNotesMatchingHashtags(noteTag, folder, false)
     if (notes.length > 0) {
@@ -264,12 +270,10 @@ function makeNoteTypeSummary(noteTag: string): Array<string> {
       const projects = []
       for (const note of notes) {
         const np = new Project(note)
-        if (!pref_foldersToIgnore.includes(np.folder)) {
-          if (!np.isArchived || pref_displayArchivedProjects) {
-            projects.push(np)
-          } else {
-            console.log(`\t    Ignoring ${np.title} as archived and don't want to show them`)
-          }
+        if (!np.isArchived || pref_displayArchivedProjects) {
+          projects.push(np)
+        } else {
+          console.log(`\t    Ignoring ${np.title} as archived and don't want to show them`)
         }
         if (np.nextReviewDays != null && np.nextReviewDays < 0) {
           overdue += 1
@@ -296,7 +300,7 @@ function makeNoteTypeSummary(noteTag: string): Array<string> {
         }
       }
       if (pref_displayGroupedByFolder) {
-        outputArray.push(`### ${folder} (${sortedProjects.length} notes)`)
+        outputArray.push(`### ${(folder !== '' ? folder : '/')} (${sortedProjects.length} notes)`)
       }
       // iterate over this folder's notes, using Class functions
       for (const p of sortedProjects) {
@@ -319,9 +323,11 @@ function makeNoteTypeSummary(noteTag: string): Array<string> {
 }
 
 //-------------------------------------------------------------------------------
-// Complete current review, then jump to the next one to review
-// V2: now using preference not note
-export async function nextReview() {
+/**
+ * Complete current review, then jump to the next one to review
+ * V2: now using preference not a special note.
+*/
+export async function nextReview(): Promise<void> {
   console.log('\nnextReview')
   // First update @review(date) on current open note
   const openNote: ?TNote = await completeReview()
@@ -348,9 +354,12 @@ export async function nextReview() {
 }
 
 //-------------------------------------------------------------------------------
-// Update the review list after completing a review
-// V2: now using preference not note
-export async function updateReviewListAfterReview(note: TNote) {
+/**
+ * Update the review list after completing a review
+ * V2: now using preference not note
+ * @param { string } note - 
+*/
+export async function updateReviewListAfterReview(note: TNote): Promise<void> {
   const thisTitle = note.title ?? ''
   console.log(`updateReviewListAfterReview V2 for '${thisTitle}'`)
 
@@ -386,8 +395,11 @@ export async function updateReviewListAfterReview(note: TNote) {
 }
 
 //-------------------------------------------------------------------------------
-// Work out the next note to review (if any)
-// V2: now using preference not note
+/** 
+ * Work out the next note to review (if any)
+ * V2: now using preference not note
+ * @return { ?TNote } next note to review
+ */
 async function getNextNoteToReview(): Promise<?TNote> {
   console.log(`\ngetNextNoteToReview V2`)
 
@@ -415,7 +427,10 @@ async function getNextNoteToReview(): Promise<?TNote> {
 }
 
 //-------------------------------------------------------------------------------
-// Update the @reviewed(date) in the note in the Editor to today's date
+/** 
+ * Update the @reviewed(date) in the note in the Editor to today's date.
+ * @return { ?TNote } current note
+ */
 export async function completeReview(): Promise<?TNote> {
   const reviewMentionString = '@reviewed'
   const RE_REVIEW_MENTION = `${reviewMentionString}\\(${RE_DATE}\\)`
@@ -426,7 +441,7 @@ export async function completeReview(): Promise<?TNote> {
     return
   }
 
-  const metadataLine = getOrMakeMetadataLine()
+  const metadataLineNum = getOrMakeMetadataLine()
   let metadataPara: ?TParagraph
 
   // get list of @mentions
@@ -444,7 +459,7 @@ export async function completeReview(): Promise<?TNote> {
       }
     }
     
-    const metaPara = Editor.paragraphs[metadataLine]
+    const metaPara = Editor.paragraphs[metadataLineNum]
     // replace with today's date
     const older = metaPara.content
     const newer = older.replace(firstReviewedMention, reviewedTodayString)
@@ -456,9 +471,9 @@ export async function completeReview(): Promise<?TNote> {
   } else {
     // no existing mention, so append to note's default metadata line
     console.log(
-      `\tInfo: no matching ${reviewMentionString}(date) string found. Will append to line 1`,
+      `\tInfo: no matching ${reviewMentionString}(date) string found. Will append to line ${metadataLineNum}`,
     )
-    metadataPara = Editor.note?.paragraphs[metadataLine]
+    metadataPara = Editor.note?.paragraphs[metadataLineNum]
     if (metadataPara == null) {
       return null
     }

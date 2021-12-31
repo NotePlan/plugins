@@ -19,6 +19,7 @@ import { timeBlocksToCalendar } from '../../jgclark.EventHelpers/src/timeblocks'
 import {
   toLocaleTime,
   getTodaysDateUnhyphenated,
+  getTodaysDateHyphenated,
   dateStringFromCalendarFilename,
   removeDateTags,
   toISODateString,
@@ -47,6 +48,7 @@ import {
   keepTodayPortionOnly,
   includeTasksWithPatterns,
   excludeTasksWithPatterns,
+  getDateObjFromString,
 } from './timeblocking-helpers'
 import { getPresetOptions, setConfigForPreset } from './presets'
 import { getTimeBlockingDefaults, validateTimeBlockConfig } from './config'
@@ -76,22 +78,48 @@ export async function getConfig(): Promise<{ [key: string]: any }> {
     PLUGIN_ID,
     `${PLUGIN_ID}: ${JSON.stringify(defaultConfig, null, 2)},\n`,
   )
-  try {
-    // $FlowIgnore
-    validateTimeBlockConfig(config)
-    // $FlowIgnore
-    return config
-  } catch (error) {
-    showMessage(error)
-    return defaultConfig
+  if (Object.keys(config).length > 0) {
+    try {
+      // $FlowIgnore
+      validateTimeBlockConfig(config)
+      // $FlowIgnore
+      return config
+    } catch (error) {
+      showMessage(error)
+      return defaultConfig
+    }
   }
 }
 
 // $FlowIgnore
 const editorOrNote: EditorOrNote = (note: EditorOrNote) => (Editor.filename === note?.filename || !note ? Editor : note)
 
+/**
+ * Find paragraphs in note which are open and tagged for today (either >today or hyphenated date)
+ * @param {*} note
+ * @param {*} config
+ * @returns {array} of paragraphs
+ */
+function findTodosInNote(note, config) {
+  const hyphDate = getTodaysDateHyphenated()
+  const toDate = getDateObjFromString(hyphDate)
+  const isTodayItem = (text) => [hyphDate, '>today'].filter((a) => text.indexOf(a) > -1).length > 0
+  const todos = []
+  if (note.paragraphs) {
+    note.paragraphs.forEach((p) => {
+      if (p.type === 'open' && isTodayItem(p.content)) {
+        console.log(`  --> findTodosInNote adding todo`)
+        todos.push(p)
+      }
+    })
+  }
+  console.log(`findTodosInNote found ${todos.length} todos - adding to list`)
+  return todos
+}
+
 async function insertContentUnderHeading(destNote: TNote, headingToFind: string, parasAsText: string) {
-  let insertionIndex = 1 // top of note by default
+  const topOfNote = destNote.type === 'Calendar' ? 0 : 1
+  let insertionIndex = topOfNote // top of note by default
   //   console.log(`insertionIndex:${insertionIndex}`)
   for (let i = 0; i < destNote.paragraphs.length; i++) {
     const p = destNote.paragraphs[i]
@@ -100,8 +128,10 @@ async function insertContentUnderHeading(destNote: TNote, headingToFind: string,
       break
     }
   }
+  const paraText =
+    insertionIndex === topOfNote && headingToFind !== '' ? `## ${headingToFind}\n${parasAsText}\n` : parasAsText
   // $FlowIgnore
-  await editorOrNote(destNote).insertParagraph(parasAsText, insertionIndex, 'text')
+  await editorOrNote(destNote).insertParagraph(paraText, insertionIndex, 'text')
 }
 
 export async function deleteParagraphsContainingString(destNote: TNote, timeBlockTag: string): Promise<void> {
@@ -126,12 +156,12 @@ export async function deleteParagraphsContainingString(destNote: TNote, timeBloc
  * backlinks[0].subItems[0] =JSLog: {"type":"open","content":"scheduled for 10/4 using app >today","rawContent":"* scheduled for 10/4 using app
  * ","prefix":"* ","contentRange":{},"lineIndex":2,"date":"2021-11-07T07:00:00.000Z","heading":"_Testing scheduled sweeping","headingRange":{},"headingLevel":1,"isRecurring":0,"indents":0,"filename":"zDELETEME/Test scheduled.md","noteType":"Notes","linkedNoteTitles":[],"subItems":[]}
  */
-function getTodaysReferences(pNote: TNote | null = null): Array<TParagraph> {
+function getTodaysReferences(pNote: TNote | null = null, config): Array<TParagraph> {
   const note = pNote || Editor.note
   if (note) {
     const backlinks = [...(note.backlinks || {})] // an array of notes which link to this note
 
-    const todayParas = []
+    let todayParas = []
     backlinks.forEach((link, i) => {
       // $FlowIgnore
       const subItems = link.subItems
@@ -139,6 +169,10 @@ function getTodaysReferences(pNote: TNote | null = null): Array<TParagraph> {
         todayParas.push(subItem)
       })
     })
+    console.log(
+      `getTodaysReferences note.filename=${note.filename} backlinks.length=${backlinks.length} todayParas.length=${todayParas.length}`,
+    )
+    todayParas = [...todayParas, ...findTodosInNote(note, config)]
     return todayParas
   } else {
     console.log(`timeblocking could not open Note`)
@@ -152,7 +186,9 @@ async function insertItemsIntoNote(note, list, config) {
     // $FlowIgnore
     await insertContentUnderHeading(note, timeBlockHeading, list.join('\n'))
   } else {
-    await showMessage('No >today tasks or work hours left')
+    if (!config.passBackResults) {
+      await showMessage('No work hours left. Check config/presents.')
+    }
   }
 }
 
@@ -222,6 +258,8 @@ export async function deleteCalendarEventsWithTag(tag: string, dateStr: string):
 }
 
 export async function createTimeBlocksForTodaysTasks(config: { [key: string]: any } = {}): Promise<?Array<string>> {
+  console.log(`Starting createTimeBlocksForTodaysTasks. Time is ${new Date().toLocaleTimeString()}`)
+  console.log(`config is: ${JSON.stringify(config, null, 2)}`)
   const {
     timeBlockTag,
     intervalMins,
@@ -233,37 +271,52 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: an
     includeTasksWithText,
     excludeTasksWithText,
   } = config
+  const hypenatedDate = getTodaysDateHyphenated()
   const date = getTodaysDateUnhyphenated()
   const note = Editor // placeholder. we may pass a note in future revs
   const dateStr = Editor.filename ? dateStringFromCalendarFilename(Editor.filename) : null
-
   if (dateStr && dateStr === date) {
-    const backlinkParas = getTodaysReferences()
+    const backlinkParas = getTodaysReferences(Editor.note, config)
+    console.log(`Found ${backlinkParas.length} backlinks+today-note items (may include completed items)`)
     let todosParagraphs = makeAllItemsTodos(backlinkParas) //some items may not be todos but we want to pretend they are and timeblock for them
-    todosParagraphs = includeTasksWithText
+    todosParagraphs = includeTasksWithText?.length
       ? includeTasksWithPatterns(todosParagraphs, includeTasksWithText)
       : todosParagraphs
-    todosParagraphs = excludeTasksWithText
+    console.log(`After includeTasksWithText, ${todosParagraphs.length} potential items`)
+    todosParagraphs = excludeTasksWithText?.length
       ? excludeTasksWithPatterns(todosParagraphs, excludeTasksWithText)
       : todosParagraphs
+    console.log(`After excludeTasksWithText, ${todosParagraphs.length} potential items`)
     const cleanTodayTodoParas = removeDateTagsFromArray(todosParagraphs)
+    console.log(`After removeDateTagsFromArray, ${cleanTodayTodoParas.length} potential items`)
     const tasksByType = cleanTodayTodoParas.length ? getTasksByType(cleanTodayTodoParas) : null // puts in object by type of task and enriches with sort info (like priority)
+    console.log(`After getTasksByType, ${tasksByType?.open.length ?? 0} OPEN items`)
     if (deletePreviousCalendarEntries) {
       await deleteCalendarEventsWithTag(timeBlockTag, dateStr)
     }
+    console.log(`After deleteCalendarEventsWithTag, ${tasksByType?.open.length ?? 0} open items (still)`)
     if (tasksByType && tasksByType['open'].length) {
       const sortedTodos = tasksByType['open'].length ? sortListBy(tasksByType['open'], '-priority') : []
+      console.log(`After sortListBy, ${sortedTodos.length} open items`)
       // $FlowIgnore
       await deleteParagraphsContainingString(editorOrNote(note), timeBlockTag) // Delete our timeblocks before scanning note for user-entered timeblocks
       // $FlowIgnore
       await deleteParagraphsContainingString(editorOrNote(note), eventEnteredOnCalTag) // Delete @jgclark timeblocks->calendar breadcrumbs also
       const calendarMapWithEvents = await getPopulatedTimeMapForToday(dateStr, intervalMins, config)
+      console.log(`After getPopulatedTimeMapForToday, ${calendarMapWithEvents.length} timeMap slots`)
       const eventsToTimeblock = getTimeBlockTimesForEvents(calendarMapWithEvents, sortedTodos, config)
-      const { timeBlockTextList } = eventsToTimeblock
+      const { timeBlockTextList, blockList } = eventsToTimeblock
+      console.log(
+        `After getTimeBlockTimesForEvents, blocks:\n\tblockList=${JSON.stringify(
+          blockList,
+        )} \n\ttimeBlockTextList=${JSON.stringify(timeBlockTextList)}`,
+      )
       if (insertIntoEditor || createCalendarEntries) {
+        console.log(`About to insert ${timeBlockTextList.length} timeblock items into note`)
         // $FlowIgnore -- Delete any previous timeblocks we created
         await insertItemsIntoNote(editorOrNote(note), timeBlockTextList, config)
         if (createCalendarEntries) {
+          console.log(`About to create calendar entries`)
           await timeBlocksToCalendar() //using @jgclark's method for now
           if (!insertIntoEditor) {
             // If user didn't want the timeblocks inserted into the editor, then we delete them now that they're in calendar
@@ -273,38 +326,56 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: an
         }
       }
       return passBackResults ? timeBlockTextList : []
+    } else {
+      console.log('No todos/references marked for >today')
+      if (!passBackResults) {
+        await showMessage(`No todos/references marked for >today`)
+      }
     }
   } else {
-    await showMessage(`You need to be in Today's Calendar Note to use this function`)
+    if (!passBackResults) {
+      console.log(`You need to be in Today's Calendar Note to use this function`)
+      await showMessage(`You need to be in Today's Calendar Note to use this function`)
+    }
   }
   return []
 }
 
 export async function insertTodosAsTimeblocks(note: TNote): Promise<void> {
+  console.log(`====== /atb =======\nStarting insertTodosAsTimeblocks`)
   await Editor.openNoteByDate(new Date(), false) //open editor to today
   const config = await getConfig()
   if (config) {
+    console.log(`Config found. Calling createTimeBlocksForTodaysTasks`)
     await createTimeBlocksForTodaysTasks(config)
+  } else {
+    console.log(`insertTodosAsTimeblocks: stopping after config create`)
   }
 }
 
 export async function insertTodosAsTimeblocksWithPresets(note: TNote): Promise<void> {
+  console.log(`====== /atbp =======\nStarting insertTodosAsTimeblocksWithPresets`)
   await Editor.openNoteByDate(new Date(), false) //open editor to today
   let config = await getConfig()
   if (config) {
+    console.log(`Config found. Checking for presets`)
     if (config.presets && config.presets.length) {
       const options = getPresetOptions(config.presets)
       const presetIndex = await chooseOption('Choose an AutoTimeBlocking Preset:', options, -1)
       const overrides = config.presets[presetIndex]
+      console.log(`Utilizing preset: ${JSON.stringify(config.presets[presetIndex])}`)
       config = setConfigForPreset(config, overrides)
       try {
         validateTimeBlockConfig(config) //  check to make sure the overrides were valid
       } catch (error) {
         showMessage(error)
+        console.log(`insertTodosAsTimeblocksWithPresets: invalid config: ${error}`)
       }
       await createTimeBlocksForTodaysTasks(config)
     } else {
       await showMessage('No presets found. Please read docs.')
     }
+  } else {
+    console.log(`insertTodosAsTimeblocksWithPresets: no config`)
   }
 }

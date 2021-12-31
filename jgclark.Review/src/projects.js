@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Commands for working with project, seen in NotePlan notes.
 // by @jgclark
-// v0.3.0, 21.8.2021
+// Last updated 27.12.2021 for v0.3.0 (just updating comments)
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -23,7 +23,7 @@ import {
 } from './reviewHelpers'
 
 //-------------------------------------------------------------------------------
-// Create a new project
+// Create a new project note by applying 'New Project Template'
 export async function addProject(): Promise<void> {
   
   // NB: WAITING: Update when @EduardMe adds a native date picker
@@ -34,7 +34,7 @@ export async function addProject(): Promise<void> {
 }
 
 //-------------------------------------------------------------------------------
-// Update the @reviewed(date) in the note in the Editor to today's date
+// Add @completed(<today's date>) to the current note in the Editor
 export async function completeProject(): Promise<void> {
   console.log(`\ncompleteProject():`)
   const completedMentionString = '@completed'

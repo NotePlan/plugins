@@ -61,7 +61,7 @@ export default async function sweepNote(
     // Remember the last item which is not indented and open, or a bullet
     // ['open']
     if ((mainItemTypes.includes(p.type) || checkOverdue) && p.indents === 0) {
-      console.log(`Task "${p.content}" ${itemIsOverdue ? `*** overdue` : ''}`)
+      console.log(`sweepNote: ${p.type} Task "${p.content}" ${itemIsOverdue ? `*** overdue` : ''}`)
       lastRootItem = p
     }
 
@@ -102,10 +102,13 @@ export default async function sweepNote(
   // TODO: Filter out "empty" headings
   // TODO: Don't remove root tasks or bullets, if they have at least one closed item below, indented as child. Rather, check it off
   const today = new Date()
-  const todayNote = DataStore.calendarNoteByDate(today)
-  if (todayNote == null) {
-    console.log(`Couldn't open Today's Calendar Note`)
-    return { status: 'error', msg: `Couldn't open Today's Calendar Note` }
+  let todayNote
+  if (!returnValue) {
+    const todayNote = DataStore.calendarNoteByDate(today)
+    if (todayNote == null) {
+      console.log(`Couldn't open Today's Calendar Note`)
+      return { status: 'error', msg: `Couldn't open Today's Calendar Note` }
+    }
   }
 
   const openTasks = paragraphsToMove.filter((p) => p.type === 'open').length
