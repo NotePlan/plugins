@@ -41,7 +41,9 @@ export async function chooseOption<T, TDefault = T>(
   defaultValue: TDefault,
 ): Promise<T | TDefault> {
   const { index } = await CommandBar.showOptions(
-    options.map((option) => option.label),
+    options.map((option) => {
+      return option.hasOwnProperty('label') ? option.label : 'missing label'
+    }),
     message,
   )
   return options[index]?.value ?? defaultValue

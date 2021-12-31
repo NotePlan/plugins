@@ -3,7 +3,7 @@
   "noteplan.minAppVersion": "3.0.21",
   "plugin.id": "np.Templating",
   "plugin.name": " 📒 NotePlan Templating",
-  "plugin.version": "0.0.10",
+  "plugin.version": "0.0.11",
   "plugin.description": "Templating Plugin for NotePlan",
   "plugin.author": "Mike Erickson",
   "plugin.dependencies": [],
@@ -33,6 +33,30 @@
       "alias": [],
       "description": "Create new note with title, in chosen folder with optional template",
       "jsFunction": "templateNew"
+    },
+    {
+      "name": "np:advice",
+      "alias": [],
+      "description": "Returns random advice",
+      "jsFunction": "templateAdvice"
+    },
+    {
+      "name": "np:affirmation",
+      "alias": [],
+      "description": "Returns random affirmation",
+      "jsFunction": "templateAffirmation"
+    },
+    {
+      "name": "np:verse",
+      "alias": [],
+      "description": "Returns random bible verse",
+      "jsFunction": "templateVerse"
+    },
+    {
+      "name": "np:weather",
+      "alias": [],
+      "description": "Returns weather for current locastion",
+      "jsFunction": "templateWeather"
     }
   ]
 }

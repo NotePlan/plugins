@@ -5,7 +5,6 @@
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
  * -----------------------------------------------------------------------------------------*/
 
-import { showMessage, chooseOption, getInput } from '@helpers/userInput'
 import FrontmatterModule from '@templatingModules/FrontmatterModule'
 import TemplatingEngine from './TemplatingEngine'
 import { getOrMakeConfigurationSection } from './toolbox'
@@ -176,10 +175,59 @@ export default class NPTemplating {
   }
 
   static async getTags(templateData: string = '', startTag: string = '<%', endTag: string = '%>'): Promise<any> {
-    const TAGS_PATTERN = /(\<%(?:\[??[^\[]*?\%>))/gi
+    const TAGS_PATTERN = /\<%.*?\%>/gi
+
     const items = templateData.match(TAGS_PATTERN)
 
     return items
+  }
+
+  static async getPromptParameters(promptTag: string = ''): mixed {
+    let tagValue = promptTag.replace(/prompt|[()]|<%=|%>/gi, '').trim()
+    let varName = ''
+    let promptMessage = ''
+    let options = []
+
+    // get variable from tag (first quoted value up to comma)
+    let pos = tagValue.indexOf(',')
+    if (pos >= 0) {
+      varName = tagValue.substr(0, pos - 1).replace(/'/g, '')
+      tagValue = tagValue.substr(pos + 1)
+      pos = tagValue.indexOf(',')
+      if (pos >= 0) {
+        if (tagValue[0] !== '[') {
+          promptMessage = tagValue.substr(0, pos).replace(/'/g, '')
+          tagValue = tagValue.substr(pos + 1)
+        }
+
+        if (tagValue.length > 0) {
+          const optionItems = tagValue.replace('[', '').replace(']', '').split(',')
+          options = optionItems.map((item) => {
+            return item.replace(/'/g, '')
+          })
+        }
+      } else {
+        promptMessage = tagValue.replace(/'/g, '')
+      }
+    } else {
+      varName = tagValue.replace(/'/g, '')
+    }
+
+    if (promptMessage.length === 0) {
+      promptMessage = options.length > 0 ? `Select ${varName}` : `Enter ${varName}`
+    }
+
+    varName = varName.replace(/ /g, '_')
+    return { varName, promptMessage, options }
+  }
+
+  static async prompt(message: string, options: Array<string> = []): Promise<string> {
+    if (options.length === 0) {
+      return await CommandBar.showInput(message, 'OK')
+    } else {
+      const { index } = await CommandBar.showOptions(options, message)
+      return options[index]
+    }
   }
 
   static async processPrompts(
@@ -191,25 +239,14 @@ export default class NPTemplating {
     const sessionData = { ...userData }
     let sessionTemplateData = templateData
 
-    const items = await this.getTags(templateData)
-    for (const index in items) {
-      const tag = items[index]
-      let promptResult = ''
-      let varName = items[index].replace(/<%=/gi, '').replace(/%>/gi, '').trim()
-      let promptMessage = `${varName} value...`
-      if (!sessionData.hasOwnProperty(varName)) {
-        if (varName.includes('prompt')) {
-          varName = varName.replace('prompt', '').replace(/[()']/g, '')
-          const parts = varName.split(',')
-          varName = parts[0]
-          promptMessage = parts.length >= 2 ? parts[1] : `${varName} value...`
-          varName = varName.replace(/ /gi, '_')
-          sessionTemplateData = sessionTemplateData.replace(tag, `${startTag}= ${varName} ${endTag}`)
-        }
+    for (const tag of await this.getTags(templateData)) {
+      // $FlowIgnore
+      const { varName, promptMessage, options } = await this.getPromptParameters(tag)
 
-        promptResult = await getInput(promptMessage)
-        sessionData[varName] = promptResult
+      if (!sessionData.hasOwnProperty(varName)) {
+        sessionData[varName] = await this.prompt(promptMessage, options)
       }
+      sessionTemplateData = sessionTemplateData.replace(tag, `${startTag}= ${varName} ${endTag}`)
     }
 
     return { sessionTemplateData, sessionData }

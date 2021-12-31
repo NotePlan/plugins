@@ -9,6 +9,10 @@ import NPTemplating from 'NPTemplating'
 
 import { showMessage, chooseOption, getInput } from '@helpers/userInput'
 import { getOrMakeTemplateFolder } from '@templating/toolbox'
+import { getAffirmation } from '../lib/support/modules/affirmation'
+import { getAdvice } from '../lib/support/modules/advice'
+import { getWeather } from '../lib/support/modules/weather'
+import { getVerse, getVersePlain } from '../lib/support/modules/verse'
 
 export async function templateInit(): Promise<void> {
   await getOrMakeTemplateFolder()
@@ -131,4 +135,52 @@ export async function selectTemplate(): Promise<string> {
   const templateTitle = selectedTemplate?.title || ''
 
   return templateTitle
+}
+
+// $FlowIgnore
+export async function templateWeather(): Promise<string> {
+  try {
+    // $FlowIgnore
+    const weather: string = getWeather()
+
+    Editor.insertTextAtCursor(weather)
+  } catch (error) {
+    Editor.insertTextAtCursor('**An error occurred accessing weather service**')
+  }
+}
+
+// $FlowIgnore
+export async function templateAdvice(): Promise<string> {
+  try {
+    // $FlowIgnore
+    const advice: string = await getAdvice()
+
+    Editor.insertTextAtCursor(advice)
+  } catch (error) {
+    Editor.insertTextAtCursor('**An error occurred accessing weather service**')
+  }
+}
+
+// $FlowIgnore
+export async function templateAffirmation(): Promise<string> {
+  try {
+    // $FlowIgnore
+    const affirmation: string = await getAffirmation()
+
+    Editor.insertTextAtCursor(affirmation)
+  } catch (error) {
+    Editor.insertTextAtCursor('**An error occurred accessing weather service**')
+  }
+}
+
+// $FlowIgnore
+export async function templateVerse(): Promise<string> {
+  try {
+    // $FlowIgnore
+    const verse: string = await getVersePlain()
+
+    Editor.insertTextAtCursor(verse)
+  } catch (error) {
+    Editor.insertTextAtCursor('**An error occurred accessing weather service**')
+  }
 }

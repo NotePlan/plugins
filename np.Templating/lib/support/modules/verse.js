@@ -17,3 +17,19 @@ export async function getVerse(): Promise<string> {
     return '**An error occurred accessing verse service**'
   }
 }
+
+export async function getVersePlain(): Promise<string> {
+  const URL = `https://labs.bible.org/api/?passage=random&type=json`
+
+  try {
+    const response: any = await fetch(URL)
+
+    const data = JSON.parse(response)[0]
+
+    const result = `${data.bookname} ${data.chapter}:${data.verse} - ${data.text}`
+
+    return result
+  } catch (error) {
+    return '**An error occurred accessing verse service**'
+  }
+}
