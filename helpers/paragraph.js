@@ -86,7 +86,7 @@ export function calcSmartPrependPoint(note: TNote): number {
   const lines = note.content?.split('\n') ?? ['']
 
   // By default we prepend at line 1, i.e. right after the Title line
-  let insertionLine = 1
+  let insertionLine = note.type === 'Calendar' ? 0 : 1
   // If we have any content, check for these special cases
   if (lines.length > 0) {
     if (lines[0] === '---') {
@@ -103,11 +103,7 @@ export function calcSmartPrependPoint(note: TNote): number {
       }
       if (insertionLine === 1) {
         // If we get here we haven't found an end to the YAML block.
-        console.log(
-          `Warning: couldn't find end of YAML frontmatter in note ${displayTitle(
-            note,
-          )}`,
-        )
+        console.log(`Warning: couldn't find end of YAML frontmatter in note ${displayTitle(note)}`)
         // It's not clear what to do at this point, so will leave insertion point as is
       }
     } else if (lines[1].match(/^#[A-z]/)) {
@@ -151,7 +147,7 @@ export function smartPrependPara(
   note.insertParagraph(paraText, calcSmartPrependPoint(note), paragraphType)
 }
 
-// 
+//
 /**
  * Works out where the first ## Done or ## Cancelled section starts, if present.
  * If not, return the last paragraph index.
@@ -174,11 +170,11 @@ export function findEndOfActivePartOfNote(note: TNote): number {
     }
   }
   const endOfActive =
-    (doneHeaderLine > 0)
+    doneHeaderLine > 0
       ? doneHeaderLine
-      : ((cancelledHeaderLine > 0)
+      : cancelledHeaderLine > 0
         ? cancelledHeaderLine
-        : lineCount)
+        : lineCount
   // console.log(`  dHL = ${doneHeaderLine}, cHL = ${cancelledHeaderLine} endOfActive = ${endOfActive}`)
   return endOfActive
 }
