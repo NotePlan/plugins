@@ -19,50 +19,6 @@ import {
   showMessage,
 } from '../../helpers/userInput'
 
-//-----------------------------------------------------------------------------
-/**
- * Get or create the relevant note in the Summary folder
- * @author @jgclark
- * @param {string} noteTitle - title of summary note
- * @param {string} noteFolder - folder to look in
- * @return {Promise<TNote>} - note object
- */
-export async function getOrMakeNote(
-  noteTitle: string,
-  noteFolder: string
-): Promise<?TNote> {
-  // first see if this note has already been created (ignore Archive and Trash)
-  const existingNotes: $ReadOnlyArray<TNote> =
-    DataStore.projectNoteByTitle(noteTitle, true, false) ?? []
-  console.log(
-    `\tfound ${existingNotes.length} existing '${noteTitle}' note(s)`,
-  )
-
-  if (existingNotes.length > 0) {
-    // console.log(`\t${existingNotes[0].filename}`)
-    return existingNotes[0] // return the only or first match (if more than one)
-  } else {
-    // make a new note for this
-    const noteFilename = await DataStore.newNote(noteTitle, noteFolder)
-    // NB: filename here = folder + filename
-    if (noteFilename != null && noteFilename !== '') {
-      console.log(`\tnewNote filename: ${String(noteFilename)}`)
-      const note = await DataStore.projectNoteByFilename(noteFilename)
-      if (note != null) {
-        return note
-      } else {
-        showMessage(`Oops: I can't make new ${noteTitle} note`, 'OK')
-        console.log(`returnSummaryNote: error: can't read new ${noteTitle} note`)
-        return
-      }
-    } else {
-      showMessage(`Oops: I can't make new ${noteTitle} note`, 'OK')
-      console.log(`returnSummaryNote: error: empty filename of new ${noteTitle} note`)
-      return
-    }
-  }
-}
-
 /**
  * Works out which line (if any) of the current note is a metadata line, defined as
  * - line starting 'project:' or 'medadata:'

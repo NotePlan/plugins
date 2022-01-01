@@ -10,7 +10,6 @@
 import {
   findNotesMatchingHashtags,
   getOrMakeMetadataLine,
-  getOrMakeNote,
   Project,
 } from './reviewHelpers'
 import {
@@ -22,9 +21,8 @@ import {
   filterFolderList,
   getFolderFromFilename
 } from '../../helpers/folders'
-import {
-  displayTitle,
-} from '../../helpers/general'
+import { displayTitle } from '../../helpers/general'
+import { getOrMakeNote } from '../../helpers/note'
 import {
   showMessage,
   showMessageYesNo,
@@ -167,14 +165,6 @@ export async function projectLists(): Promise<void> {
 // V2, using reviewList pref
 export async function startReviews(): Promise<void> {
   await getConfig()
-  // Get or make _reviews note
-  // const reviewsNote: ?TNote = await getOrMakeNote(reviewListNoteTitle, pref_folderToStore)
-  // if (reviewsNote == null) {
-  //   showMessage(`Oops: failed to find or make _reviews note`, 'OK')
-  //   console.log(`\nstartReviews: error: can't get or make summary _reviews note`)
-  //   return
-  // }
-
   console.log(`\nstartReviews():`)
 
   // Temporary check to see if we can delete an absolete '_reviews' file.
