@@ -7,7 +7,7 @@
   "plugin.icon": "",
   "plugin.author": "@m1well",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/m1well.Expenses/README.md",
-  "plugin.version": "1.4.0",
+  "plugin.version": "1.5.0",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",

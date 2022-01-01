@@ -158,34 +158,41 @@ const expensesAggregate = async (): Promise<boolean> => {
   }
 
   await Editor.openNoteByTitle(noteTitleTracking)
-  const trackedData = Editor.paragraphs
-    .filter(para => !para.rawContent.startsWith('#'))
-    .map(para => extractExpenseRowFromCsvRow(para.rawContent, config))
+  const trackingNote = Editor.note
 
-  if (!checkDataQualityBeforeAggregate(trackedData, year, config)) {
-    return false
-  }
+  if (trackingNote) {
+    const trackedData = trackingNote.paragraphs
+      .filter(para => !para.rawContent.startsWith('#'))
+      .map(para => extractExpenseRowFromCsvRow(para.rawContent, config))
 
-  const aggregatedData = aggregateByCategoriesAndMonth(trackedData, config.delimiter)
+    if (!checkDataQualityBeforeAggregate(trackedData, year, config)) {
+      return false
+    }
 
-  const noteTitleAggregate = `${year} Expenses Aggregate`
-  if (!await provideAndCheckNote(noteTitleAggregate, config.folderPath, true)) {
-    return false
-  }
+    const aggregatedData = aggregateByCategoriesAndMonth(trackedData, config.delimiter)
 
-  if (aggregatedData.length > 0) {
-    await Editor.openNoteByTitle(noteTitleAggregate)
-    Editor.removeParagraphs(Editor.paragraphs
-      .filter(para => !para.rawContent.startsWith('#')))
-    // add results
-    aggregatedData.forEach(aggregated => {
-      if (aggregated.year) {
-        const line = createAggregationExpenseRowWithDelimiter(aggregated, config)
-        Editor.appendParagraph(line, 'text')
+    const noteTitleAggregate = `${year} Expenses Aggregate`
+    if (!await provideAndCheckNote(noteTitleAggregate, config.folderPath, true)) {
+      return false
+    }
+
+    const lines: string[] = []
+
+    if (aggregatedData.length > 0) {
+      await Editor.openNoteByTitle(noteTitleAggregate)
+      const note = Editor.note
+      if (note) {
+        note.removeParagraphs(note.paragraphs.filter(para => !para.rawContent.startsWith('#')))
+        // add results
+        aggregatedData.forEach(aggregated => {
+          if (aggregated.year) {
+            lines.push(createAggregationExpenseRowWithDelimiter(aggregated, config))
+          }
+        })
+        note.appendParagraph(lines.join('\n'), 'text')
+        return true
       }
-    })
-
-    return true
+    }
   }
 
   return false
@@ -229,14 +236,16 @@ const individualTracking = async (): Promise<boolean> => {
   }
 
   await Editor.openNoteByTitle(title)
+  const note = Editor.note
   const expenseRow = {
     date: currentDate,
     category: category.value,
     text: text,
     amount: config.amountFormat === 'full' ? amount : Math.round(amount),
   }
-  const line = createTrackingExpenseRowWithConfig(expenseRow, config)
-  Editor.appendParagraph(line, 'text')
+  if (note) {
+    note.appendParagraph(createTrackingExpenseRowWithConfig(expenseRow, config), 'text')
+  }
 
   return true
 }
@@ -288,14 +297,16 @@ const shortcutsTracking = async (): Promise<boolean> => {
   }
 
   await Editor.openNoteByTitle(title)
+  const note = Editor.note
   const expenseRow = {
     date: currentDate,
     category: selected.category,
     text: selected.text,
     amount: config.amountFormat === 'full' ? amount : Math.round(amount),
   }
-  const line = createTrackingExpenseRowWithConfig(expenseRow, config)
-  Editor.appendParagraph(line, 'text')
+  if (note) {
+    note.appendParagraph(createTrackingExpenseRowWithConfig(expenseRow, config), 'text')
+  }
 
   return true
 }
@@ -320,9 +331,12 @@ const fixedTracking = async (): Promise<boolean> => {
     return false
   }
 
-  const month = getMonth(currentDate) - 1
+  const month = getMonth(currentDate) + 1
+
+  const lines: string[] = []
 
   await Editor.openNoteByTitle(title)
+  const note = Editor.note
   config.fixedExpenses
     .filter(exp => exp.active && (exp.month === 0 || exp.month === month))
     .map(exp => {
@@ -338,9 +352,12 @@ const fixedTracking = async (): Promise<boolean> => {
         text: exp.text,
         amount: config.amountFormat === 'full' ? exp.amount : Math.round(exp.amount),
       }
-      const line = createTrackingExpenseRowWithConfig(expenseRow, config)
-      Editor.appendParagraph(line, 'text')
+      lines.push(createTrackingExpenseRowWithConfig(expenseRow, config))
     })
+
+  if (note) {
+    note.appendParagraph(lines.join('\n'), 'text')
+  }
 
   return true
 }
