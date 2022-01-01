@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Commands for Reviewing project-style notes, GTD-style.
 // by @jgclark
-// Last updated for v0.5.0, 27.12.2021
+// Last updated for v0.5.0+, 27.12.2021
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -226,7 +226,7 @@ export async function startReviews(): Promise<void> {
   if (noteToReview != null) {
     const res = await showMessageYesNo(`Ready to review '${displayTitle(noteToReview)}'?`, ['OK', 'Cancel'])
     if (res === 'OK') {
-      Editor.openNoteByFilename(noteToReview.filename)
+      await Editor.openNoteByFilename(noteToReview.filename)
     }
   } else {
     console.log('🎉 No notes to review!')
@@ -345,7 +345,7 @@ export async function nextReview(): Promise<void> {
   if (noteToReview != null) {
     const res = await showMessageYesNo(`Ready to review '${displayTitle(noteToReview)}'?`, ['OK', 'Cancel'])
     if (res === 'OK') {
-      Editor.openNoteByFilename(noteToReview.filename)
+      await Editor.openNoteByFilename(noteToReview.filename)
     }
   } else {
     console.log('nextReview: 🎉 No more notes to review!')

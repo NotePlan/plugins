@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// v0.10.6, 17.11.2021
+// v0.10.6+, 17.11.2021
 //--------------------------------------------------------------------------------------------------------------------
 
 import {
@@ -26,8 +26,8 @@ export async function moveNote() {
   const newFilename = DataStore.moveNote(filename, selectedFolder)
 
   if (newFilename != null) {
-    Editor.openNoteByFilename(newFilename)
     console.log('\tmoving note was successful')
+    await Editor.openNoteByFilename(newFilename)
   } else {
     console.log('\tmoving note was NOT successful')
   }
