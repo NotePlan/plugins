@@ -123,7 +123,7 @@ type TEditor = {
     newWindow?: boolean,
     highlightStart?: number,
     highlightEnd?: number,
-  ): Promise<TNote>,
+  ): Promise<void>,
   /**
    * Opens a note by searching for the give title (first line of the note)
    */
@@ -132,7 +132,7 @@ type TEditor = {
     newWindow?: boolean,
     highlightStart?: number,
     highlightEnd?: number,
-  ): Promise<TNote>,
+  ): Promise<void>,
   /**
    * Opens a note by searching for the give title (first line of the note)
    */
@@ -142,7 +142,7 @@ type TEditor = {
     caseSensitive?: boolean,
     highlightStart?: number,
     highlightEnd?: number,
-  ): Promise<TNote>,
+  ): Promise<void>,
   /**
    * Opens a calendar note by the given date
    */
@@ -151,7 +151,7 @@ type TEditor = {
     newWindow?: boolean,
     highlightStart?: number,
     highlightEnd?: number,
-  ): Promise<TNote>,
+  ): Promise<void>,
   /**
    * Opens a calendar note by the given date string
    */
@@ -160,7 +160,7 @@ type TEditor = {
     newWindow?: boolean,
     highlightStart?: number,
     highlightEnd?: number,
-  ): Promise<TNote | void>,
+  ): Promise<void>,
   /**
   * Selects the full text in the editor.
   * NB: Available from NotePlan v3.2 (Mac Build: 662, iOS Build: 593)
