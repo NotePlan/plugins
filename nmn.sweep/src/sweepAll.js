@@ -212,6 +212,7 @@ export default async function sweepAll(
     noteTypes.includes('calendar') || (withUserConfirm && typeof res.index !== 'undefined' && res.index === 0)
 
   if (includeCalendarNotes) {
+    console.log(`Looking for calendar notes now...`)
     const todayFileName = `${filenameDateString(new Date())}.${DataStore.defaultFileExtension}`
     const recentCalNotes = DataStore.calendarNotes.filter(
       (note) => note.filename < todayFileName && note.filename >= afterDateFileName,
@@ -223,7 +224,7 @@ export default async function sweepAll(
         ignoreFolders.length && !!ignoreFolders.filter((folder) => note.filename.includes(`${folder}/`)).length
       if (!ignoreThisFolder) {
         if (note.filename !== todayFileName) {
-          console.log(`===\nCalling sweepNote ${note.filename} | Today is: ${todayFileName}`)
+          console.log(`===\nsweepAll: Calling sweepNote ${note.filename} | Today is: ${todayFileName}`)
           const result = await sweepNote(note, withUserConfirm, false, overdueOnly, false, returnValue, includeHeadings)
           processResult(result, note.title)
         } else {
