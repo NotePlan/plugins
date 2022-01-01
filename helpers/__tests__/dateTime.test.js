@@ -1,6 +1,6 @@
 /* globals describe, expect, it, test */
 
-// Last updated: 9.12.2021 by @jgclark
+// Last updated: 30.12.2021 by @jgclark
 
 import colors from 'chalk'
 import * as dT from '../dateTime'
@@ -9,7 +9,6 @@ const PLUGIN_NAME = `📙 ${colors.yellow('helpers/dateTime')}`
 const section = colors.blue
 
 describe(`${PLUGIN_NAME}`, () => {
-
   describe(section('dateTime.js'), () => {
 
     describe('getDateFromString', () => {
@@ -30,20 +29,52 @@ describe(`${PLUGIN_NAME}`, () => {
       })
     })
 
+    describe('withinDateRange', () => {
+      test('test 1', () => {
+        expect(dT.withinDateRange('20210424', '20210501', '20210531')).toEqual(false)
+      })
+      test('test 2', () => {
+        expect(dT.withinDateRange('20210501', '20210501', '20210531')).toEqual(true)
+      })
+      test('test 3', () => {
+        expect(dT.withinDateRange('20210524', '20210501', '20210531')).toEqual(true)
+      })
+      test('test 4', () => {
+        expect(dT.withinDateRange('20210531', '20210501', '20210531')).toEqual(true)
+      })
+      test('test 5', () => {
+        expect(dT.withinDateRange('20210624', '20210501', '20210531')).toEqual(false)
+      })
+      // TODO: add test over year boundary
+      // TODO: add test on a leap day
+    })
+
+    describe('daysBetween', () => {
+      // TODO: this can be tested
+    })
+
+    describe('relativeDateFromNumber', () => {
+      // TODO: this can be tested
+    })
+
+    describe('getDateFromString', () => {
+      // TODO: this can be tested
+    })
+
     describe('getWeek', () => {
       /**
        * The ISO 8601 definition for week 01 is the week with the first Thursday of the Gregorian
- * year (i.e. of January) in it.  The following definitions based on properties of this week 
- * are mutually equivalent, since the ISO week starts with Monday:
- * - It is the first week with a majority (4 or more) of its days in January.
- * - Its first day is the Monday nearest to 1 January.
- * - It has 4 January in it
- * - NB: Here start of week is Sunday not Monday.
-*/
-      test('2021-12-31 Fri -> week 52', () => {
+       * year (i.e. of January) in it.  The following definitions based on properties of this week 
+       * are mutually equivalent, since the ISO week starts with Monday:
+       * - It is the first week with a majority (4 or more) of its days in January.
+       * - Its first day is the Monday nearest to 1 January.
+       * - It has 4 January in it
+       * - NB: Here start of week is Sunday not Monday.
+       */
+      test('2021-12-31 (Fri) -> week 52', () => {
         expect(dT.getWeek(new Date(2021, 11, 31, 0, 0, 0))).toEqual(52)
       })
-      test('2022-01-01 (Sat) -> week 0', () => {
+      test('2022-01-01 (Sat) -> week 52', () => {
         expect(dT.getWeek(new Date(2022, 0, 1, 0, 0, 0))).toEqual(52)
       })
       test('2022-01-02 (Sun) -> week 1 (1st day of week)', () => {
@@ -72,5 +103,41 @@ describe(`${PLUGIN_NAME}`, () => {
     //     expect(dT.weekStartEnd(2, 2022)).toEqual(new Date(2022, 0, 9, 0, 0, 0), new Date(2022, 0, 15, 0, 0, 0))
     //   })
     // })
+
+    describe('calcWeekOffset', () => {
+      test('calcWeekOffset(52, 2021, 0)', () => {
+        const answer = dT.calcWeekOffset(52, 2021, 0)
+        expect(answer.week).toBe(52)
+      })
+      test('calcWeekOffset(52, 2021, 0)', () => {
+        const answer = dT.calcWeekOffset(52, 2021, 0)
+        expect(answer.year).toBe(2021)
+      })
+      test('calcWeekOffset(52, 2021, 1)', () => {
+        const answer = dT.calcWeekOffset(52, 2021, 1)
+        expect(answer.week).toBe(1)
+      })
+      test('calcWeekOffset(52, 2021, 1)', () => {
+        const answer = dT.calcWeekOffset(52, 2021, 1)
+        expect(answer.year).toBe(2022)
+      })
+      test('calcWeekOffset(1, 2021, 0)', () => {
+        const answer = dT.calcWeekOffset(1, 2021, 0)
+        expect(answer.week).toBe(1)
+      })
+      test('calcWeekOffset(1, 2021, 0)', () => {
+        const answer = dT.calcWeekOffset(1, 2021, 0)
+        expect(answer.year).toBe(2021)
+      })
+      test('calcWeekOffset(1, 2021, -1)', () => {
+        const answer = dT.calcWeekOffset(1, 2021, -1)
+        expect(answer.week).toBe(52)
+      })
+      test('calcWeekOffset(1, 2021, -1)', () => {
+        const answer = dT.calcWeekOffset(1, 2021, -1)
+        expect(answer.year).toBe(2020)
+      })
+    })
+
   })
 })

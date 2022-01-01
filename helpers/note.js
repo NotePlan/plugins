@@ -3,6 +3,7 @@
 // Note-level Functions
 
 import { getFolderFromFilename } from './folders'
+import { showMessage } from './userInput'
 
 /**
  * Print summary of note details to log
@@ -68,6 +69,50 @@ export async function noteOpener(
         useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename'
       } returned ${(newNote: any)}`,
     )
+  }
+}
+
+/**
+ * Get or create the relevant note in the given folder
+ * @author @jgclark
+ * 
+ * @param {string} noteTitle - title of summary note
+ * @param {string} noteFolder - folder to look in
+ * @return {Promise<TNote>} - note object
+ */
+export async function getOrMakeNote(
+  noteTitle: string,
+  noteFolder: string
+): Promise<?TNote> {
+  // first see if this note has already been created (ignoring Archive and Trash)
+  const existingNotes: $ReadOnlyArray<TNote> =
+    DataStore.projectNoteByTitle(noteTitle, true, false) ?? []
+  console.log(
+    `\tfound ${existingNotes.length} existing '${noteTitle}' note(s)`,
+  )
+
+  if (existingNotes.length > 0) {
+    // console.log(`\t${existingNotes[0].filename}`)
+    return existingNotes[0] // return the only or first match (if more than one)
+  } else {
+    // no existing note, so need to make a new one
+    const noteFilename = await DataStore.newNote(noteTitle, noteFolder)
+    // NB: filename here = folder + filename
+    if (noteFilename != null && noteFilename !== '') {
+      console.log(`\tnewNote filename: ${String(noteFilename)}`)
+      const note = await DataStore.projectNoteByFilename(noteFilename)
+      if (note != null) {
+        return note
+      } else {
+        showMessage(`Oops: I can't make new ${noteTitle} note`, 'OK')
+        console.log(`getOrMakeNote: error: can't read new ${noteTitle} note`)
+        return
+      }
+    } else {
+      showMessage(`Oops: I can't make new ${noteTitle} note`, 'OK')
+      console.log(`getOrMakeNote: error: empty filename of new ${noteTitle} note`)
+      return
+    }
   }
 }
 

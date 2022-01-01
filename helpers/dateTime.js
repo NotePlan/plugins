@@ -166,12 +166,6 @@ export function daysBetween(d1: Date, d2: Date): number {
 export function withinDateRange(testDate: string, fromDate: string, toDate: string): boolean {
   return testDate >= fromDate && testDate <= toDate
 }
-// Tests for the above
-// console.log(withinDateRange(unhyphenateDate('2021-04-24'), '20210501', '20210531')) // false
-// console.log(withinDateRange(unhyphenateDate('2021-05-01'), '20210501', '20210531')) // true
-// console.log(withinDateRange(unhyphenateDate('2021-05-24'), '20210501', '20210531')) // true
-// console.log(withinDateRange(unhyphenateDate('2021-05-31'), '20210501', '20210531')) // true
-// console.log(withinDateRange(unhyphenateDate('2021-06-24'), '20210501', '20210531')) // false
 
 // Calculate an offset date, returning ISO datestring. Assumes:
 // - oldDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type
@@ -394,6 +388,9 @@ export function quarterStartEnd(qtr: number, year: number): [Date, Date] {
  * - Its first day is the Monday nearest to 1 January.
  * - It has 4 January in it
  * Code from https://stackoverflow.com/questions/6117814/get-week-of-year-in-javascript-like-in-php?noredirect=1&lq=1
+ * Still, we need to be careful about assumptions at year boundary, as
+ * for example 2022-01-01 is in week 52 of 2021.
+ * @author @jgclark
  * 
  * @param {Date} inDate - the JS Date object of interest
  * @return {number} - the standardised week number
@@ -433,6 +430,8 @@ export function getWeek(inDate: Date): number {
  * Return start and end dates for a given week number. 
  * Uses ISO 8601 definition of week, except that week start is Sunday not Monday.
  * TODO: Use locale-specific first day of week (e.g. Mon for USA)
+ * @author @jgclark
+ * 
  * @param {number} week - week number in year (1-53)
  * @param {number} year - year (4-digits)
  * @return {[Date, Date]}} - start and end dates (as JS Dates)
@@ -452,6 +451,39 @@ export function weekStartEnd(week: number, year: number): [Date, Date] {
 
   const startDate: Date = Calendar.addUnitToDate(new Date(year,0,firstDay), 'day', (week-1)*7)
   const endDate: Date = Calendar.addUnitToDate(startDate, 'day', 6)
-  console.log(`  -> ${toLocaleTime(startDate)} - ${toLocaleTime(endDate)}`)
+  // console.log(`  -> ${toLocaleTime(startDate)} - ${toLocaleTime(endDate)}`)
   return [ startDate, endDate ]
+}
+
+/**
+ * From the current week number/year pair calculate a different week number/year pair by adding a given week range (which can be negative)
+ * NOTE: we have to be careful about assumptions at end of year:
+ *   for example 2022-01-01 is in week 52 of 2021.
+ * A year goes into 53 weeks if 1 January is on a Thursday on a non-leap year, 
+ * or on a Wednesday or a Thursday on a leap year.
+ * @author @jgclark
+ * 
+ * @param {integer} endWeek 
+ * @param {integer} endYear 
+ * @param {integer} offset 
+ * @returns {{number, number}} 
+ */
+export function calcWeekOffset(
+  startWeek: number,
+  startYear: number,
+  offset: number): {week: number, year: number}
+{
+  let year: number = startYear
+  let week: number = startWeek + offset
+  // Add the offset, coping with offsets greater than 1 year
+  while (week < 1) {
+    week += 52
+    year -= 1
+  }
+  while (week > 52) {
+    week -= 52
+    year += 1
+  }
+  // console.log(`${startYear}W${startWeek} - ${year}W${week}`)
+  return { week, year }
 }
