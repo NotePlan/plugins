@@ -1,7 +1,7 @@
 Plugin usage instructions: [README](https://github.com/NotePlan/plugins/blob/main/nmn.sweep/readme.md)
 # What's Changed?
 
-## [1.4.3] 2021-01-01 @dwertheimer
+## [1.4.3] 2022-01-01 @dwertheimer
 - Fixed /sw7 not running bug
 
 ## [1.4.2] 2021-11-06 @dwertheimer
