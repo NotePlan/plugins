@@ -10,118 +10,75 @@
 // Helper functions
 
 import {
+  DEFAULT_SUMMARIES_CONFIG,
+  gatherMatchingLines,
+  getConfigSettings,
+  getPeriodStartEndDates,
+  removeSection,
+} from './summaryHelpers'
+import type { SummariesConfig } from './summaryHelpers'
+import {
+  dateStringFromCalendarFilename,
+  monthNameAbbrev,
+  quarterStartEnd,
+  toLocaleDateString,
+  unhyphenatedDate,
+  withinDateRange,
+} from '../../helpers/dateTime'
+import {
   displayTitle,
   stringReplace,
 } from '../../helpers/general'
 import {
-  showMessage,
   chooseOption,
   getInput,
+  showMessage,
+  showMessageYesNo,
 } from '../../helpers/userInput'
-import {
-  quarterStartEnd,
-  unhyphenatedDate,
-  toLocaleDateString,
-  monthNameAbbrev,
-  withinDateRange,
-  dateStringFromCalendarFilename,
-  // toLocaleTime,
-  // todaysDateISOString,
-  // toISODateString,
-  // toISOShortDateTimeString,
-} from '../../helpers/dateTime'
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
-import {
-  getPeriodStartEndDates,
-  removeSection,
-  gatherMatchingLines,
-  DEFAULT_SUMMARIES_OPTIONS,
-} from './summaryHelpers'
-
-//-----------------------------------------------------------------------------
-// Config settings
-// Globals, to be looked up later
-let pref_folderToStore: string
-let pref_occurrencesHeading: string
-let pref_headingLevel: 1 | 2 | 3 | 4 | 5
-let pref_occurrencesToMatch: $ReadOnlyArray<string> = []
-let pref_highlightOccurrences: boolean
-let pref_showEmptyOccurrences: boolean
-let pref_dateStyle: string
-
-async function getPluginSettings(): Promise<void> {
-  // Get config settings from Template folder _configuration note
-  const summConfig = await getOrMakeConfigurationSection(
-    'summaries',
-    DEFAULT_SUMMARIES_OPTIONS,
-    // no minimum config required, as all defaults are given below
-  )
-  if (summConfig == null) {
-    console.log("\tCouldn't find 'summaries' settings in _configuration note.")
-    return
-  }
-  console.log("\tFound 'summaries' settings in _configuration note.")
-
-  // now get each setting
-  pref_folderToStore =
-    summConfig.folderToStore != null
-      ? String(summConfig.folderToStore)
-      : 'Summaries'
-  // console.log(pref_folderToStore)
-  pref_occurrencesHeading =
-    summConfig.occurrencesHeading != null
-      ? String(summConfig.occurrencesHeading)
-      : 'Occurrences'
-  // console.log(pref_occurrencesHeading)
-  pref_headingLevel =
-    summConfig.headingLevel != null
-      // $FlowIgnore[incompatible-type]
-      ? summConfig.headingLevel
-      : 2
-  // console.log(pref_headingLevel)
-  pref_occurrencesToMatch =
-    // $FlowIgnore[incompatible-type]
-    summConfig.occurrencesToMatch != null
-      // $FlowIgnore[incompatible-type]
-      ? summConfig.occurrencesToMatch
-      : []
-  // console.log(pref_occurrencesToMatch)
-  pref_highlightOccurrences =
-    summConfig.highlightOccurrences != null
-      // $FlowIgnore[incompatible-type]
-      ? summConfig.highlightOccurrences
-      : false
-  // console.log(pref_highlightOccurrences)
-  pref_dateStyle =
-    summConfig.dateStyle != null
-      ? String(summConfig.dateStyle)
-      : 'link'
-  console.log(`  pref_dateStyle = '${pref_dateStyle}'`)
-}
 
 //-------------------------------------------------------------------------------
-// Ask user which period to cover, call main stats function, and present results
+
+/**
+ * Ask user which period to cover, call main stats function, and present results
+ * @author @jgclark
+ */
 export async function occurrencesPeriod(): Promise<void> {
   // Get config settings from Template folder _configuration note
-  await getPluginSettings()
+  // await getPluginSettings()
+  const config = await getConfigSettings()
 
-  // Work time period to cover
+  // Work out time period to cover
   const [fromDate, toDate, periodString, periodPartStr] = await getPeriodStartEndDates()
 
   if (fromDate == null || toDate == null) {
-    console.log('dates could not be parsed')
+    console.log('error: dates could not be parsed')
     return
   }
   const fromDateStr = unhyphenatedDate(fromDate) //fromDate.toISOString().slice(0, 10).replace(/-/g, '')
   const toDateStr = unhyphenatedDate(toDate) // toDate.toISOString().slice(0, 10).replace(/-/g, '')
   
-  // If a single search term was given, use that, otherwise use the setting pref_occurrencesToMatch
-  // const stringsToMatch = Array.from(pref_occurrencesToMatch)
-  const stringsToMatch = Array.from(pref_occurrencesToMatch)
+  let stringsToMatch = Array.from(config.defaultOccurrences)
+  // Show user these default 'config.defaultOccurrences' search terms, 
+  // and offer to get a single search term instead
+  const res = await chooseOption(
+    `Search for '${stringsToMatch.join(', ')}'`,
+    [
+      { label: `Yes (use defaults)`, value: 'Yes' },
+      { label: `No (I'll choose my own; can be comma-separated)`, value: 'No' },
+    ],
+    'Yes',
+  )
+  if (res === 'No') {
+    stringsToMatch.splice(0, stringsToMatch.length) // clear array
+    const newTerms = await getInput(`Enter search term(s)`)
+    // console.log(newTerms)
+    stringsToMatch = Array.from(newTerms.split(',')) // FIXME
+  }
   console.log(
     `\nperiodOccurrences: looking for '${String(stringsToMatch)}' over ${periodString} (${fromDateStr}-${toDateStr}):`,
   )
-
+  
   // Get array of all daily notes that are within this time period
   const periodDailyNotes = DataStore.calendarNotes.filter((p) =>
     withinDateRange(
@@ -141,7 +98,7 @@ export async function occurrencesPeriod(): Promise<void> {
   for (const toMatch of stringsToMatch) {
     // output a heading first
     // get list of matching paragraphs for this string
-    const results = await gatherMatchingLines(periodDailyNotes, toMatch, pref_highlightOccurrences, pref_dateStyle)
+    const results = await gatherMatchingLines(periodDailyNotes, toMatch, config.highlightOccurrences, config.dateStyle)
     const lines = results?.[0]
     const context = results?.[1]
     if (lines.length > 0) {
@@ -151,7 +108,7 @@ export async function occurrencesPeriod(): Promise<void> {
       for (let i = 0; i < lines.length; i++) {
         outputArray.push(`- ${lines[i]}${context[i]}`)
       }
-    } else if (pref_showEmptyOccurrences) {
+    } else if (config.showEmptyOccurrences) {
       // If there's nothing to report, make that clear
       outputArray.push(`### ${toMatch}`)
       outputArray.push('(none)')
@@ -160,7 +117,7 @@ export async function occurrencesPeriod(): Promise<void> {
 
   // Ask where to save this summary to
   const labelString = `🖊 Create/update note '${periodString}' in folder '${String(
-    pref_folderToStore,
+    config.folderToStore,
   )}'`
   const destination = await chooseOption(
     `Where to save the summary for ${periodString}?`,
@@ -201,9 +158,9 @@ export async function occurrencesPeriod(): Promise<void> {
         )
         const insertionLineIndex = currentNote.paragraphs.length
         currentNote.insertHeading(
-          `${pref_occurrencesHeading} ${periodPartStr}`,
+          `${config.occurrencesHeading} ${periodPartStr}`,
           insertionLineIndex,
-          pref_headingLevel,
+          config.headingLevel,
         )
         currentNote.appendParagraph(
           outputArray.join('\n'),
@@ -229,7 +186,7 @@ export async function occurrencesPeriod(): Promise<void> {
         // console.log(`\tfilename of first matching note: ${displayTitle(note)}`)
       } else {
         // make a new note for this. NB: filename here = folder + filename
-        const noteFilename = DataStore.newNote(periodString, pref_folderToStore) ?? ''
+        const noteFilename = DataStore.newNote(periodString, config.folderToStore) ?? ''
         if (!noteFilename) {
           console.log(`\tError creating new note (filename: ${noteFilename})`)
           await showMessage('There was an error creating the new note')
@@ -249,22 +206,22 @@ export async function occurrencesPeriod(): Promise<void> {
       // Do we have an existing Hashtag counts section? If so, delete it.
       const insertionLineIndex = removeSection(
         note,
-        pref_occurrencesHeading,
+        config.occurrencesHeading,
       )
       console.log(`\tinsertionLineIndex: ${String(insertionLineIndex)}`)
       // Set place to insert either after the found section heading, or at end of note
       // write in reverse order to avoid having to calculate insertion point again
       note.insertHeading(
-        `${pref_occurrencesHeading} ${periodPartStr}`,
+        `${config.occurrencesHeading} ${periodPartStr}`,
         insertionLineIndex,
-        pref_headingLevel,
+        config.headingLevel,
       )
       note.insertParagraph(
         outputArray.join('\n'),
         insertionLineIndex + 1,
         'text',
       )
-      Editor.openNoteByFilename(note.filename)
+      await Editor.openNoteByFilename(note.filename)
 
       console.log(`\twritten results to note '${periodString}'`)
       break
@@ -294,6 +251,7 @@ async function gatherMatchingLinesInPeriod(
   notes,
   stringToLookFor
 ): Promise<[Array<string>, Array<Date>]> {
+  const config = await getConfigSettings()
   console.log(`Looking for '${stringToLookFor}' in ${notes.length} notes`)
   CommandBar.showLoading(true, `Searching in ${notes.length} notes ...`)
   await CommandBar.onAsyncThread()
@@ -319,7 +277,7 @@ async function gatherMatchingLinesInPeriod(
         // console.log(`    -> ${matchLine}`)
       }
       // highlight matches if requested
-      if (pref_highlightOccurrences) {
+      if (config.highlightOccurrences) {
         matchLine = matchLine.replace(stringToLookFor, `==${stringToLookFor}==`)
       }
       // console.log(`    -> ${matchLine}`)

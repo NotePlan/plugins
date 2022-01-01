@@ -7,7 +7,7 @@
 	"plugin.icon": "",
 	"plugin.author": "Jonathan Clark",
 	"plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
-	"plugin.version": "0.2.1",
+	"plugin.version": "0.3.0",
 	"plugin.dependencies": [],
 	"plugin.script": "script.js",
 	"plugin.isRemote": "false",
@@ -37,5 +37,142 @@
 			"jsFunction": "saveSearch"
 		}
 	],
-	"plugin.preferences": []
+	"plugin.preferences": [
+    {
+      "type": "Heading",
+      "title": "Summaries plugin settings"
+    },
+    {
+      "key": "folderToStore",
+      "title": "Folder name",
+      "description": "Folder to store any output files in",
+      "type": "string",
+      "default": "Summaries",
+      "required": true
+    },
+		{
+      "key": "foldersToExclude",
+      "title": "Folders to exclude",
+      "description": "List of folders to exlude in these commands. May be empty. (Note that @Trash and @Archive are always excluded.)",
+      "type": "[string]",
+      "default": ["📋 Templates", "Summaries"],
+      "required": true
+    },
+    {
+      "key": "headingLevel",
+      "title": "Heading level",
+      "description": "Heaing level (1-5) to use when writing output to notes",
+      "type": "integer",
+      "default": "2",
+      "required": true
+    },
+    {
+      "type": "Heading",
+      "title": "`countsInPeriod` command settings"
+    },
+		{
+      "key": "hashtagCountsHeading",
+      "title": "Hashtag counts heading",
+      "description": "Heading to go before section of #hashtag counts",
+      "type": "string",
+      "default": "#hashtag counts",
+      "required": false
+    },
+		{
+      "key": "mentionCountsHeading",
+      "title": "Mention counts heading",
+      "description": "Heading to go before section of @mention counts",
+      "type": "string",
+      "default": "#hashtag counts",
+      "required": false
+    },
+    {
+      "key": "showAsHashtagOrMention",
+      "title": "Show hashtag or mention as links?",
+      "description": "Whether to show the # or @ symbols, or hide them to stop them being active links",
+      "type": "boolean",
+      "default": true,
+      "required": false
+    },
+    {
+      "type": "Note",
+      "title": "In the following the includes (if specified) take precedence over any excludes. Items in the list need to be included in quotes, separated by commas."
+    },
+		{
+      "key": "includeHashtags",
+      "title": "Include hashtags",
+      "description": "List of #hashtags to include in counts. If empty, all will be included. For example '#holiday', '#jog', '#commute', '#webinar'",
+      "type": "[string]",
+      "default": [],
+      "required": true
+    },
+		{
+      "key": "excludeHashtags",
+      "title": "Exclude hashtags",
+      "description": "List of #hashtags to exclude in counts. If empty, none will be excluded.",
+      "type": "[string]",
+      "default": [],
+      "required": true
+    },
+		{
+      "key": "includeMentions",
+      "title": "Include @mentions",
+      "description": "List of @mentions to include in counts. If empty, all will be included. For example '@work', '@fruitveg', '@water', '@sleep'",
+      "type": "[string]",
+      "default": [],
+      "required": true
+    },
+		{
+      "key": "excludeMentions",
+      "title": "Exclude @mentions",
+      "description": "List of @mentions to exclude in counts. If empty, none will be excluded.",
+      "type": "[string]",
+      "default": ["@done", "@repeat"],
+      "required": true
+    },
+    {
+      "type": "Heading",
+      "title": "`occurrencesInPeriod` command settings"
+    },
+		{
+      "key": "occurrencesHeading",
+      "title": "Occurrences heading",
+      "description": "Heading to go before occurrences output",
+      "type": "string",
+      "default": "Occurrences",
+      "required": false
+    },
+		{
+      "key": "occurrencesToMatch",
+      "title": "Search terms",
+      "description": "Optional list of search terms to use. If not given, or empty, you will be asked for terms each time you run the command.",
+      "type": "[string]",
+      "default": ["idea", "@review", "#question"],
+      "required": false
+    },
+    {
+      "key": "highlightOccurrences",
+      "title": "Highlight matching occurrences?",
+      "description": "Whether to use ==highlight== of matched occurrences in output. (Works best when using a theme with highlighting.)",
+      "type": "boolean",
+      "default": true,
+      "required": false
+    },
+    {
+      "key": "showEmptyOccurrences",
+      "title": "Show empty occurrences?",
+      "description": "If no occurrences of search term(s) are found, setting this true will still show a heading for the term(s)",
+      "type": "boolean",
+      "default": false,
+      "required": false
+    },
+		{
+      "key": "dateStyle",
+      "title": "Date style",
+      "description": "Where the context for an occurrence is a date, does it get appended as a 'date' using your locale, or as a NP date 'link' (`>date`) or 'none'",
+      "type": "string",
+      "default": "link",
+      "required": true
+    }
+	]
 }

@@ -2,29 +2,31 @@
 //-----------------------------------------------------------------------------
 // Summary commands for notes
 // Jonathan Clark
-// v0.4.0, 2.11.2021
+// v0.3.0, 8.11.2021
 //-----------------------------------------------------------------------------
 
 import {
+  getWeek,
+  hyphenatedDate,
   monthNameAbbrev,
   quarterStartEnd,
   todaysDateISOString,
   toISODateString,
   toLocaleDateString,
   toLocaleDateTimeString,
-  getWeek,
   weekStartEnd,
-  hyphenatedDate,
 } from '../../helpers/dateTime'
-
 import {
   chooseOption,
   getInput
 } from '../../helpers/userInput'
-
+import {
+  castStringArrayFromMixed,
+  castStringFromMixed
+} from '../../m1well.Expenses/src/expensesHelper'
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 
-export const DEFAULT_SUMMARIES_OPTIONS = `  summaries: {
+export const DEFAULT_SUMMARIES_CONFIG = `  summaries: {
     folderToStore: 'Summaries', // folder to store any output files in
     foldersToIgnore: ['📋 Templates', 'Summaries'], // list of folders to exlude in these commands. Note that @Trash and @Archive are always excluded
     headingLevel: 2, // use level 1-5 headings when writing output to notes
@@ -39,16 +41,157 @@ export const DEFAULT_SUMMARIES_OPTIONS = `  summaries: {
     excludeMentions: ['@done', '@repeat'],
     // settings for 'occurrencesInPeriod':
     occurrencesHeading: 'Occurrences',
-    occurrencesToMatch: ['idea', '@review', '#question'],
+    defaultOccurrences: ['idea', '@review', '#question'],
     highlightOccurrences: false, // use ==highlight== of matched occurrences in output
     showEmptyOccurrences: false, // if no occurrences found of this string to match, make this clear
-    dateStyle: 'link', // where the context for an occurrence is a date, does it get appended as a 'date' using your locale, or as a NP date 'link' (>date) or 'none'
+    dateStyle: 'link', // where the context for an occurrence is a date, does it get appended as a 'date' using your locale, or as a NP date 'link' ('>date') or 'at' ('@date') or 'none'
   },
 `
+export type headingLevelType = 1 | 2 | 3 | 4 | 5
+export type SummariesConfig = {
+  folderToStore: string,
+  foldersToIgnore: string[],
+  headingLevel: headingLevelType,
+  hashtagCountsHeading: string,
+  mentionCountsHeading: string,
+  showAsHashtagOrMention: boolean,
+  includeHashtags: string[],
+  excludeHashtags: string[],
+  includeMentions: string[],
+  excludeMentions: string[],
+  occurrencesHeading: string,
+  defaultOccurrences: string[],
+  highlightOccurrences: boolean,
+  showEmptyOccurrences: boolean,
+  dateStyle: string,
+  weeklyStatsDuration: ?number,
+}
+
+/**
+ * Cast boolean from the config mixed. Based on @m1well's config system.
+ *
+ * @param val the config mixed
+ * @param key name of the property you want to cast
+ * @returns {boolean} cast value
+ */
+const castBooleanFromMixed = (val: { [string]: ?mixed }, key: string): boolean => {
+  return val.hasOwnProperty(key) ? ((val[key]: any): boolean) : false
+}
+
+/**
+ * Cast number from the config mixed. Based on @m1well's config system.
+ *
+ * @param val the config mixed
+ * @param key name of the property you want to cast
+ * @returns {number} cast value
+ */
+const castNumberFromMixed = (val: { [string]: ?mixed }, key: string): number => {
+  return val.hasOwnProperty(key) ? ((val[key]: any): number) : NaN
+}
+
+/**
+ * Cast number from the config mixed. Based on @m1well's config system.
+ *
+ * @param val the config mixed
+ * @param key name of the property you want to cast
+ * @returns {number} cast value
+ */
+const castHeadingLevelFromMixed = (val: { [string]: ?mixed }, key: string): headingLevelType => {
+  return val.hasOwnProperty(key) ? ((val[key]: any): headingLevelType) : 2
+}
+
+// const CONFIG_KEYS = {
+//   folderToStore: 'folderToStore',
+//   foldersToIgnore: 'foldersToIgnore',
+//   headingLevel: 'headingLevel',
+//   hashtagCountsHeading: 'hashtagCountsHeading',
+//   mentionCountsHeading: 'mentionCountsHeading',
+//   showAsHashtagOrMention: 'showAsHashtagOrMention',
+//   includeHashtags: 'includeHashtags',
+//   excludeHashtags: 'excludeHashtags',
+//   includeMentions: 'includeMentions',
+//   excludeMentions: 'excludeMentions',
+//   occurrencesHeading: 'occurrencesHeading',
+//   defaultOccurrences: 'defaultOccurrences',
+//   highlightOccurrences: 'highlightOccurrences',
+//   showEmptyOccurrences: 'showEmptyOccurrences',
+//   dateStyle: 'dateStyle',
+//   weeklyStatsDuration: 'weeklyStatsDuration',
+// }
+
+// const config: SummariesConfig = {
+//   folderToStore: castStringFromMixed(result, CONFIG_KEYS.folderToStore),
+//   headingLevel: castNumberFromMixed(result, CONFIG_KEYS.headingLevel),
+//   hashtagCountsHeading: castStringFromMixed(result, CONFIG_KEYS.hashtagCountsHeading),
+//   mentionCountsHeading: castStringFromMixed(result, CONFIG_KEYS.mentionCountsHeading),
+//   showAsHashtagOrMention: castBooleanFromMixed(result, CONFIG_KEYS.showAsHashtagOrMention),
+//   includeHashtags: castStringArrayFromMixed(result, CONFIG_KEYS.includeHashtags),
+//   excludeHashtags: castStringArrayFromMixed(result, CONFIG_KEYS.excludeHashtags),
+//   includeMentions: castStringArrayFromMixed(result, CONFIG_KEYS.includeMentions),
+//   excludeMentions: castStringArrayFromMixed(result, CONFIG_KEYS.excludeMentions),
+// }
+
+/**
+ * Provide config from _configuration and cast content to real objects. (Borrowing approach from @m1well)
+ *
+ * @private
+ * @return {SummariesConfig} object with configuration
+ */
+export const getConfigSettings = (): Promise<SummariesConfig> => {
+  return getOrMakeConfigurationSection(
+    'summaries',
+    DEFAULT_SUMMARIES_CONFIG
+  )
+  .then(result => {
+    if (result == null || Object.keys(result).length === 0) {
+      console.log(`error: expected config could not be found in the _configuration file`)
+      return {
+        folderToStore: 'Summaries',
+        foldersToIgnore: ['📋 Templates', 'Summaries'],
+        headingLevel: 2,
+        hashtagCountsHeading: '#hashtag counts',
+        mentionCountsHeading: '@mention counts',
+        showAsHashtagOrMention: false,
+        includeHashtags: [],
+        excludeHashtags: [],
+        includeMentions: [],
+        excludeMentions: ['@done', '@repeat'],
+        occurrencesHeading: 'Occurrences',
+        defaultOccurrences: ['idea', '@review', '#question'],
+        highlightOccurrences: false,
+        showEmptyOccurrences: false,
+        dateStyle: 'link',
+        weeklyStatsDuration: undefined,
+      }
+    } else {
+      const config: SummariesConfig = {
+        folderToStore: castStringFromMixed(result, 'folderToStore'),
+        foldersToIgnore: castStringArrayFromMixed(result, 'foldersToIgnore'),
+        headingLevel: castHeadingLevelFromMixed(result, 'headingLevel'),
+        hashtagCountsHeading: castStringFromMixed(result, 'hashtagCountsHeading'),
+        mentionCountsHeading: castStringFromMixed(result, 'mentionCountsHeading'),
+        showAsHashtagOrMention: castBooleanFromMixed(result, 'showAsHashtagOrMention'),
+        includeHashtags: castStringArrayFromMixed(result, 'includeHashtags'),
+        excludeHashtags: castStringArrayFromMixed(result, 'excludeHashtags'),
+        includeMentions: castStringArrayFromMixed(result, 'includeMentions'),
+        excludeMentions: castStringArrayFromMixed(result, 'excludeMentions'),
+        occurrencesHeading: castStringFromMixed(result, 'occurrencesHeading'),
+        defaultOccurrences: castStringArrayFromMixed(result, 'defaultOccurrences'),
+        highlightOccurrences: castBooleanFromMixed(result, 'highlightOccurrences'),
+        showEmptyOccurrences: castBooleanFromMixed(result, 'showEmptyOccurrences'),
+        dateStyle: castStringFromMixed(result, 'dateStyle'),
+        weeklyStatsDuration: castNumberFromMixed(result, 'weeklyStatsDuration'),
+      }
+      // console.log(`loaded config OK`)
+      // console.log(`config = ${JSON.stringify(result)}\n`)
+      return config
+    }
+  })
+}
 
 export async function getPeriodStartEndDates(question: string = 'Create stats for which period?'):
   Promise<[Date, Date, string, string]> {
-  // Ask user what time interval to do tag counts for
+  // Ask user what date interval to do tag counts for
   const period = await chooseOption(
     question,
     [
@@ -138,8 +281,8 @@ export async function getPeriodStartEndDates(question: string = 'Create stats fo
       break
     }
     case 'om': {
+      const theY = Number(await getInput('Choose year, e.g. 2021', 'OK'))
       const theM = Number(await getInput('Choose month, (1-12)', 'OK'))
-      const theY = Number(await getInput('Choose date, e.g. 2019', 'OK'))
       fromDate = Calendar.addUnitToDate(Calendar.dateFrom(theY, theM, 1, 0, 0, 0), 'minute', -TZOffset) // start of this month
       toDate = Calendar.addUnitToDate(fromDate, 'month', 1) // + 1 month
       toDate = Calendar.addUnitToDate(toDate, 'day', -1) // -1 day, to get last day of last month
@@ -174,8 +317,8 @@ export async function getPeriodStartEndDates(question: string = 'Create stats fo
       break
     }
     case 'oq': {
+      const theY = Number(await getInput('Choose year, e.g. 2021', 'OK'))
       const theQ = Number(await getInput('Choose quarter, (1-4)', 'OK'))
-      const theY = Number(await getInput('Choose date, e.g. 2019', 'OK'))
       const theQStartMonth = (theQ - 1) * 3 + 1
       const [f, t] = quarterStartEnd(theQ, theY)
       fromDate = f
@@ -189,31 +332,41 @@ export async function getPeriodStartEndDates(question: string = 'Create stats fo
     }
     
     case 'lw': { // last week
+      let theY = y
       const currentWeekNum = getWeek(todaysDate)
+      // First deal with edge case: after start of ordinal year but before first week starts
+      if (currentWeekNum === 52 && m == 1) {
+        theY -= 1
+      }
+      console.log(`currentWeekNum = ${currentWeekNum} theY = ${theY}`) // TODO: remove me
       let lastWeekNum = 0
-      let newY = y
       if (currentWeekNum === 1) {
         lastWeekNum = 52
-        newY--
+        theY--
       } else {
         lastWeekNum = currentWeekNum - 1
       }
-      [ fromDate, toDate ] = weekStartEnd(lastWeekNum, newY)
-      periodString = `W${lastWeekNum} ${newY}`
+      [ fromDate, toDate ] = weekStartEnd(lastWeekNum, theY)
+      periodString = `W${lastWeekNum} ${theY}`
       break
     }
     case 'wtd': { // week to date
+      let theY = y
       const currentWeekNum = getWeek(todaysDate)
+      // First deal with edge case: after start of ordinal year but before first week starts
+      if (currentWeekNum === 52 && m == 1) {
+        theY -= 1
+      }
       // I don't know why the [from, to] construct doesn't work here, but using tempObj instead
-      const tempObj = weekStartEnd(currentWeekNum, y)
+      const tempObj = weekStartEnd(currentWeekNum, theY)
       fromDate = tempObj[0]
       toDate = tempObj[1]
-      periodString = `W${currentWeekNum} ${y}`
+      periodString = `W${currentWeekNum} ${theY}`
       break
     }
     case 'ow': { // other week
+      const theYear = Number(await getInput('Choose year, e.g. 2021', 'OK'))
       const weekNum = Number(await getInput('Choose week number, 1-53', 'OK'))
-      const theYear = Number(await getInput('Choose date, e.g. 2021', 'OK'))
       // I don't know why the [from, to] form doesn't work here, but using tempObj instead
       const tempObj = weekStartEnd(weekNum, theYear)
       fromDate = tempObj[0]
@@ -236,13 +389,14 @@ export async function getPeriodStartEndDates(question: string = 'Create stats fo
       break
     }
     case 'oy': {
-      const theYear = Number(await getInput('Choose date, e.g. 2019', 'OK'))
+      const theYear = Number(await getInput('Choose year, e.g. 2021', 'OK'))
       fromDate = Calendar.addUnitToDate(Calendar.dateFrom(theYear, 1, 1, 0, 0, 0), 'minute', -TZOffset) // start of this year
       toDate = Calendar.addUnitToDate(Calendar.dateFrom(theYear, 12, 31, 0, 0, 0), 'minute', -TZOffset)
       periodString = `${theYear}`
       break
     }
   }
+  // console.log(`-> ${fromDate.toString()}, ${toDate.toString()}, ${periodString}, ${periodPartStr}`)
   return [fromDate, toDate, periodString, periodPartStr]
 }
 
@@ -275,7 +429,6 @@ export function removeSection(note: TNote, heading: string): number {
     // Work out the set of paragraphs to remove
     const psToRemove = []
     note.removeParagraph(ps[existingHeadingIndex])
-    let removed = 1
     for (let i = existingHeadingIndex + 1; i < ps.length; i++) {
       // stop removing when we reach heading of same or higher level
       // if (ps[i].type === 'title' || ps[i].content === '') {
@@ -283,13 +436,9 @@ export function removeSection(note: TNote, heading: string): number {
         break
       }
       psToRemove.push(ps[i])
-      // note.removeParagraph(ps[i])
-      removed++
     }
-    // console.log(`\t   Removed ${removed} paragraphs. ${existingHeadingIndex}`)
 
     // Delete the saved set of paragraphs
-    // TODO: when NP API bug is resolved, revert to this instead of above
     note.removeParagraphs(psToRemove)
     console.log(`\t  -> removed ${psToRemove.length} paragraphs`)
     return existingHeadingIndex
@@ -299,7 +448,7 @@ export function removeSection(note: TNote, heading: string): number {
 }
 
 /** -------------------------------------------------------------------------------
- * Return list of lines matching the specified string in project or daily notes.
+ * Return list of lines matching the specified string in the specified project or daily notes.
  * @param {array} notes - array of Notes to look over
  * @param {string} stringToLookFor - string to look for
  * @param {boolean} highlightOccurrences - whether to enclose found string in ==marks==
@@ -326,20 +475,21 @@ export async function gatherMatchingLines(
     const noteContext = (n.date == null)
       ? `[[${n.title ?? ''}]]`
       : (dateStyle.startsWith('link')) // to deal with earlier typo where default was set to 'links'
-        // ? `>${toISODateString(n.date)}` // FIXME: This returns a day early
         // $FlowIgnore(incompatible-call)
-        ? `>${hyphenatedDate(n.date)}`
+        ? ` >${hyphenatedDate(n.date)}`
         : (dateStyle === 'date')
           // $FlowIgnore(incompatible-call)
-          ? `(${toLocaleDateTimeString(n.date)})`
-          : ''
+          ? ` (${toLocaleDateTimeString(n.date)})`
+          : (dateStyle === 'at')
+            // $FlowIgnore(incompatible-call)
+            ? ` @${hyphenatedDate(n.date)}`
+            : ''
     // find any matches
     const matchingParas = n.paragraphs.filter((q) => q.content.includes(stringToLookFor))
     for (const p of matchingParas) {
       let matchLine = p.content
       // If the stringToLookFor is in the form of an 'attribute::' and found at the start of a line,
       // then remove it from the output line
-      // console.log(`  Found '${stringToLookFor}' in ${matchLine} (${noteContext})`)
       if (stringToLookFor.endsWith('::') && matchLine.startsWith(stringToLookFor)) {
         matchLine = matchLine.replace(stringToLookFor, '') // NB: only removes first instance
         // console.log(`    -> ${matchLine}`)

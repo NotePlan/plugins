@@ -10,20 +10,19 @@ This plugin lets you do the following with your daily (calendar) notes:
 
 You can also save results of any search over all notes.
 
-## About
+## Commands
 This Plugin provides commands that generate several different sorts of **summaries from your daily notes**, that are saved back into special NotePlan notes in the Summaries folder. They all start by asking for the time period you wish to operate over:
 
 ![time period selection](time-period-selection.jpg)
 
-- **`/saveSearchResults`** searches across all notes (both calendar and projects) for a text string you give. It asks where to save its output: to the curre note, to the Plugin Console, or to a specially-created note in the Summaries folder.  (If the latter, it will update the previous note with that same title, if it exists.)
-- 
-- **`/countsInPeriod`** generates some simple counts and other statistics of #hashtags or @mentions that you specify. It asks where to save its output: to screen, to the Plugin Console, or to a specially-created note in the Summaries folder.  (If the latter, it will update the previous note for that same time period, if it exists.)
-
-- **`/occurrencesInPeriod`** generates all occurences of one or more search terms (from the settings) found in the daily notes of the time period you select.
+- **`/saveSearchResults`** searches across all notes (both calendar and projects) for a text string you give. It asks where to save its output: to the curre note, to the Plugin Console, or to a specially-created note in the Summaries folder.  (It will update the previous note with that same title, if it exists.)
+- **`/occurrencesInPeriod`** generates all occurences of one or more search terms from the daily notes of the time period you select. It offers you your default search terms (if set by ``), or lets you choose. Where an occurrence is in a daily note, this can be appended as a date in your locale or as a date 'link', as configured below.
+- **`/countsInPeriod`** generates some simple counts and other statistics of #hashtags or @mentions that you specify. It asks where to save its output: to screen, to the Plugin Console, or to a specially-created note in the Summaries folder.  (It will update the previous note for that same time period, if it exists.)
+- **`/weeklyStats`** is a rather niche command! It generates stats for the specified mentions and hashtags over a period of consecutive weeks, and write out as a CSV table to 'Summaries/weekly_stats'. This is designed for plotting using the third-party gnuplot tool.
 
 **Please note** that in each of these: 
-- all notes in the special folders Templates, Summaries, Archive and Trash are ignored.  This can be customised (see below).
-- the search is a simple one, not using fuzzy matching or regular expressions.
+- all notes in the special folders @Archive and @Trash are ignored.  Others can be exluded too using the `foldersToExclude` setting (see below).
+- the searches are simple ones, not using fuzzy matching or regular expressions.
 
 ## Configuration
 These commands require configuration; the first time either is run it should detect it doesn't have configuration, and offer to write some to the first configuration block of the `Templates/_configuration` note (as used by the Templates system). 
@@ -34,7 +33,7 @@ Alternatively, in that note, include the following settings you want in its firs
   ...
   summaries: {
     folderToStore: 'Summaries', // folder to store any output files in
-    foldersToExclude: ['📋 Templates', 'Summaries'], // list of folders to exlude in these commands. Note that @Trash and @Archive are always excluded
+    foldersToExclude: ['📋 Templates', 'Summaries'], // list of folders (and their sub-folders) to exlude in these commands. Note that @Trash and @Archive are always excluded
     headingLevel: 2, // use level 1-5 headings when writing output to notes
     // settings for 'countsInPeriod':
     hashtagCountsHeading: '#hashtag counts',
@@ -48,10 +47,10 @@ Alternatively, in that note, include the following settings you want in its firs
     excludeMentions: ['@done', '@repeat'],
   // settings for 'occurrencesInPeriod':
     occurrencesHeading: 'Occurrences',
-    occurrencesToMatch: ['idea', '@review', '#question'],
+    defaultOccurrences: ['idea', '@review', '#question'],
     highlightOccurrences: false, // use ==highlight== of matched occurrences in output
     showEmptyOccurrences: false, // if no occurrences found of this string to match, make this clear
-    dateStyle: 'link', // where the context for an occurrence is a date, does it get appended as a 'date' using your locale, or as a NP date 'link' (`>date`) or 'none'
+    dateStyle: 'link', // where the context for an occurrence is a date, does it get appended as a `date` using your locale, or as a NP date `link` (`>date`) or `at` (`@date`) or `none`
   },
   ...
 }

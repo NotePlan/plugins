@@ -10,6 +10,14 @@
 // Helper functions
 
 import {
+  gatherMatchingLines,
+  getConfigSettings,
+  getPeriodStartEndDates,
+  removeSection,
+  // DEFAULT_SUMMARIES_CONFIG,
+} from './summaryHelpers'
+import type { SummariesConfig } from './summaryHelpers'
+import {
   quarterStartEnd,
   todaysDateISOString,
   unhyphenatedDate,
@@ -33,71 +41,16 @@ import {
   getInput,
 } from '../../helpers/userInput'
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
-import {
-  getPeriodStartEndDates,
-  removeSection,
-  gatherMatchingLines,
-  DEFAULT_SUMMARIES_OPTIONS,
-} from './summaryHelpers'
-
-//-----------------------------------------------------------------------------
-// Config settings
-// Globals, to be looked up later
-let pref_folderToStore: string
-let pref_foldersToIgnore: Array<string> = []
-let pref_headingLevel: 1 | 2 | 3 | 4 | 5
-let pref_highlightOccurrences: boolean
-let pref_dateStyle: string
-
-async function getPluginSettings(): Promise<void> {
-  // Get config settings from Template folder _configuration note
-  const summConfig = await getOrMakeConfigurationSection(
-    'summaries',
-    DEFAULT_SUMMARIES_OPTIONS,
-    // no minimum config required, as all defaults are given below
-  )
-  if (summConfig == null) {
-    console.log("\tCouldn't find 'summaries' settings in _configuration note.")
-    return
-  }
-
-  console.log("\tFound 'summaries' settings in _configuration note.")
-  // now get each setting
-  pref_folderToStore =
-    summConfig.folderToStore != null
-      ? String(summConfig.folderToStore)
-      : 'Summaries'
-  // console.log(pref_folderToStore)
-  pref_foldersToIgnore =
-    summConfig.foldersToIgnore != null
-      // $FlowIgnore[incompatible-type]
-      ? summConfig.foldersToIgnore
-      : ['📋 Templates']
-  // console.log(String(pref_foldersToIgnore))
-  pref_headingLevel =
-    summConfig.headingLevel != null
-      // $FlowIgnore[incompatible-type]
-      ? summConfig.headingLevel
-      : 2
-  // console.log(pref_headingLevel)
-  pref_highlightOccurrences =
-    summConfig.highlightOccurrences != null
-      // $FlowIgnore[incompatible-type]
-      ? summConfig.highlightOccurrences
-      : false
-  // console.log(pref_highlightOccurrences)
-  pref_dateStyle =
-    summConfig.dateStyle != null
-      ? String(summConfig.dateStyle)
-      : 'link'
-  console.log(`  pref_dateStyle = '${pref_dateStyle}'`)
-}
 
 //-------------------------------------------------------------------------------
-// Ask user which period to cover, call main stats function, and present results
+
+/**
+ * Ask user which period to cover, call main stats function, and present results
+ * @author @jgclark
+ */
 export async function saveSearch(): Promise<void> {
   // get relevant settings
-  await getPluginSettings()
+  let config = await getConfigSettings()
 
   // Ask user for search term
   const searchTerm = await getInput(`Exact word/phrase to search for`)
@@ -131,7 +84,7 @@ export async function saveSearch(): Promise<void> {
   // Iterate over the folders ...
   for (const pn of allProjectNotes) {
     const thisFolder = getFolderFromFilename(pn.filename)
-    if (!pref_foldersToIgnore.includes(thisFolder)) {
+    if (!config.foldersToIgnore.includes(thisFolder)) {
       projectNotesToInclude.push(pn)
     } else {
       console.log(pn.filename)
@@ -144,7 +97,7 @@ export async function saveSearch(): Promise<void> {
   // Find matches in this set of notes for the time period
   const outputArray = []
   // output a heading first
-  const results = await gatherMatchingLines(notes, searchTerm, pref_highlightOccurrences, pref_dateStyle)
+  const results = await gatherMatchingLines(notes, searchTerm, config.highlightOccurrences, config.dateStyle)
   const lines = results?.[0]
   const contexts = results?.[1]
   if (lines.length > 0) {
@@ -161,7 +114,7 @@ export async function saveSearch(): Promise<void> {
   }
 
   // Ask where to save this summary to
-  const labelString = `🖊 Create/update note in folder '${pref_folderToStore}'`
+  const labelString = `🖊 Create/update note in folder '${config.folderToStore}'`
   const destination = await chooseOption(
     `Where should I save the search results?`,
     [
@@ -205,7 +158,7 @@ export async function saveSearch(): Promise<void> {
         currentNote.insertHeading(
           `${headingString} at ${currentDate}`,
           insertionLineIndex,
-          pref_headingLevel,
+          config.headingLevel,
         )
         currentNote.appendParagraph(
           outputArray.join('\n'),
@@ -233,7 +186,7 @@ export async function saveSearch(): Promise<void> {
         // console.log(`\tfilename of first matching note: ${displayTitle(note)}`)
       } else {
         // make a new note for this. NB: filename here = folder + filename
-        const noteFilename = DataStore.newNote(requestedTitle, pref_folderToStore) ?? ''
+        const noteFilename = DataStore.newNote(requestedTitle, config.folderToStore) ?? ''
         if (noteFilename === '') {
           console.log(`\tError creating new note (filename '${noteFilename}')`)
           await showMessage('There was an error creating the new note')
@@ -262,14 +215,14 @@ export async function saveSearch(): Promise<void> {
       note.insertHeading(
         `${headingString} at ${currentDate}`,
         insertionLineIndex,
-        pref_headingLevel,
+        config.headingLevel,
       )
       note.insertParagraph(
         outputArray.join('\n'),
         insertionLineIndex + 1,
         'text',
       )
-      Editor.openNoteByFilename(note.filename)
+      await Editor.openNoteByFilename(note.filename)
 
       console.log(`\twritten results to note '${requestedTitle}'`)
       break

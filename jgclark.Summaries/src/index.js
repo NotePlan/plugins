@@ -3,9 +3,10 @@
 //-----------------------------------------------------------------------------
 // Summary commands for notes
 // Jonathan Clark
-// v0.4.0, 3.11.2021
+// Last updated 29.12.2021 for v0.3.0
 //-----------------------------------------------------------------------------
 
-export { statsPeriod, weeklyStats } from './stats'
+export { weeklyStats } from './forPlotting'
 export { occurrencesPeriod } from './occurrences'
 export { saveSearch } from './saveSearch'
+export { statsPeriod } from './stats'
