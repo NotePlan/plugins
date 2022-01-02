@@ -26,7 +26,7 @@ export async function getVersePlain(): Promise<string> {
 
     const data = JSON.parse(response)[0]
 
-    const result = `${data.bookname} ${data.chapter}:${data.verse} - ${data.text}`
+    const result = `*${data.bookname} ${data.chapter}:${data.verse}* - ${data.text}`
 
     return result
   } catch (error) {

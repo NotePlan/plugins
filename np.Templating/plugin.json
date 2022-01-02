@@ -2,8 +2,8 @@
   "macOS.minVersion": "10.13.0",
   "noteplan.minAppVersion": "3.0.21",
   "plugin.id": "np.Templating",
-  "plugin.name": " 📒 NotePlan Templating",
-  "plugin.version": "0.0.11",
+  "plugin.name": " 📒 np.Templating",
+  "plugin.version": "0.0.12",
   "plugin.description": "Templating Plugin for NotePlan",
   "plugin.author": "Mike Erickson",
   "plugin.dependencies": [],
@@ -47,6 +47,12 @@
       "jsFunction": "templateAffirmation"
     },
     {
+      "name": "np:quote",
+      "alias": [],
+      "description": "Returns random quote",
+      "jsFunction": "templateQuote"
+    },
+    {
       "name": "np:verse",
       "alias": [],
       "description": "Returns random bible verse",
@@ -55,7 +61,7 @@
     {
       "name": "np:weather",
       "alias": [],
-      "description": "Returns weather for current locastion",
+      "description": "Returns weather for current location",
       "jsFunction": "templateWeather"
     }
   ]

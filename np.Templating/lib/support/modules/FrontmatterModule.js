@@ -2,7 +2,7 @@
 
 import fm from 'front-matter'
 
-export default class UtilsModule {
+export default class FrontmatterModule {
   constructor(config: any = {}) {
     // $FlowFixMe
     this.config = config

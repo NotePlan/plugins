@@ -33,27 +33,6 @@ export default class DateModule {
       : new Date().toLocaleString()
   }
 
-  convertTime12to24(userTime = '') {
-    if (userTime.length === 0) {
-      return ''
-    }
-
-    const time12h = userTime.replace('_AM', ' AM').replace('_PM', ' PM')
-    const [time, modifier] = time12h.split(' ')
-
-    let [hours, minutes] = time.split(':')
-
-    if (hours === '12') {
-      hours = '00'
-    }
-
-    if (modifier === 'PM') {
-      hours = parseInt(hours, 10) + 12
-    }
-
-    return `${hours}:${minutes}`
-  }
-
   format(format = '', date = '') {
     let dateValue = date.length > 0 ? new Date(date) : new Date()
     if (date.length === 10) {

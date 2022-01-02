@@ -12,7 +12,8 @@ import WebModule from '@templatingModules/WebModule'
 import DateModule from '@templatingModules/DateModule'
 import TimeModule from '@templatingModules/TimeModule'
 import NoteModule from '@templatingModules/NoteModule'
-import UtilsModule from '@templatingModules/UtilsModule'
+import UtilityModule from '@templatingModules/UtilityModule'
+import SystemModule from '@templatingModules/SystemModule'
 import FrontmatterModule from '@templatingModules/FrontmatterModule'
 
 import { showError } from '../../codedungeon.Tester/src/lib/testerUtils'
@@ -64,7 +65,8 @@ export default class TemplatingEngine {
     const helpers = {
       date: new DateModule(this.templateConfig),
       time: new TimeModule(this.templateConfig),
-      utils: new UtilsModule(this.templateConfig),
+      utility: new UtilityModule(this.templateConfig),
+      system: new SystemModule(this.templateConfig),
       note: new NoteModule(this.templateConfig),
       frontmatter: {},
       user: {

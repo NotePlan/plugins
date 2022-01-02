@@ -5,15 +5,18 @@
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
  * -----------------------------------------------------------------------------------------*/
 
-import clipboard from 'clipboardy'
-
 export default class SystemModule {
-  constructor() {
-    //
+  config: any
+  constructor(config: any = {}) {
+    this.config = config
   }
 
-  async cliboard(): Promise<string> {
-    return clipboard.readSync()
+  selection(): string {
+    return this.config.selection
+  }
+
+  clipboard(): string {
+    return this.config.clipboard
   }
 
   async prompt(value: string = '', message: string = ''): Promise<string> {

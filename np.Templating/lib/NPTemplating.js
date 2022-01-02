@@ -11,6 +11,10 @@ import { getOrMakeConfigurationSection } from './toolbox'
 
 const TEMPLATE_FOLDER_NAME = '📋 Templates'
 
+export const selection = async (): Promise<string> => {
+  return Editor.selectedParagraphs.map((para) => para.rawContent).join('\n')
+}
+
 // Important: Replicate _configuration.templates object in TEMPLATE_CONFIG_BLOCK
 export const DEFAULT_TEMPLATE_CONFIG = {
   locale: 'en-US',
@@ -78,7 +82,10 @@ export default class NPTemplating {
   }
 
   static async setup() {
-    this.constructor.templateConfig = await getOrMakeConfigurationSection('templates', await TEMPLATE_CONFIG_BLOCK())
+    this.constructor.templateConfig = {
+      ...(await getOrMakeConfigurationSection('templates', await TEMPLATE_CONFIG_BLOCK())),
+      ...{ selection: await selection(), clipboard: Clipboard.string },
+    }
   }
 
   static async heartbeat(): Promise<string> {
@@ -240,13 +247,16 @@ export default class NPTemplating {
     let sessionTemplateData = templateData
 
     for (const tag of await this.getTags(templateData)) {
-      // $FlowIgnore
-      const { varName, promptMessage, options } = await this.getPromptParameters(tag)
+      // if tag is from module, it will contain period so we need to make sure this tag is not a module
+      if (tag.indexOf('.') === -1) {
+        // $FlowIgnore
+        const { varName, promptMessage, options } = await this.getPromptParameters(tag)
 
-      if (!sessionData.hasOwnProperty(varName)) {
-        sessionData[varName] = await this.prompt(promptMessage, options)
+        if (!sessionData.hasOwnProperty(varName)) {
+          sessionData[varName] = await (await this.prompt(promptMessage, options)).trim()
+        }
+        sessionTemplateData = sessionTemplateData.replace(tag, `${startTag}= ${varName} ${endTag}`)
       }
-      sessionTemplateData = sessionTemplateData.replace(tag, `${startTag}= ${varName} ${endTag}`)
     }
 
     return { sessionTemplateData, sessionData }

@@ -2,7 +2,8 @@
 
 import { sprintf } from 'sprintf-js'
 
-export default class UtilsModule {
+export default class UtilityModule {
+  config: any
   constructor(config: any = {}) {
     // $FlowFixMe
     this.config = config

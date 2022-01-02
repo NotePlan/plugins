@@ -12,6 +12,7 @@ import { getOrMakeTemplateFolder } from '@templating/toolbox'
 import { getAffirmation } from '../lib/support/modules/affirmation'
 import { getAdvice } from '../lib/support/modules/advice'
 import { getWeather } from '../lib/support/modules/weather'
+import { getDailyQuote } from '../lib/support/modules/quote'
 import { getVerse, getVersePlain } from '../lib/support/modules/verse'
 
 export async function templateInit(): Promise<void> {
@@ -157,7 +158,7 @@ export async function templateAdvice(): Promise<string> {
 
     Editor.insertTextAtCursor(advice)
   } catch (error) {
-    Editor.insertTextAtCursor('**An error occurred accessing weather service**')
+    Editor.insertTextAtCursor('**An error occurred accessing advice service**')
   }
 }
 
@@ -169,7 +170,7 @@ export async function templateAffirmation(): Promise<string> {
 
     Editor.insertTextAtCursor(affirmation)
   } catch (error) {
-    Editor.insertTextAtCursor('**An error occurred accessing weather service**')
+    Editor.insertTextAtCursor('**An error occurred accessing affirmation service**')
   }
 }
 
@@ -181,6 +182,18 @@ export async function templateVerse(): Promise<string> {
 
     Editor.insertTextAtCursor(verse)
   } catch (error) {
-    Editor.insertTextAtCursor('**An error occurred accessing weather service**')
+    Editor.insertTextAtCursor('**An error occurred accessing bible service**')
+  }
+}
+
+// $FlowIgnore
+export async function templateQuote(): Promise<string> {
+  try {
+    // $FlowIgnore
+    const verse: string = await getDailyQuote()
+
+    Editor.insertTextAtCursor(verse)
+  } catch (error) {
+    Editor.insertTextAtCursor('**An error occurred accessing quote service**')
   }
 }
