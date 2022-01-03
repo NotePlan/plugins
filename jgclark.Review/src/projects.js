@@ -1,37 +1,34 @@
 // @flow
 
 //-----------------------------------------------------------------------------
-// Commands for working with project, seen in NotePlan notes.
+// Commands for working with Project and Area notes, seen in NotePlan notes.
 // by @jgclark
-// Last updated 27.12.2021 for v0.3.0 (just updating comments)
+// Last updated 3.1.2022 for v0.5.0+ (removing undocumented function)
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
 // Import Helper functions
-import {
-  // applyNamedTemplate,
-  insertNamedTemplate,
-} from '../../nmn.Templates/src/index'
-import {
-  hyphenatedDateString,
-} from '../../helpers/dateTime'
 import {
   updateReviewListAfterReview,
 } from './reviews'
 import {
   getOrMakeMetadataLine,
 } from './reviewHelpers'
-
-//-------------------------------------------------------------------------------
-// Create a new project note by applying 'New Project Template'
-export async function addProject(): Promise<void> {
-  
-  // NB: WAITING: Update when @EduardMe adds a native date picker
-  console.log(`\naddProject(very basic version):`)
-
-  // Simply apply daily template, using Template system
-  await insertNamedTemplate('New Project Template')
-}
+import {
+  hyphenatedDateString,
+} from '../../helpers/dateTime'
+import {
+  getOrMakeNote
+} from '../../helpers/note'
+import {
+  getFolderFromFilename
+} from '../../helpers/folders'
+import {
+  getInput
+} from '../../helpers/userInput'
+import {
+  insertNamedTemplate,
+} from '../../nmn.Templates/src/index'
 
 //-------------------------------------------------------------------------------
 // Add @completed(<today's date>) to the current note in the Editor
