@@ -1,6 +1,7 @@
 /* eslint-disable */
 
 import colors from 'chalk'
+// import NPTemplating from 'NPTemplating'
 import Editor from './__mocks__/Editor'
 
 const PLUGIN_NAME = `📙 ${colors.yellow('np.Templating')}`
@@ -30,5 +31,11 @@ describe(`${PLUGIN_NAME}`, () => {
     it.skip(`should create new note from template`, async () => {
       expect(true).toBe(true)
     })
+
+    // it('should determine if tag is templating module', async () => {
+    //   const result = new NPTemplating().isTemplateModule('date.now()')
+
+    //   expect(result).toBe(true)
+    // })
   })
 })

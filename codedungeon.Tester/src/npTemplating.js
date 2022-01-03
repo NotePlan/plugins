@@ -1,6 +1,7 @@
 // @flow
 
-import NPTemplating from 'NPTemplating'
+// import NPTemplating from 'NPTemplating'
+import NPTemplating from '@plugins/np.Templating/lib/NPTemplating'
 import TemplatingEngine from 'TemplatingEngine'
 import { getWeatherSummary } from '../../nmn.Templates/src/weather'
 import { showError } from './lib/testerUtils'

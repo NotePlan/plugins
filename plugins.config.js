@@ -5,6 +5,10 @@ const path = require('path')
 module.exports = {
   aliasEntries: [
     {
+      find: '@plugins',
+      replacement: path.resolve(__dirname),
+    },
+    {
       find: '@helpers',
       replacement: path.resolve('./helpers'),
     },

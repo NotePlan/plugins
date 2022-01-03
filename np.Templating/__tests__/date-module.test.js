@@ -106,7 +106,7 @@ describe(`${PLUGIN_NAME}`, () => {
     })
 
     it(`should render ${method('.today')} w/ custom format`, async () => {
-      const result = new DateModule({ defaultFormats: { date: 'short' } }).today()
+      const result = new DateModule({ defaultFormats: { date: 'short' } }).today('MM/D/YY')
 
       expect(result).toEqual(moment(new Date()).format('MM/D/YY'))
     })
@@ -120,7 +120,7 @@ describe(`${PLUGIN_NAME}`, () => {
     })
 
     it(`should render ${method('.yesterday')} w/ intl format`, async () => {
-      const result = new DateModule({ defaultFormats: { date: 'short' } }).yesterday()
+      const result = new DateModule({ defaultFormats: { date: 'short' } }).yesterday('MM/D/YY')
 
       const assertValue = moment(new Date()).subtract(1, 'days').format('MM/D/YY')
 
@@ -144,7 +144,7 @@ describe(`${PLUGIN_NAME}`, () => {
     })
 
     it(`should render ${method('.tomorrow')} w/ intl format`, async () => {
-      const result = new DateModule({ defaultFormats: { date: 'short' } }).tomorrow()
+      const result = new DateModule({ defaultFormats: { date: 'short' } }).tomorrow('MM/D/YY')
 
       const assertValue = moment(new Date()).add(1, 'days').format('MM/D/YY')
 
@@ -160,7 +160,7 @@ describe(`${PLUGIN_NAME}`, () => {
     })
 
     it(`should render ${method('.weekday')} (this monday)`, async () => {
-      const result = new DateModule().weekday('', 0)
+      const result = new DateModule().weekday('YYYY-M-DD', 0)
 
       const assertValue = moment(new Date()).weekday(0).format('YYYY-M-DD')
 

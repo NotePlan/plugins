@@ -51,7 +51,7 @@ export default class TemplatingEngine {
   }
 
   async render(templateData: any = '', userData: any = {}, userOptions: any = {}): Promise<string> {
-    const options = { ...{ async: true }, ...userOptions }
+    const options = { ...{ async: true, rmWhitespace: false }, ...userOptions }
 
     // WebModule methods are async, will be converted to synchronous methods below
     // need to handle async calls before render templates as templating method are synchronous

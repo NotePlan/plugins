@@ -5,11 +5,17 @@
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
  * -----------------------------------------------------------------------------------------*/
 
-import FrontmatterModule from '@templatingModules/FrontmatterModule'
+import FrontmatterModule from './support/modules/FrontmatterModule'
+
+/*eslint-disable */
 import TemplatingEngine from './TemplatingEngine'
 import { getOrMakeConfigurationSection } from './toolbox'
 
 const TEMPLATE_FOLDER_NAME = '📋 Templates'
+
+// np.Templating modules (see /lib/support/modules/*Module)
+// - if a new module has been added, make sure it has been added to this list
+const TEMPLATE_MODULES = ['date', 'frontmatter', 'note', 'system', 'time', 'user', 'utility']
 
 export const selection = async (): Promise<string> => {
   return Editor.selectedParagraphs.map((para) => para.rawContent).join('\n')
@@ -65,7 +71,7 @@ export async function TEMPLATE_CONFIG_BLOCK(): Promise<string> {
       phone: ""
     },
     // check https://github.com/public-apis/public-apis for other services
-    servicesa: {}
+    services: {}
   },
   `
 }
@@ -166,7 +172,13 @@ export default class NPTemplating {
         sessionData = promptData.sessionData
       }
 
-      return await new TemplatingEngine(this.constructor.templateConfig).render(templateData, sessionData, userOptions)
+      const renderedData = await new TemplatingEngine(this.constructor.templateConfig).render(
+        templateData,
+        sessionData,
+        userOptions,
+      )
+
+      return renderedData
     } catch (error) {
       return this.templateErrorMessage(error)
     }
@@ -190,7 +202,7 @@ export default class NPTemplating {
   }
 
   static async getPromptParameters(promptTag: string = ''): mixed {
-    let tagValue = promptTag.replace(/prompt|[()]|<%=|%>/gi, '').trim()
+    let tagValue = promptTag.replace(/prompt|[()]|<%=|<%|-%>|%>/gi, '').trim()
     let varName = ''
     let promptMessage = ''
     let options = []
@@ -198,13 +210,16 @@ export default class NPTemplating {
     // get variable from tag (first quoted value up to comma)
     let pos = tagValue.indexOf(',')
     if (pos >= 0) {
-      varName = tagValue.substr(0, pos - 1).replace(/'/g, '')
+      varName = tagValue
+        .substr(0, pos - 1)
+        .replace(/'/g, '')
+        .trim()
       tagValue = tagValue.substr(pos + 1)
       pos = tagValue.indexOf(',')
       if (pos >= 0) {
         if (tagValue[0] !== '[') {
-          promptMessage = tagValue.substr(0, pos).replace(/'/g, '')
-          tagValue = tagValue.substr(pos + 1)
+          promptMessage = tagValue.substr(0, pos).replace(/'/g, '').trim()
+          tagValue = tagValue.substr(pos + 1).trim()
         }
 
         if (tagValue.length > 0) {
@@ -248,17 +263,36 @@ export default class NPTemplating {
 
     for (const tag of await this.getTags(templateData)) {
       // if tag is from module, it will contain period so we need to make sure this tag is not a module
-      if (tag.indexOf('.') === -1) {
+      if (!this.isVariableTag(tag) && !this.isTemplateModule(tag)) {
         // $FlowIgnore
         const { varName, promptMessage, options } = await this.getPromptParameters(tag)
-
         if (!sessionData.hasOwnProperty(varName)) {
           sessionData[varName] = await (await this.prompt(promptMessage, options)).trim()
         }
-        sessionTemplateData = sessionTemplateData.replace(tag, `${startTag}= ${varName} ${endTag}`)
+        if (tag.indexOf(`<%=`) >= 0) {
+          sessionTemplateData = sessionTemplateData.replace(tag, `${startTag}= ${varName} ${endTag}`)
+        } else {
+          sessionTemplateData = sessionTemplateData.replace(tag, `<% 'prompt' -%>`)
+        }
+      } else {
+        sessionTemplateData = sessionTemplateData.replace('user.', '')
       }
     }
 
     return { sessionTemplateData, sessionData }
+  }
+
+  static isVariableTag(tag: string = ''): boolean {
+    return tag.indexOf('const') > 0 || tag.indexOf('let') > 0
+  }
+
+  static isTemplateModule(tag: string = ''): boolean {
+    const tagValue = tag.replace('<%=', '').replace('<%-', '').replace('%>', '').trim()
+    const pos = tagValue.indexOf('.')
+    if (pos >= 0) {
+      const moduleName = tagValue.substring(0, pos)
+      return TEMPLATE_MODULES.indexOf(moduleName) >= 0
+    }
+    return false
   }
 }
