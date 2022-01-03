@@ -4,11 +4,11 @@ import { validateConfigProperties } from '../../helpers/config'
 
 export function getTimeBlockingDefaults(): { [key: string]: any } {
   return {
-    todoChar: '-' /* character at the front of a timeblock line - can be *,-,or a heading, e.g. #### */,
+    todoChar: '*' /* character at the front of a timeblock line - can be *,-,or a heading, e.g. #### */,
     timeBlockTag: `#🕑` /* placed at the end of the timeblock to show it was created by this plugin */,
     timeBlockHeading: 'Time Blocks' /* if this heading exists in the note, timeblocks will be placed under it */,
-    workDayStart: '08:00' /* needs to be in 24 hour format (two digits, leading zero) */,
-    workDayEnd: '18:00' /* needs to be in 24 hour format (two digits, leading zero) */,
+    workDayStart: '00:00' /* needs to be in 24 hour format (two digits, leading zero) */,
+    workDayEnd: '23:59' /* needs to be in 24 hour format (two digits, leading zero) */,
     durationMarker:
       "'" /* signifies how long a task is, e.g. apostrophe: '2h5m or use another character, e.g. tilde: ~2h5m */,
     intervalMins: 5 /* inverval on which to calculate time blocks */,
@@ -26,9 +26,13 @@ export function getTimeBlockingDefaults(): { [key: string]: any } {
     includeTasksWithText: [] /* limit to tasks with ANY of these tags/text */,
     excludeTasksWithText: [] /* exclude tasks with ANY of these tags/text */,
     presets: [
-      { label: 'Weekend (start @10a)', workDayStart: '10:00' },
-      { label: 'No Workday Time Limits', workDayStart: '00:00', workDayEnd: '23:59' },
-      { label: 'Create Timeblocks on Calendar', createCalendarEntries: true, deletePreviousCalendarEntries: true },
+      { label: 'Limit Time Blocks to Work Hours', workDayStart: '08:00', workDayEnd: '17:59' },
+      {
+        label: 'Create Timeblocks on Calendar',
+        createCalendarEntries: true,
+        deletePreviousCalendarEntries: true,
+        todoChar: '*',
+      },
     ] /* presets for the dropdown */,
     /* OPTIONAL: nowStrOverride: "00:00" for testing, e.g. '00:00' */
   }
@@ -52,7 +56,8 @@ export function validateTimeBlockConfig(config: { [key: string]: any }): { [key:
     createCalendarEntries: 'boolean',
     deletePreviousCalendarEntries: 'boolean',
     eventEnteredOnCalTag: 'string',
-    limitToTags: { type: 'array', optional: true },
+    includeTasksWithText: { type: 'array', optional: true },
+    excludeTasksWithText: { type: 'array', optional: true },
     presets: { type: 'array', optional: true },
     nowStrOverride: { type: /^\d{2}:\d{2}$/, optional: true },
   }

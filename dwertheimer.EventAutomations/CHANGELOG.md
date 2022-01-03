@@ -2,6 +2,10 @@
 
 ## Changelog
 
+[0.4.1] 2022-01-02 @dwertheimer (in response to great feedback from @stacey)
+- change default config to allow for timeblocks all day long (no workDay[Start/End]) sections]
+- change preset to do the opposite (allow for workday)
+
 [0.4.0] 2021-12-25 @dwertheimer
 - Search today's note for items tagged as >today or >dated
 
