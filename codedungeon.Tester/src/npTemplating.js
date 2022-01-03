@@ -1,7 +1,11 @@
 // @flow
 
-// import NPTemplating from 'NPTemplating'
-import NPTemplating from '@plugins/np.Templating/lib/NPTemplating'
+/*-------------------------------------------------------------------------------------------
+ * Copyright (c) 2022 Mike Erickson / Codedungeon.  All rights reserved.
+ * Licensed under the MIT license.  See LICENSE in the project root for license information.
+ * -----------------------------------------------------------------------------------------*/
+
+import NPTemplating from 'NPTemplating'
 import TemplatingEngine from 'TemplatingEngine'
 import { getWeatherSummary } from '../../nmn.Templates/src/weather'
 import { showError } from './lib/testerUtils'

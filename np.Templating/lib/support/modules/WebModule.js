@@ -1,5 +1,10 @@
 // @flow
 
+/*-------------------------------------------------------------------------------------------
+ * Copyright (c) 2022 Mike Erickson / Codedungeon.  All rights reserved.
+ * Licensed under the MIT license.  See LICENSE in the project root for license information.
+ * -----------------------------------------------------------------------------------------*/
+
 import { getDailyQuote } from './quote'
 import { getWeather } from './weather'
 import { getAffirmation } from './affirmation'
