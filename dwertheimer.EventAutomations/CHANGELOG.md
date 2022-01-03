@@ -2,7 +2,7 @@
 
 ## Changelog
 
-[0.4.1] 2022-01-02 @dwertheimer (in response to great feedback from @stacey)
+[0.4.2] 2022-01-02 @dwertheimer (in response to great feedback from @stacey)
 - change default config to allow for timeblocks all day long (no workDay[Start/End]) sections]
 - change preset to do the opposite (allow for workday)
 
