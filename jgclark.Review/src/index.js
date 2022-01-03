@@ -11,5 +11,5 @@ export {
 } from './reviews'
 
 export {
-  addProject, completeProject,
+  completeProject,
 } from './projects'

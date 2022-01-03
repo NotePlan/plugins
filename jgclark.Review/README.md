@@ -1,5 +1,5 @@
 # 🔬 Reviews  plugin
-This plugin provides commands to help review with Project-based notes. This will be of interest for those who use NotePlan to plan and track work in different areas, which could be loosely referred to as 'Projects'. This will be familiar to people who use David Allen's **Getting Things Done** approach, or any other where **regular reviews** are important. It probably won't have much applicability to people who use NotePlan as a Zettelkasten-style knowledge base.
+This plugin provides commands to help review with Project-based notes. This will be of interest for those who use NotePlan to plan and track work in different areas, which could be loosely referred to as 'Projects'. This will be familiar to people who use David Allen's **Getting Things Done** approach, or any other where **regular reviews** are important. It probably won't have much applicability to people who just use NotePlan as a Zettelkasten-style knowledge base.
 
 ## Using NotePlan for Project-like work
 Unlike many task or project management apps, NotePlan is both much less structured, and entirely text/markdown based.  This makes it much more flexible, but makes it less obvious how to use it for project tracking or management.  This is how I use it: there may be better ways for you.
@@ -35,6 +35,16 @@ Aim: Make sure car continues to run well, is legal etc.
 ...
 ```
 
+## Creating a new Project/Area note
+A good way to quickly create a new Project or Area note is to use the `/qtn - Quick template note` command from the Templates plugin. This currently requires adding both a suitable template note and configuring the `quick note` section of the `_configuration` note (see [Templates README for details](https://github.com/NotePlan/plugins/tree/main/nmn.Templates/)).  Here is what I use as my New Project Template:
+```markdown
+# New Project Template
+---
+#project @start({{pickDate({'question':'enter start date'})}}) @due({{pickDate({'question':'enter due date'})}}) @review({{pickDateInterval({'question':'enter review interval'})}})
+Aim: {{aim}}
+Context: {{context}}
+```
+
 ## Reviewing Projects and/or Areas
 **NB**: Use the **`noteTypeTags`** setting to control which notes are included in the review lists:
 - If this setting is not set, then it will include all notes for review that include a `@review(...)` string.
@@ -56,9 +66,6 @@ This updates the current open project's @reviewed() date.
 ### `/nextReview`
 This updates this project's @reviewed() date, and jumps to the next project to review. If there are none left ready for review it will show a congratulations message.
 
-### `/addProject`
-Add a new note representing a project, asking for its metadata.  For now it's simply a shortcut to insert your `New Project Template` template to the current note.
-
 ### `/completeProject`
 This add @completed(today) date to the open project.
 
@@ -76,7 +83,7 @@ Alternatively, in the `Templates/_configuration` note, include the following set
     displayOrder: "alpha", // in '/project lists'  the sort options  are "due" date, "review" date or "alpha"
     displayGroupedByFolder: true, // in '/project lists' whether to group the notes by folder
     displayArchivedProjects: true,  // in '/project lists' whether to display project notes marked #archive
-
+  }
 ...
 ```
 (This uses JSON5 format: ensure there are commas at the end of all that lines that need them.)
@@ -86,5 +93,4 @@ Please see the [CHANGELOG](CHANGELOG.md).
 
 ## To do
 - update the `/project lists` output to use a table view, _when then this is available in NotePlan_
-- update the `/addProject` to use better date pickers, _when then this is available in NotePlan_
 - _if NotePlan adds support  for frontmatter or YAML blocks_, update the plugin to take advantage of them

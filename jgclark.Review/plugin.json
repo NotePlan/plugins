@@ -6,7 +6,7 @@
 	"plugin.icon": "",
 	"plugin.author": "Jonathan Clark",
 	"plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Review/",
-	"plugin.version": "0.5.0",
+	"plugin.version": "0.5.1",
 	"plugin.dependencies": [],
 	"plugin.script": "script.js",
 	"plugin.isRemote": "false",
@@ -40,12 +40,6 @@
 			"alias": ["gtd", "review"],
 			"description": "updates this project's @reviewed() date, and jump to next project to review",
 			"jsFunction": "nextReview"
-		},
-		{
-			"name": "add project",
-			"alias": ["gtd", "project", "new"],
-			"description": "add a new note representing a project, asking for its metadata",
-			"jsFunction": "addProject"
 		}
 	],
 	"plugin.preferences": [
