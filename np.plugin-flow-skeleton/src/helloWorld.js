@@ -4,6 +4,7 @@
 // export default async function [name of the function called by Noteplan]
 // Type checking reference: https://flow.org/
 // Specific how-to re: Noteplan: https://github.com/NotePlan/plugins/blob/main/Flow_Guide.md
+
 export async function helloWorld(): Promise<void> {
   const message = 'Hello World from {{pluginName}}!'
 
