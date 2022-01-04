@@ -1,5 +1,9 @@
 # What's changed in 📙 Note Helpers plugin?
 
+## [0.10.7] - 2022-01-03
+### Changed
+- the /index command now adds time since note was last updated in the output
+
 ## [0.10.6] - 2021-11-17
 ### Changed
 - updated the 'jumping' commands /jh and /jd work better with API change
