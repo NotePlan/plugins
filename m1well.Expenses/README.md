@@ -1,4 +1,4 @@
-# m1well.Expense Plugin
+# m1well.Expense Noteplan Plugin
 
 With this plugin you can write down and store your daily/monthly expenses with an ease.
 This is meant to be used for further analysis.
