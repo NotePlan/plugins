@@ -2,23 +2,23 @@
 // ------------------------------------------------------------------------------------
 // Command to turn time blocks into full calendar events
 // @jgclark
-// Last updated for v0.9.0, 11.12.2021 by @jgclark
+// Last updated for v0.10.1, 4.1.2022 by @jgclark
 //
 // See https://help.noteplan.co/article/52-part-2-tasks-events-and-reminders#timeblocking
 // for definition of time blocks. In summary:
 //  "It is essential to use the keyword at or write the time with colons (HH:mm).
 //   You can also use the 24h format like 15:00 without am / pm.
 //   And, you don't have to define an end time."
+// They work on open tasks, titles, and list lines, but not closed tasks, quotes, or just text.
 // ------------------------------------------------------------------------------------
 
-import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
-import { showMessage, showMessageYesNo } from '../../helpers/userInput'
-import { displayTitle } from '../../helpers/general'
 import {
   isoDateStringFromCalendarFilename,
   printDateRange,
   todaysDateISOString,
 } from '../../helpers/dateTime'
+import { displayTitle } from '../../helpers/general'
+import { findEndOfActivePartOfNote } from '../../helpers/paragraph'
 import {
   RE_ISO_DATE,
   RE_HOURS,
@@ -33,6 +33,8 @@ import {
   isTimeBlockPara,
   getTimeBlockString,
 } from '../../helpers/timeblocks'
+import { showMessage, showMessageYesNo } from '../../helpers/userInput'
+import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 
 // ------------------------------------------------------------------------------------
 // Settings
@@ -72,12 +74,13 @@ const RE_EVENT_ID = `event:[A-F0-9-]{36,37}`
 // ------------------------------------------------------------------------------------
 
 /**
- * Go through current Editor note and identify time blocks to turn into events
+ * Go through current Editor note, identify time blocks to turn into events,
+ * and then add them as events.
  * @author @jgclark
  */
 export async function timeBlocksToCalendar(): Promise<void> {
-  console.log(RE_TIMEBLOCK)
-  console.log(RE_TIMEBLOCK_FOR_THEMES)
+  // console.log(RE_TIMEBLOCK)
+  // console.log(RE_TIMEBLOCK_FOR_THEMES)
 
   const { paragraphs, note } = Editor
   if (paragraphs == null || note == null) {
@@ -133,9 +136,9 @@ export async function timeBlocksToCalendar(): Promise<void> {
 //   }
 // }
 
-  // Look through open note to find time blocks, but ignore @done(...) lines
-  // which can look like timeblocks
-  const timeblockParas = paragraphs.filter( (p) => isTimeBlockPara(p) )
+  // Look through open note to find valid time blocks, but stop at Done or Cancelled sections
+  const endOfActive = findEndOfActivePartOfNote(note)
+  const timeblockParas = paragraphs.filter( (p) => isTimeBlockPara(p) && p.lineIndex <= endOfActive )
   if (timeblockParas.length > 0) {
     console.log(`  found ${timeblockParas.length} in '${noteTitle}'`)
     // Work out our current date context (as YYYY-MM-DD):

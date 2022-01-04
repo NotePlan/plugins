@@ -7,7 +7,7 @@ const section = colors.blue
 
 describe(`${HELPER_NAME}`, () => {
   describe(section('timeblocks.js'), () => {
-    describe('isTimeBlockLine MATCHES using RE_TIMEBLOCK_START alone', () => {
+    describe('isTimeBlockLine SHOULD MATCH', () => {
       test('1a: yes: 1:30-2:45', () => {
         expect(tb.isTimeBlockLine('1:30-2:45')).toEqual(true)
       })
@@ -122,8 +122,8 @@ describe(`${HELPER_NAME}`, () => {
       })
     })
 
-    describe('isTimeBlockLine NON-MATCHES using RE_TIMEBLOCK_START alone', () => {
-      test('17: no: 2021-06-02 2.15PM-3.45PM', () => {
+    describe('isTimeBlockLine NON-MATCHES', () => {
+      test('17: no: 2021-06-02 2.15PM-3.45PM (dots not allowed)', () => {
         expect(tb.isTimeBlockLine('2021-06-02 2.15PM-3.45PM')).toEqual(false)
       })
       // One of the ISO standard ways, but not supported by NP parsing, so don't support it fully
@@ -169,6 +169,45 @@ describe(`${HELPER_NAME}`, () => {
     describe('getTimeBlockString ', () => {
       test('should return null if no timeblock', () => {
         expect(tb.getTimeBlockString('01. no timeblock here :')).toEqual('')
+      })
+    })
+
+    describe('isTypeThatCanHaveATimeBlock', () => {
+      test('type .open YES', () => {
+        let p = { type: 'open' }
+        expect(tb.isTypeThatCanHaveATimeBlock(p)).toEqual(true)
+      })
+      test('type .done YES', () => {
+        let p = { type: 'done' }
+        expect(tb.isTypeThatCanHaveATimeBlock(p)).toEqual(true)
+      })
+      test('type .title YES', () => {
+        let p = { type: 'title' }
+        expect(tb.isTypeThatCanHaveATimeBlock(p)).toEqual(true)
+      })
+      test('type .list YES', () => {
+        let p = { type: 'list' }
+        expect(tb.isTypeThatCanHaveATimeBlock(p)).toEqual(true)
+      })
+      test('type .scheduled NO', () => {
+        let p = { type: 'scheduled' }
+        expect(tb.isTypeThatCanHaveATimeBlock(p)).toEqual(false)
+      })
+      test('type .text NO', () => {
+        let p = { type: 'text' }
+        expect(tb.isTypeThatCanHaveATimeBlock(p)).toEqual(false)
+      })
+      test('type .cancelled NO', () => {
+        let p = { type: 'cancelled' }
+        expect(tb.isTypeThatCanHaveATimeBlock(p)).toEqual(false)
+      })
+      test('type .empty NO', () => {
+        let p = { type: 'empty' }
+        expect(tb.isTypeThatCanHaveATimeBlock(p)).toEqual(false)
+      })
+      test('type .quote NO', () => {
+        let p = { type: 'quote' }
+        expect(tb.isTypeThatCanHaveATimeBlock(p)).toEqual(false)
       })
     })
   })

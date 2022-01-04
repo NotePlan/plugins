@@ -4,6 +4,11 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 - tighten timeblock-finding regex if Eduard does
 - add further fields (e.g. location) if Eduard adds to the API
 
+## [0.10.1] - 2022-01-04
+### Changed
+- `/timeblock` aligns with the newly-published detailed [guide to Timeblocking in NotePlan](https://help.noteplan.co/article/121-time-blocking). This mostly means time blocks are also detected in headings, list items, and done tasks.
+- `/timeblock` detection now stops at the `## Done` or `## Cancelled` section of a note, if present.
+
 ## [0.10.0] - 2021-12-26 (@m1well)
 ### Changed
 - in `/listDaysEvents` if user want to output calendar name, then the output now gets sorted by calendar name and start time
