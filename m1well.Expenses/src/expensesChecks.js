@@ -10,7 +10,7 @@ const MINIMAL_COLUMNS = [ 'date', 'category', 'amount' ]
 const ALLOWED_AMOUNT_FORMATS = [ 'full', 'short' ]
 
 /**
- * @description check if the amount is smaller than 1_000_000 and greater than -1_000_000 and is not 0 or null or NaN
+ * check if the amount is smaller than 1_000_000 and greater than -1_000_000 and is not 0 or null or NaN
  *
  * @param amount amount from user input
  * @returns {boolean} true/false
@@ -20,7 +20,7 @@ export const amountOk = (amount: number): boolean => {
 }
 
 /**
- * @description check if the category is in the array in the configuration
+ * check if the category is in the array in the configuration
  *
  * @param category category from user input
  * @param categories categories from config
@@ -31,7 +31,7 @@ export const categoryOk = (category: string, categories: string[]): boolean => {
 }
 
 /**
- * @description just do some checks on the privided config and e.g. add a default delimiter if none is set
+ * just do some checks on the privided config and e.g. add a default delimiter if none is set
  *
  * @param config casted config from _configuration
  * @param currentDate current date - example of date to check if configured date format is valid
