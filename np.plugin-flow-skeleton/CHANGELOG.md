@@ -15,7 +15,7 @@ All NotePlan plugins follow `semver` versioning. For details, please refer to [s
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/{{pluginId}}/README.md) for details on available commands and use case.
 
-## [x.x.x] - yyyy-mm-dd (githubUserName)
+## [x.x.x] - yyyy-MM-dd (@githubUserName)
 
 ### Added
 List what has been added. If nothing has been changed, this section can be removed.
