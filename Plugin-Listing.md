@@ -5,9 +5,10 @@
 | `Create AutoTimeBlocks using presets` | Read >today todos and insert them into today's calendar note as timeblocks, but using presets defined in _configuration note | 🗓 Event Automations |
 | `Create Note From Calendar Event` | creates a note from a calendar event | 🗓 Event Automations |
 | `Create Note From Calendar Event w/QuickTemplate` | creates a note from a calendar event | 🗓 Event Automations |
-| `add project` | add a new note representing a project, asking for its metadata | 🔬Reviews |
 | `apply template` | Choose a Template to apply (append) to the current Note | 🔩 Templates |
 | `atb - Create AutoTimeBlocks for >today's Tasks` | Read >today todos and insert them into today's calendar note as timeblocks | 🗓 Event Automations |
+| `autoArchiveNotes` | Provides possibility to auto archive notes with a specific tag and a given lifetime (moves note to @Archive) | 🛠 Utils |
+| `cleanUpEmptyLinesInFuture` | Remove empty lines in future daily notes | 🛠 Utils |
 | `complete project` | add @completed(today) date to the open project | 🔬Reviews |
 | `convertSelectionToHtml` | Convert current selection to HTML | 🧩 Codedungeon Toolbox |
 | `convertToHtml` | Convert current note to HTML | 🧩 Codedungeon Toolbox |
@@ -60,8 +61,10 @@
 | `quick prepend task to daily note` | Quickly prepend a task to a chosen daily note | ⚡️ Quick Capture |
 | `quick prepend task to note` | Quickly prepend a task to a chosen project note | ⚡️ Quick Capture |
 | `reorderList` | Reorder current ordered list | 🧩 Codedungeon Toolbox |
+| `repeater` | Repeat task(s) just by selecting them in whatever note you want with a lot of functionalities | 🛠 Utils |
 | `rpt` | Generate new @repeat() tasks from completed ones | 🔁 @repeat Extensions |
 | `saveSearchResults` | Save results from a search over all notes | 🗃 Summaries |
+| `sorter` | Sort selected lines by type and by prio | 🛠 Utils |
 | `start reviews` | start a new series of reviews, deciding which are now ready for review, and kicking off the first one | 🔬Reviews |
 | `sw7` | Find all open tasks for last 7 days & silently move/reschedule to today | 🧹 Task Sweeper |
 | `swa` | Find ALL open tasks & move/reschedule to today's Calendar Note | 🧹 Task Sweeper |

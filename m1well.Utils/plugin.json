@@ -1,0 +1,39 @@
+{
+  "noteplan.minAppVersion": "3.0.25",
+  "macOS.minVersion": "10.13.0",
+  "iOS.minVersion": "14",
+  "plugin.id": "m1well.Utils",
+  "plugin.name": "🛠 Utils",
+  "plugin.description": "Plugin for some Utils like repeat selected task, etc.",
+  "plugin.author": "@m1well",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/m1well.Utils/README.md",
+  "plugin.version": "1.0.0",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.commands": [
+    {
+      "name": "repeater",
+      "alias": ["util:repeater", "util"],
+      "description": "Repeat task(s) just by selecting them in whatever note you want with a lot of functionalities",
+      "jsFunction": "repeater"
+    },
+    {
+      "name": "sorter",
+      "alias": ["util:sorter", "util"],
+      "description": "Sort selected lines by type and by prio",
+      "jsFunction": "sorter"
+    },
+    {
+      "name": "autoArchiveNotes",
+      "alias": ["util:autoArchiveNotes", "util"],
+      "description": "Provides possibility to auto archive notes with a specific tag and a given lifetime (moves note to @Archive)",
+      "jsFunction": "autoArchiveNotes"
+    },
+    {
+      "name": "cleanUpEmptyLinesInFuture",
+      "alias": ["util:cleanUpEmptyLinesInFuture", "util"],
+      "description": "Remove empty lines in future daily notes",
+      "jsFunction": "cleanUpEmptyLinesInFuture"
+    }
+  ]
+}
