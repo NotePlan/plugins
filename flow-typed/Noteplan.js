@@ -425,22 +425,13 @@ type TCommandBar = {
    * Hides the Command Bar
    */
   hide(): void,
-  // show(): void,
+  show(): void,
   /**
-   * Display an array of choices as a list (only strings) which the user can
-   * "fuzzy-search" filter by typing something.
-   *
-   * The user selection is returned as a Promise.
-   * So use it with `await CommandBar.showOptions(...)`.
-   *
-   * The result is a CommandBarResultObject (as Promise success result), which
-   * has `.value` and `.index`.
-   *
-   * It only supports a string array as input for the options, so you might
-   * need to map your list first to `Array<string>`.
-   *
-   * Use the `.index` attribute to refer back to the selected item in the
-   * original array.
+   * Display an array of choices as a list (only strings) which the user can "fuzzy-search" filter by typing something.
+   * @param {$ReadOnlyArray<TOption>} options - string array input for the options; you might need to map your list first to `Array<string>`.
+   * @param {string} placeholder - display a question, like "Type the nameof the task".
+   * @return {Promise<string>} - a CommandBarResultObject (as Promise success result), which
+   * has `.value` and `.index`. Use the `.index` attribute to refer back to the selected item in the original array. So use with `await CommandBar.showOptions(...)`.
    */
   showOptions<TOption: string = string>(
     options: $ReadOnlyArray<TOption>,
@@ -448,49 +439,57 @@ type TCommandBar = {
   ): Promise<{ +index: number, +value: TOption }>,
   /**
    * Asks the user to enter something into the CommandBar.
-   *
-   * Use the "placeholder" value to display a question,
-   * like "Type the nameof the task".
-   *
-   * Use the "submitText" to describe what happens with the selection,
-   * like "Create task named '%@'".
-   *
-   * The "submitText" value supports the variable "%@" in the string, that
-   * NotePlan autofills with the typed text.
-   *
-   * It returns a Promise, so you can wait (using "await...") for the user
-   * input with the entered text as success result.
+   * @param {string} placeholder - display a question, like "Type the nameof the task".
+   * @param {string} submitText - describe what happens with the selection, like "Create task named '%@'". It supports the variable "%@" in the string, that NotePlan autofills with the typed text.
+   * @return {Promise<string>} - returns a Promise, so you can wait (using "await...") for the user input with the entered text as success result.
    */
   showInput(placeholder: string, submitText: string): Promise < string >,
   /**
-  * Note: Available from v3.0.26
+  * Show a native prompt to the user with a title and a message text. Define at least one or more buttons for the user to select. 
+  * Note: Available from v3.3.2
+  * @param {String} title - prompt box title
+  * @param {String} message - prompt box message
+  * @param {[String]?} buttons - If you don't supply any buttons, an "OK" button will be displayed. 
+  * @return {Promise<Int>} - The promise returns as value the pressed button index (i.e. "0" would be the first supplied button).
+  */
+  prompt(title, message, buttons): Promise<number>,
+  /**
+  * Show a native text input prompt to the user with a title and a message text. The buttons will be automatically "OK" and "Cancel". If the user hits "Cancel", the promise returns false.
+  * Note: Available from v3.3.2
+  * @param {string} title - prompt box title
+  * @param {string} message - prompt box message
+  * @param {string?} defaultText - optional pre-filled answer
+  * @return {Promise<boolean | string>}
+  */
+  textPrompt(title, message, defaultText): Promise<boolean | string>,
+  /**
   * Shows or hides a window with a loading indicator or a progress ring (if progress is defined) and an info text (optional).
   * `text` is optional, if you define it, it will be shown below the loading indicator.
   * `progress` is also optional. If it's defined, the loading indicator will change into a progress ring. Use float numbers from 0-1 to define how much the ring is filled.
   * When you are done, call `showLoading(false)` to hide the window.
+  * Note: Available from v3.0.26
   * @param {Bool}
   * @param {String?}
   * @param {Float?}
   */
   showLoading(visible: boolean, text?: string, progress?: number): void,
   /**
-  * Note: Available from v3.0.26
   * If you call this, anything after `await CommandBar.onAsyncThread()` will run on an asynchronous thread.
   * Use this together with `showLoading`, so that the work you do is not blocking the user interface.
   * Otherwise the loading window will be also blocked.
-  *
   * Warning: Don't use any user interface calls (other than showLoading) on an asynchronous thread. The app might crash.
   * You need to return to the main thread before you change anything in the window (such as Editor functions do).
   * Use `onMainThread()` to return to the main thread.
+  * Note: Available from v3.0.26
   */
   onAsyncThread(): Promise <void>,
   /**
-  * Note: Available from v3.0.26
   * If you call this, anything after `await CommandBar.onMainThread()` will run on the main thread.
   * Call this after `onAsyncThread`, once your background work is done.
   * It is safe to call Editor and other user interface functions on the main thread.
+  * Note: Available from v3.0.26
   */
-  onMainThread(): Promise <void>,
+  onMainThread(): Promise <void>
 }
 
 /**
@@ -1205,6 +1204,25 @@ type TParagaraphBridge = {
     location: number,
     length: number,
   ): void,
+}
+
+declare var Environment: TEnvironment
+type TEnvironment = {
+  /**
+  * Returns the environment information:
+  *   "languageCode" -> string?
+  *   "regionCode" -> string?
+  *   "is12hFormat" -> Bool
+  *   "preferredLanguages" -> [string]
+  *   "secondsFromGMT" -> Int
+  *   "localTimeZoneAbbreviation" -> string
+  *   "localTimeZoneIdentifier" -> string
+  *   "isDaylightSavingTime" -> Bool
+  *   "daylightSavingTimeOffset" -> Double
+  *   "nextDaylightSavingTimeTransition" -> Date
+  * Note: available from v3.2.2
+  */
+  environment(preference: string): any
 }
 
 // Every function made available must be assigned to `globalThis`
