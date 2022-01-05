@@ -13,25 +13,25 @@
   "plugin.commands": [
     {
       "name": "repeater",
-      "alias": ["util:repeater", "util"],
+      "alias": ["well:repeater", "well"],
       "description": "Repeat task(s) just by selecting them in whatever note you want with a lot of functionalities",
       "jsFunction": "repeater"
     },
     {
       "name": "sorter",
-      "alias": ["util:sorter", "util"],
+      "alias": ["well:sorter", "well"],
       "description": "Sort selected lines by type and by prio",
       "jsFunction": "sorter"
     },
     {
-      "name": "autoArchiveNotes",
-      "alias": ["util:autoArchiveNotes", "util"],
-      "description": "Provides possibility to auto archive notes with a specific tag and a given lifetime (moves note to @Archive)",
-      "jsFunction": "autoArchiveNotes"
+      "name": "archiveNotes",
+      "alias": ["well:archiveNotes", "well"],
+      "description": "Provides possibility to archive notes with a specific tag and a given lifetime (moves note to @Archive)",
+      "jsFunction": "archiveNotes"
     },
     {
       "name": "cleanUpEmptyLinesInFuture",
-      "alias": ["util:cleanUpEmptyLinesInFuture", "util"],
+      "alias": ["well:cleanUpEmptyLinesInFuture", "well"],
       "description": "Remove empty lines in future daily notes",
       "jsFunction": "cleanUpEmptyLinesInFuture"
     }

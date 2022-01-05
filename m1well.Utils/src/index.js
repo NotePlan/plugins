@@ -7,4 +7,4 @@
 // -----------------------------------------------------------------------------
 
 export { repeater } from './repeater'
-export { sorter, autoArchiveNotes, cleanUpEmptyLinesInFuture } from './cleanup'
+export { sorter, archiveNotes, cleanUpEmptyLinesInFuture } from './cleanup'

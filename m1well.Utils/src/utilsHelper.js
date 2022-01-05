@@ -6,8 +6,8 @@ import { showMessage } from '../../helpers/userInput'
 const DATE_FORMAT_ISO = 'yyyy-MM-dd'
 
 export type Config = {
-  autoArchiveTag: string,
-  autoArchiveLifeInDays: number,
+  archiveNotesTag: string,
+  archiveNotesLifeInDays: number,
 }
 
 /**
@@ -89,10 +89,10 @@ export const sortByType = (): Function => {
     } else {
       // then handle all tasks
       if (first.type === 'done') {
-        return 1
+        return second.type === 'list' ? 1 : -1
       }
       if (second.type === 'done') {
-        return -1
+        return first.type === 'list' ? -1 : 1
       }
       if (first.type === 'cancelled') {
         return -1
@@ -137,7 +137,7 @@ export const logError = async (msg: string): Promise<void> => {
 
 /**
  * find property with key in mixed object
- * 
+ *
  * @private
  */
 const findPropertyInMixed = (val: { [string]: ?mixed }, key: string): any | null => {

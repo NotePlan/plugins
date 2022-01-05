@@ -6,8 +6,8 @@
 | `Create Note From Calendar Event` | creates a note from a calendar event | 🗓 Event Automations |
 | `Create Note From Calendar Event w/QuickTemplate` | creates a note from a calendar event | 🗓 Event Automations |
 | `apply template` | Choose a Template to apply (append) to the current Note | 🔩 Templates |
+| `archiveNotes` | Provides possibility to archive notes with a specific tag and a given lifetime (moves note to @Archive) | 🛠 Utils |
 | `atb - Create AutoTimeBlocks for >today's Tasks` | Read >today todos and insert them into today's calendar note as timeblocks | 🗓 Event Automations |
-| `autoArchiveNotes` | Provides possibility to auto archive notes with a specific tag and a given lifetime (moves note to @Archive) | 🛠 Utils |
 | `cleanUpEmptyLinesInFuture` | Remove empty lines in future daily notes | 🛠 Utils |
 | `complete project` | add @completed(today) date to the open project | 🔬Reviews |
 | `convertSelectionToHtml` | Convert current selection to HTML | 🧩 Codedungeon Toolbox |

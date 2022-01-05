@@ -15,8 +15,8 @@ import {
 } from './utilsHelper'
 
 const CONFIG_KEYS = {
-  autoArchiveTag: 'autoArchiveTag',
-  autoArchiveLifeInDays: 'autoArchiveLifeInDays',
+  archiveNotesTag: 'archiveNotesTag',
+  archiveNotesLifeInDays: 'archiveNotesLifeInDays',
 }
 
 // if there is no config in the '_configuration' file, then provide an example config
@@ -26,10 +26,10 @@ const EXAMPLE_CONFIG = `
    * for more information please have a look at the plugins' readme
    */
   utils: {
-    // just an example autoArchiveTag - please adapt to your needs
-    ${CONFIG_KEYS.autoArchiveTag}: '#scratch',
-    // here you can enter the amount of days (> 0!) of the auto archive lifetime notes
-    ${CONFIG_KEYS.autoArchiveLifeInDays}: 7,
+    // just an example archiveNotesTag - please adapt to your needs
+    ${CONFIG_KEYS.archiveNotesTag}: '#scratch',
+    // here you can enter the amount of days (> 0!) of the archive lifetime notes
+    ${CONFIG_KEYS.archiveNotesLifeInDays}: 7,
   },
   /* >> utils plugin end << */
 `
@@ -78,18 +78,18 @@ const sorter = async (): Promise<boolean> => {
 }
 
 /**
- * archive specific notes automatically
+ * archive specific notes
  *
  * @returns {Promise<boolean>}
  */
-const autoArchiveNotes = async (): Promise<boolean> => {
+const archiveNotes = async (): Promise<boolean> => {
   const config = await provideValidConfig()
 
   DataStore.projectNotes.forEach(note => {
     // check tag
-    if (note && note.hashtags.length > 0 && note.hashtags.includes(config.autoArchiveTag) && note.title) {
+    if (note && note.hashtags.length > 0 && note.hashtags.includes(config.archiveNotesTag) && note.title) {
       // check lifetime
-      if (addDays(note.createdDate, config.autoArchiveLifeInDays) <= new Date()) {
+      if (addDays(note.createdDate, config.archiveNotesLifeInDays) <= new Date()) {
         logMessage(`Note '${String(note.title)}' ready to archive`)
         DataStore.moveNote(note.filename, '@Archive')
       }
@@ -132,8 +132,8 @@ const cleanUpEmptyLinesInFuture = async (): Promise<boolean> => {
  */
 const provideValidConfig = (): Promise<Config> => {
   const emptyConfig = {
-    autoArchiveTag: '',
-    autoArchiveLifeInDays: 0,
+    archiveNotesTag: '',
+    archiveNotesLifeInDays: 0,
   }
   return getOrMakeConfigurationSection(
     'utils',
@@ -146,8 +146,8 @@ const provideValidConfig = (): Promise<Config> => {
       } else {
         logMessage(`loaded config\n${JSON.stringify(result)}\n`)
         const config: Config = {
-          autoArchiveTag: castStringFromMixed(result, CONFIG_KEYS.autoArchiveTag),
-          autoArchiveLifeInDays: castNumberFromMixed(result, CONFIG_KEYS.autoArchiveLifeInDays),
+          archiveNotesTag: castStringFromMixed(result, CONFIG_KEYS.archiveNotesTag),
+          archiveNotesLifeInDays: castNumberFromMixed(result, CONFIG_KEYS.archiveNotesLifeInDays),
         }
         const validate = validateConfig(config)
         if (validate) {
@@ -165,13 +165,13 @@ const provideValidConfig = (): Promise<Config> => {
  * @private
  */
 const validateConfig = (config: Config): string | null => {
-  if (!config.autoArchiveTag.startsWith('#') || config.autoArchiveTag.length < 2) {
-    return `autoArchiveTag has no '#' or is too short`
+  if (!config.archiveNotesTag.startsWith('#') || config.archiveNotesTag.length < 2) {
+    return `archiveNotesTag has no '#' or is too short`
   }
-  if (config.autoArchiveLifeInDays < 1) {
-    return 'autoArchiveLifeInDays is too small'
+  if (config.archiveNotesLifeInDays < 1) {
+    return 'archiveNotesLifeInDays is too small'
   }
   return null
 }
 
-export { sorter, autoArchiveNotes, cleanUpEmptyLinesInFuture }
+export { sorter, archiveNotes, cleanUpEmptyLinesInFuture }

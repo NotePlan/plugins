@@ -8,35 +8,35 @@ global.Editor = {
     paragraphs: [
       {
         type: 'open',
-        content: 'aaaaa',
+        content: 'normal task 1',
       },
       {
-        type: 'text',
-        content: 'bbbbb',
+        type: 'open',
+        content: '! prio 2 task',
+      },
+      {
+        type: 'list',
+        content: 'list line',
       },
       {
         type: 'cancelled',
-        content: 'ccccc',
+        content: 'cancelled task',
       },
       {
-        type: 'list',
-        content: 'ddddd',
+        type: 'done',
+        content: 'done task',
       },
       {
         type: 'scheduled',
-        content: 'eeeee',
+        content: 'scheduled task >2022-12-12',
       },
       {
         type: 'open',
-        content: '! fffff',
+        content: '!! prio 1 task',
       },
       {
-        type: 'open',
-        content: '!! ggggg',
-      },
-      {
-        type: 'list',
-        content: '! hhhhh',
+        type: 'text',
+        content: 'some text',
       },
     ]
   }
@@ -74,37 +74,37 @@ describe('utilsHelper', () => {
     test('should sort by type and prio', () => {
       const expected = [
         {
-          type: 'open',
-          content: '!! ggggg',
+          "content": "!! prio 1 task",
+          "type": "open"
         },
         {
-          type: 'open',
-          content: '! fffff',
+          "content": "! prio 2 task",
+          "type": "open"
         },
         {
-          type: 'open',
-          content: 'aaaaa',
+          "content": "normal task 1",
+          "type": "open"
         },
         {
-          type: 'scheduled',
-          content: 'eeeee',
+          "content": "scheduled task >2022-12-12",
+          "type": "scheduled"
         },
         {
-          type: 'cancelled',
-          content: 'ccccc',
+          "content": "cancelled task",
+          "type": "cancelled"
         },
         {
-          type: 'list',
-          content: '! hhhhh',
+          "content": "done task",
+          "type": "done"
         },
         {
-          type: 'list',
-          content: 'ddddd',
+          "content": "list line",
+          "type": "list"
         },
         {
-          type: 'text',
-          content: 'bbbbb',
-        },
+          "content": "some text",
+          "type": "text"
+        }
       ]
 
       const result = Editor.note.paragraphs.sort(sortByType()).sort(sortByPrio())

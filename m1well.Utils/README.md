@@ -7,7 +7,7 @@ But currently I don't see any possibility for something like this and I still wa
 ## Commands
 Using the NotePlan Plugin Shortcut `/`
 
-### ->> `/util:repeater` <<-
+### ->> `/well:repeater` <<-
 "Repeat task(s) just by selecting them in whatever note you want with a lot of functionalities"  
 
 **ATTENTION:**
@@ -37,7 +37,7 @@ Using the NotePlan Plugin Shortcut `/`
 - the `@repeat` is now at the first occurence, so if you want to delete all repetitions, you just have to delete this first one
 - the last `@repeat` is BOLD, so that you are reminded to eventually create new repetitions again: example: @repeat(**!!15/15!!**)
 
-### ->> `/util:sorter` <<-
+### ->> `/well:sorter` <<-
 "Sort selected lines by type and by prio ("inline sort" - so they stay at the same position in the note)"  
 
 **ATTENTION:**
@@ -55,8 +55,8 @@ Using the NotePlan Plugin Shortcut `/`
 6. text
 and each of them also sorts itself by prio with the `!!!`, `!!` and `!`
 
-### ->> `/util:autoArchiveNotes` <<-
-"Provides possibility to auto archive notes with a specific tag and a given lifetime (moves note to @Archive)"  
+### ->> `/well:archiveNotes` <<-
+"Provides possibility to archive notes with a specific tag and a given lifetime (moves note to @Archive)"  
 
 **ATTENTION:**
 - the lifetime thing works with the `createdDate` of the file (there is no other hidden feature)
@@ -64,12 +64,12 @@ and each of them also sorts itself by prio with the `!!!`, `!!` and `!`
 - if you do a backup on your own, you have to look if it overwrites the `createdDate`
 
 **HOW TO:**
-1. configure `autoArchiveTag` and `autoArchiveLifeInDays`
+1. configure `archiveNotesTag` and `archiveNotesLifeInDays`
 2. add this configured tag to notes which you want to automatically archive
 3. call this function wherever you want
 4. all notes with this specific tag and the achieved lifetime are moved to the `@Archive` folder
 
-### ->> `/util:cleanUpEmptyLinesInFuture` <<-
+### ->> `/well:cleanUpEmptyLinesInFuture` <<-
 "Remove empty lines in future daily notes"  
 This is just a possibility to remove empty lines in future notes.  
 Because I just quickly create tasks in the future, (by hand or with my own custom BulletJournal plugin) it can also happen that there is an empty line (mostly at the end of the note).  
