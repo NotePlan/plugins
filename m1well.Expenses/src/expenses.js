@@ -118,7 +118,7 @@ const EXAMPLE_CONFIG = `
 `
 
 /**
- * @description expenses tracking with three possibilities (individual, shortcuts, fixed)
+ * expenses tracking with three possibilities (individual, shortcuts, fixed)
  *
  * @returns {Promise<boolean>}
  */
@@ -138,7 +138,7 @@ const expensesTracking = async (): Promise<boolean> => {
 }
 
 /**
- * @description aggregates expenses of given year to a new note
+ * aggregates expenses of given year to a new note
  *
  * @returns {Promise<boolean>}
  */
@@ -157,8 +157,7 @@ const expensesAggregate = async (): Promise<boolean> => {
     return false
   }
 
-  await Editor.openNoteByTitle(noteTitleTracking)
-  const trackingNote = Editor.note
+  const trackingNote = DataStore.projectNoteByTitle(noteTitleTracking)?.[0]
 
   if (trackingNote) {
     const trackedData = trackingNote.paragraphs
@@ -199,7 +198,7 @@ const expensesAggregate = async (): Promise<boolean> => {
 }
 
 /**
- * @description tracking of individual expenses
+ * tracking of individual expenses
  *
  * @returns {Promise<boolean>}
  */
@@ -235,8 +234,7 @@ const individualTracking = async (): Promise<boolean> => {
     return false
   }
 
-  await Editor.openNoteByTitle(title)
-  const note = Editor.note
+  const note = DataStore.projectNoteByTitle(title)?.[0]
   const expenseRow = {
     date: currentDate,
     category: category.value,
@@ -245,13 +243,14 @@ const individualTracking = async (): Promise<boolean> => {
   }
   if (note) {
     note.appendParagraph(createTrackingExpenseRowWithConfig(expenseRow, config), 'text')
+    await CommandBar.showOptions([ 'OK' ], 'Individual Expenses saved')
   }
 
   return true
 }
 
 /**
- * @description tracking of shortcut expenses
+ * tracking of shortcut expenses
  *
  * @returns {Promise<boolean>}
  */
@@ -296,8 +295,7 @@ const shortcutsTracking = async (): Promise<boolean> => {
     return false
   }
 
-  await Editor.openNoteByTitle(title)
-  const note = Editor.note
+  const note = DataStore.projectNoteByTitle(title)?.[0]
   const expenseRow = {
     date: currentDate,
     category: selected.category,
@@ -306,13 +304,14 @@ const shortcutsTracking = async (): Promise<boolean> => {
   }
   if (note) {
     note.appendParagraph(createTrackingExpenseRowWithConfig(expenseRow, config), 'text')
+    await CommandBar.showOptions([ 'OK' ], 'Shortcut Expenses saved')
   }
 
   return true
 }
 
 /**
- * @description tracking of fixed expenses
+ * tracking of fixed expenses
  *
  * @returns {Promise<boolean>}
  */
@@ -335,8 +334,7 @@ const fixedTracking = async (): Promise<boolean> => {
 
   const lines: string[] = []
 
-  await Editor.openNoteByTitle(title)
-  const note = Editor.note
+  const note = DataStore.projectNoteByTitle(title)?.[0]
   config.fixedExpenses
     .filter(exp => exp.active && (exp.month === 0 || exp.month === month))
     .map(exp => {
@@ -357,13 +355,14 @@ const fixedTracking = async (): Promise<boolean> => {
 
   if (note) {
     note.appendParagraph(lines.join('\n'), 'text')
+    await CommandBar.showOptions([ 'OK' ], 'Fixed Expenses saved')
   }
 
   return true
 }
 
 /**
- * @description provide config from _configuration and cast content to real objects
+ * provide config from _configuration and cast content to real objects
  *
  * @private
  */
@@ -403,7 +402,7 @@ const provideConfig = (): Promise<Config> => {
 }
 
 /**
- * @description check if one note exists by name, if mulitple exists - throw error, of none extist -> create it
+ * check if one note exists by name, if mulitple exists - throw error, of none extist -> create it
  *
  * @private
  */
@@ -440,7 +439,7 @@ const provideAndCheckNote = async (title: string,
 }
 
 /**
- * @description check data quality of tracked data before we aggregate it
+ * check data quality of tracked data before we aggregate it
  *
  * @private
  */

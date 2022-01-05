@@ -1,5 +1,9 @@
 # m1well.Expenses Plugin Changelog
 
+## [1.6.0] - 2022-01-05 (@m1well)
+### Changed
+- Load tracking notes via DataStore to not open them all the time
+
 ## [1.5.1] - 2022-01-04 (@m1well)
 ### Fixed
 - corrected [plugin.json](./plugin.json) according to the official documentation  
