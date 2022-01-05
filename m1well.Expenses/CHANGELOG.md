@@ -1,5 +1,10 @@
 # m1well.Expenses Plugin Changelog
 
+## [1.5.1] - 2022-01-04 (@m1well)
+### Fixed
+- corrected [plugin.json](./plugin.json) according to the official documentation  
+  [https://help.noteplan.co/article/67-create-command-bar-plugins](https://help.noteplan.co/article/67-create-command-bar-plugins)
+
 ## [1.5.0] - 2022-01-01 (@m1well)
 ### Fixed
 - error calculating the current month in fixed tracking

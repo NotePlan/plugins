@@ -11,7 +11,7 @@ Templates gets more interesting when you include tags in your template which get
 Any {{tag}} that is unknown by the system will pop up a dialog box asking for user input, which is then included in the output.
 
 ### For example
-This template:
+This template will output everything below the dashes in your new note:
  ```markdown
  # Daily Note Template
 ---
@@ -40,6 +40,8 @@ when activated in a note could become:
 ### Journal
 Weather: 🌧️ Moderate rain 14/19°C
 ```
+## IMPORTANT NOTE -- separator:
+Your template file needs to have a title (name of the Template) and then three dashes (a horizontal separator). Only text/tags underneath the separator are part of the template.
 
 ## Available Tags
 - `{{date({locale: 'sv-SE', dateStyle: 'short'})}}` -- Date borrowing the Swedish "Locale" yields ISO-8601 date like `2021-06-21`
