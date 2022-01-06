@@ -10,4 +10,9 @@ export default class NoteModule {
     // $FlowFixMe
     this.config = config
   }
+
+  setCursor(line: number = 0, position: number = 0): string {
+    // await Editor.highlightByIndex(line, position)
+    return '$NP_CURSOR'
+  }
 }

@@ -7,6 +7,14 @@
 import moment from 'moment-business-days'
 import { getUserLocale } from 'get-user-locale'
 
+export const DAY_NUMBER_SUNDAY = 0
+export const DAY_NUMBER_MONDAY = 1
+export const DAY_NUMBER_TUESDAY = 2
+export const DAY_NUMBER_WEDNESDAY = 3
+export const DAY_NUMBER_THURSDAY = 4
+export const DAY_NUMBER_FRIDAY = 5
+export const DAY_NUMBER_SATURDAY = 6
+
 export default class DateModule {
   constructor(config) {
     this.config = config
@@ -16,13 +24,13 @@ export default class DateModule {
     moment.locale(osLocale)
 
     // module constants
-    this.DAY_NUMBER_SUNDAY = 0
-    this.DAY_NUMBER_MONDAY = 1
-    this.DAY_NUMBER_TUESDAY = 2
-    this.DAY_NUMBER_WEDNESDAY = 3
-    this.DAY_NUMBER_THURSDAY = 4
-    this.DAY_NUMBER_FRIDAY = 5
-    this.DAY_NUMBER_SATURDAY = 6
+    this.DAY_NUMBER_SUNDAY = DAY_NUMBER_SUNDAY
+    this.DAY_NUMBER_MONDAY = DAY_NUMBER_MONDAY
+    this.DAY_NUMBER_TUESDAY = DAY_NUMBER_TUESDAY
+    this.DAY_NUMBER_WEDNESDAY = DAY_NUMBER_WEDNESDAY
+    this.DAY_NUMBER_THURSDAY = DAY_NUMBER_THURSDAY
+    this.DAY_NUMBER_FRIDAY = DAY_NUMBER_FRIDAY
+    this.DAY_NUMBER_SATURDAY = DAY_NUMBER_SATURDAY
   }
 
   // convert supplied date value into something that NotePlan can actually handle

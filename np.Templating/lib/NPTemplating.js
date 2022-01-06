@@ -9,7 +9,7 @@ import FrontmatterModule from './support/modules/FrontmatterModule'
 
 /*eslint-disable */
 import TemplatingEngine from './TemplatingEngine'
-import { getOrMakeConfigurationSection } from './toolbox'
+import { alert, getConfiguration, getOrMakeConfigurationSection } from './toolbox'
 
 const TEMPLATE_FOLDER_NAME = '📋 Templates'
 
@@ -23,6 +23,7 @@ export const selection = async (): Promise<string> => {
 
 // Important: Replicate _configuration.templates object in TEMPLATE_CONFIG_BLOCK
 export const DEFAULT_TEMPLATE_CONFIG = {
+  templateFolder: TEMPLATE_FOLDER_NAME,
   locale: 'en-US',
   defaultFormats: {
     date: 'YYYY-MM-DD',
@@ -76,8 +77,20 @@ export async function TEMPLATE_CONFIG_BLOCK(): Promise<string> {
   `
 }
 
-export function getTemplateFolder(): ?string {
-  return DataStore.folders.find((f) => f.includes(TEMPLATE_FOLDER_NAME))
+export async function getTemplateFolder(): Promise<string> {
+  try {
+    const templateConfig = await getConfiguration()
+
+    let templateFolderName: string = templateConfig?.templates?.templateFolderName || TEMPLATE_FOLDER_NAME
+    if (templateFolderName.length === 0) {
+      templateFolderName = TEMPLATE_FOLDER_NAME
+    }
+
+    return templateFolderName
+    // return DataStore.folders.find((f) => f.includes(templateFolderName)) || ''
+  } catch (error) {
+    console.log(error)
+  }
 }
 
 export default class NPTemplating {
@@ -112,9 +125,13 @@ export default class NPTemplating {
 
   static async getTemplate(templateName: string = ''): Promise<string> {
     // $FlowFixMe
-    let templateFilename = `${getTemplateFolder()}/${templateName}.md`
+    let templateFolderName = await getTemplateFolder()
+    let originalFilename = `${templateFolderName}/${templateName}`
+    let templateFilename = `${templateFolderName}/${templateName}.md`
+    let selectedTemplate = ''
+
     try {
-      let selectedTemplate = await DataStore.projectNoteByFilename(templateFilename)
+      selectedTemplate = await DataStore.projectNoteByFilename(templateFilename)
 
       // if the template can't be found using actual filename (as it is on disk)
       // this will occur due to a bug in NotePlan which is not properly renaming files on disk to match note name
@@ -124,6 +141,11 @@ export default class NPTemplating {
           templateFilename = parts[parts.length - 1]
           selectedTemplate = await DataStore.projectNoteByTitle(templateFilename, true, false)?.[0]
         }
+      }
+
+      // template not found
+      if (!selectedTemplate) {
+        alert(`Unable to locate ${originalFilename}`)
       }
 
       let templateContent = selectedTemplate?.content || ''
@@ -190,6 +212,26 @@ export default class NPTemplating {
       return await new TemplatingEngine(this.constructor.templateConfig).render(templateData, userData, userOptions)
     } catch (error) {
       return this.templateErrorMessage(error)
+    }
+  }
+
+  static async postProcess(templateData: string): Promise<mixed> {
+    let newTemplateData = templateData
+    let pos = 0
+    let startPos = 0
+    let cursors = []
+
+    do {
+      let findStr = '$NP_CURSOR'
+      pos = newTemplateData.indexOf(findStr, startPos)
+      if (pos >= 0) {
+        cursors.push({ start: pos })
+        startPos = pos + 1
+      }
+    } while (pos >= 0)
+
+    return {
+      cursors,
     }
   }
 

@@ -57,7 +57,7 @@ export async function templateAppend(): Promise<void> {
 
   const templateFolder = await getOrMakeTemplateFolder()
   if (templateFolder == null) {
-    await showMessage('An error occured locating 📋 Templates folder')
+    await showMessage('An error occurred locating 📋 Templates folder')
     return
   }
 
@@ -71,9 +71,12 @@ export async function templateAppend(): Promise<void> {
 
   const templateTitle = selectedTemplate?.title
 
-  const result = await NPTemplating.renderTemplate(templateTitle)
+  const renderedTemplate = await NPTemplating.renderTemplate(templateTitle)
+  const processed = await NPTemplating.postProcess(renderedTemplate)
 
-  Editor.insertTextAtCharacterIndex(result, content.length)
+  console.log(JSON.stringify(processed))
+
+  Editor.insertTextAtCharacterIndex(renderedTemplate, content.length)
 }
 
 export async function templateNew(): Promise<void> {

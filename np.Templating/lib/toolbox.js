@@ -1,7 +1,13 @@
 // @flow
 
-import { showMessage, chooseOption, showMessageYesNo } from '@helpers/userInput'
+import { showMessage, showMessageYesNo } from '@helpers/userInput'
 import { parseJSON5 } from '@helpers/general'
+
+// (from @nmn / nmn.sweep)
+export type Option<T> = $ReadOnly<{
+  label: string,
+  value: T,
+}>
 
 const STATIC_TEMPLATE_FOLDER = '📋 Templates'
 
@@ -97,6 +103,92 @@ Should you run into an issue with a NotePlan plugin, you can use one of the foll
 \`\`\`
 
 `
+
+/**
+ * Show alert (like modal) using CommandBar
+ * @author @codedungeon
+ * @param {string} message - text to display to user (parses each line as separate 'option')
+ * @param {string} label - label text (appears in CommandBar filter field)
+ */
+export async function alert(message: any = '', label: string = 'press <return> to continue'): Promise<string> {
+  const lines = Array.isArray(message) ? message : message.split('\n')
+  const optionItem = await CommandBar.showOptions(lines, label)
+  const result = lines[optionItem.index]
+  // await CommandBar.hide()  // don't use as it crashes on iOS and is not actually required
+
+  return result
+}
+
+/**
+ * Helper function to show a simple yes/no (could be OK/Cancel, etc.) dialog using CommandBar
+ * @param {string} message - text to display to user
+ * @param {Array<string>} - an array of the choices to give (default: ['Yes', 'No'])
+ * @returns {string} - returns the user's choice - the actual *text* choice from the input array provided
+ */
+export async function confirm(message: string, choicesArray: Array<string> = ['Yes', 'No']): Promise<string> {
+  const answer = await CommandBar.showOptions(choicesArray, message)
+  return choicesArray[answer.index]
+}
+
+/**
+ * Let user pick from a nicely-indented list of available folders (or return / for root)
+ * @author @jgclark
+ * @param {string} message - text to display to user
+ * @returns {string} - returns the user's folder choice (or / for root)
+ */
+export async function chooseFolder(msg: string, includeArchive: boolean = false): Promise<string> {
+  let folder: string
+  const folders = DataStore.folders // excludes Trash and Archive
+  if (includeArchive) {
+    // $FlowFixMe
+    folders.push('@Archive')
+  }
+  if (folders.length > 0) {
+    // make a slightly fancy list with indented labels, different from plain values
+    const folderOptionList: Array<any> = []
+    for (const f of folders) {
+      if (f !== '/') {
+        const folderParts = f.split('/')
+        for (let i = 0; i < folderParts.length - 1; i++) {
+          folderParts[i] = '     '
+        }
+        folderParts[folderParts.length - 1] = `📁 ${folderParts[folderParts.length - 1]}`
+        const folderLabel = folderParts.join('')
+        folderOptionList.push({ label: folderLabel, value: f })
+      } else {
+        // deal with special case for root folder
+        folderOptionList.push({ label: '📁 /', value: '/' })
+      }
+    }
+    // const re = await CommandBar.showOptions(folders, msg)
+    folder = await chooseOption(msg, folderOptionList, '/')
+  } else {
+    // no Folders so go to root
+    folder = '/'
+  }
+  // console.log(`chooseFolder -> ${folder}`)
+  return folder
+}
+
+/**
+ * ask user to choose from a set of options (from nmn.sweep)
+ * @author @nmn
+ * @param {string} message - text to display to user
+ * @param {Array<T>} options - array of label:value options to present to the user
+ * @param {TDefault} defaultValue - default label:value to use
+ * @return {TDefault} - string that the user enters. Maybe be the empty string.
+ */
+export async function chooseOption<T, TDefault = T>(
+  message: string,
+  options: $ReadOnlyArray<Option<T>>,
+  defaultValue: TDefault,
+): Promise<T | TDefault> {
+  const { index } = await CommandBar.showOptions(
+    options.map((option) => option.label),
+    message,
+  )
+  return options[index]?.value ?? defaultValue
+}
 
 /**
  * Get the Templates folder path, if it exists
