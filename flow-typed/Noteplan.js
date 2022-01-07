@@ -291,6 +291,13 @@ type TDataStore = {
   +projectNotes: $ReadOnlyArray<TNote>,
 
   /**
+   * Get settings for plugins (as JSON?)
+   * Example: settings.shortcutExpenses[0].category
+   * Note: Available from NotePlan v3.3.2?
+   */
+  +settings: Object,
+  
+  /**
    * Returns the value of a given preference.
    * Available keys for built-in NotePlan preferences:
    *   "themeLight"              // theme used in light mode
@@ -339,7 +346,7 @@ type TDataStore = {
    * @param {string}
    * @return {Object}
    */
-  loadJSON(filename?: string): Object,
+  loadJSON(filename ?: string): Object,
   /**
    * Returns the calendar note for the given date
    * (can be undefined, if the daily note was not created yet)
@@ -1206,10 +1213,9 @@ type TParagaraphBridge = {
   ): void,
 }
 
-declare var Environment: TEnvironment
-type TEnvironment = {
+declare var Environment: {
   /**
-  * Returns the environment information:
+  * Returns the environment information from the operating system:
   *   "languageCode" -> string?
   *   "regionCode" -> string?
   *   "is12hFormat" -> Bool
@@ -1222,7 +1228,7 @@ type TEnvironment = {
   *   "nextDaylightSavingTimeTransition" -> Date
   * Note: available from v3.2.2
   */
-  environment(preference: string): any
+  +environment: Object
 }
 
 // Every function made available must be assigned to `globalThis`
