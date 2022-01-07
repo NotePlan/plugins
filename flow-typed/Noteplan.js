@@ -39,7 +39,7 @@ type TEditor = {
   /**
    * Also all the keys from this object
    */
-  ...TParagaraphBridge,
+  ...TParagraphBridge,
   /**
    * Get the note object of the opened note in the editor
    */
@@ -101,15 +101,12 @@ type TEditor = {
    */
   insertTextAtCursor(text: string): void,
   /**
-   * Inserts a plain paragrah before the selected paragraph (or the paragraph the cursor is currently positioned)
+   * Inserts a plain paragraph before the selected paragraph (or the paragraph the cursor is currently positioned)
    * @param name - Text of the paragraph
    * @param type - paragraph type
    * @param indents - How much it should be indented
    */
-  insertParagraphAtCursor(name: string,
-    type: ParagraphType,
-    indents: number
-  ): void,
+  insertParagraphAtCursor(name: string, type: ParagraphType, indents: number): void,
   /**
    * Replaces the current cursor selection with the given text
    * @param text - Text to insert
@@ -123,16 +120,11 @@ type TEditor = {
     newWindow?: boolean,
     highlightStart?: number,
     highlightEnd?: number,
-  ): Promise<void>,
+  ): Promise<TNote>,
   /**
    * Opens a note by searching for the give title (first line of the note)
    */
-  openNoteByTitle(
-    title: string,
-    newWindow?: boolean,
-    highlightStart?: number,
-    highlightEnd?: number,
-  ): Promise<void>,
+  openNoteByTitle(title: string, newWindow?: boolean, highlightStart?: number, highlightEnd?: number): Promise<TNote>,
   /**
    * Opens a note by searching for the give title (first line of the note)
    */
@@ -142,16 +134,11 @@ type TEditor = {
     caseSensitive?: boolean,
     highlightStart?: number,
     highlightEnd?: number,
-  ): Promise<void>,
+  ): Promise<TNote>,
   /**
    * Opens a calendar note by the given date
    */
-  openNoteByDate(
-    date: Date,
-    newWindow?: boolean,
-    highlightStart?: number,
-    highlightEnd?: number,
-  ): Promise<void>,
+  openNoteByDate(date: Date, newWindow?: boolean, highlightStart?: number, highlightEnd?: number): Promise<TNote>,
   /**
    * Opens a calendar note by the given date string
    */
@@ -160,15 +147,15 @@ type TEditor = {
     newWindow?: boolean,
     highlightStart?: number,
     highlightEnd?: number,
-  ): Promise<void>,
+  ): Promise<TNote | void>,
   /**
-  * Selects the full text in the editor.
-  * NB: Available from NotePlan v3.2 (Mac Build: 662, iOS Build: 593)
-  */
+   * Selects the full text in the editor.
+   * NB: Available from NotePlan v3.2 (Mac Build: 662, iOS Build: 593)
+   */
   selectAll(): void,
   /**
    * (Raw) select text in the editor
-   * (like select 10 characters = length fromposition 2 = start)
+   * (like select 10 characters = length from position 2 = start)
    *
    * Raw means here that the position is calculated with the Markdown revealed,
    * including Markdown links and folded text.
@@ -183,16 +170,16 @@ type TEditor = {
    */
   renderedSelect(start: number, length: number): void,
   /**
-  * Copies the currently selected text in the editor to the system clipboard.
-  * NB: See also Clipboard object.
-  * NB: Available from NotePlan v3.2 (Mac Build: 662, iOS Build: 593)
-  */
+   * Copies the currently selected text in the editor to the system clipboard.
+   * NB: See also Clipboard object.
+   * NB: Available from NotePlan v3.2 (Mac Build: 662, iOS Build: 593)
+   */
   copySelection(): void,
   /**
-  * Pastes the current content in the system clipboard into the current selection in the editor.
-  * NB: See also Clipboard object.
-  * NB: Available from NotePlan v3.2 (Mac Build: 662, iOS Build: 593)
-  */
+   * Pastes the current content in the system clipboard into the current selection in the editor.
+   * NB: See also Clipboard object.
+   * NB: Available from NotePlan v3.2 (Mac Build: 662, iOS Build: 593)
+   */
   pasteClipboard(): void,
   /**
    * Scrolls to and highlights the given paragraph. If the paragraph is folded,
@@ -210,59 +197,59 @@ type TEditor = {
    */
   highlightByIndex(index: number, length: number): void,
   /**
-  * Note: Available from v3.0.26
-  * Shows or hides a window with a loading indicator or a progress ring (if progress is defined) and an info text (optional).
-  * `text` is optional, if you define it, it will be shown below the loading indicator.
-  * `progress` is also optional. If it's defined, the loading indicator will change into a progress ring. Use float numbers from 0-1 to define how much the ring is filled.
-  * When you are done, call `showLoading(false)` to hide the window.
-  * @param {Bool}
-  * @param {String?}
-  * @param {Float?}
-  */
+   * Note: Available from v3.0.26
+   * Shows or hides a window with a loading indicator or a progress ring (if progress is defined) and an info text (optional).
+   * `text` is optional, if you define it, it will be shown below the loading indicator.
+   * `progress` is also optional. If it's defined, the loading indicator will change into a progress ring. Use float numbers from 0-1 to define how much the ring is filled.
+   * When you are done, call `showLoading(false)` to hide the window.
+   * @param {Bool}
+   * @param {String?}
+   * @param {Float?}
+   */
   showLoading(visible: boolean, text?: ?string, progress?: number): void,
   /**
-  * Note: Available from v3.0.26
-  * If you call this, anything after `await CommandBar.onAsyncThread()` will run on an asynchronous thread.
-  * Use this together with `showLoading`, so that the work you do is not blocking the user interface.
-  * Otherwise the loading window will be also blocked.
-  *
-  * Warning: Don't use any user interface calls (other than showLoading) on an asynchronous thread. The app might crash.
-  * You need to return to the main thread before you change anything in the window (such as Editor functions do).
-  * Use `onMainThread()` to return to the main thread.
-  * @return {Promise}
-  */
+   * Note: Available from v3.0.26
+   * If you call this, anything after `await CommandBar.onAsyncThread()` will run on an asynchronous thread.
+   * Use this together with `showLoading`, so that the work you do is not blocking the user interface.
+   * Otherwise the loading window will be also blocked.
+   *
+   * Warning: Don't use any user interface calls (other than showLoading) on an asynchronous thread. The app might crash.
+   * You need to return to the main thread before you change anything in the window (such as Editor functions do).
+   * Use `onMainThread()` to return to the main thread.
+   * @return {Promise}
+   */
   onAsyncThread(): Promise<void>,
   /**
-  * Note: Available from v3.0.26
-  * If you call this, anything after `await CommandBar.onMainThread()` will run on the main thread.
-  * Call this after `onAsyncThread`, once your background work is done.
-  * It is safe to call Editor and other user interface functions on the main thread.
-  * @return {Promise}
-  */
+   * Note: Available from v3.0.26
+   * If you call this, anything after `await CommandBar.onMainThread()` will run on the main thread.
+   * Call this after `onAsyncThread`, once your background work is done.
+   * It is safe to call Editor and other user interface functions on the main thread.
+   * @return {Promise}
+   */
   onMainThread(): Promise<void>,
   /**
-  * Note: Available from NotePlan v3.1+
-  * Get the names of all supported themes (including custom themes imported into the Theme folder).
-  * Use together with `.setTheme(name)`
-  * @return {[String]}
-  */
+   * Note: Available from NotePlan v3.1+
+   * Get the names of all supported themes (including custom themes imported into the Theme folder).
+   * Use together with `.setTheme(name)`
+   * @return {[String]}
+   */
   availableThemes(): $ReadOnlyArray<string>,
   /**
-  * Note: Available from NotePlan v3.1+
-  * Change the current theme. Get all available theme names using `.availableThemes`. Custom themes are also supported. Use the filename in this case.
-  * @param {String}
-  */
+   * Note: Available from NotePlan v3.1+
+   * Change the current theme. Get all available theme names using `.availableThemes`. Custom themes are also supported. Use the filename in this case.
+   * @param {String}
+   */
   setTheme(name: string): void,
   /**
-  * Note: Available from NotePlan v3.1+
-  * Add a new theme using the raw json string. It will be added as a custom theme and you can load it right away with `.setTheme(name)` using the filename defined as second parameter. Use ".json" as file extension.
-  * It returns true if adding was successful and false if not. An error will be also printed into the console.
-  * Adding a theme might fail, if the given json text was invalid.
-  * @param {string} json
-  * @param {string} filename
-  * @return {Boolean}
-  */
-  addTheme(json: string, filename: string): boolean
+   * Note: Available from NotePlan v3.1+
+   * Add a new theme using the raw json string. It will be added as a custom theme and you can load it right away with `.setTheme(name)` using the filename defined as second parameter. Use ".json" as file extension.
+   * It returns true if adding was successful and false if not. An error will be also printed into the console.
+   * Adding a theme might fail, if the given json text was invalid.
+   * @param {string} json
+   * @param {string} filename
+   * @return {Boolean}
+   */
+  addTheme(json: string, filename: string): boolean,
 }
 
 /**
@@ -277,7 +264,7 @@ type TDataStore = {
    */
   +defaultFileExtension: string,
   /**
-   * Get all folders as array of strings. Including the root "/" and exluding
+   * Get all folders as array of strings. Including the root "/" and excluding
    * folders from Archive or Trash.
    */
   +folders: $ReadOnlyArray<string>,
@@ -311,26 +298,26 @@ type TDataStore = {
    *   "fontFamily"              // Font family defined in editor preferences (might be overwritten by custom theme)
    * Others can be set by plugins.
    */
-  +preference: ((key: string) => any),
+  +preference: (key: string) => any,
   /**
-  * Change a saved preference or create a new one. It will most likely be picked up by NotePlan after a restart, if you use one of the keys utilized by NotePlan. 
-  * To change a NotePlan preference, use the keys found in the description of the function `.preference(key)`.
-  * You can also save custom preferences specific to the plugin, if you need any. Prepend it with the plugin id or similar to avoid collisions with existing keys.
-  * Note: Available from NotePlan v3.1
-  * @param {string}
-  * @param {any}
-  */
+   * Change a saved preference or create a new one. It will most likely be picked up by NotePlan after a restart, if you use one of the keys utilized by NotePlan.
+   * To change a NotePlan preference, use the keys found in the description of the function `.preference(key)`.
+   * You can also save custom preferences specific to the plugin, if you need any. Prepend it with the plugin id or similar to avoid collisions with existing keys.
+   * Note: Available from NotePlan v3.1
+   * @param {string}
+   * @param {any}
+   */
   setPreference(key: string, value: any): void,
   /**
-  * Save a JavaScript object to the Plugins folder as JSON file.
-  * This can be used to save preferences or other persistent data.
-  * It's saved automatically into a new folder "data" in the Plugins folder. 
-  * But you can "escape" this folder using relative paths: ../Plugins/<folder or filename>.
-  * Note: Available from NotePlan v3.1 (r655/r588)
-  * @param {Object} 
-  * @param {string} 
-  * @return {boolean}
-  */
+   * Save a JavaScript object to the Plugins folder as JSON file.
+   * This can be used to save preferences or other persistent data.
+   * It's saved automatically into a new folder "data" in the Plugins folder.
+   * But you can "escape" this folder using relative paths: ../Plugins/<folder or filename>.
+   * Note: Available from NotePlan v3.1 (r655/r588)
+   * @param {Object}
+   * @param {string}
+   * @return {boolean}
+   */
   saveJSON(object: Object, filename?: string): boolean,
   /**
    * Load a JavaScript object from a JSON file located (by default) in the <Plugin>/data folder.
@@ -360,13 +347,9 @@ type TDataStore = {
    * notes in trash and archive as well.
    * By default NotePlan won't return notes in trash and archive.
    */
-  projectNoteByTitle(
-    title: string,
-    caseInsensitive?: boolean,
-    searchAllFolders?: boolean,
-  ): ?$ReadOnlyArray<TNote>,
+  projectNoteByTitle(title: string, caseInsensitive?: boolean, searchAllFolders?: boolean): ?$ReadOnlyArray<TNote>,
   /**
-   * Returns all regular notes with the given case insenstivie title
+   * Returns all regular notes with the given case insensitive title
    * (first line in editor).
    *
    * Since multiple notes can have the same title, an array is returned.
@@ -425,13 +408,22 @@ type TCommandBar = {
    * Hides the Command Bar
    */
   hide(): void,
-  show(): void,
+  // show(): void,
   /**
-   * Display an array of choices as a list (only strings) which the user can "fuzzy-search" filter by typing something.
-   * @param {$ReadOnlyArray<TOption>} options - string array input for the options; you might need to map your list first to `Array<string>`.
-   * @param {string} placeholder - display a question, like "Type the nameof the task".
-   * @return {Promise<string>} - a CommandBarResultObject (as Promise success result), which
-   * has `.value` and `.index`. Use the `.index` attribute to refer back to the selected item in the original array. So use with `await CommandBar.showOptions(...)`.
+   * Display an array of choices as a list (only strings) which the user can
+   * "fuzzy-search" filter by typing something.
+   *
+   * The user selection is returned as a Promise.
+   * So use it with `await CommandBar.showOptions(...)`.
+   *
+   * The result is a CommandBarResultObject (as Promise success result), which
+   * has `.value` and `.index`.
+   *
+   * It only supports a string array as input for the options, so you might
+   * need to map your list first to `Array<string>`.
+   *
+   * Use the `.index` attribute to refer back to the selected item in the
+   * original array.
    */
   showOptions<TOption: string = string>(
     options: $ReadOnlyArray<TOption>,
@@ -439,57 +431,74 @@ type TCommandBar = {
   ): Promise<{ +index: number, +value: TOption }>,
   /**
    * Asks the user to enter something into the CommandBar.
-   * @param {string} placeholder - display a question, like "Type the nameof the task".
-   * @param {string} submitText - describe what happens with the selection, like "Create task named '%@'". It supports the variable "%@" in the string, that NotePlan autofills with the typed text.
-   * @return {Promise<string>} - returns a Promise, so you can wait (using "await...") for the user input with the entered text as success result.
+   *
+   * Use the "placeholder" value to display a question,
+   * like "Type the name of the task".
+   *
+   * Use the "submitText" to describe what happens with the selection,
+   * like "Create task named '%@'".
+   *
+   * The "submitText" value supports the variable "%@" in the string, that
+   * NotePlan autofill with the typed text.
+   *
+   * It returns a Promise, so you can wait (using "await...") for the user
+   * input with the entered text as success result.
    */
-  showInput(placeholder: string, submitText: string): Promise < string >,
+  showInput(placeholder: string, submitText: string): Promise<string>,
   /**
-  * Show a native prompt to the user with a title and a message text. Define at least one or more buttons for the user to select. 
-  * Note: Available from v3.3.2
-  * @param {String} title - prompt box title
-  * @param {String} message - prompt box message
-  * @param {[String]?} buttons - If you don't supply any buttons, an "OK" button will be displayed. 
-  * @return {Promise<Int>} - The promise returns as value the pressed button index (i.e. "0" would be the first supplied button).
-  */
-  prompt(title, message, buttons): Promise<number>,
-  /**
-  * Show a native text input prompt to the user with a title and a message text. The buttons will be automatically "OK" and "Cancel". If the user hits "Cancel", the promise returns false.
-  * Note: Available from v3.3.2
-  * @param {string} title - prompt box title
-  * @param {string} message - prompt box message
-  * @param {string?} defaultText - optional pre-filled answer
-  * @return {Promise<boolean | string>}
-  */
-  textPrompt(title, message, defaultText): Promise<boolean | string>,
-  /**
-  * Shows or hides a window with a loading indicator or a progress ring (if progress is defined) and an info text (optional).
-  * `text` is optional, if you define it, it will be shown below the loading indicator.
-  * `progress` is also optional. If it's defined, the loading indicator will change into a progress ring. Use float numbers from 0-1 to define how much the ring is filled.
-  * When you are done, call `showLoading(false)` to hide the window.
-  * Note: Available from v3.0.26
-  * @param {Bool}
-  * @param {String?}
-  * @param {Float?}
-  */
+   * Note: Available from v3.0.26
+   * Shows or hides a window with a loading indicator or a progress ring (if progress is defined) and an info text (optional).
+   * `text` is optional, if you define it, it will be shown below the loading indicator.
+   * `progress` is also optional. If it's defined, the loading indicator will change into a progress ring. Use float numbers from 0-1 to define how much the ring is filled.
+   * When you are done, call `showLoading(false)` to hide the window.
+   * @param {Bool}
+   * @param {String?}
+   * @param {Float?}
+   */
   showLoading(visible: boolean, text?: string, progress?: number): void,
   /**
-  * If you call this, anything after `await CommandBar.onAsyncThread()` will run on an asynchronous thread.
-  * Use this together with `showLoading`, so that the work you do is not blocking the user interface.
-  * Otherwise the loading window will be also blocked.
-  * Warning: Don't use any user interface calls (other than showLoading) on an asynchronous thread. The app might crash.
-  * You need to return to the main thread before you change anything in the window (such as Editor functions do).
-  * Use `onMainThread()` to return to the main thread.
-  * Note: Available from v3.0.26
-  */
-  onAsyncThread(): Promise <void>,
+   * Note: Available from v3.0.26
+   * If you call this, anything after `await CommandBar.onAsyncThread()` will run on an asynchronous thread.
+   * Use this together with `showLoading`, so that the work you do is not blocking the user interface.
+   * Otherwise the loading window will be also blocked.
+   *
+   * Warning: Don't use any user interface calls (other than showLoading) on an asynchronous thread. The app might crash.
+   * You need to return to the main thread before you change anything in the window (such as Editor functions do).
+   * Use `onMainThread()` to return to the main thread.
+   */
+  onAsyncThread(): Promise<void>,
   /**
-  * If you call this, anything after `await CommandBar.onMainThread()` will run on the main thread.
-  * Call this after `onAsyncThread`, once your background work is done.
-  * It is safe to call Editor and other user interface functions on the main thread.
-  * Note: Available from v3.0.26
-  */
-  onMainThread(): Promise <void>
+   * Note: Available from v3.0.26
+   * If you call this, anything after `await CommandBar.onMainThread()` will run on the main thread.
+   * Call this after `onAsyncThread`, once your background work is done.
+   * It is safe to call Editor and other user interface functions on the main thread.
+   */
+  onMainThread(): Promise<void>,
+
+  /**
+   * Note: Available from v3.3.2
+   * Show a native alert or confirm with title and message
+   * Define at least one or more buttons for the user to select.
+   * If you don't supply any buttons, an "OK" button will be displayed.
+   * The promise returns selected button, with button index (0 - first button)
+   * @param {String}
+   * @param {String?}
+   * @param {[String]?}
+   */
+  prompt(title: string, message: string, buttons?: $ReadOnlyArray<string>): Promise<number>,
+
+  /**
+   * Note: Available from v3.3.2
+   * Show a native text input prompt to the user with title and message text.
+   * The buttons will be "OK" and "Cancel".
+   * You can supply a default value which will be pre-filled.
+   * If the user selects "OK", the promise returns users entered value
+   * If the user selects "Cancel", the promise returns false.
+   * @param {String}
+   * @param {String?}
+   * @param {String?}
+   */
+  textPrompt(title: string, message: string, defaultValue: string): Promise<string | boolean>,
 }
 
 /**
@@ -555,14 +564,7 @@ type TCalendar = {
    * Create a date object from parts. Like year could be 2021 as a number.
    * Note: month uses Swift counting (1-12) not Javascript counting (0-11).
    */
-  dateFrom(
-    year: number,
-    month: number,
-    day: number,
-    hour: number,
-    minute: number,
-    second: number,
-  ): Date,
+  dateFrom(year: number, month: number, day: number, hour: number, minute: number, second: number): Date,
   /**
    * Add a unit to an existing date. Look up all unit types using `dateUnits`.
    * For example, to add 10 days, use num = 10 and type = "day"
@@ -594,93 +596,85 @@ type TCalendar = {
    */
   unitsBetween(date1: Date, date2: Date, type: CalendarDateUnit): number,
   /**
-  * Returns all events between the `startDate` and `endDate`. Use `filter` to search for specific events (keyword in the title).
-  * This function fetches events asynchronously, so use async/await.
-  * Note: Available from v3.0.25
-  * @param {Date}
-  * @param {Date}
-  * @param {String?}
-  * @return {Promise}
-  */
-  eventsBetween(
-    startDate: Date,
-    endDate: Date,
-    filter?: ?string
-  ): Promise<Array<TCalendarItem>>,
+   * Returns all events between the `startDate` and `endDate`. Use `filter` to search for specific events (keyword in the title).
+   * This function fetches events asynchronously, so use async/await.
+   * Note: Available from v3.0.25
+   * @param {Date}
+   * @param {Date}
+   * @param {String?}
+   * @return {Promise}
+   */
+  eventsBetween(startDate: Date, endDate: Date, filter?: ?string): Promise<Array<TCalendarItem>>,
   /**
-  * Returns all reminders between the `startDate` and `endDate`. Use `filter` to search for specific reminders (keyword in the title).
-  * This function fetches reminders asynchronously, so use async/await.
-  * Note: Available from v3.0.25
-  * @param {Date}
-  * @param {Date}
-  * @param {String?}
-  * @return {Promise}
-  */
-  remindersBetween(
-    startDate: Date,
-    endDate: Date,
-    filter?: ?string
-  ): Promise<Array<TCalendarItem>>,
+   * Returns all reminders between the `startDate` and `endDate`. Use `filter` to search for specific reminders (keyword in the title).
+   * This function fetches reminders asynchronously, so use async/await.
+   * Note: Available from v3.0.25
+   * @param {Date}
+   * @param {Date}
+   * @param {String?}
+   * @return {Promise}
+   */
+  remindersBetween(startDate: Date, endDate: Date, filter?: ?string): Promise<Array<TCalendarItem>>,
   /**
-  * Returns all events for today. Use `filter` to search for specific events (keyword in the title).
-  * This function fetches events asynchronously, so use async/await.
-  * Note: Available from v3.0.25
-  * @param {String?}
-  * @return {Promise}
-  */
+   * Returns all events for today. Use `filter` to search for specific events (keyword in the title).
+   * This function fetches events asynchronously, so use async/await.
+   * Note: Available from v3.0.25
+   * @param {String?}
+   * @return {Promise}
+   */
   eventsToday(filter: ?string): Promise<Array<TCalendarItem>>,
   /**
-  * Returns all reminders between for today. Use `filter` to search for specific reminders (keyword in the title).
-  * This function fetches reminders asynchronously, so use async/await.
-  * Note: Available from v3.0.25
-  * @param {String?}
-  * @return {Promise}
-  */
+   * Returns all reminders between for today. Use `filter` to search for specific reminders (keyword in the title).
+   * This function fetches reminders asynchronously, so use async/await.
+   * Note: Available from v3.0.25
+   * @param {String?}
+   * @return {Promise}
+   */
   remindersToday(filter: ?string): Promise<Array<TCalendarItem>>,
   /**
-  * Updates an event or reminder based on the given CalendarItem, which needs to have an ID. 
-  * A CalendarItem has an ID, when you have used `.add(...)` and saved the return value or when you query 
-  * the event using `eventsBetween(...)`, `remindersBetween(...)`, `eventByID(...)`, `reminderByID(...)`, etc.
-  * Returns a promise, because it needs to fetch the original event objects first in the background, 
-  * then updates it. Use it with `await`.
-  * Note: Available from v3.0.26
-  * @param {CalendarItem} 
-  * @return {Promise}
-  */
+   * Updates an event or reminder based on the given CalendarItem, which needs to have an ID.
+   * A CalendarItem has an ID, when you have used `.add(...)` and saved the return value or when you query
+   * the event using `eventsBetween(...)`, `remindersBetween(...)`, `eventByID(...)`, `reminderByID(...)`, etc.
+   * Returns a promise, because it needs to fetch the original event objects first in the background,
+   * then updates it. Use it with `await`.
+   * Note: Available from v3.0.26
+   * @param {CalendarItem}
+   * @return {Promise}
+   */
   update(calendarItem: TCalendarItem): Promise<void>,
   /**
-  * Removes an event or reminder based on the given CalendarItem, which needs to have an ID. 
-  * A CalendarItem has an ID, when you have used `.add(...)` and saved the return value or when you query 
-  * the event using `eventsBetween(...)`, `remindersBetween(...)`, `eventByID(...)`, `reminderByID(...)`, etc.
-  * Returns a promise, because it needs to fetch the original event objects first in the background, 
-  * then updates it. Use it with `await`.
-  * Note: Available from v3.0.26
-  * @param {CalendarItem} 
-  * @return {Promise}
-  */
+   * Removes an event or reminder based on the given CalendarItem, which needs to have an ID.
+   * A CalendarItem has an ID, when you have used `.add(...)` and saved the return value or when you query
+   * the event using `eventsBetween(...)`, `remindersBetween(...)`, `eventByID(...)`, `reminderByID(...)`, etc.
+   * Returns a promise, because it needs to fetch the original event objects first in the background,
+   * then updates it. Use it with `await`.
+   * Note: Available from v3.0.26
+   * @param {CalendarItem}
+   * @return {Promise}
+   */
   remove(calendarItem: TCalendarItem): Promise<void>,
   /**
-  * Note: Available from v3.0.26
-  * Returns the event by the given ID. You can get the ID from a CalendarItem, which you got from using `.add(...)` (the return value is a CalendarItem with ID) or when you query the event using `eventsBetween(...)`, `eventByID(...)`, etc.
-  * This function fetches reminders asynchronously, so use async/await.
-  * @param {String} 
-  * @return {Promise(CalendarItem)}
-  */
+   * Note: Available from v3.0.26
+   * Returns the event by the given ID. You can get the ID from a CalendarItem, which you got from using `.add(...)` (the return value is a CalendarItem with ID) or when you query the event using `eventsBetween(...)`, `eventByID(...)`, etc.
+   * This function fetches reminders asynchronously, so use async/await.
+   * @param {String}
+   * @return {Promise(CalendarItem)}
+   */
   eventByID(id: string): Promise<Array<TCalendarItem>>,
   /**
-  * Note: Available from v3.0.26
-  * Returns the reminder by the given ID. You can get the ID from a CalendarItem, which you got from using `.add(...)` (the return value is a CalendarItem with ID) or when you query the event using `remindersBetween(...)`, `reminderByID(...)`, etc.
-  * Use with async/await.
-  * @param {String} 
-  * @return {Promise(CalendarItem)}
-  */
+   * Note: Available from v3.0.26
+   * Returns the reminder by the given ID. You can get the ID from a CalendarItem, which you got from using `.add(...)` (the return value is a CalendarItem with ID) or when you query the event using `remindersBetween(...)`, `reminderByID(...)`, etc.
+   * Use with async/await.
+   * @param {String}
+   * @return {Promise(CalendarItem)}
+   */
   reminderByID(id: string): Promise<Array<TCalendarItem>>,
 }
 
 /**
  * You can get paragraphs from `Editor` or `Note`.
  * They represent blocks or lines of text (delimited by linebreaks = \n).
- * A task for example is a paragraph, a list item (bullet), heading, etc. (See .type)
+ * A task for example is a paragraph, a list item (bullet), heading, etc.
  */
 declare var Paragraph: TParagraph
 type TParagraph = {
@@ -728,16 +722,11 @@ type TParagraph = {
    */
   +headingLevel: number,
   /**
-   * Returns indented children paragraphs (bullets, tasks, and quotes, but not plain text).
-   * Note: Available from v3.3 (builds 692/694)
-   */
-  +children: $ReadOnlyArray<TParagraph>,
-  /**
    * If the task is a recurring one (contains '@repeat(...)')
    */
   +isRecurring: boolean,
   /**
-   * Get the amount of indentations. (TODO: is this spaces or tabs?)
+   * Get the amount of indentations.
    */
   +indents: number,
   /**
@@ -770,7 +759,7 @@ type NoteType = 'Calendar' | 'Notes'
  */
 type TNote = {
   // All the keys from TParagraphBridge
-  ...TParagaraphBridge,
+  ...TParagraphBridge,
   /**
    * Folder + Filename of the note (the path is relative to the root of the chosen storage location)
    */
@@ -902,25 +891,25 @@ type TCalendarItem = {
    */
   +isAllDay: boolean,
   /**
-  * Text saved in the "Notes" field of the event or reminder.
-  * Note: Available from v3.0.26
-  */
-  +notes: string,  
+   * Text saved in the "Notes" field of the event or reminder.
+   * Note: Available from v3.0.26
+   */
+  +notes: string,
   /**
-  * URL saved with the event or reminder.
-  * Note: Available from v3.0.26
-  */
+   * URL saved with the event or reminder.
+   * Note: Available from v3.0.26
+   */
   +url: string,
   /**
-  * If supported, shows the availability for the event. The default is 0 = busy.
-  * notSupported = -1
-  * busy = 0
-  * free = 1
-  * tentative = 2
-  * unavailable = 3
-  * Note: Available from v3.3
-  * @type {Int}
-  */
+   * If supported, shows the availability for the event. The default is 0 = busy.
+   * notSupported = -1
+   * busy = 0
+   * free = 1
+   * tentative = 2
+   * unavailable = 3
+   * Note: Available from v3.3
+   * @type {Int}
+   */
   +availability: number,
   // /**
   // * Location of the event
@@ -946,9 +935,9 @@ type TCalendarItem = {
     type: CalenderItemType,
     isAllDay?: boolean,
     calendar?: string,
-    isCompleted ?: boolean,
-    notes ?: string,
-    url?: string
+    isCompleted?: boolean,
+    notes?: string,
+    url?: string,
   ): TCalendarItem,
 }
 
@@ -991,19 +980,10 @@ declare var Clipboard: {
   availableType(fromTypes: $ReadOnlyArray<string>): ?string,
 }
 
-type ParagraphType =
-  | 'open'
-  | 'done'
-  | 'scheduled'
-  | 'cancelled'
-  | 'title'
-  | 'quote'
-  | 'list'
-  | 'empty'
-  | 'text'
+type ParagraphType = 'open' | 'done' | 'scheduled' | 'cancelled' | 'title' | 'quote' | 'list' | 'empty' | 'text'
 
-declare var ParagaraphBridge: TParagaraphBridge
-type TParagaraphBridge = {
+declare var ParagraphBridge: TParagraphBridge
+type TParagraphBridge = {
   /**
    * Returns a range object of the full paragraph of the given character
    * position.
@@ -1011,7 +991,7 @@ type TParagaraphBridge = {
   paragraphRangeAtCharacterIndex(characterPosition: number): Range,
 
   /**
-   * Inserts a plain paragrah at the given line index
+   * Inserts a plain paragraph at the given line index
    */
   insertParagraph(name: string, lineIndex: number, type: ParagraphType): void,
 
@@ -1048,11 +1028,7 @@ type TParagaraphBridge = {
   /**
    * Inserts a heading at the given line index
    */
-  insertHeading(
-    name: string,
-    lineIndex: number,
-    level: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8,
-  ): void,
+  insertHeading(name: string, lineIndex: number, level: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8): void,
 
   /**
    * Appends a todo at the end of the note
@@ -1082,12 +1058,7 @@ type TParagaraphBridge = {
    * @param shouldAppend - If the todo should be appended at the bottom of existing text
    * @param shouldCreate - If the heading should be created if non-existing
    */
-  addTodoBelowHeadingTitle(
-    title: string,
-    headingTitle: string,
-    shouldAppend: boolean,
-    shouldCreate: boolean,
-  ): void,
+  addTodoBelowHeadingTitle(title: string, headingTitle: string, shouldAppend: boolean, shouldCreate: boolean): void,
 
   /**
    * Inserts a paragraph below the given title of a heading (at the beginning or end of existing text)
@@ -1108,21 +1079,17 @@ type TParagaraphBridge = {
   /**
    * Appends a todo below the given heading index (at the end of existing text)
    * @param title - Text of the todo
-   * @param headinLineIndex - Line index of the heading (get the line index from a paragraph object)
+   * @param headingLineIndex - Line index of the heading (get the line index from a paragraph object)
    */
-  appendTodoBelowHeadingLineIndex(title: string, headinLineIndex: number): void,
+  appendTodoBelowHeadingLineIndex(title: string, headingLineIndex: number): void,
 
   /**
    * Appends a paragraph below the given heading index (at the end of existing text)
    * @param title - Text of the paragraph
    * @param paragraphType
-   * @param headinLineIndex - Line index of the heading (get the line index from a paragraph object)
+   * @param headingLineIndex - Line index of the heading (get the line index from a paragraph object)
    */
-  appendParagraphBelowHeadingLineIndex(
-    title: string,
-    paragraphType: ParagraphType,
-    headinLineIndex: number,
-  ): void,
+  appendParagraphBelowHeadingLineIndex(title: string, paragraphType: ParagraphType, headingLineIndex: number): void,
 
   /**
    * Inserts a todo after a given paragraph
@@ -1144,11 +1111,7 @@ type TParagaraphBridge = {
    * @param otherParagraph - Another paragraph, get it from `.paragraphs`
    * @param paragraphType
    */
-  insertParagraphAfterParagraph(
-    title: string,
-    otherParagraph: TParagraph,
-    paragraphType: ParagraphType,
-  ): void,
+  insertParagraphAfterParagraph(title: string, otherParagraph: TParagraph, paragraphType: ParagraphType): void,
 
   /**
    * Inserts a paragraph before a given paragraph
@@ -1156,11 +1119,7 @@ type TParagaraphBridge = {
    * @param otherParagraph - Another paragraph, get it from `.paragraphs`
    * @param paragraphType
    */
-  insertParagraphBeforeParagraph(
-    title: string,
-    otherParagraph: TParagraph,
-    paragraphType: ParagraphType,
-  ): void,
+  insertParagraphBeforeParagraph(title: string, otherParagraph: TParagraph, paragraphType: ParagraphType): void,
 
   /**
    * Removes a paragraph at a given line index
@@ -1170,7 +1129,6 @@ type TParagaraphBridge = {
 
   /**
    * Removes a given paragraph
-   * Note: Each use triggers creation of a new note version.
    * @param paragraph - Paragraph object to remove, get it from `.paragraphs`
    */
   removeParagraph(paragraph: TParagraph): void,
@@ -1199,30 +1157,7 @@ type TParagaraphBridge = {
    * @param location - Position to insert at (you can get this using 'renderedSelection' for example)
    * @param length - Amount of characters to replace from the location
    */
-  replaceTextInCharacterRange(
-    text: string,
-    location: number,
-    length: number,
-  ): void,
-}
-
-declare var Environment: TEnvironment
-type TEnvironment = {
-  /**
-  * Returns the environment information:
-  *   "languageCode" -> string?
-  *   "regionCode" -> string?
-  *   "is12hFormat" -> Bool
-  *   "preferredLanguages" -> [string]
-  *   "secondsFromGMT" -> Int
-  *   "localTimeZoneAbbreviation" -> string
-  *   "localTimeZoneIdentifier" -> string
-  *   "isDaylightSavingTime" -> Bool
-  *   "daylightSavingTimeOffset" -> Double
-  *   "nextDaylightSavingTimeTransition" -> Date
-  * Note: available from v3.2.2
-  */
-  environment(preference: string): any
+  replaceTextInCharacterRange(text: string, location: number, length: number): void,
 }
 
 // Every function made available must be assigned to `globalThis`
