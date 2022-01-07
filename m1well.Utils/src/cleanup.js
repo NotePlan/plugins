@@ -14,6 +14,8 @@ import {
   sortByType
 } from './utilsHelper'
 
+export const TASK_LIST_TEXT_TYPES = ['open', 'scheduled', 'cancelled', 'done', 'list', 'text']
+
 const CONFIG_KEYS = {
   archiveNotesTag: 'archiveNotesTag',
   archiveNotesLifeInDays: 'archiveNotesLifeInDays',
@@ -39,7 +41,7 @@ const EXAMPLE_CONFIG = `
  *
  * @private
  */
-const sorter = async (): Promise<boolean> => {
+const selectionSorter = async (): Promise<boolean> => {
 
   const selectedParagraphs = Editor.selectedParagraphs
 
@@ -55,11 +57,8 @@ const sorter = async (): Promise<boolean> => {
       }
     }
 
-    const selectedNonTasksAndList = selectedParagraphs.filter(para => para.type !== 'open' && para.type !== 'scheduled'
-      && para.type !== 'done' && para.type !== 'cancelled' && para.type !== 'list')
-
-    const selected = selectedParagraphs.filter(para => para.type === 'open' || para.type === 'scheduled'
-      || para.type === 'done' || para.type === 'cancelled' || para.type === 'list')
+    const selectedNonTasksAndList = selectedParagraphs.filter(para => !TASK_LIST_TEXT_TYPES.includes(para.type))
+    const selected = selectedParagraphs.filter(para => TASK_LIST_TEXT_TYPES.includes(para.type))
 
     Editor.removeParagraphs(selectedParagraphs)
 
@@ -174,4 +173,4 @@ const validateConfig = (config: Config): string | null => {
   return null
 }
 
-export { sorter, archiveNotes, cleanUpEmptyLinesInFuture }
+export { selectionSorter, archiveNotes, cleanUpEmptyLinesInFuture }

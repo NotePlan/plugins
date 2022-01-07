@@ -4,6 +4,7 @@ import { isFuture, isMatch, parse, startOfTomorrow } from 'date-fns'
 import { showMessage } from '../../helpers/userInput'
 
 const DATE_FORMAT_ISO = 'yyyy-MM-dd'
+const EXCLAMATION_MARKS_REGEX = /\B(!+\B)/g
 
 export type Config = {
   archiveNotesTag: string,
@@ -46,30 +47,31 @@ export const getDailyNote = (day: Date): ?TNote => {
 }
 
 /**
- * sort function for paragraphs by prio `!!!`, `!!` and `!`
+ * sort function for paragraphs (of same type) by counting exclamation marks
  *
  * @returns {(function(TParagraph, TParagraph): (number))}
  */
 export const sortByPrio = (): Function => {
   return (second: TParagraph, first: TParagraph) => {
-    if (haveSameTypes(first, second)) {
-      if (isFlaggedThrice(first) || isFlaggedThrice(second)) {
-        return isFlaggedThrice(first) ? 1 : -1
+    if (haveSameTypes(second, first)) {
+      let firstExclamationsCounter = 0
+      let secondExclamationsCounter = 0
+      const firstExclamations = first.content.match(EXCLAMATION_MARKS_REGEX)
+      if (firstExclamations) {
+        firstExclamationsCounter = String(firstExclamations).length
       }
-      if (isFlaggedTwice(first)) {
-        return isFlaggedThrice(second) ? -1 : 1
+      const secondExclamations = second.content.match(EXCLAMATION_MARKS_REGEX)
+      if (secondExclamations) {
+        secondExclamationsCounter = String(secondExclamations).length
       }
-      if (isFlaggedTwice(second)) {
-        return isFlaggedThrice(first) ? 1 : -1
+
+      if (firstExclamationsCounter === secondExclamationsCounter) {
+        return 0
       }
-      if (isFlaggedOnce(first)) {
-        return (isFlaggedTwice(second) || isFlaggedThrice(second)) ? -1 : 1
-      }
-      if (isFlaggedOnce(second)) {
-        return (isFlaggedTwice(second) || isFlaggedThrice(first)) ? 1 : -1
-      }
+      return firstExclamationsCounter > secondExclamationsCounter ? 1 : -1
+    } else {
+      return 0
     }
-    return 0
   }
 }
 
@@ -162,33 +164,6 @@ const findPropertyInMixed = (val: { [string]: ?mixed }, key: string): any | null
  */
 const haveSameTypes = (paragraphOne: TParagraph, paragraphTwo: TParagraph): boolean => {
   return paragraphOne.type === paragraphTwo.type
-}
-
-/**
- * check if paragraph is flagged thrice
- *
- * @private
- */
-const isFlaggedThrice = (paragraph: TParagraph): boolean => {
-  return paragraph.content.startsWith('!!!')
-}
-
-/**
- * check if paragraph is flagged twice
- *
- * @private
- */
-const isFlaggedTwice = (paragraph: TParagraph): boolean => {
-  return paragraph.content.startsWith('!!')
-}
-
-/**
- * check if paragraph is flagged once
- *
- * @private
- */
-const isFlaggedOnce = (paragraph: TParagraph): boolean => {
-  return paragraph.content.startsWith('!')
 }
 
 /**

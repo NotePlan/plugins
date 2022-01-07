@@ -12,7 +12,11 @@ global.Editor = {
       },
       {
         type: 'open',
-        content: '! prio 2 task',
+        content: '!!! prio task with 3 excl.',
+      },
+      {
+        type: 'open',
+        content: '! prio task with 1 excl.',
       },
       {
         type: 'list',
@@ -32,11 +36,15 @@ global.Editor = {
       },
       {
         type: 'open',
-        content: '!! prio 1 task',
+        content: '!! prio task with 2 excl.',
       },
       {
         type: 'text',
         content: 'some text',
+      },
+      {
+        type: 'open',
+        content: '!!!! prio task with 4 excl.',
       },
     ]
   }
@@ -74,11 +82,19 @@ describe('utilsHelper', () => {
     test('should sort by type and prio', () => {
       const expected = [
         {
-          "content": "!! prio 1 task",
+          "content": "!!!! prio task with 4 excl.",
           "type": "open"
         },
         {
-          "content": "! prio 2 task",
+          "content": "!!! prio task with 3 excl.",
+          "type": "open"
+        },
+        {
+          "content": "!! prio task with 2 excl.",
+          "type": "open"
+        },
+        {
+          "content": "! prio task with 1 excl.",
           "type": "open"
         },
         {

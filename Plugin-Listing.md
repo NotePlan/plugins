@@ -64,7 +64,7 @@
 | `repeater` | Repeat task(s) just by selecting them in whatever note you want with a lot of functionalities | 🛠 Utils |
 | `rpt` | Generate new @repeat() tasks from completed ones | 🔁 @repeat Extensions |
 | `saveSearchResults` | Save results from a search over all notes | 🗃 Summaries |
-| `sorter` | Sort selected lines by type and by prio | 🛠 Utils |
+| `selectionSorter` | Sort selected lines by type and by prio | 🛠 Utils |
 | `start reviews` | start a new series of reviews, deciding which are now ready for review, and kicking off the first one | 🔬Reviews |
 | `sw7` | Find all open tasks for last 7 days & silently move/reschedule to today | 🧹 Task Sweeper |
 | `swa` | Find ALL open tasks & move/reschedule to today's Calendar Note | 🧹 Task Sweeper |

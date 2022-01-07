@@ -37,7 +37,7 @@ Using the NotePlan Plugin Shortcut `/`
 - the `@repeat` is now at the first occurence, so if you want to delete all repetitions, you just have to delete this first one
 - the last `@repeat` is BOLD, so that you are reminded to eventually create new repetitions again: example: @repeat(**!!15/15!!**)
 
-### ->> `/well:sorter` <<-
+### ->> `/well:selectionSorter` <<-
 "Sort selected lines by type and by prio ("inline sort" - so they stay at the same position in the note)"  
 
 **ATTENTION:**
