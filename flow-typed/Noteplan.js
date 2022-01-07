@@ -39,7 +39,7 @@ type TEditor = {
   /**
    * Also all the keys from this object
    */
-  ...TParagaraphBridge,
+  ...TParagraphBridge,
   /**
    * Get the note object of the opened note in the editor
    */
@@ -101,7 +101,7 @@ type TEditor = {
    */
   insertTextAtCursor(text: string): void,
   /**
-   * Inserts a plain paragrah before the selected paragraph (or the paragraph the cursor is currently positioned)
+   * Inserts a plain paragraph before the selected paragraph (or the paragraph the cursor is currently positioned)
    * @param name - Text of the paragraph
    * @param type - paragraph type
    * @param indents - How much it should be indented
@@ -155,7 +155,7 @@ type TEditor = {
   selectAll(): void,
   /**
    * (Raw) select text in the editor
-   * (like select 10 characters = length fromposition 2 = start)
+   * (like select 10 characters = length from position 2 = start)
    *
    * Raw means here that the position is calculated with the Markdown revealed,
    * including Markdown links and folded text.
@@ -264,7 +264,7 @@ type TDataStore = {
    */
   +defaultFileExtension: string,
   /**
-   * Get all folders as array of strings. Including the root "/" and exluding
+   * Get all folders as array of strings. Including the root "/" and excluding
    * folders from Archive or Trash.
    */
   +folders: $ReadOnlyArray<string>,
@@ -349,7 +349,7 @@ type TDataStore = {
    */
   projectNoteByTitle(title: string, caseInsensitive?: boolean, searchAllFolders?: boolean): ?$ReadOnlyArray<TNote>,
   /**
-   * Returns all regular notes with the given case insenstivie title
+   * Returns all regular notes with the given case insensitive title
    * (first line in editor).
    *
    * Since multiple notes can have the same title, an array is returned.
@@ -433,13 +433,13 @@ type TCommandBar = {
    * Asks the user to enter something into the CommandBar.
    *
    * Use the "placeholder" value to display a question,
-   * like "Type the nameof the task".
+   * like "Type the name of the task".
    *
    * Use the "submitText" to describe what happens with the selection,
    * like "Create task named '%@'".
    *
    * The "submitText" value supports the variable "%@" in the string, that
-   * NotePlan autofills with the typed text.
+   * NotePlan autofill with the typed text.
    *
    * It returns a Promise, so you can wait (using "await...") for the user
    * input with the entered text as success result.
@@ -474,6 +474,31 @@ type TCommandBar = {
    * It is safe to call Editor and other user interface functions on the main thread.
    */
   onMainThread(): Promise<void>,
+
+  /**
+   * Note: Available from v3.3.2
+   * Show a native alert or confirm with title and message
+   * Define at least one or more buttons for the user to select.
+   * If you don't supply any buttons, an "OK" button will be displayed.
+   * The promise returns selected button, with button index (0 - first button)
+   * @param {String}
+   * @param {String?}
+   * @param {[String]?}
+   */
+  prompt(title: string, message: string, buttons?: $ReadOnlyArray<string>): Promise<number>,
+
+  /**
+   * Note: Available from v3.3.2
+   * Show a native text input prompt to the user with title and message text.
+   * The buttons will be "OK" and "Cancel".
+   * You can supply a default value which will be pre-filled.
+   * If the user selects "OK", the promise returns users entered value
+   * If the user selects "Cancel", the promise returns false.
+   * @param {String}
+   * @param {String?}
+   * @param {String?}
+   */
+  textPrompt(title: string, message: string, defaultValue: string): Promise<string | boolean>,
 }
 
 /**
@@ -734,7 +759,7 @@ type NoteType = 'Calendar' | 'Notes'
  */
 type TNote = {
   // All the keys from TParagraphBridge
-  ...TParagaraphBridge,
+  ...TParagraphBridge,
   /**
    * Folder + Filename of the note (the path is relative to the root of the chosen storage location)
    */
@@ -957,8 +982,8 @@ declare var Clipboard: {
 
 type ParagraphType = 'open' | 'done' | 'scheduled' | 'cancelled' | 'title' | 'quote' | 'list' | 'empty' | 'text'
 
-declare var ParagaraphBridge: TParagaraphBridge
-type TParagaraphBridge = {
+declare var ParagraphBridge: TParagraphBridge
+type TParagraphBridge = {
   /**
    * Returns a range object of the full paragraph of the given character
    * position.
@@ -966,7 +991,7 @@ type TParagaraphBridge = {
   paragraphRangeAtCharacterIndex(characterPosition: number): Range,
 
   /**
-   * Inserts a plain paragrah at the given line index
+   * Inserts a plain paragraph at the given line index
    */
   insertParagraph(name: string, lineIndex: number, type: ParagraphType): void,
 
@@ -1054,17 +1079,17 @@ type TParagaraphBridge = {
   /**
    * Appends a todo below the given heading index (at the end of existing text)
    * @param title - Text of the todo
-   * @param headinLineIndex - Line index of the heading (get the line index from a paragraph object)
+   * @param headingLineIndex - Line index of the heading (get the line index from a paragraph object)
    */
-  appendTodoBelowHeadingLineIndex(title: string, headinLineIndex: number): void,
+  appendTodoBelowHeadingLineIndex(title: string, headingLineIndex: number): void,
 
   /**
    * Appends a paragraph below the given heading index (at the end of existing text)
    * @param title - Text of the paragraph
    * @param paragraphType
-   * @param headinLineIndex - Line index of the heading (get the line index from a paragraph object)
+   * @param headingLineIndex - Line index of the heading (get the line index from a paragraph object)
    */
-  appendParagraphBelowHeadingLineIndex(title: string, paragraphType: ParagraphType, headinLineIndex: number): void,
+  appendParagraphBelowHeadingLineIndex(title: string, paragraphType: ParagraphType, headingLineIndex: number): void,
 
   /**
    * Inserts a todo after a given paragraph

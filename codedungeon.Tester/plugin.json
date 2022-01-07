@@ -11,12 +11,6 @@
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/codedungeon.Tester/README.md",
   "plugin.commands": [
     {
-      "name": "tester",
-      "description": "Tester Heartbeat",
-      "jsFunction": "testerHeartbeat",
-      "alias": []
-    },
-    {
       "name": "np:templating-heartbeat",
       "alias": [],
       "description": "np.Templating Heartbeat",

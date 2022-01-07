@@ -109,12 +109,14 @@ Should you run into an issue with a NotePlan plugin, you can use one of the foll
  * @author @codedungeon
  * @param {string} message - text to display to user (parses each line as separate 'option')
  * @param {string} label - label text (appears in CommandBar filter field)
+ * @param {[String]?} buttons - array of buttons (strings)
  */
-export async function alert(message: any = '', label: string = 'press <return> to continue'): Promise<string> {
-  const lines = Array.isArray(message) ? message : message.split('\n')
-  const optionItem = await CommandBar.showOptions(lines, label)
-  const result = lines[optionItem.index]
-  // await CommandBar.hide()  // don't use as it crashes on iOS and is not actually required
+export async function alert(
+  message: string = '',
+  title: string = '',
+  buttons?: $ReadOnlyArray<string>,
+): Promise<number> {
+  const result = await CommandBar.prompt(message, title, buttons)
 
   return result
 }
