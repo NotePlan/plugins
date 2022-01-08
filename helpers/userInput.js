@@ -3,8 +3,8 @@
 // Specialised user input functions
 
 import json5 from 'json5'
-import { RE_DATE, RE_DATE_INTERVAL } from './dateTime'
 import { calcSmartPrependPoint } from './paragraph'
+import { RE_DATE, RE_DATE_INTERVAL } from './dateTime'
 
 // NB: This fn is a local copy from helpers/general.js, to avoid a circular dependency
 async function parseJSON5(contents: string): Promise<?{ [string]: ?mixed }> {
@@ -45,73 +45,36 @@ export async function chooseOption<T, TDefault = T>(
 }
 
 /**
- * Ask user to give arbitary input using CommandBar
- * or now newer native dialog if available.
- * @author @jgclark, updating @nmn
- * 
+ * Ask user to give arbitary input (from nmn.sweep) using CommandBar
+ * @author @nmn
  * @param {string} message - text to display to user
- * @param {?string} okLabel - the "button" (option) text (default: 'OK')
- * @param {?string} dialogTitle - title for the dialog (default: empty)
- * @param {?string} defaultValue - default value to display in text entry (default: empty)
+ * @param {string} okLabel - the "button" (option) text (default: 'OK')
  * @return {string} - string that the user enters. Maybe be the empty string.
  */
-export async function getInput(
-  message: string,
-  okLabel: string = 'OK',
-  dialogTitle: string = 'Enter value',
-  defaultValue: string = '',
-): Promise<boolean | string> {
-  if (typeof CommandBar.textPrompt === 'function') {
-    return await CommandBar.textPrompt(dialogTitle, message, defaultValue)
-  } else {
-    return await CommandBar.showInput(message, okLabel)
-  }
+export async function getInput(message: string, okLabel: string = 'OK'): Promise<string> {
+  return await CommandBar.showInput(message, okLabel)
 }
 
 /**
- * Show a single-button dialog-box like message (modal) using CommandBar,
- * or now newer native dialog if available.
- * @author @jgclark, updating @dwertheimer, updating @nmn
- * 
+ * Show a single-button dialog-box like message (modal) using CommandBar
+ * @author @dwertheimer, updating @nmn
  * @param {string} message - text to display to user
- * @param {?string} confirmButton - the "button" (option) text (default: 'OK')
- * @param {?string} dialogTitle - title for the dialog (default: empty)
+ * @param {string} confirmTitle - the "button" (option) text (default: 'OK')
  */
-export async function showMessage(
-  message: string,
-  confirmButton: string = 'OK',
-  dialogTitle: string = ''
-): Promise<void> {
-  if (typeof CommandBar.prompt === 'function') {
-    const answer = await CommandBar.prompt(dialogTitle, message, [confirmButton])
-  } else {
-    await CommandBar.showOptions([confirmButton], message)
-  }
+export async function showMessage(message: string, confirmTitle: string = 'OK'): Promise<void> {
+  await CommandBar.showOptions([ confirmTitle ], message)
 }
 
 /**
  * Show a simple yes/no (could be OK/Cancel, etc.) dialog using CommandBar
- * or the newer native dialog if available.
- * @author @jgclark, updating @nmn
- * 
  * @param {string} message - text to display to user
- * @param {?Array<string>} choicesArray - an array of the choices to give (default: ['Yes', 'No'])
- * @param {?string} dialogTitle - title for the dialog (default: empty)
+ * @param {Array<string>} choicesArray - an array of the choices to give (default: ['Yes', 'No'])
  * @returns {string} - returns the user's choice - the actual *text* choice from the input array provided
  */
-export async function showMessageYesNo(
-  message: string,
-  choicesArray: Array<string> = ['Yes', 'No'],
-  dialogTitle: string = ''
-): Promise<string> {
-  let answer: number
-  if (typeof CommandBar.prompt === 'function') {
-    answer = await CommandBar.prompt(dialogTitle, message, choicesArray)
-  } else {
-    const answerObj = await CommandBar.showOptions(choicesArray, `${message}`)
-    answer = answerObj.index
-  }
-  return choicesArray[answer]
+export async function showMessageYesNo(message: string, choicesArray: Array<string> = [ 'Yes',
+  'No' ]): Promise<string> {
+  const answer = await CommandBar.showOptions(choicesArray, message)
+  return choicesArray[answer.index]
 }
 
 /**
