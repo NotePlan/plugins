@@ -9,9 +9,9 @@
  * @param {object} obj
  * @param {string | number} space - A String or Number of spaces that's used to insert white space (including indentation, line break characters, etc.) into the output JSON string for readability purposes.
  * @returns {string} stringified object
- * @example console.log(JSP(obj, true)) // prints the full object with newlines and indentation
+ * @example console.log(JSP(obj, '\t')) // prints the full object with newlines and tabs for indentation
  */
-export function JSP(obj: any, space: string | number = 2): string {
+export function JSP(obj: { [string]: mixed }, space: string | number = 2): string {
   const propNames = getAllPropertyNames(obj)
   const fullObj = propNames.reduce((acc, propName) => {
     acc[propName] = obj[propName]
@@ -29,7 +29,7 @@ export function JSP(obj: any, space: string | number = 2): string {
  * @param {string | number} space - A String or Number of spaces that's used to insert white space (including indentation, line break characters, etc.) into the output JSON string for readability purposes.
  * @example clo(obj, 'myObj:')
  */
-export function clo(obj: any, preamble: string = '', space: string | number = 2): void {
+export function clo(obj: { [string]: mixed }, preamble: string = '', space: string | number = 2): void {
   console.log(`${preamble !== '' ? `${preamble} ` : ''}${JSP(obj, space)}`)
 }
 
@@ -41,7 +41,7 @@ export function clo(obj: any, preamble: string = '', space: string | number = 2)
  * @returns [string]
  * @reference https://stackoverflow.com/questions/13796360/javascript-get-all-properties-of-an-object
  */
-export function getAllPropertyNames(inObj: any): Array<string> {
+export function getAllPropertyNames(inObj: { [string]: mixed }): Array<string> {
   const p = []
   for (let obj = { ...inObj }; obj != null; obj = Object.getPrototypeOf(obj)) {
     const op = Object.getOwnPropertyNames(obj)
@@ -61,7 +61,7 @@ export function getAllPropertyNames(inObj: any): Array<string> {
  */
 // This works and is good if you want to know which properties are on the object vs the prototype
 // because it will display in two lines
-export function logAllPropertyNames(obj: any): void {
+export function logAllPropertyNames(obj: { [string]: mixed }): void {
   if (obj == null) return // recursive approach
   console.log(Object.getOwnPropertyNames(obj).filter((x) => /^__/.test(x) === false))
   logAllPropertyNames(Object.getPrototypeOf(obj))
@@ -72,6 +72,6 @@ export function logAllPropertyNames(obj: any): void {
  *
  * @author @jgclark/@dwertheimer
  */
-export function logEnvironmentSettings(envObj: any): void {
+export function logEnvironmentSettings(envObj: { [string]: mixed }): void {
   clo(envObj)
 }
