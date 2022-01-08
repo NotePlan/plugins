@@ -3,8 +3,8 @@
 // Specialised user input functions
 
 import json5 from 'json5'
-import { calcSmartPrependPoint } from './paragraph'
 import { RE_DATE, RE_DATE_INTERVAL } from './dateTime'
+import { calcSmartPrependPoint } from './paragraph'
 
 // NB: This fn is a local copy from helpers/general.js, to avoid a circular dependency
 async function parseJSON5(contents: string): Promise<?{ [string]: ?mixed }> {
@@ -27,6 +27,7 @@ export type Option<T> = $ReadOnly<{
 /**
  * Ask user to choose from a set of options (from nmn.sweep) using CommandBar
  * @author @nmn
+ * 
  * @param {string} message - text to display to user
  * @param {Array<T>} options - array of label:value options to present to the user
  * @param {TDefault} defaultValue - default label:value to use
@@ -45,41 +46,103 @@ export async function chooseOption<T, TDefault = T>(
 }
 
 /**
- * Ask user to give arbitary input (from nmn.sweep) using CommandBar
- * @author @nmn
+ * Ask user to give arbitary input using CommandBar
+ * or now newer native dialog if available.
+ * @author @jgclark, updating @nmn
+ * 
  * @param {string} message - text to display to user
- * @param {string} okLabel - the "button" (option) text (default: 'OK')
+ * @param {?string} okLabel - the "button" (option) text (default: 'OK')
+ * @param {?string} dialogTitle - title for the dialog (default: empty)
+ * @param {?string} defaultValue - default value to display in text entry (default: empty)
  * @return {string} - string that the user enters. Maybe be the empty string.
  */
-export async function getInput(message: string, okLabel: string = 'OK'): Promise<string> {
-  return await CommandBar.showInput(message, okLabel)
+export async function getInput(
+  message: string,
+  okLabel: string = 'OK',
+  dialogTitle: string = 'Enter value',
+  defaultValue: string = '',
+): Promise<boolean | string> {
+  if (typeof CommandBar.textPrompt === 'function') {
+    return await CommandBar.textPrompt(dialogTitle, message, defaultValue)
+  } else {
+    return await CommandBar.showInput(message, okLabel)
+  }
 }
 
 /**
- * Show a single-button dialog-box like message (modal) using CommandBar
- * @author @dwertheimer, updating @nmn
- * @param {string} message - text to display to user
- * @param {string} confirmTitle - the "button" (option) text (default: 'OK')
+ * Get user input, trimmed at both ends, using CommandBar
+ * or now newer native dialog if available.
+ * @author @jgclark, updating @m1well
+ *
+ * @param placeholder value to display a question
+ * @param submitText describe what happens with the input
+ * @returns {Promise<string>} value input from the user
  */
-export async function showMessage(message: string, confirmTitle: string = 'OK'): Promise<void> {
-  await CommandBar.showOptions([ confirmTitle ], message)
+export async function getInputTrimmed(
+  message: string,
+  okLabel: string = 'OK',
+  dialogTitle: string = 'Enter value',
+  defaultValue: string = '',
+): Promise<boolean | string> {
+  if (typeof CommandBar.textPrompt === 'function') {
+    const reply = await CommandBar.textPrompt(dialogTitle, message, defaultValue)
+    return (typeof reply === 'string') ? reply.trim() : reply
+  } else {
+    const reply = await CommandBar.showInput(message, okLabel)
+    return reply.trim()
+  }
+}
+
+/**
+ * Show a single-button dialog-box like message (modal) using CommandBar,
+ * or now newer native dialog if available.
+ * @author @jgclark, updating @dwertheimer, updating @nmn
+ * 
+ * @param {string} message - text to display to user
+ * @param {?string} confirmButton - the "button" (option) text (default: 'OK')
+ * @param {?string} dialogTitle - title for the dialog (default: empty)
+ */
+export async function showMessage(
+  message: string,
+  confirmButton: string = 'OK',
+  dialogTitle: string = ''
+): Promise<void> {
+  if (typeof CommandBar.prompt === 'function') {
+    const answer = await CommandBar.prompt(dialogTitle, message, [confirmButton])
+  } else {
+    await CommandBar.showOptions([confirmButton], message)
+  }
 }
 
 /**
  * Show a simple yes/no (could be OK/Cancel, etc.) dialog using CommandBar
+ * or the newer native dialog if available.
+ * @author @jgclark, updating @nmn
+ * 
  * @param {string} message - text to display to user
- * @param {Array<string>} choicesArray - an array of the choices to give (default: ['Yes', 'No'])
+ * @param {?Array<string>} choicesArray - an array of the choices to give (default: ['Yes', 'No'])
+ * @param {?string} dialogTitle - title for the dialog (default: empty)
  * @returns {string} - returns the user's choice - the actual *text* choice from the input array provided
  */
-export async function showMessageYesNo(message: string, choicesArray: Array<string> = [ 'Yes',
-  'No' ]): Promise<string> {
-  const answer = await CommandBar.showOptions(choicesArray, message)
-  return choicesArray[answer.index]
+export async function showMessageYesNo(
+  message: string,
+  choicesArray: Array<string> = ['Yes', 'No'],
+  dialogTitle: string = ''
+): Promise<string> {
+  let answer: number
+  if (typeof CommandBar.prompt === 'function') {
+    answer = await CommandBar.prompt(dialogTitle, message, choicesArray)
+  } else {
+    const answerObj = await CommandBar.showOptions(choicesArray, `${message}`)
+    answer = answerObj.index
+  }
+  return choicesArray[answer]
 }
 
 /**
  * Let user pick from a nicely-indented list of available folders (or return / for root)
  * @author @jgclark
+ * 
  * @param {string} msg - text to display to user
  * @param {boolean} includeArchive - include archive or not
  * @returns {string} - returns the user's folder choice (or / for root)
@@ -120,6 +183,7 @@ export async function chooseFolder(msg: string, includeArchive: boolean = false)
 /** 
  * Ask user to select a heading from those in a given note
  * @author @jgclark
+ * 
  * @param {TNote} note - note to draw headings from
  * @param {boolean} optionAddAtBottom - whether to add '(top of note)' and '(bottom of note)' options. Default: true
  * @param {boolean} optionCreateNewHeading - whether to offer to create a new heading at the top of bottom of the note. Default: false
@@ -162,18 +226,28 @@ export async function chooseHeading(
   if (headingToFind === '➕ ⬆️ (first insert new heading at the start of the note)') {
     // ask for new heading, find smart insertion position, and insert it
     const newHeading = await getInput(`Enter heading to add at the start of the note`)
-    const startPos = calcSmartPrependPoint(note)
-    console.log(`prepending new heading ${newHeading} at line ${startPos}`)
-    note.insertHeading(newHeading, startPos, 2)
-    headingToFind = newHeading
+    if (newHeading && typeof newHeading === 'string') {
+      const startPos = calcSmartPrependPoint(note)
+      console.log(`prepending new heading ${newHeading} at line ${startPos}`)
+      note.insertHeading(newHeading, startPos, 2)
+      headingToFind = newHeading
+    } else {
+      // i.e. input was cancelled -- TODO: ideally would quit here?
+      return '(error)'
+    }
   }
   if (headingToFind === '➕ ⬇️ (first insert new heading at the end of the note)') {
     // ask for new heading, and then append it
     const newHeading = await getInput(`Enter heading to add at the end of the note`)
-    const endPos = note.paragraphs.length
-    console.log(`appending new heading ${newHeading} at line ${endPos}`)
-    note.insertHeading(newHeading, endPos, 2)
-    headingToFind = newHeading
+    if (newHeading && typeof newHeading === 'string') {
+      const endPos = note.paragraphs.length
+      console.log(`appending new heading ${newHeading} at line ${endPos}`)
+      note.insertHeading(newHeading, endPos, 2)
+      headingToFind = newHeading
+    } else {
+      // i.e. input was cancelled -- TODO: ideally would quit here?
+      return '(error)'
+    }
   }
   return headingToFind
 }
@@ -181,6 +255,7 @@ export async function chooseHeading(
 /**
  * Ask for a date interval from user, using CommandBar
  * @author @jgclark
+ * 
  * @param {string} dateParams - given parameters -- currently only looks for {question:'question test'} parameter
  * @return {string} - the returned interval string, or empty if an invalid string given
  */
@@ -193,11 +268,10 @@ export async function askDateInterval(dateParams: string): Promise<string> {
       : dateParamsTrimmed !== ''
         ? await parseJSON5(`{${dateParams}}`)
         : {}
-  // $FlowFixMe
+  // $FlowFixMe[incompatible-type]
   console.log(`param config: ${dateParams} as ${JSON.stringify(paramConfig)}`)
   // ... = "gather the remaining parameters into an array"
   const allSettings: { [string]: mixed } = { ...paramConfig }
-  // console.log(allSettings.toString())
   // grab just question parameter, or provide a default
   let { question } = (allSettings: any)
   question = question ? question : 'Please enter a date interval'
@@ -206,7 +280,7 @@ export async function askDateInterval(dateParams: string): Promise<string> {
   const reply = (await CommandBar.showInput(question, `Date interval (in form nn[bdwmqy]): %@`)) ?? ''
   const reply2 = reply.trim()
   if (reply2.match(RE_DATE_INTERVAL) == null) {
-    await showMessage(`Sorry: ${reply2} wasn't a valid date interval`, `OK`)
+    await showMessage(`Sorry: ${reply2} wasn't a valid date interval`, `OK`, 'Error')
     return ''
   }
   return reply2
@@ -216,6 +290,7 @@ export async function askDateInterval(dateParams: string): Promise<string> {
  * Ask for a date from user (very simple: they need to enter an ISO date).
  * TODO: in time @EduardMe should produce a native API call that can improve this.
  * @author @jgclark
+ * 
  * @param {string} question - string to put in the command bar
  * @return {string} - the returned ISO date as a string, or empty if an invalid string given
  */
@@ -224,7 +299,7 @@ export async function askForFutureISODate(question: string): Promise<string> {
   const reply = (await CommandBar.showInput(question, `Date (YYYY-MM-DD): %@`)) ?? ''
   const reply2 = reply.replace('>', '').trim() // remove leading '>' and trim
   if (reply2.match(RE_DATE) == null) {
-    await showMessage(`Sorry: ${reply2} wasn't a valid date of form YYYY-MM-DD`, `OK`)
+    await showMessage(`Sorry: ${reply2} wasn't a valid date of form YYYY-MM-DD`, `OK`, 'Error')
     return ''
   }
   return reply2
@@ -234,6 +309,7 @@ export async function askForFutureISODate(question: string): Promise<string> {
  * Ask for a date from user (very simple: they need to enter an ISO date)
  * TODO: in time @EduardMe should produce a native API call that can improve this.
  * @author @jgclark, based on @nmn code
+ * 
  * @param {string} dateParams - given parameters -- currently only looks for {question:'question test'} parameter
  * @param {[string]: ?mixed} config - relevant settings from _configuration note
  * @return {string} - the returned ISO date as a string, or empty if an invalid string given
@@ -270,7 +346,7 @@ export async function datePicker(dateParams: string, config: { [string]: ?mixed 
   const reply = (await CommandBar.showInput(question, `Date (YYYY-MM-DD): %@`)) ?? ''
   const reply2 = reply.replace('>', '').trim() // remove leading '>' and trim
   if (!reply2.match(RE_DATE)) {
-    await showMessage(`Sorry: ${reply2} wasn't a date of form YYYY-MM-DD`, `OK`)
+    await showMessage(`Sorry: ${reply2} wasn't a date of form YYYY-MM-DD`, `OK`, 'Error')
     return ''
   }
   return reply2
@@ -279,6 +355,7 @@ export async function datePicker(dateParams: string, config: { [string]: ?mixed 
 /**
  * Ask for a (floating point) number from user
  * @author @jgclark and @m1well
+ * 
  * @param question question for the commandbar
  * @returns {Promise<number|*>} returns integer or NaN
  */
@@ -296,6 +373,7 @@ export async function inputInteger(question: string): Promise<number> {
  * Test for integer
  * Method taken from https://stackoverflow.com/questions/14636536/how-to-check-if-a-variable-is-an-integer-in-javascript
  * @author @jgclark
+ * 
  * @param {string} value - input value to check
  * @result {boolean}
  */
@@ -307,6 +385,7 @@ export function isInt(value: string): boolean {
 /**
  * Ask for an integer from user
  * @author @jgclark
+ * 
  * @param question question for the commandbar
  * @returns {Promise<number|*>} returns number or NaN
  */
@@ -323,6 +402,7 @@ export async function inputNumber(question: string): Promise<number> {
 /**
  * Ask user to choose a mood
  * @author @jgclark
+ * 
  * @param {Array<string>} moodArray - list of moods to pick from
  * @return {string} - selected mood
  */
@@ -331,19 +411,6 @@ export async function inputMood(moodArray: Array<string>): Promise<string> {
   const reply = await CommandBar.showOptions(moodArray, `Please choose appropriate mood`)
   const replyMood = moodArray[reply.index] ?? '<error>'
   return replyMood
-}
-
-/**
- * Get user input, trimmed at both ends
- * @author @m1well
- *
- * @param placeholder value to display a question
- * @param submitText describe what happens with the input
- * @returns {Promise<string>} value input from the user
- */
-export const getInputTrimmed = async (placeholder: string, submitText: string): Promise<string> => {
-  const reply = await CommandBar.showInput(placeholder, submitText)
-  return reply.trim()
 }
 
 /**
