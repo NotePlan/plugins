@@ -76,7 +76,8 @@
     "CalendarItem": true,
     "globalThis": true,
     "Clipboard": true,
-    "fetch": true
+    "fetch": true,
+    "Environment": true
   },
   "ignorePatterns": [
     "node_modules",
