@@ -1,0 +1,17 @@
+{
+  "noteplan.minAppVersion": "3.0.21", 
+  "plugin.id": "nhueck.GroupTasks", 
+  "plugin.name": "🖇GroupTasks", 
+  "plugin.description": "Group tasks by their hashtag in current note", 
+  "plugin.author": "Nikolaus Hueck",
+  "plugin.version": "0.0.4", 
+  "plugin.dependencies": ["nmn.Templates"], 
+  "plugin.script": "script.js",
+  "plugin.commands": [ 
+	{
+	  "name": "groupOpenTasks", 
+	  "description": "Group open tasks by their hashtag in current note", 
+	  "jsFunction": "groupTasks"
+	}
+  ]
+}
