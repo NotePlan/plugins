@@ -13,7 +13,7 @@
   "plugin.isRemote": "false",
   "plugin.commands": [
     {
-      "name": "moveParagraphs",
+      "name": "move paragraphs",
       "alias": [
         "mp",
         "fp",
@@ -25,7 +25,13 @@
       "jsFunction": "moveParas"
     },
     {
-      "name": "nns",
+      "name": "new note from selection",
+      "alias": [
+        "nns",
+        "new",
+        "note",
+        "selection"
+      ],
       "description": "New note from selection (and leave link to it in its place)",
       "jsFunction": "newNoteFromSelection"
     }
@@ -37,10 +43,18 @@
     },
     {
         "key": "addDateBacklink",
-        "title": "Add date backlinks?",
-        "description": "If true, adds date backlinks on the moved paragraph(s) when moved from a daily note.",
+        "title": "Add date reference?",
+        "description": "If true, adds date reference on the moved paragraph(s) when moved from a daily note.",
         "type": "boolean",
         "default": false,
+        "required": false
+    },
+    {
+        "key": "dateRefStyle",
+        "title": "Date reference style",
+        "description": "The style of date to add `link` (`>date`) or `at` (`@date`) or `date` (a formatted date string).",
+        "type": "string",
+        "default": "link",
         "required": false
     },
     {

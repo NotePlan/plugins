@@ -19,7 +19,8 @@ You can tweak the behaviour of `/moveParagraphs` in a few ways. To do, please ad
 ...
   {
 	filer: {
-    addDateBacklink: false, // to add date backlinks on the moved paragraph(s) set to true
+    addDateBacklink: false, // to add date on the moved paragraph(s) set to true
+    dateLinkStyle: "link", // The style of date to add `link` (`>date`) or `at` (`@date`) or `date` (a formatted date string)
     useExtendedBlockDefinition: false, // to use the extended blocks, set to true
     whereToAddInSection: "start" // Controls whether moved lines get inserted at the "start" or "end" of the chosen section
   },

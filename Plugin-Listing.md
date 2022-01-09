@@ -5,7 +5,6 @@
 | `Create AutoTimeBlocks using presets` | Read >today todos and insert them into today's calendar note as timeblocks, but using presets defined in _configuration note | 🗓 Event Automations |
 | `Create Note From Calendar Event` | creates a note from a calendar event | 🗓 Event Automations |
 | `Create Note From Calendar Event w/QuickTemplate` | creates a note from a calendar event | 🗓 Event Automations |
-| `add project` | add a new note representing a project, asking for its metadata | 🔬Reviews |
 | `apply template` | Choose a Template to apply (append) to the current Note | 🔩 Templates |
 | `atb - Create AutoTimeBlocks for >today's Tasks` | Read >today todos and insert them into today's calendar note as timeblocks | 🗓 Event Automations |
 | `complete project` | add @completed(today) date to the open project | 🔬Reviews |
@@ -26,7 +25,6 @@
 | `faves - Choose+Open Favorite (⭐️) Note` | Open one of the saved Favorites | ⭐️ Favorites |
 | `finish project review` | updates the current open project's @reviewed() date | 🔬Reviews |
 | `formatted` | Insert custom formatted (format) date/time | 📅 Date Automations |
-| `fp` | file (move) paragraphs to different notes | 📦 Filer |
 | `index` | Make/Update note link Indexes for one or more folders | 📙 Note Helpers |
 | `insert day's events as list` | insert list of this day's calendar events at cursor | 🕓 Event Helpers |
 | `insert matching events` | inserts this day's calendar events matching certain patterns at cursor | 🕓 Event Helpers |
@@ -39,7 +37,7 @@
 | `list day's events to log` | list this day's calendar events to the log | 🕓 Event Helpers |
 | `mat` | Mark All Tasks (choose open or complete) | ✅ Task Automations |
 | `mn` | Moves the currently opened (non-calendar) note to a folder you select | 📙 Note Helpers |
-| `mp` | move (file) paragraphs to different notes | 📦 Filer |
+| `moveParagraphs` | Mmove (file) paragraph(s) to different notes | 📦 Filer |
 | `nc` | Counts of all the notes in NotePlan | 🔢 Note Statistics |
 | `new note` | Create new note with title, in chosen folder with optional template | 🔩 Templates |
 | `next project review` | updates this project's @reviewed() date, and jump to next project to review | 🔬Reviews |
