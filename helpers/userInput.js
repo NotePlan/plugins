@@ -46,15 +46,15 @@ export async function chooseOption<T, TDefault = T>(
 }
 
 /**
- * Ask user to give arbitary input using CommandBar
- * or now newer native dialog if available.
+ * Ask user to give arbitary input using CommandBar.
+ * Will now use newer native dialog if available (from 3.3.2), which gets a title and default, but doesn't allow to customise the button text.
  * @author @jgclark, updating @nmn
  * 
- * @param {string} message - text to display to user
+ * @param {string} message - request text to display to user
  * @param {?string} okLabel - the "button" (option) text (default: 'OK')
  * @param {?string} dialogTitle - title for the dialog (default: empty)
  * @param {?string} defaultValue - default value to display in text entry (default: empty)
- * @return {string} - string that the user enters. Maybe be the empty string.
+ * @return {Promise<boolean|string>} - string that the user enters. Maybe be the empty string. If the user cancels the operation, it will return false instead.
  */
 export async function getInput(
   message: string,
@@ -70,13 +70,15 @@ export async function getInput(
 }
 
 /**
- * Get user input, trimmed at both ends, using CommandBar
- * or now newer native dialog if available.
+ * Get user input, trimmed at both ends, using CommandBar.
+ * Will now use newer native dialog if available (from 3.3.2), which gets a title and default, but doesn't allow to customise the button text.
  * @author @jgclark, updating @m1well
  *
- * @param placeholder value to display a question
- * @param submitText describe what happens with the input
- * @returns {Promise<string>} value input from the user
+ * @param {string} message - request text to display to user
+ * @param {?string} okLabel - the "button" (option) text (default: 'OK')
+ * @param {?string} dialogTitle - title for the dialog (default: empty)
+ * @param {?string} defaultValue - default value to display in text entry (default: empty)
+ * @returns {Promise<boolean|string>} string that the user enters. Maybe be the empty string. If the user cancels the operation, it will return false instead.
  */
 export async function getInputTrimmed(
   message: string,
@@ -94,8 +96,8 @@ export async function getInputTrimmed(
 }
 
 /**
- * Show a single-button dialog-box like message (modal) using CommandBar,
- * or now newer native dialog if available.
+ * Show a single-button dialog-box like message (modal) using CommandBar.
+ * Will now use newer native dialog if available (from 3.3.2), which adds a title.
  * @author @jgclark, updating @dwertheimer, updating @nmn
  * 
  * @param {string} message - text to display to user
@@ -108,15 +110,15 @@ export async function showMessage(
   dialogTitle: string = ''
 ): Promise<void> {
   if (typeof CommandBar.prompt === 'function') {
-    const answer = await CommandBar.prompt(dialogTitle, message, [confirmButton])
+    await CommandBar.prompt(dialogTitle, message, [confirmButton])
   } else {
     await CommandBar.showOptions([confirmButton], message)
   }
 }
 
 /**
- * Show a simple yes/no (could be OK/Cancel, etc.) dialog using CommandBar
- * or the newer native dialog if available.
+ * Show a simple yes/no (could be OK/Cancel, etc.) dialog using CommandBar.
+ * Will now use newer native dialog if available (from 3.3.2), which adds a title.
  * @author @jgclark, updating @nmn
  * 
  * @param {string} message - text to display to user
@@ -268,8 +270,7 @@ export async function askDateInterval(dateParams: string): Promise<string> {
       : dateParamsTrimmed !== ''
         ? await parseJSON5(`{${dateParams}}`)
         : {}
-  // $FlowFixMe[incompatible-type]
-  console.log(`param config: ${dateParams} as ${JSON.stringify(paramConfig)}`)
+  console.log(`param config: ${dateParams} as ${JSON.stringify(paramConfig) ?? ''}`)
   // ... = "gather the remaining parameters into an array"
   const allSettings: { [string]: mixed } = { ...paramConfig }
   // grab just question parameter, or provide a default
@@ -400,13 +401,12 @@ export async function inputNumber(question: string): Promise<number> {
 }
 
 /**
- * Ask user to choose a mood
+ * Ask user to choose a mood from a given array.
  * @author @jgclark
  * 
  * @param {Array<string>} moodArray - list of moods to pick from
  * @return {string} - selected mood
  */
-// FlowFixMe
 export async function inputMood(moodArray: Array<string>): Promise<string> {
   const reply = await CommandBar.showOptions(moodArray, `Please choose appropriate mood`)
   const replyMood = moodArray[reply.index] ?? '<error>'
