@@ -1,11 +1,7 @@
 # What's changed in 📦 Filer plugin?
-## [Unreleased]
+## [0.6.0] - 2022-01-03
 ### Added
-- /fp and /mp now create the destination daily note if it doesn't already exist
-- add ability to default to moving to the end of a heading's section, not the start of it. See setting ???
-
-## [0.6.0] - 2021-12-09
-### Added
+- add ability to default to moving to the end of a heading's section, not the start of it, using setting `whereToAddInSection`.
 - ???. Also refactored code to allow re-use of my paragraph block finding code.
 
 ## [0.5.1] - 2021-10-03

@@ -13,20 +13,16 @@
   "plugin.isRemote": "false",
   "plugin.commands": [
     {
-      "name": "fp",
+      "name": "moveParagraphs",
       "alias": [
         "mp",
+        "fp",
         "file",
         "move",
         "paragraph"
       ],
-      "description": "file (move) paragraphs to different notes",
-      "jsFunction": "fileParas"
-    },
-    {
-      "name": "mp",
-      "description": "move (file) paragraphs to different notes",
-      "jsFunction": "fileParas"
+      "description": "Mmove (file) paragraph(s) to different notes",
+      "jsFunction": "moveParas"
     },
     {
       "name": "nns",
@@ -34,5 +30,34 @@
       "jsFunction": "newNoteFromSelection"
     }
   ],
-  "plugin.preferences": []
+  "plugin.preferences": [
+    {
+        "type": "Heading",
+        "title": "Filer plugin settings"
+    },
+    {
+        "key": "addDateBacklink",
+        "title": "Add date backlinks?",
+        "description": "If true, adds date backlinks on the moved paragraph(s) when moved from a daily note.",
+        "type": "boolean",
+        "default": false,
+        "required": false
+    },
+    {
+        "key": "useExtendedBlockDefinition",
+        "title": "Use extended block definition?",
+        "description": "Controls whether directly following paragaphs will take all following lines at same level until next empty line as well (true) or whether they have to be further indented (false; this is the default).",
+        "type": "boolean",
+        "default": false,
+        "required": false
+    },
+    {
+        "key": "whereToAddInSection",
+        "title": "Where to add in section",
+        "description": "Controls whether moved lines get inserted at the \"start\" or \"end\" of the chosen section.",
+        "type": "string",
+        "default": "start",
+        "required": false
+    }
+  ]
 }

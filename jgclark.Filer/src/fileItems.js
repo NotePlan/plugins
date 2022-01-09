@@ -2,7 +2,7 @@
 // -----------------------------------------------------------------------------
 // Plugin to help move selected selectedParagraphs to other notes
 // Jonathan Clark
-// v0.6.0, 9.12.2021
+// last updated 3.1.2022 for v0.6.0
 // -----------------------------------------------------------------------------
 
 import {
@@ -15,7 +15,7 @@ import { chooseHeading } from '../../helpers/userInput'
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 
 
-//--------------------------------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 // Settings
 const DEFAULT_FILER_OPTIONS = `  filer: {
     addDateBacklink: true, // whether to insert date link in place of the moved text
@@ -23,12 +23,12 @@ const DEFAULT_FILER_OPTIONS = `  filer: {
   },
 `
 
-// -----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 /**
  * Move text to a different note. 
  * TODO(@EduardMe): doesn't work when the destination daily note doesn't already exist.
- * TODO: Waiting for better date picker from Eduard before working further on this.
+ * TODO(@EduardMe): waiting for better dated note picker
  * 
  * This is how we identify what we're moving (in priority order):
  * - current selection
@@ -40,7 +40,7 @@ const DEFAULT_FILER_OPTIONS = `  filer: {
  *   empty line as well.
  * @author @jgclark
  */
-export async function fileParas(): Promise<void> {
+export async function moveParas(): Promise<void> {
   console.log(`\nfileParas`)
   const { content, selectedParagraphs, note } = Editor
   if (content == null || selectedParagraphs == null || note == null) {
@@ -53,29 +53,34 @@ export async function fileParas(): Promise<void> {
   const filerConfig = await getOrMakeConfigurationSection(
     'filer',
     DEFAULT_FILER_OPTIONS,
-    // no minimum config
+    // no minimum config needed
   )
   // for once it doesn't matter if filerConfig returns null (though it shouldn't)
   // $FlowIgnore[incompatible-use]
   const pref_addDateBacklink = !!filerConfig.addDateBacklink ?? true // !! ensures first item is boolean
-  console.log(pref_addDateBacklink)
+  // console.log(pref_addDateBacklink)
   // $FlowIgnore[incompatible-use]
   const pref_useExtendedBlockDefinition = !!filerConfig.useExtendedBlockDefinition ?? false // !! ensures first item is boolean
-  console.log(pref_useExtendedBlockDefinition)
+  // console.log(pref_useExtendedBlockDefinition)
+  // $FlowIgnore[incompatible-use]
+  const pref_whereToAddInSection = filerConfig.whereToAddInSection ?? 'start'
+  // console.log(pref_useExtendedBlockDefinition)
 
-  const allParas = Editor.selectedParagraphs
+  // Get current selection, and its range
   const selection = Editor.selection
   if (selection == null) {
     console.log('warning: No selection found, so stopping.')
     return
   }
   const range = Editor.paragraphRangeAtCharacterIndex(selection.start)
-  console.log(`selection: ${JSON.stringify(range)}`)
+  console.log(`  Slection: ${JSON.stringify(range)}`)
 
-  // Work out what selectedParagraph number this selected selectedPara is
+  // Also get the set of selected paragraphs (which can be different from selection),
+  // and work out what selectedPara number(index) this selected selectedPara is
+  const selParas = Editor.selectedParagraphs
   let firstSelParaIndex = 0
-  for (let i = 0; i < allParas.length; i++) {
-    const p = allParas[i]
+  for (let i = 0; i < selParas.length; i++) {
+    const p = selParas[i]
     if (p.contentRange?.start === range.start) {
       firstSelParaIndex = i
       break
@@ -85,22 +90,23 @@ export async function fileParas(): Promise<void> {
 
   let parasInBlock: Array<TParagraph> = []
   if (selectedParagraphs.length > 1) {
-    // we have a selection of selectedParagraphs, so use them
+    // we have a selection of selectedParagraphs, so use all of them
     parasInBlock = [...selectedParagraphs]
     console.log(`  Found ${parasInBlock.length} selected selectedParas`)
   } else {
-    parasInBlock = getParagraphBlock(allParas, firstSelParaIndex, pref_useExtendedBlockDefinition)
+    // otherwise just use the first paragraph
+    parasInBlock = getParagraphBlock(selParas, firstSelParaIndex, pref_useExtendedBlockDefinition)
   }
 
-  // If this is a calendar note we've moving from, and the user wants to
-  // create a date backlink, then append backlink to the first selectedPara in parasInBlock
+  // If this is a calendar note we've moving from, and the user wants to add
+  // a date backlink, then append backlink to the first selectedPara in parasInBlock
   if (pref_addDateBacklink && note.type === 'Calendar') {
     parasInBlock[0].content = `${parasInBlock[0].content} >${todaysDateISOString}`
   }
 
   // There's no API function to work on multiple selectedParagraphs,
-  // or one to insert an indented selectedParagraph, so we need to convert the selectedParagraphs
-  // to a raw text version which we can include
+  // or one to insert an indented selectedParagraph, so we need to convert the
+  // selectedParagraphs to a raw text version which we can include
   const selectedParasAsText = parasToText(parasInBlock)
 
   // Decide where to move to
@@ -114,15 +120,15 @@ export async function fileParas(): Promise<void> {
   const destNote = notes[res.index]
 
   // Ask to which heading to add the selectedParas
-  const headingToFind = (await chooseHeading(destNote, true)).toString() // don't know why this coercion is required for flow
+  const headingToFind = (await chooseHeading(destNote, true)) //.toString() // don't know why this coercion is required for flow
 
   console.log(`  Moving to note: ${destNote.title ?? 'untitled'} under heading: '${headingToFind}'`)
 
   // Add to new location
-  // Currently there's no API function to deal with multiple selectedParagraphs, but we can
-  // insert a raw text string
-  // Add text directly under the heading in the note
-  // note.addParagraphBelowHeadingTitle(parasInBlock, 'empty', heading.content, false, false);
+  // Currently there's no API function to deal with multiple selectedParagraphs,
+  // but we can insert a raw text string.
+  // Depending on setting of pref_whereToAddInSection, add text directly under the heading in the note,
+  // or at the end of the section
   const destNoteParas = destNote.paragraphs
   let insertionIndex = null
   if (headingToFind === destNote.title || headingToFind.includes('(top of note)')) { // i.e. the first line in project or calendar note
@@ -135,7 +141,11 @@ export async function fileParas(): Promise<void> {
     for (let i = 0; i < destNoteParas.length; i++) {
       const p = destNoteParas[i]
       if (p.content.trim() === headingToFind && p.type === 'title') {
-        insertionIndex = i + 1
+        if (pref_whereToAddInSection === 'start') {
+          insertionIndex = i + 1
+        } else {
+          insertionIndex = i//???
+        }
         break
       }
     }
@@ -145,11 +155,11 @@ export async function fileParas(): Promise<void> {
     console.log(`  Error: insertionIndex is null. Stopping.`)
     return
   }
-  // console.log(`  Inserting at index ${insertionIndex}`)
+  console.log(`  Inserting at index ${insertionIndex}`)
   await destNote.insertParagraph(selectedParasAsText, insertionIndex, 'empty')
 
   // delete from existing location
-  // console.log(`  About to remove ${parasInBlock.length} selectedParas (parasInBlock)`)
+  console.log(`  About to remove ${parasInBlock.length} selectedParas (parasInBlock)`)
   note.removeParagraphs(parasInBlock)
 }
 
@@ -162,9 +172,10 @@ export async function fileParas(): Promise<void> {
  *   paragaphs have to be further indented or can take all following lines at same level until next
  *   empty line as well. Default is false.
  * @author @jgclark
+ * 
  * @param {[TParagraph]} allParas - all selectedParas in the note
  * @param {number} selectedParaIndex - the index of the current Paragraph
- * @param {boolean} useExtendedBlockDefinition - ???
+ * @param {boolean} useExtendedBlockDefinition - whether to select extended blocks
  * @return {[TParagraph]} the set of selectedParagraphs in the block
  */
 export function getParagraphBlock(
@@ -174,7 +185,6 @@ export function getParagraphBlock(
 ): Array<TParagraph> {
   const parasInBlock: Array<TParagraph> = []
   const selectedPara = allParas[selectedParaIndex]
-  // selectedParaDetails(selectedPara)
   console.log(
     `  Para '${selectedPara.content}' type: ${selectedPara.type}, index: ${selectedParaIndex}`,
   )
@@ -205,7 +215,6 @@ export function getParagraphBlock(
       const p = allParas[i]
       if (useExtendedBlockDefinition) {
         // include line unless we hit a new heading, an empty line, or a less-indented line
-        // TODO:
         // TODO: also thing about horizontal rules and lower priority headings
       } 
       else if (p.indents <= startingIndentLevel) {
