@@ -1,10 +1,17 @@
 // @flow
 //-------------------------------------------------------------------------------
+// Paragraph-level Constants
+
+// based on my best understanding of the [Commonmark spec](https://spec.commonmark.org/0.30/#thematic-break)
+// @author @jgclark
+export const RE_HORIZONTAL_LINE = `^ {0,3}((\\_\\h*){3,}|(\\*\\h*){3,}|(\\-\\h*){3,})$`
+
+//-------------------------------------------------------------------------------
 // Paragraph-level Functions
 
 import { hyphenatedDateString } from './dateTime'
 
-// return title of note useful for display, even for calendar notes (the YYYYMMDD)
+// Return title of note useful for display, even for calendar notes (the YYYYMMDD)
 // NB: this fn is a local copy of the one in helpers/general.js to avoid circular dependency
 function displayTitle(n: TNote): string {
   if (n.type === 'Calendar' && n.date != null) {
@@ -14,14 +21,19 @@ function displayTitle(n: TNote): string {
   }
 }
 
-// Convert paragraph(s) to single raw text string
+/**
+ * Convert paragraph(s) to single raw text string
+ * @author @jgclark
+ * 
+ * @param {[TParagraph]} paras - array of paragraphs
+ * @return {string} - string representation of those paragraphs, without trailling newline
+ */
 export function parasToText(paras: Array<TParagraph>): string {
   // console.log('parasToText: starting with ' + paras.length + ' paragraphs')
   let text = ''
   for (let i = 0; i < paras.length; i++) {
     const p = paras[i]
-    // paraDetails(p)
-    text += `${p.rawContent}\n`
+    text += `${p.rawContent}\n` // NB: rawContent needed here
   }
   const parasAsText = text.trimEnd() // remove extra newline not wanted after last line
   return parasAsText
@@ -30,6 +42,7 @@ export function parasToText(paras: Array<TParagraph>): string {
 /**
  * Print out all data for a paragraph as JSON-style string
  * @author @EduardMe
+ * 
  * @param {TParagraph} p - paragraph to print
  */
 export function printParagraph(p: TParagraph) {
@@ -79,6 +92,7 @@ export function printParagraph(p: TParagraph) {
  * Works out which line to insert at top of file. Rather than just after title line,
  * go after any YAML frontmatter or a metadata line (= starts with a hashtag).
  * @author @jgclark
+ * 
  * @param {TNote} note - the note of interest
  * @return {number} line - the calculated line to insert/prepend at
  */
@@ -93,7 +107,6 @@ export function calcSmartPrependPoint(note: TNote): number {
       // console.log(`YAML start found. Will check ${lines.length} lines`)
       // We (probably) have a YAML block
       // Find end of YAML/frontmatter
-      // TODO(@jgclark): check my ruby code to see what I did here
       for (let i = 1; i < lines.length; i++) {
         if (lines[i] === '---' || lines[i] === '...') {
           // console.log(`YAML end at ${i}`)
@@ -134,6 +147,7 @@ export function calcSmartPrependPoint(note: TNote): number {
  * I.e. if the note starts with YAML frontmatter (e.g. https://docs.zettlr.com/en/core/yaml-frontmatter/)
  * or a metadata line (= starts with a hashtag), then add after that.
  * @author @jgclark
+ * 
  * @param {TNote} note - the note to prepend to
  * @param {string} paraText - the text to prepend
  * @param {ParagraphType} paragraphType - the usual paragraph type to prepend
@@ -152,6 +166,7 @@ export function smartPrependPara(
  * Works out where the first ## Done or ## Cancelled section starts, if present.
  * If not, return the last paragraph index.
  * @author @jgclark
+ * 
  * @param {TNote} note - the note to assess
  * @return {number} - the index number
  */
