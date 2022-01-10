@@ -2,15 +2,18 @@
 // ------------------------------------------------------------------------------------
 // Command to turn time blocks into full calendar events
 // @jgclark
-// Last updated for v0.10.1, 4.1.2022 by @jgclark
+// Last updated for v0.10.1, 8.1.2022 by @jgclark
 //
-// See https://help.noteplan.co/article/52-part-2-tasks-events-and-reminders#timeblocking
+// See https://help.noteplan.co/article/121-time-blocking
 // for definition of time blocks. In summary:
 //  "It is essential to use the keyword at or write the time with colons (HH:mm).
 //   You can also use the 24h format like 15:00 without am / pm.
 //   And, you don't have to define an end time."
-// They work on open tasks, titles, and list lines, but not closed tasks, quotes, or just text.
+// They work on tasks, titles, and list lines, but not scheduled/cancelled tasks, quotes, or just text.
+// NB: The actual detection allows for more time types than is mentioned in the docs.
 // ------------------------------------------------------------------------------------
+
+import { logAllEnvironmentSettings } from '../../helpers/dev'
 
 import {
   isoDateStringFromCalendarFilename,
@@ -79,8 +82,9 @@ const RE_EVENT_ID = `event:[A-F0-9-]{36,37}`
  * @author @jgclark
  */
 export async function timeBlocksToCalendar(): Promise<void> {
-  // console.log(RE_TIMEBLOCK)
-  // console.log(RE_TIMEBLOCK_FOR_THEMES)
+  console.log(RE_TIMEBLOCK)
+  console.log(RE_TIMEBLOCK_FOR_THEMES)
+  // logAllEnvironmentSettings()
 
   const { paragraphs, note } = Editor
   if (paragraphs == null || note == null) {
@@ -123,18 +127,6 @@ export async function timeBlocksToCalendar(): Promise<void> {
       console.log(`\trequested calendar '${pref_calendarToWriteTo}' is not writeable. Will use default calendar instead.`)
     }
   }
-//   const ps = paragraphs.filter( (p) => p.type === 'open' )
-//   if (ps.length > 0) {
-//     for (let i = 0; i < ps.length; i++) {
-//       const thisPara = ps[i]
-//       const thisParaContent = thisPara.content ?? ''
-//       const restOfTask = thisParaContent.replace('2-4P', '') //.trim()
-//       console.log(`${i}: ${restOfTask}`)
-//       thisPara.content = restOfTask
-//       Editor.updateParagraph(thisPara)
-//     }
-//   }
-// }
 
   // Look through open note to find valid time blocks, but stop at Done or Cancelled sections
   const endOfActive = findEndOfActivePartOfNote(note)
@@ -191,7 +183,7 @@ export async function timeBlocksToCalendar(): Promise<void> {
           // We have a valid timeblock, so let's make the event etc.
           const restOfTask = thisPara.content.replace(origTimeBlockString, '').trim()
           if (pref_confirmEventCreation) {
-            const res = await showMessageYesNo(`Add event at '${timeBlockString}' for '${restOfTask}'?`)
+            const res = await showMessageYesNo(`Add '${restOfTask}' at '${timeBlockString}'?`, ['Yes', 'No'], 'Make event from time block')
             if (res === 'No') {
               continue // go to next time block
             }
@@ -265,27 +257,54 @@ async function createEventFromDateRange(
 }
 
 //----------------------------------------------------------------------
-// Markdown to test timeblock function. All should create apart from ones listed
-// * TBT-1a 2:30-3:45
-// * TBT-1b @done(2021-12-12) 2:30-3:45
-// * TBT-2a at 2PM-3PM
-// * TBT-2b shouldn't create @done(2021-12-12 12:34) at 2PM-3PM
-// * TBT-3 at 2-3
-// * TBT-4 at 2-3PM
-// * TBT-5 at 2PM-3
-// * TBT-6 at 2:30-3:45
-// * TBT-7 >2021-06-02 at 2-3
-// * TBT-8 >2021-06-02 at 2:30-3:45
-// * TBT-9 >2021-06-02 at 2am-3PM
-// * TBT-10 >2021-06-02 at 2am-3AM
-// * TBT-11a >2021-06-02 2:15 - 3:45
-// * TBT-11b 2021-06-02 2:15 - 3:45
-// * TBT-12a >2021-06-02 16:00 - 16:45
-// * TBT-12b 2021-06-02 16:00 - 16:45
-// * TBT-13 16:00-16:45
-// * TBT-14 at 5-5:45pm
-// * TBT-15 shouldn't create 2021-06-02 2.15PM-3.45PM
-// * TBT-16 shouldn't create 2PM-3PM
-// * TBT-18 shouldn't create 2-3
-// * TBT-19 shouldn't create 2-3PM
-// * TBT-20 shouldn't create 2PM-3
+// Markdown to test timeblock functionality
+// These should create:
+// - 2:30-3:45 TBT1a
+//  - TBT1b @done(2021-12-12) 2:30-3:45
+//  - TBT1c at 2:30-3:45
+// - TBT2a at 2PM-3PM
+// - TBT2b @done(2021-12-12) at 2PM-3PM -- but fails in API?
+// - TBT3 at 2-3PM
+// - TBT4 at 2PM-3
+// - TBT5a at 2-3
+// - TBT5b at 2 -3
+// * TBT5c at 2- 3
+//  * TBT5d at 2 - 3
+// 	* TBT5e at 2~3
+// * [ ] TBT5f at 2to3
+// - [ ] TBT5h at 2 to 3
+// - TBT5i at 2–3
+// - [ ] TBT6 >2021-06-02 at 2-3
+// - TBT7 >2021-06-02 at 2:30-3:45
+// - TBT8 >2021-06-02 at 2am-3PM
+// - TBT9 >2021-06-02 2:15 - 3:45
+// - TBT10 2021-06-02 2:15 - 3:45
+// - TBT11a >2021-06-02 16:00 - 16:45
+// * TBT11b 2021-06-02 16:00 - 16:45
+// * TBT12 @done(2021-12-12) 2:30-3:45
+// * [x] TBT13 done at 2PM-3PM @done(2021-12-12)
+// - TBT14 at 5-5:45pm
+// - TBT15 at 5pm
+// - TBT16 at 5p
+// * TBT22a 1️⃣ 6:00 AM - 9:30 AM - Part I -- but parsed wrongly
+// - [ ] TBT22b 1️⃣ 6:00AM - 9:30AM
+// * TBT23 at noon
+// * TBT24 at noon:24
+// - TBT25 at midnight
+// - TBT26 at midnight:26
+// These shouldn't create:
+// - TBT17 shouldn't create 2021-06-02 2.15PM-3.45PM
+// - TBT18 shouldn't create 2PM-3PM _doesn't parse_
+// - TBT9 shouldn't create 2-3 _parsed wrongly_
+// - TBT0 shouldn't create 2-3PM _doesn't parse_
+// - [ ] TBT21 shouldn't create 2PM-3 _doesn't parse_
+// - TBT27 cost was 23.12
+// - TBT28 Philippians 2.6-11
+// - TBT29 ### 21/11/2021  CCC Hybrid service
+// - TBT30 _not yet clear whether this should pass:_ terminal 5
+// * TBT31 Do something <2022-01-05
+// * [x] TBT32 Done something @done(2022-01-05)
+// - TBT33 the temp is 17-18 -- does create but really shouldn't
+// - TBT34 no: I sat 2pm onwards
+// - TBT35 no: somethingfrom 2pm onwards
+// - TBT36 no: 1234:56
