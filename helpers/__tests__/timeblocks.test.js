@@ -8,11 +8,14 @@ const section = colors.blue
 describe(`${HELPER_NAME}`, () => {
   describe(section('timeblocks.js'), () => {
     describe('isTimeBlockLine SHOULD MATCH', () => {
-      test('1a: yes: 1:30-2:45', () => {
-        expect(tb.isTimeBlockLine('1:30-2:45')).toEqual(true)
+      test('1b: yes: - @done(2021-12-12) 2:30-3:45', () => {
+        expect(tb.isTimeBlockLine('- @done(2021-12-12) 2:30-3:45')).toEqual(true)
       })
       test('2a: yes: at 2PM-3PM', () => {
         expect(tb.isTimeBlockLine('at 2PM-3PM')).toEqual(true)
+      })
+      test('2b: yes: - @done(2021-12-12) at 2PM-3PM', () => {
+        expect(tb.isTimeBlockLine('- @done(2021-12-12) at 2PM-3PM')).toEqual(true)
       })
       test('3a: yes: at 2-3', () => {
         expect(tb.isTimeBlockLine('at 2-3')).toEqual(true)
@@ -41,14 +44,11 @@ describe(`${HELPER_NAME}`, () => {
       test('3i: yes: at 10 - 11', () => {
         expect(tb.isTimeBlockLine('at 10 - 11')).toEqual(true)
       })
-      test('3j: yes: at11-12', () => {
-        expect(tb.isTimeBlockLine('at11-12')).toEqual(true)
-      })
       test('4: yes: at 2-3PM', () => {
-        expect(tb.isTimeBlockLine('2-3PM')).toEqual(true)
+        expect(tb.isTimeBlockLine('at 2-3PM')).toEqual(true)
       })
       test('5: yes: at 2PM-3', () => {
-        expect(tb.isTimeBlockLine('2PM-3')).toEqual(true)
+        expect(tb.isTimeBlockLine('at 2PM-3')).toEqual(true)
       })
       test('6: yes: >2021-06-02 at 2-3', () => {
         expect(tb.isTimeBlockLine('>2021-06-02 at 2-3')).toEqual(true)
@@ -59,13 +59,10 @@ describe(`${HELPER_NAME}`, () => {
       test('8: yes: >2021-06-02 at 2am-3PM', () => {
         expect(tb.isTimeBlockLine('>2021-06-02 at 2am-3PM')).toEqual(true)
       })
-      test('9: yes: >2021-06-02 at 2am-3A.M.', () => {
-        expect(tb.isTimeBlockLine('>2021-06-02 at 2am-3A.M.')).toEqual(true)
-      })
-      test('10a: yes: >2021-06-02 2:15 - 3:45', () => {
+      test('9: yes: >2021-06-02 2:15 - 3:45', () => {
         expect(tb.isTimeBlockLine('>2021-06-02 2:15 - 3:45')).toEqual(true)
       })
-      test('10b: yes: 2021-06-02 2:15 - 3:45', () => {
+      test('10: yes: 2021-06-02 2:15 - 3:45', () => {
         expect(tb.isTimeBlockLine('2021-06-02 2:15 - 3:45')).toEqual(true)
       })
       test('11a: yes: >2021-06-02 16:00 - 16:45', () => {
@@ -74,12 +71,11 @@ describe(`${HELPER_NAME}`, () => {
       test('11b: yes: 2021-06-02 16:00 - 16:45', () => {
         expect(tb.isTimeBlockLine('2021-06-02 16:00 - 16:45')).toEqual(true)
       })
-      // In the following few we don't actually want to match on lines with @done(...) but they will be defeated by a later logic step.
       test('12: yes: @done(2021-12-12) 2:30-3:45', () => {
         expect(tb.isTimeBlockLine('@done(2021-12-12) 2:30-3:45')).toEqual(true)
       })
-      test('13: yes: at @done(2021-12-12) 2PM-3PM   [though fails in API]', () => {
-        expect(tb.isTimeBlockLine('@done(2021-12-12) 2PM-3PM')).toEqual(true)
+      test('13: yes: done at 2PM-3PM @done(2021-12-12)', () => {
+        expect(tb.isTimeBlockLine('done at 2PM-3PM @done(2021-12-12)')).toEqual(true)
       })
       test('14: yes: at 5-5:45pm', () => {
         expect(tb.isTimeBlockLine('at 5-5:45pm')).toEqual(true)
@@ -105,8 +101,8 @@ describe(`${HELPER_NAME}`, () => {
       test('22a: yes: 1️⃣ 6:00 AM - 8:30 AM - Part I', () => {
         expect(tb.isTimeBlockLine('1️⃣ 6:00 AM - 8:30 AM - Part I')).toEqual(true)
       })
-      test('22b: yes: 7:00 AM - 9:30 AM - Part I', () => {
-        expect(tb.isTimeBlockLine('7:00 AM - 9:30 AM - Part I')).toEqual(true)
+      test('22b: yes:  7:00 AM - 9:30 AM - Part I', () => {
+        expect(tb.isTimeBlockLine(' 7:00 AM - 9:30 AM - Part I')).toEqual(true)
       })
       test('23a: yes: at noon', () => {
         expect(tb.isTimeBlockLine('at noon')).toEqual(true)
@@ -123,6 +119,9 @@ describe(`${HELPER_NAME}`, () => {
     })
 
     describe('isTimeBlockLine NON-MATCHES', () => {
+      test('3j: yes: at11-12', () => {
+        expect(tb.isTimeBlockLine('at11-12')).toEqual(false)
+      })
       test('17: no: 2021-06-02 2.15PM-3.45PM (dots not allowed)', () => {
         expect(tb.isTimeBlockLine('2021-06-02 2.15PM-3.45PM')).toEqual(false)
       })
@@ -146,6 +145,24 @@ describe(`${HELPER_NAME}`, () => {
       test('30: no: terminal 5', () => {
         expect(tb.isTimeBlockLine('terminal 5')).toEqual(false)
       })
+      test('31: no: * Do something <2022-01-05', () => {
+        expect(tb.isTimeBlockLine('* Do something <2022-01-05')).toEqual(false)
+      })
+      test('32: no: * [x] Done something @done(2022-01-05)', () => {
+        expect(tb.isTimeBlockLine('* [x] Done something @done(2022-01-05)')).toEqual(false)
+      })
+      test('33: no (though works in NP, but not according to spec): - TBT33 the temp is 17-18', () => {
+        expect(tb.isTimeBlockLine('- TBT33 the temp is 17-18')).toEqual(false)
+      })
+      test('34: no: I sat 2pm onwards', () => {
+        expect(tb.isTimeBlockLine('I sat 2pm onwards')).toEqual(false)
+      })
+      test('35: no: somethingfrom 2pm onwards', () => {
+        expect(tb.isTimeBlockLine('somethingfrom 2pm onwards')).toEqual(false)
+      })
+      test('35: no: 1234:56', () => {
+        expect(tb.isTimeBlockLine('1234:56')).toEqual(false)
+      })
     })
     describe('findLongestStringInArray ', () => {
       test('should return longest string in array', () => {
@@ -167,8 +184,15 @@ describe(`${HELPER_NAME}`, () => {
     })
 
     describe('getTimeBlockString ', () => {
-      test('should return null if no timeblock', () => {
+      test("should return '' if no timeblock present", () => {
         expect(tb.getTimeBlockString('01. no timeblock here :')).toEqual('')
+      })
+      // Currently failing, and not sure why
+      test("should return '12:30' ", () => {
+        expect(tb.getTimeBlockString("something 2022-01-01 12:30 and nothing else")).toEqual('12:30')
+      })
+      test("should return 'at 2am-3PM'", () => {
+        expect(tb.getTimeBlockString("- 2022-01-01 at 2am-3PM here")).toEqual('at 2am-3PM')
       })
     })
 
