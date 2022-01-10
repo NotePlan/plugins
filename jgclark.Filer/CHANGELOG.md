@@ -1,14 +1,16 @@
 # What's changed in 📦 Filer plugin?
+<!-- - ??? /fp and /mp now create the destination daily note if it doesn't already exist -->
+<!-- - TODO: uses system locale in dates, where possible -->
+<!-- - ???. Also refactored code to allow re-use of my paragraph block finding code. -->
+
 ## [0.6.0] - 2022-01-???
 ### Added
 - add ability to default to moving to the end of a heading's section, not the start of it, using setting `whereToAddInSection`.
-<!--
-- ??? /fp and /mp now create the destination daily note if it doesn't already exist
-- ??? add ability to default to moving to the end of a heading's section, not the start of it. See setting
-- [when environment() API call is available] ??? will use system locale in dates, where possible
-- ???. Also refactored code to allow re-use of my paragraph block finding code.
--->
+- add ability to default to moving to the end of a heading's section, not the start of it. See setting
 
+### Changes
+- renamed `/nns` to `/new note from selection` (but you can still use /nns which is aliased to it)
+- renamed `/moveParagraphs` to `/move paragraphs` (but you can still use /mp which is aliased to it)
 
 ## [0.5.1] - 2021-10-03
 ### Fixed
