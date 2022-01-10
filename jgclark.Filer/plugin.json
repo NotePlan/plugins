@@ -38,7 +38,7 @@
   ],
   "plugin.preferences": [
     {
-        "type": "Heading",
+        "type": "heading",
         "title": "Filer plugin settings"
     },
     {
