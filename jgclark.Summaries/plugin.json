@@ -7,7 +7,7 @@
 	"plugin.icon": "",
 	"plugin.author": "Jonathan Clark",
 	"plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
-	"plugin.version": "0.3.0",
+	"plugin.version": "0.3.1",
 	"plugin.dependencies": [],
 	"plugin.script": "script.js",
 	"plugin.isRemote": "false",
@@ -37,9 +37,9 @@
 			"jsFunction": "saveSearch"
 		}
 	],
-	"plugin.preferences": [
+	"plugin.settings": [
     {
-      "type": "Heading",
+      "type": "heading",
       "title": "Summaries plugin settings"
     },
     {
@@ -56,7 +56,7 @@
       "description": "List of folders to exlude in these commands. May be empty. (Note that @Trash and @Archive are always excluded.)",
       "type": "[string]",
       "default": ["📋 Templates", "Summaries"],
-      "required": true
+      "required": false
     },
     {
       "key": "headingLevel",
@@ -67,8 +67,8 @@
       "required": true
     },
     {
-      "type": "Heading",
-      "title": "`countsInPeriod` command settings"
+      "type": "heading",
+      "title": "/countsInPeriod command settings"
     },
 		{
       "key": "hashtagCountsHeading",
@@ -90,7 +90,7 @@
       "key": "showAsHashtagOrMention",
       "title": "Show hashtag or mention as links?",
       "description": "Whether to show the # or @ symbols, or hide them to stop them being active links",
-      "type": "boolean",
+      "type": "bool",
       "default": true,
       "required": false
     },
@@ -104,7 +104,7 @@
       "description": "List of #hashtags to include in counts. If empty, all will be included. For example '#holiday', '#jog', '#commute', '#webinar'",
       "type": "[string]",
       "default": [],
-      "required": true
+      "required": false
     },
 		{
       "key": "excludeHashtags",
@@ -112,7 +112,7 @@
       "description": "List of #hashtags to exclude in counts. If empty, none will be excluded.",
       "type": "[string]",
       "default": [],
-      "required": true
+      "required": false
     },
 		{
       "key": "includeMentions",
@@ -120,7 +120,7 @@
       "description": "List of @mentions to include in counts. If empty, all will be included. For example '@work', '@fruitveg', '@water', '@sleep'",
       "type": "[string]",
       "default": [],
-      "required": true
+      "required": false
     },
 		{
       "key": "excludeMentions",
@@ -128,11 +128,11 @@
       "description": "List of @mentions to exclude in counts. If empty, none will be excluded.",
       "type": "[string]",
       "default": ["@done", "@repeat"],
-      "required": true
+      "required": false
     },
     {
-      "type": "Heading",
-      "title": "`occurrencesInPeriod` command settings"
+      "type": "heading",
+      "title": "/occurrencesInPeriod command settings"
     },
 		{
       "key": "occurrencesHeading",
@@ -154,7 +154,7 @@
       "key": "highlightOccurrences",
       "title": "Highlight matching occurrences?",
       "description": "Whether to use ==highlight== of matched occurrences in output. (Works best when using a theme with highlighting.)",
-      "type": "boolean",
+      "type": "bool",
       "default": true,
       "required": false
     },
@@ -162,15 +162,16 @@
       "key": "showEmptyOccurrences",
       "title": "Show empty occurrences?",
       "description": "If no occurrences of search term(s) are found, setting this true will still show a heading for the term(s)",
-      "type": "boolean",
+      "type": "bool",
       "default": false,
       "required": false
     },
 		{
       "key": "dateStyle",
       "title": "Date style",
-      "description": "Where the context for an occurrence is a date, does it get appended as a 'date' using your locale, or as a NP date 'link' (`>date`) or 'none'",
+      "description": "Where the context for an occurrence is a date, does it get appended as a 'date' using your locale, or as a NP date 'link' (`>date`), or `at` (`@date`) or 'none'",
       "type": "string",
+      "choices": ["at", "date", "link", "none"],
       "default": "link",
       "required": true
     }

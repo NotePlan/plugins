@@ -43,7 +43,5 @@
       "description": "Open a user-selected note in a new window.",
       "jsFunction": "openNoteNewWindow"
     }
-  ],
-  "plugin.preferences": [
   ]
 }
