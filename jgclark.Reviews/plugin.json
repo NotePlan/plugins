@@ -6,7 +6,7 @@
 	"plugin.icon": "",
 	"plugin.author": "Jonathan Clark",
 	"plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Review/",
-	"plugin.version": "0.5.1",
+	"plugin.version": "0.5.2",
 	"plugin.dependencies": [],
 	"plugin.script": "script.js",
 	"plugin.isRemote": "false",
@@ -42,9 +42,9 @@
 			"jsFunction": "nextReview"
 		}
 	],
-	"plugin.preferences": [
+	"plugin.settings": [
     {
-			"type": "Heading",
+			"type": "heading",
 			"title": "Review Plugin settings"
     },
     {
@@ -57,8 +57,8 @@
 		},
     {
 			"key": "foldersToIgnore",
-			"title": "Folder to store review notes",
-			"description": "An array of folders (and their sub-folders) to ignore in reviews. Can be empty.",
+			"title": "Folders to ignore in reviews",
+			"description": "A comma-separated list of folders to ignore in reviews. Can be empty. Where an ignored folder has a sub-folder these will also be ignored.",
 			"type": "[string]",
 			"default": ["📋 Templates", "Reviews", "Summaries"],
 			"required": false
@@ -66,21 +66,21 @@
     {
 			"key": "noteTypeTags",
 			"title": "Note type hashtags",
-			"description": "An array of hashtags to indicate notes to include in this review system",
+			"description": "A comma-separated list of hashtags to indicate notes to include in this review system",
 			"type": "[string]",
 			"default": ["#area", "#project"],
 			"required": false
 		},
 		{
-			"type": "Subheading",
-			"title": "Settings for '/projectLists' command"
+			"type": "heading",
+			"title": "Settings for /projectLists command"
     },
 		{
 			"key": "displayOrder",
 			"title": "Displayed order of notes titles",
 			"description": "The sort options  are 'due' date, 'review' date or 'alpha'",
 			"type": "string",
-			"choice": ["alpha", "due", "review"],
+			"choices": ["alpha", "due", "review"],
 			"default": "alpha",
 			"required": false
 		},
@@ -88,17 +88,17 @@
       "key": "displayGroupedByFolder",
       "title": "Display grouped by folder?",
       "description": "Whether to group the notes by folder",
-      "type": "boolean",
+      "type": "bool",
       "default": true,
-      "required": false
+      "required": true
     },
     {
       "key": "displayArchivedProjects",
       "title": "Display archived projects?",
       "description": "Whether to display project notes marked #archive",
-      "type": "boolean",
+      "type": "bool",
       "default": true,
-      "required": false
+      "required": true
     }
 	]
 }

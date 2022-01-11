@@ -36,6 +36,5 @@
       "description": "Choose a note and create it based on _configuration settings quickNotes",
       "jsFunction": "quickTemplateNote"
     } 
-  ],
-  "plugin.preferences": []
+  ]
 }

@@ -36,6 +36,5 @@
 			"description": "Shows word count and other numbers for the note",
 			"jsFunction": "showWordCount"
 		}
-	],
-	"plugin.preferences": []
+	]
 }

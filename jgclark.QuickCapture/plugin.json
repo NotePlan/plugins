@@ -7,7 +7,7 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.QuickCapture/",
-  "plugin.version": "0.8.3",
+  "plugin.version": "0.8.4",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -102,7 +102,7 @@
   ],
   "plugin.settings": [
     {
-        "type": "Heading",
+        "type": "heading",
         "title": "Inbox note settings"
     },
     {
@@ -111,7 +111,7 @@
         "description": "The Title of your Inbox note, or leave empty (\"\") to use the daily note instead. Default \"📥 Inbox\"",
         "type": "string",
         "default": "📥 Inbox",
-        "required": true
+        "required": false
     },
     {
         "key": "addInboxPosition",
