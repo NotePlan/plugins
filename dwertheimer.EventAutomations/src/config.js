@@ -52,7 +52,7 @@ export function validateTimeBlockConfig(config: { [key: string]: any }): { [key:
     mode: 'string',
     allowEventSplits: 'boolean',
     insertIntoEditor: 'boolean',
-    passBackResults: 'boolean',
+    passBackResults: { type: 'boolean', optional: true },
     createCalendarEntries: 'boolean',
     deletePreviousCalendarEntries: 'boolean',
     eventEnteredOnCalTag: 'string',
