@@ -202,7 +202,7 @@ type TEditor = {
    * `text` is optional, if you define it, it will be shown below the loading indicator.
    * `progress` is also optional. If it's defined, the loading indicator will change into a progress ring. Use float numbers from 0-1 to define how much the ring is filled.
    * When you are done, call `showLoading(false)` to hide the window.
-   * @param {Bool}
+   * @param {boolean}
    * @param {String?}
    * @param {Float?}
    */
@@ -278,11 +278,11 @@ type TDataStore = {
   +projectNotes: $ReadOnlyArray<TNote>,
 
   /**
-   * Get settings for plugins (as JSON?)
+   * Get or set settings for the current plugin (as a JavaScript object).
    * Example: settings.shortcutExpenses[0].category
-   * Note: Available from NotePlan v3.3.2?
+   * Note: Available from NotePlan v3.3.2
    */
-  +settings: Object,
+  settings: Object,
   
   /**
    * Returns the value of a given preference.
@@ -1171,22 +1171,29 @@ type TParagraphBridge = {
   ): void,
 }
 
-declare var Environment: {
+declare var NotePlan: {
   /**
   * Returns the environment information from the operating system:
   *   "languageCode" -> string?
   *   "regionCode" -> string?
-  *   "is12hFormat" -> Bool
+  *   "is12hFormat" -> boolean
   *   "preferredLanguages" -> [string]
-  *   "secondsFromGMT" -> Int
+  *   "secondsFromGMT" -> integer
   *   "localTimeZoneAbbreviation" -> string
   *   "localTimeZoneIdentifier" -> string
-  *   "isDaylightSavingTime" -> Bool
+  *   "isDaylightSavingTime" -> boolean
   *   "daylightSavingTimeOffset" -> Double
   *   "nextDaylightSavingTimeTransition" -> Date
-  * Note: available from v3.2.2
+  *   "platform" -> "macOS" | "iPadOS" | "iOS"
+  *   "hasSettings" -> boolean
+  * Note: available from v3.3.2
   */
-  +environment: Object
+  +environment: Object,
+  /**
+   * Open the current plugin's config UI, if available.
+   * Note: available from v3.3.2 (just for macOS so far)
+   */
+  showConfigurationView(): Promise<void>
 }
 
 // Every function made available must be assigned to `globalThis`

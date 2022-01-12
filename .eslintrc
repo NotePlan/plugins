@@ -74,8 +74,9 @@
     "CommandBar": true,
     "Calendar": true,
     "CalendarItem": true,
-    "globalThis": true,
     "Clipboard": true,
+    "NotePlan": true,
+    "globalThis": true,
     "fetch": true
   },
   "ignorePatterns": [
