@@ -42,15 +42,37 @@
       "title": "AutoTimeBlocking Settings: General"
     },
     {
-        "key": "todoChar",
-        "type": "string",
-        "validation": "^(?!(?:.*\\*){2})[\\*|\\-|#{1,}]+$",
-		    "choices": ["*","-","#","##","###","####"],
-        "title": "Time Block Leading Character",
-        "description": "For NotePlan to recognize a line as a Time Block, the leading character must be one of: a '*', a '-' or one or more '#'s. AutoTimeBlocking will use this to create your timeblocks. You can choose between the 3, but if you are going to create real calendar events from your Time Blocks, you must use the '*'",
-        "default": "*",
+        "key": "defaultDuration",
+        "type": "number",
+        "title": "Default time block duration (minutes)",
+        "description": "Any task that does not have a specific duration stated (see below) will have this default length in minutes",
+        "default": 15,
         "required": true
     },
+    {
+        "key": "allowEventSplits",
+        "type": "bool",
+        "title": "Allow tasks to be split",
+        "description": "Allow tasks to be split into multiple time blocks",
+        "default": false,
+        "required": true
+    },
+    {
+        "key": "includeTasksWithText",
+        "type": "string",
+        "title": "Include any tasks that match text:",
+        "description": "If this field is set to any text, then any task that contains this text will be included in the timeblocks. This is useful if you want to limit tasks to items with a specific #hashtag for example.",
+        "default": "",
+        "required": true
+    },
+    {
+        "key": "excludeTasksWithText",
+        "type": "string",
+        "title": "Exclude any tasks that match text:",
+        "description": "If this field is set to any text, then any task that contains this text will *not* be included in the timeblocks. ",
+        "default": "",
+        "required": true
+    },            
     {
         "key": "durationMarker",
         "type": "string",
@@ -58,6 +80,16 @@
         "description": "The character that signifies the start of a task duration (e.g. in the task: \n* do something '2h44m\nThe duration marker is the apostrophe",
         "default": "'",
 		    "choices": ["'","~","^",";","%","$","+"],
+        "required": true
+    },
+    {  
+        "key": "todoChar",
+        "type": "string",
+        "validation": "^(?!(?:.*\\*){2})[\\*|\\-|#{1,}]+$",
+		    "choices": ["*","-","#","##","###","####"],
+        "title": "Time block leading character",
+        "description": "For NotePlan to recognize a line as a Time Block, the leading character must be one of: a '*', a '-' or one or more '#'s. AutoTimeBlocking will use this to create your timeblocks. You can choose between the 3, but if you are going to create real calendar events from your Time Blocks, you must use the '*'",
+        "default": "*",
         "required": true
     },
     {
@@ -80,7 +112,7 @@
         "key": "timeBlockHeading",
         "type": "string",
         "validation": "^[^#+].*",
-        "title": "Heading for Time Blocks in Note",
+        "title": "Heading for time blocks in note",
         "description": "If this heading exists in the open note when running the AutoTimeBlock command, the generated time blocks will be placed under it. If you leave it blank, the time blocks will be placed at the top of the note. Text only -- should *not* include any #'s at the beginning of the heading.",
         "default": "Time Blocks",
         "required": true
@@ -89,7 +121,7 @@
         "key": "workDayStart",
         "type": "string",
         "validation": "^\\d{2}:\\d{2}$",
-        "title": "Start of Work Day",
+        "title": "Start of work day",
         "description": "If set to anything other than 00:00, no time blocks will be placed before this time. needs to be in 24 hour format (two digits, leading zero, colon in between).",
         "default": "00:00",
         "required": true
@@ -98,7 +130,7 @@
         "key": "workDayEnd",
         "type": "string",
         "validation": "^\\d{2}:\\d{2}$",
-        "title": "End of Work Day ",
+        "title": "End of work day",
         "description": "If set to anything other than 23:59, no time blocks will be allowed to extend past this time. needs to be in 24 hour format (two digits, leading zero, colon in between).",
         "default": "23:59",
         "required": true
@@ -108,12 +140,66 @@
       "title": "AutoTimeBlocking Settings: Advanced"
     },
     {
+        "key": "createCalendarEntries",
+        "type": "bool",
+        "title": "Create calendar entries from time blocks",
+        "description": "Write Time Blocks as actual calendar entries rather than ephemeral Time Block overlays. Read the documentation before turning this on.",
+        "default": false,
+        "required": true         
+    },
+    {
+        "key": "deletePreviousCalendarEntries",
+        "type": "bool",
+        "title": "Delete previously entered time blocks",
+        "description": "Delete Time Blocks the plugin previously wrote to the calendar. Read the documentation before turning this on.",
+        "default": false,
+        "required": true         
+    },
+    {
+        "key": "eventEnteredOnCalTag",
+        "type": "string",
+        "validation": "",
+        "title": "Processed tag name",
+        "description": "Tag attached to events which were written into the calendar. Because we use a different plugin to write to the calendar, this setting needs to match EventHelpers>events/Processed tag name",
+        "default": "#event_created",
+        "required": true
+    },    
+    {
         "key": "intervalMins",
         "type": "number",
         "title": "Time block start interval",
         "description": "Time blocks can only start every N minutes as dictated by this setting. For instance, if you want time blocks to only start every 15 minutes, set this to 15. This means you would at maximum have 4 time blocks per hour.",
         "default": 5,
         "required": true
-    }                
+    },
+    {
+        "key": "mode",
+        "type": "string",
+        "title": "Task->Time Block processing mode",
+        "choices": ["PRIORITY_FIRST","LARGEST_FIRST"],
+        "description": "PRIORITY_FIRST places the highest priority (most !'s) first (if there's a slot) and then continues down the priority stack. LARGEST_FIRST tries to place the longest/largest duration item first.",
+        "default": "PRIORITY_FIRST",
+        "required": true
+    },
+    {
+        "key": "insertIntoEditor",
+        "type": "bool",
+        "title": "Insert time blocks into note Editor",
+        "description": "Leave resulting time blocks in the open note in the Editor window. The only reason to set this to false is if you are using the 'CreateCalendarEntries' setting and don't want to see any vestiges of time blocks in the Editor after the events are written to the Calendar as actual calendar events.",
+        "default": true,
+        "required": true
+    },
+    {
+      "type": "heading",
+      "title": "AutoTimeBlocking Settings: Presets"
+    },
+    {
+        "key": "presets",
+        "type": "json",
+        "title": "Presets to temporarily override settings above",
+        "description": "Presets are useful for changing some of the settings above but just for certain runs of the plugin (e.g. on the weekend, etc.). Read the documentation for how to use presets.",
+        "default": "[\n{\n\t\"label\":\"Limit Time Blocks to Work Hours\",\n\t\"workDayStart\":\"08:00\",\n\t\"workDayEnd\":\"17:59\"\n},\n{\n\t\"label\":\"Create Timeblocks on Calendar\",\n\t\"createCalendarEntries\":true,\n\t\"deletePreviousCalendarEntries\":true,\n\t\"todoChar\":\"*\"\n}\n]",
+        "required": false
+    }                        
   ]
 }
