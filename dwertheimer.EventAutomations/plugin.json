@@ -35,5 +35,85 @@
       "jsFunction": "insertTodosAsTimeblocksWithPresets",
       "no-alias": ["atbp","abtp","tbp"]
     }
+  ],
+  "plugin.settings": [
+    {
+      "type": "heading",
+      "title": "AutoTimeBlocking Settings: General"
+    },
+    {
+        "key": "todoChar",
+        "type": "string",
+        "validation": "^(?!(?:.*\\*){2})[\\*|\\-|#{1,}]+$",
+		    "choices": ["*","-","#","##","###","####"],
+        "title": "Time Block Leading Character",
+        "description": "For NotePlan to recognize a line as a Time Block, the leading character must be one of: a '*', a '-' or one or more '#'s. AutoTimeBlocking will use this to create your timeblocks. You can choose between the 3, but if you are going to create real calendar events from your Time Blocks, you must use the '*'",
+        "default": "*",
+        "required": true
+    },
+    {
+        "key": "durationMarker",
+        "type": "string",
+        "title": "Task duration marker",
+        "description": "The character that signifies the start of a task duration (e.g. in the task: \n* do something '2h44m\nThe duration marker is the apostrophe",
+        "default": "'",
+		    "choices": ["'","~","^",";","%","$","+"],
+        "required": true
+    },
+    {
+        "key": "timeBlockTag",
+        "type": "string",
+        "title": "Unique AutoTimeBlock #tag",
+        "description": "The tag that will be used to identify lines created the AutoTimeBlock plugin. This tag can be anything, but should be not ever used by you in other places.",
+        "default": "#🕑",
+        "required": true
+    },
+    {
+        "key": "removeDuration",
+        "type": "bool",
+        "title": "Remove duration from time block",
+        "description": "The plugin uses your duration designation (e.g. '2h44m) to determine how long a task should take. But you probably don't want that duration to show on the calendar. If you do want to see it, uncheck this item.",
+        "default": true,
+        "required": true
+    },       
+    {
+        "key": "timeBlockHeading",
+        "type": "string",
+        "validation": "^[^#+].*",
+        "title": "Heading for Time Blocks in Note",
+        "description": "If this heading exists in the open note when running the AutoTimeBlock command, the generated time blocks will be placed under it. If you leave it blank, the time blocks will be placed at the top of the note. Text only -- should *not* include any #'s at the beginning of the heading.",
+        "default": "Time Blocks",
+        "required": true
+    },
+    {
+        "key": "workDayStart",
+        "type": "string",
+        "validation": "^\\d{2}:\\d{2}$",
+        "title": "Start of Work Day",
+        "description": "If set to anything other than 00:00, no time blocks will be placed before this time. needs to be in 24 hour format (two digits, leading zero, colon in between).",
+        "default": "00:00",
+        "required": true
+    },
+    {
+        "key": "workDayEnd",
+        "type": "string",
+        "validation": "^\\d{2}:\\d{2}$",
+        "title": "End of Work Day ",
+        "description": "If set to anything other than 23:59, no time blocks will be allowed to extend past this time. needs to be in 24 hour format (two digits, leading zero, colon in between).",
+        "default": "23:59",
+        "required": true
+    },
+    {
+      "type": "heading",
+      "title": "AutoTimeBlocking Settings: Advanced"
+    },
+    {
+        "key": "intervalMins",
+        "type": "number",
+        "title": "Time block start interval",
+        "description": "Time blocks can only start every N minutes as dictated by this setting. For instance, if you want time blocks to only start every 15 minutes, set this to 15. This means you would at maximum have 4 time blocks per hour.",
+        "default": 5,
+        "required": true
+    }                
   ]
 }
