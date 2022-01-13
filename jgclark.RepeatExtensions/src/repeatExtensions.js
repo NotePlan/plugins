@@ -6,14 +6,14 @@
 //--------------------------------------------------------------------------------------------------------------------
 
 import {
-  unhyphenateString,
   RE_DATE, // find dates of form YYYY-MM-DD
-  RE_TIME, // find '12:23' with optional '[ ][AM|PM|am|pm]'
   RE_DATE_INTERVAL,
-  calcOffsetDateStr,
-  // toISODateString,
-  // rangeToString,
+  RE_TIME, // find '12:23' with optional '[ ][AM|PM|am|pm]'
+  unhyphenateString,
 } from '../../helpers/dateTime'
+import {
+  calcOffsetDateStr,
+} from '../../helpers/NPdateTime'
 import { showMessage } from '../../helpers/userInput'
 import { findEndOfActivePartOfNote } from '../../helpers/paragraph'
 
