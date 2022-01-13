@@ -13,8 +13,6 @@
 // NB: The actual detection allows for more time types than is mentioned in the docs.
 // ------------------------------------------------------------------------------------
 
-import { logAllEnvironmentSettings } from '../../helpers/dev'
-
 import {
   isoDateStringFromCalendarFilename,
   printDateRange,
