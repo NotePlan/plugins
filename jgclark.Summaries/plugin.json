@@ -7,7 +7,7 @@
 	"plugin.icon": "",
 	"plugin.author": "Jonathan Clark",
 	"plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
-	"plugin.version": "0.3.1",
+	"plugin.version": "0.4.0",
 	"plugin.dependencies": [],
 	"plugin.script": "script.js",
 	"plugin.isRemote": "false",
@@ -35,6 +35,12 @@
 			"alias": ["period", "search", "occurrence"],
 			"description": "Save results from a search over all notes",
 			"jsFunction": "saveSearch"
+		},
+		{
+			"name": "insertProgressUpdate",
+      "alias": ["ipu"],
+			"description": "Insert weekly/monthly progress update to current note",
+			"jsFunction": "insertProgressUpdate"
 		}
 	],
 	"plugin.settings": [
@@ -62,9 +68,12 @@
       "key": "headingLevel",
       "title": "Heading level",
       "description": "Heaing level (1-5) to use when writing output to notes",
-      "type": "integer",
-      "default": "2",
+      "type": "number",
+      "default": 2,
       "required": true
+    },
+    {
+      "type": "separator"
     },
     {
       "type": "heading",
@@ -89,7 +98,7 @@
     {
       "key": "showAsHashtagOrMention",
       "title": "Show hashtag or mention as links?",
-      "description": "Whether to show the # or @ symbols, or hide them to stop them being active links",
+      "description": "Whether to show the # or @ symbols, or hide them to stop them being active links. (Beware double counting if you turn this on and save results in daily notes.)",
       "type": "bool",
       "default": true,
       "required": false
@@ -101,7 +110,7 @@
 		{
       "key": "includeHashtags",
       "title": "Include hashtags",
-      "description": "List of #hashtags to include in counts. If empty, all will be included. For example '#holiday', '#jog', '#commute', '#webinar'",
+      "description": "List of #hashtags to include in counts (e.g. '#holiday', '#jog', '#commute', '#webinar'). These take precedence over any excluded hashtags (next field). If this list is empty, all hashtags will be included.",
       "type": "[string]",
       "default": [],
       "required": false
@@ -117,7 +126,7 @@
 		{
       "key": "includeMentions",
       "title": "Include @mentions",
-      "description": "List of @mentions to include in counts. If empty, all will be included. For example '@work', '@fruitveg', '@water', '@sleep'",
+      "description": "List of @mentions to include in counts (e.g. '@work', '@fruitveg', '@water', '@sleep'). These take precedence over any excluded mentions (next field). If this list is empty, all mentions will be included.",
       "type": "[string]",
       "default": [],
       "required": false
@@ -129,6 +138,9 @@
       "type": "[string]",
       "default": ["@done", "@repeat"],
       "required": false
+    },
+    {
+      "type": "separator"
     },
     {
       "type": "heading",
