@@ -8,9 +8,11 @@
 import {
   RE_DATE,
   RE_DATE_INTERVAL,
-  calcOffsetDateStr,
   todaysDateISOString,
 } from '../../helpers/dateTime'
+import {
+  calcOffsetDateStr,
+} from '../../helpers/NPdateTime'
 import { displayTitle } from '../../helpers/general'
 import { findEndOfActivePartOfNote } from '../../helpers/paragraph'
 import { showMessage, showMessageYesNo } from '../../helpers/userInput'
