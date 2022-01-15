@@ -113,20 +113,48 @@ type TEditor = {
    */
   replaceSelectionWithText(text: string): void,
   /**
-   * Opens a note using the given filename
+   * Opens a note using the given filename.
+   * Note: splitView parameter available for macOS from r727 (v3.4)
+   * @param {string} filename - Filename of the note file (can be without extension), but has to include the relative folder such as `folder/filename.txt`.
+   * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
+   * @param {number} highlightStart - (optional) Start position of text highlighting
+   * @param {number} highlightEnd - (optional) End position of text highlighting
+   * @param {boolean} splitView - (optional) Open note in a new split view (Note: Available from v3.4)
+   * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
   openNoteByFilename(
     filename: string,
     newWindow?: boolean,
     highlightStart?: number,
     highlightEnd?: number,
+    splitView?: boolean,  
   ): Promise<TNote>,
   /**
    * Opens a note by searching for the give title (first line of the note)
+   * Note: splitView parameter available for macOS from r727 (v3.4)
+   * @param {String} title - Title (case sensitive) of the note (first line)
+   * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
+   * @param {number} highlightStart - (optional) Start position of text highlighting
+   * @param {number} highlightEnd - (optional) End position of text highlighting
+   * @param {boolean} splitView - (optional) Open note in a new split view (Note: Available from v3.4)
+   * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
-  openNoteByTitle(title: string, newWindow?: boolean, highlightStart?: number, highlightEnd?: number): Promise<TNote>,
+  openNoteByTitle(
+    title: string,
+    newWindow ?: boolean,
+    highlightStart ?: number,
+    highlightEnd ?: number,
+    splitView?: boolean,
+  ): Promise <TNote>,
   /**
    * Opens a note by searching for the give title (first line of the note)
+   * Note: splitView parameter available for macOS from r727 (v3.4)
+   * @param {String} title - Title (case sensitive) of the note (first line)
+   * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
+   * @param {number} highlightStart - (optional) Start position of text highlighting
+   * @param {number} highlightEnd - (optional) End position of text highlighting
+   * @param {boolean} splitView - (optional) Open note in a new split view (Note: Available from v3.4)
+   * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
   openNoteByTitleCaseInsensitive(
     title: string,
@@ -134,19 +162,40 @@ type TEditor = {
     caseSensitive?: boolean,
     highlightStart?: number,
     highlightEnd?: number,
+    splitView?: boolean,
   ): Promise<TNote>,
   /**
    * Opens a calendar note by the given date
+   * Note: splitView parameter available for macOS from r727 (v3.4)
+   * @param {Date} date - The date that should be opened, this is a normal JavaScript date object
+   * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
+   * @param {number} highlightStart - (optional) Start position of text highlighting
+   * @param {number} highlightEnd - (optional) End position of text highlighting
+   * @param {boolean} splitView - (optional) Open note in a new split view (Note: Available from v3.4)
+   * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
-  openNoteByDate(date: Date, newWindow?: boolean, highlightStart?: number, highlightEnd?: number): Promise<TNote>,
+  openNoteByDate(
+    date: Date,
+    newWindow ?: boolean,
+    highlightStart ?: number,
+    highlightEnd ?: number,
+    splitView?: boolean,
+  ): Promise < TNote >,
   /**
    * Opens a calendar note by the given date string
+   * @param {String} dateString - The date string that should be opened, in ISO format: "YYYYMMDD", like "20210501"
+   * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
+   * @param {number} highlightStart - (optional) Start position of text highlighting
+   * @param {number} highlightEnd - (optional) End position of text highlighting
+   * @param {boolean} splitView - (optional) Open note in a new split view (Note: Available from v3.4)
+   * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
   openNoteByDateString(
     filename: string,
     newWindow?: boolean,
     highlightStart?: number,
     highlightEnd?: number,
+    splitView?: boolean,
   ): Promise<TNote | void>,
   /**
    * Selects the full text in the editor.
@@ -154,19 +203,19 @@ type TEditor = {
    */
   selectAll(): void,
   /**
-   * (Raw) select text in the editor
-   * (like select 10 characters = length from position 2 = start)
-   *
+   * (Raw) select text in the editor (like select 10 characters = length from position 2 = start)
    * Raw means here that the position is calculated with the Markdown revealed,
    * including Markdown links and folded text.
+   * @param {number} start - Character start position
+   * @param {number} length - Character length
    */
   select(start: number, length: number): void,
   /**
-   * (Rendered) select text in the editor
-   * (like select 10 characters = length from position 2 = start)
-   *
-   * Rendered means here that the position is calculated with the Markdown
-   * hidden, including Markdown links and folded text.
+   * (Rendered) select text in the editor (like select 10 characters = length from position 2 = start)
+   * Rendered means here that the position is calculated with the Markdown hidden,
+   * including Markdown links and folded text.
+   * @param {number} start - Character start position
+   * @param {number} length - Character length
    */
   renderedSelect(start: number, length: number): void,
   /**
@@ -184,16 +233,21 @@ type TEditor = {
   /**
    * Scrolls to and highlights the given paragraph. If the paragraph is folded,
    * it will be unfolded.
+   * @param {ParagraphObject} paragraph to highlight
    */
   highlight(paragraph: TParagraph): void,
   /**
    * Scrolls to and highlights the given range. If the paragraph is folded, it
    * will be unfolded.
+   * @param {RangeObject} range
    */
   highlightByRange(range: Range): void,
   /**
    * Note: Available from v3.0.23+ (Mac: Build 636+, iOS: Build 562+)
-   * Scrolls to and highlights the given range defined by the character index and the character length it should cover. If the paragraph is folded, it will be unfolded.
+   * Scrolls to and highlights the given range defined by the character index and
+   * the character length it should cover. If the paragraph is folded, it will be unfolded.
+   * @param {number} index
+   * @param {number} length 
    */
   highlightByIndex(index: number, length: number): void,
   /**
