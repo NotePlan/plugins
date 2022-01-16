@@ -13,16 +13,10 @@
 	"plugin.isRemote": "false",
 	"plugin.commands": [
 		{
-			"name": "countsInPeriod",
-			"alias": ["stp", "period", "stats", "count"],
-			"description": "Generate counts (and other stats) of tags and mentions for a time period",
-			"jsFunction": "statsPeriod"
-		},
-		{
-			"name": "weeklyStats",
-			"alias": ["week", "stats", "count"],
-			"description": "Generate stats for tags and mentions for all weeks this year, and write CSV to a note",
-			"jsFunction": "weeklyStats"
+			"name": "saveSearchResults",
+			"alias": ["period", "search", "occurrence"],
+			"description": "Save results from a search over all notes",
+			"jsFunction": "saveSearch"
 		},
 		{
 			"name": "saveSearchResultsInPeriod",
@@ -31,18 +25,24 @@
 			"jsFunction": "occurrencesPeriod"
 		},
 		{
-			"name": "saveSearchResults",
-			"alias": ["period", "search", "occurrence"],
-			"description": "Save results from a search over all notes",
-			"jsFunction": "saveSearch"
+			"name": "countsInPeriod",
+			"alias": ["stp", "period", "stats", "count"],
+			"description": "Generate counts (and other stats) of tags and mentions for a time period",
+			"jsFunction": "statsPeriod"
 		},
 		{
 			"name": "insertProgressUpdate",
       "alias": ["ipu"],
 			"description": "Insert weekly/monthly progress update to current note",
 			"jsFunction": "insertProgressUpdate"
+		},
+		{
+			"name": "weeklyStats",
+			"alias": ["week", "stats", "count"],
+			"description": "Generate stats for tags and mentions for all weeks this year, and write CSV to a note",
+			"jsFunction": "weeklyStats"
 		}
-	],
+  ],
 	"plugin.settings": [
     {
       "type": "heading",
@@ -216,6 +216,21 @@
       "description": "List of @mentions to includes in Progress updates. If this list is empty, no mentions will be included.",
       "type": "[string]",
       "default": [],
+      "required": false
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "/weeklyStats command settings"
+    },
+		{
+      "key": "weeklyStatsDuration",
+      "title": "Weekly Stats Duration (in weeks)",
+      "description": "Number of weeks to look back when generating weekly stats for plotting",
+      "type": "number",
+      "default": 26,
       "required": false
     }
 	]

@@ -1,8 +1,8 @@
 // @flow
 //-----------------------------------------------------------------------------
-// Create statistics for hasthtags and mentions for time periods
+// Create weekly stats for a number of weeks, and format ready to use by gnuplot
 // Jonathan Clark, @jgclark
-// Last updated for v0.3.0, 8.11.2021
+// Last updated for v0.3.0+, 8.11.2021
 //-----------------------------------------------------------------------------
 
 import {
