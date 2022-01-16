@@ -55,8 +55,8 @@ function getSelectedParaIndex(): number {
 export async function insertProgressUpdate(intervalType?: string): Promise<void> {
   // If no intervalType passed, default to "wtd"
   const interval = intervalType ?? 'wtd'
-  // Get config settings from Template folder _configuration note
-  let config = await getConfigSettings()
+  // Get config setting
+  // let config = await getConfigSettings()
 
   // Get time period
   const [fromDate, toDate, periodString, periodPartStr] = await getPeriodStartEndDates("", interval)

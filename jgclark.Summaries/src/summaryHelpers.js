@@ -37,7 +37,7 @@ export const DEFAULT_SUMMARIES_CONFIG = `  summaries: {
     folderToStore: 'Summaries', // folder to store any output files in
     foldersToIgnore: ['📋 Templates', 'Summaries'], // list of folders to exlude in these commands. Note that @Trash and @Archive are always excluded
     headingLevel: 2, // use level 1-5 headings when writing output to notes
-    // settings for 'countsInPeriod':
+    // settings for '/countsInPeriod':
     hashtagCountsHeading: '#hashtag counts',
     mentionCountsHeading: '@mention counts',
     showAsHashtagOrMention: true, // or false to hide # and @ characters
@@ -46,12 +46,14 @@ export const DEFAULT_SUMMARIES_CONFIG = `  summaries: {
     excludeHashtags: [],
     includeMentions: [], // e.g. ['@work','@fruitveg','@words']
     excludeMentions: ['@done', '@repeat'],
-    // settings for 'occurrencesInPeriod':
+    // settings for '/occurrencesInPeriod':
     occurrencesHeading: 'Occurrences',
     defaultOccurrences: ['idea', '@review', '#question'],
     highlightOccurrences: false, // use ==highlight== of matched occurrences in output
     showEmptyOccurrences: false, // if no occurrences found of this string to match, make this clear
     dateStyle: 'link', // where the context for an occurrence is a date, does it get appended as a 'date' using your locale, or as a NP date 'link' ('>date') or 'at' ('@date') or 'none'
+    // setting for '/weeklyStats':
+    weeklyStatsDuration: 14, // number of weeks to look back
   },
 `
 export type headingLevelType = 1 | 2 | 3 | 4 | 5
