@@ -5,10 +5,15 @@
 // @jgclark, with additions by @dwertheimer, @weyert, @m1well
 // ------------------------------------------------------------------------------------
 
-import { getTagParamsFromString, stringReplace, } from '../../helpers/general'
+import {
+  dateStringFromCalendarFilename,
+  toLocaleTime
+} from '../../helpers/dateTime'
+import {
+  getTagParamsFromString,
+  stringReplace,
+} from '../../helpers/general'
 import { showMessage } from '../../helpers/userInput'
-import { dateStringFromCalendarFilename, toLocaleTime } from '../../helpers/dateTime'
-
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 
 //------------------------------------------------------------------------------
@@ -43,9 +48,11 @@ let pref_calendarSet: Array<string>
 let pref_calendarNameMappings: Array<string>
 
 //------------------------------------------------------------------------------
-// Local functions
 
-// Get config settings from Template folder _configuration note
+/**
+ * Get config settings from Template folder _configuration note
+ * @author @jgclark
+ */
 async function getEventsSettings(): Promise<void> {
   console.log(`\nStart of getEventsSettings()`)
   const eventsConfig = await getOrMakeConfigurationSection(
@@ -60,46 +67,35 @@ async function getEventsSettings(): Promise<void> {
 
   // now get settings we need
   pref_eventsHeading = eventsConfig?.eventsHeading != null ? String(eventsConfig?.eventsHeading) : '### Events today'
-  // if (
-  //   eventsConfig.eventsHeading != null &&
-  //   typeof eventsConfig.eventsHeading === 'string'
-  // ) {
-  //   pref_eventsHeading = eventsConfig.eventsHeading
-  // }
-  console.log(pref_eventsHeading)
-  // $FlowFixMe
+  // console.log(pref_eventsHeading)
+  // $FlowFixMe[incompatible-type]
   pref_calendarSet = eventsConfig?.calendarSet ?? []
   // console.log(pref_calendarSet)
-  // $FlowFixMe
+  // $FlowFixMe[incompatible-type]
   pref_addMatchingEvents = eventsConfig?.addMatchingEvents ?? null
-  // if (eventsConfig?.addMatchingEvents != null) {
-  //   // $FlowFixMe
-  //   pref_addMatchingEvents = eventsConfig.addMatchingEvents
-  // } else {
-  //   console.log(
-  //     `\tInfo: empty find 'addMatchingEvents' setting in _configuration note.`,
-  //   )
-  // }
-  pref_locale = eventsConfig?.locale != null && eventsConfig?.locale !== '' ? String(eventsConfig?.locale) : 'en-US'
-  // if (eventsConfig.locale != null) {
-  //   pref_locale = eventsConfig.locale
-  // }
+  pref_locale = eventsConfig?.locale != null && eventsConfig?.locale !== ''
+    ? String(eventsConfig?.locale)
+    : 'en-US'
   console.log(pref_locale)
   pref_timeOptions = eventsConfig?.timeOptions ?? { hour: '2-digit', minute: '2-digit', hour12: false }
-  // if (eventsConfig.timeOptions != null) {
-  //   pref_timeOptions = eventsConfig.timeOptions
-  // }
-  // $FlowFixMe
+  // $FlowFixMe[incompatible-type]
   pref_calendarNameMappings = eventsConfig?.calendarNameMappings ?? []
   console.log(`\tEnd of getEventsSettings()`)
 }
 
 export type HourMinObj = { h: number, m: number }
 
-//------------------------------------------------------------------------------
-// Get list of events for the given day (specified as YYYYMMDD)
-// Now also filters out any that don't come from one of the calendars specified
-// in pref_calendarSet.
+/** 
+ * Get list of events for the given day (specified as YYYYMMDD).
+ * Now also filters out any that don't come from one of the calendars specified
+ * in pref_calendarSet.
+ * @author @jgclark
+ * 
+ * @param {string} dateStr YYYYMMDD date to use
+ * @param {HourMinObj} start optional start time in the day
+ * @param {HourMinObj} end optional end time in the day
+ * @return {[TCalendarItem]} array of events as CalendarItems
+ */
 export async function getEventsForDay(
   dateStr: string,
   start: HourMinObj = { h: 0, m: 0 },
@@ -123,11 +119,16 @@ export async function getEventsForDay(
   return eArr
 }
 
-//------------------------------------------------------------------------------
-// Return MD list of today's events
+/**
+ * Return MD list of today's events
+ * @author @jgclark
+ * 
+ * @param {string} paramString - passed to next function
+ * @return {string} Markdown-formatted list of today's events
+ */
 export async function listDaysEvents(paramString: string = ''): Promise<string> {
   if (Editor.note == null || Editor.type !== 'Calendar') {
-    await showMessage('Please run again with a calendar note open.')
+    await showMessage(`Please run again with a calendar note open.`, "OK", "List Events")
     return ''
   }
   // $FlowIgnore[incompatible-call]
@@ -186,12 +187,16 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
   return output.replace(/\\s{2,}/g, ' ') // If this the array is empty -> empty string
 }
 
-//------------------------------------------------------------------------------
-// Insert list of today's events at cursor position
-// NB: When this is called by UI as a command, *it doesn't have any params passed with it*.
+/**
+ * Insert list of today's events at cursor position.
+ * NB: When this is called by UI as a command, *it doesn't have any params passed with it*.
+ * 
+ * @author @jgclark
+ * @param {?string} paramString - passed through to next function
+ */
 export async function insertDaysEvents(paramString: ?string): Promise<void> {
   if (Editor.note == null || Editor.type !== 'Calendar') {
-    await showMessage('Please run again with a calendar note open.')
+    await showMessage(`Please run again with a calendar note open.`, "OK", "Insert Events")
     return
   }
   console.log(`\ninsertDaysEvents:`)
@@ -202,9 +207,14 @@ export async function insertDaysEvents(paramString: ?string): Promise<void> {
   Editor.insertTextAtCursor(output)
 }
 
-//------------------------------------------------------------------------------
-// Return string list of matching events in the current day's note, from list
-// in keys of pref_addMatchingEvents. Apply template before returning.
+/**
+ * Return string list of matching events in the current day's note, from list 
+ * in keys of pref_addMatchingEvents. Apply template too.
+ * @author @jgclark
+ * 
+ * @param {?string} paramString Paramaters to use (for future expansion)
+ * @return {string} List of matching events, as a multi-line string
+ */
 export async function listMatchingDaysEvents(
   /*eslint-disable */
   paramString: ?string, // NB: the parameter isn't currently used, but is provided for future expansion.
@@ -217,7 +227,7 @@ export async function listMatchingDaysEvents(
   // Get config settings from Template folder _configuration note
   await getEventsSettings()
   if (pref_addMatchingEvents == null) {
-    await showMessage(`Error: Empty 'addMatchingEvents' setting in _configuration note. Stopping`)
+    await showMessage(`Error: Empty 'addMatchingEvents' setting in _configuration note. Stopping`, "OK", "List Matching Events")
     return `(Error: found no 'addMatchingEvents' settings in _configuration note.)`
   }
   const textToMatchA = Object.keys(pref_addMatchingEvents)
@@ -254,12 +264,16 @@ export async function listMatchingDaysEvents(
   return output
 }
 
-//------------------------------------------------------------------------------
-// Insert list of matching events in the current day's note, from list
-// in keys of pref_addMatchingEvents. Apply template too.
+/**
+ * Insert list of matching events in the current day's note, from list
+ * in keys of pref_addMatchingEvents. Apply template too.
+ * @author @jgclark
+ * 
+ * @param {?string} paramString Paramaters to use (to pass on to next function)
+ */
 export async function insertMatchingDaysEvents(paramString: ?string): Promise<void> {
   if (Editor.note == null || Editor.type !== 'Calendar') {
-    await showMessage('Please run again with a calendar note open.')
+    await showMessage(`Please run again with a calendar note open.`, "OK", "List Events")
     return
   }
   console.log(`\ninsertMatchingDaysEvents:`)
@@ -268,7 +282,6 @@ export async function insertMatchingDaysEvents(paramString: ?string): Promise<vo
   Editor.insertTextAtCursor(output)
 }
 
-//------------------------------------------------------------------------------
 /**
  * @private
  * @author @m1well
@@ -283,7 +296,7 @@ const getReplacements = (item: TCalendarItem): { key: string, value: string }[] 
     {
       key: '*|START|*',
       value: !item.isAllDay
-        ? // $FlowFixMe
+        ? // $FlowFixMe[incompatible-call]
         toLocaleTime(item.date, pref_locale, pref_timeOptions)
         : '',
     },
@@ -291,7 +304,7 @@ const getReplacements = (item: TCalendarItem): { key: string, value: string }[] 
       key: '*|END|*',
       value:
         item.endDate != null && !item.isAllDay
-          ? // $FlowFixMe
+        ? // $FlowFixMe[incompatible-call]
           toLocaleTime(item.endDate, pref_locale, pref_timeOptions)
           : '',
     },

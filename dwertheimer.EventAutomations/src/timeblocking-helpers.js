@@ -7,26 +7,16 @@ import {
   formatISO9075,
   addMinutes,
   differenceInMinutes,
-  format,
 } from 'date-fns'
-import { logAllPropertyNames, getAllPropertyNames, JSP } from '../../helpers/dev'
-import { fieldSorter, sortListBy } from '../../helpers/sorting'
-import {
-  toLocaleTime,
-  getTodaysDateUnhyphenated,
-  dateStringFromCalendarFilename,
-  removeDateTags,
-  toISODateString,
-  todaysDateISOString,
-} from '../../helpers/dateTime'
-import { timeblockRegex1, timeblockRegex2 } from '../../helpers/markdown-regex'
+// import { logAllPropertyNames, getAllPropertyNames, JSP } from '../../helpers/dev'
+import { sortListBy } from '../../helpers/sorting'
+import { removeDateTags } from '../../helpers/dateTime'
+// import { timeblockRegex1, timeblockRegex2 } from '../../helpers/markdown-regex'
 import type {
   IntervalMap,
   OpenBlock,
   BlockArray,
   TimeBlocksWithMap,
-  TimeBlockTextList,
-  BlockTimeOptions,
   BlockData,
   TimeBlockDefaults,
   PartialCalendarItem,
@@ -461,7 +451,7 @@ export const addDurationToTasks = (
   config: { [key: string]: any },
 ): Array<{ [key: string]: any }> => {
   const dTasks = tasks.map((t) => {
-    const copy = { ...t }
+    const copy = { ...t, duration: 0 }
     copy.duration = getDurationFromLine(t.content, config.durationMarker) || config.defaultDuration
     return copy
   })
@@ -517,7 +507,8 @@ export function includeTasksWithPatterns(tasks: Array<TParagraph>, pattern: stri
 }
 
 export function excludeTasksWithPatterns(tasks: Array<TParagraph>, pattern: string | Array<string>): Array<TParagraph> {
-  return tasks.filter((task) => {
-    return !task.content.match(pattern)
-  })
+  if (Array.isArray(pattern)) {
+    return tasks.filter((t) => pattern.some((p) => !t.content.match(p)))
+  }
+  return tasks.filter((t) => !t.content.match(pattern))
 }

@@ -17,6 +17,5 @@
       "description": "Generate new @repeat() tasks from completed ones",
       "jsFunction": "repeats"
     }
-  ],
-  "plugin.preferences": []
+  ]
 }

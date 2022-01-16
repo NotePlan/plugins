@@ -1,8 +1,12 @@
 # What's Changed in 🗃 Summaries plugin?
 
+## [0.4.0] - 2022-01-14
+### Added
+- added `/insertProgressUpdate` command. This writes out a summary of mentions of interest so far this week or month, showing the count/sum/average so far in that time period, to the current note. This is particularly designed to be used from a daily template by `{{insertProgressUpdate()}}`. See [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/) for more details.
+
 ## [0.3.0] - 2022-01-01
 ### Added
-- added `/weeklyStats` command. This writes out a summary of stats for each hashtag and mention of interest, summed/averaged per week, to the note 'Summaries/weekly_stats'. This is designed for plotting using the third-party gnuplot tool.
+- added `/weeklyStats` command. This very niche command writes out a summary of stats for each hashtag and mention of interest, summed/averaged per week, to the note 'Summaries/weekly_stats'. This is designed for plotting using the third-party gnuplot tool.
 
 ### Changed
 - worked around a bug in NotePlan API that mis-reports heirarchical @mentions and #hashtags (e.g. @read/book/four)

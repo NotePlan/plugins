@@ -1,22 +1,23 @@
 // @flow
 
-import { parseJSON5 } from '../../helpers/general'
+import { getAffirmation, getAdvice } from './affirmations'
+import { getDailyQuote } from './quote'
+import { selection } from './selection'
+import { getWeatherSummary } from './weather'
 import {
-  getInput,
-  datePicker,
-  askDateInterval,
-} from '../../helpers/userInput'
-import { listDaysEvents, listMatchingDaysEvents } from '../../jgclark.EventHelpers/src'
-import { sweepTemplate } from '../../nmn.sweep/src/sweepAll'
-import {
-  get8601String,
   formattedDateTimeTemplate,
+  get8601String,
   getWeekDates,
 } from '../../dwertheimer.DateAutomations/src/dateFunctions'
-import { getWeatherSummary } from './weather'
-import { getDailyQuote } from './quote'
-import { getAffirmation, getAdvice } from './affirmations'
-import { selection } from './selection'
+import { parseJSON5 } from '../../helpers/general'
+import {
+  askDateInterval,
+  datePicker,
+  getInput,
+} from '../../helpers/userInput'
+import { listDaysEvents, listMatchingDaysEvents } from '../../jgclark.EventHelpers/src'
+import { insertProgressUpdate } from '../../jgclark.Summaries/src'
+import { sweepTemplate } from '../../nmn.sweep/src/sweepAll'
 
 const tagList: Array<TagListType> = []
 
@@ -42,6 +43,7 @@ addTag('weekDates', getWeekDates)
 addTag('affirmation', getAffirmation)
 addTag('advice', getAdvice)
 addTag('selection', selection)
+addTag('insertProgressUpdate', insertProgressUpdate)
 
 // addTag('sortTasks', sortTasksViaTemplate)
 // **Add other template/macro function calls here SEE COMMENTED CODE BELOW **
@@ -147,7 +149,7 @@ async function processTagValues(tag: string, config: { [string]: ?mixed }): Prom
   if (valueInConfig != null) {
     return String(valueInConfig)
   }
-  const res = await getInput(`Value for ${tag}`)
+  const res = await CommandBar.showInput(`Value for ${tag}`, 'OK')
   return res
 }
 

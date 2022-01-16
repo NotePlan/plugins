@@ -2,20 +2,27 @@
 //-----------------------------------------------------------------------------
 // Summary commands for notes
 // Jonathan Clark
-// v0.3.0, 8.11.2021
+// Last updated 14.1.2022 for v0.4.0
 //-----------------------------------------------------------------------------
 
 import {
+  dateStringFromCalendarFilename,
   getWeek,
   hyphenatedDate,
   monthNameAbbrev,
-  quarterStartEnd,
   todaysDateISOString,
   toISODateString,
   toLocaleDateString,
   toLocaleDateTimeString,
   weekStartEnd,
+  withinDateRange,
 } from '../../helpers/dateTime'
+import {
+  calcOffsetDate,
+  quarterStartEnd,
+} from '../../helpers/NPdateTime'
+import { trimAnyQuotes } from '../../helpers/dataManipulation'
+import { displayTitle } from '../../helpers/general'
 import {
   chooseOption,
   getInput
@@ -189,64 +196,72 @@ export const getConfigSettings = (): Promise<SummariesConfig> => {
   })
 }
 
-export async function getPeriodStartEndDates(question: string = 'Create stats for which period?'):
-  Promise<[Date, Date, string, string]> {
-  // Ask user what date interval to do tag counts for
-  const period = await chooseOption(
-    question,
-    [
-      {
-        label: 'Last Week',
-        value: 'lw',
-      },
-      {
-        label: 'This week so far',
-        value: 'wtd',
-      },
-      {
-        label: 'Other Week',
-        value: 'ow',
-      },
-      {
-        label: 'Last Month',
-        value: 'lm',
-      },
-      {
-        label: 'This Month (to date)',
-        value: 'mtd',
-      },
-      {
-        label: 'Other Month',
-        value: 'om',
-      },
-      {
-        label: 'Last Quarter',
-        value: 'lq',
-      },
-      {
-        label: 'This Quarter (to date)',
-        value: 'qtd',
-      },
-      {
-        label: 'Other Quarter',
-        value: 'oq',
-      },
-      {
-        label: 'Last Year',
-        value: 'ly',
-      },
-      {
-        label: 'Year to date',
-        value: 'ytd',
-      },
-      {
-        label: 'Other Year',
-        value: 'oy',
-      },
-    ],
-    'mtd',
-  )
-
+export async function getPeriodStartEndDates(
+  question: string = 'Create stats for which period?',
+  periodToUse?: string,
+): Promise<[Date, Date, string, string]> {
+  let period: string
+  // If we're passed the period, then use that, otherwise ask user
+  if (periodToUse) {
+    // It may come with surrounding quotes, so remove those
+    period = trimAnyQuotes(periodToUse)
+  } else {
+    // Ask user what date interval to do tag counts for
+    period = await chooseOption(
+      question,
+      [
+        {
+          label: 'Last Week',
+          value: 'lw',
+        },
+        {
+          label: 'This week so far',
+          value: 'wtd',
+        },
+        {
+          label: 'Other Week',
+          value: 'ow',
+        },
+        {
+          label: 'Last Month',
+          value: 'lm',
+        },
+        {
+          label: 'This Month (to date)',
+          value: 'mtd',
+        },
+        {
+          label: 'Other Month',
+          value: 'om',
+        },
+        {
+          label: 'Last Quarter',
+          value: 'lq',
+        },
+        {
+          label: 'This Quarter (to date)',
+          value: 'qtd',
+        },
+        {
+          label: 'Other Quarter',
+          value: 'oq',
+        },
+        {
+          label: 'Last Year',
+          value: 'ly',
+        },
+        {
+          label: 'Year to date',
+          value: 'ytd',
+        },
+        {
+          label: 'Other Year',
+          value: 'oy',
+        },
+      ],
+      'mtd',
+    )
+  }
   let fromDate: Date = new Date()
   let toDate: Date = new Date()
   let periodString = ''
@@ -263,7 +278,8 @@ export async function getPeriodStartEndDates(question: string = 'Create stats fo
   // I.e. when in BST (=UTC+0100) it's calculating dates which are often 1 too early.
   // Get TZOffset in minutes. If positive then behind UTC; if negative then ahead.
   const TZOffset = new Date().getTimezoneOffset()
-  console.log(`TimeZone Offset = ${TZOffset}`)
+  // console.log(`\tgetPeriodStartEndDates: period = ${period}, TZOffset = ${TZOffset}.`)
+
   switch (period) {
     case 'lm': {
       fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, 1, 0, 0, 0), 'minute', -TZOffset) // go to start of this month
@@ -338,7 +354,6 @@ export async function getPeriodStartEndDates(question: string = 'Create stats fo
       if (currentWeekNum === 52 && m == 1) {
         theY -= 1
       }
-      console.log(`currentWeekNum = ${currentWeekNum} theY = ${theY}`) // TODO: remove me
       let lastWeekNum = 0
       if (currentWeekNum === 1) {
         lastWeekNum = 52
@@ -394,6 +409,9 @@ export async function getPeriodStartEndDates(question: string = 'Create stats fo
       toDate = Calendar.addUnitToDate(Calendar.dateFrom(theYear, 12, 31, 0, 0, 0), 'minute', -TZOffset)
       periodString = `${theYear}`
       break
+    }
+    default: {
+      periodString = `<Error: couldn't parse interval type '${period}'>`
     }
   }
   // console.log(`-> ${fromDate.toString()}, ${toDate.toString()}, ${periodString}, ${periodPartStr}`)
@@ -510,4 +528,166 @@ export async function gatherMatchingLines(
   await CommandBar.onMainThread()
   CommandBar.showLoading(false)
   return [matches, noteContexts]
+}
+
+
+/** -------------------------------------------------------------------------------
+ * Calculate hashtag statistics for daily notes of a given time period
+ * - Map of { tag, count } for all tags included or not excluded
+ * - Map of { tag, total } for the subset of all tags above that finish with a /number
+ * @author @jgclark
+ * 
+ * @param {string} fromDateStr - YYYYMMDD string of start date
+ * @param {string} toDateStr - YYYYMMDD string of start date
+ * @return {[Map, Map]}
+*/
+export async function calcHashtagStatsPeriod(
+  fromDateStr: string,
+  toDateStr: string,
+): Promise<?[Map<string, number>, Map<string, number>]> {
+  let config = await getConfigSettings()
+
+  // Get all daily notes that are within this time period
+  const periodDailyNotes = DataStore.calendarNotes.filter((p) =>
+    withinDateRange( dateStringFromCalendarFilename(p.filename), fromDateStr, toDateStr )
+  )
+
+  if (periodDailyNotes.length === 0) {
+    console.log(`  warning: no matching daily notes found between ${fromDateStr} and ${toDateStr}`)
+    return
+  }
+
+  // work out what set of mentions to look for (or ignore)
+  const hashtagsToLookFor = config.includeHashtags.length > 0 ? config.includeHashtags : []
+  const hashtagsToIgnore = config.excludeHashtags.length > 0 ? config.excludeHashtags : []
+
+  // For each matching date, find and store the tags in Map
+  const tagCounts = new Map<string, number>() // key: tagname; value: count
+  // Also define map to count and total hashtags with a final /number part.
+  const tagSumTotals = new Map<string, number>() // key: tagname (except last part); value: total
+  for (const n of periodDailyNotes) {
+    // TODO(EduardMet): fix API bug
+    // The following is a workaround to an API bug in note.hashtags where
+    // #one/two/three gets reported as #one, #one/two, and #one/two/three.
+    // Go backwards through the hashtag array, and then check 
+    const seenTags = n.hashtags.slice().reverse()
+    let lastTag = ''
+
+    for (const t of seenTags) {
+      if (lastTag.startsWith(t)) {
+        // if this tag is starting subset of the last one, assume this is an example of the bug, so skip this tag
+        continue
+      }
+      // check this is on inclusion, or not on exclusion list, before adding
+      if (
+        hashtagsToLookFor.length > 0 &&
+        hashtagsToLookFor.filter((a) => t.startsWith(a)).length === 0
+      ) {
+        // console.log(`\tIgnoring '${t}' as not on inclusion list`)
+      } else if (hashtagsToIgnore.filter((a) => t.startsWith(a)).length > 0) {
+        // console.log(`\tIgnoring '${t}' as on exclusion list`)
+      } else {
+        // if this is tag that finishes '/number', then sum the numbers as well as count
+        if (t.match(/\/\d+(\.\d+)?$/)) {
+          const tagParts = t.split('/')
+          const k = tagParts[0]
+          const v = Number(tagParts[1])
+          // console.log(`found tagParts ${k} / ${v}`)
+          tagCounts.set(k, (tagCounts.get(k) ?? 0) + 1)
+          tagSumTotals.set(k, (tagSumTotals.get(k) ?? 0) + v)
+          // console.log(`  ${k} -> ${tagSumTotals.get(k)} from ${tagCounts.get(k)}`)
+        } else {
+          // just save this to the main map
+          tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1)
+          // console.log(`  ${t} -> ${tagCounts.get(t)}`)
+        }
+      }
+      lastTag = t
+    }
+  }
+
+  return [tagCounts, tagSumTotals]
+}
+
+/** -------------------------------------------------------------------------------
+ * Calculate mention statistics for daily notes of a given time period.
+ * If an 'include' list is set, only include things from that list.
+ * If not, include all, except those on an 'exclude' list (if set).
+ *
+ * @param {string} fromDateStr - YYYYMMDD string of start date
+ * @param {string} toDateStr - YYYYMMDD string of start date
+ * @return {Map, Map} maps of {tag, count}
+*/
+export async function calcMentionStatsPeriod(
+  fromDateStr: string,
+  toDateStr: string,
+): Promise<?[Map<string, number>, Map<string, number>]> {
+  let config = await getConfigSettings()
+
+  // Get all daily notes that are within this time period
+  const periodDailyNotes = DataStore.calendarNotes.filter((p) =>
+    withinDateRange( dateStringFromCalendarFilename(p.filename), fromDateStr, toDateStr )
+  )
+
+  if (periodDailyNotes.length === 0) {
+    console.log('  warning: no matching daily notes found')
+    return
+  }
+
+  // work out what set of mentions to look for (or ignore)
+  const mentionsToLookFor = config.includeMentions.length > 0 ? config.includeMentions : []
+  const mentionsToIgnore = config.excludeMentions.length > 0 ? config.excludeMentions : []
+
+  // TODO: Work out whether we want to know about zero totals, occurrences, and/or no valid data
+  // Tricky ...
+  // Yes: @run, @work, 
+  // No: @fruitveg
+
+  // For each matching date, find and store the mentions in Map
+  const mentionCounts = new Map<string, number>() // key: tagname; value: count
+  // Also define map to count and total hashtags with a final /number part.
+  const mentionSumTotals = new Map<string, number>() // key: mention name (except last part); value: total
+
+  for (const n of periodDailyNotes) {
+    // TODO(EduardMet): fix API bug
+    // The following is a workaround to an API bug in note.mentions where
+    // #one/two/three gets reported as #one, #one/two, and #one/two/three.
+    // Go backwards through the mention array, and then check 
+    const seenMentions = n.mentions.slice().reverse()
+    let lastMention = ''
+
+    for (const m of seenMentions) {
+      if (lastMention.startsWith(m)) {
+        // if this tag is starting subset of the last one, assume this is an example of the bug, so skip this tag
+        continue
+      }
+      // check this is on inclusion, or not on exclusion list, before adding
+      if (
+        mentionsToLookFor.length > 0 &&
+        mentionsToLookFor.filter((a) => m.startsWith(a)).length === 0
+      ) {
+        // console.log(`\tIgnoring '${m}' as not on inclusion list`)
+      } else if (mentionsToIgnore.filter((a) => m.startsWith(a)).length > 0) {
+        // console.log(`\tIgnoring '${m} as on exclusion list`)
+      } else {
+        // if this is menion that finishes (number), then
+        if (m.match(/\(\d+(\.\d+)?\)$/)) {
+          const mentionParts = m.split('(')
+          const k = mentionParts[0]
+          const v = Number(mentionParts[1].slice(0, -1)) // chop off final ')' character
+          mentionCounts.set(k, (mentionCounts.get(k) ?? 0) + 1)
+          mentionSumTotals.set(k, (mentionSumTotals.get(k) ?? 0) + v)
+          // console.log(`found mentionParts ${k} / ${v} in ${displayTitle(n)} -> ${String(mentionSumTotals.get(k))} from ${String(mentionCounts.get(k))}`)
+        } else {
+          // just save this to the main map
+          mentionCounts.set(m, (mentionCounts.get(m) ?? 0) + 1)
+          // FIXME: issue here when stray @words appear, which get counted here, upsetting their stats
+          // console.log(`  -> ${m} = ${String(mentionCounts.get(m))}`)
+        }
+      }
+      lastMention = m
+    }
+  }
+
+  return [mentionCounts, mentionSumTotals]
 }

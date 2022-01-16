@@ -8,9 +8,6 @@
 import {
   calcHashtagStatsPeriod,
   calcMentionStatsPeriod,
-} from './stats'
-import {
-  DEFAULT_SUMMARIES_CONFIG,
   getConfigSettings,
 } from './summaryHelpers'
 import type { SummariesConfig } from './summaryHelpers'

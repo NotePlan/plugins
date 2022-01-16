@@ -20,11 +20,13 @@ import type { SummariesConfig } from './summaryHelpers'
 import {
   dateStringFromCalendarFilename,
   monthNameAbbrev,
-  quarterStartEnd,
   toLocaleDateString,
   unhyphenatedDate,
   withinDateRange,
 } from '../../helpers/dateTime'
+import {
+  quarterStartEnd,
+} from '../../helpers/NPdateTime'
 import {
   displayTitle,
   stringReplace,

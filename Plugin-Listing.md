@@ -30,6 +30,7 @@
 | `insert day's events as list` | insert list of this day's calendar events at cursor | 🕓 Event Helpers |
 | `insert matching events` | inserts this day's calendar events matching certain patterns at cursor | 🕓 Event Helpers |
 | `insert template` | Choose a Template to insert into the current Note | 🔩 Templates |
+| `insertProgressUpdate` | Insert weekly/monthly progress update to current note | 🗃 Summaries |
 | `iso` | Insert date+time (in ISO format) at cursor | 📅 Date Automations |
 | `jd` | Jump to the '## Done' section. (Currently only works in main window) | 📙 Note Helpers |
 | `jh` | Jumps to the heading that the user selects. (Currently only works in main window) | 📙 Note Helpers |

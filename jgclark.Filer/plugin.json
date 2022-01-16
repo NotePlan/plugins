@@ -34,5 +34,5 @@
       "jsFunction": "newNoteFromSelection"
     }
   ],
-  "plugin.preferences": []
+  "plugin.settings": []
 }

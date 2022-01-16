@@ -12,24 +12,26 @@
 // Helper functions
 
 import {
-  // DEFAULT_SUMMARIES_CONFIG,
+  calcHashtagStatsPeriod,
+  calcMentionStatsPeriod,
   getConfigSettings,
   getPeriodStartEndDates,
   removeSection,
 } from './summaryHelpers'
 import type { SummariesConfig } from './summaryHelpers'
 import {
-  dateStringFromCalendarFilename,
   getWeek,
   hyphenatedDateString,
   monthNameAbbrev,
-  quarterStartEnd,
   todaysDateISOString,
   toISOShortDateTimeString,
   unhyphenatedDate,
   weekStartEnd,
-  withinDateRange,
 } from '../../helpers/dateTime'
+import {
+  quarterStartEnd,
+} from '../../helpers/NPdateTime'
+import { JSP } from '../../helpers/dev'
 import {
   displayTitle,
   stringReplace,
@@ -38,6 +40,7 @@ import {
   clearNote,
   getOrMakeNote
 } from '../../helpers/note'
+import { logAllEnvironmentSettings } from '../../helpers/NPdev'
 import {
   chooseOption,
   getInput,
@@ -45,99 +48,17 @@ import {
 } from '../../helpers/userInput'
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 
-//-----------------------------------------------------------------------------
-// Config settings
-// Globals, to be looked up later
-// let pref_folderToStore: string
-// let pref_headingLevel: 1 | 2 | 3 | 4 | 5
-// let pref_hashtagCountsHeading: string
-// let pref_mentionCountsHeading: string
-// let pref_showAsHashtagOrMention: boolean = false
-// let pref_includeHashtags: $ReadOnlyArray<string> = []
-// let pref_excludeHashtags: $ReadOnlyArray<string> = []
-// let pref_includeMentions: $ReadOnlyArray<string> = []
-// let pref_excludeMentions: $ReadOnlyArray<string> = []
-// let pref_weeklyStatsDuration: ?number
-
-// export async function getPluginSettings(): Promise<void> {
-//   // Get config settings from Template folder _configuration note
-//   const summConfig = await getOrMakeConfigurationSection(
-//     'summaries',
-//     DEFAULT_SUMMARIES_CONFIG,
-//     // no minimum config required, as all defaults are given below
-//   )
-//   if (summConfig == null) {
-//     console.log("\tCouldn't find 'summaries' settings in _configuration note.")
-//     return
-//   }
-
-//   console.log("\tFound 'summaries' settings in _configuration note.")
-//   // now get each setting
-//   pref_folderToStore =
-//     summConfig.folderToStore != null
-//       // $FlowIgnore[incompatible-type]
-//       ? summConfig.folderToStore
-//       : 'Summaries'
-//   // console.log(pref_folderToStore)
-//   pref_hashtagCountsHeading =
-//     summConfig.hashtagCountsHeading != null
-//       // $FlowIgnore[incompatible-type]
-//       ? summConfig.hashtagCountsHeading
-//       : '#hashtag counts'
-//   // console.log(pref_hashtagCountsHeading)
-//   pref_mentionCountsHeading =
-//     summConfig.mentionCountsHeading != null
-//       // $FlowIgnore[incompatible-type]
-//       ? summConfig.mentionCountsHeading
-//       : '@mention counts'
-//   // console.log(pref_mentionCountsHeading)
-//   pref_headingLevel =
-//     summConfig.headingLevel != null
-//       // $FlowIgnore[incompatible-type]
-//       ? summConfig.headingLevel
-//       : 2
-//   // console.log(pref_headingLevel)
-//   pref_showAsHashtagOrMention =
-//     summConfig.showAsHashtagOrMention != null
-//       // $FlowIgnore[incompatible-type]
-//       ? summConfig.showAsHashtagOrMention
-//       : true
-//   // console.log(pref_showAsHashtagOrMention)
-//   pref_includeHashtags =
-//     summConfig.includeHashtags != null
-//       // $FlowIgnore[incompatible-type]
-//       ? summConfig.includeHashtags
-//       : [] // this takes precedence over any excludes ...
-//   // console.log(pref_includeHashtags)
-//   pref_excludeHashtags =
-//     summConfig.excludeHashtags != null
-//       // $FlowIgnore[incompatible-type]
-//       ? summConfig.excludeHashtags
-//       : []
-//   // console.log(pref_excludeHashtags)
-//   pref_includeMentions =
-//     summConfig.includeMentions != null
-//       // $FlowIgnore[incompatible-type]
-//       ? summConfig.includeMentions
-//       : [] // this takes precedence over any excludes ...
-//   // console.log(pref_includeMentions)
-//   pref_excludeMentions =
-//     summConfig.excludeMentions != null
-//       // $FlowIgnore[incompatible-type]
-//       ? summConfig.excludeMentions
-//       : ['@done', '@repeat']
-//   // console.log(pref_excludeMentions)
-//   pref_weeklyStatsDuration =
-//     summConfig.weeklyStatsDuration != null
-//       // $FlowIgnore[incompatible-type]
-//       ? summConfig.weeklyStatsDuration
-//       : undefined // don't set a default
-//   // console.log(pref_weeklyStatsDuration)
-// }
-
 //-------------------------------------------------------------------------------
-// Ask user which period to cover, call main stats function, and present results
+
+/**
+ * Ask user which period to cover, call main stats function accordingly, and present results
+ * @author @jgclark
+*/
 export async function statsPeriod(): Promise<void> {
+  // console.log(`Contents of NotePlan.environment...:`)
+  console.log(JSP(NotePlan.environment))
+  // logAllEnvironmentSettings()
+
   // Get config settings from Template folder _configuration note
   let config = await getConfigSettings()
 
@@ -206,13 +127,6 @@ export async function statsPeriod(): Promise<void> {
   if (mCounts == null || mSumTotals == null) {
     return
   }
-
-  // Custom sort method to sort arrays of two values each
-  // const sortedMResults = new Map(
-  //   [...(mCounts?.entries() ?? [])].sort(([key1, _v1], [key2, _v2]) =>
-  //     key1.localeCompare(key2),
-  //   ),
-  // )
 
   // First process more complex 'SumTotals', calculating appropriately
   for (const [key, value] of mSumTotals) {
@@ -363,164 +277,4 @@ export async function statsPeriod(): Promise<void> {
       break
     }
   }
-}
-
-/** -------------------------------------------------------------------------------
- * Calculate hashtag statistics for daily notes of a given time period
- * - Map of { tag, count } for all tags included or not excluded
- * - Map of { tag, total } for the subset of all tags above that finish with a /number
- * @author @jgclark
- * 
- * @param {string} fromDateStr - YYYYMMDD string of start date
- * @param {string} toDateStr - YYYYMMDD string of start date
- * @return {[Map, Map]}
-*/
-export async function calcHashtagStatsPeriod(
-  fromDateStr: string,
-  toDateStr: string,
-): Promise<?[Map<string, number>, Map<string, number>]> {
-  let config = await getConfigSettings()
-
-  // Get all daily notes that are within this time period
-  const periodDailyNotes = DataStore.calendarNotes.filter((p) =>
-    withinDateRange( dateStringFromCalendarFilename(p.filename), fromDateStr, toDateStr )
-  )
-
-  if (periodDailyNotes.length === 0) {
-    console.log(`  warning: no matching daily notes found between ${fromDateStr} and ${toDateStr}`)
-    return
-  }
-
-  // work out what set of mentions to look for (or ignore)
-  const hashtagsToLookFor = config.includeHashtags.length > 0 ? config.includeHashtags : []
-  const hashtagsToIgnore = config.excludeHashtags.length > 0 ? config.excludeHashtags : []
-
-  // For each matching date, find and store the tags in Map
-  const tagCounts = new Map<string, number>() // key: tagname; value: count
-  // Also define map to count and total hashtags with a final /number part.
-  const tagSumTotals = new Map<string, number>() // key: tagname (except last part); value: total
-  for (const n of periodDailyNotes) {
-    // TODO(EduardMet): fix API bug
-    // The following is a workaround to an API bug in note.hashtags where
-    // #one/two/three gets reported as #one, #one/two, and #one/two/three.
-    // Go backwards through the hashtag array, and then check 
-    const seenTags = n.hashtags.slice().reverse()
-    let lastTag = ''
-
-    for (const t of seenTags) {
-      if (lastTag.startsWith(t)) {
-        // if this tag is starting subset of the last one, assume this is an example of the bug, so skip this tag
-        continue
-      }
-      // check this is on inclusion, or not on exclusion list, before adding
-      if (
-        hashtagsToLookFor.length > 0 &&
-        hashtagsToLookFor.filter((a) => t.startsWith(a)).length === 0
-      ) {
-        // console.log(`\tIgnoring '${t}' as not on inclusion list`)
-      } else if (hashtagsToIgnore.filter((a) => t.startsWith(a)).length > 0) {
-        // console.log(`\tIgnoring '${t}' as on exclusion list`)
-      } else {
-        // if this is tag that finishes '/number', then sum the numbers as well as count
-        if (t.match(/\/\d+(\.\d+)?$/)) {
-          const tagParts = t.split('/')
-          const k = tagParts[0]
-          const v = Number(tagParts[1])
-          // console.log(`found tagParts ${k} / ${v}`)
-          tagCounts.set(k, (tagCounts.get(k) ?? 0) + 1)
-          tagSumTotals.set(k, (tagSumTotals.get(k) ?? 0) + v)
-          // console.log(`  ${k} -> ${tagSumTotals.get(k)} from ${tagCounts.get(k)}`)
-        } else {
-          // just save this to the main map
-          tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1)
-          // console.log(`  ${t} -> ${tagCounts.get(t)}`)
-        }
-      }
-      lastTag = t
-    }
-  }
-
-  return [tagCounts, tagSumTotals]
-}
-
-/** -------------------------------------------------------------------------------
- * Calculate mention statistics for daily notes of a given time period.
- * If an 'include' list is set, only include things from that list.
- * If not, include all, except those on an 'exclude' list (if set).
-
- * @param {string} fromDateStr - YYYYMMDD string of start date
- * @param {string} toDateStr - YYYYMMDD string of start date
- * @return {Map, Map} maps of {tag, count}
-*/
-export async function calcMentionStatsPeriod(
-  fromDateStr: string,
-  toDateStr: string,
-): Promise<?[Map<string, number>, Map<string, number>]> {
-  let config = await getConfigSettings()
-
-  // Get all daily notes that are within this time period
-  const periodDailyNotes = DataStore.calendarNotes.filter((p) =>
-    withinDateRange( dateStringFromCalendarFilename(p.filename), fromDateStr, toDateStr )
-  )
-
-  if (periodDailyNotes.length === 0) {
-    console.log('  warning: no matching daily notes found')
-    return
-  }
-
-  // work out what set of mentions to look for (or ignore)
-  const mentionsToLookFor = config.includeMentions.length > 0 ? config.includeMentions : []
-  const mentionsToIgnore = config.excludeMentions.length > 0 ? config.excludeMentions : []
-
-  // TODO: Work out whether we want to know about zero totals, occurrences, and/or no valid data
-  // Yes: @run, @work, 
-  // No: @fruitveg
-
-  // For each matching date, find and store the mentions in Map
-  const mentionCounts = new Map<string, number>() // key: tagname; value: count
-  // Also define map to count and total hashtags with a final /number part.
-  const mentionSumTotals = new Map<string, number>() // key: mention name (except last part); value: total
-
-  for (const n of periodDailyNotes) {
-    // TODO(EduardMet): fix API bug
-    // The following is a workaround to an API bug in note.mentions where
-    // #one/two/three gets reported as #one, #one/two, and #one/two/three.
-    // Go backwards through the mention array, and then check 
-    const seenMentions = n.mentions.slice().reverse()
-    let lastMention = ''
-
-    for (const m of seenMentions) {
-      if (lastMention.startsWith(m)) {
-        // if this tag is starting subset of the last one, assume this is an example of the bug, so skip this tag
-        continue
-      }
-      // check this is on inclusion, or not on exclusion list, before adding
-      if (
-        mentionsToLookFor.length > 0 &&
-        mentionsToLookFor.filter((a) => m.startsWith(a)).length === 0
-      ) {
-        // console.log(`\tIgnoring '${m}' as not on inclusion list`)
-      } else if (mentionsToIgnore.filter((a) => m.startsWith(a)).length > 0) {
-        // console.log(`\tIgnoring '${m} as on exclusion list`)
-      } else {
-        // if this is menion that finishes (number), then
-        if (m.match(/\(\d+(\.\d+)?\)$/)) {
-          const mentionParts = m.split('(')
-          const k = mentionParts[0]
-          const v = Number(mentionParts[1].slice(0, -1)) // chop off final ')' character
-          // console.log(`found mentionParts ${k} / ${v}`)
-          mentionCounts.set(k, (mentionCounts.get(k) ?? 0) + 1)
-          mentionSumTotals.set(k, (mentionSumTotals.get(k) ?? 0) + v)
-          // console.log(`  ${k} -> ${mentionSumTotals.get(k)} from ${mentionCounts.get(k)}`)
-        } else {
-          // just save this to the main map
-          mentionCounts.set(m, (mentionCounts.get(m) ?? 0) + 1)
-          // console.log(`  -> ${m} = ${mentionCounts.get(m)}`)
-        }
-      }
-      lastMention = m
-    }
-  }
-
-  return [mentionCounts, mentionSumTotals]
 }

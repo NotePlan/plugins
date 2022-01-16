@@ -70,9 +70,11 @@ This updates this project's @reviewed() date, and jumps to the next project to r
 This add @completed(today) date to the open project.
 
 ## Configuration
-These commands require configuration; the first time they're run they should detect they don't have configuration, and offer to write default configuration to the first configuration block of the `Templates/_configuration` note (as used by the Templates system). 
+These commands require configuration.
 
-Alternatively, in the `Templates/_configuration` note, include the following settings you want in the note's first configuration block. For example:
+In NotePlan v3.3.2 and above, please click the gear button on the 'Summaries' line in the Plugin Preferences panel.
+
+NotePlan v3.3.1 and earlier uses the first configuration block of the special `Templates/_configuration` note. The first time the plugin is run it should detect it doesn't have configuration, and offer to write some to this note. Alternatively, in that note, include the following settings you want in its first code block. This is the annotated list of settings, with their defaults:
 
 ```jsonc
 ...
