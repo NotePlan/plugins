@@ -11,7 +11,6 @@
 | `convertSelectionToHtml` | Convert current selection to HTML | 🧩 Codedungeon Toolbox |
 | `convertToHtml` | Convert current note to HTML | 🧩 Codedungeon Toolbox |
 | `convertToRtf` | Convert current note to RTF | 🧩 Codedungeon Toolbox |
-| `countsInPeriod` | Generate counts (and other stats) of tags and mentions for a time period | 🗃 Summaries |
 | `date` | Insert date (without time) at cursor | 📅 Date Automations |
 | `dayReview` | Ask journal questions for an end-of-day review (requires configuring) | ☀️ Daily Journal |
 | `dayStart` | Apply Daily Note Template (requires configuring) | ☀️ Daily Journal |
@@ -26,19 +25,18 @@
 | `finish project review` | updates the current open project's @reviewed() date | 🔬Reviews |
 | `formatted` | Insert custom formatted (format) date/time | 📅 Date Automations |
 | `fp` | file (move) paragraphs to different notes | 📦 Filer |
-| `index` | Make/Update note link Indexes for one or more folders | 📙 Note Helpers |
 | `insert day's events as list` | insert list of this day's calendar events at cursor | 🕓 Event Helpers |
 | `insert matching events` | inserts this day's calendar events matching certain patterns at cursor | 🕓 Event Helpers |
 | `insert template` | Choose a Template to insert into the current Note | 🔩 Templates |
-| `insertProgressUpdate` | Insert weekly/monthly progress update to current note | 🗃 Summaries |
 | `iso` | Insert date+time (in ISO format) at cursor | 📅 Date Automations |
-| `jd` | Jump to the '## Done' section. (Currently only works in main window) | 📙 Note Helpers |
-| `jh` | Jumps to the heading that the user selects. (Currently only works in main window) | 📙 Note Helpers |
-| `jn` | Jump to a different note, and then selected heading. (Currently only works in main window) | 📙 Note Helpers |
+| `jump to done` | Jump to the '## Done' section. (Currently only works in main window) | 📙 Note Helpers |
+| `jump to heading` | Jumps to the heading that the user selects. (Currently only works in main window) | 📙 Note Helpers |
+| `jump to note's heading` | Jump to a different note, and then selected heading. (Currently only works in main window) | 📙 Note Helpers |
 | `ldn` | Create link to today's Calendar Note at cursor | 📅 Date Automations |
 | `list day's events to log` | list this day's calendar events to the log | 🕓 Event Helpers |
+| `make notes index` | Make/Update note link Indexes for one or more folders | 📙 Note Helpers |
 | `mat` | Mark All Tasks (choose open or complete) | ✅ Task Automations |
-| `mn` | Moves the currently opened (non-calendar) note to a folder you select | 📙 Note Helpers |
+| `move note` | Moves the currently opened (non-calendar) note to a folder you select | 📙 Note Helpers |
 | `mp` | move (file) paragraphs to different notes | 📦 Filer |
 | `nc` | Counts of all the notes in NotePlan | 🔢 Note Statistics |
 | `new note` | Create new note with title, in chosen folder with optional template | 🔩 Templates |
@@ -46,8 +44,8 @@
 | `nns` | New note from selection (and leave link to it in its place) | 📦 Filer |
 | `now` | Insert (human readable) date+time at cursor | 📅 Date Automations |
 | `now - ISO-8601 standard` | Insert ISO-8601 date+time at cursor (e.g. 2021-08-06 17:20:11) | 📅 Date Automations |
-| `occurrencesInPeriod` | Generate list of occurrences of specified tags or mentions for a time period | 🗃 Summaries |
-| `onw` | Open a user-selected note in a new window. | 📙 Note Helpers |
+| `open note new split` | Open a user-selected note in a new split of the main window | 📙 Note Helpers |
+| `open note new window` | Open a user-selected note in a new window. | 📙 Note Helpers |
 | `process date offsets` | finds date offset patterns and turns them into due dates, based on date at start of section | 🕓 Event Helpers |
 | `project lists` | creates/updates a human-readable list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete. | 🔬Reviews |
 | `qtn - Quick template note` | Choose a note and create it based on _configuration settings quickNotes | 🔩 Templates |
@@ -61,7 +59,6 @@
 | `quick prepend task to note` | Quickly prepend a task to a chosen project note | ⚡️ Quick Capture |
 | `reorderList` | Reorder current ordered list | 🧩 Codedungeon Toolbox |
 | `rpt` | Generate new @repeat() tasks from completed ones | 🔁 @repeat Extensions |
-| `saveSearchResults` | Save results from a search over all notes | 🗃 Summaries |
 | `start reviews` | start a new series of reviews, deciding which are now ready for review, and kicking off the first one | 🔬Reviews |
 | `sw7` | Find all open tasks for last 7 days & silently move/reschedule to today | 🧹 Task Sweeper |
 | `swa` | Find ALL open tasks & move/reschedule to today's Calendar Note | 🧹 Task Sweeper |
@@ -78,5 +75,4 @@
 | `unfave - Remove this Note from Favorites List (⭐️)` | Remove this Note from saved Favorites (remove ⭐️ from name) | ⭐️ Favorites |
 | `wc` | Shows word count and other numbers for the note | 🔢 Note Statistics |
 | `wd` | Insert dates of current week | 📅 Date Automations |
-| `weeklyStats` | Generate stats for tags and mentions for all weeks this year, and write CSV to a note | 🗃 Summaries |
 | `🔌 Plugin Tester` | Simple plugin test to check that plugins are working for you | 🔌 Plugin Tester |

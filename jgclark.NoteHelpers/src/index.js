@@ -3,7 +3,7 @@
 // -----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// last changed at v0.10.2, 30.7.2021
+// last changed 16.2.2021 for v0.11.0, @jgclark
 // -----------------------------------------------------------------------------
 
 export {
@@ -13,5 +13,6 @@ export {
   jumpToNoteHeading,
   setTitleFromYAML,
   openNoteNewWindow,
+  openNoteNewSplit,
 } from './noteHelpers'
 export { indexFolders } from './indexFolders'

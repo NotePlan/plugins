@@ -5,6 +5,9 @@
 - added hashtags to the `/insertProgressUpdate` command.
 - the list of hashtags and mentions to include in Progress Updates are now specified separately, using the `progressHashtags` and `progressMentions` settings.
 
+### Changed
+- renamed `/occurrencesInPeriod` as `/saveSearchResultsInPeriod`.
+
 ## [0.4.0] - 2022-01-14
 ### Added
 - added `/insertProgressUpdate` command. This writes out a summary of mentions of interest so far this week or month, showing the count/sum/average so far in that time period, to the current note. This is particularly designed to be used from a daily template by `{{insertProgressUpdate()}}`. See [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/) for more details.

@@ -1,9 +1,9 @@
 // @flow
-//--------------------------------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// v0.10.6+, 17.11.2021
-//--------------------------------------------------------------------------------------------------------------------
+// Last updated 16.1.2022 for v0.10.6+, @jgclark
+//-----------------------------------------------------------------------------
 
 import {
   allNotesSortedByChanged,
@@ -12,8 +12,11 @@ import {
 import { chooseFolder } from '../../helpers/userInput'
 
 //-----------------------------------------------------------------
-// Command from Eduard to move a note to a different folder
-export async function moveNote() {
+/**
+ * Command from Eduard to move a note to a different folder
+ * @author @eduardme
+ */
+export async function moveNote(): void {
   const { title, filename } = Editor
   if (title == null || filename == null) {
     // No note open, so don't do anything.
@@ -33,10 +36,12 @@ export async function moveNote() {
   }
 }
 
-//------------------------------------------------------------------
-// Open a user-selected note in a new window.
-export async function openNoteNewWindow() {
-  // Ask for the note we want to add the task
+/** 
+ * Open a user-selected note in a new window.
+ * @author @jgclark
+ */
+export async function openNoteNewWindow(): void {
+  // Ask for the note we want to open
   const notes = allNotesSortedByChanged()
   const re = await CommandBar.showOptions(
     notes.map((n) => n.title).filter(Boolean),
@@ -47,10 +52,30 @@ export async function openNoteNewWindow() {
   await Editor.openNoteByFilename(filename, true)
 }
 
-//------------------------------------------------------------------
-// Jumps the cursor to the heading of the current note that the user selects
-// NB: need to update to allow this to work with sub-windows, when EM updates API
-export async function jumpToHeading() {
+/** 
+ * Open a user-selected note in a new split of the main window.
+ * Note: uses API option only available on macOS and from v3.4. 
+ * It falls back to opening in a new window on unsupported versions.
+ * @author @jgclark
+ */
+export async function openNoteNewSplit(): void {
+  // Ask for the note we want to open
+  const notes = allNotesSortedByChanged()
+  const re = await CommandBar.showOptions(
+    notes.map((n) => n.title).filter(Boolean),
+    'Select note to open in new window',
+  )
+  const note = notes[re.index]
+  const filename = note.filename
+  await Editor.openNoteByFilename(filename, false, 0, 0, true)
+}
+
+/**
+ * Jumps the cursor to the heading of the current note that the user selects
+ * NB: need to update to allow this to work with sub-windows, when EM updates API
+ * @author @jgclark
+ */
+export async function jumpToHeading(): void {
   const paras = Editor?.paragraphs
   if (paras == null) {
     // No note open
@@ -87,10 +112,12 @@ export async function jumpToHeading() {
   }
 }
 
-//------------------------------------------------------------------
-// Jumps the cursor to the heading of the current note that the user selects
-// NB: need to update to allow this to work with sub-windows, when EM updates API
-export async function jumpToNoteHeading() {
+/** 
+ * Jumps the cursor to the heading of the current note that the user selects
+ * NB: need to update to allow this to work with sub-windows, when EM updates API
+ * @author @jgclark
+ */
+export async function jumpToNoteHeading(): void {
   // first jump to the note of interest, then to the heading
   const notesList = allNotesSortedByChanged()
   const re = await CommandBar.showOptions(
@@ -111,10 +138,12 @@ export async function jumpToNoteHeading() {
   await jumpToHeading()
 }
 
-//------------------------------------------------------------------
-// Jump cursor to the '## Done' heading in the current file
-// NB: need to update to allow this to work with sub-windows, when EM updates API
-export function jumpToDone() {
+/**
+ * Jump cursor to the '## Done' heading in the current file
+ * NB: need to update to allow this to work with sub-windows, when EM updates API
+ * @author @jgclark
+ */
+export function jumpToDone(): void {
   const paras = Editor?.paragraphs
   if (paras == null) {
     // No note open
@@ -139,17 +168,18 @@ export function jumpToDone() {
   }
 }
 
-//------------------------------------------------------------------
-// Set the title of a note from YAML, rather than the first line.
-// NOTE: not currently working because of lack of API support yet (as of release 636)
-// TODO: add following back into plugin.json to active this again:
-// {
-//   "name": "Set title from YAML",
-//     "description": "Set the note's title from the YAML or frontmatter block, not the first line",
-//       "jsFunction": "setTitleFromYAML"
-// },
 
-export function setTitleFromYAML() {
+/**
+ * Set the title of a note from YAML, rather than the first line.
+ * NOTE: not currently working because of lack of API support yet (as of release 728)
+ * TODO: add following back into plugin.json to active this again:
+ * {
+ *   "name": "Set title from YAML",
+ *     "description": "Set the note's title from the YAML or frontmatter block, not the first line",
+ *       "jsFunction": "setTitleFromYAML"
+ * },
+*/
+export function setTitleFromYAML(): void {
   const { note, content } = Editor
   if (note == null || content == null) {
     // no note open.

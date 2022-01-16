@@ -1,5 +1,9 @@
 // @flow
 //-------------------------------------------------------------------------------
+
+import { hyphenatedDateString } from './dateTime'
+
+//-------------------------------------------------------------------------------
 // Paragraph-level Constants
 
 // based on my best understanding of the [Commonmark spec](https://spec.commonmark.org/0.30/#thematic-break)
@@ -9,10 +13,24 @@ export const RE_HORIZONTAL_LINE = `^ {0,3}((\\_\\h*){3,}|(\\*\\h*){3,}|(\\-\\h*)
 //-------------------------------------------------------------------------------
 // Paragraph-level Functions
 
-import { hyphenatedDateString } from './dateTime'
+// Pretty print range information (@EduardMe)
+// NB: Copy of what's in general.js to avoid circular dependency.
+export function rangeToString(r: Range): string {
+  if (r == null) {
+    return 'Range is undefined!'
+  }
+  return `range: ${r.start}-${r.end}`
+}
 
-// Return title of note useful for display, even for calendar notes (the YYYYMMDD)
-// NB: this fn is a local copy of the one in helpers/general.js to avoid circular dependency
+
+/** 
+ * Return title of note useful for display, even for calendar notes (the YYYYMMDD)
+ * NB: this fn is a local copy of the one in helpers/general.js to avoid circular dependency
+ * @author @jgclark
+ * 
+ * @param {TNote} n - note
+ * @return {string} - title to use
+ */
 function displayTitle(n: TNote): string {
   if (n.type === 'Calendar' && n.date != null) {
     return hyphenatedDateString(n.date)
@@ -192,4 +210,33 @@ export function findEndOfActivePartOfNote(note: TNote): number {
         : lineCount
   // console.log(`  dHL = ${doneHeaderLine}, cHL = ${cancelledHeaderLine} endOfActive = ${endOfActive}`)
   return endOfActive
+}
+
+/**
+ * Get paragraph number of the start of the current selection in the Editor
+ * @author @jgclark
+ * 
+ * @param {TRange} selection - the current selection rnage object
+ * @return {number} the index number
+ */
+export function selectedLinesIndex(
+  selection: TRange,
+  paragraphs: $ReadOnlyArray<TParagraph>
+): number {
+  let firstSelParaIndex = 0
+  console.log(`\tSelection: ${rangeToString(selection)}`)
+  const range = Editor.paragraphRangeAtCharacterIndex(selection)
+
+  // Get the set of selected paragraphs (which can be different from selection),
+  // and work out what selectedPara number(index) this selected selectedPara is
+  for (let i = 0; i < paragraphs.length; i++) {
+    const p = paragraphs[i]
+    if (p.contentRange?.start === range.start) {
+      firstSelParaIndex = i
+      break
+    }
+  }
+  // Now get the first paragraph, and as many following ones as are in that block
+  console.log(`\t-> firstSelParaIndex = ${firstSelParaIndex}`)
+  return firstSelParaIndex
 }
