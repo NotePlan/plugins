@@ -7,7 +7,7 @@
 	"plugin.icon": "",
 	"plugin.author": "Jonathan Clark",
 	"plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
-	"plugin.version": "0.4.0",
+	"plugin.version": "0.5.0",
 	"plugin.dependencies": [],
 	"plugin.script": "script.js",
 	"plugin.isRemote": "false",
@@ -25,9 +25,9 @@
 			"jsFunction": "weeklyStats"
 		},
 		{
-			"name": "occurrencesInPeriod",
+			"name": "saveSearchResultsInPeriod",
 			"alias": ["period", "summary", "occurrence"],
-			"description": "Generate list of occurrences of specified tags or mentions for a time period",
+			"description": "Save results from a search of specified tags or mentions over notes from a time period",
 			"jsFunction": "occurrencesPeriod"
 		},
 		{
@@ -186,6 +186,37 @@
       "choices": ["at", "date", "link", "none"],
       "default": "link",
       "required": true
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "/insertProgressUpdate command settings"
+    },
+		{
+      "key": "progressHeading",
+      "title": "Progress heading",
+      "description": "Heading to go before Progress Update output",
+      "type": "string",
+      "default": "Progress Update",
+      "required": false
+    },
+		{
+      "key": "progressHashtags",
+      "title": "Included #hashtags for Progress",
+      "description": "List of #hashtags to includes in Progress updates. If this list is empty, no hashtags will be included.",
+      "type": "[string]",
+      "default": [],
+      "required": false
+    },
+		{
+      "key": "progressMentions",
+      "title": "Progress @mentions for Progress",
+      "description": "List of @mentions to includes in Progress updates. If this list is empty, no mentions will be included.",
+      "type": "[string]",
+      "default": [],
+      "required": false
     }
 	]
 }

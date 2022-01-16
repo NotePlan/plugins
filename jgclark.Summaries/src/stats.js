@@ -77,7 +77,8 @@ export async function statsPeriod(): Promise<void> {
 
   // Calc hashtags stats (returns two maps)
   const hOutputArray = []
-  let results = await calcHashtagStatsPeriod(fromDateStr, toDateStr)
+  // $FlowIgnore[invalid-tuple-arity]
+  let results = await calcHashtagStatsPeriod(fromDateStr, toDateStr, config.includeHashtags, config.excludeHashtags)
   const hCounts = results?.[0]
   const hSumTotals = results?.[1]
   if (hSumTotals == null || hCounts == null) {
@@ -121,7 +122,8 @@ export async function statsPeriod(): Promise<void> {
 
   // Calc mentions stats (returns two maps)
   const mOutputArray = []
-  results = await calcMentionStatsPeriod(fromDateStr, toDateStr)
+  // $FlowIgnore[invalid-tuple-arity]
+  results = await calcMentionStatsPeriod(fromDateStr, toDateStr, config.includeMentions, config.excludeMentions)
   const mCounts = results?.[0]
   const mSumTotals = results?.[1]
   if (mCounts == null || mSumTotals == null) {

@@ -18,6 +18,7 @@ This Plugin provides commands that generate several different sorts of **summari
 
 - **`/saveSearchResults`** searches across all notes (both calendar and projects) for a text string you give. It asks where to save its output: to the curre note, to the Plugin Console, or to a specially-created note in the Summaries folder.  (It will update the previous note with that same title, if it exists.)
 - **`/occurrencesInPeriod`** generates all occurences of one or more search terms from the daily notes of the time period you select. It offers you your default search terms (if set by ``), or lets you choose. Where an occurrence is in a daily note, this can be appended as a date in your locale or as a date 'link', as configured below.
+<!-- TODO: change to  saveSearchResultsInPeriod -->
 - **`/countsInPeriod`** generates some simple counts and other statistics of #hashtags or @mentions that you specify. It asks where to save its output: to screen, to the Plugin Console, or to a specially-created note in the Summaries folder.  (It will update the previous note for that same time period, if it exists.)  
 For example, it produces for me:
 
@@ -83,6 +84,13 @@ NotePlan v3.3.1 and earlier uses the first configuration block of the special `T
     highlightOccurrences: false, // use ==highlight== of matched occurrences in output
     showEmptyOccurrences: false, // if no occurrences found of this string to match, make this clear
     dateStyle: 'link', // where the context for an occurrence is a date, does it get appended as a `date` using your locale, or as a NP date `link` (`>date`) or `at` (`@date`) or `none`
+    includeHashtags: [], // e.g. ['#holiday','#jog','#commute','#webinar']
+    excludeHashtags: [],
+    includeMentions: [], // e.g. ['@work','@fruitveg','@water', '@sleep']
+    // In the following the includes (if specified) takes precedence over excludes ...
+    progressHeading: 'Progress Update',
+    progressHashtags: [], // e.g. ['#gym','#jog']
+    progressMentions: [] // e.g. ['@work','@fruitveg','@sleep']
   },
   ...
 }

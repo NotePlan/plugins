@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Summary commands for notes
 // Jonathan Clark
-// Last updated 14.1.2022 for v0.4.0
+// Last updated 16.1.2022 for v0.5.0
 //-----------------------------------------------------------------------------
 
 import {
@@ -52,6 +52,10 @@ export const DEFAULT_SUMMARIES_CONFIG = `  summaries: {
     highlightOccurrences: false, // use ==highlight== of matched occurrences in output
     showEmptyOccurrences: false, // if no occurrences found of this string to match, make this clear
     dateStyle: 'link', // where the context for an occurrence is a date, does it get appended as a 'date' using your locale, or as a NP date 'link' ('>date') or 'at' ('@date') or 'none'
+    // In the following the includes (if specified) takes precedence over excludes ...
+    progressHeading: 'Progress Update',
+    progressHashtags: [], // e.g. ['#gym','#jog']
+    progressMentions: [], // e.g. ['@work','@fruitveg','@sleep']
   },
 `
 export type headingLevelType = 1 | 2 | 3 | 4 | 5
@@ -72,6 +76,9 @@ export type SummariesConfig = {
   showEmptyOccurrences: boolean,
   dateStyle: string,
   weeklyStatsDuration: ?number,
+  progressHeading: string,
+  progressHashtags: string[],
+  progressMentions: string[],
 }
 
 /**
@@ -107,37 +114,6 @@ const castHeadingLevelFromMixed = (val: { [string]: ?mixed }, key: string): head
   return val.hasOwnProperty(key) ? ((val[key]: any): headingLevelType) : 2
 }
 
-// const CONFIG_KEYS = {
-//   folderToStore: 'folderToStore',
-//   foldersToIgnore: 'foldersToIgnore',
-//   headingLevel: 'headingLevel',
-//   hashtagCountsHeading: 'hashtagCountsHeading',
-//   mentionCountsHeading: 'mentionCountsHeading',
-//   showAsHashtagOrMention: 'showAsHashtagOrMention',
-//   includeHashtags: 'includeHashtags',
-//   excludeHashtags: 'excludeHashtags',
-//   includeMentions: 'includeMentions',
-//   excludeMentions: 'excludeMentions',
-//   occurrencesHeading: 'occurrencesHeading',
-//   defaultOccurrences: 'defaultOccurrences',
-//   highlightOccurrences: 'highlightOccurrences',
-//   showEmptyOccurrences: 'showEmptyOccurrences',
-//   dateStyle: 'dateStyle',
-//   weeklyStatsDuration: 'weeklyStatsDuration',
-// }
-
-// const config: SummariesConfig = {
-//   folderToStore: castStringFromMixed(result, CONFIG_KEYS.folderToStore),
-//   headingLevel: castNumberFromMixed(result, CONFIG_KEYS.headingLevel),
-//   hashtagCountsHeading: castStringFromMixed(result, CONFIG_KEYS.hashtagCountsHeading),
-//   mentionCountsHeading: castStringFromMixed(result, CONFIG_KEYS.mentionCountsHeading),
-//   showAsHashtagOrMention: castBooleanFromMixed(result, CONFIG_KEYS.showAsHashtagOrMention),
-//   includeHashtags: castStringArrayFromMixed(result, CONFIG_KEYS.includeHashtags),
-//   excludeHashtags: castStringArrayFromMixed(result, CONFIG_KEYS.excludeHashtags),
-//   includeMentions: castStringArrayFromMixed(result, CONFIG_KEYS.includeMentions),
-//   excludeMentions: castStringArrayFromMixed(result, CONFIG_KEYS.excludeMentions),
-// }
-
 /**
  * Provide config from _configuration and cast content to real objects. (Borrowing approach from @m1well)
  *
@@ -169,6 +145,9 @@ export const getConfigSettings = (): Promise<SummariesConfig> => {
         showEmptyOccurrences: false,
         dateStyle: 'link',
         weeklyStatsDuration: undefined,
+        progressHeading: 'Progress Update',
+        progressHashtags: ['#gym','#jog'],
+        progressMentions: ['@work','@fruitveg','@sleep'],
       }
     } else {
       const config: SummariesConfig = {
@@ -188,6 +167,9 @@ export const getConfigSettings = (): Promise<SummariesConfig> => {
         showEmptyOccurrences: castBooleanFromMixed(result, 'showEmptyOccurrences'),
         dateStyle: castStringFromMixed(result, 'dateStyle'),
         weeklyStatsDuration: castNumberFromMixed(result, 'weeklyStatsDuration'),
+        progressHeading: castStringFromMixed(result, 'progressHeading'),
+        progressHashtags: castStringArrayFromMixed(result, 'progressHashtags'),
+        progressMentions: castStringArrayFromMixed(result, 'progressMentions'),
       }
       // console.log(`loaded config OK`)
       // console.log(`config = ${JSON.stringify(result)}\n`)
@@ -539,11 +521,15 @@ export async function gatherMatchingLines(
  * 
  * @param {string} fromDateStr - YYYYMMDD string of start date
  * @param {string} toDateStr - YYYYMMDD string of start date
+ * @param {[string]} includedTerms - array of hashtags to include (takes precedence over excluded terms)
+ * @param {[string]} excludedTerms - array of hashtags to exclude
  * @return {[Map, Map]}
 */
 export async function calcHashtagStatsPeriod(
   fromDateStr: string,
   toDateStr: string,
+  includedTerms: [string],
+  excludedTerms: [string]
 ): Promise<?[Map<string, number>, Map<string, number>]> {
   let config = await getConfigSettings()
 
@@ -557,14 +543,27 @@ export async function calcHashtagStatsPeriod(
     return
   }
 
+  if (includedTerms.length === 0 && excludedTerms.length ===0) {
+    console.log(`  note: no included or excluded hashtag terms passed, so returning nothing`)
+    return
+  }
+
   // work out what set of mentions to look for (or ignore)
-  const hashtagsToLookFor = config.includeHashtags.length > 0 ? config.includeHashtags : []
-  const hashtagsToIgnore = config.excludeHashtags.length > 0 ? config.excludeHashtags : []
+  const hashtagsToLookFor = includedTerms.length > 0 ? includedTerms : []
+  const hashtagsToIgnore = excludedTerms.length > 0 ? excludedTerms : []
 
   // For each matching date, find and store the tags in Map
-  const tagCounts = new Map<string, number>() // key: tagname; value: count
+  const termCounts = new Map<string, number>() // key: tagname; value: count
   // Also define map to count and total hashtags with a final /number part.
-  const tagSumTotals = new Map<string, number>() // key: tagname (except last part); value: total
+  const termSumTotals = new Map < string, number> () // key: tagname (except last part); value: total
+
+  // Initialise the maps for terms that we're deliberately including
+  for (let i = 0; i < includedTerms.length; i++) {
+    const k = includedTerms[i]
+    termCounts.set(k, 0)
+    // termSumTotals.set(k, 0) // TODO: Work out what to do about these
+  }
+
   for (const n of periodDailyNotes) {
     // TODO(EduardMet): fix API bug
     // The following is a workaround to an API bug in note.hashtags where
@@ -587,40 +586,45 @@ export async function calcHashtagStatsPeriod(
       } else if (hashtagsToIgnore.filter((a) => t.startsWith(a)).length > 0) {
         // console.log(`\tIgnoring '${t}' as on exclusion list`)
       } else {
-        // if this is tag that finishes '/number', then sum the numbers as well as count
+        // if this is tag that finishes '/number', then sum the numbers as well
         if (t.match(/\/\d+(\.\d+)?$/)) {
           const tagParts = t.split('/')
-          const k = tagParts[0]
-          const v = Number(tagParts[1])
+          const k = tagParts[0] // tag
+          const v = Number(tagParts[1]) // number after tag
           // console.log(`found tagParts ${k} / ${v}`)
-          tagCounts.set(k, (tagCounts.get(k) ?? 0) + 1)
-          tagSumTotals.set(k, (tagSumTotals.get(k) ?? 0) + v)
-          // console.log(`  ${k} -> ${tagSumTotals.get(k)} from ${tagCounts.get(k)}`)
+          termCounts.set(k, (termCounts.get(k) ?? 0) + 1)
+          termSumTotals.set(k, (termSumTotals.get(k) ?? 0) + v)
+          // console.log(`  ${k} -> ${termSumTotals.get(k)} from ${termCounts.get(k)}`)
         } else {
           // just save this to the main map
-          tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1)
-          // console.log(`  ${t} -> ${tagCounts.get(t)}`)
+          termCounts.set(t, (termCounts.get(t) ?? 0) + 1)
+          // console.log(`  ${t} -> ${termCounts.get(t)}`)
         }
       }
       lastTag = t
     }
   }
 
-  return [tagCounts, tagSumTotals]
+  return [termCounts, termSumTotals]
 }
 
 /** -------------------------------------------------------------------------------
  * Calculate mention statistics for daily notes of a given time period.
  * If an 'include' list is set, only include things from that list.
  * If not, include all, except those on an 'exclude' list (if set).
+ * @author @jgclark
  *
  * @param {string} fromDateStr - YYYYMMDD string of start date
  * @param {string} toDateStr - YYYYMMDD string of start date
+ * @param {[string]} includedTerms - array of hashtags to include (takes precedence over excluded terms)
+ * @param {[string]} excludedTerms - array of hashtags to exclude
  * @return {Map, Map} maps of {tag, count}
 */
 export async function calcMentionStatsPeriod(
   fromDateStr: string,
   toDateStr: string,
+  includedTerms: [string],
+  excludedTerms: [string]
 ): Promise<?[Map<string, number>, Map<string, number>]> {
   let config = await getConfigSettings()
 
@@ -634,19 +638,27 @@ export async function calcMentionStatsPeriod(
     return
   }
 
+  if (includedTerms.length === 0 && excludedTerms.length ===0) {
+    console.log(`  note: no included or excluded mention terms passed, so returning nothing`)
+    return
+  }
+
   // work out what set of mentions to look for (or ignore)
-  const mentionsToLookFor = config.includeMentions.length > 0 ? config.includeMentions : []
-  const mentionsToIgnore = config.excludeMentions.length > 0 ? config.excludeMentions : []
+  const mentionsToLookFor = includedTerms.length > 0 ? includedTerms : []
+  const mentionsToIgnore = excludedTerms.length > 0 ? excludedTerms : []
 
-  // TODO: Work out whether we want to know about zero totals, occurrences, and/or no valid data
-  // Tricky ...
-  // Yes: @run, @work, 
-  // No: @fruitveg
-
-  // For each matching date, find and store the mentions in Map
-  const mentionCounts = new Map<string, number>() // key: tagname; value: count
+  // For each matching date, find and store the mentions in Map TODO: consider using Objects not Maps
+  const termCounts = new Map<string, number>() // key: tagname; value: count
   // Also define map to count and total hashtags with a final /number part.
-  const mentionSumTotals = new Map<string, number>() // key: mention name (except last part); value: total
+  const termSumTotals = new Map < string, number> () // key: mention name (except last part); value: total
+  
+  // Initialise the maps for terms that we're deliberately including
+  // TODO: In time will want more flexibility here
+  for (let i = 0; i < includedTerms.length; i++) {
+    const k = includedTerms[i]
+    termCounts.set(k, 0)
+    termSumTotals.set(k, 0)
+  }
 
   for (const n of periodDailyNotes) {
     // TODO(EduardMet): fix API bug
@@ -675,19 +687,18 @@ export async function calcMentionStatsPeriod(
           const mentionParts = m.split('(')
           const k = mentionParts[0]
           const v = Number(mentionParts[1].slice(0, -1)) // chop off final ')' character
-          mentionCounts.set(k, (mentionCounts.get(k) ?? 0) + 1)
-          mentionSumTotals.set(k, (mentionSumTotals.get(k) ?? 0) + v)
-          // console.log(`found mentionParts ${k} / ${v} in ${displayTitle(n)} -> ${String(mentionSumTotals.get(k))} from ${String(mentionCounts.get(k))}`)
+          termCounts.set(k, (termCounts.get(k) ?? 0) + 1)
+          termSumTotals.set(k, (termSumTotals.get(k) ?? 0) + v)
+          // console.log(`found mentionParts ${k} / ${v} in ${displayTitle(n)} -> ${String(termSumTotals.get(k))} from ${String(termCounts.get(k))}`)
         } else {
           // just save this to the main map
-          mentionCounts.set(m, (mentionCounts.get(m) ?? 0) + 1)
-          // FIXME: issue here when stray @words appear, which get counted here, upsetting their stats
-          // console.log(`  -> ${m} = ${String(mentionCounts.get(m))}`)
+          termCounts.set(m, (termCounts.get(m) ?? 0) + 1)
+          // console.log(`  -> ${m} = ${String(termCounts.get(m))}`)
         }
       }
       lastMention = m
     }
   }
 
-  return [mentionCounts, mentionSumTotals]
+  return [termCounts, termSumTotals]
 }
