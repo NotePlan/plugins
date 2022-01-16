@@ -3,7 +3,8 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// v0.2.1, 16.10.2021
+// Last updated 16.10.2021 for v0.2.1
+// - tiny tweak 9.1.2022
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -119,7 +120,7 @@ export async function saveSearch(): Promise<void> {
   // Ask where to save this summary to
   const labelString = `🖊 Create/update note in folder '${config.folderToStore}'`
   const destination = await chooseOption(
-    `Where should I save the search results?`,
+    `Where should I save the ${lines.length} search results?`,
     [
       {
         // TODO: When weekly/monthly notes are made possible in NP, then add options like this
@@ -155,7 +156,7 @@ export async function saveSearch(): Promise<void> {
         console.log(`\terror: no note is open`)
       } else {
         console.log(
-          `\tappending results to current note (${currentNote.filename ?? ''})`,
+          `\tappending ${lines.length} results to current note (${currentNote.filename ?? ''})`,
         )
         const insertionLineIndex = currentNote.paragraphs.length
         currentNote.insertHeading(
