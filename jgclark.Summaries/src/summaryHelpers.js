@@ -122,7 +122,7 @@ const castHeadingLevelFromMixed = (val: { [string]: ?mixed }, key: string): head
  *
  * @return {SummariesConfig} object with configuration
  */
-export const getConfigSettings = (): Promise<SummariesConfig> => {
+export async function getConfigSettings(): Promise<SummariesConfig> {
   return getOrMakeConfigurationSection(
     'summaries',
     DEFAULT_SUMMARIES_CONFIG
@@ -535,6 +535,7 @@ export async function calcHashtagStatsPeriod(
   excludedTerms: [string]
 ): Promise<?[Map<string, number>, Map<string, number>]> {
   // let config = await getConfigSettings()
+  console.log(`  calcHashtagStatsPeriod: before main loop`)
 
   // Get all daily notes that are within this time period
   const periodDailyNotes = DataStore.calendarNotes.filter((p) =>
@@ -546,7 +547,7 @@ export async function calcHashtagStatsPeriod(
     return
   }
 
-  if (includedTerms.length === 0 && excludedTerms.length ===0) {
+  if (includedTerms.length === 0 && excludedTerms.length === 0) {
     console.log(`  note: no included or excluded hashtag terms passed, so returning nothing`)
     return
   }
@@ -567,6 +568,7 @@ export async function calcHashtagStatsPeriod(
     // termSumTotals.set(k, 0) // TODO: Work out what to do about these
   }
 
+  console.log(`  calcHashtagStatsPeriod: before main loop`)
   for (const n of periodDailyNotes) {
     // TODO(EduardMet): fix API bug
     // The following is a workaround to an API bug in note.hashtags where
@@ -576,6 +578,7 @@ export async function calcHashtagStatsPeriod(
     let lastTag = ''
 
     for (const t of seenTags) {
+      console.log(`\t${t}`)
       if (lastTag.startsWith(t)) {
         // if this tag is starting subset of the last one, assume this is an example of the bug, so skip this tag
         continue

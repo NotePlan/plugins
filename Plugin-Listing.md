@@ -11,6 +11,7 @@
 | `convertSelectionToHtml` | Convert current selection to HTML | 🧩 Codedungeon Toolbox |
 | `convertToHtml` | Convert current note to HTML | 🧩 Codedungeon Toolbox |
 | `convertToRtf` | Convert current note to RTF | 🧩 Codedungeon Toolbox |
+| `countsInPeriod` | Generate counts (and other stats) of tags and mentions for a time period | 🗃 Summaries |
 | `date` | Insert date (without time) at cursor | 📅 Date Automations |
 | `dayReview` | Ask journal questions for an end-of-day review (requires configuring) | ☀️ Daily Journal |
 | `dayStart` | Apply Daily Note Template (requires configuring) | ☀️ Daily Journal |
@@ -28,6 +29,7 @@
 | `insert day's events as list` | insert list of this day's calendar events at cursor | 🕓 Event Helpers |
 | `insert matching events` | inserts this day's calendar events matching certain patterns at cursor | 🕓 Event Helpers |
 | `insert template` | Choose a Template to insert into the current Note | 🔩 Templates |
+| `insertProgressUpdate` | Insert weekly/monthly progress update to current note | 🗃 Summaries |
 | `iso` | Insert date+time (in ISO format) at cursor | 📅 Date Automations |
 | `jump to done` | Jump to the '## Done' section. (Currently only works in main window) | 📙 Note Helpers |
 | `jump to heading` | Jumps to the heading that the user selects. (Currently only works in main window) | 📙 Note Helpers |
@@ -59,6 +61,8 @@
 | `quick prepend task to note` | Quickly prepend a task to a chosen project note | ⚡️ Quick Capture |
 | `reorderList` | Reorder current ordered list | 🧩 Codedungeon Toolbox |
 | `rpt` | Generate new @repeat() tasks from completed ones | 🔁 @repeat Extensions |
+| `saveSearchResults` | Save results from a search over all notes | 🗃 Summaries |
+| `saveSearchResultsInPeriod` | Save results from a search of specified tags or mentions over notes from a time period | 🗃 Summaries |
 | `start reviews` | start a new series of reviews, deciding which are now ready for review, and kicking off the first one | 🔬Reviews |
 | `sw7` | Find all open tasks for last 7 days & silently move/reschedule to today | 🧹 Task Sweeper |
 | `swa` | Find ALL open tasks & move/reschedule to today's Calendar Note | 🧹 Task Sweeper |
@@ -75,4 +79,5 @@
 | `unfave - Remove this Note from Favorites List (⭐️)` | Remove this Note from saved Favorites (remove ⭐️ from name) | ⭐️ Favorites |
 | `wc` | Shows word count and other numbers for the note | 🔢 Note Statistics |
 | `wd` | Insert dates of current week | 📅 Date Automations |
+| `weeklyStats` | Generate stats for tags and mentions for all weeks this year, and write CSV to a note | 🗃 Summaries |
 | `🔌 Plugin Tester` | Simple plugin test to check that plugins are working for you | 🔌 Plugin Tester |

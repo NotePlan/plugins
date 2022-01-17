@@ -5,19 +5,19 @@ describe('summaryHelpers', () => {
 
   describe('termNotInURL()', () => {
 
-    test('1', () => {
+    test('should find search term in a bare URL', () => {
       const result = p.termInURL('tennis', 'Something about tennis in http://www.tennis.org/')
       expect(result).toEqual(true)
     })
-    test('2', () => {
+    test('should find search term in a markdown link URL', () => {
       const result = p.termInURL('tennis', 'Something about tennis in [tennis](http://www.tennis.org/booster).')
       expect(result).toEqual(true)
     })
-    test('3', () => {
+    test('should find search term in a file path', () => {
       const result = p.termInURL('tennis', 'Something about tennis in file:/bob/things/tennis/booster.')
       expect(result).toEqual(true)
     })
-    test('4', () => {
+    test('should not find term in regular text with unrelated URL', () => {
       const result = p.termInURL('tennis', 'And http://www.bbc.co.uk/ and then tennis.org')
       expect(result).toEqual(false)
     })

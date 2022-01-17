@@ -92,7 +92,7 @@ export async function insertProgressUpdate(intervalType?: string): Promise<void>
     //   const hashtagString = key.slice(1) // show without leading '#' to avoid double counting issues
     //   const count = hCounts.get(key)
     //   if (count != null) {
-    //     const total: string = value.toFixed(0)
+    //     const total: string = value.toLocaleString()
     //     const average: string = (value / count).toFixed(1)
     //     hOutputArray.push(
     //       `${hashtagString}\t${count}\t(total ${total}\taverage ${average})`,
@@ -131,7 +131,7 @@ export async function insertProgressUpdate(intervalType?: string): Promise<void>
       const mentionString = key.slice(1) // show without leading '@' to avoid double counting issues
       const count = mCounts.get(key)
       if (count != null) {
-        const total = value.toFixed(0)
+        const total = value.toLocaleString()
         const average = (value / count).toFixed(1)
         mOutputArray.push(
           `${mentionString}\t${count}\t(total ${total}\taverage ${average})`,
