@@ -151,7 +151,7 @@
       "title": "Occurrences heading",
       "description": "Heading to go before occurrences output",
       "type": "string",
-      "default": "Occurrences",
+      "default": "Search Results",
       "required": false
     },
 		{

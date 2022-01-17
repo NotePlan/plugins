@@ -7,6 +7,7 @@
 
 ### Changed
 - renamed `/occurrencesInPeriod` as `/saveSearchResultsInPeriod`.
+- search terms are now not highlighted if the match is in a URL or filepath
 
 ## [0.4.0] - 2022-01-14
 ### Added

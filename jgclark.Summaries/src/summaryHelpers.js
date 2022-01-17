@@ -23,6 +23,7 @@ import {
 } from '../../helpers/NPdateTime'
 import { trimAnyQuotes } from '../../helpers/dataManipulation'
 import { displayTitle } from '../../helpers/general'
+import { termInURL } from '../../helpers/paragraph'
 import {
   chooseOption,
   getInput
@@ -119,7 +120,6 @@ const castHeadingLevelFromMixed = (val: { [string]: ?mixed }, key: string): head
 /**
  * Provide config from _configuration and cast content to real objects. (Borrowing approach from @m1well)
  *
- * @private
  * @return {SummariesConfig} object with configuration
  */
 export const getConfigSettings = (): Promise<SummariesConfig> => {
@@ -449,14 +449,15 @@ export function removeSection(note: TNote, heading: string): number {
   }
 }
 
-/** -------------------------------------------------------------------------------
+/**
  * Return list of lines matching the specified string in the specified project or daily notes.
+ * @author @jgclark
+ * 
  * @param {array} notes - array of Notes to look over
  * @param {string} stringToLookFor - string to look for
- * @param {boolean} highlightOccurrences - whether to enclose found string in ==marks==
+ * @param {boolean} highlightOccurrences - whether to enclose found string in ==highlight marks==
  * @param {string} dateStyle - where the context for an occurrence is a date, does it get appended as a 'date' using your locale, or as a NP date 'link' (`>date`) or 'none'
- * @return [Array, Array] - array of lines with matching term, and array of 
- *   contexts for those lines (dates for daily notes; title for project notes).
+ * @return [Array, Array] - array of lines with matching term, and array of contexts for those lines (dates for daily notes; title for project notes).
  */
 export async function gatherMatchingLines(
   notes: Array<TNote>,
@@ -496,8 +497,9 @@ export async function gatherMatchingLines(
         matchLine = matchLine.replace(stringToLookFor, '') // NB: only removes first instance
         // console.log(`    -> ${matchLine}`)
       }
-      // highlight matches if requested
-      if (highlightOccurrences) {
+      // Highlight matches if requested ... but we need to be smart about this:
+      // don't do so if we're in the middle of a URL or the path of a [!][link](path)
+      if (highlightOccurrences && !termInURL(stringToLookFor, matchLine)) {
         matchLine = matchLine.replace(stringToLookFor, `==${stringToLookFor}==`)
       }
       // console.log(`    -> ${matchLine}`)
@@ -514,8 +516,7 @@ export async function gatherMatchingLines(
   return [matches, noteContexts]
 }
 
-
-/** -------------------------------------------------------------------------------
+/**
  * Calculate hashtag statistics for daily notes of a given time period
  * - Map of { tag, count } for all tags included or not excluded
  * - Map of { tag, total } for the subset of all tags above that finish with a /number
@@ -610,7 +611,7 @@ export async function calcHashtagStatsPeriod(
   return [termCounts, termSumTotals]
 }
 
-/** -------------------------------------------------------------------------------
+/**
  * Calculate mention statistics for daily notes of a given time period.
  * If an 'include' list is set, only include things from that list.
  * If not, include all, except those on an 'exclude' list (if set).
