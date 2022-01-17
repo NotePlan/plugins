@@ -315,10 +315,12 @@ export async function quickTemplateNote(noteName: string = ''): Promise<boolean>
   if (chosenItem) {
     //$FlowFixMe
     const { template, title, folder } = chosenItem
+    // eslint-disable-next-line no-extra-boolean-cast
+    const folderStr = !!folder ? folder : '/'
     // FIXME do something with noteName here
-    if (template !== '' && folder !== '') {
+    if (template !== '') {
       const fullName = noteName ? `${noteName ? `${noteName} ` : ''}${title}` : title
-      await newNoteWithTemplate(template, fullName, folder)
+      await newNoteWithTemplate(template, fullName, folderStr)
     } else {
       console.log(`Chosen template data invalid. chosenItem=${String(JSON.stringify(chosenItem))}`)
       await showMessage('Template name was invalid. Check settings.')
