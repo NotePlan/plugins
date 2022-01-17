@@ -2,6 +2,9 @@ See Template Plugin [README](https://github.com/NotePlan/plugins/blob/main/nmn.T
 
 # What's Changed in Templates Plugin?
 
+## [0.14.1] - 2022-01-17 (@dwertheimer)
+- Fixed /qtn to allow for empty folder
+
 ## [0.14.0] - 2022-01-13 (@jgclark)
 ### Added
 - Added new `{{insertProgressUpdate()}}` tag command for use in templates, from the Summaries plugin. See that for more details. To show progress in the week to date, use parameter "wtd"; to show progress in the month to date, use parameter "mtd". It defaults to the current week.
