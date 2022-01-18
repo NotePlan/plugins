@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Progress update on some key goals to include in notes
 // Jonathan Clark, @jgclark
-// Last updated for v0.5.0, 18.1.2022 by @jgclark
+// Last updated for v0.5.0, 16.1.2022
 //-----------------------------------------------------------------------------
 
 import {
@@ -12,7 +12,7 @@ import {
   getPeriodStartEndDates,
 } from './summaryHelpers'
 import { unhyphenatedDate } from '../../helpers/dateTime'
-import { getTagParamsFromString, rangeToString } from '../../helpers/general'
+import { rangeToString } from '../../helpers/general'
 
 //-------------------------------------------------------------------------------
 
@@ -44,22 +44,19 @@ function getSelectedParaIndex(): number {
  * Default to looking at week to date ("wtd") but allow month to date ("mtd") as well.
  * @author @jgclark
  *
- * @param {string?} params - can pass parameter string e.g. "{interval: 'mtd', heading: 'Progress'}"
- * @return {string?} - either return string to Template, or void to plugin
+ * @param {String} interval - currently "wtd" (week-to-date) or "mtd" (month-to-date)
  */
-export async function insertProgressUpdate(params?: string): Promise<string | void > {
+export async function insertProgressUpdate(intervalType?: string): Promise<string | void> {
+  // If no intervalType passed, default to "wtd"
+  const interval = intervalType ?? 'wtd'
   // Get config setting
   let config = await getConfigSettings()
-  // If no params are passed, then we've been called by a plugin command (and so use defaults from config).
-  // If there are params passed, then we've been called by a template command (and so use those).
-  const interval = await getTagParamsFromString(params ?? '', 'interval', 'wtd')
-  const heading = await getTagParamsFromString(params ?? '', 'heading', config.progressHeading)
 
   // Get time period
   const [fromDate, toDate, periodString, periodPartStr] = await getPeriodStartEndDates('', interval)
   if (fromDate == null || toDate == null) {
     console.log('insertProgressUpdate: Error calculating dates for week to date')
-    return `Error calculating dates for week to date`
+    return
   }
   const fromDateStr = unhyphenatedDate(fromDate)
   const toDateStr = unhyphenatedDate(toDate)
@@ -146,10 +143,9 @@ export async function insertProgressUpdate(params?: string): Promise<string | vo
     }
   }
 
-  if (params) {
-    // this was a template command call
-    return `### ${heading}: Day ${dateWithinInterval} for ${periodString}\n`
-      .concat(mOutputArray.join('\n'), hOutputArray.length ? '\n' : '', hOutputArray.join('\n'))
+  if (intervalType) {
+    // this was a template call
+    return mOutputArray.join('\n').concat(hOutputArray.length ? '\n' : '', hOutputArray.join('\n'))
   } else {
     // this is a plugin called from inside an editor
     if (Editor == null) {
@@ -163,7 +159,7 @@ export async function insertProgressUpdate(params?: string): Promise<string | vo
       }
       // console.log(`\tinserting results to current note (${Editor.filename ?? ''}) at line ${currentLineIndex}`)
       Editor.insertHeading(
-        `${heading}: Day ${dateWithinInterval} for ${periodString}`,
+        `${config.progressHeading}: Day ${dateWithinInterval} for ${periodString}`,
         currentLineIndex,
         3,
       )

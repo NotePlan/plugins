@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Progress update on some key goals to include in notes
 // Jonathan Clark, @jgclark
-// Last updated for v0.5.0, 18.1.2022 by @jgclark
+// Last updated for v0.5.0, 16.1.2022
 //-----------------------------------------------------------------------------
 
 import {
@@ -11,8 +11,11 @@ import {
   getConfigSettings,
   getPeriodStartEndDates,
 } from './summaryHelpers'
-import { unhyphenatedDate } from '../../helpers/dateTime'
-import { getTagParamsFromString, rangeToString } from '../../helpers/general'
+import {
+  unhyphenatedDate,
+} from '../../helpers/dateTime'
+import { rangeToString } from '../../helpers/general'
+
 
 //-------------------------------------------------------------------------------
 
@@ -39,33 +42,32 @@ function getSelectedParaIndex(): number {
   return firstSelParaIndex
 }
 
+
 /**
  * Work out the @mention stats of interest so far this week/month, and write out to current note.
  * Default to looking at week to date ("wtd") but allow month to date ("mtd") as well.
  * @author @jgclark
- *
- * @param {string?} params - can pass parameter string e.g. "{interval: 'mtd', heading: 'Progress'}"
- * @return {string?} - either return string to Template, or void to plugin
- */
-export async function insertProgressUpdate(params?: string): Promise<string | void > {
+ * 
+ * @param {String} interval - currently "wtd" (week-to-date) or "mtd" (month-to-date)
+*/
+export async function insertProgressUpdate(intervalType?: string): Promise<void> {
+  // If no intervalType passed, default to "wtd"
+  const interval = intervalType ?? 'wtd'
   // Get config setting
   let config = await getConfigSettings()
-  // If no params are passed, then we've been called by a plugin command (and so use defaults from config).
-  // If there are params passed, then we've been called by a template command (and so use those).
-  const interval = await getTagParamsFromString(params ?? '', 'interval', 'wtd')
-  const heading = await getTagParamsFromString(params ?? '', 'heading', config.progressHeading)
 
   // Get time period
-  const [fromDate, toDate, periodString, periodPartStr] = await getPeriodStartEndDates('', interval)
+  const [fromDate, toDate, periodString, periodPartStr] = await getPeriodStartEndDates("", interval)
   if (fromDate == null || toDate == null) {
     console.log('insertProgressUpdate: Error calculating dates for week to date')
-    return `Error calculating dates for week to date`
+    return
   }
   const fromDateStr = unhyphenatedDate(fromDate)
   const toDateStr = unhyphenatedDate(toDate)
   console.log(`\tcalculating ${interval} for ${periodString} (= ${fromDateStr} - ${toDateStr}):`)
   // Get day of week (Sunday is first day of the week) or day of month
-  const dateWithinInterval = interval === 'wtd' ? new Date().getDay() + 1 : new Date().getDate()
+  const dateWithinInterval = (interval === 'wtd') ? (new Date()).getDay() + 1 : (new Date()).getDate()
+
 
   // Calc hashtags stats (returns two maps)
   const hOutputArray = []
@@ -76,6 +78,7 @@ export async function insertProgressUpdate(params?: string): Promise<string | vo
   if (hSumTotals == null || hCounts == null) {
     console.log('  warning: no results from calcHashtagStatsPeriod')
   } else {
+
     // Custom sort method to sort arrays of two values each
     // const sortedHCounts = new Map(
     //   [...(hCounts?.entries() ?? [])].sort(([key1, _v1], [key2, _v2]) =>
@@ -111,7 +114,7 @@ export async function insertProgressUpdate(params?: string): Promise<string | vo
       hOutputArray.push('(none)')
     }
   }
-
+  
   // Calc mentions stats (returns two maps)
   const mOutputArray = []
   // $FlowIgnore[invalid-tuple-arity]
@@ -121,6 +124,7 @@ export async function insertProgressUpdate(params?: string): Promise<string | vo
   if (mCounts == null || mSumTotals == null) {
     console.log('  warning: no results from calcMentionsStatsPeriod')
   } else {
+
     // First process more complex 'SumTotals', calculating appropriately
     for (const [key, value] of mSumTotals) {
       // .entries() implied
@@ -129,7 +133,9 @@ export async function insertProgressUpdate(params?: string): Promise<string | vo
       if (count != null) {
         const total = value.toLocaleString()
         const average = (value / count).toFixed(1)
-        mOutputArray.push(`${mentionString}\t${count}\t(total ${total}\taverage ${average})`)
+        mOutputArray.push(
+          `${mentionString}\t${count}\t(total ${total}\taverage ${average})`,
+        )
         mCounts.delete(key) // remove the entry from the next map, as not longer needed
       }
     }
@@ -146,30 +152,23 @@ export async function insertProgressUpdate(params?: string): Promise<string | vo
     }
   }
 
-  if (params) {
-    // this was a template command call
-    return `### ${heading}: Day ${dateWithinInterval} for ${periodString}\n`
-      .concat(mOutputArray.join('\n'), hOutputArray.length ? '\n' : '', hOutputArray.join('\n'))
+  // Now insert the summary to the current note
+  if (Editor == null) {
+    console.log(`error: no note is open`)
   } else {
-    // this is a plugin called from inside an editor
-    if (Editor == null) {
-      // Now insert the summary to the current note
-      console.log(`error: no note is open`)
-    } else {
-      let currentLineIndex = getSelectedParaIndex()
-      if (currentLineIndex === 0) {
-        console.log(`error: couldn't find correct cursor position, so will append to note instead.`)
-        currentLineIndex = Editor.paragraphs.length - 1
-      }
-      // console.log(`\tinserting results to current note (${Editor.filename ?? ''}) at line ${currentLineIndex}`)
-      Editor.insertHeading(
-        `${heading}: Day ${dateWithinInterval} for ${periodString}`,
-        currentLineIndex,
-        3,
-      )
-      Editor.insertParagraph(mOutputArray.join('\n'), currentLineIndex + 1, 'text')
-      Editor.insertParagraph(hOutputArray.join('\n'), currentLineIndex + 1 + mOutputArray.length, 'text')
-      console.log(`\tappended results to current note for day ${dateWithinInterval}.`)
+    let currentLineIndex = getSelectedParaIndex()
+    if (currentLineIndex === 0) {
+      console.log(`error: couldn't find correct cursor position, so will append to note instead.`)
+      currentLineIndex = Editor.paragraphs.length - 1
     }
+    // console.log(`\tinserting results to current note (${Editor.filename ?? ''}) at line ${currentLineIndex}`)
+    Editor.insertHeading(
+      `${config.progressHeading}: Day ${dateWithinInterval} for ${periodString}`,
+      currentLineIndex,
+      3,
+    )
+    Editor.insertParagraph(mOutputArray.join('\n'), currentLineIndex + 1, 'text')
+    Editor.insertParagraph(hOutputArray.join('\n'), currentLineIndex + 1 + mOutputArray.length, 'text')
+    console.log(`\tappended results to current note for day ${dateWithinInterval}.`)
   }
 }

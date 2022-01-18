@@ -43,7 +43,7 @@ addTag('weekDates', getWeekDates)
 addTag('affirmation', getAffirmation)
 addTag('advice', getAdvice)
 addTag('selection', selection)
-addTag('insertProgressUpdate', insertProgressUpdate)
+addTag('progressUpdate', insertProgressUpdate)
 
 // addTag('sortTasks', sortTasksViaTemplate)
 // **Add other template/macro function calls here SEE COMMENTED CODE BELOW **

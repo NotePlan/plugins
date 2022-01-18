@@ -4,9 +4,9 @@ This plugin lets you do the following sorts of things with your daily (calendar)
 - list out all the great `@win`s or clever `#idea`s you noted down
 - show all the things you had `Gratitude:` for in your journal
 - count every time you've noted you've visited  `#family` this month
-- sum the length of your `@run()`s last quarter
-- automatically add your progress this week against your goal of getting average 8 hours `@sleep()` when you generate your daily note
-- count all the times you've met with staff member `@alice` this year so far.
+- count the times you've met with staff member `@alice` this year so far
+- sum the length of your `@run(...)`s last quarter
+- automatically add your progress this week against your goal of getting an average 8 hours `@sleep()` when you generate your daily note
 - save the results of any search over all notes.
 
 ## Commands
@@ -64,13 +64,13 @@ To see **highlighting** of matching terms in the occurrences output, you'll need
 ```
 
 ### `/saveSearchResultsInPeriod`
-This command generates all occurences of one or more search terms from the daily notes of the time period you select. It offers you your default search terms (if set by the `defaultOccurrences` setting), or lets you choose. Where an occurrence is in a daily note, this can be appended as a date in your locale or as a date 'link'. 
+This command generates all 'occurences' of one or more search terms from the daily notes of the time period you select. It offers you your default search terms (if set by the `defaultOccurrences` setting), or lets you choose. Where an occurrence is in a daily note, this can be appended as a date in your locale or as a date 'link'. 
 
 The relevant settings are:
 - folderToStore: e.g. 'Summaries'
 - foldersToExclude: e.g. ['📋 Templates', 'Summaries']
 - headingLevel: e.g. 2
-- occurrencesHeading: e.g. 'Occurrences',
+- occurrencesHeading: e.g. 'Search Results',
 - defaultOccurrences: ['idea', '@review', '#question'],
 - highlightOccurrences: false or true
 - showEmptyOccurrences: false or true
@@ -79,7 +79,13 @@ The relevant settings are:
 To visually highlight occurrences, please see the note above.
 
 ### `/countsInPeriod`
-This command generates some simple counts and other statistics of #hashtags or @mentions that you specify using the following settings:
+This command generates some simple counts and other statistics of #hashtags or @mentions that you specify. For example:
+- **count** every time you've noted you've visited  `#family` this month
+- **count** the times you've met with staff member `@alice` this year so far
+- **sum** the length of your `@run(...)`s last quarter (where e.g. `@run(5)` means a run of 5km/miles)
+- automatically add your progress this week against your goal of getting an **average** 8 hours `@sleep()` when you generate your daily note
+
+(Why use `@run(...)` rather than `#run(...)`? Well, it just felt more right to use `@run()` as there are already `@done(...)` and `@repeat(...)` mentions in use in NotePlan.)
 
 It asks where to save its output: to screen, to the Plugin Console, or to a specially-created note in the Summaries folder.  (It will update the previous note for that same time period, if it exists.)  
 For example, it produces for me:
@@ -103,29 +109,30 @@ The settings for this command are:
 - folderToStore: e.g. 'Summaries'
 - foldersToExclude: e.g. ['📋 Templates', 'Summaries']
 - headingLevel: e.g. 2
-- hashtagCountsHeading: e.g. '#hashtag counts,
+- hashtagCountsHeading: e.g. '#hashtag counts',
 - mentionCountsHeading: e.g. '@mention counts'
-- showAsHashtagOrMention: true / false
+- showAsHashtagOrMention: true / false -- i.e. whether to include the @ or # characters
 - includeHashtags: e.g. ['#holiday','#jog','#commute','#webinar']
-- excludeHashtags: e.g. none
+- excludeHashtags: e.g. []
 - includeMentions: e.g. ['@work','@fruitveg','@water', '@sleep']
 - excludeMentions: e.g. ['@done', '@repeat'],
 
 ### `/insertProgressUpdate`
-This is a rather niche command to help see progress within the current week or month against numeric items you track. It does this by generating stats for the specified mentions (not hashtags yet) over either the week to date or month to date, and inserts them into the current note. This is designed for use in a Daily Note Template: to use it like this insert the command tag `{{insertProgressUpdate('wtd')}}` (for week to date) or `{{insertProgressUpdate('mtd')}}` (for month to date).   
-For example, it produces for me:
+This is a rather niche command to help see progress within the current week or month against numeric items you track. It does this by generating stats for the specified mentions (not hashtags yet) over either the week to date or month to date, and inserts them into the current note. This is designed for use in a Daily Note Template: to use it like this include the command tag `{{progressUpdate( {...} )}}` in your Template note. This takes two possible parameters: `{ interval: 'mtd', heading: 'Progress Update'}`, where the first is 'wtd' (week to date) or 'mtd' (month to date), and the second the heading to use before the results.
 
+For example, it produces for me:
 ```markdown
 ### Progress Update: Day 14 for Jan 2022
-@fruitveg	10	(total 40	average 4.0)
-@run	2	(total 10.4	average 5.2)
-@sleep	14	(total 103	average 7.4)
-@work	11	(total 90	average 8.2)
+fruitveg	10	(total 40	average 4.0)
+run	2	(total 10.4	average 5.2)
+sleep	14	(total 103	average 7.4)
+work	11	(total 90	average 8.2)
 ```
 
 The relevant settings for this command are:
-- includeMentions: e.g. ['@work','@fruitveg','@run', '@sleep']
-- excludeMentions: e.g. ['@done', '@repeat'],
+- progressHeading: e.g. 'Progress Update'  (this is overriden by a heading parameter if given)
+- progressHashtags: e.g. ['#covidtest']
+- progressMentions: e.g. ['@done', '@repeat']
 
 ### `/weeklyStats`
 This is a very niche command! It generates stats for the specified mentions and hashtags over a period of consecutive weeks, and write out as a CSV table to 'Summaries/weekly_stats'. This is designed for plotting using the third-party gnuplot tool.

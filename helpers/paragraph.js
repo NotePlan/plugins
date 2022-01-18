@@ -1,20 +1,40 @@
 // @flow
-//-------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 import { hyphenatedDateString } from './dateTime'
 
-//-------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 // Paragraph-level Constants
 
-// based on my best understanding of the [Commonmark spec](https://spec.commonmark.org/0.30/#thematic-break)
-// @author @jgclark
+/**
+ * Test if this is a Horizontal Line line
+ * based on my best understanding of the [Commonmark spec](https://spec.commonmark.org/0.30/#thematic-break)
+ * @author @jgclark
+ */
 export const RE_HORIZONTAL_LINE = `^ {0,3}((\\_\\h*){3,}|(\\*\\h*){3,}|(\\-\\h*){3,})$`
 
-//-------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 // Paragraph-level Functions
 
-// Pretty print range information (@EduardMe)
-// NB: Copy of what's in general.js to avoid circular dependency.
+/**
+ * Check to see if search term is present within a URL or file path
+ * @author @jgclark
+
+ * @param {string} term - term to check
+ * @param {string} string - string to check in
+ * @return {boolean} true if found
+ */
+export function termInURL(term: string, searchString: string): boolean {
+  // create tailored Regex to test for presence of the term in the file/URL
+  const testTermInURI = `(?:https?://|file:/)[^\\s]*?${term}.*?[\\s\\.$]`
+  return !!searchString.match(testTermInURI)
+}
+
+/**
+ * Pretty print range information
+ * NB: This is a copy of what's in general.js to avoid circular dependency.
+ * @author @EduardMe
+ */
 export function rangeToString(r: Range): string {
   if (r == null) {
     return 'Range is undefined!'
@@ -220,12 +240,12 @@ export function findEndOfActivePartOfNote(note: TNote): number {
  * @return {number} the index number
  */
 export function selectedLinesIndex(
-  selection: TRange,
+  selection: Range,
   paragraphs: $ReadOnlyArray<TParagraph>
 ): number {
   let firstSelParaIndex = 0
   console.log(`\tSelection: ${rangeToString(selection)}`)
-  const range = Editor.paragraphRangeAtCharacterIndex(selection)
+  const range = Editor.paragraphRangeAtCharacterIndex(selection.start)
 
   // Get the set of selected paragraphs (which can be different from selection),
   // and work out what selectedPara number(index) this selected selectedPara is

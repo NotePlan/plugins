@@ -99,7 +99,7 @@ export async function statsPeriod(): Promise<void> {
     const hashtagString = config.showAsHashtagOrMention ? key : key.slice(1)
     const count = hCounts.get(key)
     if (count != null) {
-      const total: string = value.toFixed(0)
+      const total: string = value.toLocaleString()
       const average: string = (value / count).toFixed(1)
       hOutputArray.push(
         `${hashtagString}\t${count}\t(total ${total}\taverage ${average})`,
@@ -136,7 +136,7 @@ export async function statsPeriod(): Promise<void> {
     const mentionString = config.showAsHashtagOrMention ? key : key.slice(1)
     const count = mCounts.get(key)
     if (count != null) {
-      const total = value.toFixed(0)
+      const total = value.toLocaleString()
       const average = (value / count).toFixed(1)
       mOutputArray.push(
         `${mentionString}\t${count}\t(total ${total}\taverage ${average})`,

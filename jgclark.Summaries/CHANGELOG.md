@@ -1,12 +1,14 @@
 # What's Changed in 🗃 Summaries plugin?
 
-## [0.5.0] - 2022-01-16
+## [0.5.0] - 2022-01-18
 ### Added
-- added hashtags to the `/insertProgressUpdate` command.
+- added hashtags to the `/insertProgressUpdate` command (requested by @dwertheimer)
 - the list of hashtags and mentions to include in Progress Updates are now specified separately, using the `progressHashtags` and `progressMentions` settings.
+- and the ability for `{{insertProgressUpdate(...)}}` to take a second `heading` parameter to let you use this multiple times in the same template (requested by @dwertheimer)
 
 ### Changed
 - renamed `/occurrencesInPeriod` as `/saveSearchResultsInPeriod`.
+- search terms are now not highlighted if the match is in a `http[s]://...` URL or `file:...` filepath
 
 ## [0.4.0] - 2022-01-14
 ### Added
