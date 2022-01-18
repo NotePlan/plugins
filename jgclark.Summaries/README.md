@@ -118,7 +118,7 @@ The settings for this command are:
 - excludeMentions: e.g. ['@done', '@repeat'],
 
 ### `/insertProgressUpdate`
-This is a rather niche command to help see progress within the current week or month against numeric items you track. It does this by generating stats for the specified mentions (not hashtags yet) over either the week to date or month to date, and inserts them into the current note. This is designed for use in a Daily Note Template: to use it like this insert the command tag `{{insertProgressUpdate('wtd')}}` (for week to date) or `{{insertProgressUpdate('mtd')}}` (for month to date). 
+This is a rather niche command to help see progress within the current week or month against numeric items you track. It does this by generating stats for the specified mentions (not hashtags yet) over either the week to date or month to date, and inserts them into the current note. This is designed for use in a Daily Note Template: to use it like this include the command tag `{{progressUpdate( {...} )}}` in your Template note. This takes two possible parameters: `{ interval: 'mtd', heading: 'Progress Update'}`, where the first is 'wtd' (week to date) or 'mtd' (month to date), and the second the heading to use before the results.
 
 For example, it produces for me:
 ```markdown
@@ -130,8 +130,9 @@ work	11	(total 90	average 8.2)
 ```
 
 The relevant settings for this command are:
-- includeMentions: e.g. ['@work','@fruitveg','@run', '@sleep']
-- excludeMentions: e.g. ['@done', '@repeat'],
+- progressHeading: e.g. 'Progress Update'  (this is overriden by a heading parameter if given)
+- progressHashtags: e.g. ['#covidtest']
+- progressMentions: e.g. ['@done', '@repeat']
 
 ### `/weeklyStats`
 This is a very niche command! It generates stats for the specified mentions and hashtags over a period of consecutive weeks, and write out as a CSV table to 'Summaries/weekly_stats'. This is designed for plotting using the third-party gnuplot tool.
