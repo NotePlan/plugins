@@ -44,9 +44,10 @@ function getSelectedParaIndex(): number {
  * Default to looking at week to date ("wtd") but allow month to date ("mtd") as well.
  * @author @jgclark
  *
- * @param {String} interval - currently "wtd" (week-to-date) or "mtd" (month-to-date)
+ * @param {string?} params - can pass parameter string e.g. "{interval: 'mtd', heading: 'Progress'}"
+ * @return {string?} - either return string to Template, or void to plugin
  */
-export async function insertProgressUpdate(params?: string): Promise<string> {
+export async function insertProgressUpdate(params?: string): Promise<string | void > {
   // Get config setting
   let config = await getConfigSettings()
   // If no params are passed, then we've been called by a plugin command (and so use defaults from config).
