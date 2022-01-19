@@ -70,6 +70,7 @@
     "ParagaraphBridge": true,
     "Editor": true,
     "DataStore": true,
+    "NotePlan": true,
     "CommandBar": true,
     "Calendar": true,
     "CalendarItem": true,

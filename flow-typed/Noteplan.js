@@ -252,6 +252,65 @@ type TEditor = {
   addTheme(json: string, filename: string): boolean,
 }
 
+type TEnvironment = {
+  languageCode: string,
+
+  regionCode: string,
+
+  is12hFormat: boolean,
+
+  preferredLanguages: string,
+
+  secondsFromGMT: number,
+
+  localTimeZoneAbbreviation: string,
+
+  localTimeZoneIdentifier: string,
+
+  isDaylightSavingTime: boolean,
+
+  daylightSavingTimeOffset: number,
+
+  nextDaylightSavingTimeTransition: date,
+
+  platform: string,
+
+  hasSettings: boolean,
+}
+
+/**
+ * Access environment information like region code, language code, timezone.
+ * show configuration view
+ */
+declare var NotePlan: TNotePlan
+type TNotePlan = {
+  /**
+   * Note: Available from v3.3.2
+   * Returns the environment information:
+   *   .languageCode {String?}
+   *   .regionCode {String?}
+   *   .is12hFormat {Bool}
+   *   .preferredLanguages {[String]}
+   *   .secondsFromGMT {Int}
+   *   .localTimeZoneAbbreviation {String}
+   *   .localTimeZoneIdentifier: {String}
+   *   .isDaylightSavingTime {Bool}
+   *   .daylightSavingTimeOffset: {Double}
+   *   .nextDaylightSavingTimeTransition: {Date}
+   *   .platform: {String = "macOS" | "iPadOS" | "iOS"}
+   *   .hasSettings: {Bool}
+   */
+  +environment: TEnvironment,
+  /**
+   * Note: Available from v3.3.2
+   * Opens the configuration view for the currently executing plugin. If no settings are available in the plugin.json, the promise will fail.
+   * As of 3.3.2 this is only available on macOS. You can check if this particular plugin has settings and if the platform is macOS using the environment variable.
+   * See the examples section for more.
+   * @return {Promise}
+   */
+  +showConfigurationView: () => Promise<void>,
+}
+
 /**
  * With DataStore you can query, create and move notes which are cached by
  * NotePlan. It allows you to query a set of user preferences, too.
@@ -327,6 +386,17 @@ type TDataStore = {
    * @return {Object}
    */
   loadJSON(filename?: string): Object,
+  /**
+   * Note: Available from NotePlan v3.3.2
+   * Loads the plugin related settings as a JavaScript object. If no settings file exists yet, this will create one from the settings schema in the plugin.json and use the default values.
+   * The settings.json file is located in "[NotePlan Folder]/Plugins/data/[plugin-id]/[filename]".
+   * If no settings schema is available, it will return null.
+   * Read more about plugin settings here: https://help.noteplan.co/article/123-plugin-configuration
+   * this is a setter and getter, so you can also assign a JavaScript object and it will be saved in the settings file.
+   * @return {Object?}
+   */
+  settings: Object,
+
   /**
    * Returns the calendar note for the given date
    * (can be undefined, if the daily note was not created yet)
@@ -482,7 +552,7 @@ type TCommandBar = {
    * If you don't supply any buttons, an "OK" button will be displayed.
    * The promise returns selected button, with button index (0 - first button)
    * @param {String}
-   * @param {String?}
+   * @param {String}
    * @param {[String]?}
    */
   prompt(title: string, message: string, buttons?: $ReadOnlyArray<string>): Promise<number>,

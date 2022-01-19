@@ -168,7 +168,6 @@ export async function chooseFolder(msg: string, includeArchive: boolean = false)
     // no Folders so go to root
     folder = '/'
   }
-  // console.log(`chooseFolder -> ${folder}`)
   return folder
 }
 
@@ -208,11 +207,9 @@ export function getTemplateFolder(): ?string {
  * @return { ?string } - relative folder pathname (without leading '/')
  */
 export async function getOrMakeTemplateFolder(): Promise<?string> {
-  // console.log('  getOrMakeTemplateFolder start')
   let folder = getTemplateFolder()
 
   if (folder == null) {
-    console.log('  getOrMakeTemplateFolder: no folder found')
     // No template folder yet, so offer to make it and populate it
     const shouldCreateFolder = await chooseOption<boolean, boolean>(
       'No templates folder found.',
@@ -250,7 +247,6 @@ export async function getOrMakeTemplateFolder(): Promise<?string> {
     DataStore.newNote(CONFIG, folder)
     // for 'folder' to be useful straight away we need to strip off any leading '/'
     folder = folder.startsWith('/') ? folder.slice(1) : folder
-    console.log(`-> "${folder}" folder created with samples`)
     await showMessage(`"${folder}" folder created with samples`)
   }
   return folder
@@ -301,6 +297,7 @@ export async function getStructuredConfiguration(): Promise<?{
   }
 
   const firstCodeblock = content.split('\n```')[1]
+
   return await parseFirstCodeblock(firstCodeblock)
 }
 
@@ -351,7 +348,6 @@ export async function getOrMakeConfigurationSection(
 ): Promise<?{ [string]: ?mixed }> {
   let templateFolder = await getOrMakeTemplateFolder()
   if (templateFolder == null) {
-    console.log(`  getOrMakeConfigurationSection: couldn't find the templateFolder ... will try to create it ...`)
     templateFolder = getOrMakeTemplateFolder()
     return {}
   }
@@ -362,9 +358,6 @@ export async function getOrMakeConfigurationSection(
     .find((n) => !!n.title?.startsWith('_configuration'))
 
   if (configFile == null) {
-    console.log(
-      `  getOrMakeConfigurationSection: Error: unable to locate '_configuration' file. Will create from default.`,
-    )
     createDefaultConfigNote()
     configFile = DataStore.projectNotes
       // $FlowIgnore[incompatible-call]
@@ -375,7 +368,6 @@ export async function getOrMakeConfigurationSection(
   const content: ?string = configFile?.content
   if (configFile == null || content == null) {
     // Really strange to get here: won't code a response, but will just error.
-    console.log(`  getOrMakeConfigurationSection: Error: '_configuration' file not found or empty`)
     await showMessage(`Error: missing or empty '_configuration' file in Templates folder.`)
     return {}
   }
@@ -390,7 +382,6 @@ export async function getOrMakeConfigurationSection(
     // The section is missing.
     // If no default configuration given, return nothing
     if (configSectionDefault === '') {
-      console.log(`  getOrMakeConfigurationSection: no default given`)
       return {}
     }
 
@@ -473,17 +464,14 @@ function validateMinimumConfig(config: { [string]: mixed }, validations: { [stri
   if (Object.keys(validations).length) {
     Object.keys(validations).forEach((v) => {
       if (config[v] == null) {
-        console.log(`    validateMinimumConfig: Config required field: ${v} is missing`)
         failed = true
       }
       if (typeof config[v] !== validations[v]) {
-        console.log(`    validateMinimumConfig: Config required field: ${v} is not of type ${String(validations[v])}`)
         failed = true
       }
     })
   }
   if (failed) {
-    console.log(`    validateMinimumConfig: Config failed minimum validation spec!`)
     return {}
   } else {
     return config

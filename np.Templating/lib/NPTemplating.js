@@ -5,6 +5,7 @@
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
  * -----------------------------------------------------------------------------------------*/
 
+import { showError } from '../../codedungeon.Tester/src/lib/testerUtils'
 import FrontmatterModule from './support/modules/FrontmatterModule'
 
 /*eslint-disable */
@@ -22,22 +23,28 @@ export const selection = async (): Promise<string> => {
 }
 
 // Important: Replicate _configuration.templates object in TEMPLATE_CONFIG_BLOCK
+// NOTE: When adding new properties, make sure the `plugin.json/plugin.settings` are updated
 export const DEFAULT_TEMPLATE_CONFIG = {
-  templateFolder: TEMPLATE_FOLDER_NAME,
-  locale: 'en-US',
-  defaultFormats: {
-    date: 'YYYY-MM-DD',
-    time: 'h:mm A',
-    now: 'YYYY-MM-DD h:mm:ss A',
+  templateFolderName: TEMPLATE_FOLDER_NAME,
+  templateLocale: 'en-US',
+  dateFormat: 'YYYY-MM-DD',
+  timeFormat: 'h:mm A',
+  nowFormat: 'YYYY-MM-DD h:mm:ss A',
+  userFirstName: 'User First',
+  userLastName: 'User Last',
+  userEmail: 'User Email',
+  userPhone: 'User Phone',
+  services: {
+    affirmation: 'https://affirmations.dev',
+    quote: {
+      url: 'https://zenquotes.io/api/random',
+      keys: ['"', '[0].q', '"', ' - ', '*', '[0].a', '*'],
+    },
   },
-  user: {
-    first: '',
-    last: '',
-    email: '',
-    phone: '',
-  },
-  // $FlowFixMe
-  services: {},
+}
+
+export async function getDefaultTemplateConfig(): any {
+  return DEFAULT_TEMPLATE_CONFIG
 }
 
 export async function TEMPLATE_CONFIG_BLOCK(): Promise<string> {
@@ -53,10 +60,13 @@ export async function TEMPLATE_CONFIG_BLOCK(): Promise<string> {
   const last = config?.tagValue?.me?.lastName || ''
 
   // $FlowFixMe
-  const dateFormat = config?.date?.dateStyle || DEFAULT_TEMPLATE_CONFIG.defaultFormats.date
+  const dateFormat = config?.date?.dateStyle || DEFAULT_TEMPLATE_CONFIG.dateFormat
 
   // $FlowFixMe
-  const timeFormat = config?.date?.timeStyle || DEFAULT_TEMPLATE_CONFIG.defaultFormats.time
+  const timeFormat = config?.date?.timeStyle || DEFAULT_TEMPLATE_CONFIG.timeFormat
+
+  // $FlowFixMe
+  const timestampFormat = config?.date?.timeStyle || DEFAULT_TEMPLATE_CONFIG.timestampFormat
 
   return `  templates: {
     locale: "${locale}",
@@ -101,14 +111,39 @@ export default class NPTemplating {
   }
 
   static async setup() {
-    this.constructor.templateConfig = {
-      ...(await getOrMakeConfigurationSection('templates', await TEMPLATE_CONFIG_BLOCK())),
-      ...{ selection: await selection(), clipboard: Clipboard.string },
+    try {
+      let data = DataStore.loadJSON('../np.Templating/settings.json')
+      if (!data) {
+        const result = DataStore.saveJSON(DEFAULT_TEMPLATE_CONFIG, '../np.Templating/settings.json')
+        data = DataStore.loadJSON('../np.Templating/settings.json')
+      }
+
+      this.constructor.templateConfig = {
+        ...data,
+        ...{ selection: await selection(), clipboard: Clipboard.string },
+      }
+    } catch (error) {
+      showError('NPTemplating.setup', error)
     }
+  }
+
+  static async getSetting(key: string = '', defaultValue?: string = ''): Promise<string> {
+    const data = DataStore.loadJSON('../np.Templating/settings.json')
+    if (data) {
+      return data.hasOwnProperty(key) ? data[key] : defaultValue
+    }
+    return defaultValue
+  }
+
+  static async putSetting(key: string, value: string): Promise<boolean> {
+    return true
   }
 
   static async heartbeat(): Promise<string> {
     await this.setup()
+
+    let userFirstName = await this.getSetting('userFirstName')
+
     return '```\n' + JSON.stringify(this.constructor.templateConfig, null, 2) + '\n```\n'
   }
 

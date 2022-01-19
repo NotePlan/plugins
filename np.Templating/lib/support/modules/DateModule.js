@@ -5,7 +5,6 @@
 
 // import moment from 'moment/min/moment-with-locales'
 import moment from 'moment-business-days'
-import { getUserLocale } from 'get-user-locale'
 
 export const DAY_NUMBER_SUNDAY = 0
 export const DAY_NUMBER_MONDAY = 1
@@ -20,7 +19,7 @@ export default class DateModule {
     this.config = config
 
     // setup date/time local, using configuration locale if exists, otherwise fallback to system locale
-    const osLocale = this.config?.locale?.length > 0 ? this.config?.locale : getUserLocale()
+    const osLocale = this.config?.locale?.length > 0 ? this.config?.locale : 'en-US'
     moment.locale(osLocale)
 
     // module constants
@@ -41,6 +40,12 @@ export default class DateModule {
       : new Date().toLocaleString()
   }
 
+  timestamp(format = '') {
+    const nowFormat = this.config?.timestampFormat || 'YYYY-MM-DD h:mm A'
+
+    return this.now(nowFormat)
+  }
+
   format(format = '', date = '') {
     let dateValue = date.length > 0 ? new Date(date) : new Date()
     if (date.length === 10) {
@@ -51,7 +56,7 @@ export default class DateModule {
       dateValue = new Date(date)
     }
 
-    const configFormat = this.config?.defaultFormats?.date || 'YYYY-MM-DD'
+    const configFormat = this.config?.dateFormat || 'YYYY-MM-DD'
     const locale = this.config?.locale || 'en-US'
     format = format.length > 0 ? format : configFormat
 
@@ -67,7 +72,7 @@ export default class DateModule {
   now(format = '', offset = '') {
     const locale = this.config?.locale || 'en-US'
 
-    const configFormat = this.config?.defaultFormats?.date || 'YYYY-MM-DD'
+    const configFormat = this.config?.dateFormat || 'YYYY-MM-DD'
     format = format.length > 0 ? format : configFormat
     const dateValue = new Date()
     let formattedDate = moment(dateValue).format(format)
@@ -99,7 +104,7 @@ export default class DateModule {
   }
 
   tomorrow(format = '') {
-    const configFormat = this.config?.defaultFormats?.date || 'YYYY-MM-DD'
+    const configFormat = this.config?.dateFormat || 'YYYY-MM-DD'
     format = format.length > 0 ? format : configFormat
 
     const dateValue = moment(new Date()).add(1, 'days')
@@ -108,7 +113,7 @@ export default class DateModule {
   }
 
   yesterday(format = '') {
-    const configFormat = this.config?.defaultFormats?.date || 'YYYY-MM-DD'
+    const configFormat = this.config?.dateFormat || 'YYYY-MM-DD'
     format = format.length > 0 ? format : configFormat
 
     const dateValue = moment(new Date()).subtract(1, 'days')
@@ -117,7 +122,7 @@ export default class DateModule {
   }
 
   weekday(format = '', offset = 1, pivotDate = '') {
-    const configFormat = this.config?.defaultFormats?.date || 'YYYY-MM-DD'
+    const configFormat = this.config?.dateFormat || 'YYYY-MM-DD'
     format = format.length > 0 ? format : configFormat
     const offsetValue = typeof offset === 'number' ? offset : parseInt(offset)
 
@@ -184,7 +189,7 @@ export default class DateModule {
   }
 
   businessAdd(numDays = 1, pivotDate = '', format = '') {
-    const configFormat = this.config?.defaultFormats?.date || 'YYYY-MM-DD'
+    const configFormat = this.config?.dateFormat || 'YYYY-MM-DD'
     const dtFormat = format.length > 0 ? format : configFormat
     const localeDate = this.createDateTime(pivotDate)
 
@@ -194,7 +199,7 @@ export default class DateModule {
   }
 
   businessSubtract(numDays = 1, pivotDate = '', format = '') {
-    const configFormat = this.config?.defaultFormats?.date || 'YYYY-MM-DD'
+    const configFormat = this.config?.dateFormat || 'YYYY-MM-DD'
     const dtFormat = format.length > 0 ? format : configFormat
     const localeDate = this.createDateTime(pivotDate)
 
@@ -204,7 +209,7 @@ export default class DateModule {
   }
 
   nextBusinessDay(pivotDate = '', format = '') {
-    const configFormat = this.config?.defaultFormats?.date || 'YYYY-MM-DD'
+    const configFormat = this.config?.dateFormat || 'YYYY-MM-DD'
     const dtFormat = format.length > 0 ? format : configFormat
     const localeDate = this.createDateTime(pivotDate)
 
@@ -216,7 +221,7 @@ export default class DateModule {
   }
 
   previousBusinessDay(pivotDate = '', format = '') {
-    const configFormat = this.config?.defaultFormats?.date || 'YYYY-MM-DD'
+    const configFormat = this.config?.dateFormat || 'YYYY-MM-DD'
     const dtFormat = format.length > 0 ? format : configFormat
     const localeDate = this.createDateTime(pivotDate)
 

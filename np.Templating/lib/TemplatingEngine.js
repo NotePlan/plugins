@@ -6,8 +6,6 @@
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
  * -----------------------------------------------------------------------------------------*/
 
-import { getUserLocale } from 'get-user-locale'
-
 import WebModule from '@templatingModules/WebModule'
 import DateModule from '@templatingModules/DateModule'
 import TimeModule from '@templatingModules/TimeModule'
@@ -70,10 +68,10 @@ export default class TemplatingEngine {
       note: new NoteModule(this.templateConfig),
       frontmatter: {},
       user: {
-        first: this.templateConfig?.user?.first || '',
-        last: this.templateConfig?.user?.last || '',
-        email: this.templateConfig?.user?.email || '',
-        phone: this.templateConfig?.user?.phone || '',
+        first: this.templateConfig?.userFirstName || '',
+        last: this.templateConfig?.userLastName || '',
+        email: this.templateConfig?.userEmail || '',
+        phone: this.templateConfig?.userPhone || '',
       },
       // expose web module as synchronous methods (each method converted )
       web: {
@@ -163,6 +161,8 @@ export default class TemplatingEngine {
   }
 
   async getDefaultFormat(formatType: string = 'date'): Promise<string> {
+    //TODO: Fix me
+    console.log('FIXME: getDefaultFormat')
     try {
       // $FlowFixMe
       const templateConfig = await this.getTemplateConfig()

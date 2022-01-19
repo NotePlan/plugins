@@ -53,9 +53,7 @@ describe(`${PLUGIN_NAME}`, () => {
 
     it(`should render .now using configuration`, async () => {
       const testConfig = {
-        defaultFormats: {
-          time: 'hh:mm A',
-        },
+        timeFormat: 'hh:mm A',
       }
       const result = new TimeModule(testConfig).now()
       expect(result).toEqual(moment(new Date()).format('hh:mm A'))

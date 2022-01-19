@@ -11,17 +11,13 @@ import TimeModule from '../lib/support/modules/TimeModule'
 
 const DEFAULT_TEMPLATE_CONFIG = {
   locale: 'en-US',
-  defaultFormats: {
-    date: 'YYYY-MM-DD',
-    time: 'h:mm A',
-    now: 'YYYY-MM-DD h:mm:ss A',
-  },
-  user: {
-    first: '',
-    last: '',
-    email: '',
-    phone: '',
-  },
+  dateFormat: 'YYYY-MM-DD',
+  timeFormat: 'h:mm A',
+  timestampFormat: 'YYYY-MM-DD h:mm:ss A',
+  userFirstName: '',
+  userLastName: '',
+  userEmail: '',
+  userPhone: '',
   // $FlowFixMe
   services: {},
 }

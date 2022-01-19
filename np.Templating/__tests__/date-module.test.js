@@ -75,12 +75,18 @@ describe(`${PLUGIN_NAME}`, () => {
 
     it(`should render ${method('.now')} using configuration`, async () => {
       const testConfig = {
-        defaultFormats: {
-          date: 'YYYY-MM',
-        },
+        dateFormat: 'YYYY-MM',
       }
       const result = new DateModule(testConfig).now()
       expect(result).toEqual(moment(new Date()).format('YYYY-MM'))
+    })
+
+    it(`should render ${method('.timestamp')} using configuration with timestampFormat defined`, async () => {
+      const testConfig = {
+        timestampFormat: 'YYYY-MM-DD h:mm A',
+      }
+      const result = new DateModule(testConfig).timestamp()
+      expect(result).toEqual(moment(new Date()).format('YYYY-MM-DD h:mm A'))
     })
 
     it(`should render ${method('.now')} using positive offset`, async () => {
@@ -106,7 +112,7 @@ describe(`${PLUGIN_NAME}`, () => {
     })
 
     it(`should render ${method('.today')} w/ custom format`, async () => {
-      const result = new DateModule({ defaultFormats: { date: 'short' } }).today('MM/D/YY')
+      const result = new DateModule({ dateFormat: 'short' }).today('MM/D/YY')
 
       expect(result).toEqual(moment(new Date()).format('MM/D/YY'))
     })
@@ -120,7 +126,7 @@ describe(`${PLUGIN_NAME}`, () => {
     })
 
     it(`should render ${method('.yesterday')} w/ intl format`, async () => {
-      const result = new DateModule({ defaultFormats: { date: 'short' } }).yesterday('MM/D/YY')
+      const result = new DateModule({ dateFormat: 'short' }).yesterday('MM/D/YY')
 
       const assertValue = moment(new Date()).subtract(1, 'days').format('MM/D/YY')
 
@@ -128,7 +134,7 @@ describe(`${PLUGIN_NAME}`, () => {
     })
 
     it(`should render ${method('.yesterday')} w/ custom format`, async () => {
-      const result = new DateModule({ defaultFormats: { date: 'short' } }).yesterday('YYYY/MM/DD')
+      const result = new DateModule({ dateFormat: 'short' }).yesterday('YYYY/MM/DD')
 
       const assertValue = moment(new Date()).subtract(1, 'days').format('YYYY/MM/DD')
 
@@ -144,7 +150,7 @@ describe(`${PLUGIN_NAME}`, () => {
     })
 
     it(`should render ${method('.tomorrow')} w/ intl format`, async () => {
-      const result = new DateModule({ defaultFormats: { date: 'short' } }).tomorrow('MM/D/YY')
+      const result = new DateModule({ dateFormat: 'short' }).tomorrow('MM/D/YY')
 
       const assertValue = moment(new Date()).add(1, 'days').format('MM/D/YY')
 
@@ -152,7 +158,7 @@ describe(`${PLUGIN_NAME}`, () => {
     })
 
     it(`should render ${method('.tomorrow')} w/ custom format`, async () => {
-      const result = new DateModule({ defaultFormats: { date: 'short' } }).tomorrow('YYYY/MM/DD')
+      const result = new DateModule({ dateFormat: 'short' }).tomorrow('YYYY/MM/DD')
 
       const assertValue = moment(new Date()).add(1, 'days').format('YYYY/MM/DD')
 

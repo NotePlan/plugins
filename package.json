@@ -115,7 +115,6 @@
     "enquirer": "^2.3.6",
     "findup-sync": "4.0.0",
     "front-matter": "4.0.2",
-    "get-user-locale": "1.4.0",
     "git-state": "4.1.0",
     "js-yaml": "^4.1.0",
     "json5": "^2.2.0",

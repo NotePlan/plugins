@@ -50,9 +50,8 @@ const isURL = (str) => {
 
 export async function getService(templateConfig: any, section: string = '', key: mixed = ''): Promise<string> {
   const serviceConfig = templateConfig?.services
-  if (serviceConfig) {
-    // $FlowFixMe
 
+  if (serviceConfig) {
     if (!isURL(section) && !serviceConfig.hasOwnProperty(section)) {
       return `**invalid section "${section}"**`
     }

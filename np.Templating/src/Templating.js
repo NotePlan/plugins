@@ -6,14 +6,50 @@
  * -----------------------------------------------------------------------------------------*/
 
 import NPTemplating from 'NPTemplating'
+import { DEFAULT_TEMPLATE_CONFIG } from 'NPTemplating'
 
 import { showMessage, chooseOption, getInput } from '@helpers/userInput'
-import { getOrMakeTemplateFolder } from '@templating/toolbox'
+import { getOrMakeTemplateFolder, getConfiguration, getOrMakeConfigurationSection } from '@templating/toolbox'
 import { getAffirmation } from '../lib/support/modules/affirmation'
 import { getAdvice } from '../lib/support/modules/advice'
 import { getWeather } from '../lib/support/modules/weather'
 import { getDailyQuote } from '../lib/support/modules/quote'
 import { getVerse, getVersePlain } from '../lib/support/modules/verse'
+
+export async function onUpdateOrInstall(): Promise<void> {
+  console.log('onUpdateOrInstall: ')
+  try {
+    const configurationSectionName = 'templates'
+
+    const currentSettingsData = DataStore.loadJSON('../np.Templating/settings.json')
+    if (!currentSettingsData && NotePlan.environment.hasSettings && NotePlan.environment.platform === 'macOS') {
+      const settingsData = DataStore.settings // initialize settings from plugin.json:plugin.settings
+      // await NotePlan.showConfigurationView()
+      CommandBar.prompt('NotePlan', 'showConfigurationView here (dialog currently freezes)')
+
+      // get _configuration
+      const config = await getConfiguration()
+
+      // update default values
+      settingsData.templateFolderName = '📋 Templates'
+      settingsData.templateLocale = DEFAULT_TEMPLATE_CONFIG.templateLocale
+      settingsData.userFirstName = config?.tagValue?.me?.firstName || DEFAULT_TEMPLATE_CONFIG.userFirstName
+      settingsData.userLastName = config?.tagValue?.me?.lastName || DEFAULT_TEMPLATE_CONFIG.userLastName
+      settingsData.userEmail = DEFAULT_TEMPLATE_CONFIG.userEmail
+      settingsData.userPhone = DEFAULT_TEMPLATE_CONFIG.userPhone
+      settingsData.dateFormat = config?.date.dateStyle || DEFAULT_TEMPLATE_CONFIG.dateFormat
+      settingsData.timeFormat = config?.date.timeStyle || DEFAULT_TEMPLATE_CONFIG.timeFormat
+      settingsData.nowFormat = DEFAULT_TEMPLATE_CONFIG.nowFormat
+      settingsData.services = { ...DEFAULT_TEMPLATE_CONFIG.services }
+      // update plugin settings
+      DataStore.settings = settingsData
+
+      // clear _configuration template configuration block
+    }
+  } catch (error) {
+    console.log(error)
+  }
+}
 
 export async function templateInit(): Promise<void> {
   await getOrMakeTemplateFolder()
@@ -42,7 +78,6 @@ export async function templateInsert(): Promise<void> {
   const templateTitle = selectedTemplate?.title
 
   const result = await NPTemplating.renderTemplate(templateTitle)
-  console.log('result')
 
   Editor.insertTextAtCursor(result)
 }
@@ -73,8 +108,6 @@ export async function templateAppend(): Promise<void> {
 
   const renderedTemplate = await NPTemplating.renderTemplate(templateTitle)
   const processed = await NPTemplating.postProcess(renderedTemplate)
-
-  console.log(JSON.stringify(processed))
 
   Editor.insertTextAtCharacterIndex(renderedTemplate, content.length)
 }

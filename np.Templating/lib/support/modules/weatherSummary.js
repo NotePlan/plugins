@@ -102,16 +102,14 @@ export async function getWeatherSummary(weatherParams: string): Promise<string> 
 
     // console.log(`  HTTP response ${jsonIn.status}`) //  .status always returns 'undefined', even when it works?!
   } catch (err) {
-    console.log(`Error ${err.message} parsing Weather data lookup. Please check your _configuration note.`)
-    return `Error ${err.message} parsing Weather data lookup. Please check your _configuration note.`
+    return `${err.message} parsing Weather data lookup. Please check your _configuration note.`
   }
   if (jsonIn != null) {
     try {
       // $FlowIgnore[incompatible-call]
       allWeatherData = JSON.parse(jsonIn)
     } catch (err) {
-      console.log(`Error ${err.message} parsing Weather data lookup. Please check your _configuration note.`)
-      return `Error ${err.message} parsing Weather data lookup. Please check your _configuration note.`
+      return `${err.message} parsing Weather data lookup. Please check your _configuration note.`
     }
     // console.log(`WeatherData: ${JSON.stringify(allWeatherData)}`)
     if (allWeatherData.cod === 401) {
@@ -154,7 +152,6 @@ export async function getWeatherSummary(weatherParams: string): Promise<string> 
     //   (weatherParams !== '' && getTagParams(weatherParams, 'template') !== '')
     //     ? getTagParams(weatherParams, 'template')
     //     : defaultWeatherLine
-    console.log(`\toutput template: '${template}' ; about to call stringReplace`)
     return stringReplace(template, replacements)
   } else {
     // $FlowFixMe[incompatible-type]

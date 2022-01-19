@@ -4,13 +4,12 @@
  * -----------------------------------------------------------------------------------------*/
 
 import moment from 'moment/min/moment-with-locales'
-import { getUserLocale } from 'get-user-locale'
 
 export default class TimeModule {
   constructor(config) {
     this.config = config
 
-    let osLocale = getUserLocale()
+    let osLocale = 'en-US'
     if (this.config?.locale?.length > 0) {
       osLocale = this.config?.locale
     }
@@ -41,7 +40,7 @@ export default class TimeModule {
 
   format(format = '', date = '') {
     let dateValue = date.length > 0 ? date : new Date()
-    const configFormat = this.config?.defaultFormats?.time || 'HH:mm A'
+    const configFormat = this.config?.timeFormat || 'HH:mm A'
     format = format.length > 0 ? format : configFormat
 
     if (date instanceof Date) {
@@ -54,7 +53,7 @@ export default class TimeModule {
 
   now(format = '', offset = '') {
     const locale = this.config?.locale || 'en-US'
-    const configFormat = this.config?.defaultFormats?.time || 'HH:mm A'
+    const configFormat = this.config?.timeFormat || 'HH:mm A'
 
     format = format.length > 0 ? format : configFormat
     let formattedTime = moment(new Date()).format(format)

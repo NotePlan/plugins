@@ -84,7 +84,7 @@ const copyBuild = async (outputFile = '', isBuildTask = false) => {
     if (NOTIFY) {
       notifier.notify({
         title: 'NotePlan Plugin Build',
-        message: `${pluginJsonData['plugin.name']} Complete`,
+        message: `${pluginJsonData['plugin.name']} v${pluginJsonData['plugin.version']}`,
       })
     }
 
@@ -140,7 +140,7 @@ async function checkPluginList(pluginPaths) {
     if (pluginFile) {
       pluginFile['plugin.commands']?.forEach((command) => {
         if (pluginCommands[command.name]) {
-          console.log(colors.red.bold(`\n!!!!\nCommand collison: "${command.name}" exists already!`))
+          console.log(colors.red.bold(`\n!!!!\nCommand collision: "${command.name}" exists already!`))
           console.log(`\tTrying to add: "${command.name}" from ${path.basename(pluginPath)}`)
           console.log(
             colors.yellow(
