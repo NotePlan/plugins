@@ -3,8 +3,8 @@
 // Specialised user input functions
 
 import json5 from 'json5'
-import { calcSmartPrependPoint } from './paragraph'
 import { RE_DATE, RE_DATE_INTERVAL } from './dateTime'
+import { calcSmartPrependPoint, findEndOfActivePartOfNote} from './paragraph'
 
 // NB: This fn is a local copy from helpers/general.js, to avoid a circular dependency
 async function parseJSON5(contents: string): Promise<?{ [string]: ?mixed }> {
@@ -129,9 +129,17 @@ export async function chooseHeading(
   note: TNote,
   optionAddAtBottom: boolean = true,
   optionCreateNewHeading: boolean = false,
+  includeArchive: boolean = false
 ): Promise<string> {
   let headingStrings = []
-  const headingParas = note.paragraphs.filter((p) => p.type === 'title') // = all headings, not just the top 'title'
+  // Decide whether to include all headings in note, or just those in the first
+  // before the Done/Cancelled section
+  const indexEndOfActive = findEndOfActivePartOfNote(note)
+  const headingParas = (includeArchive)
+    ? note.paragraphs.filter((p) =>
+      p.type === 'title') // = all headings, not just the top 'title'
+    : note.paragraphs.filter((p) =>
+      (p.type === 'title' && p.lineIndex < indexEndOfActive))
   if (headingParas.length > 0) {
     headingStrings = headingParas.map((p) => {
       let prefix = ''

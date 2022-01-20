@@ -260,3 +260,22 @@ export function selectedLinesIndex(
   console.log(`\t-> firstSelParaIndex = ${firstSelParaIndex}`)
   return firstSelParaIndex
 }
+
+/**
+ * Get the paragraph from the passed content (using exact match)
+ * @author @jgclark
+ * 
+ * @param {string} contentToFind
+ * @return {TParagraph | void} pargraph object with that content, or null if not found
+ */
+export function getParaFromContent(note: TNote, contentToFind: string): TParagraph | void {
+  const { paragraphs } = note
+  let result = 0 // default result
+  for (let p of paragraphs) {
+    if (p.content === contentToFind) {
+      return p
+    }
+  }
+  console.log(`gPFC: warning couldn't find '${contentToFind}`)
+  return
+}

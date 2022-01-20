@@ -2,21 +2,27 @@
 //-----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// Last updated 16.1.2022 for v0.10.6+, @jgclark
+// Last updated 20.1.2022 for v0.11.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import {
   allNotesSortedByChanged,
   printNote,
 } from '../../helpers/note'
-import { chooseFolder } from '../../helpers/userInput'
+import {
+  getParaFromContent,
+} from '../../helpers/paragraph'
+import {
+  chooseFolder,
+  chooseHeading
+} from '../../helpers/userInput'
 
 //-----------------------------------------------------------------
 /**
  * Command from Eduard to move a note to a different folder
  * @author @eduardme
  */
-export async function moveNote(): void {
+export async function moveNote(): Promise<void> {
   const { title, filename } = Editor
   if (title == null || filename == null) {
     // No note open, so don't do anything.
@@ -40,7 +46,7 @@ export async function moveNote(): void {
  * Open a user-selected note in a new window.
  * @author @jgclark
  */
-export async function openNoteNewWindow(): void {
+export async function openNoteNewWindow(): Promise<void> {
   // Ask for the note we want to open
   const notes = allNotesSortedByChanged()
   const re = await CommandBar.showOptions(
@@ -58,12 +64,12 @@ export async function openNoteNewWindow(): void {
  * It falls back to opening in a new window on unsupported versions.
  * @author @jgclark
  */
-export async function openNoteNewSplit(): void {
+export async function openNoteNewSplit(): Promise<void> {
   // Ask for the note we want to open
   const notes = allNotesSortedByChanged()
   const re = await CommandBar.showOptions(
     notes.map((n) => n.title).filter(Boolean),
-    'Select note to open in new window',
+    'Select note to open in new split window',
   )
   const note = notes[re.index]
   const filename = note.filename
@@ -75,41 +81,48 @@ export async function openNoteNewSplit(): void {
  * NB: need to update to allow this to work with sub-windows, when EM updates API
  * @author @jgclark
  */
-export async function jumpToHeading(): void {
-  const paras = Editor?.paragraphs
-  if (paras == null) {
-    // No note open
+export async function jumpToHeading(): Promise<void> {
+  const { paragraphs, note } = Editor
+  if (note == null || paragraphs == null) {
+    // No note open, or no content
     return
   }
 
-  // TODO: it would be a good learning exercise to work out how to combine
-  // the following two variables into a single map -> showOptions
-  const headingParas = paras.filter((p) => p.type === 'title') // = all headings, not just the top 'title'
-  const headingValues = headingParas.map((p) => {
-    let prefix = ''
-    for (let i = 1; i < p.headingLevel; i++) {
-      prefix += '    '
-    }
-    return `${prefix}${p.content}`
-  })
+  const headingStr = await chooseHeading(note, false, false, false)
+  // find out position of this heading, ready to set insertion point
+  // (or 0 if it can't be found)
+  const startPos = getParaFromContent(note, headingStr)?.contentRange?.start ?? 0
+  console.log(startPos)
+  Editor.select(startPos, 0)
 
-  // Present list of headingValues for user to choose from
-  if (headingValues.length > 0) {
-    const re = await CommandBar.showOptions(
-      headingValues,
-      'Select heading to jump to:',
-    )
-    // find out position of this heading, ready to set insertion point
-    const startPos = headingParas[re.index].contentRange?.start ?? 0
-    // console.log(startPos)
-    // Editor.renderedSelect(startPos, 0) // feels the better one to use, but doesn't seem to work
-    Editor.select(startPos, 0)
+  // // TODO: it would be a good learning exercise to work out how to combine
+  // // the following two variables into a single map -> showOptions
+  // const headingParas = paras.filter((p) => p.type === 'title') // = all headings, not just the top 'title'
+  // const headingValues = headingParas.map((p) => {
+  //   let prefix = ''
+  //   for (let i = 1; i < p.headingLevel; i++) {
+  //     prefix += '    '
+  //   }
+  //   return `${prefix}${p.content}`
+  // })
 
-    // Earlier version:
-    // Editor.highlight(headingParas[re.index])
-  } else {
-    console.log('Warning: No headings found in this note')
-  }
+  // // Present list of headingValues for user to choose from
+  // if (headingValues.length > 0) {
+  //   const re = await CommandBar.showOptions(
+  //     headingValues,
+  //     'Select heading to jump to:',
+  //   )
+    // // find out position of this heading, ready to set insertion point
+    // const startPos = headingParas[re.index].contentRange?.start ?? 0
+    // // console.log(startPos)
+    // // Editor.renderedSelect(startPos, 0) // feels the better one to use, but doesn't seem to work
+    // Editor.select(startPos, 0)
+
+  //   // Earlier version:
+  //   // Editor.highlight(headingParas[re.index])
+  // } else {
+  //   console.log('Warning: No headings found in this note')
+  // }
 }
 
 /** 
@@ -117,7 +130,7 @@ export async function jumpToHeading(): void {
  * NB: need to update to allow this to work with sub-windows, when EM updates API
  * @author @jgclark
  */
-export async function jumpToNoteHeading(): void {
+export async function jumpToNoteHeading(): Promise<void> {
   // first jump to the note of interest, then to the heading
   const notesList = allNotesSortedByChanged()
   const re = await CommandBar.showOptions(
