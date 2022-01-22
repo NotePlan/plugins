@@ -402,53 +402,6 @@ export async function getPeriodStartEndDates(
   return [fromDate, toDate, periodString, periodPartStr]
 }
 
-//------------------------------------------------------------------------------
-// Remove all paragraphs in a section, given:
-// - Note to use
-// - Section heading line to look for (needs to match from start of line but not necessarily the end)
-// A section is defined (here at least) as all the lines between the heading,
-// and the next heading of that same or higher level, or the end of the file 
-// if that's sooner.
-//
-// Returns the lineIndex of the found heading, or if not found the last line of the note
-export function removeSection(note: TNote, heading: string): number {
-  const ps = note.paragraphs
-  let existingHeadingIndex = ps.length // start at end of file
-  let sectionHeadingLevel = 2
-  console.log(
-    `\tremoveSection: '${heading}' from note '${note.title ?? ''}' with ${ps.length} paras:`,
-  )
-
-  for (const p of ps) {
-    if (p.type === 'title' && p.content.startsWith(heading)) {
-      existingHeadingIndex = p.lineIndex
-      sectionHeadingLevel = p.headingLevel
-    }
-  }
-  // console.log(`\t    heading level ${sectionHeadingLevel} at line ${existingHeadingIndex}`)
-
-  if (existingHeadingIndex !== undefined && existingHeadingIndex < ps.length) {
-    // Work out the set of paragraphs to remove
-    const psToRemove = []
-    note.removeParagraph(ps[existingHeadingIndex])
-    for (let i = existingHeadingIndex + 1; i < ps.length; i++) {
-      // stop removing when we reach heading of same or higher level
-      // if (ps[i].type === 'title' || ps[i].content === '') {
-      if (ps[i].type === 'title' && ps[i].headingLevel <= sectionHeadingLevel) {
-        break
-      }
-      psToRemove.push(ps[i])
-    }
-
-    // Delete the saved set of paragraphs
-    note.removeParagraphs(psToRemove)
-    console.log(`\t  -> removed ${psToRemove.length} paragraphs`)
-    return existingHeadingIndex
-  } else {
-    return ps.length
-  }
-}
-
 /**
  * Return list of lines matching the specified string in the specified project or daily notes.
  * @author @jgclark

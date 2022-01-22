@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Create statistics for hasthtags and mentions for time periods
 // Jonathan Clark, @jgclark
-// Last updated for v0.3.0, 29.12.2021
+// Last updated for v0.3.0+, 29.12.2021  (+ code re-factoring)
 //-----------------------------------------------------------------------------
 
 // TODO:
@@ -16,7 +16,6 @@ import {
   calcMentionStatsPeriod,
   getConfigSettings,
   getPeriodStartEndDates,
-  removeSection,
 } from './summaryHelpers'
 import type { SummariesConfig } from './summaryHelpers'
 import {
@@ -35,11 +34,13 @@ import { JSP } from '../../helpers/dev'
 import {
   displayTitle,
   stringReplace,
+  getContentFromBrackets,
 } from '../../helpers/general'
 import {
   clearNote,
   getOrMakeNote
 } from '../../helpers/note'
+import { removeSection } from '../../helpers/paragraph'
 import { logAllEnvironmentSettings } from '../../helpers/NPdev'
 import {
   chooseOption,
