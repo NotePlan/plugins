@@ -1,6 +1,11 @@
 # What's changed in 🔬 Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Review), and how to configure.
 
+## [0.5.2] - 2022-01-21
+### Added
+- progress indicator when running longer commands
+- `/completeProject` now also adds note to a yearly note in Summaries folder (if the folder exists)
+
 ## [0.5.1] - 2022-01-03
 ### Changed
 - removed `addProject` command. I've realised the equivalent is now available already by setting up the `/qtn` command in Templates plugin. See my [README](README.md) for details.

@@ -33,7 +33,7 @@
 			"name": "finish project review",
 			"alias": ["gtd", "reviewed"],
 			"description": "updates the current open project's @reviewed() date",
-			"jsFunction": "completeReview"
+			"jsFunction": "finishReview"
 		},
 		{
 			"name": "next project review",

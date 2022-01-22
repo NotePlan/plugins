@@ -3,13 +3,11 @@
 //-----------------------------------------------------------------------------
 // Commands for Reviewing project-style notes, GTD-style.
 // by @jgclark
-// Last updated for v0.5.0+, 27.12.2021
+// Last updated 21.1.2022 for v0.5.2, @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
 import {
-  findNotesMatchingHashtags,
-  getOrMakeMetadataLine,
   Project,
 } from './reviewHelpers'
 import {
@@ -22,14 +20,16 @@ import {
   getFolderFromFilename
 } from '../../helpers/folders'
 import { displayTitle } from '../../helpers/general'
-import { getOrMakeNote } from '../../helpers/note'
+import {
+  findNotesMatchingHashtags,
+  getOrMakeNote,
+} from '../../helpers/note'
+import { getOrMakeMetadataLine } from '../../helpers/paragraph'
 import {
   showMessage,
   showMessageYesNo,
 } from '../../helpers/userInput'
-import {
-  getOrMakeConfigurationSection,
-} from '../../nmn.Templates/src/configuration'
+import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 
 //-----------------------------------------------------------------------------
 // Settings
@@ -48,6 +48,7 @@ let pref_noteTypeTags: Array<string> = ["#project", "#area"]
 let pref_displayOrder: string = "alpha"
 let pref_displayGroupedByFolder: boolean = true
 let pref_displayArchivedProjects: boolean = true
+
 let filteredFolderList: Array<string> = []
 
 // Constants
@@ -56,6 +57,8 @@ const reviewListPref = 'jgclark.Review.reviewList'
 
 //-------------------------------------------------------------------------------
 // Create human-readable lists of project notes for each tag of interest
+// TODO: Use newer object-based method, and move to ReviewHelpers.
+// TODO: Then can move makeNoteTypeSummary to ReviewHelpers as well.
 export async function getConfig(): Promise<void> {
     // Get config settings from Template folder _configuration note
   const reviewConfig = await getOrMakeConfigurationSection(
@@ -121,7 +124,7 @@ export async function projectLists(): Promise<void> {
       const note: ?TNote = await getOrMakeNote(noteTitleWithoutHash, pref_folderToStore)
       if (note != null) {
         // Calculate the Summary list(s)
-        const outputArray = makeNoteTypeSummary(tag)
+        const outputArray = await makeNoteTypeSummary(tag)
         outputArray.unshift(`# ${noteTitle}`)
 
         // Save the list(s) to this note
@@ -142,7 +145,7 @@ export async function projectLists(): Promise<void> {
     const note: ?TNote = await getOrMakeNote(noteTitle, pref_folderToStore)
     if (note != null) {
       // Calculate the Summary list(s)
-      const outputArray = makeNoteTypeSummary('')
+      const outputArray = await makeNoteTypeSummary('')
       outputArray.unshift(`# ${noteTitle}`)
 
       // Save the list(s) to this note
@@ -171,9 +174,7 @@ export async function startReviews(): Promise<void> {
   deleteOldListFile()
 
   const summaryArray = []
-  // create list of folders
-  const folderList = DataStore.folders
-  console.log(`  Processing ${folderList.length} folders`)
+  
   // Iterate over the folders ...
   // ... but ignoring any in the pref_foldersToIgnore list
   for (const folder of filteredFolderList) {
@@ -236,10 +237,12 @@ function logPreference(prefName: string): void {
 //-------------------------------------------------------------------------------
 /** 
  * Return summary of notes that contain a particular tag, for all relevant folders
+ * @author @jgclark
+ * 
  * @param {string} noteTag - hashtag to look for
  * @return {Array<string>} summary lines to write out to a note
  */
-function makeNoteTypeSummary(noteTag: string): Array<string> {
+async function makeNoteTypeSummary(noteTag: string): Promise<Array<string>> {
   console.log(`\nmakeNoteTypeSummary for '${noteTag}'`)
 
   let noteCount = 0
@@ -250,7 +253,10 @@ function makeNoteTypeSummary(noteTag: string): Array<string> {
   // otherwise use a single folder
   const folderList = pref_displayGroupedByFolder ? DataStore.folders : ['/']
   // console.log(`  Processing ${folderList.length} folders`)
+
   // Iterate over the folders (ignoring any in the pref_foldersToIgnore list)
+  CommandBar.showLoading(true, `Summarising ${noteTag} in ${filteredFolderList.length} folders`)
+  await CommandBar.onAsyncThread()
   for (const folder of filteredFolderList) {
     // Get notes that include noteTag in this folder, ignoring subfolders
     const notes = findNotesMatchingHashtags(noteTag, folder, false)
@@ -298,8 +304,11 @@ function makeNoteTypeSummary(noteTag: string): Array<string> {
       }
       noteCount += sortedProjects.length
     }
+    CommandBar.showLoading(true, `Summarising ${noteTag} in ${filteredFolderList.length} folders`, (noteCount / filteredFolderList.length))
   }
-  // console.log(`\tFinished makeNoteTypeSummary main loop for '${noteTag}'`)
+  await CommandBar.onMainThread()
+  CommandBar.showLoading(false)
+
   // Add summary/ies onto the start (remember: unshift adds to the very front each time)
   if (noteCount > 0) {
     outputArray.unshift(`_Key:\tTitle\t# open / complete / waiting tasks / next review date / due date_`)
@@ -320,9 +329,9 @@ function makeNoteTypeSummary(noteTag: string): Array<string> {
 export async function nextReview(): Promise<void> {
   console.log('\nnextReview')
   // First update @review(date) on current open note
-  const openNote: ?TNote = await completeReview()
+  const openNote: ?TNote = await finishReview()
 
-  // NB: The following is now done in completeReview() ...
+  // NB: The following is now done in finishReview() ...
   // if (openNote != null) {
   //   // Then update @review(date) in review list note
   //   await updateReviewListAfterReview(openNote)
@@ -347,16 +356,18 @@ export async function nextReview(): Promise<void> {
 /**
  * Update the review list after completing a review
  * V2: now using preference not note
- * @param { string } note - 
+ * @author @jgclark
+ * 
+ * @param {TNote} note that has been reviewed
 */
 export async function updateReviewListAfterReview(note: TNote): Promise<void> {
-  const thisTitle = note.title ?? ''
-  console.log(`updateReviewListAfterReview V2 for '${thisTitle}'`)
+  const reviewedTitle = note.title ?? ''
+  console.log(`\twill remove '${reviewedTitle}' from list`)
 
   // Get pref that contains the project list
   const reviewList = DataStore.preference(reviewListPref)
   if (reviewList === undefined) {
-    console.log(`updateReviewListAfterReview V2: warning: can't find pref jgclark.Review.reviewList`)
+    console.log(`\twarning: can't find pref jgclark.Review.reviewList. Suggest re-running '/start reviews'`)
     return
   }
 
@@ -367,8 +378,8 @@ export async function updateReviewListAfterReview(note: TNote): Promise<void> {
   let lineNum: number // deliberately undefined
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
-    if (line.match(thisTitle)) {
-      // console.log(`\tFound '${thisTitle}' in line '${line}' at line number ${i}`)
+    if (line.match(reviewedTitle)) {
+      // console.log(`\tFound '${reviewedTitle}' in line '${line}' at line number ${i}`)
       lineNum = i
       break
     }
@@ -379,7 +390,7 @@ export async function updateReviewListAfterReview(note: TNote): Promise<void> {
     DataStore.setPreference(reviewListPref, lines.join('\n'))
     // console.log(`\tRemoved line ${lineNum} from reviewList pref as its review is completed`)
   } else {
-    console.log(`\tInfo: couldn't find '${thisTitle}' to remove from review list`)
+    console.log(`\tInfo: couldn't find '${reviewedTitle}' to remove from review list`)
     return
   }
 }
@@ -388,16 +399,16 @@ export async function updateReviewListAfterReview(note: TNote): Promise<void> {
 /** 
  * Work out the next note to review (if any)
  * V2: now using preference not note
+ * @author @jgclark
+
  * @return { ?TNote } next note to review
  */
 async function getNextNoteToReview(): Promise<?TNote> {
-  console.log(`\ngetNextNoteToReview V2`)
-
   // Get pref that contains the project list
   const reviewList = DataStore.preference(reviewListPref)
   if (reviewList === undefined) {
-    await showMessage(`Oops: I now can't find my pref`, 'OK')
-    console.log(`getNextNoteToReview: error: can't find pref jgclark.Review.reviewList`)
+    await showMessage(`Oops: I now can't find my pref. Try re-running '/start reviews' command.`, 'OK')
+    console.log(`\terror: can't find pref jgclark.Review.reviewList`)
     return
   }
 
@@ -411,7 +422,7 @@ async function getNextNoteToReview(): Promise<?TNote> {
     const nextNotes = DataStore.projectNoteByTitle(nextNoteTitle, true, false) ?? []
     return nextNotes[0] // return first matching note
   } else {
-    console.log(`info: review list was empty`)
+    console.log(`\tInfo: review list was empty. Try re-running '/start reviews' command.`)
     return
   }
 }
@@ -421,13 +432,14 @@ async function getNextNoteToReview(): Promise<?TNote> {
  * Update the @reviewed(date) in the note in the Editor to today's date.
  * @return { ?TNote } current note
  */
-export async function completeReview(): Promise<?TNote> {
+export async function finishReview(): Promise<?TNote> {
   const reviewMentionString = '@reviewed'
   const RE_REVIEW_MENTION = `${reviewMentionString}\\(${RE_DATE}\\)`
   const reviewedTodayString = `@reviewed(${hyphenatedDateString(new Date())})`
 
   // only proceed if we're in a valid Project note (with at least 2 lines)
-  if (Editor.note == null || Editor.note.type === 'Calendar' || Editor.paragraphs?.length < 2 ) {
+  if (Editor.note == null || Editor.note.type === 'Calendar' || Editor.paragraphs?.length < 2) {
+    console.log(`Warning: we're not in a valid Project note (with at least 2 lines).`)
     return
   }
 

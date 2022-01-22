@@ -117,6 +117,47 @@ export async function getOrMakeNote(
 }
 
 /**
+ * Return list of notes with a particular hashtag, optionally in the given folder.
+ * @author @jgclark
+ * 
+ * @param {string} tag - tag name to look for (or blank, in which case no filtering by tag)
+ * @param {?string} folder - optional folder to limit to
+ * @param {?boolean} includeSubfolders - if folder given, whether to look in subfolders of this folder or not (optional, defaults to false)
+ * @return {Array<TNote>}
+ */
+export function findNotesMatchingHashtags(
+  tag: string,
+  folder: ?string,
+  includeSubfolders: ?boolean = false
+): Array<TNote> {
+  let projectNotesInFolder: Array<TNote>
+  // If folder given (not empty) then filter using it
+  if (folder != null) {
+    if (includeSubfolders) {
+      // use startsWith as filter to include subfolders
+      // FIXME: not working for root-level notes
+      projectNotesInFolder = DataStore.projectNotes
+        .slice()
+        .filter((n) => n.filename.startsWith(`${folder}/`))
+    } else {
+      // use match as filter to exclude subfolders
+      projectNotesInFolder = DataStore.projectNotes
+        .slice()
+        .filter((n) => (getFolderFromFilename(n.filename) === folder))
+    }
+  } else {
+    // no folder specified, so grab all notes from DataStore
+    projectNotesInFolder = DataStore.projectNotes.slice()
+  }
+  // Filter by tag (if one has been given)
+  const projectNotesWithTag = (tag !== '')
+    ? projectNotesInFolder.filter((n) => n.hashtags.includes(tag))
+    : projectNotesInFolder
+  console.log(`\tIn folder '${folder ?? "<all>"}' found ${projectNotesWithTag.length} notes matching '${tag}'`)
+  return projectNotesWithTag
+}
+
+/**
  * Get all notes in a given folder (or all project notes if no folder given)
  * TODO(@dwertheimer): I don't think the 'await DataStore.projectNotes' should be async.
  * @author @dwertheimer

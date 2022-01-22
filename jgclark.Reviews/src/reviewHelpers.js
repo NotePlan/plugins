@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // @jgclark
-// Last updated for v0.5.0, 28.12.2021
+// Last updated for v0.5.2, 21.1.2022
 //-----------------------------------------------------------------------------
 
 import {
@@ -18,84 +18,16 @@ import {
   getFolderFromFilename,
 } from '../../helpers/folders'
 import {
+  findNotesMatchingHashtags,
+} from '../../helpers/note'
+import {
+  getContentFromBrackets,
+  getStringFromList,
+} from '../../helpers/general'
+import {
   showMessage,
 } from '../../helpers/userInput'
 
-/**
- * Works out which line (if any) of the current note is a metadata line, defined as
- * - line starting 'project:' or 'medadata:'
- * - first line containing a @review() mention
- * - first line starting with a hashtag
- * If these can't be found, then create a new line for this after the title
- * Only to be called when Editor known to have an open note.
- * @author @jgclark
- * @return {number} the line number for the metadata line
- */
-export function getOrMakeMetadataLine(): number {
-  let lineNumber
-  // $FlowIgnore[incompatible-use] as we know Editor.content != null
-  const lines = Editor.content.split('\n') ?? ['']
-  for (let i = 1; i < lines.length; i++) {
-    if (lines[i].match(/^project:/i)
-      || lines[i].match(/^metadata:/i)
-      || lines[i].match(/^#[\w]/)
-      || lines[i].match(/@review\(.+\)/))
-    {
-      lineNumber = i
-      break
-    }
-  }
-  if (lineNumber === undefined) {
-    // If no metadataPara found, then insert one straight after the title
-    console.log(
-    `\tCan't find an existing metadata line, so will insert a new second line for it`,
-    )
-    Editor.insertParagraph('', 1, 'empty')
-    lineNumber = 1
-  }
-  // console.log(`Metadata line = ${lineNumber}`)
-  return lineNumber
-}
-
-/**
- * Return list of notes with a particular hashtag, optionally in the given folder.
- * @author @jgclark
- * @param {string} tag - tag name to look for (or blank, in which case no filtering by tag)
- * @param {?string} folder - optional folder to limit to
- * @param {?boolean} includeSubfolders - if folder given, whether to look in subfolders of this folder or not (optional, defaults to false)
- * @return {Array<TNote>}
- */
-export function findNotesMatchingHashtags(
-  tag: string,
-  folder: ?string,
-  includeSubfolders: ?boolean = false
-): Array<TNote> {
-  let projectNotesInFolder: Array<TNote>
-  // If folder given (not empty) then filter using it
-  if (folder != null) {
-    if (includeSubfolders) {
-      // use startsWith as filter to include subfolders
-      // FIXME: not working for root-level notes
-      projectNotesInFolder = DataStore.projectNotes
-        .slice()
-        .filter((n) => n.filename.startsWith(`${folder}/`))
-    } else {
-      // use match as filter to exclude subfolders
-      projectNotesInFolder = DataStore.projectNotes
-        .slice()
-        .filter((n) => (getFolderFromFilename(n.filename) === folder))
-    }
-  } else {
-    // no folder specified, so grab all notes from DataStore
-    projectNotesInFolder = DataStore.projectNotes.slice()
-  }
-  // Filter by tag (if one has been given)
-  const projectNotesWithTag = (tag !== '')
-    ? projectNotesInFolder.filter((n) => n.hashtags.includes(tag))
-    : projectNotesInFolder
-  console.log(`\tIn folder '${folder ?? "<all>"}' found ${projectNotesWithTag.length} notes matching '${tag}'`)
-  return projectNotesWithTag
-}
 
 /**
  * Calculate the next date to review, based on last review date and date interval.
@@ -130,42 +62,7 @@ export  function getParamMentionFromList(
   return res.length > 0 ? res[0] : ''
 }
 
-/**
- * From an array of strings, return the first string that matches the wanted string.
- * @author @jgclark
- * @param {Array<string>} list - list of strings to search
- * @param {string} search - string to match
- */
-export function getStringFromList(
-  list: $ReadOnlyArray<string>,
-  search: string,
-): string {
-  // console.log(`getsearchFromList for: ${search}`)
-  const res = list.filter((m) => m === search)
-  return res.length > 0 ? res[0] : ''
-}
-
-/**
- * Extract bracketed part of an '@mention(something)' string.
- * @author @jgclark
- * @param {string} - string that contains a bracketed mention e.g. @review(2w)
- * @return {?string} - string from between the brackets, if found (e.g. '2w')
- */
-export function getStringFromMention(mention: string): ?string {
-  const RE_MENTION_STRING_CAPTURE = '\\((.*?)\\)' // capture string inside parantheses
-
-  if (mention === '') {
-    return // no text, so return nothing
-  }
-  const res = mention.match(RE_MENTION_STRING_CAPTURE) ?? []
-  if (res[1].length > 0) {
-    return res[1]
-  } else {
-    return
-  }
-}
-
-//-------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 /**
  * Define 'Project' class to use in GTD.
@@ -212,7 +109,7 @@ export class Project {
     // this.reviewedDate = getDateFromString(getParamMentionFromList(mentions, "@reviewed")) ?? undefined
     const tempReviewedDateStr = getParamMentionFromList(mentions, "@reviewed")
     this.reviewedDate = tempReviewedDateStr !== '' ? getDateFromString(tempReviewedDateStr) : undefined
-    this.reviewInterval = getStringFromMention(getParamMentionFromList(mentions, "@review")) ?? undefined
+    this.reviewInterval = getContentFromBrackets(getParamMentionFromList(mentions, "@review")) ?? undefined
     if (this.reviewInterval != null) {
       if (this.reviewedDate != null) {
         this.nextReviewDate = calcNextReviewDate(this.reviewedDate, this.reviewInterval)

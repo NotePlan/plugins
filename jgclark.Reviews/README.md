@@ -1,8 +1,10 @@
 # 🔬 Reviews  plugin
 This plugin provides commands to help review with Project-based notes. This will be of interest for those who use NotePlan to plan and track work in different areas, which could be loosely referred to as 'Projects'. This will be familiar to people who use David Allen's **Getting Things Done** approach, or any other where **regular reviews** are important. It probably won't have much applicability to people who just use NotePlan as a Zettelkasten-style knowledge base.
 
+If you're using the helpful [PARA Approach](https://fortelabs.co/blog/series/para/), then your **Areas** are also a form of Project, at least as far as Reviewing them goes.
+
 ## Using NotePlan for Project-like work
-Unlike many task or project management apps, NotePlan is both much less structured, and entirely text/markdown based.  This makes it much more flexible, but makes it less obvious how to use it for project tracking or management.  This is how I use it: there may be better ways for you.
+Unlike many task or project management apps, NotePlan is both much less structured, and entirely text/markdown based.  This makes it much more flexible, but makes it less obvious how to use it for project tracking or management.  The following describes how I use it, and the plugin commands that help me; there may be better ways for you.
 
 Each **Project** is described by a separate note. Each such project contains the `#project` hashtag, `@review(...)` and some other metadata fields on the line immediately after the title.  For example:
 
@@ -67,14 +69,14 @@ This updates the current open project's @reviewed() date.
 This updates this project's @reviewed() date, and jumps to the next project to review. If there are none left ready for review it will show a congratulations message.
 
 ### `/completeProject`
-This add @completed(today) date to the open project.
+This add an #archive tag, and a @completed(date) mention to the metadata line (by default line 2) of the open project note, removes the project/area from the review list, and offers to move it to the NotePlan Archive area.
 
 ## Configuration
 These commands require configuration.
 
-In NotePlan v3.3.2 and above, please click the gear button on the 'Summaries' line in the Plugin Preferences panel.
+In NotePlan v3.4 and above, please click the gear button on the 'Summaries' line in the Plugin Preferences panel.
 
-NotePlan v3.3.1 and earlier uses the first configuration block of the special `Templates/_configuration` note. The first time the plugin is run it should detect it doesn't have configuration, and offer to write some to this note. Alternatively, in that note, include the following settings you want in its first code block. This is the annotated list of settings, with their defaults:
+NotePlan v3.3.x and earlier uses the first configuration block of the special `Templates/_configuration` note. The first time the plugin is run it should detect it doesn't have configuration, and offer to write some to this note. Alternatively, in that note, include the following settings you want in its first code block. This is the annotated list of settings, with their defaults:
 
 ```jsonc
 ...

@@ -1,5 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
+// Paragraph and block-level helpers functions
+//-----------------------------------------------------------------------------
 
 import { hyphenatedDateString } from './dateTime'
 
@@ -278,4 +280,88 @@ export function getParaFromContent(note: TNote, contentToFind: string): TParagra
   }
   console.log(`gPFC: warning couldn't find '${contentToFind}`)
   return
+}
+
+/**
+ * Works out which line (if any) of the current note is a metadata line, defined as
+ * - line starting 'project:' or 'medadata:'
+ * - first line containing a @review() mention
+ * - first line starting with a hashtag
+ * If these can't be found, then create a new line for this after the title line.
+ * @author @jgclark
+ * 
+ * @return {number} the line number for the metadata line
+ */
+export function getOrMakeMetadataLine(): number {
+  let lineNumber
+  const lines = Editor?.content?.split('\n') ?? ['']
+  for (let i = 1; i < lines.length; i++) {
+    if (lines[i].match(/^project:/i)
+      || lines[i].match(/^metadata:/i)
+      || lines[i].match(/^#[\w]/)
+      || lines[i].match(/(@review|@reviewed)\(.+\)/))
+    {
+      lineNumber = i
+      break
+    }
+  }
+  if (lineNumber === undefined) {
+    // If no metadataPara found, then insert one straight after the title
+    console.log(
+    `Warning: Can't find an existing metadata line, so will insert a new second line for it`,
+    )
+    Editor.insertParagraph('', 1, 'empty')
+    lineNumber = 1
+  }
+  // console.log(`Metadata line = ${lineNumber}`)
+  return lineNumber
+}
+
+/**
+ * Remove all paragraphs in the section of a note, given:
+ * - Note to use
+ * - Section heading line to look for (needs to match from start of line but not necessarily the end)
+ * A section is defined (here at least) as all the lines between the heading,
+ * and the next heading of that same or higher level, or the end of the file 
+ * if that's sooner.
+ * @author @jgclark
+ * 
+ * @param {TNote} note to use
+ * @param {string} heading to remove
+ * @return {number} lineIndex of the found heading, or if not found the last line of the note
+ */
+export function removeSection(note: TNote, heading: string): number {
+  const ps = note.paragraphs
+  let existingHeadingIndex = ps.length // start at end of file
+  let sectionHeadingLevel = 2
+  console.log(
+    `\tremoveSection: '${heading}' from note '${note.title ?? ''}' with ${ps.length} paras:`,
+  )
+
+  for (const p of ps) {
+    if (p.type === 'title' && p.content.startsWith(heading)) {
+      existingHeadingIndex = p.lineIndex
+      sectionHeadingLevel = p.headingLevel
+    }
+  }
+
+  if (existingHeadingIndex !== undefined && existingHeadingIndex < ps.length) {
+    // Work out the set of paragraphs to remove
+    const psToRemove = []
+    note.removeParagraph(ps[existingHeadingIndex])
+    for (let i = existingHeadingIndex + 1; i < ps.length; i++) {
+      // stop removing when we reach heading of same or higher level
+      if (ps[i].type === 'title' && ps[i].headingLevel <= sectionHeadingLevel) {
+        break
+      }
+      psToRemove.push(ps[i])
+    }
+
+    // Delete the saved set of paragraphs
+    note.removeParagraphs(psToRemove)
+    console.log(`\t  -> removed ${psToRemove.length} paragraphs`)
+    return existingHeadingIndex
+  } else {
+    return ps.length
+  }
 }
