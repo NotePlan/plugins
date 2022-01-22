@@ -26,7 +26,7 @@
 		{
 			"name": "complete project",
 			"alias": ["gtd", "complete"],
-			"description": "add @completed(today) date to the open project",
+			"description": "add @completed(today) date to the open project, adds note to a yearly note in Summaries folder (if the folder exists), and offers to move the note to the NotePlan Archive",
 			"jsFunction": "completeProject"
 		},
 		{

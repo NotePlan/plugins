@@ -4,7 +4,7 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 ## [0.5.2] - 2022-01-21
 ### Added
 - progress indicator when running longer commands
-- `/completeProject` now also adds note to a yearly note in Summaries folder (if the folder exists)
+- `/complete project` now also adds note to a yearly note in Summaries folder (if the folder exists), and offers to move the note to the NotePlan Archive.
 
 ## [0.5.1] - 2022-01-03
 ### Changed
