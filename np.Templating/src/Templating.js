@@ -6,72 +6,63 @@
  * -----------------------------------------------------------------------------------------*/
 
 import NPTemplating from 'NPTemplating'
-import { DEFAULT_TEMPLATE_CONFIG } from 'NPTemplating'
+import { getTemplateFolder, getTemplateList } from 'NPTemplating'
 
-import { showMessage, chooseOption, getInput } from '@helpers/userInput'
-import { getOrMakeTemplateFolder, getConfiguration, getOrMakeConfigurationSection } from '@templating/toolbox'
+import { chooseOption } from '@helpers/userInput'
 import { getAffirmation } from '../lib/support/modules/affirmation'
 import { getAdvice } from '../lib/support/modules/advice'
 import { getWeather } from '../lib/support/modules/weather'
 import { getDailyQuote } from '../lib/support/modules/quote'
 import { getVerse, getVersePlain } from '../lib/support/modules/verse'
+import { migrateConfiguration } from '../../helpers/configuration'
+
+import pluginJson from '../plugin.json'
 
 export async function onUpdateOrInstall(): Promise<void> {
-  console.log('onUpdateOrInstall: ')
   try {
-    const configurationSectionName = 'templates'
-
-    const currentSettingsData = DataStore.loadJSON('../np.Templating/settings.json')
-    if (!currentSettingsData && NotePlan.environment.hasSettings && NotePlan.environment.platform === 'macOS') {
-      const settingsData = DataStore.settings // initialize settings from plugin.json:plugin.settings
-      // await NotePlan.showConfigurationView()
-      CommandBar.prompt('NotePlan', 'showConfigurationView here (dialog currently freezes)')
-
-      // get _configuration
-      const config = await getConfiguration()
-
-      // update default values
-      settingsData.templateFolderName = '📋 Templates'
-      settingsData.templateLocale = DEFAULT_TEMPLATE_CONFIG.templateLocale
-      settingsData.userFirstName = config?.tagValue?.me?.firstName || DEFAULT_TEMPLATE_CONFIG.userFirstName
-      settingsData.userLastName = config?.tagValue?.me?.lastName || DEFAULT_TEMPLATE_CONFIG.userLastName
-      settingsData.userEmail = DEFAULT_TEMPLATE_CONFIG.userEmail
-      settingsData.userPhone = DEFAULT_TEMPLATE_CONFIG.userPhone
-      settingsData.dateFormat = config?.date.dateStyle || DEFAULT_TEMPLATE_CONFIG.dateFormat
-      settingsData.timeFormat = config?.date.timeStyle || DEFAULT_TEMPLATE_CONFIG.timeFormat
-      settingsData.nowFormat = DEFAULT_TEMPLATE_CONFIG.nowFormat
-      settingsData.services = { ...DEFAULT_TEMPLATE_CONFIG.services }
-      // update plugin settings
-      DataStore.settings = settingsData
-
-      // clear _configuration template configuration block
+    // get current plugin settings
+    const pluginSettingData = DataStore.loadJSON('../np.Templating/settings.json')
+    if (!pluginSettingData) {
+      const configurationData = await migrateConfiguration('templates', pluginJson)
+      if (configurationData) {
+        DataStore.settings = { ...configurationData }
+      }
     }
+
+    // this will be different for all plugins, you can do whatever you wish to configuration
+    const templateConfig = await NPTemplating.updateOrInstall(DataStore.settings, pluginJson['plugin.version'])
+
+    DataStore.settings = { ...templateConfig }
+
+    // if settings don't exists, show settings configuration to allow users ability to customize
+    if (!pluginSettingData) {
+      // await NotePlan.showConfigurationView()
+      CommandBar.prompt(
+        'NotePlan',
+        'NotePlan.showConfigurationView() here\n\nNote: as of Version 3.3.2 (727) dialog freezes when displayed',
+      )
+    }
+
+    // clear _configuration template configuration block
   } catch (error) {
     console.log(error)
   }
 }
 
 export async function templateInit(): Promise<void> {
-  await getOrMakeTemplateFolder()
+  CommandBar.prompt('Template Error', 'An error occurred executing `templateInit`.')
 }
 
 export async function templateInsert(): Promise<void> {
-  if (Editor == null) {
-    await showMessage('Open desired note you wish to insert template')
+  if (!Editor.content) {
+    await CommandBar.prompt(
+      'Template Error',
+      'You must have a Project Note or Calendar Note opened where you wish to insert template.',
+    )
     return
   }
 
-  const templateFolder = await getOrMakeTemplateFolder()
-  if (templateFolder == null) {
-    await showMessage('An error occured locating 📋 Templates folder')
-    return
-  }
-
-  const options = DataStore.projectNotes
-    .filter((n) => n.filename?.startsWith(templateFolder))
-    .filter((n) => !n.title?.startsWith('_configuration'))
-    .map((note) => (note.title == null ? null : { label: note.title, value: note }))
-    .filter(Boolean)
+  const options = await getTemplateList()
 
   const selectedTemplate = await chooseOption<TNote, void>('Choose Template', options)
 
@@ -83,24 +74,17 @@ export async function templateInsert(): Promise<void> {
 }
 
 export async function templateAppend(): Promise<void> {
-  if (Editor == null) {
-    await showMessage('Open desired note you wish to insert template')
+  if (!Editor.content) {
+    await CommandBar.prompt(
+      'Template Notice',
+      'You must have a Project Note or Calendar Note opened where you wish to append template.',
+    )
     return
   }
 
   const content: string = Editor.content || ''
 
-  const templateFolder = await getOrMakeTemplateFolder()
-  if (templateFolder == null) {
-    await showMessage('An error occurred locating 📋 Templates folder')
-    return
-  }
-
-  const options = DataStore.projectNotes
-    .filter((n) => n.filename?.startsWith(templateFolder))
-    .filter((n) => !n.title?.startsWith('_configuration'))
-    .map((note) => (note.title == null ? null : { label: note.title, value: note }))
-    .filter(Boolean)
+  const options = await getTemplateList()
 
   const selectedTemplate = await chooseOption<TNote, void>('Choose Template', options)
 
@@ -113,7 +97,10 @@ export async function templateAppend(): Promise<void> {
 }
 
 export async function templateNew(): Promise<void> {
-  const title = await getInput('Enter title of the new note', "Create a new note with title '%@'")
+  const title = await CommandBar.textPrompt('Enter New Note Title', '', '').toString()
+  if (!title) {
+    return
+  }
 
   const folderList = await DataStore.folders.slice().sort()
 
@@ -125,11 +112,6 @@ export async function templateNew(): Promise<void> {
     })),
     '/',
   )
-
-  if (!title) {
-    await showMessage('Cannot create a note with an empty title')
-    return
-  }
 
   const startWithTemplate = await chooseOption(
     'Do you want to get started with a template?',
@@ -155,17 +137,7 @@ export async function templateNew(): Promise<void> {
 }
 
 export async function selectTemplate(): Promise<string> {
-  const templateFolder = await getOrMakeTemplateFolder()
-  if (templateFolder == null) {
-    await showMessage('An error occured locating 📋 Templates folder')
-    return ''
-  }
-
-  const options = DataStore.projectNotes
-    .filter((n) => n.filename?.startsWith(templateFolder))
-    .filter((n) => !n.title?.startsWith('_configuration'))
-    .map((note) => (note.title == null ? null : { label: note.title, value: note }))
-    .filter(Boolean)
+  const options = await getTemplateList()
 
   const selectedTemplate = await chooseOption<TNote, void>('Choose Template', options)
 

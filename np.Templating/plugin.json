@@ -3,7 +3,7 @@
   "noteplan.minAppVersion": "3.3.2",
   "plugin.id": "np.Templating",
   "plugin.name": " 📒 np.Templating",
-  "plugin.version": "0.0.1 beta 185",
+  "plugin.version": "0.0.186",
   "plugin.description": "Templating Plugin for NotePlan",
   "plugin.author": "Mike Erickson",
   "plugin.dependencies": [],
@@ -83,10 +83,10 @@
       "jsFunction": "templateWeather"
     },
     {
-      "name": "np:migrate",
+      "name": "np:update",
       "alias": [],
-      "description": "Run np.Templating Setting Migration",
-      "jsFunction": "migrate"
+      "description": "Run np.Templating Setting",
+      "jsFunction": "onUpdateOrInstall"
     }
   ],
   "plugin.settings": [
@@ -173,9 +173,9 @@
       "required": false
     },
     {
-      "key": "testBool",
-      "title": "Boolean",
-      "description": "Testing Boolean",
+      "key": "stopOnError",
+      "title": "Stop Rendering On Error",
+      "description": "Stop rendering template when errors occur",
       "type": "bool",
       "default": true
     },
@@ -185,14 +185,6 @@
       "description": "Configuration for Services which can be referenced using <% web.service() %> method",
       "type": "json",
       "required": false
-    },
-    {
-      "key": "testAdd",
-      "title": "Test Add",
-      "description": "Add after the fact",
-      "type": "string",
-      "default": "Hello World",
-      "required": true
     }
   ]
 }

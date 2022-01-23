@@ -155,7 +155,9 @@ export default class DateModule {
   isWeekend(pivotDate = '') {
     let localeDate = new Date().toLocaleString()
     if (pivotDate.length > 0 && pivotDate.length === 10) {
-      localeDate = new Date(pivotDate + ' 12:00 AM')
+      // coerce date format to YYYY-MM-DD (might come in as MM/DD/YYYY)
+      const formattedDate = moment(pivotDate).format('YYYY-MM-DD')
+      localeDate = this.createDateTime(formattedDate)
     }
 
     const day = new Date(new Date(localeDate).toLocaleString()).getDay()

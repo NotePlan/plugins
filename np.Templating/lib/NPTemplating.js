@@ -5,12 +5,10 @@
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
  * -----------------------------------------------------------------------------------------*/
 
-import { showError } from '../../codedungeon.Tester/src/lib/testerUtils'
 import FrontmatterModule from './support/modules/FrontmatterModule'
 
 /*eslint-disable */
 import TemplatingEngine from './TemplatingEngine'
-import { alert, getConfiguration, getOrMakeConfigurationSection } from './toolbox'
 
 const TEMPLATE_FOLDER_NAME = '📋 Templates'
 
@@ -30,10 +28,10 @@ export const DEFAULT_TEMPLATE_CONFIG = {
   dateFormat: 'YYYY-MM-DD',
   timeFormat: 'h:mm A',
   nowFormat: 'YYYY-MM-DD h:mm:ss A',
-  userFirstName: 'User First',
-  userLastName: 'User Last',
-  userEmail: 'User Email',
-  userPhone: 'User Phone',
+  userFirstName: 'John',
+  userLastName: 'Doe',
+  userEmail: 'john.doe@gmail.com',
+  userPhone: '(714) 555-1212',
   services: {
     affirmation: 'https://affirmations.dev',
     quote: {
@@ -42,6 +40,19 @@ export const DEFAULT_TEMPLATE_CONFIG = {
     },
   },
 }
+
+type TemplateConfig = $ReadOnly<{
+  templateFolderName: string,
+  templateLocale?: string,
+  userFirstName?: string,
+  userLastName?: string,
+  userEmail?: string,
+  userPhone?: string,
+  dateFormat?: string,
+  timeFormat?: string,
+  nowFormat?: boolean,
+  services?: mixed,
+}>
 
 export async function getDefaultTemplateConfig(): any {
   return DEFAULT_TEMPLATE_CONFIG
@@ -87,20 +98,25 @@ export async function TEMPLATE_CONFIG_BLOCK(): Promise<string> {
   `
 }
 
-export async function getTemplateFolder(): Promise<string> {
-  try {
-    const templateConfig = await getConfiguration()
-
-    let templateFolderName: string = templateConfig?.templates?.templateFolderName || TEMPLATE_FOLDER_NAME
-    if (templateFolderName.length === 0) {
-      templateFolderName = TEMPLATE_FOLDER_NAME
-    }
-
-    return templateFolderName
-    // return DataStore.folders.find((f) => f.includes(templateFolderName)) || ''
-  } catch (error) {
-    console.log(error)
+export async function getTemplateList(): Promise<any> {
+  const templateFolder = await getTemplateFolder()
+  if (templateFolder == null) {
+    await CommandBar.prompt('np.Templating', 'An error occurred locating 📋 Templates folder')
+    return
   }
+
+  const options = DataStore.projectNotes
+    .filter((n) => n.filename?.startsWith(templateFolder))
+    .filter((n) => !n.title?.startsWith('_configuration'))
+    .map((note) => (note.title == null ? null : { label: note.title, value: note }))
+    .filter(Boolean)
+
+  return options
+}
+
+export async function getTemplateFolder(): Promise<string> {
+  const pluginSettingData = DataStore.loadJSON('../np.Templating/settings.json')
+  return pluginSettingData.templateFolderName
 }
 
 export default class NPTemplating {
@@ -108,6 +124,16 @@ export default class NPTemplating {
   constructor() {
     // DON'T DELETE
     // constructor method required to access instance config (see setup method)
+  }
+
+  static async updateOrInstall(currentSettings: any, currentVersion: string): Promise<TemplateConfig> {
+    const settingsData = { ...currentSettings }
+
+    // TODO: Add any templating setting migration here
+
+    console.log(currentVersion)
+    // $FlowIgnore
+    return settingsData
   }
 
   static async setup() {
@@ -123,7 +149,7 @@ export default class NPTemplating {
         ...{ selection: await selection(), clipboard: Clipboard.string },
       }
     } catch (error) {
-      showError('NPTemplating.setup', error)
+      CommandBar.prompt('Template Error', error)
     }
   }
 
@@ -180,7 +206,7 @@ export default class NPTemplating {
 
       // template not found
       if (!selectedTemplate) {
-        alert(`Unable to locate ${originalFilename}`)
+        CommandBar.prompt('Template Error', `Unable to locate ${originalFilename}`)
       }
 
       let templateContent = selectedTemplate?.content || ''

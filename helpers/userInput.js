@@ -1,13 +1,10 @@
 // @flow
-//--------------------------------------------------------------------------------------------------------------------
-// Specialised user input functions
-// @jgclark, @nmn
-// Last updated 29.8.2021
-//--------------------------------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+// Specialized user input functions
 
 import json5 from 'json5'
-import { calcSmartPrependPoint } from './paragraph'
 import { RE_DATE, RE_DATE_INTERVAL } from './dateTime'
+import { calcSmartPrependPoint, findEndOfActivePartOfNote } from './paragraph'
 
 // NB: This fn is a local copy from helpers/general.js, to avoid a circular dependency
 async function parseJSON5(contents: string): Promise<?{ [string]: ?mixed }> {
@@ -28,7 +25,7 @@ export type Option<T> = $ReadOnly<{
 }>
 
 /**
- * ask user to choose from a set of options (from nmn.sweep)
+ * Ask user to choose from a set of options (from nmn.sweep) using CommandBar
  * @author @nmn
  * @param {string} message - text to display to user
  * @param {Array<T>} options - array of label:value options to present to the user
@@ -41,16 +38,14 @@ export async function chooseOption<T, TDefault = T>(
   defaultValue: TDefault,
 ): Promise<T | TDefault> {
   const { index } = await CommandBar.showOptions(
-    options.map((option) => {
-      return option.hasOwnProperty('label') ? option.label : 'missing label'
-    }),
+    options.map((option) => option.label),
     message,
   )
   return options[index]?.value ?? defaultValue
 }
 
 /**
- * ask user to give arbitary input (from nmn.sweep)
+ * Ask user to give arbitrary input (from nmn.sweep) using CommandBar
  * @author @nmn
  * @param {string} message - text to display to user
  * @param {string} okLabel - the "button" (option) text (default: 'OK')
@@ -71,9 +66,9 @@ export async function showMessage(message: string, confirmTitle: string = 'OK'):
 }
 
 /**
- * Helper function to show a simple yes/no (could be OK/Cancel, etc.) dialog using CommandBar
+ * Show a simple yes/no (could be OK/Cancel, etc.) dialog using CommandBar
  * @param {string} message - text to display to user
- * @param {Array<string>} - an array of the choices to give (default: ['Yes', 'No'])
+ * @param {Array<string>} choicesArray - an array of the choices to give (default: ['Yes', 'No'])
  * @returns {string} - returns the user's choice - the actual *text* choice from the input array provided
  */
 export async function showMessageYesNo(message: string, choicesArray: Array<string> = ['Yes', 'No']): Promise<string> {
@@ -84,14 +79,14 @@ export async function showMessageYesNo(message: string, choicesArray: Array<stri
 /**
  * Let user pick from a nicely-indented list of available folders (or return / for root)
  * @author @jgclark
- * @param {string} message - text to display to user
+ * @param {string} msg - text to display to user
+ * @param {boolean} includeArchive - include archive or not
  * @returns {string} - returns the user's folder choice (or / for root)
  */
 export async function chooseFolder(msg: string, includeArchive: boolean = false): Promise<string> {
   let folder: string
-  const folders = DataStore.folders // excludes Trash and Archive
+  const folders = DataStore.folders.slice() // excludes Trash and Archive
   if (includeArchive) {
-    // $FlowFixMe
     folders.push('@Archive')
   }
   if (folders.length > 0) {
@@ -121,7 +116,8 @@ export async function chooseFolder(msg: string, includeArchive: boolean = false)
   return folder
 }
 
-/** ask user to select a heading from those in a given note
+/**
+ * Ask user to select a heading from those in a given note
  * @author @jgclark
  * @param {TNote} note - note to draw headings from
  * @param {boolean} optionAddAtBottom - whether to add '(top of note)' and '(bottom of note)' options. Default: true
@@ -132,9 +128,15 @@ export async function chooseHeading(
   note: TNote,
   optionAddAtBottom: boolean = true,
   optionCreateNewHeading: boolean = false,
+  includeArchive: boolean = false,
 ): Promise<string> {
   let headingStrings = []
-  const headingParas = note.paragraphs.filter((p) => p.type === 'title') // = all headings, not just the top 'title'
+  // Decide whether to include all headings in note, or just those in the first
+  // before the Done/Cancelled section
+  const indexEndOfActive = findEndOfActivePartOfNote(note)
+  const headingParas = includeArchive
+    ? note.paragraphs.filter((p) => p.type === 'title') // = all headings, not just the top 'title'
+    : note.paragraphs.filter((p) => p.type === 'title' && p.lineIndex < indexEndOfActive)
   if (headingParas.length > 0) {
     headingStrings = headingParas.map((p) => {
       let prefix = ''
@@ -158,7 +160,8 @@ export async function chooseHeading(
   }
   const result = await CommandBar.showOptions(
     headingStrings,
-    `Select a heading from note '${note.title ?? 'Untitled'}'`,
+    `Select a heading
+     from note '${note.title ?? 'Untitled'}'`,
   )
   let headingToFind = headingStrings[result.index].trim()
   if (headingToFind === '➕ ⬆️ (first insert new heading at the start of the note)') {
@@ -181,7 +184,7 @@ export async function chooseHeading(
 }
 
 /**
- * ask for a date interval from user
+ * Ask for a date interval from user, using CommandBar
  * @author @jgclark
  * @param {string} dateParams - given parameters -- currently only looks for {question:'question test'} parameter
  * @return {string} - the returned interval string, or empty if an invalid string given
@@ -215,13 +218,12 @@ export async function askDateInterval(dateParams: string): Promise<string> {
 }
 
 /**
- * NOT CURRENTLY USED, I THINK
- * ask for a date from user (very simple: they need to enter an ISO date)
+ * Ask for a date from user (very simple: they need to enter an ISO date).
+ * TODO: in time @EduardMe should produce a native API call that can improve this.
  * @author @jgclark
  * @param {string} question - string to put in the command bar
  * @return {string} - the returned ISO date as a string, or empty if an invalid string given
  */
-// NB: in time @EduardMe should produce a native API call that can improve this
 export async function askForFutureISODate(question: string): Promise<string> {
   // console.log(`askForFutureISODate():`)
   const reply = (await CommandBar.showInput(question, `Date (YYYY-MM-DD): %@`)) ?? ''
@@ -234,7 +236,8 @@ export async function askForFutureISODate(question: string): Promise<string> {
 }
 
 /**
- * ask for a date from user (very simple: they need to enter an ISO date)
+ * Ask for a date from user (very simple: they need to enter an ISO date)
+ * TODO: in time @EduardMe should produce a native API call that can improve this.
  * @author @jgclark, based on @nmn code
  * @param {string} dateParams - given parameters -- currently only looks for {question:'question test'} parameter
  * @param {[string]: ?mixed} config - relevant settings from _configuration note
@@ -250,7 +253,7 @@ export async function datePicker(dateParams: string, config: { [string]: ?mixed 
       : dateParamsTrimmed !== ''
       ? await parseJSON5(`{${dateParams}}`)
       : {}
-  // $FlowFixMe
+  // $FlowIgnore[incompatible-type] -- TODO: Is there a @dwertheimer function that can help here?
   console.log(`param config: ${dateParams} as ${JSON.stringify(paramConfig)}`)
   // ... = "gather the remaining parameters into an array"
   const allSettings: { [string]: mixed } = {
@@ -278,29 +281,15 @@ export async function datePicker(dateParams: string, config: { [string]: ?mixed 
   return reply2
 }
 
-// test for integer
-// taken from https://stackoverflow.com/questions/14636536/how-to-check-if-a-variable-is-an-integer-in-javascript
-// @jgclark
-export function isInt(value: string): boolean {
-  const x = parseFloat(value)
-  return !isNaN(value) && (x | 0) === x
-}
-
-// ask for a (floating point) number from user
+/**
+ * Ask for a (floating point) number from user
+ * @author @jgclark and @m1well
+ * @param question question for the CommandBar
+ * @returns {Promise<number|*>} returns integer or NaN
+ */
 export async function inputInteger(question: string): Promise<number> {
   const reply = await CommandBar.showInput(question, `Answer: %@`)
   if (reply != null && isInt(reply)) {
-    return Number(reply)
-  } else {
-    console.log(`\tERROR trying to get number answer for question '${question}'`)
-    return NaN
-  }
-}
-
-// ask for an integer from user
-export async function inputNumber(question: string): Promise<number> {
-  const reply = await CommandBar.showInput(question, `Answer: %@`)
-  if (reply != null && Number(reply)) {
     return Number(reply)
   } else {
     console.log(`\tERROR trying to get integer answer for question '${question}'`)
@@ -309,18 +298,91 @@ export async function inputNumber(question: string): Promise<number> {
 }
 
 /**
- * ask user to choose a mood
+ * Test for integer
+ * Method taken from https://stackoverflow.com/questions/14636536/how-to-check-if-a-variable-is-an-integer-in-javascript
+ * @author @jgclark
+ * @param {string} value - input value to check
+ * @result {boolean}
+ */
+export function isInt(value: string): boolean {
+  const x = parseFloat(value)
+  return !isNaN(value) && (x | 0) === x
+}
+
+/**
+ * Ask for an integer from user
+ * @author @jgclark
+ * @param question question for the CommandBar
+ * @returns {Promise<number|*>} returns number or NaN
+ */
+export async function inputNumber(question: string): Promise<number> {
+  const reply = await CommandBar.showInput(question, `Answer: %@`)
+  if (reply != null && Number(reply)) {
+    return Number(reply)
+  } else {
+    console.log(`\tERROR trying to get number answer for question '${question}'`)
+    return NaN
+  }
+}
+
+/**
+ * Ask user to choose a mood
  * @author @jgclark
  * @param {Array<string>} moodArray - list of moods to pick from
  * @return {string} - selected mood
  */
-// $FlowFixMe
+// FlowFixMe
 export async function inputMood(moodArray: Array<string>): Promise<string> {
   const reply = await CommandBar.showOptions(moodArray, `Please choose appropriate mood`)
-  const replyMood = moodArray[reply.index]
-  if (replyMood != null && replyMood !== '') {
-    return replyMood
-  } else {
-    console.log('\tERROR trying to get mood answer')
+  const replyMood = moodArray[reply.index] ?? '<error>'
+  return replyMood
+}
+
+/**
+ * Get user input, trimmed at both ends
+ * @author @m1well
+ *
+ * @param placeholder value to display a question
+ * @param submitText describe what happens with the input
+ * @returns {Promise<string>} value input from the user
+ */
+export const getInputTrimmed = async (placeholder: string, submitText: string): Promise<string> => {
+  const reply = await CommandBar.showInput(placeholder, submitText)
+  return reply.trim()
+}
+
+/**
+ * Ask one question and get a flexible amount of answers from the user. either he reached
+ * the maximum answer amount, or he leaves the input empty - of course you can set a
+ * minimum amount so that the user have to input an answer (e.g. at least once)
+ * @example `await multipleInputAnswersAsArray('What went well last week', 'Leave empty to finish answers', true, 1, 3)`
+ * @author @m1well
+ *
+ * @param question question as input placeholder
+ * @param submit submit text
+ * @param showCounter show counter as placeholder - e.g.: "what went well last week (1/3)",
+ *                                                        "what went well last week (2/3)",
+ *                                                        "what went well last week (3/3)"
+ * @param minAnswers minimum amount of answers the user has to type in (optional)
+ * @param maxAnswers maximum amount of answers the user could type in (optional)
+ * @returns {Promise<string[]>} all the answers as an array
+ */
+export const multipleInputAnswersAsArray = async (
+  question: string,
+  submit: string,
+  showCounter: boolean,
+  minAnswers: number = 0,
+  maxAnswers?: number,
+): Promise<string[]> => {
+  let input = '-'
+  const answers = []
+
+  while ((maxAnswers ? answers.length < maxAnswers : true) && (input || answers.length < minAnswers)) {
+    const placeholder = maxAnswers && showCounter ? `${question} (${answers.length + 1}/${maxAnswers})` : question
+    input = await CommandBar.showInput(placeholder, submit)
+    if (input) {
+      answers.push(input.trim())
+    }
   }
+  return answers
 }

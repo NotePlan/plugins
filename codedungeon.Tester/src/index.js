@@ -1,5 +1,8 @@
 // @flow
 
+// including so rollup will trigger build when plugin.json is modified
+import pluginJson from '../plugin.json'
+
 export { testerHeartbeat } from './cdTester'
 
 // np.Templating

@@ -555,7 +555,7 @@ type TCommandBar = {
    * @param {String}
    * @param {[String]?}
    */
-  prompt(title: string, message: string, buttons?: $ReadOnlyArray<string>): Promise<number>,
+  prompt(title: string, message?: string, buttons?: $ReadOnlyArray<string>): Promise<number>,
 
   /**
    * Note: Available from v3.3.2
@@ -568,7 +568,7 @@ type TCommandBar = {
    * @param {String?}
    * @param {String?}
    */
-  textPrompt(title: string, message: string, defaultValue: string): Promise<string | boolean>,
+  textPrompt(title: string, message?: string, defaultValue?: string): Promise<string | boolean>,
 }
 
 /**

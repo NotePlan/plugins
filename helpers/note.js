@@ -17,21 +17,17 @@ export function printNote(note: TNote): void {
 
   if (note.type === 'Notes') {
     console.log(
-      `title: ${note.title ?? ''}\n\tfilename: ${
-        note.filename ?? ''
-      }\n\tcreated: ${String(note.createdDate) ?? ''}\n\tchanged: ${
-        String(note.changedDate) ?? ''
-      }\n\thashtags: ${note.hashtags?.join(',') ?? ''}\n\tmentions: ${
+      `title: ${note.title ?? ''}\n\tfilename: ${note.filename ?? ''}\n\tcreated: ${
+        String(note.createdDate) ?? ''
+      }\n\tchanged: ${String(note.changedDate) ?? ''}\n\thashtags: ${note.hashtags?.join(',') ?? ''}\n\tmentions: ${
         note.mentions?.join(',') ?? ''
       }`,
     )
   } else {
     console.log(
-      `filename: ${note.filename ?? ''}\n\tcreated: ${
-        String(note.createdDate) ?? ''
-      }\n\tchanged: ${String(note.changedDate) ?? ''}\n\thashtags: ${
-        note.hashtags?.join(',') ?? ''
-      }\n\tmentions: ${note.mentions?.join(',') ?? ''}`,
+      `filename: ${note.filename ?? ''}\n\tcreated: ${String(note.createdDate) ?? ''}\n\tchanged: ${
+        String(note.changedDate) ?? ''
+      }\n\thashtags: ${note.hashtags?.join(',') ?? ''}\n\tmentions: ${note.mentions?.join(',') ?? ''}`,
     )
   }
 }
@@ -113,24 +109,18 @@ export function allNotesSortedByChanged(): Array<TNote> {
   const projectNotes = DataStore.projectNotes.slice()
   const calendarNotes = DataStore.calendarNotes.slice()
   const allNotes = projectNotes.concat(calendarNotes)
-  const allNotesSorted = allNotes.sort(
-    (first, second) => second.changedDate - first.changedDate,
-  ) // most recent first
+  const allNotesSorted = allNotes.sort((first, second) => second.changedDate - first.changedDate) // most recent first
   return allNotesSorted
 }
 
 // Return list of calendar notes, sorted by changed date (newest to oldest)
 export function calendarNotesSortedByChanged(): Array<TNote> {
-  return DataStore.calendarNotes
-    .slice()
-    .sort((first, second) => second.changedDate - first.changedDate)
+  return DataStore.calendarNotes.slice().sort((first, second) => second.changedDate - first.changedDate)
 }
 
 // Return list of project notes, sorted by changed date (newest to oldest)
 export function projectNotesSortedByChanged(): Array<TNote> {
-  return DataStore.projectNotes
-    .slice()
-    .sort((first, second) => second.changedDate - first.changedDate)
+  return DataStore.projectNotes.slice().sort((first, second) => second.changedDate - first.changedDate)
 }
 
 // Return list of project notes, sorted by title (ascending)
@@ -155,15 +145,11 @@ export function notesInFolderSortedByName(folder: string): Array<TNote> {
   let notesInFolder: Array<TNote>
   // If folder given (not empty) then filter using it
   if (folder !== '') {
-    notesInFolder = DataStore.projectNotes
-      .slice()
-      .filter((n) => getFolderFromFilename(n.filename) === folder)
+    notesInFolder = DataStore.projectNotes.slice().filter((n) => getFolderFromFilename(n.filename) === folder)
   } else {
     notesInFolder = DataStore.projectNotes.slice()
   }
   // Sort alphabetically on note's title
-  const notesSortedByName = notesInFolder.sort((first, second) =>
-    (first.title ?? '').localeCompare(second.title ?? ''),
-  )
+  const notesSortedByName = notesInFolder.sort((first, second) => (first.title ?? '').localeCompare(second.title ?? ''))
   return notesSortedByName
 }
