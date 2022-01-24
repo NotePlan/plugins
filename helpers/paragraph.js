@@ -290,11 +290,12 @@ export function getParaFromContent(note: TNote, contentToFind: string): TParagra
  * If these can't be found, then create a new line for this after the title line.
  * @author @jgclark
  * 
+ * @param {TNote} note to use
  * @return {number} the line number for the metadata line
  */
-export function getOrMakeMetadataLine(): number {
+export function getOrMakeMetadataLine(note: TNote): number {
   let lineNumber
-  const lines = Editor?.content?.split('\n') ?? ['']
+  const lines = note.content?.split('\n') ?? ['']
   for (let i = 1; i < lines.length; i++) {
     if (lines[i].match(/^project:/i)
       || lines[i].match(/^metadata:/i)

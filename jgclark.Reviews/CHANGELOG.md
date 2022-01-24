@@ -1,6 +1,15 @@
 # What's changed in 🔬 Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Review), and how to configure.
 
+## [0.6.0] - 2022-01-23
+### Added
+- new  `/cancel project` command that works analagously to the `/complete project` command
+- TODO: added new settings for these two commands. TODO: See README for details.
+### Changed
+- improved output of `/complete project` and `/cancel project` commands
+- re-factored code to make more re-usable
+- TODO: using new Settings framework (from NotePlan v3.4)
+
 ## [0.5.2] - 2022-01-21
 ### Added
 - progress indicator when running longer commands

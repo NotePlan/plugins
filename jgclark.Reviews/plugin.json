@@ -6,7 +6,7 @@
 	"plugin.icon": "",
 	"plugin.author": "Jonathan Clark",
 	"plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Review/",
-	"plugin.version": "0.5.2",
+	"plugin.version": "0.6.0",
 	"plugin.dependencies": [],
 	"plugin.script": "script.js",
 	"plugin.isRemote": "false",
@@ -24,12 +24,6 @@
 			"jsFunction": "startReviews"
 		},
 		{
-			"name": "complete project",
-			"alias": ["gtd", "complete"],
-			"description": "add @completed(today) date to the open project, adds note to a yearly note in Summaries folder (if the folder exists), and offers to move the note to the NotePlan Archive",
-			"jsFunction": "completeProject"
-		},
-		{
 			"name": "finish project review",
 			"alias": ["gtd", "reviewed"],
 			"description": "updates the current open project's @reviewed() date",
@@ -40,6 +34,18 @@
 			"alias": ["gtd", "review"],
 			"description": "updates this project's @reviewed() date, and jump to next project to review",
 			"jsFunction": "nextReview"
+		},
+		{
+			"name": "complete project",
+			"alias": ["gtd", "complete", "project"],
+			"description": "add @completed(date) to the open project note, adds its details to a yearly note in Summaries folder (if the folder exists), and offers to move the note to the NotePlan Archive",
+			"jsFunction": "completeProject"
+		},
+		{
+			"name": "cancel project",
+			"alias": ["gtd", "cancel", "project"],
+			"description": "add @cancelled(date) date to the open project note, adds its details to a yearly note in Summaries folder (if the folder exists), and offers to move the note to the NotePlan Archive",
+			"jsFunction": "cancelProject"
 		}
 	],
 	"plugin.settings": [

@@ -23,8 +23,10 @@ The other fields I use are:
 - `@reviewed(YYYY-MM-DD)`: last time this project was reviewed, using this plugin
 - `@start(YYY-MM-DD)`: project's start date
 - `@due(YYY-MM-DD)`: project's due date
+- `@completed(YYY-MM-DD)`: date project was completed (if relevant)
+- `@cancelled(YYY-MM-DD)`: date project was cancelled (if relevant)
 
-Similarly, if you follow the PARA method, then you will also have "**Areas** of responsibility" to maintain, and I use a `#area` tag to mark these. These don't normally have a start or end date, but they also need reviewing.  For example:
+Similarly, if you follow the PARA method, then you will also have "**Areas** of responsibility" to maintain, and I use a `#area` tag to mark these. These don't normally have a start/end/completed dates, but they also need reviewing.  For example:
 
 ```markdown
 # Car maintenance
@@ -69,7 +71,10 @@ This updates the current open project's @reviewed() date.
 This updates this project's @reviewed() date, and jumps to the next project to review. If there are none left ready for review it will show a congratulations message.
 
 ### `/completeProject`
-This add an #archive tag, and a @completed(date) mention to the metadata line (by default line 2) of the open project note, removes the project/area from the review list, and offers to move it to the NotePlan Archive area.
+This add an #archive tag, and a @completed(date) mention to the metadata line of the open project note, removes the project/area from the review list, and offers to move it to the NotePlan Archive area.
+
+### `/cancelProject`
+This add an #archive tag, and a @cancelled(date) mention to the metadata line of the open project note, removes the project/area from the review list, and offers to move it to the NotePlan Archive area.
 
 ## Configuration
 These commands require configuration.

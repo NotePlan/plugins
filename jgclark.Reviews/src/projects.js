@@ -3,12 +3,13 @@
 //-----------------------------------------------------------------------------
 // Commands for working with Project and Area notes, seen in NotePlan notes.
 // by @jgclark
-// Last updated 21.1.2022 for v0.5.2, @jgclark
+// Last updated 22.1.2022 for v0.5.3, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
 // Import Helper functions
 import { updateReviewListAfterReview } from './reviews'
+import { Project } from './reviewHelpers'
 import { hyphenatedDateString } from '../../helpers/dateTime'
 import { getFolderFromFilename } from '../../helpers/folders'
 import {
@@ -25,8 +26,17 @@ import { insertNamedTemplate } from '../../nmn.Templates/src/index'
 import { getOverlappingDaysInIntervals } from 'date-fns'
 
 //-------------------------------------------------------------------------------
+
+// TODO: make proper settings
+const completedMentionString = '@completed'
+const pref_SummaryFolder = 'Summaries'
+const pref_finishedListHeading = 'Finished Projects/Areas'
+const thisYearStr = hyphenatedDateString(new Date()).substring(0, 4)
+
+//-------------------------------------------------------------------------------
+
 /**
- * Close a Project/Area note by
+ * Complete a Project/Area note by
  * - adding @completed(<today's date>) to the current note in the Editor
  * - add '#archive' flag to metadata line
  * - remove from this plugin's review list
@@ -35,10 +45,6 @@ import { getOverlappingDaysInIntervals } from 'date-fns'
  * @author @jgclark
  */
 export async function completeProject(): Promise<void> {
-  const completedMentionString = '@completed'
-  // TODO: make proper settings
-  const pref_SummaryFolder = 'Summaries'
-  const pref_completedListHeading = 'Completed Projects/Areas'
   // only proceed if we're in a valid Project note (with at least 2 lines)
   const { note, filename } = Editor
   if (note == null || note.type === 'Calendar' || Editor.paragraphs?.length < 2) {
@@ -46,45 +52,93 @@ export async function completeProject(): Promise<void> {
     return
   }
 
-  const todayStr = hyphenatedDateString(new Date())
-  const yearStr = todayStr.substring(0, 4)
-  const completedTodayString = `${completedMentionString}(${todayStr})`
-  const metadataLine = getOrMakeMetadataLine()
+  // Construct a Project class object from this note
+  const projectNote = new Project(note)
 
-  // add '#archive' and '@completed(date)' to note's default metadata line
-  console.log(`\twill append ${completedTodayString} string to line ${metadataLine}`)
-  const metadataPara = note.paragraphs[metadataLine]
-  if (metadataPara == null) {
+  // Then call the class' method to update its metadata
+  const res = projectNote.completeProject()
+
+  // If this has worked, then ...
+  if (res) {
+    // remove this note from the review list
+    await updateReviewListAfterReview(note)
+
+    // Now add to the Summary note for this year (if present)
+    if (DataStore.folders.includes('Summaries')) {
+      const lineToAdd = projectNote.detailedSummaryLine(true)
+      const summaryNote = await getOrMakeNote(thisYearStr, pref_SummaryFolder)
+      if (summaryNote != null) {
+        console.log(`Will add '${lineToAdd}' to note '${summaryNote.filename}'`)
+        summaryNote.addParagraphBelowHeadingTitle(
+          lineToAdd,
+          'text', // bullet character gets included in the passed in string
+          pref_finishedListHeading,
+          true, // append
+          true  // do create heading if not found already
+        )
+      }
+    }
+
+    // ... and finally ask whether to move it to the @Archive
+    if (filename != null &&
+      (await showMessageYesNo('Shall I move this completed note to the Archive?', ['Yes', 'No'])) === 'Yes') {
+      const newFilename = DataStore.moveNote(filename, '@Archive')
+    }
+  } else {
+    console.log(`Error: something has gone wrong in Completing this project note`)
+  }
+}
+
+/**
+ * Cancel a Project/Area note by
+ * - adding @cancelled(<today's date>) to the current note in the Editor
+ * - add '#archive' flag to metadata line
+ * - remove from this plugin's review list
+ * - add to a yearly 'Finished Projects' list in the Summaries folder (if present)
+ * - offer to move it to the @Archive
+ * @author @jgclark
+ */
+export async function cancelProject(): Promise<void> {
+  // only proceed if we're in a valid Project note (with at least 2 lines)
+  const { note, filename } = Editor
+  if (note == null || note.type === 'Calendar' || Editor.paragraphs?.length < 2) {
+    console.log(`Warning: not in a valid Project note.`)
     return
   }
-  const metaPara = metadataPara
-  metaPara.content = `#archive ${metaPara.content} ${completedTodayString}`
-  // send update to Editor
-  Editor.updateParagraph(metaPara)
 
-  // remove this note from the review list
-  await updateReviewListAfterReview(note)
+  // Construct a Project class object from this note
+  const projectNote = new Project(note)
 
-  // Now add to the Summary note for this year (if present)
-  if (DataStore.folders.includes('Summaries')) {
-    const lineToAdd = `${titleAsLink(note)} completed ${todayStr}`
-    const summaryNote = await getOrMakeNote(yearStr, pref_SummaryFolder)
-    if (summaryNote != null) {
-      console.log(`Will add '${lineToAdd}' to note '${summaryNote.filename}'`)
-      // FIXME(EduardMe): there's a bug in the API
-      summaryNote.addParagraphBelowHeadingTitle(
-        lineToAdd,
-        'list',
-        pref_completedListHeading,
-        true, // append
-        true  // do create heading if not found already
-      )
+  // Then call the class' method to update its metadata
+  const res = projectNote.cancelProject()
+
+  // If this has worked, then ...
+  if (res) {
+    // remove this note from the review list
+    await updateReviewListAfterReview(note)
+
+    // Now add to the Summary note for this year (if present)
+    if (DataStore.folders.includes('Summaries')) {
+      const lineToAdd = projectNote.detailedSummaryLine(true)
+      const summaryNote = await getOrMakeNote(thisYearStr, pref_SummaryFolder)
+      if (summaryNote != null) {
+        console.log(`Will add '${lineToAdd}' to note '${summaryNote.filename}'`)
+        summaryNote.addParagraphBelowHeadingTitle(
+          lineToAdd,
+          'text', // bullet character gets included in the passed in string
+          pref_finishedListHeading,
+          true, // append
+          true  // do create heading if not found already
+        )
+      }
     }
-  }
 
-  // Offer to move it to the @Archive
-  if (filename != null &&
-    (await showMessageYesNo('Shall I move this note to the Archive?', ['Yes', 'No'])) === 'Yes') {
-    const newFilename = DataStore.moveNote(filename, '@Archive')
+    // ... and finally ask whether to move it to the @Archive
+    if (filename != null &&
+      (await showMessageYesNo('Shall I move this cancelled note to the Archive?', ['Yes', 'No'])) === 'Yes') {
+      const newFilename = DataStore.moveNote(filename, '@Archive')
+    }
+  } else {
+    console.log(`Error: something has gone wrong in Cancelling this project note`)
   }
 }

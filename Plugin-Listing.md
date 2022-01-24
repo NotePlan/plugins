@@ -7,7 +7,8 @@
 | `Create Note From Calendar Event w/QuickTemplate` | creates a note from a calendar event | 🗓 Event Automations |
 | `apply template` | Choose a Template to apply (append) to the current Note | 🔩 Templates |
 | `atb - Create AutoTimeBlocks for >today's Tasks` | Read >today todos and insert them into today's calendar note as timeblocks | 🗓 Event Automations |
-| `complete project` | add @completed(today) date to the open project | 🔬Reviews |
+| `cancel project` | add @cancelled(date) date to the open project note, adds its details to a yearly note in Summaries folder (if the folder exists), and offers to move the note to the NotePlan Archive | 🔬Reviews |
+| `complete project` | add @completed(date) to the open project note, adds its details to a yearly note in Summaries folder (if the folder exists), and offers to move the note to the NotePlan Archive | 🔬Reviews |
 | `convertSelectionToHtml` | Convert current selection to HTML | 🧩 Codedungeon Toolbox |
 | `convertToHtml` | Convert current note to HTML | 🧩 Codedungeon Toolbox |
 | `convertToRtf` | Convert current note to RTF | 🧩 Codedungeon Toolbox |

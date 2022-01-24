@@ -300,7 +300,7 @@ async function makeNoteTypeSummary(noteTag: string): Promise<Array<string>> {
       }
       // iterate over this folder's notes, using Class functions
       for (const p of sortedProjects) {
-        outputArray.push(p.detailedSummaryLine())
+        outputArray.push(p.detailedSummaryLine(false))
       }
       noteCount += sortedProjects.length
     }
@@ -443,7 +443,7 @@ export async function finishReview(): Promise<?TNote> {
     return
   }
 
-  const metadataLineNum = getOrMakeMetadataLine()
+  const metadataLineNum = getOrMakeMetadataLine(Editor.note)
   let metadataPara: ?TParagraph
 
   // get list of @mentions
