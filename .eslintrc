@@ -58,6 +58,7 @@
     "no-unused-vars": "off",
     "import/order": "error",
     "no-useless-escape": "off",
+    "require-await": "error",
     "unused-imports/no-unused-imports": "error",
     "unused-imports/no-unused-vars": "off"
   },
