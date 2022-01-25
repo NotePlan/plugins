@@ -8,6 +8,7 @@ This plugin provides commands to help work with Calendars and Events:
 - `/process date offsets`: finds date offset patterns and turns them into due dates, based on date at start of section. (See [Templates for Dates](#template-for-dates) below for full details.)
 
 The first four of these have a number of [options described below](#configuration).
+See [Theme customisation](#theme-customisation) below for more on how to customise display of time blocks and events.
 ## Date Offsets
 This is best understood with a quick example:
 
@@ -61,16 +62,7 @@ This uses JSON5 format: ensure there are commas at the end of all that lines tha
 
 **Notes**:
 - **calendarToWriteTo**: the name of the calendar for `/time blocks to calendar` to write events to. Must be a writable calendar. If empty, then the default system calendar will be used.
-- **addEventID**: whether to add an `⏰event:ID` string when creating an event from a time block. This returns rather long strings (e.g. `⏰event:287B39C1-4D0A-46DC-BD72-84D79167EFDF`) and so you might want to use a theme option to shorten them until needed. For example, to hide the `event:ID` string until you move the cursor to the ⏰ marker, [customise your theme](https://help.noteplan.co/article/44-customize-themes) to add:
-```jsonc
-    "eventID": {
-      "regex": "(event:[A-F0-9-]{36})",
-      "matchPosition": 1,
-      "color": "#444444",
-      "isHiddenWithoutCursor": true,
-      "isRevealOnCursorRange": true
-     }
-```
+- **addEventID**: whether to add an `⏰event:ID` string when creating an event from a time block. This returns rather long strings (e.g. `⏰event:287B39C1-4D0A-46DC-BD72-84D79167EFDF`) and so you might want to use a theme option to shorten them until needed (details [below](#theme-customisation)).
 - **processedTagName**: if this is set, then this tag will get added on the end of the line with the time block, to show that it has been processed. Otherwise, next time this command is run, it will create another event. This can be used with or without addEventID.
 - **confirmEventCreation**: optional boolean tag to indicate whether to ask user to confirm each event to be created
 - **removeTimeBlocksWhenProcessed**: in `time blocks...` whether to remove time block after making an event from it
@@ -95,6 +87,27 @@ The `*|CAL|*`, `*|TITLE|*`, `*|START|*`, `*|END|*`, `*|NOTES|*` and `*|URL|*` ca
 You can also place  `{{listMatchingEvents()}}` in Templates in a similar way, and similar customisation is possible. However, it is defined in a different way, using the matches and template strings defined in the `_configuration` file's `addMatchingEvents` array, as shown above.
 
 NB: adding the `*|CAL|*` item to the template also triggers sorting the output list by calendar name and then time.
+
+## Theme Customisation
+NotePlan allows extensive [customisation of fonts and colours through its Themes](https://help.noteplan.co/article/44-customize-themes). It also supports doing more advanced highlighting using regex. To add **colour highlighting for time blocks**, add the following to your favourite theme's .json file:
+```jsonc
+"timeblocks": {
+  "regex": "(?:^\\s*(?:\\*(?!\\s+\\[[\\-\\>]\\])\\s+|\\-(?!\\h+\\[[\\-\\>]\\]\\s+)|[\\d+]\\.|\\#{1,5}\\s+))(?:\\[\\s\\]\\s+)?.*?\\s(((at|from)\\s+([0-2]?\\d|noon|midnight)(:[0-5]\\d)?(\\s?(AM?|am?|PM?|pm?)?)(\\s*(\\-|\\–|\\~|\\〜|to)\\s*([0-2]?\\d)(:[0-5]\\d)?(\\s*(AM?|am?|PM?|pm?)?))?|([0-2]?\\d|noon|midnight)(:[0-5]\\d)\\s*(AM?|am?|PM?|pm?)?(\\s*(\\-|\\–|\\~|\\〜|to)\\s*([0-2]?\\d|noon|midnight)(:[0-5]\\d)?(\\s*(AM?|am?|PM?|pm?)?)?)?))(?=\\s|$)",
+  "matchPosition": 1,
+  "color": "#CC4999"
+}
+```
+
+If you're adding event IDs through the `/time blocks to calendar` command, then you might want to **hide the long `event:ID` string until you move the cursor to the ⏰ marker**. To do this add the following:
+```jsonc
+"eventID": {
+  "regex": "(event:[A-F0-9-]{36})",
+  "matchPosition": 1,
+  "color": "#444444",
+  "isHiddenWithoutCursor": true,
+  "isRevealOnCursorRange": true
+ }
+```
 
 ## Changes
 Please see the [CHANGELOG](CHANGELOG.md).
