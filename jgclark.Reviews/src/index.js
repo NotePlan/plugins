@@ -7,7 +7,7 @@
 //-----------------------------------------------------------------------------
 
 export {
-  projectLists, startReviews, nextReview, completeReview,
+  projectLists, startReviews, nextReview, finishReview,
 } from './reviews'
 
 export {

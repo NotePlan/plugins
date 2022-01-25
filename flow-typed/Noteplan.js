@@ -1041,7 +1041,7 @@ declare var Clipboard: {
   availableType(fromTypes: $ReadOnlyArray<string>): ?string,
 }
 
-type ParagraphType = 'open' | 'done' | 'scheduled' | 'cancelled' | 'title' | 'quote' | 'list' | 'empty' | 'text'
+type ParagraphType = 'open' | 'done' | 'scheduled' | 'cancelled' | 'title' | 'quote' | 'list' | 'empty' | 'text' | 'code'
 
 declare var ParagraphBridge: TParagraphBridge
 type TParagraphBridge = {

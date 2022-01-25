@@ -10,7 +10,6 @@ import {
   gatherMatchingLines,
   getConfigSettings,
   getPeriodStartEndDates,
-  removeSection,
 } from './summaryHelpers'
 import type { SummariesConfig } from './summaryHelpers'
 import {
@@ -32,6 +31,9 @@ import {
   displayTitle,
   stringReplace,
 } from '../../helpers/general'
+import {
+  removeSection,
+} from '../../helpers/paragraph'
 import {
   showMessage,
   chooseOption,
