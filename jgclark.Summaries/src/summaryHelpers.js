@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Summary commands for notes
 // Jonathan Clark
-// Last updated 16.1.2022 for v0.5.0
+// Last updated 26.1.2022 for v0.5.0+
 //-----------------------------------------------------------------------------
 
 import {
@@ -21,17 +21,20 @@ import {
   calcOffsetDate,
   quarterStartEnd,
 } from '../../helpers/NPdateTime'
-import { trimAnyQuotes } from '../../helpers/dataManipulation'
+import {
+  castBooleanFromMixed,
+  castHeadingLevelFromMixed,
+  castNumberFromMixed,
+  castStringArrayFromMixed,
+  castStringFromMixed,
+  trimAnyQuotes,
+} from '../../helpers/dataManipulation'
 import { displayTitle } from '../../helpers/general'
 import { termInURL } from '../../helpers/paragraph'
 import {
   chooseOption,
   getInput
 } from '../../helpers/userInput'
-import {
-  castStringArrayFromMixed,
-  castStringFromMixed
-} from '../../m1well.Expenses/src/expensesHelper'
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 
 export const DEFAULT_SUMMARIES_CONFIG = `  summaries: {
@@ -85,99 +88,65 @@ export type SummariesConfig = {
 }
 
 /**
- * Cast boolean from the config mixed. Based on @m1well's config system.
- *
- * @param val the config mixed
- * @param key name of the property you want to cast
- * @returns {boolean} cast value
- */
-const castBooleanFromMixed = (val: { [string]: ?mixed }, key: string): boolean => {
-  return val.hasOwnProperty(key) ? ((val[key]: any): boolean) : false
-}
-
-/**
- * Cast number from the config mixed. Based on @m1well's config system.
- *
- * @param val the config mixed
- * @param key name of the property you want to cast
- * @returns {number} cast value
- */
-const castNumberFromMixed = (val: { [string]: ?mixed }, key: string): number => {
-  return val.hasOwnProperty(key) ? ((val[key]: any): number) : NaN
-}
-
-/**
- * Cast number from the config mixed. Based on @m1well's config system.
- *
- * @param val the config mixed
- * @param key name of the property you want to cast
- * @returns {number} cast value
- */
-const castHeadingLevelFromMixed = (val: { [string]: ?mixed }, key: string): headingLevelType => {
-  return val.hasOwnProperty(key) ? ((val[key]: any): headingLevelType) : 2
-}
-
-/**
  * Provide config from _configuration and cast content to real objects. (Borrowing approach from @m1well)
  *
  * @return {SummariesConfig} object with configuration
  */
 export async function getConfigSettings(): Promise<SummariesConfig> {
-  return getOrMakeConfigurationSection(
+  const result = await getOrMakeConfigurationSection(
     'summaries',
     DEFAULT_SUMMARIES_CONFIG
   )
-  .then(result => {
-    if (result == null || Object.keys(result).length === 0) {
-      console.log(`error: expected config could not be found in the _configuration file`)
-      return {
-        folderToStore: 'Summaries',
-        foldersToIgnore: ['📋 Templates', 'Summaries'],
-        headingLevel: 2,
-        hashtagCountsHeading: '#hashtag counts',
-        mentionCountsHeading: '@mention counts',
-        showAsHashtagOrMention: false,
-        includeHashtags: [],
-        excludeHashtags: [],
-        includeMentions: [],
-        excludeMentions: ['@done', '@repeat'],
-        occurrencesHeading: 'Occurrences',
-        defaultOccurrences: ['idea', '@review', '#question'],
-        highlightOccurrences: false,
-        showEmptyOccurrences: false,
-        dateStyle: 'link',
-        weeklyStatsDuration: undefined,
-        progressHeading: 'Progress Update',
-        progressHashtags: ['#gym','#jog'],
-        progressMentions: ['@work','@fruitveg','@sleep'],
-      }
-    } else {
-      const config: SummariesConfig = {
-        folderToStore: castStringFromMixed(result, 'folderToStore'),
-        foldersToIgnore: castStringArrayFromMixed(result, 'foldersToIgnore'),
-        headingLevel: castHeadingLevelFromMixed(result, 'headingLevel'),
-        hashtagCountsHeading: castStringFromMixed(result, 'hashtagCountsHeading'),
-        mentionCountsHeading: castStringFromMixed(result, 'mentionCountsHeading'),
-        showAsHashtagOrMention: castBooleanFromMixed(result, 'showAsHashtagOrMention'),
-        includeHashtags: castStringArrayFromMixed(result, 'includeHashtags'),
-        excludeHashtags: castStringArrayFromMixed(result, 'excludeHashtags'),
-        includeMentions: castStringArrayFromMixed(result, 'includeMentions'),
-        excludeMentions: castStringArrayFromMixed(result, 'excludeMentions'),
-        occurrencesHeading: castStringFromMixed(result, 'occurrencesHeading'),
-        defaultOccurrences: castStringArrayFromMixed(result, 'defaultOccurrences'),
-        highlightOccurrences: castBooleanFromMixed(result, 'highlightOccurrences'),
-        showEmptyOccurrences: castBooleanFromMixed(result, 'showEmptyOccurrences'),
-        dateStyle: castStringFromMixed(result, 'dateStyle'),
-        weeklyStatsDuration: castNumberFromMixed(result, 'weeklyStatsDuration'),
-        progressHeading: castStringFromMixed(result, 'progressHeading'),
-        progressHashtags: castStringArrayFromMixed(result, 'progressHashtags'),
-        progressMentions: castStringArrayFromMixed(result, 'progressMentions'),
-      }
-      // console.log(`loaded config OK`)
-      // console.log(`config = ${JSON.stringify(result)}\n`)
-      return config
+
+  if (result == null || Object.keys(result).length === 0) {
+    console.log(`error: expected config could not be found in the _configuration file`)
+    return {
+      folderToStore: 'Summaries',
+      foldersToIgnore: ['📋 Templates', 'Summaries'],
+      headingLevel: 2,
+      hashtagCountsHeading: '#hashtag counts',
+      mentionCountsHeading: '@mention counts',
+      showAsHashtagOrMention: false,
+      includeHashtags: [],
+      excludeHashtags: [],
+      includeMentions: [],
+      excludeMentions: ['@done', '@repeat'],
+      occurrencesHeading: 'Occurrences',
+      defaultOccurrences: ['idea', '@review', '#question'],
+      highlightOccurrences: false,
+      showEmptyOccurrences: false,
+      dateStyle: 'link',
+      weeklyStatsDuration: undefined,
+      progressHeading: 'Progress Update',
+      progressHashtags: ['#gym','#jog'],
+      progressMentions: ['@work','@fruitveg','@sleep'],
     }
-  })
+  } else {
+    const config: SummariesConfig = {
+      folderToStore: castStringFromMixed(result, 'folderToStore'),
+      foldersToIgnore: castStringArrayFromMixed(result, 'foldersToIgnore'),
+      headingLevel: castHeadingLevelFromMixed(result, 'headingLevel'),
+      hashtagCountsHeading: castStringFromMixed(result, 'hashtagCountsHeading'),
+      mentionCountsHeading: castStringFromMixed(result, 'mentionCountsHeading'),
+      showAsHashtagOrMention: castBooleanFromMixed(result, 'showAsHashtagOrMention'),
+      includeHashtags: castStringArrayFromMixed(result, 'includeHashtags'),
+      excludeHashtags: castStringArrayFromMixed(result, 'excludeHashtags'),
+      includeMentions: castStringArrayFromMixed(result, 'includeMentions'),
+      excludeMentions: castStringArrayFromMixed(result, 'excludeMentions'),
+      occurrencesHeading: castStringFromMixed(result, 'occurrencesHeading'),
+      defaultOccurrences: castStringArrayFromMixed(result, 'defaultOccurrences'),
+      highlightOccurrences: castBooleanFromMixed(result, 'highlightOccurrences'),
+      showEmptyOccurrences: castBooleanFromMixed(result, 'showEmptyOccurrences'),
+      dateStyle: castStringFromMixed(result, 'dateStyle'),
+      weeklyStatsDuration: castNumberFromMixed(result, 'weeklyStatsDuration'),
+      progressHeading: castStringFromMixed(result, 'progressHeading'),
+      progressHashtags: castStringArrayFromMixed(result, 'progressHashtags'),
+      progressMentions: castStringArrayFromMixed(result, 'progressMentions'),
+    }
+    // console.log(`loaded config OK`)
+    // console.log(`config = ${JSON.stringify(result)}\n`)
+    return config
+    }
 }
 
 export async function getPeriodStartEndDates(
