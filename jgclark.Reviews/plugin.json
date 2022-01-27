@@ -59,7 +59,7 @@
 			"description": "Folder where review notes will be stored (will be created if necessary)",
 			"type": "string",
 			"default": "Reviews",
-			"required": false
+			"required": true
 		},
     {
 			"key": "foldersToIgnore",
@@ -75,8 +75,9 @@
 			"description": "A comma-separated list of hashtags to indicate notes to include in this review system",
 			"type": "[string]",
 			"default": ["#area", "#project"],
-			"required": false
+			"required": true
 		},
+
 		{
 			"type": "heading",
 			"title": "Settings for /projectLists command"
@@ -88,7 +89,7 @@
 			"type": "string",
 			"choices": ["alpha", "due", "review"],
 			"default": "alpha",
-			"required": false
+			"required": true
 		},
 		{
       "key": "displayGroupedByFolder",
@@ -105,6 +106,62 @@
       "type": "bool",
       "default": true,
       "required": true
-    }
+    },
+		{
+			"type": "heading",
+			"title": "Setting for /completeProject and /cancelProject"
+    },
+    {
+			"key": "finishedListHeading",
+			"title": "Finished List Heading",
+			"description": "Heading of list of completed or cancelled projects/areas",
+			"type": "string",
+			"default": "Finished Projects/Areas",
+			"required": true
+		},
+		{
+			"type": "hidden",
+			"title": "Customisation of reserved project @terms"
+    },
+    {
+			"key": "startMentionStr",
+			"title": "Project start string",
+			"description": "@string indicating date a project/area was started (default: @start)",
+			"type": "hidden",
+			"default": "@start",
+			"required": true
+		},
+    {
+			"key": "completedMentionStr",
+			"title": "Project completed string",
+			"description": "@string indicating date a project/area was completed (default: @completed)",
+			"type": "hidden",
+			"default": "@completed",
+			"required": true
+		},
+    {
+			"key": "cancelledMentionStr",
+			"title": "Project cancelled string",
+			"description": "@string indicating date a project/area was cancelled (default: @cancelled)",
+			"type": "hidden",
+			"default": "@cancelled",
+			"required": true
+		},
+    {
+			"key": "dueMentionStr",
+			"title": "Project due string",
+			"description": "@string indicating date a project/area is due to be finished (default: @due)",
+			"type": "hidden",
+			"default": "@due",
+			"required": true
+		},
+    {
+			"key": "reviewedMentionStr",
+			"title": "Project reviewed string",
+			"description": "@string indicating date a project/area was last reviewed (default: @reviewed)",
+			"type": "hidden",
+			"default": "@reviewed",
+			"required": true
+		}
 	]
 }

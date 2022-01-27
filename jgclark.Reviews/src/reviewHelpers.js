@@ -2,9 +2,17 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // @jgclark
-// Last updated 23.1.2022 for v0.6.0, @jgclark
+// Last updated 24.1.2022 for v0.6.0, @jgclark
 //-----------------------------------------------------------------------------
 
+import {
+  castBooleanFromMixed,
+  castHeadingLevelFromMixed,
+  castNumberFromMixed,
+  castStringArrayFromMixed,
+  castStringFromMixed,
+  trimAnyQuotes,
+} from '../../helpers/dataManipulation'
 import {
   daysBetween,
   getDateFromString,
@@ -20,7 +28,104 @@ import {
 } from '../../helpers/general'
 import { getOrMakeMetadataLine } from '../../helpers/paragraph'
 import { showMessage } from '../../helpers/userInput'
+import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 
+//------------------------------
+// Config setup
+
+const DEFAULT_REVIEW_CONFIG = `  review: {
+    folderToStore: "Reviews",
+    foldersToIgnore: ["@Archive", "📋 Templates", "Reviews", "Summaries"], // can be empty list
+    noteTypeTags: ["#project", "#area"], // array of hashtags without spaces
+    // Settings for /projectLists command
+    displayOrder: "alpha", // in '/project lists' the sort options  are "due" date, "review" date or "alpha"
+    displayGroupedByFolder: true, // in '/project lists' whether to group the notes by folder
+    displayArchivedProjects: true, // in '/project lists' whether to display project notes marked #archive
+    // Setting for /completeProject and /cancelProject
+    finishedListHeading: "Finished Projects/Areas"
+  },
+`
+// TODO: When ConfigV2 is available, add these terms as well
+// // Following are for customising reserved project @terms
+// startMentionStr: '@start',
+// completedMentionStr: '@completed',
+// cancelledMentionStr: '@cancelled',
+// dueMentionStr: '@due',
+// reviewedMentionStr: '@reviewed',
+
+export type ReviewConfig = {
+  folderToStore: string,
+  foldersToIgnore: string[],
+  noteTypeTags: string[],
+  displayOrder: string,
+  displayGroupedByFolder: boolean,
+  displayArchivedProjects: boolean,
+  finishedListHeading: string,
+  // NB: following set are not actively used. TODO: Waiting for Config V2 framework.
+  startMentionStr: string,
+  completedMentionStr: string,
+  cancelledMentionStr: string,
+  dueMentionStr: string,
+  reviewedMentionStr: string,
+}
+
+/**
+ * Provide config from _configuration and cast content to real objects. (Borrowing approach from @m1well)
+ * TODO: When next setting framework available, turn this into a syncronous function
+ *
+ * @return {ReviewConfig} object with configuration
+ */
+export async function getConfigSettings(): Promise<ReviewConfig> {
+  const result = await getOrMakeConfigurationSection(
+    'review',
+    DEFAULT_REVIEW_CONFIG
+  )
+  
+  if (result == null || Object.keys(result).length === 0) {
+    console.log(`error: expected config could not be found in the _configuration file`)
+    return {
+      folderToStore: 'Reviews',
+      foldersToIgnore: ["@Archive", "📋 Templates", "Summaries", "Reviews"],
+      noteTypeTags: ["#project", "#area"],
+      displayOrder: "alpha",
+      displayGroupedByFolder: true,
+      displayArchivedProjects: true,
+      finishedListHeading: 'Finished Projects/Areas',
+      startMentionStr: '@start',
+      completedMentionStr: '@completed',
+      cancelledMentionStr: '@cancelled',
+      dueMentionStr: '@due',
+      reviewedMentionStr: '@reviewed',
+    }
+  } else {
+    const config: ReviewConfig = {
+      folderToStore: castStringFromMixed(result, 'folderToStore'),
+      foldersToIgnore: castStringArrayFromMixed(result, 'foldersToIgnore'),
+      noteTypeTags: castStringArrayFromMixed(result, 'noteTypeTags'),
+      displayOrder: castStringFromMixed(result, 'displayOrder'),
+      displayGroupedByFolder: castBooleanFromMixed(result, 'displayGroupedByFolder'),
+      displayArchivedProjects: castBooleanFromMixed(result, 'displayArchivedProjects'),
+      finishedListHeading: castStringFromMixed(result, 'finishedListHeading'),
+      startMentionStr: castStringFromMixed(result, 'startMentionStr'),
+      completedMentionStr: castStringFromMixed(result, 'completedMentionStr'),
+      cancelledMentionStr: castStringFromMixed(result, 'cancelledMentionStr'),
+      dueMentionStr: castStringFromMixed(result, 'dueMentionStr'),
+      reviewedMentionStr: castStringFromMixed(result, 'reviewedMentionStr'),
+    }
+    console.log(`getConfigSettings(): loaded config OK`)
+    // console.log(`config = ${JSON.stringify(result)}\n`)
+    return config
+  }
+}
+
+/**
+ * Write the contents of a given preference to the log
+ * @author @jgclark
+ * @param {string} prefName
+ */
+export function logPreference(prefName: string): void {
+  console.log(`${prefName} contents:\n${DataStore.preference(prefName)}`)
+}
 
 /**
  * Calculate the next date to review, based on last review date and date interval.
@@ -57,15 +162,6 @@ export  function getParamMentionFromList(
 
 //-----------------------------------------------------------------------------
 
-// TODO: make proper settings
-const startMentionStr = '@start'
-const completedMentionStr = '@completed'
-const cancelledMentionStr = '@cancelled'
-const dueMentionStr = '@due'
-const reviewedMentionStr = '@reviewed'
-const pref_SummaryFolder = 'Summaries'
-const pref_completedListHeading = 'Completed Projects/Areas'
-
 /**
  * Define 'Project' class to use in GTD.
  * Holds title, last reviewed date, due date, review interval, completion date,
@@ -74,7 +170,7 @@ const pref_completedListHeading = 'Completed Projects/Areas'
  * @author @jgclark
 */
 export class Project {
-  // Types for the class properties
+  // Types for the class instance properties
   note: TNote
   metadataPara: TParagraph
   noteType: string // project, area, other
@@ -98,6 +194,14 @@ export class Project {
   isCancelled: boolean
   folder: string
   
+  // Temporary measure to avoid needing an async constructor
+  // TODO: Update when ConfigV2 is available
+  static startMentionStr: string = "@start"
+  static completedMentionStr: string = '@completed'
+  static cancelledMentionStr: string = '@cancelled'
+  static dueMentionStr: string = '@due'
+  static reviewedMentionStr: string = '@reviewed'
+
   constructor(note: TNote) {
     const mentions: $ReadOnlyArray<string> = note.mentions
     const hashtags: $ReadOnlyArray<string> = note.hashtags
@@ -105,7 +209,7 @@ export class Project {
     const mln = getOrMakeMetadataLine(note)
     this.metadataPara = note.paragraphs[mln]
     this.title = note.title ?? '(error)'
-    console.log(`\tnew Project: ${this.title} with metadata in line ${this.metadataPara.lineIndex}`)
+    // console.log(`\tnew Project: ${this.title} with metadata in line ${this.metadataPara.lineIndex}`)
     this.folder = getFolderFromFilename(note.filename)
 
     // work out note type (or '')
@@ -115,20 +219,22 @@ export class Project {
         ? 'area'
         : ''
 
+    // get config settings TODO: use when sync Config V2 method is available
+    // const config = getConfigSettings()
     // read in start date (if found)
-    let tempDateStr = getParamMentionFromList(mentions, startMentionStr)
+    let tempDateStr = getParamMentionFromList(mentions, Project.startMentionStr)
     this.startDate = tempDateStr !== '' ? getDateFromString(tempDateStr) : undefined
     // read in due date (if found)
-    tempDateStr = getParamMentionFromList(mentions, dueMentionStr)
+    tempDateStr = getParamMentionFromList(mentions, Project.dueMentionStr)
     this.dueDate = tempDateStr !== '' ? getDateFromString(tempDateStr) : undefined
     // read in reviewed date (if found)
-    tempDateStr = getParamMentionFromList(mentions, reviewedMentionStr)
+    tempDateStr = getParamMentionFromList(mentions, Project.reviewedMentionStr)
     this.reviewedDate = tempDateStr !== '' ? getDateFromString(tempDateStr) : undefined
     // read in completed date (if found)
-    tempDateStr = getParamMentionFromList(mentions, completedMentionStr)
+    tempDateStr = getParamMentionFromList(mentions, Project.completedMentionStr)
     this.completedDate = tempDateStr !== '' ? getDateFromString(tempDateStr) : undefined
     // read in cancelled date (if found)
-    tempDateStr = getParamMentionFromList(mentions, cancelledMentionStr)
+    tempDateStr = getParamMentionFromList(mentions, Project.cancelledMentionStr)
     this.cancelledDate = tempDateStr !== '' ? getDateFromString(tempDateStr) : undefined
     // read in review interval (if found)
     this.reviewInterval = getContentFromBrackets(getParamMentionFromList(mentions, "@review")) ?? undefined
@@ -146,6 +252,7 @@ export class Project {
       filter((p) => p.type === 'open').
       filter((p) => p.content.match('#waiting')).
       length
+    // TODO: Add a 'futureTasks' property here
 
     // make completed if @completed_date set
     this.isCompleted = (this.completedDate != null) ? true : false
@@ -164,9 +271,21 @@ export class Project {
       && !this.isCancelled
       && !this.isArchived
     ) ? true : false
-    console.log(`\tProject object created OK.`)
-    console.log(`\tMetadata = '${this.generateMetadataLine()}'`)
+    // console.log(`\tProject object created OK with Metadata = '${this.generateMetadataLine()}'`)
   }
+
+  // TODO: delete me when decided what approach to use to get config
+  // static async getConfig(): Promise<void> {
+  //   console.log('  starting static Class method getConfig')
+  //   // get config settings -- can't work in constructor
+  //   const config = await getConfigSettings()
+  //   Project.startMentionStr = config.startMentionStr
+  //   Project.completedMentionStr = config.completedMentionStr
+  //   Project.cancelledMentionStr = config.cancelledMentionStr
+  //   Project.dueMentionStr = config.dueMentionStr
+  //   Project.reviewedMentionStr = config.reviewedMentionStr
+  //   console.log('  done static Class method getConfig')
+  // }
 
   /**
    * Is this project ready for review?
@@ -184,7 +303,6 @@ export class Project {
    * From the metadata read in, calculate due/review/finished durations
   */
   calcDurations(): void {
-    console.log(`calcDurations:`)
     const now = new Date()
     this.dueDays = (this.dueDate != null)
       // NB: Written while there was an error in EM's Calendar.unitsBetween() function
@@ -263,17 +381,20 @@ export class Project {
   }
 
   generateMetadataLine(): string {
+    // get config settings
+    // const config = await getConfigSettings()
+
     let output = ''
     // output = (this.isActive) ? '#active ' : ''
     // output = (this.isCancelled) ? '#cancelled ' : ''
     output = (this.isArchived) ? '#archive ' : ''
     output += (this.noteType === 'project' || this.noteType === 'area') ? `#${this.noteType} ` : ''
-    output += (this.startDate) ? `${startMentionStr}(${toISODateString(this.startDate)}) ` : ''
-    output += (this.dueDate) ? `${dueMentionStr}(${toISODateString(this.dueDate)}) ` : ''
+    output += (this.startDate) ? `${Project.startMentionStr}(${toISODateString(this.startDate)}) ` : ''
+    output += (this.dueDate) ? `${Project.dueMentionStr}(${toISODateString(this.dueDate)}) ` : ''
     output += (this.reviewInterval) ? `@review(${this.reviewInterval}) ` : ''
-    output += (this.reviewedDate) ? `${reviewedMentionStr}(${toISODateString(this.reviewedDate)}) ` : ''
-    output += (this.completedDate) ? `${completedMentionStr}(${toISODateString(this.completedDate)}) ` : ''
-    output += (this.cancelledDate) ? `${cancelledMentionStr}(${toISODateString(this.cancelledDate)}) ` : ''
+    output += (this.reviewedDate) ? `${Project.reviewedMentionStr}(${toISODateString(this.reviewedDate)}) ` : ''
+    output += (this.completedDate) ? `${Project.completedMentionStr}(${toISODateString(this.completedDate)}) ` : ''
+    output += (this.cancelledDate) ? `${Project.cancelledMentionStr}(${toISODateString(this.cancelledDate)}) ` : ''
     return output
   }
 
@@ -293,7 +414,7 @@ export class Project {
    * @return {string} - title as wikilink
   */
   decoratedProjectTitle(includeFolderName: boolean): string {
-    let folderNamePart = (includeFolderName) ? (this.folder+'/') : ''
+    let folderNamePart = (includeFolderName) ? (this.folder+' ') : ''
     if (this.isCompleted) {
       return `[x] ${folderNamePart}[[${this.title ?? ''}]]`
     } else if (this.isCancelled) {

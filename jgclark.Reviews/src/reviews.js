@@ -3,11 +3,13 @@
 //-----------------------------------------------------------------------------
 // Commands for Reviewing project-style notes, GTD-style.
 // by @jgclark
-// Last updated 21.1.2022 for v0.5.2, @jgclark
+// Last updated 27.1.2022 for v0.6.0, @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
 import {
+  getConfigSettings,
+  logPreference,
   Project,
 } from './reviewHelpers'
 import {
@@ -32,96 +34,34 @@ import {
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 
 //-----------------------------------------------------------------------------
+
 // Settings
-const DEFAULT_REVIEW_OPTIONS = `  review: {
-    folderToStore: "Reviews",
-    foldersToIgnore: ["@Archive", "📋 Templates", "Reviews", "Summaries"], // can be empty list
-    noteTypeTags: ["#project", "#area"], // array of hashtags without spaces
-    displayOrder: "alpha", // in '/project lists' the sort options  are "due" date, "review" date or "alpha"
-    displayGroupedByFolder: true, // in '/project lists' whether to group the notes by folder
-    displayArchivedProjects: true, // in '/project lists' whether to display project notes marked #archive
-  },
-`
-let pref_folderToStore: string = "Reviews"
-let pref_foldersToIgnore: Array<string> = ["@Archive", "📋 Templates", "Summaries", "Reviews"]
-let pref_noteTypeTags: Array<string> = ["#project", "#area"]
-let pref_displayOrder: string = "alpha"
-let pref_displayGroupedByFolder: boolean = true
-let pref_displayArchivedProjects: boolean = true
-
 let filteredFolderList: Array<string> = []
-
-// Constants
-const reviewListNoteTitle = '_reviews'
 const reviewListPref = 'jgclark.Review.reviewList'
 
 //-------------------------------------------------------------------------------
-// Create human-readable lists of project notes for each tag of interest
-// TODO: Use newer object-based method, and move to ReviewHelpers.
-// TODO: Then can move makeNoteTypeSummary to ReviewHelpers as well.
-export async function getConfig(): Promise<void> {
-    // Get config settings from Template folder _configuration note
-  const reviewConfig = await getOrMakeConfigurationSection(
-    'review',
-    DEFAULT_REVIEW_OPTIONS,
-    // no minimumConfig needed for this
-  )
-  if (reviewConfig == null) {
-    console.log("\tCouldn't find 'review' settings in _configuration note.")
-    await showMessage("Couldn't find 'review' settings in _configuration note.")
-    return
-  }
-  console.log(`\tFound 'review' settings in _configuration note.`)
-  // now get the settings we need
-  if (reviewConfig.noteTypeTags != null) {
-    // $FlowFixMe -- don't know how to make this array not just object
-    pref_noteTypeTags = reviewConfig.noteTypeTags
-  }
-  // console.log(pref_noteTypeTags.toString())
-  if (reviewConfig.folderToStore != null &&
-    typeof reviewConfig.folderToStore === 'string') {
-    pref_folderToStore = reviewConfig.folderToStore
-  }
-  // console.log(pref_folderToStore)
-  if (reviewConfig.foldersToIgnore != null) {
-    // $FlowFixMe -- don't know how to make this array not just object
-    pref_foldersToIgnore = reviewConfig.foldersToIgnore
-  }
-  // console.log(pref_foldersToIgnore.toString())
-  filteredFolderList = filterFolderList(pref_foldersToIgnore)
-  if (reviewConfig.displayGroupedByFolder != null &&
-    typeof reviewConfig.displayGroupedByFolder === 'boolean') {
-    pref_displayGroupedByFolder = reviewConfig.displayGroupedByFolder
-  }
-  // console.log(pref_displayGroupedByFolder)
-  if (reviewConfig.displayOrder != null &&
-    typeof reviewConfig.displayOrder === 'string') {
-    pref_displayOrder = reviewConfig.displayOrder
-  }
-  // console.log(pref_displayOrder)
-  if (reviewConfig.displayArchivedProjects != null &&
-    typeof reviewConfig.displayArchivedProjects === 'boolean') {
-    pref_displayArchivedProjects = reviewConfig.displayArchivedProjects
-  }
-  // console.log(pref_displayArchivedProjects)
-}
 
-//-------------------------------------------------------------------------------
-// Create human-readable lists of project notes for each tag of interest
+/**
+ * Generate human-readable lists of project notes for each tag of interest
+ * and write out to note(s) in the config.folderToStore folder.
+ * @author @jgclark
+ */
 export async function projectLists(): Promise<void> {
-  await getConfig()
-  console.log(`\nprojectLists: starting for ${pref_noteTypeTags.toString()} tags:`)
+  const config = await getConfigSettings()
+  const filteredFolderList = filterFolderList(config.foldersToIgnore)
 
-  if (pref_noteTypeTags.length > 0) {
+  console.log(`starting for ${config.noteTypeTags.toString()} tags:`)
+
+  if (config.noteTypeTags.length > 0) {
     // We have defined tag(s) to filter and group by
-    for (const tag of pref_noteTypeTags) {
+    for (const tag of config.noteTypeTags) {
       // handle #hashtags in the note title (which get stripped out by NP, it seems)
       const tagWithoutHash = tag.replace('#','')
       const noteTitle = `${tag} List`
       const noteTitleWithoutHash = `${tagWithoutHash} List`
 
       // Do the main work
-      const note: ?TNote = await getOrMakeNote(noteTitleWithoutHash, pref_folderToStore)
+      const note: ?TNote = await getOrMakeNote(noteTitleWithoutHash, config.folderToStore)
       if (note != null) {
         // Calculate the Summary list(s)
         const outputArray = await makeNoteTypeSummary(tag)
@@ -142,7 +82,7 @@ export async function projectLists(): Promise<void> {
   } else {
     // We will just use all notes with a @review() string, in one go     
     const noteTitle = `Review List`
-    const note: ?TNote = await getOrMakeNote(noteTitle, pref_folderToStore)
+    const note: ?TNote = await getOrMakeNote(noteTitle, config.folderToStore)
     if (note != null) {
       // Calculate the Summary list(s)
       const outputArray = await makeNoteTypeSummary('')
@@ -163,24 +103,30 @@ export async function projectLists(): Promise<void> {
 }
 
 //-------------------------------------------------------------------------------
-// Create machine-readable note listing project notes ready for review,
-// ordered by oldest next review date
-// V2, using reviewList pref
+/**
+ * Generate machine-readable list of project-type notes ready for review,
+ * ordered by oldest next review date.
+ * This is V2, which uses reviewList pref to store the list
+ * @author @jgclark
+ */
 export async function startReviews(): Promise<void> {
-  await getConfig()
-  console.log(`\nstartReviews():`)
+  const config = await getConfigSettings()
+  const filteredFolderList = filterFolderList(config.foldersToIgnore)
 
   // Temporary check to see if we can delete an absolete '_reviews' file.
-  deleteOldListFile()
+  deleteOldListFile() // TODO: Delete me in time
 
   const summaryArray = []
   
+  CommandBar.showLoading(true, `Generating review list`)
+  await CommandBar.onAsyncThread()
+
   // Iterate over the folders ...
-  // ... but ignoring any in the pref_foldersToIgnore list
+  // ... but ignoring any in the config.foldersToIgnore list
   for (const folder of filteredFolderList) {
     // Either we have defined tag(s) to filter and group by, or just use ''
-    const tags = (pref_noteTypeTags != null && pref_noteTypeTags.length > 0)
-      ? pref_noteTypeTags
+    const tags = (config.noteTypeTags != null && config.noteTypeTags.length > 0)
+      ? config.noteTypeTags
       : []
     for (const tag of tags) {
       // Get notes that include noteTag in this folder, ignoring subfolders
@@ -191,7 +137,7 @@ export async function startReviews(): Promise<void> {
         // saving those which are ready for review in projectsReadyToReview array
         for (const n of notes) {
           const np = new Project(n)
-          if (np.isReadyForReview && !pref_foldersToIgnore.includes(np.folder)) {
+          if (np.isReadyForReview && !config.foldersToIgnore.includes(np.folder)) {
             projectsReadyToReview.push(np)
           }
         }
@@ -203,6 +149,8 @@ export async function startReviews(): Promise<void> {
       }
     }
   }
+  await CommandBar.onMainThread()
+  CommandBar.showLoading(false)
   // sort the list by first field
   // $FlowIgnore[unsafe-addition]
   const outputArray = summaryArray.slice().sort((first, second) => first.split('\t')[0] - second.split('\t')[0])
@@ -226,15 +174,6 @@ export async function startReviews(): Promise<void> {
 }
 
 //-------------------------------------------------------------------------------
-/**
- * Write the contents of a given preference to the log
- * @param {string} prefName
- */
-function logPreference(prefName: string): void {
-  console.log(`${prefName} contents:\n${DataStore.preference(prefName)}`)
-}
-
-//-------------------------------------------------------------------------------
 /** 
  * Return summary of notes that contain a particular tag, for all relevant folders
  * @author @jgclark
@@ -243,7 +182,9 @@ function logPreference(prefName: string): void {
  * @return {Array<string>} summary lines to write out to a note
  */
 async function makeNoteTypeSummary(noteTag: string): Promise<Array<string>> {
-  console.log(`\nmakeNoteTypeSummary for '${noteTag}'`)
+  console.log(`makeNoteTypeSummary for '${noteTag}'`)
+  const config = await getConfigSettings()
+  const filteredFolderList = filterFolderList(config.foldersToIgnore)
 
   let noteCount = 0
   let overdue = 0
@@ -251,7 +192,7 @@ async function makeNoteTypeSummary(noteTag: string): Promise<Array<string>> {
 
   // if we want a summary broken down by folder, create list of folders
   // otherwise use a single folder
-  const folderList = pref_displayGroupedByFolder ? DataStore.folders : ['/']
+  const folderList = config.displayGroupedByFolder ? DataStore.folders : ['/']
   // console.log(`  Processing ${folderList.length} folders`)
 
   // Iterate over the folders (ignoring any in the pref_foldersToIgnore list)
@@ -264,9 +205,10 @@ async function makeNoteTypeSummary(noteTag: string): Promise<Array<string>> {
       // Create array of Project class representation of each note,
       // ignoring any in a folder we want to ignore (by one of the settings)
       const projects = []
+      
       for (const note of notes) {
         const np = new Project(note)
-        if (!np.isArchived || pref_displayArchivedProjects) {
+        if (!np.isArchived || config.displayArchivedProjects) {
           projects.push(np)
         } else {
           console.log(`\t    Ignoring ${np.title} as archived and don't want to show them`)
@@ -275,10 +217,10 @@ async function makeNoteTypeSummary(noteTag: string): Promise<Array<string>> {
           overdue += 1
         }
       }
-      // sort this array by key set in pref_displayOrder
+      // sort this array by key set in config.displayOrder
       let sortedProjects = []
       // NB: the Compare function needs to return negative, zero, or positive values. 
-      switch (pref_displayOrder) {
+      switch (config.displayOrder) {
         case 'due': {
           sortedProjects = projects.sort(
             (first, second) => (first.dueDays ?? 0) - (second.dueDays ?? 0))
@@ -295,7 +237,7 @@ async function makeNoteTypeSummary(noteTag: string): Promise<Array<string>> {
           break
         }
       }
-      if (pref_displayGroupedByFolder) {
+      if (config.displayGroupedByFolder) {
         outputArray.push(`### ${(folder !== '' ? folder : '/')} (${sortedProjects.length} notes)`)
       }
       // iterate over this folder's notes, using Class functions
@@ -303,6 +245,8 @@ async function makeNoteTypeSummary(noteTag: string): Promise<Array<string>> {
         outputArray.push(p.detailedSummaryLine(false))
       }
       noteCount += sortedProjects.length
+    } else {
+      console.log(`No notes found for '${noteTag}'`)
     }
     CommandBar.showLoading(true, `Summarising ${noteTag} in ${filteredFolderList.length} folders`, (noteCount / filteredFolderList.length))
   }
@@ -315,7 +259,7 @@ async function makeNoteTypeSummary(noteTag: string): Promise<Array<string>> {
   }
   outputArray.unshift(`Total: **${noteCount} active notes**${(overdue > 0) ? `, ${overdue} ready for review` : ''}`)
   outputArray.unshift(`Last updated: ${nowLocaleDateTime}`)
-  if (!pref_displayGroupedByFolder) {
+  if (!config.displayGroupedByFolder) {
     outputArray.unshift(`### All folders (${noteCount} notes)`)
   }
   return outputArray
@@ -430,6 +374,7 @@ async function getNextNoteToReview(): Promise<?TNote> {
 //-------------------------------------------------------------------------------
 /** 
  * Update the @reviewed(date) in the note in the Editor to today's date.
+ * @author @jgclark
  * @return { ?TNote } current note
  */
 export async function finishReview(): Promise<?TNote> {
@@ -498,6 +443,7 @@ export async function finishReview(): Promise<?TNote> {
 // TODO: remove this after some months, as no longer needed
 function deleteOldListFile(): void {
   const notes = DataStore.projectNoteByTitle('_reviews', false, false) ?? [] // don't link in Trash
+  const reviewListNoteTitle = '_reviews'
   if (notes?.length > 0) {
     const reviewNote = notes[0]
     // Following doesn't seem to work

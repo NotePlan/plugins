@@ -3,13 +3,16 @@
 //-----------------------------------------------------------------------------
 // Commands for working with Project and Area notes, seen in NotePlan notes.
 // by @jgclark
-// Last updated 22.1.2022 for v0.5.3, @jgclark
+// Last updated 27.1.2022 for v0.6.0, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
 // Import Helper functions
 import { updateReviewListAfterReview } from './reviews'
-import { Project } from './reviewHelpers'
+import {
+  getConfigSettings,
+  Project
+} from './reviewHelpers'
 import { hyphenatedDateString } from '../../helpers/dateTime'
 import { getFolderFromFilename } from '../../helpers/folders'
 import {
@@ -22,15 +25,9 @@ import {
   getInput,
   showMessageYesNo
 } from '../../helpers/userInput'
-import { insertNamedTemplate } from '../../nmn.Templates/src/index'
-import { getOverlappingDaysInIntervals } from 'date-fns'
 
 //-------------------------------------------------------------------------------
 
-// TODO: make proper settings
-const completedMentionString = '@completed'
-const pref_SummaryFolder = 'Summaries'
-const pref_finishedListHeading = 'Finished Projects/Areas'
 const thisYearStr = hyphenatedDateString(new Date()).substring(0, 4)
 
 //-------------------------------------------------------------------------------
@@ -52,6 +49,9 @@ export async function completeProject(): Promise<void> {
     return
   }
 
+  // Get config settings
+  const config = await getConfigSettings()
+
   // Construct a Project class object from this note
   const projectNote = new Project(note)
 
@@ -66,13 +66,13 @@ export async function completeProject(): Promise<void> {
     // Now add to the Summary note for this year (if present)
     if (DataStore.folders.includes('Summaries')) {
       const lineToAdd = projectNote.detailedSummaryLine(true)
-      const summaryNote = await getOrMakeNote(thisYearStr, pref_SummaryFolder)
+      const summaryNote = await getOrMakeNote(thisYearStr, config.folderToStore)
       if (summaryNote != null) {
         console.log(`Will add '${lineToAdd}' to note '${summaryNote.filename}'`)
         summaryNote.addParagraphBelowHeadingTitle(
           lineToAdd,
           'text', // bullet character gets included in the passed in string
-          pref_finishedListHeading,
+          config.finishedListHeading,
           true, // append
           true  // do create heading if not found already
         )
@@ -106,6 +106,9 @@ export async function cancelProject(): Promise<void> {
     return
   }
 
+  // Get config settings
+  const config = await getConfigSettings()
+
   // Construct a Project class object from this note
   const projectNote = new Project(note)
 
@@ -118,15 +121,15 @@ export async function cancelProject(): Promise<void> {
     await updateReviewListAfterReview(note)
 
     // Now add to the Summary note for this year (if present)
-    if (DataStore.folders.includes('Summaries')) {
+    if (DataStore.folders.includes(config.folderToStore)) {
       const lineToAdd = projectNote.detailedSummaryLine(true)
-      const summaryNote = await getOrMakeNote(thisYearStr, pref_SummaryFolder)
-      if (summaryNote != null) {
-        console.log(`Will add '${lineToAdd}' to note '${summaryNote.filename}'`)
-        summaryNote.addParagraphBelowHeadingTitle(
+      const yearlyNote = await getOrMakeNote(thisYearStr, config.folderToStore)
+      if (yearlyNote != null) {
+        console.log(`Will add '${lineToAdd}' to note '${yearlyNote.filename}'`)
+        yearlyNote.addParagraphBelowHeadingTitle(
           lineToAdd,
           'text', // bullet character gets included in the passed in string
-          pref_finishedListHeading,
+          config.finishedListHeading,
           true, // append
           true  // do create heading if not found already
         )
