@@ -2,18 +2,20 @@
 // ------------------------------------------------------------------------------------
 // Command to Process Date Offsets
 // @jgclark
-// for v0.7.0, 18.11.2021
+// for v0.7.0+, 18.11.2021
 // ------------------------------------------------------------------------------------
 
-import { showMessage, showMessageYesNo } from '../../helpers/userInput'
-import { displayTitle } from '../../helpers/general'
 import {
   RE_DATE,
   RE_DATE_INTERVAL,
   todaysDateISOString,
-  calcOffsetDateStr,
 } from '../../helpers/dateTime'
+import {
+  calcOffsetDateStr,
+} from '../../helpers/NPdateTime'
+import { displayTitle } from '../../helpers/general'
 import { findEndOfActivePartOfNote } from '../../helpers/paragraph'
+import { showMessage, showMessageYesNo } from '../../helpers/userInput'
 
 // ------------------------------------------------------------------------------------
 // Settings
@@ -30,11 +32,11 @@ export async function processDateOffsets() {
 
   const { paragraphs, note } = Editor
   if (paragraphs == null || note == null) {
-    await showMessage('No content found to process.')
+    await showMessage('No content found to process.', 'OK', 'Process Dates')
     return
   }
   if (note.filename.startsWith('📋 Templates')) {
-    await showMessage(`For safety I won't run on notes in the 📋 Templates folder.`)
+    await showMessage(`For safety I won't run on notes in the 📋 Templates folder.`, 'OK', 'Process Dates')
     return
   }
   const noteTitle = displayTitle(note)

@@ -3,13 +3,13 @@
 //-----------------------------------------------------------------------------
 // Statistic commands for notes and projects
 // Jonathan Clark
-// v0.3.0, 21.8.2021
+// Last updated 2022-01-22 for v0.5.3, @jgclark
 //-----------------------------------------------------------------------------
 
 export {
-  projectLists, startReviews, nextReview, completeReview,
+  projectLists, startReviews, nextReview, finishReview,
 } from './reviews'
 
 export {
-  completeProject,
+  completeProject, cancelProject,
 } from './projects'

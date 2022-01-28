@@ -10,7 +10,8 @@
   "plugins": [
     "import",
     "flowtype",
-    "unused-imports"
+    "unused-imports",
+    "no-floating-promise"
   ],
   "parser": "@babel/eslint-parser",
   "parserOptions": {
@@ -52,12 +53,14 @@
     ],
     "new-cap": "off",
     "no-case-declarations": "error",
+    "no-floating-promise/no-floating-promise": 2,
     "no-var": "error",
     "prefer-const": "error",
     "no-prototype-builtins": "off",
     "no-unused-vars": "off",
     "import/order": "error",
     "no-useless-escape": "off",
+    "require-await": "error",
     "unused-imports/no-unused-imports": "error",
     "unused-imports/no-unused-vars": "off"
   },
@@ -74,8 +77,9 @@
     "CommandBar": true,
     "Calendar": true,
     "CalendarItem": true,
-    "globalThis": true,
     "Clipboard": true,
+    "NotePlan": true,
+    "globalThis": true,
     "fetch": true
   },
   "ignorePatterns": [

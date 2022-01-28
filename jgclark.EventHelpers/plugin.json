@@ -7,7 +7,7 @@
   "plugin.icon": "",
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers",
-  "plugin.version": "0.10.1",
+  "plugin.version": "0.10.2",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -38,9 +38,9 @@
       "jsFunction": "processDateOffsets"
     }
   ],
-  "plugin.preferences": [
+  "plugin.settings": [
     {
-      "type": "Heading",
+      "type": "heading",
       "title": "Event Helpers settings"
     },
     {
@@ -93,7 +93,7 @@
       "key": "confirmEventCreation",
       "title": "Confirm Event Creation?",
       "description": "Whether to ask user to confirm each event to be created",
-      "type": "boolean",
+      "type": "bool",
       "default": false,
       "required": false
     },
@@ -101,7 +101,7 @@
       "key": "removeTimeBlocksWhenProcessed",
       "title": "Remove time blocks when processed?",
       "description": "Whether to remove time block after making an event from it",
-      "type": "boolean",
+      "type": "bool",
       "default": true,
       "required": false
     },
@@ -109,7 +109,7 @@
       "key": "addEventID",
       "title": "Add event ID?",
       "description": "Whether to add an '⏰event:ID' string in place of the time block, when creating an event from it",
-      "type": "boolean",
+      "type": "bool",
       "default": false,
       "required": false
     },

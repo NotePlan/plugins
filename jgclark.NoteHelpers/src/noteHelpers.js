@@ -1,19 +1,28 @@
 // @flow
-//--------------------------------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// v0.10.6+, 17.11.2021
-//--------------------------------------------------------------------------------------------------------------------
+// Last updated 20.1.2022 for v0.11.0, @jgclark
+//-----------------------------------------------------------------------------
 
 import {
   allNotesSortedByChanged,
   printNote,
 } from '../../helpers/note'
-import { chooseFolder } from '../../helpers/userInput'
+import {
+  getParaFromContent,
+} from '../../helpers/paragraph'
+import {
+  chooseFolder,
+  chooseHeading
+} from '../../helpers/userInput'
 
 //-----------------------------------------------------------------
-// Command from Eduard to move a note to a different folder
-export async function moveNote() {
+/**
+ * Command from Eduard to move a note to a different folder
+ * @author @eduardme
+ */
+export async function moveNote(): Promise<void> {
   const { title, filename } = Editor
   if (title == null || filename == null) {
     // No note open, so don't do anything.
@@ -33,10 +42,12 @@ export async function moveNote() {
   }
 }
 
-//------------------------------------------------------------------
-// Open a user-selected note in a new window.
-export async function openNoteNewWindow() {
-  // Ask for the note we want to add the task
+/** 
+ * Open a user-selected note in a new window.
+ * @author @jgclark
+ */
+export async function openNoteNewWindow(): Promise<void> {
+  // Ask for the note we want to open
   const notes = allNotesSortedByChanged()
   const re = await CommandBar.showOptions(
     notes.map((n) => n.title).filter(Boolean),
@@ -47,50 +58,79 @@ export async function openNoteNewWindow() {
   await Editor.openNoteByFilename(filename, true)
 }
 
-//------------------------------------------------------------------
-// Jumps the cursor to the heading of the current note that the user selects
-// NB: need to update to allow this to work with sub-windows, when EM updates API
-export async function jumpToHeading() {
-  const paras = Editor?.paragraphs
-  if (paras == null) {
-    // No note open
+/** 
+ * Open a user-selected note in a new split of the main window.
+ * Note: uses API option only available on macOS and from v3.4. 
+ * It falls back to opening in a new window on unsupported versions.
+ * @author @jgclark
+ */
+export async function openNoteNewSplit(): Promise<void> {
+  // Ask for the note we want to open
+  const notes = allNotesSortedByChanged()
+  const re = await CommandBar.showOptions(
+    notes.map((n) => n.title).filter(Boolean),
+    'Select note to open in new split window',
+  )
+  const note = notes[re.index]
+  const filename = note.filename
+  await Editor.openNoteByFilename(filename, false, 0, 0, true)
+}
+
+/**
+ * Jumps the cursor to the heading of the current note that the user selects
+ * NB: need to update to allow this to work with sub-windows, when EM updates API
+ * @author @jgclark
+ */
+export async function jumpToHeading(): Promise<void> {
+  const { paragraphs, note } = Editor
+  if (note == null || paragraphs == null) {
+    // No note open, or no content
     return
   }
 
-  // TODO: it would be a good learning exercise to work out how to combine
-  // the following two variables into a single map -> showOptions
-  const headingParas = paras.filter((p) => p.type === 'title') // = all headings, not just the top 'title'
-  const headingValues = headingParas.map((p) => {
-    let prefix = ''
-    for (let i = 1; i < p.headingLevel; i++) {
-      prefix += '    '
-    }
-    return `${prefix}${p.content}`
-  })
+  const headingStr = await chooseHeading(note, false, false, false)
+  // find out position of this heading, ready to set insertion point
+  // (or 0 if it can't be found)
+  const startPos = getParaFromContent(note, headingStr)?.contentRange?.start ?? 0
+  console.log(startPos)
+  Editor.select(startPos, 0)
 
-  // Present list of headingValues for user to choose from
-  if (headingValues.length > 0) {
-    const re = await CommandBar.showOptions(
-      headingValues,
-      'Select heading to jump to:',
-    )
-    // find out position of this heading, ready to set insertion point
-    const startPos = headingParas[re.index].contentRange?.start ?? 0
-    // console.log(startPos)
-    // Editor.renderedSelect(startPos, 0) // feels the better one to use, but doesn't seem to work
-    Editor.select(startPos, 0)
+  // // TODO: it would be a good learning exercise to work out how to combine
+  // // the following two variables into a single map -> showOptions
+  // const headingParas = paras.filter((p) => p.type === 'title') // = all headings, not just the top 'title'
+  // const headingValues = headingParas.map((p) => {
+  //   let prefix = ''
+  //   for (let i = 1; i < p.headingLevel; i++) {
+  //     prefix += '    '
+  //   }
+  //   return `${prefix}${p.content}`
+  // })
 
-    // Earlier version:
-    // Editor.highlight(headingParas[re.index])
-  } else {
-    console.log('Warning: No headings found in this note')
-  }
+  // // Present list of headingValues for user to choose from
+  // if (headingValues.length > 0) {
+  //   const re = await CommandBar.showOptions(
+  //     headingValues,
+  //     'Select heading to jump to:',
+  //   )
+    // // find out position of this heading, ready to set insertion point
+    // const startPos = headingParas[re.index].contentRange?.start ?? 0
+    // // console.log(startPos)
+    // // Editor.renderedSelect(startPos, 0) // feels the better one to use, but doesn't seem to work
+    // Editor.select(startPos, 0)
+
+  //   // Earlier version:
+  //   // Editor.highlight(headingParas[re.index])
+  // } else {
+  //   console.log('Warning: No headings found in this note')
+  // }
 }
 
-//------------------------------------------------------------------
-// Jumps the cursor to the heading of the current note that the user selects
-// NB: need to update to allow this to work with sub-windows, when EM updates API
-export async function jumpToNoteHeading() {
+/** 
+ * Jumps the cursor to the heading of the current note that the user selects
+ * NB: need to update to allow this to work with sub-windows, when EM updates API
+ * @author @jgclark
+ */
+export async function jumpToNoteHeading(): Promise<void> {
   // first jump to the note of interest, then to the heading
   const notesList = allNotesSortedByChanged()
   const re = await CommandBar.showOptions(
@@ -111,10 +151,12 @@ export async function jumpToNoteHeading() {
   await jumpToHeading()
 }
 
-//------------------------------------------------------------------
-// Jump cursor to the '## Done' heading in the current file
-// NB: need to update to allow this to work with sub-windows, when EM updates API
-export function jumpToDone() {
+/**
+ * Jump cursor to the '## Done' heading in the current file
+ * NB: need to update to allow this to work with sub-windows, when EM updates API
+ * @author @jgclark
+ */
+export function jumpToDone(): void {
   const paras = Editor?.paragraphs
   if (paras == null) {
     // No note open
@@ -139,17 +181,18 @@ export function jumpToDone() {
   }
 }
 
-//------------------------------------------------------------------
-// Set the title of a note from YAML, rather than the first line.
-// NOTE: not currently working because of lack of API support yet (as of release 636)
-// TODO: add following back into plugin.json to active this again:
-// {
-//   "name": "Set title from YAML",
-//     "description": "Set the note's title from the YAML or frontmatter block, not the first line",
-//       "jsFunction": "setTitleFromYAML"
-// },
 
-export function setTitleFromYAML() {
+/**
+ * Set the title of a note from YAML, rather than the first line.
+ * NOTE: not currently working because of lack of API support yet (as of release 728)
+ * TODO: add following back into plugin.json to active this again:
+ * {
+ *   "name": "Set title from YAML",
+ *     "description": "Set the note's title from the YAML or frontmatter block, not the first line",
+ *       "jsFunction": "setTitleFromYAML"
+ * },
+*/
+export function setTitleFromYAML(): void {
   const { note, content } = Editor
   if (note == null || content == null) {
     // no note open.

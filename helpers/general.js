@@ -82,7 +82,10 @@ export const defaultFileExt: string = DataStore.defaultFileExtension != null ? D
 export const defaultTodoCharacter: '*' | '-' =
   DataStore.preference('defaultTodoCharacter') != null ? DataStore.preference('defaultTodoCharacter') : '*'
 
-// Pretty print range information (@EduardMe)
+/**
+ * Pretty print range information
+ * @author @EduardMe
+ */
 export function rangeToString(r: Range): string {
   if (r == null) {
     return 'Range is undefined!'
@@ -90,8 +93,14 @@ export function rangeToString(r: Range): string {
   return `range: ${r.start}-${r.end}`
 }
 
-// return title of note useful for display, even for calendar notes (the YYYYMMDD)
-// NB:: local copy of this in helpers/paragraph.js to avoid circular dependency
+/** 
+ * return title of note useful for display, even for calendar notes (the YYYYMMDD)
+ * NB:: local copy of this in helpers/paragraph.js to avoid circular dependency
+ * @author @jgclark
+ * 
+ * @param {TNote} n - note to get title for
+ * @return {string}
+ */
 export function displayTitle(n: TNote): string {
   if (n.type === 'Calendar' && n.date != null) {
     return hyphenatedDateString(n.date)
@@ -100,9 +109,52 @@ export function displayTitle(n: TNote): string {
   }
 }
 
-// Return (project) note title as a [[link]]
+/** 
+ * Return (project) note title as a [[link]]
+ * @jgclark
+ * 
+ * @param {TNote} note to get title for
+ * @return {string} note-linked title (or an error warning)
+ */
 export function titleAsLink(note: TNote): string {
   return note.title !== undefined ? `[[${note.title ?? ''}]]` : '(error)'
+}
+
+/**
+ * From an array of strings, return the first string that matches the wanted string.
+ * @author @jgclark
+ * 
+ * @param {Array<string>} list - list of strings to search
+ * @param {string} search - string to match
+ */
+export function getStringFromList(
+  list: $ReadOnlyArray<string>,
+  search: string,
+): string {
+  // console.log(`getsearchFromList for: ${search}`)
+  const res = list.filter((m) => m === search)
+  return res.length > 0 ? res[0] : ''
+}
+
+/**
+ * Extract contents of bracketed part of a string (e.g. '@mention(something)').
+ * @author @jgclark
+ * 
+ * @param {string} - string that contains a bracketed mention e.g. @review(2w)
+ * @return {?string} - string from between the brackets, if found (e.g. '2w')
+ */
+export function getContentFromBrackets(mention: string): ?string {
+  const RE_BRACKETS_STRING_CAPTURE = '\\((.*?)\\)' // capture string inside parantheses
+
+  if (mention === '') {
+    return // no text, so return nothing
+  }
+  const res = mention.match(RE_BRACKETS_STRING_CAPTURE) ?? []
+  if (res[1].length > 0) {
+    return res[1]
+  } else {
+    return
+  }
 }
 
 type Replacement = { key: string, value: string }
@@ -127,6 +179,7 @@ export function stringReplace(inputString: string = '', replacementArray: Array<
  * Get a particular parameter setting from parameter string
  * (Replaces an earlier version called getTagParams)
  * @author @dwertheimer
+ * 
  * @param {string} paramString - the contents of the template tag, e.g. {{weather(template:FOO)}}
  * @param {string} wantedParam - the name of the parameter to get (e.g. 'template')
  * @param {any} defaultValue - default value to use if parameter not found

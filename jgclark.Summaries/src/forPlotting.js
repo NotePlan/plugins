@@ -1,16 +1,13 @@
 // @flow
 //-----------------------------------------------------------------------------
-// Create statistics for hasthtags and mentions for time periods
+// Create weekly stats for a number of weeks, and format ready to use by gnuplot
 // Jonathan Clark, @jgclark
-// Last updated for v0.3.0, 8.11.2021
+// Last updated for v0.3.0+, 8.11.2021
 //-----------------------------------------------------------------------------
 
 import {
   calcHashtagStatsPeriod,
   calcMentionStatsPeriod,
-} from './stats'
-import {
-  DEFAULT_SUMMARIES_CONFIG,
   getConfigSettings,
 } from './summaryHelpers'
 import type { SummariesConfig } from './summaryHelpers'
@@ -80,6 +77,7 @@ function formatForGnuplot(inArray): Array<string> {
 /**
  * Generate stats for the specified mentions and hashtags over a period of consecutive
  * weeks, and write as a CSV table, ready for charting by gnuplot.
+ * Only the specifically 'included' hashtags or mentions are included, as given by those settings.
  * @author @jgclark
  */
 export async function weeklyStats(): Promise<void> {
@@ -189,7 +187,10 @@ export async function weeklyStats(): Promise<void> {
     const [weekStartDate, weekEndDate] = weekStartEnd(w, y)
 
     // Calc hashtags stats (returns two maps)
-    let weekResults = await calcHashtagStatsPeriod(unhyphenatedDate(weekStartDate), unhyphenatedDate(weekEndDate))
+    let weekResults = await calcHashtagStatsPeriod(
+      unhyphenatedDate(weekStartDate), unhyphenatedDate(weekEndDate),
+      // $FlowIgnore[invalid-tuple-arity]
+      config.includeHashtags, [])
     const hCounts = weekResults?.[0]
     const hSumTotals = weekResults?.[1]
     if (hSumTotals == null || hCounts == null) {
@@ -219,7 +220,10 @@ export async function weeklyStats(): Promise<void> {
     }
 
     // Calc mentions stats (returns two maps)
-    weekResults = await calcMentionStatsPeriod(unhyphenatedDate(weekStartDate), unhyphenatedDate(weekEndDate))
+    weekResults = await calcMentionStatsPeriod(
+      unhyphenatedDate(weekStartDate), unhyphenatedDate(weekEndDate),
+      // $FlowIgnore[invalid-tuple-arity]
+      config.includeMentions, [])
     const mCounts = weekResults?.[0]
     const mSumTotals = weekResults?.[1]
     if (mCounts == null || mSumTotals == null) {

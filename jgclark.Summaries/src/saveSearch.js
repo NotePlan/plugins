@@ -3,22 +3,16 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// v0.2.1, 16.10.2021
+// Last updated 16.10.2021 for v0.5.0
 //-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
-// Helper functions
 
 import {
   gatherMatchingLines,
   getConfigSettings,
   getPeriodStartEndDates,
-  removeSection,
-  // DEFAULT_SUMMARIES_CONFIG,
 } from './summaryHelpers'
 import type { SummariesConfig } from './summaryHelpers'
 import {
-  quarterStartEnd,
   todaysDateISOString,
   unhyphenatedDate,
   toISODateString,
@@ -27,14 +21,19 @@ import {
   monthNameAbbrev,
   withinDateRange,
   dateStringFromCalendarFilename,
-  // toLocaleTime,
   nowLocaleDateTime,
 } from '../../helpers/dateTime'
+import {
+  quarterStartEnd,
+} from '../../helpers/NPdateTime'
 import { getFolderFromFilename } from '../../helpers/folders'
 import {
   displayTitle,
   stringReplace,
 } from '../../helpers/general'
+import {
+  removeSection,
+} from '../../helpers/paragraph'
 import {
   showMessage,
   chooseOption,
@@ -45,7 +44,8 @@ import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configura
 //-------------------------------------------------------------------------------
 
 /**
- * Ask user which period to cover, call main stats function, and present results
+ * Ask user what word/phrase to search for, run the search, 
+ * and ask where to save/show the results
  * @author @jgclark
  */
 export async function saveSearch(): Promise<void> {
@@ -55,29 +55,6 @@ export async function saveSearch(): Promise<void> {
   // Ask user for search term
   const searchTerm = await getInput(`Exact word/phrase to search for`)
 
-  // Work time period to cover
-  const [fromDate, toDate, periodString, periodPartStr] = await getPeriodStartEndDates(`Search over which period?`)
-
-  if (fromDate == null || toDate == null) {
-    console.log('dates could not be parsed')
-    return
-  }
-  const fromDateStr = unhyphenatedDate(fromDate) //fromDate.toISOString().slice(0, 10).replace(/-/g, '')
-  const toDateStr = unhyphenatedDate(toDate) // toDate.toISOString().slice(0, 10).replace(/-/g, '')
-  
-  // Get array of all daily notes that are within this time period
-  const periodDailyNotes = DataStore.calendarNotes.filter((p) =>
-    withinDateRange(
-      dateStringFromCalendarFilename(p.filename),
-      fromDateStr,
-      toDateStr,
-    ),
-  )
-  if (periodDailyNotes.length === 0) {
-    console.log('  warning: no matching daily notes found')
-  }
-
-  // TODO: Ignore list
   // Create list of project notes not in excluded folders
   const allProjectNotes = DataStore.projectNotes
   const projectNotesToInclude = []
@@ -116,7 +93,7 @@ export async function saveSearch(): Promise<void> {
   // Ask where to save this summary to
   const labelString = `🖊 Create/update note in folder '${config.folderToStore}'`
   const destination = await chooseOption(
-    `Where should I save the search results?`,
+    `Where should I save the ${lines.length} search results?`,
     [
       {
         // TODO: When weekly/monthly notes are made possible in NP, then add options like this
@@ -152,7 +129,7 @@ export async function saveSearch(): Promise<void> {
         console.log(`\terror: no note is open`)
       } else {
         console.log(
-          `\tappending results to current note (${currentNote.filename ?? ''})`,
+          `\tappending ${lines.length} results to current note (${currentNote.filename ?? ''})`,
         )
         const insertionLineIndex = currentNote.paragraphs.length
         currentNote.insertHeading(

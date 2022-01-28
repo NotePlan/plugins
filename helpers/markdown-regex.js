@@ -1,31 +1,9 @@
-// Regex for timeblocks. The first one captures the start time
-// These Regexs are used by the app, but don't work in JS
-// So they are just here for reference
-export const timeblockRegex1 =
-  '(^|\\s|T)' +
-  '(?:(?:at|from)\\s*)?' +
-  '(\\d{1,2}|noon|midnight)' +
-  '(?:' +
-  '(?:\\:|\\：)(\\d{1,2})' +
-  '(?:' +
-  '(?:\\:|\\：)(\\d{2})' +
-  ')?' +
-  ')?' +
-  '(?:\\s*(A\\.M\\.|P\\.M\\.|AM?|PM?))?' +
-  '(?=\\W|$)'
-// The second one captures the end time (optional)
-export const timeblockRegex2 =
-  '^\\s*' +
-  '(\\-|\\–|\\~|\\〜|to|\\?)\\s*' +
-  '(\\d{1,4})' +
-  '(?:' +
-  '(?:\\:|\\：)(\\d{1,2})' +
-  '(?:' +
-  '(?:\\:|\\：)(\\d{1,2})' +
-  ')?' +
-  ')?' +
-  '(?:\\s*(A\\.M\\.|P\\.M\\.|AM?|PM?))?' +
-  '(?=\\W|$)'
+/**
+ * Regex for Markdown features.
+ * These aren't exported for use in code, but are for reference, from @EduardMe
+
+ * NB: For active regex for time blocks, see timeblocks.js.
+ */
 
 export const markdownRegex = {
   orderedStyles: [

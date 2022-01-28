@@ -113,20 +113,48 @@ type TEditor = {
    */
   replaceSelectionWithText(text: string): void,
   /**
-   * Opens a note using the given filename
+   * Opens a note using the given filename.
+   * Note: splitView parameter available for macOS from r727 (v3.4)
+   * @param {string} filename - Filename of the note file (can be without extension), but has to include the relative folder such as `folder/filename.txt`.
+   * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
+   * @param {number} highlightStart - (optional) Start position of text highlighting
+   * @param {number} highlightEnd - (optional) End position of text highlighting
+   * @param {boolean} splitView - (optional) Open note in a new split view (Note: Available from v3.4)
+   * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
   openNoteByFilename(
     filename: string,
     newWindow?: boolean,
     highlightStart?: number,
     highlightEnd?: number,
+    splitView?: boolean,  
   ): Promise<TNote>,
   /**
    * Opens a note by searching for the give title (first line of the note)
+   * Note: splitView parameter available for macOS from r727 (v3.4)
+   * @param {String} title - Title (case sensitive) of the note (first line)
+   * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
+   * @param {number} highlightStart - (optional) Start position of text highlighting
+   * @param {number} highlightEnd - (optional) End position of text highlighting
+   * @param {boolean} splitView - (optional) Open note in a new split view (Note: Available from v3.4)
+   * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
-  openNoteByTitle(title: string, newWindow?: boolean, highlightStart?: number, highlightEnd?: number): Promise<TNote>,
+  openNoteByTitle(
+    title: string,
+    newWindow ?: boolean,
+    highlightStart ?: number,
+    highlightEnd ?: number,
+    splitView?: boolean,
+  ): Promise <TNote>,
   /**
    * Opens a note by searching for the give title (first line of the note)
+   * Note: splitView parameter available for macOS from r727 (v3.4)
+   * @param {String} title - Title (case sensitive) of the note (first line)
+   * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
+   * @param {number} highlightStart - (optional) Start position of text highlighting
+   * @param {number} highlightEnd - (optional) End position of text highlighting
+   * @param {boolean} splitView - (optional) Open note in a new split view (Note: Available from v3.4)
+   * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
   openNoteByTitleCaseInsensitive(
     title: string,
@@ -134,19 +162,40 @@ type TEditor = {
     caseSensitive?: boolean,
     highlightStart?: number,
     highlightEnd?: number,
+    splitView?: boolean,
   ): Promise<TNote>,
   /**
    * Opens a calendar note by the given date
+   * Note: splitView parameter available for macOS from r727 (v3.4)
+   * @param {Date} date - The date that should be opened, this is a normal JavaScript date object
+   * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
+   * @param {number} highlightStart - (optional) Start position of text highlighting
+   * @param {number} highlightEnd - (optional) End position of text highlighting
+   * @param {boolean} splitView - (optional) Open note in a new split view (Note: Available from v3.4)
+   * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
-  openNoteByDate(date: Date, newWindow?: boolean, highlightStart?: number, highlightEnd?: number): Promise<TNote>,
+  openNoteByDate(
+    date: Date,
+    newWindow ?: boolean,
+    highlightStart ?: number,
+    highlightEnd ?: number,
+    splitView?: boolean,
+  ): Promise < TNote >,
   /**
    * Opens a calendar note by the given date string
+   * @param {String} dateString - The date string that should be opened, in ISO format: "YYYYMMDD", like "20210501"
+   * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
+   * @param {number} highlightStart - (optional) Start position of text highlighting
+   * @param {number} highlightEnd - (optional) End position of text highlighting
+   * @param {boolean} splitView - (optional) Open note in a new split view (Note: Available from v3.4)
+   * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
   openNoteByDateString(
     filename: string,
     newWindow?: boolean,
     highlightStart?: number,
     highlightEnd?: number,
+    splitView?: boolean,
   ): Promise<TNote | void>,
   /**
    * Selects the full text in the editor.
@@ -154,19 +203,19 @@ type TEditor = {
    */
   selectAll(): void,
   /**
-   * (Raw) select text in the editor
-   * (like select 10 characters = length from position 2 = start)
-   *
+   * (Raw) select text in the editor (like select 10 characters = length from position 2 = start)
    * Raw means here that the position is calculated with the Markdown revealed,
    * including Markdown links and folded text.
+   * @param {number} start - Character start position
+   * @param {number} length - Character length
    */
   select(start: number, length: number): void,
   /**
-   * (Rendered) select text in the editor
-   * (like select 10 characters = length from position 2 = start)
-   *
-   * Rendered means here that the position is calculated with the Markdown
-   * hidden, including Markdown links and folded text.
+   * (Rendered) select text in the editor (like select 10 characters = length from position 2 = start)
+   * Rendered means here that the position is calculated with the Markdown hidden,
+   * including Markdown links and folded text.
+   * @param {number} start - Character start position
+   * @param {number} length - Character length
    */
   renderedSelect(start: number, length: number): void,
   /**
@@ -184,16 +233,21 @@ type TEditor = {
   /**
    * Scrolls to and highlights the given paragraph. If the paragraph is folded,
    * it will be unfolded.
+   * @param {ParagraphObject} paragraph to highlight
    */
   highlight(paragraph: TParagraph): void,
   /**
    * Scrolls to and highlights the given range. If the paragraph is folded, it
    * will be unfolded.
+   * @param {RangeObject} range
    */
   highlightByRange(range: Range): void,
   /**
    * Note: Available from v3.0.23+ (Mac: Build 636+, iOS: Build 562+)
-   * Scrolls to and highlights the given range defined by the character index and the character length it should cover. If the paragraph is folded, it will be unfolded.
+   * Scrolls to and highlights the given range defined by the character index and
+   * the character length it should cover. If the paragraph is folded, it will be unfolded.
+   * @param {number} index
+   * @param {number} length 
    */
   highlightByIndex(index: number, length: number): void,
   /**
@@ -202,7 +256,7 @@ type TEditor = {
    * `text` is optional, if you define it, it will be shown below the loading indicator.
    * `progress` is also optional. If it's defined, the loading indicator will change into a progress ring. Use float numbers from 0-1 to define how much the ring is filled.
    * When you are done, call `showLoading(false)` to hide the window.
-   * @param {Bool}
+   * @param {boolean}
    * @param {String?}
    * @param {Float?}
    */
@@ -278,11 +332,11 @@ type TDataStore = {
   +projectNotes: $ReadOnlyArray<TNote>,
 
   /**
-   * Get settings for plugins (as JSON?)
+   * Get or set settings for the current plugin (as a JavaScript object).
    * Example: settings.shortcutExpenses[0].category
-   * Note: Available from NotePlan v3.3.2?
+   * Note: Available from NotePlan v3.3.2
    */
-  +settings: Object,
+  settings: Object,
   
   /**
    * Returns the value of a given preference.
@@ -987,7 +1041,7 @@ declare var Clipboard: {
   availableType(fromTypes: $ReadOnlyArray<string>): ?string,
 }
 
-type ParagraphType = 'open' | 'done' | 'scheduled' | 'cancelled' | 'title' | 'quote' | 'list' | 'empty' | 'text'
+type ParagraphType = 'open' | 'done' | 'scheduled' | 'cancelled' | 'title' | 'quote' | 'list' | 'empty' | 'text' | 'code'
 
 declare var ParagraphBridge: TParagraphBridge
 type TParagraphBridge = {
@@ -1171,22 +1225,29 @@ type TParagraphBridge = {
   ): void,
 }
 
-declare var Environment: {
+declare var NotePlan: {
   /**
   * Returns the environment information from the operating system:
   *   "languageCode" -> string?
   *   "regionCode" -> string?
-  *   "is12hFormat" -> Bool
+  *   "is12hFormat" -> boolean
   *   "preferredLanguages" -> [string]
-  *   "secondsFromGMT" -> Int
+  *   "secondsFromGMT" -> integer
   *   "localTimeZoneAbbreviation" -> string
   *   "localTimeZoneIdentifier" -> string
-  *   "isDaylightSavingTime" -> Bool
+  *   "isDaylightSavingTime" -> boolean
   *   "daylightSavingTimeOffset" -> Double
   *   "nextDaylightSavingTimeTransition" -> Date
-  * Note: available from v3.2.2
+  *   "platform" -> "macOS" | "iPadOS" | "iOS"
+  *   "hasSettings" -> boolean
+  * Note: available from v3.3.2
   */
-  +environment: Object
+  +environment: Object,
+  /**
+   * Open the current plugin's config UI, if available.
+   * Note: available from v3.3.2 (just for macOS so far)
+   */
+  showConfigurationView(): Promise<void>
 }
 
 // Every function made available must be assigned to `globalThis`

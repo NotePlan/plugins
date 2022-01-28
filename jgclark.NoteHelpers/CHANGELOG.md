@@ -1,8 +1,13 @@
 # What's changed in 📙 Note Helpers plugin?
 
-## [0.10.7] - 2022-01-03
+## [0.11.0] - 2022-01-20
+### Added
+- added `/open note split` command to open a user-selected note in a new split window (available from NotePlan 3.4)
+
 ### Changed
-- the /index command now adds time since note was last updated in the output
+- **switched to using longer descriptive command names**. The older short names will still work as aliases
+- the `/index` command now adds time since note was last updated in the output
+- when jumping to a heading, those in the archive part of the note (Done... or Cancelled...) now aren't offered
 
 ## [0.10.6] - 2021-11-17
 ### Changed
