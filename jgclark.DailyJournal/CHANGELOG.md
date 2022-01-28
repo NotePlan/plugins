@@ -1,8 +1,16 @@
 # What's changed in ☀️ Daily Journal Plugin?
 
+## [0.11.0] - 2022-01-29
+### Added
+- /dayReview now checks to see if a question has already been answered in the daily note before it asks it; if it has, it won't ask again.
+
+### Changed
+- uses new 'native' dialog boxes (available from NP v3.4)
+- under-the-hood changes to prepare for next Configuration system
+
 ## [0.10.0] - 2021-11-25 (@m1well)
 ### Changed
-- trim input from user for the text @dayReview
+- trim input from user in /dayReview questions
 
 ## [0.9.0] - 2021-11-25  (@m1well)
 ### Added

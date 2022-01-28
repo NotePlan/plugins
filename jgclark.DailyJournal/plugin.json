@@ -7,7 +7,7 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/README.md",
-  "plugin.version": "0.10.1",
+  "plugin.version": "0.11.0",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -52,7 +52,7 @@
         "title": "Review Questions",
         "description": "This string includes both the questions and how to layout the answers in the daily note. (NB: can include line breaks.)",
         "type": "string",
-        "default": "@work(<int>)\n@fruitveg(<int>)\nMood:: <mood>\nGratitude:: <string>\nGod was:: <string>\nAlive:: <string>\nNot Great:: <string>\nWife:: <string>\nRemember:: <string>",
+        "default": "@sleep(<int>)\n@work(<int>)\n@fruitveg(<int>)\nMood: <mood>\nGratitude: <string>\nGod was: <string>\nAlive: <string>\nNot Great: <string>\nLearn: <string>\nRemember: <string>",
         "required": true
     },
     {
