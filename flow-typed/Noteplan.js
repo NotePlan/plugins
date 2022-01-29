@@ -304,6 +304,12 @@ type TEditor = {
    * @return {Boolean}
    */
   addTheme(json: string, filename: string): boolean,
+  /**
+   * Print current note, optionally with backlinks and events sections
+   * Note: available from macOS build 729
+   * @param {boolean} addReferenceSections
+   */
+  printNote(boolean: addReferenceSections): void,
 }
 
 /**
@@ -324,6 +330,8 @@ type TDataStore = {
   +folders: $ReadOnlyArray<string>,
   /**
    * Get all calendar notes.
+   * Note: from v3.4 this includes all future-referenced dates, not just those with
+   * an actual created note.
    */
   +calendarNotes: $ReadOnlyArray<TNote>,
   /**
@@ -885,7 +893,13 @@ type TNote = {
    * NB: Backlinks are all [[note name]] and >date links.
    * Note: Available from v3.2
    */
-  +backlinks: $ReadOnlyArray<TParagraph>,
+  +backlinks: $ReadOnlyArray < TParagraph >,
+  /**
+   * Print the note, optionally with backlinks and events sections
+   * Note: available from macOS build 729
+   * @param {boolean} addReferenceSections
+   */
+  printNote(boolean: addReferenceSections): void,
 }
 
 /**
