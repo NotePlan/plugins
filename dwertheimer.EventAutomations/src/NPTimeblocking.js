@@ -14,16 +14,18 @@ import {
   formatISO9075,
   addMinutes,
 } from 'date-fns'
-import { getEventsForDay, type HourMinObj, listDaysEvents } from '../../jgclark.EventHelpers/src/eventsToNotes'
+import { getEventsForDay } from '../../helpers/NPevents'
+import { listDaysEvents } from '../../jgclark.EventHelpers/src/eventsToNotes'
 import { timeBlocksToCalendar } from '../../jgclark.EventHelpers/src/timeblocks'
 import {
-  toLocaleTime,
-  getTodaysDateUnhyphenated,
-  getTodaysDateHyphenated,
   dateStringFromCalendarFilename,
+  type HourMinObj,
+  getTodaysDateHyphenated,
+  getTodaysDateUnhyphenated,
   removeDateTags,
-  toISODateString,
   todaysDateISOString,
+  toISODateString,
+  toLocaleTime,
 } from '../../helpers/dateTime'
 import { getTasksByType } from '../../dwertheimer.TaskAutomations/src/taskHelpers'
 import { sortListBy } from '../../helpers/sorting'
@@ -33,22 +35,22 @@ import { isTimeBlockLine, getTimeBlockString } from '../../helpers/timeblocks'
 import { calcSmartPrependPoint } from '../../helpers/paragraph'
 import { logAllPropertyNames, getAllPropertyNames, JSP } from '../../helpers/dev'
 import {
-  createIntervalMap,
-  getBlankDayMap,
-  blockTimeFor,
-  removeDateTagsAndToday,
   attachTimeblockTag,
+  blockOutEvents,
+  blockTimeFor,
+  createIntervalMap,
   createTimeBlockLine,
+  excludeTasksWithPatterns,
+  getBlankDayMap,
+  getDateObjFromString,
+  getTimeBlockTimesForEvents,
   getTimedEntries,
   getTimeStringFromDate,
-  blockOutEvents,
-  removeDateTagsFromArray,
-  getTimeBlockTimesForEvents,
-  makeAllItemsTodos,
   keepTodayPortionOnly,
   includeTasksWithPatterns,
-  excludeTasksWithPatterns,
-  getDateObjFromString,
+  makeAllItemsTodos,
+  removeDateTagsAndToday,
+  removeDateTagsFromArray,
 } from './timeblocking-helpers'
 import { getPresetOptions, setConfigForPreset } from './presets'
 import { getTimeBlockingDefaults, validateTimeBlockConfig } from './config'
