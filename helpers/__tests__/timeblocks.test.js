@@ -83,9 +83,6 @@ describe(`${HELPER_NAME}`, () => {
       test('15: yes: at 5pm', () => {
         expect(tb.isTimeBlockLine('at 5pm')).toEqual(true)
       })
-      test('16: yes: at 5p', () => {
-        expect(tb.isTimeBlockLine('at 5p')).toEqual(true)
-      })
       test('18: yes: 2PM-3PM', () => {
         expect(tb.isTimeBlockLine('at 2PM-3PM')).toEqual(true)
       })
@@ -121,6 +118,12 @@ describe(`${HELPER_NAME}`, () => {
     describe('isTimeBlockLine NON-MATCHES', () => {
       test('3j: yes: at11-12', () => {
         expect(tb.isTimeBlockLine('at11-12')).toEqual(false)
+      })
+      test('16a: no: at 5a', () => {
+        expect(tb.isTimeBlockLine('at 5a')).toEqual(false)
+      })
+      test('16b: yes: at 5p', () => {
+        expect(tb.isTimeBlockLine('at 5p')).toEqual(false)
       })
       test('17: no: 2021-06-02 2.15PM-3.45PM (dots not allowed)', () => {
         expect(tb.isTimeBlockLine('2021-06-02 2.15PM-3.45PM')).toEqual(false)
