@@ -13,6 +13,7 @@ import NoteModule from '@templatingModules/NoteModule'
 import UtilityModule from '@templatingModules/UtilityModule'
 import SystemModule from '@templatingModules/SystemModule'
 import FrontmatterModule from '@templatingModules/FrontmatterModule'
+import { log } from 'NPTemplating'
 
 import { showError } from '../../codedungeon.Tester/src/lib/testerUtils'
 // this is a customized versioin of `ejs` adding support for async actions (use await in template)
@@ -105,7 +106,7 @@ export default class TemplatingEngine {
     this.templateModules.forEach((moduleItem) => {
       if (this.isClass(moduleItem.module)) {
         const methods = Object.getOwnPropertyNames(moduleItem.module.prototype)
-        console.log(`np.Templating Error: ES6 Classes are not supported [${moduleItem.moduleNamespace}]`)
+        log(`np.Templating Error: ES6 Classes are not supported [${moduleItem.moduleNamespace}]`)
       } else {
         for (const [key, method] of Object.entries(moduleItem.module)) {
           renderData[moduleItem.moduleNamespace] = {}
@@ -161,7 +162,7 @@ export default class TemplatingEngine {
   }
 
   async getDefaultFormat(formatType: string = 'date'): Promise<string> {
-    //TODO: Fix me
+    //FIXME
     console.log('FIXME: getDefaultFormat')
     try {
       // $FlowFixMe
@@ -194,8 +195,8 @@ export default class TemplatingEngine {
         }
         break
       case 'class':
-        console.log(`np.Templating Error: ES6 Classes are not supported [${name}]`)
-        console.log(`Please refer to np.Templating Documentation [Templating Plugins]`)
+        log(`np.Templating Error: ES6 Classes are not supported [${name}]`)
+        log(`Please refer to np.Templating Documentation [Templating Plugins]`)
         break
       case 'object':
         const moduleNmae = this.templateModules.find((item) => {

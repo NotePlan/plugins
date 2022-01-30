@@ -214,3 +214,33 @@ export function debug(label: mixed = '', msg: mixed = null): void {
   console.log('*'.repeat(padLength) + ' DEBUG ' + '*'.repeat(padLength))
   console.log('')
 }
+
+/**
+ * Convert semver string to number
+ * @author @codedungeon
+ * @param {string} semver - semver version
+ * @return return long version number
+ */
+export function semverVersionToNumber(version: string): number {
+  const parts = version.split('.')
+  if (parts.length < 3) {
+    parts.push('0')
+    if (parts.length < 3) {
+      parts.push('0')
+    }
+  }
+
+  // $FlowIgnore
+  parts.forEach((part: number) => {
+    if (part >= 1024) {
+      throw new Error(`Version string invalid, ${part} is too large`)
+    }
+  })
+
+  let numericVersion = 0
+  // Shift all parts either 0, 10 or 20 bits to the left.
+  for (let i = 0; i < 3; i++) {
+    numericVersion |= parseInt(parts[i]) << (i * 10)
+  }
+  return numericVersion
+}

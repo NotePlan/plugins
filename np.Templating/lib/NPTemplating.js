@@ -4,7 +4,8 @@
  * Copyright (c) 2021-2022 Mike Erickson / Codedungeon.  All rights reserved.
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
  * -----------------------------------------------------------------------------------------*/
-
+import { semverVersionToNumber } from '@helpers/general'
+import pluginJson from '../plugin.json'
 import FrontmatterModule from './support/modules/FrontmatterModule'
 
 /*eslint-disable */
@@ -54,6 +55,21 @@ type TemplateConfig = $ReadOnly<{
   services?: mixed,
 }>
 
+const dt = () => {
+  const d = new Date()
+
+  const pad = (value: number) => {
+    return value < 10 ? '0' + value : value
+  }
+
+  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + d.toLocaleTimeString()
+}
+
+export function log(msg: any = '') {
+  let displayMsg: string = typeof msg === 'string' ? msg : msg.toString()
+  console.log(`${dt()} : np.Templating :: ${displayMsg}`)
+}
+
 export async function getDefaultTemplateConfig(): any {
   return DEFAULT_TEMPLATE_CONFIG
 }
@@ -101,7 +117,7 @@ export async function TEMPLATE_CONFIG_BLOCK(): Promise<string> {
 export async function getTemplateList(): Promise<any> {
   const templateFolder = await getTemplateFolder()
   if (templateFolder == null) {
-    await CommandBar.prompt('np.Templating', 'An error occurred locating 📋 Templates folder')
+    await CommandBar.prompt('Templating Error', `An error occurred locating ${templateFolder} folder`)
     return
   }
 
@@ -129,10 +145,18 @@ export default class NPTemplating {
   static async updateOrInstall(currentSettings: any, currentVersion: string): Promise<TemplateConfig> {
     const settingsData = { ...currentSettings }
 
-    // TODO: Add any templating setting migration here
+    // current settings version as number
+    const settingsVersion: number = semverVersionToNumber(settingsData?.version || '')
 
-    console.log(currentVersion)
-    // $FlowIgnore
+    // this will grow over time as settings are upgraded in future versions
+    if (settingsVersion < semverVersionToNumber('0.0.186')) {
+      log(`==> Updating np.Templating to version 0.0.186`)
+    }
+
+    // update settings version to latest version from plugin.json
+    settingsData.version = pluginJson['plugin.version']
+
+    // return new settings
     return settingsData
   }
 
@@ -149,7 +173,7 @@ export default class NPTemplating {
         ...{ selection: await selection(), clipboard: Clipboard.string },
       }
     } catch (error) {
-      CommandBar.prompt('Template Error', error)
+      await CommandBar.prompt('Template Error', error)
     }
   }
 

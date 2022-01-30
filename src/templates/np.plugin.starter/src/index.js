@@ -7,8 +7,11 @@
 // `npm run autowatch` will watch for changes and will compile the Plugin script code
 // and copy it to your plugins directory
 // Since NP reloads the Javascript every time you CMD-J to insert a plugin,
-// you can immmediately test the new code with NP
+// you can immediately test the new code with NP
 // Add a line below for each function that you want NP to have access to.
 // Typically, listed below are only the top-level plug-in functions listed in plugin.json
+
+// including so rollup will trigger build when plugin.json is modified
+import pluginJson from '../plugin.json'
 
 export { helloWorld } from './helloWorld'

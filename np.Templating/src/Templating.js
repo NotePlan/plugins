@@ -6,7 +6,7 @@
  * -----------------------------------------------------------------------------------------*/
 
 import NPTemplating from 'NPTemplating'
-import { getTemplateFolder, getTemplateList } from 'NPTemplating'
+import { getTemplateFolder, getTemplateList, log } from 'NPTemplating'
 
 import { chooseOption } from '@helpers/userInput'
 import { getAffirmation } from '../lib/support/modules/affirmation'
@@ -14,43 +14,43 @@ import { getAdvice } from '../lib/support/modules/advice'
 import { getWeather } from '../lib/support/modules/weather'
 import { getDailyQuote } from '../lib/support/modules/quote'
 import { getVerse, getVersePlain } from '../lib/support/modules/verse'
-import { migrateConfiguration } from '../../helpers/configuration'
+import { initConfiguration, migrateConfiguration } from '../../helpers/configuration'
 
 import pluginJson from '../plugin.json'
 
-export async function onUpdateOrInstall(): Promise<void> {
+export async function onUpdateOrInstall(config: any = { silent: false }): Promise<void> {
   try {
-    // get current plugin settings
-    const pluginSettingData = DataStore.loadJSON('../np.Templating/settings.json')
-    if (!pluginSettingData) {
-      const configurationData = await migrateConfiguration('templates', pluginJson)
-      if (configurationData) {
-        DataStore.settings = { ...configurationData }
-      }
-    }
+    log('onUpdateOrInstall')
 
+    // migrate _configuration data to data/<plugin>/settings.json (only executes migration once)
+    const migrationResult: number = await migrateConfiguration('templates', pluginJson, config?.silent)
+
+    // ===== PLUGIN SPECIFIC SETTING UPDATE CODE
     // this will be different for all plugins, you can do whatever you wish to configuration
-    const templateConfig = await NPTemplating.updateOrInstall(DataStore.settings, pluginJson['plugin.version'])
+    const templateSettings = await NPTemplating.updateOrInstall(DataStore.settings, pluginJson['plugin.version'])
 
-    DataStore.settings = { ...templateConfig }
-
-    // if settings don't exists, show settings configuration to allow users ability to customize
-    if (!pluginSettingData) {
-      // await NotePlan.showConfigurationView()
-      CommandBar.prompt(
-        'NotePlan',
-        'NotePlan.showConfigurationView() here\n\nNote: as of Version 3.3.2 (727) dialog freezes when displayed',
-      )
-    }
-
-    // clear _configuration template configuration block
+    // set application settings with any adjustments after template specific updates
+    DataStore.settings = { ...templateSettings }
   } catch (error) {
-    console.log(error)
+    log(error)
   }
 }
 
 export async function templateInit(): Promise<void> {
-  CommandBar.prompt('Template Error', 'An error occurred executing `templateInit`.')
+  const pluginSettingsData = await DataStore.loadJSON(`../${pluginJson['plugin.id']}/settings.json`)
+  if (typeof pluginSettingsData === 'object') {
+    const result = await CommandBar.prompt(
+      'np.Templating',
+      'np.Templating settings have already been created. \n\nWould you like to reset to default settings?',
+      ['Yes', 'No'],
+    )
+
+    if (result === 0) {
+      DataStore.settings = { ...(await initConfiguration(pluginJson)) }
+    }
+  } else {
+    onUpdateOrInstall({ silent: true })
+  }
 }
 
 export async function templateInsert(): Promise<void> {
@@ -97,15 +97,15 @@ export async function templateAppend(): Promise<void> {
 }
 
 export async function templateNew(): Promise<void> {
-  const title = await CommandBar.textPrompt('Enter New Note Title', '', '').toString()
-  if (!title) {
-    return
+  const title = await CommandBar.textPrompt('Template', 'Enter New Note Title', '')
+  if (typeof title === 'boolean' || title.length === 0) {
+    return // user did not provide note title (Cancel) abort
   }
 
   const folderList = await DataStore.folders.slice().sort()
 
   const folder = await chooseOption(
-    'Select folder to add note in:',
+    'Where would you like to create new note?',
     folderList.map((folder) => ({
       label: folder,
       value: folder,
@@ -113,26 +113,14 @@ export async function templateNew(): Promise<void> {
     '/',
   )
 
-  const startWithTemplate = await chooseOption(
-    'Do you want to get started with a template?',
-    [
-      { label: 'Yes', value: true },
-      { label: 'No', value: false },
-    ],
-    false,
-  )
+  const templateName = await selectTemplate()
 
-  const templateName = startWithTemplate ? await selectTemplate() : ''
-
-  let templateResult = ''
-  if (templateName.length > 0) {
-    templateResult = await NPTemplating.renderTemplate(templateName)
-  }
-
-  const filename = DataStore.newNote(title, folder) || ''
+  const noteTitle = title.toString()
+  const filename = DataStore.newNote(noteTitle, folder) || ''
   if (filename) {
+    const templateResult = await NPTemplating.renderTemplate(templateName)
     await Editor.openNoteByFilename(filename)
-    Editor.content = `# ${title}\n${templateResult}`
+    Editor.content = `# ${noteTitle}\n${templateResult}`
   }
 }
 

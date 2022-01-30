@@ -95,6 +95,11 @@
       "title": "np.Templating Settings"
     },
     {
+      "key": "version",
+      "type": "hidden",
+      "title": "np.Templating Settings Version"
+    },
+    {
       "key": "templateFolderName",
       "title": "Template Folder Name",
       "description": "Folder name where np.Templating will load templates.",
@@ -182,8 +187,9 @@
     {
       "key": "services",
       "title": "Web Services",
-      "description": "Configuration for Services which can be referenced using <% web.service() %> method",
+      "description": "Configuration for Services which can be referenced using\n<% web.service() %> method\n\nTip: Use https://jsonformatter.org/json5-validator to validate",
       "type": "json",
+      "default": "",
       "required": false
     }
   ]
