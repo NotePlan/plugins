@@ -1,10 +1,14 @@
 # What's Changed in 🗃 Summaries plugin?
+## [0.5.1] - ???
+### Changed
+- (tidy-up from getInput changes)
 
 ## [0.5.0] - 2022-01-18
 ### Added
 - added hashtags to the `/insertProgressUpdate` command (requested by @dwertheimer)
 - the list of hashtags and mentions to include in Progress Updates are now specified separately, using the `progressHashtags` and `progressMentions` settings.
 - and the ability for `{{insertProgressUpdate(...)}}` to take a second `heading` parameter to let you use this multiple times in the same template (requested by @dwertheimer)
+- under-the-hood changes to get ready for ConfigV2
 
 ### Changed
 - renamed `/occurrencesInPeriod` as `/saveSearchResultsInPeriod`.
