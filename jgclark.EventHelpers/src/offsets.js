@@ -1,10 +1,11 @@
 // @flow
-// ------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 // Command to Process Date Offsets
 // @jgclark
-// for v0.7.0+, 18.11.2021
-// ------------------------------------------------------------------------------------
+// Last updated 28.1.2022 for v0.10.2, @jgclark
+// ----------------------------------------------------------------------------
 
+import { timeBlocksToCalendar } from './timeblocks'
 import {
   RE_DATE,
   RE_DATE_INTERVAL,
@@ -17,10 +18,10 @@ import { displayTitle } from '../../helpers/general'
 import { findEndOfActivePartOfNote } from '../../helpers/paragraph'
 import { showMessage, showMessageYesNo } from '../../helpers/userInput'
 
-// ------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 // Settings
 // - none!
-// ------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 
 // Go through current Editor note and identify date offsets and turn into due dates
 export async function processDateOffsets() {
@@ -32,16 +33,15 @@ export async function processDateOffsets() {
 
   const { paragraphs, note } = Editor
   if (paragraphs == null || note == null) {
-    await showMessage('No content found to process.', 'OK', 'Process Dates')
+    await showMessage('No content found to process.', 'OK', 'Process Date Offsets')
     return
   }
   if (note.filename.startsWith('📋 Templates')) {
-    await showMessage(`For safety I won't run on notes in the 📋 Templates folder.`, 'OK', 'Process Dates')
+    await showMessage(`For safety I won't run on notes in the 📋 Templates folder.`, 'OK', 'Process Date Offsets')
     return
   }
   const noteTitle = displayTitle(note)
-  console.log('')
-  console.log(`processDateOffsets: starting for note '${noteTitle}'`)
+  console.log(`starting for note '${noteTitle}'`)
 
   let currentTargetDate = ''
   let n = 0
@@ -121,8 +121,14 @@ export async function processDateOffsets() {
       }
       n += 1
     }
+
+    // Offer to run timeblocks creation, as that often goes with offsets
+    let res = await showMessageYesNo(`Shall I create any new events from time blocks?`, ['Yes','No'], 'Process Date Offsets')
+    if (res === 'Yes') {
+      await timeBlocksToCalendar()
+    }
   } else {
     console.log(`processDateOffsets: warning: no date offset patterns found`)
-    await showMessage(`No date offset patterns found.`)
+    await showMessage(`No date offset patterns found.`, `Process Date Offsets`)
   }
 }

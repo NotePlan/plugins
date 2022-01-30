@@ -2,7 +2,7 @@
 // ------------------------------------------------------------------------------------
 // Command to turn time blocks into full calendar events
 // @jgclark
-// Last updated for v0.10.1, 8.1.2022 by @jgclark
+// Last updated 28.1.2022 for v0.11.0, by @jgclark
 //
 // See https://help.noteplan.co/article/121-time-blocking
 // for definition of time blocks. In summary:
@@ -13,6 +13,8 @@
 // NB: The actual detection allows for more time types than is mentioned in the docs.
 // ------------------------------------------------------------------------------------
 
+import { getEventsSettings } from './config'
+import type { EventsConfig } from './config'
 import {
   isoDateStringFromCalendarFilename,
   printDateRange,
@@ -35,7 +37,6 @@ import {
   getTimeBlockString,
 } from '../../helpers/timeblocks'
 import { showMessage, showMessageYesNo } from '../../helpers/userInput'
-import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 
 // ------------------------------------------------------------------------------------
 // Settings
@@ -67,12 +68,12 @@ let pref_addEventID: boolean
 let pref_confirmEventCreation: boolean
 let pref_calendarToWriteTo: string
 
-// ------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 // Additional Regular Expressions
 
 const RE_EVENT_ID = `event:[A-F0-9-]{36,37}`
 
-// ------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 
 /**
  * Go through current Editor note, identify time blocks to turn into events,
@@ -80,49 +81,29 @@ const RE_EVENT_ID = `event:[A-F0-9-]{36,37}`
  * @author @jgclark
  */
 export async function timeBlocksToCalendar(): Promise<void> {
-  console.log(RE_TIMEBLOCK)
-  console.log(RE_TIMEBLOCK_FOR_THEMES)
-  // logAllEnvironmentSettings()
+  // console.log(RE_TIMEBLOCK)
+  // console.log(RE_TIMEBLOCK_FOR_THEMES)
 
   const { paragraphs, note } = Editor
   if (paragraphs == null || note == null) {
-    console.log('\ntimeBlocksToCalendar: warning: no content found')
+    console.log('warning: no content found')
     return
   }
   const noteTitle = displayTitle(note)
-  console.log(`\ntimeBlocksToCalendar: starting for note '${noteTitle}'`)
+  console.log(`for note '${noteTitle}' ...`)
 
   // Get config settings from Template folder _configuration note
-  const eventsConfig = await getOrMakeConfigurationSection(
-    'events',
-    DEFAULT_EVENTS_OPTIONS,
-    // no minimum config needed, as can use defaults if need be
-  )
-  // const eventsConfig: any = config?.events ?? null
-  if (eventsConfig == null) {
-    console.log("\tInfo: couldn't find 'events' settings in _configuration note. Will use defaults.")
-  }
-  console.log("\tFound 'events' settings in _configuration note.")
-
-  // now get settings we need
-  pref_processedTagName = String(eventsConfig?.processedTagName) ?? '#event_created'
-  // $FlowFixMe[incompatible-type]
-  pref_removeTimeBlocksWhenProcessed = eventsConfig?.removeTimeBlocksWhenProcessed ?? true
-  // $FlowFixMe[incompatible-type]
-  pref_addEventID = eventsConfig?.addEventID ?? false
-  // $FlowFixMe[incompatible-type]
-  pref_confirmEventCreation = eventsConfig?.confirmEventCreation ?? false
-  pref_calendarToWriteTo = String(eventsConfig?.calendarToWriteTo) ?? ''
+  const config = await getEventsSettings()
 
   let calendarToWriteTo = '' // NP will then use the default
-  if (pref_calendarToWriteTo != null && pref_calendarToWriteTo !== '') {
+  if (config.calendarToWriteTo != null && config.calendarToWriteTo !== '') {
     // Check that the calendar name we've been given is in the list and is writable
     const writableCalendars: $ReadOnlyArray<string> = Calendar.availableCalendarTitles(true)
-    if (writableCalendars.includes(pref_calendarToWriteTo)) {
-      calendarToWriteTo = pref_calendarToWriteTo
+    if (writableCalendars.includes(config.calendarToWriteTo)) {
+      calendarToWriteTo = config.calendarToWriteTo
       console.log(`\twill write to calendar '${calendarToWriteTo}'`)
     } else {
-      console.log(`\trequested calendar '${pref_calendarToWriteTo}' is not writeable. Will use default calendar instead.`)
+      console.log(`\trequested calendar '${config.calendarToWriteTo}' is not writeable. Will use default calendar instead.`)
     }
   }
 
@@ -153,7 +134,7 @@ export async function timeBlocksToCalendar(): Promise<void> {
       // Check to see if this line has been processed before, by looking for the
       // processed tag, or an [[event:ID]]
       // $FlowFixMe[incompatible-call]
-      if ((pref_processedTagName !== "" && thisParaContent.match(pref_processedTagName))
+      if ((config.processedTagName !== "" && thisParaContent.match(config.processedTagName))
           || thisParaContent.match(RE_EVENT_ID)) {
         console.log(
           `\tIgnoring timeblock in '${thisParaContent}' as it has already been processed`,
@@ -179,35 +160,41 @@ export async function timeBlocksToCalendar(): Promise<void> {
 
         if (timeblockDateRange) {
           // We have a valid timeblock, so let's make the event etc.
-          const restOfTask = thisPara.content.replace(origTimeBlockString, '').trim()
-          if (pref_confirmEventCreation) {
+          // First strip out time + date (if present) from the timeblock line,
+          // as we don't want those to go into the calendar event
+          let restOfTask = thisPara.content.replace(origTimeBlockString, '').trim() // take off timeblock
+          restOfTask = restOfTask.replace(`>${datePart}`, '').trim() // take off >date (if present)
+          restOfTask = restOfTask.replace(datePart, '').trim() // take off date (if present)
+          console.log(`\tWill process time block '${timeBlockString}' for '${restOfTask}'`)
+
+          // Do we want to add this particular eent?
+          if (config.confirmEventCreation) {
             const res = await showMessageYesNo(`Add '${restOfTask}' at '${timeBlockString}'?`, ['Yes', 'No'], 'Make event from time block')
             if (res === 'No') {
               continue // go to next time block
             }
           }
 
-          console.log(`\tWill process time block '${timeBlockString}' for '${restOfTask}'`)
           const eventID = await createEventFromDateRange(restOfTask, timeblockDateRange, calendarToWriteTo) ?? '<error getting eventID>'
 
           // Remove time block string (if wanted)
           let thisParaContent = thisPara.content
-          // console.log(`\tstarting with thisPara.content: '${thisParaContent}'`)
-          if (pref_removeTimeBlocksWhenProcessed) {
+          console.log(`\tstarting with thisPara.content: '${thisParaContent}'`)
+          if (config.removeTimeBlocksWhenProcessed) {
             thisParaContent = restOfTask
           }
           // Add processedTag (if not empty)
-          if (pref_processedTagName !== '') {
-            thisParaContent += ` ${pref_processedTagName}`
+          if (config.processedTagName !== '') {
+            thisParaContent += ` ${config.processedTagName}`
           }
           // Add event ID (if wanted)
-          if (pref_addEventID) {
+          if (config.addEventID) {
             thisParaContent += ` ⏰event:${eventID}`
           }
           thisPara.content = thisParaContent
           // console.log(`\tsetting thisPara.content -> '${thisParaContent}'`)
-          // FIXME: there's something odd going on here. Often 3 characters are left or repeated at the end of the line as a result of this
-          Editor.updateParagraph(thisPara) // FIXME(@EduardMe): there's a subtle bug here on long notes
+          // FIXME(@EduardMe): there's something odd going on here. Often 3 characters are left or repeated at the end of the line as a result of this
+          Editor.updateParagraph(thisPara)
         } else {
           console.log(`\tError getting DateRange from '${timeBlockString}'`)
         }
@@ -222,6 +209,7 @@ export async function timeBlocksToCalendar(): Promise<void> {
 /**
  * Create a new calendar event
  * @author @jgclark
+ * 
  * @param {string} - eventTitle: title to use for this event
  * @param {DateRange} - dateRange: date range for this event
  * @param {string} - calendarName: name of calendar to write to. Needs to be writable!
@@ -283,7 +271,6 @@ async function createEventFromDateRange(
 // * [x] TBT13 done at 2PM-3PM @done(2021-12-12)
 // - TBT14 at 5-5:45pm
 // - TBT15 at 5pm
-// - TBT16 at 5p
 // * TBT22a 1️⃣ 6:00 AM - 9:30 AM - Part I -- but parsed wrongly
 // - [ ] TBT22b 1️⃣ 6:00AM - 9:30AM
 // * TBT23 at noon
@@ -291,6 +278,8 @@ async function createEventFromDateRange(
 // - TBT25 at midnight
 // - TBT26 at midnight:26
 // These shouldn't create:
+// - TBT16a at 5a
+// - TBT16b at 5p
 // - TBT17 shouldn't create 2021-06-02 2.15PM-3.45PM
 // - TBT18 shouldn't create 2PM-3PM _doesn't parse_
 // - TBT9 shouldn't create 2-3 _parsed wrongly_
