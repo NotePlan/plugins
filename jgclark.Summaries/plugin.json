@@ -7,7 +7,7 @@
 	"plugin.icon": "",
 	"plugin.author": "Jonathan Clark",
 	"plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
-	"plugin.version": "0.5.0",
+	"plugin.version": "0.5.1",
 	"plugin.dependencies": [],
 	"plugin.script": "script.js",
 	"plugin.isRemote": "false",
@@ -76,6 +76,11 @@
       "type": "separator"
     },
     {
+      "type": "subheading",
+      "title": "In the following the includes (if specified) take precedence over any excludes. Items in the list need to be included in quotes, separated by commas.",
+      "description": "In the following the includes (if specified) take precedence over any excludes. Items in the list need to be included in quotes, separated by commas."
+    },
+    {
       "type": "heading",
       "title": "/countsInPeriod command settings"
     },
@@ -101,11 +106,7 @@
       "description": "Whether to show the # or @ symbols, or hide them to stop them being active links. (Beware double counting if you turn this on and save results in daily notes.)",
       "type": "bool",
       "default": true,
-      "required": false
-    },
-    {
-      "type": "Note",
-      "title": "In the following the includes (if specified) take precedence over any excludes. Items in the list need to be included in quotes, separated by commas."
+      "required": true
     },
 		{
       "key": "includeHashtags",
