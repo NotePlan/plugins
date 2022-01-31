@@ -3,7 +3,7 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// v0.2.1, 16.10.2021
+// Last updated 30.1.2022 for v0.5.1, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -76,8 +76,13 @@ export async function occurrencesPeriod(): Promise<void> {
   if (res === 'No') {
     stringsToMatch.splice(0, stringsToMatch.length) // clear array
     const newTerms = await getInput(`Enter search term(s)`)
-    // console.log(newTerms)
-    stringsToMatch = Array.from(newTerms.split(',')) // FIXME
+    if (typeof newTerms === 'boolean') {
+      // i.e. user has cancelled
+      console.log(`User has cancelled operation.`)
+      return
+    } else {
+      stringsToMatch = Array.from(newTerms.split(','))
+    }
   }
   console.log(
     `\nperiodOccurrences: looking for '${String(stringsToMatch)}' over ${periodString} (${fromDateStr}-${toDateStr}):`,

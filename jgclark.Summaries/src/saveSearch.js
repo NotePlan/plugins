@@ -3,7 +3,7 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 16.10.2021 for v0.5.0
+// Last updated 30.1.2022 for v0.5.1, @jgclark
 //-----------------------------------------------------------------------------
 
 import {
@@ -54,6 +54,11 @@ export async function saveSearch(): Promise<void> {
 
   // Ask user for search term
   const searchTerm = await getInput(`Exact word/phrase to search for`)
+  if (typeof searchTerm === 'boolean') {
+    // i.e. user has cancelled
+    console.log(`User has cancelled operation.`)
+    return
+  }
 
   // Create list of project notes not in excluded folders
   const allProjectNotes = DataStore.projectNotes
@@ -147,6 +152,11 @@ export async function saveSearch(): Promise<void> {
     }
     case 'note': {
       const requestedTitle = await getInput(`What do you want to call this note?`)
+      if (typeof requestedTitle === 'boolean') {
+        // i.e. user has cancelled
+        console.log(`User has cancelled operation.`)
+        return
+      }
 
       let note: TNote
       // first see if this note has already been created

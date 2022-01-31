@@ -1,14 +1,18 @@
 # What's changed in 🕓 Event Helpers?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
-## Future / Unreleased
-- tighten timeblock-finding regex if Eduard does
-- add further fields (e.g. location) if Eduard adds to the API
 
+<!-- - tighten timeblock-finding regex if Eduard does
+- add further fields (e.g. location) if Eduard adds to the API -->
+
+## [0.11.0] - 2022-01-30
+### Changed
+- uses NotePlan's native dialog prompts (available from v3.3.2)
+- under-the-hood changes preparing for the next Configuration system
+- tighten timeblock definition following NP's changes in v3.4 (now requires 'am' or 'pm' not just 'a' or 'p'.)
 ## [0.10.1] - 2022-01-08
 ### Changed
 - `/timeblock` aligns with the newly-published detailed [guide to Timeblocking in NotePlan](https://help.noteplan.co/article/121-time-blocking). This mostly means time blocks are also detected in headings, list items, and done tasks.
 - `/timeblock` detection now stops at the `## Done` or `## Cancelled` section of a note, if present.
-- uses NP's newer native dialogs available from v3.3.2
 
 ## [0.10.0] - 2021-12-26 (@m1well)
 ### Changed

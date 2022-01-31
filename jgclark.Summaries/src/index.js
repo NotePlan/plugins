@@ -11,3 +11,6 @@ export { weeklyStats } from './forPlotting'
 export { occurrencesPeriod } from './occurrences'
 export { saveSearch } from './saveSearch'
 export { statsPeriod } from './stats'
+
+// including so rollup will trigger build when plugin.json is modified
+import pluginJson from '../plugin.json'

@@ -1,7 +1,11 @@
 // @flow
 import { add } from 'date-fns'
-import { getEventsForDay, type HourMinObj } from '../../jgclark.EventHelpers/src/eventsToNotes'
-import { getTodaysDateUnhyphenated, toLocaleTime } from '../../helpers/dateTime'
+import { getEventsForDay } from '../../helpers/NPevents'
+import {
+  getTodaysDateUnhyphenated,
+  type HourMinObj,
+  toLocaleTime
+} from '../../helpers/dateTime'
 import { chooseOption, chooseFolder } from '../../helpers/userInput'
 import { quickTemplateNote, newNoteWithTemplate } from '../../nmn.Templates/src/index'
 
@@ -33,7 +37,7 @@ export async function createNoteForCalendarItem(useQuickTemplate: boolean = true
   console.log(`Creating note for today's date: ${date}`)
   const allDaysEvents = await getEventsForDay(date)
   console.log(`Found ${allDaysEvents.length} events for today`)
-  const nowIshEvents = await getEventsForDay(date, getTimeOffset({ h: -1, m: 0 }), getTimeOffset({ h: +1, m: 0 }))
+  const nowIshEvents = await getEventsForDay(date, [], getTimeOffset({ h: -1, m: 0 }), getTimeOffset({ h: +1, m: 0 })) // second param now implies consider all calendars
   console.log(`Found ${nowIshEvents.length} events for nowIsh`)
   let events = allDaysEvents
   if (nowIshEvents.length > 0) {
@@ -77,7 +81,7 @@ export async function createNoteForCalendarItem(useQuickTemplate: boolean = true
       const title = `${selEvent.value} ${selEvent.date} ${
         selEvent.time && selEvent.time !== '00:00' ? selEvent.time : ''
       }`
-      const fname = await DataStore.newNote(title, folder)
+      const fname = await DataStore.newNote(title, folder) ?? ''
       console.log(`Creating note with title: ${title}, fname=${fname}`)
       if (fname) {
         await Editor.openNoteByFilename(fname, false)

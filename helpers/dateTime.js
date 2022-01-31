@@ -41,6 +41,8 @@ export function getYearMonthDate(dateObj: Date): $ReadOnly<{
   }
 }
 
+export type HourMinObj = { h: number, m: number }
+
 export function unhyphenateString(dateString: string): string {
   return dateString.replace(/-/g, '')
 }

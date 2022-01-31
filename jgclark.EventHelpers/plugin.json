@@ -7,7 +7,7 @@
   "plugin.icon": "",
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers",
-  "plugin.version": "0.10.2",
+  "plugin.version": "0.11.0",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -54,7 +54,7 @@
     {
       "key": "calendarSet",
       "title": "Calendars to scan",
-      "description": "List of calendar names to filter by when showing list of events. If empty, no filtering will be done.",
+      "description": "Comma-separated list of calendar names to filter by when showing list of events. If empty, no filtering will be done.",
       "type": "[string]",
       "default": [],
       "required": false
@@ -62,7 +62,7 @@
     {
       "key": "calendarToWriteTo",
       "title": "Name of Calendar to write to",
-      "description": "The calendar name to write events to. Must be writable calendar. If empty, then the default system calendar will be used.",
+      "description": "The calendar name to write events to. Must be a writable calendar. If empty, then the default system calendar will be used.",
       "type": "string",
       "default": "",
       "required": false
@@ -71,23 +71,19 @@
       "key": "addMatchingEvents",
       "title": "Events match list",
       "description": "Match events with string on left, and then the string on the right is the template for how to insert this event (see README for details)",
-      "type": "[string: string]",
-      "default": { 
-        "meeting": "### *|TITLE|* (*|START|*)\n*|NOTES|*",
-        "webinar": "### *|TITLE|* (*|START|*) *|URL|*",
-        "holiday": "*|TITLE|* *|NOTES|*" 
-      },
+      "type": "json",
+      "default": "{\n\t\"meeting\": \"### *|TITLE|* (*|START|*)\\n*|NOTES|*\",\n\t\"webinar\": \"### *|TITLE|* (*|START|*)\\n*|URL|*\\n*|NOTES|*\",\n\t\"holiday\": \"*|TITLE|* *|NOTES|*\"\n}",
       "required": true
     },
     {
       "key": "calendarNameMappings",
       "title": "Calendar name mappings",
-      "description": "Map a calendar name to a new string - e.g. \"Thomas\" -> \"Me\" with \"Thomas;Me\"",
+      "description": "Map a calendar name to a new string - e.g. 'Thomas' -> 'Me' with 'Thomas;Me'. Separating the two parts of a mapping with semicolons, and use commas between maps.",
       "type": "[string]",
       "default": [
         "From;To"
       ],
-      "required": true
+      "required": false
     },
     {
       "key": "confirmEventCreation",
@@ -124,22 +120,18 @@
     {
       "key": "locale",
       "title": "Locale",
-      "description": "Locale to use for times in events. If not given will default to 'en-US'",
+      "description": "Optional Locale to use for times in events. If not given, will default to what the OS reports, or failing that, 'en-US'.",
       "type": "string",
-      "default": "en-US",
+      "default": "",
       "required": false
     },
     {
       "key": "timeOptions",
       "title": "Time options",
-      "description": "Optional settings for time outputs",
-      "type": "[string: string]",
-      "default": {
-        "hour": "2-digit", 
-        "minute": "2-digit", 
-        "hour12": false 
-      },
-      "required": true
+      "description": "Optional Time format settings",
+      "type": "json",
+      "default": "{\n\t\"hour\": \"2-digit\", \n\t\"minute\": \"2-digit\", \n\t\"hour12\": false\n}",
+      "required": false
     }
   ]
 }

@@ -31,9 +31,9 @@ In more detail:
 - The base date is by default of the form `YYYY-MM-DD`, not preceded by characters `0-9(<`, all of which could confuse.
 
 ## Configuration
-Most of these commands require configuration; the first time they're run they should detect they don't have configuration, and offer to write some default to the first configuration block of the `Templates/_configuration` note (as used by the Templates system).
-
-Or add the following settings into the `Templates/_configuration` note's first configuration block:
+Most of these commands require configuration:
+- In NotePlan v3.4 and above, please click the gear button on the 'Event Helpers' line in the Plugin Preferences panel. 
+- For versions before v3.4 you write settings in the first code block of the special `📋 Templates/_configuration` note, in JSON format. The first time the plugin is run it should detect it doesn't have configuration, and offer to write some to this note. Alternatively, in that note, include the following settings you want in its first code block. This is the annotated list of settings, with their defaults:
 
 ```jsonc
 ...
@@ -92,7 +92,7 @@ NB: adding the `*|CAL|*` item to the template also triggers sorting the output l
 NotePlan allows extensive [customisation of fonts and colours through its Themes](https://help.noteplan.co/article/44-customize-themes). It also supports doing more advanced highlighting using regex. To add **colour highlighting for time blocks**, add the following to your favourite theme's .json file:
 ```jsonc
 "timeblocks": {
-  "regex": "(?:^\\s*(?:\\*(?!\\s+\\[[\\-\\>]\\])\\s+|\\-(?!\\h+\\[[\\-\\>]\\]\\s+)|[\\d+]\\.|\\#{1,5}\\s+))(?:\\[\\s\\]\\s+)?.*?\\s(((at|from)\\s+([0-2]?\\d|noon|midnight)(:[0-5]\\d)?(\\s?(AM?|am?|PM?|pm?)?)(\\s*(\\-|\\–|\\~|\\〜|to)\\s*([0-2]?\\d)(:[0-5]\\d)?(\\s*(AM?|am?|PM?|pm?)?))?|([0-2]?\\d|noon|midnight)(:[0-5]\\d)\\s*(AM?|am?|PM?|pm?)?(\\s*(\\-|\\–|\\~|\\〜|to)\\s*([0-2]?\\d|noon|midnight)(:[0-5]\\d)?(\\s*(AM?|am?|PM?|pm?)?)?)?))(?=\\s|$)",
+  "regex": "(?:^\\s*(?:\\*(?!\\s+\\[[\\-\\>]\\])\\s+|\\-(?!\\h+\\[[\\-\\>]\\]\\s+)|[\\d+]\\.|\\#{1,5}\\s+))(?:\\[\\s\\]\\s+)?.*?\\s(((at|from)\\s+([0-2]?\\d|noon|midnight)(:[0-5]\\d)?(\\s?(AM|am|PM|pm)?)(\\s*(\\-|\\–|\\~|\\〜|to)\\s*([0-2]?\\d)(:[0-5]\\d)?(\\s*(AM|am|PM|pm)?))?|([0-2]?\\d|noon|midnight)(:[0-5]\\d)\\s*(AM|am|PM|pm)?(\\s*(\\-|\\–|\\~|\\〜|to)\\s*([0-2]?\\d|noon|midnight)(:[0-5]\\d)?(\\s*(AM|am|PM|pm)?)?)?))(?=\\s|$)",
   "matchPosition": 1,
   "color": "#CC4999"
 }

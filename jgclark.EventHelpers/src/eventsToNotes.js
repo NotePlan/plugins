@@ -1,10 +1,13 @@
 // @flow
-// ------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 // Command to bring calendar events into notes
-// Last updated for v0.10.0, 26.12.2021 by @m1well
+// Last updated 28.1.2022 for v0.11.0, by @jgclark
 // @jgclark, with additions by @dwertheimer, @weyert, @m1well
-// ------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 
+import { getEventsSettings } from './config'
+import type { EventsConfig } from './config'
+import { getEventsForDay } from '../../helpers/NPevents'
 import {
   dateStringFromCalendarFilename,
   toLocaleTime
@@ -14,113 +17,10 @@ import {
   stringReplace,
 } from '../../helpers/general'
 import { showMessage } from '../../helpers/userInput'
-import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 
-//------------------------------------------------------------------------------
-// Get settings
-const DEFAULT_EVENTS_OPTIONS = `
-  events: {
-    calendarToWriteTo: "",  // specify calendar name to write events to. Must be writable calendar. If empty, then the default system calendar will be used.
-    addEventID: false,  // whether to add an '⏰event:ID' internal link when creating an event from a time block
-    processedTagName: "#event_created",  // optional tag to add after making a time block an event
-    confirmEventCreation: false,  // optional tag to indicate whether to ask user to confirm each event to be created
-    removeTimeBlocksWhenProcessed: true,  // whether to remove time block after making an event from it
-    eventsHeading: "### Events today",  // optional heading to put before list of today's events
-    calendarSet: [],  // optional ["array","of calendar","names"] to filter by when showing list of events. If empty or missing, no filtering will be done.
-    addMatchingEvents: {  // match events with string on left, and then the string on the right is the template for how to insert this event (see README for details)
-      "meeting": "### *|TITLE|* (*|START|*)\\n*|NOTES|*",
-      "webinar": "### *|TITLE|* (*|START|*) *|URL|*",
-      "holiday": "*|TITLE|* *|NOTES|*",
-    },
-    locale: "en-US",
-    timeOptions: { hour: '2-digit', minute: '2-digit', hour12: false },
-    calendarNameMappings: [  // here you can map a calendar name to a new string - e.g. "Thomas" to "Me" with "Thomas;Me"
-      "From;To",
-    ],
-  },
-`
-// global variables, including default settings
-let pref_eventsHeading: string
-let pref_addMatchingEvents: ?{ [string]: mixed }
-let pref_locale: string
-let pref_timeOptions
-let pref_calendarSet: Array<string>
-let pref_calendarNameMappings: Array<string>
-
-//------------------------------------------------------------------------------
 
 /**
- * Get config settings from Template folder _configuration note
- * @author @jgclark
- */
-async function getEventsSettings(): Promise<void> {
-  console.log(`\nStart of getEventsSettings()`)
-  const eventsConfig = await getOrMakeConfigurationSection(
-    'events',
-    DEFAULT_EVENTS_OPTIONS,
-    // no minimum config needed, as can use defaults if need be
-  )
-  if (eventsConfig == null) {
-    console.log(`\tInfo: couldn't find 'events' settings in _configuration note. Will use defaults.`)
-  }
-  console.log(`\tFound 'events' settings in _configuration note.`)
-
-  // now get settings we need
-  pref_eventsHeading = eventsConfig?.eventsHeading != null ? String(eventsConfig?.eventsHeading) : '### Events today'
-  // console.log(pref_eventsHeading)
-  // $FlowFixMe[incompatible-type]
-  pref_calendarSet = eventsConfig?.calendarSet ?? []
-  // console.log(pref_calendarSet)
-  // $FlowFixMe[incompatible-type]
-  pref_addMatchingEvents = eventsConfig?.addMatchingEvents ?? null
-  pref_locale = eventsConfig?.locale != null && eventsConfig?.locale !== ''
-    ? String(eventsConfig?.locale)
-    : 'en-US'
-  console.log(pref_locale)
-  pref_timeOptions = eventsConfig?.timeOptions ?? { hour: '2-digit', minute: '2-digit', hour12: false }
-  // $FlowFixMe[incompatible-type]
-  pref_calendarNameMappings = eventsConfig?.calendarNameMappings ?? []
-  console.log(`\tEnd of getEventsSettings()`)
-}
-
-export type HourMinObj = { h: number, m: number }
-
-/** 
- * Get list of events for the given day (specified as YYYYMMDD).
- * Now also filters out any that don't come from one of the calendars specified
- * in pref_calendarSet.
- * @author @jgclark
- * 
- * @param {string} dateStr YYYYMMDD date to use
- * @param {HourMinObj} start optional start time in the day
- * @param {HourMinObj} end optional end time in the day
- * @return {[TCalendarItem]} array of events as CalendarItems
- */
-export async function getEventsForDay(
-  dateStr: string,
-  start: HourMinObj = { h: 0, m: 0 },
-  end: HourMinObj = { h: 23, m: 59 },
-): Promise<Array<TCalendarItem>> {
-  const y = parseInt(dateStr.slice(0, 4))
-  const m = parseInt(dateStr.slice(4, 6))
-  const d = parseInt(dateStr.slice(6, 8))
-  const startOfDay = Calendar.dateFrom(y, m, d, start.h, start.m, 0)
-  const endOfDay = Calendar.dateFrom(y, m, d, end.h, end.m, 59)
-  console.log(`  getEventsForDay: ${startOfDay.toString()} - ${endOfDay.toString()}`)
-  let eArr: Array<TCalendarItem> = await Calendar.eventsBetween(startOfDay, endOfDay)
-  console.log(`\tgetEventsForDay: Retrieved ${eArr.length} events from NP Calendar store`)
-
-  // If we have a setCalendar list, use to weed out events that don't match .calendar
-  if (pref_calendarSet && pref_calendarSet.length > 0) {
-    // const filteredEventArray = pref_calendarSet.slice().filter(c => eArr.some(e => e.calendar === c))
-    eArr = eArr.filter((e) => pref_calendarSet.some((c) => e.calendar === c))
-    console.log(`\t${eArr.length} Events kept after filtering with ${pref_calendarSet.toString()}`)
-  }
-  return eArr
-}
-
-/**
- * Return MD list of today's events
+ * Return MD list of the current open Calendar note's events
  * @author @jgclark
  * 
  * @param {string} paramString - passed to next function
@@ -133,12 +33,14 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
   }
   // $FlowIgnore[incompatible-call]
   const dateStr = dateStringFromCalendarFilename(Editor.filename)
-  console.log(`\nlistDaysEvents for ${dateStr} with paramString=${String(paramString)}`)
+  console.log(`listDaysEvents for ${dateStr} with paramString=${String(paramString)}`)
 
   // Get config settings from Template folder _configuration note
-  await getEventsSettings()
+  const config = await getEventsSettings()
+
   // Work out template for output line (from params, or if blank, a default)
   // NB: be aware that this call doesn't do type checking
+  // TODO: allow customisation of list marker, by taking away the dashes
   const template = String(await getTagParamsFromString(paramString, 'template', '- *|CAL|*: *|TITLE|* (*|START|*)'))
   const alldayTemplate = String(await getTagParamsFromString(paramString, 'allday_template', '- *|CAL|*: *|TITLE|*'))
   const includeHeadings = await getTagParamsFromString(paramString, 'includeHeadings', true)
@@ -147,7 +49,7 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
   const withCalendarName = template.includes('CAL')
 
   // Get all the events for this day
-  const eArr: Array<TCalendarItem> = await getEventsForDay(dateStr)
+  const eArr: Array<TCalendarItem> = await getEventsForDay(dateStr, config.calendarSet)
 
   const outputArray: Array<string> = []
   const mapForSorting: { cal: string; start: string, text: string }[] = []
@@ -155,7 +57,7 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
 
   for (const e of eArr) {
     // console.log(`      for e: ${e.title}: ${JSON.stringify(e)}`)
-    const replacements = getReplacements(e)
+    const replacements = getReplacements(e, config)
 
     // NB: the following will replace any mentions of the keywords in the e.title string itself
     const thisEventStr = stringReplace(e.isAllDay ? alldayTemplate : template, replacements).trimEnd()
@@ -165,14 +67,14 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
     }
     if (withCalendarName) {
       mapForSorting.push({
-        cal: calendarNameWithMapping(e.calendar, pref_calendarNameMappings),
+        cal: calendarNameWithMapping(e.calendar, config.calendarNameMappings),
         start: toLocaleTime(e.date),
         text: thisEventStr
       })
     }
   }
-  if (pref_eventsHeading !== '' && includeHeadings) {
-    outputArray.unshift(pref_eventsHeading)
+  if (config.eventsHeading !== '' && includeHeadings) {
+    outputArray.unshift(config.eventsHeading)
   }
 
   if (withCalendarName) {
@@ -184,9 +86,12 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
     output = mapForSorting.map(element => element.text).join('\n')
   }
 
-  return output.replace(/\\s{2,}/g, ' ') // If this the array is empty -> empty string
+  output.replace(/\\s{2,}/g, ' ') // If this the array is empty -> empty string
+  console.log(output)
+  return output
 }
 
+// ----------------------------------------------------------------------------
 /**
  * Insert list of today's events at cursor position.
  * NB: When this is called by UI as a command, *it doesn't have any params passed with it*.
@@ -199,7 +104,6 @@ export async function insertDaysEvents(paramString: ?string): Promise<void> {
     await showMessage(`Please run again with a calendar note open.`, "OK", "Insert Events")
     return
   }
-  console.log(`\ninsertDaysEvents:`)
 
   // Get list of events happening on the day of the open note
   let output: string = await listDaysEvents(paramString || '')
@@ -207,9 +111,10 @@ export async function insertDaysEvents(paramString: ?string): Promise<void> {
   Editor.insertTextAtCursor(output)
 }
 
+// ----------------------------------------------------------------------------
 /**
  * Return string list of matching events in the current day's note, from list 
- * in keys of pref_addMatchingEvents. Apply template too.
+ * in keys of config.addMatchingEvents. Apply template too.
  * @author @jgclark
  * 
  * @param {?string} paramString Paramaters to use (for future expansion)
@@ -222,20 +127,21 @@ export async function listMatchingDaysEvents(
 ): Promise<string> {
   // $FlowIgnore[incompatible-call]
   const dateStr = dateStringFromCalendarFilename(Editor.filename)
-  console.log(`\nlistMatchingDaysEvents for date ${dateStr}:`)
+  console.log(`listMatchingDaysEvents for date ${dateStr}:`)
 
   // Get config settings from Template folder _configuration note
-  await getEventsSettings()
-  if (pref_addMatchingEvents == null) {
+  const config = await getEventsSettings()
+
+  if (config.addMatchingEvents == null) {
     await showMessage(`Error: Empty 'addMatchingEvents' setting in _configuration note. Stopping`, "OK", "List Matching Events")
     return `(Error: found no 'addMatchingEvents' settings in _configuration note.)`
   }
-  const textToMatchA = Object.keys(pref_addMatchingEvents)
-  const templateArr = Object.values(pref_addMatchingEvents)
+  const textToMatchA = Object.keys(config.addMatchingEvents)
+  const templateArr = Object.values(config.addMatchingEvents)
   console.log(`\tFrom settings found ${textToMatchA.length} match strings to look for`)
 
   // Get all events for this day
-  const eArr: Array<TCalendarItem> = await getEventsForDay(dateStr)
+  const eArr: Array<TCalendarItem> = await getEventsForDay(dateStr, config.calendarSet)
 
   const outputArray: Array<string> = []
   // for each event, check each of the strings we want to match
@@ -247,7 +153,7 @@ export async function listMatchingDaysEvents(
       const reMatch = new RegExp(textToMatchA[i], 'i')
       if (e.title.match(reMatch)) {
         console.log(`\tFound match to event '${e.title}'`)
-        const replacements = getReplacements(e)
+        const replacements = getReplacements(e, config)
         // $FlowFixMe -- not sure how to deal with mixed coercing to strings
         const thisEventStr = stringReplace(template, replacements)
         if (lastEventStr !== thisEventStr) {
@@ -260,13 +166,14 @@ export async function listMatchingDaysEvents(
     }
   }
   const output = outputArray.join('\n').replace(/\\s{2,}/g, ' ') // If this array is empty -> empty string.
-  // console.log(output)
+  console.log(output)
   return output
 }
 
+// ----------------------------------------------------------------------------
 /**
  * Insert list of matching events in the current day's note, from list
- * in keys of pref_addMatchingEvents. Apply template too.
+ * in keys of config.addMatchingEvents. Apply template too.
  * @author @jgclark
  * 
  * @param {?string} paramString Paramaters to use (to pass on to next function)
@@ -282,22 +189,26 @@ export async function insertMatchingDaysEvents(paramString: ?string): Promise<vo
   Editor.insertTextAtCursor(output)
 }
 
+// ----------------------------------------------------------------------------
 /**
  * @private
  * @author @m1well
  */
-const getReplacements = (item: TCalendarItem): { key: string, value: string }[] => {
+function getReplacements(
+  item: TCalendarItem,
+  config: EventsConfig): { key: string, value: string }[]
+{
   return [
     {
       key: '*|CAL|*',
-      value: calendarNameWithMapping(item.calendar, pref_calendarNameMappings)
+      value: calendarNameWithMapping(item.calendar, config.calendarNameMappings)
     },
     { key: '*|TITLE|*', value: item.title },
     {
       key: '*|START|*',
       value: !item.isAllDay
         ? // $FlowFixMe[incompatible-call]
-        toLocaleTime(item.date, pref_locale, pref_timeOptions)
+        toLocaleTime(item.date, config.locale, config.timeOptions)
         : '',
     },
     {
@@ -305,7 +216,7 @@ const getReplacements = (item: TCalendarItem): { key: string, value: string }[] 
       value:
         item.endDate != null && !item.isAllDay
         ? // $FlowFixMe[incompatible-call]
-          toLocaleTime(item.endDate, pref_locale, pref_timeOptions)
+          toLocaleTime(item.endDate, config.locale, config.timeOptions)
           : '',
     },
     { key: '*|NOTES|*', value: item.notes },

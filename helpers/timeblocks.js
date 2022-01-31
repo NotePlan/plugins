@@ -10,7 +10,7 @@ export const RE_HOURS_EXT = `(${RE_HOURS}|NOON|noon|MIDNIGHT|midnight)`
 export const RE_MINUTES = '[0-5]\\d'
 export const RE_TIME = `${RE_HOURS}:${RE_MINUTES}`
 // export const RE_AMPM = `(A\\.M\\.|P\\.M\\.|AM?|PM?)`
-export const RE_AMPM = `(AM?|am?|PM?|pm?)`
+export const RE_AMPM = `(AM|am|PM|pm)` // logic changed in v3.4
 export const RE_AMPM_OPT = `${RE_AMPM}?`
 export const RE_TIME_TO = `\\s*(\\-|\\–|\\~|\\〜|to)\\s*`
 export const RE_DONE_DATETIME = `@done\\(${RE_ISO_DATE} ${RE_TIME}${RE_AMPM}?\\)`
@@ -92,6 +92,10 @@ export const RE_TIMEBLOCK_APP = `${RE_START_APP_LINE}${RE_TIMEBLOCK}`
 
 // case-insensitive version of regex match by using flag "i"
 const RE_TIMEBLOCK_APP_CI = new RegExp(RE_TIMEBLOCK_APP, "i")
+
+//-----------------------------------------------------------------------------
+// NB: According to @EduardMe in Discord 29.1.2022, the detection is tightened in v3.4
+// to require 'am' or 'pm' not just 'a' or 'p'. Changed here 30.1.22.
 
 //-----------------------------------------------------------------------------
 // FIXME(@Eduard):

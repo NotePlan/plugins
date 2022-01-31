@@ -5,7 +5,7 @@
 	"plugin.description": "Commands to help review Project-style notes, GTD-style.",
 	"plugin.icon": "",
 	"plugin.author": "Jonathan Clark",
-	"plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Review/",
+	"plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
 	"plugin.version": "0.6.0",
 	"plugin.dependencies": [],
 	"plugin.script": "script.js",
@@ -121,7 +121,7 @@
 		},
 		{
 			"type": "hidden",
-			"title": "Customisation of reserved project @terms"
+			"title": "Customisation of reserved project @terms. TODO: All the following need unhiding when I can have a sync settings system."
     },
     {
 			"key": "startMentionStr",
