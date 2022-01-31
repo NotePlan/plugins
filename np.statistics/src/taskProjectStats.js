@@ -27,7 +27,8 @@ export async function showTaskCountProjects(): Promise<void> {
     doneTotal += n.paragraphs.filter((p) => p.type === 'done').length
     openTotal += n.paragraphs.filter((p) => p.type === 'open').length // doesn't include scheduled
     cancelledTotal += n.paragraphs.filter((p) => p.type === 'cancelled').length
-    scheduledTotal += n.paragraphs.filter((p) => p.type === 'scheduled').length  // not quite the same as future
+    // following is not quite the same as future. TODO: make future
+    scheduledTotal += n.paragraphs.filter((p) => p.type === 'scheduled').length
     open.set(n.title, n.paragraphs.filter((p) => p.type === 'open').length)
   }
 
