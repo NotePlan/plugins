@@ -1,5 +1,9 @@
 # What's changed in ☀️ Daily Journal Plugin?
 
+## [0.11.1] - 2022-01-29
+### Fixed
+- added missing item for new Config system.
+
 ## [0.11.0] - 2022-01-29
 ### Added
 - /dayReview now checks to see if a question has already been answered in the daily note before it asks it; if it has, it won't ask again.

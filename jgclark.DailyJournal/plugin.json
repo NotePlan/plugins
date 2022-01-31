@@ -7,7 +7,7 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/README.md",
-  "plugin.version": "0.11.0",
+  "plugin.version": "0.11.1",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -40,17 +40,25 @@
         "title": "Daily Journal settings"
     },
     {
+        "key": "templateTitle",
+        "title": "Daily Template Title",
+        "description": "The name of the template that `/dayStart` and `/todayStart` will use.",
+        "type": "string",
+        "default": "Daily Note Template",
+        "required": true
+    },
+    {
         "key": "reviewSectionHeading",
-        "title": "Review Section Heading",
-        "description": "The name of an existing markdown heading after which the review answers are added - if it doesn't exist, it is added at the end of the note.",
+        "title": "Journal Section Heading",
+        "description": "The name of an existing markdown heading after which the Journal/Review answers are added - if it doesn't exist, it is added at the end of the note.",
         "type": "string",
         "default": "Journal",
-        "required": false
+        "required": true
     },
     {
         "key": "reviewQuestions",
-        "title": "Review Questions",
-        "description": "This string includes both the questions and how to layout the answers in the daily note. (NB: can include line breaks.)",
+        "title": "Journal Questions",
+        "description": "This string includes both the Journal/Review questions and how to layout the answers in the daily note. (NB: can include line breaks.)",
         "type": "string",
         "default": "@sleep(<int>)\n@work(<int>)\n@fruitveg(<int>)\nMood: <mood>\nGratitude: <string>\nGod was: <string>\nAlive: <string>\nNot Great: <string>\nLearn: <string>\nRemember: <string>",
         "required": true
@@ -61,7 +69,7 @@
         "description": "A comma-separated list of possible moods to select from.",
         "type": "[string]",
         "default": ["🤩 Great","🙂 Good","😇 Blessed","🥱 Tired","😫 Stressed","😤 Frustrated","😔 Low","🥵 Sick","Other"],
-        "required": false
+        "required": true
     }
   ]
 }

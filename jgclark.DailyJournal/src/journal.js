@@ -2,7 +2,9 @@
 //-----------------------------------------------------------------------------
 // Daily Journal plugin for NotePlan
 // Jonathan Clark
-// last update 28.1.2022 for v0.11.0 by @jgclark
+// last update 29.1.2022 for v0.11.1 by @jgclark
+// TODO: use a new config.* Type
+// TODO: then switch to ConfigV2
 //-----------------------------------------------------------------------------
 
 import { getInputTrimmed, isInt, showMessage } from '../../helpers/userInput'
@@ -26,6 +28,7 @@ const MINIMUM_JOURNAL_OPTIONS = {
 const defaultTemplateTitle = 'Daily Note Template'
 let pref_templateTitle: string
 let pref_reviewSectionHeading: string
+let pref_reviewQuestions: string
 let pref_moodArray: Array<string>
 
 //------------------------------------------------------------------
@@ -42,25 +45,23 @@ export async function todayStart(): Promise<void> {
 
 // Start the currently open daily note with the user's Daily Note Template
 export async function dayStart(today: boolean = false): Promise<void> {
-  console.log(`\ndayStart:`)
   if (today) {
     // open today's date in the main window, and read content
     await Editor.openNoteByDate(new Date(), false)
-    // $FlowIgnore[incompatible-call]
-    console.log(`Opened: ${displayTitle(Editor.note)}`)
   } else {
     // apply daily template in the currently open daily note
     if (Editor.type !== 'Calendar') {
-      // TODO(EduardMe): turns out this can happen when Calendar is open but there is note yet initialized
-      await showMessage('Please run again with a calendar note open.')
+      await showMessage('Note: /dayStart only works on calendar notes.')
       return
     }
     else if (Editor.note == null) {
       // we must be in an uninitialized Calendar note
-      await showMessage('API Bug: This calendar note is not initialized.')
+      await showMessage('Error: this calendar note is not initialized. Stopping.')
       return
     }
   }
+  // $FlowIgnore[incompatible-call]
+  console.log(`dayStart: ${displayTitle(Editor.note)}`)
 
   // Get config settings from Template folder _configuration note
   const journalConfig = await getOrMakeConfigurationSection(
@@ -68,18 +69,16 @@ export async function dayStart(today: boolean = false): Promise<void> {
     DEFAULT_JOURNAL_OPTIONS,
     MINIMUM_JOURNAL_OPTIONS,
   )
-
   if (journalConfig == null
     || Object.keys(journalConfig).length === 0) // this is how to check for empty object
   {
-    console.log('\tWarning: Cannot find suitable \'dailyJournal\' settings in Templates/_configuration note. Stopping.')
+    console.log(`\tWarning: Cannot find suitable 'dailyJournal' settings in Templates/_configuration note. Stopping.`)
     await showMessage(
-      'Cannot find \'dailyJournal\' settings in _configuration.',
-      'Yes, I\'ll check my _configuration settings.',
+      `Cannot find 'dailyJournal' settings in _configuration.`,
+      `Yes, I'll check my _configuration settings.`,
     )
     return
   }
-
   pref_templateTitle = (journalConfig?.templateTitle != null)
     ? String(journalConfig?.templateTitle)
     : defaultTemplateTitle
@@ -244,12 +243,10 @@ export async function dayReview(): Promise<void> {
       }
     }
 
-    // add the finished review text to the current daily note,
+    // Add the finished review text to the current daily note,
     // appending after the line found in pref_reviewSectionHeading.
     // If this doesn't exist, then append it first.
     console.log(`\tAppending answers to heading '${pref_reviewSectionHeading}'`)
-    // If sectionHeading isn't present then it lands up writing '# ## Heading'
-    // FIXME(@EduardMe): a bug in the API
     Editor.addParagraphBelowHeadingTitle(output, 'empty', pref_reviewSectionHeading, true, true)
   } catch (e) {
     if (e === 'cancelled') {
