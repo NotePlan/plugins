@@ -1,31 +1,46 @@
 // @flow
-//-------------------------------------------------------------------------------
-// Configuration Utilities
-// @codedungeon unless otherwise noted
 
-import { showMessage, showMessageYesNo } from './userInput'
-import { parseJSON5 } from './general'
+/*----------------------------------------------------------------------------------------------------------------------------
+ * Configuration Utilities
+ * @author @codedungeon unless otherwise noted
+ * Requires NotePlan 3.4 or greater (waiting for NotePlan.environment version method to perform proper validation)
+ * Note: Everything is self contained in this method, no other dependencies beyond `json5` plugin
+ * --------------------------------------------------------------------------------------------------------------------------*/
+
+import json5 from 'json5'
 
 // this is the only possible location for _configuration note
 const STATIC_TEMPLATE_FOLDER = '📋 Templates'
 
-const dt = () => {
+/**
+ * Returns ISO formatted date time
+ * @author @codedungeon
+ * @return {string} formatted date time
+ */
+const dt = (): string => {
   const d = new Date()
 
-  const pad = (value: number) => {
-    return value < 10 ? '0' + value : value
+  const pad = (value: number): string => {
+    return value < 10 ? '0' + value : value.toString()
   }
 
   return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + d.toLocaleTimeString()
 }
 
-const log = (msg: string = '') => {
-  console.log(`${dt()} ${msg}`)
+/**
+ * Log to console and np-out.log (with date time and category)
+ * @author @codedungeon
+ * @param {string} msg - log message
+ * @return void
+ */
+const log = (msg: string = ''): void => {
+  console.log(`${dt()} : configuration :: ${msg}`)
 }
 
 /**
- * Get NotePlan Configuration
+ * Get NotePlan Configuration block for given section
  * @author @codedungeon
+ * @param {string} section - NotePlan _configuration section
  * @return return this as structured data, in the format specified by the first line of the codeblock (should be `javascript`)
  */
 export async function getConfiguration(configSection: string = ''): Promise<any> {
@@ -35,7 +50,7 @@ export async function getConfiguration(configSection: string = ''): Promise<any>
 
   const content: ?string = configFile?.content
   if (content == null) {
-    log(`getConfiguration: Unable to find _configuration note`)
+    log(`getConfiguration - Unable to find _configuration note`)
     return {}
   }
 
@@ -44,14 +59,14 @@ export async function getConfiguration(configSection: string = ''): Promise<any>
   // $FlowIgnore
   const config = await parseConfiguration(configData)
   if (!config.hasOwnProperty(configSection)) {
-    log(`Unable to locate ${configSection} in _configuration`)
+    log(`getConfiguration - Unable to locate ${configSection} in _configuration`)
     return {}
   }
   return config[configSection]
 }
 
 /**
- * initialize np.Templating Settings
+ * initialize Plugin Settings
  * @author @codedungeon
  * @param {any} pluginJsonData - plugin.json data for which plugin is being migrated
  * @return {any} settings data
@@ -59,7 +74,7 @@ export async function getConfiguration(configSection: string = ''): Promise<any>
 export async function initConfiguration(pluginJsonData: any): Promise<any> {
   const migrateData = {}
   if (typeof pluginJsonData !== 'object') {
-    CommandBar.prompt('np.Templating', 'Invalid Plugin Settings')
+    CommandBar.prompt('NotePlan Error', 'Invalid Plugin Settings')
     return migrateData
   }
 
@@ -69,7 +84,7 @@ export async function initConfiguration(pluginJsonData: any): Promise<any> {
       migrateData[setting.key] = setting.default
     })
   } catch (error) {
-    CommandBar.prompt('np.Templating', `An error occurred ${error}`)
+    CommandBar.prompt('NotePlan Error', `An error occurred ${error}`)
   }
 
   return migrateData
@@ -143,7 +158,7 @@ export async function migrateConfiguration(
 export async function parseConfiguration(block: string): Promise<?{ [string]: ?mixed }> {
   try {
     if (block == null) {
-      await CommandBar.prompt('NotePlan Configuration', 'No configuration block found in configuration file.')
+      await CommandBar.prompt('NotePlan Error', 'No configuration block found in configuration file.')
       return {}
     }
 
@@ -151,14 +166,15 @@ export async function parseConfiguration(block: string): Promise<?{ [string]: ?m
     contents = contents.join('\n')
     format = format.trim()
 
-    return parseJSON5(contents)
+    const value: any = json5.parse(contents)
+    return value
   } catch (error) {
     await CommandBar.prompt('NotePlan Error', error)
   }
 }
 
 /**
- * Convert semver string to number
+ * Convert semver string to number (used when plugin settings see np.Templating for an example)
  * @author @codedungeon
  * @param {string} semver - semver version
  * @return return long version number
