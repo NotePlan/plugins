@@ -23,8 +23,8 @@ export function getTimeBlockingDefaults(): { [key: string]: any } {
     deletePreviousCalendarEntries:
       false /* before creating new calendar entries, delete previous calendar entries for the timeblocks; 
                to keep a calendar entry around, just remove the timeBlockTag */,
-    includeTasksWithText: [] /* limit to tasks with ANY of these tags/text */,
-    excludeTasksWithText: [] /* exclude tasks with ANY of these tags/text */,
+    includeTasksWithText: '' /* limit to tasks with ANY of these tags/text */,
+    excludeTasksWithText: '' /* exclude tasks with ANY of these tags/text */,
     presets: [
       { label: 'Limit Time Blocks to Work Hours', workDayStart: '08:00', workDayEnd: '17:59' },
       {
