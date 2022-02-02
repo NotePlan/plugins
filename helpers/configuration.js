@@ -183,7 +183,7 @@ export async function parseConfiguration(block: string): Promise<?{ [string]: ?m
     const value: any = json5.parse(contents)
     return value
   } catch (error) {
-    await CommandBar.prompt('NotePlan Error', error)
+    await CommandBar.prompt('NotePlan Error', "Failed to parse your _configuration note, it seems to be malformed (e.g. a missing comma).\n\nPlease correct it, delete the plugin (click on the plugin name in the preferences to see the 'delete' button), and redownload it.\n\nError: " + error)
   }
 }
 
