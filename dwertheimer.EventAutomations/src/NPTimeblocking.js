@@ -3,7 +3,6 @@
 /**
  * WHERE AM I?
  * TODO: update docs for limittotags, presets
- *  * getOrMakeConfigurationSection REMOVE IT
  *  * TODO: feedback if no items to timeblock
  * impolement limitToTags[] but make it a textfilter regex
  */
@@ -75,20 +74,16 @@ const PLUGIN_ID = 'autoTimeBlocking'
 
 export async function getConfig(): Promise<{ [string]: [mixed] }> {
   const defaultConfig = getTimeBlockingDefaults()
-  // $FlowIgnore -- DBW GET RID OF THIS
-  // const config = await getOrMakeConfigurationSection(
-  //   PLUGIN_ID,
-  //   `${PLUGIN_ID}: ${JSON.stringify(defaultConfig, null, 2)},\n`,
-  // )
   const config = DataStore.settings
   if (Object.keys(config).length > 0) {
     try {
       // $FlowIgnore
       validateTimeBlockConfig(config)
-      // $FlowIgnore
       return config
     } catch (error) {
-      showMessage(error)
+      showMessage(
+        `Plugin Settings ${error.message}\nRunning with default settings. You should probably open the plugin configuration dialog and fix the problem(s) listed above.`,
+      )
     }
   }
   return defaultConfig
