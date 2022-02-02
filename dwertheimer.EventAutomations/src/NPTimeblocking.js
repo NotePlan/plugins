@@ -31,7 +31,6 @@ import {
 import { getTasksByType } from '../../dwertheimer.TaskAutomations/src/taskHelpers'
 import { sortListBy } from '../../helpers/sorting'
 import { showMessage, chooseOption } from '../../helpers/userInput'
-import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 import { isTimeBlockLine, getTimeBlockString } from '../../helpers/timeblocks'
 import { calcSmartPrependPoint } from '../../helpers/paragraph'
 import { logAllPropertyNames, getAllPropertyNames, JSP } from '../../helpers/dev'
@@ -74,13 +73,14 @@ const PLUGIN_ID = 'autoTimeBlocking'
   ): TCalendarItem, 
 */
 
-export async function getConfig(): Promise<{ [key: string]: any }> {
+export async function getConfig(): Promise<{ [string]: [mixed] }> {
   const defaultConfig = getTimeBlockingDefaults()
   // $FlowIgnore -- DBW GET RID OF THIS
-  const config = await getOrMakeConfigurationSection(
-    PLUGIN_ID,
-    `${PLUGIN_ID}: ${JSON.stringify(defaultConfig, null, 2)},\n`,
-  )
+  // const config = await getOrMakeConfigurationSection(
+  //   PLUGIN_ID,
+  //   `${PLUGIN_ID}: ${JSON.stringify(defaultConfig, null, 2)},\n`,
+  // )
+  const config = DataStore.settings
   if (Object.keys(config).length > 0) {
     try {
       // $FlowIgnore
@@ -89,9 +89,9 @@ export async function getConfig(): Promise<{ [key: string]: any }> {
       return config
     } catch (error) {
       showMessage(error)
-      return defaultConfig
     }
   }
+  return defaultConfig
 }
 
 // $FlowIgnore

@@ -56,8 +56,8 @@ export function validateTimeBlockConfig(config: { [key: string]: any }): { [key:
     createCalendarEntries: 'boolean',
     deletePreviousCalendarEntries: 'boolean',
     eventEnteredOnCalTag: 'string',
-    includeTasksWithText: { type: 'array', optional: true },
-    excludeTasksWithText: { type: 'array', optional: true },
+    includeTasksWithText: { type: 'string', optional: true },
+    excludeTasksWithText: { type: 'string', optional: true },
     presets: { type: 'array', optional: true },
     nowStrOverride: { type: /^\d{2}:\d{2}$/, optional: true },
   }
