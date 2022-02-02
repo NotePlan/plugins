@@ -123,7 +123,7 @@ export async function migrateConfiguration(
       // migration data from _configuration || plugin.settings default value
       // migrateData[key] = key && configData?.[key] ? configData[key] : setting?.default || ''
 
-      if(key && configData?.[key] !== 'undefined') {
+      if(key && configData[key] !== 'undefined') {
         // Check if the variable is an array with anything but objects, then save it as comma separated string
         if(Array.isArray(configData[key]) && configData[key].length > 0 && ((typeof configData[key][0]) != 'object')) {
           migrateData[key] = configData[key].join(", ")
