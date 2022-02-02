@@ -502,13 +502,27 @@ export function getTimeBlockTimesForEvents(
 export function includeTasksWithPatterns(tasks: Array<TParagraph>, pattern: string | Array<string>): Array<TParagraph> {
   if (Array.isArray(pattern)) {
     return tasks.filter((t) => pattern.some((p) => t.content.match(p)))
+  } else if (typeof pattern === 'string') {
+    const pattArr = pattern.split(',')
+    return tasks.filter((t) =>
+      pattArr.some((p) => {
+        const e = new RegExp(p)
+        return t.content.match(e)
+      }),
+    )
+  } else {
+    // must be a regex
+    return tasks.filter((t) => t.content.match(pattern))
   }
-  return tasks.filter((t) => t.content.match(pattern))
 }
 
 export function excludeTasksWithPatterns(tasks: Array<TParagraph>, pattern: string | Array<string>): Array<TParagraph> {
   if (Array.isArray(pattern)) {
     return tasks.filter((t) => pattern.some((p) => !t.content.match(p)))
+  } else if (typeof pattern === 'string') {
+    const pattArr = pattern.split(',')
+    return tasks.filter((t) => pattArr.some((p) => !t.content.match(p)))
+  } else {
+    return tasks.filter((t) => !t.content.match(pattern))
   }
-  return tasks.filter((t) => !t.content.match(pattern))
 }

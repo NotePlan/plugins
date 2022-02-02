@@ -3,6 +3,7 @@
 /**
  * WHERE AM I?
  * TODO: update docs for limittotags, presets
+ *  * getOrMakeConfigurationSection REMOVE IT
  *  * TODO: feedback if no items to timeblock
  * impolement limitToTags[] but make it a textfilter regex
  */
@@ -75,7 +76,7 @@ const PLUGIN_ID = 'autoTimeBlocking'
 
 export async function getConfig(): Promise<{ [key: string]: any }> {
   const defaultConfig = getTimeBlockingDefaults()
-  // $FlowIgnore
+  // $FlowIgnore -- DBW GET RID OF THIS
   const config = await getOrMakeConfigurationSection(
     PLUGIN_ID,
     `${PLUGIN_ID}: ${JSON.stringify(defaultConfig, null, 2)},\n`,

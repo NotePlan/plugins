@@ -723,6 +723,20 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result[0].content).toEqual('bar')
         expect(result[1].content).toEqual('baz')
       })
+      test('should work when the input string is comma-separated list', () => {
+        const tasks = [{ content: 'foo' }, { content: 'bar' }, { content: 'baz' }]
+        const result = tb.includeTasksWithPatterns(tasks, 'foo,baz')
+        expect(result.length).toEqual(2)
+        expect(result[0].content).toEqual('foo')
+        expect(result[1].content).toEqual('baz')
+      })
+      test('should work when the input string is comma-separated list with a regex', () => {
+        const tasks = [{ content: 'foo' }, { content: 'bar' }, { content: 'baz' }]
+        const result = tb.includeTasksWithPatterns(tasks, '/^f/,baz')
+        expect(result.length).toEqual(2)
+        expect(result[0].content).toEqual('foo')
+        expect(result[1].content).toEqual('baz')
+      })
       test('should include tasks that match an array of patterns', () => {
         const tasks = [{ content: 'foo' }, { content: 'bar' }, { content: 'baz' }]
         const result = tb.includeTasksWithPatterns(tasks, ['az', /^f/])

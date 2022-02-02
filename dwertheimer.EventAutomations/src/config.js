@@ -13,7 +13,7 @@ export function getTimeBlockingDefaults(): { [key: string]: any } {
       "'" /* signifies how long a task is, e.g. apostrophe: '2h5m or use another character, e.g. tilde: ~2h5m */,
     intervalMins: 5 /* inverval on which to calculate time blocks */,
     removeDuration: true /* remove duration when creating timeblock text */,
-    defaultDuration: 15 /* default duration of a task that has no duration/end time */,
+    defaultDuration: 20 /* default duration of a task that has no duration/end time */,
     mode: 'PRIORITY_FIRST' /* 'PRIORITY_FIRST' or 'LARGEST_FIRST' */,
     allowEventSplits: false /* allow tasks to be split into multiple timeblocks */,
     insertIntoEditor: true /* insert timeblocks into the editor */,
