@@ -121,7 +121,21 @@ export async function migrateConfiguration(
     pluginSettings.forEach((setting) => {
       const key: any = setting?.key || null
       // migration data from _configuration || plugin.settings default value
-      migrateData[key] = key && configData?.[key] ? configData[key] : setting?.default || ''
+      // migrateData[key] = key && configData?.[key] ? configData[key] : setting?.default || ''
+
+      if(key && configData?.[key] !== 'undefined') {
+        // Check if the variable is an array with anything but objects, then save it as comma separated string
+        if(Array.isArray(configData[key]) && configData[key].length > 0 && ((typeof configData[key][0]) != 'object')) {
+          migrateData[key] = configData[key].join(", ")
+          console.log("converted " + configData[key] + " to '" + configData[key].join(", ") + "'")
+        } else {
+          migrateData[key] = configData[key]
+          console.log("setting '" + key + "' to '" + configData[key] + "'")
+        }
+      } else {
+        migrateData[key] = setting?.default || ''
+        console.log("setting default for '" + key + "' to '" + (setting?.default || '') + "'")
+      }
     })
 
     // initialize settings data
