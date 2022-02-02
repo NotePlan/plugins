@@ -500,7 +500,8 @@ export function getTimeBlockTimesForEvents(
 }
 
 // pattern could be a string or a /regex/ in a string
-export function getRegExOrString(str: string): RegExp | string {
+export function getRegExOrString(input: string): RegExp | string {
+  const str = input.trim()
   if (str.startsWith('/') && str.endsWith('/')) {
     return new RegExp(str.slice(1, -1))
   } else {

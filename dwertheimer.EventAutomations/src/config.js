@@ -71,4 +71,4 @@ export function validateTimeBlockConfig(config: { [key: string]: any }): { [key:
   }
 }
 
-export const arrayToCSV = (inStr: Array<string> | string): string => (Array.isArray(inStr) ? inStr.join(',') : inStr)
+export const arrayToCSV = (inStr: Array<string> | string): string => (Array.isArray(inStr) ? inStr.join(', ') : inStr)

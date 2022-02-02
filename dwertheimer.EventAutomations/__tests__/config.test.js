@@ -24,7 +24,7 @@ describe('dwertheimer.EventAutomations AutoTimeBlocking', () => {
       test('should convert an array to a CSV string', () => {
         const arr = ['a', 'b', 'c']
         const csv = c.arrayToCSV(arr)
-        expect(csv).toEqual('a,b,c')
+        expect(csv).toEqual('a, b, c')
       })
       test('should pass through a string as a string', () => {
         const string = 'abc'

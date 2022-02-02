@@ -719,6 +719,10 @@ describe(`${PLUGIN_NAME}`, () => {
         const res = tb.getRegExOrString('/a regex/')
         expect(res).toEqual(new RegExp('a regex'))
       })
+      test('should work when there are spaces', () => {
+        const res = tb.getRegExOrString(' /a regex/ ')
+        expect(res).toEqual(new RegExp('a regex'))
+      })
     })
 
     describe('includeTasksWithPatterns', () => {
@@ -753,6 +757,13 @@ describe(`${PLUGIN_NAME}`, () => {
       test('should include tasks that match an array of patterns', () => {
         const tasks = [{ content: 'foo' }, { content: 'bar' }, { content: 'baz' }]
         const result = tb.includeTasksWithPatterns(tasks, ['az', /^f/])
+        expect(result.length).toEqual(2)
+        expect(result[0].content).toEqual('foo')
+        expect(result[1].content).toEqual('baz')
+      })
+      test('should include tasks that match an array of patterns with spaces', () => {
+        const tasks = [{ content: 'foo' }, { content: 'bar' }, { content: 'baz' }]
+        const result = tb.includeTasksWithPatterns(tasks, ' foo,baz')
         expect(result.length).toEqual(2)
         expect(result[0].content).toEqual('foo')
         expect(result[1].content).toEqual('baz')
