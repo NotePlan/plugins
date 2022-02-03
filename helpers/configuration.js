@@ -132,9 +132,9 @@ export async function migrateConfiguration(
           migrateData[key] = configData[key]
           
           // Check if the variable is an array with anything but objects, then save it as comma separated string
-          if (Array.isArray(configData[key]) && configData[key].length > 0 && (typeof configData[key][0]) !== 'object') {
-            migrateData[key] = configData[key].join(', ')
-          }
+          // if (Array.isArray(configData[key]) && configData[key].length > 0 && (typeof configData[key][0]) !== 'object') {
+          //   migrateData[key] = configData[key].join(', ')
+          // }
         }
       }
     })
