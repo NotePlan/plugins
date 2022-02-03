@@ -17,7 +17,6 @@
 | `dayReview` | Ask journal questions for an end-of-day review (requires configuring) | ☀️ Daily Journal |
 | `dayStart` | Apply Daily Note Template (requires configuring) | ☀️ Daily Journal |
 | `dp` | (Date Picker) Choose format and insert date/time time at cursor | 📅 Date Automations |
-| `ea:update` | Run eventAutomations Setting | 🗓 Event Automations |
 | `expensesAggregate` | Aggregates the tracked expenses of the chosen year to a new expenses aggregated note | 💶️ Expenses |
 | `expensesFixedTracking` | Track your fixed expenses | 💶️ Expenses |
 | `expensesIndividualTracking` | Track your individual expenses | 💶️ Expenses |
