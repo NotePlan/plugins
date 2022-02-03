@@ -1,5 +1,5 @@
 {
-	"noteplan.minAppVersion": "3.0.23",
+	"noteplan.minAppVersion": "3.3.2",
   "macOS.minVersion": "10.13.0",
 	"plugin.id": "jgclark.Summaries",
 	"plugin.name": "🗃 Summaries",
@@ -56,8 +56,8 @@
       "default": "Summaries",
       "required": true
     },
-		{
-      "key": "foldersToExclude",
+    {
+      "key": "foldersToIgnore",
       "title": "Folders to exclude",
       "description": "List of folders to exlude in these commands. May be empty. (Note that @Trash and @Archive are always excluded.)",
       "type": "[string]",
@@ -156,7 +156,7 @@
       "required": false
     },
 		{
-      "key": "occurrencesToMatch",
+      "key": "defaultOccurrences",
       "title": "Search terms",
       "description": "Optional list of search terms to use. If not given, or empty, you will be asked for terms each time you run the command.",
       "type": "[string]",
