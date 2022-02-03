@@ -3,6 +3,8 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 
 <!-- - tighten timeblock-finding regex if Eduard does
 - add further fields (e.g. location) if Eduard adds to the API -->
+## [0.11.1] - 2022-02-03
+TESTING RELEASE FOR CONFIG V2
 
 ## [0.11.0] - 2022-01-30
 ### Changed

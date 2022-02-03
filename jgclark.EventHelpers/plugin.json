@@ -1,5 +1,5 @@
 {
-  "noteplan.min_version": "3.0.25",
+  "noteplan.min_version": "3.4.0",
   "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.EventHelpers",
   "plugin.name": "🕓 Event Helpers",
@@ -7,7 +7,7 @@
   "plugin.icon": "",
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers",
-  "plugin.version": "0.11.0",
+  "plugin.version": "0.11.1",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -91,7 +91,7 @@
       "description": "Whether to ask user to confirm each event to be created",
       "type": "bool",
       "default": false,
-      "required": false
+      "required": true
     },
     {
       "key": "removeTimeBlocksWhenProcessed",
@@ -99,7 +99,7 @@
       "description": "Whether to remove time block after making an event from it",
       "type": "bool",
       "default": true,
-      "required": false
+      "required": true
     },
     {
       "key": "addEventID",
@@ -107,7 +107,7 @@
       "description": "Whether to add an '⏰event:ID' string in place of the time block, when creating an event from it",
       "type": "bool",
       "default": false,
-      "required": false
+      "required": true
     },
     {
       "key": "processedTagName",
