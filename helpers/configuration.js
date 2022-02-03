@@ -120,21 +120,18 @@ export async function migrateConfiguration(
     const pluginSettings = pluginJsonData.hasOwnProperty('plugin.settings') ? pluginJsonData['plugin.settings'] : []
     pluginSettings.forEach((setting) => {
       const key: any = setting?.key || null
-      // migration data from _configuration || plugin.settings default value
-      // migrateData[key] = key && configData?.[key] ? configData[key] : setting?.default || ''
-
-      if(key && configData[key] !== 'undefined') {
-        // Check if the variable is an array with anything but objects, then save it as comma separated string
-        if(Array.isArray(configData[key]) && configData[key].length > 0 && ((typeof configData[key][0]) != 'object')) {
-          migrateData[key] = configData[key].join(", ")
-          console.log("converted " + configData[key] + " to '" + configData[key].join(", ") + "'")
-        } else {
-          migrateData[key] = configData[key]
-          console.log("setting '" + key + "' to '" + configData[key] + "'")
-        }
-      } else {
+      if (key) {
+        log(key)
         migrateData[key] = setting?.default || ''
-        console.log("setting default for '" + key + "' to '" + (setting?.default || '') + "'")
+
+        // migration data from _configuration if exists
+        if (key && configData[key] !== 'undefined') {
+          migrateData[key] = configData[key]
+          // Check if the variable is an array with anything but objects, then save it as comma separated string
+          if (Array.isArray(configData[key]) && configData[key].length > 0 && typeof configData[key][0] !== 'object') {
+            migrateData[key] = configData[key].join(', ')
+          }
+        }
       }
     })
 
@@ -143,8 +140,6 @@ export async function migrateConfiguration(
     DataStore.settings = { ...migrateData }
 
     log(`==> ${pluginJsonData['plugin.id']} _configuration.${configSection} migration (migration complete)`)
-  } else {
-    log(`==> ${pluginJsonData['plugin.id']} _configuration.${configSection} migration (already migrated)`)
   }
 
   // if settings data was migrated (first time only)
@@ -152,7 +147,7 @@ export async function migrateConfiguration(
     const reviewMessage: string = canEditSettings ? `\n\nWould you like to review settings?` : ''
     const answer: mixed = await CommandBar.prompt(
       'Configuration Migration Complete',
-      `Your _configuration "templates" has been migrated to NotePlan Plugin Settings. ${reviewMessage}`,
+      `Your _configuration "${configSection}" have been migrated to NotePlan Plugin Settings. ${reviewMessage}`,
       canEditSettings ? ['Yes', 'No'] : ['OK'],
     )
     if (canEditSettings && answer === 0) {
@@ -161,6 +156,35 @@ export async function migrateConfiguration(
   }
 
   return migrationResult
+}
+
+/**
+ * update setting data in the event plugin.settings object has been updated
+ * @author @codedungeon
+ * @param {any} pluginJsonData - plugin.json data for which plugin is being migrated
+ * @return {number} update result (1 settings update, 0 no update necessary)
+ */
+export async function updateSettingData(pluginJsonData: any): Promise<number> {
+  let updateResult = 0
+
+  const newSettings = {}
+  const currentSettingData = DataStore.settings
+
+  const pluginSettings = pluginJsonData.hasOwnProperty('plugin.settings') ? pluginJsonData['plugin.settings'] : []
+  pluginSettings.forEach((setting) => {
+    const key: any = setting?.key || null
+    if (key) {
+      if (!currentSettingData.hasOwnProperty(key)) {
+        newSettings[key] = setting?.default || ''
+        updateResult = 1 // we have made at least one update, change result code accordingly
+      } else {
+        newSettings[key] = currentSettingData[key]
+      }
+    }
+  })
+  DataStore.settings = { ...newSettings }
+
+  return updateResult
 }
 
 /**
@@ -183,7 +207,11 @@ export async function parseConfiguration(block: string): Promise<?{ [string]: ?m
     const value: any = json5.parse(contents)
     return value
   } catch (error) {
-    await CommandBar.prompt('NotePlan Error', "Failed to parse your _configuration note, it seems to be malformed (e.g. a missing comma).\n\nPlease correct it, delete the plugin (click on the plugin name in the preferences to see the 'delete' button), and redownload it.\n\nError: " + error)
+    await CommandBar.prompt(
+      'NotePlan Error',
+      "Failed to parse your _configuration note, it seems to be malformed (e.g. a missing comma).\n\nPlease correct it, delete the plugin (click on the plugin name in the preferences to see the 'delete' button), and redownload it.\n\nError: " +
+        error,
+    )
   }
 }
 

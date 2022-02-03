@@ -1,8 +1,7 @@
 // @flow
 // ----------------------------------------------------------------------------
-// Helpers for Event Helpers plugin.
-// (More general event helpers are in the helpers/ folder.)
-// Last updated 28.1.2022 for v0.11.0, by @jgclark
+// Sort configuration for commands in the Event Helpers plugin.
+// Last updated 1.2.2022 for v0.11.0, by @jgclark
 // @jgclark
 // ----------------------------------------------------------------------------
 
@@ -95,8 +94,8 @@ export async function getEventsSettings(): Promise<EventsConfig> {
     console.log(`\tFound 'events' settings in _configuration note.`)
     // Get locale: if blank in settings then get from NP environment (from 3.3.2)
     // or if not available default to 'en-US'
-    const envRegion = (NotePlan.environment) ? NotePlan.environment.regionCode : ''
-    const envLanguage = (NotePlan.environment) ? NotePlan.environment.languageCode : ''
+    const envRegion = (NotePlan?.environment) ? NotePlan?.environment?.regionCode : ''
+    const envLanguage = (NotePlan?.environment) ? NotePlan?.environment?.languageCode : ''
     let tempLocale = castStringFromMixed(result, 'locale')
     tempLocale = (tempLocale != null) && tempLocale !== ''
         ? tempLocale
@@ -104,7 +103,7 @@ export async function getEventsSettings(): Promise<EventsConfig> {
           ? `${envLanguage}-${envRegion}`
         : 'en-US'
     
-    const env1224 = (NotePlan.environment) ? NotePlan.environment.is12hFormat : false
+    const env1224 = (NotePlan?.environment) ? NotePlan?.environment?.is12hFormat : false
     let tempTimeOptions = result?.timeOptions ?? { hour: '2-digit', minute: '2-digit', hour12: env1224 }
     // $FlowFixMe[incompatible-call]
     // clo(tempTimeOptions)
