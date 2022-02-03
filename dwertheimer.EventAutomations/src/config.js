@@ -13,7 +13,7 @@ export function getTimeBlockingDefaults(): { [key: string]: any } {
       "'" /* signifies how long a task is, e.g. apostrophe: '2h5m or use another character, e.g. tilde: ~2h5m */,
     intervalMins: 5 /* inverval on which to calculate time blocks */,
     removeDuration: true /* remove duration when creating timeblock text */,
-    defaultDuration: 15 /* default duration of a task that has no duration/end time */,
+    defaultDuration: 20 /* default duration of a task that has no duration/end time */,
     mode: 'PRIORITY_FIRST' /* 'PRIORITY_FIRST' or 'LARGEST_FIRST' */,
     allowEventSplits: false /* allow tasks to be split into multiple timeblocks */,
     insertIntoEditor: true /* insert timeblocks into the editor */,
@@ -23,8 +23,8 @@ export function getTimeBlockingDefaults(): { [key: string]: any } {
     deletePreviousCalendarEntries:
       false /* before creating new calendar entries, delete previous calendar entries for the timeblocks; 
                to keep a calendar entry around, just remove the timeBlockTag */,
-    includeTasksWithText: [] /* limit to tasks with ANY of these tags/text */,
-    excludeTasksWithText: [] /* exclude tasks with ANY of these tags/text */,
+    includeTasksWithText: '' /* limit to tasks with ANY of these tags/text */,
+    excludeTasksWithText: '' /* exclude tasks with ANY of these tags/text */,
     presets: [
       { label: 'Limit Time Blocks to Work Hours', workDayStart: '08:00', workDayEnd: '17:59' },
       {
@@ -56,8 +56,8 @@ export function validateTimeBlockConfig(config: { [key: string]: any }): { [key:
     createCalendarEntries: 'boolean',
     deletePreviousCalendarEntries: 'boolean',
     eventEnteredOnCalTag: 'string',
-    includeTasksWithText: { type: 'array', optional: true },
-    excludeTasksWithText: { type: 'array', optional: true },
+    includeTasksWithText: { type: 'string', optional: true },
+    excludeTasksWithText: { type: 'string', optional: true },
     presets: { type: 'array', optional: true },
     nowStrOverride: { type: /^\d{2}:\d{2}$/, optional: true },
   }
@@ -70,3 +70,5 @@ export function validateTimeBlockConfig(config: { [key: string]: any }): { [key:
     throw new Error(`${String(error)}`)
   }
 }
+
+export const arrayToCSV = (inStr: Array<string> | string): string => (Array.isArray(inStr) ? inStr.join(', ') : inStr)

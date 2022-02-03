@@ -20,5 +20,17 @@ describe('dwertheimer.EventAutomations AutoTimeBlocking', () => {
         expect(() => c.validateTimeBlockConfig(config)).toThrow(/timeBlockTag/)
       })
     })
+    describe('arrayToCSV', () => {
+      test('should convert an array to a CSV string', () => {
+        const arr = ['a', 'b', 'c']
+        const csv = c.arrayToCSV(arr)
+        expect(csv).toEqual('a, b, c')
+      })
+      test('should pass through a string as a string', () => {
+        const string = 'abc'
+        const csv = c.arrayToCSV(string)
+        expect(csv).toEqual('abc')
+      })
+    })
   })
 })
