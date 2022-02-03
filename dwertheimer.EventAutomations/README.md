@@ -8,5 +8,7 @@
 `_configuration` file / `quickNotes` field, where you pre-establish a pre-existing template to use, a folder to save new notes in, a title format, etc.
 - will be set up on first use
 
+## "atb - Create AutoTimeBlocks for >today's Tasks" command
+[How to use AutoTimeBlocking](https://noteplan.co/n/#/1EF12392-B544-4044-AC7A-428F57EB2DFC)
 ## Limitations
 Right now, the title is fixed. Some day I will add configuration fields to allow you to be more creative with your title

@@ -30,7 +30,6 @@ import {
 import { getTasksByType } from '../../dwertheimer.TaskAutomations/src/taskHelpers'
 import { sortListBy } from '../../helpers/sorting'
 import { showMessage, chooseOption } from '../../helpers/userInput'
-import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 import { isTimeBlockLine, getTimeBlockString } from '../../helpers/timeblocks'
 import { calcSmartPrependPoint } from '../../helpers/paragraph'
 import { logAllPropertyNames, getAllPropertyNames, JSP } from '../../helpers/dev'
@@ -73,24 +72,21 @@ const PLUGIN_ID = 'autoTimeBlocking'
   ): TCalendarItem, 
 */
 
-export async function getConfig(): Promise<{ [key: string]: any }> {
+export async function getConfig(): Promise<{ [string]: [mixed] }> {
   const defaultConfig = getTimeBlockingDefaults()
-  // $FlowIgnore
-  const config = await getOrMakeConfigurationSection(
-    PLUGIN_ID,
-    `${PLUGIN_ID}: ${JSON.stringify(defaultConfig, null, 2)},\n`,
-  )
+  const config = DataStore.settings
   if (Object.keys(config).length > 0) {
     try {
       // $FlowIgnore
       validateTimeBlockConfig(config)
-      // $FlowIgnore
       return config
     } catch (error) {
-      showMessage(error)
-      return defaultConfig
+      showMessage(
+        `Plugin Settings ${error.message}\nRunning with default settings. You should probably open the plugin configuration dialog and fix the problem(s) listed above.`,
+      )
     }
   }
+  return defaultConfig
 }
 
 // $FlowIgnore
