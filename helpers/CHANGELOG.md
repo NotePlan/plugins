@@ -6,6 +6,10 @@ All NotePlan plugins follow `semver` versioning. For details, please refer to [s
 ### About NotePlan Plugin Helpers
 See NotePlan Plugin Helpers [README](https://github.com/NotePlan/plugins/blob/main/helpers/README.md) for details on available commands and use case.
 
+## [0.0.3] - 2022-02-03 (mikeerickson)
+
+- Removed async `configuration :: updateSettingsData
+
 ## [0.0.2] - 2022-02-03 (mikeerickson)
 
 - Added `configuration :: updateSettingsData

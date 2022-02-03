@@ -41,18 +41,18 @@ export function validateConfigProperties(
 
       if (configFieldValue === null || configFieldValue === undefined) {
         if (!isOptional) {
-          failed = `Config required field: "${v}" is missing;`
+          failed = `Config required field: "${v}" is missing;\n`
         }
       } else {
         if (requiredType instanceof RegExp) {
           if (typeof configFieldValue !== 'string' || !requiredType.test(configFieldValue)) {
-            failed += `Config field: "${v}" failed RegEx test "${String(requiredType)}";`
+            failed += `Config field: "${v}" (${String(config[v])}) is not the proper type;\n`
           }
         } else {
           const test =
             requiredType === 'array' ? Array.isArray(configFieldValue) : typeof configFieldValue === requiredType
           if (!test) {
-            failed += `Config required field: "${v}" is not of type "${String(requiredType)}";`
+            failed += `Config required field: "${v}" is not of type "${String(requiredType)}";\n`
           }
         }
       }

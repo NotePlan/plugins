@@ -708,6 +708,23 @@ describe(`${PLUGIN_NAME}`, () => {
     test('findOptimalTimeForEvent ', () => {
       expect(tb.findOptimalTimeForEvent([], [], config)).toEqual([])
     })
+
+    describe('getRegExOrString', () => {
+      test('should return items that are a string', () => {
+        const res = tb.getRegExOrString('a string')
+        expect(res).toEqual('a string')
+        expect(typeof res).toEqual('string')
+      })
+      test('should return Regex for items that are regex', () => {
+        const res = tb.getRegExOrString('/a regex/')
+        expect(res).toEqual(new RegExp('a regex'))
+      })
+      test('should work when there are spaces', () => {
+        const res = tb.getRegExOrString(' /a regex/ ')
+        expect(res).toEqual(new RegExp('a regex'))
+      })
+    })
+
     describe('includeTasksWithPatterns', () => {
       test('should include only tasks that contain a string', () => {
         const tasks = [{ content: 'foo' }, { content: 'bar' }, { content: 'baz' }]
@@ -723,6 +740,20 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result[0].content).toEqual('bar')
         expect(result[1].content).toEqual('baz')
       })
+      test('should work when the input string is comma-separated list', () => {
+        const tasks = [{ content: 'foo' }, { content: 'bar' }, { content: 'baz' }]
+        const result = tb.includeTasksWithPatterns(tasks, 'foo,baz')
+        expect(result.length).toEqual(2)
+        expect(result[0].content).toEqual('foo')
+        expect(result[1].content).toEqual('baz')
+      })
+      test('should work when the input string is comma-separated list with a regex', () => {
+        const tasks = [{ content: 'foo' }, { content: 'bar' }, { content: 'baz' }]
+        const result = tb.includeTasksWithPatterns(tasks, '/^f/,baz')
+        expect(result.length).toEqual(2)
+        expect(result[0].content).toEqual('foo')
+        expect(result[1].content).toEqual('baz')
+      })
       test('should include tasks that match an array of patterns', () => {
         const tasks = [{ content: 'foo' }, { content: 'bar' }, { content: 'baz' }]
         const result = tb.includeTasksWithPatterns(tasks, ['az', /^f/])
@@ -730,12 +761,24 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result[0].content).toEqual('foo')
         expect(result[1].content).toEqual('baz')
       })
+      test('should include tasks that match an array of patterns with spaces', () => {
+        const tasks = [{ content: 'foo' }, { content: 'bar' }, { content: 'baz' }]
+        const result = tb.includeTasksWithPatterns(tasks, ' foo,baz')
+        expect(result.length).toEqual(2)
+        expect(result[0].content).toEqual('foo')
+        expect(result[1].content).toEqual('baz')
+      })
     })
     describe('excludeTasksWithPatterns', () => {
-      test('should include only tasks that contain the string/regex', () => {
+      test('should include only tasks that do not contain the string/regex', () => {
         const tasks = [{ content: 'foo' }, { content: 'bar' }, { content: 'baz' }]
         const result = tb.excludeTasksWithPatterns(tasks, 'ba')
         expect(result.length).toEqual(1)
+        expect(result[0].content).toEqual('foo')
+      })
+      test('should exclude tasks that match a regex', () => {
+        const tasks = [{ content: 'foo' }, { content: 'bar' }, { content: 'baz' }]
+        const result = tb.excludeTasksWithPatterns(tasks, '/ba/')
         expect(result[0].content).toEqual('foo')
       })
     })

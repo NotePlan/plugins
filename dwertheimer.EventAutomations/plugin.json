@@ -1,12 +1,12 @@
 {
   "COMMENT1": "Note If you are not going to use the `npm run autowatch` command to compile, then delete the macOS.minVersion line below",
   "macOS.minVersion": "10.13.0",
-  "noteplan.minAppVersion": "3.3", 
+  "noteplan.minAppVersion": "3.3.2", 
   "plugin.id": "dwertheimer.EventAutomations",
   "plugin.name": "🗓 Event Automations",
   "plugin.description": "Create a note from an event on your calendar or create timeblocks for items marked for today!",
   "plugin.author": "dwertheimer",
-  "plugin.version": "0.4.2",
+  "plugin.version": "0.4.3",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://noteplan.co/n/#/1EF12392-B544-4044-AC7A-428F57EB2DFC",
@@ -29,7 +29,7 @@
       "jsFunction": "insertTodosAsTimeblocks",
       "alias": ["atb","abt","timeblocks","block","todoblocks"]
     },
-        {
+    {
       "name": "Create AutoTimeBlocks using presets",
       "description": "Read >today todos and insert them into today's calendar note as timeblocks, but using presets defined in _configuration note",
       "jsFunction": "insertTodosAsTimeblocksWithPresets",
@@ -59,19 +59,19 @@
     },
     {
         "key": "includeTasksWithText",
-        "type": "string",
+        "type": "[string]",
         "title": "Include any tasks that match text:",
-        "description": "If this field is set to any text, then any task that contains this text will be included in the timeblocks. This is useful if you want to limit tasks to items with a specific #hashtag for example.",
-        "default": "",
-        "required": true
+        "description": "If this field is set to any text, then any task that contains this text will be included in the timeblocks. This is useful if you want to limit tasks to items with a specific #hashtag for example. This field can also contain a comma separated list, e.g. 'someRawText, #hashtag1, #hashtag2'",
+        "default": [],
+        "required": false
     },
     {
         "key": "excludeTasksWithText",
-        "type": "string",
+        "type": "[string]",
         "title": "Exclude any tasks that match text:",
-        "description": "If this field is set to any text, then any task that contains this text will *not* be included in the timeblocks. ",
-        "default": "",
-        "required": true
+        "description": "If this field is set to any text, then any task that contains this text will *not* be included in the timeblocks. This field can also contain a comma separated list, e.g. 'someRawText, #hashtag1, @hashtag2'",
+        "default": [],
+        "required": false
     },            
     {
         "key": "durationMarker",
