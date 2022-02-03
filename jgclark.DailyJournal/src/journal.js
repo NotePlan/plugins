@@ -36,7 +36,7 @@ import { applyNamedTemplate } from '../../nmn.Templates/src/index'
 
 const configKey = 'dailyJournal'
 
-type journalConfigType = {
+type JournalConfigType = {
   templateTitle: string,
   reviewSectionHeading: string,
   reviewQuestions: string,
@@ -48,15 +48,15 @@ type journalConfigType = {
  * Updated for #ConfigV2
  * @author @jgclark
  */
-async function getJournalSettings(): Promise<journalConfigType> {
+async function getJournalSettings(): Promise<JournalConfigType> {
   console.log(`getJournalSettings():`)
 
   // Wish the following was possible:
   // if (NotePlan.environment.version >= "3.4") {
   
-  const tempConfig: journalConfigType = DataStore.settings
+  const tempConfig: JournalConfigType = DataStore.settings
   if ((tempConfig != null) && Object.keys(tempConfig).length > 0) {
-    const config: journalConfigType = tempConfig
+    const config: JournalConfigType = tempConfig
     // $FlowFixMe
     clo(config, `\t${configKey} settings from V2:`)
     return config
@@ -67,15 +67,15 @@ async function getJournalSettings(): Promise<journalConfigType> {
     const v1Config = await getOrMakeConfigurationSection(configKey)
     // $FlowIgnore
     console.log(`found config: ${JSON.stringify(v1Config)}`)
-    const config: journalConfigType = {
+    const config: JournalConfigType = {
       templateTitle: (v1Config?.templateTitle != null)
         ? String(v1Config?.templateTitle) : "Daily Note Template",
       reviewSectionHeading: (v1Config?.reviewSectionHeading != null)
         ? String(v1Config?.reviewSectionHeading) : "Journal",
       reviewQuestions: (v1Config?.reviewQuestions != null)
         ? String(v1Config?.reviewQuestions) : '@sleep(<number>)\\n@work(<number>)\\n@fruitveg(<int>)\\nMood:: <mood>\\nExercise:: <string>\\nGratitude:: <string>\\nGod was:: <string>\\nAlive:: <string>\\nNot Great:: <string>\\nWife:: <string>\\nRemember:: <string>',
-      moods: (v1Config?.moodArray != null && v1Config?.moodArray !== '')
-        ? (v1Config?.moodArray) : "🤩 Great,🙂 Good,😇 Blessed,🥱 Tired,😫 Stressed,😤 Frustrated,😔 Low,🥵 Sick,Other"
+      moods: (v1Config?.moods != null && v1Config?.moods !== '')
+        ? String(v1Config?.moods) : "🤩 Great,🙂 Good,😇 Blessed,🥱 Tired,😫 Stressed,😤 Frustrated,😔 Low,🥵 Sick,Other"
     }
     // $FlowFixMe
     clo(config, `\t${configKey} settings from V1:`)
@@ -115,7 +115,7 @@ export async function dayStart(today: boolean = false): Promise<void> {
   }
   // $FlowIgnore[incompatible-call]
   console.log(`for '${displayTitle(Editor.note)}'`)
-  const config: journalConfigType = await getJournalSettings()
+  const config: JournalConfigType = await getJournalSettings()
   // // Get config settings from Template folder _configuration note
   // const journalConfig = await getOrMakeConfigurationSection(
   //   'dailyJournal',
@@ -147,7 +147,7 @@ export async function dayReview(): Promise<void> {
     return
   }
 
-  const config: journalConfigType = await getJournalSettings()
+  const config: JournalConfigType = await getJournalSettings()
   // // Get config settings from Template folder _configuration note
   // const journalConfig = await getOrMakeConfigurationSection(
   //   'dailyJournal',
@@ -279,7 +279,7 @@ export async function dayReview(): Promise<void> {
         case 'mood': {
           const moodArray = config.moods.split(',')
           const reply = await CommandBar.showOptions(moodArray, 'Choose most appropriate mood for today')
-          const replyMood = config.moodArray[reply.index]
+          const replyMood = config.moods[reply.index]
           if (replyMood != null && replyMood !== '') {
             reviewLine = `${questionLines[i].replace(/<mood>/, replyMood)}`
           } else {
