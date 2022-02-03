@@ -125,7 +125,7 @@ export async function migrateConfiguration(
         migrateData[key] = setting?.default || ''
 
         // migration data from _configuration if exists
-        if (key && configData?.[key]) {
+        if (key && configData[key] !== 'undefined') {
           migrateData[key] = configData[key]
           // Check if the variable is an array with anything but objects, then save it as comma separated string
           if (Array.isArray(configData[key]) && configData[key].length > 0 && typeof configData[key][0] !== 'object') {
@@ -207,7 +207,11 @@ export async function parseConfiguration(block: string): Promise<?{ [string]: ?m
     const value: any = json5.parse(contents)
     return value
   } catch (error) {
-    await CommandBar.prompt('NotePlan Error', error)
+    await CommandBar.prompt(
+      'NotePlan Error',
+      "Failed to parse your _configuration note, it seems to be malformed (e.g. a missing comma).\n\nPlease correct it, delete the plugin (click on the plugin name in the preferences to see the 'delete' button), and redownload it.\n\nError: " +
+        error,
+    )
   }
 }
 
