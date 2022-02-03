@@ -116,8 +116,10 @@ export async function migrateConfiguration(
     // load _configuration data for configSection if exists
     const configData = await getConfiguration(configSection)
     migrationResult = Object.keys(configData).length > 0 ? 1 : -1
+    
     // load plugin settings object, if not exists settings object will be empty
     const pluginSettings = pluginJsonData.hasOwnProperty('plugin.settings') ? pluginJsonData['plugin.settings'] : []
+    
     pluginSettings.forEach((setting) => {
       const key: any = setting?.key || null
       if (key) {
@@ -127,8 +129,9 @@ export async function migrateConfiguration(
         // migration data from _configuration if exists
         if (key && configData[key] !== 'undefined') {
           migrateData[key] = configData[key]
+          
           // Check if the variable is an array with anything but objects, then save it as comma separated string
-          if (Array.isArray(configData[key]) && configData[key].length > 0 && typeof configData[key][0] !== 'object') {
+          if (Array.isArray(configData[key]) && configData[key].length > 0 && (typeof configData[key][0]) !== 'object') {
             migrateData[key] = configData[key].join(', ')
           }
         }
