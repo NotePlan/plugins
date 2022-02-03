@@ -2,6 +2,7 @@
 
 /*----------------------------------------------------------------------------------------------------------------------------
  * Configuration Utilities
+ * Version 0.0.3
  * @author @codedungeon unless otherwise noted
  * Requires NotePlan 3.4 or greater (waiting for NotePlan.environment version method to perform proper validation)
  * Note: Everything is self contained in this method, no other dependencies beyond `json5` plugin
@@ -74,7 +75,7 @@ export async function getConfiguration(configSection: string = ''): Promise<any>
 export async function initConfiguration(pluginJsonData: any): Promise<any> {
   const migrateData = {}
   if (typeof pluginJsonData !== 'object') {
-    CommandBar.prompt('NotePlan Error', 'Invalid Plugin Settings')
+    await CommandBar.prompt('NotePlan Error', 'Invalid Plugin Settings')
     return migrateData
   }
 
@@ -167,7 +168,7 @@ export async function migrateConfiguration(
  * @param {any} pluginJsonData - plugin.json data for which plugin is being migrated
  * @return {number} update result (1 settings update, 0 no update necessary)
  */
-export async function updateSettingData(pluginJsonData: any): Promise<number> {
+export function updateSettingData(pluginJsonData: any): number {
   let updateResult = 0
 
   const newSettings = {}
