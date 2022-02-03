@@ -73,18 +73,18 @@
     },
     {
         "key": "includeTasksWithText",
-        "type": "string",
+        "type": "[string]",
         "title": "Include any tasks that match text:",
         "description": "If this field is set to any text, then any task that contains this text will be included in the timeblocks. This is useful if you want to limit tasks to items with a specific #hashtag for example. This field can also contain a comma separated list, e.g. 'someRawText, #hashtag1, #hashtag2'",
-        "default": "",
+        "default": [],
         "required": false
     },
     {
         "key": "excludeTasksWithText",
-        "type": "string",
+        "type": "[string]",
         "title": "Exclude any tasks that match text:",
         "description": "If this field is set to any text, then any task that contains this text will *not* be included in the timeblocks. This field can also contain a comma separated list, e.g. 'someRawText, #hashtag1, @hashtag2'",
-        "default": "",
+        "default": [],
         "required": false
     },            
     {
