@@ -151,7 +151,7 @@ export async function migrateConfiguration(
     const reviewMessage: string = canEditSettings ? `\n\nWould you like to review settings?` : ''
     const answer: mixed = await CommandBar.prompt(
       'Configuration Migration Complete',
-      `Your _configuration "${configSection}" have been migrated to NotePlan Plugin Settings. ${reviewMessage}`,
+      `Your _configuration "${configSection}" has been migrated to NotePlan Plugin Settings.\n\nTo change your plugin settings in the future, please open the NotePlan preferences, navigate to "Plugins" and click on the settings icon on the right of the plugin. ${reviewMessage}`,
       canEditSettings ? ['Yes', 'No'] : ['OK'],
     )
     if (canEditSettings && answer === 0) {
