@@ -13,12 +13,28 @@ import NoteModule from '@templatingModules/NoteModule'
 import UtilityModule from '@templatingModules/UtilityModule'
 import SystemModule from '@templatingModules/SystemModule'
 import FrontmatterModule from '@templatingModules/FrontmatterModule'
-import { log } from 'NPTemplating'
+// import { log } from 'NPTemplating'
 
 import { showError } from '../../codedungeon.Tester/src/lib/testerUtils'
-// this is a customized versioin of `ejs` adding support for async actions (use await in template)
+
+// this is a customized version of `ejs` adding support for async actions (use await in template)
 // review `Test (Async)` template for example`
 import ejs from './support/ejs'
+
+const dt = () => {
+  const d = new Date()
+
+  const pad = (value: number) => {
+    return value < 10 ? '0' + value : value
+  }
+
+  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + d.toLocaleTimeString()
+}
+
+export function log(msg: any = '') {
+  const displayMsg: string = typeof msg === 'string' ? msg : msg.toString()
+  console.log(`${dt()} : np.Templating :: ${displayMsg}`)
+}
 
 export default class TemplatingEngine {
   templateConfig: any

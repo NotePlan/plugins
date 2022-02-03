@@ -66,7 +66,7 @@ const dt = () => {
 }
 
 export function log(msg: any = '') {
-  let displayMsg: string = typeof msg === 'string' ? msg : msg.toString()
+  const displayMsg: string = typeof msg === 'string' ? msg : msg.toString()
   console.log(`${dt()} : np.Templating :: ${displayMsg}`)
 }
 
@@ -153,8 +153,21 @@ export default class NPTemplating {
       log(`==> Updating np.Templating to version 0.0.186`)
     }
 
+    if (settingsVersion < semverVersionToNumber('0.0.187')) {
+      log(`==> Updating np.Templating to version 0.0.187`)
+    }
+
+    if (settingsVersion < semverVersionToNumber('0.0.188')) {
+      log(`==> Updating np.Templating to version 0.0.188`)
+    }
+
+    if (settingsVersion < semverVersionToNumber('0.0.189')) {
+      log(`==> Updating np.Templating to version 0.0.189`)
+    }
+
     // update settings version to latest version from plugin.json
     settingsData.version = pluginJson['plugin.version']
+    log(`==> np.Templating Settings Version ${currentVersion}`)
 
     // return new settings
     return settingsData

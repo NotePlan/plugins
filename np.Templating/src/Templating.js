@@ -14,7 +14,7 @@ import { getAdvice } from '../lib/support/modules/advice'
 import { getWeather } from '../lib/support/modules/weather'
 import { getDailyQuote } from '../lib/support/modules/quote'
 import { getVerse, getVersePlain } from '../lib/support/modules/verse'
-import { initConfiguration, migrateConfiguration } from '../../helpers/configuration'
+import { initConfiguration, migrateConfiguration, updateSettingData } from '../../helpers/configuration'
 
 import pluginJson from '../plugin.json'
 
@@ -23,7 +23,10 @@ export async function onUpdateOrInstall(config: any = { silent: false }): Promis
     log('onUpdateOrInstall')
 
     // migrate _configuration data to data/<plugin>/settings.json (only executes migration once)
-    const migrationResult: number = await migrateConfiguration('templates', pluginJson, config?.silent)
+    let result: number = await migrateConfiguration('templates', pluginJson, config?.silent)
+    if (result === 0) {
+      result = await updateSettingData(pluginJson)
+    }
 
     // ===== PLUGIN SPECIFIC SETTING UPDATE CODE
     // this will be different for all plugins, you can do whatever you wish to configuration

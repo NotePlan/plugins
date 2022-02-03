@@ -3,7 +3,7 @@
   "noteplan.minAppVersion": "3.3.2",
   "plugin.id": "np.Templating",
   "plugin.name": " 📒 np.Templating",
-  "plugin.version": "0.0.186",
+  "plugin.version": "0.0.189",
   "plugin.description": "Templating Plugin for NotePlan",
   "plugin.author": "Mike Erickson",
   "plugin.dependencies": [],
@@ -100,6 +100,12 @@
       "title": "np.Templating Settings Version"
     },
     {
+      "key": "arrays",
+      "type": "string",
+      "title": "Stored Arrays in Configuration",
+      "default": ""
+    },
+    {
       "key": "templateFolderName",
       "title": "Template Folder Name",
       "description": "Folder name where np.Templating will load templates.",
@@ -190,6 +196,21 @@
       "description": "Configuration for Services which can be referenced using\n<% web.service() %> method\n\nTip: Use https://jsonformatter.org/json5-validator to validate",
       "type": "json",
       "default": "",
+      "required": false
+    },
+    {
+      "key": "testBoolean",
+      "title": "Test Boolean",
+      "description": "Test Boolean",
+      "type": "boolean",
+      "default": false
+    },
+    {
+      "key": "timeOptions",
+      "title": "Time options",
+      "description": "Optional Time format settings",
+      "type": "json",
+      "default": "{\n\t\"hour\": \"2-digit\", \n\t\"minute\": \"2-digit\", \n\t\"hour12\": false\n}",
       "required": false
     }
   ]
