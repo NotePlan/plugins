@@ -29,28 +29,14 @@
       "jsFunction": "insertTodosAsTimeblocks",
       "alias": ["atb","abt","timeblocks","block","todoblocks"]
     },
-        {
+    {
       "name": "Create AutoTimeBlocks using presets",
       "description": "Read >today todos and insert them into today's calendar note as timeblocks, but using presets defined in _configuration note",
       "jsFunction": "insertTodosAsTimeblocksWithPresets",
       "no-alias": ["atbp","abtp","tbp"]
-    },
-    {
-      "name": "ea:update",
-      "alias": [],
-      "description": "Run eventAutomations Setting",
-      "jsFunction": "onUpdateOrInstall"
     }
   ],
   "plugin.settings": [
-        {
-        "key": "testTest",
-        "type": "number",
-        "title": "TESTEATESTEST",
-        "description": "Any task that does not have a specific duration stated (see below) will have this default length in minutes",
-        "default": 99,
-        "required": true
-    },
     {
       "type": "heading",
       "title": "AutoTimeBlocking Settings: General"
