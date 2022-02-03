@@ -3,33 +3,86 @@
 // Daily Journal plugin for NotePlan
 // Jonathan Clark
 // last update 29.1.2022 for v0.11.1 by @jgclark
-// TODO: use a new config.* Type
-// TODO: then switch to ConfigV2
 //-----------------------------------------------------------------------------
 
-import { getInputTrimmed, isInt, showMessage } from '../../helpers/userInput'
+import { clo } from '../../helpers/dev'
 import { displayTitle } from '../../helpers/general'
+import {
+  getInputTrimmed,
+  isInt,
+  showMessage
+} from '../../helpers/userInput'
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 import { applyNamedTemplate } from '../../nmn.Templates/src/index'
 
 //-----------------------------------------------------------------------------
 // Settings
-const DEFAULT_JOURNAL_OPTIONS = `  dailyJournal: {
-    templateTitle: 'Daily Note Template',
-    reviewSectionHeading: 'Journal',
-    moods: '🤩 Great,🙂 Good,😇 Blessed,🥱 Tired,😫 Stressed,😤 Frustrated,😔 Low,🥵 Sick,Other',
-    reviewQuestions: '@sleep(<number>)\\n@work(<number>)\\n@fruitveg(<int>)\\nMood:: <mood>\\nExercise:: <string>\\nGratitude:: <string>\\nGod was:: <string>\\nAlive:: <string>\\nNot Great:: <string>\\nWife:: <string>\\nRemember:: <string>'
-  },
-`
-const MINIMUM_JOURNAL_OPTIONS = {
-  reviewQuestions: 'string',
+// const DEFAULT_JOURNAL_OPTIONS = `  dailyJournal: {
+//     templateTitle: 'Daily Note Template',
+//     reviewSectionHeading: 'Journal',
+//     moods: '🤩 Great,🙂 Good,😇 Blessed,🥱 Tired,😫 Stressed,😤 Frustrated,😔 Low,🥵 Sick,Other',
+//     reviewQuestions: '@sleep(<number>)\\n@work(<number>)\\n@fruitveg(<int>)\\nMood:: <mood>\\nExercise:: <string>\\nGratitude:: <string>\\nGod was:: <string>\\nAlive:: <string>\\nNot Great:: <string>\\nWife:: <string>\\nRemember:: <string>'
+//   },
+// `
+// const MINIMUM_JOURNAL_OPTIONS = {
+//   reviewQuestions: 'string',
+// }
+
+// const defaultTemplateTitle = 'Daily Note Template'
+// let pref_templateTitle: string
+// let pref_reviewSectionHeading: string
+// let pref_reviewQuestions: string
+// let pref_moodArray: Array<string>
+
+const configKey = 'dailyJournal'
+
+type journalConfigType = {
+  templateTitle: string,
+  reviewSectionHeading: string,
+  reviewQuestions: string,
+  moods: string
 }
 
-const defaultTemplateTitle = 'Daily Note Template'
-let pref_templateTitle: string
-let pref_reviewSectionHeading: string
-let pref_reviewQuestions: string
-let pref_moodArray: Array<string>
+/**
+ * Get or make config settings from _configuration, with no minimum required config
+ * Updated for #ConfigV2
+ * @author @jgclark
+ */
+async function getJournalSettings(): Promise<journalConfigType> {
+  console.log(`getJournalSettings():`)
+
+  // Wish the following was possible:
+  // if (NotePlan.environment.version >= "3.4") {
+  
+  const tempConfig: journalConfigType = DataStore.settings
+  if ((tempConfig != null) && Object.keys(tempConfig).length > 0) {
+    const config: journalConfigType = tempConfig
+    // $FlowFixMe
+    clo(config, `\t${configKey} settings from V2:`)
+    return config
+
+  } else {
+    // Read settings from _configuration, or if missing set a default
+    // Don't mind if no config section is found
+    const v1Config = await getOrMakeConfigurationSection(configKey)
+    // $FlowIgnore
+    console.log(`found config: ${JSON.stringify(v1Config)}`)
+    const config: journalConfigType = {
+      templateTitle: (v1Config?.templateTitle != null)
+        ? String(v1Config?.templateTitle) : "Daily Note Template",
+      reviewSectionHeading: (v1Config?.reviewSectionHeading != null)
+        ? String(v1Config?.reviewSectionHeading) : "Journal",
+      reviewQuestions: (v1Config?.reviewQuestions != null)
+        ? String(v1Config?.reviewQuestions) : '@sleep(<number>)\\n@work(<number>)\\n@fruitveg(<int>)\\nMood:: <mood>\\nExercise:: <string>\\nGratitude:: <string>\\nGod was:: <string>\\nAlive:: <string>\\nNot Great:: <string>\\nWife:: <string>\\nRemember:: <string>',
+      moods: (v1Config?.moodArray != null && v1Config?.moodArray !== '')
+        ? (v1Config?.moodArray) : "🤩 Great,🙂 Good,😇 Blessed,🥱 Tired,😫 Stressed,😤 Frustrated,😔 Low,🥵 Sick,Other"
+    }
+    // $FlowFixMe
+    clo(config, `\t${configKey} settings from V1:`)
+    return config
+  }
+}
+
 
 //------------------------------------------------------------------
 // Main functions
@@ -61,29 +114,29 @@ export async function dayStart(today: boolean = false): Promise<void> {
     }
   }
   // $FlowIgnore[incompatible-call]
-  console.log(`dayStart: ${displayTitle(Editor.note)}`)
+  console.log(`for '${displayTitle(Editor.note)}'`)
+  const config: journalConfigType = await getJournalSettings()
+  // // Get config settings from Template folder _configuration note
+  // const journalConfig = await getOrMakeConfigurationSection(
+  //   'dailyJournal',
+  //   DEFAULT_JOURNAL_OPTIONS,
+  //   MINIMUM_JOURNAL_OPTIONS,
+  // )
+  // if (journalConfig == null
+  //   || Object.keys(journalConfig).length === 0) // this is how to check for empty object
+  // {
+  //   console.log(`\tWarning: Cannot find suitable 'dailyJournal' settings in Templates/_configuration note. Stopping.`)
+  //   await showMessage(
+  //     `Cannot find 'dailyJournal' settings in _configuration.`,
+  //     `Yes, I'll check my _configuration settings.`,
+  //   )
+  //   return
+  // }
+  // pref_templateTitle = (journalConfig?.templateTitle != null)
+  //   ? String(journalConfig?.templateTitle)
+  //   : defaultTemplateTitle
 
-  // Get config settings from Template folder _configuration note
-  const journalConfig = await getOrMakeConfigurationSection(
-    'dailyJournal',
-    DEFAULT_JOURNAL_OPTIONS,
-    MINIMUM_JOURNAL_OPTIONS,
-  )
-  if (journalConfig == null
-    || Object.keys(journalConfig).length === 0) // this is how to check for empty object
-  {
-    console.log(`\tWarning: Cannot find suitable 'dailyJournal' settings in Templates/_configuration note. Stopping.`)
-    await showMessage(
-      `Cannot find 'dailyJournal' settings in _configuration.`,
-      `Yes, I'll check my _configuration settings.`,
-    )
-    return
-  }
-  pref_templateTitle = (journalConfig?.templateTitle != null)
-    ? String(journalConfig?.templateTitle)
-    : defaultTemplateTitle
-
-  await applyNamedTemplate(pref_templateTitle)
+  await applyNamedTemplate(config.templateTitle)
 }
 
 //------------------------------------------------------------------
@@ -94,46 +147,47 @@ export async function dayReview(): Promise<void> {
     return
   }
 
-  // Get config settings from Template folder _configuration note
-  const journalConfig = await getOrMakeConfigurationSection(
-    'dailyJournal',
-    DEFAULT_JOURNAL_OPTIONS,
-    MINIMUM_JOURNAL_OPTIONS,
-  )
+  const config: journalConfigType = await getJournalSettings()
+  // // Get config settings from Template folder _configuration note
+  // const journalConfig = await getOrMakeConfigurationSection(
+  //   'dailyJournal',
+  //   DEFAULT_JOURNAL_OPTIONS,
+  //   MINIMUM_JOURNAL_OPTIONS,
+  // )
 
-  if (journalConfig == null
-    || Object.keys(journalConfig).length === 0) // this is how to check for empty object
-  {
-    console.log(`\tWarning: Cannot find suitable 'dailyJournal' settings in Templates/_configuration note. Stopping.`)
-    await showMessage(
-      `Cannot find 'dailyJournal' settings in _configuration.`,
-      `Yes, I'll check my settings.`,
-    )
-    return
-  }
-  // Finalise config settings
-  const pref_reviewQuestions = (journalConfig?.reviewQuestions != null)
-    ? String(journalConfig?.reviewQuestions)
-    : '@sleep(<number>)\\n@work(<number>)\\n@fruitveg(<int>)\\nMood:: <mood>\\nExercise: <string>\\nGratitude: <string>\\nGod was: <string>\\nAlive: <string>\\nNot Great: <string>\\nWife: <string>\\nRemember: <string>'
-  pref_reviewSectionHeading = (journalConfig?.reviewSectionHeading != null)
-    ? String(journalConfig?.reviewSectionHeading)
-    : 'Journal'
-  const pref_moods =
-    String(journalConfig.moods) ??
-    [
-      '🤩 Great',
-      '🙂 Good',
-      '😇 Blessed',
-      '🥱 Tired',
-      '😫 Stressed',
-      '😤 Frustrated',
-      '😡 Angry',
-      '😔 Low',
-      '🥵 Sick',
-      'Other',
-    ].join(',')
-
-  pref_moodArray = pref_moods.split(',') // with a proper config system, this won't be needed
+  // if (journalConfig == null
+  //   || Object.keys(journalConfig).length === 0) // this is how to check for empty object
+  // {
+  //   console.log(`\tWarning: Cannot find suitable 'dailyJournal' settings in Templates/_configuration note. Stopping.`)
+  //   await showMessage(
+  //     `Cannot find 'dailyJournal' settings in _configuration.`,
+  //     `Yes, I'll check my settings.`,
+  //   )
+  //   return
+  // }
+  //
+  // // Finalise config settings
+  // const pref_reviewQuestions = (journalConfig?.reviewQuestions != null)
+  //   ? String(journalConfig?.reviewQuestions)
+  //   : '@sleep(<number>)\\n@work(<number>)\\n@fruitveg(<int>)\\nMood:: <mood>\\nExercise: <string>\\nGratitude: <string>\\nGod was: <string>\\nAlive: <string>\\nNot Great: <string>\\nWife: <string>\\nRemember: <string>'
+  // pref_reviewSectionHeading = (journalConfig?.reviewSectionHeading != null)
+  //   ? String(journalConfig?.reviewSectionHeading)
+  //   : 'Journal'
+  // const pref_moods =
+  //   String(journalConfig.moods) ??
+  //   [
+  //     '🤩 Great',
+  //     '🙂 Good',
+  //     '😇 Blessed',
+  //     '🥱 Tired',
+  //     '😫 Stressed',
+  //     '😤 Frustrated',
+  //     '😡 Angry',
+  //     '😔 Low',
+  //     '🥵 Sick',
+  //     'Other',
+  //   ].join(',')
+  // pref_moodArray = pref_moods.split(',') // with a proper config system, this won't be needed
 
   const question = []
   const questionType = []
@@ -142,7 +196,7 @@ export async function dayReview(): Promise<void> {
 
   // Parse preference string to make array of questions and input types
   const typeRE = new RegExp('<(.*)>')
-  const questionLines = pref_reviewQuestions.split('\n')
+  const questionLines = config.reviewQuestions.split('\n')
   const numQs = questionLines.length
   console.log(`\tFound ${numQs} question lines`)
   for (i = 0; i < numQs; i++) {
@@ -223,8 +277,9 @@ export async function dayReview(): Promise<void> {
           break
         }
         case 'mood': {
-          const reply = await CommandBar.showOptions(pref_moodArray, 'Choose most appropriate mood for today')
-          const replyMood = pref_moodArray[reply.index]
+          const moodArray = config.moods.split(',')
+          const reply = await CommandBar.showOptions(moodArray, 'Choose most appropriate mood for today')
+          const replyMood = config.moodArray[reply.index]
           if (replyMood != null && replyMood !== '') {
             reviewLine = `${questionLines[i].replace(/<mood>/, replyMood)}`
           } else {
@@ -244,10 +299,10 @@ export async function dayReview(): Promise<void> {
     }
 
     // Add the finished review text to the current daily note,
-    // appending after the line found in pref_reviewSectionHeading.
+    // appending after the line found in config.reviewSectionHeading.
     // If this doesn't exist, then append it first.
-    console.log(`\tAppending answers to heading '${pref_reviewSectionHeading}'`)
-    Editor.addParagraphBelowHeadingTitle(output, 'empty', pref_reviewSectionHeading, true, true)
+    console.log(`\tAppending answers to heading '${config.reviewSectionHeading}'`)
+    Editor.addParagraphBelowHeadingTitle(output, 'empty', config.reviewSectionHeading, true, true)
   } catch (e) {
     if (e === 'cancelled') {
       console.log(`Asking questions cancelled by user: stopping.`)

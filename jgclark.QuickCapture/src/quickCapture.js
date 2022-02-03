@@ -22,6 +22,8 @@ import { calendarNotesSortedByChanged, projectNotesSortedByChanged, } from '../.
 //   },
 // `
 
+const configKey = "inbox"
+
 type inboxConfigType = {
   inboxTitle: string,
   addInboxPosition: string,
@@ -34,21 +36,18 @@ type inboxConfigType = {
  * @author @jgclark
  */
 async function getInboxSettings(): Promise<inboxConfigType> {
-  const configKey = "inbox"
-
   console.log(`getInboxSettings():`)
 
   // Wish the following was possible:
   // if (NotePlan.environment.version >= "3.4") {
   
-  const tempConfig = DataStore.settings // TODO: understand how to get a different config set, as [configKey] and .inbox don't work.
-  //clo(tempConfig, "tempConfig:")
-  // {
+  const tempConfig: inboxConfigType = DataStore.settings // TODO: understand how to get a different config set, as [configKey] and .inbox don't work.
+  
   if ((tempConfig != null) && Object.keys(tempConfig).length > 0) {
-    const inboxConfig: inboxConfigType = tempConfig
+    const config: inboxConfigType = tempConfig
     // $FlowFixMe
-    clo(inboxConfig, "\tinbox settings from V2:")
-    return inboxConfig
+    clo(config, `\t${configKey} settings from V2:`)
+    return config
 
   } else {
     // Read settings from _configuration, or if missing set a default
@@ -56,7 +55,7 @@ async function getInboxSettings(): Promise<inboxConfigType> {
     const v1Config = await getOrMakeConfigurationSection(configKey)
     // $FlowIgnore
     // console.log(`found config: ${JSON.stringify(v1Config)}`)
-    const inboxConfig: inboxConfigType = {
+    const config: inboxConfigType = {
       // legitimate than inboxTitle can be '' (the empty string)
       inboxTitle: (v1Config?.inboxTitle != null)
         ? String(v1Config?.inboxTitle) : `📥 Inbox`,
@@ -66,8 +65,8 @@ async function getInboxSettings(): Promise<inboxConfigType> {
         ? String(v1Config?.textToAppendToTasks) : ''
     }
     // $FlowFixMe
-    clo(inboxConfig, "\tinbox settings from V1:")
-    return inboxConfig
+    clo(config, `\t${configKey} settings from V1:`)
+    return config
   }
 }
 

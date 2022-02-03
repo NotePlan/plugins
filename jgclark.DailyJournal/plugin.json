@@ -1,5 +1,5 @@
 {
-  "noteplan.min_version": "3.0.23",
+  "noteplan.min_version": "3.4.0",
   "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.DailyJournal",
   "plugin.name": "☀️ Daily Journal",
@@ -7,7 +7,7 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/README.md",
-  "plugin.version": "0.11.1",
+  "plugin.version": "0.11.2",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -67,8 +67,8 @@
         "key": "moods",
         "title": "List of moods",
         "description": "A comma-separated list of possible moods to select from.",
-        "type": "[string]",
-        "default": ["🤩 Great","🙂 Good","😇 Blessed","🥱 Tired","😫 Stressed","😤 Frustrated","😔 Low","🥵 Sick","Other"],
+        "type": "string",
+        "default": "🤩 Great,🙂 Good,😇 Blessed,🥱 Tired,😫 Stressed,😤 Frustrated,😔 Low,🥵 Sick,Other",
         "required": true
     }
   ]
