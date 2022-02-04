@@ -3,12 +3,12 @@
 //-----------------------------------------------------------------------------
 // Commands for Reviewing project-style notes, GTD-style.
 // by @jgclark
-// Last updated 27.1.2022 for v0.6.0, @jgclark
+// Last updated 4.2.2022 for v0.6.1, @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
 import {
-  getConfigSettings,
+  getReviewSettings,
   logPreference,
   Project,
 } from './reviewHelpers'
@@ -37,7 +37,7 @@ import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configura
 
 // Settings
 let filteredFolderList: Array<string> = []
-const reviewListPref = 'jgclark.Review.reviewList'
+const reviewListPref = 'jgclark.Reviews.reviewList'
 
 //-------------------------------------------------------------------------------
 
@@ -47,7 +47,8 @@ const reviewListPref = 'jgclark.Review.reviewList'
  * @author @jgclark
  */
 export async function projectLists(): Promise<void> {
-  const config = await getConfigSettings()
+  const config = await getReviewSettings()
+  
   const filteredFolderList = filterFolderList(config.foldersToIgnore)
 
   console.log(`starting for ${config.noteTypeTags.toString()} tags:`)
@@ -110,7 +111,7 @@ export async function projectLists(): Promise<void> {
  * @author @jgclark
  */
 export async function startReviews(): Promise<void> {
-  const config = await getConfigSettings()
+  const config = await getReviewSettings()
   const filteredFolderList = filterFolderList(config.foldersToIgnore)
 
   // Temporary check to see if we can delete an absolete '_reviews' file.
@@ -183,7 +184,7 @@ export async function startReviews(): Promise<void> {
  */
 async function makeNoteTypeSummary(noteTag: string): Promise<Array<string>> {
   console.log(`makeNoteTypeSummary for '${noteTag}'`)
-  const config = await getConfigSettings()
+  const config = await getReviewSettings()
   const filteredFolderList = filterFolderList(config.foldersToIgnore)
 
   let noteCount = 0
@@ -311,7 +312,7 @@ export async function updateReviewListAfterReview(note: TNote): Promise<void> {
   // Get pref that contains the project list
   const reviewList = DataStore.preference(reviewListPref)
   if (reviewList === undefined) {
-    console.log(`\twarning: can't find pref jgclark.Review.reviewList. Suggest re-running '/start reviews'`)
+    console.log(`\twarning: can't find pref ${reviewListPref}. Suggest re-running '/start reviews'`)
     return
   }
 
@@ -437,7 +438,7 @@ export async function finishReview(): Promise<?TNote> {
   return Editor.note
 }
 
-//-------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 // To help transition from the previous method which used a machine-readable
 // file '_reviews' for persistent storage, this will remove it if found.
 // TODO: remove this after some months, as no longer needed

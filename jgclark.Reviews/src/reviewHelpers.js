@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // @jgclark
-// Last updated 24.1.2022 for v0.6.0, @jgclark
+// Last updated 4.2.2022 for v0.6.1, @jgclark
 //-----------------------------------------------------------------------------
 
 import {
@@ -20,6 +20,7 @@ import {
   toISODateString,
 } from '../../helpers/dateTime'
 import { calcOffsetDate } from '../../helpers/NPdateTime'
+import { clo } from '../../helpers/dev'
 import { getFolderFromFilename } from '../../helpers/folders'
 import { findNotesMatchingHashtags } from '../../helpers/note'
 import {
@@ -33,18 +34,18 @@ import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configura
 //------------------------------
 // Config setup
 
-const DEFAULT_REVIEW_CONFIG = `  review: {
-    folderToStore: "Reviews",
-    foldersToIgnore: ["@Archive", "📋 Templates", "Reviews", "Summaries"], // can be empty list
-    noteTypeTags: ["#project", "#area"], // array of hashtags without spaces
-    // Settings for /projectLists command
-    displayOrder: "alpha", // in '/project lists' the sort options  are "due" date, "review" date or "alpha"
-    displayGroupedByFolder: true, // in '/project lists' whether to group the notes by folder
-    displayArchivedProjects: true, // in '/project lists' whether to display project notes marked #archive
-    // Setting for /completeProject and /cancelProject
-    finishedListHeading: "Finished Projects/Areas"
-  },
-`
+// const DEFAULT_REVIEW_CONFIG = `  review: {
+//     folderToStore: "Reviews",
+//     foldersToIgnore: ["@Archive", "📋 Templates", "Reviews", "Summaries"], // can be empty list
+//     noteTypeTags: ["#project", "#area"], // array of hashtags without spaces
+//     // Settings for /projectLists command
+//     displayOrder: "alpha", // in '/project lists' the sort options  are "due" date, "review" date or "alpha"
+//     displayGroupedByFolder: true, // in '/project lists' whether to group the notes by folder
+//     displayArchivedProjects: true, // in '/project lists' whether to display project notes marked #archive
+//     // Setting for /completeProject and /cancelProject
+//     finishedListHeading: "Finished Projects/Areas"
+//   },
+// `
 // TODO: When ConfigV2 is available, add these terms as well
 // // Following are for customising reserved project @terms
 // startMentionStr: '@start',
@@ -52,6 +53,8 @@ const DEFAULT_REVIEW_CONFIG = `  review: {
 // cancelledMentionStr: '@cancelled',
 // dueMentionStr: '@due',
 // reviewedMentionStr: '@reviewed',
+
+const configKey = "review"
 
 export type ReviewConfig = {
   folderToStore: string,
@@ -75,45 +78,57 @@ export type ReviewConfig = {
  *
  * @return {ReviewConfig} object with configuration
  */
-export async function getConfigSettings(): Promise<ReviewConfig> {
-  const result = await getOrMakeConfigurationSection(
-    'review',
-    DEFAULT_REVIEW_CONFIG
-  )
-  
-  if (result == null || Object.keys(result).length === 0) {
-    console.log(`error: expected config could not be found in the _configuration file`)
-    return {
-      folderToStore: 'Reviews',
-      foldersToIgnore: ["@Archive", "📋 Templates", "Summaries", "Reviews"],
-      noteTypeTags: ["#project", "#area"],
-      displayOrder: "alpha",
-      displayGroupedByFolder: true,
-      displayArchivedProjects: true,
-      finishedListHeading: 'Finished Projects/Areas',
-      startMentionStr: '@start',
-      completedMentionStr: '@completed',
-      cancelledMentionStr: '@cancelled',
-      dueMentionStr: '@due',
-      reviewedMentionStr: '@reviewed',
-    }
+export async function getReviewSettings(): Promise<ReviewConfig> {
+  console.log(`Start of getReviewSettings()`)
+  // Wish the following was possible:
+  // if (NotePlan.environment.version >= "3.4") {
+
+  const v2Config: ReviewConfig = DataStore.settings
+  if (v2Config != null && Object.keys(v2Config).length > 0) {
+    const config: ReviewConfig = v2Config
+
+    // $FlowFixMe
+    clo(config, `\t${configKey} settings from V2:`)
+    return config
   } else {
+
+    const v1config = await getOrMakeConfigurationSection(
+      configKey,
+      // DEFAULT_REVIEW_CONFIG
+    ) ?? {}
+  // if (v1config == null || Object.keys(v1config).length === 0) {
+  //   console.log(`error: expected config could not be found in the _configuration file`)
+  //   return {
+  //     folderToStore: 'Reviews',
+  //     foldersToIgnore: ["@Archive", "📋 Templates", "Summaries", "Reviews"],
+  //     noteTypeTags: ["#project", "#area"],
+  //     displayOrder: "alpha",
+  //     displayGroupedByFolder: true,
+  //     displayArchivedProjects: true,
+  //     finishedListHeading: 'Finished Projects/Areas',
+  //     startMentionStr: '@start',
+  //     completedMentionStr: '@completed',
+  //     cancelledMentionStr: '@cancelled',
+  //     dueMentionStr: '@due',
+  //     reviewedMentionStr: '@reviewed',
+  //   }
+  // } else {
     const config: ReviewConfig = {
-      folderToStore: castStringFromMixed(result, 'folderToStore'),
-      foldersToIgnore: castStringArrayFromMixed(result, 'foldersToIgnore'),
-      noteTypeTags: castStringArrayFromMixed(result, 'noteTypeTags'),
-      displayOrder: castStringFromMixed(result, 'displayOrder'),
-      displayGroupedByFolder: castBooleanFromMixed(result, 'displayGroupedByFolder'),
-      displayArchivedProjects: castBooleanFromMixed(result, 'displayArchivedProjects'),
-      finishedListHeading: castStringFromMixed(result, 'finishedListHeading'),
-      startMentionStr: castStringFromMixed(result, 'startMentionStr'),
-      completedMentionStr: castStringFromMixed(result, 'completedMentionStr'),
-      cancelledMentionStr: castStringFromMixed(result, 'cancelledMentionStr'),
-      dueMentionStr: castStringFromMixed(result, 'dueMentionStr'),
-      reviewedMentionStr: castStringFromMixed(result, 'reviewedMentionStr'),
+      folderToStore: castStringFromMixed(v1config, 'folderToStore'),
+      foldersToIgnore: castStringArrayFromMixed(v1config, 'foldersToIgnore'),
+      noteTypeTags: castStringArrayFromMixed(v1config, 'noteTypeTags'),
+      displayOrder: castStringFromMixed(v1config, 'displayOrder'),
+      displayGroupedByFolder: castBooleanFromMixed(v1config, 'displayGroupedByFolder'),
+      displayArchivedProjects: castBooleanFromMixed(v1config, 'displayArchivedProjects'),
+      finishedListHeading: castStringFromMixed(v1config, 'finishedListHeading'),
+      startMentionStr: castStringFromMixed(v1config, 'startMentionStr'),
+      completedMentionStr: castStringFromMixed(v1config, 'completedMentionStr'),
+      cancelledMentionStr: castStringFromMixed(v1config, 'cancelledMentionStr'),
+      dueMentionStr: castStringFromMixed(v1config, 'dueMentionStr'),
+      reviewedMentionStr: castStringFromMixed(v1config, 'reviewedMentionStr'),
     }
-    console.log(`getConfigSettings(): loaded config OK`)
-    // console.log(`config = ${JSON.stringify(result)}\n`)
+    // $FlowFixMe
+    clo(config, `\t${configKey} settings from V1:`)
     return config
   }
 }
@@ -219,8 +234,8 @@ export class Project {
         ? 'area'
         : ''
 
-    // get config settings TODO: use when sync Config V2 method is available
-    // const config = getConfigSettings()
+    // get settings TODO: use when sync Config V2 method is available
+    // const config = getReviewSettings()
     // read in start date (if found)
     let tempDateStr = getParamMentionFromList(mentions, Project.startMentionStr)
     this.startDate = tempDateStr !== '' ? getDateFromString(tempDateStr) : undefined
@@ -278,7 +293,7 @@ export class Project {
   // static async getConfig(): Promise<void> {
   //   console.log('  starting static Class method getConfig')
   //   // get config settings -- can't work in constructor
-  //   const config = await getConfigSettings()
+  //   const config = await getReviewSettings()
   //   Project.startMentionStr = config.startMentionStr
   //   Project.completedMentionStr = config.completedMentionStr
   //   Project.cancelledMentionStr = config.cancelledMentionStr
@@ -382,7 +397,7 @@ export class Project {
 
   generateMetadataLine(): string {
     // get config settings
-    // const config = await getConfigSettings()
+    // const config = await getReviewSettings()
 
     let output = ''
     // output = (this.isActive) ? '#active ' : ''

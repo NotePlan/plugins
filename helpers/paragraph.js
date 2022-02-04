@@ -295,7 +295,7 @@ export function getParaFromContent(note: TNote, contentToFind: string): TParagra
  * @return {number} the line number for the metadata line
  */
 export function getOrMakeMetadataLine(note: TNote): number {
-  let lineNumber
+  let lineNumber: number = NaN
   const lines = note.content?.split('\n') ?? ['']
   for (let i = 1; i < lines.length; i++) {
     if (lines[i].match(/^project:/i)
@@ -307,7 +307,7 @@ export function getOrMakeMetadataLine(note: TNote): number {
       break
     }
   }
-  if (lineNumber === undefined) {
+  if (lineNumber === NaN) {
     // If no metadataPara found, then insert one straight after the title
     console.log(
     `Warning: Can't find an existing metadata line, so will insert a new second line for it`,

@@ -3,14 +3,14 @@
 //-----------------------------------------------------------------------------
 // Commands for working with Project and Area notes, seen in NotePlan notes.
 // by @jgclark
-// Last updated 27.1.2022 for v0.6.0, @jgclark
+// Last updated 4.2.2022 for v0.6.1, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
 // Import Helper functions
 import { updateReviewListAfterReview } from './reviews'
 import {
-  getConfigSettings,
+  getReviewSettings,
   Project
 } from './reviewHelpers'
 import { hyphenatedDateString } from '../../helpers/dateTime'
@@ -26,11 +26,11 @@ import {
   showMessageYesNo
 } from '../../helpers/userInput'
 
-//-------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 const thisYearStr = hyphenatedDateString(new Date()).substring(0, 4)
 
-//-------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 /**
  * Complete a Project/Area note by
@@ -49,8 +49,8 @@ export async function completeProject(): Promise<void> {
     return
   }
 
-  // Get config settings
-  const config = await getConfigSettings()
+  // Get settings
+  const config = await getReviewSettings()
 
   // Construct a Project class object from this note
   const projectNote = new Project(note)
@@ -106,8 +106,8 @@ export async function cancelProject(): Promise<void> {
     return
   }
 
-  // Get config settings
-  const config = await getConfigSettings()
+  // Get settings
+  const config = await getReviewSettings()
 
   // Construct a Project class object from this note
   const projectNote = new Project(note)

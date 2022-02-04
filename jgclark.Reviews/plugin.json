@@ -6,7 +6,7 @@
 	"plugin.icon": "",
 	"plugin.author": "Jonathan Clark",
 	"plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
-	"plugin.version": "0.6.0",
+	"plugin.version": "0.6.1",
 	"plugin.dependencies": [],
 	"plugin.script": "script.js",
 	"plugin.isRemote": "false",
@@ -66,7 +66,7 @@
 			"title": "Folders to ignore in reviews",
 			"description": "A comma-separated list of folders to ignore in reviews. Can be empty. Where an ignored folder has a sub-folder these will also be ignored.",
 			"type": "[string]",
-			"default": ["📋 Templates", "Reviews", "Summaries"],
+			"default": ["📋 Templates", "Reviews", "Summaries", "@Archive"],
 			"required": false
 		},
     {
