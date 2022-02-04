@@ -23,7 +23,7 @@ import pluginJson from '../plugin.json'
 // Moving to ConfigV2
 import { migrateConfiguration, updateSettingData } from '../../helpers/configuration'
 
-const PLUGIN_ID = 'QuickCapture'
+const PLUGIN_ID = 'inbox'
 
 // refactor previous variables to new types
 export async function onUpdateOrInstall(config: any = { silent: false }): Promise<void> {
