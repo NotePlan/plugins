@@ -7,7 +7,7 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/README.md",
-  "plugin.version": "0.11.2",
+  "plugin.version": "0.11.3",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -58,7 +58,7 @@
     {
         "key": "reviewQuestions",
         "title": "Journal Questions",
-        "description": "This string includes both the Journal/Review questions and how to layout the answers in the daily note. (NB: can include line breaks.)",
+        "description": "This string includes both the Journal/Review questions and how to layout the answers in the daily note. (NB: can include line breaks.) The special codes that define the type of question asked are '<int>', '<number>', '<string>', '<subheading>' and '<mood>'.",
         "type": "string",
         "default": "@sleep(<int>)\n@work(<int>)\n@fruitveg(<int>)\nMood: <mood>\nGratitude: <string>\nGod was: <string>\nAlive: <string>\nNot Great: <string>\nLearn: <string>\nRemember: <string>",
         "required": true

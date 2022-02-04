@@ -69,13 +69,16 @@ async function getJournalSettings(): Promise<JournalConfigType> {
     console.log(`found config: ${JSON.stringify(v1Config)}`)
     const config: JournalConfigType = {
       templateTitle: (v1Config?.templateTitle != null)
-        ? String(v1Config?.templateTitle) : "Daily Note Template",
+        ? String(v1Config?.templateTitle)
+        : "Daily Note Template",
       reviewSectionHeading: (v1Config?.reviewSectionHeading != null)
-        ? String(v1Config?.reviewSectionHeading) : "Journal",
+        ? String(v1Config?.reviewSectionHeading)
+        : "Journal",
       reviewQuestions: (v1Config?.reviewQuestions != null)
         ? String(v1Config?.reviewQuestions) : '@sleep(<number>)\\n@work(<number>)\\n@fruitveg(<int>)\\nMood:: <mood>\\nExercise:: <string>\\nGratitude:: <string>\\nGod was:: <string>\\nAlive:: <string>\\nNot Great:: <string>\\nWife:: <string>\\nRemember:: <string>',
       moods: (v1Config?.moods != null && v1Config?.moods !== '')
-        ? String(v1Config?.moods) : "🤩 Great,🙂 Good,😇 Blessed,🥱 Tired,😫 Stressed,😤 Frustrated,😔 Low,🥵 Sick,Other"
+        ? String(v1Config?.moods)
+        : "🤩 Great,🙂 Good,😇 Blessed,🥱 Tired,😫 Stressed,😤 Frustrated,😔 Low,🥵 Sick,Other"
     }
     // $FlowFixMe
     clo(config, `\t${configKey} settings from V1:`)
@@ -277,9 +280,10 @@ export async function dayReview(): Promise<void> {
           break
         }
         case 'mood': {
-          const moodArray = config.moods.split(',')
+          const moodArray = (typeof config.moods === 'string') ? config.moods.split(',') : config.moods
+          // $FlowFixMe
           const reply = await CommandBar.showOptions(moodArray, 'Choose most appropriate mood for today')
-          const replyMood = config.moods[reply.index]
+          const replyMood = moodArray[reply.index]
           if (replyMood != null && replyMood !== '') {
             reviewLine = `${questionLines[i].replace(/<mood>/, replyMood)}`
           } else {
