@@ -23,8 +23,8 @@ export function getTimeBlockingDefaults(): { [key: string]: any } {
     deletePreviousCalendarEntries:
       false /* before creating new calendar entries, delete previous calendar entries for the timeblocks; 
                to keep a calendar entry around, just remove the timeBlockTag */,
-    includeTasksWithText: '' /* limit to tasks with ANY of these tags/text */,
-    excludeTasksWithText: '' /* exclude tasks with ANY of these tags/text */,
+    includeTasksWithText: [] /* limit to tasks with ANY of these tags/text */,
+    excludeTasksWithText: [] /* exclude tasks with ANY of these tags/text */,
     presets: [
       { label: 'Limit Time Blocks to Work Hours', workDayStart: '08:00', workDayEnd: '17:59' },
       {
@@ -56,8 +56,8 @@ export function validateTimeBlockConfig(config: { [key: string]: any }): { [key:
     createCalendarEntries: 'boolean',
     deletePreviousCalendarEntries: 'boolean',
     eventEnteredOnCalTag: 'string',
-    includeTasksWithText: { type: 'string', optional: true },
-    excludeTasksWithText: { type: 'string', optional: true },
+    includeTasksWithText: { type: 'array', optional: true },
+    excludeTasksWithText: { type: 'array', optional: true },
     presets: { type: 'array', optional: true },
     nowStrOverride: { type: /^\d{2}:\d{2}$/, optional: true },
   }
