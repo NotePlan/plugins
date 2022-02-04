@@ -51,6 +51,7 @@
 | `open note new window` | Open a user-selected note in a new window. | 📙 Note Helpers |
 | `process date offsets` | finds date offset patterns and turns them into due dates, based on date at start of section | 🕓 Event Helpers |
 | `project lists` | creates/updates a human-readable list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete. | 🔬Reviews |
+| `qc:install` | NotePlan Install or Update | ⚡️ Quick Capture |
 | `qtn - Quick template note` | Choose a note and create it based on _configuration settings quickNotes | 🔩 Templates |
 | `quick add line under heading` | Quickly add text at the top of a chosen note's heading | ⚡️ Quick Capture |
 | `quick add task to inbox` | Quickly add a task to your '📥 Inbox' note | ⚡️ Quick Capture |

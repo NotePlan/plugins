@@ -13,6 +13,17 @@
   "plugin.isRemote": "false",
   "plugin.commands": [
     {
+      "name": "quick add task to inbox",
+      "alias": [
+        "int",
+        "quick",
+        "inbox",
+        "add"
+      ],
+      "description": "Quickly add a task to your '📥 Inbox' note",
+      "jsFunction": "addTaskToInbox"
+    },
+    {
       "name": "quick add task under heading",
       "alias": [
         "qath",
@@ -87,6 +98,11 @@
       ],
       "description": "Quickly prepend a task to a chosen project note",
       "jsFunction": "prependTaskToNote"
+    },
+    {
+      "name": "qc:install",
+      "description": "NotePlan Install or Update",
+      "jsFunction": "onUpdateOrInstall"
     }
   ],
   "plugin.settings": [
