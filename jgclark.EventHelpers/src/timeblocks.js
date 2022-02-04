@@ -2,7 +2,7 @@
 // ------------------------------------------------------------------------------------
 // Command to turn time blocks into full calendar events
 // @jgclark
-// Last updated 28.1.2022 for v0.11.0, by @jgclark
+// Last updated 4.2.2022 for v0.11.2, by @jgclark
 //
 // See https://help.noteplan.co/article/121-time-blocking
 // for definition of time blocks. In summary:
@@ -222,12 +222,15 @@ async function createEventFromDateRange(
   // console.log(`\tStarting cEFDR with ${eventTitle} for calendar ${pref_calendarToWriteTo}`)
   // If we have a pref_calendarToWriteTo setting, then include that in the call
   const event: TCalendarItem = CalendarItem.create(
-      eventTitle,
-      dateRange.start,
-      dateRange.end,
-      'event', // not 'reminder'
-      false, // not 'isAllDay'
-      calendarName,
+    eventTitle,
+    dateRange.start,
+    dateRange.end,
+    'event', // not 'reminder'
+    false, // not 'isAllDay'
+    calendarName,
+    false, // not completed
+    '',    // empty notes
+    ''     // no URL
     )
   const createdEvent = Calendar.add(event)
   const calendarDisplayName = (calendarName !== '') ? calendarName : 'system default'
