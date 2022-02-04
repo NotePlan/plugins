@@ -6,6 +6,10 @@ All NotePlan plugins follow `semver` versioning. For details, please refer to [s
 ### About NotePlan Plugin Helpers
 See NotePlan Plugin Helpers [README](https://github.com/NotePlan/plugins/blob/main/helpers/README.md) for details on available commands and use case.
 
+## [0.0.4] - 2022-02-03 (mikeerickson)
+
+- Renamed `configuration.js` to `NPConfiguration.js` to properly align with naming conventions
+
 ## [0.0.3] - 2022-02-03 (mikeerickson)
 
 - Removed async `configuration :: updateSettingsData

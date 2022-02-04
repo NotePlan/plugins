@@ -2,7 +2,7 @@
 
 /*----------------------------------------------------------------------------------------------------------------------------
  * Configuration Utilities
- * Version 0.0.3
+ * Version 0.0.4
  * @author @codedungeon unless otherwise noted
  * Requires NotePlan 3.4 or greater (waiting for NotePlan.environment version method to perform proper validation)
  * Note: Everything is self contained in this method, no other dependencies beyond `json5` plugin
