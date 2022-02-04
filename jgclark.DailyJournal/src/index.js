@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Daily Journal commands
 // Jonathan Clark
-// Last updated 3.2.22 for v0.11.2
+// Last updated 4.2.22 for v0.11.2
 //-----------------------------------------------------------------------------
 
 export { dayStart, dayReview, todayStart } from './journal'
@@ -14,21 +14,21 @@ import pluginJson from '../plugin.json'
 // Moving to ConfigV2
 import { migrateConfiguration, updateSettingData } from '../../helpers/NPConfiguration'
 
-const PLUGIN_ID = 'dailyJournal'
+const configKey = 'dailyJournal'
 
 // refactor previous variables to new types
 export async function onUpdateOrInstall(config: any = { silent: false }): Promise<void> {
   try {
-    console.log(`${PLUGIN_ID}: onUpdateOrInstall running`)
+    console.log(`${configKey}: onUpdateOrInstall running`)
     // migrate _configuration data to data/<plugin>/settings.json (only executes migration once)
-    const migrationResult: number = await migrateConfiguration(PLUGIN_ID, pluginJson, config?.silent)
-    console.log(`${PLUGIN_ID}: onUpdateOrInstall migrateConfiguration code: ${migrationResult}`)
+    const migrationResult: number = await migrateConfiguration(configKey, pluginJson, config?.silent)
+    console.log(`${configKey}: onUpdateOrInstall migrateConfiguration code: ${migrationResult}`)
     if (migrationResult === 0) {
       const updateSettings = updateSettingData(pluginJson)
-      console.log(`${PLUGIN_ID}: onUpdateOrInstall updateSettingData code: ${updateSettings}`)
+      console.log(`${configKey}: onUpdateOrInstall updateSettingData code: ${updateSettings}`)
     }
   } catch (error) {
     console.log(error)
   }
-  console.log(`${PLUGIN_ID}: onUpdateOrInstall finished`)
+  console.log(`${configKey}: onUpdateOrInstall finished`)
 }
