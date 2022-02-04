@@ -13,8 +13,7 @@ import {
   trimAnyQuotes,
 } from '../../helpers/dataManipulation'
 import type { HourMinObj } from '../../helpers/dateTime'
-import  { clo } from '../../helpers/dev'
-// import { logAllEnvironmentSettings } from '../../helpers/NPdev'
+import { clo } from '../../helpers/dev'
 import { showMessage } from '../../helpers/userInput'
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 
