@@ -13,12 +13,6 @@
   "plugin.isRemote": "false",
   "plugin.commands": [
     {
-      "name": "qc:install",
-      "alias": [],
-      "description": "NotePlan Install or Update",
-      "jsFunction": "onUpdateOrInstall"
-    },
-    {
       "name": "quick add task under heading",
       "alias": [
         "qath",
