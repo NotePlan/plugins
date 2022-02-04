@@ -19,7 +19,6 @@ const PLUGIN_ID = 'dailyJournal'
 // refactor previous variables to new types
 export async function onUpdateOrInstall(config: any = { silent: false }): Promise<void> {
   try {
-    console.log('test')
     console.log(`${PLUGIN_ID}: onUpdateOrInstall running`)
     // migrate _configuration data to data/<plugin>/settings.json (only executes migration once)
     const migrationResult: number = await migrateConfiguration(PLUGIN_ID, pluginJson, config?.silent)
