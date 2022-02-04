@@ -125,13 +125,13 @@ export async function migrateConfiguration(
       const key: any = setting?.key || null
       if (key) {
         log(`migrateConfiguration checking: ${key}`)
-        migrateData[key] = setting?.default || ''
+        // migrateData[key] = setting?.default || ''
 
         // add key if it does not exist in _configuration note
-        if (!configData.hasOwnProperty(key)) {
-          log(`migrateConfiguration adding key: ${key}`)
-          configData[key] = setting.default
-        }
+        // if (!configData.hasOwnProperty(key)) {
+        //   log(`migrateConfiguration adding key: ${key}`)
+        //   configData[key] = setting.default
+        // }
 
         // migration data from _configuration if exists
         if (key && configData[key] !== 'undefined') {
