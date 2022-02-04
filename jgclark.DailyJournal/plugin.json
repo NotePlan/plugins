@@ -3,73 +3,92 @@
   "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.DailyJournal",
   "plugin.name": "☀️ Daily Journal",
-  "plugin.description": "Support for daily journalling in NotePlan, including start-of-day template, and end-of-day review questions. Before use it requires some configuration: please see website for details.",
+  "plugin.description": "Support for daily journaling in NotePlan, including start-of-day template, and end-of-day review questions. Before use it requires some configuration: please see website for details.",
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/README.md",
-  "plugin.version": "0.11.2",
+  "plugin.version": "0.11.3",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
   "plugin.commands": [
     {
       "name": "todayStart",
-      "alias": ["day", "today", "template"],
+      "alias": [
+        "day",
+        "today",
+        "template"
+      ],
       "description": "Apply Daily Note Template to Today's Calendar Note (requires configuring)",
       "jsFunction": "todayStart",
       "requested_interval": "24h"
     },
     {
       "name": "dayStart",
-      "alias": ["daily", "template"],
+      "alias": [
+        "daily",
+        "template"
+      ],
       "description": "Apply Daily Note Template (requires configuring)",
       "jsFunction": "dayStart",
       "requested_interval": "24h"
     },
     {
       "name": "dayReview",
-      "alias": ["daily", "journal", "review"],
+      "alias": [
+        "daily",
+        "journal",
+        "review"
+      ],
       "description": "Ask journal questions for an end-of-day review (requires configuring)",
       "jsFunction": "dayReview",
       "requested_interval": "8h"
+    },
+    {
+      "name": "dj:install",
+      "alias": [
+        "dj:install"
+      ],
+      "description": "NotePlan Update or Install",
+      "jsFunction": "onUpdateOrInstall"
     }
   ],
   "plugin.settings": [
     {
-        "type": "heading",
-        "title": "Daily Journal settings"
+      "type": "heading",
+      "title": "Daily Journal settings"
     },
     {
-        "key": "templateTitle",
-        "title": "Daily Template Title",
-        "description": "The name of the template that `/dayStart` and `/todayStart` will use.",
-        "type": "string",
-        "default": "Daily Note Template",
-        "required": true
+      "key": "templateTitle",
+      "title": "Daily Template Title",
+      "description": "The name of the template that `/dayStart` and `/todayStart` will use.",
+      "type": "string",
+      "default": "Daily Note Template",
+      "required": true
     },
     {
-        "key": "reviewSectionHeading",
-        "title": "Journal Section Heading",
-        "description": "The name of an existing markdown heading after which the Journal/Review answers are added - if it doesn't exist, it is added at the end of the note.",
-        "type": "string",
-        "default": "Journal",
-        "required": true
+      "key": "reviewSectionHeading",
+      "title": "Journal Section Heading",
+      "description": "The name of an existing markdown heading after which the Journal/Review answers are added - if it doesn't exist, it is added at the end of the note.",
+      "type": "string",
+      "default": "Journal",
+      "required": true
     },
     {
-        "key": "reviewQuestions",
-        "title": "Journal Questions",
-        "description": "This string includes both the Journal/Review questions and how to layout the answers in the daily note. (NB: can include line breaks.)",
-        "type": "string",
-        "default": "@sleep(<int>)\n@work(<int>)\n@fruitveg(<int>)\nMood: <mood>\nGratitude: <string>\nGod was: <string>\nAlive: <string>\nNot Great: <string>\nLearn: <string>\nRemember: <string>",
-        "required": true
+      "key": "reviewQuestions",
+      "title": "Journal Questions",
+      "description": "This string includes both the Journal/Review questions and how to layout the answers in the daily note. (NB: can include line breaks.)",
+      "type": "string",
+      "default": "@sleep(<int>)\n@work(<int>)\n@fruitveg(<int>)\nMood: <mood>\nGratitude: <string>\nGod was: <string>\nAlive: <string>\nNot Great: <string>\nLearn: <string>\nRemember: <string>",
+      "required": true
     },
     {
-        "key": "moods",
-        "title": "List of moods",
-        "description": "A comma-separated list of possible moods to select from.",
-        "type": "string",
-        "default": "🤩 Great,🙂 Good,😇 Blessed,🥱 Tired,😫 Stressed,😤 Frustrated,😔 Low,🥵 Sick,Other",
-        "required": true
+      "key": "moods",
+      "title": "List of moods",
+      "description": "A comma-separated list of possible moods to select from.",
+      "type": "string",
+      "default": "🤩 Great,🙂 Good,😇 Blessed,🥱 Tired,😫 Stressed,😤 Frustrated,😔 Low,🥵 Sick,Other",
+      "required": true
     }
   ]
 }
