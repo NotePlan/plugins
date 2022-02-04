@@ -43,14 +43,6 @@
       "description": "Ask journal questions for an end-of-day review (requires configuring)",
       "jsFunction": "dayReview",
       "requested_interval": "8h"
-    },
-    {
-      "name": "dj:install",
-      "alias": [
-        "dj:install"
-      ],
-      "description": "NotePlan Update or Install",
-      "jsFunction": "onUpdateOrInstall"
     }
   ],
   "plugin.settings": [
