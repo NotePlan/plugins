@@ -21,7 +21,7 @@ export {
 import pluginJson from '../plugin.json' 
 
 // Moving to ConfigV2
-import { migrateConfiguration, updateSettingData } from '../../helpers/configuration'
+import { migrateConfiguration, updateSettingData } from '../../helpers/NPconfiguration'
 
 const configKey = 'inbox'
 

@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Daily Journal commands
 // Jonathan Clark
-// Last updated 3.2.22 for v0.11.2
+// Last updated 4.2.22 for v0.11.2
 //-----------------------------------------------------------------------------
 
 export { dayStart, dayReview, todayStart } from './journal'
@@ -12,7 +12,7 @@ export { dayStart, dayReview, todayStart } from './journal'
 import pluginJson from '../plugin.json' 
 
 // Moving to ConfigV2
-import { migrateConfiguration, updateSettingData } from '../../helpers/configuration'
+import { migrateConfiguration, updateSettingData } from '../../helpers/NPconfiguration'
 
 const PLUGIN_ID = 'dailyJournal'
 

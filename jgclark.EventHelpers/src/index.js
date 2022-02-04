@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Event Helpers
 // Jonathan Clark
-// last updated 3.2.2022, for v0.11.0
+// last updated 4.2.2022, for v0.11.0
 //-----------------------------------------------------------------------------
 
 export { timeBlocksToCalendar } from './timeblocks'
@@ -19,23 +19,23 @@ export { processDateOffsets } from './offsets'
 import pluginJson from '../plugin.json' 
 
 // Moving to ConfigV2
-import { migrateConfiguration, updateSettingData } from '../../helpers/configuration'
+import { migrateConfiguration, updateSettingData } from '../../helpers/NPconfiguration'
 
-const PLUGIN_ID = "events"
+const configKey = "events"
 
 // refactor previous variables to new types
 export async function onUpdateOrInstall(config: any = { silent: false }): Promise<void> {
   try {
-    console.log(`${PLUGIN_ID}: onUpdateOrInstall running`)
+    console.log(`${configKey}: onUpdateOrInstall running`)
     // migrate _configuration data to data/<plugin>/settings.json (only executes migration once)
-    const migrationResult: number = await migrateConfiguration(PLUGIN_ID, pluginJson, config?.silent)
-    console.log(`${PLUGIN_ID}: onUpdateOrInstall migrateConfiguration code: ${migrationResult}`)
+    const migrationResult: number = await migrateConfiguration(configKey, pluginJson, config?.silent)
+    console.log(`${configKey}: onUpdateOrInstall migrateConfiguration code: ${migrationResult}`)
     if (migrationResult === 0) {
        const updateSettings = updateSettingData(pluginJson)
-       console.log(`${PLUGIN_ID}: onUpdateOrInstall updateSettingData code: ${updateSettings}`)
+       console.log(`${configKey}: onUpdateOrInstall updateSettingData code: ${updateSettings}`)
      }
   } catch (error) {
     console.log(error)
   }
-  console.log(`${PLUGIN_ID}: onUpdateOrInstall finished`)
+  console.log(`${configKey}: onUpdateOrInstall finished`)
 }
