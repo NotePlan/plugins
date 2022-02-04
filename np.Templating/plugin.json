@@ -3,7 +3,7 @@
   "noteplan.minAppVersion": "3.3.2",
   "plugin.id": "np.Templating",
   "plugin.name": " 📒 np.Templating",
-  "plugin.version": "0.0.189",
+  "plugin.version": "0.0.190",
   "plugin.description": "Templating Plugin for NotePlan",
   "plugin.author": "Mike Erickson",
   "plugin.dependencies": [],
@@ -101,7 +101,7 @@
     },
     {
       "key": "arrays",
-      "type": "string",
+      "type": "json",
       "title": "Stored Arrays in Configuration",
       "default": ""
     },
@@ -197,13 +197,6 @@
       "type": "json",
       "default": "",
       "required": false
-    },
-    {
-      "key": "testBoolean",
-      "title": "Test Boolean",
-      "description": "Test Boolean",
-      "type": "boolean",
-      "default": false
     },
     {
       "key": "timeOptions",

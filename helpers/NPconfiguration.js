@@ -2,6 +2,7 @@
 
 /*----------------------------------------------------------------------------------------------------------------------------
  * Configuration Utilities
+ * Version 0.0.3
  * @author @codedungeon unless otherwise noted
  * Requires NotePlan 3.4 or greater (waiting for NotePlan.environment version method to perform proper validation)
  * Note: Everything is self contained in this method, no other dependencies beyond `json5` plugin
@@ -74,7 +75,7 @@ export async function getConfiguration(configSection: string = ''): Promise<any>
 export async function initConfiguration(pluginJsonData: any): Promise<any> {
   const migrateData = {}
   if (typeof pluginJsonData !== 'object') {
-    CommandBar.prompt('NotePlan Error', 'Invalid Plugin Settings')
+    await CommandBar.prompt('NotePlan Error', 'Invalid Plugin Settings')
     return migrateData
   }
 
@@ -116,21 +117,25 @@ export async function migrateConfiguration(
     // load _configuration data for configSection if exists
     const configData = await getConfiguration(configSection)
     migrationResult = Object.keys(configData).length > 0 ? 1 : -1
+
     // load plugin settings object, if not exists settings object will be empty
     const pluginSettings = pluginJsonData.hasOwnProperty('plugin.settings') ? pluginJsonData['plugin.settings'] : []
+
     pluginSettings.forEach((setting) => {
       const key: any = setting?.key || null
       if (key) {
-        log(key)
+        log(`migrateConfiguration checking: ${key}`)
         migrateData[key] = setting?.default || ''
 
+        // add key if it does not exist in _configuration note
+        if (!configData.hasOwnProperty(key)) {
+          log(`migrateConfiguration adding key: ${key}`)
+          configData[key] = setting.default
+        }
+
         // migration data from _configuration if exists
-        if (key && configData?.[key]) {
+        if (key && configData[key] !== 'undefined') {
           migrateData[key] = configData[key]
-          // Check if the variable is an array with anything but objects, then save it as comma separated string
-          if (Array.isArray(configData[key]) && configData[key].length > 0 && typeof configData[key][0] !== 'object') {
-            migrateData[key] = configData[key].join(', ')
-          }
         }
       }
     })
@@ -144,10 +149,10 @@ export async function migrateConfiguration(
 
   // if settings data was migrated (first time only)
   if (migrationResult !== 0 && !silentMode) {
-    const reviewMessage: string = canEditSettings ? `\n\nWould you like to review settings?` : ''
+    const reviewMessage: string = canEditSettings ? `\n\nWould you like to review the plugin settings now?` : ''
     const answer: mixed = await CommandBar.prompt(
       'Configuration Migration Complete',
-      `Your _configuration "${configSection}" have been migrated to NotePlan Plugin Settings. ${reviewMessage}`,
+      `Your personal settings for plugin: "${configSection}" have been migrated from the _configuration note to the new NotePlan Plugin Settings.\n\nTo change your plugin settings in the future (on the Mac), please open the NotePlan preferences, navigate to "Plugins" and click on the gear icon on the right of the plugin name. ${reviewMessage}`,
       canEditSettings ? ['Yes', 'No'] : ['OK'],
     )
     if (canEditSettings && answer === 0) {
@@ -164,7 +169,7 @@ export async function migrateConfiguration(
  * @param {any} pluginJsonData - plugin.json data for which plugin is being migrated
  * @return {number} update result (1 settings update, 0 no update necessary)
  */
-export async function updateSettingData(pluginJsonData: any): Promise<number> {
+export function updateSettingData(pluginJsonData: any): number {
   let updateResult = 0
 
   const newSettings = {}
@@ -174,6 +179,7 @@ export async function updateSettingData(pluginJsonData: any): Promise<number> {
   pluginSettings.forEach((setting) => {
     const key: any = setting?.key || null
     if (key) {
+      console.log(`${key}`)
       if (!currentSettingData.hasOwnProperty(key)) {
         newSettings[key] = setting?.default || ''
         updateResult = 1 // we have made at least one update, change result code accordingly
@@ -207,7 +213,11 @@ export async function parseConfiguration(block: string): Promise<?{ [string]: ?m
     const value: any = json5.parse(contents)
     return value
   } catch (error) {
-    await CommandBar.prompt('NotePlan Error', error)
+    await CommandBar.prompt(
+      'NotePlan Error',
+      "Failed to parse your _configuration note, it seems to be malformed (e.g. a missing comma).\n\nPlease correct it, delete the plugin (click on the plugin name in the preferences to see the 'delete' button), and redownload it.\n\nError: " +
+        error,
+    )
   }
 }
 
