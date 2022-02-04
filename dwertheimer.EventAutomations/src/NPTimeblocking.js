@@ -3,6 +3,8 @@
 /**
  * WHERE AM I?
  * TODO: update docs for limittotags, presets
+ *  * getTimeBlockingDefaults should read plugin.json and create the defaults
+ *  * then validations should come from that file also
  *  * TODO: feedback if no items to timeblock
  * impolement limitToTags[] but make it a textfilter regex
  */
