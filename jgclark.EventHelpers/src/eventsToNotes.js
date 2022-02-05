@@ -6,29 +6,22 @@
 // ----------------------------------------------------------------------------
 
 import { getEventsSettings } from './config'
-import type { EventsConfig } from './config'
+import type { EventsConfig } from '../../helpers/NPCalendar'
 import { getEventsForDay } from '../../helpers/NPevents'
-import {
-  dateStringFromCalendarFilename,
-  toLocaleTime
-} from '../../helpers/dateTime'
-import {
-  getTagParamsFromString,
-  stringReplace,
-} from '../../helpers/general'
+import { dateStringFromCalendarFilename, toLocaleTime } from '../../helpers/dateTime'
+import { getTagParamsFromString, stringReplace } from '../../helpers/general'
 import { showMessage } from '../../helpers/userInput'
-
 
 /**
  * Return MD list of the current open Calendar note's events
  * @author @jgclark
- * 
+ *
  * @param {string} paramString - passed to next function
  * @return {string} Markdown-formatted list of today's events
  */
 export async function listDaysEvents(paramString: string = ''): Promise<string> {
   if (Editor.note == null || Editor.type !== 'Calendar') {
-    await showMessage(`Please run again with a calendar note open.`, "OK", "List Events")
+    await showMessage(`Please run again with a calendar note open.`, 'OK', 'List Events')
     return ''
   }
   // $FlowIgnore[incompatible-call]
@@ -52,7 +45,7 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
   const eArr: Array<TCalendarItem> = await getEventsForDay(dateStr, config.calendarSet)
 
   const outputArray: Array<string> = []
-  const mapForSorting: { cal: string; start: string, text: string }[] = []
+  const mapForSorting: { cal: string, start: string, text: string }[] = []
   let lastEventStr = '' // keep duplicates from multiple calendars out
 
   for (const e of eArr) {
@@ -69,7 +62,7 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
       mapForSorting.push({
         cal: calendarNameWithMapping(e.calendar, config.calendarNameMappings),
         start: toLocaleTime(e.date),
-        text: thisEventStr
+        text: thisEventStr,
       })
     }
   }
@@ -83,7 +76,7 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
 
   let output = outputArray.join('\n')
   if (withCalendarName) {
-    output = mapForSorting.map(element => element.text).join('\n')
+    output = mapForSorting.map((element) => element.text).join('\n')
   }
 
   output.replace(/\\s{2,}/g, ' ') // If this the array is empty -> empty string
@@ -95,13 +88,13 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
 /**
  * Insert list of today's events at cursor position.
  * NB: When this is called by UI as a command, *it doesn't have any params passed with it*.
- * 
+ *
  * @author @jgclark
  * @param {?string} paramString - passed through to next function
  */
 export async function insertDaysEvents(paramString: ?string): Promise<void> {
   if (Editor.note == null || Editor.type !== 'Calendar') {
-    await showMessage(`Please run again with a calendar note open.`, "OK", "Insert Events")
+    await showMessage(`Please run again with a calendar note open.`, 'OK', 'Insert Events')
     return
   }
 
@@ -113,10 +106,10 @@ export async function insertDaysEvents(paramString: ?string): Promise<void> {
 
 // ----------------------------------------------------------------------------
 /**
- * Return string list of matching events in the current day's note, from list 
+ * Return string list of matching events in the current day's note, from list
  * in keys of config.addMatchingEvents. Apply template too.
  * @author @jgclark
- * 
+ *
  * @param {?string} paramString Paramaters to use (for future expansion)
  * @return {string} List of matching events, as a multi-line string
  */
@@ -133,7 +126,11 @@ export async function listMatchingDaysEvents(
   const config = await getEventsSettings()
 
   if (config.addMatchingEvents == null) {
-    await showMessage(`Error: Empty 'addMatchingEvents' setting in _configuration note. Stopping`, "OK", "List Matching Events")
+    await showMessage(
+      `Error: Empty 'addMatchingEvents' setting in _configuration note. Stopping`,
+      'OK',
+      'List Matching Events',
+    )
     return `(Error: found no 'addMatchingEvents' settings in _configuration note.)`
   }
   const textToMatchA = Object.keys(config.addMatchingEvents)
@@ -175,12 +172,12 @@ export async function listMatchingDaysEvents(
  * Insert list of matching events in the current day's note, from list
  * in keys of config.addMatchingEvents. Apply template too.
  * @author @jgclark
- * 
+ *
  * @param {?string} paramString Paramaters to use (to pass on to next function)
  */
 export async function insertMatchingDaysEvents(paramString: ?string): Promise<void> {
   if (Editor.note == null || Editor.type !== 'Calendar') {
-    await showMessage(`Please run again with a calendar note open.`, "OK", "List Events")
+    await showMessage(`Please run again with a calendar note open.`, 'OK', 'List Events')
     return
   }
   console.log(`\ninsertMatchingDaysEvents:`)
@@ -194,29 +191,26 @@ export async function insertMatchingDaysEvents(paramString: ?string): Promise<vo
  * @private
  * @author @m1well
  */
-function getReplacements(
-  item: TCalendarItem,
-  config: EventsConfig): { key: string, value: string }[]
-{
+function getReplacements(item: TCalendarItem, config: EventsConfig): { key: string, value: string }[] {
   return [
     {
       key: '*|CAL|*',
-      value: calendarNameWithMapping(item.calendar, config.calendarNameMappings)
+      value: calendarNameWithMapping(item.calendar, config.calendarNameMappings),
     },
     { key: '*|TITLE|*', value: item.title },
     {
       key: '*|START|*',
       value: !item.isAllDay
         ? // $FlowFixMe[incompatible-call]
-        toLocaleTime(item.date, config.locale, config.timeOptions)
+          toLocaleTime(item.date, config.locale, config.timeOptions)
         : '',
     },
     {
       key: '*|END|*',
       value:
         item.endDate != null && !item.isAllDay
-        ? // $FlowFixMe[incompatible-call]
-          toLocaleTime(item.endDate, config.locale, config.timeOptions)
+          ? // $FlowFixMe[incompatible-call]
+            toLocaleTime(item.endDate, config.locale, config.timeOptions)
           : '',
     },
     { key: '*|NOTES|*', value: item.notes },
@@ -230,7 +224,7 @@ function getReplacements(
  */
 const calendarNameWithMapping = (name: string, mappings: Array<string>): string => {
   let mapped = name
-  mappings.forEach(mapping => {
+  mappings.forEach((mapping) => {
     const splitted = mapping.split(';')
     if (splitted.length === 2 && name === splitted[0]) {
       mapped = splitted[1]
