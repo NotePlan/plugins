@@ -154,7 +154,7 @@ export async function migrateConfiguration(
   }
 
   // if settings data was migrated (first time only)
-  if (migrationResult !== 0 && !silentMode) {
+  if (migrationResult == 1 && !silentMode) {
     const reviewMessage: string = canEditSettings ? `\n\nWould you like to review the plugin settings now?` : ''
     const answer: mixed = await CommandBar.prompt(
       'Configuration Migration Complete',
