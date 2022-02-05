@@ -173,33 +173,28 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
         if (timeblockDateRange) {
           // We have a valid timeblock, so let's make the event etc.
           // First strip out time + date (if present) from the timeblock line,
-          // as we don't want those to go into the calendar event
-          let restOfTask = thisPara.content.replace(origTimeBlockString, '').trim() // take off timeblock
-          restOfTask = restOfTask.replace(`>${datePart}`, '').trim() // take off >date (if present)
-          restOfTask = restOfTask.replace(datePart, '').trim() // take off date (if present)
-          console.log(`\tWill process time block '${timeBlockString}' for '${restOfTask}'`)
+          // as we don't want those to go into the calendar event itself (=restOfTask).
+          // But also keep a version with date (if present) as we don't want to lose that from the task itself.
+          let restOfTaskWithoutTimeBlock = thisPara.content.replace(origTimeBlockString, '').trim() // take off timeblock
+          let restOfTaskWithoutDateTime = restOfTaskWithoutTimeBlock.replace(`>${datePart}`, '').trim() // take off >date (if present)
+          restOfTaskWithoutDateTime = restOfTaskWithoutDateTime.replace(datePart, '').trim() // take off date (if present)
+          console.log(`\tWill process time block '${timeBlockString}' for '${restOfTaskWithoutDateTime}'`)
 
-          // Do we want to add this particular eent?
+          // Do we want to add this particular event?
           if (config.confirmEventCreation) {
-            const res = await showMessageYesNo(
-              `Add '${restOfTask}' at '${timeBlockString}'?`,
-              ['Yes', 'No'],
-              'Make event from time block',
-            )
+            const res = await showMessageYesNo(`Add '${restOfTaskWithoutDateTime}' at '${timeBlockString}'?`, ['Yes', 'No'], 'Make event from time block')
             if (res === 'No') {
               continue // go to next time block
             }
           }
 
-          const eventID =
-            (await createEventFromDateRange(restOfTask, timeblockDateRange, calendarToWriteTo)) ??
-            '<error getting eventID>'
+          const eventID = await createEventFromDateRange(restOfTaskWithoutDateTime, timeblockDateRange, calendarToWriteTo) ?? '<error getting eventID>'
 
           // Remove time block string (if wanted)
           let thisParaContent = thisPara.content
           console.log(`\tstarting with thisPara.content: '${thisParaContent}'`)
           if (config.removeTimeBlocksWhenProcessed) {
-            thisParaContent = restOfTask
+            thisParaContent = restOfTaskWithoutTimeBlock
           }
           // Add processedTag (if not empty)
           if (config.processedTagName !== '') {
