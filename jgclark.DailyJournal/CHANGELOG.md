@@ -1,11 +1,8 @@
 # What's changed in ☀️ Daily Journal Plugin?
 
-## [0.11.2] - 2022-02-03
-TESTING RELEASE FOR CONFIG V2
-
-## [0.11.1] - 2022-01-29
-### Fixed
-- added missing item for new Config system.
+## [0.11.1..0.11.4] - 2022-02-04
+### Changed
+- now using new Configuration UI system instead of _configuration.
 
 ## [0.11.0] - 2022-01-29
 ### Added
