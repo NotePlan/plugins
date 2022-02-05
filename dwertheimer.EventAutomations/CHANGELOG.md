@@ -2,6 +2,9 @@
 
 ## Changelog
 
+[0.4.4] 2022-02-04
+- add configuration migration
+
 [0.4.3] 
 - change config to make includeTasksWithText etc. not required
 

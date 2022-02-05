@@ -123,15 +123,22 @@ export async function migrateConfiguration(
 
     pluginSettings.forEach((setting) => {
       const key: any = setting?.key || null
+      const type: any = setting?.type || null
+
       if (key) {
-        log(`migrateConfiguration checking: ${key}`)
-        // migrateData[key] = setting?.default || ''
+        log(`migrateConfiguration checking: ${key}, type: ${type}`)
+        migrateData[key] = setting?.default || ''
 
         // add key if it does not exist in _configuration note
-        // if (!configData.hasOwnProperty(key)) {
-        //   log(`migrateConfiguration adding key: ${key}`)
-        //   configData[key] = setting.default
-        // }
+        if (!configData.hasOwnProperty(key)) {
+          log(`migrateConfiguration adding key: ${key}`)
+          configData[key] = setting.default
+
+          // Convert json to an object
+          if(setting.type == "json" && setting.default !== 'undefined') {
+            configData[key] = JSON.parse(setting.default)
+          }
+        }
 
         // migration data from _configuration if exists
         if (key && configData[key] !== 'undefined') {
@@ -154,7 +161,7 @@ export async function migrateConfiguration(
   }
 
   // if settings data was migrated (first time only)
-  if (migrationResult !== 0 && !silentMode) {
+  if (migrationResult == 1 && !silentMode) {
     const reviewMessage: string = canEditSettings ? `\n\nWould you like to review the plugin settings now?` : ''
     const answer: mixed = await CommandBar.prompt(
       'Configuration Migration Complete',
