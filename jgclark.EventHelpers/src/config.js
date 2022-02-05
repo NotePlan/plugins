@@ -14,7 +14,7 @@ import {
 } from '../../helpers/dataManipulation'
 import type { HourMinObj } from '../../helpers/dateTime'
 import { clo } from '../../helpers/dev'
-import { showMessage } from '../../helpers/userInput'
+import { type EventsConfig } from '../../helpers/NPCalendar'
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 
 //------------------------------------------------------------------------------
@@ -44,20 +44,6 @@ import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configura
 
 const configKey = 'events'
 
-export type EventsConfig = {
-  eventsHeading: string,
-  addMatchingEvents: ?{ [string]: mixed },
-  locale: string,
-  timeOptions: any,
-  calendarSet: string[],
-  calendarNameMappings: string[],
-  processedTagName: string,
-  removeTimeBlocksWhenProcessed: boolean,
-  addEventID: boolean,
-  confirmEventCreation: boolean,
-  calendarToWriteTo: string,
-}
-
 //------------------------------------------------------------------------------
 
 /**
@@ -71,7 +57,7 @@ export async function getEventsSettings(): Promise<EventsConfig> {
   const v2Config: EventsConfig = DataStore.settings
   // $FlowFixMe[incompatible-call]
   // clo(v2Config, 'v2Config')
-  
+
   if (v2Config != null && Object.keys(v2Config).length > 0) {
     const config: EventsConfig = v2Config
     config.locale = getLocale(v2Config)
@@ -107,7 +93,7 @@ export async function getEventsSettings(): Promise<EventsConfig> {
     //   DEFAULT_EVENTS_OPTIONS,
     //   // no minimum config needed, as can use defaults if need be
     // )
-    const v1Config = await getOrMakeConfigurationSection(configKey) ?? {}
+    const v1Config = (await getOrMakeConfigurationSection(configKey)) ?? {}
 
     // $FlowFixMe[incompatible-type]
     let tempAME: ?{ [string]: mixed } = v1Config.addMatchingEvents ?? null
@@ -134,22 +120,19 @@ export async function getEventsSettings(): Promise<EventsConfig> {
 // Get locale: if blank in settings then get from NP environment (from 3.3.2)
 // or if not available default to 'en-US'
 function getLocale(tempConfig: Object): string {
-  const envRegion = (NotePlan?.environment) ? NotePlan?.environment?.regionCode : ''
-  const envLanguage = (NotePlan?.environment) ? NotePlan?.environment?.languageCode : ''
+  const envRegion = NotePlan?.environment ? NotePlan?.environment?.regionCode : ''
+  const envLanguage = NotePlan?.environment ? NotePlan?.environment?.languageCode : ''
   // $FlowFixMe
   let tempLocale = castStringFromMixed(tempConfig, 'locale')
-  tempLocale = (tempLocale != null) && tempLocale !== ''
-    ? tempLocale
-    : (envRegion !== '')
-      ? `${envLanguage}-${envRegion}`
-      : 'en-US'
+  tempLocale =
+    tempLocale != null && tempLocale !== '' ? tempLocale : envRegion !== '' ? `${envLanguage}-${envRegion}` : 'en-US'
   return tempLocale
 }
 
 // Get timeOptions: if blank in settings then get from NP environment (from 3.3.2)
 // or if not available default
 function getTimeOptions(tempConfig: Object): Object {
-  const env1224 = (NotePlan?.environment) ? NotePlan?.environment?.is12hFormat : false
+  const env1224 = NotePlan?.environment ? NotePlan?.environment?.is12hFormat : false
   let tempTimeOptions = tempConfig?.timeOptions ?? { hour: '2-digit', minute: '2-digit', hour12: env1224 }
   // clo(tempTimeOptions, `tempTimeOptions: `)
   return tempTimeOptions
