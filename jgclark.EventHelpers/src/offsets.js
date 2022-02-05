@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Command to Process Date Offsets
 // @jgclark
-// Last updated 28.1.2022 for v0.10.2, @jgclark
+// Last updated 5.2.2022 for v0.11.3, @jgclark
 // ----------------------------------------------------------------------------
 
 import { timeBlocksToCalendar } from './timeblocks'
@@ -18,9 +18,6 @@ import { displayTitle } from '../../helpers/general'
 import { findEndOfActivePartOfNote } from '../../helpers/paragraph'
 import { showMessage, showMessageYesNo } from '../../helpers/userInput'
 
-// ----------------------------------------------------------------------------
-// Settings
-// - none!
 // ----------------------------------------------------------------------------
 
 // Go through current Editor note and identify date offsets and turn into due dates
@@ -56,28 +53,33 @@ export async function processDateOffsets() {
     // Find first Done or Cancelled section and get its paragraph index
 
     // Go through each line in the active part of the file
-    // Keep track of the indent level when a YYYY-MM-DD date is found, so we know
+    // Keep track of the indent level when a suitable date is found, so we know
     // when to use and when to discard:
     // - level = -1 = a heading
     // - level = 0-n = an indent level
     let previousFoundLevel = 0
     let thisLevel = 0
+    let warningOrphans = false // whether we have found orphaned date offsets
+
     while (n < endOfActive) {
       let line = paragraphs[n].content // don't think this needs to be rawContent
-      thisLevel = paragraphs[n].indents
-      if (paragraphs[n].type === 'title') {
-        thisLevel = -1
-      }
+      thisLevel = (paragraphs[n].type === 'title')
+        ? thisLevel = -1
+        : paragraphs[n].indents
       // console.log(`  Line ${n} (${thisLevel}) ${line}`)
 
       // Decide whether to clear CTD based on this vs previous indent level
-      if (thisLevel <= previousFoundLevel || thisLevel === -1) {
+      // Specifically: clear on lower indent or heading or blank line TODO: or horizontal line
+      if (thisLevel < previousFoundLevel || thisLevel === -1 || line === '') {
+        if (currentTargetDate !== '') {
+          console.log(`  - Cleared CTD`)
+        }
         currentTargetDate = ''
-        console.log(`  - Cleared CTD`)
       }
 
       // Try matching for the standard YYYY-MM-DD date pattern on its own
       // (check it's not got various characters before it, to defeat common usage in middle of things like URLs)
+      // TODO: make a different type of CTD for in-line vs in-heading dates
       if (line.match(RE_BARE_DATE)) {
         const dateISOStrings = line.match(RE_BARE_DATE_CAPTURE) ?? ['']
         const dateISOString = dateISOStrings[1] // first capture group
@@ -108,27 +110,32 @@ export async function processDateOffsets() {
               const labelEnd = line.indexOf('}')
               // Create new version with inserted date
               line = `${line.slice(0, labelStart - 1)} >${calcDate} ${line.slice(labelEnd + 1)}` // also trim off last character (newline)
-              // then add the new date
-              // line += ">${calcDate}"
               paragraphs[n].content = line
               note.updateParagraph(paragraphs[n])
-              // console.log(`      - In line labels runs ${labelStart}-${labelEnd} --> '${line.trimEnd()}'`)
+              console.log(`    -> '${line}'`)
             }
           } else {
-            console.log(` Warning: (line ${paragraphs[n].lineIndex}): offset date {${dateOffsetString}}, but no currentTargetDate is set`)
+            // Treat this as an orphaned date offset
+            console.log(` Warning: (line ${paragraphs[n].lineIndex}): offset date {${dateOffsetString}} is an orphan, as no currentTargetDate is set`)
+            warningOrphans = true
           }
         }
       }
       n += 1
     }
 
+    // Warn if we found orphaned date offsets
+    if (warningOrphans) {
+      await showMessage(`I found date offsets where I couldn't tell what the target date was. Please check the Plugin console for details, and the documentation.`, `OK`, `Process Date Offsets`)
+    }
+
     // Offer to run timeblocks creation, as that often goes with offsets
-    let res = await showMessageYesNo(`Shall I create any new events from time blocks?`, ['Yes','No'], 'Process Date Offsets')
+    let res = await showMessageYesNo(`Shall I also look for time blocks to create new events?`, ['Yes','No'], 'Process Date Offsets')
     if (res === 'Yes') {
       await timeBlocksToCalendar()
     }
   } else {
     console.log(`processDateOffsets: warning: no date offset patterns found`)
-    await showMessage(`No date offset patterns found.`, `Process Date Offsets`)
+    await showMessage(`No date offset patterns found.`, `OK`, `Process Date Offsets`)
   }
 }

@@ -1,10 +1,16 @@
 # What's changed in 🕓 Event Helpers?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
-<!-- - tighten timeblock-finding regex if Eduard does
-- add further fields (e.g. location) if Eduard adds to the API -->
-## [0.11.1] - 2022-02-03
-TESTING RELEASE FOR CONFIG V2
+<!-- Improve detection of target dates -->
+
+## [0.11.3] - 2022-02-05
+### Changed
+- now tell user if orphaned date offsets are found (i.e. without the date to offset from)
+- when creating events from time blocks, now keep any '>date' portion in the task, but not in the event title
+
+## [0.11.2] - 2022-02-04
+### Changed
+- now using new Configuration UI system instead of _configuration.
 
 ## [0.11.0] - 2022-01-30
 ### Changed
