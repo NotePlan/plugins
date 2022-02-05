@@ -170,7 +170,7 @@
         "title": "Processed tag name",
         "description": "Tag attached to events which were written into the calendar. Because we use a different plugin to write to the calendar, this setting needs to match EventHelpers>events/Processed tag name",
         "default": "#event_created",
-        "required": true
+        "required": false
     },    
     {
         "key": "intervalMins",
