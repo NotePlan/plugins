@@ -2,6 +2,9 @@
 
 ## Changelog
 
+[0.4.5] 2022-02-04
+- refactor calendar code under the hood + Eduard fixed some underlying migration code
+
 [0.4.4] 2022-02-04
 - add configuration migration
 
