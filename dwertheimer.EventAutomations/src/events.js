@@ -1,11 +1,7 @@
 // @flow
 import { add } from 'date-fns'
-import { getEventsForDay } from '../../helpers/NPevents'
-import {
-  getTodaysDateUnhyphenated,
-  type HourMinObj,
-  toLocaleTime
-} from '../../helpers/dateTime'
+import { getEventsForDay } from '../../helpers/NPCalendar'
+import { getTodaysDateUnhyphenated, type HourMinObj, toLocaleTime } from '../../helpers/dateTime'
 import { chooseOption, chooseFolder } from '../../helpers/userInput'
 import { quickTemplateNote, newNoteWithTemplate } from '../../nmn.Templates/src/index'
 
@@ -81,7 +77,7 @@ export async function createNoteForCalendarItem(useQuickTemplate: boolean = true
       const title = `${selEvent.value} ${selEvent.date} ${
         selEvent.time && selEvent.time !== '00:00' ? selEvent.time : ''
       }`
-      const fname = await DataStore.newNote(title, folder) ?? ''
+      const fname = (await DataStore.newNote(title, folder)) ?? ''
       console.log(`Creating note with title: ${title}, fname=${fname}`)
       if (fname) {
         await Editor.openNoteByFilename(fname, false)
