@@ -1,7 +1,8 @@
 # What's changed in ⚡️ Quick Capture
 
-## [0.8.4] - 2022-02-22
-TEST VERSION FOR CONFIG V2
+## [0.8.5] - 2022-02-04
+### Changed
+- now using new Configuration UI system instead of _configuration.
 
 ## [0.8.3] - 2021-12-15 (@m1well)
 ### Fixed

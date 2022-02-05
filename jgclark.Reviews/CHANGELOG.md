@@ -2,7 +2,8 @@
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Review), and how to configure.
 <!-- - using new Settings framework (from NotePlan v3.4) -->
 ## [0.6.1] - 2022-02-04
-TEST RELEASE FOR ConfigV2 TESTING
+### Changed
+- now using new Configuration UI system instead of _configuration.
 
 ## [0.6.0] - 2022-01-27
 ### Added
