@@ -6,8 +6,7 @@
 // ----------------------------------------------------------------------------
 
 import { getEventsSettings } from './config'
-import type { EventsConfig } from '../../helpers/NPCalendar'
-import { getEventsForDay } from '../../helpers/NPevents'
+import { getEventsForDay, type EventsConfig } from '../../helpers/NPCalendar'
 import { dateStringFromCalendarFilename, toLocaleTime } from '../../helpers/dateTime'
 import { getTagParamsFromString, stringReplace } from '../../helpers/general'
 import { showMessage } from '../../helpers/userInput'

@@ -1,4 +1,7 @@
 // @flow
+// --------------------------------------------------------
+// Helpers for Events/Calendar -- that require NotePlan functions
+// --------------------------------------------------------
 
 // ------------------------------------------------------------------------------------
 // Command to turn time blocks into full calendar events
@@ -32,6 +35,8 @@ import {
   getTimeBlockString,
 } from './timeblocks'
 import { showMessage, showMessageYesNo } from './userInput'
+
+import type { HourMinObj } from './dateTime'
 
 export type EventsConfig = {
   eventsHeading: string,
@@ -182,13 +187,19 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
 
           // Do we want to add this particular event?
           if (config.confirmEventCreation) {
-            const res = await showMessageYesNo(`Add '${restOfTaskWithoutDateTime}' at '${timeBlockString}'?`, ['Yes', 'No'], 'Make event from time block')
+            const res = await showMessageYesNo(
+              `Add '${restOfTaskWithoutDateTime}' at '${timeBlockString}'?`,
+              ['Yes', 'No'],
+              'Make event from time block',
+            )
             if (res === 'No') {
               continue // go to next time block
             }
           }
 
-          const eventID = await createEventFromDateRange(restOfTaskWithoutDateTime, timeblockDateRange, calendarToWriteTo) ?? '<error getting eventID>'
+          const eventID =
+            (await createEventFromDateRange(restOfTaskWithoutDateTime, timeblockDateRange, calendarToWriteTo)) ??
+            '<error getting eventID>'
 
           // Remove time block string (if wanted)
           let thisParaContent = thisPara.content
@@ -257,6 +268,42 @@ async function createEventFromDateRange(
     await showMessage(`Sorry, I failed to create event in ${calendarDisplayName} calendar`)
     return 'error'
   }
+}
+
+/**
+ * Get list of events for the given day (specified as YYYYMMDD).
+ * Now also filters out any that don't come from one of the calendars specified
+ * in calendarSet.
+ * @author @jgclark
+ *
+ * @param {string} dateStr YYYYMMDD date to use
+ * @param {[string]} calendarSet optional list of calendars
+ * @param {HourMinObj} start optional start time in the day
+ * @param {HourMinObj} end optional end time in the day
+ * @return {[TCalendarItem]} array of events as CalendarItems
+ */
+export async function getEventsForDay(
+  dateStr: string,
+  calendarSet: string[] = [],
+  start: HourMinObj = { h: 0, m: 0 },
+  end: HourMinObj = { h: 23, m: 59 },
+): Promise<Array<TCalendarItem>> {
+  const y = parseInt(dateStr.slice(0, 4))
+  const m = parseInt(dateStr.slice(4, 6))
+  const d = parseInt(dateStr.slice(6, 8))
+  const startOfDay = Calendar.dateFrom(y, m, d, start.h, start.m, 0)
+  const endOfDay = Calendar.dateFrom(y, m, d, end.h, end.m, 59)
+  console.log(`getEventsForDay: ${startOfDay.toString()} - ${endOfDay.toString()}`)
+  let eArr: Array<TCalendarItem> = await Calendar.eventsBetween(startOfDay, endOfDay)
+  console.log(`\tretrieved ${eArr.length} events from NP Calendar store`)
+
+  // If we have a calendarSet list, use to weed out events that don't match .calendar
+  if (calendarSet.length > 0) {
+    // const filteredEventArray = calendarSet.slice().filter(c => eArr.some(e => e.calendar === c))
+    eArr = eArr.filter((e) => calendarSet.some((c) => e.calendar === c))
+    console.log(`\t${eArr.length} Events kept after filtering with ${calendarSet.toString()}`)
+  }
+  return eArr
 }
 
 //----------------------------------------------------------------------

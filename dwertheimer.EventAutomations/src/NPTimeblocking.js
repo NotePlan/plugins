@@ -16,8 +16,7 @@ import {
   formatISO9075,
   addMinutes,
 } from 'date-fns'
-import { getEventsForDay } from '../../helpers/NPevents'
-import { writeTimeBlocksToCalendar } from '../../helpers/NPCalendar'
+import { getEventsForDay, writeTimeBlocksToCalendar } from '../../helpers/NPCalendar'
 import {
   dateStringFromCalendarFilename,
   type HourMinObj,
