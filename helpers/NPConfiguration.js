@@ -118,41 +118,44 @@ export async function migrateConfiguration(
     const configData = await getConfiguration(configSection)
     migrationResult = Object.keys(configData).length > 0 ? 1 : -1
 
-    if(migrationResult == 1) {
-      // load plugin settings object, if not exists settings object will be empty
-      const pluginSettings = pluginJsonData.hasOwnProperty('plugin.settings') ? pluginJsonData['plugin.settings'] : []
+    // load plugin settings object, if not exists settings object will be empty
+    const pluginSettings = pluginJsonData.hasOwnProperty('plugin.settings') ? pluginJsonData['plugin.settings'] : []
 
-      pluginSettings.forEach((setting) => {
-        const key: any = setting?.key || null
-        if (key) {
-          log(`migrateConfiguration checking: ${key}`)
-          // migrateData[key] = setting?.default || ''
+    pluginSettings.forEach((setting) => {
+      const key: any = setting?.key || null
+      const type: any = setting?.type || null
 
-          // add key if it does not exist in _configuration note
-          // if (!configData.hasOwnProperty(key)) {
-          //   log(`migrateConfiguration adding key: ${key}`)
-          //   configData[key] = setting.default
-          // }
+      if (key) {
+        log(`migrateConfiguration checking: ${key}, type: ${type}`)
+        migrateData[key] = setting?.default || ''
 
-          // migration data from _configuration if exists
-          if (key && configData[key] !== 'undefined') {
-            migrateData[key] = configData[key]
+        // add key if it does not exist in _configuration note
+        if (!configData.hasOwnProperty(key)) {
+          log(`migrateConfiguration adding key: ${key}`)
+          configData[key] = setting.default
 
-            // Check if the variable is an array with anything but objects, then save it as comma separated string
-            // Note: We don't need to conver this here, we need to set the type in the plugin.settings of plugin.json to [string]
-            // if (Array.isArray(configData[key]) && configData[key].length > 0 && (typeof configData[key][0]) !== 'object') {
-            //   migrateData[key] = configData[key].join(', ')
-            // }
+          // Convert json to an object
+          if(setting.type == "json" && setting.default !== 'undefined') {
+            configData[key] = JSON.parse(setting.default)
           }
         }
-      })
 
-      // initialize settings data
-      migrateData.version = pluginJsonData['plugin.version']
-      DataStore.settings = { ...migrateData }
-    } else {
-      log(`==> ${pluginJsonData['plugin.id']} _configuration.${configSection} migration no _configuration file or section to migrate.`)
-    }
+        // migration data from _configuration if exists
+        if (key && configData[key] !== 'undefined') {
+          migrateData[key] = configData[key]
+
+          // Check if the variable is an array with anything but objects, then save it as comma separated string
+          // Note: We don't need to conver this here, we need to set the type in the plugin.settings of plugin.json to [string]
+          // if (Array.isArray(configData[key]) && configData[key].length > 0 && (typeof configData[key][0]) !== 'object') {
+          //   migrateData[key] = configData[key].join(', ')
+          // }
+        }
+      }
+    })
+
+    // initialize settings data
+    migrateData.version = pluginJsonData['plugin.version']
+    DataStore.settings = { ...migrateData }
 
     log(`==> ${pluginJsonData['plugin.id']} _configuration.${configSection} migration (migration complete)`)
   }
