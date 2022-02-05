@@ -6,7 +6,7 @@
   "plugin.name": "🗓 Event Automations",
   "plugin.description": "Create a note from an event on your calendar or create timeblocks for items marked for today!",
   "plugin.author": "dwertheimer",
-  "plugin.version": "0.4.3",
+  "plugin.version": "0.4.5",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://noteplan.co/n/#/1EF12392-B544-4044-AC7A-428F57EB2DFC",
@@ -154,6 +154,14 @@
         "description": "Delete Time Blocks the plugin previously wrote to the calendar. Read the documentation before turning this on.",
         "default": false,
         "required": true         
+    },
+    {
+      "key": "calendarToWriteTo",
+      "title": "Name of Calendar to write to",
+      "description": "The calendar name to write events to. Must be a writable calendar. If empty, then the default system calendar will be used.",
+      "type": "string",
+      "default": "",
+      "required": false
     },
     {
         "key": "eventEnteredOnCalTag",

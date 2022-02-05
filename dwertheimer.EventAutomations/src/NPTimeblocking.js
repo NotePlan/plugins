@@ -17,8 +17,7 @@ import {
   addMinutes,
 } from 'date-fns'
 import { getEventsForDay } from '../../helpers/NPevents'
-import { listDaysEvents } from '../../jgclark.EventHelpers/src/eventsToNotes'
-import { timeBlocksToCalendar } from '../../jgclark.EventHelpers/src/timeblocks'
+import { writeTimeBlocksToCalendar } from '../../helpers/NPCalendar'
 import {
   dateStringFromCalendarFilename,
   type HourMinObj,
@@ -224,7 +223,7 @@ function getExistingTimeBlocksFromNoteAsEvents(note: TEditor | TNote, defaultDur
 async function getPopulatedTimeMapForToday(
   dateStr: string,
   intervalMins: number,
-  config: { [key: string]: any },
+  config: { [string]: mixed },
 ): Promise<IntervalMap> {
   // const todayEvents = await Calendar.eventsToday()
   const eventsArray: Array<TCalendarItem> = await getEventsForDay(dateStr)
@@ -255,6 +254,16 @@ export async function deleteCalendarEventsWithTag(tag: string, dateStr: string):
   } else {
     showMessage('deleteCalendarEventsWithTag could not delete events')
   }
+}
+
+function getEventsConfig(atbConfig: { [string]: mixed }) {
+  const eventsConfig = {
+    confirmEventCreation: false,
+    processedTagName: atbConfig.eventEnteredOnCalTag || '#event_created',
+    calendarToWriteTo: atbConfig.calendarToWriteTo || '',
+  }
+
+  return eventsConfig
 }
 
 export async function createTimeBlocksForTodaysTasks(config: { [key: string]: any } = {}): Promise<?Array<string>> {
@@ -317,7 +326,7 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: an
         await insertItemsIntoNote(editorOrNote(note), timeBlockTextList, config)
         if (createCalendarEntries) {
           console.log(`About to create calendar entries`)
-          await timeBlocksToCalendar() //using @jgclark's method for now
+          await writeTimeBlocksToCalendar(getEventsConfig(config), Editor) //using @jgclark's method for now
           if (!insertIntoEditor) {
             // If user didn't want the timeblocks inserted into the editor, then we delete them now that they're in calendar
             // $FlowIgnore
