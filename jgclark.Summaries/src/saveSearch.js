@@ -3,12 +3,12 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 30.1.2022 for v0.5.1, @jgclark
+// Last updated 7.2.2022 for v0.6.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import {
   gatherMatchingLines,
-  getConfigSettings,
+  getSummariesSettings,
   getPeriodStartEndDates,
 } from './summaryHelpers'
 import type { SummariesConfig } from './summaryHelpers'
@@ -44,21 +44,26 @@ import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configura
 //-------------------------------------------------------------------------------
 
 /**
- * Ask user what word/phrase to search for, run the search, 
+ * Ask user what word/phrase to search for, run the search over all notes, 
  * and ask where to save/show the results
  * @author @jgclark
  */
 export async function saveSearch(): Promise<void> {
   // get relevant settings
-  let config = await getConfigSettings()
+  let config = await getSummariesSettings()
 
-  // Ask user for search term
-  const searchTerm = await getInput(`Exact word/phrase to search for`)
-  if (typeof searchTerm === 'boolean') {
+  let stringsToMatch = Array.from(config.defaultOccurrences)
+  const newTerms = await getInput(`Enter search term (or comma-separated set of terms)`, 'OK', `Search`, stringsToMatch.join(', '))
+  if (typeof newTerms === 'boolean') {
     // i.e. user has cancelled
     console.log(`User has cancelled operation.`)
     return
+  } else {
+    stringsToMatch = Array.from(newTerms.split(','))
   }
+  console.log(
+    `\saveSearch: looking for '${String(stringsToMatch)}' over all notes:`,
+  )
 
   // Create list of project notes not in excluded folders
   const allProjectNotes = DataStore.projectNotes
@@ -66,39 +71,42 @@ export async function saveSearch(): Promise<void> {
   // Iterate over the folders ...
   for (const pn of allProjectNotes) {
     const thisFolder = getFolderFromFilename(pn.filename)
-    if (!config.foldersToIgnore.includes(thisFolder)) {
+    if (!config.foldersToExclude.includes(thisFolder)) {
       projectNotesToInclude.push(pn)
     } else {
-      console.log(pn.filename)
+      console.log(`\tExcluded note '${pn.filename}'`)
     }
   }
   console.log(`Will use ${projectNotesToInclude.length} project notes out of ${allProjectNotes.length}`)
   // Add all the calendar notes
   const notes = DataStore.calendarNotes.concat(projectNotesToInclude)
 
-  // Find matches in this set of notes for the time period
+  // Find matches in this set of notes
   const outputArray = []
-  // output a heading first
-  const results = await gatherMatchingLines(notes, searchTerm, config.highlightOccurrences, config.dateStyle)
-  const lines = results?.[0]
-  const contexts = results?.[1]
-  if (lines.length > 0) {
-    // outputArray.push(`### ${searchTerm}`)
-    console.log(`  Found ${lines.length} results for '${searchTerm}'`)
-    // format the output
-    for (let i = 0; i < lines.length; i++) {
-      outputArray.push(`- ${lines[i]} ${contexts[i]}`)
+  for (const searchTerm of stringsToMatch) {
+
+    const results = await gatherMatchingLines(notes, searchTerm, config.highlightOccurrences, config.dateStyle)
+    const lines = results?.[0]
+    const contexts = results?.[1]
+    // output a heading first
+    if (lines.length > 0) {
+      outputArray.push(`### ${searchTerm}`)
+      console.log(`  Found ${lines.length} results for '${searchTerm}'`)
+      // format the output
+      for (let i = 0; i < lines.length; i++) {
+        outputArray.push(`- ${lines[i]} ${contexts[i]}`)
+      }
+    } else if (config.showEmptyOccurrences) {
+      // If there's nothing to report, make that clear
+      outputArray.push(`### ${searchTerm}`)
+      outputArray.push('(no matches)')
     }
-  } else {
-    // If there's nothing to report, make that clear
-    // outputArray.push(`### ${searchTerm}`)
-    outputArray.push('(no matches)')
   }
 
   // Ask where to save this summary to
   const labelString = `🖊 Create/update note in folder '${config.folderToStore}'`
   const destination = await chooseOption(
-    `Where should I save the ${lines.length} search results?`,
+    `Where should I save the search results?`,
     [
       {
         // TODO: When weekly/monthly notes are made possible in NP, then add options like this
@@ -125,8 +133,7 @@ export async function saveSearch(): Promise<void> {
   )
 
   // Ask where to send the results
-  const currentDate = nowLocaleDateTime
-  const headingString = `Search results for '${searchTerm}'`
+  const headingString = `Search results (at ${nowLocaleDateTime})`
   switch (destination) {
     case 'current': {
       const currentNote = Editor.note
@@ -134,11 +141,11 @@ export async function saveSearch(): Promise<void> {
         console.log(`\terror: no note is open`)
       } else {
         console.log(
-          `\tappending ${lines.length} results to current note (${currentNote.filename ?? ''})`,
+          `\tappending ${outputArray.length} results to current note (${currentNote.filename ?? ''})`,
         )
-        const insertionLineIndex = currentNote.paragraphs.length
+        const insertionLineIndex = currentNote.paragraphs.length - 1
         currentNote.insertHeading(
-          `${headingString} at ${currentDate}`,
+          headingString,
           insertionLineIndex,
           config.headingLevel,
         )
@@ -146,7 +153,7 @@ export async function saveSearch(): Promise<void> {
           outputArray.join('\n'),
           'text',
         )
-        console.log(`\tappended results to current note`)
+        // console.log(`\tappended results to current note`)
       }
       break
     }
@@ -190,24 +197,23 @@ export async function saveSearch(): Promise<void> {
       }
       console.log(`\twriting results to the new note '${displayTitle(note)}'`)
 
-      // const note = note
       // Do we have an existing Hashtag counts section? If so, delete it.
+      // (Sets place to insert either after the found section heading, or at end of note)
       const insertionLineIndex = removeSection(
         note,
         headingString,
       )
-      console.log(`\tinsertionLineIndex: ${String(insertionLineIndex)}`)
-      // Set place to insert either after the found section heading, or at end of note
+      // console.log(`\tinsertionLineIndex: ${String(insertionLineIndex)}`)
       // write in reverse order to avoid having to calculate insertion point again
-      note.insertHeading(
-        `${headingString} at ${currentDate}`,
-        insertionLineIndex,
-        config.headingLevel,
-      )
       note.insertParagraph(
         outputArray.join('\n'),
         insertionLineIndex + 1,
         'text',
+      )
+      note.insertHeading(
+        headingString,
+        insertionLineIndex,
+        config.headingLevel,
       )
       await Editor.openNoteByFilename(note.filename)
 
@@ -216,9 +222,7 @@ export async function saveSearch(): Promise<void> {
     }
 
     case 'log': {
-      console.log(
-        `Search results for '${searchTerm}', ${currentDate}`,
-      )
+      console.log(headingString)
       console.log(outputArray.join('\n'))
       break
     }

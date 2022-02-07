@@ -8,7 +8,7 @@
 import {
   calcHashtagStatsPeriod,
   calcMentionStatsPeriod,
-  getConfigSettings,
+  getSummariesSettings,
   getPeriodStartEndDates,
 } from './summaryHelpers'
 import { unhyphenatedDate } from '../../helpers/dateTime'
@@ -49,7 +49,7 @@ function getSelectedParaIndex(): number {
  */
 export async function insertProgressUpdate(params?: string): Promise<string | void > {
   // Get config setting
-  let config = await getConfigSettings()
+  let config = await getSummariesSettings()
   // If no params are passed, then we've been called by a plugin command (and so use defaults from config).
   // If there are params passed, then we've been called by a template command (and so use those).
   const interval = await getTagParamsFromString(params ?? '', 'interval', 'wtd')

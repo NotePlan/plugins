@@ -2,13 +2,13 @@
 //-----------------------------------------------------------------------------
 // Create weekly stats for a number of weeks, and format ready to use by gnuplot
 // Jonathan Clark, @jgclark
-// Last updated for v0.3.0+, 8.11.2021
+// Last updated for v0.6.0, 7.2.2022
 //-----------------------------------------------------------------------------
 
 import {
   calcHashtagStatsPeriod,
   calcMentionStatsPeriod,
-  getConfigSettings,
+  getSummariesSettings,
 } from './summaryHelpers'
 import type { SummariesConfig } from './summaryHelpers'
 import {
@@ -83,7 +83,7 @@ function formatForGnuplot(inArray): Array<string> {
 export async function weeklyStats(): Promise<void> {
   // Get config settings from Template folder _configuration note
   // await getWeeklyStatsSettings()
-  let config = await getConfigSettings()
+  let config = await getSummariesSettings()
 
   let period: number
   let startWeek: number
@@ -175,15 +175,13 @@ export async function weeklyStats(): Promise<void> {
   let w = startWeek
   let y = startYear
   let counter = 0
-  while ((w <= endWeek) && (y <= endYear)) {
+  while (counter < period) {
     // increment which week/year we're looking at, and get the actual dates to use
+    let answer = calcWeekOffset(w, y, +1)
+    w = answer.week
+    y = answer.year
     counter++
-    if (w < 52) {
-      w++
-    } else {
-      w = 1
-      y++
-    }
+    // console.log(`${counter}: w ${w} y ${y}`)
     const [weekStartDate, weekEndDate] = weekStartEnd(w, y)
 
     // Calc hashtags stats (returns two maps)

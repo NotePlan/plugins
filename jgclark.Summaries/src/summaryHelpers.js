@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Summary commands for notes
 // Jonathan Clark
-// Last updated 26.1.2022 for v0.5.0+
+// Last updated 7.2.2022 for v0.5.1
 //-----------------------------------------------------------------------------
 
 import {
@@ -17,6 +17,7 @@ import {
   weekStartEnd,
   withinDateRange,
 } from '../../helpers/dateTime'
+import { clo } from '../../helpers/dev'
 import {
   calcOffsetDate,
   quarterStartEnd,
@@ -37,37 +38,43 @@ import {
 } from '../../helpers/userInput'
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 
-export const DEFAULT_SUMMARIES_CONFIG = `  summaries: {
-    folderToStore: 'Summaries', // folder to store any output files in
-    foldersToIgnore: ['📋 Templates', 'Summaries'], // list of folders to exlude in these commands. Note that @Trash and @Archive are always excluded
-    headingLevel: 2, // use level 1-5 headings when writing output to notes
-    // settings for '/countsInPeriod':
-    hashtagCountsHeading: '#hashtag counts',
-    mentionCountsHeading: '@mention counts',
-    showAsHashtagOrMention: true, // or false to hide # and @ characters
-    // In the following the includes (if specified) takes precedence over excludes ...
-    includeHashtags: [], // e.g. ['#holiday','#jog','#commute','#webinar']
-    excludeHashtags: [],
-    includeMentions: [], // e.g. ['@work','@fruitveg','@words']
-    excludeMentions: ['@done', '@repeat'],
-    // settings for '/occurrencesInPeriod':
-    occurrencesHeading: 'Occurrences',
-    defaultOccurrences: ['idea', '@review', '#question'],
-    highlightOccurrences: false, // use ==highlight== of matched occurrences in output
-    showEmptyOccurrences: false, // if no occurrences found of this string to match, make this clear
-    dateStyle: 'link', // where the context for an occurrence is a date, does it get appended as a 'date' using your locale, or as a NP date 'link' ('>date') or 'at' ('@date') or 'none'
-    // Settings for '/insertProgressUpdate'
-    progressHeading: 'Progress Update',
-    progressHashtags: [], // e.g. ['#gym','#jog']
-    progressMentions: [], // e.g. ['@work','@fruitveg','@sleep']
-    // setting for '/weeklyStats':
-    weeklyStatsDuration: 14, // number of weeks to look back
-  },
-`
+//------------------------------------------------------------------------------
+// Get settings
+
+// export const DEFAULT_SUMMARIES_CONFIG = `  summaries: {
+//     folderToStore: 'Summaries', // folder to store any output files in
+//     foldersToExclude: ['📋 Templates', 'Summaries'], // list of folders to exlude in these commands. Note that @Trash and @Archive are always excluded
+//     headingLevel: 2, // use level 1-5 headings when writing output to notes
+//     // settings for '/countsInPeriod':
+//     hashtagCountsHeading: '#hashtag counts',
+//     mentionCountsHeading: '@mention counts',
+//     showAsHashtagOrMention: true, // or false to hide # and @ characters
+//     // In the following the includes (if specified) takes precedence over excludes ...
+//     includeHashtags: [], // e.g. ['#holiday','#jog','#commute','#webinar']
+//     excludeHashtags: [],
+//     includeMentions: [], // e.g. ['@work','@fruitveg','@words']
+//     excludeMentions: ['@done', '@repeat'],
+//     // settings for '/occurrencesInPeriod':
+//     occurrencesHeading: 'Occurrences',
+//     defaultOccurrences: ['idea', '@review', '#question'],
+//     highlightOccurrences: false, // use ==highlight== of matched occurrences in output
+//     showEmptyOccurrences: false, // if no occurrences found of this string to match, make this clear
+//     dateStyle: 'link', // where the context for an occurrence is a date, does it get appended as a 'date' using your locale, or as a NP date 'link' ('>date') or 'at' ('@date') or 'none'
+//     // Settings for '/insertProgressUpdate'
+//     progressHeading: 'Progress Update',
+//     progressHashtags: [], // e.g. ['#gym','#jog']
+//     progressMentions: [], // e.g. ['@work','@fruitveg','@sleep']
+//     // setting for '/weeklyStats':
+//     weeklyStatsDuration: 14, // number of weeks to look back
+//   },
+// `
+
+const configKey = 'summaries'
+
 export type headingLevelType = 1 | 2 | 3 | 4 | 5
 export type SummariesConfig = {
   folderToStore: string,
-  foldersToIgnore: string[],
+  foldersToExclude: string[],
   headingLevel: headingLevelType,
   hashtagCountsHeading: string,
   mentionCountsHeading: string,
@@ -88,65 +95,82 @@ export type SummariesConfig = {
 }
 
 /**
- * Provide config from _configuration and cast content to real objects. (Borrowing approach from @m1well)
+ * Get config settings from either ConfigV1 or Config V2 (if available)
  *
  * @return {SummariesConfig} object with configuration
  */
-export async function getConfigSettings(): Promise<SummariesConfig> {
-  const result = await getOrMakeConfigurationSection(
-    'summaries',
-    DEFAULT_SUMMARIES_CONFIG
-  )
+export async function getSummariesSettings(): Promise<SummariesConfig> {
+  console.log(`Start of getSummariesSettings()`)
 
-  if (result == null || Object.keys(result).length === 0) {
-    console.log(`error: expected config could not be found in the _configuration file`)
-    return {
-      folderToStore: 'Summaries',
-      foldersToIgnore: ['📋 Templates', 'Summaries'],
-      headingLevel: 2,
-      hashtagCountsHeading: '#hashtag counts',
-      mentionCountsHeading: '@mention counts',
-      showAsHashtagOrMention: false,
-      includeHashtags: [],
-      excludeHashtags: [],
-      includeMentions: [],
-      excludeMentions: ['@done', '@repeat'],
-      occurrencesHeading: 'Occurrences',
-      defaultOccurrences: ['idea', '@review', '#question'],
-      highlightOccurrences: false,
-      showEmptyOccurrences: false,
-      dateStyle: 'link',
-      weeklyStatsDuration: undefined,
-      progressHeading: 'Progress Update',
-      progressHashtags: ['#gym','#jog'],
-      progressMentions: ['@work','@fruitveg','@sleep'],
-    }
-  } else {
-    const config: SummariesConfig = {
-      folderToStore: castStringFromMixed(result, 'folderToStore'),
-      foldersToIgnore: castStringArrayFromMixed(result, 'foldersToIgnore'),
-      headingLevel: castHeadingLevelFromMixed(result, 'headingLevel'),
-      hashtagCountsHeading: castStringFromMixed(result, 'hashtagCountsHeading'),
-      mentionCountsHeading: castStringFromMixed(result, 'mentionCountsHeading'),
-      showAsHashtagOrMention: castBooleanFromMixed(result, 'showAsHashtagOrMention'),
-      includeHashtags: castStringArrayFromMixed(result, 'includeHashtags'),
-      excludeHashtags: castStringArrayFromMixed(result, 'excludeHashtags'),
-      includeMentions: castStringArrayFromMixed(result, 'includeMentions'),
-      excludeMentions: castStringArrayFromMixed(result, 'excludeMentions'),
-      occurrencesHeading: castStringFromMixed(result, 'occurrencesHeading'),
-      defaultOccurrences: castStringArrayFromMixed(result, 'defaultOccurrences'),
-      highlightOccurrences: castBooleanFromMixed(result, 'highlightOccurrences'),
-      showEmptyOccurrences: castBooleanFromMixed(result, 'showEmptyOccurrences'),
-      dateStyle: castStringFromMixed(result, 'dateStyle'),
-      weeklyStatsDuration: castNumberFromMixed(result, 'weeklyStatsDuration'),
-      progressHeading: castStringFromMixed(result, 'progressHeading'),
-      progressHashtags: castStringArrayFromMixed(result, 'progressHashtags'),
-      progressMentions: castStringArrayFromMixed(result, 'progressMentions'),
-    }
-    // console.log(`loaded config OK`)
-    // console.log(`config = ${JSON.stringify(result)}\n`)
+  // Get settings using ConfigV2
+  // This is the usual way ... but it breaks when run from a Template ...
+  // const v2Config: EventsConfig = DataStore.settings
+  // ... so try this explicit way instead
+  const v2Config: SummariesConfig = await DataStore.loadJSON("../jgclark.Summaries/settings.json")
+
+  if (v2Config != null && Object.keys(v2Config).length > 0) {
+    const config: SummariesConfig = v2Config
+
+    // $FlowFixMe
+    clo(config, `\t${configKey} settings from V2:`)
     return config
-    }
+  
+  } else {
+    const v1Config = (await getOrMakeConfigurationSection(configKey)) ?? {}
+  // const result = await getOrMakeConfigurationSection(
+  //   'summaries',
+  //   DEFAULT_SUMMARIES_CONFIG
+  // )
+
+  //   if (result == null || Object.keys(result).length === 0) {
+  //   console.log(`error: expected config could not be found in the _configuration file`)
+  //   return {
+  //     folderToStore: 'Summaries',
+  //     foldersToExclude: ['📋 Templates', 'Summaries'],
+  //     headingLevel: 2,
+  //     hashtagCountsHeading: '#hashtag counts',
+  //     mentionCountsHeading: '@mention counts',
+  //     showAsHashtagOrMention: false,
+  //     includeHashtags: [],
+  //     excludeHashtags: [],
+  //     includeMentions: [],
+  //     excludeMentions: ['@done', '@repeat'],
+  //     occurrencesHeading: 'Occurrences',
+  //     defaultOccurrences: ['idea', '@review', '#question'],
+  //     highlightOccurrences: false,
+  //     showEmptyOccurrences: false,
+  //     dateStyle: 'link',
+  //     weeklyStatsDuration: undefined,
+  //     progressHeading: 'Progress Update',
+  //     progressHashtags: ['#gym','#jog'],
+  //     progressMentions: ['@work','@fruitveg','@sleep'],
+  //   }
+  // } else {
+  const config: SummariesConfig = {
+    folderToStore: castStringFromMixed(v1Config, 'folderToStore'),
+    foldersToExclude: castStringArrayFromMixed(v1Config, 'foldersToExclude'),
+    headingLevel: castHeadingLevelFromMixed(v1Config, 'headingLevel'),
+    hashtagCountsHeading: castStringFromMixed(v1Config, 'hashtagCountsHeading'),
+    mentionCountsHeading: castStringFromMixed(v1Config, 'mentionCountsHeading'),
+    showAsHashtagOrMention: castBooleanFromMixed(v1Config, 'showAsHashtagOrMention'),
+    includeHashtags: castStringArrayFromMixed(v1Config, 'includeHashtags'),
+    excludeHashtags: castStringArrayFromMixed(v1Config, 'excludeHashtags'),
+    includeMentions: castStringArrayFromMixed(v1Config, 'includeMentions'),
+    excludeMentions: castStringArrayFromMixed(v1Config, 'excludeMentions'),
+    occurrencesHeading: castStringFromMixed(v1Config, 'occurrencesHeading'),
+    defaultOccurrences: castStringArrayFromMixed(v1Config, 'defaultOccurrences'),
+    highlightOccurrences: castBooleanFromMixed(v1Config, 'highlightOccurrences'),
+    showEmptyOccurrences: castBooleanFromMixed(v1Config, 'showEmptyOccurrences'),
+    dateStyle: castStringFromMixed(v1Config, 'dateStyle'),
+    weeklyStatsDuration: castNumberFromMixed(v1Config, 'weeklyStatsDuration'),
+    progressHeading: castStringFromMixed(v1Config, 'progressHeading'),
+    progressHashtags: castStringArrayFromMixed(v1Config, 'progressHashtags'),
+    progressMentions: castStringArrayFromMixed(v1Config, 'progressMentions'),
+  }
+  // $FlowFixMe
+  clo(config, `\t${configKey} settings from V1:`)
+  return config
+  }
 }
 
 export async function getPeriodStartEndDates(
@@ -367,7 +391,7 @@ export async function getPeriodStartEndDates(
       periodString = `<Error: couldn't parse interval type '${period}'>`
     }
   }
-  // console.log(`-> ${fromDate.toString()}, ${toDate.toString()}, ${periodString}, ${periodPartStr}`)
+  console.log(`-> ${fromDate.toString()}, ${toDate.toString()}, ${periodString}, ${periodPartStr}`)
   return [fromDate, toDate, periodString, periodPartStr]
 }
 
@@ -460,7 +484,6 @@ export async function calcHashtagStatsPeriod(
   const periodDailyNotes = DataStore.calendarNotes.filter((p) =>
     withinDateRange( dateStringFromCalendarFilename(p.filename), fromDateStr, toDateStr )
   )
-
   if (periodDailyNotes.length === 0) {
     console.log(`  warning: no matching daily notes found between ${fromDateStr} and ${toDateStr}`)
     return
