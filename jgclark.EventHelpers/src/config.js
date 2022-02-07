@@ -1,7 +1,7 @@
 // @flow
 // ----------------------------------------------------------------------------
 // Sort configuration for commands in the Event Helpers plugin.
-// Last updated 3.2.2022 for v0.11.1, by @jgclark
+// Last updated 7.2.2022 for v0.11.4, by @jgclark
 // @jgclark
 // ----------------------------------------------------------------------------
 import {
@@ -20,31 +20,7 @@ import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configura
 //------------------------------------------------------------------------------
 // Get settings
 
-// const DEFAULT_EVENTS_OPTIONS = `
-//   events: {
-//     calendarToWriteTo: "",  // specify calendar name to write events to. Must be writable calendar. If empty, then the default system calendar will be used.
-//     addEventID: false,  // whether to add an '⏰event:ID' internal link when creating an event from a time block
-//     processedTagName: "#event_created",  // optional tag to add after making a time block an event
-//     confirmEventCreation: false,  // optional tag to indicate whether to ask user to confirm each event to be created
-//     removeTimeBlocksWhenProcessed: true,  // whether to remove time block after making an event from it
-//     eventsHeading: "### Events today",  // optional heading to put before list of today's events
-//     calendarSet: [],  // optional ["array","of calendar","names"] to filter by when showing list of events. If empty or missing, no filtering will be done.
-//     addMatchingEvents: {  // match events with string on left, and then the string on the right is the template for how to insert this event (see README for details)
-//       "meeting": "### *|TITLE|* (*|START|*)\\n*|NOTES|*",
-//       "webinar": "### *|TITLE|* (*|START|*) *|URL|*",
-//       "holiday": "*|TITLE|* *|NOTES|*",
-//     },
-//     locale: "en-US",
-//     timeOptions: { hour: '2-digit', minute: '2-digit', hour12: false },
-//     calendarNameMappings: [  // here you can map a calendar name to a new string - e.g. "Thomas" to "Me" with "Thomas;Me"
-//       "From;To",
-//     ],
-//   },
-// `
-
 const configKey = 'events'
-
-//------------------------------------------------------------------------------
 
 /**
  * Get config settings from Template folder _configuration note
@@ -54,9 +30,15 @@ export async function getEventsSettings(): Promise<EventsConfig> {
   console.log(`Start of getEventsSettings()`)
   // Wish the following was possible:
   // if (NotePlan.environment.version >= "3.4") {
-  const v2Config: EventsConfig = DataStore.settings
+  
+  // Get settings using ConfigV2
+  // This is the usual way ... but it breaks when run from a Template ...
+  // const v2Config: EventsConfig = DataStore.settings
+  // ... so try this explicit way instead
+  const v2Config: EventsConfig = await DataStore.loadJSON("../jgclark.EventHelpers/settings.json")
+  
   // $FlowFixMe[incompatible-call]
-  // clo(v2Config, 'v2Config')
+  clo(v2Config, 'v2Config')
 
   if (v2Config != null && Object.keys(v2Config).length > 0) {
     const config: EventsConfig = v2Config

@@ -3,6 +3,10 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 
 <!-- Improve detection of target dates -->
 
+## [0.11.4] - 2022-02-07
+### Fixed
+- fix to allow `matchingEvent` calls to be run from Templates, after change to new built-in Settings screen
+
 ## [0.11.3] - 2022-02-05
 ### Changed
 - now tell user if orphaned date offsets are found (i.e. without the date to offset from)
