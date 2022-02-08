@@ -106,7 +106,7 @@ This example sweeps open tasks from the previous 7 days (Project notes & Calenda
 	- `moveType: 'reschedule'` (for any type of sweep) means: Replace overdue date with `>today`
 	
 ### events() & listMatchingEvents() -- Using Event Lists from a Template
-See the [**Event Helpers** plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers) for more details, including configuring this. But in summary:
+You need the **Event Helpers** plugin installed. Then see its [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers) for more details, including configuring this. But in summary:
 
 Insert `{{events()}}` wherever you wish it to appear in the Template.  By default it gives a simple markdown list of event title and start time.  To **customise the list display**, you can add a `'template:"..."'` parameter to the `{{events()}}` command that sets how to present the list, and a separate template for items with no start/end times (`'allday_template:"..."`). For example:
 

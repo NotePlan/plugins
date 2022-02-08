@@ -5,7 +5,7 @@
 - uses the new Configuration interface available from NotePlan v3.4. There is an automatic one-off migration of settings from your _configuration note.
 - use newer style of dialog boxes (available from v3.3.1)
 
-### Changed
+### Fixed
 - fix to /weeklyStats when run over a year boundary
 
 ## [0.5.0] - 2022-01-18
