@@ -1,34 +1,101 @@
 // @flow
-// -----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 // Plugin to help move selected selectedParagraphs to other notes
 // Jonathan Clark
-// v0.6.0, 9.12.2021
-// -----------------------------------------------------------------------------
+// last updated 1.2.2022 for v0.6.0
+// ----------------------------------------------------------------------------
 
 import {
-  parasToText,
-  calcSmartPrependPoint,
-} from '../../helpers/paragraph'
+  castBooleanFromMixed,
+  castStringFromMixed,
+} from '../../helpers/dataManipulation'
+import {
+  getDateFromString,
+  hyphenatedDate,
+  isoDateStringFromCalendarFilename,
+  toLocaleDateString,
+ } from '../../helpers/dateTime'
+import { clo } from '../../helpers/dev'
+import {
+  rangeToString,
+  displayTitle
+} from '../../helpers/general'
 import { allNotesSortedByChanged } from '../../helpers/note'
+import {
+  calcSmartPrependPoint,
+  findEndOfActivePartOfNote,
+  parasToText,
+  selectedLinesIndex,
+  RE_HORIZONTAL_LINE,
+} from '../../helpers/paragraph'
 import { todaysDateISOString } from '../../helpers/dateTime'
 import { chooseHeading } from '../../helpers/userInput'
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 
 
-//--------------------------------------------------------------------------------------------------------------------
-// Settings
-const DEFAULT_FILER_OPTIONS = `  filer: {
-    addDateBacklink: true, // whether to insert date link in place of the moved text
-    useExtendedBlockDefinition: false
-  },
-`
+//-----------------------------------------------------------------------------
+// // Get settings
+// const DEFAULT_FILER_OPTIONS = `  filer: {
+//     addDateBacklink: true, // whether to insert date link in place of the moved text
+//     useExtendedBlockDefinition: false
+//   },
+// `
 
-// -----------------------------------------------------------------------------
+type FilerConfig = {
+  addDateBacklink: boolean,
+  dateRefStyle: string,
+  useExtendedBlockDefinition: boolean,
+  whereToAddInSection: string
+}
+
+async function getFilerSettings(): Promise<FilerConfig> {
+  console.log(`Start of getFilerSettings()`)
+
+  const v2Config: EventsConfig = DataStore.settings
+  // $FlowFixMe[incompatible-call]
+  // clo(v2Config, 'v2Config')
+
+  if (v2Config != null && Object.keys(v2Config).length > 0) {
+    const config: FilerConfig = v2Config
+    // $FlowFixMe
+    clo(config, `\t${configKey} settings from V2:`)
+    return config
+  } else {
+  // Get config settings from Template folder _configuration note or ConfigV2
+    const v1config = await getOrMakeConfigurationSection(
+      'filer',
+      // DEFAULT_FILER_OPTIONS,
+      // no minimum config
+    ) ?? {}
+
+    let config: FilerConfig
+    // ???
+    if (v1config == null || Object.keys(v1config).length === 0) {
+    console.log(`\tInfo: couldn't find 'filer' settings. Will use defaults.`)
+    config = {
+      addDateBacklink: false,
+      dateRefStyle: "link",
+      useExtendedBlockDefinition: false,
+      whereToAddInSection: "start",
+    }
+  } else {
+    console.log(`\tFound 'filer' settings`)
+    config = {
+      addDateBacklink: castBooleanFromMixed(v1config, 'addDateBacklink'),
+      dateRefStyle: castStringFromMixed(v1config, 'dateRefStyle'),
+      useExtendedBlockDefinition: castBooleanFromMixed(v1config, 'useExtendedBlockDefinition'),
+      whereToAddInSection: castStringFromMixed(v1config, 'whereToAddInSection'),
+    }
+  }
+  return config
+}
+
+// ----------------------------------------------------------------------------
 
 /**
- * Move text to a different note. 
- * TODO(@EduardMe): doesn't work when the destination daily note doesn't already exist.
- * TODO: Waiting for better date picker from Eduard before working further on this.
+ * Move text to a different note.
+ * NB: Can't selecet dates with no existing Calendar note.
+ * TODO(EduardMe): Waiting for better date picker from Eduard before working further on this.
  * 
  * This is how we identify what we're moving (in priority order):
  * - current selection
@@ -40,9 +107,8 @@ const DEFAULT_FILER_OPTIONS = `  filer: {
  *   empty line as well.
  * @author @jgclark
  */
-export async function fileParas(): Promise<void> {
-  console.log(`\nfileParas`)
-  const { content, selectedParagraphs, note } = Editor
+export async function moveParas(): Promise<void> {
+  const { content, paragraphs, selectedParagraphs, note } = Editor
   if (content == null || selectedParagraphs == null || note == null) {
     // No note open, or no selectedParagraph selection (perhaps empty note), so don't do anything.
     console.log('warning: No note open, so stopping.')
@@ -50,51 +116,42 @@ export async function fileParas(): Promise<void> {
   }
 
   // Get config settings from Template folder _configuration note
-  const filerConfig = await getOrMakeConfigurationSection(
-    'filer',
-    DEFAULT_FILER_OPTIONS,
-    // no minimum config
-  )
-  // for once it doesn't matter if filerConfig returns null (though it shouldn't)
-  // $FlowIgnore[incompatible-use]
-  const pref_addDateBacklink = !!filerConfig.addDateBacklink ?? true // !! ensures first item is boolean
-  console.log(pref_addDateBacklink)
-  // $FlowIgnore[incompatible-use]
-  const pref_useExtendedBlockDefinition = !!filerConfig.useExtendedBlockDefinition ?? false // !! ensures first item is boolean
-  console.log(pref_useExtendedBlockDefinition)
+  const config = await getFilerSettings()
+  // await getOrMakeConfigurationSection(
+  //   'filer',
+  //   DEFAULT_FILER_OPTIONS,
+  //   // no minimum config
+  // )
+  // // for once it doesn't matter if filerConfig returns null (though it shouldn't)
+  // // $FlowIgnore[incompatible-use]
+  // const pref_addDateBacklink = !!filerConfig.addDateBacklink ?? true // !! ensures first item is boolean
+  // // console.log(pref_addDateBacklink.toString())
+  // // $FlowIgnore[incompatible-use]
+  // const pref_dateRefStyle = filerConfig.dateRefStyle ?? 'link'
+  // // console.log(pref_dateRefStyle)
+  // // $FlowIgnore[incompatible-use]
+  // const pref_useExtendedBlockDefinition = !!filerConfig.useExtendedBlockDefinition ?? false // !! ensures first item is boolean
+  // // console.log(pref_useExtendedBlockDefinition.toString())
+  // // $FlowIgnore[incompatible-use]
+  // const pref_whereToAddInSection = filerConfig.whereToAddInSection ?? 'start'
+  // // console.log(pref_whereToAddInSection)
 
-  const allParas = Editor.selectedParagraphs
+  // Get current selection, and its range
+  // TODO: Break this out into a separate helper function, which could also be used in progress.js
+  // TODO: First check progress.js for getSelectedParaIndex() which does some of this.
   const selection = Editor.selection
   if (selection == null) {
     console.log('warning: No selection found, so stopping.')
     return
   }
-  const range = Editor.paragraphRangeAtCharacterIndex(selection.start)
-  console.log(`selection: ${JSON.stringify(range)}`)
-
-  // Work out what selectedParagraph number this selected selectedPara is
-  let firstSelParaIndex = 0
-  for (let i = 0; i < allParas.length; i++) {
-    const p = allParas[i]
-    if (p.contentRange?.start === range.start) {
-      firstSelParaIndex = i
-      break
-    }
-  }
-  console.log(`  First selectedPara index: ${firstSelParaIndex}`)
-
-  let parasInBlock: Array<TParagraph> = []
-  if (selectedParagraphs.length > 1) {
-    // we have a selection of selectedParagraphs, so use them
-    parasInBlock = [...selectedParagraphs]
-    console.log(`  Found ${parasInBlock.length} selected selectedParas`)
-  } else {
-    parasInBlock = getParagraphBlock(allParas, firstSelParaIndex, pref_useExtendedBlockDefinition)
-  }
+  // $FlowFixMe[incompatible-call]
+  const firstSelParaIndex = selectedLinesIndex(Editor.selection, paragraphs)
+  let parasInBlock: Array<TParagraph> =
+    getParagraphBlock(note, firstSelParaIndex, config.useExtendedBlockDefinition)
 
   // If this is a calendar note we've moving from, and the user wants to
   // create a date backlink, then append backlink to the first selectedPara in parasInBlock
-  if (pref_addDateBacklink && note.type === 'Calendar') {
+  if (config.addDateBacklink && note.type === 'Calendar') {
     parasInBlock[0].content = `${parasInBlock[0].content} >${todaysDateISOString}`
   }
 
@@ -112,6 +169,8 @@ export async function fileParas(): Promise<void> {
     `Select note to move ${parasInBlock.length} lines to`,
   )
   const destNote = notes[res.index]
+  // TODO(EduardMe): The problem is that the showOptions returns the first item if something else is typed. And I can't see a way to distinguish between the two.
+  console.log(displayTitle(destNote)) // NB: -> first item in list (if a new item is typed)
 
   // Ask to which heading to add the selectedParas
   const headingToFind = (await chooseHeading(destNote, true)).toString() // don't know why this coercion is required for flow
@@ -119,10 +178,9 @@ export async function fileParas(): Promise<void> {
   console.log(`  Moving to note: ${destNote.title ?? 'untitled'} under heading: '${headingToFind}'`)
 
   // Add to new location
-  // Currently there's no API function to deal with multiple selectedParagraphs, but we can
-  // insert a raw text string
-  // Add text directly under the heading in the note
-  // note.addParagraphBelowHeadingTitle(parasInBlock, 'empty', heading.content, false, false);
+  // Currently there's no API function to deal with multiple selectedParagraphs,
+  // but we can insert a raw text string.
+  // (can't simply use note.addParagraphBelowHeadingTitle() as we have more options than in supports)
   const destNoteParas = destNote.paragraphs
   let insertionIndex = null
   if (headingToFind === destNote.title || headingToFind.includes('(top of note)')) { // i.e. the first line in project or calendar note
@@ -158,9 +216,12 @@ export async function fileParas(): Promise<void> {
  * This is how we identify the block:
  * - current line, plus any indented paragraphs that directly follow it
  * - current line, plus if this line is a heading, its following section
- * NB: the plugin setting 'useExtendedBlockDefinition' decides whether the directly following
- *   paragaphs have to be further indented or can take all following lines at same level until next
- *   empty line as well. Default is false.
+ * 
+ * The plugin setting 'useExtendedBlockDefinition' decides whether to include more lines:
+ * if its true (and by default it is false) then it will work as if the cursor is on the
+ * preceding heading line, and take all its lines up until the next same-level heading.
+ *
+ * NB: in both cases the block always finishes before any horizontal line (e.g. --- or ***).
  * @author @jgclark
  * @param {[TParagraph]} allParas - all selectedParas in the note
  * @param {number} selectedParaIndex - the index of the current Paragraph
@@ -168,13 +229,14 @@ export async function fileParas(): Promise<void> {
  * @return {[TParagraph]} the set of selectedParagraphs in the block
  */
 export function getParagraphBlock(
-  allParas: $ReadOnlyArray<TParagraph>,
+  note: TNote,
   selectedParaIndex: number,
   useExtendedBlockDefinition: boolean
 ): Array<TParagraph> {
-  const parasInBlock: Array<TParagraph> = []
+  const endOfActiveSection = findEndOfActivePartOfNote(note)
+  const allParas = note.paragraphs
   const selectedPara = allParas[selectedParaIndex]
-  // selectedParaDetails(selectedPara)
+  const parasInBlock: Array<TParagraph> = []
   console.log(
     `  Para '${selectedPara.content}' type: ${selectedPara.type}, index: ${selectedParaIndex}`,
   )
@@ -195,26 +257,77 @@ export function getParagraphBlock(
     console.log(`  Found ${parasInBlock.length} heading section lines`)
   } else {
     // This isn't a heading.
-    // Now see if there are following indented lines to move as well
     const startingIndentLevel = selectedPara.indents
-    console.log(
-      `  Found single line with indent level ${startingIndentLevel}`,
-    )
+    console.log(`  Found single line with indent level ${startingIndentLevel}`)
     parasInBlock.push(selectedPara)
-    for (let i = selectedParaIndex + 1; i < allParas.length; i++) {
-      const p = allParas[i]
-      if (useExtendedBlockDefinition) {
-        // include line unless we hit a new heading, an empty line, or a less-indented line
-        // TODO:
-        // TODO: also thing about horizontal rules and lower priority headings
-      } 
-      else if (p.indents <= startingIndentLevel) {
-        // stop as this selectedPara is same or less indented than the starting line
-        break
+
+    if (useExtendedBlockDefinition) {
+      let thisHeadingLevel = 6 // i.e. higher than normal bounds to allow for case where there is no heading at the start of the block
+      // include line unless we hit a new heading, an empty line, or a less-indented line
+      // TODO: also work out what to do about lower-level headings
+      // First look earlier to find earlier lines up to a blank line or horizontal rule
+      for (let i = selectedParaIndex - 1; i >= 0; i--) {
+        const p = allParas[i]
+        // console.log(`  ${i} / indent ${p.indents} / ${p.content}`)
+        if (p.content.match(RE_HORIZONTAL_LINE)) {
+          // console.log(`Found HR`)
+          break
+        } else if (p.content === '') {
+          // console.log(`Found blank line`)
+          break
+        } else if (p.type === 'title') {
+          // console.log(`Found title`)
+          thisHeadingLevel = p.headingLevel
+          parasInBlock.unshift(p) // save para onto front, but then stop
+          break
+        }
+        parasInBlock.unshift(p) // save para onto front
       }
-      parasInBlock.push(p)
+      console.log(`For extended block found ${parasInBlock.length - 1} lines to include before`)
+
+      // Now add all lines up until the next same-level heading or HR or blank
+      for (let i = selectedParaIndex + 1; i < endOfActiveSection; i++) {
+        const p = allParas[i]
+        // console.log(`  ${i} / indent ${p.indents} / ${p.content}`)
+        // stop if horizontal line
+        if (p.content.match(RE_HORIZONTAL_LINE)) {
+          // console.log(`Found HR`)
+          break
+        } else if (p.content === '') {
+          // console.log(`Found blank line`)
+          break
+        }
+        if (p.type === 'title' && p.headingLevel <= thisHeadingLevel) {
+          // console.log(`Found Heading level ${p.headingLevel}`)
+          break
+        }
+        parasInBlock.push(p) // add onto end of array
+      }
+    } else {
+      // Not extended definition.
+      // See if there are following indented lines to move as well
+      for (let i = selectedParaIndex + 1; i < endOfActiveSection; i++) {
+        const p = allParas[i]
+        // console.log(`  ${i} / indent ${p.indents} / ${p.content}`)
+        // stop if horizontal line
+        if (p.content.match(RE_HORIZONTAL_LINE)) {
+          // console.log(`Found HR`)
+          break
+        } else if (p.content === '') {
+          // console.log(`Found blank line`)
+          break
+        } else if (p.indents <= startingIndentLevel) {
+          // stop as this selectedPara is same or less indented than the starting line
+          // console.log(`Stopping as found lower indent (and not extended definition)`)
+          break
+        }
+        parasInBlock.push(p) // add onto end of array
+      }
     }
-    console.log(`  Found ${parasInBlock.length - 1} indented selectedParas`)
+    console.log(`  Found ${parasInBlock.length - 1} paras:`)
+    for (let pib of parasInBlock) {
+      console.log(`  -> ${pib.content}`)
+    }
   }
   return parasInBlock
 }

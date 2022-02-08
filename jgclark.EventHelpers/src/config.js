@@ -23,7 +23,7 @@ import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configura
 const configKey = 'events'
 
 /**
- * Get config settings from Template folder _configuration note
+ * Get config settings from either ConfigV1 or Config V2 (if available)
  * @author @jgclark
  */
 export async function getEventsSettings(): Promise<EventsConfig> {
@@ -37,9 +37,6 @@ export async function getEventsSettings(): Promise<EventsConfig> {
   // ... so try this explicit way instead
   const v2Config: EventsConfig = await DataStore.loadJSON("../jgclark.EventHelpers/settings.json")
   
-  // $FlowFixMe[incompatible-call]
-  clo(v2Config, 'v2Config')
-
   if (v2Config != null && Object.keys(v2Config).length > 0) {
     const config: EventsConfig = v2Config
     config.locale = getLocale(v2Config)

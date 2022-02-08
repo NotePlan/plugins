@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Summary commands for notes
 // Jonathan Clark
-// Last updated 7.2.2022 for v0.5.2
+// Last updated 7.2.2022 for v0.6.0
 //-----------------------------------------------------------------------------
 
 export { insertProgressUpdate } from './progress'

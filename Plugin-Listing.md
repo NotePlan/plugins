@@ -65,6 +65,7 @@
 | `saveSearchResults` | Save results from a search over all notes | 🗃 Summaries |
 | `saveSearchResultsInPeriod` | Save results from a search of specified tags or mentions over notes from a time period | 🗃 Summaries |
 | `start reviews` | start a new series of reviews, deciding which are now ready for review, and kicking off the first one | 🔬Reviews |
+| `summ:install` | Test installer for Summaries plugin | 🗃 Summaries |
 | `sw7` | Find all open tasks for last 7 days & silently move/reschedule to today | 🧹 Task Sweeper |
 | `swa` | Find ALL open tasks & move/reschedule to today's Calendar Note | 🧹 Task Sweeper |
 | `swt` | Move/Reschedule all open tasks in current note to today's Calendar Note | 🧹 Task Sweeper |

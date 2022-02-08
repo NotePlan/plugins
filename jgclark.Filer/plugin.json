@@ -7,7 +7,7 @@
   "plugin.icon": "",
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Filer",
-  "plugin.version": "0.6.0",
+  "plugin.version": "0.5.4",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -21,12 +21,12 @@
         "paragraph"
       ],
       "description": "file (move) paragraphs to different notes",
-      "jsFunction": "fileParas"
+      "jsFunction": "moveParas"
     },
     {
       "name": "mp",
       "description": "move (file) paragraphs to different notes",
-      "jsFunction": "fileParas"
+      "jsFunction": "moveParas"
     },
     {
       "name": "nns",
@@ -34,5 +34,44 @@
       "jsFunction": "newNoteFromSelection"
     }
   ],
-  "plugin.settings": []
+  "plugin.settings": [
+    {
+        "type": "heading",
+        "title": "Filer plugin settings"
+    },
+    {
+        "key": "addDateBacklink",
+        "title": "Add date reference?",
+        "description": "If true, adds date reference on the moved paragraph(s) when moved from a daily note.",
+        "type": "bool",
+        "default": false,
+        "required": true
+    },
+    {
+        "key": "dateRefStyle",
+        "title": "Date reference style",
+        "description": "The style of date to add 'link' ('>date') or 'at' ('@date') or 'date' (a formatted date string).",
+        "type": "string",
+        "choices": ["at", "date", "link"],
+        "default": "link",
+        "required": true
+    },
+    {
+        "key": "useExtendedBlockDefinition",
+        "title": "Use extended block definition?",
+        "description": "Controls whether all the lines in the current heading's section are included in the block to move (true) or whether only the following ones that are more deeply indented are included (false; this is the default). In both cases a block is closed by a blank line or z horizontal line.",
+        "type": "bool",
+        "default": false,
+        "required": true
+    },
+    {
+        "key": "whereToAddInSection",
+        "title": "Where to add in section",
+        "description": "Controls whether moved lines get inserted at the \"start\" or \"end\" of the chosen section.",
+        "type": "string",
+        "choices": ["start", "end"],
+        "default": "start",
+        "required": true
+    }
+  ]
 }

@@ -1,5 +1,5 @@
 # 🗃 Filer plugin
-This plugin provides the **`/fp`** and **`/mp`** commands to help quickly **file** (**move**) any paragraphs (any sort of line, not just tasks) to different notes in NotePlan.
+This plugin provides the **`/fp`** and identical **`/mp`** commands to help quickly **file** (**move**) any paragraphs (any sort of line, not just tasks) to different notes in NotePlan.
 
 It works out what you want moving from the current open note using this priority order:
 
@@ -8,7 +8,7 @@ It works out what you want moving from the current open note using this priority
 - current line the cursor is in
 - current line the cursor is in, plus any indented lines that follow it
 
-It pops up the command bar to choose the note you want to move it to, followed by the heading within that note to move it after.  You can press Escape (on Mac) at any time to cancel.  The move happens in the background, leaving you in the current note.
+It pops up the command bar to choose the note you want to move it to, followed by the heading within that note to move it after.  You can press Escape (on Mac) at any time to cancel.  The move happens in the background, leaving you in the current note.  NB: due to limitations in the API it's not yet possible to move items to a Calendar note that doesn't already exist. (I will improve this when the API supports it.)
 
 It also provides the **`/nns`** **new note from selection** command, which extends the **`/nn`** command. It is interactive, prompting various questions as it works.
 

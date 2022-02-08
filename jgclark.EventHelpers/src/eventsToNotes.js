@@ -126,11 +126,11 @@ export async function listMatchingDaysEvents(
 
   if (config.addMatchingEvents == null) {
     await showMessage(
-      `Error: Empty 'addMatchingEvents' setting in _configuration note. Stopping`,
+      `Error: Empty 'addMatchingEvents' setting in Config. Stopping`,
       'OK',
       'List Matching Events',
     )
-    return `(Error: found no 'addMatchingEvents' settings in _configuration note.)`
+    return `(Error: found no 'addMatchingEvents' setting in Config.)`
   }
   const textToMatchA = Object.keys(config.addMatchingEvents)
   const templateArr = Object.values(config.addMatchingEvents)
