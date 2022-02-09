@@ -1,7 +1,12 @@
 # What's Changed in 🗃 Summaries plugin?
-## [0.5.1] - ???
+
+## [0.6.0] - 2022-02-07
 ### Changed
-- (tidy-up from getInput changes)
+- uses the new Configuration interface available from NotePlan v3.4. There is an automatic one-off migration of settings from your _configuration note.
+- use newer style of dialog boxes (available from v3.3.1)
+
+### Fixed
+- fix to /weeklyStats when run over a year boundary
 
 ## [0.5.0] - 2022-01-18
 ### Added
@@ -13,6 +18,9 @@
 ### Changed
 - renamed `/occurrencesInPeriod` as `/saveSearchResultsInPeriod`.
 - search terms are now not highlighted if the match is in a `http[s]://...` URL or `file:...` filepath
+
+### Changed
+- renamed `/occurrencesInPeriod` as `/saveSearchResultsInPeriod`.
 
 ## [0.4.0] - 2022-01-14
 ### Added

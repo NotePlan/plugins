@@ -188,8 +188,8 @@ export function jumpToDone(): void {
  * TODO: add following back into plugin.json to active this again:
  * {
  *   "name": "Set title from YAML",
- *     "description": "Set the note's title from the YAML or frontmatter block, not the first line",
- *       "jsFunction": "setTitleFromYAML"
+ *   "description": "Set the note's title from the YAML or frontmatter block, not the first line",
+ *   "jsFunction": "setTitleFromYAML"
  * },
 */
 export function setTitleFromYAML(): void {

@@ -83,7 +83,7 @@ async function getExistingRelease(pluginName) {
     let checkForLines = []
     let failed = false
     const lines = releases.split('\n')
-    console.log(`>>Releases: Found ${lines.length} releases. Searching for release named: "${pluginName}"`)
+    console.log(`>>Releases: Found ${lines.length} releases. Searching for release tagged: "${pluginName}..."`)
     if (lines.length) {
       checkForLines = lines.filter((line) => line.includes(pluginName))
       if (checkForLines.length > 1 && checkForLines[1] !== '') {

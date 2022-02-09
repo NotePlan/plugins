@@ -2,6 +2,9 @@ See Template Plugin [README](https://github.com/NotePlan/plugins/blob/main/nmn.T
 
 # What's Changed in Templates Plugin?
 
+## [0.14.2] - 2022-02-08 (@jgclark)
+- recompiled to use other updated plugins
+
 ## [0.14.1] - 2022-01-17 (@dwertheimer)
 - Fixed /qtn to allow for empty folder
 

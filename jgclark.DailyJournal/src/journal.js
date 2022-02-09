@@ -280,6 +280,8 @@ export async function dayReview(): Promise<void> {
           break
         }
         case 'mood': {
+          // Some confusion as to which type is coming through from ConfigV1 and ConfigV2. 
+          // So cope with either a string (to be turned into an array) or an array.
           const moodArray = (typeof config.moods === 'string') ? config.moods.split(',') : config.moods
           // $FlowFixMe
           const reply = await CommandBar.showOptions(moodArray, 'Choose most appropriate mood for today')

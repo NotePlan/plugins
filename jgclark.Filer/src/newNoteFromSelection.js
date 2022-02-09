@@ -3,6 +3,8 @@
 // @dwertheimer based on @jgclark's newNote
 // Create new note from currently selected text
 // and (optionally) leave backlink to it where selection was
+// Last updated 1.2.2022 for 0.6.0, @jgclark
+
 import {
   getUniqueNoteTitle,
   noteOpener,
@@ -15,16 +17,10 @@ import {
 } from '../../helpers/userInput'
 
 export async function newNoteFromSelection() {
-  const version = `0.4.1`
   const { selectedLinesText, selectedText, selectedParagraphs, note } = Editor
 
   if (note != null && selectedLinesText.length && selectedText !== '') {
-    console.log(
-      `\nnewNoteFromSelection (running v${version}) ${selectedParagraphs.length} selected:`,
-    )
-    // console.log(
-    //   `\t1st Para Type = ${selectedParagraphs[0].type} = "${selectedParagraphs[0].content}"`,
-    // )
+    console.log(`  with ${selectedParagraphs.length} selected:`)
 
     // Get title for this note
     const isTextContent =
@@ -38,8 +34,7 @@ export async function newNoteFromSelection() {
     if (!title) {
       title = strippedFirstLine
       if (isTextContent) {
-        // the types don't allow you to mutate selectedLinesText. Should this change?
-        // $FlowFixMe
+        // $FlowFixMe -- TODO(dwertheimer): the types don't allow you to mutate selectedLinesText 
         selectedLinesText.shift()
       }
     }
@@ -58,19 +53,14 @@ export async function newNoteFromSelection() {
       const filename = (await DataStore.newNote(title, currentFolder)) ?? ''
       console.log(`\tnewNote() -> filename: ${filename}`)
 
-      // The following was duplicating the path, in at least some cases. Removed all fullPath references ...
-      // const fullPath = `${
-      //   currentFolder !== '/' ? `${currentFolder}/` : ''
-      // }${filename}`
-
       // This question needs to be here after newNote and before noteOpener
       // to force a cache refresh after newNote. This API bug will eventually be fixed.
+      // TODO: Check if this bug has been fixed (I think it has).
       const iblq = await CommandBar.showOptions(
         ['Yes', 'No'],
         'Insert link to new file where selection was?',
       )
 
-      // const newNote = await noteOpener(fullPath, 'no leading slash')
       const newNote = await noteOpener(filename, 'using filename')
 
       if (newNote) {
@@ -89,17 +79,12 @@ export async function newNoteFromSelection() {
 
         newNote.appendParagraph(movedText, 'empty')
         if (insertBackLink) {
-          newNote.appendParagraph(`^^^ Moved from [[${origFile}]]:`, 'text')
+          newNote.appendParagraph(`^ Moved from [[${origFile}]]:`, 'text')
         }
-        if (
-          (await showMessageYesNo('New Note created. Open it now?')) === 'Yes'
-        ) {
-          // await Editor.openNoteByFilename(fullPath)
+        if (await showMessageYesNo('New Note created. Open it now?') === 'Yes') {
           await Editor.openNoteByFilename(filename)
         }
       } else {
-        // console.log(`\tCould not open file: "${fullPath}"`)
-        // showMessage(`\tCould not open file ${fullPath}`)
         console.log(`\tCould not open new note: ${filename}`)
         showMessage(`Could not open new note ${filename}`)
       }

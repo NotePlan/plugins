@@ -14,7 +14,7 @@
 import {
   calcHashtagStatsPeriod,
   calcMentionStatsPeriod,
-  getConfigSettings,
+  getSummariesSettings,
   getPeriodStartEndDates,
 } from './summaryHelpers'
 import type { SummariesConfig } from './summaryHelpers'
@@ -61,7 +61,7 @@ export async function statsPeriod(): Promise<void> {
   // logAllEnvironmentSettings()
 
   // Get config settings from Template folder _configuration note
-  let config = await getConfigSettings()
+  let config = await getSummariesSettings()
 
   // Get time period
   const [fromDate, toDate, periodString, periodPartStr] = await getPeriodStartEndDates()  

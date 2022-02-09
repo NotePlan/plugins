@@ -3,16 +3,16 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 30.1.2022 for v0.5.1, @jgclark
+// Last updated 7.2.2022 for v0.6.0, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
 // Helper functions
 
 import {
-  DEFAULT_SUMMARIES_CONFIG,
+  // DEFAULT_SUMMARIES_CONFIG,
   gatherMatchingLines,
-  getConfigSettings,
+  getSummariesSettings,
   getPeriodStartEndDates,
 } from './summaryHelpers'
 import type { SummariesConfig } from './summaryHelpers'
@@ -44,48 +44,35 @@ import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configura
 //-------------------------------------------------------------------------------
 
 /**
- * Ask user which period to cover, call main stats function, and present results
+ * Ask user which period to cover, what word/phrase to search for, 
+ * run the search over all notes, and ask where to save/show the results.
  * @author @jgclark
  */
-export async function occurrencesPeriod(): Promise<void> {
+export async function saveSearchPeriod(): Promise<void> {
   // Get config settings from Template folder _configuration note
   // await getPluginSettings()
-  const config = await getConfigSettings()
+  const config = await getSummariesSettings()
 
   // Work out time period to cover
-  const [fromDate, toDate, periodString, periodPartStr] = await getPeriodStartEndDates()
-
+  const [fromDate, toDate, periodString, periodPartStr] = await getPeriodStartEndDates(`What period shall I search over?`) // FIXME:
   if (fromDate == null || toDate == null) {
     console.log('error: dates could not be parsed')
     return
   }
   const fromDateStr = unhyphenatedDate(fromDate) //fromDate.toISOString().slice(0, 10).replace(/-/g, '')
   const toDateStr = unhyphenatedDate(toDate) // toDate.toISOString().slice(0, 10).replace(/-/g, '')
-  
+
   let stringsToMatch = Array.from(config.defaultOccurrences)
-  // Show user these default 'config.defaultOccurrences' search terms, 
-  // and offer to get a single search term instead
-  const res = await chooseOption(
-    `Search for '${stringsToMatch.join(', ')}'`,
-    [
-      { label: `Yes (use defaults)`, value: 'Yes' },
-      { label: `No (I'll choose my own; can be comma-separated)`, value: 'No' },
-    ],
-    'Yes',
-  )
-  if (res === 'No') {
-    stringsToMatch.splice(0, stringsToMatch.length) // clear array
-    const newTerms = await getInput(`Enter search term(s)`)
-    if (typeof newTerms === 'boolean') {
-      // i.e. user has cancelled
-      console.log(`User has cancelled operation.`)
-      return
-    } else {
-      stringsToMatch = Array.from(newTerms.split(','))
-    }
+  const newTerms = await getInput(`Enter search term (or comma-separated set of terms)`, 'OK', `Search`, stringsToMatch.join(', '))
+  if (typeof newTerms === 'boolean') {
+    // i.e. user has cancelled
+    console.log(`User has cancelled operation.`)
+    return
+  } else {
+    stringsToMatch = Array.from(newTerms.split(','))
   }
   console.log(
-    `\nperiodOccurrences: looking for '${String(stringsToMatch)}' over ${periodString} (${fromDateStr}-${toDateStr}):`,
+    `\nsaveSearchPeriod: looking for '${String(stringsToMatch)}' over ${periodString} (${fromDateStr}-${toDateStr}):`,
   )
   
   // Get array of all daily notes that are within this time period
@@ -104,23 +91,22 @@ export async function occurrencesPeriod(): Promise<void> {
 
   // Find matches in notes for the time period
   const outputArray = []
-  for (const toMatch of stringsToMatch) {
-    // output a heading first
+  for (const searchTerm of stringsToMatch) {
     // get list of matching paragraphs for this string
-    const results = await gatherMatchingLines(periodDailyNotes, toMatch, config.highlightOccurrences, config.dateStyle)
+    const results = await gatherMatchingLines(periodDailyNotes, searchTerm, config.highlightOccurrences, config.dateStyle)
     const lines = results?.[0]
     const context = results?.[1]
+    // output a heading first
+    outputArray.push(`### ${searchTerm}`)
     if (lines.length > 0) {
-      console.log(`  Found ${lines.length} results for ${toMatch}`)
-      outputArray.push(`### ${toMatch}`)
+      console.log(`  Found ${lines.length} results for ${searchTerm}`)
       // form the output
       for (let i = 0; i < lines.length; i++) {
         outputArray.push(`- ${lines[i]}${context[i]}`)
       }
     } else if (config.showEmptyOccurrences) {
       // If there's nothing to report, make that clear
-      outputArray.push(`### ${toMatch}`)
-      outputArray.push('(none)')
+      outputArray.push('(no matches)')
     }
   }
 
@@ -129,7 +115,7 @@ export async function occurrencesPeriod(): Promise<void> {
     config.folderToStore,
   )}'`
   const destination = await chooseOption(
-    `Where to save the summary for ${periodString}?`,
+    `Where should I save the results for ${periodString}?`,
     [
       {
         // TODO: When weekly/monthly notes are made possible in NP, then add options like this
@@ -155,6 +141,7 @@ export async function occurrencesPeriod(): Promise<void> {
     'note',
   )
 
+  const headingLine = `${config.occurrencesHeading} for ${periodString}`
   // Ask where to send the results
   switch (destination) {
     case 'current': {
@@ -165,17 +152,18 @@ export async function occurrencesPeriod(): Promise<void> {
         console.log(
           `\tappending results to current note (${currentNote.filename ?? ''})`,
         )
-        const insertionLineIndex = currentNote.paragraphs.length
+        const insertionLineIndex = currentNote.paragraphs.length - 1
         currentNote.insertHeading(
-          `${config.occurrencesHeading} ${periodPartStr}`,
+          headingLine,
           insertionLineIndex,
           config.headingLevel,
         )
+        // TODO: Can't see why a blank line appears here
         currentNote.appendParagraph(
           outputArray.join('\n'),
           'text',
         )
-        console.log(`\tappended results to current note`)
+        // console.log(`\tappended results to current note`)
       }
       break
     }
@@ -213,22 +201,22 @@ export async function occurrencesPeriod(): Promise<void> {
       console.log(`\twriting results to the new note '${displayTitle(note)}'`)
 
       // Do we have an existing Hashtag counts section? If so, delete it.
+      // (Sets place to insert either after the found section heading, or at end of note)
       const insertionLineIndex = removeSection(
         note,
         config.occurrencesHeading,
       )
-      console.log(`\tinsertionLineIndex: ${String(insertionLineIndex)}`)
-      // Set place to insert either after the found section heading, or at end of note
+      // console.log(`\tinsertionLineIndex: ${String(insertionLineIndex)}`)
       // write in reverse order to avoid having to calculate insertion point again
-      note.insertHeading(
-        `${config.occurrencesHeading} ${periodPartStr}`,
-        insertionLineIndex,
-        config.headingLevel,
-      )
       note.insertParagraph(
         outputArray.join('\n'),
         insertionLineIndex + 1,
         'text',
+      )
+      note.insertHeading(
+        headingLine,
+        insertionLineIndex,
+        config.headingLevel,
       )
       await Editor.openNoteByFilename(note.filename)
 
@@ -237,9 +225,7 @@ export async function occurrencesPeriod(): Promise<void> {
     }
 
     case 'log': {
-      console.log(
-        `Summaries for ${periodString} ${periodPartStr}`,
-      )
+      console.log(headingLine)
       console.log(outputArray.join('\n'))
       break
     }
@@ -260,7 +246,7 @@ async function gatherMatchingLinesInPeriod(
   notes,
   stringToLookFor
 ): Promise<[Array<string>, Array<Date>]> {
-  const config = await getConfigSettings()
+  const config = await getSummariesSettings()
   console.log(`Looking for '${stringToLookFor}' in ${notes.length} notes`)
   CommandBar.showLoading(true, `Searching in ${notes.length} notes ...`)
   await CommandBar.onAsyncThread()
