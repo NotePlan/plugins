@@ -4,8 +4,8 @@ With this plugin you can write down and store your daily/monthly expenses with a
 This is meant to be used for further analysis.
 
 ## Configuration
-For a good start and to get the structure, you can just use the example config,
-which will be added to the NotePlan `_configuration` on the first usage!
+Since Noteplan 3.4 you can use the new plugins settings section.  
+Or you can use the old way with the `_configuration` file.
 
 ### Content
 * `folderPath`
@@ -25,12 +25,12 @@ which will be added to the NotePlan `_configuration` on the first usage!
   * ATTENTION: please don't change this after first tracking
 * `categories`
   * Categories of your expenses, e.g. 'Living', 'Groceries', 'Insurances', 'Media'
-* `shortcutExpenses`
+* `shortcutExpenses` (JSON format)
   * Shortcuts to skip the input of category and text
-* `fixedExpenses`
+* `fixedExpenses` (JSON format)
   * Fixed expenses in your life e.g. the monthly flat rent, the yearly car insurance or the monthly spotify subscription (which is deactivated in the example for show reasons)
 
-### Example
+### Example _configuration file
 
 ```json5
 {
