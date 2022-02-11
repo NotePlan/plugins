@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Plugin to help move selected selectedParagraphs to other notes
 // Jonathan Clark
-// last updated 1.2.2022 for v0.6.0
+// last updated 1.2.2022 for v0.5.4
 // ----------------------------------------------------------------------------
 
 import { castBooleanFromMixed, castStringFromMixed, } from '../../helpers/dataManipulation'
@@ -14,7 +14,6 @@ import {
   calcSmartPrependPoint,
   findEndOfActivePartOfNote,
   parasToText,
-  RE_HORIZONTAL_LINE,
   selectedLinesIndex,
 } from '../../helpers/paragraph'
 import { chooseHeading } from '../../helpers/userInput'
@@ -258,7 +257,7 @@ export function getParagraphBlock(
       for (let i = selectedParaIndex - 1; i >= 0; i--) {
         const p = allParas[i]
         // console.log(`  ${i} / indent ${p.indents} / ${p.content}`)
-        if (p.content.match(RE_HORIZONTAL_LINE)) {
+        if (p.type === 'separator') {
           // console.log(`Found HR`)
           break
         } else if (p.content === '') {
@@ -279,7 +278,7 @@ export function getParagraphBlock(
         const p = allParas[i]
         // console.log(`  ${i} / indent ${p.indents} / ${p.content}`)
         // stop if horizontal line
-        if (p.content.match(RE_HORIZONTAL_LINE)) {
+        if (p.type === 'separator') {
           // console.log(`Found HR`)
           break
         } else if (p.content === '') {
@@ -299,7 +298,7 @@ export function getParagraphBlock(
         const p = allParas[i]
         // console.log(`  ${i} / indent ${p.indents} / ${p.content}`)
         // stop if horizontal line
-        if (p.content.match(RE_HORIZONTAL_LINE)) {
+        if (p.type === 'separator') {
           // console.log(`Found HR`)
           break
         } else if (p.content === '') {

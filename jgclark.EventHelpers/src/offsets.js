@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Command to Process Date Offsets
 // @jgclark
-// Last updated 5.2.2022 for v0.11.3, @jgclark
+// Last updated 5.2.2022 for v0.11.3+, @jgclark
 // ----------------------------------------------------------------------------
 
 import { timeBlocksToCalendar } from './timeblocks'
@@ -69,8 +69,8 @@ export async function processDateOffsets() {
       // console.log(`  Line ${n} (${thisLevel}) ${line}`)
 
       // Decide whether to clear CTD based on this vs previous indent level
-      // Specifically: clear on lower indent or heading or blank line TODO: or horizontal line
-      if (thisLevel < previousFoundLevel || thisLevel === -1 || line === '') {
+      // Specifically: clear on lower indent or heading or blank line or separator line
+      if (thisLevel < previousFoundLevel || thisLevel === -1 || line === '' || paragraphs[n].type === 'separator') {
         if (currentTargetDate !== '') {
           console.log(`  - Cleared CTD`)
         }

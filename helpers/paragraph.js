@@ -11,6 +11,7 @@ import { hyphenatedDateString } from './dateTime'
 /**
  * Test if this is a Horizontal Line line
  * based on my best understanding of the [Commonmark spec](https://spec.commonmark.org/0.30/#thematic-break)
+ * NB: this won't be needed from v3.4.1 as there will then be paragraph type 'separator'. TODO(jgclark):
  * @author @jgclark
  */
 export const RE_HORIZONTAL_LINE = `^ {0,3}((\\_\\h*){3,}|(\\*\\h*){3,}|(\\-\\h*){3,})$`

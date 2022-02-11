@@ -223,11 +223,11 @@ async function createEventFromDateRange(
   const calendarDisplayName = calendarName !== '' ? calendarName : 'system default'
   if (createdEvent != null) {
     const newID = createdEvent.id ?? 'undefined'
-    console.log(`-> Event created with id: ${newID} in ${calendarDisplayName} calendar `)
+    console.log(`\t-> Event created with id: ${newID} in ${calendarDisplayName} calendar `)
     return newID
   } else {
-    console.log(`-> Error: failed to create event in ${calendarDisplayName} calendar`)
-    await showMessage(`Sorry, I failed to create event in ${calendarDisplayName} calendar`)
+    console.log(`\t-> Error: failed to create event in ${calendarDisplayName} calendar`)
+    await showMessage(`Sorry, I failed to create event in ${calendarDisplayName} calendar`, 'OK', `Create Event Error`)
     return 'error'
   }
 }

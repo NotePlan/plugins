@@ -1055,7 +1055,10 @@ declare var Clipboard: {
   availableType(fromTypes: $ReadOnlyArray<string>): ?string,
 }
 
-type ParagraphType = 'open' | 'done' | 'scheduled' | 'cancelled' | 'title' | 'quote' | 'list' | 'empty' | 'text' | 'code'
+/* Available paragraph types
+ * NB: 'separator' added v3.4.1
+ */
+type ParagraphType = 'open' | 'done' | 'scheduled' | 'cancelled' | 'title' | 'quote' | 'list' | 'empty' | 'text' | 'code' | 'separator'
 
 declare var ParagraphBridge: TParagraphBridge
 type TParagraphBridge = {
@@ -1254,7 +1257,9 @@ declare var NotePlan: {
   *   "nextDaylightSavingTimeTransition" -> Date
   *   "platform" -> "macOS" | "iPadOS" | "iOS"
   *   "hasSettings" -> boolean
-  * Note: available from v3.3.2
+  *   "templatePath" -> string
+  * Note: available from v3.3.2 except:
+  * - "templatePath" available from v3.4.1.  This return path relative to NP's root folder.
   */
   +environment: Object,
   /**
