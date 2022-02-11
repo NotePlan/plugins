@@ -5,33 +5,21 @@
 // last updated 1.2.2022 for v0.6.0
 // ----------------------------------------------------------------------------
 
-import {
-  castBooleanFromMixed,
-  castStringFromMixed,
-} from '../../helpers/dataManipulation'
-import {
-  getDateFromString,
-  hyphenatedDate,
-  isoDateStringFromCalendarFilename,
-  toLocaleDateString,
- } from '../../helpers/dateTime'
+import { castBooleanFromMixed, castStringFromMixed, } from '../../helpers/dataManipulation'
+import { todaysDateISOString, } from '../../helpers/dateTime'
 import { clo } from '../../helpers/dev'
-import {
-  rangeToString,
-  displayTitle
-} from '../../helpers/general'
+import { displayTitle } from '../../helpers/general'
 import { allNotesSortedByChanged } from '../../helpers/note'
 import {
   calcSmartPrependPoint,
   findEndOfActivePartOfNote,
   parasToText,
-  selectedLinesIndex,
   RE_HORIZONTAL_LINE,
+  selectedLinesIndex,
 } from '../../helpers/paragraph'
-import { todaysDateISOString } from '../../helpers/dateTime'
 import { chooseHeading } from '../../helpers/userInput'
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
-
+import type { EventsConfig } from '../../helpers/NPCalendar'
 
 //-----------------------------------------------------------------------------
 // // Get settings
@@ -61,7 +49,7 @@ async function getFilerSettings(): Promise<FilerConfig> {
     clo(config, `\t${configKey} settings from V2:`)
     return config
   } else {
-  // Get config settings from Template folder _configuration note or ConfigV2
+    // Get config settings from Template folder _configuration note or ConfigV2
     const v1config = await getOrMakeConfigurationSection(
       'filer',
       // DEFAULT_FILER_OPTIONS,
@@ -71,23 +59,24 @@ async function getFilerSettings(): Promise<FilerConfig> {
     let config: FilerConfig
     // ???
     if (v1config == null || Object.keys(v1config).length === 0) {
-    console.log(`\tInfo: couldn't find 'filer' settings. Will use defaults.`)
-    config = {
-      addDateBacklink: false,
-      dateRefStyle: "link",
-      useExtendedBlockDefinition: false,
-      whereToAddInSection: "start",
+      console.log(`\tInfo: couldn't find 'filer' settings. Will use defaults.`)
+      config = {
+        addDateBacklink: false,
+        dateRefStyle: 'link',
+        useExtendedBlockDefinition: false,
+        whereToAddInSection: 'start',
+      }
+    } else {
+      console.log(`\tFound 'filer' settings`)
+      config = {
+        addDateBacklink: castBooleanFromMixed(v1config, 'addDateBacklink'),
+        dateRefStyle: castStringFromMixed(v1config, 'dateRefStyle'),
+        useExtendedBlockDefinition: castBooleanFromMixed(v1config, 'useExtendedBlockDefinition'),
+        whereToAddInSection: castStringFromMixed(v1config, 'whereToAddInSection'),
+      }
     }
-  } else {
-    console.log(`\tFound 'filer' settings`)
-    config = {
-      addDateBacklink: castBooleanFromMixed(v1config, 'addDateBacklink'),
-      dateRefStyle: castStringFromMixed(v1config, 'dateRefStyle'),
-      useExtendedBlockDefinition: castBooleanFromMixed(v1config, 'useExtendedBlockDefinition'),
-      whereToAddInSection: castStringFromMixed(v1config, 'whereToAddInSection'),
-    }
+    return config
   }
-  return config
 }
 
 // ----------------------------------------------------------------------------
@@ -96,7 +85,7 @@ async function getFilerSettings(): Promise<FilerConfig> {
  * Move text to a different note.
  * NB: Can't selecet dates with no existing Calendar note.
  * TODO(EduardMe): Waiting for better date picker from Eduard before working further on this.
- * 
+ *
  * This is how we identify what we're moving (in priority order):
  * - current selection
  * - current heading + its following section
@@ -146,7 +135,7 @@ export async function moveParas(): Promise<void> {
   }
   // $FlowFixMe[incompatible-call]
   const firstSelParaIndex = selectedLinesIndex(Editor.selection, paragraphs)
-  let parasInBlock: Array<TParagraph> =
+  const parasInBlock: Array<TParagraph> =
     getParagraphBlock(note, firstSelParaIndex, config.useExtendedBlockDefinition)
 
   // If this is a calendar note we've moving from, and the user wants to
@@ -216,7 +205,7 @@ export async function moveParas(): Promise<void> {
  * This is how we identify the block:
  * - current line, plus any indented paragraphs that directly follow it
  * - current line, plus if this line is a heading, its following section
- * 
+ *
  * The plugin setting 'useExtendedBlockDefinition' decides whether to include more lines:
  * if its true (and by default it is false) then it will work as if the cursor is on the
  * preceding heading line, and take all its lines up until the next same-level heading.
@@ -325,7 +314,7 @@ export function getParagraphBlock(
       }
     }
     console.log(`  Found ${parasInBlock.length - 1} paras:`)
-    for (let pib of parasInBlock) {
+    for (const pib of parasInBlock) {
       console.log(`  -> ${pib.content}`)
     }
   }
