@@ -23,7 +23,7 @@ You can use this within a line to have both a **deadline** and a calculated **st
 | ---------------------------------------------------------- | -------------------------------------------------------------------- |
 | * Post cards deadline 2021-12-18 {-10d} | * Post cards deadline 2021-12-18 >2021-12-08 |
 
-The `/process date offsets` command looks for a valid date pattern in the previous heading, previous main task if it has sub-tasks, or in the line itself. If it does, then it changes any **date offset patterns** (such as `{-10d}`, `{+2w}`, `{-3m}`) into **scheduled dates** (e.g. `>2021-02-27`). This allows for users to define **templates** and when applied to a note, set the due date at the start, and the other dates to be calculated for you.
+The `/process date offsets` command looks for a valid date pattern in the previous heading, previous main task if it has sub-tasks, or in the line itself. If it does, then it changes any **date offset patterns** (such as `{-10d}`, `{+2w}`, `{-3m}`) into **scheduled dates** (e.g. `>2021-02-27`). This allows for users to define **formats** and when applied to a note, set the due date at the start, and the other dates to be calculated for you.
 
 In more detail:
 
@@ -45,7 +45,7 @@ Most of these commands require configuration:
     removeTimeBlocksWhenProcessed: true,  // whether to remove time block after making an event from it
     eventsHeading: "### Events today",  // optional heading to put before list of today's events
     calendarSet: [],  // optional list of calendar names to filter by when showing list of events. If empty, no filtering will be done.
-    addMatchingEvents: {  // match events with string on left, and then the string on the right is the template for how to insert this event (see README for details)
+    addMatchingEvents: {  // match events with string on left, and then the string on the right is the format for how to insert this event (see README for details)
       "meeting": "### *|TITLE|* (*|START|*)\n*|NOTES|*",
       "webinar": "### *|TITLE|* (*|START|*) *|URL|*",
       "holiday": "*|TITLE|* *|NOTES|*",
@@ -68,11 +68,11 @@ This uses JSON5 format: ensure there are commas at the end of all that lines tha
 - **removeTimeBlocksWhenProcessed**: in `time blocks...` whether to remove time block after making an event from it
 - **eventsHeading**: in `/insert today's events as list` the heading to put before the list of today's events. Optional.
 - **calendarSet**: optional ["array","of calendar","names"] to filter by when showing list of events. If empty or missing, no filtering will be done.
-- **addMatchingEvents**: for `/add matching events` is a set of pairs of strings. The first string is what is matched for in an event's title. If it does match the second string is used as the template for how to insert the event details at the cursor.  This uses the same `*|TITLE|*`, `*|START|*` (time), `*|END|*` (time), `*|NOTES|*` and `*|URL|*` template items below ...  NB: At this point the 'location' field is unfortunately _not_ available through the API.
+- **addMatchingEvents**: for `/add matching events` is a set of pairs of strings. The first string is what is matched for in an event's title. If it does match the second string is used as the format for how to insert the event details at the cursor.  This uses the same `*|TITLE|*`, `*|START|*` (time), `*|END|*` (time), `*|NOTES|*` and `*|URL|*` format items below ...  NB: At this point the 'location' field is unfortunately _not_ available through the API.
 - **calendarNameMappings**: optional - add mappings for your calendar names to appear in the output - e.g. from "Thomas" to "Me" with "Thomas;Me".
 
 ### Using Event Lists from a Template
-If you use Templates, this command can be called when a Template is inserted (including in the `/day start` command which applies your `Daily Note Template` file). To do this insert `{{events()}}` wherever you wish it to appear in the Template.  By default it gives a simple markdown list of event title and start time.  To **customise the list display**, you can add a `'template:"..."'` parameter to the `{{events()}}` template command that sets how to present the list, and a separate template for items with no start/end times (`'allday_template:"..."`).
+If you use Templates, this command can be called when a Template is inserted (including in the `/day start` command which applies your `Daily Note Template` file). To do this insert `{{events()}}` wherever you wish it to appear in the Template.  By default it gives a simple markdown list of event title and start time.  To **customise the list display**, you can add a `'template:"..."'` parameter to the `{{events()}}` command that sets how to present the list, and a separate parameter for items with no start/end times (`'allday_template:"..."`).
 
 If you want to disable the adding of the heading, add the following parameter `includeHeadings:false` (no double quotes around `false` as its being treated as JSON).
 
@@ -82,11 +82,11 @@ For example:
 {{events({template:"### *|CAL|*: *|TITLE|* (*|START|*-*|END|*)\n*|NOTES|*",allday_template:"### TITLE",includeHeadings:false})}}
 ```
 
-The `*|CAL|*`, `*|TITLE|*`, `*|START|*`, `*|END|*`, `*|NOTES|*` and `*|URL|*` can be mixed with whatever markdown characters or other text you like, and they will get replaced accordingly with the fields from each matching event found. (Note the difference between the } and ) bracket types, and use of double quotes around the template string. I didn't design this syntax ...)
+The `*|CAL|*`, `*|TITLE|*`, `*|START|*`, `*|END|*`, `*|NOTES|*` and `*|URL|*` can be mixed with whatever markdown characters or other text you like, and they will get replaced accordingly with the fields from each matching event found. (Note the difference between the } and ) bracket types, and use of double quotes around the parameter's setting. I didn't design this syntax ...)
 
-You can also place  `{{listMatchingEvents()}}` in Templates in a similar way, and similar customisation is possible. However, it is defined in a different way, using the matches and template strings defined in the `_configuration` file's `addMatchingEvents` array, as shown above.
+You can also place  `{{listMatchingEvents()}}` in Templates in a similar way, and similar customisation is possible. However, it is defined in a different way, using the matches and format strings defined in the `_configuration` file's `addMatchingEvents` array, as shown above.
 
-NB: adding the `*|CAL|*` item to the template also triggers sorting the output list by calendar name and then time.
+NB: adding the `*|CAL|*` item to the format also triggers sorting the output list by calendar name and then time.
 
 ## Theme Customisation
 NotePlan allows extensive [customisation of fonts and colours through its Themes](https://help.noteplan.co/article/44-customize-themes). It also supports doing more advanced highlighting using regex. To add **colour highlighting for time blocks**, add the following to your favourite theme's .json file:
