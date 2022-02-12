@@ -3,7 +3,7 @@ const toolbox = require('@codedungeon/gunner')
 
 const execa = require('execa')
 const dotProp = require('dot-prop')
-const merge = require('lodash.merge')
+const _ = require('lodash')
 const findup = require('findup-sync')
 const Configstore = require('configstore')
 const Messenger = require('@codedungeon/messenger')
@@ -49,11 +49,12 @@ module.exports = {
     if (filesystem.existsSync(projectConfigPath)) {
       projectConfig = filesystem.readFileSync(projectConfigPath)
     }
+
     // merge config
     const appConfigData = JSON.parse(appConfig)
     const projectConfigData = projectConfig.length >= 2 ? JSON.parse(projectConfig) : {}
 
-    const configData = merge(appConfigData, projectConfigData)
+    const configData = _.merge(appConfigData, projectConfigData)
 
     return configData
   },
@@ -64,7 +65,6 @@ module.exports = {
 
   async getCommandList() {
     const commandPath = await this.getCommandPath()
-
     const commands = []
     if (commandPath) {
       const files = filesystem.readdirSync(commandPath)
@@ -144,25 +144,6 @@ module.exports = {
     return this.config(`output.${type}`)
   },
 
-  getFactoriesPath() {
-    return this.config('output.factories')
-  },
-
-  getMigrationsPath() {
-    return this.config('output.migrations')
-  },
-
-  getClassName(name = '') {
-    if (!name) {
-      return ''
-    }
-    const parts = name.split('/')
-    let className = parts.pop()
-    className = toolbox.strings.titleCase(className).replace(/_/gi, '')
-
-    return className
-  },
-
   getFilename(type = '', name = '') {
     const parts = name.split('/')
     if (parts.length === 1) {
@@ -173,53 +154,6 @@ module.exports = {
     // eslint-disable-next-line
     const filename = path.join(process.cwd(), name) + '.php'
     return path.resolve(filename)
-  },
-
-  getTablename(name, args = null) {
-    const parts = name.split('/')
-    let tablename = parts.length >= 2 ? parts.pop() : name
-    tablename = args?.table ? args.table : tablename
-
-    if (tablename.length === 0) tablename = name // incase user supplied --table=""
-
-    return strings.plural(tablename).toLowerCase()
-  },
-
-  getNamespace(configPath = '', name = '') {
-    if (!name) {
-      return ''
-    }
-    let parts = name.split('/')
-    if (parts.length >= 2) {
-      parts.pop()
-    } else {
-      const value = this.config(`output.${configPath}`.toLowerCase())
-      const namespace = value.replace(/\//gi, '\\')
-      parts = namespace.split('\\')
-    }
-
-    return parts
-      .map((item) => {
-        return toolbox.strings.titleCase(item)
-      })
-      .join('\\')
-  },
-
-  isValidTemplateKey(key = null) {
-    const appConfigData = this.getAppConfigData()
-    return appConfigData.templates.hasOwnProperty(key)
-  },
-
-  isValidOutputKey(key = null) {
-    const appConfigData = this.getAppConfigData()
-
-    return appConfigData.output.hasOwnProperty(key)
-  },
-
-  isValidAppKey(key = null) {
-    const appConfigData = this.getAppConfigData()
-
-    return appConfigData.app.hasOwnProperty(key)
   },
 
   getTemplate(configTemplate = null, args = null) {
@@ -356,37 +290,6 @@ module.exports = {
     return defaultValue
   },
 
-  getCraftedFilename(result = null) {
-    let filename = ''
-
-    const lines = result.split('\n')
-
-    for (let index = 0; index < lines.length; index++) {
-      const element = lines[index]
-      if (element.includes('SUCCESS')) {
-        result = element
-        break
-      }
-    }
-
-    if (result) {
-      if (result.includes('ERROR')) {
-        filename = result.replace('ERROR ', '').replace(' Already Exists', '').replace('~/', '').trim()
-      }
-
-      if (result.includes('SUCCESS')) {
-        filename = result
-          .replace('SUCCESS ', '')
-          .replace(' Created Successfully', '')
-          .replace('~/', '')
-          .trim()
-          .replace(/\n/gi, '')
-      }
-    }
-
-    return strings.raw(filename).trim()
-  },
-
   createParentDirectories(dir = null) {
     filesystem.mkdirSync(dir, { recursive: true })
   },
@@ -405,39 +308,6 @@ module.exports = {
     const pkgInfo = require(pkgFilename)
 
     return `v${pkgInfo.version}`
-  },
-
-  verifyFlags(args = {}, flags = {}, globalOptions = []) {
-    const invalidKeys = []
-    globalOptions.push('--sub')
-
-    let validKeys = [] // specific overrides
-
-    Object.keys(flags).forEach((flag) => {
-      validKeys.push(flag) // add primary key
-      const flagAliases = flags[flag]?.aliases ? flags[flag].aliases : []
-      validKeys = validKeys.concat(flagAliases)
-    })
-
-    Object.keys(args).forEach((key) => {
-      if (!validKeys.includes(key)) {
-        const r1 = globalOptions.find((globalKey) => globalKey.indexOf(`--${key}`) > 0)
-        const r2 = globalOptions.find((globalKey) => globalKey.indexOf(`-${key}`) > 0)
-        if (!r1 && !r2 && key !== 'log' && key !== 'logDir' && key !== 'log-dir') {
-          invalidKeys.push(key)
-        }
-      }
-    })
-
-    if (invalidKeys.length > 0) {
-      console.log('')
-      toolbox.print.error('Invalid Options:\n', 'ERROR')
-      invalidKeys.forEach((key) => {
-        toolbox.print.error(` - ${key}`)
-      })
-      console.log('')
-      process.exit()
-    }
   },
 
   verifyTemplate(templatePath = null) {
@@ -531,7 +401,6 @@ module.exports = {
   },
 
   async run(cmd = null) {
-    // TODO: This is not working when calling craft which has prompts
     execa('noteplan-cli', [cmd, '--help'], {
       env: { FORCE_COLOR: 'true' },
     }).then((data) => console.log(data.stdout))
@@ -561,46 +430,23 @@ module.exports = {
     Messenger.loggerLog(cmd)
   },
 
-  getPluginCommands(directory = '') {
-    const pluginCommands = []
-    const directories = filesystem.directoryList(directory, {
-      directoriesOnly: true,
-    })
+  errorMessage(response = {}) {
+    const message = response?.message ? response.message : 'An Error Occurred'
+    print.error(message, 'ERROR')
+    if (response.hasOwnProperty('args')) {
+      response.args.forEach((arg) => {
+        print.warn(`        ${arg}`)
+      })
+    }
+  },
 
-    directories.forEach((directoryName) => {
-      const jsonFilename = path.join(directoryName, 'plugin.json')
-      if (filesystem.existsSync(jsonFilename)) {
-        // load json object, sweet and simple using require, no transforming required
-        const pluginObj = require(jsonFilename)
-        if (pluginObj && pluginObj.hasOwnProperty('plugin.commands')) {
-          pluginObj['plugin.commands'].forEach((command) => {
-            if (pluginObj.hasOwnProperty('plugin.id') && pluginObj['plugin.id'] !== '{{pluginId}}') {
-              pluginCommands.push({
-                pluginId: pluginObj.hasOwnProperty('plugin.id') ? pluginObj['plugin.id'] : 'missing plugin-id',
-                pluginName: pluginObj.hasOwnProperty('plugin.name') ? pluginObj['plugin.name'] : 'missing plugin-name',
-                name: command.name,
-                description: command.description,
-                jsFunction: command.jsFunction,
-                author: pluginObj['plugin.author'],
-              })
-              const pluginAliases = command.hasOwnProperty('alias') ? command.alias : []
-              pluginAliases.forEach((alias) => {
-                pluginCommands.push({
-                  pluginId: pluginObj.hasOwnProperty('plugin.id') ? pluginObj['plugin.id'] : 'missing plugin-id',
-                  pluginName: pluginObj.hasOwnProperty('plugin.name')
-                    ? pluginObj['plugin.name']
-                    : 'missing plugin-name',
-                  name: alias,
-                  description: command.description,
-                  jsFunction: command.jsFunction,
-                  author: pluginObj['plugin.author'],
-                })
-              })
-            }
-          })
-        }
-      }
-    })
-    return pluginCommands
+  successMessage(response = {}) {
+    const message = response?.message ? response.message : 'Process Completed Successfully'
+    print.success(message, 'SUCCESS')
+    if (response.hasOwnProperty('args')) {
+      response.args.forEach((arg) => {
+        print.debug(`          ${arg}`)
+      })
+    }
   },
 }
