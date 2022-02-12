@@ -202,7 +202,6 @@ export function smartPrependPara(
   note.insertParagraph(paraText, calcSmartPrependPoint(note), paragraphType)
 }
 
-//
 /**
  * Works out where the first ## Done or ## Cancelled section starts, if present.
  * Works with folded Done or Cancelled sections.
@@ -237,11 +236,43 @@ export function findEndOfActivePartOfNote(note: TNote): number {
 }
 
 /**
+ * Works out where the first line of the note is, following the first paragraph
+ * of type 'title'. If it doesn't find one it defaults to the first non-blank line
+ * after any frontmatter (if present)
+ * @author @jgclark
+ * 
+ * @param {TNote} note - the note to assess
+ * @return {number} - the line index number
+ */
+export function findStartOfActivePartOfNote(note: TNote): number {
+  const paras = note.paragraphs
+  const lineCount = paras.length
+  let startOfActive: number = 0
+  let inFrontMatter: boolean = false
+  let i = 0
+  while (i < lineCount) {
+    const p = paras[i]
+    if (p.type === 'title') {
+      startOfActive = i
+      break
+    }
+    if (p.type === 'separator') {
+      inFrontMatter = (inFrontMatter) ? false : true // toggle state
+    }
+    if (p.type !== 'empty') {
+      startOfActive = i
+    }
+    i++
+  }
+  return startOfActive
+}
+
+/**
  * Get paragraph number of the start of the current selection in the Editor
  * @author @jgclark
  * 
  * @param {TRange} selection - the current selection rnage object
- * @return {number} the index number
+ * @return {number} the line index number
  */
 export function selectedLinesIndex(
   selection: Range,
