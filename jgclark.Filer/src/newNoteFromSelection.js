@@ -1,9 +1,10 @@
 // @flow
-//------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 // @dwertheimer based on @jgclark's newNote
 // Create new note from currently selected text
 // and (optionally) leave backlink to it where selection was
-// Last updated 1.2.2022 for 0.6.0, @jgclark
+// Last updated 12.2.2022 for 0.6.0, @jgclark
+//-----------------------------------------------------------------------------
 
 import {
   getUniqueNoteTitle,
@@ -41,7 +42,7 @@ export async function newNoteFromSelection() {
     const movedText = selectedLinesText.join('\n')
     const uniqueTitle = getUniqueNoteTitle(title)
     if (title !== uniqueTitle) {
-      await showMessage(`Title exists. Using "${uniqueTitle}" instead`)
+      await showMessage(`Title exists. Using "${uniqueTitle}" instead`, `OK`, `New Note from Selection`)
       title = uniqueTitle
     }
     const currentFolder = await chooseFolder('Select folder to add note in:')
@@ -81,22 +82,19 @@ export async function newNoteFromSelection() {
         if (insertBackLink) {
           newNote.appendParagraph(`^ Moved from [[${origFile}]]:`, 'text')
         }
-        if (await showMessageYesNo('New Note created. Open it now?') === 'Yes') {
+        if (await showMessageYesNo('New Note created. Open it now?',['Yes','No'], `New Note from Selection`) === 'Yes') {
           await Editor.openNoteByFilename(filename)
         }
       } else {
         console.log(`\tCould not open new note: ${filename}`)
-        showMessage(`Could not open new note ${filename}`)
+        showMessage(`Could not open new note ${filename}`, `OK`, `New Note from Selection`)
       }
     } else {
       console.log('\tError: undefined or empty title')
     }
   } else {
     console.log('\tNo text was selected, so nothing to do.')
-    showMessage(
-      'No text was selected, so nothing to do.',
-      "OK, I'll try again!",
-    )
+    showMessage('No text was selected, so nothing to do.', "OK, I'll try again", `New Note from Selection`)
   }
   console.log('newNoteFromSelection (finished)')
 }

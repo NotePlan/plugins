@@ -22,6 +22,7 @@
 | `expensesIndividualTracking` | Track your individual expenses | 💶️ Expenses |
 | `expensesShortcutsTracking` | Track your shortcuts expenses | 💶️ Expenses |
 | `expensesTracking` | Provides multiple possibilities to track your expenses | 💶️ Expenses |
+| `f:migrate` | test for Filer migrater | 📦 Filer |
 | `fave - Make this Note a Favorite (⭐️)` | Set open Note to be a Favorite (add ⭐️) | ⭐️ Favorites |
 | `faves - Choose+Open Favorite (⭐️) Note` | Open one of the saved Favorites | ⭐️ Favorites |
 | `finish project review` | updates the current open project's @reviewed() date | 🔬Reviews |
@@ -40,6 +41,7 @@
 | `make notes index` | Make/Update note link Indexes for one or more folders | 📙 Note Helpers |
 | `mat` | Mark All Tasks (choose open or complete) | ✅ Task Automations |
 | `move note` | Moves the currently opened (non-calendar) note to a folder you select | 📙 Note Helpers |
+| `move paragraphs` | move (file) paragraphs to different notes | 📦 Filer |
 | `mp` | move (file) paragraphs to different notes | 📦 Filer |
 | `nc` | Counts of all the notes in NotePlan | 🔢 Note Statistics |
 | `new note` | Create new note with title, in chosen folder with optional template | 🔩 Templates |

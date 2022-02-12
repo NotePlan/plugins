@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Plugin to help move selected selectedParagraphs to other notes
 // Jonathan Clark
-// last updated 1.2.2022 for v0.5.4
+// last updated 12.2.2022 for v0.6.0
 // ----------------------------------------------------------------------------
 
 import { castBooleanFromMixed, castStringFromMixed, } from '../../helpers/dataManipulation'
@@ -13,6 +13,7 @@ import { allNotesSortedByChanged } from '../../helpers/note'
 import {
   calcSmartPrependPoint,
   findEndOfActivePartOfNote,
+  findStartOfActivePartOfNote,
   parasToText,
   selectedLinesIndex,
 } from '../../helpers/paragraph'
@@ -22,60 +23,59 @@ import type { EventsConfig } from '../../helpers/NPCalendar'
 
 //-----------------------------------------------------------------------------
 // // Get settings
-// const DEFAULT_FILER_OPTIONS = `  filer: {
-//     addDateBacklink: true, // whether to insert date link in place of the moved text
-//     useExtendedBlockDefinition: false
-//   },
-// `
+
+const configKey = 'filer'
 
 type FilerConfig = {
   addDateBacklink: boolean,
   dateRefStyle: string,
   useExtendedBlockDefinition: boolean,
-  whereToAddInSection: string
+  whereToAddInSection: string,
+  version: string
 }
 
 async function getFilerSettings(): Promise<FilerConfig> {
   console.log(`Start of getFilerSettings()`)
+  let config: FilerConfig
 
-  const v2Config: EventsConfig = DataStore.settings
+  const v2Config: FilerConfig = DataStore.settings
   // $FlowFixMe[incompatible-call]
   // clo(v2Config, 'v2Config')
 
   if (v2Config != null && Object.keys(v2Config).length > 0) {
-    const config: FilerConfig = v2Config
-    // $FlowFixMe
-    clo(config, `\t${configKey} settings from V2:`)
-    return config
+    config = v2Config
   } else {
     // Get config settings from Template folder _configuration note or ConfigV2
     const v1config = await getOrMakeConfigurationSection(
-      'filer',
+      configKey,
       // DEFAULT_FILER_OPTIONS,
       // no minimum config
     ) ?? {}
 
-    let config: FilerConfig
-    // ???
+    
     if (v1config == null || Object.keys(v1config).length === 0) {
-      console.log(`\tInfo: couldn't find 'filer' settings. Will use defaults.`)
+      console.log(`\tInfo: couldn't find '${configKey}' settings. Will use defaults.`)
       config = {
         addDateBacklink: false,
         dateRefStyle: 'link',
         useExtendedBlockDefinition: false,
         whereToAddInSection: 'start',
+        version: '(no config found)'
       }
     } else {
-      console.log(`\tFound 'filer' settings`)
+      console.log(`\tFound '${configKey}' settings`)
       config = {
         addDateBacklink: castBooleanFromMixed(v1config, 'addDateBacklink'),
         dateRefStyle: castStringFromMixed(v1config, 'dateRefStyle'),
         useExtendedBlockDefinition: castBooleanFromMixed(v1config, 'useExtendedBlockDefinition'),
         whereToAddInSection: castStringFromMixed(v1config, 'whereToAddInSection'),
+        version: '(v1Config)'
       }
     }
-    return config
   }
+  // $FlowFixMe
+  clo(config, `\t${configKey} settings from V1 _config:`)
+  return config
 }
 
 // ----------------------------------------------------------------------------
@@ -105,24 +105,6 @@ export async function moveParas(): Promise<void> {
 
   // Get config settings from Template folder _configuration note
   const config = await getFilerSettings()
-  // await getOrMakeConfigurationSection(
-  //   'filer',
-  //   DEFAULT_FILER_OPTIONS,
-  //   // no minimum config
-  // )
-  // // for once it doesn't matter if filerConfig returns null (though it shouldn't)
-  // // $FlowIgnore[incompatible-use]
-  // const pref_addDateBacklink = !!filerConfig.addDateBacklink ?? true // !! ensures first item is boolean
-  // // console.log(pref_addDateBacklink.toString())
-  // // $FlowIgnore[incompatible-use]
-  // const pref_dateRefStyle = filerConfig.dateRefStyle ?? 'link'
-  // // console.log(pref_dateRefStyle)
-  // // $FlowIgnore[incompatible-use]
-  // const pref_useExtendedBlockDefinition = !!filerConfig.useExtendedBlockDefinition ?? false // !! ensures first item is boolean
-  // // console.log(pref_useExtendedBlockDefinition.toString())
-  // // $FlowIgnore[incompatible-use]
-  // const pref_whereToAddInSection = filerConfig.whereToAddInSection ?? 'start'
-  // // console.log(pref_whereToAddInSection)
 
   // Get current selection, and its range
   // TODO: Break this out into a separate helper function, which could also be used in progress.js
@@ -132,8 +114,7 @@ export async function moveParas(): Promise<void> {
     console.log('warning: No selection found, so stopping.')
     return
   }
-  // $FlowFixMe[incompatible-call]
-  const firstSelParaIndex = selectedLinesIndex(Editor.selection, paragraphs)
+  const firstSelParaIndex = selectedLinesIndex(selection, paragraphs)
   const parasInBlock: Array<TParagraph> =
     getParagraphBlock(note, firstSelParaIndex, config.useExtendedBlockDefinition)
 
@@ -199,6 +180,14 @@ export async function moveParas(): Promise<void> {
   note.removeParagraphs(parasInBlock)
 }
 
+// Quick tester function
+// export function testStart(): void {
+//   if (Editor.note != null) {
+//     const result: number = findStartOfActivePartOfNote(Editor.note)
+//     console.log(result)
+//   }
+// }
+
 /**
  * Get the set of paragraphs that make up this block based on the current paragraph.
  * This is how we identify the block:
@@ -213,109 +202,104 @@ export async function moveParas(): Promise<void> {
  * @author @jgclark
  * @param {[TParagraph]} allParas - all selectedParas in the note
  * @param {number} selectedParaIndex - the index of the current Paragraph
- * @param {boolean} useExtendedBlockDefinition - ???
+ * @param {boolean} useExtendedBlockDefinition - TODO:
  * @return {[TParagraph]} the set of selectedParagraphs in the block
  */
 export function getParagraphBlock(
   note: TNote,
   selectedParaIndex: number,
-  useExtendedBlockDefinition: boolean
+  useExtendedBlockDefinition: boolean = false
 ): Array<TParagraph> {
+  const parasInBlock: Array<TParagraph> = [] // to hold set of paragraphs in block to return
   const endOfActiveSection = findEndOfActivePartOfNote(note)
+  const startOfActiveSection = findStartOfActivePartOfNote(note)
   const allParas = note.paragraphs
-  const selectedPara = allParas[selectedParaIndex]
-  const parasInBlock: Array<TParagraph> = []
+  let startLine = selectedParaIndex
+  let selectedPara = allParas[startLine]
   console.log(
-    `  Para '${selectedPara.content}' type: ${selectedPara.type}, index: ${selectedParaIndex}`,
+    `  getParaBlock: ${selectedParaIndex} ${selectedPara.type} '${selectedPara.content}'`,
   )
-  // if this is a heading, find the rest of its section
+
+  if (useExtendedBlockDefinition) {
+    // include line unless we hit a new heading, an empty line, or a less-indented line
+    // TODO: also work out what to do about lower-level headings
+    // First look earlier to find earlier lines up to a blank line or horizontal rule
+    for (let i = selectedParaIndex - 1; i > startOfActiveSection; i--) {
+      const p = allParas[i]
+      // console.log(`  ${i} / indent ${p.indents} / ${p.content}`)
+      if (p.type === 'separator') {
+        console.log(`Found separator line`)
+        startLine = i + 1
+        break
+      } else if (p.content === '') {
+        console.log(`Found blank line`)
+        startLine = i + 1
+        break
+      } else if (p.type === 'title') {
+        console.log(`Found heading`)
+        startLine = i
+        // parasInBlock.unshift(p) // save para onto front, but then stop
+        break
+      }
+      // parasInBlock.unshift(p) // save para onto front
+    }
+    console.log(`For extended block worked back and will now start at line ${startLine}`)
+  }
+
+  selectedPara = allParas[startLine]
+
+  // if the first line is a heading, find the rest of its section
   if (selectedPara.type === 'title') {
     // includes all heading levels
     const thisHeadingLevel = selectedPara.headingLevel
     console.log(`  Found heading level ${thisHeadingLevel}`)
     parasInBlock.push(selectedPara) // make this the first line to move
     // Work out how far this section extends. (NB: headingRange doesn't help us here.)
-    for (let i = selectedParaIndex + 1; i < allParas.length; i++) {
+    for (let i = startLine + 1; i < endOfActiveSection; i++) {
       const p = allParas[i]
       if (p.type === 'title' && p.headingLevel <= thisHeadingLevel) {
+        // console.log(`Found new heading of same or higher level`)
         break
-      } // stop as new heading of same or higher level
+      } 
+      if (p.type === 'separator') {
+        // console.log(`Found HR`)
+        break
+      } else if (p.content === '') {
+        // console.log(`Found blank line`)
+        break
+      }
       parasInBlock.push(p)
     }
-    console.log(`  Found ${parasInBlock.length} heading section lines`)
+    // console.log(`  Found ${parasInBlock.length} heading section lines`)
   } else {
     // This isn't a heading.
     const startingIndentLevel = selectedPara.indents
     console.log(`  Found single line with indent level ${startingIndentLevel}`)
     parasInBlock.push(selectedPara)
 
-    if (useExtendedBlockDefinition) {
-      let thisHeadingLevel = 6 // i.e. higher than normal bounds to allow for case where there is no heading at the start of the block
-      // include line unless we hit a new heading, an empty line, or a less-indented line
-      // TODO: also work out what to do about lower-level headings
-      // First look earlier to find earlier lines up to a blank line or horizontal rule
-      for (let i = selectedParaIndex - 1; i >= 0; i--) {
-        const p = allParas[i]
-        // console.log(`  ${i} / indent ${p.indents} / ${p.content}`)
-        if (p.type === 'separator') {
-          // console.log(`Found HR`)
-          break
-        } else if (p.content === '') {
-          // console.log(`Found blank line`)
-          break
-        } else if (p.type === 'title') {
-          // console.log(`Found title`)
-          thisHeadingLevel = p.headingLevel
-          parasInBlock.unshift(p) // save para onto front, but then stop
-          break
-        }
-        parasInBlock.unshift(p) // save para onto front
+    // See if there are following indented lines to move as well
+    for (let i = startLine + 1; i < endOfActiveSection; i++) {
+      const p = allParas[i]
+      // console.log(`  ${i} / indent ${p.indents} / ${p.content}`)
+      // stop if horizontal line
+      if (p.type === 'separator') {
+        // console.log(`Found HR`)
+        break
+      } else if (p.content === '') {
+        // console.log(`Found blank line`)
+        break
+      } else if (p.indents <= startingIndentLevel) {
+        // stop as this selectedPara is same or less indented than the starting line
+        // console.log(`Stopping as found lower indent`)
+        break
       }
-      console.log(`For extended block found ${parasInBlock.length - 1} lines to include before`)
+      parasInBlock.push(p) // add onto end of array
+    }
+  }
 
-      // Now add all lines up until the next same-level heading or HR or blank
-      for (let i = selectedParaIndex + 1; i < endOfActiveSection; i++) {
-        const p = allParas[i]
-        // console.log(`  ${i} / indent ${p.indents} / ${p.content}`)
-        // stop if horizontal line
-        if (p.type === 'separator') {
-          // console.log(`Found HR`)
-          break
-        } else if (p.content === '') {
-          // console.log(`Found blank line`)
-          break
-        }
-        if (p.type === 'title' && p.headingLevel <= thisHeadingLevel) {
-          // console.log(`Found Heading level ${p.headingLevel}`)
-          break
-        }
-        parasInBlock.push(p) // add onto end of array
-      }
-    } else {
-      // Not extended definition.
-      // See if there are following indented lines to move as well
-      for (let i = selectedParaIndex + 1; i < endOfActiveSection; i++) {
-        const p = allParas[i]
-        // console.log(`  ${i} / indent ${p.indents} / ${p.content}`)
-        // stop if horizontal line
-        if (p.type === 'separator') {
-          // console.log(`Found HR`)
-          break
-        } else if (p.content === '') {
-          // console.log(`Found blank line`)
-          break
-        } else if (p.indents <= startingIndentLevel) {
-          // stop as this selectedPara is same or less indented than the starting line
-          // console.log(`Stopping as found lower indent (and not extended definition)`)
-          break
-        }
-        parasInBlock.push(p) // add onto end of array
-      }
-    }
-    console.log(`  Found ${parasInBlock.length - 1} paras:`)
-    for (const pib of parasInBlock) {
-      console.log(`  -> ${pib.content}`)
-    }
+  console.log(`  Found ${parasInBlock.length} paras in block:`)
+  for (const pib of parasInBlock) {
+    console.log(`    ${pib.content}`)
   }
   return parasInBlock
 }

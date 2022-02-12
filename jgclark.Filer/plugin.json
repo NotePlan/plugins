@@ -7,11 +7,20 @@
   "plugin.icon": "",
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Filer",
-  "plugin.version": "0.5.4",
+  "plugin.version": "0.6.0",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
   "plugin.commands": [
+    {
+      "name": "move paragraphs",
+      "alias": [
+        "mp",
+        "file"
+      ],
+      "description": "move (file) paragraphs to different notes",
+      "jsFunction": "moveParas"
+    },
     {
       "name": "fp",
       "alias": [
@@ -25,6 +34,12 @@
     },
     {
       "name": "mp",
+      "alias": [
+        "fp",
+        "file",
+        "move",
+        "paragraph"
+      ],
       "description": "move (file) paragraphs to different notes",
       "jsFunction": "moveParas"
     },
@@ -32,9 +47,20 @@
       "name": "nns",
       "description": "New note from selection (and leave link to it in its place)",
       "jsFunction": "newNoteFromSelection"
+    },
+    {
+      "name": "f:migrate",
+      "description": "test for Filer migrater",
+      "jsFunction": "onUpdateOrInstall"
     }
   ],
   "plugin.settings": [
+    {
+        "key": "version",
+        "type": "hidden",
+        "title": "Filer plugin version (hidden)",
+        "default": "0.6.0"
+    },
     {
         "type": "heading",
         "title": "Filer plugin settings"
@@ -59,7 +85,7 @@
     {
         "key": "useExtendedBlockDefinition",
         "title": "Use extended block definition?",
-        "description": "Controls whether all the lines in the current heading's section are included in the block to move (true) or whether only the following ones that are more deeply indented are included (false; this is the default). In both cases a block is closed by a blank line or z horizontal line.",
+        "description": "Controls whether all the lines in the current heading's section are included in the block to move (true) or whether only the following ones that are more deeply indented are included (false; this is the default). In both cases a block is closed by a blank line or a separator (horizontal line).",
         "type": "bool",
         "default": false,
         "required": true

@@ -1,13 +1,14 @@
 # What's changed in 📦 Filer plugin?
-## [0.7.0] - ???
-### Added
-- ??? add ability to default to moving to the end of a heading's section, not the start of it. See setting ???
-### Changed
-- ??? /fp and /mp now create the destination daily note if it doesn't already exist
 
-## [0.6.0] - 2021-12-09
+## [0.6.0] - 2022-02-12
 ### Added
-- ???. Also refactored code to allow re-use of my paragraph block finding code.
+- new alias `/move paragraphs` for the main `/mp` command.
+- `/mp` now create the destination daily note if it doesn't already exist
+- new setting `whereToAddInSection`. This allows moving lines to the 'end' of a heading's section, not just the 'start' of it.
+- new setting `useExtendedBlockDefinition`. This controls whether all the lines in the current heading's section are included in the block to move (true) or whether only the following ones that are more deeply indented are included (false; this is the default). In both cases a block is closed by a blank line or a separator (horizontal line).
+
+### Changed
+- will now use the Settings window available from the Plugin Preferences pane (from NotePlan v3.4), in preference to the fiddly _configuration note.
 
 ## [0.5.1] - 2021-10-03
 ### Fixed
@@ -15,8 +16,8 @@
 
 ## [0.5.0] - 2021-08-29
 ### Added
-- the setting `addDateBacklink` can now be specified in the (new) `Filer` section in your _configuration note. The default for this is still `true`.
-- `/nns` (new note from selection) moved from NoteHelpers
+- new setting `addDateBacklink` can now be specified in the `Filer` section in your _configuration note. The default for this is still `true`.
+- `/nns` (new note from selection) command moved from NoteHelpers plugin.
 
 ### Changed
 - minor improvement to the heading selection dialog
