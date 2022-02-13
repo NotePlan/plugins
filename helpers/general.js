@@ -93,11 +93,11 @@ export function rangeToString(r: Range): string {
   return `range: ${r.start}-${r.end}`
 }
 
-/** 
+/**
  * return title of note useful for display, even for calendar notes (the YYYYMMDD)
  * NB:: local copy of this in helpers/paragraph.js to avoid circular dependency
  * @author @jgclark
- * 
+ *
  * @param {TNote} n - note to get title for
  * @return {string}
  */
@@ -109,10 +109,10 @@ export function displayTitle(n: TNote): string {
   }
 }
 
-/** 
+/**
  * Return (project) note title as a [[link]]
  * @jgclark
- * 
+ *
  * @param {TNote} note to get title for
  * @return {string} note-linked title (or an error warning)
  */
@@ -123,14 +123,11 @@ export function titleAsLink(note: TNote): string {
 /**
  * From an array of strings, return the first string that matches the wanted string.
  * @author @jgclark
- * 
+ *
  * @param {Array<string>} list - list of strings to search
  * @param {string} search - string to match
  */
-export function getStringFromList(
-  list: $ReadOnlyArray<string>,
-  search: string,
-): string {
+export function getStringFromList(list: $ReadOnlyArray<string>, search: string): string {
   // console.log(`getsearchFromList for: ${search}`)
   const res = list.filter((m) => m === search)
   return res.length > 0 ? res[0] : ''
@@ -139,7 +136,7 @@ export function getStringFromList(
 /**
  * Extract contents of bracketed part of a string (e.g. '@mention(something)').
  * @author @jgclark
- * 
+ *
  * @param {string} - string that contains a bracketed mention e.g. @review(2w)
  * @return {?string} - string from between the brackets, if found (e.g. '2w')
  */
@@ -179,7 +176,7 @@ export function stringReplace(inputString: string = '', replacementArray: Array<
  * Get a particular parameter setting from parameter string
  * (Replaces an earlier version called getTagParams)
  * @author @dwertheimer
- * 
+ *
  * @param {string} paramString - the contents of the template tag, e.g. {{weather(template:FOO)}}
  * @param {string} wantedParam - the name of the parameter to get (e.g. 'template')
  * @param {any} defaultValue - default value to use if parameter not found
@@ -208,4 +205,34 @@ export async function getTagParamsFromString(paramString: string, wantedParam: s
 export function capitalize(s: string): string {
   if (typeof s !== 'string') return ''
   return s.charAt(0).toUpperCase() + s.slice(1)
+}
+
+/**
+ * Convert semver string to number
+ * @author @codedungeon
+ * @param {string} semver - semver version
+ * @return return long version number
+ */
+export function semverVersionToNumber(version: string): number {
+  const parts = version.split('.')
+  if (parts.length < 3) {
+    parts.push('0')
+    if (parts.length < 3) {
+      parts.push('0')
+    }
+  }
+
+  // $FlowIgnore
+  parts.forEach((part: number) => {
+    if (part >= 1024) {
+      throw new Error(`Version string invalid, ${part} is too large`)
+    }
+  })
+
+  let numericVersion = 0
+  // Shift all parts either 0, 10 or 20 bits to the left.
+  for (let i = 0; i < 3; i++) {
+    numericVersion |= parseInt(parts[i]) << (i * 10)
+  }
+  return numericVersion
 }
