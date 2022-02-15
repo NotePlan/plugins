@@ -20,7 +20,7 @@ import {
   toLocaleDateString,
   monthNameAbbrev,
   withinDateRange,
-  dateStringFromCalendarFilename,
+  getDateStringFromCalendarFilename,
   nowLocaleDateTime,
 } from '../../helpers/dateTime'
 import {

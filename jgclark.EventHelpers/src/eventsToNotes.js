@@ -7,7 +7,7 @@
 
 import { getEventsSettings } from './config'
 import { getEventsForDay, type EventsConfig } from '../../helpers/NPCalendar'
-import { dateStringFromCalendarFilename, toLocaleTime } from '../../helpers/dateTime'
+import { getDateStringFromCalendarFilename, toLocaleTime } from '../../helpers/dateTime'
 import { getTagParamsFromString, stringReplace } from '../../helpers/general'
 import { showMessage } from '../../helpers/userInput'
 
@@ -19,12 +19,11 @@ import { showMessage } from '../../helpers/userInput'
  * @return {string} Markdown-formatted list of today's events
  */
 export async function listDaysEvents(paramString: string = ''): Promise<string> {
-  if (Editor.note == null || Editor.type !== 'Calendar') {
+  if (Editor.note == null || Editor.filename == null || Editor.type !== 'Calendar') {
     await showMessage(`Please run again with a calendar note open.`, 'OK', 'List Events')
     return ''
   }
-  // $FlowIgnore[incompatible-call]
-  const dateStr = dateStringFromCalendarFilename(Editor.filename)
+  const dateStr = getDateStringFromCalendarFilename(Editor.filename)
   console.log(`listDaysEvents for ${dateStr} with paramString=${String(paramString)}`)
 
   // Get config settings from Template folder _configuration note
@@ -42,21 +41,23 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
 
   // Get all the events for this day
   const eArr: Array<TCalendarItem> = await getEventsForDay(dateStr, config.calendarSet)
-
   const outputArray: Array<string> = []
   const mapForSorting: { cal: string, start: string, text: string }[] = []
   let lastEventStr = '' // keep duplicates from multiple calendars out
 
+  // Process each event
   for (const e of eArr) {
-    // console.log(`      for e: ${e.title}: ${JSON.stringify(e)}`)
     const replacements = getReplacements(e, config)
 
-    // NB: the following will replace any mentions of the keywords in the e.title string itself
+    // Replace any mentions of the keywords in the e.title string
     const thisEventStr = stringReplace(e.isAllDay ? alldayTemplate : template, replacements).trimEnd()
-    if (lastEventStr !== thisEventStr) {
-      outputArray.push(thisEventStr)
-      lastEventStr = thisEventStr
-    }
+
+    // TODO: Why was this needed?
+    // if (lastEventStr !== thisEventStr) {
+    //   outputArray.push(thisEventStr)
+    //   lastEventStr = thisEventStr
+    // }
+
     if (withCalendarName) {
       mapForSorting.push({
         cal: calendarNameWithMapping(e.calendar, config.calendarNameMappings),
@@ -65,6 +66,8 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
       })
     }
   }
+
+  // Prepend heading if wanted
   if (config.eventsHeading !== '' && includeHeadings) {
     outputArray.unshift(config.eventsHeading)
   }
@@ -73,12 +76,11 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
     mapForSorting.sort(sortByCalendarNameAndStartTime())
   }
 
-  let output = outputArray.join('\n')
-  if (withCalendarName) {
-    output = mapForSorting.map((element) => element.text).join('\n')
-  }
+  let output = (withCalendarName)
+    ? mapForSorting.map((element) => element.text).join('\n')
+    : outputArray.join('\n')
 
-  output.replace(/\\s{2,}/g, ' ') // If this the array is empty -> empty string
+  output.replace(/\\s{2,}/g, ' ') // If this array is empty -> empty string
   console.log(output)
   return output
 }
@@ -118,7 +120,7 @@ export async function listMatchingDaysEvents(
   /*eslint-enable */
 ): Promise<string> {
   // $FlowIgnore[incompatible-call]
-  const dateStr = dateStringFromCalendarFilename(Editor.filename)
+  const dateStr = getDateStringFromCalendarFilename(Editor.filename)
   console.log(`listMatchingDaysEvents for date ${dateStr}:`)
 
   // Get config settings from Template folder _configuration note
@@ -218,6 +220,8 @@ function getReplacements(item: TCalendarItem, config: EventsConfig): { key: stri
 }
 
 /**
+ * Map 'name' to another if found in the 'mappings' array.
+ * Note: returns original name if no mapping found.
  * @private
  * @author @m1well
  */

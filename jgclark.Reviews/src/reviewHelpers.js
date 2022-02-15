@@ -238,19 +238,19 @@ export class Project {
     // const config = getReviewSettings()
     // read in start date (if found)
     let tempDateStr = getParamMentionFromList(mentions, Project.startMentionStr)
-    this.startDate = tempDateStr !== '' ? getDateFromString(tempDateStr) : undefined
+    this.startDate = tempDateStr !== '' ? getDateObjFromDateString(tempDateStr) : undefined
     // read in due date (if found)
     tempDateStr = getParamMentionFromList(mentions, Project.dueMentionStr)
-    this.dueDate = tempDateStr !== '' ? getDateFromString(tempDateStr) : undefined
+    this.dueDate = tempDateStr !== '' ? getDateObjFromDateString(tempDateStr) : undefined
     // read in reviewed date (if found)
     tempDateStr = getParamMentionFromList(mentions, Project.reviewedMentionStr)
-    this.reviewedDate = tempDateStr !== '' ? getDateFromString(tempDateStr) : undefined
+    this.reviewedDate = tempDateStr !== '' ? getDateObjFromDateString(tempDateStr) : undefined
     // read in completed date (if found)
     tempDateStr = getParamMentionFromList(mentions, Project.completedMentionStr)
-    this.completedDate = tempDateStr !== '' ? getDateFromString(tempDateStr) : undefined
+    this.completedDate = tempDateStr !== '' ? getDateObjFromDateString(tempDateStr) : undefined
     // read in cancelled date (if found)
     tempDateStr = getParamMentionFromList(mentions, Project.cancelledMentionStr)
-    this.cancelledDate = tempDateStr !== '' ? getDateFromString(tempDateStr) : undefined
+    this.cancelledDate = tempDateStr !== '' ? getDateObjFromDateString(tempDateStr) : undefined
     // read in review interval (if found)
     this.reviewInterval = getContentFromBrackets(getParamMentionFromList(mentions, "@review")) ?? undefined
     // calculate the durations from these dates

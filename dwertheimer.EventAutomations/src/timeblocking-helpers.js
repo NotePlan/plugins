@@ -8,7 +8,11 @@ import {
   addMinutes,
   differenceInMinutes,
 } from 'date-fns'
-// import { logAllPropertyNames, getAllPropertyNames, JSP } from '../../helpers/dev'
+import {
+  getDateObjFromDateTimeString,
+  getTimeStringFromDate,
+  removeDateTagsAndToday,
+} from '../../helpers/dateTime'
 import { sortListBy } from '../../helpers/sorting'
 import { removeDateTags } from '../../helpers/dateTime'
 // import { timeblockRegex1, timeblockRegex2 } from '../../helpers/markdown-regex'
@@ -52,13 +56,6 @@ export function getBlankDayMap(intervalMins: number): IntervalMap {
   return createIntervalMap({ start: startOfDay(new Date()), end: endOfDay(new Date()) }, false, { step: intervalMins })
 }
 
-export function removeDateTagsAndToday(tag: string): string {
-  return removeDateTags(tag)
-    .replace(/>today/, '')
-    .replace(/ {2,}/gm, ' ')
-    .trim()
-}
-
 export function blockTimeFor(
   timeMap: IntervalMap,
   blockdata: BlockData,
@@ -94,59 +91,10 @@ export function createTimeBlockLine(blockData: BlockData, config: { [key: string
 }
 
 /**
- * @description This function takes a list of calendar items and returns a list of calendar items that are not all day
- * @param {*} input - array of calendar items
- * @returns arry of calendar items without all day events
- */
-export function getTimedEntries(input: Array<TCalendarItem>): Array<TCalendarItem> {
-  return input.filter((event) => !event.isAllDay)
-}
-
-/**
- * Some events span multiple days, but we only want to show the time for one day in question.
- * Assumes that this list was previously filtered to only include events that are on the day in question.
- * @param {TCalendarItem[]} input - array of calendar items (e.g. for a day)
- * @param {Date} today - date to compare this event against (default is today)
- * @returns {Array<TCalendarItem>} the same array of items but with the start and end times adjusted to the day of interest
- */
-export function keepTodayPortionOnly(input: Array<TCalendarItem>, whatDate: Date = new Date()): Array<TCalendarItem> {
-  return input.map((event) => {
-    const diff = !event.endDate ? 0 : differenceInCalendarDays(event.date, event.endDate)
-    if (diff === 0) {
-      return event
-    } else {
-      // end date for our purposes is the end of the starting day
-      const eventCopy = { title: event.title, date: event.date, endDate: event.endDate, isAllDay: event.isAllDay } // event is immutable
-      const todayWasStart = differenceInCalendarDays(event.date, whatDate) === 0
-      const todayWasEnd = !event.endDate ? true : differenceInCalendarDays(event.endDate, whatDate) === 0
-      if (todayWasStart) {
-        eventCopy.endDate = endOfDay(event.date)
-      }
-      if (todayWasEnd) {
-        eventCopy.date = startOfDay(event.endDate || event.date)
-      }
-      if (!todayWasStart && !todayWasEnd) {
-        eventCopy.date = startOfDay(whatDate)
-        eventCopy.endDate = endOfDay(whatDate)
-      }
-      // $FlowFixMe
-      return eventCopy
-    }
-  })
-}
-
-/**
- * Return the time as a string in the format "HH:MM"
- * @param {Date} date object
- * @returns {string} - the time string in the format "HH:MM"
- */
-export function getTimeStringFromDate(date: Date): string {
-  return formatISO9075(date).split(' ')[1].slice(0, -3)
-}
-
-/**
  * Takes in an array of calendar items and a timeMap for the day
  * and returns the timeMap with the busy times updated to reflect the calendar items
+ * @author @dwertheimer
+ * 
  * @param {Array<TCalendarItem>} events
  * @param {IntervalMap} timeMap
  * @param {TimeBlockDefaults} config
@@ -173,6 +121,8 @@ export function blockOutEvents(
  * Typically we are looking for open tasks, but it is possible that some >today items
  * might be bullets (type=='list'), so for timeblocking purposes, let's make them open tasks
  * for the purposes of this script
+ * @author @dwertheimer
+ * 
  * @param {TParagraphs[]} paras
  * @returns TParagraphs[] - with remapped items
  */
@@ -195,8 +145,10 @@ export const removeDurationParameter = (text: string, durationMarker: string): s
   text.replace(durationRegEx(durationMarker), '').trim()
 
 /**
- * @description Scans a line for a delimiter and a time signature, e.g. '2h5m or '2.5h
- * @param {*} line - input line
+ * Scans a line for a delimiter and a time signature, e.g. '2h5m or '2.5h
+ * @author @dwertheimer
+ *
+ *  @param {*} line - input line
  * @returns { Int } number of minutes in duration (or zero)
  */
 export function getDurationFromLine(line: string, durationMarker: string): number {
@@ -213,7 +165,9 @@ export function getDurationFromLine(line: string, durationMarker: string): numbe
 }
 
 /**
- * @description Remove >date and >today tags from a paragraphs array and return only the most important parts
+ * Remove >date and >today tags from a paragraphs array and return only the most important parts
+ * @author @dwertheimer
+ *
  * @param {*} paragraphsArray
  * @returns
  */
@@ -234,7 +188,9 @@ export const timeIsAfterWorkHours = (nowStr: string, config: TimeBlockDefaults):
 }
 
 /**
- * @description Get the day map with only the slots that are open, after now and inside of the workday
+ * Get the day map with only the slots that are open, after now and inside of the workday
+ * @author @dwertheimer
+ *
  * @param {*} timeMap
  * @param {*} config
  * @returns {IntervalMap} remaining time map
@@ -247,40 +203,6 @@ export function filterTimeMapToOpenSlots(timeMap: IntervalMap, config: { [key: s
   })
 }
 
-/**
- * Take in an "YYYY-MM-DD HH:MM time" string and return a Date object for that time
- * Note: there needs to be a space separating the date and time strings
- * Time string can include seconds, e.g. "2020-01-01 12:00:00"
- * Most of the code in this function is a workaround to make sure we get the right date for all OS versions
- * @param {string} dateTimeString - in form "YYYY-MM-DD HH:MM"
- * @returns {Date} - the date object
- * @throws {Error} - if the dateTimeString is not in the correct format
- */
-export const getDateObjFromString = (dateTimeString: string): Date => {
-  // eslint-disable-next-line prefer-const -- using let so we can use destructuring
-  let [dateString, timeString] = dateTimeString.split(' ')
-  if (!timeString) {
-    timeString = '00:00'
-  }
-  if (timeString.split(':').length === 2) timeString = `${timeString}:00`
-  let timeParts = timeString.split(':')
-  let dateParts = dateString.split('-')
-  if (timeParts.length !== 3 || dateParts.length !== 3) {
-    throw `dateTimeString "${dateTimeString}" is not in expected format`
-  }
-  timeParts = timeParts.map((t) => Number(t))
-  dateParts = dateParts.map((d) => Number(d))
-  dateParts[1] = dateParts[1] - 1 // Months is an index from 0-11
-  const date = new Date(...dateParts, ...timeParts)
-  if (date.toString() === 'Invalid Date') {
-    throw `New Date("${dateTimeString}") returns an Invalid Date`
-  }
-  // Double-check for Catalina and previous JS versions dates (which do GMT conversion on the way in)
-  if (!date.toTimeString().startsWith(timeString)) {
-    throw `Date mismatch (Catalina date hell). Incoming time:${dateTimeString} !== generated:${date.toTimeString()}`
-  }
-  return date
-}
 
 export function createOpenBlockObject(
   block: BlockData,
@@ -289,8 +211,8 @@ export function createOpenBlockObject(
 ): OpenBlock | null {
   let startTime, endTime
   try {
-    startTime = getDateObjFromString(`2021-01-01 ${block.start || '00:00'}`)
-    endTime = getDateObjFromString(`2021-01-01 ${block.end || '23:59'}`)
+    startTime = getDateObjFromDateTimeString(`2021-01-01 ${block.start || '00:00'}`)
+    endTime = getDateObjFromDateTimeString(`2021-01-01 ${block.end || '23:59'}`)
   } catch (error) {
     console.log(error)
     return null
@@ -345,7 +267,7 @@ export function findTimeBlocks(timeMap: IntervalMap, config: { [key: string]: an
 
 export function addMinutesToTimeText(startTimeText: string, minutesToAdd: number): string {
   try {
-    const startTime = getDateObjFromString(`2021-01-01 ${startTimeText}`)
+    const startTime = getDateObjFromDateTimeString(`2021-01-01 ${startTimeText}`)
     return startTime ? getTimeStringFromDate(addMinutes(startTime, minutesToAdd)) : ''
   } catch (error) {
     console.log(error)

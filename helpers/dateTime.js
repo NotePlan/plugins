@@ -4,6 +4,9 @@
 // @jgclark except where shown
 
 import strftime from 'strftime'
+import {
+  formatISO9075,
+} from 'date-fns'
 
 export const RE_DATE = '\\d{4}-[01]\\d{1}-\\d{2}' // find dates of form YYYY-MM-DD
 export const RE_ISO_DATE = '\\d{4}-[01]\\d{1}-\\d{2}' // find dates of form YYYY-MM-DD
@@ -70,7 +73,6 @@ export function toISOShortDateTimeString(dateObj: Date): string {
   return dateObj.toISOString().slice(0, 16)
 }
 
-// TODO: Finish moving references to this -> NPdateTime.js
 export function toLocaleDateTimeString(
   dateObj: Date,
   locale: string | Array<string> = [],
@@ -79,7 +81,6 @@ export function toLocaleDateTimeString(
   return dateObj.toLocaleString(locale, options)
 }
 
-// TODO: Finish moving references to this -> NPdateTime.js
 export function toLocaleDateString(
   dateObj: Date,
   locale: string | Array<string> = [],
@@ -88,7 +89,6 @@ export function toLocaleDateString(
   return dateObj.toLocaleDateString(locale, options)
 }
 
-// TODO: Finish moving references to this -> NPdateTime.js
 export function toLocaleTime(
   dateObj: Date,
   locale: string | Array<string> = [],
@@ -97,7 +97,6 @@ export function toLocaleTime(
   return dateObj.toLocaleTimeString(locale, options)
 }
 
-// TODO: Move references to this -> NPdateTime.js
 export function printDateRange(dr: DateRange) {
   console.log(`DateRange <${toISOShortDateTimeString(dr.start)} - ${toISOShortDateTimeString(dr.end)}>`)
 }
@@ -119,11 +118,22 @@ export function filenameDateString(dateObj: Date): string {
   return `${year}${month < 10 ? '0' : ''}${month}${date < 10 ? '0' : ''}${date}`
 }
 
-export function dateStringFromCalendarFilename(filename: string): string {
+/**
+ * Return the time as a string in the format "HH:MM"
+ * @author @dwertheimer
+ * 
+ * @param {Date} date object
+ * @returns {string} - the time string in the format "HH:MM"
+ */
+export function getTimeStringFromDate(date: Date): string {
+  return formatISO9075(date).split(' ')[1].slice(0, -3)
+}
+
+export function getDateStringFromCalendarFilename(filename: string): string {
   return filename.slice(0, 8)
 }
 
-export function isoDateStringFromCalendarFilename(filename: string): string {
+export function getISODateStringFromCalendarFilename(filename: string): string {
   return `${filename.slice(0, 4)}-${filename.slice(4, 6)}-${filename.slice(6, 8)}`
 }
 
@@ -132,6 +142,14 @@ export function removeDateTags(content: string): string {
   return content
     .replace(/<\d{4}-\d{2}-\d{2}/g, '')
     .replace(/>\d{4}-\d{2}-\d{2}/g, '')
+    .trim()
+}
+
+// @dwertheimer
+export function removeDateTagsAndToday(tag: string): string {
+  return removeDateTags(tag)
+    .replace(/>today/, '')
+    .replace(/ {2,}/gm, ' ')
     .trim()
 }
 
@@ -156,6 +174,9 @@ export function monthNameAbbrev(m: number): string {
 }
 
 /* Return difference between start and end dates
+ * TODO: look at using date-fn's differenceInCalendarDays instead
+ * @author @jgclark
+ *
  * @param {Date} d1 - start Date
  * @param {Date} d2 - end Date
  * @return {number} - number of days between d1 and d2 (rounded to nearest integer)
@@ -215,11 +236,13 @@ export function relativeDateFromNumber(diffIn: number): string {
 }
 
 /* Turn a string that includes YYYY-MM-DD into a JS Date
+ * @author @jgclark
+
  * @param {string} - string that contains a date e.g. @due(2021-03-04)
  * @return {?Date} - JS Date version, if valid date found
  * @test - available in jest file
  */
-export function getDateFromString(mention: string): ?Date {
+export function getDateObjFromDateString(mention: string): ?Date {
   const RE_DATE_CAPTURE = `(${RE_DATE})` // capture date of form YYYY-MM-DD
 
   // console.log(`\tgetDateFromString: ${mention}`)
@@ -235,6 +258,67 @@ export function getDateFromString(mention: string): ?Date {
     return date
   } else {
     console.log(`\t\tgetDateFromString: no valid date found in '${mention}'`)
+    return
+  }
+}
+
+/**
+ * Take in an "YYYY-MM-DD HH:MM time" string and return a Date object for that time
+ * Note: there needs to be a space separating the date and time strings
+ * Time string can include seconds, e.g. "2020-01-01 12:00:00"
+ * Most of the code in this function is a workaround to make sure we get the right date for all OS versions
+ * @author @dwertheimer
+ * 
+ * @param {string} dateTimeString - in form "YYYY-MM-DD HH:MM"
+ * @returns {Date} - the date object
+ * @throws {Error} - if the dateTimeString is not in the correct format
+ */
+export const getDateObjFromDateTimeString = (dateTimeString: string): Date => {
+  // eslint-disable-next-line prefer-const -- using let so we can use destructuring
+  let [dateString, timeString] = dateTimeString.split(' ')
+  if (!timeString) {
+    timeString = '00:00'
+  }
+  if (timeString.split(':').length === 2) timeString = `${timeString}:00`
+  let timeParts = timeString.split(':')
+  let dateParts = dateString.split('-')
+  if (timeParts.length !== 3 || dateParts.length !== 3) {
+    throw `dateTimeString "${dateTimeString}" is not in expected format`
+  }
+  timeParts = timeParts.map((t) => Number(t))
+  dateParts = dateParts.map((d) => Number(d))
+  dateParts[1] = dateParts[1] - 1 // Months is an index from 0-11
+  const date = new Date(...dateParts, ...timeParts)
+  if (date.toString() === 'Invalid Date') {
+    throw `New Date("${dateTimeString}") returns an Invalid Date`
+  }
+  // Double-check for Catalina and previous JS versions dates (which do GMT conversion on the way in)
+  if (!date.toTimeString().startsWith(timeString)) {
+    throw `Date mismatch (Catalina date hell). Incoming time:${dateTimeString} !== generated:${date.toTimeString()}`
+  }
+  return date
+}
+
+/* Turn a YYYYMMDD string into a JS Date
+ * @param {string} - YYYYMMDD string
+ * @return {?Date} - JS Date version
+ */
+export function getDateFromUnhyphenatedDateString(inputString: string): ?Date {
+  const RE_DATE_CAPTURE = `(\\d{4}[01]\\d{1}\\d{2})` // capture date of form YYYYMMDD
+
+  // console.log(`\tgetDateFromUnhyphenatedDateString: ${inputString}`)
+  const res = inputString.match(RE_DATE_CAPTURE) ?? []
+  // Use first match, if found
+  if (res[1]?.length > 0) {
+    const date = new Date(
+      Number(res[1].slice(0, 4)),
+      Number(res[1].slice(4, 6)) - 1, // only seems to be needed for months?!
+      Number(res[1].slice(6, 8))
+    )
+    // console.log(toISOShortDateTimeString(date))
+    return date
+  } else {
+    console.log(`\t\tgetDateFromUnhyphenatedDateString: no valid date found in '${inputString}'`)
     return
   }
 }
