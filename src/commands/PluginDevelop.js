@@ -149,8 +149,12 @@ module.exports = {
         : `node scripts/rollup.js ${plugin} --build ${notify ? '--notify' : ''}`
     } else {
       const directory = plugin.length > 0 ? `${plugin}` : ''
-      cmd = `./node_modules/.bin/jest ${directory} ${watch ? '--watch' : ''} ${coverage ? '--coverage' : ''}`
-      cmd = `noteplan-cli plugin:test ${directory} ${watch ? '--watch' : ''} ${coverage ? '--coverage' : ''}`
+      cmd = `./node_modules/.bin/jest ${directory} ${watch ? '--watch' : ''} ${
+        coverage ? '--coverage' : ''
+      } --verbose false`
+      cmd = `noteplan-cli plugin:test ${directory} ${watch ? '--watch' : ''} ${
+        coverage ? '--coverage' : ''
+      } --verbose false`
     }
 
     system.run(cmd, true)

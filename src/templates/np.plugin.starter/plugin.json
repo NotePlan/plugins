@@ -18,5 +18,16 @@
         "helloWorld Alias"
       ]
     }
+  ],
+  "plugin.settings": [
+    {
+      "type": "heading",
+      "title": "{{pluginName}} Settings"
+    },
+    {
+      "key": "version",
+      "type": "hidden",
+      "{{pluginName}} Settings Version"
+    }
   ]
 }
