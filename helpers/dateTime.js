@@ -142,7 +142,7 @@ export function removeDateTags(content: string): string {
   return content
     .replace(/<\d{4}-\d{2}-\d{2}/g, '')
     .replace(/>\d{4}-\d{2}-\d{2}/g, '')
-    .trim()
+    .trimEnd()
 }
 
 // @dwertheimer
@@ -150,7 +150,7 @@ export function removeDateTagsAndToday(tag: string): string {
   return removeDateTags(tag)
     .replace(/>today/, '')
     .replace(/ {2,}/gm, ' ')
-    .trim()
+    .trimEnd()
 }
 
 export const months = [
