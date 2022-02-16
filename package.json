@@ -87,7 +87,7 @@
     "typecheck": "flow check",
     "fix": "npm run lint-fix && npm run format",
     "test": "npm run lint && npm run typecheck",
-    "test:dev": "jest --silent --verbose false",
+    "test:dev": "jest --verbose false",
     "test:watch": "jest --watch --verbose false",
     "security": "npm run security:high && npm run security:critical",
     "security:high": "npm audit | grep -B 1 -A 10 high",

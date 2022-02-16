@@ -12,6 +12,14 @@
 // Typically, listed below are only the top-level plug-in functions listed in plugin.json
 
 // including so rollup will trigger build when plugin.json is modified
+
 import pluginJson from '../plugin.json'
 
+// updateSettingsData will execute whenever your plugin is installed or updated
+import { updateSettingData } from '@helpers/NPconfiguration'
+
 export { helloWorld } from './helloWorld'
+
+export async function onUpdateOrInstall(): Promise<void> {
+  updateSettingData(pluginJson)
+}

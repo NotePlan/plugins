@@ -2,6 +2,21 @@
 // Development-related helper functions
 
 /**
+ * Returns ISO formatted date time
+ * @author @codedungeon
+ * @return {string} formatted date time
+ */
+const dt = (): string => {
+  const d = new Date()
+
+  const pad = (value: number): string => {
+    return value < 10 ? '0' + value : value.toString()
+  }
+
+  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + d.toLocaleTimeString()
+}
+
+/**
  * JSON.stringify() with support for Prototype properties
  * @author @dwertheimer
  *
@@ -64,4 +79,41 @@ export function logAllPropertyNames(obj: { [string]: mixed }): void {
   if (obj == null) return // recursive approach
   console.log(Object.getOwnPropertyNames(obj).filter((x) => /^__/.test(x) === false))
   logAllPropertyNames(Object.getPrototypeOf(obj))
+}
+
+/**
+ * Formats log output to include timestamp pluginName and version
+ * @author @codedungeon
+ * @param {mixed} pluginInfo
+ * @param {string} message
+ * @param {string} type
+ * @returns {void}
+ */
+export function log(pluginInfo: any, message: string = '', type: string = 'LOG') {
+  let msg = `${dt().padEnd(24)} | ${type.padEnd(9)} | ${pluginInfo['plugin.id']} v${
+    pluginInfo['plugin.version']
+  } :: ${message}`
+  console.log(msg)
+}
+
+/**
+ * Formats log output to include timestamp pluginName and version
+ * @author @codedungeon
+ * @param {mixed} pluginInfo
+ * @param {string} message
+ * @returns {void}
+ */
+export function logError(pluginInfo: any, message: string = '') {
+  log(pluginInfo, message, 'ERROR')
+}
+
+/**
+ * Formats log output to include timestamp pluginName and version
+ * @author @codedungeon
+ * @param {mixed} pluginInfo
+ * @param {string} message
+ * @returns {void}
+ */
+export function logWarn(pluginInfo: any, message: string = '') {
+  log(pluginInfo, message, 'WARN')
 }
