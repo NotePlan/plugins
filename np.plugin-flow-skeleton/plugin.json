@@ -20,5 +20,15 @@
         "helloWorld Alias"
       ]
     }
+  ],
+  "plugin.settings": [
+      {
+        "type": "string",
+        "key": "someString",
+        "title": "String Setting",
+        "description": "An example of a string setting.",
+        "default": "This is a sample-does nothing",
+        "required": true
+    }  
   ]
 }
