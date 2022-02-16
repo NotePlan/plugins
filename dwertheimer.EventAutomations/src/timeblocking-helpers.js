@@ -8,11 +8,7 @@ import {
   addMinutes,
   differenceInMinutes,
 } from 'date-fns'
-import {
-  getDateObjFromDateTimeString,
-  getTimeStringFromDate,
-  removeDateTagsAndToday,
-} from '../../helpers/dateTime'
+import { getDateObjFromDateTimeString, getTimeStringFromDate, removeDateTagsAndToday } from '../../helpers/dateTime'
 import { sortListBy } from '../../helpers/sorting'
 import { removeDateTags } from '../../helpers/dateTime'
 // import { timeblockRegex1, timeblockRegex2 } from '../../helpers/markdown-regex'
@@ -94,7 +90,7 @@ export function createTimeBlockLine(blockData: BlockData, config: { [key: string
  * Takes in an array of calendar items and a timeMap for the day
  * and returns the timeMap with the busy times updated to reflect the calendar items
  * @author @dwertheimer
- * 
+ *
  * @param {Array<TCalendarItem>} events
  * @param {IntervalMap} timeMap
  * @param {TimeBlockDefaults} config
@@ -122,7 +118,7 @@ export function blockOutEvents(
  * might be bullets (type=='list'), so for timeblocking purposes, let's make them open tasks
  * for the purposes of this script
  * @author @dwertheimer
- * 
+ *
  * @param {TParagraphs[]} paras
  * @returns TParagraphs[] - with remapped items
  */
@@ -203,7 +199,6 @@ export function filterTimeMapToOpenSlots(timeMap: IntervalMap, config: { [key: s
   })
 }
 
-
 export function createOpenBlockObject(
   block: BlockData,
   config: { [key: string]: any },
@@ -260,7 +255,7 @@ export function findTimeBlocks(timeMap: IntervalMap, config: { [key: string]: an
       if (lastBlock) blocks.push(lastBlock)
     }
   } else {
-    console.log(`findTimeBlocks: timeMap array was empty`)
+    // console.log(`findTimeBlocks: timeMap array was empty`)
   }
   return blocks
 }
@@ -409,14 +404,14 @@ export function getTimeBlockTimesForEvents(
         break
       }
       default: {
-        console.log('ERROR: Unknown getTimeBlockTimesForEvents mode: "${config.mode}"')
+        // console.log('ERROR: Unknown getTimeBlockTimesForEvents mode: "${config.mode}"')
         break
       }
     }
   } else {
-    console.log(
-      `INFO: getTimeBlockTimesForEvents nothing will be entered because todos.length=${todos.length} blocksAvailable.length=${blocksAvailable.length} timeMap.length=${timeMap.length} config.mode=${config.mode}`,
-    )
+    // console.log(
+    //   `INFO: getTimeBlockTimesForEvents nothing will be entered because todos.length=${todos.length} blocksAvailable.length=${blocksAvailable.length} timeMap.length=${timeMap.length} config.mode=${config.mode}`,
+    // )
   }
   return newInfo
 }

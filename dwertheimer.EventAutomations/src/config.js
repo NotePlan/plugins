@@ -66,7 +66,7 @@ export function validateTimeBlockConfig(config: { [key: string]: any }): { [key:
     const validatedConfig = validateConfigProperties(config, configTypeCheck)
     return validatedConfig
   } catch (error) {
-    console.log(`NPTimeblocking::validateTimeBlockConfig: ${String(error)}\nInvalid config:\n${JSON.stringify(config)}`)
+    // console.log(`NPTimeblocking::validateTimeBlockConfig: ${String(error)}\nInvalid config:\n${JSON.stringify(config)}`)
     throw new Error(`${String(error)}`)
   }
 }

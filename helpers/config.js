@@ -61,7 +61,7 @@ export function validateConfigProperties(
     failed += 'No validations provided'
   }
   if (failed !== '') {
-    console.log(`Config failed minimum validation spec!\n>${failed}`)
+    // console.log(`Config failed minimum validation spec!\n>${failed}`)
     throw new Error(failed)
   } else {
     return config
