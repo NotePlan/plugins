@@ -13,7 +13,7 @@ const dt = (): string => {
     return value < 10 ? '0' + value : value.toString()
   }
 
-  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + d.toLocaleTimeString()
+  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + d.toLocaleTimeString('en-GB')
 }
 
 /**
@@ -90,7 +90,7 @@ export function logAllPropertyNames(obj: { [string]: mixed }): void {
  * @returns {void}
  */
 export function log(pluginInfo: any, message: string = '', type: string = 'LOG') {
-  let msg = `${dt().padEnd(24)} | ${type.padEnd(9)} | ${pluginInfo['plugin.id']} v${
+  let msg = `${dt().padEnd(20)} | ${type.padEnd(6)} | ${pluginInfo['plugin.id']} v${
     pluginInfo['plugin.version']
   } :: ${message}`
   console.log(msg)
