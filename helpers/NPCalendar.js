@@ -14,7 +14,13 @@
 // NB: The actual detection allows for more time types than is mentioned in the docs.
 // ----------------------------------------------------------------------------
 
-import { isoDateStringFromCalendarFilename, printDateRange, todaysDateISOString } from './dateTime'
+import { keepTodayPortionOnly } from './calendar'
+import {
+  getDateFromUnhyphenatedDateString,
+  getISODateStringFromCalendarFilename,
+  printDateRange,
+  todaysDateISOString,
+} from './dateTime'
 import { displayTitle } from './general'
 import { findEndOfActivePartOfNote } from './paragraph'
 import {
@@ -99,7 +105,7 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
     // NB: But these are ignored if there's an actual date in the time block
     const dateContext =
       note.type === 'Calendar' && note.filename
-        ? isoDateStringFromCalendarFilename(note.filename) ?? todaysDateISOString
+        ? getISODateStringFromCalendarFilename(note.filename) ?? todaysDateISOString
         : todaysDateISOString
 
     // Iterate over timeblocks
@@ -258,6 +264,9 @@ export async function getEventsForDay(
   console.log(`getEventsForDay: ${startOfDay.toString()} - ${endOfDay.toString()}`)
   let eArr: Array<TCalendarItem> = await Calendar.eventsBetween(startOfDay, endOfDay)
   console.log(`\tretrieved ${eArr.length} events from NP Calendar store`)
+  
+  // Filter out parts of multi-day events not in today
+  eArr = keepTodayPortionOnly(eArr, getDateFromUnhyphenatedDateString(dateStr) ?? new Date())
 
   // If we have a calendarSet list, use to weed out events that don't match .calendar
   if (calendarSet.length > 0) {

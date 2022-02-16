@@ -944,11 +944,6 @@ type TCalendarItem = {
    */
   +title: string,
   /**
-   * The calendar or reminders list where this event or reminder is (or should be) saved. If you set nothing, the event or reminder will be added to the default and this field will be set after adding.
-   * Note: Available from v3.0.15.
-   */
-  +calendar: string,
-  /**
    * The date (with time) of the event or reminder.
    */
   +date: Date,
@@ -960,11 +955,26 @@ type TCalendarItem = {
   /**
    * The type of the calendar item, either "event" or "reminder".
    */
-  +type: CalenderItemType,
+  +type: string,
   /**
    * If the calendar item is all-day, means it has no specific time.
    */
   +isAllDay: boolean,
+  /**
+   * If the calendar item is completed. This applies only to reminders.
+   * Note: Available from v3.0.15
+   */
+  +isCompleted: boolean,
+  /**
+   * All the dates the event or reminder occurs (if it's a multi-day event for example)
+   * Note: Available from v3.0.15
+   */
+  +occurrences: [Date],
+  /**
+   * The calendar or reminders list where this event or reminder is (or should be) saved. If you set nothing, the event or reminder will be added to the default and this field will be set after adding.
+   * Note: Available from v3.0.15.
+   */
+  +calendar: string,
   /**
    * Text saved in the "Notes" field of the event or reminder.
    * Note: Available from v3.0.26

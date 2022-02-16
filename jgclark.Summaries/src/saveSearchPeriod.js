@@ -17,7 +17,7 @@ import {
 } from './summaryHelpers'
 import type { SummariesConfig } from './summaryHelpers'
 import {
-  dateStringFromCalendarFilename,
+  getDateStringFromCalendarFilename,
   monthNameAbbrev,
   toLocaleDateString,
   unhyphenatedDate,
@@ -78,7 +78,7 @@ export async function saveSearchPeriod(): Promise<void> {
   // Get array of all daily notes that are within this time period
   const periodDailyNotes = DataStore.calendarNotes.filter((p) =>
     withinDateRange(
-      dateStringFromCalendarFilename(p.filename),
+      getDateStringFromCalendarFilename(p.filename),
       fromDateStr,
       toDateStr,
     ),

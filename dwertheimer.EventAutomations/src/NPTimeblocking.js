@@ -16,13 +16,20 @@ import {
   formatISO9075,
   addMinutes,
 } from 'date-fns'
+import {
+  getTimedEntries,
+  keepTodayPortionOnly,
+} from '../../helpers/calendar'
 import { getEventsForDay, writeTimeBlocksToCalendar } from '../../helpers/NPCalendar'
 import {
-  dateStringFromCalendarFilename,
+  getDateStringFromCalendarFilename,
   type HourMinObj,
+  getDateObjFromDateTimeString,
+  getTimeStringFromDate,
   getTodaysDateHyphenated,
   getTodaysDateUnhyphenated,
   removeDateTags,
+  removeDateTagsAndToday,
   todaysDateISOString,
   toISODateString,
   toLocaleTime,
@@ -41,14 +48,9 @@ import {
   createTimeBlockLine,
   excludeTasksWithPatterns,
   getBlankDayMap,
-  getDateObjFromString,
   getTimeBlockTimesForEvents,
-  getTimedEntries,
-  getTimeStringFromDate,
-  keepTodayPortionOnly,
   includeTasksWithPatterns,
   makeAllItemsTodos,
-  removeDateTagsAndToday,
   removeDateTagsFromArray,
 } from './timeblocking-helpers'
 import { getPresetOptions, setConfigForPreset } from './presets'
@@ -100,7 +102,7 @@ const editorOrNote: EditorOrNote = (note: EditorOrNote) => (Editor.filename === 
  */
 function findTodosInNote(note, config) {
   const hyphDate = getTodaysDateHyphenated()
-  const toDate = getDateObjFromString(hyphDate)
+  const toDate = getDateObjFromDateTimeString(hyphDate)
   const isTodayItem = (text) => [hyphDate, '>today'].filter((a) => text.indexOf(a) > -1).length > 0
   const todos = []
   if (note.paragraphs) {
@@ -241,7 +243,7 @@ async function getPopulatedTimeMapForToday(
 export async function deleteCalendarEventsWithTag(tag: string, dateStr: string): Promise<void> {
   let dateString = dateStr
   if (!dateStr) {
-    dateString = Editor.filename ? dateStringFromCalendarFilename(Editor.filename) : null
+    dateString = Editor.filename ? getDateStringFromCalendarFilename(Editor.filename) : null
   }
   if (dateString) {
     const eventsArray: Array<TCalendarItem> = await getEventsForDay(dateString)
@@ -282,7 +284,7 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: an
   const hypenatedDate = getTodaysDateHyphenated()
   const date = getTodaysDateUnhyphenated()
   const note = Editor // placeholder. we may pass a note in future revs
-  const dateStr = Editor.filename ? dateStringFromCalendarFilename(Editor.filename) : null
+  const dateStr = Editor.filename ? getDateStringFromCalendarFilename(Editor.filename) : null
   if (dateStr && dateStr === date) {
     const backlinkParas = getTodaysReferences(Editor.note, config)
     console.log(`Found ${backlinkParas.length} backlinks+today-note items (may include completed items)`)

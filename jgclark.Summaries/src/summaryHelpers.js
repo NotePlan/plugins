@@ -6,7 +6,7 @@
 //-----------------------------------------------------------------------------
 
 import {
-  dateStringFromCalendarFilename,
+  getDateStringFromCalendarFilename,
   getWeek,
   hyphenatedDate,
   monthNameAbbrev,
@@ -482,7 +482,7 @@ export async function calcHashtagStatsPeriod(
 ): Promise<?[Map<string, number>, Map<string, number>]> {
   // Get all daily notes that are within this time period
   const periodDailyNotes = DataStore.calendarNotes.filter((p) =>
-    withinDateRange( dateStringFromCalendarFilename(p.filename), fromDateStr, toDateStr )
+    withinDateRange( getDateStringFromCalendarFilename(p.filename), fromDateStr, toDateStr )
   )
   if (periodDailyNotes.length === 0) {
     console.log(`  warning: no matching daily notes found between ${fromDateStr} and ${toDateStr}`)
@@ -574,7 +574,7 @@ export async function calcMentionStatsPeriod(
 ): Promise<?[Map<string, number>, Map<string, number>]> {
   // Get all daily notes that are within this time period
   const periodDailyNotes = DataStore.calendarNotes.filter((p) =>
-    withinDateRange( dateStringFromCalendarFilename(p.filename), fromDateStr, toDateStr )
+    withinDateRange( getDateStringFromCalendarFilename(p.filename), fromDateStr, toDateStr )
   )
 
   if (periodDailyNotes.length === 0) {

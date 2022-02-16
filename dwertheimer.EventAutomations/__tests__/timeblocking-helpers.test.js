@@ -4,6 +4,7 @@ import { exportAllDeclaration } from '@babel/types'
 import { differenceInCalendarDays, endOfDay, startOfDay, eachMinuteOfInterval, formatISO9075 } from 'date-fns'
 import { getTasksByType } from '../../dwertheimer.TaskAutomations/src/taskHelpers'
 import * as tb from '../src/timeblocking-helpers'
+// import * as ch from '../../helpers/calendar'
 // import { sortListBy, getTasksByType } from '../../dwertheimer.TaskAutomations/src/taskHelpers'
 import { JSP } from '../../helpers/dev'
 const _ = require('lodash')
@@ -70,23 +71,6 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result[287]).toEqual({ start: '23:55', busy: false, index: 287 })
       expect(result.length).toEqual(288)
     })
-    describe('removeDateTagsAndToday ', () => {
-      test('should remove ">today at end" ', () => {
-        expect(tb.removeDateTagsAndToday(`test >today`)).toEqual('test')
-      })
-      test('should remove ">today at beginning" ', () => {
-        expect(tb.removeDateTagsAndToday(`>today test`)).toEqual('test')
-      })
-      test('should remove ">today in middle" ', () => {
-        expect(tb.removeDateTagsAndToday(`this is a >today test`)).toEqual('this is a test')
-      })
-      test('should remove >YYYY-MM-DD date ', () => {
-        expect(tb.removeDateTagsAndToday(`test >2021-11-09`)).toEqual('test')
-      })
-      test('should remove nothing if no date tag ', () => {
-        expect(tb.removeDateTagsAndToday(`test no date`)).toEqual('test no date')
-      })
-    })
     describe('blockTimeFor ', () => {
       test('should mark time map slots as busy (with title) for time of event in 2nd param', () => {
         const map = tb.getBlankDayMap(5)
@@ -140,97 +124,7 @@ describe(`${PLUGIN_NAME}`, () => {
         )
       })
     })
-    describe('getTimedEntries', () => {
-      test('should return only items which are not isAllDay==true', () => {
-        expect(
-          tb.getTimedEntries([
-            { title: 'one', isAllDay: false },
-            { title: 'two', isAllDay: true },
-          ]),
-        ).toEqual([
-          {
-            title: 'one',
-            isAllDay: false,
-          },
-        ])
-      })
-      test('should return empty array when there are no items isAllDay==false', () => {
-        expect(
-          tb.getTimedEntries([
-            { title: 'one', isAllDay: true },
-            { title: 'two', isAllDay: true },
-          ]),
-        ).toEqual([])
-      })
-    })
-    describe('keepTodayPortionOnly', () => {
-      test('should not modify items that are start/end in the same day', () => {
-        const events = [
-          { date: new Date(`2021-01-01 08:00`), endDate: new Date(`2021-01-01 23:59`), title: 'foo', isAllDay: false },
-        ]
-        expect(tb.keepTodayPortionOnly(events)).toEqual(events)
-      })
-      test('should modify items that are started prior to date in question and end on date in question', () => {
-        const sentEvents = [
-          {
-            date: new Date(`2021-01-01 08:00`),
-            endDate: new Date(`2021-01-02 10:00`),
-            title: 'foo',
-            isAllDay: false,
-          },
-        ]
-        const expectedReturn = [
-          {
-            date: new Date(`2021-01-02 00:00`),
-            endDate: new Date(`2021-01-02 10:00`),
-            title: 'foo',
-            isAllDay: false,
-          },
-        ]
-        expect(tb.keepTodayPortionOnly(sentEvents, new Date(`2021-01-02 08:00`))).toEqual(expectedReturn)
-      })
-      test('should modify items that start on day in question but end after date in question', () => {
-        const sentEvents = [
-          {
-            date: new Date(`2021-01-01 08:00`),
-            endDate: new Date(`2021-01-02 10:00`),
-            title: 'foo',
-            isAllDay: false,
-          },
-        ]
-        const expectedReturn = [
-          {
-            date: new Date(`2021-01-01 08:00`),
-            endDate: new Date(`2021-01-01 23:59:59.999`),
-            title: 'foo',
-            isAllDay: false,
-          },
-        ]
-        expect(tb.keepTodayPortionOnly(sentEvents, new Date(`2021-01-01 08:00`))).toEqual(expectedReturn)
-      })
-      test('should modify items that start before day in question and end after date in question', () => {
-        const sentEvents = [
-          {
-            date: new Date(`2021-01-01 08:00`),
-            endDate: new Date(`2021-01-03 10:00`),
-            title: 'foo',
-            isAllDay: false,
-          },
-        ]
-        const expectedReturn = [
-          {
-            date: new Date(`2021-01-02 00:00`),
-            endDate: new Date(`2021-01-02 23:59:59.999`),
-            title: 'foo',
-            isAllDay: false,
-          },
-        ]
-        expect(tb.keepTodayPortionOnly(sentEvents, new Date(`2021-01-02 08:00`))).toEqual(expectedReturn)
-      })
-    })
-    test('getTimeStringFromDate should return time portion of Date as string HH:MM', () => {
-      expect(tb.getTimeStringFromDate(new Date('2020-01-01 23:59'))).toEqual('23:59')
-    })
+
     describe('blockOutEvents ', () => {
       test('should block (only) times on the time map for the event given', () => {
         const map = tb.getBlankDayMap(5)
@@ -361,52 +255,6 @@ describe(`${PLUGIN_NAME}`, () => {
       })
     })
 
-    describe('getDateObjFromString ', () => {
-      test('should create date and HH:MM from string, no seconds', () => {
-        expect(tb.getDateObjFromString('2021-01-01 09:40').toTimeString()).toMatch(/09:40:00/) //not checking date b/c it's locale-dependent
-      })
-      test('should work with seconds specified', () => {
-        expect(tb.getDateObjFromString('2021-01-01 00:00:01').toTimeString()).toMatch(/00:00:01/)
-      })
-      test('should work with only date, no time given', () => {
-        expect(tb.getDateObjFromString('2021-01-01').toTimeString()).toMatch(/00:00:00/) //not checking date b/c it's locale-dependent
-      })
-      // Errors should throw
-      test('should throw error when date format is incorrect', () => {
-        expect(() => {
-          tb.getDateObjFromString(`foo 00:00`)
-        }).toThrow(/not in expected format/)
-      })
-      test('should throw error when date format is incorrect (no day)', () => {
-        expect(() => {
-          tb.getDateObjFromString(`2020-01 02:02`)
-        }).toThrow(/not in expected format/)
-      })
-      test('should throw error when time format is incorrect', () => {
-        expect(() => {
-          tb.getDateObjFromString(`2020-01-01 02`)
-        }).toThrow(/not in expected format/)
-      })
-      test('should throw error when time format is incorrect', () => {
-        expect(() => {
-          tb.getDateObjFromString(`2020-01-01 aa:00`)
-        }).toThrow(/Invalid Date/)
-      })
-
-      describe('getDateObjFromString mocked date', () => {
-        beforeEach(() => {
-          jest.spyOn(Date.prototype, 'toTimeString').mockReturnValue('99:99:99')
-        })
-        test('should throw error when Date object time does not match time sent in', () => {
-          expect(() => {
-            tb.getDateObjFromString(`2020-01-01 22:00`)
-          }).toThrow(/Catalina date hell/)
-        })
-        afterEach(() => {
-          jest.restoreAllMocks()
-        })
-      })
-    })
 
     test('findTimeBlocks ', () => {
       // empty map should return empty array
