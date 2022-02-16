@@ -66,6 +66,11 @@ module.exports = {
       aliases: ['o'],
       description: `Create Test Coverage Report ${colors.gray('(located in ./coverage directory)')}`,
     },
+    silent: {
+      type: 'boolean',
+      aliases: ['s'],
+      description: `Run Command in Silent Mode ${colors.gray('(no console.logs)')}`,
+    },
     watch: {
       type: 'boolean',
       aliases: ['w'],
@@ -83,6 +88,7 @@ module.exports = {
     const fix = args.fix || toolbox.fix || ''
     const notify = args.notify || toolbox.notify || ''
     const watch = args.watch
+    const silent = args.silent
     const compact = args.compact
     const test = args.test
     const coverage = args.coverage
@@ -149,10 +155,10 @@ module.exports = {
         : `node scripts/rollup.js ${plugin} --build ${notify ? '--notify' : ''}`
     } else {
       const directory = plugin.length > 0 ? `${plugin}` : ''
-      cmd = `./node_modules/.bin/jest ${directory} ${watch ? '--watch' : ''} ${
+      cmd = `./node_modules/.bin/jest ${directory} ${silent ? '--silent' : ''} ${watch ? '--watch' : ''} ${
         coverage ? '--coverage' : ''
       } --verbose false`
-      cmd = `noteplan-cli plugin:test ${directory} ${watch ? '--watch' : ''} ${
+      cmd = `noteplan-cli plugin:test ${directory} ${silent ? '--silent' : ''} ${watch ? '--watch' : ''} ${
         coverage ? '--coverage' : ''
       } --verbose false`
     }

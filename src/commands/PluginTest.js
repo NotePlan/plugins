@@ -21,6 +21,10 @@ module.exports = {
       aliases: ['o'],
       description: `Create Test Coverage Report ${colors.gray('(located in ./coverage directory)')}`,
     },
+    silent: {
+      aliases: ['s'],
+      description: 'Run Command in Silent Mode (no console.logs)',
+    },
     watch: {
       aliases: ['w'],
       description: 'Run Command in Watch Mode',
@@ -32,6 +36,7 @@ module.exports = {
 
     const plugin = args.plugin || toolbox.plugin || ''
     const watch = args.watch
+    const silent = args.silent
     const coverage = args.coverage
 
     const testDirectories = pluginTest.directoriesWithTestFiles()
@@ -44,7 +49,9 @@ module.exports = {
     }
 
     directory += '/__tests__/*.test.js'
-    const cmd = `./node_modules/.bin/jest ${directory} ${watch ? '--watch' : ''} ${coverage ? '--coverage' : ''}`.trim()
+    const cmd = `./node_modules/.bin/jest ${directory} ${silent ? '--silent' : ''} ${watch ? '--watch' : ''} ${
+      coverage ? '--coverage' : ''
+    }`.trim()
 
     system.run(cmd, true)
   },
