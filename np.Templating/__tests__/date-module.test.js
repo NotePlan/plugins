@@ -181,7 +181,6 @@ describe(`${PLUGIN_NAME}`, () => {
 
     it(`should render true if ${method('.isWeekend')}`, async () => {
       const result = new DateModule().isWeekend('10-16-2021')
-      console.log('test')
       expect(result).toEqual(true)
     })
 
