@@ -77,10 +77,15 @@ export function percent(value: number, total: number): string {
   return total > 0 ? `${value.toLocaleString()} (${Math.round((value / total) * 100)}%)` : `${value.toLocaleString()}`
 }
 
-export const defaultFileExt: string = DataStore.defaultFileExtension != null ? DataStore.defaultFileExtension : 'md'
+export const defaultFileExt: () => any = () =>
+  DataStore.defaultFileExtension != null
+    ? DataStore.defaultFileExtension.toString()
+    : 'md'
 
-export const defaultTodoCharacter: '*' | '-' =
-  DataStore.preference('defaultTodoCharacter') != null ? DataStore.preference('defaultTodoCharacter') : '*'
+export const defaultTodoCharacter: () => any = () =>
+  DataStore.preference('defaultTodoCharacter') != null
+    ? DataStore.preference('defaultTodoCharacter').toString()
+    : '*'
 
 /**
  * Pretty print range information
@@ -186,10 +191,12 @@ export async function getTagParamsFromString(paramString: string, wantedParam: s
   console.log(`\tgetTagParamsFromString for '${wantedParam}' in '${paramString}'`)
   if (paramString !== '' && wantedParam !== '') {
     try {
+      // $FlowFixMe(incompatible-type)
       const paramObj: {} = await json5.parse(paramString)
       console.log(`\t--> ${String(JSON.stringify(paramObj[wantedParam]))}`)
-      // eslint-disable-next-line no-prototype-builtins
-      return paramObj.hasOwnProperty(wantedParam) ? paramObj[wantedParam] : defaultValue
+      return paramObj.hasOwnProperty(wantedParam)
+        ? paramObj[wantedParam]
+        : defaultValue
     } catch (e) {
       console.log(`\tError parsing ${paramString} ${e}`)
     }
