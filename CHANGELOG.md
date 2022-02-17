@@ -15,6 +15,12 @@ All NotePlan plugins follow `semver` versioning. For details, please refer to [s
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/codedungeon.Toolbox/README.md) for details on available commands and use case.
 
+## [3.0.2] - 2022-02-17 (@mikeerickson)
+- restored `docs` command
+
+## [3.0.1] - 2022-02-17 (@mikeerickson)
+- updated Plugins v3.0
+
 ## [2.2.0] - 2021-09-06 (@mikeerickson)
 
 ### Fixed

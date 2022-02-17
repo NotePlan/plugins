@@ -2,7 +2,7 @@
   "name": "np.plugins",
   "packageName": "noteplan-cli",
   "info": "noteplan plugin development toolbox",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "build": "236",
   "description": "noteplan-cli",
   "repository": "https://github.com/NotePlan/plugins",
@@ -93,7 +93,8 @@
     "security:high": "npm audit | grep -B 1 -A 10 high",
     "security:critical": "npm audit | grep -B 1 -A 10 critical",
     "dev": "node ./tasks/start.js",
-    "start": "node ./tasks/start.js"
+    "start": "node ./tasks/start.js",
+    "docs": "documentation build '*.js' -f md -o README-helperFunctions.md"
   },
   "prettier": {
     "printWidth": 180,
