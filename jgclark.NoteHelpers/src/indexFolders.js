@@ -11,7 +11,6 @@ import {
 } from '../../helpers/dateTime'
 import { getFolderFromFilename } from '../../helpers/folders'
 import {
-  defaultFileExt,
   titleAsLink,
 } from '../../helpers/general'
 import { notesInFolderSortedByTitle } from '../../helpers/note'
@@ -142,7 +141,7 @@ export async function indexFolders(): Promise<void> {
 
   if (option.endsWith('index')) {
     // write out to index file(s)
-    let outputFilename = `${thisFolder}/_index.${defaultFileExt}`
+    let outputFilename = `${thisFolder}/_index.${DataStore.defaultFileExtension}`
     // see if we already have an _index file in this folder
     let outputNote = DataStore.projectNoteByFilename(outputFilename)
 

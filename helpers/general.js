@@ -71,21 +71,21 @@ export async function parseJSON5(contents: string): Promise<?{ [string]: ?mixed 
 // @jgclark except where shown
 
 // Return string with percentage value appended
-// export function percent(value, total) {
 // @eduardme
 export function percent(value: number, total: number): string {
   return total > 0 ? `${value.toLocaleString()} (${Math.round((value / total) * 100)}%)` : `${value.toLocaleString()}`
 }
 
-export const defaultFileExt: () => any = () =>
-  DataStore.defaultFileExtension != null
-    ? DataStore.defaultFileExtension.toString()
-    : 'md'
+// Deprecated: more trouble than they're worth ...
+// export const defaultFileExt: () => any = () =>
+//   DataStore.defaultFileExtension != null
+//     ? DataStore.defaultFileExtension.toString()
+//     : 'md'
 
-export const defaultTodoCharacter: () => any = () =>
-  DataStore.preference('defaultTodoCharacter') != null
-    ? DataStore.preference('defaultTodoCharacter').toString()
-    : '*'
+// export const defaultTodoCharacter: () => any = () =>
+//   DataStore.preference('defaultTodoCharacter') != null
+//     ? DataStore.preference('defaultTodoCharacter').toString()
+//     : '*'
 
 /**
  * Pretty print range information
