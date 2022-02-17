@@ -82,38 +82,74 @@ export function logAllPropertyNames(obj: { [string]: mixed }): void {
 }
 
 /**
- * Formats log output to include timestamp pluginName and version
+ * Converts any to message string
  * @author @codedungeon
- * @param {mixed} pluginInfo
- * @param {string} message
+ * @param {any} message
+ * @returns {string}
+ */
+const _message = (message: any): string => {
+  let logMessage = ''
+
+  switch (typeof message) {
+    case 'string':
+      logMessage = message
+      break
+    case 'object':
+      logMessage = message instanceof Date ? message.toString() : JSON.stringify(message)
+      break
+    default:
+      logMessage = message.toString()
+      break
+  }
+
+  return logMessage
+}
+/**
+ * Formats log output to include timestamp pluginId, pluginVersion
+ * @author @codedungeon
+ * @param {any} pluginInfo
+ * @param {any} message
  * @param {string} type
- * @returns {void}
+ * @returns {string}
  */
-export function log(pluginInfo: any, message: string = '', type: string = 'LOG') {
-  let msg = `${dt().padEnd(19)} | ${type.padEnd(5)} | ${pluginInfo['plugin.id']} v${
-    pluginInfo['plugin.version']
-  } :: ${message}`
+export function log(pluginInfo: any, message: any = '', type: string = 'LOG'): string {
+  let msg = ''
+  let pluginId = ''
+  let pluginVersion = ''
+  let msgType = ''
+  let isPluginJson = typeof pluginInfo === 'object' && pluginInfo.hasOwnProperty('plugin.id')
+
+  if (isPluginJson) {
+    pluginId = pluginInfo.hasOwnProperty('plugin.id') ? pluginInfo['plugin.id'] : 'INVALID_PLUGIN_ID'
+    pluginVersion = pluginInfo.hasOwnProperty('plugin.version') ? pluginInfo['plugin.version'] : 'INVALID_PLUGIN_VERSION'
+    msg = `${dt().padEnd(19)} | ${type.padEnd(5)} | ${pluginId} v${pluginVersion} :: ${_message(message)}`
+  } else {
+    msgType = arguments.length === 2 ? message : type
+    msg = `${dt().padEnd(19)} | ${msgType.padEnd(5)} | INVALID_PLUGIN_INFO :: ${_message(pluginInfo)}`
+  }
+
   console.log(msg)
+  return msg
 }
 
 /**
- * Formats log output to include timestamp pluginName and version
+ * Formats log output as ERROR to include timestamp pluginId, pluginVersion
  * @author @codedungeon
- * @param {mixed} pluginInfo
- * @param {string} message
- * @returns {void}
+ * @param {any} pluginInfo
+ * @param {any} message
+ * @returns {string}
  */
-export function logError(pluginInfo: any, message: string = '') {
-  log(pluginInfo, message, 'ERROR')
+export function logError(pluginInfo: any, message: any = ''): string {
+  return log(pluginInfo, message, 'ERROR')
 }
 
 /**
- * Formats log output to include timestamp pluginName and version
+ * Formats log output as WARN to include timestamp pluginId, pluginVersion
  * @author @codedungeon
- * @param {mixed} pluginInfo
- * @param {string} message
+ * @param {any} pluginInfo
+ * @param {any} message
  * @returns {void}
  */
-export function logWarn(pluginInfo: any, message: string = '') {
-  log(pluginInfo, message, 'WARN')
+export function logWarn(pluginInfo: any, message: any = ''): string {
+  return log(pluginInfo, message, 'WARN')
 }
