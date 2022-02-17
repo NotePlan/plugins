@@ -90,7 +90,7 @@ export function logAllPropertyNames(obj: { [string]: mixed }): void {
  * @returns {void}
  */
 export function log(pluginInfo: any, message: string = '', type: string = 'LOG') {
-  let msg = `${dt().padEnd(20)} | ${type.padEnd(6)} | ${pluginInfo['plugin.id']} v${
+  let msg = `${dt().padEnd(19)} | ${type.padEnd(5)} | ${pluginInfo['plugin.id']} v${
     pluginInfo['plugin.version']
   } :: ${message}`
   console.log(msg)
