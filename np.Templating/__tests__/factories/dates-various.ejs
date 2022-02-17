@@ -1,0 +1,16 @@
+Date now: <%= np.date.now() %>
+Date now with format: <%= np.date.now("Do MMMM YYYY") %>
+
+Last week: <%= np.date.now("dddd Do MMMM YYYY", -7) %>
+Today: <%= np.date.now("dddd Do MMMM YYYY, ddd") %>
+Next week: <%= np.date.now("dddd Do MMMM YYYY", 7) %>
+
+Last month: <%= np.date.now("YYYY-MM-DD", "P-1M") %>
+Next year: <%= np.date.now("YYYY-MM-DD", "P1Y") %>
+
+Date tomorrow with format: <%= np.date.tomorrow("Do MMMM YYYY") %>
+
+This week's monday: <%= np.date.weekday("YYYY-MM-DD", 0) %>
+Next monday: <%= np.date.weekday("YYYY-MM-DD", 7) %>
+
+Date yesterday with format: <%= np.date.yesterday("Do MMMM YYYY") %>

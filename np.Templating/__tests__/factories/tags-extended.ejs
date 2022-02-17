@@ -1,0 +1,9 @@
+**Using custom variables (`name` and `names` array)**
+*<%= name %>*
+	*<%= names.join(', ') %>*
+
+**Using custom variables and native JavaScript style looping**
+Erickson family names:
+<% names.forEach((name, i) => {
+%><%= i === names.length - 1 ? utils.titleCase(name) : utils.titleCase(name) + ' \n' %>
+		<%});%>

@@ -1,0 +1,196 @@
+{
+  "macOS.minVersion": "10.13.0",
+  "noteplan.minAppVersion": "3.3.2",
+  "plugin.id": "np.Templating",
+  "plugin.name": " 📒 np.Templating",
+  "plugin.version": "0.0.190",
+  "plugin.description": "Templating Plugin for NotePlan",
+  "plugin.author": "Mike Erickson (@codedungeon)",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md",
+  "plugin.commands": [
+    {
+      "name": "np:init",
+      "alias": [
+        "npinit"
+      ],
+      "description": "Initialize np.Templating Configuration",
+      "jsFunction": "templateInit"
+    },
+    {
+      "name": "np:insert",
+      "alias": [
+        "insert"
+      ],
+      "description": "Insert template to current note",
+      "jsFunction": "templateInsert"
+    },
+    {
+      "name": "np:append",
+      "alias": [
+        "append"
+      ],
+      "description": "Append template to end of current note",
+      "jsFunction": "templateAppend"
+    },
+    {
+      "name": "np:new",
+      "alias": [
+        "new"
+      ],
+      "description": "Create new note with title, in chosen folder with optional template",
+      "jsFunction": "templateNew"
+    },
+    {
+      "name": "np:advice",
+      "alias": [
+        "advice"
+      ],
+      "description": "Returns random advice",
+      "jsFunction": "templateAdvice"
+    },
+    {
+      "name": "np:affirmation",
+      "alias": [
+        "affirmation"
+      ],
+      "description": "Returns random affirmation",
+      "jsFunction": "templateAffirmation"
+    },
+    {
+      "name": "np:quote",
+      "alias": [
+        "quote"
+      ],
+      "description": "Returns random quote",
+      "jsFunction": "templateQuote"
+    },
+    {
+      "name": "np:verse",
+      "alias": [
+        "verse"
+      ],
+      "description": "Returns random bible verse",
+      "jsFunction": "templateVerse"
+    },
+    {
+      "name": "np:weather",
+      "alias": [
+        "weather"
+      ],
+      "description": "Returns weather for current location",
+      "jsFunction": "templateWeather"
+    },
+    {
+      "name": "np:update",
+      "alias": [],
+      "description": "Run np.Templating Setting",
+      "jsFunction": "onUpdateOrInstall"
+    }
+  ],
+  "plugin.settings": [
+    {
+      "type": "heading",
+      "title": "np.Templating Settings"
+    },
+    {
+      "key": "version",
+      "type": "hidden",
+      "title": "np.Templating Settings Version"
+    },
+    {
+      "key": "templateFolderName",
+      "title": "Template Folder Name",
+      "description": "Folder name where np.Templating will load templates.",
+      "type": "hidden",
+      "default": "📋 Templates",
+      "required": true
+    },
+    {
+      "key": "templateLocale",
+      "title": "Template Locale",
+      "description": "Locale used by np.Templating Modules (leave blank for system locale)",
+      "type": "string",
+      "default": "<system>",
+      "required": false
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "key": "userFirstName",
+      "title": "First Name",
+      "description": "Used when referencing <%= user.first %>",
+      "type": "string",
+      "default": "John",
+      "required": false
+    },
+    {
+      "key": "userLastName",
+      "title": "Last Name",
+      "description": "Used when referencing <%= user.last %>",
+      "type": "string",
+      "default": "Doe",
+      "required": false
+    },
+    {
+      "key": "userEmail",
+      "title": "Email",
+      "description": "Used when referencing <%= email %>",
+      "type": "string",
+      "default": "name@domain.com",
+      "required": false
+    },
+    {
+      "key": "userPhone",
+      "title": "Phone",
+      "description": "Used when referencing <%= phone %>",
+      "type": "string",
+      "default": "(714) 555-1212",
+      "required": false
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "key": "dateFormat",
+      "title": "Date Format",
+      "description": "Default date format (may be overridden in desired DateModule method)",
+      "type": "string",
+      "default": "short",
+      "required": false
+    },
+    {
+      "key": "timeFormat",
+      "title": "Time Format",
+      "description": "Default time format (may be overridden in desired TimeModule method)",
+      "type": "string",
+      "default": "short",
+      "required": false
+    },
+    {
+      "key": "timestampFormat",
+      "title": "Timestamp Format",
+      "description": "Default format when using date.timestamp()",
+      "type": "string",
+      "default": "YYYY-MM-DD h:mm A",
+      "required": false
+    },
+    {
+      "key": "stopOnError",
+      "title": "Stop Rendering On Error",
+      "description": "Stop rendering template when errors occur",
+      "type": "hidden",
+      "default": true
+    },
+    {
+      "key": "services",
+      "title": "Web Services",
+      "description": "Configuration for Services which can be referenced using\n<% web.service() %> method\n\nTip: Use https://jsonformatter.org/json5-validator to validate",
+      "type": "json",
+      "default": "",
+      "required": false
+    }
+  ]
+}

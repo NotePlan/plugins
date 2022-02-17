@@ -1,0 +1,11 @@
+All Tasks [<%= tasks.length %>]:
+<% tasks.forEach((task) => {
+%><%= task.completed ? `- [x] ${task.name}\n`  : `- [ ] ${task.name}\n` %><%});%>
+
+Closed Items [<%= tasks.filter(task => {return task.completed}).length %>]:
+<% tasks.forEach((task) => {
+%><%= task.completed ? ` - [x] ${task.name}\n`  : '' %><%});%>
+
+Open Items [<%= tasks.filter(task => {return !task.completed}).length %>]:
+<% tasks.forEach((task) => {
+%><%= task.completed ? ''  : ` - [ ] ${task.name}\n` %><%});%>

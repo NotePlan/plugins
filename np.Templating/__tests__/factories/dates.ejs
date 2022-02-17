@@ -1,0 +1,10 @@
+Current Date: <%= date.now() %>
+
+	Add Day: <%= date.now('YYYY-MM-DD', 1)%>
+		Tomorrow: <%= date.tomorrow()%>
+
+			Subtract Day: <%= date.now('YYYY-MM-DD', -1)%>
+				Yesterday: <%= date.yesterday()%>
+
+					Weekday (Add): <%= date.weekday('', 3)%>
+						Weekday (Subtract): <%= date.weekday('', -3)%>
