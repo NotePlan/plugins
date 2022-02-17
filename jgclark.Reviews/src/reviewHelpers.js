@@ -15,7 +15,7 @@ import {
 } from '../../helpers/dataManipulation'
 import {
   daysBetween,
-  getDateFromString,
+  getDateObjFromDateString,
   relativeDateFromNumber,
   toISODateString,
 } from '../../helpers/dateTime'
