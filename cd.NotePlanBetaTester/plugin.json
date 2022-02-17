@@ -1,0 +1,20 @@
+{
+  "macOS.minVersion": "10.13.0",
+  "noteplan.minAppVersion": "3.4.0",
+  "plugin.id": "cd.NotePlanBetaTester",
+  "plugin.name": "🧩 NotePlanBetaTester",
+  "plugin.version": "0.0.1",
+  "plugin.description": "Test NotePlan Beta",
+  "plugin.author": "codedungeon",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/cd.NotePlanBetaTester/README.md",
+  "plugin.commands": [
+    {
+      "name": "np:test",
+      "description": "NotePlan Plugin Test",
+      "jsFunction": "testTemplating",
+      "alias": []
+    }
+  ]
+}
