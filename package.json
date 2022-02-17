@@ -2,8 +2,8 @@
   "name": "np.plugins",
   "packageName": "noteplan-cli",
   "info": "noteplan plugin development toolbox",
-  "version": "2.2.0",
-  "build": "15",
+  "version": "3.0.0",
+  "build": "234",
   "description": "noteplan-cli",
   "repository": "https://github.com/NotePlan/plugins",
   "contributors": [
@@ -30,17 +30,24 @@
       "url": "https://github.com/mikeerickson"
     }
   ],
+  "license": "MIT",
   "main": "index.js",
   "bin": {
     "noteplan-cli": "index.js",
-    "np-cli": "index.js"
+    "np-cli": "index.js",
+    "npc": "index.js"
   },
   "engines": {
     "node": ">=12.15.0"
   },
   "keywords": [
+    "note",
     "noteplan",
-    "plugins"
+    "notion",
+    "obsidian",
+    "plugins",
+    "roam",
+    "tracking"
   ],
   "devDependencies": {
     "@babel/cli": "^7.13.16",
@@ -50,18 +57,17 @@
     "@babel/preset-flow": "^7.13.13",
     "@rollup/plugin-babel": "^5.3.0",
     "@rollup/plugin-commonjs": "^19.0.0",
-    "@rollup/plugin-json": "^4.1.0",
+    "@rollup/plugin-json": "4.1.0",
     "@rollup/plugin-node-resolve": "13.0.4",
     "concurrently": "^6.2.0",
-    "documentation": "^13.2.5",
-    "eslint": "^7.32.0",
-    "eslint-config-prettier": "^7.2.0",
-    "eslint-plugin-flowtype": "^7.0.0",
-    "eslint-plugin-import": "^2.25.3",
-    "eslint-plugin-unused-imports": "^1.1.5",
+    "eslint": "^7.26.0",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-flowtype": "^5.7.2",
+    "eslint-plugin-import": "^2.23.2",
     "flow-bin": "^0.151.0",
     "inquirer": "^8.1.0",
-    "jest": "27.0.6",
+    "jest": "27.5.1",
+    "jest-spec-reporter": "1.0.17",
     "mkdirp": "^1.0.4",
     "prettier": "^2.3.0",
     "rollup": "^2.48.0",
@@ -70,6 +76,8 @@
   },
   "scripts": {
     "init": "node ./tasks/init.js",
+    "build": "node scripts/rollup.js --build",
+    "build:compact": "node scripts/rollup.js --build --compact",
     "autowatch": "node scripts/rollup.js",
     "autowatch:compact": "node scripts/rollup.js --compact",
     "release": "node scripts/releases.js",
@@ -79,7 +87,13 @@
     "typecheck": "flow check",
     "fix": "npm run lint-fix && npm run format",
     "test": "npm run lint && npm run typecheck",
-    "docs": "documentation build '*.js' -f md -o README-helperFunctions.md"
+    "test:dev": "jest --verbose false",
+    "test:watch": "jest --watch --verbose false",
+    "security": "npm run security:high && npm run security:critical",
+    "security:high": "npm audit | grep -B 1 -A 10 high",
+    "security:critical": "npm audit | grep -B 1 -A 10 critical",
+    "dev": "node ./tasks/start.js",
+    "start": "node ./tasks/start.js"
   },
   "prettier": {
     "printWidth": 120,
@@ -89,18 +103,34 @@
     "singleQuote": true
   },
   "dependencies": {
-    "@codedungeon/gunner": "0.70.0",
+    "@codedungeon/gunner": "0.75.2",
+    "@rollup/plugin-alias": "3.1.8",
+    "@samverschueren/stream-to-observable": "0.3.1",
+    "axios": "0.21.4",
+    "bcrypt": "5.0.1",
+    "bump-regex": "4.1.0",
+    "clipboardy": "3.0.0",
     "commander": "^8.1.0",
     "contentful-html-rich-text-converter": "1.0.9",
-    "date-fns": "^2.23.0",
+    "date-fns": "2.23.0",
+    "dayjs": "1.10.6",
     "enquirer": "^2.3.6",
     "findup-sync": "4.0.0",
+    "front-matter": "4.0.2",
     "git-state": "4.1.0",
     "js-yaml": "^4.1.0",
     "json5": "^2.2.0",
-    "lodash": "^4.17.21",
-    "lodash.findindex": "4.6.0",
+    "listr": "0.14.3",
+    "lodash": "4.17.21",
+    "moment": "2.29.1",
+    "moment-business-days": "1.2.0",
+    "node-libcurl": "2.3.3",
+    "node-notifier": "10.0.0",
+    "progress": "2.0.3",
+    "rxjs": "6.6.7",
     "showdown": "1.9.1",
+    "split": "1.0.1",
+    "sprintf-js": "1.0.3",
     "strftime": "0.10.0",
     "toml": "^3.0.0"
   }

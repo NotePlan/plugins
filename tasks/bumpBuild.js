@@ -23,11 +23,9 @@ fs.writeFileSync('./package.json', JSON.stringify(pkgInfo, null, 2))
 // return value which is used in the calling script (unless --verbose flag is supplied)
 
 if (process.argv.includes('--verbose')) {
+  console.log('')
   const versionStr = `v${pkgInfo.version} build ${currBuild}`
-  console.log(
-    colors.green(`${pkgInfo.name} updated to: `) + colors.cyan(versionStr),
-  )
-  console.log('\n')
+  console.log(colors.green(`${pkgInfo.name} updated to: `) + colors.cyan(versionStr))
 } else {
   console.log(currBuild)
 }

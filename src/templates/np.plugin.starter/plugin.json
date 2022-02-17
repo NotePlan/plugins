@@ -1,0 +1,33 @@
+{
+  "macOS.minVersion": "10.13.0",
+  "noteplan.minAppVersion": "3.4.0",
+  "plugin.id": "{{pluginId}}",
+  "plugin.name": "🧩 {{pluginName}}",
+  "plugin.version": "0.0.1",
+  "plugin.description": "{{pluginDescription}}",
+  "plugin.author": "{{pluginAuthor}}",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/{{pluginId}}/README.md",
+  "plugin.commands": [
+    {
+      "name": "helloWorld",
+      "description": "Your first plugin!",
+      "jsFunction": "helloWorld",
+      "alias": [
+        "helloWorld Alias"
+      ]
+    }
+  ],
+  "plugin.settings": [
+    {
+      "type": "heading",
+      "title": "{{pluginName}} Settings"
+    },
+    {
+      "key": "version",
+      "type": "hidden",
+      "{{pluginName}} Settings Version"
+    }
+  ]
+}

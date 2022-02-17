@@ -1,49 +1,71 @@
 const { filesystem, colors, print, path } = require('@codedungeon/gunner')
-const { Snippet } = require('enquirer')
+const { prompt } = require('enquirer')
 const tildify = require('tildify')
+const gitUserLocal = require('git-user-local')
+const githubUsername = require('github-username')
 
-const prompt = new Snippet({
-  name: 'username',
-  message: `Fill out the following fields in ${colors.yellow.bold('plugin.json')}`,
-  required: true,
-  fields: [
-    {
-      name: 'pluginId',
-      message: 'githubUserName.PluginName',
-    },
-    {
-      name: 'pluginName',
-      message: 'Name as it will appear in NotePlan Plugins menu',
-    },
-    {
-      name: 'pluginDescription',
-      message: 'Simple plugin description',
-    },
-    {
-      name: 'pluginAuthor',
-      message: 'your name or organization',
-    },
-  ],
-  template: `{
-  "plugin.id": "\${pluginId}",
-  "plugin.name": "\${pluginName}",
-  "plugin.description": "\${pluginDescription}",
-  "plugin.author": "\${pluginAuthor}",
+const buildQuestion = (name = '', message = '', initial = '') => {
+  return {
+    type: 'input',
+    name,
+    message,
+    initial,
+  }
 }
-`,
-})
+
+const questions = []
 
 module.exports = {
-  run: async () => {
+  run: async (toolbox) => {
     try {
-      const answers = await prompt.run()
-      return answers
+      const ghUserLocal = await gitUserLocal()
+      const ghUserName = await githubUsername(ghUserLocal.user.email)
+      !toolbox.arguments.hasOwnProperty('id')
+        ? questions.push(
+            buildQuestion('pluginId', 'What would you like to name your plugin?', `${ghUserName}.PluginName`),
+          )
+        : null
+
+      !toolbox.arguments.hasOwnProperty('name')
+        ? questions.push(
+            buildQuestion(
+              'pluginName',
+              'Name as it will appear in NotePlan Preferences Plugins List?',
+              `My Plugin Name`,
+            ),
+          )
+        : null
+
+      !toolbox.arguments.hasOwnProperty('description')
+        ? questions.push(buildQuestion('pluginDescription', 'Simple Plugin Description', `My Plugin for NotePlan`))
+        : null
+
+      !toolbox.arguments.hasOwnProperty('author')
+        ? questions.push(buildQuestion('pluginAuthor', 'Your Name or Organization', ghUserName))
+        : null
+
+      let answers = {}
+      if (questions.length > 0) {
+        answers = { ...(await prompt(questions)) }
+      }
+      const result = {
+        ...{
+          pluginId: toolbox.arguments?.id,
+          pluginName: toolbox.arguments?.name,
+          pluginDescription: toolbox.arguments?.description,
+          pluginAuthor: toolbox.arguments?.author,
+        },
+        ...answers,
+      }
+
+      return result
     } catch (error) {
       console.error(error)
     }
   },
+
   createPlugin: async function (pluginDest = '', pluginInfo = {}) {
-    const src = path.resolve('./np.plugin-flow-skeleton')
+    const src = path.resolve('./src/templates/np.plugin.starter')
     const dest = path.resolve(pluginDest)
 
     if (filesystem.existsSync(pluginDest)) {
@@ -59,6 +81,8 @@ module.exports = {
       result = await this.merge(path.join(dest, 'README.md'), pluginInfo)
       result = await this.merge(path.join(dest, 'changelog.md'), pluginInfo)
       result = await this.merge(path.join(dest, 'src', 'helloWorld.js'), pluginInfo)
+
+      result = await this.merge(path.join(dest, '__tests__', 'hello-world.test.js'), pluginInfo)
 
       await filesystem.delete(path.join(dest, 'script.js'))
     } catch (error) {

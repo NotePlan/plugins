@@ -135,7 +135,7 @@ export async function migrateConfiguration(
           configData[key] = setting.default
 
           // Convert json to an object
-          if(setting.type == "json" && setting.default !== 'undefined') {
+          if (setting.type == 'json' && setting.default !== 'undefined') {
             configData[key] = JSON.parse(setting.default)
           }
         }
@@ -192,7 +192,6 @@ export function updateSettingData(pluginJsonData: any): number {
   pluginSettings.forEach((setting) => {
     const key: any = setting?.key || null
     if (key) {
-      console.log(`${key}`)
       if (!currentSettingData.hasOwnProperty(key)) {
         newSettings[key] = setting?.default || ''
         updateResult = 1 // we have made at least one update, change result code accordingly
@@ -204,6 +203,18 @@ export function updateSettingData(pluginJsonData: any): number {
   DataStore.settings = { ...newSettings }
 
   return updateResult
+}
+
+export function getSetting(
+  pluginName?: string = '',
+  key: string = '',
+  defaultValue?: { [string]: mixed },
+): { [string]: mixed } | null {
+  return null
+}
+
+export function getSettings(pluginName?: string = '', defaultValue?: { [string]: mixed }): { [string]: mixed } | null {
+  return null
 }
 
 /**
