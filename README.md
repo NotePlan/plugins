@@ -9,10 +9,13 @@ Each plugin command can be invoked using the [NotePlan Command Bar](https://help
 ## Prerequisite
 The following items are required for NotePlan Plugin Development
 
-- Node 12.15 or greater
-- NotePlan 3.0.21 or greater
-- macOS Catalina 10.15.2 or greater (strongly recommend macOS Big Sur 11.x)
+- Node 12.15 .. 14.15.5 -- **Do Not Use Expirimental Version of Node (e.g. Node 17.x.x)**
+- npm version 8.x
+- NotePlan 3.4 or greater
+- macOS Catalina 10.15.2 or greater (strongly recommend macOS Big Sur 11.x or Monterey 12.x)
 - github `gh` is strongly recommended
+
+_NotePlan Plugin API has been tested using Node.js range, any version outside of this range may lead to unexpected issues_
 
 ## Plugin Information
 If you have an idea for a plugin, [submit them here](https://feedback.noteplan.co/plugins-scripting) or inquire in the [NotePlan Discord community](https://discord.gg/D4268MT)'s `#plugin-ideas` channel.
@@ -31,7 +34,7 @@ Make sure you have a recent version of `node` and `npm` installed (if you need t
 
 **Step 3: Initialize Local Development Environment**
 
-Run the following commands from the root of your local GitHub repository for `NotePlan/plugins`. 
+Run the following commands from the root of your local GitHub repository for `NotePlan/plugins`.
 
 `
 npm install && npm run init
@@ -67,7 +70,7 @@ Answer the prompt questions (or supply all the necessary options from command li
 
 **Step 4: Startup Auto Watch Process**
 
-`npm run autowatch <your_plugin_folder>` from the root directory to build your plugin as you develop so it can be tested in NotePlan.
+`npc plugin:dev <your_plugin_folder>` from the root directory to build your plugin as you develop so it can be tested in NotePlan.
 
 **Step 5: Start your plugin command develop and test locally**
 
@@ -77,40 +80,95 @@ You can now develop and test your plugin locally,
 
 At this point, if you would like to make your plugin available publicly, you can proceed to [creating Pull Request](https://docs.github.com/en/github/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request) to the NotePlan Plugin Repository (see information below)
 
-
-
 ### Common Development Actions
 These are the most common commands you will use while developing:
 
 #### File Watcher
-The default watch command `npm run autowatch` (without any other arguments) command will rebuild _all_ plugins just in case shared files affect another plugin. If you want to focus autowatch on a subset of plugins, you can pass the plugin folder name to autowatch like so:
+The default watch command `npc plugin:dev --watch` (without any other arguments) command will rebuild _all_ plugins just in case shared files affect another plugin.
 
-**npm run autowatch**
-
-`npm run autowatch` from the root of your local `NotePlan/plugins` repository which will bundle all the files in your `/src` directory into single file `scripts.js` and will be copied from your repository directory to your Plugins folder in the running NotePlan data directory for testing.
+`npc plugin:dev` from the root of your local `NotePlan/plugins` repository which will bundle all the files in your `/src` directory into single file `scripts.js` and will be copied from your repository directory to your Plugins folder in the running NotePlan data directory for testing.
 
 *Note: The watcher will remain running, _watching_ the NotePlan directory and re-compile whenever changes have been made to your `<your_plugin>/src` JavaScript files.*
 
-**npm run autowatch <your_plugin_directory>**
+**npc plugin:dev <your_plugin_directory> --watch**
 
-For example, running `npm run autowatch dwertheimer.TaskAutomations` will perform the same watching operations for the `dwertheimer.TaskAutomations` plugin only.
+For example, running `npc plugin:dev dwertheimer.TaskAutomations --watch` will perform the same watching operations for the `dwertheimer.TaskAutomations` plugin only.
+
+### NotePlan CLI Commands
+NotePlan includes a suite of CLI commands which you can use during development.
+
+```bash
+noteplan-cli <command>
+or
+npc <command>
+```
+
+For all CLI commands, you can pass the `--help` for available flags
+
+#### npc plugin:dev
+The most common CLI, this can be used to build plugin, test plugins (wrapper for `npc plugin:test`)
+```bash
+npc plugin:dev <plugin> [options]
+
+# run watcher, compact mode and display notification with build result
+npc plugin:dev codedungeon.Toolbox --watch --compact --notify
+
+# same as above, using CLI shorthand
+npc plugin:dev codedungeon.Toolbox -wcn
+
+# run NotePlan test suite in watch mode
+# this is a wrapper for npc plugin:test
+npc plugin:dev codedungeon.Toolbox -tw
+
+```
+
+#### npc plugin:info
+Obtain information about any NotePlan Plugin
+```bash
+npc plugin:info <plugin> [options]
+```
+
+#### npc plugin:create
+Create new NotePlan Plugin
+```bash
+npc plugin:create [options]
+```
+
+#### npc plugin:pr
+Create NotePlan Plugin Pull Request
+```bash
+npc plugin:pr [options]
+```
+
+#### npc plugin:test
+Run test suite for NotePlan Plugin
+```bash
+npc plugin:test <plugin> [options]
+
+# run plugin:test watch
+npc plugin:test codedungeon.Toolbox --watch
+
+# run plugin:test watch, silent mode
+npc plugin:test codedungeon.Toolbox --watch --silent
+
+# run plugin:test with CLI shorthand
+npc plugin:test codedungeon.Toolbox -ws
+
+# run plugin:test with coverage report
+npc plugin:test codedungeon.Toolbox --coverage
+```
 
 #### Create Pull Request
 
 Once you are finished editing and testing your plugin, you can [submit a Pull Request](https://docs.github.com/en/github/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request) to the NotePlan/plugins repository and it will be reviewed for inclusion. Once it has been approved, it will be available from **NotePlan > Preferences > Plugins** section, enabling it to be installed by other NotePlan users
 
-#### Using NotePlan Debugger
-If you need to use your IDE JavaScript Debugger This works great, but if you want to try to debug in the [Javascript debugger](https://help.noteplan.co/article/103-debugging-plugins) you can use the following watching syntax:
-
-`npm run autowatch dwertheimer.TaskAutomations -- -debug`
-
-This process will bundle your code into single `script.js` file, but will skip the ES transpiling process. When you have completed debugging process, make sure the code has been transpiled (using `npm run autowatch...` process outlined above)
-
 ### Frequently Used Commands
-The common script you will run `npm run autowatch` however, you may need to use any of the following
+The common script you will run `npc plugin:dev <plugin>` however, you may need to use any of the following
 
-- `npm run autowatch:compact` a less verbose version of `autowatch` that might suit more experienced developers
-- `noteplan-cli plugin:info --check <name>` to check if you desired command name is in use by any other NotPlan Plugins
+- `npc plugin:dev <plugin> --watch --compact --notify` a less verbose version of `autowatch` that might suit more experienced developers
+- `npc plugin:dev <plugin> -wcn` watcher, compact mode, notify using CLI shorthand
+- `npc plugin:dev <plugin> -tw` test mode, watcher using CLI shorthand
+- `npc plugin:info --check <name>` to check if you desired command name is in use by any other NotPlan Plugins
 <!-- - `npm run build`: Will build all the plugins into single files (where needed) -->
 - `npm run typecheck`: typecheck all javascript files with `Flow`. Only files with a `// @flow` comment are checked.
 - `npm run fix`: lint and auto-format
@@ -163,23 +221,6 @@ If you don't have an editor set up to lint as you code, you can run `npm run tes
 
 ### Using Flow
 By practice, NotePlan plugins use [flow](https://flow.org/) for static type checking. You can get more information by referencing [NotePlan Flow Guide](https://github.com/NotePlan/plugins/blob/main/Flow_Guide.md)
-
-## Using NotePlan CLI
-NotePlan CLI can be used throughout your development process.  For more information about available NotePlan CLI commands, you can use:
-
-```bash
-noteplan-cli <command>
-or
-np-cli <command>
-```
-
-The following commands are available:
-
-### plugin:info
-Provides information about the installed NotePlan Plugins (see `noteplan-cli plugin:info --help` for available options)
-
-### plugin:create
-Used to create new NotePlan Plugins (see `noteplan-cli plugin:create --help` for available options)
 
 ## NotePlan Plugin Support
 Should you need support for anything related to NotePlan Plugins, you can reach us at the following:
