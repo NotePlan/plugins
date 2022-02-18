@@ -6,7 +6,7 @@
  * -----------------------------------------------------------------------------------------*/
 
 import NPTemplating from 'NPTemplating'
-import { getTemplateFolder, getTemplateList, log } from 'NPTemplating'
+import { getTemplateFolder, getTemplateList } from 'NPTemplating'
 
 import { chooseOption } from '@helpers/userInput'
 import { getAffirmation } from '../lib/support/modules/affirmation'
@@ -15,12 +15,13 @@ import { getWeather } from '../lib/support/modules/weather'
 import { getDailyQuote } from '../lib/support/modules/quote'
 import { getVerse, getVersePlain } from '../lib/support/modules/verse'
 import { initConfiguration, migrateConfiguration, updateSettingData } from '../../helpers/NPconfiguration'
+import { log, logError } from '@helpers/dev'
 
 import pluginJson from '../plugin.json'
 
 export async function onUpdateOrInstall(config: any = { silent: false }): Promise<void> {
   try {
-    log('onUpdateOrInstall')
+    log(pluginJson, 'onUpdateOrInstall')
 
     // migrate _configuration data to data/<plugin>/settings.json (only executes migration once)
     let result: number = await migrateConfiguration('templates', pluginJson, config?.silent)
@@ -35,18 +36,14 @@ export async function onUpdateOrInstall(config: any = { silent: false }): Promis
     // set application settings with any adjustments after template specific updates
     DataStore.settings = { ...templateSettings }
   } catch (error) {
-    log(error)
+    logError(pluginJson, error)
   }
 }
 
 export async function templateInit(): Promise<void> {
   const pluginSettingsData = await DataStore.loadJSON(`../${pluginJson['plugin.id']}/settings.json`)
   if (typeof pluginSettingsData === 'object') {
-    const result = await CommandBar.prompt(
-      'np.Templating',
-      'np.Templating settings have already been created. \n\nWould you like to reset to default settings?',
-      ['Yes', 'No'],
-    )
+    const result = await CommandBar.prompt('np.Templating', 'np.Templating settings have already been created. \n\nWould you like to reset to default settings?', ['Yes', 'No'])
 
     if (result === 0) {
       DataStore.settings = { ...(await initConfiguration(pluginJson)) }
@@ -58,10 +55,7 @@ export async function templateInit(): Promise<void> {
 
 export async function templateInsert(): Promise<void> {
   if (!Editor.content) {
-    await CommandBar.prompt(
-      'Template Error',
-      'You must have a Project Note or Calendar Note opened where you wish to insert template.',
-    )
+    await CommandBar.prompt('Template Error', 'You must have a Project Note or Calendar Note opened where you wish to insert template.')
     return
   }
 
@@ -78,10 +72,7 @@ export async function templateInsert(): Promise<void> {
 
 export async function templateAppend(): Promise<void> {
   if (!Editor.content) {
-    await CommandBar.prompt(
-      'Template Notice',
-      'You must have a Project Note or Calendar Note opened where you wish to append template.',
-    )
+    await CommandBar.prompt('Template Notice', 'You must have a Project Note or Calendar Note opened where you wish to append template.')
     return
   }
 
