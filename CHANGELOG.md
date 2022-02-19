@@ -15,6 +15,11 @@ All NotePlan plugins follow `semver` versioning. For details, please refer to [s
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/codedungeon.Toolbox/README.md) for details on available commands and use case.
 
+## [3.1.0] - 2022-02-19 (@mikeerickson)
+- fixed issue with release script
+- refactored release validation in CLI `npc plugin:release`
+- add guard to make sure releasing from plugins directory
+
 ## [3.0.2] - 2022-02-17 (@mikeerickson)
 - restored `docs` command
 

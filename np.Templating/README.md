@@ -1,33 +1,56 @@
-# NotePlan Templating Noteplan Plugin
+# 🧩 np.Templating templating plugin for Noteplan
 
-[You will delete this text and replace it with a readme about your plugin -- not ever seen by users, but good for people looking at your code. Before you delete though, you should know:]
+## Overview
+**np.Templating** is a template language plugin for NotePlan that lets you insert variables and method results into your notes. It will also let you execute custom JavaScript constructed in the templates providing a rich note taking system.
 
-You do not need all of this scaffolding for a basic NP plugin. As the instructions state [Creating Plugins](https://help.noteplan.co/article/65-commandbar-plugins), you can create a plugin with just two files: `plugin.json` and `script.js`. Please read that whole page before proceeding here.
+<h1 align="center">
+    <img src="docs/images/npTemplating-intro.png" width="50%" height="50%" alt="np.Templating">
+</h1>
 
-However, for more complex plugins, you may find that it's easier to write code in multiple files, incorporating code (helper functions, etc.) written (and *TESTED*) previously by others. We strongly recommend type checking (e.g. [Flow.io](https://flow.io)) to help validate the code you write. If either of those is interesting to you, you're in the right place. Before going any further, make sure you follow the development environment [setup instructions](https://github.com/NotePlan/plugins).
+## Documentation
+📖 This README provides a quick overview of np.Templating, visit [np.Templating website](https://nptemplating-docs.netlify.app/) for comprehensive documention.
 
-## Creating NotePlan Plugin
+## Commands
+All commands can be invoked using the _NotePlan Command Bar_ (`Command-J` then ` / `) which NotePlan has reserved for plugin activation. Or by selecting `🧩 np.Templating` from the **Plugins** menu)
 
-You can create a NotePlan plugin by executing:
+<h1 align="center">
+    <img src="docs/images/command-bar.png" alt="np.Templating Command Bar">
+</h1>
 
-```bash
-noteplan-cli plugin:create
-```
+<h1 align="center">
+    <img src="docs/images/menu.png" alt="np.Templating Menu">
+</h1>
 
-Open up a terminal folder and change directory to the plugins repository root. Run the command `npm run autowatch` which will keep looking for changes to all plugin files and will re-compile when JavaScript changes are made. It will also transpile ES6 and ES7 code to ES5 which will run on virtually all Macs, and will copy the file(s) to the NotePlan Plugins folder, so you can immediately test in Noteplan.
+Once the command bar is displayed, you can continue typing any of the following commands to invoke the appropriate plugin command.  In some case where specifically noted, you can alternately invoke the plugin command at the current insertion pointer within your document.
 
-### NotePlan Plugins Directory
-You can find all your currently installed NotePlan Plugins here
+📖 Visit [np.Templating website](https://nptemplating-docs.netlify.app/) for comprehensive documention
 
-```bash
-/Users/<user>/Library/Containers/co.noteplan.NotePlan3/Data/Library/Application Support/co.noteplan.NotePlan3/Plugins
-```
+| Command                 | Available Inline | Description                                                                                       |
+| ----------------------- | ---------------- | ------------------------------------------------------------------------------------------------- |
+| np:init                 | Yes       | Initilalizes np.Templating Settings (only use if you want to reset settings to default)                                         |
+| np:insert  | Yes               | Insert selected template at cursor (will show list of all available templates)                                    |
+| np:append            | Yes        | Appends selected template at end of current note (will show list of all available templates)                                          |
+| np:new             | Yes               | Creates a new note from selected template and supplied note name   |
+| np:advice             | Yes               | Inserts random advice at cursor location   |
+| np:affirmation             | Yes               | Inserts random affirmation at cursor location   |
+| np:quote             | Yes               | Inserts random quote at cursor location   |
+| np:verse             | Yes               | Inserts random bible verse at cursor location   |
+| np:weather             | Yes               | Inserts current weather for your location at cursor location   |
+| np:update             | Yes               | Invokes settings update method   |
 
-Keep in mind that you can code/test without updating the plugin version property in `plugin.json`, however when you push the code to the Plugins repository (or create a PR), you should update the version number so that other NotePlan users who have installed your plugin will know that an updated version is available.
+## License
 
-Further to that point, you can use your plugin locally, or you can use `git` to create a Pull Request to get it merged in the Noteplan/plugins repository and potentially available for all users through the `NotePlan > Preferences > Plugins` tab.
+Copyright &copy; 2022 Mike Erickson
+Released under the MIT license
 
-That's it. Happy coding!
+## Credits
 
-## NotePlan Plugin Team
-Hat-tip to @eduard, @nmn, @jgclark, @dwertheimer and @codedungeon, who made all this fancy cool stuff.
+**Codedugeon Toolbox for NotePlan** written by **Mike Erickson**
+
+E-Mail: [codedungeon@gmail.com](mailto:codedungeon@gmail.com)
+
+Support: [https://github.com/NotePlan/plugins/issues](https://github.com/NotePlan/plugins/issues)
+
+Twitter: [@codedungeon](http://twitter.com/codedungeon)
+
+Website: [codedungeon.io](http://codedungeon.io)

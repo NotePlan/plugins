@@ -57,7 +57,7 @@ module.exports = {
   },
 
   getPluginConfig(pluginName = null) {
-    const pluginJsonFilename = path.join(pluginName, 'plugin.json')
+    const pluginJsonFilename = path.resolve(pluginName, 'plugin.json')
     if (filesystem.existsSync(pluginJsonFilename)) {
       const configData = filesystem.readFileSync(pluginJsonFilename)
       if (configData.length > 0) {
@@ -130,9 +130,7 @@ module.exports = {
               pluginAliases.forEach((alias) => {
                 pluginCommands.push({
                   pluginId: pluginObj.hasOwnProperty('plugin.id') ? pluginObj['plugin.id'] : 'missing plugin-id',
-                  pluginName: pluginObj.hasOwnProperty('plugin.name')
-                    ? pluginObj['plugin.name']
-                    : 'missing plugin-name',
+                  pluginName: pluginObj.hasOwnProperty('plugin.name') ? pluginObj['plugin.name'] : 'missing plugin-name',
                   name: alias,
                   description: command.description,
                   jsFunction: command.jsFunction,

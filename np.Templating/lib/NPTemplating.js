@@ -7,7 +7,7 @@
 import { semverVersionToNumber } from '@helpers/general'
 import pluginJson from '../plugin.json'
 import FrontmatterModule from './support/modules/FrontmatterModule'
-import { log } from '@helpers/dev'
+import { log, logError } from '@helpers/dev'
 
 /*eslint-disable */
 import TemplatingEngine from './TemplatingEngine'
@@ -226,15 +226,12 @@ export default class NPTemplating {
     let templateFilename = `${templateFolderName}/${templateName}.md`
     let selectedTemplate = ''
 
-    log(pluginJson, templateFilename)
-
     try {
       selectedTemplate = await DataStore.projectNoteByFilename(templateFilename)
 
       // if the template can't be found using actual filename (as it is on disk)
       // this will occur due to a bug in NotePlan which is not properly renaming files on disk to match note name
       if (!selectedTemplate) {
-        console.log('här')
         const parts = templateName.split('/')
         if (parts.length > 0) {
           templateFilename = parts[parts.length - 1]

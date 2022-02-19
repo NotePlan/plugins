@@ -71,10 +71,10 @@ export async function templateInsert(): Promise<void> {
 }
 
 export async function templateAppend(): Promise<void> {
-  if (!Editor.content) {
-    await CommandBar.prompt('Template Notice', 'You must have a Project Note or Calendar Note opened where you wish to append template.')
-    return
-  }
+  // if (!Editor.content) {
+  //   await CommandBar.prompt('Template Notice', 'You must have a Project Note or Calendar Note opened where you wish to append template.')
+  //   return
+  // }
 
   const content: string = Editor.content || ''
 
@@ -132,7 +132,7 @@ export async function selectTemplate(): Promise<string> {
 export async function templateWeather(): Promise<string> {
   try {
     // $FlowIgnore
-    const weather: string = getWeather()
+    const weather: string = await getWeather()
 
     Editor.insertTextAtCursor(weather)
   } catch (error) {
