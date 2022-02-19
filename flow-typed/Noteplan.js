@@ -1038,7 +1038,7 @@ declare var Clipboard: {
   /**
    * Returns a list of types.
    */
-  +types: $ReadOnlyArray<string>,
+  +types: $ReadOnlyArray < string >,
   /**
    * Set the text of the clipboard using a specific type.
    */
@@ -1047,6 +1047,20 @@ declare var Clipboard: {
    * Get the text in the clipboard accessing a specific type.
    */
   stringForType(type: string): ?string,
+  /**
+   * Set the data as base64 string for a specific type like an image or RTF.
+   * Note: Available from v3.4.1
+   * @param {string} 
+   * @param {string} 
+  */
+  setBase64DataStringForType(base64String: string, type: string): void,
+  /**
+   * Get the base64 data string for a specific type like an image or RTF from the clipboard.
+   * Note: Available from v3.4.1
+   * @param {string} 
+   * @return {string}
+  */
+  base64DataStringForType(type: string): string,
   /**
    * Get the data in the clipboard accessing a specific type.
    */
@@ -1066,7 +1080,7 @@ declare var Clipboard: {
 }
 
 /* Available paragraph types
- * NB: 'separator' added v3.4.1
+ * Note: 'separator' added v3.4.1
  */
 type ParagraphType = 'open' | 'done' | 'scheduled' | 'cancelled' | 'title' | 'quote' | 'list' | 'empty' | 'text' | 'code' | 'separator'
 
@@ -1255,21 +1269,24 @@ type TParagraphBridge = {
 declare var NotePlan: {
   /**
   * Returns the environment information from the operating system:
-  *   "languageCode" -> string?
-  *   "regionCode" -> string?
-  *   "is12hFormat" -> boolean
-  *   "preferredLanguages" -> [string]
-  *   "secondsFromGMT" -> integer
-  *   "localTimeZoneAbbreviation" -> string
-  *   "localTimeZoneIdentifier" -> string
-  *   "isDaylightSavingTime" -> boolean
-  *   "daylightSavingTimeOffset" -> Double
-  *   "nextDaylightSavingTimeTransition" -> Date
-  *   "platform" -> "macOS" | "iPadOS" | "iOS"
-  *   "hasSettings" -> boolean
-  *   "templatePath" -> string
-  * Note: available from v3.3.2 except:
-  * - "templatePath" available from v3.4.1.  This return path relative to NP's root folder.
+  * Available from v3.3.2:
+  *   .languageCode: string?
+  *   .regionCode: string?
+  *   .is12hFormat: boolean
+  *   .preferredLanguages: [string]
+  *   .secondsFromGMT: integer
+  *   .localTimeZoneAbbreviation: string
+  *   .localTimeZoneIdentifier: string
+  *   .isDaylightSavingTime: boolean
+  *   .daylightSavingTimeOffset: Double
+  *   .nextDaylightSavingTimeTransition: Date
+  *   .platform: "macOS" | "iPadOS" | "iOS"
+  *   .hasSettings: boolean
+  * Available from v3.4.1:
+  *   .templateFolder: string (this return path relative to NP's root folder, normally "@Templates")
+  *   .version: string (NotePlan's version, for example "3.4.1")
+  *   .versionNumber: number (NotePlan's version as integer,for example 341)
+  *   .buildVersion: number (NotePlan's build number as integer,for example 730)
   */
   +environment: Object,
   /**

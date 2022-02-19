@@ -8,18 +8,8 @@
  *  * TODO: feedback if no items to timeblock
  * impolement limitToTags[] but make it a textfilter regex
  */
-import {
-  differenceInCalendarDays,
-  endOfDay,
-  startOfDay,
-  eachMinuteOfInterval,
-  formatISO9075,
-  addMinutes,
-} from 'date-fns'
-import {
-  getTimedEntries,
-  keepTodayPortionOnly,
-} from '../../helpers/calendar'
+import { differenceInCalendarDays, endOfDay, startOfDay, eachMinuteOfInterval, formatISO9075, addMinutes } from 'date-fns'
+import { getTimedEntries, keepTodayPortionOnly } from '../../helpers/calendar'
 import { getEventsForDay, writeTimeBlocksToCalendar } from '../../helpers/NPCalendar'
 import {
   getDateStringFromCalendarFilename,
@@ -83,9 +73,7 @@ export async function getConfig(): Promise<{ [string]: [mixed] }> {
       validateTimeBlockConfig(config)
       return config
     } catch (error) {
-      showMessage(
-        `Plugin Settings ${error.message}\nRunning with default settings. You should probably open the plugin configuration dialog and fix the problem(s) listed above.`,
-      )
+      showMessage(`Plugin Settings ${error.message}\nRunning with default settings. You should probably open the plugin configuration dialog and fix the problem(s) listed above.`)
     }
   }
   return defaultConfig
@@ -93,6 +81,8 @@ export async function getConfig(): Promise<{ [string]: [mixed] }> {
 
 // $FlowIgnore
 const editorOrNote: EditorOrNote = (note: EditorOrNote) => (Editor.filename === note?.filename || !note ? Editor : note)
+
+const editorIsOpenToToday = () => getDateStringFromCalendarFilename(Editor.filename) === getTodaysDateUnhyphenated()
 
 /**
  * Find paragraphs in note which are open and tagged for today (either >today or hyphenated date)
@@ -128,8 +118,7 @@ async function insertContentUnderHeading(destNote: TNote, headingToFind: string,
       break
     }
   }
-  const paraText =
-    insertionIndex === topOfNote && headingToFind !== '' ? `## ${headingToFind}\n${parasAsText}\n` : parasAsText
+  const paraText = insertionIndex === topOfNote && headingToFind !== '' ? `## ${headingToFind}\n${parasAsText}\n` : parasAsText
   // $FlowIgnore
   await editorOrNote(destNote).insertParagraph(paraText, insertionIndex, 'text')
 }
@@ -169,9 +158,7 @@ function getTodaysReferences(pNote: TNote | null = null, config): Array<TParagra
         todayParas.push(subItem)
       })
     })
-    console.log(
-      `getTodaysReferences note.filename=${note.filename} backlinks.length=${backlinks.length} todayParas.length=${todayParas.length}`,
-    )
+    console.log(`getTodaysReferences note.filename=${note.filename} backlinks.length=${backlinks.length} todayParas.length=${todayParas.length}`)
     todayParas = [...todayParas, ...findTodosInNote(note, config)]
     return todayParas
   } else {
@@ -221,11 +208,7 @@ function getExistingTimeBlocksFromNoteAsEvents(note: TEditor | TNote, defaultDur
   return timeBlocksAsEvents
 }
 
-async function getPopulatedTimeMapForToday(
-  dateStr: string,
-  intervalMins: number,
-  config: { [string]: mixed },
-): Promise<IntervalMap> {
+async function getPopulatedTimeMapForToday(dateStr: string, intervalMins: number, config: { [string]: mixed }): Promise<IntervalMap> {
   // const todayEvents = await Calendar.eventsToday()
   const eventsArray: Array<TCalendarItem> = await getEventsForDay(dateStr)
   const eventsWithStartAndEnd = getTimedEntries(eventsArray)
@@ -289,13 +272,9 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: an
     const backlinkParas = getTodaysReferences(Editor.note, config)
     console.log(`Found ${backlinkParas.length} backlinks+today-note items (may include completed items)`)
     let todosParagraphs = makeAllItemsTodos(backlinkParas) //some items may not be todos but we want to pretend they are and timeblock for them
-    todosParagraphs = includeTasksWithText?.length
-      ? includeTasksWithPatterns(todosParagraphs, includeTasksWithText)
-      : todosParagraphs
+    todosParagraphs = includeTasksWithText?.length ? includeTasksWithPatterns(todosParagraphs, includeTasksWithText) : todosParagraphs
     console.log(`After includeTasksWithText, ${todosParagraphs.length} potential items`)
-    todosParagraphs = excludeTasksWithText?.length
-      ? excludeTasksWithPatterns(todosParagraphs, excludeTasksWithText)
-      : todosParagraphs
+    todosParagraphs = excludeTasksWithText?.length ? excludeTasksWithPatterns(todosParagraphs, excludeTasksWithText) : todosParagraphs
     console.log(`After excludeTasksWithText, ${todosParagraphs.length} potential items`)
     const cleanTodayTodoParas = removeDateTagsFromArray(todosParagraphs)
     console.log(`After removeDateTagsFromArray, ${cleanTodayTodoParas.length} potential items`)
@@ -316,11 +295,7 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: an
       console.log(`After getPopulatedTimeMapForToday, ${calendarMapWithEvents.length} timeMap slots`)
       const eventsToTimeblock = getTimeBlockTimesForEvents(calendarMapWithEvents, sortedTodos, config)
       const { timeBlockTextList, blockList } = eventsToTimeblock
-      console.log(
-        `After getTimeBlockTimesForEvents, blocks:\n\tblockList=${JSON.stringify(
-          blockList,
-        )} \n\ttimeBlockTextList=${JSON.stringify(timeBlockTextList)}`,
-      )
+      console.log(`After getTimeBlockTimesForEvents, blocks:\n\tblockList=${JSON.stringify(blockList)} \n\ttimeBlockTextList=${JSON.stringify(timeBlockTextList)}`)
       if (insertIntoEditor || createCalendarEntries) {
         console.log(`About to insert ${timeBlockTextList.length} timeblock items into note`)
         // $FlowIgnore -- Delete any previous timeblocks we created
@@ -353,7 +328,7 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: an
 
 export async function insertTodosAsTimeblocks(note: TNote): Promise<void> {
   console.log(`====== /atb =======\nStarting insertTodosAsTimeblocks`)
-  await Editor.openNoteByDate(new Date(), false) //open editor to today
+  if (!editorIsOpenToToday()) await Editor.openNoteByDate(new Date(), false) //open editor to today
   const config = await getConfig()
   if (config) {
     console.log(`Config found. Calling createTimeBlocksForTodaysTasks`)
@@ -365,7 +340,7 @@ export async function insertTodosAsTimeblocks(note: TNote): Promise<void> {
 
 export async function insertTodosAsTimeblocksWithPresets(note: TNote): Promise<void> {
   console.log(`====== /atbp =======\nStarting insertTodosAsTimeblocksWithPresets`)
-  await Editor.openNoteByDate(new Date(), false) //open editor to today
+  if (!editorIsOpenToToday()) await Editor.openNoteByDate(new Date(), false) //open editor to today
   let config = await getConfig()
   if (config) {
     console.log(`Config found. Checking for presets`)
