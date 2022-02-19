@@ -237,10 +237,10 @@ const calendarNameWithMapping = (name: string, mappings: Array<string>): string 
 }
 
 /**
- * @private
+ * Sorter for CalendarItems
  * @author @m1well
  */
-const sortByCalendarNameAndStartTime = (): Function => {
+export const sortByCalendarNameAndStartTime = (): Function => {
   return (b, a) => {
     if (a.cal !== b.cal) {
       if (a.cal > b.cal) {
