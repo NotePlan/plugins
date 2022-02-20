@@ -1,7 +1,7 @@
 // @flow
 // ----------------------------------------------------------------------------
 // Command to bring calendar events into notes
-// Last updated 28.1.2022 for v0.11.0, by @jgclark
+// Last updated 19.2.2022 for v0.11.5, by @jgclark
 // @jgclark, with additions by @dwertheimer, @weyert, @m1well
 // ----------------------------------------------------------------------------
 
@@ -80,7 +80,7 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
     ? mapForSorting.map((element) => element.text).join('\n')
     : outputArray.join('\n')
 
-  output.replace(/\\s{2,}/g, ' ') // If this array is empty -> empty string
+  output.replace(/\s{2,}/gm, ' ') // If this array is empty -> empty string
   console.log(output)
   return output
 }

@@ -1,7 +1,7 @@
 // @flow
 // ----------------------------------------------------------------------------
 // Sort configuration for commands in the Event Helpers plugin.
-// Last updated 7.2.2022 for v0.11.4, by @jgclark
+// Last updated 19.2.2022 for v0.11.5, by @jgclark
 // @jgclark
 // ----------------------------------------------------------------------------
 import {
@@ -46,24 +46,6 @@ export async function getEventsSettings(): Promise<EventsConfig> {
     clo(config, `\t${configKey} settings from V2:`)
     return config
 
-    // console.log(`\tInfo: couldn't find 'events' settings in _configuration note. Will use defaults.`)
-    // return {
-    //   eventsHeading: '### Events today',
-    //   addMatchingEvents: {
-    //     "meeting": "### *|TITLE|* (*|START|*)\\n*|NOTES|*",
-    //     "webinar": "### *|TITLE|* (*|START|*) *|URL|*",
-    //     "holiday": "*|TITLE|* *|NOTES|*",
-    //   },
-    //   locale: 'en-US',
-    //   timeOptions: { hour: '2-digit', minute: '2-digit', hour12: false },
-    //   calendarSet: [],
-    //   calendarNameMappings: [],
-    //   processedTagName: '#event_created',
-    //   removeTimeBlocksWhenProcessed: true,
-    //   addEventID: false,
-    //   confirmEventCreation: false,
-    //   calendarToWriteTo: '',
-    // }
   } else {
     // Read settings from _configuration, or if missing set a default
     // Don't mind if no config section is found
@@ -89,6 +71,7 @@ export async function getEventsSettings(): Promise<EventsConfig> {
       addEventID: castBooleanFromMixed(v1Config, 'addEventID'),
       confirmEventCreation: castBooleanFromMixed(v1Config, 'confirmEventCreation'),
       calendarToWriteTo: castStringFromMixed(v1Config, 'calendarToWriteTo'),
+      defaultEventDuration: 60 // not available to set through ConfigV1
     }
     // $FlowFixMe
     clo(config, `\t${configKey} settings from V1:`)
