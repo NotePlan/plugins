@@ -61,6 +61,11 @@ module.exports = {
   },
 
   async execute(toolbox) {
+    // make sure gh is installed, otherwise abort
+    if (!github.ghInstalled()) {
+      print.error('"plugin:release" requires github to be installed.', 'ERROR')
+      process.exit()
+    }
     // const answers = await prompt.password('Enter Password')
     // if (typeof answers !== 'object') {
     //   console.log('')
