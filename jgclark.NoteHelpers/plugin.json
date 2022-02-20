@@ -1,5 +1,5 @@
 {
-  "noteplan.min_version": "3.0.23",
+  "noteplan.minAppVersion": "3.0.23",
   "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.NoteHelpers",
   "plugin.name": "📙 Note Helpers",
