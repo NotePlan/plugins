@@ -18,9 +18,16 @@ import { keepTodayPortionOnly } from './calendar'
 import {
   getDateFromUnhyphenatedDateString,
   getISODateStringFromCalendarFilename,
+  type HourMinObj,
   printDateRange,
+  removeDateTagsAndToday,
   todaysDateISOString,
 } from './dateTime'
+import {
+  addMinutes,
+  differenceInMinutes,
+} from 'date-fns'
+import { clo } from './dev'
 import { displayTitle } from './general'
 import { findEndOfActivePartOfNote } from './paragraph'
 import {
@@ -39,7 +46,6 @@ import {
 } from './timeblocks'
 import { showMessage, showMessageYesNo } from './userInput'
 
-import type { HourMinObj } from './dateTime'
 
 export type EventsConfig = {
   eventsHeading: string,
@@ -53,6 +59,7 @@ export type EventsConfig = {
   processedTagName?: string /* if not set, uses RE_EVENT_ID */,
   removeTimeBlocksWhenProcessed?: boolean,
   calendarToWriteTo?: string,
+  defaultEventDuration: number
 }
 
 // ----------------------------------------------------------------------------
@@ -141,16 +148,30 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
         }
         timeBlockString = `${datePart} ${timeBlockString}`
         // NB: parseDateText returns an array, so we'll use the first one as most likely
-        const timeblockDateRange = Calendar.parseDateText(timeBlockString)[0]
+        let timeblockDateRange = Calendar.parseDateText(timeBlockString)[0]
 
         if (timeblockDateRange) {
           // We have a valid timeblock, so let's make the event etc.
-          // First strip out time + date (if present) from the timeblock line,
+
+          // First see if this is a zero-length event, which happens when no end time
+          // was specified. If we have a defaultEventDuration then use it.
+          if (differenceInMinutes(timeblockDateRange.start, timeblockDateRange.end) === 0 && config.defaultEventDuration > 0)
+          {
+            const newEndDate = addMinutes(timeblockDateRange.end, config.defaultEventDuration)
+            timeblockDateRange = { start: timeblockDateRange.start, end: newEndDate}
+          }
+
+          // Strip out time + date (if present) from the timeblock line,
           // as we don't want those to go into the calendar event itself (=restOfTask).
           // But also keep a version with date (if present) as we don't want to lose that from the task itself.
-          let restOfTaskWithoutTimeBlock = thisPara.content.replace(origTimeBlockString, '').trim() // take off timeblock
-          let restOfTaskWithoutDateTime = restOfTaskWithoutTimeBlock.replace(`>${datePart}`, '').trim() // take off >date (if present)
-          restOfTaskWithoutDateTime = restOfTaskWithoutDateTime.replace(datePart, '').trim() // take off date (if present)
+          let restOfTaskWithoutTimeBlock = thisPara.content
+            .replace(origTimeBlockString, '')
+            .replace(/\s{2,}/g, ' ')
+            .trimEnd() // take off timeblock
+          let restOfTaskWithoutDateTime =
+            removeDateTagsAndToday(restOfTaskWithoutTimeBlock)
+            .replace(timeBlockString, '')
+            .replace(/\s{2,}/g, ' ')
           console.log(`\tWill process time block '${timeBlockString}' for '${restOfTaskWithoutDateTime}'`)
 
           // Do we want to add this particular event?
@@ -171,7 +192,7 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
 
           // Remove time block string (if wanted)
           let thisParaContent = thisPara.content
-          console.log(`\tstarting with thisPara.content: '${thisParaContent}'`)
+          // console.log(`\tstarting with thisPara.content: '${thisParaContent}'`)
           if (config.removeTimeBlocksWhenProcessed) {
             thisParaContent = restOfTaskWithoutTimeBlock
           }

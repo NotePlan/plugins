@@ -4,11 +4,12 @@ This plugin provides commands to help work with Calendars and Events:
 - `/insert day's events as list`: insert list of this day's calendar events at cursor
 - `/list day's events to log`: write list of this day's calendar events to console log
 - `/insert matching events`: adds this day's calendar events matching certain patterns at cursor
-- `/time blocks to calendar`: takes [NotePlan-defined time blocks](https://help.noteplan.co/article/52-part-2-tasks-events-and-reminders#timeblocking) and converts to full Calendar events, in your current default calendar, as set by iCal.
+- `/time blocks to calendar`: takes [NotePlan-defined time blocks](https://help.noteplan.co/article/52-part-2-tasks-events-and-reminders#timeblocking) and converts to full Calendar events, in your current default calendar, as set by iCal. (If the end time is not given, then the 'defaultEventDuration' setting is used to give it an end time.)
 - `/process date offsets`: finds date offset patterns and turns them into due dates, based on date at start of section. (See [Templates for Dates](#template-for-dates) below for full details.)
 
 The first four of these have a number of [options described below](#configuration).
 See [Theme customisation](#theme-customisation) below for more on how to customise display of time blocks and events.
+
 ## Date Offsets
 This is best understood with a quick example:
 
@@ -70,6 +71,7 @@ This uses JSON5 format: ensure there are commas at the end of all that lines tha
 - **calendarSet**: optional ["array","of calendar","names"] to filter by when showing list of events. If empty or missing, no filtering will be done.
 - **addMatchingEvents**: for `/add matching events` is a set of pairs of strings. The first string is what is matched for in an event's title. If it does match the second string is used as the format for how to insert the event details at the cursor.  This uses the same `*|TITLE|*`, `*|START|*` (time), `*|END|*` (time), `*|NOTES|*` and `*|URL|*` format items below ...  NB: At this point the 'location' field is unfortunately _not_ available through the API.
 - **calendarNameMappings**: optional - add mappings for your calendar names to appear in the output - e.g. from "Thomas" to "Me" with "Thomas;Me".
+- **defaultEventDuration**: Event duration (in minutes) to use when making an event from a time block, if an end time is not given.
 
 ### Using Event Lists from a Template
 If you use Templates, this command can be called when a Template is inserted (including in the `/day start` command which applies your `Daily Note Template` file). To do this insert `{{events()}}` wherever you wish it to appear in the Template.  By default it gives a simple markdown list of event title and start time.  To **customise the list display**, you can add a `'template:"..."'` parameter to the `{{events()}}` command that sets how to present the list, and a separate parameter for items with no start/end times (`'allday_template:"..."`).

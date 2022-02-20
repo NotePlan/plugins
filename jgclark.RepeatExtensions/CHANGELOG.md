@@ -1,7 +1,9 @@
 # What's changed in 🔁 Repeat Extensions plugin?
 
-## [unreleased]
-- just moving code around
+## [0.3.1] - 2022-02-20
+### Changed
+- can now be called by the command `/generate repeats`, and `/rpt` is now an alias for this
+- code refactoring
 
 ## [0.3.0] - 2021-10-24
 ### Added

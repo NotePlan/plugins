@@ -149,7 +149,7 @@ export function removeDateTags(content: string): string {
 export function removeDateTagsAndToday(tag: string): string {
   return removeDateTags(tag)
     .replace(/>today/, '')
-    .replace(/ {2,}/gm, ' ')
+    .replace(/\s{2,}/g, ' ')
     .trimEnd()
 }
 
