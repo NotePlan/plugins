@@ -8,6 +8,7 @@ import { semverVersionToNumber } from '@helpers/general'
 import pluginJson from '../plugin.json'
 import FrontmatterModule from './support/modules/FrontmatterModule'
 import { log, logError } from '@helpers/dev'
+import globals from './globals'
 
 /*eslint-disable */
 import TemplatingEngine from './TemplatingEngine'
@@ -18,6 +19,15 @@ const TEMPLATE_FOLDER_NAME = '📋 Templates'
 // np.Templating modules (see /lib/support/modules/*Module)
 // - if a new module has been added, make sure it has been added to this list
 const TEMPLATE_MODULES = ['date', 'frontmatter', 'note', 'system', 'time', 'user', 'utility']
+
+const getProperyValue = (object: any, key: string): any => {
+  key.split('.').forEach((token) => {
+    // $FlowIgnorew
+    if (object) object = object[token]
+  })
+
+  return object
+}
 
 export const selection = async (): Promise<string> => {
   return Editor.selectedParagraphs.map((para) => para.rawContent).join('\n')
@@ -289,12 +299,35 @@ export default class NPTemplating {
         sessionData = promptData.sessionData
       }
 
+      templateData = await this.preProcess(templateData)
+
+      let globalData = {}
+      Object.getOwnPropertyNames(globals).forEach((key) => {
+        globalData[key] = getProperyValue(globals, key)
+      })
+
+      sessionData.methods = { ...sessionData.methods, ...globalData }
       const renderedData = await new TemplatingEngine(this.constructor.templateConfig).render(templateData, sessionData, userOptions)
 
       return renderedData
     } catch (error) {
       return this.templateErrorMessage(error)
     }
+  }
+
+  static async preProcess(templateData: string): Promise<mixed> {
+    let newTemplateData = templateData
+    const tags = await this.getTags(templateData)
+    tags.forEach((tag) => {
+      if (!tag.includes('await')) {
+        let tempTag = tag.replace('<%-', '<%- await')
+        newTemplateData = newTemplateData.replace(tag, tempTag)
+
+        tempTag = tag.replace('<%=', '<%- await')
+        newTemplateData = newTemplateData.replace(tag, tempTag)
+      }
+    })
+    return newTemplateData
   }
 
   static async render(templateData: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {

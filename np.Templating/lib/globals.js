@@ -6,20 +6,22 @@
  * -----------------------------------------------------------------------------------------*/
 
 import { datePicker, askDateInterval } from '@helpers/userInput'
-import {
-  get8601String,
-  getWeekDates,
-  formattedDateTimeTemplate,
-} from '@plugins/dwertheimer.DateAutomations/src/dateFunctions'
+import { get8601String, getWeekDates, formattedDateTimeTemplate } from '@plugins/dwertheimer.DateAutomations/src/dateFunctions'
+import { getFormattedTime } from '@helpers/dateTime'
 import { listDaysEvents, listMatchingDaysEvents } from '@plugins/jgclark.EventHelpers/src/eventsToNotes'
 import { sweepTemplate } from '@plugins/nmn.sweep/src/sweepAll'
 import DateModule from './support/modules/DateModule'
+import { getAffirmation } from './support/modules/affirmation'
 
 /*
    np.Templating Global Methods
 */
 
-module.exports = {
+const globals = {
+  test: async (): Promise<string> => {
+    return getAffirmation()
+  },
+
   date8601: async (): Promise<string> => {
     return await get8601String()
   },
@@ -48,10 +50,15 @@ module.exports = {
   sweepTasks: async (params: string = ''): Promise<string> => {
     return await sweepTemplate()
   },
-  formattedDateTime: async (params: string = ''): Promise<string> => {
-    return await formattedDateTimeTemplate(params)
+  formattedDateTime: (params: any): string => {
+    let dateFormat = ''
+    dateFormat = typeof params === 'object' && params.hasOwnProperty('format') ? params.format : ''
+    return getFormattedTime(dateFormat)
   },
   weekDates: async (params: string = ''): Promise<string> => {
     return await getWeekDates(params)
   },
 }
+
+// module.exports = globals
+export default globals

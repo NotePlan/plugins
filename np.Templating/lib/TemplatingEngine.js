@@ -114,6 +114,7 @@ export default class TemplatingEngine {
     let renderData = { ...helpers, ...userData }
     renderData = userData?.data ? { ...userData.data, ...renderData } : renderData
     renderData = userData?.methods ? { ...userData.methods, ...renderData } : renderData
+    // renderData = { ...renderData, ...globals }
 
     // apply custom plugin modules
     this.templateModules.forEach((moduleItem) => {
@@ -231,10 +232,7 @@ export default class TemplatingEngine {
     if (obj.prototype === undefined) {
       return isCtorClass
     }
-    const isPrototypeCtorClass =
-      obj.prototype.constructor &&
-      obj.prototype.constructor.toString &&
-      obj.prototype.constructor.toString().substring(0, 5) === 'class'
+    const isPrototypeCtorClass = obj.prototype.constructor && obj.prototype.constructor.toString && obj.prototype.constructor.toString().substring(0, 5) === 'class'
     return isCtorClass || isPrototypeCtorClass
   }
 }
