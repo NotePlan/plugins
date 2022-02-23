@@ -369,7 +369,7 @@ const fixedTracking = async (): Promise<boolean> => {
 const provideConfig = async (): Promise<Config> => {
   const fromSettings: Config = DataStore.settings
 
-  if (fromSettings && fromSettings.useNewSettings) {
+  if (fromSettings) {
     logMessage(`loaded config from settings\n${JSON.stringify(fromSettings)}\n`)
     return fromSettings
   } else {

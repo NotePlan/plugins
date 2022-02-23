@@ -48,14 +48,6 @@
       "title": "Settings for Expenses Plugin"
     },
     {
-      "key": "useNewSettings",
-      "title": "Use new plugin settings?",
-      "description": "This is just a feature flag - let it at false to still\nuse _configuration file or set it to true if you want to use the settings from here",
-      "type": "bool",
-      "default": false,
-      "required": false
-    },
-    {
       "key": "folderPath",
       "type": "string",
       "title": "Path of folder where the expenses notes are stored",
@@ -70,7 +62,7 @@
       "description": "Choose the preferred delimiter for your note",
       "choices": [";", "%", "TAB"],
       "default": ";",
-      "required": false
+      "required": true
     },
     {
       "key": "dateFormat",
@@ -78,7 +70,7 @@
       "title": "Custom date format for the date column",
       "description": "Choose custom date format for the date column\n- e.g. one date '2021-12-08'\nSo the format should be like 'yyyy-MM-dd' or 'yyyy-MM'\nATTENTION: don't use your chosen delimiter here",
       "default": "yyyy-MM-dd",
-      "required": false
+      "required": true
     },
     {
       "key": "amountFormat",
@@ -87,7 +79,7 @@
       "description": "Choose 'full' to have always 2 fraction digits with localized separator\nor 'short' to have only rounded numbers without digits",
       "choices": ["full", "short"],
       "default": "full",
-      "required": false
+      "required": true
     },
     {
       "key": "columnOrder",
@@ -95,7 +87,7 @@
       "title": "Order of all columns (comma separated)",
       "description": "Choose order for all columns\n- please do that before the first tracking!",
       "default": ["date", "category", "text", "amount"],
-      "required": false
+      "required": true
     },
     {
       "key": "categories",
