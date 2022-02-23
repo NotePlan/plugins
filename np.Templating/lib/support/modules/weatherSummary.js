@@ -1,69 +1,41 @@
 // @flow
 
-// TODO:
-// - ideally find a way to get current location. It must be possible as Scriptable achieves this
-//   with await Location.current() and has a
-//   Location.reverseGeocode(latitude, longitude) field -> postal town etc.
-
-import { getTagParamsFromString, stringReplace, capitalize } from '@helpers/general'
-import { getOrMakeConfigurationSection } from '@templating/toolbox'
+import pluginJson from '@plugins/np.Templating/plugin.json'
+import { capitalize } from '@helpers/general'
+import { logError } from '@helpers/dev'
 
 //------------------------------------------------------------------------------
 // Preference Settings
-export const DEFAULT_WEATHER_CONFIG = `// configuration for weather data (used in Daily Note Template, for example)
-  weather: {
-    // API key for https://openweathermap.org/
-    openWeatherAPIKey: '... put your API key here ...', // !!REQUIRED!!
-    // Required location for weather forecast
-    latPosition: 0.0,  // !!REQUIRED!!
-    longPosition: 0.0, // !!REQUIRED!!
-    // Default units. Can be 'metric' (for Celsius), or 'imperial' (for Fahrenheit)
-    openWeatherUnits: 'metric',
-  },
-`
+// API key for https://openweathermap.org/
 
-const MINIMUM_WEATHER_CONFIG = {
-  openWeatherAPIKey: 'string',
-  latPosition: 'number',
-  longPosition: 'number',
-  openWeatherUnits: 'string',
+const defaultWeatherConfig = {
+  openWeatherAPIKey: '19a11168bcc123dc86c1b92682bfb74f',
+  latPosition: 0,
+  longPosition: 0,
+  openWeatherUnits: 'Celcius',
 }
 
 //------------------------------------------------------------------------------
 /**
  * Get summary of today's weather in a line, using
  * https://openweathermap.org/api/one-call-api#data, for which you can get a free API key
- * @author @jgclark, with customisation by @dwertheimer
+ * @author @jgclark, with customisation by @dwertheimer, adapted to np.Templating by @codedungeon
  * @param {string} weatherParams - optional customisation for how to display the results
  */
 export async function getWeatherSummary(weatherParams: string): Promise<string> {
-  const weatherDescText = [
-    'showers',
-    'rain',
-    'sunny intervals',
-    'partly sunny',
-    'sunny',
-    'clear sky',
-    'cloud',
-    'snow ',
-    'thunderstorm',
-    'tornado',
-  ]
+  const weatherDescText = ['showers', 'rain', 'sunny intervals', 'partly sunny', 'sunny', 'clear sky', 'cloud', 'snow ', 'thunderstorm', 'tornado']
   const weatherDescIcons = ['🌦️', '🌧️', '🌤', '⛅', '☀️', '☀️', '☁️', '🌨️', '⛈', '🌪']
 
   // Get config settings from Template folder _configuration note
-  const weatherConfig = await getOrMakeConfigurationSection('weather', DEFAULT_WEATHER_CONFIG, MINIMUM_WEATHER_CONFIG)
+  const weatherConfig = { ...defaultWeatherConfig }
 
-  // Get config settings from Template folder _configuration note
-  // $FlowIgnore[incompatible-type]
-  if (weatherConfig == null) {
-    return "Error: Cannot find 'weather' settings in Templates/_configuration note."
-  }
+  let { openWeatherAPIKey, latPosition, longPosition, openWeatherUnits } = weatherConfig
+  openWeatherUnits = openWeatherUnits === 'Fahrenheit' ? 'imperial' : 'metric'
 
-  const { openWeatherAPIKey, latPosition, longPosition, openWeatherUnits } = weatherConfig
   // $FlowIgnore[incompatible-use]
   if (openWeatherAPIKey !== null && !openWeatherAPIKey?.match(/[a-f0-9]{32}/)) {
-    return "Error: Cannot find a valid API Key 'weather' settings in Templates/_configuration note."
+    logError('Invalid Open Weather API Key')
+    await CommandBar.prompt('Weather Lookup', 'Invalid Open Weather API Key')
   }
 
   const getWeatherURL = `https://api.openweathermap.org/data/2.5/onecall?lat=${
@@ -80,40 +52,24 @@ export async function getWeatherSummary(weatherParams: string): Promise<string> 
     // $FlowFixMe
   }&appid=${encodeURIComponent(openWeatherAPIKey)}`
 
-  // ** The following is the more correct way, but doesn't work.
-  //    So have to use a way that Flow doesn't like.
-  //    See Issue 7 **
-  // const response = await fetch(getWeatherURL)
-  // console.log(response.status)
-  // console.log(response.statusText)
-  // console.log(response.type)
-  // console.log(response.url)
-  // let jsonIn
-  // if (response.ok) { // if HTTP-status is 200-299
-  //   jsonIn = await response.json()
-  // } else {
-  //   return `Sorry; error ${response.status} in Weather lookup`
-  // }
-
-  // console.log(getWeatherURL)
   let jsonIn, allWeatherData
   try {
     jsonIn = await fetch(getWeatherURL)
-
-    // console.log(`  HTTP response ${jsonIn.status}`) //  .status always returns 'undefined', even when it works?!
   } catch (err) {
-    return `${err.message} parsing Weather data lookup. Please check your _configuration note.`
+    return logError(pluginJson, 'An error occurred getting weather')
   }
+
   if (jsonIn != null) {
     try {
       // $FlowIgnore[incompatible-call]
       allWeatherData = JSON.parse(jsonIn)
     } catch (err) {
-      return `${err.message} parsing Weather data lookup. Please check your _configuration note.`
+      await CommandBar.prompt('Weather Lookup', `${err.message} parsing Weather data. Please check weather settings`)
+      return logError(pluginJson, `${err.message} parsing Weather data. Please check weather settings`)
     }
-    // console.log(`WeatherData: ${JSON.stringify(allWeatherData)}`)
     if (allWeatherData.cod === 401) {
-      return `Weather: Invalid configuration settings. ${allWeatherData.message}`
+      await CommandBar.prompt('Weather Lookup', `Weather: Invalid configuration settings. ${allWeatherData.message}`)
+      return logError(`Weather: Invalid configuration settings. ${allWeatherData.message}`)
     }
 
     const weatherTodayAll = allWeatherData?.daily['0']
@@ -134,27 +90,21 @@ export async function getWeatherSummary(weatherParams: string): Promise<string> 
         break
       }
     }
-    const replacements = [
-      { key: '|FEELS_LIKE_LOW|', value: fMin },
-      { key: '|FEELS_LIKE_HIGH|', value: fMax },
-      { key: '|LOW_TEMP|', value: minTemp },
-      { key: '|HIGH_TEMP|', value: maxTemp },
-      { key: '|DESCRIPTION|', value: capitalize(weatherDesc) },
-      { key: '|TIMEZONE|', value: timezone },
-      { key: '|UNITS|', value: units },
-      { key: '|WEATHER_ICON|', value: weatherIcon },
-    ]
 
-    const defaultWeatherLine = `Weather: |WEATHER_ICON| |DESCRIPTION| |LOW_TEMP||UNITS|-|HIGH_TEMP||UNITS|; Feels like: |FEELS_LIKE_LOW||UNITS|-|FEELS_LIKE_HIGH||UNITS|`
+    let WEATHER_ICON = weatherIcon
+    let DESCRIPTION = capitalize(weatherDesc)
+    let LOW_TEMP = minTemp
+    let HIGH_TEMP = maxTemp
+    let UNITS = units
+    let FEELS_LIKE_LOW = fMin
+    let FEELS_LIKE_HIGH = fMax
 
-    const template = await getTagParamsFromString(weatherParams, 'template', defaultWeatherLine)
-    // const template =
-    //   (weatherParams !== '' && getTagParams(weatherParams, 'template') !== '')
-    //     ? getTagParams(weatherParams, 'template')
-    //     : defaultWeatherLine
-    return stringReplace(template, replacements)
+    const defaultWeatherLine = `Weather: ${WEATHER_ICON} ${DESCRIPTION} ${LOW_TEMP}${UNITS}-${HIGH_TEMP}${UNITS}; Feels like: ${FEELS_LIKE_LOW}${UNITS}-${FEELS_LIKE_HIGH}${UNITS}`
+    // $FlowIgnore
+    return weatherParams.length > 0 ? Function('`' + weatherParams + '`') : defaultWeatherLine
   } else {
     // $FlowFixMe[incompatible-type]
-    return `Problem in Weather data lookup for ${latPosition}/${longPosition}. Please check your _configuration note.`
+    await CommandBar.prompt('Weather Lookup', `An error occurred in data lookup for ${latPosition}/${longPosition}. Please review settings.`)
+    return logError(pluginJson, `An error occurred in data lookup for ${latPosition}/${longPosition}. Please review settings.`)
   }
 }

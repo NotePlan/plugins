@@ -1,7 +1,7 @@
 // @flow
 
 /*-------------------------------------------------------------------------------------------
- * Copyright (c) 2021-2022 Mike Erickson / Codedungeon.  All rights reserved.
+ * Copyright (c) 2022 Mike Erickson / Codedungeon.  All rights reserved.
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
  * -----------------------------------------------------------------------------------------*/
 import { semverVersionToNumber } from '@helpers/general'
@@ -150,6 +150,23 @@ export default class NPTemplating {
     // constructor method required to access instance config (see setup method)
   }
 
+  static _filterTemplateResult(templateResult: string = ''): string {
+    let result = templateResult
+
+    result = result.replace('ejs', 'template')
+    result = result.replace('If the above error is not helpful, you may want to try EJS-Lint:', '')
+    // result = result.replace(/(?:https?|ftp):\/\/[\n\S]+/g, 'HTTP_REMOVED')
+    result = result.replace('https://github.com/RyanZim/EJS-Lint', 'HTTP_REMOVED')
+    if (result.includes('HTTP_REMOVED')) {
+      result += 'For more information on proper template syntax, refer to:\n'
+      result += 'https://nptemplating-docs.netlify.app/'
+      result = result.replace('HTTP_REMOVED', '')
+    }
+    // result = result.replace('\n\n', '\n')
+
+    return result
+  }
+
   static async updateOrInstall(currentSettings: any, currentVersion: string): Promise<TemplateConfig> {
     const settingsData = { ...currentSettings }
 
@@ -238,7 +255,6 @@ export default class NPTemplating {
 
     try {
       selectedTemplate = await DataStore.projectNoteByFilename(templateFilename)
-
       // if the template can't be found using actual filename (as it is on disk)
       // this will occur due to a bug in NotePlan which is not properly renaming files on disk to match note name
       if (!selectedTemplate) {
@@ -286,20 +302,12 @@ export default class NPTemplating {
     return this.constructor.templateConfig
   }
 
-  static async renderTemplate(templateName: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
+  static async renderTemplate(templateName: string = '', userData: any = {}, userOptions: any = { usePrompts: false }): Promise<string> {
     try {
       await this.setup()
 
       let sessionData = { ...userData }
       let templateData = (await this.getTemplate(templateName)) || ''
-
-      if (userOptions?.usePrompts) {
-        const promptData = await this.processPrompts(templateData, userData, '<%', '%>')
-        templateData = promptData.sessionTemplateData
-        sessionData = promptData.sessionData
-      }
-
-      templateData = await this.preProcess(templateData)
 
       let globalData = {}
       Object.getOwnPropertyNames(globals).forEach((key) => {
@@ -307,9 +315,20 @@ export default class NPTemplating {
       })
 
       sessionData.methods = { ...sessionData.methods, ...globalData }
+
+      templateData = templateData.replace('<%@', '<%= prompt')
+
+      if (userOptions?.usePrompts) {
+        const promptData = await this.processPrompts(templateData, sessionData, '<%', '%>')
+        templateData = promptData.sessionTemplateData
+        sessionData = promptData.sessionData
+      }
+
+      templateData = await this.preProcess(templateData)
+
       const renderedData = await new TemplatingEngine(this.constructor.templateConfig).render(templateData, sessionData, userOptions)
 
-      return renderedData
+      return this._filterTemplateResult(renderedData)
     } catch (error) {
       return this.templateErrorMessage(error)
     }
@@ -317,9 +336,9 @@ export default class NPTemplating {
 
   static async preProcess(templateData: string): Promise<mixed> {
     let newTemplateData = templateData
-    const tags = await this.getTags(templateData)
+    const tags = (await this.getTags(templateData)) || []
     tags.forEach((tag) => {
-      if (!tag.includes('await')) {
+      if (!tag.includes('await') && tag.includes('(')) {
         let tempTag = tag.replace('<%-', '<%- await')
         newTemplateData = newTemplateData.replace(tag, tempTag)
 
@@ -368,7 +387,9 @@ export default class NPTemplating {
   }
 
   static async getPromptParameters(promptTag: string = ''): mixed {
-    let tagValue = promptTag.replace(/prompt|[()]|<%=|<%|-%>|%>/gi, '').trim()
+    let tagValue = ''
+    tagValue = promptTag.replace(/\bask\b|prompt|[()]|<%=|<%|-%>|%>/gi, '').trim()
+    // tagValue = promptTag.replace(/ask|[()]|<%=|<%|-%>|%>/gi, '').trim()
     let varName = ''
     let promptMessage = ''
     let options = []
@@ -409,9 +430,12 @@ export default class NPTemplating {
     return { varName, promptMessage, options }
   }
 
-  static async prompt(message: string, options: Array<string> = []): Promise<string> {
+  static async prompt(message: string, options: Array<string> = []): Promise<any> {
     if (options.length === 0) {
-      return await CommandBar.showInput(message, 'OK')
+      const result = await CommandBar.textPrompt('', message.replace('_', ' '), '')
+      return result
+      // return await CommandBar.textPrompt(message, '')
+      // return await CommandBar.showInput(message, 'OK')
     } else {
       const { index } = await CommandBar.showOptions(options, message)
       return options[index]
@@ -420,11 +444,17 @@ export default class NPTemplating {
 
   static async processPrompts(templateData: string, userData: any, startTag: string = '<%', endTag: string = '%>'): Promise<any> {
     const sessionData = { ...userData }
-    let sessionTemplateData = templateData
-
-    for (const tag of await this.getTags(templateData)) {
+    const methods = Object.keys(userData.methods)
+    let sessionTemplateData = templateData.replace('<%@', '%<= prompt')
+    for (const tag of await this.getTags(sessionTemplateData)) {
       // if tag is from module, it will contain period so we need to make sure this tag is not a module
-      if (!this.isVariableTag(tag) && !this.isTemplateModule(tag)) {
+      let isMethod = false
+      for (const method of methods) {
+        if (tag.includes(method)) {
+          isMethod = true
+        }
+      }
+      if (!this.isVariableTag(tag) && !this.isTemplateModule(tag) && !isMethod) {
         // $FlowIgnore
         const { varName, promptMessage, options } = await this.getPromptParameters(tag)
         if (!sessionData.hasOwnProperty(varName)) {
@@ -436,7 +466,7 @@ export default class NPTemplating {
           sessionTemplateData = sessionTemplateData.replace(tag, `<% 'prompt' -%>`)
         }
       } else {
-        sessionTemplateData = sessionTemplateData.replace('user.', '')
+        // sessionTemplateData = sessionTemplateData.replace('user.', '')
       }
     }
 
@@ -445,6 +475,10 @@ export default class NPTemplating {
 
   static isVariableTag(tag: string = ''): boolean {
     return tag.indexOf('const') > 0 || tag.indexOf('let') > 0
+  }
+
+  static isMethod(tag: string = ''): boolean {
+    return tag.indexOf('(') > 0 || tag.indexOf('@') > 0 || tag.indexOf('prompt') > 0
   }
 
   static isTemplateModule(tag: string = ''): boolean {

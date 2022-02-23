@@ -186,6 +186,48 @@
       "default": true
     },
     {
+      "type": "separator"
+    },
+    {
+      "key": "weatherApiKey",
+      "title": "Weather API Key",
+      "description": "Open Weather API Key \n- visit https://openweathermap.org/ to obtain API Key",
+      "type": "string",
+      "default": "",
+      "required": false
+    },
+    {
+      "key": "weatherLatPosition",
+      "title": "Weather Latitude Position",
+      "description": "Desired Latitude Position \n- leave zero to find position based on location",
+      "type": "string",
+      "default": "0",
+      "required": false
+    },
+    {
+      "key": "weatherLongPosition",
+      "title": "Weather Longitude Position",
+      "description": "Desired Longitude Position\n- leave zero to find position based on location",
+      "type": "string",
+      "default": "0",
+      "required": false
+    },
+    {
+      "key": "weatherUnits",
+      "title": "Weather Units",
+      "description": "Open Weather Units \n(celcius = metric, fareheit = imperial)",
+      "type": "string",
+      "choices": [
+        "celcius",
+        "fahrenheit"
+      ],
+      "default": "fahrenheit",
+      "required": false
+    },
+    {
+      "type": "separator"
+    },
+    {
       "key": "services",
       "title": "Web Services",
       "description": "Configuration for Services which can be referenced using\n<% web.service() %> method\n\nTip: Use https://jsonformatter.org/json5-validator to validate",
