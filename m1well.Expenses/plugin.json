@@ -7,7 +7,7 @@
   "plugin.description": "Plugin to track your expenses for further analyis",
   "plugin.author": "@m1well",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/m1well.Expenses/README.md",
-  "plugin.version": "1.6.0",
+  "plugin.version": "1.7.0",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.commands": [
@@ -42,5 +42,76 @@
       "jsFunction": "fixedTracking"
     }
   ],
-  "plugin.preferences": []
+  "plugin.settings": [
+    {
+      "type": "heading",
+      "title": "Settings for Expenses Plugin"
+    },
+    {
+      "key": "folderPath",
+      "type": "string",
+      "title": "Path of folder where the expenses notes are stored",
+      "description": "Set the path where you want to store the notes\n-> just an example folderPath, please adapt to your needs",
+      "default": "finances",
+      "required": true
+    },
+    {
+      "key": "delimiter",
+      "type": "string",
+      "title": "Delimiter of note columns",
+      "description": "Choose the preferred delimiter for your note",
+      "choices": [";", "%", "TAB"],
+      "default": ";",
+      "required": true
+    },
+    {
+      "key": "dateFormat",
+      "type": "string",
+      "title": "Custom date format for the date column",
+      "description": "Choose custom date format for the date column\n- e.g. one date '2021-12-08'\nSo the format should be like 'yyyy-MM-dd' or 'yyyy-MM'\nATTENTION: don't use your chosen delimiter here",
+      "default": "yyyy-MM-dd",
+      "required": true
+    },
+    {
+      "key": "amountFormat",
+      "type": "string",
+      "title": "Format for the amount column",
+      "description": "Choose 'full' to have always 2 fraction digits with localized separator\nor 'short' to have only rounded numbers without digits",
+      "choices": ["full", "short"],
+      "default": "full",
+      "required": true
+    },
+    {
+      "key": "columnOrder",
+      "type": "[string]",
+      "title": "Order of all columns (comma separated)",
+      "description": "Choose order for all columns\n- please do that before the first tracking!",
+      "default": ["date", "category", "text", "amount"],
+      "required": true
+    },
+    {
+      "key": "categories",
+      "type": "[string]",
+      "title": "Categories for the expenses (comma separated)",
+      "description": "These are only example categories\n- please adapt to your needs!!",
+      "default": ["Living", "Groceries", "Insurances", "Mobility", "Media", "Fun"],
+      "required": true
+    },
+    {
+      "key": "shortcutExpenses",
+      "type": "json",
+      "title": "Shortcut expenses (JSON format)",
+      "description": "Shortcut expenses with given category - you can also add an amount, then you can insert the shortcut without any question",
+      "default": "[\n  {\n    \"category\": \"Mobility\",\n    \"text\": \"Refuel\",\n    \"amount\": null\n  },\n  {\n    \"category\": \"Groceries\",\n    \"text\": \"XYZ Market\",\n    \"amount\": null\n  },\n  {\n    \"category\": \"Fun\",\n    \"text\": \"Cofe at Starbucks\",\n    \"amount\": 8\n  }\n]",
+      "required": true
+    },
+    {
+      "key": "fixedExpenses",
+      "type": "json",
+      "title": "Fixed expenses (JSON format)",
+      "description": "Fixed expenses with given category and amount for e.g. monthly expenses or 'once a year' expenses",
+      "default": "[\n  {\n    \"category\": \"Living\",\n    \"text\": \"Flat Rent\",\n    \"amount\": 670,\n    \"month\": 0,\n    \"active\": true\n  },\n  {\n    \"category\": \"Insurances\",\n    \"text\": \"Car Insurance\",\n    \"amount\": 399,\n    \"month\": 1,\n    \"active\": true\n  },\n  {\n    \"category\": \"Media\",\n    \"text\": \"Spotify\",\n    \"amount\": 9.99,\n    \"month\": 0,\n    \"active\": false\n  }\n]",
+      "required": true
+    }
+  ]
 }

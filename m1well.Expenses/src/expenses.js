@@ -235,10 +235,10 @@ const individualTracking = async (): Promise<boolean> => {
   }
 
   const note = DataStore.projectNoteByTitle(title)?.[0]
-  const expenseRow = {
+  const expenseRow: ExpenseTrackingRow = {
     date: currentDate,
     category: category.value,
-    text: text,
+    text: text ? ((text: any): string) : '', // this is stupid, but now we have to do this cast ...
     amount: config.amountFormat === 'full' ? amount : Math.round(amount),
   }
   if (note) {
@@ -362,43 +362,46 @@ const fixedTracking = async (): Promise<boolean> => {
 }
 
 /**
- * provide config from _configuration and cast content to real objects
+ * provide config from new plugin settings section or the old _configuration file and cast content to real objects
  *
  * @private
  */
-const provideConfig = (): Promise<Config> => {
-  return getOrMakeConfigurationSection(
-    'expenses',
-    EXAMPLE_CONFIG
-  )
-    .then(result => {
-      if (result == null || Object.keys(result).length === 0) {
-        logError('expected config could not be found in the _configuration file')
-        return {
-          folderPath: '',
-          delimiter: '',
-          dateFormat: '',
-          amountFormat: '',
-          columnOrder: [],
-          categories: [],
-          shortcutExpenses: [],
-          fixedExpenses: []
-        }
-      } else {
-        logMessage(`loaded config\n${JSON.stringify(result)}\n`)
-        const config: Config = {
-          folderPath: castStringFromMixed(result, CONFIG_KEYS.folderPath),
-          delimiter: castStringFromMixed(result, CONFIG_KEYS.delimiter),
-          dateFormat: castStringFromMixed(result, CONFIG_KEYS.dateFormat),
-          amountFormat: castStringFromMixed(result, CONFIG_KEYS.amountFormat),
-          columnOrder: castStringArrayFromMixed(result, CONFIG_KEYS.columnOrder),
-          categories: castStringArrayFromMixed(result, CONFIG_KEYS.categories),
-          shortcutExpenses: castShortcutExpensesArrayFromMixed(result, CONFIG_KEYS.shortcutExpenses),
-          fixedExpenses: castFixedExpensesArrayFromMixed(result, CONFIG_KEYS.fixedExpenses),
-        }
-        return config
+const provideConfig = async (): Promise<Config> => {
+  const fromSettings: Config = DataStore.settings
+
+  if (fromSettings) {
+    logMessage(`loaded config from settings\n${JSON.stringify(fromSettings)}\n`)
+    return fromSettings
+  } else {
+    // could be remove some times after all use the new settings part
+    const fromFile = await getOrMakeConfigurationSection('expenses', EXAMPLE_CONFIG)
+
+    if (fromFile == null || Object.keys(fromFile).length === 0) {
+      logError('expected config could not be found in the _configuration file')
+      return {
+        folderPath: '',
+        delimiter: '',
+        dateFormat: '',
+        amountFormat: '',
+        columnOrder: [],
+        categories: [],
+        shortcutExpenses: [],
+        fixedExpenses: []
       }
-    })
+    } else {
+      logMessage(`loaded config from file\n${JSON.stringify(fromFile)}\n`)
+      return {
+        folderPath: castStringFromMixed(fromFile, CONFIG_KEYS.folderPath),
+        delimiter: castStringFromMixed(fromFile, CONFIG_KEYS.delimiter),
+        dateFormat: castStringFromMixed(fromFile, CONFIG_KEYS.dateFormat),
+        amountFormat: castStringFromMixed(fromFile, CONFIG_KEYS.amountFormat),
+        columnOrder: castStringArrayFromMixed(fromFile, CONFIG_KEYS.columnOrder),
+        categories: castStringArrayFromMixed(fromFile, CONFIG_KEYS.categories),
+        shortcutExpenses: castShortcutExpensesArrayFromMixed(fromFile, CONFIG_KEYS.shortcutExpenses),
+        fixedExpenses: castFixedExpensesArrayFromMixed(fromFile, CONFIG_KEYS.fixedExpenses),
+      }
+    }
+  }
 }
 
 /**

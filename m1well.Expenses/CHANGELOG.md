@@ -1,5 +1,10 @@
 # m1well.Expenses Plugin Changelog
 
+## [1.7.0] - 2022-02-10 (@m1well)
+### Added
+- Add possiblity to do configuration via the new plugin settings section
+- But also downwards compatible
+
 ## [1.6.0] - 2022-01-05 (@m1well)
 ### Changed
 - Load tracking notes via DataStore to not open them all the time

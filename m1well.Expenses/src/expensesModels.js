@@ -1,6 +1,7 @@
 // @flow
 
 export type Config = {
+  useNewSettings?: boolean, // could be remove some times after all use the new settings part
   folderPath: string,
   delimiter: string,
   dateFormat: string,
