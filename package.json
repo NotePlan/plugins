@@ -2,7 +2,7 @@
   "name": "np.plugins",
   "packageName": "noteplan-cli",
   "info": "noteplan plugin development toolbox",
-  "version": "3.0.2",
+  "version": "3.1.0",
   "build": "236",
   "description": "noteplan-cli",
   "repository": "https://github.com/NotePlan/plugins",
@@ -104,7 +104,7 @@
     "singleQuote": true
   },
   "dependencies": {
-    "@codedungeon/gunner": "0.75.2",
+    "@codedungeon/gunner": "0.76.0",
     "@rollup/plugin-alias": "3.1.8",
     "@samverschueren/stream-to-observable": "0.3.1",
     "axios": "0.21.4",

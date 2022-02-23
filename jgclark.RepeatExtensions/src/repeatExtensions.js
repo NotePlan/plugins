@@ -1,10 +1,11 @@
 // @flow
-//--------------------------------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 // Repeat Extensions plugin for NotePlan
 // Jonathan Clark
-// last updated v0.3.0+, 16.12.2021
-//--------------------------------------------------------------------------------------------------------------------
+// last updated 2022-02-20 for v0.3.1
+//-----------------------------------------------------------------------------
 
+import pluginJson from "../plugin.json"
 import {
   RE_DATE, // find dates of form YYYY-MM-DD
   RE_DATE_INTERVAL,
@@ -16,12 +17,13 @@ import {
 } from '../../helpers/NPdateTime'
 import { showMessage } from '../../helpers/userInput'
 import { findEndOfActivePartOfNote } from '../../helpers/paragraph'
+import { log, logWarn, logError } from "@helpers/dev"
 
 //------------------------------------------------------------------
 /**
- * Process any completed(or cancelled) tasks with my extended @repeat(..) tags,
- * and also remove the HH: MM portion of any @done(...) tasks.
- * 
+ * Process any completed (or cancelled) tasks with my extended @repeat(..) tags,
+ * and also remove the HH:MM portion of any @done(...) tasks.
+ * @author @jgclark 
  */
 export async function repeats(): Promise<void> {
   // When interval is of the form '+2w' it will duplicate the task for 2 weeks
@@ -45,14 +47,12 @@ export async function repeats(): Promise<void> {
 
   // Get current note details
   const { paragraphs, title, note, type } = Editor
-  if (paragraphs === null) {
+  if (note === null || paragraphs === null) {
     // No note open, or no paragraphs (perhaps empty note), so don't do anything.
-    console.log('repeat: warning: No note open, or empty note.')
+    logError(pluginJson, 'No note open, or empty note.')
     return
   }
   let lineCount = paragraphs.length
-  // $FlowIgnore[incompatible-type]
-  console.log(`\nrepeats: from note '${title}'`)
 
   // check if the last paragraph is undefined, and if so delete it from our copy
   if (paragraphs[lineCount] === null) {
@@ -80,31 +80,31 @@ export async function repeats(): Promise<void> {
 
     // find lines with datetime to shorten, and capture date part of it
     // i.e. @done(YYYY-MM-DD HH:MM[AM|PM])
-    // console.log(`  [${n}] ${line}`)
+    // logWarn(pluginJson, `  [${n}] ${line}`)
     if (p.content.match(RE_DONE_DATE_TIME)) {
       // get completed date and time
       reReturnArray = line.match(RE_DONE_DATE_CAPTURE) ?? []
       completedDate = reReturnArray[1]
       completedTime = reReturnArray[2]
-      console.log(`  Found completed repeat ${completedDate} /${completedTime} in line ${n}`)
+      log(pluginJson, `Found completed repeat ${completedDate} ${completedTime} in line ${n}`)
       
       // remove time string from completed date-time
       updatedLine = line.replace(completedTime, '') // couldn't get a regex to work here
       p.content = updatedLine
       // Send the update to the Editor
       Editor.updateParagraph(p)
-      // console.log(`    updated Paragraph ${p.lineIndex}`)
+      // log(pluginJson, `    updated Paragraph ${p.lineIndex}`)
 
       // Test if this is one of my special extended repeats
       if (updatedLine.match(RE_EXTENDED_REPEAT)) {
         repeatCount++
         let newRepeatDate = ''
-        let outline = ''
+        let outputLine = ''
         // get repeat to apply
         reReturnArray = updatedLine.match(RE_EXTENDED_REPEAT_CAPTURE)
         // $FlowIgnore[incompatible-use]
         let dateIntervalString = (reReturnArray.length > 0) ? reReturnArray[1] : ''
-        console.log(`\tFound EXTENDED @repeat syntax: '${dateIntervalString}'`)
+        log(pluginJson, `  Found EXTENDED @repeat syntax: '${dateIntervalString}'`)
 
         if (dateIntervalString[0].startsWith('+')) {
           // New repeat date = completed date + interval
@@ -113,65 +113,65 @@ export async function repeats(): Promise<void> {
             dateIntervalString.length,
           )
           newRepeatDate = calcOffsetDateStr(completedDate, dateIntervalString)
-          console.log(`\tAdding from completed date --> ${newRepeatDate}`)
+          log(pluginJson, `  Adding from completed date --> ${newRepeatDate}`)
           // Remove any >date
           updatedLine = updatedLine.replace(/\s+>\d{4}-[01]\d{1}-\d{2}/, '') // i.e. RE_DUE_DATE, but can't get regex to work with variables like this
-          // console.log(`\tupdatedLine: ${updatedLine}`)
+          // logWarn(pluginJson, `\tupdatedLine: ${updatedLine}`)
 
         } else {
           // New repeat date = due date + interval
           // look for the due date(>YYYY-MM-DD)
           let dueDate = ''
           const resArray = updatedLine.match(RE_DUE_DATE_CAPTURE) ?? []
-          // console.log(resArray.length)
+          // log(pluginJson, resArray.length)
           if (resArray[1] != null) {
-            console.log(`\tmatch => ${resArray[1]}`)
+            logWarn(pluginJson, `  match => ${resArray[1]}`)
             dueDate = resArray[1]
             // need to remove the old due date
             updatedLine = updatedLine.replace(`>${dueDate}`, '')
-            // console.log(updatedLine);
+            // log(pluginJson, updatedLine);
           } else {
             // but if there is no due date then treat that as today
             dueDate = completedDate
-            // console.log(`\tno match => use completed date ${dueDate}`)
+            // logWarn(pluginJson, `\tno match => use completed date ${dueDate}`)
           }
           newRepeatDate = calcOffsetDateStr(dueDate, dateIntervalString)
-          console.log(`\tAdding from due date --> ${newRepeatDate}`)
+          log(pluginJson, `  Adding from due date --> ${newRepeatDate}`)
         }
 
-        outline = updatedLine.replace(/@done\(.*\)/, '').trim()
+        outputLine = updatedLine.replace(/@done\(.*\)/, '').trim()
 
-        // Create and add the new repeat line ...
+        // Create and add the new repeat line
         if (type === 'Notes') {
           // ...either in same project note
-          outline += ` >${newRepeatDate}`
-          // console.log(`\toutline: ${outline}`)
-          await Editor.insertParagraphAfterParagraph(outline, p, 'open')
-          console.log(`\tInserted new para after line ${p.lineIndex}`)
-        } else {
+          outputLine += ` >${newRepeatDate}`
+          // logWarn(pluginJson, `\toutputLine: ${outputLine}`)
+          await Editor.insertParagraphAfterParagraph(outputLine, p, 'open')
+          log(pluginJson, `  Inserted new para after line ${p.lineIndex}`)
+        }
+        else {
           // ... or in the future daily note (prepend)
-          // console.log('    -> ' + outline)
           const newRepeatDateShorter = unhyphenateString(newRepeatDate)
           const newDailyNote = await DataStore.calendarNoteByDateString(newRepeatDateShorter)
           if (newDailyNote?.title != null) {
-            // console.log(newDailyNote.filename)
-            await newDailyNote.appendTodo(outline)
-            console.log(`\tInserted new repeat in daily note ${newRepeatDateShorter}`)
+            // logWarn(pluginJson, newDailyNote.filename)
+            await newDailyNote.appendTodo(outputLine)
+            log(pluginJson, `  Inserted new repeat in daily note ${newRepeatDateShorter}`)
           } else {
             // After a fix to future calendar note creation in r635, we shouldn't get here.
             // But just in case, we'll create new repeat in today's daily note
-            outline += ` >${newRepeatDate}`
-            console.log(`\toutline: ${outline}`)
+            outputLine += ` >${newRepeatDate}`
+            log(pluginJson, `\toutputLine: ${outputLine}`)
 
-            await Editor.insertParagraphAfterParagraph(outline, p, 'open')
-            console.log('\tInserted new repeat in original daily note')
+            await Editor.insertParagraphAfterParagraph(outputLine, p, 'open')
+            logWarn(pluginJson, 'Inserted new repeat in original daily note')
           }
         }        
       }
     }
   }
   if (repeatCount === 0) {
-    await showMessage('No suitable completed repeats found')
-    console.log('\tNote: no suitable completed repeats found')
+    await showMessage('No suitable completed repeats found', 'OK', 'Repeat Extensions')
+    logWarn(pluginJson, 'No suitable completed repeats found')
   }
 }

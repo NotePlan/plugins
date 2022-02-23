@@ -27,7 +27,7 @@
     {
       "key": "version",
       "type": "hidden",
-      "{{pluginName}} Settings Version"
+      "description": "{{pluginName}} Settings Version"
     }
   ]
 }

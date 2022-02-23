@@ -1,5 +1,5 @@
 // @flow
-const TEST = true // when set to true, doesn't actually create or delete anything. Just a dry run
+const TEST = false // when set to true, doesn't actually create or delete anything. Just a dry run
 const COMMAND = 'Plugin Release'
 
 // $FlowIgnore
@@ -9,13 +9,7 @@ const colors = require('chalk')
 const Messenger = require('@codedungeon/messenger')
 
 const { program } = require('commander')
-const {
-  getFolderFromCommandLine,
-  runShellCommand,
-  getPluginFileContents,
-  fileExists,
-  getCopyTargetPath,
-} = require('./shared')
+const { getFolderFromCommandLine, runShellCommand, getPluginFileContents, fileExists, getCopyTargetPath } = require('./shared')
 
 // Command line options
 program.option('-d, --debug', 'Rollup: allow for better JS debugging - no minification or transpiling')
@@ -62,10 +56,7 @@ ${colors.cyan.italic(
 - Once you have "gh" installed and you have received access to repository, come back here to run the command again!
 `
 if (TEST) {
-  Messenger.warn(
-    'Creating draft release (which should be deleted) and not deleting existing release without permission',
-    'TEST MODE',
-  )
+  Messenger.warn('Creating draft release (which should be deleted) and not deleting existing release without permission', 'TEST MODE')
   console.log('')
 }
 
@@ -171,9 +162,7 @@ async function getReleaseFileList(pluginFullPath, appPluginsPath) {
       //$FlowFixMe - see note above
       fileList.changelog = fullPath(name)
     } else {
-      Messenger.note(
-        `==> ${COMMAND}: Missing ${colors.cyan('CHANGELOG.md')} or ${colors.cyan('README.md')} in ${pluginFullPath}`,
-      )
+      Messenger.note(`==> ${COMMAND}: Missing ${colors.cyan('CHANGELOG.md')} or ${colors.cyan('README.md')} in ${pluginFullPath}`)
     }
   }
   // Grab the minified/cleaned version of the plugin.json file
@@ -213,29 +202,18 @@ async function getReleaseFileList(pluginFullPath, appPluginsPath) {
 }
 
 function wrongArgsMessage(limitToFolders) {
-  console.log(
-    `==> ${COMMAND}: ${limitToFolders ? String(limitToFolders.length) : ''} file(s): ${
-      JSON.stringify(limitToFolders) || ''
-    }`,
-  )
-  console.log(
-    colors.red(`\nERROR:\n Invalid Arguments (you may only release one plugin at a time)`),
-    colors.yellow(`\n\nUsage:\n npm run release "dwertheimer.dateAutomations"`),
-  )
+  console.log(`==> ${COMMAND}: ${limitToFolders ? String(limitToFolders.length) : ''} file(s): ${JSON.stringify(limitToFolders) || ''}`)
+  console.log(colors.red(`\nERROR:\n Invalid Arguments (you may only release one plugin at a time)`), colors.yellow(`\n\nUsage:\n npm run release "dwertheimer.dateAutomations"`))
 }
 
 function ensureVersionIsNew(existingRelease, versionedTagName) {
   if (existingRelease && versionedTagName) {
     if (existingRelease.tag === versionedTagName) {
       Messenger.note(
-        `==> ${COMMAND}: Found existing release with tag name: ${colors.cyan(
-          versionedTagName,
-        )}, which matches the version number in your ${colors.cyan('plugin.json')}`,
+        `==> ${COMMAND}: Found existing release with tag name: ${colors.cyan(versionedTagName)}, which matches the version number in your ${colors.cyan('plugin.json')}`,
       )
       Messenger.log(
-        `    New releases must contain a unique name/tag. Update ${colors.magenta('plugin.version')} in ${colors.cyan(
-          'plugin.json, CHANGELOG.md or README.md',
-        )} and try again.`,
+        `    New releases must contain a unique name/tag. Update ${colors.magenta('plugin.version')} in ${colors.cyan('plugin.json, CHANGELOG.md or README.md')} and try again.`,
       )
       console.log('')
       const testMessage = TEST ? '(Test Mode)' : ''
@@ -247,13 +225,9 @@ function ensureVersionIsNew(existingRelease, versionedTagName) {
 
 function getReleaseCommand(version, pluginTitle, fileList, sendToGithub = false) {
   const changeLog = fileList.changelog ? `-F "${fileList.changelog}"` : ''
-  const cmd = `gh release create "${version}" -t "${pluginTitle}" ${changeLog} ${
-    !sendToGithub ? `--draft` : ''
-  } ${fileList.files.map((m) => `"${m}"`).join(' ')}`
+  const cmd = `gh release create "${version}" -t "${pluginTitle}" ${changeLog} ${!sendToGithub ? `--draft` : ''} ${fileList.files.map((m) => `"${m}"`).join(' ')}`
   if (!sendToGithub) {
-    console.log(
-      `==> ${COMMAND}: Release command:\n\t${cmd}\n\nYou can run that by hand. The script is not doing it in TEST mode.\n`,
-    )
+    console.log(`==> ${COMMAND}: Release command:\n\t${cmd}\n\nYou can run that by hand. The script is not doing it in TEST mode.\n`)
   }
   return cmd
 }
@@ -261,9 +235,7 @@ function getReleaseCommand(version, pluginTitle, fileList, sendToGithub = false)
 function getRemoveCommand(version, sendToGithub = false) {
   const cmd = `gh release delete "${version}" ${sendToGithub ? `` : '-y'}` // -y removes the release without prompting
   if (!sendToGithub) {
-    console.log(
-      `==> ${COMMAND}: Pre-existing release remove command:\n\t${cmd}\n\nYou can run that by hand. The script is not doing it in TEST mode.\n`,
-    )
+    console.log(`==> ${COMMAND}: Pre-existing release remove command:\n\t${cmd}\n\nYou can run that by hand. The script is not doing it in TEST mode.\n`)
   }
   return cmd
 }

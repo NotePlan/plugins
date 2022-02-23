@@ -1,5 +1,5 @@
 {
-  "noteplan.min_version": "3.3.2",
+  "noteplan.minAppVersion": "3.3.2",
   "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.EventHelpers",
   "plugin.name": "🕓 Event Helpers",
@@ -7,7 +7,7 @@
   "plugin.icon": "",
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers",
-  "plugin.version": "0.11.4",
+  "plugin.version": "0.11.5",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -36,6 +36,11 @@
       "name": "process date offsets",
       "description": "finds date offset patterns and turns them into due dates, based on date at start of section",
       "jsFunction": "processDateOffsets"
+    },
+    {
+      "name": "events:upgrade",
+      "description": "upgrade events config",
+      "jsFunction": "onUpdateOrInstall"
     }
   ],
   "plugin.settings": [
@@ -132,6 +137,14 @@
       "type": "json",
       "default": "{\n\t\"hour\": \"2-digit\", \n\t\"minute\": \"2-digit\", \n\t\"hour12\": false\n}",
       "required": false
+    },
+    {
+      "key": "defaultEventDuration",
+      "title": "Default event duration",
+      "description": "Event duration (in minutes) to use when making an event from a time block, if an end time is not given.",
+      "type": "number",
+      "default": 60,
+      "required": true
     }
   ]
 }

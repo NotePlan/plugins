@@ -54,10 +54,10 @@ export async function templateInit(): Promise<void> {
 }
 
 export async function templateInsert(): Promise<void> {
-  if (!Editor.content) {
-    await CommandBar.prompt('Template Error', 'You must have a Project Note or Calendar Note opened where you wish to insert template.')
-    return
-  }
+  // if (!Editor.content) {
+  //   await CommandBar.prompt('Template Error', 'You must have a Project Note or Calendar Note opened where you wish to insert template.')
+  //   return
+  // }
 
   const options = await getTemplateList()
 
@@ -65,16 +65,18 @@ export async function templateInsert(): Promise<void> {
 
   const templateTitle = selectedTemplate?.title
 
-  const result = await NPTemplating.renderTemplate(templateTitle)
+  const result = await NPTemplating.renderTemplate(templateTitle, null, { usePrompts: true })
 
   Editor.insertTextAtCursor(result)
 }
 
 export async function templateAppend(): Promise<void> {
-  if (!Editor.content) {
-    await CommandBar.prompt('Template Notice', 'You must have a Project Note or Calendar Note opened where you wish to append template.')
-    return
-  }
+  // if (!Editor.content) {
+  //   await CommandBar.prompt('Template Notice', 'You must have a Project Note or Calendar Note opened where you wish to append template.')
+  //   return
+  // }
+
+  log('np.Templating', 'Hello World')
 
   const content: string = Editor.content || ''
 
@@ -84,7 +86,7 @@ export async function templateAppend(): Promise<void> {
 
   const templateTitle = selectedTemplate?.title
 
-  const renderedTemplate = await NPTemplating.renderTemplate(templateTitle)
+  const renderedTemplate = await NPTemplating.renderTemplate(templateTitle, null, { usePrompts: true })
   const processed = await NPTemplating.postProcess(renderedTemplate)
 
   Editor.insertTextAtCharacterIndex(renderedTemplate, content.length)
@@ -112,7 +114,7 @@ export async function templateNew(): Promise<void> {
   const noteTitle = title.toString()
   const filename = DataStore.newNote(noteTitle, folder) || ''
   if (filename) {
-    const templateResult = await NPTemplating.renderTemplate(templateName)
+    const templateResult = await NPTemplating.renderTemplate(templateName, null, { usePrompts: true })
     await Editor.openNoteByFilename(filename)
     Editor.content = `# ${noteTitle}\n${templateResult}`
   }
@@ -132,7 +134,7 @@ export async function selectTemplate(): Promise<string> {
 export async function templateWeather(): Promise<string> {
   try {
     // $FlowIgnore
-    const weather: string = getWeather()
+    const weather: string = await getWeather()
 
     Editor.insertTextAtCursor(weather)
   } catch (error) {

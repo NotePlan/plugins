@@ -125,7 +125,11 @@ export function log(pluginInfo: any, message: any = '', type: string = 'LOG'): s
     msg = `${dt().padEnd(19)} | ${type.padEnd(5)} | ${pluginId} v${pluginVersion} :: ${_message(message)}`
   } else {
     msgType = arguments.length === 2 ? message : type
-    msg = `${dt().padEnd(19)} | ${msgType.padEnd(5)} | INVALID_PLUGIN_INFO :: ${_message(pluginInfo)}`
+    if (message.length > 0) {
+      msg = `${dt().padEnd(19)} | ${msgType.padEnd(5)} | ${pluginInfo} :: ${_message(message)}`
+    } else {
+      msg = `${dt().padEnd(19)} | ${msgType.padEnd(5)} | INVALID_PLUGIN_INFO :: ${_message(pluginInfo)}`
+    }
   }
 
   console.log(msg)

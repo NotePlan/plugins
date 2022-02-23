@@ -1,0 +1,38 @@
+{
+  "macOS.minVersion": "10.13.0",
+  "noteplan.minAppVersion": "3.4.1",
+  "plugin.id": "cd.FormattedDateTime",
+  "plugin.name": "🧩 FormattedDateTime",
+  "plugin.version": "0.0.1",
+  "plugin.description": "Sample Templating Plugin",
+  "plugin.author": "codedungeon",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/cd.FormattedDateTime/README.md",
+  "plugin.commands": [
+    {
+      "name": "xx:formattedDateTime",
+      "description": "Display Formatted Date Time",
+      "jsFunction": "templateFormattedDateTime",
+      "alias": []
+    }
+  ],
+  "plugin.settings": [
+    {
+      "type": "heading",
+      "title": "FormattedDateTime Settings"
+    },
+    {
+      "key": "version",
+      "type": "hidden",
+      "description": "FormattedDateTime Settings Version"
+    },
+    {
+      "key": "format",
+      "title": "Format",
+      "type": "string",
+      "description": "Date Time Format",
+      "default": "%A, %B %d, %Y"
+    }
+  ]
+}

@@ -45,9 +45,7 @@ const log = (msg: string = ''): void => {
  * @return return this as structured data, in the format specified by the first line of the codeblock (should be `javascript`)
  */
 export async function getConfiguration(configSection: string = ''): Promise<any> {
-  const configFile = DataStore.projectNotes
-    .filter((n) => n.filename?.startsWith(STATIC_TEMPLATE_FOLDER))
-    .find((n) => !!n.title?.startsWith('_configuration'))
+  const configFile = DataStore.projectNotes.filter((n) => n.filename?.startsWith(STATIC_TEMPLATE_FOLDER)).find((n) => !!n.title?.startsWith('_configuration'))
 
   const content: ?string = configFile?.content
   if (content == null) {
@@ -98,11 +96,7 @@ export async function initConfiguration(pluginJsonData: any): Promise<any> {
  * @param {any} pluginJsonData - plugin.json data for which plugin is being migrated
  * @return {number} migration result (-1 migration section not found, 1 success, 0 no migration necessary)
  */
-export async function migrateConfiguration(
-  configSection: string,
-  pluginJsonData: any,
-  silentMode?: boolean = false,
-): Promise<number> {
+export async function migrateConfiguration(configSection: string, pluginJsonData: any, silentMode?: boolean = false): Promise<number> {
   // migrationResult
   // will be 1 if _configuration was migrated to plugin settings
   // will be 0 if no migration necessary
@@ -205,15 +199,15 @@ export function updateSettingData(pluginJsonData: any): number {
   return updateResult
 }
 
-export function getSetting(
-  pluginName?: string = '',
-  key: string = '',
-  defaultValue?: { [string]: mixed },
-): { [string]: mixed } | null {
-  return null
+export function getSetting(pluginName?: string = '', key: string = '', defaultValue?: { [string]: mixed }): any | null {
+  // this method is not working as I have to figure out a way to get the path to data directory
+  return 'INCOMPLETE'
+
+  const pluginSettingsData = DataStore.loadJSON(`../${pluginName}/settings.json`)
+  return pluginSettingsData?.[key] ? pluginSettingsData[key] : defaultValue
 }
 
-export function getSettings(pluginName?: string = '', defaultValue?: { [string]: mixed }): { [string]: mixed } | null {
+export function getSettings(pluginName?: string = '', defaultValue?: { [string]: mixed }): any | null {
   return null
 }
 

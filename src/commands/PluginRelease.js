@@ -1,4 +1,4 @@
-const { colors, helpers, print, strings, system, prompt } = require('@codedungeon/gunner')
+const { colors, helpers, print, strings, system, prompt, filesystem, path } = require('@codedungeon/gunner')
 const Messenger = require('@codedungeon/messenger')
 const appUtils = require('../utils/app')
 const security = require('../utils/security.lib')
@@ -6,6 +6,7 @@ const pluginUtils = require('./support/plugin-utils')
 const pluginRelease = require('./support/plugin-release')
 const releasePrompts = require('./support/plugin-release/release-prompts')
 const github = require('./support/github')
+const { defaultsDeep } = require('lodash')
 
 module.exports = {
   name: 'plugin:release',
@@ -60,18 +61,23 @@ module.exports = {
   },
 
   async execute(toolbox) {
-    const answers = await prompt.password('Enter Password')
-    if (typeof answers !== 'object') {
-      console.log('')
-      print.warn('Release Aborted', 'ABORT')
+    // make sure gh is installed, otherwise abort
+    if (!github.ghInstalled()) {
+      print.error('"plugin:release" requires github to be installed.', 'ERROR')
       process.exit()
     }
+    // const answers = await prompt.password('Enter Password')
+    // if (typeof answers !== 'object') {
+    //   console.log('')
+    //   print.warn('Release Aborted', 'ABORT')
+    //   process.exit()
+    // }
 
-    if (!security.validate(answers.password)) {
-      console.log('')
-      print.error('Invalid Password', 'ABORT')
-      process.exit()
-    }
+    // if (!security.validate(answers.password)) {
+    //   console.log('')
+    //   print.error('Invalid Password', 'ABORT')
+    //   process.exit()
+    // }
 
     if (toolbox.plugin.length === 0) {
       // no plugin supplied, use `plugin.prompt` interface
@@ -86,13 +92,23 @@ module.exports = {
     console.log('')
     const args = helpers.getArguments(toolbox.arguments, this, { initializeNullValues: true })
 
-    const pluginName = args.plugin || toolbox.arguments.plugin || null
+    const pluginName = args.plugin || toolbox.arguments.plugin || toolbox.commandName || null
+
+    const result = filesystem.directoryList().filter((dirItem) => {
+      const filename = filesystem.filename(dirItem)
+      return filename.indexOf(pluginName) !== -1
+    })
+
     const draft = args.draft || false
     const preview = args.preview || false
     const force = args.force || false
     const noTests = args.noTests || false
     const noBuild = args.noBuild || false
 
+    if (result.length === 0) {
+      toolbox.print.error(`Unable to locate plugin ${pluginName}, make sure you are at the project root directory`, 'ERROR')
+      process.exit()
+    }
     const configData = pluginUtils.getPluginConfig(pluginName)
 
     const pluginVersion = configData['plugin.version']

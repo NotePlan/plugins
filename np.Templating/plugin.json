@@ -3,12 +3,13 @@
   "noteplan.minAppVersion": "3.4.1",
   "plugin.id": "np.Templating",
   "plugin.name": " 📒 np.Templating",
-  "plugin.version": "1.0.0-beta.01",
+  "plugin.version": "1.0.0-beta.02",
   "plugin.description": "Templating Plugin for NotePlan",
   "plugin.author": "Mike Erickson (@codedungeon)",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
-  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md",
+  "plugin.url.old": "https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md",
+  "plugin.url": "https://nptemplating-docs.netlify.app/",
   "plugin.commands": [
     {
       "name": "np:init",
@@ -183,6 +184,48 @@
       "description": "Stop rendering template when errors occur",
       "type": "hidden",
       "default": true
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "key": "weatherApiKey",
+      "title": "Weather API Key",
+      "description": "Open Weather API Key \n- visit https://openweathermap.org/ to obtain API Key",
+      "type": "string",
+      "default": "",
+      "required": false
+    },
+    {
+      "key": "weatherLatPosition",
+      "title": "Weather Latitude Position",
+      "description": "Desired Latitude Position \n- leave zero to find position based on location",
+      "type": "string",
+      "default": "0",
+      "required": false
+    },
+    {
+      "key": "weatherLongPosition",
+      "title": "Weather Longitude Position",
+      "description": "Desired Longitude Position\n- leave zero to find position based on location",
+      "type": "string",
+      "default": "0",
+      "required": false
+    },
+    {
+      "key": "weatherUnits",
+      "title": "Weather Units",
+      "description": "Open Weather Units \n(celcius = metric, fareheit = imperial)",
+      "type": "string",
+      "choices": [
+        "celcius",
+        "fahrenheit"
+      ],
+      "default": "fahrenheit",
+      "required": false
+    },
+    {
+      "type": "separator"
     },
     {
       "key": "services",

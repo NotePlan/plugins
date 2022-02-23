@@ -7,7 +7,7 @@ const gitCheck = util.promisify(git.check)
 
 module.exports = {
   ghInstalled: function () {
-    return filesystem.existsSync(`/usr/local/bin/gh`)
+    return shell.which('git')
   },
 
   ghVersion: async function () {
@@ -43,9 +43,7 @@ module.exports = {
 
   getReleaseCommand: async function (version = null, pluginTitle = null, fileList = null, sendToGithub = false) {
     const changeLog = fileList?.changelog ? `-F "${fileList.changelog}"` : ''
-    const cmd = `gh release create "${version}" -t "${pluginTitle}" ${changeLog} ${
-      !sendToGithub ? `--draft` : ''
-    } ${fileList.files.map((m) => `"${m}"`).join(' ')}`
+    const cmd = `gh release create "${version}" -t "${pluginTitle}" ${changeLog} ${!sendToGithub ? `--draft` : ''} ${fileList.files.map((m) => `"${m}"`).join(' ')}`
 
     return cmd
   },
