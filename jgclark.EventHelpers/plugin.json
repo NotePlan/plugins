@@ -36,11 +36,6 @@
       "name": "process date offsets",
       "description": "finds date offset patterns and turns them into due dates, based on date at start of section",
       "jsFunction": "processDateOffsets"
-    },
-    {
-      "name": "events:upgrade",
-      "description": "upgrade events config",
-      "jsFunction": "onUpdateOrInstall"
     }
   ],
   "plugin.settings": [
