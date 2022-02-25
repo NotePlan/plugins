@@ -6,7 +6,7 @@
   "plugin.name": "🗓 Event Automations",
   "plugin.description": "Create a note from an event on your calendar or create timeblocks for items marked for today!",
   "plugin.author": "dwertheimer",
-  "plugin.version": "0.4.6",
+  "plugin.version": "0.4.7",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://noteplan.co/n/#/1EF12392-B544-4044-AC7A-428F57EB2DFC",
@@ -89,7 +89,7 @@
 		    "choices": ["*","-","#","##","###","####"],
         "title": "Time block leading character",
         "description": "For NotePlan to recognize a line as a Time Block, the leading character must be one of: a '*', a '-' or one or more '#'s. AutoTimeBlocking will use this to create your timeblocks. You can choose between the 3, but if you are going to create real calendar events from your Time Blocks, you must use the '*'",
-        "default": "*",
+        "default": "-",
         "required": true
     },
     {
