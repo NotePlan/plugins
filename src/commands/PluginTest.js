@@ -3,7 +3,7 @@ const pluginTest = require('./support/plugin-test')
 
 module.exports = {
   name: 'plugin:test',
-  description: 'NotePlan Plugin Testing',
+  description: 'Plugin Testing Commands',
   disabled: false,
   hidden: false,
   usage: `plugin:test ${colors.magenta('<resource>')} ${colors.blue('[options]')}`,
@@ -49,9 +49,7 @@ module.exports = {
     }
 
     directory += '/__tests__/*.test.js'
-    const cmd = `./node_modules/.bin/jest ${directory} ${silent ? '--silent' : ''} ${watch ? '--watch' : ''} ${
-      coverage ? '--coverage' : ''
-    }`.trim()
+    const cmd = `./node_modules/.bin/jest ${directory} ${silent ? '--silent' : ''} ${watch ? '--watch' : ''} ${coverage ? '--coverage' : ''}`.trim()
 
     system.run(cmd, true)
   },

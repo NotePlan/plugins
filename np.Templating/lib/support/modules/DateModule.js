@@ -35,9 +35,7 @@ export default class DateModule {
   // convert supplied date value into something that NotePlan can actually handle
   // requiring YYYY-MM-DDThh:mm:ss format
   createDateTime(userDateString = '') {
-    return userDateString.length === 10
-      ? new Date(`${userDateString}T00:01:00`).toLocaleString()
-      : new Date().toLocaleString()
+    return userDateString.length === 10 ? new Date(`${userDateString}T00:01:00`).toLocaleString() : new Date().toLocaleString()
   }
 
   timestamp(format = '') {
@@ -80,13 +78,9 @@ export default class DateModule {
       offset = `${offset}` // convert to string for further processing and usage below
       let newDate = ''
       if (offset.match(/^-?d*.?d*$/)) {
-        newDate = offset.includes('-')
-          ? moment(dateValue).subtract(offset.replace('-', ''), 'days')
-          : moment(dateValue).add(offset, 'days')
+        newDate = offset.includes('-') ? moment(dateValue).subtract(offset.replace('-', ''), 'days') : moment(dateValue).add(offset, 'days')
       } else {
-        newDate = offset.includes('-')
-          ? moment(dateValue).subtract(offset.replace('-', ''))
-          : moment(dateValue).add(offset)
+        newDate = offset.includes('-') ? moment(dateValue).subtract(offset.replace('-', '')) : moment(dateValue).add(offset)
       }
 
       formattedDate = moment(newDate).format(format)

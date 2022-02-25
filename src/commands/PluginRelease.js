@@ -10,7 +10,7 @@ const { defaultsDeep } = require('lodash')
 
 module.exports = {
   name: 'plugin:release',
-  description: `Releases Plugin to Public Directory ${colors.red('** Access Required **')}`,
+  description: `Create Plugin Release  ${colors.red('** Release Permissions Required **')}`,
   disabled: false,
   hidden: false,
   usage: `plugin:release ${colors.magenta('<plugin>')} ${colors.blue('[options]')}`,

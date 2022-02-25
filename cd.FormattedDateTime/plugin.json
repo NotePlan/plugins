@@ -3,7 +3,7 @@
   "noteplan.minAppVersion": "3.4.1",
   "plugin.id": "cd.FormattedDateTime",
   "plugin.name": "🧩 FormattedDateTime",
-  "plugin.version": "0.0.1",
+  "plugin.version": "0.0.2",
   "plugin.description": "Sample Templating Plugin",
   "plugin.author": "codedungeon",
   "plugin.dependencies": [],
@@ -11,7 +11,7 @@
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/cd.FormattedDateTime/README.md",
   "plugin.commands": [
     {
-      "name": "xx:formattedDateTime",
+      "name": "cd:formattedDateTime",
       "description": "Display Formatted Date Time",
       "jsFunction": "templateFormattedDateTime",
       "alias": []

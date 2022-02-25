@@ -5,7 +5,7 @@ const createPlugin = require('./support/plugin-create')
 
 module.exports = {
   name: 'plugin:create',
-  description: 'Creates New NotePlan Plugin Project',
+  description: 'Create New NotePlan Plugin Project',
   disabled: false,
   hidden: false,
   usage: `plugin:create ${colors.magenta('<resource>')} ${colors.blue('[options]')}`,
@@ -18,9 +18,7 @@ module.exports = {
     id: {
       type: 'string',
       aliases: ['i'],
-      description: `Unique Plugin ID ${colors.gray(
-        '(recommended format "<githubUserName.PluginName>" e.g., "codedungeon.Toolbox")',
-      )}`,
+      description: `Unique Plugin ID ${colors.gray('(recommended format "<githubUserName.PluginName>" e.g., "codedungeon.Toolbox")')}`,
       required: true,
       prompt: {
         type: 'input',
@@ -115,13 +113,8 @@ module.exports = {
     print.info(`   ${toolbox.colors.gray('$')} noteplan-cli plugin:dev ${flags.pluginId} --watch`)
     console.log('')
     print.info(`   - If NotePlan is running, quit and relaunch`)
-    print.info(
-      `   - run your new plugin command ${colors.yellow('/helloWorld')} from NotePlan Command Bar or in inline`,
-    )
+    print.info(`   - run your new plugin command ${colors.yellow('/helloWorld')} from NotePlan Command Bar or in inline`)
     console.log('')
-    print.warn(
-      `Use ${colors.cyan('noteplan-cli plugin:info --check <your_command>')} to check if desired command is available`,
-      'TIP',
-    )
+    print.warn(`Use ${colors.cyan('noteplan-cli plugin:info --check <your_command>')} to check if desired command is available`, 'TIP')
   },
 }

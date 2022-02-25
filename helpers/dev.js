@@ -95,7 +95,11 @@ const _message = (message: any): string => {
       logMessage = message
       break
     case 'object':
-      logMessage = message instanceof Date ? message.toString() : JSON.stringify(message)
+      if (Array.isArray(message)) {
+        logMessage = message.toString()
+      } else {
+        logMessage = message instanceof Date ? message.toString() : JSON.stringify(message)
+      }
       break
     default:
       logMessage = message.toString()

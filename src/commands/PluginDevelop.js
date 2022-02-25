@@ -5,18 +5,14 @@ const pluginUtils = require('./support/plugin-utils')
 
 module.exports = {
   name: 'plugin:dev',
-  description: 'Plugin Build / Testing Commands',
+  description: 'Plugin Development Commands',
   disabled: false,
   hidden: false,
   usage: `plugin:dev ${colors.magenta('<resource>')} ${colors.blue('[options]')}`,
   examples: [
     `plugin:dev ${colors.magenta('codedungeon.Toolbox')} ${colors.gray('(build plugin)')}`,
-    `plugin:dev ${colors.magenta('codedungeon.Toolbox')} ${colors.cyan('--watch')} ${colors.gray(
-      '(builds plugin in watch mode)',
-    )}`,
-    `plugin:dev ${colors.magenta('codedungeon.Toolbox')} ${colors.cyan('--test')} ${colors.gray(
-      '(runs plugin test suite)',
-    )}`,
+    `plugin:dev ${colors.magenta('codedungeon.Toolbox')} ${colors.cyan('--watch')} ${colors.gray('(builds plugin in watch mode)')}`,
+    `plugin:dev ${colors.magenta('codedungeon.Toolbox')} ${colors.cyan('--test')} ${colors.gray('(runs plugin test suite)')}`,
     `plugin:dev ${colors.magenta('codedungeon.Toolbox')} ${colors.cyan('--test --watch')}`,
   ],
   usePrompts: true,
@@ -44,9 +40,7 @@ module.exports = {
     lint: {
       type: 'boolean',
       aliases: ['l'],
-      description: `Lint Plugin ${colors.gray('(using eslint)')}\n                              ${colors.gray(
-        '| use --fix,-f to attempt fixing linting errors',
-      )}`,
+      description: `Lint Plugin ${colors.gray('(using eslint)')}\n                              ${colors.gray('| use --fix,-f to attempt fixing linting errors')}`,
       initial: false,
     },
     notify: {
@@ -130,11 +124,7 @@ module.exports = {
       if (!pluginUtils.isPluginRootDirectory()) {
         console.log('')
         toolbox.print.error(`You must be in project root directory`, 'ERROR')
-        toolbox.print.log(
-          `        Check to make sure you are in ${colors.yellow(
-            tildify(pluginUtils.getProjectRootDirectory()),
-          )} directory`,
-        )
+        toolbox.print.log(`        Check to make sure you are in ${colors.yellow(tildify(pluginUtils.getProjectRootDirectory()))} directory`)
         process.exit()
       }
     }
@@ -143,9 +133,7 @@ module.exports = {
     if (!test) {
       const pluginList = pluginUtils.getPluginList()
       if (plugin.length === 0 && !watch) {
-        const response = await prompt.confirm(
-          `You are about to build ${colors.cyan.bold(pluginList.length)} plugins.  Would you like to continue`,
-        )
+        const response = await prompt.confirm(`You are about to build ${colors.cyan.bold(pluginList.length)} plugins.  Would you like to continue`)
         if (!response.answer) {
           process.exit()
         }
@@ -155,12 +143,8 @@ module.exports = {
         : `node scripts/rollup.js ${plugin} --build ${notify ? '--notify' : ''}`
     } else {
       const directory = plugin.length > 0 ? `${plugin}` : ''
-      cmd = `./node_modules/.bin/jest ${directory} ${silent ? '--silent' : ''} ${watch ? '--watch' : ''} ${
-        coverage ? '--coverage' : ''
-      } --verbose false`
-      cmd = `noteplan-cli plugin:test ${directory} ${silent ? '--silent' : ''} ${watch ? '--watch' : ''} ${
-        coverage ? '--coverage' : ''
-      } --verbose false`
+      cmd = `./node_modules/.bin/jest ${directory} ${silent ? '--silent' : ''} ${watch ? '--watch' : ''} ${coverage ? '--coverage' : ''} --verbose false`
+      cmd = `noteplan-cli plugin:test ${directory} ${silent ? '--silent' : ''} ${watch ? '--watch' : ''} ${coverage ? '--coverage' : ''} --verbose false`
     }
 
     system.run(cmd, true)

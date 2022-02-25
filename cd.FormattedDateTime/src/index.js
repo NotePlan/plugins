@@ -28,7 +28,7 @@ export async function templateFormattedDateTime(): Promise<void> {
 
           // NOTE: np.Templating actually passes an as it is defined in template, unlike existing templating passes things as a string
           // create string version of format block which `formattedDateTimeTemplate` expects
-          const formatString: string = `{format: ${format}}`
+          const formatString: string = `{format: '${format}'}`
 
           // call existing `formattedDateTimeTemplate` from `./dwertheimer.DateAutomations/src/dateFunctions`
           return formattedDateTimeTemplate(formatString)

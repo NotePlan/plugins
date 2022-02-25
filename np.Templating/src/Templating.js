@@ -21,7 +21,10 @@ import pluginJson from '../plugin.json'
 
 export async function onUpdateOrInstall(config: any = { silent: false }): Promise<void> {
   try {
-    log(pluginJson, 'onUpdateOrInstall')
+    const pluginSettingsData = await DataStore.loadJSON(`../${pluginJson['plugin.id']}/settings.json`)
+    if (typeof pluginSettingsData == 'undefined') {
+      templateMigration()
+    }
 
     // migrate _configuration data to data/<plugin>/settings.json (only executes migration once)
     let result: number = await migrateConfiguration('templates', pluginJson, config?.silent)
@@ -54,42 +57,37 @@ export async function templateInit(): Promise<void> {
 }
 
 export async function templateInsert(): Promise<void> {
-  // if (!Editor.content) {
-  //   await CommandBar.prompt('Template Error', 'You must have a Project Note or Calendar Note opened where you wish to insert template.')
-  //   return
-  // }
+  if (Editor.type === 'Notes' || Editor.type === 'Calendar') {
+    const options = await getTemplateList()
 
-  const options = await getTemplateList()
+    const selectedTemplate = await chooseOption<TNote, void>('Choose Template', options)
 
-  const selectedTemplate = await chooseOption<TNote, void>('Choose Template', options)
+    const templateTitle = selectedTemplate?.title
 
-  const templateTitle = selectedTemplate?.title
+    const result = await NPTemplating.renderTemplate(templateTitle, null, { usePrompts: true })
 
-  const result = await NPTemplating.renderTemplate(templateTitle, null, { usePrompts: true })
-
-  Editor.insertTextAtCursor(result)
+    Editor.insertTextAtCursor(result)
+  } else {
+    await CommandBar.prompt('Template', 'You must have a Project Note or Calendar Note opened where you wish to insert template.')
+  }
 }
 
 export async function templateAppend(): Promise<void> {
-  // if (!Editor.content) {
-  //   await CommandBar.prompt('Template Notice', 'You must have a Project Note or Calendar Note opened where you wish to append template.')
-  //   return
-  // }
+  if (Editor.type === 'Notes' || Editor.type === 'Calendar') {
+    const content: string = Editor.content || ''
 
-  log('np.Templating', 'Hello World')
+    const options = await getTemplateList()
 
-  const content: string = Editor.content || ''
+    const selectedTemplate = await chooseOption<TNote, void>('Choose Template', options)
 
-  const options = await getTemplateList()
+    const templateTitle = selectedTemplate?.title
 
-  const selectedTemplate = await chooseOption<TNote, void>('Choose Template', options)
+    const renderedTemplate = await NPTemplating.renderTemplate(templateTitle, null, { usePrompts: true })
 
-  const templateTitle = selectedTemplate?.title
-
-  const renderedTemplate = await NPTemplating.renderTemplate(templateTitle, null, { usePrompts: true })
-  const processed = await NPTemplating.postProcess(renderedTemplate)
-
-  Editor.insertTextAtCharacterIndex(renderedTemplate, content.length)
+    Editor.insertTextAtCharacterIndex(renderedTemplate, content.length)
+  } else {
+    await CommandBar.prompt('Template', 'You must have a Project Note or Calendar Note opened where you wish to append template.')
+  }
 }
 
 export async function templateNew(): Promise<void> {
@@ -187,5 +185,64 @@ export async function templateQuote(): Promise<string> {
     Editor.insertTextAtCursor(verse)
   } catch (error) {
     Editor.insertTextAtCursor('**An error occurred accessing quote service**')
+  }
+}
+
+export async function templateMigration(silent: boolean = false): Promise<void> {
+  //
+  log(pluginJson, ['mike', 'kira'])
+  console.log('här')
+  try {
+    const templateFolder = '📋 Templates'
+    const newTemplateFolder: string = '@Templates' // NotePlan.environment.templateFolder
+
+    const templateNotes = DataStore.projectNotes.filter((n) => n.filename?.startsWith(templateFolder)).filter((n) => !n.title?.startsWith('_configuration'))
+    const newTemplates = DataStore.projectNotes.filter((n) => n.filename?.startsWith(newTemplateFolder)).filter((n) => !n.title?.startsWith('_configuration'))
+
+    if (newTemplates.length > 0) {
+      let result = await CommandBar.prompt('Template Migration', 'Templates have already been migrated.\n\nWould you like to overwrite existing templates', ['Yes', 'No'])
+      if (result === 1) {
+        return
+      }
+    }
+
+    // proceed with migration
+    let newNoteCounter = 0
+    templateNotes.forEach((note) => {
+      const noteFilename = note.filename || ''
+      let content = ''
+      if (noteFilename.indexOf(templateFolder) !== -1) {
+        const parts = note.filename.split('/')
+        const item = parts.shift()
+        const noteTitle = parts.pop().replace('.md', '')
+        const folderName = parts.join('/')
+        if (noteTitle.length > 0 && noteTitle !== '_configuration') {
+          content = note.content || ''
+          content = content.replace(/{{/gi, '<%- ').replace(/}}/gi, ' %>')
+
+          const fullPath = `${newTemplateFolder}/${folderName}/${noteTitle}.md`.replace('//', '/').replace('(', '').replace(')', '')
+          const testNote = DataStore.projectNoteByFilename(fullPath)
+
+          let filename = fullPath
+          if (!testNote) {
+            filename = DataStore.newNote(noteTitle, `${newTemplateFolder}/${folderName}`)
+            if (filename && content.length > 0) {
+              const newNote = DataStore.projectNoteByFilename(filename)
+              if (newNote) {
+                newNote.content = content
+              }
+            }
+          } else {
+            testNote.content = content
+          }
+
+          newNoteCounter++
+        }
+      }
+    })
+
+    await CommandBar.prompt('Template Migration', `${newNoteCounter} Templates Converted Successfully`)
+  } catch (error) {
+    logError(pluginJson, error)
   }
 }

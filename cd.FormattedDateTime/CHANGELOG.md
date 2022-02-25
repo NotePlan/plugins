@@ -6,6 +6,10 @@ Example Plugin to demonstrate how to integrate np.Templating Plugin into a stand
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/cd.FormattedDateTime/README.md) for details on available commands and use case.
 
+## [0.0.2] - 2022-02-24 (mikeerickson)
+- fixed bug which would not properly pass `format` to `formattedDateTime` method
+- renamed `xx:formattedDateTime` -> `cd:formattedDateTime`
+
 ## [0.0.1] - 2022-02-22 (mikeerickson)
 
 ### Added

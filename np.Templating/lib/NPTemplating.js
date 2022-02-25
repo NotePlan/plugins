@@ -14,7 +14,8 @@ import globals from './globals'
 import TemplatingEngine from './TemplatingEngine'
 
 // const TEMPLATE_FOLDER_NAME = NotePlan.environment.templateFolder
-const TEMPLATE_FOLDER_NAME = '📋 Templates'
+// const TEMPLATE_FOLDER_NAME = '📋 Templates'
+const TEMPLATE_FOLDER_NAME = '@Templates'
 
 // np.Templating modules (see /lib/support/modules/*Module)
 // - if a new module has been added, make sure it has been added to this list
@@ -359,6 +360,7 @@ export default class NPTemplating {
   }
 
   static async postProcess(templateData: string): Promise<mixed> {
+    //TODO: Finish implementation cursor support
     let newTemplateData = templateData
     let pos = 0
     let startPos = 0

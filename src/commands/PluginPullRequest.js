@@ -4,7 +4,7 @@ const github = require('./support/github')
 
 module.exports = {
   name: 'plugin:pr',
-  description: 'Create Pull Request',
+  description: 'Create Plugin Pull Request',
   disabled: false,
   hidden: false,
   usage: `plugin:pr ${colors.magenta('<plugin>')} ${colors.blue('[options]')}`,
@@ -63,11 +63,7 @@ module.exports = {
     const currentBranch = await github.currentBranch()
     if (currentBranch === 'main') {
       toolbox.print.error('You must be on a feature branch in order to create pull request', 'ERROR')
-      toolbox.print.warn(
-        `        You can use ${colors.cyan(
-          'git checkout -b <branch>',
-        )} to create a new branch which can then be used to create pull request`,
-      )
+      toolbox.print.warn(`        You can use ${colors.cyan('git checkout -b <branch>')} to create a new branch which can then be used to create pull request`)
       process.exit()
     }
 

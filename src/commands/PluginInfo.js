@@ -12,7 +12,7 @@ const pluginInfo = require('./support/plugin-info')
 
 module.exports = {
   name: 'plugin:info',
-  description: 'Show Current NotePlan Plugin Commands',
+  description: 'Information about NotePlan Plugin',
   disabled: false,
   hidden: false,
   usage: `plugin:info ${colors.magenta('<plugin name>')} ${colors.blue('[options]')}`,
@@ -87,9 +87,7 @@ module.exports = {
       if (plugin) {
         toolbox.print.error(` 🚫 '${check}' exists in ${plugin.pluginName} [${plugin.pluginId}].`)
       } else {
-        toolbox.print.success(
-          ` ✅ '${check}' is currently not used by any NotePlan plugin and can be used in your plugin.`,
-        )
+        toolbox.print.success(` ✅ '${check}' is currently not used by any NotePlan plugin and can be used in your plugin.`)
       }
       process.exit()
     }
@@ -119,13 +117,7 @@ module.exports = {
         ids.push(pluginId)
       }
       if (item.pluginId !== 'yourGitID.yourPluginCollectionName') {
-        table.push([
-          `${pluginId}\n${pluginAuthor}`,
-          pluginName,
-          item.name,
-          item.jsFunction,
-          item.description.substring(0, 75),
-        ])
+        table.push([`${pluginId}\n${pluginAuthor}`, pluginName, item.name, item.jsFunction, item.description.substring(0, 75)])
       }
     })
 
