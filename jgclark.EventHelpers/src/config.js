@@ -14,9 +14,9 @@ import {
   castStringFromMixed,
   trimAnyQuotes,
 } from '../../helpers/dataManipulation'
-import { clo, log, logWarn, logError } from "@helpers/dev"
-import { type HourMinObj } from '@helpers/dateTime'
-import { type EventsConfig } from '@helpers/NPCalendar'
+import { clo, log, logWarn, logError } from "../../helpers/dev"
+import { type HourMinObj } from '../../helpers/dateTime'
+import { type EventsConfig } from '../../helpers/NPCalendar'
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 
 //------------------------------------------------------------------------------

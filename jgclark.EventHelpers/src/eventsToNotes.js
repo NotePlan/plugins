@@ -7,11 +7,11 @@
 
 import pluginJson from "../plugin.json"
 import { getEventsSettings } from './config'
-import { log, logWarn, logError } from "@helpers/dev"
-import { getDateStringFromCalendarFilename, toLocaleTime } from '@helpers/dateTime'
-import { getTagParamsFromString, stringReplace } from '@helpers/general'
-import { getEventsForDay, type EventsConfig } from '@helpers/NPCalendar'
-import { showMessage } from '@helpers/userInput'
+import { log, logWarn, logError } from '../../helpers/dev'
+import { getDateStringFromCalendarFilename, toLocaleTime } from '../../helpers/dateTime'
+import { getTagParamsFromString, stringReplace } from '../../helpers/general'
+import { getEventsForDay, type EventsConfig } from '../../helpers/NPCalendar'
+import { showMessage } from '../../helpers/userInput'
 
 /**
  * Return MD list of the current open Calendar note's events
