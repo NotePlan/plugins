@@ -7,7 +7,7 @@
 // -----------------------------------------------------------------------------
 
 import { migrateConfiguration, updateSettingData } from '../../helpers/NPConfiguration'
-import pluginJson from '../../jgclark.DailyJournal/plugin.json'
+import pluginJson from '../plugin.json'
 
 export { expensesTracking, expensesAggregate, individualTracking, shortcutsTracking, fixedTracking } from './expenses'
 
