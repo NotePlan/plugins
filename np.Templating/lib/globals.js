@@ -14,6 +14,7 @@ import DateModule from './support/modules/DateModule'
 import { getAffirmation } from './support/modules/affirmation'
 import { getAdvice } from './support/modules/advice'
 import { getDailyQuote } from './support/modules/quote'
+import { getWeather } from './support/modules/weather'
 import { getDaysInMonth } from 'date-fns'
 import { insertProgressUpdate } from '@plugins/jgclark.Summaries/src'
 import { getWeatherSummary } from './support/modules/weatherSummary'
@@ -40,8 +41,8 @@ const globals = {
     return await insertProgressUpdate(params)
   },
 
-  weather: async (params: any): Promise<string> => {
-    return await getWeatherSummary(params)
+  weather: async (params: any = ''): Promise<string> => {
+    return params.length === 0 ? await getWeather() : await getWeatherSummary(params)
   },
 
   date8601: async (): Promise<string> => {

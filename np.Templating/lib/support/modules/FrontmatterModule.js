@@ -20,18 +20,10 @@ export default class FrontmatterModule {
 
   getFrontmatterBlock(templateData: string): string {
     const templateLines = templateData.split('\n')
-
-    templateLines.shift()
-    const tempTemplateLines = [...templateLines]
-    if (templateLines[0]?.charCodeAt(0) === 65532) {
-      templateLines[0] = templateLines[0].substring(1)
-    }
-
-    if (templateLines[0] === '--') {
+    if (templateLines[0] === '---') {
       templateLines.shift()
-      if (templateLines.indexOf('--') !== -1) {
-        tempTemplateLines[0] = '--'
-        return tempTemplateLines.join('\n')
+      if (templateLines.indexOf('---') > 0) {
+        return templateData
       }
     }
 

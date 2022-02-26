@@ -236,6 +236,10 @@ export default class NPTemplating {
     return '```\n' + JSON.stringify(this.constructor.templateConfig, null, 2) + '\n```\n'
   }
 
+  static async normalizeToNotePlanFilename(filename: string = ''): Promise<string> {
+    return filename.replace(/[#()?%*|"<>:.]/gi, '')
+  }
+
   static async templateErrorMessage(method: string = '', message: string = ''): Promise<string> {
     const line = '*'.repeat(message.length + 30)
     console.log(line)
@@ -249,10 +253,16 @@ export default class NPTemplating {
 
   static async getTemplate(templateName: string = ''): Promise<string> {
     // $FlowFixMe
+    const parts = templateName.split('/')
+    const filename = parts.pop()
+
     let templateFolderName = await getTemplateFolder()
     let originalFilename = `${templateFolderName}/${templateName}`
     let templateFilename = `${templateFolderName}/${templateName}.md`
     let selectedTemplate = ''
+
+    const normalizedFilename = await this.normalizeToNotePlanFilename(filename)
+    templateFilename = templateFilename.replace(filename, normalizedFilename)
 
     try {
       selectedTemplate = await DataStore.projectNoteByFilename(templateFilename)
@@ -273,11 +283,13 @@ export default class NPTemplating {
 
       let templateContent = selectedTemplate?.content || ''
 
-      const isFrontmatterTemplate = templateContent.length > 0 ? new FrontmatterModule().isFrontmatterTemplate(templateContent.substring(1)) : false
+      const isFrontmatterTemplate = templateContent.length > 0 ? new FrontmatterModule().isFrontmatterTemplate(templateContent) : false
 
       if (isFrontmatterTemplate) {
+        // templateContent = new FrontmatterModule().getFrontmatterBlock(templateContent)
         return templateContent || ''
       }
+
       if (templateContent == null || templateContent.length === 0) {
         const message = `Template "${templateName}" Not Found or Empty`
         return this.templateErrorMessage('Templating.getTemplate', message)
@@ -385,7 +397,7 @@ export default class NPTemplating {
 
     const items = templateData.match(TAGS_PATTERN)
 
-    return items
+    return items || []
   }
 
   static async getPromptParameters(promptTag: string = ''): mixed {
@@ -434,10 +446,7 @@ export default class NPTemplating {
 
   static async prompt(message: string, options: Array<string> = []): Promise<any> {
     if (options.length === 0) {
-      const result = await CommandBar.textPrompt('', message.replace('_', ' '), '')
-      return result
-      // return await CommandBar.textPrompt(message, '')
-      // return await CommandBar.showInput(message, 'OK')
+      return await CommandBar.textPrompt('', message.replace('_', ' '), '')
     } else {
       const { index } = await CommandBar.showOptions(options, message)
       return options[index]

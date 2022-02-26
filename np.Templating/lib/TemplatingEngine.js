@@ -136,7 +136,8 @@ export default class TemplatingEngine {
     let processedTemplateData = templateData
 
     // check if templateData is frontmatter
-    let frontmatterBlock = new FrontmatterModule().getFrontmatterBlock(processedTemplateData).replace(/--/g, '---')
+    let frontmatterBlock = new FrontmatterModule().getFrontmatterBlock(processedTemplateData)
+
     if (frontmatterBlock.length > 0) {
       // process template first to see if frontmatter block has template variables
       processedTemplateData = await ejs.render(processedTemplateData, renderData, {
@@ -145,7 +146,8 @@ export default class TemplatingEngine {
         closeDelimiter: '}',
       })
 
-      frontmatterBlock = new FrontmatterModule().getFrontmatterBlock(processedTemplateData).replace(/--/g, '---')
+      frontmatterBlock = new FrontmatterModule().getFrontmatterBlock(processedTemplateData)
+
       const frontmatterData = new FrontmatterModule().render(frontmatterBlock)
       if (frontmatterData.hasOwnProperty('attributes') && frontmatterData.hasOwnProperty('body')) {
         if (Object.keys(frontmatterData.attributes).length > 0) {
