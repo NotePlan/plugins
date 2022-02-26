@@ -2,21 +2,22 @@
 // ----------------------------------------------------------------------------
 // Command to Process Date Offsets
 // @jgclark
-// Last updated 5.2.2022 for v0.11.3+, @jgclark
+// Last updated 20.2.2022 for v0.11.5, @jgclark
 // ----------------------------------------------------------------------------
 
+import pluginJson from "../plugin.json"
+import { getEventsSettings } from './config'
 import { timeBlocksToCalendar } from './timeblocks'
 import {
   RE_DATE,
   RE_DATE_INTERVAL,
   todaysDateISOString,
-} from '../../helpers/dateTime'
-import {
-  calcOffsetDateStr,
-} from '../../helpers/NPdateTime'
-import { displayTitle } from '../../helpers/general'
-import { findEndOfActivePartOfNote } from '../../helpers/paragraph'
-import { showMessage, showMessageYesNo } from '../../helpers/userInput'
+} from '@helpers/dateTime'
+import { log, logWarn, logError } from "@helpers/dev"
+import { displayTitle } from '@helpers/general'
+import { calcOffsetDateStr } from '@helpers/NPdateTime'
+import { findEndOfActivePartOfNote } from '@helpers/paragraph'
+import { showMessage, showMessageYesNo } from '@helpers/userInput'
 
 // ----------------------------------------------------------------------------
 
@@ -38,7 +39,7 @@ export async function processDateOffsets() {
     return
   }
   const noteTitle = displayTitle(note)
-  console.log(`starting for note '${noteTitle}'`)
+  log(pluginJson, `for note '${noteTitle}'`)
 
   let currentTargetDate = ''
   let n = 0
@@ -49,7 +50,7 @@ export async function processDateOffsets() {
   // which can look like timeblocks
   const dateOffsetParas = paragraphs.filter((p) => p.content.match(RE_DATE_INTERVAL) && p.lineIndex < endOfActive)
   if (dateOffsetParas.length > 0) {
-    console.log(`  found ${dateOffsetParas.length} date offsets in '${noteTitle}'`)
+    log(pluginJson, `  found ${dateOffsetParas.length} date offsets in '${noteTitle}'`)
     // Find first Done or Cancelled section and get its paragraph index
 
     // Go through each line in the active part of the file
@@ -66,13 +67,13 @@ export async function processDateOffsets() {
       thisLevel = (paragraphs[n].type === 'title')
         ? thisLevel = -1
         : paragraphs[n].indents
-      // console.log(`  Line ${n} (${thisLevel}) ${line}`)
+      // log(pluginJson, `  Line ${n} (${thisLevel}) ${line}`)
 
       // Decide whether to clear CTD based on this vs previous indent level
       // Specifically: clear on lower indent or heading or blank line or separator line
       if (thisLevel < previousFoundLevel || thisLevel === -1 || line === '' || paragraphs[n].type === 'separator') {
         if (currentTargetDate !== '') {
-          console.log(`  - Cleared CTD`)
+          log(pluginJson, `  - Cleared CTD`)
         }
         currentTargetDate = ''
       }
@@ -85,7 +86,7 @@ export async function processDateOffsets() {
         const dateISOString = dateISOStrings[1] // first capture group
         // We have a date string to use for any offsets in this line, and possibly following lines
         currentTargetDate = dateISOString
-        console.log(`  - Found CTD ${currentTargetDate}`)
+        log(pluginJson, `  - Found CTD ${currentTargetDate}`)
         previousFoundLevel = thisLevel
       }
 
@@ -93,16 +94,16 @@ export async function processDateOffsets() {
       // NB: this only deals with the first on any line; it doesn't make sense to have more than one.
       let dateOffsetString = ''
       if (line.match(RE_OFFSET_DATE)) {
-        // console.log(`    - Found line '${line.trimEnd()}'`)
+        // log(pluginJson, `    - Found line '${line.trimEnd()}'`)
         const dateOffsetStrings = line.match(RE_OFFSET_DATE_CAPTURE) ?? ['']
         dateOffsetString = dateOffsetStrings[1] // first capture group
         let calcDate = ''
         if (dateOffsetString !== '') {
-          console.log(`  - Found DOS ${dateOffsetString}`)
+          log(pluginJson, `  - Found DOS ${dateOffsetString}`)
           if (currentTargetDate !== '') {
             calcDate = calcOffsetDateStr(currentTargetDate, dateOffsetString)
             if (calcDate == null || calcDate === '') {
-              console.log(` Error while parsing date '${currentTargetDate}' for ${dateOffsetString}`)
+              logError(pluginJson, ` Error while parsing date '${currentTargetDate}' for ${dateOffsetString}`)
             } else {
               // Continue, and replace offset with the new calcDate
               // Remove the offset text(e.g. {- 3d}) by finding first '{' and '}' characters in the line
@@ -112,11 +113,11 @@ export async function processDateOffsets() {
               line = `${line.slice(0, labelStart - 1)} >${calcDate} ${line.slice(labelEnd + 1)}` // also trim off last character (newline)
               paragraphs[n].content = line
               note.updateParagraph(paragraphs[n])
-              console.log(`    -> '${line}'`)
+              log(pluginJson, `    -> '${line}'`)
             }
           } else {
             // Treat this as an orphaned date offset
-            console.log(` Warning: (line ${paragraphs[n].lineIndex}): offset date {${dateOffsetString}} is an orphan, as no currentTargetDate is set`)
+            logWarn(pluginJson, `Line ${paragraphs[n].lineIndex}): offset date '${dateOffsetString}' is an orphan, as no currentTargetDate is set`)
             warningOrphans = true
           }
         }
@@ -135,7 +136,7 @@ export async function processDateOffsets() {
       await timeBlocksToCalendar()
     }
   } else {
-    console.log(`processDateOffsets: warning: no date offset patterns found`)
+    logWarn(pluginJson, `No date offset patterns found.`)
     await showMessage(`No date offset patterns found.`, `OK`, `Process Date Offsets`)
   }
 }

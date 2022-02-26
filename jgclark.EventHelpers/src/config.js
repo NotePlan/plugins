@@ -1,9 +1,11 @@
 // @flow
 // ----------------------------------------------------------------------------
 // Sort configuration for commands in the Event Helpers plugin.
-// Last updated 19.2.2022 for v0.11.5, by @jgclark
+// Last updated 20.2.2022 for v0.11.5, by @jgclark
 // @jgclark
 // ----------------------------------------------------------------------------
+
+import pluginJson from "../plugin.json"
 import {
   castBooleanFromMixed,
   castHeadingLevelFromMixed,
@@ -12,8 +14,8 @@ import {
   castStringFromMixed,
   trimAnyQuotes,
 } from '../../helpers/dataManipulation'
-import type { HourMinObj } from '../../helpers/dateTime'
-import { clo } from '../../helpers/dev'
+import { clo, log, logWarn, logError } from "../../helpers/dev"
+import { type HourMinObj } from '../../helpers/dateTime'
 import { type EventsConfig } from '../../helpers/NPCalendar'
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 
@@ -27,7 +29,7 @@ const configKey = 'events'
  * @author @jgclark
  */
 export async function getEventsSettings(): Promise<EventsConfig> {
-  console.log(`Start of getEventsSettings()`)
+  log(pluginJson, `Start of getEventsSettings()`)
   // Wish the following was possible:
   // if (NotePlan.environment.version >= "3.4") {
   
@@ -80,11 +82,10 @@ export async function getEventsSettings(): Promise<EventsConfig> {
 }
 
 // Get locale: if blank in settings then get from NP environment (from 3.3.2)
-// or if not available default to 'en-US'
+// or if not available default
 function getLocale(tempConfig: Object): string {
   const envRegion = NotePlan?.environment ? NotePlan?.environment?.regionCode : ''
   const envLanguage = NotePlan?.environment ? NotePlan?.environment?.languageCode : ''
-  // $FlowFixMe
   let tempLocale = castStringFromMixed(tempConfig, 'locale')
   tempLocale =
     tempLocale != null && tempLocale !== '' ? tempLocale : envRegion !== '' ? `${envLanguage}-${envRegion}` : 'en-US'

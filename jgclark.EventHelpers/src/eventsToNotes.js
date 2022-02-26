@@ -1,14 +1,16 @@
 // @flow
 // ----------------------------------------------------------------------------
 // Command to bring calendar events into notes
-// Last updated 19.2.2022 for v0.11.5, by @jgclark
+// Last updated 20.2.2022 for v0.11.5, by @jgclark
 // @jgclark, with additions by @dwertheimer, @weyert, @m1well
 // ----------------------------------------------------------------------------
 
+import pluginJson from "../plugin.json"
 import { getEventsSettings } from './config'
-import { getEventsForDay, type EventsConfig } from '../../helpers/NPCalendar'
+import { log, logWarn, logError } from '../../helpers/dev'
 import { getDateStringFromCalendarFilename, toLocaleTime } from '../../helpers/dateTime'
 import { getTagParamsFromString, stringReplace } from '../../helpers/general'
+import { getEventsForDay, type EventsConfig } from '../../helpers/NPCalendar'
 import { showMessage } from '../../helpers/userInput'
 
 /**
@@ -24,7 +26,7 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
     return ''
   }
   const dateStr = getDateStringFromCalendarFilename(Editor.filename)
-  console.log(`listDaysEvents for ${dateStr} with paramString=${String(paramString)}`)
+  log(pluginJson, `listDaysEvents for ${dateStr} with paramString=${String(paramString)}`)
 
   // Get config settings from Template folder _configuration note
   const config = await getEventsSettings()
@@ -35,7 +37,7 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
   const template = String(await getTagParamsFromString(paramString, 'template', '- *|CAL|*: *|TITLE|* (*|START|*)'))
   const alldayTemplate = String(await getTagParamsFromString(paramString, 'allday_template', '- *|CAL|*: *|TITLE|*'))
   const includeHeadings = await getTagParamsFromString(paramString, 'includeHeadings', true)
-  // console.log(`\toutput template: '${template}' and '${alldayTemplate}'`)
+  // log(pluginJson, `  output template: '${template}' and '${alldayTemplate}'`)
 
   const withCalendarName = template.includes('CAL')
 
@@ -81,7 +83,7 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
     : outputArray.join('\n')
 
   output.replace(/\s{2,}/gm, ' ') // If this array is empty -> empty string
-  console.log(output)
+  log(pluginJson, output)
   return output
 }
 
@@ -121,7 +123,7 @@ export async function listMatchingDaysEvents(
 ): Promise<string> {
   // $FlowIgnore[incompatible-call]
   const dateStr = getDateStringFromCalendarFilename(Editor.filename)
-  console.log(`listMatchingDaysEvents for date ${dateStr}:`)
+  log(pluginJson, `listMatchingDaysEvents for date ${dateStr}:`)
 
   // Get config settings from Template folder _configuration note
   const config = await getEventsSettings()
@@ -136,7 +138,7 @@ export async function listMatchingDaysEvents(
   }
   const textToMatchA = Object.keys(config.addMatchingEvents)
   const templateArr = Object.values(config.addMatchingEvents)
-  console.log(`\tFrom settings found ${textToMatchA.length} match strings to look for`)
+  log(pluginJson, `  From settings found ${textToMatchA.length} match strings to look for`)
 
   // Get all events for this day
   const eArr: Array<TCalendarItem> = await getEventsForDay(dateStr, config.calendarSet)
@@ -150,7 +152,7 @@ export async function listMatchingDaysEvents(
       const template = templateArr[i]
       const reMatch = new RegExp(textToMatchA[i], 'i')
       if (e.title.match(reMatch)) {
-        console.log(`\tFound match to event '${e.title}'`)
+        log(pluginJson, `  Found match to event '${e.title}'`)
         const replacements = getReplacements(e, config)
         // $FlowFixMe -- not sure how to deal with mixed coercing to strings
         const thisEventStr = stringReplace(template, replacements)
@@ -159,12 +161,12 @@ export async function listMatchingDaysEvents(
           lastEventStr = thisEventStr
         }
       } else {
-        // console.log(`No match to ${e.title}`)
+        // log(pluginJson, `No match to ${e.title}`)
       }
     }
   }
   const output = outputArray.join('\n').replace(/\\s{2,}/g, ' ') // If this array is empty -> empty string.
-  console.log(output)
+  log(pluginJson, output)
   return output
 }
 
@@ -181,7 +183,7 @@ export async function insertMatchingDaysEvents(paramString: ?string): Promise<vo
     await showMessage(`Please run again with a calendar note open.`, 'OK', 'List Events')
     return
   }
-  console.log(`\ninsertMatchingDaysEvents:`)
+  log(pluginJson, `insertMatchingDaysEvents:`)
 
   const output = await listMatchingDaysEvents(paramString || '')
   Editor.insertTextAtCursor(output)

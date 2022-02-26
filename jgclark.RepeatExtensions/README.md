@@ -1,7 +1,5 @@
 # 🔁 Repeat Extension plugin
 
-**NB: Mac NotePlan versions around 657-660 have a bug that means this plugin fails _unless you include a `>yyyy-mm-dd` string in the line of the task_.**
-
 NotePlan has a simple [built-in repeat mechanism](https://noteplan.co/faq/Notes%20&%20Todos/How%20to%20create%20a%20recurring%20or%20repeating%20todo/), which allows for `@repeat(1/n)`.  That wasn't flexible enough for my purposes, so I created my own extension to this mechanism.
 
 This plugin allows repeats **every x days, weeks, months, quarters or years**. It does the work of creating the next task using information from completed tasks that include a `@repeat(interval)`, on the appropriate future date.  For example when this task:

@@ -7,6 +7,9 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 ### Added
 - new `defaultEventDuration` (in minutes) which is used if the time block doesn't have an end time, to create it. Otherwise the event will be 0 minutes long.
 
+### Changed
+- moved to newer logging mechanism
+
 ## [0.11.4] - 2022-02-07
 ### Fixed
 - fix to allow `matchingEvent` calls to be run from Templates, after change to new built-in Settings screen

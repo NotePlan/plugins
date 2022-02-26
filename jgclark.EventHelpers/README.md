@@ -62,7 +62,7 @@ Most of these commands require configuration:
 This uses JSON5 format: ensure there are commas at the end of all that lines that need them.
 
 **Notes**:
-- **calendarToWriteTo**: the name of the calendar for `/time blocks to calendar` to write events to. Must be a writable calendar. If empty, then the default system calendar will be used.
+- **calendarToWriteTo**: the name of the calendar for `/time blocks to calendar` to write events to. Must be a writable calendar. If empty, then the default system calendar will be used. (Note: you have to specifically set a default calendar in the settings of the macOS Calendar app or in iOS Settings app > Calendar > Default Calendar.)
 - **addEventID**: whether to add an `⏰event:ID` string when creating an event from a time block. This returns rather long strings (e.g. `⏰event:287B39C1-4D0A-46DC-BD72-84D79167EFDF`) and so you might want to use a theme option to shorten them until needed (details [below](#theme-customisation)).
 - **processedTagName**: if this is set, then this tag will get added on the end of the line with the time block, to show that it has been processed. Otherwise, next time this command is run, it will create another event. This can be used with or without addEventID.
 - **confirmEventCreation**: optional boolean tag to indicate whether to ask user to confirm each event to be created
