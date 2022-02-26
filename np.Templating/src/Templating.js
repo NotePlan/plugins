@@ -191,7 +191,7 @@ export async function templateQuote(): Promise<string> {
 export async function templateMigration(silent: boolean = false): Promise<void> {
   //
   log(pluginJson, ['mike', 'kira'])
-  console.log('här')
+
   try {
     const templateFolder = '📋 Templates'
     const newTemplateFolder: string = '@Templates' // NotePlan.environment.templateFolder
