@@ -3,7 +3,23 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
-## [1.0.0-beta.02] - 2022-02-24 (mikeerickson)
+## [1.0.0-beta.04] - 2022-02-24 (mikeerickson)
+
+- add support for new template format introduced by `NotePlan 3.4.1` and frontmatter formatted templates
+- fixed issue where templates were sometimes being loaded from old "Templates" directory, it should now ONLY use `@Templates`
+- renamed global helper `date` to `currentDate` as `date` is a reserved work for internal Date Module
+- fixed issues with various date methods, including
+
+```
+**pickdate:**
+- <%- pickDate() %>
+- <%- pickDate({question:'Please enter a date:'}) %>
+- <%- pickDateInterval() %>
+- <%- pickDateInterval({question:'Date interval to use:'}) %>
+```
+
+## [1.0.0-beta.03] - 2022-02-24 (mikeerickson)
+
 - added template migration to `onUpdateOrInstall` method which will run first time `np.Templating` is installed
 - added `np:templating-migration` command which can be used to run migration method on command
 - updated to use `@Templates` instead of `:clipboard: Templates`
