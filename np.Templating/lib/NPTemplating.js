@@ -402,7 +402,7 @@ export default class NPTemplating {
 
   static async getPromptParameters(promptTag: string = ''): mixed {
     let tagValue = ''
-    tagValue = promptTag.replace(/\bask\b|prompt|[()]|<%=|<%|-%>|%>/gi, '').trim()
+    tagValue = promptTag.replace(/\bask\b|prompt|[()]|<%-|<%=|<%|-%>|%>/gi, '').trim()
     // tagValue = promptTag.replace(/ask|[()]|<%=|<%|-%>|%>/gi, '').trim()
     let varName = ''
     let promptMessage = ''
@@ -415,6 +415,7 @@ export default class NPTemplating {
         .substr(0, pos - 1)
         .replace(/'/g, '')
         .trim()
+
       tagValue = tagValue.substr(pos + 1)
       pos = tagValue.indexOf(',')
       if (pos >= 0) {
@@ -439,8 +440,8 @@ export default class NPTemplating {
     if (promptMessage.length === 0) {
       promptMessage = options.length > 0 ? `Select ${varName}` : `Enter ${varName}`
     }
-
     varName = varName.replace(/ /g, '_')
+
     return { varName, promptMessage, options }
   }
 
@@ -457,7 +458,11 @@ export default class NPTemplating {
     const sessionData = { ...userData }
     const methods = Object.keys(userData.methods)
     let sessionTemplateData = templateData.replace('<%@', '%<= prompt')
-    for (const tag of await this.getTags(sessionTemplateData)) {
+    const tags = await this.getTags(sessionTemplateData)
+
+    console.log(JSON.stringify(tags))
+
+    for (const tag of tags) {
       // if tag is from module, it will contain period so we need to make sure this tag is not a module
       let isMethod = false
       for (const method of methods) {
@@ -471,7 +476,7 @@ export default class NPTemplating {
         if (!sessionData.hasOwnProperty(varName)) {
           sessionData[varName] = await (await this.prompt(promptMessage, options)).trim()
         }
-        if (tag.indexOf(`<%=`) >= 0) {
+        if (tag.indexOf(`<%=`) >= 0 || tag.indexOf(`<%-`) >= 0) {
           sessionTemplateData = sessionTemplateData.replace(tag, `${startTag}= ${varName} ${endTag}`)
         } else {
           sessionTemplateData = sessionTemplateData.replace(tag, `<% 'prompt' -%>`)

@@ -18,6 +18,33 @@ import { getWeather } from './support/modules/weather'
 import { getDaysInMonth } from 'date-fns'
 import { insertProgressUpdate } from '@plugins/jgclark.Summaries/src'
 import { getWeatherSummary } from './support/modules/weatherSummary'
+import { parseJSON5 } from '@helpers/general'
+
+export async function processDate(dateParams: string, config: { [string]: ?mixed }): Promise<string> {
+  // console.log(`processDate: ${dateConfig}`)
+  const defaultConfig = config?.date ?? {}
+  const dateParamsTrimmed = dateParams?.trim() || ''
+  const paramConfig =
+    dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}') ? await parseJSON5(dateParams) : dateParamsTrimmed !== '' ? await parseJSON5(`{${dateParams}}`) : {}
+  // console.log(`param config: ${dateParams} as ${JSON.stringify(paramConfig)}`);
+  // ... = "gather the remaining parameters into an array"
+  const finalArguments: { [string]: mixed } = {
+    ...defaultConfig,
+    ...paramConfig,
+  }
+
+  // Grab just locale parameter
+  const { locale, ...otherParams } = (finalArguments: any)
+
+  const localeParam = locale != null ? String(locale) : []
+  const secondParam = {
+    dateStyle: 'short',
+    ...otherParams,
+  }
+  // console.log(`${JSON.stringify(localeParam)}, ${JSON.stringify(secondParam)}`);
+
+  return new Intl.DateTimeFormat(localeParam, secondParam).format(new Date())
+}
 
 /*
    np.Templating Global Methods
@@ -50,36 +77,37 @@ const globals = {
   },
 
   // NOTE: This specific method would create a collision against DateModule I believe (needs testing)
-  date: (): string => {
-    return new DateModule().now()
+  currentDate: async (params: any): string => {
+    // $FlowIgnore
+    return await processDate(JSON.stringify(params))
   },
 
-  pickDate: async (dateParams: string = '', config: { [string]: ?mixed }): Promise<string> => {
-    return await datePicker(dateParams, config)
+  pickDate: async (dateParams: any = '', config: { [string]: ?mixed }): Promise<string> => {
+    return await datePicker(JSON.stringify(dateParams), config)
   },
 
-  pickDateInterval: async (dateParams: string): Promise<string> => {
-    return await askDateInterval(dateParams)
+  pickDateInterval: async (dateParams: any): Promise<string> => {
+    return await askDateInterval(JSON.stringify(dateParams))
   },
 
-  events: async (dateParams?: string): Promise<string> => {
-    return await listDaysEvents(dateParams)
+  events: async (dateParams?: any): Promise<string> => {
+    return await listDaysEvents(JSON.stringify(dateParams))
   },
 
-  listTodaysEvents: async (paramString?: string = ''): Promise<string> => {
-    return await listDaysEvents(paramString)
+  listTodaysEvents: async (params?: any = ''): Promise<string> => {
+    return await listDaysEvents(JSON.stringify(params))
   },
 
-  matchingEvents: async (params: ?string = ''): Promise<string> => {
-    return await listMatchingDaysEvents(params)
+  matchingEvents: async (params: ?any = ''): Promise<string> => {
+    return await listMatchingDaysEvents(JSON.stringify(params))
   },
 
-  listMatchingEvents: async (params: ?string = ''): Promise<string> => {
-    return await listMatchingDaysEvents(params)
+  listMatchingEvents: async (params: ?any = ''): Promise<string> => {
+    return await listMatchingDaysEvents(JSON.stringify(params))
   },
 
-  sweepTasks: async (params: string = ''): Promise<string> => {
-    return await sweepTemplate(params)
+  sweepTasks: async (params: any = ''): Promise<string> => {
+    return await sweepTemplate(JSON.stringify(params))
   },
 
   formattedDateTime: (params: any): string => {
