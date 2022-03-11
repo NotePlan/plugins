@@ -14,6 +14,9 @@ import UtilityModule from '@templatingModules/UtilityModule'
 import SystemModule from '@templatingModules/SystemModule'
 import FrontmatterModule from '@templatingModules/FrontmatterModule'
 
+import pluginJson from '../plugin.json'
+import { log } from '@helpers/dev'
+
 // this is a customized version of `ejs` adding support for async actions (use await in template)
 // review `Test (Async)` template for example`
 import ejs from './support/ejs'
@@ -26,11 +29,6 @@ const dt = () => {
   }
 
   return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + d.toLocaleTimeString()
-}
-
-export function log(msg: any = '') {
-  const displayMsg: string = typeof msg === 'string' ? msg : msg.toString()
-  console.log(`${dt()} : np.Templating :: ${displayMsg}`)
 }
 
 export default class TemplatingEngine {
@@ -120,7 +118,7 @@ export default class TemplatingEngine {
     this.templateModules.forEach((moduleItem) => {
       if (this.isClass(moduleItem.module)) {
         const methods = Object.getOwnPropertyNames(moduleItem.module.prototype)
-        log(`np.Templating Error: ES6 Classes are not supported [${moduleItem.moduleNamespace}]`)
+        log(pluginJson, `np.Templating Error: ES6 Classes are not supported [${moduleItem.moduleNamespace}]`)
       } else {
         for (const [key, method] of Object.entries(moduleItem.module)) {
           renderData[moduleItem.moduleNamespace] = {}
@@ -150,9 +148,9 @@ export default class TemplatingEngine {
 
       const frontmatterData = new FrontmatterModule().render(frontmatterBlock)
 
-      for (const [key, value] of Object.entries(frontmatterData?.attributes)) {
-        console.log(`${key} :: ${value}`)
-      }
+      // for (const [key, value] of Object.entries(frontmatterData?.attributes)) {
+      //   console.log(`${key} :: ${value}`)
+      // }
 
       if (frontmatterData.hasOwnProperty('attributes') && frontmatterData.hasOwnProperty('body')) {
         if (Object.keys(frontmatterData.attributes).length > 0) {
@@ -184,7 +182,8 @@ export default class TemplatingEngine {
 
   async getDefaultFormat(formatType: string = 'date'): Promise<string> {
     //FIXME
-    console.log('FIXME: getDefaultFormat')
+    log(pluginJson, 'FIXME: TemplatingEngine.getDefaultFormat')
+    log(pluginJson, 'This method should never be called, all references have been removed but leaving for backwards compatability')
     try {
       // $FlowFixMe
       const templateConfig = await this.getTemplateConfig()
@@ -196,7 +195,7 @@ export default class TemplatingEngine {
       format = formatType === 'date' ? 'YYYY-MM-DD' : 'HH:mm:ss A'
       return format
     } catch (error) {
-      return this.templateErrorMessage('getDefaultFormat', error)
+      return this.templateErrorMessage('TemplatingEngine.getDefaultFormat', error)
     }
   }
 
@@ -216,8 +215,8 @@ export default class TemplatingEngine {
         }
         break
       case 'class':
-        log(`np.Templating Error: ES6 Classes are not supported [${name}]`)
-        log(`Please refer to np.Templating Documentation [Templating Plugins]`)
+        log(pluginJson, `np.Templating Error: ES6 Classes are not supported [${name}]`)
+        log(pluginJson, `Please refer to np.Templating Documentation [Templating Plugins]`)
         break
       case 'object':
         const moduleNmae = this.templateModules.find((item) => {

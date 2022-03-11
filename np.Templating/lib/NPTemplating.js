@@ -156,6 +156,13 @@ export default class NPTemplating {
     // constructor method required to access instance config (see setup method)
   }
 
+  static _frontmatterError(error: any): string {
+    if (error.reason === 'missed comma between flow collection entries') {
+      return `**Frontmatter Template Parsing Error**\n\nWhen using template tags in frontmatter attributes, the entire block must be wrapped in quotes\n${error.mark}`
+    }
+    return error
+  }
+
   static _filterTemplateResult(templateResult: string = ''): string {
     let result = templateResult
 
@@ -245,7 +252,13 @@ export default class NPTemplating {
     return filename.replace(/[#()?%*|"<>:]/gi, '')
   }
 
-  static async templateErrorMessage(method: string = '', message: string = ''): Promise<string> {
+  static templateErrorMessage(method: string = '', message: any = ''): string {
+    if (message?.name?.indexOf('YAMLException') >= 0) {
+      const frontMatterErrorMessage = this._frontmatterError(message)
+      log(pluginJson, frontMatterErrorMessage)
+      return frontMatterErrorMessage
+    }
+
     const line = '*'.repeat(message.length + 30)
     console.log(line)
     console.log(`   ERROR`)
@@ -294,8 +307,6 @@ export default class NPTemplating {
       let templateContent = selectedTemplate?.content || ''
 
       let isFrontmatterTemplate = templateContent.length > 0 ? new FrontmatterModule().isFrontmatterTemplate(templateContent) : false
-      isFrontmatterTemplate = true
-      console.log('isFrontmatterTemplate: ' + isFrontmatterTemplate.toString())
 
       if (isFrontmatterTemplate) {
         // templateContent = new FrontmatterModule().getFrontmatterBlock(templateContent)
@@ -304,7 +315,7 @@ export default class NPTemplating {
 
       if (templateContent == null || templateContent.length === 0) {
         const message = `Template "${templateName}" Not Found or Empty`
-        return this.templateErrorMessage('Templating.getTemplate', message)
+        return this.templateErrorMessage('NPTemplating.getTemplate', message)
       }
 
       const lines = templateContent.split('\n')
@@ -318,7 +329,7 @@ export default class NPTemplating {
 
       return templateContent
     } catch (error) {
-      return this.templateErrorMessage('getTemplate', error)
+      return this.templateErrorMessage('NPTemplating.getTemplate', error)
     }
   }
 
@@ -346,7 +357,6 @@ export default class NPTemplating {
       const isFrontmatterTemplate = new FrontmatterModule().isFrontmatterTemplate(templateData)
       if (isFrontmatterTemplate && userOptions?.usePrompts) {
         const frontmatterAttributes = new FrontmatterModule().render(templateData)?.attributes || {}
-        console.log('här')
         for (const [key, value] of Object.entries(frontmatterAttributes)) {
           // $FlowIgnore
           const promptData = await this.processPrompts(value, sessionData, '<%', '%>')
@@ -368,7 +378,7 @@ export default class NPTemplating {
 
       return this._filterTemplateResult(renderedData)
     } catch (error) {
-      return this.templateErrorMessage(error)
+      return this.templateErrorMessage('NPTemplating.renderTemplate', error)
     }
   }
 
@@ -392,7 +402,7 @@ export default class NPTemplating {
       await this.setup()
       return await new TemplatingEngine(this.constructor.templateConfig).render(templateData, userData, userOptions)
     } catch (error) {
-      return this.templateErrorMessage(error)
+      return this.templateErrorMessage('NPTemplating.render', error)
     }
   }
 

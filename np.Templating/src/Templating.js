@@ -23,9 +23,6 @@ import { log, logError } from '@helpers/dev'
 
 import pluginJson from '../plugin.json'
 
-export async function test() {
-  console.log('test')
-}
 export async function onUpdateOrInstall(config: any = { silent: false }): Promise<void> {
   try {
     const pluginSettingsData = await DataStore.loadJSON(`../${pluginJson['plugin.id']}/settings.json`)
@@ -60,7 +57,7 @@ export async function migrateQuickNotes() {
     // console.log('folder: ' + quickNote.folder)
     const templateFilename = `🗒 Quick Notes/Test/${quickNote.label}`
     const templateData: ?TNote = await getOrMakeNote(quickNote.template, '📋 Templates')
-    console.log(templateData.content)
+
     let title = quickNote.title
     title = title.replace('{{meetingName}}', '<%- meetingName %>')
     title = title.replace('{{MeetingName}}', '<%- meetingName %>')
@@ -114,7 +111,7 @@ export async function templateAppend(): Promise<void> {
     const selectedTemplate = await chooseOption<TNote, void>('Choose Template', options)
 
     // $FlowIgnore
-    let renderedTemplate = await NPTemplating.renderTemplate(selectedTemplate, null, { usePrompts: true })
+    let renderedTemplate = await NPTemplating.renderTemplate(selectedTemplate, {}, { usePrompts: true })
 
     Editor.insertTextAtCharacterIndex(renderedTemplate, content.length)
   } else {
