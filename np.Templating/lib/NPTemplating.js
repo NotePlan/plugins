@@ -12,6 +12,7 @@ import globals from './globals'
 
 /*eslint-disable */
 import TemplatingEngine from './TemplatingEngine'
+import { formatDistanceToNow } from 'date-fns'
 
 // const TEMPLATE_FOLDER_NAME = NotePlan.environment.templateFolder
 // const TEMPLATE_FOLDER_NAME = '📋 Templates'
@@ -122,8 +123,12 @@ export async function TEMPLATE_CONFIG_BLOCK(): Promise<string> {
   `
 }
 
-export async function getTemplateList(): Promise<any> {
-  const templateFolder = await getTemplateFolder()
+export async function getTemplateList(folderName: string = ''): Promise<any> {
+  let templateFolder = await getTemplateFolder()
+  if (folderName.length > 0) {
+    templateFolder = `${templateFolder}/${folderName}`
+  }
+
   if (templateFolder == null) {
     await CommandBar.prompt('Templating Error', `An error occurred locating ${templateFolder} folder`)
     return
@@ -132,7 +137,7 @@ export async function getTemplateList(): Promise<any> {
   const options = DataStore.projectNotes
     .filter((n) => n.filename?.startsWith(templateFolder))
     .filter((n) => !n.title?.startsWith('_configuration'))
-    .map((note) => (note.title == null ? null : { label: note.title, value: note }))
+    .map((note) => (note.title == null ? null : { label: note.title, value: note.filename }))
     .filter(Boolean)
 
   return options
@@ -237,7 +242,7 @@ export default class NPTemplating {
   }
 
   static async normalizeToNotePlanFilename(filename: string = ''): Promise<string> {
-    return filename.replace(/[#()?%*|"<>:.]/gi, '')
+    return filename.replace(/[#()?%*|"<>:]/gi, '')
   }
 
   static async templateErrorMessage(method: string = '', message: string = ''): Promise<string> {
@@ -252,15 +257,20 @@ export default class NPTemplating {
   }
 
   static async getTemplate(templateName: string = ''): Promise<string> {
-    // $FlowFixMe
     const parts = templateName.split('/')
     const filename = parts.pop()
 
     let templateFolderName = await getTemplateFolder()
-    let originalFilename = `${templateFolderName}/${templateName}`
-    let templateFilename = `${templateFolderName}/${templateName}.md`
-    let selectedTemplate = ''
+    let originalFilename = templateName
+    let templateFilename = templateName
+    if (!templateName.includes(templateFolderName)) {
+      templateFilename = `${templateFolderName}/${templateName}`
+    }
 
+    if (!templateFilename.includes('.md')) {
+      templateFilename = `${templateFolderName}/${templateName}.md`
+    }
+    let selectedTemplate = ''
     const normalizedFilename = await this.normalizeToNotePlanFilename(filename)
     templateFilename = templateFilename.replace(filename, normalizedFilename)
 
@@ -283,7 +293,9 @@ export default class NPTemplating {
 
       let templateContent = selectedTemplate?.content || ''
 
-      const isFrontmatterTemplate = templateContent.length > 0 ? new FrontmatterModule().isFrontmatterTemplate(templateContent) : false
+      let isFrontmatterTemplate = templateContent.length > 0 ? new FrontmatterModule().isFrontmatterTemplate(templateContent) : false
+      isFrontmatterTemplate = true
+      console.log('isFrontmatterTemplate: ' + isFrontmatterTemplate.toString())
 
       if (isFrontmatterTemplate) {
         // templateContent = new FrontmatterModule().getFrontmatterBlock(templateContent)
@@ -330,6 +342,19 @@ export default class NPTemplating {
       sessionData.methods = { ...sessionData.methods, ...globalData }
 
       templateData = templateData.replace('<%@', '<%= prompt')
+
+      const isFrontmatterTemplate = new FrontmatterModule().isFrontmatterTemplate(templateData)
+      if (isFrontmatterTemplate && userOptions?.usePrompts) {
+        const frontmatterAttributes = new FrontmatterModule().render(templateData)?.attributes || {}
+        console.log('här')
+        for (const [key, value] of Object.entries(frontmatterAttributes)) {
+          // $FlowIgnore
+          const promptData = await this.processPrompts(value, sessionData, '<%', '%>')
+          const renderedData = await new TemplatingEngine(this.constructor.templateConfig).render(value, promptData.sessionData, userOptions)
+          // $FlowIgnore
+          templateData = templateData.replace(`${key}: ${value}`, `${key}: ${renderedData}`)
+        }
+      }
 
       if (userOptions?.usePrompts) {
         const promptData = await this.processPrompts(templateData, sessionData, '<%', '%>')
@@ -460,8 +485,6 @@ export default class NPTemplating {
     let sessionTemplateData = templateData.replace('<%@', '%<= prompt')
     const tags = await this.getTags(sessionTemplateData)
 
-    console.log(JSON.stringify(tags))
-
     for (const tag of tags) {
       // if tag is from module, it will contain period so we need to make sure this tag is not a module
       let isMethod = false
@@ -487,6 +510,46 @@ export default class NPTemplating {
     }
 
     return { sessionTemplateData, sessionData }
+  }
+
+  static async createTemplate(title: string = '', metaData: any, content: string = ''): Promise<mixed> {
+    try {
+      const parts = title.split('/')
+      const noteName = parts.pop()
+      const folder = (await getTemplateFolder()) + '/' + parts.join('/')
+      const templateFilename = (await getTemplateFolder()) + '/' + title
+      if (!(await this.templateExists(templateFilename))) {
+        const filename: any = await DataStore.newNote(noteName, folder)
+        const note = DataStore.projectNoteByFilename(filename)
+
+        let metaTagData = []
+        for (const [key, value] of Object.entries(metaData)) {
+          // $FlowIgnore
+          metaTagData.push(`${key}: ${value}`)
+        }
+        let templateContent = `---\ntitle: ${noteName}\n${metaTagData.join('\n')}\n---\n`
+        templateContent += content
+        // $FlowIgnore
+        note.content = templateContent
+        return true
+      } else {
+        return false
+      }
+      // note.insertParagraph(contentLines.join('\n'), 1, 'text')
+    } catch (error) {
+      logError(pluginJson, `createTemplate :: ${error}`)
+    }
+  }
+
+  static async templateExists(title: string = ''): Promise<mixed> {
+    let templateFilename = (await getTemplateFolder()) + title
+    templateFilename = templateFilename.replace('@Templates@Templates', '@Templates')
+    try {
+      const note = DataStore.projectNoteByFilename(`${templateFilename}.md`)
+      return note ? true : false
+    } catch (error) {
+      logError(pluginJson, `templateExists :: ${error}`)
+    }
   }
 
   static isVariableTag(tag: string = ''): boolean {

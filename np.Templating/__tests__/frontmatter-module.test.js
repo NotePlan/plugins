@@ -22,18 +22,18 @@ const section = colors.blue
 describe(`${PLUGIN_NAME}`, () => {
   describe(section('FrontmatterModule'), () => {
     it(`should return true when frontmatter template supplied`, async () => {
-      const data = `# Template name
---
+      const data = `---
+title: Test template
 name: Mike Erickson
---
+---
 Hello World`
 
       let result = new FrontmatterModule().isFrontmatterTemplate(data)
       expect(result).toEqual(true)
     })
     it(`should extract frontmatter block`, async () => {
-      const data = `# Template name
---
+      const data = `---
+title: Test Sample
 name: Mike Erickson
 --
 Hello World`
@@ -50,10 +50,10 @@ Hello World`
     })
 
     it(`should extract frontmatter block`, async () => {
-      const data = `# Template name
---
+      const data = `---
+title: Test Sample
 name: Mike Erickson
---
+---
 Hello World`
 
       let frontmatterBlock = new FrontmatterModule().getFrontmatterBlock(data)
@@ -61,9 +61,10 @@ Hello World`
     })
 
     it(`should be valid frontmatter object`, async () => {
-      const data = `--
+      const data = `---
+title: Test Sample
 name: Mike Erickson
---`.replace(/--/g, '---')
+---`
 
       const result = new FrontmatterModule().render(data)
 
@@ -73,9 +74,10 @@ name: Mike Erickson
     })
 
     it(`should be valid frontmatter have supplied attributes`, async () => {
-      const data = `--
+      const data = `---
+title: Test Sample
 name: Mike Erickson
---`.replace(/--/g, '---')
+---`
 
       const result = new FrontmatterModule().render(data)
 
@@ -84,14 +86,15 @@ name: Mike Erickson
     })
 
     it(`should contain template in 'body' property`, async () => {
-      const data = `--
+      const data = `---
+tilte: Test Sample
 name: Mike Erickson
 phone: 714.454.4236
 modified: 2021-10-22 11:50:43 AM
---
+---
 <%= name %>
 <%= phone %>
-<%= modified %>`.replace(/--/g, '---')
+<%= modified %>`
 
       const result = new FrontmatterModule().render(data)
 

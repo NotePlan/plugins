@@ -15,7 +15,7 @@ export const DAY_NUMBER_FRIDAY = 5
 export const DAY_NUMBER_SATURDAY = 6
 
 export default class DateModule {
-  constructor(config) {
+  constructor(config = {}) {
     this.config = config
 
     // setup date/time local, using configuration locale if exists, otherwise fallback to system locale
@@ -182,6 +182,34 @@ export default class DateModule {
     const weekNumber = this.weekNumber(pivotDate)
 
     return `W${weekNumber} (${startDate}..${endDate})`
+  }
+
+  startOfWeek(format = '', userPivotDate = '', firstDayOfWeek = 0) {
+    let pivotDate = userPivotDate && userPivotDate.length > 0 ? userPivotDate : moment(new Date()).format('YYYY-MM-DD')
+
+    const configFormat = this.config?.dateFormat || 'YYYY-MM-DD'
+    format = format && format.length > 0 ? format : configFormat
+
+    let firstOfWeekDate = moment(pivotDate).startOf('week').format(format)
+    if (firstDayOfWeek > 0) {
+      firstOfWeekDate = moment(pivotDate).startOf('week').add(firstDayOfWeek, 'days').format(format)
+    }
+
+    return firstOfWeekDate
+  }
+
+  endOfWeek(format = '', userPivotDate = '', firstDayOfWeek = 0) {
+    let pivotDate = userPivotDate && userPivotDate.length > 0 ? userPivotDate : moment(new Date()).format('YYYY-MM-DD')
+
+    const configFormat = this.config?.dateFormat || 'YYYY-MM-DD'
+    format = format && format.length > 0 ? format : configFormat
+
+    let endOfWeek = moment(pivotDate).endOf('week').format(format)
+    if (firstDayOfWeek > 0) {
+      endOfWeek = moment(pivotDate).endOf('week').add(firstDayOfWeek, 'days').format(format)
+    }
+
+    return endOfWeek
   }
 
   businessAdd(numDays = 1, pivotDate = '', format = '') {

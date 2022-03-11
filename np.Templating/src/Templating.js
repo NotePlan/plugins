@@ -6,19 +6,26 @@
  * -----------------------------------------------------------------------------------------*/
 
 import NPTemplating from 'NPTemplating'
+import FrontmatterModule from '@templatingModules/FrontmatterModule'
+
 import { getTemplateFolder, getTemplateList } from 'NPTemplating'
 
 import { chooseOption } from '@helpers/userInput'
+import { getOrMakeNote } from '@helpers/note'
+
 import { getAffirmation } from '../lib/support/modules/affirmation'
 import { getAdvice } from '../lib/support/modules/advice'
 import { getWeather } from '../lib/support/modules/weather'
 import { getDailyQuote } from '../lib/support/modules/quote'
 import { getVerse, getVersePlain } from '../lib/support/modules/verse'
-import { initConfiguration, migrateConfiguration, updateSettingData } from '../../helpers/NPconfiguration'
+import { getConfiguration, initConfiguration, migrateConfiguration, updateSettingData } from '../../helpers/NPconfiguration'
 import { log, logError } from '@helpers/dev'
 
 import pluginJson from '../plugin.json'
 
+export async function test() {
+  console.log('test')
+}
 export async function onUpdateOrInstall(config: any = { silent: false }): Promise<void> {
   try {
     const pluginSettingsData = await DataStore.loadJSON(`../${pluginJson['plugin.id']}/settings.json`)
@@ -41,6 +48,32 @@ export async function onUpdateOrInstall(config: any = { silent: false }): Promis
   } catch (error) {
     logError(pluginJson, error)
   }
+}
+
+export async function migrateQuickNotes() {
+  const configData = await getConfiguration('quickNotes')
+
+  configData.forEach(async (quickNote) => {
+    // console.log('label: ' + quickNote.label)
+    // console.log('template: ' + quickNote.template)
+    // console.log('title: ' + quickNote.title)
+    // console.log('folder: ' + quickNote.folder)
+    const templateFilename = `🗒 Quick Notes/Test/${quickNote.label}`
+    const templateData: ?TNote = await getOrMakeNote(quickNote.template, '📋 Templates')
+    console.log(templateData.content)
+    let title = quickNote.title
+    title = title.replace('{{meetingName}}', '<%- meetingName %>')
+    title = title.replace('{{MeetingName}}', '<%- meetingName %>')
+    title = title.replace('{{date8601()}}', '<%- date.now() %>')
+    title = title.replace("{{weekDates({format:'yyyy-MM-dd'})}}", "<%- date.startOfWeek('ddd YYYY-MM-DD',null,1) %>  - <%- date.endOfWeek('ddd YYYY-MM-DD',null,1) %>")
+    const metaData = {
+      newNoteTitle: title,
+      folder: quickNote.folder,
+    }
+
+    // $FlowIgnore
+    const result = await NPTemplating.createTemplate(templateFilename, metaData, templateData.content)
+  })
 }
 
 export async function templateInit(): Promise<void> {
@@ -80,9 +113,8 @@ export async function templateAppend(): Promise<void> {
 
     const selectedTemplate = await chooseOption<TNote, void>('Choose Template', options)
 
-    const templateTitle = selectedTemplate?.title
-
-    const renderedTemplate = await NPTemplating.renderTemplate(templateTitle, null, { usePrompts: true })
+    // $FlowIgnore
+    let renderedTemplate = await NPTemplating.renderTemplate(selectedTemplate, null, { usePrompts: true })
 
     Editor.insertTextAtCharacterIndex(renderedTemplate, content.length)
   } else {
@@ -189,9 +221,6 @@ export async function templateQuote(): Promise<string> {
 }
 
 export async function templateMigration(silent: boolean = false): Promise<void> {
-  //
-  log(pluginJson, ['mike', 'kira'])
-
   try {
     const templateFolder = '📋 Templates'
     const newTemplateFolder: string = '@Templates' // NotePlan.environment.templateFolder
@@ -242,6 +271,41 @@ export async function templateMigration(silent: boolean = false): Promise<void> 
     })
 
     await CommandBar.prompt('Template Migration', `${newNoteCounter} Templates Converted Successfully`)
+  } catch (error) {
+    logError(pluginJson, error)
+  }
+}
+
+export async function templateQuickNote(noteName: string = ''): Promise<void> {
+  try {
+    const content: string = Editor.content || ''
+
+    const quickNoteTemplatesFolder: string = DataStore.settings?.quickNotesFolder || 'Quick Notes'
+
+    const options = await getTemplateList(quickNoteTemplatesFolder)
+
+    const selectedTemplate = await chooseOption<TNote, void>('Choose Quick Note', options)
+    if (selectedTemplate) {
+      const templateTitle: any = selectedTemplate?.title
+
+      const template: string = `${quickNoteTemplatesFolder}/${templateTitle}`
+
+      const renderedData = await NPTemplating.renderTemplate(template, null, { usePrompts: true })
+      const isFrontmatter = new FrontmatterModule().isFrontmatterTemplate(renderedData)
+      if (isFrontmatter) {
+        const frontmatterData = new FrontmatterModule().render(renderedData)
+        const frontmatterAttributes = frontmatterData?.attributes || {}
+        const frontmatterBody = await NPTemplating.render(frontmatterData?.body, null, { usePrompts: true })
+
+        const newNoteTitle = frontmatterAttributes.newNoteTitle
+        const folder = frontmatterAttributes.folder
+        const filename = DataStore.newNote(newNoteTitle, folder) || ''
+        if (filename) {
+          await Editor.openNoteByFilename(filename)
+          Editor.content = `# ${newNoteTitle}\n${frontmatterBody}`
+        }
+      }
+    }
   } catch (error) {
     logError(pluginJson, error)
   }

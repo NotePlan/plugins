@@ -116,8 +116,8 @@ const globals = {
     return getFormattedTime(dateFormat)
   },
 
-  weekDates: async (params: string = ''): Promise<string> => {
-    return await getWeekDates(params)
+  weekDates: async (params: any): Promise<string> => {
+    return await getWeekDates(JSON.stringify(params))
   },
 }
 

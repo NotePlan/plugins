@@ -3,14 +3,23 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
-## [1.0.0-beta.04] - 2022-02-24 (mikeerickson)
+## [1.0.0-beta.05] - 2022-02-27 (mikeerickson)
 
-- add support for new template format introduced by `NotePlan 3.4.1` and frontmatter formatted templates
+- fix `__tests__/fronmatter-module.test.js` using new fixtures
+- added new weather settings
+  o location (default location based on IP address if not supplied)
+  o url (default `https://wttr.in` if not supplied)
+  o format (default `format=3` if not supplied)
+- added `np:qtn` to replace current `/qtn` and will be adding `/qtn` when `nmn.Templates` is deprecated
+
+## [1.0.0-beta.04] - 2022-02-26 (mikeerickson)
+
+- added support for new template format introduced by `NotePlan 3.4.1` and frontmatter formatted templates
 - fixed issue where templates were sometimes being loaded from old "Templates" directory, it should now ONLY use `@Templates`
-- renamed global helper `date` to `currentDate` as `date` is a reserved work for internal Date Module
-- fixed issues with various date methods, including
+- renamed **globals** helper `date` to `currentDate` as `date` is a reserved work for internal Date Module
+- fixed issues with **globals** date methods, including
 
-```
+```html
 **pickdate:**
 - <%- pickDate() %>
 - <%- pickDate({question:'Please enter a date:'}) %>

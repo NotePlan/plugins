@@ -15,6 +15,10 @@ All NotePlan plugins follow `semver` versioning. For details, please refer to [s
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/codedungeon.Toolbox/README.md) for details on available commands and use case.
 
+## [3.1.2] - 2022-02-27 (@mikeerickson)
+- fixed issue with `npc plugin:release` build test command
+- removed test execution when running test build (addresses item test imports)
+
 ## [3.1.1] - 2022-02-23 (@mikeerickson)
 - updated `date-fns` dependency to `^2.23.0` (requested by @m1well)
 - added `eslin-plugin-unused-imports: 1.1.5` (requested by @m1well)

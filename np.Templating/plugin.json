@@ -3,7 +3,7 @@
   "noteplan.minAppVersion": "3.4.1",
   "plugin.id": "np.Templating",
   "plugin.name": " 📒 np.Templating",
-  "plugin.version": "1.0.0-beta.04",
+  "plugin.version": "1.0.0-beta.05",
   "plugin.description": "Templating Plugin for NotePlan",
   "plugin.author": "Mike Erickson (@codedungeon)",
   "plugin.dependencies": [],
@@ -94,6 +94,24 @@
       "alias": [],
       "description": "Run Template Migration",
       "jsFunction": "templateMigration"
+    },
+    {
+      "name": "np:migrate-quick-notes",
+      "alias": [],
+      "description": "Migration _configuration quickNotes",
+      "jsFunction": "migrateQuickNotes"
+    },
+    {
+      "name": "np:qtn",
+      "alias": [
+        "Quick template note",
+        "quick",
+        "template",
+        "qnt",
+        "qtn"
+      ],
+      "description": "Create new note based on Quick Note Template",
+      "jsFunction": "templateQuickNote"
     }
   ],
   "plugin.settings": [
@@ -105,14 +123,6 @@
       "key": "version",
       "type": "hidden",
       "title": "np.Templating Settings Version"
-    },
-    {
-      "key": "templateFolderName",
-      "title": "Template Folder Name",
-      "description": "Folder name where np.Templating will load templates.",
-      "type": "hidden",
-      "default": "📋 Templates",
-      "required": true
     },
     {
       "key": "templateLocale",
@@ -185,49 +195,41 @@
       "required": false
     },
     {
-      "key": "stopOnError",
-      "title": "Stop Rendering On Error",
-      "description": "Stop rendering template when errors occur",
-      "type": "hidden",
-      "default": true
-    },
-    {
       "type": "separator"
     },
     {
-      "key": "weatherApiKey",
-      "title": "Weather API Key",
-      "description": "Open Weather API Key \n- visit https://openweathermap.org/ to obtain API Key",
+      "key": "weatherLocation",
+      "title": "Weather Lookup Location",
+      "description": "Desired location where weather lookup will be used\n\nNote: current location is empty\n\nUse following command to display weather in template\n\n<%- weather(location?:string, url?.string, format?.string) %>",
       "type": "string",
       "default": "",
       "required": false
     },
     {
-      "key": "weatherLatPosition",
-      "title": "Weather Latitude Position",
-      "description": "Desired Latitude Position \n- leave zero to find position based on location",
+      "key": "weatherURL",
+      "title": "Weather Lookup URL",
+      "description": "Weather URL\n\nNote: default `https://wttr.in` URL if empty",
       "type": "string",
-      "default": "0",
+      "default": "wttr.in",
       "required": false
     },
     {
-      "key": "weatherLongPosition",
-      "title": "Weather Longitude Position",
-      "description": "Desired Longitude Position\n- leave zero to find position based on location",
+      "key": "weatherFormat",
+      "title": "Weather Lookup Format",
+      "description": "Weather Format\n\nNote: default `format=3` if not supplied",
       "type": "string",
-      "default": "0",
+      "default": "format=3",
       "required": false
     },
     {
-      "key": "weatherUnits",
-      "title": "Weather Units",
-      "description": "Open Weather Units \n(celcius = metric, fareheit = imperial)",
+      "type": "separator"
+    },
+    {
+      "key": "quickNotesFolder",
+      "title": "Quick Notes Folder",
+      "description": "Path to location of Quick Notes folder in NotePlan Templates folder",
       "type": "string",
-      "choices": [
-        "celcius",
-        "fahrenheit"
-      ],
-      "default": "fahrenheit",
+      "default": "🗒 Quick Notes",
       "required": false
     },
     {

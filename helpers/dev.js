@@ -128,11 +128,10 @@ export function log(pluginInfo: any, message: any = '', type: string = 'LOG'): s
     pluginVersion = pluginInfo.hasOwnProperty('plugin.version') ? pluginInfo['plugin.version'] : 'INVALID_PLUGIN_VERSION'
     msg = `${dt().padEnd(19)} | ${type.padEnd(5)} | ${pluginId} v${pluginVersion} :: ${_message(message)}`
   } else {
-    msgType = arguments.length === 2 ? message : type
     if (message.length > 0) {
-      msg = `${dt().padEnd(19)} | ${msgType.padEnd(5)} | ${pluginInfo} :: ${_message(message)}`
+      msg = `${dt().padEnd(19)} | ${type.padEnd(5)} | ${pluginInfo} :: ${_message(message)}`
     } else {
-      msg = `${dt().padEnd(19)} | ${msgType.padEnd(5)} | INVALID_PLUGIN_INFO :: ${_message(pluginInfo)}`
+      msg = `${dt().padEnd(19)} | ${type.padEnd(5)} | ${_message(pluginInfo)}`
     }
   }
 

@@ -263,6 +263,26 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(assertValue)
     })
 
+    it(`should return start of week using today`, async () => {
+      let startOfWeek = new DateModule().startOfWeek(null, '2022-03-05')
+      expect(startOfWeek).toEqual('2022-02-27')
+    })
+
+    it(`should return start of week using fixed date with offset`, async () => {
+      let startOfWeek = new DateModule().startOfWeek(null, '2022-03-05', 1)
+      expect(startOfWeek).toEqual('2022-02-28')
+    })
+
+    it(`should return end of week using today`, async () => {
+      let endOfWeek = new DateModule().endOfWeek(null, '2022-03-05')
+      expect(endOfWeek).toEqual('2022-03-05')
+    })
+
+    it(`should return end of week using fixed date with offset`, async () => {
+      let startOfWeek = new DateModule().endOfWeek(null, '2022-03-05', 1)
+      expect(startOfWeek).toEqual('2022-03-06')
+    })
+
     describe(`${block('business days')}`, () => {
       it(`should ${method('.businessAdd')} using supplied current date`, async () => {
         const result = new DateModule().businessAdd(3)

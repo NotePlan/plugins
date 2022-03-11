@@ -201,10 +201,11 @@ export function updateSettingData(pluginJsonData: any): number {
 
 export function getSetting(pluginName?: string = '', key: string = '', defaultValue?: { [string]: mixed }): any | null {
   // this method is not working as I have to figure out a way to get the path to data directory
-  return 'INCOMPLETE'
+  console.log('getSetting')
+  return __dirname
 
-  const pluginSettingsData = DataStore.loadJSON(`../${pluginName}/settings.json`)
-  return pluginSettingsData?.[key] ? pluginSettingsData[key] : defaultValue
+  // const pluginSettingsData = DataStore.loadJSON(`../../${pluginName}/settings.json`)
+  // return pluginSettingsData?.[key] ? pluginSettingsData[key] : defaultValue
 }
 
 export function getSettings(pluginName?: string = '', defaultValue?: { [string]: mixed }): any | null {

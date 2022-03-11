@@ -21,20 +21,19 @@ const releasePrompts = require('./plugin-release/release-prompts')
 const exec = (cmd, args) => {
   const cp = execa(cmd, args)
 
-  return merge(streamToObservable(cp.stdout.pipe(split())), streamToObservable(cp.stderr.pipe(split())), cp).pipe(
-    filter(Boolean),
-  )
+  return merge(streamToObservable(cp.stdout.pipe(split())), streamToObservable(cp.stderr.pipe(split())), cp).pipe(filter(Boolean))
 }
 
 module.exports = {
   run: async (pluginName = '', pluginVersion = '', args = {}) => {
-    const runTests = !args?.noTests
+    // const runTests = !args?.noTests
+    const runTests = false
     const runBuild = !args?.noBuild
     const preview = args?.preview
     const testRunner = `./node_modules/.bin/jest`
-    const testCommand = ['run', 'test:dev', pluginName]
+    const testCommand = ['run', 'test:dev', `${pluginName}/__tests__/*.test.js`]
     const buildCommand = ['run', 'build', pluginName]
-
+    console.log(testCommand)
     if (args.preview) {
       print.info('Preview Mode')
       console.log('')
@@ -96,6 +95,7 @@ module.exports = {
                 console.log(error.stderr)
                 console.log('')
                 print.error('Testing failed, release aborted', 'ERROR')
+                print.error(error)
                 process.exit()
                 return throwError(error)
               }),
