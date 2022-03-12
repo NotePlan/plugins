@@ -14,9 +14,9 @@ import globals from './globals'
 import TemplatingEngine from './TemplatingEngine'
 import { formatDistanceToNow } from 'date-fns'
 
-// const TEMPLATE_FOLDER_NAME = NotePlan.environment.templateFolder
+const TEMPLATE_FOLDER_NAME = NotePlan.environment.templateFolder
 // const TEMPLATE_FOLDER_NAME = '📋 Templates'
-const TEMPLATE_FOLDER_NAME = '@Templates'
+// const TEMPLATE_FOLDER_NAME = '@Templates'
 
 // np.Templating modules (see /lib/support/modules/*Module)
 // - if a new module has been added, make sure it has been added to this list
@@ -137,6 +137,7 @@ export async function getTemplateList(folderName: string = ''): Promise<any> {
   const options = DataStore.projectNotes
     .filter((n) => n.filename?.startsWith(templateFolder))
     .filter((n) => !n.title?.startsWith('_configuration'))
+    .filter((n) => !n.title?.startsWith('_config'))
     .map((note) => (note.title == null ? null : { label: note.title, value: note.filename }))
     .filter(Boolean)
 
@@ -364,15 +365,20 @@ export default class NPTemplating {
           // $FlowIgnore
           templateData = templateData.replace(`${key}: ${value}`, `${key}: ${renderedData}`)
         }
+        if (userOptions?.qtn) {
+          return templateData
+        }
       }
+
+      // $FlowIgnore
+      const { newTemplateData, newSettingData } = await this.preProcess(templateData, sessionData)
+      sessionData = { ...sessionData, ...newSettingData }
 
       if (userOptions?.usePrompts) {
         const promptData = await this.processPrompts(templateData, sessionData, '<%', '%>')
         templateData = promptData.sessionTemplateData
         sessionData = promptData.sessionData
       }
-
-      templateData = await this.preProcess(templateData)
 
       const renderedData = await new TemplatingEngine(this.constructor.templateConfig).render(templateData, sessionData, userOptions)
 
@@ -382,8 +388,9 @@ export default class NPTemplating {
     }
   }
 
-  static async preProcess(templateData: string): Promise<mixed> {
+  static async preProcess(templateData: string, sessionData?: {}): Promise<mixed> {
     let newTemplateData = templateData
+    let newSettingData = {}
     const tags = (await this.getTags(templateData)) || []
     tags.forEach((tag) => {
       if (!tag.includes('await') && tag.includes('(')) {
@@ -393,8 +400,42 @@ export default class NPTemplating {
         tempTag = tag.replace('<%=', '<%- await')
         newTemplateData = newTemplateData.replace(tag, tempTag)
       }
+
+      const getType = (value: any) => {
+        if (value.includes('[')) {
+          return 'array'
+        }
+
+        if (value.includes('{')) {
+          return 'object'
+        }
+
+        return 'string'
+      }
+
+      // extract variables
+      if (tag.includes('const') || tag.includes('let') || tag.includes('var')) {
+        if (sessionData) {
+          const tempTag = tag.replace('const', '').replace('let', '').trimLeft().replace('<%', '').replace('-%>', '').replace('%>', '')
+          let pos = tempTag.indexOf('=')
+          if (pos > 0) {
+            let varName = tempTag.substring(0, pos - 1).trim()
+            let value = tempTag.substring(pos + 1)
+
+            if (getType(value) === 'string') {
+              value = value.replace(/['"]+/g, '').trim()
+            }
+
+            if (getType(value) === 'array' || getType(value) === 'object') {
+              value = value.replace('" ', '').replace(' "', '').trim()
+            }
+
+            newSettingData[varName] = value
+          }
+        }
+      }
     })
-    return newTemplateData
+    return { newTemplateData, newSettingData }
   }
 
   static async render(templateData: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
@@ -563,7 +604,7 @@ export default class NPTemplating {
   }
 
   static isVariableTag(tag: string = ''): boolean {
-    return tag.indexOf('const') > 0 || tag.indexOf('let') > 0
+    return tag.indexOf('const') > 0 || tag.indexOf('let') > 0 || tag.indexOf('var') > 0 || tag.indexOf('.') > 0
   }
 
   static isMethod(tag: string = ''): boolean {

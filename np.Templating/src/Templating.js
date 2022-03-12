@@ -92,11 +92,10 @@ export async function templateInsert(): Promise<void> {
 
     const selectedTemplate = await chooseOption<TNote, void>('Choose Template', options)
 
-    const templateTitle = selectedTemplate?.title
+    // $FlowIgnore
+    const renderedTemplate = await NPTemplating.renderTemplate(selectedTemplate, null, { usePrompts: true })
 
-    const result = await NPTemplating.renderTemplate(templateTitle, null, { usePrompts: true })
-
-    Editor.insertTextAtCursor(result)
+    Editor.insertTextAtCursor(renderedTemplate)
   } else {
     await CommandBar.prompt('Template', 'You must have a Project Note or Calendar Note opened where you wish to insert template.')
   }
@@ -136,25 +135,18 @@ export async function templateNew(): Promise<void> {
     '/',
   )
 
-  const templateName = await selectTemplate()
-
-  const noteTitle = title.toString()
-  const filename = DataStore.newNote(noteTitle, folder) || ''
-  if (filename) {
-    const templateResult = await NPTemplating.renderTemplate(templateName, null, { usePrompts: true })
-    await Editor.openNoteByFilename(filename)
-    Editor.content = `# ${noteTitle}\n${templateResult}`
-  }
-}
-
-export async function selectTemplate(): Promise<string> {
   const options = await getTemplateList()
 
   const selectedTemplate = await chooseOption<TNote, void>('Choose Template', options)
 
-  const templateTitle = selectedTemplate?.title || ''
-
-  return templateTitle
+  const noteTitle = title.toString()
+  const filename = DataStore.newNote(noteTitle, folder) || ''
+  if (filename) {
+    // $FlowIgnore
+    const templateResult = await NPTemplating.renderTemplate(selectedTemplate, null, { usePrompts: true })
+    await Editor.openNoteByFilename(filename)
+    Editor.content = `# ${noteTitle}\n${templateResult}`
+  }
 }
 
 // $FlowIgnore
@@ -280,22 +272,23 @@ export async function templateQuickNote(noteName: string = ''): Promise<void> {
     const quickNoteTemplatesFolder: string = DataStore.settings?.quickNotesFolder || 'Quick Notes'
 
     const options = await getTemplateList(quickNoteTemplatesFolder)
-
     const selectedTemplate = await chooseOption<TNote, void>('Choose Quick Note', options)
     if (selectedTemplate) {
-      const templateTitle: any = selectedTemplate?.title
+      // $FlowIgnore
+      const templateData = await NPTemplating.getTemplate(selectedTemplate)
+      const isFrontmatter = new FrontmatterModule().isFrontmatterTemplate(templateData)
+      // $FlowIgnore
+      const renderedData = await NPTemplating.renderTemplate(selectedTemplate, null, { usePrompts: true, qtn: true })
 
-      const template: string = `${quickNoteTemplatesFolder}/${templateTitle}`
-
-      const renderedData = await NPTemplating.renderTemplate(template, null, { usePrompts: true })
-      const isFrontmatter = new FrontmatterModule().isFrontmatterTemplate(renderedData)
       if (isFrontmatter) {
         const frontmatterData = new FrontmatterModule().render(renderedData)
         const frontmatterAttributes = frontmatterData?.attributes || {}
-        const frontmatterBody = await NPTemplating.render(frontmatterData?.body, null, { usePrompts: true })
+        const data = { frontmatter: frontmatterAttributes }
+        const frontmatterBody = await NPTemplating.render(frontmatterData?.body, data, { usePrompts: true })
 
         const newNoteTitle = frontmatterAttributes.newNoteTitle
         const folder = frontmatterAttributes.folder
+
         const filename = DataStore.newNote(newNoteTitle, folder) || ''
         if (filename) {
           await Editor.openNoteByFilename(filename)
