@@ -67,7 +67,7 @@ export function clo(obj: { [string]: mixed }, preamble: string = '', space: stri
  * @reference https://stackoverflow.com/questions/59228638/console-log-an-object-does-not-log-the-method-added-via-prototype-in-node-js-c
  */
 
-function getAllPropertyNames(inObj: { [string]: mixed }): Array<string> {
+export function getAllPropertyNames(inObj: { [string]: mixed }): Array<string> {
   let obj = inObj
   var props = []
   do {
