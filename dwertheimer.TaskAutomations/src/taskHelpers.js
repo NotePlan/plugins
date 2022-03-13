@@ -2,6 +2,7 @@
 /* eslint-disable no-unused-vars */
 import { fieldSorter } from '../../helpers/sorting'
 import { hyphenatedDateString } from './dateHelpers'
+import { clo } from '../../helpers/dev'
 
 const HASHTAGS = /\B#([a-zA-Z0-9]+\b)/g
 const MENTIONS = /\B@([a-zA-Z0-9]+\b)/g
@@ -63,13 +64,16 @@ export function getTasksByType(paragraphs) {
   // * @type {"open", "done", "scheduled", "cancelled", "title", "quote", "list" (= bullet), "empty" (no content) or "text" (= plain text)}
   TASK_TYPES.forEach((t) => (tasks[t] = []))
   let lastParent = { indents: 999 }
+  clo(paragraphs, 'getTasksByType')
   for (let index = 0; index < paragraphs.length; index++) {
+    console.log(`getTasksByType paragraphs.length:${paragraphs.length}`)
     const para = paragraphs[index]
+    clo(para, 'getTasksByType')
     // FIXME: non tasks are not going to get through this filter. What to do?
     const isTask = TASK_TYPES.indexOf(para.type) >= 0
     if (isTask || para.indents > lastParent.indents) {
       const content = para.content
-      // console.log(`${index}: ${para.type}: ${para.content}`)
+      console.log(`${index}: ${para.type}: ${para.content}`)
       try {
         const hashtags = getElementsFromTask(content, HASHTAGS)
         const mentions = getElementsFromTask(content, MENTIONS)
@@ -86,7 +90,7 @@ export function getTasksByType(paragraphs) {
           indents: para.indents,
           children: [],
         }
-        // console.log(`${index}: indents:${para.indents} ${para.rawContent}`)
+        console.log(`${index}: indents:${para.indents} ${para.rawContent}`)
         task.priority = getNumericPriority(task)
         if (lastParent.indents < para.indents) {
           lastParent.children.push(task)

@@ -18,6 +18,9 @@ describe(`${FILE}`, () => {
     test('should create a link with heading passed as null', () => {
       expect(g.createLink('foo', null)).toEqual('[[foo]]')
     })
+    test('should create a link with heading passed as empty string', () => {
+      expect(g.createLink('foo', '')).toEqual('[[foo]]')
+    })
   })
   describe(section('createCallbackUrl()'), () => {
     describe('using noteTitle', () => {
@@ -29,6 +32,9 @@ describe(`${FILE}`, () => {
       })
       test('should create a link with heading passed as null', () => {
         expect(g.createCallbackUrl('foo', false, null)).toEqual('noteplan://x-callback-url/openNote?noteTitle=foo')
+      })
+      test('should create a link with heading passed as empty string', () => {
+        expect(g.createCallbackUrl('foo', false, '')).toEqual('noteplan://x-callback-url/openNote?noteTitle=foo')
       })
     })
     describe('using note filename', () => {
