@@ -139,12 +139,13 @@ export function createLink(title: string, heading: string | null = null): string
 /**
  * Create xcallback link text from title string (and optional heading string)
  * @dwertheimer
- * @param {string} title - title of the note
+ * @param {string} title - title of the note or the filename
+ * @param {boolean} isFilename - true if title is a filename instead of note title
  * @param {string | null} heading - heading inside of note (optional)
  * @returns {string} the x-callback-url string
  */
-export function createCallbackUrl(title: string, heading: string | null = null): string {
-  const xcb = `noteplan://x-callback-url/openNote?noteTitle=`
+export function createCallbackUrl(title: string, isFilename: boolean = false, heading: string | null = null): string {
+  const xcb = `noteplan://x-callback-url/openNote?${isFilename ? `filename` : `noteTitle`}=`
   return `${xcb}${title}${heading ? `#${heading}` : ''}`
 }
 
@@ -153,12 +154,13 @@ export function createCallbackUrl(title: string, heading: string | null = null):
  * e.g. [linkText](x-callback-url)
  * @dwertheimer
  * @param {string} linkText - the text to display for the link
- * @param {string} title - title of the note
+ * @param {string} title - title of the note or the filename
+ * @param {boolean} isFilename - true if title is a filename instead of note title
  * @param {string | null} heading - heading inside of note (optional)
  * @returns {string} the x-callback-url string
  */
-export function createPrettyLink(linkText: string, title: string, heading: string | null = null): string {
-  return `[${linkText}](${createCallbackUrl(title, heading)})`
+export function createPrettyLink(linkText: string, title: string, isFilename: boolean = false, heading: string | null = null): string {
+  return `[${linkText}](${createCallbackUrl(title, isFilename, heading)})`
 }
 
 /**
