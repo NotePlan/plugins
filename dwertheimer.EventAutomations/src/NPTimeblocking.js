@@ -286,10 +286,8 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: an
     console.log(`After excludeTasksWithText, ${todosParagraphs.length} potential items`)
     const cleanTodayTodoParas = removeDateTagsFromArray(todosParagraphs)
     console.log(`After removeDateTagsFromArray, ${cleanTodayTodoParas.length} potential items`)
-    clo(cleanTodayTodoParas[0], 'cleanTodayTodoParas[0]')
     const todosWithLinksMaybe = appendLinkIfNecessary(cleanTodayTodoParas, config)
     console.log(`After appendLinkIfNecessary, ${todosWithLinksMaybe?.length ?? 0} potential items (may include headings or completed)`)
-    clo(todosWithLinksMaybe, 'todosWithLinksMaybe')
     const tasksByType = todosWithLinksMaybe.length ? getTasksByType(todosWithLinksMaybe) : null // puts in object by type of task and enriches with sort info (like priority)
     console.log(`After getTasksByType, ${tasksByType?.open.length ?? 0} OPEN items`)
     if (deletePreviousCalendarEntries) {

@@ -146,6 +146,9 @@ export function createLink(noteTitle: string, heading: string | null = ''): stri
  */
 export function createCallbackUrl(titleOrFilename: string, isFilename: boolean = false, heading: string | null = null): string {
   const xcb = `noteplan://x-callback-url/openNote?${isFilename ? `filename` : `noteTitle`}=`
+  // FIXME: this is working around an API bug that does not allow heading references in filename xcallbacks
+  // When @eduard fixes it, this line can be removed
+  heading = isFilename ? '' : heading
   return `${xcb}${titleOrFilename}${heading && heading !== '' ? `#${heading}` : ''}`
 }
 
