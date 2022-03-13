@@ -2,10 +2,12 @@
 
 ## Changelog
 
+[0.5.0] 2022-03-12
+- add setting for appending link to task note
+
 [0.4.7] 2022-02-18
 - changed default timeblock line to "-" from "*"
 
-- fixing editor open bug
 [0.4.6] 2022-02-18
 - fixing editor open bug
 
