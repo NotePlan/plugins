@@ -254,6 +254,16 @@ export function capitalize(s: string): string {
 }
 
 /**
+ * @dwertheimer (with regex wizardry help from @jgclark)
+ * @param {string} s - input string
+ * @returns {string} with all the [[wikilinks] and [links](url) removed
+ */
+export function stripLinkFromString(s: string): string {
+  // strip markdown URL
+  return s.replace(/\s\[([^\[\]]*)\]\((.*?)\)/g, '').replace(/\s\[\[.*?\]\]/g, '')
+}
+
+/**
  * Convert semver string to number
  * @author @codedungeon
  * @param {string} semver - semver version
