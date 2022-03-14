@@ -254,6 +254,7 @@ export function capitalize(s: string): string {
 }
 
 /**
+ * Remove any markdown URLs from a string
  * @dwertheimer (with regex wizardry help from @jgclark)
  * @param {string} s - input string
  * @returns {string} with all the [[wikilinks] and [links](url) removed
