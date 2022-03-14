@@ -7,7 +7,7 @@
 import { semverVersionToNumber } from '@helpers/general'
 import pluginJson from '../plugin.json'
 import FrontmatterModule from './support/modules/FrontmatterModule'
-import { log, logError } from '@helpers/dev'
+import { log, logError, clo } from '@helpers/dev'
 import globals from './globals'
 
 /*eslint-disable */
@@ -384,6 +384,7 @@ export default class NPTemplating {
 
       return this._filterTemplateResult(renderedData)
     } catch (error) {
+      console.log('här')
       return this.templateErrorMessage('NPTemplating.renderTemplate', error)
     }
   }
@@ -548,7 +549,15 @@ export default class NPTemplating {
         // $FlowIgnore
         const { varName, promptMessage, options } = await this.getPromptParameters(tag)
         if (!sessionData.hasOwnProperty(varName)) {
-          sessionData[varName] = await (await this.prompt(promptMessage, options)).trim()
+          let response = await await this.prompt(promptMessage, options) // double await is correct here
+          if (response) {
+            if (typeof response === 'string') {
+              response = response.trim()
+            }
+            sessionData[varName] = response
+          } else {
+            sessionData[varName] = ''
+          }
         }
         if (tag.indexOf(`<%=`) >= 0 || tag.indexOf(`<%-`) >= 0 || tag.indexOf(`<%`) >= 0) {
           sessionTemplateData = sessionTemplateData.replace(tag, `${startTag}= ${varName} ${endTag}`)

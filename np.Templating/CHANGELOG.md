@@ -3,7 +3,12 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
-## [1.0.0-beta.05] - 2022-03-12 (mikeerickson)
+## [1.0.0-beta.06] - 2022-03-14 (mikeerickson)
+
+- removed `docs` directory, moved to [np.Templating Docs](https://nptemplating-docs.netlify.app/)
+- fixed issue when selecting `Cancel` in prompt message, throwing incorrect error
+
+## [1.0.0-beta.05] - 2022-03-14 (mikeerickson)
 
 - fix `__tests__/fronmatter-module.test.js` using new fixtures
 - added `np:qtn` to replace current `/qtn` and will be adding `/qtn` when `nmn.Templates` is deprecated
