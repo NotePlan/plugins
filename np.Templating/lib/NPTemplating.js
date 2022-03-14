@@ -7,7 +7,7 @@
 import { semverVersionToNumber } from '@helpers/general'
 import pluginJson from '../plugin.json'
 import FrontmatterModule from './support/modules/FrontmatterModule'
-import { log, logError, clo } from '@helpers/dev'
+import { log, logError, dump, clo } from '@helpers/dev'
 import globals from './globals'
 
 /*eslint-disable */
@@ -295,8 +295,9 @@ export default class NPTemplating {
       if (!selectedTemplate) {
         const parts = templateName.split('/')
         if (parts.length > 0) {
-          templateFilename = parts[parts.length - 1]
-          selectedTemplate = await DataStore.projectNoteByTitle(templateFilename, true, false)?.[0]
+          templateFilename = `${templateFolderName}/${templateName}`
+          let templates = await DataStore.projectNoteByTitle(templateFilename, true, false)
+          selectedTemplate = Array.isArray(templates) && templates.length > 0 ? templates[0] : null
         }
       }
 
@@ -339,7 +340,8 @@ export default class NPTemplating {
     return this.constructor.templateConfig
   }
 
-  static async renderTemplate(templateName: string = '', userData: any = {}, userOptions: any = { usePrompts: false }): Promise<string> {
+  static async renderTemplate(templateName: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
+    const usePrompts = true
     try {
       await this.setup()
 
@@ -356,7 +358,7 @@ export default class NPTemplating {
       templateData = templateData.replace('<%@', '<%= prompt')
 
       const isFrontmatterTemplate = new FrontmatterModule().isFrontmatterTemplate(templateData)
-      if (isFrontmatterTemplate && userOptions?.usePrompts) {
+      if (isFrontmatterTemplate && usePrompts) {
         const frontmatterAttributes = new FrontmatterModule().render(templateData)?.attributes || {}
         for (const [key, value] of Object.entries(frontmatterAttributes)) {
           // $FlowIgnore
@@ -374,7 +376,7 @@ export default class NPTemplating {
       const { newTemplateData, newSettingData } = await this.preProcess(templateData, sessionData)
       sessionData = { ...sessionData, ...newSettingData }
 
-      if (userOptions?.usePrompts) {
+      if (usePrompts) {
         const promptData = await this.processPrompts(templateData, sessionData, '<%', '%>')
         templateData = promptData.sessionTemplateData
         sessionData = promptData.sessionData
@@ -384,7 +386,6 @@ export default class NPTemplating {
 
       return this._filterTemplateResult(renderedData)
     } catch (error) {
-      console.log('här')
       return this.templateErrorMessage('NPTemplating.renderTemplate', error)
     }
   }
@@ -548,7 +549,19 @@ export default class NPTemplating {
       if (!this.isVariableTag(tag) && !this.isTemplateModule(tag) && !isMethod) {
         // $FlowIgnore
         const { varName, promptMessage, options } = await this.getPromptParameters(tag)
-        if (!sessionData.hasOwnProperty(varName)) {
+
+        const varExists = (varName) => {
+          let result = true
+          if (!sessionData.hasOwnProperty(varName)) {
+            result = false
+            if (sessionData.hasOwnProperty('data') && sessionData.data.hasOwnProperty(varName)) {
+              result = true
+            }
+          }
+
+          return result
+        }
+        if (!varExists(varName)) {
           let response = await await this.prompt(promptMessage, options) // double await is correct here
           if (response) {
             if (typeof response === 'string') {

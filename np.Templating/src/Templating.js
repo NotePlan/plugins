@@ -268,10 +268,17 @@ export async function templateMigration(silent: boolean = false): Promise<void> 
 export async function templateQuickNote(noteName: string = ''): Promise<void> {
   try {
     const content: string = Editor.content || ''
-
-    const quickNoteTemplatesFolder: string = DataStore.settings?.quickNotesFolder || 'Quick Notes'
+    let quickNoteTemplatesFolder: string = DataStore.settings?.quickNotesFolder || 'Quick Notes'
+    quickNoteTemplatesFolder = 'Dog'
 
     const options = await getTemplateList(quickNoteTemplatesFolder)
+    if (options.length === 0) {
+      await CommandBar.prompt(
+        'Templating',
+        `Unable to locate any Quick Notes templates in "@Templates/${quickNoteTemplatesFolder}" folder.\n\nIf you wish to store Quick Notes in a different folder, you can customize location in np.Templating Settings.`,
+      )
+      return
+    }
     const selectedTemplate = await chooseOption<TNote, void>('Choose Quick Note', options)
     if (selectedTemplate) {
       // $FlowIgnore

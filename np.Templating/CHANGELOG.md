@@ -3,6 +3,13 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.0.0-beta.07] - 2022-03-14 (mikeerickson)
+
+- Removed `usePrompts` parameter from options as this will be on by default, thus no longer required
+- Removed some spurious `console.log` statements (don't litter the console)
+- Added alert if "Quick Notes" folder does not exists when executing `np:qtn` command
+  - See np.Templating Settings to override default "Quick Notes" folder name
+
 ## [1.0.0-beta.06] - 2022-03-14 (mikeerickson)
 
 - removed `docs` directory, moved to [np.Templating Docs](https://nptemplating-docs.netlify.app/)
