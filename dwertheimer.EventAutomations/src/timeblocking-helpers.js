@@ -335,7 +335,6 @@ export function appendLinkIfNecessary(todos: Array<TParagraph>, config: { [key: 
           link = ` ${createLink(e.title, e.heading)}`
         } else {
           if (config.includeLinks === 'Pretty Links') {
-            clo(e)
             link = ` ${createPrettyLink(config.linkText, e.filename, true, e.heading)}`
           }
         }
