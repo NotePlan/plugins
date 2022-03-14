@@ -58,6 +58,12 @@ export function clo(obj: { [string]: mixed }, preamble: string = '', space: stri
   console.log(`${preamble !== '' ? `${preamble} ` : ''}${JSP(obj, space)}`)
 }
 
+export function dump(pluginInfo: any, obj: { [string]: mixed }, preamble: string = '', space: string | number = 2): void {
+  log(pluginInfo, '-------------------------------------------')
+  clo(obj, preamble, space)
+  log(pluginInfo, '-------------------------------------------')
+}
+
 /**
  * Create a list of the properties of an object, including inherited properties (which are not typically visible in JSON.stringify)
  * @author @dwertheimer (via StackOverflow)

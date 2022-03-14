@@ -67,7 +67,6 @@ module.exports = {
       process.exit()
     }
 
-    dd('here')
     // all systems go, proceed with create PR (will call gh pr craete)
     const prResult = await system.exec('gh', ['pr', 'create', '--title', `"${title}"`, '--body', `"${body}"`], {
       quiet: false,
