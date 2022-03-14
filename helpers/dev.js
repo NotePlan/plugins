@@ -6,6 +6,7 @@
  * @author @codedungeon
  * @return {string} formatted date time
  */
+
 const dt = (): string => {
   const d = new Date()
 
@@ -28,7 +29,17 @@ const dt = (): string => {
 export function JSP(obj: { [string]: mixed }, space: string | number = 2): string {
   const propNames = getAllPropertyNames(obj)
   const fullObj = propNames.reduce((acc, propName) => {
-    acc[propName] = obj[propName]
+    if (Array.isArray(obj[propName])) {
+      acc[propName] = obj[propName].map((x) => {
+        if (typeof x === 'object') {
+          return JSP(x, null)
+        } else {
+          return x
+        }
+      })
+    } else {
+      acc[propName] = obj[propName]
+    }
     return acc
   }, {})
   return JSON.stringify(fullObj, null, space ?? null)
@@ -49,21 +60,24 @@ export function clo(obj: { [string]: mixed }, preamble: string = '', space: stri
 
 /**
  * Create a list of the properties of an object, including inherited properties (which are not typically visible in JSON.stringify)
- * @author @dwertheimer
+ * @author @dwertheimer (via StackOverflow)
  *
  * @param {object} inObj
  * @returns [string]
- * @reference https://stackoverflow.com/questions/13796360/javascript-get-all-properties-of-an-object
+ * @reference https://stackoverflow.com/questions/59228638/console-log-an-object-does-not-log-the-method-added-via-prototype-in-node-js-c
  */
+
 export function getAllPropertyNames(inObj: { [string]: mixed }): Array<string> {
-  const p = []
-  for (let obj = { ...inObj }; obj != null; obj = Object.getPrototypeOf(obj)) {
-    const op = Object.getOwnPropertyNames(obj)
-    for (let i = 0; i < op.length; i++) {
-      if (/^__/.test(op[i]) === false && op[i] !== 'constructor' && p.indexOf(op[i]) === -1) p.push(op[i])
-    }
-  }
-  return p
+  let obj = inObj
+  var props = []
+  do {
+    Object.getOwnPropertyNames(obj).forEach(function (prop) {
+      if (props.indexOf(prop) === -1) {
+        props.push(prop)
+      }
+    })
+  } while ((obj = Object.getPrototypeOf(obj)))
+  return props
 }
 
 /**

@@ -29,7 +29,7 @@ import { sortListBy } from '../../helpers/sorting'
 import { showMessage, chooseOption } from '../../helpers/userInput'
 import { isTimeBlockLine, getTimeBlockString } from '../../helpers/timeblocks'
 import { calcSmartPrependPoint } from '../../helpers/paragraph'
-import { logAllPropertyNames, getAllPropertyNames, JSP } from '../../helpers/dev'
+import { logAllPropertyNames, getAllPropertyNames, JSP, clo } from '../../helpers/dev'
 import {
   attachTimeblockTag,
   blockOutEvents,
@@ -42,12 +42,17 @@ import {
   includeTasksWithPatterns,
   makeAllItemsTodos,
   removeDateTagsFromArray,
+  appendLinkIfNecessary,
 } from './timeblocking-helpers'
 import { getPresetOptions, setConfigForPreset } from './presets'
 import { getTimeBlockingDefaults, validateTimeBlockConfig } from './config'
 import type { IntervalMap, TimeBlockDefaults, PartialCalendarItem, EditorOrNote } from './timeblocking-flow-types'
 
 const PLUGIN_ID = 'autoTimeBlocking'
+
+type ExtendedParagraph = {
+  ...TParagraph,
+}
 
 /* TCalendarItem is a type for the calendar items:
     title: string,
@@ -90,16 +95,18 @@ const editorIsOpenToToday = () => getDateStringFromCalendarFilename(Editor.filen
  * @param {*} config
  * @returns {array} of paragraphs
  */
-function findTodosInNote(note, config) {
+function findTodosInNote(note: TNote, config) {
   const hyphDate = getTodaysDateHyphenated()
   const toDate = getDateObjFromDateTimeString(hyphDate)
   const isTodayItem = (text) => [hyphDate, '>today'].filter((a) => text.indexOf(a) > -1).length > 0
-  const todos = []
+  const todos: Array<ExtendedParagraph> = []
   if (note.paragraphs) {
     note.paragraphs.forEach((p) => {
       if (p.type === 'open' && isTodayItem(p.content)) {
-        console.log(`  --> findTodosInNote adding todo`)
-        todos.push(p)
+        const newP = p
+        newP.title = p.filename.replace('.md', '').replace('.txt', '')
+        console.log(`  --> findTodosInNote adding todo "${p.content}"`)
+        todos.push(newP)
       }
     })
   }
@@ -148,18 +155,19 @@ export async function deleteParagraphsContainingString(destNote: TNote, timeBloc
 function getTodaysReferences(pNote: TNote | null = null, config): Array<TParagraph> {
   const note = pNote || Editor.note
   if (note) {
-    const backlinks = [...(note.backlinks || {})] // an array of notes which link to this note
+    const backlinks = [...(note.backlinks || [])] // an array of notes which link to this note
 
     let todayParas = []
     backlinks.forEach((link, i) => {
       // $FlowIgnore
       const subItems = link.subItems
       subItems.forEach((subItem, j) => {
+        subItem.title = link.content.replace('.md', '').replace('.txt', '')
         todayParas.push(subItem)
       })
     })
-    console.log(`getTodaysReferences note.filename=${note.filename} backlinks.length=${backlinks.length} todayParas.length=${todayParas.length}`)
     todayParas = [...todayParas, ...findTodosInNote(note, config)]
+    console.log(`getTodaysReferences note.filename=${note.filename} backlinks.length=${backlinks.length} todayParas.length=${todayParas.length}`)
     return todayParas
   } else {
     console.log(`timeblocking could not open Note`)
@@ -278,7 +286,9 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: an
     console.log(`After excludeTasksWithText, ${todosParagraphs.length} potential items`)
     const cleanTodayTodoParas = removeDateTagsFromArray(todosParagraphs)
     console.log(`After removeDateTagsFromArray, ${cleanTodayTodoParas.length} potential items`)
-    const tasksByType = cleanTodayTodoParas.length ? getTasksByType(cleanTodayTodoParas) : null // puts in object by type of task and enriches with sort info (like priority)
+    const todosWithLinksMaybe = appendLinkIfNecessary(cleanTodayTodoParas, config)
+    console.log(`After appendLinkIfNecessary, ${todosWithLinksMaybe?.length ?? 0} potential items (may include headings or completed)`)
+    const tasksByType = todosWithLinksMaybe.length ? getTasksByType(todosWithLinksMaybe) : null // puts in object by type of task and enriches with sort info (like priority)
     console.log(`After getTasksByType, ${tasksByType?.open.length ?? 0} OPEN items`)
     if (deletePreviousCalendarEntries) {
       await deleteCalendarEventsWithTag(timeBlockTag, dateStr)
@@ -295,7 +305,7 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: an
       console.log(`After getPopulatedTimeMapForToday, ${calendarMapWithEvents.length} timeMap slots`)
       const eventsToTimeblock = getTimeBlockTimesForEvents(calendarMapWithEvents, sortedTodos, config)
       const { timeBlockTextList, blockList } = eventsToTimeblock
-      console.log(`After getTimeBlockTimesForEvents, blocks:\n\tblockList=${JSON.stringify(blockList)} \n\ttimeBlockTextList=${JSON.stringify(timeBlockTextList)}`)
+      console.log(`After getTimeBlockTimesForEvents, blocks:\n\tblockList.length=${blockList.length} \n\ttimeBlockTextList.length=${timeBlockTextList.length}`)
       if (insertIntoEditor || createCalendarEntries) {
         console.log(`About to insert ${timeBlockTextList.length} timeblock items into note`)
         // $FlowIgnore -- Delete any previous timeblocks we created

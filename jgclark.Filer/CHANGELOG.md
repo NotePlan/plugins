@@ -1,9 +1,16 @@
 # What's changed in 📦 Filer plugin?
 
+## [0.6.1] - 2022-03-02
+### Changed
+- switch to newer logging system under-the-hood
+
+### Fixed
+- `/move paragraphs` sometimes not removing all the paragraphs from the note they are moved from
+
 ## [0.6.0] - 2022-02-12
 ### Added
 - new alias `/move paragraphs` for the main `/mp` command.
-- `/mp` now create the destination daily note if it doesn't already exist
+- `/mp` now creates the destination daily note if it doesn't already exist
 - new setting `whereToAddInSection`. This allows moving lines to the 'end' of a heading's section, not just the 'start' of it.
 - new setting `useExtendedBlockDefinition`. This controls whether all the lines in the current heading's section are included in the block to move (true) or whether only the following ones that are more deeply indented are included (false; this is the default). In both cases a block is closed by a blank line or a separator (horizontal line).
 

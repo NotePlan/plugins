@@ -126,6 +126,47 @@ export function titleAsLink(note: TNote): string {
 }
 
 /**
+ * Create internal link from title string (and optional heading string)
+ * @dwertheimer
+ * @param {string} noteTitle - title of the note
+ * @param {string | null} heading - heading inside of note (optional)
+ * @returns {string} the [[link#heading]]
+ */
+export function createLink(noteTitle: string, heading: string | null = ''): string {
+  return `[[${noteTitle}${heading && heading !== '' ? `#${heading}` : ''}]]`
+}
+
+/**
+ * Create xcallback link text from title string (and optional heading string)
+ * @dwertheimer
+ * @param {string} titleOrFilename - title of the note or the filename
+ * @param {boolean} isFilename - true if title is a filename instead of note title
+ * @param {string | null} heading - heading inside of note (optional)
+ * @returns {string} the x-callback-url string
+ */
+export function createCallbackUrl(titleOrFilename: string, isFilename: boolean = false, heading: string | null = null): string {
+  const xcb = `noteplan://x-callback-url/openNote?${isFilename ? `filename` : `noteTitle`}=`
+  // FIXME: this is working around an API bug that does not allow heading references in filename xcallbacks
+  // When @eduard fixes it, this line can be removed
+  heading = isFilename ? '' : heading
+  return `${xcb}${titleOrFilename}${heading && heading !== '' ? `#${heading}` : ''}`
+}
+
+/**
+ * Create a pretty/short link hiding an xcallback link text from title string (and optional heading string)
+ * e.g. [linkText](x-callback-url)
+ * @dwertheimer
+ * @param {string} linkText - the text to display for the link
+ * @param {string} titleOrFilename - title of the note or the filename
+ * @param {boolean} isFilename - true if title is a filename instead of note title
+ * @param {string | null} heading - heading inside of note (optional)
+ * @returns {string} the x-callback-url string
+ */
+export function createPrettyLink(linkText: string, titleOrFilename: string, isFilename: boolean = false, heading: string | null = null): string {
+  return `[${linkText}](${createCallbackUrl(titleOrFilename, isFilename, heading)})`
+}
+
+/**
  * From an array of strings, return the first string that matches the wanted string.
  * @author @jgclark
  *
@@ -194,9 +235,7 @@ export async function getTagParamsFromString(paramString: string, wantedParam: s
       // $FlowFixMe(incompatible-type)
       const paramObj: {} = await json5.parse(paramString)
       console.log(`\t--> ${String(JSON.stringify(paramObj[wantedParam]))}`)
-      return paramObj.hasOwnProperty(wantedParam)
-        ? paramObj[wantedParam]
-        : defaultValue
+      return paramObj.hasOwnProperty(wantedParam) ? paramObj[wantedParam] : defaultValue
     } catch (e) {
       console.log(`\tError parsing ${paramString} ${e}`)
     }

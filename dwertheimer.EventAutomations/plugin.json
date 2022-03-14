@@ -6,7 +6,7 @@
   "plugin.name": "🗓 Event Automations",
   "plugin.description": "Create a note from an event on your calendar or create timeblocks for items marked for today!",
   "plugin.author": "dwertheimer",
-  "plugin.version": "0.4.7",
+  "plugin.version": "0.5.0",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://noteplan.co/n/#/1EF12392-B544-4044-AC7A-428F57EB2DFC",
@@ -134,6 +134,26 @@
         "description": "If set to anything other than 23:59, no time blocks will be allowed to extend past this time. needs to be in 24 hour format (two digits, leading zero, colon in between).",
         "default": "23:59",
         "required": true
+    },
+    {
+      "type": "heading",
+      "title": "Include Links"
+    },
+    {
+      "type": "string",
+      "title": "Include links to task location in time blocks",
+      "key": "includeLinks",
+      "choices": ["OFF","[[internal#links]]","Pretty Links"],
+      "default": "OFF",
+      "description": "Appends a link to the original location of a particular task. Can create a standard internal NotePlan link, e.g. [[internal#links]], or if you want to reduce clutter, a Pretty Link which will display only a single character (see below)."
+    },
+    {
+      "type": "string",
+      "title": "Link text/char (if Pretty Links selected above)",
+      "key": "linkText",
+      "default": "📄",
+      "required": true,
+      "description": "If Pretty Links is on, this it the character the link will display."
     },
     {
       "type": "heading",
