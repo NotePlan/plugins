@@ -38,11 +38,17 @@ describe(`${FILE}`, () => {
       })
     })
     describe('using note filename', () => {
-      test('should create a link with a heading', () => {
+      // Note the following is the proper test for how it should work for filename with a heading
+      // re-enable this test when @eduard fixes API bug
+      test.skip('should create a link with a heading', () => {
         expect(g.createCallbackUrl('foo', true, 'bar')).toEqual('noteplan://x-callback-url/openNote?filename=foo#bar')
+      })
+      test('should create a link stripping the heading for the API bug workaround', () => {
+        expect(g.createCallbackUrl('foo', true, 'bar')).toEqual('noteplan://x-callback-url/openNote?filename=foo')
       })
     })
   })
+
   describe(section('createPrettyLink()'), () => {
     describe('using noteTitle', () => {
       const xcb = `noteplan://x-callback-url/openNote?noteTitle=`
@@ -57,8 +63,65 @@ describe(`${FILE}`, () => {
       })
     })
     describe('using note filename', () => {
-      test('should create a link with a heading', () => {
+      // Note the following is the proper test for how it should work for filename with a heading
+      // re-enable this test when @eduard fixes API bug
+
+      test.skip('should create a link with a heading', () => {
         expect(g.createPrettyLink('baz', 'foo', true, 'bar')).toEqual('[baz](noteplan://x-callback-url/openNote?filename=foo#bar)')
+      })
+    })
+    describe(section('stripLinkFromString()'), () => {
+      describe('using internal wikilinks', () => {
+        test('should strip a link from a string', () => {
+          expect(g.stripLinkFromString('foo [[bar]] baz')).toEqual('foo baz')
+        })
+        test('should strip a link from a string with a heading', () => {
+          expect(g.stripLinkFromString('foo [[bar#heading]] baz')).toEqual('foo baz')
+        })
+        test('should strip a link from a string with a heading and trailing text', () => {
+          expect(g.stripLinkFromString('foo [[bar#heading]] baz quux')).toEqual('foo baz quux')
+        })
+        test('should strip a link from a string with a heading and trailing text and multiple links', () => {
+          expect(g.stripLinkFromString('foo [[bar#heading]] baz [[quux]] quux')).toEqual('foo baz quux')
+        })
+        test('should strip a link from a string with a heading and trailing text and multiple links and multiple headings', () => {
+          expect(g.stripLinkFromString('foo [[bar#heading]] baz [[quux#heading]] quux')).toEqual('foo baz quux')
+        })
+        test('should strip a link from a string with a heading and trailing text and multiple links and multiple headings and multiple links', () => {
+          expect(g.stripLinkFromString('foo [[bar#heading]] baz [[quux#heading]] quux [[foo#heading]]')).toEqual('foo baz quux')
+        })
+        test('should strip a link from a string with a heading and trailing text and multiple links and multiple headings and multiple links and multiple headings', () => {
+          expect(g.stripLinkFromString('foo [[bar#heading]] baz [[quux#heading]] quux [[foo#heading]] [[bar#heading]]')).toEqual('foo baz quux')
+        })
+      })
+      describe('using full urls', () => {
+        test('should strip a link from a string', () => {
+          expect(g.stripLinkFromString('foo [bar](http://www.google.com) baz')).toEqual('foo baz')
+        })
+        test('should strip a link from a string with a heading', () => {
+          expect(g.stripLinkFromString('foo [bar](http://www.google.com#heading) baz')).toEqual('foo baz')
+        })
+        test('should strip a link from a string with a heading and trailing text', () => {
+          expect(g.stripLinkFromString('foo [bar](http://www.google.com#heading) baz quux')).toEqual('foo baz quux')
+        })
+        test('should strip a link from a string with a heading and trailing text and multiple links', () => {
+          expect(g.stripLinkFromString('foo [bar](http://www.google.com#heading) baz [bar](http://www.google.com#heading) quux')).toEqual('foo baz quux')
+        })
+        test('should strip a link from a string with a heading and trailing text and multiple links and multiple headings', () => {
+          expect(g.stripLinkFromString('foo [bar](http://www.google.com#heading) baz [bar](http://www.google.com#heading) quux')).toEqual('foo baz quux')
+        })
+        test('should strip a link from a string with a heading and trailing text and multiple links and multiple headings and multiple links', () => {
+          expect(g.stripLinkFromString('foo [bar](http://www.google.com#heading) baz [bar](http://www.google.com#heading) quux [bar](http://www.google.com#heading)')).toEqual(
+            'foo baz quux',
+          )
+        })
+        test('should strip a link from a string with a heading and trailing text and multiple links and multiple headings and multiple links and multiple headings', () => {
+          expect(
+            g.stripLinkFromString(
+              'foo [bar](http://www.google.com#heading) baz [bar](http://www.google.com#heading) quux [bar](http://www.google.com#heading) [bar](http://www.google.com#heading)',
+            ),
+          ).toEqual('foo baz quux')
+        })
       })
     })
   })
