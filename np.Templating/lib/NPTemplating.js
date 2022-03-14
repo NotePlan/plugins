@@ -550,7 +550,7 @@ export default class NPTemplating {
         if (!sessionData.hasOwnProperty(varName)) {
           sessionData[varName] = await (await this.prompt(promptMessage, options)).trim()
         }
-        if (tag.indexOf(`<%=`) >= 0 || tag.indexOf(`<%-`) >= 0) {
+        if (tag.indexOf(`<%=`) >= 0 || tag.indexOf(`<%-`) >= 0 || tag.indexOf(`<%`) >= 0) {
           sessionTemplateData = sessionTemplateData.replace(tag, `${startTag}= ${varName} ${endTag}`)
         } else {
           sessionTemplateData = sessionTemplateData.replace(tag, `<% 'prompt' -%>`)
@@ -604,7 +604,7 @@ export default class NPTemplating {
   }
 
   static isVariableTag(tag: string = ''): boolean {
-    return tag.indexOf('const') > 0 || tag.indexOf('let') > 0 || tag.indexOf('var') > 0 || tag.indexOf('.') > 0
+    return tag.indexOf('const') > 0 || tag.indexOf('let') > 0 || tag.indexOf('var') > 0 || tag.indexOf('.') > 0 || tag.indexOf('{') > 0 || tag.indexOf('}') > 0
   }
 
   static isMethod(tag: string = ''): boolean {

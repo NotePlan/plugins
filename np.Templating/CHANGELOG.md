@@ -3,14 +3,11 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
-## [1.0.0-beta.05] - 2022-02-27 (mikeerickson)
+## [1.0.0-beta.05] - 2022-03-12 (mikeerickson)
 
 - fix `__tests__/fronmatter-module.test.js` using new fixtures
-- added new weather settings
-  o location (default location based on IP address if not supplied)
-  o url (default `https://wttr.in` if not supplied)
-  o format (default `format=3` if not supplied)
 - added `np:qtn` to replace current `/qtn` and will be adding `/qtn` when `nmn.Templates` is deprecated
+- fixed several issues with prompt interface, including display multiple prompts for same key
 
 ## [1.0.0-beta.04] - 2022-02-26 (mikeerickson)
 
