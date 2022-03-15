@@ -55,13 +55,13 @@ export async function migrateQuickNotes() {
     // console.log('template: ' + quickNote.template)
     // console.log('title: ' + quickNote.title)
     // console.log('folder: ' + quickNote.folder)
-    const templateFilename = `🗒 Quick Notes/Test/${quickNote.label}`
+    const templateFilename = `🗒 Quick Notes/${quickNote.label}`
     const templateData: ?TNote = await getOrMakeNote(quickNote.template, '📋 Templates')
 
     let title = quickNote.title
     title = title.replace('{{meetingName}}', '<%- meetingName %>')
     title = title.replace('{{MeetingName}}', '<%- meetingName %>')
-    title = title.replace('{{date8601()}}', '<%- date.now() %>')
+    title = title.replace('{{date8601()}}', '<%- await date.now() %>')
     title = title.replace("{{weekDates({format:'yyyy-MM-dd'})}}", "<%- date.startOfWeek('ddd YYYY-MM-DD',null,1) %>  - <%- date.endOfWeek('ddd YYYY-MM-DD',null,1) %>")
     const metaData = {
       newNoteTitle: title,
@@ -269,7 +269,6 @@ export async function templateQuickNote(noteName: string = ''): Promise<void> {
   try {
     const content: string = Editor.content || ''
     let quickNoteTemplatesFolder: string = DataStore.settings?.quickNotesFolder || 'Quick Notes'
-    quickNoteTemplatesFolder = 'Dog'
 
     const options = await getTemplateList(quickNoteTemplatesFolder)
     if (options.length === 0) {
