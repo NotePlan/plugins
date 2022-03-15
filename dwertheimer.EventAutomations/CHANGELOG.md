@@ -2,6 +2,10 @@
 
 ## Changelog
 
+[0.5.1] 2022-03-15
+- add support for items in today's note which are not tasks
+- remove a slew of console.logs
+
 [0.5.0] 2022-03-12
 - add setting for appending link to task note
 

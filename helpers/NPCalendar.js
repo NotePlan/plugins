@@ -15,18 +15,8 @@
 // ----------------------------------------------------------------------------
 
 import { keepTodayPortionOnly } from './calendar'
-import {
-  getDateFromUnhyphenatedDateString,
-  getISODateStringFromCalendarFilename,
-  type HourMinObj,
-  printDateRange,
-  removeDateTagsAndToday,
-  todaysDateISOString,
-} from './dateTime'
-import {
-  addMinutes,
-  differenceInMinutes,
-} from 'date-fns'
+import { getDateFromUnhyphenatedDateString, getISODateStringFromCalendarFilename, type HourMinObj, printDateRange, removeDateTagsAndToday, todaysDateISOString } from './dateTime'
+import { addMinutes, differenceInMinutes } from 'date-fns'
 import { clo } from './dev'
 import { displayTitle } from './general'
 import { findEndOfActivePartOfNote } from './paragraph'
@@ -46,7 +36,6 @@ import {
 } from './timeblocks'
 import { showMessage, showMessageYesNo } from './userInput'
 
-
 export type EventsConfig = {
   eventsHeading: string,
   addMatchingEvents: ?{ [string]: mixed },
@@ -59,7 +48,7 @@ export type EventsConfig = {
   processedTagName?: string /* if not set, uses RE_EVENT_ID */,
   removeTimeBlocksWhenProcessed?: boolean,
   calendarToWriteTo?: string,
-  defaultEventDuration: number
+  defaultEventDuration: number,
 }
 
 // ----------------------------------------------------------------------------
@@ -92,11 +81,7 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
       calendarToWriteTo = config.calendarToWriteTo || ''
       console.log(`\twill write to calendar '${String(calendarToWriteTo)}'`)
     } else {
-      console.log(
-        `\trequested calendar '${String(
-          config.calendarToWriteTo,
-        )}' is not writeable. Will use default calendar instead.`,
-      )
+      console.log(`\trequested calendar '${String(config.calendarToWriteTo)}' is not writeable. Will use default calendar instead.`)
     }
   }
 
@@ -110,10 +95,7 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
     // - if a calendar note -> date of note
     // - if a project note -> today's date
     // NB: But these are ignored if there's an actual date in the time block
-    const dateContext =
-      note.type === 'Calendar' && note.filename
-        ? getISODateStringFromCalendarFilename(note.filename) ?? todaysDateISOString
-        : todaysDateISOString
+    const dateContext = note.type === 'Calendar' && note.filename ? getISODateStringFromCalendarFilename(note.filename) ?? todaysDateISOString : todaysDateISOString
 
     // Iterate over timeblocks
     for (let i = 0; i < timeblockParas.length; i++) {
@@ -128,10 +110,7 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
       // Check to see if this line has been processed before, by looking for the
       // processed tag, or an [[event:ID]]
       // $FlowFixMe[incompatible-call]
-      if (
-        (config.processedTagName !== '' && thisParaContent.match(config.processedTagName || '')) ||
-        thisParaContent.match(RE_EVENT_ID)
-      ) {
+      if ((config.processedTagName !== '' && thisParaContent.match(config.processedTagName || '')) || thisParaContent.match(RE_EVENT_ID)) {
         console.log(`\tIgnoring timeblock in '${thisParaContent}' as it has already been processed`)
       } else {
         // Go ahead and process this time block
@@ -155,10 +134,9 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
 
           // First see if this is a zero-length event, which happens when no end time
           // was specified. If we have a defaultEventDuration then use it.
-          if (differenceInMinutes(timeblockDateRange.start, timeblockDateRange.end) === 0 && config.defaultEventDuration > 0)
-          {
+          if (differenceInMinutes(timeblockDateRange.start, timeblockDateRange.end) === 0 && config.defaultEventDuration > 0) {
             const newEndDate = addMinutes(timeblockDateRange.end, config.defaultEventDuration)
-            timeblockDateRange = { start: timeblockDateRange.start, end: newEndDate}
+            timeblockDateRange = { start: timeblockDateRange.start, end: newEndDate }
           }
 
           // Strip out time + date (if present) from the timeblock line,
@@ -168,27 +146,20 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
             .replace(origTimeBlockString, '')
             .replace(/\s{2,}/g, ' ')
             .trimEnd() // take off timeblock
-          let restOfTaskWithoutDateTime =
-            removeDateTagsAndToday(restOfTaskWithoutTimeBlock)
+          let restOfTaskWithoutDateTime = removeDateTagsAndToday(restOfTaskWithoutTimeBlock)
             .replace(timeBlockString, '')
             .replace(/\s{2,}/g, ' ')
           console.log(`\tWill process time block '${timeBlockString}' for '${restOfTaskWithoutDateTime}'`)
 
           // Do we want to add this particular event?
           if (config.confirmEventCreation) {
-            const res = await showMessageYesNo(
-              `Add '${restOfTaskWithoutDateTime}' at '${timeBlockString}'?`,
-              ['Yes', 'No'],
-              'Make event from time block',
-            )
+            const res = await showMessageYesNo(`Add '${restOfTaskWithoutDateTime}' at '${timeBlockString}'?`, ['Yes', 'No'], 'Make event from time block')
             if (res === 'No') {
               continue // go to next time block
             }
           }
 
-          const eventID =
-            (await createEventFromDateRange(restOfTaskWithoutDateTime, timeblockDateRange, calendarToWriteTo)) ??
-            '<error getting eventID>'
+          const eventID = (await createEventFromDateRange(restOfTaskWithoutDateTime, timeblockDateRange, calendarToWriteTo)) ?? '<error getting eventID>'
 
           // Remove time block string (if wanted)
           let thisParaContent = thisPara.content
@@ -228,11 +199,7 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
  * @param {string} - calendarName: name of calendar to write to. Needs to be writable!
  * @return {string} Calendar ID of new event (or 'error')
  */
-async function createEventFromDateRange(
-  eventTitle: string,
-  dateRange: DateRange,
-  calendarName: string,
-): Promise<string> {
+async function createEventFromDateRange(eventTitle: string, dateRange: DateRange, calendarName: string): Promise<string> {
   // console.log(`\tStarting cEFDR with ${eventTitle} for calendar ${pref_calendarToWriteTo}`)
   // If we have a pref_calendarToWriteTo setting, then include that in the call
   const event: TCalendarItem = CalendarItem.create(
@@ -282,10 +249,10 @@ export async function getEventsForDay(
   const d = parseInt(dateStr.slice(6, 8))
   const startOfDay = Calendar.dateFrom(y, m, d, start.h, start.m, 0)
   const endOfDay = Calendar.dateFrom(y, m, d, end.h, end.m, 59)
-  console.log(`getEventsForDay: ${startOfDay.toString()} - ${endOfDay.toString()}`)
+  // console.log(`getEventsForDay: ${startOfDay.toString()} - ${endOfDay.toString()}`)
   let eArr: Array<TCalendarItem> = await Calendar.eventsBetween(startOfDay, endOfDay)
-  console.log(`\tretrieved ${eArr.length} events from NP Calendar store`)
-  
+  // console.log(`\tretrieved ${eArr.length} events from NP Calendar store`)
+
   // Filter out parts of multi-day events not in today
   eArr = keepTodayPortionOnly(eArr, getDateFromUnhyphenatedDateString(dateStr) ?? new Date())
 
@@ -293,7 +260,7 @@ export async function getEventsForDay(
   if (calendarSet.length > 0) {
     // const filteredEventArray = calendarSet.slice().filter(c => eArr.some(e => e.calendar === c))
     eArr = eArr.filter((e) => calendarSet.some((c) => e.calendar === c))
-    console.log(`\t${eArr.length} Events kept after filtering with ${calendarSet.toString()}`)
+    // console.log(`\t${eArr.length} Events kept after filtering with ${calendarSet.toString()}`)
   }
   return eArr
 }
