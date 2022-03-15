@@ -59,7 +59,7 @@ export const getOverdueTasks = (paras) => paras.filter((p) => isOverdue(p))
  * @param Paragraphs array
  * @return tasks object of tasks by type {'open':[], 'scheduled'[], 'done':[], 'cancelled':[]}
  */
-export function getTasksByType(paragraphs) {
+export function getTasksByType(paragraphs: Array<Paragraph>, ignoreIndents: boolean = false) {
   const tasks = {}
   // * @type {"open", "done", "scheduled", "cancelled", "title", "quote", "list" (= bullet), "empty" (no content) or "text" (= plain text)}
   TASK_TYPES.forEach((t) => (tasks[t] = []))
@@ -71,9 +71,9 @@ export function getTasksByType(paragraphs) {
     // clo(para, 'getTasksByType')
     // FIXME: non tasks are not going to get through this filter. What to do?
     const isTask = TASK_TYPES.indexOf(para.type) >= 0
-    if (isTask || para.indents > lastParent.indents) {
+    if (isTask || (!ignoreIndents && para.indents > lastParent.indents)) {
       const content = para.content
-      // console.log(`${index}: ${para.type}: ${para.content}`)
+      // console.log(`found: ${index}: ${para.type}: ${para.content}`)
       try {
         const hashtags = getElementsFromTask(content, HASHTAGS)
         const mentions = getElementsFromTask(content, MENTIONS)
@@ -90,9 +90,9 @@ export function getTasksByType(paragraphs) {
           indents: para.indents,
           children: [],
         }
-        // console.log(`${index}: indents:${para.indents} ${para.rawContent}`)
+        // console.log(`new: ${index}: indents:${para.indents} ${para.rawContent}`)
         task.priority = getNumericPriority(task)
-        if (lastParent.indents < para.indents) {
+        if (!ignoreIndents && lastParent.indents < para.indents) {
           lastParent.children.push(task)
         } else {
           const len = tasks[para.type].push(task)
