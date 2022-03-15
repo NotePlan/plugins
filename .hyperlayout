@@ -1,0 +1,21 @@
+{
+"COMMENT": "https://github.com/timolins/hyperlayout",
+"e": [
+ [
+   [
+    "npm run autowatch",
+    "./node_modules/.bin/jest ./**/*.test.js --silent --watchAll",
+    ""
+   ]
+ ]
+],
+"a": [
+ [
+   [
+    "npm run autowatch dwertheimer.EventAutomations",
+    "./node_modules/.bin/jest ./helpers/**/*.test.js ./dwertheimer.EventAutomations/**/*.test.js --silent --watchAll",
+    ""
+   ]
+ ]
+]
+}
