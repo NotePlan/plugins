@@ -3,6 +3,14 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.0.0-beta.08] - 2022-03-14 (mikeerickson)
+
+- Removed spurious `dog` override in "Quick Notes"
+- Fixed issue when migrating Quick Notes (inadvertent `Test` folder creation)
+- Fixed issue with promise based methods in templates not excecuting (all method calls are converted to async/await at runtime)
+  - You should not be required to have `await` keyword in templates
+  - For example:  `<%- date8601() %>` is converted to `<%- await date86010() %>` at runtime
+
 ## [1.0.0-beta.07] - 2022-03-14 (mikeerickson)
 
 - Removed `usePrompts` parameter from options as this will be on by default, thus no longer required

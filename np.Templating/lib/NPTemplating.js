@@ -363,7 +363,12 @@ export default class NPTemplating {
         for (const [key, value] of Object.entries(frontmatterAttributes)) {
           // $FlowIgnore
           const promptData = await this.processPrompts(value, sessionData, '<%', '%>')
-          const renderedData = await new TemplatingEngine(this.constructor.templateConfig).render(value, promptData.sessionData, userOptions)
+
+          // $FlowIgnore
+          const { newTemplateData, newSettingData } = await this.preProcess(value, sessionData)
+          sessionData = { ...sessionData, ...newSettingData }
+
+          const renderedData = await new TemplatingEngine(this.constructor.templateConfig).render(newTemplateData, promptData.sessionData, userOptions)
           // $FlowIgnore
           templateData = templateData.replace(`${key}: ${value}`, `${key}: ${renderedData}`)
         }
@@ -376,11 +381,11 @@ export default class NPTemplating {
       const { newTemplateData, newSettingData } = await this.preProcess(templateData, sessionData)
       sessionData = { ...sessionData, ...newSettingData }
 
-      if (usePrompts) {
-        const promptData = await this.processPrompts(templateData, sessionData, '<%', '%>')
-        templateData = promptData.sessionTemplateData
-        sessionData = promptData.sessionData
-      }
+      const promptData = await this.processPrompts(newTemplateData, sessionData, '<%', '%>')
+      templateData = promptData.sessionTemplateData
+      sessionData = promptData.sessionData
+
+      // return templateData
 
       const renderedData = await new TemplatingEngine(this.constructor.templateConfig).render(templateData, sessionData, userOptions)
 
@@ -395,7 +400,7 @@ export default class NPTemplating {
     let newSettingData = {}
     const tags = (await this.getTags(templateData)) || []
     tags.forEach((tag) => {
-      if (!tag.includes('await') && tag.includes('(')) {
+      if (!tag.includes('await') && tag.includes('(') && !tag.includes('prompt')) {
         let tempTag = tag.replace('<%-', '<%- await')
         newTemplateData = newTemplateData.replace(tag, tempTag)
 
