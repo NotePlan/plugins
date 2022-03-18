@@ -55,7 +55,7 @@ export async function migrateQuickNotes() {
     // console.log('template: ' + quickNote.template)
     // console.log('title: ' + quickNote.title)
     // console.log('folder: ' + quickNote.folder)
-    const templateFilename = `Test/🗒 Quick Notes/${quickNote.label}`
+    const templateFilename = `🗒 Quick Notes/${quickNote.label}`
     const templateData: ?TNote = await getOrMakeNote(quickNote.template, '📋 Templates')
 
     let title = quickNote.title
@@ -212,7 +212,7 @@ export async function templateQuote(): Promise<string> {
 export async function migrateTemplates(silent: boolean = false): Promise<void> {
   try {
     const templateFolder = '📋 Templates'
-    const newTemplateFolder: string = '@Templates/Test' // NotePlan.environment.templateFolder
+    const newTemplateFolder: string = '@Templates' // NotePlan.environment.templateFolder
 
     const templateNotes = DataStore.projectNotes.filter((n) => n.filename?.startsWith(templateFolder)).filter((n) => !n.title?.startsWith('_configuration'))
     const newTemplates = DataStore.projectNotes.filter((n) => n.filename?.startsWith(newTemplateFolder)).filter((n) => !n.title?.startsWith('_configuration'))
