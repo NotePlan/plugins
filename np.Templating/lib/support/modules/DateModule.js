@@ -14,6 +14,19 @@ export const DAY_NUMBER_THURSDAY = 4
 export const DAY_NUMBER_FRIDAY = 5
 export const DAY_NUMBER_SATURDAY = 6
 
+export function createDateTime(userDateString = '') {
+  return userDateString.length === 10 ? new Date(`${userDateString}T00:01:00`).toLocaleString() : new Date().toLocaleString()
+}
+
+export function format(format: string = 'YYYY-MM-DD', dateString: string = '') {
+  if (dateString === '') return ''
+  return moment(createDateTime(dateString)).format(format && format.length > 0 ? format : 'YYYY-MM-DD')
+}
+
+export function now(format: string = 'YYYY-MM-DD') {
+  return moment(new Date()).format(format && format.length > 0 ? format : 'YYYY-MM-DD')
+}
+
 export default class DateModule {
   constructor(config = {}) {
     this.config = config

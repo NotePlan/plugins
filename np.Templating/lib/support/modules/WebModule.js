@@ -5,12 +5,12 @@
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
  * -----------------------------------------------------------------------------------------*/
 
-import { getDailyQuote } from './quote'
-import { getWeather } from './weather'
-import { getAffirmation } from './affirmation'
-import { getAdvice } from './advice'
 import { getVerse } from './verse'
+import { getAdvice } from './advice'
+import { getWeather } from './weather'
 import { getService } from './service'
+import { getDailyQuote } from './quote'
+import { getAffirmation } from './affirmation'
 
 export default class WebModule {
   async advice(): Promise<string> {

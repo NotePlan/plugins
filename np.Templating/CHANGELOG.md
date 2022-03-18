@@ -3,6 +3,16 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.0.0-beta.09] - 2022-03-15 (mikeerickson)
+
+- replaced all `fetch` calls to use `fetchWithTimeout` which will handle condition where API service goes offline, returning "An error occurred accessing {serviceName} service" message if request takes longer than timeout
+- fixed "Quick Notes" migration, removing `Test` defintion
+- added `np:migrate-templates` command which can be used to inititate migration from "📋 Templates" to "@Templates"
+- added `migraQuickNotes` to end of `migrateTemplates` so the process will happen at the same time (previously you had to execute `np:migrate-quick-notes` manually)
+- restored conversion of `{{ date8601() }}` to `<%- date8601() %>`
+- added `format` and `now` helpers from DateModule (see `datemodule-module.test.js` for example)
+- added `getAttributes` and `getBody` from FrontMatterModule (see `frontmatter-module.test.js` for example)
+
 ## [1.0.0-beta.08] - 2022-03-14 (mikeerickson)
 
 - Removed spurious `dog` override in "Quick Notes"

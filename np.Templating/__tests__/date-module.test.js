@@ -3,6 +3,7 @@
 import colors from 'chalk'
 import DateModule from '../lib/support/modules/DateModule'
 import moment from 'moment-business-days'
+import { now, format } from '../lib/support/modules/DateModule'
 
 const PLUGIN_NAME = `📙 ${colors.yellow('np.Templating')}`
 const section = colors.blue
@@ -78,6 +79,18 @@ describe(`${PLUGIN_NAME}`, () => {
         dateFormat: 'YYYY-MM',
       }
       const result = new DateModule(testConfig).now()
+      expect(result).toEqual(moment(new Date()).format('YYYY-MM'))
+    })
+
+    it(`should render ${method('now')} helper using default format`, async () => {
+      const result = now()
+
+      expect(result).toEqual(moment(new Date()).format('YYYY-MM-DD'))
+    })
+
+    it(`should render ${method('now')} helper using custom format`, async () => {
+      const result = now('YYYY-MM')
+
       expect(result).toEqual(moment(new Date()).format('YYYY-MM'))
     })
 
@@ -198,6 +211,22 @@ describe(`${PLUGIN_NAME}`, () => {
 
     it(`should ${method('.format')} supplied date`, async () => {
       const result = new DateModule().format('YYYY-MM', '2021-10-16')
+
+      const assertValue = moment('2021-10-16').format('YYYY-MM')
+
+      expect(result).toEqual(assertValue)
+    })
+
+    it(`should use ${method('format')} helper with default format`, async () => {
+      const result = format(null, '2021-10-16')
+
+      const assertValue = moment('2021-10-16').format('YYYY-MM-DD')
+
+      expect(result).toEqual(assertValue)
+    })
+
+    it(`should use ${method('format')} helper with custom format`, async () => {
+      const result = format('YYYY-MM', '2021-10-16')
 
       const assertValue = moment('2021-10-16').format('YYYY-MM')
 

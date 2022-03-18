@@ -1,10 +1,13 @@
-// @flow
-
 /*-------------------------------------------------------------------------------------------
  * Copyright (c) 2022 Mike Erickson / Codedungeon.  All rights reserved.
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
  * -----------------------------------------------------------------------------------------*/
 
+// @flow
+
+import { fetchWithTimeout } from '@helpers/dev'
+
+// $FlowIgnore
 export async function getDailyQuote(quoteParams: mixed, config: { [string]: ?mixed }): Promise<string> {
   const quoteConfig: any = config.quote ?? null
   if (quoteConfig == null) {
@@ -16,10 +19,9 @@ export async function getDailyQuote(quoteParams: mixed, config: { [string]: ?mix
   const author = quoteConfig?.author // Available authors: https://premium.zenquotes.io/available-authors/
   const apiKey = quoteConfig?.zenquotesKey ?? '' // https://premium.zenquotes.io/
   const API = `https://zenquotes.io/api/`
-  const URL =
-    pref_mode === 'author' && author && apiKey ? `${API}quotes/${pref_mode}/${author}/${apiKey}` : `${API}${pref_mode}`
+  const URL = pref_mode === 'author' && author && apiKey ? `${API}quotes/${pref_mode}/${author}/${apiKey}` : `${API}${pref_mode}`
 
-  const response = await fetch(URL)
+  const response = await fetchWithTimeout(URL)
   if (response) {
     //$FlowIgnore[incompatible-call]
     const quoteLines = JSON.parse(response)

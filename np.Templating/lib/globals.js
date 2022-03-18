@@ -1,10 +1,9 @@
-// @flow
-
 /*-------------------------------------------------------------------------------------------
  * Copyright (c) 2022 Mike Erickson / Codedungeon.  All rig`hts reserved.
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
  * -----------------------------------------------------------------------------------------*/
 
+// @flow
 import { datePicker, askDateInterval } from '@helpers/userInput'
 import { get8601String, getWeekDates, formattedDateTimeTemplate } from '@plugins/dwertheimer.DateAutomations/src/dateFunctions'
 import { getFormattedTime } from '@helpers/dateTime'

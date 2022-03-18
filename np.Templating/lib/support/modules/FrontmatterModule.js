@@ -7,6 +7,18 @@
 
 import fm from 'front-matter'
 
+export function getAttributes(templateData: string = ''): any {
+  const fmData = fm(templateData)
+
+  return fmData && fmData?.attributes ? fmData.attributes : {}
+}
+
+export function getBody(templateData: string = ''): string {
+  const fmData = fm(templateData)
+
+  return fmData && fmData?.body ? fmData.body : ''
+}
+
 export default class FrontmatterModule {
   constructor(config: any = {}) {
     // $FlowFixMe
@@ -34,5 +46,17 @@ export default class FrontmatterModule {
     const fmData = fm(template)
 
     return fmData
+  }
+
+  attributes(templateData: string = ''): any {
+    const fmData = fm(templateData)
+
+    return fmData && fmData?.attributes ? fmData.attributes : {}
+  }
+
+  body(templateData: string = ''): string {
+    const fmData = fm(templateData)
+
+    return fmData && fmData?.body ? fmData.body : ''
   }
 }

@@ -1,12 +1,10 @@
-// @flow
+/*-------------------------------------------------------------------------------------------
+ * Copyright (c) 2022 Mike Erickson / Codedungeon.  All rights reserved.
+ * Licensed under the MIT license.  See LICENSE in the project root for license information.
+ * -----------------------------------------------------------------------------------------*/
+
+import affirmations from './data/affirmations'
 
 export async function getAffirmation(): Promise<string> {
-  const URL = `https://affirmations.dev`
-  try {
-    const response: any = await fetch(URL)
-    const data = JSON.parse(response)
-    return data.affirmation
-  } catch (error) {
-    return '**An error occurred accessing quoting service**'
-  }
+  return affirmations[Math.floor(Math.random() * affirmations.length)]
 }
