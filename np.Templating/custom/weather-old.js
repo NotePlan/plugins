@@ -1,5 +1,7 @@
 // @flow
 
+// WARNING: This code should not be used as it uses old NotePlan configuration, will aim to remove completely
+
 import { getTagParamsFromString, stringReplace, capitalize } from '@helpers/general'
 import { getOrMakeConfigurationSection } from '@templating/toolbox'
 
@@ -23,18 +25,7 @@ const MINIMUM_WEATHER_CONFIG = {
 }
 
 export async function getWeatherSummary(weatherParams: string): Promise<string> {
-  const weatherDescText = [
-    'showers',
-    'rain',
-    'sunny intervals',
-    'partly sunny',
-    'sunny',
-    'clear sky',
-    'cloud',
-    'snow ',
-    'thunderstorm',
-    'tornado',
-  ]
+  const weatherDescText = ['showers', 'rain', 'sunny intervals', 'partly sunny', 'sunny', 'clear sky', 'cloud', 'snow ', 'thunderstorm', 'tornado']
   const weatherDescIcons = ['🌦️', '🌧️', '🌤', '⛅', '☀️', '☀️', '☁️', '🌨️', '⛈', '🌪']
 
   // Get config settings from Template folder _configuration note
@@ -50,11 +41,9 @@ export async function getWeatherSummary(weatherParams: string): Promise<string> 
     return `Invalid Weather API in "Templates/_configuration"`
   }
 
-  const getWeatherURL = `https://api.openweathermap.org/data/2.5/onecall?lat=${encodeURIComponent(
-    latPosition.toString(),
-  )}&lon=${encodeURIComponent(longPosition.toString())}&exclude=current,hourly,minutely&units=${encodeURIComponent(
-    openWeatherUnits,
-  )}&appid=${encodeURIComponent(openWeatherAPIKey)}`
+  const getWeatherURL = `https://api.openweathermap.org/data/2.5/onecall?lat=${encodeURIComponent(latPosition.toString())}&lon=${encodeURIComponent(
+    longPosition.toString(),
+  )}&exclude=current,hourly,minutely&units=${encodeURIComponent(openWeatherUnits)}&appid=${encodeURIComponent(openWeatherAPIKey)}`
 
   let jsonIn, allWeatherData
   try {
@@ -120,11 +109,7 @@ export async function getWeather(): Promise<string> {
   let weather = null
 
   // name sure weather config exists, and it is a vaild API key (using simple length comparison)
-  if (
-    weatherConfig?.openWeatherAPIKey &&
-    weatherConfig.openWeatherAPIKey !== '... put your API key here ...' &&
-    weatherConfig.openWeatherAPIKey.length === 32
-  ) {
+  if (weatherConfig?.openWeatherAPIKey && weatherConfig.openWeatherAPIKey !== '... put your API key here ...' && weatherConfig.openWeatherAPIKey.length === 32) {
     weather = await getWeatherSummary('')
     if (weather.includes('Cannot find a valid API Key')) {
       weather = await fetch('https://wttr.in?format=3')

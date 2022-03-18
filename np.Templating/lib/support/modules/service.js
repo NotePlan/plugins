@@ -1,4 +1,14 @@
+/*-------------------------------------------------------------------------------------------
+ * Copyright (c) 2022 Mike Erickson / Codedungeon.  All rights reserved.
+ * Licensed under the MIT license.  See LICENSE in the project root for license information.
+ * -----------------------------------------------------------------------------------------*/
+
 // @flow
+
+// NOTE: Not using `@helpers/dev` here because it can't be resolved in jest tests
+//       this should serve as a strong reason to support module aliases such as `@helpers`
+//       as this is an ugly import
+import { fetchWithTimeout } from '../../../../helpers/dev'
 
 // TODO: Check status on `dot-prop` to see if supported yet (as of 2021-10-15 it was still WIP)
 // INFO: This is a test
@@ -25,13 +35,7 @@ Object.arrayReference = function (o, s) {
 }
 
 const formatData = (obj: any) => {
-  return JSON.stringify(obj, null, 2)
-    .replace(/\\/g, ' ')
-    .replace(/, /g, ',\n   ')
-    .replace(/"{/g, '{\n  ')
-    .replace(/}"/g, '\n}')
-    .replace(/ ",/g, '",')
-    .replace(/ ":/g, '":')
+  return JSON.stringify(obj, null, 2).replace(/\\/g, ' ').replace(/, /g, ',\n   ').replace(/"{/g, '{\n  ').replace(/}"/g, '\n}').replace(/ ",/g, '",').replace(/ ":/g, '":')
 }
 
 // Utilities
@@ -65,7 +69,7 @@ export async function getService(templateConfig: any, section: string = '', key:
         URL = URL.url
       }
 
-      const response: any = await fetch(URL)
+      const response: any = fetchWithTimeout(URL)
       if (!isJson(response)) {
         if (response.indexOf('error') >= 0) {
           const endpoint = isURL(section) ? ' API' : ' service'

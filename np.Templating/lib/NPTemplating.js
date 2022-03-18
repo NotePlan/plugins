@@ -134,11 +134,18 @@ export async function getTemplateList(folderName: string = ''): Promise<any> {
     return
   }
 
+  let quickNoteTemplatesFolder: string = DataStore.settings?.quickNotesFolder || 'Quick Notes'
+  quickNoteTemplatesFolder = `${templateFolder}/${quickNoteTemplatesFolder}`
+
   const options = DataStore.projectNotes
     .filter((n) => n.filename?.startsWith(templateFolder))
     .filter((n) => !n.title?.startsWith('_configuration'))
     .filter((n) => !n.title?.startsWith('_config'))
-    .map((note) => (note.title == null ? null : { label: note.title, value: note.filename }))
+    .map((note) => {
+      if (note.filename.indexOf(quickNoteTemplatesFolder)) {
+        return note.title == null ? null : { label: note.title, value: note.filename }
+      }
+    })
     .filter(Boolean)
 
   return options

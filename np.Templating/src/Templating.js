@@ -61,7 +61,7 @@ export async function migrateQuickNotes() {
     let title = quickNote.title
     title = title.replace('{{meetingName}}', '<%- meetingName %>')
     title = title.replace('{{MeetingName}}', '<%- meetingName %>')
-    // title = title.replace('{{date8601()}}', '<%- date.now() %>')
+    title = title.replace('{{date8601()}}', '<%- date8601() %>')
     title = title.replace("{{weekDates({format:'yyyy-MM-dd'})}}", "<%- date.startOfWeek('ddd YYYY-MM-DD',null,1) %>  - <%- date.endOfWeek('ddd YYYY-MM-DD',null,1) %>")
     const metaData = {
       newNoteTitle: title,
@@ -209,7 +209,7 @@ export async function templateQuote(): Promise<string> {
   }
 }
 
-export async function templateMigration(silent: boolean = false): Promise<void> {
+export async function migrateTemplates(silent: boolean = false): Promise<void> {
   try {
     const templateFolder = '📋 Templates'
     const newTemplateFolder: string = '@Templates' // NotePlan.environment.templateFolder
@@ -258,6 +258,9 @@ export async function templateMigration(silent: boolean = false): Promise<void> 
         }
       }
     })
+
+    // after migration complete, migrate "_configuration;:quickNotes"
+    migrateQuickNotes()
 
     await CommandBar.prompt('Template Migration', `${newNoteCounter} Templates Converted Successfully`)
   } catch (error) {
