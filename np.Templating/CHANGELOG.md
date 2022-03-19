@@ -3,6 +3,11 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.0.0-beta.10] - 2022-03-18 (mikeerickson)
+
+- refactored all `fetch` calls to use fetch with timeout in NP 3.4.2 or greater
+  - reverting attempt to use `fetchWithTimeout` call added in 1.0.0-beta.09 as it did not work due to unsupported `AbortController` interface which is part of Web API but not supported by NotePlan
+
 ## [1.0.0-beta.09] - 2022-03-15 (mikeerickson)
 
 - replaced all `fetch` calls to use `fetchWithTimeout` which will handle condition where API service goes offline, returning "An error occurred accessing {serviceName} service" message if request takes longer than timeout

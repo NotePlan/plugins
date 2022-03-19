@@ -3,7 +3,7 @@
   "noteplan.minAppVersion": "3.4.1",
   "plugin.id": "np.Templating",
   "plugin.name": " 📒 np.Templating",
-  "plugin.version": "1.0.0-beta.09",
+  "plugin.version": "1.0.0-beta.10",
   "plugin.description": "Templating Plugin for NotePlan",
   "plugin.author": "Mike Erickson (@codedungeon)",
   "plugin.dependencies": [],
@@ -127,7 +127,7 @@
     {
       "key": "templateLocale",
       "title": "Template Locale",
-      "description": "Locale used by np.Templating Modules (leave blank for system locale)",
+      "description": "Locale used by np.Templating Modules (leave blank for system locale)\n\nDefault: <system>",
       "type": "string",
       "default": "<system>",
       "required": false
@@ -173,7 +173,7 @@
     {
       "key": "dateFormat",
       "title": "Date Format",
-      "description": "Default date format (may be overridden in desired DateModule method)",
+      "description": "Default date format (may be overridden in desired DateModule method)\n\nDefault: short",
       "type": "string",
       "default": "short",
       "required": false
@@ -181,7 +181,7 @@
     {
       "key": "timeFormat",
       "title": "Time Format",
-      "description": "Default time format (may be overridden in desired TimeModule method)",
+      "description": "Default time format (may be overridden in desired TimeModule method)\n\nDefault: short",
       "type": "string",
       "default": "short",
       "required": false
@@ -189,7 +189,7 @@
     {
       "key": "timestampFormat",
       "title": "Timestamp Format",
-      "description": "Default format when using date.timestamp()",
+      "description": "Default format when using date.timestamp()\n\nDefault: YYYY-MM-DD h:mm A",
       "type": "string",
       "default": "YYYY-MM-DD h:mm A",
       "required": false
@@ -208,7 +208,7 @@
     {
       "key": "weatherURL",
       "title": "Weather Lookup URL",
-      "description": "Weather URL\n\nNote: default `https://wttr.in` URL if empty",
+      "description": "Weather URL\n\nDefault: https://wttr.in",
       "type": "string",
       "default": "wttr.in",
       "required": false
@@ -216,7 +216,7 @@
     {
       "key": "weatherFormat",
       "title": "Weather Lookup Format",
-      "description": "Weather Format\n\nNote: default `format=3` if not supplied",
+      "description": "Weather Format (uses https://wttr.in)\n\nDefault: format=3",
       "type": "string",
       "default": "format=3",
       "required": false
@@ -227,7 +227,7 @@
     {
       "key": "quickNotesFolder",
       "title": "Quick Notes Folder",
-      "description": "Path to location of Quick Notes folder in NotePlan Templates folder",
+      "description": "Path to location of Quick Notes folder in NotePlan @Templates folder\n\nDefault: 🗒 Quick Notes",
       "type": "string",
       "default": "🗒 Quick Notes",
       "required": false

@@ -5,10 +5,7 @@
 
 // @flow
 
-// NOTE: Not using `@helpers/dev` here because it can't be resolved in jest tests
-//       this should serve as a strong reason to support module aliases such as `@helpers`
-//       as this is an ugly import
-import { fetchWithTimeout } from '../../../../helpers/dev'
+import { clo } from '@helpers/dev'
 
 // TODO: Check status on `dot-prop` to see if supported yet (as of 2021-10-15 it was still WIP)
 // INFO: This is a test
@@ -69,7 +66,8 @@ export async function getService(templateConfig: any, section: string = '', key:
         URL = URL.url
       }
 
-      const response: any = fetchWithTimeout(URL)
+      const response: any = await fetch(URL)
+
       if (!isJson(response)) {
         if (response.indexOf('error') >= 0) {
           const endpoint = isURL(section) ? ' API' : ' service'

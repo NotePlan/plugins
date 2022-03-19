@@ -5,8 +5,6 @@
 
 // @flow
 
-import { fetchWithTimeout } from '@helpers/dev'
-
 // $FlowIgnore
 export async function getDailyQuote(quoteParams: mixed, config: { [string]: ?mixed }): Promise<string> {
   const quoteConfig: any = config.quote ?? null
@@ -21,7 +19,7 @@ export async function getDailyQuote(quoteParams: mixed, config: { [string]: ?mix
   const API = `https://zenquotes.io/api/`
   const URL = pref_mode === 'author' && author && apiKey ? `${API}quotes/${pref_mode}/${author}/${apiKey}` : `${API}${pref_mode}`
 
-  const response = await fetchWithTimeout(URL)
+  const response = await fetch(URL)
   if (response) {
     //$FlowIgnore[incompatible-call]
     const quoteLines = JSON.parse(response)
