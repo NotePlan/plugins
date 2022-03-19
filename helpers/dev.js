@@ -180,18 +180,3 @@ export function logError(pluginInfo: any, message: any = ''): string {
 export function logWarn(pluginInfo: any, message: any = ''): string {
   return log(pluginInfo, message, 'WARN')
 }
-
-export async function fetchWithTimeout(resource: string, options: any = {}): Promise<any> {
-  // default timeout 10 seconds
-  const { timeout = 10000 } = options
-
-  const controller = new AbortController()
-  const id = setTimeout(() => controller.abort(), timeout)
-  const response = await fetch(resource, {
-    ...options,
-    signal: controller.signal,
-  })
-  clearTimeout(id)
-
-  return response
-}
