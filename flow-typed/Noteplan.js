@@ -996,11 +996,18 @@ type TCalendarItem = {
    * @type {Int}
    */
   +availability: number,
-  // /**
-  // * Location of the event
-  // * Note: Not yet available but hoped for from ~3.3
-  // */
-  // +location: string,
+  /**
+  * List of attendee names or emails
+  * Note: Available from v3.5
+  * @type {[string]}
+  */
+  +attendees: [string],      
+  /**
+  * Markdown link for the given event. If you add this link to a note, NotePlan will link the event with the note and show the note in the dropdown when you click on the note icon of the event in the sidebar.
+  * Note: Available from v3.5, only events, reminders are not supported yet
+  * @type {String}
+  */
+  calendarItemLink: string,
   /**
    * Create a CalendarItem. The .endDate is optional, but recommended for events.
    * Reminders don't use this field.
