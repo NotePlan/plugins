@@ -2,6 +2,9 @@
 
 ## Changelog
 
+[0.5.2] 2022-03-17
+- fix done task still showing up (thx @pan)
+
 [0.5.1] 2022-03-15
 - add support for items in today's note which are not tasks
 - remove a slew of console.logs
