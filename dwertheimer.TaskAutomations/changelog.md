@@ -2,6 +2,9 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Ta
 
 # What's Changed in this Plugin?
 
+## [1.6.0] 2022-03-18
+- Add >today and remove @done per @pan's suggestion
+
 ## [1.5.1] 2021-12-30 @dwertheimer (thx @jgclark for all the bug reports)
 - Fixed edge case where insertion index is different for Project Notes and Calendar Notes
 
