@@ -3,6 +3,10 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.0.0-beta.11] - 2022-03-19 (jgclark)
+
+- extended `np.weather( 'format_string' )` to allow a string parameter that gives a format for the resulting weather data from wttr.in. See the documentaiton for more details of what can be returned.
+
 ## [1.0.0-beta.10] - 2022-03-18 (mikeerickson)
 
 - refactored all `fetch` calls to use fetch with timeout in NP 3.4.2 or greater
