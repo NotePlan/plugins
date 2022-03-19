@@ -22,7 +22,7 @@ import { capitalize, stringReplace } from '@helpers/general'
      - visibility: "1",
      - visibilityMiles: "0",
      - weatherCode: "248",
-     - weatherDesc: 
+     - weatherDesc:
        - [{value: "Fog"}]
      - winddir16Point: "SE",
      - winddirDegree: "140",
@@ -39,50 +39,25 @@ import { capitalize, stringReplace } from '@helpers/general'
  *   - maxtempF: "36"
  *   - mintempC: "-5"
  *   - mintempF: "12"
- * 
+ *
  * ̃Any parts of the 'current_condition' can be specified to be returned, as well as 'areaName' and the max and min temperatures.
  */
 
-const weatherDescText = [
-  'showers',
-  'rain',
-  'sunny intervals',
-  'partly sunny',
-  'sunny',
-  'clear sky',
-  'cloud',
-  'snow',
-  'thunderstorm',
-  'tornado',
-]
-const weatherDescIcons = [
-  '🌦️',
-  '🌧️',
-  '🌤',
-  '⛅',
-  '☀️',
-  '☀️',
-  '☁️',
-  '🌨️',
-  '⛈',
-  '🌪',
-]
+const weatherDescText = ['showers', 'rain', 'sunny intervals', 'partly sunny', 'sunny', 'clear sky', 'cloud', 'snow', 'thunderstorm', 'tornado']
+const weatherDescIcons = ['🌦️', '🌧️', '🌤', '⛅', '☀️', '☀️', '☁️', '🌨️', '⛈', '🌪']
 
 //------------------------------------------------------------------------------
 /**
  * Get today's weather details returned according to the user's desired format
  * from the detailed WTTR.IN service https://wttr.in/?format=j1.
  * @author @jgclark, with customisation by @dwertheimer, adapted to np.Templating by @codedungeon
- * 
+ *
  * @param {string} format - customisation for how to display the results
  * @return {string} output string
  */
 export async function getWeatherSummary(format: string): Promise<string> {
   // Set a default weatherFormat if what we were supplied was empty
-  const formatToUse = (format === '') 
-    ? 'Weather: :location: :icon: :description: :mintempC:-:maxtempC:°C :humidity:% :windspeedKmph:kmph from :winddir16Point:'
-    : format
-  log(pluginJson, `weather output format = '${format}'`)
+  const formatToUse = format === '' ? 'Weather: :location: :icon: :description: :mintempC:-:maxtempC:°C :humidity:% :windspeedKmph:kmph from :winddir16Point:' : format
 
   // A format was given, so do the detailed weather lookup
   const getWeatherURL = 'https://wttr.in/?format=j1'
@@ -95,18 +70,20 @@ export async function getWeatherSummary(format: string): Promise<string> {
         allWeatherData = JSON.parse(jsonIn)
       } catch (error) {
         logError(`'${error.message}' parsing Weather data lookup`)
-        return `_Error '${error.message}' parsing Weather data lookup._`
+        return `**Error '${error.message}' parsing Weather data lookup.**`
       }
       // clo(allWeatherData, `WeatherData: `)
 
       // Work out some specific values from harder-to-reach parts of the JSON
+      const state = allWeatherData.nearest_area[0].region[0].value
+      const country = allWeatherData.nearest_area[0].country[0].value
       const minTempF = allWeatherData.weather[0].mintempF
       const maxTempF = allWeatherData.weather[0].maxtempF
       const minTempC = allWeatherData.weather[0].mintempC
       const maxTempC = allWeatherData.weather[0].maxtempC
       const weatherDesc = allWeatherData.current_condition[0]?.weatherDesc[0]?.value ?? '(no weatherDesc found)'
       const location = allWeatherData.nearest_area[0]?.areaName[0]?.value ?? '(no nearest_area found)'
-      
+
       // see if we can fix an icon for this as well, according to returned description. Main terms are:
       // thunderstorm, drizzle, shower > rain, snow, sleet, clear sky, mist, fog, dust, tornado, overcast > clouds
       // with 'light' modifier for rain and snow
@@ -117,11 +94,11 @@ export async function getWeatherSummary(format: string): Promise<string> {
           break
         }
       }
-      log(pluginJson, weatherDesc)
-      log(pluginJson, weatherIcon)
 
       // substitute the values already calculated into the format
       const replacements = [
+        { key: ':state:', value: state },
+        { key: ':country:', value: country },
         { key: ':mintempC:', value: minTempC },
         { key: ':maxtempC:', value: maxTempC },
         { key: ':mintempF:', value: minTempF },
@@ -144,9 +121,8 @@ export async function getWeatherSummary(format: string): Promise<string> {
       logError(pluginJson, 'Null JSON returned from Weather data lookup.')
       return `_Error: got no data back from Weather data lookup._`
     }
-  }
-  catch (error) {
+  } catch (error) {
     logError(pluginJson, `'${error.message}' in weather data lookup from ${getWeatherURL}`)
-    return `_Error '${error.message}' occurred in weather data lookup from ${getWeatherURL}._`
+    return `**Error '${error.message}' occurred in weather data lookup from ${getWeatherURL}.**`
   }
 }
