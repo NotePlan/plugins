@@ -3,7 +3,7 @@
 import colors from 'chalk'
 import DateModule from '../lib/support/modules/DateModule'
 import moment from 'moment-business-days'
-import { now, format } from '../lib/support/modules/DateModule'
+import { currentDate, now, format, timestamp, date8601 } from '../lib/support/modules/DateModule'
 
 const PLUGIN_NAME = `📙 ${colors.yellow('np.Templating')}`
 const section = colors.blue
@@ -30,6 +30,11 @@ describe(`${PLUGIN_NAME}`, () => {
       const test = new Date(`${testDate}T00:01:00`).toLocaleString()
 
       expect(resultFormatted).toContain(testDate)
+    })
+
+    it(`should render ${method('.date8601')}`, async () => {
+      const result = new DateModule().date8601()
+      expect(result).toEqual(moment(new Date()).format('YYYY-MM-DD'))
     })
 
     it(`should render ${method('.now')}`, async () => {
@@ -79,18 +84,6 @@ describe(`${PLUGIN_NAME}`, () => {
         dateFormat: 'YYYY-MM',
       }
       const result = new DateModule(testConfig).now()
-      expect(result).toEqual(moment(new Date()).format('YYYY-MM'))
-    })
-
-    it(`should render ${method('now')} helper using default format`, async () => {
-      const result = now()
-
-      expect(result).toEqual(moment(new Date()).format('YYYY-MM-DD'))
-    })
-
-    it(`should render ${method('now')} helper using custom format`, async () => {
-      const result = now('YYYY-MM')
-
       expect(result).toEqual(moment(new Date()).format('YYYY-MM'))
     })
 
@@ -211,22 +204,6 @@ describe(`${PLUGIN_NAME}`, () => {
 
     it(`should ${method('.format')} supplied date`, async () => {
       const result = new DateModule().format('YYYY-MM', '2021-10-16')
-
-      const assertValue = moment('2021-10-16').format('YYYY-MM')
-
-      expect(result).toEqual(assertValue)
-    })
-
-    it(`should use ${method('format')} helper with default format`, async () => {
-      const result = format(null, '2021-10-16')
-
-      const assertValue = moment('2021-10-16').format('YYYY-MM-DD')
-
-      expect(result).toEqual(assertValue)
-    })
-
-    it(`should use ${method('format')} helper with custom format`, async () => {
-      const result = format('YYYY-MM', '2021-10-16')
 
       const assertValue = moment('2021-10-16').format('YYYY-MM')
 
@@ -399,6 +376,66 @@ describe(`${PLUGIN_NAME}`, () => {
         const result = new DateModule().previousBusinessDay('2021-12-01', 'MM/DD/YYYY')
 
         expect(result).toEqual('11/30/2021')
+      })
+    })
+
+    describe(`${block('helpers')}`, () => {
+      it(`should render ${method('now')} helper using default format`, async () => {
+        const result = now()
+
+        expect(result).toEqual(moment(new Date()).format('YYYY-MM-DD'))
+      })
+
+      it(`should render ${method('now')} helper using custom format`, async () => {
+        const result = now('YYYY-MM')
+
+        expect(result).toEqual(moment(new Date()).format('YYYY-MM'))
+      })
+
+      it(`should use ${method('format')} helper with default format`, async () => {
+        const result = format(null, '2021-10-16')
+
+        const assertValue = moment('2021-10-16').format('YYYY-MM-DD')
+
+        expect(result).toEqual(assertValue)
+      })
+
+      it(`should use ${method('format')} helper with custom format`, async () => {
+        const result = format('YYYY-MM', '2021-10-16')
+
+        const assertValue = moment('2021-10-16').format('YYYY-MM')
+
+        expect(result).toEqual(assertValue)
+      })
+
+      it(`should use ${method('timestamp')} helper`, async () => {
+        const result = new DateModule().timestamp()
+
+        const assertValue = timestamp()
+
+        expect(result).toEqual(assertValue)
+      })
+
+      it(`should use ${method('timestamp')} helper with custom format`, async () => {
+        const result = new DateModule({ timestampFormat: 'YYYY MM DD hh:mm:ss' }).timestamp()
+
+        const assertValue = timestamp('YYYY MM DD hh:mm:ss')
+
+        expect(result).toEqual(assertValue)
+      })
+
+      it(`should use ${method('date8601')} helper`, async () => {
+        const result = new DateModule().date8601()
+
+        const assertValue = date8601()
+
+        expect(result).toEqual(assertValue)
+      })
+
+      it(`should render ${method('currentDate')} helper using default format`, async () => {
+        const result = currentDate()
+
+        expect(result).toEqual(moment(new Date()).format('YYYY-MM-DD'))
       })
     })
   })

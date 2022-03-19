@@ -19,12 +19,26 @@ export function createDateTime(userDateString = '') {
 }
 
 export function format(format: string = 'YYYY-MM-DD', dateString: string = '') {
-  if (dateString === '') return ''
-  return moment(createDateTime(dateString)).format(format && format.length > 0 ? format : 'YYYY-MM-DD')
+  const dt = moment(dateString).format('YYYY-MM-DD')
+  return moment(createDateTime(dt)).format(format && format.length > 0 ? format : 'YYYY-MM-DD')
 }
 
 export function now(format: string = 'YYYY-MM-DD') {
   return moment(new Date()).format(format && format.length > 0 ? format : 'YYYY-MM-DD')
+}
+
+export function currentDate(format: string = 'YYYY-MM-DD') {
+  return moment(new Date()).format(format && format.length > 0 ? format : 'YYYY-MM-DD')
+}
+
+export function date8601() {
+  return now()
+}
+
+export function timestamp(format: string = '') {
+  const nowFormat = format.length > 0 ? format : 'YYYY-MM-DD h:mm A'
+
+  return now(nowFormat)
 }
 
 export default class DateModule {
@@ -104,6 +118,10 @@ export default class DateModule {
     }
 
     return this.isValid(formattedDate)
+  }
+
+  date8601() {
+    return this.now()
   }
 
   today(format = '') {

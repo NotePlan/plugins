@@ -10,6 +10,8 @@ import { getFormattedTime } from '@helpers/dateTime'
 import { listDaysEvents, listMatchingDaysEvents } from '@plugins/jgclark.EventHelpers/src/eventsToNotes'
 import { sweepTemplate } from '@plugins/nmn.sweep/src/sweepAll'
 import DateModule from './support/modules/DateModule'
+import { now, timestamp } from './support/modules/DateModule'
+import { time } from './support/modules/TimeModule'
 import { getAffirmation } from './support/modules/affirmation'
 import { getAdvice } from './support/modules/advice'
 import { getDailyQuote } from './support/modules/quote'
@@ -117,6 +119,22 @@ const globals = {
 
   weekDates: async (params: any): Promise<string> => {
     return await getWeekDates(JSON.stringify(params))
+  },
+
+  now: async (): Promise<string> => {
+    return now()
+  },
+
+  timestamp: async (): Promise<string> => {
+    return timestamp()
+  },
+
+  currentTime: async (): Promise<string> => {
+    return time()
+  },
+
+  currentDate: async (): Promise<string> => {
+    return now()
   },
 }
 

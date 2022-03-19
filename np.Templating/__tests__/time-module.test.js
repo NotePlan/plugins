@@ -2,10 +2,13 @@
 
 import colors from 'chalk'
 import TimeModule from '../lib/support/modules/TimeModule'
+import { currentTime, time } from '../lib/support/modules/TimeModule'
 import moment from 'moment'
 
 const PLUGIN_NAME = `📙 ${colors.yellow('np.Templating')}`
 const section = colors.blue
+const block = colors.magenta.green
+const method = colors.magenta.bold
 
 describe(`${PLUGIN_NAME}`, () => {
   describe(section('TimeModule'), () => {
@@ -59,6 +62,11 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(moment(new Date()).format('hh:mm A'))
     })
 
+    it(`should render .currentTime`, async () => {
+      const result = new TimeModule().currentTime('h:mm A')
+      expect(result).toEqual(moment(new Date()).format('h:mm A'))
+    })
+
     it(`should format supplied time`, async () => {
       const result = new TimeModule().format('hh:mm A', '2021-10-16 6:55 AM')
 
@@ -66,6 +74,24 @@ describe(`${PLUGIN_NAME}`, () => {
       const assertValue = moment(new Date(dateValue)).format('hh:mm A')
 
       expect(result).toEqual(assertValue)
+    })
+
+    describe(block(`TimeModule helpers`), () => {
+      it(`time`, () => {
+        const result = new TimeModule().now()
+
+        const assertValue = time()
+
+        expect(result).toEqual(assertValue)
+      })
+
+      it(`currentTime`, () => {
+        const result = new TimeModule().now()
+
+        const assertValue = currentTime()
+
+        expect(result).toEqual(assertValue)
+      })
     })
   })
 })

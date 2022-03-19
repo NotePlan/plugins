@@ -5,6 +5,14 @@
 
 import moment from 'moment/min/moment-with-locales'
 
+export function time(format: string = 'h:mm A') {
+  return moment(new Date()).format(format && format.length > 0 ? format : 'h:mm A')
+}
+
+export function currentTime(format: string = 'h:mm A') {
+  return moment(new Date()).format(format && format.length > 0 ? format : 'h:mm A')
+}
+
 export default class TimeModule {
   constructor(config) {
     this.config = config
@@ -51,7 +59,7 @@ export default class TimeModule {
     }
   }
 
-  now(format = '', offset = '') {
+  now(format = '') {
     const locale = this.config?.locale || 'en-US'
     const configFormat = this.config?.timeFormat || 'HH:mm A'
 
@@ -63,6 +71,10 @@ export default class TimeModule {
     }
 
     return this.isValid(formattedTime)
+  }
+
+  currentTime(format = '') {
+    return this.now(format)
   }
 
   isValid(timeObj = null) {

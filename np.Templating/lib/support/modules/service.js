@@ -5,8 +5,6 @@
 
 // @flow
 
-import { clo } from '@helpers/dev'
-
 // TODO: Check status on `dot-prop` to see if supported yet (as of 2021-10-15 it was still WIP)
 // INFO: This is a test
 

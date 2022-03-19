@@ -3,6 +3,17 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.0.0-beta.11] - 2022-03-20 (mikeerickson)
+
+- fixed DateModule `format` helper to handle dates in `mm/dd/yyyy` format from producing `Invalid Date`
+- added `date8601` and `timestamp` helpers from DateModule (see `date-module.test.js` for example)
+- added `time` helper from TimeModule (see `time-module.test.js` for example)
+- added global `now` helper (e.g. <%- now() %>, same as calling <% date.now() %>)
+- added global `date8601` helper (e.g. <%- date8601() %>, same as calling <% date.date8601() %>)
+- added global `timestamp` helper (e.g. <%- timestamp() %>, same as calling <% date.timestamp() %>)
+- added global `currentDate` helper (e.g. <%- currentDate() %>, same as calling <% date.now() %>)
+- added global `currentTime` helper (e.g. <%- currentTime() %>, same as calling <% time.now() %>)
+
 ## [1.0.0-beta.10] - 2022-03-18 (mikeerickson)
 
 - refactored all `fetch` calls to use fetch with timeout in NP 3.4.2 or greater
@@ -15,7 +26,7 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/
 - added `np:migrate-templates` command which can be used to inititate migration from "📋 Templates" to "@Templates"
 - added `migraQuickNotes` to end of `migrateTemplates` so the process will happen at the same time (previously you had to execute `np:migrate-quick-notes` manually)
 - restored conversion of `{{ date8601() }}` to `<%- date8601() %>`
-- added `format` and `now` helpers from DateModule (see `datemodule-module.test.js` for example)
+- added `format` and `now` helpers from DateModule (see `date-module.test.js` for example)
 - added `getAttributes` and `getBody` from FrontMatterModule (see `frontmatter-module.test.js` for example)
 
 ## [1.0.0-beta.08] - 2022-03-14 (mikeerickson)
