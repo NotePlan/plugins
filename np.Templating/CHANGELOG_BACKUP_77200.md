@@ -3,17 +3,22 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+<<<<<<< HEAD
 ## [1.0.0-beta.11] - 2022-03-20 (mikeerickson)
 
 - fixed DateModule `format` helper to handle dates in `mm/dd/yyyy` format from producing `Invalid Date`
 - added `date8601` and `timestamp` helpers from DateModule (see `date-module.test.js` for example)
 - added `time` helper from TimeModule (see `time-module.test.js` for example)
-- extended `np.weather( 'format_string' )` to allow a string parameter that gives a format for the resulting weather data from wttr.in. See the documentaiton for more details of what can be returned.
 - added global `now` helper (e.g. <%- now() %>, same as calling <% date.now() %>)
 - added global `date8601` helper (e.g. <%- date8601() %>, same as calling <% date.date8601() %>)
 - added global `timestamp` helper (e.g. <%- timestamp() %>, same as calling <% date.timestamp() %>)
 - added global `currentDate` helper (e.g. <%- currentDate() %>, same as calling <% date.now() %>)
 - added global `currentTime` helper (e.g. <%- currentTime() %>, same as calling <% time.now() %>)
+=======
+## [1.0.0-beta.11] - 2022-03-19 (jgclark)
+
+- extended `np.weather( 'format_string' )` to allow a string parameter that gives a format for the resulting weather data from wttr.in. See the documentaiton for more details of what can be returned.
+>>>>>>> b71630bc3a0121d11ebafc02e1251b25d73cd0fd
 
 ## [1.0.0-beta.10] - 2022-03-18 (mikeerickson)
 

@@ -8,7 +8,6 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/
 - fixed DateModule `format` helper to handle dates in `mm/dd/yyyy` format from producing `Invalid Date`
 - added `date8601` and `timestamp` helpers from DateModule (see `date-module.test.js` for example)
 - added `time` helper from TimeModule (see `time-module.test.js` for example)
-- extended `np.weather( 'format_string' )` to allow a string parameter that gives a format for the resulting weather data from wttr.in. See the documentaiton for more details of what can be returned.
 - added global `now` helper (e.g. <%- now() %>, same as calling <% date.now() %>)
 - added global `date8601` helper (e.g. <%- date8601() %>, same as calling <% date.date8601() %>)
 - added global `timestamp` helper (e.g. <%- timestamp() %>, same as calling <% date.timestamp() %>)
