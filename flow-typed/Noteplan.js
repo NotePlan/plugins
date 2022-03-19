@@ -453,6 +453,15 @@ type TDataStore = {
    * (if the there is a duplicate, it will add a number).
    */
   newNote(noteTitle: string, folder: string): ?string,
+  /**
+   * Creates a regular note using the given content and folder. Use "/" for the root folder. The content should ideally also include a note title at the top.
+   * Returns the final filename with relative folder (`folder/filename.txt` for example). Ff the there is a duplicate, it will add a number.
+   * Note: available from v3.5
+   * @param {string} 
+   * @param {string} 
+   * @return {string}
+   */
+  newNoteWithContent(content: string, folder: string): string
 }
 
 /**
