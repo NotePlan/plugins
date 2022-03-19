@@ -102,7 +102,7 @@ function findTodosInNote(note: TNote, config) {
   const todos: Array<ExtendedParagraph> = []
   if (note.paragraphs) {
     note.paragraphs.forEach((p) => {
-      if (isTodayItem(p.content)) {
+      if (isTodayItem(p.content) && p.type !== 'done') {
         // clo(p, 'found today item')
         const newP = p
         newP.type = 'open' // Pretend it's a todo even if it's text or a listitem
