@@ -4,6 +4,8 @@
  * -----------------------------------------------------------------------------------------*/
 
 // @flow
+import pluginJson from '../plugin.json'
+
 import { datePicker, askDateInterval } from '@helpers/userInput'
 import { get8601String, getWeekDates, formattedDateTimeTemplate } from '@plugins/dwertheimer.DateAutomations/src/dateFunctions'
 import { getFormattedTime } from '@helpers/dateTime'
@@ -20,6 +22,7 @@ import { getDaysInMonth } from 'date-fns'
 import { insertProgressUpdate } from '@plugins/jgclark.Summaries/src'
 import { getWeatherSummary } from './support/modules/weatherSummary'
 import { parseJSON5 } from '@helpers/general'
+import { getSetting } from '../../helpers/NPconfiguration'
 
 export async function processDate(dateParams: string, config: { [string]: ?mixed }): Promise<string> {
   // console.log(`processDate: ${dateConfig}`)
@@ -69,8 +72,9 @@ const globals = {
     return await insertProgressUpdate(params)
   },
 
-  weather: async (params: any = ''): Promise<string> => {
-    return params.length === 0 ? await getWeather() : await getWeatherSummary(params)
+  weather: async (): Promise<string> => {
+    let weatherFormat = getSetting(pluginJson['plugin.id'], 'weatherFormat', '') || ''
+    return weatherFormat === 0 ? await getWeather() : await getWeatherSummary(weatherFormat)
   },
 
   date8601: async (): Promise<string> => {

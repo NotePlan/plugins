@@ -3,6 +3,11 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.0.0-beta.14] - 2022-03-20 (mikeerickson)
+
+- updated `np:weather` command to use extended weather service and np.Templating Settings - Weather Format
+- updated `globals :: weather` command to use `np.Templating` settings
+
 ## [1.0.0-beta.13] - 2022-03-20 (mikeerickson)
 
 - refactored WebModule imports to use path instead of aliases as they break tests

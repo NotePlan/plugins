@@ -5,7 +5,7 @@
 
 // @flow
 
-export async function getWeather(): Promise<string> {
+export async function getWeather(params: string = ''): Promise<string> {
   try {
     // $FlowFixMe
     let response: any = await await fetch(`https://wttr.in?format=3`, { timeout: 3000 })

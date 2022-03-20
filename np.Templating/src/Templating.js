@@ -12,7 +12,7 @@ import { getTemplateFolder, getTemplateList } from 'NPTemplating'
 
 import { chooseOption } from '@helpers/userInput'
 import { getOrMakeNote } from '@helpers/note'
-
+import { getWeatherSummary } from '../lib/support/modules/weatherSummary'
 import { getAffirmation } from '../lib/support/modules/affirmation'
 import { getAdvice } from '../lib/support/modules/advice'
 import { getWeather } from '../lib/support/modules/weather'
@@ -27,7 +27,7 @@ export async function onUpdateOrInstall(config: any = { silent: false }): Promis
   try {
     const pluginSettingsData = await DataStore.loadJSON(`../${pluginJson['plugin.id']}/settings.json`)
     if (typeof pluginSettingsData == 'undefined') {
-      templateMigration()
+      migrateTemplates()
     }
 
     // migrate _configuration data to data/<plugin>/settings.json (only executes migration once)
@@ -152,8 +152,12 @@ export async function templateNew(): Promise<void> {
 // $FlowIgnore
 export async function templateWeather(): Promise<string> {
   try {
+    let templateConfig = DataStore.settings
+    let weatherFormat = (templateConfig && templateConfig.weatherFormat) || ''
+    weatherFormat = weatherFormat.length === 0 && templateConfig?.weatherFormat?.length > 0 ? templateConfig?.weatherFormat : weatherFormat
+
     // $FlowIgnore
-    const weather: string = await getWeather()
+    const weather = weatherFormat.length === 0 ? await getWeather() : await getWeatherSummary(weatherFormat)
 
     Editor.insertTextAtCursor(weather)
   } catch (error) {
