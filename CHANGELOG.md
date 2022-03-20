@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/codedungeon.Toolbox/README.md) for details on available commands and use case.
 
+## [3.2.3] - 2022-03-20 (@mikeerickson)
+
+- Extended `helpers/dev :: clo` to output raw value if not object (allow passing non-object without having to change method call)
+
 ## [3.2.2] - 2022-03-18 (@mikeerickson)
 
 - Removed `fetchWithTimeout` helper that was added in 3.2.1
