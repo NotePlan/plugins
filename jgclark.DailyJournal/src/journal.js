@@ -2,37 +2,21 @@
 //-----------------------------------------------------------------------------
 // Daily Journal plugin for NotePlan
 // Jonathan Clark
-// last update 29.1.2022 for v0.11.1 by @jgclark
+// last update 13.3.2022 for v0.12.0 by @jgclark
 //-----------------------------------------------------------------------------
 
-import { clo } from '../../helpers/dev'
+import pluginJson from '../plugin.json' 
+import { clo, log, logError } from '../../helpers/dev'
 import { displayTitle } from '../../helpers/general'
 import {
   getInputTrimmed,
   isInt,
   showMessage
 } from '../../helpers/userInput'
-import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
-import { applyNamedTemplate } from '../../nmn.Templates/src/index'
+import NPTemplating from 'NPTemplating'
 
 //-----------------------------------------------------------------------------
 // Settings
-// const DEFAULT_JOURNAL_OPTIONS = `  dailyJournal: {
-//     templateTitle: 'Daily Note Template',
-//     reviewSectionHeading: 'Journal',
-//     moods: '🤩 Great,🙂 Good,😇 Blessed,🥱 Tired,😫 Stressed,😤 Frustrated,😔 Low,🥵 Sick,Other',
-//     reviewQuestions: '@sleep(<number>)\\n@work(<number>)\\n@fruitveg(<int>)\\nMood:: <mood>\\nExercise:: <string>\\nGratitude:: <string>\\nGod was:: <string>\\nAlive:: <string>\\nNot Great:: <string>\\nWife:: <string>\\nRemember:: <string>'
-//   },
-// `
-// const MINIMUM_JOURNAL_OPTIONS = {
-//   reviewQuestions: 'string',
-// }
-
-// const defaultTemplateTitle = 'Daily Note Template'
-// let pref_templateTitle: string
-// let pref_reviewSectionHeading: string
-// let pref_reviewQuestions: string
-// let pref_moodArray: Array<string>
 
 const configKey = 'dailyJournal'
 
@@ -49,8 +33,6 @@ type JournalConfigType = {
  * @author @jgclark
  */
 async function getJournalSettings(): Promise<JournalConfigType> {
-  console.log(`getJournalSettings():`)
-
   // Wish the following was possible:
   // if (NotePlan.environment.version >= "3.4") {
   
@@ -62,26 +44,15 @@ async function getJournalSettings(): Promise<JournalConfigType> {
     return config
 
   } else {
-    // Read settings from _configuration, or if missing set a default
-    // Don't mind if no config section is found
-    const v1Config = await getOrMakeConfigurationSection(configKey)
-    // $FlowIgnore
-    console.log(`found config: ${JSON.stringify(v1Config)}`)
+    // No longer support reading settings from _configuration
+    logError(pluginJson, `couldn't read config for '${configKey}. Will use defaults instead.`)
+    // Will just use defaults
     const config: JournalConfigType = {
-      templateTitle: (v1Config?.templateTitle != null)
-        ? String(v1Config?.templateTitle)
-        : "Daily Note Template",
-      reviewSectionHeading: (v1Config?.reviewSectionHeading != null)
-        ? String(v1Config?.reviewSectionHeading)
-        : "Journal",
-      reviewQuestions: (v1Config?.reviewQuestions != null)
-        ? String(v1Config?.reviewQuestions) : '@sleep(<number>)\\n@work(<number>)\\n@fruitveg(<int>)\\nMood:: <mood>\\nExercise:: <string>\\nGratitude:: <string>\\nGod was:: <string>\\nAlive:: <string>\\nNot Great:: <string>\\nWife:: <string>\\nRemember:: <string>',
-      moods: (v1Config?.moods != null && v1Config?.moods !== '')
-        ? String(v1Config?.moods)
-        : "🤩 Great,🙂 Good,😇 Blessed,🥱 Tired,😫 Stressed,😤 Frustrated,😔 Low,🥵 Sick,Other"
+      templateTitle: "Daily Note Template",
+      reviewSectionHeading: "Journal",
+      reviewQuestions: '@sleep(<number>)\\n@work(<number>)\\n@fruitveg(<int>)\\nMood:: <mood>\\nExercise:: <string>\\nGratitude:: <string>\\nGod was:: <string>\\nAlive:: <string>\\nNot Great:: <string>\\nWife:: <string>\\nRemember:: <string>',
+      moods: "🤩 Great,🙂 Good,😇 Blessed,🥱 Tired,😫 Stressed,😤 Frustrated,😔 Low,🥵 Sick,Other"
     }
-    // $FlowFixMe
-    clo(config, `\t${configKey} settings from V1:`)
     return config
   }
 }
@@ -117,29 +88,15 @@ export async function dayStart(today: boolean = false): Promise<void> {
     }
   }
   // $FlowIgnore[incompatible-call]
-  console.log(`for '${displayTitle(Editor.note)}'`)
+  log(pluginJson, `for '${displayTitle(Editor.note)}'`)
   const config: JournalConfigType = await getJournalSettings()
-  // // Get config settings from Template folder _configuration note
-  // const journalConfig = await getOrMakeConfigurationSection(
-  //   'dailyJournal',
-  //   DEFAULT_JOURNAL_OPTIONS,
-  //   MINIMUM_JOURNAL_OPTIONS,
-  // )
-  // if (journalConfig == null
-  //   || Object.keys(journalConfig).length === 0) // this is how to check for empty object
-  // {
-  //   console.log(`\tWarning: Cannot find suitable 'dailyJournal' settings in Templates/_configuration note. Stopping.`)
-  //   await showMessage(
-  //     `Cannot find 'dailyJournal' settings in _configuration.`,
-  //     `Yes, I'll check my _configuration settings.`,
-  //   )
-  //   return
-  // }
-  // pref_templateTitle = (journalConfig?.templateTitle != null)
-  //   ? String(journalConfig?.templateTitle)
-  //   : defaultTemplateTitle
 
-  await applyNamedTemplate(config.templateTitle)
+  try {
+    const result = await NPTemplating.renderTemplate(config.templateTitle)
+    Editor.insertTextAtCursor(result)
+  } catch (error) {
+    logError(pluginJson, `${error} from todayStart() with template name '${config.templateTitle}'`)
+  }  
 }
 
 //------------------------------------------------------------------
@@ -151,47 +108,6 @@ export async function dayReview(): Promise<void> {
   }
 
   const config: JournalConfigType = await getJournalSettings()
-  // // Get config settings from Template folder _configuration note
-  // const journalConfig = await getOrMakeConfigurationSection(
-  //   'dailyJournal',
-  //   DEFAULT_JOURNAL_OPTIONS,
-  //   MINIMUM_JOURNAL_OPTIONS,
-  // )
-
-  // if (journalConfig == null
-  //   || Object.keys(journalConfig).length === 0) // this is how to check for empty object
-  // {
-  //   console.log(`\tWarning: Cannot find suitable 'dailyJournal' settings in Templates/_configuration note. Stopping.`)
-  //   await showMessage(
-  //     `Cannot find 'dailyJournal' settings in _configuration.`,
-  //     `Yes, I'll check my settings.`,
-  //   )
-  //   return
-  // }
-  //
-  // // Finalise config settings
-  // const pref_reviewQuestions = (journalConfig?.reviewQuestions != null)
-  //   ? String(journalConfig?.reviewQuestions)
-  //   : '@sleep(<number>)\\n@work(<number>)\\n@fruitveg(<int>)\\nMood:: <mood>\\nExercise: <string>\\nGratitude: <string>\\nGod was: <string>\\nAlive: <string>\\nNot Great: <string>\\nWife: <string>\\nRemember: <string>'
-  // pref_reviewSectionHeading = (journalConfig?.reviewSectionHeading != null)
-  //   ? String(journalConfig?.reviewSectionHeading)
-  //   : 'Journal'
-  // const pref_moods =
-  //   String(journalConfig.moods) ??
-  //   [
-  //     '🤩 Great',
-  //     '🙂 Good',
-  //     '😇 Blessed',
-  //     '🥱 Tired',
-  //     '😫 Stressed',
-  //     '😤 Frustrated',
-  //     '😡 Angry',
-  //     '😔 Low',
-  //     '🥵 Sick',
-  //     'Other',
-  //   ].join(',')
-  // pref_moodArray = pref_moods.split(',') // with a proper config system, this won't be needed
-
   const question = []
   const questionType = []
   let output = ''
@@ -201,13 +117,13 @@ export async function dayReview(): Promise<void> {
   const typeRE = new RegExp('<(.*)>')
   const questionLines = config.reviewQuestions.split('\n')
   const numQs = questionLines.length
-  console.log(`\tFound ${numQs} question lines`)
+  log(pluginJson, `\tFound ${numQs} question lines`)
   for (i = 0; i < numQs; i++) {
     // remove type indicators from the question string
     question[i] = questionLines[i].replace(/:|\(|\)|<string>|<int>|<number>|<mood>|<subheading>/g, '').trim()
     const reArray = questionLines[i].match(typeRE)
     questionType[i] = reArray?.[1] ?? '<error in question type>'
-    // console.log('\t' + i + ': ' + question[i] + ' / ' + questionType[i])
+    // log(pluginJson, '\t' + i + ': ' + question[i] + ' / ' + questionType[i])
   }
 
   try {
@@ -216,13 +132,13 @@ export async function dayReview(): Promise<void> {
       // Each question type is handled slightly differently, but in all cases a blank
       // or invalid answer means the question is ignored.
       let reviewLine = ''
-      console.log(`\tQ${i}: ${question[i]} / ${questionType[i]}`)
+      log(pluginJson, `\tQ${i}: ${question[i]} / ${questionType[i]}`)
 
       // Look to see if this question has already been put into the note with something following it.
       // If so, skip this question.
       const resAQ = returnAnsweredQuestion(question[i])
       if (resAQ !== '') {
-        console.log(`\t  Found existing Q answer '${resAQ}', so won't ask again`)
+        log(pluginJson, `\t  Found existing Q answer '${resAQ}', so won't ask again`)
         continue
       }
 
@@ -241,7 +157,7 @@ export async function dayReview(): Promise<void> {
               reviewLine = questionLines[i].replace(/<int>/, reply)
             }
           } else {
-            console.log(`\tError trying to get integer answer for question '${question[i]}'`)
+            logError(pluginJson, `Failed to get integer answer for question '${question[i]}'`)
           }
           break
         }
@@ -258,7 +174,7 @@ export async function dayReview(): Promise<void> {
               reviewLine = questionLines[i].replace(/<number>/, reply)
             }
           } else {
-            console.log(`\tError trying to get number answer for question '${question[i]}'`)
+            logError(pluginJson, `Failed to get number answer for question '${question[i]}'`)
           }
           break
         }
@@ -275,7 +191,7 @@ export async function dayReview(): Promise<void> {
               reviewLine = replyString !== '' ? questionLines[i].replace(/<string>/, replyString) : ''
             }
           } else {
-            console.log(`\tNote: null or empty string for answer to question '${question[i]}'`)
+            log(pluginJson, `Null or empty string for answer to question '${question[i]}'`)
           }
           break
         }
@@ -289,7 +205,7 @@ export async function dayReview(): Promise<void> {
           if (replyMood != null && replyMood !== '') {
             reviewLine = `${questionLines[i].replace(/<mood>/, replyMood)}`
           } else {
-            console.log('\tError trying to get mood answer')
+            logError(pluginJson, 'Failed to get mood answer')
           }
           break
         }
@@ -298,7 +214,7 @@ export async function dayReview(): Promise<void> {
           break
         }
       }
-      // console.log(`\tAnswer to '${question[i]}' = ${reviewLine[i]}`)
+      // log(pluginJson, `\tAnswer to '${question[i]}' = ${reviewLine[i]}`)
       if (reviewLine !== '') {
         output += `${reviewLine}\n`
       }
@@ -307,13 +223,13 @@ export async function dayReview(): Promise<void> {
     // Add the finished review text to the current daily note,
     // appending after the line found in config.reviewSectionHeading.
     // If this doesn't exist, then append it first.
-    console.log(`\tAppending answers to heading '${config.reviewSectionHeading}'`)
+    log(pluginJson, `\tAppending answers to heading '${config.reviewSectionHeading}'`)
     Editor.addParagraphBelowHeadingTitle(output, 'empty', config.reviewSectionHeading, true, true)
   } catch (e) {
     if (e === 'cancelled') {
-      console.log(`Asking questions cancelled by user: stopping.`)
+      log(pluginJson, `Asking questions cancelled by user: stopping.`)
     } else {
-      console.log(`Stopping, following error ${e}.`)
+      log(pluginJson, `Stopping, following error ${e}.`)
     }
   }
 }

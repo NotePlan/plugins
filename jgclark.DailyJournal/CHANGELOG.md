@@ -1,5 +1,10 @@
 # What's changed in ☀️ Daily Journal Plugin?
 
+## [0.12.0] - 2022-03-13
+### Changed
+- now uses the new **Templating** framework, not the old **Templates** system.  The 'Daily Note Template' file now lives in the new top-level 'Templates' folder listed as one of the Smart Folders.
+- removed ability to read its settings from the old _configuration note: from now on you need to use the (much easier) user interface by clicking the ⚙️ button in the Plugin Preferences pane.
+
 ## [0.11.1..0.11.4] - 2022-02-04
 ### Changed
 - now using new Configuration UI system instead of _configuration.
