@@ -3,12 +3,13 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 7.2.2022 for v0.6.0, @jgclark
+// Last updated 16.3.2022 for v0.6.1, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
 // Helper functions
 
+import pluginJson from '../plugin.json'
 import {
   // DEFAULT_SUMMARIES_CONFIG,
   gatherMatchingLines,
@@ -23,6 +24,7 @@ import {
   unhyphenatedDate,
   withinDateRange,
 } from '../../helpers/dateTime'
+import { clo, log, logWarn, logError } from '../../helpers/dev'
 import {
   quarterStartEnd,
 } from '../../helpers/NPdateTime'
@@ -54,9 +56,9 @@ export async function saveSearchPeriod(): Promise<void> {
   const config = await getSummariesSettings()
 
   // Work out time period to cover
-  const [fromDate, toDate, periodString, periodPartStr] = await getPeriodStartEndDates(`What period shall I search over?`) // FIXME:
+  const [fromDate, toDate, periodString, periodPartStr] = await getPeriodStartEndDates(`What period shall I search over?`)
   if (fromDate == null || toDate == null) {
-    console.log('error: dates could not be parsed')
+    logError(pluginJson, 'dates could not be parsed')
     return
   }
   const fromDateStr = unhyphenatedDate(fromDate) //fromDate.toISOString().slice(0, 10).replace(/-/g, '')
@@ -66,13 +68,20 @@ export async function saveSearchPeriod(): Promise<void> {
   const newTerms = await getInput(`Enter search term (or comma-separated set of terms)`, 'OK', `Search`, stringsToMatch.join(', '))
   if (typeof newTerms === 'boolean') {
     // i.e. user has cancelled
-    console.log(`User has cancelled operation.`)
+    log(pluginJson, `User has cancelled operation.`)
     return
   } else {
     stringsToMatch = Array.from(newTerms.split(','))
   }
-  console.log(
-    `\nsaveSearchPeriod: looking for '${String(stringsToMatch)}' over ${periodString} (${fromDateStr}-${toDateStr}):`,
+
+  // Stop if we don't have search terms
+  if (stringsToMatch.length === 0 || String(stringsToMatch) === '') {
+    logWarn(pluginJson, 'no search terms given; stopping.')
+    await showMessage(`No search terms given; stopping.`)
+    return
+  }
+  log(pluginJson, 
+    `saveSearchPeriod: looking for '${String(stringsToMatch)}' over ${periodString} (${fromDateStr}-${toDateStr}):`,
   )
   
   // Get array of all daily notes that are within this time period
@@ -84,7 +93,7 @@ export async function saveSearchPeriod(): Promise<void> {
     ),
   )
   if (periodDailyNotes.length === 0) {
-    console.log('  warning: no matching daily notes found')
+    logWarn(pluginJson, 'no matching daily notes found')
     await showMessage(`No matching daily notes found; stopping.`)
     return
   }
@@ -99,7 +108,7 @@ export async function saveSearchPeriod(): Promise<void> {
     // output a heading first
     outputArray.push(`### ${searchTerm}`)
     if (lines.length > 0) {
-      console.log(`  Found ${lines.length} results for ${searchTerm}`)
+      log(pluginJson, `  Found ${lines.length} results for '${searchTerm}'`)
       // form the output
       for (let i = 0; i < lines.length; i++) {
         outputArray.push(`- ${lines[i]}${context[i]}`)
@@ -110,10 +119,11 @@ export async function saveSearchPeriod(): Promise<void> {
     }
   }
 
+  const headingLine = `${config.occurrencesHeading} for ${periodString}`
+  const labelString = `🖊 Create/update note '${periodString}' in folder '${String(config.folderToStore)}'`
+  
   // Ask where to save this summary to
-  const labelString = `🖊 Create/update note '${periodString}' in folder '${String(
-    config.folderToStore,
-  )}'`
+  // log(pluginJson, `** Before chooseOption <${outputArray.length}>**`)
   const destination = await chooseOption(
     `Where should I save the results for ${periodString}?`,
     [
@@ -140,17 +150,16 @@ export async function saveSearchPeriod(): Promise<void> {
     ],
     'note',
   )
+  // log(pluginJson, '** After await chooseOption **')
 
-  const headingLine = `${config.occurrencesHeading} for ${periodString}`
-  // Ask where to send the results
   switch (destination) {
     case 'current': {
       const currentNote = Editor.note
       if (currentNote == null) {
-        console.log(`\terror: no note is open`)
+        logError(pluginJson, `no note is open`)
       } else {
-        console.log(
-          `\tappending results to current note (${currentNote.filename ?? ''})`,
+        log(pluginJson, 
+          `appending results to current note (${currentNote.filename ?? ''})`,
         )
         const insertionLineIndex = currentNote.paragraphs.length - 1
         currentNote.insertHeading(
@@ -163,7 +172,7 @@ export async function saveSearchPeriod(): Promise<void> {
           outputArray.join('\n'),
           'text',
         )
-        // console.log(`\tappended results to current note`)
+        // log(pluginJson, `\tappended results to current note`)
       }
       break
     }
@@ -174,31 +183,29 @@ export async function saveSearchPeriod(): Promise<void> {
       const existingNotes: $ReadOnlyArray<TNote> =
         DataStore.projectNoteByTitle(periodString, true, false) ?? []
 
-      console.log(
-        `\tfound ${existingNotes.length} existing summary notes for this period`,
-      )
+      log(pluginJson, `found ${existingNotes.length} existing summary notes for this period`)
 
       if (existingNotes.length > 0) {
         note = existingNotes[0] // pick the first if more than one
-        // console.log(`\tfilename of first matching note: ${displayTitle(note)}`)
+        // log(pluginJson, `filename of first matching note: ${displayTitle(note)}`)
       } else {
         // make a new note for this. NB: filename here = folder + filename
         const noteFilename = DataStore.newNote(periodString, config.folderToStore) ?? ''
         if (!noteFilename) {
-          console.log(`\tError creating new note (filename: ${noteFilename})`)
+          logError(pluginJson, `Can't create new note (filename: ${noteFilename})`)
           await showMessage('There was an error creating the new note')
           return
         }
-        console.log(`\tnewNote filename: ${noteFilename}`)
+        log(pluginJson, `newNote filename: ${noteFilename}`)
         // $FlowIgnore[incompatible-type]
         note = DataStore.projectNoteByFilename(noteFilename)
         if (note == null) {
-          console.log(`\tError getting new note (filename: ${noteFilename})`)
+          logError(pluginJson, `Can't get new note (filename: ${noteFilename})`)
           await showMessage('There was an error getting the new note ready to write')
           return
         }
       }
-      console.log(`\twriting results to the new note '${displayTitle(note)}'`)
+      log(pluginJson, `writing results to the new note '${displayTitle(note)}'`)
 
       // Do we have an existing Hashtag counts section? If so, delete it.
       // (Sets place to insert either after the found section heading, or at end of note)
@@ -206,7 +213,7 @@ export async function saveSearchPeriod(): Promise<void> {
         note,
         config.occurrencesHeading,
       )
-      // console.log(`\tinsertionLineIndex: ${String(insertionLineIndex)}`)
+      // log(pluginJson, `\tinsertionLineIndex: ${String(insertionLineIndex)}`)
       // write in reverse order to avoid having to calculate insertion point again
       note.insertParagraph(
         outputArray.join('\n'),
@@ -220,13 +227,13 @@ export async function saveSearchPeriod(): Promise<void> {
       )
       await Editor.openNoteByFilename(note.filename)
 
-      console.log(`\twritten results to note '${periodString}'`)
+      log(pluginJson, `written results to note '${periodString}'`)
       break
     }
 
     case 'log': {
-      console.log(headingLine)
-      console.log(outputArray.join('\n'))
+      log(pluginJson, headingLine)
+      log(pluginJson, outputArray.join('\n'))
       break
     }
 
@@ -234,56 +241,4 @@ export async function saveSearchPeriod(): Promise<void> {
       break
     }
   }
-}
-
-//-------------------------------------------------------------------------------
-// Return list of lines matching the specified string in the supplied set of notes
-// @param {string} notes - array of Notes to look over
-// @param {string} stringToLookFor - string to look for
-// @return [Array, Array] - array of lines with matching term, and array of 
-//   contexts for those lines (dates for daily notes; title for project notes).
-async function gatherMatchingLinesInPeriod(
-  notes,
-  stringToLookFor
-): Promise<[Array<string>, Array<Date>]> {
-  const config = await getSummariesSettings()
-  console.log(`Looking for '${stringToLookFor}' in ${notes.length} notes`)
-  CommandBar.showLoading(true, `Searching in ${notes.length} notes ...`)
-  await CommandBar.onAsyncThread()
-
-  // work out what set of mentions to look for (or ignore)
-  // console.log(`Looking for '${stringToLookFor}' in ${notes.length} relevant daily notes`)
-
-  const matches = []
-  const dates: Array<Date> = []
-  let i = 0
-  for (const n of notes) {
-    i += 1
-    const noteDate = n.date
-    // find any matches
-    const matchingParas = n.paragraphs.filter((q) => q.content.includes(stringToLookFor))
-    for (const p of matchingParas) {
-      // If the stringToLookFor is in the form of an 'attribute::' and found at the start of a line,
-      // then remove it from the output line
-      let matchLine = p.content
-      console.log(`  Found '${stringToLookFor}' in ${matchLine} (${String(noteDate)})`)
-      if (stringToLookFor.endsWith('::') && matchLine.startsWith(stringToLookFor)) {
-        matchLine = matchLine.replace(stringToLookFor, '') // NB: only removes first instance
-        // console.log(`    -> ${matchLine}`)
-      }
-      // highlight matches if requested
-      if (config.highlightOccurrences) {
-        matchLine = matchLine.replace(stringToLookFor, `==${stringToLookFor}==`)
-      }
-      // console.log(`    -> ${matchLine}`)
-      matches.push(matchLine.trim())
-      dates.push(noteDate)
-    }
-    if (i % 10 === 0) {
-      CommandBar.showLoading(true, `Searching in ${notes.length} notes ...`, (i / notes.length))
-    }
-  }
-  await CommandBar.onMainThread()
-  CommandBar.showLoading(false)
-  return [matches, dates]
 }

@@ -13,7 +13,7 @@ export { saveSearch } from './saveSearch'
 export { statsPeriod } from './stats'
 
 // allow changes in plugin.json to trigger recompilation
-import pluginJson from '../plugin.json' 
+import pluginJson from '../plugin.json'
 
 // Moving to ConfigV2
 import { migrateConfiguration, updateSettingData } from '../../helpers/NPconfiguration'

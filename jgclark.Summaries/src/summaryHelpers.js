@@ -2,9 +2,10 @@
 //-----------------------------------------------------------------------------
 // Summary commands for notes
 // Jonathan Clark
-// Last updated 7.2.2022 for v0.5.1
+// Last updated 16.3.2022 for v0.6.1 by @jgclark
 //-----------------------------------------------------------------------------
 
+import pluginJson from '../plugin.json'
 import {
   getDateStringFromCalendarFilename,
   getWeek,
@@ -17,7 +18,7 @@ import {
   weekStartEnd,
   withinDateRange,
 } from '../../helpers/dateTime'
-import { clo } from '../../helpers/dev'
+import { clo, log, logWarn, logError } from '../../helpers/dev'
 import {
   calcOffsetDate,
   quarterStartEnd,
@@ -40,34 +41,6 @@ import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configura
 
 //------------------------------------------------------------------------------
 // Get settings
-
-// export const DEFAULT_SUMMARIES_CONFIG = `  summaries: {
-//     folderToStore: 'Summaries', // folder to store any output files in
-//     foldersToExclude: ['📋 Templates', 'Summaries'], // list of folders to exlude in these commands. Note that @Trash and @Archive are always excluded
-//     headingLevel: 2, // use level 1-5 headings when writing output to notes
-//     // settings for '/countsInPeriod':
-//     hashtagCountsHeading: '#hashtag counts',
-//     mentionCountsHeading: '@mention counts',
-//     showAsHashtagOrMention: true, // or false to hide # and @ characters
-//     // In the following the includes (if specified) takes precedence over excludes ...
-//     includeHashtags: [], // e.g. ['#holiday','#jog','#commute','#webinar']
-//     excludeHashtags: [],
-//     includeMentions: [], // e.g. ['@work','@fruitveg','@words']
-//     excludeMentions: ['@done', '@repeat'],
-//     // settings for '/occurrencesInPeriod':
-//     occurrencesHeading: 'Occurrences',
-//     defaultOccurrences: ['idea', '@review', '#question'],
-//     highlightOccurrences: false, // use ==highlight== of matched occurrences in output
-//     showEmptyOccurrences: false, // if no occurrences found of this string to match, make this clear
-//     dateStyle: 'link', // where the context for an occurrence is a date, does it get appended as a 'date' using your locale, or as a NP date 'link' ('>date') or 'at' ('@date') or 'none'
-//     // Settings for '/insertProgressUpdate'
-//     progressHeading: 'Progress Update',
-//     progressHashtags: [], // e.g. ['#gym','#jog']
-//     progressMentions: [], // e.g. ['@work','@fruitveg','@sleep']
-//     // setting for '/weeklyStats':
-//     weeklyStatsDuration: 14, // number of weeks to look back
-//   },
-// `
 
 const configKey = 'summaries'
 
@@ -100,7 +73,7 @@ export type SummariesConfig = {
  * @return {SummariesConfig} object with configuration
  */
 export async function getSummariesSettings(): Promise<SummariesConfig> {
-  console.log(`Start of getSummariesSettings()`)
+  log(pluginJson, `Start of getSummariesSettings()`)
 
   // Get settings using ConfigV2
   // This is the usual way ... but it breaks when run from a Template ...
@@ -112,64 +85,35 @@ export async function getSummariesSettings(): Promise<SummariesConfig> {
     const config: SummariesConfig = v2Config
 
     // $FlowFixMe
-    clo(config, `\t${configKey} settings from V2:`)
+    // clo(config, `\t${configKey} settings from V2:`)
     return config
   
   } else {
     const v1Config = (await getOrMakeConfigurationSection(configKey)) ?? {}
-  // const result = await getOrMakeConfigurationSection(
-  //   'summaries',
-  //   DEFAULT_SUMMARIES_CONFIG
-  // )
-
-  //   if (result == null || Object.keys(result).length === 0) {
-  //   console.log(`error: expected config could not be found in the _configuration file`)
-  //   return {
-  //     folderToStore: 'Summaries',
-  //     foldersToExclude: ['📋 Templates', 'Summaries'],
-  //     headingLevel: 2,
-  //     hashtagCountsHeading: '#hashtag counts',
-  //     mentionCountsHeading: '@mention counts',
-  //     showAsHashtagOrMention: false,
-  //     includeHashtags: [],
-  //     excludeHashtags: [],
-  //     includeMentions: [],
-  //     excludeMentions: ['@done', '@repeat'],
-  //     occurrencesHeading: 'Occurrences',
-  //     defaultOccurrences: ['idea', '@review', '#question'],
-  //     highlightOccurrences: false,
-  //     showEmptyOccurrences: false,
-  //     dateStyle: 'link',
-  //     weeklyStatsDuration: undefined,
-  //     progressHeading: 'Progress Update',
-  //     progressHashtags: ['#gym','#jog'],
-  //     progressMentions: ['@work','@fruitveg','@sleep'],
-  //   }
-  // } else {
-  const config: SummariesConfig = {
-    folderToStore: castStringFromMixed(v1Config, 'folderToStore'),
-    foldersToExclude: castStringArrayFromMixed(v1Config, 'foldersToExclude'),
-    headingLevel: castHeadingLevelFromMixed(v1Config, 'headingLevel'),
-    hashtagCountsHeading: castStringFromMixed(v1Config, 'hashtagCountsHeading'),
-    mentionCountsHeading: castStringFromMixed(v1Config, 'mentionCountsHeading'),
-    showAsHashtagOrMention: castBooleanFromMixed(v1Config, 'showAsHashtagOrMention'),
-    includeHashtags: castStringArrayFromMixed(v1Config, 'includeHashtags'),
-    excludeHashtags: castStringArrayFromMixed(v1Config, 'excludeHashtags'),
-    includeMentions: castStringArrayFromMixed(v1Config, 'includeMentions'),
-    excludeMentions: castStringArrayFromMixed(v1Config, 'excludeMentions'),
-    occurrencesHeading: castStringFromMixed(v1Config, 'occurrencesHeading'),
-    defaultOccurrences: castStringArrayFromMixed(v1Config, 'defaultOccurrences'),
-    highlightOccurrences: castBooleanFromMixed(v1Config, 'highlightOccurrences'),
-    showEmptyOccurrences: castBooleanFromMixed(v1Config, 'showEmptyOccurrences'),
-    dateStyle: castStringFromMixed(v1Config, 'dateStyle'),
-    weeklyStatsDuration: castNumberFromMixed(v1Config, 'weeklyStatsDuration'),
-    progressHeading: castStringFromMixed(v1Config, 'progressHeading'),
-    progressHashtags: castStringArrayFromMixed(v1Config, 'progressHashtags'),
-    progressMentions: castStringArrayFromMixed(v1Config, 'progressMentions'),
-  }
-  // $FlowFixMe
-  clo(config, `\t${configKey} settings from V1:`)
-  return config
+    const config: SummariesConfig = {
+      folderToStore: castStringFromMixed(v1Config, 'folderToStore'),
+      foldersToExclude: castStringArrayFromMixed(v1Config, 'foldersToExclude'),
+      headingLevel: castHeadingLevelFromMixed(v1Config, 'headingLevel'),
+      hashtagCountsHeading: castStringFromMixed(v1Config, 'hashtagCountsHeading'),
+      mentionCountsHeading: castStringFromMixed(v1Config, 'mentionCountsHeading'),
+      showAsHashtagOrMention: castBooleanFromMixed(v1Config, 'showAsHashtagOrMention'),
+      includeHashtags: castStringArrayFromMixed(v1Config, 'includeHashtags'),
+      excludeHashtags: castStringArrayFromMixed(v1Config, 'excludeHashtags'),
+      includeMentions: castStringArrayFromMixed(v1Config, 'includeMentions'),
+      excludeMentions: castStringArrayFromMixed(v1Config, 'excludeMentions'),
+      occurrencesHeading: castStringFromMixed(v1Config, 'occurrencesHeading'),
+      defaultOccurrences: castStringArrayFromMixed(v1Config, 'defaultOccurrences'),
+      highlightOccurrences: castBooleanFromMixed(v1Config, 'highlightOccurrences'),
+      showEmptyOccurrences: castBooleanFromMixed(v1Config, 'showEmptyOccurrences'),
+      dateStyle: castStringFromMixed(v1Config, 'dateStyle'),
+      weeklyStatsDuration: castNumberFromMixed(v1Config, 'weeklyStatsDuration'),
+      progressHeading: castStringFromMixed(v1Config, 'progressHeading'),
+      progressHashtags: castStringArrayFromMixed(v1Config, 'progressHashtags'),
+      progressMentions: castStringArrayFromMixed(v1Config, 'progressMentions'),
+    }
+    // $FlowFixMe
+    clo(config, `\t${configKey} settings from V1:`)
+    return config
   }
 }
 
@@ -255,7 +199,7 @@ export async function getPeriodStartEndDates(
   // I.e. when in BST (=UTC+0100) it's calculating dates which are often 1 too early.
   // Get TZOffset in minutes. If positive then behind UTC; if negative then ahead.
   const TZOffset = new Date().getTimezoneOffset()
-  // console.log(`\tgetPeriodStartEndDates: period = ${period}, TZOffset = ${TZOffset}.`)
+  // log(pluginJson, `getPeriodStartEndDates: period = ${period}, TZOffset = ${TZOffset}.`)
 
   switch (period) {
     case 'lm': {
@@ -274,7 +218,7 @@ export async function getPeriodStartEndDates(
       break
     }
     case 'om': {
-      const theY = Number(await getInput('Choose year, e.g. 2021', 'OK'))
+      const theY = Number(await getInput(`Choose year, e.g. ${y}`, 'OK'))
       const theM = Number(await getInput('Choose month, (1-12)', 'OK'))
       fromDate = Calendar.addUnitToDate(Calendar.dateFrom(theY, theM, 1, 0, 0, 0), 'minute', -TZOffset) // start of this month
       toDate = Calendar.addUnitToDate(fromDate, 'month', 1) // + 1 month
@@ -310,7 +254,7 @@ export async function getPeriodStartEndDates(
       break
     }
     case 'oq': {
-      const theY = Number(await getInput('Choose year, e.g. 2021', 'OK'))
+      const theY = Number(await getInput(`Choose year, e.g. ${y}`, 'OK'))
       const theQ = Number(await getInput('Choose quarter, (1-4)', 'OK'))
       const theQStartMonth = (theQ - 1) * 3 + 1
       const [f, t] = quarterStartEnd(theQ, theY)
@@ -357,7 +301,7 @@ export async function getPeriodStartEndDates(
       break
     }
     case 'ow': { // other week
-      const theYear = Number(await getInput('Choose year, e.g. 2021', 'OK'))
+      const theYear = Number(await getInput(`Choose year, e.g. ${y}`, 'OK'))
       const weekNum = Number(await getInput('Choose week number, 1-53', 'OK'))
       // I don't know why the [from, to] form doesn't work here, but using tempObj instead
       const tempObj = weekStartEnd(weekNum, theYear)
@@ -381,7 +325,7 @@ export async function getPeriodStartEndDates(
       break
     }
     case 'oy': {
-      const theYear = Number(await getInput('Choose year, e.g. 2021', 'OK'))
+      const theYear = Number(await getInput(`Choose year, e.g. ${y}`, 'OK'))
       fromDate = Calendar.addUnitToDate(Calendar.dateFrom(theYear, 1, 1, 0, 0, 0), 'minute', -TZOffset) // start of this year
       toDate = Calendar.addUnitToDate(Calendar.dateFrom(theYear, 12, 31, 0, 0, 0), 'minute', -TZOffset)
       periodString = `${theYear}`
@@ -391,7 +335,7 @@ export async function getPeriodStartEndDates(
       periodString = `<Error: couldn't parse interval type '${period}'>`
     }
   }
-  console.log(`-> ${fromDate.toString()}, ${toDate.toString()}, ${periodString}, ${periodPartStr}`)
+  log(pluginJson, `-> ${fromDate.toString()}, ${toDate.toString()}, ${periodString}, ${periodPartStr}`)
   return [fromDate, toDate, periodString, periodPartStr]
 }
 
@@ -412,7 +356,7 @@ export async function gatherMatchingLines(
   dateStyle: string = 'link',
 ): Promise<[Array<string>, Array<string>]> {
 
-  console.log(`Looking for '${stringToLookFor}' in ${notes.length} notes`)
+  log(pluginJson, `Looking for '${stringToLookFor}' in ${notes.length} notes`)
   CommandBar.showLoading(true, `Searching in ${notes.length} notes ...`)
   await CommandBar.onAsyncThread()
 
@@ -441,19 +385,19 @@ export async function gatherMatchingLines(
       // then remove it from the output line
       if (stringToLookFor.endsWith('::') && matchLine.startsWith(stringToLookFor)) {
         matchLine = matchLine.replace(stringToLookFor, '') // NB: only removes first instance
-        // console.log(`    -> ${matchLine}`)
+        // log(pluginJson, `    -> ${matchLine}`)
       }
       // Highlight matches if requested ... but we need to be smart about this:
       // don't do so if we're in the middle of a URL or the path of a [!][link](path)
       if (highlightOccurrences && !termInURL(stringToLookFor, matchLine)) {
         matchLine = matchLine.replace(stringToLookFor, `==${stringToLookFor}==`)
       }
-      // console.log(`    -> ${matchLine}`)
+      // log(pluginJson, `    -> ${matchLine}`)
       matches.push(matchLine.trim())
       // $FlowFixMe[incompatible-call]
       noteContexts.push(noteContext)
     }
-    if (i % 10 === 0) {
+    if (i % 100 === 0) {
       CommandBar.showLoading(true, `Searching in ${notes.length} notes ...`, (i / notes.length))
     }
   }
@@ -485,12 +429,12 @@ export async function calcHashtagStatsPeriod(
     withinDateRange( getDateStringFromCalendarFilename(p.filename), fromDateStr, toDateStr )
   )
   if (periodDailyNotes.length === 0) {
-    console.log(`  warning: no matching daily notes found between ${fromDateStr} and ${toDateStr}`)
+    logWarn(pluginJson, `no matching daily notes found between ${fromDateStr} and ${toDateStr}`)
     return
   }
 
   if (includedTerms.length === 0 && excludedTerms.length === 0) {
-    console.log(`  note: no included or excluded hashtag terms passed, so returning nothing`)
+    logWarn(pluginJson, `no included or excluded hashtag terms passed, so returning nothing`)
     return
   }
 
@@ -528,23 +472,23 @@ export async function calcHashtagStatsPeriod(
         hashtagsToLookFor.length > 0 &&
         hashtagsToLookFor.filter((a) => t.startsWith(a)).length === 0
       ) {
-        // console.log(`\tIgnoring '${t}' as not on inclusion list`)
+        // log(pluginJson, `\tIgnoring '${t}' as not on inclusion list`)
       } else if (hashtagsToIgnore.filter((a) => t.startsWith(a)).length > 0) {
-        // console.log(`\tIgnoring '${t}' as on exclusion list`)
+        // log(pluginJson, `\tIgnoring '${t}' as on exclusion list`)
       } else {
         // if this is tag that finishes '/number', then sum the numbers as well
         if (t.match(/\/\d+(\.\d+)?$/)) {
           const tagParts = t.split('/')
           const k = tagParts[0] // tag
           const v = Number(tagParts[1]) // number after tag
-          // console.log(`found tagParts ${k} / ${v}`)
+          // log(pluginJson, `found tagParts ${k} / ${v}`)
           termCounts.set(k, (termCounts.get(k) ?? 0) + 1)
           termSumTotals.set(k, (termSumTotals.get(k) ?? 0) + v)
-          // console.log(`  ${k} -> ${termSumTotals.get(k)} from ${termCounts.get(k)}`)
+          // log(pluginJson, `  ${k} -> ${termSumTotals.get(k)} from ${termCounts.get(k)}`)
         } else {
           // just save this to the main map
           termCounts.set(t, (termCounts.get(t) ?? 0) + 1)
-          // console.log(`  ${t} -> ${termCounts.get(t)}`)
+          // log(pluginJson, `  ${t} -> ${termCounts.get(t)}`)
         }
       }
       lastTag = t
@@ -578,12 +522,12 @@ export async function calcMentionStatsPeriod(
   )
 
   if (periodDailyNotes.length === 0) {
-    console.log('  warning: no matching daily notes found')
+    logWarn(pluginJson, 'no matching daily notes found')
     return
   }
 
   if (includedTerms.length === 0 && excludedTerms.length ===0) {
-    console.log(`  note: no included or excluded mention terms passed, so returning nothing`)
+    logWarn(pluginJson, `no included or excluded mention terms passed, so returning nothing`)
     return
   }
 
@@ -622,9 +566,9 @@ export async function calcMentionStatsPeriod(
         mentionsToLookFor.length > 0 &&
         mentionsToLookFor.filter((a) => m.startsWith(a)).length === 0
       ) {
-        // console.log(`\tIgnoring '${m}' as not on inclusion list`)
+        // log(pluginJson, `\tIgnoring '${m}' as not on inclusion list`)
       } else if (mentionsToIgnore.filter((a) => m.startsWith(a)).length > 0) {
-        // console.log(`\tIgnoring '${m} as on exclusion list`)
+        // log(pluginJson, `\tIgnoring '${m} as on exclusion list`)
       } else {
         // if this is menion that finishes (number), then
         if (m.match(/\(\d+(\.\d+)?\)$/)) {
@@ -633,11 +577,11 @@ export async function calcMentionStatsPeriod(
           const v = Number(mentionParts[1].slice(0, -1)) // chop off final ')' character
           termCounts.set(k, (termCounts.get(k) ?? 0) + 1)
           termSumTotals.set(k, (termSumTotals.get(k) ?? 0) + v)
-          // console.log(`found mentionParts ${k} / ${v} in ${displayTitle(n)} -> ${String(termSumTotals.get(k))} from ${String(termCounts.get(k))}`)
+          // log(pluginJson, `found mentionParts ${k} / ${v} in ${displayTitle(n)} -> ${String(termSumTotals.get(k))} from ${String(termCounts.get(k))}`)
         } else {
           // just save this to the main map
           termCounts.set(m, (termCounts.get(m) ?? 0) + 1)
-          // console.log(`  -> ${m} = ${String(termCounts.get(m))}`)
+          // log(pluginJson, `  -> ${m} = ${String(termCounts.get(m))}`)
         }
       }
       lastMention = m

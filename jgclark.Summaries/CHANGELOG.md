@@ -1,9 +1,13 @@
 # What's Changed in 🗃 Summaries plugin?
 
+## [0.6.1] - 2022-03-14
+### Changed
+- switched to newer logging framework
+
 ## [0.6.0] - 2022-02-07
 ### Changed
 - uses the new Configuration interface available from NotePlan v3.4. There is an automatic one-off migration of settings from your _configuration note.
-- use newer style of dialog boxes (available from v3.3.1)
+- use newer style of dialog boxes (available from NotePlan v3.3.1)
 
 ### Fixed
 - fix to /weeklyStats when run over a year boundary

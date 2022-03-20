@@ -7,7 +7,7 @@
 	"plugin.icon": "",
 	"plugin.author": "Jonathan Clark",
 	"plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
-	"plugin.version": "0.6.0",
+	"plugin.version": "0.6.1",
 	"plugin.dependencies": [],
 	"plugin.script": "script.js",
 	"plugin.isRemote": "false",
@@ -41,11 +41,6 @@
 			"alias": ["week", "stats", "count"],
 			"description": "Generate stats for tags and mentions for all weeks this year, and write CSV to a note",
 			"jsFunction": "weeklyStats"
-		},
-		{
-			"name": "summ:install",
-			"description": "Test installer for Summaries plugin",
-			"jsFunction": "onUpdateOrInstall"
 		}
   ],
 	"plugin.settings": [
