@@ -2,7 +2,7 @@
 
 import pluginJson from '@plugins/np.Templating/plugin.json'
 import { clo, log, logWarn, logError } from '@helpers/dev'
-import { capitalize, stringReplace } from '@helpers/general'
+import { stringReplace } from '@helpers/general'
 
 /**
  * Using WTTR.IN for lookups. It appears to have IP geolocation, as well as manual methods.
@@ -30,6 +30,8 @@ import { capitalize, stringReplace } from '@helpers/general'
      - windspeedMiles: "4"
  * - nearest_area [{single}]
      - [{areaName}]
+     - [{region}]
+     - [{country}]
  * - request [{single}]
  * - weather [{many}] -- appears to cover today, tomorrow, next day
  *   - astronomy {}
@@ -41,9 +43,10 @@ import { capitalize, stringReplace } from '@helpers/general'
  *   - mintempF: "12"
  *
  * ̃Any parts of the 'current_condition' can be specified to be returned, as well as 'areaName' and the max and min temperatures.
+ * For fuller details see https://github.com/chubin/wttr.in#different-output-formats.
  */
 
-const weatherDescText = ['showers', 'rain', 'sunny intervals', 'partly sunny', 'sunny', 'clear sky', 'cloud', 'snow', 'thunderstorm', 'tornado']
+const weatherDescTexts = ['showers', 'rain', 'sunny intervals', 'partly', 'sunny', 'clear sky', 'cloud', 'snow', 'thunderstorm', 'tornado']
 const weatherDescIcons = ['🌦️', '🌧️', '🌤', '⛅', '☀️', '☀️', '☁️', '🌨️', '⛈', '🌪']
 
 //------------------------------------------------------------------------------
@@ -57,7 +60,7 @@ const weatherDescIcons = ['🌦️', '🌧️', '🌤', '⛅', '☀️', '☀️
  */
 export async function getWeatherSummary(format: string): Promise<string> {
   // Set a default weatherFormat if what we were supplied was empty
-  const formatToUse = format === '' ? 'Weather: :location: :icon: :description: :mintempC:-:maxtempC:°C :humidity:% :windspeedKmph:kmph from :winddir16Point:' : format
+  const formatToUse = format === '' ? 'Weather: :icon: :description: :mintempC:-:maxtempC:°C :humidity:% :windspeedKmph:kmph from :winddir16Point: (:areaName:, :region:)' : format
 
   // A format was given, so do the detailed weather lookup
   const getWeatherURL = 'https://wttr.in/?format=j1'
@@ -75,36 +78,37 @@ export async function getWeatherSummary(format: string): Promise<string> {
       // clo(allWeatherData, `WeatherData: `)
 
       // Work out some specific values from harder-to-reach parts of the JSON
-      const state = allWeatherData.nearest_area[0].region[0].value
-      const country = allWeatherData.nearest_area[0].country[0].value
+      const areaName = allWeatherData.nearest_area[0]?.areaName[0]?.value ?? '(no nearest_area returned)'
+      const region = allWeatherData.nearest_area[0].region[0].value ?? '(no region returned)'
+      const country = allWeatherData.nearest_area[0].country[0].value ?? '(no country returned)'
       const minTempF = allWeatherData.weather[0].mintempF
       const maxTempF = allWeatherData.weather[0].maxtempF
       const minTempC = allWeatherData.weather[0].mintempC
       const maxTempC = allWeatherData.weather[0].maxtempC
       const weatherDesc = allWeatherData.current_condition[0]?.weatherDesc[0]?.value ?? '(no weatherDesc found)'
-      const location = allWeatherData.nearest_area[0]?.areaName[0]?.value ?? '(no nearest_area found)'
 
       // see if we can fix an icon for this as well, according to returned description. Main terms are:
       // thunderstorm, drizzle, shower > rain, snow, sleet, clear sky, mist, fog, dust, tornado, overcast > clouds
       // with 'light' modifier for rain and snow
       let weatherIcon = ''
-      for (let i = 0; i < weatherDescText.length; i++) {
-        if (weatherDesc.match(weatherDescText[i])) {
+      for (let i = 0; i < weatherDescTexts.length; i++) {
+        if (weatherDesc.toLowerCase().match(weatherDescTexts[i])) {
           weatherIcon = weatherDescIcons[i]
+          log(pluginJson, `Found icon matching text ${weatherDescTexts[i]}`)
           break
         }
       }
 
       // substitute the values already calculated into the format
       const replacements = [
-        { key: ':state:', value: state },
+        { key: ':areaName:', value: areaName },
+        { key: ':region:', value: region },
         { key: ':country:', value: country },
         { key: ':mintempC:', value: minTempC },
         { key: ':maxtempC:', value: maxTempC },
         { key: ':mintempF:', value: minTempF },
         { key: ':maxtempF:', value: maxTempF },
-        { key: ':description:', value: capitalize(weatherDesc) },
-        { key: ':location:', value: location },
+        { key: ':description:', value: weatherDesc },
         { key: ':icon:', value: weatherIcon },
       ]
       let output = stringReplace(format, replacements)
