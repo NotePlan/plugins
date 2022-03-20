@@ -65,7 +65,7 @@ export default class TemplatingEngine {
 
     // WebModule methods are async, will be converted to synchronous methods below
     // need to handle async calls before render templates as templating method are synchronous
-    const weather = templateData.includes('web.weather') ? await new WebModule().weather() : ''
+    const weather = templateData.includes('web.weather') ? await new WebModule().weather : ''
     const quote = templateData.includes('web.quote') ? await new WebModule().quote() : ''
     const affirmation = templateData.includes('web.affirmation') ? await new WebModule().affirmation() : ''
     const advice = templateData.includes('web.advice') ? await new WebModule().advice() : ''
@@ -99,8 +99,9 @@ export default class TemplatingEngine {
         verse: () => {
           return verse
         },
-        weather: () => {
-          return weather.replace('\n', '')
+        weather: (params = '') => {
+          // $FlowFixMe
+          return weather(this.templateConfig, params)
         },
         services: (url = '', key = '') => {
           // $FlowFixMe

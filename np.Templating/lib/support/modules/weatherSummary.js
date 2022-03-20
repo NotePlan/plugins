@@ -75,7 +75,6 @@ export async function getWeatherSummary(format: string): Promise<string> {
         logError(`'${error.message}' parsing Weather data lookup`)
         return `**Error '${error.message}' parsing Weather data lookup.**`
       }
-      // clo(allWeatherData, `WeatherData: `)
 
       // Work out some specific values from harder-to-reach parts of the JSON
       const areaName = allWeatherData.nearest_area[0]?.areaName[0]?.value ?? '(no nearest_area returned)'
@@ -94,7 +93,6 @@ export async function getWeatherSummary(format: string): Promise<string> {
       for (let i = 0; i < weatherDescTexts.length; i++) {
         if (weatherDesc.toLowerCase().match(weatherDescTexts[i])) {
           weatherIcon = weatherDescIcons[i]
-          log(pluginJson, `Found icon matching text ${weatherDescTexts[i]}`)
           break
         }
       }

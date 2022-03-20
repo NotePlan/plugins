@@ -3,7 +3,15 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
-## [1.0.0-beta.11] - 2022-03-20 (mikeerickson)
+## [1.0.0-beta.12] - 2022-03-20 (mikeerickson)
+
+### Extended Weather Features
+
+- Added `weatherFormat` settings object which contains the default format string to be used when using default weather `<%- web.weather() %>`
+- If a format string has been supplied such as `<%- web.weather( ':icon: :description: :FeelsLikeF:°F (:areaName:, :region:)' ) %>`, it will override settings `weatherFormat` value
+- Updated `np:weather` command to use settings `weatherFormat` value
+
+## [1.0.0-beta.11] - 2022-03-19 (mikeerickson)
 
 - fixed DateModule `format` helper to handle dates in `mm/dd/yyyy` format from producing `Invalid Date`
 - added `date8601` and `timestamp` helpers from DateModule (see `date-module.test.js` for example)

@@ -11,6 +11,8 @@ import { getWeather } from './weather'
 import { getService } from './service'
 import { getDailyQuote } from './quote'
 import { getAffirmation } from './affirmation'
+import { getWeatherSummary } from './weatherSummary'
+import { clo } from '@helpers/dev'
 
 export default class WebModule {
   async advice(): Promise<string> {
@@ -25,8 +27,11 @@ export default class WebModule {
     return await getDailyQuote()
   }
 
-  async weather(): Promise<string> {
-    return await getWeather()
+  async weather(templateConfig: any, params: string = ''): Promise<string> {
+    let weatherFormat = params.length > 0 ? params : ''
+    weatherFormat = weatherFormat.length === 0 && templateConfig?.weatherFormat?.length > 0 ? templateConfig?.weatherFormat : weatherFormat
+
+    return weatherFormat.length === 0 ? await getWeather() : await getWeatherSummary(weatherFormat)
   }
 
   async verse(): Promise<string> {

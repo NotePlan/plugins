@@ -198,27 +198,11 @@
       "type": "separator"
     },
     {
-      "key": "weatherLocation",
-      "title": "Weather Lookup Location",
-      "description": "Desired location where weather lookup will be used\n\nNote: current location is empty\n\nUse following command to display weather in template\n\n<%- weather(location?:string, url?.string, format?.string) %>",
+      "key": "weatherFormat",
+      "title": "Weather Format",
+      "description": "Note: Leave blank for default weather response\n\nYou can customize the weather output by providing a custom format string which may include placeholders for different pieces from weather response\n\nRefer to np.Templating documention for list of available placeholders.",
       "type": "string",
       "default": "",
-      "required": false
-    },
-    {
-      "key": "weatherURL",
-      "title": "Weather Lookup URL",
-      "description": "Weather URL\n\nDefault: https://wttr.in",
-      "type": "string",
-      "default": "wttr.in",
-      "required": false
-    },
-    {
-      "key": "weatherFormat",
-      "title": "Weather Lookup Format",
-      "description": "Weather Format (uses https://wttr.in)\n\nDefault: format=3",
-      "type": "string",
-      "default": "format=3",
       "required": false
     },
     {
