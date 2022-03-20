@@ -122,8 +122,9 @@ export async function moveParas(): Promise<void> {
 
   // Get paragraphs for the selection or block
   const parasInBlock: Array<TParagraph> = (lastSelParaIndex != firstSelParaIndex)
-      ? selectedParagraphs
-      : getParagraphBlock(note, firstSelParaIndex, config.useExtendedBlockDefinition)
+    // $FlowIgnore[incompatible-type]  
+    ? selectedParagraphs
+    : getParagraphBlock(note, firstSelParaIndex, config.useExtendedBlockDefinition)
 
   // If this is a calendar note we've moving from, and the user wants to
   // create a date backlink, then append backlink to the first selectedPara in parasInBlock
