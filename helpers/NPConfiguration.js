@@ -9,6 +9,7 @@
  * --------------------------------------------------------------------------------------------------------------------------*/
 
 import json5 from 'json5'
+import { clo } from '@helpers/dev'
 
 // this is the only possible location for _configuration note
 const STATIC_TEMPLATE_FOLDER = '📋 Templates'
@@ -199,17 +200,14 @@ export function updateSettingData(pluginJsonData: any): number {
   return updateResult
 }
 
-export function getSetting(pluginName?: string = '', key: string = '', defaultValue?: { [string]: mixed }): any | null {
-  // this method is not working as I have to figure out a way to get the path to data directory
-  console.log('getSetting')
-  return __dirname
-
-  // const pluginSettingsData = DataStore.loadJSON(`../../${pluginName}/settings.json`)
-  // return pluginSettingsData?.[key] ? pluginSettingsData[key] : defaultValue
+export function getSetting(pluginName?: string = '', key: string = '', defaultValue?: any): any | null {
+  let settings = DataStore.loadJSON(`../../data/${pluginName}/settings.json`)
+  return typeof settings === 'object' && settings.hasOwnProperty(key) ? settings[key] : defaultValue
 }
 
-export function getSettings(pluginName?: string = '', defaultValue?: { [string]: mixed }): any | null {
-  return null
+export function getSettings(pluginName?: string = '', defaultValue?: any = {}): any | null {
+  let settings = DataStore.loadJSON(`../../data/${pluginName}/settings.json`)
+  return typeof settings === 'object' ? settings : defaultValue
 }
 
 /**
