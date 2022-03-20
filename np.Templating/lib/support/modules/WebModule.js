@@ -12,7 +12,6 @@ import { getService } from './service'
 import { getDailyQuote } from './quote'
 import { getAffirmation } from './affirmation'
 import { getWeatherSummary } from './weatherSummary'
-import { clo } from '@helpers/dev'
 
 export default class WebModule {
   async advice(): Promise<string> {

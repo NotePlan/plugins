@@ -1,8 +1,8 @@
 // @flow
 
-import pluginJson from '@plugins/np.Templating/plugin.json'
-import { clo, log, logWarn, logError } from '@helpers/dev'
-import { stringReplace } from '@helpers/general'
+import pluginJson from '../../../plugin.json'
+import { clo, log, logWarn, logError } from '../../../../helpers/dev'
+import { stringReplace } from '../../../../helpers/general'
 
 /**
  * Using WTTR.IN for lookups. It appears to have IP geolocation, as well as manual methods.

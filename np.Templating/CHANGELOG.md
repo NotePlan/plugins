@@ -3,6 +3,11 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.0.0-beta.13] - 2022-03-20 (mikeerickson)
+
+- refactored WebModule imports to use path instead of aliases as they break tests
+- refactored weahterSummary imports to use path instead of aliases as they break tests
+
 ## [1.0.0-beta.12] - 2022-03-20 (mikeerickson)
 
 ### Extended Weather Features

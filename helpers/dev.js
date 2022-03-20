@@ -55,7 +55,11 @@ export function JSP(obj: { [string]: mixed }, space: string | number = 2): strin
  * @example clo(obj, 'myObj:')
  */
 export function clo(obj: { [string]: mixed }, preamble: string = '', space: string | number = 2): void {
-  console.log(`${preamble !== '' ? `${preamble} ` : ''}${JSP(obj, space)}`)
+  if (typeof obj !== 'object') {
+    console.log(`${obj} ${preamble}`)
+  } else {
+    console.log(`${preamble !== '' ? `${preamble} ` : ''}${JSP(obj, space)}`)
+  }
 }
 
 export function dump(pluginInfo: any, obj: { [string]: mixed }, preamble: string = '', space: string | number = 2): void {
