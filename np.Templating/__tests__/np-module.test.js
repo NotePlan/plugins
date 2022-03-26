@@ -10,7 +10,7 @@ const method = colors.magenta.bold
 
 describe(`${PLUGIN_NAME}`, () => {
   describe(section('Templating Editor Module'), () => {
-    it.only(`should execute ${method('.insertTextAtCursor')} method`, async () => {
+    it(`should execute ${method('.insertTextAtCursor')} method`, async () => {
       const spy = jest.spyOn(Editor, 'insertTextAtCursor')
       let result = await Editor.insertTextAtCursor('hello world')
 
@@ -31,11 +31,5 @@ describe(`${PLUGIN_NAME}`, () => {
     it.skip(`should create new note from template`, async () => {
       expect(true).toBe(true)
     })
-
-    // it('should determine if tag is templating module', async () => {
-    //   const result = new NPTemplating().isTemplateModule('date.now()')
-
-    //   expect(result).toBe(true)
-    // })
   })
 })

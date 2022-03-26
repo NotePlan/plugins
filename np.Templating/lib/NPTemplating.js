@@ -370,7 +370,6 @@ export default class NPTemplating {
         const frontmatterAttributes = new FrontmatterModule().render(templateData)?.attributes || {}
         for (const [key, value] of Object.entries(frontmatterAttributes)) {
           let frontMatterValue = value
-
           // $FlowIgnore
           const promptData = await this.processPrompts(value, sessionData, '<%', '%>')
           frontMatterValue = promptData.sessionTemplateData
@@ -550,7 +549,8 @@ export default class NPTemplating {
 
   static async processPrompts(templateData: string, userData: any, startTag: string = '<%', endTag: string = '%>'): Promise<any> {
     const sessionData = { ...userData }
-    const methods = Object.keys(userData.methods)
+    const methods = userData.hasOwnProperty('methods') ? Object.keys(userData?.methods) : []
+
     let sessionTemplateData = templateData.replace('<%@', '%<= prompt')
     const tags = await this.getTags(sessionTemplateData)
 

@@ -19,7 +19,7 @@ import { getWeather } from '../lib/support/modules/weather'
 import { getDailyQuote } from '../lib/support/modules/quote'
 import { getVerse, getVersePlain } from '../lib/support/modules/verse'
 import { getConfiguration, initConfiguration, migrateConfiguration, updateSettingData } from '../../helpers/NPconfiguration'
-import { log, logError } from '@helpers/dev'
+import { log, logError, clo } from '@helpers/dev'
 
 import pluginJson from '../plugin.json'
 
@@ -288,13 +288,17 @@ export async function templateQuickNote(noteName: string = ''): Promise<void> {
       const isFrontmatter = new FrontmatterModule().isFrontmatterTemplate(templateData)
 
       // $FlowIgnore
-      const renderedData = await NPTemplating.renderTemplate(selectedTemplate, null, { usePrompts: true, qtn: true })
+      let renderedData = await NPTemplating.renderTemplate(selectedTemplate, null, { usePrompts: true, qtn: true })
 
       if (isFrontmatter) {
+        // renderedData = NPTemplating.processPrompts(templateData, {}, '<%', '%>')
         const frontmatterData = new FrontmatterModule().render(renderedData)
         const frontmatterAttributes = frontmatterData?.attributes || {}
         const data = { frontmatter: frontmatterAttributes }
-        const frontmatterBody = await NPTemplating.render(frontmatterData?.body, data, { usePrompts: true })
+        let frontmatterBody = frontmatterData.body
+
+        const temp = await NPTemplating.processPrompts(frontmatterBody, {}, '<%', '%>')
+        let finalRenderedData = await NPTemplating.render(temp.sessionTemplateData, temp.sessionData)
 
         const newNoteTitle = frontmatterAttributes.newNoteTitle
         const folder = frontmatterAttributes.folder
@@ -302,11 +306,11 @@ export async function templateQuickNote(noteName: string = ''): Promise<void> {
         const filename = DataStore.newNote(newNoteTitle, folder) || ''
         if (filename) {
           await Editor.openNoteByFilename(filename)
-          Editor.content = `# ${newNoteTitle}\n${frontmatterBody}`
+          Editor.content = `# ${newNoteTitle}\n${finalRenderedData}`
         }
       }
     }
   } catch (error) {
-    logError(pluginJson, error)
+    logError(pluginJson, error.message)
   }
 }
