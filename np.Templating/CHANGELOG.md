@@ -3,8 +3,14 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.0.0-beta.16] - 2022-03-26 (mikeerickson)
+
+- Changed NotePlan minimum version to 3.5
+- Fixed issue when executing `np:qtn`
+
 ## [1.0.0-beta.15] - 2022-03-20 (mikeerickson)
 
+- final beta release (barring any last minute issues)
 - Added `fog` icon to extended weather
 
 ## [1.0.0-beta.14] - 2022-03-20 (mikeerickson)

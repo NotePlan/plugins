@@ -51,10 +51,6 @@ export async function migrateQuickNotes() {
   const configData = await getConfiguration('quickNotes')
 
   configData.forEach(async (quickNote) => {
-    // console.log('label: ' + quickNote.label)
-    // console.log('template: ' + quickNote.template)
-    // console.log('title: ' + quickNote.title)
-    // console.log('folder: ' + quickNote.folder)
     const templateFilename = `🗒 Quick Notes/${quickNote.label}`
     const templateData: ?TNote = await getOrMakeNote(quickNote.template, '📋 Templates')
 
@@ -290,6 +286,7 @@ export async function templateQuickNote(noteName: string = ''): Promise<void> {
       // $FlowIgnore
       const templateData = await NPTemplating.getTemplate(selectedTemplate)
       const isFrontmatter = new FrontmatterModule().isFrontmatterTemplate(templateData)
+
       // $FlowIgnore
       const renderedData = await NPTemplating.renderTemplate(selectedTemplate, null, { usePrompts: true, qtn: true })
 

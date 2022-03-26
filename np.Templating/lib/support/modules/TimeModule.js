@@ -4,6 +4,7 @@
  * -----------------------------------------------------------------------------------------*/
 
 import moment from 'moment/min/moment-with-locales'
+import { clo } from '../../../../helpers/dev'
 
 export function time(format: string = 'h:mm A') {
   return moment(new Date()).format(format && format.length > 0 ? format : 'h:mm A')
@@ -61,7 +62,7 @@ export default class TimeModule {
 
   now(format = '') {
     const locale = this.config?.locale || 'en-US'
-    const configFormat = this.config?.timeFormat || 'HH:mm A'
+    const configFormat = this.config?.timeFormat || 'short'
 
     format = format.length > 0 ? format : configFormat
     let formattedTime = moment(new Date()).format(format)

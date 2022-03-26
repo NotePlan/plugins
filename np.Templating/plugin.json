@@ -1,9 +1,9 @@
 {
   "macOS.minVersion": "10.13.0",
-  "noteplan.minAppVersion": "3.4.1",
+  "noteplan.minAppVersion": "3.5.0",
   "plugin.id": "np.Templating",
-  "plugin.name": " 📒 np.Templating",
-  "plugin.version": "1.0.0-beta.15",
+  "plugin.name": " 📒 np.Templating -- New 🎉",
+  "plugin.version": "1.0.0-beta.16",
   "plugin.description": "Templating Plugin for NotePlan",
   "plugin.author": "Mike Erickson (@codedungeon)",
   "plugin.dependencies": [],
@@ -49,6 +49,18 @@
       ],
       "description": "Create new note with title, in chosen folder with optional template",
       "jsFunction": "templateNew"
+    },
+    {
+      "name": "np:qtn",
+      "alias": [
+        "Quick template note",
+        "quick",
+        "template",
+        "qnt",
+        "qtn"
+      ],
+      "description": "Create new note based on Quick Note Template",
+      "jsFunction": "templateQuickNote"
     },
     {
       "name": "np:advice",
@@ -105,20 +117,8 @@
     {
       "name": "np:migrate-quick-notes",
       "alias": [],
-      "description": "Migration _configuration quickNotes",
+      "description": "Run Quick Note Migration (_configuration :: quickNotes)",
       "jsFunction": "migrateQuickNotes"
-    },
-    {
-      "name": "np:qtn",
-      "alias": [
-        "Quick template note",
-        "quick",
-        "template",
-        "qnt",
-        "qtn"
-      ],
-      "description": "Create new note based on Quick Note Template",
-      "jsFunction": "templateQuickNote"
     }
   ],
   "plugin.settings": [

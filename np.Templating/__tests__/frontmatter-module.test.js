@@ -101,8 +101,6 @@ describe(`${PLUGIN_NAME}`, () => {
 
       const result = new FrontmatterModule().body(data)
 
-      console.log(result)
-
       expect(typeof result).toEqual('string')
       expect(result).toContain('<%= name %>')
     })

@@ -265,7 +265,6 @@ export default class NPTemplating {
   static templateErrorMessage(method: string = '', message: any = ''): string {
     if (message?.name?.indexOf('YAMLException') >= 0) {
       const frontMatterErrorMessage = this._frontmatterError(message)
-      log(pluginJson, frontMatterErrorMessage)
       return frontMatterErrorMessage
     }
 
@@ -370,14 +369,17 @@ export default class NPTemplating {
       if (isFrontmatterTemplate && usePrompts) {
         const frontmatterAttributes = new FrontmatterModule().render(templateData)?.attributes || {}
         for (const [key, value] of Object.entries(frontmatterAttributes)) {
-          // $FlowIgnore
-          const promptData = await this.processPrompts(value, sessionData, '<%', '%>')
+          let frontMatterValue = value
 
           // $FlowIgnore
-          const { newTemplateData, newSettingData } = await this.preProcess(value, sessionData)
+          const promptData = await this.processPrompts(value, sessionData, '<%', '%>')
+          frontMatterValue = promptData.sessionTemplateData
+          // $FlowIgnore
+          const { newTemplateData, newSettingData } = await this.preProcess(frontMatterValue, sessionData)
           sessionData = { ...sessionData, ...newSettingData }
 
           const renderedData = await new TemplatingEngine(this.constructor.templateConfig).render(newTemplateData, promptData.sessionData, userOptions)
+
           // $FlowIgnore
           templateData = templateData.replace(`${key}: ${value}`, `${key}: ${renderedData}`)
         }
@@ -547,14 +549,12 @@ export default class NPTemplating {
   }
 
   static async processPrompts(templateData: string, userData: any, startTag: string = '<%', endTag: string = '%>'): Promise<any> {
-    console.log(templateData)
     const sessionData = { ...userData }
     const methods = Object.keys(userData.methods)
     let sessionTemplateData = templateData.replace('<%@', '%<= prompt')
     const tags = await this.getTags(sessionTemplateData)
 
     for (const tag of tags) {
-      console.log(tag)
       // if tag is from module, it will contain period so we need to make sure this tag is not a module
       let isMethod = false
       for (const method of methods) {

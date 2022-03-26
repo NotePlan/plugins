@@ -271,8 +271,6 @@ describe(`${PLUGIN_NAME}`, () => {
       }
 
       let renderedData = await templateInstance.render(templateData, data)
-
-      console.log(renderedData)
     })
 
     test(`should render data using extended template`, async () => {

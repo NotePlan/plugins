@@ -4,6 +4,7 @@ import colors from 'chalk'
 import TimeModule from '../lib/support/modules/TimeModule'
 import { currentTime, time } from '../lib/support/modules/TimeModule'
 import moment from 'moment'
+import { CurlOptionCamelCaseMap } from 'node-libcurl/dist/generated/CurlOption'
 
 const PLUGIN_NAME = `📙 ${colors.yellow('np.Templating')}`
 const section = colors.blue
@@ -12,12 +13,12 @@ const method = colors.magenta.bold
 
 describe(`${PLUGIN_NAME}`, () => {
   describe(section('TimeModule'), () => {
-    it(`should render .now`, async () => {
+    it(`should render ${method('.now')}`, async () => {
       const result = new TimeModule().now('h:mm A')
       expect(result).toEqual(moment(new Date()).format('h:mm A'))
     })
 
-    it(`should render .now using 'short' format`, () => {
+    it(`should render ${method('.now')} using 'short' format`, () => {
       const result = new TimeModule().now('short')
 
       const test = new Intl.DateTimeFormat('en-US', { timeStyle: 'short' }).format(new Date())
@@ -25,7 +26,7 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(test)
     })
 
-    it(`should render .now using 'medium' format`, () => {
+    it(`should render ${method('.now')} using 'medium' format`, () => {
       const result = new TimeModule().now('medium')
 
       const test = new Intl.DateTimeFormat('en-US', { timeStyle: 'medium' }).format(new Date())
@@ -33,7 +34,7 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(test)
     })
 
-    it(`should render .now using 'long' format`, () => {
+    it(`should render ${method('.now')} using 'long' format`, () => {
       const result = new TimeModule().now('long')
 
       const test = new Intl.DateTimeFormat('en-US', { timeStyle: 'long' }).format(new Date())
@@ -41,7 +42,7 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(test)
     })
 
-    it(`should render .now using 'full' format`, () => {
+    it(`should render ${method('.now')} using 'full' format`, () => {
       const result = new TimeModule().now('full')
 
       const test = new Intl.DateTimeFormat('en-US', { timeStyle: 'full' }).format(new Date())
@@ -49,12 +50,12 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(test)
     })
 
-    it(`should render .now using custom format`, async () => {
+    it(`should render${method('.now')} using custom format`, async () => {
       const result = new TimeModule().now('hh:mm')
       expect(result).toEqual(moment(new Date()).format('hh:mm'))
     })
 
-    it(`should render .now using configuration`, async () => {
+    it(`should render ${method('.now')} using configuration`, async () => {
       const testConfig = {
         timeFormat: 'hh:mm A',
       }
@@ -62,7 +63,7 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(moment(new Date()).format('hh:mm A'))
     })
 
-    it(`should render .currentTime`, async () => {
+    it(`should render ${method('.currentTime')}`, async () => {
       const result = new TimeModule().currentTime('h:mm A')
       expect(result).toEqual(moment(new Date()).format('h:mm A'))
     })
@@ -80,12 +81,12 @@ describe(`${PLUGIN_NAME}`, () => {
       it(`time`, () => {
         const result = new TimeModule().now()
 
-        const assertValue = time()
+        const assertValue = time('h:mm A')
 
         expect(result).toEqual(assertValue)
       })
 
-      it(`currentTime`, () => {
+      it(`${method('.currentTime')}`, () => {
         const result = new TimeModule().now()
 
         const assertValue = currentTime()
