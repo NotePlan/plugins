@@ -3,13 +3,13 @@
   "noteplan.minAppVersion": "3.4.1",
   "plugin.id": "np.Templating",
   "plugin.name": " 📒 np.Templating",
-  "plugin.version": "1.0.0-beta.14",
+  "plugin.version": "1.0.0-beta.15",
   "plugin.description": "Templating Plugin for NotePlan",
   "plugin.author": "Mike Erickson (@codedungeon)",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url.old": "https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md",
-  "plugin.url": "https://nptemplating-docs.netlify.app/",
+  "plugin.url": "https://nptemplating-docs.netlify.app/docs/intro",
   "plugin.commands": [
     {
       "name": "np:init",
@@ -22,7 +22,9 @@
     {
       "name": "np:insert",
       "alias": [
-        "insert"
+        "insert",
+        "it",
+        "template"
       ],
       "description": "Insert template to current note",
       "jsFunction": "templateInsert"
@@ -30,7 +32,10 @@
     {
       "name": "np:append",
       "alias": [
-        "append"
+        "append",
+        "at",
+        "append",
+        "template"
       ],
       "description": "Append template to end of current note",
       "jsFunction": "templateAppend"
@@ -38,7 +43,9 @@
     {
       "name": "np:new",
       "alias": [
-        "new"
+        "new",
+        "nn",
+        "template"
       ],
       "description": "Create new note with title, in chosen folder with optional template",
       "jsFunction": "templateNew"

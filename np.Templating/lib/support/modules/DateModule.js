@@ -287,6 +287,10 @@ export default class DateModule {
     return moment(result).format(dtFormat)
   }
 
+  fromNow(pivotDate = '') {
+    return 'INCOMPLETE'
+  }
+
   isValid(dateObj = null) {
     return dateObj
     // return dateObj && moment(dateObj).isValid() ? dateObj : 'INVALID_DATE_FORMAT'

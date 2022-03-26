@@ -46,9 +46,18 @@ import { stringReplace } from '../../../../helpers/general'
  * For fuller details see https://github.com/chubin/wttr.in#different-output-formats.
  */
 
-const weatherDescTexts = ['showers', 'rain', 'sunny intervals', 'partly', 'sunny', 'clear sky', 'cloud', 'snow', 'thunderstorm', 'tornado']
-const weatherDescIcons = ['🌦️', '🌧️', '🌤', '⛅', '☀️', '☀️', '☁️', '🌨️', '⛈', '🌪']
+const weatherDescTexts = ['showers', 'rain', 'sunny intervals', 'partly', 'sunny', 'clear', 'clear sky', 'cloud', 'fog', 'snow', 'thunderstorm', 'tornado']
+const weatherDescIcons = ['🌦️', '🌧️', '🌤', '⛅', '☀️', '☀️', '☀️', '☁️', '🌫', '🌨️', '⛈', '🌪']
 
+const areaNameOverride = (areaName: string = '') => {
+  switch (areaName.toLowerCase()) {
+    case 'talbert':
+      return 'Fountain Valley'
+      break
+  }
+
+  return areaName
+}
 //------------------------------------------------------------------------------
 /**
  * Get today's weather details returned according to the user's desired format
@@ -77,7 +86,7 @@ export async function getWeatherSummary(format: string): Promise<string> {
       }
 
       // Work out some specific values from harder-to-reach parts of the JSON
-      const areaName = allWeatherData.nearest_area[0]?.areaName[0]?.value ?? '(no nearest_area returned)'
+      const areaName = areaNameOverride(allWeatherData.nearest_area[0]?.areaName[0]?.value ?? '(no nearest_area returned)')
       const region = allWeatherData.nearest_area[0].region[0].value ?? '(no region returned)'
       const country = allWeatherData.nearest_area[0].country[0].value ?? '(no country returned)'
       const minTempF = allWeatherData.weather[0].mintempF

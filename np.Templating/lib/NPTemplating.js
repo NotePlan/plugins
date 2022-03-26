@@ -47,6 +47,7 @@ export const DEFAULT_TEMPLATE_CONFIG = {
   userLastName: 'Doe',
   userEmail: 'john.doe@gmail.com',
   userPhone: '(714) 555-1212',
+  weatherFormat: '',
   services: {
     affirmation: 'https://affirmations.dev',
     quote: {
@@ -66,6 +67,7 @@ type TemplateConfig = $ReadOnly<{
   dateFormat?: string,
   timeFormat?: string,
   nowFormat?: boolean,
+  weatherFormat?: string,
   services?: mixed,
 }>
 
@@ -545,12 +547,14 @@ export default class NPTemplating {
   }
 
   static async processPrompts(templateData: string, userData: any, startTag: string = '<%', endTag: string = '%>'): Promise<any> {
+    console.log(templateData)
     const sessionData = { ...userData }
     const methods = Object.keys(userData.methods)
     let sessionTemplateData = templateData.replace('<%@', '%<= prompt')
     const tags = await this.getTags(sessionTemplateData)
 
     for (const tag of tags) {
+      console.log(tag)
       // if tag is from module, it will contain period so we need to make sure this tag is not a module
       let isMethod = false
       for (const method of methods) {

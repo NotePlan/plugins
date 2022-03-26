@@ -186,12 +186,12 @@ describe(`${PLUGIN_NAME}`, () => {
     })
 
     it(`should render true if ${method('.isWeekend')}`, async () => {
-      const result = new DateModule().isWeekend('10-16-2021')
+      const result = new DateModule().isWeekend('2021-10-16')
       expect(result).toEqual(true)
     })
 
     it(`should render false if not ${method('.isWeekend')}`, async () => {
-      const result = new DateModule().isWeekend('10-15-2021')
+      const result = new DateModule().isWeekend('2021-10-15')
 
       expect(result).toEqual(false)
     })
@@ -210,13 +210,13 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(assertValue)
     })
 
-    it(`should return dayNumber of given date`, () => {
+    it(`should return ${method('.dayNumber')} of given date`, () => {
       const result = new DateModule().dayNumber('2021-12-15')
 
       expect(result).toEqual(3)
     })
 
-    it(`should return weekNumber of given date`, () => {
+    it(`should return ${method('.weekNumber')} of given date`, () => {
       const result = new DateModule().weekNumber('2021-12-15')
 
       expect(result).toEqual(50)
@@ -269,22 +269,27 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(assertValue)
     })
 
-    it(`should return start of week using today`, async () => {
+    it(`should return ${method('.startOfWeek')} using today`, async () => {
       let startOfWeek = new DateModule().startOfWeek(null, '2022-03-05')
       expect(startOfWeek).toEqual('2022-02-27')
     })
 
-    it(`should return start of week using fixed date with offset`, async () => {
+    it(`should return ${method('.startOfWeek')} using fixed date with offset`, async () => {
       let startOfWeek = new DateModule().startOfWeek(null, '2022-03-05', 1)
       expect(startOfWeek).toEqual('2022-02-28')
     })
 
-    it(`should return end of week using today`, async () => {
+    it(`should return ${method('.endOfWeek')} using today`, async () => {
       let endOfWeek = new DateModule().endOfWeek(null, '2022-03-05')
       expect(endOfWeek).toEqual('2022-03-05')
     })
 
-    it(`should return end of week using fixed date with offset`, async () => {
+    it(`should return ${method('.fromNow')} using today`, async () => {
+      let fromNow = new DateModule().fromNow('2022-03-05')
+      expect(fromNow).toEqual('INCOMPLETE')
+    })
+
+    it(`should return ${method('.endOfWeek')} using fixed date with offset`, async () => {
       let startOfWeek = new DateModule().endOfWeek(null, '2022-03-05', 1)
       expect(startOfWeek).toEqual('2022-03-06')
     })

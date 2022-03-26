@@ -3,6 +3,10 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.0.0-beta.15] - 2022-03-20 (mikeerickson)
+
+- Added `fog` icon to extended weather
+
 ## [1.0.0-beta.14] - 2022-03-20 (mikeerickson)
 
 - updated `np:weather` command to use extended weather service and np.Templating Settings - Weather Format
