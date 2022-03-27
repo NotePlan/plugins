@@ -170,8 +170,12 @@ export function log(pluginInfo: any, message: any = '', type: string = 'LOG'): s
  * @param {any} message
  * @returns {string}
  */
-export function logError(pluginInfo: any, message: any = ''): string {
-  return log(pluginInfo, message, 'ERROR')
+export function logError(pluginInfo: any, error: any = ''): string {
+  if (error instanceof Error) {
+    let msg = `${error.filename} ${error.lineNumber}: ${error.message}`
+    return log(pluginInfo, msg, 'ERROR')
+  }
+  return log(pluginInfo, error, 'ERROR')
 }
 
 /**
