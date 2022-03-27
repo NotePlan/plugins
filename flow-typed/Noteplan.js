@@ -902,7 +902,13 @@ type TNote = {
    * NB: Backlinks are all [[note name]] and >date links.
    * Note: Available from v3.2
    */
-  +backlinks: $ReadOnlyArray < TParagraph >,
+  +backlinks: $ReadOnlyArray <TParagraph>,
+  /**
+   * Get all types assigned to this note in the frontmatter as an array of strings. 
+   * You can set types of a note by adding frontmatter e.g. `type: meeting-note, empty-note` (comma separated).
+   * Note: Available from v3.5
+  */
+  +frontmatterTypes: $ReadOnlyArray<string>,
   /**
    * Print the note, optionally with backlinks and events sections
    * Note: available from macOS build 729
