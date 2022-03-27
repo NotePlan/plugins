@@ -528,6 +528,7 @@ export default class NPTemplating {
       promptMessage = options.length > 0 ? `Select ${varName}` : `Enter ${varName}`
     }
     varName = varName.replace(/ /g, '_')
+    varName = varName.replace(/\?/g, '')
 
     return { varName, promptMessage, options }
   }
@@ -559,7 +560,6 @@ export default class NPTemplating {
       if (!this.isVariableTag(tag) && !this.isTemplateModule(tag) && !isMethod) {
         // $FlowIgnore
         let { varName, promptMessage, options } = await this.getPromptParameters(tag)
-
         const varExists = (varName) => {
           let result = true
           if (!sessionData.hasOwnProperty(varName)) {

@@ -119,6 +119,12 @@
       "alias": [],
       "description": "Run Quick Note Migration (_configuration :: quickNotes)",
       "jsFunction": "migrateQuickNotes"
+    },
+    {
+      "name": "np:about",
+      "alias": [],
+      "description": "np.Templating About...",
+      "jsFunction": "templateAbout"
     }
   ],
   "plugin.settings": [

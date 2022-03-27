@@ -212,7 +212,7 @@ export async function templateQuote(): Promise<string> {
 export async function migrateTemplates(silent: boolean = false): Promise<void> {
   try {
     const templateFolder = '📋 Templates'
-    const newTemplateFolder: string = '@Templates' // NotePlan.environment.templateFolder
+    const newTemplateFolder: string = '@Templates/Test' // NotePlan.environment.templateFolder
 
     const templateNotes = DataStore.projectNotes.filter((n) => n.filename?.startsWith(templateFolder)).filter((n) => !n.title?.startsWith('_configuration'))
     const newTemplates = DataStore.projectNotes.filter((n) => n.filename?.startsWith(newTemplateFolder)).filter((n) => !n.title?.startsWith('_configuration'))
@@ -271,7 +271,7 @@ export async function migrateTemplates(silent: boolean = false): Promise<void> {
 export async function templateQuickNote(noteName: string = ''): Promise<void> {
   try {
     const content: string = Editor.content || ''
-    let quickNoteTemplatesFolder: string = DataStore.settings?.quickNotesFolder || 'Quick Notes'
+    let quickNoteTemplatesFolder: string = DataStore.settings?.quickNotesFolder || 'Quick Notes/Test'
 
     const options = await getTemplateList(quickNoteTemplatesFolder)
     if (options.length === 0) {
@@ -313,4 +313,13 @@ export async function templateQuickNote(noteName: string = ''): Promise<void> {
   } catch (error) {
     logError(pluginJson, error.message)
   }
+}
+
+export async function templateAbout(): Promise<string> {
+  const version = pluginJson['plugin.version']
+  let aboutInfo = `Templating Plugin for NotePlan\nv${version}\n\n\nCopyright © 2022 Mike Erickson.\nAll Rights Reserved.`
+
+  await CommandBar.prompt('About np.Templating', aboutInfo)
+  log(pluginJson, `${version}`)
+  return version
 }
