@@ -69,7 +69,7 @@ const globals = {
 
   progressUpdate: async (params: any): Promise<string> => {
     // $FlowIgnore
-    return await insertProgressUpdate(params)
+    return await insertProgressUpdate(JSON.stringify(params))
   },
 
   weather: async (): Promise<string> => {

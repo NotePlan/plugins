@@ -3,7 +3,10 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
-## [1.0.0-rc.01] - 2022-03-27 (mikeerickson)
+## [1.0.0-beta.17] - 2022-03-27 (mikeerickson)
+
+- fixed issue when using `progressUpdate` in template
+- fixed issue when using prompts in tempaltes in new (frontmatter) format
 
 ## [1.0.0-beta.16] - 2022-03-26 (mikeerickson)
 

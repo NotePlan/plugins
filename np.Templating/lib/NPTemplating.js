@@ -564,7 +564,7 @@ export default class NPTemplating {
       }
       if (!this.isVariableTag(tag) && !this.isTemplateModule(tag) && !isMethod) {
         // $FlowIgnore
-        const { varName, promptMessage, options } = await this.getPromptParameters(tag)
+        let { varName, promptMessage, options } = await this.getPromptParameters(tag)
 
         const varExists = (varName) => {
           let result = true
@@ -578,6 +578,7 @@ export default class NPTemplating {
           return result
         }
         if (!varExists(varName)) {
+          promptMessage = promptMessage.replace('await', '').replace(/  /g, ' ')
           let response = await await this.prompt(promptMessage, options) // double await is correct here
           if (response) {
             if (typeof response === 'string') {
