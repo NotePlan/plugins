@@ -154,8 +154,6 @@ export async function getTemplateList(folderName: string = ''): Promise<any> {
 }
 
 export async function getTemplateFolder(): Promise<string> {
-  // const pluginSettingData = DataStore.loadJSON('../np.Templating/settings.json')
-  // return pluginSettingData.templateFolderName
   return TEMPLATE_FOLDER_NAME
 }
 
@@ -223,11 +221,7 @@ export default class NPTemplating {
 
   static async setup() {
     try {
-      let data = DataStore.loadJSON('../np.Templating/settings.json')
-      if (!data) {
-        const result = DataStore.saveJSON(DEFAULT_TEMPLATE_CONFIG, '../np.Templating/settings.json')
-        data = DataStore.loadJSON('../np.Templating/settings.json')
-      }
+      const data = DataStore.settings
 
       this.constructor.templateConfig = {
         ...data,
@@ -239,7 +233,7 @@ export default class NPTemplating {
   }
 
   static async getSetting(key: string = '', defaultValue?: string = ''): Promise<string> {
-    const data = DataStore.loadJSON('../np.Templating/settings.json')
+    const data = DataStore.settings
     if (data) {
       return data.hasOwnProperty(key) ? data[key] : defaultValue
     }

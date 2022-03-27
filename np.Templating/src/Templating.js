@@ -89,7 +89,7 @@ export async function templateInsert(): Promise<void> {
     const selectedTemplate = await chooseOption<TNote, void>('Choose Template', options)
 
     // $FlowIgnore
-    const renderedTemplate = await NPTemplating.renderTemplate(selectedTemplate, null, { usePrompts: true })
+    const renderedTemplate = await NPTemplating.renderTemplate(selectedTemplate)
 
     Editor.insertTextAtCursor(renderedTemplate)
   } else {

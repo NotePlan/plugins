@@ -3,6 +3,11 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.0.0-beta.18] - 2022-03-27 (mikeerickson)
+
+- Refactored loading np.Templating Settings as an attempt to fix issue when used as library in NotePlan core.
+  - This may be a permanent solution, but unable to confirm until it has been installed into NP core
+
 ## [1.0.0-beta.17] - 2022-03-27 (mikeerickson)
 
 - fixed issue when using `progressUpdate` in template
