@@ -25,7 +25,6 @@ import { parseJSON5 } from '@helpers/general'
 import { getSetting } from '../../helpers/NPconfiguration'
 
 export async function processDate(dateParams: string, config: { [string]: ?mixed }): Promise<string> {
-  // console.log(`processDate: ${dateConfig}`)
   const defaultConfig = config?.date ?? {}
   const dateParamsTrimmed = dateParams?.trim() || ''
   const paramConfig =
@@ -45,7 +44,6 @@ export async function processDate(dateParams: string, config: { [string]: ?mixed
     dateStyle: 'short',
     ...otherParams,
   }
-  // console.log(`${JSON.stringify(localeParam)}, ${JSON.stringify(secondParam)}`);
 
   return new Intl.DateTimeFormat(localeParam, secondParam).format(new Date())
 }

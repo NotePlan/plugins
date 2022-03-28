@@ -136,7 +136,8 @@ export async function getTemplateList(folderName: string = ''): Promise<any> {
     return
   }
 
-  let quickNoteTemplatesFolder: string = DataStore.settings?.quickNotesFolder || 'Quick Notes'
+  const data = await this.getSettings()
+  let quickNoteTemplatesFolder: string = data?.quickNotesFolder || 'Quick Notes'
   quickNoteTemplatesFolder = `${templateFolder}/${quickNoteTemplatesFolder}`
 
   const options = DataStore.projectNotes
@@ -221,7 +222,7 @@ export default class NPTemplating {
 
   static async setup() {
     try {
-      const data = DataStore.settings
+      const data = await this.getSettings()
 
       this.constructor.templateConfig = {
         ...data,
@@ -232,8 +233,18 @@ export default class NPTemplating {
     }
   }
 
+  static async getSettings(): any {
+    let data = DataStore.loadJSON('../np.Templating/settings.json')
+    if (!data) {
+      const result = DataStore.saveJSON(DEFAULT_TEMPLATE_CONFIG, '../np.Templating/settings.json')
+      data = DataStore.loadJSON('../np.Templating/settings.json')
+    }
+
+    return data
+  }
+
   static async getSetting(key: string = '', defaultValue?: string = ''): Promise<string> {
-    const data = DataStore.settings
+    const data = this.getSettings()
     if (data) {
       return data.hasOwnProperty(key) ? data[key] : defaultValue
     }

@@ -3,6 +3,12 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.0.0-beta.21] - 2022-03-28 (mikeerickson)
+
+- Reverted settings access changed in b18 as it was not working properly (restored previous method of accessing np.Templating Settings)
+  - This will need to be tested in the library version used by NotePlan
+- Removed migration test code inadvertenly left in published version
+
 ## [1.0.0-beta.20] - 2022-03-27 (mikeerickson)
 
 - Syncing version with this document (thanks @jgclark)
