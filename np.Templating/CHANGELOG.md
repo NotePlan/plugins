@@ -3,6 +3,10 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.0.0-beta.20] - 2022-03-27 (mikeerickson)
+
+- Syncing version with this document (thanks @jgclark)
+
 ## [1.0.0-beta.19] - 2022-03-27 (mikeerickson)
 
 - Fixed template prompt issues when displaying `?` at end of prompt
