@@ -188,3 +188,22 @@ export function logError(pluginInfo: any, error: any = ''): string {
 export function logWarn(pluginInfo: any, message: any = ''): string {
   return log(pluginInfo, message, 'WARN')
 }
+
+/**
+ * Time a function
+ * @param {*} startTime - the date object from when timer started (using Date.now())
+ * @returns {string} - the formatted elapsed time
+ * @author @dwertheimer
+ * @example
+ * const startTime = Date.now()
+ * ...some long-running stuff here...
+ * const elapsedTime = timer(startTime)
+ */
+export function timer(startTime: Date): string {
+  const timeStart = startTime ?? new Date()
+  const timeEnd = new Date()
+  const difference = timeEnd - timeStart
+  const d = new Date(difference)
+  const diffText = `${d.getMinutes()}m${d.getSeconds()}s.${d.getMilliseconds()}ms`
+  return diffText
+}
