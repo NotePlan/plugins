@@ -1,0 +1,32 @@
+{
+  "macOS.minVersion": "10.13.0",
+  "noteplan.minAppVersion": "3.4.0",
+  "plugin.id": "dwertheimer.DataQuerying",
+  "plugin.name": "🧩 Data Querying",
+  "plugin.version": "0.0.1",
+  "plugin.description": "Allows you to query noteplan notes for mentions, hashtags, content and output the results into a note.",
+  "plugin.author": "dwertheimer",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.DataQuerying/README.md",
+  "plugin.commands": [
+    {
+      "name": "buildIndex",
+      "description": "Build a notes content index",
+      "jsFunction": "buildIndex",
+      "alias": [
+      ]
+    }
+  ],
+  "plugin.settings": [
+    {
+      "type": "heading",
+      "title": "Data Querying Settings"
+    },
+    {
+      "key": "version",
+      "type": "hidden",
+      "description": "Data Querying Settings Version"
+    }
+  ]
+}
