@@ -125,32 +125,37 @@ export async function TEMPLATE_CONFIG_BLOCK(): Promise<string> {
 }
 
 export async function getTemplateList(folderName: string = ''): Promise<any> {
-  let templateFolder = await getTemplateFolder()
-  if (folderName.length > 0) {
-    templateFolder = `${templateFolder}/${folderName}`
+  try {
+    let templateFolder = await getTemplateFolder()
+    if (folderName.length > 0) {
+      templateFolder = `${templateFolder}/${folderName}`
+    }
+
+    if (templateFolder == null) {
+      await CommandBar.prompt('Templating Error', `An error occurred locating ${templateFolder} folder`)
+      return
+    }
+
+    const data = DataStore.settings
+
+    let quickNoteTemplatesFolder: string = data?.quickNotesFolder || 'Quick Notes'
+    quickNoteTemplatesFolder = `${templateFolder}/${quickNoteTemplatesFolder}`
+
+    const options = DataStore.projectNotes
+      .filter((n) => n.filename?.startsWith(templateFolder))
+      .filter((n) => !n.title?.startsWith('_configuration'))
+      .filter((n) => !n.title?.startsWith('_config'))
+      .map((note) => {
+        if (note.filename.indexOf(quickNoteTemplatesFolder)) {
+          return note.title == null ? null : { label: note.title, value: note.filename }
+        }
+      })
+      .filter(Boolean)
+
+    return options
+  } catch (error) {
+    logError(pluginJson, error)
   }
-
-  if (templateFolder == null) {
-    await CommandBar.prompt('Templating Error', `An error occurred locating ${templateFolder} folder`)
-    return
-  }
-
-  const data = await this.getSettings()
-  let quickNoteTemplatesFolder: string = data?.quickNotesFolder || 'Quick Notes'
-  quickNoteTemplatesFolder = `${templateFolder}/${quickNoteTemplatesFolder}`
-
-  const options = DataStore.projectNotes
-    .filter((n) => n.filename?.startsWith(templateFolder))
-    .filter((n) => !n.title?.startsWith('_configuration'))
-    .filter((n) => !n.title?.startsWith('_config'))
-    .map((note) => {
-      if (note.filename.indexOf(quickNoteTemplatesFolder)) {
-        return note.title == null ? null : { label: note.title, value: note.filename }
-      }
-    })
-    .filter(Boolean)
-
-  return options
 }
 
 export async function getTemplateFolder(): Promise<string> {

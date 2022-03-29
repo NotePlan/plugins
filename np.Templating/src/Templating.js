@@ -86,7 +86,9 @@ export async function templateInsert(): Promise<void> {
   if (Editor.type === 'Notes' || Editor.type === 'Calendar') {
     const options = await getTemplateList()
 
-    const selectedTemplate = await chooseOption<TNote, void>('Choose Template', options)
+    // $FlowIgnore
+    let selectedTemplate = await chooseOption<TNote, void>('Choose Template', options)
+    selectedTemplate = selectedTemplate.replace(/.md|.txt/gi, '')
 
     // $FlowIgnore
     const renderedTemplate = await NPTemplating.renderTemplate(selectedTemplate)
@@ -103,7 +105,8 @@ export async function templateAppend(): Promise<void> {
 
     const options = await getTemplateList()
 
-    const selectedTemplate = await chooseOption<TNote, void>('Choose Template', options)
+    let selectedTemplate = await chooseOption<TNote, void>('Choose Template', options)
+    selectedTemplate = selectedTemplate.replace(/.md|.txt/gi, '')
 
     // $FlowIgnore
     let renderedTemplate = await NPTemplating.renderTemplate(selectedTemplate, {})
@@ -133,7 +136,8 @@ export async function templateNew(): Promise<void> {
 
   const options = await getTemplateList()
 
-  const selectedTemplate = await chooseOption<TNote, void>('Choose Template', options)
+  let selectedTemplate = await chooseOption<TNote, void>('Choose Template', options)
+  selectedTemplate = selectedTemplate.replace(/.md|.txt/gi, '')
 
   const noteTitle = title.toString()
   const filename = DataStore.newNote(noteTitle, folder) || ''
@@ -281,7 +285,9 @@ export async function templateQuickNote(noteName: string = ''): Promise<void> {
       )
       return
     }
-    const selectedTemplate = await chooseOption<TNote, void>('Choose Quick Note', options)
+    let selectedTemplate = await chooseOption<TNote, void>('Choose Quick Note', options)
+    selectedTemplate = selectedTemplate.replace(/.md|.txt/gi, '')
+
     if (selectedTemplate) {
       // $FlowIgnore
       const templateData = await NPTemplating.getTemplate(selectedTemplate)
@@ -298,7 +304,9 @@ export async function templateQuickNote(noteName: string = ''): Promise<void> {
         let frontmatterBody = frontmatterData.body
 
         const temp = await NPTemplating.processPrompts(frontmatterBody, {}, '<%', '%>')
-        let finalRenderedData = await NPTemplating.render(temp.sessionTemplateData, temp.sessionData)
+        const temp2 = await NPTemplating.preProcess(temp.sessionTemplateData, temp.sessionData)
+        // $FlowIgnore
+        let finalRenderedData = await NPTemplating.render(temp2.newTemplateData, temp2.newSettingData)
 
         const newNoteTitle = frontmatterAttributes.newNoteTitle
         const folder = frontmatterAttributes.folder

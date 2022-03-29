@@ -3,7 +3,12 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
-## [1.0.0-beta.22] - 2022-03-28 (mikeerickson)
+## [1.0.0-beta.23] - 2022-03-29 (mikeerickson)
+
+- fixed additional locations of `.md` and `.txt` support that were missed in b22
+- fixed issue accessing np.Templating Settings data when getting template list
+
+## [1.0.0-beta.22] - 2022-03-29 (mikeerickson)
 
 - Fixed issue when using `<%-` tag with data containing `<` and `>` characters in output variable (reported by @eduard)
 - Added choose template interface when refrencing templates with same name (e.g. "Daily Note Template")
