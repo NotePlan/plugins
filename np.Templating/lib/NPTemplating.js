@@ -319,6 +319,7 @@ export default class NPTemplating {
     templateFilename = templateFilename.replace(filename, normalizedFilename)
 
     try {
+      templateFilename = templateFilename.replace(/.md|.txt/gi, '')
       selectedTemplate = await DataStore.projectNoteByFilename(`${templateFilename}.md`)
       if (!selectedTemplate) {
         selectedTemplate = await DataStore.projectNoteByFilename(`${templateFilename}.txt`)

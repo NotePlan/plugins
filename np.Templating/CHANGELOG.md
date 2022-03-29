@@ -3,6 +3,11 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.0.0-beta.24] - 2022-03-29 (mikeerickson)
+
+- fixed regression introduced in b23
+- removed NotePlan environment specific debug code from all modules, all tests are passing now
+
 ## [1.0.0-beta.23] - 2022-03-29 (mikeerickson)
 
 - fixed additional locations of `.md` and `.txt` support that were missed in b22

@@ -87,8 +87,7 @@ export async function templateInsert(): Promise<void> {
     const options = await getTemplateList()
 
     // $FlowIgnore
-    let selectedTemplate = await chooseOption<TNote, void>('Choose Template', options)
-    selectedTemplate = selectedTemplate.replace(/.md|.txt/gi, '')
+    const selectedTemplate = await chooseOption<TNote, void>('Choose Template', options)
 
     // $FlowIgnore
     const renderedTemplate = await NPTemplating.renderTemplate(selectedTemplate)
@@ -105,8 +104,7 @@ export async function templateAppend(): Promise<void> {
 
     const options = await getTemplateList()
 
-    let selectedTemplate = await chooseOption<TNote, void>('Choose Template', options)
-    selectedTemplate = selectedTemplate.replace(/.md|.txt/gi, '')
+    const selectedTemplate = await chooseOption<TNote, void>('Choose Template', options)
 
     // $FlowIgnore
     let renderedTemplate = await NPTemplating.renderTemplate(selectedTemplate, {})
@@ -136,8 +134,7 @@ export async function templateNew(): Promise<void> {
 
   const options = await getTemplateList()
 
-  let selectedTemplate = await chooseOption<TNote, void>('Choose Template', options)
-  selectedTemplate = selectedTemplate.replace(/.md|.txt/gi, '')
+  const selectedTemplate = await chooseOption<TNote, void>('Choose Template', options)
 
   const noteTitle = title.toString()
   const filename = DataStore.newNote(noteTitle, folder) || ''
