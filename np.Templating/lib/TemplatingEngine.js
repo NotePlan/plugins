@@ -149,10 +149,6 @@ export default class TemplatingEngine {
 
       const frontmatterData = new FrontmatterModule().render(frontmatterBlock)
 
-      // for (const [key, value] of Object.entries(frontmatterData?.attributes)) {
-      //   console.log(`${key} :: ${value}`)
-      // }
-
       if (frontmatterData.hasOwnProperty('attributes') && frontmatterData.hasOwnProperty('body')) {
         if (Object.keys(frontmatterData.attributes).length > 0) {
           renderData.frontmatter = { ...frontmatterData.attributes }
