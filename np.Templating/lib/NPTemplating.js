@@ -164,6 +164,7 @@ export async function getTemplateFolder(): Promise<string> {
 
 export default class NPTemplating {
   templateConfig: any
+  templateGlobals: []
   constructor() {
     // DON'T DELETE
     // constructor method required to access instance config (see setup method)
@@ -232,6 +233,13 @@ export default class NPTemplating {
         ...data,
         ...{ selection: await selection(), clipboard: Clipboard.string },
       }
+
+      let globalData = []
+      Object.getOwnPropertyNames(globals).forEach((key) => {
+        globalData.push(key)
+      })
+
+      this.constructor.templateGlobals = globalData
     } catch (error) {
       await CommandBar.prompt('Template Error', error)
     }
@@ -455,7 +463,7 @@ export default class NPTemplating {
 
   static async preProcess(templateData: string, sessionData?: {}): Promise<mixed> {
     let newTemplateData = templateData
-    let newSettingData = {}
+    let newSettingData = { ...sessionData }
     const tags = (await this.getTags(templateData)) || []
     tags.forEach((tag) => {
       if (!tag.includes('await') && tag.includes('(') && !tag.includes('prompt')) {
@@ -503,13 +511,66 @@ export default class NPTemplating {
     return { newTemplateData, newSettingData }
   }
 
-  static async render(templateData: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
+  static async render(inTemplateData: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
+    const usePrompts = true
     try {
       await this.setup()
-      return await new TemplatingEngine(this.constructor.templateConfig).render(templateData, userData, userOptions)
+
+      let sessionData = { ...userData }
+      let templateData = inTemplateData
+
+      let globalData = {}
+      Object.getOwnPropertyNames(globals).forEach((key) => {
+        globalData[key] = getProperyValue(globals, key)
+      })
+
+      sessionData.methods = { ...sessionData.methods, ...globalData }
+
+      templateData = templateData.replace('<%@', '<%= prompt')
+
+      const isFrontmatterTemplate = new FrontmatterModule().isFrontmatterTemplate(templateData)
+      if (isFrontmatterTemplate && usePrompts) {
+        const frontmatterAttributes = new FrontmatterModule().render(templateData)?.attributes || {}
+        for (const [key, value] of Object.entries(frontmatterAttributes)) {
+          let frontMatterValue = value
+          // $FlowIgnore
+          const promptData = await this.processPrompts(value, sessionData, '<%', '%>')
+          frontMatterValue = promptData.sessionTemplateData
+          // $FlowIgnore
+          const { newTemplateData, newSettingData } = await this.preProcess(frontMatterValue, sessionData)
+          sessionData = { ...sessionData, ...newSettingData }
+
+          const renderedData = await new TemplatingEngine(this.constructor.templateConfig).render(newTemplateData, promptData.sessionData, userOptions)
+
+          // $FlowIgnore
+          templateData = templateData.replace(`${key}: ${value}`, `${key}: ${renderedData}`)
+        }
+        if (userOptions?.qtn) {
+          return templateData
+        }
+      }
+
+      // $FlowIgnore
+      const { newTemplateData, newSettingData } = await this.preProcess(templateData, sessionData)
+      sessionData = { ...sessionData, ...newSettingData }
+
+      const promptData = await this.processPrompts(newTemplateData, sessionData, '<%', '%>')
+      templateData = promptData.sessionTemplateData
+      sessionData = promptData.sessionData
+
+      const renderedData = await new TemplatingEngine(this.constructor.templateConfig).render(templateData, sessionData, userOptions)
+
+      return this._filterTemplateResult(renderedData)
     } catch (error) {
-      return this.templateErrorMessage('NPTemplating.render', error)
+      return this.templateErrorMessage('NPTemplating.renderTemplate', error)
     }
+
+    // try {
+    //   await this.setup()
+    //   return await new TemplatingEngine(this.constructor.templateConfig).render(templateData, userData, userOptions)
+    // } catch (error) {
+    //   return this.templateErrorMessage('NPTemplating.render', error)
+    // }
   }
 
   static async postProcess(templateData: string): Promise<mixed> {
@@ -602,7 +663,6 @@ export default class NPTemplating {
 
     let sessionTemplateData = templateData.replace('<%@', '%<= prompt')
     const tags = await this.getTags(sessionTemplateData)
-
     for (const tag of tags) {
       // if tag is from module, it will contain period so we need to make sure this tag is not a module
       let isMethod = false
@@ -611,9 +671,16 @@ export default class NPTemplating {
           isMethod = true
         }
       }
+
+      const result = this.constructor.templateGlobals.some((element) => tag.includes(element))
+      if (result) {
+        isMethod = true
+      }
+
       if (!this.isVariableTag(tag) && !this.isTemplateModule(tag) && !isMethod) {
         // $FlowIgnore
         let { varName, promptMessage, options } = await this.getPromptParameters(tag)
+
         const varExists = (varName) => {
           let result = true
           if (!sessionData.hasOwnProperty(varName)) {
@@ -644,7 +711,9 @@ export default class NPTemplating {
           sessionTemplateData = sessionTemplateData.replace(tag, `<% 'prompt' -%>`)
         }
       } else {
-        // sessionTemplateData = sessionTemplateData.replace('user.', '')
+        // $FlowIgnore
+        let { varName, promptMessage, options } = await this.getPromptParameters(tag)
+        // clo({ varName, promptMessage, options })
       }
     }
 

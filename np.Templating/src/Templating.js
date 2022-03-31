@@ -19,7 +19,7 @@ import { getWeather } from '../lib/support/modules/weather'
 import { getDailyQuote } from '../lib/support/modules/quote'
 import { getVerse, getVersePlain } from '../lib/support/modules/verse'
 import { getConfiguration, initConfiguration, migrateConfiguration, updateSettingData } from '../../helpers/NPconfiguration'
-import { log, logError, clo } from '@helpers/dev'
+import { log, logError } from '@helpers/dev'
 
 import pluginJson from '../plugin.json'
 
@@ -48,101 +48,121 @@ export async function onUpdateOrInstall(config: any = { silent: false }): Promis
 }
 
 export async function migrateQuickNotes() {
-  const configData = await getConfiguration('quickNotes')
+  try {
+    const configData = await getConfiguration('quickNotes')
 
-  configData.forEach(async (quickNote) => {
-    const templateFilename = `🗒 Quick Notes/${quickNote.label}`
-    const templateData: ?TNote = await getOrMakeNote(quickNote.template, '📋 Templates')
+    configData.forEach(async (quickNote) => {
+      const templateFilename = `🗒 Quick Notes/${quickNote.label}`
+      const templateData: ?TNote = await getOrMakeNote(quickNote.template, '📋 Templates')
 
-    let title = quickNote.title
-    title = title.replace('{{meetingName}}', '<%- meetingName %>')
-    title = title.replace('{{MeetingName}}', '<%- meetingName %>')
-    title = title.replace('{{date8601()}}', '<%- date8601() %>')
-    title = title.replace("{{weekDates({format:'yyyy-MM-dd'})}}", "<%- date.startOfWeek('ddd YYYY-MM-DD',null,1) %>  - <%- date.endOfWeek('ddd YYYY-MM-DD',null,1) %>")
-    const metaData = {
-      newNoteTitle: title,
-      folder: quickNote.folder,
-    }
+      let title = quickNote.title
+      title = title.replace('{{meetingName}}', '<%- meetingName %>')
+      title = title.replace('{{MeetingName}}', '<%- meetingName %>')
+      title = title.replace('{{date8601()}}', '<%- date8601() %>')
+      title = title.replace("{{weekDates({format:'yyyy-MM-dd'})}}", "<%- date.startOfWeek('ddd YYYY-MM-DD',null,1) %>  - <%- date.endOfWeek('ddd YYYY-MM-DD',null,1) %>")
+      const metaData = {
+        newNoteTitle: title,
+        folder: quickNote.folder,
+      }
 
-    // $FlowIgnore
-    const result = await NPTemplating.createTemplate(templateFilename, metaData, templateData.content)
-  })
+      // $FlowIgnore
+      const result = await NPTemplating.createTemplate(templateFilename, metaData, templateData.content)
+    })
+  } catch (error) {
+    logError(pluginJson, error)
+  }
 }
 
 export async function templateInit(): Promise<void> {
-  const pluginSettingsData = await DataStore.loadJSON(`../${pluginJson['plugin.id']}/settings.json`)
-  if (typeof pluginSettingsData === 'object') {
-    const result = await CommandBar.prompt('np.Templating', 'np.Templating settings have already been created. \n\nWould you like to reset to default settings?', ['Yes', 'No'])
+  try {
+    const pluginSettingsData = await DataStore.loadJSON(`../${pluginJson['plugin.id']}/settings.json`)
+    if (typeof pluginSettingsData === 'object') {
+      const result = await CommandBar.prompt('np.Templating', 'np.Templating settings have already been created. \n\nWould you like to reset to default settings?', ['Yes', 'No'])
 
-    if (result === 0) {
-      DataStore.settings = { ...(await initConfiguration(pluginJson)) }
+      if (result === 0) {
+        DataStore.settings = { ...(await initConfiguration(pluginJson)) }
+      }
+    } else {
+      onUpdateOrInstall({ silent: true })
     }
-  } else {
-    onUpdateOrInstall({ silent: true })
+  } catch (error) {
+    logError(pluginJson, error)
   }
 }
 
 export async function templateInsert(): Promise<void> {
-  if (Editor.type === 'Notes' || Editor.type === 'Calendar') {
-    const options = await getTemplateList()
+  try {
+    if (Editor.type === 'Notes' || Editor.type === 'Calendar') {
+      const options = await getTemplateList()
 
-    // $FlowIgnore
-    const selectedTemplate = await chooseOption<TNote, void>('Choose Template', options)
+      // $FlowIgnore
+      const selectedTemplate = await chooseOption<TNote, void>('Choose Template', options)
 
-    // $FlowIgnore
-    const renderedTemplate = await NPTemplating.renderTemplate(selectedTemplate)
+      // $FlowIgnore
+      const renderedTemplate = await NPTemplating.renderTemplate(selectedTemplate)
 
-    Editor.insertTextAtCursor(renderedTemplate)
-  } else {
-    await CommandBar.prompt('Template', 'You must have a Project Note or Calendar Note opened where you wish to insert template.')
+      Editor.insertTextAtCursor(renderedTemplate)
+    } else {
+      await CommandBar.prompt('Template', 'You must have a Project Note or Calendar Note opened where you wish to insert template.')
+    }
+  } catch (error) {
+    logError(pluginJson, error)
   }
 }
 
 export async function templateAppend(): Promise<void> {
-  if (Editor.type === 'Notes' || Editor.type === 'Calendar') {
-    const content: string = Editor.content || ''
+  try {
+    if (Editor.type === 'Notes' || Editor.type === 'Calendar') {
+      const content: string = Editor.content || ''
+
+      const options = await getTemplateList()
+
+      const selectedTemplate = await chooseOption<TNote, void>('Choose Template', options)
+
+      // $FlowIgnore
+      let renderedTemplate = await NPTemplating.renderTemplate(selectedTemplate, {})
+
+      Editor.insertTextAtCharacterIndex(renderedTemplate, content.length)
+    } else {
+      await CommandBar.prompt('Template', 'You must have a Project Note or Calendar Note opened where you wish to append template.')
+    }
+  } catch (error) {
+    logError(pluginJson, error)
+  }
+}
+
+export async function templateNew(): Promise<void> {
+  try {
+    const title = await CommandBar.textPrompt('Template', 'Enter New Note Title', '')
+    if (typeof title === 'boolean' || title.length === 0) {
+      return // user did not provide note title (Cancel) abort
+    }
+
+    const folderList = await DataStore.folders.slice().sort()
+
+    const folder = await chooseOption(
+      'Where would you like to create new note?',
+      folderList.map((folder) => ({
+        label: folder,
+        value: folder,
+      })),
+      '/',
+    )
 
     const options = await getTemplateList()
 
     const selectedTemplate = await chooseOption<TNote, void>('Choose Template', options)
 
-    // $FlowIgnore
-    let renderedTemplate = await NPTemplating.renderTemplate(selectedTemplate, {})
-
-    Editor.insertTextAtCharacterIndex(renderedTemplate, content.length)
-  } else {
-    await CommandBar.prompt('Template', 'You must have a Project Note or Calendar Note opened where you wish to append template.')
-  }
-}
-
-export async function templateNew(): Promise<void> {
-  const title = await CommandBar.textPrompt('Template', 'Enter New Note Title', '')
-  if (typeof title === 'boolean' || title.length === 0) {
-    return // user did not provide note title (Cancel) abort
-  }
-
-  const folderList = await DataStore.folders.slice().sort()
-
-  const folder = await chooseOption(
-    'Where would you like to create new note?',
-    folderList.map((folder) => ({
-      label: folder,
-      value: folder,
-    })),
-    '/',
-  )
-
-  const options = await getTemplateList()
-
-  const selectedTemplate = await chooseOption<TNote, void>('Choose Template', options)
-
-  const noteTitle = title.toString()
-  const filename = DataStore.newNote(noteTitle, folder) || ''
-  if (filename) {
-    // $FlowIgnore
-    const templateResult = await NPTemplating.renderTemplate(selectedTemplate, null, { usePrompts: true })
-    await Editor.openNoteByFilename(filename)
-    Editor.content = `# ${noteTitle}\n${templateResult}`
+    const noteTitle = title.toString()
+    const filename = DataStore.newNote(noteTitle, folder) || ''
+    if (filename) {
+      // $FlowIgnore
+      const templateResult = await NPTemplating.renderTemplate(selectedTemplate, null, { usePrompts: true })
+      await Editor.openNoteByFilename(filename)
+      Editor.content = `# ${noteTitle}\n${templateResult}`
+    }
+  } catch (error) {
+    logError(pluginJson, error)
   }
 }
 
@@ -283,29 +303,38 @@ export async function templateQuickNote(noteName: string = ''): Promise<void> {
       return
     }
     let selectedTemplate = await chooseOption<TNote, void>('Choose Quick Note', options)
-    selectedTemplate = selectedTemplate.replace(/.md|.txt/gi, '')
 
     if (selectedTemplate) {
       // $FlowIgnore
       const templateData = await NPTemplating.getTemplate(selectedTemplate)
       const isFrontmatter = new FrontmatterModule().isFrontmatterTemplate(templateData)
 
-      // $FlowIgnore
-      let renderedData = await NPTemplating.renderTemplate(selectedTemplate, null, { usePrompts: true, qtn: true })
-
       if (isFrontmatter) {
         // renderedData = NPTemplating.processPrompts(templateData, {}, '<%', '%>')
-        const frontmatterData = new FrontmatterModule().render(renderedData)
+        const frontmatterData = new FrontmatterModule().render(templateData)
         const frontmatterAttributes = frontmatterData?.attributes || {}
         const data = { frontmatter: frontmatterAttributes }
         let frontmatterBody = frontmatterData.body
+        const attributeKeys = Object.keys(frontmatterAttributes)
 
-        const temp = await NPTemplating.processPrompts(frontmatterBody, {}, '<%', '%>')
-        const temp2 = await NPTemplating.preProcess(temp.sessionTemplateData, temp.sessionData)
+        for (const item of attributeKeys) {
+          let value = frontmatterAttributes[item]
+          let attributeValue = await NPTemplating.render(value)
+          frontmatterAttributes[item] = attributeValue
+        }
+
         // $FlowIgnore
-        let finalRenderedData = await NPTemplating.render(temp2.newTemplateData, temp2.newSettingData)
+        let finalRenderedData = await NPTemplating.render(frontmatterBody, frontmatterAttributes)
 
         const newNoteTitle = frontmatterAttributes.newNoteTitle
+        if (!newNoteTitle || newNoteTitle.length === 0) {
+          await CommandBar.prompt(
+            'Invalid Note Title',
+            'Note Title may only contain alphanumeric characters (a..z, A..Z, 0..9)\n\nIf you have used a templating prompt to obtain note title, make sure the prompt variable is valid.\n\nFor more information on valid prompt variable names, see documentation\n\nhttps://nptemplating-docs.netlify.app/docs/templating-examples/prompt/',
+          )
+          return
+        }
+
         const folder = frontmatterAttributes.folder
 
         const filename = DataStore.newNote(newNoteTitle, folder) || ''
@@ -313,6 +342,9 @@ export async function templateQuickNote(noteName: string = ''): Promise<void> {
           await Editor.openNoteByFilename(filename)
           Editor.content = `# ${newNoteTitle}\n${finalRenderedData}`
         }
+      } else {
+        let renderedData = await NPTemplating.render(templateData, null, { usePrompts: true, qtn: true })
+        return renderedData
       }
     }
   } catch (error) {
@@ -321,10 +353,14 @@ export async function templateQuickNote(noteName: string = ''): Promise<void> {
 }
 
 export async function templateAbout(): Promise<string> {
-  const version = pluginJson['plugin.version']
-  let aboutInfo = `Templating Plugin for NotePlan\nv${version}\n\n\nCopyright © 2022 Mike Erickson.\nAll Rights Reserved.`
+  try {
+    const version = pluginJson['plugin.version']
+    let aboutInfo = `Templating Plugin for NotePlan\nv${version}\n\n\nCopyright © 2022 Mike Erickson.\nAll Rights Reserved.`
 
-  await CommandBar.prompt('About np.Templating', aboutInfo)
-  log(pluginJson, `${version}`)
-  return version
+    await CommandBar.prompt('About np.Templating', aboutInfo)
+    log(pluginJson, `${version}`)
+    return version
+  } catch (error) {
+    logError(pluginJson, error)
+  }
 }

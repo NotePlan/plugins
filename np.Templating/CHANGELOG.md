@@ -3,6 +3,11 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.0.0-beta.25] - 2022-03-29 (mikeerickson)
+
+- fixed regressions with `np:qtn` (https://github.com/NotePlan/plugins/issues/255)
+- fixed issue with global functions not workign properly when using `np:qtn` (https://github.com/NotePlan/plugins/issues/255)
+
 ## [1.0.0-beta.24] - 2022-03-29 (mikeerickson)
 
 - fixed regression introduced in b23

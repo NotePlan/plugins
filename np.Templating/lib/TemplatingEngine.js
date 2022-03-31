@@ -15,11 +15,20 @@ import SystemModule from '@templatingModules/SystemModule'
 import FrontmatterModule from '@templatingModules/FrontmatterModule'
 
 import pluginJson from '../plugin.json'
-import { dump, log } from '@helpers/dev'
+import { clo, log } from '@helpers/dev'
 
 // this is a customized version of `ejs` adding support for async actions (use await in template)
 // review `Test (Async)` template for example`
 import ejs from './support/ejs'
+
+const getProperyValue = (object: any, key: string): any => {
+  key.split('.').forEach((token) => {
+    // $FlowIgnorew
+    if (object) object = object[token]
+  })
+
+  return object
+}
 
 const dt = () => {
   const d = new Date()
@@ -113,7 +122,6 @@ export default class TemplatingEngine {
     let renderData = { ...helpers, ...userData }
     renderData = userData?.data ? { ...userData.data, ...renderData } : renderData
     renderData = userData?.methods ? { ...userData.methods, ...renderData } : renderData
-    // renderData = { ...renderData, ...globals }
 
     // apply custom plugin modules
     this.templateModules.forEach((moduleItem) => {
