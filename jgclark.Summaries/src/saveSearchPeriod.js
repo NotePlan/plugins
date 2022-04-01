@@ -111,7 +111,7 @@ export async function saveSearchPeriod(): Promise<void> {
       log(pluginJson, `  Found ${lines.length} results for '${searchTerm}'`)
       // form the output
       for (let i = 0; i < lines.length; i++) {
-        outputArray.push(`- ${lines[i]}${context[i]}`)
+        outputArray.push(`${config.resultPrefix}${lines[i]} ${context[i]}`)
       }
     } else if (config.showEmptyOccurrences) {
       // If there's nothing to report, make that clear

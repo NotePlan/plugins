@@ -56,8 +56,9 @@ export type SummariesConfig = {
   excludeHashtags: string[],
   includeMentions: string[],
   excludeMentions: string[],
-  occurrencesHeading: string,
   defaultOccurrences: string[],
+  occurrencesHeading: string,
+  resultPrefix: string,
   highlightOccurrences: boolean,
   showEmptyOccurrences: boolean,
   dateStyle: string,
@@ -68,52 +69,26 @@ export type SummariesConfig = {
 }
 
 /**
- * Get config settings from either ConfigV1 or Config V2 (if available)
+ * Get config settings using Config V2 system. (Have now removed support for Config V1.)
  *
  * @return {SummariesConfig} object with configuration
  */
-export async function getSummariesSettings(): Promise<SummariesConfig> {
-  log(pluginJson, `Start of getSummariesSettings()`)
-
-  // Get settings using ConfigV2
-  // This is the usual way ... but it breaks when run from a Template ...
-  // const v2Config: EventsConfig = DataStore.settings
-  // ... so try this explicit way instead
-  const v2Config: SummariesConfig = await DataStore.loadJSON("../jgclark.Summaries/settings.json")
-
-  if (v2Config != null && Object.keys(v2Config).length > 0) {
-    const config: SummariesConfig = v2Config
-
+export async function getSummariesSettings(): Promise<any> {
+  // log(pluginJson, `Start of getSummariesSettings()`)
+  try {
+    // Get settings using ConfigV2
+    const v2Config: SummariesConfig = await DataStore.loadJSON("../jgclark.Summaries/settings.json")
     // $FlowFixMe
-    // clo(config, `\t${configKey} settings from V2:`)
-    return config
-  
-  } else {
-    const v1Config = (await getOrMakeConfigurationSection(configKey)) ?? {}
-    const config: SummariesConfig = {
-      folderToStore: castStringFromMixed(v1Config, 'folderToStore'),
-      foldersToExclude: castStringArrayFromMixed(v1Config, 'foldersToExclude'),
-      headingLevel: castHeadingLevelFromMixed(v1Config, 'headingLevel'),
-      hashtagCountsHeading: castStringFromMixed(v1Config, 'hashtagCountsHeading'),
-      mentionCountsHeading: castStringFromMixed(v1Config, 'mentionCountsHeading'),
-      showAsHashtagOrMention: castBooleanFromMixed(v1Config, 'showAsHashtagOrMention'),
-      includeHashtags: castStringArrayFromMixed(v1Config, 'includeHashtags'),
-      excludeHashtags: castStringArrayFromMixed(v1Config, 'excludeHashtags'),
-      includeMentions: castStringArrayFromMixed(v1Config, 'includeMentions'),
-      excludeMentions: castStringArrayFromMixed(v1Config, 'excludeMentions'),
-      occurrencesHeading: castStringFromMixed(v1Config, 'occurrencesHeading'),
-      defaultOccurrences: castStringArrayFromMixed(v1Config, 'defaultOccurrences'),
-      highlightOccurrences: castBooleanFromMixed(v1Config, 'highlightOccurrences'),
-      showEmptyOccurrences: castBooleanFromMixed(v1Config, 'showEmptyOccurrences'),
-      dateStyle: castStringFromMixed(v1Config, 'dateStyle'),
-      weeklyStatsDuration: castNumberFromMixed(v1Config, 'weeklyStatsDuration'),
-      progressHeading: castStringFromMixed(v1Config, 'progressHeading'),
-      progressHashtags: castStringArrayFromMixed(v1Config, 'progressHashtags'),
-      progressMentions: castStringArrayFromMixed(v1Config, 'progressMentions'),
+    // clo(v2Config, `${configKey} settings from V2:`)
+
+    if (v2Config == null || Object.keys(v2Config).length === 0) {
+      throw new Error(`Cannot find settings for '${configKey}' plugin`)
     }
-    // $FlowFixMe
-    clo(config, `\t${configKey} settings from V1:`)
-    return config
+    return v2Config
+  }
+  catch (err) {
+    logError(pluginJson, `${err.name}: ${err.message}`)
+    return null // for completeness
   }
 }
 

@@ -7,7 +7,7 @@
 	"plugin.icon": "",
 	"plugin.author": "Jonathan Clark",
 	"plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
-	"plugin.version": "0.6.1",
+	"plugin.version": "0.7.0",
 	"plugin.dependencies": [],
 	"plugin.script": "script.js",
 	"plugin.isRemote": "false",
@@ -41,6 +41,11 @@
 			"alias": ["week", "stats", "count"],
 			"description": "Generate stats for tags and mentions for all weeks this year, and write CSV to a note",
 			"jsFunction": "weeklyStats"
+    },
+    {
+      "name": "update Summaries",
+      "description": "update Summaries plugin settings",
+      "jsFunction": "onUpdateOrInstall"
 		}
   ],
 	"plugin.settings": [
@@ -148,6 +153,14 @@
       "title": "/saveSearchResults[Period] commands' settings"
     },
 		{
+      "key": "defaultOccurrences",
+      "title": "Default Search terms",
+      "description": "Optional list of search terms to use by default. If empty, you will be asked for terms each time you run the command.",
+      "type": "[string]",
+      "default": ["idea", "@review", "#question"],
+      "required": false
+    },
+		{
       "key": "occurrencesHeading",
       "title": "Saved Search heading",
       "description": "Heading to go before search output",
@@ -156,12 +169,12 @@
       "required": false
     },
 		{
-      "key": "defaultOccurrences",
-      "title": "Default Search terms",
-      "description": "Optional list of search terms to use by default. If empty, you will be asked for terms each time you run the command.",
-      "type": "[string]",
-      "default": ["idea", "@review", "#question"],
-      "required": false
+      "key": "resultPrefix",
+      "title": "Prefix for search results",
+      "description": "String to put at the start of each search result line. Default is '-'. Can also be empty.",
+      "type": "string",
+      "default": "-",
+      "required": true
     },
     {
       "key": "highlightOccurrences",
