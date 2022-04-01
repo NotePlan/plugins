@@ -2,7 +2,7 @@
 
 ## [0.7.0] - 2022-04-01
 ### Added
-- @@@ added 'Prefix for search results' setting to configure what marker to put before search results, not just `-` (though that remains the default).
+- added 'Prefix for search results' setting to configure what marker to put before search results, not just `- ` (though that remains the default).
 
 ### Changed
 - now only uses the built-in configuration system, which has been provided since v3.4 through the Plugins preference pane

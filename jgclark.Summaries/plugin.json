@@ -173,7 +173,7 @@
       "title": "Prefix for search results",
       "description": "String to put at the start of each search result line. Default is '-'. Can also be empty.",
       "type": "string",
-      "default": "-",
+      "default": "- ",
       "required": true
     },
     {
