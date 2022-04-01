@@ -7,6 +7,18 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/
 
 - fixed regressions with `np:qtn` (https://github.com/NotePlan/plugins/issues/255)
 - fixed issue with global functions not workign properly when using `np:qtn` (https://github.com/NotePlan/plugins/issues/255)
+- Refactor `np:migrate-quick-notes` to align with changes discussed with plugin team
+  - Add `type` field assigning `quick-note` value
+  - Extended migration to change all `{{` and `}}` tags to align with remainder of template migration
+- Refactor `np:qtn` command to only include templates which have `type: quick-note` all other templates will be ignored
+- Refactor `np:append`, `np:insert`, `np:new` to exclude templates which have `type: quick-note`
+- Added `qqq` alias to `np:qtn` command (requested by @dwertheimer)
+  - Note: The following aliases are available: qnt, qtn, quick
+- Added aliases to each of the following commands (removing requirement for `:`)
+  - np:append (npa)
+  - np:new (npn)
+  - np:insert (npi)
+  - np:qtn (npq)
 
 ## [1.0.0-beta.24] - 2022-03-29 (mikeerickson)
 

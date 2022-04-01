@@ -124,40 +124,6 @@ export async function TEMPLATE_CONFIG_BLOCK(): Promise<string> {
   `
 }
 
-export async function getTemplateList(folderName: string = ''): Promise<any> {
-  try {
-    let templateFolder = await getTemplateFolder()
-    if (folderName.length > 0) {
-      templateFolder = `${templateFolder}/${folderName}`
-    }
-
-    if (templateFolder == null) {
-      await CommandBar.prompt('Templating Error', `An error occurred locating ${templateFolder} folder`)
-      return
-    }
-
-    const data = DataStore.settings
-
-    let quickNoteTemplatesFolder: string = data?.quickNotesFolder || 'Quick Notes'
-    quickNoteTemplatesFolder = `${templateFolder}/${quickNoteTemplatesFolder}`
-
-    const options = DataStore.projectNotes
-      .filter((n) => n.filename?.startsWith(templateFolder))
-      .filter((n) => !n.title?.startsWith('_configuration'))
-      .filter((n) => !n.title?.startsWith('_config'))
-      .map((note) => {
-        if (note.filename.indexOf(quickNoteTemplatesFolder)) {
-          return note.title == null ? null : { label: note.title, value: note.filename }
-        }
-      })
-      .filter(Boolean)
-
-    return options
-  } catch (error) {
-    logError(pluginJson, error)
-  }
-}
-
 export async function getTemplateFolder(): Promise<string> {
   return TEMPLATE_FOLDER_NAME
 }
@@ -309,6 +275,43 @@ export default class NPTemplating {
       return notes[0].filename
     }
     return 'INCOMPLETE'
+  }
+
+  static async getTemplateList(isQuickNote?: boolean = false): Promise<any> {
+    try {
+      let templateFolder = await getTemplateFolder()
+      if (templateFolder == null) {
+        await CommandBar.prompt('Templating Error', `An error occurred locating ${templateFolder} folder`)
+        return
+      }
+
+      const allTemplates = DataStore.projectNotes
+        .filter((n) => n.filename?.startsWith(templateFolder))
+        .filter((n) => !n.title?.startsWith('_configuration'))
+        .map((note) => {
+          return note.title == null ? null : { label: note.title, value: note.filename }
+        })
+        .filter(Boolean)
+
+      let resultTemplates = []
+      for (const template of allTemplates) {
+        const templateData = await this.getTemplate(template.value)
+        if (templateData.length > 0) {
+          const attrs = await new FrontmatterModule().attributes(templateData)
+          if (isQuickNote && attrs?.type === 'quick-note') {
+            resultTemplates.push(template)
+          } else {
+            if (!isQuickNote && attrs?.type !== 'quick-note') {
+              resultTemplates.push(template)
+            }
+          }
+        }
+      }
+
+      return resultTemplates
+    } catch (error) {
+      logError(pluginJson, error)
+    }
   }
 
   static async getTemplate(templateName: string = '', options: any = { showChoices: true }): Promise<string> {

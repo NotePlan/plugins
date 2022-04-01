@@ -8,7 +8,7 @@
 import NPTemplating from 'NPTemplating'
 import FrontmatterModule from '@templatingModules/FrontmatterModule'
 
-import { getTemplateFolder, getTemplateList } from 'NPTemplating'
+import { getTemplateFolder } from 'NPTemplating'
 
 import { chooseOption } from '@helpers/userInput'
 import { getOrMakeNote } from '@helpers/note'
@@ -60,9 +60,11 @@ export async function migrateQuickNotes() {
       title = title.replace('{{MeetingName}}', '<%- meetingName %>')
       title = title.replace('{{date8601()}}', '<%- date8601() %>')
       title = title.replace("{{weekDates({format:'yyyy-MM-dd'})}}", "<%- date.startOfWeek('ddd YYYY-MM-DD',null,1) %>  - <%- date.endOfWeek('ddd YYYY-MM-DD',null,1) %>")
+      title = title.replace('{{', '<%-').replace('}}', '%>')
       const metaData = {
         newNoteTitle: title,
         folder: quickNote.folder,
+        type: 'quick-note',
       }
 
       // $FlowIgnore
@@ -93,7 +95,7 @@ export async function templateInit(): Promise<void> {
 export async function templateInsert(): Promise<void> {
   try {
     if (Editor.type === 'Notes' || Editor.type === 'Calendar') {
-      const options = await getTemplateList()
+      const options = await NPTemplating.getTemplateList()
 
       // $FlowIgnore
       const selectedTemplate = await chooseOption<TNote, void>('Choose Template', options)
@@ -115,7 +117,7 @@ export async function templateAppend(): Promise<void> {
     if (Editor.type === 'Notes' || Editor.type === 'Calendar') {
       const content: string = Editor.content || ''
 
-      const options = await getTemplateList()
+      const options = await NPTemplating.getTemplateList()
 
       const selectedTemplate = await chooseOption<TNote, void>('Choose Template', options)
 
@@ -149,7 +151,7 @@ export async function templateNew(): Promise<void> {
       '/',
     )
 
-    const options = await getTemplateList()
+    const options = await NPTemplating.getTemplateList()
 
     const selectedTemplate = await chooseOption<TNote, void>('Choose Template', options)
 
@@ -292,13 +294,12 @@ export async function migrateTemplates(silent: boolean = false): Promise<void> {
 export async function templateQuickNote(noteName: string = ''): Promise<void> {
   try {
     const content: string = Editor.content || ''
-    let quickNoteTemplatesFolder: string = DataStore.settings?.quickNotesFolder || 'Quick Notes'
 
-    const options = await getTemplateList(quickNoteTemplatesFolder)
+    const options = await NPTemplating.getTemplateList(true)
     if (options.length === 0) {
       await CommandBar.prompt(
         'Templating',
-        `Unable to locate any Quick Notes templates in "@Templates/${quickNoteTemplatesFolder}" folder.\n\nIf you wish to store Quick Notes in a different folder, you can customize location in np.Templating Settings.`,
+        `Unable to locate any Quick Notes templates in "@Templates" folder.\n\nFor more information on using Quick Notes, please refer to DOCUMENTATION`,
       )
       return
     }

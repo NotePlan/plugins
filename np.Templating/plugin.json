@@ -24,7 +24,8 @@
       "alias": [
         "insert",
         "it",
-        "template"
+        "template",
+        "npi"
       ],
       "description": "Insert template to current note",
       "jsFunction": "templateInsert"
@@ -34,8 +35,8 @@
       "alias": [
         "append",
         "at",
-        "append",
-        "template"
+        "template",
+        "npa"
       ],
       "description": "Append template to end of current note",
       "jsFunction": "templateAppend"
@@ -45,7 +46,8 @@
       "alias": [
         "new",
         "nn",
-        "template"
+        "template",
+        "npn"
       ],
       "description": "Create new note with title, in chosen folder with optional template",
       "jsFunction": "templateNew"
@@ -57,7 +59,9 @@
         "quick",
         "template",
         "qnt",
-        "qtn"
+        "qtn",
+        "qqq",
+        "npq"
       ],
       "description": "Create new note based on Quick Note Template",
       "jsFunction": "templateQuickNote"
@@ -216,17 +220,6 @@
       "description": "Note: Leave blank for default weather response\n\nYou can customize the weather output by providing a custom format string which may include placeholders for different pieces from weather response\n\nRefer to np.Templating documention for list of available placeholders.",
       "type": "string",
       "default": "",
-      "required": false
-    },
-    {
-      "type": "separator"
-    },
-    {
-      "key": "quickNotesFolder",
-      "title": "Quick Notes Folder",
-      "description": "Path to location of Quick Notes folder in NotePlan @Templates folder\n\nDefault: 🗒 Quick Notes",
-      "type": "string",
-      "default": "🗒 Quick Notes",
       "required": false
     },
     {
