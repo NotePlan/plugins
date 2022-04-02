@@ -19,7 +19,7 @@ import { getWeather } from '../lib/support/modules/weather'
 import { getDailyQuote } from '../lib/support/modules/quote'
 import { getVerse, getVersePlain } from '../lib/support/modules/verse'
 import { getConfiguration, initConfiguration, migrateConfiguration, updateSettingData } from '../../helpers/NPconfiguration'
-import { log, logError } from '@helpers/dev'
+import { log, logError, clo } from '@helpers/dev'
 
 import pluginJson from '../plugin.json'
 
@@ -104,7 +104,7 @@ export async function templateInsert(): Promise<void> {
       const options = await NPTemplating.getTemplateList()
 
       // $FlowIgnore
-      const selectedTemplate = await chooseOption<TNote, void>('Choose Template', options)
+      const selectedTemplate = await NPTemplating.chooseTemplate()
 
       // $FlowIgnore
       const renderedTemplate = await NPTemplating.renderTemplate(selectedTemplate)
@@ -122,9 +122,12 @@ export async function templateAppend(): Promise<void> {
   try {
     if (Editor.type === 'Notes' || Editor.type === 'Calendar') {
       const content: string = Editor.content || ''
-      const options = await NPTemplating.getTemplateList()
 
-      const selectedTemplate = await chooseOption<TNote, void>('Choose Template', options)
+      const options = await NPTemplating.getTemplateList()
+      const templateList = []
+
+      // $FlowIgnore
+      const selectedTemplate = await NPTemplating.chooseTemplate()
 
       // $FlowIgnore
       let renderedTemplate = await NPTemplating.renderTemplate(selectedTemplate, {})
@@ -156,9 +159,7 @@ export async function templateNew(): Promise<void> {
       '/',
     )
 
-    const options = await NPTemplating.getTemplateList()
-
-    const selectedTemplate = await chooseOption<TNote, void>('Choose Template', options)
+    const selectedTemplate = await NPTemplating.chooseTemplate()
 
     const noteTitle = title.toString()
     const filename = DataStore.newNote(noteTitle, folder) || ''

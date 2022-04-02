@@ -197,7 +197,7 @@ export default class NPTemplating {
 
       this.constructor.templateConfig = {
         ...data,
-        ...{ selection: await selection(), clipboard: Clipboard.string },
+        ...{ selection: await selection(), clipboard: '' },
       }
 
       let globalData = []
@@ -259,6 +259,22 @@ export default class NPTemplating {
     console.log(line)
     console.log('\n')
     return `**Error: ${method}**\n- **${message}**`
+  }
+
+  static async chooseTemplate(isQuickNote?: boolean = false): Promise<any> {
+    try {
+      const templateList = await this.getTemplateList(isQuickNote)
+      let options = []
+      for (const template of templateList) {
+        const parts = template.value.split('/')
+        const filename = parts.pop()
+        const label = template.value.replace('@Templates/', '').replace(filename, template.label)
+        options.push({ label, value: template.value })
+      }
+
+      // $FlowIgnore
+      return await chooseOption<TNote, void>('Choose Template', options)
+    } catch (error) {}
   }
 
   static async getFilenameFromNote(note: string = ''): Promise<string> {
@@ -418,7 +434,13 @@ export default class NPTemplating {
       await this.setup()
 
       let sessionData = { ...userData }
+      // $FlowIgnore
       let templateData = (await this.getTemplate(templateName)) || ''
+
+      let useClipoard = templateData.includes('system.clipboard')
+      if (templateData.indexOf('system.clipboard') > 0) {
+        this.constructor.templateConfig.clipboard = Clipboard.string
+      }
 
       let globalData = {}
       Object.getOwnPropertyNames(globals).forEach((key) => {

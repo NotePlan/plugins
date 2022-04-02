@@ -3,6 +3,11 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.0.0-beta.27] - 2022-04-02 (mikeerickson)
+
+- Modified clipboard access to only trigger on templates which have `system.clipboard()`
+- Added `chooseTemplate` method, extending normal `chooseOption` method to show path to templates (required when templates have same name in different folders)
+
 ## [1.0.0-beta.26] - 2022-04-02 (mikeerickson)
 
 - renamed `date` function to `legacyDate` when migrating templates
