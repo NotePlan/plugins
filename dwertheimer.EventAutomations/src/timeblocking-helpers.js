@@ -393,7 +393,8 @@ export function getTimeBlockTimesForEvents(timeMap: IntervalMap, todos: Array<TP
 }
 
 // pattern could be a string or a /regex/ in a string
-export function getRegExOrString(input: string): RegExp | string {
+export function getRegExOrString(input: string | RegExp): RegExp | string {
+  if (input instanceof RegExp) return input
   const str = input.trim()
   if (str.startsWith('/') && str.endsWith('/')) {
     return new RegExp(str.slice(1, -1))
@@ -404,7 +405,7 @@ export function getRegExOrString(input: string): RegExp | string {
 
 export function includeTasksWithPatterns(tasks: Array<TParagraph>, pattern: string | Array<string>): Array<TParagraph> {
   if (Array.isArray(pattern)) {
-    return tasks.filter((t) => pattern.some((p) => t.content.match(p)))
+    return tasks.filter((t) => pattern.some((p) => t.content.match(getRegExOrString(p))))
   } else if (typeof pattern === 'string') {
     const pattArr = pattern.split(',')
     return tasks.filter((t) => pattArr.some((p) => t.content.match(getRegExOrString(p))))
@@ -416,10 +417,10 @@ export function includeTasksWithPatterns(tasks: Array<TParagraph>, pattern: stri
 
 export function excludeTasksWithPatterns(tasks: Array<TParagraph>, pattern: string | Array<string>): Array<TParagraph> {
   if (Array.isArray(pattern)) {
-    return tasks.filter((t) => pattern.some((p) => !t.content.match(p)))
+    return tasks.filter((t) => !pattern.some((p) => t.content.match(getRegExOrString(p))))
   } else if (typeof pattern === 'string') {
     const pattArr = pattern.split(',')
-    return tasks.filter((t) => pattArr.some((p) => !t.content.match(getRegExOrString(p))))
+    return tasks.filter((t) => !pattArr.some((p) => t.content.match(getRegExOrString(p))))
   } else {
     return tasks.filter((t) => !t.content.match(pattern))
   }

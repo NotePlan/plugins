@@ -577,7 +577,7 @@ describe(`${PLUGIN_NAME}`, () => {
       })
       test('should include tasks that match an array of patterns with spaces', () => {
         const tasks = [{ content: 'foo' }, { content: 'bar' }, { content: 'baz' }]
-        const result = tb.includeTasksWithPatterns(tasks, ' foo,baz')
+        const result = tb.includeTasksWithPatterns(tasks, ' foo, baz ')
         expect(result.length).toEqual(2)
         expect(result[0].content).toEqual('foo')
         expect(result[1].content).toEqual('baz')
@@ -594,6 +594,18 @@ describe(`${PLUGIN_NAME}`, () => {
         const tasks = [{ content: 'foo' }, { content: 'bar' }, { content: 'baz' }]
         const result = tb.excludeTasksWithPatterns(tasks, '/ba/')
         expect(result[0].content).toEqual('foo')
+      })
+      test('should exclude tasks with hashtags', () => {
+        const tasks = [{ content: 'foo #planning' }, { content: '#lao bar' }, { content: 'baz' }]
+        const result = tb.excludeTasksWithPatterns(tasks, '#planning,#lao')
+        expect(result.length).toEqual(1)
+        expect(result[0].content).toEqual('baz')
+      })
+      test('should exclude tasks with spaces', () => {
+        const tasks = [{ content: 'foo #planning' }, { content: '#lao bar' }, { content: 'baz' }]
+        const result = tb.excludeTasksWithPatterns(tasks, '#planning , #lao')
+        expect(result.length).toEqual(1)
+        expect(result[0].content).toEqual('baz')
       })
     })
   })
