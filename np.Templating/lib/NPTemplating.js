@@ -298,10 +298,13 @@ export default class NPTemplating {
         const templateData = await this.getTemplate(template.value)
         if (templateData.length > 0) {
           const attrs = await new FrontmatterModule().attributes(templateData)
-          if (isQuickNote && attrs?.type === 'quick-note') {
+
+          const type = attrs?.type || ''
+          const types = type.replace(/ /gi, '').split(',')
+          if (isQuickNote && types.includes('quick-note')) {
             resultTemplates.push(template)
           } else {
-            if (!isQuickNote && attrs?.type !== 'quick-note') {
+            if (!isQuickNote && !types.includes('quick-note')) {
               resultTemplates.push(template)
             }
           }
@@ -716,7 +719,6 @@ export default class NPTemplating {
       } else {
         // $FlowIgnore
         let { varName, promptMessage, options } = await this.getPromptParameters(tag)
-        // clo({ varName, promptMessage, options })
       }
     }
 

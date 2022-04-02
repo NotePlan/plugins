@@ -65,6 +65,11 @@ const globals = {
     return getDailyQuote()
   },
 
+  legacyDate: async (params: any = ''): Promise<string> => {
+    // $FlowIgnore
+    return await processDate(JSON.stringify(params))
+  },
+
   progressUpdate: async (params: any): Promise<string> => {
     // $FlowIgnore
     return await insertProgressUpdate(JSON.stringify(params))
@@ -86,7 +91,12 @@ const globals = {
   },
 
   pickDate: async (dateParams: any = '', config: { [string]: ?mixed }): Promise<string> => {
-    return await datePicker(JSON.stringify(dateParams), config)
+    if (!dateParams) {
+      // $FlowIgnore
+      return await datePicker('', '')
+    }
+    // $FlowIgnore
+    return await datePicker(JSON.stringify(dateParams), JSON.stringify(config))
   },
 
   pickDateInterval: async (dateParams: any): Promise<string> => {
@@ -114,8 +124,7 @@ const globals = {
   },
 
   formattedDateTime: (params: any): string => {
-    let dateFormat = ''
-    dateFormat = typeof params === 'object' && params.hasOwnProperty('format') ? params.format : ''
+    const dateFormat = typeof params === 'object' && params.hasOwnProperty('format') ? params.format : params
     return getFormattedTime(dateFormat)
   },
 

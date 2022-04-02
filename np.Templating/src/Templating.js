@@ -61,9 +61,15 @@ export async function migrateQuickNotes() {
       title = title.replace('{{date8601()}}', '<%- date8601() %>')
       title = title.replace("{{weekDates({format:'yyyy-MM-dd'})}}", "<%- date.startOfWeek('ddd YYYY-MM-DD',null,1) %>  - <%- date.endOfWeek('ddd YYYY-MM-DD',null,1) %>")
       title = title.replace('{{', '<%-').replace('}}', '%>')
+
+      const enquote = (str: string = '') => {
+        const matches = str.match(/^[a-zA-Z]/gi) || []
+        return matches?.length === 0 ? `"${str}"` : str
+      }
+
       const metaData = {
-        newNoteTitle: title,
-        folder: quickNote.folder,
+        newNoteTitle: enquote(title),
+        folder: enquote(quickNote.folder),
         type: 'quick-note',
       }
 
@@ -116,7 +122,6 @@ export async function templateAppend(): Promise<void> {
   try {
     if (Editor.type === 'Notes' || Editor.type === 'Calendar') {
       const content: string = Editor.content || ''
-
       const options = await NPTemplating.getTemplateList()
 
       const selectedTemplate = await chooseOption<TNote, void>('Choose Template', options)
@@ -260,6 +265,7 @@ export async function migrateTemplates(silent: boolean = false): Promise<void> {
         if (noteTitle.length > 0 && noteTitle !== '_configuration') {
           content = note.content || ''
           content = content.replace(/{{/gi, '<%- ').replace(/}}/gi, ' %>')
+          content = content.replace('date(', 'legacyDate(')
 
           const fullPath = `${newTemplateFolder}/${folderName}/${noteTitle}.md`.replace('//', '/').replace('(', '').replace(')', '')
           const testNote = DataStore.projectNoteByFilename(fullPath)
@@ -343,9 +349,6 @@ export async function templateQuickNote(noteName: string = ''): Promise<void> {
           await Editor.openNoteByFilename(filename)
           Editor.content = `# ${newNoteTitle}\n${finalRenderedData}`
         }
-      } else {
-        let renderedData = await NPTemplating.render(templateData, null, { usePrompts: true, qtn: true })
-        return renderedData
       }
     }
   } catch (error) {
