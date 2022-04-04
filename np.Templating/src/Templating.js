@@ -182,7 +182,7 @@ export async function templateQuickNote(noteName: string = ''): Promise<void> {
       )
       return
     }
-    let selectedTemplate = options.length > 1 ? await NPTemplating.chooseTemplate('meeting-note', 'Choose Quick Note') : options[0].value
+    let selectedTemplate = options.length > 1 ? await NPTemplating.chooseTemplate('quick-note', 'Choose Quick Note') : options[0].value
 
     if (selectedTemplate) {
       const templateData = await NPTemplating.getTemplate(selectedTemplate)
@@ -260,14 +260,22 @@ export async function templateMeetingNote(noteName: string = ''): Promise<void> 
           frontmatterAttributes[item] = attributeValue
         }
 
-        const newNoteTitle = await CommandBar.textPrompt('Meeting Note', 'What is date/time of meeeting?', '')
-        if (typeof newNoteTitle === 'boolean' || newNoteTitle.length === 0) {
-          return // user did not provide note title (Cancel) abort
+        let newNoteTitle = ''
+        if (attributeKeys.includes('newNoteTitle')) {
+          newNoteTitle = frontmatterAttributes.newNoteTitle
+        } else {
+          newNoteTitle = await CommandBar.textPrompt('Meeting Note', 'What is date/time of meeeting?', '')
+          if (typeof newNoteTitle === 'boolean' || newNoteTitle.length === 0) {
+            return // user did not provide note title (Cancel) abort
+          }
         }
 
-        const discuss = await CommandBar.textPrompt('Meeting Note', 'What would you like to discuss?', '')
-        if (typeof discuss === 'boolean' || discuss.length === 0) {
-          return // user did not provide note title (Cancel) abort
+        let discuss = ''
+        if (templateData.includes('<%- discuss %>') || templateData.includes('<%= discuss %>')) {
+          discuss = await CommandBar.textPrompt('Meeting Note', 'What would you like to discuss?', '')
+          if (typeof discuss === 'boolean' || discuss.length === 0) {
+            return // user did not provide note title (Cancel) abort
+          }
         }
 
         // $FlowIgnore

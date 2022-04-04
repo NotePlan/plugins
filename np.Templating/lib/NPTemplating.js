@@ -191,6 +191,9 @@ export default class NPTemplating {
     return settingsData
   }
 
+  /**
+   * Initializes the instance with `templateConfig` from settings, and list of global methods (as defined in `globals.js`)
+   */
   static async setup() {
     try {
       const data = await this.getSettings()

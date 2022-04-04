@@ -3,6 +3,13 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.0.0-beta.29] - 2022-04-04 (mikeerickson)
+
+- Changed issue with `np:mtn` to use `newNoteTitle` template attribute if exists, otherwise user will be prompted to supply note title
+- Updated `np:qtn` and `np:mtn` documentation to note required use of new template format (no more legacy template support)
+- Fixed issue with `np:qtn` to use correct `quick-note` type when display template chooser (regression from b28)
+- Updated `np:mtn` to only prompt for discussion if refernce actually exists on template (e.g. `<%- discussion %>`)
+
 ## [1.0.0-beta.28] - 2022-04-04 (mikeerickson)
 
 - Added `np:mtn` which create a meeting note
