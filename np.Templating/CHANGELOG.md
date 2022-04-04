@@ -3,6 +3,13 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.0.0-beta.28] - 2022-04-04 (mikeerickson)
+
+- Added `np:mtn` which create a meeting note
+- Refactored `np:append`, `np:qtn`, `np:new`, and `np:insert` to use new `np.Templating chooseTemplate` interface
+- Added `chooseTemplate` method to `NPTemplating` module
+- Added `getTemplateList` method to `NPTemplating` module
+
 ## [1.0.0-beta.27] - 2022-04-02 (mikeerickson)
 
 - Modified clipboard access to only trigger on templates which have `system.clipboard()`

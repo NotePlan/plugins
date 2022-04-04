@@ -101,9 +101,6 @@ export async function templateInit(): Promise<void> {
 export async function templateInsert(): Promise<void> {
   try {
     if (Editor.type === 'Notes' || Editor.type === 'Calendar') {
-      const options = await NPTemplating.getTemplateList()
-
-      // $FlowIgnore
       const selectedTemplate = await NPTemplating.chooseTemplate()
 
       // $FlowIgnore
@@ -123,7 +120,6 @@ export async function templateAppend(): Promise<void> {
     if (Editor.type === 'Notes' || Editor.type === 'Calendar') {
       const content: string = Editor.content || ''
 
-      const options = await NPTemplating.getTemplateList()
       const templateList = []
 
       // $FlowIgnore
@@ -171,6 +167,133 @@ export async function templateNew(): Promise<void> {
     }
   } catch (error) {
     logError(pluginJson, error)
+  }
+}
+
+export async function templateQuickNote(noteName: string = ''): Promise<void> {
+  try {
+    const content: string = Editor.content || ''
+
+    const options = await NPTemplating.getTemplateList('quick-note')
+    if (options.length === 0) {
+      await CommandBar.prompt(
+        'Templating',
+        `Unable to locate any Quick Notes templates in "@Templates" folder.\n\nFor more information on using Quick Notes, please refer to https://nptemplating-docs.netlify.app/docs/templating-commands/overview#npqtn`,
+      )
+      return
+    }
+    let selectedTemplate = options.length > 1 ? await NPTemplating.chooseTemplate('meeting-note', 'Choose Quick Note') : options[0].value
+
+    if (selectedTemplate) {
+      const templateData = await NPTemplating.getTemplate(selectedTemplate)
+      const isFrontmatter = new FrontmatterModule().isFrontmatterTemplate(templateData)
+
+      if (isFrontmatter) {
+        const frontmatterData = new FrontmatterModule().render(templateData)
+        const frontmatterAttributes = frontmatterData?.attributes || {}
+        const data = { frontmatter: frontmatterAttributes }
+        let frontmatterBody = frontmatterData.body
+        const attributeKeys = Object.keys(frontmatterAttributes)
+
+        for (const item of attributeKeys) {
+          let value = frontmatterAttributes[item]
+          let attributeValue = await NPTemplating.render(value)
+          frontmatterAttributes[item] = attributeValue
+        }
+
+        // $FlowIgnore
+        let finalRenderedData = await NPTemplating.render(frontmatterBody, frontmatterAttributes)
+
+        const newNoteTitle = frontmatterAttributes.newNoteTitle
+        if (!newNoteTitle || newNoteTitle.length === 0) {
+          await CommandBar.prompt(
+            'Invalid Note Title',
+            'Note Title may only contain alphanumeric characters (a..z, A..Z, 0..9)\n\nIf you have used a templating prompt to obtain note title, make sure the prompt variable is valid.\n\nFor more information on valid prompt variable names, see documentation\n\nhttps://nptemplating-docs.netlify.app/docs/templating-examples/prompt/',
+          )
+          return
+        }
+
+        const folder = frontmatterAttributes.folder
+
+        const filename = DataStore.newNote(newNoteTitle, folder) || ''
+        if (filename) {
+          await Editor.openNoteByFilename(filename)
+          Editor.content = `# ${newNoteTitle}\n${finalRenderedData}`
+        }
+      }
+    }
+  } catch (error) {
+    logError(pluginJson, error.message)
+  }
+}
+
+export async function templateMeetingNote(noteName: string = ''): Promise<void> {
+  try {
+    const content: string = Editor.content || ''
+
+    const options = await NPTemplating.getTemplateList('meeting-note')
+    if (options.length === 0) {
+      await CommandBar.prompt(
+        'Templating',
+        `Unable to locate any Meeting Notes templates in "@Templates" folder.\n\nFor more information on using Meeting Notes, please refer to https://nptemplating-docs.netlify.app/docs/templating-commands/overview#npmtn`,
+      )
+      return
+    }
+
+    let selectedTemplate = options.length > 1 ? await NPTemplating.chooseTemplate('meeting-note', 'Choose Meeting Note') : options[0].value
+
+    if (selectedTemplate) {
+      // $FlowIgnore
+      const templateData = await NPTemplating.getTemplate(selectedTemplate)
+      const isFrontmatter = new FrontmatterModule().isFrontmatterTemplate(templateData)
+
+      if (isFrontmatter) {
+        const frontmatterData = new FrontmatterModule().render(templateData)
+        const frontmatterAttributes = frontmatterData?.attributes || {}
+        const data = { frontmatter: frontmatterAttributes }
+        let frontmatterBody = frontmatterData.body
+        const attributeKeys = Object.keys(frontmatterAttributes)
+
+        for (const item of attributeKeys) {
+          let value = frontmatterAttributes[item]
+          let attributeValue = await NPTemplating.render(value)
+          frontmatterAttributes[item] = attributeValue
+        }
+
+        const newNoteTitle = await CommandBar.textPrompt('Meeting Note', 'What is date/time of meeeting?', '')
+        if (typeof newNoteTitle === 'boolean' || newNoteTitle.length === 0) {
+          return // user did not provide note title (Cancel) abort
+        }
+
+        const discuss = await CommandBar.textPrompt('Meeting Note', 'What would you like to discuss?', '')
+        if (typeof discuss === 'boolean' || discuss.length === 0) {
+          return // user did not provide note title (Cancel) abort
+        }
+
+        // $FlowIgnore
+        let userData = { ...frontmatterAttributes, discuss }
+
+        let finalRenderedData = await NPTemplating.render(frontmatterBody, userData)
+
+        if (!newNoteTitle || newNoteTitle.length === 0) {
+          await CommandBar.prompt(
+            'Invalid Note Title',
+            'Note Title may only contain alphanumeric characters (a..z, A..Z, 0..9)\n\nIf you have used a templating prompt to obtain note title, make sure the prompt variable is valid.\n\nFor more information on valid prompt variable names, see documentation\n\nhttps://nptemplating-docs.netlify.app/docs/templating-examples/prompt/',
+          )
+          return
+        }
+
+        const folder = frontmatterAttributes.folder
+
+        const filename = DataStore.newNote(newNoteTitle, folder) || ''
+        if (filename) {
+          await Editor.openNoteByFilename(filename)
+          Editor.content = `# ${newNoteTitle}\n${finalRenderedData}`
+        }
+      }
+    }
+  } catch (error) {
+    logError(pluginJson, error.message)
   }
 }
 
@@ -295,65 +418,6 @@ export async function migrateTemplates(silent: boolean = false): Promise<void> {
     await CommandBar.prompt('Template Migration', `${newNoteCounter} Templates Converted Successfully`)
   } catch (error) {
     logError(pluginJson, error)
-  }
-}
-
-export async function templateQuickNote(noteName: string = ''): Promise<void> {
-  try {
-    const content: string = Editor.content || ''
-
-    const options = await NPTemplating.getTemplateList(true)
-    if (options.length === 0) {
-      await CommandBar.prompt(
-        'Templating',
-        `Unable to locate any Quick Notes templates in "@Templates" folder.\n\nFor more information on using Quick Notes, please refer to DOCUMENTATION`,
-      )
-      return
-    }
-    let selectedTemplate = await chooseOption<TNote, void>('Choose Quick Note', options)
-
-    if (selectedTemplate) {
-      // $FlowIgnore
-      const templateData = await NPTemplating.getTemplate(selectedTemplate)
-      const isFrontmatter = new FrontmatterModule().isFrontmatterTemplate(templateData)
-
-      if (isFrontmatter) {
-        // renderedData = NPTemplating.processPrompts(templateData, {}, '<%', '%>')
-        const frontmatterData = new FrontmatterModule().render(templateData)
-        const frontmatterAttributes = frontmatterData?.attributes || {}
-        const data = { frontmatter: frontmatterAttributes }
-        let frontmatterBody = frontmatterData.body
-        const attributeKeys = Object.keys(frontmatterAttributes)
-
-        for (const item of attributeKeys) {
-          let value = frontmatterAttributes[item]
-          let attributeValue = await NPTemplating.render(value)
-          frontmatterAttributes[item] = attributeValue
-        }
-
-        // $FlowIgnore
-        let finalRenderedData = await NPTemplating.render(frontmatterBody, frontmatterAttributes)
-
-        const newNoteTitle = frontmatterAttributes.newNoteTitle
-        if (!newNoteTitle || newNoteTitle.length === 0) {
-          await CommandBar.prompt(
-            'Invalid Note Title',
-            'Note Title may only contain alphanumeric characters (a..z, A..Z, 0..9)\n\nIf you have used a templating prompt to obtain note title, make sure the prompt variable is valid.\n\nFor more information on valid prompt variable names, see documentation\n\nhttps://nptemplating-docs.netlify.app/docs/templating-examples/prompt/',
-          )
-          return
-        }
-
-        const folder = frontmatterAttributes.folder
-
-        const filename = DataStore.newNote(newNoteTitle, folder) || ''
-        if (filename) {
-          await Editor.openNoteByFilename(filename)
-          Editor.content = `# ${newNoteTitle}\n${finalRenderedData}`
-        }
-      }
-    }
-  } catch (error) {
-    logError(pluginJson, error.message)
   }
 }
 

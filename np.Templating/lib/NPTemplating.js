@@ -261,9 +261,9 @@ export default class NPTemplating {
     return `**Error: ${method}**\n- **${message}**`
   }
 
-  static async chooseTemplate(isQuickNote?: boolean = false): Promise<any> {
+  static async chooseTemplate(tags?: any = '*', promptMessage: string = 'Choose Template'): Promise<any> {
     try {
-      const templateList = await this.getTemplateList(isQuickNote)
+      const templateList = await this.getTemplateList(tags)
       let options = []
       for (const template of templateList) {
         const parts = template.value.split('/')
@@ -273,7 +273,7 @@ export default class NPTemplating {
       }
 
       // $FlowIgnore
-      return await chooseOption<TNote, void>('Choose Template', options)
+      return await chooseOption<TNote, void>(promptMessage, options)
     } catch (error) {}
   }
 
@@ -293,13 +293,15 @@ export default class NPTemplating {
     return 'INCOMPLETE'
   }
 
-  static async getTemplateList(isQuickNote?: boolean = false): Promise<any> {
+  static async getTemplateList(tags: any = '*'): Promise<any> {
     try {
-      let templateFolder = await getTemplateFolder()
+      const templateFolder = await getTemplateFolder()
       if (templateFolder == null) {
         await CommandBar.prompt('Templating Error', `An error occurred locating ${templateFolder} folder`)
         return
       }
+
+      const filterTags = Array.isArray(tags) ? tags : tags.split(',').map((tag) => tag.trim())
 
       const allTemplates = DataStore.projectNotes
         .filter((n) => n.filename?.startsWith(templateFolder))
@@ -310,24 +312,74 @@ export default class NPTemplating {
         .filter(Boolean)
 
       let resultTemplates = []
-      for (const template of allTemplates) {
-        const templateData = await this.getTemplate(template.value)
-        if (templateData.length > 0) {
-          const attrs = await new FrontmatterModule().attributes(templateData)
+      let matches = []
+      let exclude = []
+      let allTypes = []
 
-          const type = attrs?.type || ''
-          const types = type.replace(/ /gi, '').split(',')
-          if (isQuickNote && types.includes('quick-note')) {
-            resultTemplates.push(template)
-          } else {
-            if (!isQuickNote && !types.includes('quick-note')) {
-              resultTemplates.push(template)
+      // get master list of types
+      for (const template of allTemplates) {
+        if (template.value.length > 0) {
+          const templateData = await this.getTemplate(template.value)
+          if (templateData.length > 0) {
+            const attrs = await new FrontmatterModule().attributes(templateData)
+
+            const type = attrs?.type || ''
+
+            if (type.length > 0) {
+              allTypes = allTypes.concat(type.split(',')).map((type) => type?.trim())
             }
           }
         }
       }
+      // remove duplicates
+      allTypes = allTypes.filter((v, i, a) => a.indexOf(v) === i)
 
-      return resultTemplates
+      // iterate filter tags
+      filterTags.forEach((tag) => {
+        // include all types
+        matches = tag === '*' ? matches.concat(allTypes) : matches
+        // find matching tags
+        if (tag[0] !== '!' && allTypes.indexOf(tag) > -1) {
+          matches.push(allTypes[allTypes.indexOf(tag)])
+        }
+
+        // remove excluded tags
+        if (tag[0] === '!' && allTypes.indexOf(tag.substring(1)) > -1) {
+          exclude.push(allTypes[allTypes.indexOf(tag.substring(1))])
+        }
+      })
+
+      // merge the arrays together using differece
+      let finalMatches = matches.filter((x) => !exclude.includes(x))
+
+      let templateList = []
+      for (const template of allTemplates) {
+        if (template.value.length > 0) {
+          const templateData = await this.getTemplate(template.value)
+          if (templateData.length > 0) {
+            const attrs = await new FrontmatterModule().attributes(templateData)
+
+            const type = attrs?.type || ''
+            let types = (type.length > 0 && type?.split(',')) || ['*']
+            types.forEach((element, index) => {
+              types[index] = element.trim() // trim element whitespace
+            })
+
+            finalMatches.every((match) => {
+              if (types.includes(match) || (types.includes('*') && filterTags.includes('*'))) {
+                // check if types includes any excluded items
+                if (types.filter((x) => exclude.includes(x)).length === 0) {
+                  templateList.push(template)
+                  return false
+                }
+              }
+              return true
+            })
+          }
+        }
+      }
+
+      return templateList
     } catch (error) {
       logError(pluginJson, error)
     }
