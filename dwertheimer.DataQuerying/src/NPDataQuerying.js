@@ -1,11 +1,19 @@
 // @flow
 /*
 TO DO:
+- For fuse refactor writeIndex to get the index and write it
+- For FUSE make a version of getMetaData() to use instead of the map to remove hashtags and mentions to skip
+- for FUSE index, skip the html files
+- for FUSE figure out how to do dates (right now it's ISO)
 - Move functions to support directory with tests
 - Add config fields/defaults
+- Add back in showProgress calls but they trap errors so don't turn on until you know it all works
 
 */
-import dh from './support/data-helpers'
+const OUTPUT_SEARCH_RESULTS = true
+
+import * as dh from './support/data-helpers'
+import * as fh from './support/fuse-helpers'
 // import { testDB } from './support/database' //didn't seem to work
 
 import { log, logError, clo, timer } from '../../helpers/dev'
@@ -20,6 +28,110 @@ type NoteIndexType = {
   filename: string,
   title: string,
   content: string,
+}
+
+const INDEX_FILENAME = 'fuse-index.json'
+
+const SEARCH_OPTIONS = {
+  keys: ['type', 'title', 'hashtags', 'mentions', 'content', 'filename'],
+  includeScore: true,
+  includeMatches: true,
+  useExtendedSearch: true,
+  shouldSort: true,
+  findAllMatches: true,
+}
+
+export function getNotesForIndex(config) {
+  const consolidatedNotes = [...DataStore.projectNotes, ...DataStore.calendarNotes]
+  log(pluginJson, `getNotesForIndex: ${consolidatedNotes.length} notes before eliminating foldersToIgnore `)
+  // consolidatedNotes.prototype.changedDateISO = () => this.changedDate.toISOString()
+  return consolidatedNotes
+    .filter((note) => {
+      let include = true
+      config.foldersToIgnore.forEach((skipFolder) => {
+        if (note.filename.includes(`${skipFolder}/`)) {
+          include = false
+        }
+      })
+      return include
+    })
+    .map((n) => ({
+      type: n.type,
+      title: n.title,
+      hashtags: n.hashtags,
+      mentions: n.mentions,
+      content: n.content,
+      filename: n.filename,
+    }))
+  // Note: had to do the map above to get the actual NP objects to be visible in the console
+  // May not be necessary in production
+  // return includedNotes
+}
+
+/**
+ * Create searchable (Fuse) index and write it to disk
+ * @returns {NoteIndexType | null}
+ */
+export async function writeIndex(index): null | FuseIndex {
+  try {
+    // CommandBar.showLoading(true, 'Building search index')
+    // await CommandBar.onAsyncThread()
+    // const consolidatedNotes = [...DataStore.projectNotes, ...DataStore.calendarNotes].map((note) => ({ ...note, changedDate: note.changedDate.toISOString() }))
+    let timeStart = new Date()
+    log(pluginJson, `writeIndex: index is of type: "${typeof index}" ; ${JSON.stringify(index).length} char length of index`)
+    DataStore.saveJSON(JSON.stringify(index), INDEX_FILENAME)
+    let elapsed = timer(timeStart)
+    log(pluginJson, `createIndex: ${includedNotes.length} notes written to disk as ${INDEX_FILENAME} total elapsed: ${elapsed}`)
+
+    // await CommandBar.onMainThread()
+    // CommandBar.showLoading(false)
+    return index
+  } catch (error) {
+    clo(error, 'writeIndex: caught error')
+    return null
+  }
+}
+
+/**
+ * Create Fuse Index of current notes
+ * @param {Object} notesToInclude (optional) if you have the cleansed note list, pass it in, otherwise it will be created
+ * @returns {FuseIndex}
+ */
+export function createIndex(notesToInclude = []) {
+  let timeStart = new Date()
+  const config = getDefaultConfig()
+  const includedNotes = notesToInclude.length ? notesToInclude : getNotesForIndex(config)
+  const index = fh.buildIndex(includedNotes, SEARCH_OPTIONS)
+  let elapsed = timer(timeStart)
+  log(pluginJson, `createIndex: ${includedNotes.length} notes indexed in: ${elapsed} `)
+  return index
+}
+
+export async function search(pattern = `'"review alpha"`, loadIndexFromDisk: boolean = false) {
+  let index
+  let timeStart = new Date()
+  if (loadIndexFromDisk) {
+    try {
+      index = DataStore.loadJSON(INDEX_FILENAME)
+    } catch (error) {
+      clo(error, 'search: caught error')
+    }
+  }
+  // test search
+  //FIXME: I need the cleansed notes here!!!!!
+  const config = getDefaultConfig()
+  // const consolidatedNotes = [...DataStore.projectNotes, ...DataStore.calendarNotes].map((note) => ({ ...note, changedDate: note.changedDate.toISOString() }))
+  const includedNotes = getNotesForIndex(config)
+  if (!index) index = createIndex(includedNotes)
+  const results = fh.searchIndex(includedNotes, pattern, { options: SEARCH_OPTIONS, index })
+  log(pluginJson, `search for ${pattern} took: ${timer(timeStart)} including load/index; returned ${results.length} results`)
+  if (OUTPUT_SEARCH_RESULTS) {
+    // for debugging
+    clo(results[0] || '', `search: results:${results.length} results[0] example full`)
+    results.forEach((item, i) => {
+      clo(item.item, `search: result(${i}) matches:${item.matches.length} score:${item.score}`)
+    })
+  }
 }
 
 export async function buildIndex(): Promise<void> {
@@ -53,6 +165,7 @@ function getInitialIndex(): NoteIndex {
 
 function getDefaultConfig(): { [string]: mixed } {
   return {
+    foldersToIgnore: ['_resources', '_evernote_attachments'],
     ignoreHTMLfiles: true,
     skipDoneMentions: true,
     mentionsToSkip: ['@sleep('], //FIXME: add to config and skipping,

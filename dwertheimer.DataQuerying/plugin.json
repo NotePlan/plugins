@@ -16,6 +16,27 @@
       "jsFunction": "buildIndex",
       "alias": [
       ]
+    },
+    {
+      "name": "writeIndex",
+      "description": "Build a notes content index",
+      "jsFunction": "writeIndex",
+      "alias": [
+      ]
+    },
+    {
+      "name": "search",
+      "description": "Search the notes index",
+      "jsFunction": "search",
+      "alias": [
+      ]
+    },    
+    {
+      "name": "searchTest",
+      "description": "Search the Fuse DB",
+      "jsFunction": "searchTest",
+      "alias": [
+      ]
     }
   ],
   "plugin.settings": [

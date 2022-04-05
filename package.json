@@ -119,6 +119,7 @@
     "enquirer": "^2.3.6",
     "findup-sync": "4.0.0",
     "front-matter": "4.0.2",
+    "fuse.js": "^6.5.3",
     "git-state": "4.1.0",
     "js-yaml": "^4.1.0",
     "json5": "^2.2.0",
