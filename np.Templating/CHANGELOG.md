@@ -3,6 +3,71 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.0.0-beta.29] - 2022-04-04 (mikeerickson)
+
+- Changed issue with `np:mtn` to use `newNoteTitle` template attribute if exists, otherwise user will be prompted to supply note title
+- Updated `np:qtn` and `np:mtn` documentation to note required use of new template format (no more legacy template support)
+- Fixed issue with `np:qtn` to use correct `quick-note` type when display template chooser (regression from b28)
+- Updated `np:mtn` to only prompt for discussion if refernce actually exists on template (e.g. `<%- discussion %>`)
+
+## [1.0.0-beta.28] - 2022-04-04 (mikeerickson)
+
+- Added `np:mtn` which create a meeting note
+- Refactored `np:append`, `np:qtn`, `np:new`, and `np:insert` to use new `np.Templating chooseTemplate` interface
+- Added `chooseTemplate` method to `NPTemplating` module
+- Added `getTemplateList` method to `NPTemplating` module
+
+## [1.0.0-beta.27] - 2022-04-02 (mikeerickson)
+
+- Modified clipboard access to only trigger on templates which have `system.clipboard()`
+- Added `chooseTemplate` method, extending normal `chooseOption` method to show path to templates (required when templates have same name in different folders)
+
+## [1.0.0-beta.26] - 2022-04-02 (mikeerickson)
+
+- renamed `date` function to `legacyDate` when migrating templates
+  - `date` is a reserved word in `np.Templating` used for `DateModule`
+- updated `np:migrate-quick-notes` to enquote attribute values if they don't start with legal character (`a-zA-z`)
+- updated `frontmatter-module.test.js` to check for invalid attribute values
+- see [template documentation](https://nptemplating-docs.netlify.app/docs/templating-commands/quick-notes/#quick-note-template-required-attributes) for details
+- added `legacyDates` to `np.Templating` globals
+- fixed `pickDate` in `np.Templating` globals
+  - Was throwing error parsing JSON5 (see `@helpers/datePicker`) due to invalid parameters
+- fixed issue when testing for template `types` using `.includes` instead of `===`
+- removed debug code in `templateQuickNote` method
+
+## [1.0.0-beta.25] - 2022-04-01 (mikeerickson)
+
+- fixed regressions with `np:qtn` (https://github.com/NotePlan/plugins/issues/255)
+- fixed issue with global functions not workign properly when using `np:qtn` (https://github.com/NotePlan/plugins/issues/255)
+- Refactor `np:migrate-quick-notes` to align with changes discussed with plugin team
+  - Add `type` field assigning `quick-note` value
+  - Extended migration to change all `{{` and `}}` tags to align with remainder of template migration
+- Refactor `np:qtn` command to only include templates which have `type: quick-note` all other templates will be ignored
+- Refactor `np:append`, `np:insert`, `np:new` to exclude templates which have `type: quick-note`
+- Added `qqq` alias to `np:qtn` command (requested by @dwertheimer)
+  - Note: The following aliases are available: qnt, qtn, quick
+- Added aliases to each of the following commands (removing requirement for `:`)
+  - np:append (npa)
+  - np:new (npn)
+  - np:insert (npi)
+  - np:qtn (npq)
+
+## [1.0.0-beta.24] - 2022-03-29 (mikeerickson)
+
+- fixed regression introduced in b23
+- removed NotePlan environment specific debug code from all modules, all tests are passing now
+
+## [1.0.0-beta.23] - 2022-03-29 (mikeerickson)
+
+- fixed additional locations of `.md` and `.txt` support that were missed in b22
+- fixed issue accessing np.Templating Settings data when getting template list
+
+## [1.0.0-beta.22] - 2022-03-29 (mikeerickson)
+
+- Fixed issue when using `<%-` tag with data containing `<` and `>` characters in output variable (reported by @eduard)
+- Added choose template interface when refrencing templates with same name (e.g. "Daily Note Template")
+- Changed filename extension to support `.md` and `.txt` (previously assumed disk filename of `.md`) (reported by @dwertheimer)
+
 ## [1.0.0-beta.21] - 2022-03-28 (mikeerickson)
 
 - Reverted settings access changed in b18 as it was not working properly (restored previous method of accessing np.Templating Settings)

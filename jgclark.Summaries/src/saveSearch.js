@@ -84,17 +84,16 @@ export async function saveSearch(): Promise<void> {
   // Find matches in this set of notes
   const outputArray = []
   for (const searchTerm of stringsToMatch) {
-
     const results = await gatherMatchingLines(notes, searchTerm, config.highlightOccurrences, config.dateStyle)
     const lines = results?.[0]
     const contexts = results?.[1]
-    // output a heading first
+    // write output, starting with a heading if needed
     if (lines.length > 0) {
       outputArray.push(`### ${searchTerm}`)
       console.log(`  Found ${lines.length} results for '${searchTerm}'`)
       // format the output
       for (let i = 0; i < lines.length; i++) {
-        outputArray.push(`- ${lines[i]} ${contexts[i]}`)
+        outputArray.push(`${config.resultPrefix}${lines[i]} ${contexts[i]}`)
       }
     } else if (config.showEmptyOccurrences) {
       // If there's nothing to report, make that clear
@@ -203,7 +202,6 @@ export async function saveSearch(): Promise<void> {
         note,
         headingString,
       )
-      // console.log(`\tinsertionLineIndex: ${String(insertionLineIndex)}`)
       // write in reverse order to avoid having to calculate insertion point again
       note.insertParagraph(
         outputArray.join('\n'),

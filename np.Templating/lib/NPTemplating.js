@@ -7,8 +7,9 @@
 import { semverVersionToNumber } from '@helpers/general'
 import pluginJson from '../plugin.json'
 import FrontmatterModule from './support/modules/FrontmatterModule'
-import { log, logError, dump, clo } from '@helpers/dev'
+import { log, logError, clo } from '@helpers/dev'
 import globals from './globals'
+import { chooseOption } from '@helpers/userInput'
 
 /*eslint-disable */
 import TemplatingEngine from './TemplatingEngine'
@@ -16,9 +17,7 @@ import { formatDistanceToNow } from 'date-fns'
 
 const TEMPLATE_FOLDER_NAME = NotePlan.environment.templateFolder
 // const TEMPLATE_FOLDER_NAME = '📋 Templates'
-// const TEMPLATE_FOLDER_NAME = '@Templates'
 
-// np.Templating modules (see /lib/support/modules/*Module)
 // - if a new module has been added, make sure it has been added to this list
 const TEMPLATE_MODULES = ['date', 'frontmatter', 'note', 'system', 'time', 'user', 'utility']
 
@@ -125,41 +124,13 @@ export async function TEMPLATE_CONFIG_BLOCK(): Promise<string> {
   `
 }
 
-export async function getTemplateList(folderName: string = ''): Promise<any> {
-  let templateFolder = await getTemplateFolder()
-  if (folderName.length > 0) {
-    templateFolder = `${templateFolder}/${folderName}`
-  }
-
-  if (templateFolder == null) {
-    await CommandBar.prompt('Templating Error', `An error occurred locating ${templateFolder} folder`)
-    return
-  }
-
-  const data = await this.getSettings()
-  let quickNoteTemplatesFolder: string = data?.quickNotesFolder || 'Quick Notes'
-  quickNoteTemplatesFolder = `${templateFolder}/${quickNoteTemplatesFolder}`
-
-  const options = DataStore.projectNotes
-    .filter((n) => n.filename?.startsWith(templateFolder))
-    .filter((n) => !n.title?.startsWith('_configuration'))
-    .filter((n) => !n.title?.startsWith('_config'))
-    .map((note) => {
-      if (note.filename.indexOf(quickNoteTemplatesFolder)) {
-        return note.title == null ? null : { label: note.title, value: note.filename }
-      }
-    })
-    .filter(Boolean)
-
-  return options
-}
-
 export async function getTemplateFolder(): Promise<string> {
   return TEMPLATE_FOLDER_NAME
 }
 
 export default class NPTemplating {
   templateConfig: any
+  templateGlobals: []
   constructor() {
     // DON'T DELETE
     // constructor method required to access instance config (see setup method)
@@ -220,14 +191,24 @@ export default class NPTemplating {
     return settingsData
   }
 
+  /**
+   * Initializes the instance with `templateConfig` from settings, and list of global methods (as defined in `globals.js`)
+   */
   static async setup() {
     try {
       const data = await this.getSettings()
 
       this.constructor.templateConfig = {
         ...data,
-        ...{ selection: await selection(), clipboard: Clipboard.string },
+        ...{ selection: await selection(), clipboard: '' },
       }
+
+      let globalData = []
+      Object.getOwnPropertyNames(globals).forEach((key) => {
+        globalData.push(key)
+      })
+
+      this.constructor.templateGlobals = globalData
     } catch (error) {
       await CommandBar.prompt('Template Error', error)
     }
@@ -283,7 +264,131 @@ export default class NPTemplating {
     return `**Error: ${method}**\n- **${message}**`
   }
 
-  static async getTemplate(templateName: string = ''): Promise<string> {
+  static async chooseTemplate(tags?: any = '*', promptMessage: string = 'Choose Template'): Promise<any> {
+    try {
+      const templateList = await this.getTemplateList(tags)
+      let options = []
+      for (const template of templateList) {
+        const parts = template.value.split('/')
+        const filename = parts.pop()
+        const label = template.value.replace('@Templates/', '').replace(filename, template.label)
+        options.push({ label, value: template.value })
+      }
+
+      // $FlowIgnore
+      return await chooseOption<TNote, void>(promptMessage, options)
+    } catch (error) {}
+  }
+
+  static async getFilenameFromNote(note: string = ''): Promise<string> {
+    // if nested note, we don't like it
+    const parts = note.split('/')
+    if (parts.length === 0) {
+    }
+
+    const notes = await DataStore.projectNoteByTitle(note, true, false)
+    const finalNotes = notes.filter((note) => note.filename.startsWith(TEMPLATE_FOLDER_NAME))
+    if (finalNotes.length > 1) {
+      return 'MULTIPLE NOTES FOUND'
+    } else {
+      return notes[0].filename
+    }
+    return 'INCOMPLETE'
+  }
+
+  static async getTemplateList(tags: any = '*'): Promise<any> {
+    try {
+      const templateFolder = await getTemplateFolder()
+      if (templateFolder == null) {
+        await CommandBar.prompt('Templating Error', `An error occurred locating ${templateFolder} folder`)
+        return
+      }
+
+      const filterTags = Array.isArray(tags) ? tags : tags.split(',').map((tag) => tag.trim())
+
+      const allTemplates = DataStore.projectNotes
+        .filter((n) => n.filename?.startsWith(templateFolder))
+        .filter((n) => !n.title?.startsWith('_configuration'))
+        .map((note) => {
+          return note.title == null ? null : { label: note.title, value: note.filename }
+        })
+        .filter(Boolean)
+
+      let resultTemplates = []
+      let matches = []
+      let exclude = []
+      let allTypes = []
+
+      // get master list of types
+      for (const template of allTemplates) {
+        if (template.value.length > 0) {
+          const templateData = await this.getTemplate(template.value)
+          if (templateData.length > 0) {
+            const attrs = await new FrontmatterModule().attributes(templateData)
+
+            const type = attrs?.type || ''
+
+            if (type.length > 0) {
+              allTypes = allTypes.concat(type.split(',')).map((type) => type?.trim())
+            }
+          }
+        }
+      }
+      // remove duplicates
+      allTypes = allTypes.filter((v, i, a) => a.indexOf(v) === i)
+
+      // iterate filter tags
+      filterTags.forEach((tag) => {
+        // include all types
+        matches = tag === '*' ? matches.concat(allTypes) : matches
+        // find matching tags
+        if (tag[0] !== '!' && allTypes.indexOf(tag) > -1) {
+          matches.push(allTypes[allTypes.indexOf(tag)])
+        }
+
+        // remove excluded tags
+        if (tag[0] === '!' && allTypes.indexOf(tag.substring(1)) > -1) {
+          exclude.push(allTypes[allTypes.indexOf(tag.substring(1))])
+        }
+      })
+
+      // merge the arrays together using differece
+      let finalMatches = matches.filter((x) => !exclude.includes(x))
+
+      let templateList = []
+      for (const template of allTemplates) {
+        if (template.value.length > 0) {
+          const templateData = await this.getTemplate(template.value)
+          if (templateData.length > 0) {
+            const attrs = await new FrontmatterModule().attributes(templateData)
+
+            const type = attrs?.type || ''
+            let types = (type.length > 0 && type?.split(',')) || ['*']
+            types.forEach((element, index) => {
+              types[index] = element.trim() // trim element whitespace
+            })
+
+            finalMatches.every((match) => {
+              if (types.includes(match) || (types.includes('*') && filterTags.includes('*'))) {
+                // check if types includes any excluded items
+                if (types.filter((x) => exclude.includes(x)).length === 0) {
+                  templateList.push(template)
+                  return false
+                }
+              }
+              return true
+            })
+          }
+        }
+      }
+
+      return templateList
+    } catch (error) {
+      logError(pluginJson, error)
+    }
+  }
+
+  static async getTemplate(templateName: string = '', options: any = { showChoices: true }): Promise<string> {
     const parts = templateName.split('/')
     const filename = parts.pop()
 
@@ -294,23 +399,48 @@ export default class NPTemplating {
       templateFilename = `${templateFolderName}/${templateName}`
     }
 
-    if (!templateFilename.includes('.md')) {
-      templateFilename = `${templateFolderName}/${templateName}.md`
-    }
     let selectedTemplate = ''
     const normalizedFilename = await this.normalizeToNotePlanFilename(filename)
     templateFilename = templateFilename.replace(filename, normalizedFilename)
 
     try {
-      selectedTemplate = await DataStore.projectNoteByFilename(templateFilename)
+      templateFilename = templateFilename.replace(/.md|.txt/gi, '')
+      selectedTemplate = await DataStore.projectNoteByFilename(`${templateFilename}.md`)
+      if (!selectedTemplate) {
+        selectedTemplate = await DataStore.projectNoteByFilename(`${templateFilename}.txt`)
+      }
       // if the template can't be found using actual filename (as it is on disk)
-      // this will occur due to a bug in NotePlan which is not properly renaming files on disk to match note name
+      // this will occur due to an issue in NotePlan where name on disk does not match note (or template) name
       if (!selectedTemplate) {
         const parts = templateName.split('/')
         if (parts.length > 0) {
           templateFilename = `${templateFolderName}/${templateName}`
-          let templates = await DataStore.projectNoteByTitle(templateFilename, true, false)
-          selectedTemplate = Array.isArray(templates) && templates.length > 0 ? templates[0] : null
+          let templates = (await DataStore.projectNoteByTitle(templateName, true, false)) || []
+          if (templates.length > 1) {
+            let templatesSecondary = []
+            for (const template of templates) {
+              if (template && template.filename.startsWith(templateFolderName)) {
+                const parts = template.filename.split('/')
+                parts.pop()
+                // $FlowIgnore
+                templatesSecondary.push({ value: template.filename, label: `${parts.join('/')}/${template.title}`, title: template.title })
+              }
+            }
+
+            if (templatesSecondary.length > 1) {
+              // $FlowIgnore
+              let selectedItem = (await chooseOption<TNote, void>('Choose Template', templatesSecondary)) || null
+              if (selectedItem) {
+                // $FlowIgnore
+                selectedTemplate = await DataStore.projectNoteByFilename(selectedItem)
+              }
+            } else {
+              // $FlowIgnore
+              selectedTemplate = await DataStore.projectNoteByFilename(templatesSecondary[0].value)
+            }
+          } else {
+            selectedTemplate = Array.isArray(templates) && templates.length > 0 ? templates[0] : null
+          }
         }
       }
 
@@ -359,7 +489,13 @@ export default class NPTemplating {
       await this.setup()
 
       let sessionData = { ...userData }
+      // $FlowIgnore
       let templateData = (await this.getTemplate(templateName)) || ''
+
+      let useClipoard = templateData.includes('system.clipboard')
+      if (templateData.indexOf('system.clipboard') > 0) {
+        this.constructor.templateConfig.clipboard = Clipboard.string
+      }
 
       let globalData = {}
       Object.getOwnPropertyNames(globals).forEach((key) => {
@@ -400,8 +536,6 @@ export default class NPTemplating {
       templateData = promptData.sessionTemplateData
       sessionData = promptData.sessionData
 
-      // return templateData
-
       const renderedData = await new TemplatingEngine(this.constructor.templateConfig).render(templateData, sessionData, userOptions)
 
       return this._filterTemplateResult(renderedData)
@@ -412,7 +546,7 @@ export default class NPTemplating {
 
   static async preProcess(templateData: string, sessionData?: {}): Promise<mixed> {
     let newTemplateData = templateData
-    let newSettingData = {}
+    let newSettingData = { ...sessionData }
     const tags = (await this.getTags(templateData)) || []
     tags.forEach((tag) => {
       if (!tag.includes('await') && tag.includes('(') && !tag.includes('prompt')) {
@@ -460,13 +594,66 @@ export default class NPTemplating {
     return { newTemplateData, newSettingData }
   }
 
-  static async render(templateData: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
+  static async render(inTemplateData: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
+    const usePrompts = true
     try {
       await this.setup()
-      return await new TemplatingEngine(this.constructor.templateConfig).render(templateData, userData, userOptions)
+
+      let sessionData = { ...userData }
+      let templateData = inTemplateData
+
+      let globalData = {}
+      Object.getOwnPropertyNames(globals).forEach((key) => {
+        globalData[key] = getProperyValue(globals, key)
+      })
+
+      sessionData.methods = { ...sessionData.methods, ...globalData }
+
+      templateData = templateData.replace('<%@', '<%= prompt')
+
+      const isFrontmatterTemplate = new FrontmatterModule().isFrontmatterTemplate(templateData)
+      if (isFrontmatterTemplate && usePrompts) {
+        const frontmatterAttributes = new FrontmatterModule().render(templateData)?.attributes || {}
+        for (const [key, value] of Object.entries(frontmatterAttributes)) {
+          let frontMatterValue = value
+          // $FlowIgnore
+          const promptData = await this.processPrompts(value, sessionData, '<%', '%>')
+          frontMatterValue = promptData.sessionTemplateData
+          // $FlowIgnore
+          const { newTemplateData, newSettingData } = await this.preProcess(frontMatterValue, sessionData)
+          sessionData = { ...sessionData, ...newSettingData }
+
+          const renderedData = await new TemplatingEngine(this.constructor.templateConfig).render(newTemplateData, promptData.sessionData, userOptions)
+
+          // $FlowIgnore
+          templateData = templateData.replace(`${key}: ${value}`, `${key}: ${renderedData}`)
+        }
+        if (userOptions?.qtn) {
+          return templateData
+        }
+      }
+
+      // $FlowIgnore
+      const { newTemplateData, newSettingData } = await this.preProcess(templateData, sessionData)
+      sessionData = { ...sessionData, ...newSettingData }
+
+      const promptData = await this.processPrompts(newTemplateData, sessionData, '<%', '%>')
+      templateData = promptData.sessionTemplateData
+      sessionData = promptData.sessionData
+
+      const renderedData = await new TemplatingEngine(this.constructor.templateConfig).render(templateData, sessionData, userOptions)
+
+      return this._filterTemplateResult(renderedData)
     } catch (error) {
-      return this.templateErrorMessage('NPTemplating.render', error)
+      return this.templateErrorMessage('NPTemplating.renderTemplate', error)
     }
+
+    // try {
+    //   await this.setup()
+    //   return await new TemplatingEngine(this.constructor.templateConfig).render(templateData, userData, userOptions)
+    // } catch (error) {
+    //   return this.templateErrorMessage('NPTemplating.render', error)
+    // }
   }
 
   static async postProcess(templateData: string): Promise<mixed> {
@@ -559,7 +746,6 @@ export default class NPTemplating {
 
     let sessionTemplateData = templateData.replace('<%@', '%<= prompt')
     const tags = await this.getTags(sessionTemplateData)
-
     for (const tag of tags) {
       // if tag is from module, it will contain period so we need to make sure this tag is not a module
       let isMethod = false
@@ -568,9 +754,16 @@ export default class NPTemplating {
           isMethod = true
         }
       }
+
+      const result = this.constructor.templateGlobals.some((element) => tag.includes(element))
+      if (result) {
+        isMethod = true
+      }
+
       if (!this.isVariableTag(tag) && !this.isTemplateModule(tag) && !isMethod) {
         // $FlowIgnore
         let { varName, promptMessage, options } = await this.getPromptParameters(tag)
+
         const varExists = (varName) => {
           let result = true
           if (!sessionData.hasOwnProperty(varName)) {
@@ -595,12 +788,14 @@ export default class NPTemplating {
           }
         }
         if (tag.indexOf(`<%=`) >= 0 || tag.indexOf(`<%-`) >= 0 || tag.indexOf(`<%`) >= 0) {
-          sessionTemplateData = sessionTemplateData.replace(tag, `${startTag}= ${varName} ${endTag}`)
+          const outputTag = tag.startsWith('<%=') ? '=' : '-'
+          sessionTemplateData = sessionTemplateData.replace(tag, `${startTag}${outputTag} ${varName} ${endTag}`)
         } else {
           sessionTemplateData = sessionTemplateData.replace(tag, `<% 'prompt' -%>`)
         }
       } else {
-        // sessionTemplateData = sessionTemplateData.replace('user.', '')
+        // $FlowIgnore
+        let { varName, promptMessage, options } = await this.getPromptParameters(tag)
       }
     }
 
@@ -640,7 +835,10 @@ export default class NPTemplating {
     let templateFilename = (await getTemplateFolder()) + title
     templateFilename = templateFilename.replace('@Templates@Templates', '@Templates')
     try {
-      const note = DataStore.projectNoteByFilename(`${templateFilename}.md`)
+      let note = DataStore.projectNoteByFilename(`${templateFilename}.md`)
+      if (!note) {
+        let note = DataStore.projectNoteByFilename(`${templateFilename}.txt`)
+      }
       return note ? true : false
     } catch (error) {
       logError(pluginJson, `templateExists :: ${error}`)

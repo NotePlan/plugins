@@ -2,6 +2,9 @@
 
 ## Changelog
 
+[0.5.3] 2022-04-02
+- fix bug in task exclusion patterns (thx @lt#0807)
+
 [0.5.2] 2022-03-17
 - fix done task still showing up (thx @pan)
 

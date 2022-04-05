@@ -8,13 +8,13 @@
 import fm from 'front-matter'
 
 export function getAttributes(templateData: string = ''): any {
-  const fmData = fm(templateData)
+  const fmData = fm(templateData, { allowUnsafe: true })
 
   return fmData && fmData?.attributes ? fmData.attributes : {}
 }
 
 export function getBody(templateData: string = ''): string {
-  const fmData = fm(templateData)
+  const fmData = fm(templateData, { allowUnsafe: true })
 
   return fmData && fmData?.body ? fmData.body : ''
 }
@@ -26,8 +26,7 @@ export default class FrontmatterModule {
   }
 
   isFrontmatterTemplate(templateData: string): boolean {
-    const result = this.getFrontmatterBlock(templateData)
-    return result.length > 0
+    return fm.test(templateData)
   }
 
   getFrontmatterBlock(templateData: string): string {
@@ -43,19 +42,23 @@ export default class FrontmatterModule {
   }
 
   render(template: any = ''): any {
-    const fmData = fm(template)
+    const fmData = fm(template, { allowUnsafe: true })
 
     return fmData
   }
 
   attributes(templateData: string = ''): any {
-    const fmData = fm(templateData)
+    try {
+      const fmData = fm(templateData, { allowUnsafe: true })
 
-    return fmData && fmData?.attributes ? fmData.attributes : {}
+      return fmData && fmData?.attributes ? fmData.attributes : {}
+    } catch (error) {
+      return {}
+    }
   }
 
   body(templateData: string = ''): string {
-    const fmData = fm(templateData)
+    const fmData = fm(templateData, { allowUnsafe: true })
 
     return fmData && fmData?.body ? fmData.body : ''
   }

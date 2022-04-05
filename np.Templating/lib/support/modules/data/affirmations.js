@@ -131,6 +131,7 @@ const affirmations = [
   'Hold up your head! You were not made for failure, you were made for victory.',
   'If you have good thoughts they will shine out of your face like sunbeams and you will always look lovely.',
   'There is nothing either good or bad, but thinking makes it so.',
+  'Doubt kills more dreams than failure ever will',
 ]
 
 module.exports = affirmations

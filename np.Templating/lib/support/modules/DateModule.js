@@ -5,7 +5,6 @@
 
 // import moment from 'moment/min/moment-with-locales'
 import moment from 'moment-business-days'
-import { log, logError, clo } from '@helpers/dev'
 
 export const DAY_NUMBER_SUNDAY = 0
 export const DAY_NUMBER_MONDAY = 1

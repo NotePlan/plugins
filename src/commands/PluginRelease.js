@@ -6,7 +6,6 @@ const pluginUtils = require('./support/plugin-utils')
 const pluginRelease = require('./support/plugin-release')
 const releasePrompts = require('./support/plugin-release/release-prompts')
 const github = require('./support/github')
-const { defaultsDeep } = require('lodash')
 
 module.exports = {
   name: 'plugin:release',

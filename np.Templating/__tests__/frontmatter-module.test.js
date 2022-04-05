@@ -104,6 +104,26 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(typeof result).toEqual('string')
       expect(result).toContain('<%= name %>')
     })
+
+    it(`should extract quick note properties`, async () => {
+      const data = await factory('frontmatter-quick-note.ejs')
+
+      const body = new FrontmatterModule().body(data)
+      const attrs = new FrontmatterModule().attributes(data)
+
+      expect(body.length).toBeGreaterThan(0)
+      expect(Object.keys(attrs).length).toBeGreaterThan(0)
+
+      expect(attrs?.newNoteTitle).toEqual('Javolin <%- meetingName %> <%- date8601() %>')
+    })
+
+    it.only(`should not parse attributes with illegal characters`, async () => {
+      const data = await factory('frontmatter-illegal-attribute.ejs')
+
+      const attrs = new FrontmatterModule().attributes(data)
+      const keys = Object.keys(attrs)
+      expect(keys.length).toEqual(0)
+    })
   })
 
   describe(section('FrontmatterModule Helpers'), () => {
