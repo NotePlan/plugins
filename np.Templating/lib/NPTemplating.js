@@ -7,7 +7,7 @@
 import { semverVersionToNumber } from '@helpers/general'
 import pluginJson from '../plugin.json'
 import FrontmatterModule from './support/modules/FrontmatterModule'
-import { log, logError, clo } from '@helpers/dev'
+import { log, logError } from '@helpers/dev'
 import globals from './globals'
 import { chooseOption } from '@helpers/userInput'
 
@@ -271,7 +271,7 @@ export default class NPTemplating {
       for (const template of templateList) {
         const parts = template.value.split('/')
         const filename = parts.pop()
-        const label = template.value.replace('@Templates/', '').replace(filename, template.label)
+        const label = template.value.replace(`${TEMPLATE_FOLDER_NAME}/`, '').replace(filename, template.label)
         options.push({ label, value: template.value })
       }
 
@@ -352,6 +352,8 @@ export default class NPTemplating {
         }
       })
 
+      // always ignore templates which include a `ignore` type
+      exclude.push('ignore')
       // merge the arrays together using differece
       let finalMatches = matches.filter((x) => !exclude.includes(x))
 
@@ -832,8 +834,10 @@ export default class NPTemplating {
   }
 
   static async templateExists(title: string = ''): Promise<mixed> {
+    const templateFolder = await getTemplateFolder()
+
     let templateFilename = (await getTemplateFolder()) + title
-    templateFilename = templateFilename.replace('@Templates@Templates', '@Templates')
+    templateFilename = templateFilename.replace('${templateFolder}${templateFolder}', templateFolder)
     try {
       let note = DataStore.projectNoteByFilename(`${templateFilename}.md`)
       if (!note) {

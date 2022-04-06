@@ -173,12 +173,13 @@ export async function templateNew(): Promise<void> {
 export async function templateQuickNote(noteName: string = ''): Promise<void> {
   try {
     const content: string = Editor.content || ''
+    const templateFolder = await getTemplateFolder()
 
     const options = await NPTemplating.getTemplateList('quick-note')
     if (options.length === 0) {
       await CommandBar.prompt(
         'Templating',
-        `Unable to locate any Quick Notes templates in "@Templates" folder.\n\nFor more information on using Quick Notes, please refer to https://nptemplating-docs.netlify.app/docs/templating-commands/overview#npqtn`,
+        `Unable to locate any Quick Notes templates in "${templateFolder}" folder.\n\nFor more information on using Quick Notes, please refer to https://nptemplating-docs.netlify.app/docs/templating-commands/overview#npqtn`,
       )
       return
     }
@@ -230,12 +231,13 @@ export async function templateQuickNote(noteName: string = ''): Promise<void> {
 export async function templateMeetingNote(noteName: string = ''): Promise<void> {
   try {
     const content: string = Editor.content || ''
+    const templateFolder = await getTemplateFolder()
 
     const options = await NPTemplating.getTemplateList('meeting-note')
     if (options.length === 0) {
       await CommandBar.prompt(
         'Templating',
-        `Unable to locate any Meeting Notes templates in "@Templates" folder.\n\nFor more information on using Meeting Notes, please refer to https://nptemplating-docs.netlify.app/docs/templating-commands/overview#npmtn`,
+        `Unable to locate any Meeting Notes templates in "${templateFolder}" folder.\n\nFor more information on using Meeting Notes, please refer to https://nptemplating-docs.netlify.app/docs/templating-commands/overview#npmtn`,
       )
       return
     }
@@ -372,7 +374,7 @@ export async function templateQuote(): Promise<string> {
 export async function migrateTemplates(silent: boolean = false): Promise<void> {
   try {
     const templateFolder = '📋 Templates'
-    const newTemplateFolder: string = '@Templates' // NotePlan.environment.templateFolder
+    const newTemplateFolder: string = NotePlan.environment.templateFolder
 
     const templateNotes = DataStore.projectNotes.filter((n) => n.filename?.startsWith(templateFolder)).filter((n) => !n.title?.startsWith('_configuration'))
     const newTemplates = DataStore.projectNotes.filter((n) => n.filename?.startsWith(newTemplateFolder)).filter((n) => !n.title?.startsWith('_configuration'))

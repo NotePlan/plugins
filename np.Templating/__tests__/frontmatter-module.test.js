@@ -117,7 +117,7 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(attrs?.newNoteTitle).toEqual('Javolin <%- meetingName %> <%- date8601() %>')
     })
 
-    it.only(`should not parse attributes with illegal characters`, async () => {
+    it(`should not parse attributes with illegal characters`, async () => {
       const data = await factory('frontmatter-illegal-attribute.ejs')
 
       const attrs = new FrontmatterModule().attributes(data)

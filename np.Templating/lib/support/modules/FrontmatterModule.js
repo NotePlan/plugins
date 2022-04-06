@@ -9,7 +9,9 @@ import fm from 'front-matter'
 
 export function getAttributes(templateData: string = ''): any {
   const fmData = fm(templateData, { allowUnsafe: true })
-
+  Object.keys(fmData?.attributes).forEach((key) => {
+    fmData.attributes[key] ? fmData.attributes[key] : (fmData.attributes[key] = '')
+  })
   return fmData && fmData?.attributes ? fmData.attributes : {}
 }
 
@@ -42,7 +44,10 @@ export default class FrontmatterModule {
   }
 
   render(template: any = ''): any {
-    const fmData = fm(template, { allowUnsafe: true })
+    const fmData = fm(template)
+    Object.keys(fmData?.attributes).forEach((key) => {
+      fmData.attributes[key] ? fmData.attributes[key] : (fmData.attributes[key] = '')
+    })
 
     return fmData
   }
@@ -50,6 +55,9 @@ export default class FrontmatterModule {
   attributes(templateData: string = ''): any {
     try {
       const fmData = fm(templateData, { allowUnsafe: true })
+      Object.keys(fmData?.attributes).forEach((key) => {
+        fmData.attributes[key] ? fmData.attributes[key] : (fmData.attributes[key] = '')
+      })
 
       return fmData && fmData?.attributes ? fmData.attributes : {}
     } catch (error) {
