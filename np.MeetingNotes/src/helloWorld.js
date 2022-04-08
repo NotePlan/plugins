@@ -10,8 +10,11 @@ import NPTemplating from 'NPTemplating'
 import moment from 'moment-business-days'
 import fm from 'front-matter'
 
+import { log } from '@helpers/dev'
+import pluginJson from '../plugin.json'
+
 export async function insertNoteTemplate(templateFilename): Promise<void> {
-  console.log("chooseTemplateIfNeeded")
+  log(pluginJson, 'chooseTemplateIfNeeded')
   templateFilename = await chooseTemplateIfNeeded(templateFilename, false)
 
   let result = await NPTemplating.renderTemplate(templateFilename)
@@ -19,27 +22,27 @@ export async function insertNoteTemplate(templateFilename): Promise<void> {
 }
 
 export async function newMeetingNote(selectedEvent, templateFilename): Promise<void> {
-  console.log("chooseTemplateIfNeeded")
+  log(pluginJson, 'chooseTemplateIfNeeded')
   templateFilename = await chooseTemplateIfNeeded(templateFilename, true)
 
-  console.log("chooseEventIfNeeded")
+  log(pluginJson, 'chooseEventIfNeeded')
   selectedEvent = await chooseEventIfNeeded(selectedEvent)
 
-  console.log("generateTemplateData")
+  log(pluginJson, 'generateTemplateData')
   let templateData = generateTemplateData(selectedEvent)
 
   try {
-    console.log("get template content")
+    log(pluginJson, 'get template content')
     let templateContent = DataStore.projectNoteByFilename(templateFilename).content
     let attrs = fm(templateContent)?.attributes || {}
-    let folder = attrs.folder || ''
-    let append = attrs.append || ''
-    let prepend = attrs.prepend || ''
+    let folder = attrs?.folder || ''
+    let append = attrs?.append || ''
+    let prepend = attrs?.prepend || ''
 
-    console.log("render template")
+    log(pluginJson, 'render template')
     let result = await NPTemplating.renderTemplate(templateFilename, templateData)
 
-    console.log("insert template")
+    log(pluginJson, 'insert template')
     if(append || prepend) {
       await appendPrependNewNote(append, prepend, folder, result)
     } else {
@@ -47,7 +50,7 @@ export async function newMeetingNote(selectedEvent, templateFilename): Promise<v
     }
 
   } catch (error) {
-    print("error: " + error)
+    log(pluginJson, 'error: ' + error)
   }
 }
 
