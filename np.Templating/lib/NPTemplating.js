@@ -7,7 +7,7 @@
 import { semverVersionToNumber } from '@helpers/general'
 import pluginJson from '../plugin.json'
 import FrontmatterModule from './support/modules/FrontmatterModule'
-import { log, logError } from '@helpers/dev'
+import { clo, log, logError } from '@helpers/dev'
 import globals from './globals'
 import { chooseOption } from '@helpers/userInput'
 
@@ -353,7 +353,8 @@ export default class NPTemplating {
       })
 
       // always ignore templates which include a `ignore` type
-      exclude.push('ignore')
+      exclude.push('ignore') // np.Templating specific
+
       // merge the arrays together using differece
       let finalMatches = matches.filter((x) => !exclude.includes(x))
 
@@ -510,7 +511,7 @@ export default class NPTemplating {
 
       const isFrontmatterTemplate = new FrontmatterModule().isFrontmatterTemplate(templateData)
       if (isFrontmatterTemplate && usePrompts) {
-        const frontmatterAttributes = new FrontmatterModule().render(templateData)?.attributes || {}
+        const frontmatterAttributes = new FrontmatterModule().parse(templateData)?.attributes || {}
         for (const [key, value] of Object.entries(frontmatterAttributes)) {
           let frontMatterValue = value
           // $FlowIgnore
@@ -615,7 +616,7 @@ export default class NPTemplating {
 
       const isFrontmatterTemplate = new FrontmatterModule().isFrontmatterTemplate(templateData)
       if (isFrontmatterTemplate && usePrompts) {
-        const frontmatterAttributes = new FrontmatterModule().render(templateData)?.attributes || {}
+        const frontmatterAttributes = new FrontmatterModule().parse(templateData)?.attributes || {}
         for (const [key, value] of Object.entries(frontmatterAttributes)) {
           let frontMatterValue = value
           // $FlowIgnore
@@ -658,6 +659,28 @@ export default class NPTemplating {
     // }
   }
 
+  // preRender will render frontmatter attribute tags, return final attributes and body
+  static async preRender(templateData: string = '', userData: any = {}): Promise<any> {
+    if (!new FrontmatterModule().isFrontmatterTemplate(templateData)) {
+      return { frontmatterBody: 'INVALID TEMPLATE', frontmatterAttributes: {} }
+    }
+
+    const frontmatterData = new FrontmatterModule().parse(templateData)
+    const frontmatterAttributes = frontmatterData?.attributes || {}
+    const data = { frontmatter: frontmatterAttributes }
+    let frontmatterBody = frontmatterData.body
+    const attributeKeys = Object.keys(frontmatterAttributes)
+
+    for (const item of attributeKeys) {
+      let value = frontmatterAttributes[item]
+      // $FlowIgnore
+      let attributeValue = await this.render(value, userData)
+      frontmatterAttributes[item] = attributeValue
+    }
+
+    return { frontmatterBody, frontmatterAttributes }
+  }
+
   static async postProcess(templateData: string): Promise<mixed> {
     //TODO: Finish implementation cursor support
     let newTemplateData = templateData
@@ -693,7 +716,7 @@ export default class NPTemplating {
     // tagValue = promptTag.replace(/ask|[()]|<%=|<%|-%>|%>/gi, '').trim()
     let varName = ''
     let promptMessage = ''
-    let options = []
+    let options = ''
 
     // get variable from tag (first quoted value up to comma)
     let pos = tagValue.indexOf(',')
@@ -712,10 +735,15 @@ export default class NPTemplating {
         }
 
         if (tagValue.length > 0) {
-          const optionItems = tagValue.replace('[', '').replace(']', '').split(',')
-          options = optionItems.map((item) => {
-            return item.replace(/'/g, '')
-          })
+          // check if options is an array
+          if (tagValue.includes('[')) {
+            const optionItems = tagValue.replace('[', '').replace(']', '').split(',')
+            options = optionItems.map((item) => {
+              return item.replace(/'/g, '')
+            })
+          } else {
+            options = tagValue.replace(/(^"|"$)/g, '').replace(/(^'|'$)/g, '')
+          }
         }
       } else {
         promptMessage = tagValue.replace(/'/g, '')
@@ -733,12 +761,17 @@ export default class NPTemplating {
     return { varName, promptMessage, options }
   }
 
-  static async prompt(message: string, options: Array<string> = []): Promise<any> {
-    if (options.length === 0) {
-      return await CommandBar.textPrompt('', message.replace('_', ' '), '')
-    } else {
+  static async prompt(message: string, options: any = null): Promise<any> {
+    if (Array.isArray(options)) {
       const { index } = await CommandBar.showOptions(options, message)
       return options[index]
+    } else {
+      if (typeof options === 'string' && options.length > 0) {
+        // $FlowIgnore
+        return await CommandBar.textPrompt(options, message.replace('_', ' '), '')
+      } else {
+        return await CommandBar.textPrompt('', message.replace('_', ' '), '')
+      }
     }
   }
 
@@ -765,7 +798,6 @@ export default class NPTemplating {
       if (!this.isVariableTag(tag) && !this.isTemplateModule(tag) && !isMethod) {
         // $FlowIgnore
         let { varName, promptMessage, options } = await this.getPromptParameters(tag)
-
         const varExists = (varName) => {
           let result = true
           if (!sessionData.hasOwnProperty(varName)) {
