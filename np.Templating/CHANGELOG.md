@@ -3,6 +3,12 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.0.0-beta.31] - 2022-04-09 (mikeerickson)
+
+- Added `NPTemplating.preRender` which will render frontmatter attributes
+- Refactored `FrontMatter.render` to `FrontMatter.parse`
+- Updated `np:qtn` and `np:mtn` to use new `NPTemplating.preRender` method
+
 ## [1.0.0-beta.30] - 2022-04-05 (mikeerickson)
 
 - Fixed issue when rendering frontmatter templates which have empty attribute values (this was realised when creating templates which had an empty `type`) [@dwertheimer]

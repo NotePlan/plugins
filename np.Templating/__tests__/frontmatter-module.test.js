@@ -60,7 +60,7 @@ describe(`${PLUGIN_NAME}`, () => {
     it(`should be valid frontmatter object`, async () => {
       const data = await factory('frontmatter-minimal.ejs')
 
-      const result = new FrontmatterModule().render(data)
+      const result = new FrontmatterModule().parse(data)
 
       expect(result.hasOwnProperty('attributes')).toEqual(true)
       expect(result.hasOwnProperty('body')).toEqual(true)
@@ -70,7 +70,7 @@ describe(`${PLUGIN_NAME}`, () => {
     it(`should be valid frontmatter have supplied attributes`, async () => {
       const data = await factory('frontmatter-minimal.ejs')
 
-      const result = new FrontmatterModule().render(data)
+      const result = new FrontmatterModule().parse(data)
 
       expect(result.attributes.hasOwnProperty('name')).toEqual(true)
       expect(result.attributes.name).toEqual('Mike Erickson')
@@ -79,7 +79,7 @@ describe(`${PLUGIN_NAME}`, () => {
     it(`should contain template in 'body' property`, async () => {
       const data = await factory('frontmatter-extended.ejs')
 
-      const result = new FrontmatterModule().render(data)
+      const result = new FrontmatterModule().parse(data)
 
       expect(result.hasOwnProperty('body')).toEqual(true)
       expect(result.body).toContain('<%= name %>')
