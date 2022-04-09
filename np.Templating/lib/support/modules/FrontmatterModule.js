@@ -9,7 +9,9 @@ import fm from 'front-matter'
 
 export function getAttributes(templateData: string = ''): any {
   const fmData = fm(templateData, { allowUnsafe: true })
-
+  Object.keys(fmData?.attributes).forEach((key) => {
+    fmData.attributes[key] ? fmData.attributes[key] : (fmData.attributes[key] = '')
+  })
   return fmData && fmData?.attributes ? fmData.attributes : {}
 }
 
@@ -20,9 +22,12 @@ export function getBody(templateData: string = ''): string {
 }
 
 export default class FrontmatterModule {
-  constructor(config: any = {}) {
-    // $FlowFixMe
-    this.config = config
+  // $FlowIgnore
+  constructor(NPTemplating: any = null) {
+    if (NPTemplating) {
+      // $FlowIgnore
+      this.templatingInstance = NPTemplating
+    }
   }
 
   isFrontmatterTemplate(templateData: string): boolean {
@@ -41,15 +46,25 @@ export default class FrontmatterModule {
     return ''
   }
 
-  render(template: any = ''): any {
-    const fmData = fm(template, { allowUnsafe: true })
+  parse(template: string = ''): any {
+    if (this.isFrontmatterTemplate(template)) {
+      const fmData = fm(template)
+      Object.keys(fmData?.attributes).forEach((key) => {
+        fmData.attributes[key] ? fmData.attributes[key] : (fmData.attributes[key] = '')
+      })
 
-    return fmData
+      return fmData
+    } else {
+      return {}
+    }
   }
 
   attributes(templateData: string = ''): any {
     try {
       const fmData = fm(templateData, { allowUnsafe: true })
+      Object.keys(fmData?.attributes).forEach((key) => {
+        fmData.attributes[key] ? fmData.attributes[key] : (fmData.attributes[key] = '')
+      })
 
       return fmData && fmData?.attributes ? fmData.attributes : {}
     } catch (error) {

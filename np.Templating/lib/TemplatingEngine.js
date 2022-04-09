@@ -155,7 +155,7 @@ export default class TemplatingEngine {
 
       frontmatterBlock = new FrontmatterModule().getFrontmatterBlock(processedTemplateData)
 
-      const frontmatterData = new FrontmatterModule().render(frontmatterBlock)
+      const frontmatterData = new FrontmatterModule().parse(frontmatterBlock)
 
       if (frontmatterData.hasOwnProperty('attributes') && frontmatterData.hasOwnProperty('body')) {
         if (Object.keys(frontmatterData.attributes).length > 0) {

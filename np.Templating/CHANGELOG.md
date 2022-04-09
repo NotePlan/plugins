@@ -3,12 +3,28 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.0.0-beta.31] - 2022-04-09 (mikeerickson)
+
+- Added `NPTemplating.preRender` which will render frontmatter attributes
+- Refactored `FrontMatter.render` to `FrontMatter.parse`
+- Updated `np:qtn` and `np:mtn` to use new `NPTemplating.preRender` method
+
+## [1.0.0-beta.30] - 2022-04-05 (mikeerickson)
+
+- Fixed issue when rendering frontmatter templates which have empty attribute values (this was realised when creating templates which had an empty `type`) [@dwertheimer]
+- Extended Editor mock [@mikeerickson]
+- Added CommandBar, and DataStor mocks [@mikeerickson]
+- Updated `np-module.spec.js` to use new/updated mocks [@mikeerickson]
+- Cleared up `skipped` specs, entire test suite is not executed
+  - Note: Still working on using alias importing when running specs, thus full E2E tests are incomplete [@dwertheimer]
+- Added `ignore` to `chooseTemplate` which will ignore any templates which include `type: ignore`
+
 ## [1.0.0-beta.29] - 2022-04-04 (mikeerickson)
 
-- Changed issue with `np:mtn` to use `newNoteTitle` template attribute if exists, otherwise user will be prompted to supply note title
-- Updated `np:qtn` and `np:mtn` documentation to note required use of new template format (no more legacy template support)
-- Fixed issue with `np:qtn` to use correct `quick-note` type when display template chooser (regression from b28)
-- Updated `np:mtn` to only prompt for discussion if refernce actually exists on template (e.g. `<%- discussion %>`)
+- Changed issue with `np:mtn` to use `newNoteTitle` template attribute if exists, otherwise user will be prompted to supply note title [@jgclark]
+- Updated `np:qtn` and `np:mtn` documentation to note required use of new template format (no more legacy template support) [@jgclark]
+- Fixed issue with `np:qtn` to use correct `quick-note` type when display template chooser (regression from b28) [@jgclark]
+- Updated `np:mtn` to only prompt for discussion if refernce actually exists on template (e.g. `<%- discussion %>`) [@jgclark]
 
 ## [1.0.0-beta.28] - 2022-04-04 (mikeerickson)
 
@@ -19,18 +35,18 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/
 
 ## [1.0.0-beta.27] - 2022-04-02 (mikeerickson)
 
-- Modified clipboard access to only trigger on templates which have `system.clipboard()`
+- Modified clipboard access to only trigger on templates which have `system.clipboard()` [@EduardMe]
 - Added `chooseTemplate` method, extending normal `chooseOption` method to show path to templates (required when templates have same name in different folders)
 
 ## [1.0.0-beta.26] - 2022-04-02 (mikeerickson)
 
-- renamed `date` function to `legacyDate` when migrating templates
+- renamed `date` function to `legacyDate` when migrating templates [@dwertheimer]
   - `date` is a reserved word in `np.Templating` used for `DateModule`
-- updated `np:migrate-quick-notes` to enquote attribute values if they don't start with legal character (`a-zA-z`)
+- updated `np:migrate-quick-notes` to enquote attribute values if they don't start with legal character (`a-zA-z`) [@jgclark]
 - updated `frontmatter-module.test.js` to check for invalid attribute values
 - see [template documentation](https://nptemplating-docs.netlify.app/docs/templating-commands/quick-notes/#quick-note-template-required-attributes) for details
-- added `legacyDates` to `np.Templating` globals
-- fixed `pickDate` in `np.Templating` globals
+- added `legacyDates` to `np.Templating` globals [@dwertheimer]
+- fixed `pickDate` in `np.Templating` globals [@jgclark]
   - Was throwing error parsing JSON5 (see `@helpers/datePicker`) due to invalid parameters
 - fixed issue when testing for template `types` using `.includes` instead of `===`
 - removed debug code in `templateQuickNote` method
