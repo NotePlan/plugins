@@ -486,7 +486,7 @@ export default class NPTemplating {
     return this.constructor.templateConfig
   }
 
-  static async renderTemplate(templateName: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
+  static async renderTemplateX(templateName: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
     const usePrompts = true
     try {
       await this.setup()
@@ -494,11 +494,6 @@ export default class NPTemplating {
       let sessionData = { ...userData }
       // $FlowIgnore
       let templateData = (await this.getTemplate(templateName)) || ''
-
-      let useClipoard = templateData.includes('system.clipboard')
-      if (templateData.indexOf('system.clipboard') > 0) {
-        this.constructor.templateConfig.clipboard = Clipboard.string
-      }
 
       let globalData = {}
       Object.getOwnPropertyNames(globals).forEach((key) => {
@@ -510,6 +505,12 @@ export default class NPTemplating {
       templateData = templateData.replace('<%@', '<%= prompt')
 
       const isFrontmatterTemplate = new FrontmatterModule().isFrontmatterTemplate(templateData)
+      if (isFrontmatterTemplate) {
+        const { frontmatterAttributes, frontmatterBody } = await this.preRender(templateData, sessionData)
+        templateData = frontmatterBody
+        sessionData.data = { ...sessionData.data, ...frontmatterAttributes }
+      }
+
       if (isFrontmatterTemplate && usePrompts) {
         const frontmatterAttributes = new FrontmatterModule().parse(templateData)?.attributes || {}
         for (const [key, value] of Object.entries(frontmatterAttributes)) {
@@ -536,6 +537,7 @@ export default class NPTemplating {
       sessionData = { ...sessionData, ...newSettingData }
 
       const promptData = await this.processPrompts(newTemplateData, sessionData, '<%', '%>')
+
       templateData = promptData.sessionTemplateData
       sessionData = promptData.sessionData
 
@@ -552,11 +554,8 @@ export default class NPTemplating {
     let newSettingData = { ...sessionData }
     const tags = (await this.getTags(templateData)) || []
     tags.forEach((tag) => {
-      if (!tag.includes('await') && tag.includes('(') && !tag.includes('prompt')) {
+      if (!tag.includes('await') && !this.isControlBlock(tag) && tag.includes('(') && !tag.includes('prompt')) {
         let tempTag = tag.replace('<%-', '<%- await')
-        newTemplateData = newTemplateData.replace(tag, tempTag)
-
-        tempTag = tag.replace('<%=', '<%- await')
         newTemplateData = newTemplateData.replace(tag, tempTag)
       }
 
@@ -593,8 +592,29 @@ export default class NPTemplating {
           }
         }
       }
+
+      // TODO: This needs to be refactored, hardcoded for initial release
+      if (tag === '<%- aim %>' || tag === '<%- aim() %>') {
+        newTemplateData = newTemplateData.replace(tag, `<%- prompt('aim') %>`)
+      }
+      if (tag === '<%- context %>' || tag === '<%- context() %>') {
+        newTemplateData = newTemplateData.replace(tag, `<%- prompt('context') %>`)
+      }
     })
     return { newTemplateData, newSettingData }
+  }
+
+  static async renderTemplate(templateName: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
+    const usePrompts = true
+    try {
+      let templateData = (await this.getTemplate(templateName)) || ''
+
+      let renderedData = await this.render(templateData, userData, userOptions)
+
+      return this._filterTemplateResult(renderedData)
+    } catch (error) {
+      return this.templateErrorMessage('NPTemplating.renderTemplate', error)
+    }
   }
 
   static async render(inTemplateData: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
@@ -615,6 +635,11 @@ export default class NPTemplating {
       templateData = templateData.replace('<%@', '<%= prompt')
 
       const isFrontmatterTemplate = new FrontmatterModule().isFrontmatterTemplate(templateData)
+      if (isFrontmatterTemplate) {
+        const { frontmatterAttributes, frontmatterBody } = await this.preRender(templateData, sessionData)
+        templateData = frontmatterBody
+        sessionData.data = { ...sessionData.data, ...frontmatterAttributes }
+      }
       if (isFrontmatterTemplate && usePrompts) {
         const frontmatterAttributes = new FrontmatterModule().parse(templateData)?.attributes || {}
         for (const [key, value] of Object.entries(frontmatterAttributes)) {
@@ -650,13 +675,6 @@ export default class NPTemplating {
     } catch (error) {
       return this.templateErrorMessage('NPTemplating.renderTemplate', error)
     }
-
-    // try {
-    //   await this.setup()
-    //   return await new TemplatingEngine(this.constructor.templateConfig).render(templateData, userData, userOptions)
-    // } catch (error) {
-    //   return this.templateErrorMessage('NPTemplating.render', error)
-    // }
   }
 
   // preRender will render frontmatter attribute tags, return final attributes and body
@@ -780,7 +798,7 @@ export default class NPTemplating {
     const methods = userData.hasOwnProperty('methods') ? Object.keys(userData?.methods) : []
 
     let sessionTemplateData = templateData.replace('<%@', '%<= prompt')
-    const tags = await this.getTags(sessionTemplateData)
+    let tags = await this.getTags(sessionTemplateData)
     for (const tag of tags) {
       // if tag is from module, it will contain period so we need to make sure this tag is not a module
       let isMethod = false
@@ -795,7 +813,7 @@ export default class NPTemplating {
         isMethod = true
       }
 
-      if (!this.isVariableTag(tag) && !this.isTemplateModule(tag) && !isMethod) {
+      if (!this.isVariableTag(tag) && !this.isControlBlock(tag) && !this.isTemplateModule(tag) && !isMethod && tag.includes('prompt')) {
         // $FlowIgnore
         let { varName, promptMessage, options } = await this.getPromptParameters(tag)
         const varExists = (varName) => {
@@ -885,7 +903,9 @@ export default class NPTemplating {
     return tag.indexOf('const') > 0 || tag.indexOf('let') > 0 || tag.indexOf('var') > 0 || tag.indexOf('.') > 0 || tag.indexOf('{') > 0 || tag.indexOf('}') > 0
   }
 
-  static isMethod(tag: string = ''): boolean {
+  static isMethod(tag: string = '', userData: any = null): boolean {
+    const methods = userData?.hasOwnProperty('methods') ? Object.keys(userData?.methods) : []
+
     return tag.indexOf('(') > 0 || tag.indexOf('@') > 0 || tag.indexOf('prompt') > 0
   }
 
@@ -897,5 +917,16 @@ export default class NPTemplating {
       return TEMPLATE_MODULES.indexOf(moduleName) >= 0
     }
     return false
+  }
+
+  static isControlBlock(tag: string): boolean {
+    let result = false
+    if (tag.length >= 3) {
+      if (tag[2] === ' ') {
+        result = true
+      }
+    }
+
+    return result
   }
 }
