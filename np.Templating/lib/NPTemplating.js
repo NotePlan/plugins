@@ -200,7 +200,7 @@ export default class NPTemplating {
 
       this.constructor.templateConfig = {
         ...data,
-        ...{ selection: await selection(), clipboard: '' },
+        ...{ clipboard: '' },
       }
 
       let globalData = []
@@ -599,6 +599,9 @@ export default class NPTemplating {
       }
       if (tag === '<%- context %>' || tag === '<%- context() %>') {
         newTemplateData = newTemplateData.replace(tag, `<%- prompt('context') %>`)
+      }
+      if (tag === '<%- discuss %>' || tag === '<%- discuss() %>') {
+        newTemplateData = newTemplateData.replace(tag, `<%- prompt('discuss') %>`)
       }
     })
     return { newTemplateData, newSettingData }

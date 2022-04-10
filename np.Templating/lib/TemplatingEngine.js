@@ -86,6 +86,8 @@ export default class TemplatingEngine {
       this.templateConfig.clipboard = Clipboard.string
     }
 
+    // this.templateConfig.selection = Editor.selectedParagraphs.map((para) => para.rawContent).join('\n')
+
     const helpers = {
       date: new DateModule(this.templateConfig),
       time: new TimeModule(this.templateConfig),

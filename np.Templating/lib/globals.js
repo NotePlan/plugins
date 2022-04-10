@@ -23,6 +23,7 @@ import { insertProgressUpdate } from '@plugins/jgclark.Summaries/src'
 import { getWeatherSummary } from './support/modules/weatherSummary'
 import { parseJSON5 } from '@helpers/general'
 import { getSetting } from '../../helpers/NPconfiguration'
+import { async } from 'rxjs'
 
 export async function processDate(dateParams: string, config: { [string]: ?mixed }): Promise<string> {
   const defaultConfig = config?.date ?? {}
@@ -149,6 +150,10 @@ const globals = {
 
   currentDate: async (): Promise<string> => {
     return now()
+  },
+
+  selection: async (): Promise<string> => {
+    return Editor.selectedParagraphs.map((para) => para.rawContent).join('\n')
   },
 }
 
