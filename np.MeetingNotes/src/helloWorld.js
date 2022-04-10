@@ -34,19 +34,26 @@ export async function newMeetingNote(selectedEvent, templateFilename): Promise<v
   try {
     log(pluginJson, 'get template content')
     let templateContent = DataStore.projectNoteByFilename(templateFilename).content
-    let attrs = fm(templateContent)?.attributes || {}
+    const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateContent, templateData)
+
+    let attrs = frontmatterAttributes
     let folder = attrs?.folder || ''
     let append = attrs?.append || ''
     let prepend = attrs?.prepend || ''
+    let newNoteTitle = attrs?.newNoteTitle || ''
 
     log(pluginJson, 'render template')
-    let result = await NPTemplating.renderTemplate(templateFilename, templateData)
+    let result = await NPTemplating.render(frontmatterBody, frontmatterAttributes)
+
+    if(newNoteTitle.length > 0) {
+      result = "# " + newNoteTitle + "\n" + result
+    }
 
     log(pluginJson, 'insert template')
     if(append || prepend) {
       await appendPrependNewNote(append, prepend, folder, result)
     } else {
-      await newNoteWithFolder(result, folder)
+      await newNoteWithFolder(result, folder, newNoteTitle)
     }
 
   } catch (error) {
