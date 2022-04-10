@@ -81,6 +81,11 @@ export default class TemplatingEngine {
     const verse = templateData.includes('web.verse') ? await new WebModule().verse() : ''
     const service = templateData.includes('web.services') ? await new WebModule().service : ''
 
+    let useClipoard = templateData.includes('system.clipboard')
+    if (templateData.indexOf('system.clipboard') > 0) {
+      this.templateConfig.clipboard = Clipboard.string
+    }
+
     const helpers = {
       date: new DateModule(this.templateConfig),
       time: new TimeModule(this.templateConfig),
