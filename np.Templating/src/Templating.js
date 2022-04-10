@@ -419,7 +419,7 @@ export async function templateQuote(): Promise<string> {
 export async function migrateTemplates(silent: boolean = false): Promise<void> {
   try {
     const templateFolder = '📋 Templates'
-    const newTemplateFolder: string = NotePlan.environment.templateFolder
+    const newTemplateFolder: string = NotePlan.environment.templateFolder + '/Test'
 
     const templateNotes = DataStore.projectNotes.filter((n) => n.filename?.startsWith(templateFolder)).filter((n) => !n.title?.startsWith('_configuration'))
     const newTemplates = DataStore.projectNotes.filter((n) => n.filename?.startsWith(newTemplateFolder)).filter((n) => !n.title?.startsWith('_configuration'))
@@ -451,11 +451,12 @@ export async function migrateTemplates(silent: boolean = false): Promise<void> {
 
           let filename = fullPath
           if (!testNote) {
+            let templateContent = `---\ntitle: ${noteTitle}\ntype: empty-note\ntags: migrated-template\n---\n${content}`
             filename = DataStore.newNote(noteTitle, `${newTemplateFolder}/${folderName}`)
             if (filename && content.length > 0) {
               const newNote = DataStore.projectNoteByFilename(filename)
               if (newNote) {
-                newNote.content = content
+                newNote.content = templateContent
               }
             }
           } else {

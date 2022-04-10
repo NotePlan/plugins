@@ -3,6 +3,10 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.0.0-beta.32] - 2022-04-09 (mikeerickson)
+
+- Refactored template migration `np:migrate-templates` to create frontmatter templates
+
 ## [1.0.0-beta.31] - 2022-04-09 (mikeerickson)
 
 - Added `NPTemplating.preRender` which will render frontmatter attributes
