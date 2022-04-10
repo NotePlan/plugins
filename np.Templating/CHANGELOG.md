@@ -3,12 +3,9 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
-## [1.0.0-beta.34] - 2022-04-10 (mikeerickson)
-
-- fix issue passing renderData in `data` and `method` properties
--
 ## [1.0.0-beta.33] - 2022-04-10 (mikeerickson)
 
+- fix issue passing renderData in `data` and `method` properties
 - Resolved issue when using `<%- discuss %>`
   - Recommend refactoring to use `<%- prompt('discuss') %>`
 - Fixed issue with `<%- selection() %>` and `<%- system.selection() %>`
