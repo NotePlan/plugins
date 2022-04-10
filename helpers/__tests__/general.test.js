@@ -40,6 +40,13 @@ describe(`${FILE}`, () => {
     describe('using note filename', () => {
       // Note the following is the proper test for how it should work for filename with a heading
       // re-enable this test when @eduard fixes API bug
+      // should also add a test for a filename with parentheses
+      test('should create a link with filename with parentheses', () => {
+        expect(g.createCallbackUrl('foo/bar(xx)', true, 'bar')).toEqual('noteplan://x-callback-url/openNote?filename=foo%2Fbar%28xx%29')
+      })
+      test('should create a urlencoded link for spaces', () => {
+        expect(g.createCallbackUrl('foo bar', true, 'bar')).toEqual('noteplan://x-callback-url/openNote?filename=foo%20bar')
+      })
       test.skip('should create a link with a heading', () => {
         expect(g.createCallbackUrl('foo', true, 'bar')).toEqual('noteplan://x-callback-url/openNote?filename=foo#bar')
       })
