@@ -75,8 +75,11 @@ const globals = {
     return await insertProgressUpdate(JSON.stringify(params))
   },
 
-  weather: async (): Promise<string> => {
+  weather: async (formatParam: string = ''): Promise<string> => {
     let weatherFormat = getSetting(pluginJson['plugin.id'], 'weatherFormat', '') || ''
+    if (formatParam.length > 0) {
+      weatherFormat = formatParam
+    }
     return weatherFormat === 0 ? await getWeather() : await getWeatherSummary(weatherFormat)
   },
 
