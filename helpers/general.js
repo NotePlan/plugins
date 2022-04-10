@@ -148,8 +148,9 @@ export function createCallbackUrl(titleOrFilename: string, isFilename: boolean =
   const xcb = `noteplan://x-callback-url/openNote?${isFilename ? `filename` : `noteTitle`}=`
   // FIXME: this is working around an API bug that does not allow heading references in filename xcallbacks
   // When @eduard fixes it, this line can be removed
-  heading = isFilename ? '' : heading
-  return `${xcb}${titleOrFilename}${heading && heading !== '' ? `#${heading}` : ''}`
+  const head = isFilename ? '' : heading
+  const encoded = encodeURIComponent(titleOrFilename).replace(/\(/g, '%28').replace(/\)/g, '%29')
+  return `${xcb}${encoded}${head && head !== '' ? `#${head}` : ''}`
 }
 
 /**
