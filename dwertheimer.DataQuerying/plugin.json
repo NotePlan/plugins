@@ -27,10 +27,16 @@
     {
       "name": "search",
       "description": "Search the notes index",
-      "jsFunction": "search",
+      "jsFunction": "searchUserInput",
       "alias": [
       ]
-    },    
+    },   
+    {
+      "name": "search (display links only in output)",
+      "description": "Search notes but display only links in output",
+      "jsFunction": "searchButShowTitlesOnly",
+      "alias": ["sdl"]
+    },   
     {
       "name": "searchTest",
       "description": "Search the Fuse DB",

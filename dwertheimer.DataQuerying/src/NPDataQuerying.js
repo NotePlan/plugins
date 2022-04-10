@@ -1,6 +1,7 @@
 // @flow
 /*
 TO DO:
+- THE FUZZY SEARCH SEEMS TO SUCK: title is weighted heavily, but Horizons search brings up soyrizo first
 - For fuse refactor writeIndex to get the index and write it
 - For FUSE make a version of getMetaData() to use instead of the map to remove hashtags and mentions to skip
 - for FUSE index, skip the html files
@@ -10,14 +11,16 @@ TO DO:
 - Add back in showProgress calls but they trap errors so don't turn on until you know it all works
 
 */
-const OUTPUT_SEARCH_RESULTS = true
+const OUTPUT_SEARCH_RESULTS = false
 
 import * as dh from './support/data-helpers'
 import * as fh from './support/fuse-helpers'
 // import { testDB } from './support/database' //didn't seem to work
 
-import { log, logError, clo, timer } from '../../helpers/dev'
+import { log, logError, clo, timer, JSP } from '../../helpers/dev'
+import { formatSearchOutput } from './support/query-helpers'
 import pluginJson from '../plugin.json'
+// import { HTML5_FMT } from 'moment'
 
 type NoteIndex = {
   hashtags: { [string]: mixed },
@@ -33,7 +36,11 @@ type NoteIndexType = {
 const INDEX_FILENAME = 'fuse-index.json'
 
 const SEARCH_OPTIONS = {
-  keys: ['type', 'title', 'hashtags', 'mentions', 'content', 'filename'],
+  /* keys: ['type', { name: 'title', weight: 5 }, 'hashtags', 'mentions', 'content', 'filename', 'changedDateISO'],*/
+  keys: [
+    { name: 'title', weight: 1 },
+    { name: 'content', weight: 0.5 },
+  ],
   includeScore: true,
   includeMatches: true,
   useExtendedSearch: true,
@@ -41,14 +48,24 @@ const SEARCH_OPTIONS = {
   findAllMatches: true,
 }
 
-export function getNotesForIndex(config) {
+/**
+ * Get a list of notes in a form we can use for FUSE
+ * @param {Object} config
+ * @returns
+ */
+function getNotesForIndex(config) {
   const consolidatedNotes = [...DataStore.projectNotes, ...DataStore.calendarNotes]
   log(pluginJson, `getNotesForIndex: ${consolidatedNotes.length} notes before eliminating foldersToIgnore `)
   // consolidatedNotes.prototype.changedDateISO = () => this.changedDate.toISOString()
+  let foldersToIgnore = config.foldersToIgnore
+  if (config.searchNoteFolder) {
+    foldersToIgnore.push(config.searchNoteFolder)
+  }
+  log(pluginJson, `getNotesForIndex: ${consolidatedNotes.length} notes before eliminating foldersToIgnore: ${JSON.stringify(foldersToIgnore)} `)
   return consolidatedNotes
     .filter((note) => {
       let include = true
-      config.foldersToIgnore.forEach((skipFolder) => {
+      foldersToIgnore?.forEach((skipFolder) => {
         if (note.filename.includes(`${skipFolder}/`)) {
           include = false
         }
@@ -62,6 +79,7 @@ export function getNotesForIndex(config) {
       mentions: n.mentions,
       content: n.content,
       filename: n.filename,
+      changedDateISO: n.changedDate.toISOString(),
     }))
   // Note: had to do the map above to get the actual NP objects to be visible in the console
   // May not be necessary in production
@@ -92,6 +110,22 @@ export async function writeIndex(index): null | FuseIndex {
   }
 }
 
+async function getSearchNoteFilename(config) {
+  let note, fname
+  note = await DataStore.projectNoteByTitle(config.searchNoteTitle)
+  if (note.length) {
+    note.filter((n) => n.filename.includes(config.searchNoteFolder))
+    if (note && note[0]) {
+      fname = note[0].filename
+    } else {
+      throw 'No note found with title: ' + config.searchNoteTitle
+    }
+  } else {
+    fname = await DataStore.newNote(config.searchNoteTitle, config.searchNoteFolder)
+  }
+  return fname
+}
+
 /**
  * Create Fuse Index of current notes
  * @param {Object} notesToInclude (optional) if you have the cleansed note list, pass it in, otherwise it will be created
@@ -107,31 +141,65 @@ export function createIndex(notesToInclude = []) {
   return index
 }
 
-export async function search(pattern = `'"review alpha"`, loadIndexFromDisk: boolean = false) {
-  let index
+export async function searchButShowTitlesOnly(linksOnly: boolean = false): Promise<void> {
+  try {
+    await searchUserInput(true)
+  } catch (error) {
+    clo(error, 'searchButShowTitlesOnly: caught error')
+  }
+}
+
+export async function searchUserInput(linksOnly: boolean = false): Promise<void> {
+  try {
+    const searchTerm = await CommandBar.showInput('Search', 'Search for: %@')
+    const config = getDefaultConfig()
+    log(pluginJson, `searchUserInput: searchTerm=${searchTerm}`)
+    CommandBar.showLoading(true, `Searching ${DataStore.projectNotes.length} notes and attachments...`)
+    await CommandBar.onAsyncThread()
+    const results = await search(searchTerm, config)
+    const output = formatSearchOutput(results, searchTerm, { config: config, linksOnly: linksOnly })
+    const searchFilename = await getSearchNoteFilename(config)
+    const note = await DataStore.projectNoteByFilename(searchFilename)
+    log(pluginJson, `searchUserInput: searchFilename=${searchFilename}}`)
+    if (note && note.content) {
+      log(pluginJson, `searchUserInput: searchFilename=${searchFilename} note=${JSP(note)}`)
+      note.content = output
+    }
+    await CommandBar.onMainThread()
+    CommandBar.showLoading(false)
+    await Editor.openNoteByFilename(searchFilename, config.openInNewWindow, 0, 0, config.openInSplitView)
+  } catch (error) {
+    console.log(error)
+  }
+}
+
+export async function search(pattern = `Cava`, config = getDefaultConfig()) {
+  let index = null
   let timeStart = new Date()
-  if (loadIndexFromDisk) {
+  if (config.loadIndexFromDisk) {
     try {
       index = DataStore.loadJSON(INDEX_FILENAME)
     } catch (error) {
       clo(error, 'search: caught error')
     }
   }
-  // test search
-  //FIXME: I need the cleansed notes here!!!!!
-  const config = getDefaultConfig()
   // const consolidatedNotes = [...DataStore.projectNotes, ...DataStore.calendarNotes].map((note) => ({ ...note, changedDate: note.changedDate.toISOString() }))
   const includedNotes = getNotesForIndex(config)
-  if (!index) index = createIndex(includedNotes)
-  const results = fh.searchIndex(includedNotes, pattern, { options: SEARCH_OPTIONS, index })
+  let results = []
+  if (index) {
+    results = fh.searchIndex(includedNotes, pattern, { options: SEARCH_OPTIONS, index })
+  } else {
+    results = fh.search(includedNotes, pattern, SEARCH_OPTIONS)
+  }
   log(pluginJson, `search for ${pattern} took: ${timer(timeStart)} including load/index; returned ${results.length} results`)
   if (OUTPUT_SEARCH_RESULTS) {
     // for debugging
     clo(results[0] || '', `search: results:${results.length} results[0] example full`)
     results.forEach((item, i) => {
-      clo(item.item, `search: result(${i}) matches:${item.matches.length} score:${item.score}`)
+      // clo(item.item, `search: result(${i}) matches:${item.matches.length} score:${item.score}`)
     })
   }
+  return results
 }
 
 export async function buildIndex(): Promise<void> {
@@ -168,6 +236,11 @@ function getDefaultConfig(): { [string]: mixed } {
     foldersToIgnore: ['_resources', '_evernote_attachments'],
     ignoreHTMLfiles: true,
     skipDoneMentions: true,
+    searchNoteTitle: 'Search Results',
+    searchNoteFolder: '@Searches',
+    openInSplitView: true,
+    openInNewWindow: false,
+    maxSearchResultLine: 100,
     mentionsToSkip: ['@sleep('], //FIXME: add to config and skipping,
     hashtagsToSkip: ['#🕑'], //FIXME: add to config and skipping
   }
