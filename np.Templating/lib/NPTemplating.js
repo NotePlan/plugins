@@ -200,7 +200,7 @@ export default class NPTemplating {
 
       this.constructor.templateConfig = {
         ...data,
-        ...{ selection: await selection(), clipboard: '' },
+        ...{ clipboard: '' },
       }
 
       let globalData = []
@@ -502,7 +502,7 @@ export default class NPTemplating {
 
       sessionData.methods = { ...sessionData.methods, ...globalData }
 
-      templateData = templateData.replace('<%@', '<%= prompt')
+      templateData = templateData.replace('<%@', '<%- prompt')
 
       const isFrontmatterTemplate = new FrontmatterModule().isFrontmatterTemplate(templateData)
       if (isFrontmatterTemplate) {
@@ -600,7 +600,11 @@ export default class NPTemplating {
       if (tag === '<%- context %>' || tag === '<%- context() %>') {
         newTemplateData = newTemplateData.replace(tag, `<%- prompt('context') %>`)
       }
+      if (tag === '<%- discuss %>' || tag === '<%- discuss() %>') {
+        newTemplateData = newTemplateData.replace(tag, `<%- prompt('discuss') %>`)
+      }
     })
+
     return { newTemplateData, newSettingData }
   }
 
@@ -631,8 +635,7 @@ export default class NPTemplating {
       })
 
       sessionData.methods = { ...sessionData.methods, ...globalData }
-
-      templateData = templateData.replace('<%@', '<%= prompt')
+      templateData = templateData.replace(/<%@/gi, '<%- prompt')
 
       const isFrontmatterTemplate = new FrontmatterModule().isFrontmatterTemplate(templateData)
       if (isFrontmatterTemplate) {
@@ -644,12 +647,16 @@ export default class NPTemplating {
         const frontmatterAttributes = new FrontmatterModule().parse(templateData)?.attributes || {}
         for (const [key, value] of Object.entries(frontmatterAttributes)) {
           let frontMatterValue = value
+          console.log('här')
           // $FlowIgnore
           const promptData = await this.processPrompts(value, sessionData, '<%', '%>')
           frontMatterValue = promptData.sessionTemplateData
+
+          console.log('här2')
           // $FlowIgnore
           const { newTemplateData, newSettingData } = await this.preProcess(frontMatterValue, sessionData)
           sessionData = { ...sessionData, ...newSettingData }
+          console.log('här3')
 
           const renderedData = await new TemplatingEngine(this.constructor.templateConfig).render(newTemplateData, promptData.sessionData, userOptions)
 
@@ -663,11 +670,14 @@ export default class NPTemplating {
 
       // $FlowIgnore
       const { newTemplateData, newSettingData } = await this.preProcess(templateData, sessionData)
-      sessionData = { ...sessionData, ...newSettingData }
+      sessionData = { ...newSettingData }
 
       const promptData = await this.processPrompts(newTemplateData, sessionData, '<%', '%>')
       templateData = promptData.sessionTemplateData
       sessionData = promptData.sessionData
+
+      sessionData.data = { ...sessionData.data, ...userData.data }
+      sessionData.methods = { ...sessionData.methods, ...userData.methods }
 
       const renderedData = await new TemplatingEngine(this.constructor.templateConfig).render(templateData, sessionData, userOptions)
 
@@ -797,7 +807,7 @@ export default class NPTemplating {
     const sessionData = { ...userData }
     const methods = userData.hasOwnProperty('methods') ? Object.keys(userData?.methods) : []
 
-    let sessionTemplateData = templateData.replace('<%@', '%<= prompt')
+    let sessionTemplateData = templateData.replace(/<%@/gi, '<%- prompt')
     let tags = await this.getTags(sessionTemplateData)
     for (const tag of tags) {
       // if tag is from module, it will contain period so we need to make sure this tag is not a module

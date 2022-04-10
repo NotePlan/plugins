@@ -12,7 +12,8 @@ export default class SystemModule {
   }
 
   selection(): string {
-    return this.config.selection
+    return Editor.selectedParagraphs.map((para) => para.rawContent).join('\n')
+    // return this.config.selection
   }
 
   clipboard(): string {

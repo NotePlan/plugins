@@ -125,8 +125,15 @@ export default class TemplatingEngine {
     }
 
     let renderData = { ...helpers, ...userData }
-    renderData = userData?.data ? { ...userData.data, ...renderData } : renderData
-    renderData = userData?.methods ? { ...userData.methods, ...renderData } : renderData
+
+    renderData = userData.data ? { ...userData.data, ...renderData } : { ...renderData }
+    renderData = userData.methods ? { ...userData.methods, ...renderData } : renderData
+    if (userData?.data) {
+      renderData.data = { ...userData.data }
+    }
+    if (userData?.methods) {
+      renderData.methods = { ...renderData.methods, ...userData.methods }
+    }
 
     // apply custom plugin modules
     this.templateModules.forEach((moduleItem) => {
