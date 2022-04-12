@@ -7,7 +7,7 @@
   "plugin.icon": "",
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers",
-  "plugin.version": "0.11.5",
+  "plugin.version": "0.12.0",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -23,11 +23,6 @@
       "jsFunction": "insertDaysEvents"
     },
     {
-      "name": "list day's events to log",
-      "description": "list this day's calendar events to the log",
-      "jsFunction": "listDaysEvents"
-    },
-    {
       "name": "insert matching events",
       "description": "inserts this day's calendar events matching certain patterns at cursor",
       "jsFunction": "insertMatchingDaysEvents"
@@ -36,12 +31,17 @@
       "name": "process date offsets",
       "description": "finds date offset patterns and turns them into due dates, based on date at start of section",
       "jsFunction": "processDateOffsets"
+    },
+    {
+      "name": "list day's events to log",
+      "description": "list this day's calendar events to the log",
+      "jsFunction": "listDaysEvents"
     }
   ],
   "plugin.settings": [
     {
       "type": "heading",
-      "title": "Event Helpers settings"
+      "title": "Settings for inserting list of events"
     },
     {
       "key": "eventsHeading",
@@ -54,17 +54,9 @@
     {
       "key": "calendarSet",
       "title": "Calendars to scan",
-      "description": "Comma-separated list of calendar names to filter by when showing list of events. If empty, no filtering will be done.",
+      "description": "Comma-separated list of calendar names to filter by when showing list of events. If empty, no filtering will be done, and so all calendars will be scanned.",
       "type": "[string]",
       "default": [],
-      "required": false
-    },
-    {
-      "key": "calendarToWriteTo",
-      "title": "Name of Calendar to write to",
-      "description": "The calendar name to write events to. Must be a writable calendar. If empty, then the default system calendar will be used.",
-      "type": "string",
-      "default": "",
       "required": false
     },
     {
@@ -84,6 +76,29 @@
         "From;To"
       ],
       "required": false
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Settings for creating time blocks"
+    },
+    {
+      "key": "calendarToWriteTo",
+      "title": "Name of Calendar to write to",
+      "description": "The calendar name to write events to. Must be a writable calendar. If empty, then the default system calendar will be used.",
+      "type": "string",
+      "default": "",
+      "required": false
+    },
+    {
+      "key": "defaultEventDuration",
+      "title": "Default event duration",
+      "description": "Event duration (in minutes) to use when making an event from a time block, if an end time is not given.",
+      "type": "number",
+      "default": 60,
+      "required": true
     },
     {
       "key": "confirmEventCreation",
@@ -118,6 +133,13 @@
       "required": false
     },
     {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Shared Settings"
+    },
+    {
       "key": "locale",
       "title": "Locale",
       "description": "Optional Locale to use for times in events. If not given, will default to what the OS reports, or failing that, 'en-US'.",
@@ -132,14 +154,6 @@
       "type": "json",
       "default": "{\n\t\"hour\": \"2-digit\", \n\t\"minute\": \"2-digit\", \n\t\"hour12\": false\n}",
       "required": false
-    },
-    {
-      "key": "defaultEventDuration",
-      "title": "Default event duration",
-      "description": "Event duration (in minutes) to use when making an event from a time block, if an end time is not given.",
-      "type": "number",
-      "default": 60,
-      "required": true
     }
   ]
 }
