@@ -17,7 +17,10 @@ export async function insertNoteTemplate(templateFilename): Promise<void> {
   log(pluginJson, 'chooseTemplateIfNeeded')
   templateFilename = await chooseTemplateIfNeeded(templateFilename, false)
 
-  let result = await NPTemplating.renderTemplate(templateFilename)
+  let templateContent = DataStore.projectNoteByFilename(templateFilename).content
+  const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateContent)
+
+  const result = await NPTemplating.render(frontmatterBody, frontmatterAttributes)
   Editor.content = result
 }
 
@@ -34,19 +37,26 @@ export async function newMeetingNote(selectedEvent, templateFilename): Promise<v
   try {
     log(pluginJson, 'get template content')
     let templateContent = DataStore.projectNoteByFilename(templateFilename).content
-    let attrs = fm(templateContent)?.attributes || {}
+    const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateContent, templateData)
+
+    let attrs = frontmatterAttributes
     let folder = attrs?.folder || ''
     let append = attrs?.append || ''
     let prepend = attrs?.prepend || ''
+    let newNoteTitle = attrs?.newNoteTitle || ''
 
     log(pluginJson, 'render template')
-    let result = await NPTemplating.renderTemplate(templateFilename, templateData)
+    let result = await NPTemplating.render(frontmatterBody, frontmatterAttributes)
+
+    if(newNoteTitle.length > 0) {
+      result = "# " + newNoteTitle + "\n" + result
+    }
 
     log(pluginJson, 'insert template')
     if(append || prepend) {
       await appendPrependNewNote(append, prepend, folder, result)
     } else {
-      await newNoteWithFolder(result, folder)
+      await newNoteWithFolder(result, folder, newNoteTitle)
     }
 
   } catch (error) {
@@ -122,12 +132,19 @@ async function newNoteWithFolder(content, folder) {
     folder = folders[selection.index]
 
   } else if(folder == "<current>") {
-    let currentFilename = Editor.note.filename.split("/")
-    if(currentFilename.length > 1) {
-      currentFilename.pop()
-      folder = currentFilename.join("/")
+    let currentFilename = ""
+
+    if(Editor.note) {
+      currentFilename = Editor.note.filename.split("/")
+
+      if(currentFilename.length > 1) {
+        currentFilename.pop()
+        folder = currentFilename.join("/")
+      } else {
+        folder = ""
+      }
     } else {
-      folder = ""
+      folder = NotePlan.selectedSidebarFolder
     }
   }
 

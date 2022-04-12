@@ -13,12 +13,14 @@
     {
       "name": "newMeetingNote",
       "description": "Create a meeting note by choosing an event and a template.",
-      "jsFunction": "newMeetingNote"
+      "jsFunction": "newMeetingNote",
+      "hidden": true
     },
     {
       "name": "insertNoteTemplate",
       "description": "Inserts a template into the current note",
-      "jsFunction": "insertNoteTemplate"
+      "jsFunction": "insertNoteTemplate",
+      "hidden": true
     }
   ]
 }
