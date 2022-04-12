@@ -1,13 +1,13 @@
 // @flow
 // ----------------------------------------------------------------------------
 // Command to bring calendar events into notes
-// Last updated 20.2.2022 for v0.11.5, by @jgclark
+// Last updated 12.4.2022 for v0.12.0, by @jgclark
 // @jgclark, with additions by @dwertheimer, @weyert, @m1well
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
 import { getEventsSettings } from './config'
-import { log, logWarn, logError } from '../../helpers/dev'
+import { log, logWarn, logError, clo } from '../../helpers/dev'
 import { getDateStringFromCalendarFilename, toLocaleTime } from '../../helpers/dateTime'
 import { getTagParamsFromString, stringReplace } from '../../helpers/general'
 import { getEventsForDay, type EventsConfig } from '../../helpers/NPCalendar'
@@ -26,47 +26,48 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
     return ''
   }
   const dateStr = getDateStringFromCalendarFilename(Editor.filename)
-  log(pluginJson, `listDaysEvents for ${dateStr} with paramString=${String(paramString)}`)
+  log(pluginJson, `listDaysEvents for date ${dateStr} with paramString=${String(paramString)}`)
 
   // Get config settings from Template folder _configuration note
   const config = await getEventsSettings()
 
-  // Work out template for output line (from params, or if blank, a default)
+  // Work out format for output line (from params, or if blank, a default)
   // NB: be aware that this call doesn't do type checking
-  // TODO: allow customisation of list marker, by taking away the dashes
-  const template = String(await getTagParamsFromString(paramString, 'template', '- *|CAL|*: *|TITLE|* (*|START|*)'))
-  const alldayTemplate = String(await getTagParamsFromString(paramString, 'allday_template', '- *|CAL|*: *|TITLE|*'))
+  // NB: allow previous parameter names 'template' and 'allday_template' still.
+  const format = String(await getTagParamsFromString(paramString, 'format', '- *|CAL|*: *|TITLE|* (*|START|*)'))
+              || String(await getTagParamsFromString(paramString, 'template', '- *|CAL|*: *|TITLE|* (*|START|*)'))
+  const alldayformat = String(await getTagParamsFromString(paramString, 'allday_format', '- *|CAL|*: *|TITLE|*'))
+              || String(await getTagParamsFromString(paramString, 'allday_template', '- *|CAL|*: *|TITLE|*'))
   const includeHeadings = await getTagParamsFromString(paramString, 'includeHeadings', true)
-  // log(pluginJson, `  output template: '${template}' and '${alldayTemplate}'`)
 
-  const withCalendarName = template.includes('CAL')
+  // If the format contains 'CAL' then we care about calendar names in output
+  const withCalendarName = format.includes('CAL')
 
   // Get all the events for this day
   const eArr: Array<TCalendarItem> = await getEventsForDay(dateStr, config.calendarSet)
+  log(pluginJson, `${eArr.length} events found from calendarSet of ${config.calendarSet.length} calendars`)
   const outputArray: Array<string> = []
   const mapForSorting: { cal: string, start: string, text: string }[] = []
-  let lastEventStr = '' // keep duplicates from multiple calendars out
+  // let lastEventStr = '' // keep duplicates from multiple calendars out
 
   // Process each event
   for (const e of eArr) {
     const replacements = getReplacements(e, config)
 
     // Replace any mentions of the keywords in the e.title string
-    const thisEventStr = stringReplace(e.isAllDay ? alldayTemplate : template, replacements).trimEnd()
+    const thisEventStr = stringReplace(e.isAllDay ? alldayformat : format, replacements).trimEnd()
 
-    // TODO: Why was this needed?
+    // This was used to avoid duplicates appearing; now I don't think it's needed
     // if (lastEventStr !== thisEventStr) {
     //   outputArray.push(thisEventStr)
     //   lastEventStr = thisEventStr
     // }
 
-    if (withCalendarName) {
-      mapForSorting.push({
-        cal: calendarNameWithMapping(e.calendar, config.calendarNameMappings),
-        start: toLocaleTime(e.date),
-        text: thisEventStr,
-      })
-    }
+    mapForSorting.push({
+      cal: withCalendarName ? calendarNameWithMapping(e.calendar, config.calendarNameMappings) : '',
+      start: toLocaleTime(e.date),
+      text: thisEventStr
+    })
   }
 
   // Prepend heading if wanted
@@ -74,13 +75,16 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
     outputArray.unshift(config.eventsHeading)
   }
 
-  if (withCalendarName) {
+  // if (withCalendarName) {
     mapForSorting.sort(sortByCalendarNameAndStartTime())
-  }
+  // } else {
+  //   mapForSorting.sort(sortByStartTime())
+  // }
 
-  let output = (withCalendarName)
-    ? mapForSorting.map((element) => element.text).join('\n')
-    : outputArray.join('\n')
+  // let output = (withCalendarName)
+  //   ? mapForSorting.map((element) => element.text).join('\n')
+  //   : outputArray.join('\n')
+  let output = mapForSorting.map((element) => element.text).join('\n')
 
   output.replace(/\s{2,}/gm, ' ') // If this array is empty -> empty string
   log(pluginJson, output)
@@ -110,7 +114,8 @@ export async function insertDaysEvents(paramString: ?string): Promise<void> {
 // ----------------------------------------------------------------------------
 /**
  * Return string list of matching events in the current day's note, from list
- * in keys of config.addMatchingEvents. Apply template too.
+ * in keys of config.addMatchingEvents. Apply format too.
+ * TODO: include sorting here, as done in non-matching version
  * @author @jgclark
  *
  * @param {?string} paramString Paramaters to use (for future expansion)
@@ -125,7 +130,7 @@ export async function listMatchingDaysEvents(
   const dateStr = getDateStringFromCalendarFilename(Editor.filename)
   log(pluginJson, `listMatchingDaysEvents for date ${dateStr}:`)
 
-  // Get config settings from Template folder _configuration note
+  // Get config settings
   const config = await getEventsSettings()
 
   if (config.addMatchingEvents == null) {
@@ -137,7 +142,7 @@ export async function listMatchingDaysEvents(
     return `(Error: found no 'addMatchingEvents' setting in Config.)`
   }
   const textToMatchA = Object.keys(config.addMatchingEvents)
-  const templateArr = Object.values(config.addMatchingEvents)
+  const formatArr = Object.values(config.addMatchingEvents)
   log(pluginJson, `  From settings found ${textToMatchA.length} match strings to look for`)
 
   // Get all events for this day
@@ -145,21 +150,22 @@ export async function listMatchingDaysEvents(
 
   const outputArray: Array<string> = []
   // for each event, check each of the strings we want to match
-  let lastEventStr = '' // keep duplicates from multiple calendars out
+  // let lastEventStr = '' // keep duplicates from multiple calendars out
   for (const e of eArr) {
     for (let i = 0; i < textToMatchA.length; i++) {
       // const m = textToMatchA[i]
-      const template = templateArr[i]
+      const format = formatArr[i]
       const reMatch = new RegExp(textToMatchA[i], 'i')
       if (e.title.match(reMatch)) {
         log(pluginJson, `  Found match to event '${e.title}'`)
         const replacements = getReplacements(e, config)
         // $FlowFixMe -- not sure how to deal with mixed coercing to strings
-        const thisEventStr = stringReplace(template, replacements)
-        if (lastEventStr !== thisEventStr) {
+        const thisEventStr = stringReplace(format, replacements)
+        // This was used to avoid duplicates appearing; now I don't think it's needed
+        // if (lastEventStr !== thisEventStr) {
           outputArray.push(thisEventStr)
-          lastEventStr = thisEventStr
-        }
+        //   lastEventStr = thisEventStr
+        // }
       } else {
         // log(pluginJson, `No match to ${e.title}`)
       }
@@ -173,7 +179,7 @@ export async function listMatchingDaysEvents(
 // ----------------------------------------------------------------------------
 /**
  * Insert list of matching events in the current day's note, from list
- * in keys of config.addMatchingEvents. Apply template too.
+ * in keys of config.addMatchingEvents. Apply format too.
  * @author @jgclark
  *
  * @param {?string} paramString Paramaters to use (to pass on to next function)
@@ -239,7 +245,7 @@ const calendarNameWithMapping = (name: string, mappings: Array<string>): string 
 }
 
 /**
- * Sorter for CalendarItems
+ * Sorter for CalendarItems, including CalendarName
  * @author @m1well
  */
 export const sortByCalendarNameAndStartTime = (): Function => {
