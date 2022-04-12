@@ -454,14 +454,16 @@ type TDataStore = {
    */
   newNote(noteTitle: string, folder: string): ?string,
   /**
-   * Creates a regular note using the given content and folder. Use "/" for the root folder. The content should ideally also include a note title at the top.
-   * Returns the final filename with relative folder (`folder/filename.txt` for example). Ff the there is a duplicate, it will add a number.
-   * Note: available from v3.5
+   * Creates a regular note using the given content, folder and filename. Use "/" for the root folder. The content should ideally also include a note title at the top.
+   * Returns the final filename with relative folder (`folder/filename.txt` for example). 
+   * If the there is a duplicate, it will add a number.
+   * Note: available from v3.5, with 'filename' parameter added in v3.5.1
    * @param {string} 
    * @param {string} 
+   * @param {string} available from v3.5.1
    * @return {string}
    */
-  newNoteWithContent(content: string, folder: string): string
+  newNoteWithContent(content: string, folder: string, filename: string): string
 }
 
 /**
@@ -1312,10 +1314,15 @@ declare var NotePlan: {
   */
   +environment: Object,
   /**
+   * The selected sidebar folder (useful when a note is not showing in Editor, which is then null)
+   * Note: available from v3.5.1
+   */
+  +selectedSidebarFolder?: string,
+  /**
    * Open the current plugin's config UI, if available.
    * Note: available from v3.3.2 (just for macOS so far)
    */
-  showConfigurationView(): Promise<void>
+  showConfigurationView(): Promise < void>
 }
 
 // Every function made available must be assigned to `globalThis`

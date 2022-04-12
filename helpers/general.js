@@ -6,8 +6,9 @@
 import json5 from 'json5'
 // import toml from 'toml'
 // import { load } from 'js-yaml'
-import { showMessage } from './userInput'
 import { hyphenatedDateString } from './dateTime'
+import { log, logWarn, logError } from './dev'
+import { showMessage } from './userInput'
 
 //-------------------------------------------------------------------------------
 // Parsing structured data functions
@@ -29,42 +30,11 @@ export async function parseJSON5(contents: string): Promise<?{ [string]: ?mixed 
     const value = json5.parse(contents)
     return (value: any)
   } catch (e) {
-    console.log(e)
+    logError('general/parseJSON5()', e)
     await showMessage('Invalid JSON5 in your configuration. Please fix it to use configuration')
     return {}
   }
 }
-
-// export async function parseYAML(contents: string): Promise<?{ [string]: ?mixed }> {
-//   try {
-//     const value = load(contents)
-//     if (typeof value === 'object') {
-//       return (value: any)
-//     } else {
-//       return {}
-//     }
-//   } catch (e) {
-//     console.log(contents)
-//     console.log(e)
-//     await showMessage('Invalid YAML in your configuration. Please fix it to use configuration')
-//     return {}
-//   }
-// }
-
-// export async function parseTOML(contents: string): Promise<?{ [string]: ?mixed }> {
-//   try {
-//     const value = toml.parse(contents)
-//     if (typeof value === 'object') {
-//       return (value: any)
-//     } else {
-//       return {}
-//     }
-//   } catch (e) {
-//     console.log(e)
-//     await showMessage('Invalid TOML in your configuration. Please fix it to use configuration')
-//     return {}
-//   }
-// }
 
 //-------------------------------------------------------------------------------
 // Other functions
@@ -230,15 +200,15 @@ export function stringReplace(inputString: string = '', replacementArray: Array<
  * @returns {string} the value of the desired parameter if found (e.g. 'FOO'), or defaultValue if it isn't
  */
 export async function getTagParamsFromString(paramString: string, wantedParam: string, defaultValue: any): any {
-  console.log(`\tgetTagParamsFromString for '${wantedParam}' in '${paramString}'`)
+  log('general/getTagParamsFromString()', `  for '${wantedParam}'`)
   if (paramString !== '' && wantedParam !== '') {
     try {
       // $FlowFixMe(incompatible-type)
       const paramObj: {} = await json5.parse(paramString)
-      console.log(`\t--> ${String(JSON.stringify(paramObj[wantedParam]))}`)
+      log('general/getTagParamsFromString()', `  --> ${String(JSON.stringify(paramObj[wantedParam]))}`)
       return paramObj.hasOwnProperty(wantedParam) ? paramObj[wantedParam] : defaultValue
     } catch (e) {
-      console.log(`\tError parsing ${paramString} ${e}`)
+      logError('general/getTagParamsFromString()', `Can't parse ${paramString} ${e}`)
     }
   }
   return defaultValue

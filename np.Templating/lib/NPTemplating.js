@@ -713,7 +713,7 @@ export default class NPTemplating {
     }
 
     const finalData = { ...userData, ...frontmatterAttributes }
-    return { frontmatterBody, finalData }
+    return { frontmatterBody, frontmatterAttributes }
   }
 
   static async postProcess(templateData: string): Promise<mixed> {

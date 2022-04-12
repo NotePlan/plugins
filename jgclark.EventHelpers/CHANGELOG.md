@@ -3,12 +3,20 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 
 <!-- Improve detection of target dates -->
 
+## [0.12.0] - 2022-04-12
+### Changed
+- updated README to reflect the new Templating system's syntax (`<%- events(...) %>)` that replaces `{{events(...)}}`.
+- to reduce potential confusion with the new Templating system, the parameters `template` and `allday_template` have been renamed to `format` and `allday_format`, and the README updated. (The previous parameters will still work for now.)
+- improved settings display
+- removed option of using the old `_configuration` note for settings: all now done through the built-in Settings UI
+- moved to newer logging mechanism
+
+### Fixed
+- fixed empty output when calling `events()` through Templates, if the format didn't include `*|CAL|*`
+
 ## [0.11.5] - 2022-02-20
 ### Added
 - new `defaultEventDuration` (in minutes) which is used if the time block doesn't have an end time, to create it. Otherwise the event will be 0 minutes long.
-
-### Changed
-- moved to newer logging mechanism
 
 ## [0.11.4] - 2022-02-07
 ### Fixed
