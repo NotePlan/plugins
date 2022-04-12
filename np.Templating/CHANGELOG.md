@@ -3,6 +3,19 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.0.0-beta.34] - 2022-04-11 (mikeerickson)
+
+- Implemented `<current>` and `<select>` when defined in templates which `folder` attribute
+  - Works with `np:mtn`, `np:qtn` and `np:new` commands
+- fixed `<%- meetingName %>` issue when process Quick Note
+- added `NPTemplating :: getFolder`
+- fixed some prompt related issues
+- fixed migration issue when changing `date` to `legacyDate` (was incorrectly updating `progressUpdate`)
+- fixed migration issue, fronmatter title was not matching legacy template note name under certain circumstances
+- refactor `np:migrate-templates` to not call `np:migration-quick-notes` intrisnically
+  - still executed together when running in `onUpdateOrInstall` method
+- added action to disable `nmn.Templates` in `onUpdateOrInstall` method, after successful template migrations
+
 ## [1.0.0-beta.33] - 2022-04-10 (mikeerickson)
 
 - fix issue passing renderData in `data` and `method` properties

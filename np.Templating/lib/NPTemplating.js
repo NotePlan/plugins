@@ -7,9 +7,10 @@
 import { semverVersionToNumber } from '@helpers/general'
 import pluginJson from '../plugin.json'
 import FrontmatterModule from './support/modules/FrontmatterModule'
-import { clo, log, logError } from '@helpers/dev'
+
 import globals from './globals'
 import { chooseOption } from '@helpers/userInput'
+import { clo, log, logError } from '@helpers/dev'
 
 /*eslint-disable */
 import TemplatingEngine from './TemplatingEngine'
@@ -481,6 +482,10 @@ export default class NPTemplating {
     }
   }
 
+  static async getTemplateAttributes(templateData: string = ''): Promise<any> {
+    return await new FrontmatterModule().attributes(templateData)
+  }
+
   static async getTemplateConfig(): mixed {
     await this.setup()
     return this.constructor.templateConfig
@@ -603,6 +608,9 @@ export default class NPTemplating {
       if (tag === '<%- discuss %>' || tag === '<%- discuss() %>') {
         newTemplateData = newTemplateData.replace(tag, `<%- prompt('discuss') %>`)
       }
+      if (tag === '<%- meetingName %>' || tag === '<%- meetingName() %>') {
+        newTemplateData = newTemplateData.replace(tag, `<%- prompt('meetingName','Enter Meeting Name:') %>`)
+      }
     })
 
     return { newTemplateData, newSettingData }
@@ -647,16 +655,13 @@ export default class NPTemplating {
         const frontmatterAttributes = new FrontmatterModule().parse(templateData)?.attributes || {}
         for (const [key, value] of Object.entries(frontmatterAttributes)) {
           let frontMatterValue = value
-          console.log('här')
           // $FlowIgnore
           const promptData = await this.processPrompts(value, sessionData, '<%', '%>')
           frontMatterValue = promptData.sessionTemplateData
 
-          console.log('här2')
           // $FlowIgnore
           const { newTemplateData, newSettingData } = await this.preProcess(frontMatterValue, sessionData)
           sessionData = { ...sessionData, ...newSettingData }
-          console.log('här3')
 
           const renderedData = await new TemplatingEngine(this.constructor.templateConfig).render(newTemplateData, promptData.sessionData, userOptions)
 
@@ -837,6 +842,7 @@ export default class NPTemplating {
 
           return result
         }
+
         if (!varExists(varName)) {
           promptMessage = promptMessage.replace('await', '').replace(/  /g, ' ')
           let response = await await this.prompt(promptMessage, options) // double await is correct here
@@ -909,6 +915,30 @@ export default class NPTemplating {
     }
   }
 
+  static async getFolder(folder: string = '', promptMessage: string = 'Select folder'): Promise<string> {
+    let selectedFolder = folder
+    const folders = DataStore.folders
+    if (folder == '<select>' || Editor?.type === 'Calendar') {
+      const selection = await CommandBar.showOptions(folders, promptMessage)
+      selectedFolder = folders[selection.index]
+    } else if (folder == '<current>') {
+      const currentFilename = Editor.note?.filename
+
+      if (typeof currentFilename === 'undefined') {
+        const selection = await CommandBar.showOptions(folders, promptMessage)
+        selectedFolder = folders[selection.index]
+      } else {
+        const parts = currentFilename.split('/')
+        if (parts.length > 1) {
+          parts.pop()
+          selectedFolder = parts.join('/')
+        }
+      }
+    }
+
+    return selectedFolder
+  }
+
   static isVariableTag(tag: string = ''): boolean {
     return tag.indexOf('const') > 0 || tag.indexOf('let') > 0 || tag.indexOf('var') > 0 || tag.indexOf('.') > 0 || tag.indexOf('{') > 0 || tag.indexOf('}') > 0
   }
@@ -937,6 +967,9 @@ export default class NPTemplating {
       }
     }
 
+    if (tag.includes('prompt')) {
+      result = false
+    }
     return result
   }
 }

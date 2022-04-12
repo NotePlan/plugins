@@ -28,6 +28,7 @@ export async function onUpdateOrInstall(config: any = { silent: false }): Promis
     const pluginSettingsData = await DataStore.loadJSON(`../${pluginJson['plugin.id']}/settings.json`)
     if (typeof pluginSettingsData == 'undefined') {
       migrateTemplates()
+      migrateQuickNotes()
     }
 
     // migrate _configuration data to data/<plugin>/settings.json (only executes migration once)
@@ -98,13 +99,15 @@ export async function templateInit(): Promise<void> {
   }
 }
 
-export async function templateInsert(): Promise<void> {
+export async function templateInsert(templateName: string = ''): Promise<void> {
   try {
     if (Editor.type === 'Notes' || Editor.type === 'Calendar') {
-      const selectedTemplate = await NPTemplating.chooseTemplate()
+      const selectedTemplate = templateName.length > 0 ? templateName : await NPTemplating.chooseTemplate()
+      const templateData = await NPTemplating.getTemplate(selectedTemplate)
+      const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
 
       // $FlowIgnore
-      const renderedTemplate = await NPTemplating.renderTemplate(selectedTemplate)
+      const renderedTemplate = await NPTemplating.render(frontmatterBody, frontmatterAttributes)
 
       Editor.insertTextAtCursor(renderedTemplate)
     } else {
@@ -120,13 +123,13 @@ export async function templateAppend(): Promise<void> {
     if (Editor.type === 'Notes' || Editor.type === 'Calendar') {
       const content: string = Editor.content || ''
 
-      const templateList = []
-
       // $FlowIgnore
       const selectedTemplate = await NPTemplating.chooseTemplate()
+      const templateData = await NPTemplating.getTemplate(selectedTemplate)
+      const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
 
       // $FlowIgnore
-      let renderedTemplate = await NPTemplating.renderTemplate(selectedTemplate, {})
+      let renderedTemplate = await NPTemplating.render(frontmatterBody, frontmatterAttributes)
 
       Editor.insertTextAtCharacterIndex(renderedTemplate, content.length)
     } else {
@@ -139,31 +142,41 @@ export async function templateAppend(): Promise<void> {
 
 export async function templateNew(): Promise<void> {
   try {
-    const title = await CommandBar.textPrompt('Template', 'Enter New Note Title', '')
-    if (typeof title === 'boolean' || title.length === 0) {
-      return // user did not provide note title (Cancel) abort
+    const selectedTemplate = await NPTemplating.chooseTemplate()
+    const templateData = await NPTemplating.getTemplate(selectedTemplate)
+    const templateAttributes = await NPTemplating.getTemplateAttributes(templateData)
+
+    let noteTitle = ''
+    let folder = ''
+
+    const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
+
+    if (frontmatterAttributes?.folder && frontmatterAttributes.folder.length > 0) {
+      folder = await NPTemplating.getFolder(frontmatterAttributes.folder, 'Select Destination Folder')
     }
 
-    const folderList = await DataStore.folders.slice().sort()
+    if (frontmatterAttributes.hasOwnProperty('newNoteTitle')) {
+      noteTitle = frontmatterAttributes.newNoteTitle
+    } else {
+      const title = await CommandBar.textPrompt('Template', 'Enter New Note Title', '')
+      if (typeof title === 'boolean' || title.length === 0) {
+        return // user did not provide note title (Cancel) abort
+      }
+      const noteTitle = title.toString()
+    }
 
-    const folder = await chooseOption(
-      'Where would you like to create new note?',
-      folderList.map((folder) => ({
-        label: folder,
-        value: folder,
-      })),
-      '/',
-    )
+    if (noteTitle.length === 0) {
+      return
+    }
 
-    const selectedTemplate = await NPTemplating.chooseTemplate()
-
-    const noteTitle = title.toString()
     const filename = DataStore.newNote(noteTitle, folder) || ''
     if (filename) {
-      // $FlowIgnore
-      const templateResult = await NPTemplating.renderTemplate(selectedTemplate, null, { usePrompts: true })
+      const templateResult = await NPTemplating.render(frontmatterBody, frontmatterAttributes)
+
       await Editor.openNoteByFilename(filename)
       Editor.content = `# ${noteTitle}\n${templateResult}`
+    } else {
+      await CommandBar.prompt('New Template', `An error occured creating ${noteTitle} note`)
     }
   } catch (error) {
     logError(pluginJson, error)
@@ -188,9 +201,20 @@ export async function templateQuickNote(noteName: string = ''): Promise<void> {
     if (selectedTemplate) {
       const templateData = await NPTemplating.getTemplate(selectedTemplate)
       const isFrontmatter = new FrontmatterModule().isFrontmatterTemplate(templateData)
+      const templateAttributes = await NPTemplating.getTemplateAttributes(templateData)
+
+      let folder = ''
 
       if (isFrontmatter) {
         const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
+        if (frontmatterAttributes?.newNoteTitle?.length > 0 && frontmatterAttributes?.newNoteTitle[0] === ' ') {
+          return
+        }
+
+        if (frontmatterAttributes?.folder && frontmatterAttributes.folder.length > 0) {
+          folder = await NPTemplating.getFolder(frontmatterAttributes.folder, 'Select Destination Folder')
+        }
+
         // $FlowIgnore
         let finalRenderedData = await NPTemplating.render(frontmatterBody, frontmatterAttributes)
 
@@ -202,8 +226,6 @@ export async function templateQuickNote(noteName: string = ''): Promise<void> {
           )
           return
         }
-
-        const folder = frontmatterAttributes?.folder || '/'
 
         const filename = DataStore.newNote(newNoteTitle, folder) || ''
         if (filename) {
@@ -285,9 +307,6 @@ export async function templateMeetingNote(noteName: string = '', templateData: a
     const content: string = Editor.content || ''
     const templateFolder = await getTemplateFolder()
 
-    if (noteName.length > 0) {
-    }
-
     const options = await NPTemplating.getTemplateList('meeting-note')
     if (options.length === 0) {
       await CommandBar.prompt(
@@ -303,9 +322,19 @@ export async function templateMeetingNote(noteName: string = '', templateData: a
       // $FlowIgnore
       const templateData = await NPTemplating.getTemplate(selectedTemplate)
       const isFrontmatter = new FrontmatterModule().isFrontmatterTemplate(templateData)
+      const templateAttributes = await NPTemplating.getTemplateAttributes(templateData)
+
+      let folder = ''
 
       if (isFrontmatter) {
         const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
+        if (templateAttributes?.folder && templateAttributes.folder.length > 0) {
+          folder = await NPTemplating.getFolder(frontmatterAttributes.folder, 'Select Destination Folder')
+        }
+
+        if (frontmatterAttributes?.newNoteTitle?.length > 0 && frontmatterAttributes?.newNoteTitle[0] === ' ') {
+          return
+        }
 
         let newNoteTitle = ''
         if (frontmatterAttributes?.newNoteTitle) {
@@ -337,8 +366,6 @@ export async function templateMeetingNote(noteName: string = '', templateData: a
           )
           return
         }
-
-        const folder = frontmatterAttributes.folder
 
         const filename = DataStore.newNote(newNoteTitle, folder) || ''
         if (filename) {
@@ -442,34 +469,32 @@ export async function migrateTemplates(silent: boolean = false): Promise<void> {
         const noteTitle = parts.pop().replace('.md', '')
         const folderName = parts.join('/')
         if (noteTitle.length > 0 && noteTitle !== '_configuration') {
-          content = note.content || ''
-          content = content.replace(/{{/gi, '<%- ').replace(/}}/gi, ' %>')
-          content = content.replace('date(', 'legacyDate(')
+          const originalNoteTitle: string = note?.title || ''
+          if (originalNoteTitle.length > 0) {
+            let content = note.content || ''
+            content = content.replace(/{{/gi, '<%- ').replace(/}}/gi, ' %>')
+            content = content.replace(' date(', ' legacyDate(')
 
-          const fullPath = `${newTemplateFolder}/${folderName}/${noteTitle}.md`.replace('//', '/').replace('(', '').replace(')', '')
-          const testNote = DataStore.projectNoteByFilename(fullPath)
-
-          let filename = fullPath
-          if (!testNote) {
-            let templateContent = `---\ntitle: ${noteTitle}\ntype: empty-note\ntags: migrated-template\n---\n${content}`
-            filename = DataStore.newNote(noteTitle, `${newTemplateFolder}/${folderName}`)
-            if (filename && content.length > 0) {
-              const newNote = DataStore.projectNoteByFilename(filename)
-              if (newNote) {
-                newNote.content = templateContent
+            const fullPath = `${newTemplateFolder}/${folderName}/${noteTitle}.md`.replace('//', '/') // .replace('(', '').replace(')', '')
+            const testNote = DataStore.projectNoteByFilename(note.filename)
+            let filename = fullPath
+            if (testNote) {
+              let templateContent = `---\ntitle: ${originalNoteTitle}\ntype: empty-note\ntags: migrated-template\n---\n${content}`
+              filename = DataStore.newNote(originalNoteTitle, `${newTemplateFolder}/${folderName}`)
+              if (filename && content.length > 0) {
+                const newNote = DataStore.projectNoteByFilename(filename)
+                if (newNote) {
+                  newNote.content = templateContent
+                }
               }
+              newNoteCounter++
             }
-          } else {
-            testNote.content = content
           }
-
-          newNoteCounter++
         }
       }
     })
 
     // after migration complete, migrate "_configuration;:quickNotes"
-    migrateQuickNotes()
 
     await CommandBar.prompt('Template Migration', `${newNoteCounter} Templates Converted Successfully`)
   } catch (error) {
@@ -486,6 +511,6 @@ export async function templateAbout(): Promise<string> {
     log(pluginJson, `${version}`)
     return version
   } catch (error) {
-    logError(pluginJson, error)
+    return logError(pluginJson, error)
   }
 }
