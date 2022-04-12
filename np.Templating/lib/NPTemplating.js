@@ -651,6 +651,7 @@ export default class NPTemplating {
         templateData = frontmatterBody
         sessionData.data = { ...sessionData.data, ...frontmatterAttributes }
       }
+
       if (isFrontmatterTemplate && usePrompts) {
         const frontmatterAttributes = new FrontmatterModule().parse(templateData)?.attributes || {}
         for (const [key, value] of Object.entries(frontmatterAttributes)) {
@@ -678,14 +679,14 @@ export default class NPTemplating {
       sessionData = { ...newSettingData }
 
       const promptData = await this.processPrompts(newTemplateData, sessionData, '<%', '%>')
+
       templateData = promptData.sessionTemplateData
       sessionData = promptData.sessionData
 
-      sessionData.data = { ...sessionData.data, ...userData.data }
-      sessionData.methods = { ...sessionData.methods, ...userData.methods }
+      sessionData.data = { ...sessionData.data, ...userData?.data }
+      sessionData.methods = { ...sessionData.methods, ...userData?.methods }
 
       const renderedData = await new TemplatingEngine(this.constructor.templateConfig).render(templateData, sessionData, userOptions)
-
       return this._filterTemplateResult(renderedData)
     } catch (error) {
       return this.templateErrorMessage('NPTemplating.renderTemplate', error)
@@ -788,8 +789,8 @@ export default class NPTemplating {
     if (promptMessage.length === 0) {
       promptMessage = options.length > 0 ? `Select ${varName}` : `Enter ${varName}`
     }
-    varName = varName.replace(/ /g, '_')
-    varName = varName.replace(/\?/g, '')
+    varName = varName.replace(/ /gi, '_')
+    varName = varName.replace(/\?/gi, '')
 
     return { varName, promptMessage, options }
   }
@@ -814,7 +815,7 @@ export default class NPTemplating {
 
     let sessionTemplateData = templateData.replace(/<%@/gi, '<%- prompt')
     let tags = await this.getTags(sessionTemplateData)
-    for (const tag of tags) {
+    for (let tag of tags) {
       // if tag is from module, it will contain period so we need to make sure this tag is not a module
       let isMethod = false
       for (const method of methods) {
@@ -828,7 +829,16 @@ export default class NPTemplating {
         isMethod = true
       }
 
-      if (!this.isVariableTag(tag) && !this.isControlBlock(tag) && !this.isTemplateModule(tag) && !isMethod && tag.includes('prompt')) {
+      const doPrompt = (tag) => {
+        let check = !this.isVariableTag(tag) && !this.isControlBlock(tag) && !this.isTemplateModule(tag) && !isMethod
+        if (!check) {
+          check = tag.includes('prompt')
+        }
+
+        return check
+      }
+
+      if (doPrompt(tag)) {
         // $FlowIgnore
         let { varName, promptMessage, options } = await this.getPromptParameters(tag)
         const varExists = (varName) => {
@@ -866,6 +876,9 @@ export default class NPTemplating {
         let { varName, promptMessage, options } = await this.getPromptParameters(tag)
       }
     }
+
+    //.turn control output to standard output
+    sessionTemplateData = sessionTemplateData.replace(/<%~/gi, '<%=')
 
     return { sessionTemplateData, sessionData }
   }
@@ -970,6 +983,15 @@ export default class NPTemplating {
     if (tag.includes('prompt')) {
       result = false
     }
+
+    if (tag.includes('let') || tag.includes('const') || tag.includes('var')) {
+      result = true
+    }
+
+    if (tag.includes('~')) {
+      result = true
+    }
+
     return result
   }
 }

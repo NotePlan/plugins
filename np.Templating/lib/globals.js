@@ -23,7 +23,7 @@ import { insertProgressUpdate } from '@plugins/jgclark.Summaries/src'
 import { getWeatherSummary } from './support/modules/weatherSummary'
 import { parseJSON5 } from '@helpers/general'
 import { getSetting } from '../../helpers/NPconfiguration'
-import { async } from 'rxjs'
+import { clo } from '@helpers/dev'
 
 export async function processDate(dateParams: string, config: { [string]: ?mixed }): Promise<string> {
   const defaultConfig = config?.date ?? {}
