@@ -3,6 +3,15 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.0.0-beta.37] - 2022-04-12 (mikeerickson)
+
+- fixed regression in `np.Templating.preRender` (@EduardMe)
+
+## [1.0.0-beta.36] - 2022-04-12 (mikeerickson)
+
+- Removed test code for template migration (`np:migrate-template`) (@dwertheimer)
+- added action to disable `nmn.Templates` during `np.Templating` install, after template migration (@dwertheimer)
+
 ## [1.0.0-beta.35] - 2022-04-12 (mikeerickson)
 
 - fixed some additional prompt issues (including regression handling of promps with spaced variables `<%- sleep hours? %>`) (@dwertheimer)

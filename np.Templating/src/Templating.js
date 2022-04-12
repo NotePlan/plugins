@@ -25,6 +25,22 @@ import pluginJson from '../plugin.json'
 
 export async function onUpdateOrInstall(config: any = { silent: false }): Promise<void> {
   try {
+    const pluginData = {
+      'plugin.id': 'nmn.Templates',
+      'noteplan.minAppVersion': '3.0.21',
+      'plugin.name': '🔩 Templates',
+      'plugin.description': 'This plugin has been deprecated and superseded by np.Templating',
+      'plugin.commands': [],
+    }
+
+    const pluginUpdateResult = await DataStore.saveJSON('../../../plugin.json')
+    if (pluginUpdateResult) {
+      await CommandBar.prompt(
+        'nmn.Templates has been uninstalled',
+        'For more information please refer to https://nptemplating-docs.netlify.app/docs/templating-basics/template-anatomy#template-configuration---frontmatter',
+      )
+    }
+
     const pluginSettingsData = await DataStore.loadJSON(`../${pluginJson['plugin.id']}/settings.json`)
     if (typeof pluginSettingsData == 'undefined') {
       migrateTemplates()
@@ -449,7 +465,7 @@ export async function templateQuote(): Promise<string> {
 export async function migrateTemplates(silent: boolean = false): Promise<void> {
   try {
     const templateFolder = '📋 Templates'
-    const newTemplateFolder: string = NotePlan.environment.templateFolder + '/Test'
+    const newTemplateFolder: string = NotePlan.environment.templateFolder
 
     const templateNotes = DataStore.projectNotes.filter((n) => n.filename?.startsWith(templateFolder)).filter((n) => !n.title?.startsWith('_configuration'))
     const newTemplates = DataStore.projectNotes.filter((n) => n.filename?.startsWith(newTemplateFolder)).filter((n) => !n.title?.startsWith('_configuration'))
