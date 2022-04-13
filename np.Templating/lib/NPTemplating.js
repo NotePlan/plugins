@@ -712,7 +712,7 @@ export default class NPTemplating {
       frontmatterAttributes[item] = attributeValue
     }
 
-    return { frontmatterBody, frontmatterAttributes }
+    return { frontmatterBody, frontmatterAttributes: { ...userData, ...frontmatterAttributes } }
   }
 
   static async postProcess(templateData: string): Promise<mixed> {
