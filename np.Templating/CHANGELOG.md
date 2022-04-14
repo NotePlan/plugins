@@ -3,6 +3,10 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.0.0] - 2022-04-14 (mikeerickson)
+
+- Public Release
+
 ## [1.0.0-beta.38] - 2022-04-12 (mikeerickson)
 
 - fixed second regression, spreading `userData` from `.preRender` to `frontmatterAttributes` (@EduardMe)

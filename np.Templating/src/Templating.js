@@ -525,7 +525,7 @@ export async function migrateTemplates(silent: boolean = false): Promise<void> {
 export async function templateAbout(): Promise<string> {
   try {
     const version = pluginJson['plugin.version']
-    let aboutInfo = `Templating Plugin for NotePlan\nv${version}\n\n\nCopyright © 2022 Mike Erickson.\nAll Rights Reserved.`
+    let aboutInfo = `Templating Plugin for NotePlan\nv${version}\n\n\nCopyright © 2022-2023 Mike Erickson.\nAll Rights Reserved.`
 
     await CommandBar.prompt('About np.Templating', aboutInfo)
     log(pluginJson, `${version}`)
