@@ -37,6 +37,8 @@ export async function newMeetingNote(selectedEvent, templateFilename): Promise<v
   try {
     log(pluginJson, 'get template content')
     let templateContent = DataStore.projectNoteByFilename(templateFilename).content
+
+    log(pluginJson, 'preRender template')
     const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateContent, templateData)
 
     let attrs = frontmatterAttributes

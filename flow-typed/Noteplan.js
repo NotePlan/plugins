@@ -1322,7 +1322,13 @@ declare var NotePlan: {
    * Open the current plugin's config UI, if available.
    * Note: available from v3.3.2 (just for macOS so far)
    */
-  showConfigurationView(): Promise < void>
+  showConfigurationView(): Promise <void>,
+  /**
+   * To reset the caches, particularly in the case where the sidebar turns out incorrect.
+   * It's an async operation, but it doesn't return a promise to tell you when it's done.
+   * Note: available from v3.5.0
+   */    
+  resetCaches(): void
 }
 
 // Every function made available must be assigned to `globalThis`
