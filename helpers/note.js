@@ -18,19 +18,13 @@ export function printNote(note: TNote): void {
 
   if (note.type === 'Notes') {
     console.log(
-      `title: ${note.title ?? ''}\n\tfilename: ${
-        note.filename ?? ''
-      }\n\tcreated: ${String(note.createdDate) ?? ''}\n\tchanged: ${
-        String(note.changedDate) ?? ''
-      }\n\thashtags: ${note.hashtags?.join(',') ?? ''}\n\tmentions: ${
-        note.mentions?.join(',') ?? ''
-      }`,
+      `title: ${note.title ?? ''}\n\tfilename: ${note.filename ?? ''}\n\tcreated: ${String(note.createdDate) ?? ''}\n\tchanged: ${String(note.changedDate) ?? ''}\n\thashtags: ${
+        note.hashtags?.join(',') ?? ''
+      }\n\tmentions: ${note.mentions?.join(',') ?? ''}`,
     )
   } else {
     console.log(
-      `filename: ${note.filename ?? ''}\n\tcreated: ${
-        String(note.createdDate) ?? ''
-      }\n\tchanged: ${String(note.changedDate) ?? ''}\n\thashtags: ${
+      `filename: ${note.filename ?? ''}\n\tcreated: ${String(note.createdDate) ?? ''}\n\tchanged: ${String(note.changedDate) ?? ''}\n\thashtags: ${
         note.hashtags?.join(',') ?? ''
       }\n\tmentions: ${note.mentions?.join(',') ?? ''}`,
     )
@@ -47,52 +41,33 @@ export function printNote(note: TNote): void {
  * @param {boolean} useProjNoteByFilename (default: true)
  * @returns {any} - the note that was opened
  */
-export async function noteOpener(
-  fullPath: string,
-  desc: string,
-  useProjNoteByFilename: boolean = true,
-): Promise<?TNote> {
-  console.log(
-    `\tAbout to open filename: "${fullPath}" (${desc}) using ${
-      useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename'
-    }`,
-  )
-  const newNote = useProjNoteByFilename
-    ? await DataStore.projectNoteByFilename(fullPath)
-    : await DataStore.noteByFilename(fullPath, 'Notes')
+export async function noteOpener(fullPath: string, desc: string, useProjNoteByFilename: boolean = true): Promise<?TNote> {
+  console.log(`\tAbout to open filename: "${fullPath}" (${desc}) using ${useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename'}`)
+  const newNote = useProjNoteByFilename ? await DataStore.projectNoteByFilename(fullPath) : await DataStore.noteByFilename(fullPath, 'Notes')
   if (newNote != null) {
     console.log(`\t\tOpened ${fullPath} (${desc} version) `)
     return newNote
   } else {
-    console.log(
-      `\t\tDidn't work! ${
-        useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename'
-      } returned ${(newNote: any)}`,
-    )
+    console.log(`\t\tDidn't work! ${useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename'} returned ${(newNote: any)}`)
   }
 }
 
 /**
  * Get or create the relevant note in the given folder
  * @author @jgclark
- * 
+ *
  * @param {string} noteTitle - title of summary note
- * @param {string} noteFolder - folder to look in
+ * @param {string} noteFolder - folder to look in (must be full path or "/")
  * @return {Promise<TNote>} - note object
  */
-export async function getOrMakeNote(
-  noteTitle: string,
-  noteFolder: string
-): Promise<?TNote> {
+export async function getOrMakeNote(noteTitle: string, noteFolder: string): Promise<?TNote> {
   // first see if this note has already been created (ignoring Archive and Trash)
-  const existingNotes: $ReadOnlyArray<TNote> =
-    DataStore.projectNoteByTitle(noteTitle, true, false) ?? []
-  console.log(
-    `\tfound ${existingNotes.length} existing '${noteTitle}' note(s)`,
-  )
+  const potentialNotes: $ReadOnlyArray<TNote> = DataStore.projectNoteByTitle(noteTitle, true, false) ?? []
+  console.log(`\tfound ${potentialNotes.length} existing '${noteTitle}' note(s)`)
+  const existingNotes = potentialNotes && noteFolder !== '/' ? potentialNotes.filter((n) => n.filename.startsWith(noteFolder)) : potentialNotes
 
   if (existingNotes.length > 0) {
-    // console.log(`\t${existingNotes[0].filename}`)
+    console.log(`\tFound ${existingNotes.length} notes. [0] = ${existingNotes[0].filename}`)
     return existingNotes[0] // return the only or first match (if more than one)
   } else {
     // no existing note, so need to make a new one
@@ -119,41 +94,31 @@ export async function getOrMakeNote(
 /**
  * Return list of notes with a particular hashtag, optionally in the given folder.
  * @author @jgclark
- * 
+ *
  * @param {string} tag - tag name to look for (or blank, in which case no filtering by tag)
  * @param {?string} folder - optional folder to limit to
  * @param {?boolean} includeSubfolders - if folder given, whether to look in subfolders of this folder or not (optional, defaults to false)
  * @return {Array<TNote>}
  */
-export function findNotesMatchingHashtags(
-  tag: string,
-  folder: ?string,
-  includeSubfolders: ?boolean = false
-): Array<TNote> {
+export function findNotesMatchingHashtags(tag: string, folder: ?string, includeSubfolders: ?boolean = false): Array<TNote> {
   let projectNotesInFolder: Array<TNote>
   // If folder given (not empty) then filter using it
   if (folder != null) {
     if (includeSubfolders) {
       // use startsWith as filter to include subfolders
       // FIXME: not working for root-level notes
-      projectNotesInFolder = DataStore.projectNotes
-        .slice()
-        .filter((n) => n.filename.startsWith(`${folder}/`))
+      projectNotesInFolder = DataStore.projectNotes.slice().filter((n) => n.filename.startsWith(`${folder}/`))
     } else {
       // use match as filter to exclude subfolders
-      projectNotesInFolder = DataStore.projectNotes
-        .slice()
-        .filter((n) => (getFolderFromFilename(n.filename) === folder))
+      projectNotesInFolder = DataStore.projectNotes.slice().filter((n) => getFolderFromFilename(n.filename) === folder)
     }
   } else {
     // no folder specified, so grab all notes from DataStore
     projectNotesInFolder = DataStore.projectNotes.slice()
   }
   // Filter by tag (if one has been given)
-  const projectNotesWithTag = (tag !== '')
-    ? projectNotesInFolder.filter((n) => n.hashtags.includes(tag))
-    : projectNotesInFolder
-  console.log(`\tIn folder '${folder ?? "<all>"}' found ${projectNotesWithTag.length} notes matching '${tag}'`)
+  const projectNotesWithTag = tag !== '' ? projectNotesInFolder.filter((n) => n.hashtags.includes(tag)) : projectNotesInFolder
+  console.log(`\tIn folder '${folder ?? '<all>'}' found ${projectNotesWithTag.length} notes matching '${tag}'`)
   return projectNotesWithTag
 }
 
@@ -178,11 +143,11 @@ export async function getProjectNotes(forFolder: string = ''): Promise<$ReadOnly
   }
 }
 
-/** 
+/**
  * Get all notes in a given folder (or all project notes if no folder given),
  * sorted by note title
  * @author @jgclark
- * 
+ *
  * @param {string} folder - folder to scan
  * @return {Array<TNote>} - list of notes
  */
@@ -190,16 +155,12 @@ export function notesInFolderSortedByTitle(folder: string): Array<TNote> {
   let notesInFolder: Array<TNote>
   // If folder given (not empty) then filter using it
   if (folder !== '') {
-    notesInFolder = DataStore.projectNotes
-      .slice()
-      .filter((n) => getFolderFromFilename(n.filename) === folder)
+    notesInFolder = DataStore.projectNotes.slice().filter((n) => getFolderFromFilename(n.filename) === folder)
   } else {
     notesInFolder = DataStore.projectNotes.slice()
   }
   // Sort alphabetically on note's title
-  const notesSortedByTitle = notesInFolder.sort((first, second) =>
-    (first.title ?? '').localeCompare(second.title ?? ''),
-  )
+  const notesSortedByTitle = notesInFolder.sort((first, second) => (first.title ?? '').localeCompare(second.title ?? ''))
   return notesSortedByTitle
 }
 
@@ -221,50 +182,44 @@ export function getUniqueNoteTitle(title: string): string {
   return newTitle
 }
 
-/** 
+/**
  * Return list of all notes, sorted by changed date (newest to oldest)
  * @author @jgclark
- * 
+ *
  * @return {Array<TNote>} - list of notes
  */
 export function allNotesSortedByChanged(): Array<TNote> {
   const projectNotes = DataStore.projectNotes.slice()
   const calendarNotes = DataStore.calendarNotes.slice()
   const allNotes = projectNotes.concat(calendarNotes)
-  const allNotesSorted = allNotes.sort(
-    (first, second) => second.changedDate - first.changedDate,
-  ) // most recent first
+  const allNotesSorted = allNotes.sort((first, second) => second.changedDate - first.changedDate) // most recent first
   return allNotesSorted
 }
 
-/** 
+/**
  * Return list of calendar notes, sorted by changed date (newest to oldest)
  * @author @jgclark
- * 
+ *
  * @return {Array<TNote>} - list of notes
  */
 export function calendarNotesSortedByChanged(): Array<TNote> {
-  return DataStore.calendarNotes
-    .slice()
-    .sort((first, second) => second.changedDate - first.changedDate)
+  return DataStore.calendarNotes.slice().sort((first, second) => second.changedDate - first.changedDate)
 }
 
-/** 
+/**
  * Return list of project notes, sorted by changed date (newest to oldest)
  * @author @jgclark
- * 
+ *
  * @return {Array<TNote>} - list of notes
  */
 export function projectNotesSortedByChanged(): Array<TNote> {
-  return DataStore.projectNotes
-    .slice()
-    .sort((first, second) => second.changedDate - first.changedDate)
+  return DataStore.projectNotes.slice().sort((first, second) => second.changedDate - first.changedDate)
 }
 
-/** 
+/**
  * Return list of project notes, sorted by title (ascending)
  * @author @jgclark
- * 
+ *
  * @return {Array<TNote>} - list of notes
  */
 export function projectNotesSortedByTitle(): Array<TNote> {
@@ -291,7 +246,7 @@ export function projectNotesSortedByTitle(): Array<TNote> {
  */
 export const clearNote = (note: TNote) => {
   if (note.type === 'Calendar' || (note.type === 'Notes' && note.paragraphs.length > 1)) {
-    const paras = note.type === 'Calendar' ? note.paragraphs : note.paragraphs.filter(para => para.lineIndex !== 0)
+    const paras = note.type === 'Calendar' ? note.paragraphs : note.paragraphs.filter((para) => para.lineIndex !== 0)
     note.removeParagraphs(paras)
   }
 }
