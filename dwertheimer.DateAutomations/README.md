@@ -12,7 +12,7 @@ Create a link to the daily Calendar Note and insert it at the cursor
 ### /now - Insert date and time at cursor
 e.g. `6/19/2021 06:55:22` (date/time should be your local time -- see note below)
 
-### //now - ISO-8601 standard -- Insert ISO-8601 date+time at cursor
+### /now - ISO-8601 standard -- Insert ISO-8601 date+time at cursor
 e.g. `2021-08-06 17:20:11`
 
 ### /date - Insert Date at cursor
@@ -29,7 +29,7 @@ e.g. `2021-08-14 10:30:00 am` (using default format from `_configuration` file)
 
 ## Notes Regarding Date/Time Formats
 - By default, the format of dates and times is "en-US" format.
-- By defualt, the `/formatted` command uses `%Y-%m-%d %I:%M:%S %P` (see `Templates` use below)
+- By default, the `/formatted` command uses `%Y-%m-%d %I:%M:%S %P` (see `Templates` use below)
 
 *Note: You can create your own formats by installing the `Templates` plugin and following the directions to create your own `_configuration` note, which can include a `date` property (inside the code fences)*
 
