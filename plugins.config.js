@@ -28,5 +28,9 @@ module.exports = {
       find: 'TemplatingEngine',
       replacement: path.resolve('./np.Templating/lib/TemplatingEngine'),
     },
+    {
+      find: 'NPGlobals',
+      replacement: path.resolve('./np.Globals/lib/NPGlobals'),
+    },
   ],
 }

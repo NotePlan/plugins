@@ -23,5 +23,6 @@ module.name_mapper='^NPTemplating' ->'<PROJECT_ROOT>/np.Templating/lib/NPTemplat
 module.name_mapper='^TemplatingEngine' ->'<PROJECT_ROOT>/np.Templating/lib/TemplatingEngine'
 module.name_mapper='^@templating' ->'<PROJECT_ROOT>/np.Templating/lib'
 module.name_mapper='^@templatingModules' ->'<PROJECT_ROOT>/np.Templating/lib/support/modules'
+module.name_mapper='^NPGlobals' ->'<PROJECT_ROOT>/np.Globals/lib/NPGlobals'
 
 [strict]
