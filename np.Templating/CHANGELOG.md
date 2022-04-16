@@ -3,6 +3,10 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.0.2] - 2022-04-16 (mikeerickson)
+
+- fixed tag details
+
 ## [1.0.1] - 2022-04-16 (mikeerickson)
 
 - changed `getTemplateList` and `chooseTemplate` commands to sort templates in alphabetical order
