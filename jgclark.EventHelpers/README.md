@@ -81,7 +81,7 @@ If you want to disable the adding of the heading, add the following parameter `i
 For example:
 
 ```jsonc
-<%- events( {format:"### *|CAL|*: *|TITLE|* (*|START|*-*|END|*)\n*|NOTES|*",allday_format:"### TITLE",includeHeadings:false} ) %>
+<%- events( {format:"### *|CAL|*: *|TITLE|* (*|START|*-*|END|*)\n*|NOTES|*",allday_format:"### *|TITLE|*",includeHeadings:false} ) %>
 ```
 
 The `*|CAL|*`, `*|TITLE|*`, `*|START|*`, `*|END|*`, `*|NOTES|*` and `*|URL|*` can be mixed with whatever markdown characters or other text you like, and they will get replaced accordingly with the fields from each matching event found. (Note the difference between the } and ) bracket types, and use of double quotes around the parameter's setting. I didn't design this syntax ...)
