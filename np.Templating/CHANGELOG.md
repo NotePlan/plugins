@@ -3,6 +3,17 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.0.1] - 2022-04-16 (mikeerickson)
+
+- changed `getTemplateList` and `chooseTemplate` commands to sort templates in alphabetical order
+- fixed issue disabling `nmn.Templates` during install or update (`onUpdateOrInstall` hook)
+- changed `nmn.Templates` disable message to be more clear and concise, and changed `nmn.Templates` to "Previous Templates"
+- changed all dialogs which referenced `np.Templating` documentation url, providing consistency
+- fixed `np:qtn` and `np:mtn` to prompt for new note title if `newNoteTitle` attribute not defined in template
+- fixed `np:qtn` to prompt for destination folder if `folder` attribute not defined in template
+- added default date/time prompt value when when using `np:mtn` (uses `timestampFormat` format in `np.Templating` settings)
+- updated README command reference
+
 ## [1.0.0] - 2022-04-14 (mikeerickson)
 
 - Public Release

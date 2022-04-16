@@ -310,6 +310,10 @@ export default class NPTemplating {
       const allTemplates = DataStore.projectNotes
         .filter((n) => n.filename?.startsWith(templateFolder))
         .filter((n) => !n.title?.startsWith('_configuration'))
+        .filter((n) => !n.filename?.startsWith('Delete After Release'))
+        .sort((a, b) => {
+          return a.filename.localeCompare(b.filename)
+        })
         .map((note) => {
           return note.title == null ? null : { label: note.title, value: note.filename }
         })
@@ -947,6 +951,9 @@ export default class NPTemplating {
           selectedFolder = parts.join('/')
         }
       }
+    } else {
+      const selection = await CommandBar.showOptions(folders, promptMessage)
+      selectedFolder = folders[selection.index]
     }
 
     return selectedFolder
