@@ -2,16 +2,7 @@
 // TODO: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat
 
 import strftime from 'strftime'
-import {
-  format as dateFormat,
-  formatDistance,
-  formatRelative,
-  subDays,
-  startOfWeek,
-  endOfWeek,
-  lightFormat,
-} from 'date-fns'
-import { getOrMakeConfigurationSection, getStructuredConfiguration } from '../../nmn.Templates/src/configuration'
+import { format as dateFormat, formatDistance, formatRelative, subDays, startOfWeek, endOfWeek, lightFormat } from 'date-fns'
 import { hyphenatedDateString, getFormattedTime } from '../../helpers/dateTime'
 import { getTagParamsFromString } from '../../helpers/general'
 import { showMessage } from '../../helpers/userInput'
@@ -44,9 +35,8 @@ function asDateConfig(obj: mixed): ?DateConfig {
 }
 
 async function getDateConfig(): Promise<DateConfig> {
-  const config = await getStructuredConfiguration()
-  // Verify that the config.date value is a `DateConfig`
-  const dateConfig = asDateConfig(config?.date)
+  const config = DataStore.settings
+  const dateConfig = asDateConfig(config)
   if (dateConfig) {
     return dateConfig
   } else {
@@ -202,30 +192,11 @@ export async function dateFormatPicker() {
   Editor.insertTextAtCursor(dateChoices[re.index].text)
 }
 
-const DEFAULT_DATE_OPTIONS = `
-  date: {
-    // Default timezone for date and time.
-    timezone: 'automatic',
-    // Default locale to format date and time.
-    // e.g. en-US will result in mm/dd/yyyy, while en_GB will be dd/mm/yyyy
-    locale: 'en-US',
-    // can be "short", "medium", "long" or "full"
-    dateStyle: 'medium',
-    // optional key, can be "short", "medium", "long" or "full"
-    timeStyle: 'short',
-    // optional custom format (uses strftime format)
-    // see https://www.strfti.me/ to aid in creating custom formats)
-    format: '%Y-%m-%d %I:%M:%S %P'
-  }
-`
 // /formatted
 export async function insertStrftime() {
-  const dateConfig = await getOrMakeConfigurationSection('date', DEFAULT_DATE_OPTIONS)
-
+  const dateConfig = DataStore.settings
   const format = dateConfig?.format ? dateConfig.format : '%Y-%m-%d %I:%M:%S %P'
-
   const strftimeFormatted = strftime(format)
-
   Editor.insertTextAtCursor(strftimeFormatted)
 }
 
