@@ -68,8 +68,12 @@ export default class NPGlobals {
     const settingsVersion: number = semverVersionToNumber(settingsData?.version || '')
 
     // update settings version to latest version from plugin.json
-    settingsData.version = pluginJson['plugin.version']
-    log(pluginJson, `==> ${pluginJson['plugin.id']} Settings Version ${currentVersion}`)
+
+    // this will grow over time as settings are upgraded in future versions
+    if (settingsVersion < semverVersionToNumber(pluginJson['plugin.version'])) {
+      log(pluginJson, `==> Updating ${pluginJson['plugin.name']} to version ${pluginJson['plugin.version']}`)
+      settingsData.version = pluginJson['plugin.version']
+    }
 
     // return new settings
     return settingsData

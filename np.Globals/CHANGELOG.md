@@ -4,16 +4,9 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Globals/README.md) for details on available commands and use case.
 
-## [x.x.x] - yyyy-mm-dd (githubUserName)
+## [0.0.1] - 2022-04-16(githubUserName)
 
-### Added
-List what has been added. If nothing has been changed, this section can be removed.
-
-### Changed
-List what has changed. If nothing has been changed, this section can be removed.
-
-### Removed
-List what has removed. If nothing has been removed, this section can be removed.
+- initial release
 
 ## Changelog
 
