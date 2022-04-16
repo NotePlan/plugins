@@ -1,5 +1,5 @@
 module.exports = {
-  moduleMapper: {
-    '@helpers/(.*)': '<rootDir>/helpers/dev.js',
-  },
+  // moduleMapper: {
+  //   '@helpers/(.*)': '<rootDir>/helpers/dev.js',
+  // },
 }
