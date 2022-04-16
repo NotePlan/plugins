@@ -240,8 +240,8 @@ export async function templateQuickNote(noteName: string = ''): Promise<void> {
         const newNoteTitle = frontmatterAttributes?.newNoteTitle
         if (!newNoteTitle || newNoteTitle.length === 0) {
           await CommandBar.prompt(
-            'Invalid Note Title',
-            'Note Title may only contain alphanumeric characters (a..z, A..Z, 0..9)\n\nIf you have used a templating prompt to obtain note title, make sure the prompt variable is valid.\n\nFor more information on valid prompt variable names, see documentation\n\nhttps://nptemplating-docs.netlify.app/docs/templating-examples/prompt/',
+            'Invalid Note Title (newNoteTitle)',
+            "QuickNotes are required to have a newNoteTitle field which specifies what the generated note's title will be. FYI, note Title may only contain alphanumeric characters (a..z, A..Z, 0..9)\n\nIf you have used a templating prompt to obtain note title, make sure the prompt variable is valid.\n\nFor more information on valid prompt variable names, see documentation\n\nhttps://nptemplating-docs.netlify.app/docs/templating-examples/prompt/",
           )
           return
         }
@@ -250,6 +250,11 @@ export async function templateQuickNote(noteName: string = ''): Promise<void> {
         if (filename) {
           await Editor.openNoteByFilename(filename)
           Editor.content = `# ${newNoteTitle}\n${finalRenderedData}`
+        } else {
+          await CommandBar.prompt(
+            'New Note Could Note Be Created',
+            `Note: "${newNoteTitle}" (newNoteTitle) in folder: "${folder}" could not be created. Check to ensure folder path is valid. For more information please refer to https://nptemplating-docs.netlify.app/docs/templating-basics/template-anatomy#template-configuration---frontmatter`,
+          )
         }
       } else {
         await CommandBar.prompt(
