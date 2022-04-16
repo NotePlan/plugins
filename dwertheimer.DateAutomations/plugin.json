@@ -2,36 +2,36 @@
     "noteplan.minAppVersion": "3.3.2",
     "plugin.id": "dwertheimer.DateAutomations",
     "plugin.name": "📅 Date Automations",
-    "plugin.description": "Helping you move faster with dates",
-    "plugin.author": "David Wertheimer, with help from code by @nmn",
+    "plugin.description": "Helping you move faster with dates and times",
+    "plugin.author": "David Wertheimer",
     "plugin.url": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.DateAutomations/README.md",
-    "plugin.version": "1.3.0",
+    "plugin.version": "1.3.1",
     "plugin.dependencies": [],
     "plugin.script": "script.js",
     "plugin.commands": [
       {
         "name": "ldn",
-        "description": "Create link to today's Calendar Note at cursor",
+        "description": "Create link to today's Calendar Note at cursor (e.g. [[2022-04-16]])",
         "jsFunction": "insertCalendarNoteLink"
       },
       {
         "name": "date",
-        "description": "Insert date (without time) at cursor",
+        "description": "Insert date (without time) at cursor (uses your locale setting), e.g. Saturday, April 16, 2022 (or shorter)",
         "jsFunction": "insertDate"
       },
       {
         "name": "iso",
-        "description": "Insert date+time (in ISO format) at cursor",
+        "description": "Insert date+time (in ISO format, GMT) at cursor, e.g. 2022-04-16T17:28:14.662Z",
         "jsFunction": "insertISODate"
       },
       {
         "name": "now",
-        "description": "Insert (human readable) date+time at cursor",
+        "description": "Insert (human readable) date+time at cursor, e.g. Saturday, April 16, 2022, 13:29",
         "jsFunction": "insertDateTime"
       },
       {
         "name": "now - ISO-8601 standard",
-        "description": "Insert ISO-8601 date+time at cursor (e.g. 2021-08-06 17:20:11)",
+        "description": "Insert ISO-8601 date+time at cursor, e.g. 2021-08-06 17:20",
         "jsFunction": "insertDateTime8601",
         "alias": [
           "date",
@@ -41,17 +41,18 @@
       },
       {
         "name": "time",
-        "description": "Insert (human readable) time at cursor",
+        "description": "Insert (human readable) time at cursor, e.g. 06:55:22",
         "jsFunction": "insertTime"
       },
       {
         "name": "dp",
         "description": "(Date Picker) Choose format and insert date/time time at cursor",
-        "jsFunction": "dateFormatPicker"
+        "jsFunction": "dateFormatPicker",
+        "alias": ["locale"]
       },
       {
         "name": "formatted",
-        "description": "Insert custom formatted (format) date/time",
+        "description": "Insert custom formatted (format) date/time per your settings",
         "jsFunction": "insertStrftime",
         "alias": [
           "strftime"
@@ -59,7 +60,7 @@
       },
       {
         "name": "wd",
-        "description": "Insert dates of current week",
+        "description": "Insert dates of current week, e.g. Mon 2022-04-11 - Sun 2022-04-17",
         "jsFunction": "insertWeekDates",
         "alias": [
           "weekDates","week"
@@ -68,50 +69,50 @@
       "plugin.settings": [
         {
             "type": "string",
-            "key": "locale",
-            "title": "Date Locale",
-            "description": "Geographic date locale for date/time formatting. e.g. en-US, en-GB, etc. e.g. en-US will result in mm/dd/yyyy, while en_GB will be dd/mm/yyyy. See https://www.ibm.com/docs/en/datacap/9.1.8?topic=support-supported-language-codes for a list of available locales.",
-            "default": "en-US",
-            "required": true
-        },
-        {
-            "type": "string",
             "key": "format",
             "title": "Custom Time String Format",
             "description": "Used in /formatted command. See https://www.strfti.me/ for details on the formatting codes",
-            "default": "%Y-%m-%d %I:%M:%S %P",
+            "default": "%Y-%m-%d %H:%M",
             "required": true
         },
         {
             "type": "string",
-            "key": "timezone",
-            "title": "Timezone",
-            "description": "Usually 'automatic' is fine.",
-            "default": "automatic",
+            "key": "locale",
+            "title": "Time/Date Locale Setting",
+            "description": "Geographic locale for date/time formatting. e.g. en-US, en-GB, etc. e.g. en-US will result in mm/dd/yyyy, while en_GB will be dd/mm/yyyy. See https://www.ibm.com/docs/en/datacap/9.1.8?topic=support-supported-language-codes for a list of available locales.",
+            "default": "en-US",
             "required": true
-        },        
+        },     
         {
             "type": "string",
             "key": "dateStyle",
-            "title": "Custom Time String Format",
-            "description": "optional key, can be 'short', 'medium', 'long' or 'full'",
+            "title": "Date Style (in your locale)",
+            "description": "Used in commands like /now, /time, etc. Can be 'short', 'medium', 'long' or 'full'. Run the /dp command for help choosing the setting you want.",
             "default": "full",
-            "required": false
+            "required": true
         },
         {
             "type": "string",
             "key": "timeStyle",
-            "title": "Custom Time String Format",
-            "description": "can force 24 hour time format, even in america!",
+            "title": "Time Style (in your locale)",
+            "description": "Used in commands like /now, /time, etc. Can be 'short', 'medium', 'long' or 'full'. Run the /dp command for help choosing the setting you want.",
             "default": "short",
             "required": true
         },
         {
             "type": "bool",
             "key": "hour12",
-            "title": "Use 12 hour format",
-            "description": "You can force 24 hour time format, even in America!",
+            "title": "Use 12 hour format (with AM/PM)",
+            "description": "You can force 24 hour time format on/off, even in America!",
             "default": false,
+            "required": true
+        },
+        {
+            "type": "string",
+            "key": "timezone",
+            "title": "Timezone Override",
+            "description": "Usually 'automatic' is fine (will get timezone from your system).",
+            "default": "automatic",
             "required": true
         }
       ]

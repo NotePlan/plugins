@@ -163,7 +163,7 @@ export function get8601String(): string {
 
 // /now
 export async function insertDateTime8601() {
-  Editor.insertTextAtCursor(`${get8601String()}`)
+  Editor.insertTextAtCursor(`${strftime(`%Y-%m-%d %H:%M`)}`)
 }
 
 // /time
@@ -187,7 +187,7 @@ export async function dateFormatPicker() {
 
   const re = await CommandBar.showOptions(
     dateChoices.map((d) => d.label),
-    'Choose format (formatted/locale/dateStyle/timeStyle/hour12)',
+    'Choose format (locale/dateStyle/timeStyle/hour12)',
   )
   Editor.insertTextAtCursor(dateChoices[re.index].text)
 }
