@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/codedungeon.Toolbox/README.md) for details on available commands and use case.
 
+## [3.2.5] - 2022-04-16 (@mikeerickson)
+
+- fix `npc plugin:relase` command to properly include `plugin.name` (@jgclark)
+
 ## [3.2.4] - 2022-03-20 (@mikeerickson)
 
 - Fixed `helpers/NPConfiguration.js :: getSetting` completed implementation

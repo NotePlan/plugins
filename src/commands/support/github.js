@@ -41,9 +41,9 @@ module.exports = {
     return releases
   },
 
-  getReleaseCommand: async function (version = null, pluginTitle = null, fileList = null, sendToGithub = false) {
+  getReleaseCommand: async function (version = null, pluginId = null, pluginName = null, fileList = null, sendToGithub = false) {
     const changeLog = fileList?.changelog ? `-F "${fileList.changelog}"` : ''
-    const cmd = `gh release create "${version}" -t "${pluginTitle}" ${changeLog} ${!sendToGithub ? `--draft` : ''} ${fileList.files.map((m) => `"${m}"`).join(' ')}`
+    const cmd = `gh release create "${pluginId}-${version}" -t "${pluginName}" ${changeLog} ${!sendToGithub ? `--draft` : ''} ${fileList.files.map((m) => `"${m}"`).join(' ')}`
 
     return cmd
   },
