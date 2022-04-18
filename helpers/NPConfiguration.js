@@ -200,13 +200,13 @@ export function updateSettingData(pluginJsonData: any): number {
   return updateResult
 }
 
-export function getSetting(pluginName?: string = '', key: string = '', defaultValue?: any): any | null {
-  let settings = DataStore.loadJSON(`../../data/${pluginName}/settings.json`)
+export function getSetting(pluginName: string = '', key: string = '', defaultValue?: any = ''): any | null {
+  const settings = DataStore.loadJSON(`../../data/${pluginName}/settings.json`)
   return typeof settings === 'object' && settings.hasOwnProperty(key) ? settings[key] : defaultValue
 }
 
-export function getSettings(pluginName?: string = '', defaultValue?: any = {}): any | null {
-  let settings = DataStore.loadJSON(`../../data/${pluginName}/settings.json`)
+export function getSettings(pluginName: string = '', defaultValue?: any = {}): any | null {
+  const settings = DataStore.loadJSON(`../../data/${pluginName}/settings.json`)
   return typeof settings === 'object' ? settings : defaultValue
 }
 
