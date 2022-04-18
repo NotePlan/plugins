@@ -29,7 +29,6 @@ describe(`${PLUGIN_NAME}`, () => {
       const data = await factory('frontmatter-minimal.ejs')
 
       let result = new FrontmatterModule().isFrontmatterTemplate(data)
-
       expect(result).toEqual(true)
     })
 
@@ -122,6 +121,7 @@ describe(`${PLUGIN_NAME}`, () => {
 
       const attrs = new FrontmatterModule().attributes(data)
       const keys = Object.keys(attrs)
+
       expect(keys.length).toEqual(0)
     })
   })

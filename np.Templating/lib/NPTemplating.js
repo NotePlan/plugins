@@ -935,7 +935,7 @@ export default class NPTemplating {
   static async getFolder(folder: string = '', promptMessage: string = 'Select folder'): Promise<string> {
     let selectedFolder = folder
     const folders = DataStore.folders
-    if (folder == '<select>' || Editor?.type === 'Calendar') {
+    if (folder == '<select>' || (Editor?.type === 'Calendar' && selectedFolder.length === 0)) {
       const selection = await CommandBar.showOptions(folders, promptMessage)
       selectedFolder = folders[selection.index]
     } else if (folder == '<current>') {
@@ -952,8 +952,10 @@ export default class NPTemplating {
         }
       }
     } else {
-      const selection = await CommandBar.showOptions(folders, promptMessage)
-      selectedFolder = folders[selection.index]
+      if (selectedFolder.length === 0) {
+        const selection = await CommandBar.showOptions(folders, promptMessage)
+        selectedFolder = folders[selection.index]
+      }
     }
 
     return selectedFolder

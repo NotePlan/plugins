@@ -3,9 +3,15 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
-## [1.0.2] - 2022-04-16 (mikeerickson)
+## [1.0.3] - 2022-04-17 (mikeerickson)
 
 - fixed tag details
+- fixed `np.Templating` New Note (`np:new`) was not using entered note title (if `newNoteTitle` does not exist in template attributes)
+- fixed issue with `NPTemplating.getFolder` interface, was displaying "Choose Destination Folder" even though a default folder was supplied
+
+## [1.0.2] - 2022-04-16 (mikeerickson)
+
+- version bump mistake, but it is what it is so we had a very short bug fix release which contained ONLY of version bump (sorry folks)
 
 ## [1.0.1] - 2022-04-16 (mikeerickson)
 

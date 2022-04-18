@@ -178,9 +178,13 @@ export async function templateNew(): Promise<void> {
 
     const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
 
+    console.log(`fiolder: ${frontmatterAttributes.folder}`)
+
     if (frontmatterAttributes?.folder && frontmatterAttributes.folder.length > 0) {
       folder = await NPTemplating.getFolder(frontmatterAttributes.folder, 'Select Destination Folder')
     }
+
+    console.log(`folder: ${folder}`)
 
     if (frontmatterAttributes.hasOwnProperty('newNoteTitle')) {
       noteTitle = frontmatterAttributes.newNoteTitle
@@ -189,14 +193,17 @@ export async function templateNew(): Promise<void> {
       if (typeof title === 'boolean' || title.length === 0) {
         return // user did not provide note title (Cancel) abort
       }
-      const noteTitle = title.toString()
+      noteTitle = title
     }
+
+    console.log(`noteTitle; ${noteTitle}`)
 
     if (noteTitle.length === 0) {
       return
     }
 
     const filename = DataStore.newNote(noteTitle, folder) || ''
+
     if (filename) {
       const templateResult = await NPTemplating.render(frontmatterBody, frontmatterAttributes)
 
