@@ -1,7 +1,7 @@
 // @flow
 // ----------------------------------------------------------------------------
 // Command to bring calendar events into notes
-// Last updated 12.4.2022 for v0.12.0, by @jgclark
+// Last updated 19.4.2022 for v0.13.0, by @jgclark
 // @jgclark, with additions by @dwertheimer, @weyert, @m1well
 // ----------------------------------------------------------------------------
 
@@ -52,16 +52,10 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
 
   // Process each event
   for (const e of eArr) {
-    const replacements = getReplacements(e, config)
-
+    log(pluginJson, `  Processing event '${e.title}'`)
     // Replace any mentions of the keywords in the e.title string
+    const replacements = getReplacements(e, config)
     const thisEventStr = stringReplace(e.isAllDay ? alldayformat : format, replacements).trimEnd()
-
-    // This was used to avoid duplicates appearing; now I don't think it's needed
-    // if (lastEventStr !== thisEventStr) {
-    //   outputArray.push(thisEventStr)
-    //   lastEventStr = thisEventStr
-    // }
 
     mapForSorting.push({
       cal: withCalendarName ? calendarNameWithMapping(e.calendar, config.calendarNameMappings) : '',
@@ -75,15 +69,14 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
     outputArray.unshift(config.eventsHeading)
   }
 
-  // if (withCalendarName) {
-    mapForSorting.sort(sortByCalendarNameAndStartTime())
-  // } else {
-  //   mapForSorting.sort(sortByStartTime())
-  // }
+  // Sort the events
+  if (config.sortOrder === 'calendar') {
+    mapForSorting.sort(sortByCalendarNameThenStartTime())
+  } else {
+    mapForSorting.sort(sortByStartTimeThenCalendarName())
+  }
+  log(pluginJson, `    Done sort`)
 
-  // let output = (withCalendarName)
-  //   ? mapForSorting.map((element) => element.text).join('\n')
-  //   : outputArray.join('\n')
   let output = mapForSorting.map((element) => element.text).join('\n')
 
   output.replace(/\s{2,}/gm, ' ') // If this array is empty -> empty string
@@ -132,6 +125,7 @@ export async function listMatchingDaysEvents(
 
   // Get config settings
   const config = await getEventsSettings()
+  // If the format contains 'CAL' then we care about calendar names in output
 
   if (config.addMatchingEvents == null) {
     await showMessage(
@@ -149,29 +143,40 @@ export async function listMatchingDaysEvents(
   const eArr: Array<TCalendarItem> = await getEventsForDay(dateStr, config.calendarSet)
 
   const outputArray: Array<string> = []
+  const mapForSorting: { cal: string, start: string, text: string }[] = []
   // for each event, check each of the strings we want to match
-  // let lastEventStr = '' // keep duplicates from multiple calendars out
   for (const e of eArr) {
     for (let i = 0; i < textToMatchA.length; i++) {
-      // const m = textToMatchA[i]
-      const format = formatArr[i]
+      const format: string = String(formatArr[i])
+      const withCalendarName = format.includes('CAL')
       const reMatch = new RegExp(textToMatchA[i], 'i')
       if (e.title.match(reMatch)) {
         log(pluginJson, `  Found match to event '${e.title}'`)
+        // Replace any mentions of the keywords in the e.title string
         const replacements = getReplacements(e, config)
-        // $FlowFixMe -- not sure how to deal with mixed coercing to strings
         const thisEventStr = stringReplace(format, replacements)
-        // This was used to avoid duplicates appearing; now I don't think it's needed
-        // if (lastEventStr !== thisEventStr) {
-          outputArray.push(thisEventStr)
-        //   lastEventStr = thisEventStr
-        // }
+
+        mapForSorting.push({
+          cal: withCalendarName ? calendarNameWithMapping(e.calendar, config.calendarNameMappings) : '',
+          start: toLocaleTime(e.date),
+          text: thisEventStr
+        })
       } else {
         // log(pluginJson, `No match to ${e.title}`)
       }
     }
   }
-  const output = outputArray.join('\n').replace(/\\s{2,}/g, ' ') // If this array is empty -> empty string.
+
+  // Sort the matched events
+  if (config.sortOrder === 'calendar') {
+    mapForSorting.sort(sortByCalendarNameThenStartTime())
+  } else {
+    mapForSorting.sort(sortByStartTimeThenCalendarName())
+  }
+
+  let output = mapForSorting.map((element) => element.text).join('\n')
+  output.replace(/\\s{2,}/gm, ' ')
+  // If this array is empty -> empty string
   log(pluginJson, output)
   return output
 }
@@ -245,10 +250,10 @@ const calendarNameWithMapping = (name: string, mappings: Array<string>): string 
 }
 
 /**
- * Sorter for CalendarItems, including CalendarName
+ * Sorter for CalendarItems by .calendar then by .start (time)
  * @author @m1well
  */
-export const sortByCalendarNameAndStartTime = (): Function => {
+export const sortByCalendarNameThenStartTime = (): Function => {
   return (b, a) => {
     if (a.cal !== b.cal) {
       if (a.cal > b.cal) {
@@ -262,6 +267,32 @@ export const sortByCalendarNameAndStartTime = (): Function => {
         return -1
       }
       if (b.start > a.start) {
+        return 1
+      }
+      return 0
+    }
+    return 0
+  }
+}
+
+/**
+ * Sorter for CalendarItems by .start (time) then .calendar (name)
+ * @author @m1well
+ */
+export const sortByStartTimeThenCalendarName = (): Function => {
+  return (b, a) => {
+    if (a.start !== b.start) {
+      if (a.start > b.start) {
+        return -1
+      }
+      if (b.start > a.start) {
+        return 1
+      }
+    } else {
+      if (a.cal > b.cal) {
+        return -1
+      }
+      if (b.cal > a.cal) {
         return 1
       }
       return 0

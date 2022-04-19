@@ -7,7 +7,7 @@
   "plugin.icon": "",
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers",
-  "plugin.version": "0.12.0",
+  "plugin.version": "0.13.0",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -52,8 +52,20 @@
       "required": false
     },
     {
+      "key": "sortOrder",
+      "title": "Sort order of events list",
+      "description": "Sort order of events list",
+      "type": "string",
+      "choices": [
+        "time",
+        "calendar"
+      ],
+      "default": "time",
+      "required": true
+    },
+    {
       "key": "calendarSet",
-      "title": "Calendars to scan",
+      "title": "Calendars to Scan",
       "description": "Comma-separated list of calendar names to filter by when showing list of events. If empty, no filtering will be done, and so all calendars will be scanned.",
       "type": "[string]",
       "default": [],

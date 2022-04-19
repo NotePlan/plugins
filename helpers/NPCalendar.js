@@ -38,6 +38,7 @@ import { showMessage, showMessageYesNo } from './userInput'
 
 export type EventsConfig = {
   eventsHeading: string,
+  sortOrder: string,
   addMatchingEvents: ?{ [string]: mixed },
   locale: string,
   timeOptions: any,

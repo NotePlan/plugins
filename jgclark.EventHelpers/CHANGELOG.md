@@ -3,6 +3,10 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 
 <!-- Improve detection of target dates -->
 
+## [0.13.0] - 2022-04-19
+### Added
+- Added a new 'Sort order' setting for event lists. It now defaults to 'time' ordering (by start time), unless the 'calendar' option is chosen (which then orders by calendar name then start time). (for @Bartmroz)
+
 ## [0.12.0] - 2022-04-12
 ### Changed
 - updated README to reflect the new Templating system's syntax (`<%- events(...) %>)` that replaces `{{events(...)}}`.
