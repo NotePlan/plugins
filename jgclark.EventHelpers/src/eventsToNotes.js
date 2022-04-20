@@ -1,23 +1,24 @@
 // @flow
 // ----------------------------------------------------------------------------
 // Command to bring calendar events into notes
-// Last updated 19.4.2022 for v0.13.0, by @jgclark
+// Last updated 20.4.2022 for v0.13.0, by @jgclark
 // @jgclark, with additions by @dwertheimer, @weyert, @m1well
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
 import { getEventsSettings } from './config'
-import { log, logWarn, logError, clo } from '../../helpers/dev'
-import { getDateStringFromCalendarFilename, toLocaleTime } from '../../helpers/dateTime'
+import { clo, log, logWarn, logError } from '../../helpers/dev'
+import { getDateStringFromCalendarFilename, getISODateStringFromCalendarFilename, toLocaleDateString, toLocaleTime, unhyphenatedDate } from '../../helpers/dateTime'
+import { calcOffsetDate } from '../../helpers/NPdateTime'
 import { getTagParamsFromString, stringReplace } from '../../helpers/general'
-import { getEventsForDay, type EventsConfig } from '../../helpers/NPCalendar'
+import { attendeesAsString, getEventsForDay, type EventsConfig } from '../../helpers/NPCalendar'
 import { showMessage } from '../../helpers/userInput'
 
 /**
  * Return MD list of the current open Calendar note's events
  * @author @jgclark
  *
- * @param {string} paramString - passed to next function
+ * @param {string} paramString - checked for options
  * @return {string} Markdown-formatted list of today's events
  */
 export async function listDaysEvents(paramString: string = ''): Promise<string> {
@@ -25,8 +26,8 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
     await showMessage(`Please run again with a calendar note open.`, 'OK', 'List Events')
     return ''
   }
-  const dateStr = getDateStringFromCalendarFilename(Editor.filename)
-  log(pluginJson, `listDaysEvents for date ${dateStr} with paramString=${String(paramString)}`)
+  const baseDateStr = getDateStringFromCalendarFilename(Editor.filename)
+  log(pluginJson, `listDaysEvents for date ${baseDateStr} with paramString=${paramString}`)
 
   // Get config settings from Template folder _configuration note
   const config = await getEventsSettings()
@@ -34,52 +35,68 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
   // Work out format for output line (from params, or if blank, a default)
   // NB: be aware that this call doesn't do type checking
   // NB: allow previous parameter names 'template' and 'allday_template' still.
-  const format = String(await getTagParamsFromString(paramString, 'format', '- *|CAL|*: *|TITLE|* (*|START|*)'))
-              || String(await getTagParamsFromString(paramString, 'template', '- *|CAL|*: *|TITLE|* (*|START|*)'))
-  const alldayformat = String(await getTagParamsFromString(paramString, 'allday_format', '- *|CAL|*: *|TITLE|*'))
-              || String(await getTagParamsFromString(paramString, 'allday_template', '- *|CAL|*: *|TITLE|*'))
+  const format = (paramString.includes('"format":'))
+    ? String(await getTagParamsFromString(paramString, 'format', '- *|CAL|*: *|TITLE|* (*|START|*)'))
+    : String(await getTagParamsFromString(paramString, 'template', '- *|CAL|*: *|TITLE|* (*|START|*)'))
+  const alldayformat = (paramString.includes('"allday_format":'))
+    ? String(await getTagParamsFromString(paramString, 'allday_format', '- *|CAL|*: *|TITLE|*'))
+    : String(await getTagParamsFromString(paramString, 'allday_template', '- *|CAL|*: *|TITLE|*'))
   const includeHeadings = await getTagParamsFromString(paramString, 'includeHeadings', true)
-
   // If the format contains 'CAL' then we care about calendar names in output
   const withCalendarName = format.includes('CAL')
 
-  // Get all the events for this day
-  const eArr: Array<TCalendarItem> = await getEventsForDay(dateStr, config.calendarSet)
-  log(pluginJson, `${eArr.length} events found from calendarSet of ${config.calendarSet.length} calendars`)
+  // If there's a parameter 'daysToCover' get that
+  const daysToCover: number = await getTagParamsFromString(paramString, 'daysToCover', 1)
+
   const outputArray: Array<string> = []
-  const mapForSorting: { cal: string, start: string, text: string }[] = []
-  // let lastEventStr = '' // keep duplicates from multiple calendars out
 
-  // Process each event
-  for (const e of eArr) {
-    log(pluginJson, `  Processing event '${e.title}'`)
-    // Replace any mentions of the keywords in the e.title string
-    const replacements = getReplacements(e, config)
-    const thisEventStr = stringReplace(e.isAllDay ? alldayformat : format, replacements).trimEnd()
+  // For each day to cover
+  for (let i = 0; i < daysToCover; i++) {
+    // Set dateStr to the day in question (YYYYMMDD)
+    let dateStr = unhyphenatedDate(calcOffsetDate(getISODateStringFromCalendarFilename(baseDateStr), `+${i}d`))
 
-    mapForSorting.push({
-      cal: withCalendarName ? calendarNameWithMapping(e.calendar, config.calendarNameMappings) : '',
-      start: toLocaleTime(e.date),
-      text: thisEventStr
-    })
+    // Get all the events for this day
+    const eArr: Array<TCalendarItem> = await getEventsForDay(dateStr, config.calendarSet)
+    log(pluginJson, `${eArr.length} events found on ${dateStr} from calendarSet of ${config.calendarSet.length} calendars`)
+    const mapForSorting: { cal: string, start: string, text: string }[] = []
+    // let lastEventStr = '' // keep duplicates from multiple calendars out
+
+    // Process each event
+    for (const e of eArr) {
+      log(pluginJson, `  Processing event '${e.title}'`)
+      // $FlowIgnore
+      clo(e.attendees, 'event.attendees')
+      // Replace any mentions of the keywords in the e.title string
+      const replacements = getReplacements(e, config)
+      const thisEventStr = stringReplace(e.isAllDay ? alldayformat : format, replacements).trimEnd()
+
+      mapForSorting.push({
+        cal: withCalendarName ? calendarNameWithMapping(e.calendar, config.calendarNameMappings) : '',
+        start: toLocaleTime(e.date),
+        text: thisEventStr
+      })
+    }
+
+    // Add heading if wanted
+    if (daysToCover > 1) {
+        outputArray.push((config.eventsHeading !== '') ? `${config.eventsHeading} for ${dateStr}` : `### for ${dateStr}`)
+    } else {
+      if (config.eventsHeading !== '' && includeHeadings) {
+        outputArray.push(config.eventsHeading)
+      }
+    }
+
+    // Sort the events
+    if (config.sortOrder === 'calendar') {
+      mapForSorting.sort(sortByCalendarNameThenStartTime())
+    } else {
+      mapForSorting.sort(sortByStartTimeThenCalendarName())
+    }
+  
+    outputArray.push(mapForSorting.map((element) => element.text).join('\n'))
   }
 
-  // Prepend heading if wanted
-  if (config.eventsHeading !== '' && includeHeadings) {
-    outputArray.unshift(config.eventsHeading)
-  }
-
-  // Sort the events
-  if (config.sortOrder === 'calendar') {
-    mapForSorting.sort(sortByCalendarNameThenStartTime())
-  } else {
-    mapForSorting.sort(sortByStartTimeThenCalendarName())
-  }
-  log(pluginJson, `    Done sort`)
-
-  let output = mapForSorting.map((element) => element.text).join('\n')
-
-  output.replace(/\s{2,}/gm, ' ') // If this array is empty -> empty string
+  let output = outputArray.join('\n').replace(/\s{2,}/gm, ' ') // If this array is empty -> empty string
   log(pluginJson, output)
   return output
 }
@@ -108,7 +125,7 @@ export async function insertDaysEvents(paramString: ?string): Promise<void> {
 /**
  * Return string list of matching events in the current day's note, from list
  * in keys of config.addMatchingEvents. Apply format too.
- * TODO: include sorting here, as done in non-matching version
+ * TODO: 
  * @author @jgclark
  *
  * @param {?string} paramString Paramaters to use (for future expansion)
@@ -152,6 +169,7 @@ export async function listMatchingDaysEvents(
       const reMatch = new RegExp(textToMatchA[i], 'i')
       if (e.title.match(reMatch)) {
         log(pluginJson, `  Found match to event '${e.title}'`)
+        // log(pluginJson, `    event link '${e.calendarItemLink}'`)
         // Replace any mentions of the keywords in the e.title string
         const replacements = getReplacements(e, config)
         const thisEventStr = stringReplace(format, replacements)
@@ -212,23 +230,24 @@ function getReplacements(item: TCalendarItem, config: EventsConfig): { key: stri
       value: calendarNameWithMapping(item.calendar, config.calendarNameMappings),
     },
     { key: '*|TITLE|*', value: item.title },
+    // { key: '*|DATE|*', value: toLocaleDateString(item.date, config.locale, config.timeOptions) },
     {
       key: '*|START|*',
       value: !item.isAllDay
-        ? // $FlowFixMe[incompatible-call]
-          toLocaleTime(item.date, config.locale, config.timeOptions)
+        ? toLocaleTime(item.date, config.locale, config.timeOptions)
         : '',
     },
     {
       key: '*|END|*',
       value:
         item.endDate != null && !item.isAllDay
-          ? // $FlowFixMe[incompatible-call]
-            toLocaleTime(item.endDate, config.locale, config.timeOptions)
+          ? toLocaleTime(item.endDate, config.locale, config.timeOptions)
           : '',
     },
     { key: '*|NOTES|*', value: item.notes },
     { key: '*|URL|*', value: item.url },
+    { key: '*|ATTENDEES|*', value: item.attendees ? attendeesAsString(item.attendees) : '' },
+    { key: '*|EVENTLINK|*', value: item.calendarItemLink ? item.calendarItemLink : '' },
   ]
 }
 

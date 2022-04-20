@@ -133,6 +133,11 @@ export function getDateStringFromCalendarFilename(filename: string): string {
   return filename.slice(0, 8)
 }
 
+/**
+ * Change a YYYYMMDD date string to YYYY-MM-DD
+ * @param {*} dateStr without hyphens
+ * @returns {string} ISO hyphenated string
+ */
 export function getISODateStringFromCalendarFilename(filename: string): string {
   return `${filename.slice(0, 4)}-${filename.slice(4, 6)}-${filename.slice(6, 8)}`
 }

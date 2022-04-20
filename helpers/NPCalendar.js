@@ -266,6 +266,24 @@ export async function getEventsForDay(
   return eArr
 }
 
+/**
+ * Parse an attendee list and return as a simple comma-separate string to display.
+ * Object structure appears to be:
+ *  {
+  "0": "✓ [Jonathan Clark](mailto:jonathan@clarksonline.me.uk)",
+  "1": "[James Bond](mailto:007@sis.gov.uk)",
+  "2": "x [M](mailto:m@sis.gov.uk)",
+  "length": 3
+}
+ * @author @jgclark
+ *
+ * @param {object} attendees object returned by CalendarList item
+ * @return {string} comma-separated list of parsed attendees
+ */
+export function attendeesAsString(attendees: Object): string {
+  return '<attendee list not yet available>'
+}
+
 //----------------------------------------------------------------------
 // Markdown to test timeblock functionality
 // These should create:

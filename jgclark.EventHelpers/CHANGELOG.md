@@ -1,12 +1,13 @@
 # What's changed in 🕓 Event Helpers?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
-<!-- Improve detection of target dates -->
+<!-- - Added support for 'Attendees' in calendar entries. You can include it in format strings as `*|ATTENDEES|*`. -->
 
-## [0.13.0] - 2022-04-19
+## [0.13.0] - 2022-04-20
 ### Added
 - Added a new 'Sort order' setting for event lists. It now defaults to 'time' ordering (by start time), unless the 'calendar' option is chosen (which then orders by calendar name then start time). (for @Bartmroz)
-
+- Added support for 'Calendar Item Link' in calendar entries. If you add this Markdown link to a note, NotePlan will link the event with the note and show the note in the dropdown when you click on the note icon of the event in the sidebar.  You can include it in format strings as `*|EVENTLINK|*`.
+<!-- fix to older 'template' parameters which weren't being picked up OK. -->
 ## [0.12.0] - 2022-04-12
 ### Changed
 - updated README to reflect the new Templating system's syntax (`<%- events(...) %>)` that replaces `{{events(...)}}`.

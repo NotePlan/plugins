@@ -66,12 +66,15 @@ export function printDateRange(dr: DateRange) {
   console.log(`DateRange <${toISOShortDateTimeString(dr.start)} - ${toISOShortDateTimeString(dr.end)}>`)
 }
 
-// Calculate an offset date, as a JS Date. Assumes:
-// - oldDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type
-// - interval is string of form +nn[bdwmq] or -nn[bdwmq]
-// - where 'b' is weekday (i.e. Monday - Friday in English)
-// Return new date as a JS Date
-// v2 method, using built-in NotePlan function 'Calendar.addUnitToDate(date, type, num)'
+/**
+ * Calculate an offset date, as a JS Date.
+ * v2 method, using built-in NotePlan function 'Calendar.addUnitToDate(date, type, num)'
+ * @author @jgclark
+ * 
+ * @param {string} oldDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type
+ * @param {interval} string of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in English)
+ * @return {Date} new date as a JS Date
+ */
 export function calcOffsetDate(oldDateISO: string, interval: string): Date {
   const oldDate = new Date(oldDateISO)
   let daysToAdd = 0
@@ -137,12 +140,16 @@ export function calcOffsetDate(oldDateISO: string, interval: string): Date {
   return newDate
 }
 
-// Calculate an offset date, returning ISO datestring. Assumes:
-// - oldDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type
-// - interval is string of form +nn[bdwmq] or -nn[bdwmq]
-// - where 'b' is weekday (i.e. Monday - Friday in English)
-// Return new date also in ISO Date format
-// NB: doesn't actually use NP functions, but to avoid a circular dependency it needs to be in the file.
+/**
+ * Calculate an offset date, as a JS Date.
+ * v2 method, using built-in NotePlan function 'Calendar.addUnitToDate(date, type, num)'
+ * NB: doesn't actually use NP functions, but to avoid a circular dependency it needs to be in this file.
+ * @author @jgclark
+ * 
+ * @param {string} oldDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type
+ * @param {interval} string of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in English)
+ * @return {string} new date in ISO Date format
+ */
 export function calcOffsetDateStr(oldDateISO: string, interval: string): string {
   const newDate = calcOffsetDate(oldDateISO, interval)
   return toISODateString(newDate)

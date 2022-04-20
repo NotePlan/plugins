@@ -55,15 +55,16 @@ Here are details on the various settings:
 ## Using Event Lists from a Template
 If you use Templating, this command can be called when a Template is inserted (including in the `/dayStart` command which applies your `Daily Note Template`). To do this insert `<%- events() %>` wherever you wish it to appear in the Template.  By default it gives a simple markdown list of event title and start time.  To **customise the list display**, you can add a `'format:"..."'` parameter to the `<%- events() %>` command that sets how to present the list, and a separate parameter for items with no start/end times (`'allday_format:"..."`).
 
+**Formats**: The `*|CAL|*`, `*|TITLE|*`, `*|START|*`, `*|END|*`, `*|NOTES|*`, `*|URL|*` and `*|EVENTLINK|*` can be mixed with whatever markdown characters or other text you like, and they will get replaced accordingly with the fields from each matching event found. (Note the difference between the } and ) bracket types, and use of double quotes around the parameter's setting. I didn't design this syntax ...)   
+Most of these are self-explanatory for events in most types of calendars. However,  `*|EVENTLINK|*` is specific to NotePlan: it will make a nicely-formatted link to the actual calendar event, and clicking on it will show a pop with all the event's details.
+
 If you want to disable the adding of the heading, add the following parameter `includeHeadings:false` (no double quotes around `false` as its being treated as JSON).
 
 For example:
 
 ```jsonc
-<%- events( {format:"### *|CAL|*: *|TITLE|* (*|START|*-*|END|*)\n*|NOTES|*",allday_format:"### *|TITLE|*",includeHeadings:false} ) %>
+<%- events( {format:"### *|CAL|*: *|TITLE|* (*|START|*-*|END|*)\n*|EVENTLINK|*\n*|NOTES|*",allday_format:"### *|TITLE|*",includeHeadings:false} ) %>
 ```
-
-The `*|CAL|*`, `*|TITLE|*`, `*|START|*`, `*|END|*`, `*|NOTES|*` and `*|URL|*` can be mixed with whatever markdown characters or other text you like, and they will get replaced accordingly with the fields from each matching event found. (Note the difference between the } and ) bracket types, and use of double quotes around the parameter's setting. I didn't design this syntax ...)
 
 You can also place  `<%- listMatchingEvents() %>` in Templates in a similar way, and similar customisation is possible. However, it is defined in a different way, using the matches and format strings defined in the `addMatchingEvents` array, as shown above.
 
