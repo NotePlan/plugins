@@ -3,11 +3,8 @@
 // Helpers for Events/Calendar -- that don't require NotePlan functions
 // ----------------------------------------------------------------------------
 
-import {
-  differenceInCalendarDays,
-  endOfDay,
-  startOfDay,
-} from 'date-fns'
+import { differenceInCalendarDays, endOfDay, startOfDay } from 'date-fns'
+import { ArgumentOutOfRangeError } from 'rxjs'
 
 /**
  * @description This function takes a list of calendar items and returns a list of calendar items that are not all day
@@ -61,4 +58,38 @@ export function keepTodayPortionOnly(input: Array<TCalendarItem>, whatDate: Date
       return eventCopy
     }
   })
+}
+
+/**
+ * Parse an attendee list and return as a simple comma-separate string to display.
+ * Object structure appears to be:
+ *  {
+  "0": "✓ [Jonathan Clark](mailto:jonathan@clarksonline.me.uk)",
+  "1": "[James Bond](mailto:007@sis.gov.uk)",
+  "2": "x [M](mailto:m@sis.gov.uk)",
+  "length": 3
+}
+ * @author @jgclark
+ *
+ * @param {object} attendees object returned by CalendarList item
+ * @param {string} attendeeType type to return in list 'email' | 'name'
+ * @return {string} comma-separated list of parsed attendees
+ */
+export function attendeesAsString(attendees: Array<string>, returnType: 'email' | 'name' = 'name'): string {
+  let attArr = []
+  let splitterRE = /\[(.*?)\]\((.*?)\)/
+
+  attendees.forEach((att) => {
+    let result = splitterRE.exec(att)
+    if (result && result?.length) {
+      if ((returnType === 'email' && result[2]) || (returnType === 'name' && result[1] == '' && result[2])) {
+        attArr.push(result[2])
+      } else {
+        attArr.push(result[1])
+      }
+    } else {
+      attArr.push(att)
+    }
+  })
+  return attArr.join(', ')
 }
