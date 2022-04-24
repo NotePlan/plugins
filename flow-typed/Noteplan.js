@@ -1010,21 +1010,20 @@ type TCalendarItem = {
    * tentative = 2
    * unavailable = 3
    * Note: Available from v3.3
-   * @type {Int}
    */
   +availability: number,
   /**
-  * List of attendee names or emails
+  * List of attendee names or emails.
+  * Eduard says this comes from a Swift dictionary and maps to a string array.
+  * But I think it is closer to being a JS Map [string, string].
   * Note: Available from v3.5
-  * @type {[string]}
   */
-  +attendees: [string],      
+  +attendees: [string, string],
   /**
   * Markdown link for the given event. If you add this link to a note, NotePlan will link the event with the note and show the note in the dropdown when you click on the note icon of the event in the sidebar.
   * Note: Available from v3.5, only events, reminders are not supported yet
-  * @type {String}
   */
-  calendarItemLink: string,
+  +calendarItemLink: string,
   /**
    * Create a CalendarItem. The .endDate is optional, but recommended for events.
    * Reminders don't use this field.
