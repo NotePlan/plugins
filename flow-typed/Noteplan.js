@@ -382,7 +382,7 @@ type TDataStore = {
    * This can be used to save preferences or other persistent data.
    * It's saved automatically into a new folder "data" in the Plugins folder.
    * But you can "escape" this folder using relative paths: ../Plugins/<folder or filename>.
-   * Note: Available from NotePlan v3.1 (r655/r588)
+   * Note: Available from NotePlan v3.1
    * @param {Object}
    * @param {string}
    * @return {boolean}
@@ -391,11 +391,11 @@ type TDataStore = {
   /**
    * Load a JavaScript object from a JSON file located (by default) in the <Plugin>/data folder.
    * But you can also use relative paths: ../Plugins/<folder or filename>.
-   * Note: Available from NotePlan v3.1 (r655/r588)
+   * Note: Available from NotePlan v3.1
    * @param {string}
    * @return {Object}
    */
-  loadJSON(filename ?: string): Object,
+  loadJSON(filename?: string): Object,
   /**
    * Returns the calendar note for the given date
    * (can be undefined, if the daily note was not created yet)
