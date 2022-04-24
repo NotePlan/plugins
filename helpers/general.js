@@ -200,17 +200,19 @@ export function stringReplace(inputString: string = '', replacementArray: Array<
  * @returns {string} the value of the desired parameter if found (e.g. 'FOO'), or defaultValue if it isn't
  */
 export async function getTagParamsFromString(paramString: string, wantedParam: string, defaultValue: any): any {
-  log('general/getTagParamsFromString()', `  for '${wantedParam}'`)
+  log('general/getTagParamsFromString', `for '${wantedParam}' in '${paramString}'`)
   if (paramString !== '' && wantedParam !== '') {
     try {
       // $FlowFixMe(incompatible-type)
       const paramObj: {} = await json5.parse(paramString)
-      log('general/getTagParamsFromString()', `  --> ${String(JSON.stringify(paramObj[wantedParam]))}`)
-      return paramObj.hasOwnProperty(wantedParam) ? paramObj[wantedParam] : defaultValue
+      const output = paramObj.hasOwnProperty(wantedParam) ? paramObj[wantedParam] : defaultValue
+      log('general/getTagParamsFromString', `--> ${output}`)
+      return output
     } catch (e) {
-      logError('general/getTagParamsFromString()', `Can't parse ${paramString} ${e}`)
+      logError('general/getTagParamsFromString', `Can't parse ${paramString} ${e}`)
     }
   }
+  log('general/getTagParamsFromString', `--> ${defaultValue} (default)`)
   return defaultValue
 }
 

@@ -1,13 +1,18 @@
 # What's changed in 🕓 Event Helpers?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
-<!-- - Added support for 'Attendees' in calendar entries. You can include it in format strings as `*|ATTENDEES|*`. -->
+## [0.14.0] - 2022-04-23
+### Added
+- Added support for including list of Attendees in output for calendar events. You can include it in format strings as `*|ATTENDEES|*`. This produces a comma-separated list of names or emails (where name isn't given).
+- Added new `daysToCover` parameter that allows multiple days to be output for the `/insert day's events as list` and `/insert matching events` commands (request #251 by @StuW). For example: include `daysToCover: 3` to the parameter string to see events for the selected day, plus the following 2.
+- Added new optional setting 'Matching Events heading', which sets the heading to put before list of matching events when using the `/insert matching events` command or `listMatchingEvents()` template call
 
 ## [0.13.0] - 2022-04-20
 ### Added
 - Added a new 'Sort order' setting for event lists. It now defaults to 'time' ordering (by start time), unless the 'calendar' option is chosen (which then orders by calendar name then start time). (for @Bartmroz)
 - Added support for 'Calendar Item Link' in calendar entries. If you add this Markdown link to a note, NotePlan will link the event with the note and show the note in the dropdown when you click on the note icon of the event in the sidebar.  You can include it in format strings as `*|EVENTLINK|*`.
-<!-- fix to older 'template' parameters which weren't being picked up OK. -->
+### Fixed
+- fix to older 'template' parameters which weren't being picked up OK.
 ## [0.12.0] - 2022-04-12
 ### Changed
 - updated README to reflect the new Templating system's syntax (`<%- events(...) %>)` that replaces `{{events(...)}}`.

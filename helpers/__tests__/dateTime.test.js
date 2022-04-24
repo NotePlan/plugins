@@ -113,6 +113,39 @@ describe(`${PLUGIN_NAME}`, () => {
       // TODO: this can be tested
     })
 
+    describe('getISODateStringFromYYYYMMDD', () => {
+      test('20210424.md', () => {
+        expect(dt.getISODateStringFromYYYYMMDD('20210424.md')).toEqual('2021-04-24')
+      })
+      test('20211231', () => {
+        expect(dt.getISODateStringFromYYYYMMDD('20211231')).toEqual('2021-12-31')
+      })
+      test('2021123100.md', () => {
+        expect(dt.getISODateStringFromYYYYMMDD('2021123100.md')).toEqual('2021-12-31')
+      })
+      test('2021123.md fail', () => {
+        expect(dt.getISODateStringFromYYYYMMDD('2021123.md')).toEqual('(invalid date)')
+      })
+    })
+
+    describe('hyphenatedDateString', () => {
+      test('for 20210424', () => {
+        expect(dt.hyphenatedDateString(new Date(2021,3,24,0,0,0))).toEqual('2021-04-24')
+      })
+      test('for 20211231', () => {
+        expect(dt.hyphenatedDateString(new Date(2021,11,31,0,0,0))).toEqual('2021-12-31')
+      })
+   })
+    
+    describe('unhyphenatedDate', () => {
+      test('for 20210424', () => {
+        expect(dt.unhyphenatedDate(new Date(2021,3,24,0,0,0))).toEqual('20210424')
+      })
+      test('for 20211231', () => {
+        expect(dt.unhyphenatedDate(new Date(2021,11,31,0,0,0))).toEqual('20211231')
+      })
+   })
+    
     describe('getWeek', () => {
       /**
        * The ISO 8601 definition for week 01 is the week with the first Thursday of the Gregorian
