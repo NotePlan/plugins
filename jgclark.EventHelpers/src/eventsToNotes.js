@@ -56,7 +56,7 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
     const isoBaseDateStr = getISODateStringFromYYYYMMDD(baseDateStr)
     const cOD = calcOffsetDate(isoBaseDateStr, `+${i}d`)
     const dateStr = unhyphenatedDate(cOD)
-    
+
     // Add heading if wanted, or if doing more than 1 day
     if (daysToCover > 1) {
       // $FlowIgnore[incompatible-call]
@@ -170,7 +170,7 @@ export async function listMatchingDaysEvents(
       outputArray.push((config.matchingEventsHeading !== '') ? `${config.matchingEventsHeading} for ${localisedDateStr}` : `### for ${localisedDateStr}`)
     } else {
       if (config.matchingEventsHeading !== '' && includeHeadings) {
-        outputArray.push(config.eventsHeading)
+        outputArray.push(config.matchingEventsHeading)
       }
     }
 
