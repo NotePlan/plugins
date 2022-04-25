@@ -3,17 +3,19 @@
 //-----------------------------------------------------------------------------
 // Commands for working with Project and Area notes, seen in NotePlan notes.
 // by @jgclark
-// Last updated 4.2.2022 for v0.6.1, @jgclark
+// Last updated 25.4.2022 for v0.6.2, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
 // Import Helper functions
+import pluginJson from "../plugin.json"
 import { updateReviewListAfterReview } from './reviews'
 import {
   getReviewSettings,
   Project
 } from './reviewHelpers'
 import { hyphenatedDateString } from '../../helpers/dateTime'
+import { log, logWarn, logError } from '../../helpers/dev'
 import { getFolderFromFilename } from '../../helpers/folders'
 import {
   displayTitle,
@@ -44,8 +46,8 @@ const thisYearStr = hyphenatedDateString(new Date()).substring(0, 4)
 export async function completeProject(): Promise<void> {
   // only proceed if we're in a valid Project note (with at least 2 lines)
   const { note, filename } = Editor
-  if (note == null || note.type === 'Calendar' || Editor.paragraphs?.length < 2) {
-    console.log(`Warning: not in a valid Project note.`)
+  if (note == null || note.type === 'Calendar' || Editor.paragraphs.length < 2) {
+    logWarn(pluginJson, `Not in a Project note (at least 2 lines long). (Note title = '${Editor.title ?? ''}')`)
     return
   }
 
@@ -68,7 +70,7 @@ export async function completeProject(): Promise<void> {
       const lineToAdd = projectNote.detailedSummaryLine(true)
       const summaryNote = await getOrMakeNote(thisYearStr, config.folderToStore)
       if (summaryNote != null) {
-        console.log(`Will add '${lineToAdd}' to note '${summaryNote.filename}'`)
+        log(pluginJson, `Will add '${lineToAdd}' to note '${summaryNote.filename}'`)
         summaryNote.addParagraphBelowHeadingTitle(
           lineToAdd,
           'text', // bullet character gets included in the passed in string
@@ -85,7 +87,7 @@ export async function completeProject(): Promise<void> {
       const newFilename = DataStore.moveNote(filename, '@Archive')
     }
   } else {
-    console.log(`Error: something has gone wrong in Completing this project note`)
+    log(pluginJson, `Error: something has gone wrong in Completing this project note`)
   }
 }
 
@@ -101,8 +103,8 @@ export async function completeProject(): Promise<void> {
 export async function cancelProject(): Promise<void> {
   // only proceed if we're in a valid Project note (with at least 2 lines)
   const { note, filename } = Editor
-  if (note == null || note.type === 'Calendar' || Editor.paragraphs?.length < 2) {
-    console.log(`Warning: not in a valid Project note.`)
+  if (note == null || note.type === 'Calendar' || Editor.paragraphs.length < 2) {
+    logWarn(pluginJson, `Not in a Project note (at least 2 lines long). (Note title = '${Editor.title ?? ''}')`)
     return
   }
 
@@ -125,7 +127,7 @@ export async function cancelProject(): Promise<void> {
       const lineToAdd = projectNote.detailedSummaryLine(true)
       const yearlyNote = await getOrMakeNote(thisYearStr, config.folderToStore)
       if (yearlyNote != null) {
-        console.log(`Will add '${lineToAdd}' to note '${yearlyNote.filename}'`)
+        log(pluginJson, `Will add '${lineToAdd}' to note '${yearlyNote.filename}'`)
         yearlyNote.addParagraphBelowHeadingTitle(
           lineToAdd,
           'text', // bullet character gets included in the passed in string
@@ -140,8 +142,9 @@ export async function cancelProject(): Promise<void> {
     if (filename != null &&
       (await showMessageYesNo('Shall I move this cancelled note to the Archive?', ['Yes', 'No'])) === 'Yes') {
       const newFilename = DataStore.moveNote(filename, '@Archive')
+      log(pluginJson, `Project note has been moved to the @Archive.`)
     }
   } else {
-    console.log(`Error: something has gone wrong in Cancelling this project note`)
+    logError(pluginJson, `Something has gone wrong in Cancelling this project note.`)
   }
 }

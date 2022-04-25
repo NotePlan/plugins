@@ -30,9 +30,9 @@ export async function onUpdateOrInstall(config: any = { silent: false }): Promis
     const migrationResult: number = await migrateConfiguration(configKey, pluginJson, config?.silent)
     console.log(`${configKey}: onUpdateOrInstall migrateConfiguration code: ${migrationResult}`)
     if (migrationResult === 0) {
-       const updateSettings = updateSettingData(pluginJson)
-       console.log(`${configKey}: onUpdateOrInstall updateSettingData code: ${updateSettings}`)
-     }
+      const updateSettings = updateSettingData(pluginJson)
+      console.log(`${configKey}: onUpdateOrInstall updateSettingData code: ${updateSettings}`)
+    }
   } catch (error) {
     console.log(error)
   }
