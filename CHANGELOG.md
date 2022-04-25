@@ -4,6 +4,11 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/codedungeon.Toolbox/README.md) for details on available commands and use case.
 
+## [3.2.6] - 2022-04-23 (@mikeerickson)
+
+- added support for using aliases in jest tests
+  - configured in `jest.config.js` which matches configuration in `plugins.config.js`
+
 ## [3.2.5] - 2022-04-16 (@mikeerickson)
 
 - fix `npc plugin:relase` command to properly include `plugin.name` (@jgclark)
