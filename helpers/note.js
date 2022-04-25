@@ -2,6 +2,7 @@
 //-------------------------------------------------------------------------------
 // Note-level Functions
 
+import { log, logError } from './dev'
 import { getFolderFromFilename } from './folders'
 import { showMessage } from './userInput'
 
@@ -17,13 +18,13 @@ export function printNote(note: TNote): void {
   }
 
   if (note.type === 'Notes') {
-    console.log(
+    log('printNote()',
       `title: ${note.title ?? ''}\n\tfilename: ${note.filename ?? ''}\n\tcreated: ${String(note.createdDate) ?? ''}\n\tchanged: ${String(note.changedDate) ?? ''}\n\thashtags: ${
         note.hashtags?.join(',') ?? ''
       }\n\tmentions: ${note.mentions?.join(',') ?? ''}`,
     )
   } else {
-    console.log(
+    log('printNote()',
       `filename: ${note.filename ?? ''}\n\tcreated: ${String(note.createdDate) ?? ''}\n\tchanged: ${String(note.changedDate) ?? ''}\n\thashtags: ${
         note.hashtags?.join(',') ?? ''
       }\n\tmentions: ${note.mentions?.join(',') ?? ''}`,
@@ -42,13 +43,13 @@ export function printNote(note: TNote): void {
  * @returns {any} - the note that was opened
  */
 export async function noteOpener(fullPath: string, desc: string, useProjNoteByFilename: boolean = true): Promise<?TNote> {
-  console.log(`\tAbout to open filename: "${fullPath}" (${desc}) using ${useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename'}`)
+  log('noteOpener()', `  About to open filename: "${fullPath}" (${desc}) using ${useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename'}`)
   const newNote = useProjNoteByFilename ? await DataStore.projectNoteByFilename(fullPath) : await DataStore.noteByFilename(fullPath, 'Notes')
   if (newNote != null) {
-    console.log(`\t\tOpened ${fullPath} (${desc} version) `)
+    log('noteOpener()', `    Opened ${fullPath} (${desc} version) `)
     return newNote
   } else {
-    console.log(`\t\tDidn't work! ${useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename'} returned ${(newNote: any)}`)
+    log('noteOpener()', `    Didn't work! ${useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename'} returned ${(newNote: any)}`)
   }
 }
 
@@ -63,29 +64,29 @@ export async function noteOpener(fullPath: string, desc: string, useProjNoteByFi
 export async function getOrMakeNote(noteTitle: string, noteFolder: string): Promise<?TNote> {
   // first see if this note has already been created (ignoring Archive and Trash)
   const potentialNotes: $ReadOnlyArray<TNote> = DataStore.projectNoteByTitle(noteTitle, true, false) ?? []
-  console.log(`\tfound ${potentialNotes.length} existing '${noteTitle}' note(s)`)
+  log('getOrMakeNote()', `  found ${potentialNotes.length} existing '${noteTitle}' note(s)`)
   const existingNotes = potentialNotes && noteFolder !== '/' ? potentialNotes.filter((n) => n.filename.startsWith(noteFolder)) : potentialNotes
 
   if (existingNotes.length > 0) {
-    console.log(`\tFound ${existingNotes.length} notes. [0] = ${existingNotes[0].filename}`)
+    log('getOrMakeNote()', `  found ${existingNotes.length} notes. [0] = ${existingNotes[0].filename}`)
     return existingNotes[0] // return the only or first match (if more than one)
   } else {
     // no existing note, so need to make a new one
     const noteFilename = await DataStore.newNote(noteTitle, noteFolder)
     // NB: filename here = folder + filename
     if (noteFilename != null && noteFilename !== '') {
-      console.log(`\tnewNote filename: ${String(noteFilename)}`)
+      log('getOrMakeNote()', `  newNote filename: ${String(noteFilename)}`)
       const note = await DataStore.projectNoteByFilename(noteFilename)
       if (note != null) {
         return note
       } else {
         showMessage(`Oops: I can't make new ${noteTitle} note`, 'OK')
-        console.log(`getOrMakeNote: error: can't read new ${noteTitle} note`)
+        logError('getOrMakeNote()', `can't read new ${noteTitle} note`)
         return
       }
     } else {
       showMessage(`Oops: I can't make new ${noteTitle} note`, 'OK')
-      console.log(`getOrMakeNote: error: empty filename of new ${noteTitle} note`)
+      logError('getOrMakeNote()', `empty filename of new ${noteTitle} note`)
       return
     }
   }
@@ -118,7 +119,7 @@ export function findNotesMatchingHashtags(tag: string, folder: ?string, includeS
   }
   // Filter by tag (if one has been given)
   const projectNotesWithTag = tag !== '' ? projectNotesInFolder.filter((n) => n.hashtags.includes(tag)) : projectNotesInFolder
-  console.log(`\tIn folder '${folder ?? '<all>'}' found ${projectNotesWithTag.length} notes matching '${tag}'`)
+  log('findNotesMatchingHashtags', `In folder '${folder ?? '<all>'}' found ${projectNotesWithTag.length} notes matching '${tag}'`)
   return projectNotesWithTag
 }
 
@@ -138,7 +139,7 @@ export async function getProjectNotes(forFolder: string = ''): Promise<$ReadOnly
     // if last character is a slash, remove it
     const folderWithSlash = forFolder.charAt(forFolder.length - 1) === '/' ? forFolder : `${forFolder}/`
     const filteredNotes = notes.filter((note) => note.filename.includes(folderWithSlash))
-    console.log(`getProjectNotes() Found ${filteredNotes.length} notes in folder ${forFolder}`)
+    log('getProjectNotes()', `Found ${filteredNotes.length} notes in folder ${forFolder}`)
     return filteredNotes
   }
 }

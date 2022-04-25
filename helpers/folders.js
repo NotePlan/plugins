@@ -2,6 +2,8 @@
 //-------------------------------------------------------------------------------
 // Folder-level Functions
 
+import { log, logWarn } from './dev'
+
 /**
  * Return list of folders, excluding those on the given list (and any of their sub-folders).
  * @author @jgclark
@@ -12,7 +14,7 @@
 export function filterFolderList(exclusions: Array<string>): Array<string> {
   const folderList = DataStore.folders
   const reducedList: Array<string> = []
-  console.log(`filterFolderList: Starting with exclusions ${exclusions.toString()}`)
+  log('filterFolderList()', `filterFolderList: Starting with exclusions ${exclusions.toString()}`)
   if (exclusions.length > 0) {
     const exclusionsTerminatedWithSlash: Array<string> = []
     for (const e of exclusions) {
@@ -37,7 +39,7 @@ export function filterFolderList(exclusions: Array<string>): Array<string> {
       }
     }
   } else {
-    console.log(`\twarning: empty excluded folder list`)
+    logWarn('filterFolderList()', `empty excluded folder list`)
     reducedList.push(...folderList.slice())
   }
   return reducedList
