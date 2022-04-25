@@ -137,5 +137,35 @@ describe(`${PLUGIN_NAME}`, () => {
       })
     })
 
+    describe('attendeesAsString', () => {
+      const attendees = ['✓ [Jonathan Clark](mailto:jonathan@clarksonline.me.uk)',
+        '[James Bond](mailto:007@sis.gov.uk)',
+        'x [M](mailto:m@sis.gov.uk)']
+      test('should return names when only one param sent (default is names)', () => {
+        const r = ch.attendeesAsString(attendees)
+        expect(r).toEqual('Jonathan Clark, James Bond, M')
+      })
+      test('should return emails when 2nd param set to email', () => {
+        const r = ch.attendeesAsString(attendees, 'email')
+        expect(r).toEqual('mailto:jonathan@clarksonline.me.uk, mailto:007@sis.gov.uk, mailto:m@sis.gov.uk')
+      })
+      test('should return empty string when no attendees', () => {
+        const r = ch.attendeesAsString([], 'email')
+        expect(r).toEqual('')
+      })
+      test('should return the name when there is no email', () => {
+        const r = ch.attendeesAsString(['[text]()'], 'email')
+        expect(r).toEqual('text')
+      })
+      test('should return the email when there is no name', () => {
+        const r = ch.attendeesAsString(['[](email@gmail)'], 'name')
+        expect(r).toEqual('email@gmail')
+      })
+      test('should return nothing if not data', () => {
+        const r = ch.attendeesAsString(['[]()'], 'name')
+        expect(r).toEqual('')
+      })
+
+    })
   })
 })

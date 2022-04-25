@@ -1,7 +1,7 @@
 // @flow
 // ----------------------------------------------------------------------------
 // Sort configuration for commands in the Event Helpers plugin.
-// Last updated 12.4.2022 for v0.12.0, by @jgclark
+// Last updated 24.4.2022 for v0.14.1, by @jgclark
 // @jgclark
 // ----------------------------------------------------------------------------
 
@@ -17,7 +17,7 @@ import {
 import { clo, log, logWarn, logError } from "../../helpers/dev"
 import { type HourMinObj } from '../../helpers/dateTime'
 import { type EventsConfig } from '../../helpers/NPCalendar'
-import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
+import { showMessage } from '../../helpers/userInput'
 
 //------------------------------------------------------------------------------
 // Get settings
@@ -34,20 +34,38 @@ export async function getEventsSettings(): Promise<any> {
   log(pluginJson, `Start of getEventsSettings()`)
   try {
     // Get settings using ConfigV2
-    const v2Config: EventsConfig = await DataStore.loadJSON("../jgclark.EventHelpers/settings.json")
-    // $FlowFixMe
-    // clo(v2Config, `${configKey} settings from V2:`)
+    let v2Config: EventsConfig = await DataStore.loadJSON("../jgclark.EventHelpers/settings.json")
 
     if (v2Config == null || Object.keys(v2Config).length === 0) {
-      throw new Error(`Cannot find settings for '${configKey}' plugin`)
+      await showMessage(`Cannot find settings for the 'EventHelpers' plugin. Please make sure you have installed it from the Plugin Preferences pane. For now I will use default settings.`)
+      // Be kind and return a default set of config
+      const defaultConfig: EventsConfig = {
+        eventsHeading: "## Events",
+        sortOrder: "time",
+        matchingEventsHeading: "## Matching Events",
+        addMatchingEvents: {},
+        locale: "",
+        timeOptions: "{\n\"hour\": \"2-digit\", \n\"minute\": \"2-digit\", \n\"hour12\": false\n}",
+        calendarSet: [],
+        calendarNameMappings: ["From;To"],
+        addEventID: false,
+        confirmEventCreation: true,
+        processedTagName: "",
+        removeTimeBlocksWhenProcessed: true,
+        calendarToWriteTo: "",
+        defaultEventDuration: 60
+      }
+      v2Config = defaultConfig
     }
     v2Config.locale = getLocale(v2Config)
     v2Config.timeOptions = getTimeOptions(v2Config)
+    // $FlowFixMe
+    clo(v2Config, `${configKey} settings from V2:`)
     return v2Config
   }
   catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
-    return null // for completeness
+    await showMessage(err.message)
   }
 }
 

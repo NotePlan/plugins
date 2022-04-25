@@ -15,7 +15,7 @@
 // ----------------------------------------------------------------------------
 
 import { keepTodayPortionOnly } from './calendar'
-import { getDateFromUnhyphenatedDateString, getISODateStringFromCalendarFilename, type HourMinObj, printDateRange, removeDateTagsAndToday, todaysDateISOString } from './dateTime'
+import { getDateFromUnhyphenatedDateString, getISODateStringFromYYYYMMDD, type HourMinObj, printDateRange, removeDateTagsAndToday, todaysDateISOString } from './dateTime'
 import { addMinutes, differenceInMinutes } from 'date-fns'
 import { clo, log, logError, logWarn } from './dev'
 import { displayTitle } from './general'
@@ -39,6 +39,7 @@ import { showMessage, showMessageYesNo } from './userInput'
 export type EventsConfig = {
   eventsHeading: string,
   sortOrder: string,
+  matchingEventsHeading: string,
   addMatchingEvents: ?{ [string]: mixed },
   locale: string,
   timeOptions: any,
@@ -96,7 +97,7 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
     // - if a calendar note -> date of note
     // - if a project note -> today's date
     // NB: But these are ignored if there's an actual date in the time block
-    const dateContext = note.type === 'Calendar' && note.filename ? getISODateStringFromCalendarFilename(note.filename) ?? todaysDateISOString : todaysDateISOString
+    const dateContext = note.type === 'Calendar' && note.filename ? getISODateStringFromYYYYMMDD(note.filename) ?? todaysDateISOString : todaysDateISOString
 
     // Iterate over timeblocks
     for (let i = 0; i < timeblockParas.length; i++) {
@@ -261,7 +262,7 @@ export async function getEventsForDay(
   if (calendarSet.length > 0) {
     // const filteredEventArray = calendarSet.slice().filter(c => eArr.some(e => e.calendar === c))
     eArr = eArr.filter((e) => calendarSet.some((c) => e.calendar === c))
-    log('NPCalendar/getEventsForDay()', `\t${eArr.length} Events kept after filtering with ${calendarSet.toString()}`)
+    log('NPCalendar/getEventsForDay', `  ${eArr.length} Events kept for ${dateStr} after filtering with ${calendarSet.toString()}`)
   }
   return eArr
 }

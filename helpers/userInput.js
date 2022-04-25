@@ -4,6 +4,7 @@
 
 import json5 from 'json5'
 import { RE_DATE, RE_DATE_INTERVAL } from './dateTime'
+import { clo, log, logWarn, logError } from './dev'
 import { calcSmartPrependPoint, findEndOfActivePartOfNote } from './paragraph'
 
 // NB: This fn is a local copy from helpers/general.js, to avoid a circular dependency
@@ -287,41 +288,52 @@ export async function askForFutureISODate(question: string): Promise<string> {
  * @author @jgclark, based on @nmn code
  *
  * @param {string} dateParams - given parameters -- currently only looks for {question:'question test'} parameter
- * @param {[string]: ?mixed} config - relevant settings from _configuration note
+ * @param {[string]: ?mixed} config - previously used as settings from _configuration note; now ignored
  * @return {string} - the returned ISO date as a string, or empty if an invalid string given
  */
 export async function datePicker(dateParams: string, config: { [string]: ?mixed }): Promise<string> {
-  // console.log(`processDate: ${dateConfig}`)
-  const defaultConfig = config?.date ?? {}
-  const dateParamsTrimmed = dateParams?.trim() || ''
-  const paramConfig =
-    dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}') ? await parseJSON5(dateParams) : dateParamsTrimmed !== '' ? await parseJSON5(`{${dateParams}}`) : {}
-  // $FlowIgnore[incompatible-type] -- TODO: Is there a @dwertheimer function that can help here?
-  console.log(`param config: ${dateParams} as ${JSON.stringify(paramConfig)}`)
-  // ... = "gather the remaining parameters into an array"
-  const allSettings: { [string]: mixed } = {
-    ...defaultConfig,
-    ...paramConfig,
-  }
-  // console.log(allSettings.toString())
-  // grab just question parameter, or provide a default
-  let { question } = (allSettings: any)
-  question = question ? question : 'Please enter a date'
-  // console.log(question)
-  // const localeParam = locale != null ? String(locale) : []
-  // const secondParam = {
-  //   dateStyle: 'short',
-  //   ...otherParams,
-  // }
-  // console.log(`${JSON.stringify(localeParam)}, ${JSON.stringify(secondParam)}`);
-  // return new Intl.DateTimeFormat(localeParam, secondParam).format(new Date())
-  const reply = (await CommandBar.showInput(question, `Date (YYYY-MM-DD): %@`)) ?? ''
-  const reply2 = reply.replace('>', '').trim() // remove leading '>' and trim
-  if (!reply2.match(RE_DATE)) {
-    await showMessage(`Sorry: ${reply2} wasn't a date of form YYYY-MM-DD`, `OK`, 'Error')
+  try {
+    const dateConfig = config?.date ?? {}
+    // $FlowIgnore[incompatible-call]
+    clo(dateConfig, 'userInput/datePicker dateConfig object:')
+    const dateParamsTrimmed = dateParams.trim()
+    const paramConfig =
+      dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}')
+        ? await parseJSON5(dateParams)
+        : dateParamsTrimmed !== ''
+          ? await parseJSON5(`{${dateParams}}`)
+          : {}
+    // $FlowIgnore[incompatible-type] -- TODO: Is there a @dwertheimer function that can help here?
+    log('userInput/datePicker', `params: ${dateParams} -> ${JSON.stringify(paramConfig)}`)
+    // '...' = "gather the remaining parameters into an array"
+    const allSettings: { [string]: mixed } = {
+      ...dateConfig,
+      ...paramConfig,
+    }
+    // log('userInput/datePicker', allSettings.toString())
+    // grab just question parameter, or provide a default
+    let { question } = (allSettings: any)
+    question = question ?question: 'Please enter a date'
+  
+    // Ask question (newer style)
+    // const reply = (await CommandBar.showInput(question, `Date (YYYY-MM-DD): %@`)) ?? ''
+    const reply = await CommandBar.textPrompt('Date Picker', question, 'YYYY-MM-DD')
+    if (typeof reply === 'string') {
+      const reply2 = reply.replace('>', '').trim() // remove leading '>' and trim
+      if (!reply2.match(RE_DATE)) {
+        await showMessage(`Sorry: ${reply2} wasn't a date of form YYYY-MM-DD`, `OK`, 'Error')
+        return ''
+      }
+      return reply2
+    } else {
+      logWarn('userInput/datePicker', 'User cancelled date input')
+      return ''
+    }
+  } 
+  catch (e) {
+    logError('userInput/datePicker', e.message)
     return ''
   }
-  return reply2
 }
 
 /**

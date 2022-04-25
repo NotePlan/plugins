@@ -7,7 +7,7 @@
   "plugin.icon": "",
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers",
-  "plugin.version": "0.13.0",
+  "plugin.version": "0.14.1",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -31,11 +31,6 @@
       "name": "process date offsets",
       "description": "finds date offset patterns and turns them into due dates, based on date at start of section",
       "jsFunction": "processDateOffsets"
-    },
-    {
-      "name": "list day's events to log",
-      "description": "list this day's calendar events to the log",
-      "jsFunction": "listDaysEvents"
     }
   ],
   "plugin.settings": [
@@ -46,9 +41,17 @@
     {
       "key": "eventsHeading",
       "title": "Events heading",
-      "description": "Optional heading to put before list of today's events",
+      "description": "Optional heading to put before list of the day's events",
       "type": "string",
-      "default": "### Events today",
+      "default": "## Events",
+      "required": false
+    },
+    {
+      "key": "matchingEventsHeading",
+      "title": "Matching Events heading",
+      "description": "Optional heading to put before list of events matching list below",
+      "type": "string",
+      "default": "## Matching Events",
       "required": false
     },
     {

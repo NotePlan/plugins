@@ -12,7 +12,7 @@ import {
 /**
  * @description This function takes a list of calendar items and returns a list of calendar items that are not all day
  * @param {*} input - array of calendar items
- * @returns arry of calendar items without all day events
+ * @returns array of calendar items without all day events
  */
 export function getTimedEntries(input: Array<TCalendarItem>): Array<TCalendarItem> {
   return input.filter((event) => !event.isAllDay)
@@ -21,6 +21,7 @@ export function getTimedEntries(input: Array<TCalendarItem>): Array<TCalendarIte
 /**
  * Some events span multiple days, but we only want to show the time for one day in question.
  * Assumes that this list was previously filtered to only include events that are on the day in question.
+ * @author @jgclark
  * @param {TCalendarItem[]} input - array of calendar items (e.g. for a day)
  * @param {Date} today - date to compare this event against (default is today)
  * @returns {Array<TCalendarItem>} the same array of items but with the start and end times adjusted to the day of interest
@@ -62,3 +63,56 @@ export function keepTodayPortionOnly(input: Array<TCalendarItem>, whatDate: Date
     }
   })
 }
+
+/**
+ * Parse an attendee list and return as a simple comma-separate string to display.
+ * Object structure appears to be:
+ *  {
+  "0": "✓ [Jonathan Clark](mailto:jonathan@clarksonline.me.uk)",
+  "1": "[James Bond](mailto:007@sis.gov.uk)",
+  "2": "x [M](mailto:m@sis.gov.uk)",
+  "length": 3
+}
+ * @author @dwertheimer, @jgclark
+ * @param {Map<string, string>} attendees object returned by CalendarList item
+ * @param {string?} attendeeType type to return in list 'email' | 'name'
+ * @return {string} comma-separated list of parsed attendees
+ */
+export function attendeesAsString(attendees: Map<string, string>, returnType?: 'email' | 'name' = 'name'): string {
+  let attArr = []
+  let splitterRE = /\[(.*?)\]\((.*?)\)/
+
+  for(let v of attendees.values()) {
+    let result = splitterRE.exec(v)
+    if (result && result?.length) {
+      if ((returnType === 'email' && result[2]) || (returnType === 'name' && result[1] == '' && result[2])) {
+        attArr.push(result[2])
+      } else {
+        attArr.push(result[1])
+      }
+    } else {
+      attArr.push(v)
+    }
+  }
+  return attArr.join(', ')
+}
+
+// @dwertheimer's original version
+// export function attendeesAsString(attendees: Array<string>, returnType: 'email' | 'name' = 'name'): string {
+//   let attArr = []
+//   let splitterRE = /\[(.*?)\]\((.*?)\)/
+
+//   attendees.forEach((att) => {
+//     let result = splitterRE.exec(att)
+//     if (result && result?.length) {
+//       if ((returnType === 'email' && result[2]) || (returnType === 'name' && result[1] == '' && result[2])) {
+//         attArr.push(result[2])
+//       } else {
+//         attArr.push(result[1])
+//       }
+//     } else {
+//       attArr.push(att)
+//     }
+//   })
+//   return attArr.join(', ')
+// }

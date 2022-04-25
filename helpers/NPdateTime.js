@@ -6,8 +6,9 @@
 import strftime from 'strftime'
 import {
   toISODateString,
-  toISOShortDateTimeString,
+  toISOShortDateTimeString
 } from './dateTime'
+import { log, logError } from './dev'
 
 // TODO: Finish moving references to this file from dateTime.js
 export function toLocaleDateTimeString(
@@ -66,87 +67,106 @@ export function printDateRange(dr: DateRange) {
   console.log(`DateRange <${toISOShortDateTimeString(dr.start)} - ${toISOShortDateTimeString(dr.end)}>`)
 }
 
-// Calculate an offset date, as a JS Date. Assumes:
-// - oldDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type
-// - interval is string of form +nn[bdwmq] or -nn[bdwmq]
-// - where 'b' is weekday (i.e. Monday - Friday in English)
-// Return new date as a JS Date
-// v2 method, using built-in NotePlan function 'Calendar.addUnitToDate(date, type, num)'
-export function calcOffsetDate(oldDateISO: string, interval: string): Date {
-  const oldDate = new Date(oldDateISO)
-  let daysToAdd = 0
-  let monthsToAdd = 0
-  let yearsToAdd = 0
-  const unit = interval.charAt(interval.length - 1) // get last character
-  let num = Number(interval.substr(0, interval.length - 1)) // return all but last character
-  // console.log("    c_o_d: old = " + oldDate + " / "  + num + " / " + unit)
+/**
+ * Calculate an offset date, as a JS Date.
+ * v2 method, using built-in NotePlan function 'Calendar.addUnitToDate(date, type, num)'
+ * @author @jgclark
+ * 
+ * @param {string} baseDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type
+ * @param {interval} string of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in English)
+ * @return {Date} new date as a JS Date
+ */
+export function calcOffsetDate(baseDateISO: string, interval: string): Date {
+  try {
+    const baseDate = new Date(baseDateISO)
+    let daysToAdd = 0
+    let monthsToAdd = 0
+    let yearsToAdd = 0
+    const unit = interval.charAt(interval.length - 1) // get last character
+    let num = Number(interval.substr(0, interval.length - 1)) // return all but last character
+    // log('helpers/calcOffsetDate', `base: ${toISODateString(baseDate)} / ${num} / ${unit}`)
 
-  switch (unit) {
-    case 'b': {
-      // week days
-      // Method from Arjen at https://stackoverflow.com/questions/279296/adding-days-to-a-date-but-excluding-weekends
-      // Avoids looping, and copes with negative intervals too
-      const currentDayOfWeek = oldDate.getUTCDay() // = day of week with Sunday = 0, ..Saturday = 6
-      let dayOfWeek
-      if (num < 0) {
-        dayOfWeek = (currentDayOfWeek - 12) % 7
-      } else {
-        dayOfWeek = (currentDayOfWeek + 6) % 7 // % = modulo operator in JSON
+    switch (unit) {
+      case 'b': {
+        // week days
+        // Method from Arjen at https://stackoverflow.com/questions/279296/adding-days-to-a-date-but-excluding-weekends
+        // Avoids looping, and copes with negative intervals too
+        const currentDayOfWeek = baseDate.getUTCDay() // = day of week with Sunday = 0, ..Saturday = 6
+        let dayOfWeek
+        if (num < 0) {
+          dayOfWeek = (currentDayOfWeek - 12) % 7
+        } else {
+          dayOfWeek = (currentDayOfWeek + 6) % 7 // % = modulo operator in JSON
+        }
+        if (dayOfWeek === 6) {
+          num--
+        }
+        if (dayOfWeek === -6) {
+          num++
+        }
+        // console.log("    c_o_d b: " + currentDayOfWeek + " / " + num + " / " + dayOfWeek)
+        const numWeekends = Math.trunc((num + dayOfWeek) / 5)
+        daysToAdd = num + numWeekends * 2
+        break
       }
-      if (dayOfWeek === 6) {
-        num--
-      }
-      if (dayOfWeek === -6) {
-        num++
-      }
-      // console.log("    c_o_d b: " + currentDayOfWeek + " / " + num + " / " + dayOfWeek)
-      const numWeekends = Math.trunc((num + dayOfWeek) / 5)
-      daysToAdd = num + numWeekends * 2
-      break
+      case 'd':
+        daysToAdd = num // need *1 otherwise treated as a string for some reason
+        break
+      case 'w':
+        daysToAdd = num * 7
+        break
+      case 'm':
+        monthsToAdd = num
+        break
+      case 'q':
+        monthsToAdd = num * 3
+        break
+      case 'y':
+        yearsToAdd = num
+        break
+      default:
+        logError('helpers/calcOffsetDate', `Invalid date interval: '${interval}'`)
+        break
     }
-    case 'd':
-      daysToAdd = num // need *1 otherwise treated as a string for some reason
-      break
-    case 'w':
-      daysToAdd = num * 7
-      break
-    case 'm':
-      monthsToAdd = num
-      break
-    case 'q':
-      monthsToAdd = num * 3
-      break
-    case 'y':
-      yearsToAdd = num
-      break
-    default:
-      console.log(`\tInvalid date interval: '${interval}'`)
-      break
+
+    // Now add (or subtract) the number, using NP's built-in helper
+    const newDate =
+      Math.abs(daysToAdd) > 0
+        ? Calendar.addUnitToDate(baseDate, 'day', daysToAdd)
+        : Math.abs(monthsToAdd) > 0
+          ? Calendar.addUnitToDate(baseDate, 'month', monthsToAdd)
+          : Math.abs(yearsToAdd) > 0
+            ? Calendar.addUnitToDate(baseDate, 'year', yearsToAdd)
+            : baseDate // if nothing else, leave date the same
+
+    return newDate
   }
-
-  // Now add (or subtract) the number, using NP's built-in helper
-  const newDate =
-    Math.abs(daysToAdd) > 0
-      ? Calendar.addUnitToDate(oldDate, 'day', daysToAdd)
-      : Math.abs(monthsToAdd) > 0
-      ? Calendar.addUnitToDate(oldDate, 'month', monthsToAdd)
-      : Math.abs(yearsToAdd) > 0
-      ? Calendar.addUnitToDate(oldDate, 'year', yearsToAdd)
-      : oldDate // if nothing else, leave date the same
-
-  return newDate
+  catch (e) {
+    logError('helpers/calcOffsetDate', `${e.message} for baseDateISO '${baseDateISO}'`)
+  }
 }
 
-// Calculate an offset date, returning ISO datestring. Assumes:
-// - oldDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type
-// - interval is string of form +nn[bdwmq] or -nn[bdwmq]
-// - where 'b' is weekday (i.e. Monday - Friday in English)
-// Return new date also in ISO Date format
-// NB: doesn't actually use NP functions, but to avoid a circular dependency it needs to be in the file.
-export function calcOffsetDateStr(oldDateISO: string, interval: string): string {
-  const newDate = calcOffsetDate(oldDateISO, interval)
+/**
+ * Calculate an offset date, as a JS Date.
+ * v2 method, using built-in NotePlan function 'Calendar.addUnitToDate(date, type, num)'
+ * NB: doesn't actually use NP functions, but to avoid a circular dependency it needs to be in this file.
+ * @author @jgclark
+ * 
+ * @param {string} baseDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type
+ * @param {interval} string of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in English)
+ * @return {string} new date in ISO Date format
+ */
+export function calcOffsetDateStr(baseDateISO: string, interval: string): string {
+  const newDate = calcOffsetDate(baseDateISO, interval)
   return toISODateString(newDate)
 }
+
+// Expected output for various tests of this function
+// console.log(`2022-01-01 +0d  -> ${calcOffsetDateStr('2022-01-01', '+0d')}`) // 2022-01-01
+// console.log(`2022-01-01 +10d -> ${calcOffsetDateStr('2022-01-01', '+10d')}`) // 2022-01-11
+// console.log(`2022-01-01 -1d  -> ${calcOffsetDateStr('2022-01-01', '-1d')}`) // 2021-12-31
+// console.log(`2022-01-01 +2w  -> ${calcOffsetDateStr('2022-01-01', '+2w')}`) // 2022-01-15
+
 
 /**
  * Return quarter start and end dates for a given quarter

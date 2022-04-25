@@ -15,7 +15,7 @@ import { writeTimeBlocksToCalendar } from '../../helpers/NPCalendar'
  * @author @jgclark
  */
 export async function timeBlocksToCalendar(): Promise<void> {
-  // Get config settings from Template folder _configuration note
+  // Get config settings
   const config = await getEventsSettings()
   await writeTimeBlocksToCalendar(config, Editor)
 }
