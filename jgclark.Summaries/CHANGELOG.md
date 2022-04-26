@@ -1,5 +1,9 @@
 # What's Changed in 🗃 Summaries plugin?
 
+## [0.7.1] - 2022-04-26
+### Changed
+- code clean up
+
 ## [0.7.0] - 2022-04-01
 ### Added
 - added 'Prefix for search results' setting to configure what marker to put before search results, not just `- ` (though that remains the default).

@@ -47,7 +47,6 @@ import {
   getInput,
   showMessage,
 } from '../../helpers/userInput'
-import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 
 //-------------------------------------------------------------------------------
 
