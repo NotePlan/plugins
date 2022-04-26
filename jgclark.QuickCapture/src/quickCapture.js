@@ -1,12 +1,13 @@
 // @flow
 // --------------------------------------------------------------------------------------------------------------------
 // QuickCapture plugin for NotePlan
-// Jonathan Clark
-// last update v0.8.3, 15.12.2021
+// by Jonathan Clark
+// last update v0.8.6, 26.4.2022 by @jgclark
 // --------------------------------------------------------------------------------------------------------------------
 
+import pluginJson from '../plugin.json'
 import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
-import { clo } from '../../helpers/dev'
+import { clo, log, logError } from '../../helpers/dev'
 import { displayTitle } from '../../helpers/general'
 import { smartPrependPara } from '../../helpers/paragraph'
 import { getTodaysDateUnhyphenated, unhyphenateString, } from '../../helpers/dateTime'
@@ -31,42 +32,28 @@ type inboxConfigType = {
 }
 
 /**
- * Get or make config settings from _configuration, with no minimum required config
+ * Get config settings using Config V2 system. (Have now removed support for Config V1.)
  * Updated for #ConfigV2
  * @author @jgclark
  */
-async function getInboxSettings(): Promise<inboxConfigType> {
-  console.log(`getInboxSettings():`)
+async function getInboxSettings(): Promise<any> {
+  log(pluginJson, `Start of getInboxSettings():`)
+  try {
+    // Get settings using ConfigV2
+    const v2Config: inboxConfigType = await DataStore.loadJSON("../jgclark.QuickCapture/settings.json")
 
-  // Wish the following was possible:
-  // if (NotePlan.environment.version >= "3.4") {
-  
-  const tempConfig: inboxConfigType = DataStore.settings // TODO: understand how to get a different config set, as [configKey] and .inbox don't work.
-  
-  if ((tempConfig != null) && Object.keys(tempConfig).length > 0) {
-    const config: inboxConfigType = tempConfig
-    // $FlowFixMe
-    clo(config, `\t${configKey} settings from V2:`)
-    return config
-
-  } else {
-    // Read settings from _configuration, or if missing set a default
-    // Don't mind if no config section is found
-    const v1Config = await getOrMakeConfigurationSection(configKey)
-    // $FlowIgnore
-    // console.log(`found config: ${JSON.stringify(v1Config)}`)
-    const config: inboxConfigType = {
-      // legitimate than inboxTitle can be '' (the empty string)
-      inboxTitle: (v1Config?.inboxTitle != null)
-        ? String(v1Config?.inboxTitle) : `📥 Inbox`,
-      addInboxPosition: (v1Config?.addInboxPosition != null && v1Config?.addInboxPosition !== '')
-        ? String(v1Config?.addInboxPosition) : 'prepend',
-      textToAppendToTasks: (v1Config?.textToAppendToTasks != null)
-        ? String(v1Config?.textToAppendToTasks) : ''
+    if (v2Config == null || Object.keys(v2Config).length === 0) {
+      await showMessage(`Cannot find settings for the 'QuickCapture' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
+      return
+    }  else {
+      // $FlowFixMe
+      clo(v2Config, `${configKey} settings from V2:`)
+      return v2Config
     }
-    // $FlowFixMe
-    clo(config, `\t${configKey} settings from V1:`)
-    return config
+  }
+  catch (err) {
+    logError(pluginJson, `${err.name}: ${err.message}`)
+    await showMessage(err.message)
   }
 }
 
@@ -132,7 +119,7 @@ export async function addTaskToNoteHeading(): Promise<void> {
   // Finally, ask to which heading to add the task
   // (use function that allows us to add a new heading at start/end of note first)
   const heading = await chooseHeading(note, false, true)
-  // console.log(`Adding todo: ${taskTitle} ${config.textToAppendToTasks} to ${note.title ?? ''} in heading: ${heading}`)
+  // log(pluginJson, `Adding todo: ${taskTitle} ${config.textToAppendToTasks} to ${note.title ?? ''} in heading: ${heading}`)
 
   // Add todo to the heading in the note (and add the heading if it doesn't exist)
   note.addTodoBelowHeadingTitle(
@@ -197,7 +184,7 @@ export async function prependTaskToDailyNote(): Promise<void> {
   )
   const note = notes[res.index]
 
-  // console.log(`Prepending task: ${taskTitle} to ${displayTitle(note)}`)
+  // log(pluginJson, `Prepending task: ${taskTitle} to ${displayTitle(note)}`)
   note.prependTodo(`${taskTitle} ${config.textToAppendToTasks}`)
 }
 
@@ -214,14 +201,14 @@ export async function appendTaskToDailyNote(): Promise<void> {
 
   // Then ask for the daily note we want to add the todo
   const dateStr = await askForFutureISODate('Select daily note for new todo')
-  console.log(`\tadding to date ${dateStr}`)
+  log(pluginJson, `\tadding to date ${dateStr}`)
   const note = DataStore.calendarNoteByDateString(unhyphenateString(dateStr))
 
   if (note != null) {
-    // console.log(`Appending task: ${taskTitle} ${config.textToAppendToTasks} to ${displayTitle(note)}`)
+    // log(pluginJson, `Appending task: ${taskTitle} ${config.textToAppendToTasks} to ${displayTitle(note)}`)
     note.appendTodo(`${taskTitle} ${config.textToAppendToTasks}`)
   } else {
-    console.log(`\tError: cannot get calendar note for ${dateStr}`)
+    logError(pluginJson, `Can't get calendar note for ${dateStr}`)
   }
 }
 
@@ -238,7 +225,7 @@ export async function appendTextToDailyJournal(): Promise<void> {
 
   const note = DataStore.calendarNoteByDateString(todaysDateStr)
   if (note != null) {
-    console.log(`\tadding to ${displayTitle(note)}`)
+    log(pluginJson, `  adding to ${displayTitle(note)}`)
     // Add text to the heading in the note (and add the heading if it doesn't exist)
     note.addParagraphBelowHeadingTitle(
       text,
@@ -264,7 +251,7 @@ export async function addTaskToInbox(): Promise<void> {
   let newFilename: string
   let inboxNote: ?TNote
   if (config.inboxTitle !== '') {
-    console.log(`\tusing inbox title: ${config.inboxTitle}`)
+    log(pluginJson, `  using inbox title: ${config.inboxTitle}`)
     const matchingNotes = DataStore.projectNoteByTitleCaseInsensitive(config.inboxTitle) ?? []
     inboxNote = matchingNotes[0] ?? null
     // Create the inbox note if not existing, ask the user which folder
@@ -275,12 +262,12 @@ export async function addTaskToInbox(): Promise<void> {
       newFilename = DataStore.newNote(config.inboxTitle, folder) ?? ''
       // NB: this returns a filename not of our choosing
       if (newFilename != null && newFilename !== '') {
-        console.log(`\tmade new inbox note, filename = ${newFilename}`)
+        log(pluginJson, `  made new inbox note, filename = ${newFilename}`)
         inboxNote = DataStore.projectNoteByFilename(newFilename)
       }
     }
   } else {
-    console.log(`\tusing today's daily note`)
+    log(pluginJson, `  using today's daily note`)
     inboxNote = DataStore.calendarNoteByDateString(getTodaysDateUnhyphenated())
   }
 
@@ -300,6 +287,6 @@ export async function addTaskToInbox(): Promise<void> {
       inboxNote.prependTodo(taskTitle)
     }
   } else {
-    console.log(`\tERROR: Despite everything I couldn't find or make the Inbox note.`)
+    logError(pluginJson, `Despite everything I couldn't find or make the Inbox note.`)
   }
 }

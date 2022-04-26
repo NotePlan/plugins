@@ -6,6 +6,7 @@
 // Last updated 3.2.22 for v0.4.2, @jgclark
 //-----------------------------------------------------------------------------
 
+import { log, logWarn, logError } from "@helpers/dev"
 export {
   addTaskToInbox,
   addTaskToNoteHeading,
@@ -28,16 +29,16 @@ const configKey = 'inbox'
 // refactor previous variables to new types
 export async function onUpdateOrInstall(config: any = { silent: false }): Promise<void> {
   try {
-    console.log(`${configKey}: onUpdateOrInstall running`)
+    log(pluginJson, `${configKey}: onUpdateOrInstall running`)
     // migrate _configuration data to data/<plugin>/settings.json (only executes migration once)
     const migrationResult: number = await migrateConfiguration(configKey, pluginJson, config?.silent)
-    console.log(`${configKey}: onUpdateOrInstall migrateConfiguration code: ${migrationResult}`)
+    log(pluginJson, `${configKey}: onUpdateOrInstall migrateConfiguration code: ${migrationResult}`)
     if (migrationResult === 0) {
        const updateSettings = updateSettingData(pluginJson)
-       console.log(`${configKey}: onUpdateOrInstall updateSettingData code: ${updateSettings}`)
+       log(pluginJson, `${configKey}: onUpdateOrInstall updateSettingData code: ${updateSettings}`)
      }
   } catch (error) {
-    console.log(error)
+    logError(pluginJson, error)
   }
-  console.log(`${configKey}: onUpdateOrInstall finished`)
+  log(pluginJson, `${configKey}: onUpdateOrInstall finished`)
 }

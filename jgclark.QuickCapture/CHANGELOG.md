@@ -1,4 +1,8 @@
 # What's changed in ⚡️ Quick Capture
+See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.QuickCapture), and how to configure.
+## [0.8.6] - 2022-02-04
+### Changed
+- code clean-up, removing references to old _configuration note, and moved to newer logging system
 
 ## [0.8.5] - 2022-02-04
 ### Changed
