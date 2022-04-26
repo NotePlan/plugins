@@ -1,8 +1,7 @@
 // @flow
 
+import pluginJson from '../plugin.json'
 import { getMonth, getYear } from 'date-fns'
-import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
-import { getInputTrimmed, inputNumber } from '../../helpers/userInput'
 import {
   aggregateByCategoriesAndMonth,
   castFixedExpensesArrayFromMixed,
@@ -15,7 +14,9 @@ import {
   stringifyShortcutList
 } from './expensesHelper'
 import type { Config, ExpenseTrackingRow } from './expensesModels'
-import { amountOk, categoryOk, logError, logMessage, validateConfig } from './expensesChecks'
+import { amountOk, categoryOk, validateConfig } from './expensesChecks'
+import { clo, log, logError } from '../../helpers/dev'
+import { getInputTrimmed, inputNumber } from '../../helpers/userInput'
 
 const CONFIG_KEYS = {
   folderPath: 'folderPath',
@@ -223,14 +224,14 @@ const individualTracking = async (): Promise<boolean> => {
 
   let amountCheck = amountOk(amount)
   while (!amountCheck) {
-    logError('amount too big or not a number')
+    logError(pluginJson, 'amount too big or not a number')
     amount = await inputNumber('Please type in correct amount')
     amountCheck = amountOk(amount)
   }
 
   if (!category || !text) {
     // if user missed some input, then stop
-    logError('an input was missing')
+    logError(pluginJson, 'an input was missing')
     return false
   }
 
@@ -280,18 +281,18 @@ const shortcutsTracking = async (): Promise<boolean> => {
   }
 
   if (!amountOk(amount)) {
-    logError('amount not in range or not a number')
+    logError(pluginJson, 'amount not in range or not a number')
     return false
   }
 
   if (!categoryOk(selected.category, config.categories)) {
-    logError('category not configured')
+    logError(pluginJson, 'category not configured')
     return false
   }
 
   if (!selected.text) {
     // if there was no text in the shortcut, then stop
-    logError('text was missing')
+    logError(pluginJson, 'text was missing')
     return false
   }
 
@@ -366,42 +367,23 @@ const fixedTracking = async (): Promise<boolean> => {
  *
  * @private
  */
-const provideConfig = async (): Promise<Config> => {
-  const fromSettings: Config = DataStore.settings
+const provideConfig = async (): Promise<any> => {
+  try {
+    const fromSettings: Config = DataStore.settings
 
-  if (fromSettings) {
-    logMessage(`loaded config from settings\n${JSON.stringify(fromSettings)}\n`)
-    return fromSettings
-  } else {
-    // could be remove some times after all use the new settings part
-    const fromFile = await getOrMakeConfigurationSection('expenses', EXAMPLE_CONFIG)
-
-    if (fromFile == null || Object.keys(fromFile).length === 0) {
-      logError('expected config could not be found in the _configuration file')
-      return {
-        folderPath: '',
-        delimiter: '',
-        dateFormat: '',
-        amountFormat: '',
-        columnOrder: [],
-        categories: [],
-        shortcutExpenses: [],
-        fixedExpenses: []
-      }
+    if (fromSettings) {
+      // $FlowIgnoreMe[incompatible-call]
+      clo(fromSettings, `loaded config from settings:`)
     } else {
-      logMessage(`loaded config from file\n${JSON.stringify(fromFile)}\n`)
-      return {
-        folderPath: castStringFromMixed(fromFile, CONFIG_KEYS.folderPath),
-        delimiter: castStringFromMixed(fromFile, CONFIG_KEYS.delimiter),
-        dateFormat: castStringFromMixed(fromFile, CONFIG_KEYS.dateFormat),
-        amountFormat: castStringFromMixed(fromFile, CONFIG_KEYS.amountFormat),
-        columnOrder: castStringArrayFromMixed(fromFile, CONFIG_KEYS.columnOrder),
-        categories: castStringArrayFromMixed(fromFile, CONFIG_KEYS.categories),
-        shortcutExpenses: castShortcutExpensesArrayFromMixed(fromFile, CONFIG_KEYS.shortcutExpenses),
-        fixedExpenses: castFixedExpensesArrayFromMixed(fromFile, CONFIG_KEYS.fixedExpenses),
-      }
+      throw new Error(`Cannot find settings for Expenses plugin`)
     }
+    return fromSettings
   }
+  catch (err) {
+    logError(pluginJson, `${err.name}: ${err.message}`)
+    return null // for completeness
+  }
+
 }
 
 /**
@@ -419,7 +401,7 @@ const provideAndCheckNote = async (title: string,
   if (notes) {
     if (notes.length > 1) {
       // if there are multiple notes with same title
-      logError('there are multiple notes with same title')
+      logError(pluginJson, 'there are multiple notes with same title')
       return false
     }
     if (notes.length < 1) {
@@ -428,7 +410,7 @@ const provideAndCheckNote = async (title: string,
         return true
       } else {
         // if there is no note to aggregate
-        logError(`no note found for year ${year ?? '-'}`)
+        logError(pluginJson, `no note found for year ${year ?? '-'}`)
         return false
       }
     }
@@ -437,7 +419,7 @@ const provideAndCheckNote = async (title: string,
   }
 
   // internal error with notes
-  logError('internal error with notes')
+  logError(pluginJson, 'internal error with notes')
   return false
 }
 
@@ -451,15 +433,15 @@ const checkDataQualityBeforeAggregate = (rows: ExpenseTrackingRow[], year: numbe
     const rowYear = getYear(row.date)
 
     if (rowYear !== year) {
-      logError(`year at: ${createTrackingExpenseRowWithConfig(row, config)}`)
+      logError(pluginJson, `year at: ${createTrackingExpenseRowWithConfig(row, config)}`)
       return false
     }
     if (!categoryOk(row.category, config.categories)) {
-      logError(`category not found at: ${createTrackingExpenseRowWithConfig(row, config)}`)
+      logError(pluginJson, `category not found at: ${createTrackingExpenseRowWithConfig(row, config)}`)
       return false
     }
     if (!amountOk(row.amount)) {
-      logError(`amount at: ${createTrackingExpenseRowWithConfig(row, config)}`)
+      logError(pluginJson, `amount at: ${createTrackingExpenseRowWithConfig(row, config)}`)
       return false
     }
 

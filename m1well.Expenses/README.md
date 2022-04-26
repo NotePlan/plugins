@@ -4,9 +4,9 @@ With this plugin you can write down and store your daily/monthly expenses with a
 This is meant to be used for further analysis.
 
 ## Configuration
-Please use the new plugins settings section.  
+Please use the new Plugin's settings section in the Plugin Preferences pane.
 
-### Content
+These are the different settings:
 * `folderPath`
   * Path of the folder for the expenses Notes (if you change the path later on, then you also have to move the note(s)!)
 * `delimiter`
@@ -29,72 +29,6 @@ Please use the new plugins settings section.
 * `fixedExpenses` (JSON format)
   * Fixed expenses in your life e.g. the monthly flat rent, the yearly car insurance or the monthly spotify subscription (which is deactivated in the example for show reasons)
 
-### Example configuration
-
-```json5
-{
-  expenses: {
-    folderPath: 'finances',
-    delimiter: ';',
-    dateFormat: 'yyyy-MM-dd',
-    amountFormat: 'short',
-    columnOrder: [
-      'date',
-      'category',
-      'text',
-      'amount',
-    ],
-    categories: [
-      'Living',
-      'Groceries',
-      'Insurances',
-      'Mobility',
-      'Media',
-      'Fun',
-    ],
-    shortcutExpenses: [
-      {
-        category: 'Mobility',
-        text: 'Refuel',
-        amount: null,
-      },
-      {
-        category: 'Groceries',
-        text: 'XYZ Market',
-        amount: null,
-      },
-      {
-        category: 'Fun',
-        text: 'Coffee at Starbucks',
-        amount: 8,
-      },
-    ],
-    fixedExpenses: [
-      {
-        category: 'Living',
-        text: 'Flat Rent',
-        amount: 670,
-        month: 0,
-        active: true,
-      },
-      {
-        category: 'Insurances',
-        text: 'Car Insurance',
-        amount: 399,
-        month: 1,
-        active: true,
-      },
-      {
-        category: 'Media',
-        text: 'Spotify',
-        amount: 9.99,
-        month: 0,
-        active: false,
-      },
-    ],
-  },
-}
-```
 
 ## Hints
 * for the sake of simplicity you can't change written lines or add older entries
