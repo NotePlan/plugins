@@ -1,7 +1,7 @@
 // @flow
 // ----------------------------------------------------------------------------
 // Command to bring calendar events into notes
-// Last updated 24.4.2022 for v0.14.1, by @jgclark
+// Last updated 26.4.2022 for v0.14.1, by @jgclark
 // @jgclark, with additions by @dwertheimer, @weyert, @m1well
 // ----------------------------------------------------------------------------
 
@@ -242,21 +242,26 @@ export async function insertMatchingDaysEvents(paramString: ?string): Promise<vo
 
 // ----------------------------------------------------------------------------
 /**
- * Change the format placeholders to the actual values
+ * Change the format placeholders to the actual values. For V1 syntax.
+ * TODO: Allow for optional items within the string.  E.g.
+ *   - `*|with ATTENDEES|*` only prints the `with ` if ATTENDEES is not empty
  * @private
  * @author @m1well
  * @param {TCalendarItem} item Calendar item whose values to use
  * @param {EventsConfig} config current configuration to use for this plugin
+ * @param {string} format optional format string, to look for more complex strings (e.g. *|with ATTENDEES|*)
  * @return {{string, string}}
  */
-function getReplacements(item: TCalendarItem, config: EventsConfig): { key: string, value: string }[] {
-  return [
+function getReplacements(item: TCalendarItem, config: EventsConfig, format?: string): { key: string, value: string }[] {
+  let outputObject = [
     {
       key: '*|CAL|*',
       value: calendarNameWithMapping(item.calendar, config.calendarNameMappings),
     },
-    { key: '*|TITLE|*', value: item.title },
-    // { key: '*|DATE|*', value: toLocaleDateString(item.date, config.locale, config.timeOptions) },
+    {
+      key: '*|TITLE|*',
+      value: item.title
+    },
     {
       key: '*|START|*',
       value: !item.isAllDay
@@ -276,6 +281,8 @@ function getReplacements(item: TCalendarItem, config: EventsConfig): { key: stri
     { key: '*|ATTENDEES|*', value: item.attendees ? attendeesAsString(item.attendees) : '' },
     { key: '*|EVENTLINK|*', value: item.calendarItemLink ? item.calendarItemLink : '' },
   ]
+  // console.log(typeof outputObject)
+  return outputObject
 }
 
 /**

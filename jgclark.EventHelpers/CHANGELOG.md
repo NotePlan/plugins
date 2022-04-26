@@ -1,6 +1,13 @@
 # What's changed in 🕓 Event Helpers?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
+## [0.14.1] - 2022-04-26
+### Changed
+- Improved messaging if a Templating user tries to use this Plugin's functions, without the plugin being installed.
+- Removed the version of /insert day's events that simply wrote to the Plugin Console for testing
+### Fixed
+- Fixed events() in a template returning events for the previous day
+
 ## [0.14.0] - 2022-04-23
 ### Added
 - Added support for including list of Attendees in output for calendar events. You can include it in format strings as `*|ATTENDEES|*`. This produces a comma-separated list of names or emails (where name isn't given).

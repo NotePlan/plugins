@@ -4,6 +4,7 @@
 // @jgclark except where shown
 
 import strftime from 'strftime'
+import moment from 'moment'
 import {
   toISODateString,
   toISOShortDateTimeString
@@ -70,6 +71,7 @@ export function printDateRange(dr: DateRange) {
 /**
  * Calculate an offset date, as a JS Date.
  * v2 method, using built-in NotePlan function 'Calendar.addUnitToDate(date, type, num)'
+ * // TODO: see if moment library has got these sort of functions already
  * @author @jgclark
  * 
  * @param {string} baseDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type
@@ -78,7 +80,10 @@ export function printDateRange(dr: DateRange) {
  */
 export function calcOffsetDate(baseDateISO: string, interval: string): Date {
   try {
-    const baseDate = new Date(baseDateISO)
+    const momentDate = moment(baseDateISO) // use moment() to work in the local timezone [says @dwertheimer]
+    // const baseDate = new Date(baseDateISO)
+    const baseDate = new Date(momentDate.format()) // ditto
+    // log('calcOffsetDate()', `baseDateISO:${baseDateISO} momentDate:${momentDate} baseDate:${baseDate.toString()}`)
     let daysToAdd = 0
     let monthsToAdd = 0
     let yearsToAdd = 0
@@ -143,6 +148,8 @@ export function calcOffsetDate(baseDateISO: string, interval: string): Date {
   }
   catch (e) {
     logError('helpers/calcOffsetDate', `${e.message} for baseDateISO '${baseDateISO}'`)
+    // $FlowIgnore
+    return
   }
 }
 
@@ -187,6 +194,7 @@ export function quarterStartEnd(qtr: number, year: number): [Date, Date] {
   // I.e. when in BST (=UTC+0100) it's calculating dates which are often 1 too early.
   // Get TZOffset in minutes. If positive then behind UTC; if negative then ahead.
   const TZOffset = new Date().getTimezoneOffset()
+  // TODO: This looks like a candidate for the moment() approach as well
 
   switch (qtr) {
     case 1: {

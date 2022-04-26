@@ -16,6 +16,7 @@ import {
 } from '../../helpers/dataManipulation'
 import { clo, log, logWarn, logError } from "../../helpers/dev"
 import { type HourMinObj } from '../../helpers/dateTime'
+import { calcOffsetDateStr } from '../../helpers/NPdateTime'
 import { type EventsConfig } from '../../helpers/NPCalendar'
 import { showMessage } from '../../helpers/userInput'
 
@@ -26,7 +27,6 @@ const configKey = 'events'
 
 /**
  * Get config settings using Config V2 system. (Have now removed support for Config V1.)
-
  * @author @jgclark
  * @return {EventsConfig} object with configuration
  */
@@ -60,7 +60,7 @@ export async function getEventsSettings(): Promise<any> {
     v2Config.locale = getLocale(v2Config)
     v2Config.timeOptions = getTimeOptions(v2Config)
     // $FlowFixMe
-    clo(v2Config, `${configKey} settings from V2:`)
+    // clo(v2Config, `${configKey} settings from V2:`)
     return v2Config
   }
   catch (err) {
