@@ -1,12 +1,16 @@
 # What's changed in 🕓 Event Helpers?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
+## [0.14.2] - **not yet released**
+### Changed
+- Under-the-hood change to register its functions ready for NP 3.5.2. ??? Means minimum version that it will run with is v3.5.2.
+
 ## [0.14.1] - 2022-04-26
 ### Changed
 - Improved messaging if a Templating user tries to use this Plugin's functions, without the plugin being installed.
 - Removed the version of /insert day's events that simply wrote to the Plugin Console for testing
 ### Fixed
-- Fixed events() in a template returning events for the previous day
+- Fixed events() in a template returning events for the previous day (thanks @dwertheimer for PR)
 
 ## [0.14.0] - 2022-04-23
 ### Added
