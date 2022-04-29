@@ -1,6 +1,8 @@
 // @flow
 /*
 TO DO:
+- projectNoteByFilename(filename)
+- write the database index using cron?
 - THE FUZZY SEARCH SEEMS TO SUCK: title is weighted heavily, but Horizons search brings up soyrizo first
 - For fuse refactor writeIndex to get the index and write it
 - For FUSE make a version of getMetaData() to use instead of the map to remove hashtags and mentions to skip
@@ -151,7 +153,7 @@ export async function searchButShowTitlesOnly(linksOnly: boolean = false): Promi
 
 export async function searchUserInput(linksOnly: boolean = false): Promise<void> {
   try {
-    const searchTerm = await CommandBar.showInput('Search', 'Search for: %@')
+    const searchTerm = await CommandBar.showInput("'=match-exactly; !=NOT; space=AND; |=OR", 'Search for: %@')
     const config = getDefaultConfig()
     log(pluginJson, `searchUserInput: searchTerm=${searchTerm}`)
     CommandBar.showLoading(true, `Searching ${DataStore.projectNotes.length} notes and attachments...`)
