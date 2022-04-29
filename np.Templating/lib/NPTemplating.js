@@ -7,9 +7,10 @@
 import { semverVersionToNumber } from '@helpers/general'
 import pluginJson from '../plugin.json'
 import FrontmatterModule from './support/modules/FrontmatterModule'
-import { clo, log, logError } from '@helpers/dev'
+
 import globals from './globals'
 import { chooseOption } from '@helpers/userInput'
+import { clo, log, logError } from '@helpers/dev'
 
 /*eslint-disable */
 import TemplatingEngine from './TemplatingEngine'
@@ -309,6 +310,10 @@ export default class NPTemplating {
       const allTemplates = DataStore.projectNotes
         .filter((n) => n.filename?.startsWith(templateFolder))
         .filter((n) => !n.title?.startsWith('_configuration'))
+        .filter((n) => !n.filename?.startsWith('Delete After Release'))
+        .sort((a, b) => {
+          return a.filename.localeCompare(b.filename)
+        })
         .map((note) => {
           return note.title == null ? null : { label: note.title, value: note.filename }
         })
@@ -481,6 +486,10 @@ export default class NPTemplating {
     }
   }
 
+  static async getTemplateAttributes(templateData: string = ''): Promise<any> {
+    return await new FrontmatterModule().attributes(templateData)
+  }
+
   static async getTemplateConfig(): mixed {
     await this.setup()
     return this.constructor.templateConfig
@@ -603,6 +612,9 @@ export default class NPTemplating {
       if (tag === '<%- discuss %>' || tag === '<%- discuss() %>') {
         newTemplateData = newTemplateData.replace(tag, `<%- prompt('discuss') %>`)
       }
+      if (tag === '<%- meetingName %>' || tag === '<%- meetingName() %>') {
+        newTemplateData = newTemplateData.replace(tag, `<%- prompt('meetingName','Enter Meeting Name:') %>`)
+      }
     })
 
     return { newTemplateData, newSettingData }
@@ -643,20 +655,18 @@ export default class NPTemplating {
         templateData = frontmatterBody
         sessionData.data = { ...sessionData.data, ...frontmatterAttributes }
       }
+
       if (isFrontmatterTemplate && usePrompts) {
         const frontmatterAttributes = new FrontmatterModule().parse(templateData)?.attributes || {}
         for (const [key, value] of Object.entries(frontmatterAttributes)) {
           let frontMatterValue = value
-          console.log('här')
           // $FlowIgnore
           const promptData = await this.processPrompts(value, sessionData, '<%', '%>')
           frontMatterValue = promptData.sessionTemplateData
 
-          console.log('här2')
           // $FlowIgnore
           const { newTemplateData, newSettingData } = await this.preProcess(frontMatterValue, sessionData)
           sessionData = { ...sessionData, ...newSettingData }
-          console.log('här3')
 
           const renderedData = await new TemplatingEngine(this.constructor.templateConfig).render(newTemplateData, promptData.sessionData, userOptions)
 
@@ -673,14 +683,14 @@ export default class NPTemplating {
       sessionData = { ...newSettingData }
 
       const promptData = await this.processPrompts(newTemplateData, sessionData, '<%', '%>')
+
       templateData = promptData.sessionTemplateData
       sessionData = promptData.sessionData
 
-      sessionData.data = { ...sessionData.data, ...userData.data }
-      sessionData.methods = { ...sessionData.methods, ...userData.methods }
+      sessionData.data = { ...sessionData.data, ...userData?.data }
+      sessionData.methods = { ...sessionData.methods, ...userData?.methods }
 
       const renderedData = await new TemplatingEngine(this.constructor.templateConfig).render(templateData, sessionData, userOptions)
-
       return this._filterTemplateResult(renderedData)
     } catch (error) {
       return this.templateErrorMessage('NPTemplating.renderTemplate', error)
@@ -706,7 +716,7 @@ export default class NPTemplating {
       frontmatterAttributes[item] = attributeValue
     }
 
-    return { frontmatterBody, frontmatterAttributes }
+    return { frontmatterBody, frontmatterAttributes: { ...userData, ...frontmatterAttributes } }
   }
 
   static async postProcess(templateData: string): Promise<mixed> {
@@ -783,8 +793,8 @@ export default class NPTemplating {
     if (promptMessage.length === 0) {
       promptMessage = options.length > 0 ? `Select ${varName}` : `Enter ${varName}`
     }
-    varName = varName.replace(/ /g, '_')
-    varName = varName.replace(/\?/g, '')
+    varName = varName.replace(/ /gi, '_')
+    varName = varName.replace(/\?/gi, '')
 
     return { varName, promptMessage, options }
   }
@@ -809,7 +819,7 @@ export default class NPTemplating {
 
     let sessionTemplateData = templateData.replace(/<%@/gi, '<%- prompt')
     let tags = await this.getTags(sessionTemplateData)
-    for (const tag of tags) {
+    for (let tag of tags) {
       // if tag is from module, it will contain period so we need to make sure this tag is not a module
       let isMethod = false
       for (const method of methods) {
@@ -823,7 +833,16 @@ export default class NPTemplating {
         isMethod = true
       }
 
-      if (!this.isVariableTag(tag) && !this.isControlBlock(tag) && !this.isTemplateModule(tag) && !isMethod && tag.includes('prompt')) {
+      const doPrompt = (tag) => {
+        let check = !this.isVariableTag(tag) && !this.isControlBlock(tag) && !this.isTemplateModule(tag) && !isMethod
+        if (!check) {
+          check = tag.includes('prompt')
+        }
+
+        return check
+      }
+
+      if (doPrompt(tag)) {
         // $FlowIgnore
         let { varName, promptMessage, options } = await this.getPromptParameters(tag)
         const varExists = (varName) => {
@@ -837,6 +856,7 @@ export default class NPTemplating {
 
           return result
         }
+
         if (!varExists(varName)) {
           promptMessage = promptMessage.replace('await', '').replace(/  /g, ' ')
           let response = await await this.prompt(promptMessage, options) // double await is correct here
@@ -860,6 +880,9 @@ export default class NPTemplating {
         let { varName, promptMessage, options } = await this.getPromptParameters(tag)
       }
     }
+
+    //.turn control output to standard output
+    sessionTemplateData = sessionTemplateData.replace(/<%~/gi, '<%=')
 
     return { sessionTemplateData, sessionData }
   }
@@ -909,6 +932,35 @@ export default class NPTemplating {
     }
   }
 
+  static async getFolder(folder: string = '', promptMessage: string = 'Select folder'): Promise<string> {
+    let selectedFolder = folder
+    const folders = DataStore.folders
+    if (folder == '<select>' || (Editor?.type === 'Calendar' && selectedFolder.length === 0)) {
+      const selection = await CommandBar.showOptions(folders, promptMessage)
+      selectedFolder = folders[selection.index]
+    } else if (folder == '<current>') {
+      const currentFilename = Editor.note?.filename
+
+      if (typeof currentFilename === 'undefined') {
+        const selection = await CommandBar.showOptions(folders, promptMessage)
+        selectedFolder = folders[selection.index]
+      } else {
+        const parts = currentFilename.split('/')
+        if (parts.length > 1) {
+          parts.pop()
+          selectedFolder = parts.join('/')
+        }
+      }
+    } else {
+      if (selectedFolder.length === 0) {
+        const selection = await CommandBar.showOptions(folders, promptMessage)
+        selectedFolder = folders[selection.index]
+      }
+    }
+
+    return selectedFolder
+  }
+
   static isVariableTag(tag: string = ''): boolean {
     return tag.indexOf('const') > 0 || tag.indexOf('let') > 0 || tag.indexOf('var') > 0 || tag.indexOf('.') > 0 || tag.indexOf('{') > 0 || tag.indexOf('}') > 0
   }
@@ -935,6 +987,18 @@ export default class NPTemplating {
       if (tag[2] === ' ') {
         result = true
       }
+    }
+
+    if (tag.includes('prompt')) {
+      result = false
+    }
+
+    if (tag.includes('let') || tag.includes('const') || tag.includes('var')) {
+      result = true
+    }
+
+    if (tag.includes('~')) {
+      result = true
     }
 
     return result

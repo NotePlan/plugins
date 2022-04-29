@@ -3,10 +3,11 @@
 //-----------------------------------------------------------------------------
 // Commands for Reviewing project-style notes, GTD-style.
 // by @jgclark
-// Last updated 4.2.2022 for v0.6.1, @jgclark
+// Last updated 25.4.2022 for v0.6.2, @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
+import pluginJson from "../plugin.json"
 import {
   getReviewSettings,
   logPreference,
@@ -17,6 +18,7 @@ import {
   nowLocaleDateTime,
   RE_DATE, // find dates of form YYYY-MM-DD
 } from '../../helpers/dateTime'
+import { log, logWarn, logError } from '../../helpers/dev'
 import {
   filterFolderList,
   getFolderFromFilename
@@ -31,7 +33,6 @@ import {
   showMessage,
   showMessageYesNo,
 } from '../../helpers/userInput'
-import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 
 //-----------------------------------------------------------------------------
 
@@ -51,7 +52,7 @@ export async function projectLists(): Promise<void> {
   
   const filteredFolderList = filterFolderList(config.foldersToIgnore)
 
-  console.log(`starting for ${config.noteTypeTags.toString()} tags:`)
+  log(pluginJson, `projectLists() starting for ${config.noteTypeTags.toString()} tags:`)
 
   if (config.noteTypeTags.length > 0) {
     // We have defined tag(s) to filter and group by
@@ -69,14 +70,12 @@ export async function projectLists(): Promise<void> {
         outputArray.unshift(`# ${noteTitle}`)
 
         // Save the list(s) to this note
-        console.log(`\twriting results to the note with filename '${note.filename}'`)
+        log(pluginJson, `writing results to the note with filename '${note.filename}'`)
         note.content = outputArray.join('\n')
-        console.log(`\twritten results to note '${noteTitle}'`)
+        log(pluginJson, `written results to note '${noteTitle}'`)
       } else {
         await showMessage('Oops: failed to find or make project summary note', 'OK')
-        console.log(
-          "projectLists: error: shouldn't get here -- no valid note to write to",
-        )
+        logError(pluginJson, "Shouldn't get here -- no valid note to write to!")
         return
       }
     }
@@ -90,14 +89,12 @@ export async function projectLists(): Promise<void> {
       outputArray.unshift(`# ${noteTitle}`)
 
       // Save the list(s) to this note
-      console.log(`\twriting results to the note with filename '${note.filename}'`)
+      log(pluginJson, `writing results to the note with filename '${note.filename}'`)
       note.content = outputArray.join('\n')
-      console.log(`\twritten results to note '${noteTitle}'`)
+      log(pluginJson, `written results to note '${noteTitle}'`)
     } else {
       await showMessage('Oops: failed to find or make project summary note', 'OK')
-      console.log(
-        "projectLists: error: shouldn't get here -- no valid note to write to",
-      )
+      logError(pluginJson, "Shouldn't get here -- no valid note to write to!")
       return
     }
   }
@@ -113,10 +110,6 @@ export async function projectLists(): Promise<void> {
 export async function startReviews(): Promise<void> {
   const config = await getReviewSettings()
   const filteredFolderList = filterFolderList(config.foldersToIgnore)
-
-  // Temporary check to see if we can delete an absolete '_reviews' file.
-  deleteOldListFile() // TODO: Delete me in time
-
   const summaryArray = []
   
   CommandBar.showLoading(true, `Generating review list`)
@@ -146,7 +139,7 @@ export async function startReviews(): Promise<void> {
       // For each readyToReview note get the machine-readable summary line for it
       for (const thisProject of projectsReadyToReview) {
         summaryArray.push(thisProject.machineSummaryLine())
-        // console.log(thisProject.machineSummaryLine())
+        // log(pluginJson, thisProject.machineSummaryLine())
       }
     }
   }
@@ -158,7 +151,8 @@ export async function startReviews(): Promise<void> {
 
   // write summary to reviewList pref
   DataStore.setPreference(reviewListPref, outputArray.join('\n'))
-  logPreference(reviewListPref)
+  log(pluginJson, `  There are ${outputArray.length} lines in the reviewListPref`)
+  // logPreference(reviewListPref)
 
   // Now trigger first review
   const noteToReview = await getNextNoteToReview()
@@ -169,8 +163,8 @@ export async function startReviews(): Promise<void> {
       await Editor.openNoteByFilename(noteToReview.filename)
     }
   } else {
-    console.log('🎉 No notes to review!')
-    await showMessage('🎉 No notes to review!')
+    log(pluginJson, '  🎉 No notes to review!')
+    await showMessage('  🎉 No notes to review!')
   }
 }
 
@@ -183,7 +177,7 @@ export async function startReviews(): Promise<void> {
  * @return {Array<string>} summary lines to write out to a note
  */
 async function makeNoteTypeSummary(noteTag: string): Promise<Array<string>> {
-  console.log(`makeNoteTypeSummary for '${noteTag}'`)
+  log(pluginJson, `makeNoteTypeSummary(): for '${noteTag}'`)
   const config = await getReviewSettings()
   const filteredFolderList = filterFolderList(config.foldersToIgnore)
 
@@ -194,7 +188,7 @@ async function makeNoteTypeSummary(noteTag: string): Promise<Array<string>> {
   // if we want a summary broken down by folder, create list of folders
   // otherwise use a single folder
   const folderList = config.displayGroupedByFolder ? DataStore.folders : ['/']
-  // console.log(`  Processing ${folderList.length} folders`)
+  // log(pluginJson, `  Processing ${folderList.length} folders`)
 
   // Iterate over the folders (ignoring any in the pref_foldersToIgnore list)
   CommandBar.showLoading(true, `Summarising ${noteTag} in ${filteredFolderList.length} folders`)
@@ -212,7 +206,7 @@ async function makeNoteTypeSummary(noteTag: string): Promise<Array<string>> {
         if (!np.isArchived || config.displayArchivedProjects) {
           projects.push(np)
         } else {
-          console.log(`\t    Ignoring ${np.title} as archived and don't want to show them`)
+          log(pluginJson, `  Ignoring ${np.title} as archived`)
         }
         if (np.nextReviewDays != null && np.nextReviewDays < 0) {
           overdue += 1
@@ -247,7 +241,7 @@ async function makeNoteTypeSummary(noteTag: string): Promise<Array<string>> {
       }
       noteCount += sortedProjects.length
     } else {
-      console.log(`No notes found for '${noteTag}'`)
+      log(pluginJson, `No notes found for '${noteTag}'`)
     }
     CommandBar.showLoading(true, `Summarising ${noteTag} in ${filteredFolderList.length} folders`, (noteCount / filteredFolderList.length))
   }
@@ -269,18 +263,12 @@ async function makeNoteTypeSummary(noteTag: string): Promise<Array<string>> {
 //-------------------------------------------------------------------------------
 /**
  * Complete current review, then jump to the next one to review
- * V2: now using preference not a special note.
+ * @author @jgclark
 */
 export async function nextReview(): Promise<void> {
-  console.log('\nnextReview')
+  log(pluginJson, 'nextReview')
   // First update @review(date) on current open note
   const openNote: ?TNote = await finishReview()
-
-  // NB: The following is now done in finishReview() ...
-  // if (openNote != null) {
-  //   // Then update @review(date) in review list note
-  //   await updateReviewListAfterReview(openNote)
-  // }
 
   // Read review list to work out what's the next one to review
   const noteToReview: ?TNote = await getNextNoteToReview()
@@ -289,10 +277,11 @@ export async function nextReview(): Promise<void> {
   if (noteToReview != null) {
     const res = await showMessageYesNo(`Ready to review '${displayTitle(noteToReview)}'?`, ['OK', 'Cancel'])
     if (res === 'OK') {
+      log(pluginJson, `nextReview(): Opening '${displayTitle(noteToReview)}' note to review ...`)
       await Editor.openNoteByFilename(noteToReview.filename)
     }
   } else {
-    console.log('nextReview: 🎉 No more notes to review!')
+    log(pluginJson, `nextReview(): 🎉 No more notes to review!`)
     await showMessage('🎉 No more notes to review!')
   }
 }
@@ -300,31 +289,29 @@ export async function nextReview(): Promise<void> {
 //-------------------------------------------------------------------------------
 /**
  * Update the review list after completing a review
- * V2: now using preference not note
  * @author @jgclark
- * 
  * @param {TNote} note that has been reviewed
 */
 export async function updateReviewListAfterReview(note: TNote): Promise<void> {
   const reviewedTitle = note.title ?? ''
-  console.log(`\twill remove '${reviewedTitle}' from list`)
+  log(pluginJson, `updateReviewListAfterReview(): Will remove '${reviewedTitle}' from list ...`)
 
   // Get pref that contains the project list
   const reviewList = DataStore.preference(reviewListPref)
   if (reviewList === undefined) {
-    console.log(`\twarning: can't find pref ${reviewListPref}. Suggest re-running '/start reviews'`)
+    logWarn(pluginJson, `  Can't find pref ${reviewListPref}. Suggest re-running '/start reviews'.`)
     return
   }
 
   // Now read contents and parse, this time as lines
   const lines = reviewList.split('\n')
-  // console.log(`\t(pref: has ${lines.length} items, starting ${lines[0]})`)
+  // log(pluginJson, `\t(pref: has ${lines.length} items, starting ${lines[0]})`)
   // $FlowFixMe
   let lineNum: number // deliberately undefined
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
     if (line.match(reviewedTitle)) {
-      // console.log(`\tFound '${reviewedTitle}' in line '${line}' at line number ${i}`)
+      // log(pluginJson, `\tFound '${reviewedTitle}' in line '${line}' at line number ${i}`)
       lineNum = i
       break
     }
@@ -333,9 +320,9 @@ export async function updateReviewListAfterReview(note: TNote): Promise<void> {
   if (lineNum !== undefined) {
     lines.splice(lineNum, 1) // delete this one line
     DataStore.setPreference(reviewListPref, lines.join('\n'))
-    // console.log(`\tRemoved line ${lineNum} from reviewList pref as its review is completed`)
+    // log(pluginJson, `\tRemoved line ${lineNum} from reviewList pref as its review is completed`)
   } else {
-    console.log(`\tInfo: couldn't find '${reviewedTitle}' to remove from review list`)
+    logError(pluginJson, `updateReviewListAfterReview(): Couldn't find '${reviewedTitle}' to remove from review list`)
     return
   }
 }
@@ -343,9 +330,7 @@ export async function updateReviewListAfterReview(note: TNote): Promise<void> {
 //-------------------------------------------------------------------------------
 /** 
  * Work out the next note to review (if any)
- * V2: now using preference not note
  * @author @jgclark
-
  * @return { ?TNote } next note to review
  */
 async function getNextNoteToReview(): Promise<?TNote> {
@@ -353,7 +338,7 @@ async function getNextNoteToReview(): Promise<?TNote> {
   const reviewList = DataStore.preference(reviewListPref)
   if (reviewList === undefined) {
     await showMessage(`Oops: I now can't find my pref. Try re-running '/start reviews' command.`, 'OK')
-    console.log(`\terror: can't find pref jgclark.Review.reviewList`)
+    logError(pluginJson, `getNextNoteToReview(): Can't find pref jgclark.Review.reviewList.`)
     return
   }
 
@@ -361,13 +346,13 @@ async function getNextNoteToReview(): Promise<?TNote> {
   if (reviewList.length > 0) {
     const lines = reviewList.split('\n')
     const firstLine = lines[0]
-    // console.log(`pref: has ${lines.length} items, starting ${firstLine}`)
+    // log(pluginJson, `pref: has ${lines.length} items, starting ${firstLine}`)
     const nextNoteTitle = firstLine.split('\t')[1] // get second field in list
-    console.log(`\tNext project note to review = '${nextNoteTitle}'`)
+    log(pluginJson, `Next project note to review = '${nextNoteTitle}'`)
     const nextNotes = DataStore.projectNoteByTitle(nextNoteTitle, true, false) ?? []
     return nextNotes[0] // return first matching note
   } else {
-    console.log(`\tInfo: review list was empty. Try re-running '/start reviews' command.`)
+    log(pluginJson, `getNextNoteToReview(): Review list was empty. Try re-running '/start reviews' command.`)
     return
   }
 }
@@ -379,13 +364,13 @@ async function getNextNoteToReview(): Promise<?TNote> {
  * @return { ?TNote } current note
  */
 export async function finishReview(): Promise<?TNote> {
-  const reviewMentionString = '@reviewed'
-  const RE_REVIEW_MENTION = `${reviewMentionString}\\(${RE_DATE}\\)`
-  const reviewedTodayString = `@reviewed(${hyphenatedDateString(new Date())})`
+  const reviewedMentionStr = DataStore.preference('reviewedMentionStr')
+  const RE_REVIEW_MENTION = `${reviewedMentionStr}\\(${RE_DATE}\\)`
+  const reviewedTodayString = `${reviewedMentionStr}(${hyphenatedDateString(new Date())})`
 
   // only proceed if we're in a valid Project note (with at least 2 lines)
-  if (Editor.note == null || Editor.note.type === 'Calendar' || Editor.paragraphs?.length < 2) {
-    console.log(`Warning: we're not in a valid Project note (with at least 2 lines).`)
+  if (Editor.note == null || Editor.note.type === 'Calendar' || Editor.paragraphs.length < 2) {
+    logWarn(pluginJson, `finishReview(): We're not in a valid Project note (and with at least 2 lines). Note title = '${Editor.title ?? ''}'`)
     return
   }
 
@@ -401,9 +386,7 @@ export async function finishReview(): Promise<?TNote> {
     for (const para of Editor.paragraphs) {
       if (para.content.match(RE_REVIEW_MENTION)) {
         metadataPara = para
-        console.log(
-          `\tFound existing ${reviewMentionString}(date) in line ${para.lineIndex}`,
-        )
+        log(pluginJson, `finishReview(): Found existing ${reviewedMentionStr}(date) in line ${para.lineIndex}`)
       }
     }
     
@@ -412,15 +395,13 @@ export async function finishReview(): Promise<?TNote> {
     const older = metaPara.content
     const newer = older.replace(firstReviewedMention, reviewedTodayString)
     metaPara.content = newer
-    // console.log(`\tupdating para to '${newer}'`)
+    // log(pluginJson, `\tupdating para to '${newer}'`)
 
     // send update to Editor
     Editor.updateParagraph(metaPara)
   } else {
     // no existing mention, so append to note's default metadata line
-    console.log(
-      `\tInfo: no matching ${reviewMentionString}(date) string found. Will append to line ${metadataLineNum}`,
-    )
+    log(pluginJson, `finishReview(): No matching ${reviewedMentionStr}(date) string found. Will append to line ${metadataLineNum}.`)
     metadataPara = Editor.note?.paragraphs[metadataLineNum]
     if (metadataPara == null) {
       return null
@@ -436,26 +417,4 @@ export async function finishReview(): Promise<?TNote> {
 
   // return current note, to help next function
   return Editor.note
-}
-
-//-----------------------------------------------------------------------------
-// To help transition from the previous method which used a machine-readable
-// file '_reviews' for persistent storage, this will remove it if found.
-// TODO: remove this after some months, as no longer needed
-function deleteOldListFile(): void {
-  const notes = DataStore.projectNoteByTitle('_reviews', false, false) ?? [] // don't link in Trash
-  const reviewListNoteTitle = '_reviews'
-  if (notes?.length > 0) {
-    const reviewNote = notes[0]
-    // Following doesn't seem to work
-    // const temp = DataStore.moveNote(reviewListNoteTitle, "@Trash")
-    // So try to rename instead
-    const titlePara = reviewNote.paragraphs[0]
-    const firstLinePara = reviewNote.paragraphs[1]
-    titlePara.content = `PLEASE DELETE ME: _reviews`
-    reviewNote.updateParagraph(titlePara)
-    firstLinePara.content = `**This note has now been replaced by a newer preference mechanism.** It can now safely be deleted.`
-    reviewNote.updateParagraph(firstLinePara)
-    console.log(`Info: the old '${reviewListNoteTitle}' note has been updated to say it is no longer needed to operate the Review plugin commands.`)
-  }
 }

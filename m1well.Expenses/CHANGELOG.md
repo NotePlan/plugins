@@ -1,13 +1,14 @@
 # m1well.Expenses Plugin Changelog
 
-## [1.7.1] - 2022-02-22 (@dwertheimer)
+## [1.7.2] - 2022-04-26 (@jgclark)
+### Changed
+- remove references to previous _configuration note system; all comes through Plugin settings screen
 
+## [1.7.1] - 2022-02-22 (@dwertheimer)
 ### Fixed
 - updateOrInstall was pulling wrong JSON file
 
-
 ## [1.7.0] - 2022-02-10 (@m1well)
-
 ### Added
 - Add possiblity to do configuration via the new plugin settings section
 - But also downwards compatible

@@ -3,6 +3,61 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.0.3] - 2022-04-17 (mikeerickson)
+
+- fixed tag details
+- fixed `np.Templating` New Note (`np:new`) was not using entered note title (if `newNoteTitle` does not exist in template attributes)
+- fixed issue with `NPTemplating.getFolder` interface, was displaying "Choose Destination Folder" even though a default folder was supplied
+
+## [1.0.2] - 2022-04-16 (mikeerickson)
+
+- version bump mistake, but it is what it is so we had a very short bug fix release which contained ONLY of version bump (sorry folks)
+
+## [1.0.1] - 2022-04-16 (mikeerickson)
+
+- changed `getTemplateList` and `chooseTemplate` commands to sort templates in alphabetical order
+- fixed issue disabling `nmn.Templates` during install or update (`onUpdateOrInstall` hook)
+- changed `nmn.Templates` disable message to be more clear and concise, and changed `nmn.Templates` to "Previous Templates"
+- changed all dialogs which referenced `np.Templating` documentation url, providing consistency
+- fixed `np:qtn` and `np:mtn` to prompt for new note title if `newNoteTitle` attribute not defined in template
+- fixed `np:qtn` to prompt for destination folder if `folder` attribute not defined in template
+- added default date/time prompt value when when using `np:mtn` (uses `timestampFormat` format in `np.Templating` settings)
+- updated README command reference
+
+## [1.0.0] - 2022-04-14 (mikeerickson)
+
+- Public Release
+
+## [1.0.0-beta.38] - 2022-04-12 (mikeerickson)
+
+- fixed second regression, spreading `userData` from `.preRender` to `frontmatterAttributes` (@EduardMe)
+
+## [1.0.0-beta.37] - 2022-04-12 (mikeerickson)
+
+- fixed regression in `np.Templating.preRender` (@EduardMe)
+
+## [1.0.0-beta.36] - 2022-04-12 (mikeerickson)
+
+- Removed test code for template migration (`np:migrate-template`) (@dwertheimer)
+- added action to disable `nmn.Templates` during `np.Templating` install, after template migration (@dwertheimer)
+
+## [1.0.0-beta.35] - 2022-04-12 (mikeerickson)
+
+- fixed some additional prompt issues (including regression handling of promps with spaced variables `<%- sleep hours? %>`) (@dwertheimer)
+
+## [1.0.0-beta.34] - 2022-04-11 (mikeerickson)
+
+- Implemented `<current>` and `<select>` when defined in templates which `folder` attribute
+  - Works with `np:mtn`, `np:qtn` and `np:new` commands
+- fixed `<%- meetingName %>` issue when process Quick Note
+- added `NPTemplating :: getFolder`
+- fixed some prompt related issues
+- fixed migration issue when changing `date` to `legacyDate` (was incorrectly updating `progressUpdate`)
+- fixed migration issue, fronmatter title was not matching legacy template note name under certain circumstances
+- refactor `np:migrate-templates` to not call `np:migration-quick-notes` intrisnically
+  - still executed together when running in `onUpdateOrInstall` method
+- added action to disable `nmn.Templates` in `onUpdateOrInstall` method, after successful template migrations
+
 ## [1.0.0-beta.33] - 2022-04-10 (mikeerickson)
 
 - fix issue passing renderData in `data` and `method` properties

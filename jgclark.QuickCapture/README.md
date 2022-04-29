@@ -1,5 +1,5 @@
 # ⚡️ QuickCapture plugin
-This plugin provides commands to quickly add tasks/todos or general text to NotePlan notes:
+This plugin provides commands to more quickly add tasks/todos or general text to NotePlan notes, _without having to switch away from the note you're currently working on_:
 
 - `/quick add task to inbox` (was `/int`): Quickly add a task to your '📥 Inbox' note. (To configure this, see below.)
 - `/quick add task under heading` (was `/qath`): Quickly add a task at the top of a chosen note's heading
@@ -13,20 +13,12 @@ This plugin provides commands to quickly add tasks/todos or general text to Note
 (You can still use the short command names as is.)
 
 ## Configuration
-The first time you  use `/int` it should write some default configuration to the  `📋 Templates/_configuration` note. If this note has not been added, it will add one, if you agree.
+Most of these commands require configuration. In NotePlan v3.4 and above, please click the gear button on the 'Event Helpers' line in the Plugin Preferences panel.
 
-In this note, include the following settings you want in the first code block. For example:
-
-```jsonc
-...
-inbox: {
-  inboxTitle: "📥 Inbox", // name of your inbox note, or leave empty ("") to use the daily note instead. (If the setting is missing, or doesn't match a note, then the plugin will try to create it, from default settings if necessary.)
-	addInboxPosition: "prepend",  // or "append"
-  textToAppendToTasks: "" // text to append to any tasks captured to the inbox through /int
-},
-...
-```
-(This example fragment is in JSON5 format: see the help text in `_configuration` note. Ensure there are commas at the end of all that lines that need them.)
+Here are details on the various settings:
+- **InboxTitle**: name of your inbox note, or leave empty to use the daily note instead. (Default: "📥 Inbox".)
+-	**Where to Add to Inbox note**: either "prepend" (start) or "append" (end)
+- **Text to append to new inbox tasks**: optional text to append to any tasks captured to the inbox through /int
 
 ## History
 See [CHANGELOG](CHANGELOG.md)

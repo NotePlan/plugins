@@ -130,11 +130,24 @@ export function getTimeStringFromDate(date: Date): string {
 }
 
 export function getDateStringFromCalendarFilename(filename: string): string {
-  return filename.slice(0, 8)
+  if (filename.match(/^\d{8}\.(md|txt)$/)) {
+    return filename.slice(0, 8)
+  } else {
+    return '(invalid date)'
+  }
 }
 
-export function getISODateStringFromCalendarFilename(filename: string): string {
-  return `${filename.slice(0, 4)}-${filename.slice(4, 6)}-${filename.slice(6, 8)}`
+/**
+ * Change a YYYYMMDD date string to YYYY-MM-DD
+ * @param {*} dateStr without hyphens
+ * @returns {string} ISO hyphenated string
+ */
+export function getISODateStringFromYYYYMMDD(filename: string): string {
+  if (filename.match(/^\d{8}/)) {
+    return `${filename.slice(0, 4)}-${filename.slice(4, 6)}-${filename.slice(6, 8)}`
+  } else {
+    return '(invalid date)'
+  }
 }
 
 // @nmn

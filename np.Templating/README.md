@@ -25,18 +25,16 @@ Once the command bar is displayed, you can continue typing any of the following 
 
 📖 Visit [np.Templating website](https://nptemplating-docs.netlify.app/) for comprehensive documention
 
-| Command                 | Available Inline | Description                                                                                       |
-| ----------------------- | ---------------- | ------------------------------------------------------------------------------------------------- |
-| np:init                 | Yes       | Initilalizes np.Templating Settings (only use if you want to reset settings to default)                                         |
-| np:insert  | Yes               | Insert selected template at cursor (will show list of all available templates)                                    |
-| np:append            | Yes        | Appends selected template at end of current note (will show list of all available templates)                                          |
-| np:new             | Yes               | Creates a new note from selected template and supplied note name   |
-| np:advice             | Yes               | Inserts random advice at cursor location   |
-| np:affirmation             | Yes               | Inserts random affirmation at cursor location   |
-| np:quote             | Yes               | Inserts random quote at cursor location   |
-| np:verse             | Yes               | Inserts random bible verse at cursor location   |
-| np:weather             | Yes               | Inserts current weather for your location at cursor location   |
-| np:update             | Yes               | Invokes settings update method   |
+| Command                 | Available Inline | Description                                                                                        |
+| ----------------------- | ----------------- | ------------------------------------------------------------------------------------------------- |
+| np:init                 | Yes               | Initilalizes np.Templating Settings (only use if you want to reset settings to default)           |
+| np:insert               | Yes               | Insert selected template at cursor (will show list of all available templates)                    |
+| np:append               | Yes               | Appends selected template at end of current note (will show list of all available templates)      |
+| np:new                  | Yes               | Creates a new note from selected template and supplied note name                                  |
+| np:mtn                  | Yes               | Invokes Meeting Note Generation (displays list of all `type: meeting-note`)                       |
+| np:qtn                  | Yes               | Invokes Quick Note Generation (displays list of all `type: meeting-note`)                         |
+| np:verse                | Yes               | Inserts random bible verse at cursor location                                                     |
+| np:update               | Yes               | Invokes settings update method                                                                    |
 
 ## License
 

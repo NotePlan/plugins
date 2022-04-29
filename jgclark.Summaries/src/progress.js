@@ -2,9 +2,10 @@
 //-----------------------------------------------------------------------------
 // Progress update on some key goals to include in notes
 // Jonathan Clark, @jgclark
-// Last updated for v0.5.0, 18.1.2022 by @jgclark
+// Last updated 26.4.2022 for v0.7.1, @jgclark
 //-----------------------------------------------------------------------------
 
+import pluginJson from '../plugin.json'
 import {
   calcHashtagStatsPeriod,
   calcMentionStatsPeriod,
@@ -12,6 +13,7 @@ import {
   getPeriodStartEndDates,
 } from './summaryHelpers'
 import { unhyphenatedDate } from '../../helpers/dateTime'
+import { log, logWarn, logError } from '../../helpers/dev'
 import { getTagParamsFromString, rangeToString } from '../../helpers/general'
 
 //-------------------------------------------------------------------------------
@@ -20,11 +22,11 @@ function getSelectedParaIndex(): number {
   const { paragraphs, selection } = Editor
   // Get current selection, and its range
   if (selection == null) {
-    console.log(`warning: No selection found, so stopping.`)
+    logWarn(pluginJson, `No selection found, so stopping.`)
     return 0
   }
   const range = Editor.paragraphRangeAtCharacterIndex(selection.start)
-  // console.log(`  Cursor/Selection.start: ${rangeToString(range)}`)
+  // log(pluginJson, `  Cursor/Selection.start: ${rangeToString(range)}`)
 
   // Work out what selectedPara number(index) this selected selectedPara is
   let firstSelParaIndex = 0
@@ -35,7 +37,7 @@ function getSelectedParaIndex(): number {
       break
     }
   }
-  // console.log(`  firstSelParaIndex = ${firstSelParaIndex}`)
+  // log(pluginJson, `  firstSelParaIndex = ${firstSelParaIndex}`)
   return firstSelParaIndex
 }
 
@@ -58,12 +60,12 @@ export async function insertProgressUpdate(params?: string): Promise<string | vo
   // Get time period
   const [fromDate, toDate, periodString, periodPartStr] = await getPeriodStartEndDates('', interval)
   if (fromDate == null || toDate == null) {
-    console.log('insertProgressUpdate: Error calculating dates for week to date')
+    log(pluginJson, `insertProgressUpdate: Error calculating dates for week to date`)
     return `Error calculating dates for week to date`
   }
   const fromDateStr = unhyphenatedDate(fromDate)
   const toDateStr = unhyphenatedDate(toDate)
-  console.log(`\tcalculating ${interval} for ${periodString} (= ${fromDateStr} - ${toDateStr}):`)
+  log(pluginJson, `  calculating ${interval} for ${periodString} (= ${fromDateStr} - ${toDateStr}):`)
   // Get day of week (Sunday is first day of the week) or day of month
   const dateWithinInterval = interval === 'wtd' ? new Date().getDay() + 1 : new Date().getDate()
 
@@ -74,31 +76,9 @@ export async function insertProgressUpdate(params?: string): Promise<string | vo
   const hCounts = hResults?.[0]
   const hSumTotals = hResults?.[1]
   if (hSumTotals == null || hCounts == null) {
-    console.log('  warning: no results from calcHashtagStatsPeriod')
+    logWarn(pluginJson, `No results from calcHashtagStatsPeriod`)
   } else {
-    // Custom sort method to sort arrays of two values each
-    // const sortedHCounts = new Map(
-    //   [...(hCounts?.entries() ?? [])].sort(([key1, _v1], [key2, _v2]) =>
-    //     key1.localeCompare(key2),
-    //   ),
-    // )
-
-    // // First process more complex 'SumTotals', calculating appropriately
-    // for (const [key, value] of hSumTotals) {
-    //   // .entries() implied
-    //   const hashtagString = key.slice(1) // show without leading '#' to avoid double counting issues
-    //   const count = hCounts.get(key)
-    //   if (count != null) {
-    //     const total: string = value.toLocaleString()
-    //     const average: string = (value / count).toFixed(1)
-    //     hOutputArray.push(
-    //       `${hashtagString}\t${count}\t(total ${total}\taverage ${average})`,
-    //     )
-    //     hCounts.delete(key) // remove the entry from the next map, as not longer needed
-    //   }
-    // }
-
-    // Then process simpler 'Counts'
+    // Process 'Counts'
     for (const [key, value] of hCounts) {
       // .entries() implied
       const hashtagString = key.slice(1) // show without leading '#' to avoid double counting issues
@@ -119,7 +99,7 @@ export async function insertProgressUpdate(params?: string): Promise<string | vo
   const mCounts = mResults?.[0]
   const mSumTotals = mResults?.[1]
   if (mCounts == null || mSumTotals == null) {
-    console.log('  warning: no results from calcMentionsStatsPeriod')
+    logWarn(pluginJson, `No results from calcMentionsStatsPeriod`)
   } else {
     // First process more complex 'SumTotals', calculating appropriately
     for (const [key, value] of mSumTotals) {
@@ -154,14 +134,14 @@ export async function insertProgressUpdate(params?: string): Promise<string | vo
     // this is a plugin called from inside an editor
     if (Editor == null) {
       // Now insert the summary to the current note
-      console.log(`error: no note is open`)
+      logError(pluginJson, `No note is open`)
     } else {
       let currentLineIndex = getSelectedParaIndex()
       if (currentLineIndex === 0) {
-        console.log(`error: couldn't find correct cursor position, so will append to note instead.`)
+        logError(pluginJson, `Couldn't find correct cursor position, so will append to note instead.`)
         currentLineIndex = Editor.paragraphs.length - 1
       }
-      // console.log(`\tinserting results to current note (${Editor.filename ?? ''}) at line ${currentLineIndex}`)
+      // log(pluginJson, `\tinserting results to current note (${Editor.filename ?? ''}) at line ${currentLineIndex}`)
       Editor.insertHeading(
         `${heading}: Day ${dateWithinInterval} for ${periodString}`,
         currentLineIndex,
@@ -169,7 +149,7 @@ export async function insertProgressUpdate(params?: string): Promise<string | vo
       )
       Editor.insertParagraph(mOutputArray.join('\n'), currentLineIndex + 1, 'text')
       Editor.insertParagraph(hOutputArray.join('\n'), currentLineIndex + 1 + mOutputArray.length, 'text')
-      console.log(`\tappended results to current note for day ${dateWithinInterval}.`)
+      log(pluginJson, `  appended results to current note for day ${dateWithinInterval}.`)
     }
   }
 }

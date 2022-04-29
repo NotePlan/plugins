@@ -2,9 +2,10 @@
 //-----------------------------------------------------------------------------
 // Create weekly stats for a number of weeks, and format ready to use by gnuplot
 // Jonathan Clark, @jgclark
-// Last updated for v0.6.0, 7.2.2022
+// Last updated 26.4.2022 for v0.7.1, @jgclark
 //-----------------------------------------------------------------------------
 
+import pluginJson from '../plugin.json'
 import {
   calcHashtagStatsPeriod,
   calcMentionStatsPeriod,
@@ -18,11 +19,11 @@ import {
   unhyphenatedDate,
   weekStartEnd,
 } from '../../helpers/dateTime'
+import { log, logWarn, logError } from '../../helpers/dev'
 import {
   clearNote,
   getOrMakeNote
 } from '../../helpers/note'
-import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 import {
   chooseOption,
   getInput,
@@ -142,18 +143,16 @@ export async function weeklyStats(): Promise<void> {
     startWeek = Number(await getInput('Choose starting week number, 1-53', 'OK'))
     endYear = Number(await getInput('Choose ending year, e.g. 2021', 'OK'))
     endWeek = Number(await getInput('Choose ending week number, 1-53', 'OK'))
-    period = (endYear - startYear)*52 + (endWeek - startWeek)
+    period = (endYear - startYear)*52 + (endWeek - startWeek) // in weeks
   } else {
     // Calculate week range from answer, asking for date offset _before_ current week
     const currentWeekNum = getWeek(todaysDate)
     // First deal with edge case: after start of ordinal year but before first week starts
     if (currentWeekNum === 52 &&  // i.e. last week of the year AND
-      todaysDate.getMonth() == 0) // i.e. first month of the year
+      todaysDate.getMonth() == 0) // i.e. first month of the year (counting from 0)
     {
       thisYear -= 1
     }
-    // TODO(jgclark): It would be good to parcel up the above logic into a helper function,
-    // as it is used here and in summaryHelpers too.
     let answer = calcWeekOffset(thisWeek, thisYear, Number(-period))
     startYear = answer.year
     startWeek = answer.week
@@ -161,8 +160,7 @@ export async function weeklyStats(): Promise<void> {
     endWeek = thisWeek
   }
   const periodString = `${startYear}W${startWeek} - ${endYear}W${endWeek}`
-  console.log('')
-  console.log(`weeklyStats: calculating for ${periodString} (${period} weeks)`)
+  log(pluginJson, `weeklyStats: calculating for ${periodString} (${period} weeks)`)
 
   // Pop up UI wait dialog as this can be a long-running process
   CommandBar.showLoading(true, `Calculating weekly stats over ${period} weeks`)
@@ -181,7 +179,7 @@ export async function weeklyStats(): Promise<void> {
     w = answer.week
     y = answer.year
     counter++
-    // console.log(`${counter}: w ${w} y ${y}`)
+    // log(pluginJson, `${counter}: w ${w} y ${y}`)
     const [weekStartDate, weekEndDate] = weekStartEnd(w, y)
 
     // Calc hashtags stats (returns two maps)
@@ -192,7 +190,7 @@ export async function weeklyStats(): Promise<void> {
     const hCounts = weekResults?.[0]
     const hSumTotals = weekResults?.[1]
     if (hSumTotals == null || hCounts == null) {
-      console.log('no hSumTotals / hCounts values')
+      logWarn(pluginJson, 'no hSumTotals / hCounts values')
       continue
     }
 
@@ -261,7 +259,7 @@ export async function weeklyStats(): Promise<void> {
     // Now go through this array tweaking output to suit gnuplot
     hOutputArray = formatForGnuplot(hResultsArray)
   } else {
-    console.log(`Warning: no Hashtags found in weekly summaries`)
+    logWarn(pluginJson, `no Hashtags found in weekly summaries`)
   }
 
   let mOutputArray = []
@@ -271,7 +269,7 @@ export async function weeklyStats(): Promise<void> {
     // Now go through this array tweaking output to suit gnuplot
     mOutputArray = formatForGnuplot(mResultsArray)
   } else {
-    console.log(`Warning: no Mentions found in weekly summaries`)
+    logWarn(pluginJson, `no Mentions found in weekly summaries`)
   }
 
   // Get note to write out to
@@ -279,7 +277,7 @@ export async function weeklyStats(): Promise<void> {
   const noteTitle = 'weekly_stats'
   const note = await getOrMakeNote(noteTitle, config.folderToStore)
   if (note == null) {
-    console.log(`\tError getting new note`)
+    logError(pluginJson, `Can't get new note`)
     await showMessage('There was an error getting the new note ready to write')
     return
   }
@@ -292,5 +290,5 @@ export async function weeklyStats(): Promise<void> {
   // open this note in the Editor
   Editor.openNoteByFilename(note.filename)
 
-  console.log(`\twritten results to note '${noteTitle}'`)
+  log(pluginJson, `  written results to note '${noteTitle}'`)
 }

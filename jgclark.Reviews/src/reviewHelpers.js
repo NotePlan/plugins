@@ -2,9 +2,12 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // @jgclark
-// Last updated 4.2.2022 for v0.6.1, @jgclark
+// Last updated 25.4.2022 for v0.6.2, @jgclark
 //-----------------------------------------------------------------------------
 
+//-----------------------------------------------------------------------------
+// Import Helper functions
+import pluginJson from "../plugin.json"
 import {
   castBooleanFromMixed,
   castHeadingLevelFromMixed,
@@ -20,7 +23,7 @@ import {
   toISODateString,
 } from '../../helpers/dateTime'
 import { calcOffsetDate } from '../../helpers/NPdateTime'
-import { clo } from '../../helpers/dev'
+import { clo, log, logError, logWarn } from '../../helpers/dev'
 import { getFolderFromFilename } from '../../helpers/folders'
 import { findNotesMatchingHashtags } from '../../helpers/note'
 import {
@@ -29,30 +32,9 @@ import {
 } from '../../helpers/general'
 import { getOrMakeMetadataLine } from '../../helpers/paragraph'
 import { showMessage } from '../../helpers/userInput'
-import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 
 //------------------------------
 // Config setup
-
-// const DEFAULT_REVIEW_CONFIG = `  review: {
-//     folderToStore: "Reviews",
-//     foldersToIgnore: ["@Archive", "📋 Templates", "Reviews", "Summaries"], // can be empty list
-//     noteTypeTags: ["#project", "#area"], // array of hashtags without spaces
-//     // Settings for /projectLists command
-//     displayOrder: "alpha", // in '/project lists' the sort options  are "due" date, "review" date or "alpha"
-//     displayGroupedByFolder: true, // in '/project lists' whether to group the notes by folder
-//     displayArchivedProjects: true, // in '/project lists' whether to display project notes marked #archive
-//     // Setting for /completeProject and /cancelProject
-//     finishedListHeading: "Finished Projects/Areas"
-//   },
-// `
-// TODO: When ConfigV2 is available, add these terms as well
-// // Following are for customising reserved project @terms
-// startMentionStr: '@start',
-// completedMentionStr: '@completed',
-// cancelledMentionStr: '@cancelled',
-// dueMentionStr: '@due',
-// reviewedMentionStr: '@reviewed',
 
 const configKey = "review"
 
@@ -64,74 +46,56 @@ export type ReviewConfig = {
   displayGroupedByFolder: boolean,
   displayArchivedProjects: boolean,
   finishedListHeading: string,
-  // NB: following set are not actively used. TODO: Waiting for Config V2 framework.
   startMentionStr: string,
   completedMentionStr: string,
   cancelledMentionStr: string,
   dueMentionStr: string,
+  reviewIntervalMentionStr: string,
   reviewedMentionStr: string,
 }
 
 /**
- * Provide config from _configuration and cast content to real objects. (Borrowing approach from @m1well)
- * TODO: When next setting framework available, turn this into a syncronous function
- *
+ * Get config settings using Config V2 system. (Have now removed support for Config V1.)
+ * @author @jgclark
  * @return {ReviewConfig} object with configuration
  */
-export async function getReviewSettings(): Promise<ReviewConfig> {
-  console.log(`Start of getReviewSettings()`)
-  // Wish the following was possible:
-  // if (NotePlan.environment.version >= "3.4") {
+export async function getReviewSettings(): Promise<any> {
+  log(pluginJson, `Start of getReviewSettings()`)
+  try {
+    // Get settings using ConfigV2
+    const v2Config: ReviewConfig = await DataStore.loadJSON("../jgclark.Reviews/settings.json")
 
-  const v2Config: ReviewConfig = DataStore.settings
-  if (v2Config != null && Object.keys(v2Config).length > 0) {
-    const config: ReviewConfig = v2Config
-
-    // $FlowFixMe
-    clo(config, `\t${configKey} settings from V2:`)
-    return config
-  } else {
-
-    const v1config = await getOrMakeConfigurationSection(
-      configKey,
-      // DEFAULT_REVIEW_CONFIG
-    ) ?? {}
-  // if (v1config == null || Object.keys(v1config).length === 0) {
-  //   console.log(`error: expected config could not be found in the _configuration file`)
-  //   return {
-  //     folderToStore: 'Reviews',
-  //     foldersToIgnore: ["@Archive", "📋 Templates", "Summaries", "Reviews"],
-  //     noteTypeTags: ["#project", "#area"],
-  //     displayOrder: "alpha",
-  //     displayGroupedByFolder: true,
-  //     displayArchivedProjects: true,
-  //     finishedListHeading: 'Finished Projects/Areas',
-  //     startMentionStr: '@start',
-  //     completedMentionStr: '@completed',
-  //     cancelledMentionStr: '@cancelled',
-  //     dueMentionStr: '@due',
-  //     reviewedMentionStr: '@reviewed',
-  //   }
-  // } else {
-    const config: ReviewConfig = {
-      folderToStore: castStringFromMixed(v1config, 'folderToStore'),
-      foldersToIgnore: castStringArrayFromMixed(v1config, 'foldersToIgnore'),
-      noteTypeTags: castStringArrayFromMixed(v1config, 'noteTypeTags'),
-      displayOrder: castStringFromMixed(v1config, 'displayOrder'),
-      displayGroupedByFolder: castBooleanFromMixed(v1config, 'displayGroupedByFolder'),
-      displayArchivedProjects: castBooleanFromMixed(v1config, 'displayArchivedProjects'),
-      finishedListHeading: castStringFromMixed(v1config, 'finishedListHeading'),
-      startMentionStr: castStringFromMixed(v1config, 'startMentionStr'),
-      completedMentionStr: castStringFromMixed(v1config, 'completedMentionStr'),
-      cancelledMentionStr: castStringFromMixed(v1config, 'cancelledMentionStr'),
-      dueMentionStr: castStringFromMixed(v1config, 'dueMentionStr'),
-      reviewedMentionStr: castStringFromMixed(v1config, 'reviewedMentionStr'),
+    if (v2Config == null || Object.keys(v2Config).length === 0) {
+      await showMessage(`Cannot find settings for the 'Reviews' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
+      return
     }
-    // $FlowFixMe
-    clo(config, `\t${configKey} settings from V1:`)
-    return config
+    // $FlowIgnore[incompatible-call]
+    // clo(v2Config, `${configKey} settings from V2:`)
+
+    // Need to store some things in the Preferences API mechanism, in order to pass things to the Project class
+    DataStore.setPreference('startMentionStr', v2Config.startMentionStr)
+    // console.log(`written '${DataStore.preference('startMentionStr')} to startMentionStr`)
+    DataStore.setPreference('completedMentionStr', v2Config.completedMentionStr)
+    // console.log(`written '${DataStore.preference('completedMentionStr')} to completedMentionStr`)
+    DataStore.setPreference('cancelledMentionStr', v2Config.cancelledMentionStr)
+    // console.log(`written '${DataStore.preference('cancelledMentionStr')} to cancelledMentionStr`)
+    DataStore.setPreference('dueMentionStr', v2Config.dueMentionStr)
+    // console.log(`written '${DataStore.preference('dueMentionStr')} to dueMentionStr`)
+    DataStore.setPreference('reviewIntervalMentionStr', v2Config.reviewIntervalMentionStr)
+    // console.log(`written '${DataStore.preference('reviewIntervalMentionStr')} to reviewIntervalMentionStr`)
+    DataStore.setPreference('reviewedMentionStr', v2Config.reviewedMentionStr)
+    // console.log(`written '${DataStore.preference('reviewedMentionStr')} to reviewedMentionStr`)
+
+    return v2Config
+  }
+  catch (err) {
+    logError(pluginJson, `${err.name}: ${err.message}`)
+    await showMessage(err.message)
+    return
   }
 }
+
+//----------------------------------------------------------------
 
 /**
  * Write the contents of a given preference to the log
@@ -139,7 +103,7 @@ export async function getReviewSettings(): Promise<ReviewConfig> {
  * @param {string} prefName
  */
 export function logPreference(prefName: string): void {
-  console.log(`${prefName} contents:\n${DataStore.preference(prefName)}`)
+  log(pluginJson, `${prefName} contents:\n${DataStore.preference(prefName)}`)
 }
 
 /**
@@ -170,7 +134,7 @@ export  function getParamMentionFromList(
   mentionList: $ReadOnlyArray<string>,
   mention: string,
 ): string {
-  // console.log(`getMentionFromList for: ${mention}`)
+  // log(pluginJson, `getMentionFromList for: ${mention}`)
   const res = mentionList.filter((m) => m.startsWith(`${mention}(`))
   return res.length > 0 ? res[0] : ''
 }
@@ -209,14 +173,6 @@ export class Project {
   isCancelled: boolean
   folder: string
   
-  // Temporary measure to avoid needing an async constructor
-  // TODO: Update when ConfigV2 is available
-  static startMentionStr: string = "@start"
-  static completedMentionStr: string = '@completed'
-  static cancelledMentionStr: string = '@cancelled'
-  static dueMentionStr: string = '@due'
-  static reviewedMentionStr: string = '@reviewed'
-
   constructor(note: TNote) {
     const mentions: $ReadOnlyArray<string> = note.mentions
     const hashtags: $ReadOnlyArray<string> = note.hashtags
@@ -224,7 +180,7 @@ export class Project {
     const mln = getOrMakeMetadataLine(note)
     this.metadataPara = note.paragraphs[mln]
     this.title = note.title ?? '(error)'
-    // console.log(`\tnew Project: ${this.title} with metadata in line ${this.metadataPara.lineIndex}`)
+    // log(pluginJson, `new Project: ${this.title} with metadata in line ${this.metadataPara.lineIndex}`)
     this.folder = getFolderFromFilename(note.filename)
 
     // work out note type (or '')
@@ -234,25 +190,25 @@ export class Project {
         ? 'area'
         : ''
 
-    // get settings TODO: use when sync Config V2 method is available
-    // const config = getReviewSettings()
     // read in start date (if found)
-    let tempDateStr = getParamMentionFromList(mentions, Project.startMentionStr)
+    // now uses DataStore.preference mechanism to pick up current terms for @start, @due, @reviewed etc.
+    let tempDateStr = getParamMentionFromList(mentions, DataStore.preference('startMentionStr'))
     this.startDate = tempDateStr !== '' ? getDateObjFromDateString(tempDateStr) : undefined
     // read in due date (if found)
-    tempDateStr = getParamMentionFromList(mentions, Project.dueMentionStr)
+    tempDateStr = getParamMentionFromList(mentions, DataStore.preference('dueMentionStr'))
     this.dueDate = tempDateStr !== '' ? getDateObjFromDateString(tempDateStr) : undefined
     // read in reviewed date (if found)
-    tempDateStr = getParamMentionFromList(mentions, Project.reviewedMentionStr)
+    tempDateStr = getParamMentionFromList(mentions, DataStore.preference('reviewedMentionStr'))
     this.reviewedDate = tempDateStr !== '' ? getDateObjFromDateString(tempDateStr) : undefined
     // read in completed date (if found)
-    tempDateStr = getParamMentionFromList(mentions, Project.completedMentionStr)
+    tempDateStr = getParamMentionFromList(mentions, DataStore.preference('completedMentionStr'))
     this.completedDate = tempDateStr !== '' ? getDateObjFromDateString(tempDateStr) : undefined
     // read in cancelled date (if found)
-    tempDateStr = getParamMentionFromList(mentions, Project.cancelledMentionStr)
+    tempDateStr = getParamMentionFromList(mentions, DataStore.preference('cancelledMentionStr'))
     this.cancelledDate = tempDateStr !== '' ? getDateObjFromDateString(tempDateStr) : undefined
     // read in review interval (if found)
-    this.reviewInterval = getContentFromBrackets(getParamMentionFromList(mentions, "@review")) ?? undefined
+    const tempIntervalStr = getParamMentionFromList(mentions, DataStore.preference('reviewIntervalMentionStr'))
+    this.reviewInterval = tempIntervalStr !== '' ? getContentFromBrackets(tempIntervalStr) : undefined
     // calculate the durations from these dates
     this.calcDurations()
 
@@ -286,21 +242,8 @@ export class Project {
       && !this.isCancelled
       && !this.isArchived
     ) ? true : false
-    // console.log(`\tProject object created OK with Metadata = '${this.generateMetadataLine()}'`)
+    // log(pluginJson, `Project object created OK with Metadata = '${this.generateMetadataLine()}'`)
   }
-
-  // TODO: delete me when decided what approach to use to get config
-  // static async getConfig(): Promise<void> {
-  //   console.log('  starting static Class method getConfig')
-  //   // get config settings -- can't work in constructor
-  //   const config = await getReviewSettings()
-  //   Project.startMentionStr = config.startMentionStr
-  //   Project.completedMentionStr = config.completedMentionStr
-  //   Project.cancelledMentionStr = config.cancelledMentionStr
-  //   Project.dueMentionStr = config.dueMentionStr
-  //   Project.reviewedMentionStr = config.reviewedMentionStr
-  //   console.log('  done static Class method getConfig')
-  // }
 
   /**
    * Is this project ready for review?
@@ -308,7 +251,7 @@ export class Project {
    * @return {boolean}
   */
   get isReadyForReview(): boolean {
-    // console.log(`isReadyForReview: ${this.title}:  ${this.nextReviewDays} ${this.isActive}`)
+    // log(pluginJson, `isReadyForReview: ${this.title}:  ${this.nextReviewDays} ${this.isActive}`)
     return (this.nextReviewDays != null
       && this.nextReviewDays <= 0
       && this.isActive)
@@ -360,9 +303,9 @@ export class Project {
     this.calcDurations()
 
     // re-write the note's metadata line
-    console.log(`Completing ${this.title} ...`)
+    log(pluginJson, `Completing ${this.title} ...`)
     const newMetadataLine = this.generateMetadataLine()
-    console.log(`... metadata now '${newMetadataLine}'`)
+    log(pluginJson, `... metadata now '${newMetadataLine}'`)
     this.metadataPara.content = newMetadataLine
 
     // send update to Editor
@@ -385,9 +328,9 @@ export class Project {
     this.calcDurations()
 
     // re-write the note's metadata line
-    console.log(`Cancelling ${this.title} ...`)
+    log(pluginJson, `Cancelling ${this.title} ...`)
     const newMetadataLine = this.generateMetadataLine()
-    console.log(`... metadata now '${newMetadataLine}'`)
+    log(pluginJson, `... metadata now '${newMetadataLine}'`)
     this.metadataPara.content = newMetadataLine
 
     // send update to Editor
@@ -404,12 +347,18 @@ export class Project {
     // output = (this.isCancelled) ? '#cancelled ' : ''
     output = (this.isArchived) ? '#archive ' : ''
     output += (this.noteType === 'project' || this.noteType === 'area') ? `#${this.noteType} ` : ''
-    output += (this.startDate) ? `${Project.startMentionStr}(${toISODateString(this.startDate)}) ` : ''
-    output += (this.dueDate) ? `${Project.dueMentionStr}(${toISODateString(this.dueDate)}) ` : ''
-    output += (this.reviewInterval) ? `@review(${this.reviewInterval}) ` : ''
-    output += (this.reviewedDate) ? `${Project.reviewedMentionStr}(${toISODateString(this.reviewedDate)}) ` : ''
-    output += (this.completedDate) ? `${Project.completedMentionStr}(${toISODateString(this.completedDate)}) ` : ''
-    output += (this.cancelledDate) ? `${Project.cancelledMentionStr}(${toISODateString(this.cancelledDate)}) ` : ''
+    // $FlowIgnore[incompatible-call]
+    output += (this.startDate) ? `${DataStore.preference('startMentionStr')}(${toISODateString(this.startDate)}) ` : ''
+    // $FlowIgnore[incompatible-call]
+    output += (this.dueDate) ? `${DataStore.preference('dueMentionStr')}(${toISODateString(this.dueDate)}) ` : ''
+    // $FlowIgnore[incompatible-type]
+    output += (this.reviewInterval) ? `${DataStore.preference('reviewIntervalMentionStr')}(${this.reviewInterval}) ` : ''
+    // $FlowIgnore[incompatible-call]
+    output += (this.reviewedDate) ? `${DataStore.preference('reviewedMentionStr')}(${toISODateString(this.reviewedDate)}) ` : ''
+    // $FlowIgnore[incompatible-call]
+    output += (this.completedDate) ? `${DataStore.preference('completedMentionStr')}(${toISODateString(this.completedDate)}) ` : ''
+    // $FlowIgnore[incompatible-call]
+    output += (this.cancelledDate) ? `${DataStore.preference('cancelledMentionStr')}(${toISODateString(this.cancelledDate)}) ` : ''
     return output
   }
 

@@ -25,14 +25,14 @@ const exec = (cmd, args) => {
 }
 
 module.exports = {
-  run: async (pluginName = '', pluginVersion = '', args = {}) => {
+  run: async (pluginId = '', pluginVersion = '', args = {}) => {
     // const runTests = !args?.noTests
     const runTests = false
     const runBuild = !args?.noBuild
     const preview = args?.preview
     const testRunner = `./node_modules/.bin/jest`
-    const testCommand = ['run', 'test:dev', `${pluginName}/__tests__/*.test.js`]
-    const buildCommand = ['run', 'build', pluginName]
+    const testCommand = ['run', 'test:dev', `${pluginId}/__tests__/*.test.js`]
+    const buildCommand = ['run', 'build', pluginId]
     console.log(testCommand)
     if (args.preview) {
       print.info('Preview Mode')
@@ -48,7 +48,7 @@ module.exports = {
               return `[Preview] all validation`
             }
           },
-          task: () => prerequisiteTasks(pluginName, args),
+          task: () => prerequisiteTasks(pluginId, args),
         },
         {
           title: 'Github check',
@@ -57,7 +57,7 @@ module.exports = {
               return `[Preview] github tasks`
             }
           },
-          task: () => gitTasks(pluginName, args),
+          task: () => gitTasks(pluginId, args),
         },
       ],
       { showSubtaks: true },
@@ -68,11 +68,11 @@ module.exports = {
         title: 'Updating version',
         skip: () => {
           if (args.preview) {
-            return `[Preview] update version ${pluginName} ${pluginVersion}`
+            return `[Preview] update version ${pluginId} ${pluginVersion}`
           }
         },
         task: () => {
-          const result = updateVersionTasks(pluginName, pluginVersion)
+          const result = updateVersionTasks(pluginId, pluginVersion)
         },
       },
     ])
@@ -86,7 +86,7 @@ module.exports = {
           },
           skip: () => {
             if (preview) {
-              return `[Preview] npm run test:dev ${pluginName}`
+              return `[Preview] npm run test:dev ${pluginId}`
             }
           },
           task: () =>
@@ -113,7 +113,7 @@ module.exports = {
           },
           skip: () => {
             if (preview) {
-              return `[Preview] npm run build ${pluginName}`
+              return `[Preview] npm run build ${pluginId}`
             }
           },
           task: () =>
@@ -134,14 +134,14 @@ module.exports = {
       {
         title: 'Publishing release',
         skip: async () => {
-          const cmd = await releaseTasks(pluginName, pluginVersion, args)
+          const cmd = await releaseTasks(pluginId, pluginVersion, args)
           if (args.preview) {
             return cmd
           }
         },
         task: async () => {
-          const cmd = await releaseTasks(pluginName, pluginVersion, args)
-          if (cmd.includes(`gh release create "${pluginVersion}" -t "${pluginName}" -F`)) {
+          const cmd = await releaseTasks(pluginId, pluginVersion, args)
+          if (cmd.includes(`gh release create "${pluginVersion}" -t "${pluginId}" -F`)) {
             const result = await system.run(cmd, true)
             console.log(result)
           }
@@ -152,9 +152,9 @@ module.exports = {
     const result = await tasks.run()
     console.log('')
     if (preview) {
-      print.note(`${pluginName} ${pluginVersion} Completed Successfully`, 'PREVIEW')
+      print.note(`${pluginId} ${pluginVersion} [PREVIEW] Released Successfully`, 'PREVIEW')
     } else {
-      print.success(`${pluginName} ${pluginVersion} Released Successfully`, 'SUCCESS')
+      print.success(`${pluginId} ${pluginVersion} Released Successfully`, 'SUCCESS')
     }
   },
 }

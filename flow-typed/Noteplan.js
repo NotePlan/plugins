@@ -382,7 +382,7 @@ type TDataStore = {
    * This can be used to save preferences or other persistent data.
    * It's saved automatically into a new folder "data" in the Plugins folder.
    * But you can "escape" this folder using relative paths: ../Plugins/<folder or filename>.
-   * Note: Available from NotePlan v3.1 (r655/r588)
+   * Note: Available from NotePlan v3.1
    * @param {Object}
    * @param {string}
    * @return {boolean}
@@ -391,11 +391,11 @@ type TDataStore = {
   /**
    * Load a JavaScript object from a JSON file located (by default) in the <Plugin>/data folder.
    * But you can also use relative paths: ../Plugins/<folder or filename>.
-   * Note: Available from NotePlan v3.1 (r655/r588)
+   * Note: Available from NotePlan v3.1
    * @param {string}
    * @return {Object}
    */
-  loadJSON(filename ?: string): Object,
+  loadJSON(filename?: string): Object,
   /**
    * Returns the calendar note for the given date
    * (can be undefined, if the daily note was not created yet)
@@ -454,14 +454,16 @@ type TDataStore = {
    */
   newNote(noteTitle: string, folder: string): ?string,
   /**
-   * Creates a regular note using the given content and folder. Use "/" for the root folder. The content should ideally also include a note title at the top.
-   * Returns the final filename with relative folder (`folder/filename.txt` for example). Ff the there is a duplicate, it will add a number.
-   * Note: available from v3.5
+   * Creates a regular note using the given content, folder and filename. Use "/" for the root folder. The content should ideally also include a note title at the top.
+   * Returns the final filename with relative folder (`folder/filename.txt` for example). 
+   * If the there is a duplicate, it will add a number.
+   * Note: available from v3.5, with 'filename' parameter added in v3.5.1
    * @param {string} 
    * @param {string} 
+   * @param {string} available from v3.5.1
    * @return {string}
    */
-  newNoteWithContent(content: string, folder: string): string
+  newNoteWithContent(content: string, folder: string, filename: string): string
 }
 
 /**
@@ -1008,21 +1010,20 @@ type TCalendarItem = {
    * tentative = 2
    * unavailable = 3
    * Note: Available from v3.3
-   * @type {Int}
    */
   +availability: number,
   /**
-  * List of attendee names or emails
+  * List of attendee names or emails.
+  * Eduard says this comes from a Swift dictionary and maps to a string array.
+  * But I think it is closer to being a JS Map [string, string].
   * Note: Available from v3.5
-  * @type {[string]}
   */
-  +attendees: [string],      
+  +attendees: [string, string],
   /**
   * Markdown link for the given event. If you add this link to a note, NotePlan will link the event with the note and show the note in the dropdown when you click on the note icon of the event in the sidebar.
   * Note: Available from v3.5, only events, reminders are not supported yet
-  * @type {String}
   */
-  calendarItemLink: string,
+  +calendarItemLink: string,
   /**
    * Create a CalendarItem. The .endDate is optional, but recommended for events.
    * Reminders don't use this field.
@@ -1312,10 +1313,21 @@ declare var NotePlan: {
   */
   +environment: Object,
   /**
+   * The selected sidebar folder (useful when a note is not showing in Editor, which is then null)
+   * Note: available from v3.5.1
+   */
+  +selectedSidebarFolder?: string,
+  /**
    * Open the current plugin's config UI, if available.
    * Note: available from v3.3.2 (just for macOS so far)
    */
-  showConfigurationView(): Promise<void>
+  showConfigurationView(): Promise <void>,
+  /**
+   * To reset the caches, particularly in the case where the sidebar turns out incorrect.
+   * It's an async operation, but it doesn't return a promise to tell you when it's done.
+   * Note: available from v3.5.0
+   */    
+  resetCaches(): void
 }
 
 // Every function made available must be assigned to `globalThis`

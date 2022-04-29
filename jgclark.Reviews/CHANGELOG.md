@@ -1,6 +1,13 @@
 # What's changed in 🔬 Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Review), and how to configure.
-<!-- - using new Settings framework (from NotePlan v3.4) -->
+
+## [0.6.2] - 2022-04-25
+### Added
+- added 6 new settings, to allow you to change the various special project strings from '@start', '@completed', '@cancelled', '@due', '@review' and '@reviewed' to ones of your own choosing.
+### Changed
+- change to newer logging system
+- remove ability to use older _configuration note; now all settings come through the Plugin preference pane's Settings screen.
+
 ## [0.6.1] - 2022-02-04
 ### Changed
 - now using new Configuration UI system instead of _configuration.

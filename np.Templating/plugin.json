@@ -3,7 +3,7 @@
   "noteplan.minAppVersion": "3.5.0",
   "plugin.id": "np.Templating",
   "plugin.name": " 📒 np.Templating -- New 🎉",
-  "plugin.version": "1.0.0-beta.33",
+  "plugin.version": "1.0.3",
   "plugin.description": "Templating Plugin for NotePlan",
   "plugin.author": "Mike Erickson (@codedungeon)",
   "plugin.dependencies": [],
@@ -11,14 +11,6 @@
   "plugin.url.old": "https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md",
   "plugin.url": "https://nptemplating-docs.netlify.app/docs/intro",
   "plugin.commands": [
-    {
-      "name": "np:init",
-      "alias": [
-        "npinit"
-      ],
-      "description": "Initialize np.Templating Configuration",
-      "jsFunction": "templateInit"
-    },
     {
       "name": "np:insert",
       "alias": [
@@ -81,48 +73,10 @@
       "jsFunction": "templateMeetingNote"
     },
     {
-      "name": "np:advice",
-      "alias": [
-        "advice"
-      ],
-      "description": "Returns random advice",
-      "jsFunction": "templateAdvice"
-    },
-    {
-      "name": "np:affirmation",
-      "alias": [
-        "affirmation"
-      ],
-      "description": "Returns random affirmation",
-      "jsFunction": "templateAffirmation"
-    },
-    {
-      "name": "np:quote",
-      "alias": [
-        "quote"
-      ],
-      "description": "Returns random quote",
-      "jsFunction": "templateQuote"
-    },
-    {
-      "name": "np:verse",
-      "alias": [
-        "verse"
-      ],
-      "description": "Returns random bible verse",
-      "jsFunction": "templateVerse"
-    },
-    {
-      "name": "np:weather",
-      "alias": [
-        "weather"
-      ],
-      "description": "Returns weather for current location",
-      "jsFunction": "templateWeather"
-    },
-    {
       "name": "np:update",
-      "alias": [],
+      "alias": [
+        "npu"
+      ],
       "description": "Run np.Templating Setting",
       "jsFunction": "onUpdateOrInstall"
     },

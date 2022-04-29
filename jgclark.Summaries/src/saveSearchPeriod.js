@@ -41,7 +41,6 @@ import {
   showMessage,
   showMessageYesNo,
 } from '../../helpers/userInput'
-import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 
 //-------------------------------------------------------------------------------
 

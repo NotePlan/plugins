@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Summary commands for notes
 // Jonathan Clark
-// Last updated 16.3.2022 for v0.6.1 by @jgclark
+// Last updated 26.4.2022 for v0.7.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -37,7 +37,6 @@ import {
   chooseOption,
   getInput
 } from '../../helpers/userInput'
-import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
 
 //------------------------------------------------------------------------------
 // Get settings
@@ -166,13 +165,14 @@ export async function getPeriodStartEndDates(
   const todaysDate = new Date()
   // couldn't get const { y, m, d } = getYearMonthDate(todaysDate) to work ??
   const y = todaysDate.getFullYear()
-  const m = todaysDate.getMonth() + 1
+  const m = todaysDate.getMonth() + 1 // counting from 1
   const d = todaysDate.getDate()
 
   // We appear to need to take timezone offset into account in order to avoid landing
   // up crossing date boundaries.
   // I.e. when in BST (=UTC+0100) it's calculating dates which are often 1 too early.
   // Get TZOffset in minutes. If positive then behind UTC; if negative then ahead.
+  // TODO: see whether moment library can make this easier
   const TZOffset = new Date().getTimezoneOffset()
   // log(pluginJson, `getPeriodStartEndDates: period = ${period}, TZOffset = ${TZOffset}.`)
 
@@ -316,6 +316,7 @@ export async function getPeriodStartEndDates(
 
 /**
  * Return list of lines matching the specified string in the specified project or daily notes.
+ * NB: If starting now, I would try to use a different return type, probably tuples not 2 distinct arrays.
  * @author @jgclark
  * 
  * @param {array} notes - array of Notes to look over

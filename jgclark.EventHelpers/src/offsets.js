@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Command to Process Date Offsets
 // @jgclark
-// Last updated 20.2.2022 for v0.11.5, @jgclark
+// Last updated 23.4.2022 for v0.14.0, @jgclark
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -18,6 +18,7 @@ import { displayTitle } from '@helpers/general'
 import { calcOffsetDateStr } from '@helpers/NPdateTime'
 import { findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { showMessage, showMessageYesNo } from '@helpers/userInput'
+import { datePicker } from "../../helpers/userInput"
 
 // ----------------------------------------------------------------------------
 
@@ -40,6 +41,7 @@ export async function processDateOffsets() {
   }
   const noteTitle = displayTitle(note)
   log(pluginJson, `for note '${noteTitle}'`)
+  const config = await getEventsSettings()
 
   let currentTargetDate = ''
   let n = 0
@@ -60,7 +62,6 @@ export async function processDateOffsets() {
     // - level = 0-n = an indent level
     let previousFoundLevel = 0
     let thisLevel = 0
-    let warningOrphans = false // whether we have found orphaned date offsets
 
     while (n < endOfActive) {
       let line = paragraphs[n].content // don't think this needs to be rawContent
@@ -100,35 +101,45 @@ export async function processDateOffsets() {
         let calcDate = ''
         if (dateOffsetString !== '') {
           log(pluginJson, `  - Found DOS ${dateOffsetString}`)
-          if (currentTargetDate !== '') {
-            calcDate = calcOffsetDateStr(currentTargetDate, dateOffsetString)
-            if (calcDate == null || calcDate === '') {
-              logError(pluginJson, ` Error while parsing date '${currentTargetDate}' for ${dateOffsetString}`)
+          if (currentTargetDate === '') {
+            // This is currently an orphaned date offset
+            logWarn(pluginJson, `Line ${paragraphs[n].lineIndex}: offset date '${dateOffsetString}' is an orphan, as no currentTargetDate is set`)
+            
+            // now ask for the date to use instead
+            currentTargetDate = await datePicker("{ question: 'Please enter a base date to use to offset against' }", {})
+            if (currentTargetDate === '') {
+              logError(pluginJson, `  - Still no valid CTD, so stopping.`)
+              return
             } else {
-              // Continue, and replace offset with the new calcDate
-              // Remove the offset text(e.g. {- 3d}) by finding first '{' and '}' characters in the line
-              const labelStart = line.indexOf('{')
-              const labelEnd = line.indexOf('}')
-              // Create new version with inserted date
-              line = `${line.slice(0, labelStart - 1)} >${calcDate} ${line.slice(labelEnd + 1)}` // also trim off last character (newline)
-              paragraphs[n].content = line
-              note.updateParagraph(paragraphs[n])
-              log(pluginJson, `    -> '${line}'`)
+              log(pluginJson, `  - User supplied CTD ${currentTargetDate}`)
             }
+          }
+
+          log(pluginJson, currentTargetDate)
+          calcDate = calcOffsetDateStr(currentTargetDate, dateOffsetString)
+          if (calcDate == null || calcDate === '') {
+            logError(pluginJson, `Error while parsing date '${currentTargetDate}' for ${dateOffsetString}`)
           } else {
-            // Treat this as an orphaned date offset
-            logWarn(pluginJson, `Line ${paragraphs[n].lineIndex}): offset date '${dateOffsetString}' is an orphan, as no currentTargetDate is set`)
-            warningOrphans = true
+            log(pluginJson, `calcDate: '${calcDate}'`)
+            // Continue, and replace offset with the new calcDate
+            // Remove the offset text(e.g. {- 3d}) by finding first '{' and '}' characters in the line
+            const labelStart = line.indexOf('{')
+            const labelEnd = line.indexOf('}')
+            // Create new version with inserted date
+            line = `${line.slice(0, labelStart - 1)} >${calcDate} ${line.slice(labelEnd + 1)}` // also trim off trailing whitespace
+            paragraphs[n].content = line.trimEnd()
+            note.updateParagraph(paragraphs[n])
+            log(pluginJson, `    -> '${line.trimEnd()}'`)
           }
         }
       }
       n += 1
     }
 
-    // Warn if we found orphaned date offsets
-    if (warningOrphans) {
-      await showMessage(`I found date offsets where I couldn't tell what the target date was. Please check the Plugin console for details, and the documentation.`, `OK`, `Process Date Offsets`)
-    }
+    // // Warn if we found orphaned date offsets
+    // if (warningOrphans) {
+    //   await showMessage(`I found date offsets where I couldn't tell what the target date was. Please check the Plugin console for details, and the documentation.`, `OK`, `Process Date Offsets`)
+    // }
 
     // Offer to run timeblocks creation, as that often goes with offsets
     let res = await showMessageYesNo(`Shall I also look for time blocks to create new events?`, ['Yes','No'], 'Process Date Offsets')
