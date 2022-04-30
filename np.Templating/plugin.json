@@ -3,7 +3,7 @@
   "noteplan.minAppVersion": "3.5.0",
   "plugin.id": "np.Templating",
   "plugin.name": " 📒 np.Templating -- New 🎉",
-  "plugin.version": "1.0.3",
+  "plugin.version": "1.1.0-beta.01",
   "plugin.description": "Templating Plugin for NotePlan",
   "plugin.author": "Mike Erickson (@codedungeon)",
   "plugin.dependencies": [],
@@ -70,6 +70,7 @@
         "npm"
       ],
       "description": "Create new note based on Meeting Note Template",
+      "hidden": true,
       "jsFunction": "templateMeetingNote"
     },
     {
@@ -84,7 +85,7 @@
       "name": "np:migrate-templates",
       "alias": [],
       "description": "Run Template Migration",
-      "jsFunction": "migrateTemplates"
+      "jsFunction": "migrateTemplatesCommand"
     },
     {
       "name": "np:migrate-quick-notes",

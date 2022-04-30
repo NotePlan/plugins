@@ -48,6 +48,11 @@ export default class TemplatingEngine {
     this.templateConfig = config || {}
     this.templatePlugins = []
     this.templateModules = []
+
+    // override the locale based on plugin settings
+    if (this.templateConfig.templateLocale === '<system>') {
+      this.templateConfig.templateLocale = NotePlan.environment.languageCode
+    }
   }
 
   async heartbeat(): Promise<string> {

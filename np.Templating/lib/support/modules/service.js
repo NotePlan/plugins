@@ -5,9 +5,6 @@
 
 // @flow
 
-// TODO: Check status on `dot-prop` to see if supported yet (as of 2021-10-15 it was still WIP)
-// INFO: This is a test
-
 // Temporary Implementation until `dot-prop` is ready
 // https://github.com/sindresorhus/dot-prop/issues/87
 // $FlowFixMe
@@ -65,7 +62,6 @@ export async function getService(templateConfig: any, section: string = '', key:
       }
 
       const response: any = await fetch(URL)
-
       if (!isJson(response)) {
         if (response.indexOf('error') >= 0) {
           const endpoint = isURL(section) ? ' API' : ' service'

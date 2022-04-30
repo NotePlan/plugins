@@ -95,12 +95,25 @@ const globals = {
   },
 
   pickDate: async (dateParams: any = '', config: { [string]: ?mixed }): Promise<string> => {
+    console.log(typeof dateParams)
+
+    if (typeof dateParams === 'object') {
+      clo(dateParams)
+    } else {
+      console.log(dateParams)
+    }
+
     if (!dateParams) {
       // $FlowIgnore
       return await datePicker('', '')
     }
+
+    // <%= pickDate('question','Date of session') %>
+
+    const datePickerParams = { question: 'TeSt' }
+
     // $FlowIgnore
-    return await datePicker(JSON.stringify(dateParams), JSON.stringify(config))
+    return await datePicker(dateParams, JSON.stringify(config))
   },
 
   pickDateInterval: async (dateParams: any): Promise<string> => {

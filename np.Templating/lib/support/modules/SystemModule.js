@@ -19,11 +19,4 @@ export default class SystemModule {
   clipboard(): string {
     return this.config.clipboard
   }
-
-  async prompt(value: string = '', message: string = ''): Promise<string> {
-    if (value.length > 0) {
-      return value
-    }
-    return 'response'
-  }
 }
