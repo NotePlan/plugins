@@ -114,13 +114,14 @@ type TEditor = {
   replaceSelectionWithText(text: string): void,
   /**
    * Opens a note using the given filename.
-   * Note: splitView parameter available for macOS from r727 (v3.4)
+   * Note: some parameters introduced in v3.4 and v3.5.2
    * @param {string} filename - Filename of the note file (can be without extension), but has to include the relative folder such as `folder/filename.txt`.
    * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
    * @param {number} highlightStart - (optional) Start position of text highlighting
    * @param {number} highlightEnd - (optional) End position of text highlighting
    * @param {boolean} splitView - (optional) Open note in a new split view (Note: Available from v3.4)
-   * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
+   * @param {boolean} createIfNeeded - (optional) Create the note with the given filename if it doesn't exist (only project notes, v3.5.2+)
+   * @return {Promise<TNote>} - When the note has been opened, a promise will be returned (use with await ... or .then())
    */
   openNoteByFilename(
     filename: string,
@@ -128,7 +129,7 @@ type TEditor = {
     highlightStart?: number,
     highlightEnd?: number,
     splitView?: boolean,  
-  ): Promise<TNote>,
+  ): Promise < TNote >,
   /**
    * Opens a note by searching for the give title (first line of the note)
    * Note: splitView parameter available for macOS from r727 (v3.4)
@@ -454,13 +455,15 @@ type TDataStore = {
    */
   newNote(noteTitle: string, folder: string): ?string,
   /**
-   * Creates a regular note using the given content, folder and filename. Use "/" for the root folder. The content should ideally also include a note title at the top.
+   * Creates a regular note using the given content, folder and filename. Use "/" for the root folder.
+   * The content should ideally also include a note title at the top.
    * Returns the final filename with relative folder (`folder/filename.txt` for example). 
    * If the there is a duplicate, it will add a number.
-   * Note: available from v3.5, with 'filename' parameter added in v3.5.1
-   * @param {string} 
-   * @param {string} 
-   * @param {string} available from v3.5.1
+   * Alternatively, you can also define the filename as the third optional variable (v3.5.2+)
+   * Note: available from v3.5, with 'filename' parameter added in v3.5.2
+   * @param {string} content for note
+   * @param {string} folder to create the note in
+   * @param {string} filename of the new note (available from v3.5.2)
    * @return {string}
    */
   newNoteWithContent(content: string, folder: string, filename: string): string
