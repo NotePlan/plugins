@@ -1,6 +1,10 @@
 # What's changed in 🔬 Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Review), and how to configure.
 
+## [0.6.3] - 2022-05-01
+### Fixed
+- configuration problem, potentially leading to NP crash (reported by @Harv)
+
 ## [0.6.2] - 2022-04-25
 ### Added
 - added 6 new settings, to allow you to change the various special project strings from '@start', '@completed', '@cancelled', '@due', '@review' and '@reviewed' to ones of your own choosing.
