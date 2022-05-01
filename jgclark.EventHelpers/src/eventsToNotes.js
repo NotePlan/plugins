@@ -263,6 +263,10 @@ function getReplacements(item: TCalendarItem, config: EventsConfig, format?: str
       value: item.title
     },
     {
+      key: '*|DATE|*',
+      value: toLocaleDateString(item.date)
+    },
+    {
       key: '*|START|*',
       value: !item.isAllDay
         ? toLocaleTime(item.date, config.locale, config.timeOptions)

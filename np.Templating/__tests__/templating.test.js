@@ -278,13 +278,14 @@ describe(`${PLUGIN_NAME}`, () => {
 
       const data = {
         name: 'Mike Erickson',
-        titleCase: (str = null) => {
-          return titleCase(str)
+        utils: {
+          titleCase: (str = null) => {
+            return titleCase(str)
+          },
         },
         names: ['mike', 'kira', 'joelle', 'brady', 'bailey', 'trevor'],
       }
       let renderedData = await templateInstance.render(templateData, data)
-
       // expect(renderedData).not.toBe('FACTORY_NOT_FOUND')
       expect(renderedData).not.toBe(false)
 

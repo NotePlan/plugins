@@ -11,10 +11,10 @@ import FrontmatterModule from './support/modules/FrontmatterModule'
 import globals from './globals'
 import { chooseOption } from '@helpers/userInput'
 import { clo, log, logError } from '@helpers/dev'
+import { datePicker, askDateInterval } from '@helpers/userInput'
 
 /*eslint-disable */
 import TemplatingEngine from './TemplatingEngine'
-import { formatDistanceToNow } from 'date-fns'
 
 const TEMPLATE_FOLDER_NAME = NotePlan.environment.templateFolder
 // const TEMPLATE_FOLDER_NAME = '📋 Templates'
@@ -164,29 +164,28 @@ export default class NPTemplating {
   static async updateOrInstall(currentSettings: any, currentVersion: string): Promise<TemplateConfig> {
     const settingsData = { ...currentSettings }
 
+    // each setting update applied will increement
+    let updatesApplied = 0
     // current settings version as number
     const settingsVersion: number = semverVersionToNumber(settingsData?.version || '')
 
-    // this will grow over time as settings are upgraded in future versions
-    if (settingsVersion < semverVersionToNumber('0.0.186')) {
-      log(pluginJson, `==> Updating np.Templating to version 0.0.186`)
+    // changes in v1.0.3
+    if (settingsVersion < semverVersionToNumber('1.0.3')) {
+      updatesApplied++
+      log(pluginJson, `==> np.Templating 1.0.3 Updates Applied`)
     }
 
-    if (settingsVersion < semverVersionToNumber('0.0.187')) {
-      log(pluginJson, `==> Updating np.Templating to version 0.0.187`)
-    }
-
-    if (settingsVersion < semverVersionToNumber('0.0.188')) {
-      log(pluginJson, `==> Updating np.Templating to version 0.0.188`)
-    }
-
-    if (settingsVersion < semverVersionToNumber('0.0.189')) {
-      log(pluginJson, `==> Updating np.Templating to version 0.0.189`)
+    // changes in v1.0.4
+    if (settingsVersion < semverVersionToNumber('1.0.4')) {
+      log(pluginJson, `==> np.Templating 1.0.4 Updates Applied`)
+      updatesApplied++
     }
 
     // update settings version to latest version from plugin.json
-    settingsData.version = pluginJson['plugin.version']
-    log(pluginJson, `==> np.Templating Settings Version ${currentVersion}`)
+    settingsData.version = currentVersion
+    if (updatesApplied > 0) {
+      log(pluginJson, `==> np.Templating Settings Updated to v${currentVersion}`)
+    }
 
     // return new settings
     return settingsData
@@ -495,69 +494,6 @@ export default class NPTemplating {
     return this.constructor.templateConfig
   }
 
-  static async renderTemplateX(templateName: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
-    const usePrompts = true
-    try {
-      await this.setup()
-
-      let sessionData = { ...userData }
-      // $FlowIgnore
-      let templateData = (await this.getTemplate(templateName)) || ''
-
-      let globalData = {}
-      Object.getOwnPropertyNames(globals).forEach((key) => {
-        globalData[key] = getProperyValue(globals, key)
-      })
-
-      sessionData.methods = { ...sessionData.methods, ...globalData }
-
-      templateData = templateData.replace('<%@', '<%- prompt')
-
-      const isFrontmatterTemplate = new FrontmatterModule().isFrontmatterTemplate(templateData)
-      if (isFrontmatterTemplate) {
-        const { frontmatterAttributes, frontmatterBody } = await this.preRender(templateData, sessionData)
-        templateData = frontmatterBody
-        sessionData.data = { ...sessionData.data, ...frontmatterAttributes }
-      }
-
-      if (isFrontmatterTemplate && usePrompts) {
-        const frontmatterAttributes = new FrontmatterModule().parse(templateData)?.attributes || {}
-        for (const [key, value] of Object.entries(frontmatterAttributes)) {
-          let frontMatterValue = value
-          // $FlowIgnore
-          const promptData = await this.processPrompts(value, sessionData, '<%', '%>')
-          frontMatterValue = promptData.sessionTemplateData
-          // $FlowIgnore
-          const { newTemplateData, newSettingData } = await this.preProcess(frontMatterValue, sessionData)
-          sessionData = { ...sessionData, ...newSettingData }
-
-          const renderedData = await new TemplatingEngine(this.constructor.templateConfig).render(newTemplateData, promptData.sessionData, userOptions)
-
-          // $FlowIgnore
-          templateData = templateData.replace(`${key}: ${value}`, `${key}: ${renderedData}`)
-        }
-        if (userOptions?.qtn) {
-          return templateData
-        }
-      }
-
-      // $FlowIgnore
-      const { newTemplateData, newSettingData } = await this.preProcess(templateData, sessionData)
-      sessionData = { ...sessionData, ...newSettingData }
-
-      const promptData = await this.processPrompts(newTemplateData, sessionData, '<%', '%>')
-
-      templateData = promptData.sessionTemplateData
-      sessionData = promptData.sessionData
-
-      const renderedData = await new TemplatingEngine(this.constructor.templateConfig).render(templateData, sessionData, userOptions)
-
-      return this._filterTemplateResult(renderedData)
-    } catch (error) {
-      return this.templateErrorMessage('NPTemplating.renderTemplate', error)
-    }
-  }
-
   static async preProcess(templateData: string, sessionData?: {}): Promise<mixed> {
     let newTemplateData = templateData
     let newSettingData = { ...sessionData }
@@ -609,9 +545,6 @@ export default class NPTemplating {
       if (tag === '<%- context %>' || tag === '<%- context() %>') {
         newTemplateData = newTemplateData.replace(tag, `<%- prompt('context') %>`)
       }
-      if (tag === '<%- discuss %>' || tag === '<%- discuss() %>') {
-        newTemplateData = newTemplateData.replace(tag, `<%- prompt('discuss') %>`)
-      }
       if (tag === '<%- meetingName %>' || tag === '<%- meetingName() %>') {
         newTemplateData = newTemplateData.replace(tag, `<%- prompt('meetingName','Enter Meeting Name:') %>`)
       }
@@ -634,7 +567,7 @@ export default class NPTemplating {
   }
 
   static async render(inTemplateData: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
-    const usePrompts = true
+    const usePrompts = false
     try {
       await this.setup()
 
@@ -813,12 +746,25 @@ export default class NPTemplating {
     }
   }
 
+  static async promptDate(message: string, defaultValue: string): Promise<any> {
+    return await datePicker(message)
+  }
+
+  static async promptDateInterval(message: string, defaultValue: string): Promise<any> {
+    return await askDateInterval(message)
+  }
+
   static async processPrompts(templateData: string, userData: any, startTag: string = '<%', endTag: string = '%>'): Promise<any> {
     const sessionData = { ...userData }
     const methods = userData.hasOwnProperty('methods') ? Object.keys(userData?.methods) : []
 
-    let sessionTemplateData = templateData.replace(/<%@/gi, '<%- prompt')
+    let sessionTemplateData = ''
+    sessionTemplateData = templateData.replace(/<%@/gi, '<%- prompt')
+    sessionTemplateData = templateData.replace(/system.promptDateInterval/gi, 'promptDateInterval')
+    sessionTemplateData = templateData.replace(/system.promptDate/gi, 'promptDate')
+
     let tags = await this.getTags(sessionTemplateData)
+
     for (let tag of tags) {
       // if tag is from module, it will contain period so we need to make sure this tag is not a module
       let isMethod = false
@@ -834,10 +780,12 @@ export default class NPTemplating {
       }
 
       const doPrompt = (tag) => {
-        let check = !this.isVariableTag(tag) && !this.isControlBlock(tag) && !this.isTemplateModule(tag) && !isMethod
-        if (!check) {
-          check = tag.includes('prompt')
-        }
+        // let check = !this.isVariableTag(tag) && !this.isControlBlock(tag) && !this.isTemplateModule(tag) && !isMethod
+        // if (!check) {
+        //   check = tag.includes('prompt')
+        // }
+
+        let check = tag.includes('prompt')
 
         return check
       }
@@ -859,7 +807,20 @@ export default class NPTemplating {
 
         if (!varExists(varName)) {
           promptMessage = promptMessage.replace('await', '').replace(/  /g, ' ')
-          let response = await await this.prompt(promptMessage, options) // double await is correct here
+
+          // NOTE: Only templating prompt methods will be able to use placeholder variable
+          // NOTE: if executing a global method, the result will not be captured as variable placeholder
+          //       thus, it will be executed as many times as it is in template
+
+          let response = ''
+          if (tag.includes('promptDate(')) {
+            response = await datePicker(JSON.stringify({ question: promptMessage }), {})
+          } else if (tag.includes('promptDateInterval(')) {
+            response = await askDateInterval(JSON.stringify({ question: promptMessage }))
+          } else {
+            response = await await this.prompt(promptMessage, options) // double await is correct here
+          }
+
           if (response) {
             if (typeof response === 'string') {
               response = response.trim()
@@ -869,9 +830,29 @@ export default class NPTemplating {
             sessionData[varName] = ''
           }
         }
+
         if (tag.indexOf(`<%=`) >= 0 || tag.indexOf(`<%-`) >= 0 || tag.indexOf(`<%`) >= 0) {
           const outputTag = tag.startsWith('<%=') ? '=' : '-'
-          sessionTemplateData = sessionTemplateData.replace(tag, `${startTag}${outputTag} ${varName} ${endTag}`)
+          // if this is command only (starts with <%) meanining no output, remove entry
+          if (this.isVariableTag(tag)) {
+            const parts = tag.split(' ')
+            if (parts.length >= 2) {
+              varName = parts[2]
+              sessionTemplateData = sessionTemplateData.replace(`${tag}\n`, '')
+              const keys = Object.keys(sessionData)
+              for (let index = 0; index < keys.length; index++) {
+                if (keys[index].indexOf(`=_${varName}`) >= 0) {
+                  sessionData[varName] = sessionData[keys[index]]
+                }
+              }
+            }
+          }
+
+          if (!tag.startsWith('<%-')) {
+            sessionTemplateData = sessionTemplateData.replace(`${tag}\n`, '')
+          } else {
+            sessionTemplateData = sessionTemplateData.replace(tag, `${startTag}${outputTag} ${varName} ${endTag}`)
+          }
         } else {
           sessionTemplateData = sessionTemplateData.replace(tag, `<% 'prompt' -%>`)
         }
@@ -881,7 +862,6 @@ export default class NPTemplating {
       }
     }
 
-    //.turn control output to standard output
     sessionTemplateData = sessionTemplateData.replace(/<%~/gi, '<%=')
 
     return { sessionTemplateData, sessionData }
@@ -919,14 +899,17 @@ export default class NPTemplating {
   static async templateExists(title: string = ''): Promise<mixed> {
     const templateFolder = await getTemplateFolder()
 
-    let templateFilename = (await getTemplateFolder()) + title
-    templateFilename = templateFilename.replace('${templateFolder}${templateFolder}', templateFolder)
+    let templateFilename = (await getTemplateFolder()) + title.replace(/@Templates/gi, '').replace(/\/\//, '/')
+    templateFilename = await NPTemplating.normalizeToNotePlanFilename(templateFilename)
     try {
-      let note = DataStore.projectNoteByFilename(`${templateFilename}.md`)
-      if (!note) {
-        let note = DataStore.projectNoteByFilename(`${templateFilename}.txt`)
+      let note = undefined
+      note = await DataStore.projectNoteByFilename(`${templateFilename}.md`)
+
+      if (typeof note === 'undefined') {
+        note = await DataStore.projectNoteByFilename(`${templateFilename}.txt`)
       }
-      return note ? true : false
+
+      return typeof note !== 'undefined'
     } catch (error) {
       logError(pluginJson, `templateExists :: ${error}`)
     }

@@ -3,8 +3,11 @@
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
  * -----------------------------------------------------------------------------------------*/
 
-// import moment from 'moment/min/moment-with-locales'
-import moment from 'moment-business-days'
+import moment from 'moment/min/moment-with-locales'
+// import moment from 'moment-business-days'
+
+import { default as momentBusiness } from 'moment-business-days'
+import { clo } from '@helpers/dev'
 
 export const DAY_NUMBER_SUNDAY = 0
 export const DAY_NUMBER_MONDAY = 1
@@ -46,7 +49,7 @@ export default class DateModule {
     this.config = config
 
     // setup date/time local, using configuration locale if exists, otherwise fallback to system locale
-    const osLocale = this.config?.locale?.length > 0 ? this.config?.locale : 'en-US'
+    const osLocale = this.config?.templateLocale?.length > 0 ? this.config?.templateLocale : 'en-US'
     moment.locale(osLocale)
 
     // module constants
@@ -59,6 +62,11 @@ export default class DateModule {
     this.DAY_NUMBER_SATURDAY = DAY_NUMBER_SATURDAY
   }
 
+  setLocale() {
+    const osLocale = this.config?.templateLocale?.length > 0 ? this.config?.templateLocale : 'en-US'
+    moment.locale(osLocale)
+  }
+
   // convert supplied date value into something that NotePlan can actually handle
   // requiring YYYY-MM-DDThh:mm:ss format
   createDateTime(userDateString = '') {
@@ -66,12 +74,16 @@ export default class DateModule {
   }
 
   timestamp(format = '') {
+    this.setLocale()
+
     const nowFormat = this.config?.timestampFormat || 'YYYY-MM-DD h:mm A'
 
     return this.now(nowFormat)
   }
 
   format(format = '', date = '') {
+    this.setLocale()
+
     let dateValue = date.length > 0 ? new Date(date) : new Date()
     if (date.length === 10) {
       dateValue = moment(date).format('YYYY-MM-DD')
@@ -82,7 +94,7 @@ export default class DateModule {
     }
 
     const configFormat = this.config?.dateFormat || 'YYYY-MM-DD'
-    const locale = this.config?.locale || 'en-US'
+    const locale = this.config?.templateLocale || 'en-US'
     format = format.length > 0 ? format : configFormat
 
     let formattedDate = moment(date).format(format)
@@ -95,11 +107,13 @@ export default class DateModule {
   }
 
   now(format = '', offset = '') {
-    const locale = this.config?.locale || 'en-US'
+    const locale = this.config?.templateLocale || 'en-US'
 
     const configFormat = this.config?.dateFormat || 'YYYY-MM-DD'
     format = format.length > 0 ? format : configFormat
     const dateValue = new Date()
+
+    this.setLocale()
     let formattedDate = moment(dateValue).format(format)
     if (offset) {
       offset = `${offset}` // convert to string for further processing and usage below
@@ -125,10 +139,14 @@ export default class DateModule {
   }
 
   today(format = '') {
+    this.setLocale()
+
     return this.format(format, new Date())
   }
 
   tomorrow(format = '') {
+    this.setLocale()
+
     const configFormat = this.config?.dateFormat || 'YYYY-MM-DD'
     format = format.length > 0 ? format : configFormat
 
@@ -157,6 +175,8 @@ export default class DateModule {
   }
 
   weekNumber(pivotDate = '') {
+    this.setLocale()
+
     const dateValue = pivotDate.length === 10 ? pivotDate : new Date()
     const dateStr = moment(dateValue).format('YYYY-MM-DD')
     let weekNumber = parseInt(this.format('W', dateStr))
@@ -169,12 +189,18 @@ export default class DateModule {
   }
 
   dayNumber(pivotDate = '') {
+    this.setLocale()
+
     let localeDate = new Date().toLocaleString()
     if (pivotDate.length > 0 && pivotDate.length === 10) {
       localeDate = this.createDateTime(pivotDate)
     }
 
-    return new Date(new Date(localeDate).toLocaleString()).getDay()
+    let dayNumber = new Date(new Date(localeDate).toLocaleString()).getDay()
+    if (isNaN(dayNumber)) {
+      dayNumber = new Date().getDay()
+    }
+    return dayNumber
   }
 
   isWeekend(pivotDate = '') {
@@ -248,7 +274,7 @@ export default class DateModule {
     const dtFormat = format.length > 0 ? format : configFormat
     const localeDate = this.createDateTime(pivotDate)
 
-    const result = moment(new Date(localeDate), dtFormat).businessAdd(numDays)
+    const result = momentBusiness(new Date(localeDate), dtFormat).businessAdd(numDays)
 
     return result.format(dtFormat)
   }
@@ -258,7 +284,7 @@ export default class DateModule {
     const dtFormat = format.length > 0 ? format : configFormat
     const localeDate = this.createDateTime(pivotDate)
 
-    const result = moment(new Date(localeDate), dtFormat).businessSubtract(numDays)
+    const result = momentBusiness(new Date(localeDate), dtFormat).businessSubtract(numDays)
 
     return result.format(dtFormat)
   }
@@ -268,7 +294,7 @@ export default class DateModule {
     const dtFormat = format.length > 0 ? format : configFormat
     const localeDate = this.createDateTime(pivotDate)
 
-    const nextBusinessDay = moment(new Date(localeDate), dtFormat).nextBusinessDay()
+    const nextBusinessDay = momentBusiness(new Date(localeDate), dtFormat).nextBusinessDay()
 
     const result = new Date(nextBusinessDay)
 
@@ -280,7 +306,7 @@ export default class DateModule {
     const dtFormat = format.length > 0 ? format : configFormat
     const localeDate = this.createDateTime(pivotDate)
 
-    const nextBusinessDay = moment(new Date(localeDate), dtFormat).prevBusinessDay()
+    const nextBusinessDay = momentBusiness(new Date(localeDate), dtFormat).prevBusinessDay()
 
     const result = new Date(nextBusinessDay)
 

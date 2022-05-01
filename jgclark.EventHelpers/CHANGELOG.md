@@ -2,8 +2,10 @@
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
 ## [0.14.2] - **not yet released**
+### Added
+- Added support for including the date of an event in the output for calendar events. You can include it in format strings as `*|DATE|*`.
 ### Changed
-- Under-the-hood change to register its functions ready for NP 3.5.2. ??? Means minimum version that it will run with is v3.5.2.
+- Under-the-hood change to register its functions ready for NP 3.5.2. (Means minimum version that it will run with is v3.5.2.)
 
 ## [0.14.1] - 2022-04-26
 ### Changed
