@@ -737,21 +737,30 @@ type TCalendar = {
    */
   remove(calendarItem: TCalendarItem): Promise<void>,
   /**
-   * Note: Available from v3.0.26
    * Returns the event by the given ID. You can get the ID from a CalendarItem, which you got from using `.add(...)` (the return value is a CalendarItem with ID) or when you query the event using `eventsBetween(...)`, `eventByID(...)`, etc.
    * This function fetches reminders asynchronously, so use async/await.
+   * Note: Available from v3.0.26
    * @param {String}
    * @return {Promise(CalendarItem)}
    */
   eventByID(id: string): Promise<Array<TCalendarItem>>,
   /**
-   * Note: Available from v3.0.26
    * Returns the reminder by the given ID. You can get the ID from a CalendarItem, which you got from using `.add(...)` (the return value is a CalendarItem with ID) or when you query the event using `remindersBetween(...)`, `reminderByID(...)`, etc.
    * Use with async/await.
+   * Note: Available from v3.0.26
    * @param {String}
    * @return {Promise(CalendarItem)}
    */
   reminderByID(id: string): Promise<Array<TCalendarItem>>,
+  /**
+  * Returns all reminders (completed and incomplete) for the given lists (array of strings).
+  * If you keep the lists variable empty, NotePlan will return all reminders from all lists. You can get all Reminders lists calling `Calendar.availableReminderListTitles()`
+  * This function fetches reminders asynchronously, so use async/await.
+  * Note: Available from v3.5.2
+  * @param {[string]?} 
+  * @return {Promise}
+  */
+  remindersByLists(lists: [string]): Promise<Array<TCalendarItem>>
 }
 
 /**
