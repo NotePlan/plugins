@@ -43,12 +43,18 @@
       "description": "function to list events for the current open Calendar note that match string defined in the settings (for use in Templating)",
       "hidden": true,
       "jsFunction": "listMatchingDaysEvents"
+    },
+    {
+      "name": "events:updateSettings",
+      "description": "update settings",
+      "hidden": false,
+      "jsFunction": "onUpdateOrInstall"
     }
   ],
   "plugin.settings": [
     {
       "type": "heading",
-      "title": "Settings for inserting list of events"
+      "title": "Settings for insert day's events as list"
     },
     {
       "key": "eventsHeading",
@@ -59,17 +65,25 @@
       "required": false
     },
     {
-      "key": "matchingEventsHeading",
-      "title": "Matching Events heading",
-      "description": "Optional heading to put before list of events matching list below",
+      "key": "formatEventsDisplay",
+      "title": "Events List display format",
+      "description": "The format string to use to customise how events are displayed (when run as a /command, not through a Template). The available placeholders are 'CAL', 'TITLE', 'EVENTLINK', 'DATE', 'START', 'END', 'NOTES', 'ATTENDEES', 'NOTES', 'URL'.\n(Default is '- (*|CAL, |**|START|*) *|TITLE|**|\nEVENTLINK|**|\nwith ATTENDEES|**|\nNOTES|*'.)",
       "type": "string",
-      "default": "## Matching Events",
-      "required": false
+      "default": "### (*|CAL, |**|START|*) *|TITLE|**|\nEVENTLINK|**|\nwith ATTENDEES|**|\nNOTES|*",
+      "required": true
+    },
+    {
+      "key": "formatAllDayEventsDisplay",
+      "title": "Events List display format for all-day events",
+      "description": "The format string to use to customise how all-day events are displayed (when run as a /command, not through a Template). The available placeholders are 'CAL', 'TITLE', 'EVENTLINK', 'DATE', 'NOTES', 'ATTENDEES', 'NOTES', 'URL'.\n(Default is '- (*|CAL, |**|START|*) *|TITLE|**|\nEVENTLINK|**|\nwith ATTENDEES|**|\nNOTES|*'.)",
+      "type": "string",
+      "default": "### (*|CAL|*) *|TITLE|**|\nEVENTLINK|**|\nNOTES|*",
+      "required": true
     },
     {
       "key": "sortOrder",
       "title": "Sort order of events list",
-      "description": "Sort order of events list",
+      "description": "By 'time' or by 'calendar'",
       "type": "string",
       "choices": [
         "time",
@@ -80,24 +94,16 @@
     },
     {
       "key": "calendarSet",
-      "title": "Calendars to Scan",
-      "description": "Comma-separated list of calendar names to filter by when showing list of events. If empty, no filtering will be done, and so all calendars will be scanned.",
+      "title": "Calendars to include",
+      "description": "Comma-separated list of calendar names to filter by when showing list of events. If empty, no filtering will be done, and so all calendars will be included.",
       "type": "[string]",
       "default": [],
       "required": false
     },
     {
-      "key": "addMatchingEvents",
-      "title": "Events match list",
-      "description": "Match events with string on left, and then the string on the right is the template for how to insert this event (see README for details)",
-      "type": "json",
-      "default": "{\n\t\"meeting\": \"### *|TITLE|* (*|START|*)\\n*|NOTES|*\",\n\t\"webinar\": \"### *|TITLE|* (*|START|*)\\n*|URL|*\\n*|NOTES|*\",\n\t\"holiday\": \"*|TITLE|* *|NOTES|*\"\n}",
-      "required": true
-    },
-    {
       "key": "calendarNameMappings",
       "title": "Calendar name mappings",
-      "description": "Map a calendar name to a new string - e.g. 'Thomas' -> 'Me' with 'Thomas;Me'. Separating the two parts of a mapping with semicolons, and use commas between maps.",
+      "description": "Map a calendar name to a new string - e.g. 'Jonathan' -> 'J' with 'Jonathan;J'. Separating the two parts of a mapping with semicolons, and use commas between maps.",
       "type": "[string]",
       "default": [
         "From;To"
@@ -109,7 +115,30 @@
     },
     {
       "type": "heading",
-      "title": "Settings for creating time blocks"
+      "title": "Additional settings for insert matching events"
+    },
+    {
+      "key": "matchingEventsHeading",
+      "title": "Matching Events heading",
+      "description": "Optional heading to put before list of events matching list below",
+      "type": "string",
+      "default": "## Matching Events",
+      "required": false
+    },
+    {
+      "key": "addMatchingEvents",
+      "title": "Events match list",
+      "description": "Match events with string on left, and then the string on the right is the template for how to insert this event (see README for details)",
+      "type": "json",
+      "default": "{\n\t\"meeting\": \"### *|TITLE|* (*|START|*)*|\\nwith ATTENDEES|**|\\nNOTES|*\",\n\t\"webinar\": \"### *|TITLE|* (*|START|*)*|\\nEVENTLINK|**|\\nNOTES|*\",\n\t\"gym\": \"*|TITLE|* (*|START|*)\\nHow did it go?\"\n},\n\t\"holiday\": \"*|TITLE|**|\\nNOTES|*\"\n}",
+      "required": true
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Settings for '/time blocks to calendar'"
     },
     {
       "key": "calendarToWriteTo",

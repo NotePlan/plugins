@@ -3,8 +3,13 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 
 ## [0.15.0] - **not yet released given new minimum version**
 ### Added
+- Added new 'Events List display format' and 'Events List display format for all-day events' settings to allow user to customise the event lists when run as /commands. This uses the same format as can already be passed as a parameter in the `events()` template functions.  Defaults are given.
 - Added support for including the date of an event in the output for calendar events. You can include it in format strings as placeholder `*|DATE|*`.
-- Added more flexibility in the formatting of event lists. So now instead of including (for example) `*|ATTENDEES|*` you can now include other text (including line breaks) within the placeholder, for example `*|\nwith ATTENDEES|*`. If the ATTENDEES is not empty, then it will output the list after a newline and the text 'with '.
+- Added more flexibility in the formatting of event lists. So now instead of including (for example) `*|ATTENDEES|*` you can now include other text (including line breaks) within the placeholder, for example `*|\nwith ATTENDEES|*`. If the ATTENDEES is not empty, then it will output the list after a newline and the text 'with '.  Here is a fuller example to use in a Template.
+```js
+<%- events( {format:"### (*|CAL, |**|START|*) *|EVENTLINK|**|\nwith ATTENDEES|**|\nNOTES|**|\nURL|*", allday_format:"- (*|CAL|*) *|EVENTLINK|**|\nNOTES|**|\nURL|*", includeHeadings:true} ) %> 
+```
+
 ### Changed
 - Under-the-hood change to register its functions ready for NP 3.5.2. (Means minimum version that it will run with is v3.5.2.)
 
