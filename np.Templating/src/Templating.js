@@ -587,3 +587,11 @@ export async function _templatesExist(): Promise<boolean> {
 
   return newTemplates.length > 0
 }
+
+export async function templateSamples(): Promise<void> {
+  const numSamples = 10
+  const result = await CommandBar.prompt(`This will create ${numSamples} template samples in your Templates folder`, 'Are you sure you wish to continue?', ['Continue', 'Cancel'])
+  if (result === 0) {
+    console.log('Create Samples')
+  }
+}

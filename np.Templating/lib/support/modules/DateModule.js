@@ -117,11 +117,17 @@ export default class DateModule {
     let formattedDate = moment(dateValue).format(format)
     if (offset) {
       offset = `${offset}` // convert to string for further processing and usage below
+      console.log(offset.match(/^-?d*.?d*$/))
+
       let newDate = ''
-      if (offset.match(/^-?d*.?d*$/)) {
-        newDate = offset.includes('-') ? moment(dateValue).subtract(offset.replace('-', ''), 'days') : moment(dateValue).add(offset, 'days')
+      // supplied positive/negative number
+      if (offset.match(/^[+-]?([0-9]*\.?[0-9]+|[0-9]+\.?[0-9]*)([eE][+-]?[0-9]+)?$/)) {
+        newDate = offset.includes('-') ? moment(dateValue).subtract(Math.abs(offset), 'days') : moment(dateValue).add(offset, 'days')
       } else {
-        newDate = offset.includes('-') ? moment(dateValue).subtract(offset.replace('-', '')) : moment(dateValue).add(offset)
+        const shorthand = offset[offset.length - 1]
+        const value = offset.replace(shorthand, '')
+
+        newDate = offset.includes('-') ? moment(dateValue).subtract(Math.abs(value), shorthand) : moment(dateValue).add(value, shorthand)
       }
 
       formattedDate = moment(newDate).format(format)
@@ -274,7 +280,7 @@ export default class DateModule {
     const dtFormat = format.length > 0 ? format : configFormat
     const localeDate = this.createDateTime(pivotDate)
 
-    const result = momentBusiness(new Date(localeDate), dtFormat).businessAdd(numDays)
+    const result = momentBusiness(new Date(localeDate), 'YYYY-MM-DD').businessAdd(numDays)
 
     return result.format(dtFormat)
   }
@@ -284,7 +290,7 @@ export default class DateModule {
     const dtFormat = format.length > 0 ? format : configFormat
     const localeDate = this.createDateTime(pivotDate)
 
-    const result = momentBusiness(new Date(localeDate), dtFormat).businessSubtract(numDays)
+    const result = momentBusiness(new Date(localeDate), 'YYYY-MM-DD').businessSubtract(numDays)
 
     return result.format(dtFormat)
   }
