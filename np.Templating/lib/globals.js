@@ -95,29 +95,30 @@ const globals = {
   },
 
   pickDate: async (dateParams: any = '', config: { [string]: ?mixed }): Promise<string> => {
-    console.log(typeof dateParams)
+    return `**The 'pickDate' helper has been deprecated, you should modify template to use 'promptDate(...) method'`
 
-    if (typeof dateParams === 'object') {
-      clo(dateParams)
-    } else {
-      console.log(dateParams)
-    }
+    // if (typeof dateParams === 'object') {
+    //   clo(dateParams)
+    // } else {
+    //   console.log(dateParams)
+    // }
 
-    if (!dateParams) {
-      // $FlowIgnore
-      return await datePicker('', '')
-    }
+    // if (!dateParams) {
+    //   // $FlowIgnore
+    //   return await datePicker('', '')
+    // }
 
     // <%= pickDate('question','Date of session') %>
 
-    const datePickerParams = { question: 'TeSt' }
+    // const datePickerParams = { question: 'TeSt' }
 
     // $FlowIgnore
-    return await datePicker(dateParams, JSON.stringify(config))
+    // return await datePicker(dateParams, JSON.stringify(config))
   },
 
   pickDateInterval: async (dateParams: any): Promise<string> => {
-    return await askDateInterval(JSON.stringify(dateParams))
+    return `**'pickDateInterval' has been deprecated, you should modify template to use 'promptDateInterval(...) method'`
+    // return await askDateInterval(JSON.stringify(dateParams))
   },
 
   events: async (dateParams?: any): Promise<string> => {
