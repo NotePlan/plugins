@@ -54,7 +54,7 @@ export function JSP(obj: { [string]: mixed }, space: string | number = 2): strin
  * @param {string | number} space - A String or Number of spaces that's used to insert white space (including indentation, line break characters, etc.) into the output JSON string for readability purposes.
  * @example clo(obj, 'myObj:')
  */
-export function clo(obj: { [string]: mixed }, preamble: string = '', space: string | number = 2): void {
+export function clo(obj: any, preamble: string = '', space: string | number = 2): void {
   if (typeof obj !== 'object') {
     console.log(`${obj} ${preamble}`)
   } else {
