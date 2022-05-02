@@ -60,12 +60,14 @@ export default class TimeModule {
     }
   }
 
-  now(format = '') {
+  now(format = '', offset = '') {
     const locale = this.config?.locale || 'en-US'
     const configFormat = this.config?.timeFormat || 'short'
 
     format = format.length > 0 ? format : configFormat
     let formattedTime = moment(new Date()).format(format)
+
+    // TODO: Implement offset for time
 
     if (format === 'short' || format === 'medium' || format === 'long' || format === 'full') {
       formattedTime = new Intl.DateTimeFormat(locale, { timeStyle: format }).format(new Date())

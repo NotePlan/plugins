@@ -103,10 +103,50 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(assertValue)
     })
 
+    it(`should render ${method('.now')} using positive offset`, async () => {
+      const result = new DateModule().now('', 10)
+
+      const assertValue = moment(new Date()).add(10, 'days').format('YYYY-MM-DD')
+
+      expect(result).toEqual(assertValue)
+    })
+
     it(`should render ${method('.now')} using negative offset`, async () => {
       const result = new DateModule().now('', -7)
 
       const assertValue = moment(new Date()).subtract(7, 'days').format('YYYY-MM-DD')
+
+      expect(result).toEqual(assertValue)
+    })
+
+    it(`should render ${method('.now')} using negative offset`, async () => {
+      const result = new DateModule().now('', -45)
+
+      const assertValue = moment(new Date()).subtract(45, 'days').format('YYYY-MM-DD')
+
+      expect(result).toEqual(assertValue)
+    })
+
+    it(`should render ${method('.now')} using positive shorthand`, async () => {
+      const result = new DateModule().now('', '10w')
+
+      const assertValue = moment(new Date()).add(10, 'w').format('YYYY-MM-DD')
+
+      expect(result).toEqual(assertValue)
+    })
+
+    it(`should render ${method('.now')} using positive shorthand`, async () => {
+      const result = new DateModule().now('', '3M')
+
+      const assertValue = moment(new Date()).add(3, 'M').format('YYYY-MM-DD')
+
+      expect(result).toEqual(assertValue)
+    })
+
+    it(`should render ${method('.now')} using negative shorthand`, async () => {
+      const result = new DateModule().now('', '-10w')
+
+      const assertValue = moment(new Date()).subtract(10, 'w').format('YYYY-MM-DD')
 
       expect(result).toEqual(assertValue)
     })

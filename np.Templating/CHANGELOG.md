@@ -3,26 +3,32 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
-## [1.1.0-beta.01] - 2022-04-25 (mikeerickson)
+## [1.1.0-beta.02] - 2022-05-01 (mikeerickson)
+
+- fixed date math when using `.now()` command with `offset` parameter
+
+> Examples: `<%- date.now('',10) %>`, `<%- date.now('', -90) %>`,  `<%- date.now('', '10w') %>`, `<%- date.now('', '-3M') %>`
+
+## [1.1.0-beta.01] - 2022-04-30 (mikeerickson)
 
 - made adjustments to the template migration code, no longer skipped if `np.Templating` sessions exist
-  - Note: You can execute `np:migrate-templates` at any time if you need to rexecute migration
+> Note: You can execute `np:migrate-templates` at any time if you need to rexecute migration
 - add template migration code to `init` method so it will be executed for each np.Templating command
-  - This will assure templates have been migrated should something of happened and they were not migrated during np.Templating installation
+> This will assure templates have been migrated should something of happened and they were not migrated during np.Templating installation
 - fixed tag details (removed `<%=` from documentation, will be supported internally but not an "official" tag`)
 - removed `np:mtn` command (and removed from documentation) as it was conflicting with `np.MeetingNotes` implementation
 - fixed `np:new` which was not using entered note title (if `newNoteTitle` does not exist in template attributes)
 - fixed issue with `NPTemplating.getFolder` interface, was displaying "Choose Destination Folder" even though a default folder was supplied
 - added `trim()` to weather output, fixing an issue when applying NotePlan _italic_ style
-  - `*<%- web.weather() %>*` would be rendered as a todo item
+>  `*<%- web.weather() %>*` would be rendered as a todo item
 - added `promptDate` which should be used instead of `pickDate` so `placeholder` value can be used in same template in different location
 - added `promptInterval` which should be used instead of `pickInterval` so `placeholder` value can be used in same template in different location
 - fixed issues with `templateLocale` not be used properly in some methods in `DateModule`
 - implemented workaround issue with `date.dayNumber()` when running in locales not `en` or `en-US`
 - removed hard coded `discuss` variable in template rendering, would have collided if there was a variable in the rendering process which was `dicsuss`
 - fixed prompt interface to only ouput prompt value when using output tag `<%-`
-  - for example, the following will get retrieve the prompt value into variable, but will not show value when template rendered
-  - `<% prompt('myVar','Enter myVar;') %>`
+> for example, the following will get retrieve the prompt value into variable, but will not show value when template rendered
+> `<% prompt('myVar','Enter myVar;') %>`
 
 ## [1.0.3] - 2022-04-17 (mikeerickson)
 

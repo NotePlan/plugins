@@ -10,7 +10,7 @@ import { datePicker, askDateInterval } from '@helpers/userInput'
 import { get8601String, getWeekDates, formattedDateTimeTemplate } from '@plugins/dwertheimer.DateAutomations/src/dateFunctions'
 import { getFormattedTime } from '@helpers/dateTime'
 import { listDaysEvents, listMatchingDaysEvents } from '@plugins/jgclark.EventHelpers/src/eventsToNotes'
-import { sweepTemplate } from '@plugins/nmn.sweep/src/sweepAll'
+// import { sweepTemplate } from '@plugins/nmn.sweep/src/sweepAll'
 import DateModule from './support/modules/DateModule'
 import { now, timestamp } from './support/modules/DateModule'
 import { time } from './support/modules/TimeModule'
@@ -137,7 +137,8 @@ const globals = {
   },
 
   sweepTasks: async (params: any = ''): Promise<string> => {
-    return await sweepTemplate(JSON.stringify(params))
+    return '**Task Sweeping is currently not supported in Templates**'
+    // return await sweepTemplate(JSON.stringify(params))
   },
 
   formattedDateTime: (params: any): string => {
