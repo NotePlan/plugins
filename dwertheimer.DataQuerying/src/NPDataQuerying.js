@@ -156,11 +156,12 @@ export async function searchUserInput(linksOnly: boolean = false): Promise<void>
   try {
     const searchTerm = await CommandBar.showInput("'=match-exactly; !=NOT; space=AND; |=OR", 'Search for: %@')
     const config = getDefaultConfig()
+    clo(config, 'searchUserInput: config')
     log(pluginJson, `searchUserInput: searchTerm=${searchTerm}`)
     CommandBar.showLoading(true, `Searching ${DataStore.projectNotes.length} notes and attachments...`)
     await CommandBar.onAsyncThread()
     const results = await search(searchTerm, config)
-    const output = formatSearchOutput(results, searchTerm, { config: config, linksOnly: linksOnly })
+    const output = formatSearchOutput(results, searchTerm, config)
     const searchFilename = await getSearchNoteFilename(config)
     if (searchFilename) {
       const note = await DataStore.projectNoteByFilename(searchFilename)
@@ -344,7 +345,7 @@ function getDefaultConfig(): DataQueryingConfig {
     openInNewWindow: false,
     maxSearchResultLine: 300,
     charsBeforeAndAfter: 100 /* max chars before and after found match */,
-    ignoreNewLine: true,
+    ignoreNewLines: true,
     mentionsToSkip: ['@sleep('], //FIXME: add to config and skipping,
     hashtagsToSkip: ['#🕑'], //FIXME: add to config and skipping
     linksOnly: false,
@@ -362,7 +363,7 @@ export type DataQueryingConfig = {
   openInNewWindow: boolean,
   maxSearchResultLine: number,
   charsBeforeAndAfter: number,
-  ignoreNewLine: boolean,
+  ignoreNewLines: boolean,
   mentionsToSkip: Array<string>,
   hashtagsToSkip: Array<string>,
   linksOnly: boolean,

@@ -42,7 +42,8 @@ export function formatSearchOutput(results: Array<any>, searchQuery: string, con
                 highestEnd = endPos
               }
             })
-            content = getSurroundingChars(value, lowestStart, highestEnd, config)
+            const titleRE = new RegExp(`(\.\.\. \# ${item.title}\s*)`, 'mg')
+            content = getSurroundingChars(value, lowestStart, highestEnd, config).replace(titleRE, '')
           })
       }
       output.push(`${pl}\n... ${content} ...\n---`)
@@ -75,8 +76,8 @@ export function getSurroundingChars(value: string, start: number, end: number, c
   let before = start - 1 > 0 ? value.slice(bs, start) : ''
   let after = end + 1 <= value.length ? value.slice(end + 1, as) : ''
   const output = `${before} **${foundString}** ${after}`
-  log(pluginJson, `config.ignoreNewLine: ${String(config.ignoreNewLine)}`)
-  return config.ignoreNewLine ? output.replace(/\n/gm, ' ') : output
+  log(pluginJson, `config.ignoreNewLines: ${String(config.ignoreNewLines)}`)
+  return config.ignoreNewLines ? output.replace(/\n/gm, ' ') : output
 }
 
 export function getMatchText(indices, content) {}
