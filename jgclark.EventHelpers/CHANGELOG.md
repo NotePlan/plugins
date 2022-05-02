@@ -1,9 +1,10 @@
 # What's changed in 🕓 Event Helpers?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
-## [0.14.2] - **not yet released given new minimum version**
+## [0.15.0] - **not yet released given new minimum version**
 ### Added
-- Added support for including the date of an event in the output for calendar events. You can include it in format strings as `*|DATE|*`.
+- Added support for including the date of an event in the output for calendar events. You can include it in format strings as placeholder `*|DATE|*`.
+- Added more flexibility in the formatting of event lists. So now instead of including (for example) `*|ATTENDEES|*` you can now include other text (including line breaks) within the placeholder, for example `*|\nwith ATTENDEES|*`. If the ATTENDEES is not empty, then it will output the list after a newline and the text 'with '.
 ### Changed
 - Under-the-hood change to register its functions ready for NP 3.5.2. (Means minimum version that it will run with is v3.5.2.)
 

@@ -7,7 +7,7 @@
   "plugin.icon": "",
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers",
-  "plugin.version": "0.14.2",
+  "plugin.version": "0.15.0",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -34,13 +34,13 @@
     },
     {
       "name": "listDaysEvents",
-      "description": "function to list events for the current open Calendar note",
+      "description": "function to list events for the current open Calendar note (for use in Templating)",
       "hidden": true,
       "jsFunction": "listDaysEvents"
     },
     {
       "name": "listMatchingDaysEvents",
-      "description": "function to list events for the current open Calendar note that match string defined in the settings",
+      "description": "function to list events for the current open Calendar note that match string defined in the settings (for use in Templating)",
       "hidden": true,
       "jsFunction": "listMatchingDaysEvents"
     }
