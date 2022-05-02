@@ -1,7 +1,7 @@
 # What's changed in 🕓 Event Helpers?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
-## [0.14.2] - **not yet released**
+## [0.14.2] - **not yet released given new minimum version**
 ### Added
 - Added support for including the date of an event in the output for calendar events. You can include it in format strings as `*|DATE|*`.
 ### Changed

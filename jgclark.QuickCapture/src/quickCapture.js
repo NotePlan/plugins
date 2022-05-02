@@ -37,7 +37,7 @@ type inboxConfigType = {
  * @author @jgclark
  */
 async function getInboxSettings(): Promise<any> {
-  log(pluginJson, `Start of getInboxSettings():`)
+  log(pluginJson, `Start of getInboxSettings()`)
   try {
     // Get settings using ConfigV2
     const v2Config: inboxConfigType = await DataStore.loadJSON("../jgclark.QuickCapture/settings.json")
@@ -47,7 +47,7 @@ async function getInboxSettings(): Promise<any> {
       return
     }  else {
       // $FlowFixMe
-      clo(v2Config, `${configKey} settings from V2:`)
+      // clo(v2Config, `${configKey} settings from V2:`)
       return v2Config
     }
   }

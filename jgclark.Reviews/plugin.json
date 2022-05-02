@@ -6,7 +6,7 @@
 	"plugin.icon": "",
 	"plugin.author": "Jonathan Clark",
 	"plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
-	"plugin.version": "0.6.2",
+	"plugin.version": "0.6.3",
 	"plugin.dependencies": [],
 	"plugin.script": "script.js",
 	"plugin.isRemote": "false",
@@ -46,6 +46,11 @@
 			"alias": ["gtd", "cancel", "project"],
 			"description": "add @cancelled(date) date to the open project note, adds its details to a yearly note in Summaries folder (if the folder exists), and offers to move the note to the NotePlan Archive",
 			"jsFunction": "cancelProject"
+		},
+		{
+			"name": "rev:logReviewList",
+			"description": "write reviewList pref to log",
+			"jsFunction": "logReviewList"
 		},
 		{
 			"name": "rev:upgrade",
@@ -128,6 +133,7 @@
 			"key": "startMentionStr",
 			"title": "Project start string",
 			"description": "@string indicating date a project/area was started (default: @start)",
+			"type": "string",
 			"default": "@start",
 			"required": true
 		},
@@ -135,6 +141,7 @@
 			"key": "completedMentionStr",
 			"title": "Project completed string",
 			"description": "@string indicating date a project/area was completed (default: @completed)",
+			"type": "string",
 			"default": "@completed",
 			"required": true
 		},
@@ -142,6 +149,7 @@
 			"key": "cancelledMentionStr",
 			"title": "Project cancelled string",
 			"description": "@string indicating date a project/area was cancelled (default: @cancelled)",
+			"type": "string",
 			"default": "@cancelled",
 			"required": true
 		},
@@ -149,6 +157,7 @@
 			"key": "dueMentionStr",
 			"title": "Project due string",
 			"description": "@string indicating date a project/area is due to be finished (default: @due)",
+			"type": "string",
 			"default": "@due",
 			"required": true
 		},
@@ -156,6 +165,7 @@
 			"key": "reviewIntervalMentionStr",
 			"title": "Project review interval string",
 			"description": "@string indicating review interval for project/area (default: @review)",
+			"type": "string",
 			"default": "@review",
 			"required": true
 		},
@@ -163,6 +173,7 @@
 			"key": "reviewedMentionStr",
 			"title": "Project reviewed string",
 			"description": "@string indicating date a project/area was last reviewed (default: @reviewed)",
+			"type": "string",
 			"default": "@reviewed",
 			"required": true
 		}
