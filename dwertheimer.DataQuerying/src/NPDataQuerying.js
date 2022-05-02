@@ -1,7 +1,7 @@
 // @flow
 /*
 TO DO:
-- projectNoteByFilename(filename)
+- use .openNoteByFilename(filename, newWindow, highlightStart, highlightEnd, splitView, createIfNeeded)
 - write the database index using cron?
 - THE FUZZY SEARCH SEEMS TO SUCK: title is weighted heavily, but Horizons search brings up soyrizo first
 - For fuse refactor writeIndex to get the index and write it
@@ -40,7 +40,7 @@ const INDEX_FILENAME = 'fuse-index.json'
 const SEARCH_OPTIONS = {
   /* keys: ['type', { name: 'title', weight: 5 }, 'hashtags', 'mentions', 'content', 'filename', 'changedDateISO'],*/
   keys: [
-    { name: 'title', weight: 1 },
+    { name: 'title', weight: 0.9 },
     { name: 'content', weight: 0.5 },
   ],
   includeScore: true,
@@ -55,15 +55,15 @@ const SEARCH_OPTIONS = {
  * @param {Object} config
  * @returns
  */
-function getNotesForIndex(config) {
+function getNotesForIndex(config: DataQueryingConfig) {
   const consolidatedNotes = [...DataStore.projectNotes, ...DataStore.calendarNotes]
   log(pluginJson, `getNotesForIndex: ${consolidatedNotes.length} notes before eliminating foldersToIgnore `)
   // consolidatedNotes.prototype.changedDateISO = () => this.changedDate.toISOString()
-  let foldersToIgnore = config.foldersToIgnore
-  if (config.searchNoteFolder) {
+  let foldersToIgnore = config.foldersToIgnore || []
+  if (config.searchNoteFolder && Array.isArray(foldersToIgnore)) {
     foldersToIgnore.push(config.searchNoteFolder)
   }
-  log(pluginJson, `getNotesForIndex: ${consolidatedNotes.length} notes before eliminating foldersToIgnore: ${JSON.stringify(foldersToIgnore)} `)
+  // log(pluginJson, `getNotesForIndex: ${consolidatedNotes.length} notes before eliminating foldersToIgnore: ${JSON.stringify(foldersToIgnore)} `)
   return consolidatedNotes
     .filter((note) => {
       let include = true
@@ -92,7 +92,7 @@ function getNotesForIndex(config) {
  * Create searchable (Fuse) index and write it to disk
  * @returns {NoteIndexType | null}
  */
-export async function writeIndex(index): null | FuseIndex {
+export async function writeIndex(index: any): null | any {
   try {
     // CommandBar.showLoading(true, 'Building search index')
     // await CommandBar.onAsyncThread()
@@ -101,7 +101,7 @@ export async function writeIndex(index): null | FuseIndex {
     log(pluginJson, `writeIndex: index is of type: "${typeof index}" ; ${JSON.stringify(index).length} char length of index`)
     DataStore.saveJSON(JSON.stringify(index), INDEX_FILENAME)
     let elapsed = timer(timeStart)
-    log(pluginJson, `createIndex: ${includedNotes.length} notes written to disk as ${INDEX_FILENAME} total elapsed: ${elapsed}`)
+    // log(pluginJson, `createIndex: ${includedNotes.length} notes written to disk as ${INDEX_FILENAME} total elapsed: ${elapsed}`)
 
     // await CommandBar.onMainThread()
     // CommandBar.showLoading(false)
@@ -112,20 +112,21 @@ export async function writeIndex(index): null | FuseIndex {
   }
 }
 
-async function getSearchNoteFilename(config) {
+async function getSearchNoteFilename(config: DataQueryingConfig): Promise<string> {
   let note, fname
-  note = await DataStore.projectNoteByTitle(config.searchNoteTitle)
-  if (note.length) {
-    note.filter((n) => n.filename.includes(config.searchNoteFolder))
+  const { searchNoteTitle, searchNoteFolder } = config
+  note = await DataStore.projectNoteByTitle(searchNoteTitle)
+  if (note?.length) {
+    note.filter((n) => n.filename.includes(searchNoteFolder))
     if (note && note[0]) {
       fname = note[0].filename
     } else {
-      throw 'No note found with title: ' + config.searchNoteTitle
+      throw 'No note found with title: ' + searchNoteTitle
     }
   } else {
-    fname = await DataStore.newNote(config.searchNoteTitle, config.searchNoteFolder)
+    fname = await DataStore.newNote(searchNoteTitle, searchNoteFolder)
   }
-  return fname
+  return fname || ''
 }
 
 /**
@@ -161,47 +162,54 @@ export async function searchUserInput(linksOnly: boolean = false): Promise<void>
     const results = await search(searchTerm, config)
     const output = formatSearchOutput(results, searchTerm, { config: config, linksOnly: linksOnly })
     const searchFilename = await getSearchNoteFilename(config)
-    const note = await DataStore.projectNoteByFilename(searchFilename)
-    log(pluginJson, `searchUserInput: searchFilename=${searchFilename}}`)
-    if (note && note.content) {
-      log(pluginJson, `searchUserInput: searchFilename=${searchFilename} note=${JSP(note)}`)
-      note.content = output
+    if (searchFilename) {
+      const note = await DataStore.projectNoteByFilename(searchFilename)
+      log(pluginJson, `searchUserInput: searchFilename=${searchFilename}}`)
+      if (note && note.content) {
+        // log(pluginJson, `searchUserInput: searchFilename=${searchFilename} note=${JSP(note)}`)
+        note.content = output
+      }
     }
     await CommandBar.onMainThread()
     CommandBar.showLoading(false)
     await Editor.openNoteByFilename(searchFilename, config.openInNewWindow, 0, 0, config.openInSplitView)
   } catch (error) {
-    console.log(error)
+    log(pluginJson, error)
   }
 }
 
-export async function search(pattern = `Cava`, config = getDefaultConfig()) {
-  let index = null
-  let timeStart = new Date()
-  if (config.loadIndexFromDisk) {
-    try {
-      index = DataStore.loadJSON(INDEX_FILENAME)
-    } catch (error) {
-      clo(error, 'search: caught error')
+export async function search(pattern = `Cava`, config: DataQueryingConfig = getDefaultConfig()): Promise<any> {
+  try {
+    let index = null
+    let timeStart = new Date()
+    if (config.loadIndexFromDisk) {
+      try {
+        index = DataStore.loadJSON(INDEX_FILENAME)
+      } catch (error) {
+        clo(error, 'search: caught error')
+      }
     }
+    // const consolidatedNotes = [...DataStore.projectNotes, ...DataStore.calendarNotes].map((note) => ({ ...note, changedDate: note.changedDate.toISOString() }))
+    const includedNotes = getNotesForIndex(config)
+    let results = []
+    if (index) {
+      results = fh.searchIndex(includedNotes, pattern, { options: SEARCH_OPTIONS, index })
+    } else {
+      results = fh.search(includedNotes, pattern, SEARCH_OPTIONS)
+    }
+    log(pluginJson, `search for ${pattern} took: ${timer(timeStart)} including load/index; returned ${results.length} results`)
+    // if (OUTPUT_SEARCH_RESULTS) {
+    //   // for debugging
+    //   // clo(results[0] || '', `search: results:${results.length} results[0] example full`)
+    //   // results.forEach((item, i) => {
+    //   //   // clo(item.item, `search: result(${i}) matches:${item.matches.length} score:${item.score}`)
+    //   // })
+    // }
+    return results
+  } catch (error) {
+    log(pluginJson, `search: caught error: ${error}`)
+    return []
   }
-  // const consolidatedNotes = [...DataStore.projectNotes, ...DataStore.calendarNotes].map((note) => ({ ...note, changedDate: note.changedDate.toISOString() }))
-  const includedNotes = getNotesForIndex(config)
-  let results = []
-  if (index) {
-    results = fh.searchIndex(includedNotes, pattern, { options: SEARCH_OPTIONS, index })
-  } else {
-    results = fh.search(includedNotes, pattern, SEARCH_OPTIONS)
-  }
-  log(pluginJson, `search for ${pattern} took: ${timer(timeStart)} including load/index; returned ${results.length} results`)
-  if (OUTPUT_SEARCH_RESULTS) {
-    // for debugging
-    clo(results[0] || '', `search: results:${results.length} results[0] example full`)
-    results.forEach((item, i) => {
-      // clo(item.item, `search: result(${i}) matches:${item.matches.length} score:${item.score}`)
-    })
-  }
-  return results
 }
 
 export async function buildIndex(): Promise<void> {
@@ -214,12 +222,12 @@ export async function buildIndex(): Promise<void> {
     const projectNotes = getNotes(false)
     const calendarNotes = getNotes(true)
     const notes = [...projectNotes, ...calendarNotes]
-    clo(projectNotes[0], 'projectNotes[0]')
-    clo(calendarNotes[0], 'calendarNotes[0]')
+    // clo(projectNotes[0], 'projectNotes[0]')
+    // clo(calendarNotes[0], 'calendarNotes[0]')
 
     log(`Notes.length = ${notes.length}`)
     noteIndex = buildIndexFromNotes(notes, noteIndex, config)
-    clo(noteIndex, 'noteIndex')
+    // clo(noteIndex, 'noteIndex')
     log(pluginJson, `^^^^ buildIndex: \nnoteIndex.hashtags (${Object.keys(noteIndex.hashtags).length}):\n${metaListKeys(noteIndex.hashtags)}`)
     log(pluginJson, `^^^^ buildIndex: \nnoteIndex.mentions (${Object.keys(noteIndex.mentions).length}):\n${metaListKeys(noteIndex.mentions)}`)
 
@@ -231,21 +239,6 @@ export async function buildIndex(): Promise<void> {
 
 function getInitialIndex(): NoteIndex {
   return { hashtags: {}, mentions: {} }
-}
-
-function getDefaultConfig(): { [string]: mixed } {
-  return {
-    foldersToIgnore: ['_resources', '_evernote_attachments'],
-    ignoreHTMLfiles: true,
-    skipDoneMentions: true,
-    searchNoteTitle: 'Search Results',
-    searchNoteFolder: '@Searches',
-    openInSplitView: true,
-    openInNewWindow: false,
-    maxSearchResultLine: 100,
-    mentionsToSkip: ['@sleep('], //FIXME: add to config and skipping,
-    hashtagsToSkip: ['#🕑'], //FIXME: add to config and skipping
-  }
 }
 
 /**
@@ -267,7 +260,8 @@ export function existsInArray(needle: string, haystackArrOfRegexes: Array<string
 function metaListKeys(inArray) {
   const outArray = []
   Object.keys(inArray).forEach((key) => {
-    outArray.push(`${key} (${inArray[key].length})`)
+    // $FlowIgnore
+    outArray.push(`${key} (${inArray[key]?.length})`)
   })
   return outArray.sort().join('\n')
 }
@@ -279,8 +273,8 @@ function metaListKeys(inArray) {
  * @param {*} noteIndex
  * @returns
  */
-function getMetaData(note: TNote, mType: string, noteIndex: NoteIndex, config: { [string]: mixed }): NoteMetaData {
-  let index = noteIndex
+function getMetaData(note: TNote, mType: string, noteIndex: NoteIndex, config: DataQueryingConfig): NoteIndex {
+  let index: NoteIndex = noteIndex
   let skip = false
   if (/<html>|<!DOCTYPE/i.test(note.title || '') && config.ignoreHTMLfiles) skip = true
   if (note && mType && note[mType]?.length && !skip) {
@@ -309,13 +303,21 @@ function getMetaData(note: TNote, mType: string, noteIndex: NoteIndex, config: {
   return index
 }
 
+type NoteMetaData = {
+  filename: string,
+  title: string,
+  item: string,
+  type: string,
+  changed: Date,
+}
+
 /**
  * Given an array of notes, populates the index with the details of each note
  * @param {*} notes
  * @param {*} noteIndex
  * @returns
  */
-function buildIndexFromNotes(notes: Array<TNote>, noteIndex: NoteIndex, config: { [string]: mixed }): NoteIndex {
+function buildIndexFromNotes(notes: Array<TNote>, noteIndex: NoteIndex, config: DataQueryingConfig): NoteIndex {
   // log(pluginJson, `getNoteDetails()`)
   // clo(noteIndex, 'getNoteDetails: noteIndex=')
   let index = noteIndex
@@ -328,4 +330,40 @@ function buildIndexFromNotes(notes: Array<TNote>, noteIndex: NoteIndex, config: 
 
 function getNotes(isCalendar?: boolean = false): $ReadOnlyArray<TNote> {
   return isCalendar ? DataStore.calendarNotes : DataStore.projectNotes
+}
+
+function getDefaultConfig(): DataQueryingConfig {
+  return {
+    foldersToIgnore: ['_resources', '_evernote_attachments', '@Templates', '@Trash', '@Archive', '_TEST', '📋 Templates'],
+    ignoreHTMLfiles: true,
+    skipDoneMentions: true,
+    loadIndexFromDisk: false,
+    searchNoteTitle: 'Search Results',
+    searchNoteFolder: '@Searches',
+    openInSplitView: true,
+    openInNewWindow: false,
+    maxSearchResultLine: 300,
+    charsBeforeAndAfter: 100 /* max chars before and after found match */,
+    ignoreNewLine: true,
+    mentionsToSkip: ['@sleep('], //FIXME: add to config and skipping,
+    hashtagsToSkip: ['#🕑'], //FIXME: add to config and skipping
+    linksOnly: false,
+  }
+}
+
+export type DataQueryingConfig = {
+  foldersToIgnore: Array<string>,
+  ignoreHTMLfiles: boolean,
+  skipDoneMentions: boolean,
+  loadIndexFromDisk: boolean,
+  searchNoteTitle: string,
+  searchNoteFolder: string,
+  openInSplitView: boolean,
+  openInNewWindow: boolean,
+  maxSearchResultLine: number,
+  charsBeforeAndAfter: number,
+  ignoreNewLine: boolean,
+  mentionsToSkip: Array<string>,
+  hashtagsToSkip: Array<string>,
+  linksOnly: boolean,
 }

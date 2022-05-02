@@ -1,7 +1,10 @@
-// import { createBabelOutputPluginFac÷tory } from '@rollup/plugin-babel'
+// @flow
+
 import bqpjs from 'bqpjs'
 import { createCallbackUrl, createPrettyLink } from '../../../helpers/general'
-import { clo } from '../../../helpers/dev'
+import { clo, log } from '../../../helpers/dev'
+import type { DataQueryingConfig } from '../NPDataQuerying'
+import pluginJson from '../../plugin.json'
 
 export function queryToRPN(searchQuery: string): Array<string> {
   const result = bqpjs(searchQuery)
@@ -11,10 +14,10 @@ export function queryToRPN(searchQuery: string): Array<string> {
   return []
 }
 
-export function formatSearchOutput(results: Array<any>, searchQuery: string, config: { [string]: mixed }): Array<any> {
+export function formatSearchOutput(results: Array<any>, searchQuery: string, config: DataQueryingConfig): string {
   let output = [`### Searching for: "${searchQuery}":\n`]
   const linksOnly = config.linksOnly || false
-  clo(results, 'formatSearchOutput::results')
+  // clo(results, 'formatSearchOutput::results')
   results.forEach((r) => {
     let segment = ''
     let content = ''
@@ -39,14 +42,14 @@ export function formatSearchOutput(results: Array<any>, searchQuery: string, con
                 highestEnd = endPos
               }
             })
-            content = getSurroundingChars(value, lowestStart, highestEnd, 30, 30, config.maxSearchResultLine ?? 100)
+            content = getSurroundingChars(value, lowestStart, highestEnd, config)
           })
       }
       output.push(`${pl}\n... ${content} ...\n---`)
     } else {
       // links only
+      output.push(`${pl}\n`)
     }
-    output.push(`${pl}\n`)
   })
   return output.join(`\n`)
 }
@@ -60,16 +63,20 @@ export function formatSearchOutput(results: Array<any>, searchQuery: string, con
  * @param {*} max - max length of the result
  * @returns
  */
-export function getSurroundingChars(value: string, start: number, end: number, beforeAfter: number, max: number): string {
+export function getSurroundingChars(value: string, start: number, end: number, config: DataQueryingConfig): string {
+  const max = Number(config.maxSearchResultLine ?? 200)
+  const beforeAfter = Number(config.charsBeforeAndAfter ?? 100)
   const sampleSize = end - start + 1
-  const fullPotentialLength = 4 + sampleSize + beforeAfter * 2
-  const baft = fullPotentialLength > max ? Math.floor((max - sampleSize - 4) / 2) : beforeAfter
+  const fullPotentialLength = 4 + sampleSize + Number(beforeAfter) * 2
+  const baft = Number(fullPotentialLength) > max ? Math.floor((max - sampleSize - 4) / 2) : beforeAfter
   const foundString = value.slice(start, end + 1)
   const bs = start - baft < 0 ? 0 : start - baft
   const as = end + baft > value.length ? value.length : end + baft + 1
-  const before = start - 1 > 0 ? value.slice(bs, start) : ''
-  const after = end + 1 <= value.length ? value.slice(end + 1, as) : ''
-  return `${before} **${foundString}** ${after}`
+  let before = start - 1 > 0 ? value.slice(bs, start) : ''
+  let after = end + 1 <= value.length ? value.slice(end + 1, as) : ''
+  const output = `${before} **${foundString}** ${after}`
+  log(pluginJson, `config.ignoreNewLine: ${String(config.ignoreNewLine)}`)
+  return config.ignoreNewLine ? output.replace(/\n/gm, ' ') : output
 }
 
 export function getMatchText(indices, content) {}
