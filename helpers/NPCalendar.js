@@ -38,6 +38,8 @@ import { showMessage, showMessageYesNo } from './userInput'
 
 export type EventsConfig = {
   eventsHeading: string,
+  formatEventsDisplay: string,
+  formatAllDayEventsDisplay: string,
   sortOrder: string,
   matchingEventsHeading: string,
   addMatchingEvents: ?{ [string]: mixed },

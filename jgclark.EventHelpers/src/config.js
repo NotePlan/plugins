@@ -1,7 +1,7 @@
 // @flow
 // ----------------------------------------------------------------------------
 // Sort configuration for commands in the Event Helpers plugin.
-// Last updated 24.4.2022 for v0.14.1, by @jgclark
+// Last updated 2.5.2022 for v0.15.0, by @jgclark
 // @jgclark
 // ----------------------------------------------------------------------------
 
@@ -14,8 +14,8 @@ import {
   castStringFromMixed,
   trimAnyQuotes,
 } from '../../helpers/dataManipulation'
-import { clo, log, logWarn, logError } from "../../helpers/dev"
 import { type HourMinObj } from '../../helpers/dateTime'
+import { clo, log, logWarn, logError } from "../../helpers/dev"
 import { calcOffsetDateStr } from '../../helpers/NPdateTime'
 import { type EventsConfig } from '../../helpers/NPCalendar'
 import { showMessage } from '../../helpers/userInput'
@@ -41,6 +41,8 @@ export async function getEventsSettings(): Promise<any> {
       // Be kind and return a default set of config
       const defaultConfig: EventsConfig = {
         eventsHeading: "## Events",
+        formatEventsDisplay: "### *|CAL|*: *|TITLE|* (*|START|*)*| with ATTENDEES|**|\nNOTES|*",
+        formatAllDayEventsDisplay: "### *|CAL|*: *|TITLE|**| with ATTENDEES|**|\nNOTES|*",
         sortOrder: "time",
         matchingEventsHeading: "## Matching Events",
         addMatchingEvents: {},
@@ -60,7 +62,7 @@ export async function getEventsSettings(): Promise<any> {
     v2Config.locale = getLocale(v2Config)
     v2Config.timeOptions = getTimeOptions(v2Config)
     // $FlowFixMe
-    // clo(v2Config, `${configKey} settings from V2:`)
+    clo(v2Config, `${configKey} settings from V2:`)
     return v2Config
   }
   catch (err) {

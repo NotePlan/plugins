@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Commands for Reviewing project-style notes, GTD-style.
 // by @jgclark
-// Last updated 25.4.2022 for v0.6.2, @jgclark
+// Last updated 1.5.2022 for v0.6.3, @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -43,13 +43,20 @@ const reviewListPref = 'jgclark.Reviews.reviewList'
 //-------------------------------------------------------------------------------
 
 /**
+ * Log the machine-readable list of notes to review
+ * @author @jgclark
+ */
+export function logReviewList(): void{
+  logPreference(reviewListPref)
+}
+
+/**
  * Generate human-readable lists of project notes for each tag of interest
  * and write out to note(s) in the config.folderToStore folder.
  * @author @jgclark
  */
 export async function projectLists(): Promise<void> {
   const config = await getReviewSettings()
-  
   const filteredFolderList = filterFolderList(config.foldersToIgnore)
 
   log(pluginJson, `projectLists() starting for ${config.noteTypeTags.toString()} tags:`)
@@ -112,7 +119,9 @@ export async function startReviews(): Promise<void> {
   const filteredFolderList = filterFolderList(config.foldersToIgnore)
   const summaryArray = []
   
-  CommandBar.showLoading(true, `Generating review list`)
+  log(pluginJson, `startReviews() starting for ${config.noteTypeTags.toString()} tags:`)
+
+  CommandBar.showLoading(true, `Generating Project Review list`)
   await CommandBar.onAsyncThread()
 
   // Iterate over the folders ...
@@ -143,18 +152,27 @@ export async function startReviews(): Promise<void> {
       }
     }
   }
+
   await CommandBar.onMainThread()
   CommandBar.showLoading(false)
+
+  // dedupe the list, in case it contains duplicates
+  let dedupedArray = []  
+  summaryArray.forEach((element) => {
+    if (!dedupedArray.includes(element)) {
+      dedupedArray.push(element);
+    }
+  })
+  
   // sort the list by first field
   // $FlowIgnore[unsafe-addition]
-  const outputArray = summaryArray.slice().sort((first, second) => first.split('\t')[0] - second.split('\t')[0])
+  const outputArray = dedupedArray.slice().sort((first, second) => first.split('\t')[0] - second.split('\t')[0])
 
   // write summary to reviewList pref
   DataStore.setPreference(reviewListPref, outputArray.join('\n'))
   log(pluginJson, `  There are ${outputArray.length} lines in the reviewListPref`)
-  // logPreference(reviewListPref)
 
-  // Now trigger first review
+  // Now offer first review
   const noteToReview = await getNextNoteToReview()
   // Open that note in editor
   if (noteToReview != null) {
