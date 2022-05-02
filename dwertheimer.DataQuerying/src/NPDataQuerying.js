@@ -2,7 +2,9 @@
 /*
 TO DO:
 - use .openNoteByFilename(filename, newWindow, highlightStart, highlightEnd, splitView, createIfNeeded)
+- make clicking on a link take you to a note with the selection highlighted
 - write the database index using cron?
+- Remove ...title if it's at the beginning of search results (I tried but it doesn't work)
 - THE FUZZY SEARCH SEEMS TO SUCK: title is weighted heavily, but Horizons search brings up soyrizo first
 - For fuse refactor writeIndex to get the index and write it
 - For FUSE make a version of getMetaData() to use instead of the map to remove hashtags and mentions to skip
