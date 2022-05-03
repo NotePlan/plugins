@@ -9,7 +9,7 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 ```js
 <%- events( {format:"### (*|CAL, |**|START|*) *|EVENTLINK|**|\nwith ATTENDEES|**|\nNOTES|**|\nURL|*", allday_format:"- (*|CAL|*) *|EVENTLINK|**|\nNOTES|**|\nURL|*", includeHeadings:true} ) %> 
 ```
-
+- In date offsets, added ability to specify offset dates that work relative to each subsequent line [requested by @george65]
 ### Changed
 - Under-the-hood change to register its functions ready for NP 3.5.2. (Means minimum version that it will run with is v3.5.2.)
 
