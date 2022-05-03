@@ -15,7 +15,10 @@ export function queryToRPN(searchQuery: string): Array<string> {
 }
 
 export function formatSearchOutput(results: Array<any>, searchQuery: string, config: DataQueryingConfig): string {
-  let output = [`### Searching for: "${searchQuery}":\n`]
+  let output = [`### Searching for: "${searchQuery}":\n---`]
+  if (results.length === 0) {
+    output.push('*No results found*')
+  }
   const linksOnly = config.linksOnly || false
   // clo(results, 'formatSearchOutput::results')
   results.forEach((r) => {

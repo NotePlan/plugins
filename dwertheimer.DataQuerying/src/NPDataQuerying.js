@@ -164,6 +164,8 @@ export async function searchUserInput(linksOnly: boolean = false): Promise<void>
     await CommandBar.onAsyncThread()
     const results = await search(searchTerm, config)
     const output = formatSearchOutput(results, searchTerm, config)
+    const splits = output.split('\n')
+    const firstLineLength = splits[0].length + 1
     const searchFilename = await getSearchNoteFilename(config)
     if (searchFilename) {
       const note = await DataStore.projectNoteByFilename(searchFilename)
@@ -175,7 +177,7 @@ export async function searchUserInput(linksOnly: boolean = false): Promise<void>
     }
     await CommandBar.onMainThread()
     CommandBar.showLoading(false)
-    await Editor.openNoteByFilename(searchFilename, config.openInNewWindow, 0, 0, config.openInSplitView)
+    await Editor.openNoteByFilename(searchFilename, config.openInNewWindow, firstLineLength, firstLineLength, config.openInSplitView)
   } catch (error) {
     log(pluginJson, error)
   }
