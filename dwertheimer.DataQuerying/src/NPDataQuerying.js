@@ -136,9 +136,8 @@ async function getSearchNoteFilename(config: DataQueryingConfig): Promise<string
  * @param {Object} notesToInclude (optional) if you have the cleansed note list, pass it in, otherwise it will be created
  * @returns {FuseIndex}
  */
-export function createIndex(notesToInclude = []) {
+export async function createIndex(notesToInclude = [], config) {
   let timeStart = new Date()
-  const config = getDefaultConfig()
   const includedNotes = notesToInclude.length ? notesToInclude : getNotesForIndex(config)
   const index = fh.buildIndex(includedNotes, SEARCH_OPTIONS)
   let elapsed = timer(timeStart)
@@ -156,13 +155,26 @@ export async function searchButShowTitlesOnly(linksOnly: boolean = false): Promi
 
 export async function searchUserInput(linksOnly: boolean = false): Promise<void> {
   try {
-    const searchTerm = await CommandBar.showInput("'=match-exactly; !=NOT; space=AND; |=OR", 'Search for: %@')
     const config = getDefaultConfig()
+    // Get the promises, not the results
+    await CommandBar.onAsyncThread()
+    const promIndex = createIndex([], config)
+    await CommandBar.onMainThread()
+    const promSearchTerm = CommandBar.showInput("'=match-exactly; !=NOT; space=AND; |=OR", 'Search for: %@')
+    log(pluginJson, 'gotty0')
+    log(pluginJson, JSP(promSearchTerm))
+    log(pluginJson, JSP(promIndex))
+    const index = await promIndex
+    const searchTerm = await promSearchTerm
+    log(pluginJson, 'gotty1')
+    // const [searchTerm, index] = await Promise.all([promIndex])
+    log(pluginJson, 'gotty2')
+    log(pluginJson, 'gotty3')
     clo(config, 'searchUserInput: config')
     log(pluginJson, `searchUserInput: searchTerm=${searchTerm}`)
     CommandBar.showLoading(true, `Searching ${DataStore.projectNotes.length} notes and attachments...`)
     await CommandBar.onAsyncThread()
-    const results = await search(searchTerm, config)
+    const results = await search(searchTerm, config, index)
     const output = formatSearchOutput(results, searchTerm, config)
     const splits = output.split('\n')
     const firstLineLength = splits[0].length + 1
@@ -183,9 +195,9 @@ export async function searchUserInput(linksOnly: boolean = false): Promise<void>
   }
 }
 
-export async function search(pattern = `Cava`, config: DataQueryingConfig = getDefaultConfig()): Promise<any> {
+export async function search(pattern = `Cava`, config: DataQueryingConfig = getDefaultConfig(), pIndex = null): Promise<any> {
   try {
-    let index = null
+    let index = pIndex || null
     let timeStart = new Date()
     if (config.loadIndexFromDisk) {
       try {
