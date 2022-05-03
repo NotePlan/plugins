@@ -28,6 +28,8 @@ import pluginJson from '../plugin.json'
 import DateModule from '../lib/support/modules/DateModule'
 
 export async function init(): Promise<void> {
+  return
+
   try {
     if (!(await _checkTemplatesMigrated())) {
       let result = await CommandBar.prompt(
@@ -587,10 +589,13 @@ export async function templateAbout(): Promise<string> {
 export async function _checkTemplatesMigrated(): Promise<boolean> {
   const templateFolder = '📋 Templates'
 
-  const migratedTemplates = await NPTemplating.getTemplateList('migrated-template')
+  const migratedTemplates = await NPTemplating.getTemplateListByTags('migrated-template')
+
   const legacyTemplates = DataStore.projectNotes.filter((n) => n.filename?.startsWith(templateFolder)).filter((n) => !n.title?.startsWith('_configuration'))
 
-  return legacyTemplates.length > 0 && migratedTemplates.length > 0
+  const result = legacyTemplates.length > 0 && migratedTemplates.length > 0
+
+  return result
 }
 
 export async function templateSamples(): Promise<void> {
