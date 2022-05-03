@@ -466,7 +466,49 @@ type TDataStore = {
    * @param {string} filename of the new note (available from v3.5.2)
    * @return {string}
    */
-  newNoteWithContent(content: string, folder: string, filename: string): string
+  newNoteWithContent(content: string, folder: string, filename: string): string,
+    
+  /**
+   * Loads all available plugins asynchronously from the GitHub repository and returns a list. 
+   * You can show a loading indicator using the first parameter (true) if this is part of some user interaction. Otherwise, pass "false" so it happens in the background.
+   * Note: Available from NotePlan v3.5.2
+   * @param {boolean}
+  */
+  listPlugins(showLoading: boolean): Promise<void>,
+  /**
+   * Installs a given plugin (load a list of plugins using `.listPlugins` first). If this is part of a user interfaction, pass "true" for `showLoading` to show a loading indicator.
+   * Note: Available from NotePlan v3.5.2
+   * @param {PluginObject} 
+   * @param {boolean} 
+  */
+  installPlugin(pluginObject: PluginObject, showLoading: boolean): Promise<void>,
+  /**
+   * Returns all installed plugins as PluginObject(s).
+   * Note: Available from NotePlan v3.5.2
+   * @return {[PluginObject]}
+  */
+  installedPlugins(): [PluginObject],
+  /**
+   * Invoke a given command from a plugin (load a list of plugins using `.listPlugins` first, then get the command from the `.commands` list). 
+   * If the command supports it, you can also pass an array of arguments which can contain any type (object, date, string, integer,...)
+   * It returns the particular return value of that command which can be a Promise so you can use it with `await`.
+   * Note: Available from NotePlan v3.5.2
+   * @param {PluginCommandObject} 
+   * @param {[object]} 
+   * @return {any}Return value of the command, like a Promise}
+  */
+  invokePluginCommand(command: PluginCommandObject, arguments: [object]): Promise<any>,
+  /**
+   * Invoke a given command from a plugin using the name and plugin ID, so you don't need to load it from the list.
+   * If the command doesn't exist locally null will be returned with a log message.
+   * If the command supports it, you can also pass an array of arguments which can contain any type (object, date, string, integer,...)
+   * Note: Available from NotePlan v3.5.2
+   * @param {string}
+   * @param {string}
+   * @param {[object]} 
+   * @return {Return value of the command, like a Promise}
+  */
+  invokePluginCommandByName(command: string, pluginId: string, arguments: [object]): Promise<any>
 }
 
 /**
@@ -529,18 +571,17 @@ type TCommandBar = {
    */
   showInput(placeholder: string, submitText: string): Promise<string>,
   /**
-   * Note: Available from v3.0.26
    * Shows or hides a window with a loading indicator or a progress ring (if progress is defined) and an info text (optional).
    * `text` is optional, if you define it, it will be shown below the loading indicator.
    * `progress` is also optional. If it's defined, the loading indicator will change into a progress ring. Use float numbers from 0-1 to define how much the ring is filled.
    * When you are done, call `showLoading(false)` to hide the window.
+   * Note: Available from v3.0.26
    * @param {Bool}
    * @param {String?}
    * @param {Float?}
    */
   showLoading(visible: boolean, text?: string, progress?: number): void,
   /**
-   * Note: Available from v3.0.26
    * If you call this, anything after `await CommandBar.onAsyncThread()` will run on an asynchronous thread.
    * Use this together with `showLoading`, so that the work you do is not blocking the user interface.
    * Otherwise the loading window will be also blocked.
@@ -548,22 +589,23 @@ type TCommandBar = {
    * Warning: Don't use any user interface calls (other than showLoading) on an asynchronous thread. The app might crash.
    * You need to return to the main thread before you change anything in the window (such as Editor functions do).
    * Use `onMainThread()` to return to the main thread.
+   * Note: Available from v3.0.26
    */
   onAsyncThread(): Promise<void>,
   /**
-   * Note: Available from v3.0.26
    * If you call this, anything after `await CommandBar.onMainThread()` will run on the main thread.
    * Call this after `onAsyncThread`, once your background work is done.
    * It is safe to call Editor and other user interface functions on the main thread.
+   * Note: Available from v3.0.26
    */
   onMainThread(): Promise<void>,
 
   /**
-   * Note: Available from v3.3.2
    * Show a native alert or confirm with title and message
    * Define at least one or more buttons for the user to select.
    * If you don't supply any buttons, an "OK" button will be displayed.
    * The promise returns selected button, with button index (0 - first button)
+   * Note: Available from v3.3.2
    * @param {String}
    * @param {String?}
    * @param {[String]?}
@@ -571,12 +613,12 @@ type TCommandBar = {
   prompt(title: string, message: string, buttons?: $ReadOnlyArray<string>): Promise<number>,
 
   /**
-   * Note: Available from v3.3.2
    * Show a native text input prompt to the user with title and message text.
    * The buttons will be "OK" and "Cancel".
    * You can supply a default value which will be pre-filled.
    * If the user selects "OK", the promise returns users entered value
    * If the user selects "Cancel", the promise returns false.
+   * Note: Available from v3.3.2
    * @param {String}
    * @param {String?}
    * @param {String?}
