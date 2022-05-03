@@ -117,7 +117,6 @@ export default class DateModule {
     let formattedDate = moment(dateValue).format(format)
     if (offset) {
       offset = `${offset}` // convert to string for further processing and usage below
-      console.log(offset.match(/^-?d*.?d*$/))
 
       let newDate = ''
       // supplied positive/negative number

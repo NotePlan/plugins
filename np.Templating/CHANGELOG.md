@@ -3,9 +3,15 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.1.0] - 2022-05-02 (mikeerickson)
+
+- public release
+
 ## [1.1.0-beta.02] - 2022-05-01 (mikeerickson)
 
 - fixed date math when using `.now()` command with `offset` parameter
+- deprecated `pickDate` will now return message stating deprecation, point to using `promptDate`
+- deprecated `pickDateInterval` will now return message stating deprecation, point to using `promptDateInterval`
 
 > Examples: `<%- date.now('',10) %>`, `<%- date.now('', -90) %>`,  `<%- date.now('', '10w') %>`, `<%- date.now('', '-3M') %>`
 
