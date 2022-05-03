@@ -29,13 +29,13 @@ import DateModule from '../lib/support/modules/DateModule'
 
 export async function init(): Promise<void> {
   try {
-    let result = await _templatesExist()
-    if (!result) {
-      result = await CommandBar.prompt(
+    if (!(await _checkTemplatesMigrated())) {
+      let result = await CommandBar.prompt(
         'Your existing templates need to be migrated to new templating format',
         'Your templates will be migrated to \nSmart Folders -> Templates folder\n\nYour existing templates in\n📋 Templates will be preserved.\n\nWould you like to migrate templates now?',
         ['Yes', 'No'],
       )
+
       if (result === 0) {
         await onUpdateOrInstall()
         await CommandBar.prompt('Re-execute Template Command', 'Please execute the desired template command again.')
@@ -59,10 +59,13 @@ export async function onUpdateOrInstall(config: any = { silent: false }): Promis
       }
     }
 
-    result = await migrateTemplates()
-    if (result === 1) {
-      // only migrate quickNotes if templates have been migrated
-      result = await migrateQuickNotes()
+    const templatesExist = await _checkTemplatesMigrated()
+    if (!templatesExist) {
+      result = await migrateTemplates()
+      if (result === 1) {
+        // only migrate quickNotes if templates have been migrated
+        result = await migrateQuickNotes()
+      }
     }
 
     if (result === 1) {
@@ -581,11 +584,13 @@ export async function templateAbout(): Promise<string> {
   }
 }
 
-export async function _templatesExist(): Promise<boolean> {
-  const newTemplateFolder: string = NotePlan.environment.templateFolder
-  const newTemplates = DataStore.projectNotes.filter((n) => n.filename?.startsWith(newTemplateFolder)).filter((n) => !n.title?.startsWith('_configuration'))
+export async function _checkTemplatesMigrated(): Promise<boolean> {
+  const templateFolder = '📋 Templates'
 
-  return newTemplates.length > 0
+  const migratedTemplates = await NPTemplating.getTemplateList('migrated-template')
+  const legacyTemplates = DataStore.projectNotes.filter((n) => n.filename?.startsWith(templateFolder)).filter((n) => !n.title?.startsWith('_configuration'))
+
+  return legacyTemplates.length > 0 && migratedTemplates.length > 0
 }
 
 export async function templateSamples(): Promise<void> {
