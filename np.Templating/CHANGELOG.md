@@ -3,6 +3,10 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.1.1] - 2022-05-03 (mikeerickson)
+
+- fixed issue which was prompting tempalte migration when install or updating `np.Templating` plugin
+
 ## [1.1.0] - 2022-05-02 (mikeerickson)
 
 - public release

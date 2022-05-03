@@ -3,7 +3,7 @@
   "noteplan.minAppVersion": "3.5.0",
   "plugin.id": "np.Templating",
   "plugin.name": " 📒 np.Templating -- New 🎉",
-  "plugin.version": "1.1.0",
+  "plugin.version": "1.1.1",
   "plugin.description": "Templating Plugin for NotePlan",
   "plugin.author": "Mike Erickson (@codedungeon)",
   "plugin.dependencies": [],
@@ -92,12 +92,6 @@
       "alias": [],
       "description": "Run Quick Note Migration (_configuration :: quickNotes)",
       "jsFunction": "migrateQuickNotes"
-    },
-    {
-      "name": "np:samples",
-      "alias": [],
-      "description": "np.Templating Samples",
-      "jsFunction": "templateSamples"
     },
     {
       "name": "np:about",
