@@ -170,16 +170,16 @@ export default class NPTemplating {
     const settingsVersion: number = semverVersionToNumber(settingsData?.version || '')
 
     // changes in v1.0.3
-    if (settingsVersion < semverVersionToNumber('1.0.3')) {
-      updatesApplied++
-      log(pluginJson, `==> np.Templating 1.0.3 Updates Applied`)
-    }
+    // if (settingsVersion < semverVersionToNumber('1.0.3')) {
+    //   updatesApplied++
+    //   log(pluginJson, `==> np.Templating 1.0.3 Updates Applied`)
+    // }
 
     // changes in v1.0.4
-    if (settingsVersion < semverVersionToNumber('1.0.4')) {
-      log(pluginJson, `==> np.Templating 1.0.4 Updates Applied`)
-      updatesApplied++
-    }
+    // if (settingsVersion < semverVersionToNumber('1.0.4')) {
+    //   log(pluginJson, `==> np.Templating 1.0.4 Updates Applied`)
+    //   updatesApplied++
+    // }
 
     // update settings version to latest version from plugin.json
     settingsData.version = currentVersion
@@ -296,7 +296,7 @@ export default class NPTemplating {
     return 'INCOMPLETE'
   }
 
-  static async getTemplateList(tags: any = '*'): Promise<any> {
+  static async getTemplateList(types: any = '*'): Promise<any> {
     try {
       const templateFolder = await getTemplateFolder()
       if (templateFolder == null) {
@@ -304,7 +304,7 @@ export default class NPTemplating {
         return
       }
 
-      const filterTags = Array.isArray(tags) ? tags : tags.split(',').map((tag) => tag.trim())
+      const filterTypes = Array.isArray(types) ? types : types.split(',').map((type) => type.trim())
 
       const allTemplates = DataStore.projectNotes
         .filter((n) => n.filename?.startsWith(templateFolder))
@@ -341,18 +341,18 @@ export default class NPTemplating {
       // remove duplicates
       allTypes = allTypes.filter((v, i, a) => a.indexOf(v) === i)
 
-      // iterate filter tags
-      filterTags.forEach((tag) => {
+      // iterate filter types
+      filterTypes.forEach((type) => {
         // include all types
-        matches = tag === '*' ? matches.concat(allTypes) : matches
-        // find matching tags
-        if (tag[0] !== '!' && allTypes.indexOf(tag) > -1) {
-          matches.push(allTypes[allTypes.indexOf(tag)])
+        matches = type === '*' ? matches.concat(allTypes) : matches
+        // find matching typews
+        if (type[0] !== '!' && allTypes.indexOf(type) > -1) {
+          matches.push(allTypes[allTypes.indexOf(type)])
         }
 
-        // remove excluded tags
-        if (tag[0] === '!' && allTypes.indexOf(tag.substring(1)) > -1) {
-          exclude.push(allTypes[allTypes.indexOf(tag.substring(1))])
+        // remove excluded types
+        if (type[0] === '!' && allTypes.indexOf(type.substring(1)) > -1) {
+          exclude.push(allTypes[allTypes.indexOf(type.substring(1))])
         }
       })
 
@@ -376,9 +376,109 @@ export default class NPTemplating {
             })
 
             finalMatches.every((match) => {
-              if (types.includes(match) || (types.includes('*') && filterTags.includes('*'))) {
+              if (types.includes(match) || (types.includes('*') && filterTypes.includes('*'))) {
                 // check if types includes any excluded items
                 if (types.filter((x) => exclude.includes(x)).length === 0) {
+                  templateList.push(template)
+                  return false
+                }
+              }
+              return true
+            })
+          }
+        }
+      }
+
+      return templateList
+    } catch (error) {
+      logError(pluginJson, error)
+    }
+  }
+
+  static async getTemplateListByTags(tags: any = '*'): Promise<any> {
+    try {
+      const templateFolder = await getTemplateFolder()
+      if (templateFolder == null) {
+        await CommandBar.prompt('Templating Error', `An error occurred locating ${templateFolder} folder`)
+        return
+      }
+
+      const filterTags = Array.isArray(tags) ? tags : tags.split(',').map((tag) => tag.trim())
+
+      const allTemplates = DataStore.projectNotes
+        .filter((n) => n.filename?.startsWith(templateFolder))
+        .filter((n) => !n.title?.startsWith('_configuration'))
+        .filter((n) => !n.filename?.startsWith('Delete After Release'))
+        .sort((a, b) => {
+          return a.filename.localeCompare(b.filename)
+        })
+        .map((note) => {
+          return note.title == null ? null : { label: note.title, value: note.filename }
+        })
+        .filter(Boolean)
+
+      let resultTemplates = []
+      let matches = []
+      let exclude = []
+      let allTags = []
+
+      // get master list of tags
+      for (const template of allTemplates) {
+        if (template.value.length > 0) {
+          const templateData = await this.getTemplate(template.value)
+          if (templateData.length > 0) {
+            const attrs = await new FrontmatterModule().attributes(templateData)
+
+            const tag = attrs?.tags || ''
+
+            if (tag.length > 0) {
+              allTags = allTags.concat(tag.split(',')).map((tag) => tag?.trim())
+            }
+          }
+        }
+      }
+      // remove duplicates
+      allTags = allTags.filter((v, i, a) => a.indexOf(v) === i)
+
+      // iterate filter tags
+      filterTags.forEach((tag) => {
+        // include all tags
+        matches = tag === '*' ? matches.concat(allTags) : matches
+        // find matching tags
+        if (tag[0] !== '!' && allTags.indexOf(tag) > -1) {
+          matches.push(allTags[allTags.indexOf(tag)])
+        }
+
+        // remove excluded tags
+        if (tag[0] === '!' && allTags.indexOf(tag.substring(1)) > -1) {
+          exclude.push(allTags[allTags.indexOf(tag.substring(1))])
+        }
+      })
+
+      // always ignore templates which include a `ignore` tags
+      exclude.push('ignore') // np.Templating specific
+
+      // merge the arrays together using differece
+      let finalMatches = matches.filter((x) => !exclude.includes(x))
+
+      let templateList = []
+      for (const template of allTemplates) {
+        if (template.value.length > 0) {
+          const templateData = await this.getTemplate(template.value)
+          if (templateData.length > 0) {
+            const attrs = await new FrontmatterModule().attributes(templateData)
+
+            const tag = attrs?.tags || ''
+            let tags = (tag.length > 0 && tag?.split(',')) || ['*']
+            tags.forEach((element, index) => {
+              tags[index] = element.trim() // trim element whitespace
+            })
+
+            // log(pluginJson, `template tags tags: ${tags.length}`)
+            finalMatches.every((match) => {
+              if (tags.includes(match) || (tags.includes('*') && filterTags.includes('*'))) {
+                // check if tags includes any excluded items
+                if (tags.filter((x) => exclude.includes(x)).length === 0) {
                   templateList.push(template)
                   return false
                 }
