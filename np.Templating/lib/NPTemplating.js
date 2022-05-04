@@ -126,7 +126,7 @@ export async function TEMPLATE_CONFIG_BLOCK(): Promise<string> {
 }
 
 export async function getTemplateFolder(): Promise<string> {
-  return TEMPLATE_FOLDER_NAME + '/Test'
+  return TEMPLATE_FOLDER_NAME
 }
 
 export default class NPTemplating {

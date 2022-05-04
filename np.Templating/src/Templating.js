@@ -109,37 +109,38 @@ export async function migrateQuickNotes(): Promise<any> {
     let result = 0
 
     const configData = await getConfiguration('quickNotes')
+    if (typeof configData === 'object') {
+      configData.forEach(async (quickNote) => {
+        const templateFilename = `🗒 Quick Notes/${quickNote.label}`
+        const templateData: ?TNote = await getOrMakeNote(quickNote.template, '📋 Templates')
+        let templateContent = templateData?.content || ''
 
-    configData.forEach(async (quickNote) => {
-      const templateFilename = `🗒 Quick Notes/${quickNote.label}`
-      const templateData: ?TNote = await getOrMakeNote(quickNote.template, '📋 Templates')
-      let templateContent = templateData?.content || ''
+        let title = quickNote.title
+        title = title.replace('{{meetingName}}', '<%- meetingName %>')
+        title = title.replace('{{MeetingName}}', '<%- meetingName %>')
+        title = title.replace('{{date8601()}}', '<%- date8601() %>')
+        title = title.replace("{{weekDates({format:'yyyy-MM-dd'})}}", "<%- date.startOfWeek('ddd YYYY-MM-DD',null,1) %>  - <%- date.endOfWeek('ddd YYYY-MM-DD',null,1) %>")
+        title = title.replace('{{', '<%-').replace('}}', '%>')
 
-      let title = quickNote.title
-      title = title.replace('{{meetingName}}', '<%- meetingName %>')
-      title = title.replace('{{MeetingName}}', '<%- meetingName %>')
-      title = title.replace('{{date8601()}}', '<%- date8601() %>')
-      title = title.replace("{{weekDates({format:'yyyy-MM-dd'})}}", "<%- date.startOfWeek('ddd YYYY-MM-DD',null,1) %>  - <%- date.endOfWeek('ddd YYYY-MM-DD',null,1) %>")
-      title = title.replace('{{', '<%-').replace('}}', '%>')
+        templateContent = templateContent.replace('{{', '<%- ').replace('}}', ' %>')
 
-      templateContent = templateContent.replace('{{', '<%- ').replace('}}', ' %>')
+        const enquote = (str: string = '') => {
+          const matches = str.match(/^[a-zA-Z]/gi) || []
+          return matches?.length === 0 ? `"${str}"` : str
+        }
 
-      const enquote = (str: string = '') => {
-        const matches = str.match(/^[a-zA-Z]/gi) || []
-        return matches?.length === 0 ? `"${str}"` : str
-      }
+        const metaData = {
+          newNoteTitle: enquote(title),
+          folder: enquote(quickNote.folder),
+          type: 'quick-note',
+        }
 
-      const metaData = {
-        newNoteTitle: enquote(title),
-        folder: enquote(quickNote.folder),
-        type: 'quick-note',
-      }
+        // $FlowIgnore
+        const createResult = await NPTemplating.createTemplate(templateFilename, metaData, templateContent)
 
-      // $FlowIgnore
-      const createResult = await NPTemplating.createTemplate(templateFilename, metaData, templateContent)
-
-      return createResult ? 1 : 0
-    })
+        return createResult ? 1 : 0
+      })
+    }
   } catch (error) {
     logError(pluginJson, error)
   }
@@ -496,7 +497,7 @@ export async function templateQuote(): Promise<string> {
 export async function migrateTemplates(silent: boolean = false): Promise<any> {
   try {
     const templateFolder = '📋 Templates'
-    const newTemplateFolder: string = await getTemplateFolder() //NotePlan.environment.templateFolder + '/Test'
+    const newTemplateFolder: string = await getTemplateFolder()
 
     const templateNotes = DataStore.projectNotes.filter((n) => n.filename?.startsWith(templateFolder)).filter((n) => !n.title?.startsWith('_configuration'))
     const newTemplates = DataStore.projectNotes.filter((n) => n.filename?.startsWith(newTemplateFolder)).filter((n) => !n.title?.startsWith('_configuration'))
