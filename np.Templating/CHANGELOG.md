@@ -3,6 +3,10 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.1.2-beta.02] - 2022-05-03 (mikeerickson)
+
+- small adjustment to the template migration checker
+
 ## [1.1.2-beta.01] - 2022-05-03 (mikeerickson)
 
 - public beta release, confirming template migration code is not executed when migration has already occurred.

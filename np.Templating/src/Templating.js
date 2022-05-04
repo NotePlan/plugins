@@ -593,6 +593,9 @@ export async function _checkTemplatesMigrated(): Promise<boolean> {
 
   const legacyTemplates = DataStore.projectNotes.filter((n) => n.filename?.startsWith(templateFolder)).filter((n) => !n.title?.startsWith('_configuration'))
 
+  // const result = legacyTemplates.length > 0 && migratedTemplates.length > 0
+  // 2022-05-03 5:37:04 PM, checking if this has a positive impact as per @dwertheimer comment
+  // https://discord.com/channels/763107030223290449/971096330044862514/971171560746549339
   const result = legacyTemplates.length > 0 && migratedTemplates.length > 0
 
   return result
