@@ -3,6 +3,22 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.1.2-beta.03] - 2022-05-04 (mikeerickson)
+
+IMPORTANT: Internal beta 03 release is migration templates to "@Templates/Test".  This "Test" will be removed when released to public
+
+- additional migration adjustments
+- automatically correct template rendering when `---` used as separator in body of template (replaced with `*****`)
+- when migrating templates, all `---` in template body (after frontmatter) will be replaced with `****`
+
+Template Migration should only take place under the following conditions
+1. There are existing templates in "📋 Templates" folder
+2. There are 0 tempaltes in "@Templates" folder which don't have a template containing `tags: migrated-template`
+
+If there are > 0 templates which have `tags: migrated-template` migration will NOT be executed.  This is how I can determine if a previous migration was executed
+Also, it should be encouraged to rename "📋 Templates" to another name "📋 Templates (Legacy)" after it has been determined migration was successful, I can update the np.Templating docs about this
+
+
 ## [1.1.2-beta.02] - 2022-05-03 (mikeerickson)
 
 - small adjustment to the template migration checker

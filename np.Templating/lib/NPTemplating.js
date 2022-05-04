@@ -126,7 +126,7 @@ export async function TEMPLATE_CONFIG_BLOCK(): Promise<string> {
 }
 
 export async function getTemplateFolder(): Promise<string> {
-  return TEMPLATE_FOLDER_NAME
+  return TEMPLATE_FOLDER_NAME + '/Test'
 }
 
 export default class NPTemplating {
@@ -672,7 +672,7 @@ export default class NPTemplating {
       await this.setup()
 
       let sessionData = { ...userData }
-      let templateData = inTemplateData
+      let templateData = inTemplateData.replace(/---/gi, '*****')
 
       let globalData = {}
       Object.getOwnPropertyNames(globals).forEach((key) => {

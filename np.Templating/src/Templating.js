@@ -496,16 +496,17 @@ export async function templateQuote(): Promise<string> {
 export async function migrateTemplates(silent: boolean = false): Promise<any> {
   try {
     const templateFolder = '📋 Templates'
-    const newTemplateFolder: string = NotePlan.environment.templateFolder
+    const newTemplateFolder: string = await getTemplateFolder() //NotePlan.environment.templateFolder + '/Test'
 
     const templateNotes = DataStore.projectNotes.filter((n) => n.filename?.startsWith(templateFolder)).filter((n) => !n.title?.startsWith('_configuration'))
     const newTemplates = DataStore.projectNotes.filter((n) => n.filename?.startsWith(newTemplateFolder)).filter((n) => !n.title?.startsWith('_configuration'))
 
     if (newTemplates.length > 0) {
-      let result = await CommandBar.prompt('Templates Already Migrated', 'Your templates have already been migrated.\n\nAll existing templates will be moved to NotePlan Trash.', [
-        'Continue',
-        'Cancel',
-      ])
+      let result = await CommandBar.prompt(
+        'Templates Already Migrated',
+        'Your templates have already been migrated.\n\nAll existing templates will be moved to NotePlan Trash.\n\nAre you sure you wish to continue?',
+        ['Continue', 'Stop'],
+      )
       if (result === 1) {
         return 0
       }
@@ -533,6 +534,7 @@ export async function migrateTemplates(silent: boolean = false): Promise<any> {
             // handle some comment `pickDate` conversions
             content = content.replace(/pickDate/gi, 'promptDate')
             content = content.replace(/\{question:'Please enter a date:'\}/gi, "'dateVar','Pleasee enter a date:'")
+            content = content.replace(/---/gi, '*****')
 
             // handle some comment `pickDate` conversions
             content = content.replace(/pickInterval/gi, 'promptInterval')
@@ -590,13 +592,16 @@ export async function _checkTemplatesMigrated(): Promise<boolean> {
   const templateFolder = '📋 Templates'
 
   const migratedTemplates = await NPTemplating.getTemplateListByTags('migrated-template')
+  log(pluginJson, `migratedTemplates.count: ${migratedTemplates.length}`)
 
   const legacyTemplates = DataStore.projectNotes.filter((n) => n.filename?.startsWith(templateFolder)).filter((n) => !n.title?.startsWith('_configuration'))
+  log(pluginJson, `legacyTemplates.count: ${legacyTemplates.length}`)
 
   // const result = legacyTemplates.length > 0 && migratedTemplates.length > 0
   // 2022-05-03 5:37:04 PM, checking if this has a positive impact as per @dwertheimer comment
   // https://discord.com/channels/763107030223290449/971096330044862514/971171560746549339
-  const result = legacyTemplates.length > 0 && migratedTemplates.length > 0
+  const result = migratedTemplates.length > 0 || !(legacyTemplates.length > 0 && migratedTemplates.length === 0)
+  log(pluginJson, `result: ${result.toString()}`)
 
   return result
 }
