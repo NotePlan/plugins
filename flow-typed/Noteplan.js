@@ -511,6 +511,73 @@ type TDataStore = {
   invokePluginCommandByName(command: string, pluginId: string, arguments: [object]): Promise<any>
 }
 
+type PluginCommandObject = {
+  /**
+  * Name of the plugin command (getter)
+  */
+  +name: string,
+  /**
+  * Description of the plugin command (getter)
+  */
+  +desc: string,
+  /**
+  * ID of the plugin this command belongs to (getter)
+  */
+  +pluginID: string,
+  /**
+  * Name of the plugin this command belongs to (getter)
+  */
+  +pluginName: string,
+}
+
+type PluginObject = {
+  /**
+  * ID of the plugin (getter)
+  */
+  +id: string,
+  /**
+  * Name of the plugin (getter)
+  */
+  +name: string,
+  /**
+  * Description of the plugin (getter)
+  */
+  +desc: string,
+  /**
+  * Author of the plugin (getter)
+  */
+  +author: string,
+  /**
+  * RepoUrl of the plugin (getter)
+  */
+  +repoUrl: ?string,
+  /**
+  * Release page URL of the plugin (on GitHub) (getter)
+  */
+  +releaseUrl: ?string,
+  /**
+  * Version of the plugin (getter)
+  */
+  +version: string,
+  /**
+  * This is the online data of the plugin. It might not be installed locally. (getter)
+  */
+  +isOnline: boolean,
+  /**
+  * Script filename that contains the code for this plugin (like script.js) (getter)
+  */
+  +script: string,
+  /**
+  * If this is a locally installed plugin, you can use this variable to check if an updated version is available online. (getter)
+  */
+  +availableUpdate: PluginObject,
+  /**
+  * A list of available commands for this plugin. (getter)
+  * @type {PluginCommandObject}
+  */
+  +commands: PluginCommandObject,
+}
+
 /**
  * Use CommandBar to get user input. Either by asking the user to type in a
  * free-form string, like a note title, or by giving him a list of choices.
