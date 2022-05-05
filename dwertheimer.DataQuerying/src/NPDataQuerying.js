@@ -186,11 +186,17 @@ export async function searchUserInput(linksOnly: boolean = false, notesToInclude
     })
     // clo(config, 'searchUserInput: config')
   } catch (error) {
-    log(pluginJson, error)
+    /**
+     * Description
+     * @param {any} pluginJson
+     * @param {any} error
+     * @returns {any}
+     */
   }
 }
 
 async function writeSearchNote(results, searchTerm, config) {
+  const start = new Date()
   CommandBar.showLoading(true, `Found ${results.length} results; Waiting for NotePlan to display them.`)
   await CommandBar.onAsyncThread()
   const output = formatSearchOutput(results, searchTerm, config)
@@ -208,6 +214,7 @@ async function writeSearchNote(results, searchTerm, config) {
   await Editor.openNoteByFilename(searchFilename, config.openInNewWindow, firstLineLength, firstLineLength, config.openInSplitView)
   await CommandBar.onMainThread()
   CommandBar.showLoading(false)
+  console.log(`searchUserInput: Noteplan opening/displaying search results took: ${timer(start)}`)
 }
 
 export async function search(pattern = `Cava`, config: DataQueryingConfig = getDefaultConfig(), pIndex = null, notes = null): Promise<any> {
@@ -276,7 +283,7 @@ function getInitialIndex(): NoteIndex {
 }
 
 /**
- * Search an array to compare a strinig to an array of strings using regex
+ * Search an array to compare a string to an array of strings using regex
  * NOTE: the array items are the regexes (not the needle)
  * @param {*} needle - the single value to compare
  * @param {*} haystack - the array of string/regexes to compare against
@@ -379,7 +386,8 @@ function getDefaultConfig(): DataQueryingConfig {
     searchNoteFolder: '@Searches',
     openInSplitView: true,
     openInNewWindow: false,
-    maxSearchResultLine: 150,
+    maxResultCharsForBolding: 25,
+    maxSearchResultLine: 250,
     charsBeforeAndAfter: 50 /* max chars before and after found match */,
     ignoreNewLines: true,
     mentionsToSkip: ['@sleep('], //FIXME: add to config and skipping,
@@ -398,6 +406,7 @@ export type DataQueryingConfig = {
   openInSplitView: boolean,
   openInNewWindow: boolean,
   maxSearchResultLine: number,
+  maxResultCharsForBolding: number,
   charsBeforeAndAfter: number,
   ignoreNewLines: boolean,
   mentionsToSkip: Array<string>,

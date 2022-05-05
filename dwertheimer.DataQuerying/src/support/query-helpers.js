@@ -75,13 +75,15 @@ export function getSurroundingChars(value: string, start: number, end: number, c
   const beforeAfter = Number(config.charsBeforeAndAfter ?? 100)
   const sampleSize = end - start + 1
   const fullPotentialLength = 4 + sampleSize + Number(beforeAfter) * 2
-  const baft = Number(fullPotentialLength) > max ? Math.floor((max - sampleSize - 4) / 2) : beforeAfter
+  let baft = Number(fullPotentialLength) > max ? Math.floor((max - sampleSize - 4) / 2) : beforeAfter
+  if (baft < 0) baft = 0
   const foundString = value.slice(start, end + 1)
   const bs = start - baft < 0 ? 0 : start - baft
   const as = end + baft > value.length ? value.length : end + baft + 1
   let before = start - 1 > 0 ? value.slice(bs, start) : ''
   let after = end + 1 <= value.length ? value.slice(end + 1, as) : ''
-  const output = `${before} **${foundString}** ${after}`
+  const maybeHighlight = foundString.length > 20 ? '' : '**' // make bold but only if string is short
+  const output = `${before}${maybeHighlight}${foundString}${maybeHighlight}${after}`.slice(0, max)
   return config.ignoreNewLines ? output.replace(/\n/gm, ' ') : output
 }
 
