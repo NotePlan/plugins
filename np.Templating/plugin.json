@@ -3,7 +3,7 @@
   "noteplan.minAppVersion": "3.5.0",
   "plugin.id": "np.Templating",
   "plugin.name": " 📒 np.Templating -- New 🎉",
-  "plugin.version": "1.1.2-beta.04",
+  "plugin.version": "1.1.3-beta.01",
   "plugin.description": "Templating Plugin for NotePlan",
   "plugin.author": "Mike Erickson (@codedungeon)",
   "plugin.dependencies": [],
@@ -116,6 +116,14 @@
       "description": "Locale used by np.Templating Modules (leave blank for system locale)\n\nDefault: <system>",
       "type": "string",
       "default": "<system>",
+      "required": false
+    },
+    {
+      "key": "templateGroupTemplatesByFolder",
+      "title": "Group Templates by Folder",
+      "description": "Group Templates by Folder in Template Chooser",
+      "type": "bool",
+      "default": false,
       "required": false
     },
     {

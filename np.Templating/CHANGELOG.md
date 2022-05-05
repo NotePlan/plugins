@@ -3,6 +3,10 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.1.3-beta.01] - 2022-05-05 (mikeerickson)
+
+WIP - Publishing Internal for @jgclark test with `/dayStart`
+
 ## [1.1.2-beta.04] - 2022-05-04 (mikeerickson)
 
 - Interval validation passed (confirmed by @eduard, @dwertheimer, and @jgclark)

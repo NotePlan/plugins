@@ -32,28 +32,34 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(true)
     })
 
-    it(`should extract frontmatter block`, async () => {
+    it(`should extract frontmatter attributes`, async () => {
       const data = await factory('frontmatter-minimal.ejs')
 
-      let frontmatterBlock = new FrontmatterModule().getFrontmatterBlock(data)
+      let frontmatterAttributes = new FrontmatterModule().attributes(data)
 
-      expect(frontmatterBlock).not.toContain('# Template name')
+      const keys = Object.keys(frontmatterAttributes)
+
+      expect(keys).toContain('title')
+      expect(frontmatterAttributes?.title).toContain('Test template')
+
+      expect(keys).toContain('name')
+      expect(frontmatterAttributes?.name).toContain('Mike Erickson')
     })
 
-    it(`should return false when frontmatter template supplied`, async () => {
+    it(`should extract frontmatter body`, async () => {
+      const data = await factory('frontmatter-minimal.ejs')
+
+      let frontmatterBlock = new FrontmatterModule().body(data)
+
+      expect(frontmatterBlock).toContain('Hello World')
+    })
+
+    it(`should return false when frontmatter template note supplied`, async () => {
       const data = `@Templates\nHello World`
 
       let result = new FrontmatterModule().isFrontmatterTemplate(data)
 
       expect(result).toEqual(false)
-    })
-
-    it(`should extract frontmatter block`, async () => {
-      const data = await factory('frontmatter-minimal.ejs')
-
-      let frontmatterBlock = new FrontmatterModule().getFrontmatterBlock(data)
-
-      expect(frontmatterBlock).not.toContain('# Template name')
     })
 
     it(`should be valid frontmatter object`, async () => {
@@ -75,7 +81,7 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result.attributes.name).toEqual('Mike Erickson')
     })
 
-    it(`should contain template in 'body' property`, async () => {
+    it(`should contain template in 'body' property when using '.parse' method`, async () => {
       const data = await factory('frontmatter-extended.ejs')
 
       const result = new FrontmatterModule().parse(data)
@@ -123,6 +129,28 @@ describe(`${PLUGIN_NAME}`, () => {
       const keys = Object.keys(attrs)
 
       expect(keys.length).toEqual(0)
+    })
+
+    it(`should return body which contain mulitiple separators (hr)`, async () => {
+      const data = await factory('frontmatter-with-separators.ejs')
+
+      const result = new FrontmatterModule().body(data)
+
+      expect(result).toContain(`---\nSection One`)
+      expect(result).toContain(`---\nSection Two`)
+      expect(result).toContain(`---\nSection Three`)
+      expect(result).toContain(`---\nSection Four`)
+    })
+
+    it(`should return body which contain mulitiple separators (hr) using asterick`, async () => {
+      const data = await factory('frontmatter-with-asterick-separators.ejs')
+
+      const result = new FrontmatterModule().body(data)
+
+      expect(result).toContain(`*****\nSection One`)
+      expect(result).toContain(`*****\nSection Two`)
+      expect(result).toContain(`*****\nSection Three`)
+      expect(result).toContain(`*****\nSection Four`)
     })
   })
 

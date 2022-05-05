@@ -40,6 +40,7 @@ export const selection = async (): Promise<string> => {
 export const DEFAULT_TEMPLATE_CONFIG = {
   templateFolderName: TEMPLATE_FOLDER_NAME,
   templateLocale: 'en-US',
+  templateGroupTemplatesByFolder: false,
   dateFormat: 'YYYY-MM-DD',
   timeFormat: 'h:mm A',
   nowFormat: 'YYYY-MM-DD h:mm:ss A',
@@ -60,6 +61,7 @@ export const DEFAULT_TEMPLATE_CONFIG = {
 type TemplateConfig = $ReadOnly<{
   templateFolderName: string,
   templateLocale?: string,
+  templateGroupTemplatesByFolder?: boolean,
   userFirstName?: string,
   userLastName?: string,
   userEmail?: string,
@@ -266,6 +268,7 @@ export default class NPTemplating {
 
   static async chooseTemplate(tags?: any = '*', promptMessage: string = 'Choose Template'): Promise<any> {
     try {
+      await this.setup()
       const templateList = await this.getTemplateList(tags)
       let options = []
       for (const template of templateList) {
@@ -298,6 +301,9 @@ export default class NPTemplating {
 
   static async getTemplateList(types: any = '*'): Promise<any> {
     try {
+      await this.setup()
+      let settings = await this.getSettings()
+
       const templateFolder = await getTemplateFolder()
       if (templateFolder == null) {
         await CommandBar.prompt('Templating Error', `An error occurred locating ${templateFolder} folder`)
@@ -305,6 +311,8 @@ export default class NPTemplating {
       }
 
       const filterTypes = Array.isArray(types) ? types : types.split(',').map((type) => type.trim())
+
+      const templateGroupTemplatesByFolder = this.constructor.templateConfig?.groupTemplatesByFolder || false
 
       const allTemplates = DataStore.projectNotes
         .filter((n) => n.filename?.startsWith(templateFolder))
@@ -397,6 +405,7 @@ export default class NPTemplating {
 
   static async getTemplateListByTags(tags: any = '*'): Promise<any> {
     try {
+      await this.setup()
       const templateFolder = await getTemplateFolder()
       if (templateFolder == null) {
         await CommandBar.prompt('Templating Error', `An error occurred locating ${templateFolder} folder`)
@@ -496,6 +505,8 @@ export default class NPTemplating {
   }
 
   static async getTemplate(templateName: string = '', options: any = { showChoices: true }): Promise<string> {
+    await this.setup()
+
     const parts = templateName.split('/')
     const filename = parts.pop()
 
@@ -561,7 +572,6 @@ export default class NPTemplating {
       let isFrontmatterTemplate = templateContent.length > 0 ? new FrontmatterModule().isFrontmatterTemplate(templateContent) : false
 
       if (isFrontmatterTemplate) {
-        // templateContent = new FrontmatterModule().getFrontmatterBlock(templateContent)
         return templateContent || ''
       }
 
@@ -656,6 +666,7 @@ export default class NPTemplating {
   static async renderTemplate(templateName: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
     const usePrompts = true
     try {
+      await this.setup()
       let templateData = (await this.getTemplate(templateName)) || ''
 
       let renderedData = await this.render(templateData, userData, userOptions)
@@ -732,6 +743,7 @@ export default class NPTemplating {
 
   // preRender will render frontmatter attribute tags, return final attributes and body
   static async preRender(templateData: string = '', userData: any = {}): Promise<any> {
+    await this.setup()
     if (!new FrontmatterModule().isFrontmatterTemplate(templateData)) {
       return { frontmatterBody: 'INVALID TEMPLATE', frontmatterAttributes: {} }
     }
@@ -969,6 +981,8 @@ export default class NPTemplating {
 
   static async createTemplate(title: string = '', metaData: any, content: string = ''): Promise<mixed> {
     try {
+      await this.setup()
+
       const parts = title.split('/')
       const noteName = parts.pop()
       const folder = (await getTemplateFolder()) + '/' + parts.join('/')
@@ -997,6 +1011,8 @@ export default class NPTemplating {
   }
 
   static async templateExists(title: string = ''): Promise<mixed> {
+    await this.setup()
+
     const templateFolder = await getTemplateFolder()
 
     let templateFilename = (await getTemplateFolder()) + title.replace(/@Templates/gi, '').replace(/\/\//, '/')
@@ -1016,6 +1032,8 @@ export default class NPTemplating {
   }
 
   static async getFolder(folder: string = '', promptMessage: string = 'Select folder'): Promise<string> {
+    await this.setup()
+
     let selectedFolder = folder
     const folders = DataStore.folders
     if (folder == '<select>' || (Editor?.type === 'Calendar' && selectedFolder.length === 0)) {
