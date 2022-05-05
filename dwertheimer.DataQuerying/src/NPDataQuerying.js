@@ -153,50 +153,67 @@ export async function searchButShowTitlesOnly(linksOnly: boolean = false): Promi
   }
 }
 
-export async function searchUserInput(linksOnly: boolean = false): Promise<void> {
+export async function searchUserInput(linksOnly: boolean = false, notesToInclude: any = []): Promise<void> {
   try {
+    const start = new Date()
     const config = getDefaultConfig()
     // Get the promises, not the results
-    await CommandBar.onAsyncThread()
-    const promIndex = createIndex([], config)
-    await CommandBar.onMainThread()
     const promSearchTerm = CommandBar.showInput("'=match-exactly; !=NOT; space=AND; |=OR", 'Search for: %@')
-    log(pluginJson, 'gotty0')
-    log(pluginJson, JSP(promSearchTerm))
-    log(pluginJson, JSP(promIndex))
-    const index = await promIndex
-    const searchTerm = await promSearchTerm
-    log(pluginJson, 'gotty1')
-    // const [searchTerm, index] = await Promise.all([promIndex])
-    log(pluginJson, 'gotty2')
-    log(pluginJson, 'gotty3')
-    clo(config, 'searchUserInput: config')
-    log(pluginJson, `searchUserInput: searchTerm=${searchTerm}`)
-    CommandBar.showLoading(true, `Searching ${DataStore.projectNotes.length} notes and attachments...`)
     await CommandBar.onAsyncThread()
-    const results = await search(searchTerm, config, index)
-    const output = formatSearchOutput(results, searchTerm, config)
-    const splits = output.split('\n')
-    const firstLineLength = splits[0].length + 1
-    const searchFilename = await getSearchNoteFilename(config)
-    if (searchFilename) {
-      const note = await DataStore.projectNoteByFilename(searchFilename)
-      log(pluginJson, `searchUserInput: searchFilename=${searchFilename}}`)
-      if (note && note.content) {
-        // log(pluginJson, `searchUserInput: searchFilename=${searchFilename} note=${JSP(note)}`)
-        note.content = output
-      }
-    }
+    const innerStart = new Date()
+    const includedNotes = notesToInclude.length ? notesToInclude : getNotesForIndex(config)
+    log(pluginJson, `searchUserInput: build note list took: ${timer(innerStart)}`)
+    const promIndex = createIndex(includedNotes, config)
     await CommandBar.onMainThread()
-    CommandBar.showLoading(false)
-    await Editor.openNoteByFilename(searchFilename, config.openInNewWindow, firstLineLength, firstLineLength, config.openInSplitView)
+    // const index = await promIndex
+    // const searchTerm = await promSearchTerm
+    // const [searchTerm, index] = await
+    // Promise.all([promSearchTerm, promIndex]).then((bb) => console.log(`${bb} gotty19`))
+    promSearchTerm.then((searchTerm) => {
+      promIndex.then(async (index) => {
+        CommandBar.showLoading(true, `Searching ${DataStore.projectNotes.length} notes and attachments...`)
+        await CommandBar.onAsyncThread()
+        log(pluginJson, `searchUserInput: index records.length: ${String(index?.records?.length)}`)
+        log(pluginJson, `searchUserInput: searchTerm=${searchTerm}`)
+        const results = await search(searchTerm, config, index, includedNotes)
+        await CommandBar.onMainThread()
+        CommandBar.showLoading(false)
+
+        await writeSearchNote(results, searchTerm, config)
+        log(pluginJson, `searchUserInput: opened search note`)
+        log(pluginJson, `searchUserInput: TRT=${timer(start)} (including user typing time)`)
+      })
+    })
+    // clo(config, 'searchUserInput: config')
   } catch (error) {
     log(pluginJson, error)
   }
 }
 
-export async function search(pattern = `Cava`, config: DataQueryingConfig = getDefaultConfig(), pIndex = null): Promise<any> {
+async function writeSearchNote(results, searchTerm, config) {
+  CommandBar.showLoading(true, `Found ${results.length} results; Waiting for NotePlan to display them.`)
+  await CommandBar.onAsyncThread()
+  const output = formatSearchOutput(results, searchTerm, config)
+  const splits = output.split('\n')
+  const firstLineLength = splits[0].length + 1
+  const searchFilename = await getSearchNoteFilename(config)
+  if (searchFilename) {
+    const note = await DataStore.projectNoteByFilename(searchFilename)
+    log(pluginJson, `searchUserInput: searchFilename=${searchFilename}}`)
+    if (note && note.content) {
+      // log(pluginJson, `searchUserInput: searchFilename=${searchFilename} note=${JSP(note)}`)
+      note.content = output
+    }
+  }
+  await Editor.openNoteByFilename(searchFilename, config.openInNewWindow, firstLineLength, firstLineLength, config.openInSplitView)
+  await CommandBar.onMainThread()
+  CommandBar.showLoading(false)
+}
+
+export async function search(pattern = `Cava`, config: DataQueryingConfig = getDefaultConfig(), pIndex = null, notes = null): Promise<any> {
   try {
+    // CommandBar.showLoading(true, `Searching ${DataStore.projectNotes.length} notes and attachments...`)
+    // await CommandBar.onAsyncThread()
     let index = pIndex || null
     let timeStart = new Date()
     if (config.loadIndexFromDisk) {
@@ -207,7 +224,7 @@ export async function search(pattern = `Cava`, config: DataQueryingConfig = getD
       }
     }
     // const consolidatedNotes = [...DataStore.projectNotes, ...DataStore.calendarNotes].map((note) => ({ ...note, changedDate: note.changedDate.toISOString() }))
-    const includedNotes = getNotesForIndex(config)
+    const includedNotes = notes || getNotesForIndex(config)
     let results = []
     if (index) {
       results = fh.searchIndex(includedNotes, pattern, { options: SEARCH_OPTIONS, index })
@@ -306,13 +323,16 @@ function getMetaData(note: TNote, mType: string, noteIndex: NoteIndex, config: D
           index[mType][item] = []
         }
         // log(pluginJson, `getMetaData: ${index[mType][item]}`)
-        index[mType][item].push({
-          filename: note.filename,
-          title: note.title,
-          item: item,
-          type: note.type,
-          changed: note.changedDate || note.createdDate,
-        })
+        if (Array.isArray(index[mType][item])) {
+          // $FlowIgnore
+          index[mType][item].push({
+            filename: note.filename,
+            title: note.title,
+            item: item,
+            type: note.type,
+            changed: note.changedDate || note.createdDate,
+          })
+        }
         // if (item == '') clo(note[mType], `note[mType][${mType}] ${note.filename}`)
       }
     })
@@ -359,8 +379,8 @@ function getDefaultConfig(): DataQueryingConfig {
     searchNoteFolder: '@Searches',
     openInSplitView: true,
     openInNewWindow: false,
-    maxSearchResultLine: 300,
-    charsBeforeAndAfter: 100 /* max chars before and after found match */,
+    maxSearchResultLine: 150,
+    charsBeforeAndAfter: 50 /* max chars before and after found match */,
     ignoreNewLines: true,
     mentionsToSkip: ['@sleep('], //FIXME: add to config and skipping,
     hashtagsToSkip: ['#🕑'], //FIXME: add to config and skipping
