@@ -4,6 +4,11 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/codedungeon.Toolbox/README.md) for details on available commands and use case.
 
+## [3.3.0] - 2022-05-06 (@dwertheimer)
+- added support for searching notes using packages:
+  - fuse.js
+  - bqpjs
+
 ## [3.2.6] - 2022-04-23 (@mikeerickson)
 
 - added support for using aliases in jest tests

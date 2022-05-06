@@ -110,8 +110,6 @@
     "@samverschueren/stream-to-observable": "0.3.1",
     "axios": "0.21.4",
     "bcrypt": "5.0.1",
-    "boolean-expressions": "^1.1.1",
-    "boon-js": "^2.0.3",
     "bqpjs": "^0.1.1",
     "bump-regex": "4.1.0",
     "clipboardy": "3.0.0",
