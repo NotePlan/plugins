@@ -3,7 +3,6 @@ import { add } from 'date-fns'
 import { getEventsForDay } from '../../helpers/NPCalendar'
 import { getTodaysDateUnhyphenated, type HourMinObj, toLocaleTime } from '../../helpers/dateTime'
 import { chooseOption, chooseFolder } from '../../helpers/userInput'
-import { quickTemplateNote, newNoteWithTemplate } from '../../nmn.Templates/src/index'
 
 function getTimeOffset(offset: HourMinObj = { h: 0, m: 0 }) {
   const now = new Date()
@@ -44,8 +43,7 @@ export async function createNoteForCalendarItem(useQuickTemplate: boolean = true
     // $FlowIgnore
     const time = toLocaleTime(event.date, [], { hour: '2-digit', minute: '2-digit', hour12: false })
     // $FlowIgnore
-    if (event.title)
-      return { label: `${time}: ${event.title}`, value: event.title, time, date: event.date.toLocaleDateString() }
+    if (event.title) return { label: `${time}: ${event.title}`, value: event.title, time, date: event.date.toLocaleDateString() }
   })
   // $FlowIgnore
   const selectedEvent = await chooseOption('Choose an event to create a note for', selections, '')
@@ -74,9 +72,7 @@ export async function createNoteForCalendarItem(useQuickTemplate: boolean = true
   } else {
     const folder = await chooseFolder('What folder should the note be in?')
     if (selEvent) {
-      const title = `${selEvent.value} ${selEvent.date} ${
-        selEvent.time && selEvent.time !== '00:00' ? selEvent.time : ''
-      }`
+      const title = `${selEvent.value} ${selEvent.date} ${selEvent.time && selEvent.time !== '00:00' ? selEvent.time : ''}`
       const fname = (await DataStore.newNote(title, folder)) ?? ''
       console.log(`Creating note with title: ${title}, fname=${fname}`)
       if (fname) {

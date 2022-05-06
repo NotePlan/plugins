@@ -2,12 +2,16 @@
 import { differenceInCalendarDays, endOfDay, startOfDay, eachMinuteOfInterval, formatISO9075, addMinutes, differenceInMinutes } from 'date-fns'
 import { getDateObjFromDateTimeString, getTimeStringFromDate, removeDateTagsAndToday } from '../../helpers/dateTime'
 import { sortListBy } from '../../helpers/sorting'
-import { removeDateTags } from '../../helpers/dateTime'
+import { removeDateTags, getTodaysDateHyphenated } from '../../helpers/dateTime'
 import { createLink, createPrettyLink } from '../../helpers/general'
 import { clo } from '../../helpers/dev'
 
 // import { timeblockRegex1, timeblockRegex2 } from '../../helpers/markdown-regex'
 import type { IntervalMap, OpenBlock, BlockArray, TimeBlocksWithMap, BlockData, TimeBlockDefaults, PartialCalendarItem } from './timeblocking-flow-types'
+
+export type ExtendedParagraph = {
+  ...TParagraph,
+}
 
 /**
  * Create a map of the time intervals for a portion of day
@@ -324,7 +328,6 @@ export function matchTasksToSlots(sortedTaskList: Array<{ ...TParagraph, duratio
  * @returns
  */
 export function appendLinkIfNecessary(todos: Array<TParagraph>, config: { [key: string]: any }): Array<{ [key: string]: mixed }> {
-  // FIXME: I am here. Just need to send { heading, filename, content}
   let todosWithLinks = todos
   if (todos.length && config.includeLinks !== 'OFF') {
     todosWithLinks = []
@@ -379,10 +382,6 @@ export function getTimeBlockTimesForEvents(timeMap: IntervalMap, todos: Array<TP
         // FIXME: HERE AND RESULT IS NOT RIGHT
         break
       }
-      default: {
-        // console.log('ERROR: Unknown getTimeBlockTimesForEvents mode: "${config.mode}"')
-        break
-      }
     }
   } else {
     // console.log(
@@ -424,4 +423,32 @@ export function excludeTasksWithPatterns(tasks: Array<TParagraph>, pattern: stri
   } else {
     return tasks.filter((t) => !t.content.match(pattern))
   }
+}
+
+/**
+ * Find paragraphs in note which are open and tagged for today (either >today or hyphenated date)
+ * @param {*} note
+ * @param {*} config
+ * @returns {array} of paragraphs
+ */
+export function findTodosInNote(note: TNote, config) {
+  const hyphDate = getTodaysDateHyphenated()
+  const toDate = getDateObjFromDateTimeString(hyphDate)
+  const isTodayItem = (text) => [`>${hyphDate}`, '>today'].filter((a) => text.indexOf(a) > -1).length > 0
+  const todos: Array<ExtendedParagraph> = []
+  if (note.paragraphs) {
+    note.paragraphs.forEach((p) => {
+      if (isTodayItem(p.content) && p.type !== 'done') {
+        // clo(p, 'found today item')
+        const newP = p
+        newP.type = 'open' // Pretend it's a todo even if it's text or a listitem
+        newP.title = p.filename.replace('.md', '').replace('.txt', '')
+        // clo(newP, 'pushing today item')
+        // console.log(`  --> findTodosInNote adding todo "${p.content}"`)
+        todos.push(newP)
+      }
+    })
+  }
+  // console.log(`findTodosInNote found ${todos.length} todos - adding to list`)
+  return todos
 }

@@ -2,6 +2,10 @@
 
 ## Changelog
 
+[0.6.0] 2022-05-06
+- remove event note creation functions (they have been superseded by NotePlan Event Templates)
+- fix bug that is finding embedded event links and treating them like timeblocks
+
 [0.5.3] 2022-04-02
 - fix bug in task exclusion patterns (thx @lt#0807)
 
