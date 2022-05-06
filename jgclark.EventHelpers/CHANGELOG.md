@@ -1,7 +1,12 @@
 # What's changed in 🕓 Event Helpers?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
-## [0.15.0] - **not yet released given new minimum version**
+## [0.15.1] - 2022-05-06
+### Fixed
+- typo in default configuration of '' setting
+- restored 'template' parameter option
+
+## [0.15.0] - 2022-05-03
 ### Added
 - Added new 'Events List display format' and 'Events List display format for all-day events' settings to allow user to customise the event lists when run as /commands. This uses the same format as can already be passed as a parameter in the `events()` template functions.  Defaults are given.
 - Added support for including the date of an event in the output for calendar events. You can include it in format strings as placeholder `*|DATE|*`.

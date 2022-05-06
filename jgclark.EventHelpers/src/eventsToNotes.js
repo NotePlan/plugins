@@ -1,7 +1,7 @@
 // @flow
 // ----------------------------------------------------------------------------
 // Command to bring calendar events into notes
-// Last updated 2.5.2022 for v0.15.0, by @jgclark
+// Last updated 6.5.2022 for v0.15.1, by @jgclark
 // @jgclark, with additions by @dwertheimer, @weyert, @m1well
 // ----------------------------------------------------------------------------
 
@@ -40,11 +40,14 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
     // NB: allow previous parameter names 'template' and 'allday_template' still.
     const format = (paramString.includes('"format":'))
       ? String(await getTagParamsFromString(paramString, 'format', '- *|CAL|*: *|TITLE|* (*|START|*)*| with ATTENDEES|**|\nNOTES|**|\nURL|*'))
-      : config.formatEventsDisplay
-    log(pluginJson, format)
+      : (paramString.includes('"template":'))
+        ? String(await getTagParamsFromString(paramString, 'template', '- *|CAL|*: *|TITLE|* (*|START|*)*| with ATTENDEES|**|\nNOTES|**|\nURL|*'))
+        : config.formatEventsDisplay
     const alldayformat = (paramString.includes('"allday_format":'))
       ? String(await getTagParamsFromString(paramString, 'allday_format', '- *|CAL|*: *|TITLE|**| with ATTENDEES|**|\nNOTES|**|\nURL|*'))
-      : config.formatAllDayEventsDisplay
+      : (paramString.includes('"allday_template":'))
+        ? String(await getTagParamsFromString(paramString, 'allday_template', '- *|CAL|*: *|TITLE|**| with ATTENDEES|**|\nNOTES|**|\nURL|*'))
+        : config.formatAllDayEventsDisplay
     const includeHeadings = await getTagParamsFromString(paramString, 'includeHeadings', true)
     const daysToCover: number = await getTagParamsFromString(paramString, 'daysToCover', 1)
     // If the format contains 'CAL' then we care about calendar names in output
