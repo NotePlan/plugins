@@ -54,7 +54,7 @@ export function JSP(obj: { [string]: mixed }, space: string | number = 2): strin
  * @param {string | number} space - A String or Number of spaces that's used to insert white space (including indentation, line break characters, etc.) into the output JSON string for readability purposes.
  * @example clo(obj, 'myObj:')
  */
-export function clo(obj: { [string]: mixed }, preamble: string = '', space: string | number = 2): void {
+export function clo(obj: any, preamble: string = '', space: string | number = 2): void {
   if (typeof obj !== 'object') {
     console.log(`${obj} ${preamble}`)
   } else {
@@ -187,4 +187,23 @@ export function logError(pluginInfo: any, error: any = ''): string {
  */
 export function logWarn(pluginInfo: any, message: any = ''): string {
   return log(pluginInfo, message, 'WARN')
+}
+
+/**
+ * Time a function
+ * @param {*} startTime - the date object from when timer started (using Date.now())
+ * @returns {string} - the formatted elapsed time
+ * @author @dwertheimer
+ * @example
+ * const startTime = Date.now()
+ * ...some long-running stuff here...
+ * const elapsedTime = timer(startTime)
+ */
+export function timer(startTime: Date): string {
+  const timeStart = startTime ?? new Date()
+  const timeEnd = new Date()
+  const difference = timeEnd - timeStart
+  const d = new Date(difference)
+  const diffText = `${d.getMinutes()}m${d.getSeconds()}s.${d.getMilliseconds()}ms`
+  return diffText
 }
