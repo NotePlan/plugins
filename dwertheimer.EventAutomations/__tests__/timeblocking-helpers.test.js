@@ -1,9 +1,10 @@
 /* globals describe, expect, it, test, jest */
 import colors from 'chalk'
 import { exportAllDeclaration } from '@babel/types'
-import { differenceInCalendarDays, endOfDay, startOfDay, eachMinuteOfInterval, formatISO9075 } from 'date-fns'
+import { differenceInCalendarDays, endOfDay, startOfDay, eachMinuteOfInterval, format } from 'date-fns'
 import { getTasksByType } from '../../dwertheimer.TaskAutomations/src/taskHelpers'
 import * as tb from '../src/timeblocking-helpers'
+
 // import * as ch from '../../helpers/calendar'
 // import { sortListBy, getTasksByType } from '../../dwertheimer.TaskAutomations/src/taskHelpers'
 import { JSP } from '../../helpers/dev'
@@ -23,6 +24,8 @@ const config = {
   removeDuration: true /* remove duration when creating timeblock text */,
   nowStrOverride: '00:00' /* for testing */,
   defaultDuration: 10 /* default duration of a task that has no duration/end time */,
+  includeLinks: 'ON',
+  includeLinks: '[[internal#links]]',
 }
 
 // import { isNullableTypeAnnotation } from '@babel/types'
@@ -232,6 +235,7 @@ describe(`${PLUGIN_NAME}`, () => {
         end: '02:12',
         minsAvailable: 132,
       })
+      expect(tb.createOpenBlockObject({ start: new Date(), end: '02:10' }, cfg, true)).toEqual(null)
     })
 
     test('findTimeBlocks ', () => {
@@ -268,6 +272,17 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(timeBlocks.length).toEqual(2)
       expect(timeBlocks[0]).toEqual({ start: '00:00', end: '00:05', minsAvailable: 5 })
       expect(timeBlocks[1]).toEqual({ start: '00:15', end: '00:30', minsAvailable: 15 })
+    })
+
+    describe('addMinutesToTimeText', () => {
+      test('should add time properly', () => {
+        expect(tb.addMinutesToTimeText('00:00', 21)).toEqual('00:21')
+        expect(tb.addMinutesToTimeText('00:00', 180)).toEqual('03:00')
+        expect(tb.addMinutesToTimeText('00:50', 20)).toEqual('01:10')
+      })
+      test('should gracefully fail on bad input', () => {
+        expect(tb.addMinutesToTimeText(new Date(), 21)).toEqual('')
+      })
     })
 
     describe('getTimeBlockTimesForEvents ', () => {
@@ -370,11 +385,6 @@ describe(`${PLUGIN_NAME}`, () => {
         const res = tb.getTimeBlockTimesForEvents([{ start: '00:00', busy: false, index: 0 }], todosByType['open'], cfg)
         expect(res.timeBlockTextList).toEqual([])
       })
-    })
-    test('addMinutesToTimeText ', () => {
-      expect(tb.addMinutesToTimeText('00:00', 21)).toEqual('00:21')
-      expect(tb.addMinutesToTimeText('00:00', 180)).toEqual('03:00')
-      expect(tb.addMinutesToTimeText('00:50', 20)).toEqual('01:10')
     })
 
     test('blockTimeAndCreateTimeBlockText ', () => {
@@ -608,5 +618,83 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result[0].content).toEqual('baz')
       })
     })
+    describe('findTodosInNote', () => {
+      const note = {
+        paragraphs: [
+          { content: 'foo', type: 'done', filename: 'foof.md' },
+          { content: 'bar', type: 'open', filename: 'barf.md' },
+          { content: 'baz', type: 'list', filename: 'bazf.txt' },
+          { content: 'baz', type: 'text', filename: 'bazf.txt' },
+        ],
+      }
+      test('should find nothing if there are no today marked items', () => {
+        const res = tb.findTodosInNote(note, config)
+        expect(res).toEqual([])
+      })
+      test('should find items with >today in them', () => {
+        const note2 = { paragraphs: [{ content: 'foo >today bar', type: 'open', filename: 'foof.md' }] }
+        const consolidated = { paragraphs: [...note2.paragraphs, ...note.paragraphs] }
+        const res = tb.findTodosInNote(consolidated, config)
+        expect(res).toEqual(note2.paragraphs)
+      })
+      test('should find items with >[todays date hyphenated] in them', () => {
+        const tdh = format(new Date(), 'yyyy-MM-dd')
+        const note2 = { paragraphs: [{ content: `foo >${tdh} bar`, type: 'open', filename: 'foof.md' }] }
+        const consolidated = { paragraphs: [...note2.paragraphs, ...note.paragraphs] }
+        const res = tb.findTodosInNote(consolidated, config)
+        expect(res).toEqual(note2.paragraphs)
+      })
+      test('should not find items with >today if they are done', () => {
+        const note2 = { paragraphs: [{ content: 'foo >today bar', type: 'done', filename: 'foof.md' }] }
+        const res = tb.findTodosInNote(note2, config)
+        expect(res).toEqual([])
+      })
+      test('should return a title from the filename.md', () => {
+        const note2 = { paragraphs: [{ content: 'foo >today bar', type: 'open', filename: 'foof.md', title: 'not' }] }
+        const res = tb.findTodosInNote(note2, config)
+        expect(res[0].title).toEqual('foof')
+      })
+      test('should return a title from the filename.txt', () => {
+        const note2 = { paragraphs: [{ content: 'foo >today bar', type: 'open', filename: 'foof.txt', title: 'not' }] }
+        const res = tb.findTodosInNote(note2, config)
+        expect(res[0].title).toEqual('foof')
+      })
+    })
+    describe('appendLinkIfNecessary', () => {
+      const paragraphs = [
+        { content: 'foo', type: 'done', filename: 'foof.md' },
+        { content: 'bar', type: 'open', filename: 'barf.md' },
+        { content: 'baz', type: 'list', filename: 'bazf.txt' },
+        { content: 'baz', type: 'text', filename: 'bazf.txt' },
+      ]
+
+      test('should do nothing if includeLinks is OFF', () => {
+        const res = tb.appendLinkIfNecessary(paragraphs, { ...config, includeLinks: 'OFF' })
+        expect(res).toEqual(paragraphs)
+      })
+      test('should do nothing if todos array is empty', () => {
+        const res = tb.appendLinkIfNecessary([], config)
+        expect(res).toEqual([])
+      })
+      test('should do nothing if todo type is title', () => {
+        const p = [{ type: 'title', content: 'foo' }]
+        const res = tb.appendLinkIfNecessary(p, config)
+        expect(res).toEqual([])
+      })
+      test('should add wikilink to content in form of [[title#heading]]', () => {
+        const p = [{ type: 'open', content: 'ugh', title: 'foo', heading: 'bar' }]
+        const res = tb.appendLinkIfNecessary(p, { ...config, includeLinks: '[[internal#links]]' })
+        expect(res[0].content).toEqual('ugh [[foo#bar]]')
+      })
+      test('should add url-style link to content in form of noteplan://', () => {
+        const p = [{ type: 'open', content: 'ugh', title: 'foo', heading: 'bar', filename: 'baz' }]
+        const res = tb.appendLinkIfNecessary(p, { ...config, includeLinks: 'Pretty Links', linkText: '%' })
+        expect(res[0].content).toEqual('ugh [%](noteplan://x-callback-url/openNote?filename=baz)')
+      })
+    })
   })
 })
+
+/*
+appendLinkIfNecessary
+*/

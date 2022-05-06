@@ -166,6 +166,10 @@ describe(`${HELPER_NAME}`, () => {
       test('35: no: 1234:56', () => {
         expect(tb.isTimeBlockLine('1234:56')).toEqual(false)
       })
+      test('calendar event links should not be timeblocks', () => {
+        const cal = '![📅](2022-05-06 07:15:::6qr6nbulhd7k3aakvf61atfsrd@google.com:::NA:::Work-out @ Home:::#1BADF8)'
+        expect(tb.isTimeBlockLine(cal)).toEqual(false)
+      })
     })
     describe('findLongestStringInArray ', () => {
       test('should return longest string in array', () => {
@@ -192,10 +196,10 @@ describe(`${HELPER_NAME}`, () => {
       })
       // Currently failing, and not sure why
       test("should return '12:30' ", () => {
-        expect(tb.getTimeBlockString("something 2022-01-01 12:30 and nothing else")).toEqual('12:30')
+        expect(tb.getTimeBlockString('something 2022-01-01 12:30 and nothing else')).toEqual('12:30')
       })
       test("should return 'at 2am-3PM'", () => {
-        expect(tb.getTimeBlockString("- 2022-01-01 at 2am-3PM here")).toEqual('at 2am-3PM')
+        expect(tb.getTimeBlockString('- 2022-01-01 at 2am-3PM here')).toEqual('at 2am-3PM')
       })
     })
 

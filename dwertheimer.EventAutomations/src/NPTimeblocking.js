@@ -43,16 +43,14 @@ import {
   makeAllItemsTodos,
   removeDateTagsFromArray,
   appendLinkIfNecessary,
+  findTodosInNote,
+  type ExtendedParagraph,
 } from './timeblocking-helpers'
 import { getPresetOptions, setConfigForPreset } from './presets'
 import { getTimeBlockingDefaults, validateTimeBlockConfig } from './config'
 import type { IntervalMap, TimeBlockDefaults, PartialCalendarItem, EditorOrNote } from './timeblocking-flow-types'
 
 const PLUGIN_ID = 'autoTimeBlocking'
-
-type ExtendedParagraph = {
-  ...TParagraph,
-}
 
 /* TCalendarItem is a type for the calendar items:
     title: string,
@@ -88,34 +86,6 @@ export async function getConfig(): Promise<{ [string]: [mixed] }> {
 const editorOrNote: EditorOrNote = (note: EditorOrNote) => (Editor.filename === note?.filename || !note ? Editor : note)
 
 const editorIsOpenToToday = () => getDateStringFromCalendarFilename(Editor.filename) === getTodaysDateUnhyphenated()
-
-/**
- * Find paragraphs in note which are open and tagged for today (either >today or hyphenated date)
- * @param {*} note
- * @param {*} config
- * @returns {array} of paragraphs
- */
-function findTodosInNote(note: TNote, config) {
-  const hyphDate = getTodaysDateHyphenated()
-  const toDate = getDateObjFromDateTimeString(hyphDate)
-  const isTodayItem = (text) => [hyphDate, '>today'].filter((a) => text.indexOf(a) > -1).length > 0
-  const todos: Array<ExtendedParagraph> = []
-  if (note.paragraphs) {
-    note.paragraphs.forEach((p) => {
-      if (isTodayItem(p.content) && p.type !== 'done') {
-        // clo(p, 'found today item')
-        const newP = p
-        newP.type = 'open' // Pretend it's a todo even if it's text or a listitem
-        newP.title = p.filename.replace('.md', '').replace('.txt', '')
-        // clo(newP, 'pushing today item')
-        // console.log(`  --> findTodosInNote adding todo "${p.content}"`)
-        todos.push(newP)
-      }
-    })
-  }
-  // console.log(`findTodosInNote found ${todos.length} todos - adding to list`)
-  return todos
-}
 
 async function insertContentUnderHeading(destNote: TNote, headingToFind: string, parasAsText: string) {
   const topOfNote = destNote.type === 'Calendar' ? 0 : 1
@@ -168,6 +138,12 @@ function getTodaysReferences(pNote: TNote | null = null, config): Array<TParagra
         subItem.title = link.content.replace('.md', '').replace('.txt', '')
         todayParas.push(subItem)
       })
+    })
+    // FIX CLO to work with backlinks
+
+    clo(todayParas, 'todayParas')
+    findTodosInNote(note, config).forEach((link, i) => {
+      clo(link, `findTodosInNote[${i}]`)
     })
     todayParas = [...todayParas, ...findTodosInNote(note, config)]
     // console.log(`getTodaysReferences note.filename=${note.filename} backlinks.length=${backlinks.length} todayParas.length=${todayParas.length}`)
