@@ -3,7 +3,12 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
-## [1.1.3-beta.01] - 2022-05-05 (mikeerickson)
+## [1.1.3-beta.02] - 2022-05-06 (mikeerickson)
+
+- fix regression introduced in 1.1.2-beta.03 related to replacing `---` with `*****`, was perform replacement too soon
+  - Revealed in jgclark.DailyJournal
+
+## [1.1.3-beta.01] - 2022-05-06 (mikeerickson)
 
 WIP - Publishing Internal for @jgclark test with `/dayStart`
 

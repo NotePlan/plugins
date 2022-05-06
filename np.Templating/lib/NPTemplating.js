@@ -269,12 +269,20 @@ export default class NPTemplating {
   static async chooseTemplate(tags?: any = '*', promptMessage: string = 'Choose Template'): Promise<any> {
     try {
       await this.setup()
+
+      const templateGroupTemplatesByFolder = this.constructor.templateConfig?.templateGroupTemplatesByFolder || false
+
       const templateList = await this.getTemplateList(tags)
+
       let options = []
       for (const template of templateList) {
         const parts = template.value.split('/')
         const filename = parts.pop()
-        const label = template.value.replace(`${TEMPLATE_FOLDER_NAME}/`, '').replace(filename, template.label)
+        let label = template.value.replace(`${TEMPLATE_FOLDER_NAME}/`, '').replace(filename, template.label)
+        if (!templateGroupTemplatesByFolder) {
+          const parts = label.split('/')
+          label = parts[parts.length - 1]
+        }
         options.push({ label, value: template.value })
       }
 
@@ -311,8 +319,6 @@ export default class NPTemplating {
       }
 
       const filterTypes = Array.isArray(types) ? types : types.split(',').map((type) => type.trim())
-
-      const templateGroupTemplatesByFolder = this.constructor.templateConfig?.groupTemplatesByFolder || false
 
       const allTemplates = DataStore.projectNotes
         .filter((n) => n.filename?.startsWith(templateFolder))
@@ -670,6 +676,8 @@ export default class NPTemplating {
       let templateData = (await this.getTemplate(templateName)) || ''
 
       let renderedData = await this.render(templateData, userData, userOptions)
+      log(pluginJson, 'renderedData')
+      console.log(renderedData)
 
       return this._filterTemplateResult(renderedData)
     } catch (error) {
@@ -683,7 +691,7 @@ export default class NPTemplating {
       await this.setup()
 
       let sessionData = { ...userData }
-      let templateData = inTemplateData.replace(/---/gi, '*****')
+      let templateData = inTemplateData //.replace(/---/gi, '*****')
 
       let globalData = {}
       Object.getOwnPropertyNames(globals).forEach((key) => {
@@ -696,7 +704,7 @@ export default class NPTemplating {
       const isFrontmatterTemplate = new FrontmatterModule().isFrontmatterTemplate(templateData)
       if (isFrontmatterTemplate) {
         const { frontmatterAttributes, frontmatterBody } = await this.preRender(templateData, sessionData)
-        templateData = frontmatterBody
+        templateData = frontmatterBody.replace(/---/gi, '*****')
         sessionData.data = { ...sessionData.data, ...frontmatterAttributes }
       }
 
