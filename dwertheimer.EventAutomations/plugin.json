@@ -3,26 +3,14 @@
   "macOS.minVersion": "10.13.0",
   "noteplan.minAppVersion": "3.3.2", 
   "plugin.id": "dwertheimer.EventAutomations",
-  "plugin.name": "🗓 Event Automations",
-  "plugin.description": "Create a note from an event on your calendar or create timeblocks for items marked for today!",
+  "plugin.name": "🗓 AutoTimeBlocking",
+  "plugin.description": "Automatically find time in your calendar and create Time Blocks for items marked for >today.",
   "plugin.author": "dwertheimer",
-  "plugin.version": "0.5.3",
+  "plugin.version": "0.6.0",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://noteplan.co/n/#/1EF12392-B544-4044-AC7A-428F57EB2DFC",
   "plugin.commands": [
-    {
-      "name": "Create Note From Calendar Event w/QuickTemplate",
-      "description": "creates a note from a calendar event",
-      "jsFunction": "createNoteForCalendarItemWithQuickTemplate",
-      "alias": ["calNote","qtne","calendar note","meeting note"]
-    },
-    {
-      "name": "Create Note From Calendar Event",
-      "description": "creates a note from a calendar event",
-      "jsFunction": "createNoteForCalendarItemWithoutQuickTemplate",
-      "alias": ["calNote","calendar note","meeting note"]
-    },
     {
       "name": "atb - Create AutoTimeBlocks for >today's Tasks",
       "description": "Read >today todos and insert them into today's calendar note as timeblocks",
