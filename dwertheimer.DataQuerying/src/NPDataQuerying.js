@@ -17,7 +17,7 @@ TO DO:
 */
 const OUTPUT_SEARCH_RESULTS = false
 
-import * as dh from './support/data-helpers'
+// import * as dh from './support/data-helpers'
 import * as fh from './support/fuse-helpers'
 // import { testDB } from './support/database' //didn't seem to work
 

@@ -1,6 +1,5 @@
 // @flow
 
-import { isArgumentsArray } from 'expressionparser/dist/ExpressionParser'
 import Fuse from 'fuse.js'
 import { clo, log } from '../../../helpers/dev'
 

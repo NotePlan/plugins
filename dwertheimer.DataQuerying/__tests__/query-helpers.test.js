@@ -1,8 +1,5 @@
 // USE THIS FOR QUERY LANGUAGE https://github.com/frederickf/bqpjs
 
-// import { parse, getEvaluator } from 'boon-js'
-// import BooleanExpressions from 'boolean-expressions'
-// import { init, formula, ExpressionParser } from 'expressionparser'
 import { clo, JSP } from '../../helpers/dev'
 import * as qh from '../src/support/query-helpers'
 
@@ -25,13 +22,36 @@ describe('dwertheimer.DataQuerying', () => {
     })
     describe('formatSearchOutput', () => {
       test('should format output', () => {
-        const results = [{ item: { title: 'title', filename: 'filename', content: 'content' } }]
+        const results = [
+          { item: { title: 'title', filename: 'filename', content: 'irrelevant for this test' }, matches: [{ key: 'key', value: 'value is here', indices: [[0, 1]] }] },
+        ]
         const query = 'foo'
-        const result = qh.formatSearchOutput(results, query)
+        const config = { linksOnly: false, charsBeforeAndAfter: 20, maxSearchResultLine: 50 }
+        const result = qh.formatSearchOutput(results, query, config)
+        expect(result).toMatch(/### Searching for: "foo"/)
+        expect(result).toMatch(/\*\*va\*\*lue is here/)
+      })
+      test('should work for items with no content (like PDF files)', () => {
+        const results = [{ item: { title: 'title', filename: 'filename.pdf' } }]
+        const query = 'foo'
+        const config = { linksOnly: false, charsBeforeAndAfter: 20, maxSearchResultLine: 50 }
+        const result = qh.formatSearchOutput(results, query, config)
         console.log(result)
         expect(result).toMatch(/### Searching for: "foo"/)
         // expect(result).toMatch(/\[title\]\(noteplan://x-callback-url/openNote?filename=filename\)/)
-        expect(result).toMatch(/content/)
+        console.log(result)
+        expect(result).toEqual('### Searching for: "foo":\n---\n[title](noteplan://x-callback-url/openNote?filename=filename.pdf)\n... File: "title" ...\n---')
+      })
+      test('should work for items with no content and no title (like PDF files)', () => {
+        const results = [{ item: { filename: 'filename.pdf' } }]
+        const query = 'foo'
+        const config = { linksOnly: false, charsBeforeAndAfter: 20, maxSearchResultLine: 50 }
+        const result = qh.formatSearchOutput(results, query, config)
+        console.log(result)
+        expect(result).toMatch(/### Searching for: "foo"/)
+        // expect(result).toMatch(/\[title\]\(noteplan://x-callback-url/openNote?filename=filename\)/)
+        console.log(result)
+        expect(result).toEqual('### Searching for: "foo":\n---\n[undefined](noteplan://x-callback-url/openNote?filename=filename.pdf)\n... File Contents Unreadable ...\n---')
       })
       // test('should get correct match data', () => {
       //   const results = [{ item: { title: 'title', filename: 'filename', content: 'content', matches: [{ key: 'content', value: 'content', indices: [0, 1] }] } }]
@@ -45,32 +65,53 @@ describe('dwertheimer.DataQuerying', () => {
     })
 
     describe('getSurroundingChars', () => {
-      test('should format output with no surrounding chars', () => {
-        const res = qh.getSurroundingChars('foo', 0, 2, 0, 20)
+      const config = test('should format output with no surrounding chars', () => {
+        const res = qh.getSurroundingChars('foo', 0, 2, {
+          charsBeforeAndAfter: 0,
+          maxSearchResultLine: 20,
+        })
         expect(res).toEqual('**foo**')
       })
       test('should work same with 5 before/after', () => {
-        const res = qh.getSurroundingChars('foo', 0, 2, 5, 20)
+        const res = qh.getSurroundingChars('foo', 0, 2, {
+          charsBeforeAndAfter: 5,
+          maxSearchResultLine: 20,
+        })
         expect(res).toEqual('**foo**')
       })
       test('should work with text only before', () => {
-        const res = qh.getSurroundingChars('so foo', 3, 5, 5, 20)
+        const res = qh.getSurroundingChars('so foo', 3, 5, {
+          charsBeforeAndAfter: 5,
+          maxSearchResultLine: 20,
+        })
         expect(res).toEqual('so **foo**')
       })
       test('should work with text only after', () => {
-        const res = qh.getSurroundingChars('foo so', 0, 2, 5, 20)
+        const res = qh.getSurroundingChars('foo so', 0, 2, {
+          charsBeforeAndAfter: 5,
+          maxSearchResultLine: 20,
+        })
         expect(res).toEqual('**foo** so')
       })
       test('should work with text on both sides', () => {
-        const res = qh.getSurroundingChars('do foo so', 3, 5, 5, 20)
+        const res = qh.getSurroundingChars('do foo so', 3, 5, {
+          charsBeforeAndAfter: 5,
+          maxSearchResultLine: 20,
+        })
         expect(res).toEqual('do **foo** so')
       })
       test('should work with text on both sides', () => {
-        const res = qh.getSurroundingChars('987654321foo123456789', 9, 11, 5, 20)
+        const res = qh.getSurroundingChars('987654321foo123456789', 9, 11, {
+          charsBeforeAndAfter: 5,
+          maxSearchResultLine: 20,
+        })
         expect(res).toEqual('54321**foo**12345')
       })
       test('should clip sides, balancing for max output', () => {
-        const res = qh.getSurroundingChars('987654321foo123456789', 9, 11, 5, 10)
+        const res = qh.getSurroundingChars('987654321foo123456789', 9, 11, {
+          charsBeforeAndAfter: 5,
+          maxSearchResultLine: 10,
+        })
         expect(res).toEqual('1**foo**1')
       })
     })

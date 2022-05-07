@@ -24,7 +24,6 @@ const config = {
   removeDuration: true /* remove duration when creating timeblock text */,
   nowStrOverride: '00:00' /* for testing */,
   defaultDuration: 10 /* default duration of a task that has no duration/end time */,
-  includeLinks: 'ON',
   includeLinks: '[[internal#links]]',
 }
 

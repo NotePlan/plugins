@@ -176,7 +176,7 @@ describe('dwertheimer.DataQuerying', () => {
           const result = fh.createFuseSearchObjectFromRPN(rpn)
           expect(result).toEqual({})
         })
-        test('should return proper query object given RPN in bqps docs', async () => {
+        test.skip('should return proper query object given RPN in bqps docs', async () => {
           const rpn = [
             {
               value: 'A',

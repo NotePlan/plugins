@@ -28,7 +28,7 @@ export function formatSearchOutput(results: Array<any>, searchQuery: string, con
     const pl = createPrettyLink(item.title, item.filename, true)
     if (!linksOnly) {
       if (!item || !item.content) {
-        content = item.title || '' // an item like a PDF may have no content
+        content = item.title ? `File: "${item.title}"` : 'File Contents Unreadable' // an item like a PDF may have no content
       } else {
         r.matches &&
           r.matches?.forEach((m, x) => {
