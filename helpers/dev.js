@@ -26,13 +26,20 @@ const dt = (): string => {
  * @returns {string} stringified object
  * @example console.log(JSP(obj, '\t')) // prints the full object with newlines and tabs for indentation
  */
-export function JSP(obj: { [string]: mixed }, space: string | number = 2): string {
+export function JSP(obj: any, space: string | number = 2): string {
+  if (Array.isArray(obj)) {
+    const arrInfo = []
+    obj.forEach((item, i) => {
+      arrInfo.push(`[${i}] = ${JSP(item, space)} `)
+    })
+    return arrInfo.join(',\n')
+  }
   const propNames = getAllPropertyNames(obj)
   const fullObj = propNames.reduce((acc, propName) => {
     if (Array.isArray(obj[propName])) {
       acc[propName] = obj[propName].map((x) => {
         if (typeof x === 'object') {
-          return JSP(x, null)
+          return JSP(x, '')
         } else {
           return x
         }
@@ -49,7 +56,7 @@ export function JSP(obj: { [string]: mixed }, space: string | number = 2): strin
  * Console.logs all property names/values of an object to console with text preamble
  * @author @dwertheimer
  *
- * @param {object} obj
+ * @param {object} obj - array or object
  * @param {string} preamble - (optional) text to prepend to the output
  * @param {string | number} space - A String or Number of spaces that's used to insert white space (including indentation, line break characters, etc.) into the output JSON string for readability purposes.
  * @example clo(obj, 'myObj:')
