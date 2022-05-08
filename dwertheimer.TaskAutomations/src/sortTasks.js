@@ -6,6 +6,7 @@
 import { chooseOption, showMessageYesNo } from '../../helpers/userInput'
 import { default as sweepNote, type ReturnStatus } from '../../nmn.sweep/src/sweepNote'
 import { getTagParamsFromString } from '../../helpers/general'
+import { removeHeadingFromNote } from '../../helpers/NPParagraph'
 import { sortListBy } from '../../helpers/sorting'
 import { deleteParagraphsContainingString } from '../../dwertheimer.EventAutomations/src/NPTimeblocking'
 import { getTasksByType, TASK_TYPES } from './taskHelpers'
@@ -17,7 +18,6 @@ When I used it on a note: there were two items. 1- I didn't want the completed a
 2- I didn't need the sorting. Sorting didn't matter but the migration messed up some completed and cancelled actions that 
 I wanted to remain with the header. A reference to the header would be very helpful for me.
 */
-
 const SORT_ORDERS = [
   {
     sortFields: ['-priority', 'content'],
@@ -66,10 +66,7 @@ export async function openTasksToTop(heading: string = '## Tasks:\n', separator:
     if (sweptTasks.taskArray[0].content === Editor.title) {
       sweptTasks.taskArray.shift()
     }
-    Editor.prependParagraph(
-      heading.concat(sweptTasks.taskArray.map((m) => m.rawContent).join('\n')).concat(`\n${separator}`),
-      'text',
-    )
+    Editor.prependParagraph(heading.concat(sweptTasks.taskArray.map((m) => m.rawContent).join('\n')).concat(`\n${separator}`), 'text')
   }
 }
 
@@ -81,11 +78,7 @@ export async function openTasksToTop(heading: string = '## Tasks:\n', separator:
 export async function sortTasksViaTemplate(paramStr: string = ''): Promise<void> {
   console.log(`tasksortTasksViaTemplateToTop(): calling sortTasks`)
   const withUserInput: boolean = await getTagParamsFromString(paramStr, 'withUserInput', true)
-  const sortFields: string[] = await getTagParamsFromString(
-    paramStr,
-    'sortFields',
-    SORT_ORDERS[DEFAULT_SORT_INDEX].sortFields,
-  )
+  const sortFields: string[] = await getTagParamsFromString(paramStr, 'sortFields', SORT_ORDERS[DEFAULT_SORT_INDEX].sortFields)
   const withHeadings: boolean = await getTagParamsFromString(paramStr, 'withHeadings', false)
   const withSubHeadings: boolean = await getTagParamsFromString(paramStr, 'withSubHeadings', false)
   await sortTasks(withUserInput, sortFields, withHeadings, withSubHeadings)
@@ -136,6 +129,11 @@ function insertTodos(note: TNote, todos, heading = '', separator = '', subHeadin
   console.log(`\tInsertTodos: subHeadingCategory=${String(subHeadingCategory)} ${todos.length} todos`)
   let todosWithSubheadings = []
   const headingStr = heading ? `${heading}\n` : ''
+  if (heading) {
+    console.log(`\tInsertTodos: heading=${heading}`)
+    removeHeadingFromNote(note, heading, true)
+  }
+
   if (subHeadingCategory) {
     const leadingDigit = {
       hashtags: '#',
@@ -146,11 +144,8 @@ function insertTodos(note: TNote, todos, heading = '', separator = '', subHeadin
     let lastSubcat = ''
     for (const lineIndex in todos) {
       const subCat =
-        // $FlowIgnore - complaining about -priority being missing.
-        (leadingDigit[subHeadingCategory] ? leadingDigit[subHeadingCategory] : '') +
-          todos[lineIndex][subHeadingCategory][0] ||
-        todos[lineIndex][subHeadingCategory] ||
-        ''
+        /* $FlowIgnore - complaining about -priority being missing. */
+        (leadingDigit[subHeadingCategory] ? leadingDigit[subHeadingCategory] : '') + todos[lineIndex][subHeadingCategory][0] || todos[lineIndex][subHeadingCategory] || ''
       // console.log(
       //   `lastSubcat[${subHeadingCategory}]=${subCat} check: ${JSON.stringify(
       //     todos[lineIndex],
@@ -158,7 +153,10 @@ function insertTodos(note: TNote, todos, heading = '', separator = '', subHeadin
       // )
       if (lastSubcat !== subCat) {
         lastSubcat = subCat
-        todosWithSubheadings.push({ raw: `\n#### ${subCat}` })
+        const headingStr = `#### ${subCat}`
+        todosWithSubheadings.push({ raw: `\n${headingStr}` })
+        // delete the former version of this subheading
+        removeHeadingFromNote(note, subCat)
       }
       todosWithSubheadings.push(todos[lineIndex])
     }
@@ -177,11 +175,7 @@ function insertTodos(note: TNote, todos, heading = '', separator = '', subHeadin
     .join(`\n`)
   console.log(`Inserting tasks into Editor:\n${contentStr}`)
   // console.log(`inserting tasks: \n${JSON.stringify(todosWithSubheadings)}`)
-  note.insertParagraph(
-    `${headingStr}${contentStr}${separator ? `\n${separator}` : ''}`,
-    note.type === 'Calendar' ? 0 : 1,
-    'text',
-  )
+  note.insertParagraph(`${headingStr}${contentStr}${separator ? `\n${separator}` : ''}`, note.type === 'Calendar' ? 0 : 1, 'text')
 }
 
 /**
@@ -309,13 +303,7 @@ async function deleteExistingTasks(note, tasks, shouldBackupTasks = true) {
  * @param {boolean} withHeadings
  * @param {any|null|string} withSubheadings // @jgclark comment: suggest change name to subHeadingCategory, as otherwise it sounds like a boolean
  */
-async function writeOutTasks(
-  note: TNote,
-  tasks: any,
-  drawSeparators = false,
-  withHeadings = false,
-  withSubheadings = null,
-): Promise<void> {
+async function writeOutTasks(note: TNote, tasks: any, drawSeparators = false, withHeadings = false, withSubheadings = null): Promise<void> {
   const headings = {
     open: 'Open Tasks',
     scheduled: 'Scheduled Tasks',
@@ -329,13 +317,7 @@ async function writeOutTasks(
       console.log(`\tEDITOR_FILE TASK_TYPE=${ty} -- withHeadings=${String(withHeadings)}`)
       try {
         note
-          ? await insertTodos(
-              note,
-              tasks[ty],
-              withHeadings ? `### ${headings[ty]}:` : '',
-              drawSeparators ? `${i === tasks[ty].length - 1 ? '---' : ''}` : '',
-              withSubheadings,
-            )
+          ? await insertTodos(note, tasks[ty], withHeadings ? `### ${headings[ty]}:` : '', drawSeparators ? `${i === tasks[ty].length - 1 ? '---' : ''}` : '', withSubheadings)
           : null
       } catch (e) {
         console.log(JSON.stringify(e))
@@ -356,7 +338,14 @@ async function wantHeadings() {
 }
 
 async function wantSubHeadings() {
-  return (await showMessageYesNo(`Include sort field subheadings in the output?`)) === 'Yes'
+  return await chooseOption(
+    `Include sort field subheadings in the output?`,
+    [
+      { label: 'Yes', value: true },
+      { label: 'No', value: false },
+    ],
+    true,
+  )
 }
 
 showMessageYesNo // @jgclark comment: this looks strange!
@@ -381,17 +370,8 @@ export default async function sortTasks(
   let sortField1 = ''
   if (sortOrder.length) {
     sortField1 = sortOrder[0][0] === '-' ? sortOrder[0].substring(1) : sortOrder[0]
-    printSubHeadings =
-      ['hashtags', 'mentions'].indexOf(sortField1) !== -1
-        ? withSubHeadings === null
-          ? await wantSubHeadings()
-          : true
-        : false
-    console.log(
-      `\twithSubHeadings=${String(withSubHeadings)} printSubHeadings=${String(printSubHeadings)}  cat=${
-        printSubHeadings ? sortField1 : ''
-      }`,
-    )
+    printSubHeadings = ['hashtags', 'mentions'].indexOf(sortField1) !== -1 ? (withSubHeadings === null ? await wantSubHeadings() : true) : false
+    console.log(`\twithSubHeadings=${String(withSubHeadings)} printSubHeadings=${String(printSubHeadings)}  cat=${printSubHeadings ? sortField1 : ''}`)
   }
   console.log(`\tFinished wantSubHeadings()=${String(printSubHeadings)}, now running sortTasksInNote`)
   const sortedTasks = sortTasksInNote(Editor.note, sortOrder)
