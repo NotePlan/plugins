@@ -994,42 +994,38 @@ type TNote = {
    */
   +mentions: $ReadOnlyArray<string>,
   /**
-   * Get or set the raw text of the note
-   * (means there is no hidden or rendered Markdown).
-   *
+   * Get or set the raw text of the note (without hiding or rendering any Markdown).
    * If you set the content, NotePlan will write it immediately to file.
    * If you get the content, it will be read directly from the file.
    */
   +content: string | void,
   /**
-   * Get or set paragraphs contained in this note
-   * (these can be tasks, plain text, headings...).
-   *
+   * Get or set paragraphs contained in this note (can be tasks, plain text, headings...).
    * If you set the paragraph array, it will join them and save the new content
    * to file.
    */
   +paragraphs: $ReadOnlyArray<TParagraph>,
   /**
    * Get paragraphs contained in this note which contain a link to another [[project note]] or [[YYYY-MM-DD]] daily note.
-   * Note: Available from v3.2
+   * Note: Available from v3.2.0
    */
   +linkedItems: $ReadOnlyArray<TParagraph>,
   /**
    * Get paragraphs contained in this note which contain a link to a daily note.
    * Specifically this includes paragraphs with >YYYY-MM-DD, @YYYY-MM-DD, <YYYY-MM-DD, >today, @done(YYYY-MM-DD HH:mm), but only in non-calendar notes (because currently NotePlan doesn't create references between daily notes).
-   * Note: Available from v3.2
+   * Note: Available from v3.2.0
    */
   +datedTodos: $ReadOnlyArray<TParagraph>,
   /**
    * Get all backlinks pointing to the current note as Paragraph objects. In this array, the toplevel items are all notes linking to the current note and the 'subItems' attributes (of the paragraph objects) contain the paragraphs with a link to the current note. The heading of the linked paragraphs are also listed here, although they don't have to contain a link.
    * NB: Backlinks are all [[note name]] and >date links.
-   * Note: Available from v3.2
+   * Note: Available from v3.2.0
    */
   +backlinks: $ReadOnlyArray <TParagraph>,
   /**
    * Get all types assigned to this note in the frontmatter as an array of strings. 
    * You can set types of a note by adding frontmatter e.g. `type: meeting-note, empty-note` (comma separated).
-   * Note: Available from v3.5
+   * Note: Available from v3.5.0
   */
   +frontmatterTypes: $ReadOnlyArray<string>,
   /**
@@ -1037,7 +1033,14 @@ type TNote = {
    * Note: available from macOS build 729
    * @param {boolean} addReferenceSections
    */
-  printNote(boolean: addReferenceSections): void,
+  printNote(addReferenceSections: boolean): void,
+  /**
+   * Add a Block ID to paragraph(s) of a note
+   * Will need to call .updateParagraph(...) afterwards
+   * Note: available from v3.5.2
+   * @param {$ReadOnlyArray<TParagraph>} paragraphs to add block IDs for
+   */
+  addBlockID(paragraphs: $ReadOnlyArray<TParagraph>): void,
 }
 
 /**
@@ -1194,14 +1197,14 @@ declare var Clipboard: {
   /**
    * Set the data as base64 string for a specific type like an image or RTF.
    * Note: Available from v3.4.1
-   * @param {string} 
-   * @param {string} 
+   * @param {string} base64String
+   * @param {string} type
   */
   setBase64DataStringForType(base64String: string, type: string): void,
   /**
    * Get the base64 data string for a specific type like an image or RTF from the clipboard.
    * Note: Available from v3.4.1
-   * @param {string} 
+   * @param {string} type
    * @return {string}
   */
   base64DataStringForType(type: string): string,
@@ -1299,20 +1302,20 @@ type TParagraphBridge = {
   /**
    * Inserts a todo below the given title of a heading
    * (at the beginning or end of existing text)
-   * @param title - Text of the todo
-   * @param headingTitle - Title of the heading (without '#  Markdown)
-   * @param shouldAppend - If the todo should be appended at the bottom of existing text
-   * @param shouldCreate - If the heading should be created if non-existing
+   * @param {string} title - Text of the todo
+   * @param {string} headingTitle - Title of the heading (without '#  Markdown)
+   * @param {boolean} shouldAppend - If the todo should be appended at the bottom of existing text
+   * @param {boolean} shouldCreate - If the heading should be created if non-existing
    */
   addTodoBelowHeadingTitle(title: string, headingTitle: string, shouldAppend: boolean, shouldCreate: boolean): void,
 
   /**
    * Inserts a paragraph below the given title of a heading (at the beginning or end of existing text)
-   * @param title - Text of the paragraph
-   * @param paragraphType
-   * @param headingTitle - Title of the heading (without '#  Markdown)
-   * @param shouldAppend - If the todo should be appended at the bottom of existing text
-   * @param shouldCreate - If the heading should be created if non-existing
+   * @param {string} title - Text of the paragraph
+   * @param {ParagraphType} paragraphType
+   * @param {string} headingTitle - Title of the heading (without '#  Markdown)
+   * @param {boolean} shouldAppend - If the todo should be appended at the bottom of existing text
+   * @param {boolean} shouldCreate - If the heading should be created if non-existing
    */
   addParagraphBelowHeadingTitle(
     title: string,
