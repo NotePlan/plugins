@@ -27,29 +27,55 @@ const dt = (): string => {
  * @example console.log(JSP(obj, '\t')) // prints the full object with newlines and tabs for indentation
  */
 export function JSP(obj: any, space: string | number = 2): string {
-  if (Array.isArray(obj)) {
-    const arrInfo = []
-    obj.forEach((item, i) => {
-      arrInfo.push(`[${i}] = ${JSP(item, space)} `)
-    })
-    return arrInfo.join(',\n')
-  }
-  const propNames = getAllPropertyNames(obj)
-  const fullObj = propNames.reduce((acc, propName) => {
-    if (Array.isArray(obj[propName])) {
-      acc[propName] = obj[propName].map((x) => {
-        if (typeof x === 'object') {
-          return JSP(x, '')
+  if (typeof obj !== 'object') {
+    return String(obj)
+  } else {
+    if (Array.isArray(obj)) {
+      const arrInfo = []
+      let isValues = false
+      obj.forEach((item, i) => {
+        if (typeof item === 'object') {
+          arrInfo.push(`[${i}] = ${JSP(item, space)}`)
         } else {
-          return x
+          isValues = true
+          arrInfo.push(`${item}`)
         }
       })
-    } else {
-      acc[propName] = obj[propName]
+      return `${isValues ? '[' : ''}${arrInfo.join(isValues ? ', ' : ',\n')}${isValues ? ']' : ''}`
     }
-    return acc
-  }, {})
-  return JSON.stringify(fullObj, null, space ?? null)
+    const propNames = getAllPropertyNames(obj)
+    const fullObj = propNames.reduce((acc, propName) => {
+      if (Array.isArray(obj[propName])) {
+        acc[propName] = obj[propName].map((x) => {
+          if (typeof x === 'object') {
+            return JSP(x, '')
+          } else {
+            return x
+          }
+        })
+      } else {
+        acc[propName] = obj[propName]
+      }
+      return acc
+    }, {})
+    return cleanStrigifiedResults(JSON.stringify(fullObj, null, space ?? null))
+  }
+}
+
+/**
+ * Remove quoted and escaped characters from a string
+ * @param {*} str
+ * @returns
+ */
+function cleanStrigifiedResults(str: string): string {
+  let retStr = str
+  retStr = retStr.replace(/","/gm, ',')
+  retStr = retStr.replace(/"\{"/gm, '{').replace(/"\}"/gm, '}')
+  retStr = str.replace(/\\n/gm, '\n')
+  // retStr = retStr.replace(/\\"/gm, '"')
+  retStr = retStr.replace(/\\"/gm, '"')
+  // retStr = str.replace(/\\n/gm, '\n')
+  return retStr
 }
 
 /**
