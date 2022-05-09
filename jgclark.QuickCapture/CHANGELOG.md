@@ -1,5 +1,9 @@
 # What's changed in ⚡️ Quick Capture
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.QuickCapture), and how to configure.
+## [0.9.0] - 2022-05-06
+### Added
+- ability to use these commands from x-callback-url calls. For example, calling the following (e.g. from the  Shortcuts app, or even within NP itself) will do the equivalent of running the command `/quick add to journal today` and supplying with input 'something interesting': `noteplan://x-callback-url/runPlugin?pluginID=jgclark.QuickCapture&command=quick%20add%20to%20journal%20today&arg0=something%20interesting` 
+
 ## [0.8.6] - 2022-02-04
 ### Changed
 - code clean-up, removing references to old _configuration note, and moved to newer logging system
