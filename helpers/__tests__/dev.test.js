@@ -29,4 +29,22 @@ describe('helpers/dev', () => {
   \"bar\": 1
 }`)
   })
+  test('should output full tree when passing in an array', () => {
+    const arr = [{ subitems: [{ content: 'foo' }] }]
+    const log = d.JSP(arr)
+    expect(log).toEqual(`[0] = {
+  \"subitems\": [
+    \"{\"content\":\"foo\"}\"
+  ]
+}`)
+  })
+  test('should work with arrays in the middle also', () => {
+    const arr = { someArray: [{ subitems: [{ content: 'foo' }] }] }
+    const log = d.JSP(arr)
+    console.log(log)
+    expect(log).toMatch(/someArray/m)
+    expect(log).toMatch(/subitems/m)
+    expect(log).toMatch(/content/m)
+    expect(log).toMatch(/foo/m)
+  })
 })

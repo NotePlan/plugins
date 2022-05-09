@@ -124,6 +124,22 @@ export function getAllPropertyNames(inObj: { [string]: mixed }): Array<string> {
 }
 
 /**
+ * Copy an object and its prototypes as well, return as a normal object
+ * with no prototypes. This is useful for copying objects that have
+ * prototypes that are not normally visible in JSON.stringify
+ * (e.g. most objects that come from the NotePlan API)
+ * @author @dwertheimer
+ * @param {*} obj
+ */
+export function copyObject(obj: any): any {
+  const props = getAllPropertyNames(obj)
+  return props.reduce((acc, p) => {
+    acc[p] = obj[p]
+    return acc
+  }, {})
+}
+
+/**
  * Print to the console log, the properties of an object (including its prototype/private methods). This is useful if you want to know which properties are on the object vs the prototype because it will display in two lines, but it's more succinct to use getAllPropertyNames()
  * @author @dwertheimer
  *
