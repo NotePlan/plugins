@@ -4,13 +4,13 @@ import { fieldSorter } from '../../helpers/sorting'
 import { hyphenatedDateString } from './dateHelpers'
 import { clo } from '../../helpers/dev'
 
-const HASHTAGS = /\B#([a-zA-Z0-9]+\b)/g
-const MENTIONS = /\B@([a-zA-Z0-9]+\b)/g
+export const HASHTAGS = /\B#([a-zA-Z0-9\/]+\b)/g
+export const MENTIONS = /\B@([a-zA-Z0-9\/]+\b)/g
 const EXCLAMATIONS = /\B(!+\B)/g
 const PARENS_PRIORITY = /^\s*\(([a-zA-z])\)\B/g // must be at start of content
 export const TASK_TYPES = ['open', 'scheduled', 'done', 'cancelled']
 
-function getElementsFromTask(content, reSearch) {
+export function getElementsFromTask(content, reSearch) {
   const found = []
   let matches = reSearch.exec(content)
 

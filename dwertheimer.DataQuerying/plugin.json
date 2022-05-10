@@ -32,6 +32,13 @@
       ]
     },   
     {
+      "name": "Search for matching lines",
+      "description": "Search all the notes for matching lines",
+      "jsFunction": "searchMatchingLines",
+      "alias": [
+      ]
+    },   
+    {
       "name": "search (display links only in output)",
       "description": "Search notes but display only links in output",
       "jsFunction": "searchButShowTitlesOnly",

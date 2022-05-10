@@ -209,6 +209,16 @@ describe('dwertheimer.DataQuerying', () => {
         })
       })
     })
+    describe('removeExtendedSearchTags', () => {
+      test('should do nothing if no tags', async () => {
+        const result = await fh.removeExtendedSearchTags('foo')
+        expect(result).toEqual('foo')
+      })
+      test('should remove leading apostrophe', async () => {
+        const result = await fh.removeExtendedSearchTags("'foo")
+        expect(result).toEqual('foo')
+      })
+    })
     describe('populateObjectFromArray', () => {
       test('should return empty object from empty array', async () => {
         const result = fh.populateObjectFromArray([])
