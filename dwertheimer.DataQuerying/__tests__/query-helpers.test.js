@@ -36,10 +36,8 @@ describe('dwertheimer.DataQuerying', () => {
         const query = 'foo'
         const config = { linksOnly: false, charsBeforeAndAfter: 20, maxSearchResultLine: 50 }
         const result = qh.formatSearchOutput(results, query, config)
-        console.log(result)
         expect(result).toMatch(/### Searching for: "foo"/)
         // expect(result).toMatch(/\[title\]\(noteplan://x-callback-url/openNote?filename=filename\)/)
-        console.log(result)
         expect(result).toEqual('### Searching for: "foo":\n---\n[title](noteplan://x-callback-url/openNote?filename=filename.pdf)\n... File: "title" ...\n---')
       })
       test('should work for items with no content and no title (like PDF files)', () => {
@@ -47,10 +45,8 @@ describe('dwertheimer.DataQuerying', () => {
         const query = 'foo'
         const config = { linksOnly: false, charsBeforeAndAfter: 20, maxSearchResultLine: 50 }
         const result = qh.formatSearchOutput(results, query, config)
-        console.log(result)
         expect(result).toMatch(/### Searching for: "foo"/)
         // expect(result).toMatch(/\[title\]\(noteplan://x-callback-url/openNote?filename=filename\)/)
-        console.log(result)
         expect(result).toEqual('### Searching for: "foo":\n---\n[undefined](noteplan://x-callback-url/openNote?filename=filename.pdf)\n... File Contents Unreadable ...\n---')
       })
       // test('should get correct match data', () => {

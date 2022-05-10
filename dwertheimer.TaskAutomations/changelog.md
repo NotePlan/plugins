@@ -2,6 +2,9 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Ta
 
 # What's Changed in this Plugin?
 
+## [1.6.1] 2022-05-09
+- added /cta copy tags from line above
+
 ## [1.6.0] 2022-03-18
 - Add >today and remove @done per @pan's suggestion
 
