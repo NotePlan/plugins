@@ -1,0 +1,21 @@
+{
+  "noteplan.minAppVersion": "3.0.23",
+  "plugin.id": "nmn.DataQuery",
+  "plugin.name": "Data Query",
+  "plugin.description": "Query data across Noteplan, filter and present it as HTML in a browser",
+  "plugin.icon": "f120",
+  "plugin.author": "Naman Goel",
+  "plugin.repoUrl": "tbd",
+  "plugin.version": "0.0.1",
+  "plugin.dependencies": [ ],
+  "plugin.script": "script.js",
+  "plugin.isRemote": "false",
+  "plugin.commands": [
+    {
+      "name": "openTestHTML",
+      "description": "Open a test HTML page",
+      "jsFunction": "openTestHTML"
+    }  
+  ],
+  "plugin.preferences": []
+}
