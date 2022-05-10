@@ -38,7 +38,12 @@
       "name": "cta - Copy tags from previous line", 
       "description": "Copy #tags and @mentions from previous line", 
       "jsFunction": "copyTagsFromLineAbove"
-    }             
+    },
+    {
+      "name": "cth - Copy tags from heading above", 
+      "description": "Copy #tags/@mentions from heading to all lines between",
+      "jsFunction": "copyTagsFromHeadingAbove"
+    }                
   ],
   "disabled": [
     {

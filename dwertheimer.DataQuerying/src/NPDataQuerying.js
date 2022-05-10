@@ -217,10 +217,6 @@ export async function searchUserInput(linksOnly: boolean = false, notesToInclude
     log(pluginJson, `searchUserInput: build note list took: ${timer(innerStart)}`)
     const promIndex = createIndex(includedNotes, config)
     await CommandBar.onMainThread()
-    // const index = await promIndex
-    // const searchTerm = await promSearchTerm
-    // const [searchTerm, index] = await
-    // Promise.all([promSearchTerm, promIndex]).then((bb) => console.log(`${bb} gotty19`))
     promSearchTerm.then((searchTerm) => {
       promIndex.then(async (index) => {
         CommandBar.showLoading(true, `Searching ${DataStore.projectNotes.length} notes and attachments...`)
@@ -230,7 +226,6 @@ export async function searchUserInput(linksOnly: boolean = false, notesToInclude
         const results = await search(searchTerm, config, index, includedNotes)
         await CommandBar.onMainThread()
         CommandBar.showLoading(false)
-
         await processFunction(results, searchTerm, { ...config, ...processParams })
         log(pluginJson, `searchUserInput: opened search note`)
         log(pluginJson, `searchUserInput: TRT=${timer(start)} (including user typing time)`)
@@ -238,12 +233,7 @@ export async function searchUserInput(linksOnly: boolean = false, notesToInclude
     })
     // clo(config, 'searchUserInput: config')
   } catch (error) {
-    /**
-     * Description
-     * @param {any} pluginJson
-     * @param {any} error
-     * @returns {any}
-     */
+    log(pluginJson, `searchUserInput: caught error: ${error}`)
   }
 }
 
