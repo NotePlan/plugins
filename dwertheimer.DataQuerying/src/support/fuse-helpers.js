@@ -32,6 +32,16 @@ export function searchTest() {
   clo(result, 'searchTest result')
 }
 
+export function removeExtendedSearchTags(origText): string {
+  // {s:search, r:replacement}
+  const replacements = [{ d: 'leading apostrophe', s: /^'(.*)$/gm, r: '$1' }]
+  let clean = origText
+  replacements.forEach((x) => {
+    clean = clean.replace(x.s, x.r)
+  })
+  return clean
+}
+
 export function buildIndex(data, options): Fuse.FuseIndex | null {
   // Create the Fuse index
   if (options?.keys) {

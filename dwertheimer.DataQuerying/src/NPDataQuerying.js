@@ -1,6 +1,8 @@
 // @flow
 /*
 TO DO:
+- finish the rest of Extended tags in removeExtendedSearchTags()
+- /search for match does not work for fuzzy (e.g. @tester)
 - use .openNoteByFilename(filename, newWindow, highlightStart, highlightEnd, splitView, createIfNeeded)
 - make clicking on a link take you to a note with the selection highlighted
 - write the database index using cron?
@@ -21,7 +23,7 @@ const OUTPUT_SEARCH_RESULTS = false
 import * as fh from './support/fuse-helpers'
 // import { testDB } from './support/database' //didn't seem to work
 
-import { log, logError, clo, timer, JSP } from '../../helpers/dev'
+import { log, logError, clo, timer, JSP, copyObject } from '../../helpers/dev'
 import { formatSearchOutput } from './support/query-helpers'
 import pluginJson from '../plugin.json'
 // import { HTML5_FMT } from 'moment'
@@ -59,14 +61,14 @@ const SEARCH_OPTIONS = {
  */
 function getNotesForIndex(config: DataQueryingConfig) {
   const consolidatedNotes = [...DataStore.projectNotes, ...DataStore.calendarNotes]
-  log(pluginJson, `getNotesForIndex: ${consolidatedNotes.length} notes before eliminating foldersToIgnore `)
+  log(pluginJson, `getNotesForIndex: ${consolidatedNotes.length} notes before eliminating foldersToIgnore: ${config.foldersToIgnore.toString()}`)
   // consolidatedNotes.prototype.changedDateISO = () => this.changedDate.toISOString()
   let foldersToIgnore = config.foldersToIgnore || []
   if (config.searchNoteFolder && Array.isArray(foldersToIgnore)) {
     foldersToIgnore.push(config.searchNoteFolder)
   }
   // log(pluginJson, `getNotesForIndex: ${consolidatedNotes.length} notes before eliminating foldersToIgnore: ${JSON.stringify(foldersToIgnore)} `)
-  return consolidatedNotes
+  const cn = consolidatedNotes
     .filter((note) => {
       let include = true
       foldersToIgnore?.forEach((skipFolder) => {
@@ -85,6 +87,8 @@ function getNotesForIndex(config: DataQueryingConfig) {
       filename: n.filename,
       changedDateISO: n.changedDate.toISOString(),
     }))
+  log(pluginJson, `getNotesForIndex: FollowUp=${cn.filter((n) => n.filename == '_Inbox/FollowUp.md').length}`)
+  return cn
   // Note: had to do the map above to get the actual NP objects to be visible in the console
   // May not be necessary in production
   // return includedNotes
@@ -153,7 +157,55 @@ export async function searchButShowTitlesOnly(linksOnly: boolean = false): Promi
   }
 }
 
-export async function searchUserInput(linksOnly: boolean = false, notesToInclude: any = []): Promise<void> {
+const isCalendarNote = (filename) => (/^[0-9]{8}\.(md|txt)$/.test(filename) ? 'Calendar' : 'Notes')
+
+const getParagraphsContaining = (filename: string, searchTerm: string, config: any): Promise<string[]> => {
+  const cleanSearchTerm = fh.removeExtendedSearchTags(searchTerm)
+  const note = DataStore.noteByFilename(filename, isCalendarNote(filename))
+  const matches = []
+  note?.paragraphs?.forEach((paragraph) => {
+    // Note: FIXME: paragraph.children() will work here, but not later
+    if (paragraph.content.includes(cleanSearchTerm)) {
+      if (config.includeChildren) matches.push({ ...copyObject(paragraph), children: paragraph.children() })
+      else matches.push(copyObject(paragraph))
+    }
+  })
+  return matches
+}
+
+/**
+ * Called as a processFunction by searchUserInput function
+ * @param {*} results
+ * @param {*} searchTerm
+ * @param {*} config
+ */
+export async function outputMatchingLines(results: Array<any>, searchTerm: string, config: DataQueryingConfig): Promise<void> {
+  // clo(results, 'outputMatchingLines: results')
+  const filenames = results.map((result) => result.item.filename).sort()
+  clo(filenames, 'outputMatchingLines: filenames:')
+  let allMatchingLines = []
+  filenames.forEach((filename) => {
+    // Note: getParagraphsContaining is a processFunction passed in as an argument
+    // $FlowIgnore
+    const res = getParagraphsContaining(filename, searchTerm, { ...config, includeChildren: true })
+    if (res?.length) {
+      allMatchingLines.push(...res)
+    }
+  })
+  // TODO: figure out how to deal with Extended Search delimiters
+  // clo(allMatchingLines, 'outputMatchingLines: allMatchingLines (note that Extended Searches will currently mess it all up):')
+  allMatchingLines.forEach((line) => {
+    log(pluginJson, `${line.content} | children: ${line.children.length}`)
+  })
+}
+
+export async function searchMatchingLines() {
+  const res = await searchUserInput(false, [], { processFunction: outputMatchingLines, processParams: {} })
+}
+
+export async function searchUserInput(linksOnly: boolean = false, notesToInclude: any = [], options: any = {}): Promise<void> {
+  const processFunction = options.processFunction || writeSearchNote
+  const processParams = options.processParams || {}
   try {
     const start = new Date()
     const config = getDefaultConfig()
@@ -165,10 +217,6 @@ export async function searchUserInput(linksOnly: boolean = false, notesToInclude
     log(pluginJson, `searchUserInput: build note list took: ${timer(innerStart)}`)
     const promIndex = createIndex(includedNotes, config)
     await CommandBar.onMainThread()
-    // const index = await promIndex
-    // const searchTerm = await promSearchTerm
-    // const [searchTerm, index] = await
-    // Promise.all([promSearchTerm, promIndex]).then((bb) => console.log(`${bb} gotty19`))
     promSearchTerm.then((searchTerm) => {
       promIndex.then(async (index) => {
         CommandBar.showLoading(true, `Searching ${DataStore.projectNotes.length} notes and attachments...`)
@@ -178,20 +226,14 @@ export async function searchUserInput(linksOnly: boolean = false, notesToInclude
         const results = await search(searchTerm, config, index, includedNotes)
         await CommandBar.onMainThread()
         CommandBar.showLoading(false)
-
-        await writeSearchNote(results, searchTerm, config)
+        await processFunction(results, searchTerm, { ...config, ...processParams })
         log(pluginJson, `searchUserInput: opened search note`)
         log(pluginJson, `searchUserInput: TRT=${timer(start)} (including user typing time)`)
       })
     })
     // clo(config, 'searchUserInput: config')
   } catch (error) {
-    /**
-     * Description
-     * @param {any} pluginJson
-     * @param {any} error
-     * @returns {any}
-     */
+    log(pluginJson, `searchUserInput: caught error: ${error}`)
   }
 }
 

@@ -4,7 +4,7 @@
   "plugin.name": "✅ Task Automations", 
   "plugin.description": "Functions for handling Tasks", 
   "plugin.author": "@dwertheimer",
-  "plugin.version": "1.6.0", 
+  "plugin.version": "1.6.1", 
   "plugin.dependencies": [ ], 
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.TaskAutomations/readme.md",
@@ -33,7 +33,17 @@
       "name": "tst", 
       "description": "Tasks Sort by #Tag - Sort tasks on the page by hashtag", 
       "jsFunction": "sortTasksByTag"
-    }           
+    },
+    {
+      "name": "cta - Copy tags from previous line", 
+      "description": "Copy #tags and @mentions from previous line", 
+      "jsFunction": "copyTagsFromLineAbove"
+    },
+    {
+      "name": "cth - Copy tags from heading above", 
+      "description": "Copy #tags/@mentions from heading to all lines between",
+      "jsFunction": "copyTagsFromHeadingAbove"
+    }                
   ],
   "disabled": [
     {

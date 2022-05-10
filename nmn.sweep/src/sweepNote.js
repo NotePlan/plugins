@@ -39,9 +39,9 @@ export default async function sweepNote(
 
   let lastRootItem: ?TParagraph = null
 
-  console.log(
-    `Starting sweepNote for file: "${note.filename}" paragraphs:${paragraphs.length} overdueOnly:${overdueOnly}`,
-  )
+  let overdueOnlyStr = overdueOnly ? 'true' : 'false'
+
+  console.log(`Starting sweepNote for file: "${note.filename}" paragraphs:${paragraphs.length} overdueOnly:${overdueOnlyStr}`)
   paragraphs.forEach((p) => {
     const isSeparatorLine = /^---/.test(p.content)
     // use this console.log for creating Jest tests
@@ -117,7 +117,7 @@ export default async function sweepNote(
 
   if (numTasksToMove > 0) {
     console.log(
-      `\tsweepNote: file:"${note.filename}" overdueOnly=${overdueOnly} openTasks=${openTasks} overdueParagraphs:${overdueParagraphs.length} numTasksToMove=${numTasksToMove}`,
+      `\tsweepNote: file:"${note.filename}" overdueOnly=${overdueOnlyStr} openTasks=${openTasks} overdueParagraphs:${overdueParagraphs.length} numTasksToMove=${numTasksToMove}`,
     )
     // console.log(`${note.filename} has ${numTasksToMove} open tasks`)
     // TODO: Refactor this and get rid of rescheduleType (use moveType instead)
@@ -163,7 +163,7 @@ export default async function sweepNote(
 
     if (rescheduleTasks === 'move') {
       // Add Tasks to Today
-      if (!returnValue) {
+      if (!returnValue && todayNote != null) {
         todayNote.paragraphs = [...todayNote.paragraphs, ...paragraphsToMove]
       } else {
         if (includeHeadings) {
@@ -181,8 +181,7 @@ export default async function sweepNote(
 
     if (rescheduleTasks === 'reschedule') {
       const noteDate = note.date
-      const dateTag =
-        noteDate != null && note.filename !== todayNote.filename ? ` <${hyphenatedDateString(noteDate)}` : ''
+      const dateTag = noteDate != null && note.filename !== todayNote?.filename ? ` <${hyphenatedDateString(noteDate)}` : ''
       const projNote = note.title ?? ''
       const link = isProjectNote ? ` <[[${projNote}]]` : dateTag
       paragraphsWithDateTag = paragraphsToMove.map((para) => {
@@ -215,7 +214,7 @@ export default async function sweepNote(
     }
 
     if (['move', 'reschedule'].indexOf(rescheduleTasks) > -1) {
-      if (!returnValue) {
+      if (!returnValue && todayNote != null) {
         todayNote.paragraphs = [...todayNote.paragraphs, ...paragraphsWithDateTag]
       } else {
         if (includeHeadings) {
@@ -237,9 +236,7 @@ export default async function sweepNote(
       }
     }
 
-    console.log(
-      `\tsweepNote: ${String(rescheduleTasks)}-ing  ${paragraphsToMove.length} paragraphs; ${numTasksToMove} tasks`,
-    )
+    console.log(`\tsweepNote: ${String(rescheduleTasks)}-ing  ${paragraphsToMove.length} paragraphs; ${numTasksToMove} tasks`)
   } else {
     if (notifyNoChanges && withUserConfirm) {
       await CommandBar.showInput('There are no open tasks to move in this note.', "OK, I'll open another date.")
