@@ -234,7 +234,7 @@ type TEditor = {
   /**
    * Scrolls to and highlights the given paragraph. If the paragraph is folded,
    * it will be unfolded.
-   * @param {ParagraphObject} paragraph to highlight
+   * @param {TParagraph} paragraph to highlight
    */
   highlight(paragraph: TParagraph): void,
   /**
@@ -495,7 +495,7 @@ type TDataStore = {
    * Note: Available from NotePlan v3.5.2
    * @param {PluginCommandObject} 
    * @param {[object]} 
-   * @return {any}Return value of the command, like a Promise}
+   * @return {any} Return value of the command, like a Promise
   */
   invokePluginCommand(command: PluginCommandObject, arguments: [object]): Promise<any>,
   /**
@@ -508,7 +508,14 @@ type TDataStore = {
    * @param {[object]} 
    * @return {Return value of the command, like a Promise}
   */
-  invokePluginCommandByName(command: string, pluginId: string, arguments: [object]): Promise<any>
+  invokePluginCommandByName(command: string, pluginId: string, arguments: [object]): Promise<any>,
+  /**
+   * Note: Available from v3.5.2
+   * Returns an array of paragraphs having the same blockID like the given one (which is also part of the return array). You can use `paragraph[0].note` to access the note behind it and make updates via `paragraph[0].note.updateParagraph(paragraph[0])` if you make changes to the content, type, etc (like checking it off as type = "done").
+   * @param {TParagraph}
+   * @return {[TParagraph]}
+  */
+  referencedBlocks(paragraph: TParagraph): TParagraph
 }
 
 type PluginCommandObject = {
@@ -948,6 +955,24 @@ type TParagraph = {
    * original object
    */
   duplicate(): TParagraph,
+  /**
+   * Returns an array of all paragraphs having the same blockID (including this paragraph). You can use `paragraph[0].note` to access the note behind it and make updates via `paragraph[0].note.updateParagraph(paragraph[0])` if you make changes to the content, type, etc (like checking it off as type = "done")
+   * Note: Available from v3.5.2
+   * @type {[ParagraphObject]} - getter
+  */
+  +referencedBlocks: [TParagraph],
+  /**
+   * Returns the NoteObject behind this paragraph. This is a convenience method, so you don't need to use DataStore.
+   * Note: Available from v3.5.2
+   * @type {TNote?}
+  */
+  +note: ?TNote,
+  /**
+   * Returns the given blockId if any.
+   * Note: Available from v3.5.2
+   * @type {string?}
+  */
+  +blockId: ?string
 }
 
 type NoteType = 'Calendar' | 'Notes'
@@ -1035,12 +1060,22 @@ type TNote = {
    */
   printNote(addReferenceSections: boolean): void,
   /**
-   * Add a Block ID to paragraph(s) of a note
-   * Will need to call .updateParagraph(...) afterwards
-   * Note: available from v3.5.2
-   * @param {$ReadOnlyArray<TParagraph>} paragraphs to add block IDs for
-   */
-  addBlockID(paragraphs: $ReadOnlyArray<TParagraph>): void,
+   * Generates a unique block ID and adds it to the content of this paragraph. 
+   * Remember to call .updateParagraph(p) to write it to the note.
+   * You can call this on the Editor or note you got the paragraph from.
+   * Note: Available from v3.5.2
+   * @param {TParagraph}
+   * @param {boolean}
+  */
+  addBlockID(paragraph: TParagraph, replaceIfExisting: boolean): void,
+  /**
+   * Removes the unique block ID, if it exists in the content. 
+   * Remember to call .updateParagraph(p) to write it to the note afterwards. 
+   * You can call this on the Editor or note you got the paragraph from.
+   * Note: Available from v3.5.2
+   * @param {TParagraph}
+  */
+  removeBlockID(paragraph: TParagraph): void,
 }
 
 /**
@@ -1390,7 +1425,7 @@ type TParagraphBridge = {
 
   /**
    * Updates a given paragraph. Get the paragraph, then modify it and update the text in the note or editor using this method.
-   * @param {ParagraphObject} paragraph - Paragraph object to update, get it from `.paragraphs`
+   * @param {TParagraph} paragraph - Paragraph object to update, get it from `.paragraphs`
    */
   updateParagraph(paragraph: TParagraph): void,
 
