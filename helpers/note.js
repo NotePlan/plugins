@@ -125,21 +125,20 @@ export function findNotesMatchingHashtags(tag: string, folder: ?string, includeS
 
 /**
  * Get all notes in a given folder (or all project notes if no folder given)
- * TODO(@dwertheimer): I don't think the 'await DataStore.projectNotes' should be async.
  * @author @dwertheimer
 
  * @param {string} forFolder name (e.g. 'myFolderName')
- * @returns {Promise<$ReadOnlyArray<TNote>>} - array of notes in the folder
+ * @returns {$ReadOnlyArray<TNote>} array of notes in the folder
  */
-export async function getProjectNotes(forFolder: string = ''): Promise<$ReadOnlyArray<TNote>> {
-  const notes: $ReadOnlyArray<TNote> = await DataStore.projectNotes
+export function getProjectNotesInFolder(forFolder: string = ''): $ReadOnlyArray<TNote> {
+  const notes: $ReadOnlyArray<TNote> = DataStore.projectNotes
   if (forFolder === '') {
     return notes
   } else {
     // if last character is a slash, remove it
     const folderWithSlash = forFolder.charAt(forFolder.length - 1) === '/' ? forFolder : `${forFolder}/`
     const filteredNotes = notes.filter((note) => note.filename.includes(folderWithSlash))
-    log('getProjectNotes()', `Found ${filteredNotes.length} notes in folder ${forFolder}`)
+    log('getProjectNotesIFolder()', `Found ${filteredNotes.length} notes in folder ${forFolder}`)
     return filteredNotes
   }
 }

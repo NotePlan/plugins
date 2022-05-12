@@ -13,7 +13,7 @@ async function parseJSON5(contents: string): Promise<?{ [string]: ?mixed }> {
     const value = json5.parse(contents)
     return (value: any)
   } catch (e) {
-    console.log(e)
+    logError('parseJSON5', e)
     await showMessage('Invalid JSON5 in your configuration. Please fix it to use configuration')
     return {}
   }
@@ -54,7 +54,7 @@ export async function chooseOption<T, TDefault = T>(message: string, options: $R
  * @return {Promise<boolean|string>} - string that the user enters. Maybe be the empty string. If the user cancels the operation, it will return false instead.
  */
 export async function getInput(message: string, okLabel: string = 'OK', dialogTitle: string = 'Enter value', defaultValue: string = ''): Promise<boolean | string> {
-  if (typeof CommandBar.textPrompt === 'function') {
+  if (typeof CommandBar.textPrompt === 'function') { // i.e. do we have .textPrompt available?
     return await CommandBar.textPrompt(dialogTitle, message, defaultValue)
   } else {
     return await CommandBar.showInput(message, okLabel)
@@ -73,7 +73,7 @@ export async function getInput(message: string, okLabel: string = 'OK', dialogTi
  * @returns {Promise<boolean|string>} string that the user enters. Maybe be the empty string. If the user cancels the operation, it will return false instead.
  */
 export async function getInputTrimmed(message: string, okLabel: string = 'OK', dialogTitle: string = 'Enter value', defaultValue: string = ''): Promise<boolean | string> {
-  if (typeof CommandBar.textPrompt === 'function') {
+  if (typeof CommandBar.textPrompt === 'function') { // i.e. do we have .textPrompt available?
     const reply = await CommandBar.textPrompt(dialogTitle, message, defaultValue)
     return typeof reply === 'string' ? reply.trim() : reply
   } else {
@@ -92,7 +92,7 @@ export async function getInputTrimmed(message: string, okLabel: string = 'OK', d
  * @param {?string} dialogTitle - title for the dialog (default: empty)
  */
 export async function showMessage(message: string, confirmButton: string = 'OK', dialogTitle: string = ''): Promise<void> {
-  if (typeof CommandBar.prompt === 'function') {
+  if (typeof CommandBar.prompt === 'function') { // i.e. do we have .textPrompt available?
     await CommandBar.prompt(dialogTitle, message, [confirmButton])
   } else {
     await CommandBar.showOptions([confirmButton], message)
@@ -111,7 +111,7 @@ export async function showMessage(message: string, confirmButton: string = 'OK',
  */
 export async function showMessageYesNo(message: string, choicesArray: Array<string> = ['Yes', 'No'], dialogTitle: string = ''): Promise<string> {
   let answer: number
-  if (typeof CommandBar.prompt === 'function') {
+  if (typeof CommandBar.prompt === 'function') { // i.e. do we have .textPrompt available?
     answer = await CommandBar.prompt(dialogTitle, message, choicesArray)
   } else {
     const answerObj = await CommandBar.showOptions(choicesArray, `${message}`)
@@ -157,27 +157,28 @@ export async function chooseFolder(msg: string, includeArchive: boolean = false)
     // no Folders so go to root
     folder = '/'
   }
-  // console.log(`chooseFolder -> ${folder}`)
+  // log('chooseFolder', `-> ${folder}`)
   return folder
 }
 
 /**
- * Ask user to select a heading from those in a given note
+ * Ask user to select a heading from those in a given note (regular or calendar),
+ * or optionally create a new heading at top or bottom of note to use.
  * @author @jgclark
  *
  * @param {TNote} note - note to draw headings from
- * @param {boolean} optionAddAtBottom - whether to add '(top of note)' and '(bottom of note)' options. Default: true
- * @param {boolean} optionCreateNewHeading - whether to offer to create a new heading at the top of bottom of the note. Default: false
- * @return {string} - the selected heading as text without any markdown heading markers
+ * @param {boolean} optionAddAtBottom - whether to add '(bottom of note)' option. Default: true.
+ * @param {boolean} optionCreateNewHeading - whether to offer to create a new heading at the top or bottom of the note. Default: false.
+ * @return {string} - the selected heading as text without any markdown heading markers. Blank string implies end of note
  */
 export async function chooseHeading(note: TNote, optionAddAtBottom: boolean = true, optionCreateNewHeading: boolean = false, includeArchive: boolean = false): Promise<string> {
   let headingStrings = []
   // Decide whether to include all headings in note, or just those in the first
   // before the Done/Cancelled section
   const indexEndOfActive = findEndOfActivePartOfNote(note)
-  const headingParas = includeArchive
-    ? note.paragraphs.filter((p) => p.type === 'title') // = all headings, not just the top 'title'
-    : note.paragraphs.filter((p) => p.type === 'title' && p.lineIndex < indexEndOfActive)
+  const headingParas = (includeArchive)
+    ? note.paragraphs.filter((p) => p.type === 'title') // = all headings, not just the top 'Title'
+    : note.paragraphs.filter((p) => p.type === 'title' && p.lineIndex < indexEndOfActive) // = all headings in the active part of the note
   if (headingParas.length > 0) {
     headingStrings = headingParas.map((p) => {
       let prefix = ''
@@ -189,47 +190,61 @@ export async function chooseHeading(note: TNote, optionAddAtBottom: boolean = tr
   }
   if (optionCreateNewHeading) {
     // Add options to add new heading at top or bottom of note
-    headingStrings.splice(1, 0, '➕ ⬆️ (first insert new heading at the start of the note)') // insert at second item
+    headingStrings.unshift('➕ ⬆️ (first insert new heading at the start of the note)') // insert at second item
+    // headingStrings.splice(1, 0, '➕ ⬆️ (first insert new heading at the start of the note)') // insert at second item
     headingStrings.push('➕ ⬇️ (first insert new heading at the end of the note)')
   }
-  if (note.type === 'Calendar') {
-    headingStrings.unshift('⬆️ (top of note)') // add at start (as it has no title)
-  }
+  // if (note.type === 'Calendar') {
+  //   headingStrings.unshift('⬆️ (top of note)') // add at start (as it has no title heading)
+  // }
   if (optionAddAtBottom) {
     // Ensure we can always add at top and bottom of note
     headingStrings.push('⬇️ (bottom of note)') // add at end
   }
   const result = await CommandBar.showOptions(
     headingStrings,
-    `Select a heading
-     from note '${note.title ?? 'Untitled'}'`,
+    `Select a heading from note '${note.title ?? 'Untitled'}'`,
   )
   let headingToFind = headingStrings[result.index].trim()
-  if (headingToFind === '➕ ⬆️ (first insert new heading at the start of the note)') {
-    // ask for new heading, find smart insertion position, and insert it
-    const newHeading = await getInput(`Enter heading to add at the start of the note`)
-    if (newHeading && typeof newHeading === 'string') {
-      const startPos = calcSmartPrependPoint(note)
-      console.log(`prepending new heading ${newHeading} at line ${startPos}`)
-      note.insertHeading(newHeading, startPos, 2)
-      headingToFind = newHeading
-    } else {
-      // i.e. input was cancelled -- TODO: ideally would quit here?
-      return '(error)'
-    }
-  }
-  if (headingToFind === '➕ ⬇️ (first insert new heading at the end of the note)') {
-    // ask for new heading, and then append it
-    const newHeading = await getInput(`Enter heading to add at the end of the note`)
-    if (newHeading && typeof newHeading === 'string') {
-      const endPos = note.paragraphs.length
-      console.log(`appending new heading ${newHeading} at line ${endPos}`)
-      note.insertHeading(newHeading, endPos, 2)
-      headingToFind = newHeading
-    } else {
-      // i.e. input was cancelled -- TODO: ideally would quit here?
-      return '(error)'
-    }
+  let newHeading = ''
+
+  switch (headingToFind) {
+    case '➕ ⬆️ (first insert new heading at the start of the note)':
+      // ask for new heading, find smart insertion position, and insert it
+      newHeading = await getInput(`Enter heading to add at the start of the note`)
+      if (newHeading && typeof newHeading === 'string') {
+        const startPos = calcSmartPrependPoint(note)
+        log('chooseHeading', `prepending new heading ${newHeading} at line ${startPos}`)
+        note.insertHeading(newHeading, startPos, 2)
+        headingToFind = newHeading
+      } else {
+        // i.e. input was cancelled -- TODO: ideally would quit here?
+        return '(error)'
+      }      
+      break
+
+    case '➕ ⬇️ (first insert new heading at the end of the note)':
+      // ask for new heading, and then append it
+      newHeading = await getInput(`Enter heading to add at the end of the note`)
+      if (newHeading && typeof newHeading === 'string') {
+        const endPos = note.paragraphs.length
+        log('chooseHeading', `appending new heading ${newHeading} at line ${endPos}`)
+        note.insertHeading(newHeading, endPos, 2)
+        headingToFind = newHeading
+      } else {
+        // i.e. input was cancelled -- TODO: ideally would quit here?
+        return '(error)'
+      }
+      break
+    
+    case '⬇️ (bottom of note)':
+      // get 
+      log('chooseHeading', `selected end note, rather than a heading`)
+      headingToFind = ''
+      break
+    
+    default:
+      break
   }
   return headingToFind
 }
@@ -242,17 +257,16 @@ export async function chooseHeading(note: TNote, optionAddAtBottom: boolean = tr
  * @return {string} - the returned interval string, or empty if an invalid string given
  */
 export async function askDateInterval(dateParams: string): Promise<string> {
-  // console.log(`askDateInterval(${dateParams}):`)
+  // log('askDateInterval', `starting with '${dateParams}':`)
   const dateParamsTrimmed = dateParams?.trim() || ''
   const paramConfig =
     dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}') ? await parseJSON5(dateParams) : dateParamsTrimmed !== '' ? await parseJSON5(`{${dateParams}}`) : {}
-  console.log(`param config: ${dateParams} as ${JSON.stringify(paramConfig) ?? ''}`)
+  log('askDateInterval', `param config: ${dateParams} as ${JSON.stringify(paramConfig) ?? ''}`)
   // ... = "gather the remaining parameters into an array"
   const allSettings: { [string]: mixed } = { ...paramConfig }
   // grab just question parameter, or provide a default
   let { question } = (allSettings: any)
   question = question ? question : 'Please enter a date interval'
-  // console.log(question)
 
   const reply = (await CommandBar.showInput(question, `Date interval (in form nn[bdwmqy]): %@`)) ?? ''
   const reply2 = reply.trim()
@@ -272,7 +286,7 @@ export async function askDateInterval(dateParams: string): Promise<string> {
  * @return {string} - the returned ISO date as a string, or empty if an invalid string given
  */
 export async function askForFutureISODate(question: string): Promise<string> {
-  // console.log(`askForFutureISODate():`)
+  // log('askForFutureISODate', `starting ...`)
   const reply = (await CommandBar.showInput(question, `Date (YYYY-MM-DD): %@`)) ?? ''
   const reply2 = reply.replace('>', '').trim() // remove leading '>' and trim
   if (reply2.match(RE_DATE) == null) {
@@ -348,7 +362,7 @@ export async function inputInteger(question: string): Promise<number> {
   if (reply != null && isInt(reply)) {
     return Number(reply)
   } else {
-    console.log(`\tERROR trying to get integer answer for question '${question}'`)
+    logError('inputInteger', `Error trying to get integer answer for question '${question}'`)
     return NaN
   }
 }
@@ -378,7 +392,7 @@ export async function inputNumber(question: string): Promise<number> {
   if (reply != null && Number(reply)) {
     return Number(reply)
   } else {
-    console.log(`\tERROR trying to get number answer for question '${question}'`)
+    logError('inputNumber', `Error trying to get number answer for question '${question}'`)
     return NaN
   }
 }
