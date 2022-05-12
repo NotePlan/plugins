@@ -41,12 +41,30 @@ function getTagsFromString(content: string): TagsList {
  * @param {number} position - the position to look for
  * @returns {TParagraph} the paragraph containing the position in question or null if not found
  */
-function getParagraphContainingPosition(note: TNote, position: number): TParagraph | null {
+function getParagraphContainingPosition(note: TNote | Editor, position: number): TParagraph | null {
   let foundParagraph = null
   note.paragraphs.forEach((p, i) => {
     const { start, end } = p.contentRange
-    if (start <= position && end >= position) foundParagraph = p
+    if (start <= position && end >= position) {
+      foundParagraph = p
+      if (i > 0)
+        log(
+          pluginJson,
+          `getParagraphContainingPosition: paragraph before: ${i - 1} (${note.paragraphs[i - 1].contentRange.start}-${note.paragraphs[i - 1].contentRange.end}) - "${
+            note.paragraphs[i - 1].content
+          }"`,
+        )
+      log(pluginJson, `getParagraphContainingPosition: found position ${position} in paragraph ${i} (${start}-${end}) -- "${p.content}"`)
+    }
   })
+  if (!foundParagraph) {
+    log(pluginJson, `getParagraphContainingPosition: *** Looking for cursor position ${position}`)
+    note.paragraphs.forEach((p, i) => {
+      const { start, end } = p.contentRange
+      log(pluginJson, `getParagraphContainingPosition: paragraph ${i} (${start}-${end}) "${p.content}"`)
+    })
+    log(pluginJson, `getParagraphContainingPosition: *** position ${position} not found`)
+  }
   return foundParagraph
 }
 
@@ -103,10 +121,12 @@ function getSelectedParagraph(): TParagraph | null {
   //   const thisParagraph = Editor.selectedParagraphs // recommended by @eduard but currently not reliable (Editor.selectedParagraphs is empty on a new line)
   let thisParagraph
   if (Editor.selection?.start) {
-    thisParagraph = getParagraphContainingPosition(Editor.note, Editor.selection.start)
+    thisParagraph = getParagraphContainingPosition(Editor, Editor.selection.start)
   }
-  if (!thisParagraph || !Editor.selection?.start)
+  if (!thisParagraph || !Editor.selection?.start) {
+    log(pluginJson, `getSelectedParagraph: no paragraph found for cursor position Editor.selection?.start=${Editor.selection?.start} thisParagraph=${thisParagraph}`)
     showMessage(`No paragraph found selection.start: ${selection?.start} Editor.selectedParagraphs.length = ${Editor.selectedParagraphs?.length}`)
+  }
   return thisParagraph
 }
 
@@ -137,7 +157,7 @@ export function copyTagsFromHeadingAbove() {
   const { noteType, lineIndex, heading, headingRange } = thisParagraph
   const topOfNote = noteType === 'Notes' ? 1 : 0
   if (heading.length) {
-    const headingPara = getParagraphContainingPosition(Editor.note, headingRange.start)
+    const headingPara = getParagraphContainingPosition(Editor, headingRange.start)
     if (headingPara) {
       let headingLineTags = getTagsFromString(heading)
       clo(headingLineTags, 'headingLineTags')
