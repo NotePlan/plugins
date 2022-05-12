@@ -81,11 +81,9 @@ function eliminateExistingTags(existingTags, newTags): Array<string> {
   if (newTags.length) {
     if (existingTags.length) {
       newTags.forEach((tag, i) => {
-        console.log(`existingTags.indexOf(tag) ${existingTags.indexOf(tag)}`)
         if (existingTags.indexOf(tag) === -1) revisedTags.push(tag)
       })
     } else {
-      console.log('existingTags.length === 0')
       revisedTags = newTags
     }
   }
@@ -97,18 +95,18 @@ function eliminateExistingTags(existingTags, newTags): Array<string> {
  * @param {TParagraph} thisParagraph
  * @param {TagsList} tagsToCopy in form of {hashtags: [], mentions: []}
  */
-function updateParagraphTags(thisParagraph: TParagraph, tagsToCopy: TagsList): void {
+function updateTextWithTags(thisParagraph: TParagraph, tagsToCopy: TagsList): string | null {
   const existingTags = getTagsFromString(thisParagraph.content)
   const mentions = eliminateExistingTags(existingTags.mentions, tagsToCopy.mentions)
   const hashtags = eliminateExistingTags(existingTags.hashtags, tagsToCopy.hashtags)
   if (hashtags.length || mentions.length) {
     const stuff = `${hashtags.join(' ')} ${mentions.join(' ')}`.trim()
     if (stuff.length) {
-      thisParagraph.content = `${thisParagraph.content ? `${thisParagraph.content} ` : ''} ${stuff}`.replace(/\s{2,}/gm, ' ')
-      Editor.updateParagraph(thisParagraph)
+      return `${thisParagraph.content ? `${thisParagraph.content} ` : ''} ${stuff}`.replace(/\s{2,}/gm, ' ')
     }
   } else {
     console.log('no tags found or no tags need to be copied in list: ', tagsToCopy.toString())
+    return null
   }
 }
 
@@ -130,6 +128,58 @@ function getSelectedParagraph(): TParagraph | null {
   return thisParagraph
 }
 
+function removeTagsFromLine(line: string, tagsToRemove: Array<string>): string {
+  return tagsToRemove.reduce((acc, tag) => {
+    return acc.replace(new RegExp(`\\s+${tag}`, 'gim'), '')
+  }, line)
+}
+
+/**
+ * Make a copy of the selected line and insert just beneath the line
+ * Useful for creating multiple tasks (e.g. one for each person tagged in the paragraph)
+ * @param {string} type 'hashtags' | 'mentions'
+ */
+function copyLineForTags(type: 'hashtags' | 'mentions'): void {
+  const thisParagraph = getSelectedParagraph()
+  const { noteType, lineIndex } = thisParagraph
+  const existingTags = getTagsFromString(thisParagraph.content)
+  let tagsInQuestion = existingTags[type]
+  if (tagsInQuestion.length <= 1) {
+    showMessage(`No ${type} to copy`)
+    return
+  } else {
+    let contentWithoutTheseTags = removeTagsFromLine(thisParagraph.content, existingTags.hashtags)
+    contentWithoutTheseTags = removeTagsFromLine(contentWithoutTheseTags, existingTags.mentions)
+    for (let i = 0; i < tagsInQuestion.length; i++) {
+      const tag = tagsInQuestion[i]
+      if (i > 0) {
+        // const tags =
+        tagsInQuestion.push(tagsInQuestion.shift())
+        const updatedText = updateTextWithTags({ content: contentWithoutTheseTags }, { ...existingTags, ...{ [type]: tagsInQuestion } })
+        if (updatedText) {
+          Editor.insertParagraphAfterParagraph(updatedText, thisParagraph, thisParagraph.type)
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Copy line multiple times (one for each mention)
+ * (plugin Entry Point for "ctm - Copy line for each @mention, listing it first")
+ */
+export function copyLineForEachMention() {
+  copyLineForTags('mentions')
+}
+
+/**
+ * Copy line multiple times (one for each mention)
+ * (plugin Entry Point for "ctm - Copy line for each @mention, listing it first")
+ */
+export function copyLineForEachHashtag() {
+  copyLineForTags('hashtags')
+}
+
 /**
  * Copy the tags from the line above the cursor to the current line in the Editor
  * Useful for quickly repeating tags from a previous line to the current line
@@ -141,7 +191,10 @@ export function copyTagsFromLineAbove() {
   const topOfNote = noteType === 'Notes' ? 1 : 0
   if (lineIndex > 0) {
     const prevLineTags = getTagsFromString(getParagraphByIndex(Editor, lineIndex - 1).content)
-    updateParagraphTags(thisParagraph, prevLineTags)
+    const updatedText = updateTextWithTags(thisParagraph, prevLineTags)
+    if (updatedText) {
+      Editor.updateParagraph(thisParagraph)
+    }
   } else {
     showMessage(`Cannot run this command on the first line of the ${noteType}`)
   }
@@ -160,11 +213,12 @@ export function copyTagsFromHeadingAbove() {
     const headingPara = getParagraphContainingPosition(Editor, headingRange.start)
     if (headingPara) {
       let headingLineTags = getTagsFromString(heading)
-      clo(headingLineTags, 'headingLineTags')
-      console.log(`copyTagsFromHeadingAbove indeces: ${headingPara.lineIndex + 1}-${thisParagraph.lineIndex}`)
       for (let index = headingPara.lineIndex + 1; index <= thisParagraph.lineIndex; index++) {
         const currentPara = getParagraphByIndex(Editor.note, index)
-        updateParagraphTags(currentPara, headingLineTags)
+        const updatedText = updateTextWithTags(currentPara, headingLineTags)
+        if (updatedText) {
+          Editor.updateParagraph(thisParagraph)
+        }
       }
     } else {
       showMessage(`Could not find the paragraph matching ${heading}`)
