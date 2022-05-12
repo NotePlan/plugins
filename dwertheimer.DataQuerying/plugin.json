@@ -32,6 +32,13 @@
       ]
     },   
     {
+      "name": "search+save",
+      "description": "Search the notes index and save the results to a note",
+      "jsFunction": "searchSaveUserInput",
+      "alias": [
+      ]
+    },  
+    {
       "name": "Search for matching lines",
       "description": "Search all the notes for matching lines",
       "jsFunction": "searchMatchingLines",

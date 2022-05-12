@@ -3,7 +3,6 @@
 TO DO:
 - finish the rest of Extended tags in removeExtendedSearchTags()
 - /search for match does not work for fuzzy (e.g. @tester)
-- use .openNoteByFilename(filename, newWindow, highlightStart, highlightEnd, splitView, createIfNeeded)
 - make clicking on a link take you to a note with the selection highlighted
 - write the database index using cron?
 - Remove ...title if it's at the beginning of search results (I tried but it doesn't work)
@@ -44,8 +43,8 @@ const INDEX_FILENAME = 'fuse-index.json'
 const SEARCH_OPTIONS = {
   /* keys: ['type', { name: 'title', weight: 5 }, 'hashtags', 'mentions', 'content', 'filename', 'changedDateISO'],*/
   keys: [
-    { name: 'title', weight: 0.9 },
-    { name: 'content', weight: 0.5 },
+    { name: 'title', weight: 3 },
+    { name: 'content', weight: 1 },
   ],
   includeScore: true,
   includeMatches: true,
@@ -118,22 +117,24 @@ export async function writeIndex(index: any): null | any {
   }
 }
 
-async function getSearchNoteFilename(config: DataQueryingConfig): Promise<string> {
-  let note, fname
-  const { searchNoteTitle, searchNoteFolder } = config
-  note = await DataStore.projectNoteByTitle(searchNoteTitle)
-  if (note?.length) {
-    note.filter((n) => n.filename.includes(searchNoteFolder))
-    if (note && note[0]) {
-      fname = note[0].filename
-    } else {
-      throw 'No note found with title: ' + searchNoteTitle
-    }
-  } else {
-    fname = await DataStore.newNote(searchNoteTitle, searchNoteFolder)
-  }
-  return fname || ''
-}
+// DELETE THIS FUNCTION - THIS WAS A WORKAROUND FOR NOT BEING ABLE TO FORCE A FILENAME
+// @EDUARD UPDATED THE API, SO THIS IS NO LONGER NEEDED
+// async function getSearchNoteFilename(config: DataQueryingConfig): Promise<string> {
+//   let note, fname
+//   const { searchNoteTitle, searchNoteFolder } = config
+//   note = await DataStore.projectNoteByTitle(searchNoteTitle)
+//   if (note?.length) {
+//     note.filter((n) => n.filename.includes(searchNoteFolder))
+//     if (note && note[0]) {
+//       fname = note[0].filename
+//     } else {
+//       throw 'No note found with title: ' + searchNoteTitle
+//     }
+//   } else {
+//     fname = await DataStore.newNote(searchNoteTitle, searchNoteFolder)
+//   }
+//   return fname || ''
+// }
 
 /**
  * Create Fuse Index of current notes
@@ -203,12 +204,20 @@ export async function searchMatchingLines() {
   const res = await searchUserInput(false, [], { processFunction: outputMatchingLines, processParams: {} })
 }
 
+export async function searchSaveUserInput() {
+  try {
+    await searchUserInput(false, [], { saveSearchResults: true })
+  } catch (error) {
+    log(pluginJson, 'searchSaveUserInput: caught error: ' + error)
+  }
+}
+
 export async function searchUserInput(linksOnly: boolean = false, notesToInclude: any = [], options: any = {}): Promise<void> {
   const processFunction = options.processFunction || writeSearchNote
   const processParams = options.processParams || {}
   try {
     const start = new Date()
-    const config = getDefaultConfig()
+    const config = { ...getDefaultConfig(), ...options }
     // Get the promises, not the results
     const promSearchTerm = CommandBar.showInput("'=match-exactly; !=NOT; space=AND; |=OR", 'Search for: %@')
     await CommandBar.onAsyncThread()
@@ -245,18 +254,11 @@ async function writeSearchNote(results, searchTerm, config) {
   const splits = output.split('\n')
   const firstLineLength = splits[0].length + 1
   let searchFilename, note
-  if (config.saveSearchResults) {
-    searchFilename = await getSearchNoteFilename(config) //this was the old workaround
-    const note = await DataStore.projectNoteByFilename(searchFilename)
-    if (searchFilename && note && note.content) {
-      log(pluginJson, `searchUserInput: searchFilename=${searchFilename}}`)
-      note.content = output
-    }
-  } else {
-    const filename = `${config.searchNoteTitle}.${DataStore.defaultFileExtension}`
-    searchFilename = DataStore.newNoteWithContent(output, config.searchNoteFolder, filename)
-    log(pluginJson, `writeSearchNote: searchFilename: "${searchFilename}" | filename: "${filename}"`)
-  }
+  const filename = `${config.searchNoteTitle}.${DataStore.defaultFileExtension}`
+  searchFilename = config.saveSearchResults
+    ? DataStore.newNoteWithContent(output, config.searchNoteFolder)
+    : DataStore.newNoteWithContent(output, config.searchNoteFolder, filename)
+  log(pluginJson, `writeSearchNote: searchFilename: "${searchFilename}" | filename: "${filename}"`)
   if (searchFilename) {
     await Editor.openNoteByFilename(searchFilename, config.openInNewWindow, firstLineLength, firstLineLength, config.openInSplitView)
   } else {
