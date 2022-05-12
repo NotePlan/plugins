@@ -244,16 +244,24 @@ async function writeSearchNote(results, searchTerm, config) {
   const output = formatSearchOutput(results, searchTerm, config)
   const splits = output.split('\n')
   const firstLineLength = splits[0].length + 1
-  const searchFilename = await getSearchNoteFilename(config)
-  if (searchFilename) {
+  let searchFilename, note
+  if (config.saveSearchResults) {
+    searchFilename = await getSearchNoteFilename(config) //this was the old workaround
     const note = await DataStore.projectNoteByFilename(searchFilename)
-    log(pluginJson, `searchUserInput: searchFilename=${searchFilename}}`)
-    if (note && note.content) {
-      // log(pluginJson, `searchUserInput: searchFilename=${searchFilename} note=${JSP(note)}`)
+    if (searchFilename && note && note.content) {
+      log(pluginJson, `searchUserInput: searchFilename=${searchFilename}}`)
       note.content = output
     }
+  } else {
+    const filename = `${config.searchNoteTitle}.${DataStore.defaultFileExtension}`
+    searchFilename = DataStore.newNoteWithContent(output, config.searchNoteFolder, filename)
+    log(pluginJson, `writeSearchNote: searchFilename: "${searchFilename}" | filename: "${filename}"`)
   }
-  await Editor.openNoteByFilename(searchFilename, config.openInNewWindow, firstLineLength, firstLineLength, config.openInSplitView)
+  if (searchFilename) {
+    await Editor.openNoteByFilename(searchFilename, config.openInNewWindow, firstLineLength, firstLineLength, config.openInSplitView)
+  } else {
+    log(pluginJson, `writeSearchNote: searchFilename is undefined`)
+  }
   await CommandBar.onMainThread()
   CommandBar.showLoading(false)
   console.log(`searchUserInput: Noteplan opening/displaying search results took: ${timer(start)}`)
@@ -426,6 +434,7 @@ function getDefaultConfig(): DataQueryingConfig {
     loadIndexFromDisk: false,
     searchNoteTitle: 'Search Results',
     searchNoteFolder: '@Searches',
+    saveSearchResults: false,
     openInSplitView: true,
     openInNewWindow: false,
     maxResultCharsForBolding: 25,
@@ -445,6 +454,7 @@ export type DataQueryingConfig = {
   loadIndexFromDisk: boolean,
   searchNoteTitle: string,
   searchNoteFolder: string,
+  saveSearchResults: boolean,
   openInSplitView: boolean,
   openInNewWindow: boolean,
   maxSearchResultLine: number,
