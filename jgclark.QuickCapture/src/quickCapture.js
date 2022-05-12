@@ -2,17 +2,26 @@
 // --------------------------------------------------------------------------------------------------------------------
 // QuickCapture plugin for NotePlan
 // by Jonathan Clark
-// last update v0.9.0, 9.5.2022 by @jgclark
+// last update v0.9.1, 12.5.2022 by @jgclark
 // --------------------------------------------------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { getOrMakeConfigurationSection } from '../../nmn.Templates/src/configuration'
+import {
+  getISODateStringFromYYYYMMDD,
+  getTodaysDateUnhyphenated,
+  RE_ISO_DATE,
+  RE_YYYYMMDD_DATE,
+  unhyphenateString,
+} from '../../helpers/dateTime'
 import { clo, JSP, log, logError, logWarn } from '../../helpers/dev'
 import { displayTitle } from '../../helpers/general'
-import { smartPrependPara } from '../../helpers/paragraph'
-import { getTodaysDateUnhyphenated, unhyphenateString, } from '../../helpers/dateTime'
+import {
+  allNotesSortedByChanged,
+  calendarNotesSortedByChanged,
+  projectNotesSortedByChanged
+} from '../../helpers/note'
+import { findEndOfActivePartOfNote, smartPrependPara } from '../../helpers/paragraph'
 import { askForFutureISODate, chooseFolder, chooseHeading, showMessage, } from '../../helpers/userInput'
-import { calendarNotesSortedByChanged, projectNotesSortedByChanged, } from '../../helpers/note'
 
 const configKey = "inbox"
 
@@ -158,19 +167,19 @@ export async function appendTaskToNote(noteTitleArg?: string, textArg?: string):
 }
 
 /** /qath
- * Add a task to a heading the user picks.
+ * Add a task to a (regular or calendar) note and heading the user picks.
  * Extended in v0.9.0 to allow use from x-callback with three passed arguments.
  * (Needs all three arguments to be valid; if some but not all given then will attempt to log error.)
  * NB: note that duplicate headings not properly handled.
  * @author @jgclark
- * @param {string?} noteTitleArg
+ * @param {string?} noteTitleArg note title to use (can be YYYY-MM-DD or YYYYMMDD)
  * @param {string?} headingArg
  * @param {string?} textArg
  */
 export async function addTaskToNoteHeading(noteTitleArg?: string, headingArg?: string, textArg?: string): Promise<void> {
   try {
     const config = await getInboxSettings()
-    const notes = projectNotesSortedByChanged()
+    let notes: TNote[] = allNotesSortedByChanged()
 
     // If we have arguments supplied, check we have the right number
     if ((noteTitleArg !== undefined || headingArg !== undefined || textArg !== undefined)
@@ -181,11 +190,20 @@ export async function addTaskToNoteHeading(noteTitleArg?: string, headingArg?: s
 
     // If we have all 3 arguments, then use those
     if (noteTitleArg !== undefined && headingArg !== undefined && textArg !== undefined) {
-      // But check this is a valid note title first; if it isn't, 
-      // fall back to using current open note
-      let wantedNotes = DataStore.projectNoteByTitle(noteTitleArg, true, false)
-      let note = (wantedNotes != null) ? wantedNotes[0] : Editor.note
+      // But check this is a valid note title first.
+      // Note: If noteTitleArg is for a calendar note, it has to be in the form YYYY-MM-DD here.
+      // Note: Because of NP architecture, it's possible to have several notes with the same title; the first match is used.
+      const noteTitleToMatch = (noteTitleArg.match(RE_ISO_DATE)) // for YYYY-MM-DD
+        ? (noteTitleArg)
+        : (noteTitleArg.match(RE_YYYYMMDD_DATE)) // for YYYYMMDD
+          ? getISODateStringFromYYYYMMDD(noteTitleArg)
+          : noteTitleArg // for regular note title
+      const wantedNotes = notes.filter((n) => n.title === noteTitleToMatch)
+      let note = (wantedNotes != null) ? wantedNotes[0] : null
       if (note != null) {
+        if (wantedNotes.length > 1) {
+          logWarn(pluginJson, `More than 1 matching note found with title '${noteTitleArg}'`)
+        }
         log(pluginJson, `3 args given; note = '${displayTitle(note)}'`)
         note.addTodoBelowHeadingTitle(
           `${textArg} ${config.textToAppendToTasks}`,
@@ -196,6 +214,7 @@ export async function addTaskToNoteHeading(noteTitleArg?: string, headingArg?: s
       } else {
         logError(pluginJson, `Problem getting note '${noteTitleArg}' from x-callback args`)
       }
+      // Finish
       return
     }
 
@@ -214,18 +233,23 @@ export async function addTaskToNoteHeading(noteTitleArg?: string, headingArg?: s
     const note = notes[re.index]
 
     // Finally, ask to which heading to add the task
-    // (use function that allows us to add a new heading at start/end of note first)
-    const heading = await chooseHeading(note, false, true)
+    // (use function that first allows us to add a new heading at start/end of note as well)
+    const heading = await chooseHeading(note, true, true, false)
     let text = `${taskText} ${config.textToAppendToTasks}`.trimEnd()
 
-    // Add todo to the heading in the note (and add the heading if it doesn't exist)
-    log(pluginJson, `Adding task '${text}' to '${displayTitle(note)}' below '${heading}'`)
-    note.addTodoBelowHeadingTitle(
-      text,
-      heading, //.content,
-      false,
-      true
-    )
+    // Add todo to the heading in the note, or if blank heading, then append to note
+    if (heading !== '') {
+      log(pluginJson, `Adding task '${text}' to '${displayTitle(note)}' below '${heading}'`)
+      note.addTodoBelowHeadingTitle(
+        text,
+        heading, //.content,
+        false, // TODO: should this use a setting?
+        false // don't create missing heading: this should have been done by chooseHeading if needed
+      )
+    } else {
+      log(pluginJson, `Adding task '${text}' to end of '${displayTitle(note)}'`)
+      note.insertTodo(text, findEndOfActivePartOfNote(note))
+    }
   }
   catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
@@ -245,7 +269,7 @@ export async function addTaskToNoteHeading(noteTitleArg?: string, headingArg?: s
 export async function addTextToNoteHeading(noteTitleArg?: string, headingArg?: string, textArg?: string): Promise<void> {
   try {
     const config = await getInboxSettings()
-    const notes = projectNotesSortedByChanged()
+    const notes: TNote[] = allNotesSortedByChanged()
 
     // If we have arguments supplied, check we have the right number
     if ((noteTitleArg !== undefined || headingArg !== undefined || textArg !== undefined)
@@ -256,29 +280,39 @@ export async function addTextToNoteHeading(noteTitleArg?: string, headingArg?: s
 
     // If we have all 3 arguments, then use those
     if (noteTitleArg !== undefined && headingArg !== undefined && textArg !== undefined) {
-      // But check this is a valid note title first; if it isn't, 
-      // fall back to using current open note
-      let wantedNotes = DataStore.projectNoteByTitle(noteTitleArg, true, false)
-      let note = (wantedNotes != null) ? wantedNotes[0] : Editor.note
+      // But check this is a valid note title first.
+      // Note: If noteTitleArg is for a calendar note, it has to be in the form YYYY-MM-DD here.
+      // Note: Because of NP architecture, it's possible to have several notes with the same title; the first match is used.
+      const noteTitleToMatch = (noteTitleArg.match(RE_ISO_DATE)) // for YYYY-MM-DD
+        ? (noteTitleArg)
+        : (noteTitleArg.match(RE_YYYYMMDD_DATE)) // for YYYYMMDD
+          ? getISODateStringFromYYYYMMDD(noteTitleArg)
+          : noteTitleArg // for regular note title
+      const wantedNotes = notes.filter((n) => n.title === noteTitleToMatch)
+      let note = (wantedNotes != null) ? wantedNotes[0] : null
       if (note != null) {
+        if (wantedNotes.length > 1) {
+          logWarn(pluginJson, `More than 1 matching note found with title '${noteTitleArg}'`)
+        }
         log(pluginJson, `3 args given; note = '${displayTitle(note)}'`)
         note.addParagraphBelowHeadingTitle(
           `${textArg} ${config.textToAppendToTasks}`,
           'empty',
           headingArg, //.content,
-          false,
+          false, // TODO: should this use a setting?
           true
         )
       } else {
-        logError(pluginJson, `Problem with '${noteTitleArg}' from x-callback`)
+        logError(pluginJson, `Problem getting note '${noteTitleArg}' from x-callback args`)
       }
+      // Finish
       return
     }
 
     // Otherwise get all details from user
     const taskText = await CommandBar.showInput(
       'Type the text to add',
-      `Add text '%@'`
+      `Add text '%@' ${config.textToAppendToTasks}`
     )
 
     // Then ask for the note we want to add the text
@@ -291,18 +325,23 @@ export async function addTextToNoteHeading(noteTitleArg?: string, headingArg?: s
 
     // Finally, ask to which heading to add the text
     // use function that allows us to add a new heading at start/end of note first
-    const heading = await chooseHeading(note, false, true)
+    const heading = await chooseHeading(note, true, true, false)
     let text = `${taskText} ${config.textToAppendToTasks}`.trimEnd()
 
-    // Add text to the heading in the note (and add the heading if it doesn't exist)
-    log(pluginJson, `Adding line '${text}' to '${displayTitle(note)}' below '${heading}'`)
-    note.addParagraphBelowHeadingTitle(
-      text,
-      'empty',
-      heading, //.content,
-      false,
-      true,
-    )
+    // Add todo to the heading in the note, or if blank heading, then append to note
+    if (heading !== '') {
+      log(pluginJson, `Adding line '${text}' to '${displayTitle(note)}' below '${heading}'`)
+      note.addParagraphBelowHeadingTitle(
+        text,
+        'empty',
+        heading, //.content,
+        false,
+        false,
+      )
+    } else {
+      log(pluginJson, `Adding line '${text}' to end of '${displayTitle(note)}'`)
+      note.insertParagraph(text, findEndOfActivePartOfNote(note), 'text')
+    }
   }
   catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)

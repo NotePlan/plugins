@@ -1,35 +1,24 @@
 # What's changed in ⚡️ Quick Capture
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.QuickCapture), and how to configure.
+## [0.9.1] - 2022-05-12
+### Added
+- **quick add task under heading** and **quick add line under heading** now can add to existing daily (calendar) notes, not just regular notes. This also works for x-callback calls to these plugin commands.
+
 ## [0.9.0] - 2022-05-06
 ### Added
-- ability to use these commands from x-callback-url calls. For example, calling the following (e.g. from the  Shortcuts app, or even within NP itself) will do the equivalent of running the command `/quick add to journal today` and supplying with input 'something interesting': `noteplan://x-callback-url/runPlugin?pluginID=jgclark.QuickCapture&command=quick%20add%20to%20journal%20today&arg0=something%20interesting` 
+- ability to use these commands from x-callback-url calls. For example, calling the following (e.g. from the  Shortcuts app, or even within NP itself) will do the equivalent of running the command `/quick add to journal today` and supplying with input 'something interesting': `noteplan://x-callback-url/runPlugin?pluginID=jgclark.QuickCapture&command=quick%20add%20to%20journal%20today&arg0=something%20interesting`
 
-## [0.8.6] - 2022-02-04
+## [0.8.0..0.8.6] - 2022-04-18
 ### Changed
 - code clean-up, removing references to old _configuration note, and moved to newer logging system
-
-## [0.8.5] - 2022-02-04
-### Changed
 - now using new Configuration UI system instead of _configuration.
-
-## [0.8.3] - 2021-12-15 (@m1well)
-### Fixed
-- Flow Error in the last part of `quickCapture.js
-### Changed
-- Some reformatting in the code
-
-## [0.8.2] - 2021-11-20
-### Changed
 - Tweaks the `/int` command's prompt text to remind user the title of the designated Inbox note (or today's daily note). (Thanks to @dwertheimer for the suggestion.)
-
-## [0.8.1] - 2021-11-20
-### Fixed
-- For some date locales, /int and /qaj were adding to tomorrow's note, not today's (thanks to @colingold for the report)
-
-## [0.8.0] - 2021-11-19
-### Changed
 - changed back to using long command names
 - (under the hood) updated settings ready for new settings UI
+
+### Fixed
+- Flow Error in the last part of `quickCapture.js
+- For some date locales, /int and /qaj were adding to tomorrow's note, not today's (thanks to @colingold for the report)
 
 ## [0.7.0..0.7.2] - 2021-10-05
 ### Added
