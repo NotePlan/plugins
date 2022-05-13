@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // @jgclark
-// Last updated 25.4.2022 for v0.6.2, @jgclark
+// Last updated 13.5.2022 for v0.6.4, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -52,6 +52,7 @@ export type ReviewConfig = {
   dueMentionStr: string,
   reviewIntervalMentionStr: string,
   reviewedMentionStr: string,
+  confirmNextReview: boolean,
 }
 
 /**
@@ -60,7 +61,7 @@ export type ReviewConfig = {
  * @return {ReviewConfig} object with configuration
  */
 export async function getReviewSettings(): Promise<any> {
-  log(pluginJson, `Start of getReviewSettings()`)
+  // log(pluginJson, `Start of getReviewSettings()`)
   try {
     // Get settings using ConfigV2
     const v2Config: ReviewConfig = await DataStore.loadJSON("../jgclark.Reviews/settings.json")

@@ -6,7 +6,7 @@
 	"plugin.icon": "",
 	"plugin.author": "Jonathan Clark",
 	"plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
-	"plugin.version": "0.6.3",
+	"plugin.version": "0.6.4",
 	"plugin.dependencies": [],
 	"plugin.script": "script.js",
 	"plugin.isRemote": "false",
@@ -87,6 +87,14 @@
 			"default": ["#area", "#project"],
 			"required": true
 		},
+    {
+			"key": "confirmNextReview",
+			"title": "Confirm next Review?",
+			"description": "When running '/next project review' shows a dialog with the title of the next project to review, and asking to confirm whether to start that review.",
+			"type": "bool",
+			"default": false,
+			"required": true
+		},
 
 		{
 			"type": "heading",
@@ -129,6 +137,11 @@
 			"default": "Finished Projects/Areas",
 			"required": true
 		},
+
+		{
+			"type": "heading",
+			"title": "Customise the @strings"
+    },
     {
 			"key": "startMentionStr",
 			"title": "Project start string",

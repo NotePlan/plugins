@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Commands for Reviewing project-style notes, GTD-style.
 // by @jgclark
-// Last updated 1.5.2022 for v0.6.3, @jgclark
+// Last updated 13.5.2022 for v0.6.4, @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -176,13 +176,19 @@ export async function startReviews(): Promise<void> {
   const noteToReview = await getNextNoteToReview()
   // Open that note in editor
   if (noteToReview != null) {
-    const res = await showMessageYesNo(`Ready to review '${displayTitle(noteToReview)}'?`, ['OK', 'Cancel'])
-    if (res === 'OK') {
+    if (config.confirmNextReview) {
+      const res = await showMessageYesNo(`Ready to review '${displayTitle(noteToReview)}'?`, ['OK', 'Cancel'])
+      if (res === 'OK') {
+        log(pluginJson, `Opening '${displayTitle(noteToReview)}' note to review (from startReviews)`)
+        await Editor.openNoteByFilename(noteToReview.filename)
+      }
+    } else {
+      log(pluginJson, `Opening '${displayTitle(noteToReview)}' note to review (from startReviews)`)
       await Editor.openNoteByFilename(noteToReview.filename)
     }
   } else {
     log(pluginJson, '  🎉 No notes to review!')
-    await showMessage('  🎉 No notes to review!')
+    await showMessage('🎉 No notes to review!', 'Great', 'Reviews')
   }
 }
 
@@ -284,23 +290,30 @@ async function makeNoteTypeSummary(noteTag: string): Promise<Array<string>> {
  * @author @jgclark
 */
 export async function nextReview(): Promise<void> {
-  log(pluginJson, 'nextReview')
+  // log(pluginJson, 'nextReview')
+  const config = await getReviewSettings()
+
   // First update @review(date) on current open note
   const openNote: ?TNote = await finishReview()
 
   // Read review list to work out what's the next one to review
   const noteToReview: ?TNote = await getNextNoteToReview()
 
-  // Offer to open that note in editor
   if (noteToReview != null) {
-    const res = await showMessageYesNo(`Ready to review '${displayTitle(noteToReview)}'?`, ['OK', 'Cancel'])
-    if (res === 'OK') {
-      log(pluginJson, `nextReview(): Opening '${displayTitle(noteToReview)}' note to review ...`)
+    if (config.confirmNextReview) {
+      // Check whether to open that note in editor
+      const res = await showMessageYesNo(`Ready to review '${displayTitle(noteToReview)}'?`, ['OK', 'Cancel'])
+      if (res === 'OK') {
+        log(pluginJson, `Opening '${displayTitle(noteToReview)}' note to review`)
+        await Editor.openNoteByFilename(noteToReview.filename)
+      }
+    } else {
+      log(pluginJson, `Opening '${displayTitle(noteToReview)}' note to review`)
       await Editor.openNoteByFilename(noteToReview.filename)
     }
   } else {
-    log(pluginJson, `nextReview(): 🎉 No more notes to review!`)
-    await showMessage('🎉 No more notes to review!')
+    log(pluginJson, `🎉 No more notes to review!`)
+    await showMessage('🎉 No notes to review!', 'Great', 'Reviews')
   }
 }
 
@@ -312,12 +325,12 @@ export async function nextReview(): Promise<void> {
 */
 export async function updateReviewListAfterReview(note: TNote): Promise<void> {
   const reviewedTitle = note.title ?? ''
-  log(pluginJson, `updateReviewListAfterReview(): Will remove '${reviewedTitle}' from list ...`)
+  log(pluginJson, `Removing '${reviewedTitle}' from review list`)
 
   // Get pref that contains the project list
   const reviewList = DataStore.preference(reviewListPref)
   if (reviewList === undefined) {
-    logWarn(pluginJson, `  Can't find pref ${reviewListPref}. Suggest re-running '/start reviews'.`)
+    logWarn(pluginJson, `Can't find pref ${reviewListPref}. Please re-run '/start reviews'.`)
     return
   }
 
@@ -340,7 +353,7 @@ export async function updateReviewListAfterReview(note: TNote): Promise<void> {
     DataStore.setPreference(reviewListPref, lines.join('\n'))
     // log(pluginJson, `\tRemoved line ${lineNum} from reviewList pref as its review is completed`)
   } else {
-    logError(pluginJson, `updateReviewListAfterReview(): Couldn't find '${reviewedTitle}' to remove from review list`)
+    logError(pluginJson, `Couldn't find '${reviewedTitle}' to remove from review list`)
     return
   }
 }
@@ -356,7 +369,7 @@ async function getNextNoteToReview(): Promise<?TNote> {
   const reviewList = DataStore.preference(reviewListPref)
   if (reviewList === undefined) {
     await showMessage(`Oops: I now can't find my pref. Try re-running '/start reviews' command.`, 'OK')
-    logError(pluginJson, `getNextNoteToReview(): Can't find pref jgclark.Review.reviewList.`)
+    logError(pluginJson, `getNextNoteToReview(): Can't find pref jgclark.Review.reviewList. Try re-running '/start reviews' command.`)
     return
   }
 
