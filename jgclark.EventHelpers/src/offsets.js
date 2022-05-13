@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Command to Process Date Offsets
 // @jgclark
-// Last updated 2.5.2022 for v0.15.0, by @jgclark
+// Last updated 13.5.2022 for v0.16.0, by @jgclark
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -15,12 +15,80 @@ import {
 } from '@helpers/dateTime'
 import { log, logWarn, logError } from "@helpers/dev"
 import { displayTitle } from '@helpers/general'
-import { calcOffsetDateStr } from '@helpers/NPdateTime'
+// import { calcOffsetDateStr } from '@helpers/NPdateTime'
+import { calcOffsetDateStr } from '@helpers/dateTime'
 import { findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { showMessage, showMessageYesNo } from '@helpers/userInput'
-import { datePicker } from "../../helpers/userInput"
+import { askDateInterval, datePicker } from "../../helpers/userInput"
+
+const RE_OFFSET_DATE = `{\\^?${RE_DATE_INTERVAL}}` // = {[^][+-][N]d}
+const RE_OFFSET_DATE_CAPTURE = `{(\\^?${RE_DATE_INTERVAL})}`
+const RE_BARE_DATE = `[^\d(<\/-]${RE_DATE}` // where RE_DATE = \d{4}-[01]\d-\d{2}
+const RE_BARE_DATE_CAPTURE = `[^\d(<\/-](${RE_DATE})`
+const RE_HEADING_LINE = `^#+\s`
 
 // ----------------------------------------------------------------------------
+/**
+ * Shift Dates
+ * Go through currently selected lines in the open note and shift YYYY-MM-DD dates by an interval given by the user
+ * Note: doesn't touch @done(...) dates, or others than don't have whitespace or a > before them
+ * @author @jgclark
+ */
+export async function shiftDates(): Promise<void> {
+  try {
+    // Get working selection as an array of paragraphs
+    const { paragraphs, selection, note } = Editor
+    let pArr = []
+    if (Editor == null || paragraphs == null || note == null) {
+      logError(pluginJson, `No note or content found to process. Stopping.`)
+      await showMessage('No note or content found to process.', 'OK', 'Shift Dates')
+      return
+    }
+    if (selection == null) {
+      // 
+      pArr = paragraphs.slice(0, findEndOfActivePartOfNote(note))
+    } else {
+      pArr = Editor.selectedParagraphs
+    }
+    log(pluginJson, `shiftDates starting for ${pArr.length} lines`)
+    if (pArr.length === 0) {
+      logError(pluginJson, `Empty selection found. Stopping.`)
+      await showMessage('No selection found to process.', 'OK', 'Shift Dates')
+      return
+    }
+
+    // Get interval to use
+    const interval = await askDateInterval("{question:'What interval would you like me to shift these dates by?'}")
+    if (interval === '') {
+      logError(pluginJson, `No valid interval supplied. Stopping.`)
+      await showMessage(`Sorry, that was not a valid date interval.`)
+      return
+    }
+
+    // Shift dates
+    let updatedCount = 0
+    const lineCount = paragraphs.length
+    pArr.forEach(p => {
+      let c = p.content
+      log(pluginJson, `${c}`)
+      if (c.match(RE_BARE_DATE)) {
+        let dates = c.match(RE_BARE_DATE_CAPTURE) ?? []
+        let firstDate = dates[1]
+        let shiftedDate = calcOffsetDateStr(firstDate, interval)
+        log(pluginJson, `  ${firstDate}: match found, will become ${shiftedDate}`)
+        // Replace date part with the new shiftedDate
+        const updatedP = c.replace(firstDate, shiftedDate).trimEnd()
+        p.content = updatedP
+        note.updateParagraph(p)
+        updatedCount += 1
+      }
+    })
+    log(pluginJson, `Shifted ${updatedCount} dates`)
+  }
+  catch (err) {
+    logError(pluginJson, err.message)
+  }
+}
 
 /**
  * Go through current Editor note and identify date offsets and turn into due dates.
@@ -33,16 +101,11 @@ import { datePicker } from "../../helpers/userInput"
  * offset date after the 'pivot date'.
  * Offsets apply within a contiguous section; a section is considered ended when
  * a line has a lower indent or heading level, or is a blank line or separator line.
+ * FIXME: "Tiggerish{9m}" -> "Tiggeris >date"
  * 
  * @author @jgclark
  */
-export async function processDateOffsets() {
-  const RE_OFFSET_DATE = `{\\^?${RE_DATE_INTERVAL}}` // {[^][+-][N]d}
-  const RE_OFFSET_DATE_CAPTURE = `{(\\^?${RE_DATE_INTERVAL})}`
-  const RE_BARE_DATE = `[^\d(<\/-]${RE_DATE}`
-  const RE_BARE_DATE_CAPTURE = `[^\d(<\/-](${RE_DATE})`
-  const RE_HEADING_LINE = `^#+\s`
-
+export async function processDateOffsets(): Promise<void> {
   const { paragraphs, note } = Editor
   if (paragraphs == null || note == null) {
     await showMessage('No content found to process.', 'OK', 'Process Date Offsets')
@@ -157,7 +220,7 @@ export async function processDateOffsets() {
               const labelStart = line.indexOf('{')
               const labelEnd = line.indexOf('}')
               // Create new version with inserted date
-              line = `${line.slice(0, labelStart - 1)} >${calcDate} ${line.slice(labelEnd + 1)}` // also trim off trailing whitespace
+              line = `${line.slice(0, labelStart)} >${calcDate} ${line.slice(labelEnd + 1)}` // also trim off trailing whitespace
               paragraphs[n].content = line.trimEnd()
               note.updateParagraph(paragraphs[n])
               log(pluginJson, `    -> '${line.trimEnd()}'`)

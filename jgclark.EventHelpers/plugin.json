@@ -7,7 +7,7 @@
   "plugin.icon": "",
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers",
-  "plugin.version": "0.15.1",
+  "plugin.version": "0.16.0",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -31,6 +31,11 @@
       "name": "process date offsets",
       "description": "finds date offset patterns and turns them into due dates, based on date at start of section",
       "jsFunction": "processDateOffsets"
+    },
+    {
+      "name": "shift dates",
+      "description": "takes dates in the selection and shifts them forwards or backwards by a given date interval",
+      "jsFunction": "shiftDates"
     },
     {
       "name": "listDaysEvents",

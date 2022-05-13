@@ -2,19 +2,17 @@
 //-----------------------------------------------------------------------------
 // Repeat Extensions plugin for NotePlan
 // Jonathan Clark
-// last updated 2022-02-20 for v0.3.1
+// last updated 2022-02-20 for v0.3.1+
 //-----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
 import {
+  calcOffsetDateStr,
   RE_DATE, // find dates of form YYYY-MM-DD
   RE_DATE_INTERVAL,
   RE_TIME, // find '12:23' with optional '[ ][AM|PM|am|pm]'
   unhyphenateString,
 } from '../../helpers/dateTime'
-import {
-  calcOffsetDateStr,
-} from '../../helpers/NPdateTime'
 import { showMessage } from '../../helpers/userInput'
 import { findEndOfActivePartOfNote } from '../../helpers/paragraph'
 import { log, logWarn, logError } from "@helpers/dev"

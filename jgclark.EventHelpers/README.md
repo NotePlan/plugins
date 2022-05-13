@@ -4,17 +4,21 @@ This plugin provides commands to help you do useful things with Events and Calen
 - **/insert day's events as list**: insert a list of this day's calendar events into the current note
 - **/insert matching events**: insert a  list of this day's calendar events that match certain patterns into the current note
 - **/time blocks to calendar**: takes [NotePlan-defined time blocks](https://help.noteplan.co/article/52-part-2-tasks-events-and-reminders#timeblocking) and converts to them to full Calendar events in your current default calendar, as set by iCal.
-- **/process date offsets**: finds date offset patterns and turns them into due dates, based on date at start of section. (See [Date Offsets](#date-offsets) below for full details.)
-
+- **/process date offsets**: finds date offset patterns and turns them into due dates, based on date at start of section. (See [Date Offsets](#process-date-offsets) below for full details.)
+- **/shift dates**: takes dates in the selected lines and shifts them forwards or backwards by a given date interval. (It doesn't change dates in `@done(...) mentions, or that are in brackets.)
+- 
 The first four of these have a number of [options described below](#configuration).
 See [Theme customisation](#theme-customisation) below for more on how to customise display of time blocks and events.
 
 ## Sort Order
 When using `/insert day's events as list` or `/insert matching events` it defaults orders the list by increasing start time of the events. If you wish to have them ordered first by calendar name then by start time, choose the 'calendar' option for the 'Sort order' setting described below, rather than the 'time' default.
 
-## Date Offsets
-This is best understood with a quick example:
+## /process date offsets
+The command is best understood with some examples:
 
+- user George Crump (@george65) has created a [video showing how this command works](https://drive.google.com/file/d/10suCe0x8QPbHw_7h4Ao4zwWf_kApEOKH/view).
+
+- an example for Christmas planning:
 | For example ...                                                                                                                                                                        | ... becomes                                                                                                                                                                                                 |
 | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | \#\#\# Christmas Cards 2021-12-25<br />\* Write cards {-20d}<br />\* Post overseas cards {-15d}<br />\* Post cards to this country {-10d}<br />\* Store spare cards for next year {+3d} | \#\#\# Christmas Cards 2021-12-25<br />\* Write cards >2021-12-05<br />\* Post overseas cards >2021-12-10<br />* Post cards to this country >2021-12-15<br />\* Store spare cards for next year >2021-12-28 |
@@ -89,7 +93,6 @@ For example:
 ```
 
 If you wish to see multiple day's output, not just the day for the active calendar note, add the `daysToCover` paramter. For example: include `daysToCover: 3` to the parameter string to see events for the selected day, plus the following 2. (Note: if you use this, then H3 date headings will be inserted between dates for clarity, even if the `includingHeadings` parameter is false.)
-
 
 NB: the `Sort order` setting above also controls how the output of this list is sorted.
 
