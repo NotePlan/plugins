@@ -10,6 +10,10 @@ import { getEventsSettings } from './config'
 import { timeBlocksToCalendar } from './timeblocks'
 import {
   RE_DATE,
+  RE_BARE_DATE_CAPTURE,
+  RE_BARE_DATE,
+  RE_OFFSET_DATE,
+  RE_OFFSET_DATE_CAPTURE,
   RE_DATE_INTERVAL,
   todaysDateISOString,
 } from '@helpers/dateTime'
@@ -21,10 +25,6 @@ import { findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { showMessage, showMessageYesNo } from '@helpers/userInput'
 import { askDateInterval, datePicker } from "../../helpers/userInput"
 
-const RE_OFFSET_DATE = `{\\^?${RE_DATE_INTERVAL}}` // = {[^][+-][N]d}
-const RE_OFFSET_DATE_CAPTURE = `{(\\^?${RE_DATE_INTERVAL})}`
-const RE_BARE_DATE = `[^\d(<\/-]${RE_DATE}` // where RE_DATE = \d{4}-[01]\d-\d{2}
-const RE_BARE_DATE_CAPTURE = `[^\d(<\/-](${RE_DATE})`
 const RE_HEADING_LINE = `^#+\s`
 
 // ----------------------------------------------------------------------------
@@ -101,7 +101,6 @@ export async function shiftDates(): Promise<void> {
  * offset date after the 'pivot date'.
  * Offsets apply within a contiguous section; a section is considered ended when
  * a line has a lower indent or heading level, or is a blank line or separator line.
- * FIXME: "Tiggerish{9m}" -> "Tiggeris >date"
  * 
  * @author @jgclark
  */

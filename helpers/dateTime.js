@@ -13,6 +13,10 @@ export const RE_ISO_DATE = '\\d{4}-[01]\\d-[012]\\d' // find dates of form YYYY-
 export const RE_YYYYMMDD_DATE = '\\d{4}[01]\\d[012]\\d' // find dates of form YYYYMMDD
 export const RE_TIME = '[0-2]\\d{1}:[0-5]\\d{1}\\s?(?:AM|PM|am|pm)?' // find '12:23' with optional '[ ][AM|PM|am|pm]'
 export const RE_DATE_INTERVAL = `[+\\-]?\\d+[bdwmqy]`
+export const RE_OFFSET_DATE = `{\\^?${RE_DATE_INTERVAL}}`
+export const RE_OFFSET_DATE_CAPTURE = `{(\\^?${RE_DATE_INTERVAL})}`
+export const RE_BARE_DATE = `[^\d(<\/-]${RE_DATE}`
+export const RE_BARE_DATE_CAPTURE = `[^\d(<\/-](${RE_DATE})`
 
 export const todaysDateISOString: string = new Date().toISOString().slice(0, 10)
 //export const nowShortDateTime: string = new Date().toISOString().slice(0, 16) // Note: Now deprecated, as better to use a locale version
