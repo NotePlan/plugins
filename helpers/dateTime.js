@@ -4,7 +4,8 @@
 // @jgclark except where shown
 
 import strftime from 'strftime'
-import { DateTime, Duration } from 'luxon' // having done 'npm install --save luxon'
+import { DateTime } from 'luxon-business-days' // having done 'npm install --save luxon-business-days'
+import { Duration } from 'luxon' // having done 'npm install --save luxon'
 import { formatISO9075 } from 'date-fns'
 import { log, logError } from './dev'
 
@@ -132,6 +133,8 @@ export function filenameDateString(dateObj: Date): string {
  */
 export function getTimeStringFromDate(date: Date): string {
   return formatISO9075(date).split(' ')[1].slice(0, -3)
+  // TODO: @jgclark wonders if this could be replaced by:
+  // date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
 }
 
 export function getDateStringFromCalendarFilename(filename: string): string {
@@ -331,7 +334,7 @@ export function getDateFromUnhyphenatedDateString(inputString: string): ?Date {
   if (res[1]?.length > 0) {
     const date = new Date(
       Number(res[1].slice(0, 4)),
-      Number(res[1].slice(4, 6)) - 1, // only seems to be needed for months?!
+      Number(res[1].slice(4, 6)) - 1, // only needed for months!
       Number(res[1].slice(6, 8))
     )
     // log('getDateFromUnhyphenatedDateString', toISOShortDateTimeString(date))
@@ -492,32 +495,15 @@ export function calcOffsetDateStr(baseDateISO: string, interval: string): string
     let yearsToAdd = 0
     const unit = interval.charAt(interval.length - 1) // get last character
     let num = Number(interval.substr(0, interval.length - 1)) // return all but last character
-    log('helpers/cODSL', `for baseDateISO:${baseDateISO} interval:${num} / ${unit}`)
+    log('helpers/cODSL', `for ${baseDateISO} interval: ${num} / ${unit}`)
 
     switch (unit) {
       case 'b': {
-        // week days
-        // Method from Arjen at https://stackoverflow.com/questions/279296/adding-days-to-a-date-but-excluding-weekends
-        // Avoids looping, and copes with negative intervals too
-        // (Note: DateTime.weekday gets the day of the week. 1 is Monday and 7 is Sunday.
-        //        DateTime.weekNumber -> 1 to 52ish!
-        //        DateTime.toRelative({ unit: "hours" }) -> '46 hours ago'.)
-        const currentDayOfWeek = baseDate.getUTCDay() // = day of week with Sunday = 0, ..Saturday = 6
-        let dayOfWeek
-        if (num < 0) {
-          dayOfWeek = (currentDayOfWeek - 12) % 7
-        } else {
-          dayOfWeek = (currentDayOfWeek + 6) % 7 // % = modulo operator in JavaScript
-        }
-        if (dayOfWeek === 6) {
-          num--
-        }
-        if (dayOfWeek === -6) {
-          num++
-        }
-        // log('helpers/cODSL', "  b: " + currentDayOfWeek + " / " + num + " / " + dayOfWeek)
-        const numWeekends = Math.trunc((num + dayOfWeek) / 5)
-        daysToAdd = num + numWeekends * 2
+        // Previously used a method from Arjen at https://stackoverflow.com/questions/279296/adding-days-to-a-date-but-excluding-weekends
+        // Now using a pre-build library:
+        // But need to turn off automatic public holidays, as these are US-specific
+        baseDate.setupBusiness({ holidayMatchers: [] })
+        daysToAdd = num
         break
       }
       case 'd':
@@ -540,7 +526,9 @@ export function calcOffsetDateStr(baseDateISO: string, interval: string): string
     }
     const duration = Duration.fromObject({ days: daysToAdd, months: monthsToAdd, years: yearsToAdd })
     // log('helpers/cODSL', duration.toString()) // Gets represented as P10D, P3M, P-2Y etc.
-    const newDate = baseDate.plus(duration) // duration can be negative, so always add
+    const newDate = (unit !== 'b')
+      ? baseDate.plus(duration)  // duration can be negative, so always add
+      : baseDate.plusBusiness(duration) // use business days
     const newDateISO = newDate.toISODate()
     // log('helpers/cODSL', `-> '${newDateISO}'`)
     return newDateISO

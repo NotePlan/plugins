@@ -279,6 +279,48 @@ describe(`${PLUGIN_NAME}`, () => {
       test('2022-01-01 -2y', () => {
         expect(dt.calcOffsetDateStr('2022-01-01','-2y')).toEqual('2020-01-01')
       })
+      test('2022-01-01 +1b', () => {
+        expect(dt.calcOffsetDateStr('2022-01-01','1b')).toEqual('2022-01-03')
+      })
+      test('2022-01-01 +2b', () => {
+        expect(dt.calcOffsetDateStr('2022-01-01','2b')).toEqual('2022-01-04')
+      })
+      test('2022-01-01 +3b', () => {
+        expect(dt.calcOffsetDateStr('2022-01-01','3b')).toEqual('2022-01-05')
+      })
+      test('2022-01-01 +4b', () => {
+        expect(dt.calcOffsetDateStr('2022-01-01','4b')).toEqual('2022-01-06')
+      })
+      test('2022-01-01 +5b', () => {
+        expect(dt.calcOffsetDateStr('2022-01-01','5b')).toEqual('2022-01-07')
+      })
+      test('2022-01-01 +6b', () => {
+        expect(dt.calcOffsetDateStr('2022-01-01','6b')).toEqual('2022-01-10')
+      })
+      test('2022-01-01 +7b', () => {
+        expect(dt.calcOffsetDateStr('2022-01-01','7b')).toEqual('2022-01-11')
+      })
+      test('2022-01-01 +8b', () => {
+        expect(dt.calcOffsetDateStr('2022-01-01','8b')).toEqual('2022-01-12')
+      })
+      test('2022-01-02 +1b', () => {
+        expect(dt.calcOffsetDateStr('2022-01-02','1b')).toEqual('2022-01-03')
+      })
+      test('2022-01-03 +1b', () => {
+        expect(dt.calcOffsetDateStr('2022-01-03','1b')).toEqual('2022-01-04')
+      })
+      test('2022-01-04 +1b', () => {
+        expect(dt.calcOffsetDateStr('2022-01-04','1b')).toEqual('2022-01-05')
+      })
+      test('2022-01-05 +1b', () => {
+        expect(dt.calcOffsetDateStr('2022-01-05','1b')).toEqual('2022-01-06')
+      })
+      test('2022-01-06 +1b', () => {
+        expect(dt.calcOffsetDateStr('2022-01-06','1b')).toEqual('2022-01-07')
+      })
+      test('2022-01-07 +1b', () => {
+        expect(dt.calcOffsetDateStr('2022-01-07','1b')).toEqual('2022-01-10')
+      })
       test('2022-01-01 (blank interval)', () => {
         expect(dt.calcOffsetDateStr('2022-01-01','')).toEqual('(error)')
       })
