@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/codedungeon.Toolbox/README.md) for details on available commands and use case.
 
+## [3.3.0] - 2022-05-15 (@jgclark)
+- added newer date library support
+  - luxon-business-days
+
 ## [3.3.0] - 2022-05-06 (@dwertheimer)
 - added support for searching notes using packages:
   - fuse.js
