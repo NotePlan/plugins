@@ -1,14 +1,17 @@
 // @flow
 
+import {
+  displayTitle,
+} from '../../helpers/general'
+
 // Show word counts etc. for currently displayed note
 export async function showWordCount(): Promise<void> {
-  const paragraphs = Editor.paragraphs
   const note = Editor.note
   if (note == null) {
     // No note open.
     return
   }
-
+  const paragraphs = Editor.paragraphs
   let charCount = 0
   let wordCount = 0
   let lineCount = 0
@@ -51,7 +54,7 @@ export async function showWordCount(): Promise<void> {
 
   const re = await CommandBar.showOptions(
     display,
-    'Word count. Select anything to copy.',
+    `Task count for '${displayTitle(note)}'. Select anything to copy.`,
   )
   if (re !== null) {
     Clipboard.string = display.join('\n')
