@@ -12,6 +12,8 @@ export { dateFormatPicker } from './dateFunctions'
 export { insertStrftime } from './dateFunctions'
 export { insertWeekDates } from './dateFunctions'
 
+export { get8601String, getWeekDates } from './dateFunctions'
+
 const PLUGIN_ID = 'date' // the key that's used in _configuration note
 export async function onUpdateOrInstall(config: any = { silent: false }): Promise<void> {
   try {
