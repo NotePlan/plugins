@@ -3,6 +3,8 @@ Unlike many task or project management apps, NotePlan has very little enforced s
 
 (If you're using the helpful [PARA Approach](https://fortelabs.co/blog/series/para/), then your **Areas** are also a form of Project, at least as far as Reviewing them goes.)
 
+User George Crump (@george65) has created a [great video showing how the plugin works](https://bit.ly/3l1tSw4).
+
 ## Using NotePlan for Project-like work
 
 Each **Project** is described by a separate note. Each such project contains the `#project` hashtag, `@review(...)` and some other metadata fields on the line immediately after the title.  For example:

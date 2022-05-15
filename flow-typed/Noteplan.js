@@ -950,6 +950,20 @@ type TParagraph = {
    */
   duplicate(): TParagraph,
   /**
+   * Returns indented paragraphs (children) underneath a task 
+   * Only tasks can have children, but any paragraph indented underneath a task
+   * can be a child of the task. This includes bullets, tasks, quotes, text. 
+   * Children are counted until a blank line, HR, title, or another item at the 
+   * same level as the parent task. So for items to be counted as children, they 
+   * need to be contiguous vertically.
+   * Important note: .children() for a task paragraph will return every child, 
+   * grandchild, greatgrandchild, etc. So a task that has a child task that has 
+   * a child task will have 2 children (and the first child will have one)
+   * Note: Available from v3.3
+   * @return {[TParagraph]}
+  */
+  children(): $ReadOnlyArray<TParagraph>,
+  /**
    * Returns an array of all paragraphs having the same blockID (including this paragraph). You can use `paragraph[0].note` to access the note behind it and make updates via `paragraph[0].note.updateParagraph(paragraph[0])` if you make changes to the content, type, etc (like checking it off as type = "done")
    * Note: Available from v3.5.2
    * @type {[ParagraphObject]} - getter
@@ -1059,9 +1073,8 @@ type TNote = {
    * You can call this on the Editor or note you got the paragraph from.
    * Note: Available from v3.5.2
    * @param {TParagraph}
-   * @param {boolean}
   */
-  addBlockID(paragraph: TParagraph, replaceIfExisting: boolean): void,
+  addBlockID(paragraph: TParagraph): void,
   /**
    * Removes the unique block ID, if it exists in the content. 
    * Remember to call .updateParagraph(p) to write it to the note afterwards. 

@@ -1,4 +1,8 @@
 # What's Changed in 🔢 Statistics plugin?
+## [0.5.2] - 2022-05-14
+### Changed
+- Updated references to the new Templates built-in folder.
+
 ## [0.5.1] - 2021-11-07
 ### Changed
 - A little code cleanup.

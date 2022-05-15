@@ -4,14 +4,20 @@
 // @jgclark except where shown
 
 import strftime from 'strftime'
-import {
-  formatISO9075,
-} from 'date-fns'
+import { DateTime } from 'luxon-business-days' // having done 'npm install --save luxon-business-days'
+import { Duration } from 'luxon' // having done 'npm install --save luxon'
+import { formatISO9075 } from 'date-fns'
+import { log, logError } from './dev'
 
-export const RE_DATE = '\\d{4}-[01]\\d{1}-\\d{2}' // find dates of form YYYY-MM-DD
-export const RE_ISO_DATE = '\\d{4}-[01]\\d{1}-\\d{2}' // find dates of form YYYY-MM-DD
+export const RE_DATE = '\\d{4}-[01]\\d-\\d{2}' // find dates of form YYYY-MM-DD
+export const RE_ISO_DATE = '\\d{4}-[01]\\d-[012]\\d' // find dates of form YYYY-MM-DD
+export const RE_YYYYMMDD_DATE = '\\d{4}[01]\\d[012]\\d' // find dates of form YYYYMMDD
 export const RE_TIME = '[0-2]\\d{1}:[0-5]\\d{1}\\s?(?:AM|PM|am|pm)?' // find '12:23' with optional '[ ][AM|PM|am|pm]'
 export const RE_DATE_INTERVAL = `[+\\-]?\\d+[bdwmqy]`
+export const RE_OFFSET_DATE = `{\\^?${RE_DATE_INTERVAL}}`
+export const RE_OFFSET_DATE_CAPTURE = `{(\\^?${RE_DATE_INTERVAL})}`
+export const RE_BARE_DATE = `[^\d(<\/-]${RE_DATE}`
+export const RE_BARE_DATE_CAPTURE = `[^\d(<\/-](${RE_DATE})`
 
 export const todaysDateISOString: string = new Date().toISOString().slice(0, 10)
 //export const nowShortDateTime: string = new Date().toISOString().slice(0, 16) // Note: Now deprecated, as better to use a locale version
@@ -53,7 +59,7 @@ export function unhyphenateString(dateString: string): string {
 // NB: This does not work to get reliable date string from note.date for daily notes
 // Instead use hyphenatedDateFromNote()
 export function toISODateString(dateObj: Date): string {
-  // console.log(`toISODateString: ${dateObj.toISOString()} // ${toLocaleDateTimeString(dateObj)}`) 
+  // log('toISODateString', `${dateObj.toISOString()} // ${toLocaleDateTimeString(dateObj)}`) 
   return dateObj.toISOString().slice(0, 10)
 }
 
@@ -62,7 +68,7 @@ export function toISODateString(dateObj: Date): string {
 // which happens to be identical.
 export function hyphenatedDate(date: Date): string {
   if (date != null) {
-    // console.log(`hyphenatedDateFromNote: ${toLocaleDateTimeString(date)} -> ${toLocaleDateString(date, 'sv-SE')}`)
+    // log('hyphenatedDate', `${toLocaleDateTimeString(date)} -> ${toLocaleDateString(date, 'sv-SE')}`)
     return toLocaleDateString(date, 'sv-SE')
   } else {
     return 'hyphenatedDate: error: not a valid JS Date'
@@ -98,7 +104,7 @@ export function toLocaleTime(
 }
 
 export function printDateRange(dr: DateRange) {
-  console.log(`DateRange <${toISOShortDateTimeString(dr.start)} - ${toISOShortDateTimeString(dr.end)}>`)
+  log('helpers/printDateRange',  `<${toISOShortDateTimeString(dr.start)} - ${toISOShortDateTimeString(dr.end)}>`)
 }
 
 export function unhyphenatedDate(dateObj: Date): string {
@@ -127,6 +133,8 @@ export function filenameDateString(dateObj: Date): string {
  */
 export function getTimeStringFromDate(date: Date): string {
   return formatISO9075(date).split(' ')[1].slice(0, -3)
+  // TODO: @jgclark wonders if this could be replaced by:
+  // date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
 }
 
 export function getDateStringFromCalendarFilename(filename: string): string {
@@ -212,6 +220,7 @@ export function withinDateRange(testDate: string, fromDate: string, toDate: stri
  * Return rough relative string version of difference between date and today.
  * Don't return all the detail, but just the most significant unit (year, month, week, day)
  * If date is in the past then adds 'ago'.
+ * TODO: Look at the Luxon library's DateTime.toRelative({ unit: "hours" }) instead (-> '46 hours ago'.)
  * @param {number} diffIn - number of days difference (positive or negative)
  * @return {string} - relative date string (e.g. today, 3w ago, 2m, 4y ago.)
  */
@@ -219,7 +228,7 @@ export function relativeDateFromNumber(diffIn: number): string {
   let output = ''
   let diff = diffIn
   let isPast = false
-  // console.log(`original diff = ${diff}`)
+  // log('helpers/relativeDateFromNumber', `original diff = ${diff}`)
   if (diff < 0) {
     diff = Math.abs(diff)
     isPast = true
@@ -244,7 +253,7 @@ export function relativeDateFromNumber(diffIn: number): string {
   } else {
     output = `in ${output}`
   }
-  // console.log(`--> ${output}`)
+  // log('relativeDateFromNumber', `--> ${output}`)
   return output
 }
 
@@ -258,7 +267,7 @@ export function relativeDateFromNumber(diffIn: number): string {
 export function getDateObjFromDateString(mention: string): ?Date {
   const RE_DATE_CAPTURE = `(${RE_DATE})` // capture date of form YYYY-MM-DD
 
-  // console.log(`\tgetDateFromString: ${mention}`)
+  // log('getDateObjFromDateString', `  ${mention}`)
   const res = mention.match(RE_DATE_CAPTURE) ?? []
   // Use first match, if found
   if (res[1]?.length > 0) {
@@ -267,10 +276,10 @@ export function getDateObjFromDateString(mention: string): ?Date {
       Number(res[1].slice(5, 7)) - 1, // only seems to be needed for months?!
       Number(res[1].slice(8, 10)),
     )
-    // console.log(toISOShortDateTimeString(date))
+    // log('getDateObjFromDateString', toISOShortDateTimeString(date))
     return date
   } else {
-    console.log(`\t\tgetDateFromString: no valid date found in '${mention}'`)
+    log('getDateObjFromDateString', `  getDateFromString: no valid date found in '${mention}'`)
     return
   }
 }
@@ -319,19 +328,19 @@ export const getDateObjFromDateTimeString = (dateTimeString: string): Date => {
 export function getDateFromUnhyphenatedDateString(inputString: string): ?Date {
   const RE_DATE_CAPTURE = `(\\d{4}[01]\\d{1}\\d{2})` // capture date of form YYYYMMDD
 
-  // console.log(`\tgetDateFromUnhyphenatedDateString: ${inputString}`)
+  // log('getDateFromUnhyphenatedDateString', inputString)
   const res = inputString.match(RE_DATE_CAPTURE) ?? []
   // Use first match, if found
   if (res[1]?.length > 0) {
     const date = new Date(
       Number(res[1].slice(0, 4)),
-      Number(res[1].slice(4, 6)) - 1, // only seems to be needed for months?!
+      Number(res[1].slice(4, 6)) - 1, // only needed for months!
       Number(res[1].slice(6, 8))
     )
-    // console.log(toISOShortDateTimeString(date))
+    // log('getDateFromUnhyphenatedDateString', toISOShortDateTimeString(date))
     return date
   } else {
-    console.log(`\t\tgetDateFromUnhyphenatedDateString: no valid date found in '${inputString}'`)
+    log('getDateFromUnhyphenatedDateString', `  no valid date found in '${inputString}'`)
     return
   }
 }
@@ -340,6 +349,7 @@ export function getDateFromUnhyphenatedDateString(inputString: string): ?Date {
  * Return rough relative string version of difference between date and today.
  * Don't return all the detail, but just the most significant unit (year, month, week, day)
  * If date is in the past then adds 'ago'.
+ * TODO: Look at the Luxon library's DateTime.toRelative({ unit: "hours" }) instead (-> '46 hours ago'.)
  * @param {Date} date - calculate difference between this date and today
  * @return {string} - relative date string (e.g. today, 3w ago, 2m, 4y ago.)
  */
@@ -349,7 +359,6 @@ export function relativeDateFromDate(date: Date): string {
   return relativeDateFromNumber(diff)
 }
 
-// TODO: Finish moving references to this file -> NPdateTime.js
 /**
  * Get week number for supplied date.
  * Uses ISO 8601 definition of week, except that week start is Sunday not Monday.
@@ -400,7 +409,6 @@ export function getWeek(inDate: Date): number {
   return 1 + Math.ceil((n1stThursday - date) / 604800000)
 }
 
-// TODO: Finish moving references to this file -> NPdateTime.js
 /**
  * Return start and end dates for a given week number. 
  * Uses ISO 8601 definition of week, except that week start is Sunday not Monday.
@@ -414,7 +422,7 @@ export function getWeek(inDate: Date): number {
  */
 export function weekStartEnd(week: number, year: number): [Date, Date] {
   if (week > 53 || week < 1) {
-    console.log(`warning: invalid week number ${week} given, but will still calculate correctly, relative to year ${year}.`)
+    log('helpers/weekStartEnd', `warning: invalid week number ${week} given, but will still calculate correctly, relative to year ${year}.`)
   }
 
   let firstDay = 0
@@ -426,11 +434,10 @@ export function weekStartEnd(week: number, year: number): [Date, Date] {
 
   const startDate: Date = Calendar.addUnitToDate(new Date(year,0,firstDay), 'day', (week-1)*7)
   const endDate: Date = Calendar.addUnitToDate(startDate, 'day', 6)
-  // console.log(`  -> ${toLocaleTime(startDate)} - ${toLocaleTime(endDate)}`)
+  // log('helpers/weekStartEnd', `  -> ${toLocaleTime(startDate)} - ${toLocaleTime(endDate)}`)
   return [ startDate, endDate ]
 }
 
-// TODO: Finish moving references to this file -> NPdateTime.js
 /**
  * From the current week number/year pair calculate a different week number/year pair by adding a given week range (which can be negative)
  * NOTE: we have to be careful about assumptions at end of year:
@@ -460,6 +467,74 @@ export function calcWeekOffset(
     week -= 52
     year += 1
   }
-  // console.log(`${startYear}W${startWeek} - ${year}W${week}`)
+  // log('helpers/calcWeekOffset', `${startYear}W${startWeek} - ${year}W${week}`)
   return { week, year }
+}
+
+/**
+ * Calculate an offset date, as ISO Strings.
+ * v3 method, using Luxon library to avoid using NP calls
+ * NB: doesn't actually use NP functions, but to avoid a circular dependency it needs to be in this file.
+ * @tests available in __tests__
+ * @author @jgclark
+ * 
+ * @param {string} baseDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type
+ * @param {interval} string of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in English)
+ * @return {string} new date in ISO Date format
+ */
+export function calcOffsetDateStr(baseDateISO: string, interval: string): string {
+  try {
+    if (!interval.match(RE_DATE_INTERVAL)) {
+      logError('helpers/cODSL', `Invalid date interval '${interval}'`)
+      return '(error)'
+    }
+
+    const baseDate = DateTime.fromISO(baseDateISO)
+    let daysToAdd = 0
+    let monthsToAdd = 0
+    let yearsToAdd = 0
+    const unit = interval.charAt(interval.length - 1) // get last character
+    let num = Number(interval.substr(0, interval.length - 1)) // return all but last character
+    log('helpers/cODSL', `for ${baseDateISO} interval: ${num} / ${unit}`)
+
+    switch (unit) {
+      case 'b': {
+        // Previously used a method from Arjen at https://stackoverflow.com/questions/279296/adding-days-to-a-date-but-excluding-weekends
+        // Now using a pre-build library:
+        // But need to turn off automatic public holidays, as these are US-specific
+        baseDate.setupBusiness({ holidayMatchers: [] })
+        daysToAdd = num
+        break
+      }
+      case 'd':
+        daysToAdd = num
+        break
+      case 'w':
+        daysToAdd = num * 7
+        break
+      case 'm':
+        monthsToAdd = num
+        break
+      case 'q':
+        monthsToAdd = num * 3
+        break
+      case 'y':
+        yearsToAdd = num
+        break
+      default:
+        break
+    }
+    const duration = Duration.fromObject({ days: daysToAdd, months: monthsToAdd, years: yearsToAdd })
+    // log('helpers/cODSL', duration.toString()) // Gets represented as P10D, P3M, P-2Y etc.
+    const newDate = (unit !== 'b')
+      ? baseDate.plus(duration)  // duration can be negative, so always add
+      : baseDate.plusBusiness(duration) // use business days
+    const newDateISO = newDate.toISODate()
+    // log('helpers/cODSL', `-> '${newDateISO}'`)
+    return newDateISO
+  }
+  catch (e) {
+    logError('helpers/cODSL', `${e.message} for baseDateISO '${baseDateISO}' interval ${interval}`)
+    return '(error)'
+  }
 }

@@ -1,6 +1,14 @@
 # What's changed in 🕓 Event Helpers?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
+## [0.16.1] - 2022-05-15
+### Fixed
+- bug in calculation of offsets with 'b'usiness days
+
+## [0.16.0] - 2022-05-13
+### Added
+- new **/shift dates** command that takes dates in the selected lines and shifts them forwards or backwards by a given date interval. (It doesn't change dates in `@done(...) mentions, or that are in brackets.)
+
 ## [0.15.1] - 2022-05-06
 ### Fixed
 - typo in default configuration of '' setting

@@ -1,6 +1,6 @@
 /* globals describe, expect, it, test */
 
-// Last updated: 30.12.2021 by @jgclark
+// Last updated: 13.5.2022 by @jgclark
 
 import colors from 'chalk'
 import * as dt from '../dateTime'
@@ -224,7 +224,7 @@ describe(`${PLUGIN_NAME}`, () => {
       })
     })
 
-    describe('removeDateTagsAndToday ', () => {
+    describe('removeDateTagsAndToday', () => {
       test('should remove ">today at end" ', () => {
         expect(dt.removeDateTagsAndToday(`test >today`)).toEqual('test')
       })
@@ -239,6 +239,96 @@ describe(`${PLUGIN_NAME}`, () => {
       })
       test('should remove nothing if no date tag ', () => {
         expect(dt.removeDateTagsAndToday(`test no date`)).toEqual('test no date')
+      })
+    })
+
+    describe('calcOffsetDateStr', () => {
+      test('2022-01-01 +1d', () => {
+        expect(dt.calcOffsetDateStr('2022-01-01','1d')).toEqual('2022-01-02')
+      })
+      test('2022-01-01 +364d', () => {
+        expect(dt.calcOffsetDateStr('2022-01-01','364d')).toEqual('2022-12-31')
+      })
+      test('2022-01-01 +2w', () => {
+        expect(dt.calcOffsetDateStr('2022-01-01','2w')).toEqual('2022-01-15')
+      })
+      test('2022-01-01 +4m', () => {
+        expect(dt.calcOffsetDateStr('2022-01-01','4m')).toEqual('2022-05-01')
+      })
+      test('2022-01-01 +3q', () => {
+        expect(dt.calcOffsetDateStr('2022-01-01','3q')).toEqual('2022-10-01')
+      })
+      test('2022-01-01 +2y', () => {
+        expect(dt.calcOffsetDateStr('2022-01-01','2y')).toEqual('2024-01-01')
+      })
+      test('2022-01-01 0d', () => {
+        expect(dt.calcOffsetDateStr('2022-01-01','0d')).toEqual('2022-01-01')
+      })
+      test('2022-01-01 -1d', () => {
+        expect(dt.calcOffsetDateStr('2022-01-01','-1d')).toEqual('2021-12-31')
+      })
+      test('2022-01-01 -2w', () => {
+        expect(dt.calcOffsetDateStr('2022-01-01','-2w')).toEqual('2021-12-18')
+      })
+      test('2022-01-01 -4m', () => {
+        expect(dt.calcOffsetDateStr('2022-01-01','-4m')).toEqual('2021-09-01')
+      })
+      test('2022-01-01 -3q', () => {
+        expect(dt.calcOffsetDateStr('2022-01-01','-3q')).toEqual('2021-04-01')
+      })
+      test('2022-01-01 -2y', () => {
+        expect(dt.calcOffsetDateStr('2022-01-01','-2y')).toEqual('2020-01-01')
+      })
+      test('2022-01-01 +1b', () => {
+        expect(dt.calcOffsetDateStr('2022-01-01','1b')).toEqual('2022-01-03')
+      })
+      test('2022-01-01 +2b', () => {
+        expect(dt.calcOffsetDateStr('2022-01-01','2b')).toEqual('2022-01-04')
+      })
+      test('2022-01-01 +3b', () => {
+        expect(dt.calcOffsetDateStr('2022-01-01','3b')).toEqual('2022-01-05')
+      })
+      test('2022-01-01 +4b', () => {
+        expect(dt.calcOffsetDateStr('2022-01-01','4b')).toEqual('2022-01-06')
+      })
+      test('2022-01-01 +5b', () => {
+        expect(dt.calcOffsetDateStr('2022-01-01','5b')).toEqual('2022-01-07')
+      })
+      test('2022-01-01 +6b', () => {
+        expect(dt.calcOffsetDateStr('2022-01-01','6b')).toEqual('2022-01-10')
+      })
+      test('2022-01-01 +7b', () => {
+        expect(dt.calcOffsetDateStr('2022-01-01','7b')).toEqual('2022-01-11')
+      })
+      test('2022-01-01 +8b', () => {
+        expect(dt.calcOffsetDateStr('2022-01-01','8b')).toEqual('2022-01-12')
+      })
+      test('2022-01-02 +1b', () => {
+        expect(dt.calcOffsetDateStr('2022-01-02','1b')).toEqual('2022-01-03')
+      })
+      test('2022-01-03 +1b', () => {
+        expect(dt.calcOffsetDateStr('2022-01-03','1b')).toEqual('2022-01-04')
+      })
+      test('2022-01-04 +1b', () => {
+        expect(dt.calcOffsetDateStr('2022-01-04','1b')).toEqual('2022-01-05')
+      })
+      test('2022-01-05 +1b', () => {
+        expect(dt.calcOffsetDateStr('2022-01-05','1b')).toEqual('2022-01-06')
+      })
+      test('2022-01-06 +1b', () => {
+        expect(dt.calcOffsetDateStr('2022-01-06','1b')).toEqual('2022-01-07')
+      })
+      test('2022-01-07 +1b', () => {
+        expect(dt.calcOffsetDateStr('2022-01-07','1b')).toEqual('2022-01-10')
+      })
+      test('2022-01-01 (blank interval)', () => {
+        expect(dt.calcOffsetDateStr('2022-01-01','')).toEqual('(error)')
+      })
+      test('2022-01-01 (invalid interval) \'v\'', () => {
+        expect(dt.calcOffsetDateStr('2022-01-01','v')).toEqual('(error)')
+      })
+      test('2022-01-01 (invalid interval) \'23\'', () => {
+        expect(dt.calcOffsetDateStr('2022-01-01','23')).toEqual('(error)')
       })
     })
 

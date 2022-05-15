@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Statistic commands for notes and projects
 // Jonathan Clark & Eduard Metzger
-// v0.5.1, 7.11.2021
+// v0.5.2, 14.5.2022
 //-----------------------------------------------------------------------------
 
 // TODO: IDEAS
@@ -13,5 +13,4 @@
 
 export { showNoteCount } from './showNoteCount'
 export { showWordCount } from './showWordCount'
-export { showTaskCountProjects } from './taskProjectStats'
-export { showTaskCountNote } from './taskNoteStats'
+export { showTaskCountForAll, showTaskCountForNote } from './taskNoteStats'

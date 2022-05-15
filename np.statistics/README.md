@@ -1,10 +1,10 @@
 # 🔢 Statistics plugin
-This plugin provides some simple count commands:
+This plugin provides some simple statistics:
 
-- `/nc`: shows counts of all the notes in NotePlan
-- `/tsp`: shows task statistics for project notes (ignoring Template notes)
-- `/tc`: shows task counts for the current note
-- `/wc`: shows word count and other numbers for the open note
+- **/note stats** (alias **/nc**): shows counts of all the notes in NotePlan
+- **/task stats for all notes** (alias **/tsp**): shows task statistics for project notes (ignoring Template notes)
+- **/task stats for current note** (alias **/tc**): shows task counts for the current note
+- **/word stats for current notes** (alias **/wc**): shows word count and other numbers for the open note
 
 ## History
 Please see the [CHANGELOG](CHANGELOG.md).

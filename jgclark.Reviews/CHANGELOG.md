@@ -1,6 +1,10 @@
 # What's changed in 🔬 Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Review), and how to configure.
 
+## [0.6.4] - 2022-05-13
+### Added
+- new setting 'Confirm next review' to allow turning off the confirmation dialog before the next review starts from the '/next project review' command (default is now false)
+
 ## [0.6.3] - 2022-05-01
 ### Fixed
 - configuration problem, potentially leading to NP crash (reported by @Harv)

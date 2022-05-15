@@ -8,7 +8,7 @@ export async function showNoteCount(): Promise<void> {
   const calNotesCount = DataStore.calendarNotes.length
   const projNotes = DataStore.projectNotes
   const templatesCount = projNotes.filter(
-    (n) => n.filename.startsWith('📋 Templates')
+    (n) => n.filename.startsWith('@Templates')
   ).length
   const projNotesLen = projNotes.length - templatesCount
   const total = calNotesCount + projNotes.length

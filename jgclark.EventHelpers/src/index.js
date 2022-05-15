@@ -3,10 +3,14 @@
 //-----------------------------------------------------------------------------
 // Event Helpers
 // Jonathan Clark
-// last updated 20.2.2022, for v0.11.5
+// last updated 13.5.2022, for v0.16.0
 //-----------------------------------------------------------------------------
 
+// allow changes in plugin.json to trigger recompilation
+import pluginJson from '../plugin.json' 
 import { log, logWarn, logError } from "@helpers/dev"
+import { migrateConfiguration, updateSettingData } from '@helpers/NPconfiguration'
+
 export { timeBlocksToCalendar } from './timeblocks'
 export {
   listDaysEvents,
@@ -14,13 +18,15 @@ export {
   listMatchingDaysEvents,
   insertMatchingDaysEvents,
 } from './eventsToNotes'
-export { processDateOffsets } from './offsets'
+export { processDateOffsets, shiftDates } from './offsets'
 
-// allow changes in plugin.json to trigger recompilation
-import pluginJson from '../plugin.json' 
+export function init(): void {
+  // Placeholder only
+}
 
-// Moving to ConfigV2
-import { migrateConfiguration, updateSettingData } from '@helpers/NPconfiguration'
+export function onSettingsUpdated(): void {
+  // Placeholder only to stop error in logs
+}
 
 const configKey = "events"
 
