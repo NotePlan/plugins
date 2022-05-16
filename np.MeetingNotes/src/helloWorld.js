@@ -13,7 +13,7 @@ import fm from 'front-matter'
 import { log } from '@helpers/dev'
 import pluginJson from '../plugin.json'
 
-export async function insertNoteTemplate(templateFilename): Promise<void> {
+export async function insertNoteTemplate(templateFilename, dailyNoteDate): Promise<void> {
   log(pluginJson, 'chooseTemplateIfNeeded')
   templateFilename = await chooseTemplateIfNeeded(templateFilename, false)
 
@@ -21,7 +21,13 @@ export async function insertNoteTemplate(templateFilename): Promise<void> {
   const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateContent)
 
   const result = await NPTemplating.render(frontmatterBody, frontmatterAttributes)
-  Editor.content = result
+
+  if(dailyNoteDate) {
+    let note = DataStore.calendarNoteByDate(dailyNoteDate)
+    note.content = result
+  } else {
+    Editor.content = result
+  }
 }
 
 export async function newMeetingNote(selectedEvent, templateFilename): Promise<void> {
@@ -55,14 +61,35 @@ export async function newMeetingNote(selectedEvent, templateFilename): Promise<v
     }
 
     log(pluginJson, 'insert template')
+    let newTitle = null
     if(append || prepend) {
-      await appendPrependNewNote(append, prepend, folder, result)
+      newTitle = await appendPrependNewNote(append, prepend, folder, result)
     } else {
-      await newNoteWithFolder(result, folder, newNoteTitle)
+      newTitle = await newNoteWithFolder(result, folder, newNoteTitle)
     }
+
+    writeNoteLinkIntoEvent(selectedEvent, newTitle)
 
   } catch (error) {
     log(pluginJson, 'error: ' + error)
+  }
+}
+
+function writeNoteLinkIntoEvent(selectedEvent, newTitle) {
+  // Only add the link to events without attendees
+  log(pluginJson, 'writing event link into event notes.')
+
+  if(newTitle && selectedEvent.attendees.length == 0 && selectedEvent.isCalendarWritable) {
+    let noteLink = "noteplan://x-callback-url/openNote?noteTitle=" + encodeURIComponent(newTitle)
+    let eventNotes = selectedEvent.notes
+    if(eventNotes.length > 0) {
+      noteLink = "\n" + noteLink
+    }
+
+    selectedEvent.notes = eventNotes + noteLink
+    Calendar.update(selectedEvent)
+  } else {
+    log(pluginJson, 'note link not written to event because it contains attendees (' + selectedEvent.attendees.length + ') or calendar doesnt allow content changes.')
   }
 }
 
@@ -108,15 +135,16 @@ async function appendPrependNewNote(append, prepend, folder, content) {
 
     if(!note) {
       CommandBar.prompt("Could not find or create the note '" + noteName + "'")
+      return null
     }
   }
 
   let originalContentLength = note.content.length
 
   if(append) {
-    note.appendParagraph("\n\n" + content, "text")
+    note.appendParagraph(content, "text")
   } else if(prepend) {
-    note.prependParagraph(content + "\n\n", "text")
+    note.prependParagraph(content, "text")
   }
 
   await Editor.openNoteByFilename(note.filename)
@@ -125,6 +153,8 @@ async function appendPrependNewNote(append, prepend, folder, content) {
   if(append) {
     Editor.select(originalContentLength + 3, 0)
   }
+
+  return note.title
 }
 
 async function newNoteWithFolder(content, folder) {
@@ -152,6 +182,10 @@ async function newNoteWithFolder(content, folder) {
 
   let filename = DataStore.newNoteWithContent(content, folder)
   Editor.openNoteByFilename(filename)
+
+  let note = DataStore.projectNoteByFilename(filename)
+  if(note) { return note.title }
+  return null
 }
 
 async function chooseTemplateIfNeeded(templateFilename, onlyMeetingNotes) {
