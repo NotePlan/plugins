@@ -274,10 +274,35 @@ export async function templateNew(): Promise<void> {
 }
 
 /**
+ * Write out the contents to either Today's Calendar note or the Note which was opened
+ * @author @dwertheimer
+ * @param {*} note
+ * @param {*} renderedTemplate
+ * @param {*} writeUnderHeading
+ * @param {*} shouldAppend
+ * @param {*} shouldOpenInEditor
+ */
+async function writeNoteContents(note, renderedTemplate, writeUnderHeading, shouldAppend, shouldOpenInEditor): Promise<void> {
+  if (note) {
+    if (writeUnderHeading) {
+      note.addParagraphBelowHeadingTitle(renderedTemplate, 'text', writeUnderHeading, shouldAppend, true)
+    } else {
+      shouldAppend ? note.appendParagraph(renderedTemplate, 'text') : note.prependParagraph(renderedTemplate, 'text')
+    }
+    if (shouldOpenInEditor) {
+      const _ = await Editor.openNoteByFilename(note.filename)
+    }
+  }
+}
+
+/**
  * Process a template that provides an existing filename or <today> for today's Calendar Note
  * The unique title of the template to run must be passed in as the first argument
  * TODO:
  * - add Presets to documentation
+ * Note: writeTypeType === 'prepend' prepends, otherwise appends
+ * Note: writeType will be 'append' or 'prepend' | if writeUnderHeading is set, then appends/prepends there, otherwise the note's content
+ * Note: if you are inserting title text as part of your template, then you should always prepend, because your title will confuse future appends
  * - .addParagraphBelowHeadingTitle(title, paragraphType, headingTitle, shouldAppend: Bool, shouldCreate)
  *
  */
@@ -298,13 +323,18 @@ export async function templateFileByTitle(templatetitle?: string, openInEditor?:
       const templateAttributes = await NPTemplating.getTemplateAttributes(templateData)
       const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
       // Note: frontmatterAttributes and templateAttributes are the same
-      const { openNoteTitle, writeNoteTitle } = frontmatterAttributes
+      let data = { ...frontmatterAttributes, frontmatter: { ...frontmatterAttributes } }
+      let renderedTemplate = await NPTemplating.render(frontmatterBody, data)
+
+      const { openNoteTitle, writeNoteTitle, writeType, writeUnderHeading } = frontmatterAttributes
       let noteTitle = (openNoteTitle && openNoteTitle.trim()) || (writeNoteTitle && writeNoteTitle?.trim()) || ''
       let shouldOpenInEditor = openNoteTitle && openNoteTitle.length > 0
+      const shouldAppend = (writeType && writeType === 'append') || false
       const isTodayNote = /<today>/i.test(openNoteTitle)
       let note
       if (isTodayNote) {
         await Editor.openNoteByDate(new Date(), false)
+        await writeNoteContents(Editor.note, renderedTemplate, writeUnderHeading, shouldAppend)
       } else {
         // open note specified
         if (noteTitle.length) {
@@ -320,9 +350,7 @@ export async function templateFileByTitle(templatetitle?: string, openInEditor?:
               // we're good to go
               log(pluginJson, `openNoteTitle: "${noteTitle}" matches note: ${note.title ?? ''}`)
               clo(note, `correct note contents:`)
-              if (shouldOpenInEditor) {
-                const _ = await Editor.openNoteByFilename(note.filename)
-              }
+              await writeNoteContents(note, renderedTemplate, writeUnderHeading, shouldAppend, shouldOpenInEditor)
             }
           }
         } else {
