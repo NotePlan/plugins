@@ -1,4 +1,9 @@
 # What's changed in 📙 Note Helpers plugin?
+For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/).
+
+## [0.11.1] - 2022-05-10
+### Changed
+- updated logging to newer framework
 
 ## [0.11.0] - 2022-01-20
 ### Added
