@@ -13,7 +13,7 @@ import fm from 'front-matter'
 import { log } from '@helpers/dev'
 import pluginJson from '../plugin.json'
 
-export async function insertNoteTemplate(templateFilename, dailyNoteDate): Promise<void> {
+export async function insertNoteTemplate(origFileName, dailyNoteDate): Promise<void> {
   log(pluginJson, 'chooseTemplateIfNeeded')
   const templateFilename = await chooseTemplateIfNeeded(origFileName, false)
 
