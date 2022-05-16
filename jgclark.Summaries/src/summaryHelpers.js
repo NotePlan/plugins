@@ -77,7 +77,6 @@ export async function getSummariesSettings(): Promise<any> {
   try {
     // Get settings using ConfigV2
     const v2Config: SummariesConfig = await DataStore.loadJSON("../jgclark.Summaries/settings.json")
-    // $FlowFixMe
     // clo(v2Config, `${configKey} settings from V2:`)
 
     if (v2Config == null || Object.keys(v2Config).length === 0) {
@@ -370,7 +369,6 @@ export async function gatherMatchingLines(
       }
       // log(pluginJson, `    -> ${matchLine}`)
       matches.push(matchLine.trim())
-      // $FlowFixMe[incompatible-call]
       noteContexts.push(noteContext)
     }
     if (i % 100 === 0) {
