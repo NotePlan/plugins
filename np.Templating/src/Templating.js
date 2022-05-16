@@ -276,13 +276,13 @@ export async function templateNew(): Promise<void> {
 /**
  * Write out the contents to either Today's Calendar note or the Note which was opened
  * @author @dwertheimer
- * @param {*} note
- * @param {*} renderedTemplate
- * @param {*} writeUnderHeading
- * @param {*} shouldAppend
- * @param {*} shouldOpenInEditor
+ * @param {TNote} note - the note to work on
+ * @param {string} renderedTemplate - the rendered template string (post-render)
+ * @param {string} writeUnderHeading - the heading to write under
+ * @param {boolean} shouldAppend - if true, will append, otherwise, prepend
+ * @param {*} shouldOpenInEditor - if true, will open the note in the editor, otherwise will write silently to the note
  */
-async function writeNoteContents(note, renderedTemplate, writeUnderHeading, shouldAppend, shouldOpenInEditor): Promise<void> {
+async function writeNoteContents(note: TNote, renderedTemplate: string, writeUnderHeading: string, shouldAppend: boolean, shouldOpenInEditor: boolean): Promise<void> {
   if (note) {
     if (writeUnderHeading) {
       note.addParagraphBelowHeadingTitle(renderedTemplate, 'text', writeUnderHeading, shouldAppend, true)
@@ -314,7 +314,7 @@ export async function templateFileByTitle(selectedTemplate?: string, openInEdito
     let argObj = {}
     args.split(',').forEach((arg) => (arg.split('=').length === 2 ? (argObj[arg.split('=')[0]] = arg.split('=')[1]) : null))
     if (!selectedTemplate || selectedTemplate.length === 0) {
-      await CommandBar.prompt(`templateFileByTitle: no templateTitle was specified."`, helpInfo('Presets'))
+      await CommandBar.prompt(`You must supply a template title as the first argument."`, helpInfo('Presets'))
     }
     let failed = false
     const templateData = await NPTemplating.getTemplate(selectedTemplate)
@@ -343,7 +343,7 @@ export async function templateFileByTitle(selectedTemplate?: string, openInEdito
           const notes = await DataStore.projectNoteByTitle(noteTitle)
           if (!notes || notes.length == 0 || (notes && notes.length > 1)) {
             const msg = `${!notes || notes.length == 0 ? 'no' : notes.length > 1 ? 'more than one' : ''}`
-            await CommandBar.prompt(`"${noteTitle}" matches ${msg} note(s) title. the title needs to be distinct to ensure correct note is written to.`, helpInfo('Presets'))
+            await CommandBar.prompt(`"${noteTitle}" matches ${msg} note(s) title. the title needs to be unique to ensure correct note is written to.`, helpInfo('Presets'))
           } else {
             note = notes[0] || null
             if (!note) {
@@ -353,7 +353,7 @@ export async function templateFileByTitle(selectedTemplate?: string, openInEdito
             }
           }
         } else {
-          await CommandBar.prompt(`openNoteTitle or writeNotetitle is required`, helpInfo('Presets'))
+          await CommandBar.prompt(`openNoteTitle or writeNoteTitle is required`, helpInfo('Presets'))
         }
       }
     } else {
@@ -367,15 +367,14 @@ export async function templateFileByTitle(selectedTemplate?: string, openInEdito
 /**
  * Run a template by name/title (generally via x-callback-url)
  * @param {Array<string>} args - the first argument is the template name (required), the optional second param is whether to display the template in the editor. By default no (false/runs silently), after that, any additional arguments are key=value pairs passed to the template
- * @example noteplan://x-callback-url/runPlugin?pluginID=np.Templating&command=templateRunner&arg0=cdjournal&arg1=true&arg2=journalEntry%3dfooBarBaz,secondVar%3dYes%20IT%20WORKED
+ * @example
  * @returns {Promise<void>}
  *
  */
 export async function templateRunner(...args: Array<string>) {
   try {
     if (args.length > 0) {
-      // templateFileByTitle(args[0], args[1] === 'true', args.length > 2 ? args[2] : '')
-      templateFileByTitle(...args)
+      templateFileByTitle(args[0], args[1] === 'true', args.length > 2 ? args[2] : '')
     } else {
       await CommandBar.prompt(`No arguments (with template name) were given to the templateRunner."`, helpInfo('Presets'))
     }
