@@ -301,13 +301,17 @@ export default class NPTemplating {
     }
 
     const notes = await DataStore.projectNoteByTitle(note, true, false)
+    // You have to check that `notes` is NOT null before using it
+    // to fix type errors.
+    if (notes == null) {
+      return 'INCOMPLETE'
+    }
     const finalNotes = notes.filter((note) => note.filename.startsWith(TEMPLATE_FOLDER_NAME))
     if (finalNotes.length > 1) {
       return 'MULTIPLE NOTES FOUND'
     } else {
       return notes[0].filename
     }
-    return 'INCOMPLETE'
   }
 
   static async getTemplateList(types: any = '*'): Promise<any> {

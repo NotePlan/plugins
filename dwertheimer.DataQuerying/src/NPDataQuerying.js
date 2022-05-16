@@ -141,7 +141,7 @@ export async function writeIndex(index: any): null | any {
  * @param {Object} notesToInclude (optional) if you have the cleansed note list, pass it in, otherwise it will be created
  * @returns {FuseIndex}
  */
-export async function createIndex(notesToInclude = [], config) {
+export async function createIndex(notesToInclude = [], config: { ... }): Fuse.FuseIndex<mixed> {
   let timeStart = new Date()
   const includedNotes = notesToInclude.length ? notesToInclude : getNotesForIndex(config)
   const index = fh.buildIndex(includedNotes, SEARCH_OPTIONS)
@@ -160,15 +160,18 @@ export async function searchButShowTitlesOnly(linksOnly: boolean = false): Promi
 
 const isCalendarNote = (filename) => (/^[0-9]{8}\.(md|txt)$/.test(filename) ? 'Calendar' : 'Notes')
 
-const getParagraphsContaining = (filename: string, searchTerm: string, config: any): Promise<string[]> => {
+const getParagraphsContaining = (filename: string, searchTerm: string, config: any): Array<TParagraph> => {
   const cleanSearchTerm = fh.removeExtendedSearchTags(searchTerm)
   const note = DataStore.noteByFilename(filename, isCalendarNote(filename))
-  const matches = []
+  const matches: Array<TParagraph> = []
   note?.paragraphs?.forEach((paragraph) => {
     // Note: FIXME: paragraph.children() will work here, but not later
     if (paragraph.content.includes(cleanSearchTerm)) {
-      if (config.includeChildren) matches.push({ ...copyObject(paragraph), children: paragraph.children() })
-      else matches.push(copyObject(paragraph))
+      if (config.includeChildren) {
+        matches.push({ ...copyObject(paragraph), children: paragraph.children() })
+      } else {
+        matches.push(copyObject(paragraph))
+      }
     }
   })
   return matches
@@ -185,15 +188,13 @@ export async function outputMatchingLines(results: Array<any>, searchTerm: strin
   const filenames = results.map((result) => result.item.filename).sort()
   clo(filenames, 'outputMatchingLines: filenames:')
   let allMatchingLines = []
-  filenames.forEach((filename) => {
-    // Note: getParagraphsContaining is a processFunction passed in as an argument
-    // $FlowIgnore
+  for (let filename of filenames) {
     const res = getParagraphsContaining(filename, searchTerm, { ...config, includeChildren: true })
     if (res?.length) {
       allMatchingLines.push(...res)
     }
-  })
-  // TODO: figure out how to deal with Extended Search delimiters
+  }
+  // TODO: figure out how to deal with Extended Search delmiters
   // clo(allMatchingLines, 'outputMatchingLines: allMatchingLines (note that Extended Searches will currently mess it all up):')
   allMatchingLines.forEach((line) => {
     log(pluginJson, `${line.content} | children: ${line.children.length}`)

@@ -39,7 +39,7 @@ export function getBlankDayMap(intervalMins: number): IntervalMap {
   return createIntervalMap({ start: startOfDay(new Date()), end: endOfDay(new Date()) }, false, { step: intervalMins })
 }
 
-export function blockTimeFor(timeMap: IntervalMap, blockdata: BlockData, config: { [key: string]: any }): { newMap: IntervalMap, itemText: string } {
+export function blockTimeFor(timeMap: IntervalMap, blockdata: BlockData): { newMap: IntervalMap, itemText: string } {
   const { start, end, title } = blockdata
   const newMap = timeMap.map((t) => {
     if (t.start >= start && t.start < end) {
@@ -47,7 +47,7 @@ export function blockTimeFor(timeMap: IntervalMap, blockdata: BlockData, config:
     }
     return t
   })
-  const itemText = typeof title === 'boolean' ? '' : createTimeBlockLine({ title, start, end }, config)
+  const itemText = typeof title === 'boolean' ? '' : createTimeBlockLine({ title, start, end }, {})
   return { newMap, itemText }
 }
 
@@ -83,7 +83,7 @@ export function blockOutEvents(events: Array<PartialCalendarItem>, timeMap: Inte
   events.forEach((event) => {
     const start = getTimeStringFromDate(event.date)
     const end = event.endDate ? getTimeStringFromDate(event.endDate) : ''
-    const obj = event.endDate ? blockTimeFor(newTimeMap, { start, end, title: event.title }, config) : { newMap: newTimeMap }
+    const obj = event.endDate ? blockTimeFor(newTimeMap, { start, end, title: event.title }) : { newMap: newTimeMap }
     newTimeMap = obj.newMap
   })
   return newTimeMap
@@ -141,11 +141,13 @@ export function getDurationFromLine(line: string, durationMarker: string): numbe
  * @param {*} paragraphsArray
  * @returns
  */
-export function removeDateTagsFromArray(paragraphsArray: Array<{ [string]: any }>): Array<{ [string]: any }> {
+export function removeDateTagsFromArray(
+  paragraphsArray: $ReadOnlyArray<$ReadOnly<{ ...TParagraph, title?: string }>>,
+): $ReadOnlyArray<$ReadOnly<{ ...TParagraph, title?: string }>> {
   const newPA = paragraphsArray.map((p, i) => {
     return {
       ...p,
-      title: p.title ? p.title : '',
+      title: p.title != null ? p.title : '',
       indents: p.indents,
       type: p.type,
       heading: p.heading ?? '',
@@ -259,7 +261,7 @@ export function findOptimalTimeForEvent(timeMap: IntervalMap, todo: { [string]: 
  */
 export function blockTimeAndCreateTimeBlockText(tbm: TimeBlocksWithMap, block: BlockData, config: { [key: string]: any }): TimeBlocksWithMap {
   const timeBlockTextList = tbm.timeBlockTextList || []
-  const obj = blockTimeFor(tbm.timeMap, block, config) //returns newMap, itemText
+  const obj = blockTimeFor(tbm.timeMap, block) //returns newMap, itemText
   timeBlockTextList.push(obj.itemText)
   const timeMap = filterTimeMapToOpenSlots(obj.newMap, config)
   const blockList = findTimeBlocks(timeMap, config)
@@ -327,7 +329,7 @@ export function matchTasksToSlots(sortedTaskList: Array<{ ...TParagraph, duratio
  * @param { * } config
  * @returns
  */
-export function appendLinkIfNecessary(todos: Array<TParagraph>, config: { [key: string]: any }): Array<{ [key: string]: mixed }> {
+export function appendLinkIfNecessary(todos: Array<{ ...TParagraph, +title?: string }>, config: { [key: string]: any }): Array<{ ...TParagraph, +title?: string }> {
   let todosWithLinks = todos
   if (todos.length && config.includeLinks !== 'OFF') {
     todosWithLinks = []
@@ -335,10 +337,10 @@ export function appendLinkIfNecessary(todos: Array<TParagraph>, config: { [key: 
       if (e.type !== 'title') {
         let link = ''
         if (config.includeLinks === '[[internal#links]]') {
-          link = ` ${createLink(e.title, e.heading)}`
+          link = ` ${createLink(e.title ?? '', e.heading)}`
         } else {
           if (config.includeLinks === 'Pretty Links') {
-            link = ` ${createPrettyLink(config.linkText, e.filename, true, e.heading)}`
+            link = ` ${createPrettyLink(config.linkText, e.filename ?? 'unknown', true, e.heading)}`
           }
         }
         e.content = `${e.content}${link}`
@@ -431,7 +433,7 @@ export function excludeTasksWithPatterns(tasks: Array<TParagraph>, pattern: stri
  * @param {*} config
  * @returns {array} of paragraphs
  */
-export function findTodosInNote(note: TNote, config) {
+export function findTodosInNote(note: TNote): Array<ExtendedParagraph> {
   const hyphDate = getTodaysDateHyphenated()
   const toDate = getDateObjFromDateTimeString(hyphDate)
   const isTodayItem = (text) => [`>${hyphDate}`, '>today'].filter((a) => text.indexOf(a) > -1).length > 0
@@ -442,7 +444,8 @@ export function findTodosInNote(note: TNote, config) {
         // clo(p, 'found today item')
         const newP = p
         newP.type = 'open' // Pretend it's a todo even if it's text or a listitem
-        newP.title = p.filename.replace('.md', '').replace('.txt', '')
+        // $FlowIgnore
+        newP.title = (p.filename ?? '').replace('.md', '').replace('.txt', '')
         // clo(newP, 'pushing today item')
         // console.log(`  --> findTodosInNote adding todo "${p.content}"`)
         todos.push(newP)
