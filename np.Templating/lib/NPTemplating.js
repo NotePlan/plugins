@@ -1152,7 +1152,7 @@ export default class NPTemplating {
     }
   }
 
-  static async invokePluginCommandByName(pluginId: string, pluginCommand: string, args?: [any] | null = null): Promise<string | void> {
+  static async invokePluginCommandByName(pluginId: string, pluginCommand: string, args?: $ReadOnlyArray<mixed> = []): Promise<string | void> {
     if (await this.isCommandAvailable(pluginId, pluginCommand)) {
       return (await DataStore.invokePluginCommandByName(pluginCommand, pluginId, args)) || ''
     } else {

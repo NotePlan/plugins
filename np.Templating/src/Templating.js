@@ -642,8 +642,12 @@ export async function testInvoke(): Promise<void> {
 
     // const version = await DataStore.invokePluginCommandByName('np:about', 'np.Templating', [{ fname: 'Mike' }])
     const version = await NPTemplating.invokePluginCommandByName('np.Templating', 'np:about', [{ fname: 'Mike' }])
-    console.log(version)
-    Editor.insertTextAtCursor(version)
+    if (version != null) {
+      console.log(version)
+      Editor.insertTextAtCursor(version)
+    } else {
+      console.log('version is null')
+    }
   } catch (error) {
     logError(pluginJson, error)
   }

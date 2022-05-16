@@ -67,7 +67,7 @@ async function isCommandAvailable(pluginId: string, pluginCommand: string): Prom
   }
 }
 
-async function invokePluginCommandByName(pluginId: string = '', pluginCommand: string = '', args: [any | null] = null) {
+async function invokePluginCommandByName(pluginId: string = '', pluginCommand: string = '', args: $ReadOnlyArray<mixed> = []) {
   if (await isCommandAvailable(pluginId, pluginCommand)) {
     return (await DataStore.invokePluginCommandByName(pluginCommand, pluginId, args)) || ''
   } else {

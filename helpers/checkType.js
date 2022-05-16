@@ -82,3 +82,11 @@ export const checkObj =
     }
     throw new Error(`Expected object, got ${typeof value}`)
   }
+
+export const checkWithDefault = <T>(checker: Checker<T>, defaultValue: T): T => {
+  try {
+    return checker(defaultValue)
+  } catch {
+    return defaultValue
+  }
+}

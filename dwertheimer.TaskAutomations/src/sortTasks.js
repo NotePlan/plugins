@@ -66,7 +66,7 @@ export async function openTasksToTop(heading: string = '## Tasks:\n', separator:
     if (sweptTasks.taskArray[0].content === Editor.title) {
       sweptTasks.taskArray.shift()
     }
-    Editor.prependParagraph(heading.concat(sweptTasks.taskArray.map((m) => m.rawContent).join('\n')).concat(`\n${separator}`), 'text')
+    Editor.prependParagraph(heading.concat((sweptTasks.taskArray ?? []).map((m) => m.rawContent).join('\n')).concat(`\n${separator}`), 'text')
   }
 }
 
