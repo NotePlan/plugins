@@ -2,7 +2,7 @@
 // --------------------------------------------------------------------------------------------------------------------
 // QuickCapture plugin for NotePlan
 // by Jonathan Clark
-// last update v0.9.1, 12.5.2022 by @jgclark
+// last update v0.9.1+, 12.5.2022 by @jgclark
 // --------------------------------------------------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -315,7 +315,7 @@ export async function addTextToNoteHeading(noteTitleArg?: string, headingArg?: s
 export async function prependTaskToDailyNote(dateArg?: string, textArg?: string): Promise<void> {
   try {
     const config = await getInboxSettings()
-    let note: TNote
+    let note: ?TNote
     let taskText = ''
 
     if ((dateArg !== undefined || textArg !== undefined) && (dateArg === undefined || textArg === undefined)) {
@@ -327,7 +327,6 @@ export async function prependTaskToDailyNote(dateArg?: string, textArg?: string)
     if (dateArg !== undefined && textArg !== undefined) {
       // But check this is a valid note daily note first; if it isn't,
       // fall back to using current open note
-      // $FlowFixMe
       note = DataStore.calendarNoteByDateString(dateArg)
       if (note != null) {
         log(pluginJson, `2 args given; note = '${displayTitle(note)}'`)
@@ -370,7 +369,7 @@ export async function prependTaskToDailyNote(dateArg?: string, textArg?: string)
 export async function appendTaskToDailyNote(dateArg?: string, textArg?: string): Promise<void> {
   try {
     const config = await getInboxSettings()
-    let note: TNote
+    let note: ?TNote
     let taskText = ''
     let dateStr = ''
 
@@ -383,7 +382,6 @@ export async function appendTaskToDailyNote(dateArg?: string, textArg?: string):
     if (dateArg !== undefined && textArg !== undefined) {
       // But check this is a valid note daily note first; if it isn't,
       // fall back to using current open note
-      // $FlowFixMe
       note = DataStore.calendarNoteByDateString(dateArg)
       if (note != null) {
         log(pluginJson, `2 args given; note = '${displayTitle(note)}'`)
@@ -399,7 +397,6 @@ export async function appendTaskToDailyNote(dateArg?: string, textArg?: string):
 
       // Then ask for the daily note we want to add the todo
       dateStr = await askForFutureISODate('Select daily note for new todo')
-      // $FlowFixMe
       note = DataStore.calendarNoteByDateString(unhyphenateString(dateStr))
     }
 

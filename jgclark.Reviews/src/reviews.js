@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Commands for Reviewing project-style notes, GTD-style.
 // by @jgclark
-// Last updated 13.5.2022 for v0.6.4, @jgclark
+// Last updated 13.5.2022 for v0.6.4+, @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -337,8 +337,7 @@ export async function updateReviewListAfterReview(note: TNote): Promise<void> {
   // Now read contents and parse, this time as lines
   const lines = reviewList.split('\n')
   // log(pluginJson, `\t(pref: has ${lines.length} items, starting ${lines[0]})`)
-  // $FlowFixMe
-  let lineNum: number // deliberately undefined
+  let lineNum: ?number // deliberately undefined
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
     if (line.match(reviewedTitle)) {

@@ -3,7 +3,23 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
-## [1.1.3-beta.02] - 2022-05-06 (mikeerickson)
+## [1.2.0-beta.01] - 2022-05-15 (mikeerickson)
+
+- added `templateGroupTemplatesByFolder` setting (default: false)
+  - If true, template chooser will show complete folder path
+  - If false, template choooser will only show template name
+- implemented `onSettingsUpdated` to handle new `templateGroupTemplatesByFolder` setting
+- fixed issue when using `previousBusinessDay` and `nextBusinessDay` when system Preferred language is not `English US`
+- fixed issue with `prompt` command when using choices and one of choice values contained `let` text in option such as `completed by`
+- fixed date display when using business functions (`businessAdd`, `businessSubtract`, `nextBusinessDay`, `previousBusinessDay`)
+- fixed issue with `prompt` when supplying default value
+  - e.g. `<%- prompt('placeholder','Enter First Name', 'Mike')%>`
+- added `invokePluginCommandByName` to `globals.js` process, decoupling associated plugin commands
+  - see `globals.js` for implementation
+- extended template rendering error message to include `line` and `column` where available
+  - making it much easier to identify where the error exists in template
+
+## [1.1.3-beta.02] - 2022-05-07 (mikeerickson)
 
 - fix regression introduced in 1.1.2-beta.03 related to replacing `---` with `*****`, was perform replacement too soon
   - Revealed in jgclark.DailyJournal

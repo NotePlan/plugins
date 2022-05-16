@@ -52,6 +52,7 @@ export default class FrontmatterModule {
       Object.keys(fmData?.attributes).forEach((key) => {
         fmData.attributes[key] ? fmData.attributes[key] : (fmData.attributes[key] = '')
       })
+      fmData.body = fmData.body.replace(/---/gi, '*****')
 
       return fmData
     } else {
