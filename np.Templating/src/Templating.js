@@ -273,6 +273,25 @@ export async function templateNew(): Promise<void> {
   }
 }
 
+/**
+ * Process a template that provides an existing filename or <today> for today's Calendar Note
+ * TODO:
+ * - add Presets to documentation
+ */
+export async function templateExistingFile(selectedTemplate: string): Promise<void> {
+  try {
+    // get template and start processing
+    const templateData = await NPTemplating.getTemplate(selectedTemplate)
+    const isFrontmatter = new FrontmatterModule().isFrontmatterTemplate(templateData)
+    const templateAttributes = await NPTemplating.getTemplateAttributes(templateData)
+    if (isFrontmatter) {
+      const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
+    } else {
+      await CommandBar.prompt(`Unable to locate template "${selectedTemplate}"`, helpInfo('Presets'))
+    }
+  } catch (error) {}
+}
+
 export async function templateQuickNote(noteName: string = ''): Promise<void> {
   try {
     const content: string = Editor.content || ''
