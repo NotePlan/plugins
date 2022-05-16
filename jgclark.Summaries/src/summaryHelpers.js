@@ -19,24 +19,11 @@ import {
   withinDateRange,
 } from '../../helpers/dateTime'
 import { clo, log, logWarn, logError } from '../../helpers/dev'
-import {
-  calcOffsetDate,
-  quarterStartEnd,
-} from '../../helpers/NPdateTime'
-import {
-  castBooleanFromMixed,
-  castHeadingLevelFromMixed,
-  castNumberFromMixed,
-  castStringArrayFromMixed,
-  castStringFromMixed,
-  trimAnyQuotes,
-} from '../../helpers/dataManipulation'
+import { calcOffsetDate, quarterStartEnd } from '../../helpers/NPdateTime'
+import { castBooleanFromMixed, castHeadingLevelFromMixed, castNumberFromMixed, castStringArrayFromMixed, castStringFromMixed, trimAnyQuotes } from '../../helpers/dataManipulation'
 import { displayTitle } from '../../helpers/general'
 import { termInURL } from '../../helpers/paragraph'
-import {
-  chooseOption,
-  getInput
-} from '../../helpers/userInput'
+import { chooseOption, getInput } from '../../helpers/userInput'
 
 //------------------------------------------------------------------------------
 // Get settings
@@ -76,24 +63,20 @@ export async function getSummariesSettings(): Promise<any> {
   // log(pluginJson, `Start of getSummariesSettings()`)
   try {
     // Get settings using ConfigV2
-    const v2Config: SummariesConfig = await DataStore.loadJSON("../jgclark.Summaries/settings.json")
+    const v2Config: SummariesConfig = await DataStore.loadJSON('../jgclark.Summaries/settings.json')
     // clo(v2Config, `${configKey} settings from V2:`)
 
     if (v2Config == null || Object.keys(v2Config).length === 0) {
       throw new Error(`Cannot find settings for '${configKey}' plugin`)
     }
     return v2Config
-  }
-  catch (err) {
+  } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
     return null // for completeness
   }
 }
 
-export async function getPeriodStartEndDates(
-  question: string = 'Create stats for which period?',
-  periodToUse?: string,
-): Promise<[Date, Date, string, string]> {
+export async function getPeriodStartEndDates(question: string = 'Create stats for which period?', periodToUse?: string): Promise<[Date, Date, string, string]> {
   let period: string
   // If we're passed the period, then use that, otherwise ask user
   if (periodToUse) {
@@ -211,9 +194,7 @@ export async function getPeriodStartEndDates(
       const lastQStartMonth = (lastQ - 1) * 3 + 1
       toDate = Calendar.addUnitToDate(fromDate, 'month', 3) // +1 quarter
       toDate = Calendar.addUnitToDate(toDate, 'day', -1) // -1 day, to get last day of last month
-      periodString = `${lastY} Q${lastQ} (${monthNameAbbrev(
-        lastQStartMonth,
-      )}-${monthNameAbbrev(lastQStartMonth + 2)})`
+      periodString = `${lastY} Q${lastQ} (${monthNameAbbrev(lastQStartMonth)}-${monthNameAbbrev(lastQStartMonth + 2)})`
       break
     }
     case 'qtd': {
@@ -221,9 +202,7 @@ export async function getPeriodStartEndDates(
       const thisQStartMonth = (thisQ - 1) * 3 + 1
       fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y, thisQStartMonth, 1, 0, 0, 0), 'minute', -TZOffset) // start of this quarter
       toDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset)
-      periodString = `${y} Q${thisQ} (${monthNameAbbrev(
-        thisQStartMonth,
-      )}-${monthNameAbbrev(thisQStartMonth + 2)})`
+      periodString = `${y} Q${thisQ} (${monthNameAbbrev(thisQStartMonth)}-${monthNameAbbrev(thisQStartMonth + 2)})`
       periodPartStr = `(to ${todaysDateISOString})`
       break
     }
@@ -236,13 +215,12 @@ export async function getPeriodStartEndDates(
       toDate = t
       toDate = Calendar.addUnitToDate(fromDate, 'month', 3) // +1 quarter
       toDate = Calendar.addUnitToDate(toDate, 'day', -1) // -1 day, to get last day of last month
-      periodString = `${theY} Q${theQ} (${monthNameAbbrev(
-        theQStartMonth,
-      )}-${monthNameAbbrev(theQStartMonth + 2)})`
+      periodString = `${theY} Q${theQ} (${monthNameAbbrev(theQStartMonth)}-${monthNameAbbrev(theQStartMonth + 2)})`
       break
     }
-    
-    case 'lw': { // last week
+
+    case 'lw': {
+      // last week
       let theY = y
       const currentWeekNum = getWeek(todaysDate)
       // First deal with edge case: after start of ordinal year but before first week starts
@@ -256,11 +234,12 @@ export async function getPeriodStartEndDates(
       } else {
         lastWeekNum = currentWeekNum - 1
       }
-      [ fromDate, toDate ] = weekStartEnd(lastWeekNum, theY)
+      ;[fromDate, toDate] = weekStartEnd(lastWeekNum, theY)
       periodString = `W${lastWeekNum} ${theY}`
       break
     }
-    case 'wtd': { // week to date
+    case 'wtd': {
+      // week to date
       let theY = y
       const currentWeekNum = getWeek(todaysDate)
       // First deal with edge case: after start of ordinal year but before first week starts
@@ -274,7 +253,8 @@ export async function getPeriodStartEndDates(
       periodString = `W${currentWeekNum} ${theY}`
       break
     }
-    case 'ow': { // other week
+    case 'ow': {
+      // other week
       const theYear = Number(await getInput(`Choose year, e.g. ${y}`, 'OK'))
       const weekNum = Number(await getInput('Choose week number, 1-53', 'OK'))
       // I don't know why the [from, to] form doesn't work here, but using tempObj instead
@@ -317,7 +297,7 @@ export async function getPeriodStartEndDates(
  * Return list of lines matching the specified string in the specified project or daily notes.
  * NB: If starting now, I would try to use a different return type, probably tuples not 2 distinct arrays.
  * @author @jgclark
- * 
+ *
  * @param {array} notes - array of Notes to look over
  * @param {string} stringToLookFor - string to look for
  * @param {boolean} highlightOccurrences - whether to enclose found string in ==highlight marks==
@@ -330,7 +310,6 @@ export async function gatherMatchingLines(
   highlightOccurrences: boolean = true,
   dateStyle: string = 'link',
 ): Promise<[Array<string>, Array<string>]> {
-
   log(pluginJson, `Looking for '${stringToLookFor}' in ${notes.length} notes`)
   CommandBar.showLoading(true, `Searching in ${notes.length} notes ...`)
   await CommandBar.onAsyncThread()
@@ -340,18 +319,19 @@ export async function gatherMatchingLines(
   let i = 0
   for (const n of notes) {
     i += 1
-    const noteContext = (n.date == null)
-      ? `[[${n.title ?? ''}]]`
-      : (dateStyle.startsWith('link')) // to deal with earlier typo where default was set to 'links'
-        // $FlowIgnore(incompatible-call)
-        ? ` >${hyphenatedDate(n.date)}`
-        : (dateStyle === 'date')
-          // $FlowIgnore(incompatible-call)
-          ? ` (${toLocaleDateTimeString(n.date)})`
-          : (dateStyle === 'at')
-            // $FlowIgnore(incompatible-call)
-            ? ` @${hyphenatedDate(n.date)}`
-            : ''
+    const noteContext =
+      n.date == null
+        ? `[[${n.title ?? ''}]]`
+        : dateStyle.startsWith('link') // to deal with earlier typo where default was set to 'links'
+        ? // $FlowIgnore(incompatible-call)
+          ` >${hyphenatedDate(n.date)}`
+        : dateStyle === 'date'
+        ? // $FlowIgnore(incompatible-call)
+          ` (${toLocaleDateTimeString(n.date)})`
+        : dateStyle === 'at'
+        ? // $FlowIgnore(incompatible-call)
+          ` @${hyphenatedDate(n.date)}`
+        : ''
     // find any matches
     const matchingParas = n.paragraphs.filter((q) => q.content.includes(stringToLookFor))
     for (const p of matchingParas) {
@@ -372,7 +352,7 @@ export async function gatherMatchingLines(
       noteContexts.push(noteContext)
     }
     if (i % 100 === 0) {
-      CommandBar.showLoading(true, `Searching in ${notes.length} notes ...`, (i / notes.length))
+      CommandBar.showLoading(true, `Searching in ${notes.length} notes ...`, i / notes.length)
     }
   }
   await CommandBar.onMainThread()
@@ -385,23 +365,21 @@ export async function gatherMatchingLines(
  * - Map of { tag, count } for all tags included or not excluded
  * - Map of { tag, total } for the subset of all tags above that finish with a /number
  * @author @jgclark
- * 
+ *
  * @param {string} fromDateStr - YYYYMMDD string of start date
  * @param {string} toDateStr - YYYYMMDD string of start date
  * @param {[string]} includedTerms - array of hashtags to include (takes precedence over excluded terms)
  * @param {[string]} excludedTerms - array of hashtags to exclude
  * @return {[Map, Map]}
-*/
+ */
 export async function calcHashtagStatsPeriod(
   fromDateStr: string,
   toDateStr: string,
-  includedTerms: [string],
-  excludedTerms: [string]
+  includedTerms: $ReadOnlyArray<string>,
+  excludedTerms: $ReadOnlyArray<string>,
 ): Promise<?[Map<string, number>, Map<string, number>]> {
   // Get all daily notes that are within this time period
-  const periodDailyNotes = DataStore.calendarNotes.filter((p) =>
-    withinDateRange( getDateStringFromCalendarFilename(p.filename), fromDateStr, toDateStr )
-  )
+  const periodDailyNotes = DataStore.calendarNotes.filter((p) => withinDateRange(getDateStringFromCalendarFilename(p.filename), fromDateStr, toDateStr))
   if (periodDailyNotes.length === 0) {
     logWarn(pluginJson, `no matching daily notes found between ${fromDateStr} and ${toDateStr}`)
     return
@@ -419,7 +397,7 @@ export async function calcHashtagStatsPeriod(
   // For each matching date, find and store the tags in Map
   const termCounts = new Map<string, number>() // key: tagname; value: count
   // Also define map to count and total hashtags with a final /number part.
-  const termSumTotals = new Map < string, number> () // key: tagname (except last part); value: total
+  const termSumTotals = new Map<string, number>() // key: tagname (except last part); value: total
 
   // Initialise the maps for terms that we're deliberately including
   for (let i = 0; i < includedTerms.length; i++) {
@@ -432,7 +410,7 @@ export async function calcHashtagStatsPeriod(
     // TODO(EduardMet): fix API bug
     // The following is a workaround to an API bug in note.hashtags where
     // #one/two/three gets reported as #one, #one/two, and #one/two/three.
-    // Go backwards through the hashtag array, and then check 
+    // Go backwards through the hashtag array, and then check
     const seenTags = n.hashtags.slice().reverse()
     let lastTag = ''
 
@@ -442,10 +420,7 @@ export async function calcHashtagStatsPeriod(
         continue
       }
       // check this is on inclusion, or not on exclusion list, before adding
-      if (
-        hashtagsToLookFor.length > 0 &&
-        hashtagsToLookFor.filter((a) => t.startsWith(a)).length === 0
-      ) {
+      if (hashtagsToLookFor.length > 0 && hashtagsToLookFor.filter((a) => t.startsWith(a)).length === 0) {
         // log(pluginJson, `\tIgnoring '${t}' as not on inclusion list`)
       } else if (hashtagsToIgnore.filter((a) => t.startsWith(a)).length > 0) {
         // log(pluginJson, `\tIgnoring '${t}' as on exclusion list`)
@@ -480,27 +455,25 @@ export async function calcHashtagStatsPeriod(
  *
  * @param {string} fromDateStr - YYYYMMDD string of start date
  * @param {string} toDateStr - YYYYMMDD string of start date
- * @param {[string]} includedTerms - array of hashtags to include (takes precedence over excluded terms)
- * @param {[string]} excludedTerms - array of hashtags to exclude
+ * @param {$ReadOnlyArray<string>} includedTerms - array of hashtags to include (takes precedence over excluded terms)
+ * @param {$ReadOnlyArray<string>} excludedTerms - array of hashtags to exclude
  * @return {Map, Map} maps of {tag, count}
-*/
+ */
 export async function calcMentionStatsPeriod(
   fromDateStr: string,
   toDateStr: string,
-  includedTerms: [string],
-  excludedTerms: [string]
+  includedTerms: $ReadOnlyArray<string>,
+  excludedTerms: $ReadOnlyArray<string>,
 ): Promise<?[Map<string, number>, Map<string, number>]> {
   // Get all daily notes that are within this time period
-  const periodDailyNotes = DataStore.calendarNotes.filter((p) =>
-    withinDateRange( getDateStringFromCalendarFilename(p.filename), fromDateStr, toDateStr )
-  )
+  const periodDailyNotes = DataStore.calendarNotes.filter((p) => withinDateRange(getDateStringFromCalendarFilename(p.filename), fromDateStr, toDateStr))
 
   if (periodDailyNotes.length === 0) {
     logWarn(pluginJson, 'no matching daily notes found')
     return
   }
 
-  if (includedTerms.length === 0 && excludedTerms.length ===0) {
+  if (includedTerms.length === 0 && excludedTerms.length === 0) {
     logWarn(pluginJson, `no included or excluded mention terms passed, so returning nothing`)
     return
   }
@@ -512,8 +485,8 @@ export async function calcMentionStatsPeriod(
   // For each matching date, find and store the mentions in Map TODO: consider using Objects not Maps
   const termCounts = new Map<string, number>() // key: tagname; value: count
   // Also define map to count and total hashtags with a final /number part.
-  const termSumTotals = new Map < string, number> () // key: mention name (except last part); value: total
-  
+  const termSumTotals = new Map<string, number>() // key: mention name (except last part); value: total
+
   // Initialise the maps for terms that we're deliberately including
   // TODO: In time will want more flexibility here
   for (let i = 0; i < includedTerms.length; i++) {
@@ -526,7 +499,7 @@ export async function calcMentionStatsPeriod(
     // TODO(EduardMet): fix API bug
     // The following is a workaround to an API bug in note.mentions where
     // #one/two/three gets reported as #one, #one/two, and #one/two/three.
-    // Go backwards through the mention array, and then check 
+    // Go backwards through the mention array, and then check
     const seenMentions = n.mentions.slice().reverse()
     let lastMention = ''
 
@@ -536,10 +509,7 @@ export async function calcMentionStatsPeriod(
         continue
       }
       // check this is on inclusion, or not on exclusion list, before adding
-      if (
-        mentionsToLookFor.length > 0 &&
-        mentionsToLookFor.filter((a) => m.startsWith(a)).length === 0
-      ) {
+      if (mentionsToLookFor.length > 0 && mentionsToLookFor.filter((a) => m.startsWith(a)).length === 0) {
         // log(pluginJson, `\tIgnoring '${m}' as not on inclusion list`)
       } else if (mentionsToIgnore.filter((a) => m.startsWith(a)).length > 0) {
         // log(pluginJson, `\tIgnoring '${m} as on exclusion list`)

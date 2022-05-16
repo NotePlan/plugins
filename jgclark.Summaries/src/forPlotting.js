@@ -6,49 +6,32 @@
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import {
-  calcHashtagStatsPeriod,
-  calcMentionStatsPeriod,
-  getSummariesSettings,
-} from './summaryHelpers'
+import { calcHashtagStatsPeriod, calcMentionStatsPeriod, getSummariesSettings } from './summaryHelpers'
 import type { SummariesConfig } from './summaryHelpers'
-import {
-  calcWeekOffset,
-  getWeek,
-  hyphenatedDateString,
-  unhyphenatedDate,
-  weekStartEnd,
-} from '../../helpers/dateTime'
+import { calcWeekOffset, getWeek, hyphenatedDateString, unhyphenatedDate, weekStartEnd } from '../../helpers/dateTime'
 import { log, logWarn, logError } from '../../helpers/dev'
-import {
-  clearNote,
-  getOrMakeNote
-} from '../../helpers/note'
-import {
-  chooseOption,
-  getInput,
-  showMessage,
-} from '../../helpers/userInput'
+import { clearNote, getOrMakeNote } from '../../helpers/note'
+import { chooseOption, getInput, showMessage } from '../../helpers/userInput'
 
 //-----------------------------------------------------------------------------
 
- /**
-  * Transform CSV format into a CSV ready to be charted using gnuplot
-  * 
-  * Input Format:
-  *   tag/mention name,YYYY-MM-DD,count[,total][,average]
-  * 
-  * Output Format:
-  *   tag/mention name
-  *   YYYY-MM-DD,count,total,average
-  *   <2 blank lines>
-  *   <repeat>
-  * 
-  * TODO: also add single blank line to notate missing data point(s)
-  * @author @jgclark
-  * 
-  * @param {[string]} inArray - array of CSV strings
-  * @return {[string]} - output array ready for gnuplot
+/**
+ * Transform CSV format into a CSV ready to be charted using gnuplot
+ *
+ * Input Format:
+ *   tag/mention name,YYYY-MM-DD,count[,total][,average]
+ *
+ * Output Format:
+ *   tag/mention name
+ *   YYYY-MM-DD,count,total,average
+ *   <2 blank lines>
+ *   <repeat>
+ *
+ * TODO: also add single blank line to notate missing data point(s)
+ * @author @jgclark
+ *
+ * @param {[string]} inArray - array of CSV strings
+ * @return {[string]} - output array ready for gnuplot
  */
 function formatForGnuplot(inArray): Array<string> {
   const outArray = []
@@ -57,7 +40,7 @@ function formatForGnuplot(inArray): Array<string> {
   let firstKey = true
   for (const line of inArray) {
     const lineParts = line.split(',')
-    thisKey = lineParts[0].replace('@','\\\\@') // in gnuplot '@' is a special character that needs to be double-escaped
+    thisKey = lineParts[0].replace('@', '\\\\@') // in gnuplot '@' is a special character that needs to be double-escaped
     const CSV = lineParts.slice(1).join(',') // all the other items, rejoined with commas
     if (thisKey !== lastKey) {
       if (!firstKey) {
@@ -98,7 +81,7 @@ export async function weeklyStats(): Promise<void> {
   // If preference for weekly stats duration is not given,
   // ask user what time interval to do tag counts for
   if (config.weeklyStatsDuration === undefined) {
-    period = await chooseOption(
+    period = await chooseOption<number>(
       'Select which time period to cover',
       [
         {
@@ -143,14 +126,16 @@ export async function weeklyStats(): Promise<void> {
     startWeek = Number(await getInput('Choose starting week number, 1-53', 'OK'))
     endYear = Number(await getInput('Choose ending year, e.g. 2021', 'OK'))
     endWeek = Number(await getInput('Choose ending week number, 1-53', 'OK'))
-    period = (endYear - startYear)*52 + (endWeek - startWeek) // in weeks
+    period = (endYear - startYear) * 52 + (endWeek - startWeek) // in weeks
   } else {
     // Calculate week range from answer, asking for date offset _before_ current week
     const currentWeekNum = getWeek(todaysDate)
     // First deal with edge case: after start of ordinal year but before first week starts
-    if (currentWeekNum === 52 &&  // i.e. last week of the year AND
-      todaysDate.getMonth() == 0) // i.e. first month of the year (counting from 0)
-    {
+    if (
+      currentWeekNum === 52 && // i.e. last week of the year AND
+      todaysDate.getMonth() == 0
+    ) {
+      // i.e. first month of the year (counting from 0)
       thisYear -= 1
     }
     let answer = calcWeekOffset(thisWeek, thisYear, Number(-period))
@@ -168,7 +153,7 @@ export async function weeklyStats(): Promise<void> {
 
   const hResultsArray = []
   const mResultsArray = []
-  
+
   // For every week of interest calculate stats and add to the two output arrays
   let w = startWeek
   let y = startYear
@@ -183,10 +168,7 @@ export async function weeklyStats(): Promise<void> {
     const [weekStartDate, weekEndDate] = weekStartEnd(w, y)
 
     // Calc hashtags stats (returns two maps)
-    let weekResults = await calcHashtagStatsPeriod(
-      unhyphenatedDate(weekStartDate), unhyphenatedDate(weekEndDate),
-      // $FlowIgnore[invalid-tuple-arity]
-      config.includeHashtags, [])
+    let weekResults = await calcHashtagStatsPeriod(unhyphenatedDate(weekStartDate), unhyphenatedDate(weekEndDate), config.includeHashtags, [])
     const hCounts = weekResults?.[0]
     const hSumTotals = weekResults?.[1]
     if (hSumTotals == null || hCounts == null) {
@@ -202,9 +184,7 @@ export async function weeklyStats(): Promise<void> {
       if (count != null) {
         const total: string = value.toFixed(0)
         const average: string = (value / count).toFixed(1)
-        hResultsArray.push(
-          `${hashtagString},${hyphenatedDateString(weekStartDate)},${average},${count},${total}`,
-        )
+        hResultsArray.push(`${hashtagString},${hyphenatedDateString(weekStartDate)},${average},${count},${total}`)
         hCounts.delete(key) // remove the entry from the next map, as not longer needed
       }
     }
@@ -217,9 +197,12 @@ export async function weeklyStats(): Promise<void> {
 
     // Calc mentions stats (returns two maps)
     weekResults = await calcMentionStatsPeriod(
-      unhyphenatedDate(weekStartDate), unhyphenatedDate(weekEndDate),
+      unhyphenatedDate(weekStartDate),
+      unhyphenatedDate(weekEndDate),
       // $FlowIgnore[invalid-tuple-arity]
-      config.includeMentions, [])
+      config.includeMentions,
+      [],
+    )
     const mCounts = weekResults?.[0]
     const mSumTotals = weekResults?.[1]
     if (mCounts == null || mSumTotals == null) {
@@ -234,9 +217,7 @@ export async function weeklyStats(): Promise<void> {
       if (count != null) {
         const total = value.toFixed(0)
         const average = (value / count).toFixed(1)
-        mResultsArray.push(
-          `${mentionString},${hyphenatedDateString(weekStartDate)},${average},${count},${total}`,
-        )
+        mResultsArray.push(`${mentionString},${hyphenatedDateString(weekStartDate)},${average},${count},${total}`)
         mCounts.delete(key) // remove the entry from the next map, as not longer needed
       }
     }
@@ -247,7 +228,7 @@ export async function weeklyStats(): Promise<void> {
     }
 
     // Update UI wait dialog
-    CommandBar.showLoading(true, `Calculating weekly stats over ${period} weeks`, (counter / period))
+    CommandBar.showLoading(true, `Calculating weekly stats over ${period} weeks`, counter / period)
   }
   await CommandBar.onMainThread()
   CommandBar.showLoading(false)
