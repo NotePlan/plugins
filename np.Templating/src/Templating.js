@@ -275,21 +275,66 @@ export async function templateNew(): Promise<void> {
 
 /**
  * Process a template that provides an existing filename or <today> for today's Calendar Note
+ * The unique title of the template to run must be passed in as the first argument
  * TODO:
  * - add Presets to documentation
+ * - .addParagraphBelowHeadingTitle(title, paragraphType, headingTitle, shouldAppend: Bool, shouldCreate)
+ *
  */
-export async function templateExistingFile(selectedTemplate: string): Promise<void> {
+export async function templateFileByTitle(templatetitle?: string, openInEditor?: boolean = false): Promise<void> {
   try {
     // get template and start processing
+    const selectedTemplate = templatetitle ?? `zTesting/templateFileByTitle testing` //FIXME: remove this string and make it ''
+    if (!selectedTemplate || selectedTemplate.length === 0) {
+      await CommandBar.prompt(`templateFileByTitle: no templateTitle was specified."`, helpInfo('Presets'))
+    }
+    let failed = false
     const templateData = await NPTemplating.getTemplate(selectedTemplate)
+    if (!templateData) {
+      failed = true
+    }
     const isFrontmatter = new FrontmatterModule().isFrontmatterTemplate(templateData)
-    const templateAttributes = await NPTemplating.getTemplateAttributes(templateData)
-    if (isFrontmatter) {
+    if (!failed && isFrontmatter) {
+      const templateAttributes = await NPTemplating.getTemplateAttributes(templateData)
       const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
+      // Note: frontmatterAttributes and templateAttributes are the same
+      const { openNoteTitle, writeNoteTitle } = frontmatterAttributes
+      let noteTitle = (openNoteTitle && openNoteTitle.trim()) || (writeNoteTitle && writeNoteTitle?.trim()) || ''
+      let shouldOpenInEditor = openNoteTitle && openNoteTitle.length > 0
+      const isTodayNote = /<today>/i.test(openNoteTitle)
+      let note
+      if (isTodayNote) {
+        await Editor.openNoteByDate(new Date(), false)
+      } else {
+        // open note specified
+        if (noteTitle.length) {
+          const notes = await DataStore.projectNoteByTitle(noteTitle)
+          if (!notes || notes.length == 0 || (notes && notes.length > 1)) {
+            const msg = `${!notes || notes.length == 0 ? 'no' : notes.length > 1 ? 'more than one' : ''}`
+            await CommandBar.prompt(`"${noteTitle}" matches ${msg} note(s) title. the title needs to be distinct to ensure correct note is written to.`, helpInfo('Presets'))
+          } else {
+            note = notes[0] || null
+            if (!note) {
+              await CommandBar.prompt(`Unable to locate note matching: "${noteTitle}"`, helpInfo('Presets'))
+            } else {
+              // we're good to go
+              log(pluginJson, `openNoteTitle: "${noteTitle}" matches note: ${note.title ?? ''}`)
+              clo(note, `correct note contents:`)
+              if (shouldOpenInEditor) {
+                const _ = await Editor.openNoteByFilename(note.filename)
+              }
+            }
+          }
+        } else {
+          await CommandBar.prompt(`openNoteTitle or writeNotetitle is required`, helpInfo('Presets'))
+        }
+      }
     } else {
       await CommandBar.prompt(`Unable to locate template "${selectedTemplate}"`, helpInfo('Presets'))
     }
-  } catch (error) {}
+  } catch (error) {
+    logError(pluginJson, error)
+  }
 }
 
 export async function templateQuickNote(noteName: string = ''): Promise<void> {

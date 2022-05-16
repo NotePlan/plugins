@@ -94,6 +94,10 @@ Also, it should be encouraged to rename "📋 Templates" to another name "📋 T
 - added default date/time prompt value when when using `np:mtn` (uses `timestampFormat` format in `np.Templating` settings)
 - updated README command reference
 
+## [1.1.0] - 2022-04-15 (dwertheimer)
+
+- Added support for templateFileByTitle
+
 ## [1.0.0] - 2022-04-14 (mikeerickson)
 
 - Public Release

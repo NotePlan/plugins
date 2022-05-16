@@ -98,6 +98,14 @@
       "alias": [],
       "description": "np.Templating About...",
       "jsFunction": "templateAbout"
+    },
+    {
+      "name": "np:tft",
+      "alias": [
+        "Template file by title"
+      ],
+      "description": "Run a template file by title/preset",
+      "jsFunction": "templateFileByTitle"
     }
   ],
   "plugin.settings": [
