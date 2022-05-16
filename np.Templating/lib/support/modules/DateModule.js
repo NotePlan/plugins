@@ -4,10 +4,7 @@
  * -----------------------------------------------------------------------------------------*/
 
 import moment from 'moment/min/moment-with-locales'
-// import moment from 'moment-business-days'
-
 import { default as momentBusiness } from 'moment-business-days'
-import { clo } from '@helpers/dev'
 
 export const DAY_NUMBER_SUNDAY = 0
 export const DAY_NUMBER_MONDAY = 1
@@ -18,7 +15,7 @@ export const DAY_NUMBER_FRIDAY = 5
 export const DAY_NUMBER_SATURDAY = 6
 
 export function createDateTime(userDateString = '') {
-  return userDateString.length === 10 ? new Date(`${userDateString}T00:01:00`).toLocaleString() : new Date().toLocaleString()
+  return userDateString.length === 10 ? new Date(`${userDateString}T00:01:00`) : new Date()
 }
 
 export function format(format: string = 'YYYY-MM-DD', dateString: string = '') {
@@ -70,7 +67,7 @@ export default class DateModule {
   // convert supplied date value into something that NotePlan can actually handle
   // requiring YYYY-MM-DDThh:mm:ss format
   createDateTime(userDateString = '') {
-    return userDateString.length === 10 ? new Date(`${userDateString}T00:01:00`).toLocaleString() : new Date().toLocaleString()
+    return userDateString.length === 10 ? new Date(`${userDateString}T00:01:00`) : new Date()
   }
 
   timestamp(format = '') {
@@ -275,50 +272,46 @@ export default class DateModule {
   }
 
   businessAdd(numDays = 1, pivotDate = '', format = '') {
+    const locale = this.config?.templateLocale || 'en-US'
     const configFormat = this.config?.dateFormat || 'YYYY-MM-DD'
     const dtFormat = format.length > 0 ? format : configFormat
-    const localeDate = this.createDateTime(pivotDate)
 
-    const result = momentBusiness(new Date(localeDate), 'YYYY-MM-DD').businessAdd(numDays)
+    const dt = pivotDate.length === 10 ? new Date(`${pivotDate}T00:01:00`) : new Date()
+    let result = momentBusiness(dt).businessAdd(numDays)
 
-    return result.format(dtFormat)
+    let formattedDate = result.format(dtFormat)
+    if (dtFormat === 'short' || dtFormat === 'medium' || dtFormat === 'long' || dtFormat === 'full') {
+      formattedDate = new Intl.DateTimeFormat(locale, { dateStyle: dtFormat }).format(result)
+    }
+
+    return formattedDate
   }
 
   businessSubtract(numDays = 1, pivotDate = '', format = '') {
+    const locale = this.config?.templateLocale || 'en-US'
     const configFormat = this.config?.dateFormat || 'YYYY-MM-DD'
     const dtFormat = format.length > 0 ? format : configFormat
-    const localeDate = this.createDateTime(pivotDate)
 
-    const result = momentBusiness(new Date(localeDate), 'YYYY-MM-DD').businessSubtract(numDays)
+    const dt = pivotDate.length === 10 ? new Date(`${pivotDate}T00:01:00`) : new Date()
+    let result = momentBusiness(dt).businessSubtract(numDays)
 
-    return result.format(dtFormat)
+    let formattedDate = result.format(dtFormat)
+    if (dtFormat === 'short' || dtFormat === 'medium' || dtFormat === 'long' || dtFormat === 'full') {
+      formattedDate = new Intl.DateTimeFormat(locale, { dateStyle: dtFormat }).format(result)
+    }
+
+    return formattedDate
   }
 
   nextBusinessDay(pivotDate = '', format = '') {
-    const configFormat = this.config?.dateFormat || 'YYYY-MM-DD'
-    const dtFormat = format.length > 0 ? format : configFormat
-    const localeDate = this.createDateTime(pivotDate)
-
-    const nextBusinessDay = momentBusiness(new Date(localeDate), dtFormat).nextBusinessDay()
-
-    const result = new Date(nextBusinessDay)
-
-    return moment(result).format(dtFormat)
+    return this.businessAdd(1, pivotDate, format)
   }
 
   previousBusinessDay(pivotDate = '', format = '') {
-    const configFormat = this.config?.dateFormat || 'YYYY-MM-DD'
-    const dtFormat = format.length > 0 ? format : configFormat
-    const localeDate = this.createDateTime(pivotDate)
-
-    const nextBusinessDay = momentBusiness(new Date(localeDate), dtFormat).prevBusinessDay()
-
-    const result = new Date(nextBusinessDay)
-
-    return moment(result).format(dtFormat)
+    return this.businessSubtract(1, pivotDate, format)
   }
 
-  fromNow(pivotDate = '') {
+  fromNow(pivotDate = '', offset = '') {
     return 'INCOMPLETE'
   }
 

@@ -15,9 +15,9 @@ import pluginJson from '../plugin.json'
 
 export async function insertNoteTemplate(templateFilename, dailyNoteDate): Promise<void> {
   log(pluginJson, 'chooseTemplateIfNeeded')
-  templateFilename = await chooseTemplateIfNeeded(templateFilename, false)
+  const templateFilename = await chooseTemplateIfNeeded(origFileName, false)
 
-  let templateContent = DataStore.projectNoteByFilename(templateFilename).content
+  let templateContent = DataStore.projectNoteByFilename(templateFilename)?.content
   const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateContent)
 
   const result = await NPTemplating.render(frontmatterBody, frontmatterAttributes)
@@ -30,7 +30,7 @@ export async function insertNoteTemplate(templateFilename, dailyNoteDate): Promi
   }
 }
 
-export async function newMeetingNote(selectedEvent, templateFilename): Promise<void> {
+export async function newMeetingNote(selectedEvent, templateFilename: string): Promise<void> {
   log(pluginJson, 'chooseTemplateIfNeeded')
   templateFilename = await chooseTemplateIfNeeded(templateFilename, true)
 
@@ -56,8 +56,8 @@ export async function newMeetingNote(selectedEvent, templateFilename): Promise<v
     log(pluginJson, 'render template')
     let result = await NPTemplating.render(frontmatterBody, frontmatterAttributes)
 
-    if(newNoteTitle.length > 0) {
-      result = "# " + newNoteTitle + "\n" + result
+    if (newNoteTitle.length > 0) {
+      result = '# ' + newNoteTitle + '\n' + result
     }
 
     log(pluginJson, 'insert template')
@@ -97,43 +97,50 @@ async function appendPrependNewNote(append, prepend, folder, content) {
   let noteName = append || prepend
 
   let note = undefined
-  if(noteName == "<select>") {
+  if (noteName == '<select>') {
     let notes = DataStore.projectNotes.sort((a, b) => a.changedDate < b.changedDate)
 
     // If a folder was defined, filter down the options
-    if(folder) {
-      let filteredNotes = notes.filter(n => n.filename.startsWith(folder))
-      if(filteredNotes.length > 0) { // If it's empty, show all notes
+    if (folder) {
+      let filteredNotes = notes.filter((n) => n.filename.startsWith(folder))
+      if (filteredNotes.length > 0) {
+        // If it's empty, show all notes
         notes = filteredNotes
       }
     }
 
-    let selection = await CommandBar.showOptions(notes.map(n => n.title), "Select a note")
+    let selection = await CommandBar.showOptions(
+      notes.map((n) => n.title),
+      'Select a note',
+    )
     note = notes[selection.index]
-  } else if(noteName == "<current>") {
+  } else if (noteName == '<current>') {
     note = Editor.note
   } else {
     // TODO: We don't know if its a title or a filename, so try first looking for a filename, then title
     let availableNotes = DataStore.projectNoteByTitle(noteName)
     note = availableNotes[0]
 
-    if(folder) { // Look for the note in the defined folder
-      let filteredNotes = availableNotes.filter(n => n.filename.startsWith(folder))
-      if(filteredNotes.length > 0) {
+    if (folder) {
+      // Look for the note in the defined folder
+      let filteredNotes = availableNotes.filter((n) => n.filename.startsWith(folder))
+      if (filteredNotes.length > 0) {
         note = filteredNotes[0]
       }
     }
   }
 
-  if(!note) {
-    if(!folder) { folder = "" }
+  if (!note) {
+    if (!folder) {
+      folder = ''
+    }
 
     let filename = DataStore.newNote(noteName, folder)
-    if(filename) {
+    if (filename) {
       note = DataStore.projectNoteByFilename(filename)
     }
 
-    if(!note) {
+    if (!note) {
       CommandBar.prompt("Could not find or create the note '" + noteName + "'")
       return null
     }
@@ -150,7 +157,7 @@ async function appendPrependNewNote(append, prepend, folder, content) {
   await Editor.openNoteByFilename(note.filename)
 
   // Scroll to the paragraph if we appended it
-  if(append) {
+  if (append) {
     Editor.select(originalContentLength + 3, 0)
   }
 
@@ -158,22 +165,21 @@ async function appendPrependNewNote(append, prepend, folder, content) {
 }
 
 async function newNoteWithFolder(content, folder) {
-  if(folder == "<select>") {
+  if (folder == '<select>') {
     let folders = DataStore.folders
-    let selection = await CommandBar.showOptions(folders, "Select a folder")
+    let selection = await CommandBar.showOptions(folders, 'Select a folder')
     folder = folders[selection.index]
+  } else if (folder == '<current>') {
+    let currentFilename = ''
 
-  } else if(folder == "<current>") {
-    let currentFilename = ""
+    if (Editor.note) {
+      currentFilename = Editor.note.filename.split('/')
 
-    if(Editor.note) {
-      currentFilename = Editor.note.filename.split("/")
-
-      if(currentFilename.length > 1) {
+      if (currentFilename.length > 1) {
         currentFilename.pop()
-        folder = currentFilename.join("/")
+        folder = currentFilename.join('/')
       } else {
-        folder = ""
+        folder = ''
       }
     } else {
       folder = NotePlan.selectedSidebarFolder
@@ -189,17 +195,19 @@ async function newNoteWithFolder(content, folder) {
 }
 
 async function chooseTemplateIfNeeded(templateFilename, onlyMeetingNotes) {
-  if(!templateFilename) {
-    let templates = DataStore.projectNotes
-        .filter(n => n.filename.startsWith(NotePlan.environment.templateFolder))
+  if (!templateFilename) {
+    let templates = DataStore.projectNotes.filter((n) => n.filename.startsWith(NotePlan.environment.templateFolder))
 
-    if(onlyMeetingNotes) {
-      templates = templates.filter(n => fm(n.content)?.attributes.type == "meeting-note")
+    if (onlyMeetingNotes) {
+      templates = templates.filter((n) => fm(n.content)?.attributes.type == 'meeting-note')
     } else {
-      templates = templates.filter(n => fm(n.content)?.attributes.type != "meeting-note")
+      templates = templates.filter((n) => fm(n.content)?.attributes.type != 'meeting-note')
     }
 
-    let selectedTemplate = await CommandBar.showOptions(templates.map(n => n.title), "Select a template")
+    let selectedTemplate = await CommandBar.showOptions(
+      templates.map((n) => n.title),
+      'Select a template',
+    )
     templateFilename = templates[selectedTemplate.index].filename
   }
 
@@ -207,22 +215,25 @@ async function chooseTemplateIfNeeded(templateFilename, onlyMeetingNotes) {
 }
 
 async function chooseEventIfNeeded(selectedEvent) {
-  if(!selectedEvent) {
+  if (!selectedEvent) {
     let events = undefined
 
-    if(Editor.type == "Calendar") {
+    if (Editor.type == 'Calendar') {
       let date = Editor.note.date
       events = await Calendar.eventsBetween(date, date)
     } else {
       events = await Calendar.eventsToday()
     }
 
-    if(events.length == 0) {
-      CommandBar.prompt("No events on the selected day, try another.")
+    if (events.length == 0) {
+      CommandBar.prompt('No events on the selected day, try another.')
       return
     }
 
-    let selectedEventValue = await CommandBar.showOptions(events.map(event => event.title), "Select an event")
+    let selectedEventValue = await CommandBar.showOptions(
+      events.map((event) => event.title),
+      'Select an event',
+    )
     selectedEvent = events[selectedEventValue.index]
   }
 
@@ -236,9 +247,9 @@ function generateTemplateData(selectedEvent) {
       eventNotes: selectedEvent.notes,
       eventLink: selectedEvent.url,
       calendarItemLink: selectedEvent.calendarItemLink,
-      eventAttendees: selectedEvent.attendees.join(", "),
+      eventAttendees: selectedEvent.attendees.join(', '),
       eventLocation: selectedEvent.location,
-      eventCalendar: selectedEvent.calendar
+      eventCalendar: selectedEvent.calendar,
     },
     methods: {
       eventDate: (format: string = 'YYYY MM DD') => {
@@ -247,6 +258,6 @@ function generateTemplateData(selectedEvent) {
       eventEndDate: (format: string = 'YYYY MM DD') => {
         return moment(selectedEvent.endDate).format(`${format}`)
       },
-    }
+    },
   }
 }

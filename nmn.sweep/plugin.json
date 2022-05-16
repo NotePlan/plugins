@@ -6,8 +6,8 @@
   "plugin.icon": "f120",
   "plugin.author": "Naman Goel & Eduard & dwertheimer",
   "plugin.repoUrl": "tbd",
-  "plugin.version": "1.4.3",
-  "plugin.dependencies": [ ],
+  "plugin.version": "1.4.4",
+  "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
   "plugin.commands": [
@@ -25,6 +25,13 @@
       "name": "sw7",
       "description": "Find all open tasks for last 7 days & silently move/reschedule to today",
       "jsFunction": "sweep7"
-    }  ],
+    },
+    {
+      "name": "sweepTemplate",
+      "description": "Find all open tasks for last 7 days & silently move/reschedule to today",
+      "jsFunction": "sweepTemplate",
+      "hidden": true
+    }
+  ],
   "plugin.preferences": []
 }

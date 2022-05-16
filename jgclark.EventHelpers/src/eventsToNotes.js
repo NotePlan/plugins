@@ -1,7 +1,7 @@
 // @flow
 // ----------------------------------------------------------------------------
 // Command to bring calendar events into notes
-// Last updated 6.5.2022 for v0.15.1, by @jgclark
+// Last updated 13.5.2022 for v0.16.0, by @jgclark
 // @jgclark, with additions by @dwertheimer, @weyert, @m1well
 // ----------------------------------------------------------------------------
 
@@ -9,9 +9,17 @@ import pluginJson from "../plugin.json"
 import { getEventsSettings } from './config'
 import { attendeesAsString } from '../../helpers/calendar'
 import { getEventsForDay, type EventsConfig } from '../../helpers/NPCalendar'
+import {
+  calcOffsetDateStr,
+  getDateStringFromCalendarFilename,
+  getDateFromUnhyphenatedDateString,
+  getISODateStringFromYYYYMMDD,
+  toLocaleDateString,
+  toLocaleTime,
+  unhyphenatedDate,
+  unhyphenateString,
+} from '../../helpers/dateTime'
 import { clo, log, logWarn, logError } from '../../helpers/dev'
-import { getDateStringFromCalendarFilename, getISODateStringFromYYYYMMDD, getDateFromUnhyphenatedDateString, toLocaleDateString, toLocaleTime, unhyphenatedDate } from '../../helpers/dateTime'
-import { calcOffsetDate } from '../../helpers/NPdateTime'
 import { getTagParamsFromString, stringReplace } from '../../helpers/general'
 import { showMessage } from '../../helpers/userInput'
 
@@ -59,8 +67,7 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
     for (let i = 0; i < daysToCover; i++) {
       // Set dateStr to the day in question (YYYYMMDD)
       const isoBaseDateStr = getISODateStringFromYYYYMMDD(baseDateStr)
-      const cOD = calcOffsetDate(isoBaseDateStr, `+${i}d`)
-      const dateStr = unhyphenatedDate(cOD)
+      const dateStr = unhyphenateString(calcOffsetDateStr(isoBaseDateStr, `+${i}d`))
 
       // Add heading if wanted, or if doing more than 1 day
       if (daysToCover > 1) {
@@ -108,6 +115,7 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
   }
   catch (err) {
     logError(pluginJson, err.message)
+    return '(error)'
   }
 }
 
@@ -170,7 +178,7 @@ export async function listMatchingDaysEvents(
   // For each day to cover
   for (let i = 0; i < daysToCover; i++) {
     // Set dateStr to the day in question (YYYYMMDD)
-    let dateStr = unhyphenatedDate(calcOffsetDate(getISODateStringFromYYYYMMDD(baseDateStr), `+${i}d`))
+    let dateStr = unhyphenateString(calcOffsetDateStr(getISODateStringFromYYYYMMDD(baseDateStr), `+${i}d`))
 
     // Add heading if wanted, or if doing more than 1 day
     if (daysToCover > 1) {

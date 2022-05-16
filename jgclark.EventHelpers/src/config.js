@@ -1,7 +1,7 @@
 // @flow
 // ----------------------------------------------------------------------------
 // Sort configuration for commands in the Event Helpers plugin.
-// Last updated 2.5.2022 for v0.15.0, by @jgclark
+// Last updated 2.5.2022 for v0.15.0+, by @jgclark
 // @jgclark
 // ----------------------------------------------------------------------------
 
@@ -16,7 +16,6 @@ import {
 } from '../../helpers/dataManipulation'
 import { type HourMinObj } from '../../helpers/dateTime'
 import { clo, log, logWarn, logError } from "../../helpers/dev"
-import { calcOffsetDateStr } from '../../helpers/NPdateTime'
 import { type EventsConfig } from '../../helpers/NPCalendar'
 import { showMessage } from '../../helpers/userInput'
 

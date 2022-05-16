@@ -16,6 +16,7 @@ import FrontmatterModule from '@templatingModules/FrontmatterModule'
 
 import pluginJson from '../plugin.json'
 import { clo, log } from '@helpers/dev'
+import { debug } from '../lib/helpers'
 
 // this is a customized version of `ejs` adding support for async actions (use await in template)
 // review `Test (Async)` template for example`
@@ -196,9 +197,21 @@ export default class TemplatingEngine {
 
       return result
     } catch (error) {
-      const message = error.message
-      return message.replace(/ejs:/g, '**Template Error:** ')
-      // return this.templateErrorMessage('Templating.render', err.message)
+      const message = error.message.replace('\n\n', '')
+
+      let block = ''
+      if (error?.line) {
+        block = `\nline: ${error.line - 7}\n`
+
+        if (error?.column) {
+          block += `column: ${error.column}\n`
+        }
+        block += '\n'
+      }
+      let result =
+        '**An error occurred rendering template:**\n\n' + message.replace(/ejs:/gi, 'template line: ').replace('list.', 'list').replace('while compiling ejs', '') + block
+
+      return result
     }
   }
 

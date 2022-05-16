@@ -85,7 +85,13 @@ export async function getConfig(): Promise<{ [string]: [mixed] }> {
 // $FlowIgnore
 const editorOrNote: EditorOrNote = (note: EditorOrNote) => (Editor.filename === note?.filename || !note ? Editor : note)
 
-const editorIsOpenToToday = () => getDateStringFromCalendarFilename(Editor.filename) === getTodaysDateUnhyphenated()
+const editorIsOpenToToday = () => {
+  const fileName = Editor.filename
+  if (fileName == null) {
+    return false
+  }
+  return getDateStringFromCalendarFilename(fileName) === getTodaysDateUnhyphenated()
+}
 
 async function insertContentUnderHeading(destNote: TNote, headingToFind: string, parasAsText: string) {
   const topOfNote = destNote.type === 'Calendar' ? 0 : 1
@@ -172,7 +178,7 @@ async function insertItemsIntoNote(note, list, config) {
  * @param {*} defaultDuration
  * @returns
  */
-function getExistingTimeBlocksFromNoteAsEvents(note: TEditor | TNote, defaultDuration): Array<PartialCalendarItem> {
+function getExistingTimeBlocksFromNoteAsEvents(note: TEditor | TNote, defaultDuration: number): Array<PartialCalendarItem> {
   const timeBlocksAsEvents = []
   note.paragraphs.forEach((p) => {
     const timeblockDateRangePotentials = Calendar.parseDateText(p.content)
@@ -258,7 +264,7 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: an
   if (dateStr && dateStr === date) {
     const backlinkParas = getTodaysReferences(Editor.note, config)
     // console.log(`Found ${backlinkParas.length} backlinks+today-note items (may include completed items)`)
-    let todosParagraphs = makeAllItemsTodos(backlinkParas) //some items may not be todos but we want to pretend they are and timeblock for them
+    let todosParagraphs: Array<TParagraph> = makeAllItemsTodos(backlinkParas) //some items may not be todos but we want to pretend they are and timeblock for them
     todosParagraphs = includeTasksWithText?.length ? includeTasksWithPatterns(todosParagraphs, includeTasksWithText) : todosParagraphs
     // console.log(`After includeTasksWithText, ${todosParagraphs.length} potential items`)
     todosParagraphs = excludeTasksWithText?.length ? excludeTasksWithPatterns(todosParagraphs, excludeTasksWithText) : todosParagraphs

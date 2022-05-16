@@ -5,7 +5,9 @@
 
 import strftime from 'strftime'
 import moment from 'moment'
+import luxon from 'luxon'
 import {
+  getWeek,
   toISODateString,
   toISOShortDateTimeString
 } from './dateTime'
@@ -69,9 +71,9 @@ export function printDateRange(dr: DateRange) {
 }
 
 /**
- * Calculate an offset date, as a JS Date.
+ * DEPRECATED: Calculate an offset date, as a JS Date.
+ * **Now use version in helpers/dateTime.js which doesn't rely on NP APIs, and has tests!**
  * v2 method, using built-in NotePlan function 'Calendar.addUnitToDate(date, type, num)'
- * // TODO: see if moment library has got these sort of functions already
  * @author @jgclark
  * 
  * @param {string} baseDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type
@@ -154,7 +156,7 @@ export function calcOffsetDate(baseDateISO: string, interval: string): Date {
 }
 
 /**
- * Calculate an offset date, as a JS Date.
+ * DEPRECATED: Calculate an offset date, as ISO Strings.
  * v2 method, using built-in NotePlan function 'Calendar.addUnitToDate(date, type, num)'
  * NB: doesn't actually use NP functions, but to avoid a circular dependency it needs to be in this file.
  * @author @jgclark
@@ -167,13 +169,6 @@ export function calcOffsetDateStr(baseDateISO: string, interval: string): string
   const newDate = calcOffsetDate(baseDateISO, interval)
   return toISODateString(newDate)
 }
-
-// Expected output for various tests of this function
-// console.log(`2022-01-01 +0d  -> ${calcOffsetDateStr('2022-01-01', '+0d')}`) // 2022-01-01
-// console.log(`2022-01-01 +10d -> ${calcOffsetDateStr('2022-01-01', '+10d')}`) // 2022-01-11
-// console.log(`2022-01-01 -1d  -> ${calcOffsetDateStr('2022-01-01', '-1d')}`) // 2021-12-31
-// console.log(`2022-01-01 +2w  -> ${calcOffsetDateStr('2022-01-01', '+2w')}`) // 2022-01-15
-
 
 /**
  * Return quarter start and end dates for a given quarter
@@ -194,7 +189,7 @@ export function quarterStartEnd(qtr: number, year: number): [Date, Date] {
   // I.e. when in BST (=UTC+0100) it's calculating dates which are often 1 too early.
   // Get TZOffset in minutes. If positive then behind UTC; if negative then ahead.
   const TZOffset = new Date().getTimezoneOffset()
-  // TODO: This looks like a candidate for the moment() approach as well
+  // TODO: This looks like a candidate for the Luxon library as well
 
   switch (qtr) {
     case 1: {
@@ -225,61 +220,12 @@ export function quarterStartEnd(qtr: number, year: number): [Date, Date] {
   return [startDate, endDate]
 }
 
-// TODO: Finish moving references to this file from dateTime.js
-/**
- * Get week number for supplied date.
- * Uses ISO 8601 definition of week, except that week start is Sunday not Monday.
- * TODO: Use locale-specific first day of week (e.g. Mon for USA)
- * 
- * The ISO 8601 definition for week 01 is the week with the first Thursday of the Gregorian
- * year (i.e. of January) in it.  The following definitions based on properties of this week 
- * are mutually equivalent, since the ISO week starts with Monday:
- * - It is the first week with a majority (4 or more) of its days in January.
- * - Its first day is the Monday nearest to 1 January.
- * - It has 4 January in it
- * Code from https://stackoverflow.com/questions/6117814/get-week-of-year-in-javascript-like-in-php?noredirect=1&lq=1
- * Still, we need to be careful about assumptions at year boundary, as
- * for example 2022-01-01 is in week 52 of 2021.
- * @author @jgclark
- * 
- * @param {Date} inDate - the JS Date object of interest
- * @return {number} - the standardised week number
- */ 
-export function getWeek(inDate: Date): number {
-  const date = inDate instanceof Date
-    ? new Date(inDate.getFullYear(), inDate.getMonth(), inDate.getDate())
-    : new Date()
-
-  // ISO week date weeks start on Monday, so correct the day number
-  // const nDay = (date.getDay() + 6) % 7
-  // Get week date start on Sunday
-  const nDay = date.getDay()
-
-  // ISO 8601 states that week 1 is the week with the first Thursday of that year
-  // Set the target date to the Thursday in the target week
-  date.setDate(date.getDate() - nDay + 3)
-
-  // Store the millisecond value of the target date
-  const n1stThursday = date.valueOf()
-
-  // Set the target to the first Thursday of the year
-  // First, set the target to January 1st
-  date.setMonth(0, 1)
-
-  // Not a Thursday? Correct the date to the next Thursday
-  if (date.getDay() !== 4) {
-    date.setMonth(0, 1 + ((4 - date.getDay()) + 7) % 7)
-  }
-
-  // The week number is the number of weeks between the first Thursday of the year
-  // and the Thursday in the target week (604800000 = 7 * 24 * 3600 * 1000)
-  return 1 + Math.ceil((n1stThursday - date) / 604800000)
-}
 
 /**
  * Return start and end dates for a given week number. 
  * Uses ISO 8601 definition of week, except that week start is Sunday not Monday.
  * TODO: Use locale-specific first day of week (e.g. Mon for USA)
+ * TODO: Use luxon library to do date math, and move to dateTime.js
  * @author @jgclark
  * 
  * @param {number} week - week number in year (1-53)
@@ -301,39 +247,6 @@ export function weekStartEnd(week: number, year: number): [Date, Date] {
 
   const startDate: Date = Calendar.addUnitToDate(new Date(year,0,firstDay), 'day', (week-1)*7)
   const endDate: Date = Calendar.addUnitToDate(startDate, 'day', 6)
-  // console.log(`  -> ${toLocaleTime(startDate)} - ${toLocaleTime(endDate)}`)
+  // log('helpers/weekStartEnd', `  -> ${toLocaleTime(startDate)} - ${toLocaleTime(endDate)}`)
   return [ startDate, endDate ]
-}
-
-/**
- * From the current week number/year pair calculate a different week number/year pair by adding a given week range (which can be negative)
- * NOTE: we have to be careful about assumptions at end of year:
- *   for example 2022-01-01 is in week 52 of 2021.
- * A year goes into 53 weeks if 1 January is on a Thursday on a non-leap year, 
- * or on a Wednesday or a Thursday on a leap year.
- * @author @jgclark
- * 
- * @param {integer} endWeek 
- * @param {integer} endYear 
- * @param {integer} offset 
- * @returns {{number, number}} 
- */
-export function calcWeekOffset(
-  startWeek: number,
-  startYear: number,
-  offset: number): {week: number, year: number}
-{
-  let year: number = startYear
-  let week: number = startWeek + offset
-  // Add the offset, coping with offsets greater than 1 year
-  while (week < 1) {
-    week += 52
-    year -= 1
-  }
-  while (week > 52) {
-    week -= 52
-    year += 1
-  }
-  // console.log(`${startYear}W${startWeek} - ${year}W${week}`)
-  return { week, year }
 }

@@ -17,7 +17,7 @@ describe(`${PLUGIN_NAME}`, () => {
 
       const result = new DateModule().createDateTime(pivotDate)
 
-      const test = new Date(`${pivotDate}T00:01:00`).toLocaleString()
+      const test = new Date(`${pivotDate}T00:01:00`)
 
       expect(result).toEqual(test)
     })
@@ -27,7 +27,7 @@ describe(`${PLUGIN_NAME}`, () => {
       const resultFormatted = moment(new Date(result)).format('YYYY-MM-DD')
       let testDate = moment(new Date()).format('YYYY-MM-DD')
 
-      const test = new Date(`${testDate}T00:01:00`).toLocaleString()
+      const test = new Date(`${testDate}T00:01:00`)
 
       expect(resultFormatted).toContain(testDate)
     })

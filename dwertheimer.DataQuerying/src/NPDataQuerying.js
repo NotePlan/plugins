@@ -3,7 +3,6 @@
 TO DO:
 - finish the rest of Extended tags in removeExtendedSearchTags()
 - /search for match does not work for fuzzy (e.g. @tester)
-- use .openNoteByFilename(filename, newWindow, highlightStart, highlightEnd, splitView, createIfNeeded)
 - make clicking on a link take you to a note with the selection highlighted
 - write the database index using cron?
 - Remove ...title if it's at the beginning of search results (I tried but it doesn't work)
@@ -44,8 +43,8 @@ const INDEX_FILENAME = 'fuse-index.json'
 const SEARCH_OPTIONS = {
   /* keys: ['type', { name: 'title', weight: 5 }, 'hashtags', 'mentions', 'content', 'filename', 'changedDateISO'],*/
   keys: [
-    { name: 'title', weight: 0.9 },
-    { name: 'content', weight: 0.5 },
+    { name: 'title', weight: 3 },
+    { name: 'content', weight: 1 },
   ],
   includeScore: true,
   includeMatches: true,
@@ -118,29 +117,31 @@ export async function writeIndex(index: any): null | any {
   }
 }
 
-async function getSearchNoteFilename(config: DataQueryingConfig): Promise<string> {
-  let note, fname
-  const { searchNoteTitle, searchNoteFolder } = config
-  note = await DataStore.projectNoteByTitle(searchNoteTitle)
-  if (note?.length) {
-    note.filter((n) => n.filename.includes(searchNoteFolder))
-    if (note && note[0]) {
-      fname = note[0].filename
-    } else {
-      throw 'No note found with title: ' + searchNoteTitle
-    }
-  } else {
-    fname = await DataStore.newNote(searchNoteTitle, searchNoteFolder)
-  }
-  return fname || ''
-}
+// DELETE THIS FUNCTION - THIS WAS A WORKAROUND FOR NOT BEING ABLE TO FORCE A FILENAME
+// @EDUARD UPDATED THE API, SO THIS IS NO LONGER NEEDED
+// async function getSearchNoteFilename(config: DataQueryingConfig): Promise<string> {
+//   let note, fname
+//   const { searchNoteTitle, searchNoteFolder } = config
+//   note = await DataStore.projectNoteByTitle(searchNoteTitle)
+//   if (note?.length) {
+//     note.filter((n) => n.filename.includes(searchNoteFolder))
+//     if (note && note[0]) {
+//       fname = note[0].filename
+//     } else {
+//       throw 'No note found with title: ' + searchNoteTitle
+//     }
+//   } else {
+//     fname = await DataStore.newNote(searchNoteTitle, searchNoteFolder)
+//   }
+//   return fname || ''
+// }
 
 /**
  * Create Fuse Index of current notes
  * @param {Object} notesToInclude (optional) if you have the cleansed note list, pass it in, otherwise it will be created
  * @returns {FuseIndex}
  */
-export async function createIndex(notesToInclude = [], config) {
+export async function createIndex(notesToInclude = [], config: { ... }): Fuse.FuseIndex<mixed> {
   let timeStart = new Date()
   const includedNotes = notesToInclude.length ? notesToInclude : getNotesForIndex(config)
   const index = fh.buildIndex(includedNotes, SEARCH_OPTIONS)
@@ -159,15 +160,18 @@ export async function searchButShowTitlesOnly(linksOnly: boolean = false): Promi
 
 const isCalendarNote = (filename) => (/^[0-9]{8}\.(md|txt)$/.test(filename) ? 'Calendar' : 'Notes')
 
-const getParagraphsContaining = (filename: string, searchTerm: string, config: any): Promise<string[]> => {
+const getParagraphsContaining = (filename: string, searchTerm: string, config: any): Array<TParagraph> => {
   const cleanSearchTerm = fh.removeExtendedSearchTags(searchTerm)
   const note = DataStore.noteByFilename(filename, isCalendarNote(filename))
-  const matches = []
+  const matches: Array<TParagraph> = []
   note?.paragraphs?.forEach((paragraph) => {
     // Note: FIXME: paragraph.children() will work here, but not later
     if (paragraph.content.includes(cleanSearchTerm)) {
-      if (config.includeChildren) matches.push({ ...copyObject(paragraph), children: paragraph.children() })
-      else matches.push(copyObject(paragraph))
+      if (config.includeChildren) {
+        matches.push({ ...copyObject(paragraph), children: paragraph.children() })
+      } else {
+        matches.push(copyObject(paragraph))
+      }
     }
   })
   return matches
@@ -184,15 +188,13 @@ export async function outputMatchingLines(results: Array<any>, searchTerm: strin
   const filenames = results.map((result) => result.item.filename).sort()
   clo(filenames, 'outputMatchingLines: filenames:')
   let allMatchingLines = []
-  filenames.forEach((filename) => {
-    // Note: getParagraphsContaining is a processFunction passed in as an argument
-    // $FlowIgnore
+  for (let filename of filenames) {
     const res = getParagraphsContaining(filename, searchTerm, { ...config, includeChildren: true })
     if (res?.length) {
       allMatchingLines.push(...res)
     }
-  })
-  // TODO: figure out how to deal with Extended Search delimiters
+  }
+  // TODO: figure out how to deal with Extended Search delmiters
   // clo(allMatchingLines, 'outputMatchingLines: allMatchingLines (note that Extended Searches will currently mess it all up):')
   allMatchingLines.forEach((line) => {
     log(pluginJson, `${line.content} | children: ${line.children.length}`)
@@ -203,12 +205,20 @@ export async function searchMatchingLines() {
   const res = await searchUserInput(false, [], { processFunction: outputMatchingLines, processParams: {} })
 }
 
+export async function searchSaveUserInput() {
+  try {
+    await searchUserInput(false, [], { saveSearchResults: true })
+  } catch (error) {
+    log(pluginJson, 'searchSaveUserInput: caught error: ' + error)
+  }
+}
+
 export async function searchUserInput(linksOnly: boolean = false, notesToInclude: any = [], options: any = {}): Promise<void> {
   const processFunction = options.processFunction || writeSearchNote
   const processParams = options.processParams || {}
   try {
     const start = new Date()
-    const config = getDefaultConfig()
+    const config = { ...getDefaultConfig(), ...options }
     // Get the promises, not the results
     const promSearchTerm = CommandBar.showInput("'=match-exactly; !=NOT; space=AND; |=OR", 'Search for: %@')
     await CommandBar.onAsyncThread()
@@ -244,16 +254,17 @@ async function writeSearchNote(results, searchTerm, config) {
   const output = formatSearchOutput(results, searchTerm, config)
   const splits = output.split('\n')
   const firstLineLength = splits[0].length + 1
-  const searchFilename = await getSearchNoteFilename(config)
+  let searchFilename, note
+  const filename = `${config.searchNoteTitle}.${DataStore.defaultFileExtension}`
+  searchFilename = config.saveSearchResults
+    ? DataStore.newNoteWithContent(output, config.searchNoteFolder)
+    : DataStore.newNoteWithContent(output, config.searchNoteFolder, filename)
+  log(pluginJson, `writeSearchNote: searchFilename: "${searchFilename}" | filename: "${filename}"`)
   if (searchFilename) {
-    const note = await DataStore.projectNoteByFilename(searchFilename)
-    log(pluginJson, `searchUserInput: searchFilename=${searchFilename}}`)
-    if (note && note.content) {
-      // log(pluginJson, `searchUserInput: searchFilename=${searchFilename} note=${JSP(note)}`)
-      note.content = output
-    }
+    await Editor.openNoteByFilename(searchFilename, config.openInNewWindow, firstLineLength, firstLineLength, config.openInSplitView)
+  } else {
+    log(pluginJson, `writeSearchNote: searchFilename is undefined`)
   }
-  await Editor.openNoteByFilename(searchFilename, config.openInNewWindow, firstLineLength, firstLineLength, config.openInSplitView)
   await CommandBar.onMainThread()
   CommandBar.showLoading(false)
   console.log(`searchUserInput: Noteplan opening/displaying search results took: ${timer(start)}`)
@@ -426,6 +437,7 @@ function getDefaultConfig(): DataQueryingConfig {
     loadIndexFromDisk: false,
     searchNoteTitle: 'Search Results',
     searchNoteFolder: '@Searches',
+    saveSearchResults: false,
     openInSplitView: true,
     openInNewWindow: false,
     maxResultCharsForBolding: 25,
@@ -445,6 +457,7 @@ export type DataQueryingConfig = {
   loadIndexFromDisk: boolean,
   searchNoteTitle: string,
   searchNoteFolder: string,
+  saveSearchResults: boolean,
   openInSplitView: boolean,
   openInNewWindow: boolean,
   maxSearchResultLine: number,

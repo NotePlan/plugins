@@ -41,12 +41,30 @@ function getTagsFromString(content: string): TagsList {
  * @param {number} position - the position to look for
  * @returns {TParagraph} the paragraph containing the position in question or null if not found
  */
-function getParagraphContainingPosition(note: TNote, position: number): TParagraph | null {
+function getParagraphContainingPosition(note: TNote | Editor, position: number): TParagraph | null {
   let foundParagraph = null
   note.paragraphs.forEach((p, i) => {
     const { start, end } = p.contentRange
-    if (start <= position && end >= position) foundParagraph = p
+    if (start <= position && end >= position) {
+      foundParagraph = p
+      if (i > 0)
+        log(
+          pluginJson,
+          `getParagraphContainingPosition: paragraph before: ${i - 1} (${note.paragraphs[i - 1].contentRange.start}-${note.paragraphs[i - 1].contentRange.end}) - "${
+            note.paragraphs[i - 1].content
+          }"`,
+        )
+      log(pluginJson, `getParagraphContainingPosition: found position ${position} in paragraph ${i} (${start}-${end}) -- "${p.content}"`)
+    }
   })
+  if (!foundParagraph) {
+    log(pluginJson, `getParagraphContainingPosition: *** Looking for cursor position ${position}`)
+    note.paragraphs.forEach((p, i) => {
+      const { start, end } = p.contentRange
+      log(pluginJson, `getParagraphContainingPosition: paragraph ${i} (${start}-${end}) "${p.content}"`)
+    })
+    log(pluginJson, `getParagraphContainingPosition: *** position ${position} not found`)
+  }
   return foundParagraph
 }
 
@@ -58,16 +76,14 @@ function getParagraphContainingPosition(note: TNote, position: number): TParagra
  * @param {Array<string>} newTags
  * @returns
  */
-function eliminateExistingTags(existingTags, newTags): Array<string> {
+function getUnduplicatedMergedTagArray(existingTags, newTags): Array<string> {
   let revisedTags = []
   if (newTags.length) {
     if (existingTags.length) {
       newTags.forEach((tag, i) => {
-        console.log(`existingTags.indexOf(tag) ${existingTags.indexOf(tag)}`)
         if (existingTags.indexOf(tag) === -1) revisedTags.push(tag)
       })
     } else {
-      console.log('existingTags.length === 0')
       revisedTags = newTags
     }
   }
@@ -76,21 +92,24 @@ function eliminateExistingTags(existingTags, newTags): Array<string> {
 
 /**
  * Append specific hashtags and mentions to a paragraph (if they don't already exist)
- * @param {TParagraph} thisParagraph
+ * @param {string} paraText - the original paragraph text
  * @param {TagsList} tagsToCopy in form of {hashtags: [], mentions: []}
  */
-function updateParagraphTags(thisParagraph: TParagraph, tagsToCopy: TagsList): void {
-  const existingTags = getTagsFromString(thisParagraph.content)
-  const mentions = eliminateExistingTags(existingTags.mentions, tagsToCopy.mentions)
-  const hashtags = eliminateExistingTags(existingTags.hashtags, tagsToCopy.hashtags)
+function appendTagsToText(paraText: string, tagsToCopy: TagsList): string | null {
+  log(pluginJson, `appendTagsToText: tagsToCopy.mentions=${tagsToCopy.mentions.toString()}`)
+  const existingTags = getTagsFromString(paraText)
+  log(pluginJson, `existingTags: existingTags.mentions=${existingTags.mentions.toString()}`)
+  const mentions = getUnduplicatedMergedTagArray(existingTags.mentions, tagsToCopy.mentions)
+  const hashtags = getUnduplicatedMergedTagArray(existingTags.hashtags, tagsToCopy.hashtags)
+  log(pluginJson, `appendTagsToText: mentions=${mentions.toString()}`)
   if (hashtags.length || mentions.length) {
     const stuff = `${hashtags.join(' ')} ${mentions.join(' ')}`.trim()
     if (stuff.length) {
-      thisParagraph.content = `${thisParagraph.content ? `${thisParagraph.content} ` : ''} ${stuff}`.replace(/\s{2,}/gm, ' ')
-      Editor.updateParagraph(thisParagraph)
+      return `${paraText ? `${paraText} ` : ''} ${stuff}`.replace(/\s{2,}/gm, ' ')
     }
   } else {
     console.log('no tags found or no tags need to be copied in list: ', tagsToCopy.toString())
+    return null
   }
 }
 
@@ -103,11 +122,65 @@ function getSelectedParagraph(): TParagraph | null {
   //   const thisParagraph = Editor.selectedParagraphs // recommended by @eduard but currently not reliable (Editor.selectedParagraphs is empty on a new line)
   let thisParagraph
   if (Editor.selection?.start) {
-    thisParagraph = getParagraphContainingPosition(Editor.note, Editor.selection.start)
+    thisParagraph = getParagraphContainingPosition(Editor, Editor.selection.start)
   }
-  if (!thisParagraph || !Editor.selection?.start)
+  if (!thisParagraph || !Editor.selection?.start) {
+    log(pluginJson, `getSelectedParagraph: no paragraph found for cursor position Editor.selection?.start=${Editor.selection?.start} thisParagraph=${thisParagraph}`)
     showMessage(`No paragraph found selection.start: ${selection?.start} Editor.selectedParagraphs.length = ${Editor.selectedParagraphs?.length}`)
+  }
   return thisParagraph
+}
+
+function removeTagsFromLine(line: string, tagsToRemove: Array<string>): string {
+  return tagsToRemove.reduce((acc, tag) => {
+    return acc.replace(new RegExp(`\\s+${tag}`, 'gim'), '')
+  }, line)
+}
+
+/**
+ * Make a copy of the selected line and insert just beneath the line
+ * Useful for creating multiple tasks (e.g. one for each person tagged in the paragraph)
+ * @param {string} type 'hashtags' | 'mentions'
+ */
+function copyLineForTags(type: 'hashtags' | 'mentions'): void {
+  const thisParagraph = getSelectedParagraph()
+  const { noteType, lineIndex } = thisParagraph
+  const existingTags = getTagsFromString(thisParagraph.content)
+  let tagsInQuestion = existingTags[type]
+  if (tagsInQuestion.length <= 1) {
+    showMessage(`No ${type} to copy`)
+    return
+  } else {
+    let contentWithoutTheseTags = removeTagsFromLine(thisParagraph.content, existingTags.hashtags)
+    contentWithoutTheseTags = removeTagsFromLine(contentWithoutTheseTags, existingTags.mentions)
+    for (let i = 0; i < tagsInQuestion.length; i++) {
+      const tag = tagsInQuestion[i]
+      if (i > 0) {
+        // const tags =
+        tagsInQuestion.push(tagsInQuestion.shift())
+        const updatedText = appendTagsToText(contentWithoutTheseTags, { ...existingTags, ...{ [type]: tagsInQuestion } })
+        if (updatedText) {
+          Editor.insertParagraphAfterParagraph(updatedText, thisParagraph, thisParagraph.type)
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Copy line multiple times (one for each mention)
+ * (plugin Entry Point for "ctm - Copy line for each @mention, listing it first")
+ */
+export function copyLineForEachMention() {
+  copyLineForTags('mentions')
+}
+
+/**
+ * Copy line multiple times (one for each mention)
+ * (plugin Entry Point for "ctm - Copy line for each @mention, listing it first")
+ */
+export function copyLineForEachHashtag() {
+  copyLineForTags('hashtags')
 }
 
 /**
@@ -121,7 +194,14 @@ export function copyTagsFromLineAbove() {
   const topOfNote = noteType === 'Notes' ? 1 : 0
   if (lineIndex > 0) {
     const prevLineTags = getTagsFromString(getParagraphByIndex(Editor, lineIndex - 1).content)
-    updateParagraphTags(thisParagraph, prevLineTags)
+    const updatedText = appendTagsToText(thisParagraph.content, prevLineTags)
+    log(pluginJson, `copyTagsFromLineAbove: updatedText=${updatedText}`)
+    if (updatedText) {
+      clo(thisParagraph, `thisParagraph before:`)
+      thisParagraph.content = updatedText
+      Editor.updateParagraph(thisParagraph)
+      clo(thisParagraph, `thisParagraph after:`)
+    }
   } else {
     showMessage(`Cannot run this command on the first line of the ${noteType}`)
   }
@@ -137,14 +217,15 @@ export function copyTagsFromHeadingAbove() {
   const { noteType, lineIndex, heading, headingRange } = thisParagraph
   const topOfNote = noteType === 'Notes' ? 1 : 0
   if (heading.length) {
-    const headingPara = getParagraphContainingPosition(Editor.note, headingRange.start)
+    const headingPara = getParagraphContainingPosition(Editor, headingRange.start)
     if (headingPara) {
       let headingLineTags = getTagsFromString(heading)
-      clo(headingLineTags, 'headingLineTags')
-      console.log(`copyTagsFromHeadingAbove indeces: ${headingPara.lineIndex + 1}-${thisParagraph.lineIndex}`)
       for (let index = headingPara.lineIndex + 1; index <= thisParagraph.lineIndex; index++) {
         const currentPara = getParagraphByIndex(Editor.note, index)
-        updateParagraphTags(currentPara, headingLineTags)
+        const updatedText = appendTagsToText(currentPara, headingLineTags)
+        if (updatedText) {
+          Editor.updateParagraph(thisParagraph)
+        }
       }
     } else {
       showMessage(`Could not find the paragraph matching ${heading}`)

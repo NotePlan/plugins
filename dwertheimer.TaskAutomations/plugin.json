@@ -43,7 +43,17 @@
       "name": "cth - Copy tags from heading above", 
       "description": "Copy #tags/@mentions from heading to all lines between",
       "jsFunction": "copyTagsFromHeadingAbove"
-    }                
+    },
+    {
+      "name": "ctm - Copy line for each mention", 
+      "description": "Copy line for each @mention, listing it first",
+      "jsFunction": "copyLineForEachMention"
+    },
+    {
+      "name": "ctt - Copy line for each hashtag", 
+      "description": "Copy line for each #hashtag, listing it first",
+      "jsFunction": "copyLineForEachHashtag"
+    }
   ],
   "disabled": [
     {

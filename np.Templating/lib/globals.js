@@ -7,10 +7,7 @@
 import pluginJson from '../plugin.json'
 
 import { datePicker, askDateInterval } from '@helpers/userInput'
-import { get8601String, getWeekDates, formattedDateTimeTemplate } from '@plugins/dwertheimer.DateAutomations/src/dateFunctions'
 import { getFormattedTime } from '@helpers/dateTime'
-import { listDaysEvents, listMatchingDaysEvents } from '@plugins/jgclark.EventHelpers/src/eventsToNotes'
-// import { sweepTemplate } from '@plugins/nmn.sweep/src/sweepAll'
 import DateModule from './support/modules/DateModule'
 import { now, timestamp } from './support/modules/DateModule'
 import { time } from './support/modules/TimeModule'
@@ -18,12 +15,10 @@ import { getAffirmation } from './support/modules/affirmation'
 import { getAdvice } from './support/modules/advice'
 import { getDailyQuote } from './support/modules/quote'
 import { getWeather } from './support/modules/weather'
-import { getDaysInMonth } from 'date-fns'
-import { insertProgressUpdate } from '@plugins/jgclark.Summaries/src'
 import { getWeatherSummary } from './support/modules/weatherSummary'
 import { parseJSON5 } from '@helpers/general'
 import { getSetting } from '../../helpers/NPconfiguration'
-import { clo } from '@helpers/dev'
+import { log, logError, clo } from '@helpers/dev'
 
 export async function processDate(dateParams: string, config: { [string]: ?mixed }): Promise<string> {
   const defaultConfig = config?.date ?? {}
@@ -49,6 +44,39 @@ export async function processDate(dateParams: string, config: { [string]: ?mixed
   return new Intl.DateTimeFormat(localeParam, secondParam).format(new Date())
 }
 
+async function isCommandAvailable(pluginId: string, pluginCommand: string): Promise<boolean> {
+  try {
+    let result = DataStore.installedPlugins().filter((plugin) => {
+      return plugin.id === pluginId
+    })
+
+    let commands = typeof result !== 'undefined' && Array.isArray(result) && result.length > 0 && result[0].commands
+    if (commands) {
+      // $FlowIgnore
+      let command = commands.filter((command) => {
+        return command.name === pluginCommand
+      })
+
+      return Array.isArray(command) && command.length > 0
+    } else {
+      return false
+    }
+  } catch (error) {
+    logError(pluginJson, error)
+    return false
+  }
+}
+
+async function invokePluginCommandByName(pluginId: string = '', pluginCommand: string = '', args: [any | null] = null) {
+  if (await isCommandAvailable(pluginId, pluginCommand)) {
+    return (await DataStore.invokePluginCommandByName(pluginCommand, pluginId, args)) || ''
+  } else {
+    // const info = helpInfo('Plugin Error')
+    const info = ''
+    return `**Unable to locate "${pluginId} :: ${pluginCommand}".  Make sure "${pluginId}" plugin has been installed.**\n\n${info}`
+  }
+}
+
 /*
    np.Templating Global Methods
 */
@@ -72,8 +100,7 @@ const globals = {
   },
 
   progressUpdate: async (params: any): Promise<string> => {
-    // $FlowIgnore
-    return await insertProgressUpdate(JSON.stringify(params))
+    return await invokePluginCommandByName('jgclark.Summaries', 'insertProgressUpdate', [JSON.stringify(params)])
   },
 
   weather: async (formatParam: string = ''): Promise<string> => {
@@ -85,7 +112,8 @@ const globals = {
   },
 
   date8601: async (): Promise<string> => {
-    return await get8601String()
+    // $FlowIgnore
+    return await invokePluginCommandByName('dwertheimer.DateAutomations', 'date8601', null)
   },
 
   // NOTE: This specific method would create a collision against DateModule I believe (needs testing)
@@ -96,50 +124,31 @@ const globals = {
 
   pickDate: async (dateParams: any = '', config: { [string]: ?mixed }): Promise<string> => {
     return `**The 'pickDate' helper has been deprecated, you should modify template to use 'promptDate(...) method'`
-
-    // if (typeof dateParams === 'object') {
-    //   clo(dateParams)
-    // } else {
-    //   console.log(dateParams)
-    // }
-
-    // if (!dateParams) {
-    //   // $FlowIgnore
-    //   return await datePicker('', '')
-    // }
-
-    // <%= pickDate('question','Date of session') %>
-
-    // const datePickerParams = { question: 'TeSt' }
-
-    // $FlowIgnore
-    // return await datePicker(dateParams, JSON.stringify(config))
   },
 
   pickDateInterval: async (dateParams: any): Promise<string> => {
     return `**'pickDateInterval' has been deprecated, you should modify template to use 'promptDateInterval(...) method'`
-    // return await askDateInterval(JSON.stringify(dateParams))
   },
 
   events: async (dateParams?: any): Promise<string> => {
-    return await listDaysEvents(JSON.stringify(dateParams))
+    return invokePluginCommandByName('jgclark.EventHelpers', 'listDaysEvents', [JSON.stringify(dateParams)])
+    // return await listDaysEvents(JSON.stringify(dateParams))
   },
 
   listTodaysEvents: async (params?: any = ''): Promise<string> => {
-    return await listDaysEvents(JSON.stringify(params))
+    return invokePluginCommandByName('jgclark.EventHelpers', 'listDaysEvents', [JSON.stringify(params)])
   },
 
   matchingEvents: async (params: ?any = ''): Promise<string> => {
-    return await listMatchingDaysEvents(JSON.stringify(params))
+    return invokePluginCommandByName('jgclark.EventHelpers', 'listMatchingDaysEvents', [JSON.stringify(params)])
   },
 
   listMatchingEvents: async (params: ?any = ''): Promise<string> => {
-    return await listMatchingDaysEvents(JSON.stringify(params))
+    return invokePluginCommandByName('jgclark.EventHelpers', 'listMatchingDaysEvents', [JSON.stringify(params)])
   },
 
   sweepTasks: async (params: any = ''): Promise<string> => {
-    return '**Task Sweeping is currently not supported in Templates**'
-    // return await sweepTemplate(JSON.stringify(params))
+    return invokePluginCommandByName('nmn.sweep', 'sweepTemplate', [JSON.stringify(params)])
   },
 
   formattedDateTime: (params: any): string => {
@@ -148,7 +157,8 @@ const globals = {
   },
 
   weekDates: async (params: any): Promise<string> => {
-    return await getWeekDates(JSON.stringify(params))
+    // $FlowIgnore
+    return invokePluginCommandByName('dwertheimer.DateAutomations', 'getWeekDates', [JSON.stringify(params)])
   },
 
   now: async (): Promise<string> => {
