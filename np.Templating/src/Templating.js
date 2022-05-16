@@ -299,17 +299,20 @@ async function writeNoteContents(note, renderedTemplate, writeUnderHeading, shou
  * Process a template that provides an existing filename or <today> for today's Calendar Note
  * The unique title of the template to run must be passed in as the first argument
  * TODO:
+ * - Hide commands from user once tested
  * - add Presets to documentation
  * Note: writeTypeType === 'prepend' prepends, otherwise appends
  * Note: writeType will be 'append' or 'prepend' | if writeUnderHeading is set, then appends/prepends there, otherwise the note's content
  * Note: if you are inserting title text as part of your template, then you should always prepend, because your title will confuse future appends
  * - .addParagraphBelowHeadingTitle(title, paragraphType, headingTitle, shouldAppend: Bool, shouldCreate)
+ * Note: ask CD what the reserved frontmatter fields should be and trap for them
+ * xcallback note: arg1 is template name, arg2 is whether to open in editor, arg3 is a list of vars to pass to template equals sign is %3d
  *
  */
-export async function templateFileByTitle(templatetitle?: string, openInEditor?: boolean = false): Promise<void> {
+export async function templateFileByTitle(selectedTemplate?: string, openInEditor?: boolean = false, args?: string = ''): Promise<void> {
   try {
-    // get template and start processing
-    const selectedTemplate = templatetitle ?? `zTesting/templateFileByTitle testing` //FIXME: remove this string and make it ''
+    let argObj = {}
+    args.split(',').forEach((arg) => (arg.split('=').length === 2 ? (argObj[arg.split('=')[0]] = arg.split('=')[1]) : null))
     if (!selectedTemplate || selectedTemplate.length === 0) {
       await CommandBar.prompt(`templateFileByTitle: no templateTitle was specified."`, helpInfo('Presets'))
     }
@@ -323,7 +326,7 @@ export async function templateFileByTitle(templatetitle?: string, openInEditor?:
       const templateAttributes = await NPTemplating.getTemplateAttributes(templateData)
       const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
       // Note: frontmatterAttributes and templateAttributes are the same
-      let data = { ...frontmatterAttributes, frontmatter: { ...frontmatterAttributes } }
+      let data = { ...frontmatterAttributes, ...argObj, frontmatter: { ...frontmatterAttributes, ...argObj } }
       let renderedTemplate = await NPTemplating.render(frontmatterBody, data)
 
       const { openNoteTitle, writeNoteTitle, writeType, writeUnderHeading } = frontmatterAttributes
@@ -336,7 +339,6 @@ export async function templateFileByTitle(templatetitle?: string, openInEditor?:
         await Editor.openNoteByDate(new Date(), false)
         await writeNoteContents(Editor.note, renderedTemplate, writeUnderHeading, shouldAppend)
       } else {
-        // open note specified
         if (noteTitle.length) {
           const notes = await DataStore.projectNoteByTitle(noteTitle)
           if (!notes || notes.length == 0 || (notes && notes.length > 1)) {
@@ -347,9 +349,6 @@ export async function templateFileByTitle(templatetitle?: string, openInEditor?:
             if (!note) {
               await CommandBar.prompt(`Unable to locate note matching: "${noteTitle}"`, helpInfo('Presets'))
             } else {
-              // we're good to go
-              log(pluginJson, `openNoteTitle: "${noteTitle}" matches note: ${note.title ?? ''}`)
-              clo(note, `correct note contents:`)
               await writeNoteContents(note, renderedTemplate, writeUnderHeading, shouldAppend, shouldOpenInEditor)
             }
           }
@@ -359,6 +358,25 @@ export async function templateFileByTitle(templatetitle?: string, openInEditor?:
       }
     } else {
       await CommandBar.prompt(`Unable to locate template "${selectedTemplate}"`, helpInfo('Presets'))
+    }
+  } catch (error) {
+    logError(pluginJson, error)
+  }
+}
+
+/**
+ * Run a template by name/title (generally via x-callback-url)
+ * @param {Array<string>} args - the first argument is the template name (required), the optional second param is whether to display the template in the editor. By default no (false/runs silently), after that, any additional arguments are key=value pairs passed to the template
+ * @example noteplan://x-callback-url/runPlugin?pluginID=np.Templating&command=templateRunner&arg0=cdjournal&arg1=true&arg2=journalEntry%3dfooBarBaz,secondVar%3dYes%20IT%20WORKED
+ * @returns {Promise<void>}
+ *
+ */
+export async function templateRunner(...args: Array<string>) {
+  try {
+    if (args.length > 0) {
+      templateFileByTitle(args[0], args[1] === 'true', args.length > 2 ? args[2] : '')
+    } else {
+      await CommandBar.prompt(`No arguments (with template name) were given to the templateRunner."`, helpInfo('Presets'))
     }
   } catch (error) {
     logError(pluginJson, error)

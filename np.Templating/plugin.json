@@ -106,6 +106,14 @@
       ],
       "description": "Run a template file by title/preset",
       "jsFunction": "templateFileByTitle"
+    },
+    {
+      "name": "templateRunner",
+      "alias": [
+        "np:tr"
+      ],
+      "description": "Load and run self-contained template instructions with arguments",
+      "jsFunction": "templateRunner"
     }
   ],
   "plugin.settings": [
