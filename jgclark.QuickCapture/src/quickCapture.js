@@ -6,29 +6,19 @@
 // --------------------------------------------------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import {
-  getISODateStringFromYYYYMMDD,
-  getTodaysDateUnhyphenated,
-  RE_ISO_DATE,
-  RE_YYYYMMDD_DATE,
-  unhyphenateString,
-} from '../../helpers/dateTime'
+import { getISODateStringFromYYYYMMDD, getTodaysDateUnhyphenated, RE_ISO_DATE, RE_YYYYMMDD_DATE, unhyphenateString } from '../../helpers/dateTime'
 import { clo, JSP, log, logError, logWarn } from '../../helpers/dev'
 import { displayTitle } from '../../helpers/general'
-import {
-  allNotesSortedByChanged,
-  calendarNotesSortedByChanged,
-  projectNotesSortedByChanged
-} from '../../helpers/note'
+import { allNotesSortedByChanged, calendarNotesSortedByChanged, projectNotesSortedByChanged } from '../../helpers/note'
 import { findEndOfActivePartOfNote, smartPrependPara } from '../../helpers/paragraph'
-import { askForFutureISODate, chooseFolder, chooseHeading, showMessage, } from '../../helpers/userInput'
+import { askForFutureISODate, chooseFolder, chooseHeading, showMessage } from '../../helpers/userInput'
 
-const configKey = "inbox"
+const configKey = 'inbox'
 
 type inboxConfigType = {
   inboxTitle: string,
   addInboxPosition: string,
-  textToAppendToTasks: string
+  textToAppendToTasks: string,
 }
 
 /**
@@ -40,18 +30,16 @@ async function getInboxSettings(): Promise<any> {
   log(pluginJson, `Start of getInboxSettings()`)
   try {
     // Get settings using ConfigV2
-    const v2Config: inboxConfigType = await DataStore.loadJSON("../jgclark.QuickCapture/settings.json")
+    const v2Config: inboxConfigType = await DataStore.loadJSON('../jgclark.QuickCapture/settings.json')
 
     if (v2Config == null || Object.keys(v2Config).length === 0) {
       await showMessage(`Cannot find settings for the 'QuickCapture' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
       return
-    }  else {
-      // $FlowFixMe
+    } else {
       // clo(v2Config, `${configKey} settings from V2:`)
       return v2Config
     }
-  }
-  catch (err) {
+  } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
     await showMessage(err.message)
   }
@@ -71,8 +59,7 @@ export async function prependTaskToNote(noteTitleArg?: string, textArg?: string)
     let note: TNote
     let taskText = ''
 
-    if ((noteTitleArg !== undefined || textArg !== undefined)
-      && (noteTitleArg === undefined || textArg === undefined)) {
+    if ((noteTitleArg !== undefined || textArg !== undefined) && (noteTitleArg === undefined || textArg === undefined)) {
       logError(pluginJson, `Not enough arguments supplied. Stopping.`)
       return
     }
@@ -90,23 +77,16 @@ export async function prependTaskToNote(noteTitleArg?: string, textArg?: string)
       }
     } else {
       // Otherwise ask user for details
-      taskText = await CommandBar.showInput(
-        `Type the task`,
-        `Prepend '%@' ${config.textToAppendToTasks}`,
-      )
+      taskText = await CommandBar.showInput(`Type the task`, `Prepend '%@' ${config.textToAppendToTasks}`)
       const notes = projectNotesSortedByChanged()
 
-      const re = await CommandBar.showOptions(
-        notes.map((n) => n.title).filter(Boolean),
-        'Select note to prepend',
-      )
+      const re = await CommandBar.showOptions(notes.map((n) => n.title).filter(Boolean), 'Select note to prepend')
       note = notes[re.index]
     }
     let text = `${taskText} ${config.textToAppendToTasks}`.trimEnd()
     log(pluginJson, `Prepending task '${text}' to '${displayTitle(note)}'`)
     smartPrependPara(note, text, 'open')
-  }
-  catch (err) {
+  } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
   }
 }
@@ -125,8 +105,7 @@ export async function appendTaskToNote(noteTitleArg?: string, textArg?: string):
     let note: TNote
     let taskText = ''
 
-    if ((noteTitleArg !== undefined || textArg !== undefined)
-      && (noteTitleArg === undefined || textArg === undefined)) {
+    if ((noteTitleArg !== undefined || textArg !== undefined) && (noteTitleArg === undefined || textArg === undefined)) {
       logError(pluginJson, `Not enough arguments supplied. Stopping.`)
       return
     }
@@ -145,23 +124,16 @@ export async function appendTaskToNote(noteTitleArg?: string, textArg?: string):
       }
     } else {
       // Otherwise ask user for details
-      taskText = await CommandBar.showInput(
-        `Type the task`,
-        `Prepend '%@' ${config.textToAppendToTasks}`,
-      )
+      taskText = await CommandBar.showInput(`Type the task`, `Prepend '%@' ${config.textToAppendToTasks}`)
       const notes = projectNotesSortedByChanged()
 
-      const re = await CommandBar.showOptions(
-        notes.map((n) => n.title).filter(Boolean),
-        'Select note to prepend',
-      )
+      const re = await CommandBar.showOptions(notes.map((n) => n.title).filter(Boolean), 'Select note to prepend')
       note = notes[re.index]
     }
     let text = `${taskText} ${config.textToAppendToTasks}`.trimEnd()
     log(pluginJson, `Appending task '${text}' to '${displayTitle(note)}'`)
     note.appendTodo(text)
-  }
-  catch (err) {
+  } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
   }
 }
@@ -182,8 +154,7 @@ export async function addTaskToNoteHeading(noteTitleArg?: string, headingArg?: s
     let notes: TNote[] = allNotesSortedByChanged()
 
     // If we have arguments supplied, check we have the right number
-    if ((noteTitleArg !== undefined || headingArg !== undefined || textArg !== undefined)
-      && (noteTitleArg === undefined || headingArg === undefined || textArg === undefined)) {
+    if ((noteTitleArg !== undefined || headingArg !== undefined || textArg !== undefined) && (noteTitleArg === undefined || headingArg === undefined || textArg === undefined)) {
       logError(pluginJson, `Not enough valid arguments supplied. Stopping.`)
       return
     }
@@ -193,13 +164,13 @@ export async function addTaskToNoteHeading(noteTitleArg?: string, headingArg?: s
       // But check this is a valid note title first.
       // Note: If noteTitleArg is for a calendar note, it has to be in the form YYYY-MM-DD here.
       // Note: Because of NP architecture, it's possible to have several notes with the same title; the first match is used.
-      const noteTitleToMatch = (noteTitleArg.match(RE_ISO_DATE)) // for YYYY-MM-DD
-        ? (noteTitleArg)
-        : (noteTitleArg.match(RE_YYYYMMDD_DATE)) // for YYYYMMDD
-          ? getISODateStringFromYYYYMMDD(noteTitleArg)
-          : noteTitleArg // for regular note title
+      const noteTitleToMatch = noteTitleArg.match(RE_ISO_DATE) // for YYYY-MM-DD
+        ? noteTitleArg
+        : noteTitleArg.match(RE_YYYYMMDD_DATE) // for YYYYMMDD
+        ? getISODateStringFromYYYYMMDD(noteTitleArg)
+        : noteTitleArg // for regular note title
       const wantedNotes = notes.filter((n) => n.title === noteTitleToMatch)
-      let note = (wantedNotes != null) ? wantedNotes[0] : null
+      let note = wantedNotes != null ? wantedNotes[0] : null
       if (note != null) {
         if (wantedNotes.length > 1) {
           logWarn(pluginJson, `More than 1 matching note found with title '${noteTitleArg}'`)
@@ -209,7 +180,7 @@ export async function addTaskToNoteHeading(noteTitleArg?: string, headingArg?: s
           `${textArg} ${config.textToAppendToTasks}`,
           headingArg, //.content,
           false,
-          true
+          true,
         )
       } else {
         logError(pluginJson, `Problem getting note '${noteTitleArg}' from x-callback args`)
@@ -219,17 +190,11 @@ export async function addTaskToNoteHeading(noteTitleArg?: string, headingArg?: s
     }
 
     // Otherwise ask user for details
-    const taskText = await CommandBar.showInput(
-      `Type the task to add`,
-      `Add task '%@' ${config.textToAppendToTasks}`
-    )
+    const taskText = await CommandBar.showInput(`Type the task to add`, `Add task '%@' ${config.textToAppendToTasks}`)
 
     // Then ask for the note we want to add the task
     // CommandBar.showOptions only takes [string] as input
-    const re = await CommandBar.showOptions(
-      notes.map((n) => n.title).filter(Boolean),
-      'Select note for new todo',
-    )
+    const re = await CommandBar.showOptions(notes.map((n) => n.title).filter(Boolean), 'Select note for new todo')
     const note = notes[re.index]
 
     // Finally, ask to which heading to add the task
@@ -244,14 +209,13 @@ export async function addTaskToNoteHeading(noteTitleArg?: string, headingArg?: s
         text,
         heading, //.content,
         false, // TODO: should this use a setting?
-        false // don't create missing heading: this should have been done by chooseHeading if needed
+        false, // don't create missing heading: this should have been done by chooseHeading if needed
       )
     } else {
       log(pluginJson, `Adding task '${text}' to end of '${displayTitle(note)}'`)
       note.insertTodo(text, findEndOfActivePartOfNote(note))
     }
-  }
-  catch (err) {
+  } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
   }
 }
@@ -272,8 +236,7 @@ export async function addTextToNoteHeading(noteTitleArg?: string, headingArg?: s
     const notes: TNote[] = allNotesSortedByChanged()
 
     // If we have arguments supplied, check we have the right number
-    if ((noteTitleArg !== undefined || headingArg !== undefined || textArg !== undefined)
-      && (noteTitleArg === undefined || headingArg === undefined || textArg === undefined)) {
+    if ((noteTitleArg !== undefined || headingArg !== undefined || textArg !== undefined) && (noteTitleArg === undefined || headingArg === undefined || textArg === undefined)) {
       logError(pluginJson, `Not enough valid arguments supplied. Stopping.`)
       return
     }
@@ -283,13 +246,13 @@ export async function addTextToNoteHeading(noteTitleArg?: string, headingArg?: s
       // But check this is a valid note title first.
       // Note: If noteTitleArg is for a calendar note, it has to be in the form YYYY-MM-DD here.
       // Note: Because of NP architecture, it's possible to have several notes with the same title; the first match is used.
-      const noteTitleToMatch = (noteTitleArg.match(RE_ISO_DATE)) // for YYYY-MM-DD
-        ? (noteTitleArg)
-        : (noteTitleArg.match(RE_YYYYMMDD_DATE)) // for YYYYMMDD
-          ? getISODateStringFromYYYYMMDD(noteTitleArg)
-          : noteTitleArg // for regular note title
+      const noteTitleToMatch = noteTitleArg.match(RE_ISO_DATE) // for YYYY-MM-DD
+        ? noteTitleArg
+        : noteTitleArg.match(RE_YYYYMMDD_DATE) // for YYYYMMDD
+        ? getISODateStringFromYYYYMMDD(noteTitleArg)
+        : noteTitleArg // for regular note title
       const wantedNotes = notes.filter((n) => n.title === noteTitleToMatch)
-      let note = (wantedNotes != null) ? wantedNotes[0] : null
+      let note = wantedNotes != null ? wantedNotes[0] : null
       if (note != null) {
         if (wantedNotes.length > 1) {
           logWarn(pluginJson, `More than 1 matching note found with title '${noteTitleArg}'`)
@@ -300,7 +263,7 @@ export async function addTextToNoteHeading(noteTitleArg?: string, headingArg?: s
           'empty',
           headingArg, //.content,
           false, // TODO: should this use a setting?
-          true
+          true,
         )
       } else {
         logError(pluginJson, `Problem getting note '${noteTitleArg}' from x-callback args`)
@@ -310,17 +273,11 @@ export async function addTextToNoteHeading(noteTitleArg?: string, headingArg?: s
     }
 
     // Otherwise get all details from user
-    const taskText = await CommandBar.showInput(
-      'Type the text to add',
-      `Add text '%@' ${config.textToAppendToTasks}`
-    )
+    const taskText = await CommandBar.showInput('Type the text to add', `Add text '%@' ${config.textToAppendToTasks}`)
 
     // Then ask for the note we want to add the text
     // NB: CommandBar.showOptions only takes [string] as input
-    const res = await CommandBar.showOptions(
-      notes.map((n) => n.title).filter(Boolean),
-      'Select note for new text',
-    )
+    const res = await CommandBar.showOptions(notes.map((n) => n.title).filter(Boolean), 'Select note for new text')
     const note = notes[res.index]
 
     // Finally, ask to which heading to add the text
@@ -342,8 +299,7 @@ export async function addTextToNoteHeading(noteTitleArg?: string, headingArg?: s
       log(pluginJson, `Adding line '${text}' to end of '${displayTitle(note)}'`)
       note.insertParagraph(text, findEndOfActivePartOfNote(note), 'text')
     }
-  }
-  catch (err) {
+  } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
   }
 }
@@ -362,15 +318,14 @@ export async function prependTaskToDailyNote(dateArg?: string, textArg?: string)
     let note: TNote
     let taskText = ''
 
-    if ((dateArg !== undefined || textArg !== undefined)
-      && (dateArg === undefined || textArg === undefined)) {
+    if ((dateArg !== undefined || textArg !== undefined) && (dateArg === undefined || textArg === undefined)) {
       logError(pluginJson, `Not enough arguments supplied. Stopping.`)
       return
     }
 
     // If we both arguments, then use those
     if (dateArg !== undefined && textArg !== undefined) {
-      // But check this is a valid note daily note first; if it isn't, 
+      // But check this is a valid note daily note first; if it isn't,
       // fall back to using current open note
       // $FlowFixMe
       note = DataStore.calendarNoteByDateString(dateArg)
@@ -384,17 +339,11 @@ export async function prependTaskToDailyNote(dateArg?: string, textArg?: string)
     } else {
       // Get details interactively from user
       // Start with task text
-      taskText = await CommandBar.showInput(
-        `Type the task to add`,
-        `Add task '%@' ${config.textToAppendToTasks}`
-      )
+      taskText = await CommandBar.showInput(`Type the task to add`, `Add task '%@' ${config.textToAppendToTasks}`)
 
       // Then ask for the daily note we want to add the todo
       const notes = calendarNotesSortedByChanged()
-      const res = await CommandBar.showOptions(
-        notes.map((n) => displayTitle(n)).filter(Boolean),
-        'Select daily note for new todo',
-      )
+      const res = await CommandBar.showOptions(notes.map((n) => displayTitle(n)).filter(Boolean), 'Select daily note for new todo')
       note = notes[res.index]
     }
 
@@ -405,8 +354,7 @@ export async function prependTaskToDailyNote(dateArg?: string, textArg?: string)
     } else {
       logError(pluginJson, `Can't get calendar note`)
     }
-  }
-  catch (err) {
+  } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
   }
 }
@@ -426,15 +374,14 @@ export async function appendTaskToDailyNote(dateArg?: string, textArg?: string):
     let taskText = ''
     let dateStr = ''
 
-    if ((dateArg !== undefined || textArg !== undefined)
-      && (dateArg === undefined || textArg === undefined)) {
+    if ((dateArg !== undefined || textArg !== undefined) && (dateArg === undefined || textArg === undefined)) {
       logError(pluginJson, `Not enough arguments supplied. Stopping.`)
       return
     }
 
     // If we both arguments, then use those
     if (dateArg !== undefined && textArg !== undefined) {
-      // But check this is a valid note daily note first; if it isn't, 
+      // But check this is a valid note daily note first; if it isn't,
       // fall back to using current open note
       // $FlowFixMe
       note = DataStore.calendarNoteByDateString(dateArg)
@@ -448,9 +395,7 @@ export async function appendTaskToDailyNote(dateArg?: string, textArg?: string):
     } else {
       // Get details interactively from user
       // Start with task text
-      taskText = await CommandBar.showInput(
-          `Type the task to add`,
-          `Add task '%@' ${config.textToAppendToTasks}`)
+      taskText = await CommandBar.showInput(`Type the task to add`, `Add task '%@' ${config.textToAppendToTasks}`)
 
       // Then ask for the daily note we want to add the todo
       dateStr = await askForFutureISODate('Select daily note for new todo')
@@ -482,23 +427,13 @@ export async function appendTextToDailyJournal(textArg?: string): Promise<void> 
     const todaysDateStr = getTodaysDateUnhyphenated()
 
     // Get input either from passed argument or ask user
-    const text = (textArg === undefined)
-      ? await CommandBar.showInput(
-        'Type the text to add',
-        `Add text '%@' to ${todaysDateStr}`)
-      : textArg
+    const text = textArg === undefined ? await CommandBar.showInput('Type the text to add', `Add text '%@' to ${todaysDateStr}`) : textArg
 
     const note = DataStore.calendarNoteByDateString(todaysDateStr)
     if (note != null) {
       log(pluginJson, `Adding '${text}' to ${displayTitle(note)}`)
       // Add text to the heading in the note (and add the heading if it doesn't exist)
-      note.addParagraphBelowHeadingTitle(
-        text,
-        'empty',
-        'Journal',
-        true,
-        true,
-      )
+      note.addParagraphBelowHeadingTitle(text, 'empty', 'Journal', true, true)
     } else {
       logError(pluginJson, `Cannot find daily note for ${todaysDateStr}`)
     }
@@ -506,7 +441,7 @@ export async function appendTextToDailyJournal(textArg?: string): Promise<void> 
     logWarn(pluginJson, `${err.name}: ${err.message}`)
   }
 }
-  
+
 /** /int
  * This adds a task to a special 'inbox' note. Possible configuration:
  * - append or prepend to the inbox note (default: append)
@@ -528,9 +463,7 @@ export async function addTaskToInbox(taskArg?: string): Promise<void> {
       inboxNote = matchingNotes[0] ?? null
       // Create the inbox note if not existing, ask the user which folder
       if (inboxNote == null) {
-        const folder = await chooseFolder(
-          'Choose a folder for your inbox note (or cancel [ESC])',
-        )
+        const folder = await chooseFolder('Choose a folder for your inbox note (or cancel [ESC])')
         newFilename = DataStore.newNote(config.inboxTitle, folder) ?? ''
         // NB: this returns a filename not of our choosing
         if (newFilename != null && newFilename !== '') {
@@ -544,12 +477,8 @@ export async function addTaskToInbox(taskArg?: string): Promise<void> {
 
     if (inboxNote != null) {
       // Get task title either from passed argument or ask user
-      let taskText = (taskArg === undefined)
-        ? await CommandBar.showInput(
-          `Type the task to add to ${displayTitle(inboxNote)}`,
-          `Add task '%@' ${config.textToAppendToTasks}`,
-        )
-        : taskArg
+      let taskText =
+        taskArg === undefined ? await CommandBar.showInput(`Type the task to add to ${displayTitle(inboxNote)}`, `Add task '%@' ${config.textToAppendToTasks}`) : taskArg
       taskText += ` ${config.textToAppendToTasks}`
 
       if (config.addInboxPosition === 'append') {
@@ -562,8 +491,7 @@ export async function addTaskToInbox(taskArg?: string): Promise<void> {
         inboxNote.prependTodo(taskText)
       }
     }
-  }
-  catch (err) {
+  } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
   }
 }
