@@ -7,10 +7,11 @@
 import { semverVersionToNumber } from '@helpers/general'
 import pluginJson from '../plugin.json'
 import FrontmatterModule from './support/modules/FrontmatterModule'
+import { helpInfo } from './helpers'
 
 import globals from './globals'
 import { chooseOption } from '@helpers/userInput'
-import { clo, log, logError } from '@helpers/dev'
+import { log, logError } from '@helpers/dev'
 import { datePicker, askDateInterval } from '@helpers/userInput'
 
 /*eslint-disable */
@@ -177,16 +178,18 @@ export default class NPTemplating {
     //   log(pluginJson, `==> np.Templating 1.0.3 Updates Applied`)
     // }
 
-    // changes in v1.0.4
-    // if (settingsVersion < semverVersionToNumber('1.0.4')) {
-    //   log(pluginJson, `==> np.Templating 1.0.4 Updates Applied`)
-    //   updatesApplied++
-    // }
+    if (settingsVersion < semverVersionToNumber('1.1.3')) {
+      log(pluginJson, `==> np.Templating 1.1.3 Updates Applied`)
+      updatesApplied++
+    }
 
     // update settings version to latest version from plugin.json
     settingsData.version = currentVersion
     if (updatesApplied > 0) {
       log(pluginJson, `==> np.Templating Settings Updated to v${currentVersion}`)
+
+      const templateGroupTemplatesByFolder = DataStore.settings?.templateGroupTemplatesByFolder || false
+      DataStore.setPreference('templateGroupTemplatesByFolder', templateGroupTemplatesByFolder)
     }
 
     // return new settings
@@ -676,8 +679,6 @@ export default class NPTemplating {
       let templateData = (await this.getTemplate(templateName)) || ''
 
       let renderedData = await this.render(templateData, userData, userOptions)
-      log(pluginJson, 'renderedData')
-      console.log(renderedData)
 
       return this._filterTemplateResult(renderedData)
     } catch (error) {
@@ -687,11 +688,18 @@ export default class NPTemplating {
 
   static async render(inTemplateData: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
     const usePrompts = false
+
     try {
       await this.setup()
 
       let sessionData = { ...userData }
-      let templateData = inTemplateData //.replace(/---/gi, '*****')
+
+      // work around an issue when creating templates references on iOS (Smart Quotes Enabled)
+      let templateData = inTemplateData.replace(/‘/gi, `'`).replace(/’/gi, `'`).replace(/“/gi, `'`).replace(/”/gi, `'`)
+
+      if (typeof templateData !== 'string') {
+        templateData = templateData.toString()
+      }
 
       let globalData = {}
       Object.getOwnPropertyNames(globals).forEach((key) => {
@@ -699,12 +707,13 @@ export default class NPTemplating {
       })
 
       sessionData.methods = { ...sessionData.methods, ...globalData }
+
       templateData = templateData.replace(/<%@/gi, '<%- prompt')
 
       const isFrontmatterTemplate = new FrontmatterModule().isFrontmatterTemplate(templateData)
       if (isFrontmatterTemplate) {
         const { frontmatterAttributes, frontmatterBody } = await this.preRender(templateData, sessionData)
-        templateData = frontmatterBody.replace(/---/gi, '*****')
+        templateData = frontmatterBody //.replace(/---/gi, '*****')
         sessionData.data = { ...sessionData.data, ...frontmatterAttributes }
       }
 
@@ -735,7 +744,6 @@ export default class NPTemplating {
       sessionData = { ...newSettingData }
 
       const promptData = await this.processPrompts(newTemplateData, sessionData, '<%', '%>')
-
       templateData = promptData.sessionTemplateData
       sessionData = promptData.sessionData
 
@@ -752,8 +760,11 @@ export default class NPTemplating {
   // preRender will render frontmatter attribute tags, return final attributes and body
   static async preRender(templateData: string = '', userData: any = {}): Promise<any> {
     await this.setup()
+
     if (!new FrontmatterModule().isFrontmatterTemplate(templateData)) {
-      return { frontmatterBody: 'INVALID TEMPLATE', frontmatterAttributes: {} }
+      let msg = '**Invalid Template Format**\n\nThe selected template is not in supported format.\n'
+      msg += helpInfo('Template Anatomty: Frontmatter')
+      return { frontmatterBody: msg, frontmatterAttributes: {} }
     }
 
     const frontmatterData = new FrontmatterModule().parse(templateData)
@@ -858,8 +869,7 @@ export default class NPTemplating {
       return options[index]
     } else {
       if (typeof options === 'string' && options.length > 0) {
-        // $FlowIgnore
-        return await CommandBar.textPrompt(options, message.replace('_', ' '), '')
+        return await CommandBar.textPrompt('', message.replace('_', ' '), options)
       } else {
         return await CommandBar.textPrompt('', message.replace('_', ' '), '')
       }
@@ -878,10 +888,12 @@ export default class NPTemplating {
     const sessionData = { ...userData }
     const methods = userData.hasOwnProperty('methods') ? Object.keys(userData?.methods) : []
 
-    let sessionTemplateData = ''
-    sessionTemplateData = templateData.replace(/<%@/gi, '<%- prompt')
-    sessionTemplateData = templateData.replace(/system.promptDateInterval/gi, 'promptDateInterval')
-    sessionTemplateData = templateData.replace(/system.promptDate/gi, 'promptDate')
+    let sessionTemplateData = templateData
+
+    sessionTemplateData = sessionTemplateData.replace(/<%@/gi, '<%- prompt')
+    sessionTemplateData = sessionTemplateData.replace(/system.promptDateInterval/gi, 'promptDateInterval')
+    sessionTemplateData = sessionTemplateData.replace(/system.promptDate/gi, 'promptDate')
+    sessionTemplateData = sessionTemplateData.replace(/<%=/gi, '<%-')
 
     let tags = await this.getTags(sessionTemplateData)
 
@@ -1071,7 +1083,7 @@ export default class NPTemplating {
   }
 
   static isVariableTag(tag: string = ''): boolean {
-    return tag.indexOf('const') > 0 || tag.indexOf('let') > 0 || tag.indexOf('var') > 0 || tag.indexOf('.') > 0 || tag.indexOf('{') > 0 || tag.indexOf('}') > 0
+    return tag.indexOf('<% const') > 0 || tag.indexOf('<% let') > 0 || tag.indexOf('<% var') > 0 || tag.indexOf('.') > 0 || tag.indexOf('{') > 0 || tag.indexOf('}') > 0
   }
 
   static isMethod(tag: string = '', userData: any = null): boolean {
@@ -1111,5 +1123,37 @@ export default class NPTemplating {
     }
 
     return result
+  }
+
+  static async isCommandAvailable(pluginId: string, pluginCommand: string): Promise<boolean> {
+    try {
+      let result = DataStore.installedPlugins().filter((plugin) => {
+        return plugin.id === pluginId
+      })
+
+      let commands = typeof result !== 'undefined' && Array.isArray(result) && result.length > 0 && result[0].commands
+      if (commands) {
+        // $FlowIgnore
+        let command = commands.filter((command) => {
+          return command.name === pluginCommand
+        })
+
+        return Array.isArray(command) && command.length > 0
+      } else {
+        return false
+      }
+    } catch (error) {
+      logError(pluginJson, error)
+      return false
+    }
+  }
+
+  static async invokePluginCommandByName(pluginId: string, pluginCommand: string, args?: [any] | null = null): Promise<string | void> {
+    if (await this.isCommandAvailable(pluginId, pluginCommand)) {
+      return (await DataStore.invokePluginCommandByName(pluginCommand, pluginId, args)) || ''
+    } else {
+      const info = helpInfo('Plugin Error')
+      return `**Unable to locate "${pluginId} :: ${pluginCommand}".  Make sure "${pluginId}" plugin has been installed.**\n\n${info}`
+    }
   }
 }
