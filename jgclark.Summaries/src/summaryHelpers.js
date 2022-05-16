@@ -323,15 +323,15 @@ export async function gatherMatchingLines(
       n.date == null
         ? `[[${n.title ?? ''}]]`
         : dateStyle.startsWith('link') // to deal with earlier typo where default was set to 'links'
-        ? // $FlowIgnore(incompatible-call)
-          ` >${hyphenatedDate(n.date)}`
-        : dateStyle === 'date'
-        ? // $FlowIgnore(incompatible-call)
-          ` (${toLocaleDateTimeString(n.date)})`
-        : dateStyle === 'at'
-        ? // $FlowIgnore(incompatible-call)
-          ` @${hyphenatedDate(n.date)}`
-        : ''
+          // $FlowIgnore(incompatible-call)
+          ? ` >${hyphenatedDate(n.date)}`
+          : dateStyle === 'date'
+            // $FlowIgnore(incompatible-call)
+            ? ` (${toLocaleDateTimeString(n.date)})`
+            : dateStyle === 'at'
+              // $FlowIgnore(incompatible-call)
+              ? ` @${hyphenatedDate(n.date)}`
+              : ''
     // find any matches
     const matchingParas = n.paragraphs.filter((q) => q.content.includes(stringToLookFor))
     for (const p of matchingParas) {
