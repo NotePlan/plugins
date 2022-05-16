@@ -141,9 +141,7 @@ export function getDurationFromLine(line: string, durationMarker: string): numbe
  * @param {*} paragraphsArray
  * @returns
  */
-export function removeDateTagsFromArray(
-  paragraphsArray: $ReadOnlyArray<$ReadOnly<{ ...TParagraph, title?: string }>>,
-): $ReadOnlyArray<$ReadOnly<{ ...TParagraph, title?: string }>> {
+export function removeDateTagsFromArray(paragraphsArray: $ReadOnlyArray<TParagraph>): Array<TParagraph> {
   const newPA = paragraphsArray.map((p, i) => {
     return {
       ...p,
@@ -329,7 +327,7 @@ export function matchTasksToSlots(sortedTaskList: Array<{ ...TParagraph, duratio
  * @param { * } config
  * @returns
  */
-export function appendLinkIfNecessary(todos: Array<{ ...TParagraph, +title?: string }>, config: { [key: string]: any }): Array<{ ...TParagraph, +title?: string }> {
+export function appendLinkIfNecessary(todos: Array<TParagraph>, config: { [key: string]: any }): Array<TParagraph> {
   let todosWithLinks = todos
   if (todos.length && config.includeLinks !== 'OFF') {
     todosWithLinks = []

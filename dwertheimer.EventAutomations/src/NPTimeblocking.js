@@ -49,6 +49,8 @@ import {
 import { getPresetOptions, setConfigForPreset } from './presets'
 import { getTimeBlockingDefaults, validateTimeBlockConfig } from './config'
 import type { IntervalMap, TimeBlockDefaults, PartialCalendarItem, EditorOrNote } from './timeblocking-flow-types'
+import { checkNumber, checkObj, checkString, checkWithDefault } from '../../helpers/checkType'
+import { catchError } from 'rxjs/operators'
 
 const PLUGIN_ID = 'autoTimeBlocking'
 
@@ -133,31 +135,30 @@ export async function deleteParagraphsContainingString(destNote: TNote, timeBloc
  */
 function getTodaysReferences(pNote: TNote | null = null, config): Array<TParagraph> {
   const note = pNote || Editor.note
-  if (note) {
-    const backlinks = [...(note.backlinks || [])] // an array of notes which link to this note
-
-    let todayParas = []
-    backlinks.forEach((link, i) => {
-      // $FlowIgnore
-      const subItems = link.subItems
-      subItems.forEach((subItem, j) => {
-        subItem.title = link.content.replace('.md', '').replace('.txt', '')
-        todayParas.push(subItem)
-      })
-    })
-    // FIX CLO to work with backlinks
-
-    clo(todayParas, 'todayParas')
-    findTodosInNote(note, config).forEach((link, i) => {
-      clo(link, `findTodosInNote[${i}]`)
-    })
-    todayParas = [...todayParas, ...findTodosInNote(note, config)]
-    // console.log(`getTodaysReferences note.filename=${note.filename} backlinks.length=${backlinks.length} todayParas.length=${todayParas.length}`)
-    return todayParas
-  } else {
+  if (note == null) {
     console.log(`timeblocking could not open Note`)
     return []
   }
+
+  const backlinks: Array<TParagraph> = [...note.backlinks] // an array of notes which link to this note
+
+  let todayParas = []
+  backlinks.forEach((link, i) => {
+    const subItems = link.children()
+    subItems.forEach((subItem, j) => {
+      subItem.title = link.content.replace('.md', '').replace('.txt', '')
+      todayParas.push(subItem)
+    })
+  })
+  // FIX CLO to work with backlinks
+
+  clo(todayParas, 'todayParas')
+  findTodosInNote(note).forEach((link, i) => {
+    clo(link, `findTodosInNote[${i}]`)
+  })
+  todayParas = [...todayParas, ...findTodosInNote(note)]
+  // console.log(`getTodaysReferences note.filename=${note.filename} backlinks.length=${backlinks.length} todayParas.length=${todayParas.length}`)
+  return todayParas
 }
 
 async function insertItemsIntoNote(note, list, config) {
@@ -207,7 +208,8 @@ async function getPopulatedTimeMapForToday(dateStr: string, intervalMins: number
   const eventsWithStartAndEnd = getTimedEntries(eventsArray)
   let eventsScheduledForToday = keepTodayPortionOnly(eventsWithStartAndEnd)
   if (Editor) {
-    const userEnteredTimeblocks = getExistingTimeBlocksFromNoteAsEvents(Editor, config.defaultDuration)
+    let duration = checkWithDefault(checkNumber, 60)
+    const userEnteredTimeblocks = getExistingTimeBlocksFromNoteAsEvents(Editor, duration)
     eventsScheduledForToday = [...userEnteredTimeblocks, ...eventsScheduledForToday]
   }
   const blankDayMap = getBlankDayMap(parseInt(intervalMins))
@@ -233,17 +235,37 @@ export async function deleteCalendarEventsWithTag(tag: string, dateStr: string):
   }
 }
 
-function getEventsConfig(atbConfig: { [string]: mixed }) {
+type TEventConfig = {
+  confirmEventCreation: boolean,
+  processedTagName: string,
+  calendarToWriteTo: string,
+}
+function getEventsConfig(atbConfig: { [string]: mixed }): TEventConfig {
+  const checkedConfig: {
+    eventEnteredOnCalTag: string,
+    calendarToWriteTo: string,
+    ...
+  } = checkWithDefault(
+    checkObj({
+      eventEnteredOnCalTag: checkString,
+      calendarToWriteTo: checkString,
+    }),
+    {
+      eventEnteredOnCalTag: '#event_created',
+      calendarToWriteTo: '',
+    },
+  )
+
   const eventsConfig = {
     confirmEventCreation: false,
-    processedTagName: atbConfig.eventEnteredOnCalTag || '#event_created',
-    calendarToWriteTo: atbConfig.calendarToWriteTo || '',
+    processedTagName: checkedConfig.eventEnteredOnCalTag,
+    calendarToWriteTo: checkedConfig.calendarToWriteTo,
   }
 
   return eventsConfig
 }
 
-export async function createTimeBlocksForTodaysTasks(config: { [key: string]: any } = {}): Promise<?Array<string>> {
+export async function createTimeBlocksForTodaysTasks(config: { [key: string]: mixed } = {}): Promise<?Array<string>> {
   // console.log(`Starting createTimeBlocksForTodaysTasks. Time is ${new Date().toLocaleTimeString()}`)
   // console.log(`config is: ${JSON.stringify(config, null, 2)}`)
   const {

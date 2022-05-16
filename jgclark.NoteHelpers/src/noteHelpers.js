@@ -2,16 +2,15 @@
 //-----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// Last updated 20.1.2022 for v0.11.0, @jgclark
+// Last updated 10.5.2022 for v0.12.0, @jgclark
 //-----------------------------------------------------------------------------
 
+import { log, logError, logWarn } from '../../helpers/dev'
 import {
   allNotesSortedByChanged,
   printNote,
 } from '../../helpers/note'
-import {
-  getParaFromContent,
-} from '../../helpers/paragraph'
+import { getParaFromContent, } from '../../helpers/paragraph'
 import {
   chooseFolder,
   chooseHeading
@@ -26,19 +25,18 @@ export async function moveNote(): Promise<void> {
   const { title, filename } = Editor
   if (title == null || filename == null) {
     // No note open, so don't do anything.
-    console.log('moveNote: warning: No note open.')
+    logError('moveNote','No note open. Stopping.')
     return
   }
   const selectedFolder = await chooseFolder(`Select a folder for '${  title  }'`, true) // include @Archive as an option
-  console.log(`move ${title} (filename = ${filename}) to ${selectedFolder}`)
+  log('moveNote', `move ${title} (filename = ${filename}) to ${selectedFolder}`)
 
   const newFilename = DataStore.moveNote(filename, selectedFolder)
 
   if (newFilename != null) {
-    console.log('\tmoving note was successful')
     await Editor.openNoteByFilename(newFilename)
   } else {
-    console.log('\tmoving note was NOT successful')
+    logError('moveNote',`Error trying to move note`)
   }
 }
 
@@ -94,35 +92,6 @@ export async function jumpToHeading(): Promise<void> {
   const startPos = getParaFromContent(note, headingStr)?.contentRange?.start ?? 0
   console.log(startPos)
   Editor.select(startPos, 0)
-
-  // // TODO: it would be a good learning exercise to work out how to combine
-  // // the following two variables into a single map -> showOptions
-  // const headingParas = paras.filter((p) => p.type === 'title') // = all headings, not just the top 'title'
-  // const headingValues = headingParas.map((p) => {
-  //   let prefix = ''
-  //   for (let i = 1; i < p.headingLevel; i++) {
-  //     prefix += '    '
-  //   }
-  //   return `${prefix}${p.content}`
-  // })
-
-  // // Present list of headingValues for user to choose from
-  // if (headingValues.length > 0) {
-  //   const re = await CommandBar.showOptions(
-  //     headingValues,
-  //     'Select heading to jump to:',
-  //   )
-    // // find out position of this heading, ready to set insertion point
-    // const startPos = headingParas[re.index].contentRange?.start ?? 0
-    // // console.log(startPos)
-    // // Editor.renderedSelect(startPos, 0) // feels the better one to use, but doesn't seem to work
-    // Editor.select(startPos, 0)
-
-  //   // Earlier version:
-  //   // Editor.highlight(headingParas[re.index])
-  // } else {
-  //   console.log('Warning: No headings found in this note')
-  // }
 }
 
 /** 
@@ -166,55 +135,17 @@ export function jumpToDone(): void {
   // Find the 'Done' heading of interest from all the paragraphs
   const matches = paras
     .filter((p) => p.headingLevel === 2)
-    .filter((q) => q.content.startsWith('Done'))
+    .filter((q) => q.content.startsWith('Done')) // startsWith copes with Done section being folded
 
   if (matches != null) {
     const startPos = matches[0].contentRange?.start ?? 0
-    console.log(`  Found ## Done at position ${startPos}`)
+    log('jumpToDone', `Jumping to '## Done' at position ${startPos}`)
     // Editor.renderedSelect(startPos, 0) // sometimes doesn't work
     Editor.select(startPos, 0)
 
     // Earlier version
     // Editor.highlight(p)
   } else {
-    console.log("Warning: Couldn't find a '## Done' section")
+    logWarn('jumpToDone', "Couldn't find a '## Done' section. Stopping.")
   }
-}
-
-
-/**
- * Set the title of a note from YAML, rather than the first line.
- * NOTE: not currently working because of lack of API support yet (as of release 728)
- * TODO: add following back into plugin.json to active this again:
- * {
- *   "name": "Set title from YAML",
- *   "description": "Set the note's title from the YAML or frontmatter block, not the first line",
- *   "jsFunction": "setTitleFromYAML"
- * },
-*/
-export function setTitleFromYAML(): void {
-  const { note, content } = Editor
-  if (note == null || content == null) {
-    // no note open.
-    return
-  }
-  console.log(`setTitleFromYAML:\n\told title = ${note.title ?? ''}`)
-  const lines = content.split('\n')
-  let n = 0
-  let newTitle = ''
-  while (n < lines.length) {
-    if (lines[n].match(/^[Tt]itle:\s*.*/)) {
-      const rer = lines[n].match(/^[Tt]itle:\s*(.*)/)
-      newTitle = rer?.[1] ?? ''
-    }
-    if (lines[n] === '' || lines[n] === '...') {
-      break
-    }
-    n += 1
-  }
-  console.log(`\tnew title = ${newTitle}`)
-  if (newTitle !== '') {
-    note.title = newTitle // TODO: when setter available
-  }
-  printNote(note)
 }

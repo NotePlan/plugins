@@ -148,10 +148,10 @@ export function copyObject(obj: any): any {
  */
 // This works and is good if you want to know which properties are on the object vs the prototype
 // because it will display in two lines
-export function logAllPropertyNames(obj: { [string]: mixed }): void {
-  if (obj == null) return // recursive approach
+export function logAllPropertyNames(obj?: mixed): void {
+  if (typeof obj !== 'object' || obj == null) return // recursive approach
   console.log(Object.getOwnPropertyNames(obj).filter((x) => /^__/.test(x) === false))
-  logAllPropertyNames(Object.getPrototypeOf(obj))
+  logAllPropertyNames(obj.__proto__)
 }
 
 /**
@@ -219,9 +219,9 @@ export function log(pluginInfo: any, message: any = '', type: string = 'LOG'): s
  * @param {any} message
  * @returns {string}
  */
-export function logError(pluginInfo: any, error: any = ''): string {
-  if (error instanceof Error) {
-    let msg = `${error.filename} ${error.lineNumber}: ${error.message}`
+export function logError(pluginInfo: any, error?: any): string {
+  if (typeof error === 'object' && error != null) {
+    let msg = `${error.filename ?? '<unknown file>'} ${error.lineNumber ?? '<unkonwn line>'}: ${error.message}`
     return log(pluginInfo, msg, 'ERROR')
   }
   return log(pluginInfo, error, 'ERROR')

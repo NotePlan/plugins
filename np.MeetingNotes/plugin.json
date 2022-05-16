@@ -9,6 +9,7 @@
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "CorePlugins",
+  "plugin.hidden": true,
   "plugin.commands": [
     {
       "name": "newMeetingNote",

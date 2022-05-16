@@ -87,4 +87,4 @@ export function getSurroundingChars(value: string, start: number, end: number, c
   return config.ignoreNewLines ? output.replace(/\n/gm, ' ') : output
 }
 
-export function getMatchText(indices, content) {}
+// export function getMatchText(indices, content) {}

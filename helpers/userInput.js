@@ -262,7 +262,7 @@ export async function askDateInterval(dateParams: string): Promise<string> {
   const dateParamsTrimmed = dateParams?.trim() || ''
   const paramConfig =
     dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}') ? await parseJSON5(dateParams) : dateParamsTrimmed !== '' ? await parseJSON5(`{${dateParams}}`) : {}
-  log('askDateInterval', `param config: ${dateParams} as ${JSON.stringify(paramConfig) ?? ''}`)
+  // log('askDateInterval', `param config: ${dateParams} as ${JSON.stringify(paramConfig) ?? ''}`)
   // ... = "gather the remaining parameters into an array"
   const allSettings: { [string]: mixed } = { ...paramConfig }
   // grab just question parameter, or provide a default

@@ -11,7 +11,8 @@ export {
   jumpToDone,
   jumpToHeading,
   jumpToNoteHeading,
-  setTitleFromYAML,
+  // This file is missing @jgclark - @nmn
+  //setTitleFromYAML,
   openNoteNewWindow,
   openNoteNewSplit,
 } from './noteHelpers'

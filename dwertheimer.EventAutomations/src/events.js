@@ -56,7 +56,8 @@ export async function createNoteForCalendarItem(useQuickTemplate: boolean = true
   // $FlowIgnore
   const theTitle = `${selectedEvent} {{date8601()}} ${theTime || ''}`
   if (selectedEvent && useQuickTemplate) {
-    await quickTemplateNote(theTitle)
+    // quickTemplateNote is not defined!
+    // await quickTemplateNote(theTitle)
     return
   }
   const useTemplate = await chooseOption(
@@ -68,7 +69,8 @@ export async function createNoteForCalendarItem(useQuickTemplate: boolean = true
     'Yes',
   )
   if (useTemplate !== 'No') {
-    await newNoteWithTemplate('', theTitle)
+    // newNoteWithTemplate is not defined!
+    // await newNoteWithTemplate('', theTitle)
   } else {
     const folder = await chooseFolder('What folder should the note be in?')
     if (selEvent) {

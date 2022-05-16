@@ -53,12 +53,21 @@ const SEARCH_OPTIONS = {
   findAllMatches: true,
 }
 
+type TgetNotesForIndex = {
+  type: TNote['type'],
+  title: TNote['title'],
+  hashtags: TNote['hashtags'],
+  mentions: TNote['mentions'],
+  content: TNote['content'],
+  filename: TNote['filename'],
+  changedDateISO: string,
+}
 /**
  * Get a list of notes in a form we can use for FUSE
  * @param {Object} config
  * @returns
  */
-function getNotesForIndex(config: DataQueryingConfig) {
+function getNotesForIndex(config: DataQueryingConfig): $ReadOnlyArray<TgetNotesForIndex> {
   const consolidatedNotes = [...DataStore.projectNotes, ...DataStore.calendarNotes]
   log(pluginJson, `getNotesForIndex: ${consolidatedNotes.length} notes before eliminating foldersToIgnore: ${config.foldersToIgnore.toString()}`)
   // consolidatedNotes.prototype.changedDateISO = () => this.changedDate.toISOString()
@@ -68,24 +77,19 @@ function getNotesForIndex(config: DataQueryingConfig) {
   }
   // log(pluginJson, `getNotesForIndex: ${consolidatedNotes.length} notes before eliminating foldersToIgnore: ${JSON.stringify(foldersToIgnore)} `)
   const cn = consolidatedNotes
-    .filter((note) => {
-      let include = true
-      foldersToIgnore?.forEach((skipFolder) => {
-        if (note.filename.includes(`${skipFolder}/`)) {
-          include = false
-        }
-      })
-      return include
+    .filter((note) => foldersToIgnore.every((skipFolder) => !note.filename.includes(`${skipFolder}/`)))
+    .map((n: TNote): TgetNotesForIndex => {
+      return {
+        type: n.type,
+        title: n.title,
+        hashtags: n.hashtags,
+        mentions: n.mentions,
+        content: n.content,
+        filename: n.filename,
+        changedDateISO: n.changedDate.toISOString(),
+      }
     })
-    .map((n) => ({
-      type: n.type,
-      title: n.title,
-      hashtags: n.hashtags,
-      mentions: n.mentions,
-      content: n.content,
-      filename: n.filename,
-      changedDateISO: n.changedDate.toISOString(),
-    }))
+
   log(pluginJson, `getNotesForIndex: FollowUp=${cn.filter((n) => n.filename == '_Inbox/FollowUp.md').length}`)
   return cn
   // Note: had to do the map above to get the actual NP objects to be visible in the console
@@ -141,7 +145,7 @@ export async function writeIndex(index: any): null | any {
  * @param {Object} notesToInclude (optional) if you have the cleansed note list, pass it in, otherwise it will be created
  * @returns {FuseIndex}
  */
-export async function createIndex(notesToInclude = [], config: { ... }): Fuse.FuseIndex<mixed> {
+export async function createIndex(notesToInclude: $ReadOnlyArray<TNote> = [], config: { ... }): Fuse.FuseIndex<mixed> {
   let timeStart = new Date()
   const includedNotes = notesToInclude.length ? notesToInclude : getNotesForIndex(config)
   const index = fh.buildIndex(includedNotes, SEARCH_OPTIONS)
@@ -270,11 +274,11 @@ async function writeSearchNote(results, searchTerm, config) {
   console.log(`searchUserInput: Noteplan opening/displaying search results took: ${timer(start)}`)
 }
 
-export async function search(pattern = `Cava`, config: DataQueryingConfig = getDefaultConfig(), pIndex = null, notes = null): Promise<any> {
+export async function search(pattern: string = `Cava`, config: DataQueryingConfig = getDefaultConfig(), pIndex?: number, notes?: $ReadOnlyArray<TNote>): Promise<any> {
   try {
     // CommandBar.showLoading(true, `Searching ${DataStore.projectNotes.length} notes and attachments...`)
     // await CommandBar.onAsyncThread()
-    let index = pIndex || null
+    let index = pIndex ?? null
     let timeStart = new Date()
     if (config.loadIndexFromDisk) {
       try {
@@ -284,7 +288,7 @@ export async function search(pattern = `Cava`, config: DataQueryingConfig = getD
       }
     }
     // const consolidatedNotes = [...DataStore.projectNotes, ...DataStore.calendarNotes].map((note) => ({ ...note, changedDate: note.changedDate.toISOString() }))
-    const includedNotes = notes || getNotesForIndex(config)
+    const includedNotes = notes ?? getNotesForIndex(config)
     let results = []
     if (index) {
       results = fh.searchIndex(includedNotes, pattern, { options: SEARCH_OPTIONS, index })
