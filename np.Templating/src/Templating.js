@@ -374,7 +374,8 @@ export async function templateFileByTitle(selectedTemplate?: string, openInEdito
 export async function templateRunner(...args: Array<string>) {
   try {
     if (args.length > 0) {
-      templateFileByTitle(args[0], args[1] === 'true', args.length > 2 ? args[2] : '')
+      // templateFileByTitle(args[0], args[1] === 'true', args.length > 2 ? args[2] : '')
+      templateFileByTitle(...args)
     } else {
       await CommandBar.prompt(`No arguments (with template name) were given to the templateRunner."`, helpInfo('Presets'))
     }

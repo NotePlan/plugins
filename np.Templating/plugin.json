@@ -105,6 +105,7 @@
         "Template file by title"
       ],
       "description": "Run a template file by title/preset",
+      "hidden": true,
       "jsFunction": "templateFileByTitle"
     },
     {
@@ -113,6 +114,7 @@
         "np:tr"
       ],
       "description": "Load and run self-contained template instructions with arguments",
+      "hidden": true,
       "jsFunction": "templateRunner"
     }
   ],
