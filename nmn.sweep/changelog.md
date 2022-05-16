@@ -1,6 +1,9 @@
 Plugin usage instructions: [README](https://github.com/NotePlan/plugins/blob/main/nmn.sweep/readme.md)
 # What's Changed?
 
+## [1.4.4] 2022-05-15 @codedimgepm
+- Added `sweepTemplate` command (hidden: true) to `plugin.json` so that it can be executed from `invokePluginCommandByName` in `globals.js`
+
 ## [1.4.3] 2022-01-01 @dwertheimer
 - Fixed /sw7 not running bug
 
@@ -9,7 +12,7 @@ Plugin usage instructions: [README](https://github.com/NotePlan/plugins/blob/mai
 
 ## [1.4.1] 2021-11-05 @dwertheimer
 - Made overdue conform to usage in Noteplan UI (for tasks to show up in References section)
-- Added ability to leave tasks in place with ">today" or today's date 
+- Added ability to leave tasks in place with ">today" or today's date
 
 ## [1.4.0] 2021-11-04 @dwertheimer
 - Added overdueOnly option to taskSweeper (both /swa interactive version and template version)
@@ -20,7 +23,7 @@ Plugin usage instructions: [README](https://github.com/NotePlan/plugins/blob/mai
 ## 1.2.0
 - adding separators to the carry-along-with-task list per request from @BorisAnthony
 
-## 1.1.1 
+## 1.1.1
 - updated: now compiled for macOS versions back to 10.13.0
 
 ## 1.1.0 @weyert -

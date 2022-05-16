@@ -4,8 +4,13 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/codedungeon.Toolbox/README.md) for details on available commands and use case.
 
-## [3.3.0] - 2022-05-15 (@jgclark)
-- added newer date library support
+## [3.4.1] - 2022-05-15 (@codedungeon)
+
+- removed `dayjs` dependency
+  - You can remove as you see fit, but it was not being used anywhere so it should not be causing any issues
+
+## [3.4.0] - 2022-05-15 (@jgclark)
+- add `luxon` depedency
   - luxon-business-days
 
 ## [3.3.0] - 2022-05-06 (@dwertheimer)

@@ -53,7 +53,6 @@ const areaNameOverride = (areaName: string = '') => {
   switch (areaName.toLowerCase()) {
     case 'talbert':
       return 'Fountain Valley'
-      break
   }
 
   return areaName

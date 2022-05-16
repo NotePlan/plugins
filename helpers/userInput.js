@@ -54,7 +54,8 @@ export async function chooseOption<T, TDefault = T>(message: string, options: $R
  * @return {Promise<boolean|string>} - string that the user enters. Maybe be the empty string. If the user cancels the operation, it will return false instead.
  */
 export async function getInput(message: string, okLabel: string = 'OK', dialogTitle: string = 'Enter value', defaultValue: string = ''): Promise<boolean | string> {
-  if (typeof CommandBar.textPrompt === 'function') { // i.e. do we have .textPrompt available?
+  if (typeof CommandBar.textPrompt === 'function') {
+    // i.e. do we have .textPrompt available?
     return await CommandBar.textPrompt(dialogTitle, message, defaultValue)
   } else {
     return await CommandBar.showInput(message, okLabel)
@@ -73,7 +74,8 @@ export async function getInput(message: string, okLabel: string = 'OK', dialogTi
  * @returns {Promise<boolean|string>} string that the user enters. Maybe be the empty string. If the user cancels the operation, it will return false instead.
  */
 export async function getInputTrimmed(message: string, okLabel: string = 'OK', dialogTitle: string = 'Enter value', defaultValue: string = ''): Promise<boolean | string> {
-  if (typeof CommandBar.textPrompt === 'function') { // i.e. do we have .textPrompt available?
+  if (typeof CommandBar.textPrompt === 'function') {
+    // i.e. do we have .textPrompt available?
     const reply = await CommandBar.textPrompt(dialogTitle, message, defaultValue)
     return typeof reply === 'string' ? reply.trim() : reply
   } else {
@@ -92,7 +94,8 @@ export async function getInputTrimmed(message: string, okLabel: string = 'OK', d
  * @param {?string} dialogTitle - title for the dialog (default: empty)
  */
 export async function showMessage(message: string, confirmButton: string = 'OK', dialogTitle: string = ''): Promise<void> {
-  if (typeof CommandBar.prompt === 'function') { // i.e. do we have .textPrompt available?
+  if (typeof CommandBar.prompt === 'function') {
+    // i.e. do we have .textPrompt available?
     await CommandBar.prompt(dialogTitle, message, [confirmButton])
   } else {
     await CommandBar.showOptions([confirmButton], message)
@@ -111,7 +114,8 @@ export async function showMessage(message: string, confirmButton: string = 'OK',
  */
 export async function showMessageYesNo(message: string, choicesArray: Array<string> = ['Yes', 'No'], dialogTitle: string = ''): Promise<string> {
   let answer: number
-  if (typeof CommandBar.prompt === 'function') { // i.e. do we have .textPrompt available?
+  if (typeof CommandBar.prompt === 'function') {
+    // i.e. do we have .textPrompt available?
     answer = await CommandBar.prompt(dialogTitle, message, choicesArray)
   } else {
     const answerObj = await CommandBar.showOptions(choicesArray, `${message}`)
@@ -176,7 +180,7 @@ export async function chooseHeading(note: TNote, optionAddAtBottom: boolean = tr
   // Decide whether to include all headings in note, or just those in the first
   // before the Done/Cancelled section
   const indexEndOfActive = findEndOfActivePartOfNote(note)
-  const headingParas = (includeArchive)
+  const headingParas = includeArchive
     ? note.paragraphs.filter((p) => p.type === 'title') // = all headings, not just the top 'Title'
     : note.paragraphs.filter((p) => p.type === 'title' && p.lineIndex < indexEndOfActive) // = all headings in the active part of the note
   if (headingParas.length > 0) {
@@ -201,10 +205,7 @@ export async function chooseHeading(note: TNote, optionAddAtBottom: boolean = tr
     // Ensure we can always add at top and bottom of note
     headingStrings.push('⬇️ (bottom of note)') // add at end
   }
-  const result = await CommandBar.showOptions(
-    headingStrings,
-    `Select a heading from note '${note.title ?? 'Untitled'}'`,
-  )
+  const result = await CommandBar.showOptions(headingStrings, `Select a heading from note '${note.title ?? 'Untitled'}'`)
   let headingToFind = headingStrings[result.index].trim()
   let newHeading = ''
 
@@ -220,7 +221,7 @@ export async function chooseHeading(note: TNote, optionAddAtBottom: boolean = tr
       } else {
         // i.e. input was cancelled -- TODO: ideally would quit here?
         return '(error)'
-      }      
+      }
       break
 
     case '➕ ⬇️ (first insert new heading at the end of the note)':
@@ -236,13 +237,13 @@ export async function chooseHeading(note: TNote, optionAddAtBottom: boolean = tr
         return '(error)'
       }
       break
-    
+
     case '⬇️ (bottom of note)':
-      // get 
+      // get
       log('chooseHeading', `selected end note, rather than a heading`)
       headingToFind = ''
       break
-    
+
     default:
       break
   }
@@ -305,18 +306,14 @@ export async function askForFutureISODate(question: string): Promise<string> {
  * @param {[string]: ?mixed} config - previously used as settings from _configuration note; now ignored
  * @return {string} - the returned ISO date as a string, or empty if an invalid string given
  */
-export async function datePicker(dateParams: string, config: { [string]: ?mixed }): Promise<string> {
+export async function datePicker(dateParams: string, config?: { [string]: ?mixed } = {}): Promise<string> {
   try {
-    const dateConfig = config?.date ?? {}
+    const dateConfig = config.date ?? {}
     // $FlowIgnore[incompatible-call]
     clo(dateConfig, 'userInput/datePicker dateConfig object:')
     const dateParamsTrimmed = dateParams.trim()
     const paramConfig =
-      dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}')
-        ? await parseJSON5(dateParams)
-        : dateParamsTrimmed !== ''
-          ? await parseJSON5(`{${dateParams}}`)
-          : {}
+      dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}') ? await parseJSON5(dateParams) : dateParamsTrimmed !== '' ? await parseJSON5(`{${dateParams}}`) : {}
     // $FlowIgnore[incompatible-type] -- TODO: Is there a @dwertheimer function that can help here?
     log('userInput/datePicker', `params: ${dateParams} -> ${JSON.stringify(paramConfig)}`)
     // '...' = "gather the remaining parameters into an array"
@@ -327,8 +324,8 @@ export async function datePicker(dateParams: string, config: { [string]: ?mixed 
     // log('userInput/datePicker', allSettings.toString())
     // grab just question parameter, or provide a default
     let { question } = (allSettings: any)
-    question = question ?question: 'Please enter a date'
-  
+    question = question ? question : 'Please enter a date'
+
     // Ask question (newer style)
     // const reply = (await CommandBar.showInput(question, `Date (YYYY-MM-DD): %@`)) ?? ''
     const reply = await CommandBar.textPrompt('Date Picker', question, 'YYYY-MM-DD')
@@ -343,8 +340,7 @@ export async function datePicker(dateParams: string, config: { [string]: ?mixed 
       logWarn('userInput/datePicker', 'User cancelled date input')
       return ''
     }
-  } 
-  catch (e) {
+  } catch (e) {
     logError('userInput/datePicker', e.message)
     return ''
   }

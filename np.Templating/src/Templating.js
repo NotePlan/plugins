@@ -28,21 +28,17 @@ import pluginJson from '../plugin.json'
 import DateModule from '../lib/support/modules/DateModule'
 
 export async function init(): Promise<void> {
-  return
-
   try {
-    if (!(await _checkTemplatesMigrated())) {
-      let result = await CommandBar.prompt(
-        'Your existing templates need to be migrated to new templating format',
-        'Your templates will be migrated to \nSmart Folders -> Templates folder\n\nYour existing templates in\n📋 Templates will be preserved.\n\nWould you like to migrate templates now?',
-        ['Yes', 'No'],
-      )
+    // executes before any np.Templating command
+  } catch (error) {
+    logError(pluginJson, error)
+  }
+}
 
-      if (result === 0) {
-        await onUpdateOrInstall()
-        await CommandBar.prompt('Re-execute Template Command', 'Please execute the desired template command again.')
-      }
-    }
+export async function onSettingsUpdated() {
+  try {
+    const templateGroupTemplatesByFolder = DataStore.settings?.templateGroupTemplatesByFolder || false
+    DataStore.setPreference('templateGroupTemplatesByFolder', templateGroupTemplatesByFolder)
   } catch (error) {
     logError(pluginJson, error)
   }
@@ -95,6 +91,26 @@ export async function onUpdateOrInstall(config: any = { silent: false }): Promis
 
     // set application settings with any adjustments after template specific updates
     DataStore.settings = { ...templateSettings }
+
+    const pluginList = DataStore.installedPlugins()
+    // clo(pluginList)
+
+    const version = await DataStore.invokePluginCommandByName('np:about', 'np.Templating', [{}])
+    console.log(version)
+
+    // const name = await DataStore.invokePluginCommandByName('cd:tester', 'codedungeon.NotePlan', [])
+    // console.log(name)
+
+    // DataStore.invokePluginCommandByName('cd:tester', 'codedungeon.NotePlan', [{}])
+    //   .then((data) => console.log(data))
+    //   .catch((err) => console.log(err))
+    // console.log(name)
+    // console.log(res)
+
+    // if (available) {
+    //   let result = await NPTemplating.invokePluginCommandByName('np.Templating', 'np:about', ['mike', 'erickson'])
+    //   console.log(`result: ${result}`)
+    // }
   } catch (error) {
     logError(pluginJson, error)
   }
@@ -193,8 +209,7 @@ export async function templateAppend(): Promise<void> {
       // $FlowIgnore
       const selectedTemplate = await NPTemplating.chooseTemplate()
       const templateData = await NPTemplating.getTemplate(selectedTemplate)
-      const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
-
+      let { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
       let data = { ...frontmatterAttributes, frontmatter: { ...frontmatterAttributes } }
 
       // $FlowIgnore
@@ -686,10 +701,12 @@ export async function migrateTemplatesCommand(): Promise<void> {
   log(pluginJson, 'Migrating Templates')
 }
 
-export async function templateAbout(): Promise<string> {
+export async function templateAbout(params: any = []): Promise<string> {
   try {
+    console.log(JSON.stringify(params))
+
     const version = pluginJson['plugin.version']
-    let aboutInfo = `Templating Plugin for NotePlan\nv${version}\n\n\nCopyright © 2022-2023 Mike Erickson.\nAll Rights Reserved.`
+    let aboutInfo = `Templating Plugin for NotePlan\nv${version}\n\n\nCopyright © 2022 Mike Erickson.\nAll Rights Reserved.`
 
     await CommandBar.prompt('About np.Templating', aboutInfo)
     log(pluginJson, `${version}`)
@@ -703,16 +720,12 @@ export async function _checkTemplatesMigrated(): Promise<boolean> {
   const templateFolder = '📋 Templates'
 
   const migratedTemplates = await NPTemplating.getTemplateListByTags('migrated-template')
-  log(pluginJson, `migratedTemplates.count: ${migratedTemplates.length}`)
-
   const legacyTemplates = DataStore.projectNotes.filter((n) => n.filename?.startsWith(templateFolder)).filter((n) => !n.title?.startsWith('_configuration'))
-  log(pluginJson, `legacyTemplates.count: ${legacyTemplates.length}`)
 
   // const result = legacyTemplates.length > 0 && migratedTemplates.length > 0
   // 2022-05-03 5:37:04 PM, checking if this has a positive impact as per @dwertheimer comment
   // https://discord.com/channels/763107030223290449/971096330044862514/971171560746549339
   const result = migratedTemplates.length > 0 || !(legacyTemplates.length > 0 && migratedTemplates.length === 0)
-  log(pluginJson, `result: ${result.toString()}`)
 
   return result
 }
@@ -722,5 +735,26 @@ export async function templateSamples(): Promise<void> {
   const result = await CommandBar.prompt(`This will create ${numSamples} template samples in your Templates folder`, 'Are you sure you wish to continue?', ['Continue', 'Cancel'])
   if (result === 0) {
     console.log('Create Samples')
+  }
+}
+
+export async function testInvoke(): Promise<void> {
+  try {
+    // get template settings
+    const templateSettings = DataStore.settings
+
+    // NOTE: normally do some additional work here, but just simulating getting and then setting (even though they are the same)
+
+    // set application settings with any adjustments after template specific updates
+    DataStore.settings = { ...templateSettings }
+
+    // try invoking a plugin command
+
+    // const version = await DataStore.invokePluginCommandByName('np:about', 'np.Templating', [{ fname: 'Mike' }])
+    const version = await NPTemplating.invokePluginCommandByName('np.Templating', 'np:about', [{ fname: 'Mike' }])
+    console.log(version)
+    Editor.insertTextAtCursor(version)
+  } catch (error) {
+    logError(pluginJson, error)
   }
 }

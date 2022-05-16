@@ -5,7 +5,7 @@
     "plugin.description": "Helping you move faster with dates and times",
     "plugin.author": "David Wertheimer",
     "plugin.url": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.DateAutomations/README.md",
-    "plugin.version": "1.3.1",
+    "plugin.version": "1.3.2",
     "plugin.dependencies": [],
     "plugin.script": "script.js",
     "plugin.commands": [
@@ -48,7 +48,9 @@
         "name": "dp",
         "description": "(Date Picker) Choose format and insert date/time time at cursor",
         "jsFunction": "dateFormatPicker",
-        "alias": ["locale"]
+        "alias": [
+          "locale"
+        ]
       },
       {
         "name": "formatted",
@@ -63,57 +65,71 @@
         "description": "Insert dates of current week, e.g. Mon 2022-04-11 - Sun 2022-04-17",
         "jsFunction": "insertWeekDates",
         "alias": [
-          "weekDates","week"
+          "weekDates",
+          "week"
         ]
-      }    ],
-      "plugin.settings": [
-        {
-            "type": "string",
-            "key": "format",
-            "title": "Custom Time String Format",
-            "description": "Used in /formatted command. See https://www.strfti.me/ for details on the formatting codes",
-            "default": "%Y-%m-%d %H:%M",
-            "required": true
-        },
-        {
-            "type": "string",
-            "key": "locale",
-            "title": "Time/Date Locale Setting",
-            "description": "Geographic locale for date/time formatting. e.g. en-US, en-GB, etc. e.g. en-US will result in mm/dd/yyyy, while en_GB will be dd/mm/yyyy. See https://www.ibm.com/docs/en/datacap/9.1.8?topic=support-supported-language-codes for a list of available locales.",
-            "default": "en-US",
-            "required": true
-        },     
-        {
-            "type": "string",
-            "key": "dateStyle",
-            "title": "Date Style (in your locale)",
-            "description": "Used in commands like /now, /time, etc. Can be 'short', 'medium', 'long' or 'full'. Run the /dp command for help choosing the setting you want.",
-            "default": "full",
-            "required": true
-        },
-        {
-            "type": "string",
-            "key": "timeStyle",
-            "title": "Time Style (in your locale)",
-            "description": "Used in commands like /now, /time, etc. Can be 'short', 'medium', 'long' or 'full'. Run the /dp command for help choosing the setting you want.",
-            "default": "short",
-            "required": true
-        },
-        {
-            "type": "bool",
-            "key": "hour12",
-            "title": "Use 12 hour format (with AM/PM)",
-            "description": "You can force 24 hour time format on/off, even in America!",
-            "default": false,
-            "required": true
-        },
-        {
-            "type": "string",
-            "key": "timezone",
-            "title": "Timezone Override",
-            "description": "Usually 'automatic' is fine (will get timezone from your system).",
-            "default": "automatic",
-            "required": true
-        }
-      ]
+      },
+      {
+        "name": "date8601",
+        "description": "Inserts current date in 8601 format",
+        "jsFunction": "get8601String",
+        "hidden": true
+      },
+      {
+        "name": "getWeekDates",
+        "description": "Inserts week dates using supplied format",
+        "jsFunction": "getWeekDates",
+        "hidden": true
+      }
+    ],
+    "plugin.settings": [
+      {
+        "type": "string",
+        "key": "format",
+        "title": "Custom Time String Format",
+        "description": "Used in /formatted command. See https://www.strfti.me/ for details on the formatting codes",
+        "default": "%Y-%m-%d %H:%M",
+        "required": true
+      },
+      {
+        "type": "string",
+        "key": "locale",
+        "title": "Time/Date Locale Setting",
+        "description": "Geographic locale for date/time formatting. e.g. en-US, en-GB, etc. e.g. en-US will result in mm/dd/yyyy, while en_GB will be dd/mm/yyyy. See https://www.ibm.com/docs/en/datacap/9.1.8?topic=support-supported-language-codes for a list of available locales.",
+        "default": "en-US",
+        "required": true
+      },
+      {
+        "type": "string",
+        "key": "dateStyle",
+        "title": "Date Style (in your locale)",
+        "description": "Used in commands like /now, /time, etc. Can be 'short', 'medium', 'long' or 'full'. Run the /dp command for help choosing the setting you want.",
+        "default": "full",
+        "required": true
+      },
+      {
+        "type": "string",
+        "key": "timeStyle",
+        "title": "Time Style (in your locale)",
+        "description": "Used in commands like /now, /time, etc. Can be 'short', 'medium', 'long' or 'full'. Run the /dp command for help choosing the setting you want.",
+        "default": "short",
+        "required": true
+      },
+      {
+        "type": "bool",
+        "key": "hour12",
+        "title": "Use 12 hour format (with AM/PM)",
+        "description": "You can force 24 hour time format on/off, even in America!",
+        "default": false,
+        "required": true
+      },
+      {
+        "type": "string",
+        "key": "timezone",
+        "title": "Timezone Override",
+        "description": "Usually 'automatic' is fine (will get timezone from your system).",
+        "default": "automatic",
+        "required": true
+      }
+    ]
   }
