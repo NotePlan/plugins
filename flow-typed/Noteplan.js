@@ -1031,13 +1031,13 @@ type TNote = {
    * If you set the content, NotePlan will write it immediately to file.
    * If you get the content, it will be read directly from the file.
    */
-  +content: string | void,
+  content: string | void,
   /**
    * Get or set paragraphs contained in this note (can be tasks, plain text, headings...).
    * If you set the paragraph array, it will join them and save the new content
    * to file.
    */
-  +paragraphs: $ReadOnlyArray<TParagraph>,
+  paragraphs: Array<TParagraph>,
   /**
    * Get paragraphs contained in this note which contain a link to another [[project note]] or [[YYYY-MM-DD]] daily note.
    * Note: Available from v3.2.0
