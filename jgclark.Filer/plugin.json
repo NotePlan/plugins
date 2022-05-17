@@ -51,7 +51,7 @@
     {
       "name": "add sync'd copy to note",
       "alias": ["asc", "sync"],
-      "description": "Add a ID to current line and copy it to a section in another note",
+      "description": "Add a sync'd copy of the current line to a section in another note",
       "jsFunction": "addIDAndAddToOtherNote"
     }
   ],
