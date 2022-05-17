@@ -13,6 +13,9 @@ See [Theme customisation](#theme-customisation) below for more on how to customi
 ## Sort Order
 When using `/insert day's events as list` or `/insert matching events` it defaults orders the list by increasing start time of the events. If you wish to have them ordered first by calendar name then by start time, choose the 'calendar' option for the 'Sort order' setting described below, rather than the 'time' default.
 
+## /shift dates
+User George Crump (@george65) has created a [video showing how this command works](https://storone.zoom.us/rec/play/tzI6AreYeKvoyHRw11HX93IGVf2OI-U7WgKXYn2rmGJvbFHXZp8PSr6ajmOrtWymOU5jFIItScSJnL9U.tboBQEXjdw1uRTqu).
+
 ## /process date offsets
 The command is best understood with some examples:
 

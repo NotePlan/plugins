@@ -222,17 +222,23 @@ export function findEndOfActivePartOfNote(note: TNote): number {
 export function findStartOfActivePartOfNote(note: TNote): number {
   const paras = note.paragraphs
   const lineCount = paras.length
-  let startOfActive: number = 0
+  let startOfActive: number = 0 // default to line 0, the H1 line
   let inFrontMatter: boolean = false
   let i = 0
   while (i < lineCount) {
     const p = paras[i]
     if (p.type === 'title') {
-      startOfActive = i
+      startOfActive = i + 1
       break
     }
     if (p.type === 'separator') {
-      inFrontMatter = inFrontMatter ? false : true // toggle state
+      if (!inFrontMatter) {
+        inFrontMatter = true
+      } else {
+        inFrontMatter = false
+        startOfActive = i + 1
+        break
+      }
     }
     if (p.type !== 'empty') {
       startOfActive = i

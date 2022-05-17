@@ -228,7 +228,7 @@ export async function chooseHeading(note: TNote, optionAddAtBottom: boolean = tr
       // ask for new heading, and then append it
       newHeading = await getInput(`Enter heading to add at the end of the note`)
       if (newHeading && typeof newHeading === 'string') {
-        const endPos = note.paragraphs.length
+        const endPos = indexEndOfActive - 1
         log('chooseHeading', `appending new heading ${newHeading} at line ${endPos}`)
         note.insertHeading(newHeading, endPos, 2)
         headingToFind = newHeading
