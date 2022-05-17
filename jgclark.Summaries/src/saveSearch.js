@@ -159,7 +159,7 @@ export async function saveSearch(): Promise<void> {
         return
       }
 
-      let note: TNote
+      let note: ?TNote
       // first see if this note has already been created
       // (look only in active notes, not Archive or Trash)
       const existingNotes: $ReadOnlyArray<TNote> =
@@ -181,7 +181,6 @@ export async function saveSearch(): Promise<void> {
           return
         }
         log(pluginJson, `  newNote filename: ${noteFilename}`)
-        // $FlowIgnore[incompatible-type]
         note = DataStore.projectNoteByFilename(noteFilename)
         if (note == null) {
           logError(pluginJson, `Can't get new note (filename: ${noteFilename})`)
