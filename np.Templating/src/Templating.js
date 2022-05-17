@@ -324,55 +324,66 @@ async function writeNoteContents(note: TNote, renderedTemplate: string, writeUnd
  * xcallback note: arg1 is template name, arg2 is whether to open in editor, arg3 is a list of vars to pass to template equals sign is %3d
  *
  */
-export async function templateFileByTitle(selectedTemplate?: string, openInEditor?: boolean = false, args?: string = ''): Promise<void> {
+export async function templateFileByTitle(selectedTemplate?: string = '', openInEditor?: boolean = false, args?: string = ''): Promise<void> {
   try {
-    let argObj = {}
-    args.split(',').forEach((arg) => (arg.split('=').length === 2 ? (argObj[arg.split('=')[0]] = arg.split('=')[1]) : null))
-    if (!selectedTemplate || selectedTemplate.length === 0) {
-      await CommandBar.prompt(`You must supply a template title as the first argument."`, helpInfo('Presets'))
-    }
-    let failed = false
-    const templateData = await NPTemplating.getTemplate(selectedTemplate)
-    if (!templateData) {
-      failed = true
-    }
-    const isFrontmatter = new FrontmatterModule().isFrontmatterTemplate(templateData)
-    if (!failed && isFrontmatter) {
-      const templateAttributes = await NPTemplating.getTemplateAttributes(templateData)
-      const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
-      // Note: frontmatterAttributes and templateAttributes are the same
-      let data = { ...frontmatterAttributes, ...argObj, frontmatter: { ...frontmatterAttributes, ...argObj } }
-      let renderedTemplate = await NPTemplating.render(frontmatterBody, data)
+    if (selectedTemplate.length !== 0) {
+      let argObj = {}
+      args.split(',').forEach((arg) => (arg.split('=').length === 2 ? (argObj[arg.split('=')[0]] = arg.split('=')[1]) : null))
+      if (!selectedTemplate || selectedTemplate.length === 0) {
+        await CommandBar.prompt(`You must supply a template title as the first argument."`, helpInfo('Presets'))
+      }
+      let failed = false
+      const templateData = await NPTemplating.getTemplate(selectedTemplate)
+      if (!templateData) {
+        failed = true
+      }
+      const isFrontmatter = new FrontmatterModule().isFrontmatterTemplate(templateData)
+      if (!failed && isFrontmatter) {
+        const templateAttributes = await NPTemplating.getTemplateAttributes(templateData)
+        const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
+        // Note: frontmatterAttributes and templateAttributes are the same
+        let data = { ...frontmatterAttributes, ...argObj, frontmatter: { ...frontmatterAttributes, ...argObj } }
+        let renderedTemplate = await NPTemplating.render(frontmatterBody, data)
 
-      const { openNoteTitle, writeNoteTitle, writeType, writeUnderHeading } = frontmatterAttributes
-      let noteTitle = (openNoteTitle && openNoteTitle.trim()) || (writeNoteTitle && writeNoteTitle?.trim()) || ''
-      let shouldOpenInEditor = openNoteTitle && openNoteTitle.length > 0
-      const shouldAppend = (writeType && writeType === 'append') || false
-      const isTodayNote = /<today>/i.test(openNoteTitle)
-      let note
-      if (isTodayNote) {
-        await Editor.openNoteByDate(new Date(), false)
-        await writeNoteContents(Editor.note, renderedTemplate, writeUnderHeading, shouldAppend)
-      } else {
-        if (noteTitle.length) {
-          const notes = await DataStore.projectNoteByTitle(noteTitle)
-          if (!notes || notes.length == 0 || (notes && notes.length > 1)) {
-            const msg = `${!notes || notes.length == 0 ? 'no' : notes.length > 1 ? 'more than one' : ''}`
-            await CommandBar.prompt(`"${noteTitle}" matches ${msg} note(s) title. the title needs to be unique to ensure correct note is written to.`, helpInfo('Presets'))
+        const { openNoteTitle, writeNoteTitle, writeType, writeUnderHeading } = frontmatterAttributes
+        let noteTitle = (openNoteTitle && openNoteTitle.trim()) || (writeNoteTitle && writeNoteTitle?.trim()) || ''
+        let shouldOpenInEditor = openNoteTitle && openNoteTitle.length > 0
+        const shouldAppend = (writeType && writeType === 'append') || false
+        const isTodayNote = /<today>/i.test(openNoteTitle) || /<today>/i.test(writeNoteTitle)
+        let note
+        if (isTodayNote) {
+          if (shouldOpenInEditor) {
+            await Editor.openNoteByDate(new Date())
+            if (Editor?.note) {
+              await writeNoteContents(Editor.note, renderedTemplate, writeUnderHeading, shouldAppend, false)
+            }
           } else {
-            note = notes[0] || null
-            if (!note) {
-              await CommandBar.prompt(`Unable to locate note matching: "${noteTitle}"`, helpInfo('Presets'))
-            } else {
-              await writeNoteContents(note, renderedTemplate, writeUnderHeading, shouldAppend, shouldOpenInEditor)
+            note = DataStore.calendarNoteByDate(new Date())
+            if (note) {
+              await writeNoteContents(note, renderedTemplate, writeUnderHeading, shouldAppend, false)
             }
           }
         } else {
-          await CommandBar.prompt(`openNoteTitle or writeNoteTitle is required`, helpInfo('Presets'))
+          if (noteTitle.length) {
+            const notes = await DataStore.projectNoteByTitle(noteTitle)
+            if (!notes || notes.length == 0 || (notes && notes.length > 1)) {
+              const msg = `${!notes || notes.length == 0 ? 'no' : notes.length > 1 ? 'more than one' : ''}`
+              await CommandBar.prompt(`"${noteTitle}" matches ${msg} note(s) title. the title needs to be unique to ensure correct note is written to.`, helpInfo('Presets'))
+            } else {
+              note = notes[0] || null
+              if (!note) {
+                await CommandBar.prompt(`Unable to locate note matching: "${noteTitle}"`, helpInfo('Presets'))
+              } else {
+                await writeNoteContents(note, renderedTemplate, writeUnderHeading, shouldAppend, shouldOpenInEditor)
+              }
+            }
+          } else {
+            await CommandBar.prompt(`openNoteTitle or writeNoteTitle is required`, helpInfo('Presets'))
+          }
         }
+      } else {
+        await CommandBar.prompt(`Unable to locate template "${selectedTemplate}"`, helpInfo('Presets'))
       }
-    } else {
-      await CommandBar.prompt(`Unable to locate template "${selectedTemplate}"`, helpInfo('Presets'))
     }
   } catch (error) {
     logError(pluginJson, error)
