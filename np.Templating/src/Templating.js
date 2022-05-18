@@ -311,8 +311,8 @@ export async function templateQuickNote(noteName: string = ''): Promise<void> {
         const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
 
         let folder = frontmatterAttributes?.folder.trim() ?? ''
-        if (folder === '') {
-          folder = await NPTemplating.getFolder(folder, 'Select Destination Folder')
+        if (frontmatterAttributes?.folder && frontmatterAttributes.folder.length > 0) {
+          folder = await NPTemplating.getFolder(frontmatterAttributes.folder, 'Select Destination Folder')
         }
 
         let newNoteTitle = ''
@@ -387,8 +387,8 @@ export async function templateMeetingNote(noteName: string = '', templateData: a
         const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
 
         let folder = frontmatterAttributes?.folder.trim() ?? ''
-        if (folder === '') {
-          folder = await NPTemplating.getFolder(folder, 'Select Destination Folder')
+        if (frontmatterAttributes?.folder && frontmatterAttributes.folder.length > 0) {
+          folder = await NPTemplating.getFolder(frontmatterAttributes.folder, 'Select Destination Folder')
         }
 
         let newNoteTitle = ''
