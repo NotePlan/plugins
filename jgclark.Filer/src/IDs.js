@@ -2,11 +2,11 @@
 // ----------------------------------------------------------------------------
 // Plugin to help move selected selectedParagraphs to other notes
 // Jonathan Clark
-// last updated 17.5.2022 for v0.7.0
+// last updated 18.5.2022 for v0.7.0
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
-import { getFilerSettings } from './fileItems'
+import { getFilerSettings, addParasAsText } from './fileItems'
 import { clo, log, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { showMessage } from '@helpers/userInput'
@@ -71,35 +71,8 @@ export async function addIDAndAddToOtherNote(): Promise<void> {
   const headingToFind = (await chooseHeading(destNote, true, true, false))
   // log(pluginJson, `  Adding to note: ${displayTitle(destNote)} under heading: '${headingToFind}'`)
 
-  // Add to new location
-  // Note: When written, there was no API function to deal with multiple
-  // selectedParagraphs, but we can insert a raw text string.
-  // (can't simply use note.addParagraphBelowHeadingTitle() as we have more options than it supports)
-  // TODO: when the following has been tested, make a common function out of it for this and for moveParas()
-  const destNoteParas = destNote.paragraphs
-  let insertionIndex = undefined
-  if (headingToFind === destNote.title || headingToFind.includes('(top of note)')) { // i.e. the first line in project or calendar note
-    insertionIndex = calcSmartPrependPoint(destNote)
-    log(pluginJson, `  -> top of note, line ${insertionIndex}`)
-    await destNote.insertParagraph(selectedParasAsText, insertionIndex, 'text')
-
-  } else if (headingToFind.includes('(bottom of note)')) {
-    insertionIndex = destNoteParas.length + 1
-    log(pluginJson, `  -> bottom of note, line ${insertionIndex}`)
-    await destNote.insertParagraph(selectedParasAsText, insertionIndex, 'text')
-
-  } else if (config.whereToAddInSection === 'start') {
-    log(pluginJson, `  Inserting at start of section ${headingToFind}`)
-    await destNote.addParagraphBelowHeadingTitle(selectedParasAsText, 'text', headingToFind, false, false)
-
-  } else if (config.whereToAddInSection === 'end') {
-    log(pluginJson, `  Inserting at end of section ${headingToFind}`)
-    await destNote.addParagraphBelowHeadingTitle(selectedParasAsText, 'text', headingToFind, true, false)
-
-  } else {
-    logError(pluginJson,`Can't find heading '${headingToFind}'. Stopping.`)
-    return
-  }
+  // Add text to the new location in destination note
+  await addParasAsText(destNote, selectedParasAsText, headingToFind, config.whereToAddInSection)
 
   // NB: handily, the blockId goes with it as part of the para.content
   // log(pluginJson, `Inserting 1 para at index ${insertionIndex} into ${displayTitle(destNote)}`)
