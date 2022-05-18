@@ -1,5 +1,5 @@
 {
-  "noteplan.minAppVersion": "3.0.23",
+  "noteplan.minAppVersion": "3.5.2",
   "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.Filer",
   "plugin.name": "📦 Filer",
@@ -7,7 +7,7 @@
   "plugin.icon": "",
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Filer",
-  "plugin.version": "0.6.1",
+  "plugin.version": "0.7.0-beta1",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -49,18 +49,13 @@
       "jsFunction": "newNoteFromSelection"
     },
     {
-      "name": "f:migrate",
-      "description": "test for Filer migrater",
-      "jsFunction": "onUpdateOrInstall"
+      "name": "add sync'd copy to note",
+      "alias": ["asc", "sync"],
+      "description": "Add a sync'd copy of the current line to a section in another note",
+      "jsFunction": "addIDAndAddToOtherNote"
     }
   ],
   "plugin.settings": [
-    {
-        "key": "version",
-        "type": "hidden",
-        "title": "Filer plugin version (hidden)",
-        "default": "0.6.0"
-    },
     {
         "type": "heading",
         "title": "Filer plugin settings"
@@ -76,7 +71,7 @@
     {
         "key": "dateRefStyle",
         "title": "Date reference style",
-        "description": "The style of date to add 'link' ('>date') or 'at' ('@date') or 'date' (a formatted date string).",
+        "description": "The style of added date reference on a moved note: add either 'link' ('>date') or 'at' ('@date') or 'date' (a formatted date string).",
         "type": "string",
         "choices": ["at", "date", "link"],
         "default": "link",

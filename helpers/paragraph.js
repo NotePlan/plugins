@@ -45,12 +45,11 @@ export function rangeToString(r: Range): string {
   return `range: ${r.start}-${r.end}`
 }
 
-
-/** 
+/**
  * Return title of note useful for display, even for calendar notes (the YYYYMMDD)
  * NB: this fn is a local copy of the one in helpers/general.js to avoid circular dependency
  * @author @jgclark
- * 
+ *
  * @param {TNote} n - note
  * @return {string} - title to use
  */
@@ -65,7 +64,7 @@ function displayTitle(n: TNote): string {
 /**
  * Convert paragraph(s) to single raw text string
  * @author @jgclark
- * 
+ *
  * @param {[TParagraph]} paras - array of paragraphs
  * @return {string} - string representation of those paragraphs, without trailling newline
  */
@@ -83,7 +82,7 @@ export function parasToText(paras: Array<TParagraph>): string {
 /**
  * Print out all data for a paragraph as JSON-style string
  * @author @EduardMe
- * 
+ *
  * @param {TParagraph} p - paragraph to print
  */
 export function printParagraph(p: TParagraph) {
@@ -92,22 +91,7 @@ export function printParagraph(p: TParagraph) {
     return
   }
 
-  const {
-    content,
-    type,
-    prefix,
-    contentRange,
-    lineIndex,
-    date,
-    heading,
-    headingRange,
-    headingLevel,
-    isRecurring,
-    indents,
-    filename,
-    noteType,
-    linkedNoteTitles,
-  } = p
+  const { content, type, prefix, contentRange, lineIndex, date, heading, headingRange, headingLevel, isRecurring, indents, filename, noteType, linkedNoteTitles } = p
 
   const logObject = {
     content,
@@ -133,7 +117,7 @@ export function printParagraph(p: TParagraph) {
  * Works out which line to insert at top of file. Rather than just after title line,
  * go after any YAML frontmatter or a metadata line (= starts with a hashtag).
  * @author @jgclark
- * 
+ *
  * @param {TNote} note - the note of interest
  * @return {number} line - the calculated line to insert/prepend at
  */
@@ -188,16 +172,12 @@ export function calcSmartPrependPoint(note: TNote): number {
  * I.e. if the note starts with YAML frontmatter (e.g. https://docs.zettlr.com/en/core/yaml-frontmatter/)
  * or a metadata line (= starts with a hashtag), then add after that.
  * @author @jgclark
- * 
+ *
  * @param {TNote} note - the note to prepend to
  * @param {string} paraText - the text to prepend
  * @param {ParagraphType} paragraphType - the usual paragraph type to prepend
  */
-export function smartPrependPara(
-  note: TNote,
-  paraText: string,
-  paragraphType: ParagraphType,
-): void {
+export function smartPrependPara(note: TNote, paraText: string, paragraphType: ParagraphType): void {
   // Insert the text at the smarter insertionLine line
   note.insertParagraph(paraText, calcSmartPrependPoint(note), paragraphType)
 }
@@ -207,7 +187,7 @@ export function smartPrependPara(
  * Works with folded Done or Cancelled sections.
  * If not, return the last paragraph index.
  * @author @jgclark
- * 
+ *
  * @param {TNote} note - the note to assess
  * @return {number} - the index number
  */
@@ -225,12 +205,7 @@ export function findEndOfActivePartOfNote(note: TNote): number {
       cancelledHeaderLine = i
     }
   }
-  const endOfActive =
-    doneHeaderLine > 0
-      ? doneHeaderLine
-      : cancelledHeaderLine > 0
-        ? cancelledHeaderLine
-        : lineCount
+  const endOfActive = doneHeaderLine > 0 ? doneHeaderLine : cancelledHeaderLine > 0 ? cancelledHeaderLine : lineCount
   // console.log(`  dHL = ${doneHeaderLine}, cHL = ${cancelledHeaderLine} endOfActive = ${endOfActive}`)
   return endOfActive
 }
@@ -240,24 +215,30 @@ export function findEndOfActivePartOfNote(note: TNote): number {
  * of type 'title'. If it doesn't find one it defaults to the first non-blank line
  * after any frontmatter (if present)
  * @author @jgclark
- * 
+ *
  * @param {TNote} note - the note to assess
  * @return {number} - the line index number
  */
 export function findStartOfActivePartOfNote(note: TNote): number {
   const paras = note.paragraphs
   const lineCount = paras.length
-  let startOfActive: number = 0
+  let startOfActive: number = 0 // default to line 0, the H1 line
   let inFrontMatter: boolean = false
   let i = 0
   while (i < lineCount) {
     const p = paras[i]
     if (p.type === 'title') {
-      startOfActive = i
+      startOfActive = i + 1
       break
     }
     if (p.type === 'separator') {
-      inFrontMatter = (inFrontMatter) ? false : true // toggle state
+      if (!inFrontMatter) {
+        inFrontMatter = true
+      } else {
+        inFrontMatter = false
+        startOfActive = i + 1
+        break
+      }
     }
     if (p.type !== 'empty') {
       startOfActive = i
@@ -270,20 +251,17 @@ export function findStartOfActivePartOfNote(note: TNote): number {
 /**
  * Get paragraph numbers of the start and end of the current selection in the Editor
  * @author @jgclark
- * 
+ *
  * @param {TRange} selection - the current selection rnage object
  * @return {[number, number]} the line index number of start and end of selection
  */
-export function selectedLinesIndex(
-  selection: Range,
-  paragraphs: $ReadOnlyArray<TParagraph>
-): [number, number] {
+export function selectedLinesIndex(selection: Range, paragraphs: $ReadOnlyArray<TParagraph>): [number, number] {
   let firstSelParaIndex = 0
   let lastSelParaIndex = 0
   // console.log(`\tSelection: ${rangeToString(selection)}`)
   const startParaRange = Editor.paragraphRangeAtCharacterIndex(selection.start)
-  const endParaRange = Editor.paragraphRangeAtCharacterIndex(selection.end)
-  
+  const endParaRange: Range = Editor.paragraphRangeAtCharacterIndex(selection.end)
+
   // Get the set of selected paragraphs (which can be different from selection),
   // and work out what selectedPara number(index) this selected selectedPara is
   for (let i = 0; i < paragraphs.length; i++) {
@@ -295,7 +273,7 @@ export function selectedLinesIndex(
   }
   for (let i = paragraphs.length - 1; i >= 0; i--) {
     const p = paragraphs[i]
-    if (endParaRange.end >= p.contentRange?.end) {
+    if (endParaRange.end >= (p.contentRange?.end ?? 0)) {
       lastSelParaIndex = i
       break
     }
@@ -311,7 +289,7 @@ export function selectedLinesIndex(
 /**
  * Get the paragraph from the passed content (using exact match)
  * @author @jgclark
- * 
+ *
  * @param {string} contentToFind
  * @return {TParagraph | void} pargraph object with that content, or null if not found
  */
@@ -334,7 +312,7 @@ export function getParaFromContent(note: TNote, contentToFind: string): TParagra
  * - first line starting with a hashtag
  * If these can't be found, then create a new line for this after the title line.
  * @author @jgclark
- * 
+ *
  * @param {TNote} note to use
  * @return {number} the line number for the metadata line
  */
@@ -342,20 +320,14 @@ export function getOrMakeMetadataLine(note: TNote): number {
   let lineNumber: number = NaN
   const lines = note.content?.split('\n') ?? ['']
   for (let i = 1; i < lines.length; i++) {
-    if (lines[i].match(/^project:/i)
-      || lines[i].match(/^metadata:/i)
-      || lines[i].match(/^#[\w]/)
-      || lines[i].match(/(@review|@reviewed)\(.+\)/))
-    {
+    if (lines[i].match(/^project:/i) || lines[i].match(/^metadata:/i) || lines[i].match(/^#[\w]/) || lines[i].match(/(@review|@reviewed)\(.+\)/)) {
       lineNumber = i
       break
     }
   }
   if (lineNumber === NaN) {
     // If no metadataPara found, then insert one straight after the title
-    console.log(
-    `Warning: Can't find an existing metadata line, so will insert a new second line for it`,
-    )
+    console.log(`Warning: Can't find an existing metadata line, so will insert a new second line for it`)
     Editor.insertParagraph('', 1, 'empty')
     lineNumber = 1
   }
@@ -368,10 +340,10 @@ export function getOrMakeMetadataLine(note: TNote): number {
  * - Note to use
  * - Section heading line to look for (needs to match from start of line but not necessarily the end)
  * A section is defined (here at least) as all the lines between the heading,
- * and the next heading of that same or higher level, or the end of the file 
+ * and the next heading of that same or higher level, or the end of the file
  * if that's sooner.
  * @author @jgclark
- * 
+ *
  * @param {TNote} note to use
  * @param {string} heading to remove
  * @return {number} lineIndex of the found heading, or if not found the last line of the note
@@ -380,9 +352,7 @@ export function removeSection(note: TNote, heading: string): number {
   const ps = note.paragraphs
   let existingHeadingIndex = ps.length // start at end of file
   let sectionHeadingLevel = 2
-  console.log(
-    `\tremoveSection: '${heading}' from note '${note.title ?? ''}' with ${ps.length} paras:`,
-  )
+  console.log(`\tremoveSection: '${heading}' from note '${note.title ?? ''}' with ${ps.length} paras:`)
 
   for (const p of ps) {
     if (p.type === 'title' && p.content.startsWith(heading)) {

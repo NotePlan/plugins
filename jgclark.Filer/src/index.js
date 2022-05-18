@@ -3,10 +3,11 @@
 // -----------------------------------------------------------------------------
 // Plugin to help move selected pargraphs to other notes
 // Jonathan Clark
-// Last updated 5.2.2022, for v0.5.4
+// Last updated 17.5.2022, for v0.7.0
 // -----------------------------------------------------------------------------
 
 export { moveParas } from './fileItems'
+export { addIDAndAddToOtherNote } from './IDs'
 export { newNoteFromSelection } from './newNoteFromSelection'
 
 // allow changes in plugin.json to trigger recompilation

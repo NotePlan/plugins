@@ -73,15 +73,15 @@ export function rangeToString(r: Range): string {
  * NB:: local copy of this in helpers/paragraph.js to avoid circular dependency
  * @author @jgclark
  *
- * @param {TNote} n - note to get title for
+ * @param {?TNote} n - note to get title for
  * @return {string}
  */
-export function displayTitle(n: TNote): string {
-  if (n.type === 'Calendar' && n.date != null) {
-    return hyphenatedDateString(n.date)
-  } else {
-    return n.title ?? ''
-  }
+export function displayTitle(n: ?TNote): string {
+  return (!n)
+    ? 'error'
+    : (n.type === 'Calendar' && n.date != null)
+      ? hyphenatedDateString(n.date)
+      : n.title ?? ''
 }
 
 /**

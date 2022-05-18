@@ -18,7 +18,7 @@ import { getTagParamsFromString, rangeToString } from '../../helpers/general'
 
 //-------------------------------------------------------------------------------
 
-function getSelectedParaIndex(): number {
+export function getSelectedParaIndex(): number {
   const { paragraphs, selection } = Editor
   // Get current selection, and its range
   if (selection == null) {

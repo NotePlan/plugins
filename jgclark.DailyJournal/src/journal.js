@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Daily Journal plugin for NotePlan
 // Jonathan Clark
-// last update 13.3.2022 for v0.12.0 by @jgclark
+// last update 13.3.2022 for v0.12.0+ by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json' 
@@ -39,8 +39,7 @@ async function getJournalSettings(): Promise<JournalConfigType> {
   const tempConfig: JournalConfigType = DataStore.settings
   if ((tempConfig != null) && Object.keys(tempConfig).length > 0) {
     const config: JournalConfigType = tempConfig
-    // $FlowFixMe
-    clo(config, `\t${configKey} settings from V2:`)
+    // clo(config, `\t${configKey} settings from V2:`)
     return config
 
   } else {
@@ -87,7 +86,6 @@ export async function dayStart(today: boolean = false): Promise<void> {
       return
     }
   }
-  // $FlowIgnore[incompatible-call]
   log(pluginJson, `for '${displayTitle(Editor.note)}'`)
   const config: JournalConfigType = await getJournalSettings()
 
@@ -199,7 +197,6 @@ export async function dayReview(): Promise<void> {
           // Some confusion as to which type is coming through from ConfigV1 and ConfigV2. 
           // So cope with either a string (to be turned into an array) or an array.
           const moodArray = (typeof config.moods === 'string') ? config.moods.split(',') : config.moods
-          // $FlowFixMe
           const reply = await CommandBar.showOptions(moodArray, 'Choose most appropriate mood for today')
           const replyMood = moodArray[reply.index]
           if (replyMood != null && replyMood !== '') {

@@ -123,13 +123,7 @@ type TEditor = {
    * @param {boolean} createIfNeeded - (optional) Create the note with the given filename if it doesn't exist (only project notes, v3.5.2+)
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned (use with await ... or .then())
    */
-  openNoteByFilename(
-    filename: string,
-    newWindow?: boolean,
-    highlightStart?: number,
-    highlightEnd?: number,
-    splitView?: boolean,  
-  ): Promise <TNote>,
+  openNoteByFilename(filename: string, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<TNote>,
   /**
    * Opens a note by searching for the give title (first line of the note)
    * Note: splitView parameter available for macOS from r727 (v3.4)
@@ -140,13 +134,7 @@ type TEditor = {
    * @param {boolean} splitView - (optional) Open note in a new split view (Note: Available from v3.4)
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
-  openNoteByTitle(
-    title: string,
-    newWindow ?: boolean,
-    highlightStart ?: number,
-    highlightEnd ?: number,
-    splitView?: boolean,
-  ): Promise <TNote>,
+  openNoteByTitle(title: string, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<TNote>,
   /**
    * Opens a note by searching for the give title (first line of the note)
    * Note: splitView parameter available for macOS from r727 (v3.4)
@@ -157,14 +145,7 @@ type TEditor = {
    * @param {boolean} splitView - (optional) Open note in a new split view (Note: Available from v3.4)
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
-  openNoteByTitleCaseInsensitive(
-    title: string,
-    newWindow?: boolean,
-    caseSensitive?: boolean,
-    highlightStart?: number,
-    highlightEnd?: number,
-    splitView?: boolean,
-  ): Promise <TNote>,
+  openNoteByTitleCaseInsensitive(title: string, newWindow?: boolean, caseSensitive?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<TNote>,
   /**
    * Opens a calendar note by the given date
    * Note: splitView parameter available for macOS from r727 (v3.4)
@@ -175,13 +156,7 @@ type TEditor = {
    * @param {boolean} splitView - (optional) Open note in a new split view (Note: Available from v3.4)
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
-  openNoteByDate(
-    date: Date,
-    newWindow?: boolean,
-    highlightStart?: number,
-    highlightEnd?: number,
-    splitView?: boolean,
-  ): Promise <TNote>,
+  openNoteByDate(date: Date, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<TNote>,
   /**
    * Opens a calendar note by the given date string
    * @param {String} dateString - The date string that should be opened, in ISO format: "YYYYMMDD", like "20210501"
@@ -191,13 +166,7 @@ type TEditor = {
    * @param {boolean} splitView - (optional) Open note in a new split view (Note: Available from v3.4)
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
-  openNoteByDateString(
-    filename: string,
-    newWindow?: boolean,
-    highlightStart?: number,
-    highlightEnd?: number,
-    splitView?: boolean,
-  ): Promise <TNote | void>,
+  openNoteByDateString(filename: string, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<TNote | void>,
   /**
    * Selects the full text in the editor.
    * NB: Available from NotePlan v3.2 (Mac Build: 662, iOS Build: 593)
@@ -248,7 +217,7 @@ type TEditor = {
    * Scrolls to and highlights the given range defined by the character index and
    * the character length it should cover. If the paragraph is folded, it will be unfolded.
    * @param {number} index
-   * @param {number} length 
+   * @param {number} length
    */
   highlightByIndex(index: number, length: number): void,
   /**
@@ -286,7 +255,7 @@ type TEditor = {
    * Note: Available from NotePlan v3.1+
    * Get the names of all supported themes (including custom themes imported into the Theme folder).
    * Use together with `.setTheme(name)`
-   * @return {[String]}
+   * @return {$ReadOnlyArray<string>}
    */
   availableThemes(): $ReadOnlyArray<string>,
   /**
@@ -346,7 +315,7 @@ type TDataStore = {
    * Note: Available from NotePlan v3.3.2
    */
   settings: Object,
-  
+
   /**
    * Returns the value of a given preference.
    * Available keys for built-in NotePlan preferences:
@@ -450,7 +419,7 @@ type TDataStore = {
   /**
    * Creates a regular note using the given content, folder and filename. Use "/" for the root folder.
    * The content should ideally also include a note title at the top.
-   * Returns the final filename with relative folder (`folder/filename.txt` for example). 
+   * Returns the final filename with relative folder (`folder/filename.txt` for example).
    * If the there is a duplicate, it will add a number.
    * Alternatively, you can also define the filename as the third optional variable (v3.5.2+)
    * Note: available from v3.5, with 'filename' parameter added in v3.5.2
@@ -460,37 +429,37 @@ type TDataStore = {
    * @return {string}
    */
   newNoteWithContent(content: string, folder: string, filename: string): string,
-    
+
   /**
-   * Loads all available plugins asynchronously from the GitHub repository and returns a list. 
+   * Loads all available plugins asynchronously from the GitHub repository and returns a list.
    * You can show a loading indicator using the first parameter (true) if this is part of some user interaction. Otherwise, pass "false" so it happens in the background.
    * Note: Available from NotePlan v3.5.2
    * @param {boolean}
-  */
+   */
   listPlugins(showLoading: boolean): Promise<void>,
   /**
    * Installs a given plugin (load a list of plugins using `.listPlugins` first). If this is part of a user interfaction, pass "true" for `showLoading` to show a loading indicator.
    * Note: Available from NotePlan v3.5.2
-   * @param {PluginObject} 
-   * @param {boolean} 
-  */
+   * @param {PluginObject}
+   * @param {boolean}
+   */
   installPlugin(pluginObject: PluginObject, showLoading: boolean): Promise<void>,
   /**
    * Returns all installed plugins as PluginObject(s).
    * Note: Available from NotePlan v3.5.2
    * @return {[PluginObject]}
-  */
+   */
   installedPlugins(): [PluginObject],
   /**
-   * Invoke a given command from a plugin (load a list of plugins using `.listPlugins` first, then get the command from the `.commands` list). 
+   * Invoke a given command from a plugin (load a list of plugins using `.listPlugins` first, then get the command from the `.commands` list).
    * If the command supports it, you can also pass an array of arguments which can contain any type (object, date, string, integer,...)
    * It returns the particular return value of that command which can be a Promise so you can use it with `await`.
    * Note: Available from NotePlan v3.5.2
-   * @param {PluginCommandObject} 
-   * @param {[object]}
+   * @param {PluginCommandObject}
+   * @param {$ReadOnlyArray<mixed>}
    * @return {any} Return value of the command, like a Promise
-  */
-  invokePluginCommand(command: PluginCommandObject, arguments: [object]): Promise<any>,
+   */
+  invokePluginCommand(command: PluginCommandObject, arguments: $ReadOnlyArray<mixed>): Promise<any>,
   /**
    * Invoke a given command from a plugin using the name and plugin ID, so you don't need to load it from the list.
    * If the command doesn't exist locally null will be returned with a log message.
@@ -498,84 +467,84 @@ type TDataStore = {
    * Note: Available from NotePlan v3.5.2
    * @param {string}
    * @param {string}
-   * @param {[object]}
+   * @param {$ReadOnlyArray<mixed>}
    * @return {any} Return value of the command, like a Promise
-  */
-  invokePluginCommandByName(command: string, pluginId: string, arguments: [object]): Promise<any>,
+   */
+  invokePluginCommandByName(command: string, pluginId: string, arguments?: $ReadOnlyArray<mixed>): Promise<any>,
   /**
-   * Returns an array of paragraphs having the same blockID like the given one (which is also part of the return array). 
+   * Returns an array of paragraphs having the same blockID like the given one (which is also part of the return array).
    * You can use `paragraph[0].note` to access the note behind it and make updates via `paragraph[0].note.updateParagraph(paragraph[0])` if you make changes to the content, type, etc (like checking it off as type = "done").
    * Note: Available from v3.5.2
    * @param {TParagraph}
    * @return {[TParagraph]}
-  */
-  referencedBlocks(paragraph: TParagraph): TParagraph
+   */
+  referencedBlocks(paragraph: TParagraph): TParagraph,
 }
 
 type PluginCommandObject = {
   /**
-  * Name of the plugin command (getter)
-  */
+   * Name of the plugin command (getter)
+   */
   +name: string,
   /**
-  * Description of the plugin command (getter)
-  */
+   * Description of the plugin command (getter)
+   */
   +desc: string,
   /**
-  * ID of the plugin this command belongs to (getter)
-  */
+   * ID of the plugin this command belongs to (getter)
+   */
   +pluginID: string,
   /**
-  * Name of the plugin this command belongs to (getter)
-  */
+   * Name of the plugin this command belongs to (getter)
+   */
   +pluginName: string,
 }
 
 type PluginObject = {
   /**
-  * ID of the plugin (getter)
-  */
+   * ID of the plugin (getter)
+   */
   +id: string,
   /**
-  * Name of the plugin (getter)
-  */
+   * Name of the plugin (getter)
+   */
   +name: string,
   /**
-  * Description of the plugin (getter)
-  */
+   * Description of the plugin (getter)
+   */
   +desc: string,
   /**
-  * Author of the plugin (getter)
-  */
+   * Author of the plugin (getter)
+   */
   +author: string,
   /**
-  * RepoUrl of the plugin (getter)
-  */
+   * RepoUrl of the plugin (getter)
+   */
   +repoUrl: ?string,
   /**
-  * Release page URL of the plugin (on GitHub) (getter)
-  */
+   * Release page URL of the plugin (on GitHub) (getter)
+   */
   +releaseUrl: ?string,
   /**
-  * Version of the plugin (getter)
-  */
+   * Version of the plugin (getter)
+   */
   +version: string,
   /**
-  * This is the online data of the plugin. It might not be installed locally. (getter)
-  */
+   * This is the online data of the plugin. It might not be installed locally. (getter)
+   */
   +isOnline: boolean,
   /**
-  * Script filename that contains the code for this plugin (like script.js) (getter)
-  */
+   * Script filename that contains the code for this plugin (like script.js) (getter)
+   */
   +script: string,
   /**
-  * If this is a locally installed plugin, you can use this variable to check if an updated version is available online. (getter)
-  */
+   * If this is a locally installed plugin, you can use this variable to check if an updated version is available online. (getter)
+   */
   +availableUpdate: PluginObject,
   /**
-  * A list of available commands for this plugin. (getter)
-  * @type {PluginCommandObject}
-  */
+   * A list of available commands for this plugin. (getter)
+   * @type {PluginCommandObject}
+   */
   +commands: PluginCommandObject,
 }
 
@@ -618,10 +587,7 @@ type TCommandBar = {
    * Use the `.index` attribute to refer back to the selected item in the
    * original array.
    */
-  showOptions<TOption: string = string>(
-    options: $ReadOnlyArray<TOption>,
-    placeholder: string,
-  ): Promise<{ +index: number, +value: TOption }>,
+  showOptions<TOption: string = string>(options: $ReadOnlyArray<TOption>, placeholder: string): Promise<{ +index: number, +value: TOption }>,
   /**
    * Asks the user to enter something into the CommandBar.
    *
@@ -674,9 +640,9 @@ type TCommandBar = {
    * If you don't supply any buttons, an "OK" button will be displayed.
    * The promise returns selected button, with button index (0 - first button)
    * Note: Available from v3.3.2
-   * @param {String}
-   * @param {String?}
-   * @param {[String]?}
+   * @param {string}
+   * @param {string}
+   * @param {?$ReadOnlyArray<string>}
    */
   prompt(title: string, message: string, buttons?: $ReadOnlyArray<string>): Promise<number>,
 
@@ -863,14 +829,14 @@ type TCalendar = {
    */
   reminderByID(id: string): Promise<Array<TCalendarItem>>,
   /**
-  * Returns all reminders (completed and incomplete) for the given lists (array of strings).
-  * If you keep the lists variable empty, NotePlan will return all reminders from all lists. You can get all Reminders lists calling `Calendar.availableReminderListTitles()`
-  * This function fetches reminders asynchronously, so use async/await.
-  * Note: Available from v3.5.2
-  * @param {[string]?} 
-  * @return {Promise}
-  */
-  remindersByLists(lists: [string]): Promise<Array<TCalendarItem>>
+   * Returns all reminders (completed and incomplete) for the given lists (array of strings).
+   * If you keep the lists variable empty, NotePlan will return all reminders from all lists. You can get all Reminders lists calling `Calendar.availableReminderListTitles()`
+   * This function fetches reminders asynchronously, so use async/await.
+   * Note: Available from v3.5.2
+   * @param {[string]?}
+   * @return {Promise}
+   */
+  remindersByLists(lists: $ReadOnlyArray<string>): Promise<Array<TCalendarItem>>,
 }
 
 /**
@@ -884,6 +850,7 @@ type TParagraph = {
    * Get or set the type of the paragraph
    */
   type: ParagraphType,
+  title?: ?string,
   /**
    * Get or set the content of the paragraph
    * (without the Markdown 'type' prefix, such as '* [ ]' for open task)
@@ -950,37 +917,37 @@ type TParagraph = {
    */
   duplicate(): TParagraph,
   /**
-   * Returns indented paragraphs (children) underneath a task 
+   * Returns indented paragraphs (children) underneath a task
    * Only tasks can have children, but any paragraph indented underneath a task
-   * can be a child of the task. This includes bullets, tasks, quotes, text. 
-   * Children are counted until a blank line, HR, title, or another item at the 
-   * same level as the parent task. So for items to be counted as children, they 
+   * can be a child of the task. This includes bullets, tasks, quotes, text.
+   * Children are counted until a blank line, HR, title, or another item at the
+   * same level as the parent task. So for items to be counted as children, they
    * need to be contiguous vertically.
-   * Important note: .children() for a task paragraph will return every child, 
-   * grandchild, greatgrandchild, etc. So a task that has a child task that has 
+   * Important note: .children() for a task paragraph will return every child,
+   * grandchild, greatgrandchild, etc. So a task that has a child task that has
    * a child task will have 2 children (and the first child will have one)
    * Note: Available from v3.3
    * @return {[TParagraph]}
-  */
+   */
   children(): $ReadOnlyArray<TParagraph>,
   /**
    * Returns an array of all paragraphs having the same blockID (including this paragraph). You can use `paragraph[0].note` to access the note behind it and make updates via `paragraph[0].note.updateParagraph(paragraph[0])` if you make changes to the content, type, etc (like checking it off as type = "done")
    * Note: Available from v3.5.2
    * @type {[ParagraphObject]} - getter
-  */
+   */
   +referencedBlocks: [TParagraph],
   /**
    * Returns the NoteObject behind this paragraph. This is a convenience method, so you don't need to use DataStore.
    * Note: Available from v3.5.2
    * @type {TNote?}
-  */
+   */
   +note: ?TNote,
   /**
    * Returns the given blockId if any.
    * Note: Available from v3.5.2
    * @type {string?}
-  */
-  +blockId: ?string
+   */
+  +blockId: ?string,
 }
 
 type NoteType = 'Calendar' | 'Notes'
@@ -1031,13 +998,13 @@ type TNote = {
    * If you set the content, NotePlan will write it immediately to file.
    * If you get the content, it will be read directly from the file.
    */
-  +content: string | void,
+  content: string | void,
   /**
    * Get or set paragraphs contained in this note (can be tasks, plain text, headings...).
    * If you set the paragraph array, it will join them and save the new content
    * to file.
    */
-  +paragraphs: $ReadOnlyArray<TParagraph>,
+  paragraphs: Array<TParagraph>,
   /**
    * Get paragraphs contained in this note which contain a link to another [[project note]] or [[YYYY-MM-DD]] daily note.
    * Note: Available from v3.2.0
@@ -1056,10 +1023,10 @@ type TNote = {
    */
   +backlinks: $ReadOnlyArray<TParagraph>,
   /**
-   * Get all types assigned to this note in the frontmatter as an array of strings. 
+   * Get all types assigned to this note in the frontmatter as an array of strings.
    * You can set types of a note by adding frontmatter e.g. `type: meeting-note, empty-note` (comma separated).
    * Note: Available from v3.5.0
-  */
+   */
   +frontmatterTypes: $ReadOnlyArray<string>,
   /**
    * Print the note, optionally with backlinks and events sections
@@ -1068,20 +1035,20 @@ type TNote = {
    */
   printNote(addReferenceSections: boolean): void,
   /**
-   * Generates a unique block ID and adds it to the content of this paragraph. 
+   * Generates a unique block ID and adds it to the content of this paragraph.
    * Remember to call .updateParagraph(p) to write it to the note.
    * You can call this on the Editor or note you got the paragraph from.
    * Note: Available from v3.5.2
    * @param {TParagraph}
-  */
+   */
   addBlockID(paragraph: TParagraph): void,
   /**
-   * Removes the unique block ID, if it exists in the content. 
-   * Remember to call .updateParagraph(p) to write it to the note afterwards. 
+   * Removes the unique block ID, if it exists in the content.
+   * Remember to call .updateParagraph(p) to write it to the note afterwards.
    * You can call this on the Editor or note you got the paragraph from.
    * Note: Available from v3.5.2
    * @param {TParagraph}
-  */
+   */
   removeBlockID(paragraph: TParagraph): void,
 }
 
@@ -1179,16 +1146,16 @@ type TCalendarItem = {
    */
   +availability: number,
   /**
-  * List of attendee names or emails.
-  * Eduard says this comes from a Swift dictionary and maps to a string array.
-  * But I think it is closer to being a JS Map [string, string].
-  * Note: Available from v3.5
-  */
+   * List of attendee names or emails.
+   * Eduard says this comes from a Swift dictionary and maps to a string array.
+   * But I think it is closer to being a JS Map [string, string].
+   * Note: Available from v3.5
+   */
   +attendees: [string, string],
   /**
-  * Markdown link for the given event. If you add this link to a note, NotePlan will link the event with the note and show the note in the dropdown when you click on the note icon of the event in the sidebar.
-  * Note: Available from v3.5, only events, reminders are not supported yet
-  */
+   * Markdown link for the given event. If you add this link to a note, NotePlan will link the event with the note and show the note in the dropdown when you click on the note icon of the event in the sidebar.
+   * Note: Available from v3.5, only events, reminders are not supported yet
+   */
   +calendarItemLink: string,
   /**
    * Create a CalendarItem. The .endDate is optional, but recommended for events.
@@ -1241,14 +1208,14 @@ declare var Clipboard: {
    * Note: Available from v3.4.1
    * @param {string} base64String
    * @param {string} type
-  */
+   */
   setBase64DataStringForType(base64String: string, type: string): void,
   /**
    * Get the base64 data string for a specific type like an image or RTF from the clipboard.
    * Note: Available from v3.4.1
    * @param {string} type
    * @return {string}
-  */
+   */
   base64DataStringForType(type: string): string,
   /**
    * Get the data in the clipboard accessing a specific type.
@@ -1358,13 +1325,7 @@ type TParagraphBridge = {
    * @param {boolean} shouldAppend - If the todo should be appended at the bottom of existing text
    * @param {boolean} shouldCreate - If the heading should be created if non-existing
    */
-  addParagraphBelowHeadingTitle(
-    title: string,
-    paragraphType: ParagraphType,
-    headingTitle: string,
-    shouldAppend: boolean,
-    shouldCreate: boolean,
-  ): void,
+  addParagraphBelowHeadingTitle(title: string, paragraphType: ParagraphType, headingTitle: string, shouldAppend: boolean, shouldCreate: boolean): void,
 
   /**
    * Appends a todo below the given heading index (at the end of existing text)
@@ -1447,35 +1408,31 @@ type TParagraphBridge = {
    * @param location - Position to insert at (you can get this using 'renderedSelection' for example)
    * @param length - Amount of characters to replace from the location
    */
-  replaceTextInCharacterRange(
-    text: string,
-    location: number,
-    length: number,
-  ): void,
+  replaceTextInCharacterRange(text: string, location: number, length: number): void,
 }
 
 declare var NotePlan: {
   /**
-  * Returns the environment information from the operating system:
-  * Available from v3.3.2:
-  *   .languageCode: string?
-  *   .regionCode: string?
-  *   .is12hFormat: boolean
-  *   .preferredLanguages: [string]
-  *   .secondsFromGMT: integer
-  *   .localTimeZoneAbbreviation: string
-  *   .localTimeZoneIdentifier: string
-  *   .isDaylightSavingTime: boolean
-  *   .daylightSavingTimeOffset: Double
-  *   .nextDaylightSavingTimeTransition: Date
-  *   .platform: "macOS" | "iPadOS" | "iOS"
-  *   .hasSettings: boolean
-  * Available from v3.4.1:
-  *   .templateFolder: string (this return path relative to NP's root folder, normally "@Templates")
-  *   .version: string (NotePlan's version, for example "3.4.1")
-  *   .versionNumber: number (NotePlan's version as integer,for example 341)
-  *   .buildVersion: number (NotePlan's build number as integer,for example 730)
-  */
+   * Returns the environment information from the operating system:
+   * Available from v3.3.2:
+   *   .languageCode: string?
+   *   .regionCode: string?
+   *   .is12hFormat: boolean
+   *   .preferredLanguages: [string]
+   *   .secondsFromGMT: integer
+   *   .localTimeZoneAbbreviation: string
+   *   .localTimeZoneIdentifier: string
+   *   .isDaylightSavingTime: boolean
+   *   .daylightSavingTimeOffset: Double
+   *   .nextDaylightSavingTimeTransition: Date
+   *   .platform: "macOS" | "iPadOS" | "iOS"
+   *   .hasSettings: boolean
+   * Available from v3.4.1:
+   *   .templateFolder: string (this return path relative to NP's root folder, normally "@Templates")
+   *   .version: string (NotePlan's version, for example "3.4.1")
+   *   .versionNumber: number (NotePlan's version as integer,for example 341)
+   *   .buildVersion: number (NotePlan's build number as integer,for example 730)
+   */
   +environment: Object,
   /**
    * The selected sidebar folder (useful when a note is not showing in Editor, which is then null)
@@ -1491,7 +1448,7 @@ declare var NotePlan: {
    * To reset the caches, particularly in the case where the sidebar turns out incorrect.
    * It's an async operation, but it doesn't return a promise to tell you when it's done.
    * Note: available from v3.5.0
-   */    
+   */
   resetCaches(): void,
   /**
    * Note: Available from v3.5.2

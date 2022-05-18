@@ -1,11 +1,21 @@
 # What's changed in 📦 Filer plugin?
+Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Filer) for more details, including the available settings.
 
-## [0.6.1] - 2022-03-02
+<!-- ### Fixed
+- `/move paragraphs` sometimes not removing all the paragraphs from the note they are moved from -->
+<!-- ### Added
+- ??? /fp and /mp now create the destination daily note if it doesn't already exist
+- [when environment() API call is available] ??? will use system locale in dates, where possible
+-->
+
+## [0.7.0] - 2022-05-17
+### Added
+- new **/add sync'd copy to note** command (alias **/asc**) that adds a 'line or block ID' to current line and copy it to a section in the specified other note. (NB: this requires the new "Synced Blocks" Lab feature in v3.5.2 to be turned on.)
+- add ability to default to moving to the end of a heading's section, not the start of it. See setting 'Where to add in section'.
+
 ### Changed
 - switch to newer logging system under-the-hood
-
-### Fixed
-- `/move paragraphs` sometimes not removing all the paragraphs from the note they are moved from
+<!-- - refactored code to allow re-use of my paragraph block finding code. -->
 
 ## [0.6.0] - 2022-02-12
 ### Added
