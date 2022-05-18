@@ -20,7 +20,7 @@ From v0.7.0, you can turn on 'Extended Block Definition' in the settings, which 
 NB: due to limitations in the API it's not yet possible to move items to a Calendar note that doesn't already exist. (I will improve this when the API supports it.)
 
 ## /add sync'd copy to note
-This command (alias **/asc**) adds a sync'd copy of the current line to a section in another note.  Here's a demo:
+This command (alias **/asc**) adds a sync'd copy of the current line to a section in another note.  Here's a demo with two notes side by side, only to make it clearer:
 
 ![](add-link-line-demo-T2.gif)
 

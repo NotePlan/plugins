@@ -2,9 +2,8 @@
 // ----------------------------------------------------------------------------
 // Plugin to help move selected selectedParagraphs to other notes
 // Jonathan Clark
-// last updated 17.5.2022 for v0.7.0
+// last updated 18.5.2022 for v0.7.0
 // ----------------------------------------------------------------------------
-// FIXME: Following only turns into 1 para in block
 // TODO: update the Locale string when the environment() API call is available
 
 import pluginJson from "../plugin.json"
@@ -26,11 +25,9 @@ import {
 } from '@helpers/paragraph'
 import { chooseHeading, showMessage } from '@helpers/userInput'
 import { getSelectedParaIndex } from '../../jgclark.Summaries/src/progress'
-// import { pl } from "@codedungeon/utils/node_modules/date-fns/esm/locale";
-// import head from "lodash/fp/head";
 
 //-----------------------------------------------------------------------------
-// // Get settings
+// Get settings
 
 const configKey = 'filer'
 
@@ -139,34 +136,8 @@ export async function moveParas(): Promise<void> {
   const headingToFind = (await chooseHeading(destNote, true, true, false))
   // log(pluginJson, `  Moving to note: ${displayTitle(destNote)} under heading: '${headingToFind}'`)
 
-  // Add to new location
-  // Note: When written, there was no API function to deal with multiple 
-  // selectedParagraphs, but we can insert a raw text string.
-  // (can't simply use note.addParagraphBelowHeadingTitle() as we have more options than it supports)
-  const destNoteParas = destNote.paragraphs
-  let insertionIndex = undefined
-  if (headingToFind === destNote.title || headingToFind.includes('(top of note)')) { // i.e. the first line in project or calendar note
-    insertionIndex = calcSmartPrependPoint(destNote)
-    log(pluginJson, `  -> top of note, line ${insertionIndex}`)
-    await destNote.insertParagraph(selectedParasAsText, insertionIndex, 'text')
-
-  } else if (headingToFind.includes('(bottom of note)')) {
-    insertionIndex = destNoteParas.length + 1
-    log(pluginJson, `  -> bottom of note, line ${insertionIndex}`)
-    await destNote.insertParagraph(selectedParasAsText, insertionIndex, 'text')
-
-  } else if (config.whereToAddInSection === 'start') {
-    log(pluginJson, `  Inserting at start of section ${headingToFind}`)
-    await destNote.addParagraphBelowHeadingTitle(selectedParasAsText, 'text', headingToFind, false, false)
-
-  } else if (config.whereToAddInSection === 'end') {
-    log(pluginJson, `  Inserting at end of section ${headingToFind}`)
-    await destNote.addParagraphBelowHeadingTitle(selectedParasAsText, 'text', headingToFind, true, false)
-
-  } else {
-    logError(pluginJson,`Can't find heading '${headingToFind}'. Stopping.`)
-    return
-  }
+  // Add text to the new location in destination note
+  await addParasAsText(destNote, selectedParasAsText, headingToFind, config.whereToAddInSection)
 
   // delete from existing location
   log(pluginJson, `Removing ${parasInBlock.length} paras from original note`)
@@ -286,4 +257,44 @@ export function getParagraphBlock(
   //   log(pluginJson, `    ${pib.content}`)
   // }
   return parasInBlock
+}
+
+/**
+ * Function to write text either to top of note, bottom of note, or after a heading
+ *  Note: When written, there was no API function to deal with multiple  selectedParagraphs, but we can insert a raw text string.
+ * @author @jgclark
+ * 
+ * @param {TNote} destinationNote 
+ * @param {string} selectedParasAsText 
+ * @param {string} headingToFind 
+ * @param {string} whereToAddInSection to add after a heading: 'start' or 'end'
+ */
+export async function addParasAsText(destinationNote: TNote, selectedParasAsText: string, headingToFind: string, whereToAddInSection: string): Promise<void> {
+  // (can't simply use note.addParagraphBelowHeadingTitle() as we have more options than it supports)
+  const destinationNoteParas = destinationNote.paragraphs
+  let insertionIndex = undefined
+  if (headingToFind === destinationNote.title || headingToFind.includes('(top of note)')) {
+    // i.e. the first line in project or calendar note
+    insertionIndex = calcSmartPrependPoint(destinationNote)
+    log(pluginJson, `  -> top of note, line ${insertionIndex}`)
+    await destinationNote.insertParagraph(selectedParasAsText, insertionIndex, 'text')
+
+  } else if (headingToFind === '') {
+    // blank return from chooseHeading has special meaning of 'end of note'
+    insertionIndex = destinationNoteParas.length + 1
+    log(pluginJson, `  -> bottom of note, line ${insertionIndex}`)
+    await destinationNote.insertParagraph(selectedParasAsText, insertionIndex, 'text')
+
+  } else if (whereToAddInSection === 'start') {
+    log(pluginJson, `  -> Inserting at start of section '${headingToFind}'`)
+    await destinationNote.addParagraphBelowHeadingTitle(selectedParasAsText, 'text', headingToFind, false, false)
+
+  } else if (whereToAddInSection === 'end') {
+    log(pluginJson, `  -> Inserting at end of section '${headingToFind}'`)
+    await destinationNote.addParagraphBelowHeadingTitle(selectedParasAsText, 'text', headingToFind, true, false)
+
+  } else {
+    // Shouldn't get here
+    logError(pluginJson,`Can't find heading '${headingToFind}'. Stopping.`)
+  }
 }
