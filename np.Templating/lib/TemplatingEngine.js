@@ -16,7 +16,6 @@ import FrontmatterModule from '@templatingModules/FrontmatterModule'
 
 import pluginJson from '../plugin.json'
 import { clo, log } from '@helpers/dev'
-import { debug } from '../lib/helpers'
 
 // this is a customized version of `ejs` adding support for async actions (use await in template)
 // review `Test (Async)` template for example`
