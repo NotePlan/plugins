@@ -39,7 +39,7 @@ export function getBlankDayMap(intervalMins: number): IntervalMap {
   return createIntervalMap({ start: startOfDay(new Date()), end: endOfDay(new Date()) }, false, { step: intervalMins })
 }
 
-export function blockTimeFor(timeMap: IntervalMap, blockdata: BlockData): { newMap: IntervalMap, itemText: string } {
+export function blockTimeFor(timeMap: IntervalMap, blockdata: BlockData, config: { [key: string]: any }): { newMap: IntervalMap, itemText: string } {
   const { start, end, title } = blockdata
   const newMap = timeMap.map((t) => {
     if (t.start >= start && t.start < end) {
@@ -47,7 +47,7 @@ export function blockTimeFor(timeMap: IntervalMap, blockdata: BlockData): { newM
     }
     return t
   })
-  const itemText = typeof title === 'boolean' ? '' : createTimeBlockLine({ title, start, end }, {})
+  const itemText = typeof title === 'boolean' ? '' : createTimeBlockLine({ title, start, end }, config)
   return { newMap, itemText }
 }
 
@@ -83,7 +83,7 @@ export function blockOutEvents(events: Array<PartialCalendarItem>, timeMap: Inte
   events.forEach((event) => {
     const start = getTimeStringFromDate(event.date)
     const end = event.endDate ? getTimeStringFromDate(event.endDate) : ''
-    const obj = event.endDate ? blockTimeFor(newTimeMap, { start, end, title: event.title }) : { newMap: newTimeMap }
+    const obj = event.endDate ? blockTimeFor(newTimeMap, { start, end, title: event.title }, config) : { newMap: newTimeMap }
     newTimeMap = obj.newMap
   })
   return newTimeMap
@@ -259,7 +259,7 @@ export function findOptimalTimeForEvent(timeMap: IntervalMap, todo: { [string]: 
  */
 export function blockTimeAndCreateTimeBlockText(tbm: TimeBlocksWithMap, block: BlockData, config: { [key: string]: any }): TimeBlocksWithMap {
   const timeBlockTextList = tbm.timeBlockTextList || []
-  const obj = blockTimeFor(tbm.timeMap, block) //returns newMap, itemText
+  const obj = blockTimeFor(tbm.timeMap, block, config) //returns newMap, itemText
   timeBlockTextList.push(obj.itemText)
   const timeMap = filterTimeMapToOpenSlots(obj.newMap, config)
   const blockList = findTimeBlocks(timeMap, config)
