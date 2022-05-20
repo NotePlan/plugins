@@ -1,9 +1,6 @@
 // @flow
 //-----------------------------------------------------------------------------
-// @dwertheimer based on @jgclark's newNote
-// Create new note from currently selected text
-// and (optionally) leave backlink to it where selection was
-// Last updated 16.5.2022 for 0.7.0, @jgclark
+// Last updated 20.5.2022 for 0.7.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -19,7 +16,47 @@ import {
   showMessageYesNo,
 } from '@helpers/userInput'
 
-export async function newNoteFromSelection() {
+/** 
+ * Create new note from currently selected text and (optionally) leave backlink to it where selection was.
+ * @author @jgclark
+ */
+export async function newNoteFromClipboard(): Promise<void> {
+  const { string } = Clipboard
+
+  if (string != null && string.length > 0) {
+    log(pluginJson, `  with ${string.length} characters in clipboard`)
+
+    // Get title for this note
+    let title = await CommandBar.showInput('Title of new note', '')
+    const uniqueTitle = getUniqueNoteTitle(title)
+    if (title !== uniqueTitle) {
+      await showMessage(`Title exists. Using "${uniqueTitle}" instead`, `OK`, `New Note from Clipboard`)
+      title = uniqueTitle
+    }
+    const currentFolder = await chooseFolder('Select folder to add note in:')
+    const content = `# ${title}\n${string}`
+    if (title) {
+      // Create new note in the specific folder
+      const filename = (await DataStore.newNoteWithContent(content, currentFolder)) ?? ''
+      log(pluginJson, `newNote() -> filename: ${filename}`)
+
+      if (await showMessageYesNo('New Note created. Open it now?', ['Yes', 'No'], `New Note from Clipboard`) === 'Yes') {
+        await Editor.openNoteByFilename(filename)
+      }
+    } else {
+      logError(pluginJson, 'Undefined or empty title')
+    }
+  } else {
+    log(pluginJson, 'No text was selected, so nothing to do.')
+    showMessage('No text was selected, so nothing to do.', "OK, I'll try again", `New Note from Clipboard`)
+  }
+}
+
+/** 
+ * Create new note from currently selected text and (optionally) leave backlink to it where selection was.
+ * @author @dwertheimer based on @jgclark's newNote
+ */
+export async function newNoteFromSelection(): Promise<void> {
   const { selectedLinesText, selectedText, selectedParagraphs, note } = Editor
 
   if (note != null && selectedLinesText.length && selectedText !== '') {
@@ -84,7 +121,7 @@ export async function newNoteFromSelection() {
         if (insertBackLink) {
           newNote.appendParagraph(`^ Moved from [[${origFile}]]:`, 'text')
         }
-        if (await showMessageYesNo('New Note created. Open it now?',['Yes','No'], `New Note from Selection`) === 'Yes') {
+        if (await showMessageYesNo('New Note created. Open it now?', ['Yes', 'No'], `New Note from Selection`) === 'Yes') {
           await Editor.openNoteByFilename(filename)
         }
       } else {

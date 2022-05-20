@@ -8,12 +8,15 @@ Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree
 - [when environment() API call is available] ??? will use system locale in dates, where possible
 -->
 
-## [0.7.0] - 2022-05-17
+## [0.7.0] - 2022-05-20
 ### Added
 - new **/add sync'd copy to note** command (alias **/asc**) that adds a 'line or block ID' to current line and copy it to a section in the specified other note. (NB: this requires the new "Synced Blocks" Lab feature in v3.5.2 to be turned on.)
-- add ability to default to moving to the end of a heading's section, not the start of it. See setting 'Where to add in section'.
+- new **/new note from clipboard** command (alias **nnc**)
+- new command **/move blocks**. This uses the new 'Extended Block` definition (from 0.6.0) to move a contiguous 'block' of lines but allows you to select it without changing a setting. 
+- add ability to default moving lines to the _end_ of a heading's section, not just the _start_ of it. See setting 'Where to add in section'.
 
 ### Changed
+- removed the setting `useExtendedBlockDefinition`; instead you can now move a 'block' of paragraphs when you want by using the new '/move blocks' command (above), 
 - switch to newer logging system under-the-hood
 <!-- - refactored code to allow re-use of my paragraph block finding code. -->
 

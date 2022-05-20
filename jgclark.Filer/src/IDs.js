@@ -19,7 +19,7 @@ import {
   selectedLinesIndex,
 } from '@helpers/paragraph'
 import { chooseHeading } from '@helpers/userInput'
-import { getSelectedParaIndex } from '../../jgclark.Summaries/src/progress' // TODO: shift this to helpers/?
+import { getSelectedParaIndex } from '@helpers/paragraph'
 
 //-----------------------------------------------------------------------------
 
