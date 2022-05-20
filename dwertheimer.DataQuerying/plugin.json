@@ -14,13 +14,15 @@
       "name": "buildIndex",
       "description": "Build a notes content index",
       "jsFunction": "buildIndex",
+      "hidden": true,
       "alias": [
       ]
     },
     {
       "name": "writeIndex",
-      "description": "Build a notes content index",
+      "description": "Write a notes content index to disk (doesn't work due to API bug)",
       "jsFunction": "writeIndex",
+      "hidden": true,
       "alias": [
       ]
     },

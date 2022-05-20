@@ -31,7 +31,7 @@ const config = {
 
 // Jest suite
 describe(`${PLUGIN_NAME}`, () => {
-  describe(section('timeblocking.js'), () => {
+  describe(section('timeblocking-helpers.js'), () => {
     describe('createIntervalMap ', () => {
       test('should create timeMap of 5min intervals all day ', () => {
         const result = tb.createIntervalMap({ start: new Date('2020-01-01 08:00:00'), end: new Date('2020-01-01 24:00:00') }, 'isSet', {
