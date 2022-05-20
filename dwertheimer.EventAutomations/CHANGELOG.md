@@ -2,6 +2,10 @@
 
 ## Changelog
 
+[1.0.0] 2022-05-18 @dwertheimer
+- added config setting for write synced copy
+- moving to 1.0.0 release because /atb has been stable
+
 [0.6.0] 2022-05-06
 - remove event note creation functions (they have been superseded by NotePlan Event Templates)
 - fix bug that is finding embedded event links and treating them like timeblocks

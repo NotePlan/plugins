@@ -2,6 +2,9 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Ta
 
 # What's Changed in this Plugin?
 
+## [1.6.2] 2022-05-17
+- adding /cth and copy tags /ctm /ctt
+
 ## [1.6.1] 2022-05-09
 - added /cta copy tags from line above
 

@@ -7,6 +7,7 @@ import { updateSettingData } from '@helpers/NPconfiguration'
 
 export { searchTest } from './support/fuse-helpers'
 export { buildIndex, writeIndex, searchUserInput, searchButShowTitlesOnly, searchMatchingLines, searchSaveUserInput } from './NPDataQuerying'
+export { runSearch } from './NPRunSearch'
 
 export async function onUpdateOrInstall(): Promise<void> {
   updateSettingData(pluginJson)
