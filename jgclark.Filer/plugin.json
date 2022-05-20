@@ -7,7 +7,7 @@
   "plugin.icon": "",
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Filer",
-  "plugin.version": "0.7.0-beta2",
+  "plugin.version": "0.7.0-beta3",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -16,43 +16,50 @@
       "name": "move paragraphs",
       "alias": [
         "mp",
-        "file"
-      ],
-      "description": "move (file) paragraphs to different notes",
-      "jsFunction": "moveParas"
-    },
-    {
-      "name": "fp",
-      "alias": [
-        "mp",
         "file",
-        "move",
-        "paragraph"
-      ],
-      "description": "file (move) paragraphs to different notes",
-      "jsFunction": "moveParas"
-    },
-    {
-      "name": "mp",
-      "alias": [
-        "fp",
-        "file",
-        "move",
         "paragraph"
       ],
       "description": "move (file) paragraphs to different notes",
       "jsFunction": "moveParas"
     },
     {
-      "name": "nns",
+      "name": "move block",
+      "alias": [
+        "mb",
+        "fb",
+        "block"
+      ],
+      "description": "file (move) block to different notes",
+      "jsFunction": "moveBlock"
+    },
+    {
+      "name": "add sync'd copy to note",
+      "alias": [
+        "asc",
+        "sync"
+      ],
+      "description": "Add a sync'd copy of the current line to a section in another note",
+      "jsFunction": "addIDAndAddToOtherNote"
+    },
+    {
+      "name": "new note from selection",
+      "alias": [
+        "nns",
+        "new",
+        "clipboard"
+      ],
       "description": "New note from selection (and leave link to it in its place)",
       "jsFunction": "newNoteFromSelection"
     },
     {
-      "name": "add sync'd copy to note",
-      "alias": ["asc", "sync"],
-      "description": "Add a sync'd copy of the current line to a section in another note",
-      "jsFunction": "addIDAndAddToOtherNote"
+      "name": "new note from clipboard",
+      "alias": [
+        "nnc",
+        "new",
+        "clipboard"
+      ],
+      "description": "New note from selection (and leave link to it in its place)",
+      "jsFunction": "newNoteFromClipboard"
     }
   ],
   "plugin.settings": [
@@ -75,14 +82,6 @@
         "type": "string",
         "choices": ["at", "date", "link"],
         "default": "link",
-        "required": true
-    },
-    {
-        "key": "useExtendedBlockDefinition",
-        "title": "Use extended block definition?",
-        "description": "Controls whether all the lines in the current heading's section are included in the block to move (true) or whether only the following ones that are more deeply indented are included (false; this is the default). In both cases a block is closed by a blank line or a separator (horizontal line).",
-        "type": "bool",
-        "default": false,
         "required": true
     },
     {
