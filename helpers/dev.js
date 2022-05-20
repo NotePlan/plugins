@@ -43,22 +43,28 @@ export function JSP(obj: any, space: string | number = 2): string {
       })
       return `${isValues ? '[' : ''}${arrInfo.join(isValues ? ', ' : ',\n')}${isValues ? ']' : ''}`
     }
-    const propNames = getAllPropertyNames(obj)
-    const fullObj = propNames.reduce((acc, propName) => {
-      if (Array.isArray(obj[propName])) {
-        acc[propName] = obj[propName].map((x) => {
-          if (typeof x === 'object') {
-            return JSP(x, '')
-          } else {
-            return x
-          }
-        })
-      } else {
-        acc[propName] = obj[propName]
-      }
-      return acc
-    }, {})
-    return cleanStrigifiedResults(JSON.stringify(fullObj, null, space ?? null))
+    // if instance of Date, don't attempt iternation
+    // NOTE: Don't use instanceof Date as it will fail if invalid date
+    if (Object.prototype.toString.call(obj) === '[object Date]') {
+      return String(obj)
+    } else {
+      const propNames = getAllPropertyNames(obj)
+      const fullObj = propNames.reduce((acc, propName) => {
+        if (Array.isArray(obj[propName])) {
+          acc[propName] = obj[propName].map((x) => {
+            if (typeof x === 'object') {
+              return JSP(x, '')
+            } else {
+              return x
+            }
+          })
+        } else {
+          acc[propName] = obj[propName]
+        }
+        return acc
+      }, {})
+      return cleanStrigifiedResults(JSON.stringify(fullObj, null, space ?? null))
+    }
   }
 }
 

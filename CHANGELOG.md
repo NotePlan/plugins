@@ -4,6 +4,12 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/codedungeon.Toolbox/README.md) for details on available commands and use case.
 
+## [3.4.2] - 2022-05-20 (@codedungeon)
+
+- fixed issue with `JSP` (called by `clo`) which was throwing an error when passing instanceof date object
+  - now just returns the date value as response (does not show Date object)
+  - e.g. `clo(new Date())` returns `Fri May 20 2022 07:46:41 GMT-0700 (PDT)`
+
 ## [3.4.1] - 2022-05-15 (@codedungeon)
 
 - removed `dayjs` dependency
