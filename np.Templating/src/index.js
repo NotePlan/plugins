@@ -27,6 +27,7 @@ export { templateRunner } from './Templating'
 
 // np.Templating Utility Commands
 export { templateAbout } from './Templating'
+export { getXCallbackForTemplate } from './Templating'
 
 // np.Templating Testing
 export { testInvoke } from './Templating'

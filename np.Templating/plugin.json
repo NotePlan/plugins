@@ -122,6 +122,14 @@
       "description": "Load and run self-contained template instructions with arguments",
       "hidden": true,
       "jsFunction": "templateRunner"
+    },
+    {
+      "name": "np:gx",
+      "alias": [
+        "getXCallbackForTemplate"
+      ],
+      "description": "Get an x-callback URL that invokes this template",
+      "jsFunction": "getXCallbackForTemplate"
     }
   ],
   "plugin.settings": [

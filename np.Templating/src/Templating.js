@@ -13,7 +13,8 @@ import { getTemplateFolder } from 'NPTemplating'
 import { helpInfo } from '../lib/helpers'
 import { getSetting } from '@helpers/NPConfiguration'
 
-import { chooseOption } from '@helpers/userInput'
+import { createRunPluginCallbackUrl } from '@helpers/general'
+import { chooseOption, showMessage, getInputTrimmed } from '@helpers/userInput'
 import { getOrMakeNote } from '@helpers/note'
 import { getWeatherSummary } from '../lib/support/modules/weatherSummary'
 import { getAffirmation } from '../lib/support/modules/affirmation'
@@ -315,7 +316,8 @@ async function writeNoteContents(note: TNote, renderedTemplate: string, writeUnd
  * The unique title of the template to run must be passed in as the first argument
  * TODO:
  * - Hide commands from user once tested
- * - add Presets to documentation
+ * - add Presets to documentation Notes below then delete these notes
+ * Note: use /np:gx to create a link to invoke the currently open template
  * Note: writeTypeType === 'prepend' prepends, otherwise appends
  * Note: writeType will be 'append' or 'prepend' | if writeUnderHeading is set, then appends/prepends there, otherwise the note's content
  * Note: if you are inserting title text as part of your template, then you should always prepend, because your title will confuse future appends
@@ -768,6 +770,36 @@ export async function testInvoke(): Promise<void> {
       Editor.insertTextAtCursor(version)
     } else {
       console.log('version is null')
+    }
+  } catch (error) {
+    logError(pluginJson, error)
+  }
+}
+
+/**
+ * Create an xcallback URL to invoke a template from a link inside NotePlan or a Shortcut/browser
+ * (plugin entry point for /np:gx)
+ */
+export async function getXCallbackForTemplate(): Promise<void> {
+  try {
+    let message = `Enter any variables and values you want to pass to the template in key=value pairs:\n\n myTemplateVar=value,otherVar=value2\n\n (where "myTemplateVar" and "otherVar" are the name of variables you use in your template. Multiple variables are separated by commas)`
+    let result = await getInputTrimmed(message, 'Ok', 'Template Variables to Pass')
+    const args = [Editor.filename || '', String(result)]
+    let link = createRunPluginCallbackUrl(pluginJson['plugin.id'], `templateRunner`, args)
+    message = `Do you want the link for pasting inside NotePlan or a raw URL?`
+    result = await CommandBar.prompt('Link Type', message, ['Noteplan Link', 'Raw URL'])
+    if (result === 0) {
+      message = `What text would you like to display for this link?`
+      const linkText = await getInputTrimmed(message, 'Link Text', 'Link Text')
+      if (typeof linkText === 'string') {
+        link = `[${linkText}](${link})`
+      }
+    }
+    Clipboard.string = String(link)
+    message = 'Link has been copied to clipboard.  Paste it at cursor?'
+    result = await CommandBar.prompt('Paste at cursor?', message, ['Paste at Cursor', 'Clipboard'])
+    if (result === 0) {
+      Editor.insertTextAtCursor(link)
     }
   } catch (error) {
     logError(pluginJson, error)
