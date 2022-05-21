@@ -315,13 +315,13 @@ async function writeNoteContents(note: TNote, renderedTemplate: string, writeUnd
  * Process a template that provides an existing filename or <today> for today's Calendar Note
  * The unique title of the template to run must be passed in as the first argument
  * TODO:
+ * - enum('location',['append','cursor','insert', ... 'prepend'])
  * - Hide commands from user once tested
  * - add Presets to documentation Notes below then delete these notes
  * Note: use /np:gx to create a link to invoke the currently open template
- * Note: writeTypeType === 'prepend' prepends, otherwise appends
- * Note: writeType will be 'append' or 'prepend' | if writeUnderHeading is set, then appends/prepends there, otherwise the note's content
+ * Note: location === 'prepend' prepends, otherwise appends
+ * Note: location will be 'append' or 'prepend' | if writeUnderHeading is set, then appends/prepends there, otherwise the note's content
  * Note: if you are inserting title text as part of your template, then you should always prepend, because your title will confuse future appends
- * - .addParagraphBelowHeadingTitle(title, paragraphType, headingTitle, shouldAppend: Bool, shouldCreate)
  * Note: ask CD what the reserved frontmatter fields should be and trap for them
  * xcallback note: arg1 is template name, arg2 is whether to open in editor, arg3 is a list of vars to pass to template equals sign is %3d
  *
@@ -347,10 +347,11 @@ export async function templateFileByTitle(selectedTemplate?: string = '', openIn
         let data = { ...frontmatterAttributes, ...argObj, frontmatter: { ...frontmatterAttributes, ...argObj } }
         let renderedTemplate = await NPTemplating.render(frontmatterBody, data)
 
-        const { openNoteTitle, writeNoteTitle, writeType, writeUnderHeading } = frontmatterAttributes
+        const { openNoteTitle, writeNoteTitle, location, writeUnderHeading } = frontmatterAttributes
         let noteTitle = (openNoteTitle && openNoteTitle.trim()) || (writeNoteTitle && writeNoteTitle?.trim()) || ''
         let shouldOpenInEditor = openNoteTitle && openNoteTitle.length > 0
-        const shouldAppend = (writeType && writeType === 'append') || false
+        const shouldAppend = (location && location === 'append') || false
+        log(pluginJson, `templateFileByTitle: shouldAppend ${shouldAppend} ${location}`)
         const isTodayNote = /<today>/i.test(openNoteTitle) || /<today>/i.test(writeNoteTitle)
         let note
         if (isTodayNote) {
