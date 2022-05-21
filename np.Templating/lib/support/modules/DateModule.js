@@ -280,6 +280,45 @@ export default class DateModule {
     return endOfWeek
   }
 
+  add(userPivotDate = '', value = '', shorthand = 'days') {
+    const pivotDate = userPivotDate && userPivotDate.length > 0 ? userPivotDate : moment(new Date()).format('YYYY-MM-DD')
+
+    // DateModule `pivotDate` will be formatted YYYY-MM-DD, need to add the time part
+    const dt = this.createDateTime(userPivotDate)
+
+    const shorthandKeys = ['y', 'Q', 'M', 'w', 'd', 'h', 'm', 's', 'ms']
+    if (typeof value === 'string') {
+      const match = shorthandKeys.filter((item) => value.indexOf(item) !== -1)
+      if (match.length > 0) {
+        shorthand = match[0] // take the first matching value
+        value = value.replace(/\D/g, '') // get number portion
+      }
+    }
+
+    return moment(new Date(dt)).add(value, shorthand).format('YYYY-MM-DD')
+  }
+
+  subtract(userPivotDate = '', value = '', shorthand = 'days') {
+    const pivotDate = userPivotDate && userPivotDate.length > 0 ? userPivotDate : moment(new Date()).format('YYYY-MM-DD')
+
+    // DateModule `pivotDate` will be formatted YYYY-MM-DD, need to add the time part
+    const dt = this.createDateTime(userPivotDate)
+
+    const shorthandKeys = ['y', 'Q', 'M', 'w', 'd', 'h', 'm', 's', 'ms']
+    if (typeof value === 'string') {
+      const match = shorthandKeys.filter((item) => value.indexOf(item) !== -1)
+      if (match.length > 0) {
+        shorthand = match[0] // take the first matching value
+        value = value.replace(/\D/g, '') // get number portion
+      }
+    }
+
+    value = Math.abs(value) // just in case the user passsed a negative value
+    const result = moment(new Date(dt)).subtract(value, shorthand).format('YYYY-MM-DD')
+
+    return result
+  }
+
   businessAdd(numDays = 1, pivotDate = '', format = '') {
     const locale = this.config?.templateLocale || 'en-US'
     const configFormat = this.config?.dateFormat || 'YYYY-MM-DD'

@@ -143,6 +143,98 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(assertValue)
     })
 
+    describe(`${block('.add method')}`, () => {
+      it(`should render ${method('.add')} using default shorthand (n days)`, async () => {
+        // this is how it will look inside date functions using `.createDateTime`
+        const pivotDate = '2022-05-21T00:00:01'
+
+        const result = new DateModule().add('2022-05-21', 7)
+
+        const assertValue = moment(new Date(pivotDate)).add(7, 'days').format('YYYY-MM-DD')
+
+        expect(result).toEqual(assertValue)
+      })
+
+      it(`should render ${method('.add')} using shorthand weeks`, async () => {
+        // this is how it will look inside date functions using `.createDateTime`
+        const pivotDate = '2022-05-21T00:00:01'
+
+        const result = new DateModule().add('2022-05-21', 7, 'weeks')
+
+        const assertValue = moment(new Date(pivotDate)).add(7, 'weeks').format('YYYY-MM-DD')
+
+        expect(result).toEqual(assertValue)
+      })
+
+      it(`should render ${method('.add')} using shorthand weeks`, async () => {
+        // this is how it will look inside date functions using `.createDateTime`
+        const pivotDate = '2022-05-21T00:00:01'
+
+        const result = new DateModule().add('2022-05-21', '7w')
+
+        const assertValue = moment(new Date(pivotDate)).add(7, 'weeks').format('YYYY-MM-DD')
+
+        expect(result).toEqual(assertValue)
+      })
+
+      it(`should not render ${method('.add')} using shorthand weeks`, async () => {
+        // this is how it will look inside date functions using `.createDateTime`
+        const pivotDate = '2022-05-21T00:00:01'
+
+        const result = new DateModule().add('2022-05-21', '7years')
+
+        const assertValue = moment(new Date(pivotDate)).add(7, 'weeks').format('YYYY-MM-DD')
+
+        expect(result).not.toEqual(assertValue)
+      })
+    })
+
+    describe.only(`${block('.subtract method')}`, () => {
+      it(`should render ${method('.subtract')} using default shorthand (n days)`, async () => {
+        // this is how it will look inside date functions using `.createDateTime`
+        const pivotDate = '2022-05-21T00:00:01'
+
+        const result = new DateModule().subtract('2022-05-21', 7)
+
+        const assertValue = moment(new Date(pivotDate)).subtract(7, 'days').format('YYYY-MM-DD')
+
+        expect(result).toEqual(assertValue)
+      })
+
+      it(`should render ${method('.subtract')} using shorthand weeks`, async () => {
+        // this is how it will look inside date functions using `.createDateTime`
+        const pivotDate = '2022-05-21T00:00:01'
+
+        const result = new DateModule().subtract('2022-05-21', 7, 'weeks')
+
+        const assertValue = moment(new Date(pivotDate)).subtract(7, 'weeks').format('YYYY-MM-DD')
+
+        expect(result).toEqual(assertValue)
+      })
+
+      it(`should render ${method('.subtract')} using shorthand weeks`, async () => {
+        // this is how it will look inside date functions using `.createDateTime`
+        const pivotDate = '2022-05-21T00:00:01'
+
+        const result = new DateModule().subtract('2022-05-21', '7w')
+
+        const assertValue = moment(new Date(pivotDate)).subtract(7, 'weeks').format('YYYY-MM-DD')
+
+        expect(result).toEqual(assertValue)
+      })
+
+      it(`should not render ${method('.subtract')} using shorthand weeks`, async () => {
+        // this is how it will look inside date functions using `.createDateTime`
+        const pivotDate = '2022-05-21T00:00:01'
+
+        const result = new DateModule().subtract('2022-05-21', '7years')
+
+        const assertValue = moment(new Date(pivotDate)).subtract(7, 'weeks').format('YYYY-MM-DD')
+
+        expect(result).not.toEqual(assertValue)
+      })
+    })
+
     it(`should render ${method('.now')} using negative shorthand`, async () => {
       const result = new DateModule().now('', '-10w')
 

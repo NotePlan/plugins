@@ -52,7 +52,7 @@ export function debug(debugInfo: any, label: string = '', logInfo: string = '', 
   // NOTE: DEBUG_MODE CONFIGURATION
   // DEBUG_MODE variable will be changed to false if not in debug mode when creating release
   //            see npc plugin:dev command for --debug option
-  const DEBUG_MODE = false
+  const DEBUG_MODE = true
 
   if (DEBUG_MODE) {
     const spaces = logInfo.length === 0 ? SPACER_LENGTH : Math.round((SPACER_LENGTH - (logInfo.length - 2)) / 2)
