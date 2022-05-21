@@ -1,7 +1,7 @@
 // @flow
 
 import bqpjs from 'bqpjs'
-import { createCallbackUrl, createPrettyLink } from '../../../helpers/general'
+import { createOpenNoteCallbackUrl, createPrettyOpenNoteLink } from '../../../helpers/general'
 import { clo, log } from '../../../helpers/dev'
 import type { DataQueryingConfig } from '../NPDataQuerying'
 import pluginJson from '../../plugin.json'
@@ -25,7 +25,7 @@ export function formatSearchOutput(results: Array<any>, searchQuery: string, con
     let segment = ''
     let content = ''
     const item = r.item
-    const pl = createPrettyLink(item.title, item.filename, true)
+    const pl = createPrettyOpenNoteLink(item.title, item.filename, true)
     if (!linksOnly) {
       if (!item || !item.content) {
         content = item.title ? `File: "${item.title}"` : 'File Contents Unreadable' // an item like a PDF may have no content

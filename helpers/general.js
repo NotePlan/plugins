@@ -77,11 +77,7 @@ export function rangeToString(r: Range): string {
  * @return {string}
  */
 export function displayTitle(n: ?TNote): string {
-  return (!n)
-    ? 'error'
-    : (n.type === 'Calendar' && n.date != null)
-      ? hyphenatedDateString(n.date)
-      : n.title ?? ''
+  return !n ? 'error' : n.type === 'Calendar' && n.date != null ? hyphenatedDateString(n.date) : n.title ?? ''
 }
 
 /**
@@ -114,7 +110,7 @@ export function createLink(noteTitle: string, heading: string | null = ''): stri
  * @param {string | null} heading - heading inside of note (optional)
  * @returns {string} the x-callback-url string
  */
-export function createCallbackUrl(titleOrFilename: string, isFilename: boolean = false, heading: string | null = null): string {
+export function createOpenNoteCallbackUrl(titleOrFilename: string, isFilename: boolean = false, heading: string | null = null): string {
   const xcb = `noteplan://x-callback-url/openNote?${isFilename ? `filename` : `noteTitle`}=`
   // FIXME: this is working around an API bug that does not allow heading references in filename xcallbacks
   // When @eduard fixes it, this line can be removed
@@ -124,7 +120,39 @@ export function createCallbackUrl(titleOrFilename: string, isFilename: boolean =
 }
 
 /**
+ * Create xcallback link text for running a plugin
+ * @dwertheimer
+ * @param {string} pluginID - ID of the plugin from plugin.json
+ * @param {boolean} command - the "name" of the command in plugin.json
+ * @param {Array<string>} args - a flat array of arguments to be sent
+ * @returns {string} the x-callback-url URL string (not the pretty part)
+ */
+export function createRunPluginCallbackUrl(pluginID: string, command: string, args: Array<string> = []): string {
+  let xcb = `noteplan://x-callback-url/runPlugin?pluginID=${pluginID}&command=${encodeURIComponent(command)}`
+  if (args?.length) {
+    args.forEach((arg, i) => {
+      xcb += `&arg${i}=${encodeURIComponent(arg)}`
+    })
+  }
+  return xcb
+}
+
+/**
  * Create a pretty/short link hiding an xcallback link text from title string (and optional heading string)
+ * e.g. [linkText](x-callback-url)
+ * @dwertheimer
+ * @param {string} linkText - the text to display for the link
+ * @param {string} pluginID - ID of the plugin from plugin.json
+ * @param {boolean} command - the "name" of the command in plugin.json
+ * @param {Array<string>} args - a flat array of arguments to be sent
+ * @returns {string} the pretty x-callback-url string: [linkText](x-callback-url)
+ */
+export function createPrettyOpenNoteLink(linkText: string, pluginID: string, command: string, args: Array<string> = []): string {
+  return `[${linkText}](${createOpenNoteCallbackUrl(titleOrFilename, isFilename, heading)})`
+}
+
+/**
+ * Create a pretty/short link hiding an xcallback link text for running a plugin
  * e.g. [linkText](x-callback-url)
  * @dwertheimer
  * @param {string} linkText - the text to display for the link
@@ -133,8 +161,8 @@ export function createCallbackUrl(titleOrFilename: string, isFilename: boolean =
  * @param {string | null} heading - heading inside of note (optional)
  * @returns {string} the x-callback-url string
  */
-export function createPrettyLink(linkText: string, titleOrFilename: string, isFilename: boolean = false, heading: string | null = null): string {
-  return `[${linkText}](${createCallbackUrl(titleOrFilename, isFilename, heading)})`
+export function createPrettyRunPluginLink(linkText: string, pluginID: string, command: string, args: Array<string> = []): string {
+  return `[${linkText}](${createRunPluginCallbackUrl(pluginID, command, args)})`
 }
 
 /**

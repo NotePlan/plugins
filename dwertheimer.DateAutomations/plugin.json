@@ -95,7 +95,7 @@
         "type": "string",
         "key": "locale",
         "title": "Time/Date Locale Setting",
-        "description": "Geographic locale for date/time formatting. e.g. en-US, en-GB, etc. e.g. en-US will result in mm/dd/yyyy, while en_GB will be dd/mm/yyyy. See https://www.ibm.com/docs/en/datacap/9.1.8?topic=support-supported-language-codes for a list of available locales.",
+        "description": "Geographic locale for date/time formatting. e.g. en-US, en-GB, etc. e.g. en-US will result in mm/dd/yyyy, while en-GB will be dd/mm/yyyy. See https://www.ibm.com/docs/en/datacap/9.1.8?topic=support-supported-language-codes for a list of available locales.",
         "default": "en-US",
         "required": true
       },

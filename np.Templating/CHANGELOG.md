@@ -3,6 +3,10 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.2.0-beta.02] - 2022-05-17 (mikeerickson)
+
+- fixed issue when template contains folder which has value of `<select>` to prompt user of where new note should be created (@jgclark)
+
 ## [1.2.0-beta.01] - 2022-05-15 (mikeerickson)
 
 - added `templateGroupTemplatesByFolder` setting (default: false)
