@@ -34,6 +34,15 @@
       "jsFunction": "templateAppend"
     },
     {
+      "name": "np:invoke",
+      "alias": [
+        "invoke",
+        "npv"
+      ],
+      "description": "Place template using <location> attribute",
+      "jsFunction": "templateInvoke"
+    },
+    {
       "name": "np:new",
       "alias": [
         "new",

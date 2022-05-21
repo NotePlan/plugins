@@ -224,6 +224,44 @@ export async function templateAppend(): Promise<void> {
   }
 }
 
+export async function templateInvoke(): Promise<void> {
+  try {
+    if (Editor.type === 'Notes' || Editor.type === 'Calendar') {
+      const content: string = Editor.content || ''
+
+      // $FlowIgnore
+      const selectedTemplate = await NPTemplating.chooseTemplate()
+      const templateData = await NPTemplating.getTemplate(selectedTemplate)
+      let { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
+      let data = { ...frontmatterAttributes, frontmatter: { ...frontmatterAttributes } }
+
+      const location = frontmatterAttributes?.location || 'append'
+
+      // $FlowIgnore
+      let renderedTemplate = await NPTemplating.render(frontmatterBody, data)
+
+      switch (location) {
+        case 'append':
+          Editor.insertTextAtCharacterIndex(`\n` + renderedTemplate, content.length)
+          break
+        case 'insert':
+          Editor.insertTextAtCharacterIndex(renderedTemplate, 0)
+          break
+        case 'cursor':
+          Editor.insertTextAtCursor(renderedTemplate)
+          break
+        default:
+          Editor.insertTextAtCursor(renderedTemplate)
+          break
+      }
+    } else {
+      await CommandBar.prompt('Template', 'You must have a Project Note or Calendar Note opened where you wish to append template.')
+    }
+  } catch (error) {
+    logError(pluginJson, error)
+  }
+}
+
 export async function templateNew(): Promise<void> {
   try {
     const selectedTemplate = await NPTemplating.chooseTemplate()

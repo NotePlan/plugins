@@ -9,8 +9,8 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/
 - added template reentrance when calling `FrontMatter.parse` provide ability for attributes to use any attribute before the current attribute.
 - added `np:invoke` which uses a new template attribute `location` to control where template is placed on current note
 > `append` appends to the end of current note (same as `np:append`)
-> `cursort` inserts at the cursor position of the current note
-> `insert` inserts at the begining of current note
+> `cursor` inserts at the cursor position of the current note
+> `insert` inserts at the beginning of current note (same as `np:insert`)
 
 ## [1.2.0-beta.03] - 2022-05-18 (mikeerickson)
 
