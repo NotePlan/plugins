@@ -15,7 +15,7 @@ import { log, logError, logWarn } from './dev'
  * NB: this won't be needed from v3.4.1 as there will then be paragraph type 'separator'. TODO(jgclark):
  * @author @jgclark
  */
-export const RE_HORIZONTAL_LINE = `^ {0,3}((\\_\\h*){3,}|(\\*\\h*){3,}|(\\-\\h*){3,})$`
+// export const RE_HORIZONTAL_LINE = `^ {0,3}((\\_\\h*){3,}|(\\*\\h*){3,}|(\\-\\h*){3,})$`
 
 //-----------------------------------------------------------------------------
 // Paragraph-level Functions
@@ -36,7 +36,7 @@ export function termInURL(term: string, searchString: string): boolean {
 
 /**
  * Pretty print range information
- * NB: This is a copy of what's in general.js to avoid circular dependency.
+ * NB: This is a copy of what's in general.js to avoid a circular dependency.
  * @author @EduardMe
  */
 export function rangeToString(r: Range): string {
@@ -48,7 +48,7 @@ export function rangeToString(r: Range): string {
 
 /**
  * Return title of note useful for display, even for calendar notes (the YYYYMMDD)
- * NB: this fn is a local copy of the one in helpers/general.js to avoid circular dependency
+ * NB: this fn is a local copy of the one in helpers/general.js to avoid a circular dependency
  * @author @jgclark
  *
  * @param {TNote} n - note
@@ -70,7 +70,7 @@ function displayTitle(n: TNote): string {
  * @return {string} - string representation of those paragraphs, without trailling newline
  */
 export function parasToText(paras: Array<TParagraph>): string {
-  // console.log('parasToText: starting with ' + paras.length + ' paragraphs')
+  // log('paragraphs/parasToText', `starting with ${paras.length} paragraphs`)
   let text = ''
   for (let i = 0; i < paras.length; i++) {
     const p = paras[i]
@@ -132,34 +132,34 @@ export function calcSmartPrependPoint(note: TNote): number {
   // If we have any content, check for these special cases
   if (lines.length > 0) {
     if (lines[0] === '---') {
-      // console.log(`YAML start found. Will check ${lines.length} lines`)
+      // log('paragraph/calcSmartPrependPoint', `YAML start found. Will check ${lines.length} lines`)
       // We (probably) have a YAML block
       // Find end of YAML/frontmatter
       for (let i = 1; i < lines.length; i++) {
         if (lines[i] === '---' || lines[i] === '...') {
-          // console.log(`YAML end at ${i}`)
+          // log('paragraph/calcSmartPrependPoint', `YAML end at ${i}`)
           insertionLine = i + 1
           break
         }
       }
       if (insertionLine === 1) {
         // If we get here we haven't found an end to the YAML block.
-        console.log(`Warning: couldn't find end of YAML frontmatter in note ${displayTitle(note)}`)
+        logWarn('paragraph/calcSmartPrependPoint', `Couldn't find end of YAML frontmatter in note ${displayTitle(note)}`)
         // It's not clear what to do at this point, so will leave insertion point as is
       }
     } else if (lines[1].match(/^#[A-z]/)) {
       // We have a hashtag at the start of the line, making this a metadata line
       // Move insertion point to after the next blank line, or before the next
       // heading line, whichever is sooner.
-      // console.log(`Metadata line found`)
+      // log('paragraph/calcSmartPrependPoint', `Metadata line found`)
       for (let i = 2; i < lines.length; i++) {
-        // console.log(`${i}: ${lines[i]}`)
+        // log('paragraph/calcSmartPrependPoint', `${i}: ${lines[i]}`)
         if (lines[i].match(/^#{1,5}\s/)) {
-          // console.log(`  Heading at ${i}`)
+          // log('paragraph/calcSmartPrependPoint', `  Heading at ${i}`)
           insertionLine = i + 1
           break
         } else if (lines[i] === '') {
-          // console.log(`  Blank line at ${i}`)
+          // log('paragraph/calcSmartPrependPoint', `  Blank line at ${i}`)
           insertionLine = i + 1
           break
         }
@@ -209,7 +209,7 @@ export function findEndOfActivePartOfNote(note: TNote): number {
     }
   }
   const endOfActive = doneHeaderLine > 0 ? doneHeaderLine : cancelledHeaderLine > 0 ? cancelledHeaderLine : lineCount
-  // console.log(`  dHL = ${doneHeaderLine}, cHL = ${cancelledHeaderLine} endOfActive = ${endOfActive}`)
+  // log('paragraph/findEndOfActivePartOfNote', `dHL = ${doneHeaderLine}, cHL = ${cancelledHeaderLine} endOfActive = ${endOfActive}`)
   return endOfActive
 }
 
@@ -261,7 +261,7 @@ export function findStartOfActivePartOfNote(note: TNote): number {
 export function selectedLinesIndex(selection: Range, paragraphs: $ReadOnlyArray<TParagraph>): [number, number] {
   let firstSelParaIndex = 0
   let lastSelParaIndex = 0
-  // console.log(`\tSelection: ${rangeToString(selection)}`)
+  // log('paragraph/selectedLinesIndex', `  Selection: ${rangeToString(selection)}`)
   const startParaRange = Editor.paragraphRangeAtCharacterIndex(selection.start)
   const endParaRange: Range = Editor.paragraphRangeAtCharacterIndex(selection.end)
 
@@ -285,7 +285,7 @@ export function selectedLinesIndex(selection: Range, paragraphs: $ReadOnlyArray<
     lastSelParaIndex = firstSelParaIndex
   }
   // Now get the first paragraph, and as many following ones as are in that block
-  // console.log(`\t-> paraIndexes ${firstSelParaIndex}-${lastSelParaIndex}`)
+  // log('paragraph/selectedLinesIndex', `-> paraIndexes ${firstSelParaIndex}-${lastSelParaIndex}`)
   return [firstSelParaIndex, lastSelParaIndex]
 }
 
@@ -364,7 +364,7 @@ export function getOrMakeMetadataLine(note: TNote): number {
     Editor.insertParagraph('', 1, 'empty')
     lineNumber = 1
   }
-  // console.log(`Metadata line = ${lineNumber}`)
+  // log('paragraph/getOrMakeMetadataLine', `Metadata line = ${lineNumber}`)
   return lineNumber
 }
 
