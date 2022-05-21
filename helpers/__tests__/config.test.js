@@ -1,4 +1,4 @@
-/* globals describe, expect, it, test, jest */
+/* globals describe, expect, it, test, jest  - */
 
 import colors from 'chalk'
 import * as c from '../config'
@@ -60,9 +60,6 @@ describe(`${FILE}`, () => {
       })
     })
     describe('validation errors should fail', () => {
-      test('no validations sent ', () => {
-        expect(() => c.validateConfigProperties({}, {})).toThrow(createConfigError('noValidations', '', ''))
-      })
       test('for required field missing ', () => {
         expect(() => c.validateConfigProperties({}, { test: 'string' })).toThrow(createConfigError('missing', 'test', 'string'))
       })

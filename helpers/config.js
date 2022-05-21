@@ -32,7 +32,7 @@ export function validateConfigProperties(config: { [string]: mixed }, validation
   if (propsToValidate.length) {
     propsToValidate.forEach((v) => {
       const isOptional = typeof validations[v] === 'object' && validations[v]?.optional
-      // $FlowIgnore
+      // $FlowIgnore -
       const requiredType = isOptional && validations[v]?.type ? validations[v].type : validations[v]
       const configFieldValue = config[v]
 
