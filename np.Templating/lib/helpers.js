@@ -44,26 +44,39 @@ export function helpInfo(section: string, userDocPage?: string): string {
   return msg
 }
 
-export function debug(debugInfo: any, preamble: string = '', logInfo: string = ''): void {
-  const SPACER_LENGTH = 80 // num lines to show around debug call
-  const LINE_CHAR = '- ' // visual queue character
+export function debug(debugInfo: any, label: string = '', logInfo: string = '', userConfig: any = {}): void {
+  const SPACER_LENGTH = 40 // num lines to show around debug call
+  const LINE_CHAR = '. ' // visual queue character
+  const CONFIG = { ...{ showHeaderFooter: true, ...userConfig } }
 
   // NOTE: DEBUG_MODE CONFIGURATION
   // DEBUG_MODE variable will be changed to false if not in debug mode when creating release
   //            see npc plugin:dev command for --debug option
-  const DEBUG_MODE = true
+  const DEBUG_MODE = false
 
   if (DEBUG_MODE) {
     const spaces = logInfo.length === 0 ? SPACER_LENGTH : Math.round((SPACER_LENGTH - (logInfo.length - 2)) / 2)
     const premambe = logInfo.length === 0 ? `${LINE_CHAR}`.repeat(spaces - 4) : `${LINE_CHAR}`.repeat(spaces) + ` ${logInfo} ` + `${LINE_CHAR}`.repeat(spaces)
 
-    log(pluginJson, premambe, 'DEBUG')
-    if (Array.isArray(debugInfo)) {
-      clo(`numItems: ${debugInfo.length}  \n            ` + '[ ' + debugInfo.join(', ') + ' ]', '', 4)
-    } else {
-      clo(debugInfo, preamble, 4)
+    if (CONFIG.showHeaderFooter) {
+      log(pluginJson, premambe, 'DEBUG BÖRJA')
     }
-    log(pluginJson, premambe, 'DEBUG')
+    console.log('')
+    if (Array.isArray(debugInfo)) {
+      clo(`  numItems: ${debugInfo.length}  \n            ` + '[ ' + debugInfo.join(', ') + ' ]', '', 4)
+    } else {
+      if (typeof debugInfo === 'string') {
+        console.log(`  {"${label}" : "${debugInfo}"}`)
+      } else {
+        clo(debugInfo, label, 4)
+      }
+    }
+
     console.log('') // add a little visual space
+    if (CONFIG.showHeaderFooter) {
+      log(pluginJson, premambe, 'DEBUG SLUTET')
+      console.log('') // add a little visual space
+      console.log('') // extra space when finished
+    }
   }
 }

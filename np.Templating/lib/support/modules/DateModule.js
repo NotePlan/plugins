@@ -5,6 +5,7 @@
 
 import moment from 'moment/min/moment-with-locales'
 import { default as momentBusiness } from 'moment-business-days'
+import { debug } from '../../helpers'
 
 export const DAY_NUMBER_SUNDAY = 0
 export const DAY_NUMBER_MONDAY = 1
@@ -105,27 +106,34 @@ export default class DateModule {
 
   now(format = '', offset = '') {
     const locale = this.config?.templateLocale || 'en-US'
-
     const configFormat = this.config?.dateFormat || 'YYYY-MM-DD'
     format = format.length > 0 ? format : configFormat
     const dateValue = new Date()
 
     this.setLocale()
+
     let formattedDate = moment(dateValue).format(format)
+    debug({ locale, configFormat, format, dateValue, formattedDate }, 'DateModule.now uppstart')
+
     if (offset) {
       offset = `${offset}` // convert to string for further processing and usage below
 
       let newDate = ''
-      // supplied positive/negative number
       if (offset.match(/^[+-]?([0-9]*\.?[0-9]+|[0-9]+\.?[0-9]*)([eE][+-]?[0-9]+)?$/)) {
+        debug(offset, 'DateModule.now :: offset')
+        debug(dateValue, 'DateModule.now :: datumvärde')
         newDate = offset.includes('-') ? moment(dateValue).subtract(Math.abs(offset), 'days') : moment(dateValue).add(offset, 'days')
       } else {
         const shorthand = offset[offset.length - 1]
         const value = offset.replace(shorthand, '')
 
+        debug(offset, 'DateModule.now :: offset')
+
         newDate = offset.includes('-') ? moment(dateValue).subtract(Math.abs(value), shorthand) : moment(dateValue).add(value, shorthand)
+        debug({ shorthand, value, dateValue, newDate }, 'DateModule.now :: slutet')
       }
 
+      debug({ formattedDate, newDate, format }, 'DateModule.now :: resultat formaterad')
       formattedDate = moment(newDate).format(format)
     }
 
@@ -133,6 +141,7 @@ export default class DateModule {
       formattedDate = new Intl.DateTimeFormat(locale, { dateStyle: format }).format(new Date())
     }
 
+    debug({ finalDateTime: formattedDate }, 'DateModule.now :: slutligt formaterat värde')
     return this.isValid(formattedDate)
   }
 
