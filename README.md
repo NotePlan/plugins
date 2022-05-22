@@ -97,7 +97,7 @@ For example, running `npc plugin:dev dwertheimer.TaskAutomations --watch` will p
 ### NotePlan CLI Commands
 NotePlan includes a suite of CLI commands which you can use during development.
 
-```bash
+```shell
 noteplan-cli <command>
 or
 npc <command>
@@ -107,7 +107,8 @@ For all CLI commands, you can pass the `--help` for available flags
 
 #### npc plugin:dev
 The most common CLI, this can be used to build plugin, test plugins (wrapper for `npc plugin:test`)
-```bash
+
+```shell
 npc plugin:dev <plugin> [options]
 
 # run watcher, compact mode and display notification with build result
@@ -122,27 +123,42 @@ npc plugin:dev codedungeon.Toolbox -tw
 
 ```
 
+#### npc plugin:test
+The `test` command can be used in addition to the `npc plugin:dev <plugin> --test` which will only execute the NotePlan Test Runner
+
+```shell
+npc plugin:test <plugin> [options]
+
+# execute test running in watch mode, with silent enabled
+npc plugin:test codedungeon.Toolbox --watch --silent
+
+# as with other plugin commands, youc an use CLI shorthand
+# this will perform the same as above
+npc plugin:test codedungeon.Toolbox -ws
+```
+
 #### npc plugin:info
 Obtain information about any NotePlan Plugin
-```bash
+
+```shell
 npc plugin:info <plugin> [options]
 ```
 
 #### npc plugin:create
 Create new NotePlan Plugin
-```bash
+```shell
 npc plugin:create [options]
 ```
 
 #### npc plugin:pr
 Create NotePlan Plugin Pull Request
-```bash
+```shell
 npc plugin:pr [options]
 ```
 
 #### npc plugin:test
 Run test suite for NotePlan Plugin
-```bash
+```shell
 npc plugin:test <plugin> [options]
 
 # run plugin:test watch
@@ -168,6 +184,7 @@ The common script you will run `npc plugin:dev <plugin>` however, you may need t
 - `npc plugin:dev <plugin> --watch --compact --notify` a less verbose version of `autowatch` that might suit more experienced developers
 - `npc plugin:dev <plugin> -wcn` watcher, compact mode, notify using CLI shorthand
 - `npc plugin:dev <plugin> -tw` test mode, watcher using CLI shorthand
+- `npc plugin:test <plugin> -w` test mode, using `test` command
 - `npc plugin:info --check <name>` to check if you desired command name is in use by any other NotPlan Plugins
 <!-- - `npm run build`: Will build all the plugins into single files (where needed) -->
 - `npm run typecheck`: typecheck all javascript files with `Flow`. Only files with a `// @flow` comment are checked.

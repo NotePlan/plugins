@@ -109,6 +109,14 @@
       "jsFunction": "testInvoke"
     },
     {
+      "name": "np:convert",
+      "alias": [
+        "npc"
+      ],
+      "description": "np.Templating Convert Project Note to Frontmatter...",
+      "jsFunction": "templateConvertNote"
+    },
+    {
       "name": "np:about",
       "alias": [],
       "description": "np.Templating About...",

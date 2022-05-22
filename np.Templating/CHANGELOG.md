@@ -11,6 +11,9 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/
 > `append` appends to the end of current note (same as `np:append`)
 > `cursor` inserts at the cursor position of the current note
 > `insert` inserts at the beginning of current note (same as `np:insert`)
+- added `convertProjectNoteToFrontmatter` to `FrontMatterModule` class
+- added new command `np:convert` which will convert the current project note to frontmatter format
+> uses `FrontmatterModule.convertProjectNoteToFrontmatter` method
 
 ## [1.2.0-beta.03] - 2022-05-18 (mikeerickson)
 

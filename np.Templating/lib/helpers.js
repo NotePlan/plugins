@@ -63,7 +63,7 @@ export function debug(debugInfo: any, label: string = '', logInfo: string = '', 
     }
     console.log('')
     if (Array.isArray(debugInfo)) {
-      clo(`  numItems: ${debugInfo.length}  \n            ` + '[ ' + debugInfo.join(', ') + ' ]', '', 4)
+      clo(`  numItems: ${debugInfo.length}  \n            ` + '[\n ' + debugInfo.join(',\n     ') + ' \n]', '', 4)
     } else {
       if (typeof debugInfo === 'string') {
         console.log(`  {"${label}" : "${debugInfo}"}`)
