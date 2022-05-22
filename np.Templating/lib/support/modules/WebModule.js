@@ -13,7 +13,6 @@ import { getDailyQuote } from './quote'
 import { getAffirmation } from './affirmation'
 import { getWeatherSummary } from './weatherSummary'
 import { clo } from '@helpers/dev'
-import { debug } from '../../helpers'
 
 export default class WebModule {
   async advice(): Promise<string> {
@@ -25,10 +24,6 @@ export default class WebModule {
   }
 
   async quote(): Promise<string> {
-    return await getDailyQuote()
-  }
-
-  async quote2(): Promise<string> {
     return await getDailyQuote()
   }
 

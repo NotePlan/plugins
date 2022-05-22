@@ -3,7 +3,8 @@ import { differenceInCalendarDays, endOfDay, startOfDay, eachMinuteOfInterval, f
 import { getDateObjFromDateTimeString, getTimeStringFromDate, removeDateTagsAndToday } from '../../helpers/dateTime'
 import { sortListBy } from '../../helpers/sorting'
 import { removeDateTags, getTodaysDateHyphenated } from '../../helpers/dateTime'
-import { createLink, createPrettyLink } from '../../helpers/general'
+import { createLink, createPrettyOpenNoteLink } from '../../helpers/general'
+import { textWithoutSyncedCopyTag } from '../../helpers/syncedCopies'
 import { clo } from '../../helpers/dev'
 
 // import { timeblockRegex1, timeblockRegex2 } from '../../helpers/markdown-regex'
@@ -260,7 +261,7 @@ export function findOptimalTimeForEvent(timeMap: IntervalMap, todo: { [string]: 
 export function blockTimeAndCreateTimeBlockText(tbm: TimeBlocksWithMap, block: BlockData, config: { [key: string]: any }): TimeBlocksWithMap {
   const timeBlockTextList = tbm.timeBlockTextList || []
   const obj = blockTimeFor(tbm.timeMap, block, config) //returns newMap, itemText
-  timeBlockTextList.push(obj.itemText)
+  timeBlockTextList.push(textWithoutSyncedCopyTag(obj.itemText))
   const timeMap = filterTimeMapToOpenSlots(obj.newMap, config)
   const blockList = findTimeBlocks(timeMap, config)
   return { timeMap, blockList, timeBlockTextList }
@@ -338,7 +339,7 @@ export function appendLinkIfNecessary(todos: Array<TParagraph>, config: { [key: 
           link = ` ${createLink(e.title ?? '', e.heading)}`
         } else {
           if (config.includeLinks === 'Pretty Links') {
-            link = ` ${createPrettyLink(config.linkText, e.filename ?? 'unknown', true, e.heading)}`
+            link = ` ${createPrettyOpenNoteLink(config.linkText, e.filename ?? 'unknown', true, e.heading)}`
           }
         }
         e.content = `${e.content}${link}`

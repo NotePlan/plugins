@@ -22,19 +22,19 @@ describe(`${FILE}`, () => {
       expect(g.createLink('foo', '')).toEqual('[[foo]]')
     })
   })
-  describe(section('createCallbackUrl()'), () => {
+  describe(section('createOpenNoteCallbackUrl()'), () => {
     describe('using noteTitle', () => {
       test('should create a link with a heading', () => {
-        expect(g.createCallbackUrl('foo', false, 'bar')).toEqual('noteplan://x-callback-url/openNote?noteTitle=foo#bar')
+        expect(g.createOpenNoteCallbackUrl('foo', false, 'bar')).toEqual('noteplan://x-callback-url/openNote?noteTitle=foo#bar')
       })
       test('should create a link if heading is missing', () => {
-        expect(g.createCallbackUrl('foo')).toEqual('noteplan://x-callback-url/openNote?noteTitle=foo')
+        expect(g.createOpenNoteCallbackUrl('foo')).toEqual('noteplan://x-callback-url/openNote?noteTitle=foo')
       })
       test('should create a link with heading passed as null', () => {
-        expect(g.createCallbackUrl('foo', false, null)).toEqual('noteplan://x-callback-url/openNote?noteTitle=foo')
+        expect(g.createOpenNoteCallbackUrl('foo', false, null)).toEqual('noteplan://x-callback-url/openNote?noteTitle=foo')
       })
       test('should create a link with heading passed as empty string', () => {
-        expect(g.createCallbackUrl('foo', false, '')).toEqual('noteplan://x-callback-url/openNote?noteTitle=foo')
+        expect(g.createOpenNoteCallbackUrl('foo', false, '')).toEqual('noteplan://x-callback-url/openNote?noteTitle=foo')
       })
     })
     describe('using note filename', () => {
@@ -42,31 +42,37 @@ describe(`${FILE}`, () => {
       // re-enable this test when @eduard fixes API bug
       // should also add a test for a filename with parentheses
       test('should create a link with filename with parentheses', () => {
-        expect(g.createCallbackUrl('foo/bar(xx)', true, 'bar')).toEqual('noteplan://x-callback-url/openNote?filename=foo%2Fbar%28xx%29')
+        expect(g.createOpenNoteCallbackUrl('foo/bar(xx)', true, 'bar')).toEqual('noteplan://x-callback-url/openNote?filename=foo%2Fbar%28xx%29')
       })
       test('should create a urlencoded link for spaces', () => {
-        expect(g.createCallbackUrl('foo bar', true, 'bar')).toEqual('noteplan://x-callback-url/openNote?filename=foo%20bar')
+        expect(g.createOpenNoteCallbackUrl('foo bar', true, 'bar')).toEqual('noteplan://x-callback-url/openNote?filename=foo%20bar')
       })
       test.skip('should create a link with a heading', () => {
-        expect(g.createCallbackUrl('foo', true, 'bar')).toEqual('noteplan://x-callback-url/openNote?filename=foo#bar')
+        expect(g.createOpenNoteCallbackUrl('foo', true, 'bar')).toEqual('noteplan://x-callback-url/openNote?filename=foo#bar')
       })
       test('should create a link stripping the heading for the API bug workaround', () => {
-        expect(g.createCallbackUrl('foo', true, 'bar')).toEqual('noteplan://x-callback-url/openNote?filename=foo')
+        expect(g.createOpenNoteCallbackUrl('foo', true, 'bar')).toEqual('noteplan://x-callback-url/openNote?filename=foo')
       })
     })
   })
 
-  describe(section('createPrettyLink()'), () => {
+  describe(section(`createRunPluginCallbackUrl`), () => {
+    test('should create a link with a heading', () => {
+      expect(g.createRunPluginCallbackUrl(`dwertheimer.DataQuerying`, `runSearch`, [`New Note - 43.9400`])).toEqual(`[baz](${xcb}foo#bar)`)
+    })
+  })
+
+  describe(section('createPrettyOpenNoteLink()'), () => {
     describe('using noteTitle', () => {
       const xcb = `noteplan://x-callback-url/openNote?noteTitle=`
       test('should create a link with a heading', () => {
-        expect(g.createPrettyLink('baz', 'foo', false, 'bar')).toEqual(`[baz](${xcb}foo#bar)`)
+        expect(g.createPrettyOpenNoteLink('baz', 'foo', false, 'bar')).toEqual(`[baz](${xcb}foo#bar)`)
       })
       test('should create a link if heading is missing', () => {
-        expect(g.createPrettyLink('baz', 'foo')).toEqual(`[baz](${xcb}foo)`)
+        expect(g.createPrettyOpenNoteLink('baz', 'foo')).toEqual(`[baz](${xcb}foo)`)
       })
       test('should create a link with heading passed as null', () => {
-        expect(g.createPrettyLink('baz', 'foo', false, null)).toEqual(`[baz](${xcb}foo)`)
+        expect(g.createPrettyOpenNoteLink('baz', 'foo', false, null)).toEqual(`[baz](${xcb}foo)`)
       })
     })
     describe('using note filename', () => {
@@ -74,7 +80,7 @@ describe(`${FILE}`, () => {
       // re-enable this test when @eduard fixes API bug
 
       test.skip('should create a link with a heading', () => {
-        expect(g.createPrettyLink('baz', 'foo', true, 'bar')).toEqual('[baz](noteplan://x-callback-url/openNote?filename=foo#bar)')
+        expect(g.createPrettyOpenNoteLink('baz', 'foo', true, 'bar')).toEqual('[baz](noteplan://x-callback-url/openNote?filename=foo#bar)')
       })
     })
     describe(section('stripLinkFromString()'), () => {

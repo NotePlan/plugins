@@ -59,6 +59,14 @@
       "jsFunction": "searchTest",
       "alias": [
       ]
+    },
+    {
+      "name": "runSearch",
+      "description": "Run search on template fields in note passed in argument",
+      "jsFunction": "runSearch",
+      "hidden-HIDEMEAFTERTESTING": true,
+      "alias": [
+      ]      
     }
   ],
   "plugin.settings": [

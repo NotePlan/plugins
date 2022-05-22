@@ -425,10 +425,10 @@ type TDataStore = {
    * Note: available from v3.5, with 'filename' parameter added in v3.5.2
    * @param {string} content for note
    * @param {string} folder to create the note in
-   * @param {string} filename (optional) of the new note (available from v3.5.2)
+   * @param {string} filename of the new note (available from v3.5.2)
    * @return {string}
    */
-  newNoteWithContent(content: string, folder: string, filename ?: string): string,
+  newNoteWithContent(content: string, folder: string, filename: string): string,
 
   /**
    * Loads all available plugins asynchronously from the GitHub repository and returns a list.
@@ -850,9 +850,6 @@ type TParagraph = {
    * Get or set the type of the paragraph
    */
   type: ParagraphType,
-  /**
-   * Get the note's title (not set for Calendar notes)
-   */
   title?: ?string,
   /**
    * Get or set the content of the paragraph

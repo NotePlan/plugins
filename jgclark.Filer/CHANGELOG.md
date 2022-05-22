@@ -7,7 +7,7 @@ Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree
 - [when environment() API call is available] ??? will use system locale in dates, where possible
 -->
 
-## [0.7.0] - 2022-05-20
+## [0.7.0] - 2022-05-17
 ### Added
 - new **/add sync'd copy to note** command (alias **/asc**) that adds a 'line ID' to current line and copy it to a section in the specified other note. (NB: this requires the new "Synced Lines" Lab feature in v3.5.2 to be turned on.)
 - new **/new note from clipboard** command (alias **nnc**)
@@ -16,7 +16,6 @@ Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree
 - following a NotePlan improvement, **/move paragraph** now creates the destination daily note if it doesn't already exist.
 
 ### Changed
-- removed the setting `useExtendedBlockDefinition`; instead you can now move a 'block' of paragraphs when you want by using the new '/move blocks' command (above), 
 - switch to newer logging system under-the-hood
 <!-- - refactored code to allow re-use of my paragraph block finding code. -->
 

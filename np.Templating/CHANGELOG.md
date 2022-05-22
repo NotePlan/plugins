@@ -3,11 +3,6 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
-## [1.2.0-beta.03] - 2022-05-18 (mikeerickson)
-
-- refactor web service implementation, experiencing issues latest vesion of NotePlan
-- fixed issue with DateModule `now` when using `offset` value
-
 ## [1.2.0-beta.02] - 2022-05-17 (mikeerickson)
 
 - fixed issue when template contains folder which has value of `<select>` to prompt user of where new note should be created (@jgclark)
