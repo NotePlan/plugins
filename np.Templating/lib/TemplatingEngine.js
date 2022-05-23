@@ -118,9 +118,9 @@ export default class TemplatingEngine {
         verse: () => {
           return verse
         },
-        weather: (params = '') => {
+        weather: async (params = '') => {
           // $FlowFixMe
-          return weather(this.templateConfig, params)
+          return await new WebModule().weather()
         },
         services: (url = '', key = '') => {
           // $FlowFixMe
