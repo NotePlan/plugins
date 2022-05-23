@@ -16,6 +16,7 @@ import FrontmatterModule from '@templatingModules/FrontmatterModule'
 
 import pluginJson from '../plugin.json'
 import { clo, log } from '@helpers/dev'
+import { debug } from '../lib/helpers'
 
 // this is a customized version of `ejs` adding support for async actions (use await in template)
 // review `Test (Async)` template for example`
@@ -118,11 +119,9 @@ export default class TemplatingEngine {
           return await new WebModule().verse()
         },
         weather: async (params = '') => {
-          // $FlowFixMe
-          return await new WebModule().weather()
+          return await new WebModule().weather(this.templateConfig, params)
         },
         services: async (url = '', key = '') => {
-          // $FlowFixMe
           return await new WebModule().service(this.templateConfig, url, key)
         },
       },

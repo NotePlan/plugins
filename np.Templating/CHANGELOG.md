@@ -6,6 +6,7 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/
 ## [1.2.0-beta.05] - 2022-05-23 (mikeerickson)
 
 - fixed regression created by merge conflicts in recent push
+- fixed issue passing format string to `web.weather` (was not passing data in fix applied in `1.2.0-beta.03`)
 
 ## [1.2.0-beta.04] - 2022-05-20 (mikeerickson)
 

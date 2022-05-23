@@ -726,7 +726,6 @@ export default class NPTemplating {
         const frontmatterAttributes = new FrontmatterModule().parse(templateData)?.attributes || {}
         for (const [key, value] of Object.entries(frontmatterAttributes)) {
           let frontMatterValue = value
-          debug(sessionData, 'här-b')
           // $FlowIgnore
           const promptData = await this.processPrompts(value, sessionData, '<%', '%>')
           frontMatterValue = promptData.sessionTemplateData
@@ -749,7 +748,6 @@ export default class NPTemplating {
       const { newTemplateData, newSettingData } = await this.preProcess(templateData, sessionData)
       sessionData = { ...newSettingData }
 
-      console.log('här-a')
       const promptData = await this.processPrompts(newTemplateData, sessionData, '<%', '%>')
       templateData = promptData.sessionTemplateData
       sessionData = promptData.sessionData
@@ -783,12 +781,11 @@ export default class NPTemplating {
 
     for (const item of attributeKeys) {
       let value = frontmatterAttributes[item]
-      debug({ sectionData })
+
       let attributeValue = await this.render(value, sectionData)
       sectionData[item] = attributeValue
       frontmatterAttributes[item] = attributeValue
     }
-    debug({ frontmatterAttributes, userData }, 'Final Attribute Values')
     return { frontmatterBody, frontmatterAttributes: { ...userData, ...frontmatterAttributes } }
   }
 
@@ -991,8 +988,6 @@ export default class NPTemplating {
           } else {
             sessionData[varName] = ''
           }
-
-          debug(sessionData, 'sessionData')
         }
 
         if (tag.indexOf(`<%=`) >= 0 || tag.indexOf(`<%-`) >= 0 || tag.indexOf(`<%`) >= 0) {
