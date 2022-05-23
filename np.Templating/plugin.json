@@ -38,6 +38,15 @@
       "jsFunction": "templateAppend"
     },
     {
+      "name": "np:invoke",
+      "alias": [
+        "invoke",
+        "npv"
+      ],
+      "description": "Place template using <location> attribute",
+      "jsFunction": "templateInvoke"
+    },
+    {
       "name": "np:new",
       "alias": [
         "new",
@@ -102,6 +111,14 @@
       "alias": [],
       "description": "np.Templating Invoke...",
       "jsFunction": "testInvoke"
+    },
+    {
+      "name": "np:convert",
+      "alias": [
+        "npc"
+      ],
+      "description": "np.Templating Convert Project Note to Frontmatter...",
+      "jsFunction": "templateConvertNote"
     },
     {
       "name": "np:about",

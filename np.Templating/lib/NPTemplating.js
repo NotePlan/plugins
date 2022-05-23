@@ -1,5 +1,4 @@
 // @flow
-
 /*-------------------------------------------------------------------------------------------
  * Copyright (c) 2022 Mike Erickson / Codedungeon.  All rights reserved.
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
@@ -21,6 +20,7 @@ import { datePicker, askDateInterval } from '@helpers/userInput'
 
 /*eslint-disable */
 import TemplatingEngine from './TemplatingEngine'
+import { parseISOWithOptions } from 'date-fns/fp'
 
 const TEMPLATE_FOLDER_NAME = NotePlan.environment.templateFolder
 // const TEMPLATE_FOLDER_NAME = '📋 Templates'
@@ -1191,5 +1191,9 @@ export default class NPTemplating {
       const info = helpInfo('Plugin Error')
       return `**Unable to locate "${pluginId} :: ${pluginCommand}".  Make sure "${pluginId}" plugin has been installed.**\n\n${info}`
     }
+  }
+
+  static async convertNoteToFrontmatter(projectNote: string): Promise<number | string> {
+    return new FrontmatterModule().convertProjectNoteToFrontmatter(projectNote)
   }
 }
