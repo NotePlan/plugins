@@ -189,7 +189,7 @@ describe(`${PLUGIN_NAME}`, () => {
       })
     })
 
-    describe.only(`${block('.subtract method')}`, () => {
+    describe(`${block('.subtract method')}`, () => {
       it(`should render ${method('.subtract')} using default shorthand (n days)`, async () => {
         // this is how it will look inside date functions using `.createDateTime`
         const pivotDate = '2022-05-21T00:00:01'
