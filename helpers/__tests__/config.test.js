@@ -22,6 +22,12 @@ describe(`${FILE}`, () => {
       }
     }
     describe('validation should work ', () => {
+      test('should pass through items with no validations set', () => {
+        expect(c.validateConfigProperties({ test: 'foo' }, {})).toEqual({ test: 'foo' })
+      })
+      test('should pass through items with no matching validations', () => {
+        expect(c.validateConfigProperties({ test: 'foo', sam: 'bar' }, { sam: 'string' })).toEqual({ test: 'foo', sam: 'bar' })
+      })
       test('for string ', () => {
         expect(c.validateConfigProperties({ test: 'foo' }, { test: 'string' })).toEqual({ test: 'foo' })
       })

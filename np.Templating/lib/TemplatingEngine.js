@@ -20,7 +20,6 @@ import { clo, log } from '@helpers/dev'
 // this is a customized version of `ejs` adding support for async actions (use await in template)
 // review `Test (Async)` template for example`
 import ejs from './support/ejs'
-import { debug } from './helpers'
 
 const getProperyValue = (object: any, key: string): any => {
   key.split('.').forEach((token) => {
@@ -78,6 +77,15 @@ export default class TemplatingEngine {
   async render(templateData: any = '', userData: any = {}, userOptions: any = {}): Promise<string> {
     const options = { ...{ async: true, rmWhitespace: false }, ...userOptions }
 
+    // WebModule methods are async, will be converted to synchronous methods below
+    // need to handle async calls before render templates as templating method are synchronous
+    const weather = templateData.includes('web.weather') ? await new WebModule().weather() : ''
+    const quote = templateData.includes('web.quote') ? await new WebModule().quote() : ''
+    const affirmation = templateData.includes('web.affirmation') ? await new WebModule().affirmation() : ''
+    const advice = templateData.includes('web.advice') ? await new WebModule().advice() : ''
+    const verse = templateData.includes('web.verse') ? await new WebModule().verse() : ''
+    const service = templateData.includes('web.services') ? await new WebModule().service() : ''
+
     let useClipoard = templateData.includes('system.clipboard')
     if (templateData.indexOf('system.clipboard') > 0) {
       this.templateConfig.clipboard = Clipboard.string
@@ -98,23 +106,25 @@ export default class TemplatingEngine {
       },
       // expose web module as synchronous methods (each method converted )
       web: {
-        advice: async () => {
-          return await new WebModule().advice()
+        advice: () => {
+          return advice
         },
-        affirmation: async () => {
-          return await new WebModule().affirmation()
+        affirmation: () => {
+          return affirmation
         },
-        quote: async () => {
-          return await new WebModule().quote()
+        quote: () => {
+          return quote
         },
-        verse: async () => {
-          await new WebModule().verse()
+        verse: () => {
+          return verse
         },
-        weather: async (params = '') => {
-          return await new WebModule().weather()
+        weather: (params = '') => {
+          // $FlowFixMe
+          return weather(this.templateConfig, params)
         },
-        services: async (url = '', key = '') => {
-          return await new WebModule().service(this.templateConfig, url, key)
+        services: (url = '', key = '') => {
+          // $FlowFixMe
+          return service(this.templateConfig, url, key)
         },
       },
     }
@@ -164,8 +174,6 @@ export default class TemplatingEngine {
 
       const frontmatterData = new FrontmatterModule().parse(frontmatterBlock)
 
-      return 'här2'
-
       if (frontmatterData.hasOwnProperty('attributes') && frontmatterData.hasOwnProperty('body')) {
         if (Object.keys(frontmatterData.attributes).length > 0) {
           renderData.frontmatter = { ...frontmatterData.attributes }
@@ -182,8 +190,6 @@ export default class TemplatingEngine {
     })
 
     try {
-      // debug({ methods: renderData.methods }, 'renderData')
-
       let result = await ejs.render(processedTemplateData, renderData, options)
 
       result = (result && result?.replace(/undefined/g, '')) || ''

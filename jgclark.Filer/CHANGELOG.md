@@ -4,19 +4,18 @@ Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree
 <!-- ### Fixed
 - `/move paragraphs` sometimes not removing all the paragraphs from the note they are moved from -->
 <!-- ### Added
-- ??? /fp and /mp now create the destination daily note if it doesn't already exist
 - [when environment() API call is available] ??? will use system locale in dates, where possible
 -->
 
-## [0.7.0] - 2022-05-20
+## [0.7.0] - 2022-05-17
 ### Added
-- new **/add sync'd copy to note** command (alias **/asc**) that adds a 'line or block ID' to current line and copy it to a section in the specified other note. (NB: this requires the new "Synced Blocks" Lab feature in v3.5.2 to be turned on.)
+- new **/add sync'd copy to note** command (alias **/asc**) that adds a 'line ID' to current line and copy it to a section in the specified other note. (NB: this requires the new "Synced Lines" Lab feature in v3.5.2 to be turned on.)
 - new **/new note from clipboard** command (alias **nnc**)
-- new command **/move blocks**. This uses the new 'Extended Block` definition (from 0.6.0) to move a contiguous 'block' of lines but allows you to select it without changing a setting. 
+- new command **/move blocks**. This uses the new 'Extended Block` definition (from 0.6.0) to move a contiguous 'block' of lines. The existing **/move paragraphs** command remains, but now doesn't use the extended definition. (I've split them out this way, to make it possible to use both without needing to change the settings.)
 - add ability to default moving lines to the _end_ of a heading's section, not just the _start_ of it. See setting 'Where to add in section'.
+- following a NotePlan improvement, **/move paragraph** now creates the destination daily note if it doesn't already exist.
 
 ### Changed
-- removed the setting `useExtendedBlockDefinition`; instead you can now move a 'block' of paragraphs when you want by using the new '/move blocks' command (above), 
 - switch to newer logging system under-the-hood
 <!-- - refactored code to allow re-use of my paragraph block finding code. -->
 

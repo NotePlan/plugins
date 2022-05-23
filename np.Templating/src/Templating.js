@@ -10,7 +10,7 @@ import FrontmatterModule from '@templatingModules/FrontmatterModule'
 import { timestamp } from '@templatingModules/DateModule'
 
 import { getTemplateFolder } from 'NPTemplating'
-import { debug, helpInfo } from '../lib/helpers'
+import { helpInfo } from '../lib/helpers'
 import { getSetting } from '@helpers/NPConfiguration'
 
 import { chooseOption } from '@helpers/userInput'
@@ -593,6 +593,8 @@ export async function migrateTemplatesCommand(): Promise<void> {
 
 export async function templateAbout(params: any = []): Promise<string> {
   try {
+    console.log(JSON.stringify(params))
+
     const version = pluginJson['plugin.version']
     let aboutInfo = `Templating Plugin for NotePlan\nv${version}\n\n\nCopyright © 2022 Mike Erickson.\nAll Rights Reserved.`
 

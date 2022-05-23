@@ -7,8 +7,12 @@
 import { semverVersionToNumber } from '@helpers/general'
 import pluginJson from '../plugin.json'
 import FrontmatterModule from './support/modules/FrontmatterModule'
+<<<<<<< HEAD
 import DateModule from './support/modules/DateModule'
 import { debug, helpInfo } from './helpers'
+=======
+import { helpInfo } from './helpers'
+>>>>>>> ee39279f167310c32bde3ca247c09d865c0f3276
 
 import globals from './globals'
 import { chooseOption } from '@helpers/userInput'
@@ -907,7 +911,7 @@ export default class NPTemplating {
   }
 
   static async promptDate(message: string, defaultValue: string): Promise<any> {
-    return await datePicker(message, { defaultValue })
+    return await datePicker(message)
   }
 
   static async promptDateInterval(message: string, defaultValue: string): Promise<any> {

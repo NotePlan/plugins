@@ -3,18 +3,18 @@
 // -----------------------------------------------------------------------------
 // Plugin to help move selected pargraphs to other notes
 // Jonathan Clark
-// Last updated 20.5.2022, for v0.7.0
+// Last updated 17.5.2022, for v0.7.0
 // -----------------------------------------------------------------------------
 
-export { moveBlock, moveParas } from './fileItems'
+export { moveParas } from './fileItems'
 export { addIDAndAddToOtherNote } from './IDs'
-export { newNoteFromClipboard, newNoteFromSelection } from './newNote'
+export { newNoteFromSelection } from './newNoteFromSelection'
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json' 
 
 // Moving to ConfigV2
-import { migrateConfiguration, updateSettingData } from '@helpers/NPconfiguration'
+import { migrateConfiguration, updateSettingData } from '../../helpers/NPconfiguration'
 
 const configKey = "filer"
 

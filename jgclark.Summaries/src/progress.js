@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Progress update on some key goals to include in notes
 // Jonathan Clark, @jgclark
-// Last updated 26.4.2022 for v0.7.1+, @jgclark
+// Last updated 26.4.2022 for v0.7.1, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -15,9 +15,31 @@ import {
 import { unhyphenatedDate } from '../../helpers/dateTime'
 import { log, logWarn, logError } from '../../helpers/dev'
 import { getTagParamsFromString, rangeToString } from '../../helpers/general'
-import { getSelectedParaIndex } from '../../helpers/paragraph'
 
 //-------------------------------------------------------------------------------
+
+export function getSelectedParaIndex(): number {
+  const { paragraphs, selection } = Editor
+  // Get current selection, and its range
+  if (selection == null) {
+    logWarn(pluginJson, `No selection found, so stopping.`)
+    return 0
+  }
+  const range = Editor.paragraphRangeAtCharacterIndex(selection.start)
+  // log(pluginJson, `  Cursor/Selection.start: ${rangeToString(range)}`)
+
+  // Work out what selectedPara number(index) this selected selectedPara is
+  let firstSelParaIndex = 0
+  for (let i = 0; i < paragraphs.length; i++) {
+    const p = paragraphs[i]
+    if (p.contentRange?.start === range.start) {
+      firstSelParaIndex = i
+      break
+    }
+  }
+  // log(pluginJson, `  firstSelParaIndex = ${firstSelParaIndex}`)
+  return firstSelParaIndex
+}
 
 /**
  * Work out the @mention stats of interest so far this week/month, and write out to current note.

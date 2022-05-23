@@ -6,7 +6,7 @@
   "plugin.name": "🗓 AutoTimeBlocking",
   "plugin.description": "Automatically find time in your calendar and create Time Blocks for items marked for >today.",
   "plugin.author": "dwertheimer",
-  "plugin.version": "0.6.0",
+  "plugin.version": "1.0.0",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://noteplan.co/n/#/1EF12392-B544-4044-AC7A-428F57EB2DFC",
@@ -45,22 +45,6 @@
         "default": false,
         "required": true
     },
-    {
-        "key": "includeTasksWithText",
-        "type": "[string]",
-        "title": "Include any tasks that match text:",
-        "description": "If this field is set to any text, then any task that contains this text will be included in the timeblocks. This is useful if you want to limit tasks to items with a specific #hashtag for example. This field can also contain a comma separated list, e.g. 'someRawText, #hashtag1, #hashtag2'",
-        "default": [],
-        "required": false
-    },
-    {
-        "key": "excludeTasksWithText",
-        "type": "[string]",
-        "title": "Exclude any tasks that match text:",
-        "description": "If this field is set to any text, then any task that contains this text will *not* be included in the timeblocks. This field can also contain a comma separated list, e.g. 'someRawText, #hashtag1, @hashtag2'",
-        "default": [],
-        "required": false
-    },            
     {
         "key": "durationMarker",
         "type": "string",
@@ -106,6 +90,14 @@
         "required": true
     },
     {
+        "key": "foldTimeBlockHeading",
+        "type": "bool",
+        "title": "Fold created time blocks under heading",
+        "description": "Reduce the noise on your calendar page by folding the time blocks that get created under the heading.",
+        "default": false,
+        "required": true
+    },  
+    {
         "key": "workDayStart",
         "type": "string",
         "validation": "^\\d{2}:\\d{2}$",
@@ -123,6 +115,63 @@
         "default": "23:59",
         "required": true
     },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Synced Copies"
+    },
+    {
+        "key": "createSyncedCopies",
+        "type": "bool",
+        "title": "Create synced copies of referenced items",
+        "description": "Write a copy of the referenced item in the calendar note under the timeblock. Can look a little repetitive, but it will save you time when you want to edit the underlying item.",
+        "default": false,
+        "required": true
+    },
+    {
+        "key": "syncedCopiesTitle",
+        "type": "string",
+        "title": "Title/heading for synced copies of today's items",
+        "description": "If you have turned on synced copies, they will be placed under this heading in the calendar note",
+        "default": "Today's Synced Tasks",
+        "required": true
+    },
+    {
+        "key": "foldSyncedCopiesHeading",
+        "type": "bool",
+        "title": "Fold created synced copies under heading",
+        "description": "Reduce the noise on your calendar page by folding the synced copy lines  that get created under the heading.",
+        "default": false,
+        "required": true
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Filters"
+    },
+    {
+        "key": "includeTasksWithText",
+        "type": "[string]",
+        "title": "Include any tasks that match text:",
+        "description": "If this field is set to any text, then any task that contains this text will be included in the timeblocks. This is useful if you want to limit tasks to items with a specific #hashtag for example. This field can also contain a comma separated list, e.g. 'someRawText, #hashtag1, #hashtag2'",
+        "default": [],
+        "required": false
+    },
+    {
+        "key": "excludeTasksWithText",
+        "type": "[string]",
+        "title": "Exclude any tasks that match text:",
+        "description": "If this field is set to any text, then any task that contains this text will *not* be included in the timeblocks. This field can also contain a comma separated list, e.g. 'someRawText, #hashtag1, @hashtag2'",
+        "default": [],
+        "required": false
+    },     
+    {
+      "type": "separator"
+    },       
     {
       "type": "heading",
       "title": "Include Links"
@@ -142,6 +191,9 @@
       "default": "📄",
       "required": true,
       "description": "If Pretty Links is on, this it the character the link will display."
+    },
+    {
+      "type": "separator  "
     },
     {
       "type": "heading",

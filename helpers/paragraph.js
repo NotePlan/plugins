@@ -4,7 +4,6 @@
 //-----------------------------------------------------------------------------
 
 import { hyphenatedDateString } from './dateTime'
-import { log, logError, logWarn } from './dev'
 
 //-----------------------------------------------------------------------------
 // Paragraph-level Constants
@@ -88,11 +87,11 @@ export function parasToText(paras: Array<TParagraph>): string {
  */
 export function printParagraph(p: TParagraph) {
   if (p === null) {
-    logError('paragraph/printParagraph', `paragraph is undefined`)
+    console.log('ERROR: paragraph is undefined')
     return
   }
 
-  const { content, type, prefix, contentRange, lineIndex, date, heading, headingRange, headingLevel, isRecurring, indents, filename, noteType, linkedNoteTitles, referencedBlocks, blockId } = p
+  const { content, type, prefix, contentRange, lineIndex, date, heading, headingRange, headingLevel, isRecurring, indents, filename, noteType, linkedNoteTitles } = p
 
   const logObject = {
     content,
@@ -109,8 +108,6 @@ export function printParagraph(p: TParagraph) {
     filename,
     noteType,
     linkedNoteTitles,
-    referencedBlocks,
-    blockId
   }
 
   console.log(JSON.stringify(logObject, null, 2))
@@ -290,36 +287,6 @@ export function selectedLinesIndex(selection: Range, paragraphs: $ReadOnlyArray<
 }
 
 /**
- * Get paragraph index of the start of the current selection in the Editor.
- * Note: this is a simpler version of the selectedLinesIndex() function above.
- * @author @jgclark
- *
- * @return {number} the line index number of start of selection
- */
-export function getSelectedParaIndex(): number {
-  const { paragraphs, selection } = Editor
-  // Get current selection, and its range
-  if (selection == null) {
-    logWarn('paragraph/getSelectedParaIndex', `No selection found, so stopping.`)
-    return 0
-  }
-  const range = Editor.paragraphRangeAtCharacterIndex(selection.start)
-  // log('paragraph/getSelectedParaIndex', `Cursor/Selection.start: ${rangeToString(range)}`)
-
-  // Work out what selectedPara number (index) this selected selectedPara is
-  let firstSelParaIndex = 0
-  for (let i = 0; i < paragraphs.length; i++) {
-    const p = paragraphs[i]
-    if (p.contentRange?.start === range.start) {
-      firstSelParaIndex = i
-      break
-    }
-  }
-  // log('paragraph/getSelectedParaIndex', `  firstSelParaIndex = ${firstSelParaIndex}`)
-  return firstSelParaIndex
-}
-
-/**
  * Get the paragraph from the passed content (using exact match)
  * @author @jgclark
  *
@@ -334,7 +301,7 @@ export function getParaFromContent(note: TNote, contentToFind: string): TParagra
       return p
     }
   }
-  logWarn('paragraph/getParaFromContent', `couldn't find '${contentToFind}`)
+  console.log(`gPFC: warning couldn't find '${contentToFind}`)
   return
 }
 
@@ -360,126 +327,12 @@ export function getOrMakeMetadataLine(note: TNote): number {
   }
   if (lineNumber === NaN) {
     // If no metadataPara found, then insert one straight after the title
-    logWarn('paragraph/getOrMakeMetadataLine', `Can't find an existing metadata line, so will insert a new second line for it`)
+    console.log(`Warning: Can't find an existing metadata line, so will insert a new second line for it`)
     Editor.insertParagraph('', 1, 'empty')
     lineNumber = 1
   }
   // console.log(`Metadata line = ${lineNumber}`)
   return lineNumber
-}
-
-/**
- * Get the set of paragraphs that make up this block based on the current paragraph.
- * This is how we identify the block:
- * - current line, plus any children (indented paragraphs) that directly follow it
- * - if this line is a heading, then the current line and its following section
- *   (up until the next empty line, same-level heading or horizontal line).
- * 
- * If parameter 'useExtendedBlockDefinition' is true, then it can include more lines:
- * - it will work as if the cursor is on the preceding heading line,
- *   and take all its lines up until the next empty line, same-level heading,
- *   or horizontal line
- * @author @jgclark
- * 
- * @param {[TParagraph]} allParas - all selectedParas in the note
- * @param {number} selectedParaIndex - the index of the current Paragraph
- * @param {boolean} useExtendedBlockDefinition
- * @return {[TParagraph]} the set of selectedParagraphs in the block
- */
-export function getParagraphBlock(
-  note: TNote,
-  selectedParaIndex: number,
-  useExtendedBlockDefinition: boolean = false
-): Array<TParagraph> {
-  const parasInBlock: Array<TParagraph> = [] // to hold set of paragraphs in block to return
-  const endOfActiveSection = findEndOfActivePartOfNote(note)
-  const startOfActiveSection = findStartOfActivePartOfNote(note)
-  const allParas = note.paragraphs
-  let startLine = selectedParaIndex
-  let selectedPara = allParas[startLine]
-  log('paragraph/getParaBlock', `  getParaBlock: starting line ${selectedParaIndex}: '${selectedPara.content}'`)
-
-  if (useExtendedBlockDefinition) {
-    // First look earlier to find earlier lines up to a blank line or horizontal rule;
-    // include line unless we hit a new heading, an empty line, or a less-indented line.
-    for (let i = selectedParaIndex - 1; i >= (startOfActiveSection - 1); i--) {
-      const p = allParas[i]
-      // log(pluginJson, `  ${i} / ${p.type} / ${p.content}`)
-      if (p.type === 'separator') {
-        log('paragraph/getParaBlock', `      ${i}: Found separator line`)
-        startLine = i + 1
-        break
-      } else if (p.content === '') {
-        log('paragraph/getParaBlock', `      ${i}: Found blank line`)
-        startLine = i + 1
-        break
-      } else if (p.type === 'title') {
-        log('paragraph/getParaBlock', `      ${i}: Found heading`)
-        startLine = i
-        break
-      }
-    }
-    log('paragraph/getParaBlock', `For extended block worked back and will now start at line ${startLine}`)
-  }
-  selectedPara = allParas[startLine]
-
-  // if the first line is a heading, find the rest of its section
-  if (selectedPara.type === 'title') {
-    // includes all heading levels
-    const thisHeadingLevel = selectedPara.headingLevel
-    log('paragraph/getParaBlock', `    Found heading level ${thisHeadingLevel}`)
-    parasInBlock.push(selectedPara) // make this the first line to move
-    // Work out how far this section extends. (NB: headingRange doesn't help us here.)
-    for (let i = startLine + 1; i < endOfActiveSection; i++) {
-      const p = allParas[i]
-      if (p.type === 'title' && p.headingLevel <= thisHeadingLevel) {
-        log('paragraph/getParaBlock', `      ${i}: ${i}: Found new heading of same or higher level`)
-        break
-      } else if (p.type === 'separator') {
-        log('paragraph/getParaBlock', `      ${i}: Found HR`)
-        break
-      } else if (p.content === '') {
-        log('paragraph/getParaBlock', `      ${i}: Found blank line`)
-        break
-      }
-      parasInBlock.push(p)
-    }
-    // log('paragraph/getParaBlock', `  Found ${parasInBlock.length} heading section lines`)
-  } else {
-    // This isn't a heading
-    const startingIndentLevel = selectedPara.indents
-    log('paragraph/getParaBlock', `  Found single line with indent level ${startingIndentLevel}`)
-    parasInBlock.push(selectedPara)
-
-    // See if there are following indented lines to move as well
-    for (let i = startLine + 1; i < endOfActiveSection; i++) {
-      const p = allParas[i]
-      log('paragraph/getParaBlock', `  ${i} / indent ${p.indents} / ${p.content}`)
-      // stop if horizontal line
-      if (p.type === 'separator') {
-        log('paragraph/getParaBlock', `      ${i}: Found HR`)
-        break
-      } else if (p.type === 'title') {
-        log('paragraph/getParaBlock', `      ${i}: Found heading`)
-        break
-      } else if (p.content === '') {
-        log('paragraph/getParaBlock', `      ${i}: Found blank line`)
-        break
-      } else if (p.indents <= startingIndentLevel && !useExtendedBlockDefinition) {
-        // if we aren't using the Extended Block Definition, then
-        // stop as this selectedPara is same or less indented than the starting line
-        log('paragraph/getParaBlock', `      ${i}: Stopping as found same or lower indent`)
-        break
-      }
-      parasInBlock.push(p) // add onto end of array
-    }
-  }
-
-  log('paragraph/getParaBlock', `  Found ${parasInBlock.length} paras in block:`)
-  // for (const pib of parasInBlock) {
-  //   log('paragraph/getParaBlock', `    ${pib.content}`)
-  // }
-  return parasInBlock
 }
 
 /**
@@ -499,7 +352,7 @@ export function removeSection(note: TNote, heading: string): number {
   const ps = note.paragraphs
   let existingHeadingIndex = ps.length // start at end of file
   let sectionHeadingLevel = 2
-  // log('paragraph/removeSection', `'${heading}' from note '${note.title ?? ''}' with ${ps.length} paras:`)
+  console.log(`\tremoveSection: '${heading}' from note '${note.title ?? ''}' with ${ps.length} paras:`)
 
   for (const p of ps) {
     if (p.type === 'title' && p.content.startsWith(heading)) {
@@ -522,7 +375,7 @@ export function removeSection(note: TNote, heading: string): number {
 
     // Delete the saved set of paragraphs
     note.removeParagraphs(psToRemove)
-    log('paragraph/removeSection', `  -> removed ${psToRemove.length} paragraphs`)
+    console.log(`\t  -> removed ${psToRemove.length} paragraphs`)
     return existingHeadingIndex
   } else {
     return ps.length
