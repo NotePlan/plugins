@@ -16,33 +16,29 @@ import pluginJson from '../plugin.json'
 export async function insertNoteTemplate(origFileName, dailyNoteDate): Promise<void> {
   log(pluginJson, 'chooseTemplateIfNeeded')
   const templateFilename = await chooseTemplateIfNeeded(origFileName, false)
+  
+  log(pluginJson, 'get content of template for rendering')
+  const templateContent = DataStore.projectNoteByFilename(templateFilename)?.content
 
-  try {
-    log(pluginJson, 'get content of template for rendering')
-    const templateContent = DataStore.projectNoteByFilename(templateFilename)?.content
+  if(!templateContent) {
+    log(pluginJson, 'couldnt load content of template "' + templateFilename + '", try NPTemplating method')
+    templateContent = await NPTemplating.getTemplate(templateFilename)
+    return
+  }
 
-    if(!templateContent) {
-      log(pluginJson, 'couldnt load content of template "' + templateFilename + '", try NPTemplating method')
-      templateContent = await NPTemplating.getTemplate(templateFilename)
-      return
-    }
+  log(pluginJson, 'preRender template')
+  const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateContent)
 
-    log(pluginJson, 'preRender template')
-    const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateContent)
+  log(pluginJson, 'render template')
+  const result = await NPTemplating.render(frontmatterBody, frontmatterAttributes)
 
-    log(pluginJson, 'render template')
-    const result = await NPTemplating.render(frontmatterBody, frontmatterAttributes)
-
-    if(dailyNoteDate) {
-      log(pluginJson, 'apply rendered template to daily note with date ' + dailyNoteDate)
-      let note = DataStore.calendarNoteByDate(dailyNoteDate)
-      note.content = result
-    } else {
-      log(pluginJson, 'apply rendered template to the current editor')
-      Editor.content = result
-    }
-  } catch (error) {
-    log(pluginJson, 'error in insertNoteTemplate: ' + error)
+  if(dailyNoteDate) {
+    log(pluginJson, 'apply rendered template to daily note with date ' + dailyNoteDate)
+    let note = DataStore.calendarNoteByDate(dailyNoteDate)
+    note.content = result
+  } else {
+    log(pluginJson, 'apply rendered template to the current editor')
+    Editor.content = result
   }
 }
 

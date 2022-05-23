@@ -323,12 +323,14 @@ export async function datePicker(dateParams: string, config?: { [string]: ?mixed
     }
     // log('userInput/datePicker', allSettings.toString())
     // grab just question parameter, or provide a default
-    let { question } = (allSettings: any)
+    let { question, defaultValue } = (allSettings: any)
+    console.log(`defaultValue: ${defaultValue}`)
     question = question ? question : 'Please enter a date'
+    defaultValue = defaultValue ? defaultValue : 'YYYY-MM-DD'
 
     // Ask question (newer style)
     // const reply = (await CommandBar.showInput(question, `Date (YYYY-MM-DD): %@`)) ?? ''
-    const reply = await CommandBar.textPrompt('Date Picker', question, 'YYYY-MM-DD')
+    const reply = await CommandBar.textPrompt('Date Picker', question, defaultValue)
     if (typeof reply === 'string') {
       const reply2 = reply.replace('>', '').trim() // remove leading '>' and trim
       if (!reply2.match(RE_DATE)) {

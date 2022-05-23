@@ -3,7 +3,7 @@
   "noteplan.minAppVersion": "3.5.0",
   "plugin.id": "np.Templating",
   "plugin.name": " 📒 np.Templating -- New 🎉",
-  "plugin.version": "1.2.0-beta.02",
+  "plugin.version": "1.2.0-beta.05",
   "plugin.description": "Templating Plugin for NotePlan",
   "plugin.author": "Mike Erickson (@codedungeon)",
   "plugin.dependencies": [],
@@ -32,6 +32,15 @@
       ],
       "description": "Append template to end of current note",
       "jsFunction": "templateAppend"
+    },
+    {
+      "name": "np:invoke",
+      "alias": [
+        "invoke",
+        "npv"
+      ],
+      "description": "Place template using <location> attribute",
+      "jsFunction": "templateInvoke"
     },
     {
       "name": "np:new",
@@ -98,6 +107,14 @@
       "alias": [],
       "description": "np.Templating Invoke...",
       "jsFunction": "testInvoke"
+    },
+    {
+      "name": "np:convert",
+      "alias": [
+        "npc"
+      ],
+      "description": "np.Templating Convert Project Note to Frontmatter...",
+      "jsFunction": "templateConvertNote"
     },
     {
       "name": "np:about",
