@@ -79,12 +79,11 @@ export default class TemplatingEngine {
 
     // WebModule methods are async, will be converted to synchronous methods below
     // need to handle async calls before render templates as templating method are synchronous
-    const weather = templateData.includes('web.weather') ? await new WebModule().weather() : ''
-    const quote = templateData.includes('web.quote') ? await new WebModule().quote() : ''
-    const affirmation = templateData.includes('web.affirmation') ? await new WebModule().affirmation() : ''
-    const advice = templateData.includes('web.advice') ? await new WebModule().advice() : ''
-    const verse = templateData.includes('web.verse') ? await new WebModule().verse() : ''
-    const service = templateData.includes('web.services') ? await new WebModule().service() : ''
+    // const weather = templateData.includes('web.weather') ? await new WebModule().weather() : ''
+    // const quote = templateData.includes('web.quote') ? await new WebModule().quote() : ''
+    // const affirmation = templateData.includes('web.affirmation') ? await new WebModule().affirmation() : ''
+    // const advice = templateData.includes('web.advice') ? await new WebModule().advice() : ''
+    // const verse = templateData.includes('web.verse') ? await new WebModule().verse() : ''
 
     let useClipoard = templateData.includes('system.clipboard')
     if (templateData.indexOf('system.clipboard') > 0) {
@@ -106,25 +105,25 @@ export default class TemplatingEngine {
       },
       // expose web module as synchronous methods (each method converted )
       web: {
-        advice: () => {
-          return advice
+        advice: async () => {
+          return await new WebModule().advice()
         },
-        affirmation: () => {
-          return affirmation
+        affirmation: async () => {
+          return await new WebModule().affirmation()
         },
-        quote: () => {
-          return quote
+        quote: async () => {
+          return await new WebModule().quote()
         },
-        verse: () => {
-          return verse
+        verse: async () => {
+          return await new WebModule().verse()
         },
         weather: async (params = '') => {
           // $FlowFixMe
           return await new WebModule().weather()
         },
-        services: (url = '', key = '') => {
+        services: async (url = '', key = '') => {
           // $FlowFixMe
-          return service(this.templateConfig, url, key)
+          return await new WebModule().service(this.templateConfig, url, key)
         },
       },
     }
