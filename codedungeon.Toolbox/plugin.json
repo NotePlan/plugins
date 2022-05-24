@@ -20,11 +20,11 @@
       "description": "Convert current selection to HTML",
       "jsFunction": "convertSelectionToHtml"
     },
-    {
-      "name": "convertToRtf",
-      "description": "Convert current note to RTF",
-      "jsFunction": "convertToRtf"
-    },
+    // {
+    //   "name": "convertToRtf",
+    //   "description": "Convert current note to RTF",
+    //   "jsFunction": "convertToRtf"
+    // },
     {
       "name": "reorderList",
       "description": "Reorder current ordered list",

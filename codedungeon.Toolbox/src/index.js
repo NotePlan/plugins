@@ -5,5 +5,5 @@
 
 export { convertToHtml } from './convertToHtml'
 export { convertSelectionToHtml } from './convertSelectionToHtml'
-export { convertToRtf } from './convertToRtf'
+// export { convertToRtf } from './convertToRtf'
 export { reorderList } from './reorderList'
