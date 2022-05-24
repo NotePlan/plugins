@@ -1,6 +1,6 @@
 // @flow
 // ----------------------------------------------------------------------------
-// Plugin to help move selected selectedParagraphs to other notes
+// Plugin to help move selected Paragraphs to other notes
 // Jonathan Clark
 // last updated 18.5.2022 for v0.7.0
 // ----------------------------------------------------------------------------
