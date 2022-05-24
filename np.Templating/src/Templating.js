@@ -244,13 +244,14 @@ export async function templateInvoke(): Promise<void> {
         case 'append':
           Editor.insertTextAtCharacterIndex(`\n` + renderedTemplate, content.length)
           break
-        case 'insert':
+        case 'prepend':
           Editor.insertTextAtCharacterIndex(renderedTemplate, 0)
           break
-        case 'cursor':
+        case 'insert':
           Editor.insertTextAtCursor(renderedTemplate)
           break
         default:
+          // insert
           Editor.insertTextAtCursor(renderedTemplate)
           break
       }
