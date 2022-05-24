@@ -27,12 +27,12 @@ module.exports = {
     return true
   },
 
-  getFileList: function (pluginName = null) {
+  getFileList: function (pluginName = null, useFullPath = false) {
     if (!pluginName) {
       throw new Error('getFileList Missing pluginName')
     }
     const fileList = []
-    const pluginPath = path.join(pluginName)
+    const pluginPath = path.resolve(`./${pluginName}`)
 
     const changeLogFilename = path.join(pluginPath, 'CHANGELOG.md')
 
@@ -59,7 +59,7 @@ module.exports = {
   getPluginConfig(pluginName = null) {
     const pluginJsonFilename = path.resolve(pluginName, 'plugin.json')
     if (filesystem.existsSync(pluginJsonFilename)) {
-      const configData = filesystem.readFileSync(pluginJsonFilename)
+      const configData = filesystem.readFileSync(pluginJsonFilename,'utf-8')
       if (configData.length > 0) {
         return JSON.parse(configData)
       }
