@@ -379,6 +379,25 @@ type TDataStore = {
    */
   loadJSON(filename?: string): Object,
   /**
+  * Note: Available from NotePlan v3.2+
+  * Save data to a file, as base64 string. The file will be saved under "[NotePlan Folder]/Plugins/data/[plugin-id]/[filename]".
+  * Returns true if the file could be saved, false if not and prints the error.
+  * @param {String} 
+  * @param {String} 
+  * @return {Boolean}
+  */
+  saveData(data: string, filename: string): boolean,
+  /**
+  * Note: Available from NotePlan v3.2+
+  * Load binary data from file encoded as base64 string. 
+  * The file has to be located in "[NotePlan Folder]/Plugins/data/[plugin-id]/[filename]".
+  * You can access the files of other plugins as well, if the filename is known using relative paths "../[other plugin-id]/[filename]" or simply go into the "data"'s root directory "../[filename]" to access a global file.
+  * Returns undefined, if the file couldn't be loaded and prints an error message.
+  * @param {String} 
+  * @return {String?}
+  */
+  loadData(filename: string): ?string,
+  /**
    * Returns the calendar note for the given date
    * (can be undefined, if the daily note was not created yet)
    */
@@ -669,7 +688,7 @@ type TCommandBar = {
    * @param {String?}
    * @param {String?}
    */
-  textPrompt(title: string, message: string, defaultValue: string): Promise<string | boolean>,
+  textPrompt(title: string, message: string, defaultValue: string): Promise<string | false>,
 }
 
 /**
