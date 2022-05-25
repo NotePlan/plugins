@@ -73,9 +73,7 @@ export async function applyTemplate(newNote?: [string, string, string]) {
   }
   console.log(`applyTemplate: templateFolder = '${templateFolder}'`)
 
-  const templateNotes = DataStore.projectNotes
-    .filter((n) => n.filename?.startsWith(templateFolder))
-    .filter((n) => !n.title?.startsWith('_configuration'))
+  const templateNotes = DataStore.projectNotes.filter((n) => n.filename?.startsWith(templateFolder)).filter((n) => !n.title?.startsWith('_configuration'))
 
   const options = templateNotes
     .filter((n) => (templateName ? n.title === templateName : true))
@@ -90,8 +88,7 @@ export async function applyTemplate(newNote?: [string, string, string]) {
   }
 
   // asking user which template to apply
-  const selectedTemplate =
-    options.length === 1 ? options[0].value : await chooseOption<TNote, void>('Choose Template', options)
+  const selectedTemplate = options.length === 1 ? options[0].value : await chooseOption<TNote, void>('Choose Template', options)
   //$FlowIgnore
   console.log(`selectedTemplate=${JSON.stringify(selectedTemplate)}`)
   let templateContent = selectedTemplate?.content
@@ -197,23 +194,15 @@ const processTemplateTags = async (templateContent: string): Promise<string> => 
  * Create a new note from a template, asking user title of note, where to put it, and which template to use
  * @author @nmn
  */
-export async function newNoteWithTemplate(
-  template: string = '',
-  fileName: string = '',
-  targetFolder: string = '',
-): Promise<void> {
-  const title = fileName
-    ? await processTemplateTags(fileName)
-    : await getInput('Enter title of the new note', "Create a new note with title '%@'")
+export async function newNoteWithTemplate(template: string = '', fileName: string = '', targetFolder: string = ''): Promise<void> {
+  const title = fileName ? await processTemplateTags(fileName) : (await getInput('Enter title of the new note', "Create a new note with title '%@'")) || new Date().toISOString()
 
   let folder = targetFolder
   console.log(`newNoteWithTemplate() template="${template}" fileName="${fileName}" targetFolder=${targetFolder}`)
   const folderList = await DataStore.folders.slice().sort()
   let folderFail = false
   if (targetFolder !== '' && !folderList.includes(targetFolder)) {
-    console.log(
-      `newNoteWithTemplate() template="${template}" Folder "${folder}" doesn't exist. Check config. For now. Will ask:`,
-    )
+    console.log(`newNoteWithTemplate() template="${template}" Folder "${folder}" doesn't exist. Check config. For now. Will ask:`)
     await showMessage(`Can't find folder '${targetFolder}' Pls check _config.`)
     await openConfigFileInEditor()
     folderFail = true
