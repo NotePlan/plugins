@@ -323,7 +323,7 @@ export function smartStringReplace(format: string, replacements: Map<string, str
     }
   }
 
-  return output.trimEnd()
+  return output
 }
 
 /**

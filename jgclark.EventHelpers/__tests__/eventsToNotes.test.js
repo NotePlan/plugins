@@ -59,7 +59,7 @@ describe('eventsToNotes.js tests', () => {
       timeOptions: ""
     }
     let format1 = "- (*|CAL|*) *|TITLE|**| URL|**|\n> NOTES|*\n*|ATTENDEES|*" // simpler
-    let format2 = "### (*|CAL, |**|START|**|-END|*) *|TITLE|**|\nEVENTLINK|**| URL|**| with ATTENDEENAMES|**|\n> NOTES|*\n---\n(end)" // more complex
+    let format2 = "### (*|CAL, |**|START|**|-END|*) *|TITLE|**|\nEVENTLINK|**| URL|**| with ATTENDEENAMES|**|\n> NOTES|*\n---\n" // more complex
     let startDT = new Date(2021, 0, 1, 20, 0, 0)
     let endDT = new Date(2021, 0, 1, 22, 0, 0)
     let attendeesArray = ["✓ Jonathan Clark", "? James Bond", "x Martha", "? bob@example.com"]
@@ -75,7 +75,7 @@ describe('eventsToNotes.js tests', () => {
     })
     test('event 1 format 2 more complex', () => {
       const result = e.smartStringReplace(format2, replacements1)
-      const expected = "### (Jonathan, 20:00:00-22:00:00) title of event1 https://example.com/easy with Jonathan Clark, Martha Clark, bob@example.com\n> a few notes\n---\n(end)"
+      const expected = "### (Jonathan, 20:00:00-22:00:00) title of event1 https://example.com/easy with Jonathan Clark, Martha Clark, bob@example.com\n> a few notes\n---\n"
       expect(result).toEqual(expected)
     })
     test('event 2 format 1 easy', () => {
@@ -85,7 +85,7 @@ describe('eventsToNotes.js tests', () => {
     })
     test('event 2 format 2 more complex', () => {
       const result = e.smartStringReplace(format2, replacements2)
-      const expected = "### (Us, 20:00:00-22:00:00) title of event2 with <brackets> & more https://example.com/bothersomeURL/example with Jonathan Clark, Martha Clark, bob@example.com\n> a few notes with TITLE and URL\n---\n(end)"
+      const expected = "### (Us, 20:00:00-22:00:00) title of event2 with <brackets> & more https://example.com/bothersomeURL/example with Jonathan Clark, Martha Clark, bob@example.com\n> a few notes with TITLE and URL\n---\n"
       expect(result).toEqual(expected)
     })
 
