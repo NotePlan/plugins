@@ -3,7 +3,7 @@
   "noteplan.minAppVersion": "3.5.0",
   "plugin.id": "np.Templating",
   "plugin.name": " 📒 np.Templating -- New 🎉",
-  "plugin.version": "1.2.0-beta.05",
+  "plugin.version": "1.2.0-beta.07",
   "plugin.description": "Templating Plugin for NotePlan",
   "plugin.author": "Mike Erickson (@codedungeon)",
   "plugin.dependencies": [],
@@ -121,6 +121,36 @@
       "alias": [],
       "description": "np.Templating About...",
       "jsFunction": "templateAbout"
+    },
+    {
+      "name": "np:test",
+      "alias": [],
+      "description": "np.Templating Testbed",
+      "jsFunction": "templateTest"
+    },
+    {
+      "name": "getTemplate",
+      "description": "NPTemplating.getTemplate export",
+      "jsFunction": "getTemplate",
+      "hidden": true
+    },
+    {
+      "name": "preRender",
+      "description": "NPTemplating.preRender export",
+      "jsFunction": "preRender",
+      "hidden": true
+    },
+    {
+      "name": "render",
+      "description": "NPTemplating.render export",
+      "jsFunction": "render",
+      "hidden": true
+    },
+    {
+      "name": "renderTemplate",
+      "description": "NPTemplating.renderTemplate export",
+      "jsFunction": "renderTemplate",
+      "hidden": true
     }
   ],
   "plugin.settings": [

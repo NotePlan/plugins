@@ -3,6 +3,12 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.2.0-beta.07] - 2022-05-26 (mikeerickson)
+
+- added `NPTemplating.getTemplate` export, supporting `DataStore.invokePluginCommandByName`
+- added `NPTemplating.preRender` export, supporting `DataStore.invokePluginCommandByName`
+- added `NPTemplating.render` export, supporting `DataStore.invokePluginCommandByName`
+
 ## [1.2.0-beta.06] - 2022-05-24 (mikeerickson)
 
 - fixed issue passing format string to `web.weather` (was not passing data in fix applied in `1.2.0-beta.03`)
