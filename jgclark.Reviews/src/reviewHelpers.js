@@ -40,8 +40,8 @@ const configKey = "review"
 
 export type ReviewConfig = {
   folderToStore: string,
-  foldersToIgnore: string[],
-  noteTypeTags: string[],
+  foldersToIgnore: Array<string>,
+  noteTypeTags: Array<string>,
   displayOrder: string,
   displayGroupedByFolder: boolean,
   displayArchivedProjects: boolean,

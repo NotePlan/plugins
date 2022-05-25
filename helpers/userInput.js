@@ -422,9 +422,9 @@ export async function inputMood(moodArray: Array<string>): Promise<string> {
  *                                                        "what went well last week (3/3)"
  * @param minAnswers minimum amount of answers the user has to type in (optional)
  * @param maxAnswers maximum amount of answers the user could type in (optional)
- * @returns {Promise<string[]>} all the answers as an array
+ * @returns {Promise<Array<string>>} all the answers as an array
  */
-export const multipleInputAnswersAsArray = async (question: string, submit: string, showCounter: boolean, minAnswers: number = 0, maxAnswers?: number): Promise<string[]> => {
+export const multipleInputAnswersAsArray = async (question: string, submit: string, showCounter: boolean, minAnswers: number = 0, maxAnswers?: number): Promise<Array<string>> => {
   let input = '-'
   const answers = []
 

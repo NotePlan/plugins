@@ -2,19 +2,52 @@
 //-----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// Last updated 10.5.2022 for v0.12.0, @jgclark
+// Last updated 23.5.2022 for v0.12.0, @jgclark
 //-----------------------------------------------------------------------------
 
-import { log, logError, logWarn } from '../../helpers/dev'
+import pluginJson from '../plugin.json'
+import { clo, log, logError, logWarn } from '@helpers/dev'
+import { displayTitle } from '@helpers/general'
 import {
   allNotesSortedByChanged,
   printNote,
-} from '../../helpers/note'
-import { getParaFromContent, } from '../../helpers/paragraph'
+} from '@helpers/note'
+import { convertNoteToFrontmatter } from '@helpers/NPnote'
+import { getParaFromContent, } from '@helpers/paragraph'
 import {
   chooseFolder,
-  chooseHeading
-} from '../../helpers/userInput'
+  chooseHeading, showMessage
+} from '@helpers/userInput'
+
+//-----------------------------------------------------------------
+// Settings
+
+type noteHelpersConfigType = {
+  defaultText: string
+}
+
+/**
+ * Get config settings using Config V2 system.
+ * @author @jgclark
+ */
+async function getSettings(): Promise<any> {
+  // log(pluginJson, `Start of getSettings()`)
+  try {
+    // Get settings using ConfigV2
+    const v2Config: noteHelpersConfigType = await DataStore.loadJSON('../jgclark.NoteHelpers/settings.json')
+
+    if (v2Config == null || Object.keys(v2Config).length === 0) {
+      await showMessage(`Cannot find settings for the 'NoteHelpers' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
+      return
+    } else {
+      // clo(v2Config, `settings`)
+      return v2Config
+    }
+  } catch (err) {
+    logError(pluginJson, `${err.name}: ${err.message}`)
+    await showMessage(err.message)
+  }
+}
 
 //-----------------------------------------------------------------
 /**
@@ -148,4 +181,26 @@ export function jumpToDone(): void {
   } else {
     logWarn('jumpToDone', "Couldn't find a '## Done' section. Stopping.")
   }
+}
+
+/**
+ * Convert this note to use frontmatter syntax
+ * @author @jgclark
+ * @returns void
+ */
+export async function convertToFrontmatter(): Promise<void> {
+  const { note } = Editor
+  if (note == null || note.paragraphs.length < 1) {
+    // No note open, so don't do anything.
+    logError('convertToFrontmatter', 'No note open, or no content. Stopping.')
+    return
+  }
+  if (note.paragraphs[0].content === '---') {
+    // Probably in frontmatter form already, so don't do anything.
+    logWarn('convertToFrontmatter', `Note '${displayTitle(note)}' starts with a --- line, so is probably already using frontmatter. Stopping.`)
+    return
+  }
+  const config = await getSettings()
+  convertNoteToFrontmatter(note, config.defaultText ?? '')
+  log('convertToFrontmatter', `Note '${displayTitle(note)}' converted to use frontmatter.`)
 }

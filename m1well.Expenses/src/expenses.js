@@ -176,7 +176,7 @@ const expensesAggregate = async (): Promise<boolean> => {
       return false
     }
 
-    const lines: string[] = []
+    const lines: Array<string> = []
 
     if (aggregatedData.length > 0) {
       await Editor.openNoteByTitle(noteTitleAggregate)
@@ -333,7 +333,7 @@ const fixedTracking = async (): Promise<boolean> => {
 
   const month = getMonth(currentDate) + 1
 
-  const lines: string[] = []
+  const lines: Array<string> = []
 
   const note = DataStore.projectNoteByTitle(title)?.[0]
   config.fixedExpenses
