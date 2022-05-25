@@ -1,0 +1,31 @@
+{
+  "noteplan.minAppVersion": "3.5.0",
+  "plugin.id": "nmn.TimeTracking",
+  "plugin.name": "Time Tracking",
+  "plugin.description": "A way to track time spent on a task (or paragraph)",
+  "plugin.icon": "f120",
+  "plugin.author": "Naman Goel",
+  "plugin.repoUrl": "tbd",
+  "plugin.version": "0.0.1",
+  "plugin.dependencies": [ ],
+  "plugin.script": "script.js",
+  "plugin.isRemote": "false",
+  "plugin.commands": [
+    {
+      "name": "start tracking",
+      "description": "Open a test HTML page",
+      "jsFunction": "startTracking"
+    },
+    {
+      "name": "pause tracking",
+      "description": "Open a test HTML page",
+      "jsFunction": "pauseTracking"
+    },
+    {
+      "name": "complete tracking",
+      "description": "Open a test HTML page",
+      "jsFunction": "stopTracking"
+    }
+  ],
+  "plugin.preferences": []
+}
