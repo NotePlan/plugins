@@ -1,14 +1,13 @@
 // @flow
 // ----------------------------------------------------------------------------
 // Command to bring calendar events into notes
-// Last updated 13.5.2022 for v0.16.0, by @jgclark
+// Last updated 25.5.2022 for v0.16.1, by @jgclark
 // @jgclark, with additions by @dwertheimer, @weyert, @m1well
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
 import { getEventsSettings } from './config'
-import { attendeesAsString } from '../../helpers/calendar'
-import { getEventsForDay, type EventsConfig } from '../../helpers/NPCalendar'
+import { getEventsForDay, type EventsConfig } from '@helpers/NPCalendar'
 import {
   calcOffsetDateStr,
   getDateStringFromCalendarFilename,
@@ -18,10 +17,10 @@ import {
   toLocaleTime,
   unhyphenatedDate,
   unhyphenateString,
-} from '../../helpers/dateTime'
-import { clo, log, logWarn, logError } from '../../helpers/dev'
-import { getTagParamsFromString, stringReplace } from '../../helpers/general'
-import { showMessage } from '../../helpers/userInput'
+} from '@helpers/dateTime'
+import { clo, log, logWarn, logError } from '@helpers/dev'
+import { getTagParamsFromString } from '@helpers/general'
+import { showMessage } from '@helpers/userInput'
 
 /**
  * Return MD list of the current open Calendar note's events
@@ -47,14 +46,14 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
     // NB: be aware that this call doesn't do type checking
     // NB: allow previous parameter names 'template' and 'allday_template' still.
     const format = (paramString.includes('"format":'))
-      ? String(await getTagParamsFromString(paramString, 'format', '- *|CAL|*: *|TITLE|* (*|START|*)*| with ATTENDEES|**|\nNOTES|**|\nURL|*'))
+      ? String(await getTagParamsFromString(paramString, 'format', '- *|CAL|*: *|TITLE|* (*|START|*)*| with ATTENDEENAMES|**|\nNOTES|**|\nURL|*'))
       : (paramString.includes('"template":'))
-        ? String(await getTagParamsFromString(paramString, 'template', '- *|CAL|*: *|TITLE|* (*|START|*)*| with ATTENDEES|**|\nNOTES|**|\nURL|*'))
+        ? String(await getTagParamsFromString(paramString, 'template', '- *|CAL|*: *|TITLE|* (*|START|*)*| with ATTENDEENAMES|**|\nNOTES|**|\nURL|*'))
         : config.formatEventsDisplay
     const alldayformat = (paramString.includes('"allday_format":'))
-      ? String(await getTagParamsFromString(paramString, 'allday_format', '- *|CAL|*: *|TITLE|**| with ATTENDEES|**|\nNOTES|**|\nURL|*'))
+      ? String(await getTagParamsFromString(paramString, 'allday_format', '- *|CAL|*: *|TITLE|**| with ATTENDEENAMES|**|\nNOTES|**|\nURL|*'))
       : (paramString.includes('"allday_template":'))
-        ? String(await getTagParamsFromString(paramString, 'allday_template', '- *|CAL|*: *|TITLE|**| with ATTENDEES|**|\nNOTES|**|\nURL|*'))
+        ? String(await getTagParamsFromString(paramString, 'allday_template', '- *|CAL|*: *|TITLE|**| with ATTENDEENAMES|**|\nNOTES|**|\nURL|*'))
         : config.formatAllDayEventsDisplay
     const includeHeadings = await getTagParamsFromString(paramString, 'includeHeadings', true)
     const daysToCover: number = await getTagParamsFromString(paramString, 'daysToCover', 1)
@@ -87,7 +86,7 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
 
       // Process each event
       for (const e of eArr) {
-        log(pluginJson, `  Processing event '${e.title}'`)
+        log(pluginJson, `  Processing event '${e.title}' (${typeof e})`)
         // Replace any mentions of the keywords in the e.title string
         const replacements = getReplacements(e, config)
         const thisEventStr = smartStringReplace(e.isAllDay ? alldayformat : format, replacements).trimEnd()
@@ -110,7 +109,7 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
     }
 
     let output = outputArray.join('\n').replace(/\s{2,}/gm, ' ') // If this array is empty -> empty string
-    log(pluginJson, output)
+    // log(pluginJson, output)
     return output
   }
   catch (err) {
@@ -259,38 +258,29 @@ export async function insertMatchingDaysEvents(paramString: ?string): Promise<vo
 
 // ----------------------------------------------------------------------------
 /**
- * Change the format placeholders to the actual values. For V1 syntax.
- * @private
- * @author @m1well
+ * Change the format placeholders to the actual values, using a Map
+ * @author @jgclark
+ * 
  * @param {TCalendarItem} item Calendar item whose values to use
  * @param {EventsConfig} config current configuration to use for this plugin
- * @return {{string, string}}
+ * @return {Map<string, string>}
  */
-function getReplacements(item: TCalendarItem, config: EventsConfig): { key: string, value: string }[] {
-  let outputObject = [
-    { key: 'CAL', value: calendarNameWithMapping(item.calendar, config.calendarNameMappings) },
-    { key: 'TITLE', value: item.title },
-    { key: 'NOTES', value: item.notes },
-    { key: 'URL', value: '<item.url disabled>' },
-    // $FlowIgnore[incompatible-call]
-    { key: 'ATTENDEES', value: item.attendees ? attendeesAsString(item.attendees) : '' },
-    { key: 'EVENTLINK', value: item.calendarItemLink ? item.calendarItemLink : '' },
-    { key: 'DATE', value: toLocaleDateString(item.date) },
-    {
-      key: 'START',
-      value: !item.isAllDay
-        ? toLocaleTime(item.date, config.locale, config.timeOptions)
-        : '',
-    },
-    {
-      key: 'END',
-      value:
-        item.endDate != null && !item.isAllDay
-          ? toLocaleTime(item.endDate, config.locale, config.timeOptions)
-          : '',
-    },
-  ]
-  // console.log(typeof outputObject)
+export function getReplacements(item: TCalendarItem, config: EventsConfig): Map<string, string> {
+  // log(pluginJson, 'starting getReplacementsV2')
+  let outputObject = new Map < string, string> ()
+
+  outputObject.set('CAL', calendarNameWithMapping(item.calendar, config.calendarNameMappings))
+  outputObject.set('TITLE', item.title)
+  outputObject.set('NOTES', item.notes)
+  outputObject.set('ATTENDEENAMES', item.attendeeNames ? item.attendeeNames.join(', ') : '')
+  outputObject.set('ATTENDEES', item.attendees ? item.attendees.join(', ') : '')
+  outputObject.set('EVENTLINK', item.calendarItemLink ? item.calendarItemLink : '')
+  outputObject.set('DATE', toLocaleDateString(item.date))
+  outputObject.set('START', !item.isAllDay ? toLocaleTime(item.date, config.locale, config.timeOptions) : '')
+  outputObject.set('END', item.endDate != null && !item.isAllDay ? toLocaleTime(item.endDate, config.locale, config.timeOptions) : '')
+  outputObject.set('URL', item.url)
+
+  // outputObject.forEach((v, k, map) => { console.log(`${k} : ${v}`) })
   return outputObject
 }
 
@@ -306,37 +296,33 @@ function getReplacements(item: TCalendarItem, config: EventsConfig): { key: stri
  * @param {string} format format string, to look for more complex strings (e.g. *|with ATTENDEES|*)
  * @return {{string, string}}
  */
-function smartStringReplace(format: string, replacements: { key: string, value: string }[]): string {
-  log(pluginJson, `smartStringReplace starting for format <${format}>`)
+export function smartStringReplace(format: string, replacements: Map<string, string>): string {
+  // log(pluginJson, `smartStringReplaceV2 starting for format <${format}>`)
   let output = format
-  // let trer = [] // temp RE result
-  // let matchedTag = '' // to include opening and closing *|...|*
-  // let matchedTagInternals = '' // to exclude the opening and closing *|...|*
-  // let replacementForTag = ''
 
   // For each possible placeholder, process it if it present in format AND the value for this event is not empty
   // (For safety ATTENDEES needs to come before END in the list, as 'END' is part of 'ATTENDEES'!)
-  const placeholders = ['CAL', 'TITLE', 'EVENTLINK', 'ATTENDEES', 'DATE', 'START', 'END', 'NOTES', 'NOTES', 'URL']
+  const placeholders = ['CAL', 'TITLE', 'EVENTLINK', 'ATTENDEENAMES', 'ATTENDEES', 'DATE', 'START', 'END', 'NOTES', 'URL']
   for (let p of placeholders) {
-    const thisRE = new RegExp("\\*\\|([^|*]*?"+p+".*?)\\|\\*")
-    let trer = output.match(thisRE) // temp RE result
-    if (trer) {
+    const thisRE = new RegExp("\\*\\|([^|*]*?" + p + ".*?)\\|\\*")
+    let REResult = output.match(thisRE) // temp RE result
+    if (REResult) {
       // We have matched the term in the format string
-      let matchedTag = trer[0] // includes opening and closing *|...|*
-      let matchedTagInternals = trer[1] // excludes the opening and closing *|...|*
-      const thisPlaceholderValue = stringReplace(p, replacements)
-      if (thisPlaceholderValue !== '') {
-        log(pluginJson, ` matched ${p}`)
-        let replacementForTag = stringReplace(matchedTagInternals, replacements)
-        // console.log(`  ${matchedTagInternals} / ${replacementForTag}`)
+      let matchedTag = REResult[0] // includes opening and closing *|...|*
+      let matchedTagInternals = REResult[1] // excludes the opening and closing *|...|*
+
+      // if Placeholder p has a replacement Value then replace the placeholder's tag with the replacement
+      const replacementValue = replacements.get(p) ?? ''
+      if (replacementValue !== '') {
+        let replacementForTag = matchedTagInternals.replace(p, replacementValue)
         output = output.replace(matchedTag, replacementForTag)
       } else {
         output = output.replace(matchedTag, '')
       }
-      log(pluginJson, `  => ${output}`)
+      // log(pluginJson, `  => ${output}`)
     }
   }
-  
+
   return output.trimEnd()
 }
 
@@ -346,7 +332,7 @@ function smartStringReplace(format: string, replacements: { key: string, value: 
  * @private
  * @author @m1well
  */
-const calendarNameWithMapping = (name: string, mappings: Array<string>): string => {
+export const calendarNameWithMapping = (name: string, mappings: Array<string>): string => {
   let mapped = name
   mappings.forEach((mapping) => {
     const splitted = mapping.split(';')
