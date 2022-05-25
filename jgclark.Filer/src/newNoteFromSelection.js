@@ -3,25 +3,28 @@
 // @dwertheimer based on @jgclark's newNote
 // Create new note from currently selected text
 // and (optionally) leave backlink to it where selection was
-// Last updated 12.2.2022 for 0.6.0, @jgclark
+// Last updated 16.5.2022 for 0.7.0, @jgclark
 //-----------------------------------------------------------------------------
 
+import pluginJson from '../plugin.json'
+import { log, logError, logWarn } from '@helpers/dev'
+import { displayTitle } from '@helpers/general'
 import {
   getUniqueNoteTitle,
   noteOpener,
-} from '../../helpers/note'
-import { displayTitle } from '../../helpers/general'
+} from '@helpers/note'
 import {
   chooseFolder,
   showMessage,
   showMessageYesNo,
-} from '../../helpers/userInput'
+} from '@helpers/userInput'
 
 export async function newNoteFromSelection() {
   const { selectedLinesText, selectedText, selectedParagraphs, note } = Editor
 
   if (note != null && selectedLinesText.length && selectedText !== '') {
-    console.log(`  with ${selectedParagraphs.length} selected:`)
+    log(pluginJson, `  with ${selectedParagraphs.length} selected:`)
+    const selectedLinesTextToMutate = selectedLinesText.slice() // copy that we can change
 
     // Get title for this note
     const isTextContent =
@@ -35,11 +38,10 @@ export async function newNoteFromSelection() {
     if (!title) {
       title = strippedFirstLine
       if (isTextContent) {
-        // $FlowFixMe -- TODO(dwertheimer): the types don't allow you to mutate selectedLinesText 
-        selectedLinesText.shift()
+        selectedLinesTextToMutate.shift()
       }
     }
-    const movedText = selectedLinesText.join('\n')
+    const movedText = selectedLinesTextToMutate.join('\n')
     const uniqueTitle = getUniqueNoteTitle(title)
     if (title !== uniqueTitle) {
       await showMessage(`Title exists. Using "${uniqueTitle}" instead`, `OK`, `New Note from Selection`)
@@ -50,9 +52,9 @@ export async function newNoteFromSelection() {
     if (title) {
       // Create new note in the specific folder
       const origFile = displayTitle(note) // Calendar notes have no title, so need to make one
-      console.log(`\torigFile: ${origFile}`)
+      log(pluginJson, `origFile: ${origFile}`)
       const filename = (await DataStore.newNote(title, currentFolder)) ?? ''
-      console.log(`\tnewNote() -> filename: ${filename}`)
+      log(pluginJson, `newNote() -> filename: ${filename}`)
 
       // This question needs to be here after newNote and before noteOpener
       // to force a cache refresh after newNote. This API bug will eventually be fixed.
@@ -65,8 +67,8 @@ export async function newNoteFromSelection() {
       const newNote = await noteOpener(filename, 'using filename')
 
       if (newNote) {
-        console.log(`\tnewNote's title: ${String(newNote.title)}`)
-        console.log(`\tnewNote's content: ${String(newNote.content)} ...`)
+        log(pluginJson, `newNote's title: ${String(newNote.title)}`)
+        log(pluginJson, `newNote's content: ${String(newNote.content)} ...`)
 
         const insertBackLink = iblq.index === 0
         if (Editor.replaceSelectionWithText) {
@@ -86,15 +88,14 @@ export async function newNoteFromSelection() {
           await Editor.openNoteByFilename(filename)
         }
       } else {
-        console.log(`\tCould not open new note: ${filename}`)
+        logWarn(pluginJson, `Couldn't open new note: ${filename}`)
         showMessage(`Could not open new note ${filename}`, `OK`, `New Note from Selection`)
       }
     } else {
-      console.log('\tError: undefined or empty title')
+      logError(pluginJson, 'Undefined or empty title')
     }
   } else {
-    console.log('\tNo text was selected, so nothing to do.')
+    log(pluginJson, 'No text was selected, so nothing to do.')
     showMessage('No text was selected, so nothing to do.', "OK, I'll try again", `New Note from Selection`)
   }
-  console.log('newNoteFromSelection (finished)')
 }

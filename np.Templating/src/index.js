@@ -17,9 +17,11 @@ export { migrateQuickNotes } from './Templating'
 export { templateInit } from './Templating'
 export { templateInsert } from './Templating'
 export { templateAppend } from './Templating'
+export { templateInvoke } from './Templating'
 export { templateNew } from './Templating'
 export { templateMeetingNote } from './Templating'
 export { templateQuickNote } from './Templating'
+export { templateConvertNote } from './Templating'
 export { templateSamples } from './Templating'
 
 // np.Templating Utility Commands

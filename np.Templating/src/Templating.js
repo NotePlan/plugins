@@ -224,6 +224,45 @@ export async function templateAppend(): Promise<void> {
   }
 }
 
+export async function templateInvoke(): Promise<void> {
+  try {
+    if (Editor.type === 'Notes' || Editor.type === 'Calendar') {
+      const content: string = Editor.content || ''
+
+      // $FlowIgnore
+      const selectedTemplate = await NPTemplating.chooseTemplate()
+      const templateData = await NPTemplating.getTemplate(selectedTemplate)
+      let { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
+      let data = { ...frontmatterAttributes, frontmatter: { ...frontmatterAttributes } }
+
+      const location = frontmatterAttributes?.location || 'append'
+
+      // $FlowIgnore
+      let renderedTemplate = await NPTemplating.render(frontmatterBody, data)
+
+      switch (location) {
+        case 'append':
+          Editor.insertTextAtCharacterIndex(`\n` + renderedTemplate, content.length)
+          break
+        case 'prepend':
+          Editor.insertTextAtCharacterIndex(renderedTemplate, 0)
+          break
+        case 'insert':
+          Editor.insertTextAtCursor(renderedTemplate)
+          break
+        default:
+          // insert
+          Editor.insertTextAtCursor(renderedTemplate)
+          break
+      }
+    } else {
+      await CommandBar.prompt('Template', 'You must have a Project Note or Calendar Note opened where you wish to append template.')
+    }
+  } catch (error) {
+    logError(pluginJson, error)
+  }
+}
+
 export async function templateNew(): Promise<void> {
   try {
     const selectedTemplate = await NPTemplating.chooseTemplate()
@@ -311,8 +350,8 @@ export async function templateQuickNote(noteName: string = ''): Promise<void> {
         const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
 
         let folder = frontmatterAttributes?.folder.trim() ?? ''
-        if (folder === '') {
-          folder = await NPTemplating.getFolder(folder, 'Select Destination Folder')
+        if (frontmatterAttributes?.folder && frontmatterAttributes.folder.length > 0) {
+          folder = await NPTemplating.getFolder(frontmatterAttributes.folder, 'Select Destination Folder')
         }
 
         let newNoteTitle = ''
@@ -387,8 +426,8 @@ export async function templateMeetingNote(noteName: string = '', templateData: a
         const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
 
         let folder = frontmatterAttributes?.folder.trim() ?? ''
-        if (folder === '') {
-          folder = await NPTemplating.getFolder(folder, 'Select Destination Folder')
+        if (frontmatterAttributes?.folder && frontmatterAttributes.folder.length > 0) {
+          folder = await NPTemplating.getFolder(frontmatterAttributes.folder, 'Select Destination Folder')
         }
 
         let newNoteTitle = ''
@@ -650,5 +689,43 @@ export async function testInvoke(): Promise<void> {
     }
   } catch (error) {
     logError(pluginJson, error)
+  }
+}
+
+export async function templateConvertNote(): Promise<void> {
+  if (typeof Editor.type === 'undefined') {
+    await CommandBar.prompt('Conversion Error', 'Please select the Project Note you would like to convert and try again.')
+    return
+  }
+
+  if (Editor.type !== 'Notes') {
+    await CommandBar.prompt('Conversion Error', 'You can only convert Project Notes')
+    return
+  }
+
+  const note = Editor.content || ''
+
+  const result = new FrontmatterModule().convertProjectNoteToFrontmatter(note)
+  switch (result) {
+    case -1:
+      await CommandBar.prompt('Conversion Falied', 'Unable to convert Project Note.')
+      break
+    case -2:
+      await CommandBar.prompt('Conversion Falied', 'Project Note must have Title (starts with # character)')
+      break
+    case -3:
+      await CommandBar.prompt('Conversion Falied', 'Project Note already in Frontmatter Format')
+      break
+  }
+
+  if (typeof result === 'string') {
+    // select all the text, it will be overwritten by insert of new note
+    Editor.selectAll()
+
+    // replace selected text with converted template
+    Editor.insertTextAtCursor(result.toString())
+
+    // set cursor at the top of the note
+    Editor.highlightByIndex(0, 0)
   }
 }

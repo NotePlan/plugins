@@ -3,21 +3,50 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.2.0-beta.06] - 2022-05-24 (mikeerickson)
+
+- fixed issue passing format string to `web.weather` (was not passing data in fix applied in `1.2.0-beta.03`)
+- adjust `np:invoke` command to use `prepend`, `insert`, `append`
+
+## [1.2.0-beta.05] - 2022-05-20 (mikeerickson)
+
+- fixed regression created by merge conflicts in recent push
+
+## [1.2.0-beta.04] - 2022-05-20 (mikeerickson)
+
+- fixed issue with DateModule `now` when using `offset` value
+- added template reentrance when calling `FrontMatter.parse` provide ability for attributes to use any attribute before the current attribute.
+- added `np:invoke` which uses a new template attribute `location` to control where template is placed on current note
+> `append` appends to the end of current note (same as `np:append`)
+> `cursor` inserts at the cursor position of the current note
+> `insert` inserts at the beginning of current note (same as `np:insert`)
+- added `convertProjectNoteToFrontmatter` to `FrontMatterModule` class
+- added new command `np:convert` which will convert the current project note to frontmatter format
+> uses `FrontmatterModule.convertProjectNoteToFrontmatter` method
+
+## [1.2.0-beta.03] - 2022-05-18 (mikeerickson)
+
+- refactor web service implementation, experiencing issues latest vesion of NotePlan
+
+## [1.2.0-beta.02] - 2022-05-17 (mikeerickson)
+
+- fixed issue when template contains folder which has value of `<select>` to prompt user of where new note should be created (@jgclark)
+
 ## [1.2.0-beta.01] - 2022-05-15 (mikeerickson)
 
 - added `templateGroupTemplatesByFolder` setting (default: false)
-  - If true, template chooser will show complete folder path
-  - If false, template choooser will only show template name
+> If true, template chooser will show complete folder path
+> If false, template choooser will only show template name
 - implemented `onSettingsUpdated` to handle new `templateGroupTemplatesByFolder` setting
 - fixed issue when using `previousBusinessDay` and `nextBusinessDay` when system Preferred language is not `English US`
 - fixed issue with `prompt` command when using choices and one of choice values contained `let` text in option such as `completed by`
 - fixed date display when using business functions (`businessAdd`, `businessSubtract`, `nextBusinessDay`, `previousBusinessDay`)
 - fixed issue with `prompt` when supplying default value
-  - e.g. `<%- prompt('placeholder','Enter First Name', 'Mike')%>`
+> e.g. `<%- prompt('placeholder','Enter First Name', 'Mike')%>`
 - added `invokePluginCommandByName` to `globals.js` process, decoupling associated plugin commands
-  - see `globals.js` for implementation
+> see `globals.js` for implementation
 - extended template rendering error message to include `line` and `column` where available
-  - making it much easier to identify where the error exists in template
+> making it much easier to identify where the error exists in template
 
 ## [1.1.3-beta.02] - 2022-05-07 (mikeerickson)
 
@@ -83,7 +112,7 @@ Also, it should be encouraged to rename "📋 Templates" to another name "📋 T
 - fixed `np:new` which was not using entered note title (if `newNoteTitle` does not exist in template attributes)
 - fixed issue with `NPTemplating.getFolder` interface, was displaying "Choose Destination Folder" even though a default folder was supplied
 - added `trim()` to weather output, fixing an issue when applying NotePlan _italic_ style
->  `*<%- web.weather() %>*` would be rendered as a todo item
+> `*<%- web.weather() %>*` would be rendered as a todo item
 - added `promptDate` which should be used instead of `pickDate` so `placeholder` value can be used in same template in different location
 - added `promptInterval` which should be used instead of `pickInterval` so `placeholder` value can be used in same template in different location
 - fixed issues with `templateLocale` not be used properly in some methods in `DateModule`
@@ -134,21 +163,21 @@ Also, it should be encouraged to rename "📋 Templates" to another name "📋 T
 ## [1.0.0-beta.34] - 2022-04-11 (mikeerickson)
 
 - Implemented `<current>` and `<select>` when defined in templates which `folder` attribute
-  - Works with `np:mtn`, `np:qtn` and `np:new` commands
+> Works with `np:mtn`, `np:qtn` and `np:new` commands
 - fixed `<%- meetingName %>` issue when process Quick Note
 - added `NPTemplating :: getFolder`
 - fixed some prompt related issues
 - fixed migration issue when changing `date` to `legacyDate` (was incorrectly updating `progressUpdate`)
 - fixed migration issue, fronmatter title was not matching legacy template note name under certain circumstances
 - refactor `np:migrate-templates` to not call `np:migration-quick-notes` intrisnically
-  - still executed together when running in `onUpdateOrInstall` method
+> still executed together when running in `onUpdateOrInstall` method
 - added action to disable `nmn.Templates` in `onUpdateOrInstall` method, after successful template migrations
 
 ## [1.0.0-beta.33] - 2022-04-10 (mikeerickson)
 
 - fix issue passing renderData in `data` and `method` properties
 - Resolved issue when using `<%- discuss %>`
-  - Recommend refactoring to use `<%- prompt('discuss') %>`
+> Recommend refactoring to use `<%- prompt('discuss') %>`
 - Fixed issue with `<%- selection() %>` and `<%- system.selection() %>`
 
 ## [1.0.0-beta.32] - 2022-04-09 (mikeerickson)
@@ -168,7 +197,7 @@ Also, it should be encouraged to rename "📋 Templates" to another name "📋 T
 - Added CommandBar, and DataStor mocks [@mikeerickson]
 - Updated `np-module.spec.js` to use new/updated mocks [@mikeerickson]
 - Cleared up `skipped` specs, entire test suite is not executed
-  - Note: Still working on using alias importing when running specs, thus full E2E tests are incomplete [@dwertheimer]
+> *Note: Still working on using alias importing when running specs, thus full E2E tests are incomplete [@dwertheimer]*
 - Added `ignore` to `chooseTemplate` which will ignore any templates which include `type: ignore`
 
 ## [1.0.0-beta.29] - 2022-04-04 (mikeerickson)
@@ -193,13 +222,13 @@ Also, it should be encouraged to rename "📋 Templates" to another name "📋 T
 ## [1.0.0-beta.26] - 2022-04-02 (mikeerickson)
 
 - renamed `date` function to `legacyDate` when migrating templates [@dwertheimer]
-  - `date` is a reserved word in `np.Templating` used for `DateModule`
+> `date` is a reserved word in `np.Templating` used for `DateModule`
 - updated `np:migrate-quick-notes` to enquote attribute values if they don't start with legal character (`a-zA-z`) [@jgclark]
 - updated `frontmatter-module.test.js` to check for invalid attribute values
 - see [template documentation](https://nptemplating-docs.netlify.app/docs/templating-commands/quick-notes/#quick-note-template-required-attributes) for details
 - added `legacyDates` to `np.Templating` globals [@dwertheimer]
 - fixed `pickDate` in `np.Templating` globals [@jgclark]
-  - Was throwing error parsing JSON5 (see `@helpers/datePicker`) due to invalid parameters
+> Was throwing error parsing JSON5 (see `@helpers/datePicker`) due to invalid parameters
 - fixed issue when testing for template `types` using `.includes` instead of `===`
 - removed debug code in `templateQuickNote` method
 
@@ -208,17 +237,17 @@ Also, it should be encouraged to rename "📋 Templates" to another name "📋 T
 - fixed regressions with `np:qtn` (https://github.com/NotePlan/plugins/issues/255)
 - fixed issue with global functions not workign properly when using `np:qtn` (https://github.com/NotePlan/plugins/issues/255)
 - Refactor `np:migrate-quick-notes` to align with changes discussed with plugin team
-  - Add `type` field assigning `quick-note` value
-  - Extended migration to change all `{{` and `}}` tags to align with remainder of template migration
+> Add `type` field assigning `quick-note` value
+> Extended migration to change all `{{` and `}}` tags to align with remainder of template migration
 - Refactor `np:qtn` command to only include templates which have `type: quick-note` all other templates will be ignored
 - Refactor `np:append`, `np:insert`, `np:new` to exclude templates which have `type: quick-note`
 - Added `qqq` alias to `np:qtn` command (requested by @dwertheimer)
-  - Note: The following aliases are available: qnt, qtn, quick
+> Note: The following aliases are available: qnt, qtn, quick
 - Added aliases to each of the following commands (removing requirement for `:`)
-  - np:append (npa)
-  - np:new (npn)
-  - np:insert (npi)
-  - np:qtn (npq)
+> np:append (npa)
+> np:new (npn)
+> np:insert (npi)
+> np:qtn (npq)
 
 ## [1.0.0-beta.24] - 2022-03-29 (mikeerickson)
 
@@ -239,7 +268,7 @@ Also, it should be encouraged to rename "📋 Templates" to another name "📋 T
 ## [1.0.0-beta.21] - 2022-03-28 (mikeerickson)
 
 - Reverted settings access changed in b18 as it was not working properly (restored previous method of accessing np.Templating Settings)
-  - This will need to be tested in the library version used by NotePlan
+> This will need to be tested in the library version used by NotePlan
 - Removed migration test code inadvertenly left in published version
 
 ## [1.0.0-beta.20] - 2022-03-27 (mikeerickson)
@@ -254,7 +283,7 @@ Also, it should be encouraged to rename "📋 Templates" to another name "📋 T
 ## [1.0.0-beta.18] - 2022-03-27 (mikeerickson)
 
 - Refactored loading np.Templating Settings as an attempt to fix issue when used as library in NotePlan core.
-  - This may be a permanent solution, but unable to confirm until it has been installed into NP core
+> This may be a permanent solution, but unable to confirm until it has been installed into NP core
 
 ## [1.0.0-beta.17] - 2022-03-27 (mikeerickson)
 
@@ -304,7 +333,7 @@ Also, it should be encouraged to rename "📋 Templates" to another name "📋 T
 ## [1.0.0-beta.10] - 2022-03-18 (mikeerickson)
 
 - refactored all `fetch` calls to use fetch with timeout in NP 3.4.2 or greater
-  - reverting attempt to use `fetchWithTimeout` call added in 1.0.0-beta.09 as it did not work due to unsupported `AbortController` interface which is part of Web API but not supported by NotePlan
+> reverting attempt to use `fetchWithTimeout` call added in 1.0.0-beta.09 as it did not work due to unsupported `AbortController` interface which is part of Web API but not supported by NotePlan
 
 ## [1.0.0-beta.09] - 2022-03-15 (mikeerickson)
 
@@ -321,15 +350,15 @@ Also, it should be encouraged to rename "📋 Templates" to another name "📋 T
 - Removed spurious `dog` override in "Quick Notes"
 - Fixed issue when migrating Quick Notes (inadvertent `Test` folder creation)
 - Fixed issue with promise based methods in templates not excecuting (all method calls are converted to async/await at runtime)
-  - You should not be required to have `await` keyword in templates
-  - For example:  `<%- date8601() %>` is converted to `<%- await date86010() %>` at runtime
+> You should not be required to have `await` keyword in templates
+> For example:  `<%- date8601() %>` is converted to `<%- await date86010() %>` at runtime
 
 ## [1.0.0-beta.07] - 2022-03-14 (mikeerickson)
 
 - Removed `usePrompts` parameter from options as this will be on by default, thus no longer required
 - Removed some spurious `console.log` statements (don't litter the console)
 - Added alert if "Quick Notes" folder does not exists when executing `np:qtn` command
-  - See np.Templating Settings to override default "Quick Notes" folder name
+> See np.Templating Settings to override default "Quick Notes" folder name
 
 ## [1.0.0-beta.06] - 2022-03-14 (mikeerickson)
 

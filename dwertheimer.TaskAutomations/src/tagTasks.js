@@ -1,8 +1,9 @@
+// @Flow
 /*
-TODO:
-1. Create "copy task for each mention" and spin the order so that each mention is first in its own paragraph
+TODO: /ctt is working, but future commands could easily rewrite the order so they are not different
 
 */
+
 import { clo, JSP, log } from '../../helpers/dev'
 import { showMessage } from '../../helpers/userInput'
 import { getElementsFromTask } from './taskHelpers'
@@ -29,7 +30,7 @@ const getParagraphByIndex = (note: TNote, index: number): TParagraph | null => {
  * @param {string} content : ;
  * @returns {TagsList} {hashtags: [], mentions: []}
  */
-function getTagsFromString(content: string): TagsList {
+export function getTagsFromString(content: string): TagsList {
   const hashtags = getElementsFromTask(content, HASHTAGS)
   const mentions = getElementsFromTask(content, MENTIONS)
   return { hashtags, mentions }
@@ -76,28 +77,20 @@ function getParagraphContainingPosition(note: TNote | Editor, position: number):
  * @param {Array<string>} newTags
  * @returns
  */
-function getUnduplicatedMergedTagArray(existingTags, newTags): Array<string> {
-  let revisedTags = []
-  if (newTags.length) {
-    if (existingTags.length) {
-      newTags.forEach((tag, i) => {
-        if (existingTags.indexOf(tag) === -1) revisedTags.push(tag)
-      })
-    } else {
-      revisedTags = newTags
-    }
-  }
-  return revisedTags
+export function getUnduplicatedMergedTagArray(existingTags: Array<string> = [], newTags: Array<string> = []): Array<string> {
+  return [...new Set([...existingTags, ...newTags])]
 }
 
 /**
- * Append specific hashtags and mentions to a paragraph (if they don't already exist)
+ * Append specific hashtags and mentions to a string (if they don't already exist)
  * @param {string} paraText - the original paragraph text
  * @param {TagsList} tagsToCopy in form of {hashtags: [], mentions: []}
  */
-function appendTagsToText(paraText: string, tagsToCopy: TagsList): string | null {
+export function appendTagsToText(paraText: string, tagsToCopy: TagsList): string | null {
   log(pluginJson, `appendTagsToText: tagsToCopy.mentions=${tagsToCopy.mentions.toString()}`)
   const existingTags = getTagsFromString(paraText)
+  const nakedLine = removeTagsFromLine(paraText, [...existingTags.mentions, ...existingTags.hashtags])
+  log(pluginJson, `appendTagsToText: nakedLine=${nakedLine}`)
   log(pluginJson, `existingTags: existingTags.mentions=${existingTags.mentions.toString()}`)
   const mentions = getUnduplicatedMergedTagArray(existingTags.mentions, tagsToCopy.mentions)
   const hashtags = getUnduplicatedMergedTagArray(existingTags.hashtags, tagsToCopy.hashtags)
@@ -105,11 +98,11 @@ function appendTagsToText(paraText: string, tagsToCopy: TagsList): string | null
   if (hashtags.length || mentions.length) {
     const stuff = `${hashtags.join(' ')} ${mentions.join(' ')}`.trim()
     if (stuff.length) {
-      return `${paraText ? `${paraText} ` : ''} ${stuff}`.replace(/\s{2,}/gm, ' ')
+      return `${nakedLine ? `${nakedLine} ` : ''} ${stuff}`.replace(/\s{2,}/gm, ' ')
     }
   } else {
     console.log('no tags found or no tags need to be copied in list: ', tagsToCopy.toString())
-    return null
+    return paraText
   }
 }
 
@@ -131,10 +124,21 @@ function getSelectedParagraph(): TParagraph | null {
   return thisParagraph
 }
 
-function removeTagsFromLine(line: string, tagsToRemove: Array<string>): string {
-  return tagsToRemove.reduce((acc, tag) => {
-    return acc.replace(new RegExp(`\\s+${tag}`, 'gim'), '')
-  }, line)
+/**
+ * Given a flat array of tags (hashtags and mentions), remove them from an input string
+ * and return the naked line without the tags
+ * @param {string} line
+ * @param {Array<string>} tagsToRemove
+ * @returns {string} the naked line
+ */
+export function removeTagsFromLine(line: string, tagsToRemove: Array<string>): string {
+  if (tagsToRemove?.length) {
+    return tagsToRemove.reduce((acc, tag) => {
+      return acc.replace(new RegExp(`\\s+${tag}`, 'gim'), '')
+    }, line)
+  } else {
+    return line
+  }
 }
 
 /**
@@ -156,7 +160,6 @@ function copyLineForTags(type: 'hashtags' | 'mentions'): void {
     for (let i = 0; i < tagsInQuestion.length; i++) {
       const tag = tagsInQuestion[i]
       if (i > 0) {
-        // const tags =
         tagsInQuestion.push(tagsInQuestion.shift())
         const updatedText = appendTagsToText(contentWithoutTheseTags, { ...existingTags, ...{ [type]: tagsInQuestion } })
         if (updatedText) {
@@ -222,9 +225,10 @@ export function copyTagsFromHeadingAbove() {
       let headingLineTags = getTagsFromString(heading)
       for (let index = headingPara.lineIndex + 1; index <= thisParagraph.lineIndex; index++) {
         const currentPara = getParagraphByIndex(Editor.note, index)
-        const updatedText = appendTagsToText(currentPara, headingLineTags)
+        const updatedText = appendTagsToText(currentPara.content, headingLineTags)
         if (updatedText) {
-          Editor.updateParagraph(thisParagraph)
+          currentPara.content = updatedText
+          Editor.updateParagraph(currentPara)
         }
       }
     } else {

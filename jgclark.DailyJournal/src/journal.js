@@ -86,7 +86,6 @@ export async function dayStart(today: boolean = false): Promise<void> {
       return
     }
   }
-  // $FlowIgnore[incompatible-call]
   log(pluginJson, `for '${displayTitle(Editor.note)}'`)
   const config: JournalConfigType = await getJournalSettings()
 

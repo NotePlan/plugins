@@ -1,5 +1,4 @@
 // @flow
-
 /*-------------------------------------------------------------------------------------------
  * Copyright (c) 2022 Mike Erickson / Codedungeon.  All rights reserved.
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
@@ -7,15 +6,17 @@
 import { semverVersionToNumber } from '@helpers/general'
 import pluginJson from '../plugin.json'
 import FrontmatterModule from './support/modules/FrontmatterModule'
-import { helpInfo } from './helpers'
+import DateModule from './support/modules/DateModule'
+import { debug, helpInfo } from './helpers'
 
 import globals from './globals'
 import { chooseOption } from '@helpers/userInput'
-import { log, logError } from '@helpers/dev'
+import { clo, log, logError } from '@helpers/dev'
 import { datePicker, askDateInterval } from '@helpers/userInput'
 
 /*eslint-disable */
 import TemplatingEngine from './TemplatingEngine'
+import { parseISOWithOptions } from 'date-fns/fp'
 
 const TEMPLATE_FOLDER_NAME = NotePlan.environment.templateFolder
 // const TEMPLATE_FOLDER_NAME = '📋 Templates'
@@ -546,7 +547,8 @@ export default class NPTemplating {
         const parts = templateName.split('/')
         if (parts.length > 0) {
           templateFilename = `${templateFolderName}/${templateName}`
-          let templates = (await DataStore.projectNoteByTitle(templateName, true, false)) || []
+
+          let templates = (await DataStore.projectNoteByTitle(templateFilename, true, false))
           if (templates.length > 1) {
             let templatesSecondary = []
             for (const template of templates) {
@@ -765,6 +767,7 @@ export default class NPTemplating {
   static async preRender(templateData: string = '', userData: any = {}): Promise<any> {
     await this.setup()
 
+    let sectionData = { ...userData }
     if (!new FrontmatterModule().isFrontmatterTemplate(templateData)) {
       let msg = '**Invalid Template Format**\n\nThe selected template is not in supported format.\n'
       msg += helpInfo('Template Anatomty: Frontmatter')
@@ -779,11 +782,11 @@ export default class NPTemplating {
 
     for (const item of attributeKeys) {
       let value = frontmatterAttributes[item]
-      // $FlowIgnore
-      let attributeValue = await this.render(value, userData)
+
+      let attributeValue = await this.render(value, sectionData)
+      sectionData[item] = attributeValue
       frontmatterAttributes[item] = attributeValue
     }
-
     return { frontmatterBody, frontmatterAttributes: { ...userData, ...frontmatterAttributes } }
   }
 
@@ -849,6 +852,21 @@ export default class NPTemplating {
             })
           } else {
             options = tagValue.replace(/(^"|"$)/g, '').replace(/(^'|'$)/g, '')
+            switch (options) {
+              case '=now':
+              case '%today%':
+                options = new DateModule().now('YYYY-MM-DD')
+                break
+              case '%yesterday%':
+                options = new DateModule().yesterday('YYYY-MM-DD')
+                break
+              case '%tomorrow%':
+                options = new DateModule().tomorrow('YYYY-MM-DD')
+                break
+              case '%timestamp%':
+                options = new DateModule().timestamp('YYYY-MM-DD')
+                break
+            }
           }
         }
       } else {
@@ -872,11 +890,17 @@ export default class NPTemplating {
       const { index } = await CommandBar.showOptions(options, message)
       return options[index]
     } else {
+      let value = ''
       if (typeof options === 'string' && options.length > 0) {
-        return await CommandBar.textPrompt('', message.replace('_', ' '), options)
+        console.log('här1')
+        value = await CommandBar.textPrompt('', message.replace('_', ' '), options)
       } else {
-        return await CommandBar.textPrompt('', message.replace('_', ' '), '')
+        console.log('här2')
+        value = await CommandBar.textPrompt('', message.replace('_', ' '), '')
       }
+      clo({ value })
+
+      return value
     }
   }
 
@@ -1159,5 +1183,9 @@ export default class NPTemplating {
       const info = helpInfo('Plugin Error')
       return `**Unable to locate "${pluginId} :: ${pluginCommand}".  Make sure "${pluginId}" plugin has been installed.**\n\n${info}`
     }
+  }
+
+  static async convertNoteToFrontmatter(projectNote: string): Promise<number | string> {
+    return new FrontmatterModule().convertProjectNoteToFrontmatter(projectNote)
   }
 }

@@ -27,14 +27,14 @@ Once the command bar is displayed, you can continue typing any of the following 
 
 | Command                 | Available Inline | Description                                                                                        |
 | ----------------------- | ----------------- | ------------------------------------------------------------------------------------------------- |
-| np:init                 | Yes               | Initilalizes np.Templating Settings (only use if you want to reset settings to default)           |
-| np:insert               | Yes               | Insert selected template at cursor (will show list of all available templates)                    |
 | np:append               | Yes               | Appends selected template at end of current note (will show list of all available templates)      |
+| np:insert               | Yes               | Insert selected template at cursor (will show list of all available templates)                    |
+| np:invoke               | Yes               | Invoke Template Command, using `location` key in template to determine injected template          |
+|                         |                   | contents into current                                                                             |
 | np:new                  | Yes               | Creates a new note from selected template and supplied note name                                  |
-| np:mtn                  | Yes               | Invokes Meeting Note Generation (displays list of all `type: meeting-note`)                       |
-| np:qtn                  | Yes               | Invokes Quick Note Generation (displays list of all `type: meeting-note`)                         |
-| np:verse                | Yes               | Inserts random bible verse at cursor location                                                     |
+| np:qtn                  | Yes               | Invokes Quick Note Generation (displays list of all `type: quick-note`)                           |
 | np:update               | Yes               | Invokes settings update method                                                                    |
+| np:version              | Yes               | Displays current np.Templating version                                                            |
 
 ## License
 
