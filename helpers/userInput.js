@@ -323,12 +323,14 @@ export async function datePicker(dateParams: string, config?: { [string]: ?mixed
     }
     // log('userInput/datePicker', allSettings.toString())
     // grab just question parameter, or provide a default
-    let { question } = (allSettings: any)
+    let { question, defaultValue } = (allSettings: any)
+    console.log(`defaultValue: ${defaultValue}`)
     question = question ? question : 'Please enter a date'
+    defaultValue = defaultValue ? defaultValue : 'YYYY-MM-DD'
 
     // Ask question (newer style)
     // const reply = (await CommandBar.showInput(question, `Date (YYYY-MM-DD): %@`)) ?? ''
-    const reply = await CommandBar.textPrompt('Date Picker', question, 'YYYY-MM-DD')
+    const reply = await CommandBar.textPrompt('Date Picker', question, defaultValue)
     if (typeof reply === 'string') {
       const reply2 = reply.replace('>', '').trim() // remove leading '>' and trim
       if (!reply2.match(RE_DATE)) {
@@ -420,9 +422,9 @@ export async function inputMood(moodArray: Array<string>): Promise<string> {
  *                                                        "what went well last week (3/3)"
  * @param minAnswers minimum amount of answers the user has to type in (optional)
  * @param maxAnswers maximum amount of answers the user could type in (optional)
- * @returns {Promise<string[]>} all the answers as an array
+ * @returns {Promise<Array<string>>} all the answers as an array
  */
-export const multipleInputAnswersAsArray = async (question: string, submit: string, showCounter: boolean, minAnswers: number = 0, maxAnswers?: number): Promise<string[]> => {
+export const multipleInputAnswersAsArray = async (question: string, submit: string, showCounter: boolean, minAnswers: number = 0, maxAnswers?: number): Promise<Array<string>> => {
   let input = '-'
   const answers = []
 

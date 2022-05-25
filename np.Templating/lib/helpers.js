@@ -59,7 +59,7 @@ export function debug(debugInfo: any, preamble: string = '', logInfo: string = '
 
     log(pluginJson, premambe, 'DEBUG')
     if (Array.isArray(debugInfo)) {
-      clo(`numItems: ${debugInfo.length}  \n            ` + '[ ' + debugInfo.join(', ') + ' ]', '', 4)
+      clo(`  numItems: ${debugInfo.length}  \n            ` + '[\n ' + debugInfo.join(',\n     ') + ' \n]', '', 4)
     } else {
       clo(debugInfo, preamble, 4)
     }

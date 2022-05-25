@@ -79,4 +79,41 @@ export default class FrontmatterModule {
 
     return fmData && fmData?.body ? fmData.body : ''
   }
+
+  convertProjectNoteToFrontmatter(projectNote: string = ''): any {
+    if (this.isFrontmatterTemplate(projectNote)) {
+      return -3
+    }
+
+    let note = projectNote
+
+    if (note.length === 0) {
+      return -1
+    }
+
+    let lines = note.split('\n')
+    if (lines.length === 0) {
+      return -1
+    }
+
+    let title = lines.shift()
+    if (!title.startsWith('#')) {
+      return -2
+    }
+
+    title = title.substr(2)
+
+    note = lines.join('\n')
+
+    // construct fronmatter object
+    // - use first line from above as `title` attribute value
+    let frontmatter = '---\n'
+    frontmatter += `title: ${title}\n`
+    frontmatter += 'type: empty-note\n'
+    frontmatter += '---\n'
+
+    note = `${frontmatter}${note}`
+
+    return note
+  }
 }

@@ -25,17 +25,16 @@ const exec = (cmd, args) => {
 }
 
 module.exports = {
-  run: async (pluginId = '', pluginVersion = '', args = {}) => {
-    // const runTests = !args?.noTests
+  run: async (pluginId = '', pluginName = '', pluginVersion = '', args = {}) => {
     const runTests = false
     const runBuild = !args?.noBuild
     const preview = args?.preview
     const testRunner = `./node_modules/.bin/jest`
     const testCommand = ['run', 'test:dev', `${pluginId}/__tests__/*.test.js`]
     const buildCommand = ['run', 'build', pluginId]
-    console.log(testCommand)
+
     if (args.preview) {
-      print.info('Preview Mode')
+      print.info('Plugin Release Preview Mode')
       console.log('')
     }
 
@@ -135,13 +134,14 @@ module.exports = {
         title: 'Publishing release',
         skip: async () => {
           const cmd = await releaseTasks(pluginId, pluginVersion, args)
+
           if (args.preview) {
-            return cmd
+            return `[Preview] ${cmd}`
           }
         },
         task: async () => {
           const cmd = await releaseTasks(pluginId, pluginVersion, args)
-          if (cmd.includes(`gh release create "${pluginVersion}" -t "${pluginId}" -F`)) {
+          if (cmd.includes(`gh release create "${pluginId}-v${pluginVersion}" -t "${pluginName}" -F`)) {
             const result = await system.run(cmd, true)
             console.log(result)
           }
@@ -152,7 +152,7 @@ module.exports = {
     const result = await tasks.run()
     console.log('')
     if (preview) {
-      print.note(`${pluginId} ${pluginVersion} [PREVIEW] Released Successfully`, 'PREVIEW')
+      print.note(`${pluginId} v${pluginVersion} Released Successfully [PREVIEW]`, 'PREVIEW')
     } else {
       print.success(`${pluginId} ${pluginVersion} Released Successfully`, 'SUCCESS')
     }

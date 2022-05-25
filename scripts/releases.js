@@ -226,6 +226,7 @@ function ensureVersionIsNew(existingRelease, versionedTagName) {
 function getReleaseCommand(version, pluginTitle, fileList, sendToGithub = false) {
   const changeLog = fileList.changelog ? `-F "${fileList.changelog}"` : ''
   const cmd = `gh release create "${version}" -t "${pluginTitle}" ${changeLog} ${!sendToGithub ? `--draft` : ''} ${fileList.files.map((m) => `"${m}"`).join(' ')}`
+
   if (!sendToGithub) {
     console.log(`==> ${COMMAND}: Release command:\n\t${cmd}\n\nYou can run that by hand. The script is not doing it in TEST mode.\n`)
   }

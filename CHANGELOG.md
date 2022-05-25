@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/codedungeon.Toolbox/README.md) for details on available commands and use case.
 
+## [3.4.1] - 2022-05-24 (@codedungeon)
+
+- fixed `npc plugin:release`
+
 ## [3.4.1] - 2022-05-15 (@codedungeon)
 
 - removed `dayjs` dependency
