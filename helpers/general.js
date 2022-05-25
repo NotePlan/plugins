@@ -203,6 +203,8 @@ type Replacement = { key: string, value: string }
 
 /**
  * Replace all mentions of array key with value in inputString
+ * Note: Not reliable, so dropped from use in EventHelpers.
+ * @author @m1well
  * @param {string} inputString
  * @param {array} replacementArray // array of objects with {key: stringToLookFor, value: replacementValue}
  * @returns {string} inputString with all replacements made
@@ -210,9 +212,9 @@ type Replacement = { key: string, value: string }
 export function stringReplace(inputString: string = '', replacementArray: Array<Replacement>): string {
   let outputString = inputString
   replacementArray.forEach((r) => {
-    while (outputString.includes(r.key)) {
+    // if (outputString.includes(r.key)) {
       outputString = outputString.replace(r.key, r.value)
-    }
+    // }
   })
   return outputString
 }
@@ -228,19 +230,19 @@ export function stringReplace(inputString: string = '', replacementArray: Array<
  * @returns {string} the value of the desired parameter if found (e.g. 'FOO'), or defaultValue if it isn't
  */
 export async function getTagParamsFromString(paramString: string, wantedParam: string, defaultValue: any): any {
-  log('general/getTagParamsFromString', `for '${wantedParam}' in '${paramString}'`)
+  // log('general/getTagParamsFromString', `for '${wantedParam}' in '${paramString}'`)
   if (paramString !== '' && wantedParam !== '') {
     try {
       // $FlowFixMe(incompatible-type)
       const paramObj: {} = await json5.parse(paramString)
       const output = paramObj.hasOwnProperty(wantedParam) ? paramObj[wantedParam] : defaultValue
-      log('general/getTagParamsFromString', `--> ${output}`)
+      // log('general/getTagParamsFromString', `--> ${output}`)
       return output
     } catch (e) {
       logError('general/getTagParamsFromString', `Can't parse ${paramString} ${e}`)
     }
   }
-  log('general/getTagParamsFromString', `--> ${defaultValue} (default)`)
+  // log('general/getTagParamsFromString', `--> ${defaultValue} (default)`)
   return defaultValue
 }
 

@@ -33,16 +33,16 @@ const configKey = 'summaries'
 export type headingLevelType = 1 | 2 | 3 | 4 | 5
 export type SummariesConfig = {
   folderToStore: string,
-  foldersToExclude: string[],
+  foldersToExclude: Array<string>,
   headingLevel: headingLevelType,
   hashtagCountsHeading: string,
   mentionCountsHeading: string,
   showAsHashtagOrMention: boolean,
-  includeHashtags: string[],
-  excludeHashtags: string[],
-  includeMentions: string[],
-  excludeMentions: string[],
-  defaultOccurrences: string[],
+  includeHashtags: Array<string>,
+  excludeHashtags: Array<string>,
+  includeMentions: Array<string>,
+  excludeMentions: Array<string>,
+  defaultOccurrences: Array<string>,
   occurrencesHeading: string,
   resultPrefix: string,
   highlightOccurrences: boolean,
@@ -50,8 +50,8 @@ export type SummariesConfig = {
   dateStyle: string,
   weeklyStatsDuration: ?number,
   progressHeading: string,
-  progressHashtags: string[],
-  progressMentions: string[],
+  progressHashtags: Array<string>,
+  progressMentions: Array<string>,
 }
 
 /**

@@ -82,10 +82,14 @@ If you use Templating, this command can be called when a Template is inserted (i
 
 You can place  `<%- listMatchingEvents() %>` in Templates in a similar way, and similar customisations are possible. However, as each match can have a different format of output, the matches and format strings are entered in a JSON-formatted array, which is specified in the Plugin's settings.
 
-**Formats**: The `*|CAL|*`, `*|TITLE|*`, `*|START|*`, `*|END|*`,  `*|DATE|*`,  `*|NOTES|*`, `*|URL|*`,  `*|ATTENDEES|*`,  and `*|EVENTLINK|*` can be mixed with whatever markdown characters or other text you like, and they will get replaced accordingly with the fields from each matching event found. (Note the difference between the } and ) bracket types, and use of double quotes around the parameter's setting. I didn't design this syntax ...)   
-Most of these are self-explanatory for events in most types of calendars. However,  `*|EVENTLINK|*` is specific to NotePlan: it will make a nicely-formatted link to the actual calendar event, and clicking on it will show a pop with all the event's details.
+**Formats**: The `*|CAL|*`, `*|TITLE|*`, `*|START|*`, `*|END|*`,  `*|DATE|*`,  `*|NOTES|*`, `*|URL|*`,  `*|ATTENDEES|*`, `*|ATTENDEENAMES|*`,  and `*|EVENTLINK|*` can be mixed with whatever markdown characters or other text you like, and they will get replaced accordingly with the fields from each matching event found. (Note the difference between the } and ) bracket types, and use of double quotes around the parameter's setting. I didn't design this syntax ...)
 
-v0.15.0 added more flexibility in the formatting of event lists. So now instead of including (for example) `*|ATTENDEES|*` you can now include other text (including line breaks indicated by `\n`) within the placeholder. For example in `*|\nwith ATTENDEES|*` if the ATTENDEES is not empty, then it will output the list after a newline and the text 'with '.
+Most of these are self-explanatory for events in most types of calendars, other than:
+- `*|ATTENDEES|*` gives the full details of event attendees provided by the operating system, and can be a mix of names, email addresses, and other details;
+- `*|ATTENDEENAMES|*` just gives the name of event attendees, or if that's missing, just the email address;
+- `*|EVENTLINK|*` is specific to NotePlan: it will make a nicely-formatted link to the actual calendar event, and clicking on it will show a pop with all the event's details.
+
+v0.15.0 added more flexibility in the formatting of event lists. So now instead of including (for example) `*|ATTENDEENAMES|*` you can now include other text (including line breaks indicated by `\n`) within the placeholder. For example in `*|\nwith ATTENDEENAMES|*` if the ATTENDEENAMES is not empty, then it will output the list after a newline and the text 'with '.
 
 If you want to disable the adding of the heading, add the following parameter `includeHeadings:false` (no double quotes around `false` as its being treated as JSON).
 

@@ -172,10 +172,10 @@ export function isTimeBlockPara(para: TParagraph): boolean {
  * @author @dwertheimer
  * @tests available for jest
 
- * @param {String[]} arr 
+ * @param {Array<string>} arr 
  * @returns {string}
  */
-export const findLongestStringInArray = (arr: string[]): string =>
+export const findLongestStringInArray = (arr: Array<string>): string =>
   arr.length ? arr.reduce((a, b) => (a.length > b.length ? a : b)) : ''
 
 /**
@@ -190,7 +190,7 @@ export const findLongestStringInArray = (arr: string[]): string =>
 export const getTimeBlockString = (contentString: string): string => {
   const matchedStrings = []
   if (contentString) {
-    const reMatch:string[] = contentString.match(RE_TIMEBLOCK_APP_CI) ?? []
+    const reMatch: Array<string> = contentString.match(RE_TIMEBLOCK_APP_CI) ?? []
     if (contentString && reMatch && reMatch.length) {
       matchedStrings.push(reMatch[0].trim())
     }

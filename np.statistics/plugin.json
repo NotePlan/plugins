@@ -1,40 +1,54 @@
 {
-	"noteplan.minAppVersion": "3.0.23",
+  "noteplan.minAppVersion": "3.0.23",
   "macOS.minVersion": "10.13.0",
-	"plugin.id": "np.statistics",
-	"plugin.name": "🔢 Note Statistics",
-	"plugin.description": "Show statistics for notes, tasks, words, and hashtags and mentions over periods of time. See website for more details, including how to tailor some of the stats.",
-	"plugin.icon": "",
-	"plugin.author": "Jonathan & Eduard",
-	"plugin.url": "https://github.com/NotePlan/plugins/tree/main/np.statistics/",
-	"plugin.version": "0.5.2",
-	"plugin.dependencies": [],
-	"plugin.script": "script.js",
-	"plugin.isRemote": "false",
-	"plugin.commands": [
-		{
-			"name": "note stats",
-			"alias": ["nc", "count"],
-			"description": "Counts of all the notes in NotePlan",
-			"jsFunction": "showNoteCount"
-		},
-		{
-			"name": "task stats for all notes",
-			"alias": ["task", "stats", "count"],
-			"description": "Shows task statistics for all notes",
-			"jsFunction": "showTaskCountForAll"
-		},
-		{
-			"name": "task stats for current note",
-			"alias": ["tc", "stats", "count"],
-			"description": "Shows task counts for the current note",
-			"jsFunction": "showTaskCountForNote"
-		},
-		{
-			"name": "word stats",
-			"alias": ["wc", "count"],
-			"description": "Shows word count and other stats for the current note",
-			"jsFunction": "showWordCount"
-		}
-	]
+  "plugin.id": "np.statistics",
+  "plugin.name": "🔢 Note Statistics",
+  "plugin.description": "Show statistics for notes, tasks, words, and hashtags and mentions over periods of time. See website for more details, including how to tailor some of the stats.",
+  "plugin.icon": "",
+  "plugin.author": "Jonathan & Eduard",
+  "plugin.url": "https://github.com/NotePlan/plugins/tree/main/np.statistics/",
+  "plugin.version": "0.5.2",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.isRemote": "false",
+  "plugin.commands": [
+    {
+      "name": "note stats",
+      "alias": [
+        "nc",
+        "count"
+      ],
+      "description": "Counts of all the notes in NotePlan",
+      "jsFunction": "showNoteCount"
+    },
+    {
+      "name": "task stats for all notes",
+      "alias": [
+        "task",
+        "stats",
+        "count"
+      ],
+      "description": "Shows task statistics for all notes",
+      "jsFunction": "showTaskCountForAll"
+    },
+    {
+      "name": "task stats for current note",
+      "alias": [
+        "tc",
+        "stats",
+        "count"
+      ],
+      "description": "Shows task counts for the current note",
+      "jsFunction": "showTaskCountForNote"
+    },
+    {
+      "name": "word stats",
+      "alias": [
+        "wc",
+        "count"
+      ],
+      "description": "Shows word count and other stats for the current note",
+      "jsFunction": "showWordCount"
+    }
+  ]
 }

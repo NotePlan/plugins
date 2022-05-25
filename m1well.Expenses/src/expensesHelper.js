@@ -25,10 +25,10 @@ export const castStringFromMixed = (val: { [string]: ?mixed }, key: string): str
  *
  * @param val the config mixed
  * @param key name of the property you want to cast
- * @returns {string[]} casted array
+ * @returns {Array<string>} casted array
  */
-export const castStringArrayFromMixed = (val: { [string]: ?mixed }, key: string): string[] => {
-  return val.hasOwnProperty(key) ? ((val[key]: any): string[]) : []
+export const castStringArrayFromMixed = (val: { [string]: ?mixed }, key: string): Array<string> => {
+  return val.hasOwnProperty(key) ? ((val[key]: any): Array < string >) : []
 }
 
 /**
@@ -169,9 +169,9 @@ export const createAggregationExpenseRowWithDelimiter = (row: ExpenseAggregateRo
  *
  * @param shortcuts shortcuts from the config
  * @param delimiter delimiter for the shortcuts
- * @returns {string[]} stringified shortcuts in an array
+ * @returns {Array<string>} stringified shortcuts in an array
  */
-export const stringifyShortcutList = (shortcuts: ShortcutExpense[], delimiter: string): string[] => {
+export const stringifyShortcutList = (shortcuts: ShortcutExpense[], delimiter: string): Array<string> => {
   return shortcuts.map(sc => {
     if (sc.amount) {
       return [ sc.category, sc.text, sc.amount ].join(delimiter === 'TAB' ? '\t' : delimiter)
