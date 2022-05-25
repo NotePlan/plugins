@@ -45,16 +45,26 @@ export function JSP(obj: any, space: string | number = 2): string {
     }
     const propNames = getAllPropertyNames(obj)
     const fullObj = propNames.reduce((acc, propName) => {
-      if (Array.isArray(obj[propName])) {
-        acc[propName] = obj[propName].map((x) => {
-          if (typeof x === 'object') {
-            return JSP(x, '')
-          } else {
-            return x
+      if (!/^__/.test(propName)) {
+        if (Array.isArray(obj[propName])) {
+          try {
+            acc[propName] = obj[propName].map((x) => {
+              if (typeof x === 'object' && !(x instanceof Date)) {
+                return JSP(x, '')
+              } else {
+                return x
+              }
+            })
+          } catch (error) {
+            console.log(
+              `Caught error in JSP for propname=${propName} : ${error} typeof obj[propName]=${typeof obj[propName]} isArray=${Array.isArray(obj[propName])} len=${
+                obj[propName]?.length
+              } \n VALUE: ${JSON.stringify(obj[propName])}`,
+            )
           }
-        })
-      } else {
-        acc[propName] = obj[propName]
+        } else {
+          acc[propName] = obj[propName]
+        }
       }
       return acc
     }, {})
