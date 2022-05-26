@@ -41,7 +41,7 @@ export async function sayHello(incoming: ?string = ''): Promise<void> {
     )
 
     // This will Console Log an Object that comes from the NotePlan API (in this case, the currently-open Note's paragraphs)
-    clo(Editor.note.paragraphs, `The note paragraphs:`)
+    clo(Editor.note?.paragraphs, `The note paragraphs:`)
 
     if (!incoming?.length) {
       // Create a XCallback URL that can run this command
