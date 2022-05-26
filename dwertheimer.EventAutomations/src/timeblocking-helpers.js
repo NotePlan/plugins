@@ -406,6 +406,23 @@ export function appendLinkIfNecessary(todos: Array<TParagraph>, config: { [key: 
   return todosWithLinks
 }
 
+/**
+ * Eliminate duplicate paragraphs (especially for synced lines)
+ * @param {Array<TParagraph>} todos: Array<TParagraph>
+ * @returns Array<TParagraph> unduplicated paragraphs
+ */
+export const eliminateDuplicateParagraphs = (todos: Array<TParagraph>): Array<TParagraph> => {
+  let revisedTodos = []
+  if (todos?.length) {
+    todos.forEach((e) => {
+      if (revisedTodos.findIndex((t) => t.content === e.content) === -1) {
+        revisedTodos.push(e)
+      }
+    })
+  }
+  return revisedTodos
+}
+
 export const addDurationToTasks = (
   tasks: Array<TParagraph>,
   config: { [key: string]: any },
@@ -426,9 +443,13 @@ export function getTimeBlockTimesForEvents(
   let newInfo = { timeMap, blockList: [], timeBlockTextList: [] }
   // $FlowIgnore
   const availableTimes = filterTimeMapToOpenSlots(timeMap, config)
-  // timeMap.forEach((m) => console.log(`getTimeBlockTimesForEvents: ${JSON.stringify(m)}`)) //FIXME: remove
+  console.log(`AvailableTimes: ${availableTimes.length}`)
+  if (availableTimes.length == 0) {
+    timeMap.forEach((m) => console.log(`getTimeBlockTimesForEvents no more times available: ${JSON.stringify(m)}`))
+  }
   const blocksAvailable = findTimeBlocks(availableTimes, config)
-  if (todos?.length && blocksAvailable?.length && timeMap?.length && config.mode) {
+  // console.log(`getTimeBlockTimesForEvents: ${JSON.stringify(blocksAvailable)}`) //FIXME: remove
+  if (availableTimes.length && todos?.length && blocksAvailable?.length && timeMap?.length && config.mode) {
     const todosWithDurations = addDurationToTasks(todos, config)
     switch (config.mode) {
       case 'PRIORITY_FIRST': {
