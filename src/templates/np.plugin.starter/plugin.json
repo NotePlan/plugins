@@ -1,9 +1,10 @@
 {
+  "COMMENT": "Details on these fields: https://help.noteplan.co/article/67-create-command-bar-plugins",
   "macOS.minVersion": "10.13.0",
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "{{pluginId}}",
   "plugin.name": "🧩 {{pluginName}}",
-  "plugin.version": "0.0.1",
+  "plugin.version": "0.1.0",
   "plugin.description": "{{pluginDescription}}",
   "plugin.author": "{{pluginAuthor}}",
   "plugin.dependencies": [],
@@ -11,9 +12,9 @@
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/{{pluginId}}/README.md",
   "plugin.commands": [
     {
-      "name": "helloWorld",
+      "name": "Say Hello! (change this to your own command)",
       "description": "Your first plugin!",
-      "jsFunction": "helloWorld",
+      "jsFunction": "sayHello",
       "alias": [
         "helloWorld Alias"
       ]
@@ -21,8 +22,16 @@
   ],
   "plugin.settings": [
     {
+      "COMMENT": "Plugin settings documentation: https://help.noteplan.co/article/123-plugin-configuration",
       "type": "heading",
       "title": "{{pluginName}} Settings"
+    },
+    {
+      "title": "A string in prefs",
+      "key": "settingsString",
+      "type": "string",
+      "description": "Enter some string and see it change when the plugin is run",
+      "default": "This default setting was set in plugin preferences!"
     },
     {
       "key": "version",

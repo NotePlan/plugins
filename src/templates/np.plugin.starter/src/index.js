@@ -18,8 +18,14 @@ import pluginJson from '../plugin.json'
 // updateSettingsData will execute whenever your plugin is installed or updated
 import { updateSettingData } from '@helpers/NPconfiguration'
 
-export { helloWorld } from './helloWorld'
+export { sayHello } from './NPHelloWorld' // this makes the command function available to NotePlan (see plugin.json for details)
 
 export async function onUpdateOrInstall(): Promise<void> {
   updateSettingData(pluginJson)
+}
+
+export async function init(): Promise<void> {
+  // this runs every time the plugin starts up (any command in this plugin is run)
+  // normally, you don't need to do anything here
+  // the command-specific entrypoints (e.g. sayHello in the helloWorld.js file is where you'll do your work)
 }
