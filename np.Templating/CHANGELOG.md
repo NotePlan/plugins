@@ -3,6 +3,8 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.2.0-beta.08] - 2022-05-26 (mikeerickson)
+
 ## [1.2.0-beta.07] - 2022-05-26 (mikeerickson)
 
 - added `NPTemplating.getTemplate` export, supporting `DataStore.invokePluginCommandByName`
