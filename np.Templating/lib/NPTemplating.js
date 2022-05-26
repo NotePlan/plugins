@@ -19,7 +19,6 @@ import TemplatingEngine from './TemplatingEngine'
 import { parseISOWithOptions } from 'date-fns/fp'
 
 const TEMPLATE_FOLDER_NAME = NotePlan.environment.templateFolder
-// const TEMPLATE_FOLDER_NAME = '📋 Templates'
 
 // - if a new module has been added, make sure it has been added to this list
 const TEMPLATE_MODULES = ['date', 'frontmatter', 'note', 'system', 'time', 'user', 'utility']
@@ -295,7 +294,7 @@ export default class NPTemplating {
     } catch (error) {}
   }
 
-  static async getFilenameFromNote(note: string = ''): Promise<string> {
+  static async getFilenameFromTemplate(note: string = ''): Promise<string> {
     // if nested note, we don't like it
     const parts = note.split('/')
     if (parts.length === 0) {
@@ -546,9 +545,10 @@ export default class NPTemplating {
       if (!selectedTemplate) {
         const parts = templateName.split('/')
         if (parts.length > 0) {
-          templateFilename = `${templateFolderName}/${templateName}`
+          // templateFilename = `${templateFolderName}/${templateName}`
+          templateFilename = parts.pop()
 
-          let templates = (await DataStore.projectNoteByTitle(templateFilename, true, false))
+          let templates = await DataStore.projectNoteByTitle(templateFilename, true, false)
           if (templates.length > 1) {
             let templatesSecondary = []
             for (const template of templates) {
@@ -579,7 +579,7 @@ export default class NPTemplating {
 
       // template not found
       if (!selectedTemplate) {
-        CommandBar.prompt('Template Error', `Unable to locate ${originalFilename}`)
+        await CommandBar.prompt('Template Error', `Unable to locate ${originalFilename}`)
       }
 
       let templateContent = selectedTemplate?.content || ''
@@ -682,8 +682,8 @@ export default class NPTemplating {
     const usePrompts = true
     try {
       await this.setup()
-      let templateData = (await this.getTemplate(templateName)) || ''
 
+      let templateData = await this.getTemplate(templateName)
       let renderedData = await this.render(templateData, userData, userOptions)
 
       return this._filterTemplateResult(renderedData)
@@ -892,13 +892,10 @@ export default class NPTemplating {
     } else {
       let value = ''
       if (typeof options === 'string' && options.length > 0) {
-        console.log('här1')
         value = await CommandBar.textPrompt('', message.replace('_', ' '), options)
       } else {
-        console.log('här2')
         value = await CommandBar.textPrompt('', message.replace('_', ' '), '')
       }
-      clo({ value })
 
       return value
     }

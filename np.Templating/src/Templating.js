@@ -23,6 +23,7 @@ import { getDailyQuote } from '../lib/support/modules/quote'
 import { getVerse, getVersePlain } from '../lib/support/modules/verse'
 import { getConfiguration, initConfiguration, migrateConfiguration, updateSettingData } from '../../helpers/NPconfiguration'
 import { log, logError, clo } from '@helpers/dev'
+import { debug } from '../lib/helpers'
 
 import pluginJson from '../plugin.json'
 import DateModule from '../lib/support/modules/DateModule'
@@ -667,26 +668,12 @@ export async function templateSamples(): Promise<void> {
   }
 }
 
-export async function testInvoke(): Promise<void> {
+export async function templateTest(): Promise<void> {
   try {
-    // get template settings
-    const templateSettings = DataStore.settings
-
-    // NOTE: normally do some additional work here, but just simulating getting and then setting (even though they are the same)
-
-    // set application settings with any adjustments after template specific updates
-    DataStore.settings = { ...templateSettings }
-
-    // try invoking a plugin command
-
-    // const version = await DataStore.invokePluginCommandByName('np:about', 'np.Templating', [{ fname: 'Mike' }])
-    const version = await NPTemplating.invokePluginCommandByName('np.Templating', 'np:about', [{ fname: 'Mike' }])
-    if (version != null) {
-      console.log(version)
-      Editor.insertTextAtCursor(version)
-    } else {
-      console.log('version is null')
-    }
+    let plugins = DataStore.installedPlugins()
+    plugins.forEach((plugin) => {
+      clo(plugin)
+    })
   } catch (error) {
     logError(pluginJson, error)
   }
@@ -728,4 +715,22 @@ export async function templateConvertNote(): Promise<void> {
     // set cursor at the top of the note
     Editor.highlightByIndex(0, 0)
   }
+}
+
+export async function getTemplate(templateName: string = '', options: any = { showChoices: true }): Promise<string> {
+  return await NPTemplating.getTemplate(templateName, options)
+}
+
+export async function preRender(templateData: string = '', userData: any = {}): Promise<any> {
+  const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData, userData)
+
+  return { frontmatterBody, frontmatterAttributes }
+}
+
+export async function render(inTemplateData: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
+  return await NPTemplating.render(inTemplateData, userData, userOptions)
+}
+
+export async function renderTemplate(templateName: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
+  return await NPTemplating.renderTemplate(templateName, userData, userOptions)
 }

@@ -28,4 +28,10 @@ export { templateSamples } from './Templating'
 export { templateAbout } from './Templating'
 
 // np.Templating Testing
-export { testInvoke } from './Templating'
+export { templateTest } from './Templating'
+
+// exported to support DataStore.invokePluginCommandByName
+export { getTemplate } from './Templating'
+export { preRender } from './Templating'
+export { render } from './Templating'
+export { renderTemplate } from './Templating'
