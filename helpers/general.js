@@ -110,7 +110,11 @@ export function createLink(noteTitle: string, heading: string | null = ''): stri
  * @param {string | null} heading - heading inside of note (optional)
  * @returns {string} the x-callback-url string
  */
-export function createOpenNoteCallbackUrl(titleOrFilename: string, isFilename: boolean = false, heading: string | null = null): string {
+export function createOpenNoteCallbackUrl(
+  titleOrFilename: string,
+  isFilename: boolean = false,
+  heading: string | null = null,
+): string {
   const xcb = `noteplan://x-callback-url/openNote?${isFilename ? `filename` : `noteTitle`}=`
   // FIXME: this is working around an API bug that does not allow heading references in filename xcallbacks
   // When @eduard fixes it, this line can be removed
@@ -147,7 +151,31 @@ export function createRunPluginCallbackUrl(pluginID: string, command: string, ar
  * @param {Array<string>} args - a flat array of arguments to be sent
  * @returns {string} the pretty x-callback-url string: [linkText](x-callback-url)
  */
-export function createPrettyOpenNoteLink(linkText: string, pluginID: string, command: string, args: Array<string> = []): string {
+export function createPrettyLink(
+  linkText: string,
+  titleOrFilename: string,
+  isFilename: boolean = false,
+  heading: string | null = null,
+): string {
+  return `[${linkText}](${createOpenNoteCallbackUrl(titleOrFilename, isFilename, heading)})`
+}
+
+/**
+ * Create a pretty/short link to open a note, hiding an xcallback link text from title string (and optional heading string)
+ * e.g. [linkText](x-callback-url)
+ * @dwertheimer
+ * @param {string} linkText - the text to display for the link
+ * @param {string} pluginID - ID of the plugin from plugin.json
+ * @param {boolean} command - the "name" of the command in plugin.json
+ * @param {Array<string>} args - a flat array of arguments to be sent
+ * @returns {string} the pretty x-callback-url string: [linkText](x-callback-url)
+ */
+export function createPrettyOpenNoteLink(
+  linkText: string,
+  titleOrFilename: string,
+  isFilename: boolean = false,
+  heading: string | null = null,
+): string {
   return `[${linkText}](${createOpenNoteCallbackUrl(titleOrFilename, isFilename, heading)})`
 }
 
@@ -161,7 +189,12 @@ export function createPrettyOpenNoteLink(linkText: string, pluginID: string, com
  * @param {string | null} heading - heading inside of note (optional)
  * @returns {string} the x-callback-url string
  */
-export function createPrettyRunPluginLink(linkText: string, pluginID: string, command: string, args: Array<string> = []): string {
+export function createPrettyRunPluginLink(
+  linkText: string,
+  pluginID: string,
+  command: string,
+  args: Array<string> = [],
+): string {
   return `[${linkText}](${createRunPluginCallbackUrl(pluginID, command, args)})`
 }
 
@@ -213,7 +246,7 @@ export function stringReplace(inputString: string = '', replacementArray: Array<
   let outputString = inputString
   replacementArray.forEach((r) => {
     // if (outputString.includes(r.key)) {
-      outputString = outputString.replace(r.key, r.value)
+    outputString = outputString.replace(r.key, r.value)
     // }
   })
   return outputString

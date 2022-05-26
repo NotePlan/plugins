@@ -26,7 +26,10 @@ describe(`${FILE}`, () => {
         expect(c.validateConfigProperties({ test: 'foo' }, {})).toEqual({ test: 'foo' })
       })
       test('should pass through items with no matching validations', () => {
-        expect(c.validateConfigProperties({ test: 'foo', sam: 'bar' }, { sam: 'string' })).toEqual({ test: 'foo', sam: 'bar' })
+        expect(c.validateConfigProperties({ test: 'foo', sam: 'bar' }, { sam: 'string' })).toEqual({
+          test: 'foo',
+          sam: 'bar',
+        })
       })
       test('for string ', () => {
         expect(c.validateConfigProperties({ test: 'foo' }, { test: 'string' })).toEqual({ test: 'foo' })
@@ -61,34 +64,52 @@ describe(`${FILE}`, () => {
     })
     describe('validation errors should fail', () => {
       test('no validations sent ', () => {
-        expect(() => c.validateConfigProperties({}, {})).toThrow(createConfigError('noValidations', '', ''))
+        expect(c.validateConfigProperties({}, {})).toEqual({})
       })
       test('for required field missing ', () => {
-        expect(() => c.validateConfigProperties({}, { test: 'string' })).toThrow(createConfigError('missing', 'test', 'string'))
+        expect(() => c.validateConfigProperties({}, { test: 'string' })).toThrow(
+          createConfigError('missing', 'test', 'string'),
+        )
       })
       test('for required field missing marked as optional:false ', () => {
-        expect(() => c.validateConfigProperties({}, { test: { type: 'string', optional: false } })).toThrow(createConfigError('missing', 'test', 'string'))
+        expect(() => c.validateConfigProperties({}, { test: { type: 'string', optional: false } })).toThrow(
+          createConfigError('missing', 'test', 'string'),
+        )
       })
       test('for number ', () => {
-        expect(() => c.validateConfigProperties({ test: true }, { test: 'string' })).toThrow(createConfigError('type', 'test', 'string'))
+        expect(() => c.validateConfigProperties({ test: true }, { test: 'string' })).toThrow(
+          createConfigError('type', 'test', 'string'),
+        )
       })
       test('for string ', () => {
-        expect(() => c.validateConfigProperties({ test: true }, { test: 'string' })).toThrow(createConfigError('type', 'test', 'string'))
+        expect(() => c.validateConfigProperties({ test: true }, { test: 'string' })).toThrow(
+          createConfigError('type', 'test', 'string'),
+        )
       })
       test('for object ', () => {
-        expect(() => c.validateConfigProperties({ test: true }, { test: 'object' })).toThrow(createConfigError('type', 'test', 'object'))
+        expect(() => c.validateConfigProperties({ test: true }, { test: 'object' })).toThrow(
+          createConfigError('type', 'test', 'object'),
+        )
       })
       test('for array ', () => {
-        expect(() => c.validateConfigProperties({ test: true }, { test: 'array' })).toThrow(createConfigError('type', 'test', 'array'))
+        expect(() => c.validateConfigProperties({ test: true }, { test: 'array' })).toThrow(
+          createConfigError('type', 'test', 'array'),
+        )
       })
       test('for regex failed on string', () => {
-        expect(() => c.validateConfigProperties({ test: 'foo' }, { test: /test/ })).toThrow(createConfigError('regex', 'test', /test/, 'foo'))
+        expect(() => c.validateConfigProperties({ test: 'foo' }, { test: /test/ })).toThrow(
+          createConfigError('regex', 'test', /test/, 'foo'),
+        )
       })
       test('for regex but config item wasnt string', () => {
-        expect(() => c.validateConfigProperties({ test: true }, { test: /test/ })).toThrow(createConfigError('regex', 'test', /test/, true))
+        expect(() => c.validateConfigProperties({ test: true }, { test: /test/ })).toThrow(
+          createConfigError('regex', 'test', /test/, true),
+        )
       })
       test('for boolean ', () => {
-        expect(() => c.validateConfigProperties({ test: 'string' }, { test: 'boolean' })).toThrow(createConfigError('type', 'test', 'boolean'))
+        expect(() => c.validateConfigProperties({ test: 'string' }, { test: 'boolean' })).toThrow(
+          createConfigError('type', 'test', 'boolean'),
+        )
       })
     })
   })

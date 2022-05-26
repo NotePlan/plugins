@@ -1,6 +1,6 @@
 /* es lint-disable */
 
-import rs from '../src/support/runSearch-helpers.test'
+import rs from '../src/support/runSearch-helpers'
 
 /*
 Template:
@@ -18,10 +18,10 @@ describe('dwertheimer.DataQuerying', () => {
     // file
     describe('uppercase', () => {
       // function
-      test('should capitalize string', async () => {
+      test.skip('should capitalize string', async () => {
         // test, starts with should
-        const result = await dh.uppercase('hello world')
-        expect(result).toEqual('HELLO WORLD')
+        // const result = await rh.uppercase('hello world')
+        // expect(result).toEqual('HELLO WORLD')
       })
     })
   })
