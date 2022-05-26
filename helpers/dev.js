@@ -27,6 +27,7 @@ const dt = (): string => {
  * @example console.log(JSP(obj, '\t')) // prints the full object with newlines and tabs for indentation
  */
 export function JSP(obj: any, space: string | number = 2): string {
+  const PARAM_BLACKLIST = ['referencedBlocks'] // fields not to be traversed (e.g. circular references)
   if (typeof obj !== 'object') {
     return String(obj)
   } else {
@@ -48,18 +49,24 @@ export function JSP(obj: any, space: string | number = 2): string {
       if (!/^__/.test(propName)) {
         if (Array.isArray(obj[propName])) {
           try {
-            acc[propName] = obj[propName].map((x) => {
-              if (typeof x === 'object' && !(x instanceof Date)) {
-                return JSP(x, '')
-              } else {
-                return x
-              }
-            })
+            if (PARAM_BLACKLIST.indexOf(propName) === -1) {
+              acc[propName] = obj[propName].map((x) => {
+                if (typeof x === 'object' && !(x instanceof Date)) {
+                  return JSP(x, '')
+                } else {
+                  return x
+                }
+              })
+            } else {
+              acc[propName] = obj[propName] //do not traverse any further
+            }
           } catch (error) {
             console.log(
-              `Caught error in JSP for propname=${propName} : ${error} typeof obj[propName]=${typeof obj[propName]} isArray=${Array.isArray(obj[propName])} len=${
-                obj[propName]?.length
-              } \n VALUE: ${JSON.stringify(obj[propName])}`,
+              `Caught error in JSP for propname=${propName} : ${error} typeof obj[propName]=${typeof obj[
+                propName
+              ]} isArray=${Array.isArray(obj[propName])} len=${obj[propName]?.length} \n VALUE: ${JSON.stringify(
+                obj[propName],
+              )}`,
             )
           }
         } else {
@@ -105,7 +112,12 @@ export function clo(obj: any, preamble: string = '', space: string | number = 2)
   }
 }
 
-export function dump(pluginInfo: any, obj: { [string]: mixed }, preamble: string = '', space: string | number = 2): void {
+export function dump(
+  pluginInfo: any,
+  obj: { [string]: mixed },
+  preamble: string = '',
+  space: string | number = 2,
+): void {
   log(pluginInfo, '-------------------------------------------')
   clo(obj, preamble, space)
   log(pluginInfo, '-------------------------------------------')
@@ -208,7 +220,9 @@ export function log(pluginInfo: any, message: any = '', type: string = 'LOG'): s
 
   if (isPluginJson) {
     pluginId = pluginInfo.hasOwnProperty('plugin.id') ? pluginInfo['plugin.id'] : 'INVALID_PLUGIN_ID'
-    pluginVersion = pluginInfo.hasOwnProperty('plugin.version') ? pluginInfo['plugin.version'] : 'INVALID_PLUGIN_VERSION'
+    pluginVersion = pluginInfo.hasOwnProperty('plugin.version')
+      ? pluginInfo['plugin.version']
+      : 'INVALID_PLUGIN_VERSION'
     msg = `${dt().padEnd(19)} | ${type.padEnd(5)} | ${pluginId} v${pluginVersion} :: ${_message(message)}`
   } else {
     if (message.length > 0) {
