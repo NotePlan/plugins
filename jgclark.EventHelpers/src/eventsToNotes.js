@@ -89,7 +89,7 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
         log(pluginJson, `  Processing event '${e.title}' (${typeof e})`)
         // Replace any mentions of the keywords in the e.title string
         const replacements = getReplacements(e, config)
-        const thisEventStr = smartStringReplace(e.isAllDay ? alldayformat : format, replacements).trimEnd()
+        const thisEventStr = smartStringReplace(e.isAllDay ? alldayformat : format, replacements)
 
         mapForSorting.push({
           cal: withCalendarName ? calendarNameWithMapping(e.calendar, config.calendarNameMappings) : '',
@@ -108,7 +108,7 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
       outputArray.push(mapForSorting.map((element) => element.text).join('\n'))
     }
 
-    let output = outputArray.join('\n') // .replace(/\s{2,}/gm, ' ') // If this array is empty -> empty string
+    let output = outputArray.join('\n') // If this array is empty -> empty string
     // log(pluginJson, output)
     return output
   }
@@ -234,7 +234,7 @@ export async function listMatchingDaysEvents(
     }
   }
 
-  let output = outputArray.join('\n').replace(/\s{2,}/gm, ' ') // If this array is empty -> empty string
+  let output = outputArray.join('\n') // If this array is empty -> empty string
   // log(pluginJson, output)
   return output
 }

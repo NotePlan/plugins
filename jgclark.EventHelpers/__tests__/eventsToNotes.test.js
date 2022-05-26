@@ -61,6 +61,7 @@ describe('eventsToNotes.js tests', () => {
     let format1 = "- (*|CAL|*) *|TITLE|**| URL|**|\n> NOTES|*\n*|ATTENDEES|*" // simpler
     let format2 = "### (*|CAL, |**|START|**|-END|*) *|TITLE|**|\nEVENTLINK|**| URL|**| with ATTENDEENAMES|**|\n> NOTES|*\n---\n" // more complex
     let format3 = "### [*|START|*] *|TITLE|*\n- \n \n*****\n" // for @EasyTarget test
+    let format4 = "### [*|START|*] *|TITLE|*\n- \n\n\n\n\n" // for @EasyTarget test
     let startDT = new Date(2021, 0, 1, 20, 0, 0)
     let endDT = new Date(2021, 0, 1, 22, 0, 0)
     let attendeesArray = ["✓ Jonathan Clark", "? James Bond", "x Martha", "? bob@example.com"]
@@ -89,9 +90,17 @@ describe('eventsToNotes.js tests', () => {
       const expected = "### (Us, 20:00:00-22:00:00) title of event2 with <brackets> & more https://example.com/bothersomeURL/example with Jonathan Clark, Martha Clark, bob@example.com\n> a few notes with TITLE and URL\n---\n"
       expect(result).toEqual(expected)
     })
-    test('event 2 format 3 for @EasyTarget', () => {
+    test('event 2 format 3 for @EasyTarget with newlines and asterisks', () => {
       const result = e.smartStringReplace(format3, replacements2)
       const expected = "### [20:00:00] title of event2 with <brackets> & more\n- \n \n*****\n"
+      console.log(result)
+      console.log(result.length)
+      console.log(expected.length)
+      expect(result).toEqual(expected)
+    })
+    test('event 2 format 4 for @EasyTarget with multiple new lines', () => {
+      const result = e.smartStringReplace(format4, replacements2)
+      const expected = "### [20:00:00] title of event2 with <brackets> & more\n- \n\n\n\n\n"
       console.log(result)
       console.log(result.length)
       console.log(expected.length)
