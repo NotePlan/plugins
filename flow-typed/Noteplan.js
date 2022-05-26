@@ -222,16 +222,17 @@ type TEditor = {
   highlightByIndex(index: number, length: number): void,
   /**
    * Folds the given paragraph or unfolds it if its already folded. If the paragraph is not a heading, it will look for the heading this paragraph exists under.
+   * Note: Available from v3.6.0
    * @param {TParagraph}
   */
-  toggleFolding(paragraph): void,
+  toggleFolding(paragraph: TParagraph): void,
     /**
      * Checks if the given paragraph is folded or not. If it's not a heading, it will look for the heading this paragraph exists under.
-     * Note: Available from v3.5.2
+     * Note: Available from v3.6.0
      * @param {TParagraph}
      * @return {boolean}   
     */
-    isFolded(paragraph): boolean,
+  isFolded(paragraph: TParagraph): boolean,
   /**
    * Shows or hides a window with a loading indicator or a progress ring (if progress is defined) and an info text (optional).
    * `text` is optional, if you define it, it will be shown below the loading indicator.
@@ -501,11 +502,28 @@ type TDataStore = {
    * @param {$ReadOnlyArray<mixed>}
    * @return {any} Return value of the command, like a Promise
    */
-  invokePluginCommandByName(command: string, pluginId: string, arguments?: $ReadOnlyArray<mixed>): Promise<any>,
+  invokePluginCommandByName(command: string, pluginID: string, arguments ?: $ReadOnlyArray < mixed >): Promise < any >,
+    /**
+     * Checks if the given pluginID is installed or not.
+     * Note: Available from NotePlan v3.6.0
+     * @param {string}
+     * @return {boolean}
+     */
+    isPluginInstalledByID(pluginID: string): boolean,
+      /**
+       * Installs a given array of pluginIDs if needed. It checks online if a new version is available and downloads it. 
+       * Use it without `await` so it keeps running in the background or use it with `await` in "blocking mode" if you need to install a plugin as a dependency. In this case you can use `showPromptIfSuccessful = true` to show the user a message that a plugin was installed and `showProgressPrompt` will show a loading indicator beforehand. With both values set to false or not defined it will run in "silent" mode and show no prompts.
+       * Note: Available from NotePlan v3.6.0
+       * @param {[string]} 
+       * @param {boolean} 
+       * @param {boolean} 
+       * @return {Promise<>}
+       */
+      installOrUpdatePluginsByID(pluginIDs: [string], showPromptIfSuccessful: boolean, showProgressPrompt: boolean): Promise < void> | void,
   /**
    * Returns an array of paragraphs having the same blockID like the given one (which is also part of the return array).
    * You can use `paragraph[0].note` to access the note behind it and make updates via `paragraph[0].note.updateParagraph(paragraph[0])` if you make changes to the content, type, etc (like checking it off as type = "done").
-   * Note: Available from v3.5.2
+   * Note: Available from NotePlan v3.5.2
    * @param {TParagraph}
    * @return {[TParagraph]}
    */
