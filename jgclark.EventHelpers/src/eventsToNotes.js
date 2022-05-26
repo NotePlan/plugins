@@ -108,7 +108,7 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
       outputArray.push(mapForSorting.map((element) => element.text).join('\n'))
     }
 
-    let output = outputArray.join('\n').replace(/\s{2,}/gm, ' ') // If this array is empty -> empty string
+    let output = outputArray.join('\n') // .replace(/\s{2,}/gm, ' ') // If this array is empty -> empty string
     // log(pluginJson, output)
     return output
   }
@@ -315,11 +315,12 @@ export function smartStringReplace(format: string, replacements: Map<string, str
       const replacementValue = replacements.get(p) ?? ''
       if (replacementValue !== '') {
         let replacementForTag = matchedTagInternals.replace(p, replacementValue)
+        log(pluginJson, `    replacing ${replacementValue} for ${p}`)
         output = output.replace(matchedTag, replacementForTag)
       } else {
         output = output.replace(matchedTag, '')
       }
-      // log(pluginJson, `  => ${output}`)
+      log(pluginJson, `  => ${output}`)
     }
   }
 
