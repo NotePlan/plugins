@@ -22,7 +22,7 @@ export function getTimedEntries(input: Array<TCalendarItem>): Array<TCalendarIte
  * Some events span multiple days, but we only want to show the time for one day in question.
  * Assumes that this list was previously filtered to only include events that are on the day in question.
  * @author @jgclark
- * @param {TCalendarItem[]} input - array of calendar items (e.g. for a day)
+ * @param {Array<TCalendarItem>} input - array of calendar items (e.g. for a day)
  * @param {Date} today - date to compare this event against (default is today)
  * @returns {Array<TCalendarItem>} the same array of items but with the start and end times adjusted to the day of interest
  */
