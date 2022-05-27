@@ -7,7 +7,7 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark & Eduard Metzger",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/",
-  "plugin.version": "0.11.1",
+  "plugin.version": "0.12.0",
   "plugin.changelog": "See plugin README.md",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
@@ -54,6 +54,28 @@
       "alias": ["index"],
       "description": "Make/Update note link Indexes for one or more folders",
       "jsFunction": "indexFolders"
+    },
+    {
+      "name": "convert to frontmatter",
+      "alias": [
+        "frontmatter"
+      ],
+      "description": "Convert the current note to use frontmatter syntax, including some default text that can be added in the Plugin's settings",
+      "jsFunction": "convertToFrontmatter"
+    }
+  ],
+  "plugin.settings": [
+    {
+      "type": "heading",
+      "title": "/convert to frontmatter setting"
+    },
+    {
+      "key": "defaultText",
+      "title": "Default Text to add",
+      "description": "The standard text to add after the title in the frontmatter. Can include line breaks by typing return.",
+      "type": "string",
+      "default": "",
+      "required": false
     }
   ]
 }

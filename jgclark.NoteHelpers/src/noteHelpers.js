@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// Last updated 23.5.2022 for v0.12.0, @jgclark
+// Last updated 27.5.2022 for v0.12.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -203,4 +203,9 @@ export async function convertToFrontmatter(): Promise<void> {
   const config = await getSettings()
   convertNoteToFrontmatter(note, config.defaultText ?? '')
   log('convertToFrontmatter', `Note '${displayTitle(note)}' converted to use frontmatter.`)
+
+  // Currently a bug that means the Editor's note display doesn't get updated. 
+  // FIXME(@Eduard): So open the note again to get to see it.
+  // TODO: Remove this in time
+  await Editor.openNoteByFilename(note.filename)
 }
