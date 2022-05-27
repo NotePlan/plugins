@@ -169,27 +169,33 @@ function getTodaysReferences(pNote: TNote | null = null, config: { [key: string]
   })
 
   // clo(todayParas, 'todayParas')
-  if (config.createSyncedCopies) {
-    log(
-      pluginJson,
-      `getTodaysReferences: Cannot search today's note for >today items when config.createSyncedCopies is on, because could be recursive`,
-    )
-  } else {
-    const todosInNote = findTodosInNote(note)
-    if (todosInNote.length > 0) {
-      log(
-        pluginJson,
-        `getTodaysReferences: todosInNote Found ${todosInNote.length} items in today's note. Adding them.`,
-      )
-      todayParas = [...todayParas, ...todosInNote]
-    }
+  // if (config.createSyncedCopies) {
+  // Do not want to pick up the same task multiple times. In the syncedCopies section,
+  // tasks will not match, because they have a time at the front plus the task name plus a link
+  // someday maybe do the compare this way:
+  // isAutoTimeBlockLine()
+  log(
+    pluginJson,
+    `getTodaysReferences: Cannot search today's note for >today items when config.createSyncedCopies is on, because could be recursive`,
+  )
+  // } else {
+  let todosInNote = findTodosInNote(note)
+  if (todosInNote.length > 0) {
+    log(pluginJson, `getTodaysReferences: todosInNote Found ${todosInNote.length} items in today's note. Adding them.`)
+    // eliminate linked lines (for synced lines on the page)
+    // because these should be in the references from other pages
+    clo(todosInNote[0], 'todosInNote[0]')
+    todosInNote = todosInNote.filter((todo) => !/\^[a-zA-Z0-9]{6}/.test(todo.content))
+    todayParas = [...todayParas, ...todosInNote]
+    clo(todayParas.length, 'todayParas')
   }
+  // }
   // console.log(`getTodaysReferences note.filename=${note.filename} backlinks.length=${backlinks.length} todayParas.length=${todayParas.length}`)
   return todayParas
 }
 
 async function insertItemsIntoNote(
-  note: TNote,
+  note: TNote | TEditor,
   list: Array<string>,
   heading: string = '',
   shouldFold: boolean = false,
@@ -197,14 +203,14 @@ async function insertItemsIntoNote(
 ) {
   if (list && list.length > 0 && note) {
     // $FlowIgnore
+    log(pluginJson, `insertItemsIntoNote: items.length=${list.length}`)
+    log(pluginJson, `insertItemsIntoNote: items[0]=${list[0] ?? ''}`)
     await insertContentUnderHeading(note, heading, list.join('\n'))
     // Fold the heading to hide the list
     if (shouldFold && heading !== '') {
       const thePara = note.paragraphs.find((p) => p.type == 'title' && p.content.includes(heading))
       if (thePara) {
         log(pluginJson, `insertItemsIntoNote: folding "${heading}"`)
-        thePara.content = `${String(heading)} …`
-        note.updateParagraph(thePara)
         if (Editor.isFolded) {
           // make sure this command exists
           if (!Editor.isFolded(thePara)) {
@@ -212,6 +218,8 @@ async function insertItemsIntoNote(
             log(pluginJson, `insertItemsIntoNote: folded heading "${heading}"`)
           }
         } else {
+          thePara.content = `${String(heading)} …` // this was the old hack for folding
+          await note.updateParagraph(thePara)
           note.content = note.content //FIXME: hoping for an API to do this so we don't have to force a redraw so it will fold the heading
         }
       } else {
@@ -480,6 +488,37 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: mi
         console.log(
           `After getTimeBlockTimesForEvents, config.createSyncedCopies=${config.createSyncedCopies} todosWithLinksMaybe.length=${todosWithLinksMaybe.length}`,
         )
+
+        console.log(`About to insert ${timeBlockTextList?.length} timeblock items into note`)
+        // $FlowIgnore -- Delete any previous timeblocks we created
+        await insertItemsIntoNote(
+          /*  editorOrNote(note), */
+          Editor,
+          timeBlockTextList,
+          config.timeBlockHeading,
+          config.foldTimeBlockHeading,
+          config,
+        )
+        console.log(`\n\nAUTOTIMEBLOCKING SUMMARY:\n\n`)
+        console.log(`Found ${undupedBackLinkParas.length} undupedBackLinkParas after duplicate elimination`)
+        console.log(`After cleaning, ${tasksByType?.open?.length ?? 0} open items`)
+
+        log(
+          pluginJson,
+          `createTimeBlocksForTodaysTasks inserted ${timeBlockTextList.length} items:\n ${timeBlockTextList.join(
+            '\n',
+          )}`,
+        )
+        if (createCalendarEntries) {
+          console.log(`About to create calendar entries`)
+          await writeTimeBlocksToCalendar(getEventsConfig(config), Editor) //using @jgclark's method for now
+          if (!insertIntoEditor) {
+            // If user didn't want the timeblocks inserted into the editor, then we delete them now that they're in calendar
+            // $FlowIgnore
+            await deleteParagraphsContainingString(editorOrNote(note), timeBlockTag)
+          }
+        }
+
         if (config.createSyncedCopies && todosWithLinksMaybe?.length) {
           console.log(
             `createSyncedCopies is true, so we will create synced copies of the todosParagraphs: ${todosParagraphs.length} timeblocks`,
@@ -490,31 +529,15 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: mi
           if (syncedList.length && Editor) deleteBlockUnderTitle(Editor, String(config.syncedCopiesTitle), false)
           console.log(`Inserting synced list content: ${syncedList.length} items`)
           // $FlowIgnore
+
           await insertItemsIntoNote(
-            editorOrNote(note),
+            /* editorOrNote(note), */
+            Editor,
             syncedList,
             config.syncedCopiesTitle,
             config.foldSyncedCopiesHeading,
             config,
           )
-        }
-        console.log(`About to insert ${timeBlockTextList?.length} timeblock items into note`)
-        // $FlowIgnore -- Delete any previous timeblocks we created
-        await insertItemsIntoNote(
-          editorOrNote(note),
-          timeBlockTextList,
-          config.timeBlockHeading,
-          config.foldTimeBlockHeading,
-          config,
-        )
-        if (createCalendarEntries) {
-          console.log(`About to create calendar entries`)
-          await writeTimeBlocksToCalendar(getEventsConfig(config), Editor) //using @jgclark's method for now
-          if (!insertIntoEditor) {
-            // If user didn't want the timeblocks inserted into the editor, then we delete them now that they're in calendar
-            // $FlowIgnore
-            await deleteParagraphsContainingString(editorOrNote(note), timeBlockTag)
-          }
         }
       }
       return passBackResults ? timeBlockTextList : []
