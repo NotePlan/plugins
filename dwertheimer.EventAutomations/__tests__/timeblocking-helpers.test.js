@@ -738,6 +738,33 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(tb.eliminateDuplicateParagraphs(before)).toEqual([{ content: 'foo' }, { content: 'bar' }])
       })
     })
+    describe('isAutoTimeBlockLine', () => {
+      test('should return null if there are no ATB lines', () => {
+        const line = '222 no timeblock in here #foo'
+        expect(tb.isAutoTimeBlockLine(line, {})).toEqual(null)
+      })
+      test('should find a standard timeblock line', () => {
+        const line = '- 21:00-21:15 Respond to x.la [–](noteplan://x-callback-url/openNote?filename=20220512.md) #🕑'
+        const exp = 'Respond to x.la'
+        expect(tb.isAutoTimeBlockLine(line, {})).toEqual(exp)
+      })
+      test('should find a * at the front', () => {
+        const line = '* 21:00-21:15 Respond to x.la [–](noteplan://x-callback-url/openNote?filename=20220512.md) #🕑'
+        const exp = 'Respond to x.la'
+        expect(tb.isAutoTimeBlockLine(line, {})).toEqual(exp)
+      })
+      test('should find with nonstandard tag', () => {
+        const line =
+          '* 21:00-21:15 Respond to x.la [–](noteplan://x-callback-url/openNote?filename=20220512.md) #something'
+        const exp = 'Respond to x.la'
+        expect(tb.isAutoTimeBlockLine(line, {})).toEqual(exp)
+      })
+      test('should find with a wiki link', () => {
+        const line = '- 19:20-19:35 Send landing page howto [[yo#something]] #🕑'
+        const exp = `Send landing page howto`
+        expect(tb.isAutoTimeBlockLine(line, {})).toEqual(exp)
+      })
+    })
   })
 })
 

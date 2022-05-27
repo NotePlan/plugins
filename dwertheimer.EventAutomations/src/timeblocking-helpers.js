@@ -476,6 +476,32 @@ export function getTimeBlockTimesForEvents(
   return newInfo
 }
 
+/**
+ * (unused)
+ * Remove all the timeblock added text so as to not add it to the todo list (mostly for synced lines)
+ * @param {*} line
+ */
+export function isAutoTimeBlockLine(line: string, config: { [key: string]: any }): null | string {
+  // otherwise, let's scan it for the ATB signature
+  // this is probably superfluous, but it's here for completeness
+  let re = /(?:[-|\*] \d{2}:\d{2}-\d{2}:\d{2} )(.*)(( \[.*\]\(.*\))|( \[\[.*\]\]))(?: #.*)/
+  let m = re.exec(line)
+  if (m) clo(m, 'antiTimeBlockLine')
+  if (m && m[1]) {
+    return m[1]
+  }
+  return null
+}
+
+/**
+ * (unused)
+ * Remove items from paragraph list that are auto-time-block lines
+ * @param {*} paras
+ */
+export function removeTimeBlockParas(paras: Array<TParagraph>): Array<TParagraph> {
+  return paras.filter((p) => !Boolean(isAutoTimeBlockLine(p.content)))
+}
+
 // pattern could be a string or a /regex/ in a string
 export function getRegExOrString(input: string | RegExp): RegExp | string {
   if (input instanceof RegExp) return input

@@ -6,7 +6,7 @@
   "plugin.name": "🗓 AutoTimeBlocking",
   "plugin.description": "Automatically find time in your calendar and create Time Blocks for items marked for >today.",
   "plugin.author": "dwertheimer",
-  "plugin.version": "1.0.0",
+  "plugin.version": "1.1.0",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://noteplan.co/n/#/1EF12392-B544-4044-AC7A-428F57EB2DFC",
@@ -68,7 +68,7 @@
         "key": "timeBlockTag",
         "type": "string",
         "title": "Unique AutoTimeBlock #tag",
-        "description": "The tag that will be used to identify lines created the AutoTimeBlock plugin. This tag can be anything, but should be not ever used by you in other places.",
+        "description": "The tag that will be used to identify lines created the AutoTimeBlock plugin. This tag can be #(anything), but should be not ever used by you in other places.",
         "default": "#🕑",
         "required": true
     },
