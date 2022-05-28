@@ -19,7 +19,7 @@ export function logAllEnvironmentSettings(): void {
   }
 }
 
-export async function buildXCallBackURL(showInstalledOnly: boolean = true) {
+export async function chooseRunPluginXCallbackURL(showInstalledOnly: boolean = true) {
   const plugins = (await showInstalledOnly) ? DataStore.installedPlugins() : DataStore.listPlugins()
 
   let commandMap = []
@@ -56,9 +56,7 @@ export async function buildXCallBackURL(showInstalledOnly: boolean = true) {
       i++
     }
   }
-  const url = createRunPluginCallbackUrl(pluginID, command, args)
-  Editor.insertTextAtCursor(url)
-  Clipboard.string = url
+  return createRunPluginCallbackUrl(pluginID, command, args)
 }
 
 async function getArgumentText(commandName, i) {
