@@ -12,11 +12,11 @@
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/np.CallbackURLs/README.md",
   "plugin.commands": [
     {
-      "name": "Say Hello! (change this to your own command)",
-      "description": "Your first plugin!",
-      "jsFunction": "sayHello",
+      "name": "Get X-Callback-URL",
+      "description": "Run Wizard to get X-Callback-URL",
+      "jsFunction": "xCallbackWizard",
       "alias": [
-        "helloWorld Alias"
+        "xcallback","url","link"
       ]
     }
   ],

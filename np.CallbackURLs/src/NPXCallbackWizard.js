@@ -11,15 +11,56 @@
 // and put the majority of the work in the /support folder files which have corresponding tests
 // support/utils is an example of a testable file that is used by the plugin command
 
-import utils from './support/utils'
-import { log, logError, clo, JSP, chooseRunPluginXCallbackURL } from '../../helpers/dev'
-import { createRunPluginCallbackUrl } from '../../helpers/general'
+import { log, logError, clo, JSP } from '../../helpers/dev'
+import { createOpenNoteCallbackUrl } from '../../helpers/general'
+import { chooseRunPluginXCallbackURL } from '@helpers/NPdev'
 import pluginJson from '../plugin.json'
-import { chooseOption, showMessage } from '@helpers/userInput'
+import { chooseOption, showMessage, chooseHeading, chooseFolder } from '@helpers/userInput'
 
 // https://help.noteplan.co/article/49-x-callback-url-scheme#addnote
 
-export async function runPluginWizard(incoming: ?string = ''): Promise<void> {
+async function chooseNote(
+  includeProjectNotes: boolean = true,
+  includeCalendarNotes: boolean = false,
+  foldersToIgnore: Array<string> = [],
+): {} {
+  let noteList = []
+  const projectNotes = DataStore.projectNotes
+  const calendarNotes = DataStore.calendarNotes
+  if (includeProjectNotes) {
+    noteList = noteList.concat(projectNotes)
+  }
+  if (includeCalendarNotes) {
+    noteList = noteList.concat(calendarNotes)
+  }
+  const noteListFiltered = noteList.filter((note) => {
+    // filter out notes that are in folders to ignore
+    let isInIgnoredFolder = false
+    foldersToIgnore.forEach((folder) => {
+      if (note.filename.includes(`${folder}/`)) {
+        isInIgnoredFolder = true
+      }
+    })
+    return !isInIgnoredFolder
+  })
+  const opts = noteListFiltered.map((note) => {
+    return note.title && note.title !== '' ? note?.title : note?.filename
+  })
+  const re = await CommandBar.showOptions(opts, 'Choose note')
+  return noteListFiltered[re.index]
+}
+
+async function getOpenNoteURL(): string {
+  const note = await chooseNote()
+  const hasTitle = note.title && note.title !== ''
+  return createOpenNoteCallbackUrl(hasTitle ? note.title : note.filename, !hasTitle) //title,isFilename,heading
+}
+
+/**
+ * Walk user through creation of a xcallback url
+ * @param {string} incoming - text coming in from a runPlugin link
+ */
+export async function xCallbackWizard(incoming: ?string = ''): Promise<void> {
   try {
     let url = '',
       canceled = false
@@ -35,16 +76,20 @@ export async function runPluginWizard(incoming: ?string = ''): Promise<void> {
       { label: 'Run a Plugin Command', value: 'runPlugin' },
     ]
     const res = await chooseOption(`Select an X-Callback type`, options, '')
-    switch (res.value) {
+    const item = options.find((i) => i.value === res)
+    switch (res) {
       case '':
         log(pluginJson, 'No option selected')
         canceled = true
+        break
+      case 'openNote':
+        url = await getOpenNoteURL()
         break
       case 'runPlugin':
         url = await chooseRunPluginXCallbackURL()
         break
       default:
-        showMessage(`${res.value}: This type is not yet available in this plugin`, 'OK', 'Sorry!')
+        showMessage(`${res}: This type is not yet available in this plugin`, 'OK', 'Sorry!')
         break
     }
     // ask if they want x-success and add it if so
