@@ -119,6 +119,7 @@ export function createOpenNoteCallbackUrl(
   // FIXME: this is working around an API bug that does not allow heading references in filename xcallbacks
   // When @eduard fixes it, this line can be removed
   const head = isFilename ? '' : heading
+  console.log(`createOpenNoteCallbackUrl: ${xcb}${titleOrFilename}${head ? `&heading=${head}` : ''}`)
   const encoded = encodeURIComponent(titleOrFilename).replace(/\(/g, '%28').replace(/\)/g, '%29')
   return `${xcb}${encoded}${head && head !== '' ? `#${head}` : ''}`
 }

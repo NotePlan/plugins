@@ -53,6 +53,8 @@ async function chooseNote(
 async function getOpenNoteURL(): string {
   const note = await chooseNote()
   const hasTitle = note.title && note.title !== ''
+  console.log(`getOpenNoteURL: ${note.filename}`)
+  clo(note, 'note details:')
   return createOpenNoteCallbackUrl(hasTitle ? note.title : note.filename, !hasTitle) //title,isFilename,heading
 }
 
