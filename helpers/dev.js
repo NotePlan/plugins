@@ -2,6 +2,28 @@
 // Development-related helper functions
 
 /**
+ * A helper function to make promises (especially fetch promises) work better with async/await
+ * Typically using await with fetch will fail silently if the fetch fails.
+ * @param { Promise } promise 
+ * @returns { ok: boolean, data: any, error: any }
+ * @author @dwertheimer
+ * @example
+ * 
+  const {ok,data,error} = await guarantee(fetch("https://noteplan.co", { timeout: 1000 }))
+  if (ok) {
+    // do something with data
+  } else {
+    console.log(error)
+    // output some error inline so you know which tag/web call failed
+  }
+ */
+// $FlowIgnore
+export const guarantee: { ok: boolean, data: any, error: any } = (promise: Promise<any>) =>
+  promise
+    .then((data) => ({ ok: true, data, error: null }))
+    .catch((error) => Promise.resolve({ ok: false, data: null, error }))
+
+/**
  * Returns ISO formatted date time
  * @author @codedungeon
  * @return {string} formatted date time
@@ -64,9 +86,9 @@ export function JSP(obj: any, space: string | number = 2): string {
             console.log(
               `Caught error in JSP for propname=${propName} : ${error} typeof obj[propName]=${typeof obj[
                 propName
-              ]} isArray=${Array.isArray(obj[propName])} len=${obj[propName]?.length} \n VALUE: ${JSON.stringify(
-                obj[propName],
-              )}`,
+              ]} isArray=${String(Array.isArray(obj[propName]))} len=${
+                obj[propName]?.length
+              } \n VALUE: ${JSON.stringify(obj[propName])}`,
             )
           }
         } else {
