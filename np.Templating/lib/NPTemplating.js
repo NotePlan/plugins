@@ -770,7 +770,7 @@ export default class NPTemplating {
     let sectionData = { ...userData }
     if (!new FrontmatterModule().isFrontmatterTemplate(templateData)) {
       let msg = '**Invalid Template Format**\n\nThe selected template is not in supported format.\n'
-      msg += helpInfo('Template Anatomty: Frontmatter')
+      msg += helpInfo('Template Anatomy: Frontmatter')
       return { frontmatterBody: msg, frontmatterAttributes: {} }
     }
 

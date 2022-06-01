@@ -3,7 +3,14 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
-## [1.2.0-beta.08] - 2022-05-26 (mikeerickson)
+## [1.2.0-beta.08] - 2022-06-01 (mikeerickson)
+
+- Added `Note Module`
+  > There are 14 new commands in Note Module, thus only listing the new module here, refer to [documentation](https://nptemplating-docs.netlify.app/docs/templating-modules/note-module) for more information
+- Added `startOfMonth` to [Date Module](https://nptemplating-docs.netlify.app/docs/templating-modules/date-module#startofmonth)
+- Added `endOfMonth` to [Date Module](https://nptemplating-docs.netlify.app/docs/templating-modules/date-module#endofmonth)
+- Added `daysInMonth` to [Date Module](https://nptemplating-docs.netlify.app/docs/templating-modules/date-module#daysinmonth)
+- Added `getFrontmatterText` to [Frontmatter Module](https://nptemplating-docs.netlify.app/docs/templating-modules/frontmatter-module#getfrontmattertext)
 
 ## [1.2.0-beta.07] - 2022-05-26 (mikeerickson)
 
@@ -14,7 +21,7 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/
 ## [1.2.0-beta.06] - 2022-05-24 (mikeerickson)
 
 - fixed issue passing format string to `web.weather` (was not passing data in fix applied in `1.2.0-beta.03`)
-- adjust `np:invoke` command to use `prepend`, `insert`, `append`
+- adjusted `np:invoke` command to use `prepend`, `insert`, `append`
 
 ## [1.2.0-beta.05] - 2022-05-20 (mikeerickson)
 

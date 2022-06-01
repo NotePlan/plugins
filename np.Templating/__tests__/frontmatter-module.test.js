@@ -142,6 +142,15 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toContain(`*****\nSection Four`)
     })
 
+    it(`should get frontmatter text`, async () => {
+      const data = await factory('frontmatter-minimal.ejs')
+      const testFrontmatterBlock = '---\ntitle: Test template\nname: Mike Erickson\n---\n'
+
+      const frontmatterBlock = new FrontmatterModule().getFrontmatterText(data)
+
+      expect(frontmatterBlock).toEqual(testFrontmatterBlock)
+    })
+
     describe(`${block('.convertProjectNoteToFrontmatter')}`, () => {
       it('should return -1', async () => {
         const result = new FrontmatterModule().convertProjectNoteToFrontmatter('')

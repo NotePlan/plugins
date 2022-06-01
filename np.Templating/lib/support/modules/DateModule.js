@@ -271,11 +271,41 @@ export default class DateModule {
     return endOfWeek
   }
 
-  add(userPivotDate = '', value = '', shorthand = 'days') {
+  startOfMonth(format = '', userPivotDate = '') {
+    let pivotDate = userPivotDate && userPivotDate.length > 0 ? userPivotDate : moment(new Date()).format('YYYY-MM-DD')
+
+    const configFormat = this.config?.dateFormat || 'YYYY-MM-DD'
+    format = format && format.length > 0 ? format : configFormat
+
+    let firstOfMonth = moment(pivotDate).startOf('month').format(format)
+    console.log({ pivotDate, firstOfMonth })
+    return firstOfMonth
+  }
+
+  endOfMonth(format = '', userPivotDate = '') {
+    let pivotDate = userPivotDate && userPivotDate.length > 0 ? userPivotDate : moment(new Date()).format('YYYY-MM-DD')
+
+    const configFormat = this.config?.dateFormat || 'YYYY-MM-DD'
+    format = format && format.length > 0 ? format : configFormat
+
+    let firstOfMonth = moment(pivotDate).endOf('month').format(format)
+
+    return firstOfMonth
+  }
+
+  daysInMonth(userPivotDate = '') {
+    let pivotDate = userPivotDate && userPivotDate.length > 0 ? userPivotDate : moment(new Date()).format('YYYY-MM-DD')
+
+    return moment(pivotDate).daysInMonth()
+  }
+
+  add(userPivotDate = '', value = '', shorthand = 'days', format = '') {
     const pivotDate = userPivotDate && userPivotDate.length > 0 ? userPivotDate : moment(new Date()).format('YYYY-MM-DD')
+    const configFormat = this.config?.dateFormat || 'YYYY-MM-DD'
+    format = format.length > 0 ? format : configFormat
 
     // DateModule `pivotDate` will be formatted YYYY-MM-DD, need to add the time part
-    const dt = this.createDateTime(userPivotDate)
+    const dt = this.createDateTime(pivotDate)
 
     const shorthandKeys = ['y', 'Q', 'M', 'w', 'd', 'h', 'm', 's', 'ms']
     if (typeof value === 'string') {
@@ -286,11 +316,13 @@ export default class DateModule {
       }
     }
 
-    return moment(new Date(dt)).add(value, shorthand).format('YYYY-MM-DD')
+    return moment(new Date(pivotDate)).add(value, shorthand).format(format)
   }
 
-  subtract(userPivotDate = '', value = '', shorthand = 'days') {
+  subtract(userPivotDate = '', value = '', shorthand = 'days', format = '') {
     const pivotDate = userPivotDate && userPivotDate.length > 0 ? userPivotDate : moment(new Date()).format('YYYY-MM-DD')
+    const configFormat = this.config?.dateFormat || 'YYYY-MM-DD'
+    format = format.length > 0 ? format : configFormat
 
     // DateModule `pivotDate` will be formatted YYYY-MM-DD, need to add the time part
     const dt = this.createDateTime(userPivotDate)
@@ -305,9 +337,7 @@ export default class DateModule {
     }
 
     value = Math.abs(value) // just in case the user passsed a negative value
-    const result = moment(new Date(dt)).subtract(value, shorthand).format('YYYY-MM-DD')
-
-    return result
+    return moment(new Date(dt)).subtract(value, shorthand).format(format)
   }
 
   businessAdd(numDays = 1, pivotDate = '', format = '') {

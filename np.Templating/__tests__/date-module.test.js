@@ -148,7 +148,7 @@ describe(`${PLUGIN_NAME}`, () => {
         // this is how it will look inside date functions using `.createDateTime`
         const pivotDate = '2022-05-21T00:00:01'
 
-        const result = new DateModule().add('2022-05-21', 7)
+        const result = new DateModule().add(pivotDate, 7)
 
         const assertValue = moment(new Date(pivotDate)).add(7, 'days').format('YYYY-MM-DD')
 
@@ -159,7 +159,7 @@ describe(`${PLUGIN_NAME}`, () => {
         // this is how it will look inside date functions using `.createDateTime`
         const pivotDate = '2022-05-21T00:00:01'
 
-        const result = new DateModule().add('2022-05-21', 7, 'weeks')
+        const result = new DateModule().add(pivotDate, 7, 'weeks')
 
         const assertValue = moment(new Date(pivotDate)).add(7, 'weeks').format('YYYY-MM-DD')
 
@@ -170,7 +170,7 @@ describe(`${PLUGIN_NAME}`, () => {
         // this is how it will look inside date functions using `.createDateTime`
         const pivotDate = '2022-05-21T00:00:01'
 
-        const result = new DateModule().add('2022-05-21', '7w')
+        const result = new DateModule().add(pivotDate, '7w')
 
         const assertValue = moment(new Date(pivotDate)).add(7, 'weeks').format('YYYY-MM-DD')
 
@@ -181,7 +181,7 @@ describe(`${PLUGIN_NAME}`, () => {
         // this is how it will look inside date functions using `.createDateTime`
         const pivotDate = '2022-05-21T00:00:01'
 
-        const result = new DateModule().add('2022-05-21', '7years')
+        const result = new DateModule().add(pivotDate, '7years')
 
         const assertValue = moment(new Date(pivotDate)).add(7, 'weeks').format('YYYY-MM-DD')
 
@@ -406,6 +406,11 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(startOfWeek).toEqual('2022-02-27')
     })
 
+    it(`should return ${method('.startOfWeek')} using pivot date`, async () => {
+      let startOfWeek = new DateModule().startOfWeek(null, '2021-12-01')
+      expect(startOfWeek).toEqual('2021-11-28')
+    })
+
     it(`should return ${method('.startOfWeek')} using fixed date with offset`, async () => {
       let startOfWeek = new DateModule().startOfWeek(null, '2022-03-05', 1)
       expect(startOfWeek).toEqual('2022-02-28')
@@ -416,14 +421,39 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(endOfWeek).toEqual('2022-03-05')
     })
 
+    it(`should return ${method('.startOfMonth')} using today`, async () => {
+      let startOfMonth = new DateModule().startOfMonth(null, '2022-05-29')
+      expect(startOfMonth).toEqual('2022-05-01')
+    })
+
+    it(`should return ${method('.startOfMonth')} using supplied date`, async () => {
+      let startOfMonth = new DateModule().startOfMonth(null, '2021-12-01')
+      expect(startOfMonth).toEqual('2021-12-01')
+    })
+
+    it(`should return ${method('.endOfMonth')} using today`, async () => {
+      let endOfMonth = new DateModule().endOfMonth(null, '2022-05-29')
+      expect(endOfMonth).toEqual('2022-05-31')
+    })
+
+    it(`should return ${method('.daysInMonth')} using today`, async () => {
+      let days = new DateModule().daysInMonth('2022-05-29')
+      expect(days).toEqual(31)
+    })
+
+    it(`should return ${method('.daysInMonth')} using today`, async () => {
+      let days = new DateModule().daysInMonth('2022-02-28')
+      expect(days).toEqual(28)
+    })
+
     it(`should return ${method('.fromNow')} using today`, async () => {
       let fromNow = new DateModule().fromNow('2022-03-05')
       expect(fromNow).toEqual('INCOMPLETE')
     })
 
     it(`should return ${method('.endOfWeek')} using fixed date with offset`, async () => {
-      let startOfWeek = new DateModule().endOfWeek(null, '2022-03-05', 1)
-      expect(startOfWeek).toEqual('2022-03-06')
+      let endOfWeek = new DateModule().endOfWeek(null, '2022-03-05', 1)
+      expect(endOfWeek).toEqual('2022-03-06')
     })
 
     describe(`${block('business days')}`, () => {
