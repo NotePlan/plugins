@@ -7,7 +7,7 @@
 	"plugin.icon": "",
 	"plugin.author": "Jonathan Clark",
 	"plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
-	"plugin.version": "0.7.1",
+  "plugin.version": "0.8.0-beta1",
 	"plugin.dependencies": [],
 	"plugin.script": "script.js",
 	"plugin.isRemote": "false",
@@ -43,9 +43,13 @@
 			"jsFunction": "weeklyStats"
     },
     {
-      "name": "update Summaries",
-      "description": "update Summaries plugin settings",
-      "jsFunction": "onUpdateOrInstall"
+      "name": "make MOC",
+      "description": "Make/Update a Map of Content",
+      "alias": [
+        "MOC",
+        "map"
+      ],
+      "jsFunction": "makeMOC"
 		}
   ],
 	"plugin.settings": [

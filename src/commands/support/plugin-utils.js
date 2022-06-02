@@ -35,6 +35,7 @@ module.exports = {
     const pluginPath = path.resolve(`./${pluginName}`)
 
     const changeLogFilename = path.join(pluginPath, 'CHANGELOG.md')
+    filesystem.existsSync(changeLogFilename) ? fileList.push(changeLogFilename) : null
 
     const pluginJsonFilename = path.join(pluginPath, 'plugin.json')
     filesystem.existsSync(pluginJsonFilename) ? fileList.push(pluginJsonFilename) : null
@@ -59,7 +60,7 @@ module.exports = {
   getPluginConfig(pluginName = null) {
     const pluginJsonFilename = path.resolve(pluginName, 'plugin.json')
     if (filesystem.existsSync(pluginJsonFilename)) {
-      const configData = filesystem.readFileSync(pluginJsonFilename,'utf-8')
+      const configData = filesystem.readFileSync(pluginJsonFilename, 'utf-8')
       if (configData.length > 0) {
         return JSON.parse(configData)
       }

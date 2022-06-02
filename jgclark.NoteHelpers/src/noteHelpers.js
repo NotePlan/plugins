@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// Last updated 27.5.2022 for v0.12.0, @jgclark
+// Last updated 2.6.2022 for v0.12.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -13,11 +13,8 @@ import {
   printNote,
 } from '@helpers/note'
 import { convertNoteToFrontmatter } from '@helpers/NPnote'
-import { getParaFromContent, } from '@helpers/paragraph'
-import {
-  chooseFolder,
-  chooseHeading, showMessage
-} from '@helpers/userInput'
+import { getParaFromContent, findStartOfActivePartOfNote } from '@helpers/paragraph'
+import { chooseFolder, chooseHeading, showMessage } from '@helpers/userInput'
 
 //-----------------------------------------------------------------
 // Settings
@@ -81,12 +78,16 @@ export async function openNoteNewWindow(): Promise<void> {
   // Ask for the note we want to open
   const notes = allNotesSortedByChanged()
   const re = await CommandBar.showOptions(
-    notes.map((n) => n.title).filter(Boolean),
+    notes.map((n) => displayTitle(n)),
     'Select note to open in new window',
   )
   const note = notes[re.index]
   const filename = note.filename
-  await Editor.openNoteByFilename(filename, true)
+  // work out where start of main content of the note is
+  const startOfMainContentLine = findStartOfActivePartOfNote(note)
+  const startOfMainContentCharIndex = note.paragraphs[startOfMainContentLine].contentRange?.start ?? 0
+  // open note, moving cursor to start of main content
+  await Editor.openNoteByFilename(filename, true, startOfMainContentCharIndex, startOfMainContentCharIndex, false)
 }
 
 /** 
@@ -99,12 +100,36 @@ export async function openNoteNewSplit(): Promise<void> {
   // Ask for the note we want to open
   const notes = allNotesSortedByChanged()
   const re = await CommandBar.showOptions(
-    notes.map((n) => n.title).filter(Boolean),
+    notes.map((n) => displayTitle(n)),
     'Select note to open in new split window',
   )
   const note = notes[re.index]
   const filename = note.filename
-  await Editor.openNoteByFilename(filename, false, 0, 0, true)
+  // work out where start of main content of the note is
+  const startOfMainContentLine = findStartOfActivePartOfNote(note)
+  const startOfMainContentCharIndex = note.paragraphs[startOfMainContentLine].contentRange?.start ?? 0
+  // open note, moving cursor to start of main content
+  await Editor.openNoteByFilename(filename, false, startOfMainContentCharIndex, startOfMainContentCharIndex, true)
+}
+
+/** 
+ * Open the current note in a new split of the main window.
+ * Note: uses API option only available on macOS and from v3.4. 
+ * It falls back to opening in a new window on unsupported versions.
+ * @author @jgclark
+ */
+export async function openCurrentNoteNewSplit(): Promise<void> {
+  const { note, filename } = Editor
+  if (note == null || filename == null) {
+    // No note open, so don't do anything.
+    logError('openCurrentNoteNewSplit', 'No note open. Stopping.')
+    return
+  }
+  // work out where start of main content of the note is
+  const startOfMainContentLine = findStartOfActivePartOfNote(note)
+  const startOfMainContentCharIndex = note.paragraphs[startOfMainContentLine].contentRange?.start ?? 0
+  // open note, moving cursor to start of main content
+  await Editor.openNoteByFilename(filename, false, startOfMainContentCharIndex, startOfMainContentCharIndex, true)
 }
 
 /**

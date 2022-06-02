@@ -4,6 +4,14 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/codedungeon.Toolbox/README.md) for details on available commands and use case.
 
+## [3.5.0] - 2022-06-01 (@codedungeon)
+
+- updated [#205](https://github.com/NotePlan/plugins/issues/205) `npc plugin:release` to include `CHANGELOG.md` if exists ()
+- updated `npc plugin:create` to include extended plugin skeleton (@dwertheimer)
+  > Added more skeleton tests (thank you @dwertheimer)
+- restored 180 character width in `prettier` settings
+  > If we continue to toggle this setting, my suggestion would be to remove it as a base setting and integrate personal `prettier.config.js` configuration
+
 ## [3.4.1] - 2022-05-24 (@codedungeon)
 
 - fixed `npc plugin:release`

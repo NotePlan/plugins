@@ -2,8 +2,8 @@
   "name": "np.plugins",
   "packageName": "noteplan-cli",
   "info": "noteplan plugin development toolbox",
-  "version": "3.4.2",
-  "build": "342",
+  "version": "3.5.0",
+  "build": "350",
   "description": "noteplan-cli",
   "repository": "https://github.com/NotePlan/plugins",
   "contributors": [
@@ -98,7 +98,7 @@
     "docs": "documentation build '*.js' -f md -o README-helperFunctions.md"
   },
   "prettier": {
-    "printWidth": 120,
+    "printWidth": 180,
     "parser": "flow",
     "semi": false,
     "trailingComma": "all",

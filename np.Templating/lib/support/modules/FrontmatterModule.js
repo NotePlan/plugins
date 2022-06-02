@@ -46,6 +46,10 @@ export default class FrontmatterModule {
     return ''
   }
 
+  getFrontmatterText(templateData: string): string {
+    return templateData.replace(this.body(templateData), '')
+  }
+
   parse(template: string = ''): any {
     if (this.isFrontmatterTemplate(template)) {
       const fmData = fm(template)
