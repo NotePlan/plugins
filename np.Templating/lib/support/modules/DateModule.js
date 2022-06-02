@@ -299,6 +299,18 @@ export default class DateModule {
     return moment(pivotDate).daysInMonth()
   }
 
+  daysBetween(startDate = '', endDate = '') {
+    if (startDate.length !== 10) {
+      return 'Invalid Start Date'
+    }
+
+    if (endDate.length !== 10) {
+      return 'Invalid End Date'
+    }
+
+    return moment(new Date(endDate)).diff(moment(new Date(startDate)), 'days')
+  }
+
   add(userPivotDate = '', value = '', shorthand = 'days', format = '') {
     const pivotDate = userPivotDate && userPivotDate.length > 0 ? userPivotDate : moment(new Date()).format('YYYY-MM-DD')
     const configFormat = this.config?.dateFormat || 'YYYY-MM-DD'

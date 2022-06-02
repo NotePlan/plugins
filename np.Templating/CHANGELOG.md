@@ -3,6 +3,10 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.2.0-beta.09] - 2022-06-02 (mikeerickson)
+
+- Added `daysBetween` to [Date Module](https://nptemplating-docs.netlify.app/docs/templating-modules/date-module#daysbetween)
+
 ## [1.2.0-beta.08] - 2022-06-01 (mikeerickson)
 
 - Added `Note Module`
