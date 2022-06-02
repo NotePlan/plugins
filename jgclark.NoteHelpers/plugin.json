@@ -7,7 +7,7 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark & Eduard Metzger",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/",
-  "plugin.version": "0.12.1",
+  "plugin.version": "0.13.0",
   "plugin.changelog": "See plugin README.md",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
@@ -24,6 +24,17 @@
       "alias": ["ons", "open", "window", "split"],
       "description": "Open a user-selected note in a new split of the main window",
       "jsFunction": "openNoteNewSplit"
+    },
+    {
+      "name": "open current note new split",
+      "alias": [
+        "ocns",
+        "open",
+        "window",
+        "split"
+      ],
+      "description": "Open the current note again in a new split of the main window",
+      "jsFunction": "openCurrentNoteNewSplit"
     },
     {
       "name": "jump to heading",

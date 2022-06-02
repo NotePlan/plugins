@@ -83,9 +83,8 @@ export async function openNoteNewWindow(): Promise<void> {
   )
   const note = notes[re.index]
   const filename = note.filename
-  // work out where start of main content of note is
+  // work out where start of main content of the note is
   const startOfMainContentLine = findStartOfActivePartOfNote(note)
-  log(pluginJson, startOfMainContentLine)
   const startOfMainContentCharIndex = note.paragraphs[startOfMainContentLine].contentRange?.start ?? 0
   // open note, moving cursor to start of main content
   await Editor.openNoteByFilename(filename, true, startOfMainContentCharIndex, startOfMainContentCharIndex, false)
@@ -106,10 +105,28 @@ export async function openNoteNewSplit(): Promise<void> {
   )
   const note = notes[re.index]
   const filename = note.filename
-  log(pluginJson, `${re.index}, ${filename}`)
-  // work out where start of main content of note is
+  // work out where start of main content of the note is
   const startOfMainContentLine = findStartOfActivePartOfNote(note)
-  log(pluginJson, startOfMainContentLine)
+  const startOfMainContentCharIndex = note.paragraphs[startOfMainContentLine].contentRange?.start ?? 0
+  // open note, moving cursor to start of main content
+  await Editor.openNoteByFilename(filename, false, startOfMainContentCharIndex, startOfMainContentCharIndex, true)
+}
+
+/** 
+ * Open the current note in a new split of the main window.
+ * Note: uses API option only available on macOS and from v3.4. 
+ * It falls back to opening in a new window on unsupported versions.
+ * @author @jgclark
+ */
+export async function openCurrentNoteNewSplit(): Promise<void> {
+  const { note, filename } = Editor
+  if (note == null || filename == null) {
+    // No note open, so don't do anything.
+    logError('openCurrentNoteNewSplit', 'No note open. Stopping.')
+    return
+  }
+  // work out where start of main content of the note is
+  const startOfMainContentLine = findStartOfActivePartOfNote(note)
   const startOfMainContentCharIndex = note.paragraphs[startOfMainContentLine].contentRange?.start ?? 0
   // open note, moving cursor to start of main content
   await Editor.openNoteByFilename(filename, false, startOfMainContentCharIndex, startOfMainContentCharIndex, true)
