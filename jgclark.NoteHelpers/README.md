@@ -1,7 +1,7 @@
 # 📙 NoteHelpers plugin
-This plugin provides these commands to help jump quickly between NotePlan notes, and manage them (with short names available as command aliases):
-- **/open note new window** (alias **/onw**): open a user-selected note in a new window
-- **/open note new split** (alias **/ons**): open a user-selected note in a new split of the main window
+This plugin provides these commands to help jump quickly between NotePlan notes, and manage them:
+- **/open note new window** (alias **/onw**): open a user-selected note in a new window (and places the cursor at what it judges to be the start of the main content)
+- **/open note new split** (alias **/ons**): open a user-selected note in a new split of the main window (and places the cursor at what it judges to be the start of the main content)
 - **/jump to note's heading** (alias **/jh**): jumps the cursor to the selected heading in the current note
 - **/jump to note** (alias **/jn**): jump to a different note, and then selected heading
 - **/jump to done** (alias **/jd**): simply jumps the cursor to the `## Done` section of the current note (if it exists)

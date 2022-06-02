@@ -1,6 +1,10 @@
 # What's changed in 📙 Note Helpers plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/).
 
+## [0.12.1] - 2022-06-02
+### Changed
+- when using "/open note new window" or "/open note new split" it now places the cursor at what it judges to be the start of the main content of the note (i.e. after title or frontmatter) or project-related metadata.
+
 ## [0.12.0] - 2022-05-27
 ### Added
 - command "/convert to frontmatter" which convert the current note to use frontmatter syntax, including optional default text that can be added in the Plugin's settings.

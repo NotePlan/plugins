@@ -6,17 +6,6 @@
 import { hyphenatedDateString } from './dateTime'
 
 //-----------------------------------------------------------------------------
-// Paragraph-level Constants
-
-/**
- * Test if this is a Horizontal Line line
- * based on my best understanding of the [Commonmark spec](https://spec.commonmark.org/0.30/#thematic-break)
- * NB: this won't be needed from v3.4.1 as there will then be paragraph type 'separator'. TODO(jgclark):
- * @author @jgclark
- */
-export const RE_HORIZONTAL_LINE = `^ {0,3}((\\_\\h*){3,}|(\\*\\h*){3,}|(\\-\\h*){3,})$`
-
-//-----------------------------------------------------------------------------
 // Paragraph-level Functions
 
 /**
@@ -211,9 +200,36 @@ export function findEndOfActivePartOfNote(note: TNote): number {
 }
 
 /**
- * Works out where the first line of the note is, following the first paragraph
- * of type 'title'. If it doesn't find one it defaults to the first non-blank line
- * after any frontmatter (if present)
+ * Works out which is the last line of the frontmatter (or 0 if not present)
+ * @author @jgclark
+ *
+ * @param {TNote} note - the note to assess
+ * @return {number} - the line index number
+ */
+export function endOfFrontmatterLineIndex(note: TNote): number {
+  const paras = note.paragraphs
+  const lineCount = paras.length
+  let inFrontMatter: boolean = false
+  let i = 0
+  while (i < lineCount) {
+    const p = paras[i]
+    if (p.type === 'separator') {
+      if (!inFrontMatter) {
+        inFrontMatter = true
+      } else {
+        inFrontMatter = false
+        return i
+      }
+    }
+    i++
+  }
+  return 0
+}
+
+/**
+ * Works out where the first line of the note is, following the first paragraph of type 'title', or frontmatter (if present).
+ * Additionally, it skips past any front-matter like section in a project note, as used by the Reviews plugin before frontmatter was supported.
+ * This is indicated by a #hashtag starting the next line. If there is, run on to next heading or blank line.
  * @author @jgclark
  *
  * @param {TNote} note - the note to assess
@@ -222,34 +238,29 @@ export function findEndOfActivePartOfNote(note: TNote): number {
 export function findStartOfActivePartOfNote(note: TNote): number {
   const paras = note.paragraphs
   const lineCount = paras.length
-  let startOfActive: number = 0 // default to line 0, the H1 line
   let inFrontMatter: boolean = false
   let i = 0
-  while (i < lineCount) {
-    const p = paras[i]
-    if (p.type === 'title') {
-      startOfActive = i + 1
-      break
-    }
-    if (p.type === 'separator') {
-      if (!inFrontMatter) {
-        inFrontMatter = true
-      } else {
-        inFrontMatter = false
+
+  // set line to start looking at: after H1 or frontmatter (if present)
+  let startOfActive = endOfFrontmatterLineIndex(note) + 1
+
+  // additionally, we're going to skip past any front-matter like section in a project note, 
+  // indicated by a #hashtag starting the next line.
+  // If there is, run on to next heading or blank line.
+  if (paras[startOfActive].content.match(/^#\w/)) {
+    for (i = startOfActive; i < lineCount; i++) {
+      const p = paras[i]
+      if (p.type === 'title' || p.type === 'empty') {
         startOfActive = i + 1
         break
       }
     }
-    if (p.type !== 'empty') {
-      startOfActive = i
-    }
-    i++
   }
   return startOfActive
 }
 
 /**
- * Get paragraph numbers of the start and end of the current selection in the Editor
+ * Get paragraph numbers of the start and end of the current selection in the Editor.
  * @author @jgclark
  *
  * @param {TRange} selection - the current selection rnage object
@@ -258,7 +269,6 @@ export function findStartOfActivePartOfNote(note: TNote): number {
 export function selectedLinesIndex(selection: Range, paragraphs: $ReadOnlyArray<TParagraph>): [number, number] {
   let firstSelParaIndex = 0
   let lastSelParaIndex = 0
-  // console.log(`\tSelection: ${rangeToString(selection)}`)
   const startParaRange = Editor.paragraphRangeAtCharacterIndex(selection.start)
   const endParaRange: Range = Editor.paragraphRangeAtCharacterIndex(selection.end)
 
