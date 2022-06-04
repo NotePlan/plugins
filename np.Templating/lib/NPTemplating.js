@@ -16,6 +16,7 @@ import { datePicker, askDateInterval } from '@helpers/userInput'
 
 /*eslint-disable */
 import TemplatingEngine from './TemplatingEngine'
+
 import { parseISOWithOptions } from 'date-fns/fp'
 
 const TEMPLATE_FOLDER_NAME = NotePlan.environment.templateFolder
@@ -529,7 +530,6 @@ export default class NPTemplating {
     if (!templateName.includes(templateFolderName)) {
       templateFilename = `${templateFolderName}/${templateName}`
     }
-
     let selectedTemplate = ''
     const normalizedFilename = await this.normalizeToNotePlanFilename(filename)
     templateFilename = templateFilename.replace(filename, normalizedFilename)
@@ -623,7 +623,62 @@ export default class NPTemplating {
     let newTemplateData = templateData
     let newSettingData = { ...sessionData }
     const tags = (await this.getTags(templateData)) || []
-    tags.forEach((tag) => {
+
+    // process includes separately
+    for (const tag of tags) {
+      if (tag.includes('note')) {
+        const includeInfo = tag.replace('<%-', '').replace('%>', '').replace('note', '').replace('(', '').replace(')', '')
+        const parts = includeInfo.split(',')
+        if (parts.length > 0) {
+          const noteName = parts[0].replace(/'/gi, '').trim()
+          let availableNotes = await DataStore.projectNoteByTitle(noteName)
+          if (typeof availableNotes !== 'undefined') {
+            // $FlowIgnore
+            newTemplateData = newTemplateData.replace(tag, availableNotes[0].content)
+          } else {
+            newTemplateData = newTemplateData.replace(tag, `**An error occurred loading note "${noteName}"**`)
+          }
+        } else {
+          newTemplateData = newTemplateData.replace(tag, `**An error occurred process note**`)
+        }
+      }
+
+      if (tag.includes('calendar')) {
+        const includeInfo = tag.replace('<%-', '').replace('%>', '').replace('calendar', '').replace('(', '').replace(')', '')
+        const parts = includeInfo.split(',')
+        if (parts.length > 0) {
+          const noteName = parts[0].replace(/'/gi, '').trim()
+          let calendarNote = await DataStore.calendarNoteByDateString(noteName)
+          if (typeof calendarNote !== 'undefined') {
+            // $FlowIgnore
+            newTemplateData = newTemplateData.replace(tag, calendarNote.content)
+          } else {
+            newTemplateData = newTemplateData.replace(tag, `**An error occurred loading note "${noteName}"**`)
+          }
+        } else {
+          newTemplateData = newTemplateData.replace(tag, `**An error occurred process note**`)
+        }
+      }
+
+      if (tag.includes('include') || tag.includes('template')) {
+        const includeInfo = tag.replace('<%-', '').replace('%>', '').replace('include', '').replace('template', '').replace('(', '').replace(')', '')
+        const parts = includeInfo.split(',')
+        if (parts.length > 0) {
+          const templateName = parts[0].replace(/'/gi, '').replace(/\s/g, '')
+          const templateData = parts.length >= 1 ? parts[1] : {}
+
+          // load template and perform preRender, render actions
+          const { frontmatterAttributes, frontmatterBody } = await this.preRender(await this.getTemplate(templateName))
+          const renderedTemplate = await this.render(frontmatterBody, frontmatterAttributes)
+
+          newTemplateData = newTemplateData.replace(tag, renderedTemplate)
+        } else {
+          newTemplateData = newTemplateData.replace(tag, '**Unable to parse include**')
+        }
+      }
+    }
+
+    tags.forEach(async (tag) => {
       if (!tag.includes('await') && !this.isControlBlock(tag) && tag.includes('(') && !tag.includes('prompt')) {
         let tempTag = tag.replace('<%-', '<%- await')
         newTemplateData = newTemplateData.replace(tag, tempTag)

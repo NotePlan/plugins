@@ -3,6 +3,10 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.2.0-alpha.01] - 2022-06-04 (mikeerickson)
+
+- added `include` support
+
 ## [1.2.0] - 2022-06-04 (mikeerickson)
 
 - Public Release
