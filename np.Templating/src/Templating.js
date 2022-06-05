@@ -812,7 +812,7 @@ export async function getXCallbackForTemplate(): Promise<void> {
     let message = `Enter any variables and values you want to pass to the template in key=value pairs:\n\n myTemplateVar=value,otherVar=value2\n\n (where "myTemplateVar" and "otherVar" are the name of variables you use in your template. Multiple variables are separated by commas)`
     let result = await getInputTrimmed(message, 'Ok', 'Template Variables to Pass')
     const args = [Editor.filename || '', String(result)]
-    let link = createRunPluginCallbackUrl(pluginJson['plugin.id'], `templateRunner`, args)
+    let link = createRunPluginCallbackUrl(pluginJson['plugin.id'], `np:tr`, args)
     message = `Do you want the link for pasting inside NotePlan or a raw URL?`
     result = await CommandBar.prompt('Link Type', message, ['Noteplan Link', 'Raw URL'])
     if (result === 0) {

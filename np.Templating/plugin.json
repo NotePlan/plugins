@@ -162,9 +162,8 @@
       "jsFunction": "templateFileByTitle"
     },
     {
-      "name": "templateRunner",
+      "name": "np:tr",
       "alias": [
-        "np:tr"
       ],
       "description": "Load and run self-contained template instructions with arguments",
       "hidden": true,
@@ -178,7 +177,6 @@
       "description": "Get an x-callback URL that invokes this template",
       "jsFunction": "getXCallbackForTemplate"
     }
-
   ],
   "plugin.settings": [
     {
