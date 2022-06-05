@@ -17,8 +17,6 @@ import { datePicker, askDateInterval } from '@helpers/userInput'
 /*eslint-disable */
 import TemplatingEngine from './TemplatingEngine'
 
-import { parseISOWithOptions } from 'date-fns/fp'
-
 const TEMPLATE_FOLDER_NAME = NotePlan.environment.templateFolder
 
 // - if a new module has been added, make sure it has been added to this list
@@ -622,6 +620,8 @@ export default class NPTemplating {
   static async preProcess(templateData: string, sessionData?: {}): Promise<mixed> {
     let newTemplateData = templateData
     let newSettingData = { ...sessionData }
+    let override = {}
+
     const tags = (await this.getTags(templateData)) || []
 
     // process includes separately
@@ -661,17 +661,38 @@ export default class NPTemplating {
       }
 
       if (tag.includes('include') || tag.includes('template')) {
-        const includeInfo = tag.replace('<%-', '').replace('%>', '').replace('include', '').replace('template', '').replace('(', '').replace(')', '')
+        const keywords = ['<%=', '<%-', '<%', '_%>', '-%>', '%>', 'include', 'template']
+        let includeInfo = tag
+        keywords.forEach((x, i) => (includeInfo = includeInfo.replace(/[{()}]/g, '').replace(new RegExp(x, 'g'), '')))
+        // const includeInfo = tag.replace('<%-', '').replace('%>', '').replace('include', '').replace('template', '').replace('(', '').replace(')', '')
         const parts = includeInfo.split(',')
         if (parts.length > 0) {
-          const templateName = parts[0].replace(/'/gi, '').replace(/\s/g, '')
+          const templateName = parts[0].replace(/'\s/gi, '')
           const templateData = parts.length >= 1 ? parts[1] : {}
 
           // load template and perform preRender, render actions
-          const { frontmatterAttributes, frontmatterBody } = await this.preRender(await this.getTemplate(templateName))
-          const renderedTemplate = await this.render(frontmatterBody, frontmatterAttributes)
+          const templateContent = await this.getTemplate(templateName)
+          const { frontmatterAttributes, frontmatterBody } = await this.preRender(templateContent, newSettingData)
 
-          newTemplateData = newTemplateData.replace(tag, renderedTemplate)
+          newSettingData = { ...frontmatterAttributes }
+          const renderedTemplate = await this.render(frontmatterBody, newSettingData)
+
+          // if variable assignment, extract var name
+          if (tag.includes('const') || tag.includes('let')) {
+            const pos = tag.indexOf('=')
+            if (pos > 0) {
+              let temp = tag
+                .substring(0, pos - 1)
+                .replace('<%', '')
+                .trim()
+              let varParts = temp.split(' ')
+              // newSettingData[varParts[1]] = renderedTemplate
+              override[varParts[1]] = renderedTemplate
+              newTemplateData = newTemplateData.replace(tag, '')
+            }
+          } else {
+            newTemplateData = newTemplateData.replace(tag, renderedTemplate)
+          }
         } else {
           newTemplateData = newTemplateData.replace(tag, '**Unable to parse include**')
         }
@@ -730,6 +751,7 @@ export default class NPTemplating {
       }
     })
 
+    newSettingData = { ...newSettingData, ...override }
     return { newTemplateData, newSettingData }
   }
 
