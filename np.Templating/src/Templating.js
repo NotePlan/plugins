@@ -15,6 +15,7 @@ import { getSetting } from '@helpers/NPConfiguration'
 
 import { createRunPluginCallbackUrl } from '@helpers/general'
 import { chooseOption, showMessage, getInputTrimmed } from '@helpers/userInput'
+import { replaceContentUnderHeading } from '@helpers/NPParagraph'
 import { getOrMakeNote } from '@helpers/note'
 import { getWeatherSummary } from '../lib/support/modules/weatherSummary'
 import { getAffirmation } from '../lib/support/modules/affirmation'
@@ -252,6 +253,11 @@ export async function templateInvoke(): Promise<void> {
         case 'insert':
           Editor.insertTextAtCursor(renderedTemplate)
           break
+        case 'replace':
+          if (frontmatterAttributes.writeUnderHeading) {
+            await replaceContentUnderHeading(Editor, frontmatterAttributes.writeUnderHeading, renderedTemplate)
+          }
+          break
         default:
           // insert
           Editor.insertTextAtCursor(renderedTemplate)
@@ -335,18 +341,22 @@ export async function templateNew(): Promise<void> {
  * @param {TNote} note - the note to work on
  * @param {string} renderedTemplate - the rendered template string (post-render)
  * @param {string} writeUnderHeading - the heading to write under
- * @param {boolean} shouldAppend - if true, will append, otherwise, prepend
+ * @param {string} location - 'append','replace' else prepend
  * @param {*} shouldOpenInEditor - if true, will open the note in the editor, otherwise will write silently to the note
  */
-async function writeNoteContents(note: TNote, renderedTemplate: string, writeUnderHeading: string, shouldAppend: boolean, shouldOpenInEditor: boolean): Promise<void> {
+async function writeNoteContents(note: TNote, renderedTemplate: string, writeUnderHeading: string, location: string, shouldOpenInEditor: boolean): Promise<void> {
   if (note) {
     if (writeUnderHeading) {
-      note.addParagraphBelowHeadingTitle(renderedTemplate, 'text', writeUnderHeading, shouldAppend, true)
+      if (location === 'replace') {
+        await replaceContentUnderHeading(note, writeUnderHeading, renderedTemplate)
+      } else {
+        note.addParagraphBelowHeadingTitle(renderedTemplate, 'text', writeUnderHeading, location === 'append', true)
+      }
     } else {
-      shouldAppend ? note.appendParagraph(renderedTemplate, 'text') : note.prependParagraph(renderedTemplate, 'text')
+      location == 'append' ? note.appendParagraph(renderedTemplate, 'text') : note.prependParagraph(renderedTemplate, 'text')
     }
     if (shouldOpenInEditor) {
-      const _ = await Editor.openNoteByFilename(note.filename)
+      await Editor.openNoteByFilename(note.filename)
     }
   }
 }
@@ -390,20 +400,19 @@ export async function templateFileByTitle(selectedTemplate?: string = '', openIn
         const { openNoteTitle, writeNoteTitle, location, writeUnderHeading } = frontmatterAttributes
         let noteTitle = (openNoteTitle && openNoteTitle.trim()) || (writeNoteTitle && writeNoteTitle?.trim()) || ''
         let shouldOpenInEditor = openNoteTitle && openNoteTitle.length > 0
-        const shouldAppend = (location && location === 'append') || false
-        log(pluginJson, `templateFileByTitle: shouldAppend ${shouldAppend} ${location}`)
+        log(pluginJson, `templateFileByTitle: location ${location} ${location}`)
         const isTodayNote = /<today>/i.test(openNoteTitle) || /<today>/i.test(writeNoteTitle)
         let note
         if (isTodayNote) {
           if (shouldOpenInEditor) {
             await Editor.openNoteByDate(new Date())
             if (Editor?.note) {
-              await writeNoteContents(Editor.note, renderedTemplate, writeUnderHeading, shouldAppend, false)
+              await writeNoteContents(Editor.note, renderedTemplate, writeUnderHeading, location, false)
             }
           } else {
             note = DataStore.calendarNoteByDate(new Date())
             if (note) {
-              await writeNoteContents(note, renderedTemplate, writeUnderHeading, shouldAppend, false)
+              await writeNoteContents(note, renderedTemplate, writeUnderHeading, location, false)
             }
           }
         } else {
@@ -417,7 +426,7 @@ export async function templateFileByTitle(selectedTemplate?: string = '', openIn
               if (!note) {
                 await CommandBar.prompt(`Unable to locate note matching: "${noteTitle}"`, helpInfo('Presets'))
               } else {
-                await writeNoteContents(note, renderedTemplate, writeUnderHeading, shouldAppend, shouldOpenInEditor)
+                await writeNoteContents(note, renderedTemplate, writeUnderHeading, location, shouldOpenInEditor)
               }
             }
           } else {
