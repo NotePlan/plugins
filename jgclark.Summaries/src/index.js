@@ -3,13 +3,14 @@
 //-----------------------------------------------------------------------------
 // Summary commands for notes
 // Jonathan Clark
-// Last updated 7.2.2022 for v0.6.0
+// Last updated 29.5.2022 for v0.8.0
 //-----------------------------------------------------------------------------
 
-export { insertProgressUpdate } from './progress'
 export { weeklyStats } from './forPlotting'
-export { saveSearchPeriod } from './saveSearchPeriod'
+export { makeMOC } from './MOCs'
+export { insertProgressUpdate } from './progress'
 export { saveSearch } from './saveSearch'
+export { saveSearchPeriod } from './saveSearchPeriod'
 export { statsPeriod } from './stats'
 
 // allow changes in plugin.json to trigger recompilation

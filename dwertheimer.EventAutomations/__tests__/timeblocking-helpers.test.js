@@ -19,7 +19,8 @@ const config = {
   timeBlockHeading: 'Time Blocks' /* if this heading exists in the note, timeblocks will be placed under it */,
   workDayStart: '08:00' /* needs to be in 24 hour format (two digits, leading zero) */,
   workDayEnd: '18:00' /* needs to be in 24 hour format (two digits, leading zero) */,
-  durationMarker: "'" /* signifies how long a task is, e.g. apostrophe: '2h5m or use another character, e.g. tilde: ~2h5m */,
+  durationMarker:
+    "'" /* signifies how long a task is, e.g. apostrophe: '2h5m or use another character, e.g. tilde: ~2h5m */,
   intervalMins: 5 /* inverval on which to calculate time blocks */,
   removeDuration: true /* remove duration when creating timeblock text */,
   nowStrOverride: '00:00' /* for testing */,
@@ -34,23 +35,35 @@ describe(`${PLUGIN_NAME}`, () => {
   describe(section('timeblocking-helpers.js'), () => {
     describe('createIntervalMap ', () => {
       test('should create timeMap of 5min intervals all day ', () => {
-        const result = tb.createIntervalMap({ start: new Date('2020-01-01 08:00:00'), end: new Date('2020-01-01 24:00:00') }, 'isSet', {
-          step: 5,
-        })
+        const result = tb.createIntervalMap(
+          { start: new Date('2020-01-01 08:00:00'), end: new Date('2020-01-01 24:00:00') },
+          'isSet',
+          {
+            step: 5,
+          },
+        )
         expect(result[0]).toEqual({ start: '08:00', busy: 'isSet', index: 0 })
         expect(result[191]).toEqual({ start: '23:55', busy: 'isSet', index: 191 })
         expect(result.length).toEqual(193)
       })
       test('should create timeMap of 3min intervals all day ', () => {
-        const result = tb.createIntervalMap({ start: new Date('2020-01-01 00:00:00'), end: new Date('2020-01-01 23:59:59') }, null, {
-          step: 3,
-        })
+        const result = tb.createIntervalMap(
+          { start: new Date('2020-01-01 00:00:00'), end: new Date('2020-01-01 23:59:59') },
+          null,
+          {
+            step: 3,
+          },
+        )
         expect(result[0]).toEqual({ start: '00:00', busy: null, index: 0 })
         expect(result[479]).toEqual({ start: '23:57', busy: null, index: 479 })
         expect(result.length).toEqual(480)
       })
       test('should return null when params are null', () => {
-        const result = tb.createIntervalMap({ start: new Date('2020-01-01 00:00:00'), end: new Date('2020-01-01 23:59:59') }, null, null)
+        const result = tb.createIntervalMap(
+          { start: new Date('2020-01-01 00:00:00'), end: new Date('2020-01-01 23:59:59') },
+          null,
+          null,
+        )
         expect(result).toEqual([])
       })
     })
@@ -92,7 +105,9 @@ describe(`${PLUGIN_NAME}`, () => {
     describe('createTimeBlockLine ', () => {
       test('should create timeblock text in form "* HH:MM-HH:MM [name] #timeblocktag" ', () => {
         const cfg = { ...config, timeBlockTag: '#tag', removeDuration: true }
-        expect(tb.createTimeBlockLine({ title: 'foo', start: '08:00', end: '09:00' }, cfg)).toEqual('* 08:00-09:00 foo #tag')
+        expect(tb.createTimeBlockLine({ title: 'foo', start: '08:00', end: '09:00' }, cfg)).toEqual(
+          '* 08:00-09:00 foo #tag',
+        )
       })
       test('should return empty string if title is empty', () => {
         const cfg = { ...config, timeBlockTag: '#tag', removeDuration: true }
@@ -100,11 +115,15 @@ describe(`${PLUGIN_NAME}`, () => {
       })
       test("should not remove duration time signature ('2h22m) from text when removeDuration config is false", () => {
         const cfg = { ...config, timeBlockTag: '#tag', removeDuration: false }
-        expect(tb.createTimeBlockLine({ title: "foo bar '2h22m", start: '08:00', end: '09:00' }, cfg)).toEqual("* 08:00-09:00 foo bar '2h22m #tag")
+        expect(tb.createTimeBlockLine({ title: "foo bar '2h22m", start: '08:00', end: '09:00' }, cfg)).toEqual(
+          "* 08:00-09:00 foo bar '2h22m #tag",
+        )
       })
       test("should remove duration time signature ('2h22m) from text when removeDuration config is true", () => {
         const cfg = { ...config, timeBlockTag: '#tag', removeDuration: true }
-        expect(tb.createTimeBlockLine({ title: "foo bar '2h22m", start: '08:00', end: '09:00' }, cfg)).toEqual('* 08:00-09:00 foo bar #tag')
+        expect(tb.createTimeBlockLine({ title: "foo bar '2h22m", start: '08:00', end: '09:00' }, cfg)).toEqual(
+          '* 08:00-09:00 foo bar #tag',
+        )
       })
     })
 
@@ -138,7 +157,9 @@ describe(`${PLUGIN_NAME}`, () => {
     })
 
     test('durationRegEx ', () => {
-      expect(tb.durationRegEx('~')).toEqual(new RegExp(`\\s*~(([0-9]+\\.?[0-9]*|\\.[0-9]+)h)*(([0-9]+\\.?[0-9]*|\\.[0-9]+)m)*`, 'mg'))
+      expect(tb.durationRegEx('~')).toEqual(
+        new RegExp(`\\s*~(([0-9]+\\.?[0-9]*|\\.[0-9]+)h)*(([0-9]+\\.?[0-9]*|\\.[0-9]+)m)*`, 'mg'),
+      )
     })
 
     test('removeDurationParameter ', () => {
@@ -484,7 +505,11 @@ describe(`${PLUGIN_NAME}`, () => {
           { start: '00:02', end: '00:08', minsAvailable: 6 },
           { start: '00:20', end: '00:24', minsAvailable: 4 },
         ]
-        const res = tb.matchTasksToSlots(nonFittingTask, { blockList: timeBlocks, timeMap: timeMap2, timeBlockTextList: [] }, cfg)
+        const res = tb.matchTasksToSlots(
+          nonFittingTask,
+          { blockList: timeBlocks, timeMap: timeMap2, timeBlockTextList: [] },
+          cfg,
+        )
         expect(res.timeBlockTextList[0]).toEqual(`* 00:02-00:08 line3 (1) ${config.timeBlockTag}`)
         expect(res.timeBlockTextList[1]).toEqual(`* 00:20-00:24 line3 (2) ${config.timeBlockTag}`)
         expect(res.timeBlockTextList.length).toEqual(2)
@@ -515,7 +540,11 @@ describe(`${PLUGIN_NAME}`, () => {
         const nonFittingTask = [{ content: "wont get placed '12m" }]
         const fittingTask = [{ content: "gets placed '8m" }]
         const timeBlocks = [] // irrelevant because will be rebuilt
-        const res = tb.matchTasksToSlots([...nonFittingTask, ...fittingTask], { blockList: timeBlocks, timeMap: timeMap2, timeBlockTextList: [] }, cfg)
+        const res = tb.matchTasksToSlots(
+          [...nonFittingTask, ...fittingTask],
+          { blockList: timeBlocks, timeMap: timeMap2, timeBlockTextList: [] },
+          cfg,
+        )
         expect(res.timeBlockTextList.length).toEqual(1)
         expect(res.timeBlockTextList[0]).toEqual(`* 00:20-00:28 gets placed ${config.timeBlockTag}`)
       })
@@ -524,7 +553,11 @@ describe(`${PLUGIN_NAME}`, () => {
         const timeBlocks = [{ start: '00:00', end: '00:20', minsAvailable: 20 }]
         const timeMap = [{ start: '00:00', busy: false, index: 1 }]
         const cfg = { ...config, nowStrOverride: '00:00', workDayStart: '00:00', intervalMins: 20, defaultDuration: 13 }
-        const res = tb.matchTasksToSlots([{ content: 'line4' }], { blockList: timeBlocks, timeMap: timeMap, timeBlockTextList: [] }, cfg)
+        const res = tb.matchTasksToSlots(
+          [{ content: 'line4' }],
+          { blockList: timeBlocks, timeMap: timeMap, timeBlockTextList: [] },
+          cfg,
+        )
         expect(res.timeBlockTextList).toEqual([`* 00:00-00:13 line4 ${config.timeBlockTag}`])
       })
     })
@@ -689,6 +722,47 @@ describe(`${PLUGIN_NAME}`, () => {
         const p = [{ type: 'open', content: 'ugh', title: 'foo', heading: 'bar', filename: 'baz' }]
         const res = tb.appendLinkIfNecessary(p, { ...config, includeLinks: 'Pretty Links', linkText: '%' })
         expect(res[0].content).toEqual('ugh [%](noteplan://x-callback-url/openNote?filename=baz)')
+      })
+    })
+    describe('eliminateDuplicateParagraphs', () => {
+      test('should not eliminate paragraphs if no duplicate', () => {
+        const before = [{ content: 'foo' }, { content: 'bar' }]
+        expect(tb.eliminateDuplicateParagraphs(before)).toEqual(before)
+      })
+      test('should eliminate paragraphs if duplicate', () => {
+        const before = [{ content: 'foo' }, { content: 'foo' }]
+        expect(tb.eliminateDuplicateParagraphs(before).length).toEqual(1)
+      })
+      test('should eliminate paragraphs if duplicate in mixed bag', () => {
+        const before = [{ content: 'foo' }, { content: 'bar' }, { content: 'foo' }]
+        expect(tb.eliminateDuplicateParagraphs(before)).toEqual([{ content: 'foo' }, { content: 'bar' }])
+      })
+    })
+    describe('isAutoTimeBlockLine', () => {
+      test('should return null if there are no ATB lines', () => {
+        const line = '222 no timeblock in here #foo'
+        expect(tb.isAutoTimeBlockLine(line, {})).toEqual(null)
+      })
+      test('should find a standard timeblock line', () => {
+        const line = '- 21:00-21:15 Respond to x.la [–](noteplan://x-callback-url/openNote?filename=20220512.md) #🕑'
+        const exp = 'Respond to x.la'
+        expect(tb.isAutoTimeBlockLine(line, {})).toEqual(exp)
+      })
+      test('should find a * at the front', () => {
+        const line = '* 21:00-21:15 Respond to x.la [–](noteplan://x-callback-url/openNote?filename=20220512.md) #🕑'
+        const exp = 'Respond to x.la'
+        expect(tb.isAutoTimeBlockLine(line, {})).toEqual(exp)
+      })
+      test('should find with nonstandard tag', () => {
+        const line =
+          '* 21:00-21:15 Respond to x.la [–](noteplan://x-callback-url/openNote?filename=20220512.md) #something'
+        const exp = 'Respond to x.la'
+        expect(tb.isAutoTimeBlockLine(line, {})).toEqual(exp)
+      })
+      test('should find with a wiki link', () => {
+        const line = '- 19:20-19:35 Send landing page howto [[yo#something]] #🕑'
+        const exp = `Send landing page howto`
+        expect(tb.isAutoTimeBlockLine(line, {})).toEqual(exp)
       })
     })
   })

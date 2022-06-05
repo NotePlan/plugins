@@ -2,8 +2,8 @@
   "macOS.minVersion": "10.13.0",
   "noteplan.minAppVersion": "3.5.0",
   "plugin.id": "np.Templating",
-  "plugin.name": " 📒 np.Templating -- New 🎉",
-  "plugin.version": "1.2.0-beta.02",
+  "plugin.name": "📒 np.Templating",
+  "plugin.version": "1.2.0",
   "plugin.description": "Templating Plugin for NotePlan",
   "plugin.author": "Mike Erickson (@codedungeon)",
   "plugin.dependencies": [],
@@ -32,6 +32,15 @@
       ],
       "description": "Append template to end of current note",
       "jsFunction": "templateAppend"
+    },
+    {
+      "name": "np:invoke",
+      "alias": [
+        "invoke",
+        "npv"
+      ],
+      "description": "Place template using <location> attribute",
+      "jsFunction": "templateInvoke"
     },
     {
       "name": "np:new",
@@ -100,10 +109,48 @@
       "jsFunction": "testInvoke"
     },
     {
+      "name": "np:convert",
+      "alias": [
+        "npc"
+      ],
+      "description": "np.Templating Convert Project Note to Frontmatter...",
+      "jsFunction": "templateConvertNote"
+    },
+    {
       "name": "np:about",
       "alias": [],
       "description": "np.Templating About...",
       "jsFunction": "templateAbout"
+    },
+    {
+      "name": "np:test",
+      "alias": [],
+      "description": "np.Templating Testbed",
+      "jsFunction": "templateTest"
+    },
+    {
+      "name": "getTemplate",
+      "description": "NPTemplating.getTemplate export",
+      "jsFunction": "getTemplate",
+      "hidden": true
+    },
+    {
+      "name": "preRender",
+      "description": "NPTemplating.preRender export",
+      "jsFunction": "preRender",
+      "hidden": true
+    },
+    {
+      "name": "render",
+      "description": "NPTemplating.render export",
+      "jsFunction": "render",
+      "hidden": true
+    },
+    {
+      "name": "renderTemplate",
+      "description": "NPTemplating.renderTemplate export",
+      "jsFunction": "renderTemplate",
+      "hidden": true
     },
     {
       "name": "np:tft",
@@ -131,6 +178,7 @@
       "description": "Get an x-callback URL that invokes this template",
       "jsFunction": "getXCallbackForTemplate"
     }
+
   ],
   "plugin.settings": [
     {

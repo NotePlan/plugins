@@ -45,8 +45,8 @@ export type EventsConfig = {
   addMatchingEvents: ?{ [string]: mixed },
   locale: string,
   timeOptions: any,
-  calendarSet: string[],
-  calendarNameMappings: string[],
+  calendarSet: Array<string>,
+  calendarNameMappings: Array<string>,
   addEventID: boolean,
   confirmEventCreation?: boolean,
   processedTagName?: string /* if not set, uses RE_EVENT_ID */,
@@ -244,7 +244,7 @@ async function createEventFromDateRange(eventTitle: string, dateRange: DateRange
  */
 export async function getEventsForDay(
   dateStr: string,
-  calendarSet: string[] = [],
+  calendarSet: Array<string> = [],
   start: HourMinObj = { h: 0, m: 0 },
   end: HourMinObj = { h: 23, m: 59 },
 ): Promise<Array<TCalendarItem>> {

@@ -2,19 +2,49 @@
 //-----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// Last updated 10.5.2022 for v0.12.0, @jgclark
+// Last updated 2.6.2022 for v0.12.0, @jgclark
 //-----------------------------------------------------------------------------
 
-import { log, logError, logWarn } from '../../helpers/dev'
+import pluginJson from '../plugin.json'
+import { clo, log, logError, logWarn } from '@helpers/dev'
+import { displayTitle } from '@helpers/general'
 import {
   allNotesSortedByChanged,
   printNote,
-} from '../../helpers/note'
-import { getParaFromContent, } from '../../helpers/paragraph'
-import {
-  chooseFolder,
-  chooseHeading
-} from '../../helpers/userInput'
+} from '@helpers/note'
+import { convertNoteToFrontmatter } from '@helpers/NPnote'
+import { getParaFromContent, findStartOfActivePartOfNote } from '@helpers/paragraph'
+import { chooseFolder, chooseHeading, showMessage } from '@helpers/userInput'
+
+//-----------------------------------------------------------------
+// Settings
+
+type noteHelpersConfigType = {
+  defaultText: string
+}
+
+/**
+ * Get config settings using Config V2 system.
+ * @author @jgclark
+ */
+async function getSettings(): Promise<any> {
+  // log(pluginJson, `Start of getSettings()`)
+  try {
+    // Get settings using ConfigV2
+    const v2Config: noteHelpersConfigType = await DataStore.loadJSON('../jgclark.NoteHelpers/settings.json')
+
+    if (v2Config == null || Object.keys(v2Config).length === 0) {
+      await showMessage(`Cannot find settings for the 'NoteHelpers' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
+      return
+    } else {
+      // clo(v2Config, `settings`)
+      return v2Config
+    }
+  } catch (err) {
+    logError(pluginJson, `${err.name}: ${err.message}`)
+    await showMessage(err.message)
+  }
+}
 
 //-----------------------------------------------------------------
 /**
@@ -48,12 +78,16 @@ export async function openNoteNewWindow(): Promise<void> {
   // Ask for the note we want to open
   const notes = allNotesSortedByChanged()
   const re = await CommandBar.showOptions(
-    notes.map((n) => n.title).filter(Boolean),
+    notes.map((n) => displayTitle(n)),
     'Select note to open in new window',
   )
   const note = notes[re.index]
   const filename = note.filename
-  await Editor.openNoteByFilename(filename, true)
+  // work out where start of main content of the note is
+  const startOfMainContentLine = findStartOfActivePartOfNote(note)
+  const startOfMainContentCharIndex = note.paragraphs[startOfMainContentLine].contentRange?.start ?? 0
+  // open note, moving cursor to start of main content
+  await Editor.openNoteByFilename(filename, true, startOfMainContentCharIndex, startOfMainContentCharIndex, false)
 }
 
 /** 
@@ -66,12 +100,36 @@ export async function openNoteNewSplit(): Promise<void> {
   // Ask for the note we want to open
   const notes = allNotesSortedByChanged()
   const re = await CommandBar.showOptions(
-    notes.map((n) => n.title).filter(Boolean),
+    notes.map((n) => displayTitle(n)),
     'Select note to open in new split window',
   )
   const note = notes[re.index]
   const filename = note.filename
-  await Editor.openNoteByFilename(filename, false, 0, 0, true)
+  // work out where start of main content of the note is
+  const startOfMainContentLine = findStartOfActivePartOfNote(note)
+  const startOfMainContentCharIndex = note.paragraphs[startOfMainContentLine].contentRange?.start ?? 0
+  // open note, moving cursor to start of main content
+  await Editor.openNoteByFilename(filename, false, startOfMainContentCharIndex, startOfMainContentCharIndex, true)
+}
+
+/** 
+ * Open the current note in a new split of the main window.
+ * Note: uses API option only available on macOS and from v3.4. 
+ * It falls back to opening in a new window on unsupported versions.
+ * @author @jgclark
+ */
+export async function openCurrentNoteNewSplit(): Promise<void> {
+  const { note, filename } = Editor
+  if (note == null || filename == null) {
+    // No note open, so don't do anything.
+    logError('openCurrentNoteNewSplit', 'No note open. Stopping.')
+    return
+  }
+  // work out where start of main content of the note is
+  const startOfMainContentLine = findStartOfActivePartOfNote(note)
+  const startOfMainContentCharIndex = note.paragraphs[startOfMainContentLine].contentRange?.start ?? 0
+  // open note, moving cursor to start of main content
+  await Editor.openNoteByFilename(filename, false, startOfMainContentCharIndex, startOfMainContentCharIndex, true)
 }
 
 /**
@@ -148,4 +206,31 @@ export function jumpToDone(): void {
   } else {
     logWarn('jumpToDone', "Couldn't find a '## Done' section. Stopping.")
   }
+}
+
+/**
+ * Convert this note to use frontmatter syntax
+ * @author @jgclark
+ * @returns void
+ */
+export async function convertToFrontmatter(): Promise<void> {
+  const { note } = Editor
+  if (note == null || note.paragraphs.length < 1) {
+    // No note open, so don't do anything.
+    logError('convertToFrontmatter', 'No note open, or no content. Stopping.')
+    return
+  }
+  if (note.paragraphs[0].content === '---') {
+    // Probably in frontmatter form already, so don't do anything.
+    logWarn('convertToFrontmatter', `Note '${displayTitle(note)}' starts with a --- line, so is probably already using frontmatter. Stopping.`)
+    return
+  }
+  const config = await getSettings()
+  convertNoteToFrontmatter(note, config.defaultText ?? '')
+  log('convertToFrontmatter', `Note '${displayTitle(note)}' converted to use frontmatter.`)
+
+  // Currently a bug that means the Editor's note display doesn't get updated. 
+  // FIXME(@Eduard): So open the note again to get to see it.
+  // TODO: Remove this in time
+  await Editor.openNoteByFilename(note.filename)
 }

@@ -55,10 +55,10 @@ export const castStringFromMixed = (val: { [string]: ?mixed }, key: string): str
  *
  * @param val the config mixed
  * @param key name of the property you want to cast
- * @returns {string[]} casted array
+ * @returns {Array<string>} casted array
  */
-export const castStringArrayFromMixed = (val: { [string]: ?mixed }, key: string): string[] => {
-  return val.hasOwnProperty(key) ? ((val[key]: any): string[]) : []
+export const castStringArrayFromMixed = (val: { [string]: ?mixed }, key: string): Array<string> => {
+  return val.hasOwnProperty(key) ? ((val[key]: any): Array < string >) : []
 }
 
 /**

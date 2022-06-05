@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/codedungeon.Toolbox/README.md) for details on available commands and use case.
 
+## [1.3.1] - 2022-05-24 (@mikeerickson)
+
+- Removed `convertToRtf` as it has been added to NotePlan
+
 ## [1.3.0] - 2021-09-26 (@mikeerickson)
 
 - Modified `convertToHtml` to remove attributes by default

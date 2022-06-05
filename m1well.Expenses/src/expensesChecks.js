@@ -26,7 +26,7 @@ export const amountOk = (amount: number): boolean => {
  * @param categories categories from config
  * @returns {boolean} true/false
  */
-export const categoryOk = (category: string, categories: string[]): boolean => {
+export const categoryOk = (category: string, categories: Array<string>): boolean => {
   return category ? categories.findIndex(cat => cat === category) !== -1 : false
 }
 

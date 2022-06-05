@@ -6,33 +6,30 @@ import { getAttributes, getBody } from '../lib/support/modules/FrontmatterModule
 
 import { factory } from './testUtils'
 
-export const DEFAULT_TEMPLATE_CONFIG = {
-  locale: 'en-US',
-  dateFormat: 'YYYY-MM-DD',
-  timeFormat: 'h:mm A',
-  timestampFormat: 'YYYY-MM-DD h:mm:ss A',
-  userFirstName: '',
-  userLastName: '',
-  userPhone: '',
-  userEmail: '',
-  // $FlowFixMe
-  services: {},
-}
-
 const PLUGIN_NAME = `📙 ${colors.yellow('np.Templating')}`
 const section = colors.blue
+const block = colors.magenta.green
 const method = colors.magenta.bold
 
 describe(`${PLUGIN_NAME}`, () => {
   describe(section('FrontmatterModule'), () => {
-    it(`should return true when frontmatter template supplied`, async () => {
+    it(`should return true using ${method('.isFrontmatterTemplate')}`, async () => {
       const data = await factory('frontmatter-minimal.ejs')
 
       let result = new FrontmatterModule().isFrontmatterTemplate(data)
+
       expect(result).toEqual(true)
     })
 
-    it(`should extract frontmatter attributes`, async () => {
+    it(`should return false using ${method('.isFrontmatterTemplate')}`, async () => {
+      const data = `@Templates\nHello World`
+
+      let result = new FrontmatterModule().isFrontmatterTemplate(data)
+
+      expect(result).toEqual(false)
+    })
+
+    it(`should extract frontmatter attributes using ${method('.attributes')}`, async () => {
       const data = await factory('frontmatter-minimal.ejs')
 
       let frontmatterAttributes = new FrontmatterModule().attributes(data)
@@ -46,7 +43,7 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(frontmatterAttributes?.name).toContain('Mike Erickson')
     })
 
-    it(`should extract frontmatter body`, async () => {
+    it(`should extract frontmatter body using ${method('.body')}`, async () => {
       const data = await factory('frontmatter-minimal.ejs')
 
       let frontmatterBlock = new FrontmatterModule().body(data)
@@ -54,15 +51,7 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(frontmatterBlock).toContain('Hello World')
     })
 
-    it(`should return false when frontmatter template note supplied`, async () => {
-      const data = `@Templates\nHello World`
-
-      let result = new FrontmatterModule().isFrontmatterTemplate(data)
-
-      expect(result).toEqual(false)
-    })
-
-    it(`should be valid frontmatter object`, async () => {
+    it(`should ${method('.parse')} template`, async () => {
       const data = await factory('frontmatter-minimal.ejs')
 
       const result = new FrontmatterModule().parse(data)
@@ -81,7 +70,7 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result.attributes.name).toEqual('Mike Erickson')
     })
 
-    it(`should contain template in 'body' property when using '.parse' method`, async () => {
+    it(`should contain template in 'body' property when using ${method('.parse')} method`, async () => {
       const data = await factory('frontmatter-extended.ejs')
 
       const result = new FrontmatterModule().parse(data)
@@ -92,7 +81,7 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result.body).toContain('<%= modified %>')
     })
 
-    it(`should contain frontmatter attributes`, async () => {
+    it(`should extract template attributes using ${method('.attributes')}`, async () => {
       const data = await factory('frontmatter-extended.ejs')
 
       const result = new FrontmatterModule().attributes(data)
@@ -101,7 +90,7 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result.title).toEqual('Test Sample')
     })
 
-    it(`should contain frontmatter body`, async () => {
+    it(`should extract template attributes using ${method('.body')}`, async () => {
       const data = await factory('frontmatter-extended.ejs')
 
       const result = new FrontmatterModule().body(data)
@@ -151,6 +140,47 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toContain(`*****\nSection Two`)
       expect(result).toContain(`*****\nSection Three`)
       expect(result).toContain(`*****\nSection Four`)
+    })
+
+    it(`should get frontmatter text`, async () => {
+      const data = await factory('frontmatter-minimal.ejs')
+      const testFrontmatterBlock = '---\ntitle: Test template\nname: Mike Erickson\n---\n'
+
+      const frontmatterBlock = new FrontmatterModule().getFrontmatterText(data)
+
+      expect(frontmatterBlock).toEqual(testFrontmatterBlock)
+    })
+
+    describe(`${block('.convertProjectNoteToFrontmatter')}`, () => {
+      it('should return -1', async () => {
+        const result = new FrontmatterModule().convertProjectNoteToFrontmatter('')
+
+        expect(result).toEqual(-1)
+      })
+
+      it('should return -2', async () => {
+        const result = new FrontmatterModule().convertProjectNoteToFrontmatter('Test')
+
+        expect(result).toEqual(-2)
+      })
+
+      it('should return -2', async () => {
+        const note = await factory('frontmatter-convert-success.md')
+
+        const result = new FrontmatterModule().convertProjectNoteToFrontmatter(note)
+
+        expect(result).toEqual(-3)
+      })
+
+      it(`should convert project note to frontmatter format`, async () => {
+        const note = await factory('frontmatter-convert-project-note.md')
+
+        const newNote = await factory('frontmatter-convert-success.md')
+
+        const result = new FrontmatterModule().convertProjectNoteToFrontmatter(note)
+
+        expect(result).toEqual(newNote)
+      })
     })
   })
 

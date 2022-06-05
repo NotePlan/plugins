@@ -6,8 +6,8 @@ export type Config = {
   delimiter: string,
   dateFormat: string,
   amountFormat: string,
-  columnOrder: string[],
-  categories: string[],
+  columnOrder: Array<string>,
+  categories: Array<string>,
   shortcutExpenses: ShortcutExpense[],
   fixedExpenses: FixedExpense[],
 }

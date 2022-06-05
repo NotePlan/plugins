@@ -1,4 +1,6 @@
 // @flow
+import { clo, log } from '@helpers/dev'
+
 export async function pluginTester(): Promise<void> {
   const test = 'Evaluation is ' ?? 'NOT '
   const test2 = ['working', 'correctly ']?.join(' ')
@@ -16,4 +18,15 @@ export async function pluginTester(): Promise<void> {
   console.log(
     `3) pluginTester: Just inserted some text in the Editor, and here is some text in the plugin console: Noteplan > Help > Plugin Console`,
   )
+}
+
+/**
+ * Test writing to a calendar date that doesn't exist yet
+ * @author @jgclark
+ */
+export function writeToNewCalendarNote(): void {
+  let cf = "20220609.md"
+  let n = DataStore.calendarNoteByDateString(cf)
+  n?.insertParagraph('new text line', 0, 'text')
+  log('tester', `written a new line to ${cf}`)
 }

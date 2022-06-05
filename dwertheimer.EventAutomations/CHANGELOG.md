@@ -2,6 +2,11 @@
 
 ## Changelog
 
+[1.1.0] 2022-05-26 @dwertheimer
+- added duplicate removal to eliminate multiple copies of synced lines + tests
+- added folding using API
+- improved messaging for when /ATB encounters nothing
+
 [1.0.0] 2022-05-18 @dwertheimer
 - added config setting for write synced copy
 - moving to 1.0.0 release because /atb has been stable

@@ -113,7 +113,7 @@ describe(`${HELPER_NAME}`, () => {
       test('24b: yes: at midnight:24', () => {
         expect(tb.isTimeBlockLine('at midnight:24')).toEqual(true)
       })
-      test('25: 5-6am...', () => {
+      test.skip('25: 5-6am...', () => {
         expect(tb.isTimeBlockLine('5-6am Do something #hash [[wikilink]] [url](something) ')).toEqual(true)
       })
     })

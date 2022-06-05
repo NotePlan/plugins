@@ -17,9 +17,11 @@ export { migrateQuickNotes } from './Templating'
 export { templateInit } from './Templating'
 export { templateInsert } from './Templating'
 export { templateAppend } from './Templating'
+export { templateInvoke } from './Templating'
 export { templateNew } from './Templating'
 export { templateMeetingNote } from './Templating'
 export { templateQuickNote } from './Templating'
+export { templateConvertNote } from './Templating'
 export { templateSamples } from './Templating'
 export { templateFileByTitle } from './Templating'
 export { templateRunner } from './Templating'
@@ -30,4 +32,10 @@ export { templateAbout } from './Templating'
 export { getXCallbackForTemplate } from './Templating'
 
 // np.Templating Testing
-export { testInvoke } from './Templating'
+export { templateTest } from './Templating'
+
+// exported to support DataStore.invokePluginCommandByName
+export { getTemplate } from './Templating'
+export { preRender } from './Templating'
+export { render } from './Templating'
+export { renderTemplate } from './Templating'

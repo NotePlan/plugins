@@ -1,6 +1,6 @@
 // @flow
 // ----------------------------------------------------------------------------
-// Plugin to help move selected selectedParagraphs to other notes
+// Plugin to help link lines between notes with Line IDs
 // Jonathan Clark
 // last updated 18.5.2022 for v0.7.0
 // ----------------------------------------------------------------------------
@@ -13,8 +13,6 @@ import { showMessage } from '@helpers/userInput'
 import { allNotesSortedByChanged } from '@helpers/note'
 import {
   calcSmartPrependPoint,
-  // findEndOfActivePartOfNote,
-  // findStartOfActivePartOfNote,
   parasToText,
   selectedLinesIndex,
 } from '@helpers/paragraph'
@@ -24,7 +22,7 @@ import { getSelectedParaIndex } from '../../jgclark.Summaries/src/progress' // T
 //-----------------------------------------------------------------------------
 
 /**
- * Add a line/block ID to current line, and ask which note's heading (section)
+ * Add a 'blockId' to current line, and ask which note's heading (section)
  * to also add it to.
  */
 export async function addIDAndAddToOtherNote(): Promise<void> {
@@ -43,7 +41,7 @@ export async function addIDAndAddToOtherNote(): Promise<void> {
   const para = paragraphs[firstSelParaIndex]
   const paraType = para.type
 
-  // Add Block ID for the first paragraph 
+  // Add Line ID for the first paragraph (known as 'blockID' by API)
   note.addBlockID(para)
   note.updateParagraph(para)
   const newBlockID = para.blockId

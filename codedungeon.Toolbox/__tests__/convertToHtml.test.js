@@ -5,14 +5,14 @@
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
  * -----------------------------------------------------------------------------------------*/
 
-import CodedungeonToolbox from './support/CodedungeonToolbox'
+import CodedungeonToolbox from '../src/support/CodedungeonToolbox'
 
 let toolbox
 beforeEach(() => {
   toolbox = new CodedungeonToolbox()
 })
 
-test('codedungeon.Toolbox convertToHtml - headings', () => {
+test('codedungeon.Toolbox convertToHtml - headings dont remove attributes', () => {
   const markdown = `#Heading1\n##Heading2\n###Heading3\n####Heading4\n**TODO Items:**\n* Item 1\n*Item 2`
 
   const html = toolbox.markdownToHtml(markdown, { removeAttributes: false })
@@ -49,8 +49,6 @@ test('codedungeon.Toolbox convertToHtml - tasks', () => {
 })
 
 test('codedungeon.Toolbox convertToHtml - unordered lists', () => {
-  const toolbox = new CodedungeonToolbox()
-
   const markdown = `**Lists:**
 - Item 1
 - Item 2
@@ -63,4 +61,12 @@ test('codedungeon.Toolbox convertToHtml - unordered lists', () => {
   expect(html).toContain('<li>Item 1</li>')
   expect(html).toContain('<li>Item 2</li>')
   expect(html).toContain('</ul>')
+})
+
+test('codedungeon.Toolbox convertToHtml - remove attributes', () => {
+  const markdown = `# Heading 1\n\n## Heading 2\n### Heading 3\n#### Heading 4`
+
+  const html = toolbox.markdownToHtml(markdown, { removeAttributes: true })
+
+  expect(html).toEqual('<h1>Heading 1</h1>\n<h2>Heading 2</h2>\n<h3>Heading 3</h3>\n<h4>Heading 4</h4>')
 })

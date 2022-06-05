@@ -213,26 +213,38 @@ type TEditor = {
    */
   highlightByRange(range: Range): void,
   /**
-   * Note: Available from v3.0.23+ (Mac: Build 636+, iOS: Build 562+)
    * Scrolls to and highlights the given range defined by the character index and
    * the character length it should cover. If the paragraph is folded, it will be unfolded.
+   * Note: Available from v3.0.23+ (Mac: Build 636+, iOS: Build 562+)
    * @param {number} index
    * @param {number} length
    */
   highlightByIndex(index: number, length: number): void,
   /**
-   * Note: Available from v3.0.26
+   * Folds the given paragraph or unfolds it if its already folded. If the paragraph is not a heading, it will look for the heading this paragraph exists under.
+   * Note: Available from v3.6.0
+   * @param {TParagraph}
+  */
+  toggleFolding(paragraph: TParagraph): void,
+    /**
+     * Checks if the given paragraph is folded or not. If it's not a heading, it will look for the heading this paragraph exists under.
+     * Note: Available from v3.6.0
+     * @param {TParagraph}
+     * @return {boolean}   
+    */
+  isFolded(paragraph: TParagraph): boolean,
+  /**
    * Shows or hides a window with a loading indicator or a progress ring (if progress is defined) and an info text (optional).
    * `text` is optional, if you define it, it will be shown below the loading indicator.
    * `progress` is also optional. If it's defined, the loading indicator will change into a progress ring. Use float numbers from 0-1 to define how much the ring is filled.
    * When you are done, call `showLoading(false)` to hide the window.
+   * Note: Available from v3.0.26
    * @param {boolean}
    * @param {String?}
    * @param {Float?}
    */
   showLoading(visible: boolean, text?: ?string, progress?: number): void,
   /**
-   * Note: Available from v3.0.26
    * If you call this, anything after `await CommandBar.onAsyncThread()` will run on an asynchronous thread.
    * Use this together with `showLoading`, so that the work you do is not blocking the user interface.
    * Otherwise the loading window will be also blocked.
@@ -240,35 +252,36 @@ type TEditor = {
    * Warning: Don't use any user interface calls (other than showLoading) on an asynchronous thread. The app might crash.
    * You need to return to the main thread before you change anything in the window (such as Editor functions do).
    * Use `onMainThread()` to return to the main thread.
+   * Note: Available from v3.0.26
    * @return {Promise}
    */
   onAsyncThread(): Promise<void>,
   /**
-   * Note: Available from v3.0.26
    * If you call this, anything after `await CommandBar.onMainThread()` will run on the main thread.
    * Call this after `onAsyncThread`, once your background work is done.
    * It is safe to call Editor and other user interface functions on the main thread.
+   * Note: Available from v3.0.26
    * @return {Promise}
    */
   onMainThread(): Promise<void>,
   /**
-   * Note: Available from NotePlan v3.1+
    * Get the names of all supported themes (including custom themes imported into the Theme folder).
    * Use together with `.setTheme(name)`
+   * Note: Available from NotePlan v3.1+
    * @return {$ReadOnlyArray<string>}
    */
   availableThemes(): $ReadOnlyArray<string>,
   /**
-   * Note: Available from NotePlan v3.1+
    * Change the current theme. Get all available theme names using `.availableThemes`. Custom themes are also supported. Use the filename in this case.
+   * Note: Available from NotePlan v3.1+
    * @param {String}
    */
   setTheme(name: string): void,
   /**
-   * Note: Available from NotePlan v3.1+
    * Add a new theme using the raw json string. It will be added as a custom theme and you can load it right away with `.setTheme(name)` using the filename defined as second parameter. Use ".json" as file extension.
    * It returns true if adding was successful and false if not. An error will be also printed into the console.
    * Adding a theme might fail, if the given json text was invalid.
+   * Note: Available from NotePlan v3.1+
    * @param {string} json
    * @param {string} filename
    * @return {Boolean}
@@ -366,6 +379,25 @@ type TDataStore = {
    * @return {Object}
    */
   loadJSON(filename?: string): Object,
+  /**
+  * Note: Available from NotePlan v3.2+
+  * Save data to a file, as base64 string. The file will be saved under "[NotePlan Folder]/Plugins/data/[plugin-id]/[filename]".
+  * Returns true if the file could be saved, false if not and prints the error.
+  * @param {String} 
+  * @param {String} 
+  * @return {Boolean}
+  */
+  saveData(data: string, filename: string): boolean,
+  /**
+  * Note: Available from NotePlan v3.2+
+  * Load binary data from file encoded as base64 string. 
+  * The file has to be located in "[NotePlan Folder]/Plugins/data/[plugin-id]/[filename]".
+  * You can access the files of other plugins as well, if the filename is known using relative paths "../[other plugin-id]/[filename]" or simply go into the "data"'s root directory "../[filename]" to access a global file.
+  * Returns undefined, if the file couldn't be loaded and prints an error message.
+  * @param {String} 
+  * @return {String?}
+  */
+  loadData(filename: string): ?string,
   /**
    * Returns the calendar note for the given date
    * (can be undefined, if the daily note was not created yet)
@@ -470,11 +502,28 @@ type TDataStore = {
    * @param {$ReadOnlyArray<mixed>}
    * @return {any} Return value of the command, like a Promise
    */
-  invokePluginCommandByName(command: string, pluginId: string, arguments?: $ReadOnlyArray<mixed>): Promise<any>,
+  invokePluginCommandByName(command: string, pluginID: string, arguments ?: $ReadOnlyArray < mixed >): Promise < any >,
+    /**
+     * Checks if the given pluginID is installed or not.
+     * Note: Available from NotePlan v3.6.0
+     * @param {string}
+     * @return {boolean}
+     */
+    isPluginInstalledByID(pluginID: string): boolean,
+      /**
+       * Installs a given array of pluginIDs if needed. It checks online if a new version is available and downloads it. 
+       * Use it without `await` so it keeps running in the background or use it with `await` in "blocking mode" if you need to install a plugin as a dependency. In this case you can use `showPromptIfSuccessful = true` to show the user a message that a plugin was installed and `showProgressPrompt` will show a loading indicator beforehand. With both values set to false or not defined it will run in "silent" mode and show no prompts.
+       * Note: Available from NotePlan v3.6.0
+       * @param {[string]} 
+       * @param {boolean} 
+       * @param {boolean} 
+       * @return {Promise<>}
+       */
+      installOrUpdatePluginsByID(pluginIDs: [string], showPromptIfSuccessful: boolean, showProgressPrompt: boolean): Promise < void> | void,
   /**
    * Returns an array of paragraphs having the same blockID like the given one (which is also part of the return array).
    * You can use `paragraph[0].note` to access the note behind it and make updates via `paragraph[0].note.updateParagraph(paragraph[0])` if you make changes to the content, type, etc (like checking it off as type = "done").
-   * Note: Available from v3.5.2
+   * Note: Available from NotePlan v3.5.2
    * @param {TParagraph}
    * @return {[TParagraph]}
    */
@@ -657,7 +706,7 @@ type TCommandBar = {
    * @param {String?}
    * @param {String?}
    */
-  textPrompt(title: string, message: string, defaultValue: string): Promise<string | boolean>,
+  textPrompt(title: string, message: string, defaultValue: string): Promise<string | false>,
 }
 
 /**
@@ -1147,11 +1196,19 @@ type TCalendarItem = {
   +availability: number,
   /**
    * List of attendee names or emails.
-   * Eduard says this comes from a Swift dictionary and maps to a string array.
+   * Some example result strings show the variety possible:
+   * - "[bob@example.com](mailto:bob@example.com)"
+   * - "✓ [Jonathan Clark](/aOTg2Mjk1NzU5ODYyOTU3NUcglJxZek7H6BDKiYH0Y7RvgqchDTUR8sAcaQmcnHR_/principal/) (organizer)"
+   * - "[TEST Contact1](mailto:test1@clarksonline.me.uk)",
    * But I think it is closer to being a JS Map [string, string].
-   * Note: Available from v3.5
+   * Note: Available from v3.5.0
    */
-  +attendees: [string, string],
+  +attendees: [string],
+    /**
+     * List of attendee names (or email addresses if name isn't available).
+     * Note: Available from v3.5.2
+     */
+    +attendeeNames: [string],
   /**
    * Markdown link for the given event. If you add this link to a note, NotePlan will link the event with the note and show the note in the dropdown when you click on the note icon of the event in the sidebar.
    * Note: Available from v3.5, only events, reminders are not supported yet

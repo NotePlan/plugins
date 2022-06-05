@@ -24,6 +24,7 @@ import { getDailyQuote } from '../lib/support/modules/quote'
 import { getVerse, getVersePlain } from '../lib/support/modules/verse'
 import { getConfiguration, initConfiguration, migrateConfiguration, updateSettingData } from '../../helpers/NPconfiguration'
 import { log, logError, clo } from '@helpers/dev'
+import { debug } from '../lib/helpers'
 
 import pluginJson from '../plugin.json'
 import DateModule from '../lib/support/modules/DateModule'
@@ -217,6 +218,45 @@ export async function templateAppend(): Promise<void> {
       let renderedTemplate = await NPTemplating.render(frontmatterBody, data)
 
       Editor.insertTextAtCharacterIndex(renderedTemplate, content.length)
+    } else {
+      await CommandBar.prompt('Template', 'You must have a Project Note or Calendar Note opened where you wish to append template.')
+    }
+  } catch (error) {
+    logError(pluginJson, error)
+  }
+}
+
+export async function templateInvoke(): Promise<void> {
+  try {
+    if (Editor.type === 'Notes' || Editor.type === 'Calendar') {
+      const content: string = Editor.content || ''
+
+      // $FlowIgnore
+      const selectedTemplate = await NPTemplating.chooseTemplate()
+      const templateData = await NPTemplating.getTemplate(selectedTemplate)
+      let { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
+      let data = { ...frontmatterAttributes, frontmatter: { ...frontmatterAttributes } }
+
+      const location = frontmatterAttributes?.location || 'append'
+
+      // $FlowIgnore
+      let renderedTemplate = await NPTemplating.render(frontmatterBody, data)
+
+      switch (location) {
+        case 'append':
+          Editor.insertTextAtCharacterIndex(`\n` + renderedTemplate, content.length)
+          break
+        case 'prepend':
+          Editor.insertTextAtCharacterIndex(renderedTemplate, 0)
+          break
+        case 'insert':
+          Editor.insertTextAtCursor(renderedTemplate)
+          break
+        default:
+          // insert
+          Editor.insertTextAtCursor(renderedTemplate)
+          break
+      }
     } else {
       await CommandBar.prompt('Template', 'You must have a Project Note or Calendar Note opened where you wish to append template.')
     }
@@ -752,26 +792,12 @@ export async function templateSamples(): Promise<void> {
   }
 }
 
-export async function testInvoke(): Promise<void> {
+export async function templateTest(): Promise<void> {
   try {
-    // get template settings
-    const templateSettings = DataStore.settings
-
-    // NOTE: normally do some additional work here, but just simulating getting and then setting (even though they are the same)
-
-    // set application settings with any adjustments after template specific updates
-    DataStore.settings = { ...templateSettings }
-
-    // try invoking a plugin command
-
-    // const version = await DataStore.invokePluginCommandByName('np:about', 'np.Templating', [{ fname: 'Mike' }])
-    const version = await NPTemplating.invokePluginCommandByName('np.Templating', 'np:about', [{ fname: 'Mike' }])
-    if (version != null) {
-      console.log(version)
-      Editor.insertTextAtCursor(version)
-    } else {
-      console.log('version is null')
-    }
+    let plugins = DataStore.installedPlugins()
+    plugins.forEach((plugin) => {
+      clo(plugin)
+    })
   } catch (error) {
     logError(pluginJson, error)
   }
@@ -805,4 +831,60 @@ export async function getXCallbackForTemplate(): Promise<void> {
   } catch (error) {
     logError(pluginJson, error)
   }
+}
+
+export async function templateConvertNote(): Promise<void> {
+  if (typeof Editor.type === 'undefined') {
+    await CommandBar.prompt('Conversion Error', 'Please select the Project Note you would like to convert and try again.')
+    return
+  }
+
+  if (Editor.type !== 'Notes') {
+    await CommandBar.prompt('Conversion Error', 'You can only convert Project Notes')
+    return
+  }
+
+  const note = Editor.content || ''
+
+  const result = new FrontmatterModule().convertProjectNoteToFrontmatter(note)
+  switch (result) {
+    case -1:
+      await CommandBar.prompt('Conversion Falied', 'Unable to convert Project Note.')
+      break
+    case -2:
+      await CommandBar.prompt('Conversion Falied', 'Project Note must have Title (starts with # character)')
+      break
+    case -3:
+      await CommandBar.prompt('Conversion Falied', 'Project Note already in Frontmatter Format')
+      break
+  }
+
+  if (typeof result === 'string') {
+    // select all the text, it will be overwritten by insert of new note
+    Editor.selectAll()
+
+    // replace selected text with converted template
+    Editor.insertTextAtCursor(result.toString())
+
+    // set cursor at the top of the note
+    Editor.highlightByIndex(0, 0)
+  }
+}
+
+export async function getTemplate(templateName: string = '', options: any = { showChoices: true }): Promise<string> {
+  return await NPTemplating.getTemplate(templateName, options)
+}
+
+export async function preRender(templateData: string = '', userData: any = {}): Promise<any> {
+  const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData, userData)
+
+  return { frontmatterBody, frontmatterAttributes }
+}
+
+export async function render(inTemplateData: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
+  return await NPTemplating.render(inTemplateData, userData, userOptions)
+}
+
+export async function renderTemplate(templateName: string = '', userData: any = {}, userOptions: any = {}): Promise<string> {
+  return await NPTemplating.renderTemplate(templateName, userData, userOptions)
 }

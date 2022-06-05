@@ -91,11 +91,11 @@ module.exports = {
     console.log('')
     const args = helpers.getArguments(toolbox.arguments, this, { initializeNullValues: true })
 
-    const pluginName = args.plugin || toolbox.arguments.plugin || toolbox.commandName || null
+    const pluginId = args.plugin || toolbox.arguments.plugin || toolbox.commandName || null
 
     const result = filesystem.directoryList().filter((dirItem) => {
       const filename = filesystem.filename(dirItem)
-      return filename.indexOf(pluginName) !== -1
+      return filename.indexOf(pluginId) !== -1
     })
 
     const draft = args.draft || false
@@ -105,19 +105,19 @@ module.exports = {
     const noBuild = args.noBuild || false
 
     if (result.length === 0) {
-      toolbox.print.error(`Unable to locate plugin ${pluginName}, make sure you are at the project root directory`, 'ERROR')
+      toolbox.print.error(`Unable to locate plugin ${pluginId}, make sure you are at the project root directory`, 'ERROR')
       process.exit()
     }
-    const configData = pluginUtils.getPluginConfig(pluginName)
+    const configData = pluginUtils.getPluginConfig(pluginId)
 
     const pluginVersion = configData['plugin.version']
+    const pluginName = configData['plugin.name']
 
-    // const pluginJsonFilename = path.resolve(pluginName, 'plugin.json')
     let nextVersion = configData['plugin.version']
-    if (!(await pluginUtils.checkVersion(pluginName, nextVersion))) {
-      const existingReleaseName = `${pluginName} v${configData['plugin.version']}`
+    if (!(await pluginUtils.checkVersion(pluginId, nextVersion))) {
+      const existingReleaseName = `${pluginId} v${configData['plugin.version']}`
       print.warn(`Release matching ${colors.cyan(existingReleaseName)} has already been published.`, 'HALT')
-      print.info(`       https://github.com/NotePlan/plugins/releases/tag/${pluginName}-v${nextVersion}`)
+      print.info(`       https://github.com/NotePlan/plugins/releases/tag/${pluginId}-v${nextVersion}`)
       console.log('')
       const version = await releasePrompts.versionPrompt(configData['plugin.version'])
       if (!version) {
@@ -132,7 +132,7 @@ module.exports = {
       }
     }
 
-    if (!args.force && !(await pluginUtils.checkChangelogNotes(pluginName, nextVersion))) {
+    if (!args.force && !(await pluginUtils.checkChangelogNotes(pluginId, nextVersion))) {
       print.warn(`Your ${colors.cyan('CHANGELOG.md')} does not contain information for v${nextVersion}`, 'WARN')
       console.log('')
       const changelogPrompt = await prompt.toggle('Would you like to continue without updating CHANGELOG.md?')
@@ -143,12 +143,6 @@ module.exports = {
       }
     }
 
-    // const currentBranch = await github.currentBranch()
-    // if (!preview && currentBranch !== 'main') {
-    //   print.warn('You must be on "main" branch to release plugins', 'ABORT')
-    //   process.exit()
-    // }
-
-    const runner = pluginRelease.run(pluginName, nextVersion, args)
+    const runner = pluginRelease.run(pluginId, pluginName, nextVersion, args)
   },
 }

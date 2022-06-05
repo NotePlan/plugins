@@ -60,6 +60,9 @@ describe(`${FILE}`, () => {
       })
     })
     describe('validation errors should fail', () => {
+      test('no validations sent ', () => {
+        expect(c.validateConfigProperties({}, {})).toEqual({})
+      })
       test('for required field missing ', () => {
         expect(() => c.validateConfigProperties({}, { test: 'string' })).toThrow(createConfigError('missing', 'test', 'string'))
       })

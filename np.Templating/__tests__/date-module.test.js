@@ -3,6 +3,7 @@
 import colors from 'chalk'
 import DateModule from '../lib/support/modules/DateModule'
 import moment from 'moment-business-days'
+
 import { currentDate, now, format, timestamp, date8601 } from '../lib/support/modules/DateModule'
 
 const PLUGIN_NAME = `📙 ${colors.yellow('np.Templating')}`
@@ -141,6 +142,109 @@ describe(`${PLUGIN_NAME}`, () => {
       const assertValue = moment(new Date()).add(3, 'M').format('YYYY-MM-DD')
 
       expect(result).toEqual(assertValue)
+    })
+
+    describe(`${block('.add method')}`, () => {
+      it(`should render ${method('.add')} using default shorthand (n days)`, async () => {
+        // this is how it will look inside date functions using `.createDateTime`
+        const pivotDate = '2022-05-21T00:00:01'
+
+        const result = new DateModule().add(pivotDate, 7)
+
+        const assertValue = moment(new Date(pivotDate)).add(7, 'days').format('YYYY-MM-DD')
+
+        expect(result).toEqual(assertValue)
+      })
+
+      it(`should render ${method('.add')} using shorthand weeks`, async () => {
+        // this is how it will look inside date functions using `.createDateTime`
+        const pivotDate = '2022-05-21T00:00:01'
+
+        const result = new DateModule().add(pivotDate, 7, 'weeks')
+
+        const assertValue = moment(new Date(pivotDate)).add(7, 'weeks').format('YYYY-MM-DD')
+
+        expect(result).toEqual(assertValue)
+      })
+
+      it(`should render ${method('.add')} using shorthand weeks`, async () => {
+        // this is how it will look inside date functions using `.createDateTime`
+        const pivotDate = '2022-05-21T00:00:01'
+
+        const result = new DateModule().add(pivotDate, '7w')
+
+        const assertValue = moment(new Date(pivotDate)).add(7, 'weeks').format('YYYY-MM-DD')
+
+        expect(result).toEqual(assertValue)
+      })
+
+      it(`should not render ${method('.add')} using shorthand weeks`, async () => {
+        // this is how it will look inside date functions using `.createDateTime`
+        const pivotDate = '2022-05-21T00:00:01'
+
+        const result = new DateModule().add(pivotDate, '7years')
+
+        const assertValue = moment(new Date(pivotDate)).add(7, 'weeks').format('YYYY-MM-DD')
+
+        expect(result).not.toEqual(assertValue)
+      })
+
+      it(`should render ${method('.add')} using Intl format`, async () => {
+        // this is how it will look inside date functions using `.createDateTime`
+        const pivotDate = '2022-05-21T00:00:01'
+
+        const result = new DateModule({ dateFormat: 'short' }).add(pivotDate, 7)
+
+        const assertValue = moment(new Date(pivotDate)).add(7, 'days').format('M/D/YY')
+
+        expect(result).toEqual(assertValue)
+      })
+    })
+
+    describe(`${block('.subtract method')}`, () => {
+      it(`should render ${method('.subtract')} using default shorthand (n days)`, async () => {
+        // this is how it will look inside date functions using `.createDateTime`
+        const pivotDate = '2022-05-21T00:00:01'
+
+        const result = new DateModule().subtract('2022-05-21', 7)
+
+        const assertValue = moment(new Date(pivotDate)).subtract(7, 'days').format('YYYY-MM-DD')
+
+        expect(result).toEqual(assertValue)
+      })
+
+      it(`should render ${method('.subtract')} using shorthand weeks`, async () => {
+        // this is how it will look inside date functions using `.createDateTime`
+        const pivotDate = '2022-05-21T00:00:01'
+
+        const result = new DateModule().subtract('2022-05-21', 7, 'weeks')
+
+        const assertValue = moment(new Date(pivotDate)).subtract(7, 'weeks').format('YYYY-MM-DD')
+
+        expect(result).toEqual(assertValue)
+      })
+
+      it(`should render ${method('.subtract')} using shorthand weeks`, async () => {
+        // this is how it will look inside date functions using `.createDateTime`
+        const pivotDate = '2022-05-21T00:00:01'
+
+        const result = new DateModule().subtract('2022-05-21', '7w')
+
+        const assertValue = moment(new Date(pivotDate)).subtract(7, 'weeks').format('YYYY-MM-DD')
+
+        expect(result).toEqual(assertValue)
+      })
+
+      it(`should not render ${method('.subtract')} using shorthand weeks`, async () => {
+        // this is how it will look inside date functions using `.createDateTime`
+        const pivotDate = '2022-05-21T00:00:01'
+
+        const result = new DateModule().subtract('2022-05-21', '7years')
+
+        const assertValue = moment(new Date(pivotDate)).subtract(7, 'weeks').format('YYYY-MM-DD')
+
+        expect(result).not.toEqual(assertValue)
+      })
     })
 
     it(`should render ${method('.now')} using negative shorthand`, async () => {
@@ -314,14 +418,70 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(startOfWeek).toEqual('2022-02-27')
     })
 
+    it(`should return ${method('.startOfWeek')} using pivot date`, async () => {
+      let startOfWeek = new DateModule().startOfWeek(null, '2021-12-01')
+      expect(startOfWeek).toEqual('2021-11-28')
+    })
+
     it(`should return ${method('.startOfWeek')} using fixed date with offset`, async () => {
       let startOfWeek = new DateModule().startOfWeek(null, '2022-03-05', 1)
       expect(startOfWeek).toEqual('2022-02-28')
     })
 
+    it(`should return ${method('.startOfWeek')} using Intl format`, async () => {
+      const pivotDate = '2022-05-21'
+
+      const startOfWeek = new DateModule({ dateFormat: 'short' }).startOfWeek('', pivotDate)
+
+      const assertValue = moment(new Date(pivotDate)).startOf('week').format('M/D/YY')
+
+      expect(startOfWeek).toEqual('5/15/22')
+    })
+
     it(`should return ${method('.endOfWeek')} using today`, async () => {
       let endOfWeek = new DateModule().endOfWeek(null, '2022-03-05')
       expect(endOfWeek).toEqual('2022-03-05')
+    })
+
+    it(`should return ${method('.startOfMonth')} using today`, async () => {
+      let startOfMonth = new DateModule().startOfMonth(null, '2022-05-29')
+      expect(startOfMonth).toEqual('2022-05-01')
+    })
+
+    it(`should return ${method('.startOfMonth')} using supplied date`, async () => {
+      let startOfMonth = new DateModule().startOfMonth(null, '2021-12-01')
+      expect(startOfMonth).toEqual('2021-12-01')
+    })
+
+    it(`should return ${method('.startOfMonth')} using Intl format`, async () => {
+      const result = new DateModule({ dateFormat: 'short' }).yesterday('MM/D/YY')
+
+      const assertValue = moment(new Date()).subtract(1, 'days').format('MM/D/YY')
+
+      let startOfMonth = new DateModule({ dateFormat: 'short' }).startOfMonth(null, '2021-12-01')
+
+      expect(startOfMonth).toEqual('12/1/21')
+    })
+
+    it(`should return ${method('.endOfMonth')} using today`, async () => {
+      let endOfMonth = new DateModule().endOfMonth(null, '2022-05-29')
+      expect(endOfMonth).toEqual('2022-05-31')
+    })
+
+    it(`should return ${method('.endOfMonth')} using Intl format`, async () => {
+      let endOfMonth = new DateModule({ dateFormat: 'short' }).endOfMonth(null, '2022-05-29')
+
+      expect(endOfMonth).toEqual('5/31/22')
+    })
+
+    it(`should return ${method('.daysInMonth')} using today`, async () => {
+      let days = new DateModule().daysInMonth('2022-05-29')
+      expect(days).toEqual(31)
+    })
+
+    it(`should return ${method('.daysInMonth')} using today`, async () => {
+      let days = new DateModule().daysInMonth('2022-02-28')
+      expect(days).toEqual(28)
     })
 
     it(`should return ${method('.fromNow')} using today`, async () => {
@@ -330,8 +490,8 @@ describe(`${PLUGIN_NAME}`, () => {
     })
 
     it(`should return ${method('.endOfWeek')} using fixed date with offset`, async () => {
-      let startOfWeek = new DateModule().endOfWeek(null, '2022-03-05', 1)
-      expect(startOfWeek).toEqual('2022-03-06')
+      let endOfWeek = new DateModule().endOfWeek(null, '2022-03-05', 1)
+      expect(endOfWeek).toEqual('2022-03-06')
     })
 
     describe(`${block('business days')}`, () => {
