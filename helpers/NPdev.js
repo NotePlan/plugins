@@ -19,7 +19,7 @@ export function logAllEnvironmentSettings(): void {
   }
 }
 
-export async function chooseRunPluginXCallbackURL(showInstalledOnly: boolean = true) {
+export async function chooseRunPluginXCallbackURL(showInstalledOnly: boolean = true): Promise<string | false> {
   const plugins = (await showInstalledOnly) ? DataStore.installedPlugins() : DataStore.listPlugins()
 
   let commandMap = []
@@ -42,26 +42,29 @@ export async function chooseRunPluginXCallbackURL(showInstalledOnly: boolean = t
   const chosenCommand = commandMap.find((command) => command.value === chosenID)
   const command = chosenCommand?.command?.name
   const pluginID = chosenCommand?.plugin.id
-  // const args = await getArgList(command, pluginID)
-  let finished = false,
-    i = 0,
-    args = []
-  while (!finished) {
-    console.log(i)
-    const res = await getArgumentText(chosenCommand.label, i)
-    if (res === '') {
-      finished = true
-    } else {
-      args.push(res)
-      i++
+
+  let res
+  if (chosenCommand && command?.length && pluginID) {
+    let finished = false,
+      i = 0,
+      args = []
+    while (!finished) {
+      res = await getArgumentText(chosenCommand.label, i)
+      if (res === '' || res === false) {
+        // NOTE: false here could optionally kill the whole wizard
+        finished = true
+      } else {
+        args.push(res)
+        i++
+      }
     }
+    return res === false ? false : createRunPluginCallbackUrl(pluginID, command, args)
+  } else {
+    return 'Error - no command chosen'
   }
-  return createRunPluginCallbackUrl(pluginID, command, args)
 }
 
-async function getArgumentText(commandName, i) {
-  const message = `What's the value you want for arg${i}?\n\n(ENTER to finish)`
-  const res = await getInput(message, 'OK', 'Plugin Arguments')
-  console.log(`res: ${res}`)
-  return res
+async function getArgumentText(commandName: string, i: number): Promise<string | false> {
+  const message = `Some plugin commands need/expect additional information in order to work.\n\nEnter parameters one-by-one in the correct order per the plugin's documentation. \n\n(Leave the text field empty and hit ENTER/OK to finish argument entry)\n\narg${i} value?`
+  return await getInput(message, 'OK', `Plugin Arguments for \n"${commandName}"`)
 }
