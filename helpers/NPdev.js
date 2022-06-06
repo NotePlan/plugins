@@ -1,9 +1,9 @@
 // @flow
 
-import { clo, JSP, logAllPropertyNames } from './dev'
+import { clo, JSP, log, logError, logAllPropertyNames } from './dev'
 
 import { createRunPluginCallbackUrl } from './general'
-import { chooseOption, getInput } from './userInput'
+import { chooseOption, getInput, showMessageYesNo } from './userInput'
 /**
  * Print to the console log all contents of the environment variable, introduced in v3.3.2
  * @author @dwertheimer
@@ -38,7 +38,7 @@ export async function chooseRunPluginXCallbackURL(showInstalledOnly: boolean = t
   })
   commandMap = commandMap.sort((a, b) => a.label.localeCompare(b.label))
   const chosenID = await chooseOption('Which command?', commandMap, '__NONE__')
-  console.log(`chosen: ${chosenID}`)
+  log(`NPdev::chooseRunPluginXCallbackURL`, `chosen: ${chosenID}`)
   const chosenCommand = commandMap.find((command) => command.value === chosenID)
   const command = chosenCommand?.command?.name
   const pluginID = chosenCommand?.plugin.id
@@ -48,8 +48,20 @@ export async function chooseRunPluginXCallbackURL(showInstalledOnly: boolean = t
     let finished = false,
       i = 0,
       args = []
+    const url = chosenCommand?.plugin?.repoUrl || ''
+    if (url.length) {
+      const getYesNo = await showMessageYesNo(
+        `We are about to ask you for parameters to supply to the plugin command. You may want to review the plugin's documentation to ensure you get the parameters (if there are any) correct.\n\nOpen docs for\n"${chosenCommand.label}"?`,
+        ['Yes', 'No'],
+        'Open Documentation?',
+      )
+      log(`NPdev::getArgumentText`, `getYesNo: ${getYesNo} Opening ${url}`)
+      if (getYesNo === 'Yes') {
+        NotePlan.openURL(url)
+      }
+    }
     while (!finished) {
-      res = await getArgumentText(chosenCommand.label, i)
+      res = await getArgumentText(chosenCommand, i)
       if (res === '' || res === false) {
         // NOTE: false here could optionally kill the whole wizard
         finished = true
@@ -64,7 +76,7 @@ export async function chooseRunPluginXCallbackURL(showInstalledOnly: boolean = t
   }
 }
 
-async function getArgumentText(commandName: string, i: number): Promise<string | false> {
-  const message = `Some plugin commands need/expect additional information in order to work.\n\nEnter parameters one-by-one in the correct order per the plugin's documentation. \n\n(Leave the text field empty and hit ENTER/OK to finish argument entry)\n\narg${i} value?`
-  return await getInput(message, 'OK', `Plugin Arguments for \n"${commandName}"`)
+async function getArgumentText(command: any, i: number): Promise<string | false> {
+  const message = `Some plugin commands need/expect additional information in order to work.\n\nEnter parameters one-by-one in the correct order per the plugin's documentation. \n\n(Leave the text field empty and hit ENTER/OK to finish argument entry)\n\nWhat should "arg${i}" value be?`
+  return await getInput(message, 'OK', `Plugin Arguments for \n"${command.label}"`)
 }
