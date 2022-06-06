@@ -1,5 +1,9 @@
 // @flow
 
+/*
+TODO: add back button to return to previous step (@qualitativeeasingn)
+*/
+
 import { log, logError, clo, JSP } from '../../helpers/dev'
 import { createOpenNoteCallbackUrl, createAddTextCallbackUrl } from '../../helpers/general'
 import { chooseRunPluginXCallbackURL } from '@helpers/NPdev'
@@ -45,7 +49,7 @@ async function getAddTextOrOpenNoteURL(command: 'openNote' | 'addText' = 'openNo
  */
 async function askAboutDate(): Promise<string | false> {
   let opts = [
-    { label: 'Open/use a Calendar Note', value: 'date' },
+    { label: 'Open/use a Calendar/Daily Note', value: 'date' },
     { label: 'Open/use a Project Note (by title)', value: '' },
   ]
   let choice = await chooseOption('What kind of note do you want to use/open?', opts, opts[0].value)

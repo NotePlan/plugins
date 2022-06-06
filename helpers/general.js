@@ -141,11 +141,11 @@ export function createAddTextCallbackUrl(note: TNote | string, options: { text: 
     // this is a note
     const encoded = encodeURIComponent(note.filename).replace(/\(/g, '%28').replace(/\)/g, '%29')
     if (note && note.filename) {
-      return `noteplan://x-callback-url/addText?filename=${encoded}&mode=${mode}&text=${encodeURIComponent(text)}&openNote=${openNote}`
+      return `noteplan://x-callback-url/addText?filename=${encoded}&mode=${mode}&openNote=${openNote}&text=${encodeURIComponent(text)}`
     }
   } else {
     // this is a date type argument
-    return `noteplan://x-callback-url/addText?noteDate=${note}&mode=${mode}&text=${encodeURIComponent(text)}&openNote=${openNote}`
+    return `noteplan://x-callback-url/addText?noteDate=${note}&mode=${mode}&openNote=${openNote}&text=${encodeURIComponent(text)}`
   }
   return ''
 }
