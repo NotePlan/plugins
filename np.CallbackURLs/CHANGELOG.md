@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.CallbackURLs/README.md) for details on available commands and use case.
 
+## [0.1.2] - 2022-06-05 (@dwertheimer)
+### Added
+- Open documentation URL
+
 ## [0.1.1] - 2022-06-05 (@dwertheimer)
 ### Fixed:
 - Endless loop on cancel
