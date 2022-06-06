@@ -437,3 +437,44 @@ export const multipleInputAnswersAsArray = async (question: string, submit: stri
   }
   return answers
 }
+
+/**
+ * Choose a particular note from a CommandBar list of notes
+ * @param {boolean} includeProjectNotes
+ * @param {boolean} includeCalendarNotes
+ * @param {Array<string>} foldersToIgnore - a list of folder names to ignore
+ * @param {boolean} showFolders - whether to show folders in the title list
+ * @returns
+ */
+export async function chooseNote(
+  includeProjectNotes: boolean = true,
+  includeCalendarNotes: boolean = false,
+  foldersToIgnore: Array<string> = [],
+  showFolders: boolean = false,
+): Promise<TNote | null> {
+  let noteList = []
+  const projectNotes = DataStore.projectNotes
+  const calendarNotes = DataStore.calendarNotes
+  if (includeProjectNotes) {
+    noteList = noteList.concat(projectNotes)
+  }
+  if (includeCalendarNotes) {
+    noteList = noteList.concat(calendarNotes)
+  }
+  const noteListFiltered = noteList.filter((note) => {
+    // filter out notes that are in folders to ignore
+    let isInIgnoredFolder = false
+    foldersToIgnore.forEach((folder) => {
+      if (note.filename.includes(`${folder}/`)) {
+        isInIgnoredFolder = true
+      }
+    })
+    return !isInIgnoredFolder
+  })
+  const opts = noteListFiltered.map((note) => {
+    return note.title && note.title !== '' ? note?.title : note?.filename
+  })
+  clo(noteListFiltered[0], 'opts')
+  const re = await CommandBar.showOptions(opts, 'Choose note')
+  return noteListFiltered[re.index] ?? null
+}

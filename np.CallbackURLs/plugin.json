@@ -1,0 +1,42 @@
+{
+  "COMMENT": "Details on these fields: https://help.noteplan.co/article/67-create-command-bar-plugins",
+  "macOS.minVersion": "10.13.0",
+  "noteplan.minAppVersion": "3.4.0",
+  "plugin.id": "np.CallbackURLs",
+  "plugin.name": "🧩 X-Callback-URL Creator Plugin",
+  "plugin.version": "0.1.2",
+  "plugin.description": "Helps you form links/x-callback-urls to perform actions from within NotePlan or between other applications and NotePlan",
+  "plugin.author": "dwertheimer",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/np.CallbackURLs/README.md",
+  "plugin.commands": [
+    {
+      "name": "Get X-Callback-URL",
+      "description": "Run Wizard to get X-Callback-URL",
+      "jsFunction": "xCallbackWizard",
+      "alias": [
+        "xcallback","url","link"
+      ]
+    }
+  ],
+  "plugin.settings": [
+    {
+      "COMMENT": "Plugin settings documentation: https://help.noteplan.co/article/123-plugin-configuration",
+      "type": "heading",
+      "title": "X-Callback-URL Creator Plugin Settings"
+    },
+    {
+      "title": "A string in prefs",
+      "key": "settingsString",
+      "type": "string",
+      "description": "Enter some string and see it change when the plugin is run",
+      "default": "This default setting was set in plugin preferences!"
+    },
+    {
+      "key": "version",
+      "type": "hidden",
+      "description": "X-Callback-URL Creator Plugin Settings Version"
+    }
+  ]
+}

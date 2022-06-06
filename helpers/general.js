@@ -106,21 +106,48 @@ export function createLink(noteTitle: string, heading: string | null = ''): stri
  * Create xcallback link text from title string (and optional heading string)
  * @dwertheimer
  * @param {string} titleOrFilename - title of the note or the filename
- * @param {boolean} isFilename - true if title is a filename instead of note title
+ * @param {string} paramType - 'title' | 'filename' | 'date' (default is 'title')
  * @param {string | null} heading - heading inside of note (optional)
+ * @parms {string} openType - 'subWindow' | 'splitView' | 'useExistingSubWindow' (default: null)
  * @returns {string} the x-callback-url string
  */
 export function createOpenNoteCallbackUrl(
   titleOrFilename: string,
-  isFilename: boolean = false,
+  paramType: 'title' | 'filename' | 'date' = 'title',
   heading: string | null = null,
+  openType: 'subWindow' | 'splitView' | 'useExistingSubWindow' | null = null,
 ): string {
-  const xcb = `noteplan://x-callback-url/openNote?${isFilename ? `filename` : `noteTitle`}=`
+  const isFilename = paramType === 'filename'
+  const paramStr = isFilename ? `filename` : paramType === 'date' ? `noteDate` : `noteTitle`
+  const xcb = `noteplan://x-callback-url/openNote?${paramStr}=`
   // FIXME: this is working around an API bug that does not allow heading references in filename xcallbacks
   // When @eduard fixes it, this line can be removed
-  const head = isFilename ? '' : heading
+  const head = paramType === 'title' && heading?.length ? heading : ''
+  // console.log(`createOpenNoteCallbackUrl: ${xcb}${titleOrFilename}${head ? `&heading=${head}` : ''}`)
   const encoded = encodeURIComponent(titleOrFilename).replace(/\(/g, '%28').replace(/\)/g, '%29')
-  return `${xcb}${encoded}${head && head !== '' ? `#${head}` : ''}`
+  const openAs = openType && ['subWindow', 'splitView', 'useExistingSubWindow'].includes(openType) ? `&${openType}=yes` : ''
+  return `${xcb}${encoded}${head && head !== '' ? `#${head}` : ''}${openAs}`
+}
+
+/**
+ * Create an addText callback url
+ * @param {TNote | string} note (either a note object or a date-related string, e.g. today, yesterday, tomorrow)
+ * @param {{ text: string, mode: string, openNote: string }} options - text to add, mode ('append', 'prepend'), and whether to open the note
+ * @returns
+ */
+export function createAddTextCallbackUrl(note: TNote | string, options: { text: string, mode: string, openNote: string }): string {
+  const { text, mode, openNote } = options
+  if (typeof note !== 'string') {
+    // this is a note
+    const encoded = encodeURIComponent(note.filename).replace(/\(/g, '%28').replace(/\)/g, '%29')
+    if (note && note.filename) {
+      return `noteplan://x-callback-url/addText?filename=${encoded}&mode=${mode}&openNote=${openNote}&text=${encodeURIComponent(text)}`
+    }
+  } else {
+    // this is a date type argument
+    return `noteplan://x-callback-url/addText?noteDate=${note}&mode=${mode}&openNote=${openNote}&text=${encodeURIComponent(text)}`
+  }
+  return ''
 }
 
 /**
@@ -141,24 +168,20 @@ export function createRunPluginCallbackUrl(pluginID: string, command: string, ar
   return xcb
 }
 
-/**
- * Create a pretty/short link hiding an xcallback link text from title string (and optional heading string)
- * e.g. [linkText](x-callback-url)
- * @dwertheimer
- * @param {string} linkText - the text to display for the link
- * @param {string} pluginID - ID of the plugin from plugin.json
- * @param {boolean} command - the "name" of the command in plugin.json
- * @param {Array<string>} args - a flat array of arguments to be sent
- * @returns {string} the pretty x-callback-url string: [linkText](x-callback-url)
- */
-export function createPrettyLink(
-  linkText: string,
-  titleOrFilename: string,
-  isFilename: boolean = false,
-  heading: string | null = null,
-): string {
-  return `[${linkText}](${createOpenNoteCallbackUrl(titleOrFilename, isFilename, heading)})`
-}
+// DBW Note: I think this is not used. Commenting out. Can be deleted soon.
+// /**
+//  * Create a pretty/short link hiding an xcallback link text from title string (and optional heading string)
+//  * e.g. [linkText](x-callback-url)
+//  * @dwertheimer
+//  * @param {string} linkText - the text to display for the link
+//  * @param {string} pluginID - ID of the plugin from plugin.json
+//  * @param {boolean} command - the "name" of the command in plugin.json
+//  * @param {Array<string>} args - a flat array of arguments to be sent
+//  * @returns {string} the pretty x-callback-url string: [linkText](x-callback-url)
+//  */
+// export function createPrettyLink(linkText: string, titleOrFilename: string, isFilename: boolean = false, heading: string | null = null): string {
+//   return `[${linkText}](${createOpenNoteCallbackUrl(titleOrFilename, isFilename, heading)})`
+// }
 
 /**
  * Create a pretty/short link to open a note, hiding an xcallback link text from title string (and optional heading string)
@@ -170,13 +193,8 @@ export function createPrettyLink(
  * @param {Array<string>} args - a flat array of arguments to be sent
  * @returns {string} the pretty x-callback-url string: [linkText](x-callback-url)
  */
-export function createPrettyOpenNoteLink(
-  linkText: string,
-  titleOrFilename: string,
-  isFilename: boolean = false,
-  heading: string | null = null,
-): string {
-  return `[${linkText}](${createOpenNoteCallbackUrl(titleOrFilename, isFilename, heading)})`
+export function createPrettyOpenNoteLink(linkText: string, titleOrFilename: string, isFilename: boolean = false, heading: string | null = null): string {
+  return `[${linkText}](${createOpenNoteCallbackUrl(titleOrFilename, isFilename ? 'filename' : 'title', heading)})`
 }
 
 /**
@@ -189,12 +207,7 @@ export function createPrettyOpenNoteLink(
  * @param {string | null} heading - heading inside of note (optional)
  * @returns {string} the x-callback-url string
  */
-export function createPrettyRunPluginLink(
-  linkText: string,
-  pluginID: string,
-  command: string,
-  args: Array<string> = [],
-): string {
+export function createPrettyRunPluginLink(linkText: string, pluginID: string, command: string, args: Array<string> = []): string {
   return `[${linkText}](${createRunPluginCallbackUrl(pluginID, command, args)})`
 }
 
