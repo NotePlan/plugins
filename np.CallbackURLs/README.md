@@ -1,33 +1,26 @@
 # X-Callback-URL Creator Plugin Noteplan Plugin
 
-[You will delete this text and replace it with a readme about your plugin -- not ever seen by users, but good for people looking at your code. Before you delete though, you should know:]
+## About X-Callback-URL Creator
+X-Callback-URLs are extremely useful. They can be used to create links which open notes and perform actions from inside of NotePlan. They also allow you to automate things inside of NotePlan from Shortcuts or other apps. How to use X-Callback-URLs is covered in [the documentation](https://help.noteplan.co/article/49-x-callback-url-scheme), but creating the URLs can be a little challenging. Hence why this wizard was created. It helps take *some* of the guesswork out of creating URLs that you can use to open notes, run plugins, etc.
 
-You do not need all of this scaffolding for a basic NP plugin. As the instructions state [Creating Plugins](https://help.noteplan.co/article/65-commandbar-plugins), you can create a plugin with just two files: `plugin.json` and `script.js`. Please read that whole page before proceeding here.
+## X-Callback-Types
+As you can see from [the documentation](https://help.noteplan.co/article/49-x-callback-url-scheme), there are lots of different types of callbacks. The most frequently used ones are probably `openNote`, `addText` and `runPlugin`, and so that's where v1 of this plugin started.
 
-However, for more complex plugins, you may find that it's easier to write code in multiple files, incorporating code (helper functions, etc.) written (and *TESTED*) previously by others. We strongly recommend type checking (e.g. [Flow.io](https://flow.io)) to help validate the code you write. If either of those is interesting to you, you're in the right place. Before going any further, make sure you follow the development environment [setup instructions](https://github.com/NotePlan/plugins).
+### How to use it
+Invoke the wizard by typing the `/Get X-Callback-URL` command. You will be walked through creating the X-Callback-URL. 
 
-## Creating NotePlan Plugin
+### Implemented so far:
+- openNote - pretty self explanatory in the wizard
+- addText - pretty self explanatory in the wizard
+- runPlugin - mostly self-explanatory. The only tricky bit is that every plugin command may have slightly different parameters it's expecting, so you may need to figure out what the key/value pairs are that a particular plugin is looking for by reading its documentation.
 
-You can create a NotePlan plugin by executing:
+### Coming in the future (based on user demand -- see below):
+- addNote
+- deleteNote
+- selectTag
+- search
+- noteInfo (x-success)
+- x-success
 
-```bash
-noteplan-cli plugin:create
-```
-
-Open up a terminal folder and change directory to the plugins repository root. Run the command `npm run autowatch` which will keep looking for changes to all plugin files and will re-compile when JavaScript changes are made. It will also transpile ES6 and ES7 code to ES5 which will run on virtually all Macs, and will copy the file(s) to the NotePlan Plugins folder, so you can immediately test in Noteplan.
-
-### NotePlan Plugins Directory
-You can find all your currently installed NotePlan Plugins here
-
-```bash
-/Users/<user>/Library/Containers/co.noteplan.NotePlan3/Data/Library/Application Support/co.noteplan.NotePlan3/Plugins
-```
-
-Keep in mind that you can code/test without updating the plugin version property in `plugin.json`, however when you push the code to the Plugins repository (or create a PR), you should update the version number so that other NotePlan users who have installed your plugin will know that an updated version is available.
-
-Further to that point, you can use your plugin locally, or you can use `git` to create a Pull Request to get it merged in the Noteplan/plugins repository and potentially available for all users through the `NotePlan > Preferences > Plugins` tab.
-
-That's it. Happy coding!
-
-## NotePlan Plugin Team
-Hat-tip to @eduard, @nmn, @jgclark, @dwertheimer and @codedungeon, who made all this fancy cool stuff.
+### Feedback is welcome
+If you are interested in the other types (not implemented yet), please comment in the #plugins channel in the Discord, and tag @dwertheimer to let us know which of the above you are most interested in. It will help us prioritize future releases.

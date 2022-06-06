@@ -1,61 +1,89 @@
 // @flow
-// Plugin code goes in files like this. Can be one per command, or several in a file.
-// export async function [name of the function called by Noteplan]
-// then include that function name as an export in the index.js file also
-// Type checking reference: https://flow.org/
-// Specific how-to re: Noteplan: https://github.com/NotePlan/plugins/blob/main/Flow_Guide.md
-
-// NOTE: This file is named NPHelloWorld.js
-// As a matter of convention, we use NP at the beginning of files which contain calls to NotePlan APIs (Editor, DataStore, etc.)
-// Because you cannot easily write tests for code that calls NotePlan APIs, we try to keep the code in the NP files as lean as possible
-// and put the majority of the work in the /support folder files which have corresponding tests
-// support/utils is an example of a testable file that is used by the plugin command
 
 import { log, logError, clo, JSP } from '../../helpers/dev'
-import { createOpenNoteCallbackUrl } from '../../helpers/general'
+import { createOpenNoteCallbackUrl, createAddTextCallbackUrl } from '../../helpers/general'
 import { chooseRunPluginXCallbackURL } from '@helpers/NPdev'
 import pluginJson from '../plugin.json'
-import { chooseOption, showMessage, chooseHeading, chooseFolder } from '@helpers/userInput'
+import { chooseOption, showMessage, chooseHeading, chooseFolder, chooseNote, getInput } from '@helpers/userInput'
 
 // https://help.noteplan.co/article/49-x-callback-url-scheme#addnote
 
-async function chooseNote(
-  includeProjectNotes: boolean = true,
-  includeCalendarNotes: boolean = false,
-  foldersToIgnore: Array<string> = [],
-): {} {
-  let noteList = []
-  const projectNotes = DataStore.projectNotes
-  const calendarNotes = DataStore.calendarNotes
-  if (includeProjectNotes) {
-    noteList = noteList.concat(projectNotes)
+/**
+ * Create a callback URL for openNote or addText (they are very similar)
+ * @param {string} command - 'openNote' | 'addText' (default: 'openNote')
+ * @returns {string} the URL
+ */
+async function getAddTextOrOpenNoteURL(command: 'openNote' | 'addText' = 'openNote'): Promise<string> {
+  let note, url, addTextParams
+  const date = await askAboutDate() // returns date or '' or false
+  if (date === false) return ''
+  if (date === '') {
+    note = await chooseNote()
+    log(pluginJson, `getAddTextOrOpenNoteURL: ${note?.filename || 'no note filename'}`)
+    if (command === 'addText' && note) {
+      url = createAddTextCallbackUrl(note, await getAddTextAdditions())
+    } else if (command === 'openNote' && note?.filename) {
+      url = createOpenNoteCallbackUrl(note?.filename ?? '', 'filename')
+    }
+  } else {
+    if (command === 'addText') {
+      url = createAddTextCallbackUrl(date, await getAddTextAdditions())
+    } else if (command === 'openNote') {
+      url = createOpenNoteCallbackUrl(date, 'date')
+    }
   }
-  if (includeCalendarNotes) {
-    noteList = noteList.concat(calendarNotes)
+  if (url) {
+    return url
+  } else {
+    return 'An error occurred. Could not get URL. Check plugin console for details.'
   }
-  const noteListFiltered = noteList.filter((note) => {
-    // filter out notes that are in folders to ignore
-    let isInIgnoredFolder = false
-    foldersToIgnore.forEach((folder) => {
-      if (note.filename.includes(`${folder}/`)) {
-        isInIgnoredFolder = true
-      }
-    })
-    return !isInIgnoredFolder
-  })
-  const opts = noteListFiltered.map((note) => {
-    return note.title && note.title !== '' ? note?.title : note?.filename
-  })
-  const re = await CommandBar.showOptions(opts, 'Choose note')
-  return noteListFiltered[re.index]
 }
 
-async function getOpenNoteURL(): string {
-  const note = await chooseNote()
-  const hasTitle = note.title && note.title !== ''
-  console.log(`getOpenNoteURL: ${note.filename}`)
-  clo(note, 'note details:')
-  return createOpenNoteCallbackUrl(hasTitle ? note.title : note.filename, !hasTitle) //title,isFilename,heading
+/**
+ * Ask user what type of note to get, and if they want a date, get the date from them
+ * @returns {Promise<string>} YYYYMMDD like '20180122' or use 'today', 'yesterday', 'tomorrow' instead of a date; '' if they want to enter a title, or false if date entry failed
+ */
+async function askAboutDate(): Promise<string | false> {
+  let opts = [
+    { label: 'Open/use a Calendar Note', value: 'date' },
+    { label: 'Open/use a Project Note (by title)', value: '' },
+  ]
+  let choice = await chooseOption('What kind of note do you want to use/open?', opts, opts[0].value)
+  if (choice === 'date') {
+    let opts = [
+      { label: 'Enter a specific date', value: 'nameDate' },
+      { label: 'today (always current day)', value: 'today' },
+      { label: "tomorrow (always tomorrow's date)", value: 'tomorrow' },
+      { label: 'yesterday (always yesterday)', value: 'yesterday' },
+    ]
+    choice = await chooseOption('What date?', opts, opts[0].value)
+    if (choice === 'nameDate') {
+      choice = await getInput('Enter a date in YYYYMMDD format (no dashes)')
+      if (!choice || choice == '' || /^\d{8}$/.test(choice) === false) {
+        showMessage(`You entered "${String(choice)}", but that is not in the correct format (YYYYMMDD).`)
+        return false
+      }
+    }
+  }
+  return choice || ''
+}
+
+async function getAddTextAdditions(): Promise<{ text: string, mode: string, openNote: string }> {
+  let text = await getInput('Enter text to add to the note', 'OK', 'Text to Add', 'PLACEHOLDER')
+  let opts = [
+    { label: 'Prepend text to the top of the note', value: 'prepend' },
+    { label: 'Append text to the end of the note', value: 'append' },
+  ]
+  let mode = await chooseOption('How would you like to add the text?', opts, opts[0].value)
+  let openNote = await chooseOption(
+    'Open the note after adding the text?',
+    [
+      { label: 'Yes', value: 'yes' },
+      { label: 'No', value: 'no' },
+    ],
+    'yes',
+  )
+  return { text: text ? text : '', mode, openNote }
 }
 
 /**
@@ -70,12 +98,14 @@ export async function xCallbackWizard(incoming: ?string = ''): Promise<void> {
     const options = [
       { label: 'OPEN a note', value: 'openNote' },
       { label: 'ADD text to a note', value: 'addText' },
+      { label: 'Run a Plugin Command', value: 'runPlugin' },
+      /*
       { label: 'Add a NEW NOTE with title and text', value: 'addNote' },
       { label: 'DELETE a note by title', value: 'deleteNote' },
       { label: 'Select a TAG in the sidebar', value: 'selectTag' },
       { label: 'SEARCH for text in a type of notes', value: 'search' },
       { label: 'Get NOTE INFO (x-success) for use in another app', value: 'noteInfo' },
-      { label: 'Run a Plugin Command', value: 'runPlugin' },
+      */
     ]
     const res = await chooseOption(`Select an X-Callback type`, options, '')
     const item = options.find((i) => i.value === res)
@@ -85,7 +115,10 @@ export async function xCallbackWizard(incoming: ?string = ''): Promise<void> {
         canceled = true
         break
       case 'openNote':
-        url = await getOpenNoteURL()
+        url = await getAddTextOrOpenNoteURL('openNote')
+        break
+      case 'addText':
+        url = await getAddTextOrOpenNoteURL('addText')
         break
       case 'runPlugin':
         url = await chooseRunPluginXCallbackURL()
@@ -97,6 +130,17 @@ export async function xCallbackWizard(incoming: ?string = ''): Promise<void> {
     // ask if they want x-success and add it if so
 
     if (!canceled) {
+      const op = [
+        { label: `Raw/long URL (${url})`, value: 'raw' },
+        { label: '[Pretty link](hide long URL)', value: 'pretty' },
+      ]
+      const urlType = await chooseOption(`What type of URL do you want?`, op, 'raw')
+      if (urlType === 'pretty') {
+        const linkText = await getInput('Enter short text to use for the link', 'OK', 'Link Text', 'Text')
+        if (linkText) {
+          url = `[${linkText}](${url})`
+        }
+      }
       Editor.insertTextAtCursor(url)
       Clipboard.string = url
     }
