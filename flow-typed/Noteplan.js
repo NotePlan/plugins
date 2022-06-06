@@ -348,6 +348,7 @@ type TDataStore = {
    *   "isSmartMarkdownLink"     // "Smart Markdown Links" checked in markdown preferences
    *   "fontSize"                // Font size defined in editor preferences (might be overwritten by custom theme)
    *   "fontFamily"              // Font family defined in editor preferences (might be overwritten by custom theme)
+   *   "timeblockTextMustContainString" // Optional text to trigger timeblock detection in a line
    * Others can be set by plugins.
    */
   +preference: (key: string) => any,
