@@ -3,6 +3,7 @@
 /**
  * WHERE AM I?
  * TODO: update docs for limittotags, presets
+ * TODO: timeblocks need the filter DataStore.preference("timeblockTextMustContainString")
  *  * getTimeBlockingDefaults should read plugin.json and create the defaults
  *  * then validations should come from that file also
  *  * TODO: feedback if no items to timeblock
