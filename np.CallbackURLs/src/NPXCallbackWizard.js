@@ -1,5 +1,11 @@
 // @flow
 
+/*
+REMEMBER: Always build a flow cancel path every time you offer a prompt
+TODO: add back button to return to previous step (@qualitativeeasing)
+TODO: add argument detail: description, default, datatype (@qualitativeeasing)
+*/
+
 import { log, logError, clo, JSP } from '../../helpers/dev'
 import { createOpenNoteCallbackUrl, createAddTextCallbackUrl } from '../../helpers/general'
 import { chooseRunPluginXCallbackURL } from '@helpers/NPdev'
@@ -11,28 +17,41 @@ import { chooseOption, showMessage, chooseHeading, chooseFolder, chooseNote, get
 /**
  * Create a callback URL for openNote or addText (they are very similar)
  * @param {string} command - 'openNote' | 'addText' (default: 'openNote')
- * @returns {string} the URL
+ * @returns {string} the URL or false if user canceled
  */
-async function getAddTextOrOpenNoteURL(command: 'openNote' | 'addText' = 'openNote'): Promise<string> {
-  let note, url, addTextParams
+async function getAddTextOrOpenNoteURL(command: 'openNote' | 'addText' = 'openNote'): Promise<string | false> {
+  let url = '',
+    note,
+    addTextParams,
+    fields
   const date = await askAboutDate() // returns date or '' or false
-  if (date === false) return ''
+  if (date === false) return false
   if (date === '') {
     note = await chooseNote()
     log(pluginJson, `getAddTextOrOpenNoteURL: ${note?.filename || 'no note filename'}`)
     if (command === 'addText' && note) {
-      url = createAddTextCallbackUrl(note, await getAddTextAdditions())
+      fields = await getAddTextAdditions()
+      if (fields === false) {
+        url = false
+      } else {
+        url = createAddTextCallbackUrl(note, fields)
+      }
     } else if (command === 'openNote' && note?.filename) {
       url = createOpenNoteCallbackUrl(note?.filename ?? '', 'filename')
     }
   } else {
     if (command === 'addText') {
-      url = createAddTextCallbackUrl(date, await getAddTextAdditions())
+      fields = await getAddTextAdditions()
+      if (fields === false) {
+        url = false
+      } else {
+        url = createAddTextCallbackUrl(date, fields)
+      }
     } else if (command === 'openNote') {
       url = createOpenNoteCallbackUrl(date, 'date')
     }
   }
-  if (url) {
+  if (url !== '') {
     return url
   } else {
     return 'An error occurred. Could not get URL. Check plugin console for details.'
@@ -45,7 +64,7 @@ async function getAddTextOrOpenNoteURL(command: 'openNote' | 'addText' = 'openNo
  */
 async function askAboutDate(): Promise<string | false> {
   let opts = [
-    { label: 'Open/use a Calendar Note', value: 'date' },
+    { label: 'Open/use a Calendar/Daily Note', value: 'date' },
     { label: 'Open/use a Project Note (by title)', value: '' },
   ]
   let choice = await chooseOption('What kind of note do you want to use/open?', opts, opts[0].value)
@@ -68,13 +87,16 @@ async function askAboutDate(): Promise<string | false> {
   return choice || ''
 }
 
-async function getAddTextAdditions(): Promise<{ text: string, mode: string, openNote: string }> {
+async function getAddTextAdditions(): Promise<{ text: string, mode: string, openNote: string } | false> {
   let text = await getInput('Enter text to add to the note', 'OK', 'Text to Add', 'PLACEHOLDER')
+  log(pluginJson, `getAddTextAdditions: ${text}`)
+  if (text === false) return false
   let opts = [
     { label: 'Prepend text to the top of the note', value: 'prepend' },
     { label: 'Append text to the end of the note', value: 'append' },
   ]
   let mode = await chooseOption('How would you like to add the text?', opts, opts[0].value)
+  if (mode === false) return false
   let openNote = await chooseOption(
     'Open the note after adding the text?',
     [
@@ -83,7 +105,7 @@ async function getAddTextAdditions(): Promise<{ text: string, mode: string, open
     ],
     'yes',
   )
-  return { text: text ? text : '', mode, openNote }
+  return openNote === false ? false : { text: text ? text : '', mode, openNote }
 }
 
 /**
@@ -127,9 +149,10 @@ export async function xCallbackWizard(incoming: ?string = ''): Promise<void> {
         showMessage(`${res}: This type is not yet available in this plugin`, 'OK', 'Sorry!')
         break
     }
+    if (url === false) canceled = true // user hit cancel on one of the input prompts
     // ask if they want x-success and add it if so
 
-    if (!canceled) {
+    if (!canceled && url) {
       const op = [
         { label: `Raw/long URL (${url})`, value: 'raw' },
         { label: '[Pretty link](hide long URL)', value: 'pretty' },

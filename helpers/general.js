@@ -123,7 +123,7 @@ export function createOpenNoteCallbackUrl(
   // FIXME: this is working around an API bug that does not allow heading references in filename xcallbacks
   // When @eduard fixes it, this line can be removed
   const head = paramType === 'title' && heading?.length ? heading : ''
-  console.log(`createOpenNoteCallbackUrl: ${xcb}${titleOrFilename}${head ? `&heading=${head}` : ''}`)
+  // console.log(`createOpenNoteCallbackUrl: ${xcb}${titleOrFilename}${head ? `&heading=${head}` : ''}`)
   const encoded = encodeURIComponent(titleOrFilename).replace(/\(/g, '%28').replace(/\)/g, '%29')
   const openAs = openType && ['subWindow', 'splitView', 'useExistingSubWindow'].includes(openType) ? `&${openType}=yes` : ''
   return `${xcb}${encoded}${head && head !== '' ? `#${head}` : ''}${openAs}`
@@ -141,11 +141,11 @@ export function createAddTextCallbackUrl(note: TNote | string, options: { text: 
     // this is a note
     const encoded = encodeURIComponent(note.filename).replace(/\(/g, '%28').replace(/\)/g, '%29')
     if (note && note.filename) {
-      return `noteplan://x-callback-url/addText?filename=${encoded}&mode=${mode}&text=${encodeURIComponent(text)}&openNote=${openNote}`
+      return `noteplan://x-callback-url/addText?filename=${encoded}&mode=${mode}&openNote=${openNote}&text=${encodeURIComponent(text)}`
     }
   } else {
     // this is a date type argument
-    return `noteplan://x-callback-url/addText?noteDate=${note}&mode=${mode}&text=${encodeURIComponent(text)}&openNote=${openNote}`
+    return `noteplan://x-callback-url/addText?noteDate=${note}&mode=${mode}&openNote=${openNote}&text=${encodeURIComponent(text)}`
   }
   return ''
 }
