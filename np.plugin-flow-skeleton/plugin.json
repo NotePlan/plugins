@@ -18,6 +18,18 @@
       "jsFunction": "helloWorld",
       "alias": [
         "helloWorld Alias"
+      ],
+      "arguments": [
+        {
+          "number": 1,
+          "type": "number",
+          "description": "do something with passed number"
+        },
+        {
+          "number": 2,
+          "type": "string",
+          "description": "do something with passed text"
+        }
       ]
     }
   ],
@@ -27,7 +39,7 @@
         "key": "someString",
         "title": "String Setting",
         "description": "An example of a string setting.",
-        "default": "This is a sample-does nothing",
+        "default": "This is a sample--does nothing",
         "required": true
     }  
   ]
