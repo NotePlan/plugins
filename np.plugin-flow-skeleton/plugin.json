@@ -20,16 +20,8 @@
         "helloWorld Alias"
       ],
       "arguments": [
-        {
-          "number": 1,
-          "type": "number",
-          "description": "do something with passed number"
-        },
-        {
-          "number": 2,
-          "type": "string",
-          "description": "do something with passed text"
-        }
+          "(arg0) do something with passed number",
+          "(arg1) do something with passed text"
       ]
     }
   ],
