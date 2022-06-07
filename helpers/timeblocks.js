@@ -133,8 +133,15 @@ export const RE_TIMEBLOCK_FOR_THEMES = `${RE_ALLOWED_TIME_BLOCK_LINE_START}${RE_
  */
 export function isTimeBlockLine(contentString: string): boolean {
   try {
-    const res = contentString.match(RE_TIMEBLOCK_APP_CI) ?? []
-  return res.length > 0
+    const mustContainString = DataStore.preference("timeblockTextMustContainString") ?? ''
+    if (mustContainString !== '') {
+      const res1 = contentString.match(mustContainString) ?? []
+      if (res1.length === 0) {
+        return false
+      }
+    }
+    const res2 = contentString.match(RE_TIMEBLOCK_APP_CI) ?? []
+    return res2.length > 0
   }
   catch (err) {
     console.log(err)
