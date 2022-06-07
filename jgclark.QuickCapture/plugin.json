@@ -23,7 +23,11 @@
       "description": "Quickly add a task to your '📥 Inbox' note",
       "jsFunction": "addTaskToInbox",
       "arguments": [
-        "text to add"
+        {
+          "number": 1,
+          "type": "string",
+          "description": "text to add"
+        }
       ]
     },
     {
@@ -36,9 +40,21 @@
       "description": "Quickly add a task at the top of a chosen note's heading",
       "jsFunction": "addTaskToNoteHeading",
       "arguments": [
-        "note title (or YYYYMMDD or YYYY-MM-DD for an existing daily note)",
-        "note heading to add text under",
-        "text to add"
+        {
+          "number": 1,
+          "type": "string",
+          "description": "note title (or YYYYMMDD or YYYY-MM-DD for an existing daily note)"
+        },
+        {
+          "number": 2,
+          "type": "string",
+          "description": "note heading to add text under"
+        },
+        {
+          "number": 3,
+          "type": "string",
+          "description": "text to add"
+        }
       ]
     },
     {
@@ -51,9 +67,21 @@
       "description": "Quickly add text at the top of a chosen note's heading",
       "jsFunction": "addTextToNoteHeading",
       "arguments": [
-        "note title (or YYYYMMDD or YYYY-MM-DD for an existing daily note)",
-        "note heading to add text under",
-        "text to add"
+        {
+          "number": 1,
+          "type": "string",
+          "description": "note title (or YYYYMMDD or YYYY-MM-DD for an existing daily note)"
+        },
+        {
+          "number": 2,
+          "type": "string",
+          "description": "note heading to add text under"
+        },
+        {
+          "number": 3,
+          "type": "string",
+          "description": "text to add"
+        }
       ]
     },
     {
@@ -68,8 +96,16 @@
       "description": "Quickly append a task to a chosen daily note",
       "jsFunction": "appendTaskToDailyNote",
       "arguments": [
-        "note date (YYYYMMDD)",
-        "text to add"
+        {
+          "number": 1,
+          "type": "string",
+          "description": "note date (YYYYMMDD)"
+        },
+        {
+          "number": 2,
+          "type": "string",
+          "description": "text to add"
+        }
       ]
     },
     {
@@ -83,7 +119,11 @@
       "description": "Quickly append text to the Journal in today's note",
       "jsFunction": "appendTextToDailyJournal",
       "arguments": [
-        "text to add"
+        {
+          "number": 1,
+          "type": "string",
+          "description": "text to add"
+        }
       ]
     },
     {
@@ -97,8 +137,16 @@
       "description": "Quickly prepend a task to a chosen daily note",
       "jsFunction": "prependTaskToDailyNote",
       "arguments": [
-        "note date (YYYYMMDD)",
-        "text to add"
+        {
+          "number": 1,
+          "type": "string",
+          "description": "note date (YYYYMMDD)"
+        },
+        {
+          "number": 2,
+          "type": "string",
+          "description": "text to add"
+        }
       ]
     },
     {
@@ -112,8 +160,16 @@
       "description": "Quickly append a task to a chosen project note",
       "jsFunction": "appendTaskToNote",
       "arguments": [
-        "note title",
-        "task to append"
+        {
+          "number": 1,
+          "type": "string",
+          "description": "note title"
+        },
+        {
+          "number": 2,
+          "type": "string",
+          "description": "task text to append"
+        }
       ]
     },
     {
@@ -127,8 +183,16 @@
       "description": "Quickly prepend a task to a chosen project note",
       "jsFunction": "prependTaskToNote",
       "arguments": [
-        "note title",
-        "task to append"
+        {
+          "number": 1,
+          "type": "string",
+          "description": "note title"
+        },
+        {
+          "number": 2,
+          "type": "string",
+          "description": "task text to prepend"
+        }
       ]
     }
   ],
