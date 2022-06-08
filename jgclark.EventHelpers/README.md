@@ -3,7 +3,7 @@ This plugin provides commands to help you do useful things with Events and Calen
 
 - **/insert day's events as list**: insert a list of this day's calendar events into the current note
 - **/insert matching events**: insert a  list of this day's calendar events that match certain patterns into the current note
-- **/time blocks to calendar**: takes [NotePlan-defined time blocks](https://help.noteplan.co/article/52-part-2-tasks-events-and-reminders#timeblocking) and converts to them to full Calendar events in your current default calendar, as set by iCal.
+- **/time blocks to calendar**: takes [NotePlan-defined time blocks](https://help.noteplan.co/article/52-part-2-tasks-events-and-reminders#timeblocking) and converts to them to full Calendar events in your current default calendar, as set by iCal. If you have set a Time Block 'text must contain' string in NotePlan's 'Todo' preferences pane, then this is honoured when finding potential time blocks.
 - **/process date offsets**: finds date offset patterns and turns them into due dates, based on date at start of section. (See [Date Offsets](#process-date-offsets) below for full details.)
 - **/shift dates**: takes dates in the selected lines and shifts them forwards or backwards by a given date interval. (It doesn't change dates in `@done(...) mentions, or that are in brackets.)
 - 

@@ -4,6 +4,9 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/codedungeon.Toolbox/README.md) for details on available commands and use case.
 
+## [3.6.0] - 2022-06-07 (@jgclark)
+- added example of new "arguments: {}" fields in `plugin.json` when there are arguments that can be passed in when calling a plugin command from x-callback
+
 ## [3.5.0] - 2022-06-01 (@codedungeon)
 
 - updated [#205](https://github.com/NotePlan/plugins/issues/205) `npc plugin:release` to include `CHANGELOG.md` if exists ()
