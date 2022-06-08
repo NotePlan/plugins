@@ -4,6 +4,9 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/codedungeon.Toolbox/README.md) for details on available commands and use case.
 
+## [3.7.0] - 2022-06-08 (@dwertheimer)
+- added `documentation` module back in and edited the `npm run docs` command
+
 ## [3.6.0] - 2022-06-07 (@jgclark)
 - added example of new "arguments: {}" fields in `plugin.json` when there are arguments that can be passed in when calling a plugin command from x-callback
 
