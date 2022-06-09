@@ -65,7 +65,7 @@
     "eslint-plugin-flowtype": "^5.7.2",
     "eslint-plugin-import": "^2.23.2",
     "eslint-plugin-unused-imports": "1.1.5",
-    "flow-bin": "^0.178.0",
+    "flow-bin": "^0.179.0",
     "inquirer": "^8.1.0",
     "jest": "27.5.1",
     "jest-spec-reporter": "1.0.17",

@@ -123,7 +123,13 @@ type TEditor = {
    * @param {boolean} createIfNeeded - (optional) Create the note with the given filename if it doesn't exist (only project notes, v3.5.2+)
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned (use with await ... or .then())
    */
-  openNoteByFilename(filename: string, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<TNote>,
+  openNoteByFilename(
+    filename: string,
+    newWindow?: boolean,
+    highlightStart?: number,
+    highlightEnd?: number,
+    splitView?: boolean,
+  ): Promise<TNote>,
   /**
    * Opens a note by searching for the give title (first line of the note)
    * Note: splitView parameter available for macOS from r727 (v3.4)
@@ -134,7 +140,13 @@ type TEditor = {
    * @param {boolean} splitView - (optional) Open note in a new split view (Note: Available from v3.4)
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
-  openNoteByTitle(title: string, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<TNote>,
+  openNoteByTitle(
+    title: string,
+    newWindow?: boolean,
+    highlightStart?: number,
+    highlightEnd?: number,
+    splitView?: boolean,
+  ): Promise<TNote>,
   /**
    * Opens a note by searching for the give title (first line of the note)
    * Note: splitView parameter available for macOS from r727 (v3.4)
@@ -145,7 +157,14 @@ type TEditor = {
    * @param {boolean} splitView - (optional) Open note in a new split view (Note: Available from v3.4)
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
-  openNoteByTitleCaseInsensitive(title: string, newWindow?: boolean, caseSensitive?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<TNote>,
+  openNoteByTitleCaseInsensitive(
+    title: string,
+    newWindow?: boolean,
+    caseSensitive?: boolean,
+    highlightStart?: number,
+    highlightEnd?: number,
+    splitView?: boolean,
+  ): Promise<TNote>,
   /**
    * Opens a calendar note by the given date
    * Note: splitView parameter available for macOS from r727 (v3.4)
@@ -156,7 +175,13 @@ type TEditor = {
    * @param {boolean} splitView - (optional) Open note in a new split view (Note: Available from v3.4)
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
-  openNoteByDate(date: Date, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<TNote>,
+  openNoteByDate(
+    date: Date,
+    newWindow?: boolean,
+    highlightStart?: number,
+    highlightEnd?: number,
+    splitView?: boolean,
+  ): Promise<TNote>,
   /**
    * Opens a calendar note by the given date string
    * @param {String} dateString - The date string that should be opened, in ISO format: "YYYYMMDD", like "20210501"
@@ -166,7 +191,13 @@ type TEditor = {
    * @param {boolean} splitView - (optional) Open note in a new split view (Note: Available from v3.4)
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
-  openNoteByDateString(filename: string, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<TNote | void>,
+  openNoteByDateString(
+    filename: string,
+    newWindow?: boolean,
+    highlightStart?: number,
+    highlightEnd?: number,
+    splitView?: boolean,
+  ): Promise<TNote | void>,
   /**
    * Selects the full text in the editor.
    * NB: Available from NotePlan v3.2 (Mac Build: 662, iOS Build: 593)
@@ -224,14 +255,14 @@ type TEditor = {
    * Folds the given paragraph or unfolds it if its already folded. If the paragraph is not a heading, it will look for the heading this paragraph exists under.
    * Note: Available from v3.6.0
    * @param {TParagraph}
-  */
+   */
   toggleFolding(paragraph: TParagraph): void,
-    /**
-     * Checks if the given paragraph is folded or not. If it's not a heading, it will look for the heading this paragraph exists under.
-     * Note: Available from v3.6.0
-     * @param {TParagraph}
-     * @return {boolean}   
-    */
+  /**
+   * Checks if the given paragraph is folded or not. If it's not a heading, it will look for the heading this paragraph exists under.
+   * Note: Available from v3.6.0
+   * @param {TParagraph}
+   * @return {boolean}
+   */
   isFolded(paragraph: TParagraph): boolean,
   /**
    * Shows or hides a window with a loading indicator or a progress ring (if progress is defined) and an info text (optional).
@@ -380,23 +411,23 @@ type TDataStore = {
    */
   loadJSON(filename?: string): Object,
   /**
-  * Note: Available from NotePlan v3.2+
-  * Save data to a file, as base64 string. The file will be saved under "[NotePlan Folder]/Plugins/data/[plugin-id]/[filename]".
-  * Returns true if the file could be saved, false if not and prints the error.
-  * @param {String} 
-  * @param {String} 
-  * @return {Boolean}
-  */
+   * Note: Available from NotePlan v3.2+
+   * Save data to a file, as base64 string. The file will be saved under "[NotePlan Folder]/Plugins/data/[plugin-id]/[filename]".
+   * Returns true if the file could be saved, false if not and prints the error.
+   * @param {String}
+   * @param {String}
+   * @return {Boolean}
+   */
   saveData(data: string, filename: string): boolean,
   /**
-  * Note: Available from NotePlan v3.2+
-  * Load binary data from file encoded as base64 string. 
-  * The file has to be located in "[NotePlan Folder]/Plugins/data/[plugin-id]/[filename]".
-  * You can access the files of other plugins as well, if the filename is known using relative paths "../[other plugin-id]/[filename]" or simply go into the "data"'s root directory "../[filename]" to access a global file.
-  * Returns undefined, if the file couldn't be loaded and prints an error message.
-  * @param {String} 
-  * @return {String?}
-  */
+   * Note: Available from NotePlan v3.2+
+   * Load binary data from file encoded as base64 string.
+   * The file has to be located in "[NotePlan Folder]/Plugins/data/[plugin-id]/[filename]".
+   * You can access the files of other plugins as well, if the filename is known using relative paths "../[other plugin-id]/[filename]" or simply go into the "data"'s root directory "../[filename]" to access a global file.
+   * Returns undefined, if the file couldn't be loaded and prints an error message.
+   * @param {String}
+   * @return {String?}
+   */
   loadData(filename: string): ?string,
   /**
    * Returns the calendar note for the given date
@@ -502,24 +533,28 @@ type TDataStore = {
    * @param {$ReadOnlyArray<mixed>}
    * @return {any} Return value of the command, like a Promise
    */
-  invokePluginCommandByName(command: string, pluginID: string, arguments ?: $ReadOnlyArray < mixed >): Promise < any >,
-    /**
-     * Checks if the given pluginID is installed or not.
-     * Note: Available from NotePlan v3.6.0
-     * @param {string}
-     * @return {boolean}
-     */
-    isPluginInstalledByID(pluginID: string): boolean,
-      /**
-       * Installs a given array of pluginIDs if needed. It checks online if a new version is available and downloads it. 
-       * Use it without `await` so it keeps running in the background or use it with `await` in "blocking mode" if you need to install a plugin as a dependency. In this case you can use `showPromptIfSuccessful = true` to show the user a message that a plugin was installed and `showProgressPrompt` will show a loading indicator beforehand. With both values set to false or not defined it will run in "silent" mode and show no prompts.
-       * Note: Available from NotePlan v3.6.0
-       * @param {[string]} 
-       * @param {boolean} 
-       * @param {boolean} 
-       * @return {Promise<>}
-       */
-      installOrUpdatePluginsByID(pluginIDs: [string], showPromptIfSuccessful: boolean, showProgressPrompt: boolean): Promise < void> | void,
+  invokePluginCommandByName(command: string, pluginID: string, arguments?: $ReadOnlyArray<mixed>): Promise<any>,
+  /**
+   * Checks if the given pluginID is installed or not.
+   * Note: Available from NotePlan v3.6.0
+   * @param {string}
+   * @return {boolean}
+   */
+  isPluginInstalledByID(pluginID: string): boolean,
+  /**
+   * Installs a given array of pluginIDs if needed. It checks online if a new version is available and downloads it.
+   * Use it without `await` so it keeps running in the background or use it with `await` in "blocking mode" if you need to install a plugin as a dependency. In this case you can use `showPromptIfSuccessful = true` to show the user a message that a plugin was installed and `showProgressPrompt` will show a loading indicator beforehand. With both values set to false or not defined it will run in "silent" mode and show no prompts.
+   * Note: Available from NotePlan v3.6.0
+   * @param {[string]}
+   * @param {boolean}
+   * @param {boolean}
+   * @return {Promise<>}
+   */
+  installOrUpdatePluginsByID(
+    pluginIDs: [string],
+    showPromptIfSuccessful: boolean,
+    showProgressPrompt: boolean,
+  ): Promise<void> | void,
   /**
    * Returns an array of paragraphs having the same blockID like the given one (which is also part of the return array).
    * You can use `paragraph[0].note` to access the note behind it and make updates via `paragraph[0].note.updateParagraph(paragraph[0])` if you make changes to the content, type, etc (like checking it off as type = "done").
@@ -636,7 +671,10 @@ type TCommandBar = {
    * Use the `.index` attribute to refer back to the selected item in the
    * original array.
    */
-  showOptions<TOption: string = string>(options: $ReadOnlyArray<TOption>, placeholder: string): Promise<{ +index: number, +value: TOption }>,
+  showOptions<TOption: string = string>(
+    options: $ReadOnlyArray<TOption>,
+    placeholder: string,
+  ): Promise<{ +index: number, +value: TOption }>,
   /**
    * Asks the user to enter something into the CommandBar.
    *
@@ -1204,11 +1242,11 @@ type TCalendarItem = {
    * Note: Available from v3.5.0
    */
   +attendees: [string],
-    /**
-     * List of attendee names (or email addresses if name isn't available).
-     * Note: Available from v3.5.2
-     */
-    +attendeeNames: [string],
+  /**
+   * List of attendee names (or email addresses if name isn't available).
+   * Note: Available from v3.5.2
+   */
+  +attendeeNames: [string],
   /**
    * Markdown link for the given event. If you add this link to a note, NotePlan will link the event with the note and show the note in the dropdown when you click on the note icon of the event in the sidebar.
    * Note: Available from v3.5, only events, reminders are not supported yet
@@ -1295,7 +1333,18 @@ declare var Clipboard: {
 /* Available paragraph types
  * Note: 'separator' added v3.4.1
  */
-type ParagraphType = 'open' | 'done' | 'scheduled' | 'cancelled' | 'title' | 'quote' | 'list' | 'empty' | 'text' | 'code' | 'separator'
+type ParagraphType =
+  | 'open'
+  | 'done'
+  | 'scheduled'
+  | 'cancelled'
+  | 'title'
+  | 'quote'
+  | 'list'
+  | 'empty'
+  | 'text'
+  | 'code'
+  | 'separator'
 
 declare var ParagraphBridge: TParagraphBridge
 type TParagraphBridge = {
@@ -1382,7 +1431,13 @@ type TParagraphBridge = {
    * @param {boolean} shouldAppend - If the todo should be appended at the bottom of existing text
    * @param {boolean} shouldCreate - If the heading should be created if non-existing
    */
-  addParagraphBelowHeadingTitle(title: string, paragraphType: ParagraphType, headingTitle: string, shouldAppend: boolean, shouldCreate: boolean): void,
+  addParagraphBelowHeadingTitle(
+    title: string,
+    paragraphType: ParagraphType,
+    headingTitle: string,
+    shouldAppend: boolean,
+    shouldCreate: boolean,
+  ): void,
 
   /**
    * Appends a todo below the given heading index (at the end of existing text)
