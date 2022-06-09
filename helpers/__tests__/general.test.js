@@ -89,12 +89,12 @@ describe(`${FILE}`, () => {
   describe(section(`createAddTextCallbackUrl`), () => {
     test('should create an addText URL for a note', () => {
       const opts = { text: 'bar', mode: 'prepend', openNote: 'yes' }
-      const exp = 'noteplan://x-callback-url/addText?filename=foof&mode=prepend&text=bar&openNote=yes'
+      const exp = 'noteplan://x-callback-url/addText?filename=foof&mode=prepend&openNote=yes&text=bar'
       expect(g.createAddTextCallbackUrl({ filename: 'foof' }, opts)).toEqual(exp)
     })
     test('should create an addText URL for a string (date string)', () => {
       const opts = { text: 'bar', mode: 'prepend', openNote: 'yes' }
-      const exp = 'noteplan://x-callback-url/addText?noteDate=today&mode=prepend&text=bar&openNote=yes'
+      const exp = 'noteplan://x-callback-url/addText?noteDate=today&mode=prepend&openNote=yes&text=bar'
       expect(g.createAddTextCallbackUrl('today', opts)).toEqual(exp)
     })
   })
