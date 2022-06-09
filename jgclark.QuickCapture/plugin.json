@@ -21,7 +21,10 @@
         "add"
       ],
       "description": "Quickly add a task to your '📥 Inbox' note",
-      "jsFunction": "addTaskToInbox"
+      "jsFunction": "addTaskToInbox",
+      "arguments": [
+        "text to add"
+      ]
     },
     {
       "name": "quick add task under heading",
@@ -31,7 +34,12 @@
         "add"
       ],
       "description": "Quickly add a task at the top of a chosen note's heading",
-      "jsFunction": "addTaskToNoteHeading"
+      "jsFunction": "addTaskToNoteHeading",
+      "arguments": [
+        "note title (or YYYYMMDD or YYYY-MM-DD for an existing daily note)",
+        "note heading to add text under",
+        "text to add"
+      ]
     },
     {
       "name": "quick add line under heading",
@@ -41,7 +49,12 @@
         "add"
       ],
       "description": "Quickly add text at the top of a chosen note's heading",
-      "jsFunction": "addTextToNoteHeading"
+      "jsFunction": "addTextToNoteHeading",
+      "arguments": [
+        "note title (or YYYYMMDD or YYYY-MM-DD for an existing daily note)",
+        "note heading to add text under",
+        "text to add"
+      ]
     },
     {
       "name": "quick add to daily note",
@@ -53,7 +66,11 @@
         "append"
       ],
       "description": "Quickly append a task to a chosen daily note",
-      "jsFunction": "appendTaskToDailyNote"
+      "jsFunction": "appendTaskToDailyNote",
+      "arguments": [
+        "note date (YYYYMMDD)",
+        "text to add"
+      ]
     },
     {
       "name": "quick add to journal today",
@@ -64,7 +81,10 @@
         "add"
       ],
       "description": "Quickly append text to the Journal in today's note",
-      "jsFunction": "appendTextToDailyJournal"
+      "jsFunction": "appendTextToDailyJournal",
+      "arguments": [
+        "text to add"
+      ]
     },
     {
       "name": "quick prepend task to daily note",
@@ -75,7 +95,11 @@
         "prepend"
       ],
       "description": "Quickly prepend a task to a chosen daily note",
-      "jsFunction": "prependTaskToDailyNote"
+      "jsFunction": "prependTaskToDailyNote",
+      "arguments": [
+        "note date (YYYYMMDD)",
+        "text to add"
+      ]
     },
     {
       "name": "quick append task to note",
@@ -86,7 +110,11 @@
         "add"
       ],
       "description": "Quickly append a task to a chosen project note",
-      "jsFunction": "appendTaskToNote"
+      "jsFunction": "appendTaskToNote",
+      "arguments": [
+        "note title",
+        "task to append"
+      ]
     },
     {
       "name": "quick prepend task to note",
@@ -97,38 +125,45 @@
         "prepend"
       ],
       "description": "Quickly prepend a task to a chosen project note",
-      "jsFunction": "prependTaskToNote"
+      "jsFunction": "prependTaskToNote",
+      "arguments": [
+        "note title",
+        "task to append"
+      ]
     }
   ],
   "plugin.settings": [
     {
-        "type": "heading",
-        "title": "Inbox note settings"
+      "type": "heading",
+      "title": "Inbox note settings"
     },
     {
-        "key": "inboxTitle",
-        "title": "Inbox note title",
-        "description": "The Title of your Inbox note, or leave empty (\"\") to use the daily note instead. Default \"📥 Inbox\"",
-        "type": "string",
-        "default": "📥 Inbox",
-        "required": false
+      "key": "inboxTitle",
+      "title": "Inbox note title",
+      "description": "The Title of your Inbox note, or leave empty (\"\") to use the daily note instead. Default \"📥 Inbox\"",
+      "type": "string",
+      "default": "📥 Inbox",
+      "required": false
     },
     {
-        "key": "addInboxPosition",
-        "title": "Where to Add to Inbox note",
-        "description": "Where to Add to Inbox note: start (prepend) or end (append)",
-        "type": "string",
-        "choices": ["append", "prepend"],
-        "default": "prepend",
-        "required": true
+      "key": "addInboxPosition",
+      "title": "Where to Add to Inbox note",
+      "description": "Where to Add to Inbox note: start (prepend) or end (append)",
+      "type": "string",
+      "choices": [
+        "append",
+        "prepend"
+      ],
+      "default": "prepend",
+      "required": true
     },
     {
-        "type": "string",
-        "key": "textToAppendToTasks",
-        "title": "Text to append to new inbox tasks",
-        "description": "specify text (including hashtags or mentions) that will be appended to all new tasks created using the `/int` command",
-        "default": "",
-        "required": false
+      "type": "string",
+      "key": "textToAppendToTasks",
+      "title": "Text to append to new inbox tasks",
+      "description": "specify text (including hashtags or mentions) that will be appended to all new tasks created using the `/int` command",
+      "default": "",
+      "required": false
     }
   ]
 }

@@ -1,6 +1,10 @@
 # What's changed in 🕓 Event Helpers?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
+## [0.16.4] - 2022-06-???
+### Changed
+- now uses NP's 'Timeblock text must contain string' setting (if set) when detecting whether a line has a valid Time block in it.
+
 ## [0.16.3] - 2022-05-26
 ### Changed
 - removed some whitespace stripping which was useful to me, but not to others.

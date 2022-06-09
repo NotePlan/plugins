@@ -78,14 +78,6 @@ export default class TemplatingEngine {
   async render(templateData: any = '', userData: any = {}, userOptions: any = {}): Promise<string> {
     const options = { ...{ async: true, rmWhitespace: false }, ...userOptions }
 
-    // WebModule methods are async, will be converted to synchronous methods below
-    // need to handle async calls before render templates as templating method are synchronous
-    // const weather = templateData.includes('web.weather') ? await new WebModule().weather() : ''
-    // const quote = templateData.includes('web.quote') ? await new WebModule().quote() : ''
-    // const affirmation = templateData.includes('web.affirmation') ? await new WebModule().affirmation() : ''
-    // const advice = templateData.includes('web.advice') ? await new WebModule().advice() : ''
-    // const verse = templateData.includes('web.verse') ? await new WebModule().verse() : ''
-
     let useClipoard = templateData.includes('system.clipboard')
     if (templateData.indexOf('system.clipboard') > 0) {
       this.templateConfig.clipboard = Clipboard.string

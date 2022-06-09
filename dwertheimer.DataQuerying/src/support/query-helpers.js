@@ -1,7 +1,7 @@
 // @flow
 
 import bqpjs from 'bqpjs'
-import { createOpenNoteCallbackUrl, createPrettyOpenNoteLink } from '../../../helpers/general'
+import { createPrettyOpenNoteLink } from '../../../helpers/general'
 import { clo, log } from '../../../helpers/dev'
 import type { DataQueryingConfig } from '../NPDataQuerying'
 import pluginJson from '../../plugin.json'

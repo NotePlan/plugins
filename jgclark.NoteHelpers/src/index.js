@@ -18,6 +18,7 @@ export {
   jumpToHeading,
   jumpToNoteHeading,
   moveNote,
+  openCurrentNoteNewSplit,
   openNoteNewWindow,
   openNoteNewSplit,
 } from './noteHelpers'

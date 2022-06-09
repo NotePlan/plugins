@@ -80,9 +80,9 @@ module.exports = {
       result = await this.merge(path.join(dest, 'plugin.json'), pluginInfo)
       result = await this.merge(path.join(dest, 'README.md'), pluginInfo)
       result = await this.merge(path.join(dest, 'changelog.md'), pluginInfo)
-      result = await this.merge(path.join(dest, 'src', 'helloWorld.js'), pluginInfo)
+      result = await this.merge(path.join(dest, 'src', 'NPHelloWorld.js'), pluginInfo)
 
-      result = await this.merge(path.join(dest, '__tests__', 'hello-world.test.js'), pluginInfo)
+      result = await this.merge(path.join(dest, '__tests__', 'utils.test.js'), pluginInfo)
 
       await filesystem.delete(path.join(dest, 'script.js'))
     } catch (error) {
@@ -108,6 +108,7 @@ module.exports = {
       return true
     } catch (error) {
       print.error(`An error occured processing ${filename}`, 'ERROR')
+      print.error(error, 'ERROR')
       return false
     }
   },

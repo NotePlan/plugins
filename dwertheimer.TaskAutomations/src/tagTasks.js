@@ -198,12 +198,12 @@ export function copyTagsFromLineAbove() {
   if (lineIndex > 0) {
     const prevLineTags = getTagsFromString(getParagraphByIndex(Editor, lineIndex - 1).content)
     const updatedText = appendTagsToText(thisParagraph.content, prevLineTags)
-    log(pluginJson, `copyTagsFromLineAbove: updatedText=${updatedText}`)
+    // log(pluginJson, `copyTagsFromLineAbove: updatedText=${updatedText}`)
     if (updatedText) {
-      clo(thisParagraph, `thisParagraph before:`)
+      // clo(thisParagraph, `thisParagraph before:`)
       thisParagraph.content = updatedText
       Editor.updateParagraph(thisParagraph)
-      clo(thisParagraph, `thisParagraph after:`)
+      // clo(thisParagraph, `thisParagraph after:`)
     }
   } else {
     showMessage(`Cannot run this command on the first line of the ${noteType}`)

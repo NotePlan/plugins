@@ -57,7 +57,7 @@ type TEditor = {
    */
   +type: ?NoteType,
   /**
-   * Get the filename of the **note**
+   * Get the filename of the note.
    */
   +filename: ?string,
   /**
@@ -379,6 +379,7 @@ type TDataStore = {
    *   "isSmartMarkdownLink"     // "Smart Markdown Links" checked in markdown preferences
    *   "fontSize"                // Font size defined in editor preferences (might be overwritten by custom theme)
    *   "fontFamily"              // Font family defined in editor preferences (might be overwritten by custom theme)
+   *   "timeblockTextMustContainString" // Optional text to trigger timeblock detection in a line
    * Others can be set by plugins.
    */
   +preference: (key: string) => any,
@@ -1050,8 +1051,9 @@ type TNote = {
   ...TParagraphBridge,
   /**
    * Folder + Filename of the note (the path is relative to the root of the chosen storage location)
+   * From v3.6.0 can also *set* the filename, which does a rename.
    */
-  +filename: string,
+  filename: string,
   /**
    * Type of the note, either "Notes" or "Calendar".
    */
