@@ -64,7 +64,7 @@ export async function removeContentUnderHeading(note: TNote | TEditor, title: st
  * @param {string} parasAsText - text to insert (multiple lines, separated by newlines)
  */
 export async function insertContentUnderHeading(destNote: TNote | TEditor, headingToFind: string, parasAsText: string) {
-  console.log(`insertContentUnderHeading(${headingToFind}, ${parasAsText})`)
+  // console.log(`insertContentUnderHeading(${headingToFind}, ${parasAsText})`)
   const topOfNote = destNote.type === 'Calendar' ? 0 : 1
   let insertionIndex = topOfNote // top of note by default
   //   console.log(`insertionIndex:${insertionIndex}`)

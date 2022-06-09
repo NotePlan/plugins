@@ -392,7 +392,7 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: mi
         console.log(`Found ${undupedBackLinkParas.length} undupedBackLinkParas after duplicate elimination`)
         console.log(`After cleaning, ${tasksByType?.open?.length ?? 0} open items`)
 
-        log(pluginJson, `createTimeBlocksForTodaysTasks inserted ${timeBlockTextList.length} items:\n ${timeBlockTextList.join('\n')}`)
+        log(pluginJson, `createTimeBlocksForTodaysTasks inserted ${timeBlockTextList.length} items`)
         if (createCalendarEntries) {
           console.log(`About to create calendar entries`)
           await writeTimeBlocksToCalendar(getEventsConfig(config), Editor) //using @jgclark's method for now
