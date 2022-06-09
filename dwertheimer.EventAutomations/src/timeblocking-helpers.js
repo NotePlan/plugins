@@ -1,30 +1,14 @@
 // @flow
-import {
-  differenceInCalendarDays,
-  endOfDay,
-  startOfDay,
-  eachMinuteOfInterval,
-  formatISO9075,
-  addMinutes,
-  differenceInMinutes,
-} from 'date-fns'
+import { differenceInCalendarDays, endOfDay, startOfDay, eachMinuteOfInterval, formatISO9075, addMinutes, differenceInMinutes } from 'date-fns'
 import { getDateObjFromDateTimeString, getTimeStringFromDate, removeDateTagsAndToday } from '../../helpers/dateTime'
 import { sortListBy } from '../../helpers/sorting'
 import { removeDateTags, getTodaysDateHyphenated } from '../../helpers/dateTime'
 import { createLink, createPrettyOpenNoteLink } from '../../helpers/general'
 import { textWithoutSyncedCopyTag } from '../../helpers/syncedCopies'
-import { clo, log, logError } from '../../helpers/dev'
+import { clo, log, logError, JSP } from '../../helpers/dev'
 
 // import { timeblockRegex1, timeblockRegex2 } from '../../helpers/markdown-regex'
-import type {
-  IntervalMap,
-  OpenBlock,
-  BlockArray,
-  TimeBlocksWithMap,
-  BlockData,
-  TimeBlockDefaults,
-  PartialCalendarItem,
-} from './timeblocking-flow-types'
+import type { IntervalMap, OpenBlock, BlockArray, TimeBlocksWithMap, BlockData, TimeBlockDefaults, PartialCalendarItem } from './timeblocking-flow-types'
 
 export type ExtendedParagraph = {
   ...TParagraph,
@@ -38,11 +22,7 @@ export type ExtendedParagraph = {
  * @param {*} options
  * @returns Array of objects with the following properties: [{"start":"00:00","busy":false},{"start":"00:05","busy":false}...]
  */
-export function createIntervalMap(
-  time: { start: Date, end: Date },
-  valueToSet: false | string = false,
-  options: { step: number } = { step: 5 },
-): IntervalMap {
+export function createIntervalMap(time: { start: Date, end: Date }, valueToSet: false | string = false, options: { step: number } = { step: 5 }): IntervalMap {
   const { start, end } = time
   if (options?.step > 0) {
     // $FlowFixMe - incompatible with undefined
@@ -60,11 +40,7 @@ export function getBlankDayMap(intervalMins: number): IntervalMap {
   return createIntervalMap({ start: startOfDay(new Date()), end: endOfDay(new Date()) }, false, { step: intervalMins })
 }
 
-export function blockTimeFor(
-  timeMap: IntervalMap,
-  blockdata: BlockData,
-  config: { [key: string]: any },
-): { newMap: IntervalMap, itemText: string } {
+export function blockTimeFor(timeMap: IntervalMap, blockdata: BlockData, config: { [key: string]: any }): { newMap: IntervalMap, itemText: string } {
   const { start, end, title } = blockdata
   const newMap = timeMap.map((t) => {
     if (t.start >= start && t.start < end) {
@@ -103,18 +79,12 @@ export function createTimeBlockLine(blockData: BlockData, config: { [key: string
  * @param {TimeBlockDefaults} config
  * @returns {IntervalMap} - the timeMap with the busy times updated to reflect the calendar items
  */
-export function blockOutEvents(
-  events: Array<PartialCalendarItem>,
-  timeMap: IntervalMap,
-  config: { [key: string]: any },
-): IntervalMap {
+export function blockOutEvents(events: Array<PartialCalendarItem>, timeMap: IntervalMap, config: { [key: string]: any }): IntervalMap {
   let newTimeMap = [...timeMap]
   events.forEach((event) => {
     const start = getTimeStringFromDate(event.date)
     const end = event.endDate ? getTimeStringFromDate(event.endDate) : ''
-    const obj = event.endDate
-      ? blockTimeFor(newTimeMap, { start, end, title: event.title }, config)
-      : { newMap: newTimeMap }
+    const obj = event.endDate ? blockTimeFor(newTimeMap, { start, end, title: event.title }, config) : { newMap: newTimeMap }
     newTimeMap = obj.newMap
   })
   return newTimeMap
@@ -141,11 +111,9 @@ export function makeAllItemsTodos(paras: Array<TParagraph>): Array<TParagraph> {
 }
 
 // $FlowIgnore - can't find a Flow type for RegExp
-export const durationRegEx = (durationMarker: string) =>
-  new RegExp(`\\s*${durationMarker}(([0-9]+\\.?[0-9]*|\\.[0-9]+)h)*(([0-9]+\\.?[0-9]*|\\.[0-9]+)m)*`, 'mg')
+export const durationRegEx = (durationMarker: string) => new RegExp(`\\s*${durationMarker}(([0-9]+\\.?[0-9]*|\\.[0-9]+)h)*(([0-9]+\\.?[0-9]*|\\.[0-9]+)m)*`, 'mg')
 
-export const removeDurationParameter = (text: string, durationMarker: string): string =>
-  text.replace(durationRegEx(durationMarker), '').trim()
+export const removeDurationParameter = (text: string, durationMarker: string): string => text.replace(durationRegEx(durationMarker), '').trim()
 
 /**
  * Scans a line for a delimiter and a time signature, e.g. '2h5m or '2.5h
@@ -210,11 +178,7 @@ export function filterTimeMapToOpenSlots(timeMap: IntervalMap, config: { [key: s
   })
 }
 
-export function createOpenBlockObject(
-  block: BlockData,
-  config: { [key: string]: any },
-  includeLastSlotTime: boolean = true,
-): OpenBlock | null {
+export function createOpenBlockObject(block: BlockData, config: { [key: string]: any }, includeLastSlotTime: boolean = true): OpenBlock | null {
   let startTime, endTime
   try {
     startTime = getDateObjFromDateTimeString(`2021-01-01 ${block.start || '00:00'}`)
@@ -281,11 +245,7 @@ export function addMinutesToTimeText(startTimeText: string, minutesToAdd: number
   }
 }
 
-export function findOptimalTimeForEvent(
-  timeMap: IntervalMap,
-  todo: { [string]: [mixed] },
-  config: { [key: string]: any },
-): any {
+export function findOptimalTimeForEvent(timeMap: IntervalMap, todo: { [string]: [mixed] }, config: { [key: string]: any }): any {
   const newMap = timeMap.map((t) => {})
   return newMap
   // TODO: FINISH HERE
@@ -298,11 +258,7 @@ export function findOptimalTimeForEvent(
  * @param {*} config
  * @returns TimeBlocksWithMap
  */
-export function blockTimeAndCreateTimeBlockText(
-  tbm: TimeBlocksWithMap,
-  block: BlockData,
-  config: { [key: string]: any },
-): TimeBlocksWithMap {
+export function blockTimeAndCreateTimeBlockText(tbm: TimeBlocksWithMap, block: BlockData, config: { [key: string]: any }): TimeBlocksWithMap {
   const timeBlockTextList = tbm.timeBlockTextList || []
   const obj = blockTimeFor(tbm.timeMap, block, config) //returns newMap, itemText
   timeBlockTextList.push(textWithoutSyncedCopyTag(obj.itemText))
@@ -311,11 +267,7 @@ export function blockTimeAndCreateTimeBlockText(
   return { timeMap, blockList, timeBlockTextList }
 }
 
-export function matchTasksToSlots(
-  sortedTaskList: Array<{ ...TParagraph, duration: number }>,
-  tmb: TimeBlocksWithMap,
-  config: { [key: string]: any },
-): TimeBlocksWithMap {
+export function matchTasksToSlots(sortedTaskList: Array<{ ...TParagraph, duration: number }>, tmb: TimeBlocksWithMap, config: { [key: string]: any }): TimeBlocksWithMap {
   const { timeMap, blockList: incomingBlockList } = tmb
   let newMap = filterTimeMapToOpenSlots(timeMap, config)
   let newBlockList = findTimeBlocks(newMap, config)
@@ -353,11 +305,7 @@ export function matchTasksToSlots(
               end: endTime,
               title: `${taskTitle}${schedulingCount ? ` (${schedulingCount})` : ''}`,
             }
-            const newTimeBlockWithMap = blockTimeAndCreateTimeBlockText(
-              { timeMap: newMap, blockList: newBlockList, timeBlockTextList },
-              blockData,
-              config,
-            )
+            const newTimeBlockWithMap = blockTimeAndCreateTimeBlockText({ timeMap: newMap, blockList: newBlockList, timeBlockTextList }, blockData, config)
             // Re-assign newMap, newBlockList, and timeBlockTextList for next loop run
             ;({ timeMap: newMap, blockList: newBlockList, timeBlockTextList } = newTimeBlockWithMap)
             if (newBlockList && newBlockList.length) {
@@ -408,6 +356,8 @@ export function appendLinkIfNecessary(todos: Array<TParagraph>, config: { [key: 
 
 /**
  * Eliminate duplicate paragraphs (especially for synced lines)
+ * Duplicate content is not allowed if:
+ * - The content is the same & the blockID is the same (multiple notes referencing this one)
  * @param {Array<TParagraph>} todos: Array<TParagraph>
  * @returns Array<TParagraph> unduplicated paragraphs
  */
@@ -415,7 +365,20 @@ export const eliminateDuplicateParagraphs = (todos: Array<TParagraph>): Array<TP
   let revisedTodos = []
   if (todos?.length) {
     todos.forEach((e) => {
-      if (revisedTodos.findIndex((t) => t.content === e.content) === -1) {
+      const matchingIndex = revisedTodos.findIndex((t) => {
+        if (t.content === e.content) {
+          if (t.blockId !== undefined && e.blockId !== undefined && t.blockId === e.blockId) {
+            return true
+          } else {
+            if (t.filename === e.filename) {
+              return true
+            }
+          }
+        }
+        return false
+      })
+      const exists = matchingIndex > -1
+      if (!exists) {
         revisedTodos.push(e)
       }
     })
@@ -423,10 +386,7 @@ export const eliminateDuplicateParagraphs = (todos: Array<TParagraph>): Array<TP
   return revisedTodos
 }
 
-export const addDurationToTasks = (
-  tasks: Array<TParagraph>,
-  config: { [key: string]: any },
-): Array<{ [key: string]: any }> => {
+export const addDurationToTasks = (tasks: Array<TParagraph>, config: { [key: string]: any }): Array<{ [key: string]: any }> => {
   const dTasks = tasks.map((t) => {
     const copy = { ...t, duration: 0 }
     copy.duration = getDurationFromLine(t.content, config.durationMarker) || config.defaultDuration
@@ -435,11 +395,7 @@ export const addDurationToTasks = (
   return dTasks
 }
 
-export function getTimeBlockTimesForEvents(
-  timeMap: IntervalMap,
-  todos: Array<TParagraph>,
-  config: { [key: string]: any },
-): TimeBlocksWithMap {
+export function getTimeBlockTimesForEvents(timeMap: IntervalMap, todos: Array<TParagraph>, config: { [key: string]: any }): TimeBlocksWithMap {
   let newInfo = { timeMap, blockList: [], timeBlockTextList: [] }
   // $FlowIgnore
   const availableTimes = filterTimeMapToOpenSlots(timeMap, config)
@@ -486,7 +442,6 @@ export function isAutoTimeBlockLine(line: string, config: { [key: string]: any }
   // this is probably superfluous, but it's here for completeness
   let re = /(?:[-|\*] \d{2}:\d{2}-\d{2}:\d{2} )(.*)(( \[.*\]\(.*\))|( \[\[.*\]\]))(?: #.*)/
   let m = re.exec(line)
-  if (m) clo(m, 'antiTimeBlockLine')
   if (m && m[1]) {
     return m[1]
   }
@@ -550,13 +505,10 @@ export function findTodosInNote(note: TNote): Array<ExtendedParagraph> {
   if (note.paragraphs) {
     note.paragraphs.forEach((p) => {
       if (isTodayItem(p.content) && p.type !== 'done') {
-        // clo(p, 'found today item')
         const newP = p
         newP.type = 'open' // Pretend it's a todo even if it's text or a listitem
         // $FlowIgnore
         newP.title = (p.filename ?? '').replace('.md', '').replace('.txt', '')
-        // clo(newP, 'pushing today item')
-        // console.log(`  --> findTodosInNote adding todo "${p.content}"`)
         todos.push(newP)
       }
     })

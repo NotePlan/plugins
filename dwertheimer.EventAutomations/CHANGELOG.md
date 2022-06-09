@@ -2,6 +2,9 @@
 
 ## Changelog
 
+[1.1.1] 2022-07-09 @dwertheimer
+- fixed bug found by @atlgc where same text in diff files wouldn't create synced line
+
 [1.1.0] 2022-05-26 @dwertheimer
 - added duplicate removal to eliminate multiple copies of synced lines + tests
 - added folding using API
