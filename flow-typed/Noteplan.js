@@ -321,6 +321,20 @@ type TDataStore = {
    * Get all regular, project notes.
    */
   +projectNotes: $ReadOnlyArray<TNote>,
+  /**
+  * Get all cached hashtags (#tag) that are used across notes.
+  * It returns hashtags without leading '#'.
+  * @type {[String]}
+  * Note: Available from NotePlan v3.6.0
+  */
+  +hashtags: $ReadOnlyArray < string >,
+  /**
+* Get all cached mentions (@name) that are used across notes.
+* It returns mentions without leading '@'.
+* Note: Available from NotePlan v3.6.0
+* @type {[String]}
+*/
+  +mentions: $ReadOnlyArray < string >,
 
   /**
    * Get or set settings for the current plugin (as a JavaScript object).
