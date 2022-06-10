@@ -1,0 +1,71 @@
+{
+  "noteplan.minAppVersion": "3.3.2",
+  "macOS.minVersion": "10.13.0",
+  "plugin.id": "jgclark.MOCs",
+  "plugin.name": "🕸 Map of Contents",
+  "plugin.description": "Make Map of Contents, and save to a notes. Click link for more details and settings.",
+  "plugin.icon": "",
+  "plugin.author": "Jonathan Clark",
+  "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.MOCs/",
+  "plugin.version": "0.1.0",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.isRemote": "false",
+  "plugin.commands": [
+    {
+      "name": "make MOC",
+      "description": "Make/Update a Map of Content",
+      "alias": [
+        "MOC",
+        "map"
+      ],
+      "jsFunction": "makeMOC"
+    },
+    {
+      "name": "onUpdateOrInstall:MOCs",
+      "description": "onUpdateOrInstall",
+      "jsFunction": "onUpdateOrInstall"
+    }
+  ],
+  "plugin.settings": [
+    {
+      "type": "heading",
+      "title": "MOCs plugin settings"
+    },
+    {
+      "key": "foldersToExclude",
+      "title": "Folders to exclude",
+      "description": "List of folders to exclude in these commands. May be empty. (Note that @Trash, @Templates and @Archive are always excluded.)",
+      "type": "[string]",
+      "default": [
+        "/",
+        "Summaries"
+      ],
+      "required": false
+    },
+    {
+      "key": "headingLevel",
+      "title": "Heading level",
+      "description": "Heading level (1-5) to use when writing search term headings in notes",
+      "type": "number",
+      "default": 2,
+      "required": true
+    },
+    {
+      "key": "resultPrefix",
+      "title": "Prefix for note links",
+      "description": "String to put at the start of each note link. Default is '- '. Can also be empty.",
+      "type": "string",
+      "default": "- ",
+      "required": true
+    },
+    {
+      "key": "showEmptyOccurrences",
+      "title": "Show empty matches?",
+      "description": "If no matches of the search term(s) are found, setting this true will still show a heading for the term(s)",
+      "type": "bool",
+      "default": false,
+      "required": false
+    }
+  ]
+}
