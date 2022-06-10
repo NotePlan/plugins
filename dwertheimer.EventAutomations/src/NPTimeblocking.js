@@ -11,7 +11,7 @@
  */
 import { differenceInCalendarDays, endOfDay, startOfDay, eachMinuteOfInterval, formatISO9075, addMinutes } from 'date-fns'
 import { getTimedEntries, keepTodayPortionOnly } from '../../helpers/calendar'
-import { getEventsForDay, writeTimeBlocksToCalendar } from '../../helpers/NPCalendar'
+import { getEventsForDay, writeTimeBlocksToCalendar, checkOrGetCalendar } from '../../helpers/NPCalendar'
 import { getParagraphBlock } from '../../jgclark.Filer/src/fileItems'
 import {
   getDateStringFromCalendarFilename,
@@ -56,6 +56,7 @@ import type { IntervalMap, TimeBlockDefaults, PartialCalendarItem, EditorOrNote 
 import { checkNumber, checkObj, checkString, checkWithDefault } from '../../helpers/checkType'
 import { catchError } from 'rxjs/operators'
 import pluginJson from '../plugin.json'
+import logError from 'concurrently/src/flow-control/log-error'
 const PLUGIN_ID = 'autoTimeBlocking'
 
 /* TCalendarItem is a type for the calendar items:
@@ -247,13 +248,16 @@ export async function deleteCalendarEventsWithTag(tag: string, dateStr: string):
   if (!dateStr) {
     dateString = Editor.filename ? getDateStringFromCalendarFilename(Editor.filename) : null
   }
-  if (dateString) {
+  if (dateString && tag) {
     const eventsArray: Array<TCalendarItem> = await getEventsForDay(dateString)
-    eventsArray.forEach((event) => {
-      if (event.title.includes(tag)) {
-        Calendar.remove(event)
+    for (let event of eventsArray) {
+      if (event?.title?.includes(tag)) {
+        log(pluginJson, `deleteCalendarEventsWithTag: deleting event ${event.title}`)
+        clo(event, `deleteCalendarEventsWithTag; event=`)
+        await Calendar.remove(event)
+        log(pluginJson, `deleteCalendarEventsWithTag: deleting event ${event.title} -- deleted`)
       }
-    })
+    }
   } else {
     showMessage('deleteCalendarEventsWithTag could not delete events')
   }
@@ -263,30 +267,56 @@ type TEventConfig = {
   confirmEventCreation: boolean,
   processedTagName: string,
   calendarToWriteTo: string,
+  defaultEventDuration: number,
+  removeTimeBlocksWhenProcessed: boolean,
+  addEventID: boolean,
 }
+// @nmn's checker code here was not working -- always sending back the defaults
+// so I'm commenting it out for now -- I think it has something to do with atbConfig never being used!
+// function getEventsConfig(atbConfig: { [string]: mixed }): TEventConfig {
+//   try {
+//     const checkedConfig: {
+//       eventEnteredOnCalTag: string,
+//       calendarToWriteTo: string,
+//       defaultDuration: number,
+//       ...
+//     } = checkWithDefault(
+//       checkObj({
+//         eventEnteredOnCalTag: checkString,
+//         calendarToWriteTo: checkString,
+//         defaultDuration: checkNumber,
+//       }),
+//       {
+//         eventEnteredOnCalTag: '#event_created',
+//         calendarToWriteTo: '',
+//         defaultDuration: 15,
+//       },
+//     )
+
+//     const eventsConfig = {
+//       processedTagName: checkedConfig.eventEnteredOnCalTag,
+//       calendarToWriteTo: checkedConfig.calendarToWriteTo,
+//       defaultEventDuration: checkedConfig.defaultDuration,
+//       confirmEventCreation: false,
+//       removeTimeBlocksWhenProcessed: true,
+//       addEventID: false,
+//     }
+//     return eventsConfig
+//   } catch (error) {
+//     logError(pluginJson, `getEventsConfig: ${JSP(error)}`)
+//   }
+//   return {}
+// }
+
 function getEventsConfig(atbConfig: { [string]: mixed }): TEventConfig {
-  const checkedConfig: {
-    eventEnteredOnCalTag: string,
-    calendarToWriteTo: string,
-    ...
-  } = checkWithDefault(
-    checkObj({
-      eventEnteredOnCalTag: checkString,
-      calendarToWriteTo: checkString,
-    }),
-    {
-      eventEnteredOnCalTag: '#event_created',
-      calendarToWriteTo: '',
-    },
-  )
-
-  const eventsConfig = {
+  return {
+    processedTagName: String(atbConfig.eventEnteredOnCalTag) || '#event_created',
+    calendarToWriteTo: String(atbConfig.calendarToWriteTo) || '',
+    defaultEventDuration: Number(atbConfig.defaultDuration) || 15,
     confirmEventCreation: false,
-    processedTagName: checkedConfig.eventEnteredOnCalTag,
-    calendarToWriteTo: checkedConfig.calendarToWriteTo,
+    removeTimeBlocksWhenProcessed: true,
+    addEventID: false,
   }
-
-  return eventsConfig
 }
 
 /**
@@ -395,7 +425,11 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: mi
         log(pluginJson, `createTimeBlocksForTodaysTasks inserted ${timeBlockTextList.length} items`)
         if (createCalendarEntries) {
           console.log(`About to create calendar entries`)
-          await writeTimeBlocksToCalendar(getEventsConfig(config), Editor) //using @jgclark's method for now
+          await selectCalendar() // checks the config calendar is writeable and if not, asks to set it
+          const eventConfig = getEventsConfig(config)
+          log(pluginJson, `createTimeBlocksForTodaysTasks eventConfig=${JSON.stringify(eventConfig)}`)
+          // $FlowIgnore - we only use a subset of the events config that is in @jgclark's Flow Type
+          await writeTimeBlocksToCalendar(eventConfig, Editor) //using @jgclark's method for now
           if (!insertIntoEditor) {
             // If user didn't want the timeblocks inserted into the editor, then we delete them now that they're in calendar
             // $FlowIgnore
@@ -482,5 +516,26 @@ export async function insertTodosAsTimeblocksWithPresets(note: TNote): Promise<v
     }
   } else {
     // console.log(`insertTodosAsTimeblocksWithPresets: no config`)
+  }
+}
+
+/**
+ * Select calendar to write to and save to settings/config for this plugin
+ * (plugin entry point for "/Choose Calendar for /atb to write to" command)
+ * @returns {Promise<void>}
+ */
+export async function selectCalendar(): Promise<void> {
+  try {
+    clo(Calendar.availableCalendarTitles(true), 'NPTimeblocking::selectCalendar: Calendar.availableCalendarTitles(true)')
+    const calendarConfigField = 'calendarToWriteTo'
+    const settings = DataStore.settings
+    const calendarToWriteTo = settings[calendarConfigField]
+    const updatedCalendar = await checkOrGetCalendar(calendarToWriteTo, true)
+    if (updatedCalendar) {
+      settings[calendarConfigField] = updatedCalendar
+      DataStore.settings = settings
+    }
+  } catch (error) {
+    logError(pluginJson, JSP(error))
   }
 }

@@ -2,6 +2,9 @@
 
 ## Changelog
 
+[1.1.2] 2022-07-09 @dwertheimer
+- fix: crasher bug in removing items from calendar
+
 [1.1.1] 2022-07-09 @dwertheimer
 - fixed bug found by @atlgc where same text in diff files wouldn't create synced line
 

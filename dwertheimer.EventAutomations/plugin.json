@@ -6,7 +6,7 @@
   "plugin.name": "🗓 AutoTimeBlocking",
   "plugin.description": "Automatically find time in your calendar and create Time Blocks for items marked for >today.",
   "plugin.author": "dwertheimer",
-  "plugin.version": "1.1.1",
+  "plugin.version": "1.1.2",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://noteplan.co/n/#/1EF12392-B544-4044-AC7A-428F57EB2DFC",
@@ -22,6 +22,12 @@
       "description": "Read >today todos and insert them into today's calendar note as timeblocks, but using presets defined in _configuration note",
       "jsFunction": "insertTodosAsTimeblocksWithPresets",
       "no-alias": ["atbp","abtp","tbp"]
+    },
+    {
+      "name": "Choose Calendar for /atb to write to",
+      "description": "Select a calendar to write to when using /atb",
+      "jsFunction": "selectCalendar",
+      "no-alias": ["selectCalendar","atbcalendar"]
     }
   ],
   "plugin.settings": [
@@ -197,7 +203,7 @@
     },
     {
       "type": "heading",
-      "title": "AutoTimeBlocking Settings: Advanced"
+      "title": "Advanced: Calendar-Related Settings (EXPERIMENTAL)"
     },
     {
         "key": "createCalendarEntries",
@@ -231,7 +237,22 @@
         "description": "Tag attached to events which were written into the calendar. Because we use a different plugin to write to the calendar, this setting needs to match EventHelpers>events/Processed tag name",
         "default": "#event_created",
         "required": false
-    },    
+    },  
+    {
+        "key": "insertIntoEditor",
+        "type": "bool",
+        "title": "Insert time blocks into note Editor",
+        "description": "Leave resulting time blocks in the open note in the Editor window. The only reason to set this to false is if you are using the 'CreateCalendarEntries' setting and don't want to see any vestiges of time blocks in the Editor after the events are written to the Calendar as actual calendar events.",
+        "default": true,
+        "required": true
+    },
+    {
+      "type": "separator  "
+    },
+    {
+      "type": "heading",
+      "title": "Advanced: Other Settings"
+    },  
     {
         "key": "intervalMins",
         "type": "number",
@@ -250,12 +271,7 @@
         "required": true
     },
     {
-        "key": "insertIntoEditor",
-        "type": "bool",
-        "title": "Insert time blocks into note Editor",
-        "description": "Leave resulting time blocks in the open note in the Editor window. The only reason to set this to false is if you are using the 'CreateCalendarEntries' setting and don't want to see any vestiges of time blocks in the Editor after the events are written to the Calendar as actual calendar events.",
-        "default": true,
-        "required": true
+      "type": "separator  "
     },
     {
       "type": "heading",
