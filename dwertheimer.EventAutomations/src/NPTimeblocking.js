@@ -426,7 +426,7 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: mi
         if (createCalendarEntries) {
           console.log(`About to create calendar entries`)
           await selectCalendar() // checks the config calendar is writeable and if not, asks to set it
-          const eventConfig = getEventsConfig(config)
+          const eventConfig = getEventsConfig(DataStore.settings) // pulling config again because selectCalendar may have changed it
           log(pluginJson, `createTimeBlocksForTodaysTasks eventConfig=${JSON.stringify(eventConfig)}`)
           // $FlowIgnore - we only use a subset of the events config that is in @jgclark's Flow Type
           await writeTimeBlocksToCalendar(eventConfig, Editor) //using @jgclark's method for now

@@ -2,6 +2,9 @@
 
 ## Changelog
 
+[1.1.3] 2022-07-10 @dwertheimer
+- fix: read calendar name after it gets changed by user
+
 [1.1.2] 2022-07-09 @dwertheimer
 - fix: crasher bug in removing items from calendar
 
