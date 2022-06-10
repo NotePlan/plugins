@@ -64,7 +64,11 @@ export function createTimeBlockLine(blockData: BlockData, config: { [key: string
       newContentLine = removeDurationParameter(newContentLine, config.durationMarker)
     }
     newContentLine = attachTimeblockTag(newContentLine, config.timeBlockTag)
-    return `${config.todoChar} ${blockData.start}-${blockData.end} ${newContentLine || blockData.title || ''}`
+    let tbLine = `${config.todoChar} ${blockData.start}-${blockData.end} ${newContentLine || blockData.title || ''}`
+    if (config.timeblockTextMustContainString?.length && !tbLine.includes(config.timeblockTextMustContainString)) {
+      tbLine = `${tbLine} ${config.timeblockTextMustContainString}`
+    }
+    return tbLine
   }
   return ''
 }

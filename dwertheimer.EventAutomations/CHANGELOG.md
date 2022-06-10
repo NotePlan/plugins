@@ -2,6 +2,19 @@
 
 ## Changelog
 
+[1.2.0] 2022-07-10 @dwertheimer
+- added: added command "/Insert Synced Today Todos at Cursor" to add synced lines without timeblocks
+- changed plugin name to "AutoTimeBlocking & Synced Today Todos"
+
+[1.1.6] 2022-07-10 @dwertheimer
+- fix: added loading screen during delete/add events to calendar
+
+[1.1.5] 2022-07-10 @dwertheimer
+- fix: made TB tag addition more robust
+
+[1.1.4] 2022-07-10 @dwertheimer
+- fix: pull timeblock string from prefs (DataStore.preference("timeblockTextMustContainString")) and append it
+  
 [1.1.3] 2022-07-10 @dwertheimer
 - fix: read calendar name after it gets changed by user
 
