@@ -156,10 +156,8 @@ function getTodaysReferences(pNote: TNote | null = null, config: { [key: string]
     log(pluginJson, `getTodaysReferences: todosInNote Found ${todosInNote.length} items in today's note. Adding them.`)
     // eliminate linked lines (for synced lines on the page)
     // because these should be in the references from other pages
-    clo(todosInNote[0], 'todosInNote[0]')
     todosInNote = todosInNote.filter((todo) => !/\^[a-zA-Z0-9]{6}/.test(todo.content))
     todayParas = [...todayParas, ...todosInNote]
-    clo(todayParas.length, 'todayParas')
   }
   // }
   // console.log(`getTodaysReferences note.filename=${note.filename} backlinks.length=${backlinks.length} todayParas.length=${todayParas.length}`)
@@ -297,7 +295,6 @@ function getEventsConfig(atbConfig: { [string]: mixed }): TEventConfig {
  * @returns array of strings with the sync codes attached
  */
 export function getSyncedCopiesAsList(allTodayParagraphs: Array<TParagraph>): Array<string> {
-  // clo(allTodayParagraphs, 'getSyncedCopiesAsList::allTodayParagraphs')
   let syncedLinesList = []
   allTodayParagraphs.forEach((p) => {
     if (p.type == 'open') {
@@ -306,23 +303,6 @@ export function getSyncedCopiesAsList(allTodayParagraphs: Array<TParagraph>): Ar
       syncedLinesList.push(p.rawContent)
     }
   })
-  // timeBlockTextList.forEach((line) => {
-  //   syncedLinesList.push(line)
-  //   console.log(`getSyncedCopiesAsList::line=${line}:`)
-  //   const segments = line.split(' ')
-  //   if (segments.length > 2) {
-  //     let content = line.replace(`${segments[0]} ${segments[1]} `, '') // replace time at the front
-  //     content = content.replace(/( \[.*\]\(.*\).*)/, '') // replace pretty link
-  //     content = content.replace(/( \[\[.*\]\].*)/, '') // replace wiki link
-  //     console.log(`getSyncedCopiesAsList::content=${content}:`)
-  //     syncedLinesList.push(content)
-  //     // search in paragraphs
-  //   }
-  // const content = line.slice()
-  // p?.note?.addBlockID(p)
-  // p?.note?.updateParagraph(p)
-  // syncedLinesList.push(p.content)
-  // })
   return syncedLinesList
 }
 
@@ -331,7 +311,7 @@ function getFullParagraphsCorrespondingToSortList(paragraphs: Array<TParagraph>,
   if (sortList && paragraphs) {
     retP = sortList.map((s) => {
       const found = paragraphs.find((p, i) => {
-        return removeDateTagsAndToday(p.rawContent) === s.raw
+        return removeDateTagsAndToday(p.rawContent) === s.raw && p.filename === s.filename
       })
       return found
     })
@@ -412,7 +392,7 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: mi
         console.log(`Found ${undupedBackLinkParas.length} undupedBackLinkParas after duplicate elimination`)
         console.log(`After cleaning, ${tasksByType?.open?.length ?? 0} open items`)
 
-        log(pluginJson, `createTimeBlocksForTodaysTasks inserted ${timeBlockTextList.length} items:\n ${timeBlockTextList.join('\n')}`)
+        log(pluginJson, `createTimeBlocksForTodaysTasks inserted ${timeBlockTextList.length} items`)
         if (createCalendarEntries) {
           console.log(`About to create calendar entries`)
           await writeTimeBlocksToCalendar(getEventsConfig(config), Editor) //using @jgclark's method for now
@@ -425,6 +405,8 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: mi
 
         if (config.createSyncedCopies && todosWithLinksMaybe?.length) {
           console.log(`createSyncedCopies is true, so we will create synced copies of the todosParagraphs: ${todosParagraphs.length} timeblocks`)
+          // TODO: FIXME: This was a bit of a hack to get the synced copies to work. But it fails when the rawcontent is identical
+          // SO what to do...we need the actual paragraphs, not to try to match them
           const sortedParas = getFullParagraphsCorrespondingToSortList(todosParagraphs, sortedTodos)
           const syncedList = getSyncedCopiesAsList(sortedParas)
           console.log(`Deleting previous synced list heading and content`)
