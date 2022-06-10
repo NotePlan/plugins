@@ -482,24 +482,28 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: mi
  * @return {Promise<void}
  */
 export async function writeSyncedCopies(todosParagraphs: Array<TParagraph>, config): Promise<void> {
-  const syncedList = getSyncedCopiesAsList(todosParagraphs)
-  console.log(`Deleting previous synced list heading and content`)
-  if (!String(config.syncedCopiesTitle)?.length) {
-    await showMessage(`You need to set a synced copies title in the plugin settings`)
-    return
+  if (!todosParagraphs.length && !config.runSilently) {
+    await showMessage(`No todos/references marked for this day!`)
   } else {
-    if (syncedList.length && Editor) await removeContentUnderHeading(Editor, String(config.syncedCopiesTitle), false)
+    const syncedList = getSyncedCopiesAsList(todosParagraphs)
+    console.log(`Deleting previous synced list heading and content`)
+    if (!String(config.syncedCopiesTitle)?.length) {
+      await showMessage(`You need to set a synced copies title in the plugin settings`)
+      return
+    } else {
+      if (syncedList.length && Editor) await removeContentUnderHeading(Editor, String(config.syncedCopiesTitle), false)
+    }
+    console.log(`Inserting synced list content: ${syncedList.length} items`)
+    // $FlowIgnore
+    await insertItemsIntoNote(
+      /* editorOrNote(note), */
+      Editor,
+      syncedList,
+      config.syncedCopiesTitle,
+      config.foldSyncedCopiesHeading,
+      config,
+    )
   }
-  console.log(`Inserting synced list content: ${syncedList.length} items`)
-  // $FlowIgnore
-  await insertItemsIntoNote(
-    /* editorOrNote(note), */
-    Editor,
-    syncedList,
-    config.syncedCopiesTitle,
-    config.foldSyncedCopiesHeading,
-    config,
-  )
 }
 
 /**
@@ -509,7 +513,7 @@ export async function writeSyncedCopies(todosParagraphs: Array<TParagraph>, conf
 export async function insertSyncedCopiesOfTodayTodos(): Promise<void> {
   try {
     log(pluginJson, `insertSyncedCopiesOfTodayTodos running`)
-    if (!editorIsOpenToToday()) await Editor.openNoteByDate(new Date(), false) //open editor to today
+    // if (!editorIsOpenToToday()) await Editor.openNoteByDate(new Date(), false) //open editor to today
     const start = Editor.selection?.start
     const config = await getConfig()
     clo(config, 'insertSyncedCopiesOfTodayTodos config')
@@ -543,7 +547,7 @@ export async function insertTodosAsTimeblocks(note: TNote): Promise<void> {
 
 export async function insertTodosAsTimeblocksWithPresets(note: TNote): Promise<void> {
   // console.log(`====== /atbp =======\nStarting insertTodosAsTimeblocksWithPresets`)
-  if (!editorIsOpenToToday()) await Editor.openNoteByDate(new Date(), false) //open editor to today
+  // if (!editorIsOpenToToday()) await Editor.openNoteByDate(new Date(), false) //open editor to today
   let config = await getConfig()
   if (config) {
     // console.log(`Config found. Checking for presets`)

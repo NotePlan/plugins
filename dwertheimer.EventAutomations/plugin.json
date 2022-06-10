@@ -6,7 +6,7 @@
   "plugin.name": "🗓 AutoTimeBlocking & Synced Today Todos",
   "plugin.description": "Automatically find time in your calendar and create Time Blocks for items marked for >today and put copies of today's todos in the editor",
   "plugin.author": "dwertheimer",
-  "plugin.version": "1.2.0",
+  "plugin.version": "1.2.1",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://noteplan.co/n/#/1EF12392-B544-4044-AC7A-428F57EB2DFC",
@@ -30,8 +30,8 @@
       "alias": ["selectCalendar","atbcalendar"]
     },
     {
-      "name": "Insert Synced Today Todos",
-      "description": "Output a list of todos for today to the editor (any todos in the References pane)",
+      "name": "Insert Synced Todos for Open Calendar Note",
+      "description": "Output a list of todos for the day open in the editor (any todos in the References pane will show up -- either >dated or >today if you're on today's note)",
       "jsFunction": "insertSyncedCopiesOfTodayTodos",
       "alias": ["syncedTodos","insertSynced"]
     }

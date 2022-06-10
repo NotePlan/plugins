@@ -2,6 +2,10 @@
 
 ## Changelog
 
+[1.2.1] 2022-07-10 @dwertheimer
+- Remove the requirement for Synced lines to run only on today's note (@Stacey's suggestion)
+
+- added: added command "/Insert Synced Today Todos at Cursor" to add synced lines without timeblocks
 [1.2.0] 2022-07-10 @dwertheimer
 - added: added command "/Insert Synced Today Todos at Cursor" to add synced lines without timeblocks
 - changed plugin name to "AutoTimeBlocking & Synced Today Todos"

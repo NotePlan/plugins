@@ -29,6 +29,7 @@ export function getTimeBlockingDefaults(): { [key: string]: any } {
     syncedCopiesTitle: "Today's Synced Tasks",
     createSyncedCopies: true,
     foldSyncedCopiesHeading: false,
+    runSilently: false,
     timeblockTextMustContainString: '' /* is set automatically when config is pulled */,
     presets: [
       { label: 'Limit Time Blocks to Work Hours', workDayStart: '08:00', workDayEnd: '17:59' },
@@ -61,6 +62,7 @@ export function validateTimeBlockConfig(config: { [key: string]: any }): { [key:
     mode: 'string',
     allowEventSplits: 'boolean',
     insertIntoEditor: 'boolean',
+    runSilently: { type: 'boolean', optional: true },
     passBackResults: { type: 'boolean', optional: true },
     createCalendarEntries: 'boolean',
     deletePreviousCalendarEntries: 'boolean',
