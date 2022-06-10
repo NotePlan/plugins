@@ -2,7 +2,7 @@
 import pluginJson from '../plugin.json'
 import { migrateConfiguration, updateSettingData } from '../../helpers/NPconfiguration'
 
-export { insertTodosAsTimeblocks, insertTodosAsTimeblocksWithPresets } from './NPTimeblocking'
+export { insertTodosAsTimeblocks, insertTodosAsTimeblocksWithPresets, selectCalendar } from './NPTimeblocking'
 
 const PLUGIN_ID = 'autoTimeBlocking' // the key that's used in _configuration note
 
@@ -20,4 +20,8 @@ export async function onUpdateOrInstall(config: any = { silent: false }): Promis
     console.log(error)
   }
   console.log(`${PLUGIN_ID}: onUpdateOrInstall finished`)
+}
+
+export async function onSettingsUpdated() {
+  console.log(`${PLUGIN_ID}: onSettingsUpdated ran - nothing to do`)
 }
