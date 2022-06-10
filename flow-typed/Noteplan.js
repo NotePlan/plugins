@@ -562,6 +562,10 @@ type PluginCommandObject = {
    * Name of the plugin this command belongs to (getter)
    */
   +pluginName: string,
+  /**
+   * List of optional argument descriptions for the specific command (getter). Use this if you want to invoke this command from another plugin to inform the user what he nees to enter for example.
+  */
+  +arguments: $ReadOnlyArray < string >
 }
 
 type PluginObject = {
