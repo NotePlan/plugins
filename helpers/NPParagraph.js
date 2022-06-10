@@ -264,7 +264,7 @@ export async function gatherMatchingLines(
       // Highlight matches if requested ... but we need to be smart about this:
       // don't do so if we're in the middle of a URL or the path of a [!][link](path)
       if (highlightOccurrences && !termInURL(stringToLookFor, matchLine)) {
-        matchLine = matchLine.replace(stringToLookFor, `== ${stringToLookFor}== `)
+        matchLine = matchLine.replace(stringToLookFor, `==${stringToLookFor}== `)
       }
       // log('NPparagraph/gatherMatchingLines', `    -> ${ matchLine } `)
       matches.push(matchLine.trim())

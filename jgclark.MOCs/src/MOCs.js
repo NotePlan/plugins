@@ -185,14 +185,13 @@ export async function makeMOC(): Promise<void> {
           outputArray.push(`${config.resultPrefix} [[${uniqTitles[i]}]]`)
         }
         // Write new lines to end of active section of note
-        // TODO: Want this to include config.headingLevel
-        replaceContentUnderHeading(note, `'${searchTerm}'`, outputArray.join('\n'), true)
+        replaceContentUnderHeading(note, `'${searchTerm}'`, outputArray.join('\n'), true, config.headingLevel)
       }
 
     } else {
       // If there's nothing to report, tell user or note in the log
       if (config.showEmptyOccurrences) {
-        replaceContentUnderHeading(note, `'${searchTerm}'`, `No notes found`, true)
+        replaceContentUnderHeading(note, `'${searchTerm}'`, `No notes found`, true, config.headingLevel)
       } else {
         logWarn(pluginJson, `no matches for search term '${searchTerm}'`)
       }

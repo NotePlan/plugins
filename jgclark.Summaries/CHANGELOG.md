@@ -1,5 +1,13 @@
 # What's Changed in 🗃 Summaries plugin?
 
+## [0.8.0] - 9.6.2022
+### Added
+- ability to use these commands from x-callback-url calls. For example, calling the following (e.g. from the  Shortcuts app, or even within NP itself) will do the equivalent of running the command `/saveSearchResults` and supplying with input 'search,terms': `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=saveSearchResults&arg0=search,terms`
+- now allows the include & exclude fields for mention and hashtag counts to both be empty (thanks to the suggestion by @atlgc)
+
+### Fixed
+- fix for negative numbers in @mention trackers breaking the summary statistics (thanks for the report by @atlgc)
+
 ## [0.7.1] - 2022-04-26
 ### Changed
 - code clean up

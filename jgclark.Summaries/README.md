@@ -7,7 +7,10 @@ This plugin lets you do the following sorts of things with your daily (calendar)
 - count the times you've met with staff member `@alice` this year so far
 - sum the length of your `@run(...)`s last quarter
 - automatically add your progress this week against your goal of getting an average 8 hours `@sleep()` when you generate your daily note
-- save the results of any search over all notes.
+
+And also:
+- save the results of any search over all notes (or a subset of notes by date) to a note
+- make a Map of Content (MOC) note for a search term
 
 ## Commands
 This Plugin provides commands that generate several different sorts of **summaries** and **basic stats from your daily notes**, that are saved back into special NotePlan notes in the Summaries folder. Most start by asking for the time period you wish to operate over:
@@ -16,16 +19,16 @@ This Plugin provides commands that generate several different sorts of **summari
 
 Each command is considered in turn. 
 **Please note** that in each of these: 
-- all notes in the special folders @Archive and @Trash are **ignored**.  Others can be exluded too using the `foldersToExclude` setting (see below).
+- all notes in the special folders (@Archive, @Templates and @Trash) are **ignored**.  Others can be exluded too using the `foldersToExclude` setting (see below).
 - the **searches** are simple ones, not using fuzzy matching or regular expressions.
 - these commands require **configuration**. See section below for details of how to add/update the relevant settings for each command.
 
 ### `/saveSearchResults`
-This command searches across all notes (both calendar and projects) for a text string you give. It asks where to save its output: to the current note, to the Plugin Console, or to a specially-created note in the Summaries folder.  (It will update the previous note with that same title, if it exists.)
+This command searches across **all notes** (both calendar and projects) for a text string you give. It asks where to save its output: to the current note, to the Plugin Console, or to a specially-created note in the Summaries folder.  (It will update the previous note with that same title, if it exists.)
 
 The relevant settings for this command are:
 - folderToStore: e.g. 'Summaries'
-- foldersToExclude: e.g. ['📋 Templates', 'Summaries']
+- foldersToExclude: e.g. ['Summaries']
 - headingLevel: e.g. 2
 - highlightOccurrences: false or true
 - dateStyle: e.g.'link'
@@ -62,13 +65,13 @@ To see **highlighting** of matching terms in the occurrences output, you'll need
   ...
 }
 ```
-
+This command can also be run from an x-callback command (details below).
 ### `/saveSearchResultsInPeriod`
-This command generates all 'occurences' of one or more search terms from the daily notes of the time period you select. It offers you your default search terms (if set by the `defaultOccurrences` setting), or lets you choose. Where an occurrence is in a daily note, this can be appended as a date in your locale or as a date 'link'. 
+This command generates all 'occurences' of one or more search terms from the **daily notes** of the time period you select. It offers you your default search terms (if set by the `defaultOccurrences` setting), or lets you choose. Where an occurrence is in a daily note, this can be appended as a date in your locale or as a date 'link'. 
 
 The relevant settings are:
 - folderToStore: e.g. 'Summaries'
-- foldersToExclude: e.g. ['📋 Templates', 'Summaries']
+- foldersToExclude: e.g. ['Summaries']
 - headingLevel: e.g. 2
 - occurrencesHeading: e.g. 'Search Results',
 - defaultOccurrences: ['idea', '@review', '#question'],
@@ -77,6 +80,8 @@ The relevant settings are:
 - dateStyle: e.g. 'link'
 
 To visually highlight occurrences, please see the note above.
+
+This command can also be run from an x-callback command (details below).
 
 ### `/countsInPeriod`
 This command generates some simple counts and other statistics of #hashtags or @mentions that you specify. For example:
@@ -107,7 +112,7 @@ For example, it produces for me:
 
 The settings for this command are:
 - folderToStore: e.g. 'Summaries'
-- foldersToExclude: e.g. ['📋 Templates', 'Summaries']
+- foldersToExclude: e.g. ['Summaries']
 - headingLevel: e.g. 2
 - hashtagCountsHeading: e.g. '#hashtag counts',
 - mentionCountsHeading: e.g. '@mention counts'
@@ -141,52 +146,23 @@ The relevant settings for this command are:
 - folderToStore: e.g. 'Summaries'
 - weeklyStatsDuration: e.g. 26
 
-## Configuration
-In NotePlan v3.4 and above, please click the gear button on the 'Summaries' line in the Plugin Preferences panel. 
-For versions before v3.4 you write settings in the first code block of the special `📋 Templates/_configuration` note, in JSON format. The first time the plugin is run it should detect it doesn't have configuration, and offer to write some to this note. Alternatively, in that note, include the following settings you want in its first code block. This is the annotated list of settings, with their defaults:
-
-```jsonc
-{
-  ...
-  summaries: {
-    folderToStore: 'Summaries', // folder to store any output files in
-    foldersToExclude: ['📋 Templates', 'Summaries'], // list of folders (and their sub-folders) to exlude in these commands. Note that @Trash and @Archive are always excluded
-    headingLevel: 2, // use level 1-5 headings when writing output to notes
-    // settings for '/countsInPeriod':
-    hashtagCountsHeading: '#hashtag counts',
-    mentionCountsHeading: '@mention counts',
-    showAsHashtagOrMention: true, // if false hide the # or @ symbols
-    // In the following the includes (if specified) takes precedence over any excludes.
-    // Items in the list need to be included in quotes, separated by commas.
-    includeHashtags: [], // e.g. ['#holiday','#jog','#commute','#webinar']
-    excludeHashtags: [],
-    includeMentions: [], // e.g. ['@work','@fruitveg','@water', '@sleep']
-    excludeMentions: ['@done', '@repeat'],
-  // settings for '/occurrencesInPeriod':
-    occurrencesHeading: 'Occurrences',
-    defaultOccurrences: ['idea', '@review', '#question'],
-    highlightOccurrences: false, // use ==highlight== of matched occurrences in output
-    showEmptyOccurrences: false, // if no occurrences found of this string to match, make this clear
-    dateStyle: 'link', // where the context for an occurrence is a date, does it get appended as a `date` using your locale, or as a NP date `link` (`>date`) or `at` (`@date`) or `none`
-    includeHashtags: [], // e.g. ['#holiday','#jog','#commute','#webinar']
-    excludeHashtags: [],
-    includeMentions: [], // e.g. ['@work','@fruitveg','@water', '@sleep']
-    // In the following the includes (if specified) takes precedence over excludes ...
-    progressHeading: 'Progress Update',
-    progressHashtags: [], // e.g. ['#gym','#jog']
-    progressMentions: [] // e.g. ['@work','@fruitveg','@sleep']
-    // setting for '/weeklyStats':
-    weeklyStatsDuration: 14, // number of weeks to look back
-  },
-  ...
-}
+## Using from x-callback calls
+From v0.8 it's possible to call some of these commands from [outside NotePlan using the **x-callback mechanism**](https://help.noteplan.co/article/49-x-callback-url-scheme#runplugin). The URL calls all take the same form:
 ```
-(This example fragment is in JSON5 format: ensure there are commas at the end of all that lines that need them.)
+noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=<encoded command name>&arg0=<encoded string>&arg1=<encoded string>
+```
+Notes:
+- the number and order of arguments you pass is important
+- where an argument isn't valid, don't include it
+- as with all x-callback URLs, all the arguments (including the command name) need to be URL encoded. For example, spaces need to be turned into '%20'.
 
-## To do
-- test allowing regular expressions as search terms.
+| Command | x-callback start | arg0 | arg1 |
+|-----|-------------|-----|-----|
+| /saveSearchResults | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=saveSearchResults&` | search term(s) (separated by commas) |   |
+| /saveSearchResultsInPeriod | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=saveSearchResultsInPeriod&` | search term(s) (separated by commas) | optional number of days to search over (from before today). If not given then defaults to 3 months. |
+
+## Configuration
+Click the gear button on the 'Summaries' line in the Plugin Preferences panel to configure this plugin. Each setting has an explanation.
 
 ## History
-NB: `countsInPeriod` command started life as `/stp` (stats for time period) in the Statistics plugin.
-
 Please see the [CHANGELOG](CHANGELOG.md).

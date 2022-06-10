@@ -2,14 +2,13 @@
 //-----------------------------------------------------------------------------
 // Summary commands for notes
 // Jonathan Clark
-// Last updated 26.4.2022 for v0.7.1 by @jgclark
+// Last updated 9.6.2022 for v0.8.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import {
   getDateStringFromCalendarFilename,
   getWeek,
-  hyphenatedDate,
   monthNameAbbrev,
   todaysDateISOString,
   toISODateString,
@@ -17,13 +16,18 @@ import {
   toLocaleDateTimeString,
   weekStartEnd,
   withinDateRange,
-} from '../../helpers/dateTime'
-import { clo, log, logWarn, logError } from '../../helpers/dev'
-import { calcOffsetDate, quarterStartEnd } from '../../helpers/NPdateTime'
-import { castBooleanFromMixed, castHeadingLevelFromMixed, castNumberFromMixed, castStringArrayFromMixed, castStringFromMixed, trimAnyQuotes } from '../../helpers/dataManipulation'
-import { displayTitle } from '../../helpers/general'
-import { termInURL } from '../../helpers/paragraph'
-import { chooseOption, getInput } from '../../helpers/userInput'
+} from '@helpers/dateTime'
+import { clo, log, logWarn, logError } from '@helpers/dev'
+import { calcOffsetDate, quarterStartEnd } from '@helpers/NPdateTime'
+import { castBooleanFromMixed, castHeadingLevelFromMixed, castNumberFromMixed, castStringArrayFromMixed, castStringFromMixed, trimAnyQuotes } from '@helpers/dataManipulation'
+import { displayTitle } from '@helpers/general'
+import {
+  gatherMatchingLines,
+} from '@helpers/NPparagraph'
+import {
+  termInURL,
+} from '@helpers/paragraph'
+import { chooseOption, getInput } from '@helpers/userInput'
 
 //------------------------------------------------------------------------------
 // Get settings
@@ -294,73 +298,6 @@ export async function getPeriodStartEndDates(question: string = 'Create stats fo
 }
 
 /**
- * Return list of lines matching the specified string in the specified project or daily notes.
- * NB: If starting now, I would try to use a different return type, probably tuples not 2 distinct arrays.
- * @author @jgclark
- *
- * @param {array} notes - array of Notes to look over
- * @param {string} stringToLookFor - string to look for
- * @param {boolean} highlightOccurrences - whether to enclose found string in ==highlight marks==
- * @param {string} dateStyle - where the context for an occurrence is a date, does it get appended as a 'date' using your locale, or as a NP date 'link' (`>date`) or 'none'
- * @return [Array, Array] - array of lines with matching term, and array of contexts for those lines (dates for daily notes; title for project notes).
- */
-export async function gatherMatchingLines(
-  notes: Array<TNote>,
-  stringToLookFor: string,
-  highlightOccurrences: boolean = true,
-  dateStyle: string = 'link',
-): Promise<[Array<string>, Array<string>]> {
-  log(pluginJson, `Looking for '${stringToLookFor}' in ${notes.length} notes`)
-  CommandBar.showLoading(true, `Searching in ${notes.length} notes ...`)
-  await CommandBar.onAsyncThread()
-
-  const matches: Array<string> = []
-  const noteContexts: Array<string> = []
-  let i = 0
-  for (const n of notes) {
-    i += 1
-    const noteContext =
-      n.date == null
-        ? `[[${n.title ?? ''}]]`
-        : dateStyle.startsWith('link') // to deal with earlier typo where default was set to 'links'
-          // $FlowIgnore(incompatible-call)
-          ? ` >${hyphenatedDate(n.date)}`
-          : dateStyle === 'date'
-            // $FlowIgnore(incompatible-call)
-            ? ` (${toLocaleDateTimeString(n.date)})`
-            : dateStyle === 'at'
-              // $FlowIgnore(incompatible-call)
-              ? ` @${hyphenatedDate(n.date)}`
-              : ''
-    // find any matches
-    const matchingParas = n.paragraphs.filter((q) => q.content.includes(stringToLookFor))
-    for (const p of matchingParas) {
-      let matchLine = p.content
-      // If the stringToLookFor is in the form of an 'attribute::' and found at the start of a line,
-      // then remove it from the output line
-      if (stringToLookFor.endsWith('::') && matchLine.startsWith(stringToLookFor)) {
-        matchLine = matchLine.replace(stringToLookFor, '') // NB: only removes first instance
-        // log(pluginJson, `    -> ${matchLine}`)
-      }
-      // Highlight matches if requested ... but we need to be smart about this:
-      // don't do so if we're in the middle of a URL or the path of a [!][link](path)
-      if (highlightOccurrences && !termInURL(stringToLookFor, matchLine)) {
-        matchLine = matchLine.replace(stringToLookFor, `==${stringToLookFor}==`)
-      }
-      // log(pluginJson, `    -> ${matchLine}`)
-      matches.push(matchLine.trim())
-      noteContexts.push(noteContext)
-    }
-    if (i % 100 === 0) {
-      CommandBar.showLoading(true, `Searching in ${notes.length} notes ...`, i / notes.length)
-    }
-  }
-  await CommandBar.onMainThread()
-  CommandBar.showLoading(false)
-  return [matches, noteContexts]
-}
-
-/**
  * Calculate hashtag statistics for daily notes of a given time period
  * - Map of { tag, count } for all tags included or not excluded
  * - Map of { tag, total } for the subset of all tags above that finish with a /number
@@ -382,11 +319,6 @@ export async function calcHashtagStatsPeriod(
   const periodDailyNotes = DataStore.calendarNotes.filter((p) => withinDateRange(getDateStringFromCalendarFilename(p.filename), fromDateStr, toDateStr))
   if (periodDailyNotes.length === 0) {
     logWarn(pluginJson, `no matching daily notes found between ${fromDateStr} and ${toDateStr}`)
-    return
-  }
-
-  if (includedTerms.length === 0 && excludedTerms.length === 0) {
-    logWarn(pluginJson, `no included or excluded hashtag terms passed, so returning nothing`)
     return
   }
 
@@ -426,17 +358,19 @@ export async function calcHashtagStatsPeriod(
         // log(pluginJson, `\tIgnoring '${t}' as on exclusion list`)
       } else {
         // if this is tag that finishes '/number', then sum the numbers as well
-        if (t.match(/\/\d+(\.\d+)?$/)) {
+        if (t.match(/\/-?\d+(\.\d+)?$/)) {
           const tagParts = t.split('/')
           const k = tagParts[0] // tag
           const v = Number(tagParts[1]) // number after tag
           // log(pluginJson, `found tagParts ${k} / ${v}`)
           termCounts.set(k, (termCounts.get(k) ?? 0) + 1)
           termSumTotals.set(k, (termSumTotals.get(k) ?? 0) + v)
+          // $FlowIgnore[incompatible-type]
           // log(pluginJson, `  ${k} -> ${termSumTotals.get(k)} from ${termCounts.get(k)}`)
         } else {
           // just save this to the main map
           termCounts.set(t, (termCounts.get(t) ?? 0) + 1)
+          // $FlowIgnore[incompatible-type]
           // log(pluginJson, `  ${t} -> ${termCounts.get(t)}`)
         }
       }
@@ -473,11 +407,6 @@ export async function calcMentionStatsPeriod(
     return
   }
 
-  if (includedTerms.length === 0 && excludedTerms.length === 0) {
-    logWarn(pluginJson, `no included or excluded mention terms passed, so returning nothing`)
-    return
-  }
-
   // work out what set of mentions to look for (or ignore)
   const mentionsToLookFor = includedTerms.length > 0 ? includedTerms : []
   const mentionsToIgnore = excludedTerms.length > 0 ? excludedTerms : []
@@ -488,7 +417,7 @@ export async function calcMentionStatsPeriod(
   const termSumTotals = new Map<string, number>() // key: mention name (except last part); value: total
 
   // Initialise the maps for terms that we're deliberately including
-  // TODO: In time will want more flexibility here
+  // TODO(me): In time will want more flexibility here
   for (let i = 0; i < includedTerms.length; i++) {
     const k = includedTerms[i]
     termCounts.set(k, 0)
@@ -515,16 +444,18 @@ export async function calcMentionStatsPeriod(
         // log(pluginJson, `\tIgnoring '${m} as on exclusion list`)
       } else {
         // if this is menion that finishes (number), then
-        if (m.match(/\(\d+(\.\d+)?\)$/)) {
+        if (m.match(/\(-?\d+(\.\d+)?\)$/)) {
           const mentionParts = m.split('(')
           const k = mentionParts[0]
           const v = Number(mentionParts[1].slice(0, -1)) // chop off final ')' character
           termCounts.set(k, (termCounts.get(k) ?? 0) + 1)
           termSumTotals.set(k, (termSumTotals.get(k) ?? 0) + v)
+          // $FlowIgnore[incompatible-type]
           // log(pluginJson, `found mentionParts ${k} / ${v} in ${displayTitle(n)} -> ${String(termSumTotals.get(k))} from ${String(termCounts.get(k))}`)
         } else {
           // just save this to the main map
           termCounts.set(m, (termCounts.get(m) ?? 0) + 1)
+          // $FlowIgnore[incompatible-type]
           // log(pluginJson, `  -> ${m} = ${String(termCounts.get(m))}`)
         }
       }

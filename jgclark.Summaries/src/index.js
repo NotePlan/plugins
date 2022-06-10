@@ -3,11 +3,10 @@
 //-----------------------------------------------------------------------------
 // Summary commands for notes
 // Jonathan Clark
-// Last updated 29.5.2022 for v0.8.0
+// Last updated 9.6.2022 for v0.8.0
 //-----------------------------------------------------------------------------
 
 export { weeklyStats } from './forPlotting'
-export { makeMOC } from './MOCs'
 export { insertProgressUpdate } from './progress'
 export { saveSearch } from './saveSearch'
 export { saveSearchPeriod } from './saveSearchPeriod'
