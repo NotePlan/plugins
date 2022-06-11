@@ -379,7 +379,18 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: mi
 
   // You could define a proper type for `obj` and use a function like this to verify that
   // type.
-  // checkObj({
+  // type TConfig = {
+  //   timeBlockTag: string,
+  //   intervalMins: number,
+  //   insertIntoEditor: string,
+  //   createCalendarEntries: boolean,
+  //   passBackResults: boolean,
+  //   deletePreviousCalendarEntries: boolean,
+  //   eventEnteredOnCalTag: string,
+  //   includeTasksWithText: boolean,
+  //   excludeTasksWithText: boolean,
+  // }
+  // const typedConfig: TConfig = checkObj({
   //   timeBlockTag: checkString,
   //   intervalMins: checkNumber,
   //   insertIntoEditor: checkString,
@@ -389,7 +400,7 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: mi
   //   eventEnteredOnCalTag: checkString,
   //   includeTasksWithText: checkBoolean,
   //   excludeTasksWithText: checkBoolean,
-  // });
+  // })(config)
 
   const {
     timeBlockTag,
