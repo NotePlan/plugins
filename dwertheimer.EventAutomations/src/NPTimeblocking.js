@@ -53,7 +53,7 @@ import {
 import { getPresetOptions, setConfigForPreset } from './presets'
 import { getTimeBlockingDefaults, validateTimeBlockConfig } from './config'
 import type { IntervalMap, TimeBlockDefaults, PartialCalendarItem, EditorOrNote } from './timeblocking-flow-types'
-import { checkNumber, checkObj, checkString, checkWithDefault } from '../../helpers/checkType'
+import { checkNumber, checkObj, checkString, checkBoolean, checkWithDefault } from '../../helpers/checkType'
 import { catchError } from 'rxjs/operators'
 import pluginJson from '../plugin.json'
 import logError from 'concurrently/src/flow-control/log-error'
@@ -376,6 +376,21 @@ export async function getTodaysFilteredTodos(config: { [key: string]: mixed }): 
 export async function createTimeBlocksForTodaysTasks(config: { [key: string]: mixed } = {}): Promise<?Array<string>> {
   // console.log(`Starting createTimeBlocksForTodaysTasks. Time is ${new Date().toLocaleTimeString()}`)
   // console.log(`config is: ${JSON.stringify(config, null, 2)}`)
+
+  // You could define a proper type for `obj` and use a function like this to verify that
+  // type.
+  // checkObj({
+  //   timeBlockTag: checkString,
+  //   intervalMins: checkNumber,
+  //   insertIntoEditor: checkString,
+  //   createCalendarEntries: checkBoolean,
+  //   passBackResults: checkBoolean,
+  //   deletePreviousCalendarEntries: checkBoolean,
+  //   eventEnteredOnCalTag: checkString,
+  //   includeTasksWithText: checkBoolean,
+  //   excludeTasksWithText: checkBoolean,
+  // });
+
   const {
     timeBlockTag,
     intervalMins,
@@ -393,7 +408,7 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: mi
   log(pluginJson, `createTimeBlocksForTodaysTasks date=${date}`)
   const note = Editor // placeholder. we may pass a note in future revs
   const dateStr = Editor.filename ? getDateStringFromCalendarFilename(Editor.filename) : null
-  log(pluginJson, `createTimeBlocksForTodaysTasks dateStr=${dateStr}`)
+  log(pluginJson, `createTimeBlocksForTodaysTasks dateStr=${dateStr ?? 'null'}`)
   if (dateStr && dateStr === date) {
     log(pluginJson, `createTimeBlocksForTodaysTasks dateStr=${dateStr} is today - we are inside`)
     const todosParagraphs = await getTodaysFilteredTodos(config)
