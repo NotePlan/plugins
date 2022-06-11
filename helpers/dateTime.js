@@ -4,8 +4,7 @@
 // @jgclark except where shown
 
 import strftime from 'strftime'
-import { DateTime } from 'luxon-business-days' // having done 'npm install --save luxon-business-days'
-import { Duration } from 'luxon' // having done 'npm install --save luxon'
+import { Duration, DateTime } from 'luxon' // having done 'npm install --save luxon'
 import { formatISO9075 } from 'date-fns'
 import { log, logError } from './dev'
 
@@ -59,7 +58,7 @@ export function unhyphenateString(dateString: string): string {
 // NB: This does not work to get reliable date string from note.date for daily notes
 // Instead use hyphenatedDateFromNote()
 export function toISODateString(dateObj: Date): string {
-  // log('toISODateString', `${dateObj.toISOString()} // ${toLocaleDateTimeString(dateObj)}`) 
+  // log('toISODateString', `${dateObj.toISOString()} // ${toLocaleDateTimeString(dateObj)}`)
   return dateObj.toISOString().slice(0, 10)
 }
 
@@ -79,32 +78,20 @@ export function toISOShortDateTimeString(dateObj: Date): string {
   return dateObj.toISOString().slice(0, 16)
 }
 
-export function toLocaleDateTimeString(
-  dateObj: Date,
-  locale: string | Array<string> = [],
-  options: Intl$DateTimeFormatOptions = {},
-): string {
+export function toLocaleDateTimeString(dateObj: Date, locale: string | Array<string> = [], options: Intl$DateTimeFormatOptions = {}): string {
   return dateObj.toLocaleString(locale, options)
 }
 
-export function toLocaleDateString(
-  dateObj: Date,
-  locale: string | Array<string> = [],
-  options: Intl$DateTimeFormatOptions = {},
-): string {
+export function toLocaleDateString(dateObj: Date, locale: string | Array<string> = [], options: Intl$DateTimeFormatOptions = {}): string {
   return dateObj.toLocaleDateString(locale, options)
 }
 
-export function toLocaleTime(
-  dateObj: Date,
-  locale: string | Array<string> = [],
-  options: Intl$DateTimeFormatOptions = {},
-): string {
+export function toLocaleTime(dateObj: Date, locale: string | Array<string> = [], options: Intl$DateTimeFormatOptions = {}): string {
   return dateObj.toLocaleTimeString(locale, options)
 }
 
 export function printDateRange(dr: DateRange) {
-  log('helpers/printDateRange',  `<${toISOShortDateTimeString(dr.start)} - ${toISOShortDateTimeString(dr.end)}>`)
+  log('helpers/printDateRange', `<${toISOShortDateTimeString(dr.start)} - ${toISOShortDateTimeString(dr.end)}>`)
 }
 
 export function unhyphenatedDate(dateObj: Date): string {
@@ -127,7 +114,7 @@ export function filenameDateString(dateObj: Date): string {
 /**
  * Return the time as a string in the format "HH:MM"
  * @author @dwertheimer
- * 
+ *
  * @param {Date} date object
  * @returns {string} - the time string in the format "HH:MM"
  */
@@ -174,20 +161,7 @@ export function removeDateTagsAndToday(tag: string): string {
     .trimEnd()
 }
 
-export const months = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-]
+export const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 export const monthsAbbrev = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 export function monthNameAbbrev(m: number): string {
@@ -290,7 +264,7 @@ export function getDateObjFromDateString(mention: string): ?Date {
  * Time string can include seconds, e.g. "2020-01-01 12:00:00"
  * Most of the code in this function is a workaround to make sure we get the right date for all OS versions
  * @author @dwertheimer
- * 
+ *
  * @param {string} dateTimeString - in form "YYYY-MM-DD HH:MM"
  * @returns {Date} - the date object
  * @throws {Error} - if the dateTimeString is not in the correct format
@@ -335,7 +309,7 @@ export function getDateFromUnhyphenatedDateString(inputString: string): ?Date {
     const date = new Date(
       Number(res[1].slice(0, 4)),
       Number(res[1].slice(4, 6)) - 1, // only needed for months!
-      Number(res[1].slice(6, 8))
+      Number(res[1].slice(6, 8)),
     )
     // log('getDateFromUnhyphenatedDateString', toISOShortDateTimeString(date))
     return date
@@ -363,9 +337,9 @@ export function relativeDateFromDate(date: Date): string {
  * Get week number for supplied date.
  * Uses ISO 8601 definition of week, except that week start is Sunday not Monday.
  * TODO: Use locale-specific first day of week (e.g. Mon for USA)
- * 
+ *
  * The ISO 8601 definition for week 01 is the week with the first Thursday of the Gregorian
- * year (i.e. of January) in it.  The following definitions based on properties of this week 
+ * year (i.e. of January) in it.  The following definitions based on properties of this week
  * are mutually equivalent, since the ISO week starts with Monday:
  * - It is the first week with a majority (4 or more) of its days in January.
  * - Its first day is the Monday nearest to 1 January.
@@ -374,14 +348,12 @@ export function relativeDateFromDate(date: Date): string {
  * Still, we need to be careful about assumptions at year boundary, as
  * for example 2022-01-01 is in week 52 of 2021.
  * @author @jgclark
- * 
+ *
  * @param {Date} inDate - the JS Date object of interest
  * @return {number} - the standardised week number
- */ 
+ */
 export function getWeek(inDate: Date): number {
-  const date = inDate instanceof Date
-    ? new Date(inDate.getFullYear(), inDate.getMonth(), inDate.getDate())
-    : new Date()
+  const date = inDate instanceof Date ? new Date(inDate.getFullYear(), inDate.getMonth(), inDate.getDate()) : new Date()
 
   // ISO week date weeks start on Monday, so correct the day number
   // const nDay = (date.getDay() + 6) % 7
@@ -401,7 +373,7 @@ export function getWeek(inDate: Date): number {
 
   // Not a Thursday? Correct the date to the next Thursday
   if (date.getDay() !== 4) {
-    date.setMonth(0, 1 + ((4 - date.getDay()) + 7) % 7)
+    date.setMonth(0, 1 + ((4 - date.getDay() + 7) % 7))
   }
 
   // The week number is the number of weeks between the first Thursday of the year
@@ -410,11 +382,11 @@ export function getWeek(inDate: Date): number {
 }
 
 /**
- * Return start and end dates for a given week number. 
+ * Return start and end dates for a given week number.
  * Uses ISO 8601 definition of week, except that week start is Sunday not Monday.
  * TODO: Use locale-specific first day of week (e.g. Mon for USA)
  * @author @jgclark
- * 
+ *
  * @param {number} week - week number in year (1-53)
  * @param {number} year - year (4-digits)
  * @return {[Date, Date]}} - start and end dates (as JS Dates)
@@ -429,33 +401,29 @@ export function weekStartEnd(week: number, year: number): [Date, Date] {
   let testWeek = 0
   do {
     firstDay++
-    testWeek = getWeek(new Date(year,0,firstDay))
+    testWeek = getWeek(new Date(year, 0, firstDay))
   } while (testWeek !== 1)
 
-  const startDate: Date = Calendar.addUnitToDate(new Date(year,0,firstDay), 'day', (week-1)*7)
+  const startDate: Date = Calendar.addUnitToDate(new Date(year, 0, firstDay), 'day', (week - 1) * 7)
   const endDate: Date = Calendar.addUnitToDate(startDate, 'day', 6)
   // log('helpers/weekStartEnd', `  -> ${toLocaleTime(startDate)} - ${toLocaleTime(endDate)}`)
-  return [ startDate, endDate ]
+  return [startDate, endDate]
 }
 
 /**
  * From the current week number/year pair calculate a different week number/year pair by adding a given week range (which can be negative)
  * NOTE: we have to be careful about assumptions at end of year:
  *   for example 2022-01-01 is in week 52 of 2021.
- * A year goes into 53 weeks if 1 January is on a Thursday on a non-leap year, 
+ * A year goes into 53 weeks if 1 January is on a Thursday on a non-leap year,
  * or on a Wednesday or a Thursday on a leap year.
  * @author @jgclark
- * 
- * @param {integer} endWeek 
- * @param {integer} endYear 
- * @param {integer} offset 
- * @returns {{number, number}} 
+ *
+ * @param {integer} endWeek
+ * @param {integer} endYear
+ * @param {integer} offset
+ * @returns {{number, number}}
  */
-export function calcWeekOffset(
-  startWeek: number,
-  startYear: number,
-  offset: number): {week: number, year: number}
-{
+export function calcWeekOffset(startWeek: number, startYear: number, offset: number): { week: number, year: number } {
   let year: number = startYear
   let week: number = startWeek + offset
   // Add the offset, coping with offsets greater than 1 year
@@ -477,7 +445,7 @@ export function calcWeekOffset(
  * NB: doesn't actually use NP functions, but to avoid a circular dependency it needs to be in this file.
  * @tests available in __tests__
  * @author @jgclark
- * 
+ *
  * @param {string} baseDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type
  * @param {interval} string of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in English)
  * @return {string} new date in ISO Date format
@@ -526,14 +494,14 @@ export function calcOffsetDateStr(baseDateISO: string, interval: string): string
     }
     const duration = Duration.fromObject({ days: daysToAdd, months: monthsToAdd, years: yearsToAdd })
     // log('helpers/cODSL', duration.toString()) // Gets represented as P10D, P3M, P-2Y etc.
-    const newDate = (unit !== 'b')
-      ? baseDate.plus(duration)  // duration can be negative, so always add
-      : baseDate.plusBusiness(duration) // use business days
+    const newDate =
+      unit !== 'b'
+        ? baseDate.plus(duration) // duration can be negative, so always add
+        : baseDate.plusBusiness(duration) // use business days
     const newDateISO = newDate.toISODate()
     // log('helpers/cODSL', `-> '${newDateISO}'`)
     return newDateISO
-  }
-  catch (e) {
+  } catch (e) {
     logError('helpers/cODSL', `${e.message} for baseDateISO '${baseDateISO}' interval ${interval}`)
     return '(error)'
   }
