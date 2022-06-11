@@ -17,7 +17,7 @@
 import { keepTodayPortionOnly } from './calendar'
 import { getDateFromUnhyphenatedDateString, getISODateStringFromYYYYMMDD, type HourMinObj, printDateRange, removeDateTagsAndToday, todaysDateISOString } from './dateTime'
 import { addMinutes, differenceInMinutes } from 'date-fns'
-import { clo, log, logError, logWarn } from './dev'
+import { clo, log, logError, logWarn, JSP } from './dev'
 import { displayTitle } from './general'
 import { findEndOfActivePartOfNote } from './paragraph'
 import {
@@ -34,7 +34,7 @@ import {
   isTimeBlockPara,
   getTimeBlockString,
 } from './timeblocks'
-import { showMessage, showMessageYesNo } from './userInput'
+import { showMessage, showMessageYesNo, chooseOption } from './userInput'
 
 export type EventsConfig = {
   eventsHeading: string,
@@ -63,11 +63,69 @@ const RE_EVENT_ID = `event:[A-F0-9-]{36,37}`
 // ----------------------------------------------------------------------------
 
 /**
+ * Prompt user for which of the writeable calendars to use
+ * @param {Array<string>} calendars - the list of writeable calendars
+ * @returns {string} the calendar name to write to (or '' if none)
+ */
+export async function chooseCalendar(calendars: $ReadOnlyArray<string>): Promise<string> {
+  clo(calendars, `chooseCalendar: available/writeable calendars`)
+  if (calendars?.length) {
+    const opts = calendars.map((cal) => ({
+      label: cal,
+      value: cal,
+    }))
+    const calendarName = await chooseOption('Choose calendar to write to:', opts, opts[0].label)
+    return calendarName
+  }
+  return ''
+}
+
+/**
+ * Check if a specified calendar is available to the user and writable
+ * If not, prompt the user to choose one of the available calendars (if forceUserToChoose is set to true)
+ * @param {string} calendarName - the name of the calendar to look for in the calendar list
+ * @param {boolean} forceUserToChoose - if calendar is not set or not writeable, force use to choose a calendar (default: false)
+ * @returns {string|null} either null for no changes required (use the calendar name passed in), or a new calendar name that was chosen by the user
+ */
+export async function checkOrGetCalendar(calendarName: string, forceUserToChoose: boolean = false): Promise<string | null> {
+  let chosenCalendar = calendarName
+  const writableCalendars: $ReadOnlyArray<string> = Calendar.availableCalendarTitles(true)
+  if (writableCalendars.length) {
+    let calendarOK = false
+    if (calendarName && calendarName !== '') {
+      if (writableCalendars.includes(calendarName)) {
+        calendarOK = true
+      } else {
+        log(`Calendar ${calendarName} cannot be found in the writable calendars array:\n${writableCalendars.join('\n')}`)
+        await showMessage(
+          `Calendar from settings: "${calendarName}" cannot be found in the writable calendars array:\n${writableCalendars.join(
+            '\n',
+          )}\nPlease choose a calendar which NotePlan can write to.`,
+        )
+      }
+    }
+    if (!calendarOK && forceUserToChoose) {
+      chosenCalendar = await chooseCalendar(writableCalendars)
+    }
+  } else {
+    logError(`NPCalendar::checkCalendar`, `No writable calendars found.`)
+    showMessage('No writable calendars found. Please check your NotePlan Calendar Preferences')
+  }
+  const retVal = chosenCalendar !== '' && chosenCalendar !== calendarName ? chosenCalendar : null
+  if (!retVal) log(`NPCalendar::checkOrGetCalendar`, `Calendar "${calendarName}" is writable. Good to go.`)
+  if (retVal) log(`NPCalendar::checkOrGetCalendar`, `"${calendarName}" did not work. Writeable calendar chosen: "${chosenCalendar}"`)
+  return retVal
+}
+
+/**
  * Go through current Editor note, identify time blocks to turn into events,
  * and then add them as events.
+ * @param {EventsConfig} config - the configuration for the timeblocks and event creation
+ * @param {TNote|TEditor} note - the note to scan for time blocks
+ * @param {boolean} showLoadingProgress -- show progress counter while adding events
  * @author @jgclark
  */
-export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNote | TEditor): Promise<void> {
+export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNote | TEditor, showLoadingProgress: boolean = false): Promise<void> {
   const { paragraphs } = note
   if (paragraphs == null || note == null) {
     logWarn('NPCalendar/writeTimeBlocksToCalendar()', 'no content found')
@@ -102,6 +160,10 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
     const dateContext = note.type === 'Calendar' && note.filename ? getISODateStringFromYYYYMMDD(note.filename) ?? todaysDateISOString : todaysDateISOString
 
     // Iterate over timeblocks
+    if (showLoadingProgress && !config.confirmEventCreation) {
+      CommandBar.showLoading(true, 'Inserting Calendar Events')
+      await CommandBar.onAsyncThread()
+    }
     for (let i = 0; i < timeblockParas.length; i++) {
       const thisPara = timeblockParas[i]
       const thisParaContent = thisPara.content ?? ''
@@ -182,11 +244,22 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
           thisPara.content = thisParaContent
           // log('NPCalendar/writeTimeBlocksToCalendar()', `\tsetting thisPara.content -> '${thisParaContent}'`)
           // FIXME(@EduardMe): there's something odd going on here. Often 3 characters are left or repeated at the end of the line as a result of this
-          Editor.updateParagraph(thisPara)
+          if (showLoadingProgress && !config.confirmEventCreation) {
+            CommandBar.showLoading(true, `Inserting Calendar Events\n(${i + 1}/${timeblockParas.length})`, (i + 1) / timeblockParas.length)
+            await CommandBar.onMainThread()
+            Editor.updateParagraph(thisPara)
+            await CommandBar.onAsyncThread()
+          } else {
+            Editor.updateParagraph(thisPara)
+          }
         } else {
           logError('NPCalendar/writeTimeBlocksToCalendar()', `Can't get DateRange from '${timeBlockString}'`)
         }
       }
+    }
+    if (showLoadingProgress && !config.confirmEventCreation) {
+      await CommandBar.onMainThread()
+      CommandBar.showLoading(false)
     }
   } else {
     log('NPCalendar/writeTimeBlocksToCalendar()', `  -> No time blocks found.`)

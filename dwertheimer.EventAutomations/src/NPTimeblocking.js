@@ -11,7 +11,7 @@
  */
 import { differenceInCalendarDays, endOfDay, startOfDay, eachMinuteOfInterval, formatISO9075, addMinutes } from 'date-fns'
 import { getTimedEntries, keepTodayPortionOnly } from '../../helpers/calendar'
-import { getEventsForDay, writeTimeBlocksToCalendar } from '../../helpers/NPCalendar'
+import { getEventsForDay, writeTimeBlocksToCalendar, checkOrGetCalendar } from '../../helpers/NPCalendar'
 import { getParagraphBlock } from '../../jgclark.Filer/src/fileItems'
 import {
   getDateStringFromCalendarFilename,
@@ -56,6 +56,7 @@ import type { IntervalMap, TimeBlockDefaults, PartialCalendarItem, EditorOrNote 
 import { checkNumber, checkObj, checkString, checkWithDefault } from '../../helpers/checkType'
 import { catchError } from 'rxjs/operators'
 import pluginJson from '../plugin.json'
+import logError from 'concurrently/src/flow-control/log-error'
 const PLUGIN_ID = 'autoTimeBlocking'
 
 /* TCalendarItem is a type for the calendar items:
@@ -76,6 +77,7 @@ const PLUGIN_ID = 'autoTimeBlocking'
 export async function getConfig(): Promise<{ [string]: [mixed] }> {
   const defaultConfig = getTimeBlockingDefaults()
   const config = DataStore.settings
+  config.timeblockTextMustContainString = DataStore.preference('timeblockTextMustContainString') || ''
   if (Object.keys(config).length > 0) {
     try {
       // $FlowIgnore
@@ -156,10 +158,8 @@ function getTodaysReferences(pNote: TNote | null = null, config: { [key: string]
     log(pluginJson, `getTodaysReferences: todosInNote Found ${todosInNote.length} items in today's note. Adding them.`)
     // eliminate linked lines (for synced lines on the page)
     // because these should be in the references from other pages
-    clo(todosInNote[0], 'todosInNote[0]')
     todosInNote = todosInNote.filter((todo) => !/\^[a-zA-Z0-9]{6}/.test(todo.content))
     todayParas = [...todayParas, ...todosInNote]
-    clo(todayParas.length, 'todayParas')
   }
   // }
   // console.log(`getTodaysReferences note.filename=${note.filename} backlinks.length=${backlinks.length} todayParas.length=${todayParas.length}`)
@@ -249,13 +249,22 @@ export async function deleteCalendarEventsWithTag(tag: string, dateStr: string):
   if (!dateStr) {
     dateString = Editor.filename ? getDateStringFromCalendarFilename(Editor.filename) : null
   }
-  if (dateString) {
+  if (dateString && tag) {
     const eventsArray: Array<TCalendarItem> = await getEventsForDay(dateString)
-    eventsArray.forEach((event) => {
-      if (event.title.includes(tag)) {
-        Calendar.remove(event)
+    CommandBar.showLoading(true, 'Deleting Calendar Events')
+    await CommandBar.onAsyncThread()
+    for (let i = 0; i < eventsArray.length; i++) {
+      const event = eventsArray[i]
+      if (event?.title?.includes(tag)) {
+        log(pluginJson, `deleteCalendarEventsWithTag: deleting event ${event.title}`)
+        clo(event, `deleteCalendarEventsWithTag; event=`)
+        await Calendar.remove(event)
+        CommandBar.showLoading(true, `Deleting Calendar Events\n(${i + 1}/${eventsArray.length})`, (i + 1) / eventsArray.length)
+        log(pluginJson, `deleteCalendarEventsWithTag: deleting event ${event.title} -- deleted`)
       }
-    })
+    }
+    await CommandBar.onMainThread()
+    CommandBar.showLoading(false)
   } else {
     showMessage('deleteCalendarEventsWithTag could not delete events')
   }
@@ -265,30 +274,56 @@ type TEventConfig = {
   confirmEventCreation: boolean,
   processedTagName: string,
   calendarToWriteTo: string,
+  defaultEventDuration: number,
+  removeTimeBlocksWhenProcessed: boolean,
+  addEventID: boolean,
 }
+// @nmn's checker code here was not working -- always sending back the defaults
+// so I'm commenting it out for now -- I think it has something to do with atbConfig never being used!
+// function getEventsConfig(atbConfig: { [string]: mixed }): TEventConfig {
+//   try {
+//     const checkedConfig: {
+//       eventEnteredOnCalTag: string,
+//       calendarToWriteTo: string,
+//       defaultDuration: number,
+//       ...
+//     } = checkWithDefault(
+//       checkObj({
+//         eventEnteredOnCalTag: checkString,
+//         calendarToWriteTo: checkString,
+//         defaultDuration: checkNumber,
+//       }),
+//       {
+//         eventEnteredOnCalTag: '#event_created',
+//         calendarToWriteTo: '',
+//         defaultDuration: 15,
+//       },
+//     )
+
+//     const eventsConfig = {
+//       processedTagName: checkedConfig.eventEnteredOnCalTag,
+//       calendarToWriteTo: checkedConfig.calendarToWriteTo,
+//       defaultEventDuration: checkedConfig.defaultDuration,
+//       confirmEventCreation: false,
+//       removeTimeBlocksWhenProcessed: true,
+//       addEventID: false,
+//     }
+//     return eventsConfig
+//   } catch (error) {
+//     logError(pluginJson, `getEventsConfig: ${JSP(error)}`)
+//   }
+//   return {}
+// }
+
 function getEventsConfig(atbConfig: { [string]: mixed }): TEventConfig {
-  const checkedConfig: {
-    eventEnteredOnCalTag: string,
-    calendarToWriteTo: string,
-    ...
-  } = checkWithDefault(
-    checkObj({
-      eventEnteredOnCalTag: checkString,
-      calendarToWriteTo: checkString,
-    }),
-    {
-      eventEnteredOnCalTag: '#event_created',
-      calendarToWriteTo: '',
-    },
-  )
-
-  const eventsConfig = {
+  return {
+    processedTagName: String(atbConfig.eventEnteredOnCalTag) || '#event_created',
+    calendarToWriteTo: String(atbConfig.calendarToWriteTo) || '',
+    defaultEventDuration: Number(atbConfig.defaultDuration) || 15,
     confirmEventCreation: false,
-    processedTagName: checkedConfig.eventEnteredOnCalTag,
-    calendarToWriteTo: checkedConfig.calendarToWriteTo,
+    removeTimeBlocksWhenProcessed: true,
+    addEventID: false,
   }
-
-  return eventsConfig
 }
 
 /**
@@ -297,7 +332,6 @@ function getEventsConfig(atbConfig: { [string]: mixed }): TEventConfig {
  * @returns array of strings with the sync codes attached
  */
 export function getSyncedCopiesAsList(allTodayParagraphs: Array<TParagraph>): Array<string> {
-  // clo(allTodayParagraphs, 'getSyncedCopiesAsList::allTodayParagraphs')
   let syncedLinesList = []
   allTodayParagraphs.forEach((p) => {
     if (p.type == 'open') {
@@ -306,23 +340,6 @@ export function getSyncedCopiesAsList(allTodayParagraphs: Array<TParagraph>): Ar
       syncedLinesList.push(p.rawContent)
     }
   })
-  // timeBlockTextList.forEach((line) => {
-  //   syncedLinesList.push(line)
-  //   console.log(`getSyncedCopiesAsList::line=${line}:`)
-  //   const segments = line.split(' ')
-  //   if (segments.length > 2) {
-  //     let content = line.replace(`${segments[0]} ${segments[1]} `, '') // replace time at the front
-  //     content = content.replace(/( \[.*\]\(.*\).*)/, '') // replace pretty link
-  //     content = content.replace(/( \[\[.*\]\].*)/, '') // replace wiki link
-  //     console.log(`getSyncedCopiesAsList::content=${content}:`)
-  //     syncedLinesList.push(content)
-  //     // search in paragraphs
-  //   }
-  // const content = line.slice()
-  // p?.note?.addBlockID(p)
-  // p?.note?.updateParagraph(p)
-  // syncedLinesList.push(p.content)
-  // })
   return syncedLinesList
 }
 
@@ -331,13 +348,27 @@ function getFullParagraphsCorrespondingToSortList(paragraphs: Array<TParagraph>,
   if (sortList && paragraphs) {
     retP = sortList.map((s) => {
       const found = paragraphs.find((p, i) => {
-        return removeDateTagsAndToday(p.rawContent) === s.raw
+        return removeDateTagsAndToday(p.rawContent) === s.raw && p.filename === s.filename
       })
       return found
     })
   }
   // $FlowIgnore
   return retP ?? []
+}
+
+export async function getTodaysFilteredTodos(config: { [key: string]: mixed }): Promise<Array<TParagraph>> {
+  const { includeTasksWithText, excludeTasksWithText } = config
+  const backlinkParas = getTodaysReferences(Editor.note, config)
+  console.log(`Found ${backlinkParas.length} backlinks+today-note items (may include completed items)`)
+  let undupedBackLinkParas = eliminateDuplicateParagraphs(backlinkParas)
+  console.log(`Found ${undupedBackLinkParas.length} undupedBackLinkParas after duplicate elimination`)
+  let todosParagraphs: Array<TParagraph> = makeAllItemsTodos(undupedBackLinkParas) //some items may not be todos but we want to pretend they are and timeblock for them
+  todosParagraphs = includeTasksWithText?.length ? includeTasksWithPatterns(todosParagraphs, includeTasksWithText) : todosParagraphs
+  console.log(`After includeTasksWithText, ${todosParagraphs.length} potential items`)
+  todosParagraphs = excludeTasksWithText?.length ? excludeTasksWithPatterns(todosParagraphs, excludeTasksWithText) : todosParagraphs
+  console.log(`After excludeTasksWithText, ${todosParagraphs.length} potential items`)
+  return todosParagraphs
 }
 
 export async function createTimeBlocksForTodaysTasks(config: { [key: string]: mixed } = {}): Promise<?Array<string>> {
@@ -363,15 +394,7 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: mi
   log(pluginJson, `createTimeBlocksForTodaysTasks dateStr=${dateStr}`)
   if (dateStr && dateStr === date) {
     log(pluginJson, `createTimeBlocksForTodaysTasks dateStr=${dateStr} is today - we are inside`)
-    const backlinkParas = getTodaysReferences(Editor.note, config)
-    console.log(`Found ${backlinkParas.length} backlinks+today-note items (may include completed items)`)
-    let undupedBackLinkParas = eliminateDuplicateParagraphs(backlinkParas)
-    console.log(`Found ${undupedBackLinkParas.length} undupedBackLinkParas after duplicate elimination`)
-    let todosParagraphs: Array<TParagraph> = makeAllItemsTodos(undupedBackLinkParas) //some items may not be todos but we want to pretend they are and timeblock for them
-    todosParagraphs = includeTasksWithText?.length ? includeTasksWithPatterns(todosParagraphs, includeTasksWithText) : todosParagraphs
-    console.log(`After includeTasksWithText, ${todosParagraphs.length} potential items`)
-    todosParagraphs = excludeTasksWithText?.length ? excludeTasksWithPatterns(todosParagraphs, excludeTasksWithText) : todosParagraphs
-    console.log(`After excludeTasksWithText, ${todosParagraphs.length} potential items`)
+    const todosParagraphs = await getTodaysFilteredTodos(config)
     const cleanTodayTodoParas = removeDateTagsFromArray(todosParagraphs)
     console.log(`After removeDateTagsFromArray, ${cleanTodayTodoParas.length} potential items`)
     const todosWithLinksMaybe = appendLinkIfNecessary(cleanTodayTodoParas, config)
@@ -399,48 +422,43 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: mi
         console.log(`After getTimeBlockTimesForEvents, config.createSyncedCopies=${config.createSyncedCopies} todosWithLinksMaybe.length=${todosWithLinksMaybe.length}`)
 
         console.log(`About to insert ${timeBlockTextList?.length} timeblock items into note`)
-        // $FlowIgnore -- Delete any previous timeblocks we created
-        await insertItemsIntoNote(
-          /*  editorOrNote(note), */
-          Editor,
-          timeBlockTextList,
-          config.timeBlockHeading,
-          config.foldTimeBlockHeading,
-          config,
-        )
+        if (!String(config.timeBlockHeading)?.length) {
+          await showMessage(`You need to set a synced copies title in the plugin settings`)
+          return
+        } else {
+          // $FlowIgnore -- Delete any previous timeblocks we created
+          await insertItemsIntoNote(
+            /*  editorOrNote(note), */
+            Editor,
+            timeBlockTextList,
+            config.timeBlockHeading,
+            config.foldTimeBlockHeading,
+            config,
+          )
+        }
+
         console.log(`\n\nAUTOTIMEBLOCKING SUMMARY:\n\n`)
-        console.log(`Found ${undupedBackLinkParas.length} undupedBackLinkParas after duplicate elimination`)
         console.log(`After cleaning, ${tasksByType?.open?.length ?? 0} open items`)
 
-        log(pluginJson, `createTimeBlocksForTodaysTasks inserted ${timeBlockTextList.length} items:\n ${timeBlockTextList.join('\n')}`)
+        log(pluginJson, `createTimeBlocksForTodaysTasks inserted ${timeBlockTextList.length} items`)
         if (createCalendarEntries) {
           console.log(`About to create calendar entries`)
-          await writeTimeBlocksToCalendar(getEventsConfig(config), Editor) //using @jgclark's method for now
+          await selectCalendar(false) // checks the config calendar is writeable and if not, asks to set it
+          const eventConfig = getEventsConfig(DataStore.settings) // pulling config again because selectCalendar may have changed it
+          log(pluginJson, `createTimeBlocksForTodaysTasks eventConfig=${JSON.stringify(eventConfig)}`)
+          // $FlowIgnore - we only use a subset of the events config that is in @jgclark's Flow Type
+          await writeTimeBlocksToCalendar(eventConfig, Editor, true) //using @jgclark's method for now
           if (!insertIntoEditor) {
             // If user didn't want the timeblocks inserted into the editor, then we delete them now that they're in calendar
             // $FlowIgnore
             await deleteParagraphsContainingString(editorOrNote(note), timeBlockTag)
           }
         }
-
-        if (config.createSyncedCopies && todosWithLinksMaybe?.length) {
-          console.log(`createSyncedCopies is true, so we will create synced copies of the todosParagraphs: ${todosParagraphs.length} timeblocks`)
-          const sortedParas = getFullParagraphsCorrespondingToSortList(todosParagraphs, sortedTodos)
-          const syncedList = getSyncedCopiesAsList(sortedParas)
-          console.log(`Deleting previous synced list heading and content`)
-          if (syncedList.length && Editor) await removeContentUnderHeading(Editor, String(config.syncedCopiesTitle), false)
-          console.log(`Inserting synced list content: ${syncedList.length} items`)
-          // $FlowIgnore
-
-          await insertItemsIntoNote(
-            /* editorOrNote(note), */
-            Editor,
-            syncedList,
-            config.syncedCopiesTitle,
-            config.foldSyncedCopiesHeading,
-            config,
-          )
-        }
+      }
+      if (config.createSyncedCopies && todosWithLinksMaybe?.length) {
+        console.log(`createSyncedCopies is true, so we will create synced copies of the todosParagraphs: ${todosParagraphs.length} timeblocks`)
+        const sortedParas = getFullParagraphsCorrespondingToSortList(todosParagraphs, sortedTodos)
+        await writeSyncedCopies(sortedParas, config)
       }
       return passBackResults ? timeBlockTextList : []
     } else {
@@ -456,6 +474,57 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: mi
     }
   }
   return []
+}
+
+/**
+ * Write synced copies of passed paragraphs to the Editor
+ * @param {Array<TParagraph>} todosParagraphs - the paragraphs to write
+ * @return {Promise<void}
+ */
+export async function writeSyncedCopies(todosParagraphs: Array<TParagraph>, config): Promise<void> {
+  if (!todosParagraphs.length && !config.runSilently) {
+    await showMessage(`No todos/references marked for this day!`)
+  } else {
+    const syncedList = getSyncedCopiesAsList(todosParagraphs)
+    console.log(`Deleting previous synced list heading and content`)
+    if (!String(config.syncedCopiesTitle)?.length) {
+      await showMessage(`You need to set a synced copies title in the plugin settings`)
+      return
+    } else {
+      if (syncedList.length && Editor) await removeContentUnderHeading(Editor, String(config.syncedCopiesTitle), false)
+    }
+    console.log(`Inserting synced list content: ${syncedList.length} items`)
+    // $FlowIgnore
+    await insertItemsIntoNote(
+      /* editorOrNote(note), */
+      Editor,
+      syncedList,
+      config.syncedCopiesTitle,
+      config.foldSyncedCopiesHeading,
+      config,
+    )
+  }
+}
+
+/**
+ * Write a list of synced copies of today items (in the references section) to the Editor
+ * (entry point for /writeSyncedCopies)
+ */
+export async function insertSyncedCopiesOfTodayTodos(): Promise<void> {
+  try {
+    log(pluginJson, `insertSyncedCopiesOfTodayTodos running`)
+    // if (!editorIsOpenToToday()) await Editor.openNoteByDate(new Date(), false) //open editor to today
+    const start = Editor.selection?.start
+    const config = await getConfig()
+    clo(config, 'insertSyncedCopiesOfTodayTodos config')
+    const todosParagraphs = await getTodaysFilteredTodos(config)
+    await writeSyncedCopies(todosParagraphs, DataStore.settings)
+    if (start) {
+      Editor.select(start, 1)
+    }
+  } catch (error) {
+    logError(pluginJson, `insertSyncedCopiesOfTodayTodos error: ${JSP(error)}`)
+  }
 }
 
 /**
@@ -478,7 +547,7 @@ export async function insertTodosAsTimeblocks(note: TNote): Promise<void> {
 
 export async function insertTodosAsTimeblocksWithPresets(note: TNote): Promise<void> {
   // console.log(`====== /atbp =======\nStarting insertTodosAsTimeblocksWithPresets`)
-  if (!editorIsOpenToToday()) await Editor.openNoteByDate(new Date(), false) //open editor to today
+  // if (!editorIsOpenToToday()) await Editor.openNoteByDate(new Date(), false) //open editor to today
   let config = await getConfig()
   if (config) {
     // console.log(`Config found. Checking for presets`)
@@ -500,5 +569,26 @@ export async function insertTodosAsTimeblocksWithPresets(note: TNote): Promise<v
     }
   } else {
     // console.log(`insertTodosAsTimeblocksWithPresets: no config`)
+  }
+}
+
+/**
+ * Select calendar to write to and save to settings/config for this plugin
+ * (plugin entry point for "/Choose Calendar for /atb to write to" command)
+ * @returns {Promise<void>}
+ */
+export async function selectCalendar(isPluginEntry: boolean = true): Promise<void> {
+  try {
+    clo(Calendar.availableCalendarTitles(true), 'NPTimeblocking::selectCalendar: Calendar.availableCalendarTitles(true)')
+    const calendarConfigField = 'calendarToWriteTo'
+    const settings = DataStore.settings
+    const calendarToWriteTo = isPluginEntry ? '' : settings[calendarConfigField] //if called from the commandbar, you are trying to set it
+    const updatedCalendar = await checkOrGetCalendar(calendarToWriteTo, true)
+    if (updatedCalendar) {
+      settings[calendarConfigField] = updatedCalendar
+      DataStore.settings = settings
+    }
+  } catch (error) {
+    logError(pluginJson, JSP(error))
   }
 }

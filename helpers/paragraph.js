@@ -4,6 +4,7 @@
 //-----------------------------------------------------------------------------
 
 import { hyphenatedDateString } from './dateTime'
+import { log, logError, logWarn } from './dev'
 
 //-----------------------------------------------------------------------------
 // Paragraph-level Functions
@@ -58,7 +59,7 @@ function displayTitle(n: TNote): string {
  * @return {string} - string representation of those paragraphs, without trailling newline
  */
 export function parasToText(paras: Array<TParagraph>): string {
-  // console.log('parasToText: starting with ' + paras.length + ' paragraphs')
+  // log('paragraph/parasToText', `starting with ${paras.length} paragraphs`)
   let text = ''
   for (let i = 0; i < paras.length; i++) {
     const p = paras[i]
@@ -76,7 +77,7 @@ export function parasToText(paras: Array<TParagraph>): string {
  */
 export function printParagraph(p: TParagraph) {
   if (p === null) {
-    console.log('ERROR: paragraph is undefined')
+    logError('paragraph/printParagraph', `paragraph is undefined`)
     return
   }
 
@@ -130,7 +131,7 @@ export function calcSmartPrependPoint(note: TNote): number {
       }
       if (insertionLine === 1) {
         // If we get here we haven't found an end to the YAML block.
-        console.log(`Warning: couldn't find end of YAML frontmatter in note ${displayTitle(note)}`)
+        logWarn('paragraph/calcSmartPrependPoint', `Couldn't find end of YAML frontmatter in note ${displayTitle(note)}`)
         // It's not clear what to do at this point, so will leave insertion point as is
       }
     } else if (lines[1].match(/^#[A-z]/)) {
@@ -195,12 +196,12 @@ export function findEndOfActivePartOfNote(note: TNote): number {
     }
   }
   const endOfActive = doneHeaderLine > 0 ? doneHeaderLine : cancelledHeaderLine > 0 ? cancelledHeaderLine : lineCount
-  // console.log(`  dHL = ${doneHeaderLine}, cHL = ${cancelledHeaderLine} endOfActive = ${endOfActive}`)
+  // log('paragraph/findEndOfActivePartOfNote', `  dHL = ${doneHeaderLine}, cHL = ${cancelledHeaderLine} endOfActive = ${endOfActive}`)
   return endOfActive
 }
 
 /**
- * Works out which is the last line of the frontmatter (or 0 if not present)
+ * Works out which is the last line of the frontmatter (or 0 if not present).
  * @author @jgclark
  *
  * @param {TNote} note - the note to assess
@@ -209,6 +210,7 @@ export function findEndOfActivePartOfNote(note: TNote): number {
 export function endOfFrontmatterLineIndex(note: TNote): number {
   const paras = note.paragraphs
   const lineCount = paras.length
+  console.log(`starting with lineCount = ${lineCount}`)
   let inFrontMatter: boolean = false
   let i = 0
   while (i < lineCount) {
@@ -236,10 +238,18 @@ export function endOfFrontmatterLineIndex(note: TNote): number {
  * @return {number} - the line index number
  */
 export function findStartOfActivePartOfNote(note: TNote): number {
-  const paras = note.paragraphs
+  let paras = note.paragraphs
   const lineCount = paras.length
-  let inFrontMatter: boolean = false
-  let i = 0
+  if (lineCount < 1) {
+    logError('paragraph/findStartOfActivePartOfNote', `No paragraphs found in note '${displayTitle(note)}'`)
+    return NaN
+  }
+  if (note.type === 'Notes' && lineCount === 1) {
+    // If only the title line, then add a blank line to use
+    log('paragraph/findStartOfActivePartOfNote', `Added a blank line after title of '${displayTitle(note)}'`)
+    note.appendParagraph('', 'empty')
+    paras = note.paragraphs
+  }
 
   // set line to start looking at: after H1 or frontmatter (if present)
   let startOfActive = endOfFrontmatterLineIndex(note) + 1
@@ -248,7 +258,7 @@ export function findStartOfActivePartOfNote(note: TNote): number {
   // indicated by a #hashtag starting the next line.
   // If there is, run on to next heading or blank line.
   if (paras[startOfActive].content.match(/^#\w/)) {
-    for (i = startOfActive; i < lineCount; i++) {
+    for (let i = startOfActive; i < lineCount; i++) {
       const p = paras[i]
       if (p.type === 'title' || p.type === 'empty') {
         startOfActive = i + 1

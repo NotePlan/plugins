@@ -7,7 +7,7 @@
 	"plugin.icon": "",
 	"plugin.author": "Jonathan Clark",
 	"plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
-  "plugin.version": "0.8.0-beta1",
+  "plugin.version": "0.8.0",
 	"plugin.dependencies": [],
 	"plugin.script": "script.js",
 	"plugin.isRemote": "false",
@@ -40,16 +40,7 @@
 			"name": "weeklyStats",
 			"alias": ["week", "stats", "count"],
 			"description": "Generate stats for tags and mentions for all weeks this year, and write CSV to a note",
-			"jsFunction": "weeklyStats"
-    },
-    {
-      "name": "make MOC",
-      "description": "Make/Update a Map of Content",
-      "alias": [
-        "MOC",
-        "map"
-      ],
-      "jsFunction": "makeMOC"
+      "jsFunction": "weeklyStats"
 		}
   ],
 	"plugin.settings": [
@@ -76,18 +67,10 @@
     {
       "key": "headingLevel",
       "title": "Heading level",
-      "description": "Heaing level (1-5) to use when writing output to notes",
+      "description": "Heading level (1-5) to use when writing output to notes",
       "type": "number",
       "default": 2,
       "required": true
-    },
-    {
-      "type": "separator"
-    },
-    {
-      "type": "subheading",
-      "title": "In the following the includes (if specified) take precedence over any excludes. Items in the list need to be included in quotes, separated by commas.",
-      "description": "In the following the includes (if specified) take precedence over any excludes. Items in the list need to be included in quotes, separated by commas."
     },
     {
       "type": "heading",

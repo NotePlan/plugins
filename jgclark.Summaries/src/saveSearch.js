@@ -3,60 +3,73 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 26.4.2022 for v0.7.1, @jgclark
+// Last updated 10.6.2022 for v0.8.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import {
-  gatherMatchingLines,
   getSummariesSettings,
   getPeriodStartEndDates,
 } from './summaryHelpers'
 import type { SummariesConfig } from './summaryHelpers'
 import {
+  getDateStringFromCalendarFilename,
+  monthNameAbbrev,
+  nowLocaleDateTime,
   todaysDateISOString,
-  unhyphenatedDate,
   toISODateString,
   toISOShortDateTimeString,
   toLocaleDateString,
-  monthNameAbbrev,
+  unhyphenatedDate,
   withinDateRange,
-  getDateStringFromCalendarFilename,
-  nowLocaleDateTime,
-} from '../../helpers/dateTime'
-import { log, logWarn, logError } from '../../helpers/dev'
-import { quarterStartEnd } from '../../helpers/NPdateTime'
-import { getFolderFromFilename } from '../../helpers/folders'
+} from '@helpers/dateTime'
+import { log, logWarn, logError } from '@helpers/dev'
+import { quarterStartEnd } from '@helpers/NPdateTime'
+import { getFolderFromFilename } from '@helpers/folders'
 import {
   displayTitle,
   stringReplace,
-} from '../../helpers/general'
-import { removeSection } from '../../helpers/paragraph'
+} from '@helpers/general'
+import { removeSection } from '@helpers/paragraph'
+import { gatherMatchingLines } from '@helpers/NPparagraph'
 import {
   showMessage,
   chooseOption,
   getInput,
-} from '../../helpers/userInput'
+} from '@helpers/userInput'
 
 //-------------------------------------------------------------------------------
 
 /**
- * Ask user what word/phrase to search for, run the search over all notes, 
- * and ask where to save/show the results
+ * Run a search over all notes, saving the results in one of several locations.
+ * Works interactively (if no arguments given) or in the background (using supplied arguments).
  * @author @jgclark
+ * 
+ * @param {string?} searchTermsArg optional comma-separated list of search terms to search
  */
-export async function saveSearch(): Promise<void> {
+export async function saveSearch(searchTermsArg?: string): Promise<void> {
   // get relevant settings
-  let config = await getSummariesSettings()
+  const config = await getSummariesSettings()
+  const headingMarker = '#'.repeat(config.headingLevel)
 
-  let stringsToMatch = Array.from(config.defaultOccurrences)
-  const newTerms = await getInput(`Enter search term (or comma-separated set of terms)`, 'OK', `Search`, stringsToMatch.join(', '))
-  if (typeof newTerms === 'boolean') {
-    // i.e. user has cancelled
-    log(pluginJson, `User has cancelled operation.`)
-    return
-  } else {
-    stringsToMatch = Array.from(newTerms.split(','))
+  // Get the search terms
+  let stringsToMatch = []
+  if (searchTermsArg !== undefined) {
+    // either from argument supplied
+    stringsToMatch = searchTermsArg.split(',')
+    log(pluginJson, `saveSearch: will use arg0 '${searchTermsArg}'`)
+  }
+  else {
+    // or by asking user
+    stringsToMatch = Array.from(config.defaultOccurrences)
+    const newTerms = await getInput(`Enter search term (or comma-separated set of terms)`, 'OK', `Search`, stringsToMatch.join(', '))
+    if (typeof newTerms === 'boolean') {
+      // i.e. user has cancelled
+      log(pluginJson, `User has cancelled operation.`)
+      return
+    } else {
+      stringsToMatch = Array.from(newTerms.split(','))
+    }
   }
   log(pluginJson, `saveSearch: looking for '${String(stringsToMatch)}' over all notes:`)
 
@@ -69,7 +82,7 @@ export async function saveSearch(): Promise<void> {
     if (!config.foldersToExclude.includes(thisFolder)) {
       projectNotesToInclude.push(pn)
     } else {
-      log(pluginJson, `  excluded note '${pn.filename}'`)
+      // log(pluginJson, `  excluded note '${pn.filename}'`)
     }
   }
   log(pluginJson, `Will use ${projectNotesToInclude.length} project notes out of ${allProjectNotes.length}`)
@@ -84,7 +97,7 @@ export async function saveSearch(): Promise<void> {
     const contexts = results?.[1]
     // write output, starting with a heading if needed
     if (lines.length > 0) {
-      outputArray.push(`### ${searchTerm}`)
+      outputArray.push(`${headingMarker} ${searchTerm}`)
       log(pluginJson, `  Found ${lines.length} results for '${searchTerm}'`)
       // format the output
       for (let i = 0; i < lines.length; i++) {
@@ -92,49 +105,53 @@ export async function saveSearch(): Promise<void> {
       }
     } else if (config.showEmptyOccurrences) {
       // If there's nothing to report, make that clear
-      outputArray.push(`### ${searchTerm}`)
+      outputArray.push(`${headingMarker} ${searchTerm}`)
       outputArray.push('(no matches)')
     }
   }
 
-  // Ask where to save this summary to
-  const labelString = `🖊 Create/update note in folder '${config.folderToStore}'`
-  const destination = await chooseOption(
-    `Where should I save the search results?`,
-    [
-      {
-        // TODO: When weekly/monthly notes are made possible in NP, then add options like this
-        //   label: "📅 Append to this month's note",
-        //   value: "today"
-        // }, {
-        label: labelString,
-        value: 'note',
-      },
-      {
-        label: '🖊 Append to current note',
-        value: 'current',
-      },
-      {
-        label: '📋 Write to plugin console log',
-        value: 'log',
-      },
-      {
-        label: '❌ Cancel',
-        value: 'cancel',
-      },
-    ],
-    'note',
-  )
+  // Work out where to save this summary to
+  let destination = ''
+  if (searchTermsArg !== undefined) {
+    // Being called from x-callback so will only write to current note
+    log(pluginJson, `  running from x-callback so will write to current note`)
+    destination = 'current'
+  }
+  else {
+    // else ask user
+    const labelString = `🖊 Create/update note in folder '${config.folderToStore}'`
+    destination = await chooseOption(
+      `Where should I save the search results?`,
+      [
+        {
+          label: labelString,
+          value: 'newnote',
+        },
+        {
+          label: '🖊 Append to current note',
+          value: 'current',
+        },
+        {
+          label: '📋 Write to plugin console log',
+          value: 'log',
+        },
+        {
+          label: '❌ Cancel',
+          value: 'cancel',
+        },
+      ],
+      'newnote',
+    )
+  }
 
-  // Ask where to send the results
-  const headingString = `Search results (at ${nowLocaleDateTime})`
+  const headingString = `${config.occurrencesHeading} (at ${nowLocaleDateTime})`
   switch (destination) {
     case 'current': {
       const currentNote = Editor.note
       if (currentNote == null) {
         logError(pluginJson, `No note is open`)
       } else {
-        log(pluginJson, 
+        log(pluginJson,
           `  appending ${outputArray.length} results to current note (${currentNote.filename ?? ''})`,
         )
         const insertionLineIndex = currentNote.paragraphs.length - 1
@@ -151,7 +168,7 @@ export async function saveSearch(): Promise<void> {
       }
       break
     }
-    case 'note': {
+    case 'newnote': {
       const requestedTitle = await getInput(`What do you want to call this note?`)
       if (typeof requestedTitle === 'boolean') {
         // i.e. user has cancelled
@@ -165,7 +182,7 @@ export async function saveSearch(): Promise<void> {
       const existingNotes: $ReadOnlyArray<TNote> =
         DataStore.projectNoteByTitle(requestedTitle, true, false) ?? []
 
-      log(pluginJson, 
+      log(pluginJson,
         `  found ${existingNotes.length} existing ${requestedTitle} notes`,
       )
 
@@ -219,7 +236,13 @@ export async function saveSearch(): Promise<void> {
       break
     }
 
+    case 'cancel': {
+      log(pluginJson, `User cancelled command`)
+      break
+    }
+
     default: {
+      logError(pluginJson, `No valid save location code supplied`)
       break
     }
   }
