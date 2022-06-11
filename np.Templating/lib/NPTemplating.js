@@ -16,11 +16,16 @@ import { datePicker, askDateInterval } from '@helpers/userInput'
 
 /*eslint-disable */
 import TemplatingEngine from './TemplatingEngine'
+import letters from 'eslint/lib/rules/utils/patterns/letters'
 
 const TEMPLATE_FOLDER_NAME = NotePlan.environment.templateFolder
 
 // - if a new module has been added, make sure it has been added to this list
 const TEMPLATE_MODULES = ['date', 'frontmatter', 'note', 'system', 'time', 'user', 'utility']
+
+const isCommentTag = (tag: string = '') => {
+  return tag.includes('<%#')
+}
 
 const getProperyValue = (object: any, key: string): any => {
   key.split('.').forEach((token) => {
@@ -617,6 +622,78 @@ export default class NPTemplating {
     return this.constructor.templateConfig
   }
 
+  static async getNote(notePath: string = ''): Promise<string> {
+    let content = ''
+
+    const noteParts = notePath.split('/')
+    const noteName = noteParts.pop()
+    const noteFolder = noteParts.join('/')
+
+    if (noteName.length > 0) {
+      const foundNotes = DataStore.projectNoteByTitle(noteName, true, noteFolder.length === 0)
+      if (typeof foundNotes !== 'undefined') {
+        if (foundNotes.length === 1) {
+          content = foundNotes[0].content
+        } else {
+          for (const note of foundNotes) {
+            const parts = note.filename.split('/')
+            const name = parts.pop()
+            const folder = parts.join('/')
+            if (folder === noteFolder) {
+              content = note.content
+            }
+          }
+        }
+      }
+    }
+
+    return content
+  }
+
+  static async preProcessNote(tag: string = ''): Promise<string> {
+    if (!isCommentTag(tag)) {
+      const includeInfo = tag.replace('<%-', '').replace('%>', '').replace('note', '').replace('(', '').replace(')', '')
+      const parts = includeInfo.split(',')
+      if (parts.length > 0) {
+        const noteNamePath = parts[0].replace(/'/gi, '').trim()
+        const content = await this.getNote(noteNamePath)
+        if (content.length > 0) {
+          // $FlowIgnore
+          return content
+        } else {
+          return `**An error occurred loading note "${noteNamePath}"**`
+        }
+      } else {
+        return `**An error occurred process note**`
+      }
+    }
+
+    return ''
+  }
+
+  static async preProcessCalendar(tag: string = ''): Promise<string> {
+    if (!isCommentTag(tag)) {
+      const includeInfo = tag.replace('<%-', '').replace('%>', '').replace('calendar', '').replace('(', '').replace(')', '')
+      const parts = includeInfo.split(',')
+      if (parts.length > 0) {
+        const noteName = parts[0].replace(/'/gi, '').trim()
+        let calendarNote = await DataStore.calendarNoteByDateString(noteName)
+        if (typeof calendarNote !== 'undefined') {
+          // $FlowIgnore
+          return calendarNote.content
+        } else {
+          return `**An error occurred loading note "${noteName}"**`
+        }
+      } else {
+        return `**An error occurred process note**`
+      }
+
+      return ''
+    }
+
+    return ''
+  }
+
   static async preProcess(templateData: string, sessionData?: {}): Promise<mixed> {
     let newTemplateData = templateData
     let newSettingData = { ...sessionData }
@@ -624,82 +701,67 @@ export default class NPTemplating {
 
     const tags = (await this.getTags(templateData)) || []
 
-    // process includes separately
-    for (const tag of tags) {
+    // process include, template, calendar, and note separately
+    for (let tag of tags) {
+      if (isCommentTag(tag)) {
+        newTemplateData = newTemplateData.replace(tag, '')
+        tag = '' // clear tag as it has been removed from process
+      }
+
       if (tag.includes('note')) {
-        const includeInfo = tag.replace('<%-', '').replace('%>', '').replace('note', '').replace('(', '').replace(')', '')
-        const parts = includeInfo.split(',')
-        if (parts.length > 0) {
-          const noteName = parts[0].replace(/'/gi, '').trim()
-          let availableNotes = await DataStore.projectNoteByTitle(noteName)
-          if (typeof availableNotes !== 'undefined') {
-            // $FlowIgnore
-            newTemplateData = newTemplateData.replace(tag, availableNotes[0].content)
-          } else {
-            newTemplateData = newTemplateData.replace(tag, `**An error occurred loading note "${noteName}"**`)
-          }
-        } else {
-          newTemplateData = newTemplateData.replace(tag, `**An error occurred process note**`)
-        }
+        newTemplateData = newTemplateData.replace(tag, await this.preProcessNote(tag))
       }
 
       if (tag.includes('calendar')) {
-        const includeInfo = tag.replace('<%-', '').replace('%>', '').replace('calendar', '').replace('(', '').replace(')', '')
-        const parts = includeInfo.split(',')
-        if (parts.length > 0) {
-          const noteName = parts[0].replace(/'/gi, '').trim()
-          let calendarNote = await DataStore.calendarNoteByDateString(noteName)
-          if (typeof calendarNote !== 'undefined') {
-            // $FlowIgnore
-            newTemplateData = newTemplateData.replace(tag, calendarNote.content)
-          } else {
-            newTemplateData = newTemplateData.replace(tag, `**An error occurred loading note "${noteName}"**`)
-          }
-        } else {
-          newTemplateData = newTemplateData.replace(tag, `**An error occurred process note**`)
-        }
+        newTemplateData = newTemplateData.replace(tag, await this.preProcessCalendar(tag))
       }
 
       if (tag.includes('include') || tag.includes('template')) {
-        const keywords = ['<%=', '<%-', '<%', '_%>', '-%>', '%>', 'include', 'template']
-        let includeInfo = tag
-        keywords.forEach((x, i) => (includeInfo = includeInfo.replace(/[{()}]/g, '').replace(new RegExp(x, 'g'), '')))
-        // const includeInfo = tag.replace('<%-', '').replace('%>', '').replace('include', '').replace('template', '').replace('(', '').replace(')', '')
-        const parts = includeInfo.split(',')
-        if (parts.length > 0) {
-          const templateName = parts[0].replace(/'\s/gi, '')
-          const templateData = parts.length >= 1 ? parts[1] : {}
+        if (!isCommentTag(tag)) {
+          let includeInfo = tag
+          const keywords = ['<%=', '<%-', '<%', '_%>', '-%>', '%>', 'include', 'template']
+          keywords.forEach((x, i) => (includeInfo = includeInfo.replace(/[{()}]/g, '').replace(new RegExp(x, 'g'), '')))
+          const parts = includeInfo.split(',')
+          if (parts.length > 0) {
+            const templateName = parts[0].replace(/'\s/gi, '').replace(/'/gi, '').trim()
+            const templateData = parts.length >= 1 ? parts[1] : {}
 
-          // load template and perform preRender, render actions
-          const templateContent = await this.getTemplate(templateName)
-          const { frontmatterAttributes, frontmatterBody } = await this.preRender(templateContent, newSettingData)
+            const templateContent = await this.getTemplate(templateName)
+            const isTemplate = new FrontmatterModule().isFrontmatterTemplate(templateContent)
+            if (isTemplate) {
+              const { frontmatterAttributes, frontmatterBody } = await this.preRender(templateContent, newSettingData)
+              newSettingData = { ...frontmatterAttributes }
+              const renderedTemplate = await this.render(frontmatterBody, newSettingData)
 
-          newSettingData = { ...frontmatterAttributes }
-          const renderedTemplate = await this.render(frontmatterBody, newSettingData)
-
-          // if variable assignment, extract var name
-          if (tag.includes('const') || tag.includes('let')) {
-            const pos = tag.indexOf('=')
-            if (pos > 0) {
-              let temp = tag
-                .substring(0, pos - 1)
-                .replace('<%', '')
-                .trim()
-              let varParts = temp.split(' ')
-              // newSettingData[varParts[1]] = renderedTemplate
-              override[varParts[1]] = renderedTemplate
-              newTemplateData = newTemplateData.replace(tag, '')
+              // if variable assignment, extract var name
+              if (tag.includes('const') || tag.includes('let')) {
+                const pos = tag.indexOf('=')
+                if (pos > 0) {
+                  let temp = tag
+                    .substring(0, pos - 1)
+                    .replace('<%', '')
+                    .trim()
+                  let varParts = temp.split(' ')
+                  // newSettingData[varParts[1]] = renderedTemplate
+                  override[varParts[1]] = renderedTemplate
+                  newTemplateData = newTemplateData.replace(tag, '')
+                }
+              } else {
+                newTemplateData = newTemplateData.replace(tag, renderedTemplate)
+              }
+            } else {
+              // not a template, load as project note
+              newTemplateData = newTemplateData.replace(tag, await this.preProcessNote(templateName))
             }
           } else {
-            newTemplateData = newTemplateData.replace(tag, renderedTemplate)
+            newTemplateData = newTemplateData.replace(tag, '**Unable to parse include**')
           }
-        } else {
-          newTemplateData = newTemplateData.replace(tag, '**Unable to parse include**')
         }
       }
     }
 
-    tags.forEach(async (tag) => {
+    // process remaining
+    for (const tag of tags) {
       if (!tag.includes('await') && !this.isControlBlock(tag) && tag.includes('(') && !tag.includes('prompt')) {
         let tempTag = tag.replace('<%-', '<%- await')
         newTemplateData = newTemplateData.replace(tag, tempTag)
@@ -749,7 +811,7 @@ export default class NPTemplating {
       if (tag === '<%- meetingName %>' || tag === '<%- meetingName() %>') {
         newTemplateData = newTemplateData.replace(tag, `<%- prompt('meetingName','Enter Meeting Name:') %>`)
       }
-    })
+    }
 
     newSettingData = { ...newSettingData, ...override }
     return { newTemplateData, newSettingData }
