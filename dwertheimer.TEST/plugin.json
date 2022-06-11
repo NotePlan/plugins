@@ -2,17 +2,17 @@
   "COMMENT": "Details on these fields: https://help.noteplan.co/article/67-create-command-bar-plugins",
   "macOS.minVersion": "10.13.0",
   "noteplan.minAppVersion": "3.4.0",
-  "plugin.id": "{{pluginId}}",
-  "plugin.name": "🧩 {{pluginName}}",
+  "plugin.id": "dwertheimer.TEST",
+  "plugin.name": "🧩 My Plugin Name",
   "plugin.version": "0.1.0",
-  "plugin.description": "{{pluginDescription}}",
-  "plugin.author": "{{pluginAuthor}}",
+  "plugin.description": "My Plugin for NotePlan",
+  "plugin.author": "dwertheimer",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
-  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/{{pluginId}}/README.md",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.TEST/README.md",
   "plugin.commands": [
     {
-      "name": "Say Hello from {{pluginId}}! (change this to your own command)",
+      "name": "Say Hello from dwertheimer.TEST! (change this to your own command)",
       "description": "Your first plugin!",
       "jsFunction": "sayHello",
       "alias": [
@@ -25,7 +25,7 @@
     {
       "COMMENT": "Plugin settings documentation: https://help.noteplan.co/article/123-plugin-configuration",
       "type": "heading",
-      "title": "{{pluginName}} Settings"
+      "title": "My Plugin Name Settings"
     },
     {
       "title": "A string in prefs",
@@ -37,7 +37,7 @@
     {
       "key": "version",
       "type": "hidden",
-      "description": "{{pluginName}} Settings Version"
+      "description": "My Plugin Name Settings Version"
     }
   ]
 }

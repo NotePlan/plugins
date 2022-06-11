@@ -18,9 +18,7 @@ module.exports = {
     id: {
       type: 'string',
       aliases: ['i'],
-      description: `Unique Plugin ID ${colors.gray(
-        '(recommended format "<githubUserName.PluginName>" e.g., "codedungeon.Toolbox")',
-      )}`,
+      description: `Unique Plugin ID ${colors.gray('(recommended format "<githubUserName.PluginName>" e.g., "codedungeon.Toolbox")')}`,
       required: true,
       prompt: {
         type: 'input',
@@ -111,7 +109,7 @@ module.exports = {
     console.log(colors.green.bold('✔ 🧩 Project Creation Complete'))
 
     print.info('\n👉 Next Steps:\n')
-    print.info(`   Edit your files in the ${flags.pluginId} folder (e.g. NPHelloWorld.js)`)
+    print.info(`   Edit your files in the ${flags.pluginId} folder (e.g. plugin.json, index.js, NPPluginMain.js)`)
     // print.info(`   ${toolbox.colors.gray('$')} cd ${flags.pluginId}`)
     print.info(`   Run the following command to watch for changes and rebuild your plugin:`)
     print.info(`   ${toolbox.colors.gray('$')} noteplan-cli plugin:dev ${flags.pluginId} --watch`)
@@ -120,11 +118,6 @@ module.exports = {
     print.info(`   - Open NotePlan and run your new plugin command ${colors.yellow('/sayHello')}`)
     print.info(`     from NotePlan Command Bar (CMD-J) or inline (/)`)
     console.log('')
-    print.warn(
-      `Use ${colors.cyan(
-        'noteplan-cli plugin:info --check <your_command>',
-      )} to check if a command name you want to use is available`,
-      'TIP',
-    )
+    print.warn(`Use ${colors.cyan('noteplan-cli plugin:info --check <your_command>')} to check if a command name you want to use is available`, 'TIP')
   },
 }

@@ -2,7 +2,7 @@
 
 import * as helpers from '../src/support/helpers'
 
-describe('{{pluginId}}' /* pluginID */, () => {
+describe('dwertheimer.TEST' /* pluginID */, () => {
   describe('helpers' /* file */, () => {
     describe('uppercase' /* function */, () => {
       test('should uppercase a lowercase string', async () => {
