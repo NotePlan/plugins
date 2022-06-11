@@ -2,6 +2,7 @@
 
 import Fuse from 'fuse.js'
 import { clo, log } from '../../../helpers/dev'
+import T from 'lodash/fp/T'
 
 export function searchTest() {
   const list = [
@@ -32,7 +33,7 @@ export function searchTest() {
   clo(result, 'searchTest result')
 }
 
-export function removeExtendedSearchTags(origText): string {
+export function removeExtendedSearchTags(origText: string): string {
   // {s:search, r:replacement}
   const replacements = [{ d: 'leading apostrophe', s: /^'(.*)$/gm, r: '$1' }]
   let clean = origText
@@ -42,7 +43,7 @@ export function removeExtendedSearchTags(origText): string {
   return clean
 }
 
-export function buildIndex(data, options): Fuse.FuseIndex | null {
+export function buildIndex(data: $ReadOnlyArray<mixed>, options: { +keys?: $ReadOnlyArray<string>, ... }): Fuse.FuseIndex<mixed> | null {
   // Create the Fuse index
   if (options?.keys) {
     const index = Fuse.createIndex(options.keys, data)
@@ -62,7 +63,7 @@ export function buildIndex(data, options): Fuse.FuseIndex | null {
  * @param {*} config
  * @returns
  */
-export function searchIndex(data, pattern: any, config) {
+export function searchIndex(data: $ReadOnlyArray<mixed>, pattern: string, config: { options?: { ... }, index?: number, ... }): Fuse.FuseResult<any> {
   const { options, index } = config
   const fuse = new Fuse(data, options, index)
   return fuse.search(pattern)
@@ -75,17 +76,57 @@ export function searchIndex(data, pattern: any, config) {
  * @param {*} options
  * @returns
  */
-export function search(data: Array[{ [string]: mixed }], pattern: any, options) {
+export function search(data: Array<{ [string]: mixed }>, pattern: string, options: { ... }): Fuse.result<any> {
   const fuse = new Fuse(data, options)
   return fuse.search(pattern)
 }
+
+// {
+//   value: 'A',
+//   type: 'term',
+//   position: {
+//     start: 0,
+//     end: 0,
+//   },
+// },
+// {
+//   value: 'B',
+//   type: 'term',
+//   position: {
+//     start: 6,
+//     end: 6,
+//   },
+// },
+// {
+//   value: 'AND',
+//   type: 'operator',
+//   operation: 'AND',
+//   position: {
+//     start: 2,
+//     end: 4,
+//   },
+// },
+
+type TEachRPN =
+  | {
+      value: string,
+      type: 'term',
+      position: { start: number, end: number },
+    }
+  | {
+      value: string,
+      type: 'operator',
+      operation: 'AND' | 'OR',
+      position: { start: number, end: number },
+    }
 
 /**
  * Create the specific Fuse search object from an RPN array from 'bqpjs
  * @param {*} rpn
  * @returns {object}
  */
-export function createFuseSearchObjectFromRPN(rpn: Array<string>): { [string]: Array<string> } {
+export function createFuseSearchObjectFromRPN(_rpn: Array<TEachRPN>): any {
+  let rpn = [..._rpn]
   let obje = []
   let arr = []
   if (rpn.length) {

@@ -89,7 +89,7 @@ async function askAboutDate(): Promise<string | false> {
 
 async function getAddTextAdditions(): Promise<{ text: string, mode: string, openNote: string } | false> {
   let text = await getInput('Enter text to add to the note', 'OK', 'Text to Add', 'PLACEHOLDER')
-  log(pluginJson, `getAddTextAdditions: ${text}`)
+  log(pluginJson, `getAddTextAdditions: ${text || ''}`)
   if (text === false) return false
   let opts = [
     { label: 'Prepend text to the top of the note', value: 'prepend' },

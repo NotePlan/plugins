@@ -145,7 +145,7 @@ export async function writeIndex(index: any): null | any {
  * @param {Object} notesToInclude (optional) if you have the cleansed note list, pass it in, otherwise it will be created
  * @returns {FuseIndex}
  */
-export async function createIndex(notesToInclude: $ReadOnlyArray<TNote> = [], config: { ... }): Fuse.FuseIndex<mixed> {
+export async function createIndex(notesToInclude: $ReadOnlyArray<TNote> = [], config: { ... }): any {
   let timeStart = new Date()
   const includedNotes = notesToInclude.length ? notesToInclude : getNotesForIndex(config)
   const index = fh.buildIndex(includedNotes, SEARCH_OPTIONS)

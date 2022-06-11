@@ -177,6 +177,7 @@ async function insertItemsIntoNote(note: TNote | TEditor, list: Array<string>, h
       const thePara = note.paragraphs.find((p) => p.type == 'title' && p.content.includes(heading))
       if (thePara) {
         log(pluginJson, `insertItemsIntoNote: folding "${heading}"`)
+        // $FlowIgnore[method-unbinding] - the function is not being removed from the Editor object.
         if (Editor.isFolded) {
           // make sure this command exists
           if (!Editor.isFolded(thePara)) {
@@ -186,7 +187,8 @@ async function insertItemsIntoNote(note: TNote | TEditor, list: Array<string>, h
         } else {
           thePara.content = `${String(heading)} …` // this was the old hack for folding
           await note.updateParagraph(thePara)
-          note.content = note.content //FIXME: hoping for an API to do this so we don't have to force a redraw so it will fold the heading
+          // FIXME: hoping for an API to do this so we don't have to force a redraw so it will fold the heading
+          note.content = note.content ?? ''
         }
       } else {
         log(pluginJson, `insertItemsIntoNote could not find heading: ${heading}`)
@@ -364,9 +366,9 @@ export async function getTodaysFilteredTodos(config: { [key: string]: mixed }): 
   let undupedBackLinkParas = eliminateDuplicateParagraphs(backlinkParas)
   console.log(`Found ${undupedBackLinkParas.length} undupedBackLinkParas after duplicate elimination`)
   let todosParagraphs: Array<TParagraph> = makeAllItemsTodos(undupedBackLinkParas) //some items may not be todos but we want to pretend they are and timeblock for them
-  todosParagraphs = includeTasksWithText?.length ? includeTasksWithPatterns(todosParagraphs, includeTasksWithText) : todosParagraphs
+  todosParagraphs = Array.isArray(includeTasksWithText) && includeTasksWithText?.length > 0 ? includeTasksWithPatterns(todosParagraphs, includeTasksWithText) : todosParagraphs
   console.log(`After includeTasksWithText, ${todosParagraphs.length} potential items`)
-  todosParagraphs = excludeTasksWithText?.length ? excludeTasksWithPatterns(todosParagraphs, excludeTasksWithText) : todosParagraphs
+  todosParagraphs = Array.isArray(excludeTasksWithText) && excludeTasksWithText?.length > 0 ? excludeTasksWithPatterns(todosParagraphs, excludeTasksWithText) : todosParagraphs
   console.log(`After excludeTasksWithText, ${todosParagraphs.length} potential items`)
   return todosParagraphs
 }
