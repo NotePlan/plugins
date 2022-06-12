@@ -18,6 +18,7 @@ import * as helpers from './support/helpers'
 import { log, logError, clo, JSP, getFilteredProps } from '@helpers/dev'
 import { createRunPluginCallbackUrl } from '@helpers/general'
 import pluginJson from '../plugin.json'
+import { getInput } from '@helpers/userInput'
 
 /**
  * A convenience function for creating Jest __mocks__ stubs for a NP API function
@@ -69,13 +70,13 @@ function createMockOutput(object: any, name: string): void {
 export async function generateMock(incoming: ?string = ''): Promise<void> {
   // every command/plugin entry point should always be wrapped in a try/catch block
   try {
-    createMockOutput(DataStore, 'DataStore')
+    createMockOutput(Editor, `Editor`)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
 }
 
-export async function testOfDataStoreAccess() {
+export async function testOfDataStoreAccess(): any {
   const settings = DataStore.settings
   clo(settings, 'settings')
   return settings
