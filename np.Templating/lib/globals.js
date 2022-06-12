@@ -180,6 +180,10 @@ const globals = {
   selection: async (): Promise<string> => {
     return Editor.selectedParagraphs.map((para) => para.rawContent).join('\n')
   },
+
+  clo: (obj: any, preamble: string = '', space: string | number = 2): void => {
+    clo(obj, preamble, space)
+  },
 }
 
 // module.exports = globals

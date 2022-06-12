@@ -3,9 +3,18 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
-## [1.2.0-alpha.01] - 2022-06-04 (mikeerickson)
+## [1.5.0-alpha.01] - 2022-06-11 (mikeerickson)
 
-- added `include` support
+- added `include` method (will include project notes, calendar notes, templates)
+  > when "including" template, it will be rendered automatically
+- added `template` method
+  > you can also use `include` with template and it will perform the same action as `include` method
+  > when "including" template, it will be rendered automatically
+- added `note` method
+    > you can also use `include` with note and it will perform the same action as `note` method
+- added `calendar` method
+    > you can also use `include` with note and it will perform the same action as `calendar` method
+- added `clo` helper which can be used to help debug more complex templates
 
 ## [1.2.0] - 2022-06-04 (mikeerickson)
 

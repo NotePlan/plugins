@@ -521,7 +521,7 @@ export default class NPTemplating {
     }
   }
 
-  static async getTemplate(templateName: string = '', options: any = { showChoices: true }): Promise<string> {
+  static async getTemplate(templateName: string = '', options: any = { showChoices: true, silent: false }): Promise<string> {
     await this.setup()
 
     const parts = templateName.split('/')
@@ -581,7 +581,7 @@ export default class NPTemplating {
       }
 
       // template not found
-      if (!selectedTemplate) {
+      if (!selectedTemplate && !options.silent) {
         await CommandBar.prompt('Template Error', `Unable to locate ${originalFilename}`)
       }
 
@@ -593,7 +593,7 @@ export default class NPTemplating {
         return templateContent || ''
       }
 
-      if (templateContent == null || templateContent.length === 0) {
+      if (templateContent == null || (templateContent.length === 0 && !options.silent)) {
         const message = `Template "${templateName}" Not Found or Empty`
         return this.templateErrorMessage('NPTemplating.getTemplate', message)
       }
@@ -726,7 +726,7 @@ export default class NPTemplating {
             const templateName = parts[0].replace(/'\s/gi, '').replace(/'/gi, '').trim()
             const templateData = parts.length >= 1 ? parts[1] : {}
 
-            const templateContent = await this.getTemplate(templateName)
+            const templateContent = await this.getTemplate(templateName, { silent: true })
             const isTemplate = new FrontmatterModule().isFrontmatterTemplate(templateContent)
             if (isTemplate) {
               const { frontmatterAttributes, frontmatterBody } = await this.preRender(templateContent, newSettingData)
@@ -742,7 +742,6 @@ export default class NPTemplating {
                     .replace('<%', '')
                     .trim()
                   let varParts = temp.split(' ')
-                  // newSettingData[varParts[1]] = renderedTemplate
                   override[varParts[1]] = renderedTemplate
                   newTemplateData = newTemplateData.replace(tag, '')
                 }
@@ -750,8 +749,12 @@ export default class NPTemplating {
                 newTemplateData = newTemplateData.replace(tag, renderedTemplate)
               }
             } else {
-              // not a template, load as project note
-              newTemplateData = newTemplateData.replace(tag, await this.preProcessNote(templateName))
+              if (templateName.length === 8 && /^\d+$/.test(templateName)) {
+                const calendarData = await this.preProcessCalendar(templateName)
+                newTemplateData = newTemplateData.replace(tag, calendarData)
+              } else {
+                newTemplateData = newTemplateData.replace(tag, await this.preProcessNote(templateName))
+              }
             }
           } else {
             newTemplateData = newTemplateData.replace(tag, '**Unable to parse include**')
