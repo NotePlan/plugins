@@ -201,7 +201,7 @@ export async function outputMatchingLines(results: Array<any>, searchTerm: strin
   // TODO: figure out how to deal with Extended Search delmiters
   // clo(allMatchingLines, 'outputMatchingLines: allMatchingLines (note that Extended Searches will currently mess it all up):')
   allMatchingLines.forEach((line) => {
-    log(pluginJson, `${line.content} | children: ${line.children.length}`)
+    log(pluginJson, `${line.content} | children: ${line.children().length}`)
   })
 }
 
@@ -217,7 +217,7 @@ export async function searchSaveUserInput() {
   }
 }
 
-export async function searchUserInput(linksOnly: boolean = false, notesToInclude: any = [], options: any = {}): Promise<void> {
+export async function searchUserInput(linksOnly: boolean = false, notesToInclude: $ReadOnlyArray<TNote> = [], options: any = {}): Promise<void> {
   const processFunction = options.processFunction || writeSearchNote
   const processParams = options.processParams || {}
   try {
