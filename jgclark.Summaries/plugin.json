@@ -7,7 +7,7 @@
 	"plugin.icon": "",
 	"plugin.author": "Jonathan Clark",
 	"plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
-  "plugin.version": "0.8.0",
+  "plugin.version": "0.9.0",
 	"plugin.dependencies": [],
 	"plugin.script": "script.js",
 	"plugin.isRemote": "false",
@@ -147,7 +147,15 @@
       "default": ["idea", "@review", "#question"],
       "required": false
     },
-		{
+    {
+      "key": "caseInsensitive",
+      "title": "Case insensitive searching?",
+      "description": "Are searches case insensitive (ignoring capitalisation)?",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
       "key": "occurrencesHeading",
       "title": "Saved Search heading",
       "description": "Heading to go before search output",
@@ -157,7 +165,7 @@
     },
 		{
       "key": "resultPrefix",
-      "title": "Prefix for search results",
+      "title": "Prefix for search result lines",
       "description": "String to put at the start of each search result line. Default is '-'. Can also be empty.",
       "type": "string",
       "default": "- ",

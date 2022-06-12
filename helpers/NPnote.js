@@ -22,7 +22,7 @@ export function convertNoteToFrontmatter(note: TNote, defaultText?: string = '')
   const title = firstLine.content ?? '(error)' // gets heading without markdown
 
   // Working backwards through the frontmatter (to make index addressing easier)
-  // Change the current first line to be-- -
+  // Change the current first line to be ---
   firstLine.content = '---'
   firstLine.type = 'separator'
   note.updateParagraph(firstLine)

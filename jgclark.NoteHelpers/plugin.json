@@ -15,13 +15,22 @@
   "plugin.commands": [
     {
       "name": "open note new window",
-      "alias": ["onw", "open", "window"],
+      "alias": [
+        "onw",
+        "open",
+        "window"
+      ],
       "description": "Open a user-selected note in a new window.",
       "jsFunction": "openNoteNewWindow"
     },
     {
       "name": "open note new split",
-      "alias": ["ons", "open", "window", "split"],
+      "alias": [
+        "ons",
+        "open",
+        "window",
+        "split"
+      ],
       "description": "Open a user-selected note in a new split of the main window",
       "jsFunction": "openNoteNewSplit"
     },
@@ -38,31 +47,49 @@
     },
     {
       "name": "jump to heading",
-      "alias": ["jh", "jump", "heading"],
+      "alias": [
+        "jh",
+        "jump",
+        "heading"
+      ],
       "description": "Jumps to the heading that the user selects. (Currently only works in main window)",
       "jsFunction": "jumpToHeading"
     },
     {
       "name": "jump to note's heading",
-      "alias": ["jn", "jump", "note"],
+      "alias": [
+        "jn",
+        "jump",
+        "note"
+      ],
       "description": "Jump to a different note, and then selected heading. (Currently only works in main window)",
       "jsFunction": "jumpToNoteHeading"
     },
     {
       "name": "jump to done",
-      "alias": ["jd", "jump", "done"],
+      "alias": [
+        "jd",
+        "jump",
+        "done"
+      ],
       "description": "Jump to the '## Done' section. (Currently only works in main window)",
       "jsFunction": "jumpToDone"
     },
     {
       "name": "move note",
-      "alias": ["mn", "move", "note"],
+      "alias": [
+        "mn",
+        "move",
+        "note"
+      ],
       "description": "Moves the currently opened (non-calendar) note to a folder you select",
       "jsFunction": "moveNote"
     },
     {
       "name": "make notes index",
-      "alias": ["index"],
+      "alias": [
+        "index"
+      ],
       "description": "Make/Update note link Indexes for one or more folders",
       "jsFunction": "indexFolders"
     },
