@@ -1,5 +1,14 @@
 # What's Changed in 🗃 Summaries plugin?
 
+## [0.9.0] - ???.6.2022
+### Added
+- ??? new setting 'Case insensitive searching?' for `/saveSearchResults` and `/saveSearchResultsInPeriod` now 
+### Changed
+- ??? now that NP doesn't force all #hashtags and @mentions to be lower-case, the searching in this plugin in is now case insensitive
+- the titles of week-based summary notes has been changed from 'Wn YYYY' to '???' to match NotePlan's new weekly notes' filenames.
+- now matches search terms on whole words, not parts of words
+- now ignores matches in paths of [markdown links](path), as well as in file:/... and https://... URLs.
+
 ## [0.8.0] - 9.6.2022
 ### Added
 - ability to use these commands from x-callback-url calls. For example, calling the following (e.g. from the  Shortcuts app, or even within NP itself) will do the equivalent of running the command `/saveSearchResults` and supplying with input 'search,terms': `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=saveSearchResults&arg0=search,terms`

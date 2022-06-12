@@ -3,6 +3,8 @@
 // Timeblocking support constants and functions
 // ------------------------------------------------------------------------------------
 
+import { checkString } from '@helpers/checkType'
+
 // Regular Expressions -- the easy ones!
 export const RE_ISO_DATE = '\\d{4}-[01]\\d{1}-\\d{2}'
 export const RE_HOURS = '[0-2]?\\d'
@@ -133,10 +135,10 @@ export const RE_TIMEBLOCK_FOR_THEMES = `${RE_ALLOWED_TIME_BLOCK_LINE_START}${RE_
  */
 export function isTimeBlockLine(contentString: string): boolean {
   try {
-    const mustContainString = DataStore.preference("timeblockTextMustContainString") ?? ''
+    const mustContainString = checkString(DataStore.preference("timeblockTextMustContainString"))
     if (mustContainString !== '') {
-      const res1 = contentString.match(mustContainString) ?? []
-      if (res1.length === 0) {
+      const res1 = contentString.includes(mustContainString)
+      if (!res1) {
         return false
       }
     }
@@ -164,7 +166,8 @@ export function isTypeThatCanHaveATimeBlock(para: TParagraph): boolean {
 
 /**
  * Decide whether this paragraph contains an active time block.
- * TODO: Ideally also explicitly defeat on timeblock in middle of a ![image](filename)
+ * TODO(jgclark): Ideally also explicitly defeat on timeblock in middle of a ![image](filename)
+ *  Should now be easy with recent termInURL() call in helpers/paragraph
  * @tests see tests for the two functions this calls
  * @author @jgclark
  * 
