@@ -1,6 +1,6 @@
 // @flow
 
-import { clo, JSP, log, logError, logAllPropertyNames } from './dev'
+import { clo, JSP, log, logError, logAllPropertyNames, getAllPropertyNames, getFilteredProps } from './dev'
 
 import { createRunPluginCallbackUrl } from './general'
 import { chooseOption, getInput, showMessageYesNo } from './userInput'
@@ -20,21 +20,24 @@ export function logAllEnvironmentSettings(): void {
 }
 
 export async function chooseRunPluginXCallbackURL(showInstalledOnly: boolean = true): Promise<string | false> {
-  const plugins = (await showInstalledOnly) ? DataStore.installedPlugins() : DataStore.listPlugins()
+  const plugins = showInstalledOnly ? await DataStore.installedPlugins() : await DataStore.listPlugins(true)
 
   let commandMap = []
-  plugins.forEach((plugin) => {
-    plugin.commands?.forEach((command) => {
-      const show = `${command.name} (${plugin.name})`
-      commandMap.push({
-        name: command.name,
-        description: command.description,
-        command: command,
-        plugin: plugin,
-        label: show,
-        value: show,
+  plugins?.forEach((plugin) => {
+    if (Array.isArray(plugin.commands)) {
+      plugin.commands?.forEach((command) => {
+        const show = `${command.name} (${plugin.name})`
+        // $FlowIgnore
+        commandMap.push({
+          name: command.name,
+          description: command.description,
+          command: command,
+          plugin: plugin,
+          label: show,
+          value: show,
+        })
       })
-    })
+    }
   })
   commandMap = commandMap.sort((a, b) => a.label.localeCompare(b.label))
   const chosenID = await chooseOption('Which command?', commandMap, '__NONE__')
@@ -76,6 +79,12 @@ export async function chooseRunPluginXCallbackURL(showInstalledOnly: boolean = t
   }
 }
 
+/**
+ * Get arg0...argN from the user for for the XCallbackURL
+ * @param {string:any} command
+ * @param {number} i - index of the argument (e.g. arg0, arg1, etc.)
+ * @returns
+ */
 async function getArgumentText(command: any, i: number): Promise<string | false> {
   const message = `If parameters are required for this plugin, enter one-by-one in the correct order per the plugin's documentation.`
   const stopMessage = `\n\n(Leave the text field empty and hit ENTER/OK to finish argument entry)`
