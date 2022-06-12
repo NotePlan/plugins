@@ -201,7 +201,7 @@ export async function outputMatchingLines(results: Array<any>, searchTerm: strin
   // TODO: figure out how to deal with Extended Search delmiters
   // clo(allMatchingLines, 'outputMatchingLines: allMatchingLines (note that Extended Searches will currently mess it all up):')
   allMatchingLines.forEach((line) => {
-    log(pluginJson, `${line.content} | children: ${line.children.length}`)
+    log(pluginJson, `${line.content} | children: ${line.children().length}`)
   })
 }
 

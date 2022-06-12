@@ -124,7 +124,13 @@ declare interface TEditor extends ParagraphBridge {
    * @param {boolean} createIfNeeded - (optional) Create the note with the given filename if it doesn't exist (only project notes, v3.5.2+)
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned (use with await ... or .then())
    */
-  openNoteByFilename(filename: string, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<TNote>;
+  openNoteByFilename(
+    filename: string,
+    newWindow?: boolean,
+    highlightStart?: number,
+    highlightEnd?: number,
+    splitView?: boolean,
+  ): Promise<TNote>;
   /**
    * Opens a note by searching for the give title (first line of the note)
    * Note: splitView parameter available for macOS from r727 (v3.4)
@@ -135,7 +141,13 @@ declare interface TEditor extends ParagraphBridge {
    * @param {boolean} splitView - (optional) Open note in a new split view (Note: Available from v3.4)
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
-  openNoteByTitle(title: string, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<TNote>;
+  openNoteByTitle(
+    title: string,
+    newWindow?: boolean,
+    highlightStart?: number,
+    highlightEnd?: number,
+    splitView?: boolean,
+  ): Promise<TNote>;
   /**
    * Opens a note by searching for the give title (first line of the note)
    * Note: splitView parameter available for macOS from r727 (v3.4)
@@ -146,7 +158,14 @@ declare interface TEditor extends ParagraphBridge {
    * @param {boolean} splitView - (optional) Open note in a new split view (Note: Available from v3.4)
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
-  openNoteByTitleCaseInsensitive(title: string, newWindow?: boolean, caseSensitive?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<TNote>;
+  openNoteByTitleCaseInsensitive(
+    title: string,
+    newWindow?: boolean,
+    caseSensitive?: boolean,
+    highlightStart?: number,
+    highlightEnd?: number,
+    splitView?: boolean,
+  ): Promise<TNote>;
   /**
    * Opens a calendar note by the given date
    * Note: splitView parameter available for macOS from r727 (v3.4)
@@ -157,7 +176,13 @@ declare interface TEditor extends ParagraphBridge {
    * @param {boolean} splitView - (optional) Open note in a new split view (Note: Available from v3.4)
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
-  openNoteByDate(date: Date, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<TNote>;
+  openNoteByDate(
+    date: Date,
+    newWindow?: boolean,
+    highlightStart?: number,
+    highlightEnd?: number,
+    splitView?: boolean,
+  ): Promise<TNote>;
   /**
    * Opens a calendar note by the given date string
    * @param {String} dateString - The date string that should be opened, in ISO format: "YYYYMMDD", like "20210501"
@@ -167,7 +192,13 @@ declare interface TEditor extends ParagraphBridge {
    * @param {boolean} splitView - (optional) Open note in a new split view (Note: Available from v3.4)
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
-  openNoteByDateString(filename: string, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<TNote | void>;
+  openNoteByDateString(
+    filename: string,
+    newWindow?: boolean,
+    highlightStart?: number,
+    highlightEnd?: number,
+    splitView?: boolean,
+  ): Promise<TNote | void>;
   /**
    * Selects the full text in the editor.
    * NB: Available from NotePlan v3.2 (Mac Build: 662, iOS Build: 593)
@@ -440,7 +471,11 @@ declare class DataStore {
    * notes in trash and archive as well.
    * By default NotePlan won't return notes in trash and archive.
    */
-  static projectNoteByTitle(title: string, caseInsensitive?: boolean, searchAllFolders?: boolean): ?$ReadOnlyArray<TNote>;
+  static projectNoteByTitle(
+    title: string,
+    caseInsensitive?: boolean,
+    searchAllFolders?: boolean,
+  ): ?$ReadOnlyArray<TNote>;
   /**
    * Returns all regular notes with the given case insensitive title.
    * Note: Since multiple notes can have the same title, an array is returned.
@@ -541,7 +576,11 @@ declare class DataStore {
    * @param {boolean}
    * @return {Promise<>}
    */
-  static installOrUpdatePluginsByID(pluginIDs: [string], showPromptIfSuccessful: boolean, showProgressPrompt: boolean): Promise<void> | void;
+  static installOrUpdatePluginsByID(
+    pluginIDs: [string],
+    showPromptIfSuccessful: boolean,
+    showProgressPrompt: boolean,
+  ): Promise<void> | void;
   /**
    * Returns an array of paragraphs having the same blockID like the given one (which is also part of the return array).
    * You can use `paragraph[0].note` to access the note behind it and make updates via `paragraph[0].note.updateParagraph(paragraph[0])` if you make changes to the content, type, etc (like checking it off as type = "done").
@@ -670,7 +709,10 @@ declare class CommandBar {
    * Use the `.index` attribute to refer back to the selected item in the
    * original array.
    */
-  static showOptions<TOption: string = string>(options: $ReadOnlyArray<TOption>, placeholder: string): Promise<{ +index: number, +value: TOption }>;
+  static showOptions<TOption: string = string>(
+    options: $ReadOnlyArray<TOption>,
+    placeholder: string,
+  ): Promise<{ +index: number, +value: TOption }>;
   /**
    * Asks the user to enter something into the CommandBar.
    *
@@ -1163,7 +1205,7 @@ declare interface Range {
 type CalenderItemType = 'event' | 'reminder'
 /**
  * The CalendarItem is used in combination with
- * [Calendar](https://help.noteplan.co/article/70-javascript-plugin-api#calendar)
+ * [Calendar](Editor)
  * to create events or reminders.
  */
 declare var CalendarItem: TCalendarItem
@@ -1337,7 +1379,18 @@ declare class Clipboard {
 /* Available paragraph types
  * Note: 'separator' added v3.4.1
  */
-type ParagraphType = 'open' | 'done' | 'scheduled' | 'cancelled' | 'title' | 'quote' | 'list' | 'empty' | 'text' | 'code' | 'separator'
+type ParagraphType =
+  | 'open'
+  | 'done'
+  | 'scheduled'
+  | 'cancelled'
+  | 'title'
+  | 'quote'
+  | 'list'
+  | 'empty'
+  | 'text'
+  | 'code'
+  | 'separator'
 
 type TParagraphBridge = ParagraphBridge
 declare interface ParagraphBridge {
@@ -1426,7 +1479,13 @@ declare interface ParagraphBridge {
    * @param {boolean} shouldAppend - If the todo should be appended at the bottom of existing text
    * @param {boolean} shouldCreate - If the heading should be created if non-existing
    */
-  addParagraphBelowHeadingTitle(title: string, paragraphType: ParagraphType, headingTitle: string, shouldAppend: boolean, shouldCreate: boolean): void;
+  addParagraphBelowHeadingTitle(
+    title: string,
+    paragraphType: ParagraphType,
+    headingTitle: string,
+    shouldAppend: boolean,
+    shouldCreate: boolean,
+  ): void;
 
   /**
    * Appends a todo below the given heading index (at the end of existing text)
@@ -1562,4 +1621,4 @@ declare class NotePlan {
 
 // Every function made available must be assigned to `globalThis`
 // This type ensures that only functions are made available as plugins
-declare var globalThis: { [string]: () => mixed }
+declare var globalThis: { [string]: () => mixed, document: mixed }
