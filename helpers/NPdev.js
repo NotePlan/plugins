@@ -55,7 +55,7 @@ export async function chooseRunPluginXCallbackURL(showInstalledOnly: boolean = t
         ['Yes', 'No'],
         'Open Documentation?',
       )
-      log(`NPdev::getArgumentText`, `getYesNo: ${getYesNo} Opening ${url}`)
+      // log(`NPdev::getArgumentText`, `getYesNo: ${getYesNo} Opening ${url}`)
       if (getYesNo === 'Yes') {
         NotePlan.openURL(url)
       }
@@ -77,6 +77,13 @@ export async function chooseRunPluginXCallbackURL(showInstalledOnly: boolean = t
 }
 
 async function getArgumentText(command: any, i: number): Promise<string | false> {
-  const message = `Some plugin commands need/expect additional information in order to work.\n\nEnter parameters one-by-one in the correct order per the plugin's documentation. \n\n(Leave the text field empty and hit ENTER/OK to finish argument entry)\n\nWhat should "arg${i}" value be?`
-  return await getInput(message, 'OK', `Plugin Arguments for \n"${command.label}"`)
+  const message = `If parameters are required for this plugin, enter one-by-one in the correct order per the plugin's documentation.`
+  const stopMessage = `\n\n(Leave the text field empty and hit ENTER/OK to finish argument entry)`
+  // TODO: once Eduard adds arguments to the command.arguments object that gets passed through, we can skip the following few lines
+  const commandPluginJson = DataStore.loadJSON(`../../${command?.plugin?.id}/plugin.json`)
+  const commandInfo = commandPluginJson['plugin.commands'].find((c) => c.name === command.name)
+  const argDescriptions = commandInfo ? commandInfo.arguments : null // eventually = command.arguments
+  clo(argDescriptions, 'argDescriptions')
+  const addlInfo = argDescriptions && argDescriptions[i] ? `\n\n"arg${i}" description:\n"${argDescriptions[i]}"` : `\n\nWhat should arg${i}'s value be?`
+  return await getInput(`${message}${addlInfo}${stopMessage}`, 'OK', `Plugin Arguments for \n"${command.label}"`)
 }
