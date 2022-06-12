@@ -40,9 +40,7 @@ declare var Editor: TEditor
 /**
  * The Editor class. This lets you access the currently opened note.
  */
-declare class TEditor extends ParagraphBridge {
-  // An impossible constructor since this class isn't supposed to be used.
-  constructor(_: empty): empty;
+declare interface TEditor extends ParagraphBridge {
   /**
    * Get the note object of the opened note in the editor
    */
@@ -1050,9 +1048,7 @@ type NoteType = 'Calendar' | 'Notes'
  * paragraph editing examples under Editor. NoteObject and Editor both
  * inherit the same paragraph functions.
  */
-declare class Note extends ParagraphBridge {
-  // Impossible to create Notes manually
-  constructor(_: empty): empty;
+declare interface Note extends ParagraphBridge {
   /**
    * Folder + Filename of the note (the path is relative to the root of the chosen storage location)
    * From v3.6.0 can also *set* the filename, which does a rename.
@@ -1344,7 +1340,7 @@ declare class Clipboard {
 type ParagraphType = 'open' | 'done' | 'scheduled' | 'cancelled' | 'title' | 'quote' | 'list' | 'empty' | 'text' | 'code' | 'separator'
 
 type TParagraphBridge = ParagraphBridge
-declare class ParagraphBridge {
+declare interface ParagraphBridge {
   // impossible constructor.
   constructor(_: empty): empty;
   /**

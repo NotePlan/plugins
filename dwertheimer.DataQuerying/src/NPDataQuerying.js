@@ -217,7 +217,7 @@ export async function searchSaveUserInput() {
   }
 }
 
-export async function searchUserInput(linksOnly: boolean = false, notesToInclude: any = [], options: any = {}): Promise<void> {
+export async function searchUserInput(linksOnly: boolean = false, notesToInclude: $ReadOnlyArray<TNote> = [], options: any = {}): Promise<void> {
   const processFunction = options.processFunction || writeSearchNote
   const processParams = options.processParams || {}
   try {
