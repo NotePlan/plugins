@@ -3,7 +3,7 @@
 /*
 REMEMBER: Always build a flow cancel path every time you offer a prompt
 TODO: add back button to return to previous step (@qualitativeeasing)
-TODO: add argument detail: description, default, datatype (@qualitativeeasing)
+TODO: maybe create choosers based on arguments text
 */
 
 import { log, logError, clo, JSP } from '../../helpers/dev'
@@ -89,7 +89,7 @@ async function askAboutDate(): Promise<string | false> {
 
 async function getAddTextAdditions(): Promise<{ text: string, mode: string, openNote: string } | false> {
   let text = await getInput('Enter text to add to the note', 'OK', 'Text to Add', 'PLACEHOLDER')
-  log(pluginJson, `getAddTextAdditions: ${text}`)
+  log(pluginJson, `getAddTextAdditions: ${text || ''}`)
   if (text === false) return false
   let opts = [
     { label: 'Prepend text to the top of the note', value: 'prepend' },

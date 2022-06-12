@@ -1,9 +1,15 @@
 /* globals describe, expect, it, test */
 import colors from 'chalk'
 import * as tb from '../timeblocks'
+import DataStore from '../../__mocks__/DataStore.mock'
+
+beforeAll(() => {
+  global.DataStore = DataStore
+})
 
 const HELPER_NAME = `📙 ${colors.yellow('helpers/timeblocks')}`
 const section = colors.blue
+const method = colors.magenta.bold
 
 describe(`${HELPER_NAME}`, () => {
   describe(section('timeblocks.js'), () => {
@@ -113,6 +119,7 @@ describe(`${HELPER_NAME}`, () => {
       test('24b: yes: at midnight:24', () => {
         expect(tb.isTimeBlockLine('at midnight:24')).toEqual(true)
       })
+      // TODO(jgclark): We have a problem in this one, so it's skipped for now
       test.skip('25: 5-6am...', () => {
         expect(tb.isTimeBlockLine('5-6am Do something #hash [[wikilink]] [url](something) ')).toEqual(true)
       })
@@ -174,6 +181,7 @@ describe(`${HELPER_NAME}`, () => {
         expect(tb.isTimeBlockLine(cal)).toEqual(false)
       })
     })
+
     describe('findLongestStringInArray ', () => {
       test('should return longest string in array', () => {
         expect(tb.findLongestStringInArray(['a', 'bb', '', 'dddd'])).toEqual('dddd')

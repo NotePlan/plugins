@@ -10,34 +10,17 @@
 // Helper functions
 
 import pluginJson from '../plugin.json'
-import {
-  getSummariesSettings,
-  getPeriodStartEndDates,
-} from './summaryHelpers'
+import { getSummariesSettings, getPeriodStartEndDates } from './summaryHelpers'
 import type { SummariesConfig } from './summaryHelpers'
-import {
-  getDateStringFromCalendarFilename,
-  nowLocaleDateTime,
-  unhyphenatedDate,
-  withinDateRange,
-} from '@helpers/dateTime'
+import { getDateStringFromCalendarFilename, nowLocaleDateTime, unhyphenatedDate, withinDateRange } from '@helpers/dateTime'
 import { clo, log, logWarn, logError } from '@helpers/dev'
-import {
-  quarterStartEnd,
-} from '@helpers/NPdateTime'
-import {
-  displayTitle,
-  stringReplace,
-} from '@helpers/general'
+import { quarterStartEnd } from '@helpers/NPdateTime'
+import { displayTitle, stringReplace } from '@helpers/general'
 import { gatherMatchingLines } from '@helpers/NPparagraph'
 import { removeSection } from '@helpers/paragraph'
-import {
-  chooseOption,
-  getInput,
-  showMessage,
-  showMessageYesNo,
-} from '@helpers/userInput'
-import { DateTime, Duration } from 'luxon' // having done 'npm install --save luxon'. Docs at https://moment.github.io/luxon/api-docs/index.html
+import { chooseOption, getInput, showMessage, showMessageYesNo } from '@helpers/userInput'
+import { DateTime } from 'luxon'
+// having done 'npm install --save luxon'. Docs at https://moment.github.io/luxon/api-docs/index.html
 
 //-------------------------------------------------------------------------------
 
@@ -45,7 +28,7 @@ import { DateTime, Duration } from 'luxon' // having done 'npm install --save lu
  * Run a search over all notes in a given period, saving the results in one of several locations.
  * Works interactively (if no arguments given) or in the background (using supplied arguments).
  * @author @jgclark
- * 
+ *
  * @param {string?} searchTermsArg optional comma-separated list of search terms to search
  * @param {number?} periodArg optional number of days to search over (from before today). If not given then defaults to 3 months
  */
@@ -68,10 +51,9 @@ export async function saveSearchPeriod(searchTermsArg?: string, periodArg?: numb
       toDate = DateTime.now().startOf('day').toJSDate() // today
       fromDate = DateTime.now().startOf('day').minus({ days: periodArgNumber }).toJSDate() // periodArg days ago
       periodString = `last ${periodArgNumber} days`
-    }
-    else {
+    } else {
       // Otherwise ask user
-      [fromDate, toDate, periodString, periodPartStr] = await getPeriodStartEndDates(`What period shall I search over?`)
+      ;[fromDate, toDate, periodString, periodPartStr] = await getPeriodStartEndDates(`What period shall I search over?`)
       if (fromDate == null || toDate == null) {
         logError(pluginJson, 'dates could not be parsed')
         return
@@ -86,8 +68,7 @@ export async function saveSearchPeriod(searchTermsArg?: string, periodArg?: numb
       // either from argument supplied
       stringsToMatch = searchTermsArg.split(',')
       log(pluginJson, `  will use arg0 '${searchTermsArg}'`)
-    }
-    else {
+    } else {
       // or by asking user
       stringsToMatch = Array.from(config.defaultOccurrences)
       const newTerms = await getInput(`Enter search term (or comma-separated set of terms)`, 'OK', `Search`, stringsToMatch.join(', '))
@@ -106,18 +87,10 @@ export async function saveSearchPeriod(searchTermsArg?: string, periodArg?: numb
       await showMessage(`No search terms given; stopping.`)
       return
     }
-    log(pluginJson,
-      `saveSearchPeriod: looking for '${String(stringsToMatch)}' over daily notes in ${periodString} (${fromDateStr}-${toDateStr}):`,
-    )
-  
+    log(pluginJson, `saveSearchPeriod: looking for '${String(stringsToMatch)}' over daily notes in ${periodString} (${fromDateStr}-${toDateStr}):`)
+
     // Get array of all daily notes that are within this time period
-    const periodDailyNotes = DataStore.calendarNotes.filter((p) =>
-      withinDateRange(
-        getDateStringFromCalendarFilename(p.filename),
-        fromDateStr,
-        toDateStr,
-      ),
-    )
+    const periodDailyNotes = DataStore.calendarNotes.filter((p) => withinDateRange(getDateStringFromCalendarFilename(p.filename), fromDateStr, toDateStr))
     if (periodDailyNotes.length === 0) {
       logWarn(pluginJson, 'no matching daily notes found')
       await showMessage(`No matching daily notes found; stopping.`)
@@ -153,8 +126,7 @@ export async function saveSearchPeriod(searchTermsArg?: string, periodArg?: numb
       // Being called from x-callback so will only write to current note
       log(pluginJson, `  running from x-callback so will write to current note`)
       destination = 'current'
-    }
-    else {
+    } else {
       // else ask user
       destination = await chooseOption(
         `Where should I save the results for ${periodString}?`,
@@ -187,21 +159,12 @@ export async function saveSearchPeriod(searchTermsArg?: string, periodArg?: numb
         if (currentNote == null) {
           logError(pluginJson, `no note is open`)
         } else {
-          log(pluginJson,
-            `appending results to current note (${currentNote.filename ?? ''})`,
-          )
+          log(pluginJson, `appending results to current note (${currentNote.filename ?? ''})`)
           const insertionLineIndex = currentNote.paragraphs.length - 1
-          currentNote.insertHeading(
-            headingLine,
-            insertionLineIndex,
-            config.headingLevel,
-          )
+          currentNote.insertHeading(headingLine, insertionLineIndex, config.headingLevel)
           // FIXME: Can't see why a blank line appears here
           // FIXME: And sometimes the paragraph from where the cursor had been?
-          currentNote.appendParagraph(
-            outputArray.join('\n'),
-            'text',
-          )
+          currentNote.appendParagraph(outputArray.join('\n'), 'text')
           // log(pluginJson, `\tappended results to current note`)
         }
         break
@@ -210,8 +173,7 @@ export async function saveSearchPeriod(searchTermsArg?: string, periodArg?: numb
         let note: ?TNote
         // first see if this note has already been created
         // (look only in active notes, not Archive or Trash)
-        const existingNotes: $ReadOnlyArray<TNote> =
-          DataStore.projectNoteByTitle(periodString, true, false) ?? []
+        const existingNotes: $ReadOnlyArray<TNote> = DataStore.projectNoteByTitle(periodString, true, false) ?? []
 
         log(pluginJson, `found ${existingNotes.length} existing summary notes for this period`)
 
@@ -238,22 +200,11 @@ export async function saveSearchPeriod(searchTermsArg?: string, periodArg?: numb
 
         // Do we have an existing Hashtag counts section? If so, delete it.
         // (Sets place to insert either after the found section heading, or at end of note)
-        const insertionLineIndex = removeSection(
-          note,
-          config.occurrencesHeading,
-        )
+        const insertionLineIndex = removeSection(note, config.occurrencesHeading)
         // log(pluginJson, `\tinsertionLineIndex: ${String(insertionLineIndex)}`)
         // write in reverse order to avoid having to calculate insertion point again
-        note.insertParagraph(
-          outputArray.join('\n'),
-          insertionLineIndex + 1,
-          'text',
-        )
-        note.insertHeading(
-          headingLine,
-          insertionLineIndex,
-          config.headingLevel,
-        )
+        note.insertParagraph(outputArray.join('\n'), insertionLineIndex + 1, 'text')
+        note.insertHeading(headingLine, insertionLineIndex, config.headingLevel)
         await Editor.openNoteByFilename(note.filename)
 
         log(pluginJson, `written results to note '${periodString}'`)
@@ -276,8 +227,7 @@ export async function saveSearchPeriod(searchTermsArg?: string, periodArg?: numb
         break
       }
     }
-  }
-  catch (err) {
+  } catch (err) {
     logError(pluginJson, err.message)
   }
 }

@@ -9,15 +9,8 @@
 import pluginJson from '../plugin.json'
 import { log, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-import {
-  getUniqueNoteTitle,
-  noteOpener,
-} from '@helpers/note'
-import {
-  chooseFolder,
-  showMessage,
-  showMessageYesNo,
-} from '@helpers/userInput'
+import { getUniqueNoteTitle, noteOpener } from '@helpers/note'
+import { chooseFolder, showMessage, showMessageYesNo } from '@helpers/userInput'
 
 export async function newNoteFromSelection() {
   const { selectedLinesText, selectedText, selectedParagraphs, note } = Editor
@@ -27,13 +20,9 @@ export async function newNoteFromSelection() {
     const selectedLinesTextToMutate = selectedLinesText.slice() // copy that we can change
 
     // Get title for this note
-    const isTextContent =
-      ['title', 'text', 'empty'].indexOf(selectedParagraphs[0].type) >= 0
+    const isTextContent = ['title', 'text', 'empty'].indexOf(selectedParagraphs[0].type) >= 0
     const strippedFirstLine = selectedParagraphs[0].content
-    let title = await CommandBar.showInput(
-      'Title of new note ([enter] to use text below)',
-      strippedFirstLine,
-    )
+    let title = await CommandBar.showInput('Title of new note ([enter] to use text below)', strippedFirstLine)
     // If user just hit [enter], then use the first line as suggested
     if (!title) {
       title = strippedFirstLine
@@ -59,10 +48,7 @@ export async function newNoteFromSelection() {
       // This question needs to be here after newNote and before noteOpener
       // to force a cache refresh after newNote. This API bug will eventually be fixed.
       // TODO: Check if this bug has been fixed (I think it has).
-      const iblq = await CommandBar.showOptions(
-        ['Yes', 'No'],
-        'Insert link to new file where selection was?',
-      )
+      const iblq = await CommandBar.showOptions(['Yes', 'No'], 'Insert link to new file where selection was?')
 
       const newNote = await noteOpener(filename, 'using filename')
 
@@ -71,6 +57,7 @@ export async function newNoteFromSelection() {
         log(pluginJson, `newNote's content: ${String(newNote.content)} ...`)
 
         const insertBackLink = iblq.index === 0
+        // $FlowFixMe[method-unbinding] - Flow thinks the function is being removed from the object, but it's not
         if (Editor.replaceSelectionWithText) {
           // for compatibility, make sure the function exists
           if (insertBackLink) {
@@ -84,7 +71,7 @@ export async function newNoteFromSelection() {
         if (insertBackLink) {
           newNote.appendParagraph(`^ Moved from [[${origFile}]]:`, 'text')
         }
-        if (await showMessageYesNo('New Note created. Open it now?',['Yes','No'], `New Note from Selection`) === 'Yes') {
+        if ((await showMessageYesNo('New Note created. Open it now?', ['Yes', 'No'], `New Note from Selection`)) === 'Yes') {
           await Editor.openNoteByFilename(filename)
         }
       } else {

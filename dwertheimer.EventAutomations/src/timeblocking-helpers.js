@@ -10,9 +10,8 @@ import { clo, log, logError, JSP } from '../../helpers/dev'
 // import { timeblockRegex1, timeblockRegex2 } from '../../helpers/markdown-regex'
 import type { IntervalMap, OpenBlock, BlockArray, TimeBlocksWithMap, BlockData, TimeBlockDefaults, PartialCalendarItem } from './timeblocking-flow-types'
 
-export type ExtendedParagraph = {
-  ...TParagraph,
-}
+// A read-write expansion of Paragraph
+export interface ExtendedParagraph extends Paragraph {}
 
 /**
  * Create a map of the time intervals for a portion of day
@@ -64,7 +63,11 @@ export function createTimeBlockLine(blockData: BlockData, config: { [key: string
       newContentLine = removeDurationParameter(newContentLine, config.durationMarker)
     }
     newContentLine = attachTimeblockTag(newContentLine, config.timeBlockTag)
-    return `${config.todoChar} ${blockData.start}-${blockData.end} ${newContentLine || blockData.title || ''}`
+    let tbLine = `${config.todoChar} ${blockData.start}-${blockData.end} ${newContentLine || blockData.title || ''}`
+    if (config.timeblockTextMustContainString?.length && !tbLine.includes(config.timeblockTextMustContainString)) {
+      tbLine = `${tbLine} ${config.timeblockTextMustContainString}`
+    }
+    return tbLine
   }
   return ''
 }
@@ -142,20 +145,19 @@ export function getDurationFromLine(line: string, durationMarker: string): numbe
  * @param {*} paragraphsArray
  * @returns
  */
-export function removeDateTagsFromArray(paragraphsArray: $ReadOnlyArray<TParagraph>): Array<TParagraph> {
-  const newPA = paragraphsArray.map((p, i) => {
-    return {
-      ...p,
-      title: p.title != null ? p.title : '',
-      indents: p.indents,
-      type: p.type,
-      heading: p.heading ?? '',
-      filename: p.filename ?? '',
-      content: removeDateTagsAndToday(p.content),
-      rawContent: removeDateTagsAndToday(p.rawContent),
-    }
-  })
-  return newPA
+export function removeDateTagsFromArray(paragraphsArray: $ReadOnlyArray<Paragraph>): Array<Paragraph> | $ReadOnlyArray<Paragraph> {
+  try {
+    const newPA = paragraphsArray.map((p, i): Paragraph => {
+      const copy: Paragraph = p.duplicate()
+      copy.content = removeDateTagsAndToday(p.content)
+      clo(copy, `copy.content: ${copy.content} and removeDateTagsAndToday: ${removeDateTagsAndToday(p.content)}`)
+      return copy
+    })
+    return newPA
+  } catch (error) {
+    logError(`timeblocking-helppers::removeDateTagsFromArray failed. Error:`, JSP(error))
+  }
+  return paragraphsArray
 }
 
 export const timeIsAfterWorkHours = (nowStr: string, config: TimeBlockDefaults): boolean => {
@@ -267,7 +269,11 @@ export function blockTimeAndCreateTimeBlockText(tbm: TimeBlocksWithMap, block: B
   return { timeMap, blockList, timeBlockTextList }
 }
 
-export function matchTasksToSlots(sortedTaskList: Array<{ ...TParagraph, duration: number }>, tmb: TimeBlocksWithMap, config: { [key: string]: any }): TimeBlocksWithMap {
+interface ParagraphWithDuration extends Paragraph {
+  duration: number;
+}
+
+export function matchTasksToSlots(sortedTaskList: Array<ParagraphWithDuration>, tmb: TimeBlocksWithMap, config: { [key: string]: any }): TimeBlocksWithMap {
   const { timeMap, blockList: incomingBlockList } = tmb
   let newMap = filterTimeMapToOpenSlots(timeMap, config)
   let newBlockList = findTimeBlocks(newMap, config)
@@ -386,8 +392,9 @@ export const eliminateDuplicateParagraphs = (todos: Array<TParagraph>): Array<TP
   return revisedTodos
 }
 
-export const addDurationToTasks = (tasks: Array<TParagraph>, config: { [key: string]: any }): Array<{ [key: string]: any }> => {
+export const addDurationToTasks = (tasks: Array<TParagraph>, config: { [key: string]: any }): Array<ParagraphWithDuration> => {
   const dTasks = tasks.map((t) => {
+    // $FlowIgnore - Flow doesn't like spreading interfaces
     const copy = { ...t, duration: 0 }
     copy.duration = getDurationFromLine(t.content, config.durationMarker) || config.defaultDuration
     return copy
@@ -437,7 +444,7 @@ export function getTimeBlockTimesForEvents(timeMap: IntervalMap, todos: Array<TP
  * Remove all the timeblock added text so as to not add it to the todo list (mostly for synced lines)
  * @param {*} line
  */
-export function isAutoTimeBlockLine(line: string, config: { [key: string]: any }): null | string {
+export function isAutoTimeBlockLine(line: string, config?: { [key: string]: any }): null | string {
   // otherwise, let's scan it for the ATB signature
   // this is probably superfluous, but it's here for completeness
   let re = /(?:[-|\*] \d{2}:\d{2}-\d{2}:\d{2} )(.*)(( \[.*\]\(.*\))|( \[\[.*\]\]))(?: #.*)/
@@ -468,7 +475,7 @@ export function getRegExOrString(input: string | RegExp): RegExp | string {
   }
 }
 
-export function includeTasksWithPatterns(tasks: Array<TParagraph>, pattern: string | Array<string>): Array<TParagraph> {
+export function includeTasksWithPatterns(tasks: $ReadOnlyArray<TParagraph>, pattern: string | Array<string>): Array<TParagraph> {
   if (Array.isArray(pattern)) {
     return tasks.filter((t) => pattern.some((p) => t.content.match(getRegExOrString(p))))
   } else if (typeof pattern === 'string') {

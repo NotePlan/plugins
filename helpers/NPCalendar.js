@@ -120,15 +120,18 @@ export async function checkOrGetCalendar(calendarName: string, forceUserToChoose
 /**
  * Go through current Editor note, identify time blocks to turn into events,
  * and then add them as events.
+ * @param {EventsConfig} config - the configuration for the timeblocks and event creation
+ * @param {TNote|TEditor} note - the note to scan for time blocks
+ * @param {boolean} showLoadingProgress -- show progress counter while adding events
  * @author @jgclark
  */
-export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNote | TEditor): Promise<void> {
+export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNote | TEditor, showLoadingProgress: boolean = false): Promise<void> {
   const { paragraphs } = note
   if (paragraphs == null || note == null) {
     logWarn('NPCalendar/writeTimeBlocksToCalendar()', 'no content found')
     return
   }
-  // $FlowIgnore - Flow doesn't like note or Editor being called here. But for these purposes they should be identical
+  // $FlowFixMe - Flow doesn't like note or Editor being called here. But for these purposes they should be identical
   const noteTitle = displayTitle(note)
   log('NPCalendar/writeTimeBlocksToCalendar()', `for note '${noteTitle}' ...`)
 
@@ -157,6 +160,10 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
     const dateContext = note.type === 'Calendar' && note.filename ? getISODateStringFromYYYYMMDD(note.filename) ?? todaysDateISOString : todaysDateISOString
 
     // Iterate over timeblocks
+    if (showLoadingProgress && !config.confirmEventCreation) {
+      CommandBar.showLoading(true, 'Inserting Calendar Events')
+      await CommandBar.onAsyncThread()
+    }
     for (let i = 0; i < timeblockParas.length; i++) {
       const thisPara = timeblockParas[i]
       const thisParaContent = thisPara.content ?? ''
@@ -237,11 +244,22 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
           thisPara.content = thisParaContent
           // log('NPCalendar/writeTimeBlocksToCalendar()', `\tsetting thisPara.content -> '${thisParaContent}'`)
           // FIXME(@EduardMe): there's something odd going on here. Often 3 characters are left or repeated at the end of the line as a result of this
-          Editor.updateParagraph(thisPara)
+          if (showLoadingProgress && !config.confirmEventCreation) {
+            CommandBar.showLoading(true, `Inserting Calendar Events\n(${i + 1}/${timeblockParas.length})`, (i + 1) / timeblockParas.length)
+            await CommandBar.onMainThread()
+            Editor.updateParagraph(thisPara)
+            await CommandBar.onAsyncThread()
+          } else {
+            Editor.updateParagraph(thisPara)
+          }
         } else {
           logError('NPCalendar/writeTimeBlocksToCalendar()', `Can't get DateRange from '${timeBlockString}'`)
         }
       }
+    }
+    if (showLoadingProgress && !config.confirmEventCreation) {
+      await CommandBar.onMainThread()
+      CommandBar.showLoading(false)
     }
   } else {
     log('NPCalendar/writeTimeBlocksToCalendar()', `  -> No time blocks found.`)

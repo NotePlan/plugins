@@ -44,7 +44,7 @@ export function JSP(obj: any, space: string | number = 2): string {
       })
       return `${isValues ? '[' : ''}${arrInfo.join(isValues ? ', ' : ',\n')}${isValues ? ']' : ''}`
     }
-    const propNames = getAllPropertyNames(obj)
+    const propNames = getFilteredProps(obj)
     const fullObj = propNames.reduce((acc, propName) => {
       if (!/^__/.test(propName)) {
         if (Array.isArray(obj[propName])) {
@@ -62,11 +62,9 @@ export function JSP(obj: any, space: string | number = 2): string {
             }
           } catch (error) {
             console.log(
-              `Caught error in JSP for propname=${propName} : ${error} typeof obj[propName]=${typeof obj[
-                propName
-              ]} isArray=${Array.isArray(obj[propName])} len=${obj[propName]?.length} \n VALUE: ${JSON.stringify(
-                obj[propName],
-              )}`,
+              `Caught error in JSP for propname=${propName} : ${error} typeof obj[propName]=${typeof obj[propName]} isArray=${String(Array.isArray(obj[propName]))} len=${
+                obj[propName]?.length
+              } \n VALUE: ${JSON.stringify(obj[propName])}`,
             )
           }
         } else {
@@ -112,12 +110,7 @@ export function clo(obj: any, preamble: string = '', space: string | number = 2)
   }
 }
 
-export function dump(
-  pluginInfo: any,
-  obj: { [string]: mixed },
-  preamble: string = '',
-  space: string | number = 2,
-): void {
+export function dump(pluginInfo: any, obj: { [string]: mixed }, preamble: string = '', space: string | number = 2): void {
   log(pluginInfo, '-------------------------------------------')
   clo(obj, preamble, space)
   log(pluginInfo, '-------------------------------------------')
@@ -125,14 +118,15 @@ export function dump(
 
 /**
  * Create a list of the properties of an object, including inherited properties (which are not typically visible in JSON.stringify)
+ * Often includes a bunch of properties that are not useful for the user, e.g. constructor, __proto__
+ * See getFilteredProps for a cleaner version
  * @author @dwertheimer (via StackOverflow)
  *
  * @param {object} inObj
  * @returns [string]
  * @reference https://stackoverflow.com/questions/59228638/console-log-an-object-does-not-log-the-method-added-via-prototype-in-node-js-c
  */
-
-export function getAllPropertyNames(inObj: { [string]: mixed }): Array<string> {
+export function getAllPropertyNames(inObj: interface { [string]: mixed }): Array<string> {
   let obj = inObj
   var props = []
   do {
@@ -143,6 +137,16 @@ export function getAllPropertyNames(inObj: { [string]: mixed }): Array<string> {
     })
   } while ((obj = Object.getPrototypeOf(obj)))
   return props
+}
+
+/**
+ * Get the cleanest version of
+ * @param {object} object
+ * @returns {Array<string>} - an array of the interesting properties of the object
+ */
+export const getFilteredProps = (object: any): Array<string> => {
+  const ignore = ['toString', 'toLocaleString', 'valueOf', 'hasOwnProperty', 'propertyIsEnumerable', 'isPrototypeOf']
+  return getAllPropertyNames(object).filter((prop) => !/(^__)|(constructor)/.test(prop) && !ignore.includes(prop))
 }
 
 /**
@@ -220,9 +224,7 @@ export function log(pluginInfo: any, message: any = '', type: string = 'LOG'): s
 
   if (isPluginJson) {
     pluginId = pluginInfo.hasOwnProperty('plugin.id') ? pluginInfo['plugin.id'] : 'INVALID_PLUGIN_ID'
-    pluginVersion = pluginInfo.hasOwnProperty('plugin.version')
-      ? pluginInfo['plugin.version']
-      : 'INVALID_PLUGIN_VERSION'
+    pluginVersion = pluginInfo.hasOwnProperty('plugin.version') ? pluginInfo['plugin.version'] : 'INVALID_PLUGIN_VERSION'
     msg = `${dt().padEnd(19)} | ${type.padEnd(5)} | ${pluginId} v${pluginVersion} :: ${_message(message)}`
   } else {
     if (message.length > 0) {

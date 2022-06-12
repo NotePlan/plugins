@@ -548,7 +548,7 @@ export default class NPTemplating {
           // templateFilename = `${templateFolderName}/${templateName}`
           templateFilename = parts.pop()
 
-          let templates = await DataStore.projectNoteByTitle(templateFilename, true, false)
+          let templates = (await DataStore.projectNoteByTitle(templateFilename, true, false)) ?? []
           if (templates.length > 1) {
             let templatesSecondary = []
             for (const template of templates) {

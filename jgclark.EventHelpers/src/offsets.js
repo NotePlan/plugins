@@ -31,7 +31,7 @@ const RE_HEADING_LINE = `^#+\s`
 /**
  * Shift Dates
  * Go through currently selected lines in the open note and shift YYYY-MM-DD dates by an interval given by the user
- * Note: doesn't touch @done(...) dates, or others than don't have whitespace or a > before them
+ * Note: doesn't touch @done(...) dates, or others than don't have whitespace or newline before them
  * @author @jgclark
  */
 export async function shiftDates(): Promise<void> {
@@ -53,7 +53,7 @@ export async function shiftDates(): Promise<void> {
     log(pluginJson, `shiftDates starting for ${pArr.length} lines`)
     if (pArr.length === 0) {
       logError(pluginJson, `Empty selection found. Stopping.`)
-      await showMessage('No selection found to process.', 'OK', 'Shift Dates')
+      await showMessage('Please select some lines to process.', 'OK', 'Shift Dates')
       return
     }
 

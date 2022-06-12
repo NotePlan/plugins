@@ -106,8 +106,15 @@ describe(`${PLUGIN_NAME}`, () => {
         const cfg = { ...config, timeBlockTag: '#tag', removeDuration: true }
         expect(tb.createTimeBlockLine({ title: "foo bar '2h22m", start: '08:00', end: '09:00' }, cfg)).toEqual('* 08:00-09:00 foo bar #tag')
       })
+      test('should add tb text when timeblockTextMustContainString is set', () => {
+        const cfg = { ...config, timeblockTextMustContainString: '#tb', removeDuration: true }
+        expect(tb.createTimeBlockLine({ title: "foo bar '2h22m", start: '08:00', end: '09:00' }, cfg)).toEqual('* 08:00-09:00 foo bar #🕑 #tb')
+      })
+      test('should not add tb text when timeblockTextMustContainString is set and tb text is already in the string', () => {
+        const cfg = { ...config, timeblockTextMustContainString: '#tb', removeDuration: true }
+        expect(tb.createTimeBlockLine({ title: "foo bar#tb '2h22m", start: '08:00', end: '09:00' }, cfg)).toEqual('* 08:00-09:00 foo bar#tb #🕑')
+      })
     })
-
     describe('blockOutEvents ', () => {
       test('should block (only) times on the time map for the event given', () => {
         const map = tb.getBlankDayMap(5)

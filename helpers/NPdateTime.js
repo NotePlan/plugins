@@ -5,20 +5,11 @@
 
 import strftime from 'strftime'
 import moment from 'moment'
-import luxon from 'luxon'
-import {
-  getWeek,
-  toISODateString,
-  toISOShortDateTimeString
-} from './dateTime'
+import { getWeek, toISODateString, toISOShortDateTimeString } from './dateTime'
 import { log, logError } from './dev'
 
 // TODO: Finish moving references to this file from dateTime.js
-export function toLocaleDateTimeString(
-  dateObj: Date,
-  locale: string | Array<string> = [],
-  options: Intl$DateTimeFormatOptions = {},
-): string {
+export function toLocaleDateTimeString(dateObj: Date, locale: string | Array<string> = [], options: Intl$DateTimeFormatOptions = {}): string {
   /**
    * TODO: use details from NotePlan.environment...
    *  "languageCode": "en",
@@ -27,16 +18,12 @@ export function toLocaleDateTimeString(
    *   "preferredLanguages": [
    *     "en-GB"
    *   ],
-  */
+   */
   return dateObj.toLocaleString(locale, options)
 }
 
 // TODO: Finish moving references to this file from dateTime.js
-export function toLocaleDateString(
-  dateObj: Date,
-  locale: string | Array<string> = [],
-  options: Intl$DateTimeFormatOptions = {},
-): string {
+export function toLocaleDateString(dateObj: Date, locale: string | Array<string> = [], options: Intl$DateTimeFormatOptions = {}): string {
   /**
    * TODO: use details from NotePlan.environment...
    *  "languageCode": "en",
@@ -44,16 +31,12 @@ export function toLocaleDateString(
    *   "preferredLanguages": [
    *     "en-GB"
    *   ],
-  */
+   */
   return dateObj.toLocaleDateString(locale, options)
 }
 
 // TODO: Finish moving references to this file from dateTime.js
-export function toLocaleTime(
-  dateObj: Date,
-  locale: string | Array<string> = [],
-  options: Intl$DateTimeFormatOptions = {},
-): string {
+export function toLocaleTime(dateObj: Date, locale: string | Array<string> = [], options: Intl$DateTimeFormatOptions = {}): string {
   /**
    * TODO: use details from NotePlan.environment...
    *  "languageCode": "en",
@@ -62,7 +45,7 @@ export function toLocaleTime(
    *   "preferredLanguages": [
    *     "en-GB"
    *   ],
-  */
+   */
   return dateObj.toLocaleTimeString(locale, options)
 }
 
@@ -75,7 +58,7 @@ export function printDateRange(dr: DateRange) {
  * **Now use version in helpers/dateTime.js which doesn't rely on NP APIs, and has tests!**
  * v2 method, using built-in NotePlan function 'Calendar.addUnitToDate(date, type, num)'
  * @author @jgclark
- * 
+ *
  * @param {string} baseDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type
  * @param {interval} string of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in English)
  * @return {Date} new date as a JS Date
@@ -141,14 +124,13 @@ export function calcOffsetDate(baseDateISO: string, interval: string): Date {
       Math.abs(daysToAdd) > 0
         ? Calendar.addUnitToDate(baseDate, 'day', daysToAdd)
         : Math.abs(monthsToAdd) > 0
-          ? Calendar.addUnitToDate(baseDate, 'month', monthsToAdd)
-          : Math.abs(yearsToAdd) > 0
-            ? Calendar.addUnitToDate(baseDate, 'year', yearsToAdd)
-            : baseDate // if nothing else, leave date the same
+        ? Calendar.addUnitToDate(baseDate, 'month', monthsToAdd)
+        : Math.abs(yearsToAdd) > 0
+        ? Calendar.addUnitToDate(baseDate, 'year', yearsToAdd)
+        : baseDate // if nothing else, leave date the same
 
     return newDate
-  }
-  catch (e) {
+  } catch (e) {
     logError('helpers/calcOffsetDate', `${e.message} for baseDateISO '${baseDateISO}'`)
     // $FlowIgnore
     return
@@ -160,7 +142,7 @@ export function calcOffsetDate(baseDateISO: string, interval: string): Date {
  * v2 method, using built-in NotePlan function 'Calendar.addUnitToDate(date, type, num)'
  * NB: doesn't actually use NP functions, but to avoid a circular dependency it needs to be in this file.
  * @author @jgclark
- * 
+ *
  * @param {string} baseDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type
  * @param {interval} string of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in English)
  * @return {string} new date in ISO Date format
@@ -220,14 +202,13 @@ export function quarterStartEnd(qtr: number, year: number): [Date, Date] {
   return [startDate, endDate]
 }
 
-
 /**
- * Return start and end dates for a given week number. 
+ * Return start and end dates for a given week number.
  * Uses ISO 8601 definition of week, except that week start is Sunday not Monday.
  * TODO: Use locale-specific first day of week (e.g. Mon for USA)
  * TODO: Use luxon library to do date math, and move to dateTime.js
  * @author @jgclark
- * 
+ *
  * @param {number} week - week number in year (1-53)
  * @param {number} year - year (4-digits)
  * @return {[Date, Date]}} - start and end dates (as JS Dates)
@@ -242,11 +223,11 @@ export function weekStartEnd(week: number, year: number): [Date, Date] {
   let testWeek = 0
   do {
     firstDay++
-    testWeek = getWeek(new Date(year,0,firstDay))
+    testWeek = getWeek(new Date(year, 0, firstDay))
   } while (testWeek !== 1)
 
-  const startDate: Date = Calendar.addUnitToDate(new Date(year,0,firstDay), 'day', (week-1)*7)
+  const startDate: Date = Calendar.addUnitToDate(new Date(year, 0, firstDay), 'day', (week - 1) * 7)
   const endDate: Date = Calendar.addUnitToDate(startDate, 'day', 6)
   // log('helpers/weekStartEnd', `  -> ${toLocaleTime(startDate)} - ${toLocaleTime(endDate)}`)
-  return [ startDate, endDate ]
+  return [startDate, endDate]
 }
