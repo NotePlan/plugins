@@ -145,23 +145,19 @@ export function getDurationFromLine(line: string, durationMarker: string): numbe
  * @param {*} paragraphsArray
  * @returns
  */
-export function removeDateTagsFromArray(paragraphsArray: $ReadOnlyArray<Paragraph>): Array<Paragraph> {
-  const newPA = paragraphsArray.map((p, i): Paragraph => {
-    const copy: Paragraph = p.duplicate()
-    copy.title = p.title != null ? p.title : ''
-    //$FlowFixMe
-    copy.indents = p.indents
-    copy.type = p.type
-    //$FlowFixMe
-    copy.heading = p.heading ?? ''
-    //$FlowFixMe
-    copy.filename = p.filename ?? ''
-    copy.content = removeDateTagsAndToday(p.content)
-    //$FlowFixMe
-    copy.rawContent = removeDateTagsAndToday(p.rawContent)
-    return copy
-  })
-  return newPA
+export function removeDateTagsFromArray(paragraphsArray: $ReadOnlyArray<Paragraph>): Array<Paragraph> | $ReadOnlyArray<Paragraph> {
+  try {
+    const newPA = paragraphsArray.map((p, i): Paragraph => {
+      const copy: Paragraph = p.duplicate()
+      copy.content = removeDateTagsAndToday(p.content)
+      clo(copy, `copy.content: ${copy.content} and removeDateTagsAndToday: ${removeDateTagsAndToday(p.content)}`)
+      return copy
+    })
+    return newPA
+  } catch (error) {
+    logError(`timeblocking-helppers::removeDateTagsFromArray failed. Error:`, JSP(error))
+  }
+  return paragraphsArray
 }
 
 export const timeIsAfterWorkHours = (nowStr: string, config: TimeBlockDefaults): boolean => {

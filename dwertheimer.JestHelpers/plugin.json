@@ -2,21 +2,20 @@
   "COMMENT": "Details on these fields: https://help.noteplan.co/article/67-create-command-bar-plugins",
   "macOS.minVersion": "10.13.0",
   "noteplan.minAppVersion": "3.4.0",
-  "plugin.id": "{{pluginId}}",
-  "plugin.name": "🧩 {{pluginName}}",
+  "plugin.id": "dwertheimer.JestHelpers",
+  "plugin.name": "🧩 Jest/Mock Helpers",
   "plugin.version": "0.1.0",
-  "plugin.description": "{{pluginDescription}}",
-  "plugin.author": "{{pluginAuthor}}",
+  "plugin.description": "Plugin for helping to create Jest/Mocks",
+  "plugin.author": "dwertheimer",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
-  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/{{pluginId}}/README.md",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.JestHelpers/README.md",
   "plugin.commands": [
     {
-      "name": "Say Hello from {{pluginId}}! (change this to your own command)",
-      "description": "Your first plugin!",
-      "jsFunction": "sayHello",
+      "name": "Generate Mock",
+      "description": "Output mock for NP object to console",
+      "jsFunction": "generateMock",
       "alias": [
-        "helloWorld Alias"
       ],
       "arguments": ["Append this text to document"]
     }
@@ -25,7 +24,7 @@
     {
       "COMMENT": "Plugin settings documentation: https://help.noteplan.co/article/123-plugin-configuration",
       "type": "heading",
-      "title": "{{pluginName}} Settings"
+      "title": "Jest/Mock Helpers Settings"
     },
     {
       "title": "A string in prefs",
@@ -37,7 +36,7 @@
     {
       "key": "version",
       "type": "hidden",
-      "description": "{{pluginName}} Settings Version"
+      "description": "Jest/Mock Helpers Settings Version"
     }
   ]
 }

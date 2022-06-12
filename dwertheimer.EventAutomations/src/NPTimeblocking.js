@@ -130,11 +130,8 @@ function getTodaysReferences(pNote: TNote | null = null, config: { [key: string]
     console.log(`timeblocking could not open Note`)
     return []
   }
-
   const backlinks: Array<TParagraph> = [...note.backlinks] // an array of notes which link to this note
   log(pluginJson, `backlinks.length:${backlinks.length}`)
-
-  // clo(backlinks, 'getTodaysReferences: backlinks')
   let todayParas = []
   backlinks.forEach((link, i) => {
     // $FlowIgnore Flow(prop-missing) -- subItems is not in Flow defs but is real
@@ -144,15 +141,6 @@ function getTodaysReferences(pNote: TNote | null = null, config: { [key: string]
       todayParas.push(subItem)
     })
   })
-
-  // clo(todayParas, 'todayParas')
-  // if (config.createSyncedCopies) {
-  // Do not want to pick up the same task multiple times. In the syncedCopies section,
-  // tasks will not match, because they have a time at the front plus the task name plus a link
-  // someday maybe do the compare this way:
-  // isAutoTimeBlockLine()
-  log(pluginJson, `getTodaysReferences: Cannot search today's note for >today items when config.createSyncedCopies is on, because could be recursive`)
-  // } else {
   let todosInNote = findTodosInNote(note)
   if (todosInNote.length > 0) {
     log(pluginJson, `getTodaysReferences: todosInNote Found ${todosInNote.length} items in today's note. Adding them.`)
@@ -161,8 +149,6 @@ function getTodaysReferences(pNote: TNote | null = null, config: { [key: string]
     todosInNote = todosInNote.filter((todo) => !/\^[a-zA-Z0-9]{6}/.test(todo.content))
     todayParas = [...todayParas, ...todosInNote]
   }
-  // }
-  // console.log(`getTodaysReferences note.filename=${note.filename} backlinks.length=${backlinks.length} todayParas.length=${todayParas.length}`)
   return todayParas
 }
 
@@ -350,6 +336,8 @@ function getFullParagraphsCorrespondingToSortList(paragraphs: Array<TParagraph>,
   if (sortList && paragraphs) {
     retP = sortList.map((s) => {
       const found = paragraphs.find((p, i) => {
+        log(pluginJson, `getFullParagraphsCorrespondingToSortList: ${i} cleanContent=${removeDateTagsAndToday(p.rawContent)} p.raw=${p.rawContent} s.raw = ${s.raw}`)
+        // FIXME: s.raw has links and is not clean
         return removeDateTagsAndToday(p.rawContent) === s.raw && p.filename === s.filename
       })
       return found
@@ -423,6 +411,7 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: mi
   if (dateStr && dateStr === date) {
     log(pluginJson, `createTimeBlocksForTodaysTasks dateStr=${dateStr} is today - we are inside`)
     const todosParagraphs = await getTodaysFilteredTodos(config)
+    console.log(`Back from getTodaysFilteredTodos, ${todosParagraphs.length} potential items`)
     const cleanTodayTodoParas = removeDateTagsFromArray(todosParagraphs)
     console.log(`After removeDateTagsFromArray, ${cleanTodayTodoParas.length} potential items`)
     const todosWithLinksMaybe = appendLinkIfNecessary(cleanTodayTodoParas, config)

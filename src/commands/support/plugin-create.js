@@ -20,29 +20,15 @@ module.exports = {
     try {
       const ghUserLocal = await gitUserLocal()
       const ghUserName = await githubUsername(ghUserLocal.user.email)
-      !toolbox.arguments.hasOwnProperty('id')
-        ? questions.push(
-            buildQuestion('pluginId', 'What would you like to name your plugin?', `${ghUserName}.PluginName`),
-          )
-        : null
+      !toolbox.arguments.hasOwnProperty('id') ? questions.push(buildQuestion('pluginId', 'What would you like to name your plugin?', `${ghUserName}.PluginName`)) : null
 
       !toolbox.arguments.hasOwnProperty('name')
-        ? questions.push(
-            buildQuestion(
-              'pluginName',
-              'Name as it will appear in NotePlan Preferences Plugins List?',
-              `My Plugin Name`,
-            ),
-          )
+        ? questions.push(buildQuestion('pluginName', 'Name as it will appear in NotePlan Preferences Plugins List?', `My Plugin Name`))
         : null
 
-      !toolbox.arguments.hasOwnProperty('description')
-        ? questions.push(buildQuestion('pluginDescription', 'Simple Plugin Description', `My Plugin for NotePlan`))
-        : null
+      !toolbox.arguments.hasOwnProperty('description') ? questions.push(buildQuestion('pluginDescription', 'Simple Plugin Description', `My Plugin for NotePlan`)) : null
 
-      !toolbox.arguments.hasOwnProperty('author')
-        ? questions.push(buildQuestion('pluginAuthor', 'Your Name or Organization', ghUserName))
-        : null
+      !toolbox.arguments.hasOwnProperty('author') ? questions.push(buildQuestion('pluginAuthor', 'Your Name or Organization', ghUserName)) : null
 
       let answers = {}
       if (questions.length > 0) {
@@ -80,7 +66,7 @@ module.exports = {
       result = await this.merge(path.join(dest, 'plugin.json'), pluginInfo)
       result = await this.merge(path.join(dest, 'README.md'), pluginInfo)
       result = await this.merge(path.join(dest, 'changelog.md'), pluginInfo)
-      result = await this.merge(path.join(dest, 'src', 'NPHelloWorld.js'), pluginInfo)
+      result = await this.merge(path.join(dest, 'src', 'NPPluginMain.js'), pluginInfo)
 
       result = await this.merge(path.join(dest, '__tests__', 'utils.test.js'), pluginInfo)
 
