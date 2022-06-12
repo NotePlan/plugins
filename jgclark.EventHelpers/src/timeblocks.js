@@ -7,7 +7,7 @@
 // ------------------------------------------------------------------------------------
 
 import { getEventsSettings } from './config'
-import { writeTimeBlocksToCalendar } from '../../helpers/NPCalendar'
+import { writeTimeBlocksToCalendar } from '@helpers/NPCalendar'
 
 /**
  * Go through current Editor note, identify time blocks to turn into events,

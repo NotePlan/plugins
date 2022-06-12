@@ -131,7 +131,7 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
     logWarn('NPCalendar/writeTimeBlocksToCalendar()', 'no content found')
     return
   }
-  // $FlowIgnore - Flow doesn't like note or Editor being called here. But for these purposes they should be identical
+  // $FlowFixMe - Flow doesn't like note or Editor being called here. But for these purposes they should be identical
   const noteTitle = displayTitle(note)
   log('NPCalendar/writeTimeBlocksToCalendar()', `for note '${noteTitle}' ...`)
 
