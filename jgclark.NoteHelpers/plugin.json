@@ -73,6 +73,15 @@
       ],
       "description": "Convert the current note to use frontmatter syntax, including some default text that can be added in the Plugin's settings",
       "jsFunction": "convertToFrontmatter"
+    },
+    {
+      "name": "Add number of days to dates",
+      "alias": [
+        "count days",
+        "count and add days"
+      ],
+      "description": "Look for bullets mentioning dats and add number of days till that date",
+      "jsFunction": "countAndAddDays"
     }
   ],
   "plugin.settings": [
