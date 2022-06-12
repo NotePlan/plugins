@@ -369,6 +369,7 @@ declare class DataStore {
    *   "fontFamily"              // Font family defined in editor preferences (might be overwritten by custom theme)
    *   "timeblockTextMustContainString" // Optional text to trigger timeblock detection in a line
    * Others can be set by plugins.
+   * Note: these keys and values do not sync across a user's devices; they are only local.
    */
   static +preference: (key: string) => mixed;
   /**
@@ -378,8 +379,8 @@ declare class DataStore {
    * To change a NotePlan preference, use the keys found in the description of the function `.preference(key)`.
    * You can also save custom preferences specific to the plugin, if you need any.
    * repend it with the plugin id or similar to avoid collisions with existing keys.
-   *
-   * __Note:__ Available from NotePlan v3.1
+   * Note: these keys and values do not sync across a user's devices; they are only local.
+   * Note: Available from NotePlan v3.1
    * @param {string}
    * @param {any}
    */
@@ -404,20 +405,20 @@ declare class DataStore {
    */
   static loadJSON(filename?: string): Object;
   /**
-   * Note: Available from NotePlan v3.2+
    * Save data to a file, as base64 string. The file will be saved under "[NotePlan Folder]/Plugins/data/[plugin-id]/[filename]".
    * Returns true if the file could be saved, false if not and prints the error.
+   * Note: Available from NotePlan v3.2+
    * @param {String}
    * @param {String}
    * @return {Boolean}
    */
   static saveData(data: string, filename: string): boolean;
   /**
-   * Note: Available from NotePlan v3.2+
    * Load binary data from file encoded as base64 string.
    * The file has to be located in "[NotePlan Folder]/Plugins/data/[plugin-id]/[filename]".
    * You can access the files of other plugins as well, if the filename is known using relative paths "../[other plugin-id]/[filename]" or simply go into the "data"'s root directory "../[filename]" to access a global file.
    * Returns undefined, if the file couldn't be loaded and prints an error message.
+   * Note: Available from NotePlan v3.2+
    * @param {String}
    * @return {String?}
    */
