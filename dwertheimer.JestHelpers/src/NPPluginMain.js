@@ -70,7 +70,10 @@ function createMockOutput(object: any, name: string): void {
 export async function generateMock(incoming: ?string = ''): Promise<void> {
   // every command/plugin entry point should always be wrapped in a try/catch block
   try {
-    createMockOutput(Editor, `Editor`)
+    const name = await getInput('What is the name of the mock?')
+    console.log(this[name])
+    if (name && this[name]) createMockOutput(this[name], name)
+    else console.log(`No object for ${name || ''}`)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }

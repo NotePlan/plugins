@@ -1,0 +1,33 @@
+/*
+ * Calendar mocks
+ *
+ * Note: nested object example data are there for reference only -- will need to be deleted or cleaned up before use (consider using a factory)
+ * For functions: check whether async or not & add params & return value
+ *
+ */
+
+const Calendar = {
+  // async add() { return null },
+  // async addUnitToDate() { return null },
+  // async availableCalendarTitles() { return null },
+  // async availableReminderListTitles() { return null },
+  // async dateFrom() { return null },
+  /* dateUnits: [{ return second }], */
+  // async eventByID() { return null },
+  // async eventsBetween() { return null },
+  // async eventsToday() { return null },
+  // async parseDateText() { return null },
+  // async reminderByID() { return null },
+  // async remindersBetween() { return null },
+  // async remindersByLists() { return null },
+  // async remindersToday() { return null },
+  // async remove() { return null },
+  // async timeAgoSinceNow() { return null },
+  // async unitOf() { return null },
+  // async unitsAgoFromNow() { return null },
+  // async unitsBetween() { return null },
+  // async unitsUntilNow() { return null },
+  // async update() { return null },
+}
+
+module.exports = Calendar
