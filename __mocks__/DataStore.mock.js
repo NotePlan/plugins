@@ -47,21 +47,21 @@ const DataStore = {
   // async newNoteWithContent() { return null },
   // async noteByFilename() { return null },
 
-	preference(key: string = ''): string {
-		console.log(key)
-		switch (key) {
-			case 'timeblockTextMustContainString':
-				return '' // set to blank to mimic no additional NP checking of text strings
-				break
-			case 'isAsteriskTodo':
-				return true
-				break
+  preference(key: string = ''): string {
+    console.log(key)
+    switch (key) {
+      case 'timeblockTextMustContainString':
+        return '' // set to blank to mimic no additional NP checking of text strings
+        break
+      case 'isAsteriskTodo':
+        return true
+        break
 
-			default:
-				return ''
-				break
-		}
-	},
+      default:
+        return ''
+        break
+    }
+  },
 
   // async projectNoteByFilename() { return null },
   // async projectNoteByTitle() { return null },

@@ -18,7 +18,7 @@ const Editor = {
   /* availableThemes: [{ return default }], */
   // content: VALUE ,
   // async copySelection() { return null },
-  // filename: VALUE ,
+  filename: 'thisFileName.txt',
   // async highlight() { return null },
   // async highlightByIndex() { return null },
   // async highlightByRange() { return null },

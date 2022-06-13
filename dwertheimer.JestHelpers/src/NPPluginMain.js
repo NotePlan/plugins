@@ -56,7 +56,7 @@ function createMockOutput(object: any, name: string): void {
     } else {
       propType = 'value'
       value = `
-\t// ${prop}: VALUE ,`
+\t// ${prop}: VALUE,`
     }
     return `${value}`
   })
@@ -70,14 +70,41 @@ function createMockOutput(object: any, name: string): void {
 export async function generateMock(incoming: ?string = ''): Promise<void> {
   // every command/plugin entry point should always be wrapped in a try/catch block
   try {
-    createMockOutput(Editor, `Editor`)
+    const name = await getInput('What is the name of the mock?')
+    console.log(this[name])
+    if (name && this[name]) createMockOutput(this[name], name)
+    else console.log(`No object for ${name || ''}`)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
 }
 
-export async function testOfDataStoreAccess(): any {
-  const settings = DataStore.settings
-  clo(settings, 'settings')
-  return settings
+// Returns NP object to prove that the mock is working from inside NP calls
+export async function getCalendar(): any {
+  return Calendar
+}
+
+// Returns NP object to prove that the mock is working from inside NP calls
+export async function getClipboard(): any {
+  return Clipboard
+}
+
+// Returns NP object to prove that the mock is working from inside NP calls
+export async function getCommandBar(): any {
+  return CommandBar
+}
+
+// Returns NP object to prove that the mock is working from inside NP calls
+export async function getDataStore(): any {
+  return DataStore
+}
+
+// Returns NP object to prove that the mock is working from inside NP calls
+export async function getEditor(): any {
+  return Editor
+}
+
+// Returns NP object to prove that the mock is working from inside NP calls
+export async function getNotePlan(): any {
+  return NotePlan
 }

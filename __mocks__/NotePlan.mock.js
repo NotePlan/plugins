@@ -29,7 +29,7 @@ const NotePlan = {
 } ,  */
   // async openURL() { return null },
   // async resetCaches() { return null },
-  // selectedSidebarFolder: VALUE ,
+  selectedSidebarFolder: `SelectedFolder`,
   // async showConfigurationView() { return null },
 }
 
