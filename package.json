@@ -89,7 +89,7 @@
     "format": "prettier -w ./**/*.js ./**/**/*.js ./**/**/**/*.js",
     "typecheck": "flow check",
     "fix": "npm run lint-fix && npm run format",
-    "test": "npm run lint && npm run typecheck",
+    "test": "jest",
     "test:dev": "jest",
     "test:watch": "jest --watch",
     "security": "npm run security:high && npm run security:critical",
