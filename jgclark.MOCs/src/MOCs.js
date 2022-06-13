@@ -1,6 +1,6 @@
 // @flow
 //-----------------------------------------------------------------------------
-// Last updated 9.6.2022 for v0.8.0, @jgclark
+// Last updated 11.6.2022 for v0.2.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -10,7 +10,7 @@ import {
 import {
   nowLocaleDateTime,
 } from '@helpers/dateTime'
-import { log, logWarn, logError } from '@helpers/dev'
+import { clo, log, logError, logWarn } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import {
   displayTitle,
@@ -35,9 +35,11 @@ const configKey = 'mocs'
 
 export type headingLevelType = 1 | 2 | 3 | 4 | 5
 export type MOCsConfig = {
+  caseInsensitive: boolean,
   foldersToExclude: Array<string>,
   headingLevel: headingLevelType,
   resultPrefix: string,
+  resultSortOrder: string,
   showEmptyOccurrences: boolean,
 }
 
@@ -106,20 +108,7 @@ export async function makeMOC(): Promise<void> {
   log(pluginJson, `  found ${existingNotes.length} existing ${requestedTitle} notes`)
   if (existingNotes.length > 0) {
     note = existingNotes[0] // pick the first if more than one
-
-    // As note exists already, read in the current MOC entries
-    // // TODO: Decide whether this section is actually useful
-    // const existingTitles: Array<string> = []
-    // const numCharsToStripFromFront = config.resultPrefix.length + 3
-    // for (const n of note.paragraphs) {
-    //   if (n.rawContent.startsWith(config.resultPrefix)) {
-    //     existingTitles.push(n.rawContent.slice(numCharsToStripFromFront, -2)) // remove prefix+[[ and ]]
-    //   }
-    // }
-
     log(pluginJson, `  will write MOC to existing note: ${displayTitle(note)}`)
-    // console.log(existingTitles.toString())
-
   } else {
     // make a new note for this. NB: filename here = folder + filename
     const noteFilename = DataStore.newNote(requestedTitle, folderName) ?? ''
@@ -152,48 +141,65 @@ export async function makeMOC(): Promise<void> {
   }
   log(pluginJson, `Will use ${projectNotesToInclude.length} project notes out of ${allProjectNotes.length}`)
 
-  // Sort this list by last updated date, to deal with newest first
-  projectNotesToInclude.sort((a, b) => (a.changedDate > b.changedDate ? -1 : 1))
+  // Sort this list by whatever the user's setting says
+  // (Need to do this before the gatherMatchingLines, as afterwards we don't have date information.)
+  switch (config.resultSortOrder) {
+    case 'alphabetical':
+      projectNotesToInclude.sort((a, b) => (displayTitle(a).toUpperCase() < displayTitle(b).toUpperCase() ? -1 : 1))
+      break
+    case 'createdDate':
+      projectNotesToInclude.sort((a, b) => (a.createdDate > b.createdDate ? -1 : 1))
+      break
+    default: // updatedDate
+      projectNotesToInclude.sort((a, b) => (a.changedDate > b.changedDate ? -1 : 1))
+      break
+  }
 
   // Main loop: find entries and then decide whether to add or not
   log(pluginJson, `makeMOC: looking for '${String(stringsToMatch)}' over all notes:`)
   // Find matches in this set of notes
   for (const searchTerm of stringsToMatch) {
     const outputArray = []
-    const results = await gatherMatchingLines(projectNotesToInclude, searchTerm, false, 'none')
-    const resultTitles = results?.[1]
+    const results = await gatherMatchingLines(projectNotesToInclude, searchTerm, false, 'none', config.caseInsensitive)
+    let resultTitles = results?.[1]
     if (resultTitles.length > 0) {
       // dedupe results by making and unmaking it into a set
       let uniqTitlesAsLinks = [...new Set(resultTitles)]
+      // remove [[ and ]]
       let uniqTitles: Array<string> = uniqTitlesAsLinks.map((element) => {
-        return element.slice(2, -2) // remove [[ and ]]
+        return element.slice(2, -2)
       })
-
       // remove this note title (if it exists)
       uniqTitles = uniqTitles.filter((t) => t !== requestedTitle)
 
-      // Decide whether to add this section
-      const myn = await showMessageYesNo(`There are ${uniqTitles.length} matches for '${searchTerm}'. Shall I add them?`, ['Yes', 'No', 'Cancel'], `Make MOC: ${requestedTitle}`)
-      if (typeof myn === 'boolean' || myn === 'Cancel') {
-        // i.e. user has cancelled
-        log(pluginJson, `User has cancelled operation.`)
-        return
-      }
-      if (myn === 'Yes') {
-        // write all (wanted) lines out out, starting with a heading if needed
-        for (let i = 0; i < uniqTitles.length; i++) {
-          outputArray.push(`${config.resultPrefix} [[${uniqTitles[i]}]]`)
+      if (uniqTitles.length > 0) {
+        // Decide whether to add this section
+        const myn = await showMessageYesNo(`There are ${uniqTitles.length} matches for '${searchTerm}'. Shall I add them?`, ['Yes', 'No', 'Cancel'], `Make MOC: ${requestedTitle}`)
+        if (typeof myn === 'boolean' || myn === 'Cancel') {
+          // i.e. user has cancelled
+          log(pluginJson, `User has cancelled operation.`)
+          return
         }
-        // Write new lines to end of active section of note
-        replaceContentUnderHeading(note, `'${searchTerm}'`, outputArray.join('\n'), true, config.headingLevel)
+        if (myn === 'Yes') {
+          // write all (wanted) lines out out, starting with a heading if needed
+          for (let i = 0; i < uniqTitles.length; i++) {
+            outputArray.push(`${config.resultPrefix} [[${uniqTitles[i]}]]`)
+          }
+          // Write new lines to end of active section of note
+          replaceContentUnderHeading(note, `'${searchTerm}'`, outputArray.join('\n'), true, config.headingLevel)
+        }
+      } else {
+        if (config.showEmptyOccurrences) {
+          replaceContentUnderHeading(note, `'${searchTerm}'`, `No notes found`, true, config.headingLevel)
+        } else {
+          log(pluginJson, `- no matches for search term '${searchTerm}'`)
+        }
       }
-
     } else {
-      // If there's nothing to report, tell user or note in the log
       if (config.showEmptyOccurrences) {
         replaceContentUnderHeading(note, `'${searchTerm}'`, `No notes found`, true, config.headingLevel)
       } else {
-        logWarn(pluginJson, `no matches for search term '${searchTerm}'`)
+        log(pluginJson, `- no matches for search term '${searchTerm}'`)
       }
     }
   }

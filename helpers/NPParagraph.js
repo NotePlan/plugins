@@ -2,7 +2,12 @@
 
 import { hyphenatedDate } from './dateTime'
 import { log, clo, JSP } from './dev'
-import { findStartOfActivePartOfNote, findEndOfActivePartOfNote, termInURL } from './paragraph'
+import {
+  findStartOfActivePartOfNote,
+  findEndOfActivePartOfNote,
+  termInMarkdownPath,
+  termInURL
+} from './paragraph'
 
 /**
  * Remove all headings (type=='title') from a note matching the given text
@@ -221,6 +226,7 @@ export function getParagraphBlock(note: TNote, selectedParaIndex: number, useExt
  * @param {string} stringToLookFor - string to look for
  * @param {boolean} highlightOccurrences - whether to enclose found string in ==highlight marks==
  * @param {string} dateStyle - where the context for an occurrence is a date, does it get appended as a 'date' using your locale, or as a NP date 'link' (`> date`) or 'none'
+ * @param {boolean} caseInsensitive - whether to search case insensitively (default: false)
  * @return [Array, Array] - array of lines with matching term, and array of contexts for those lines (dates for daily notes; title for project notes).
  */
 export async function gatherMatchingLines(
@@ -228,10 +234,12 @@ export async function gatherMatchingLines(
   stringToLookFor: string,
   highlightOccurrences: boolean = true,
   dateStyle: string = 'link',
+  caseInsensitive: boolean = false
 ): Promise<[Array<string>, Array<string>]> {
   log('NPparagraph/gatherMatchingLines', `Looking for '${stringToLookFor}' in ${notes.length} notes`)
-  CommandBar.showLoading(true, `Searching in ${notes.length} notes ...`)
-  await CommandBar.onAsyncThread()
+  // Don't know why this loading indicator stopped working
+  // CommandBar.showLoading(true, `Searching in ${notes.length} notes ...`)
+  // await CommandBar.onAsyncThread()
 
   const matches: Array<string> = []
   const noteContexts: Array<string> = []
@@ -251,30 +259,45 @@ export async function gatherMatchingLines(
               // $FlowIgnore(incompatible-call)
               ? ` @${hyphenatedDate(n.date)} `
               : ''
+
+    // set up regex for searching, now with word boundaries on either side
     // find any matches
-    const matchingParas = n.paragraphs.filter((q) => q.content.includes(stringToLookFor))
+    const stringToLookForWithDelimiters = `\\b${stringToLookFor}\\b`
+    const re = (caseInsensitive) ? new RegExp(stringToLookForWithDelimiters, "i") : new RegExp(stringToLookForWithDelimiters)
+    const matchingParas = n.paragraphs.filter((q) => re.test(q.content))
     for (const p of matchingParas) {
       let matchLine = p.content
+      // If the test is within a URL or the path of a [!][link](path) skip this result
+      if (termInURL(stringToLookFor, matchLine)) {
+        log('NPparagraph/gatherMatchingLines', `- Info: Match '${stringToLookFor}' ignored in '${matchLine} because it's in a URL`)
+        continue
+      }
+      if (termInMarkdownPath(stringToLookFor, matchLine)) {
+        log('NPparagraph/gatherMatchingLines', `- Info: Match '${stringToLookFor}' ignored in '${matchLine} because it's in a [...](path)`)
+        continue
+      }
       // If the stringToLookFor is in the form of an 'attribute::' and found at the start of a line,
       // then remove it from the output line
       if (stringToLookFor.endsWith('::') && matchLine.startsWith(stringToLookFor)) {
         matchLine = matchLine.replace(stringToLookFor, '') // NB: only removes first instance
-        // log('NPparagraph/gatherMatchingLines', `    -> ${ matchLine } `)
       }
       // Highlight matches if requested ... but we need to be smart about this:
       // don't do so if we're in the middle of a URL or the path of a [!][link](path)
-      if (highlightOccurrences && !termInURL(stringToLookFor, matchLine)) {
+      if (highlightOccurrences && !termInURL(stringToLookFor, matchLine) /** && !termInMarkdownPath(stringToLookFor, matchLine) */) {
         matchLine = matchLine.replace(stringToLookFor, `==${stringToLookFor}== `)
       }
-      // log('NPparagraph/gatherMatchingLines', `    -> ${ matchLine } `)
       matches.push(matchLine.trim())
+      // log('NPparagraph/gatherMatchingLines', `${n.title ?? ''}: ${matchLine}`)
       noteContexts.push(noteContext)
     }
     if (i % 100 === 0) {
-      CommandBar.showLoading(true, `Searching in ${notes.length} notes ...`, i / notes.length)
+      // Don't know why this loading indicator stopped working
+      // CommandBar.showLoading(true, `Searching in ${notes.length} notes ...`, i / notes.length)
     }
   }
-  await CommandBar.onMainThread()
-  CommandBar.showLoading(false)
+  // Don't know why this loading indicator stopped working
+  // await CommandBar.onMainThread()
+  // CommandBar.showLoading(false)
+  console.log(`Finished gatherMatchingLines().`)
   return [matches, noteContexts]
 }

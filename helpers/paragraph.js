@@ -18,9 +18,24 @@ import { log, logError, logWarn } from './dev'
  * @return {boolean} true if found
  */
 export function termInURL(term: string, searchString: string): boolean {
-  // create tailored Regex to test for presence of the term in the file/URL
+  // create tailored Regex to test for presence of the term
   const testTermInURI = `(?:https?://|file:/)[^\\s]*?${term}.*?[\\s\\.$]`
   return !!searchString.match(testTermInURI)
+}
+
+/**
+ * Check to see if search term is present within the path of a [...](path)
+ * @author @jgclark
+
+ * @param {string} term - term to check
+ * @param {string} string - string to check in
+ * @return {boolean} true if found
+ */
+export function termInMarkdownPath(term: string, searchString: string): boolean {
+  // create tailored Regex to test for presence of the term
+  const testTermInURI = `\[.+?\]\([^\\s]*?${term}[^\\s]*?\)`
+  return !!searchString.match(testTermInURI)
+  // return false
 }
 
 /**
