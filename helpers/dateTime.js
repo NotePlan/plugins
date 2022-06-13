@@ -4,7 +4,7 @@
 // @jgclark except where shown
 
 import strftime from 'strftime'
-import { Datetime } from 'luxon-business-days'
+import { DateTime } from 'luxon-business-days'
 import { Duration } from 'luxon' // having done 'npm install --save luxon'
 import { formatISO9075 } from 'date-fns'
 import { log, logError } from './dev'
