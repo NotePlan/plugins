@@ -4,7 +4,8 @@
 // @jgclark except where shown
 
 import strftime from 'strftime'
-import { Duration, DateTime } from 'luxon' // having done 'npm install --save luxon'
+import { Datetime } from 'luxon-business-days'
+import { Duration } from 'luxon' // having done 'npm install --save luxon'
 import { formatISO9075 } from 'date-fns'
 import { log, logError } from './dev'
 
@@ -78,15 +79,27 @@ export function toISOShortDateTimeString(dateObj: Date): string {
   return dateObj.toISOString().slice(0, 16)
 }
 
-export function toLocaleDateTimeString(dateObj: Date, locale: string | Array<string> = [], options: Intl$DateTimeFormatOptions = {}): string {
+export function toLocaleDateTimeString(
+  dateObj: Date,
+  locale: string | Array<string> = [],
+  options: Intl$DateTimeFormatOptions = {},
+): string {
   return dateObj.toLocaleString(locale, options)
 }
 
-export function toLocaleDateString(dateObj: Date, locale: string | Array<string> = [], options: Intl$DateTimeFormatOptions = {}): string {
+export function toLocaleDateString(
+  dateObj: Date,
+  locale: string | Array<string> = [],
+  options: Intl$DateTimeFormatOptions = {},
+): string {
   return dateObj.toLocaleDateString(locale, options)
 }
 
-export function toLocaleTime(dateObj: Date, locale: string | Array<string> = [], options: Intl$DateTimeFormatOptions = {}): string {
+export function toLocaleTime(
+  dateObj: Date,
+  locale: string | Array<string> = [],
+  options: Intl$DateTimeFormatOptions = {},
+): string {
   return dateObj.toLocaleTimeString(locale, options)
 }
 
@@ -161,7 +174,20 @@ export function removeDateTagsAndToday(tag: string): string {
     .trimEnd()
 }
 
-export const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+export const months = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+]
 export const monthsAbbrev = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 export function monthNameAbbrev(m: number): string {
@@ -394,7 +420,10 @@ export function getWeek(inDate: Date): number {
  */
 export function weekStartEnd(week: number, year: number): [Date, Date] {
   if (week > 53 || week < 1) {
-    log('helpers/weekStartEnd', `warning: invalid week number ${week} given, but will still calculate correctly, relative to year ${year}.`)
+    log(
+      'helpers/weekStartEnd',
+      `warning: invalid week number ${week} given, but will still calculate correctly, relative to year ${year}.`,
+    )
   }
 
   let firstDay = 0
