@@ -1,6 +1,11 @@
 # What's changed in 📙 Note Helpers plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/).
 
+## [0.14.0] - 2022-06-12
+### Added
+- new command `"/Add number of days to dates"` that looks for bullets in your current open note that end with `[[YYYY-MM-DD]]:` and adds
+  the number of days to or since that date.
+
 ## [0.13.0] - 2022-06-02
 ### Added
 - new command "/open current note new split" opens the current note in a new split window to the side in the main window
