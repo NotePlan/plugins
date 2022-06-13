@@ -15,6 +15,9 @@ describe('dwertheimer.JestHelpers' /* pluginID */, () => {
         const res = DataStore.settings //works because DataStore is mocked inside this context
         expect(res?.settingsFieldName).toEqual('Settings field value')
       })
+      test('should return undefined for mocks not created yet', async () => {
+        expect(await DataStore.calendarNoteByDate()).toEqual(undefined)
+      })
     })
     describe('NP file settings mock' /* function */, () => {
       test('should return a settings object with settingsFieldName', async () => {
