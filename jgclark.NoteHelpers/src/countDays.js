@@ -9,9 +9,10 @@ export async function countAndAddDays(): Promise<void> {
     return
   }
 
-  let insertedCharacters = 0
+  //   let insertedCharacters = 0
   let matches = 0
-  for (let para of note.paragraphs) {
+  const paragraphs = note.paragraphs
+  for (let para of paragraphs) {
     if (para.type !== 'list') {
       continue
     }
@@ -32,10 +33,10 @@ export async function countAndAddDays(): Promise<void> {
     }
     matches++
     const stringToInsert = days > 0 ? ` **${days}** days to go!` : days < 0 ? ` **${-days}** ago!` : ` **today!**`
-    Editor.insertTextAtCharacterIndex(` **${days}** days to go!`, insertAtIndex + insertedCharacters)
-    insertedCharacters += stringToInsert.length
+    para.content = para.content + stringToInsert
+    // Editor.insertTextAtCharacterIndex(` **${days}** days to go!`, insertAtIndex + insertedCharacters)
   }
-  note.content = note.content
+  note.paragraphs = paragraphs
   await showMessage(`Added ${matches} dates`)
 }
 
