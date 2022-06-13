@@ -7,7 +7,7 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.MOCs/",
-  "plugin.version": "0.1.0",
+  "plugin.version": "0.2.0",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -31,6 +31,14 @@
     {
       "type": "heading",
       "title": "MOCs plugin settings"
+    },
+    {
+      "key": "caseInsensitive",
+      "title": "Case insensitive searching?",
+      "description": "Are searches case insensitive?",
+      "type": "bool",
+      "default": false,
+      "required": true
     },
     {
       "key": "foldersToExclude",
@@ -57,6 +65,19 @@
       "description": "String to put at the start of each note link. Default is '- '. Can also be empty.",
       "type": "string",
       "default": "- ",
+      "required": true
+    },
+    {
+      "key": "resultSortOrder",
+      "title": "Sort order for results",
+      "description": "Whether results are sorted alphabetically (the default), by created date, or by last updated date",
+      "type": "string",
+      "choices": [
+        "alphabetical",
+        "createdDate",
+        "updatedDate"
+      ],
+      "default": "alphabetical",
       "required": true
     },
     {

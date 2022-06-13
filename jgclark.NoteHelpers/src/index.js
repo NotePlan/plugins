@@ -11,6 +11,7 @@ import pluginJson from '../plugin.json'
 import { log, logError } from '@helpers/dev'
 // settings
 import { migrateConfiguration, updateSettingData } from '@helpers/NPconfiguration'
+export { countAndAddDays } from './countDays'
 
 export {
   convertToFrontmatter,
