@@ -7,10 +7,16 @@ For example:
 
 import *as helpers from '../src/support/helpers'
 import* as NPfile from '../src/NPPluginMain'
-import DataStore from '../../__mocks__/DataStore.mock'
+import { Calendar, Clipboard, CommandBar, DataStore, Editor } from '@mocks/index'
+
 beforeAll(() => {
+  global.Calendar = Calendar
+  global.Clipboard = Clipboard
+  global.CommandBar = CommandBar
   global.DataStore = DataStore
+  global.Editor = Editor
 })
+
 describe('dwertheimer.JestHelpers' /*pluginID*/, () => {
   describe('DataStore' /*file*/, () => {
     describe('NP file settings mock' /*function*/, () => {

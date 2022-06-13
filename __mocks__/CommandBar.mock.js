@@ -11,7 +11,7 @@ const CommandBar = {
   // async onAsyncThread() { return null },
   // async onMainThread() { return null },
   // async openURL() { return null },
-  // placeholder: VALUE ,
+  placeholder: 'CommandBar placeholder',
   // async prompt() { return null },
   // searchText: VALUE ,
   // async showInput() { return null },

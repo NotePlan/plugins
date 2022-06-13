@@ -14,7 +14,7 @@ const Clipboard = {
   // async setBase64DataStringForType() { return null },
   // async setDataForType() { return null },
   // async setStringForType() { return null },
-  // string: VALUE ,
+  string: 'clipString',
   // async stringForType() { return null },
   /* types: [{ return public.utf8-plain-text }], */
 }

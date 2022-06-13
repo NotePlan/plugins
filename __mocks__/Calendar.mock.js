@@ -9,7 +9,13 @@
 const Calendar = {
   // async add() { return null },
   // async addUnitToDate() { return null },
-  // async availableCalendarTitles() { return null },
+  availableCalendarTitles(writeOnly: boolean) {
+    if (writeOnly) {
+      return ['cal1']
+    } else {
+      return ['cal1', 'cal2']
+    }
+  },
   // async availableReminderListTitles() { return null },
   // async dateFrom() { return null },
   /* dateUnits: [{ return second }], */
