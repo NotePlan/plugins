@@ -27,6 +27,7 @@ import { getInput } from '@helpers/userInput'
  * @param {*} name
  */
 function createMockOutput(object: any, name: string): void {
+  log(`NPdev::createMockOutput object type is: `, `${typeof object}`)
   const props = getFilteredProps(object).sort()
   let output = props.map((prop) => {
     let propType,
@@ -34,7 +35,7 @@ function createMockOutput(object: any, name: string): void {
     if (typeof object[prop] === 'object') {
       if (Array.isArray(object[prop])) {
         propType = 'array'
-        let objdetail = 'return { SOMETHING } '
+        let objdetail = ' SOMETHING '
         if (object[prop].length) {
           objdetail = `{ return ${JSP(object[prop][0], `\t\t`)} }`
         }
@@ -43,8 +44,10 @@ function createMockOutput(object: any, name: string): void {
       } else {
         propType = 'object'
         let objdetail = '{ SOME_OBJECT_DATA }'
-        if (object[prop]) {
+        if (object[prop] && !(object[prop] instanceof Date)) {
           objdetail = `${JSP(object[prop], `\t\t`)} `
+        } else {
+          objdetail = `${object[prop].toString()} // (Date object)`
         }
         value = `
 \t/* ${prop}: ${objdetail},  */`
@@ -67,9 +70,84 @@ function createMockOutput(object: any, name: string): void {
   )
 }
 
+function getMockClassText(name: string, props: Array<string>, methods: Array<string>): void {
+  const template = `
+/* 
+ * ${name} mock class
+ *
+ * Usage: const my${name} = new ${name}({ param changes here })
+ *
+ */
+
+export class ${name} {
+
+  // Properties
+  ${props.sort().join('\n')}
+
+  // Methods
+  ${methods.sort().join('\n')}
+
+  constructor(data?: any = {}) {
+    this.__update(data)
+  }
+
+  __update(data?: any = {}) {
+    Object.keys(data).forEach((key) => {
+      this[key] = data[key]
+    })
+    return this
+  }
+}
+`
+  return template
+}
+
+export function createMockClass(object: any, name: string): void {
+  log(`NPdev::createMockOutput object type is: `, `${typeof object}`)
+  let classProps = [],
+    classMethods = []
+  const properties = getFilteredProps(object).sort()
+  properties.forEach((prop) => {
+    let propType,
+      value = ''
+    if (typeof object[prop] === 'object') {
+      if (Array.isArray(object[prop])) {
+        propType = 'array'
+        let objdetail = ''
+        if (object[prop].length) {
+          objdetail = `${JSP(object[prop][0], ' ')} `
+        }
+        classProps.push(`${prop} = [] ${objdetail.length ? `/* sample:  [${objdetail}] */` : ''}`)
+      } else {
+        propType = 'object'
+        let objdetail = '{ SOME_OBJECT_DATA }'
+        if (object[prop] && !(object[prop] instanceof Date)) {
+          objdetail = `${JSP(object[prop], `\t\t`)} `
+        } else {
+          objdetail = `new Date("${object[prop].toString()}")`
+        }
+        classProps.push(`${prop} = {} /* ${objdetail},  */`)
+      }
+    } else if (typeof object[prop] === 'function') {
+      propType = 'function'
+      classMethods.push(`async ${prop}() { throw("${name} :: ${prop} Not implemented yet") } `)
+    } else {
+      propType = 'value'
+      classProps.push(`${prop} = 'PLACEHOLDER' // TODO: add value`)
+    }
+    return `${value}`
+  })
+  console.log(getMockClassText(name, classProps, classMethods))
+}
+
 export async function generateMock(incoming: ?string = ''): Promise<void> {
   // every command/plugin entry point should always be wrapped in a try/catch block
   try {
+    const notes = await DataStore.projectNotes
+    createMockClass(notes[0].paragraphs[0], 'ParagraphMock')
+    return
+    createMockOutput(notes[1], 'NoteObject')
+
     const name = await getInput('What is the name of the mock?')
     console.log(this[name])
     if (name && this[name]) createMockOutput(this[name], name)
