@@ -2,6 +2,7 @@
 
 /*
 REMEMBER: Always build a flow cancel path every time you offer a prompt
+TODO: new search?text=noteplan or search?filter=Upcoming
 TODO: add back button to return to previous step (@qualitativeeasing)
 TODO: maybe create choosers based on arguments text
 */

@@ -62,7 +62,9 @@ export function JSP(obj: any, space: string | number = 2): string {
             }
           } catch (error) {
             console.log(
-              `Caught error in JSP for propname=${propName} : ${error} typeof obj[propName]=${typeof obj[propName]} isArray=${String(Array.isArray(obj[propName]))} len=${
+              `Caught error in JSP for propname=${propName} : ${error} typeof obj[propName]=${typeof obj[
+                propName
+              ]} isArray=${String(Array.isArray(obj[propName]))} len=${
                 obj[propName]?.length
               } \n VALUE: ${JSON.stringify(obj[propName])}`,
             )
@@ -73,7 +75,10 @@ export function JSP(obj: any, space: string | number = 2): string {
       }
       return acc
     }, {})
-    return cleanStrigifiedResults(JSON.stringify(fullObj, null, space ?? null))
+    // return cleanStringifiedResults(JSON.stringify(fullObj, null, space ?? null))
+    return typeof fullObj === 'object' && !(fullObj instanceof Date)
+      ? JSON.stringify(fullObj, null, space ?? null)
+      : 'date'
   }
 }
 
@@ -82,7 +87,7 @@ export function JSP(obj: any, space: string | number = 2): string {
  * @param {*} str
  * @returns
  */
-function cleanStrigifiedResults(str: string): string {
+function cleanStringifiedResults(str: string): string {
   let retStr = str
   retStr = retStr.replace(/","/gm, ',')
   retStr = retStr.replace(/"\{"/gm, '{').replace(/"\}"/gm, '}')
@@ -110,7 +115,12 @@ export function clo(obj: any, preamble: string = '', space: string | number = 2)
   }
 }
 
-export function dump(pluginInfo: any, obj: { [string]: mixed }, preamble: string = '', space: string | number = 2): void {
+export function dump(
+  pluginInfo: any,
+  obj: { [string]: mixed },
+  preamble: string = '',
+  space: string | number = 2,
+): void {
   log(pluginInfo, '-------------------------------------------')
   clo(obj, preamble, space)
   log(pluginInfo, '-------------------------------------------')
@@ -146,6 +156,10 @@ export function getAllPropertyNames(inObj: interface { [string]: mixed }): Array
  */
 export const getFilteredProps = (object: any): Array<string> => {
   const ignore = ['toString', 'toLocaleString', 'valueOf', 'hasOwnProperty', 'propertyIsEnumerable', 'isPrototypeOf']
+  if (typeof object !== 'object' || Array.isArray(object)) {
+    console.log(`getFilteredProps improper type: ${typeof object}`)
+    return []
+  }
   return getAllPropertyNames(object).filter((prop) => !/(^__)|(constructor)/.test(prop) && !ignore.includes(prop))
 }
 
@@ -224,7 +238,9 @@ export function log(pluginInfo: any, message: any = '', type: string = 'LOG'): s
 
   if (isPluginJson) {
     pluginId = pluginInfo.hasOwnProperty('plugin.id') ? pluginInfo['plugin.id'] : 'INVALID_PLUGIN_ID'
-    pluginVersion = pluginInfo.hasOwnProperty('plugin.version') ? pluginInfo['plugin.version'] : 'INVALID_PLUGIN_VERSION'
+    pluginVersion = pluginInfo.hasOwnProperty('plugin.version')
+      ? pluginInfo['plugin.version']
+      : 'INVALID_PLUGIN_VERSION'
     msg = `${dt().padEnd(19)} | ${type.padEnd(5)} | ${pluginId} v${pluginVersion} :: ${_message(message)}`
   } else {
     if (message.length > 0) {
