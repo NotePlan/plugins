@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Commands for working with Project and Area notes, seen in NotePlan notes.
 // by @jgclark
-// Last updated 25.4.2022 for v0.6.2, @jgclark
+// Last updated 14.6.2022 for v0.6.5, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -14,19 +14,18 @@ import {
   getReviewSettings,
   Project
 } from './reviewHelpers'
-import { hyphenatedDateString } from '../../helpers/dateTime'
-import { log, logWarn, logError } from '../../helpers/dev'
-import { getFolderFromFilename } from '../../helpers/folders'
+import { hyphenatedDateString } from '@helpers/dateTime'
+import { log, logWarn, logError } from '@helpers/dev'
+import { getFolderFromFilename } from '@helpers/folders'
 import {
   displayTitle,
-  titleAsLink,
-} from '../../helpers/general'
-import { getOrMakeNote } from '../../helpers/note'
-import { getOrMakeMetadataLine } from '../../helpers/paragraph'
+} from '@helpers/general'
+import { getOrMakeNote } from '@helpers/note'
+import { getOrMakeMetadataLine } from '@helpers/paragraph'
 import {
   getInput,
   showMessageYesNo
-} from '../../helpers/userInput'
+} from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
 

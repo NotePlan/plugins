@@ -11,7 +11,7 @@ import {
 import { getDateObjFromDateTimeString, getTimeStringFromDate, removeDateTagsAndToday } from '../../helpers/dateTime'
 import { sortListBy } from '../../helpers/sorting'
 import { removeDateTags, getTodaysDateHyphenated } from '../../helpers/dateTime'
-import { createLink, createPrettyOpenNoteLink } from '../../helpers/general'
+import { returnNoteLink, createPrettyOpenNoteLink } from '../../helpers/general'
 import { textWithoutSyncedCopyTag } from '../../helpers/syncedCopies'
 import { clo, log, logError, JSP, copyObject } from '../../helpers/dev'
 
@@ -404,7 +404,7 @@ export function appendLinkIfNecessary(todos: Array<TParagraph>, config: { [key: 
         if (e.type !== 'title') {
           let link = ''
           if (config.includeLinks === '[[internal#links]]') {
-            link = ` ${createLink(e.title ?? '', e.heading)}`
+            link = ` ${returnNoteLink(e.title ?? '', e.heading)}`
           } else {
             if (config.includeLinks === 'Pretty Links') {
               link = ` ${createPrettyOpenNoteLink(config.linkText, e.filename ?? 'unknown', true, e.heading)}`
