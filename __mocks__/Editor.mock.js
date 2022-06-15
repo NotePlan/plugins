@@ -32,8 +32,12 @@ const Editor = {
   // async insertParagraphBeforeParagraph() { return null },
   // async insertQuote() { return null },
   // async insertScheduledTodo() { return null },
-  // async insertTextAtCharacterIndex() { return null },
-  // async insertTextAtCursor() { return null },
+  async insertTextAtCharacterIndex(text = '', length = 0) {
+    return text
+  },
+  async insertTextAtCursor(text: string) {
+    return text //void return
+  },
   // async insertTodo() { return null },
   // async insertTodoAfterParagraph() { return null },
   // async insertTodoBeforeParagraph() { return null },
