@@ -152,6 +152,40 @@ export async function jumpToHeading(heading?: string): Promise<void> {
 }
 
 /**
+ * Converts all links that start with a `#` symbol, i.e links to headings within a note,
+ * to x-callback-urls that call the `jumpToHeading` plugin command to actually jump to that heading.
+ * @author @nmn
+ */
+export function convertLocalLinksToPluginLinks(): void {
+  const note = Editor
+  const paragraphs = note?.paragraphs
+  if (note == null || paragraphs == null) {
+    // No note open, or no content
+    return
+  }
+  // Look for markdown links that are local to the note
+  // and convert them to plugin links
+  let changed = false
+  for (let para of paragraphs) {
+    const content = para.content
+    const newContent = content.replace(/\[(.*?)\]\(\#(.*?)\)/g, (match, label, link) => {
+      const newLink =
+        `noteplan://x-callback-url/runPlugin?pluginID=jgclark.NoteHelpers&command=jump%20to%20heading&arg1=` +
+        encodeURIComponent(link)
+      return `[${label}](${newLink})`
+    })
+    if (newContent !== content) {
+      para.content = newContent
+      changed = true
+    }
+  }
+  if (changed) {
+    // Force update the note
+    note.paragraphs = paragraphs
+  }
+}
+
+/**
  * Jumps the cursor to the heading of the current note that the user selects
  * NB: need to update to allow this to work with sub-windows, when EM updates API
  * @author @jgclark

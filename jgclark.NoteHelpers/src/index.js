@@ -18,6 +18,7 @@ export {
   jumpToDone,
   jumpToHeading,
   jumpToNoteHeading,
+  convertLocalLinksToPluginLinks,
   moveNote,
   openCurrentNoteNewSplit,
   openNoteNewWindow,
