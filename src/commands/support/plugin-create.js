@@ -83,6 +83,7 @@ module.exports = {
       result = await this.merge(path.join(dest, 'src', 'NPPluginMain.js'), pluginInfo)
 
       result = await this.merge(path.join(dest, '__tests__', 'helpers.test.js'), pluginInfo)
+      result = await this.merge(path.join(dest, '__tests__', 'NPPluginMain.test.js'), pluginInfo)
 
       await filesystem.delete(path.join(dest, 'script.js'))
     } catch (error) {

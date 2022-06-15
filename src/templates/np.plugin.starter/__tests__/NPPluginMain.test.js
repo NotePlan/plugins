@@ -1,57 +1,3 @@
-# Mocking NotePlan objects in your Jest testing files:
-
-As stated elsewhere, the best/fastest/easiest thing to do when writing plugins is to minimize the amount of code in the plugin entrypoint functions and rely on pure-JS support functions to do the heavy lifting. This is preferable, because those pure functions can be easily tested using Jest without relying on NotePlan's APIs.
-
-That said, we have a goal of fully mocking the NotePlan APIs so that plugins can not only can have functional unit tests, but can also have integration tests which confirm that your plugin code is working end-to-end (and remains working as the codebase changes). The API-mocking is a work in progress and will take some time. However, the bones are beginning to take shape. Here's essentially how the testing of NotePlan APIs in your plugin will work:
-## Steps:
-**In your test file:**
-1. Import the mocks
-2. Hoist the relevant mocks up to global scope in the beforeAll() method of your test file
-3. Create sub-object content mocks (if necessary) to populate top level objects with Notes, Paragraphs, etc.
-  
-
-## Basic example:
-```js
-/* global describe, test, it, jest, expect */
-import* as NPfile from '../src/NPPluginMain'
-import { DataStore } from '@mocks/index'
-
-beforeAll(() => {
-  global.Editor = Editor
-})
-
-describe('dwertheimer.JestHelpers' /*my plugin id*/, () => {
-  describe('NPPluginMain' /* file */, () => {
-    describe('sayHello' /* function */, () => {
-      test('should insert text if called with a string param', async () => {
-        const spy = jest.spyOn(Editor, 'insertTextAtCursor') // assuming my plugin calls this one NP command
-        const result = await mainFile.sayHello('myText')
-        expect(spy).toHaveBeenCalled()
-        expect(spy).toHaveBeenNthCalledWith(
-          1,
-          `myText`,
-        )
-        // So we know that Editor.insertTextAtCursor was called with `myText` which was passed to the plugin entry point (e.g. from an xcallbackurl)
-        spy.mockRestore()
-      })
-    })
-  })
-})
-```
-
-## Mocking sub-objects
-The top-level NP objects: `Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan` all have sub-objects that will likely need to be mocked as well,depending on what your plugin is doing. For example, `Editor` has a property called `note`. You can create that mock note using the `NoteMock` factory:
-```js
-        Editor.note = new NoteMock({ filename: 'testingFile' })
-```
-Editor.note now has some basic fields, but a Note has paragraphs. You can mock the paragraphs with the `ParagraphMock` factory:
-```js
-        Editor.note.paragraphs = [new ParagraphMock({ content: 'testingParagraph' })]
-```
-
-## A Full Example (from the "plugin:create" skeleton)
-
-```js
 // Jest testing docs: https://jestjs.io/docs/using-matchers
 /* global describe, test, jest, expect */
 
@@ -147,4 +93,3 @@ describe('{{pluginId}}' /* pluginID */, () => {
     })
   })
 })
-```
