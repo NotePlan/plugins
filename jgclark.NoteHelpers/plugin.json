@@ -7,7 +7,7 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark & Eduard Metzger",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/",
-  "plugin.version": "0.14.1",
+  "plugin.version": "0.15.0",
   "plugin.changelog": "See plugin README.md",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
@@ -102,12 +102,21 @@
       "jsFunction": "convertToFrontmatter"
     },
     {
-      "name": "Add number of days to dates",
+      "name": "rename note filename",
       "alias": [
-        "count days",
-        "count and add days"
+        "rename"
       ],
-      "description": "Look for bullets mentioning dats and add number of days till that date",
+      "description": "Rename the current note's filename",
+      "jsFunction": "renameNoteFile"
+    },
+    {
+      "name": "add number of days to dates",
+      "alias": [
+        "count",
+        "add",
+        "days"
+      ],
+      "description": "Look for bullets mentioning dates and add number of days till that date",
       "jsFunction": "countAndAddDays"
     }
   ],

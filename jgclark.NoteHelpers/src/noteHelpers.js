@@ -14,7 +14,12 @@ import {
 } from '@helpers/note'
 import { convertNoteToFrontmatter } from '@helpers/NPnote'
 import { getParaFromContent, findStartOfActivePartOfNote } from '@helpers/paragraph'
-import { chooseFolder, chooseHeading, showMessage } from '@helpers/userInput'
+import {
+  chooseFolder,
+  chooseHeading,
+  getInput,
+  showMessage
+} from '@helpers/userInput'
 
 //-----------------------------------------------------------------
 // Settings
@@ -233,4 +238,49 @@ export async function convertToFrontmatter(): Promise<void> {
   // FIXME(@Eduard): So open the note again to get to see it.
   // TODO: Remove this in time
   await Editor.openNoteByFilename(note.filename)
+}
+
+/**
+ * Rename the currently open note's file on disk
+ * NB: Only available from v3.6.0
+ * @author @jgclark
+ */
+export async function renameNoteFile(): Promise<void> {
+  const { note } = Editor
+  // Check for version less than v3.6.0
+  const vNumber = NotePlan.environment.version
+  if (vNumber < 3.6) {
+    logError('renameNoteFile', 'Will only work on NotePlan v3.6.0 or greater. Stopping.')
+    return
+  }
+  if (note == null || note.paragraphs.length < 1) {
+    // No note open, so don't do anything.
+    logError('renameNoteFile', 'No note open, or no content. Stopping.')
+    return
+  }
+  if (Editor.type === 'Calendar') {
+    // Won't work on calendar notes
+    logError('renameNoteFile', 'This will not work on Calendar notes. Stopping.')
+    return
+  }
+  const oldFullFilename = note.filename
+  const res = await getInput(`Please enter new filename for file (including folder(s) and file extension)`, 'OK', 'Rename file', oldFullFilename)
+  if (typeof res === 'string') {
+    // let newFolder = ''
+    // let newFilename = ''
+    // if (res.lastIndexOf('/') > -1) {
+    //   newFolder = res.substr(0, res.lastIndexOf('/'))
+    //   newFilename = res.substr(res.lastIndexOf('/') + 1)
+    // } else {
+    //   newFolder = '/'
+    //   newFilename = res
+    // }
+    // console.log(`${newFolder}  /  ${newFilename}`)
+    // FIXME(@Eduard): This API getter appears to always rename to root folder.
+    note.filename = res
+    log('renameNoteFile', `Note file renamed from '${oldFullFilename}' to '${note.filename}'`)
+  } else {
+    log('renameNoteFile', `User cancelled operation`)
+    // User cancelled operation
+  }
 }

@@ -3,7 +3,7 @@
 // -----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// last changed 22.5.2021 for v0.12.0, @jgclark
+// last changed 3.6.2022 for v0.13.1, @jgclark
 // -----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -22,6 +22,7 @@ export {
   openCurrentNoteNewSplit,
   openNoteNewWindow,
   openNoteNewSplit,
+  renameNoteFile,
 } from './noteHelpers'
 export { indexFolders } from './indexFolders'
 

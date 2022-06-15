@@ -1,10 +1,14 @@
 # What's changed in 📙 Note Helpers plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/).
 
-## [0.14.0] - 2022-06-12
+## [0.15.0] - 2022-06-???
 ### Added
-- new command `"/Add number of days to dates"` that looks for bullets in your current open note that end with `[[YYYY-MM-DD]]:` and adds
-  the number of days to or since that date.
+- waiting on FIXME(EM): new command '/rename note filename' to rename the currently open note. Note: this changes the underlying _filename_ not the visible _title_. It only works with NotePlan v3.6.0 onwards.
+TODO: Decide whether to shift the next one
+
+## [0.14.0] - 2022-06-12 (by @nmn)
+### Added
+- new command "/add number of days to dates" that looks for bullets in your current open note that end with `[[YYYY-MM-DD]]:` and adds the number of days to or since that date.
 
 ## [0.13.0] - 2022-06-02
 ### Added
