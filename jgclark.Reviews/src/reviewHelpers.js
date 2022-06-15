@@ -2,12 +2,13 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // @jgclark
-// Last updated 13.5.2022 for v0.6.4, @jgclark
+// Last updated 14.6.2022 for v0.6.5, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
 // Import Helper functions
 import pluginJson from "../plugin.json"
+import { checkString } from "@helpers/checkType"
 import {
   castBooleanFromMixed,
   castHeadingLevelFromMixed,
@@ -15,23 +16,27 @@ import {
   castStringArrayFromMixed,
   castStringFromMixed,
   trimAnyQuotes,
-} from '../../helpers/dataManipulation'
+} from '@helpers/dataManipulation'
 import {
   daysBetween,
   getDateObjFromDateString,
+  includesScheduledFutureDate,
   relativeDateFromNumber,
   toISODateString,
-} from '../../helpers/dateTime'
-import { calcOffsetDate } from '../../helpers/NPdateTime'
-import { clo, log, logError, logWarn } from '../../helpers/dev'
-import { getFolderFromFilename } from '../../helpers/folders'
-import { findNotesMatchingHashtags } from '../../helpers/note'
+} from '@helpers/dateTime'
+import { calcOffsetDate } from '@helpers/NPdateTime'
+import { clo, log, logError, logWarn } from '@helpers/dev'
+import { getFolderFromFilename } from '@helpers/folders'
+import { percent } from '@helpers/general'
+import { findNotesMatchingHashtags } from '@helpers/note'
 import {
   getContentFromBrackets,
   getStringFromList,
-} from '../../helpers/general'
-import { getOrMakeMetadataLine } from '../../helpers/paragraph'
-import { showMessage } from '../../helpers/userInput'
+} from '@helpers/general'
+import {
+  getOrMakeMetadataLine,
+} from '@helpers/paragraph'
+import { showMessage } from '@helpers/userInput'
 
 //------------------------------
 // Config setup
@@ -43,6 +48,7 @@ export type ReviewConfig = {
   foldersToIgnore: Array<string>,
   noteTypeTags: Array<string>,
   displayOrder: string,
+  includePercentages: boolean,
   displayGroupedByFolder: boolean,
   displayArchivedProjects: boolean,
   finishedListHeading: string,
@@ -104,7 +110,7 @@ export async function getReviewSettings(): Promise<any> {
  * @param {string} prefName
  */
 export function logPreference(prefName: string): void {
-  log(pluginJson, `${prefName} contents:\n${DataStore.preference(prefName)}`)
+  log(pluginJson, `${prefName} contents:\n${checkString(DataStore.preference(prefName))}`)
 }
 
 /**
@@ -169,6 +175,7 @@ export class Project {
   openTasks: number
   completedTasks: number
   waitingTasks: number
+  futureTasks: number
   isArchived: boolean
   isActive: boolean
   isCancelled: boolean
@@ -193,22 +200,22 @@ export class Project {
 
     // read in start date (if found)
     // now uses DataStore.preference mechanism to pick up current terms for @start, @due, @reviewed etc.
-    let tempDateStr = getParamMentionFromList(mentions, DataStore.preference('startMentionStr'))
+    let tempDateStr = getParamMentionFromList(mentions, checkString(DataStore.preference('startMentionStr')))
     this.startDate = tempDateStr !== '' ? getDateObjFromDateString(tempDateStr) : undefined
     // read in due date (if found)
-    tempDateStr = getParamMentionFromList(mentions, DataStore.preference('dueMentionStr'))
+    tempDateStr = getParamMentionFromList(mentions, checkString(DataStore.preference('dueMentionStr')))
     this.dueDate = tempDateStr !== '' ? getDateObjFromDateString(tempDateStr) : undefined
     // read in reviewed date (if found)
-    tempDateStr = getParamMentionFromList(mentions, DataStore.preference('reviewedMentionStr'))
+    tempDateStr = getParamMentionFromList(mentions, checkString(DataStore.preference('reviewedMentionStr')))
     this.reviewedDate = tempDateStr !== '' ? getDateObjFromDateString(tempDateStr) : undefined
     // read in completed date (if found)
-    tempDateStr = getParamMentionFromList(mentions, DataStore.preference('completedMentionStr'))
+    tempDateStr = getParamMentionFromList(mentions, checkString(DataStore.preference('completedMentionStr')))
     this.completedDate = tempDateStr !== '' ? getDateObjFromDateString(tempDateStr) : undefined
     // read in cancelled date (if found)
-    tempDateStr = getParamMentionFromList(mentions, DataStore.preference('cancelledMentionStr'))
+    tempDateStr = getParamMentionFromList(mentions, checkString(DataStore.preference('cancelledMentionStr')))
     this.cancelledDate = tempDateStr !== '' ? getDateObjFromDateString(tempDateStr) : undefined
     // read in review interval (if found)
-    const tempIntervalStr = getParamMentionFromList(mentions, DataStore.preference('reviewIntervalMentionStr'))
+    const tempIntervalStr = getParamMentionFromList(mentions, checkString(DataStore.preference('reviewIntervalMentionStr')))
     this.reviewInterval = tempIntervalStr !== '' ? getContentFromBrackets(tempIntervalStr) : undefined
     // calculate the durations from these dates
     this.calcDurations()
@@ -224,18 +231,21 @@ export class Project {
       filter((p) => p.type === 'open').
       filter((p) => p.content.match('#waiting')).
       length
-    // TODO: Add a 'futureTasks' property here
+    this.futureTasks = note.paragraphs.
+      filter((p) => p.type === 'open').
+      filter((p) => includesScheduledFutureDate(p.content)).
+      length
 
-    // make completed if @completed_date set
+    // make project completed if @completed_date set
     this.isCompleted = (this.completedDate != null) ? true : false
-    // make archived if #archive tag present
+    // make project archived if #archive tag present
     this.isArchived = getStringFromList(hashtags, '#archive') !== ''
-    // make cancelled if #cancelled or #someday flag set or @cancelled date set
+    // make project cancelled if #cancelled or #someday flag set or @cancelled date set
     this.isCancelled = getStringFromList(hashtags, '#cancelled') !== ''
       || getStringFromList(hashtags, '#someday') !== ''
       || (this.completedDate != null)
 
-    // set note to active if #active is set or a @review date found,
+    // set project to active if #active is set or a @review date found,
     // and not completed / cancelled.
     this.isActive = (
       (getStringFromList(hashtags, '#active') !== '' || this.reviewInterval != null)
@@ -349,17 +359,16 @@ export class Project {
     output = (this.isArchived) ? '#archive ' : ''
     output += (this.noteType === 'project' || this.noteType === 'area') ? `#${this.noteType} ` : ''
     // $FlowIgnore[incompatible-call]
-    output += (this.startDate) ? `${DataStore.preference('startMentionStr')}(${toISODateString(this.startDate)}) ` : ''
+    output += (this.startDate && this.startDate !== undefined) ? `${checkString(DataStore.preference('startMentionStr'))}(${toISODateString(this.startDate)}) ` : ''
     // $FlowIgnore[incompatible-call]
-    output += (this.dueDate) ? `${DataStore.preference('dueMentionStr')}(${toISODateString(this.dueDate)}) ` : ''
-    // $FlowIgnore[incompatible-type]
-    output += (this.reviewInterval) ? `${DataStore.preference('reviewIntervalMentionStr')}(${this.reviewInterval}) ` : ''
+    output += (this.dueDate && this.startDate !== undefined) ? `${checkString(DataStore.preference('dueMentionStr'))}(${toISODateString(this.dueDate)}) ` : ''
+    output += (this.reviewInterval && this.reviewInterval !== undefined) ? `${checkString(DataStore.preference('reviewIntervalMentionStr'))}(${checkString(this.reviewInterval)}) ` : ''
     // $FlowIgnore[incompatible-call]
-    output += (this.reviewedDate) ? `${DataStore.preference('reviewedMentionStr')}(${toISODateString(this.reviewedDate)}) ` : ''
+    output += (this.reviewedDate && this.reviewedDate !== undefined) ? `${checkString(DataStore.preference('reviewedMentionStr'))}(${toISODateString(this.reviewedDate)}) ` : ''
     // $FlowIgnore[incompatible-call]
-    output += (this.completedDate) ? `${DataStore.preference('completedMentionStr')}(${toISODateString(this.completedDate)}) ` : ''
+    output += (this.completedDate && this.completedDate !== undefined) ? `${checkString(DataStore.preference('completedMentionStr'))}(${toISODateString(this.completedDate)}) ` : ''
     // $FlowIgnore[incompatible-call]
-    output += (this.cancelledDate) ? `${DataStore.preference('cancelledMentionStr')}(${toISODateString(this.cancelledDate)}) ` : ''
+    output += (this.cancelledDate && this.cancelledDate !== undefined) ? `${checkString(DataStore.preference('cancelledMentionStr'))}(${toISODateString(this.cancelledDate)}) ` : ''
     return output
   }
 
@@ -389,13 +398,18 @@ export class Project {
     }
   }
 
+  static detailedSummaryLineHeader(): string {
+    return `_Key: \tTitle\t #open / #complete / #waiting / #future tasks / next review date / due date_`
+  }
+
   /**
    * Returns line showing more detailed summary of the project, for output to a note.
    * TODO: when tables are supported, make this write a table row.
    * @param {boolean} includeFolderName at the start of the entry
+   * @param {boolean} includePercentage of completed tasks (optional; if missing defaults to true)
    * @return {string}
   */
-  detailedSummaryLine(includeFolderName: boolean): string {
+  detailedSummaryLine(includeFolderName: boolean, includePercentage: boolean = true): string {
     let output = '- '
     output += `${this.decoratedProjectTitle(includeFolderName)}`
     if (this.completedDate != null) {
@@ -406,7 +420,11 @@ export class Project {
       // $FlowIgnore[incompatible-call]
       output += `\t(Cancelled ${relativeDateFromNumber(this.finishedDays)})`
     }
-    output += `\to${this.openTasks} / c${this.completedTasks} / w${this.waitingTasks}`
+    if (includePercentage) {
+      output += `\tc${percent(this.completedTasks, (this.completedTasks + this.openTasks))} / o${this.openTasks} / w${this.waitingTasks} / f${this.futureTasks}`
+    } else {
+      output += `\tc${this.completedTasks} / o${this.openTasks} / w${this.waitingTasks} / f${this.futureTasks}`
+    }
     if (!this.isCompleted && !this.isCancelled) {
       output = (this.nextReviewDays != null)
         ? ( (this.nextReviewDays > 0)

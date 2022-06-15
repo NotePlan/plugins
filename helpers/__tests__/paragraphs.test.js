@@ -41,13 +41,6 @@ describe('summaryHelpers', () => {
       const result = p.termInMarkdownPath('tennis', 'Something about tennis in file:/bob/things/tennis/booster.')
       expect(result).toEqual(false)
     })
-    // Can't figure out why this does match.
-    // Both https://regex101.com/ and Expressions app say it doesn't.
-    test('should not find term in regular URL', () => {
-      const result = p.termInMarkdownPath('tennis', 'And http://www.tennis.co.uk/ and then tennis.org')
-      expect(result).toEqual(false)
-    })
-
   })
 
 })

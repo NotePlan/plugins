@@ -3,7 +3,10 @@
 // Paragraph and block-level helpers functions
 //-----------------------------------------------------------------------------
 
-import { hyphenatedDateString } from './dateTime'
+import {
+  hyphenatedDateString,
+  RE_SCHEDULED_ISO_DATE,
+} from './dateTime'
 import { log, logError, logWarn } from './dev'
 
 //-----------------------------------------------------------------------------

@@ -6,7 +6,7 @@
 	"plugin.icon": "",
 	"plugin.author": "Jonathan Clark",
 	"plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
-	"plugin.version": "0.6.4",
+	"plugin.version": "0.6.5",
 	"plugin.dependencies": [],
 	"plugin.script": "script.js",
 	"plugin.isRemote": "false",
@@ -107,6 +107,14 @@
 			"type": "string",
 			"choices": ["alpha", "due", "review"],
 			"default": "alpha",
+			"required": true
+		},
+		{
+			"key": "includePercentages",
+			"title": "Include task complete percentages?",
+			"description": "Include % task complete in review list?",
+			"type": "bool",
+			"default": true,
 			"required": true
 		},
 		{

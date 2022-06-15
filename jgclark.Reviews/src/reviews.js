@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Commands for Reviewing project-style notes, GTD-style.
 // by @jgclark
-// Last updated 13.5.2022 for v0.6.4+, @jgclark
+// Last updated 14.6.2022 for v0.6.5, @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -13,26 +13,27 @@ import {
   logPreference,
   Project,
 } from './reviewHelpers'
+import { checkString } from '@helpers/checkType'
 import {
   hyphenatedDateString,
   nowLocaleDateTime,
   RE_DATE, // find dates of form YYYY-MM-DD
-} from '../../helpers/dateTime'
-import { log, logWarn, logError } from '../../helpers/dev'
+} from '@helpers/dateTime'
+import { log, logWarn, logError } from '@helpers/dev'
 import {
   filterFolderList,
   getFolderFromFilename
-} from '../../helpers/folders'
-import { displayTitle } from '../../helpers/general'
+} from '@helpers/folders'
+import { displayTitle } from '@helpers/general'
 import {
   findNotesMatchingHashtags,
   getOrMakeNote,
-} from '../../helpers/note'
-import { getOrMakeMetadataLine } from '../../helpers/paragraph'
+} from '@helpers/note'
+import { getOrMakeMetadataLine } from '@helpers/paragraph'
 import {
   showMessage,
   showMessageYesNo,
-} from '../../helpers/userInput'
+} from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
 
@@ -274,7 +275,7 @@ async function makeNoteTypeSummary(noteTag: string): Promise<Array<string>> {
 
   // Add summary/ies onto the start (remember: unshift adds to the very front each time)
   if (noteCount > 0) {
-    outputArray.unshift(`_Key:\tTitle\t# open / complete / waiting tasks / next review date / due date_`)
+    outputArray.unshift(Project.detailedSummaryLineHeader())
   }
   outputArray.unshift(`Total: **${noteCount} active notes**${(overdue > 0) ? `, ${overdue} ready for review` : ''}`)
   outputArray.unshift(`Last updated: ${nowLocaleDateTime}`)
@@ -335,9 +336,9 @@ export async function updateReviewListAfterReview(note: TNote): Promise<void> {
   }
 
   // Now read contents and parse, this time as lines
-  const lines = reviewList.split('\n')
+  const lines = checkString(reviewList).split('\n')
   // log(pluginJson, `\t(pref: has ${lines.length} items, starting ${lines[0]})`)
-  let lineNum: ?number // deliberately undefined
+  let lineNum: number // deliberately undefined
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
     if (line.match(reviewedTitle)) {
@@ -371,10 +372,10 @@ async function getNextNoteToReview(): Promise<?TNote> {
     logError(pluginJson, `getNextNoteToReview(): Can't find pref jgclark.Review.reviewList. Try re-running '/start reviews' command.`)
     return
   }
-
+  const reviewListStr = checkString(reviewList)
   // Now read off the first line
-  if (reviewList.length > 0) {
-    const lines = reviewList.split('\n')
+  if (reviewListStr.length > 0) {
+    const lines = reviewListStr.split('\n')
     const firstLine = lines[0]
     // log(pluginJson, `pref: has ${lines.length} items, starting ${firstLine}`)
     const nextNoteTitle = firstLine.split('\t')[1] // get second field in list
@@ -394,7 +395,7 @@ async function getNextNoteToReview(): Promise<?TNote> {
  * @return { ?TNote } current note
  */
 export async function finishReview(): Promise<?TNote> {
-  const reviewedMentionStr = DataStore.preference('reviewedMentionStr')
+  const reviewedMentionStr = checkString(DataStore.preference('reviewedMentionStr'))
   const RE_REVIEW_MENTION = `${reviewedMentionStr}\\(${RE_DATE}\\)`
   const reviewedTodayString = `${reviewedMentionStr}(${hyphenatedDateString(new Date())})`
 
