@@ -84,9 +84,8 @@ export function displayTitle(n: ?TNote): string {
 }
 
 /**
- * Returns internal [[link]] from project note title as a [[link]].
- * If tried on a calendar note, it returns '(error)' instead.
- * @author @jgclark
+ * Return (project) note title as a [[link]]
+ * @jgclark
  *
  * @param {TNote} note to get title for
  * @return {string} note-linked title (or an error warning)
@@ -96,13 +95,16 @@ export function titleAsLink(note: TNote): string {
 }
 
 /**
+=======
+>>>>>>> 4e10fafb4ad88167724489ee2f39c0b0a293f57b
  * Create internal link from title string (and optional heading string)
  * @author @dwertheimer
  * @param {string} noteTitle - title of the note
  * @param {string | null} heading - heading inside of note (optional)
  * @returns {string} the [[link#heading]]
+ * @tests available
  */
-export function createLink(noteTitle: string, heading: string | null = ''): string {
+export function returnNoteLink(noteTitle: string, heading: string | null = ''): string {
   return `[[${noteTitle}${heading && heading !== '' ? `#${heading}` : ''}]]`
 }
 
@@ -112,8 +114,9 @@ export function createLink(noteTitle: string, heading: string | null = ''): stri
  * @param {string} titleOrFilename - title of the note or the filename
  * @param {string} paramType - 'title' | 'filename' | 'date' (default is 'title')
  * @param {string | null} heading - heading inside of note (optional)
- * @parms {string} openType - 'subWindow' | 'splitView' | 'useExistingSubWindow' (default: null)
+ * @param {string} openType - 'subWindow' | 'splitView' | 'useExistingSubWindow' (default: null)
  * @returns {string} the x-callback-url string
+ * @tests available
  */
 export function createOpenNoteCallbackUrl(
   titleOrFilename: string,
@@ -137,7 +140,8 @@ export function createOpenNoteCallbackUrl(
  * Create an addText callback url
  * @param {TNote | string} note (either a note object or a date-related string, e.g. today, yesterday, tomorrow)
  * @param {{ text: string, mode: string, openNote: string }} options - text to add, mode ('append', 'prepend'), and whether to open the note
- * @returns
+ * @returns {string}
+ * @tests available
  */
 export function createAddTextCallbackUrl(note: TNote | string, options: { text: string, mode: string, openNote: string }): string {
   const { text, mode, openNote } = options
@@ -161,6 +165,7 @@ export function createAddTextCallbackUrl(note: TNote | string, options: { text: 
  * @param {boolean} command - the "name" of the command in plugin.json
  * @param {Array<string>} args - a flat array of arguments to be sent
  * @returns {string} the x-callback-url URL string (not the pretty part)
+ * @tests available
  */
 export function createRunPluginCallbackUrl(pluginID: string, command: string, args: Array<string> = []): string {
   let xcb = `noteplan://x-callback-url/runPlugin?pluginID=${pluginID}&command=${encodeURIComponent(command)}`
@@ -181,6 +186,7 @@ export function createRunPluginCallbackUrl(pluginID: string, command: string, ar
  * @param {boolean} command - the "name" of the command in plugin.json
  * @param {Array<string>} args - a flat array of arguments to be sent
  * @returns {string} the pretty x-callback-url string: [linkText](x-callback-url)
+ * @tests available
  */
 export function createPrettyOpenNoteLink(linkText: string, titleOrFilename: string, isFilename: boolean = false, heading: string | null = null): string {
   return `[${linkText}](${createOpenNoteCallbackUrl(titleOrFilename, isFilename ? 'filename' : 'title', heading)})`
@@ -195,6 +201,7 @@ export function createPrettyOpenNoteLink(linkText: string, titleOrFilename: stri
  * @param {boolean} isFilename - true if title is a filename instead of note title
  * @param {string | null} heading - heading inside of note (optional)
  * @returns {string} the x-callback-url string
+ * @tests available
  */
 export function createPrettyRunPluginLink(linkText: string, pluginID: string, command: string, args: Array<string> = []): string {
   return `[${linkText}](${createRunPluginCallbackUrl(pluginID, command, args)})`
@@ -203,9 +210,9 @@ export function createPrettyRunPluginLink(linkText: string, pluginID: string, co
 /**
  * From an array of strings, return the first string that matches the wanted string.
  * @author @jgclark
- *
  * @param {Array<string>} list - list of strings to search
  * @param {string} search - string to match
+ * @tests available
  */
 export function getStringFromList(list: $ReadOnlyArray<string>, search: string): string {
   // console.log(`getsearchFromList for: ${search}`)
@@ -216,7 +223,6 @@ export function getStringFromList(list: $ReadOnlyArray<string>, search: string):
 /**
  * Extract contents of bracketed part of a string (e.g. '@mention(something)').
  * @author @jgclark
- *
  * @param {string} - string that contains a bracketed mention e.g. @review(2w)
  * @return {?string} - string from between the brackets, if found (e.g. '2w')
  */

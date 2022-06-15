@@ -8,18 +8,18 @@ const FILE = `${colors.yellow('helpers/general')}`
 const section = colors.blue
 
 describe(`${FILE}`, () => {
-  describe(section('createLink()'), () => {
+  describe(section('returnNoteLink()'), () => {
     test('should create a link with a heading', () => {
-      expect(g.createLink('foo', 'bar')).toEqual('[[foo#bar]]')
+      expect(g.returnNoteLink('foo', 'bar')).toEqual('[[foo#bar]]')
     })
     test('should create a link if heading is missing', () => {
-      expect(g.createLink('foo')).toEqual('[[foo]]')
+      expect(g.returnNoteLink('foo')).toEqual('[[foo]]')
     })
     test('should create a link with heading passed as null', () => {
-      expect(g.createLink('foo', null)).toEqual('[[foo]]')
+      expect(g.returnNoteLink('foo', null)).toEqual('[[foo]]')
     })
     test('should create a link with heading passed as empty string', () => {
-      expect(g.createLink('foo', '')).toEqual('[[foo]]')
+      expect(g.returnNoteLink('foo', '')).toEqual('[[foo]]')
     })
   })
   describe(section('createOpenNoteCallbackUrl()'), () => {

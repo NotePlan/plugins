@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 3.1.2022 for v0.10.7
+// Last updated 3.1.2022 for v0.10.7+
 //-----------------------------------------------------------------------------
 
 import {
@@ -11,7 +11,7 @@ import {
 } from '../../helpers/dateTime'
 import { getFolderFromFilename } from '../../helpers/folders'
 import {
-  titleAsLink,
+  returnNoteLink,
 } from '../../helpers/general'
 import { notesInFolderSortedByTitle } from '../../helpers/note'
 import {
@@ -65,7 +65,7 @@ function makeFolderIndex(
       // iterate over this folder's notes
       for (const note of notes) {
         const relativeTimeSinceUpdate = relativeDateFromNumber(daysBetween(new Date(), note.changedDate))
-        outputArray.push(`${titleAsLink(note)} ${relativeTimeSinceUpdate}`)
+        outputArray.push(`${returnNoteLink(note.title ?? 'error')} ${relativeTimeSinceUpdate}`)
       }
       outputArray.push('')
     } else {
