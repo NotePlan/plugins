@@ -25,7 +25,7 @@ describe('dwertheimer.JestHelpers' /*my plugin id*/, () => {
     describe('sayHello' /* function */, () => {
       test('should insert text if called with a string param', async () => {
         const spy = jest.spyOn(Editor, 'insertTextAtCursor') // assuming my plugin calls this one NP command
-        const result = await mainFile.sayHello('myText')
+        const result = await NPfile.sayHello('myText')
         expect(spy).toHaveBeenCalled()
         expect(spy).toHaveBeenNthCalledWith(
           1,
