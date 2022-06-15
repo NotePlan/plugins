@@ -133,12 +133,12 @@ declare interface TEditor extends ParagraphBridge {
   ): Promise<TNote>;
   /**
    * Opens a note by searching for the give title (first line of the note)
-   * Note: splitView parameter available for macOS from r727 (v3.4)
+   * Note: 'splitView' parameter available for macOS from v3.4
    * @param {String} title - Title (case sensitive) of the note (first line)
    * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
    * @param {number} highlightStart - (optional) Start position of text highlighting
    * @param {number} highlightEnd - (optional) End position of text highlighting
-   * @param {boolean} splitView - (optional) Open note in a new split view (Note: Available from v3.4)
+   * @param {boolean} splitView - (optional) Open note in a new split view
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
   openNoteByTitle(
@@ -150,12 +150,12 @@ declare interface TEditor extends ParagraphBridge {
   ): Promise<TNote>;
   /**
    * Opens a note by searching for the give title (first line of the note)
-   * Note: splitView parameter available for macOS from r727 (v3.4)
+   * Note: 'splitView' parameter available for macOS from v3.4
    * @param {String} title - Title (case sensitive) of the note (first line)
    * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
    * @param {number} highlightStart - (optional) Start position of text highlighting
    * @param {number} highlightEnd - (optional) End position of text highlighting
-   * @param {boolean} splitView - (optional) Open note in a new split view (Note: Available from v3.4)
+   * @param {boolean} splitView - (optional) Open note in a new split view
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
   openNoteByTitleCaseInsensitive(
@@ -168,12 +168,14 @@ declare interface TEditor extends ParagraphBridge {
   ): Promise<TNote>;
   /**
    * Opens a calendar note by the given date
-   * Note: splitView parameter available for macOS from r727 (v3.4)
+   * Note: 'splitView' parameter available for macOS from v3.4
+   * Note: 'timeframe' parameter available for macOS from v3.6
    * @param {Date} date - The date that should be opened, this is a normal JavaScript date object
    * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
    * @param {number} highlightStart - (optional) Start position of text highlighting
    * @param {number} highlightEnd - (optional) End position of text highlighting
-   * @param {boolean} splitView - (optional) Open note in a new split view (Note: Available from v3.4)
+   * @param {boolean} splitView - (optional) Open note in a new split view
+   * @param {string} timeframe - (optional) Timeframe "day" (default) or "week"
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
   openNoteByDate(
@@ -181,15 +183,17 @@ declare interface TEditor extends ParagraphBridge {
     newWindow?: boolean,
     highlightStart?: number,
     highlightEnd?: number,
-    splitView?: boolean,
+    splitView ?: boolean,
+    timeframe ?: string,
   ): Promise<TNote>;
   /**
    * Opens a calendar note by the given date string
-   * @param {String} dateString - The date string that should be opened, in ISO format: "YYYYMMDD", like "20210501"
+   * Note: from v3.6 also accepts weeks in the main parameter
+   * @param {String} dateString - The date string that should be opened, in ISO format for days ("YYYYMMDD") or (from v3.6) in "YYYY-Wnn" format for weeks
    * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
    * @param {number} highlightStart - (optional) Start position of text highlighting
    * @param {number} highlightEnd - (optional) End position of text highlighting
-   * @param {boolean} splitView - (optional) Open note in a new split view (Note: Available from v3.4)
+   * @param {boolean} splitView - (optional) Open note in a new split view
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
   openNoteByDateString(
@@ -199,6 +203,24 @@ declare interface TEditor extends ParagraphBridge {
     highlightEnd?: number,
     splitView?: boolean,
   ): Promise<TNote | void>;
+  /**
+  * Opens a weekly calendar note by the given year and week number
+  * Note: available from v3.6
+  * @param {number} year           - The year of the week
+  * @param {number} weeknumber     - The number of the week (0-52/53)
+  * @param {boolean} newWindow     - (optional) Open note in new window (default = false)?
+  * @param {number} highlightStart - (optional) Start position of text highlighting
+  * @param {number} highlightEnd   - (optional) End position of text highlighting
+  * @param {boolean} splitView     - (optional) Open note in a new split view
+  * @return {Promise<void>}        - When the note has been opened, a promise will be returned
+  */
+openWeeklyNote(year: number,
+  weeknumber: number,
+  newWindow ?: boolean,
+  highlightStart ?: number,
+  highlightEnd ?: number,
+  splitView ?: boolean
+): Promise < void>;
   /**
    * Selects the full text in the editor.
    * NB: Available from NotePlan v3.2 (Mac Build: 662, iOS Build: 593)
@@ -369,6 +391,12 @@ declare class DataStore {
    * @type {[String]}
    */
   static +mentions: $ReadOnlyArray<string>;
+/**
+ * Get list of all filter names
+ * Note: Available from NotePlan v3.6.0
+ * @type {[String]}
+ */
+static + filters: $ReadOnlyArray < string >;
 
   /**
    * Get or set settings for the current plugin (as a JavaScript object).
