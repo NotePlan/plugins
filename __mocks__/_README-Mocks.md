@@ -44,9 +44,9 @@ The top-level NP objects: `Calendar, Clipboard, CommandBar, DataStore, Editor, N
 ```js
         Editor.note = new NoteMock({ filename: 'testingFile' })
 ```
-Editor.note now has some basic fields, but a Note has paragraphs. You can mock the paragraphs with the `ParagraphMock` factory:
+Editor.note now has some basic properties, but to look like a real NotePlan `Note` object, a Note needs to have some paragraphs, and those paragraphs have some properties/methods also. You can mock the paragraphs with the `ParagraphMock` factory:
 ```js
-        Editor.note.paragraphs = [new ParagraphMock({ content: 'testingParagraph' })]
+        Editor.note.paragraphs = [new ParagraphMock({ content: 'paraContent1' }),new ParagraphMock({ content: 'paraContent2' })]
 ```
 
 ## A Full Example (from the "plugin:create" skeleton)
