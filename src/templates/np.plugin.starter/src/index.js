@@ -26,6 +26,7 @@ import pluginJson from '../plugin.json'
  * It is unlikely you will need to edit/add anything below this line
  */
 
+// eslint-disable-next-line import/order
 import { updateSettingData } from '@helpers/NPconfiguration'
 
 /**
@@ -34,7 +35,7 @@ import { updateSettingData } from '@helpers/NPconfiguration'
  * the user preferences to include any new fields
  */
 export async function onUpdateOrInstall(): Promise<void> {
-  updateSettingData(pluginJson)
+  await updateSettingData(pluginJson)
 }
 
 /**
