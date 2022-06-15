@@ -13,7 +13,7 @@ import { log, logError, logWarn } from './dev'
 // Paragraph-level Functions
 
 /**
- * Check to see if search term is present within a URL or file path
+ * Check to see if search term is present within a URL or file path, using case sensitive searching.
  * @author @jgclark
 
  * @param {string} term - term to check
@@ -27,7 +27,7 @@ export function termInURL(term: string, searchString: string): boolean {
 }
 
 /**
- * Check to see if search term is present within the path of a [...](path)
+ * Check to see if search term is present within the path of a [...](path), using case sensitive searching.
  * @author @jgclark
 
  * @param {string} term - term to check
