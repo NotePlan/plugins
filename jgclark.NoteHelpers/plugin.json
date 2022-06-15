@@ -111,7 +111,7 @@
       "jsFunction": "countAndAddDays"
     },
     {
-      "name": "heading links enable",
+      "name": "enable heading links",
       "alias": [
         "local links",
         "hash links",
