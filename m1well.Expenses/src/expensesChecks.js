@@ -5,9 +5,9 @@ import { showMessage } from '../../helpers/userInput'
 import type { Config } from './expensesModels'
 
 const DEFAULT_DELIMITER = ';'
-const ALLOWED_DELIMTER = [ ';', '%', 'TAB' ]
-const MINIMAL_COLUMNS = [ 'date', 'category', 'amount' ]
-const ALLOWED_AMOUNT_FORMATS = [ 'full', 'short' ]
+const ALLOWED_DELIMTER = [';', '%', 'TAB']
+const MINIMAL_COLUMNS = ['date', 'category', 'amount']
+const ALLOWED_AMOUNT_FORMATS = ['full', 'short']
 
 /**
  * check if the amount is smaller than 1_000_000 and greater than -1_000_000 and is not 0 or null or NaN
@@ -16,7 +16,7 @@ const ALLOWED_AMOUNT_FORMATS = [ 'full', 'short' ]
  * @returns {boolean} true/false
  */
 export const amountOk = (amount: number): boolean => {
-  return (amount == null || amount === 0 || isNaN(amount)) ? false : amount < 1000000 && amount > -1000000
+  return amount == null || amount === 0 || isNaN(amount) ? false : amount < 1000000 && amount > -1000000
 }
 
 /**
@@ -27,7 +27,7 @@ export const amountOk = (amount: number): boolean => {
  * @returns {boolean} true/false
  */
 export const categoryOk = (category: string, categories: Array<string>): boolean => {
-  return category ? categories.findIndex(cat => cat === category) !== -1 : false
+  return category ? categories.findIndex((cat) => cat === category) !== -1 : false
 }
 
 /**
@@ -38,7 +38,6 @@ export const categoryOk = (category: string, categories: Array<string>): boolean
  * @returns {Config} return the config if everything is ok, otherwise an empty config
  */
 export const validateConfig = (config: Config, currentDate: Date): Config => {
-
   const emptyConfig: Config = {
     folderPath: '',
     delimiter: '',
@@ -47,7 +46,7 @@ export const validateConfig = (config: Config, currentDate: Date): Config => {
     columnOrder: [],
     categories: [],
     shortcutExpenses: [],
-    fixedExpenses: []
+    fixedExpenses: [],
   }
 
   if (!config.folderPath) {
@@ -68,7 +67,7 @@ export const validateConfig = (config: Config, currentDate: Date): Config => {
     }
   }
 
-  if (config.columnOrder.every(col => MINIMAL_COLUMNS.includes(col))) {
+  if (config.columnOrder.every((col) => MINIMAL_COLUMNS.includes(col))) {
     // if minimal columns config is not provided, then stop
     logError('minimal columns config not provided (at least date, category, amount)')
     return emptyConfig
@@ -109,5 +108,7 @@ export const logMessage = (msg: string): void => {
 
 export const logError = async (msg: string): Promise<void> => {
   console.log(`\texpenses error: ${msg}`)
-  await showMessage(`ERROR: ${msg}`)
+  if (global.CommandBar && global.CommandBar.prompt) {
+    await showMessage(`ERROR: ${msg}`)
+  }
 }
