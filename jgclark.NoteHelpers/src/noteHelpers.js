@@ -8,10 +8,7 @@
 import pluginJson from '../plugin.json'
 import { clo, log, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-import {
-  allNotesSortedByChanged,
-  printNote,
-} from '@helpers/note'
+import { allNotesSortedByChanged, printNote } from '@helpers/note'
 import { convertNoteToFrontmatter } from '@helpers/NPnote'
 import { getParaFromContent, findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { chooseFolder, chooseHeading, showMessage } from '@helpers/userInput'
@@ -20,7 +17,7 @@ import { chooseFolder, chooseHeading, showMessage } from '@helpers/userInput'
 // Settings
 
 type noteHelpersConfigType = {
-  defaultText: string
+  defaultText: string,
 }
 
 /**
@@ -34,7 +31,9 @@ async function getSettings(): Promise<any> {
     const v2Config: noteHelpersConfigType = await DataStore.loadJSON('../jgclark.NoteHelpers/settings.json')
 
     if (v2Config == null || Object.keys(v2Config).length === 0) {
-      await showMessage(`Cannot find settings for the 'NoteHelpers' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
+      await showMessage(
+        `Cannot find settings for the 'NoteHelpers' plugin. Please make sure you have installed it from the Plugin Preferences pane.`,
+      )
       return
     } else {
       // clo(v2Config, `settings`)
@@ -55,10 +54,10 @@ export async function moveNote(): Promise<void> {
   const { title, filename } = Editor
   if (title == null || filename == null) {
     // No note open, so don't do anything.
-    logError('moveNote','No note open. Stopping.')
+    logError('moveNote', 'No note open. Stopping.')
     return
   }
-  const selectedFolder = await chooseFolder(`Select a folder for '${  title  }'`, true) // include @Archive as an option
+  const selectedFolder = await chooseFolder(`Select a folder for '${title}'`, true) // include @Archive as an option
   log('moveNote', `move ${title} (filename = ${filename}) to ${selectedFolder}`)
 
   const newFilename = DataStore.moveNote(filename, selectedFolder)
@@ -66,11 +65,11 @@ export async function moveNote(): Promise<void> {
   if (newFilename != null) {
     await Editor.openNoteByFilename(newFilename)
   } else {
-    logError('moveNote',`Error trying to move note`)
+    logError('moveNote', `Error trying to move note`)
   }
 }
 
-/** 
+/**
  * Open a user-selected note in a new window.
  * @author @jgclark
  */
@@ -90,9 +89,9 @@ export async function openNoteNewWindow(): Promise<void> {
   await Editor.openNoteByFilename(filename, true, startOfMainContentCharIndex, startOfMainContentCharIndex, false)
 }
 
-/** 
+/**
  * Open a user-selected note in a new split of the main window.
- * Note: uses API option only available on macOS and from v3.4. 
+ * Note: uses API option only available on macOS and from v3.4.
  * It falls back to opening in a new window on unsupported versions.
  * @author @jgclark
  */
@@ -112,9 +111,9 @@ export async function openNoteNewSplit(): Promise<void> {
   await Editor.openNoteByFilename(filename, false, startOfMainContentCharIndex, startOfMainContentCharIndex, true)
 }
 
-/** 
+/**
  * Open the current note in a new split of the main window.
- * Note: uses API option only available on macOS and from v3.4. 
+ * Note: uses API option only available on macOS and from v3.4.
  * It falls back to opening in a new window on unsupported versions.
  * @author @jgclark
  */
@@ -137,14 +136,14 @@ export async function openCurrentNoteNewSplit(): Promise<void> {
  * NB: need to update to allow this to work with sub-windows, when EM updates API
  * @author @jgclark
  */
-export async function jumpToHeading(): Promise<void> {
+export async function jumpToHeading(heading?: string): Promise<void> {
   const { paragraphs, note } = Editor
   if (note == null || paragraphs == null) {
     // No note open, or no content
     return
   }
 
-  const headingStr = await chooseHeading(note, false, false, false)
+  const headingStr = heading ?? (await chooseHeading(note, false, false, false))
   // find out position of this heading, ready to set insertion point
   // (or 0 if it can't be found)
   const startPos = getParaFromContent(note, headingStr)?.contentRange?.start ?? 0
@@ -152,7 +151,7 @@ export async function jumpToHeading(): Promise<void> {
   Editor.select(startPos, 0)
 }
 
-/** 
+/**
  * Jumps the cursor to the heading of the current note that the user selects
  * NB: need to update to allow this to work with sub-windows, when EM updates API
  * @author @jgclark
@@ -191,9 +190,7 @@ export function jumpToDone(): void {
   }
 
   // Find the 'Done' heading of interest from all the paragraphs
-  const matches = paras
-    .filter((p) => p.headingLevel === 2)
-    .filter((q) => q.content.startsWith('Done')) // startsWith copes with Done section being folded
+  const matches = paras.filter((p) => p.headingLevel === 2).filter((q) => q.content.startsWith('Done')) // startsWith copes with Done section being folded
 
   if (matches != null) {
     const startPos = matches[0].contentRange?.start ?? 0
@@ -222,14 +219,17 @@ export async function convertToFrontmatter(): Promise<void> {
   }
   if (note.paragraphs[0].content === '---') {
     // Probably in frontmatter form already, so don't do anything.
-    logWarn('convertToFrontmatter', `Note '${displayTitle(note)}' starts with a --- line, so is probably already using frontmatter. Stopping.`)
+    logWarn(
+      'convertToFrontmatter',
+      `Note '${displayTitle(note)}' starts with a --- line, so is probably already using frontmatter. Stopping.`,
+    )
     return
   }
   const config = await getSettings()
   convertNoteToFrontmatter(note, config.defaultText ?? '')
   log('convertToFrontmatter', `Note '${displayTitle(note)}' converted to use frontmatter.`)
 
-  // Currently a bug that means the Editor's note display doesn't get updated. 
+  // Currently a bug that means the Editor's note display doesn't get updated.
   // FIXME(@Eduard): So open the note again to get to see it.
   // TODO: Remove this in time
   await Editor.openNoteByFilename(note.filename)
