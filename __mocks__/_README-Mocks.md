@@ -10,11 +10,33 @@ That said, we have a goal of fully mocking the NotePlan APIs so that plugins can
 3. Create sub-object content mocks (if necessary) to populate top level objects with Notes, Paragraphs, etc.
   
 
-## Basic example:
+## Testing using mocked-out data
+The following example tests whether the `isTimeBlockLine()` function returns expected values, using data mocked out from the API (the `DataStore.preference(...)` function):
+```js
+/* globals describe, expect, it, test */
+import colors from 'chalk'
+import * as tb from '../timeblocks'
+import DataStore from '../../__mocks__/DataStore.mock'
+
+beforeAll(() => {
+  global.DataStore = DataStore
+})
+
+describe('helpers/timeblocks.js', () => { // file
+  describe('isTimeBlockLine SHOULD MATCH', () => { // function
+    test('should match: - @done(2021-12-12) 2:30-3:45', () => {
+      expect(tb.isTimeBlockLine('- @done(2021-12-12) 2:30-3:45')).toEqual(true)
+    })
+  })
+})
+```
+
+## Testing that an NP call is made
+The following example tests whether `Editor.insertTextAtCursor()` is called from the 'JestHelpers' plugin's `sayHello` function:
 ```js
 /* global describe, test, it, jest, expect */
-import* as NPfile from '../src/NPPluginMain'
-import { DataStore } from '@mocks/index'
+import * as NPfile from '../src/NPPluginMain' // import everything for this plugin
+import { DataStore } from '@mocks/index' // import mock(s)
 
 beforeAll(() => {
   global.Editor = Editor
