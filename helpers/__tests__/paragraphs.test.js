@@ -21,6 +21,14 @@ describe('summaryHelpers', () => {
       const result = p.termInURL('tennis', 'And http://www.bbc.co.uk/ and then tennis.org')
       expect(result).toEqual(false)
     })
+    test('should not find term in regular text with mixed Caps', () => {
+      const result = p.termInURL('Tennis', 'And http://www.tennis.org/')
+      expect(result).toEqual(false)
+    })
+    test('should not find term in regular text with ALL CAPS', () => {
+      const result = p.termInURL('TENNIS', 'And http://www.tennis.org/')
+      expect(result).toEqual(false)
+    })
   })
 
   describe('termInMarkdownPath()', () => {
@@ -39,6 +47,18 @@ describe('summaryHelpers', () => {
     })
     test('should not find search term in a file path', () => {
       const result = p.termInMarkdownPath('tennis', 'Something about tennis in file:/bob/things/tennis/booster.')
+      expect(result).toEqual(false)
+    })
+    test('should find search term with no caps', () => {
+      const result = p.termInMarkdownPath('cabbage', 'Something in httpp://example.com/cabbage/patch.')
+      expect(result).toEqual(true)
+    })
+    test('should not find search term with Initial Caps', () => {
+      const result = p.termInMarkdownPath('Cabbage', 'Something in httpp://example.com/cabbage/patch.')
+      expect(result).toEqual(false)
+    })
+    test('should not find search term with All CAPS', () => {
+      const result = p.termInMarkdownPath('CABBAGE', 'Something in httpp://example.com/cabbage/patch.')
       expect(result).toEqual(false)
     })
   })
