@@ -2,24 +2,21 @@
 //-----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// Last updated 2.6.2022 for v0.12.0, @jgclark
+// Last updated 2.6.2022 for v0.12.0+, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { clo, log, logError, logWarn } from '@helpers/dev'
-import { displayTitle } from '@helpers/general'
-import {
-  allNotesSortedByChanged,
-  printNote,
-} from '@helpers/note'
-import { convertNoteToFrontmatter } from '@helpers/NPnote'
-import { getParaFromContent, findStartOfActivePartOfNote } from '@helpers/paragraph'
+import { log, logError, logWarn } from '../../helpers/dev'
+import { displayTitle } from '../../helpers/general'
+import { allNotesSortedByChanged } from '../../helpers/note'
+import { convertNoteToFrontmatter } from '../../helpers/NPnote'
+import { getParaFromContent, findStartOfActivePartOfNote } from '../../helpers/paragraph'
 import {
   chooseFolder,
   chooseHeading,
   getInput,
   showMessage
-} from '@helpers/userInput'
+} from '../../helpers/userInput'
 
 //-----------------------------------------------------------------
 // Settings
