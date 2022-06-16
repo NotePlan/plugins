@@ -26,7 +26,7 @@ import pluginJson from '../plugin.json'
  * It is unlikely you will need to edit/add anything below this line
  */
 
-import { updateSettingData } from '@helpers/NPconfiguration'
+import { updateSettingData } from '@helpers/NPConfiguration'
 
 /**
  * NotePlan calls this function after the plugin is installed or updated.
@@ -34,7 +34,7 @@ import { updateSettingData } from '@helpers/NPconfiguration'
  * the user preferences to include any new fields
  */
 export async function onUpdateOrInstall(): Promise<void> {
-  updateSettingData(pluginJson)
+  await updateSettingData(pluginJson)
 }
 
 /**

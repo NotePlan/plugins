@@ -27,7 +27,7 @@ import pluginJson from '../plugin.json'
  */
 
 // eslint-disable-next-line import/order
-import { updateSettingData } from '@helpers/NPconfiguration'
+import { updateSettingData } from '@helpers/NPConfiguration'
 
 /**
  * NotePlan calls this function after the plugin is installed or updated.
