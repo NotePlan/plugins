@@ -27,7 +27,7 @@ import { getInput } from '@helpers/userInput'
  * @param {*} name
  */
 function createMockOutput(object: any, name: string): void {
-  log(`NPdev::createMockOutput object type is: `, `${typeof object}`)
+  // log(`NPdev::createMockOutput object type is: `, `${typeof object}`)
   const props = getFilteredProps(object).sort()
   let output = props.map((prop) => {
     let propType,
@@ -143,15 +143,16 @@ export function createMockClass(object: any, name: string): void {
 export async function generateMock(incoming: ?string = ''): Promise<void> {
   // every command/plugin entry point should always be wrapped in a try/catch block
   try {
-    const notes = await DataStore.projectNotes
-    createMockClass(notes[0].paragraphs[0], 'ParagraphMock')
-    return
-    // createMockOutput(notes[1], 'NoteObject')
+    // MUST BE A CLASS YOU ARE SENDING, NOT AN ARRAY!!!
 
-    // const name = await getInput('What is the name of the mock?')
+    // EXAMPLE to create a subitem class:
+    // const pl = await DataStore.installedPlugins()
+    // createMockClass(pl[0].commands[0], 'PluginCommandObjectMock')
+
+    const name = await getInput('What is the name of the mock?')
     // console.log(this[name])
-    // if (name && this[name]) createMockOutput(this[name], name)
-    // else console.log(`No object for ${name || ''}`)
+    if (name && this[name]) createMockOutput(this[name], name)
+    else console.log(`No object for ${name || ''}`)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
