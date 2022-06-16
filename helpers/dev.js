@@ -28,7 +28,7 @@ const dt = (): string => {
  */
 export function JSP(obj: any, space: string | number = 2): string {
   const PARAM_BLACKLIST = ['referencedBlocks'] // fields not to be traversed (e.g. circular references)
-  if (typeof obj !== 'object') {
+  if (typeof obj !== 'object' || obj instanceof Date) {
     return String(obj)
   } else {
     if (Array.isArray(obj)) {

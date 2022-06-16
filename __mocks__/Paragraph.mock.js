@@ -1,11 +1,11 @@
 /*
- * ParagraphMock mock class
+ * Paragraph mock class
  *
- * Usage: const myParagraphMock = new ParagraphMock({ param changes here })
+ * Usage: const myParagraph = new Paragraph({ param changes here })
  *
  */
 
-export class ParagraphMock {
+export class Paragraph {
   // Properties
   blockId = 'PLACEHOLDER' // TODO: add value
   content = 'PLACEHOLDER' // TODO: add value
@@ -49,13 +49,13 @@ export class ParagraphMock {
 
   // Methods
   async children() {
-    throw 'ParagraphMock :: children Not implemented yet'
+    throw 'Paragraph :: children Not implemented yet'
   }
   async duplicate() {
-    throw 'ParagraphMock :: duplicate Not implemented yet'
+    throw 'Paragraph :: duplicate Not implemented yet'
   }
   async init() {
-    throw 'ParagraphMock :: init Not implemented yet'
+    throw 'Paragraph :: init Not implemented yet'
   }
 
   constructor(data?: any = {}) {
