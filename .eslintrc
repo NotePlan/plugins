@@ -85,5 +85,21 @@
   "ignorePatterns": [
     "node_modules",
     "*/script.js"
-  ]
+  ],
+  "settings": {
+    "import/resolver": {
+      "alias": {
+        "map": [
+          ["@plugins", "./"],
+          ["@helpers", "./helpers"],
+          ["@mocks", "./__mocks__"],
+          ["NPTemplating", "./np.Templating/lib"],
+          ["TemplatingEngine", "./np.Templating"],
+          ["@templating", "./np.Templating/lib"],
+          ["@templatingModules", "./np.Templating/lib/support/modules"],
+          ["NPGlobals", "./np.Globals/lib/NPGlobals"]
+        ]
+      }
+    }
+  }
 }

@@ -17,6 +17,8 @@ import {
   formatISO9075,
   addMinutes,
 } from 'date-fns'
+import logError from 'concurrently/src/flow-control/log-error'
+import { catchError } from 'rxjs/operators'
 import { getTimedEntries, keepTodayPortionOnly } from '../../helpers/calendar'
 import { getEventsForDay, writeTimeBlocksToCalendar, checkOrGetCalendar } from '../../helpers/NPCalendar'
 import { getParagraphBlock } from '../../jgclark.Filer/src/fileItems'
@@ -38,8 +40,9 @@ import { sortListBy } from '../../helpers/sorting'
 import { showMessage, chooseOption } from '../../helpers/userInput'
 import { isTimeBlockLine, getTimeBlockString } from '../../helpers/timeblocks'
 import { calcSmartPrependPoint } from '../../helpers/paragraph'
-import { deleteEntireBlock, removeContentUnderHeading, insertContentUnderHeading } from '@helpers/NPParagraph'
+import pluginJson from '../plugin.json'
 import { logAllPropertyNames, getAllPropertyNames, JSP, clo, log } from '../../helpers/dev'
+import { checkNumber, checkObj, checkString, checkBoolean, checkWithDefault } from '../../helpers/checkType'
 import {
   attachTimeblockTag,
   blockOutEvents,
@@ -58,13 +61,10 @@ import {
   getFullParagraphsCorrespondingToSortList,
   type ExtendedParagraph,
 } from './timeblocking-helpers'
-import { getPresetOptions, setConfigForPreset } from './presets'
 import { getTimeBlockingDefaults, validateTimeBlockConfig } from './config'
+import { getPresetOptions, setConfigForPreset } from './presets'
 import type { IntervalMap, TimeBlockDefaults, PartialCalendarItem, EditorOrNote } from './timeblocking-flow-types'
-import { checkNumber, checkObj, checkString, checkBoolean, checkWithDefault } from '../../helpers/checkType'
-import { catchError } from 'rxjs/operators'
-import pluginJson from '../plugin.json'
-import logError from 'concurrently/src/flow-control/log-error'
+import { deleteEntireBlock, removeContentUnderHeading, insertContentUnderHeading } from '@helpers/NPParagraph'
 const PLUGIN_ID = 'autoTimeBlocking'
 
 /* TCalendarItem is a type for the calendar items:

@@ -7,7 +7,7 @@ import json5 from 'json5'
 // import toml from 'toml'
 // import { load } from 'js-yaml'
 import { hyphenatedDateString } from './dateTime'
-import { log, logWarn, logError } from './dev'
+import { logError } from './dev'
 import { showMessage } from './userInput'
 
 //-------------------------------------------------------------------------------
@@ -18,7 +18,7 @@ import { showMessage } from './userInput'
  * Parse JSON5 string and return object representation.
  * Note: There is a local copy of this fn in helpers/paragraph.js to avoid a circular dependency
  * @author @nmn
- * @param {string} contents 
+ * @param {string} contents
  * @returns { {Array<string>: ?mixed} }
  */
 export async function parseJSON5(contents: string): Promise<?{ [string]: ?mixed }> {
@@ -36,7 +36,7 @@ export async function parseJSON5(contents: string): Promise<?{ [string]: ?mixed 
 // Other functions
 // @jgclark except where shown
 
-/** 
+/**
  * Return string with percentage (rounded to ones place) value appended
  * @author @eduardme
  * @param {number} value
@@ -44,7 +44,9 @@ export async function parseJSON5(contents: string): Promise<?{ [string]: ?mixed 
  * @return {string}
  */
 export function percent(value: number, total: number): string {
-  return total > 0 ? `${value.toLocaleString()} (${Math.round((value / total) * 100)}%)` : `${value.toLocaleString()} (0%)`
+  return total > 0
+    ? `${value.toLocaleString()} (${Math.round((value / total) * 100)}%)`
+    : `${value.toLocaleString()} (0%)`
 }
 
 // Deprecated: more trouble than they're worth ...
@@ -132,7 +134,8 @@ export function createOpenNoteCallbackUrl(
   const head = paramType === 'title' && heading?.length ? heading : ''
   // console.log(`createOpenNoteCallbackUrl: ${xcb}${titleOrFilename}${head ? `&heading=${head}` : ''}`)
   const encoded = encodeURIComponent(titleOrFilename).replace(/\(/g, '%28').replace(/\)/g, '%29')
-  const openAs = openType && ['subWindow', 'splitView', 'useExistingSubWindow'].includes(openType) ? `&${openType}=yes` : ''
+  const openAs =
+    openType && ['subWindow', 'splitView', 'useExistingSubWindow'].includes(openType) ? `&${openType}=yes` : ''
   return `${xcb}${encoded}${head && head !== '' ? `#${head}` : ''}${openAs}`
 }
 
@@ -143,17 +146,24 @@ export function createOpenNoteCallbackUrl(
  * @returns {string}
  * @tests available
  */
-export function createAddTextCallbackUrl(note: TNote | string, options: { text: string, mode: string, openNote: string }): string {
+export function createAddTextCallbackUrl(
+  note: TNote | string,
+  options: { text: string, mode: string, openNote: string },
+): string {
   const { text, mode, openNote } = options
   if (typeof note !== 'string') {
     // this is a note
     const encoded = encodeURIComponent(note.filename).replace(/\(/g, '%28').replace(/\)/g, '%29')
     if (note && note.filename) {
-      return `noteplan://x-callback-url/addText?filename=${encoded}&mode=${mode}&openNote=${openNote}&text=${encodeURIComponent(text)}`
+      return `noteplan://x-callback-url/addText?filename=${encoded}&mode=${mode}&openNote=${openNote}&text=${encodeURIComponent(
+        text,
+      )}`
     }
   } else {
     // this is a date type argument
-    return `noteplan://x-callback-url/addText?noteDate=${note}&mode=${mode}&openNote=${openNote}&text=${encodeURIComponent(text)}`
+    return `noteplan://x-callback-url/addText?noteDate=${note}&mode=${mode}&openNote=${openNote}&text=${encodeURIComponent(
+      text,
+    )}`
   }
   return ''
 }
@@ -188,7 +198,12 @@ export function createRunPluginCallbackUrl(pluginID: string, command: string, ar
  * @returns {string} the pretty x-callback-url string: [linkText](x-callback-url)
  * @tests available
  */
-export function createPrettyOpenNoteLink(linkText: string, titleOrFilename: string, isFilename: boolean = false, heading: string | null = null): string {
+export function createPrettyOpenNoteLink(
+  linkText: string,
+  titleOrFilename: string,
+  isFilename: boolean = false,
+  heading: string | null = null,
+): string {
   return `[${linkText}](${createOpenNoteCallbackUrl(titleOrFilename, isFilename ? 'filename' : 'title', heading)})`
 }
 
@@ -203,7 +218,12 @@ export function createPrettyOpenNoteLink(linkText: string, titleOrFilename: stri
  * @returns {string} the x-callback-url string
  * @tests available
  */
-export function createPrettyRunPluginLink(linkText: string, pluginID: string, command: string, args: Array<string> = []): string {
+export function createPrettyRunPluginLink(
+  linkText: string,
+  pluginID: string,
+  command: string,
+  args: Array<string> = [],
+): string {
   return `[${linkText}](${createRunPluginCallbackUrl(pluginID, command, args)})`
 }
 
@@ -321,11 +341,12 @@ export function semverVersionToNumber(version: string): number {
     }
   }
 
-  parts.forEach((part: number) => {
-    if (part >= 1024) {
+  for (let part of parts) {
+    part = parseInt(part, 10)
+    if (Number.isNaN(part) || part >= 1024) {
       throw new Error(`Version string invalid, ${part} is too large`)
     }
-  })
+  }
 
   let numericVersion = 0
   // Shift all parts either 0, 10 or 20 bits to the left.

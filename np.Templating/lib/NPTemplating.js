@@ -3,16 +3,15 @@
  * Copyright (c) 2022 Mike Erickson / Codedungeon.  All rights reserved.
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
  * -----------------------------------------------------------------------------------------*/
-import { semverVersionToNumber } from '@helpers/general'
 import pluginJson from '../plugin.json'
-import FrontmatterModule from './support/modules/FrontmatterModule'
-import DateModule from './support/modules/DateModule'
-import { debug, helpInfo } from './helpers'
-
 import globals from './globals'
-import { chooseOption } from '@helpers/userInput'
+import DateModule from './support/modules/DateModule'
+import FrontmatterModule from './support/modules/FrontmatterModule'
+import { helpInfo } from './helpers'
+import { semverVersionToNumber } from '@helpers/general'
+
 import { clo, log, logError } from '@helpers/dev'
-import { datePicker, askDateInterval } from '@helpers/userInput'
+import { datePicker, askDateInterval, chooseOption } from '@helpers/userInput'
 
 /*eslint-disable */
 import TemplatingEngine from './TemplatingEngine'
@@ -556,7 +555,11 @@ export default class NPTemplating {
                 const parts = template.filename.split('/')
                 parts.pop()
                 // $FlowIgnore
-                templatesSecondary.push({ value: template.filename, label: `${parts.join('/')}/${template.title}`, title: template.title })
+                templatesSecondary.push({
+                  value: template.filename,
+                  label: `${parts.join('/')}/${template.title ?? '<Unknown Title>'}`,
+                  title: template.title,
+                })
               }
             }
 
@@ -584,7 +587,8 @@ export default class NPTemplating {
 
       let templateContent = selectedTemplate?.content || ''
 
-      let isFrontmatterTemplate = templateContent.length > 0 ? new FrontmatterModule().isFrontmatterTemplate(templateContent) : false
+      let isFrontmatterTemplate =
+        templateContent.length > 0 ? new FrontmatterModule().isFrontmatterTemplate(templateContent) : false
 
       if (isFrontmatterTemplate) {
         return templateContent || ''
@@ -644,7 +648,13 @@ export default class NPTemplating {
       // extract variables
       if (tag.includes('const') || tag.includes('let') || tag.includes('var')) {
         if (sessionData) {
-          const tempTag = tag.replace('const', '').replace('let', '').trimLeft().replace('<%', '').replace('-%>', '').replace('%>', '')
+          const tempTag = tag
+            .replace('const', '')
+            .replace('let', '')
+            .trimLeft()
+            .replace('<%', '')
+            .replace('-%>', '')
+            .replace('%>', '')
           let pos = tempTag.indexOf('=')
           if (pos > 0) {
             let varName = tempTag.substring(0, pos - 1).trim()
@@ -735,7 +745,11 @@ export default class NPTemplating {
           const { newTemplateData, newSettingData } = await this.preProcess(frontMatterValue, sessionData)
           sessionData = { ...sessionData, ...newSettingData }
 
-          const renderedData = await new TemplatingEngine(this.constructor.templateConfig).render(newTemplateData, promptData.sessionData, userOptions)
+          const renderedData = await new TemplatingEngine(this.constructor.templateConfig).render(
+            newTemplateData,
+            promptData.sessionData,
+            userOptions,
+          )
 
           // $FlowIgnore
           templateData = templateData.replace(`${key}: ${value}`, `${key}: ${renderedData}`)
@@ -756,7 +770,11 @@ export default class NPTemplating {
       sessionData.data = { ...sessionData.data, ...userData?.data }
       sessionData.methods = { ...sessionData.methods, ...userData?.methods }
 
-      const renderedData = await new TemplatingEngine(this.constructor.templateConfig).render(templateData, sessionData, userOptions)
+      const renderedData = await new TemplatingEngine(this.constructor.templateConfig).render(
+        templateData,
+        sessionData,
+        userOptions,
+      )
       return this._filterTemplateResult(renderedData)
     } catch (error) {
       return this.templateErrorMessage('NPTemplating.renderTemplate', error)
@@ -909,7 +927,12 @@ export default class NPTemplating {
     return await askDateInterval(message)
   }
 
-  static async processPrompts(templateData: string, userData: any, startTag: string = '<%', endTag: string = '%>'): Promise<any> {
+  static async processPrompts(
+    templateData: string,
+    userData: any,
+    startTag: string = '<%',
+    endTag: string = '%>',
+  ): Promise<any> {
     const sessionData = { ...userData }
     const methods = userData.hasOwnProperty('methods') ? Object.keys(userData?.methods) : []
 
@@ -1108,7 +1131,14 @@ export default class NPTemplating {
   }
 
   static isVariableTag(tag: string = ''): boolean {
-    return tag.indexOf('<% const') > 0 || tag.indexOf('<% let') > 0 || tag.indexOf('<% var') > 0 || tag.indexOf('.') > 0 || tag.indexOf('{') > 0 || tag.indexOf('}') > 0
+    return (
+      tag.indexOf('<% const') > 0 ||
+      tag.indexOf('<% let') > 0 ||
+      tag.indexOf('<% var') > 0 ||
+      tag.indexOf('.') > 0 ||
+      tag.indexOf('{') > 0 ||
+      tag.indexOf('}') > 0
+    )
   }
 
   static isMethod(tag: string = '', userData: any = null): boolean {
@@ -1173,7 +1203,11 @@ export default class NPTemplating {
     }
   }
 
-  static async invokePluginCommandByName(pluginId: string, pluginCommand: string, args?: $ReadOnlyArray<mixed> = []): Promise<string | void> {
+  static async invokePluginCommandByName(
+    pluginId: string,
+    pluginCommand: string,
+    args?: $ReadOnlyArray<mixed> = [],
+  ): Promise<string | void> {
     if (await this.isCommandAvailable(pluginId, pluginCommand)) {
       return (await DataStore.invokePluginCommandByName(pluginCommand, pluginId, args)) || ''
     } else {

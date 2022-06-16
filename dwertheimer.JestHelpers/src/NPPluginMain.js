@@ -70,7 +70,7 @@ function createMockOutput(object: any, name: string): void {
   )
 }
 
-function getMockClassText(name: string, props: Array<string>, methods: Array<string>): void {
+function getMockClassText(name: string, props: Array<string>, methods: Array<string>): string {
   const template = `
 /* 
  * ${name} mock class
@@ -146,12 +146,12 @@ export async function generateMock(incoming: ?string = ''): Promise<void> {
     const notes = await DataStore.projectNotes
     createMockClass(notes[0].paragraphs[0], 'ParagraphMock')
     return
-    createMockOutput(notes[1], 'NoteObject')
+    // createMockOutput(notes[1], 'NoteObject')
 
-    const name = await getInput('What is the name of the mock?')
-    console.log(this[name])
-    if (name && this[name]) createMockOutput(this[name], name)
-    else console.log(`No object for ${name || ''}`)
+    // const name = await getInput('What is the name of the mock?')
+    // console.log(this[name])
+    // if (name && this[name]) createMockOutput(this[name], name)
+    // else console.log(`No object for ${name || ''}`)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
