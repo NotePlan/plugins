@@ -4,7 +4,7 @@
 import * as mainFile from '../src/NPPluginMain'
 import { copyObject } from '@helpers/dev'
 
-import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, NoteMock, ParagraphMock } from '@mocks/index'
+import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, Note, Paragraph } from '@mocks/index'
 
 beforeAll(() => {
   global.Calendar = Calendar
@@ -62,8 +62,8 @@ describe('{{pluginId}}' /* pluginID */, () => {
       test('should CLO write note.paragraphs to console', async () => {
         // tests start with "should" to describe the expected behavior
         const prevEditorNoteValue = copyObject(Editor.note || {})
-        Editor.note = new NoteMock({ filename: 'testingFile' })
-        Editor.note.paragraphs = [new ParagraphMock({ content: 'testingParagraph' })]
+        Editor.note = new Note({ filename: 'testingFile' })
+        Editor.note.paragraphs = [new Paragraph({ content: 'testingParagraph' })]
         const spy = jest.spyOn(console, 'log')
         const result = await mainFile.sayHello()
         expect(spy).toHaveBeenCalled()

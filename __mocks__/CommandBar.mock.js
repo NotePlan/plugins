@@ -13,6 +13,7 @@ const CommandBar = {
   // async openURL() { return null },
   placeholder: 'CommandBar placeholder',
   async prompt(title = '', message = '') {
+    console.log(`CommandBar prompt: ${title}: ${message}`)
     return `CommandBar.prompt ${title} ${message}`
   },
   // searchText: VALUE ,
