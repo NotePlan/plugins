@@ -1,11 +1,11 @@
 /*
- * NoteMock mock class
+ * Note mock class
  *
- * Usage: const myNoteMock = new NoteMock({ param changes here })
+ * Usage: const myNote = new Note({ param changes here })
  *
  */
 
-export class NoteMock {
+export class Note {
   // Properties
   backlinks = [] /* sample:  [ SOMETHING ], */
   changedDate = {} /* new Date("Tue Sep 07 2021 06:49:41 GMT-0700 (PDT)"),  */
@@ -41,97 +41,97 @@ export class NoteMock {
 
   // Methods
   async addBlockID() {
-    throw 'NoteMock :: addBlockID Not implemented yet'
+    throw 'Note :: addBlockID Not implemented yet'
   }
   async addParagraphBelowHeadingTitle() {
-    throw 'NoteMock :: addParagraphBelowHeadingTitle Not implemented yet'
+    throw 'Note :: addParagraphBelowHeadingTitle Not implemented yet'
   }
   async addTodoBelowHeadingTitle() {
-    throw 'NoteMock :: addTodoBelowHeadingTitle Not implemented yet'
+    throw 'Note :: addTodoBelowHeadingTitle Not implemented yet'
   }
   async appendParagraph() {
-    throw 'NoteMock :: appendParagraph Not implemented yet'
+    throw 'Note :: appendParagraph Not implemented yet'
   }
   async appendParagraphBelowHeadingLineIndex() {
-    throw 'NoteMock :: appendParagraphBelowHeadingLineIndex Not implemented yet'
+    throw 'Note :: appendParagraphBelowHeadingLineIndex Not implemented yet'
   }
   async appendTodo() {
-    throw 'NoteMock :: appendTodo Not implemented yet'
+    throw 'Note :: appendTodo Not implemented yet'
   }
   async appendTodoBelowHeadingLineIndex() {
-    throw 'NoteMock :: appendTodoBelowHeadingLineIndex Not implemented yet'
+    throw 'Note :: appendTodoBelowHeadingLineIndex Not implemented yet'
   }
   async insertCancelledTodo() {
-    throw 'NoteMock :: insertCancelledTodo Not implemented yet'
+    throw 'Note :: insertCancelledTodo Not implemented yet'
   }
   async insertCompletedTodo() {
-    throw 'NoteMock :: insertCompletedTodo Not implemented yet'
+    throw 'Note :: insertCompletedTodo Not implemented yet'
   }
   async insertHeading() {
-    throw 'NoteMock :: insertHeading Not implemented yet'
+    throw 'Note :: insertHeading Not implemented yet'
   }
   async insertList() {
-    throw 'NoteMock :: insertList Not implemented yet'
+    throw 'Note :: insertList Not implemented yet'
   }
   async insertParagraph() {
-    throw 'NoteMock :: insertParagraph Not implemented yet'
+    throw 'Note :: insertParagraph Not implemented yet'
   }
   async insertParagraphAfterParagraph() {
-    throw 'NoteMock :: insertParagraphAfterParagraph Not implemented yet'
+    throw 'Note :: insertParagraphAfterParagraph Not implemented yet'
   }
   async insertParagraphBeforeParagraph() {
-    throw 'NoteMock :: insertParagraphBeforeParagraph Not implemented yet'
+    throw 'Note :: insertParagraphBeforeParagraph Not implemented yet'
   }
   async insertQuote() {
-    throw 'NoteMock :: insertQuote Not implemented yet'
+    throw 'Note :: insertQuote Not implemented yet'
   }
   async insertScheduledTodo() {
-    throw 'NoteMock :: insertScheduledTodo Not implemented yet'
+    throw 'Note :: insertScheduledTodo Not implemented yet'
   }
   async insertTextAtCharacterIndex() {
-    throw 'NoteMock :: insertTextAtCharacterIndex Not implemented yet'
+    throw 'Note :: insertTextAtCharacterIndex Not implemented yet'
   }
   async insertTodo() {
-    throw 'NoteMock :: insertTodo Not implemented yet'
+    throw 'Note :: insertTodo Not implemented yet'
   }
   async insertTodoAfterParagraph() {
-    throw 'NoteMock :: insertTodoAfterParagraph Not implemented yet'
+    throw 'Note :: insertTodoAfterParagraph Not implemented yet'
   }
   async insertTodoBeforeParagraph() {
-    throw 'NoteMock :: insertTodoBeforeParagraph Not implemented yet'
+    throw 'Note :: insertTodoBeforeParagraph Not implemented yet'
   }
   async paragraphRangeAtCharacterIndex() {
-    throw 'NoteMock :: paragraphRangeAtCharacterIndex Not implemented yet'
+    throw 'Note :: paragraphRangeAtCharacterIndex Not implemented yet'
   }
   async prependParagraph() {
-    throw 'NoteMock :: prependParagraph Not implemented yet'
+    throw 'Note :: prependParagraph Not implemented yet'
   }
   async prependTodo() {
-    throw 'NoteMock :: prependTodo Not implemented yet'
+    throw 'Note :: prependTodo Not implemented yet'
   }
   async printNote() {
-    throw 'NoteMock :: printNote Not implemented yet'
+    throw 'Note :: printNote Not implemented yet'
   }
   async removeBlockID() {
-    throw 'NoteMock :: removeBlockID Not implemented yet'
+    throw 'Note :: removeBlockID Not implemented yet'
   }
   async removeParagraph() {
-    throw 'NoteMock :: removeParagraph Not implemented yet'
+    throw 'Note :: removeParagraph Not implemented yet'
   }
   async removeParagraphAtIndex() {
-    throw 'NoteMock :: removeParagraphAtIndex Not implemented yet'
+    throw 'Note :: removeParagraphAtIndex Not implemented yet'
   }
   async removeParagraphs() {
-    throw 'NoteMock :: removeParagraphs Not implemented yet'
+    throw 'Note :: removeParagraphs Not implemented yet'
   }
   async replaceTextInCharacterRange() {
-    throw 'NoteMock :: replaceTextInCharacterRange Not implemented yet'
+    throw 'Note :: replaceTextInCharacterRange Not implemented yet'
   }
   async updateParagraph() {
-    throw 'NoteMock :: updateParagraph Not implemented yet'
+    throw 'Note :: updateParagraph Not implemented yet'
   }
   async updateParagraphs() {
-    throw 'NoteMock :: updateParagraphs Not implemented yet'
+    throw 'Note :: updateParagraphs Not implemented yet'
   }
 
   constructor(data?: any = {}) {
