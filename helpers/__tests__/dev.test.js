@@ -1,6 +1,6 @@
 // create Jest tests for file dev.js
 
-/* globals describe, expect, it, test, jest */
+/* globals describe, expect, test, jest */
 import * as d from '../dev'
 
 // const _ = require('lodash')
