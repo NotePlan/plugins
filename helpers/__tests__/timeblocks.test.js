@@ -1,4 +1,4 @@
-/* globals describe, expect, it, test */
+/* globals describe, expect, test, beforeAll */
 import colors from 'chalk'
 import * as tb from '../timeblocks'
 import DataStore from '../../__mocks__/DataStore.mock'
@@ -9,7 +9,7 @@ beforeAll(() => {
 
 const HELPER_NAME = `📙 ${colors.yellow('helpers/timeblocks')}`
 const section = colors.blue
-const method = colors.magenta.bold
+// const method = colors.magenta.bold
 
 describe(`${HELPER_NAME}`, () => {
   describe(section('timeblocks.js'), () => {
@@ -216,39 +216,39 @@ describe(`${HELPER_NAME}`, () => {
 
     describe('isTypeThatCanHaveATimeBlock', () => {
       test('type .open YES', () => {
-        let p = { type: 'open' }
+        const p = { type: 'open' }
         expect(tb.isTypeThatCanHaveATimeBlock(p)).toEqual(true)
       })
       test('type .done YES', () => {
-        let p = { type: 'done' }
+        const p = { type: 'done' }
         expect(tb.isTypeThatCanHaveATimeBlock(p)).toEqual(true)
       })
       test('type .title YES', () => {
-        let p = { type: 'title' }
+        const p = { type: 'title' }
         expect(tb.isTypeThatCanHaveATimeBlock(p)).toEqual(true)
       })
       test('type .list YES', () => {
-        let p = { type: 'list' }
+        const p = { type: 'list' }
         expect(tb.isTypeThatCanHaveATimeBlock(p)).toEqual(true)
       })
       test('type .scheduled NO', () => {
-        let p = { type: 'scheduled' }
+        const p = { type: 'scheduled' }
         expect(tb.isTypeThatCanHaveATimeBlock(p)).toEqual(false)
       })
       test('type .text NO', () => {
-        let p = { type: 'text' }
+        const p = { type: 'text' }
         expect(tb.isTypeThatCanHaveATimeBlock(p)).toEqual(false)
       })
       test('type .cancelled NO', () => {
-        let p = { type: 'cancelled' }
+        const p = { type: 'cancelled' }
         expect(tb.isTypeThatCanHaveATimeBlock(p)).toEqual(false)
       })
       test('type .empty NO', () => {
-        let p = { type: 'empty' }
+        const p = { type: 'empty' }
         expect(tb.isTypeThatCanHaveATimeBlock(p)).toEqual(false)
       })
       test('type .quote NO', () => {
-        let p = { type: 'quote' }
+        const p = { type: 'quote' }
         expect(tb.isTypeThatCanHaveATimeBlock(p)).toEqual(false)
       })
     })

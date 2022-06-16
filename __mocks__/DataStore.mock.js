@@ -43,12 +43,13 @@ const DataStore = {
   // async loadData() { return null },
   // async loadJSON() { return null },
   // async moveNote() { return null },
-  // async newNote() { return null },
+  async newNote(title = '', folder = '') {
+    return `# ${title}`
+  },
   // async newNoteWithContent() { return null },
   // async noteByFilename() { return null },
 
   preference(key: string = ''): string {
-    console.log(key)
     switch (key) {
       case 'timeblockTextMustContainString':
         return '' // set to blank to mimic no additional NP checking of text strings

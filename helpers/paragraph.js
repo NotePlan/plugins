@@ -3,14 +3,17 @@
 // Paragraph and block-level helpers functions
 //-----------------------------------------------------------------------------
 
-import { hyphenatedDateString } from './dateTime'
+import {
+  hyphenatedDateString,
+  RE_SCHEDULED_ISO_DATE,
+} from './dateTime'
 import { log, logError, logWarn } from './dev'
 
 //-----------------------------------------------------------------------------
 // Paragraph-level Functions
 
 /**
- * Check to see if search term is present within a URL or file path
+ * Check to see if search term is present within a URL or file path, using case sensitive searching.
  * @author @jgclark
 
  * @param {string} term - term to check
@@ -24,7 +27,7 @@ export function termInURL(term: string, searchString: string): boolean {
 }
 
 /**
- * Check to see if search term is present within the path of a [...](path)
+ * Check to see if search term is present within the path of a [...](path), using case sensitive searching.
  * @author @jgclark
 
  * @param {string} term - term to check

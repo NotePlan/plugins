@@ -3,6 +3,9 @@
 # details here - https://github.com/facebook/flow/issues/6646#issuecomment-447272772
 # <PROJECT_ROOT>/node_modules/.*
 
+# This particular sub-folder should be ignored because it includes malformed JSON
+<PROJECT_ROOT>/node_modules/resolve/test/.*
+
 [include]
 
 [libs]

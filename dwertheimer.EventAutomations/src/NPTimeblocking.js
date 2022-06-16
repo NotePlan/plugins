@@ -9,37 +9,20 @@
  *  * TODO: feedback if no items to timeblock
  * impolement limitToTags[] but make it a textfilter regex
  */
-import {
-  differenceInCalendarDays,
-  endOfDay,
-  startOfDay,
-  eachMinuteOfInterval,
-  formatISO9075,
-  addMinutes,
-} from 'date-fns'
+import { addMinutes } from 'date-fns'
 import { getTimedEntries, keepTodayPortionOnly } from '../../helpers/calendar'
 import { getEventsForDay, writeTimeBlocksToCalendar, checkOrGetCalendar } from '../../helpers/NPCalendar'
-import { getParagraphBlock } from '../../jgclark.Filer/src/fileItems'
 import {
   getDateStringFromCalendarFilename,
-  type HourMinObj,
-  getDateObjFromDateTimeString,
-  getTimeStringFromDate,
   getTodaysDateHyphenated,
   getTodaysDateUnhyphenated,
-  removeDateTags,
-  removeDateTagsAndToday,
-  todaysDateISOString,
-  toISODateString,
-  toLocaleTime,
 } from '../../helpers/dateTime'
 import { getTasksByType } from '../../dwertheimer.TaskAutomations/src/taskHelpers'
 import { sortListBy } from '../../helpers/sorting'
 import { showMessage, chooseOption } from '../../helpers/userInput'
 import { isTimeBlockLine, getTimeBlockString } from '../../helpers/timeblocks'
-import { calcSmartPrependPoint } from '../../helpers/paragraph'
-import { deleteEntireBlock, removeContentUnderHeading, insertContentUnderHeading } from '@helpers/NPParagraph'
-import { logAllPropertyNames, getAllPropertyNames, JSP, clo, log } from '../../helpers/dev'
+import { removeContentUnderHeading, insertContentUnderHeading } from '@helpers/NPParagraph'
+import { JSP, clo, log, logError } from '../../helpers/dev'
 import {
   attachTimeblockTag,
   blockOutEvents,
@@ -58,29 +41,11 @@ import {
   getFullParagraphsCorrespondingToSortList,
   type ExtendedParagraph,
 } from './timeblocking-helpers'
-import { getPresetOptions, setConfigForPreset } from './presets'
 import { getTimeBlockingDefaults, validateTimeBlockConfig } from './config'
+import { getPresetOptions, setConfigForPreset } from './presets'
 import type { IntervalMap, TimeBlockDefaults, PartialCalendarItem, EditorOrNote } from './timeblocking-flow-types'
-import { checkNumber, checkObj, checkString, checkBoolean, checkWithDefault } from '../../helpers/checkType'
-import { catchError } from 'rxjs/operators'
+import { checkNumber, checkWithDefault } from '../../helpers/checkType'
 import pluginJson from '../plugin.json'
-import logError from 'concurrently/src/flow-control/log-error'
-const PLUGIN_ID = 'autoTimeBlocking'
-
-/* TCalendarItem is a type for the calendar items:
-    title: string,
-    date: Date,
-    endDate: Date | void,
-    type: CalenderItemType,
-    isAllDay?: boolean,
-    calendar?: string,
-    isCompleted ?: boolean,
-    notes ?: string,
-    url?: string,
-    availability?: AvailabilityType 0=busy; 1=free; 2=tentative; 3=unavailable 
-    // NOTE: MIN NP VERSION NEEDS TO BE 3.3 TO USE AVAILABILITY
-  ): TCalendarItem, 
-*/
 
 export async function getConfig(): Promise<{ [string]: [mixed] }> {
   const defaultConfig = getTimeBlockingDefaults()
@@ -581,15 +546,19 @@ export async function insertSyncedCopiesOfTodayTodos(): Promise<void> {
  * @param {*} note
  */
 export async function insertTodosAsTimeblocks(note: TNote): Promise<void> {
-  console.log(`====== /atb =======\nStarting insertTodosAsTimeblocks`)
-  if (!editorIsOpenToToday()) await Editor.openNoteByDate(new Date(), false) //open editor to today
-  const config = await getConfig()
-  clo(config, 'atb config')
-  if (config) {
-    console.log(`Config found. Calling createTimeBlocksForTodaysTasks`)
-    await createTimeBlocksForTodaysTasks(config)
-  } else {
-    // console.log(`insertTodosAsTimeblocks: stopping after config create`)
+  try {
+    console.log(`====== /atb =======\nStarting insertTodosAsTimeblocks`)
+    if (!editorIsOpenToToday()) await Editor.openNoteByDate(new Date(), false) //open editor to today
+    const config = await getConfig()
+    clo(config, 'atb config')
+    if (config) {
+      console.log(`Config found. Calling createTimeBlocksForTodaysTasks`)
+      return await createTimeBlocksForTodaysTasks(config)
+    } else {
+      // console.log(`insertTodosAsTimeblocks: stopping after config create`)
+    }
+  } catch (error) {
+    logError(pluginJson, `insertTodosAsTimeblocks error: ${JSP(error)}`)
   }
 }
 

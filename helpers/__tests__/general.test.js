@@ -1,8 +1,6 @@
-/* globals describe, expect, test, DataStore, afterAll */
-import * as g from '../general'
-
+/* globals describe, expect, test */
 import colors from 'chalk'
-import * as c from '../config'
+import * as g from '../general'
 
 const FILE = `${colors.yellow('helpers/general')}`
 const section = colors.blue

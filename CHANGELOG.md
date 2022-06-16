@@ -4,6 +4,12 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/codedungeon.Toolbox/README.md) for details on available commands and use case.
 
+## [3.8.0] - 2022-06-15 (@nmn)
+
+- added eslint-plugin-no-floating-promise to package.json
+- added package-lock back into git
+- added .watchmanconfig
+
 ## [3.7.0] - 2022-06-08 (@dwertheimer)
 - added `documentation` module back in and edited the `npm run docs` command
 

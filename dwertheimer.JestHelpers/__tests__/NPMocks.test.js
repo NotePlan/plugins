@@ -2,7 +2,7 @@
 
 import * as helpers from '../src/support/helpers'
 import * as NPfile from '../src/NPPluginMain'
-import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, NoteMock, ParagraphMock } from '@mocks/index'
+import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, Note, Paragraph } from '@mocks/index'
 
 beforeAll(() => {
   global.Calendar = Calendar
@@ -104,17 +104,17 @@ describe('dwertheimer.JestHelpers' /* pluginID */, () => {
     })
   })
 
-  describe('NoteMock' /* file */, () => {
+  describe('Note' /* file */, () => {
     test('should return mocked note', async () => {
-      const note = new NoteMock({ filename: 'foo' }) // should work in local context
+      const note = new Note({ filename: 'foo' }) // should work in local context
       expect(note.filename).toEqual('foo')
       expect(note.backlinks).toEqual([])
     })
   })
 
-  describe('ParagraphMock' /* file */, () => {
+  describe('Paragraph' /* file */, () => {
     test('should return mocked paragraph', async () => {
-      const para = new ParagraphMock({ filename: 'foo' }) // should work in local context
+      const para = new Paragraph({ filename: 'foo' }) // should work in local context
       expect(para.filename).toEqual('foo')
       expect(para.linkedNoteTitles).toEqual([])
     })

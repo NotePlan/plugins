@@ -1,9 +1,9 @@
 // @flow strict
 
+import { default as sweepNote } from './sweepNote'
 import { getTagParamsFromString } from '@helpers/general'
 import { filenameDateString } from '@helpers/dateTime'
 import { chooseOption, showMessage } from '@helpers/userInput'
-import { default as sweepNote } from './sweepNote'
 
 type RescheduleType = 'move' | 'reschedule' | 'updateDate' | 'makeToday' | false
 
@@ -57,9 +57,9 @@ export async function sweepTemplate(paramStr: string = ''): Promise<string> {
     //TODO: add sorting support
 
     console.log(
-      `Running template command sweepAll with params: limit=${JSON.stringify(limit)} includeHeadings=${String(includeHeadings)} noteTypes=${JSON.stringify(
-        noteTypes,
-      )} ignoreFolders:${JSON.stringify(ignoreFolders)}`,
+      `Running template command sweepAll with params: limit=${JSON.stringify(limit)} includeHeadings=${String(
+        includeHeadings,
+      )} noteTypes=${JSON.stringify(noteTypes)} ignoreFolders:${JSON.stringify(ignoreFolders)}`,
     )
     // let paramObj
     // try {
@@ -68,7 +68,16 @@ export async function sweepTemplate(paramStr: string = ''): Promise<string> {
     //   console.log(`Error: ${e}`)
     //   return `Could not parse template parameter: ${paramStr}. Check the documentation. Error: ${e}`
     // }
-    const retVal = await sweepAll(overdueOnly, requireConfirmation, limit, true, includeHeadings, noteTypes, ignoreFolders, moveType)
+    const retVal = await sweepAll(
+      overdueOnly,
+      requireConfirmation,
+      limit,
+      true,
+      includeHeadings,
+      noteTypes,
+      ignoreFolders,
+      moveType,
+    )
     return String(retVal ?? '')
   }
 }
@@ -96,12 +105,18 @@ export default async function sweepAll(
   let { unit, num } = periodToCheck
   let foundTasks: Array<TParagraph> = []
   console.log(
-    `Starting sweepAll overdueOnly:${String(pOverdueOnly)} requireUserAction:${String(requireUserAction)} periodToCheck:${JSON.stringify(
-      periodToCheck,
-    )} noteTypes: ${JSON.stringify(noteTypes)} returnValue:${String(returnValue)} ignoreFolders: ${JSON.stringify(ignoreFolders)}`,
+    `Starting sweepAll overdueOnly:${String(pOverdueOnly)} requireUserAction:${String(
+      requireUserAction,
+    )} periodToCheck:${JSON.stringify(periodToCheck)} noteTypes: ${JSON.stringify(noteTypes)} returnValue:${String(
+      returnValue,
+    )} ignoreFolders: ${JSON.stringify(ignoreFolders)}`,
   )
   if (requireUserAction) {
-    const setPeriod = await chooseOption<Option1>('🧹 Reschedule tasks to today from the last...', OPTIONS, DEFAULT_OPTION)
+    const setPeriod = await chooseOption<Option1>(
+      '🧹 Reschedule tasks to today from the last...',
+      OPTIONS,
+      DEFAULT_OPTION,
+    )
     if (setPeriod.num === 0) {
       // User canceled, return here, so no additional messages are shown
       await showMessage(`Cancelled! No changes made.`)
@@ -115,7 +130,10 @@ export default async function sweepAll(
     withUserConfirm = requireUserAction
 
   if (withUserConfirm) {
-    res = await CommandBar.showOptions(['✅ Yes', '❌ No (Reschedule Silently)'], '📙 Want to approve each note during sweep?')
+    res = await CommandBar.showOptions(
+      ['✅ Yes', '❌ No (Reschedule Silently)'],
+      '📙 Want to approve each note during sweep?',
+    )
     withUserConfirm = res.index === 0
   }
 
@@ -151,7 +169,10 @@ export default async function sweepAll(
   }
 
   if (withUserConfirm) {
-    res = await CommandBar.showOptions(['Open/Unscheduled Tasks', 'Scheduled+Overdue Tasks Only'], `What type of tasks to include?`)
+    res = await CommandBar.showOptions(
+      ['Open/Unscheduled Tasks', 'Scheduled+Overdue Tasks Only'],
+      `What type of tasks to include?`,
+    )
   }
   const overdueOnly = pOverdueOnly || res.index === 1
 
@@ -161,14 +182,16 @@ export default async function sweepAll(
     res = await CommandBar.showOptions(['✅ OK', '❌ Skip'], `📙 Scan for Tasks in Project Notes?`)
   }
 
-  const includeProjectNotes = noteTypes.includes('note') || (withUserConfirm && typeof res.index !== 'undefined' && res.index === 0)
+  const includeProjectNotes =
+    noteTypes.includes('note') || (withUserConfirm && typeof res.index !== 'undefined' && res.index === 0)
 
   // Narrow project note search to notes edited in last N days
   if (includeProjectNotes) {
     const recentProjNotes = DataStore.projectNotes.filter((note) => note.changedDate >= afterDate)
     console.log(`\tProject Notes to search: ${recentProjNotes.length}`)
     for (const note of recentProjNotes) {
-      const ignoreThisFolder = ignoreFolders.length && !!ignoreFolders.filter((folder) => note.filename.includes(`${folder}/`)).length
+      const ignoreThisFolder =
+        ignoreFolders.length && !!ignoreFolders.filter((folder) => note.filename.includes(`${folder}/`)).length
       if (!ignoreThisFolder) {
         // console.log(`About to sweep Project Note: ${note.title || note.filename}`)
         const result = await sweepNote(note, withUserConfirm, false, overdueOnly, true, returnValue, includeHeadings)
@@ -185,16 +208,20 @@ export default async function sweepAll(
   }
 
   // Resolve whether calendar notes task sweeping is requested
-  const includeCalendarNotes = noteTypes.includes('calendar') || (withUserConfirm && typeof res.index !== 'undefined' && res.index === 0)
+  const includeCalendarNotes =
+    noteTypes.includes('calendar') || (withUserConfirm && typeof res.index !== 'undefined' && res.index === 0)
 
   if (includeCalendarNotes) {
     console.log(`Looking for calendar notes now...`)
     const todayFileName = `${filenameDateString(new Date())}.${DataStore.defaultFileExtension}`
-    const recentCalNotes = DataStore.calendarNotes.filter((note) => note.filename < todayFileName && note.filename >= afterDateFileName)
+    const recentCalNotes = DataStore.calendarNotes.filter(
+      (note) => note.filename < todayFileName && note.filename >= afterDateFileName,
+    )
 
     console.log(`\tCalendar Notes to search: ${recentCalNotes.length}`)
     for (const note of recentCalNotes) {
-      const ignoreThisFolder = ignoreFolders.length && !!ignoreFolders.filter((folder) => note.filename.includes(`${folder}/`)).length
+      const ignoreThisFolder =
+        ignoreFolders.length && !!ignoreFolders.filter((folder) => note.filename.includes(`${folder}/`)).length
       if (!ignoreThisFolder) {
         if (note.filename !== todayFileName) {
           console.log(`===\nsweepAll: Calling sweepNote ${note.filename} | Today is: ${todayFileName}`)

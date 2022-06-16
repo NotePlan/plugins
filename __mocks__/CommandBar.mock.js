@@ -12,7 +12,10 @@ const CommandBar = {
   // async onMainThread() { return null },
   // async openURL() { return null },
   placeholder: 'CommandBar placeholder',
-  // async prompt() { return null },
+  async prompt(title = '', message = '') {
+    console.log(`CommandBar prompt: ${title}: ${message}`)
+    return `CommandBar.prompt ${title} ${message}`
+  },
   // searchText: VALUE ,
   // async showInput() { return null },
   // async showLoading() { return null },

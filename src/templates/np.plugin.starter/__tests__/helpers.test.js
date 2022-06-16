@@ -10,6 +10,16 @@ describe('{{pluginId}}' /* pluginID */, () => {
         const result = await helpers.uppercase('hello world')
         expect(result).toEqual('HELLO WORLD')
       })
+      test('should return empty string if empty string sent', async () => {
+        // tests start with "should" to describe the expected behavior
+        const result = await helpers.uppercase('')
+        expect(result).toEqual('')
+      })
+      test('should return empty string if empty string sent', async () => {
+        // tests start with "should" to describe the expected behavior
+        const result = await helpers.uppercase()
+        expect(result).toEqual('')
+      })
     })
   })
 })

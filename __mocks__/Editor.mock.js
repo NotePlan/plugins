@@ -32,32 +32,28 @@ const Editor = {
   // async insertParagraphBeforeParagraph() { return null },
   // async insertQuote() { return null },
   // async insertScheduledTodo() { return null },
-  // async insertTextAtCharacterIndex() { return null },
-  // async insertTextAtCursor() { return null },
+  async insertTextAtCharacterIndex(text = '', length = 0) {
+    return text
+  },
+  async insertTextAtCursor(text: string) {
+    return text //void return
+  },
   // async insertTodo() { return null },
   // async insertTodoAfterParagraph() { return null },
   // async insertTodoBeforeParagraph() { return null },
   // async isFolded() { return null },
-  /* note: {
-		"filename": "_TEST/New Note - 15.3950.md",
-		"type": "Notes",
-		"title": "MyNoteTitle",
-		"changedDate": "2022-06-12T20:23:27.705Z",
-		"createdDate": "2022-06-12T20:23:15.402Z",
-		"hashtags": [],
-		"mentions": [],
-		"linkedItems": [],
-		"datedTodos": [],
-		"backlinks": [],
-		"frontmatterTypes": [],
-		"content": "# MyNoteTitle
-* one task in the note",
-		"paragraphs": [
-				"{"type":"title","content":"MyNoteTitle","rawContent":"# MyNoteTitle","prefix":"# ","contentRange":{},"lineIndex":0,"heading":"","headingLevel":1,"isRecurring":false,"indents":0,"filename":"_TEST/New Note - 15.3950.md","noteType":"Notes","linkedNoteTitles":[],"subItems":[],"referencedBlocks":[],"note":{}}",
-				"{"type":"open","content":"one task in the note","rawContent":"* one task in the note","prefix":"* ","contentRange":{},"lineIndex":1,"heading":"MyNoteTitle","headingRange":{},"headingLevel":1,"isRecurring":false,"indents":0,"filename":"_TEST/New Note - 15.3950.md","noteType":"Notes","linkedNoteTitles":[],"subItems":[],"referencedBlocks":[],"note":{}}"
-		]
-} ,  */
-  // async openNoteByDate() { return null },
+  note: null,
+
+  async openNoteByDate(
+    date: Date,
+    newWindow?: boolean,
+    highlightStart?: number,
+    highlightEnd?: number,
+    splitView?: boolean,
+    timeframe?: string,
+  ): Promise<TNote> {
+    return this.note
+  },
   // async openNoteByDateString() { return null },
   // async openNoteByFilename() { return null },
   // async openNoteByTitle() { return null },
