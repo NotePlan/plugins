@@ -118,6 +118,16 @@
       ],
       "description": "Look for bullets mentioning dates and add number of days till that date",
       "jsFunction": "countAndAddDays"
+    },
+    {
+      "name": "enable heading links",
+      "alias": [
+        "local links",
+        "hash links",
+        "links to headings"
+      ],
+      "description": "Look for Links to headings and make them work by converting them to plugin command calls",
+      "jsFunction": "convertLocalLinksToPluginLinks"
     }
   ],
   "plugin.settings": [
