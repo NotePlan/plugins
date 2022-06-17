@@ -929,7 +929,9 @@ export default class NPTemplating {
       sessionData.data = { ...sessionData.data, ...userData?.data }
       sessionData.methods = { ...sessionData.methods, ...userData?.methods }
 
-      templateData = await this.execute(templateData)
+      const { processedTemplateData, processedSessionData } = await this.execute(templateData, sessionData.data)
+      templateData = processedTemplateData
+      sessionData.data = { ...sessionData.data, ...processedSessionData }
 
       const renderedData = await new TemplatingEngine(this.constructor.templateConfig).render(templateData, sessionData, userOptions)
       return this._filterTemplateResult(renderedData)
@@ -1361,22 +1363,38 @@ export default class NPTemplating {
     return new FrontmatterModule().convertProjectNoteToFrontmatter(projectNote)
   }
 
-  static async execute(templateData: string = ''): Promise<any> {
+  static async execute(templateData: string = '', sessionData: any): Promise<any> {
+    // returns
+    // - executedTemplate
+    // - executedTemplateData
+
     let processedTemplateData = templateData
+    let processedSessionData = sessionData
 
     const codeBlocks = getCodeBlocks(templateData)
     codeBlocks.forEach(async (codeBlock) => {
       if (!codeBlockHasComment(codeBlock) && blockIsJavaScript(codeBlock)) {
         const executeCodeBlock = codeBlock.replace('```javascript\n', '').replace('```js', '').replace('```\n', '').replace('```', '')
-        const fn = new Function(executeCodeBlock)
-        let result = fn()
+        // const fn = new Function(executeCodeBlock)
+        // let result = fn()
 
-        if (typeof result !== 'undefined') {
+        const x = ['params', executeCodeBlock]
+        // $FlowIgnore
+        const fn = Function.apply(null, x)
+
+        let result = fn(processedSessionData)
+
+        if (typeof result !== 'undefined' && typeof result === 'string') {
           processedTemplateData = processedTemplateData.replace(codeBlock, result)
+        } else {
+          if (typeof result === 'object') {
+            processedTemplateData = processedTemplateData.replace(codeBlock, '')
+            processedSessionData = { ...processedSessionData, ...result }
+          }
         }
       }
     })
 
-    return processedTemplateData
+    return { processedTemplateData, processedSessionData }
   }
 }
