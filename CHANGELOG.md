@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/codedungeon.Toolbox/README.md) for details on available commands and use case.
 
+## [3.9.0] - 2022-06-17 (@jgclark)
+- removed luxon
+- (unmentioned here but I believe @nmn remove luxon-business-days about 2022-06-12)
+
 ## [3.8.0] - 2022-06-15 (@nmn)
 
 - added eslint-plugin-no-floating-promise to package.json

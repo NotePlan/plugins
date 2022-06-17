@@ -2,30 +2,28 @@
 // ----------------------------------------------------------------------------
 // Command to Process Date Offsets
 // @jgclark
-// Last updated 13.5.2022 for v0.16.0, by @jgclark
+// Last updated 16.6.2022 for v0.16.0+, by @jgclark
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
 import { getEventsSettings } from './config'
 import { timeBlocksToCalendar } from './timeblocks'
 import {
-  RE_DATE,
+  calcOffsetDateStr,
   RE_BARE_DATE_CAPTURE,
   RE_BARE_DATE,
   RE_OFFSET_DATE,
   RE_OFFSET_DATE_CAPTURE,
   RE_DATE_INTERVAL,
-  todaysDateISOString,
+  // todaysDateISOString,
 } from '@helpers/dateTime'
 import { log, logWarn, logError } from "@helpers/dev"
 import { displayTitle } from '@helpers/general'
 // import { calcOffsetDateStr } from '@helpers/NPdateTime'
-import { calcOffsetDateStr } from '@helpers/dateTime'
 import { findEndOfActivePartOfNote } from '@helpers/paragraph'
-import { showMessage, showMessageYesNo } from '@helpers/userInput'
-import { askDateInterval, datePicker } from "../../helpers/userInput"
+import { askDateInterval, datePicker, showMessage, showMessageYesNo } from '@helpers/userInput'
 
-const RE_HEADING_LINE = `^#+\s`
+// const RE_HEADING_LINE = `^#+\s`
 
 // ----------------------------------------------------------------------------
 /**
@@ -67,14 +65,13 @@ export async function shiftDates(): Promise<void> {
 
     // Shift dates
     let updatedCount = 0
-    const lineCount = paragraphs.length
     pArr.forEach(p => {
-      let c = p.content
+      const c = p.content
       log(pluginJson, `${c}`)
       if (c.match(RE_BARE_DATE)) {
-        let dates = c.match(RE_BARE_DATE_CAPTURE) ?? []
-        let firstDate = dates[1]
-        let shiftedDate = calcOffsetDateStr(firstDate, interval)
+        const dates = c.match(RE_BARE_DATE_CAPTURE) ?? []
+        const firstDate = dates[1]
+        const shiftedDate = calcOffsetDateStr(firstDate, interval)
         log(pluginJson, `  ${firstDate}: match found, will become ${shiftedDate}`)
         // Replace date part with the new shiftedDate
         const updatedP = c.replace(firstDate, shiftedDate).trimEnd()
@@ -116,15 +113,13 @@ export async function processDateOffsets(): Promise<void> {
   }
   const noteTitle = displayTitle(note)
   log(pluginJson, `for note '${noteTitle}'`)
-  const config = await getEventsSettings()
+  const config = await getEventsSettings() // eslint-disable-line
 
   try {
     let currentTargetDate = ''
     let currentTargetDateLine = 0  // the line number where we found the currentTargetDate. Zero means not set.
     let lastCalcDate = ''
     let n = 0
-    let addFinalDate = false // If we 
-    const lineCount = paragraphs.length
     const endOfActive = findEndOfActivePartOfNote(note)
 
     // Look through this open note to find data offsets
@@ -157,14 +152,14 @@ export async function processDateOffsets(): Promise<void> {
 
             // If we had a current target date, and want to add addFinalDate, do so
             if (lastCalcDate !== '' && currentTargetDateLine > 0) {
-              paragraphs[currentTargetDateLine].content = paragraphs[currentTargetDateLine].content + ' to ' + lastCalcDate
+              paragraphs[currentTargetDateLine].content = `${paragraphs[currentTargetDateLine].content} to ${lastCalcDate}`
               note.updateParagraph(paragraphs[currentTargetDateLine])
             }
           }
           currentTargetDate = ''
           currentTargetDateLine = 0
           lastCalcDate = ''
-          addFinalDate = false
+          // addFinalDate = false
         }
 
         // Try matching for the standard YYYY-MM-DD date pattern on its own
@@ -230,7 +225,7 @@ export async function processDateOffsets(): Promise<void> {
       } // loop over lines
 
       // Offer to run timeblocks creation, as that often goes with offsets
-      let res = await showMessageYesNo(`Shall I also look for time blocks to create new events?`, ['Yes', 'No'], 'Process Date Offsets')
+      const res = await showMessageYesNo(`Shall I also look for time blocks to create new events?`, ['Yes', 'No'], 'Process Date Offsets')
       if (res === 'Yes') {
         await timeBlocksToCalendar()
       }

@@ -1,29 +1,21 @@
 // @flow
 //-----------------------------------------------------------------------------
-// Last updated 11.6.2022 for v0.2.0, @jgclark
+// Last updated 17.6.2022 for v0.2.0+, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import {
   gatherMatchingLines,
-} from '@helpers/NPparagraph'
-import {
-  nowLocaleDateTime,
-} from '@helpers/dateTime'
-import { clo, log, logError, logWarn } from '@helpers/dev'
-import { getFolderFromFilename } from '@helpers/folders'
-import {
-  displayTitle,
-} from '@helpers/general'
-import {
-  findEndOfActivePartOfNote,
-} from '@helpers/paragraph'
-import {
   replaceContentUnderHeading
-} from '@helpers/NPparagraph'
+} from '@helpers/NPParagraph'
+// import { nowLocaleDateTime } from '@helpers/dateTime'
+import { log, logError, logWarn } from '@helpers/dev'
+import { getFolderFromFilename } from '@helpers/folders'
+import { displayTitle } from '@helpers/general'
+// import { findEndOfActivePartOfNote } from '@helpers/paragraph'
 import {
   chooseFolder,
-  chooseOption,
+  // chooseOption,
   getInput,
   showMessage,
   showMessageYesNo,
@@ -71,7 +63,7 @@ export async function getMOCsSettings(): Promise<any> {
  */
 export async function makeMOC(): Promise<void> {
   // get relevant settings
-  let config = await getMOCsSettings()
+  const config = await getMOCsSettings()
 
   // Get strings to search for
   let stringsToMatch = ''
@@ -104,7 +96,6 @@ export async function makeMOC(): Promise<void> {
   // See if this note has already been created (in active notes, not Archive or Trash)
   const existingNotes: $ReadOnlyArray<TNote> =
     DataStore.projectNoteByTitle(requestedTitle, true, false) ?? []
-  const existingEntries: Array<string> = []
   log(pluginJson, `  found ${existingNotes.length} existing ${requestedTitle} notes`)
   if (existingNotes.length > 0) {
     note = existingNotes[0] // pick the first if more than one
@@ -160,11 +151,11 @@ export async function makeMOC(): Promise<void> {
   // Find matches in this set of notes
   for (const searchTerm of stringsToMatch) {
     const outputArray = []
-    const results = await gatherMatchingLines(projectNotesToInclude, searchTerm, false, 'none', config.caseInsensitive)
-    let resultTitles = results?.[1]
+    const results = gatherMatchingLines(projectNotesToInclude, searchTerm, false, 'none', config.caseInsensitive)
+    const resultTitles = results?.[1]
     if (resultTitles.length > 0) {
       // dedupe results by making and unmaking it into a set
-      let uniqTitlesAsLinks = [...new Set(resultTitles)]
+      const uniqTitlesAsLinks = [...new Set(resultTitles)]
       // remove [[ and ]]
       let uniqTitles: Array<string> = uniqTitlesAsLinks.map((element) => {
         return element.slice(2, -2)

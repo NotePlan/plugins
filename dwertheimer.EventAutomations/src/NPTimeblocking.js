@@ -136,7 +136,7 @@ async function insertItemsIntoNote(
     await insertContentUnderHeading(note, heading, list.join('\n'))
     // Fold the heading to hide the list
     if (shouldFold && heading !== '') {
-      const thePara = note.paragraphs.find((p) => p.type == 'title' && p.content.includes(heading))
+      const thePara = note.paragraphs.find((p) => p.type === 'title' && p.content.includes(heading))
       if (thePara) {
         log(pluginJson, `insertItemsIntoNote: folding "${heading}"`)
         // $FlowIgnore[method-unbinding] - the function is not being removed from the Editor object.
@@ -311,7 +311,7 @@ function getEventsConfig(atbConfig: { [string]: mixed }): TEventConfig {
 export function getSyncedCopiesAsList(allTodayParagraphs: Array<TParagraph>): Array<string> {
   const syncedLinesList = []
   allTodayParagraphs.forEach((p) => {
-    if (p.type == 'open') {
+    if (p.type === 'open') {
       p.note?.addBlockID(p)
       p.note?.updateParagraph(p)
       syncedLinesList.push(p.rawContent)

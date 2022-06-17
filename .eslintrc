@@ -95,7 +95,7 @@
           ["@plugins", "./"],
           ["@helpers", "./helpers"],
           ["@mocks", "./__mocks__"],
-          ["NPTemplating", "./np.Templating/lib"],
+          ["NPTemplating", "./np.Templating/lib/NPTemplating"],
           ["TemplatingEngine", "./np.Templating"],
           ["@templating", "./np.Templating/lib"],
           ["@templatingModules", "./np.Templating/lib/support/modules"],

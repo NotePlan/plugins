@@ -3,13 +3,13 @@
 // Date functions that rely on NotePlan functions/types
 // @jgclark except where shown
 
-import strftime from 'strftime'
 import moment from 'moment'
 import { getWeek, toISODateString, toISOShortDateTimeString } from './dateTime'
-import { log, logError } from './dev'
+import { logError } from './dev'
 
 // TODO: Finish moving references to this file from dateTime.js
-export function toLocaleDateTimeString(dateObj: Date, locale: string | Array<string> = [], options: Intl$DateTimeFormatOptions = {}): string {
+export function toLocaleDateTimeString(dateObj: Date, locale: string | Array<string> = [],
+  options: Intl$DateTimeFormatOptions = {}): string {
   /**
    * TODO: use details from NotePlan.environment...
    *  "languageCode": "en",
@@ -23,7 +23,8 @@ export function toLocaleDateTimeString(dateObj: Date, locale: string | Array<str
 }
 
 // TODO: Finish moving references to this file from dateTime.js
-export function toLocaleDateString(dateObj: Date, locale: string | Array<string> = [], options: Intl$DateTimeFormatOptions = {}): string {
+export function toLocaleDateString(dateObj: Date, locale: string | Array<string> = [],
+  options: Intl$DateTimeFormatOptions = {}): string {
   /**
    * TODO: use details from NotePlan.environment...
    *  "languageCode": "en",
@@ -36,7 +37,8 @@ export function toLocaleDateString(dateObj: Date, locale: string | Array<string>
 }
 
 // TODO: Finish moving references to this file from dateTime.js
-export function toLocaleTime(dateObj: Date, locale: string | Array<string> = [], options: Intl$DateTimeFormatOptions = {}): string {
+export function toLocaleTime(dateObj: Date, locale: string | Array<string> = [],
+  options: Intl$DateTimeFormatOptions = {}): string {
   /**
    * TODO: use details from NotePlan.environment...
    *  "languageCode": "en",
@@ -154,6 +156,7 @@ export function calcOffsetDateStr(baseDateISO: string, interval: string): string
 
 /**
  * Return quarter start and end dates for a given quarter
+  // TODO: date arithmetic in moment library and move to dateTime.js
  * @param {number} qtr - quarter number in year (1-4)
  * @param {number} year - year (4-digits)
  * @return {[Date, Date]}} - start and end dates (as JS Dates)
@@ -171,7 +174,6 @@ export function quarterStartEnd(qtr: number, year: number): [Date, Date] {
   // I.e. when in BST (=UTC+0100) it's calculating dates which are often 1 too early.
   // Get TZOffset in minutes. If positive then behind UTC; if negative then ahead.
   const TZOffset = new Date().getTimezoneOffset()
-  // TODO: This looks like a candidate for the Luxon library as well
 
   switch (qtr) {
     case 1: {
@@ -205,8 +207,8 @@ export function quarterStartEnd(qtr: number, year: number): [Date, Date] {
 /**
  * Return start and end dates for a given week number.
  * Uses ISO 8601 definition of week, except that week start is Sunday not Monday.
- * TODO: Use locale-specific first day of week (e.g. Mon for USA)
- * TODO: Use luxon library to do date math, and move to dateTime.js
+ * TODO: Use moment library to do date math, and move to dateTime.js
+ * - moment().isoWeek(n).year(n)?
  * @author @jgclark
  *
  * @param {number} week - week number in year (1-53)
