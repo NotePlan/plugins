@@ -395,8 +395,11 @@ export function matchTasksToSlots(
  * @param { * } config
  * @returns
  */
-export function appendLinkIfNecessary(todos: Array<TParagraph>, config: { [key: string]: any }): Array<TParagraph> {
-  let todosWithLinks = todos
+export function appendLinkIfNecessary(
+  todos: $ReadOnlyArray<TParagraph>,
+  config: { [key: string]: any },
+): Array<TParagraph> {
+  let todosWithLinks = []
   try {
     if (todos.length && config.includeLinks !== 'OFF') {
       todosWithLinks = []
@@ -429,7 +432,7 @@ export function appendLinkIfNecessary(todos: Array<TParagraph>, config: { [key: 
  * @returns Array<TParagraph> unduplicated paragraphs
  */
 export const eliminateDuplicateParagraphs = (todos: Array<TParagraph>): Array<TParagraph> => {
-  let revisedTodos = []
+  const revisedTodos = []
   if (todos?.length) {
     todos.forEach((e) => {
       const matchingIndex = revisedTodos.findIndex((t) => {
@@ -475,7 +478,7 @@ export function getTimeBlockTimesForEvents(
   // $FlowIgnore
   const availableTimes = filterTimeMapToOpenSlots(timeMap, config)
   console.log(`AvailableTimes: ${availableTimes.length}`)
-  if (availableTimes.length == 0) {
+  if (availableTimes.length === 0) {
     timeMap.forEach((m) => console.log(`getTimeBlockTimesForEvents no more times available: ${JSON.stringify(m)}`))
   }
   const blocksAvailable = findTimeBlocks(availableTimes, config)
@@ -528,7 +531,7 @@ export function isAutoTimeBlockLine(line: string, config?: { [key: string]: any 
  * @param {*} paras
  */
 export function removeTimeBlockParas(paras: Array<TParagraph>): Array<TParagraph> {
-  return paras.filter((p) => !Boolean(isAutoTimeBlockLine(p.content)))
+  return paras.filter((p) => !isAutoTimeBlockLine(p.content))
 }
 
 // pattern could be a string or a /regex/ in a string
@@ -576,7 +579,7 @@ export function excludeTasksWithPatterns(tasks: Array<TParagraph>, pattern: stri
  */
 export function findTodosInNote(note: TNote): Array<ExtendedParagraph> {
   const hyphDate = getTodaysDateHyphenated()
-  const toDate = getDateObjFromDateTimeString(hyphDate)
+  // const toDate = getDateObjFromDateTimeString(hyphDate)
   const isTodayItem = (text) => [`>${hyphDate}`, '>today'].filter((a) => text.indexOf(a) > -1).length > 0
   const todos: Array<ExtendedParagraph> = []
   if (note.paragraphs) {
@@ -608,15 +611,15 @@ export function getFullParagraphsCorrespondingToSortList(
   paragraphs: Array<TParagraph>,
   sortList: Array<{ [string]: any }>,
 ): Array<TParagraph> {
-  let retP = []
   if (sortList && paragraphs) {
-    retP = sortList.map((s) => {
-      const found = paragraphs.find((p, i) => {
-        return removeDateTagsAndToday(p.rawContent) === s.raw && p.filename === s.filename
-      })
-      return found
-    })
+    return (
+      sortList
+        .map((s) => {
+          return paragraphs.find((p) => removeDateTagsAndToday(p.rawContent) === s.raw && p.filename === s.filename)
+        })
+        // Filter out nulls
+        ?.filter(Boolean) ?? []
+    )
   }
-  // $FlowIgnore
-  return retP ?? []
+  return []
 }

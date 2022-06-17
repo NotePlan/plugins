@@ -141,7 +141,7 @@ async function insertItemsIntoNote(
     await insertContentUnderHeading(note, heading, list.join('\n'))
     // Fold the heading to hide the list
     if (shouldFold && heading !== '') {
-      const thePara = note.paragraphs.find((p) => p.type == 'title' && p.content.includes(heading))
+      const thePara = note.paragraphs.find((p) => p.type === 'title' && p.content.includes(heading))
       if (thePara) {
         log(pluginJson, `insertItemsIntoNote: folding "${heading}"`)
         // $FlowIgnore[method-unbinding] - the function is not being removed from the Editor object.
@@ -212,7 +212,7 @@ async function getPopulatedTimeMapForToday(
   const eventsWithStartAndEnd = getTimedEntries(eventsArray)
   let eventsScheduledForToday = keepTodayPortionOnly(eventsWithStartAndEnd)
   if (Editor) {
-    let duration = checkWithDefault(checkNumber, 60)
+    const duration = checkWithDefault(checkNumber, 60)
     const userEnteredTimeblocks = getExistingTimeBlocksFromNoteAsEvents(Editor, duration)
     eventsScheduledForToday = [...userEnteredTimeblocks, ...eventsScheduledForToday]
   }
@@ -314,9 +314,9 @@ function getEventsConfig(atbConfig: { [string]: mixed }): TEventConfig {
  * @returns array of strings with the sync codes attached
  */
 export function getSyncedCopiesAsList(allTodayParagraphs: Array<TParagraph>): Array<string> {
-  let syncedLinesList = []
+  const syncedLinesList = []
   allTodayParagraphs.forEach((p) => {
-    if (p.type == 'open') {
+    if (p.type === 'open') {
       p.note?.addBlockID(p)
       p.note?.updateParagraph(p)
       syncedLinesList.push(p.rawContent)
