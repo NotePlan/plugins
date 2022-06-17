@@ -3,8 +3,6 @@
 // Timeblocking support constants and functions
 // ------------------------------------------------------------------------------------
 
-import { checkString } from '@helpers/checkType'
-
 // Regular Expressions -- the easy ones!
 export const RE_ISO_DATE = '\\d{4}-[01]\\d{1}-\\d{2}'
 export const RE_HOURS = '[0-2]?\\d'
@@ -135,8 +133,9 @@ export const RE_TIMEBLOCK_FOR_THEMES = `${RE_ALLOWED_TIME_BLOCK_LINE_START}${RE_
  */
 export function isTimeBlockLine(contentString: string): boolean {
   try {
-    const mustContainString = checkString(DataStore.preference("timeblockTextMustContainString"))
-    if (mustContainString !== '') {
+    // Following works around a bug when the preference isn't being set at all at the start.
+    const mustContainString = DataStore.preference("timeblockTextMustContainString")
+    if (typeof mustContainString === "string" && mustContainString !== '') {
       const res1 = contentString.includes(mustContainString)
       if (!res1) {
         return false

@@ -50,9 +50,12 @@ const DataStore = {
   // async noteByFilename() { return null },
 
   preference(key: string = ''): string {
+    // let deliberatelyUndefined
     switch (key) {
       case 'timeblockTextMustContainString':
-        return '' // set to blank to mimic no additional NP checking of text strings
+        // return 'at' // to test use of 'must contain string'
+        // return deliberatelyUndefined // to test an error case
+        return ''// set to blank to mimic no additional NP checking of text strings
         break
       case 'isAsteriskTodo':
         return true
