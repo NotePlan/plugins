@@ -123,10 +123,12 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
       })
       test('should find todos in the Editor note', async () => {
         const paras = [new Paragraph({ content: 'line1 >today', type: 'open' })]
+        const noteWas = Editor.note
         Editor.note.backlinks = []
         Editor.note.paragraphs = paras
         const result = await mainFile.getTodaysReferences()
         expect(result).toEqual(paras)
+        Editor.note = noteWas
       })
     })
     /*
@@ -140,10 +142,12 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         spy.mockRestore()
       })
       test('should do nothing if there are no backlinks', async () => {
+        DataStore.settings = {} //should get default settings
+        Editor.note.backlinks = []
         const spy = jest.spyOn(CommandBar, 'prompt')
-        await mainFile.insertTodosAsTimeblocks(note)
+        const res = await mainFile.insertTodosAsTimeblocks(note)
         // $FlowIgnore - jest doesn't know about this param
-        expect(spy.mock.lastCall[1]).toEqual(`No todos/references marked for >today`)
+        expect(mockWasCalledWith(spy, /No todos\/references marked for >today/)).toBe(true)
         spy.mockRestore()
       })
       // [WIP]

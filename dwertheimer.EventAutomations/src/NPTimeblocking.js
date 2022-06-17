@@ -59,7 +59,6 @@ export function getConfig(): Promise<{ [string]: [mixed] }> {
     log(pluginJson, `config was empty. will use defaults`)
   }
   const defaultConfig = getTimeBlockingDefaults()
-  defaultConfig.timeblockTextMustContainString = DataStore.preference('timeblockTextMustContainString') || ''
   return defaultConfig
 }
 

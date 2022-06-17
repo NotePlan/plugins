@@ -417,6 +417,8 @@ export function appendLinkIfNecessary(
           todosWithLinks.push(e)
         }
       })
+    } else {
+      todosWithLinks = todos
     }
   } catch (error) {
     logError('timeblocking-helpers::appendLinkIfNecessary', JSON.stringify(error))
