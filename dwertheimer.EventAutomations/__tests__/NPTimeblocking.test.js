@@ -1,10 +1,12 @@
+// @flow
 // Jest testing docs: https://jestjs.io/docs/using-matchers
-/* global describe, test, jest, expect */
+/* global describe, test, jest, expect, beforeAll */
 
-import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, Note, Paragraph } from '@mocks/index'
-import { copyObject } from '@helpers/dev'
-import { unhyphenatedDate } from '@helpers/dateTime'
+//               expect(spy).toHaveBeenNthCalledWith(2, expect.stringMatching(/ERROR/))
+
 import * as mainFile from '../src/NPTimeblocking'
+import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, Note, Paragraph } from '@mocks/index'
+import { unhyphenatedDate } from '@helpers/dateTime'
 
 beforeAll(() => {
   global.Calendar = Calendar
@@ -41,18 +43,69 @@ note.filename = `${unhyphenatedDate(new Date())}.md`
 Editor.note = note
 Editor.filename = note.filename
 
+/**
+ * Check if a spy was called (at any point) with a regex
+ * @param { JestSpyType } spy
+ * @param {*} regex - a regex to match the spy call's arguments
+ * @returns {boolean} was called or not
+ */
+export const mockWasCalledWith = (spy: JestSpyType, regex: RegExp) => {
+  let found = []
+  if (spy?.mock?.calls?.length) {
+    const calls = spy.mock.calls
+    found = calls.filter((call) => call.find((arg) => regex.test(arg)))
+  }
+  return found.length > 0
+}
+
 describe('dwertheimer.EventAutomations' /* pluginID */, () => {
-  describe('NPTimeblocking' /* file */, () => {
-    describe('insertTodosAsTimeblocks' /* function */, () => {
+  describe('NPTimeblocking.js' /* file */, () => {
+    /*
+     * getTodaysReferences()
+     */
+    describe('getTodaysReferences()' /* function */, () => {
+      test('should return empty array if no backlinks', async () => {
+        const result = await mainFile.getTodaysReferences({ ...note, backlinks: [] })
+        expect(result).toEqual([])
+      })
+      test('should console.log and return empty array if note is null', async () => {
+        const spy = jest.spyOn(console, 'log')
+        const editorWas = Editor.note
+        Editor.note = null
+        const result = await mainFile.getTodaysReferences(null)
+        expect(result).toEqual([])
+        expect(mockWasCalledWith(spy, /timeblocking could not open Note/)).toBe(true)
+        spy.mockRestore()
+        Editor.note = editorWas
+      })
+      test('should tell user there was a problem with config', async () => {
+        Editor.note.backlinks = [{ content: 'line1', subItems: [{ test: 'here' }] }]
+        const result = await mainFile.getTodaysReferences()
+        expect(result).toEqual([{ test: 'here', title: 'line1' }])
+        Editor.note.backlinks = []
+      })
+      test('should find todos in the Editor note', async () => {
+        const paras = [new Paragraph({ content: 'line1 >today', type: 'open' })]
+        Editor.note.backlinks = []
+        Editor.note.paragraphs = paras
+        const result = await mainFile.getTodaysReferences()
+        expect(result).toEqual(paras)
+      })
+    })
+    /*
+     * insertTodosAsTimeblocks()
+     */
+    describe('insertTodosAsTimeblocks()' /* function */, () => {
       test('should tell user there was a problem with config', async () => {
         const spy = jest.spyOn(CommandBar, 'prompt')
-        const ret = await mainFile.insertTodosAsTimeblocks()
+        await mainFile.insertTodosAsTimeblocks(note)
         expect(spy.mock.calls[0][1]).toMatch(/Plugin Settings Error/)
         spy.mockRestore()
       })
       test('should do nothing if there are no backlinks', async () => {
         const spy = jest.spyOn(CommandBar, 'prompt')
-        const ret = await mainFile.insertTodosAsTimeblocks()
+        await mainFile.insertTodosAsTimeblocks(note)
+        // $FlowIgnore - jest doesn't know about this param
         expect(spy.mock.lastCall[1]).toEqual(`No todos/references marked for >today`)
         spy.mockRestore()
       })
@@ -60,7 +113,8 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
       test.skip('should do something if there are backlinks', async () => {
         Editor.note.backlinks = [{ subItems: [{ content: 'line1' }] }]
         const spy = jest.spyOn(CommandBar, 'prompt')
-        const ret = await mainFile.insertTodosAsTimeblocks()
+        await mainFile.insertTodosAsTimeblocks(note)
+        // $FlowIgnore - jest doesn't know about this param
         expect(spy.mock.lastCall[1]).toEqual(`No todos/references marked for >today`)
         spy.mockRestore()
       })

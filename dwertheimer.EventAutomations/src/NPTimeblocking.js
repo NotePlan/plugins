@@ -20,15 +20,12 @@ import {
 import { getTasksByType } from '../../dwertheimer.TaskAutomations/src/taskHelpers'
 import { sortListBy } from '../../helpers/sorting'
 import { showMessage, chooseOption } from '../../helpers/userInput'
-import { isTimeBlockLine, getTimeBlockString } from '../../helpers/timeblocks'
-import { removeContentUnderHeading, insertContentUnderHeading } from '@helpers/NPParagraph'
+import { getTimeBlockString } from '../../helpers/timeblocks'
 import { JSP, clo, log, logError } from '../../helpers/dev'
+import { checkNumber, checkWithDefault } from '../../helpers/checkType'
+import pluginJson from '../plugin.json'
 import {
-  attachTimeblockTag,
   blockOutEvents,
-  blockTimeFor,
-  createIntervalMap,
-  createTimeBlockLine,
   excludeTasksWithPatterns,
   getBlankDayMap,
   getTimeBlockTimesForEvents,
@@ -39,15 +36,13 @@ import {
   findTodosInNote,
   eliminateDuplicateParagraphs,
   getFullParagraphsCorrespondingToSortList,
-  type ExtendedParagraph,
 } from './timeblocking-helpers'
 import { getTimeBlockingDefaults, validateTimeBlockConfig } from './config'
 import { getPresetOptions, setConfigForPreset } from './presets'
-import type { IntervalMap, TimeBlockDefaults, PartialCalendarItem, EditorOrNote } from './timeblocking-flow-types'
-import { checkNumber, checkWithDefault } from '../../helpers/checkType'
-import pluginJson from '../plugin.json'
+import type { IntervalMap, PartialCalendarItem, EditorOrNote } from './timeblocking-flow-types'
+import { removeContentUnderHeading, insertContentUnderHeading } from '@helpers/NPParagraph'
 
-export async function getConfig(): Promise<{ [string]: [mixed] }> {
+export function getConfig(): Promise<{ [string]: [mixed] }> {
   const defaultConfig = getTimeBlockingDefaults()
   const config = DataStore.settings
   config.timeblockTextMustContainString = DataStore.preference('timeblockTextMustContainString') || ''
@@ -76,7 +71,7 @@ const editorIsOpenToToday = () => {
   return getDateStringFromCalendarFilename(fileName) === getTodaysDateUnhyphenated()
 }
 
-export async function deleteParagraphsContainingString(destNote: TNote, timeBlockTag: string): Promise<void> {
+export function deleteParagraphsContainingString(destNote: TNote, timeBlockTag: string): void {
   const destNoteParas = destNote.paragraphs
   const parasToDelete = []
   for (let i = 0; i < destNoteParas.length; i++) {
@@ -98,7 +93,7 @@ export async function deleteParagraphsContainingString(destNote: TNote, timeBloc
  * backlinks[0].subItems[0] =JSLog: {"type":"open","content":"scheduled for 10/4 using app >today","rawContent":"* scheduled for 10/4 using app
  * ","prefix":"* ","contentRange":{},"lineIndex":2,"date":"2021-11-07T07:00:00.000Z","heading":"_Testing scheduled sweeping","headingRange":{},"headingLevel":1,"isRecurring":0,"indents":0,"filename":"zDELETEME/Test scheduled.md","noteType":"Notes","linkedNoteTitles":[],"subItems":[]}
  */
-function getTodaysReferences(pNote: TNote | null = null, config: { [key: string]: any }): Array<TParagraph> {
+export function getTodaysReferences(pNote: TNote | null = null): Array<TParagraph> {
   log(pluginJson, `getTodaysReferences starting`)
   const note = pNote || Editor.note
   if (note == null) {
@@ -108,10 +103,10 @@ function getTodaysReferences(pNote: TNote | null = null, config: { [key: string]
   const backlinks: Array<TParagraph> = [...note.backlinks] // an array of notes which link to this note
   log(pluginJson, `backlinks.length:${backlinks.length}`)
   let todayParas = []
-  backlinks.forEach((link, i) => {
+  backlinks.forEach((link) => {
     // $FlowIgnore Flow(prop-missing) -- subItems is not in Flow defs but is real
     const subItems = link.subItems
-    subItems.forEach((subItem, j) => {
+    subItems.forEach((subItem) => {
       subItem.title = link.content.replace('.md', '').replace('.txt', '')
       todayParas.push(subItem)
     })
@@ -212,7 +207,7 @@ async function getPopulatedTimeMapForToday(
   const eventsWithStartAndEnd = getTimedEntries(eventsArray)
   let eventsScheduledForToday = keepTodayPortionOnly(eventsWithStartAndEnd)
   if (Editor) {
-    let duration = checkWithDefault(checkNumber, 60)
+    const duration = checkWithDefault(checkNumber, 60)
     const userEnteredTimeblocks = getExistingTimeBlocksFromNoteAsEvents(Editor, duration)
     eventsScheduledForToday = [...userEnteredTimeblocks, ...eventsScheduledForToday]
   }
@@ -314,7 +309,7 @@ function getEventsConfig(atbConfig: { [string]: mixed }): TEventConfig {
  * @returns array of strings with the sync codes attached
  */
 export function getSyncedCopiesAsList(allTodayParagraphs: Array<TParagraph>): Array<string> {
-  let syncedLinesList = []
+  const syncedLinesList = []
   allTodayParagraphs.forEach((p) => {
     if (p.type == 'open') {
       p.note?.addBlockID(p)
@@ -327,9 +322,9 @@ export function getSyncedCopiesAsList(allTodayParagraphs: Array<TParagraph>): Ar
 
 export async function getTodaysFilteredTodos(config: { [key: string]: mixed }): Promise<Array<TParagraph>> {
   const { includeTasksWithText, excludeTasksWithText } = config
-  const backlinkParas = getTodaysReferences(Editor.note, config)
+  const backlinkParas = getTodaysReferences(Editor.note)
   console.log(`Found ${backlinkParas.length} backlinks+today-note items (may include completed items)`)
-  let undupedBackLinkParas = eliminateDuplicateParagraphs(backlinkParas)
+  const undupedBackLinkParas = eliminateDuplicateParagraphs(backlinkParas)
   console.log(`Found ${undupedBackLinkParas.length} undupedBackLinkParas after duplicate elimination`)
   let todosParagraphs: Array<TParagraph> = makeAllItemsTodos(undupedBackLinkParas) //some items may not be todos but we want to pretend they are and timeblock for them
   todosParagraphs =
@@ -420,7 +415,7 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: mi
       const calendarMapWithEvents = await getPopulatedTimeMapForToday(dateStr, intervalMins, config)
       console.log(`After getPopulatedTimeMapForToday, ${calendarMapWithEvents.length} timeMap slots`)
       const eventsToTimeblock = getTimeBlockTimesForEvents(calendarMapWithEvents, sortedTodos, config)
-      let { timeBlockTextList, blockList } = eventsToTimeblock
+      const { timeBlockTextList, blockList } = eventsToTimeblock
       console.log(
         `After getTimeBlockTimesForEvents, blocks:\n\tblockList.length=${blockList.length} \n\ttimeBlockTextList.length=${timeBlockTextList.length}`,
       )
