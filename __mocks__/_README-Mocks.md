@@ -24,7 +24,7 @@ The following example is an actual example from the code base: tests whether the
 That call to DataStore will make a typical Jest test die. So we can just mock that DataStore function to return a value to our test:
 
 ```js
-/* globals describe, expect, it, test */
+/* globals describe, expect, it, test, beforeAll */
 import * as tb from '../timeblocks'
 import DataStore from '@mocks/index'
 
@@ -47,7 +47,7 @@ A slightly more complex example: We want to make sure that our plugin is writing
 
 The following example tests whether `Editor.insertTextAtCursor()` is called from the 'JestHelpers' plugin's `sayHello` function:
 ```js
-/* global describe, test, it, jest, expect */
+/* global describe, test, it, jest, expect, beforeAll */
 import * as NPfile from '../src/NPPluginMain' // import everything for this plugin
 import { DataStore } from '@mocks/index' // import mock(s)
 

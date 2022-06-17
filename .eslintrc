@@ -83,6 +83,7 @@
     "fetch": true
   },
   "ignorePatterns": [
+    ".history",
     "node_modules",
     "flow-typed",
     "*/script.js"
