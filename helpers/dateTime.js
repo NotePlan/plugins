@@ -4,9 +4,10 @@
 // @jgclark except where shown
 
 import strftime from 'strftime'
-import { Duration, DateTime } from 'luxon' // having done 'npm install --save luxon'
+import moment from 'moment/min/moment-with-locales'
+import { default as momentBusiness } from 'moment-business-days'
 import { formatISO9075 } from 'date-fns'
-import { log, logError } from './dev'
+import { log, logError, logWarn } from './dev'
 
 export const RE_DATE = '\\d{4}-[01]\\d-\\d{2}' // find ISO dates of form YYYY-MM-DD
 export const RE_ISO_DATE = '\\d{4}-[01]\\d-[012]\\d' // find ISO dates of form YYYY-MM-DD (slightly stricter)
@@ -20,7 +21,6 @@ export const RE_BARE_DATE = `[^\d(<\/-]${RE_DATE}` // an ISO date without a digi
 export const RE_BARE_DATE_CAPTURE = `[^\d(<\/-](${RE_DATE})` // capturing date in above
 
 export const todaysDateISOString: string = new Date().toISOString().slice(0, 10)
-//export const nowShortDateTime: string = new Date().toISOString().slice(0, 16) // Note: Now deprecated, as better to use a locale version
 export const nowLocaleDateTime: string = new Date().toLocaleString()
 export const getFormattedTime = (format: string = '%Y-%m-%d %I:%M:%S %P'): string => strftime(format)
 
@@ -79,15 +79,18 @@ export function toISOShortDateTimeString(dateObj: Date): string {
   return dateObj.toISOString().slice(0, 16)
 }
 
-export function toLocaleDateTimeString(dateObj: Date, locale: string | Array<string> = [], options: Intl$DateTimeFormatOptions = {}): string {
+export function toLocaleDateTimeString(dateObj: Date, locale: string | Array<string> =
+  [], options: Intl$DateTimeFormatOptions = {}): string {
   return dateObj.toLocaleString(locale, options)
 }
 
-export function toLocaleDateString(dateObj: Date, locale: string | Array<string> = [], options: Intl$DateTimeFormatOptions = {}): string {
+export function toLocaleDateString(dateObj: Date, locale: string | Array<string> =
+  [], options: Intl$DateTimeFormatOptions = {}): string {
   return dateObj.toLocaleDateString(locale, options)
 }
 
-export function toLocaleTime(dateObj: Date, locale: string | Array<string> = [], options: Intl$DateTimeFormatOptions = {}): string {
+export function toLocaleTime(dateObj: Date, locale: string | Array<string> =
+  [], options: Intl$DateTimeFormatOptions = {}): string {
   return dateObj.toLocaleTimeString(locale, options)
 }
 
@@ -120,9 +123,10 @@ export function filenameDateString(dateObj: Date): string {
  * @returns {string} - the time string in the format "HH:MM"
  */
 export function getTimeStringFromDate(date: Date): string {
+  // original version using an odd library:
   return formatISO9075(date).split(' ')[1].slice(0, -3)
-  // TODO: @jgclark wonders if this could be replaced by:
-  // date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
+  // TODO(@dwertheimer): please assess this newer version that just uses newer JS:
+  // return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
 export function getDateStringFromCalendarFilename(filename: string): string {
@@ -169,8 +173,8 @@ export function monthNameAbbrev(m: number): string {
   return monthsAbbrev[m - 1]
 }
 
-/* Return difference between start and end dates
- * TODO: look at using date-fn's differenceInCalendarDays instead
+/**
+ * Return difference between start and end dates
  * @author @jgclark
  *
  * @param {Date} d1 - start Date
@@ -181,7 +185,10 @@ export function daysBetween(d1: Date, d2: Date): number {
   return Math.round((d2 - d1) / 1000 / 60 / 60 / 24) // i.e. milliseconds -> days
 }
 
-/* Test if a date is within two start and end dates (inclusive)
+/**
+ * Test if a date is within two start and end dates (inclusive)
+ * @author @jgclark
+ * 
  * @param {string} testDate - date to look for (YYYYMMDD without hyphens)
  * @param {string} fromDate - start Date (YYYYMMDD without hyphens)
  * @param {string} endDate - end Date (YYYYMMDD without hyphens)
@@ -195,7 +202,9 @@ export function withinDateRange(testDate: string, fromDate: string, toDate: stri
  * Return rough relative string version of difference between date and today.
  * Don't return all the detail, but just the most significant unit (year, month, week, day)
  * If date is in the past then adds 'ago'.
- * TODO: Look at the Luxon library's DateTime.toRelative({ unit: "hours" }) instead (-> '46 hours ago'.)
+ * This is v2, now using moment library instead, but tweaking slightly to produce exactly the output as my v1 did.
+ * @author @jgclark
+ * 
  * @param {number} diffIn - number of days difference (positive or negative)
  * @return {string} - relative date string (e.g. today, 3w ago, 2m, 4y ago.)
  */
@@ -232,9 +241,11 @@ export function relativeDateFromNumber(diffIn: number): string {
   return output
 }
 
-/* Turn a string that includes YYYY-MM-DD into a JS Date
+/**
+ * Turn a string that includes YYYY-MM-DD into a JS Date. 
+ * The first found date is used; if no dates found a warning is written to the log.
  * @author @jgclark
-
+ * 
  * @param {string} - string that contains a date e.g. @due(2021-03-04)
  * @return {?Date} - JS Date version, if valid date found
  * @test - available in jest file
@@ -254,7 +265,7 @@ export function getDateObjFromDateString(mention: string): ?Date {
     // log('getDateObjFromDateString', toISOShortDateTimeString(date))
     return date
   } else {
-    log('getDateObjFromDateString', `  getDateFromString: no valid date found in '${mention}'`)
+    logWarn('getDateObjFromDateString', `getDateFromString: no valid date found in '${mention}'`)
     return
   }
 }
@@ -269,6 +280,7 @@ export function getDateObjFromDateString(mention: string): ?Date {
  * @param {string} dateTimeString - in form "YYYY-MM-DD HH:MM"
  * @returns {Date} - the date object
  * @throws {Error} - if the dateTimeString is not in the correct format
+ * @test - available in jest file
  */
 export const getDateObjFromDateTimeString = (dateTimeString: string): Date => {
   // eslint-disable-next-line prefer-const -- using let so we can use destructuring
@@ -296,7 +308,8 @@ export const getDateObjFromDateTimeString = (dateTimeString: string): Date => {
   return date
 }
 
-/* Turn a YYYYMMDD string into a JS Date
+/**
+ * Turn a YYYYMMDD string into a JS Date. If no valid date found, then warning written to the log.
  * @param {string} - YYYYMMDD string
  * @return {?Date} - JS Date version
  */
@@ -315,7 +328,7 @@ export function getDateFromUnhyphenatedDateString(inputString: string): ?Date {
     // log('getDateFromUnhyphenatedDateString', toISOShortDateTimeString(date))
     return date
   } else {
-    log('getDateFromUnhyphenatedDateString', `  no valid date found in '${inputString}'`)
+    logWarn('getDateFromUnhyphenatedDateString', `  no valid date found in '${inputString}'`)
     return
   }
 }
@@ -324,7 +337,7 @@ export function getDateFromUnhyphenatedDateString(inputString: string): ?Date {
  * Return rough relative string version of difference between date and today.
  * Don't return all the detail, but just the most significant unit (year, month, week, day)
  * If date is in the past then adds 'ago'.
- * TODO: Look at the Luxon library's DateTime.toRelative({ unit: "hours" }) instead (-> '46 hours ago'.)
+ * TODO: Shift to moment library
  * @param {Date} date - calculate difference between this date and today
  * @return {string} - relative date string (e.g. today, 3w ago, 2m, 4y ago.)
  */
@@ -336,56 +349,60 @@ export function relativeDateFromDate(date: Date): string {
 
 /**
  * Get week number for supplied date.
- * Uses ISO 8601 definition of week, except that week start is Sunday not Monday.
- * TODO: Use locale-specific first day of week (e.g. Mon for USA)
- *
- * The ISO 8601 definition for week 01 is the week with the first Thursday of the Gregorian
+ * Uses the ISO 8601 definition for week: 01 is the week with the first Thursday of the Gregorian
  * year (i.e. of January) in it.  The following definitions based on properties of this week
  * are mutually equivalent, since the ISO week starts with Monday:
  * - It is the first week with a majority (4 or more) of its days in January.
  * - Its first day is the Monday nearest to 1 January.
  * - It has 4 January in it
- * Code from https://stackoverflow.com/questions/6117814/get-week-of-year-in-javascript-like-in-php?noredirect=1&lq=1
- * Still, we need to be careful about assumptions at year boundary, as
- * for example 2022-01-01 is in week 52 of 2021.
+ * - It has the year's first working day in it, if Saturdays, Sundays and 1 January are not working days.
+ * E.g. 2022-01-01 is in week 52 of 2021, not week 1 of 2022.
  * @author @jgclark
  *
  * @param {Date} inDate - the JS Date object of interest
  * @return {number} - the standardised week number
+ * @test - available in jest file
  */
 export function getWeek(inDate: Date): number {
-  const date = inDate instanceof Date ? new Date(inDate.getFullYear(), inDate.getMonth(), inDate.getDate()) : new Date()
+  // New method using 'moment' library, with Monday first day of week
+  const dateMoment = moment(inDate)
+  return Number(dateMoment.format('W'))
 
-  // ISO week date weeks start on Monday, so correct the day number
-  // const nDay = (date.getDay() + 6) % 7
-  // Get week date start on Sunday
-  const nDay = date.getDay()
+  // Older method with help from https://stackoverflow.com/questions/6117814/get-week-of-year-in-javascript-like-in-php?noredirect=1&lq=1
+  // and with Sunday first day of week
+  // const date = inDate instanceof Date ? new Date(inDate.getFullYear(), inDate.getMonth(), inDate.getDate()) : new Date()
 
-  // ISO 8601 states that week 1 is the week with the first Thursday of that year
-  // Set the target date to the Thursday in the target week
-  date.setDate(date.getDate() - nDay + 3)
+  // // ISO week date weeks start on Monday, so correct the day number
+  // // const nDay = (date.getDay() + 6) % 7
+  // // Get week date start on Sunday
+  // const nDay = date.getDay()
 
-  // Store the millisecond value of the target date
-  const n1stThursday = date.valueOf()
+  // // ISO 8601 states that week 1 is the week with the first Thursday of that year
+  // // Set the target date to the Thursday in the target week
+  // date.setDate(date.getDate() - nDay + 3)
 
-  // Set the target to the first Thursday of the year
-  // First, set the target to January 1st
-  date.setMonth(0, 1)
+  // // Store the millisecond value of the target date
+  // const n1stThursday = date.valueOf()
 
-  // Not a Thursday? Correct the date to the next Thursday
-  if (date.getDay() !== 4) {
-    date.setMonth(0, 1 + ((4 - date.getDay() + 7) % 7))
-  }
+  // // Set the target to the first Thursday of the year
+  // // First, set the target to January 1st
+  // date.setMonth(0, 1)
 
-  // The week number is the number of weeks between the first Thursday of the year
-  // and the Thursday in the target week (604800000 = 7 * 24 * 3600 * 1000)
-  return 1 + Math.ceil((n1stThursday - date) / 604800000)
+  // // Not a Thursday? Correct the date to the next Thursday
+  // if (date.getDay() !== 4) {
+  //   date.setMonth(0, 1 + ((4 - date.getDay() + 7) % 7))
+  // }
+
+  // // The week number is the number of weeks between the first Thursday of the year
+  // // and the Thursday in the target week (604800000 = 7 * 24 * 3600 * 1000)
+  // return 1 + Math.ceil((n1stThursday - date) / 604800000)
 }
 
 /**
  * Return start and end dates for a given week number.
  * Uses ISO 8601 definition of week, except that week start is Sunday not Monday.
  * TODO: Use locale-specific first day of week (e.g. Mon for USA)
+ * TODO: Shift to moment library
  * @author @jgclark
  *
  * @param {number} week - week number in year (1-53)
@@ -423,6 +440,7 @@ export function weekStartEnd(week: number, year: number): [Date, Date] {
  * @param {integer} endYear
  * @param {integer} offset
  * @returns {{number, number}}
+ * @test - available in jest file
  */
 export function calcWeekOffset(startWeek: number, startYear: number, offset: number): { week: number, year: number } {
   let year: number = startYear
@@ -442,77 +460,59 @@ export function calcWeekOffset(startWeek: number, startYear: number, offset: num
 
 /**
  * Calculate an offset date, as ISO Strings.
- * v3 method, using Luxon library to avoid using NP calls
- * NB: doesn't actually use NP functions, but to avoid a circular dependency it needs to be in this file.
- * @tests available in __tests__
+ * v4 method, using 'moment' library to avoid using NP calls
  * @author @jgclark
  *
  * @param {string} baseDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type
  * @param {interval} string of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in English)
  * @return {string} new date in ISO Date format
+ * @test - available in jest file
  */
 export function calcOffsetDateStr(baseDateISO: string, interval: string): string {
   try {
     if (!interval.match(RE_DATE_INTERVAL)) {
-      logError('helpers/cODSL', `Invalid date interval '${interval}'`)
+      logError('helpers/cODS', `Invalid date interval '${interval}'`)
       return '(error)'
     }
 
-    const baseDate = DateTime.fromISO(baseDateISO)
-    let daysToAdd = 0
-    let monthsToAdd = 0
-    let yearsToAdd = 0
+    const baseDateMoment = moment(baseDateISO, "YYYY-MM-DD")
     const unit = interval.charAt(interval.length - 1) // get last character
-    let num = Number(interval.substr(0, interval.length - 1)) // return all but last character
-    log('helpers/cODSL', `for ${baseDateISO} interval: ${num} / ${unit}`)
+    const num = Number(interval.substr(0, interval.length - 1)) // return all but last character
 
+    // short codes in moment library aren't quite the same as mine
+    let unitForMoment = ''
     switch (unit) {
-      case 'b': {
-        // Previously used a method from Arjen at https://stackoverflow.com/questions/279296/adding-days-to-a-date-but-excluding-weekends
-        // Now using a pre-build library:
-        // But need to turn off automatic public holidays, as these are US-specific
-        baseDate.setupBusiness({ holidayMatchers: [] })
-        daysToAdd = num
-        break
-      }
-      case 'd':
-        daysToAdd = num
-        break
-      case 'w':
-        daysToAdd = num * 7
-        break
       case 'm':
-        monthsToAdd = num
+        unitForMoment = 'M'
         break
       case 'q':
-        monthsToAdd = num * 3
-        break
-      case 'y':
-        yearsToAdd = num
+        unitForMoment = 'Q'
         break
       default:
+        unitForMoment = unit
         break
     }
-    const duration = Duration.fromObject({ days: daysToAdd, months: monthsToAdd, years: yearsToAdd })
-    // log('helpers/cODSL', duration.toString()) // Gets represented as P10D, P3M, P-2Y etc.
-    const newDate =
-      unit !== 'b'
-        ? baseDate.plus(duration) // duration can be negative, so always add
-        : baseDate.plusBusiness(duration) // use business days
-    const newDateISO = newDate.toISODate()
-    // log('helpers/cODSL', `-> '${newDateISO}'`)
+    // calc offset (Note: library functions cope with negative nums, so just always use 'add' function)
+    const newDate = (unit !== 'b')
+      ? baseDateMoment.add(num, unitForMoment)
+      : momentBusiness(baseDateMoment).businessAdd(num)
+    const newDateISO = newDate.format("YYYY-MM-DD")
+    // log('helpers/cODS', `for '${baseDateISO}' interval ${num} / ${unitForMoment} -> '${newDateISO}'`)
     return newDateISO
   } catch (e) {
-    logError('helpers/cODSL', `${e.message} for baseDateISO '${baseDateISO}' interval ${interval}`)
+    logError('helpers/cODS', `${e.message} for '${baseDateISO}' interval '${interval}'`)
     return '(error)'
   }
 }
 
-
 /**
  * Does this line include a scheduled date in the future?
- * @param {string} line to seearch in
+ * (Should work even with >date in brackets or with non-white-space before it.)
  * @author @jgclark
+ * 
+ * @param {string} line to search in
+ * @return {boolean}
+ * @test - available in jest file
  */
 export function includesScheduledFutureDate(line: string): boolean {
   const m = line.match(RE_SCHEDULED_ISO_DATE) ?? []
