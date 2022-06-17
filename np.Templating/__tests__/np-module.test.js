@@ -53,5 +53,16 @@ describe(`${PLUGIN_NAME}`, () => {
 
       spy.mockRestore()
     })
+
+    it(`should get key from${method('.preference')} method`, async () => {
+      const spy = jest.spyOn(DataStore, 'preference')
+      let result = await DataStore.preference('isAsteriskTodo')
+
+      expect(spy).toHaveBeenCalled()
+      expect(spy).toHaveBeenCalledWith('isAsteriskTodo')
+      expect(result).toEqual(true)
+
+      spy.mockRestore()
+    })
   })
 })

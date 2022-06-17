@@ -16,15 +16,46 @@ import { datePicker, askDateInterval } from '@helpers/userInput'
 
 /*eslint-disable */
 import TemplatingEngine from './TemplatingEngine'
-import letters from 'eslint/lib/rules/utils/patterns/letters'
 
 const TEMPLATE_FOLDER_NAME = NotePlan.environment.templateFolder
 
 // - if a new module has been added, make sure it has been added to this list
 const TEMPLATE_MODULES = ['date', 'frontmatter', 'note', 'system', 'time', 'user', 'utility']
 
+const CODE_BLOCK_COMMENT_TAGS = ['/* template: ignore */', '// template: ignore']
+
 const isCommentTag = (tag: string = '') => {
   return tag.includes('<%#')
+}
+
+const codeBlockHasComment = (codeBlock = '') => {
+  const CODE_BLOCK_COMMENT_TAGS = ['template: ignore', 'template:ignore']
+  return CODE_BLOCK_COMMENT_TAGS.some((tag) => codeBlock.includes(tag))
+}
+
+const blockIsJavaScript = (codeBlock = '') => {
+  return codeBlock.includes('```javascript') || codeBlock.includes('```js')
+}
+
+const getCodeBlocks = (templateData = '') => {
+  const CODE_BLOCK_TAG = '```'
+
+  let codeBlocks = []
+
+  let blockStart = templateData.indexOf(CODE_BLOCK_TAG)
+  while (blockStart >= 0) {
+    let blockEnd = templateData.indexOf(CODE_BLOCK_TAG, blockStart + CODE_BLOCK_TAG.length)
+    if (blockEnd === -1) {
+      blockEnd = templateData.length
+    }
+    const fencedCodeBlock = templateData.substring(blockStart, blockEnd + CODE_BLOCK_TAG.length)
+    if (fencedCodeBlock.length > 0) {
+      codeBlocks.push(fencedCodeBlock)
+    }
+    blockStart = templateData.indexOf(CODE_BLOCK_TAG, blockEnd + 1)
+  }
+
+  return codeBlocks
 }
 
 const getProperyValue = (object: any, key: string): any => {
@@ -898,6 +929,8 @@ export default class NPTemplating {
       sessionData.data = { ...sessionData.data, ...userData?.data }
       sessionData.methods = { ...sessionData.methods, ...userData?.methods }
 
+      templateData = await this.execute(templateData)
+
       const renderedData = await new TemplatingEngine(this.constructor.templateConfig).render(templateData, sessionData, userOptions)
       return this._filterTemplateResult(renderedData)
     } catch (error) {
@@ -1326,5 +1359,24 @@ export default class NPTemplating {
 
   static async convertNoteToFrontmatter(projectNote: string): Promise<number | string> {
     return new FrontmatterModule().convertProjectNoteToFrontmatter(projectNote)
+  }
+
+  static async execute(templateData: string = ''): Promise<any> {
+    let processedTemplateData = templateData
+
+    const codeBlocks = getCodeBlocks(templateData)
+    codeBlocks.forEach(async (codeBlock) => {
+      if (!codeBlockHasComment(codeBlock) && blockIsJavaScript(codeBlock)) {
+        const executeCodeBlock = codeBlock.replace('```javascript\n', '').replace('```js', '').replace('```\n', '').replace('```', '')
+        const fn = new Function(executeCodeBlock)
+        let result = fn()
+
+        if (typeof result !== 'undefined') {
+          processedTemplateData = processedTemplateData.replace(codeBlock, result)
+        }
+      }
+    })
+
+    return processedTemplateData
   }
 }
