@@ -3,10 +3,7 @@
 // Paragraph and block-level helpers functions
 //-----------------------------------------------------------------------------
 
-import {
-  hyphenatedDateString,
-  RE_SCHEDULED_ISO_DATE,
-} from './dateTime'
+import { hyphenatedDateString } from './dateTime'
 import { log, logError, logWarn } from './dev'
 
 //-----------------------------------------------------------------------------
@@ -99,7 +96,8 @@ export function printParagraph(p: TParagraph) {
     return
   }
 
-  const { content, type, prefix, contentRange, lineIndex, date, heading, headingRange, headingLevel, isRecurring, indents, filename, noteType, linkedNoteTitles } = p
+  const { content, type, prefix, contentRange, lineIndex, date, heading, headingRange,
+    headingLevel, isRecurring, indents, filename, noteType, linkedNoteTitles } = p
 
   const logObject = {
     content,
@@ -333,8 +331,7 @@ export function selectedLinesIndex(selection: Range, paragraphs: $ReadOnlyArray<
  */
 export function getParaFromContent(note: TNote, contentToFind: string): TParagraph | void {
   const { paragraphs } = note
-  let result = 0 // default result
-  for (let p of paragraphs) {
+  for (const p of paragraphs) {
     if (p.content === contentToFind) {
       return p
     }
@@ -358,12 +355,15 @@ export function getOrMakeMetadataLine(note: TNote): number {
   let lineNumber: number = NaN
   const lines = note.content?.split('\n') ?? ['']
   for (let i = 1; i < lines.length; i++) {
-    if (lines[i].match(/^project:/i) || lines[i].match(/^metadata:/i) || lines[i].match(/^#[\w]/) || lines[i].match(/(@review|@reviewed)\(.+\)/)) {
+    if (lines[i].match(/^project:/i)
+      || lines[i].match(/^metadata:/i)
+      || lines[i].match(/^#[\w]/)
+      || lines[i].match(/(@review|@reviewed)\(.+\)/)) {
       lineNumber = i
       break
     }
   }
-  if (lineNumber === NaN) {
+  if (Number.isNaN(lineNumber)) {
     // If no metadataPara found, then insert one straight after the title
     console.log(`Warning: Can't find an existing metadata line, so will insert a new second line for it`)
     Editor.insertParagraph('', 1, 'empty')
