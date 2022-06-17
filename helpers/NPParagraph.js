@@ -1,7 +1,8 @@
-// @Flow
+// @flow
 
 import { hyphenatedDate } from './dateTime'
-import { log, clo, JSP } from './dev'
+import { toLocaleDateTimeString } from './NPdateTime'
+import { log } from './dev'
 import {
   findStartOfActivePartOfNote,
   findEndOfActivePartOfNote,
@@ -30,13 +31,18 @@ export function removeHeadingFromNote(note: TNote | TEditor, headingStr: string,
  * @author @dwertheimer
  * @param {TNote|TEditor} note
  * @param {TParagraph} para
- * @param {boolean} useExtendedBlockDefinition (default: false)
- * @param {boolean} keepTitle (default: true) // TODO(@dwertheimer): could this be renamed 'heading' as that's what the API calls it?
+ * @param {boolean} useExtendedBlockDefinition (default: false) // TODO(@dwertheimer): flow shows this isn't used
+ * @param {boolean} keepHeading (default: true)
  */
-export async function deleteEntireBlock(note: TNote | TEditor, para: TParagraph, useExtendedBlockDefinition: boolean = false, keepTitle: boolean = true) {
+export function deleteEntireBlock(
+  note: TNote | TEditor,
+  para: TParagraph,
+  useExtendedBlockDefinition: boolean = false,
+  keepHeading: boolean = true
+): void {
   const paraBlock: Array<TParagraph> = getParagraphBlock(note, para.lineIndex)
   log(`NPParagraph/deleteEntireBlock`, `Removing ${paraBlock.length} items under ${para.content}`)
-  keepTitle ? paraBlock.shift() : null
+  keepHeading ? paraBlock.shift() : null
   if (paraBlock.length > 0) {
     note.removeParagraphs(paraBlock) //seems to not work only if it's a note, not Editor
     // note.updateParagraphs(paraBlock)
@@ -44,22 +50,24 @@ export async function deleteEntireBlock(note: TNote | TEditor, para: TParagraph,
 }
 
 /**
- * Given a title (string), delete all the content of the block under this title
+ * Given a heading (string), delete all the content of the block under this heading
  * See getParagraphBlock below for definition of what constitutes a block an definition of useExtendedBlockDefinition
- * (Note: if the title occurs more than once, acts on the first one only)
+ * (Note: if the heading occurs more than once, acts on the first one only)
  * @param {TNote|TEditor} note
- * @param {string} title // TODO(@dwertheimer): could this be renamed 'heading' as that's what the API calls it?
+ * @param {string} heading
  * @param {boolean} useExtendedBlockDefinition
  */
-export async function removeContentUnderHeading(note: TNote | TEditor, title: string, useExtendedBlockDefinition: boolean = false) {
-  log(`NPParagraph/removeContentUnderHeading`, `In '${note.title}' remove items under title: "${title}"`)
-  const para = note.paragraphs.find((p) => p.type == 'title' && p.content.includes(title))
-  let paraBlock = []
+export function removeContentUnderHeading(note: TNote | TEditor,
+  heading: string,
+  useExtendedBlockDefinition: boolean = false) {
+  log(`NPParagraph/removeContentUnderHeading`, `In '${note.title ?? ''}' remove items under title: "${heading}"`)
+  const para = note.paragraphs.find((p) => p.type === 'title' && p.content.includes(heading))
+  // let paraBlock = []
   // clo(para, `removeContentUnderHeading para=`)
   if (para && para.lineIndex != null) {
     deleteEntireBlock(note, para, useExtendedBlockDefinition, true)
   } else {
-    log(`NPParagraph/removeContentUnderHeading`, `did not find title: "${title}"`)
+    log(`NPParagraph/removeContentUnderHeading`, `did not find heading: "${heading}"`)
   }
 }
 
@@ -70,7 +78,12 @@ export async function removeContentUnderHeading(note: TNote | TEditor, title: st
  * @param {string} parasAsText - text to insert (multiple lines, separated by newlines)
  * @param {number} headingLevel of the heading to insert where necessary (1-5, default 2)
  */
-export async function insertContentUnderHeading(destNote: TNote | TEditor, headingToFind: string, parasAsText: string, headingLevel: number = 2) {
+export async function insertContentUnderHeading(
+  destNote: TNote | TEditor,
+  headingToFind: string,
+  parasAsText: string,
+  headingLevel: number = 2
+) {
   log(`NPParagraph/insertContentUnderHeading`, `Called for '${headingToFind}' with ${parasAsText.split('\n').length} paras)`)
   const headingMarker = '#'.repeat(headingLevel)
   const startOfNote = findStartOfActivePartOfNote(destNote)
@@ -92,18 +105,23 @@ export async function insertContentUnderHeading(destNote: TNote | TEditor, headi
 }
 
 /**
- * Replace content under a given title (string)
+ * Replace content under a given heading (string)
  * See getParagraphBlock below for definition of what constitutes a block an definition of useExtendedBlockDefinition
  * @param {TNote|TEditor} note
- * @param {string} title // TODO(@dwertheimer): could this be renamed 'heading' as that's what the API calls it?
+ * @param {string} heading
  * @param {string} newContentText - text to insert (multiple lines, separated by newlines)
  * @param {boolean} useExtendedBlockDefinition
  * @param {number} headingLevel of the heading to insert where necessary (1-5, default 2)
  */
-export async function replaceContentUnderHeading(note: TNote | TEditor, title: string, newContentText: string, useExtendedBlockDefinition: boolean = false, headingLevel: number = 2) {
-  log(`NPParagraph / replaceContentUnderHeading`, `In '${note.title}' replace items under title: "${title}"`)
-  await removeContentUnderHeading(note, title, useExtendedBlockDefinition)
-  await insertContentUnderHeading(note, title, newContentText, headingLevel)
+export async function replaceContentUnderHeading(note: TNote | TEditor,
+  heading: string,
+  newContentText: string,
+  useExtendedBlockDefinition: boolean = false,
+  headingLevel: number = 2
+) {
+  log(`NPParagraph / replaceContentUnderHeading`, `In '${note.title}' replace items under heading: "${heading}"`)
+  removeContentUnderHeading(note, heading, useExtendedBlockDefinition)
+  await insertContentUnderHeading(note, heading, newContentText, headingLevel)
 }
 
 /**
@@ -125,7 +143,10 @@ export async function replaceContentUnderHeading(note: TNote | TEditor, title: s
  * @param {boolean} useExtendedBlockDefinition
  * @return {[TParagraph]} the set of selectedParagraphs in the block
  */
-export function getParagraphBlock(note: TNote, selectedParaIndex: number, useExtendedBlockDefinition: boolean = false): Array<TParagraph> {
+export function getParagraphBlock(note: TNote,
+  selectedParaIndex: number,
+  useExtendedBlockDefinition: boolean = false
+): Array<TParagraph> {
   const parasInBlock: Array<TParagraph> = [] // to hold set of paragraphs in block to return
   const endOfActiveSection = findEndOfActivePartOfNote(note)
   const startOfActiveSection = findStartOfActivePartOfNote(note)
@@ -229,14 +250,14 @@ export function getParagraphBlock(note: TNote, selectedParaIndex: number, useExt
  * @param {boolean} caseInsensitive - whether to search case insensitively (default: false)
  * @return [Array, Array] - array of lines with matching term, and array of contexts for those lines (dates for daily notes; title for project notes).
  */
-export async function gatherMatchingLines(
+export function gatherMatchingLines(
   notes: Array<TNote>,
   stringToLookFor: string,
   highlightOccurrences: boolean = true,
   dateStyle: string = 'link',
   caseInsensitive: boolean = false
-): Promise<[Array<string>, Array<string>]> {
-  log('NPparagraph/gatherMatchingLines', `Looking for '${stringToLookFor}' in ${notes.length} notes`)
+): [Array<string>, Array<string>] {
+  log('NPParagraph/gatherMatchingLines', `Looking for '${stringToLookFor}' in ${notes.length} notes`)
   // Don't know why this loading indicator stopped working
   // CommandBar.showLoading(true, `Searching in ${notes.length} notes ...`)
   // await CommandBar.onAsyncThread()
@@ -269,11 +290,11 @@ export async function gatherMatchingLines(
       let matchLine = p.content
       // If the test is within a URL or the path of a [!][link](path) skip this result
       if (termInURL(stringToLookFor, matchLine)) {
-        log('NPparagraph/gatherMatchingLines', `- Info: Match '${stringToLookFor}' ignored in '${matchLine} because it's in a URL`)
+        log('NPParagraph/gatherMatchingLines', `- Info: Match '${stringToLookFor}' ignored in '${matchLine} because it's in a URL`)
         continue
       }
       if (termInMarkdownPath(stringToLookFor, matchLine)) {
-        log('NPparagraph/gatherMatchingLines', `- Info: Match '${stringToLookFor}' ignored in '${matchLine} because it's in a [...](path)`)
+        log('NPParagraph/gatherMatchingLines', `- Info: Match '${stringToLookFor}' ignored in '${matchLine} because it's in a [...](path)`)
         continue
       }
       // If the stringToLookFor is in the form of an 'attribute::' and found at the start of a line,
@@ -283,11 +304,12 @@ export async function gatherMatchingLines(
       }
       // Highlight matches if requested ... but we need to be smart about this:
       // don't do so if we're in the middle of a URL or the path of a [!][link](path)
-      if (highlightOccurrences && !termInURL(stringToLookFor, matchLine) /** && !termInMarkdownPath(stringToLookFor, matchLine) */) {
+      if (highlightOccurrences && !termInURL(stringToLookFor, matchLine)
+        && !termInMarkdownPath(stringToLookFor, matchLine)) {
         matchLine = matchLine.replace(stringToLookFor, `==${stringToLookFor}== `)
       }
       matches.push(matchLine.trim())
-      // log('NPparagraph/gatherMatchingLines', `${n.title ?? ''}: ${matchLine}`)
+      // log('NPParagraph/gatherMatchingLines', `${n.title ?? ''}: ${matchLine}`)
       noteContexts.push(noteContext)
     }
     if (i % 100 === 0) {
