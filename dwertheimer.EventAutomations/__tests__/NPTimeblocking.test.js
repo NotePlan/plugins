@@ -5,6 +5,8 @@
 //               expect(spy).toHaveBeenNthCalledWith(2, expect.stringMatching(/ERROR/))
 
 import * as mainFile from '../src/NPTimeblocking'
+import * as configFile from '../src/config'
+
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, Note, Paragraph } from '@mocks/index'
 import { unhyphenatedDate } from '@helpers/dateTime'
 
@@ -60,6 +62,38 @@ export const mockWasCalledWith = (spy: JestSpyType, regex: RegExp) => {
 
 describe('dwertheimer.EventAutomations' /* pluginID */, () => {
   describe('NPTimeblocking.js' /* file */, () => {
+    /*
+     * getConfig()
+     */
+    describe('getConfig()' /* function */, () => {
+      // test('should XXX', () => {
+      //   const result = mainFile.getConfig()
+      //   expect(result).toEqual(true)
+      // })
+      test('should return default config if getting config fails', () => {
+        const result = mainFile.getConfig()
+        expect(Object.keys(result).length).toBeGreaterThan(1)
+      })
+      test('should return default config if no settings set', () => {
+        const oldSettings = DataStore.settings
+        DataStore.settings = undefined
+        const result = mainFile.getConfig()
+        expect(Object.keys(result).length).toBeGreaterThan(1)
+        DataStore.settings = oldSettings
+      })
+      test('should return default config', () => {
+        const result = mainFile.getConfig()
+        expect(Object.keys(result).length).toBeGreaterThan(1)
+      })
+      test('should complain about improper config', () => {
+        const oldSettings = DataStore.settings
+        DataStore.settings = { improper: 'key' }
+        const spy = jest.spyOn(console, 'log')
+        mainFile.getConfig()
+        expect(mockWasCalledWith(spy, /Running with default settings/)).toBe(true)
+        DataStore.settings = oldSettings
+      })
+    })
     /*
      * getTodaysReferences()
      */

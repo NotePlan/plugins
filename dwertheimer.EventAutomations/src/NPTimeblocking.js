@@ -43,13 +43,12 @@ import type { IntervalMap, PartialCalendarItem, EditorOrNote } from './timeblock
 import { removeContentUnderHeading, insertContentUnderHeading } from '@helpers/NPParagraph'
 
 export function getConfig(): Promise<{ [string]: [mixed] }> {
-  const defaultConfig = getTimeBlockingDefaults()
-  const config = DataStore.settings
-  config.timeblockTextMustContainString = DataStore.preference('timeblockTextMustContainString') || ''
-  if (Object.keys(config).length > 0) {
+  const config = DataStore.settings || {}
+  if (config !== {}) {
     try {
       // $FlowIgnore
       validateTimeBlockConfig(config)
+      config.timeblockTextMustContainString = DataStore.preference('timeblockTextMustContainString') || ''
       return config
     } catch (error) {
       showMessage(
@@ -57,6 +56,8 @@ export function getConfig(): Promise<{ [string]: [mixed] }> {
       )
     }
   }
+  const defaultConfig = getTimeBlockingDefaults()
+  defaultConfig.timeblockTextMustContainString = DataStore.preference('timeblockTextMustContainString') || ''
   return defaultConfig
 }
 
