@@ -44,7 +44,7 @@ import { removeContentUnderHeading, insertContentUnderHeading } from '@helpers/N
 
 export function getConfig(): Promise<{ [string]: [mixed] }> {
   const config = DataStore.settings || {}
-  if (config !== {}) {
+  if (Object.keys(config).length) {
     try {
       // $FlowIgnore
       validateTimeBlockConfig(config)
@@ -55,6 +55,8 @@ export function getConfig(): Promise<{ [string]: [mixed] }> {
         `Plugin Settings ${error.message}\nRunning with default settings. You should probably open the plugin configuration dialog and fix the problem(s) listed above.`,
       )
     }
+  } else {
+    log(pluginJson, `config was empty. will use defaults`)
   }
   const defaultConfig = getTimeBlockingDefaults()
   defaultConfig.timeblockTextMustContainString = DataStore.preference('timeblockTextMustContainString') || ''

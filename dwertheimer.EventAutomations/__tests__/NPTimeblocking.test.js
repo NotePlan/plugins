@@ -77,8 +77,11 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
       test('should return default config if no settings set', () => {
         const oldSettings = DataStore.settings
         DataStore.settings = undefined
+        const spy = jest.spyOn(console, 'log')
         const result = mainFile.getConfig()
+        expect(mockWasCalledWith(spy, /config was empty/)).toBe(true)
         expect(Object.keys(result).length).toBeGreaterThan(1)
+
         DataStore.settings = oldSettings
       })
       test('should return default config', () => {
