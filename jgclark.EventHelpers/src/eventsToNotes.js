@@ -1,7 +1,7 @@
 // @flow
 // ----------------------------------------------------------------------------
 // Command to bring calendar events into notes
-// Last updated 25.5.2022 for v0.16.1, by @jgclark
+// Last updated 16.6.2022 for v0.16.1+, by @jgclark
 // @jgclark, with additions by @dwertheimer, @weyert, @m1well
 // ----------------------------------------------------------------------------
 
@@ -15,10 +15,10 @@ import {
   getISODateStringFromYYYYMMDD,
   toLocaleDateString,
   toLocaleTime,
-  unhyphenatedDate,
+  // unhyphenatedDate,
   unhyphenateString,
 } from '@helpers/dateTime'
-import { clo, log, logWarn, logError } from '@helpers/dev'
+import { log, logError } from '@helpers/dev'
 import { getTagParamsFromString } from '@helpers/general'
 import { showMessage } from '@helpers/userInput'
 
@@ -108,7 +108,7 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
       outputArray.push(mapForSorting.map((element) => element.text).join('\n'))
     }
 
-    let output = outputArray.join('\n') // If this array is empty -> empty string
+    const output = outputArray.join('\n') // If this array is empty -> empty string
     // log(pluginJson, output)
     return output
   }
@@ -177,7 +177,7 @@ export async function listMatchingDaysEvents(
   // For each day to cover
   for (let i = 0; i < daysToCover; i++) {
     // Set dateStr to the day in question (YYYYMMDD)
-    let dateStr = unhyphenateString(calcOffsetDateStr(getISODateStringFromYYYYMMDD(baseDateStr), `+${i}d`))
+    const dateStr = unhyphenateString(calcOffsetDateStr(getISODateStringFromYYYYMMDD(baseDateStr), `+${i}d`))
 
     // Add heading if wanted, or if doing more than 1 day
     if (daysToCover > 1) {
@@ -234,7 +234,7 @@ export async function listMatchingDaysEvents(
     }
   }
 
-  let output = outputArray.join('\n') // If this array is empty -> empty string
+  const output = outputArray.join('\n') // If this array is empty -> empty string
   // log(pluginJson, output)
   return output
 }
@@ -267,7 +267,7 @@ export async function insertMatchingDaysEvents(paramString: ?string): Promise<vo
  */
 export function getReplacements(item: TCalendarItem, config: EventsConfig): Map<string, string> {
   // log(pluginJson, 'starting getReplacementsV2')
-  let outputObject = new Map < string, string> ()
+  const outputObject = new Map < string, string> ()
 
   outputObject.set('CAL', calendarNameWithMapping(item.calendar, config.calendarNameMappings))
   outputObject.set('TITLE', item.title)
@@ -303,18 +303,18 @@ export function smartStringReplace(format: string, replacements: Map<string, str
   // For each possible placeholder, process it if it present in format AND the value for this event is not empty
   // (For safety ATTENDEES needs to come before END in the list, as 'END' is part of 'ATTENDEES'!)
   const placeholders = ['CAL', 'TITLE', 'EVENTLINK', 'ATTENDEENAMES', 'ATTENDEES', 'DATE', 'START', 'END', 'NOTES', 'URL']
-  for (let p of placeholders) {
-    const thisRE = new RegExp("\\*\\|([^|*]*?" + p + ".*?)\\|\\*")
-    let REResult = output.match(thisRE) // temp RE result
+  for (const p of placeholders) {
+    const thisRE = new RegExp(`\\*\\|([^|*]*?${p}.*?)\\|\\*`)
+    const REResult = output.match(thisRE) // temp RE result
     if (REResult) {
       // We have matched the term in the format string
-      let matchedTag = REResult[0] // includes opening and closing *|...|*
-      let matchedTagInternals = REResult[1] // excludes the opening and closing *|...|*
+      const matchedTag = REResult[0] // includes opening and closing *|...|*
+      const matchedTagInternals = REResult[1] // excludes the opening and closing *|...|*
 
       // if Placeholder p has a replacement Value then replace the placeholder's tag with the replacement
       const replacementValue = replacements.get(p) ?? ''
       if (replacementValue !== '') {
-        let replacementForTag = matchedTagInternals.replace(p, replacementValue)
+        const replacementForTag = matchedTagInternals.replace(p, replacementValue)
         log(pluginJson, `    replacing ${replacementValue} for ${p}`)
         output = output.replace(matchedTag, replacementForTag)
       } else {
