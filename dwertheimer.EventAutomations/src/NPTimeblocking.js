@@ -130,7 +130,7 @@ export function getTodaysReferences(pNote: TNote | null = null): Array<TParagrap
   return todayParas
 }
 
-async function insertItemsIntoNote(
+export async function insertItemsIntoNote(
   note: TNote | TEditor,
   list: Array<string>,
   heading: string = '',

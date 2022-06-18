@@ -19,26 +19,6 @@ beforeAll(() => {
   global.NotePlan = NotePlan
 })
 
-/* note: {
-		"filename": "_TEST/New Note - 15.3950.md",
-		"type": "Notes",
-		"title": "MyNoteTitle",
-		"changedDate": "2022-06-12T20:23:27.705Z",
-		"createdDate": "2022-06-12T20:23:15.402Z",
-		"hashtags": [],
-		"mentions": [],
-		"linkedItems": [],
-		"datedTodos": [],
-		"backlinks": [],
-		"frontmatterTypes": [],
-		"content": "# MyNoteTitle
-    * one task in the note",
-		"paragraphs": [
-				"{"type":"title","content":"MyNoteTitle","rawContent":"# MyNoteTitle","prefix":"# ","contentRange":{},"lineIndex":0,"heading":"","headingLevel":1,"isRecurring":false,"indents":0,"filename":"_TEST/New Note - 15.3950.md","noteType":"Notes","linkedNoteTitles":[],"subItems":[],"referencedBlocks":[],"note":{}}",
-				"{"type":"open","content":"one task in the note","rawContent":"* one task in the note","prefix":"* ","contentRange":{},"lineIndex":1,"heading":"MyNoteTitle","headingRange":{},"headingLevel":1,"isRecurring":false,"indents":0,"filename":"_TEST/New Note - 15.3950.md","noteType":"Notes","linkedNoteTitles":[],"subItems":[],"referencedBlocks":[],"note":{}}"
-		]
-} ,  */
-
 const paragraphs = [new Paragraph({ content: 'line1' }), new Paragraph({ content: 'line2' })]
 const note = new Note({ paragraphs })
 note.filename = `${unhyphenatedDate(new Date())}.md`
@@ -219,6 +199,26 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         const spy = jest.spyOn(note, 'removeParagraphs')
         const ret = mainFile.deleteParagraphsContainingString(note, 'line1')
         expect(spy).toHaveBeenCalledWith([paras[0]])
+      })
+    })
+    /*
+     * insertItemsIntoNote()
+     */
+    describe('insertItemsIntoNote()' /* function */, () => {
+      /* template:
+      test('should XXX', () => {
+        const result = mainFile.insertItemsIntoNote()
+        expect(result).toEqual(true)
+      })
+      */
+      test('should call insert content under heading', () => {
+        const note = new Note({ type: 'Notes', paragraphs: [new Paragraph({ content: 'line1', type: 'open' })] })
+        const list = ['line1', 'line2']
+        const heading = 'heading'
+        const config = configFile.getTimeBlockingDefaults()
+        const spy = jest.spyOn(note, 'appendParagraph')
+        const result = mainFile.insertItemsIntoNote(note, list, heading, false, config)
+        expect(spy).toHaveBeenCalled() //inserts nothing
       })
     })
     /*
