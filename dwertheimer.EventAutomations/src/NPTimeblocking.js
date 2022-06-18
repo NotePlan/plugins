@@ -135,12 +135,11 @@ export async function insertItemsIntoNote(
   list: Array<string>,
   heading: string = '',
   shouldFold: boolean = false,
-  config: { [string]: any },
+  config: { [string]: any } = {},
 ) {
   if (list && list.length > 0 && note) {
     // $FlowIgnore
     log(pluginJson, `insertItemsIntoNote: items.length=${list.length}`)
-    log(pluginJson, `insertItemsIntoNote: items[0]=${list[0] ?? ''}`)
     await insertContentUnderHeading(note, heading, list.join('\n'))
     // Fold the heading to hide the list
     if (shouldFold && heading !== '') {
@@ -165,9 +164,9 @@ export async function insertItemsIntoNote(
       }
     }
   } else {
-    if (!config.passBackResults) {
+    if (config && !config.passBackResults) {
       await showMessage(
-        'No work hours left. Check config/presents. Also look for calendar events which may have blocked off the rest of the day.',
+        'No items to insert or work hours left. Check config/presents. Also look for calendar events which may have blocked off the rest of the day.',
       )
     }
   }

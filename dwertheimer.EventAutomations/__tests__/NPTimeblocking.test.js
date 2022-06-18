@@ -217,8 +217,47 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         expect(result).toEqual(true)
       })
       */
+      test('should fail gracefully with missing list', () => {
+        const note = new Note({ type: 'Notes', paragraphs: [new Paragraph({ content: 'line1', type: 'open' })] })
+        const list = null
+        const spy = jest.spyOn(note, 'insertParagraph')
+        const result = mainFile.insertItemsIntoNote(note, list)
+        expect(spy).not.toHaveBeenCalled() //inserts nothing
+      })
+      test('should fail gracefully with empty list', () => {
+        const note = new Note({ type: 'Notes', paragraphs: [new Paragraph({ content: 'line1', type: 'open' })] })
+        const list = []
+        const spy = jest.spyOn(note, 'insertParagraph')
+        const result = mainFile.insertItemsIntoNote(note, list)
+        expect(spy).not.toHaveBeenCalled() //inserts nothing
+      })
+      test('should work with null/default params', () => {
+        const note = new Note({ type: 'Notes', paragraphs: [new Paragraph({ content: 'line1', type: 'open' })] })
+        const list = ['line1', 'line2']
+        const spy = jest.spyOn(note, 'insertParagraph')
+        const result = mainFile.insertItemsIntoNote(note, list)
+        expect(spy).toHaveBeenCalledWith(list.join('\n'), 1, 'text') //inserts nothing
+      })
+      test('should work with empty heading', () => {
+        const note = new Note({ type: 'Notes', paragraphs: [new Paragraph({ content: 'line1', type: 'open' })] })
+        const list = ['line1', 'line2']
+        const heading = ''
+        const config = configFile.getTimeBlockingDefaults()
+        const spy = jest.spyOn(note, 'appendParagraph')
+        const result = mainFile.insertItemsIntoNote(note, list, heading, false, config)
+        expect(spy).toHaveBeenCalled() //inserts nothing
+      })
       test('should call insert content under heading', () => {
         const note = new Note({ type: 'Notes', paragraphs: [new Paragraph({ content: 'line1', type: 'open' })] })
+        const list = ['line1', 'line2']
+        const heading = 'heading'
+        const config = configFile.getTimeBlockingDefaults()
+        const spy = jest.spyOn(note, 'appendParagraph')
+        const result = mainFile.insertItemsIntoNote(note, list, heading, false, config)
+        expect(spy).toHaveBeenCalled() //inserts nothing
+      })
+      test('should call insert content under heading', () => {
+        const note = new Note({ paragraphs: [new Paragraph({ content: 'line1', type: 'open' })] })
         const list = ['line1', 'line2']
         const heading = 'heading'
         const config = configFile.getTimeBlockingDefaults()
