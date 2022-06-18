@@ -17,6 +17,12 @@ beforeAll(() => {
   global.DataStore = DataStore
   global.Editor = Editor
   global.NotePlan = NotePlan
+  global.console = {
+    log: jest.fn(),
+    debug: console.debug, //these will pass through
+    trace: console.trace,
+    // map other methods that you want to use like console.table
+  }
 })
 
 const paragraphs = [new Paragraph({ content: 'line1' }), new Paragraph({ content: 'line2' })]
