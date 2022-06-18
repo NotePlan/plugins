@@ -2,8 +2,13 @@
 
 import { hyphenatedDate } from './dateTime'
 import { toLocaleDateTimeString } from './NPdateTime'
-import { log } from './dev'
-import { findStartOfActivePartOfNote, findEndOfActivePartOfNote, termInMarkdownPath, termInURL } from './paragraph'
+import { log, logWarn } from './dev'
+import {
+  findStartOfActivePartOfNote,
+  findEndOfActivePartOfNote,
+  termInMarkdownPath,
+  termInURL
+} from './paragraph'
 
 /**
  * Remove all headings (type=='title') from a note matching the given text
@@ -258,7 +263,7 @@ export function getParagraphBlock(
  * @param {string} stringToLookFor - string to look for
  * @param {boolean} highlightOccurrences - whether to enclose found string in ==highlight marks==
  * @param {string} dateStyle - where the context for an occurrence is a date, does it get appended as a 'date' using your locale, or as a NP date 'link' (`> date`) or 'none'
- * @param {boolean} caseInsensitive - whether to search case insensitively (default: false)
+ * @param {boolean} matchCase - whether to search case insensitively (default: false)
  * @return [Array, Array] - array of lines with matching term, and array of contexts for those lines (dates for daily notes; title for project notes).
  */
 export function gatherMatchingLines(
@@ -266,7 +271,7 @@ export function gatherMatchingLines(
   stringToLookFor: string,
   highlightOccurrences: boolean = true,
   dateStyle: string = 'link',
-  caseInsensitive: boolean = false,
+  matchCase: boolean = false
 ): [Array<string>, Array<string>] {
   log('NPParagraph/gatherMatchingLines', `Looking for '${stringToLookFor}' in ${notes.length} notes`)
   // Don't know why this loading indicator stopped working
@@ -295,9 +300,7 @@ export function gatherMatchingLines(
     // set up regex for searching, now with word boundaries on either side
     // find any matches
     const stringToLookForWithDelimiters = `\\b${stringToLookFor}\\b`
-    const re = caseInsensitive
-      ? new RegExp(stringToLookForWithDelimiters, 'i')
-      : new RegExp(stringToLookForWithDelimiters)
+    const re = (matchCase) ? new RegExp(stringToLookForWithDelimiters) : new RegExp(stringToLookForWithDelimiters, "i")
     const matchingParas = n.paragraphs.filter((q) => re.test(q.content))
     for (const p of matchingParas) {
       let matchLine = p.content
@@ -342,6 +345,33 @@ export function gatherMatchingLines(
   // Don't know why this loading indicator stopped working
   // await CommandBar.onMainThread()
   // CommandBar.showLoading(false)
-  console.log(`Finished gatherMatchingLines().`)
   return [matches, noteContexts]
+}
+
+/**
+ * Get the paragraph index of the current selection, or 0 if no selection is active.
+ * @author @jgclark
+ * @returns {number}
+ */
+export function getSelectedParaIndex(): number {
+  const { paragraphs, selection } = Editor
+  // Get current selection, and its range
+  if (selection == null) {
+    logWarn('NPParagraph/getSelectedParaIndex', `No selection found, so returning 0.`)
+    return 0
+  }
+  const range = Editor.paragraphRangeAtCharacterIndex(selection.start)
+  // log('NPParagraph/getSelectedParaIndex', `  Cursor/Selection.start: ${rangeToString(range)}`)
+
+  // Work out what selectedPara number(index) this selected selectedPara is
+  let firstSelParaIndex = 0
+  for (let i = 0; i < paragraphs.length; i++) {
+    const p = paragraphs[i]
+    if (p.contentRange?.start === range.start) {
+      firstSelParaIndex = i
+      break
+    }
+  }
+  // log('NPParagraph/getSelectedParaIndex', `  firstSelParaIndex = ${firstSelParaIndex}`)
+  return firstSelParaIndex
 }
