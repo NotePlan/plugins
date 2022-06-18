@@ -322,9 +322,8 @@ openWeeklyNote(year: number,
    * Get the names of all supported themes (including custom themes imported into the Theme folder).
    * Use together with `.setTheme(name)`
    * Note: Available from NotePlan v3.1+
-   * @return {$ReadOnlyArray<string>}
    */
-  availableThemes(): $ReadOnlyArray<string>;
++availableThemes: $ReadOnlyArray < string >;
   /**
    * Change the current theme. Get all available theme names using `.availableThemes`. Custom themes are also supported. Use the filename in this case.
    * Note: Available from NotePlan v3.1+

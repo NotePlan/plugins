@@ -3,10 +3,7 @@
 // Paragraph and block-level helpers functions
 //-----------------------------------------------------------------------------
 
-import {
-  hyphenatedDateString,
-  RE_SCHEDULED_ISO_DATE,
-} from './dateTime'
+import { hyphenatedDateString } from './dateTime'
 import { log, logError, logWarn } from './dev'
 
 //-----------------------------------------------------------------------------
@@ -99,7 +96,8 @@ export function printParagraph(p: TParagraph) {
     return
   }
 
-  const { content, type, prefix, contentRange, lineIndex, date, heading, headingRange, headingLevel, isRecurring, indents, filename, noteType, linkedNoteTitles } = p
+  const { content, type, prefix, contentRange, lineIndex, date, heading, headingRange,
+    headingLevel, isRecurring, indents, filename, noteType, linkedNoteTitles } = p
 
   const logObject = {
     content,
@@ -230,61 +228,77 @@ export function endOfFrontmatterLineIndex(note: TNote): number {
   const lineCount = paras.length
   console.log(`starting with lineCount = ${lineCount}`)
   let inFrontMatter: boolean = false
-  let i = 0
-  while (i < lineCount) {
-    const p = paras[i]
+  let lineIndex = 0
+  while (lineIndex < lineCount) {
+    const p = paras[lineIndex]
     if (p.type === 'separator') {
       if (!inFrontMatter) {
         inFrontMatter = true
       } else {
         inFrontMatter = false
-        return i
+        return lineIndex
       }
     }
-    i++
+    lineIndex++
   }
   return 0
 }
 
 /**
- * Works out where the first line of the note is, following the first paragraph of type 'title', or frontmatter (if present).
+ * Works out where the first 'active' line of the note is, following the first paragraph of type 'title', or frontmatter (if present).
  * Additionally, it skips past any front-matter like section in a project note, as used by the Reviews plugin before frontmatter was supported.
  * This is indicated by a #hashtag starting the next line. If there is, run on to next heading or blank line.
+ * Note: given this is a precursor to writing to a note, it first checks if the note is completely empty (0 lines). If so, a first 'empty' line is added, to avoid edge cases in calling code.
  * @author @jgclark
  *
  * @param {TNote} note - the note to assess
  * @return {number} - the line index number
  */
 export function findStartOfActivePartOfNote(note: TNote): number {
-  let paras = note.paragraphs
-  const lineCount = paras.length
-  if (lineCount < 1) {
-    logError('paragraph/findStartOfActivePartOfNote', `No paragraphs found in note '${displayTitle(note)}'`)
-    return NaN
-  }
-  if (note.type === 'Notes' && lineCount === 1) {
-    // If only the title line, then add a blank line to use
-    log('paragraph/findStartOfActivePartOfNote', `Added a blank line after title of '${displayTitle(note)}'`)
-    note.appendParagraph('', 'empty')
-    paras = note.paragraphs
-  }
-
-  // set line to start looking at: after H1 or frontmatter (if present)
-  let startOfActive = endOfFrontmatterLineIndex(note) + 1
-
-  // additionally, we're going to skip past any front-matter like section in a project note, 
-  // indicated by a #hashtag starting the next line.
-  // If there is, run on to next heading or blank line.
-  if (paras[startOfActive].content.match(/^#\w/)) {
-    for (let i = startOfActive; i < lineCount; i++) {
-      const p = paras[i]
-      if (p.type === 'title' || p.type === 'empty') {
-        startOfActive = i + 1
-        break
+  try {
+    let paras = note.paragraphs
+    // First check there's actually anything at all! If note, add a first empty paragraph
+    if (paras.length === 0) {
+      log(`paragraph/findStartOfActivePartOfNote`, `Note was empty; adding a blank line to make writing to the note work`)
+      note.appendParagraph('', 'empty')
+      return 0
+    }
+    if (note.type === 'Calendar') {
+      // Calendar notes are simple -> line index 0
+      // But first check there's actually anything at all! If so -> NaN
+      return 0
+    }
+    else {
+      // Looking at project/regular notes
+      // set line to start looking at: after H1 or frontmatter (if present)
+      const endOfTitleOrFMIndex = endOfFrontmatterLineIndex(note)
+      let startOfActive = endOfTitleOrFMIndex + 1
+      if (paras.length === startOfActive) { // NB: length = line index + 1
+        // There is no line after title or FM, so add a blank line to use
+        log('paragraph/findStartOfActivePartOfNote', `Added a blank line after title/frontmatter of '${displayTitle(note)}'`)
+        note.appendParagraph('', 'empty')
+        paras = note.paragraphs
       }
+
+      // additionally, we're going to skip past any front-matter like section in a project note, 
+      // indicated by a #hashtag starting the next line.
+      // If there is, run on to next heading or blank line.
+      if (paras[startOfActive].content.match(/^#\w/)) {
+        for (let i = startOfActive; i < paras.length; i++) {
+          const p = paras[i]
+          if (p.type === 'title' || p.type === 'empty') {
+            startOfActive = i + 1
+            break
+          }
+        }
+      }
+      return startOfActive
     }
   }
-  return startOfActive
+  catch (err) {
+    logError('paragraph/findStartOfActivePartOfNote', err.message)
+    return NaN // for completeness
+  }
 }
 
 /**
@@ -333,8 +347,7 @@ export function selectedLinesIndex(selection: Range, paragraphs: $ReadOnlyArray<
  */
 export function getParaFromContent(note: TNote, contentToFind: string): TParagraph | void {
   const { paragraphs } = note
-  let result = 0 // default result
-  for (let p of paragraphs) {
+  for (const p of paragraphs) {
     if (p.content === contentToFind) {
       return p
     }
@@ -358,12 +371,15 @@ export function getOrMakeMetadataLine(note: TNote): number {
   let lineNumber: number = NaN
   const lines = note.content?.split('\n') ?? ['']
   for (let i = 1; i < lines.length; i++) {
-    if (lines[i].match(/^project:/i) || lines[i].match(/^metadata:/i) || lines[i].match(/^#[\w]/) || lines[i].match(/(@review|@reviewed)\(.+\)/)) {
+    if (lines[i].match(/^project:/i)
+      || lines[i].match(/^metadata:/i)
+      || lines[i].match(/^#[\w]/)
+      || lines[i].match(/(@review|@reviewed)\(.+\)/)) {
       lineNumber = i
       break
     }
   }
-  if (lineNumber === NaN) {
+  if (Number.isNaN(lineNumber)) {
     // If no metadataPara found, then insert one straight after the title
     console.log(`Warning: Can't find an existing metadata line, so will insert a new second line for it`)
     Editor.insertParagraph('', 1, 'empty')
