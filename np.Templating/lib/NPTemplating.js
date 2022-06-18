@@ -1364,33 +1364,26 @@ export default class NPTemplating {
   }
 
   static async execute(templateData: string = '', sessionData: any): Promise<any> {
-    // returns
-    // - executedTemplate
-    // - executedTemplateData
-
     let processedTemplateData = templateData
     let processedSessionData = sessionData
 
-    const codeBlocks = getCodeBlocks(templateData)
-    codeBlocks.forEach(async (codeBlock) => {
+    getCodeBlocks(templateData).forEach(async (codeBlock) => {
       if (!codeBlockHasComment(codeBlock) && blockIsJavaScript(codeBlock)) {
         const executeCodeBlock = codeBlock.replace('```javascript\n', '').replace('```js', '').replace('```\n', '').replace('```', '')
-        // const fn = new Function(executeCodeBlock)
-        // let result = fn()
 
-        const x = ['params', executeCodeBlock]
-        // $FlowIgnore
-        const fn = Function.apply(null, x)
+        try {
+          // $FlowIgnore
+          const fn = Function.apply(null, ['params', executeCodeBlock])
+          const result = fn(processedSessionData)
 
-        let result = fn(processedSessionData)
-
-        if (typeof result !== 'undefined' && typeof result === 'string') {
-          processedTemplateData = processedTemplateData.replace(codeBlock, result)
-        } else {
           if (typeof result === 'object') {
-            processedTemplateData = processedTemplateData.replace(codeBlock, '')
+            processedTemplateData = processedTemplateData.replace(codeBlock, 'OBJECT').replace('OBJECT\n', '')
             processedSessionData = { ...processedSessionData, ...result }
+          } else {
+            processedTemplateData = processedTemplateData.replace(codeBlock, typeof result === 'string' ? result : '')
           }
+        } catch (error) {
+          logError(pluginJson, error)
         }
       }
     })
