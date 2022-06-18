@@ -58,6 +58,18 @@ const getCodeBlocks = (templateData = '') => {
   return codeBlocks
 }
 
+const getIgnoredCodeBlocks = (templateData = '') => {
+  let ignoredCodeBlocks = []
+  const codeBlocks = getCodeBlocks(templateData)
+  codeBlocks.forEach((codeBlock) => {
+    if (codeBlockHasComment(codeBlock)) {
+      ignoredCodeBlocks.push(codeBlock)
+    }
+  })
+
+  return ignoredCodeBlocks
+}
+
 const getProperyValue = (object: any, key: string): any => {
   key.split('.').forEach((token) => {
     // $FlowIgnorew
@@ -182,8 +194,17 @@ export default class NPTemplating {
     return error
   }
 
+  static _removeWhitespaceFromCodeBlocks(str: string = ''): string {
+    let result = str
+    getCodeBlocks(str).forEach((codeBlock) => {
+      result = result.replace(codeBlock, codeBlock.replace('```javascript\n', '').replace('```', '').replace(/\n/gi, ''))
+    })
+
+    return result
+  }
+
   static _filterTemplateResult(templateResult: string = ''): string {
-    let result = templateResult
+    let result = this._removeWhitespaceFromCodeBlocks(templateResult)
 
     result = result.replace('ejs', 'template')
     result = result.replace('If the above error is not helpful, you may want to try EJS-Lint:', '')
@@ -918,6 +939,10 @@ export default class NPTemplating {
         }
       }
 
+      // const { processedTemplateData, processedSessionData } = await this.execute(templateData, sessionData.data)
+      // templateData = processedTemplateData
+      // sessionData.data = { ...sessionData.data, ...processedSessionData }
+
       // $FlowIgnore
       const { newTemplateData, newSettingData } = await this.preProcess(templateData, sessionData)
       sessionData = { ...newSettingData }
@@ -929,12 +954,22 @@ export default class NPTemplating {
       sessionData.data = { ...sessionData.data, ...userData?.data }
       sessionData.methods = { ...sessionData.methods, ...userData?.methods }
 
-      const { processedTemplateData, processedSessionData } = await this.execute(templateData, sessionData.data)
-      templateData = processedTemplateData
-      sessionData.data = { ...sessionData.data, ...processedSessionData }
+      // disable ignored code blocks
+      const ignoredCodeBlocks = getIgnoredCodeBlocks(templateData)
+      for (let index = 0; index < ignoredCodeBlocks.length; index++) {
+        templateData = templateData.replace(ignoredCodeBlocks[index], `__codeblock:${index}__`)
+      }
 
       const renderedData = await new TemplatingEngine(this.constructor.templateConfig).render(templateData, sessionData, userOptions)
-      return this._filterTemplateResult(renderedData)
+
+      let final = this._filterTemplateResult(renderedData)
+
+      // restore code blocks
+      for (let index = 0; index < ignoredCodeBlocks.length; index++) {
+        final = final.replace(`__codeblock:${index}__`, ignoredCodeBlocks[index])
+      }
+
+      return final
     } catch (error) {
       return this.templateErrorMessage('NPTemplating.renderTemplate', error)
     }
@@ -1370,17 +1405,28 @@ export default class NPTemplating {
     getCodeBlocks(templateData).forEach(async (codeBlock) => {
       if (!codeBlockHasComment(codeBlock) && blockIsJavaScript(codeBlock)) {
         const executeCodeBlock = codeBlock.replace('```javascript\n', '').replace('```js', '').replace('```\n', '').replace('```', '')
-
         try {
           // $FlowIgnore
-          const fn = Function.apply(null, ['params', executeCodeBlock])
-          const result = fn(processedSessionData)
+          let result = ''
 
-          if (typeof result === 'object') {
-            processedTemplateData = processedTemplateData.replace(codeBlock, 'OBJECT').replace('OBJECT\n', '')
-            processedSessionData = { ...processedSessionData, ...result }
+          if (executeCodeBlock.includes('<%')) {
+            result = await new TemplatingEngine(this.constructor.templateConfig).render(executeCodeBlock, processedSessionData)
+
+            console.log('before')
+            clo({ processedTemplateData })
+            processedTemplateData = processedTemplateData.replace(codeBlock, result)
+            console.log('after')
+            clo({ processedTemplateData })
           } else {
-            processedTemplateData = processedTemplateData.replace(codeBlock, typeof result === 'string' ? result : '')
+            const fn = Function.apply(null, ['params', executeCodeBlock])
+            result = fn(processedSessionData)
+
+            if (typeof result === 'object') {
+              processedTemplateData = processedTemplateData.replace(codeBlock, 'OBJECT').replace('OBJECT\n', '')
+              processedSessionData = { ...processedSessionData, ...result }
+            } else {
+              processedTemplateData = processedTemplateData.replace(codeBlock, typeof result === 'string' ? result : '')
+            }
           }
         } catch (error) {
           logError(pluginJson, error)
@@ -1388,6 +1434,7 @@ export default class NPTemplating {
       }
     })
 
+    debug(processedTemplateData, 'execute final')
     return { processedTemplateData, processedSessionData }
   }
 }
