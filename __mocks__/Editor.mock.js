@@ -41,7 +41,9 @@ const Editor = {
   // async insertTodo() { return null },
   // async insertTodoAfterParagraph() { return null },
   // async insertTodoBeforeParagraph() { return null },
-  // async isFolded() { return null },
+  async isFolded(para) {
+    return false
+  },
   note: null,
 
   async openNoteByDate(
@@ -122,7 +124,9 @@ const Editor = {
 } ,  */
   // async setTheme() { return null },
   // title: VALUE ,
-  // async toggleFolding() { return null },
+  async toggleFolding() {
+    return null
+  },
   // type: VALUE ,
   // async updateParagraph() { return null },
   // async updateParagraphs() { return null },

@@ -20,15 +20,12 @@ import {
 import { getTasksByType } from '../../dwertheimer.TaskAutomations/src/taskHelpers'
 import { sortListBy } from '../../helpers/sorting'
 import { showMessage, chooseOption } from '../../helpers/userInput'
-import { isTimeBlockLine, getTimeBlockString } from '../../helpers/timeblocks'
-import { removeContentUnderHeading, insertContentUnderHeading } from '@helpers/NPParagraph'
+import { getTimeBlockString } from '../../helpers/timeblocks'
 import { JSP, clo, log, logError } from '../../helpers/dev'
+import { checkNumber, checkWithDefault } from '../../helpers/checkType'
+import pluginJson from '../plugin.json'
 import {
-  attachTimeblockTag,
   blockOutEvents,
-  blockTimeFor,
-  createIntervalMap,
-  createTimeBlockLine,
   excludeTasksWithPatterns,
   getBlankDayMap,
   getTimeBlockTimesForEvents,
@@ -39,21 +36,23 @@ import {
   findTodosInNote,
   eliminateDuplicateParagraphs,
   getFullParagraphsCorrespondingToSortList,
-  type ExtendedParagraph,
 } from './timeblocking-helpers'
 import { getTimeBlockingDefaults, validateTimeBlockConfig } from './config'
 import { getPresetOptions, setConfigForPreset } from './presets'
-import type { IntervalMap, TimeBlockDefaults, PartialCalendarItem, EditorOrNote } from './timeblocking-flow-types'
-import { checkNumber, checkWithDefault } from '../../helpers/checkType'
-import pluginJson from '../plugin.json'
+import type { IntervalMap, PartialCalendarItem, EditorOrNote } from './timeblocking-flow-types'
+import { removeContentUnderHeading, insertContentUnderHeading } from '@helpers/NPParagraph'
 
-export async function getConfig(): Promise<{ [string]: [mixed] }> {
-  const defaultConfig = getTimeBlockingDefaults()
-  const config = DataStore.settings
-  config.timeblockTextMustContainString = DataStore.preference('timeblockTextMustContainString') || ''
-  if (Object.keys(config).length > 0) {
+/**
+ * Get the config for this plugin, from DataStore.settings or the defaults if settings are not valid
+ * Note: augments settings with current DataStore.preference('timeblockTextMustContainString') setting
+ * @returns {} config object
+ */
+export function getConfig(): Promise<{ [string]: [mixed] }> {
+  const config = DataStore.settings || {}
+  if (Object.keys(config).length) {
     try {
       // $FlowIgnore
+      config.timeblockTextMustContainString = DataStore.preference('timeblockTextMustContainString') || ''
       validateTimeBlockConfig(config)
       return config
     } catch (error) {
@@ -61,14 +60,18 @@ export async function getConfig(): Promise<{ [string]: [mixed] }> {
         `Plugin Settings ${error.message}\nRunning with default settings. You should probably open the plugin configuration dialog and fix the problem(s) listed above.`,
       )
     }
+  } else {
+    log(pluginJson, `config was empty. will use defaults`)
   }
+  const defaultConfig = getTimeBlockingDefaults()
   return defaultConfig
 }
 
 // $FlowIgnore
-const editorOrNote: EditorOrNote = (note: EditorOrNote) => (Editor.filename === note?.filename || !note ? Editor : note)
+export const editorOrNote: EditorOrNote = (note: EditorOrNote) =>
+  Editor.filename === note?.filename || !note ? Editor : note
 
-const editorIsOpenToToday = () => {
+export const editorIsOpenToToday = () => {
   const fileName = Editor.filename
   if (fileName == null) {
     return false
@@ -76,7 +79,7 @@ const editorIsOpenToToday = () => {
   return getDateStringFromCalendarFilename(fileName) === getTodaysDateUnhyphenated()
 }
 
-export async function deleteParagraphsContainingString(destNote: TNote, timeBlockTag: string): Promise<void> {
+export function deleteParagraphsContainingString(destNote: TNote, timeBlockTag: string): void {
   const destNoteParas = destNote.paragraphs
   const parasToDelete = []
   for (let i = 0; i < destNoteParas.length; i++) {
@@ -98,7 +101,7 @@ export async function deleteParagraphsContainingString(destNote: TNote, timeBloc
  * backlinks[0].subItems[0] =JSLog: {"type":"open","content":"scheduled for 10/4 using app >today","rawContent":"* scheduled for 10/4 using app
  * ","prefix":"* ","contentRange":{},"lineIndex":2,"date":"2021-11-07T07:00:00.000Z","heading":"_Testing scheduled sweeping","headingRange":{},"headingLevel":1,"isRecurring":0,"indents":0,"filename":"zDELETEME/Test scheduled.md","noteType":"Notes","linkedNoteTitles":[],"subItems":[]}
  */
-function getTodaysReferences(pNote: TNote | null = null, config: { [key: string]: any }): Array<TParagraph> {
+export function getTodaysReferences(pNote: TNote | null = null): Array<TParagraph> {
   log(pluginJson, `getTodaysReferences starting`)
   const note = pNote || Editor.note
   if (note == null) {
@@ -108,10 +111,10 @@ function getTodaysReferences(pNote: TNote | null = null, config: { [key: string]
   const backlinks: Array<TParagraph> = [...note.backlinks] // an array of notes which link to this note
   log(pluginJson, `backlinks.length:${backlinks.length}`)
   let todayParas = []
-  backlinks.forEach((link, i) => {
+  backlinks.forEach((link) => {
     // $FlowIgnore Flow(prop-missing) -- subItems is not in Flow defs but is real
     const subItems = link.subItems
-    subItems.forEach((subItem, j) => {
+    subItems.forEach((subItem) => {
       subItem.title = link.content.replace('.md', '').replace('.txt', '')
       todayParas.push(subItem)
     })
@@ -127,17 +130,16 @@ function getTodaysReferences(pNote: TNote | null = null, config: { [key: string]
   return todayParas
 }
 
-async function insertItemsIntoNote(
+export async function insertItemsIntoNote(
   note: TNote | TEditor,
   list: Array<string>,
   heading: string = '',
   shouldFold: boolean = false,
-  config: { [string]: any },
+  config: { [string]: any } = {},
 ) {
   if (list && list.length > 0 && note) {
     // $FlowIgnore
     log(pluginJson, `insertItemsIntoNote: items.length=${list.length}`)
-    log(pluginJson, `insertItemsIntoNote: items[0]=${list[0] ?? ''}`)
     await insertContentUnderHeading(note, heading, list.join('\n'))
     // Fold the heading to hide the list
     if (shouldFold && heading !== '') {
@@ -162,9 +164,9 @@ async function insertItemsIntoNote(
       }
     }
   } else {
-    if (!config.passBackResults) {
+    if (config && !config.passBackResults) {
       await showMessage(
-        'No work hours left. Check config/presents. Also look for calendar events which may have blocked off the rest of the day.',
+        'No items to insert or work hours left. Check config/presents. Also look for calendar events which may have blocked off the rest of the day.',
       )
     }
   }
@@ -327,9 +329,9 @@ export function getSyncedCopiesAsList(allTodayParagraphs: Array<TParagraph>): Ar
 
 export async function getTodaysFilteredTodos(config: { [key: string]: mixed }): Promise<Array<TParagraph>> {
   const { includeTasksWithText, excludeTasksWithText } = config
-  const backlinkParas = getTodaysReferences(Editor.note, config)
+  const backlinkParas = getTodaysReferences(Editor.note)
   console.log(`Found ${backlinkParas.length} backlinks+today-note items (may include completed items)`)
-  let undupedBackLinkParas = eliminateDuplicateParagraphs(backlinkParas)
+  const undupedBackLinkParas = eliminateDuplicateParagraphs(backlinkParas)
   console.log(`Found ${undupedBackLinkParas.length} undupedBackLinkParas after duplicate elimination`)
   let todosParagraphs: Array<TParagraph> = makeAllItemsTodos(undupedBackLinkParas) //some items may not be todos but we want to pretend they are and timeblock for them
   todosParagraphs =
@@ -420,7 +422,7 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: mi
       const calendarMapWithEvents = await getPopulatedTimeMapForToday(dateStr, intervalMins, config)
       console.log(`After getPopulatedTimeMapForToday, ${calendarMapWithEvents.length} timeMap slots`)
       const eventsToTimeblock = getTimeBlockTimesForEvents(calendarMapWithEvents, sortedTodos, config)
-      let { timeBlockTextList, blockList } = eventsToTimeblock
+      const { timeBlockTextList, blockList } = eventsToTimeblock
       console.log(
         `After getTimeBlockTimesForEvents, blocks:\n\tblockList.length=${blockList.length} \n\ttimeBlockTextList.length=${timeBlockTextList.length}`,
       )

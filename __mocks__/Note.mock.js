@@ -49,8 +49,9 @@ export class Note {
   async addTodoBelowHeadingTitle() {
     throw 'Note :: addTodoBelowHeadingTitle Not implemented yet'
   }
-  async appendParagraph() {
-    throw 'Note :: appendParagraph Not implemented yet'
+  appendParagraph(title: string, type: ParagraphType): void {
+    this.paragraphs.push({ content: title, type })
+    return
   }
   async appendParagraphBelowHeadingLineIndex() {
     throw 'Note :: appendParagraphBelowHeadingLineIndex Not implemented yet'
@@ -73,8 +74,10 @@ export class Note {
   async insertList() {
     throw 'Note :: insertList Not implemented yet'
   }
-  async insertParagraph() {
-    throw 'Note :: insertParagraph Not implemented yet'
+  insertParagraph(name: string, lineIndex: number, type: ParagraphType): void {
+    //TODO: deal with the lineIndex?
+    this.paragraphs.push({ content: name, type })
+    return
   }
   async insertParagraphAfterParagraph() {
     throw 'Note :: insertParagraphAfterParagraph Not implemented yet'
@@ -121,8 +124,8 @@ export class Note {
   async removeParagraphAtIndex() {
     throw 'Note :: removeParagraphAtIndex Not implemented yet'
   }
-  async removeParagraphs() {
-    throw 'Note :: removeParagraphs Not implemented yet'
+  async removeParagraphs(pd) {
+    return
   }
   async replaceTextInCharacterRange() {
     throw 'Note :: replaceTextInCharacterRange Not implemented yet'
