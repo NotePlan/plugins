@@ -70,6 +70,22 @@ const getIgnoredCodeBlocks = (templateData = '') => {
   return ignoredCodeBlocks
 }
 
+const convertJavaScriptBlocksToTags = (templateData = '') => {
+  let result = templateData
+  const codeBlocks = getCodeBlocks(templateData)
+  codeBlocks.forEach((codeBlock) => {
+    if (!codeBlockHasComment(codeBlock) && blockIsJavaScript(codeBlock)) {
+      if (!codeBlock.includes('<%')) {
+        let newBlock = codeBlock.replace('```javascript\n', '').replace('```js\n', '').replace('```', '')
+        newBlock = '```javascript\n' + `<% ${newBlock} %>` + '\n```'
+        result = result.replace(codeBlock, newBlock)
+      }
+    }
+  })
+
+  return result
+}
+
 const getProperyValue = (object: any, key: string): any => {
   key.split('.').forEach((token) => {
     // $FlowIgnorew
@@ -197,10 +213,12 @@ export default class NPTemplating {
   static _removeWhitespaceFromCodeBlocks(str: string = ''): string {
     let result = str
     getCodeBlocks(str).forEach((codeBlock) => {
-      result = result.replace(codeBlock, codeBlock.replace('```javascript\n', '').replace('```', '').replace(/\n/gi, ''))
+      let newCodeBlock = codeBlock
+      newCodeBlock = newCodeBlock.replace('```javascript\n', '').replace('```', '').replace(/\n\n/gi, '').replace(/\n/gi, '')
+      result = result.replace(codeBlock, newCodeBlock)
     })
 
-    return result
+    return result.replace(/\n\n\n/gi, '\n')
   }
 
   static _filterTemplateResult(templateResult: string = ''): string {
@@ -939,9 +957,7 @@ export default class NPTemplating {
         }
       }
 
-      // const { processedTemplateData, processedSessionData } = await this.execute(templateData, sessionData.data)
-      // templateData = processedTemplateData
-      // sessionData.data = { ...sessionData.data, ...processedSessionData }
+      templateData = convertJavaScriptBlocksToTags(templateData)
 
       // $FlowIgnore
       const { newTemplateData, newSettingData } = await this.preProcess(templateData, sessionData)
@@ -1411,12 +1427,7 @@ export default class NPTemplating {
 
           if (executeCodeBlock.includes('<%')) {
             result = await new TemplatingEngine(this.constructor.templateConfig).render(executeCodeBlock, processedSessionData)
-
-            console.log('before')
-            clo({ processedTemplateData })
             processedTemplateData = processedTemplateData.replace(codeBlock, result)
-            console.log('after')
-            clo({ processedTemplateData })
           } else {
             const fn = Function.apply(null, ['params', executeCodeBlock])
             result = fn(processedSessionData)
