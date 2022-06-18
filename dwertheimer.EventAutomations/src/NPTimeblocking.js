@@ -42,13 +42,18 @@ import { getPresetOptions, setConfigForPreset } from './presets'
 import type { IntervalMap, PartialCalendarItem, EditorOrNote } from './timeblocking-flow-types'
 import { removeContentUnderHeading, insertContentUnderHeading } from '@helpers/NPParagraph'
 
+/**
+ * Get the config for this plugin, from DataStore.settings or the defaults if settings are not valid
+ * Note: augments settings with current DataStore.preference('timeblockTextMustContainString') setting
+ * @returns {} config object
+ */
 export function getConfig(): Promise<{ [string]: [mixed] }> {
   const config = DataStore.settings || {}
   if (Object.keys(config).length) {
     try {
       // $FlowIgnore
-      validateTimeBlockConfig(config)
       config.timeblockTextMustContainString = DataStore.preference('timeblockTextMustContainString') || ''
+      validateTimeBlockConfig(config)
       return config
     } catch (error) {
       showMessage(
@@ -63,9 +68,10 @@ export function getConfig(): Promise<{ [string]: [mixed] }> {
 }
 
 // $FlowIgnore
-const editorOrNote: EditorOrNote = (note: EditorOrNote) => (Editor.filename === note?.filename || !note ? Editor : note)
+export const editorOrNote: EditorOrNote = (note: EditorOrNote) =>
+  Editor.filename === note?.filename || !note ? Editor : note
 
-const editorIsOpenToToday = () => {
+export const editorIsOpenToToday = () => {
   const fileName = Editor.filename
   if (fileName == null) {
     return false

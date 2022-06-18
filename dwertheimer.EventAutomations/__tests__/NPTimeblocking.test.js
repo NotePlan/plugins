@@ -2,7 +2,7 @@
 // Jest testing docs: https://jestjs.io/docs/using-matchers
 /* global describe, test, jest, expect, beforeAll */
 
-//               expect(spy).toHaveBeenNthCalledWith(2, expect.stringMatching(/ERROR/))
+// Note: expect(spy).toHaveBeenNthCalledWith(2, expect.stringMatching(/ERROR/))
 
 import * as mainFile from '../src/NPTimeblocking'
 import * as configFile from '../src/config'
@@ -51,7 +51,7 @@ Editor.filename = note.filename
  * @param {*} regex - a regex to match the spy call's arguments
  * @returns {boolean} was called or not
  */
-export const mockWasCalledWith = (spy: JestSpyType, regex: RegExp) => {
+export const mockWasCalledWith = (spy, regex: RegExp): boolean => {
   let found = []
   if (spy?.mock?.calls?.length) {
     const calls = spy.mock.calls
@@ -96,6 +96,65 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         expect(mockWasCalledWith(spy, /Running with default settings/)).toBe(true)
         DataStore.settings = oldSettings
       })
+      test('should return a proper config', () => {
+        const oldSettings = DataStore.settings
+        DataStore.settings = configFile.getTimeBlockingDefaults()
+        const c = mainFile.getConfig()
+        expect(c).toEqual(DataStore.settings)
+        DataStore.settings = oldSettings
+      })
+    })
+    /*
+     * editorOrNote()
+     */
+    describe('editorOrNote()' /* function */, () => {
+      test('should return Editor if same file is open in the Editor', () => {
+        const editorWas = { note: Editor.note, filename: Editor.filename }
+        note.filename = 'foo.md'
+        Editor.note = note
+        Editor.filename = note.filename
+        const result = mainFile.editorOrNote(Editor.note)
+        expect(result).toEqual(Editor)
+        Editor.note = editorWas.note
+        Editor.filename = editorWas.filename
+      })
+      test('should return note if file and Editor are different', () => {
+        const editorWas = { note: Editor.note, filename: Editor.filename }
+        note.filename = 'foo.md'
+        Editor.note = note
+        Editor.filename = 'something else'
+        const result = mainFile.editorOrNote(Editor.note)
+        expect(result).toEqual(note)
+        expect(result).not.toEqual(Editor)
+        Editor.note = editorWas.note
+        Editor.filename = editorWas.filename
+      })
+    })
+    /*
+     * editorIsOpenToToday()
+     */
+    describe('editorIsOpenToToday()' /* function */, () => {
+      /* template:
+      test('should XXX', () => {
+        const result = mainFile.editorIsOpenToToday()
+        expect(result).toEqual(true)
+      })
+      */
+      test('should return false if filename is null', () => {
+        Editor.filename = null
+        const result = mainFile.editorIsOpenToToday()
+        expect(result).toEqual(false)
+      })
+      test('should return false if Editor is open to another day', () => {
+        Editor.filename = `${unhyphenatedDate(new Date('2020-01-01'))}.md`
+        const result = mainFile.editorIsOpenToToday()
+        expect(result).toEqual(false)
+      })
+      test('should return true if Editor is open to is today', () => {
+        Editor.filename = `${unhyphenatedDate(new Date())}.md`
+        const result = mainFile.editorIsOpenToToday()
+        expect(result).toEqual(true)
+      })
     })
     /*
      * getTodaysReferences()
@@ -132,20 +191,51 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
       })
     })
     /*
+     * deleteParagraphsContainingString()
+     */
+    describe('deleteParagraphsContainingString()' /* function */, () => {
+      /* template:
+      test('should XXX', () => {
+        const result = mainFile.deleteParagraphsContainingString()
+        expect(result).toEqual(true)
+      })
+      */
+      test('should not delete anything if no matches', () => {
+        const paras = [
+          new Paragraph({ content: 'line1', type: 'open' }),
+          new Paragraph({ content: 'line2', type: 'open' }),
+        ]
+        const note = new Note({ paragraphs: paras })
+        const spy = jest.spyOn(note, 'removeParagraphs')
+        mainFile.deleteParagraphsContainingString(note, 'xxx')
+        expect(spy).not.toHaveBeenCalled()
+      })
+      test('should call delete with matching line', () => {
+        const paras = [
+          new Paragraph({ content: 'line1', type: 'open' }),
+          new Paragraph({ content: 'line2', type: 'open' }),
+        ]
+        const note = new Note({ paragraphs: paras })
+        const spy = jest.spyOn(note, 'removeParagraphs')
+        const ret = mainFile.deleteParagraphsContainingString(note, 'line1')
+        expect(spy).toHaveBeenCalledWith([paras[0]])
+      })
+    })
+    /*
      * insertTodosAsTimeblocks()
      */
     describe('insertTodosAsTimeblocks()' /* function */, () => {
-      test('should tell user there was a problem with config', async () => {
+      test.skip('should tell user there was a problem with config', async () => {
         const spy = jest.spyOn(CommandBar, 'prompt')
         await mainFile.insertTodosAsTimeblocks(note)
         expect(spy.mock.calls[0][1]).toMatch(/Plugin Settings Error/)
         spy.mockRestore()
       })
-      test('should do nothing if there are no backlinks', async () => {
+      test.skip('should do nothing if there are no backlinks', async () => {
         DataStore.settings = {} //should get default settings
         Editor.note.backlinks = []
         const spy = jest.spyOn(CommandBar, 'prompt')
-        const res = await mainFile.insertTodosAsTimeblocks(note)
+        await mainFile.insertTodosAsTimeblocks(note)
         // $FlowIgnore - jest doesn't know about this param
         expect(mockWasCalledWith(spy, /No todos\/references marked for >today/)).toBe(true)
         spy.mockRestore()

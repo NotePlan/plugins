@@ -121,8 +121,8 @@ export class Note {
   async removeParagraphAtIndex() {
     throw 'Note :: removeParagraphAtIndex Not implemented yet'
   }
-  async removeParagraphs() {
-    throw 'Note :: removeParagraphs Not implemented yet'
+  async removeParagraphs(pd) {
+    return
   }
   async replaceTextInCharacterRange() {
     throw 'Note :: replaceTextInCharacterRange Not implemented yet'
