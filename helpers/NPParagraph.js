@@ -3,12 +3,7 @@
 import { hyphenatedDate } from './dateTime'
 import { toLocaleDateTimeString } from './NPdateTime'
 import { log, logWarn } from './dev'
-import {
-  findStartOfActivePartOfNote,
-  findEndOfActivePartOfNote,
-  termInMarkdownPath,
-  termInURL
-} from './paragraph'
+import { findStartOfActivePartOfNote, findEndOfActivePartOfNote, termInMarkdownPath, termInURL } from './paragraph'
 
 /**
  * Remove all headings (type=='title') from a note matching the given text
@@ -107,7 +102,7 @@ export async function insertContentUnderHeading(
   // If we didn't find the heading, insert at the top of the note
   const paraText =
     insertionIndex === startOfNote && headingToFind !== ''
-      ? `${headingMarker} ${headingToFind} \n${parasAsText} \n`
+      ? `${headingMarker} ${headingToFind}\n${parasAsText}\n`
       : parasAsText
   await destNote.insertParagraph(paraText, insertionIndex, 'text')
 }
@@ -271,7 +266,7 @@ export function gatherMatchingLines(
   stringToLookFor: string,
   highlightOccurrences: boolean = true,
   dateStyle: string = 'link',
-  matchCase: boolean = false
+  matchCase: boolean = false,
 ): [Array<string>, Array<string>] {
   log('NPParagraph/gatherMatchingLines', `Looking for '${stringToLookFor}' in ${notes.length} notes`)
   // Don't know why this loading indicator stopped working
@@ -300,7 +295,7 @@ export function gatherMatchingLines(
     // set up regex for searching, now with word boundaries on either side
     // find any matches
     const stringToLookForWithDelimiters = `\\b${stringToLookFor}\\b`
-    const re = (matchCase) ? new RegExp(stringToLookForWithDelimiters) : new RegExp(stringToLookForWithDelimiters, "i")
+    const re = matchCase ? new RegExp(stringToLookForWithDelimiters) : new RegExp(stringToLookForWithDelimiters, 'i')
     const matchingParas = n.paragraphs.filter((q) => re.test(q.content))
     for (const p of matchingParas) {
       let matchLine = p.content

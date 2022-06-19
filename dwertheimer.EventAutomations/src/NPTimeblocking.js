@@ -140,6 +140,7 @@ export async function insertItemsIntoNote(
   if (list && list.length > 0 && note) {
     // $FlowIgnore
     log(pluginJson, `insertItemsIntoNote: items.length=${list.length}`)
+    // Note: could probably use API addParagraphBelowHeadingTitle to insert
     await insertContentUnderHeading(note, heading, list.join('\n'))
     // Fold the heading to hide the list
     if (shouldFold && heading !== '') {

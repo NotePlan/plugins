@@ -37,7 +37,7 @@ export class Note {
  "note": {}
 } ], */
   title = 'PLACEHOLDER' // TODO: add value
-  type = 'PLACEHOLDER' // TODO: add value
+  type = 'Notes'
 
   // Methods
   async addBlockID() {
