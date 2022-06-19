@@ -1,0 +1,44 @@
+{
+  "COMMENT": "Details on these fields: https://help.noteplan.co/article/67-create-command-bar-plugins",
+  "macOS.minVersion": "10.13.0",
+  "noteplan.minAppVersion": "3.4.0",
+  "plugin.id": "dwertheimer.EventBlocks",
+  "plugin.name": "🧩 Event Blocks",
+  "plugin.version": "0.1.0",
+  "plugin.description": "Create calendar events by writing (natural language) text under a heading",
+  "plugin.author": "dwertheimer",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.EventBlocks/README.md",
+  "plugin.commands": [
+    {
+      "name": "cevt - Create Events From Text",
+      "description": "Create calendar events by writing (natural language) text under a heading",
+      "jsFunction": "createEvents",
+      "alias": [
+        "cevt",
+        "createevents"
+      ],
+      "arguments": ["Heading under which events are written", "Ask for confirmation on choices? yes or no for best guess"]
+    }
+  ],
+  "plugin.settings": [
+    {
+      "COMMENT": "Plugin settings documentation: https://help.noteplan.co/article/123-plugin-configuration",
+      "type": "heading",
+      "title": "Event Blocks Settings"
+    },
+    {
+      "title": "A string in prefs",
+      "key": "settingsString",
+      "type": "string",
+      "description": "Enter some string and see it change when the plugin is run",
+      "default": "This default setting was set in plugin preferences!"
+    },
+    {
+      "key": "version",
+      "type": "hidden",
+      "description": "Event Blocks Settings Version"
+    }
+  ]
+}
