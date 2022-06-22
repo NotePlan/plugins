@@ -223,7 +223,7 @@ declare interface TEditor extends ParagraphBridge {
   ): Promise < void>;
   /**
   * Selects the full text in the editor.
-  * Note: Available from NotePlan v3.2
+  * Note: Available from v3.2
   */
   selectAll(): void;
   /**
@@ -245,13 +245,13 @@ declare interface TEditor extends ParagraphBridge {
   /**
   * Copies the currently selected text in the editor to the system clipboard.
   * See also Clipboard object.
-  * Note: Available from NotePlan v3.2
+  * Note: Available from v3.2
   */
   copySelection(): void;
   /**
   * Pastes the current content in the system clipboard into the current selection in the editor.
   * See also Clipboard object.
-  * Note: Available from NotePlan v3.2
+  * Note: Available from v3.2
   */
   pasteClipboard(): void;
   /**
@@ -321,13 +321,13 @@ declare interface TEditor extends ParagraphBridge {
   /**
   * Get the names of all supported themes (including custom themes imported into the Theme folder).
   * Use together with `.setTheme(name)`
-  * Note: Available from NotePlan v3.1
+  * Note: Available from v3.1
   * @return {$ReadOnlyArray<string>}
   */
   +availableThemes: $ReadOnlyArray < string >;
   /**
   * Change the current theme. Get all available theme names using `.availableThemes`. Custom themes are also supported. Use the filename in this case.
-  * Note: Available from NotePlan v3.1+
+  * Note: Available from v3.1+
   * @param {String}
   */
   setTheme(name: string): void;
@@ -335,7 +335,7 @@ declare interface TEditor extends ParagraphBridge {
   * Add a new theme using the raw json string. It will be added as a custom theme and you can load it right away with `.setTheme(name)` using the filename defined as second parameter. Use ".json" as file extension.
   * It returns true if adding was successful and false if not. An error will be also printed into the console.
   * Adding a theme might fail, if the given json text was invalid.
-  * Note: Available from NotePlan v3.1
+  * Note: Available from v3.1
   * @param {string} json
   * @param {string} filename
   * @return {boolean}
@@ -343,7 +343,7 @@ declare interface TEditor extends ParagraphBridge {
   addTheme(json: string, filename: string): boolean;
   /**
   * Print current note, optionally with backlinks and events sections
-  * Note: available from NotePlan v3.4, on macOS
+  * Note: available from v3.4, on macOS
   * @param {boolean} addReferenceSections
   */
   printNote(boolean: addReferenceSections): void;
@@ -381,19 +381,19 @@ static + projectNotes: $ReadOnlyArray < TNote >;
  * Get all cached hashtags (#tag) that are used across notes.
  * It returns hashtags without leading '#'.
  * @type {[String]}
- * Note: Available from NotePlan v3.6.0
+ * Note: Available from v3.6.0
  */
 static + hashtags: $ReadOnlyArray < string >;
 /**
  * Get all cached mentions (@name) that are used across notes.
  * It returns mentions without leading '@'.
- * Note: Available from NotePlan v3.6.0
+ * Note: Available from v3.6.0
  * @type {[String]}
  */
 static + mentions: $ReadOnlyArray < string >;
 /**
  * Get list of all filter names
- * Note: Available from NotePlan v3.6.0
+ * Note: Available from v3.6.0
  * @type {[String]}
  */
 static + filters: $ReadOnlyArray < string >;
@@ -401,7 +401,7 @@ static + filters: $ReadOnlyArray < string >;
   /**
    * Get or set settings for the current plugin (as a JavaScript object).
    * Example: settings.shortcutExpenses[0].category
-   * Note: Available from NotePlan v3.3.2
+   * Note: Available from v3.3.2
    */
   static settings: Object;
 
@@ -437,7 +437,7 @@ static + preference: (key: string) => mixed;
    * You can also save custom preferences specific to the plugin, if you need any.
    * repend it with the plugin id or similar to avoid collisions with existing keys.
    * Note: these keys and values do not sync across a user's devices; they are only local.
-   * Note: Available from NotePlan v3.1
+   * Note: Available from v3.1
    * @param {string}
    * @param {any}
    */
@@ -447,7 +447,7 @@ static + preference: (key: string) => mixed;
    * This can be used to save preferences or other persistent data.
    * It's saved automatically into a new folder "data" in the Plugins folder.
    * But you can "escape" this folder using relative paths: ../Plugins/<folder or filename>.
-   * Note: Available from NotePlan v3.1
+   * Note: Available from v3.1
    * @param {Object}
    * @param {string}
    * @return {boolean}
@@ -456,7 +456,7 @@ static + preference: (key: string) => mixed;
   /**
    * Load a JavaScript object from a JSON file located (by default) in the <Plugin>/data folder.
    * But you can also use relative paths: ../Plugins/<folder or filename>.
-   * Note: Available from NotePlan v3.1
+   * Note: Available from v3.1
    * @param {string}
    * @return {Object}
    */
@@ -464,7 +464,7 @@ static + preference: (key: string) => mixed;
   /**
    * Save data to a file, as base64 string. The file will be saved under "[NotePlan Folder]/Plugins/data/[plugin-id]/[filename]".
    * Returns true if the file could be saved, false if not and prints the error.
-   * Note: Available from NotePlan v3.2+
+   * Note: Available from v3.2+
    * @param {String}
    * @param {String}
    * @return {Boolean}
@@ -475,7 +475,7 @@ static + preference: (key: string) => mixed;
    * The file has to be located in "[NotePlan Folder]/Plugins/data/[plugin-id]/[filename]".
    * You can access the files of other plugins as well, if the filename is known using relative paths "../[other plugin-id]/[filename]" or simply go into the "data"'s root directory "../[filename]" to access a global file.
    * Returns undefined, if the file couldn't be loaded and prints an error message.
-   * Note: Available from NotePlan v3.2+
+   * Note: Available from v3.2+
    * @param {String}
    * @return {String?}
    */
@@ -549,30 +549,39 @@ static + preference: (key: string) => mixed;
   static newNoteWithContent(content: string, folder: string, filename: string): string;
 
   /**
+   * Returns an array of paragraphs having the same blockID like the given one (which is also part of the return array).
+   * You can use `paragraph[0].note` to access the note behind it and make updates via `paragraph[0].note.updateParagraph(paragraph[0])` if you make changes to the content, type, etc (like checking it off as type = "done").
+   * Note: Available from v3.5.2
+   * @param {TParagraph}
+   * @return {[TParagraph]}
+   */
+  static referencedBlocks(paragraph: TParagraph): TParagraph;
+
+  /**
    * Loads all available plugins asynchronously from the GitHub repository and returns a list.
    * You can show a loading indicator using the first parameter (true) if this is part of some user interaction. Otherwise, pass "false" so it happens in the background.
-   * Note: Available from NotePlan v3.5.2
+   * Note: Available from v3.5.2
    * @param {boolean}
    */
   static listPlugins(showLoading: boolean): Promise < void>;
   /**
    * Installs a given plugin (load a list of plugins using `.listPlugins` first). If this is part of a user interfaction, pass "true" for `showLoading` to show a loading indicator.
-   * Note: Available from NotePlan v3.5.2
+   * Note: Available from v3.5.2
    * @param {PluginObject}
    * @param {boolean}
    */
   static installPlugin(pluginObject: PluginObject, showLoading: boolean): Promise < void>;
   /**
    * Returns all installed plugins as PluginObject(s).
-   * Note: Available from NotePlan v3.5.2
-   * @return {[PluginObject]}
+   * Note: Available from v3.5.2
+   * @return {Array<PluginObject>}
    */
-  static installedPlugins(): [PluginObject];
+  static installedPlugins(): Array < PluginObject >;
   /**
    * Invoke a given command from a plugin (load a list of plugins using `.listPlugins` first, then get the command from the `.commands` list).
    * If the command supports it, you can also pass an array of arguments which can contain any type (object, date, string, integer,...)
    * It returns the particular return value of that command which can be a Promise so you can use it with `await`.
-   * Note: Available from NotePlan v3.5.2
+   * Note: Available from v3.5.2
    * @param {PluginCommandObject}
    * @param {$ReadOnlyArray<mixed>}
    * @return {any} Return value of the command, like a Promise
@@ -582,7 +591,7 @@ static + preference: (key: string) => mixed;
    * Invoke a given command from a plugin using the name and plugin ID, so you don't need to load it from the list.
    * If the command doesn't exist locally null will be returned with a log message.
    * If the command supports it, you can also pass an array of arguments which can contain any type (object, date, string, integer,...)
-   * Note: Available from NotePlan v3.5.2
+   * Note: Available from v3.5.2
    * @param {string}
    * @param {string}
    * @param {$ReadOnlyArray<mixed>}
@@ -591,7 +600,7 @@ static + preference: (key: string) => mixed;
   static invokePluginCommandByName(command: string, pluginID: string, arguments ?: $ReadOnlyArray < mixed >): Promise < any >;
   /**
    * Checks if the given pluginID is installed or not.
-   * Note: Available from NotePlan v3.6.0
+   * Note: Available from v3.6.0
    * @param {string}
    * @return {boolean}
    */
@@ -599,25 +608,63 @@ static + preference: (key: string) => mixed;
   /**
    * Installs a given array of pluginIDs if needed. It checks online if a new version is available and downloads it.
    * Use it without `await` so it keeps running in the background or use it with `await` in "blocking mode" if you need to install a plugin as a dependency. In this case you can use `showPromptIfSuccessful = true` to show the user a message that a plugin was installed and `showProgressPrompt` will show a loading indicator beforehand. With both values set to false or not defined it will run in "silent" mode and show no prompts.
-   * Note: Available from NotePlan v3.6.0
-   * @param {[string]}
+   * Note: Available from v3.6.0
+   * @param {Array<string>}
    * @param {boolean}
    * @param {boolean}
-   * @return {Promise<>}
+   * @return {Promise}
    */
   static installOrUpdatePluginsByID(
-  pluginIDs: [string],
-  showPromptIfSuccessful: boolean,
-  showProgressPrompt: boolean,
-): Promise < void> | void;
+    pluginIDs: Array < string >,
+    showPromptIfSuccessful: boolean,
+    showProgressPrompt: boolean,
+  ): Promise < void> | void;
+
   /**
-   * Returns an array of paragraphs having the same blockID like the given one (which is also part of the return array).
-   * You can use `paragraph[0].note` to access the note behind it and make updates via `paragraph[0].note.updateParagraph(paragraph[0])` if you make changes to the content, type, etc (like checking it off as type = "done").
-   * Note: Available from NotePlan v3.5.2
-   * @param {TParagraph}
-   * @return {[TParagraph]}
+   * Searches all notes for a keyword (uses multiple threads to speed it up).
+   * By default it searches in project notes and in the calendar notes. Use the second parameters "types" to exclude a type. Otherwise, pass `null` or nothing.
+   * This function is async, use it with `await`, so that the UI is not being blocked during a long search.
+   * Optionally pass a list of folders (`inNotes`) to limit the search to notes that ARE in those folders (applies only to project notes)
+   * Optionally pass a list of folders (`notInFolders`) to limit the search to notes NOT in those folders (applies only to project notes)
+   * Note: Available from v3.6.0
+   * @param {string} = keyword to search for
+   * @param {Array<string>?} types ["notes", "calendar"] (by default all, or pass `null`)
+   * @param {Array<string>?} list (optional)
+   * @param {Array<string>?} list (optional)
+   * @return {$ReadOnlyArray<ParagraphObject>} array of results
    */
-  static referencedBlocks(paragraph: TParagraph): TParagraph;
+  static search(
+    keyword: string,
+    types ?: Array < string >,
+    inFolders ?: Array < string >,
+    notInFolders ?: Array < string >
+  ): Promise < $ReadOnlyArray < ParagraphObject >>;
+
+  /**
+   * Searches all project notes for a keyword (uses multiple threads to speed it up).
+   * This function is async, use it with `await`, so that the UI is not being blocked during a long search.
+   * Optionally pass a list of folders (`inNotes`) to limit the search to notes that ARE in those folders (applies only to project notes)
+   * Optionally pass a list of folders (`notInFolders`) to limit the search to notes NOT in those folders (applies only to project notes)
+   * Note: Available from v3.6.0
+   * @param {string} = keyword to search for
+   * @param {Array<string>?} folders list (optional)
+   * @param {Array<string>?} folders list (optional)
+   * @return {$ReadOnlyArray<ParagraphObject>} results array
+   */
+  static searchProjectNotes(
+      keyword: string,
+      inFolders ?: Array < string >,
+      notInFolders ?: Array < string >
+  ): Promise < $ReadOnlyArray < ParagraphObject > >;
+
+  /**
+   * Searches all calendar notes for a keyword (uses multiple threads to speed it up).
+   * This function is async, use it with `await`, so that the UI is not being blocked during a long search.
+   * Note: Available from v3.6.0
+   * @param {string} = keyword to search for
+   * @return {$ReadOnlyArray<ParagraphObject>} array of results
+   */
+  static searchCalendarNotes(keyword: string): Promise < $ReadOnlyArray < ParagraphObject > >;
 }
 
 /**
@@ -849,14 +896,14 @@ declare class Calendar {
   static +dateUnits: $ReadOnlyArray < CalendarDateUnit >;
   /**
    * Get the titles of all calendars the user has access to. Set `writeOnly` true, if you want to get only the calendars the user has write access to (some calendars, like holidays are not writable).
-   * Note: Available from NotePlan v3.1
+   * Note: Available from v3.1
    * @param {boolean}
    * @return {[string]}
    */
   static availableCalendarTitles(writeOnly: boolean): $ReadOnlyArray < string >;
   /**
    * Get the titles of all reminders the user has access to.
-   * Note: Available from NotePlan v3.1
+   * Note: Available from v3.1
    * @return {[string]}
    */
   static availableReminderListTitles(): $ReadOnlyArray < string >;
@@ -867,13 +914,17 @@ declare class Calendar {
    */
   static add(item: TCalendarItem): TCalendarItem | void;
   /**
-   * Parses a text describing a text as natural language input into a date.
-   * Such as "today", "next week", "1st May", "at 5pm to 6pm", etc.
-   *
-   * Returns and array with possible results (usually one), the most likely at
-   * the top.
-   *
-   * Access the dates in this array using ".start" and ".end".
+   * Parses a text describing a text as natural language input into a date. Such as "today", "next week", "1st May", "at 5pm to 6pm", etc. 
+   * Returns an array with possible results (usually one), the most likely at the top.
+   * The possible values that can be accessed are:
+   *   .start: time
+   *   .end: time
+   *   .index: character index of the start of the detected date string (available from v3.6.0)
+   *   .text: the detected date string (available from v3.6.0)
+   * The results can also be converted and used as JSON. For example:
+   *    JSON.stringify(Calendar.parseDateText("* Next F1 race is Sun June 19 (Canadian GP)")) 
+   * -> [{"index":18,"start":"2023-06-19T17:00:00.000Z","text":"Sun June 19 ","end":"2023-06-19T17:00:00.000Z"}]
+   * Under the hood this uses the Chrono library.
    */
   static parseDateText(text: string): $ReadOnlyArray < DateRange >;
   /**
