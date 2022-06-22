@@ -89,6 +89,8 @@ export async function confirmPotentialTimeChoice(potentials) {
     value: i,
     start: potential.start,
     end: potential.end,
+    text: potential.text,
+    index: potential.index,
   }))
   clo(opts, `confirmPotentialTimeChoice opts`)
   const val = await chooseOption('Which of these looks right?', opts, opts[0].value)
@@ -136,7 +138,12 @@ export async function processTimeLines(block, config) {
             chosen = await confirmPotentialTimeChoice(potentials)
           }
         }
-        let event = await createEvent(line.content, chosen, config)
+        // Calendar.parseDateText = [{"start":"2022-06-24T13:00:00.000Z","end":"2022-06-24T13:00:00.000Z","text":"friday at 8","index":0}]
+        const revisedLine = line.content
+          .replace(chosen.text || '', '')
+          .replace(/\s{2,}/g, ' ')
+          .trim()
+        let event = await createEvent(revisedLine, chosen, config)
         if (event && event.id) {
           log(pluginJson, `created event ${event.title}`)
           event = await Calendar.eventByID(event.id)
