@@ -47,24 +47,24 @@ export function deleteEntireBlock(
 }
 
 /**
- * Given a heading (string), delete all the content of the block under this heading
+ * Given a heading (string), delete all the content of the block under this heading (optionally and the heading also)
  * See getParagraphBlock below for definition of what constitutes a block an definition of useExtendedBlockDefinition
  * (Note: if the heading occurs more than once, acts on the first one only)
  * @param {TNote|TEditor} note
  * @param {string} heading
- * @param {boolean} useExtendedBlockDefinition
+ * @param {boolean} useExtendedBlockDefinition (default: false)
+ * @param {boolean} keepHeading - keep the heading after deleting contents (default: true)
  */
 export function removeContentUnderHeading(
   note: TNote | TEditor,
   heading: string,
   useExtendedBlockDefinition: boolean = false,
+  keepHeading: boolean = true,
 ) {
-  log(`NPParagraph/removeContentUnderHeading`, `In '${note.title ?? ''}' remove items under title: "${heading}"`)
+  // log(`NPParagraph/removeContentUnderHeading`, `In '${note.title ?? ''}' remove items under title: "${heading}"`)
   const para = note.paragraphs.find((p) => p.type === 'title' && p.content.includes(heading))
-  // let paraBlock = []
-  // clo(para, `removeContentUnderHeading para=`)
   if (para && para.lineIndex != null) {
-    deleteEntireBlock(note, para, useExtendedBlockDefinition, true)
+    deleteEntireBlock(note, para, useExtendedBlockDefinition, keepHeading)
   } else {
     log(`NPParagraph/removeContentUnderHeading`, `did not find heading: "${heading}"`)
   }

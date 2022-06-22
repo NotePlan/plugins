@@ -19,7 +19,7 @@ import {
 } from '../../helpers/dateTime'
 import { getTasksByType } from '../../dwertheimer.TaskAutomations/src/taskHelpers'
 import { sortListBy } from '../../helpers/sorting'
-import { showMessage, chooseOption } from '../../helpers/userInput'
+import { showMessage, chooseOption, showMessageYesNo } from '../../helpers/userInput'
 import { getTimeBlockString } from '../../helpers/timeblocks'
 import { JSP, clo, log, logError } from '../../helpers/dev'
 import { checkNumber, checkWithDefault } from '../../helpers/checkType'
@@ -540,6 +540,91 @@ export async function insertSyncedCopiesOfTodayTodos(): Promise<void> {
     }
   } catch (error) {
     logError(pluginJson, `insertSyncedCopiesOfTodayTodos error: ${JSP(error)}`)
+  }
+}
+
+/**
+ * Remove previously written synced copies of today items (written by this plugin) to the Editor
+ * (entry point for /removeSyncedCopiesOfTodayTodos)
+ */
+export async function removeSyncedCopiesOfTodayTodos(note: TNote | null = null): Promise<void> {
+  try {
+    log(pluginJson, `removeSyncedCopiesOfTodayTodos running`)
+    await removeContentUnderHeading(note || Editor, String(DataStore.settings.syncedCopiesTitle), false, false)
+  } catch (error) {
+    logError(pluginJson, `removeSyncedCopiesOfTodayTodos error: ${JSP(error)}`)
+  }
+}
+
+/**
+ * Remove previously written Time Blocks (written by this plugin) in the Editor
+ * (entry point for /removeTimeBlocks)
+ */
+export async function removeTimeBlocks(note: TNote | null = null): Promise<void> {
+  try {
+    log(pluginJson, `removeTimeBlocks running`)
+    await removeContentUnderHeading(note || Editor, String(DataStore.settings.timeBlockHeading), false, false)
+  } catch (error) {
+    logError(pluginJson, `removeTimeBlocks error: ${JSP(error)}`)
+  }
+}
+
+/**
+ * Remove all previously written synced copies of today items in all notes
+ * (entry point for /removeAllPreviousSyncedCopies)
+ * @param {boolean} runSilently - whether to show CommandBar popups - you should set it to 'yes' when running from a template
+ */
+export async function removePreviousSyncedCopies(runSilently: string = 'no'): Promise<void> {
+  try {
+    log(pluginJson, `removePreviousSyncedCopies running`)
+    const prevCopies = await DataStore.search(DataStore.settings.syncedCopiesTitle, ['calendar'])
+    if (prevCopies.length) {
+      const res = await showMessageYesNo(`Remove Synced Copies in ${prevCopies.length} notes?`)
+      if (res === 'Yes') {
+        prevCopies.forEach(
+          async (paragraph) =>
+            await removeContentUnderHeading(paragraph.note, DataStore.settings.syncedCopiesTitle, false, false),
+        )
+      }
+    } else {
+      if (!(runSilently === 'yes'))
+        showMessage(`Found no previous notes with "${DataStore.settings.syncedCopiesTitle}"`)
+    }
+    log(
+      pluginJson,
+      `removePreviousSyncedCopies found ${prevCopies.length} previous calendar notes with SyncedCopies Heading`,
+    )
+  } catch (error) {
+    logError(pluginJson, `removePreviousSyncedCopies error: ${JSP(error)}`)
+  }
+}
+
+/**
+ * Remove all previously written synced copies of today items in all notes
+ * (entry point for /removePreviousTimeBlocks)
+ * @param {boolean} runSilently - whether to show CommandBar popups - you should set it to 'yes' when running from a template
+ */
+export async function removePreviousTimeBlocks(runSilently: string = 'no'): Promise<void> {
+  try {
+    log(pluginJson, `removePreviousTimeBlocks running`)
+    const prevCopies = await DataStore.search(DataStore.settings.timeBlockHeading, ['calendar'])
+    if (prevCopies.length) {
+      const res = await showMessageYesNo(`Remove Time Blocks written by this plugin in ${prevCopies.length} notes?`)
+      if (res === 'Yes') {
+        prevCopies.forEach(
+          async (paragraph) =>
+            await removeContentUnderHeading(paragraph.note, DataStore.settings.timeBlockHeading, false, false),
+        )
+      }
+    } else {
+      if (!(runSilently === 'yes')) showMessage(`Found no previous notes with "${DataStore.settings.timeBlockHeading}"`)
+    }
+    log(
+      pluginJson,
+      `removePreviousTimeBlocks found ${prevCopies.length} previous calendar notes with "${DataStore.settings.timeBlockHeading}" Heading`,
+    )
+  } catch (error) {
+    logError(pluginJson, `removePreviousTimeBlocks error: ${JSP(error)}`)
   }
 }
 
