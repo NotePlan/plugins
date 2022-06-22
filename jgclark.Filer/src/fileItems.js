@@ -2,19 +2,18 @@
 // ----------------------------------------------------------------------------
 // Plugin to help move selected Paragraphs to other notes
 // Jonathan Clark
-// last updated 18.5.2022 for v0.7.0
+// last updated 18.5.2022 for v0.7.0+
 // ----------------------------------------------------------------------------
 // TODO: update the Locale string when the environment() API call is available
 
 import pluginJson from "../plugin.json"
-import { castBooleanFromMixed, castStringFromMixed, } from '@helpers/dataManipulation'
+// import { castBooleanFromMixed, castStringFromMixed, } from '@helpers/dataManipulation'
 import {
   hyphenatedDate,
-  todaysDateISOString,
   toLocaleDateTimeString
 } from '@helpers/dateTime'
-import { clo, log, logError, logWarn } from '@helpers/dev'
-import { displayTitle } from '@helpers/general'
+import { log, logError, logWarn } from '@helpers/dev'
+// import { displayTitle } from '@helpers/general'
 import { allNotesSortedByChanged } from '@helpers/note'
 import {
   calcSmartPrependPoint,
@@ -24,7 +23,7 @@ import {
   selectedLinesIndex,
 } from '@helpers/paragraph'
 import { chooseHeading, showMessage } from '@helpers/userInput'
-import { getSelectedParaIndex } from '../../jgclark.Summaries/src/progress'
+// import { getSelectedParaIndex } from '@helpers/NPParagraph'
 
 //-----------------------------------------------------------------------------
 // Get settings
@@ -39,7 +38,6 @@ type FilerConfig = {
 }
 
 export async function getFilerSettings(): Promise<any> {
-  let config: FilerConfig
   try {
     // Get settings using ConfigV2
     const v2Config: FilerConfig = await DataStore.loadJSON("../jgclark.Filer/settings.json")
@@ -101,7 +99,7 @@ export async function moveParas(): Promise<void> {
   const [firstSelParaIndex, lastSelParaIndex] = selectedLinesIndex(selection, paragraphs)
 
   // Get paragraphs for the selection or block
-  const parasInBlock: Array<TParagraph> = (lastSelParaIndex != firstSelParaIndex)
+  const parasInBlock: Array<TParagraph> = (lastSelParaIndex !== firstSelParaIndex)
     ? selectedParagraphs.slice()   // copy to avoid $ReadOnlyArray problem
     : getParagraphBlock(note, firstSelParaIndex, config.useExtendedBlockDefinition)
 
@@ -269,7 +267,12 @@ export function getParagraphBlock(
  * @param {string} headingToFind 
  * @param {string} whereToAddInSection to add after a heading: 'start' or 'end'
  */
-export async function addParasAsText(destinationNote: TNote, selectedParasAsText: string, headingToFind: string, whereToAddInSection: string): Promise<void> {
+export async function addParasAsText(
+  destinationNote: TNote,
+  selectedParasAsText: string,
+  headingToFind: string,
+  whereToAddInSection: string
+): Promise<void> {
   // (can't simply use note.addParagraphBelowHeadingTitle() as we have more options than it supports)
   const destinationNoteParas = destinationNote.paragraphs
   let insertionIndex = undefined
