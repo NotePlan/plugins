@@ -421,9 +421,14 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: mi
       // $FlowIgnore
       await deleteParagraphsContainingString(editorOrNote(note), eventEnteredOnCalTag) // Delete @jgclark timeblocks->calendar breadcrumbs also
       const calendarMapWithEvents = await getPopulatedTimeMapForToday(dateStr, intervalMins, config)
-      console.log(`After getPopulatedTimeMapForToday, ${calendarMapWithEvents.length} timeMap slots`)
+      console.log(
+        `After getPopulatedTimeMapForToday, ${calendarMapWithEvents.length} timeMap slots; last = ${JSON.stringify(
+          calendarMapWithEvents[calendarMapWithEvents.length - 1],
+        )}`,
+      )
       const eventsToTimeblock = getTimeBlockTimesForEvents(calendarMapWithEvents, sortedTodos, config)
       const { timeBlockTextList, blockList } = eventsToTimeblock
+      clo(timeBlockTextList, `timeBlockTextList`)
       console.log(
         `After getTimeBlockTimesForEvents, blocks:\n\tblockList.length=${blockList.length} \n\ttimeBlockTextList.length=${timeBlockTextList.length}`,
       )
@@ -473,7 +478,9 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: mi
         console.log(
           `createSyncedCopies is true, so we will create synced copies of the todosParagraphs: ${todosParagraphs.length} timeblocks`,
         )
-        const sortedParas = getFullParagraphsCorrespondingToSortList(todosParagraphs, sortedTodos)
+        const sortedParas = getFullParagraphsCorrespondingToSortList(todosParagraphs, sortedTodos).filter(
+          (p) => p.filename !== Editor.filename,
+        )
         await writeSyncedCopies(sortedParas, config)
       }
       return passBackResults ? timeBlockTextList : []

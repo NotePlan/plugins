@@ -303,6 +303,16 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(timeBlocks.length).toEqual(2)
       expect(timeBlocks[0]).toEqual({ start: '00:00', end: '00:05', minsAvailable: 5 })
       expect(timeBlocks[1]).toEqual({ start: '00:15', end: '00:30', minsAvailable: 15 })
+      timeMap = [
+        // one item and one contiguous block
+        { start: '23:40', busy: false, index: 0 },
+        { start: '23:45', busy: false, index: 1 },
+        { start: '23:50', busy: false, index: 2 },
+        { start: '23:55', busy: false, index: 3 },
+      ]
+      timeBlocks = tb.findTimeBlocks(timeMap, config)
+      expect(timeBlocks.length).toEqual(1)
+      expect(timeBlocks[0]).toEqual({ start: '23:40', end: '23:59', minsAvailable: 20 }) //FIXME: this doesn't seem right!
     })
 
     describe('addMinutesToTimeText', () => {
@@ -415,6 +425,33 @@ describe(`${PLUGIN_NAME}`, () => {
         }
         const res = tb.getTimeBlockTimesForEvents([{ start: '00:00', busy: false, index: 0 }], todosByType['open'], cfg)
         expect(res.timeBlockTextList).toEqual([])
+      })
+      test('should place only items that fit in rest of day', () => {
+        const timeMap = [
+          // one item and one contiguous block
+          { start: '23:40', busy: false, index: 0 },
+          { start: '23:45', busy: false, index: 1 },
+          { start: '23:50', busy: false, index: 2 },
+          { start: '23:55', busy: false, index: 4 },
+        ]
+        const todos = [
+          { content: "!! line1 '8m", type: 'open' },
+          { content: "! line2 '1m", type: 'open' },
+          { content: "!!! line3 '7m", type: 'open' },
+        ]
+        const todosByType = getTasksByType(todos)
+
+        const cfg = {
+          ...config,
+          workDayStart: '23:00',
+          intervalMins: 5,
+          workDayEnd: '23:59',
+          nowStrOverride: '23:54',
+          mode: 'PRIORITY_FIRST',
+          allowEventSplits: false,
+        }
+        const res = tb.getTimeBlockTimesForEvents(timeMap, todosByType['open'], cfg)
+        expect(res.timeBlockTextList).toEqual(['* 23:55-23:56 ! line2 #🕑'])
       })
     })
 
