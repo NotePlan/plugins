@@ -3,18 +3,43 @@
 // Timeblocking support constants and functions
 // ------------------------------------------------------------------------------------
 
+import { termInURL } from './paragraph'
+
+// import { getTime } from "date-fns";
+
 // Regular Expressions -- the easy ones!
 export const RE_ISO_DATE = '\\d{4}-[01]\\d{1}-\\d{2}'
 export const RE_HOURS = '[0-2]?\\d'
 export const RE_HOURS_EXT = `(${RE_HOURS}|NOON|noon|MIDNIGHT|midnight)`
 export const RE_MINUTES = '[0-5]\\d'
 export const RE_TIME = `${RE_HOURS}:${RE_MINUTES}`
+export const RE_TIME_EXT = `${RE_HOURS_EXT}:${RE_MINUTES}`
 // export const RE_AMPM = `(A\\.M\\.|P\\.M\\.|AM?|PM?)`
 export const RE_AMPM = `(AM|am|PM|pm)` // logic changed in v3.4
 export const RE_AMPM_OPT = `${RE_AMPM}?`
 export const RE_TIME_TO = `\\s*(\\-|\\–|\\~|\\〜|to)\\s*`
 export const RE_DONE_DATETIME = `@done\\(${RE_ISO_DATE} ${RE_TIME}${RE_AMPM}?\\)`
 export const RE_DONE_DATE_OPT_TIME = `@done\\(${RE_ISO_DATE}( ${RE_TIME}${RE_AMPM}?)?\\)`
+
+//-----------------------------------------------------------------------------
+// NB: According to @EduardMe in Discord 29.1.2022, the detection is tightened in v3.4
+// to require 'am' or 'pm' not just 'a' or 'p'. Changed here 30.1.22.
+
+//-----------------------------------------------------------------------------
+// FIXME(@Eduard):
+// TODO: test again after EM made changes for 3.6.0 >b797
+// The following cases **don't work fully or break** the API:
+// printDateRange(Calendar.parseDateText("2021-06-02 2.15PM-3.45PM")[0]) -> 11AM on that day
+// printDateRange(Calendar.parseDateText("2021-06-02 at 2PM")[0]) // -> 1PM on that day
+// printDateRange(Calendar.parseDateText("something at 2to3 ok")[0]) // -> crashes NP!
+// - The time is 2pm-3 // produces timeblock 2pm to midnight 
+
+//-----------------------------------------------------------------------------
+// NB: According to @EduardMe in Discord 3.1.2022, the time blocks now work on 
+// paragraph types [.title, .open, .done, .list].
+// These can more easily be tested for by API calls than in the regex, so that's
+// what this now does.
+export const TIMEBLOCK_TASK_TYPES = ['title', 'open', 'done', 'list']
 
 // ------------------------------------------------------------------------------------
 // Regular Expressions -- published by @EduardMe on 10.11.2021.
@@ -47,7 +72,7 @@ export const RE_DONE_DATE_OPT_TIME = `@done\\(${RE_ISO_DATE}( ${RE_TIME}${RE_AMP
 
 
 // ------------------------------------------------------------------------------------
-// @jgclark's newer pair of regex to find time blocks, based on those regex.
+// @jgclark's newer regex to find time blocks, based on those original ones.
 // These are much more extensive that the brief documentation implies, or now
 // the more extensive documentation at https://help.noteplan.co/article/121-time-blocking.
 //
@@ -64,8 +89,7 @@ export const RE_DONE_DATE_OPT_TIME = `@done\\(${RE_ISO_DATE}( ${RE_TIME}${RE_AMP
 // This version adds support for '2-3PM' etc.
 // And can be used to capture the whole time block as the first result of the regex match
 // export const RE_TIMEBLOCK = `((?:${RE_ISO_DATE})?(?:(at|from)\\s*(${RE_HOURS}|noon|midnight)(:${RE_MINUTES})?${RE_AMPM_OPT}|(${RE_HOURS})(:${RE_MINUTES})?(${RE_AMPM}|(?=\\s*(\\-|\\–|\\~|\\〜|to|\\?)))|(${RE_HOURS}|noon|midnight)(:${RE_MINUTES})${RE_AMPM_OPT})(?:${RE_TIME_TO}(${RE_HOURS}|noon|midnight)(:${RE_MINUTES})?${RE_AMPM_OPT})?)`
-// This latest version adds support for '6.30 AM - 9:00 PM' style, and tidies up the 
-// line endings
+// This latest version adds support for '6.30 AM - 9:00 PM' style, and tidies up the line endings
 // And can be used to capture the whole time block as the first result of the regex match
 // BUT still fails on 9 tests
 // export const RE_TIMEBLOCK = `(?:(at|from)\\s*${RE_HOURS_EXT}(:${RE_MINUTES})?(\\s?${RE_AMPM_OPT})|\\h+(${RE_HOURS})(:${RE_MINUTES})?(\\s?${RE_AMPM}|(?=${RE_TIME_TO}))|\\h+${RE_HOURS_EXT}(:${RE_MINUTES})\\s?${RE_AMPM_OPT})(?:${RE_TIME_TO}${RE_HOURS_EXT}(:${RE_MINUTES})?(\\s?${RE_AMPM_OPT}))?(?=\\h|$)`
@@ -73,7 +97,7 @@ export const RE_DONE_DATE_OPT_TIME = `@done\\(${RE_ISO_DATE}( ${RE_TIME}${RE_AMP
 // Following version with \s instead of \h -- Works for all tests!
 // export const RE_TIMEBLOCK = `(?:(at|from)\\s*${RE_HOURS_EXT}(:${RE_MINUTES})?(\\s?${RE_AMPM_OPT})|\\s+(${RE_HOURS})(:${RE_MINUTES})?(\\s?${RE_AMPM}|(?=${RE_TIME_TO}))|\\s+${RE_HOURS_EXT}(:${RE_MINUTES})\\s?${RE_AMPM_OPT})(?:${RE_TIME_TO}${RE_HOURS_EXT}(:${RE_MINUTES})?(\\s?${RE_AMPM_OPT}))?(?=\\s|$)`
 
-// But then, grr, don't all work in the actual app.
+// But then, grr, doesn't all work in the actual app.
 // Eventually I realised this is probably because of the start of line context, which
 // is often different in a regex tester. So tweaking the start of line logic -- but
 // means greater divergence between this and how the theme regex needs to work.
@@ -81,36 +105,34 @@ export const RE_DONE_DATE_OPT_TIME = `@done\\(${RE_ISO_DATE}( ${RE_TIME}${RE_AMP
 // export const RE_TIMEBLOCK = `((at|from)\\s*${RE_HOURS_EXT}(:${RE_MINUTES})?(\\s?${RE_AMPM_OPT})|(${RE_HOURS})(:${RE_MINUTES})?(\\s?${RE_AMPM}|(?=${RE_TIME_TO}))|\\s+${RE_HOURS_EXT}(:${RE_MINUTES})\\s?${RE_AMPM_OPT})(?:${RE_TIME_TO}${RE_HOURS_EXT}(:${RE_MINUTES})?(\\s?${RE_AMPM_OPT}))?(?=\\s|$)`
 // export const RE_TIMEBLOCK_APP = `${RE_START_APP_LINE}${RE_TIMEBLOCK}`
 
-// But the, grrr, it still doesn't work in the app, despite passing all the tests.
-// Turns out the new look-behind test is erroring silently in the app with "Invalid regular expression: invalid group specifier name".
+// But major grrr! it still doesn't work in the app, despite passing all the tests.
+// Turns out the new look-behind assertion is erroring silently in the app with "Invalid regular expression: invalid group specifier name".
 // Problem is addition of a look behind assertion.
-// So trying yet another way ...
-// ... and ensuring (from theme, below) that both UPPER and lower case versions are included.
+// const RE_START_APP_LINE = `(?:^|\\s)`
+// (code not captured)
+
+// So trying yet another way ... basically a big (A|B):
+// - A = more lax match following 'at' or 'from'
+// - B = tighter match requiring some form of X-Y
+// const RE_START_APP_LINE = `(?:^|\\s)`
+// export const RE_TIMEBLOCK = `(((at|from)\\s+${RE_HOURS_EXT}(:${RE_MINUTES})?(\\s*${RE_AMPM_OPT})(${RE_TIME_TO}(${RE_HOURS})(:${RE_MINUTES})?(\\s*${RE_AMPM_OPT}))?|${RE_HOURS_EXT}:${RE_MINUTES}?\\s*${RE_AMPM_OPT}(${RE_TIME_TO}${RE_HOURS_EXT}(:${RE_MINUTES})?(\\s*${RE_AMPM_OPT})?)?))(?=\\s|$)`
+// export const RE_TIMEBLOCK_APP = `${RE_START_APP_LINE}${RE_TIMEBLOCK}`
+
+// But need to cope with '12:30' and '2[am]-3PM' case: now a big (A|B|C):
+// - A = more lax match following 'at' or 'from'
+// - B = tighter match requiring some form of X-YPM
+// - C = tight match requiring HH:MM[-HH:MM]
 const RE_START_APP_LINE = `(?:^|\\s)`
-export const RE_TIMEBLOCK = `(((at|from)\\s+${RE_HOURS_EXT}(:${RE_MINUTES})?(\\s*${RE_AMPM_OPT})(${RE_TIME_TO}(${RE_HOURS})(:${RE_MINUTES})?(\\s*${RE_AMPM_OPT}))?|${RE_HOURS_EXT}(:${RE_MINUTES})\\s*${RE_AMPM_OPT}(${RE_TIME_TO}${RE_HOURS_EXT}(:${RE_MINUTES})?(\\s*${RE_AMPM_OPT})?)?))(?=\\s|$)`
-export const RE_TIMEBLOCK_APP = `${RE_START_APP_LINE}${RE_TIMEBLOCK}`
+const RE_END_APP_LINE = `(?=\\s|$)`
+export const RE_TIMEBLOCK_PART_A = `(at|from)\\s+${RE_HOURS_EXT}(:${RE_MINUTES})?(\\s*${RE_AMPM_OPT})(${RE_TIME_TO}(${RE_HOURS})(:${RE_MINUTES})?(\\s*${RE_AMPM_OPT}))?`
+export const RE_TIMEBLOCK_PART_B = `(${RE_HOURS_EXT}(:${RE_MINUTES})?\\s*${RE_AMPM_OPT}(${RE_TIME_TO}${RE_HOURS_EXT}(:${RE_MINUTES})?(\\s*${RE_AMPM})))`
+export const RE_TIMEBLOCK_PART_C = `(${RE_TIME_EXT}\\s*${RE_AMPM_OPT})(${RE_TIME_TO}${RE_TIME_EXT})?`
+export const RE_TIMEBLOCK = `(${RE_TIMEBLOCK_PART_A}|${RE_TIMEBLOCK_PART_B}|${RE_TIMEBLOCK_PART_C})`
+export const RE_TIMEBLOCK_APP = `${RE_START_APP_LINE}${RE_TIMEBLOCK}${RE_END_APP_LINE}`
+// console.log(RE_TIMEBLOCK_APP)
 
 // case-insensitive version of regex match by using flag "i"
 const RE_TIMEBLOCK_APP_CI = new RegExp(RE_TIMEBLOCK_APP, "i")
-
-//-----------------------------------------------------------------------------
-// NB: According to @EduardMe in Discord 29.1.2022, the detection is tightened in v3.4
-// to require 'am' or 'pm' not just 'a' or 'p'. Changed here 30.1.22.
-
-//-----------------------------------------------------------------------------
-// FIXME(@Eduard):
-// The following cases **don't work fully or break** the API:
-// printDateRange(Calendar.parseDateText("2021-06-02 2.15PM-3.45PM")[0]) -> 11AM on that day
-// printDateRange(Calendar.parseDateText("2021-06-02 at 2PM")[0]) // -> 1PM on that day
-// printDateRange(Calendar.parseDateText("something at 2to3 ok")[0]) // -> crashes NP!
-// '- The temp is 17-18' gets detected when it shouldn't
-
-//-----------------------------------------------------------------------------
-// NB: According to @EduardMe in Discord 3.1.2022, the time blocks now work on 
-// paragraph types [.title, .open, .done, .list].
-// These can more easily be tested for by API calls than in the regex, so that's
-// what this now does.
-export const TIMEBLOCK_TASK_TYPES = ['title', 'open', 'done', 'list']
 
 //-----------------------------------------------------------------------------
 // THEMES
@@ -120,6 +142,7 @@ export const TIMEBLOCK_TASK_TYPES = ['title', 'open', 'done', 'list']
 // main regex to include both versions after all :-(
 export const RE_ALLOWED_TIME_BLOCK_LINE_START = `(^\\s*(?:\\*(?!\\s+\\[[\\-\\>]\\])|\\-(?!\\h+\\[[\\-\\>]\\])|[\\d+]\\.|\\#{1,5}))(\\[\\s\\])?(?=\\s).*?\\s`
 export const RE_TIMEBLOCK_FOR_THEMES = `${RE_ALLOWED_TIME_BLOCK_LINE_START}${RE_TIMEBLOCK}`
+console.log(RE_TIMEBLOCK_FOR_THEMES)
 
 // ------------------------------------------------------------------------------------
 
@@ -160,27 +183,33 @@ export function isTimeBlockLine(contentString: string): boolean {
  * @returns {boolean}
  */
 export function isTypeThatCanHaveATimeBlock(para: TParagraph): boolean {
-  return TIMEBLOCK_TASK_TYPES.indexOf(para.type) > -1 // ugly but neater
+  return TIMEBLOCK_TASK_TYPES.indexOf(para.type) > -1 // ugly but neat
 }
 
 /**
  * Decide whether this paragraph contains an active time block.
- * TODO(jgclark): Ideally also explicitly defeat on timeblock in middle of a ![image](filename)
- *  Should now be easy with recent termInURL() call in helpers/paragraph
- * @tests see tests for the two functions this calls
+ * Also now defeats on timeblock in middle of a [...](filename) or URL
+ * @tests available for jest
  * @author @jgclark
  * 
  * @param {TParagraph} para
  * @returns {boolean}
  */
 export function isTimeBlockPara(para: TParagraph): boolean {
-  return isTimeBlockLine(para.content) && isTypeThatCanHaveATimeBlock(para)
+  if (isTypeThatCanHaveATimeBlock(para) && isTimeBlockLine(para.content)) {
+    // now check to see the timeblock isn't inside a URL or the path of a [!][link](path)
+    const tbString = getTimeBlockString(para.content)
+    return (!termInURL(tbString, para.content))
+  } else {
+    return false
+  }
 }
 
 /**
- * @author @dwertheimer
+ * Find longest string from array of strings
  * @tests available for jest
-
+ * @author @dwertheimer
+ * 
  * @param {Array<string>} arr 
  * @returns {string}
  */
@@ -188,10 +217,10 @@ export const findLongestStringInArray = (arr: Array<string>): string =>
   arr.length ? arr.reduce((a, b) => (a.length > b.length ? a : b)) : ''
 
 /**
- * Get the time portion of a timeblock line (also is a way to check if it's a timeblock line)
+ * Get the timeblock portion of a timeblock line (also is a way to check if it's a timeblock line)
  * Does not return the text after the timeblock (you can use isTimeBlockLine to check if it's a timeblock line)
- * @author @dwertheimer
  * @tests available for jest
+ * @author @dwertheimer
  * 
  * @param {string} contentString
  * @returns {string} the time portion of the timeblock line
