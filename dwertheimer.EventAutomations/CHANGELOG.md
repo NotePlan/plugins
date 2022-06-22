@@ -2,6 +2,9 @@
 
 ## Changelog
 
+[1.3.1] 2022-06-21 @dwertheimer
+- Fix calendar changeover (00:00) bug
+
 [1.3.0] 2022-06-21 @dwertheimer
 - Added cleanup commands: 
   - Remove Synced Todos for Open Calendar Note
