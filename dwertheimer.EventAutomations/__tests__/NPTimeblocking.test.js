@@ -67,7 +67,7 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         const result = mainFile.getConfig()
         expect(mockWasCalledWith(spy, /config was empty/)).toBe(true)
         expect(Object.keys(result).length).toBeGreaterThan(1)
-
+        spy.mockRestore()
         DataStore.settings = oldSettings
       })
       test('should return default config', () => {
@@ -80,6 +80,7 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         const spy = jest.spyOn(console, 'log')
         mainFile.getConfig()
         expect(mockWasCalledWith(spy, /Running with default settings/)).toBe(true)
+        spy.mockRestore()
         DataStore.settings = oldSettings
       })
       test('should return a proper config', () => {
@@ -195,6 +196,7 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         const spy = jest.spyOn(note, 'removeParagraphs')
         mainFile.deleteParagraphsContainingString(note, 'xxx')
         expect(spy).not.toHaveBeenCalled()
+        spy.mockRestore()
       })
       test('should call delete with matching line', () => {
         const paras = [
@@ -205,6 +207,7 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         const spy = jest.spyOn(note, 'removeParagraphs')
         const ret = mainFile.deleteParagraphsContainingString(note, 'line1')
         expect(spy).toHaveBeenCalledWith([paras[0]])
+        spy.mockRestore()
       })
     })
     /*
@@ -223,6 +226,7 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         const spy = jest.spyOn(note, 'insertParagraph')
         const result = mainFile.insertItemsIntoNote(note, list)
         expect(spy).not.toHaveBeenCalled() //inserts nothing
+        spy.mockRestore()
       })
       test('should fail gracefully with empty list', () => {
         const note = new Note({ type: 'Notes', paragraphs: [new Paragraph({ content: 'line1', type: 'open' })] })
@@ -230,40 +234,62 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         const spy = jest.spyOn(note, 'insertParagraph')
         const result = mainFile.insertItemsIntoNote(note, list)
         expect(spy).not.toHaveBeenCalled() //inserts nothing
+        spy.mockRestore()
       })
       test('should work with null/default params', () => {
         const note = new Note({ type: 'Notes', paragraphs: [new Paragraph({ content: 'line1', type: 'open' })] })
         const list = ['line1', 'line2']
         const spy = jest.spyOn(note, 'insertParagraph')
         const result = mainFile.insertItemsIntoNote(note, list)
-        expect(spy).toHaveBeenCalledWith(list.join('\n'), 1, 'text') //inserts nothing
+        expect(spy).toHaveBeenCalledWith(list.join('\n'), 1, 'text')
+        spy.mockRestore()
       })
+
       test('should work with empty heading', () => {
         const note = new Note({ type: 'Notes', paragraphs: [new Paragraph({ content: 'line1', type: 'open' })] })
         const list = ['line1', 'line2']
         const heading = ''
         const config = configFile.getTimeBlockingDefaults()
-        const spy = jest.spyOn(note, 'appendParagraph')
+        const spy = jest.spyOn(note, 'insertParagraph')
         const result = mainFile.insertItemsIntoNote(note, list, heading, false, config)
-        expect(spy).toHaveBeenCalled() //inserts nothing
+        expect(spy).toHaveBeenCalledWith(list.join('\n'), 1, 'text')
+        spy.mockRestore()
       })
       test('should call insert content under heading', () => {
         const note = new Note({ type: 'Notes', paragraphs: [new Paragraph({ content: 'line1', type: 'open' })] })
         const list = ['line1', 'line2']
         const heading = 'heading'
         const config = configFile.getTimeBlockingDefaults()
-        const spy = jest.spyOn(note, 'appendParagraph')
+        const spy = jest.spyOn(note, 'insertParagraph')
         const result = mainFile.insertItemsIntoNote(note, list, heading, false, config)
-        expect(spy).toHaveBeenCalled() //inserts nothing
+        const text = `## ${heading}\n`.concat(list.join('\n')).concat('\n')
+        expect(spy).toHaveBeenCalledWith(text, 1, 'text')
+        spy.mockRestore()
       })
-      test('should call insert content under heading', () => {
+      test('should ignore folding if heading is empty', () => {
         const note = new Note({ paragraphs: [new Paragraph({ content: 'line1', type: 'open' })] })
         const list = ['line1', 'line2']
-        const heading = 'heading'
+        const heading = ''
         const config = configFile.getTimeBlockingDefaults()
-        const spy = jest.spyOn(note, 'appendParagraph')
-        const result = mainFile.insertItemsIntoNote(note, list, heading, false, config)
-        expect(spy).toHaveBeenCalled() //inserts nothing
+        const spy = jest.spyOn(note, 'insertParagraph')
+        const result = mainFile.insertItemsIntoNote(note, list, heading, true, config)
+        expect(spy).toHaveBeenCalledWith(list.join('\n'), 1, 'text') //inserts nothing
+        spy.mockRestore()
+      })
+      test('should find heading and insert under it', () => {
+        const note = new Note({
+          paragraphs: [
+            new Paragraph({ content: 'old1head', type: 'title' }),
+            new Paragraph({ content: 'old2', type: 'open' }),
+          ],
+        })
+        const list = ['new1', 'new2']
+        const heading = 'old1head'
+        const config = configFile.getTimeBlockingDefaults()
+        const spy = jest.spyOn(note, 'insertParagraph')
+        const result = mainFile.insertItemsIntoNote(note, list, heading, true, config)
+        expect(spy).toHaveBeenCalledWith(list.join('\n'), 1, 'text') //inserts nothing
+        spy.mockRestore()
       })
     })
     /*
