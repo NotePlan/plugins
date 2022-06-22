@@ -2,48 +2,31 @@
 //-----------------------------------------------------------------------------
 // Progress update on some key goals to include in notes
 // Jonathan Clark, @jgclark
-// Last updated 26.4.2022 for v0.7.1, @jgclark
+// Last updated 21.6.2022 for v0.9.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import {
   calcHashtagStatsPeriod,
   calcMentionStatsPeriod,
-  getSummariesSettings,
   getPeriodStartEndDates,
+  getSummariesSettings,
 } from './summaryHelpers'
-import { unhyphenatedDate } from '../../helpers/dateTime'
-import { log, logWarn, logError } from '../../helpers/dev'
-import { getTagParamsFromString, rangeToString } from '../../helpers/general'
+import { unhyphenatedDate } from '@helpers/dateTime'
+import { log, logError } from '@helpers/dev'
+import {
+  CaseInsensitiveMap,
+  getTagParamsFromString
+} from '@helpers/general'
+import { getSelectedParaIndex } from '@helpers/NPParagraph'
+import { caseInsensitiveCompare } from '@helpers/sorting'
 
 //-------------------------------------------------------------------------------
-
-export function getSelectedParaIndex(): number {
-  const { paragraphs, selection } = Editor
-  // Get current selection, and its range
-  if (selection == null) {
-    logWarn(pluginJson, `No selection found, so stopping.`)
-    return 0
-  }
-  const range = Editor.paragraphRangeAtCharacterIndex(selection.start)
-  // log(pluginJson, `  Cursor/Selection.start: ${rangeToString(range)}`)
-
-  // Work out what selectedPara number(index) this selected selectedPara is
-  let firstSelParaIndex = 0
-  for (let i = 0; i < paragraphs.length; i++) {
-    const p = paragraphs[i]
-    if (p.contentRange?.start === range.start) {
-      firstSelParaIndex = i
-      break
-    }
-  }
-  // log(pluginJson, `  firstSelParaIndex = ${firstSelParaIndex}`)
-  return firstSelParaIndex
-}
 
 /**
  * Work out the @mention stats of interest so far this week/month, and write out to current note.
  * Default to looking at week to date ("wtd") but allow month to date ("mtd") as well.
+ * If it's week to date, then use the user's first day of week
  * @author @jgclark
  *
  * @param {string?} params - can pass parameter string e.g. "{interval: 'mtd', heading: 'Progress'}"
@@ -51,85 +34,119 @@ export function getSelectedParaIndex(): number {
  */
 export async function insertProgressUpdate(params?: string): Promise<string | void > {
   // Get config setting
-  let config = await getSummariesSettings()
+  const config = await getSummariesSettings()
   // If no params are passed, then we've been called by a plugin command (and so use defaults from config).
   // If there are params passed, then we've been called by a template command (and so use those).
-  const interval = await getTagParamsFromString(params ?? '', 'interval', 'wtd')
+  const interval = await getTagParamsFromString(params ?? '', 'interval', 'userwtd')
   const heading = await getTagParamsFromString(params ?? '', 'heading', config.progressHeading)
 
   // Get time period
   const [fromDate, toDate, periodString, periodPartStr] = await getPeriodStartEndDates('', interval)
   if (fromDate == null || toDate == null) {
-    log(pluginJson, `insertProgressUpdate: Error calculating dates for week to date`)
-    return `Error calculating dates for week to date`
+    log(pluginJson, `insertProgressUpdate: Error calculating dates`)
+    return `Error calculating dates`
   }
   const fromDateStr = unhyphenatedDate(fromDate)
   const toDateStr = unhyphenatedDate(toDate)
-  log(pluginJson, `  calculating ${interval} for ${periodString} (= ${fromDateStr} - ${toDateStr}):`)
-  // Get day of week (Sunday is first day of the week) or day of month
-  const dateWithinInterval = interval === 'wtd' ? new Date().getDay() + 1 : new Date().getDate()
+  log(pluginJson, `  calculating ${interval} for ${periodString} ${interval} (= ${fromDateStr} - ${toDateStr}):`)
 
-  // Calc hashtags stats (returns two maps)
-  const hOutputArray = []
-  // $FlowIgnore[invalid-tuple-arity]
-  let hResults = await calcHashtagStatsPeriod(fromDateStr, toDateStr, config.progressHashtags, [])
-  const hCounts = hResults?.[0]
-  const hSumTotals = hResults?.[1]
-  if (hSumTotals == null || hCounts == null) {
-    logWarn(pluginJson, `No results from calcHashtagStatsPeriod`)
-  } else {
-    // Process 'Counts'
-    for (const [key, value] of hCounts) {
-      // .entries() implied
-      const hashtagString = key.slice(1) // show without leading '#' to avoid double counting issues
-      hOutputArray.push(`${hashtagString}\t${value}`)
-    }
-    // If there's nothing to report, let's make that clear, otherwise sort output
-    if (hOutputArray.length > 0) {
-      hOutputArray.sort()
+  // Calc hashtags stats (returns two maps) for just the inclusion list 'progressHashtags'
+  const outputArray = []
+  // First check progressHashtags is not empty
+  if (config.progressHashtags.length > 0) {
+    const hResults = calcHashtagStatsPeriod(fromDateStr, toDateStr, config.progressHashtags, [])
+    const hCounts: CaseInsensitiveMap<number> = hResults?.[0] ?? new CaseInsensitiveMap < number >
+    const hSumTotals: CaseInsensitiveMap<number> = hResults?.[1] ?? new CaseInsensitiveMap < number >
+    if (hSumTotals == null && hCounts == null) {
+      log(pluginJson, `no matching hashtags found in ${periodString}`)
     } else {
-      hOutputArray.push('(none)')
+
+      console.log("hSumTotals results:")
+      for (const [key, value] of hSumTotals.entries()) {
+        console.log(`  ${key}: ${value}`)
+      }
+
+      // First process more complex 'SumTotals', calculating appropriately
+      for (const [key, value] of hSumTotals.entries()) {
+        const tagString = key.slice(1) // show without leading '#' to avoid double counting issues
+        const total = hSumTotals.get(key) ?? NaN
+        if (isNaN(total)) {
+          // console.log(`  no totals for ${key}`)
+        } else {
+          const count = hSumTotals.get(key) ?? NaN
+          const totalStr = value.toLocaleString()
+          const avgStr = (value / count).toLocaleString([], { maximumSignificantDigits: 2 })
+          outputArray.push(`${tagString}\t${count}\t(total ${totalStr}\taverage ${avgStr})`)
+          hCounts.delete(key) // remove the entry from the next map, as no longer needed
+        }
+      }
+
+      console.log("hCounts results:")
+      for (const [key, value] of hCounts.entries()) {
+        console.log(`  ${key}: ${value}`)
+      }
+
+      // Then process simpler 'Counts'
+      for (const [key, value] of hCounts.entries()) {
+        const hashtagString = key.slice(1) // show without leading '#' to avoid double counting issues
+        outputArray.push(`${hashtagString}\t${value}`)
+      }
     }
   }
 
-  // Calc mentions stats (returns two maps)
-  const mOutputArray = []
-  // $FlowIgnore[invalid-tuple-arity]
-  let mResults = await calcMentionStatsPeriod(fromDateStr, toDateStr, config.progressMentions, [])
-  const mCounts = mResults?.[0]
-  const mSumTotals = mResults?.[1]
-  if (mCounts == null || mSumTotals == null) {
-    logWarn(pluginJson, `No results from calcMentionsStatsPeriod`)
-  } else {
-    // First process more complex 'SumTotals', calculating appropriately
-    for (const [key, value] of mSumTotals) {
-      // .entries() implied
-      const mentionString = key.slice(1) // show without leading '@' to avoid double counting issues
-      const count = mCounts.get(key)
-      if (count != null) {
-        const total = value.toLocaleString()
-        const average = (value / count).toFixed(1)
-        mOutputArray.push(`${mentionString}\t${count}\t(total ${total}\taverage ${average})`)
-        mCounts.delete(key) // remove the entry from the next map, as not longer needed
+  // Calc mentions stats (returns two maps) for just the inclusion list 'progressMentions'
+  // First check progressMentions is not empty
+  if (config.progressMentions.length > 0) {
+    const mResults = calcMentionStatsPeriod(fromDateStr, toDateStr, config.progressMentions, [])
+    const mCounts: CaseInsensitiveMap<number> = mResults?.[0] ?? new CaseInsensitiveMap < number >
+    const mSumTotals: CaseInsensitiveMap<number> = mResults?.[1] ?? new CaseInsensitiveMap < number >
+    if (mCounts == null && mSumTotals == null) {
+      log(pluginJson, `no matching mentions found in ${periodString}`)
+    } else {
+
+      console.log("mSumTotals results:")
+      for (const [key, value] of mSumTotals.entries()) {
+        console.log(`  ${key}: ${value}`)
+      }
+
+      // First process more complex 'SumTotals', calculating appropriately
+      for (const [key, value] of mSumTotals.entries()) {
+        const mentionString = key.slice(1) // show without leading '@' to avoid double counting issues
+        const total = mSumTotals.get(key) ?? NaN
+        if (isNaN(total)) {
+          // console.log(`  no totals for ${key}`)
+        } else {
+          const count = mCounts.get(key) ?? NaN
+          const totalStr = value.toLocaleString()
+          const avgStr = (value / count).toLocaleString([], { maximumSignificantDigits: 2 })
+          outputArray.push(`${mentionString}\t${count}\t(total ${totalStr}\taverage ${avgStr})`)
+          mCounts.delete(key) // remove the entry from the next map, as not longer needed
+        }
+      }
+
+      console.log("mCounts results:")
+      for (const [key, value] of mCounts.entries()) {
+        console.log(`  ${key}: ${value}`)
+      }
+
+      // Then process simpler 'Counts'
+      for (const [key, value] of mCounts.entries()) {
+        const mentionString = key.slice(1) // show without leading '@' to avoid double counting issues
+        outputArray.push(`${mentionString}\t${value}`)
       }
     }
-    // Then process simpler 'Counts'
-    for (const [key, value] of mCounts) {
-      const mentionString = key.slice(1) // show without leading '@' to avoid double counting issues
-      mOutputArray.push(`${mentionString}\t${value}`)
-    }
-    // If there's nothing to report, let's make that clear, otherwise sort output
-    if (mOutputArray.length > 0) {
-      mOutputArray.sort()
-    } else {
-      mOutputArray.push('(none)')
-    }
+  }
+
+  // If there's been nothing to report, let's make that clear, otherwise sort output
+  if (outputArray.length > 0) {
+    outputArray.sort(caseInsensitiveCompare)
+  } else {
+    outputArray.push('(none)')
   }
 
   if (params) {
     // this was a template command call
-    return `### ${heading}: Day ${dateWithinInterval} for ${periodString}\n`
-      .concat(mOutputArray.join('\n'), hOutputArray.length ? '\n' : '', hOutputArray.join('\n'))
+    return `### ${heading}: ${periodPartStr} for ${periodString}\n${outputArray.join('\n')}`
   } else {
     // this is a plugin called from inside an editor
     if (Editor == null) {
@@ -143,13 +160,12 @@ export async function insertProgressUpdate(params?: string): Promise<string | vo
       }
       // log(pluginJson, `\tinserting results to current note (${Editor.filename ?? ''}) at line ${currentLineIndex}`)
       Editor.insertHeading(
-        `${heading}: Day ${dateWithinInterval} for ${periodString}`,
+        `${heading}: ${periodPartStr} for ${periodString}`,
         currentLineIndex,
         3,
       )
-      Editor.insertParagraph(mOutputArray.join('\n'), currentLineIndex + 1, 'text')
-      Editor.insertParagraph(hOutputArray.join('\n'), currentLineIndex + 1 + mOutputArray.length, 'text')
-      log(pluginJson, `  appended results to current note for day ${dateWithinInterval}.`)
+      Editor.insertParagraph(outputArray.join('\n'), currentLineIndex + 1, 'text')
+      log(pluginJson, `  appended results to current note for ${periodPartStr}.`)
     }
   }
 }

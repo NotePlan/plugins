@@ -233,3 +233,14 @@ export function weekStartEnd(week: number, year: number): [Date, Date] {
   // log('helpers/weekStartEnd', `  -> ${toLocaleTime(startDate)} - ${toLocaleTime(endDate)}`)
   return [startDate, endDate]
 }
+
+/**
+ * Returns the user's chosen day of the week in the specified date according to UTC, where 0 represents Sunday.
+ * @author @jgclark
+ * @return {number}
+ */
+export function getUsersFirstDayOfWeekUTC(): number {
+  // Get user preference for start of week.
+  // In NP this is Sunday = 1 ...Sat = 6.  Can also be undefined -> 1.
+  return (typeof DataStore.preference("firstDayOfWeek") === 'number') ? Number(DataStore.preference("firstDayOfWeek")) - 1 : 1
+}

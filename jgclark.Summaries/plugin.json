@@ -1,49 +1,75 @@
 {
-	"noteplan.minAppVersion": "3.3.2",
+  "noteplan.minAppVersion": "3.3.2",
   "macOS.minVersion": "10.13.0",
-	"plugin.id": "jgclark.Summaries",
-	"plugin.name": "🗃 Summaries",
-	"plugin.description": "Generate summaries from notes for a given time period, and save to notes. And save search results over all notes. Requires configuring to suit your use of NotePlan. Click link for more details and settings.",
-	"plugin.icon": "",
-	"plugin.author": "Jonathan Clark",
-	"plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
+  "plugin.id": "jgclark.Summaries",
+  "plugin.name": "🗃 Summaries",
+  "plugin.description": "Generate summaries from notes for a given time period, or save search results, and save to notes. Requires configuring to suit your use of NotePlan. Click link for more details and settings.",
+  "plugin.icon": "",
+  "plugin.author": "Jonathan Clark",
+  "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
   "plugin.version": "0.9.0",
-	"plugin.dependencies": [],
-	"plugin.script": "script.js",
-	"plugin.isRemote": "false",
-	"plugin.commands": [
-		{
-			"name": "saveSearchResults",
-			"alias": ["period", "search", "occurrence"],
-			"description": "Save results from a search over all notes",
-			"jsFunction": "saveSearch"
-		},
-		{
-			"name": "saveSearchResultsInPeriod",
-			"alias": ["period", "summary", "occurrence"],
-			"description": "Save results from a search of specified tags or mentions over notes from a time period",
-			"jsFunction": "saveSearchPeriod"
-		},
-		{
-			"name": "countsInPeriod",
-			"alias": ["stp", "period", "stats", "count"],
-			"description": "Generate counts (and other stats) of tags and mentions for a time period",
-			"jsFunction": "statsPeriod"
-		},
-		{
-			"name": "insertProgressUpdate",
-      "alias": ["ipu"],
-			"description": "Insert weekly/monthly progress update to current note",
-			"jsFunction": "insertProgressUpdate"
-		},
-		{
-			"name": "weeklyStats",
-			"alias": ["week", "stats", "count"],
-			"description": "Generate stats for tags and mentions for all weeks this year, and write CSV to a note",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.isRemote": "false",
+  "plugin.commands": [
+    {
+      "name": "saveSearchResults",
+      "alias": [
+        "period",
+        "search",
+        "occurrence"
+      ],
+      "description": "Save results from a search over all notes",
+      "jsFunction": "saveSearch",
+      "arguments": [
+        "search term(s) (separated by commas)"
+      ]
+    },
+    {
+      "name": "saveSearchResultsInPeriod",
+      "alias": [
+        "period",
+        "summary",
+        "occurrence"
+      ],
+      "description": "Save results from a search of specified tags or mentions over notes from a time period",
+      "jsFunction": "saveSearchPeriod",
+      "arguments": [
+        "search term(s) (separated by commas)",
+        "optional number of days to search over (from before today). If not given then defaults to 3 months"
+      ]
+    },
+    {
+      "name": "countsInPeriod",
+      "alias": [
+        "stp",
+        "period",
+        "stats",
+        "count"
+      ],
+      "description": "Generate counts (and other stats) of tags and mentions for a time period",
+      "jsFunction": "statsPeriod"
+    },
+    {
+      "name": "insertProgressUpdate",
+      "alias": [
+        "ipu"
+      ],
+      "description": "Insert weekly/monthly progress update to current note",
+      "jsFunction": "insertProgressUpdate"
+    },
+    {
+      "name": "weeklyStats",
+      "alias": [
+        "week",
+        "stats",
+        "count"
+      ],
+      "description": "Generate stats for tags and mentions for all weeks this year, and write CSV to a note",
       "jsFunction": "weeklyStats"
-		}
+    }
   ],
-	"plugin.settings": [
+  "plugin.settings": [
     {
       "type": "heading",
       "title": "Summaries plugin settings"
@@ -56,12 +82,14 @@
       "default": "Summaries",
       "required": true
     },
-		{
+    {
       "key": "foldersToExclude",
       "title": "Folders to exclude",
-      "description": "List of folders to exclude in these commands. May be empty. (Note that @Trash and @Archive are always excluded.)",
+      "description": "List of folders to exclude in these commands. May be empty. (Note that @Trash, @Templates and @Archive are always excluded.)",
       "type": "[string]",
-      "default": ["📋 Templates", "Summaries"],
+      "default": [
+        "Summaries"
+      ],
       "required": false
     },
     {
@@ -76,7 +104,7 @@
       "type": "heading",
       "title": "/countsInPeriod command settings"
     },
-		{
+    {
       "key": "hashtagCountsHeading",
       "title": "Hashtag counts heading",
       "description": "Heading to go before section of #hashtag counts",
@@ -84,7 +112,7 @@
       "default": "#hashtag counts",
       "required": false
     },
-		{
+    {
       "key": "mentionCountsHeading",
       "title": "Mention counts heading",
       "description": "Heading to go before section of @mention counts",
@@ -100,7 +128,7 @@
       "default": true,
       "required": true
     },
-		{
+    {
       "key": "includeHashtags",
       "title": "Include hashtags",
       "description": "List of #hashtags to include in counts (e.g. '#holiday', '#jog', '#commute', '#webinar'). These take precedence over any excluded hashtags (next field). If this list is empty, all hashtags will be included.",
@@ -108,7 +136,7 @@
       "default": [],
       "required": false
     },
-		{
+    {
       "key": "excludeHashtags",
       "title": "Exclude hashtags",
       "description": "List of #hashtags to exclude in counts. If empty, none will be excluded.",
@@ -116,7 +144,7 @@
       "default": [],
       "required": false
     },
-		{
+    {
       "key": "includeMentions",
       "title": "Include @mentions",
       "description": "List of @mentions to include in counts (e.g. '@work', '@fruitveg', '@water', '@sleep'). These take precedence over any excluded mentions (next field). If this list is empty, all mentions will be included.",
@@ -124,12 +152,15 @@
       "default": [],
       "required": false
     },
-		{
+    {
       "key": "excludeMentions",
       "title": "Exclude @mentions",
       "description": "List of @mentions to exclude in counts. If empty, none will be excluded.",
       "type": "[string]",
-      "default": ["@done", "@repeat"],
+      "default": [
+        "@done",
+        "@repeat"
+      ],
       "required": false
     },
     {
@@ -139,18 +170,22 @@
       "type": "heading",
       "title": "/saveSearchResults[Period] commands' settings"
     },
-		{
+    {
       "key": "defaultOccurrences",
       "title": "Default Search terms",
       "description": "Optional list of search terms to use by default. If empty, you will be asked for terms each time you run the command.",
       "type": "[string]",
-      "default": ["idea", "@review", "#question"],
+      "default": [
+        "idea",
+        "@review",
+        "#question"
+      ],
       "required": false
     },
     {
-      "key": "caseInsensitive",
-      "title": "Case insensitive searching?",
-      "description": "Are searches case insensitive (ignoring capitalisation)?",
+      "key": "matchCase",
+      "title": "Match case when searching?",
+      "description": "Do searches match case (capitalisation) or not?",
       "type": "bool",
       "default": false,
       "required": true
@@ -163,10 +198,10 @@
       "default": "Search Results",
       "required": false
     },
-		{
+    {
       "key": "resultPrefix",
       "title": "Prefix for search result lines",
-      "description": "String to put at the start of each search result line. Default is '-'. Can also be empty.",
+      "description": "String to put at the start of each search result line. Default is '- '. Can also be empty.",
       "type": "string",
       "default": "- ",
       "required": true
@@ -187,12 +222,17 @@
       "default": false,
       "required": false
     },
-		{
+    {
       "key": "dateStyle",
       "title": "Date style",
       "description": "Where the context for a match is a date, does it get appended as a 'date' using your locale, or as a NP date 'link' (`>date`), or `at` (`@date`) or 'none'",
       "type": "string",
-      "choices": ["at", "date", "link", "none"],
+      "choices": [
+        "at",
+        "date",
+        "link",
+        "none"
+      ],
       "default": "link",
       "required": true
     },
@@ -203,7 +243,7 @@
       "type": "heading",
       "title": "/insertProgressUpdate command settings"
     },
-		{
+    {
       "key": "progressHeading",
       "title": "Progress heading",
       "description": "Heading to go before Progress Update output",
@@ -211,18 +251,18 @@
       "default": "Progress Update",
       "required": false
     },
-		{
+    {
       "key": "progressHashtags",
       "title": "Included #hashtags for Progress",
-      "description": "List of #hashtags to includes in Progress updates. If this list is empty, no hashtags will be included.",
+      "description": "List of #hashtags to include in Progress updates. If this list is empty, no hashtags will be included.",
       "type": "[string]",
       "default": [],
       "required": false
     },
-		{
+    {
       "key": "progressMentions",
-      "title": "Progress @mentions for Progress",
-      "description": "List of @mentions to includes in Progress updates. If this list is empty, no mentions will be included.",
+      "title": "Included @mentions for Progress",
+      "description": "List of @mentions to include in Progress updates. If this list is empty, no mentions will be included.",
       "type": "[string]",
       "default": [],
       "required": false
@@ -234,7 +274,7 @@
       "type": "heading",
       "title": "/weeklyStats command settings"
     },
-		{
+    {
       "key": "weeklyStatsDuration",
       "title": "Weekly Stats Duration (in weeks)",
       "description": "Number of weeks to look back when generating weekly stats for plotting",
@@ -242,5 +282,5 @@
       "default": 26,
       "required": false
     }
-	]
+  ]
 }

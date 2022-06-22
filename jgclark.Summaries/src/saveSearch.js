@@ -3,35 +3,32 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 10.6.2022 for v0.8.0, @jgclark
+// Last updated 17.6.2022 for v0.9.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import {
   getSummariesSettings,
-  getPeriodStartEndDates,
+  // getPeriodStartEndDates,
 } from './summaryHelpers'
-import type { SummariesConfig } from './summaryHelpers'
+// import type { SummariesConfig } from './summaryHelpers'
 import {
-  getDateStringFromCalendarFilename,
-  monthNameAbbrev,
+  // getDateStringFromCalendarFilename,
+  // monthNameAbbrev,
   nowLocaleDateTime,
-  todaysDateISOString,
-  toISODateString,
-  toISOShortDateTimeString,
-  toLocaleDateString,
-  unhyphenatedDate,
-  withinDateRange,
+  // todaysDateISOString,
+  // toISODateString,
+  // toISOShortDateTimeString,
+  // toLocaleDateString,
+  // unhyphenatedDate,
+  // withinDateRange,
 } from '@helpers/dateTime'
 import { log, logWarn, logError } from '@helpers/dev'
-import { quarterStartEnd } from '@helpers/NPdateTime'
+// import { quarterStartEnd } from '@helpers/NPdateTime'
 import { getFolderFromFilename } from '@helpers/folders'
-import {
-  displayTitle,
-  stringReplace,
-} from '@helpers/general'
+import { displayTitle } from '@helpers/general'
 import { removeSection } from '@helpers/paragraph'
-import { gatherMatchingLines } from '@helpers/NPparagraph'
+import { gatherMatchingLines } from '@helpers/NPParagraph'
 import {
   showMessage,
   chooseOption,
@@ -92,7 +89,8 @@ export async function saveSearch(searchTermsArg?: string): Promise<void> {
   // Find matches in this set of notes
   const outputArray = []
   for (const searchTerm of stringsToMatch) {
-    const results = await gatherMatchingLines(notes, searchTerm, config.highlightOccurrences, config.dateStyle)
+    const results = gatherMatchingLines(notes, searchTerm,
+      config.highlightOccurrences, config.dateStyle, config.matchCase)
     const lines = results?.[0]
     const contexts = results?.[1]
     // write output, starting with a heading if needed
