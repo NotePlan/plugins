@@ -2,7 +2,7 @@
 
 ## Changelog
 
-[1.3.1] 2022-06-21 @dwertheimer
+[1.3.2] 2022-06-21 @dwertheimer
 - Fix calendar changeover (00:00) bug
 
 [1.3.0] 2022-06-21 @dwertheimer

@@ -260,7 +260,7 @@ export function findTimeBlocks(timeMap: IntervalMap, config: { [key: string]: an
     let blockStart = timeMap[0]
     for (let i = 1; i < timeMap.length; i++) {
       const slot = timeMap[i]
-      console.log(`findTimeBlocks[${i}]: slot: ${slot.start} ${slot.index}`)
+      // console.log(`findTimeBlocks[${i}]: slot: ${slot.start} ${slot.index}`)
       if (slot.index === lastSlot.index + 1 && i <= timeMap.length - 1) {
         lastSlot = slot
         continue
@@ -280,6 +280,7 @@ export function findTimeBlocks(timeMap: IntervalMap, config: { [key: string]: an
   } else {
     // console.log(`findTimeBlocks: timeMap array was empty`)
   }
+  console.log(`findTimeBlocks: found blocks: ${JSP(blocks)}`)
   return blocks
 }
 
@@ -366,6 +367,7 @@ export function matchTasksToSlots(
                 break //look for the next block that could work
               }
             }
+            endTime = endTime !== '00:00' ? endTime : '23:59' //deal with edge case where end time is technically in the next day
             const blockData = {
               start: block.start,
               end: endTime,
