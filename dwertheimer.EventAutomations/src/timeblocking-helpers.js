@@ -614,14 +614,14 @@ export function getFullParagraphsCorrespondingToSortList(
   sortList: Array<{ [string]: any }>,
 ): Array<TParagraph> {
   if (sortList && paragraphs) {
-    return (
+    const sortedParagraphs =
       sortList
         .map((s) => {
           return paragraphs.find((p) => removeDateTagsAndToday(p.rawContent) === s.raw && p.filename === s.filename)
         })
         // Filter out nulls
         ?.filter(Boolean) ?? []
-    )
+    return sortedParagraphs.filter((p) => p.filename !== Editor.filename)
   }
   return []
 }
