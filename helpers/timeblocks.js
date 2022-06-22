@@ -131,9 +131,6 @@ export const RE_TIMEBLOCK = `(${RE_TIMEBLOCK_PART_A}|${RE_TIMEBLOCK_PART_B}|${RE
 export const RE_TIMEBLOCK_APP = `${RE_START_APP_LINE}${RE_TIMEBLOCK}${RE_END_APP_LINE}`
 // console.log(RE_TIMEBLOCK_APP)
 
-// case-insensitive version of regex match by using flag "i"
-const RE_TIMEBLOCK_APP_CI = new RegExp(RE_TIMEBLOCK_APP, "i")
-
 //-----------------------------------------------------------------------------
 // THEMES
 // NB: The logic required in NotePlan **themes** is slightly more complex, as it 
@@ -141,8 +138,8 @@ const RE_TIMEBLOCK_APP_CI = new RegExp(RE_TIMEBLOCK_APP, "i")
 // It also appears to match case sensitively, which therefore requires the
 // main regex to include both versions after all :-(
 export const RE_ALLOWED_TIME_BLOCK_LINE_START = `(^\\s*(?:\\*(?!\\s+\\[[\\-\\>]\\])|\\-(?!\\h+\\[[\\-\\>]\\])|[\\d+]\\.|\\#{1,5}))(\\[\\s\\])?(?=\\s).*?\\s`
-export const RE_TIMEBLOCK_FOR_THEMES = `${RE_ALLOWED_TIME_BLOCK_LINE_START}${RE_TIMEBLOCK}`
-console.log(RE_TIMEBLOCK_FOR_THEMES)
+export const RE_TIMEBLOCK_FOR_THEMES = `${RE_ALLOWED_TIME_BLOCK_LINE_START}${RE_TIMEBLOCK}(?=\\s|$)`
+// console.log(RE_TIMEBLOCK_FOR_THEMES)
 
 // ------------------------------------------------------------------------------------
 
@@ -164,7 +161,7 @@ export function isTimeBlockLine(contentString: string): boolean {
         return false
       }
     }
-    const res2 = contentString.match(RE_TIMEBLOCK_APP_CI) ?? []
+    const res2 = contentString.match(RE_TIMEBLOCK_APP) ?? []
     return res2.length > 0
   }
   catch (err) {
@@ -228,7 +225,7 @@ export const findLongestStringInArray = (arr: Array<string>): string =>
 export const getTimeBlockString = (contentString: string): string => {
   const matchedStrings = []
   if (contentString) {
-    const reMatch: Array<string> = contentString.match(RE_TIMEBLOCK_APP_CI) ?? []
+    const reMatch: Array<string> = contentString.match(RE_TIMEBLOCK_APP) ?? []
     if (contentString && reMatch && reMatch.length) {
       matchedStrings.push(reMatch[0].trim())
     }
