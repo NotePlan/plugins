@@ -2,6 +2,15 @@
 
 ## Changelog
 
+[1.3.2] 2022-06-21 @dwertheimer
+- Fix calendar changeover (00:00) bug
+
+[1.3.0] 2022-06-21 @dwertheimer
+- Added cleanup commands: 
+  - Remove Synced Todos for Open Calendar Note
+  - Remove Time Blocks for Open Calendar Note
+  - Remove All Previous Synced Copies Written by this Plugin
+
 [1.2.1] 2022-07-10 @dwertheimer
 - Remove the requirement for Synced lines to run only on today's note (@Stacey's suggestion)
 

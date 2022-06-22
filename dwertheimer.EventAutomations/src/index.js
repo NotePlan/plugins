@@ -2,7 +2,16 @@
 import pluginJson from '../plugin.json'
 import { migrateConfiguration, updateSettingData } from '../../helpers/NPconfiguration'
 
-export { insertTodosAsTimeblocks, insertTodosAsTimeblocksWithPresets, selectCalendar, insertSyncedCopiesOfTodayTodos } from './NPTimeblocking'
+export {
+  insertTodosAsTimeblocks,
+  insertTodosAsTimeblocksWithPresets,
+  selectCalendar,
+  insertSyncedCopiesOfTodayTodos,
+  removeSyncedCopiesOfTodayTodos,
+  removeTimeBlocks,
+  removePreviousSyncedCopies,
+  removePreviousTimeBlocks,
+} from './NPTimeblocking'
 
 const PLUGIN_ID = 'autoTimeBlocking' // the key that's used in _configuration note
 

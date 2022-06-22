@@ -60,7 +60,9 @@ const Editor = {
   // async openNoteByFilename() { return null },
   // async openNoteByTitle() { return null },
   // async openNoteByTitleCaseInsensitive() { return null },
-  // async paragraphRangeAtCharacterIndex() { return null },
+  async paragraphRangeAtCharacterIndex() {
+    return null
+  },
   /* paragraphs: [{ return {
 		"type": "title",
 		"content": "MyNoteTitle",
