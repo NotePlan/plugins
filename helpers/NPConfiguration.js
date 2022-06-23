@@ -46,7 +46,9 @@ const log = (msg: string = ''): void => {
  * @return return this as structured data, in the format specified by the first line of the codeblock (should be `javascript`)
  */
 export async function getConfiguration(configSection: string = ''): Promise<any> {
-  const configFile = DataStore.projectNotes.filter((n) => n.filename?.startsWith(STATIC_TEMPLATE_FOLDER)).find((n) => !!n.title?.startsWith('_configuration'))
+  const configFile = DataStore.projectNotes
+    .filter((n) => n.filename?.startsWith(STATIC_TEMPLATE_FOLDER))
+    .find((n) => !!n.title?.startsWith('_configuration'))
 
   const content: ?string = configFile?.content
   if (content == null) {
@@ -97,7 +99,11 @@ export async function initConfiguration(pluginJsonData: any): Promise<any> {
  * @param {any} pluginJsonData - plugin.json data for which plugin is being migrated
  * @return {number} migration result (-1 migration section not found, 1 success, 0 no migration necessary)
  */
-export async function migrateConfiguration(configSection: string, pluginJsonData: any, silentMode?: boolean = false): Promise<number> {
+export async function migrateConfiguration(
+  configSection: string,
+  pluginJsonData: any,
+  silentMode?: boolean = false,
+): Promise<number> {
   // migrationResult
   // will be 1 if _configuration was migrated to plugin settings
   // will be 0 if no migration necessary
@@ -208,6 +214,10 @@ export function getSetting(pluginName: string = '', key: string = '', defaultVal
 export function getSettings(pluginName: string = '', defaultValue?: any = {}): any | null {
   const settings = DataStore.loadJSON(`../../data/${pluginName}/settings.json`)
   return typeof settings === 'object' ? settings : defaultValue
+}
+
+export async function saveSettings(pluginName: string = '', value?: any = {}): any | null {
+  return await DataStore.saveJSON(value, `../../data/${pluginName}/settings.json`)
 }
 
 /**

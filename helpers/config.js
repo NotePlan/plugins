@@ -70,3 +70,40 @@ export function validateConfigProperties(
     return config
   }
 }
+
+/**
+ * Pull the plugin commands out of the Plugin.json object
+ * @param {*} pluginJson
+ * @returns
+ */
+export function getPluginCommands(pluginJson: any): Array<any> {
+  return pluginJson['plugin.commands'] || []
+}
+
+/**
+ *
+ * @param {object} pluginJson
+ * @param {string} functionName - the key of the command to change info for
+ * @param {string} commandName - the new name of the command
+ * @param {string} commandDescription - the new description of the command
+ * @return {object} pluginJson object
+ */
+export function setCommandDetailsForFunctionNamed(
+  pluginJson: any,
+  functionName: string,
+  commandName: string,
+  commandDescription: string,
+): any {
+  if (pluginJson && pluginJson['plugin.commands']) {
+    const commands = pluginJson['plugin.commands']
+    let foundIndex = -1
+    commands.forEach((c, i) => {
+      if (c.functionName === functionName) foundIndex = i
+    })
+    if (foundIndex > -1) {
+      pluginJson['plugin.commands'][foundIndex].name = commandName
+      pluginJson['plugin.commands'][foundIndex].description = commandDescription
+    }
+  }
+  return pluginJson
+}
