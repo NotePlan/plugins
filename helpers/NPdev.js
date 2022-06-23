@@ -19,7 +19,9 @@ export function logAllEnvironmentSettings(): void {
   }
 }
 
-export async function chooseRunPluginXCallbackURL(showInstalledOnly: boolean = true): Promise<string | false> {
+export async function chooseRunPluginXCallbackURL(
+  showInstalledOnly: boolean = true,
+): Promise<boolean | { url: string, pluginID: string, command: string, args: Array<string> }> {
   const plugins = showInstalledOnly ? await DataStore.installedPlugins() : await DataStore.listPlugins(true)
 
   let commandMap = []
@@ -73,9 +75,9 @@ export async function chooseRunPluginXCallbackURL(showInstalledOnly: boolean = t
         i++
       }
     }
-    return res === false ? false : createRunPluginCallbackUrl(pluginID, command, args)
+    return res === false ? false : { pluginID, command, args, url: createRunPluginCallbackUrl(pluginID, command, args) }
   } else {
-    return 'Error - no command chosen'
+    return false
   }
 }
 
@@ -93,6 +95,9 @@ async function getArgumentText(command: any, i: number): Promise<string | false>
   const commandInfo = commandPluginJson['plugin.commands'].find((c) => c.name === command.name)
   const argDescriptions = commandInfo ? commandInfo.arguments : null // eventually = command.arguments
   clo(argDescriptions, 'argDescriptions')
-  const addlInfo = argDescriptions && argDescriptions[i] ? `\n\n"arg${i}" description:\n"${argDescriptions[i]}"` : `\n\nWhat should arg${i}'s value be?`
+  const addlInfo =
+    argDescriptions && argDescriptions[i]
+      ? `\n\n"arg${i}" description:\n"${argDescriptions[i]}"`
+      : `\n\nWhat should arg${i}'s value be?`
   return await getInput(`${message}${addlInfo}${stopMessage}`, 'OK', `Plugin Arguments for \n"${command.label}"`)
 }
