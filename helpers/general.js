@@ -4,9 +4,6 @@
 //-------------------------------------------------------------------------------
 
 import json5 from 'json5'
-// import toml from 'toml'
-// import { load } from 'js-yaml'
-import { hyphenatedDateString } from './dateTime'
 import { logError } from './dev'
 import { showMessage } from './userInput'
 
@@ -153,7 +150,9 @@ export function rangeToString(r: Range): string {
 }
 
 /**
- * Return title of note useful for display, even for calendar notes (the YYYYMMDD)
+ * Return title of note useful for display, including for
+ * - daily calendar notes (the YYYYMMDD)
+ * - weekly notes (the YYYY-Wnn)
  * Note: local copy of this in helpers/paragraph.js to avoid circular dependency.
  * @author @jgclark
  *
@@ -161,7 +160,11 @@ export function rangeToString(r: Range): string {
  * @return {string}
  */
 export function displayTitle(n: ?TNote): string {
-  return !n ? 'error' : n.type === 'Calendar' && n.date != null ? hyphenatedDateString(n.date) : n.title ?? ''
+  return !n
+    ? 'error'
+    : n.type === 'Calendar' && n.date != null
+      ? n.filename.split('.')[0] // without file extension
+      : n.title ?? ''
 }
 
 /**

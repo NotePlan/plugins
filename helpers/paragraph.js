@@ -3,7 +3,6 @@
 // Paragraph and block-level helpers functions
 //-----------------------------------------------------------------------------
 
-import { hyphenatedDateString } from './dateTime'
 import { log, logError, logWarn } from './dev'
 
 //-----------------------------------------------------------------------------
@@ -51,19 +50,21 @@ export function rangeToString(r: Range): string {
 }
 
 /**
- * Return title of note useful for display, even for calendar notes (the YYYYMMDD)
- * NB: this fn is a local copy of the one in helpers/general.js to avoid circular dependency
+ * Return title of note useful for display, including for
+ * - daily calendar notes (the YYYYMMDD)
+ * - weekly notes (the YYYY-Wnn)
+ * Note: this is a local copy of the main helpers/general.js to avoid a circular dependency
  * @author @jgclark
  *
- * @param {TNote} n - note
- * @return {string} - title to use
+ * @param {?TNote} n - note to get title for
+ * @return {string}
  */
-function displayTitle(n: TNote): string {
-  if (n.type === 'Calendar' && n.date != null) {
-    return hyphenatedDateString(n.date)
-  } else {
-    return n.title ?? ''
-  }
+export function displayTitle(n: ?TNote): string {
+  return !n
+    ? 'error'
+    : n.type === 'Calendar' && n.date != null
+      ? n.filename.split('.')[0] // without file extension
+      : n.title ?? ''
 }
 
 /**
@@ -403,10 +404,10 @@ export function getOrMakeMetadataLine(note: TNote): number {
  * @return {number} lineIndex of the found heading, or if not found the last line of the note
  */
 export function removeSection(note: TNote, heading: string): number {
-  const ps = note.paragraphs
-  let existingHeadingIndex = ps.length // start at end of file
+  const ps = note.paragraphs ?? []
+  let existingHeadingIndex // undefined
+  // log('paragraph/removeSection', `remove '${heading}' from note '${displayTitle(note)}' with ${ps.length} paras`)
   let sectionHeadingLevel = 2
-  // log('paragraph/removeSection', `remove '${heading}' from note '${note.title ?? ''}' with ${ps.length} paras`)
 
   for (const p of ps) {
     if (p.type === 'title' && p.content.startsWith(heading)) {
@@ -432,6 +433,6 @@ export function removeSection(note: TNote, heading: string): number {
     // log('paragraph/removeSection', `-> removed ${psToRemove.length} paragraphs`)
     return existingHeadingIndex
   } else {
-    return ps.length
+    return ps.length - 1 // end of the file (zero-based line index)
   }
 }

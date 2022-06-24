@@ -134,7 +134,7 @@ declare interface TEditor extends ParagraphBridge {
   /**
   * Opens a note by searching for the give title (first line of the note)
   * Note: 'splitView' parameter available for macOS from v3.4
-  * @param {String} title - Title (case sensitive) of the note (first line)
+  * @param {string} title - Title (case sensitive) of the note (first line)
   * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
   * @param {number} highlightStart - (optional) Start position of text highlighting
   * @param {number} highlightEnd - (optional) End position of text highlighting
@@ -151,7 +151,7 @@ declare interface TEditor extends ParagraphBridge {
   /**
   * Opens a note by searching for the give title (first line of the note)
   * Note: 'splitView' parameter available for macOS from v3.4
-  * @param {String} title - Title (case sensitive) of the note (first line)
+  * @param {string} title - Title (case sensitive) of the note (first line)
   * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
   * @param {number} highlightStart - (optional) Start position of text highlighting
   * @param {number} highlightEnd - (optional) End position of text highlighting
@@ -189,7 +189,7 @@ declare interface TEditor extends ParagraphBridge {
   /**
   * Opens a calendar note by the given date string
   * Note: from v3.6 also accepts weeks in the main parameter
-  * @param {String} dateString - The date string that should be opened, in ISO format for days ("YYYYMMDD") or (from v3.6) in "YYYY-Wnn" format for weeks
+  * @param {string} dateString - The date string that should be opened, in ISO format for days ("YYYYMMDD") or (from v3.6) in "YYYY-Wnn" format for weeks
   * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
   * @param {number} highlightStart - (optional) Start position of text highlighting
   * @param {number} highlightEnd - (optional) End position of text highlighting
@@ -294,7 +294,7 @@ declare interface TEditor extends ParagraphBridge {
   * When you are done, call `showLoading(false)` to hide the window.
   * Note: Available from v3.0.26
   * @param {boolean}
-  * @param {String?}
+  * @param {string?}
   * @param {Float?}
   */
   showLoading(visible: boolean, text ?: ? string, progress ?: number): void;
@@ -328,7 +328,7 @@ declare interface TEditor extends ParagraphBridge {
   /**
   * Change the current theme. Get all available theme names using `.availableThemes`. Custom themes are also supported. Use the filename in this case.
   * Note: Available from v3.1+
-  * @param {String}
+  * @param {string}
   */
   setTheme(name: string): void;
   /**
@@ -464,10 +464,10 @@ static + preference: (key: string) => mixed;
   /**
    * Save data to a file, as base64 string. The file will be saved under "[NotePlan Folder]/Plugins/data/[plugin-id]/[filename]".
    * Returns true if the file could be saved, false if not and prints the error.
-   * Note: Available from v3.2+
-   * @param {String}
-   * @param {String}
-   * @return {Boolean}
+   * Note: Available from v3.2.0
+   * @param {string}
+   * @param {string}
+   * @return {booleanean}
    */
   static saveData(data: string, filename: string): boolean;
   /**
@@ -475,23 +475,27 @@ static + preference: (key: string) => mixed;
    * The file has to be located in "[NotePlan Folder]/Plugins/data/[plugin-id]/[filename]".
    * You can access the files of other plugins as well, if the filename is known using relative paths "../[other plugin-id]/[filename]" or simply go into the "data"'s root directory "../[filename]" to access a global file.
    * Returns undefined, if the file couldn't be loaded and prints an error message.
-   * Note: Available from v3.2+
-   * @param {String}
-   * @return {String?}
+   * Note: Available from v3.2.0
+   * @param {string}
+   * @return {string?}
    */
   static loadData(filename: string): ?string;
   /**
-   * Returns the calendar note for the given date
-   * (can be undefined, if the daily note was not created yet)
-   */
-  static calendarNoteByDate(date: Date): ?TNote;
+  * Returns the calendar note for the given date and timeframe (optional, the default is "day", use "week" for weekly notes).
+  * Note: 'timeframe' available from v3.6.0
+  * @param {Date} 
+  * @param {string?} - "day" (default), "week", "month" or "year"
+  * @return {NoteObject}
+  */
+  static calendarNoteByDate(date: Date, timeframe ?: string): ?TNote;
   /**
-   * Returns the calendar note for the given date string
-   * (can be undefined, if the daily note was not created yet)
-   *
-   * Use following format: "YYYYMMDD", example: "20210410"
-   */
-  static calendarNoteByDateString(filename: string): ?TNote;
+  * Returns the calendar note for the given date string (can be undefined, if the daily note was not created yet)
+  * Use following format: "YYYYMMDD", example: "20210410"
+  * For weekly notes use "YYYY-WDD", for example "2022-W24" (Note: available from v3.6.0)
+  * @param {string} 
+  * @return {NoteObject}
+  */
+  static calendarNoteByDateString(dateString: string): ?TNote;  
   /**
    * Returns all regular notes with the given title.
    * Since multiple notes can have the same title, an array is returned.
@@ -811,8 +815,8 @@ declare class CommandBar {
    * `progress` is also optional. If it's defined, the loading indicator will change into a progress ring. Use float numbers from 0-1 to define how much the ring is filled.
    * When you are done, call `showLoading(false)` to hide the window.
    * Note: Available from v3.0.26
-   * @param {Bool}
-   * @param {String?}
+   * @param {boolean}
+   * @param {string?}
    * @param {Float?}
    */
   static showLoading(visible: boolean, text ?: string, progress ?: number): void;
@@ -854,9 +858,9 @@ declare class CommandBar {
    * If the user selects "OK", the promise returns users entered value
    * If the user selects "Cancel", the promise returns false.
    * Note: Available from v3.3.2
-   * @param {String}
-   * @param {String?}
-   * @param {String?}
+   * @param {string}
+   * @param {string?}
+   * @param {string?}
    */
   static textPrompt(title: string, message: string, defaultValue: string): Promise < string | false >;
 }
@@ -968,7 +972,7 @@ declare class Calendar {
    * Note: Available from v3.0.25
    * @param {Date}
    * @param {Date}
-   * @param {String?}
+   * @param {string?}
    * @return {Promise}
    */
   static eventsBetween(startDate: Date, endDate: Date, filter ?: ? string): Promise < Array < TCalendarItem >>;
@@ -978,7 +982,7 @@ declare class Calendar {
    * Note: Available from v3.0.25
    * @param {Date}
    * @param {Date}
-   * @param {String?}
+   * @param {string?}
    * @return {Promise}
    */
   static remindersBetween(startDate: Date, endDate: Date, filter ?: ? string): Promise < Array < TCalendarItem >>;
@@ -986,7 +990,7 @@ declare class Calendar {
    * Returns all events for today. Use `filter` to search for specific events (keyword in the title).
    * This function fetches events asynchronously, so use async/await.
    * Note: Available from v3.0.25
-   * @param {String?}
+   * @param {string?}
    * @return {Promise}
    */
   static eventsToday(filter: ?string): Promise < Array < TCalendarItem >>;
@@ -994,7 +998,7 @@ declare class Calendar {
    * Returns all reminders between for today. Use `filter` to search for specific reminders (keyword in the title).
    * This function fetches reminders asynchronously, so use async/await.
    * Note: Available from v3.0.25
-   * @param {String?}
+   * @param {string?}
    * @return {Promise}
    */
   static remindersToday(filter: ?string): Promise < Array < TCalendarItem >>;
@@ -1024,7 +1028,7 @@ declare class Calendar {
    * Returns the event by the given ID. You can get the ID from a CalendarItem, which you got from using `.add(...)` (the return value is a CalendarItem with ID) or when you query the event using `eventsBetween(...)`, `eventByID(...)`, etc.
    * This function fetches reminders asynchronously, so use async/await.
    * Note: Available from v3.0.26
-   * @param {String}
+   * @param {string}
    * @return {Promise(CalendarItem)}
    */
   static eventByID(id: string): Promise < Array < TCalendarItem >>;
@@ -1032,7 +1036,7 @@ declare class Calendar {
    * Returns the reminder by the given ID. You can get the ID from a CalendarItem, which you got from using `.add(...)` (the return value is a CalendarItem with ID) or when you query the event using `remindersBetween(...)`, `reminderByID(...)`, etc.
    * Use with async/await.
    * Note: Available from v3.0.26
-   * @param {String}
+   * @param {string}
    * @return {Promise(CalendarItem)}
    */
   static reminderByID(id: string): Promise < Array < TCalendarItem >>;
