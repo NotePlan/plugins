@@ -36,7 +36,10 @@ Use `/Change Theme Preset` again to change any preset you already set to another
 ## Toggling Themes
 If you tend to go back/forth between light and dark themes and want a quick way to toggle, run the command:
 `Toggle Light/Dark`
-If you haven't set up your defaults, the plugin will prompt you to do so.
+
+<img src="https://user-images.githubusercontent.com/8949588/175557720-3a1066d3-1006-4ccd-b40f-2643fb28aa94.jpg" width="500">
+
+If you haven't set up your defaults, the plugin will prompt you to do so when you run the `Toggle Light/Dark` command.
 
 You can change or set you light/dark theme using the command:
 `Set Toggleable Light/Dark Theme (for this device)`
