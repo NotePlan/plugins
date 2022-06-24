@@ -29,11 +29,18 @@
       "title": "Event Blocks Settings"
     },
     {
-      "title": "A string in prefs",
-      "key": "settingsString",
+      "title": "Confirm when there are multiple options for what a date should be?",
+      "key": "confirm",
+      "type": "bool",
+      "description": "Text you enter is processed and the computer makes a guess at what you mean. If the computer is not sure, it can give you choices.",
+      "default": true
+    },
+    {
+      "title": "Calendar link text",
+      "key": "linkText",
       "type": "string",
-      "description": "Enter some string and see it change when the plugin is run",
-      "default": "This default setting was set in plugin preferences!"
+      "description": "Use this text for the short link to the calendar item",
+      "default": "→"
     },
     {
       "key": "version",

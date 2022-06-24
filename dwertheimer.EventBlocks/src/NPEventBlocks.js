@@ -19,6 +19,21 @@ import pluginJson from '../plugin.json'
 import { chooseHeading, chooseOption } from '@helpers/userInput'
 import { getParagraphBlock } from '@helpers/NPParagraph'
 
+export const hasCalendarLink = (line: string): boolean => /\!\[📅\]/.test(line)
+
+export const replaceCalendarLinkText = (line: string, replaceWith: string): string => {
+  const parts = line.split(':::')
+  console.log(parts.length)
+  if (parts.length === 5) {
+    parts[3] = replaceWith
+    clo(parts)
+    return parts.join(':::')
+  } else {
+    log(pluginJson, `replaceCalendarLinkText: could not split/find 4 parts for link: ${line}`)
+    return line
+  }
+}
+
 export function getPluginSettings() {
   const settings = DataStore.settings
   if (settings && Object.keys(settings)) {
@@ -42,7 +57,7 @@ export function findHeading(note: TNote, heading: string): TParagraph | null {
     const para = paragraphs.find(
       (paragraph) => paragraph.type === 'title' && paragraph.content.trim() === heading.trim(),
     )
-    clo(para, `User selected paragraph`)
+    // clo(para, `User selected paragraph`)
     if (para) return para
   }
   return null
@@ -118,50 +133,56 @@ export async function createEvent(title: string, range: { start: Date, end: Date
     'event',
     range.start === range.end,
   )
-  clo(calendarItem, `createEvent: calendarItem`)
+  // clo(calendarItem, `createEvent: calendarItem`)
   const result = await Calendar.add(calendarItem)
-  clo(result, `createEvent result after calendar add`)
+  // clo(result, `createEvent result after calendar add`)
   return result || null
 }
 
-export async function processTimeLines(block, config) {
+export async function processTimeLines(block: Array<TParagraph>, config: any) {
   const timeLines = []
   try {
     for (let i = 0; i < block.length; i++) {
       const line = block[i]
-      const potentials = Calendar.parseDateText(line.content) //returns {start: Date, end: Date}
-      clo(potentials, `processTimeLines: potentials for "${line.content}"`)
-      if (potentials.length > 0) {
-        let chosen = potentials[0]
-        if (potentials.length > 1) {
-          if (config?.confirm) {
-            chosen = await confirmPotentialTimeChoice(potentials)
-          }
-        }
-        // Calendar.parseDateText = [{"start":"2022-06-24T13:00:00.000Z","end":"2022-06-24T13:00:00.000Z","text":"friday at 8","index":0}]
-        const revisedLine = line.content
-          .replace(chosen.text || '', '')
-          .replace(/\s{2,}/g, ' ')
-          .trim()
-        let event = await createEvent(revisedLine, chosen, config)
-        if (event && event.id) {
-          log(pluginJson, `created event ${event.title}`)
-          event = await Calendar.eventByID(event.id)
-          clo(event, `processTimeLines event=`)
-          const editedLink = event.calendarItemLink.replace(event.title, ``)
-          line.content = `${line.content.trim()} ${editedLink || ''}`
-          timeLines.push({ time: chosen, paragraph: line, event })
-          log(pluginJson, `processTimeLines timeLines.length=${timeLines.length}`)
-        }
+      if (hasCalendarLink(line.content)) {
+        log(pluginJson, `Skipping line with calendar link: ${line.content}`)
       } else {
-        // do nothing with this line?
-        log(pluginJson, `processTimeLines no times found for "${line.content}"`)
+        const potentials = Calendar.parseDateText(line.content) //returns {start: Date, end: Date}
+        clo(potentials, `processTimeLines: potentials for "${line.content}"`)
+        if (potentials.length > 0) {
+          let chosen = potentials[0]
+          if (potentials.length > 1) {
+            if (config?.confirm) {
+              chosen = await confirmPotentialTimeChoice(potentials)
+            }
+          }
+          // Calendar.parseDateText = [{"start":"2022-06-24T13:00:00.000Z","end":"2022-06-24T13:00:00.000Z","text":"friday at 8","index":0}]
+          let revisedLine = line.content
+            .replace(chosen.text || '', '')
+            .replace(/\s{2,}/g, ' ')
+            .trim()
+          if (revisedLine.length === 0) revisedLine = '...'
+          let event = await createEvent(revisedLine, chosen, config)
+          if (event && event.id) {
+            log(pluginJson, `created event ${event.title}`)
+            event = await Calendar.eventByID(event.id)
+            // clo(event, `processTimeLines event=`)
+            log(pluginJson, `processTimeLines event=${event.title} event.calendarItemLink=${event.calendarItemLink}`)
+            const editedLink = replaceCalendarLinkText(event.calendarItemLink, config.linkText || '...')
+            line.content = `${line.content.trim()} ${editedLink || ''}`
+            timeLines.push({ time: chosen, paragraph: line, event })
+            log(pluginJson, `processTimeLines timeLines.length=${timeLines.length}`)
+          }
+        } else {
+          // do nothing with this line?
+          log(pluginJson, `processTimeLines no times found for "${line.content}"`)
+        }
+        // confirmPotentialTimeChoices()
+        // CreateEvents() // + tag created events
       }
-      // confirmPotentialTimeChoices()
-      // CreateEvents() // + tag created events
+      log(pluginJson, `processTimeLines RETURNING timeLines.length=${timeLines.length}`)
+      clo(timeLines, `processTimeLines: timeLines`)
     }
-    log(pluginJson, `processTimeLines RETURNING timeLines.length=${timeLines.length}`)
-    clo(timeLines, `processTimeLines: timeLines`)
   } catch (error) {
     logError(pluginJson, `processTimeLines error=${JSP(error)}`)
   }
@@ -181,10 +202,10 @@ export async function createEvents(heading: string = '', confirm: string = 'yes'
       const config = getPluginSettings()
       config.confirm = confirm === 'yes'
       const headingPara = heading !== '' ? findHeading(Editor.note, heading) : await chooseTheHeading(Editor.note)
-      clo(headingPara, 'headingPara')
+      // clo(headingPara, 'headingPara')
       const paragraphsBlock = getBlockUnderHeading(Editor.note, headingPara)
       if (paragraphsBlock.length) {
-        const timeLines = await processTimeLines(paragraphsBlock)
+        const timeLines = await processTimeLines(paragraphsBlock, config)
         if (timeLines.length) {
           const paras = timeLines.map((timeLine) => timeLine.paragraph)
           Editor.updateParagraphs(paras)
