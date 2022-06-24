@@ -11,6 +11,85 @@ import { logError } from './dev'
 import { showMessage } from './userInput'
 
 //-------------------------------------------------------------------------------
+/**
+ * Case Insensitive version of Map
+ * Keeps the first seen capitalasiation of a given key in a private #keysMap
+ * It will be given in preference to the lowercase version of the key in 
+ *     for (const [key, value] of termCounts.entries()) {...}  // Note: the .entries() is required
+ * Adapted from https://stackoverflow.com/a/68882687/3238281
+ * @author @nmn, @jgclark
+*/
+export class CaseInsensitiveMap<TVal> extends Map<string, TVal> {
+  // This is how private keys work in actual Javascript now.
+  #keysMap = new Map < string, string > ()
+
+constructor(iterable ?: Iterable < [string, TVal] >){
+  super()
+  if (iterable) {
+    for (const [key, value] of iterable) {
+      this.set(key, value)
+    }
+  }
+}
+
+set(key: string, value: TVal): this {
+  const keyLowerCase = typeof key === 'string'
+    ? key.toLowerCase()
+    : key
+  if (!this.#keysMap.has(keyLowerCase)) {
+    this.#keysMap.set(keyLowerCase, key) // e.g. 'test': 'TEst'
+    // console.log(`new map entry: public '${keyLowerCase}' and private '${key}'`)
+  }
+  super.set(keyLowerCase, value) // set main Map to use 'test': value
+  return this
+}
+
+get(key: string): TVal | void {
+  return typeof key === 'string'
+    ? super.get(key.toLowerCase())
+    : super.get(key)
+}
+
+has(key: string): boolean {
+  return typeof key === 'string'
+    ? super.has(key.toLowerCase())
+    : super.has(key)
+}
+
+delete (key: string): boolean {
+  const keyLowerCase = typeof key === 'string'
+    ? (key.toLowerCase(): string)
+            : key
+  this.#keysMap.delete(keyLowerCase)
+
+  return super.delete(keyLowerCase)
+}
+
+clear(): void {
+  this.#keysMap.clear()
+      super.clear()
+}
+
+keys(): Iterator < string > {
+  return this.#keysMap.values()
+}
+
+  * entries(): Iterator < [string, TVal] > {
+    for(const [keyLowerCase, value] of super.entries()) {
+  const key = this.#keysMap.get(keyLowerCase) ?? keyLowerCase
+  yield[key, value]
+}
+  }
+
+forEach(callbackfn: (value: TVal, key: string, map: Map<string, TVal>) => mixed): void {
+  for(const [keyLowerCase, value] of super.entries()) {
+  const key = this.#keysMap.get(keyLowerCase) ?? keyLowerCase
+  callbackfn(value, key, this)
+}
+  }
+}
+
+//-------------------------------------------------------------------------------
 // Parsing structured data functions
 // by @nmn
 
@@ -97,8 +176,6 @@ export function titleAsLink(note: TNote): string {
 }
 
 /**
-=======
->>>>>>> 4e10fafb4ad88167724489ee2f39c0b0a293f57b
  * Create internal link from title string (and optional heading string)
  * @author @dwertheimer
  * @param {string} noteTitle - title of the note

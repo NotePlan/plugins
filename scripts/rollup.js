@@ -75,8 +75,7 @@ const copyBuild = async (outputFile = '', isBuildTask = false) => {
       msg += colors.yellow(`\n   Built in DEBUG mode. Not ready to deploy.\n`)
     } else {
       if (!COMPACT) {
-        msg += `\n   To debug this plugin without transpiling use: ${`npm run autowatch "${pluginFolder}" -- --debug`}\n\
-   To release this plugin, update changelog.md and run: ${`npm run release "${pluginFolder}"\n`}`
+        msg += ` To release this plugin, update changelog.md and run:\n   ${`npm run release "${pluginFolder}"\n`}`
       }
     }
 

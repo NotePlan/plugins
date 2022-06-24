@@ -1,0 +1,151 @@
+{
+  "COMMENT": "Details on these fields: https://help.noteplan.co/article/67-create-command-bar-plugins",
+  "macOS.minVersion": "10.13.0",
+  "noteplan.minAppVersion": "3.4.0",
+  "plugin.id": "np.ThemeChooser",
+  "plugin.name": "🎨 Theme Chooser",
+  "plugin.version": "1.2.0",
+  "plugin.description": "Choose from your favorite themes",
+  "plugin.author": "dwertheimer",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/np.ThemeChooser/README.md",
+  "plugin.commands": [
+    {
+      "name": "Choose Theme",
+      "description": "Choose from all installed themes",
+      "jsFunction": "chooseTheme",
+      "alias": [
+        "themechooser"
+      ],
+      "arguments": ["theme name"]
+    },
+    {
+      "name": "Set Toggleable Light/Dark Theme (for this device)",
+      "description": "Choose from all themes",
+      "jsFunction": "setDefaultLightDarkTheme"
+    },
+    {
+      "name": "Toggle Light/Dark",
+      "description": "from Preset Themes",
+      "jsFunction": "toggleTheme",
+      "alias": [
+        "themechooser"
+      ],
+      "arguments": ["theme name"]
+    },
+    {
+      "name": "Change Theme Preset",
+      "description": "Add/Change a theme preset to another theme",
+      "jsFunction": "changePreset"
+    },
+    {
+      "name": "touoi",
+      "description": "",
+      "jsFunction": "onUpdateOrInstall"
+    },
+    {
+      "name": "Theme Chooser: Set Preset 01",
+      "description": "Switch Theme",
+      "jsFunction": "setPreset01",
+      "hidden": true
+    },
+    {
+      "name": "Theme Chooser: Set Preset 02",
+      "description": "Switch Theme",
+      "jsFunction": "setPreset02",
+      "hidden": true
+    },
+    {
+      "name": "Theme Chooser: Set Preset 03",
+      "description": "Switch Theme",
+      "jsFunction": "setPreset03",
+      "hidden": true
+    },
+    {
+      "name": "Theme Chooser: Set Preset 04",
+      "description": "Switch Theme",
+      "jsFunction": "setPreset04",
+      "hidden": true
+    },
+    {
+      "name": "Theme Chooser: Set Preset 05",
+      "description": "Switch Theme",
+      "jsFunction": "setPreset05",
+      "hidden": true
+    }
+  ],
+  "plugin.settings": [
+    {
+      "COMMENT": "Plugin settings documentation: https://help.noteplan.co/article/123-plugin-configuration",
+      "type": "heading",
+      "title": "Theme Chooser Settings"
+    },
+    {
+      "type": "separator",
+      "title": "Theme Chooser Settings"
+    },
+    {
+      "type": "heading",
+      "title": "No need to change anything here. Presets can be set by running the command:"
+    },
+    {
+      "type": "heading",
+      "title": "/Change Theme Preset"
+    },
+    {
+      "type": "heading",
+      "title": "or"
+    },
+    {
+      "type": "heading",
+      "title": "/Toggle Light/Dark"
+    },
+    {
+      "type": "separator",
+      "title": "Theme Chooser Settings"
+    },
+    {
+      "key": "setPreset01",
+      "type": "hidden",
+      "default" : "",
+      "title": "Preset 01",
+      "description": "Do not change this setting manually. Use the \"/Change Theme Preset\" command."
+    },
+    {
+      "key": "setPreset01",
+      "type": "hidden",
+      "default" : "",
+      "title": "Preset 01",
+      "description": "Do not change this setting manually. Use the \"/Change Theme Preset\" command."
+    },
+    {
+      "key": "setPreset02",
+      "type": "hidden",
+      "default" : "",
+      "title": "Preset 01",
+      "description": "Do not change this setting manually. Use the \"/Change Theme Preset\" command."
+    },
+    {
+      "key": "setPreset03",
+      "type": "hidden",
+      "default" : "",
+      "title": "Preset 01",
+      "description": "Do not change this setting manually. Use the \"/Change Theme Preset\" command."
+    },
+    {
+      "key": "setPreset04",
+      "type": "hidden",
+      "default" : "",
+      "title": "Preset 01",
+      "description": "Do not change this setting manually. Use the \"/Change Theme Preset\" command."
+    },
+    {
+      "key": "setPreset05",
+      "type": "hidden",
+      "default" : "",
+      "title": "Preset 01",
+      "description": "Do not change this setting manually. Use the \"/Change Theme Preset\" command."
+    }
+  ]
+}

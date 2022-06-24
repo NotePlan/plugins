@@ -20,7 +20,7 @@ import {
 import { getTasksByType } from '../../dwertheimer.TaskAutomations/src/taskHelpers'
 import { sortListBy } from '../../helpers/sorting'
 import { showMessage, chooseOption, showMessageYesNo } from '../../helpers/userInput'
-import { getTimeBlockString } from '../../helpers/timeblocks'
+import { getTimeBlockString, isTimeBlockLine } from '../../helpers/timeblocks'
 import { JSP, clo, log, logError } from '../../helpers/dev'
 import { checkNumber, checkWithDefault } from '../../helpers/checkType'
 import pluginJson from '../plugin.json'
@@ -185,20 +185,22 @@ function getExistingTimeBlocksFromNoteAsEvents(
 ): Array<PartialCalendarItem> {
   const timeBlocksAsEvents = []
   note.paragraphs.forEach((p) => {
-    const timeblockDateRangePotentials = Calendar.parseDateText(p.content)
-    if (timeblockDateRangePotentials?.length) {
-      const e = timeblockDateRangePotentials[0] //use Noteplan/Chrono's best guess
-      // but this may not actually be a timeblock, so keep looking
-      const tbs = getTimeBlockString(p.content)
-      if (tbs && tbs.length > 0) {
-        const eventInfo = p.content.replace(tbs, '').trim()
-        timeBlocksAsEvents.push({
-          title: eventInfo,
-          date: e.start,
-          endDate: e.end !== e.start ? e.end : addMinutes(e.start, defaultDuration),
-          type: 'event',
-          availability: 0,
-        })
+    if (isTimeBlockLine(p.content)) {
+      const timeblockDateRangePotentials = Calendar.parseDateText(p.content)
+      if (timeblockDateRangePotentials?.length) {
+        const e = timeblockDateRangePotentials[0] //use Noteplan/Chrono's best guess
+        // but this may not actually be a timeblock, so keep looking
+        const tbs = getTimeBlockString(p.content)
+        if (tbs && tbs.length > 0) {
+          const eventInfo = p.content.replace(tbs, '').trim()
+          timeBlocksAsEvents.push({
+            title: eventInfo,
+            date: e.start,
+            endDate: e.end !== e.start ? e.end : addMinutes(e.start, defaultDuration),
+            type: 'event',
+            availability: 0,
+          })
+        }
       }
     }
   })
@@ -421,9 +423,14 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: mi
       // $FlowIgnore
       await deleteParagraphsContainingString(editorOrNote(note), eventEnteredOnCalTag) // Delete @jgclark timeblocks->calendar breadcrumbs also
       const calendarMapWithEvents = await getPopulatedTimeMapForToday(dateStr, intervalMins, config)
-      console.log(`After getPopulatedTimeMapForToday, ${calendarMapWithEvents.length} timeMap slots`)
+      console.log(
+        `After getPopulatedTimeMapForToday, ${calendarMapWithEvents.length} timeMap slots; last = ${JSON.stringify(
+          calendarMapWithEvents[calendarMapWithEvents.length - 1],
+        )}`,
+      )
       const eventsToTimeblock = getTimeBlockTimesForEvents(calendarMapWithEvents, sortedTodos, config)
       const { timeBlockTextList, blockList } = eventsToTimeblock
+      clo(timeBlockTextList, `timeBlockTextList`)
       console.log(
         `After getTimeBlockTimesForEvents, blocks:\n\tblockList.length=${blockList.length} \n\ttimeBlockTextList.length=${timeBlockTextList.length}`,
       )
@@ -473,7 +480,9 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: mi
         console.log(
           `createSyncedCopies is true, so we will create synced copies of the todosParagraphs: ${todosParagraphs.length} timeblocks`,
         )
-        const sortedParas = getFullParagraphsCorrespondingToSortList(todosParagraphs, sortedTodos)
+        const sortedParas = getFullParagraphsCorrespondingToSortList(todosParagraphs, sortedTodos).filter(
+          (p) => p.filename !== Editor.filename,
+        )
         await writeSyncedCopies(sortedParas, config)
       }
       return passBackResults ? timeBlockTextList : []

@@ -6,6 +6,36 @@ const FILE = `${colors.yellow('helpers/general')}`
 const section = colors.blue
 
 describe(`${FILE}`, () => {
+  describe(section('class CaseInsensitiveMap'), () => {
+    // Set up some data
+    const ciCounts = new g.CaseInsensitiveMap// < number >
+    ciCounts.set('tesTING', 1) // this first example of capitalization should be kept
+    ciCounts.set('testing', 2)
+    ciCounts.set('TESTING', 3)
+    ciCounts.set('BOB', 10) // this first example of capitalization should be kept
+    ciCounts.set('bob', 4)
+
+    // Simple test to make sure correct values are returned
+    test('ciCounts map for "TESTING" -> 3', () => {
+      expect(ciCounts.get('TESTING')).toEqual(3)
+    })
+    test('ciCounts map for "bob" -> 4', () => {
+      expect(ciCounts.get('bob')).toEqual(4)
+    })
+
+    // More complex tests to make sure correct keys are returned
+    const kvArray = []
+    for (const [key, value] of ciCounts.entries()) {
+      kvArray.push(`${key}:${value}`)
+    }
+    test('ciCounts map for "TESTING" -> "tesTING:3"', () => {
+      expect(kvArray[0]).toEqual("tesTING:3")
+    })
+    test('ciCounts map for "BOB" -> "BOB:4"', () => {
+      expect(kvArray[1]).toEqual("BOB:4")
+    })
+  })
+
   describe(section('returnNoteLink()'), () => {
     test('should create a link with a heading', () => {
       expect(g.returnNoteLink('foo', 'bar')).toEqual('[[foo#bar]]')

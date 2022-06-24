@@ -2,6 +2,12 @@
 
 ## Changelog
 
+[1.3.3] 2022-06-23 @dwertheimer
+- Add check for pre-existing timeblocks including the "mustInclude" string (thx @jgclark)
+
+[1.3.2] 2022-06-21 @dwertheimer
+- Fix calendar changeover (00:00) bug
+
 [1.3.0] 2022-06-21 @dwertheimer
 - Added cleanup commands: 
   - Remove Synced Todos for Open Calendar Note

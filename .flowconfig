@@ -5,6 +5,7 @@
 
 # This particular sub-folder should be ignored because it includes malformed JSON
 <PROJECT_ROOT>/node_modules/resolve/test/.*
+.*/.history/.*
 
 [include]
 

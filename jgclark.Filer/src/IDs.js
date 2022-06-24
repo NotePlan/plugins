@@ -2,22 +2,22 @@
 // ----------------------------------------------------------------------------
 // Plugin to help link lines between notes with Line IDs
 // Jonathan Clark
-// last updated 18.5.2022 for v0.7.0
+// last updated 18.5.2022 for v0.7.0+
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
 import { getFilerSettings, addParasAsText } from './fileItems'
-import { clo, log, logError, logWarn } from '@helpers/dev'
+import { log, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-import { showMessage } from '@helpers/userInput'
 import { allNotesSortedByChanged } from '@helpers/note'
+import { getSelectedParaIndex } from '@helpers/NPParagraph'
 import {
-  calcSmartPrependPoint,
+  // calcSmartPrependPoint,
   parasToText,
-  selectedLinesIndex,
+  // selectedLinesIndex,
 } from '@helpers/paragraph'
 import { chooseHeading } from '@helpers/userInput'
-import { getSelectedParaIndex } from '../../jgclark.Summaries/src/progress' // TODO: shift this to helpers/?
+// import { showMessage } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
 
@@ -39,7 +39,6 @@ export async function addIDAndAddToOtherNote(): Promise<void> {
   // Get current paragraph
   const firstSelParaIndex = getSelectedParaIndex()
   const para = paragraphs[firstSelParaIndex]
-  const paraType = para.type
 
   // Add Line ID for the first paragraph (known as 'blockID' by API)
   note.addBlockID(para)

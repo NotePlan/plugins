@@ -3,7 +3,7 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 17.6.2022 for v0.8.1, @jgclark
+// Last updated 17.6.2022 for v0.9.0, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -39,7 +39,7 @@ import {
 /**
  * Run a search over all notes in a given period, saving the results in one of several locations.
  * Works interactively (if no arguments given) or in the background (using supplied arguments).
- * Note: Uses 'moment' library to work out time periods
+ * Uses 'moment' library to work out time periods.
  * @author @jgclark
  *
  * @param {string?} searchTermsArg optional comma-separated list of search terms to search
@@ -122,8 +122,8 @@ export async function saveSearchPeriod(searchTermsArg?: string, periodArg?: numb
     const outputArray = []
     for (const searchTerm of stringsToMatch) {
       // get list of matching paragraphs for this string
-      const results = await gatherMatchingLines(periodDailyNotes, searchTerm,
-        config.highlightOccurrences, config.dateStyle)
+      const results = gatherMatchingLines(periodDailyNotes, searchTerm,
+        config.highlightOccurrences, config.dateStyle, config.matchCase)
       const lines = results?.[0]
       const context = results?.[1]
       // output a heading first
@@ -174,7 +174,7 @@ export async function saveSearchPeriod(searchTermsArg?: string, periodArg?: numb
       )
     }
 
-    const headingLine = `${config.occurrencesHeading} for ${periodString}`
+    const headingLine = `${config.occurrencesHeading} for ${periodString}${periodPartStr !== '' ? ` (at ${periodPartStr})` : ''}`
     switch (destination) {
       case 'current': {
         const currentNote = Editor.note
@@ -195,7 +195,6 @@ export async function saveSearchPeriod(searchTermsArg?: string, periodArg?: numb
             outputArray.join('\n'),
             'text',
           )
-          // log(pluginJson, `\tappended results to current note`)
         }
         break
       }

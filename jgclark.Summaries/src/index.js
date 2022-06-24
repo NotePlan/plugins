@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Summary commands for notes
 // Jonathan Clark
-// Last updated 9.6.2022 for v0.8.0
+// Last updated 17.6.2022 for v0.9.0
 //-----------------------------------------------------------------------------
 
 export { weeklyStats } from './forPlotting'
@@ -16,7 +16,15 @@ export { statsPeriod } from './stats'
 import pluginJson from '../plugin.json'
 
 // Moving to ConfigV2
-import { migrateConfiguration, updateSettingData } from '../../helpers/NPconfiguration'
+import { migrateConfiguration, updateSettingData } from '@helpers/NPConfiguration'
+
+export function init(): void {
+  // Placeholder only
+}
+
+export function onSettingsUpdated(): void {
+  // Placeholder only to stop error in logs
+}
 
 const configKey = "summaries"
 

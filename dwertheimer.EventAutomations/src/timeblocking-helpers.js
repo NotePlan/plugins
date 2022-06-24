@@ -185,15 +185,14 @@ export function removeDateTagsFromArray(
       const copy: Paragraph = copyObject(p)
       copy.content = removeDateTagsAndToday(p.content)
       copy.rawContent = removeDateTagsAndToday(p.rawContent)
-      clo(
-        copy,
-        `copy.content: ${copy.content} after removeDateTagsAndToday: ${removeDateTagsAndToday(p.content)} on ${
-          p.content
-        }`,
-      )
+      // clo(
+      //   copy,
+      //   `copy.content: ${copy.content} after removeDateTagsAndToday: ${removeDateTagsAndToday(p.content)} on ${
+      //     p.content
+      //   }`,
+      // )
       return copy
     })
-    clo(newPA, 'removeDateTagsFromArray: final array after removing date tags')
     return newPA
   } catch (error) {
     logError(`timeblocking-helppers::removeDateTagsFromArray failed. Error:`, JSP(error))
@@ -235,13 +234,14 @@ export function createOpenBlockObject(
     return null
   }
   endTime = endTime ? (includeLastSlotTime ? addMinutes(endTime, config.intervalMins) : endTime) : null
+  endTime = endTime && endTime <= endOfDay(startTime) ? endTime : endOfDay(startTime) // deal with edge case where end time is in the next day
   if (!startTime || !endTime) return null
   return {
     start: getTimeStringFromDate(startTime),
     // $FlowIgnore
     end: getTimeStringFromDate(endTime),
     // $FlowIgnore
-    minsAvailable: differenceInMinutes(endTime, startTime),
+    minsAvailable: differenceInMinutes(endTime, startTime, { roundingMethod: 'ceil' }),
   }
 }
 
@@ -260,6 +260,7 @@ export function findTimeBlocks(timeMap: IntervalMap, config: { [key: string]: an
     let blockStart = timeMap[0]
     for (let i = 1; i < timeMap.length; i++) {
       const slot = timeMap[i]
+      // console.log(`findTimeBlocks[${i}]: slot: ${slot.start} ${slot.index}`)
       if (slot.index === lastSlot.index + 1 && i <= timeMap.length - 1) {
         lastSlot = slot
         continue
@@ -279,6 +280,7 @@ export function findTimeBlocks(timeMap: IntervalMap, config: { [key: string]: an
   } else {
     // console.log(`findTimeBlocks: timeMap array was empty`)
   }
+  console.log(`findTimeBlocks: found blocks: ${JSP(blocks)}`)
   return blocks
 }
 
@@ -336,7 +338,9 @@ export function matchTasksToSlots(
   let newBlockList = findTimeBlocks(newMap, config)
   const { durationMarker } = config
   let timeBlockTextList = []
-  sortedTaskList.forEach((task) => {
+  // sortedTaskList.forEach((task) => {
+  for (let i = 0; i < sortedTaskList.length; i++) {
+    const task = sortedTaskList[i]
     if (newBlockList && newBlockList.length) {
       const taskDuration = task.duration || getDurationFromLine(task.content, durationMarker) || config.defaultDuration // default time is 15m
       const taskTitle = removeDateTagsAndToday(task.content)
@@ -363,6 +367,7 @@ export function matchTasksToSlots(
                 break //look for the next block that could work
               }
             }
+            endTime = endTime !== '00:00' ? endTime : '23:59' //deal with edge case where end time is technically in the next day
             const blockData = {
               start: block.start,
               end: endTime,
@@ -385,7 +390,7 @@ export function matchTasksToSlots(
         }
       }
     }
-  })
+  }
   return { timeMap: newMap, blockList: newBlockList, timeBlockTextList }
 }
 
@@ -479,7 +484,6 @@ export function getTimeBlockTimesForEvents(
   let newInfo = { timeMap, blockList: [], timeBlockTextList: [] }
   // $FlowIgnore
   const availableTimes = filterTimeMapToOpenSlots(timeMap, config)
-  console.log(`AvailableTimes: ${availableTimes.length}`)
   if (availableTimes.length === 0) {
     timeMap.forEach((m) => console.log(`getTimeBlockTimesForEvents no more times available: ${JSON.stringify(m)}`))
   }
@@ -621,7 +625,7 @@ export function getFullParagraphsCorrespondingToSortList(
         })
         // Filter out nulls
         ?.filter(Boolean) ?? []
-    return sortedParagraphs.filter((p) => p.filename !== Editor.filename)
+    return sortedParagraphs
   }
   return []
 }

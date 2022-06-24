@@ -4,6 +4,9 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.CallbackURLs/README.md) for details on available commands and use case.
 
+## [0.2.0] - 2022-06-22 (@dwertheimer)
+- Add Templating invokePlugin output type
+
 ## [0.1.2] - 2022-06-05 (@dwertheimer)
 ### Added
 - Open documentation URL

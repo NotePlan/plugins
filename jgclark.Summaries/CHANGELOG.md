@@ -1,12 +1,11 @@
 # What's Changed in 🗃 Summaries plugin?
-
-## [0.9.0] - ???.6.2022
-### Added
-- ??? new setting 'Case insensitive searching?' for `/saveSearchResults` and `/saveSearchResultsInPeriod` now 
+(And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
+## [0.9.0] - 22.6.2022
 ### Changed
-- ??? now that NP doesn't force all #hashtags and @mentions to be lower-case, the searching in this plugin in is now case insensitive
-- the titles of week-based summary notes has been changed from 'Wn YYYY' to '???' to match NotePlan's new weekly notes' filenames.
-- now matches search terms on whole words, not parts of words
+- now that NP doesn't force all #hashtags and @mentions to be lower-case, the searching now by default doesn't match case ("case insensitive"). The new setting 'Match case when searching?' allows you to change this if you wish.
+- search terms are now matched on whole words, not parts of words
+- "/insert progress update" command now calculates the week according to the user's 'Start of Week' setting (in NotePlan preferences)
+- the titles of week-based summary notes has been changed from e.g. 'W25 2022' to '2022-W25' to match NotePlan's new weekly notes' filenames (coming in v3.6).
 - now ignores matches in paths of [markdown links](path), as well as in file:/... and https://... URLs.
 
 ## [0.8.0] - 9.6.2022

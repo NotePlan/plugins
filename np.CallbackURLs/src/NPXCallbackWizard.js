@@ -132,6 +132,7 @@ export async function xCallbackWizard(incoming: ?string = ''): Promise<void> {
     ]
     const res = await chooseOption(`Select an X-Callback type`, options, '')
     const item = options.find((i) => i.value === res)
+    let runplugin
     switch (res) {
       case '':
         log(pluginJson, 'No option selected')
@@ -144,7 +145,10 @@ export async function xCallbackWizard(incoming: ?string = ''): Promise<void> {
         url = await getAddTextOrOpenNoteURL('addText')
         break
       case 'runPlugin':
-        url = await chooseRunPluginXCallbackURL()
+        runplugin = await chooseRunPluginXCallbackURL()
+        if (runplugin) {
+          url = runplugin.url
+        }
         break
       default:
         showMessage(`${res}: This type is not yet available in this plugin`, 'OK', 'Sorry!')
@@ -157,6 +161,7 @@ export async function xCallbackWizard(incoming: ?string = ''): Promise<void> {
       const op = [
         { label: `Raw/long URL (${url})`, value: 'raw' },
         { label: '[Pretty link](hide long URL)', value: 'pretty' },
+        { label: 'Templating <% runPlugin %> command', value: 'template' },
       ]
       const urlType = await chooseOption(`What type of URL do you want?`, op, 'raw')
       if (urlType === 'pretty') {
@@ -164,6 +169,13 @@ export async function xCallbackWizard(incoming: ?string = ''): Promise<void> {
         if (linkText) {
           url = `[${linkText}](${url})`
         }
+      } else if (urlType === 'template' && runplugin && typeof runplugin !== 'boolean') {
+        //  static invokePluginCommandByName(command: string, pluginID: string, arguments ?: $ReadOnlyArray < mixed >): Promise < any >;
+        // { pluginID, command, args, url: createRunPluginCallbackUrl(pluginID, command, args) }
+
+        url = `<% await DataStore.invokePluginCommandByName("${runplugin.command}","${
+          runplugin.pluginID
+        }",${JSON.stringify(runplugin.args)})  %>`
       }
       Editor.insertTextAtCursor(url)
       Clipboard.string = url

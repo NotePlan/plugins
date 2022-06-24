@@ -406,7 +406,7 @@ export function removeSection(note: TNote, heading: string): number {
   const ps = note.paragraphs
   let existingHeadingIndex = ps.length // start at end of file
   let sectionHeadingLevel = 2
-  console.log(`\tremoveSection: '${heading}' from note '${note.title ?? ''}' with ${ps.length} paras:`)
+  // log('paragraph/removeSection', `remove '${heading}' from note '${note.title ?? ''}' with ${ps.length} paras`)
 
   for (const p of ps) {
     if (p.type === 'title' && p.content.startsWith(heading)) {
@@ -429,7 +429,7 @@ export function removeSection(note: TNote, heading: string): number {
 
     // Delete the saved set of paragraphs
     note.removeParagraphs(psToRemove)
-    console.log(`\t  -> removed ${psToRemove.length} paragraphs`)
+    // log('paragraph/removeSection', `-> removed ${psToRemove.length} paragraphs`)
     return existingHeadingIndex
   } else {
     return ps.length
