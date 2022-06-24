@@ -18,6 +18,8 @@
 export {
   chooseTheme,
   changePreset,
+  setDefaultLightDarkTheme,
+  toggleTheme,
   setPreset01,
   setPreset02,
   setPreset03,
@@ -27,6 +29,9 @@ export {
 
 // Do not change this line. This is here so your plugin will get recompiled every time you change your plugin.json file
 import pluginJson from '../plugin.json'
+import { saveThemeNameAsCommand } from './NPThemeChooser'
+import { log, clo } from '@helpers/dev'
+import { getPluginJson } from '@helpers/NPConfiguration'
 
 /*
  * NOTEPLAN HOOKS
@@ -43,7 +48,20 @@ import { updateSettingData } from '@helpers/NPConfiguration'
  * the user preferences to include any new fields
  */
 export async function onUpdateOrInstall(): Promise<void> {
+  log(pluginJson, 'NPThemeChooser::onUpdateOrInstall running')
   await updateSettingData(pluginJson)
+  const settings = DataStore.settings
+  const keys = Object.keys(settings)
+  for (let index = 0; index < keys.length; index++) {
+    const key = keys[index]
+    if (key.includes('setPreset')) {
+      log(pluginJson, `NPThemeChooser::onUpdateOrInstall ${key}=${settings[key]}`)
+      await saveThemeNameAsCommand(key, settings[key])
+    }
+  }
+  // clo(pluginJson, `Before plugin update/install, pluginJson is:`)
+  // const livePluginJson = await getPluginJson(pluginJson['plugin.id'])
+  // clo(livePluginJson, `After plugin update/install, pluginJson is:`)
 }
 
 /**

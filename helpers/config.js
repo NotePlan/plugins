@@ -110,11 +110,13 @@ export function setCommandDetailsForFunctionNamed(
   functionName: string,
   commandName: string,
   commandDescription: ?string = '',
+  commandHidden: ?boolean = false,
 ): any {
   const foundIndex = getCommandIndex(pluginJson, functionName)
   if (foundIndex > -1) {
     pluginJson['plugin.commands'][foundIndex].name = commandName
     pluginJson['plugin.commands'][foundIndex].description = commandDescription
+    pluginJson['plugin.commands'][foundIndex].hidden = commandHidden
   }
 
   return pluginJson
