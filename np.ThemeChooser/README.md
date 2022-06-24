@@ -24,6 +24,25 @@ or
 
 This will also list the presets you choose in your NotePlan > Plugins menu bar, so you can assign your own keyboard shortcut using Keyboard Maestro or Apple's Keyboard System Settings.
 
-NOTE: When you set one of the 5 presets using the `/Change Theme Preset` command, the theme is immediately available to you in the Command Bar. However, because NotePlan only generates the menu bar items once (at start-up), you will not see them in the menu bar until you restart NotePlan.
+```
+NOTE: When you set one of the 5 presets using the `/Change Theme Preset` command, the theme is
+immediately available to you in the Command Bar. However, because NotePlan only generates the 
+menu bar items once (at start-up), you will not see them in the menu bar until you restart
+NotePlan.
+```
 
 Use `/Change Theme Preset` again to change any preset you already set to another theme instead.
+
+## Toggling Themes
+If you tend to go back/forth between light and dark themes and want a quick way to toggle, run the command:
+`Toggle Light/Dark`
+If you haven't set up your defaults, the plugin will prompt you to do so.
+
+You can change or set you light/dark theme using the command:
+`Set Toggleable Light/Dark Theme (for this device)`
+
+```
+NOTE: As you can see from the name, Light/Dark theme settings are set on a per-device basis, 
+so your Mac will have one set and your iPhone will have another (this is by design). 
+You will need to set the defaults on each device.
+```

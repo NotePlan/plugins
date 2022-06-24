@@ -18,6 +18,8 @@
 export {
   chooseTheme,
   changePreset,
+  setDefaultLightDarkTheme,
+  toggleTheme,
   setPreset01,
   setPreset02,
   setPreset03,
