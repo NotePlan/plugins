@@ -48,10 +48,20 @@ export async function getThemeChoice(lightOrDark: string = null): Promise<string
 }
 
 export async function saveThemeNameAsCommand(commandName: string, themeName: string) {
-  const livePluginJson = await getPluginJson(pluginJson['plugin.id'])
-  const newPluginJson = setCommandDetailsForFunctionNamed(livePluginJson, commandName, themeName, PRESET_DESC, false)
-  const ret = await savePluginJson(pluginJson['plugin.id'], newPluginJson)
-  log(pluginJson, `NPThemeChooser::presetChosen: after savePluginJson: ${String(ret)}`)
+  if (themeName !== '') {
+    log(
+      pluginJson,
+      `NPThemeChooser::saveThemeNameAsCommand: setting: ${String(commandName)} to: ${String(
+        themeName,
+      )}; First will pull the existing plugin.json`,
+    )
+    const livePluginJson = await getPluginJson(pluginJson['plugin.id'])
+    const newPluginJson = setCommandDetailsForFunctionNamed(livePluginJson, commandName, themeName, PRESET_DESC, false)
+    const settings = DataStore.settings
+    DataStore.settings = { ...settings, ...{ [commandName]: themeName } }
+    const ret = await savePluginJson(pluginJson['plugin.id'], newPluginJson)
+    log(pluginJson, `NPThemeChooser::saveThemeNameAsCommand:  savePluginJson result = ${String(ret)}`)
+  }
 }
 
 export async function changePreset() {

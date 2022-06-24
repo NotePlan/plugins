@@ -4,7 +4,7 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "np.ThemeChooser",
   "plugin.name": "🎨 Theme Chooser",
-  "plugin.version": "1.1.1",
+  "plugin.version": "1.2.0",
   "plugin.description": "Choose from your favorite themes",
   "plugin.author": "dwertheimer",
   "plugin.dependencies": [],
@@ -38,6 +38,11 @@
       "name": "Change Theme Preset",
       "description": "Add/Change a theme preset to another theme",
       "jsFunction": "changePreset"
+    },
+    {
+      "name": "touoi",
+      "description": "",
+      "jsFunction": "onUpdateOrInstall"
     },
     {
       "name": "Theme Chooser: Set Preset 01",
@@ -86,7 +91,61 @@
     },
     {
       "type": "heading",
-      "title": "/Change Theme Preset, or\n/Toggle Light/Dark"
+      "title": "/Change Theme Preset"
+    },
+    {
+      "type": "heading",
+      "title": "or"
+    },
+    {
+      "type": "heading",
+      "title": "/Toggle Light/Dark"
+    },
+    {
+      "type": "separator",
+      "title": "Theme Chooser Settings"
+    },
+    {
+      "key": "setPreset01",
+      "type": "hidden",
+      "default" : "",
+      "title": "Preset 01",
+      "description": "Do not change this setting manually. Use the \"/Change Theme Preset\" command."
+    },
+    {
+      "key": "setPreset01",
+      "type": "hidden",
+      "default" : "",
+      "title": "Preset 01",
+      "description": "Do not change this setting manually. Use the \"/Change Theme Preset\" command."
+    },
+    {
+      "key": "setPreset02",
+      "type": "hidden",
+      "default" : "",
+      "title": "Preset 01",
+      "description": "Do not change this setting manually. Use the \"/Change Theme Preset\" command."
+    },
+    {
+      "key": "setPreset03",
+      "type": "hidden",
+      "default" : "",
+      "title": "Preset 01",
+      "description": "Do not change this setting manually. Use the \"/Change Theme Preset\" command."
+    },
+    {
+      "key": "setPreset04",
+      "type": "hidden",
+      "default" : "",
+      "title": "Preset 01",
+      "description": "Do not change this setting manually. Use the \"/Change Theme Preset\" command."
+    },
+    {
+      "key": "setPreset05",
+      "type": "hidden",
+      "default" : "",
+      "title": "Preset 01",
+      "description": "Do not change this setting manually. Use the \"/Change Theme Preset\" command."
     }
   ]
 }
