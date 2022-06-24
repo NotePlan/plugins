@@ -13,19 +13,19 @@ import { showMessage } from './userInput'
  */
 export function printNote(note: TNote): void {
   if (note == null) {
-    console.log('Note not found!')
+    console.log('No Note found!')
     return
   }
 
   if (note.type === 'Notes') {
     log('printNote()',
-      `title: ${note.title ?? ''}\n\tfilename: ${note.filename ?? ''}\n\tcreated: ${String(note.createdDate) ?? ''}\n\tchanged: ${String(note.changedDate) ?? ''}\n\thashtags: ${
+      `title: ${note.title ?? ''}\n\tfilename: ${note.filename ?? ''}\n\tcreated: ${String(note.createdDate) ?? ''}\n\tchanged: ${String(note.changedDate) ?? ''}\n\tparagraphs: ${note.paragraphs.length}\n\thashtags: ${
         note.hashtags?.join(',') ?? ''
       }\n\tmentions: ${note.mentions?.join(',') ?? ''}`,
     )
   } else {
     log('printNote()',
-      `filename: ${note.filename ?? ''}\n\tcreated: ${String(note.createdDate) ?? ''}\n\tchanged: ${String(note.changedDate) ?? ''}\n\thashtags: ${
+      `filename: ${note.filename ?? ''}\n\tcreated: ${String(note.createdDate) ?? ''}\n\tchanged: ${String(note.changedDate) ?? ''}\n\tparagraphs: ${note.paragraphs.length}\n\thashtags: ${
         note.hashtags?.join(',') ?? ''
       }\n\tmentions: ${note.mentions?.join(',') ?? ''}`,
     )
@@ -42,7 +42,10 @@ export function printNote(note: TNote): void {
  * @param {boolean} useProjNoteByFilename (default: true)
  * @returns {any} - the note that was opened
  */
-export async function noteOpener(fullPath: string, desc: string, useProjNoteByFilename: boolean = true): Promise<?TNote> {
+export async function noteOpener(fullPath: string,
+  desc: string,
+  useProjNoteByFilename: boolean = true
+): Promise<?TNote> {
   log('noteOpener()', `  About to open filename: "${fullPath}" (${desc}) using ${useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename'}`)
   const newNote = useProjNoteByFilename ? await DataStore.projectNoteByFilename(fullPath) : await DataStore.noteByFilename(fullPath, 'Notes')
   if (newNote != null) {
@@ -101,7 +104,10 @@ export async function getOrMakeNote(noteTitle: string, noteFolder: string): Prom
  * @param {?boolean} includeSubfolders - if folder given, whether to look in subfolders of this folder or not (optional, defaults to false)
  * @return {Array<TNote>}
  */
-export function findNotesMatchingHashtags(tag: string, folder: ?string, includeSubfolders: ?boolean = false): Array<TNote> {
+export function findNotesMatchingHashtags(tag: string,
+  folder: ?string,
+  includeSubfolders: ?boolean = false
+): Array<TNote> {
   let projectNotesInFolder: Array<TNote>
   // If folder given (not empty) then filter using it
   if (folder != null) {

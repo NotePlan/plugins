@@ -39,7 +39,7 @@ export function termInMarkdownPath(term: string, searchString: string): boolean 
 
 /**
  * Pretty print range information
- * NB: This is a copy of what's in general.js to avoid circular dependency.
+ * Note: This is a copy of what's in general.js to avoid circular dependency.
  * @author @EduardMe
  */
 export function rangeToString(r: Range): string {

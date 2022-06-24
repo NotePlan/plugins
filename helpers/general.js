@@ -138,6 +138,7 @@ export function percent(value: number, total: number): string {
 
 /**
  * Return range information as a string
+ * Note: There is a copy of this is note.js to avoid a circular dependency.
  * @author @EduardMe
  * @param {Range} r range to convert
  * @return {string}
