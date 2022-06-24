@@ -70,3 +70,52 @@ export function validateConfigProperties(
     return config
   }
 }
+
+/**
+ * Pull the plugin commands out of the Plugin.json object
+ * @param {*} pluginJson
+ * @returns
+ */
+export function getPluginCommands(pluginJson: any): Array<any> {
+  return pluginJson['plugin.commands'] || []
+}
+
+/**
+ * Find a command inside the pluginJson with the functionName matching param
+ * @param {*} pluginJson - the entire settings object
+ * @param {*} functionName - the name of the function to look for
+ * @returns {number} index of the found item in the commands array (or -1)
+ */
+export function getCommandIndex(pluginJson: any, functionName: string) {
+  let foundIndex = -1
+  if (pluginJson && pluginJson['plugin.commands']) {
+    pluginJson['plugin.commands'].forEach((c, i) => {
+      if (c.jsFunction === functionName) foundIndex = i
+    })
+    return foundIndex
+  }
+}
+
+/**
+ * Change the name and description of a plugin command inside the plugin.json object
+ * the functionName is the key of the command in the plugin.commands array to find
+ * @param {object} pluginJson - the entire settings object for a plugin
+ * @param {string} functionName - the key of the command to change info for
+ * @param {string} commandName - the new name of the command
+ * @param {string} commandDescription - the new description of the command
+ * @return {object} pluginJson object
+ */
+export function setCommandDetailsForFunctionNamed(
+  pluginJson: any,
+  functionName: string,
+  commandName: string,
+  commandDescription: ?string = '',
+): any {
+  const foundIndex = getCommandIndex(pluginJson, functionName)
+  if (foundIndex > -1) {
+    pluginJson['plugin.commands'][foundIndex].name = commandName
+    pluginJson['plugin.commands'][foundIndex].description = commandDescription
+  }
+
+  return pluginJson
+}

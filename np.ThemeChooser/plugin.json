@@ -1,0 +1,61 @@
+{
+  "COMMENT": "Details on these fields: https://help.noteplan.co/article/67-create-command-bar-plugins",
+  "macOS.minVersion": "10.13.0",
+  "noteplan.minAppVersion": "3.4.0",
+  "plugin.id": "np.ThemeChooser",
+  "plugin.name": "🎨 Theme Chooser",
+  "plugin.version": "0.1.0",
+  "plugin.description": "Choose from your favorite themes",
+  "plugin.author": "dwertheimer",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/np.ThemeChooser/README.md",
+  "plugin.commands": [
+    {
+      "name": "Choose Theme",
+      "description": "Choose from all installed themes",
+      "jsFunction": "chooseTheme",
+      "alias": [
+        "themechooser"
+      ],
+      "arguments": ["theme name"]
+    },
+    {
+      "name": "Change Theme Preset",
+      "description": "Change a theme preset to another theme",
+      "jsFunction": "changePreset"
+    },
+    {
+      "name": "Theme Chooser: Set Preset 01",
+      "description": "Switch Theme",
+      "jsFunction": "setPreset01"
+    },
+    {
+      "name": "Theme Chooser: Set Preset 02",
+      "description": "Switch Theme",
+      "jsFunction": "setPreset02"
+    },
+    {
+      "name": "Theme Chooser: Set Preset 03",
+      "description": "Switch Theme",
+      "jsFunction": "setPreset03"
+    },
+    {
+      "name": "Theme Chooser: Set Preset 04",
+      "description": "Switch Theme",
+      "jsFunction": "setPreset04"
+    },
+    {
+      "name": "Theme Chooser: Set Preset 05",
+      "description": "Switch Theme",
+      "jsFunction": "setPreset05"
+    }
+  ],
+  "plugin.settings": [
+    {
+      "COMMENT": "Plugin settings documentation: https://help.noteplan.co/article/123-plugin-configuration",
+      "type": "heading",
+      "title": "Theme Chooser Settings"
+    }
+  ]
+}

@@ -113,4 +113,34 @@ describe(`${FILE}`, () => {
       })
     })
   })
+  /*
+   * setCommandNameForFunctionNamed()
+   */
+  describe('setCommandNameForFunctionNamed()' /* function */, () => {
+    /* template:
+      test('should XXX', () => {
+        const spy = jest.spyOn(CommandBar, 'prompt')
+        const result = c.setCommandNameForFunctionNamed()
+        expect(result).toEqual(true)
+	expect(spy).toHaveBeenCalledWith()
+        spy.mockRestore()
+      })
+      */
+    test('should make no changes if no plugin.commands', () => {
+      const po = {}
+      const result = c.setCommandDetailsForFunctionNamed(po, '', '', '')
+      expect(result).toEqual(po)
+    })
+    test('should make no changes if no matching command', () => {
+      const po = { 'plugin.commands': [{ functionName: 'foo' }] }
+      const result = c.setCommandDetailsForFunctionNamed(po, 'bar', '', '')
+      expect(result).toEqual(po)
+    })
+    test('should change name and desc if they exist', () => {
+      const po = { 'plugin.commands': [{ functionName: 'foo', name: 'fooname', description: 'foodesc' }] }
+      const result = c.setCommandDetailsForFunctionNamed(po, 'foo', 'a', 'b')
+      const r = { 'plugin.commands': [{ functionName: 'foo', name: 'a', description: 'b' }] }
+      expect(result).toEqual(r)
+    })
+  })
 })
