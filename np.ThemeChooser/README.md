@@ -24,3 +24,4 @@ This will also list the presets you choose in your NotePlan > Plugins menu bar, 
 
 NOTE: When you set one of the 5 presets using the `/Change Theme Preset` command, the theme is immediately available to you in the Command Bar. However, because NotePlan only generates the menu bar items once (at start-up), you will not see them in the menu bar until you restart NotePlan.
 
+Use `/Change Theme Preset` again to change any preset you already set to another theme instead.
