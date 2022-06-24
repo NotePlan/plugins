@@ -220,6 +220,16 @@ export async function saveSettings(pluginName: string = '', value?: any = {}): a
   return await DataStore.saveJSON(value, `../../data/${pluginName}/settings.json`)
 }
 
+export async function savePluginJson(pluginName: string = '', value?: any = {}): any | null {
+  log(`NPConfiguration: writing ${pluginName}/plugin.json`)
+  return await DataStore.saveJSON(value, `../../${pluginName}/plugin.json`)
+}
+
+export async function getPluginJson(pluginName: string = ''): any | null {
+  log(`NPConfiguration: getting ${pluginName}/plugin.json`)
+  return await DataStore.loadJSON(`../../${pluginName}/plugin.json`)
+}
+
 /**
  * parseConfiguration
  * @author @codedungeon, adapted from @nmn
