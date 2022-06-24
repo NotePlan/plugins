@@ -1,5 +1,7 @@
 # Theme Chooser Noteplan Plugin
 
+[Help/Support/Questions](https://discord.com/channels/763107030223290449/989752996583858217/989753000622977034)
+
 ## Overview
 This plugin is designed to make switching themes fast and easy without having to open the NotePlan Preferences Panel.
 
