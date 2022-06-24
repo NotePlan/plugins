@@ -2,6 +2,7 @@
 This plugin provides several commands to help move things around in NotePlan.
 
 It has a few settings, which you see and change by clicking on the ⚙️ gear button on the 'Filer' line in the Plugin Preferences panel. 
+
 ## /move paragraph
 The **/move paragraph** command (aliased to **/mp** and **/fp**) quickly **files** (moves) lines to different notes in NotePlan, _without having to lose your flow by switching to the other note_. It works on any number and sort of lines in a block, not just tasks.
 
@@ -18,6 +19,9 @@ The 'following section' finishes at the next empty line, heading or horizontal l
 From v0.7.0, you can turn on 'Extended Block Definition' in the settings, which additionally includes the whole section around the current line the cursor is in. (So you don't then have to move to the start of the section.)
 
 NB: due to limitations in the API it's not yet possible to move items to a Calendar note that doesn't already exist. (I will improve this when the API supports it.)
+
+## /quick move to weekly note
+This command (alias **/qmw**) moves lines to the current weekly note, using the same selection strategy as /mp (see above). The move happens in the background, leaving you in the flow in your current note.  It could be mapped to a shortcut key to make it even faster. (Available with weekly notes from NotePlan v3.6.)
 
 ## /add sync'd copy to note
 This command (alias **/asc**) adds a sync'd copy of the current line to a section in another note.  Here's a demo with two notes side by side, only to make it clearer:

@@ -2,9 +2,8 @@
 // ----------------------------------------------------------------------------
 // Plugin to help move selected Paragraphs to other notes
 // Jonathan Clark
-// last updated 18.5.2022 for v0.7.0+
+// last updated 24.6.2022 for v0.7.0
 // ----------------------------------------------------------------------------
-// TODO: update the Locale string when the environment() API call is available
 
 import pluginJson from "../plugin.json"
 // import { castBooleanFromMixed, castStringFromMixed, } from '@helpers/dataManipulation'
@@ -34,7 +33,7 @@ type FilerConfig = {
   addDateBacklink: boolean,
   dateRefStyle: string,
   useExtendedBlockDefinition: boolean,
-  whereToAddInSection: string,
+  whereToAddInSection: string, // 'start' (default) or 'end'
 }
 
 export async function getFilerSettings(): Promise<any> {
@@ -113,9 +112,9 @@ export async function moveParas(): Promise<void> {
             : ''
     parasInBlock[0].content = `${parasInBlock[0].content} ${datePart}`
   }
-  // At the time of writing, there's no API function to work on multiple selectedParagraphs,
-  // or one to insert an indented selectedParagraph, so we need to convert the selectedParagraphs
-  // to a raw text version which we can include
+  // Note: When written, there was no API function to deal with multiple 
+  // selectedParagraphs, qbut we can insert a raw text string.
+  // (can't simply use note.addParagraphBelowHeadingTitle() as we have more options than it supports)
   const selectedParasAsText = parasToText(parasInBlock)
 
   // Decide where to move to
@@ -135,7 +134,70 @@ export async function moveParas(): Promise<void> {
   // log(pluginJson, `  Moving to note: ${displayTitle(destNote)} under heading: '${headingToFind}'`)
 
   // Add text to the new location in destination note
-  await addParasAsText(destNote, selectedParasAsText, headingToFind, config.whereToAddInSection)
+  addParasAsText(destNote, selectedParasAsText, headingToFind, config.whereToAddInSection)
+
+  // delete from existing location
+  log(pluginJson, `Removing ${parasInBlock.length} paras from original note`)
+  note.removeParagraphs(parasInBlock)
+}
+
+/**
+ * Move text to the current Weekly note.
+ * Uses the same selection strategy as moveParas() above
+ * @author @jgclark
+ */
+export async function moveParasToWeekly(): Promise<void> {
+  const { content, paragraphs, selectedParagraphs, note } = Editor
+  // Pre-flight checks
+  if (content == null || selectedParagraphs == null || note == null) {
+    // No note open, or no selectedParagraph selection (perhaps empty note), so don't do anything.
+    logWarn(pluginJson, 'No note open, so stopping.')
+    return
+  }
+  if (NotePlan.environment.buildVersion < 801) {
+    // Need to be running v3.6.0 (v802/801) or over for this feature
+    // TODO: change this to .versionString < "3.6.0" if Eduard changes the logic
+    await showMessage(`Sorry: you need to be running NotePlan v3.6.0 or higher for the Weekly note feature to work.`)
+    logWarn(pluginJson, 'Need to be running NotePlan v3.6.0 or higher for the Weekly note feature to work.')
+    return
+  }
+  // Find the Weekly note to move to
+  const destNote = DataStore.calendarNoteByDate(new Date(), 'week')
+  if (destNote == null) {
+    // Need to be running v3.6.0 or over for this feature
+    await showMessage(`Sorry: I can't find the Weekly note.`)
+    logError(pluginJson, 'Failed to open the Weekly note. Stopping.')
+    return
+  }
+  // log(pluginJson, displayTitle(destNote)) // NB: -> first item in list (if a new item is typed)
+
+  // Get current selection, and its range
+  // TODO: Break this out into a separate helper function (as above)
+  const selection = Editor.selection
+  if (selection == null) {
+    logWarn(pluginJson, 'No selection found, so stopping.')
+    return
+  }
+
+  // Get config settings
+  const config = await getFilerSettings()
+
+  // Get paragraph indexes for the start and end of the selection (can be the same)
+  // const firstSelParaIndex = selectedLinesIndex(selection, paragraphs)
+  const [firstSelParaIndex, lastSelParaIndex] = selectedLinesIndex(selection, paragraphs)
+
+  // Get paragraphs for the selection or block
+  const parasInBlock: Array<TParagraph> = (lastSelParaIndex !== firstSelParaIndex)
+    ? selectedParagraphs.slice()   // copy to avoid $ReadOnlyArray problem
+    : getParagraphBlock(note, firstSelParaIndex, config.useExtendedBlockDefinition)
+
+  // At the time of writing, there's no API function to work on multiple selectedParagraphs,
+  // or one to insert an indented selectedParagraph, so we need to convert the selectedParagraphs
+  // to a raw text version which we can include
+  const selectedParasAsText = parasToText(parasInBlock)
+
+  // Append text to the new location in destination note
+  addParasAsText(destNote, selectedParasAsText, '', config.whereToAddInSection)
 
   // delete from existing location
   log(pluginJson, `Removing ${parasInBlock.length} paras from original note`)
@@ -172,7 +234,7 @@ export function getParagraphBlock(
   const allParas = note.paragraphs
   let startLine = selectedParaIndex
   let selectedPara = allParas[startLine]
-  log(pluginJson, `  getParaBlock: starting line ${selectedParaIndex}: '${selectedPara.content}'`)
+  log(pluginJson, `getParagraphBlock: starting line ${selectedParaIndex}: '${selectedPara.content}'`)
 
   if (useExtendedBlockDefinition) {
     // First look earlier to find earlier lines up to a blank line or horizontal rule;
@@ -229,7 +291,7 @@ export function getParagraphBlock(
     // See if there are following indented lines to move as well
     for (let i = startLine + 1; i < endOfActiveSection; i++) {
       const p = allParas[i]
-      log(pluginJson, `  ${i} / indent ${p.indents} / ${p.content}`)
+      // log(pluginJson, `    ${i} / indent ${p.indents} / ${p.content}`)
       // stop if horizontal line
       if (p.type === 'separator') {
         log(pluginJson, `      ${i}: Found HR`)
@@ -250,7 +312,7 @@ export function getParagraphBlock(
     }
   }
 
-  log(pluginJson, `  Found ${parasInBlock.length} paras in block:`)
+  log(pluginJson, `  -> Found ${parasInBlock.length} paras in block.`)
   // for (const pib of parasInBlock) {
   //   log(pluginJson, `    ${pib.content}`)
   // }
@@ -259,42 +321,43 @@ export function getParagraphBlock(
 
 /**
  * Function to write text either to top of note, bottom of note, or after a heading
- *  Note: When written, there was no API function to deal with multiple  selectedParagraphs, but we can insert a raw text string.
+ * Note: When written, there was no API function to deal with multiple selectedParagraphs,
+ * but we can insert a raw text string.
  * @author @jgclark
  * 
  * @param {TNote} destinationNote 
  * @param {string} selectedParasAsText 
- * @param {string} headingToFind 
+ * @param {string} headingToFind if empty, means 'end of note'
  * @param {string} whereToAddInSection to add after a heading: 'start' or 'end'
  */
-export async function addParasAsText(
+export function addParasAsText(
   destinationNote: TNote,
   selectedParasAsText: string,
   headingToFind: string,
   whereToAddInSection: string
-): Promise<void> {
+): void {
   // (can't simply use note.addParagraphBelowHeadingTitle() as we have more options than it supports)
   const destinationNoteParas = destinationNote.paragraphs
   let insertionIndex = undefined
   if (headingToFind === destinationNote.title || headingToFind.includes('(top of note)')) {
     // i.e. the first line in project or calendar note
     insertionIndex = calcSmartPrependPoint(destinationNote)
-    log(pluginJson, `  -> top of note, line ${insertionIndex}`)
-    await destinationNote.insertParagraph(selectedParasAsText, insertionIndex, 'text')
+    log(pluginJson, `-> top of note, line ${insertionIndex}`)
+    destinationNote.insertParagraph(selectedParasAsText, insertionIndex, 'text')
 
   } else if (headingToFind === '') {
     // blank return from chooseHeading has special meaning of 'end of note'
     insertionIndex = destinationNoteParas.length + 1
-    log(pluginJson, `  -> bottom of note, line ${insertionIndex}`)
-    await destinationNote.insertParagraph(selectedParasAsText, insertionIndex, 'text')
+    log(pluginJson, `-> bottom of note, line ${insertionIndex}`)
+    destinationNote.insertParagraph(selectedParasAsText, insertionIndex, 'text')
 
   } else if (whereToAddInSection === 'start') {
-    log(pluginJson, `  -> Inserting at start of section '${headingToFind}'`)
-    await destinationNote.addParagraphBelowHeadingTitle(selectedParasAsText, 'text', headingToFind, false, false)
+    log(pluginJson, `-> Inserting at start of section '${headingToFind}'`)
+    destinationNote.addParagraphBelowHeadingTitle(selectedParasAsText, 'text', headingToFind, false, false)
 
   } else if (whereToAddInSection === 'end') {
-    log(pluginJson, `  -> Inserting at end of section '${headingToFind}'`)
-    await destinationNote.addParagraphBelowHeadingTitle(selectedParasAsText, 'text', headingToFind, true, false)
+    log(pluginJson, `-> Inserting at end of section '${headingToFind}'`)
+    destinationNote.addParagraphBelowHeadingTitle(selectedParasAsText, 'text', headingToFind, true, false)
 
   } else {
     // Shouldn't get here

@@ -7,7 +7,7 @@
   "plugin.icon": "",
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Filer",
-  "plugin.version": "0.7.0-beta2",
+  "plugin.version": "0.7.0",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -44,55 +44,76 @@
       "jsFunction": "moveParas"
     },
     {
+      "name": "quick move to weekly note",
+      "alias": [
+        "qmw",
+        "quick",
+        "move",
+        "week"
+      ],
+      "description": "quick move (file) paragraphs to the weekly note",
+      "jsFunction": "moveParasToWeekly"
+    },
+    {
       "name": "nns",
       "description": "New note from selection (and leave link to it in its place)",
       "jsFunction": "newNoteFromSelection"
     },
     {
       "name": "add sync'd copy to note",
-      "alias": ["asc", "sync"],
+      "alias": [
+        "asc",
+        "sync"
+      ],
       "description": "Add a sync'd copy of the current line to a section in another note",
       "jsFunction": "addIDAndAddToOtherNote"
     }
   ],
   "plugin.settings": [
     {
-        "type": "heading",
-        "title": "Filer plugin settings"
+      "type": "heading",
+      "title": "Filer plugin settings"
     },
     {
-        "key": "addDateBacklink",
-        "title": "Add date reference?",
-        "description": "If true, adds date reference on the moved paragraph(s) when moved from a daily note.",
-        "type": "bool",
-        "default": false,
-        "required": true
+      "key": "addDateBacklink",
+      "title": "Add date reference?",
+      "description": "If true, adds date reference on the moved paragraph(s) when moved from a daily note.",
+      "type": "bool",
+      "default": false,
+      "required": true
     },
     {
-        "key": "dateRefStyle",
-        "title": "Date reference style",
-        "description": "The style of added date reference on a moved note: add either 'link' ('>date') or 'at' ('@date') or 'date' (a formatted date string).",
-        "type": "string",
-        "choices": ["at", "date", "link"],
-        "default": "link",
-        "required": true
+      "key": "dateRefStyle",
+      "title": "Date reference style",
+      "description": "The style of added date reference on a moved note: add either 'link' ('>date') or 'at' ('@date') or 'date' (a formatted date string).",
+      "type": "string",
+      "choices": [
+        "at",
+        "date",
+        "link"
+      ],
+      "default": "link",
+      "required": true
     },
     {
-        "key": "useExtendedBlockDefinition",
-        "title": "Use extended block definition?",
-        "description": "Controls whether all the lines in the current heading's section are included in the block to move (true) or whether only the following ones that are more deeply indented are included (false; this is the default). In both cases a block is closed by a blank line or a separator (horizontal line).",
-        "type": "bool",
-        "default": false,
-        "required": true
+      "key": "useExtendedBlockDefinition",
+      "title": "Use extended block definition?",
+      "description": "Controls whether all the lines in the current heading's section are included in the block to move (true) or whether only the following ones that are more deeply indented are included (false; this is the default). In both cases a block is closed by a blank line or a separator (horizontal line).",
+      "type": "bool",
+      "default": false,
+      "required": true
     },
     {
-        "key": "whereToAddInSection",
-        "title": "Where to add in section",
-        "description": "Controls whether moved lines get inserted at the \"start\" or \"end\" of the chosen section.",
-        "type": "string",
-        "choices": ["start", "end"],
-        "default": "start",
-        "required": true
+      "key": "whereToAddInSection",
+      "title": "Where to add in section",
+      "description": "Controls whether moved lines get inserted at the \"start\" or \"end\" of the chosen section.",
+      "type": "string",
+      "choices": [
+        "start",
+        "end"
+      ],
+      "default": "start",
+      "required": true
     }
   ]
 }
