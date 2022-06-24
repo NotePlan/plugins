@@ -29,6 +29,26 @@
       "name": "Theme Chooser: Set Preset 01",
       "description": "Switch Theme",
       "jsFunction": "setPreset01"
+    },
+    {
+      "name": "Theme Chooser: Set Preset 02",
+      "description": "Switch Theme",
+      "jsFunction": "setPreset02"
+    },
+    {
+      "name": "Theme Chooser: Set Preset 03",
+      "description": "Switch Theme",
+      "jsFunction": "setPreset03"
+    },
+    {
+      "name": "Theme Chooser: Set Preset 04",
+      "description": "Switch Theme",
+      "jsFunction": "setPreset04"
+    },
+    {
+      "name": "Theme Chooser: Set Preset 05",
+      "description": "Switch Theme",
+      "jsFunction": "setPreset05"
     }
   ],
   "plugin.settings": [
@@ -36,18 +56,6 @@
       "COMMENT": "Plugin settings documentation: https://help.noteplan.co/article/123-plugin-configuration",
       "type": "heading",
       "title": "Theme Chooser Settings"
-    },
-    {
-      "title": "A string in prefs",
-      "key": "settingsString",
-      "type": "string",
-      "description": "Enter some string and see it change when the plugin is run",
-      "default": "This default setting was set in plugin preferences!"
-    },
-    {
-      "key": "version",
-      "type": "hidden",
-      "description": "Theme Chooser Settings Version"
     }
   ]
 }

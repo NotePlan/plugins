@@ -5,12 +5,13 @@
 import * as helpers from './support/helpers'
 import { log, logError, clo, JSP } from '@helpers/dev'
 import { createRunPluginCallbackUrl } from '@helpers/general'
-import { showMessage } from '@helpers/userInput'
+import { showMessage, chooseOption } from '@helpers/userInput'
 import pluginJson from '../plugin.json'
 import { setCommandDetailsForFunctionNamed, getCommandIndex } from '@helpers/config'
 import { getPluginJson, savePluginJson } from '@helpers/NPConfiguration'
 
 const BLANK = `Theme Chooser: Set Preset`
+const PRESET_DESC = `Switch Theme`
 
 export async function chooseTheme(incoming: ?string = ''): Promise<void> {
   // every command/plugin entry point should always be wrapped in a try/catch block
@@ -44,15 +45,25 @@ export async function getThemeChoice(): Promise<string> {
 }
 
 export async function saveThemeNameAsCommand(commandName: string, themeName: string) {
-  const newPluginJson = setCommandDetailsForFunctionNamed(pluginJson, commandName, themeName, 'Switch Theme')
+  const livePluginJson = await getPluginJson(pluginJson['plugin.id'])
+  const newPluginJson = setCommandDetailsForFunctionNamed(livePluginJson, commandName, themeName, PRESET_DESC)
   const ret = await savePluginJson(pluginJson['plugin.id'], newPluginJson)
   log(pluginJson, `NPThemeChooser::presetChosen: after savePluginJson: ${String(ret)}`)
 }
 
-export async function changePreset() {}
+export async function changePreset() {
+  const livePluginJson = await getPluginJson(pluginJson['plugin.id'])
+  const commands = livePluginJson['plugin.commands']
+  const presetCommands = commands.filter((command) => command.description === PRESET_DESC)
+  const opts = presetCommands.map((command) => ({ label: command.name, value: command.jsFunction }))
+  const chosen = await chooseOption('Choose a preset to change', opts)
+  if (chosen) {
+    await presetChosen(chosen, true)
+  }
+}
 
 export async function presetChosen(selectedItem: string, overwrite: boolean = false) {
-  const commandName = `setPreset${selectedItem}`
+  const commandName = selectedItem
   const livePluginJson = await getPluginJson(pluginJson['plugin.id'])
   const index = getCommandIndex(livePluginJson, commandName)
   if (index > -1) {
@@ -77,7 +88,35 @@ export async function presetChosen(selectedItem: string, overwrite: boolean = fa
 
 export async function setPreset01() {
   try {
-    await presetChosen(`01`)
+    await presetChosen(`setPreset01`)
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
+}
+export async function setPreset02() {
+  try {
+    await presetChosen(`setPreset02`)
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
+}
+export async function setPreset03() {
+  try {
+    await presetChosen(`setPreset03`)
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
+}
+export async function setPreset04() {
+  try {
+    await presetChosen(`setPreset04`)
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
+}
+export async function setPreset05() {
+  try {
+    await presetChosen(`setPreset05`)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
