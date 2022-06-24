@@ -3,7 +3,7 @@
 ## Overview
 This plugin is designed to make switching themes fast and easy without having to open the NotePlan Preferences Panel.
 
-<img src="https://user-images.githubusercontent.com/8949588/175463159-c7ef1aa9-6178-4853-90d6-9102dd306859.gif" width="200">
+<img src="https://user-images.githubusercontent.com/8949588/175463159-c7ef1aa9-6178-4853-90d6-9102dd306859.gif" width="600">
 
 You can switch to any theme at any time using the command:
 `/Choose Theme`
