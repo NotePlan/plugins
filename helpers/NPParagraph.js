@@ -344,7 +344,8 @@ export function gatherMatchingLines(
 }
 
 /**
- * Get the paragraph index of the current selection, or 0 if no selection is active.
+ * Get the paragraph index of the start of the current selection, or 0 if no selection is active.
+ * Note: Not currently used, I think.  See selectedLinesIndex instead (below).
  * @author @jgclark
  * @returns {number}
  */
@@ -369,4 +370,40 @@ export function getSelectedParaIndex(): number {
   }
   // log('NPParagraph/getSelectedParaIndex', `  firstSelParaIndex = ${firstSelParaIndex}`)
   return firstSelParaIndex
+}
+
+/**
+ * Get paragraph numbers of the start and end of the current selection in the Editor.
+ * @author @jgclark
+ *
+ * @param {TRange} selection - the current selection rnage object
+ * @return {[number, number]} the line index number of start and end of selection
+ */
+export function selectedLinesIndex(selection: Range, paragraphs: $ReadOnlyArray<TParagraph>): [number, number] {
+  let firstSelParaIndex = 0
+  let lastSelParaIndex = 0
+  const startParaRange: Range = Editor.paragraphRangeAtCharacterIndex(selection.start)
+  const endParaRange: Range = Editor.paragraphRangeAtCharacterIndex(selection.end)
+
+  // Get the set of selected paragraphs (which can be different from selection),
+  // and work out what selectedPara number(index) this selected selectedPara is
+  for (let i = 0; i < paragraphs.length; i++) {
+    const p = paragraphs[i]
+    if (startParaRange.start === p.contentRange?.start) {
+      firstSelParaIndex = i
+      break
+    }
+  }
+  for (let i = paragraphs.length - 1; i >= 0; i--) {
+    const p = paragraphs[i]
+    if (endParaRange.end >= (p.contentRange?.end ?? 0)) {
+      lastSelParaIndex = i
+      break
+    }
+  }
+  if (lastSelParaIndex === 0) {
+    lastSelParaIndex = firstSelParaIndex
+  }
+  // console.log(`\t-> paraIndexes ${firstSelParaIndex}-${lastSelParaIndex}`)
+  return [firstSelParaIndex, lastSelParaIndex]
 }
