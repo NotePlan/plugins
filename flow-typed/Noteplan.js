@@ -1675,9 +1675,9 @@ declare class NotePlan {
    *   .hasSettings: boolean
    * Available from v3.4.1:
    *   .templateFolder: string (this return path relative to NP's root folder, normally "@Templates")
-   *   .version: string (NotePlan's version, for example "3.4.1")
-   *   .versionNumber: number (NotePlan's version as integer,for example 341. JGC Note: this will return '36' for v3.6.0 which makes it difficult to use.)
-   *   .buildVersion: number (NotePlan's build number as integer,for example 730)
+   *   .version: string (NotePlan's version, for example "3.4.1". Note: it may contain alpha characters too, so it is not recommended for use in tests or comparisons)
+   *   .versionNumber: number (NotePlan's version as integer,for example 341. JGC Note: this will return '36' for v3.6.0, and is not recommended for use in tests or comparisons)
+   *   .buildVersion: number (NotePlan's build number as integer,for example 730. Note: This is the item recommended for use in tests or comparisons)
    */
   static +environment: Object;
 /**
