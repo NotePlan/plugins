@@ -4,7 +4,7 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "np.ThemeChooser",
   "plugin.name": "🎨 Theme Chooser",
-  "plugin.version": "1.2.0",
+  "plugin.version": "1.2.1",
   "plugin.description": "Choose from your favorite themes",
   "plugin.author": "dwertheimer",
   "plugin.dependencies": [],
@@ -42,7 +42,8 @@
     {
       "name": "touoi",
       "description": "",
-      "jsFunction": "onUpdateOrInstall"
+      "jsFunction": "onUpdateOrInstall",
+      "hidden": true
     },
     {
       "name": "Theme Chooser: Set Preset 01",

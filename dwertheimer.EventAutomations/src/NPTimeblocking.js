@@ -356,33 +356,6 @@ export async function getTodaysFilteredTodos(config: { [key: string]: mixed }): 
 
 export async function createTimeBlocksForTodaysTasks(config: { [key: string]: mixed } = {}): Promise<?Array<string>> {
   // console.log(`Starting createTimeBlocksForTodaysTasks. Time is ${new Date().toLocaleTimeString()}`)
-  // console.log(`config is: ${JSON.stringify(config, null, 2)}`)
-
-  // You could define a proper type for `obj` and use a function like this to verify that
-  // type.
-  // type TConfig = {
-  //   timeBlockTag: string,
-  //   intervalMins: number,
-  //   insertIntoEditor: string,
-  //   createCalendarEntries: boolean,
-  //   passBackResults: boolean,
-  //   deletePreviousCalendarEntries: boolean,
-  //   eventEnteredOnCalTag: string,
-  //   includeTasksWithText: boolean,
-  //   excludeTasksWithText: boolean,
-  // }
-  // const typedConfig: TConfig = checkObj({
-  //   timeBlockTag: checkString,
-  //   intervalMins: checkNumber,
-  //   insertIntoEditor: checkString,
-  //   createCalendarEntries: checkBoolean,
-  //   passBackResults: checkBoolean,
-  //   deletePreviousCalendarEntries: checkBoolean,
-  //   eventEnteredOnCalTag: checkString,
-  //   includeTasksWithText: checkBoolean,
-  //   excludeTasksWithText: checkBoolean,
-  // })(config)
-
   const {
     timeBlockTag,
     intervalMins,

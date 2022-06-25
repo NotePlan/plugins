@@ -1,7 +1,10 @@
 # np.ThemeChooser Changelog
 
+## [1.2.1] 2022-06-24 @dwertheimer
+- Remove testing command 
+
 ## [1.2.0] 2022-06-24 @dwertheimer
-## Critical bug fix
+### Critical bug fix
 - Save preferences so that your settings get restored when plugin gets refreshed
 
 # [1.1.1] 2022-06-24 @dwertheimer
