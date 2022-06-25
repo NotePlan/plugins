@@ -4,6 +4,9 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.CallbackURLs/README.md) for details on available commands and use case.
 
+## [0.3.0] - 2022-06-25 (@dwertheimer)
+- Add callbacks for FILTER and SEARCH
+- 
 ## [0.2.0] - 2022-06-22 (@dwertheimer)
 - Add Templating invokePlugin output type
 
