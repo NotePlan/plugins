@@ -7,7 +7,7 @@
   "plugin.icon": "",
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Filer",
-  "plugin.version": "0.7.0",
+  "plugin.version": "0.8.0",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -16,46 +16,66 @@
       "name": "move paragraphs",
       "alias": [
         "mp",
+        "fp",
         "file"
       ],
       "description": "move (file) paragraphs to different notes",
       "jsFunction": "moveParas"
     },
     {
-      "name": "fp",
+      "name": "file paragraphs",
       "alias": [
         "mp",
-        "file",
         "move",
-        "paragraph"
+        "fp"
       ],
       "description": "file (move) paragraphs to different notes",
       "jsFunction": "moveParas"
     },
     {
-      "name": "mp",
+      "name": "quick move to Today's note",
       "alias": [
-        "fp",
-        "file",
-        "move",
-        "paragraph"
+        "qmtd",
+        "day",
+        "daily"
       ],
-      "description": "move (file) paragraphs to different notes",
-      "jsFunction": "moveParas"
+      "description": "quick move paragraphs to Today's note",
+      "jsFunction": "moveParasToToday"
     },
     {
-      "name": "quick move to weekly note",
+      "name": "quick move to Tomorrow's note",
       "alias": [
-        "qmw",
-        "quick",
-        "move",
+        "qmtm",
+        "day",
+        "daily"
+      ],
+      "description": "quick move paragraphs to Tomorrow's daily note",
+      "jsFunction": "moveParasToTomorrow"
+    },
+    {
+      "name": "quick move to Weekly note",
+      "alias": [
+        "qmtw",
         "week"
       ],
-      "description": "quick move (file) paragraphs to the weekly note",
-      "jsFunction": "moveParasToWeekly"
+      "description": "quick move paragraphs to the current Weekly note",
+      "jsFunction": "moveParasToThisWeekly"
     },
     {
-      "name": "nns",
+      "name": "quick move to Next Weekly note",
+      "alias": [
+        "qmnw",
+        "week"
+      ],
+      "description": "quick move paragraphs to Next Week's note",
+      "jsFunction": "moveParasToNextWeekly"
+    },
+    {
+      "name": "new note from selection",
+      "alias": [
+        "nns",
+        "new"
+      ],
       "description": "New note from selection (and leave link to it in its place)",
       "jsFunction": "newNoteFromSelection"
     },
@@ -63,7 +83,8 @@
       "name": "add sync'd copy to note",
       "alias": [
         "asc",
-        "sync"
+        "sync",
+        "lines"
       ],
       "description": "Add a sync'd copy of the current line to a section in another note",
       "jsFunction": "addIDAndAddToOtherNote"

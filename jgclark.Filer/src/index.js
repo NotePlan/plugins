@@ -3,11 +3,17 @@
 // -----------------------------------------------------------------------------
 // Plugin to help move selected pargraphs to other notes
 // Jonathan Clark
-// Last updated 24.6.2022, for v0.7.0
+// Last updated 25.6.2022, for v0.8.0
 // -----------------------------------------------------------------------------
 
 export {
-  moveParas, moveParasToWeekly
+  moveParas,
+  moveParasToCalendarDate,
+  moveParasToCalendarWeekly,
+  moveParasToNextWeekly,
+  moveParasToThisWeekly,
+  moveParasToToday,
+  moveParasToTomorrow,
 } from './fileItems'
 export { addIDAndAddToOtherNote } from './IDs'
 export { newNoteFromSelection } from './newNoteFromSelection'
