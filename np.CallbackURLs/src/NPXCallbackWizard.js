@@ -8,7 +8,7 @@ TODO: maybe create choosers based on arguments text
 */
 
 import { log, logError, clo, JSP } from '../../helpers/dev'
-import { createOpenNoteCallbackUrl, createAddTextCallbackUrl } from '../../helpers/general'
+import { createOpenNoteCallbackUrl, createAddTextCallbackUrl, createCallbackUrl } from '../../helpers/general'
 import { chooseRunPluginXCallbackURL } from '@helpers/NPdev'
 import pluginJson from '../plugin.json'
 import { chooseOption, showMessage, chooseHeading, chooseFolder, chooseNote, getInput } from '@helpers/userInput'
@@ -56,6 +56,32 @@ async function getAddTextOrOpenNoteURL(command: 'openNote' | 'addText' = 'openNo
     return url
   } else {
     return 'An error occurred. Could not get URL. Check plugin console for details.'
+  }
+}
+
+export async function filter() {
+  const filters = DataStore.filters
+  if (filters.length) {
+    const opts = filters.map((f) => ({ label: f, value: f }))
+    opts.push({ label: 'None of these; I need to make a new one', value: '__new__' })
+    const chosen = await chooseOption('Choose a filter', opts, opts[0].value)
+    if (chosen === '__new__') {
+      NotePlan.openURL(`noteplan://x-callback-url/search?filter=__new__`)
+      return
+    } else {
+      return createCallbackUrl('search', { filter: chosen })
+    }
+  } else {
+    showMessage('No filters found. Please add a filter before running this command')
+  }
+}
+
+export async function search(): Promise<string> {
+  const searchText = await getInput('Text to search for', 'Submit', 'Search Text', '')
+  if (searchText) {
+    return createCallbackUrl('search', { text: searchText })
+  } else {
+    return ''
   }
 }
 
@@ -121,17 +147,18 @@ export async function xCallbackWizard(incoming: ?string = ''): Promise<void> {
     const options = [
       { label: 'OPEN a note', value: 'openNote' },
       { label: 'ADD text to a note', value: 'addText' },
-      { label: 'Run a Plugin Command', value: 'runPlugin' },
+      { label: 'FILTER Notes by Preset', value: 'filter' },
+      { label: 'SEARCH for text in notes', value: 'search' },
+      { label: 'RUN a Plugin Command', value: 'runPlugin' },
       /*
       { label: 'Add a NEW NOTE with title and text', value: 'addNote' },
       { label: 'DELETE a note by title', value: 'deleteNote' },
       { label: 'Select a TAG in the sidebar', value: 'selectTag' },
-      { label: 'SEARCH for text in a type of notes', value: 'search' },
       { label: 'Get NOTE INFO (x-success) for use in another app', value: 'noteInfo' },
       */
     ]
     const res = await chooseOption(`Select an X-Callback type`, options, '')
-    const item = options.find((i) => i.value === res)
+
     let runplugin
     switch (res) {
       case '':
@@ -143,6 +170,12 @@ export async function xCallbackWizard(incoming: ?string = ''): Promise<void> {
         break
       case 'addText':
         url = await getAddTextOrOpenNoteURL('addText')
+        break
+      case 'filter':
+        url = await filter()
+        break
+      case 'search':
+        url = await search()
         break
       case 'runPlugin':
         runplugin = await chooseRunPluginXCallbackURL()
@@ -161,8 +194,10 @@ export async function xCallbackWizard(incoming: ?string = ''): Promise<void> {
       const op = [
         { label: `Raw/long URL (${url})`, value: 'raw' },
         { label: '[Pretty link](hide long URL)', value: 'pretty' },
-        { label: 'Templating <% runPlugin %> command', value: 'template' },
       ]
+      if (res === 'runPlugin') {
+        op.push({ label: 'Templating <% runPlugin %> command', value: 'template' })
+      }
       const urlType = await chooseOption(`What type of URL do you want?`, op, 'raw')
       if (urlType === 'pretty') {
         const linkText = await getInput('Enter short text to use for the link', 'OK', 'Link Text', 'Text')
