@@ -406,6 +406,8 @@ export default class NPTemplating {
 
       const allTemplates = DataStore.projectNotes
         .filter((n) => n.filename?.startsWith(templateFolder))
+        .filter((n) => !n.frontmatterTypes.includes('ignore'))
+        .filter((n) => !n.frontmatterTypes.includes('template-helper'))
         .filter((n) => !n.title?.startsWith('_configuration'))
         .filter((n) => !n.filename?.startsWith('Delete After Release'))
         .sort((a, b) => {
@@ -944,8 +946,7 @@ export default class NPTemplating {
         sessionData.data = { ...sessionData.data, ...frontmatterAttributes }
       }
 
-      // TODO: Need to move all includes to here so the rest of template can use any functions, etc.
-      // TODO: Maybe it would be better to use `import` here and ONLY import templates which include snippets
+      // import codeblocks
       templateData = await this.importCodeBlocks(templateData)
       // return templateData
 
@@ -1442,6 +1443,7 @@ export default class NPTemplating {
           const content = await this.getTemplate(noteNamePath)
           const body = new FrontmatterModule().body(content)
           if (body.length > 0) {
+            newTemplateData = newTemplateData.replace('`' + tag + '`', body) // adjust fenced formats
             newTemplateData = newTemplateData.replace(tag, body)
           } else {
             newTemplateData = newTemplateData.replace(tag, `**An error occurred importing "${noteNamePath}"**`)
