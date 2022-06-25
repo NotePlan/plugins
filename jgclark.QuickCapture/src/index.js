@@ -3,26 +3,26 @@
 //-----------------------------------------------------------------------------
 // Quick Capture plugin for NotePlan
 // Jonathan Clark
-// Last updated 3.2.22 for v0.4.2, @jgclark
+// Last updated 25.6.22 for v0.10.0, @jgclark
 //-----------------------------------------------------------------------------
 
-import { log, logWarn, logError } from "@helpers/dev"
+// allow changes in plugin.json to trigger recompilation
+import pluginJson from '../plugin.json'
+import { log, logError } from "@helpers/dev"
+// ConfigV2
+import { migrateConfiguration, updateSettingData } from '@helpers/NPConfiguration'
+
 export {
   addTaskToInbox,
   addTaskToNoteHeading,
   addTextToNoteHeading,
   appendTaskToDailyNote,
+  appendTaskToWeeklyNote,
   appendTextToDailyJournal,
   prependTaskToDailyNote,
   appendTaskToNote,
   prependTaskToNote
 } from './quickCapture'
-
-// allow changes in plugin.json to trigger recompilation
-import pluginJson from '../plugin.json' 
-
-// Moving to ConfigV2
-import { migrateConfiguration, updateSettingData } from '../../helpers/NPconfiguration'
 
 const configKey = 'inbox'
 
