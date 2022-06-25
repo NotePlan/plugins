@@ -123,6 +123,14 @@
       "jsFunction": "templateAbout"
     },
     {
+      "name": "np:execute",
+      "alias": [
+        "npe"
+      ],
+      "description": "np.Templating Execute Fragment",
+      "jsFunction": "templateExecute"
+    },
+    {
       "name": "np:test",
       "alias": [],
       "description": "np.Templating Testbed",

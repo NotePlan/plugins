@@ -23,6 +23,7 @@ export { templateMeetingNote } from './Templating'
 export { templateQuickNote } from './Templating'
 export { templateConvertNote } from './Templating'
 export { templateSamples } from './Templating'
+export { templateExecute } from './Templating'
 
 // np.Templating Utility Commands
 export { templateAbout } from './Templating'

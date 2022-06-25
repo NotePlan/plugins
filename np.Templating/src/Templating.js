@@ -717,6 +717,16 @@ export async function templateConvertNote(): Promise<void> {
   }
 }
 
+export async function templateExecute(): Promise<void> {
+  try {
+    let selectedTemplate = await NPTemplating.chooseTemplate('template-fragment', 'Choose Template Fragment', { templateGroupTemplatesByFolder: false })
+
+    await NPTemplating.renderTemplate(selectedTemplate)
+  } catch (error) {
+    logError(pluginJson, error.message)
+  }
+}
+
 export async function getTemplate(templateName: string = '', options: any = { showChoices: true }): Promise<string> {
   return await NPTemplating.getTemplate(templateName, options)
 }

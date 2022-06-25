@@ -16,6 +16,7 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/
 - added `calendar` method
     > you can also use `include` with note and it will perform the same action as `calendar` method
 - added `clo` helper which can be used to help debug more complex templates
+- added `calendar` module placeholder (more coming in the future but didn't want to lose signt )
 
 ## [1.2.0] - 2022-06-04 (mikeerickson)
 

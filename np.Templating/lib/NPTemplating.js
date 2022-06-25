@@ -20,7 +20,7 @@ import TemplatingEngine from './TemplatingEngine'
 const TEMPLATE_FOLDER_NAME = NotePlan.environment.templateFolder
 
 // - if a new module has been added, make sure it has been added to this list
-const TEMPLATE_MODULES = ['date', 'frontmatter', 'note', 'system', 'time', 'user', 'utility']
+const TEMPLATE_MODULES = ['calendar', 'date', 'frontmatter', 'note', 'system', 'time', 'user', 'utility']
 
 const CODE_BLOCK_COMMENT_TAGS = ['/* template: ignore */', '// template: ignore']
 
@@ -343,11 +343,14 @@ export default class NPTemplating {
     return `**Error: ${method}**\n- **${message}**`
   }
 
-  static async chooseTemplate(tags?: any = '*', promptMessage: string = 'Choose Template'): Promise<any> {
+  static async chooseTemplate(tags?: any = '*', promptMessage: string = 'Choose Template', userOptions: any = null): Promise<any> {
     try {
       await this.setup()
 
-      const templateGroupTemplatesByFolder = this.constructor.templateConfig?.templateGroupTemplatesByFolder || false
+      let templateGroupTemplatesByFolder = this.constructor.templateConfig?.templateGroupTemplatesByFolder || false
+      if (userOptions && userOptions.hasOwnProperty('templateGroupTemplatesByFolder')) {
+        templateGroupTemplatesByFolder = userOptions.templateGroupTemplatesByFolder
+      }
 
       const templateList = await this.getTemplateList(tags)
 
@@ -693,7 +696,7 @@ export default class NPTemplating {
   }
 
   static async getNote(notePath: string = ''): Promise<string> {
-    let content = ''
+    let content: string = ''
 
     const noteParts = notePath.split('/')
     const noteName = noteParts.pop()
@@ -701,7 +704,7 @@ export default class NPTemplating {
 
     if (noteName.length > 0) {
       const foundNotes = DataStore.projectNoteByTitle(noteName, true, noteFolder.length === 0)
-      if (typeof foundNotes !== 'undefined') {
+      if (typeof foundNotes !== 'undefined' && Array.isArray(foundNotes)) {
         if (foundNotes.length === 1) {
           content = foundNotes[0].content
         } else {
@@ -915,10 +918,13 @@ export default class NPTemplating {
       // work around an issue when creating templates references on iOS (Smart Quotes Enabled)
       let templateData = inTemplateData.replace(/‘/gi, `'`).replace(/’/gi, `'`).replace(/“/gi, `'`).replace(/”/gi, `'`)
 
+      // small edge case, likey never hit
       if (typeof templateData !== 'string') {
         templateData = templateData.toString()
       }
 
+      // load template globals
+      // lib/globals.js
       let globalData = {}
       Object.getOwnPropertyNames(globals).forEach((key) => {
         globalData[key] = getProperyValue(globals, key)
@@ -926,8 +932,11 @@ export default class NPTemplating {
 
       sessionData.methods = { ...sessionData.methods, ...globalData }
 
+      // convert template prompt tag to `prompt` command
       templateData = templateData.replace(/<%@/gi, '<%- prompt')
 
+      // if template is frontmatter format (which should now always be the case)
+      // preRender template attributes, invoking prompts, etc.
       const isFrontmatterTemplate = new FrontmatterModule().isFrontmatterTemplate(templateData)
       if (isFrontmatterTemplate) {
         const { frontmatterAttributes, frontmatterBody } = await this.preRender(templateData, sessionData)
@@ -935,6 +944,12 @@ export default class NPTemplating {
         sessionData.data = { ...sessionData.data, ...frontmatterAttributes }
       }
 
+      // TODO: Need to move all includes to here so the rest of template can use any functions, etc.
+      // TODO: Maybe it would be better to use `import` here and ONLY import templates which include snippets
+      templateData = await this.importCodeBlocks(templateData)
+      // return templateData
+
+      // process all template attribute prompts
       if (isFrontmatterTemplate && usePrompts) {
         const frontmatterAttributes = new FrontmatterModule().parse(templateData)?.attributes || {}
         for (const [key, value] of Object.entries(frontmatterAttributes)) {
@@ -958,11 +973,11 @@ export default class NPTemplating {
       }
 
       templateData = convertJavaScriptBlocksToTags(templateData)
-
       // $FlowIgnore
       const { newTemplateData, newSettingData } = await this.preProcess(templateData, sessionData)
       sessionData = { ...newSettingData }
 
+      // perform all prompt operations in template body
       const promptData = await this.processPrompts(newTemplateData, sessionData, '<%', '%>')
       templateData = promptData.sessionTemplateData
       sessionData = promptData.sessionData
@@ -976,6 +991,7 @@ export default class NPTemplating {
         templateData = templateData.replace(ignoredCodeBlocks[index], `__codeblock:${index}__`)
       }
 
+      // template ready for final rendering, this is where most of the magic happens
       const renderedData = await new TemplatingEngine(this.constructor.templateConfig).render(templateData, sessionData, userOptions)
 
       let final = this._filterTemplateResult(renderedData)
@@ -1412,6 +1428,29 @@ export default class NPTemplating {
 
   static async convertNoteToFrontmatter(projectNote: string): Promise<number | string> {
     return new FrontmatterModule().convertProjectNoteToFrontmatter(projectNote)
+  }
+
+  static async importCodeBlocks(templateData: string = ''): Promise<string> {
+    let newTemplateData = templateData
+    const tags = (await this.getTags(templateData)) || []
+    for (let tag of tags) {
+      if (!isCommentTag(tag) && tag.includes('import')) {
+        const importInfo = tag.replace('<%-', '').replace('<%', '').replace('%>', '').replace('import', '').replace('(', '').replace(')', '')
+        const parts = importInfo.split(',')
+        if (parts.length > 0) {
+          const noteNamePath = parts[0].replace(/'/gi, '').trim()
+          const content = await this.getTemplate(noteNamePath)
+          const body = new FrontmatterModule().body(content)
+          if (body.length > 0) {
+            newTemplateData = newTemplateData.replace(tag, body)
+          } else {
+            newTemplateData = newTemplateData.replace(tag, `**An error occurred importing "${noteNamePath}"**`)
+          }
+        }
+      }
+    }
+
+    return newTemplateData
   }
 
   static async execute(templateData: string = '', sessionData: any): Promise<any> {
