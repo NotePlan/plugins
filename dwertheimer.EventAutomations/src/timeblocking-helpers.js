@@ -280,7 +280,7 @@ export function findTimeBlocks(timeMap: IntervalMap, config: { [key: string]: an
   } else {
     // console.log(`findTimeBlocks: timeMap array was empty`)
   }
-  console.log(`findTimeBlocks: found blocks: ${JSP(blocks)}`)
+  // console.log(`findTimeBlocks: found blocks: ${JSP(blocks)}`)
   return blocks
 }
 

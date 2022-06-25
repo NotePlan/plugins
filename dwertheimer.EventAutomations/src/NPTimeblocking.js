@@ -40,7 +40,11 @@ import {
 import { getTimeBlockingDefaults, validateTimeBlockConfig } from './config'
 import { getPresetOptions, setConfigForPreset } from './presets'
 import type { IntervalMap, PartialCalendarItem, EditorOrNote } from './timeblocking-flow-types'
-import { removeContentUnderHeading, insertContentUnderHeading } from '@helpers/NPParagraph'
+import {
+  removeContentUnderHeading,
+  insertContentUnderHeading,
+  removeContentUnderHeadingInAllNotes,
+} from '@helpers/NPParagraph'
 
 /**
  * Get the config for this plugin, from DataStore.settings or the defaults if settings are not valid
@@ -586,23 +590,8 @@ export async function removeTimeBlocks(note: TNote | null = null): Promise<void>
 export async function removePreviousSyncedCopies(runSilently: string = 'no'): Promise<void> {
   try {
     log(pluginJson, `removePreviousSyncedCopies running`)
-    const prevCopies = await DataStore.search(DataStore.settings.syncedCopiesTitle, ['calendar'])
-    if (prevCopies.length) {
-      const res = await showMessageYesNo(`Remove Synced Copies in ${prevCopies.length} notes?`)
-      if (res === 'Yes') {
-        prevCopies.forEach(
-          async (paragraph) =>
-            await removeContentUnderHeading(paragraph.note, DataStore.settings.syncedCopiesTitle, false, false),
-        )
-      }
-    } else {
-      if (!(runSilently === 'yes'))
-        showMessage(`Found no previous notes with "${DataStore.settings.syncedCopiesTitle}"`)
-    }
-    log(
-      pluginJson,
-      `removePreviousSyncedCopies found ${prevCopies.length} previous calendar notes with SyncedCopies Heading`,
-    )
+    const { syncedCopiesTitle } = DataStore.settings
+    await removeContentUnderHeadingInAllNotes(['calendar'], syncedCopiesTitle, false, runSilently)
   } catch (error) {
     logError(pluginJson, `removePreviousSyncedCopies error: ${JSP(error)}`)
   }
@@ -616,22 +605,8 @@ export async function removePreviousSyncedCopies(runSilently: string = 'no'): Pr
 export async function removePreviousTimeBlocks(runSilently: string = 'no'): Promise<void> {
   try {
     log(pluginJson, `removePreviousTimeBlocks running`)
-    const prevCopies = await DataStore.search(DataStore.settings.timeBlockHeading, ['calendar'])
-    if (prevCopies.length) {
-      const res = await showMessageYesNo(`Remove Time Blocks written by this plugin in ${prevCopies.length} notes?`)
-      if (res === 'Yes') {
-        prevCopies.forEach(
-          async (paragraph) =>
-            await removeContentUnderHeading(paragraph.note, DataStore.settings.timeBlockHeading, false, false),
-        )
-      }
-    } else {
-      if (!(runSilently === 'yes')) showMessage(`Found no previous notes with "${DataStore.settings.timeBlockHeading}"`)
-    }
-    log(
-      pluginJson,
-      `removePreviousTimeBlocks found ${prevCopies.length} previous calendar notes with "${DataStore.settings.timeBlockHeading}" Heading`,
-    )
+    const { timeBlockHeading } = DataStore.settings
+    await removeContentUnderHeadingInAllNotes(['calendar'], timeBlockHeading, false, runSilently)
   } catch (error) {
     logError(pluginJson, `removePreviousTimeBlocks error: ${JSP(error)}`)
   }
