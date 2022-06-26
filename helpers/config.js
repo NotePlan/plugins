@@ -86,14 +86,14 @@ export function getPluginCommands(pluginJson: any): Array<any> {
  * @param {*} functionName - the name of the function to look for
  * @returns {number} index of the found item in the commands array (or -1)
  */
-export function getCommandIndex(pluginJson: any, functionName: string) {
+export function getCommandIndex(pluginJson: any, functionName: string): number {
   let foundIndex = -1
   if (pluginJson && pluginJson['plugin.commands']) {
     pluginJson['plugin.commands'].forEach((c, i) => {
       if (c.jsFunction === functionName) foundIndex = i
     })
-    return foundIndex
   }
+  return foundIndex
 }
 
 /**
@@ -113,7 +113,7 @@ export function setCommandDetailsForFunctionNamed(
   commandHidden: ?boolean = false,
 ): any {
   const foundIndex = getCommandIndex(pluginJson, functionName)
-  if (foundIndex > -1) {
+  if (foundIndex && foundIndex > -1) {
     pluginJson['plugin.commands'][foundIndex].name = commandName
     pluginJson['plugin.commands'][foundIndex].description = commandDescription
     pluginJson['plugin.commands'][foundIndex].hidden = commandHidden
