@@ -5,6 +5,7 @@ import pluginJson from '../plugin.json'
 import { log, logError, clo, JSP } from '@helpers/dev'
 import { chooseHeading, chooseOption } from '@helpers/userInput'
 import { findHeading, getBlockUnderHeading } from '@helpers/paragraph'
+import { ja } from '@codedungeon/utils/node_modules/date-fns/esm/locale'
 
 export const hasCalendarLink = (line: string): boolean => /\!\[📅\]/.test(line)
 
@@ -162,6 +163,15 @@ export async function createEvent(
   return result || null
 }
 
+type EventBlockLine = {
+  start: Date,
+  end: Date,
+  text: string,
+  index: number,
+  paragraph: ?TParagraph,
+  revisedText: ?string,
+}
+
 /**
  * Take in a array of TParagraphs (block of lines), loop through and create events for the ones that should be events
  * @param {Array<TParagraph>} block
@@ -171,15 +181,17 @@ export async function createEvent(
 export async function processTimeLines(block: Array<TParagraph>, config: any) {
   // parseDateTextChecker()
   const { confirm, linkText, removeDateText } = config
-  const timeLines = []
+  const timeLines = [],
+    intermediate = []
   try {
+    // First, we need to get all the data necessary to create this event, including user input
+    // before we can show a status bar
     for (let i = 0; i < block.length; i++) {
       const line = block[i]
       if (hasCalendarLink(line.content)) {
         log(pluginJson, `Skipping line with calendar link: ${line.content}`)
       } else {
         const potentials = Calendar.parseDateText(line.content) //returns {start: Date, end: Date}
-
         if (potentials.length > 0) {
           let chosen = potentials[0]
           if (potentials.length > 1) {
@@ -194,29 +206,41 @@ export async function processTimeLines(block: Array<TParagraph>, config: any) {
             .replace(/\s{2,}/g, ' ')
             .trim()
           if (revisedLine.length === 0) revisedLine = '...' // If the line was all a date description, we need something to show
-          let event = await createEvent(revisedLine, chosen, config)
-          if (event && event?.id) {
-            log(pluginJson, `created event ${event.title}`)
-            event = await Calendar.eventByID(event.id)
-
-            log(pluginJson, `processTimeLines event=${event.title} event.calendarItemLink=${event.calendarItemLink}`)
-            const editedLink = replaceCalendarLinkText(
-              event?.calendarItemLink,
-              removeDateText ? `${chosen.text} ${linkText}` : linkText,
-            )
-            line.content = `${revisedLine} ${editedLink || ''}`
-            timeLines.push({ time: chosen, paragraph: line, event })
-            log(pluginJson, `processTimeLines timeLines.length=${timeLines.length}`)
-          }
+          intermediate.push({ revisedLine, chosen, line, index: i })
         } else {
           // do nothing with this line?
           log(pluginJson, `processTimeLines no times found for "${line.content}"`)
         }
-        // confirmPotentialTimeChoices()
-        // CreateEvents() // + tag created events
       }
-      log(pluginJson, `processTimeLines RETURNING ${timeLines.length} processed lines`)
     }
+    // Now that we have all the info we need, we can create the events with a status bar
+    CommandBar.showLoading(true, `Creating Events:\n(${0}/${intermediate.length})`)
+    await CommandBar.onAsyncThread()
+    for (let j = 0; j < intermediate.length; j++) {
+      const item = intermediate[j]
+      CommandBar.showLoading(true, `Creating Events:\n(${j}/${intermediate.length})`)
+      let event = await createEvent(item.revisedLine, item.chosen, config)
+      if (event && event?.id) {
+        log(pluginJson, `created event ${event.title}`)
+        event = await Calendar.eventByID(event.id)
+
+        log(pluginJson, `processTimeLines event=${event.title} event.calendarItemLink=${event.calendarItemLink}`)
+        const editedLink = replaceCalendarLinkText(
+          event?.calendarItemLink,
+          removeDateText ? `${item.chosen.text} ${linkText}` : linkText,
+        )
+        item.line.content = `${item.revisedLine} ${editedLink || ''}`
+        timeLines.push({ time: item.chosen, paragraph: item.line, event })
+        log(pluginJson, `processTimeLines timeLines.length=${timeLines.length}`)
+      } else {
+        log(pluginJson, `processTimeLines no event created for "${item.revisedLine}"`)
+      }
+      // confirmPotentialTimeChoices()
+      // CreateEvents() // + tag created events
+    }
+    await CommandBar.onMainThread()
+    CommandBar.showLoading(false)
+    log(pluginJson, `processTimeLines RETURNING ${timeLines.length} processed lines`)
   } catch (error) {
     logError(pluginJson, `processTimeLines error=${JSP(error)}`)
   }
