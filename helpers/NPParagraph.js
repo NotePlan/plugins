@@ -2,8 +2,9 @@
 
 import { hyphenatedDate } from './dateTime'
 import { toLocaleDateTimeString } from './NPdateTime'
-import { log, logWarn } from './dev'
+import { log, logError, logWarn } from './dev'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote, termInMarkdownPath, termInURL } from './paragraph'
+import { showMessageYesNo, showMessage } from '@helpers/userInput'
 
 /**
  * Remove all headings (type=='title') from a note matching the given text
@@ -161,10 +162,10 @@ export function getParagraphBlock(
   const allParas = note.paragraphs
   let startLine = selectedParaIndex
   let selectedPara = allParas[startLine]
-  log(
-    `NPParagraph / getParagraphBlock`,
-    `  getParaBlock: starting line ${selectedParaIndex}: '${selectedPara.content}'`,
-  )
+  // log(
+  //   `NPParagraph / getParagraphBlock`,
+  //   `  getParaBlock: starting line ${selectedParaIndex}: '${selectedPara.content}'`,
+  // )
 
   if (useExtendedBlockDefinition) {
     // First look earlier to find earlier lines up to a blank line or horizontal rule;
@@ -173,15 +174,15 @@ export function getParagraphBlock(
       const p = allParas[i]
       // log(`NPParagraph / getParagraphBlock`, `  ${ i } / ${p.type} / ${ p.content }`)
       if (p.type === 'separator') {
-        log(`NPParagraph / getParagraphBlock`, `      ${i}: Found separator line`)
+        // log(`NPParagraph / getParagraphBlock`, `      ${i}: Found separator line`)
         startLine = i + 1
         break
       } else if (p.content === '') {
-        log(`NPParagraph / getParagraphBlock`, `      ${i}: Found blank line`)
+        // log(`NPParagraph / getParagraphBlock`, `      ${i}: Found blank line`)
         startLine = i + 1
         break
       } else if (p.type === 'title') {
-        log(`NPParagraph / getParagraphBlock`, `      ${i}: Found heading`)
+        // log(`NPParagraph / getParagraphBlock`, `      ${i}: Found heading`)
         startLine = i
         break
       }
@@ -194,19 +195,19 @@ export function getParagraphBlock(
   if (selectedPara.type === 'title') {
     // includes all heading levels
     const thisHeadingLevel = selectedPara.headingLevel
-    log(`NPParagraph / getParagraphBlock`, `    Found heading level ${thisHeadingLevel}`)
+    // log(`NPParagraph / getParagraphBlock`, `    Found heading level ${thisHeadingLevel}`)
     parasInBlock.push(selectedPara) // make this the first line to move
     // Work out how far this section extends. (NB: headingRange doesn't help us here.)
     for (let i = startLine + 1; i < endOfActiveSection; i++) {
       const p = allParas[i]
       if (p.type === 'title' && p.headingLevel <= thisHeadingLevel) {
-        log(`NPParagraph / getParagraphBlock`, `      ${i}: ${i}: Found new heading of same or higher level`)
+        // log(`NPParagraph / getParagraphBlock`, `      ${i}: ${i}: Found new heading of same or higher level`)
         break
       } else if (p.type === 'separator') {
-        log(`NPParagraph / getParagraphBlock`, `      ${i}: Found HR`)
+        // log(`NPParagraph / getParagraphBlock`, `      ${i}: Found HR`)
         break
       } else if (p.content === '') {
-        log(`NPParagraph / getParagraphBlock`, `      ${i}: Found blank line`)
+        // log(`NPParagraph / getParagraphBlock`, `      ${i}: Found blank line`)
         break
       }
       parasInBlock.push(p)
@@ -221,28 +222,31 @@ export function getParagraphBlock(
     // See if there are following indented lines to move as well
     for (let i = startLine + 1; i < endOfActiveSection; i++) {
       const p = allParas[i]
-      log(`NPParagraph / getParagraphBlock`, `  ${i} / indent ${p.indents} / ${p.content}`)
+      // log(`NPParagraph / getParagraphBlock`, `  ${i} / indent ${p.indents} / ${p.content}`)
       // stop if horizontal line
       if (p.type === 'separator') {
-        log(`NPParagraph / getParagraphBlock`, `      ${i}: Found HR`)
+        // log(`NPParagraph / getParagraphBlock`, `      ${i}: Found HR`)
         break
       } else if (p.type === 'title') {
-        log(`NPParagraph / getParagraphBlock`, `      ${i}: Found heading`)
+        // log(`NPParagraph / getParagraphBlock`, `      ${i}: Found heading`)
         break
       } else if (p.content === '') {
-        log(`NPParagraph / getParagraphBlock`, `      ${i}: Found blank line`)
+        // log(`NPParagraph / getParagraphBlock`, `      ${i}: Found blank line`)
         break
       } else if (p.indents <= startingIndentLevel && !useExtendedBlockDefinition) {
         // if we aren't using the Extended Block Definition, then
         // stop as this selectedPara is same or less indented than the starting line
-        log(`NPParagraph / getParagraphBlock`, `      ${i}: Stopping as found same or lower indent`)
+        // log(`NPParagraph / getParagraphBlock`, `      ${i}: Stopping as found same or lower indent`)
         break
       }
       parasInBlock.push(p) // add onto end of array
     }
   }
 
-  log(`NPParagraph / getParagraphBlock`, `  Found ${parasInBlock.length} paras in block:`)
+  log(
+    `NPParagraph / getParagraphBlock`,
+    `  Found ${parasInBlock.length} paras in block starting with: "${allParas[selectedParaIndex].content}"`,
+  )
   // for (const pib of parasInBlock) {
   //   log(`NPParagraph / getParagraphBlock`, `    ${ pib.content }`)
   // }
@@ -406,4 +410,46 @@ export function selectedLinesIndex(selection: Range, paragraphs: $ReadOnlyArray<
   }
   // console.log(`\t-> paraIndexes ${firstSelParaIndex}-${lastSelParaIndex}`)
   return [firstSelParaIndex, lastSelParaIndex]
+}
+
+/**
+ * Remove all previously written blocks under a given heading in all notes (e.g. for deleting previous "TimeBlocks" or "SyncedCopoes")
+ * This is DANGEROUS. Could delete a lot of content. You have been warned!
+ * @param {Array<string>} noteTypes - the types of notes to look in -- e.g. ['calendar','notes']
+ * @param {string} heading - the heading too look for in the notes
+ * @param {boolean} keepHeading - whether to leave the heading in place afer all the content underneath is
+ * @param {boolean} runSilently - whether to show CommandBar popups confirming how many notes will be affected - you should set it to 'yes' when running from a template
+ */
+export async function removeContentUnderHeadingInAllNotes(
+  noteTypes: Array<string>,
+  heading: string,
+  keepHeading: boolean = false,
+  runSilently: string = 'no',
+): Promise<void> {
+  try {
+    log(`NPParagraph`, `removeContentUnderHeadingInAllNotes running`)
+    // For speed, let's first multi-core search the notes to find the notes that contain this string
+    const prevCopies = await DataStore.search(heading, noteTypes)
+    if (prevCopies.length) {
+      let res = 'Yes'
+      if (!(runSilently === 'yes')) {
+        res = await showMessageYesNo(`Remove "${heading}"+content in ${prevCopies.length} notes?`)
+      }
+      if (res === 'Yes') {
+        prevCopies.forEach(
+          async (paragraph) => await removeContentUnderHeading(paragraph.note, heading, false, keepHeading),
+        )
+      }
+    } else {
+      if (!(runSilently === 'yes')) showMessage(`Found no previous notes with "${heading}"`)
+    }
+    log(
+      `NPParagraph`,
+      `removeContentUnderHeadingInAllNotes found ${prevCopies.length} previous ${String(
+        noteTypes,
+      )} notes with heading: "${heading}"`,
+    )
+  } catch (error) {
+    logError(`NPParagraph`, `removeContentUnderHeadingInAllNotes error: ${JSP(error)}`)
+  }
 }

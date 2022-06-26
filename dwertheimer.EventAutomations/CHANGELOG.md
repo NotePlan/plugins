@@ -2,6 +2,10 @@
 
 ## Changelog
 
+[1.3.4] 2022-06-24 @dwertheimer
+
+- Fix race condition calling DataStore.preference too many times quickly on "Remove All Previous..." commands
+ 
 [1.3.3] 2022-06-23 @dwertheimer
 - Add check for pre-existing timeblocks including the "mustInclude" string (thx @jgclark)
 
