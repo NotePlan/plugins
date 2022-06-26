@@ -137,9 +137,9 @@ describe(`${FILE}`, () => {
       expect(result).toEqual(po)
     })
     test('should change name and desc if they exist', () => {
-      const po = { 'plugin.commands': [{ functionName: 'foo', name: 'fooname', description: 'foodesc' }] }
+      const po = { 'plugin.commands': [{ jsFunction: 'foo', name: 'fooname', description: 'foodesc' }] }
       const result = c.setCommandDetailsForFunctionNamed(po, 'foo', 'a', 'b')
-      const r = { 'plugin.commands': [{ functionName: 'foo', name: 'a', description: 'b' }] }
+      const r = { 'plugin.commands': [{ jsFunction: 'foo', name: 'a', description: 'b', hidden: false }] }
       expect(result).toEqual(r)
     })
   })
