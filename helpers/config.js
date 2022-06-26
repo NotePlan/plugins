@@ -103,17 +103,18 @@ export function getCommandIndex(pluginJson: any, functionName: string): number {
  * @param {string} functionName - the key of the command to change info for
  * @param {string} commandName - the new name of the command
  * @param {string} commandDescription - the new description of the command
+ * @param {boolean} commandHidden - should the command be hidden (not shown in the command bar) default is false
  * @return {object} pluginJson object
  */
 export function setCommandDetailsForFunctionNamed(
   pluginJson: any,
   functionName: string,
   commandName: string,
-  commandDescription: ?string = '',
+  commandDescription: string = '',
   commandHidden: ?boolean = false,
 ): any {
   const foundIndex = getCommandIndex(pluginJson, functionName)
-  if (foundIndex && foundIndex > -1) {
+  if (foundIndex != null && foundIndex > -1) {
     pluginJson['plugin.commands'][foundIndex].name = commandName
     pluginJson['plugin.commands'][foundIndex].description = commandDescription
     pluginJson['plugin.commands'][foundIndex].hidden = commandHidden
