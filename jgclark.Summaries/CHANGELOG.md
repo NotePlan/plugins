@@ -2,8 +2,9 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 ## [0.10.0] - 2022-06-26
 ### Changed
-- ??? the **/countsInPeriod** command now offers to write to the new weekly notes (available from in v3.6) if the selected period is 'this week'
-- the the **/insertProgressUpdate** command now can write to the 'current' note, or today's 'daily' or 'weekly' note. This is controlled by the new setting 'Where to write the progress update?'
+- the **/countsInPeriod** command now offers to write to the new weekly notes (available from in v3.6) if the selected period is 'this week'
+- the **/insertProgressUpdate** command now can write to the 'current' note, or today's 'daily' or 'weekly' note. This is controlled by the new setting 'Where to write the progress update?'
+- started to use the auto-update mechanism for plugins (I think!)
 
 ## [0.9.0] - 2022-06-22
 ### Changed
