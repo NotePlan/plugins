@@ -4,7 +4,6 @@
 //-----------------------------------------------------------------------------
 
 import { log, logError, logWarn } from './dev'
-import { getParagraphBlock } from '@helpers/NPParagraph'
 
 //-----------------------------------------------------------------------------
 // Paragraph-level Functions
@@ -427,10 +426,12 @@ export function removeSection(note: TNote, heading: string): number {
 
 /**
  * Find a heading/title that matches the string given
+ * Note: There's a copy in helpers/NPParagaph.js to avoid a circular dependency
+ * @author @dwertheimer
+ * 
  * @param {TNote} note
  * @param {string} heading
  * @returns {TParagraph | null} - returns the actual paragraph or null if not found
- * @author @dwertheimer
  * @tests exist
  */
 export function findHeading(note: TNote, heading: string): TParagraph | null {
@@ -443,32 +444,4 @@ export function findHeading(note: TNote, heading: string): TParagraph | null {
     if (para) return para
   }
   return null
-}
-
-/**
- * Get the paragraphs beneath a title/heading in a note (optionally return the contents without the heading)
- * @param {TNote} note
- * @param {TParagraph | string} heading
- * @param {boolean} returnHeading - whether to return the heading or not with the results (default: true)
- * @returns {TParagraph | null} - returns
- */
-export function getBlockUnderHeading(
-  note: TNote,
-  heading: TParagraph | string,
-  returnHeading: boolean = true,
-): Array<TParagraph> | [] {
-  let headingPara = null
-  if (typeof heading === 'string') {
-    headingPara = findHeading(note, heading)
-  } else {
-    headingPara = heading
-  }
-  let paras = []
-  if (headingPara?.lineIndex !== null) {
-    paras = getParagraphBlock(note, headingPara.lineIndex)
-  }
-  if (paras.length && !returnHeading) {
-    paras.shift() //remove the header paragraph
-  }
-  return paras
 }
