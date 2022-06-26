@@ -612,17 +612,20 @@ static + preference: (key: string) => mixed;
   /**
    * Installs a given array of pluginIDs if needed. It checks online if a new version is available and downloads it.
    * Use it without `await` so it keeps running in the background or use it with `await` in "blocking mode" if you need to install a plugin as a dependency. In this case you can use `showPromptIfSuccessful = true` to show the user a message that a plugin was installed and `showProgressPrompt` will show a loading indicator beforehand. With both values set to false or not defined it will run in "silent" mode and show no prompts.
+   * returns an object with an error code and a message { code: -1, message: "something went wrong" } for example. Anything code >= 0 is a success.
    * Note: Available from v3.6.0
-   * @param {Array<string>}
-   * @param {boolean}
-   * @param {boolean}
-   * @return {Promise}
+   * @param {Array<string>} IDs
+   * @param {boolean} showPromptIfSuccessful
+   * @param {boolean} showProgressPrompt
+   * @param {boolean} showFailedPrompt
+   * @return {Promise<{number, string}>}
    */
   static installOrUpdatePluginsByID(
     pluginIDs: Array < string >,
     showPromptIfSuccessful: boolean,
     showProgressPrompt: boolean,
-  ): Promise < void> | void;
+    showFailedPrompt: boolean,
+  ): Promise < { code: number, message: string } >;
 
   /**
    * Searches all notes for a keyword (uses multiple threads to speed it up).
