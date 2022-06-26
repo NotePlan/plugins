@@ -32,14 +32,29 @@
       "title": "Confirm when there are multiple options for what a date should be?",
       "key": "confirm",
       "type": "bool",
-      "description": "Text you enter is processed and the computer makes a guess at what you mean. If the computer is not sure, it can give you choices.",
+      "description": "Text you enter is processed and NotePlan makes a guess at what you mean. If NotePlan is not sure, it will give you choices. If you uncheck this, NotePlan will just use the first choice it finds (which may or may not be what you wanted).",
       "default": true
     },
+    {
+      "title": "Default event length (in mins) for items which have no end time",
+      "key": "eventLength",
+      "type": "string",
+      "choices": ["5","15","20","30","60","90","120"],
+      "description": "If you enter 'Do something at 3pm', how long (in minutes) should that calendar item be?",
+      "default": "30"
+    },
+    {
+      "title": "Remove date text from content & place in calendar link",
+      "key": "removeDateText",
+      "type": "bool",
+      "description": "If selected, the text (e.g. 'Friday at 9am') will be removed from the text and placed inside the link to the calendar event.",
+      "default": true
+    },    
     {
       "title": "Calendar link text",
       "key": "linkText",
       "type": "string",
-      "description": "Use this text for the short link to the calendar item",
+      "description": "Use this text for the short link to the calendar item. Leave blank for just the date text.",
       "default": "→"
     },
     {

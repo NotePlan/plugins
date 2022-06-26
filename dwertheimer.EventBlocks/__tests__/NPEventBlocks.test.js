@@ -32,54 +32,5 @@ describe('dwertheimer.EventBlocks' /* pluginID */, () => {
         const ret = mainFile.createEvents('theTitle', 'no')
       })
     })
-    /*
-     * findHeading()
-     */
-    describe('findHeading()' /* function */, () => {
-      /* template:
-      test('should XXX', () => {
-        const spy = jest.spyOn(CommandBar, 'prompt')
-        const result = mainFile.findHeading()
-        expect(result).toEqual(true)
-	expect(spy).toHaveBeenCalledWith()
-        spy.mockRestore()
-      })
-      */
-      test('should return a paragraph when matched', () => {
-        const result = mainFile.findHeading(Editor.note, 'theTitle')
-        expect(result).not.toEqual(null)
-        expect(result.content).toEqual(`theTitle`)
-      })
-      test('should return null when not matched', () => {
-        const result = mainFile.findHeading(Editor.note, 'NoTitleMatch')
-        expect(result).toEqual(null)
-      })
-    })
-    /*
-     * getBlockUnderHeading()
-     */
-    describe('getBlockUnderHeading()' /* function */, () => {
-      /* template:
-      test('should XXX', () => {
-        const spy = jest.spyOn(CommandBar, 'prompt')
-        const result = mainFile.getBlockUnderHeading()
-        expect(result).toEqual(true)
-	expect(spy).toHaveBeenCalledWith()
-        spy.mockRestore()
-      })
-      */
-      test('should return block when passed a string', () => {
-        const result = mainFile.getBlockUnderHeading(Editor.note, 'theTitle')
-        expect(result.length).toEqual(2)
-        expect(result[0].content).toEqual(`theTitle`)
-        expect(result[1].content).toEqual(`line 2`)
-      })
-      test('should return block when passed a paragraph', () => {
-        const result = mainFile.getBlockUnderHeading(Editor.note, Editor.note.paragraphs[0])
-        expect(result.length).toEqual(2)
-        expect(result[0].content).toEqual(`theTitle`)
-        expect(result[1].content).toEqual(`line 2`)
-      })
-    })
   })
 })
