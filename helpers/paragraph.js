@@ -4,6 +4,7 @@
 //-----------------------------------------------------------------------------
 
 import { log, logError, logWarn } from './dev'
+import { getParagraphBlock } from '@helpers/NPParagraph'
 
 //-----------------------------------------------------------------------------
 // Paragraph-level Functions
@@ -63,8 +64,8 @@ export function displayTitle(n: ?TNote): string {
   return !n
     ? 'error'
     : n.type === 'Calendar' && n.date != null
-      ? n.filename.split('.')[0] // without file extension
-      : n.title ?? ''
+    ? n.filename.split('.')[0] // without file extension
+    : n.title ?? ''
 }
 
 /**
@@ -97,8 +98,22 @@ export function printParagraph(p: TParagraph) {
     return
   }
 
-  const { content, type, prefix, contentRange, lineIndex, date, heading, headingRange,
-    headingLevel, isRecurring, indents, filename, noteType, linkedNoteTitles } = p
+  const {
+    content,
+    type,
+    prefix,
+    contentRange,
+    lineIndex,
+    date,
+    heading,
+    headingRange,
+    headingLevel,
+    isRecurring,
+    indents,
+    filename,
+    noteType,
+    linkedNoteTitles,
+  } = p
 
   const logObject = {
     content,
@@ -148,7 +163,10 @@ export function calcSmartPrependPoint(note: TNote): number {
       }
       if (insertionLine === 1) {
         // If we get here we haven't found an end to the YAML block.
-        logWarn('paragraph/calcSmartPrependPoint', `Couldn't find end of YAML frontmatter in note ${displayTitle(note)}`)
+        logWarn(
+          'paragraph/calcSmartPrependPoint',
+          `Couldn't find end of YAML frontmatter in note ${displayTitle(note)}`,
+        )
         // It's not clear what to do at this point, so will leave insertion point as is
       }
     } else if (lines[1].match(/^#[A-z]/)) {
@@ -260,7 +278,10 @@ export function findStartOfActivePartOfNote(note: TNote): number {
     let paras = note.paragraphs
     // First check there's actually anything at all! If note, add a first empty paragraph
     if (paras.length === 0) {
-      log(`paragraph/findStartOfActivePartOfNote`, `Note was empty; adding a blank line to make writing to the note work`)
+      log(
+        `paragraph/findStartOfActivePartOfNote`,
+        `Note was empty; adding a blank line to make writing to the note work`,
+      )
       note.appendParagraph('', 'empty')
       return 0
     }
@@ -268,20 +289,23 @@ export function findStartOfActivePartOfNote(note: TNote): number {
       // Calendar notes are simple -> line index 0
       // But first check there's actually anything at all! If so -> NaN
       return 0
-    }
-    else {
+    } else {
       // Looking at project/regular notes
       // set line to start looking at: after H1 or frontmatter (if present)
       const endOfTitleOrFMIndex = endOfFrontmatterLineIndex(note)
       let startOfActive = endOfTitleOrFMIndex + 1
-      if (paras.length === startOfActive) { // NB: length = line index + 1
+      if (paras.length === startOfActive) {
+        // NB: length = line index + 1
         // There is no line after title or FM, so add a blank line to use
-        log('paragraph/findStartOfActivePartOfNote', `Added a blank line after title/frontmatter of '${displayTitle(note)}'`)
+        log(
+          'paragraph/findStartOfActivePartOfNote',
+          `Added a blank line after title/frontmatter of '${displayTitle(note)}'`,
+        )
         note.appendParagraph('', 'empty')
         paras = note.paragraphs
       }
 
-      // additionally, we're going to skip past any front-matter like section in a project note, 
+      // additionally, we're going to skip past any front-matter like section in a project note,
       // indicated by a #hashtag starting the next line.
       // If there is, run on to next heading or blank line.
       if (paras[startOfActive].content.match(/^#\w/)) {
@@ -295,8 +319,7 @@ export function findStartOfActivePartOfNote(note: TNote): number {
       }
       return startOfActive
     }
-  }
-  catch (err) {
+  } catch (err) {
     logError('paragraph/findStartOfActivePartOfNote', err.message)
     return NaN // for completeness
   }
@@ -335,10 +358,12 @@ export function getOrMakeMetadataLine(note: TNote): number {
   let lineNumber: number = NaN
   const lines = note.content?.split('\n') ?? ['']
   for (let i = 1; i < lines.length; i++) {
-    if (lines[i].match(/^project:/i)
-      || lines[i].match(/^metadata:/i)
-      || lines[i].match(/^#[\w]/)
-      || lines[i].match(/(@review|@reviewed)\(.+\)/)) {
+    if (
+      lines[i].match(/^project:/i) ||
+      lines[i].match(/^metadata:/i) ||
+      lines[i].match(/^#[\w]/) ||
+      lines[i].match(/(@review|@reviewed)\(.+\)/)
+    ) {
       lineNumber = i
       break
     }
@@ -398,4 +423,52 @@ export function removeSection(note: TNote, heading: string): number {
   } else {
     return ps.length - 1 // end of the file (zero-based line index)
   }
+}
+
+/**
+ * Find a heading/title that matches the string given
+ * @param {TNote} note
+ * @param {string} heading
+ * @returns {TParagraph | null} - returns the actual paragraph or null if not found
+ * @author @dwertheimer
+ * @tests exist
+ */
+export function findHeading(note: TNote, heading: string): TParagraph | null {
+  if (heading) {
+    const paragraphs = note.paragraphs
+    const para = paragraphs.find(
+      (paragraph) => paragraph.type === 'title' && paragraph.content.trim() === heading.trim(),
+    )
+
+    if (para) return para
+  }
+  return null
+}
+
+/**
+ * Get the paragraphs beneath a title/heading in a note (optionally return the contents without the heading)
+ * @param {TNote} note
+ * @param {TParagraph | string} heading
+ * @param {boolean} returnHeading - whether to return the heading or not with the results (default: true)
+ * @returns {TParagraph | null} - returns
+ */
+export function getBlockUnderHeading(
+  note: TNote,
+  heading: TParagraph | string,
+  returnHeading: boolean = true,
+): Array<TParagraph> | [] {
+  let headingPara = null
+  if (typeof heading === 'string') {
+    headingPara = findHeading(note, heading)
+  } else {
+    headingPara = heading
+  }
+  let paras = []
+  if (headingPara?.lineIndex !== null) {
+    paras = getParagraphBlock(note, headingPara.lineIndex)
+  }
+  if (paras.length && !returnHeading) {
+    paras.shift() //remove the header paragraph
+  }
+  return paras
 }

@@ -213,6 +213,18 @@ export function calendarNotesSortedByChanged(): Array<TNote> {
 }
 
 /**
+ * Return list of weekly notes, sorted by changed date (newest to oldest)
+ * @author @jgclark
+ *
+ * @return {Array<TNote>} - list of notes
+ */
+export const RE_WEEKLY_NOTE_FILENAME = "\\/?\\d{4}-W\\d{2}\\."
+export function weeklyNotesSortedByChanged(): Array<TNote> {
+  const weeklyNotes = DataStore.calendarNotes.slice().filter((f) => f.filename.match(RE_WEEKLY_NOTE_FILENAME))
+  return weeklyNotes.sort((first, second) => second.changedDate - first.changedDate)
+}
+
+/**
  * Return list of project notes, sorted by changed date (newest to oldest)
  * @author @jgclark
  *
