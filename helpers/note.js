@@ -5,6 +5,11 @@
 import { log, logError } from './dev'
 import { getFolderFromFilename } from './folders'
 import { showMessage } from './userInput'
+import { removeSection } from './paragraph'
+import {
+  displayTitle,
+  type headingLevelType
+} from './general'
 
 /**
  * Print summary of note details to log
@@ -267,4 +272,24 @@ export const clearNote = (note: TNote) => {
     const paras = note.type === 'Calendar' ? note.paragraphs : note.paragraphs.filter((para) => para.lineIndex !== 0)
     note.removeParagraphs(paras)
   }
+}
+
+export function replaceSection(note: TNote, sectionHeadingToRemove: string, newSectionHeading: string,
+  sectionHeadingLevel: headingLevelType, sectionText: string): void {
+  log('replaceSection', `in note '${displayTitle(note)}' for ${sectionHeadingToRemove} for ${sectionText.length} chars`)
+
+  // First remove existing heading (the start will probably be right, but the end will probably need to be changed)
+  const insertionLineIndex = removeSection(note, sectionHeadingToRemove)
+  // Set place to insert either after the found section heading, or at end of note
+  // write in reverse order to avoid having to calculate insertion point again
+  note.insertHeading(
+    newSectionHeading,
+    insertionLineIndex,
+    sectionHeadingLevel,
+  )
+  note.insertParagraph(
+    sectionText,
+    insertionLineIndex + 1,
+    'text',
+  )
 }

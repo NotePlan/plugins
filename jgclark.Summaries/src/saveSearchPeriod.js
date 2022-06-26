@@ -3,7 +3,7 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 17.6.2022 for v0.9.0, @jgclark
+// Last updated 26.6.2022 for v0.9.0+, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -31,7 +31,6 @@ import {
   chooseOption,
   getInput,
   showMessage,
-  // showMessageYesNo,
 } from '@helpers/userInput'
 
 //-------------------------------------------------------------------------------
@@ -57,6 +56,7 @@ export async function saveSearchPeriod(searchTermsArg?: string, periodArg?: numb
     let toDate: Date
     let periodString = ''
     let periodPartStr = ''
+    let periodType = ''
     if (searchTermsArg !== undefined && periodArg !== undefined) {
       // Use arg2 (and possibly its default) if arg1 supplied
       log(pluginJson, `  will use arg2 '${periodArg}'`)
@@ -66,7 +66,7 @@ export async function saveSearchPeriod(searchTermsArg?: string, periodArg?: numb
       periodString = `last ${periodArgNumber} days`
     } else {
       // Otherwise ask user
-      [fromDate, toDate, periodString, periodPartStr] = await getPeriodStartEndDates(`What period shall I search over?`) // eslint-disable-line
+      [fromDate, toDate, periodType, periodString, periodPartStr] = await getPeriodStartEndDates(`What period shall I search over?`) // eslint-disable-line
       if (fromDate == null || toDate == null) {
         logError(pluginJson, 'dates could not be parsed')
         return

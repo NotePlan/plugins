@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Summary commands for notes
 // Jonathan Clark
-// Last updated 21.6.2022 for v0.9.0 by @jgclark
+// Last updated 26.6.2022 for v0.10.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -24,7 +24,10 @@ import {
   getUsersFirstDayOfWeekUTC,
   quarterStartEnd
 } from '@helpers/NPdateTime'
-import { CaseInsensitiveMap } from '@helpers/general'
+import {
+  CaseInsensitiveMap,
+  type headingLevelType,
+} from '@helpers/general'
 // import { gatherMatchingLines } from '@helpers/NPParagraph'
 import { chooseOption, getInput } from '@helpers/userInput'
 
@@ -33,7 +36,6 @@ import { chooseOption, getInput } from '@helpers/userInput'
 
 const configKey = 'summaries'
 
-export type headingLevelType = 1 | 2 | 3 | 4 | 5
 export type SummariesConfig = {
   folderToStore: string,
   foldersToExclude: Array<string>,
@@ -52,6 +54,7 @@ export type SummariesConfig = {
   showEmptyOccurrences: boolean,
   dateStyle: string,
   weeklyStatsDuration: ?number,
+  progressDestination: string,
   progressHeading: string,
   progressHashtags: Array<string>,
   progressMentions: Array<string>,
@@ -79,66 +82,68 @@ export async function getSummariesSettings(): Promise<any> {
   }
 }
 
-export async function getPeriodStartEndDates(question: string = 'Create stats for which period?', periodToUse?: string): Promise<[Date, Date, string, string]> {
-  let period: string
+export const periodTypesAndDescriptions = [
+  {
+    label: 'Last Week',
+    value: 'lw',
+  },
+  {
+    label: 'This week (so far)',
+    value: 'userwtd',
+  },
+  {
+    label: 'Other Week',
+    value: 'ow',
+  },
+  {
+    label: 'Last Month',
+    value: 'lm',
+  },
+  {
+    label: 'This Month (to date)',
+    value: 'mtd',
+  },
+  {
+    label: 'Other Month',
+    value: 'om',
+  },
+  {
+    label: 'Last Quarter',
+    value: 'lq',
+  },
+  {
+    label: 'This Quarter (to date)',
+    value: 'qtd',
+  },
+  {
+    label: 'Other Quarter',
+    value: 'oq',
+  },
+  {
+    label: 'Last Year',
+    value: 'ly',
+  },
+  {
+    label: 'Year to date',
+    value: 'ytd',
+  },
+  {
+    label: 'Other Year',
+    value: 'oy',
+  },
+]
+
+export async function getPeriodStartEndDates(question: string = 'Create stats for which period?', periodTypeToUse?: string): Promise<[Date, Date, string, string, string]> {
+  let periodType: string
   // If we're passed the period, then use that, otherwise ask user
-  if (periodToUse) {
+  if (periodTypeToUse) {
     // It may come with surrounding quotes, so remove those
-    period = trimAnyQuotes(periodToUse)
+    periodType = trimAnyQuotes(periodTypeToUse)
   } else {
     // Ask user what date interval to do tag counts for
-    period = await chooseOption(
+    periodType = await chooseOption(
       question,
-      [
-        {
-          label: 'Last Week',
-          value: 'lw',
-        },
-        {
-          label: 'This week so far',
-          value: 'userwtd',
-        },
-        {
-          label: 'Other Week',
-          value: 'ow',
-        },
-        {
-          label: 'Last Month',
-          value: 'lm',
-        },
-        {
-          label: 'This Month (to date)',
-          value: 'mtd',
-        },
-        {
-          label: 'Other Month',
-          value: 'om',
-        },
-        {
-          label: 'Last Quarter',
-          value: 'lq',
-        },
-        {
-          label: 'This Quarter (to date)',
-          value: 'qtd',
-        },
-        {
-          label: 'Other Quarter',
-          value: 'oq',
-        },
-        {
-          label: 'Last Year',
-          value: 'ly',
-        },
-        {
-          label: 'Year to date',
-          value: 'ytd',
-        },
-        {
-          label: 'Other Year',
-          value: 'oy',
-        },
-      ],
+      periodTypesAndDescriptions,
       'mtd',
     )
   }
@@ -159,9 +164,9 @@ export async function getPeriodStartEndDates(question: string = 'Create stats fo
   // Get TZOffset in minutes. If positive then behind UTC; if negative then ahead.
   // TODO: see whether moment library can make this easier
   const TZOffset = new Date().getTimezoneOffset()
-  // log(pluginJson, `getPeriodStartEndDates: period = ${period}, TZOffset = ${TZOffset}.`)
+  // log(pluginJson, `getPeriodStartEndDates: periodType = ${periodType}, TZOffset = ${TZOffset}.`)
 
-  switch (period) {
+  switch (periodType) {
     case 'lm': {
       fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, 1, 0, 0, 0), 'minute', -TZOffset) // go to start of this month
       fromDate = Calendar.addUnitToDate(fromDate, 'month', -1) // -1 month
@@ -303,11 +308,11 @@ export async function getPeriodStartEndDates(question: string = 'Create stats fo
       break
     }
     default: {
-      periodString = `<Error: couldn't parse interval type '${period}'>`
+      periodString = `<Error: couldn't parse interval type '${periodType}'>`
     }
   }
   // log(pluginJson, `-> ${fromDate.toString()}, ${toDate.toString()}, ${periodString}, ${periodPartStr}`)
-  return [fromDate, toDate, periodString, periodPartStr]
+  return [fromDate, toDate, periodType, periodString, periodPartStr]
 }
 
 /**
@@ -350,10 +355,10 @@ export function calcHashtagStatsPeriod(
     termSumTotals.set(termKey, NaN)
   }
 
-  console.log("hCounts init:")
-  for (const [key, value] of termCounts.entries()) {
-    console.log(`  ${key}: ${value}`)
-  }
+  // console.log("hCounts init:")
+  // for (const [key, value] of termCounts.entries()) {
+  //   console.log(`  ${key}: ${value}`)
+  // }
 
   // For each daily note review each included hashtag
   for (const n of periodDailyNotes) {
@@ -409,9 +414,9 @@ export function calcHashtagStatsPeriod(
   // termCounts.forEach(h => {
   //   console.log(h)
   // })
-  for (const [key, value] of termCounts) {
-    console.log(`${key}\t${value}`)
-  }
+  // for (const [key, value] of termCounts) {
+  //   console.log(`${key}\t${value}`)
+  // }
 
   return [termCounts, termSumTotals]
 }
@@ -457,10 +462,10 @@ export function calcMentionStatsPeriod(
     termSumTotals.set(k, NaN) // start with NaN so we can tell if there has been nothing added
   }
 
-  console.log("mSumTotals init:")
-  for (const [key, value] of termSumTotals.entries()) {
-    console.log(`  ${key}: ${value}`)
-  }
+  // console.log("mSumTotals init:")
+  // for (const [key, value] of termSumTotals.entries()) {
+  //   console.log(`  ${key}: ${value}`)
+  // }
 
   for (const n of periodDailyNotes) {
     // TODO(EduardMet): fix API bug

@@ -7,6 +7,8 @@ import json5 from 'json5'
 import { logError } from './dev'
 import { showMessage } from './userInput'
 
+export type headingLevelType = 1 | 2 | 3 | 4 | 5
+
 //-------------------------------------------------------------------------------
 /**
  * Case Insensitive version of Map

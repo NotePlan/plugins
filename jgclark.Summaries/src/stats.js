@@ -2,11 +2,8 @@
 //-----------------------------------------------------------------------------
 // Create statistics for hasthtags and mentions for time periods
 // Jonathan Clark, @jgclark
-// Last updated 21.6.2022 for v0.9.0
+// Last updated 24.6.2022 for v0.9.1
 //-----------------------------------------------------------------------------
-
-// TODO:
-// - When weekly/monthly notes are made possible in NP, then output changes there as well
 
 //-----------------------------------------------------------------------------
 // Helper functions
@@ -15,24 +12,25 @@ import pluginJson from '../plugin.json'
 import {
   calcHashtagStatsPeriod,
   calcMentionStatsPeriod,
-  getSummariesSettings,
   getPeriodStartEndDates,
-  // type SummariesConfig,
+  getSummariesSettings,
 } from './summaryHelpers'
 import {
-  // getWeek,
+  getWeek,
   // hyphenatedDateString,
-  // monthNameAbbrev,
   unhyphenatedDate,
   // weekStartEnd,
 } from '@helpers/dateTime'
 import { log, logError } from '@helpers/dev'
-import { CaseInsensitiveMap } from '@helpers/general'
 import {
-  // clearNote,
-  getOrMakeNote
+  CaseInsensitiveMap,
+  displayTitle,
+} from '@helpers/general'
+import {
+  getOrMakeNote,
+  printNote,
+  replaceSection,
 } from '@helpers/note'
-import { removeSection } from '@helpers/paragraph'
 // import { logAllEnvironmentSettings } from '@helpers/NPdev'
 import { caseInsensitiveCompare } from '@helpers/sorting'
 import {
@@ -51,17 +49,17 @@ export async function statsPeriod(): Promise<void> {
   // log(pluginJson, `Contents of NotePlan.environment...:`)
   // logAllEnvironmentSettings()
 
-  // Get config settings from Template folder _configuration note
+  // Get config settings
   const config = await getSummariesSettings()
 
   // Get time period
-  const [fromDate, toDate, periodString, periodPartStr] = await getPeriodStartEndDates()  
+  const [fromDate, toDate, periodType, periodString, periodPartStr] = await getPeriodStartEndDates()  
   if (fromDate == null || toDate == null) {
     log(pluginJson, 'statsPeriod: error in calculating dates for chosen time period')
     return
   }
-  const fromDateStr = unhyphenatedDate(fromDate) //fromDate.toISOString().slice(0, 10).replace(/-/g, '')
-  const toDateStr = unhyphenatedDate(toDate) // toDate.toISOString().slice(0, 10).replace(/-/g, '')
+  const fromDateStr = unhyphenatedDate(fromDate)
+  const toDateStr = unhyphenatedDate(toDate)
   log(pluginJson, `statsPeriod: calculating for ${periodString} (${fromDateStr} - ${toDateStr}):`)
 
   // Calc hashtags stats (returns two maps)
@@ -139,31 +137,26 @@ export async function statsPeriod(): Promise<void> {
 
   // --------------------------------------------------------------------------
   // Ask where to save this summary to
-  const labelString = `🖊 Create/update a note in folder '${config.folderToStore}'`
+  const outputOptions = [
+    { label: '🖊 Append to your current note', value: 'current' },
+    { label: `🖊 Create/update a note in folder '${config.folderToStore}'`, value: 'note' },
+    { label: '📋 Write to console log', value: 'log' },
+    { label: '❌ Cancel', value: 'cancel' },
+  ]
+  switch (periodType) {
+    case 'userwtd': {
+      outputOptions.unshift({ label: `📅 Add/Update your current Weekly note`, value: 'weekly' })
+      break
+    }
+    // TODO: When monthly notes are made possible in NP, add this option
+    // case 'mtd': {
+    //   outputOptions.unshift({ label: `📅 Add/Update your Monthly note`, value: 'monthly' })
+    //   break
+    // }
+  }
   const destination = await chooseOption(
     `Where to save the summary for ${periodString}?`,
-    [
-      {
-        // TODO: When weekly/monthly notes are made possible in NP, then add options like this
-        //   label: "📅 Append to this month's note",
-        //   value: "today"
-        // }, {
-        label: labelString,
-        value: 'note',
-      },
-      {
-        label: '🖊 Append to current note',
-        value: 'current',
-      },
-      {
-        label: '📋 Write to console log',
-        value: 'log',
-      },
-      {
-        label: '❌ Cancel',
-        value: 'cancel',
-      },
-    ],
+    outputOptions,
     'note',
   )
 
@@ -189,7 +182,8 @@ export async function statsPeriod(): Promise<void> {
       }
       break
     }
-    case 'note': {
+
+    case 'note': { // Summaries note
       const note = await getOrMakeNote(periodString, config.folderToStore)
       if (note == null) {
         logError(pluginJson, `cannot get new note`)
@@ -197,47 +191,46 @@ export async function statsPeriod(): Promise<void> {
         return
       }
 
-      // Do we have an existing Hashtag counts section? If so, delete it.
-      let insertionLineIndex = removeSection(
-        note,
-        config.hashtagCountsHeading,
-      )
-      // log(pluginJson, `  Hashtag insertionLineIndex: ${String(insertionLineIndex)}`)
-      // Set place to insert either after the found section heading, or at end of note
-      // write in reverse order to avoid having to calculate insertion point again
-      note.insertHeading(
+      // Replace or add Hashtag counts section
+      replaceSection(note, config.hashtagCountsHeading,
         `${config.hashtagCountsHeading} ${periodPartStr}`,
-        insertionLineIndex,
-        config.headingLevel,
-      )
-      note.insertParagraph(
-        hOutputArray.join('\n'),
-        insertionLineIndex + 1,
-        'text',
-      )
+        config.headingLevel, hOutputArray.join('\n'))
 
-      // Do we have an existing Mentions counts section? If so, delete it.
-      insertionLineIndex = removeSection(
-        note,
-        config.mentionCountsHeading,
-      )
-      // log(pluginJson, `  Mention insertionLineIndex: ${insertionLineIndex}`)
-      // Set place to insert either after the found section heading, or at end of note
-      // write in reverse order to avoid having to calculate insertion point again
-      note.insertHeading(
+      // Replace or add Mentions counts section
+      replaceSection(note, config.mentionCountsHeading,
         `${config.mentionCountsHeading} ${periodPartStr}`,
-        insertionLineIndex,
-        config.headingLevel,
-      )
-      note.insertParagraph(
-        mOutputArray.join('\n'),
-        insertionLineIndex + 1,
-        'text',
-      )
+        config.headingLevel, mOutputArray.join('\n'))
       // open this note in the Editor
       Editor.openNoteByFilename(note.filename)
 
       log(pluginJson, `Written results to note '${periodString}'`)
+      break
+    }
+
+    case 'weekly': { // Weekly note (from v3.6)
+      const todaysDate = new Date()
+      // couldn't get const { y, m, d } = getYearMonthDate(todaysDate) to work ??
+      const y = todaysDate.getFullYear()
+      const w = getWeek(todaysDate) + 1 // TODO(Eduard): not using ISO def of week number
+
+      log(pluginJson, `Opening weekly note for ${y} / ${w}`)
+      await Editor.openWeeklyNote(y, w)
+      const { note } = Editor
+      if (note == null) {
+        logError(pluginJson, `cannot get Weekly note`)
+        await showMessage('There was an error getting the Weekly ready to write')
+        return
+      }
+      printNote(note)
+
+      // Replace or add Hashtag counts section
+      replaceSection(note, config.hashtagCountsHeading, `${config.hashtagCountsHeading} ${periodPartStr}`, config.headingLevel, hOutputArray.join('\n'))
+      // Replace or add Mentions counts section
+      replaceSection(note, config.mentionCountsHeading, `${config.mentionCountsHeading} ${periodPartStr}`, config.headingLevel, mOutputArray.join('\n'))
+
+      // open this note in the Editor
+      // Editor.openNoteByFilename(note.filename)
+      log(pluginJson, `Written results to note '${displayTitle(note)}'`)
       break
     }
 
