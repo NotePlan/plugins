@@ -2,9 +2,8 @@
 
 import { hyphenatedDate } from './dateTime'
 import { toLocaleDateTimeString } from './NPdateTime'
-import { log, logError, logWarn } from './dev'
+import { JSP, log, logError, logWarn } from './dev'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote, termInMarkdownPath, termInURL } from './paragraph'
-import { showMessageYesNo, showMessage } from '@helpers/userInput'
 
 /**
  * Remove all headings (type=='title') from a note matching the given text
@@ -254,6 +253,38 @@ export function getParagraphBlock(
 }
 
 /**
+ * Get the paragraphs beneath a title/heading in a note (optionally return the contents without the heading)
+ * Note: Moved from helpers/paragraph.js to avoid circular depdency problem with getParagraphBlock()
+ * @author @dwertheimer
+ * @tests available in jest file
+ * @param {TNote} note
+ * @param {TParagraph | string} heading
+ * @param {boolean} returnHeading - whether to return the heading or not with the results (default: true)
+ * @returns {TParagraph | null} - returns
+ */
+export function getBlockUnderHeading(
+  note: TNote,
+  heading: TParagraph | string,
+  returnHeading: boolean = true,
+): Array<TParagraph> | [] {
+  let headingPara = null
+  if (typeof heading === 'string') {
+    headingPara = findHeading(note, heading)
+  } else {
+    headingPara = heading
+  }
+  let paras: Array<TParagraph> = []
+  if (headingPara?.lineIndex !== null) {
+    // $FlowFixMe(incompataible-use)
+    paras = getParagraphBlock(note, headingPara.lineIndex)
+  }
+  if (paras.length && !returnHeading) {
+    paras.shift() //remove the header paragraph
+  }
+  return paras
+}
+
+/**
  * Return list of lines matching the specified string in the specified project or daily notes.
  * NB: If starting now, I would try to use a different return type, probably tuples not 2 distinct arrays.
  * @author @jgclark
@@ -348,7 +379,8 @@ export function gatherMatchingLines(
 }
 
 /**
- * Get the paragraph index of the current selection, or 0 if no selection is active.
+ * Get the paragraph index of the start of the current selection, or 0 if no selection is active.
+ * Note: Not currently used, I think.  See selectedLinesIndex instead (below).
  * @author @jgclark
  * @returns {number}
  */
@@ -373,6 +405,42 @@ export function getSelectedParaIndex(): number {
   }
   // log('NPParagraph/getSelectedParaIndex', `  firstSelParaIndex = ${firstSelParaIndex}`)
   return firstSelParaIndex
+}
+
+/**
+ * Get paragraph numbers of the start and end of the current selection in the Editor.
+ * @author @jgclark
+ *
+ * @param {TRange} selection - the current selection rnage object
+ * @return {[number, number]} the line index number of start and end of selection
+ */
+export function selectedLinesIndex(selection: Range, paragraphs: $ReadOnlyArray<TParagraph>): [number, number] {
+  let firstSelParaIndex = 0
+  let lastSelParaIndex = 0
+  const startParaRange: Range = Editor.paragraphRangeAtCharacterIndex(selection.start)
+  const endParaRange: Range = Editor.paragraphRangeAtCharacterIndex(selection.end)
+
+  // Get the set of selected paragraphs (which can be different from selection),
+  // and work out what selectedPara number(index) this selected selectedPara is
+  for (let i = 0; i < paragraphs.length; i++) {
+    const p = paragraphs[i]
+    if (startParaRange.start === p.contentRange?.start) {
+      firstSelParaIndex = i
+      break
+    }
+  }
+  for (let i = paragraphs.length - 1; i >= 0; i--) {
+    const p = paragraphs[i]
+    if (endParaRange.end >= (p.contentRange?.end ?? 0)) {
+      lastSelParaIndex = i
+      break
+    }
+  }
+  if (lastSelParaIndex === 0) {
+    lastSelParaIndex = firstSelParaIndex
+  }
+  // console.log(`\t-> paraIndexes ${firstSelParaIndex}-${lastSelParaIndex}`)
+  return [firstSelParaIndex, lastSelParaIndex]
 }
 
 /**
@@ -404,7 +472,7 @@ export async function removeContentUnderHeadingInAllNotes(
         )
       }
     } else {
-      if (!(runSilently === 'yes')) showMessage(`Found no previous notes with "${heading}"`)
+      if (!(runSilently === 'yes')) await showMessage(`Found no previous notes with "${heading}"`)
     }
     log(
       `NPParagraph`,
@@ -415,4 +483,46 @@ export async function removeContentUnderHeadingInAllNotes(
   } catch (error) {
     logError(`NPParagraph`, `removeContentUnderHeadingInAllNotes error: ${JSP(error)}`)
   }
+}
+
+/**
+ * COPY FROM helpers/NPParagaph.js to avoid a circular dependency
+ */
+export function findHeading(note: TNote, heading: string): TParagraph | null {
+  if (heading) {
+    const paragraphs = note.paragraphs
+    const para = paragraphs.find(
+      (paragraph) => paragraph.type === 'title' && paragraph.content.trim() === heading.trim(),
+    )
+
+    if (para) return para
+  }
+  return null
+}
+
+/**
+ * COPY FROM helpers/userInput.js to avoid a circular dependency
+ */
+async function showMessage(message: string, confirmButton: string = 'OK', dialogTitle: string = ''): Promise<void> {
+  if (typeof CommandBar.prompt === 'function') {
+    // i.e. do we have .textPrompt available?
+    await CommandBar.prompt(dialogTitle, message, [confirmButton])
+  } else {
+    await CommandBar.showOptions([confirmButton], message)
+  }
+}
+
+/**
+ * COPY FROM helpers/userInput.js to avoid a circular dependency
+ */
+async function showMessageYesNo(message: string, choicesArray: Array<string> = ['Yes', 'No'], dialogTitle: string = ''): Promise<string> {
+  let answer: number
+  if (typeof CommandBar.prompt === 'function') {
+    // i.e. do we have .textPrompt available?
+    answer = await CommandBar.prompt(dialogTitle, message, choicesArray)
+  } else {
+    const answerObj = await CommandBar.showOptions(choicesArray, `${message}`)
+    answer = answerObj.index
+  }
+  return choicesArray[answer]
 }

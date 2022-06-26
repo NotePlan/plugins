@@ -4,7 +4,6 @@
 //-----------------------------------------------------------------------------
 
 import { log, logError, logWarn } from './dev'
-import { getParagraphBlock } from '@helpers/NPParagraph'
 
 //-----------------------------------------------------------------------------
 // Paragraph-level Functions
@@ -326,43 +325,6 @@ export function findStartOfActivePartOfNote(note: TNote): number {
 }
 
 /**
- * Get paragraph numbers of the start and end of the current selection in the Editor.
- * @author @jgclark
- *
- * @param {TRange} selection - the current selection rnage object
- * @return {[number, number]} the line index number of start and end of selection
- */
-export function selectedLinesIndex(selection: Range, paragraphs: $ReadOnlyArray<TParagraph>): [number, number] {
-  let firstSelParaIndex = 0
-  let lastSelParaIndex = 0
-  const startParaRange = Editor.paragraphRangeAtCharacterIndex(selection.start)
-  const endParaRange: Range = Editor.paragraphRangeAtCharacterIndex(selection.end)
-
-  // Get the set of selected paragraphs (which can be different from selection),
-  // and work out what selectedPara number(index) this selected selectedPara is
-  for (let i = 0; i < paragraphs.length; i++) {
-    const p = paragraphs[i]
-    if (startParaRange.start === p.contentRange?.start) {
-      firstSelParaIndex = i
-      break
-    }
-  }
-  for (let i = paragraphs.length - 1; i >= 0; i--) {
-    const p = paragraphs[i]
-    if (endParaRange.end >= (p.contentRange?.end ?? 0)) {
-      lastSelParaIndex = i
-      break
-    }
-  }
-  if (lastSelParaIndex === 0) {
-    lastSelParaIndex = firstSelParaIndex
-  }
-  // Now get the first paragraph, and as many following ones as are in that block
-  // console.log(`\t-> paraIndexes ${firstSelParaIndex}-${lastSelParaIndex}`)
-  return [firstSelParaIndex, lastSelParaIndex]
-}
-
-/**
  * Get the paragraph from the passed content (using exact match)
  * @author @jgclark
  *
@@ -376,7 +338,7 @@ export function getParaFromContent(note: TNote, contentToFind: string): TParagra
       return p
     }
   }
-  console.log(`gPFC: warning couldn't find '${contentToFind}`)
+  logWarn('helper/getParaFromContent', `warning couldn't find '${contentToFind}`)
   return
 }
 
@@ -464,10 +426,12 @@ export function removeSection(note: TNote, heading: string): number {
 
 /**
  * Find a heading/title that matches the string given
+ * Note: There's a copy in helpers/NPParagaph.js to avoid a circular dependency
+ * @author @dwertheimer
+ * 
  * @param {TNote} note
  * @param {string} heading
  * @returns {TParagraph | null} - returns the actual paragraph or null if not found
- * @author @dwertheimer
  * @tests exist
  */
 export function findHeading(note: TNote, heading: string): TParagraph | null {
@@ -480,32 +444,4 @@ export function findHeading(note: TNote, heading: string): TParagraph | null {
     if (para) return para
   }
   return null
-}
-
-/**
- * Get the paragraphs beneath a title/heading in a note (optionally return the contents without the heading)
- * @param {TNote} note
- * @param {TParagraph | string} heading
- * @param {boolean} returnHeading - whether to return the heading or not with the results (default: true)
- * @returns {TParagraph | null} - returns
- */
-export function getBlockUnderHeading(
-  note: TNote,
-  heading: TParagraph | string,
-  returnHeading: boolean = true,
-): Array<TParagraph> | [] {
-  let headingPara = null
-  if (typeof heading === 'string') {
-    headingPara = findHeading(note, heading)
-  } else {
-    headingPara = heading
-  }
-  let paras = []
-  if (headingPara?.lineIndex !== null) {
-    paras = getParagraphBlock(note, headingPara.lineIndex)
-  }
-  if (paras.length && !returnHeading) {
-    paras.shift() //remove the header paragraph
-  }
-  return paras
 }

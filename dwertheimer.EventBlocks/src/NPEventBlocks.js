@@ -2,9 +2,9 @@
 
 import { addMinutes } from 'date-fns'
 import pluginJson from '../plugin.json'
-import { log, logError, clo, JSP } from '@helpers/dev'
+import { clo, log, logError, JSP } from '@helpers/dev'
 import { chooseHeading, chooseOption } from '@helpers/userInput'
-import { findHeading, getBlockUnderHeading } from '@helpers/paragraph'
+import { findHeading, getBlockUnderHeading } from '@helpers/NPParagraph'
 import { ja } from '@codedungeon/utils/node_modules/date-fns/esm/locale'
 
 export const hasCalendarLink = (line: string): boolean => /\!\[📅\]/.test(line)
