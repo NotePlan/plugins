@@ -4,7 +4,6 @@ dist/
 .cache/
 */ts-template/*.*
 .pluginpath
-*/.eslintrc
 *test*.yaml
 *.code-workspace
 *.dict
