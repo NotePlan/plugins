@@ -20,8 +20,16 @@ From v0.7.0, you can turn on 'Extended Block Definition' in the settings, which 
 
 NB: due to limitations in the API it's not yet possible to move items to a Calendar note that doesn't already exist. (I will improve this when the API supports it.)
 
-## /quick move to weekly note
-This command (alias **/qmw**) moves lines to the current weekly note, using the same selection strategy as /mp (see above). The move happens in the background, leaving you in the flow in your current note.  It could be mapped to a shortcut key to make it even faster. (Available with weekly notes from NotePlan v3.6.)
+
+## /quick move to ... note
+These 4 commands each moves lines to the current weekly note, using the same selection strategy as /mp (see above). The move happens in the background, leaving you in the flow in your current note. (Available with weekly notes from NotePlan v3.6.)
+
+- **/quick move to Today's note** (alias **/qmtd**) -- Note: this is different from the existing 'Move Task To Today ⌘0' shortcut, which actually _schedules_ not moves.
+- **/quick move to Tomorrow's note** (alias **/qmtm**) -- Note: this is different from the existing 'Move Task To Tomorrow ⌘1' shortcut, which actually _schedules_ not moves.
+- **/quick move to Weekly note** (alias **/qmw**)
+- **/quick move to Next Weekly note** (alias **/qmnw**)
+
+They could be mapped to shortcut keys to make using them even faster.
 
 ## /add sync'd copy to note
 This command (alias **/asc**) adds a sync'd copy of the current line to a section in another note.  Here's a demo with two notes side by side, only to make it clearer:
@@ -29,6 +37,9 @@ This command (alias **/asc**) adds a sync'd copy of the current line to a sectio
 ![](add-link-line-demo-T2.gif)
 
 NB: This only works with the "synced blocks" feature available in the NotePlan Lab from v3.5.2.  (This feature only works on single lines, not whole blocks, at the moment.)
+
+## /new note from clipboard
+This command (alias **/nnc**) takes the current text in the clipboard to form the basis of a new note. The command asks for the note title and folder location.
 
 ## /new note from selection
 This command (alias **/nns**) takes the current selected text to form the basis of a new note. The command asks for the note title and folder location.

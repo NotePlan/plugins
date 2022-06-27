@@ -7,7 +7,8 @@
   "plugin.icon": "",
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Filer",
-  "plugin.version": "0.8.0",
+  "plugin.version": "0.8.1",
+  "plugin.lastUpdateInfo": "Add '/new note from clipboard' command",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -69,6 +70,15 @@
       ],
       "description": "quick move paragraphs to Next Week's note",
       "jsFunction": "moveParasToNextWeekly"
+    },
+    {
+      "name": "new note from clipboard",
+      "alias": [
+        "nnc",
+        "new"
+      ],
+      "description": "New note from clipboard",
+      "jsFunction": "newNoteFromClipboard"
     },
     {
       "name": "new note from selection",

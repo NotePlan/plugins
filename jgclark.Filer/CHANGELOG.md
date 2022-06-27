@@ -3,8 +3,10 @@ Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree
 
 <!-- ### Added
 - [when environment() API call is available] ??? will use system locale in dates, where possible
-- new **/new note from clipboard** command (alias **nnc**) ??? this got lost?
 -->
+## [0.8.1] - 2022-06-27
+### Added
+- new **/new note from clipboard** command (alias **nnc**) added back in from 0.7.0 beta
 
 ## [0.8.0] - 2022-06-25
 ### Added
