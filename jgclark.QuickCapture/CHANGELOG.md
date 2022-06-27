@@ -1,6 +1,9 @@
 # What's changed in ⚡️ Quick Capture
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.QuickCapture), and how to configure.
 
+## [0.10.1] - 2022-06-27
+### Fixed
+- issue with passing YYYY-MM-DD dates as part of an x-callback invocation
 ## [0.10.0] - 2022-06-25
 ### Added
 - new command **/quick add to Weekly note** command

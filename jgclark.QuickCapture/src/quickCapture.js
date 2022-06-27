@@ -2,11 +2,11 @@
 // --------------------------------------------------------------------------------------------------------------------
 // QuickCapture plugin for NotePlan
 // by Jonathan Clark
-// last update v0.10.0, 25.6.2022 by @jgclark
+// last update v0.10.1, 27.6.2022 by @jgclark
 // --------------------------------------------------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { getISODateStringFromYYYYMMDD, getTodaysDateUnhyphenated, RE_ISO_DATE, RE_YYYYMMDD_DATE } from '@helpers/dateTime'
+import { unhyphenateString, getTodaysDateUnhyphenated, RE_ISO_DATE, RE_YYYYMMDD_DATE } from '@helpers/dateTime'
 import { log, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { allNotesSortedByChanged, calendarNotesSortedByChanged, projectNotesSortedByChanged, weeklyNotesSortedByChanged } from '@helpers/note'
@@ -175,7 +175,7 @@ export async function addTaskToNoteHeading(
       const noteTitleToMatch = noteTitleArg.match(RE_ISO_DATE) // for YYYY-MM-DD
         ? noteTitleArg
         : noteTitleArg.match(RE_YYYYMMDD_DATE) // for YYYYMMDD
-        ? getISODateStringFromYYYYMMDD(noteTitleArg)
+          ? unhyphenateString(noteTitleArg)
         : noteTitleArg // for regular note title
       const wantedNotes = notes.filter((n) => n.title === noteTitleToMatch)
       const note = wantedNotes != null ? wantedNotes[0] : null
@@ -260,13 +260,13 @@ export async function addTextToNoteHeading(noteTitleArg?: string,
       // Note: If noteTitleArg is for a calendar note, it has to be in the form YYYY-MM-DD here.
       // Note: Because of NP architecture, it's possible to have several notes with the same title; the first match is used.
       const noteTitleToMatch = noteTitleArg.match(RE_ISO_DATE) // for YYYY-MM-DD change to YYYYMMDD
-        ? getISODateStringFromYYYYMMDD(noteTitleArg)
+        ? unhyphenateString(noteTitleArg)
         : noteTitleArg // for regular note titles, and weekly notes
-      const wantedNotes = notes.filter((n) => displayTitle(n) === noteTitleToMatch)
+      const wantedNotes = allNotesSortedByChanged().filter((n) => displayTitle(n) === noteTitleToMatch)
       const note = wantedNotes != null ? wantedNotes[0] : null
       if (note != null) {
         if (wantedNotes.length > 1) {
-          logWarn(pluginJson, `  More than 1 matching note found with title '${noteTitleArg}'`)
+          logWarn(pluginJson, `  Found ${wantedNotes.length} matching notes with title '${noteTitleArg}'. Will use most recently changed note.`)
         }
         log(pluginJson, `  3 args given; note = '${displayTitle(note)}'; textArg = '${textArg}'`)
         note.addParagraphBelowHeadingTitle(
@@ -277,7 +277,7 @@ export async function addTextToNoteHeading(noteTitleArg?: string,
           true,
         )
       } else {
-        logError(pluginJson, `  Problem getting note '${noteTitleArg}' from x-callback args`)
+        logError(pluginJson, `  Problem getting note '${noteTitleToMatch}' from x-callback args`)
       }
       // Finish
       return
@@ -339,7 +339,7 @@ export async function prependTaskToDailyNote(dateArg?: string, textArg?: string)
     // If we both arguments, then use those
     if (dateArg !== undefined && textArg !== undefined) {
       const dateArgToMatch = dateArg.match(RE_ISO_DATE) // for YYYY-MM-DD change to YYYYMMDD
-        ? getISODateStringFromYYYYMMDD(dateArg)
+        ? unhyphenateString(dateArg)
         : dateArg // for regular note titles, and weekly notes
 
       // But check this is a valid note daily note first; if it isn't,

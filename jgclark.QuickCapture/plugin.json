@@ -7,7 +7,8 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.QuickCapture/",
-  "plugin.version": "0.10.0",
+  "plugin.version": "0.10.1",
+  "plugin.lastUpdateInfo": "Fixed problem with x-callback-urls",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -126,6 +127,11 @@
         "note title",
         "task to append"
       ]
+    },
+    {
+      "name": "jgc:update QuickCapture plugin",
+      "description": "jgc:update QuickCapture plugin",
+      "jsFunction": "onUpdateOrInstall"
     }
   ],
   "plugin.settings": [
