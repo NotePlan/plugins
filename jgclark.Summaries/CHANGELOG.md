@@ -1,5 +1,10 @@
 # What's Changed in 🗃 Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
+## [0.11.0] - 2022-06-27 (@@@ unreleased)
+### Changed
+- speeded up the **/saveSearchResults** command. (Under the hood the plugin now uses an API that takes advantage of caching.)
+- now trims the display of matching results in search output, but still highlights the matched terms
+
 ## [0.10.0] - 2022-06-26
 ### Changed
 - the **/countsInPeriod** command now offers to write to the new weekly notes (available from in v3.6) if the selected period is 'this week'

@@ -23,7 +23,7 @@ import {
   unhyphenatedDate,
   withinDateRange,
 } from '@helpers/dateTime'
-import { log, logWarn, logError } from '@helpers/dev'
+import { log, logWarn, logError, timer } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { gatherMatchingLines } from '@helpers/NPParagraph'
 import { removeSection } from '@helpers/paragraph'
@@ -119,12 +119,15 @@ export async function saveSearchPeriod(searchTermsArg?: string, periodArg?: numb
     }
 
     // Find matches in notes for the time period
+    const startTime = new Date // for timer
     const outputArray = []
+    let resultCount = 0
     for (const searchTerm of stringsToMatch) {
       // get list of matching paragraphs for this string
       const results = gatherMatchingLines(periodDailyNotes, searchTerm,
         config.highlightOccurrences, config.dateStyle, config.matchCase)
       const lines = results?.[0]
+      resultCount += lines.length
       const context = results?.[1]
       // output a heading first
       outputArray.push(`${headingMarker} ${searchTerm}`)
@@ -139,6 +142,8 @@ export async function saveSearchPeriod(searchTermsArg?: string, periodArg?: numb
         outputArray.push('(no matches)')
       }
     }
+    const elapsedTimeGML = timer(startTime)
+    log(pluginJson, `Search time (GML): ${elapsedTimeGML} -> ${resultCount} results`)
 
     const labelString = `🖊 Create/update note '${periodString}' in folder '${String(config.folderToStore)}'`
 
