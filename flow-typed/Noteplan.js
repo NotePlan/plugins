@@ -62,10 +62,22 @@ declare interface TEditor extends ParagraphBridge {
    */
   +filename: ?string;
   /**
-   * Get an array of selected lines. The cursor doesn't have to select the full
-   * line, NotePlan returns all complete lines the cursor "touches".
-   */
-  +selectedLinesText: $ReadOnlyArray<string>;
+  * Get or set the array of paragraphs contained in this note, such as tasks,
+  * bullets, etc. If you set the paragraphs, the content of the note will be
+  * updated.
+  */
+  paragraphs: $ReadOnlyArray < TParagraph >;
+  /**
+  * Get an array of selected lines. The cursor doesn't have to select the full
+  * line, NotePlan returns all complete lines the cursor "touches".
+  */
+  +selectedLinesText: $ReadOnlyArray < string >;
+  /**
+  * Get or set the array of paragraphs contained in this note, such as tasks,
+  * bullets, etc. If you set the paragraphs, the content of the note will be
+  * updated.
+  */
+  paragraphs: $ReadOnlyArray < TParagraph >;
   /**
    * Get an array of selected paragraphs. The cursor doesn't have to select the
    * full paragraph, NotePlan returns all complete paragraphs the cursor
@@ -542,10 +554,10 @@ declare class DataStore {
    * Note: available from v3.5, with 'filename' parameter added in v3.5.2
    * @param {string} content for note
    * @param {string} folder to create the note in
-   * @param {string} filename of the new note (available from v3.5.2)
+   * @param {string} filename of the new note (optional) (available from v3.5.2)
    * @return {string}
    */
-  static newNoteWithContent(content: string, folder: string, filename: string): string;
+  static newNoteWithContent(content: string, folder: string, filename ?: string): string;
 
   /**
    * Returns an array of paragraphs having the same blockID like the given one (which is also part of the return array).
@@ -628,6 +640,7 @@ declare class DataStore {
    * This function is async, use it with `await`, so that the UI is not being blocked during a long search.
    * Optionally pass a list of folders (`inNotes`) to limit the search to notes that ARE in those folders (applies only to project notes)
    * Optionally pass a list of folders (`notInFolders`) to limit the search to notes NOT in those folders (applies only to project notes)
+   * Searches for keywords are case-insensitive.
    * Note: Available from v3.6.0
    * @param {string} = keyword to search for
    * @param {Array<string>?} types ["notes", "calendar"] (by default all, or pass `null`)
@@ -647,6 +660,7 @@ declare class DataStore {
    * This function is async, use it with `await`, so that the UI is not being blocked during a long search.
    * Optionally pass a list of folders (`inNotes`) to limit the search to notes that ARE in those folders (applies only to project notes)
    * Optionally pass a list of folders (`notInFolders`) to limit the search to notes NOT in those folders (applies only to project notes)
+   * Searches for keywords are case-insensitive.
    * Note: Available from v3.6.0
    * @param {string} = keyword to search for
    * @param {Array<string>?} folders list (optional)
@@ -1062,8 +1076,11 @@ declare interface Paragraph {
    * Get or set the type of the paragraph
    */
   type: ParagraphType;
-
-  title?: ?string;
+  /**
+   * Returns the NoteObject behind this paragraph. This is a convenience method, so you don't need to use DataStore.
+   * Note: Available from v3.5.2
+   */
+  +note: ?TNote;
   /**
    * Get or set the content of the paragraph
    * (without the Markdown 'type' prefix, such as '* [ ]' for open task)
@@ -1074,93 +1091,93 @@ declare interface Paragraph {
    * (with the Markdown 'type' prefix, such as '* [ ]' for open task)
    */
   +rawContent: string;
-  /**
-   * Get the Markdown prefix of the paragraph (like '* [ ]' for open task)
-   */
-  +prefix: string;
-  /**
-   * Get the range of the paragraph.
-   */
-  +contentRange: Range | void;
-  /**
-   * Get the line index of the paragraph.
-   */
-  +lineIndex: number;
-  /**
-   * Get the date of the paragraph, if any (in case of scheduled tasks).
-   */
-  +date: Date | void;
-  /**
-   * Get the heading of the paragraph (looks for a previous heading paragraph).
-   */
-  +heading: string;
-  /**
-   * Get the heading range of the paragraph
-   * (looks for a previous heading paragraph).
-   */
-  +headingRange: Range | void;
-  /**
-   * Get the heading level of the paragraph ('# heading' = level 1).
-   */
-  +headingLevel: number;
-  /**
-   * If the task is a recurring one (contains '@repeat(...)')
-   */
-  +isRecurring: boolean;
-  /**
-   * Get the amount of indentations.
-   */
-  +indents: number;
-  /**
-   * Get the filename of the note this paragraph was loaded from
-   */
-  +filename: ?string;
-  /**
-   * Get the note type of the note this paragraph was loaded from.
-   */
-  +noteType: ?NoteType;
-  /**
-   * Get the linked note titles this paragraph contains,
-   * such as '[[Note Name]]' (will return names without the brackets).
-   */
-  +linkedNoteTitles: $ReadOnlyArray<string>;
-  /**
-   * Creates a duplicate object, so you can change values without affecting the
-   * original object
-   */
-  duplicate(): Paragraph;
-  /**
-   * Returns indented paragraphs (children) underneath a task
-   * Only tasks can have children, but any paragraph indented underneath a task
-   * can be a child of the task. This includes bullets, tasks, quotes, text.
-   * Children are counted until a blank line, HR, title, or another item at the
-   * same level as the parent task. So for items to be counted as children, they
-   * need to be contiguous vertically.
-   * Important note: .children() for a task paragraph will return every child,
-   * grandchild, greatgrandchild, etc. So a task that has a child task that has
-   * a child task will have 2 children (and the first child will have one)
-   * Note: Available from v3.3
-   * @return {[TParagraph]}
-   */
-  children(): $ReadOnlyArray<TParagraph>;
-  /**
-   * Returns an array of all paragraphs having the same blockID (including this paragraph). You can use `paragraph[0].note` to access the note behind it and make updates via `paragraph[0].note.updateParagraph(paragraph[0])` if you make changes to the content, type, etc (like checking it off as type = "done")
-   * Note: Available from v3.5.2
-   * @type {[ParagraphObject]} - getter
-   */
-  +referencedBlocks: [TParagraph];
-  /**
-   * Returns the NoteObject behind this paragraph. This is a convenience method, so you don't need to use DataStore.
-   * Note: Available from v3.5.2
-   * @type {TNote?}
-   */
-  +note: ?TNote;
-  /**
-   * Returns the given blockId if any.
-   * Note: Available from v3.5.2
-   * @type {string?}
-   */
-  +blockId: ?string;
+/**
+ * Get the Markdown prefix of the paragraph (like '* [ ]' for open task)
+ */
++prefix: string;
+/**
+ * Get the range of the paragraph.
+ */
++contentRange: Range | void;
+/**
+ * Get the line index of the paragraph.
+ */
++lineIndex: number;
+/**
+ * Get the date of the paragraph, if any (in case of scheduled tasks).
+ */
++date: Date | void;
+/**
+ * Get the heading of the paragraph (looks for a previous heading paragraph).
+ */
++heading: string;
+/**
+ * Get the heading range of the paragraph
+ * (looks for a previous heading paragraph).
+ */
++headingRange: Range | void;
+/**
+ * Get the heading level of the paragraph ('# heading' = level 1).
+ */
++headingLevel: number;
+/**
+ * If the task is a recurring one (contains '@repeat(...)')
+ */
++isRecurring: boolean;
+/**
+ * Get the amount of indentations.
+ */
++indents: number;
+/**
+ * Get the filename of the note this paragraph was loaded from
+ */
++filename: ?string;
+/**
+ * Get the note type of the note this paragraph was loaded from.
+ */
++noteType: ?NoteType;
+/**
+ * Get the linked note titles this paragraph contains,
+ * such as '[[Note Name]]' (will return names without the brackets).
+ */
++linkedNoteTitles: $ReadOnlyArray < string >;
+/**
+ * Creates a duplicate object, so you can change values without affecting the
+ * original object
+ */
+duplicate(): Paragraph;
+/**
+ * Returns indented paragraphs (children) underneath a task
+ * Only tasks can have children, but any paragraph indented underneath a task
+ * can be a child of the task. This includes bullets, tasks, quotes, text.
+ * Children are counted until a blank line, HR, title, or another item at the
+ * same level as the parent task. So for items to be counted as children, they
+ * need to be contiguous vertically.
+ * Important note: .children() for a task paragraph will return every child,
+ * grandchild, greatgrandchild, etc. So a task that has a child task that has
+ * a child task will have 2 children (and the first child will have one)
+ * Note: Available from v3.3
+ * @return {[TParagraph]}
+ */
+children(): $ReadOnlyArray < TParagraph >;
+/**
+ * Returns an array of all paragraphs having the same blockID (including this paragraph). You can use `paragraph[0].note` to access the note behind it and make updates via `paragraph[0].note.updateParagraph(paragraph[0])` if you make changes to the content, type, etc (like checking it off as type = "done")
+ * Note: Available from v3.5.2
+ * @type {[ParagraphObject]} - getter
+ */
++referencedBlocks: [TParagraph];
+/**
+ * Returns the NoteObject behind this paragraph. This is a convenience method, so you don't need to use DataStore.
+ * Note: Available from v3.5.2
+ * @type {TNote?}
+ */
++note: ?TNote;
+/**
+ * Returns the given blockId if any.
+ * Note: Available from v3.5.2
+ * @type {string?}
+ */
++blockId: ?string;
 }
 
 type TNote = Note
