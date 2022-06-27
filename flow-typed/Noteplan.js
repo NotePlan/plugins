@@ -48,7 +48,7 @@ declare interface TEditor extends ParagraphBridge {
   /**
    * Get or set the markdown text of the note (will be saved to file directly)
    */
-  content: ? string;
+  content: ?string;
   /**
    * Get title of the note (first line)
    */
@@ -62,290 +62,285 @@ declare interface TEditor extends ParagraphBridge {
    */
   +filename: ?string;
   /**
-  * Get or set the array of paragraphs contained in this note, such as tasks,
-  * bullets, etc. If you set the paragraphs, the content of the note will be
-  * updated.
-  */
-  paragraphs: $ReadOnlyArray < TParagraph >;
+   * Get an array of selected lines. The cursor doesn't have to select the full
+   * line, NotePlan returns all complete lines the cursor "touches".
+   */
+  +selectedLinesText: $ReadOnlyArray<string>;
   /**
-  * Get an array of selected lines. The cursor doesn't have to select the full
-  * line, NotePlan returns all complete lines the cursor "touches".
-  */
-  +selectedLinesText: $ReadOnlyArray < string >;
+   * Get an array of selected paragraphs. The cursor doesn't have to select the
+   * full paragraph, NotePlan returns all complete paragraphs the cursor
+   * "touches".
+   */
+  +selectedParagraphs: $ReadOnlyArray<TParagraph>;
   /**
-  * Get an array of selected paragraphs. The cursor doesn't have to select the
-  * full paragraph, NotePlan returns all complete paragraphs the cursor
-  * "touches".
-  */
-  +selectedParagraphs: $ReadOnlyArray < TParagraph >;
-  /**
-  * Get the raw selection range (hidden Markdown is considered).
-  */
+   * Get the raw selection range (hidden Markdown is considered).
+   */
   +selection: ?Range;
   /**
-  * Get the rendered selection range (hidden Markdown is NOT considered).
-  */
+   * Get the rendered selection range (hidden Markdown is NOT considered).
+   */
   +renderedSelection: ?Range;
   /**
-  * Get the selected text.
-  */
+   * Get the selected text.
+   */
   +selectedText: ?string;
   /**
-  * Inserts the given text at the given character position (index)
-  * @param text 	  - Text to insert
-  * @param index   - Position to insert at (you can get this using 'renderedSelection' for example)
-  */
+   * Inserts the given text at the given character position (index)
+   * @param text 	  - Text to insert
+   * @param index   - Position to insert at (you can get this using 'renderedSelection' for example)
+   */
   insertTextAtCharacterIndex(text: string, index: number): void;
   /**
-  * Inserts the given text at the current cursor position
-  * @param text - Text to insert
-  */
+   * Inserts the given text at the current cursor position
+   * @param text - Text to insert
+   */
   insertTextAtCursor(text: string): void;
   /**
-  * Inserts a plain paragraph before the selected paragraph (or the paragraph the cursor is currently positioned)
-  * @param name - Text of the paragraph
-  * @param type - paragraph type
-  * @param indents - How much it should be indented
-  */
+   * Inserts a plain paragraph before the selected paragraph (or the paragraph the cursor is currently positioned)
+   * @param name - Text of the paragraph
+   * @param type - paragraph type
+   * @param indents - How much it should be indented
+   */
   insertParagraphAtCursor(name: string, type: ParagraphType, indents: number): void;
   /**
-  * Replaces the current cursor selection with the given text
-  * @param text - Text to insert
-  */
+   * Replaces the current cursor selection with the given text
+   * @param text - Text to insert
+   */
   replaceSelectionWithText(text: string): void;
   /**
-  * Opens a note using the given filename.
-  * Note: some parameters introduced in v3.4 and v3.5.2
-  * @param {string} filename - Filename of the note file (can be without extension), but has to include the relative folder such as `folder/filename.txt`.
-  * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
-  * @param {number} highlightStart - (optional) Start position of text highlighting
-  * @param {number} highlightEnd - (optional) End position of text highlighting
-  * @param {boolean} splitView - (optional) Open note in a new split view (Note: Available from v3.4)
-  * @param {boolean} createIfNeeded - (optional) Create the note with the given filename if it doesn't exist (only project notes, v3.5.2+)
-  * @return {Promise<TNote>} - When the note has been opened, a promise will be returned (use with await ... or .then())
-  */
+   * Opens a note using the given filename.
+   * Note: some parameters introduced in v3.4 and v3.5.2
+   * @param {string} filename - Filename of the note file (can be without extension), but has to include the relative folder such as `folder/filename.txt`.
+   * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
+   * @param {number} highlightStart - (optional) Start position of text highlighting
+   * @param {number} highlightEnd - (optional) End position of text highlighting
+   * @param {boolean} splitView - (optional) Open note in a new split view (Note: Available from v3.4)
+   * @param {boolean} createIfNeeded - (optional) Create the note with the given filename if it doesn't exist (only project notes, v3.5.2+)
+   * @return {Promise<TNote>} - When the note has been opened, a promise will be returned (use with await ... or .then())
+   */
   openNoteByFilename(
     filename: string,
-    newWindow ?: boolean,
-    highlightStart ?: number,
-    highlightEnd ?: number,
-    splitView ?: boolean,
-  ): Promise < TNote >;
+    newWindow?: boolean,
+    highlightStart?: number,
+    highlightEnd?: number,
+    splitView?: boolean,
+  ): Promise<TNote>;
   /**
-  * Opens a note by searching for the give title (first line of the note)
-  * Note: 'splitView' parameter available for macOS from v3.4
-  * @param {string} title - Title (case sensitive) of the note (first line)
-  * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
-  * @param {number} highlightStart - (optional) Start position of text highlighting
-  * @param {number} highlightEnd - (optional) End position of text highlighting
-  * @param {boolean} splitView - (optional) Open note in a new split view
-  * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
-  */
+   * Opens a note by searching for the give title (first line of the note)
+   * Note: 'splitView' parameter available for macOS from v3.4
+   * @param {string} title - Title (case sensitive) of the note (first line)
+   * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
+   * @param {number} highlightStart - (optional) Start position of text highlighting
+   * @param {number} highlightEnd - (optional) End position of text highlighting
+   * @param {boolean} splitView - (optional) Open note in a new split view
+   * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
+   */
   openNoteByTitle(
     title: string,
-    newWindow ?: boolean,
-    highlightStart ?: number,
-    highlightEnd ?: number,
-    splitView ?: boolean,
-  ): Promise < TNote >;
+    newWindow?: boolean,
+    highlightStart?: number,
+    highlightEnd?: number,
+    splitView?: boolean,
+  ): Promise<TNote>;
   /**
-  * Opens a note by searching for the give title (first line of the note)
-  * Note: 'splitView' parameter available for macOS from v3.4
-  * @param {string} title - Title (case sensitive) of the note (first line)
-  * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
-  * @param {number} highlightStart - (optional) Start position of text highlighting
-  * @param {number} highlightEnd - (optional) End position of text highlighting
-  * @param {boolean} splitView - (optional) Open note in a new split view
-  * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
-  */
+   * Opens a note by searching for the give title (first line of the note)
+   * Note: 'splitView' parameter available for macOS from v3.4
+   * @param {string} title - Title (case sensitive) of the note (first line)
+   * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
+   * @param {number} highlightStart - (optional) Start position of text highlighting
+   * @param {number} highlightEnd - (optional) End position of text highlighting
+   * @param {boolean} splitView - (optional) Open note in a new split view
+   * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
+   */
   openNoteByTitleCaseInsensitive(
     title: string,
-    newWindow ?: boolean,
-    caseSensitive ?: boolean,
-    highlightStart ?: number,
-    highlightEnd ?: number,
-    splitView ?: boolean,
-  ): Promise < TNote >;
+    newWindow?: boolean,
+    caseSensitive?: boolean,
+    highlightStart?: number,
+    highlightEnd?: number,
+    splitView?: boolean,
+  ): Promise<TNote>;
   /**
-  * Opens a calendar note by the given date
-  * Note: 'splitView' parameter available for macOS from v3.4
-  * Note: 'timeframe' parameter available for macOS from v3.6
-  * @param {Date} date - The date that should be opened, this is a normal JavaScript date object
-  * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
-  * @param {number} highlightStart - (optional) Start position of text highlighting
-  * @param {number} highlightEnd - (optional) End position of text highlighting
-  * @param {boolean} splitView - (optional) Open note in a new split view
-  * @param {string} timeframe - (optional) Timeframe "day" (default) or "week"
-  * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
-  */
+   * Opens a calendar note by the given date
+   * Note: 'splitView' parameter available for macOS from v3.4
+   * Note: 'timeframe' parameter available for macOS from v3.6
+   * @param {Date} date - The date that should be opened, this is a normal JavaScript date object
+   * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
+   * @param {number} highlightStart - (optional) Start position of text highlighting
+   * @param {number} highlightEnd - (optional) End position of text highlighting
+   * @param {boolean} splitView - (optional) Open note in a new split view
+   * @param {string} timeframe - (optional) Timeframe "day" (default) or "week"
+   * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
+   */
   openNoteByDate(
     date: Date,
-    newWindow ?: boolean,
-    highlightStart ?: number,
-    highlightEnd ?: number,
-    splitView ?: boolean,
-    timeframe ?: string,
-  ): Promise < TNote >;
+    newWindow?: boolean,
+    highlightStart?: number,
+    highlightEnd?: number,
+    splitView?: boolean,
+    timeframe?: string,
+  ): Promise<TNote>;
   /**
-  * Opens a calendar note by the given date string
-  * Note: from v3.6 also accepts weeks in the main parameter
-  * @param {string} dateString - The date string that should be opened, in ISO format for days ("YYYYMMDD") or (from v3.6) in "YYYY-Wnn" format for weeks
-  * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
-  * @param {number} highlightStart - (optional) Start position of text highlighting
-  * @param {number} highlightEnd - (optional) End position of text highlighting
-  * @param {boolean} splitView - (optional) Open note in a new split view
-  * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
-  */
+   * Opens a calendar note by the given date string
+   * Note: from v3.6 also accepts weeks in the main parameter
+   * @param {string} dateString - The date string that should be opened, in ISO format for days ("YYYYMMDD") or (from v3.6) in "YYYY-Wnn" format for weeks
+   * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
+   * @param {number} highlightStart - (optional) Start position of text highlighting
+   * @param {number} highlightEnd - (optional) End position of text highlighting
+   * @param {boolean} splitView - (optional) Open note in a new split view
+   * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
+   */
   openNoteByDateString(
     filename: string,
-    newWindow ?: boolean,
-    highlightStart ?: number,
-    highlightEnd ?: number,
-    splitView ?: boolean,
-  ): Promise < TNote | void>;
+    newWindow?: boolean,
+    highlightStart?: number,
+    highlightEnd?: number,
+    splitView?: boolean,
+  ): Promise<TNote | void>;
   /**
-  * Opens a weekly calendar note by the given year and week number
-  * Note: available from v3.6
-  * @param {number} year           - The year of the week
-  * @param {number} weeknumber     - The number of the week (0-52/53)
-  * @param {boolean} newWindow     - (optional) Open note in new window (default = false)?
-  * @param {number} highlightStart - (optional) Start position of text highlighting
-  * @param {number} highlightEnd   - (optional) End position of text highlighting
-  * @param {boolean} splitView     - (optional) Open note in a new split view
-  * @return {Promise<void>}        - When the note has been opened, a promise will be returned
-  */
-  openWeeklyNote(year: number,
+   * Opens a weekly calendar note by the given year and week number
+   * Note: available from v3.6
+   * @param {number} year           - The year of the week
+   * @param {number} weeknumber     - The number of the week (0-52/53)
+   * @param {boolean} newWindow     - (optional) Open note in new window (default = false)?
+   * @param {number} highlightStart - (optional) Start position of text highlighting
+   * @param {number} highlightEnd   - (optional) End position of text highlighting
+   * @param {boolean} splitView     - (optional) Open note in a new split view
+   * @return {Promise<void>}        - When the note has been opened, a promise will be returned
+   */
+  openWeeklyNote(
+    year: number,
     weeknumber: number,
-    newWindow ?: boolean,
-    highlightStart ?: number,
-    highlightEnd ?: number,
-    splitView ?: boolean
-  ): Promise < void>;
+    newWindow?: boolean,
+    highlightStart?: number,
+    highlightEnd?: number,
+    splitView?: boolean,
+  ): Promise<void>;
   /**
-  * Selects the full text in the editor.
-  * Note: Available from v3.2
-  */
+   * Selects the full text in the editor.
+   * Note: Available from v3.2
+   */
   selectAll(): void;
   /**
-  * (Raw) select text in the editor (like select 10 characters = length from position 2 = start)
-  * Raw means here that the position is calculated with the Markdown revealed,
-  * including Markdown links and folded text.
-  * @param {number} start - Character start position
-  * @param {number} length - Character length
-  */
+   * (Raw) select text in the editor (like select 10 characters = length from position 2 = start)
+   * Raw means here that the position is calculated with the Markdown revealed,
+   * including Markdown links and folded text.
+   * @param {number} start - Character start position
+   * @param {number} length - Character length
+   */
   select(start: number, length: number): void;
   /**
-  * (Rendered) select text in the editor (like select 10 characters = length from position 2 = start)
-  * Rendered means here that the position is calculated with the Markdown hidden,
-  * including Markdown links and folded text.
-  * @param {number} start - Character start position
-  * @param {number} length - Character length
-  */
+   * (Rendered) select text in the editor (like select 10 characters = length from position 2 = start)
+   * Rendered means here that the position is calculated with the Markdown hidden,
+   * including Markdown links and folded text.
+   * @param {number} start - Character start position
+   * @param {number} length - Character length
+   */
   renderedSelect(start: number, length: number): void;
   /**
-  * Copies the currently selected text in the editor to the system clipboard.
-  * See also Clipboard object.
-  * Note: Available from v3.2
-  */
+   * Copies the currently selected text in the editor to the system clipboard.
+   * See also Clipboard object.
+   * Note: Available from v3.2
+   */
   copySelection(): void;
   /**
-  * Pastes the current content in the system clipboard into the current selection in the editor.
-  * See also Clipboard object.
-  * Note: Available from v3.2
-  */
+   * Pastes the current content in the system clipboard into the current selection in the editor.
+   * See also Clipboard object.
+   * Note: Available from v3.2
+   */
   pasteClipboard(): void;
   /**
-  * Scrolls to and highlights the given paragraph. If the paragraph is folded,
-  * it will be unfolded.
-  * @param {TParagraph} paragraph to highlight
-  */
+   * Scrolls to and highlights the given paragraph. If the paragraph is folded,
+   * it will be unfolded.
+   * @param {TParagraph} paragraph to highlight
+   */
   highlight(paragraph: TParagraph): void;
   /**
-  * Scrolls to and highlights the given range. If the paragraph is folded, it
-  * will be unfolded.
-  * @param {RangeObject} range
-  */
+   * Scrolls to and highlights the given range. If the paragraph is folded, it
+   * will be unfolded.
+   * @param {RangeObject} range
+   */
   highlightByRange(range: Range): void;
   /**
-  * Scrolls to and highlights the given range defined by the character index and
-  * the character length it should cover. If the paragraph is folded, it will be unfolded.
-  * Note: Available from v3.0.23
-  * @param {number} index
-  * @param {number} length
-  */
+   * Scrolls to and highlights the given range defined by the character index and
+   * the character length it should cover. If the paragraph is folded, it will be unfolded.
+   * Note: Available from v3.0.23
+   * @param {number} index
+   * @param {number} length
+   */
   highlightByIndex(index: number, length: number): void;
   /**
-  * Folds the given paragraph or unfolds it if its already folded. If the paragraph is not a heading, it will look for the heading this paragraph exists under.
-  * Note: Available from v3.6.0
-  * @param {TParagraph}
-  */
+   * Folds the given paragraph or unfolds it if its already folded. If the paragraph is not a heading, it will look for the heading this paragraph exists under.
+   * Note: Available from v3.6.0
+   * @param {TParagraph}
+   */
   toggleFolding(paragraph: TParagraph): void;
   /**
-  * Checks if the given paragraph is folded or not. If it's not a heading, it will look for the heading this paragraph exists under.
-  * Note: Available from v3.6.0
-  * @param {TParagraph}
-  * @return {boolean}
-  */
+   * Checks if the given paragraph is folded or not. If it's not a heading, it will look for the heading this paragraph exists under.
+   * Note: Available from v3.6.0
+   * @param {TParagraph}
+   * @return {boolean}
+   */
   isFolded(paragraph: TParagraph): boolean;
   /**
-  * Shows or hides a window with a loading indicator or a progress ring (if progress is defined) and an info text (optional).
-  * `text` is optional, if you define it, it will be shown below the loading indicator.
-  * `progress` is also optional. If it's defined, the loading indicator will change into a progress ring. Use float numbers from 0-1 to define how much the ring is filled.
-  * When you are done, call `showLoading(false)` to hide the window.
-  * Note: Available from v3.0.26
-  * @param {boolean}
-  * @param {string?}
-  * @param {Float?}
-  */
-  showLoading(visible: boolean, text ?: ? string, progress ?: number): void;
+   * Shows or hides a window with a loading indicator or a progress ring (if progress is defined) and an info text (optional).
+   * `text` is optional, if you define it, it will be shown below the loading indicator.
+   * `progress` is also optional. If it's defined, the loading indicator will change into a progress ring. Use float numbers from 0-1 to define how much the ring is filled.
+   * When you are done, call `showLoading(false)` to hide the window.
+   * Note: Available from v3.0.26
+   * @param {boolean}
+   * @param {string?}
+   * @param {Float?}
+   */
+  showLoading(visible: boolean, text?: ?string, progress?: number): void;
   /**
-  * If you call this, anything after `await CommandBar.onAsyncThread()` will run on an asynchronous thread.
-  * Use this together with `showLoading`, so that the work you do is not blocking the user interface.
-  * Otherwise the loading window will be also blocked.
-  *
-  * Warning: Don't use any user interface calls (other than showLoading) on an asynchronous thread. The app might crash.
-  * You need to return to the main thread before you change anything in the window (such as Editor functions do).
-  * Use `onMainThread()` to return to the main thread.
-  * Note: Available from v3.0.26
-  * @return {Promise}
-  */
-  onAsyncThread(): Promise < void>;
+   * If you call this, anything after `await CommandBar.onAsyncThread()` will run on an asynchronous thread.
+   * Use this together with `showLoading`, so that the work you do is not blocking the user interface.
+   * Otherwise the loading window will be also blocked.
+   *
+   * Warning: Don't use any user interface calls (other than showLoading) on an asynchronous thread. The app might crash.
+   * You need to return to the main thread before you change anything in the window (such as Editor functions do).
+   * Use `onMainThread()` to return to the main thread.
+   * Note: Available from v3.0.26
+   * @return {Promise}
+   */
+  onAsyncThread(): Promise<void>;
   /**
-  * If you call this, anything after `await CommandBar.onMainThread()` will run on the main thread.
-  * Call this after `onAsyncThread`, once your background work is done.
-  * It is safe to call Editor and other user interface functions on the main thread.
-  * Note: Available from v3.0.26
-  * @return {Promise}
-  */
-  onMainThread(): Promise < void>;
+   * If you call this, anything after `await CommandBar.onMainThread()` will run on the main thread.
+   * Call this after `onAsyncThread`, once your background work is done.
+   * It is safe to call Editor and other user interface functions on the main thread.
+   * Note: Available from v3.0.26
+   * @return {Promise}
+   */
+  onMainThread(): Promise<void>;
   /**
-  * Get the names of all supported themes (including custom themes imported into the Theme folder).
-  * Use together with `.setTheme(name)`
-  * Note: Available from v3.1
-  * @return {$ReadOnlyArray<string>}
-  */
-  +availableThemes: $ReadOnlyArray < string >;
+   * Get the names of all supported themes (including custom themes imported into the Theme folder).
+   * Use together with `.setTheme(name)`
+   * Note: Available from v3.1
+   * @return {$ReadOnlyArray<string>}
+   */
+  +availableThemes: $ReadOnlyArray<string>;
   /**
-  * Change the current theme. Get all available theme names using `.availableThemes`. Custom themes are also supported. Use the filename in this case.
-  * Note: Available from v3.1+
-  * @param {string}
-  */
+   * Change the current theme. Get all available theme names using `.availableThemes`. Custom themes are also supported. Use the filename in this case.
+   * Note: Available from v3.1+
+   * @param {string}
+   */
   setTheme(name: string): void;
   /**
-  * Add a new theme using the raw json string. It will be added as a custom theme and you can load it right away with `.setTheme(name)` using the filename defined as second parameter. Use ".json" as file extension.
-  * It returns true if adding was successful and false if not. An error will be also printed into the console.
-  * Adding a theme might fail, if the given json text was invalid.
-  * Note: Available from v3.1
-  * @param {string} json
-  * @param {string} filename
-  * @return {boolean}
-  */
+   * Add a new theme using the raw json string. It will be added as a custom theme and you can load it right away with `.setTheme(name)` using the filename defined as second parameter. Use ".json" as file extension.
+   * It returns true if adding was successful and false if not. An error will be also printed into the console.
+   * Adding a theme might fail, if the given json text was invalid.
+   * Note: Available from v3.1
+   * @param {string} json
+   * @param {string} filename
+   * @return {boolean}
+   */
   addTheme(json: string, filename: string): boolean;
   /**
-  * Print current note, optionally with backlinks and events sections
-  * Note: available from v3.4, on macOS
-  * @param {boolean} addReferenceSections
-  */
+   * Print current note, optionally with backlinks and events sections
+   * Note: available from v3.4, on macOS
+   * @param {boolean} addReferenceSections
+   */
   printNote(boolean: addReferenceSections): void;
 }
 
@@ -362,41 +357,41 @@ declare class DataStore {
    * such as "txt" or "md".
    */
   static +defaultFileExtension: string;
-/**
- * Get all folders as array of strings. Including the root "/" and excluding
- * folders from Archive or Trash.
- */
-static + folders: $ReadOnlyArray < string >;
-/**
- * Get all calendar notes.
- * Note: from v3.4 this includes all future-referenced dates, not just those with
- * an actual created note.
- */
-static + calendarNotes: $ReadOnlyArray < TNote >;
-/**
- * Get all regular, project notes.
- */
-static + projectNotes: $ReadOnlyArray < TNote >;
-/**
- * Get all cached hashtags (#tag) that are used across notes.
- * It returns hashtags without leading '#'.
- * @type {[String]}
- * Note: Available from v3.6.0
- */
-static + hashtags: $ReadOnlyArray < string >;
-/**
- * Get all cached mentions (@name) that are used across notes.
- * It returns mentions without leading '@'.
- * Note: Available from v3.6.0
- * @type {[String]}
- */
-static + mentions: $ReadOnlyArray < string >;
-/**
- * Get list of all filter names
- * Note: Available from v3.6.0
- * @type {[String]}
- */
-static + filters: $ReadOnlyArray < string >;
+  /**
+   * Get all folders as array of strings. Including the root "/" and excluding
+   * folders from Archive or Trash.
+   */
+  static +folders: $ReadOnlyArray<string>;
+  /**
+   * Get all calendar notes.
+   * Note: from v3.4 this includes all future-referenced dates, not just those with
+   * an actual created note.
+   */
+  static +calendarNotes: $ReadOnlyArray<TNote>;
+  /**
+   * Get all regular, project notes.
+   */
+  static +projectNotes: $ReadOnlyArray<TNote>;
+  /**
+   * Get all cached hashtags (#tag) that are used across notes.
+   * It returns hashtags without leading '#'.
+   * @type {[String]}
+   * Note: Available from v3.6.0
+   */
+  static +hashtags: $ReadOnlyArray<string>;
+  /**
+   * Get all cached mentions (@name) that are used across notes.
+   * It returns mentions without leading '@'.
+   * Note: Available from v3.6.0
+   * @type {[String]}
+   */
+  static +mentions: $ReadOnlyArray<string>;
+  /**
+   * Get list of all filter names
+   * Note: Available from v3.6.0
+   * @type {[String]}
+   */
+  static +filters: $ReadOnlyArray<string>;
 
   /**
    * Get or set settings for the current plugin (as a JavaScript object).
@@ -405,30 +400,30 @@ static + filters: $ReadOnlyArray < string >;
    */
   static settings: Object;
 
-/**
- * Returns the value of a given preference.
- * Available keys for built-in NotePlan preferences:
- *   "themeLight"              // theme used in light mode
- *   "themeDark"               // theme used in dark mode
- *   "fontDelta"               // delta to default font size
- *   "firstDayOfWeek"          // first day of calendar week
- *   "isAgendaVisible"         // only iOS, indicates if the calendar and note below calendar are visible
- *   "isAgendaExpanded"        // only iOS, indicates if calendar above note is shown as week (true) or month (false)
- *   "isAsteriskTodo"          // "Recognize * as todo" = checked in markdown preferences
- *   "isDashTodo"              // "Recognize - as todo" = checked in markdown preferences
- *   "isNumbersTodo"           // "Recognize 1. as todo" = checked in markdown preferences
- *   "defaultTodoCharacter"    // returns * or -
- *   "isAppendScheduleLinks"   // "Append links when scheduling" checked in todo preferences
- *   "isAppendCompletionLinks" // "Append completion date" checked in todo preferences
- *   "isCopyScheduleGeneralNoteTodos" // "Only add date when scheduling in notes" checked in todo preferences
- *   "isSmartMarkdownLink"     // "Smart Markdown Links" checked in markdown preferences
- *   "fontSize"                // Font size defined in editor preferences (might be overwritten by custom theme)
- *   "fontFamily"              // Font family defined in editor preferences (might be overwritten by custom theme)
- *   "timeblockTextMustContainString" // Optional text to trigger timeblock detection in a line
- * Others can be set by plugins.
- * Note: these keys and values do not sync across a user's devices; they are only local.
- */
-static + preference: (key: string) => mixed;
+  /**
+   * Returns the value of a given preference.
+   * Available keys for built-in NotePlan preferences:
+   *   "themeLight"              // theme used in light mode
+   *   "themeDark"               // theme used in dark mode
+   *   "fontDelta"               // delta to default font size
+   *   "firstDayOfWeek"          // first day of calendar week
+   *   "isAgendaVisible"         // only iOS, indicates if the calendar and note below calendar are visible
+   *   "isAgendaExpanded"        // only iOS, indicates if calendar above note is shown as week (true) or month (false)
+   *   "isAsteriskTodo"          // "Recognize * as todo" = checked in markdown preferences
+   *   "isDashTodo"              // "Recognize - as todo" = checked in markdown preferences
+   *   "isNumbersTodo"           // "Recognize 1. as todo" = checked in markdown preferences
+   *   "defaultTodoCharacter"    // returns * or -
+   *   "isAppendScheduleLinks"   // "Append links when scheduling" checked in todo preferences
+   *   "isAppendCompletionLinks" // "Append completion date" checked in todo preferences
+   *   "isCopyScheduleGeneralNoteTodos" // "Only add date when scheduling in notes" checked in todo preferences
+   *   "isSmartMarkdownLink"     // "Smart Markdown Links" checked in markdown preferences
+   *   "fontSize"                // Font size defined in editor preferences (might be overwritten by custom theme)
+   *   "fontFamily"              // Font family defined in editor preferences (might be overwritten by custom theme)
+   *   "timeblockTextMustContainString" // Optional text to trigger timeblock detection in a line
+   * Others can be set by plugins.
+   * Note: these keys and values do not sync across a user's devices; they are only local.
+   */
+  static +preference: (key: string) => mixed;
   /**
    * Change a saved preference or create a new one.
    * It will most likely be picked up by NotePlan after a restart, if you use one of the keys utilized by NotePlan.
@@ -452,7 +447,7 @@ static + preference: (key: string) => mixed;
    * @param {string}
    * @return {boolean}
    */
-  static saveJSON(object: Object, filename ?: string): boolean;
+  static saveJSON(object: Object, filename?: string): boolean;
   /**
    * Load a JavaScript object from a JSON file located (by default) in the <Plugin>/data folder.
    * But you can also use relative paths: ../Plugins/<folder or filename>.
@@ -460,7 +455,7 @@ static + preference: (key: string) => mixed;
    * @param {string}
    * @return {Object}
    */
-  static loadJSON(filename ?: string): Object;
+  static loadJSON(filename?: string): Object;
   /**
    * Save data to a file, as base64 string. The file will be saved under "[NotePlan Folder]/Plugins/data/[plugin-id]/[filename]".
    * Returns true if the file could be saved, false if not and prints the error.
@@ -481,21 +476,21 @@ static + preference: (key: string) => mixed;
    */
   static loadData(filename: string): ?string;
   /**
-  * Returns the calendar note for the given date and timeframe (optional, the default is "day", use "week" for weekly notes).
-  * Note: 'timeframe' available from v3.6.0
-  * @param {Date} 
-  * @param {string?} - "day" (default), "week", "month" or "year"
-  * @return {NoteObject}
-  */
-  static calendarNoteByDate(date: Date, timeframe ?: string): ?TNote;
+   * Returns the calendar note for the given date and timeframe (optional, the default is "day", use "week" for weekly notes).
+   * Note: 'timeframe' available from v3.6.0
+   * @param {Date}
+   * @param {string?} - "day" (default), "week", "month" or "year"
+   * @return {NoteObject}
+   */
+  static calendarNoteByDate(date: Date, timeframe?: string): ?TNote;
   /**
-  * Returns the calendar note for the given date string (can be undefined, if the daily note was not created yet)
-  * Use following format: "YYYYMMDD", example: "20210410"
-  * For weekly notes use "YYYY-WDD", for example "2022-W24" (Note: available from v3.6.0)
-  * @param {string} 
-  * @return {NoteObject}
-  */
-  static calendarNoteByDateString(dateString: string): ?TNote;  
+   * Returns the calendar note for the given date string (can be undefined, if the daily note was not created yet)
+   * Use following format: "YYYYMMDD", example: "20210410"
+   * For weekly notes use "YYYY-WDD", for example "2022-W24" (Note: available from v3.6.0)
+   * @param {string}
+   * @return {NoteObject}
+   */
+  static calendarNoteByDateString(dateString: string): ?TNote;
   /**
    * Returns all regular notes with the given title.
    * Since multiple notes can have the same title, an array is returned.
@@ -505,15 +500,15 @@ static + preference: (key: string) => mixed;
    * By default NotePlan won't return notes in trash and archive.
    */
   static projectNoteByTitle(
-  title: string,
-  caseInsensitive ?: boolean,
-  searchAllFolders ?: boolean,
-): ?$ReadOnlyArray < TNote >;
+    title: string,
+    caseInsensitive?: boolean,
+    searchAllFolders?: boolean,
+  ): ?$ReadOnlyArray<TNote>;
   /**
    * Returns all regular notes with the given case insensitive title.
    * Note: Since multiple notes can have the same title, an array is returned.
    */
-  static projectNoteByTitleCaseInsensitive(title: string): ?$ReadOnlyArray < TNote >;
+  static projectNoteByTitleCaseInsensitive(title: string): ?$ReadOnlyArray<TNote>;
   /**
    * Returns the regular note with the given filename with file-extension
    * (including folders if any, don't add "/" for root, though).
@@ -567,20 +562,20 @@ static + preference: (key: string) => mixed;
    * Note: Available from v3.5.2
    * @param {boolean}
    */
-  static listPlugins(showLoading: boolean): Promise < void>;
+  static listPlugins(showLoading: boolean): Promise<void>;
   /**
    * Installs a given plugin (load a list of plugins using `.listPlugins` first). If this is part of a user interfaction, pass "true" for `showLoading` to show a loading indicator.
    * Note: Available from v3.5.2
    * @param {PluginObject}
    * @param {boolean}
    */
-  static installPlugin(pluginObject: PluginObject, showLoading: boolean): Promise < void>;
+  static installPlugin(pluginObject: PluginObject, showLoading: boolean): Promise<void>;
   /**
    * Returns all installed plugins as PluginObject(s).
    * Note: Available from v3.5.2
    * @return {Array<PluginObject>}
    */
-  static installedPlugins(): Array < PluginObject >;
+  static installedPlugins(): Array<PluginObject>;
   /**
    * Invoke a given command from a plugin (load a list of plugins using `.listPlugins` first, then get the command from the `.commands` list).
    * If the command supports it, you can also pass an array of arguments which can contain any type (object, date, string, integer,...)
@@ -590,7 +585,7 @@ static + preference: (key: string) => mixed;
    * @param {$ReadOnlyArray<mixed>}
    * @return {any} Return value of the command, like a Promise
    */
-  static invokePluginCommand(command: PluginCommandObject, arguments: $ReadOnlyArray < mixed >): Promise < any >;
+  static invokePluginCommand(command: PluginCommandObject, arguments: $ReadOnlyArray<mixed>): Promise<any>;
   /**
    * Invoke a given command from a plugin using the name and plugin ID, so you don't need to load it from the list.
    * If the command doesn't exist locally null will be returned with a log message.
@@ -601,7 +596,7 @@ static + preference: (key: string) => mixed;
    * @param {$ReadOnlyArray<mixed>}
    * @return {any} Return value of the command, like a Promise
    */
-  static invokePluginCommandByName(command: string, pluginID: string, arguments ?: $ReadOnlyArray < mixed >): Promise < any >;
+  static invokePluginCommandByName(command: string, pluginID: string, arguments?: $ReadOnlyArray<mixed>): Promise<any>;
   /**
    * Checks if the given pluginID is installed or not.
    * Note: Available from v3.6.0
@@ -621,11 +616,11 @@ static + preference: (key: string) => mixed;
    * @return {Promise<{number, string}>}
    */
   static installOrUpdatePluginsByID(
-    pluginIDs: Array < string >,
+    pluginIDs: Array<string>,
     showPromptIfSuccessful: boolean,
     showProgressPrompt: boolean,
     showFailedPrompt: boolean,
-  ): Promise < { code: number, message: string } >;
+  ): Promise<{ code: number, message: string }>;
 
   /**
    * Searches all notes for a keyword (uses multiple threads to speed it up).
@@ -642,10 +637,10 @@ static + preference: (key: string) => mixed;
    */
   static search(
     keyword: string,
-    types ?: Array < string >,
-    inFolders ?: Array < string >,
-    notInFolders ?: Array < string >
-  ): Promise < $ReadOnlyArray < ParagraphObject >>;
+    types?: Array<string>,
+    inFolders?: Array<string>,
+    notInFolders?: Array<string>,
+  ): Promise<$ReadOnlyArray<ParagraphObject>>;
 
   /**
    * Searches all project notes for a keyword (uses multiple threads to speed it up).
@@ -659,10 +654,10 @@ static + preference: (key: string) => mixed;
    * @return {$ReadOnlyArray<ParagraphObject>} results array
    */
   static searchProjectNotes(
-      keyword: string,
-      inFolders ?: Array < string >,
-      notInFolders ?: Array < string >
-  ): Promise < $ReadOnlyArray < ParagraphObject > >;
+    keyword: string,
+    inFolders?: Array<string>,
+    notInFolders?: Array<string>,
+  ): Promise<$ReadOnlyArray<ParagraphObject>>;
 
   /**
    * Searches all calendar notes for a keyword (uses multiple threads to speed it up).
@@ -671,7 +666,7 @@ static + preference: (key: string) => mixed;
    * @param {string} = keyword to search for
    * @return {$ReadOnlyArray<ParagraphObject>} array of results
    */
-  static searchCalendarNotes(keyword: string): Promise < $ReadOnlyArray < ParagraphObject > >;
+  static searchCalendarNotes(keyword: string): Promise<$ReadOnlyArray<ParagraphObject>>;
 }
 
 /**
@@ -686,18 +681,18 @@ type PluginCommandObject = {
    * Description of the plugin command (getter)
    */
   +desc: string,
-    /**
-     * ID of the plugin this command belongs to (getter)
-     */
-    +pluginID: string,
-      /**
-       * Name of the plugin this command belongs to (getter)
-       */
-      +pluginName: string,
-        /**
-         * List of optional argument descriptions for the specific command (getter). Use this if you want to invoke this command from another plugin to inform the user what he nees to enter for example.
-         */
-        +arguments: $ReadOnlyArray < string >,
+  /**
+   * ID of the plugin this command belongs to (getter)
+   */
+  +pluginID: string,
+  /**
+   * Name of the plugin this command belongs to (getter)
+   */
+  +pluginName: string,
+  /**
+   * List of optional argument descriptions for the specific command (getter). Use this if you want to invoke this command from another plugin to inform the user what he nees to enter for example.
+   */
+  +arguments: $ReadOnlyArray<string>,
 }
 
 /**
@@ -712,43 +707,43 @@ type PluginObject = {
    * Name of the plugin (getter)
    */
   +name: string,
-    /**
-     * Description of the plugin (getter)
-     */
-    +desc: string,
-      /**
-       * Author of the plugin (getter)
-       */
-      +author: string,
-        /**
-         * RepoUrl of the plugin (getter)
-         */
-        +repoUrl: ?string,
-          /**
-           * Release page URL of the plugin (on GitHub) (getter)
-           */
-          +releaseUrl: ?string,
-            /**
-             * Version of the plugin (getter)
-             */
-            +version: string,
-              /**
-               * This is the online data of the plugin. It might not be installed locally. (getter)
-               */
-              +isOnline: boolean,
-                /**
-                 * Script filename that contains the code for this plugin (like script.js) (getter)
-                 */
-                +script: string,
-                  /**
-                   * If this is a locally installed plugin, you can use this variable to check if an updated version is available online. (getter)
-                   */
-                  +availableUpdate: PluginObject,
-                    /**
-                     * A list of available commands for this plugin. (getter)
-                     * @type {PluginCommandObject}
-                     */
-                    +commands: PluginCommandObject,
+  /**
+   * Description of the plugin (getter)
+   */
+  +desc: string,
+  /**
+   * Author of the plugin (getter)
+   */
+  +author: string,
+  /**
+   * RepoUrl of the plugin (getter)
+   */
+  +repoUrl: ?string,
+  /**
+   * Release page URL of the plugin (on GitHub) (getter)
+   */
+  +releaseUrl: ?string,
+  /**
+   * Version of the plugin (getter)
+   */
+  +version: string,
+  /**
+   * This is the online data of the plugin. It might not be installed locally. (getter)
+   */
+  +isOnline: boolean,
+  /**
+   * Script filename that contains the code for this plugin (like script.js) (getter)
+   */
+  +script: string,
+  /**
+   * If this is a locally installed plugin, you can use this variable to check if an updated version is available online. (getter)
+   */
+  +availableUpdate: PluginObject,
+  /**
+   * A list of available commands for this plugin. (getter)
+   * @type {PluginCommandObject}
+   */
+  +commands: PluginCommandObject,
 }
 
 /**
@@ -811,7 +806,7 @@ declare class CommandBar {
    * It returns a Promise, so you can wait (using "await...") for the user
    * input with the entered text as success result.
    */
-  static showInput(placeholder: string, submitText: string): Promise < string >;
+  static showInput(placeholder: string, submitText: string): Promise<string>;
   /**
    * Shows or hides a window with a loading indicator or a progress ring (if progress is defined) and an info text (optional).
    * `text` is optional, if you define it, it will be shown below the loading indicator.
@@ -822,7 +817,7 @@ declare class CommandBar {
    * @param {string?}
    * @param {Float?}
    */
-  static showLoading(visible: boolean, text ?: string, progress ?: number): void;
+  static showLoading(visible: boolean, text?: string, progress?: number): void;
   /**
    * If you call this, anything after `await CommandBar.onAsyncThread()` will run on an asynchronous thread.
    * Use this together with `showLoading`, so that the work you do is not blocking the user interface.
@@ -833,14 +828,14 @@ declare class CommandBar {
    * Use `onMainThread()` to return to the main thread.
    * Note: Available from v3.0.26
    */
-  static onAsyncThread(): Promise < void>;
+  static onAsyncThread(): Promise<void>;
   /**
    * If you call this, anything after `await CommandBar.onMainThread()` will run on the main thread.
    * Call this after `onAsyncThread`, once your background work is done.
    * It is safe to call Editor and other user interface functions on the main thread.
    * Note: Available from v3.0.26
    */
-  static onMainThread(): Promise < void>;
+  static onMainThread(): Promise<void>;
 
   /**
    * Show a native alert or confirm with title and message
@@ -852,7 +847,7 @@ declare class CommandBar {
    * @param {string}
    * @param {?$ReadOnlyArray<string>}
    */
-  static prompt(title: string, message: string, buttons ?: $ReadOnlyArray < string >): Promise < number >;
+  static prompt(title: string, message: string, buttons?: $ReadOnlyArray<string>): Promise<number>;
 
   /**
    * Show a native text input prompt to the user with title and message text.
@@ -865,7 +860,7 @@ declare class CommandBar {
    * @param {string?}
    * @param {string?}
    */
-  static textPrompt(title: string, message: string, defaultValue: string): Promise < string | false >;
+  static textPrompt(title: string, message: string, defaultValue: string): Promise<string | false>;
 }
 
 type CalendarDateUnit = 'year' | 'month' | 'day' | 'hour' | 'minute' | 'second'
@@ -900,20 +895,20 @@ declare class Calendar {
   /**
    * Get all available date units: "year", "month", "day", "hour", "minute", "second"
    */
-  static +dateUnits: $ReadOnlyArray < CalendarDateUnit >;
+  static +dateUnits: $ReadOnlyArray<CalendarDateUnit>;
   /**
    * Get the titles of all calendars the user has access to. Set `writeOnly` true, if you want to get only the calendars the user has write access to (some calendars, like holidays are not writable).
    * Note: Available from v3.1
    * @param {boolean}
    * @return {[string]}
    */
-  static availableCalendarTitles(writeOnly: boolean): $ReadOnlyArray < string >;
+  static availableCalendarTitles(writeOnly: boolean): $ReadOnlyArray<string>;
   /**
    * Get the titles of all reminders the user has access to.
    * Note: Available from v3.1
    * @return {[string]}
    */
-  static availableReminderListTitles(): $ReadOnlyArray < string >;
+  static availableReminderListTitles(): $ReadOnlyArray<string>;
   /**
    * Create an event or reminder based on the given CalendarItem.
    * Returns the created CalendarItem with the assigned id, so you can
@@ -921,7 +916,7 @@ declare class Calendar {
    */
   static add(item: TCalendarItem): TCalendarItem | void;
   /**
-   * Parses a text describing a text as natural language input into a date. Such as "today", "next week", "1st May", "at 5pm to 6pm", etc. 
+   * Parses a text describing a text as natural language input into a date. Such as "today", "next week", "1st May", "at 5pm to 6pm", etc.
    * Returns an array with possible results (usually one), the most likely at the top.
    * The possible values that can be accessed are:
    *   .start: time
@@ -929,11 +924,11 @@ declare class Calendar {
    *   .index: character index of the start of the detected date string (available from v3.6.0)
    *   .text: the detected date string (available from v3.6.0)
    * The results can also be converted and used as JSON. For example:
-   *    JSON.stringify(Calendar.parseDateText("* Next F1 race is Sun June 19 (Canadian GP)")) 
+   *    JSON.stringify(Calendar.parseDateText("* Next F1 race is Sun June 19 (Canadian GP)"))
    * -> [{"index":18,"start":"2023-06-19T17:00:00.000Z","text":"Sun June 19 ","end":"2023-06-19T17:00:00.000Z"}]
    * Under the hood this uses the Chrono library.
    */
-  static parseDateText(text: string): $ReadOnlyArray < DateRange >;
+  static parseDateText(text: string): $ReadOnlyArray<DateRange>;
   /**
    * Create a date object from parts. Like year could be 2021 as a number.
    * Note: month uses Swift counting (1-12) not Javascript counting (0-11).
@@ -978,7 +973,7 @@ declare class Calendar {
    * @param {string?}
    * @return {Promise}
    */
-  static eventsBetween(startDate: Date, endDate: Date, filter ?: ? string): Promise < Array < TCalendarItem >>;
+  static eventsBetween(startDate: Date, endDate: Date, filter?: ?string): Promise<Array<TCalendarItem>>;
   /**
    * Returns all reminders between the `startDate` and `endDate`. Use `filter` to search for specific reminders (keyword in the title).
    * This function fetches reminders asynchronously, so use async/await.
@@ -988,7 +983,7 @@ declare class Calendar {
    * @param {string?}
    * @return {Promise}
    */
-  static remindersBetween(startDate: Date, endDate: Date, filter ?: ? string): Promise < Array < TCalendarItem >>;
+  static remindersBetween(startDate: Date, endDate: Date, filter?: ?string): Promise<Array<TCalendarItem>>;
   /**
    * Returns all events for today. Use `filter` to search for specific events (keyword in the title).
    * This function fetches events asynchronously, so use async/await.
@@ -996,7 +991,7 @@ declare class Calendar {
    * @param {string?}
    * @return {Promise}
    */
-  static eventsToday(filter: ?string): Promise < Array < TCalendarItem >>;
+  static eventsToday(filter: ?string): Promise<Array<TCalendarItem>>;
   /**
    * Returns all reminders between for today. Use `filter` to search for specific reminders (keyword in the title).
    * This function fetches reminders asynchronously, so use async/await.
@@ -1004,7 +999,7 @@ declare class Calendar {
    * @param {string?}
    * @return {Promise}
    */
-  static remindersToday(filter: ?string): Promise < Array < TCalendarItem >>;
+  static remindersToday(filter: ?string): Promise<Array<TCalendarItem>>;
   /**
    * Updates an event or reminder based on the given CalendarItem, which needs to have an ID.
    * A CalendarItem has an ID, when you have used `.add(...)` and saved the return value or when you query
@@ -1015,7 +1010,7 @@ declare class Calendar {
    * @param {CalendarItem}
    * @return {Promise}
    */
-  static update(calendarItem: TCalendarItem): Promise < void>;
+  static update(calendarItem: TCalendarItem): Promise<void>;
   /**
    * Removes an event or reminder based on the given CalendarItem, which needs to have an ID.
    * A CalendarItem has an ID, when you have used `.add(...)` and saved the return value or when you query
@@ -1026,7 +1021,7 @@ declare class Calendar {
    * @param {CalendarItem}
    * @return {Promise}
    */
-  static remove(calendarItem: TCalendarItem): Promise < void>;
+  static remove(calendarItem: TCalendarItem): Promise<void>;
   /**
    * Returns the event by the given ID. You can get the ID from a CalendarItem, which you got from using `.add(...)` (the return value is a CalendarItem with ID) or when you query the event using `eventsBetween(...)`, `eventByID(...)`, etc.
    * This function fetches reminders asynchronously, so use async/await.
@@ -1034,7 +1029,7 @@ declare class Calendar {
    * @param {string}
    * @return {Promise(CalendarItem)}
    */
-  static eventByID(id: string): Promise < Array < TCalendarItem >>;
+  static eventByID(id: string): Promise<Array<TCalendarItem>>;
   /**
    * Returns the reminder by the given ID. You can get the ID from a CalendarItem, which you got from using `.add(...)` (the return value is a CalendarItem with ID) or when you query the event using `remindersBetween(...)`, `reminderByID(...)`, etc.
    * Use with async/await.
@@ -1042,7 +1037,7 @@ declare class Calendar {
    * @param {string}
    * @return {Promise(CalendarItem)}
    */
-  static reminderByID(id: string): Promise < Array < TCalendarItem >>;
+  static reminderByID(id: string): Promise<Array<TCalendarItem>>;
   /**
    * Returns all reminders (completed and incomplete) for the given lists (array of strings).
    * If you keep the lists variable empty, NotePlan will return all reminders from all lists. You can get all Reminders lists calling `Calendar.availableReminderListTitles()`
@@ -1051,7 +1046,7 @@ declare class Calendar {
    * @param {[string]?}
    * @return {Promise}
    */
-  static remindersByLists(lists: $ReadOnlyArray < string >): Promise < Array < TCalendarItem >>;
+  static remindersByLists(lists: $ReadOnlyArray<string>): Promise<Array<TCalendarItem>>;
 }
 
 /**
@@ -1079,93 +1074,93 @@ declare interface Paragraph {
    * (with the Markdown 'type' prefix, such as '* [ ]' for open task)
    */
   +rawContent: string;
-/**
- * Get the Markdown prefix of the paragraph (like '* [ ]' for open task)
- */
-+prefix: string;
-/**
- * Get the range of the paragraph.
- */
-+contentRange: Range | void;
-/**
- * Get the line index of the paragraph.
- */
-+lineIndex: number;
-/**
- * Get the date of the paragraph, if any (in case of scheduled tasks).
- */
-+date: Date | void;
-/**
- * Get the heading of the paragraph (looks for a previous heading paragraph).
- */
-+heading: string;
-/**
- * Get the heading range of the paragraph
- * (looks for a previous heading paragraph).
- */
-+headingRange: Range | void;
-/**
- * Get the heading level of the paragraph ('# heading' = level 1).
- */
-+headingLevel: number;
-/**
- * If the task is a recurring one (contains '@repeat(...)')
- */
-+isRecurring: boolean;
-/**
- * Get the amount of indentations.
- */
-+indents: number;
-/**
- * Get the filename of the note this paragraph was loaded from
- */
-+filename: ?string;
-/**
- * Get the note type of the note this paragraph was loaded from.
- */
-+noteType: ?NoteType;
-/**
- * Get the linked note titles this paragraph contains,
- * such as '[[Note Name]]' (will return names without the brackets).
- */
-+linkedNoteTitles: $ReadOnlyArray < string >;
-/**
- * Creates a duplicate object, so you can change values without affecting the
- * original object
- */
-duplicate(): Paragraph;
-/**
- * Returns indented paragraphs (children) underneath a task
- * Only tasks can have children, but any paragraph indented underneath a task
- * can be a child of the task. This includes bullets, tasks, quotes, text.
- * Children are counted until a blank line, HR, title, or another item at the
- * same level as the parent task. So for items to be counted as children, they
- * need to be contiguous vertically.
- * Important note: .children() for a task paragraph will return every child,
- * grandchild, greatgrandchild, etc. So a task that has a child task that has
- * a child task will have 2 children (and the first child will have one)
- * Note: Available from v3.3
- * @return {[TParagraph]}
- */
-children(): $ReadOnlyArray < TParagraph >;
-/**
- * Returns an array of all paragraphs having the same blockID (including this paragraph). You can use `paragraph[0].note` to access the note behind it and make updates via `paragraph[0].note.updateParagraph(paragraph[0])` if you make changes to the content, type, etc (like checking it off as type = "done")
- * Note: Available from v3.5.2
- * @type {[ParagraphObject]} - getter
- */
-+referencedBlocks: [TParagraph];
-/**
- * Returns the NoteObject behind this paragraph. This is a convenience method, so you don't need to use DataStore.
- * Note: Available from v3.5.2
- * @type {TNote?}
- */
-+note: ?TNote;
-/**
- * Returns the given blockId if any.
- * Note: Available from v3.5.2
- * @type {string?}
- */
-+blockId: ?string;
+  /**
+   * Get the Markdown prefix of the paragraph (like '* [ ]' for open task)
+   */
+  +prefix: string;
+  /**
+   * Get the range of the paragraph.
+   */
+  +contentRange: Range | void;
+  /**
+   * Get the line index of the paragraph.
+   */
+  +lineIndex: number;
+  /**
+   * Get the date of the paragraph, if any (in case of scheduled tasks).
+   */
+  +date: Date | void;
+  /**
+   * Get the heading of the paragraph (looks for a previous heading paragraph).
+   */
+  +heading: string;
+  /**
+   * Get the heading range of the paragraph
+   * (looks for a previous heading paragraph).
+   */
+  +headingRange: Range | void;
+  /**
+   * Get the heading level of the paragraph ('# heading' = level 1).
+   */
+  +headingLevel: number;
+  /**
+   * If the task is a recurring one (contains '@repeat(...)')
+   */
+  +isRecurring: boolean;
+  /**
+   * Get the amount of indentations.
+   */
+  +indents: number;
+  /**
+   * Get the filename of the note this paragraph was loaded from
+   */
+  +filename: ?string;
+  /**
+   * Get the note type of the note this paragraph was loaded from.
+   */
+  +noteType: ?NoteType;
+  /**
+   * Get the linked note titles this paragraph contains,
+   * such as '[[Note Name]]' (will return names without the brackets).
+   */
+  +linkedNoteTitles: $ReadOnlyArray<string>;
+  /**
+   * Creates a duplicate object, so you can change values without affecting the
+   * original object
+   */
+  duplicate(): Paragraph;
+  /**
+   * Returns indented paragraphs (children) underneath a task
+   * Only tasks can have children, but any paragraph indented underneath a task
+   * can be a child of the task. This includes bullets, tasks, quotes, text.
+   * Children are counted until a blank line, HR, title, or another item at the
+   * same level as the parent task. So for items to be counted as children, they
+   * need to be contiguous vertically.
+   * Important note: .children() for a task paragraph will return every child,
+   * grandchild, greatgrandchild, etc. So a task that has a child task that has
+   * a child task will have 2 children (and the first child will have one)
+   * Note: Available from v3.3
+   * @return {[TParagraph]}
+   */
+  children(): $ReadOnlyArray<TParagraph>;
+  /**
+   * Returns an array of all paragraphs having the same blockID (including this paragraph). You can use `paragraph[0].note` to access the note behind it and make updates via `paragraph[0].note.updateParagraph(paragraph[0])` if you make changes to the content, type, etc (like checking it off as type = "done")
+   * Note: Available from v3.5.2
+   * @type {[ParagraphObject]} - getter
+   */
+  +referencedBlocks: [TParagraph];
+  /**
+   * Returns the NoteObject behind this paragraph. This is a convenience method, so you don't need to use DataStore.
+   * Note: Available from v3.5.2
+   * @type {TNote?}
+   */
+  +note: ?TNote;
+  /**
+   * Returns the given blockId if any.
+   * Note: Available from v3.5.2
+   * @type {string?}
+   */
+  +blockId: ?string;
 }
 
 type TNote = Note
@@ -1187,87 +1182,81 @@ declare interface Note extends ParagraphBridge {
    * Type of the note, either "Notes" or "Calendar".
    */
   +type: NoteType;
-/**
- * Title = first line of the note. (NB: Getter only.)
- */
-+title: string | void;
-/**
- * Optional date if it's a calendar note
- */
-+date: Date | void;
-/**
- * Date and time when the note was last modified.
- */
-+changedDate: Date;
-/**
- * Date and time of the creation of the note.
- */
-+createdDate: Date;
-/**
- * All #hashtags contained in this note.
- */
-+hashtags: $ReadOnlyArray < string >;
-/**
- * All @mentions contained in this note.
- */
-+mentions: $ReadOnlyArray < string >;
-/**
- * Get or set the raw text of the note (without hiding or rendering any Markdown).
- * If you set the content, NotePlan will write it immediately to file.
- * If you get the content, it will be read directly from the file.
- */
-content: string | void;
-/**
- * Get or set paragraphs contained in this note (can be tasks, plain text, headings...).
- * If you set the paragraph array, it will join them and save the new content
- * to file.
- */
-paragraphs: Array < TParagraph >;
-/**
- * Get paragraphs contained in this note which contain a link to another [[project note]] or [[YYYY-MM-DD]] daily note.
- * Note: Available from v3.2.0
- */
-+linkedItems: $ReadOnlyArray < TParagraph >;
-/**
- * Get paragraphs contained in this note which contain a link to a daily note.
- * Specifically this includes paragraphs with >YYYY-MM-DD, @YYYY-MM-DD, <YYYY-MM-DD, >today, @done(YYYY-MM-DD HH:mm), but only in non-calendar notes (because currently NotePlan doesn't create references between daily notes).
- * Note: Available from v3.2.0
- */
-+datedTodos: $ReadOnlyArray < TParagraph >;
-/**
- * Get all backlinks pointing to the current note as Paragraph objects. In this array, the toplevel items are all notes linking to the current note and the 'subItems' attributes (of the paragraph objects) contain the paragraphs with a link to the current note. The heading of the linked paragraphs are also listed here, although they don't have to contain a link.
- * NB: Backlinks are all [[note name]] and >date links.
- * Note: Available from v3.2.0
- */
-+backlinks: $ReadOnlyArray < TParagraph >;
-/**
- * Get all types assigned to this note in the frontmatter as an array of strings.
- * You can set types of a note by adding frontmatter e.g. `type: meeting-note, empty-note` (comma separated).
- * Note: Available from v3.5.0
- */
-+frontmatterTypes: $ReadOnlyArray < string >;
-/**
- * Print the note, optionally with backlinks and events sections
- * Note: available from v3.4 on macOS
- * @param {boolean} addReferenceSections
- */
-printNote(addReferenceSections: boolean): void;
-/**
- * Generates a unique block ID and adds it to the content of this paragraph.
- * Remember to call .updateParagraph(p) to write it to the note.
- * You can call this on the Editor or note you got the paragraph from.
- * Note: Available from v3.5.2
- * @param {TParagraph}
- */
-addBlockID(paragraph: TParagraph): void;
-/**
- * Removes the unique block ID, if it exists in the content.
- * Remember to call .updateParagraph(p) to write it to the note afterwards.
- * You can call this on the Editor or note you got the paragraph from.
- * Note: Available from v3.5.2
- * @param {TParagraph}
- */
-removeBlockID(paragraph: TParagraph): void;
+  /**
+   * Title = first line of the note. (NB: Getter only.)
+   */
+  +title: string | void;
+  /**
+   * Optional date if it's a calendar note
+   */
+  +date: Date | void;
+  /**
+   * Date and time when the note was last modified.
+   */
+  +changedDate: Date;
+  /**
+   * Date and time of the creation of the note.
+   */
+  +createdDate: Date;
+  /**
+   * All #hashtags contained in this note.
+   */
+  +hashtags: $ReadOnlyArray<string>;
+  /**
+   * All @mentions contained in this note.
+   */
+  +mentions: $ReadOnlyArray<string>;
+  /**
+   * Get or set the raw text of the note (without hiding or rendering any Markdown).
+   * If you set the content, NotePlan will write it immediately to file.
+   * If you get the content, it will be read directly from the file.
+   */
+  content: string | void;
+  /**
+   * Get paragraphs contained in this note which contain a link to another [[project note]] or [[YYYY-MM-DD]] daily note.
+   * Note: Available from v3.2.0
+   */
+  +linkedItems: $ReadOnlyArray<TParagraph>;
+  /**
+   * Get paragraphs contained in this note which contain a link to a daily note.
+   * Specifically this includes paragraphs with >YYYY-MM-DD, @YYYY-MM-DD, <YYYY-MM-DD, >today, @done(YYYY-MM-DD HH:mm), but only in non-calendar notes (because currently NotePlan doesn't create references between daily notes).
+   * Note: Available from v3.2.0
+   */
+  +datedTodos: $ReadOnlyArray<TParagraph>;
+  /**
+   * Get all backlinks pointing to the current note as Paragraph objects. In this array, the toplevel items are all notes linking to the current note and the 'subItems' attributes (of the paragraph objects) contain the paragraphs with a link to the current note. The heading of the linked paragraphs are also listed here, although they don't have to contain a link.
+   * NB: Backlinks are all [[note name]] and >date links.
+   * Note: Available from v3.2.0
+   */
+  +backlinks: $ReadOnlyArray<TParagraph>;
+  /**
+   * Get all types assigned to this note in the frontmatter as an array of strings.
+   * You can set types of a note by adding frontmatter e.g. `type: meeting-note, empty-note` (comma separated).
+   * Note: Available from v3.5.0
+   */
+  +frontmatterTypes: $ReadOnlyArray<string>;
+  /**
+   * Print the note, optionally with backlinks and events sections
+   * Note: available from v3.4 on macOS
+   * @param {boolean} addReferenceSections
+   */
+  printNote(addReferenceSections: boolean): void;
+  /**
+   * Generates a unique block ID and adds it to the content of this paragraph.
+   * Remember to call .updateParagraph(p) to write it to the note.
+   * You can call this on the Editor or note you got the paragraph from.
+   * Note: Available from v3.5.2
+   * @param {TParagraph}
+   */
+  addBlockID(paragraph: TParagraph): void;
+  /**
+   * Removes the unique block ID, if it exists in the content.
+   * Remember to call .updateParagraph(p) to write it to the note afterwards.
+   * You can call this on the Editor or note you got the paragraph from.
+   * Note: Available from v3.5.2
+   * @param {TParagraph}
+   */
+  removeBlockID(paragraph: TParagraph): void;
 }
 
 /**
@@ -1279,14 +1268,14 @@ declare interface Range {
    * Character start index of the range.
    */
   +start: number;
-/**
- * Character end index of the range.
- */
-+end: number;
-/**
- * Character length of the range (end - start).
- */
-+length: number;
+  /**
+   * Character end index of the range.
+   */
+  +end: number;
+  /**
+   * Character length of the range (end - start).
+   */
+  +length: number;
 }
 
 type CalenderItemType = 'event' | 'reminder'
@@ -1307,105 +1296,105 @@ declare interface TCalendarItem {
    * Use the ID later to refer to this event (to modify or delete).
    */
   +id: string | void;
-/**
- * The title of the event or reminder.
- */
-+title: string;
-/**
- * The date (with time) of the event or reminder.
- */
-+date: Date;
-/**
- * The endDate (with time) of the event (reminders have no endDate).
- * So, this can be optional.
- */
-+endDate: ?Date;
-/**
- * The type of the calendar item, either "event" or "reminder".
- */
-+type: string;
-/**
- * If the calendar item is all-day, means it has no specific time.
- */
-+isAllDay: boolean;
-/**
- * If the calendar item is completed. This applies only to reminders.
- * Note: Available from v3.0.15
- */
-+isCompleted: boolean;
-/**
- * All the dates the event or reminder occurs (if it's a multi-day event for example)
- * Note: Available from v3.0.15
- */
-+occurrences: [Date];
-/**
- * The calendar or reminders list where this event or reminder is (or should be) saved. If you set nothing, the event or reminder will be added to the default and this field will be set after adding.
- * Note: Available from v3.0.15.
- */
-+calendar: string;
-/**
- * Text saved in the "Notes" field of the event or reminder.
- * Note: Available from v3.0.26
- */
-+notes: string;
-/**
- * URL saved with the event or reminder.
- * Note: Available from v3.0.26
- */
-+url: string;
-/**
- * If supported, shows the availability for the event. The default is 0 = busy.
- * notSupported = -1
- * busy = 0
- * free = 1
- * tentative = 2
- * unavailable = 3
- * Note: Available from v3.3
- */
-+availability: number;
-/**
- * List of attendee names or emails.
- * Some example result strings show the variety possible:
- * - "[bob@example.com](mailto:bob@example.com)"
- * - "✓ [Jonathan Clark](/aOTg2Mjk1NzU5ODYyOTU3NUcglJxZek7H6BDKiYH0Y7RvgqchDTUR8sAcaQmcnHR_/principal/) (organizer)"
- * - "[TEST Contact1](mailto:test1@clarksonline.me.uk)",
- * But I think it is closer to being a JS Map [string, string].
- * Note: Available from v3.5.0
- */
-+attendees: [string];
-/**
- * List of attendee names (or email addresses if name isn't available).
- * Note: Available from v3.5.2
- */
-+attendeeNames: [string];
-/**
- * Markdown link for the given event. If you add this link to a note, NotePlan will link the event with the note and show the note in the dropdown when you click on the note icon of the event in the sidebar.
- * Note: Available from v3.5, only events, reminders are not supported yet
- */
-+calendarItemLink: string;
-/**
- * Create a CalendarItem. The .endDate is optional, but recommended for events.
- * Reminders don't use this field.
- *
- * The type can be "event" or "reminder". And isAllDay can be used if you
- * don't want to define a specific time, like holidays.
- * Use the calendar variable, if you want to add the event or reminder to another
- * calendar or reminders list other than the default. This is optional: if you set
- * nothing, it will use the default.
- * Use isCompleted only for reminders, by default it's false if you set nothing.
- * Note: some available from v3.0.26.
- */
-create(
-  title: string,
-  date: Date,
-  endDate: Date | void,
-  type: CalenderItemType,
-  isAllDay ?: boolean,
-  calendar ?: string,
-  isCompleted ?: boolean,
-  notes ?: string,
-  url ?: string,
-): TCalendarItem;
+  /**
+   * The title of the event or reminder.
+   */
+  +title: string;
+  /**
+   * The date (with time) of the event or reminder.
+   */
+  +date: Date;
+  /**
+   * The endDate (with time) of the event (reminders have no endDate).
+   * So, this can be optional.
+   */
+  +endDate: ?Date;
+  /**
+   * The type of the calendar item, either "event" or "reminder".
+   */
+  +type: string;
+  /**
+   * If the calendar item is all-day, means it has no specific time.
+   */
+  +isAllDay: boolean;
+  /**
+   * If the calendar item is completed. This applies only to reminders.
+   * Note: Available from v3.0.15
+   */
+  +isCompleted: boolean;
+  /**
+   * All the dates the event or reminder occurs (if it's a multi-day event for example)
+   * Note: Available from v3.0.15
+   */
+  +occurrences: [Date];
+  /**
+   * The calendar or reminders list where this event or reminder is (or should be) saved. If you set nothing, the event or reminder will be added to the default and this field will be set after adding.
+   * Note: Available from v3.0.15.
+   */
+  +calendar: string;
+  /**
+   * Text saved in the "Notes" field of the event or reminder.
+   * Note: Available from v3.0.26
+   */
+  +notes: string;
+  /**
+   * URL saved with the event or reminder.
+   * Note: Available from v3.0.26
+   */
+  +url: string;
+  /**
+   * If supported, shows the availability for the event. The default is 0 = busy.
+   * notSupported = -1
+   * busy = 0
+   * free = 1
+   * tentative = 2
+   * unavailable = 3
+   * Note: Available from v3.3
+   */
+  +availability: number;
+  /**
+   * List of attendee names or emails.
+   * Some example result strings show the variety possible:
+   * - "[bob@example.com](mailto:bob@example.com)"
+   * - "✓ [Jonathan Clark](/aOTg2Mjk1NzU5ODYyOTU3NUcglJxZek7H6BDKiYH0Y7RvgqchDTUR8sAcaQmcnHR_/principal/) (organizer)"
+   * - "[TEST Contact1](mailto:test1@clarksonline.me.uk)",
+   * But I think it is closer to being a JS Map [string, string].
+   * Note: Available from v3.5.0
+   */
+  +attendees: [string];
+  /**
+   * List of attendee names (or email addresses if name isn't available).
+   * Note: Available from v3.5.2
+   */
+  +attendeeNames: [string];
+  /**
+   * Markdown link for the given event. If you add this link to a note, NotePlan will link the event with the note and show the note in the dropdown when you click on the note icon of the event in the sidebar.
+   * Note: Available from v3.5, only events, reminders are not supported yet
+   */
+  +calendarItemLink: string;
+  /**
+   * Create a CalendarItem. The .endDate is optional, but recommended for events.
+   * Reminders don't use this field.
+   *
+   * The type can be "event" or "reminder". And isAllDay can be used if you
+   * don't want to define a specific time, like holidays.
+   * Use the calendar variable, if you want to add the event or reminder to another
+   * calendar or reminders list other than the default. This is optional: if you set
+   * nothing, it will use the default.
+   * Use isCompleted only for reminders, by default it's false if you set nothing.
+   * Note: some available from v3.0.26.
+   */
+  create(
+    title: string,
+    date: Date,
+    endDate: Date | void,
+    type: CalenderItemType,
+    isAllDay?: boolean,
+    calendar?: string,
+    isCompleted?: boolean,
+    notes?: string,
+    url?: string,
+  ): TCalendarItem;
 }
 
 /**
@@ -1422,7 +1411,7 @@ declare class Clipboard {
   /**
    * Returns a list of types.
    */
-  static +types: $ReadOnlyArray < string >;
+  static +types: $ReadOnlyArray<string>;
   /**
    * Set the text of the clipboard using a specific type.
    */
@@ -1460,7 +1449,7 @@ declare class Clipboard {
   /**
    * Pass in the types you are interested in and get the available type back.
    */
-  static availableType(fromTypes: $ReadOnlyArray < string >): ?string;
+  static availableType(fromTypes: $ReadOnlyArray<string>): ?string;
 }
 
 /* Available paragraph types
@@ -1483,6 +1472,13 @@ type TParagraphBridge = ParagraphBridge
 declare interface ParagraphBridge {
   // impossible constructor.
   constructor(_: empty): empty;
+
+  /**
+   * Get or set the array of paragraphs contained in this note, such as tasks,
+   * bullets, etc. If you set the paragraphs, the content of the note will be
+   * updated.
+   */
+  paragraphs: $ReadOnlyArray<TParagraph>;
   /**
    * Returns a range object of the full paragraph of the given character
    * position.
@@ -1683,16 +1679,16 @@ declare class NotePlan {
    *   .buildVersion: number (NotePlan's build number as integer,for example 730. Note: This is the item recommended for use in tests or comparisons)
    */
   static +environment: Object;
-/**
- * The selected sidebar folder (useful when a note is not showing in Editor, which is then null)
- * Note: available from v3.5.1
- */
-static + selectedSidebarFolder ?: string;
+  /**
+   * The selected sidebar folder (useful when a note is not showing in Editor, which is then null)
+   * Note: available from v3.5.1
+   */
+  static +selectedSidebarFolder?: string;
   /**
    * Open the current plugin's config UI, if available.
    * Note: available from v3.3.2 (just for macOS so far)
    */
-  static showConfigurationView(): Promise < void>;
+  static showConfigurationView(): Promise<void>;
   /**
    * To reset the caches, particularly in the case where the sidebar turns out incorrect.
    * It's an async operation, but it doesn't return a promise to tell you when it's done.
