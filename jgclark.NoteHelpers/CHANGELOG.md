@@ -1,6 +1,12 @@
 # What's changed in 📙 Note Helpers plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/).
 
+## [0.16.0] - 2022-06-26
+### Updated
+- The function `jumpToHeading` (which is used for jumping to headings within the same note) can Now be used via `x-callback-url` by passing the text of the heading in as an argument
+### Added
+- **/enable heading links**: A new command that convert Local links to headings (they start with the `#` character) to `x-callback-url` links that use the Noteplan URL-scheme to run the `jumpToHeading` function mentioned above. So while, Noteplan doesn't support the standard way of linking to headings within notes, this plugin command now enables that feature if you're willing to change the destination of your links.
+
 ## [0.15.0] - 2022-06-???
 ### Added
 - waiting on FIXME(EM): new command '/rename note filename' to rename the currently open note. Note: this changes the underlying _filename_ not the visible _title_. It only works with NotePlan v3.6.0 onwards.
