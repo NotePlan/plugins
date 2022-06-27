@@ -37,7 +37,7 @@ export function deleteEntireBlock(
   _useExtendedBlockDefinition: boolean = false,
   keepHeading: boolean = true,
 ): void {
-  const paraBlock: Array<TParagraph> = getParagraphBlock(note, para.lineIndex)
+  const paraBlock: Array<TParagraph> = getParagraphBlock(note, para.lineIndex, _useExtendedBlockDefinition)
   log(`NPParagraph/deleteEntireBlock`, `Removing ${paraBlock.length} items under ${para.content}`)
   keepHeading ? paraBlock.shift() : null
   if (paraBlock.length > 0) {
@@ -515,7 +515,11 @@ async function showMessage(message: string, confirmButton: string = 'OK', dialog
 /**
  * COPY FROM helpers/userInput.js to avoid a circular dependency
  */
-async function showMessageYesNo(message: string, choicesArray: Array<string> = ['Yes', 'No'], dialogTitle: string = ''): Promise<string> {
+async function showMessageYesNo(
+  message: string,
+  choicesArray: Array<string> = ['Yes', 'No'],
+  dialogTitle: string = '',
+): Promise<string> {
   let answer: number
   if (typeof CommandBar.prompt === 'function') {
     // i.e. do we have .textPrompt available?
