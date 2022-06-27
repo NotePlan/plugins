@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Summary commands for notes
 // Jonathan Clark
-// Last updated 26.6.2022 for v0.10.0
+// Last updated 27.6.2022 for v0.10.0
 //-----------------------------------------------------------------------------
 
 export { weeklyStats } from './forPlotting'
@@ -29,15 +29,17 @@ export function onSettingsUpdated(): void {
 const configKey = "summaries"
 
 // refactor previous variables to new types
-export async function onUpdateOrInstall(config: any = { silent: false }): Promise<void> {
+export async function onUpdateOrInstall(): Promise<void> {
   try {
     console.log(`${configKey}: onUpdateOrInstall running`)
     const updateSettingsResult = updateSettingData(pluginJson)
     console.log(`${configKey}: onUpdateOrInstall updateSettingData code: ${updateSettingsResult}`)
     // Tell user the plugin has been updated
-    await showMessage(pluginJson['plugin.lastUpdateInfo'], 'OK, thanks',
-      `Plugin ${pluginJson['plugin.name']} updated to v${pluginJson['plugin.version']}`
-    )
+    if (pluginJson['plugin.lastUpdateInfo'] !== undefined) {
+      await showMessage(pluginJson['plugin.lastUpdateInfo'], 'OK, thanks',
+        `Plugin ${pluginJson['plugin.name']} updated to v${pluginJson['plugin.version']}`
+      )
+    }
   } catch (error) {
     console.log(error)
   }
