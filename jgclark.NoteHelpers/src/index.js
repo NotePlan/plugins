@@ -25,7 +25,10 @@ export {
   openNoteNewSplit,
   renameNoteFile,
 } from './noteHelpers'
+
 export { indexFolders } from './indexFolders'
+
+export { openIncompleteLinksInNote, openURLOnLine } from './NPOpenLinks'
 
 const configKey = 'noteHelpers'
 

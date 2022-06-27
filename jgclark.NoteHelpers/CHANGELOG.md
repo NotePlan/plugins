@@ -1,6 +1,12 @@
 # What's changed in 📙 Note Helpers plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/).
 
+## [0.17.0] - 2022-06-26 @dwertheimer
+
+### Added
+- Add new command  `/open todo links in browser`
+
+
 ## [0.16.0] - 2022-06-26
 ### Updated
 - The function `jumpToHeading` (which is used for jumping to headings within the same note) can Now be used via `x-callback-url` by passing the text of the heading in as an argument

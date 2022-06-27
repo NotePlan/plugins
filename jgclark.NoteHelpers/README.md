@@ -11,6 +11,7 @@ This plugin provides these commands to help jump quickly between NotePlan notes,
 - **/convert to frontmatter**: convert the current note to use frontmatter syntax, including optional default text that can be added in the Plugin's settings.
 - **/add number of days to dates**: looks for bullets in your current open note that end with `[[YYYY-MM-DD]]:` and adds the number of days to or since that date. Useful for making lists of important days and easily knowing number of days to (or since) that day.
 - **/enable heading links**: converts Local links to headings (they start with the `#` character) to `x-callback-url` links that makes them work the way you expect them to. *NOTE*: They currently only support links to headings within the same note.
+- **/open todo links in browser**: find all open todos in the Editor with URLs and open any URLs in a browser (useful if you have JIRA tasks or other TODOs where you need to reference external items)
 
 ## History
 See [CHANGELOG](CHANGELOG.md) for the plugin's history.

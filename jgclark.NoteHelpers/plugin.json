@@ -128,6 +128,21 @@
       ],
       "description": "Look for Links to headings and make them work by converting them to plugin command calls",
       "jsFunction": "convertLocalLinksToPluginLinks"
+    },
+    {
+      "name": "open todo links in browser",
+      "alias": [
+      ],
+      "description": "Open links in open todo items on the page",
+      "jsFunction": "openIncompleteLinksInNote"
+    },
+    {
+      "name": "open URL on this line",
+      "alias": [
+        "openurl","launch"
+      ],
+      "description": "Open the URL on the current line in the default browser",
+      "jsFunction": "openURLOnLine"
     }
   ],
   "plugin.settings": [
