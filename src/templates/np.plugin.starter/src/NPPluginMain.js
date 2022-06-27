@@ -14,18 +14,21 @@
 // From the command line:
 // `noteplan-cli plugin:dev {{pluginId}} --test --watch --coverage`
 
+import pluginJson from '../plugin.json'
 import * as helpers from './support/helpers'
 import { log, logError, clo, JSP } from '@helpers/dev'
 import { createRunPluginCallbackUrl } from '@helpers/general'
-import pluginJson from '../plugin.json'
 
+// eslint-disable-next-line require-await
 export async function sayHello(incoming: ?string = ''): Promise<void> {
   // every command/plugin entry point should always be wrapped in a try/catch block
   try {
     if (incoming?.length) {
       // When commands are  launched from NotePlan Command Bar, they are passed with no arguments
       // if `incoming` is set, this plugin/command run must have come from a runPlugin call (e.g. clicking on a noteplan:// xcallback link or a template call)
-      Editor.insertTextAtCursor(`***You clicked the link!*** The message at the end of the link is "${incoming}". Now the rest of the plugin will run just as before...\n\n`)
+      Editor.insertTextAtCursor(
+        `***You clicked the link!*** The message at the end of the link is "${incoming}". Now the rest of the plugin will run just as before...\n\n`,
+      )
     }
 
     // a call to a support function in a separate file
@@ -47,7 +50,9 @@ export async function sayHello(incoming: ?string = ''): Promise<void> {
 
     if (!incoming?.length) {
       // Create a XCallback URL that can run this command
-      const url = createRunPluginCallbackUrl(pluginJson['plugin.id'], pluginJson['plugin.commands'][0].name, ['This text was in the link!'])
+      const url = createRunPluginCallbackUrl(pluginJson['plugin.id'], pluginJson['plugin.commands'][0].name, [
+        'This text was in the link!',
+      ])
       Editor.insertTextAtCursor(
         `This link could be used anywhere inside or outside of NotePlan to call this plugin:\n${url}\nGo ahead and click it! ^^^\nYou will see the results below:\n\n*****\n`,
       )

@@ -9,7 +9,8 @@
  * --------------------------------------------------------------------------------------------------------------------------*/
 
 import json5 from 'json5'
-import { clo } from '@helpers/dev'
+import { clo, log } from '@helpers/dev'
+import { showMessageYesNo } from '@helpers/userInput'
 
 // this is the only possible location for _configuration note
 const STATIC_TEMPLATE_FOLDER = '📋 Templates'
@@ -27,16 +28,6 @@ const dt = (): string => {
   }
 
   return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + d.toLocaleTimeString()
-}
-
-/**
- * Log to console and np-out.log (with date time and category)
- * @author @codedungeon
- * @param {string} msg - log message
- * @return void
- */
-const log = (msg: string = ''): void => {
-  console.log(`${dt()} : configuration :: ${msg}`)
 }
 
 /**
@@ -280,4 +271,28 @@ export function semverVersionToNumber(version: string): number {
     numericVersion |= parseInt(parts[i]) << (i * 10)
   }
   return numericVersion
+}
+
+/**
+ * Notify the user that a plugin was automatically updated. Typical usage:
+ * @usage DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], true, false, false).then((r) => pluginUpdated(pluginJson, r))
+ * @author @dwertheimer
+ * @param {{ code: number, message: string }} result
+ */
+export async function pluginUpdated(pluginJson: any, result: { code: number, message: string }): Promise<void> {
+  // result.codes = 0=no update, 1=updated, -1=error
+  if (result.code === 1) {
+    log(pluginJson, `Plugin was updated`)
+    const openReadme = await showMessageYesNo(
+      `The Plugin:\n"${pluginJson['plugin.name']}"\nwas automatically updated. Would you like to open the Plugin's README to see what's new?`,
+      ['Yes', 'No'],
+      'New Plugin Version Installed',
+    )
+    if (openReadme === 'Yes') {
+      const url = pluginJson['plugin.url'] || ''
+      NotePlan.openURL(url)
+    }
+  } else if (result.code === -1) {
+    log(pluginJson, `Plugin update failed: ${result.message}`)
+  }
 }

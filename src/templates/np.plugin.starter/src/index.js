@@ -27,8 +27,8 @@ import pluginJson from '../plugin.json'
  */
 
 // eslint-disable-next-line import/order
-import { updateSettingData } from '@helpers/NPConfiguration'
-
+import { updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'
+import { logError, JSP } from '@helpers/dev'
 /**
  * NotePlan calls this function after the plugin is installed or updated.
  * The `updateSettingData` function looks through the new plugin settings in plugin.json and updates
@@ -42,7 +42,17 @@ export async function onUpdateOrInstall(): Promise<void> {
  * NotePlan calls this function every time the plugin is run (any command in this plugin)
  * You should not need to edit this function. All work should be done in the commands themselves
  */
-export async function init(): Promise<void> {}
+// eslint-disable-next-line require-await
+export async function init(): Promise<void> {
+  try {
+    // Check for the latest version of this plugin, and if a minor update is available, install it and show a message
+    DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false).then((r) =>
+      pluginUpdated(pluginJson, r),
+    )
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
+}
 
 /**
  * NotePlan calls this function settings are updated in the Preferences panel

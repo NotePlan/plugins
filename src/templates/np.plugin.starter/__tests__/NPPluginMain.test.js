@@ -1,5 +1,5 @@
 // Jest testing docs: https://jestjs.io/docs/using-matchers
-/* global describe, test, jest, expect */
+/* global describe, expect, test, beforeAll */
 
 import * as mainFile from '../src/NPPluginMain'
 import { copyObject } from '@helpers/dev'
