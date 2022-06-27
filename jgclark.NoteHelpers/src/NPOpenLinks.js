@@ -6,7 +6,8 @@ import { getParagraphContainingPosition } from '@helpers/NPParagraph'
 /**
  * Find URLs in an array of paragraphs
  * @param {Array<TParagraph>} paras
- * @returns
+ * @author @dwertheimer
+ * @returns {Array<string>} - the URL strings as an array
  */
 export function findURLs(paras: Array<TParagraph>): Array<string> {
   const reURL = /(http|ftp|https):\/\/([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:\/~+#-]*[\w@?^=%&\/~+#-])/gim
@@ -23,6 +24,7 @@ export function findURLs(paras: Array<TParagraph>): Array<string> {
 /**
  * Find Links in Paragraphs Array and open in Browser
  * @param {*} paras
+ * @author @dwertheimer
  */
 export function openLinksInNote(paras: Array<TParagraph>) {
   const urls = findURLs(paras)
@@ -34,6 +36,7 @@ export function openLinksInNote(paras: Array<TParagraph>) {
 /**
  * Open URLs in Editor note which are OPEN todos
  * (Entrypoint for "/open todo links in browser" command)
+ * @author @dwertheimer
  */
 // eslint-disable-next-line require-await
 export async function openIncompleteLinksInNote() {
@@ -46,6 +49,7 @@ export async function openIncompleteLinksInNote() {
 /**
  * Open URLs on selected line
  * (Entrypoint for" /open URL on this line" command)
+ * @author @dwertheimer
  */
 // eslint-disable-next-line require-await
 export async function openURLOnLine() {
