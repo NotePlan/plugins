@@ -9,7 +9,7 @@
  * --------------------------------------------------------------------------------------------------------------------------*/
 
 import json5 from 'json5'
-import { clo, log } from '@helpers/dev'
+import { clo, log, JSP } from '@helpers/dev'
 import { showMessageYesNo } from '@helpers/userInput'
 
 // this is the only possible location for _configuration note
@@ -202,8 +202,8 @@ export function getSetting(pluginName: string = '', key: string = '', defaultVal
   return typeof settings === 'object' && settings.hasOwnProperty(key) ? settings[key] : defaultValue
 }
 
-export function getSettings(pluginName: string = '', defaultValue?: any = {}): any | null {
-  const settings = DataStore.loadJSON(`../../data/${pluginName}/settings.json`)
+export async function getSettings(pluginName: string = '', defaultValue?: any = {}): any | null {
+  const settings = await DataStore.loadJSON(`../../data/${pluginName}/settings.json`)
   return typeof settings === 'object' ? settings : defaultValue
 }
 
@@ -283,14 +283,27 @@ export async function pluginUpdated(pluginJson: any, result: { code: number, mes
   // result.codes = 0=no update, 1=updated, -1=error
   if (result.code === 1) {
     log(pluginJson, `Plugin was updated`)
-    const openReadme = await showMessageYesNo(
-      `The Plugin:\n"${pluginJson['plugin.name']}"\nwas automatically updated. Would you like to open the Plugin's README to see what's new?`,
-      ['Yes', 'No'],
-      'New Plugin Version Installed',
-    )
-    if (openReadme === 'Yes') {
-      const url = pluginJson['plugin.url'] || ''
-      NotePlan.openURL(url)
+    const newSettings = await getPluginJson(pluginJson['plugin.id'])
+    if (newSettings) {
+      const hasChangelog = newSettings['plugin.changelog']
+      const hasUpdateMessage = newSettings['plugin.lastUpdateInfo']
+      const updateMessage = hasUpdateMessage ? `Changes include:\n"${hasUpdateMessage}"\n\n` : ''
+      const version = newSettings['plugin.version']
+      const openReadme = await showMessageYesNo(
+        `The Plugin:\n"${
+          newSettings['plugin.name']
+        }"\nwas automatically updated to v${version}. ${updateMessage}Would you like to open the Plugin's ${
+          hasChangelog ? 'Change Log' : 'Documentation'
+        } to see more details?`,
+        ['Yes', 'No'],
+        'New Plugin Version Installed',
+      )
+      if (openReadme === 'Yes') {
+        const url = hasChangelog ? newSettings['plugin.changelog'] : newSettings['plugin.url'] || ''
+        NotePlan.openURL(url)
+      }
+    } else {
+      log(pluginJson, `Plugin was updated, but no new settings were loaded: newSettings was:${JSP(newSettings)}`)
     }
   } else if (result.code === -1) {
     log(pluginJson, `Plugin update failed: ${result.message}`)
