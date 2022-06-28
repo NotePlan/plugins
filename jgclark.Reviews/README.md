@@ -50,7 +50,7 @@ type: template, quick-note, empty-note
 newNoteTitle: <%- prompt('noteTitle', 'Project name') %>
 folder: '/'
 ---
-#project @start(<%- pickDate({'question':'Enter start date'}) %>) @due(<%- pickDate({'question':'Enter due date'}) %>) @review(<%- pickDateInterval({'question':'Enter review interval'}) %>)
+#project @start(<%- promptDate('question':'Enter start date') %>) @due(<%- promptDate('question':'Enter due date') %>) @review(<%- promptDateInterval('question':'Enter review interval') %>)
 Aim: <%- prompt('aim') %>
 Context: <%- prompt('context') %>
 ```
