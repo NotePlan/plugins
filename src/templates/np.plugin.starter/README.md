@@ -1,5 +1,13 @@
 # {{pluginName}} Noteplan Plugin
 
+## Latest Updates
+
+See [CHANGELOG](https://github.com/NotePlan/plugins/blob/main/{{pluginId}}/CHANGELOG.md) for latest updates/changes to this plugin.
+
+## About This Plugin 
+
+{{pluginDescription}}
+
 [You will delete this text and replace it with a readme about your plugin -- not ever seen by users, but good for people looking at your code. Before you delete though, you should know:]
 
 You do not need all of this scaffolding for a basic NP plugin. As the instructions state [Creating Plugins](https://help.noteplan.co/article/65-commandbar-plugins), you can create a plugin with just two files: `plugin.json` and `script.js`. Please read that whole page before proceeding here.
@@ -17,7 +25,7 @@ noteplan-cli plugin:create
 Open up a terminal folder and change directory to the plugins repository root. Run the command `npm run autowatch` which will keep looking for changes to all plugin files and will re-compile when JavaScript changes are made. It will also transpile ES6 and ES7 code to ES5 which will run on virtually all Macs, and will copy the file(s) to the NotePlan Plugins folder, so you can immediately test in Noteplan.
 
 ### NotePlan Plugins Directory
-You can find all your currently installed NotePlan Plugins here
+You can find all your currently installed NotePlan Plugins here (for AppStore version of NotePlan):
 
 ```bash
 /Users/<user>/Library/Containers/co.noteplan.NotePlan3/Data/Library/Application Support/co.noteplan.NotePlan3/Plugins
