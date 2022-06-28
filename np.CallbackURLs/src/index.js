@@ -16,7 +16,7 @@
 import pluginJson from '../plugin.json'
 
 // updateSettingsData will execute whenever your plugin is installed or updated
-import { updateSettingData } from '@helpers/NPconfiguration'
+import { updateSettingData } from '@helpers/NPConfiguration'
 
 export { xCallbackWizard } from './NPXCallbackWizard' // this makes the command function available to NotePlan (see plugin.json for details)
 

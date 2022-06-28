@@ -11,7 +11,7 @@ export { makeMOC } from './MOCs'
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
 
-import { migrateConfiguration, updateSettingData } from '@helpers/NPconfiguration'
+import { migrateConfiguration, updateSettingData } from '@helpers/NPConfiguration'
 
 export function init(): void {
   // Placeholder only
@@ -21,7 +21,7 @@ export function onSettingsUpdated(): void {
   // Placeholder only to stop error in logs
 }
 
-const configKey = "mocs"
+const configKey = 'mocs'
 
 // refactor previous variables to new types
 export async function onUpdateOrInstall(config: any = { silent: false }): Promise<void> {

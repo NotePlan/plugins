@@ -1,6 +1,6 @@
 // @flow
 import pluginJson from '../plugin.json'
-import { migrateConfiguration, updateSettingData } from '../../helpers/NPconfiguration'
+import { migrateConfiguration, updateSettingData } from '../../helpers/NPConfiguration'
 
 export {
   insertTodosAsTimeblocks,

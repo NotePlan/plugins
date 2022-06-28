@@ -17,14 +17,18 @@ import { getDailyQuote } from './support/modules/quote'
 import { getWeather } from './support/modules/weather'
 import { getWeatherSummary } from './support/modules/weatherSummary'
 import { parseJSON5 } from '@helpers/general'
-import { getSetting } from '../../helpers/NPconfiguration'
+import { getSetting } from '../../helpers/NPConfiguration'
 import { log, logError, clo } from '@helpers/dev'
 
 export async function processDate(dateParams: string, config: { [string]: ?mixed }): Promise<string> {
   const defaultConfig = config?.date ?? {}
   const dateParamsTrimmed = dateParams?.trim() || ''
   const paramConfig =
-    dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}') ? await parseJSON5(dateParams) : dateParamsTrimmed !== '' ? await parseJSON5(`{${dateParams}}`) : {}
+    dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}')
+      ? await parseJSON5(dateParams)
+      : dateParamsTrimmed !== ''
+      ? await parseJSON5(`{${dateParams}}`)
+      : {}
   // console.log(`param config: ${dateParams} as ${JSON.stringify(paramConfig)}`);
   // ... = "gather the remaining parameters into an array"
   const finalArguments: { [string]: mixed } = {
@@ -67,7 +71,11 @@ async function isCommandAvailable(pluginId: string, pluginCommand: string): Prom
   }
 }
 
-async function invokePluginCommandByName(pluginId: string = '', pluginCommand: string = '', args: $ReadOnlyArray<mixed> = []) {
+async function invokePluginCommandByName(
+  pluginId: string = '',
+  pluginCommand: string = '',
+  args: $ReadOnlyArray<mixed> = [],
+) {
   if (await isCommandAvailable(pluginId, pluginCommand)) {
     return (await DataStore.invokePluginCommandByName(pluginCommand, pluginId, args)) || ''
   } else {

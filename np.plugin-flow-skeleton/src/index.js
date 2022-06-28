@@ -11,7 +11,7 @@
 // Add a line below for each function that you want NP to have access to.
 // Typically, listed below are only the top-level plugin functions listed in plugin.json
 import pluginJson from '../plugin.json'
-import { updateSettingData } from '../../helpers/NPconfiguration'
+import { updateSettingData } from '../../helpers/NPConfiguration'
 export async function onUpdateOrInstall(): Promise<void> {
   updateSettingData(pluginJson)
 }
