@@ -8,33 +8,65 @@ import { log, logError, logWarn } from './dev'
 //-----------------------------------------------------------------------------
 // Paragraph-level Functions
 
+export const RE_URI = '(\\w+:\\/\\/[\\w\\.\\/\\?\\#\\&\\d\\-\\=%*,]+)'
+export const RE_MARKDOWN_PATH = '\\[.+?\\]\\(([^\\s]*?)\\)'
+
 /**
  * Check to see if search term is present within a URL or file path, using case sensitive searching.
+ * Now updated to _not match_ if the search term is present in the rest of the line.
  * @author @jgclark
-
+ * 
+ * @tests available in jest file
  * @param {string} term - term to check
  * @param {string} string - string to check in
  * @return {boolean} true if found
  */
 export function termInURL(term: string, searchString: string): boolean {
-  // create tailored Regex to test for presence of the term
-  const testTermInURI = `(?:https?://|file:/)[^\\s]*?${term}.*?[\\s\\.$]`
-  return !!searchString.match(testTermInURI)
+  // create version of searchString that doesn't include the URL and test that first
+  const URIMatches = searchString.match(RE_URI) ?? []
+  const thisURI = URIMatches[1] ?? ''
+  if (thisURI !== '') {
+    const restOfLine = searchString.replace(thisURI, '')
+    if (restOfLine.match(term)) {
+      return false
+    } else {
+      // create tailored Regex to test for presence of the term
+      // const testTermInURI = `(\\w+:\\/\\/)[^\\s]*?${term}.*?[\\s\\.$]`
+      return !!thisURI.match(term)
+    }
+  } else {
+    // console.log(`  No URI -> false`)
+    return false
+  }
 }
 
 /**
  * Check to see if search term is present within the path of a [...](path), using case sensitive searching.
+ * Now updated to _not match_ if the search term is present in the rest of the line.
  * @author @jgclark
-
+ * 
+ * @tests available in jest file
  * @param {string} term - term to check
  * @param {string} string - string to check in
  * @return {boolean} true if found
  */
 export function termInMarkdownPath(term: string, searchString: string): boolean {
-  // create tailored Regex to test for presence of the term
-  const testTermInURI = `\[.+?\]\([^\\s]*?${term}[^\\s]*?\)`
-  return !!searchString.match(testTermInURI)
-  // return false
+  // create version of searchString that doesn't include the URL and test that first
+  const MDPathMatches = searchString.match(RE_MARKDOWN_PATH) ?? []
+  const thisMDPath = MDPathMatches[1] ?? ''
+  if (thisMDPath !== '') {
+    const restOfLine = searchString.replace(thisMDPath, '')
+    if (restOfLine.match(term)) {
+      return false
+    } else {
+      // create tailored Regex to test for presence of the term
+      // const testTermInMDPath = `\[.+?\]\([^\\s]*?${term}[^\\s]*?\)`
+      return !!thisMDPath.match(term)
+    }
+  } else {
+    // console.log(`  No MD path -> false`)
+    return false
+  }
 }
 
 /**
@@ -444,4 +476,60 @@ export function findHeading(note: TNote, heading: string): TParagraph | null {
     if (para) return para
   }
   return null
+}
+
+/**
+ * Takes a line of text, and shortens it to maxChars characters around the 
+ * first matching 'term', at word boundaries (thanks to the power of regex!).
+ * Adds ==highlight== if wanted.
+ * @author @jgclark
+ * 
+ * @param {string} input string
+ * @param {String} term to find/highlight
+ * @param {boolean} addHighlight 
+ * @param {number} maxChars to return around first matching term
+ * @returns {string}
+ */
+export function trimAndHighlightSearchResult(
+  input: string,
+  term: string,
+  addHighlight: boolean,
+  maxChars: number = 80
+): string {
+  let output = input
+  if (input.length > maxChars) {
+    const LRSplit = Math.round(maxChars * 0.55)
+    const re = new RegExp(`(?:^|\\b)(.{0,${String(LRSplit)}}${term}.{0,${String(maxChars - LRSplit)}})\\b\\w+`, "gi")
+    const matches = input.match(re) ?? [] // multiple matches
+    if (matches.length > 0) {
+      output = matches.join(' ...')
+      if (output.match(/^\W/)) { // i.e. starts with a non-word character (an approximation)
+        output = `...${output}`
+      }
+      if (output.length < input.length) { // TODO: an approximation
+        output = `${output} ...`
+      }
+      //
+    } else {
+      // For some reason we didn't find the matching term, so return first part of line
+      return (output.length >= maxChars) ? output.slice(0, maxChars) : output
+    }
+  } else {
+    // just pass input through to output
+  }
+  // Add highlighting if wanted (using defined Regex si can use 'g' flag)
+  // (A simple .replace() command doesn't work as it won't keep capitalisation)
+  if (addHighlight) {
+    const re = new RegExp(term, "gi")
+    const termMatches = output.matchAll(re)
+    let offset = 0
+    for (const tm of termMatches) {
+      const leftPos = tm.index + offset // last adds previous ==...== additions
+      const rightPos = leftPos + term.length
+      const highlitOutput = `${output.slice(0, leftPos)}==${output.slice(leftPos, rightPos)}==${output.slice(rightPos,)}`
+      output = highlitOutput
+      offset += 4
+    }
+  }
+  return output
 }
