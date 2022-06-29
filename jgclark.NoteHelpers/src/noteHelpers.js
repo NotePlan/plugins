@@ -6,10 +6,12 @@
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { clo, log, logError, logWarn } from '@helpers/dev'
+import { log, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-import { allNotesSortedByChanged, printNote } from '@helpers/note'
-import { convertNoteToFrontmatter } from '@helpers/NPnote'
+import {
+  allNotesSortedByChanged,
+  // printNote
+} from '@helpers/note'
 import { getParaFromContent, findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { chooseFolder, chooseHeading, getInput, showMessage } from '@helpers/userInput'
 
@@ -166,7 +168,7 @@ export function convertLocalLinksToPluginLinks(): void {
   // Look for markdown links that are local to the note
   // and convert them to plugin links
   let changed = false
-  for (let para of paragraphs) {
+  for (const para of paragraphs) {
     const content = para.content
     const newContent = content.replace(/\[(.*?)\]\(\#(.*?)\)/g, (match, label, link) => {
       const newLink =
@@ -237,36 +239,6 @@ export function jumpToDone(): void {
   } else {
     logWarn('jumpToDone', "Couldn't find a '## Done' section. Stopping.")
   }
-}
-
-/**
- * Convert this note to use frontmatter syntax
- * @author @jgclark
- * @returns void
- */
-export async function convertToFrontmatter(): Promise<void> {
-  const { note } = Editor
-  if (note == null || note.paragraphs.length < 1) {
-    // No note open, so don't do anything.
-    logError('convertToFrontmatter', 'No note open, or no content. Stopping.')
-    return
-  }
-  if (note.paragraphs[0].content === '---') {
-    // Probably in frontmatter form already, so don't do anything.
-    logWarn(
-      'convertToFrontmatter',
-      `Note '${displayTitle(note)}' starts with a --- line, so is probably already using frontmatter. Stopping.`,
-    )
-    return
-  }
-  const config = await getSettings()
-  convertNoteToFrontmatter(note, config.defaultText ?? '')
-  log('convertToFrontmatter', `Note '${displayTitle(note)}' converted to use frontmatter.`)
-
-  // Currently a bug that means the Editor's note display doesn't get updated.
-  // FIXME(@Eduard): So open the note again to get to see it.
-  // TODO: Remove this in time
-  await Editor.openNoteByFilename(note.filename)
 }
 
 /**
