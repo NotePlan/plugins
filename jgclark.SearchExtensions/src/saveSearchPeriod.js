@@ -3,7 +3,7 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 26.6.2022 for v0.9.0+, @jgclark
+// Last updated 29.6.2022 for v0.1.0, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -12,21 +12,19 @@
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import {
-  getSummariesSettings,
+  getSearchSettings,
   getPeriodStartEndDates,
-} from './summaryHelpers'
-// import type { SummariesConfig } from './summaryHelpers'
+} from './searchHelpers'
 import {
   getDateStringFromCalendarFilename,
-  // monthNameAbbrev,
-  // toLocaleDateString,
+  nowLocaleDateTime,
   unhyphenatedDate,
   withinDateRange,
 } from '@helpers/dateTime'
 import { log, logWarn, logError, timer } from '@helpers/dev'
-import { displayTitle } from '@helpers/general'
+import { displayTitle, titleAsLink } from '@helpers/general'
 import { gatherMatchingLines } from '@helpers/NPParagraph'
-import { removeSection } from '@helpers/paragraph'
+import { removeSection, termInMarkdownPath, termInURL, trimAndHighlightSearchResult } from '@helpers/paragraph'
 import {
   chooseOption,
   getInput,
@@ -48,7 +46,7 @@ export async function saveSearchPeriod(searchTermsArg?: string, periodArg?: numb
   try {
     // Get config settings from Template folder _configuration note
     // await getPluginSettings()
-    const config = await getSummariesSettings()
+    const config = await getSearchSettings()
     const headingMarker = '#'.repeat(config.headingLevel)
 
     // Work out time period to cover
@@ -118,10 +116,11 @@ export async function saveSearchPeriod(searchTermsArg?: string, periodArg?: numb
       return
     }
 
-    // Find matches in notes for the time period
-    const startTime = new Date // for timer
+    //------------------------------------------------------------
+    // Find matches in notes for the time period (original method)
     const outputArray = []
     let resultCount = 0
+    let startTime = new Date // for timer
     for (const searchTerm of stringsToMatch) {
       // get list of matching paragraphs for this string
       const results = gatherMatchingLines(periodDailyNotes, searchTerm,
@@ -145,6 +144,64 @@ export async function saveSearchPeriod(searchTermsArg?: string, periodArg?: numb
     const elapsedTimeGML = timer(startTime)
     log(pluginJson, `Search time (GML): ${elapsedTimeGML} -> ${resultCount} results`)
 
+    //-------------------------------------------------------------
+    // newer search method using search() API available from v3.6.0
+    // Strategy: search all calendar notes, and then only select in
+    // the notes that match the time period
+    startTime = new Date
+    resultCount = 0
+    for (const searchTerm of stringsToMatch) {
+      // get list of matching paragraphs for this string
+      const resultParas = await DataStore.search(searchTerm, ['calendar'], undefined, config.foldersToExclude) // search over all notes
+      const lines = resultParas
+      // output a heading first
+      outputArray.push(`${headingMarker} '${searchTerm}' ${config.occurrencesHeading} for ${periodString}${periodPartStr !== '' ? ` (at ${periodPartStr})` : ''}`)
+      if (lines.length > 0) {
+        log(pluginJson, `  Found ${lines.length} results for '${searchTerm}'`)
+
+        // form the output
+        let previousNoteTitle = ''
+        for (let i = 0; i < lines.length; i++) {
+          let matchLine = lines[i].content
+          // Keep this match if within selected date range
+          if (withinDateRange(getDateStringFromCalendarFilename(lines[i].note.filename), fromDateStr, toDateStr)) {
+            const thisNoteTitle = displayTitle(lines[i].note)
+            // If the test is within a URL or the path of a [!][link](path) skip this result
+            if (termInURL(searchTerm, matchLine)) {
+              log(pluginJson, `- Info: Match '${searchTerm}' ignored in '${matchLine} because it's in a URL`)
+              continue
+            }
+            if (termInMarkdownPath(searchTerm, matchLine)) {
+              log(pluginJson, `- Info: Match '${searchTerm}' ignored in '${matchLine} because it's in a [...](path)`)
+              continue
+            }
+            // Format the line and context for output (trimming, highlighting)
+            // TODO: add setting for length
+            matchLine = trimAndHighlightSearchResult(matchLine, searchTerm, config.highlightOccurrences, 100)
+            if (config.groupResultsByNote) {
+              // Write out note title (if not seen before) then the matchLine
+              if (previousNoteTitle !== thisNoteTitle) {
+                outputArray.push(`${headingMarker}# ${titleAsLink(lines[i].note)}:`) // i.e. lower level heading + note title
+              }
+              outputArray.push(`${config.resultPrefix}${matchLine}`)
+            } else {
+              // Write out matchLine followed by note title
+              const suffix = `(from ${titleAsLink(lines[i].note)})`
+              outputArray.push(`${config.resultPrefix}${matchLine} ${suffix}`)
+            }
+            resultCount += 1
+            previousNoteTitle = thisNoteTitle
+          }
+        }
+      } else if (config.showEmptyOccurrences) {
+        // If there's nothing to report, make that clear
+        outputArray.push('(no matches)')
+      }
+    }
+    const elapsedTimeAPI = timer(startTime)
+    log(pluginJson, `Search time (API): ${elapsedTimeAPI} -> ${resultCount} results`)
+
+
     const labelString = `🖊 Create/update note '${periodString}' in folder '${String(config.folderToStore)}'`
 
     // Work out where to save this summary to
@@ -159,6 +216,7 @@ export async function saveSearchPeriod(searchTermsArg?: string, periodArg?: numb
         `Where should I save the results for ${periodString}?`,
         [
           {
+            // TODO: Make it open in split note
             label: labelString,
             value: 'newnote',
           },
@@ -182,6 +240,7 @@ export async function saveSearchPeriod(searchTermsArg?: string, periodArg?: numb
     const headingLine = `${config.occurrencesHeading} for ${periodString}${periodPartStr !== '' ? ` (at ${periodPartStr})` : ''}`
     switch (destination) {
       case 'current': {
+        // TODO: use replaceSection logic
         const currentNote = Editor.note
         if (currentNote == null) {
           logError(pluginJson, `no note is open`)
@@ -190,11 +249,11 @@ export async function saveSearchPeriod(searchTermsArg?: string, periodArg?: numb
             `appending results to current note (${currentNote.filename ?? ''})`,
           )
           const insertionLineIndex = currentNote.paragraphs.length - 1
-          currentNote.insertHeading(
-            headingLine,
-            insertionLineIndex,
-            config.headingLevel,
-          )
+          // currentNote.insertHeading(
+          //   headingLine,
+          //   insertionLineIndex,
+          //   config.headingLevel,
+          // )
           // FIXME: Can't see why a blank line appears here
           currentNote.appendParagraph(
             outputArray.join('\n'),
@@ -216,6 +275,7 @@ export async function saveSearchPeriod(searchTermsArg?: string, periodArg?: numb
           note = existingNotes[0] // pick the first if more than one
           // log(pluginJson, `filename of first matching note: ${displayTitle(note)}`)
         } else {
+          // TODO: check using replaceSection logic
           // make a new note for this. NB: filename here = folder + filename
           const noteFilename = DataStore.newNote(periodString, config.folderToStore) ?? ''
           if (!noteFilename) {
@@ -246,11 +306,11 @@ export async function saveSearchPeriod(searchTermsArg?: string, periodArg?: numb
           insertionLineIndex + 1,
           'text',
         )
-        note.insertHeading(
-          headingLine,
-          insertionLineIndex,
-          config.headingLevel,
-        )
+        // note.insertHeading(
+        //   headingLine,
+        //   insertionLineIndex,
+        //   config.headingLevel,
+        // )
         await Editor.openNoteByFilename(note.filename)
 
         log(pluginJson, `written results to note '${periodString}'`)
@@ -258,7 +318,7 @@ export async function saveSearchPeriod(searchTermsArg?: string, periodArg?: numb
       }
 
       case 'log': {
-        log(pluginJson, headingLine)
+        // log(pluginJson, headingLine)
         log(pluginJson, outputArray.join('\n'))
         break
       }

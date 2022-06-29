@@ -7,39 +7,13 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
+  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Summaries/CHANGELOG.md", 
   "plugin.version": "0.11.0",
-  "plugin.lastUpdateInfo": "speeded up the '/save search' command",
+  "plugin.lastUpdateInfo": "moved '/saveSearch' commands to new SearchHelpers plugin",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
   "plugin.commands": [
-    {
-      "name": "saveSearchResults",
-      "alias": [
-        "period",
-        "search",
-        "occurrence"
-      ],
-      "description": "Save results from a search over all notes",
-      "jsFunction": "saveSearch",
-      "arguments": [
-        "search term(s) (separated by commas)"
-      ]
-    },
-    {
-      "name": "saveSearchResultsInPeriod",
-      "alias": [
-        "period",
-        "summary",
-        "occurrence"
-      ],
-      "description": "Save results from a search of specified tags or mentions over notes from a time period",
-      "jsFunction": "saveSearchPeriod",
-      "arguments": [
-        "search term(s) (separated by commas)",
-        "optional number of days to search over (from before today). If not given then defaults to 3 months"
-      ]
-    },
     {
       "name": "countsInPeriod",
       "alias": [
@@ -70,7 +44,7 @@
       "jsFunction": "weeklyStats"
     },
     {
-      "name": "Summaries:PluginUpgradeSettings",
+      "name": "jgc:upgrade Summaries plugin settings",
       "description": "Summaries:PluginUpgradeSettings",
       "jsFunction": "onUpdateOrInstall"
     }
@@ -103,7 +77,7 @@
       "title": "Heading level",
       "description": "Heading level (1-5) to use when writing output to notes",
       "type": "number",
-      "default": 2,
+      "default": 3,
       "required": true
     },
     {
@@ -168,79 +142,6 @@
         "@repeat"
       ],
       "required": false
-    },
-    {
-      "type": "separator"
-    },
-    {
-      "type": "heading",
-      "title": "/saveSearchResults[Period] commands' settings"
-    },
-    {
-      "key": "defaultOccurrences",
-      "title": "Default Search terms",
-      "description": "Optional list of search terms to use by default. If empty, you will be asked for terms each time you run the command.",
-      "type": "[string]",
-      "default": [
-        "idea",
-        "@review",
-        "#question"
-      ],
-      "required": false
-    },
-    {
-      "key": "matchCase",
-      "title": "Match case when searching?",
-      "description": "Do searches match case (capitalisation) or not?",
-      "type": "bool",
-      "default": false,
-      "required": true
-    },
-    {
-      "key": "occurrencesHeading",
-      "title": "Saved Search heading",
-      "description": "Heading to go before search output",
-      "type": "string",
-      "default": "Search Results",
-      "required": false
-    },
-    {
-      "key": "resultPrefix",
-      "title": "Prefix for search result lines",
-      "description": "String to put at the start of each search result line. Default is '- '. Can also be empty.",
-      "type": "string",
-      "default": "- ",
-      "required": true
-    },
-    {
-      "key": "highlightOccurrences",
-      "title": "Highlight matching search terms?",
-      "description": "Whether to use ==highlight== of matched occurrences in output. (Works best when using a theme with highlighting.)",
-      "type": "bool",
-      "default": true,
-      "required": false
-    },
-    {
-      "key": "showEmptyOccurrences",
-      "title": "Show empty matches?",
-      "description": "If no matches of the search term(s) are found, setting this true will still show a heading for the term(s)",
-      "type": "bool",
-      "default": false,
-      "required": false
-    },
-    {
-      "key": "dateStyle",
-      "title": "Date style",
-      "description": "Where the context for a match is a date, does it get appended as a 'date' using your locale, or as a NP date 'link' (`>date`), or `at` (`@date`) or 'none'",
-      "type": "string",
-      "choices": [
-        "at",
-        "date",
-        "link",
-        "none"
-      ],
-      "default": "link",
-      "required": true
     },
     {
       "type": "separator"

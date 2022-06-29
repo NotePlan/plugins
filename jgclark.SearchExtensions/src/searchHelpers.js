@@ -1,8 +1,8 @@
 // @flow
 //-----------------------------------------------------------------------------
-// Summary commands for notes
+// Search Extensions helpers (err...)
 // Jonathan Clark
-// Last updated 26.6.2022 for v0.10.0 by @jgclark
+// Last updated 29.6.2022 for v0.1.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -12,9 +12,6 @@ import {
   getWeek,
   monthNameAbbrev,
   todaysDateISOString,
-  // toISODateString,
-  // toLocaleDateString,
-  // toLocaleDateTimeString,
   weekStartEnd,
   withinDateRange,
 } from '@helpers/dateTime'
@@ -34,9 +31,9 @@ import { chooseOption, getInput } from '@helpers/userInput'
 //------------------------------------------------------------------------------
 // Get settings
 
-const configKey = 'summaries'
+const configKey = 'search'
 
-export type SummariesConfig = {
+export type SearchConfig = {
   folderToStore: string,
   foldersToExclude: Array<string>,
   headingLevel: headingLevelType,
@@ -47,6 +44,13 @@ export type SummariesConfig = {
   excludeHashtags: Array<string>,
   includeMentions: Array<string>,
   excludeMentions: Array<string>,
+  defaultOccurrences: Array<string>,
+  occurrencesHeading: string,
+  groupResultsByNote: boolean,
+  resultPrefix: string,
+  highlightOccurrences: boolean,
+  showEmptyOccurrences: boolean,
+  dateStyle: string,
   weeklyStatsDuration: ?number,
   progressDestination: string,
   progressHeading: string,
@@ -55,15 +59,15 @@ export type SummariesConfig = {
 }
 
 /**
- * Get config settings using Config V2 system. (Have now removed support for Config V1.)
+ * Get config settings using Config V2 system.
  *
- * @return {SummariesConfig} object with configuration
+ * @return {SearchConfig} object with configuration
  */
-export async function getSummariesSettings(): Promise<any> {
-  // log(pluginJson, `Start of getSummariesSettings()`)
+export async function getSearchSettings(): Promise<any> {
+  // log(pluginJson, `Start of getSearchSettings()`)
   try {
     // Get settings using ConfigV2
-    const v2Config: SummariesConfig = await DataStore.loadJSON('../jgclark.Summaries/settings.json')
+    const v2Config: SearchConfig = await DataStore.loadJSON('../jgclark.SearchHelpers/settings.json')
     // clo(v2Config, `${configKey} settings from V2:`)
 
     if (v2Config == null || Object.keys(v2Config).length === 0) {
@@ -327,7 +331,7 @@ export function calcHashtagStatsPeriod(
   includedTerms: $ReadOnlyArray<string>,
   excludedTerms: $ReadOnlyArray<string>,
 ): ?[CaseInsensitiveMap<number>, CaseInsensitiveMap<number>] {
-// ): ?[Map<string, number>, Map<string, number>] {
+  // ): ?[Map<string, number>, Map<string, number>] {
   // Get all daily notes that are within this time period
   const periodDailyNotes = DataStore.calendarNotes.filter(
     (p) => withinDateRange(getDateStringFromCalendarFilename(p.filename), fromDateStr, toDateStr))

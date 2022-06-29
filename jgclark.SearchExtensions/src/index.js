@@ -3,12 +3,11 @@
 //-----------------------------------------------------------------------------
 // Summary commands for notes
 // Jonathan Clark
-// Last updated 27.6.2022 for v0.10.0
+// Last updated 29.6.2022 for v0.1.0
 //-----------------------------------------------------------------------------
 
-export { weeklyStats } from './forPlotting'
-export { insertProgressUpdate } from './progress'
-export { statsPeriod } from './stats'
+export { saveSearch } from './saveSearch'
+export { saveSearchPeriod } from './saveSearchPeriod'
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
@@ -24,7 +23,7 @@ export function onSettingsUpdated(): void {
   // Placeholder only to stop error in logs
 }
 
-const configKey = "summaries"
+const configKey = "search"
 
 // refactor previous variables to new types
 export async function onUpdateOrInstall(): Promise<void> {

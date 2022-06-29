@@ -3,26 +3,25 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 27.6.2022 for v0.11.0, @jgclark
+// Last updated 29.6.2022 for v0.1.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import {
-  getSummariesSettings,
-} from './summaryHelpers'
-import {
-  nowLocaleDateTime,
-} from '@helpers/dateTime'
+import { getSearchSettings } from './searchHelpers'
+import { nowLocaleDateTime } from '@helpers/dateTime'
 import { log, logWarn, logError, timer } from '@helpers/dev'
 // import { getFolderFromFilename } from '@helpers/folders'
 import { displayTitle, titleAsLink } from '@helpers/general'
-import { removeSection, termInMarkdownPath, termInURL } from '@helpers/paragraph'
+import { replaceSection } from '@helpers/note'
+import { removeSection, termInMarkdownPath, termInURL, trimAndHighlightSearchResult } from '@helpers/paragraph'
 // import { gatherMatchingLines } from '@helpers/NPParagraph'
 import {
-  showMessage,
   chooseOption,
   getInput,
+  // showMessage,
 } from '@helpers/userInput'
+
+// import noLabelVar from "eslint/lib/rules/no-label-var";
 
 //-------------------------------------------------------------------------------
 
@@ -35,7 +34,7 @@ import {
  */
 export async function saveSearch(searchTermsArg?: string): Promise<void> {
   // get relevant settings
-  const config = await getSummariesSettings()
+  const config = await getSearchSettings()
   const headingMarker = '#'.repeat(config.headingLevel)
 
   // Get the search terms
@@ -104,7 +103,7 @@ export async function saveSearch(searchTermsArg?: string): Promise<void> {
   // log(pluginJson, `Search time (GML): ${elapsedTimeGML} -> ${resultCount} results`)
 
   //---------------------------------------------------------
-  // newer method using search() API available from v3.6.0
+  // newer search method using search() API available from v3.6.0
   startTime = new Date
   resultCount = 0
   for (const searchTerm of stringsToMatch) {
@@ -112,12 +111,15 @@ export async function saveSearch(searchTermsArg?: string): Promise<void> {
     const resultParas = await DataStore.search(searchTerm, ['calendar', 'notes'], undefined, config.foldersToExclude) // search over all notes
     const lines = resultParas
     // output a heading first
-    outputArray.push(`${headingMarker} ${searchTerm}`)
+    outputArray.push(`${headingMarker} ${config.occurrencesHeading} for '${searchTerm}' at ${nowLocaleDateTime}`)
     if (lines.length > 0) {
       log(pluginJson, `  Found ${lines.length} results for '${searchTerm}'`)
+
       // form the output
+      let previousNoteTitle = ''
       for (let i = 0; i < lines.length; i++) {
         let matchLine = lines[i].content
+        const thisNoteTitle = displayTitle(lines[i].note)
         // If the test is within a URL or the path of a [!][link](path) skip this result
         if (termInURL(searchTerm, matchLine)) {
           log(pluginJson, `- Info: Match '${searchTerm}' ignored in '${matchLine} because it's in a URL`)
@@ -127,12 +129,22 @@ export async function saveSearch(searchTermsArg?: string): Promise<void> {
           log(pluginJson, `- Info: Match '${searchTerm}' ignored in '${matchLine} because it's in a [...](path)`)
           continue
         }
-        // Format the line for output (trimming, highlighting)
-        matchLine = trimAndHighlightSearchResult(matchLine, searchTerm, config.highlightOccurrences, 80)
-        // Make context suffix
-        const suffix = `(from ${titleAsLink(lines[i].note)})`
-        outputArray.push(`${config.resultPrefix}${matchLine} ${suffix}`)
+        // Format the line and context for output (trimming, highlighting)
+        // TODO: add setting for length
+        matchLine = trimAndHighlightSearchResult(matchLine, searchTerm, config.highlightOccurrences, 100)
+        if (config.groupResultsByNote) {
+          // Write out note title (if not seen before) then the matchLine
+          if (previousNoteTitle !== thisNoteTitle) {
+            outputArray.push(`${headingMarker}# ${titleAsLink(lines[i].note)}:`) // i.e. lower level heading + note title
+          }
+          outputArray.push(`${config.resultPrefix}${matchLine}`)
+        } else {
+          // Write out matchLine followed by note title
+          const suffix = `(from ${titleAsLink(lines[i].note)})`
+          outputArray.push(`${config.resultPrefix}${matchLine} ${suffix}`)
+        }
         resultCount += 1
+        previousNoteTitle = thisNoteTitle
       }
     } else if (config.showEmptyOccurrences) {
       // If there's nothing to report, make that clear
@@ -157,6 +169,7 @@ export async function saveSearch(searchTermsArg?: string): Promise<void> {
       `Where should I save the ${resultCount} search results?`,
       [
         {
+          // TODO: Make it open in split note
           label: labelString,
           value: 'newnote',
         },
@@ -177,92 +190,46 @@ export async function saveSearch(searchTermsArg?: string): Promise<void> {
     )
   }
 
-  const headingString = `${resultCount} ${config.occurrencesHeading} (at ${nowLocaleDateTime})`
+  // const headingString = `${resultCount} ${config.occurrencesHeading}`
   switch (destination) {
     case 'current': {
+      // TODO: use replaceSection logic
       const currentNote = Editor.note
       if (currentNote == null) {
         logError(pluginJson, `No note is open`)
       } else {
-        log(pluginJson,
-          `  appending ${outputArray.length} results to current note (${currentNote.filename ?? ''})`,
-        )
-        const insertionLineIndex = currentNote.paragraphs.length - 1
-        currentNote.insertHeading(
-          headingString,
-          insertionLineIndex,
-          config.headingLevel,
-        )
+        // log(pluginJson, `  appending results to current note (${currentNote.filename ?? ''})`)
+        // const insertionLineIndex = currentNote.paragraphs.length - 1
+        // currentNote.insertHeading(
+        //   headingString,
+        //   insertionLineIndex,
+        //   config.headingLevel,
+        // )
         currentNote.appendParagraph(
           outputArray.join('\n'),
           'text',
         )
-        // log(pluginJson, `\tappended results to current note`)
       }
       break
     }
     case 'newnote': {
-      const requestedTitle = await getInput(`What do you want to call this note?`)
+      // TODO: use replaceSection logic
+      const requestedTitle = await getInput(`What do you want to call this note?`, 'OK', 'Save Search Results to Note', `Search Results at ${nowLocaleDateTime}`)
       if (typeof requestedTitle === 'boolean') {
         // i.e. user has cancelled
         logWarn(pluginJson, `User has cancelled operation.`)
         return
       }
 
-      let note: ?TNote
-      // first see if this note has already been created
-      // (look only in active notes, not Archive or Trash)
-      const existingNotes: $ReadOnlyArray<TNote> =
-        DataStore.projectNoteByTitle(requestedTitle, true, false) ?? []
+      const newNoteFilename = DataStore.newNoteWithContent(outputArray.join('\n'), config.folderToStore, requestedTitle)
 
-      // log(pluginJson,`  found ${existingNotes.length} existing ${requestedTitle} notes`)
-
-      if (existingNotes.length > 0) {
-        note = existingNotes[0] // pick the first if more than one
-        // log(pluginJson, `  filename of first matching note: ${displayTitle(note)}`)
-      } else {
-        // make a new note for this. NB: filename here = folder + filename
-        const noteFilename = DataStore.newNote(requestedTitle, config.folderToStore) ?? ''
-        if (noteFilename === '') {
-          logError(pluginJson, `  Error creating new note (filename '${noteFilename}')`)
-          await showMessage('There was an error creating the new note')
-          return
-        }
-        log(pluginJson, `  newNote filename: ${noteFilename}`)
-        note = DataStore.projectNoteByFilename(noteFilename)
-        if (note == null) {
-          logError(pluginJson, `Can't get new note (filename: ${noteFilename})`)
-          await showMessage('There was an error getting the new note ready to write')
-          return
-        }
-      }
-      log(pluginJson, `  writing results to the new note '${displayTitle(note)}'`)
-
-      // Do we have an existing Hashtag counts section? If so, delete it.
-      // (Sets place to insert either after the found section heading, or at end of note)
-      const insertionLineIndex = removeSection(
-        note,
-        headingString,
-      )
-      // write in reverse order to avoid having to calculate insertion point again
-      note.insertParagraph(
-        outputArray.join('\n'),
-        insertionLineIndex + 1,
-        'text',
-      )
-      note.insertHeading(
-        headingString,
-        insertionLineIndex,
-        config.headingLevel,
-      )
-      await Editor.openNoteByFilename(note.filename)
-
-      log(pluginJson, `  written results to note '${requestedTitle}'`)
+      await Editor.openNoteByFilename(newNoteFilename)
+      log(pluginJson, `  written results to note '${newNoteFilename}'`)
       break
     }
 
     case 'log': {
-      log(pluginJson, headingString)
+      // log(pluginJson, headingString)
       log(pluginJson, outputArray.join('\n'))
       break
     }
@@ -279,49 +246,3 @@ export async function saveSearch(searchTermsArg?: string): Promise<void> {
   }
 }
 
-/**
- * Take a line of text, shorten it to maxChars characters around the first matching 'term',
- * at word boundaries (thanks to the power of regex!). Add ==highlight== if wanted.
- * @author @jgclark
- * 
- * @param {string} input string
- * @param {String} term to find/highlight
- * @param {boolean} addHighlight 
- * @param {number} maxChars to return around first matching term
- * @returns {string}
- */
-function trimAndHighlightSearchResult(
-  input: string,
-  term: string,
-  addHighlight: boolean,
-  maxChars: number = 60
-): string {
-  let output = input
-  const LRSplit = Math.round(maxChars * 0.55)
-  const re = new RegExp(`(?:^|\\b)(.{0,${String(LRSplit)}}${term}.{0,${String(maxChars - LRSplit)}})\\b\\w+`, "gi")
-  const matches = input.match(re) ?? [] // multiple matches
-  if (matches.length > 0) {
-    output = matches.join(' ...')
-    if (output.match(/^\W/)) { // i.e. starts with a non-word character (an approximation)
-      output = `...${output}`
-    }
-    if (output.length < input.length) { // TODO: an approximation
-      output = `${output} ...`
-    }
-    // Add highlighting if wanted (using defined Regex si can use 'g' flag)
-    // (A simple .replace() command doesn't work as it won't keep capitalisation)
-    if (addHighlight) {
-      const re = new RegExp(term, "gi") // TODO: highlight each term found
-      const leftPos = Array.from(output.matchAll(re))[0].index
-      const rightPos = leftPos + term.length
-      const highlitOutput = `${output.slice(0, leftPos)}==${output.slice(leftPos, rightPos)}==${output.slice(rightPos,)}`
-      return highlitOutput
-    } else {
-      return output
-    }
-    //
-  } else {
-    // For some reason we didn't find the matching term, so return first part of line
-    return (output.length >= maxChars) ? output.slice(0, maxChars) : output
-  }
-}
