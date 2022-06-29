@@ -135,6 +135,14 @@ async function getAddTextAdditions(): Promise<{ text: string, mode: string, open
   return openNote === false ? false : { text: text ? text : '', mode, openNote }
 }
 
+export async function runShortcut(): Promise<string> {
+  const name = await getInput('Enter the name of the shortcut', 'OK', 'Shortcut Name', '')
+  if (name && name.length) {
+    return `shortcuts://run-shortcut?name=${encodeURIComponent(name)}`
+  }
+  return ''
+}
+
 /**
  * Walk user through creation of a xcallback url
  * @param {string} incoming - text coming in from a runPlugin link
@@ -150,6 +158,7 @@ export async function xCallbackWizard(incoming: ?string = ''): Promise<void> {
       { label: 'FILTER Notes by Preset', value: 'filter' },
       { label: 'SEARCH for text in notes', value: 'search' },
       { label: 'RUN a Plugin Command', value: 'runPlugin' },
+      { label: 'RUN a Shortcut', value: 'runShortcut' },
       /*
       { label: 'Add a NEW NOTE with title and text', value: 'addNote' },
       { label: 'DELETE a note by title', value: 'deleteNote' },
@@ -176,6 +185,9 @@ export async function xCallbackWizard(incoming: ?string = ''): Promise<void> {
         break
       case 'search':
         url = await search()
+        break
+      case 'runShortcut':
+        url = await runShortcut()
         break
       case 'runPlugin':
         runplugin = await chooseRunPluginXCallbackURL()
