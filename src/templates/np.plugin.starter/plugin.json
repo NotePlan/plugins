@@ -5,11 +5,13 @@
   "plugin.id": "{{pluginId}}",
   "plugin.name": "🧩 {{pluginName}}",
   "plugin.version": "0.1.0",
+  "plugin.lastUpdateInfo": "Describe this update"
   "plugin.description": "{{pluginDescription}}",
   "plugin.author": "{{pluginAuthor}}",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/{{pluginId}}/README.md",
+  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/{{pluginId}}/CHANGELOG.md",
   "plugin.commands": [
     {
       "name": "Say Hello from {{pluginId}}! (change this to your own command)",

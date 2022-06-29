@@ -10,7 +10,7 @@
 import pluginJson from '../plugin.json'
 import { log, logError } from '@helpers/dev'
 // settings
-import { migrateConfiguration, updateSettingData } from '@helpers/NPconfiguration'
+import { migrateConfiguration, updateSettingData } from '@helpers/NPConfiguration'
 export { countAndAddDays } from './countDays'
 
 export {

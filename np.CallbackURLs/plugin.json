@@ -4,7 +4,7 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "np.CallbackURLs",
   "plugin.name": "🧩 X-Callback-URL & RunPlugin Creator",
-  "plugin.version": "0.3.0",
+  "plugin.version": "0.4.0",
   "plugin.description": "Helps you form links/x-callback-urls to perform actions from within NotePlan or between other applications and NotePlan",
   "plugin.author": "dwertheimer",
   "plugin.dependencies": [],

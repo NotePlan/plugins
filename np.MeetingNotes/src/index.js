@@ -16,7 +16,7 @@
 import pluginJson from '../plugin.json'
 
 // updateSettingsData will execute whenever your plugin is installed or updated
-import { updateSettingData } from '@helpers/NPconfiguration'
+import { updateSettingData } from '@helpers/NPConfiguration'
 
 export { newMeetingNote } from './helloWorld'
 export { insertNoteTemplate } from './helloWorld'
