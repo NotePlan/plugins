@@ -410,53 +410,6 @@ export function getOrMakeMetadataLine(note: TNote): number {
 }
 
 /**
- * Remove all paragraphs in the section of a note, given:
- * - Note to use
- * - Section heading line to look for (needs to match from start of line but not necessarily the end)
- * A section is defined (here at least) as all the lines between the heading,
- * and the next heading of that same or higher level, or the end of the file
- * if that's sooner.
- * @author @jgclark
- *
- * @param {TNote} note to use
- * @param {string} heading to remove
- * @return {number} lineIndex of the found heading, or if not found the last line of the note
- */
-export function removeSection(note: TNote, heading: string): number {
-  const ps = note.paragraphs ?? []
-  let existingHeadingIndex // undefined
-  // log('paragraph/removeSection', `remove '${heading}' from note '${displayTitle(note)}' with ${ps.length} paras`)
-  let sectionHeadingLevel = 2
-
-  for (const p of ps) {
-    if (p.type === 'title' && p.content.startsWith(heading)) {
-      existingHeadingIndex = p.lineIndex
-      sectionHeadingLevel = p.headingLevel
-    }
-  }
-
-  if (existingHeadingIndex !== undefined && existingHeadingIndex < ps.length) {
-    // Work out the set of paragraphs to remove
-    const psToRemove = []
-    note.removeParagraph(ps[existingHeadingIndex])
-    for (let i = existingHeadingIndex + 1; i < ps.length; i++) {
-      // stop removing when we reach heading of same or higher level
-      if (ps[i].type === 'title' && ps[i].headingLevel <= sectionHeadingLevel) {
-        break
-      }
-      psToRemove.push(ps[i])
-    }
-
-    // Delete the saved set of paragraphs
-    note.removeParagraphs(psToRemove)
-    // log('paragraph/removeSection', `-> removed ${psToRemove.length} paragraphs`)
-    return existingHeadingIndex
-  } else {
-    return ps.length - 1 // end of the file (zero-based line index)
-  }
-}
-
-/**
  * Find a heading/title that matches the string given
  * Note: There's a copy in helpers/NPParagaph.js to avoid a circular dependency
  * @author @dwertheimer
