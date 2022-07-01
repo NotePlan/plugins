@@ -9,6 +9,8 @@ This plugin lets you do the following sorts of things with your daily (calendar)
 And also:
 - make a Map of Content (MOC) note for a search term
 
+(But note that the /savedSearch commands now live in the separate [SearchExtensions plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/).)
+
 ## Commands
 This Plugin provides commands that generate several different sorts of **summaries** and **basic stats from your daily notes**, that are saved back into special NotePlan notes in the Summaries folder. Most start by asking for the time period you wish to operate over:
 

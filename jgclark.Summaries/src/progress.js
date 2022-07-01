@@ -2,17 +2,17 @@
 //-----------------------------------------------------------------------------
 // Progress update on some key goals to include in notes
 // Jonathan Clark, @jgclark
-// Last updated 26.6.2022 for v0.10.0, @jgclark
+// Last updated 30.6.2022 for v0.10.0+, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import {
   calcHashtagStatsPeriod,
   calcMentionStatsPeriod,
-  getPeriodStartEndDates,
   getSummariesSettings,
 } from './summaryHelpers'
 import { unhyphenatedDate } from '@helpers/dateTime'
+import { getPeriodStartEndDates } from '@helpers/NPdateTime'
 import { log, logError } from '@helpers/dev'
 import {
   CaseInsensitiveMap,

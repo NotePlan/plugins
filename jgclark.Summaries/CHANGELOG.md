@@ -1,6 +1,6 @@
 # What's Changed in 🗃 Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
-## [0.11.0] - 2022-06-27 (@@@ unreleased)
+## [0.11.0] - 2022-07-02
 ### Changed
 - moved the **/saveSearchResults** **/saveSearchResultsInPeriod** commands to a separate **SearchHelpers** plugin.
 
