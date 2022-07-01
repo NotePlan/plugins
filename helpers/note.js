@@ -4,6 +4,7 @@
 
 import { log, logError } from './dev'
 import { getFolderFromFilename } from './folders'
+import { findEndOfActivePartOfNote } from './paragraph'
 import { showMessage } from './userInput'
 import {
   displayTitle,
@@ -273,18 +274,30 @@ export const clearNote = (note: TNote) => {
   }
 }
 
+/**
+ * Replace all paragraphs in the section of a note with new supplied content.
+ * A section is defined (here at least) as all the lines between the heading,
+ * and the next heading of that same or higher level, or the end of the file
+ * if that's sooner.
+ * @author @jgclark
+ *
+ * @param {TNote} note to use
+ * @param {string} headingOfSectionToReplace
+ * @param {string} newSectionHeading
+ * @param {number} newSectionHeadingLevel
+ * @param {string} newSectionContent
+ */
 export function replaceSection(note: TNote,
-  sectionHeadingToRemove: string,
+  headingOfSectionToReplace: string,
   newSectionHeading: string,
   sectionHeadingLevel: headingLevelType,
-  sectionText: string
+  newSectionContent: string
 ): void {
-  log('replaceSection', `in note '${displayTitle(note)}' to remove '${sectionHeadingToRemove}' -> '${newSectionHeading}' level ${sectionHeadingLevel} for ${sectionText.length} chars`)
-
+  log('note/replaceSection', `in note '${displayTitle(note)}' will remove '${headingOfSectionToReplace}' -> '${newSectionHeading}' level ${sectionHeadingLevel}`)
   // First remove existing heading (the start of the heading text will probably be right, but the end will probably need to be changed)
-  // FIXME: returns line 0 when there should still be a title
-  const insertionLineIndex = removeSection(note, sectionHeadingToRemove)
-  log('replaceSection', `  insertionLineIndex = ${insertionLineIndex}`)
+  const insertionLineIndex = removeSection(note, headingOfSectionToReplace)
+  // log('note/replaceSection', `  insertionLineIndex = ${insertionLineIndex}`)
+
   // Set place to insert either after the found section heading, or at end of note
   // write in reverse order to avoid having to calculate insertion point again
   note.insertHeading(
@@ -293,7 +306,7 @@ export function replaceSection(note: TNote,
     sectionHeadingLevel,
   )
   note.insertParagraph(
-    sectionText,
+    newSectionContent,
     insertionLineIndex + 1,
     'text',
   )
@@ -309,39 +322,46 @@ export function replaceSection(note: TNote,
  * @author @jgclark
  *
  * @param {TNote} note to use
- * @param {string} heading to remove
- * @return {number} lineIndex of the found heading, or if not found the last line of the note
+ * @param {string} headingOfSectionToRemove
+ * @return {number} lineIndex of the found headingOfSectionToRemove, or if not found the last line of the note
  */
-export function removeSection(note: TNote, heading: string): number {
-  const ps = note.paragraphs ?? []
-  let existingHeadingIndex // undefined
-  // log('paragraph/removeSection', `remove '${heading}' from note '${displayTitle(note)}' with ${ps.length} paras`)
-  let sectionHeadingLevel = 2
+export function removeSection(note: TNote, headingOfSectionToRemove: string): number {
+  const paras = note.paragraphs ?? []
+  log('note/removeSection', `Trying to remove '${headingOfSectionToRemove}' from note '${displayTitle(note)}' with ${paras.length} paras`)
 
-  for (const p of ps) {
-    if (p.type === 'title' && p.content.startsWith(heading)) {
-      existingHeadingIndex = p.lineIndex
+  const endOfActive = findEndOfActivePartOfNote(note)
+  let matchedHeadingIndex // undefined
+  let sectionHeadingLevel = 2
+  // Find the title/headingOfSectionToRemove whose start matches 'heading'
+  for (const p of paras) {
+    if (p.type === 'title' && p.content.startsWith(headingOfSectionToRemove)) {
+      matchedHeadingIndex = p.lineIndex
       sectionHeadingLevel = p.headingLevel
+      break
     }
   }
+  // log('note/removeSection', `  mHI ${matchedHeadingIndex} sHL ${sectionHeadingLevel} eOA ${endOfActive}`)
 
-  if (existingHeadingIndex !== undefined && existingHeadingIndex < ps.length) {
+  if (matchedHeadingIndex !== undefined && matchedHeadingIndex < endOfActive) {
+    note.removeParagraph(paras[matchedHeadingIndex])
     // Work out the set of paragraphs to remove
-    const psToRemove = []
-    note.removeParagraph(ps[existingHeadingIndex])
-    for (let i = existingHeadingIndex + 1; i < ps.length; i++) {
-      // stop removing when we reach heading of same or higher level
-      if (ps[i].type === 'title' && ps[i].headingLevel <= sectionHeadingLevel) {
+    const parasToRemove = []
+    for (let i = matchedHeadingIndex + 1; i < endOfActive; i++) {
+      // stop removing when we reach heading of same or higher level (or end of active part of note)
+      if (paras[i].type === 'title' && paras[i].headingLevel <= sectionHeadingLevel) {
         break
       }
-      psToRemove.push(ps[i])
+      parasToRemove.push(paras[i])
     }
 
     // Delete the saved set of paragraphs
-    note.removeParagraphs(psToRemove)
-    // log('paragraph/removeSection', `-> removed ${psToRemove.length} paragraphs`)
-    return existingHeadingIndex
+    note.removeParagraphs(parasToRemove)
+    log('note/removeSection', `-> removed section '${headingOfSectionToRemove}': total  ${parasToRemove.length} paragraphs. Returning line ${matchedHeadingIndex}`)
+
+    // Return line index of found headingOfSectionToRemove
+    return matchedHeadingIndex
   } else {
-    return ps.length - 1 // end of the file (zero-based line index)
+    log('note/removeSection', `-> heading not found; setting end of active part of file instead (line ${endOfActive}).`)
+    return endOfActive // end of the active part of the file (zero-based line index)
   }
 }
