@@ -21,6 +21,7 @@ Sometimes you don't want to have to click a link, but rather, you want a certain
 
 ### Implemented so far:
 - openNote - pretty self explanatory in the wizard
+- addNote - create a note with optional title, folder, content, and opening type
 - addText - pretty self explanatory in the wizard
 - filter - open "Filters" with a pre-defined filter
 - search - search for specified text
@@ -28,7 +29,6 @@ Sometimes you don't want to have to click a link, but rather, you want a certain
 - run shortcut - create a URL to run an Apple Shortcut command by name
 
 ### Coming in the future (based on user demand -- see below):
-- addNote
 - deleteNote
 - selectTag
 - noteInfo (x-success)

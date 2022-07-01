@@ -12,6 +12,7 @@ import { createOpenNoteCallbackUrl, createAddTextCallbackUrl, createCallbackUrl 
 import { chooseRunPluginXCallbackURL } from '@helpers/NPdev'
 import pluginJson from '../plugin.json'
 import { chooseOption, showMessage, chooseHeading, chooseFolder, chooseNote, getInput } from '@helpers/userInput'
+import { showMessageYesNo } from '../../helpers/userInput'
 
 // https://help.noteplan.co/article/49-x-callback-url-scheme#addnote
 
@@ -135,6 +136,54 @@ async function getAddTextAdditions(): Promise<{ text: string, mode: string, open
   return openNote === false ? false : { text: text ? text : '', mode, openNote }
 }
 
+/*
+noteTitle optional, will be prepended if it is used
+text optional, text will be added to the note
+openNote optional, values: yes (opens the note, if not already selected), no
+folder optional, define which folder the note should be added to. The folder will be created.
+subWindow optional (only Mac), values: yes (opens note in a subwindow) and no
+splitView optional (only Mac), values: yes (opens note in a split view) and no. Note: Available from v3.4
+useExistingSubWindow optional (only Mac), values: yes (looks for an existing subwindow and opens the note there, instead of opening a new one) and no (default). Note: Available from v3.2
+*/
+export async function addNote(): Promise<string> {
+  const vars = {}
+  vars.noteTitle = await getInput(`What's the title?\n(optional - click OK to leave blank)`, `OK`, `Title of Note`, '')
+  if (vars.noteTitle === false) return ''
+  vars.folder = await chooseFolder(`What folder?`)
+  vars.noteText = await getInput(
+    `What text for content?\n(optional - click OK to leave blank)`,
+    `OK`,
+    `Note Content`,
+    '',
+  )
+  if (vars.noteText === false) return ''
+  vars.openNote = await showMessageYesNo(`Open note automatically?`, ['yes', 'no'], `Open Note`)
+  vars.subWindow = await showMessageYesNo(`Open in Floating Window?`, ['yes', 'no'], `Open in Window`)
+  vars.splitView = await showMessageYesNo(`Open in Split View?`, ['yes', 'no'], `Open in Split View`)
+  vars.useExistingSubWindow = await showMessageYesNo(
+    `Open in Already-opened Floating Window?`,
+    ['yes', 'no'],
+    `Open in Existing Window`,
+  )
+  for (const key in vars) {
+    if (['openNote', 'subWindow', 'splitView', 'useExistingSubWindow'].indexOf(key) > -1 && vars[key] === 'no') {
+      delete vars[key]
+    }
+
+    if (['noteTitle', 'folder', 'noteText'].indexOf(key) > -1 && vars[key] === '') {
+      delete vars[key]
+    }
+  }
+  let params = ''
+  let i = 0
+  for (const key in vars) {
+    params += `${params.length ? '&' : '?'}${key}=${encodeURIComponent(vars[key])}`
+  }
+  const xcb = `noteplan://x-callback-url/addText${params}`
+  Editor.insertTextAtCursor(xcb)
+  console.log(xcb)
+}
+
 export async function runShortcut(): Promise<string> {
   const name = await getInput('Enter the name of the shortcut', 'OK', 'Shortcut Name', '')
   if (name && name.length) {
@@ -154,13 +203,13 @@ export async function xCallbackWizard(incoming: ?string = ''): Promise<void> {
 
     const options = [
       { label: 'OPEN a note', value: 'openNote' },
+      { label: 'NEW NOTE with title and text', value: 'addNote' },
       { label: 'ADD text to a note', value: 'addText' },
       { label: 'FILTER Notes by Preset', value: 'filter' },
       { label: 'SEARCH for text in notes', value: 'search' },
       { label: 'RUN a Plugin Command', value: 'runPlugin' },
       { label: 'RUN a Shortcut', value: 'runShortcut' },
       /*
-      { label: 'Add a NEW NOTE with title and text', value: 'addNote' },
       { label: 'DELETE a note by title', value: 'deleteNote' },
       { label: 'Select a TAG in the sidebar', value: 'selectTag' },
       { label: 'Get NOTE INFO (x-success) for use in another app', value: 'noteInfo' },
@@ -188,6 +237,9 @@ export async function xCallbackWizard(incoming: ?string = ''): Promise<void> {
         break
       case 'runShortcut':
         url = await runShortcut()
+        break
+      case 'addNote':
+        url = await addNote()
         break
       case 'runPlugin':
         runplugin = await chooseRunPluginXCallbackURL()
