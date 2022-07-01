@@ -116,6 +116,37 @@ export function filenameDateString(dateObj: Date): string {
 }
 
 /**
+ * Return note of calendar date in a variety of styles
+ * TODO: support Weekly notes, when Eduard does through links 
+ * @author @jgclark
+ * @param {string} style to return
+ * @param {Date} inputDate
+ * @return {string}
+ */
+export function formatNoteDate(inputDate: Date, style: string): string {
+  let output = ''
+  switch (style) {
+    case 'at': {
+      output = `@${hyphenatedDateString(inputDate)}`
+      break
+    }
+    case 'date': { // note this will vary depending on tester's locale
+      output = `${toLocaleDateString(inputDate)}`
+      break
+    }
+    case 'scheduled': {
+      output = `>${hyphenatedDateString(inputDate)}`
+      break
+    }
+    default: { // link or links
+      output = `[[${hyphenatedDateString(inputDate)}]]`
+      break
+    }
+  }
+  return output
+}
+
+/**
  * Return the time as a string in the format "HH:MM"
  * @author @dwertheimer
  *

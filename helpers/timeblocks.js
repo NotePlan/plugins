@@ -3,7 +3,7 @@
 // Timeblocking support constants and functions
 // ------------------------------------------------------------------------------------
 
-import { termInURL } from './paragraph'
+import { isTermInURL } from './paragraph'
 
 // import { getTime } from "date-fns";
 
@@ -196,7 +196,7 @@ export function isTimeBlockPara(para: TParagraph): boolean {
   if (isTypeThatCanHaveATimeBlock(para) && isTimeBlockLine(para.content)) {
     // now check to see the timeblock isn't inside a URL or the path of a [!][link](path)
     const tbString = getTimeBlockString(para.content)
-    return (!termInURL(tbString, para.content))
+    return (!isTermInURL(tbString, para.content))
   } else {
     return false
   }

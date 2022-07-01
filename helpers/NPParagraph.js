@@ -3,7 +3,7 @@
 import { hyphenatedDate } from './dateTime'
 import { toLocaleDateTimeString } from './NPdateTime'
 import { JSP, log, logError, logWarn } from './dev'
-import { findStartOfActivePartOfNote, findEndOfActivePartOfNote, termInMarkdownPath, termInURL } from './paragraph'
+import { findStartOfActivePartOfNote, findEndOfActivePartOfNote, isTermInMarkdownPath, isTermInURL } from './paragraph'
 
 /**
  * Remove all headings (type=='title') from a note matching the given text
@@ -291,7 +291,7 @@ export function getBlockUnderHeading(
  *
  * @param {array} notes - array of Notes to look over
  * @param {string} stringToLookFor - string to look for
- * @param {boolean} highlightOccurrences - whether to enclose found string in ==highlight marks==
+ * @param {boolean} highlightResults - whether to enclose found string in ==highlight marks==
  * @param {string} dateStyle - where the context for an occurrence is a date, does it get appended as a 'date' using your locale, or as a NP date 'link' (`> date`) or 'none'
  * @param {boolean} matchCase - whether to search case insensitively (default: false)
  * @return [Array, Array] - array of lines with matching term, and array of contexts for those lines (dates for daily notes; title for project notes).
@@ -299,7 +299,7 @@ export function getBlockUnderHeading(
 export function gatherMatchingLines(
   notes: Array<TNote>,
   stringToLookFor: string,
-  highlightOccurrences: boolean = true,
+  highlightResults: boolean = true,
   dateStyle: string = 'link',
   matchCase: boolean = false,
 ): [Array<string>, Array<string>] {
@@ -335,14 +335,14 @@ export function gatherMatchingLines(
     for (const p of matchingParas) {
       let matchLine = p.content
       // If the test is within a URL or the path of a [!][link](path) skip this result
-      if (termInURL(stringToLookFor, matchLine)) {
+      if (isTermInURL(stringToLookFor, matchLine)) {
         log(
           'NPParagraph/gatherMatchingLines',
           `- Info: Match '${stringToLookFor}' ignored in '${matchLine} because it's in a URL`,
         )
         continue
       }
-      if (termInMarkdownPath(stringToLookFor, matchLine)) {
+      if (isTermInMarkdownPath(stringToLookFor, matchLine)) {
         log(
           'NPParagraph/gatherMatchingLines',
           `- Info: Match '${stringToLookFor}' ignored in '${matchLine} because it's in a [...](path)`,
@@ -357,9 +357,9 @@ export function gatherMatchingLines(
       // Highlight matches if requested ... but we need to be smart about this:
       // don't do so if we're in the middle of a URL or the path of a [!][link](path)
       if (
-        highlightOccurrences &&
-        !termInURL(stringToLookFor, matchLine) &&
-        !termInMarkdownPath(stringToLookFor, matchLine)
+        highlightResults &&
+        !isTermInURL(stringToLookFor, matchLine) &&
+        !isTermInMarkdownPath(stringToLookFor, matchLine)
       ) {
         matchLine = matchLine.replace(stringToLookFor, `==${stringToLookFor}== `)
       }

@@ -274,12 +274,17 @@ export const clearNote = (note: TNote) => {
   }
 }
 
-export function replaceSection(note: TNote, sectionHeadingToRemove: string, newSectionHeading: string,
-  sectionHeadingLevel: headingLevelType, sectionText: string): void {
-  log('replaceSection', `in note '${displayTitle(note)}' for ${sectionHeadingToRemove} for ${sectionText.length} chars`)
+export function replaceSection(note: TNote,
+  sectionHeadingToRemove: string,
+  newSectionHeading: string,
+  sectionHeadingLevel: headingLevelType,
+  sectionText: string
+): void {
+  log('replaceSection', `in note '${displayTitle(note)}' to remove '${sectionHeadingToRemove}' -> '${newSectionHeading}' level ${sectionHeadingLevel} for ${sectionText.length} chars`)
 
-  // First remove existing heading (the start will probably be right, but the end will probably need to be changed)
+  // First remove existing heading (the start of the heading text will probably be right, but the end will probably need to be changed)
   const insertionLineIndex = removeSection(note, sectionHeadingToRemove)
+  log('replaceSection', `  insertionLineIndex = ${insertionLineIndex}`)
   // Set place to insert either after the found section heading, or at end of note
   // write in reverse order to avoid having to calculate insertion point again
   note.insertHeading(
