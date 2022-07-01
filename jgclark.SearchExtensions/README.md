@@ -1,26 +1,41 @@
 # 🔎 Search Extensions plugin
+NotePlan can search over your notes, but it is currently not very flexible or easy to use; in particular it's difficult to navigate betwen the search results and any of the actual notes it shows.   This plugin attempts to add some power and usability to searching.  Most things can be configured, but by default the search runs and **saves the results in a note that it opens as a split view** next to where you're working.
 
-This plugin lets you do the following sorts of things:
-- list out all the great `@win`s or clever `#idea`s you noted down
-- show all the things you had `Gratitude:` for in your journal
+![TODO: GIF to go here]()
 
-It does this by adding two new /commands to allow search results to be saved, and updated later:
+Another neat feature is the inclusion of a " [Click to refresh these results]" pseudo-button under the title of the note. Clicking that runs the search again, and replaces the earlier set of results. (Thanks to @dwertheimer for the suggestion, which uses the x-callback mechanism -- see below.)
 
-### /saveSearchResults command
-This command searches across **all notes** (both calendar and projects) for a text string you give. It asks where to save its output: to the current note, to the Plugin Console, or to a specially-created note in the Summaries folder.  (It will update the previous note with that same title, if it exists.)
+![TODO:image to go here]()
 
-### /saveSearchResultsInPeriod
-This command generates all 'occurences' of one or more search terms from the **daily notes** of the time period you select. It offers you your default search terms (if set by the `Default Search terms` setting), or lets you choose. Where an occurrence is in a daily note, this can be appended as a date in your locale or as a date 'link'. 
+There are two /commands:
 
-Otherwise the details are the same as for "/saveSearchResults".
+1. **/saveSearchResults** searches across **all notes** (both calendar and projects) for text string(s) you give.
+2. **/saveSearchResultsInPeriod**: searches over the **daily <!--and weekly--> notes** of the time period you select. Where an occurrence is in a daily note, this can be appended as a date in your locale or as a date 'link'. 
 
-## Notes
-- all notes in the special folders (@Archive, @Templates and @Trash) are ignored.  Others can be exluded too using the 'Folders to exclude' setting (see below).
-- the **searches** are simple ones, matching on whole words, not using fuzzy matching or regular expressions.
-- these commands require **configuration**. Click the gear button on the 'Summaries' line in the Plugin Preferences panel to configure this plugin. Each setting has an explanation, and they are grouped into relevant sections.
+The note is saved with the search terms as its title, in a "Saved Searches" folder (which is created if necessary). If the same search terms are used again they will *update* the same note.  But you also are given the option of saving to the current note, or to the plugin console.
 
-### Results highlighting
-To see **highlighting** of matching terms in the occurrences output, you'll need to be using a theme that includes highlighting using `==this syntax==`. You can also customise an existing one, adding something like:
+As the results are saved to a note, the following sorts of uses are then possible:
+- keep track of all the great `@win`s or clever `#idea`s you noted down
+- show all the things you had `Gratitude:` for in your daily journal
+
+## Notes about searches
+- the **searches** are simple ones, matching on whole or partial words, not using fuzzy matching or regular expressions
+- to search for terms X or Y use `X, Y` or `X OR Y`
+- you can set default search terms (in the `Default Search terms` setting); if set you can still always override them.
+- all notes in the special folders (@Archive, @Templates and @Trash) are ignored.  Others can be exluded too using the "Folders to exclude" setting.
+
+## Notes about results output
+There are two ways results can be displayed, controlled by the "Group results by Note?":
+1. matches found within the same note are grouped together ('true', the default)
+2. every match is shown with a note link at the end of the match ('false')
+
+The length of the quote of the matched line can be limited by the "Result quote length" setting.
+
+## Configuration
+To change the default **configuration**, click the gear button on the 'Search Extensions' line in the Plugin Preferences panel to configure this plugin. Each setting has an explanation.
+
+## Results highlighting
+To see **highlighting** of matching terms in the output, you'll need to be using a theme that highlights lines using `==this syntax==`. You can customise an existing theme by adding something like:
 
 ```jsonc
 {
@@ -32,7 +47,7 @@ To see **highlighting** of matching terms in the occurrences output, you'll need
       "matchPosition": 2,
       "isRevealOnCursorRange": true
     },
-    "highlighted-left-colon": {
+    "highlighted-left-marker": {
       "regex": "(==)([^\\s].+)(==)",
       "color": "#AA45A2E5",
       "backgroundColor": "#7745A2E5",
@@ -41,7 +56,7 @@ To see **highlighting** of matching terms in the occurrences output, you'll need
       "isRevealOnCursorRange": true,
       "matchPosition": 1
     },
-    "highlighted-right-colon": {
+    "highlighted-right-marker": {
       "regex": "(==)([^\\s].+)(==)",
       "color": "#AA45A2E5",
       "backgroundColor": "#7745A2E5",
@@ -55,7 +70,7 @@ To see **highlighting** of matching terms in the occurrences output, you'll need
 ```
 
 ### Using from x-callback calls
-It's possible to call some of these commands from [outside NotePlan using the **x-callback mechanism**](https://help.noteplan.co/article/49-x-callback-url-scheme#runplugin). The URL calls all take the same form:
+It's possible to call these commands from [outside NotePlan using the **x-callback mechanism**](https://help.noteplan.co/article/49-x-callback-url-scheme#runplugin). The URL calls all take the same form:
 ```
 noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=<encoded command name>&arg0=<encoded string>&arg1=<encoded string>
 ```
@@ -64,10 +79,10 @@ Notes:
 - where an argument isn't valid, don't include it
 - as with all x-callback URLs, all the arguments (including the command name) need to be URL encoded. For example, spaces need to be turned into '%20'.
 
-| Command | x-callback start | arg0 | arg1 |
-|-----|-------------|-----|-----|
-| /saveSearchResults | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearchResults&` | search term(s) (separated by commas) |   |
-| /saveSearchResultsInPeriod | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearchResultsInPeriod&` | search term(s) (separated by commas) | optional number of days to search over (from before today). If not given then defaults to 3 months. |
+| Command | x-callback start | arg0 | arg1 | arg2 |
+|-----|-------------|-----|-----|-----|
+| /saveSearchResults | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearchResults&` | search term(s) (separated by commas) |  |  |
+| /saveSearchResultsInPeriod | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearchResultsInPeriod&` | search term(s) (separated by commas) | start date to search over (YYYYMMDD). If not given then defaults to 3 months ago. | end date to search over (YYYYMMDD). If not given then defaults to today. |
 
 ## History
 Please see the [CHANGELOG](CHANGELOG.md).
