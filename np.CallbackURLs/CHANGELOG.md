@@ -4,7 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.CallbackURLs/README.md) for details on available commands and use case.
 
-## [0.4.0] - 2022-06-28 (@dwertheimer)
+## [0.5.0] - 2022-07-01 (@dwertheimer)
+- Added addNote command
+
+- ## [0.4.0] - 2022-06-28 (@dwertheimer)
 - Added callback URLs for Shortcuts
 
 ## [0.3.0] - 2022-06-25 (@dwertheimer)
