@@ -643,5 +643,13 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result).toEqual(moment(new Date()).format('YYYY-MM-DD'))
       })
     })
+
+    describe(`${block('reference')}`, () => {
+      it(`should return date reference`, async () => {
+        const now = new DateModule().ref(new Date())
+
+        console.log(now.format('YYYY-MM-DD'))
+      })
+    })
   })
 })

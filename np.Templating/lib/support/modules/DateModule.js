@@ -64,6 +64,10 @@ export default class DateModule {
     moment.locale(osLocale)
   }
 
+  ref(value = '') {
+    return moment(value)
+  }
+
   // convert supplied date value into something that NotePlan can actually handle
   // requiring YYYY-MM-DDThh:mm:ss format
   createDateTime(userDateString = '') {

@@ -151,6 +151,50 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(frontmatterBlock).toEqual(testFrontmatterBlock)
     })
 
+    it(`should should parse YML formatted with indented attributes`, async () => {
+      const data = await factory('frontmatter-indented.ejs')
+
+      const frontmatterAttributes = new FrontmatterModule().attributes(data)
+
+      const result = {
+        title: 'indented',
+        key: ['value1', 'value2'],
+      }
+
+      expect(result).toEqual(frontmatterAttributes)
+    })
+
+    it(`should should parse YML formatted with nested attributes`, async () => {
+      const data = await factory('frontmatter-yml.ejs')
+
+      const frontmatterAttributes = new FrontmatterModule().attributes(data)
+
+      const result = {
+        title: 'myTitle',
+        key: {
+          subKey: ['subValue1', 'subValue2', 'codedungeon.np.Templating'],
+        },
+      }
+
+      expect(result).toEqual(frontmatterAttributes)
+    })
+
+    it(`should should parse YML using practical example`, async () => {
+      const data = await factory('frontmatter-practical.ejs')
+
+      const frontmatterAttributes = new FrontmatterModule().attributes(data)
+
+      const result = {
+        title: 'practical',
+        triggers: {
+          onEdit: ['jgclark.RepeatExtensions.generateRepeats', 'codedungeon.np.Templating'],
+          onOpen: ['jgclark.DailyThing.tidyUp'],
+        },
+      }
+
+      expect(result).toEqual(frontmatterAttributes)
+    })
+
     describe(`${block('.convertProjectNoteToFrontmatter')}`, () => {
       it('should return -1', async () => {
         const result = new FrontmatterModule().convertProjectNoteToFrontmatter('')
