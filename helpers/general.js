@@ -158,8 +158,8 @@ export function displayTitle(n: ?TNote): string {
   return !n
     ? 'error'
     : n.type === 'Calendar' && n.date != null
-      ? n.filename.split('.')[0] // without file extension
-      : n.title ?? ''
+    ? n.filename.split('.')[0] // without file extension
+    : n.title ?? ''
 }
 
 /**
@@ -192,22 +192,24 @@ export function returnNoteLink(noteTitle: string, heading: string | null = ''): 
  * @param {string} paramType - 'title' | 'filename' | 'date' (default is 'title')
  * @param {string | null} heading - heading inside of note (optional)
  * @param {string} openType - 'subWindow' | 'splitView' | 'useExistingSubWindow' (default: null)
+ * @param {boolean} isDeleteNote - whether this is actually a deleteNote
  * @returns {string} the x-callback-url string
  * @tests available
  */
-export function createOpenNoteCallbackUrl(
+export function createOpenOrDeleteNoteCallbackUrl(
   titleOrFilename: string,
   paramType: 'title' | 'filename' | 'date' = 'title',
   heading: string | null = null,
   openType: 'subWindow' | 'splitView' | 'useExistingSubWindow' | null = null,
+  isDeleteNote: boolean = false,
 ): string {
   const isFilename = paramType === 'filename'
   const paramStr = isFilename ? `filename` : paramType === 'date' ? `noteDate` : `noteTitle`
-  const xcb = `noteplan://x-callback-url/openNote?${paramStr}=`
+  const xcb = `noteplan://x-callback-url/${isDeleteNote ? 'deleteNote' : 'openNote'}?${paramStr}=`
   // FIXME: this is working around an API bug that does not allow heading references in filename xcallbacks
   // When @eduard fixes it, this line can be removed
   const head = paramType === 'title' && heading?.length ? heading : ''
-  // console.log(`createOpenNoteCallbackUrl: ${xcb}${titleOrFilename}${head ? `&heading=${head}` : ''}`)
+  // console.log(`createOpenOrDeleteNoteCallbackUrl: ${xcb}${titleOrFilename}${head ? `&heading=${head}` : ''}`)
   const encoded = encodeURIComponent(titleOrFilename).replace(/\(/g, '%28').replace(/\)/g, '%29')
   const openAs =
     openType && ['subWindow', 'splitView', 'useExistingSubWindow'].includes(openType) ? `&${openType}=yes` : ''
@@ -298,7 +300,11 @@ export function createPrettyOpenNoteLink(
   isFilename: boolean = false,
   heading: string | null = null,
 ): string {
-  return `[${linkText}](${createOpenNoteCallbackUrl(titleOrFilename, isFilename ? 'filename' : 'title', heading)})`
+  return `[${linkText}](${createOpenOrDeleteNoteCallbackUrl(
+    titleOrFilename,
+    isFilename ? 'filename' : 'title',
+    heading,
+  )})`
 }
 
 /**

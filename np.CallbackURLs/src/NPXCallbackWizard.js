@@ -8,11 +8,11 @@ TODO: maybe create choosers based on arguments text
 */
 
 import { log, logError, clo, JSP } from '../../helpers/dev'
-import { createOpenNoteCallbackUrl, createAddTextCallbackUrl, createCallbackUrl } from '../../helpers/general'
-import { chooseRunPluginXCallbackURL } from '@helpers/NPdev'
+import { createOpenOrDeleteNoteCallbackUrl, createAddTextCallbackUrl, createCallbackUrl } from '../../helpers/general'
 import pluginJson from '../plugin.json'
-import { chooseOption, showMessage, chooseHeading, chooseFolder, chooseNote, getInput } from '@helpers/userInput'
-import { showMessageYesNo } from '../../helpers/userInput'
+import { showMessageYesNo } from '@helpers/userInput'
+import { chooseRunPluginXCallbackURL } from '@helpers/NPdev'
+import { chooseOption, showMessage, chooseFolder, chooseNote, getInput } from '@helpers/userInput'
 
 // https://help.noteplan.co/article/49-x-callback-url-scheme#addnote
 
@@ -21,10 +21,11 @@ import { showMessageYesNo } from '../../helpers/userInput'
  * @param {string} command - 'openNote' | 'addText' (default: 'openNote')
  * @returns {string} the URL or false if user canceled
  */
-async function getAddTextOrOpenNoteURL(command: 'openNote' | 'addText' = 'openNote'): Promise<string | false> {
+async function getAddTextOrOpenNoteURL(
+  command: 'openNote' | 'addText' | 'deleteNote' = 'openNote',
+): Promise<string | false> {
   let url = '',
     note,
-    addTextParams,
     fields
   const date = await askAboutDate() // returns date or '' or false
   if (date === false) return false
@@ -39,7 +40,9 @@ async function getAddTextOrOpenNoteURL(command: 'openNote' | 'addText' = 'openNo
         url = createAddTextCallbackUrl(note, fields)
       }
     } else if (command === 'openNote' && note?.filename) {
-      url = createOpenNoteCallbackUrl(note?.filename ?? '', 'filename')
+      url = createOpenOrDeleteNoteCallbackUrl(note?.filename ?? '', 'filename')
+    } else if (command === 'deleteNote' && note?.filename) {
+      url = createOpenOrDeleteNoteCallbackUrl(note?.filename ?? '', 'filename', null, null, true)
     }
   } else {
     if (command === 'addText') {
@@ -50,9 +53,12 @@ async function getAddTextOrOpenNoteURL(command: 'openNote' | 'addText' = 'openNo
         url = createAddTextCallbackUrl(date, fields)
       }
     } else if (command === 'openNote') {
-      url = createOpenNoteCallbackUrl(date, 'date')
+      url = createOpenOrDeleteNoteCallbackUrl(date, 'date')
+    } else if (command === 'deleteNote') {
+      url = createOpenOrDeleteNoteCallbackUrl(date, 'date', null, null, true)
     }
   }
+
   if (url !== '') {
     return url
   } else {
@@ -136,15 +142,6 @@ async function getAddTextAdditions(): Promise<{ text: string, mode: string, open
   return openNote === false ? false : { text: text ? text : '', mode, openNote }
 }
 
-/*
-noteTitle optional, will be prepended if it is used
-text optional, text will be added to the note
-openNote optional, values: yes (opens the note, if not already selected), no
-folder optional, define which folder the note should be added to. The folder will be created.
-subWindow optional (only Mac), values: yes (opens note in a subwindow) and no
-splitView optional (only Mac), values: yes (opens note in a split view) and no. Note: Available from v3.4
-useExistingSubWindow optional (only Mac), values: yes (looks for an existing subwindow and opens the note there, instead of opening a new one) and no (default). Note: Available from v3.2
-*/
 export async function addNote(): Promise<string> {
   const vars = {}
   vars.noteTitle = await getInput(`What's the title?\n(optional - click OK to leave blank)`, `OK`, `Title of Note`, '')
@@ -175,13 +172,43 @@ export async function addNote(): Promise<string> {
     }
   }
   let params = ''
-  let i = 0
   for (const key in vars) {
     params += `${params.length ? '&' : '?'}${key}=${encodeURIComponent(vars[key])}`
   }
-  const xcb = `noteplan://x-callback-url/addText${params}`
-  Editor.insertTextAtCursor(xcb)
-  console.log(xcb)
+  return `noteplan://x-callback-url/addText${params}`
+}
+
+export async function noteInfo(): Promise<string> {
+  const callback = await getInput(
+    `Enter the other app xcallback to call with details on the currently-open NotePlan note. e.g.\nsourceapp://x-callback-url`,
+    'OK',
+    'Callback URL',
+    '',
+  )
+  if (callback && callback !== '') {
+    return `noteplan://x-callback-url/noteInfo/?x-success=${encodeURIComponent(callback)}`
+  }
+  return ''
+}
+
+export async function getReturnCallback(incomingString: string): Promise<string> {
+  const shouldReturn = await showMessageYesNo(
+    `After running this command, do you want to return execution to a non-NotePlan app using the x-success parameter?\n(generally the answer is no)`,
+    ['yes', 'no'],
+    `Return to Other App`,
+  )
+  if (shouldReturn && shouldReturn !== '') {
+    const callback = await getInput(
+      `Enter the other app xcallback to call after running the NotePlan function. e.g.\notherapp://x-callback-url`,
+      'OK',
+      'Callback URL',
+      '',
+    )
+    if (callback && callback !== '') {
+      return `${incomingString}&x-success=${encodeURIComponent(callback)}`
+    }
+  }
+  return incomingString
 }
 
 export async function runShortcut(): Promise<string> {
@@ -207,12 +234,12 @@ export async function xCallbackWizard(incoming: ?string = ''): Promise<void> {
       { label: 'ADD text to a note', value: 'addText' },
       { label: 'FILTER Notes by Preset', value: 'filter' },
       { label: 'SEARCH for text in notes', value: 'search' },
+      { label: 'Get NOTE INFO (x-success) for use in another app', value: 'noteInfo' },
       { label: 'RUN a Plugin Command', value: 'runPlugin' },
       { label: 'RUN a Shortcut', value: 'runShortcut' },
-      /*
       { label: 'DELETE a note by title', value: 'deleteNote' },
+      /*
       { label: 'Select a TAG in the sidebar', value: 'selectTag' },
-      { label: 'Get NOTE INFO (x-success) for use in another app', value: 'noteInfo' },
       */
     ]
     const res = await chooseOption(`Select an X-Callback type`, options, '')
@@ -229,6 +256,9 @@ export async function xCallbackWizard(incoming: ?string = ''): Promise<void> {
       case 'addText':
         url = await getAddTextOrOpenNoteURL('addText')
         break
+      case 'deleteNote':
+        url = await getAddTextOrOpenNoteURL('deleteNote')
+        break
       case 'filter':
         url = await filter()
         break
@@ -241,10 +271,13 @@ export async function xCallbackWizard(incoming: ?string = ''): Promise<void> {
       case 'addNote':
         url = await addNote()
         break
+      case 'noteInfo':
+        url = await noteInfo()
+        break
       case 'runPlugin':
         runplugin = await chooseRunPluginXCallbackURL()
         if (runplugin) {
-          url = runplugin.url
+          url = runplugin.url || ''
         }
         break
       default:
@@ -252,9 +285,10 @@ export async function xCallbackWizard(incoming: ?string = ''): Promise<void> {
         break
     }
     if (url === false) canceled = true // user hit cancel on one of the input prompts
-    // ask if they want x-success and add it if so
+    console.log(`canceled:${canceled} res:${res}\nresulting url: ${url}`)
 
-    if (!canceled && url) {
+    if (!canceled && typeof url === 'string') {
+      url = res !== 'noteInfo' ? await getReturnCallback(url) : url
       const op = [
         { label: `Raw/long URL (${url})`, value: 'raw' },
         { label: '[Pretty link](hide long URL)', value: 'pretty' },

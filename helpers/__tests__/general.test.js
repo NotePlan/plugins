@@ -50,23 +50,23 @@ describe(`${FILE}`, () => {
       expect(g.returnNoteLink('foo', '')).toEqual('[[foo]]')
     })
   })
-  describe(section('createOpenNoteCallbackUrl()'), () => {
+  describe(section('createOpenOrDeleteNoteCallbackUrl()'), () => {
     describe('using noteTitle', () => {
       test('should create a link with a heading', () => {
-        expect(g.createOpenNoteCallbackUrl('foo', 'title', 'bar')).toEqual(
+        expect(g.createOpenOrDeleteNoteCallbackUrl('foo', 'title', 'bar')).toEqual(
           'noteplan://x-callback-url/openNote?noteTitle=foo#bar',
         )
       })
       test('should create a link if heading is missing', () => {
-        expect(g.createOpenNoteCallbackUrl('foo')).toEqual('noteplan://x-callback-url/openNote?noteTitle=foo')
+        expect(g.createOpenOrDeleteNoteCallbackUrl('foo')).toEqual('noteplan://x-callback-url/openNote?noteTitle=foo')
       })
       test('should create a link with heading passed as null', () => {
-        expect(g.createOpenNoteCallbackUrl('foo', 'title', null)).toEqual(
+        expect(g.createOpenOrDeleteNoteCallbackUrl('foo', 'title', null)).toEqual(
           'noteplan://x-callback-url/openNote?noteTitle=foo',
         )
       })
       test('should create a link with heading passed as empty string', () => {
-        expect(g.createOpenNoteCallbackUrl('foo', 'title', '')).toEqual(
+        expect(g.createOpenOrDeleteNoteCallbackUrl('foo', 'title', '')).toEqual(
           'noteplan://x-callback-url/openNote?noteTitle=foo',
         )
       })
@@ -76,48 +76,48 @@ describe(`${FILE}`, () => {
       // re-enable this test when @eduard fixes API bug
       // should also add a test for a filename with parentheses
       test('should create a link with filename with parentheses', () => {
-        expect(g.createOpenNoteCallbackUrl('foo/bar(xx)', 'filename', 'bar')).toEqual(
+        expect(g.createOpenOrDeleteNoteCallbackUrl('foo/bar(xx)', 'filename', 'bar')).toEqual(
           'noteplan://x-callback-url/openNote?filename=foo%2Fbar%28xx%29',
         )
       })
       test('should create a urlencoded link for spaces', () => {
-        expect(g.createOpenNoteCallbackUrl('foo bar', 'filename', 'bar')).toEqual(
+        expect(g.createOpenOrDeleteNoteCallbackUrl('foo bar', 'filename', 'bar')).toEqual(
           'noteplan://x-callback-url/openNote?filename=foo%20bar',
         )
       })
       test.skip('should create a link with a heading', () => {
-        expect(g.createOpenNoteCallbackUrl('foo', 'filename', 'bar')).toEqual(
+        expect(g.createOpenOrDeleteNoteCallbackUrl('foo', 'filename', 'bar')).toEqual(
           'noteplan://x-callback-url/openNote?filename=foo#bar',
         )
       })
       test('should create a link stripping the heading for the API bug workaround', () => {
-        expect(g.createOpenNoteCallbackUrl('foo', 'filename', 'bar')).toEqual(
+        expect(g.createOpenOrDeleteNoteCallbackUrl('foo', 'filename', 'bar')).toEqual(
           'noteplan://x-callback-url/openNote?filename=foo',
         )
       })
     })
     describe('using date', () => {
       test('should create a link stripping the heading for the API bug workaround', () => {
-        expect(g.createOpenNoteCallbackUrl('yesterday', 'date')).toEqual(
+        expect(g.createOpenOrDeleteNoteCallbackUrl('yesterday', 'date')).toEqual(
           'noteplan://x-callback-url/openNote?noteDate=yesterday',
         )
       })
     })
     describe('using openTypes', () => {
       test('should create a link in a floating window', () => {
-        const res = g.createOpenNoteCallbackUrl('foo', 'filename', 'bar', 'subWindow')
+        const res = g.createOpenOrDeleteNoteCallbackUrl('foo', 'filename', 'bar', 'subWindow')
         expect(res).toEqual('noteplan://x-callback-url/openNote?filename=foo&subWindow=yes')
       })
       test('should create a link in an existing floating window', () => {
-        const res = g.createOpenNoteCallbackUrl('foo', 'filename', 'bar', 'useExistingSubWindow')
+        const res = g.createOpenOrDeleteNoteCallbackUrl('foo', 'filename', 'bar', 'useExistingSubWindow')
         expect(res).toEqual('noteplan://x-callback-url/openNote?filename=foo&useExistingSubWindow=yes')
       })
       test('should create a link in split view', () => {
-        const res = g.createOpenNoteCallbackUrl('foo', 'filename', 'bar', 'splitView')
+        const res = g.createOpenOrDeleteNoteCallbackUrl('foo', 'filename', 'bar', 'splitView')
         expect(res).toEqual('noteplan://x-callback-url/openNote?filename=foo&splitView=yes')
       })
       test('should ignore illegal openType', () => {
-        const res = g.createOpenNoteCallbackUrl('foo', 'filename', 'bar', 'baz')
+        const res = g.createOpenOrDeleteNoteCallbackUrl('foo', 'filename', 'bar', 'baz')
         expect(res).toEqual('noteplan://x-callback-url/openNote?filename=foo')
       })
     })

@@ -2,7 +2,13 @@
 
 ## About np.CallbackURLs Plugin
 
-See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.CallbackURLs/README.md) for details on available commands and use case.
+See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.CallbackURLs/README.md) for details on available commands and use cases.
+
+## [0.6.0] = 2022-07-02 (@dwertheimer)
+- Added noteInfo command
+- Added deleteNote command
+- Addex x-success return capability on all commands
+- Added DataStore.installOrUpdatePluginsByID to init
 
 ## [0.5.0] - 2022-07-01 (@dwertheimer)
 - Added addNote command

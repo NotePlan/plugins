@@ -4,12 +4,14 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "np.CallbackURLs",
   "plugin.name": "🧩 X-Callback-URL & RunPlugin Creator",
-  "plugin.version": "0.5.0",
+  "plugin.version": "0.6.0",
+  "plugin.lastUpdateInfo": "0.6.0: Added support for deleteNote, x-success, and noteInfo",
   "plugin.description": "Helps you form links/x-callback-urls to perform actions from within NotePlan or between other applications and NotePlan",
   "plugin.author": "dwertheimer",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/np.CallbackURLs/README.md",
+  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/np.CallbackURLs/CHANGELOG.md",
   "plugin.commands": [
     {
       "name": "Get X-Callback-URL",
