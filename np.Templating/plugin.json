@@ -159,6 +159,28 @@
       "description": "NPTemplating.renderTemplate export",
       "jsFunction": "renderTemplate",
       "hidden": true
+    },
+    {
+      "name": "np:tft",
+      "alias": [
+        "Template file by title"
+      ],
+      "description": "Run a template file by title/preset",
+      "hidden": true,
+      "jsFunction": "templateFileByTitle"
+    },
+    {
+      "name": "templateRunner",
+      "alias": [],
+      "description": "Load and run self-contained template instructions with arguments",
+      "hidden": true,
+      "jsFunction": "templateRunner"
+    },
+    {
+      "name": "np:gx",
+      "alias": [],
+      "description": "Get an x-callback URL that invokes this template",
+      "jsFunction": "templateGetXcallbackForTemplate"
     }
   ],
   "plugin.settings": [

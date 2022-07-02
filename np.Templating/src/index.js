@@ -24,9 +24,11 @@ export { templateQuickNote } from './Templating'
 export { templateConvertNote } from './Templating'
 export { templateSamples } from './Templating'
 export { templateExecute } from './Templating'
+export { templateRunner } from './Templating'
 
 // np.Templating Utility Commands
 export { templateAbout } from './Templating'
+export { templateGetXcallbackForTemplate } from './Templating'
 
 // np.Templating Testing
 export { templateTest } from './Templating'
