@@ -68,7 +68,7 @@
       "description": "List of folders to exclude in these commands. May be empty. (Note that @Trash, @Templates and @Archive are always excluded.)",
       "type": "[string]",
       "default": [
-        "Summaries"
+        "Summaries", "Saved Searches"
       ],
       "required": false
     },

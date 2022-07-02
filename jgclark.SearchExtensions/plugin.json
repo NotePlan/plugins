@@ -9,7 +9,7 @@
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.SearchExtensions/CHANGELOG.md", 
   "plugin.version": "0.1.0",
-  "plugin.lastUpdateInfo": "Significantly speeded up most searches",
+  "plugin.lastUpdateInfo": "",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -52,7 +52,7 @@
       "title": "Folder name",
       "description": "Folder to store any output files in",
       "type": "string",
-      "default": "Searches",
+      "default": "Saved Searches",
       "required": true
     },
     {
@@ -61,7 +61,7 @@
       "description": "List of folders to exclude in these commands. May be empty. (Note that @Trash, @Templates and @Archive are always excluded.)",
       "type": "[string]",
       "default": [
-        "Summaries", "Searches"
+        "Summaries", "Saved Searches", "TEST"
       ],
       "required": false
     },
@@ -74,7 +74,7 @@
       "required": true
     },
     {
-      "key": "defaultOccurrences",
+      "key": "defaultSearchTerms",
       "title": "Default Search terms",
       "description": "Optional list of search terms to use by default. If empty, you will be asked for terms each time you run the command.",
       "type": "[string]",
@@ -86,11 +86,11 @@
       "required": false
     },
     {
-      "key": "occurrencesHeading",
+      "key": "searchHeading",
       "title": "Saved Search heading",
-      "description": "Heading to go before search output",
+      "description": "Text to append to headings in search results (optional)",
       "type": "string",
-      "default": "Search Results",
+      "default": "(Search Results)",
       "required": false
     },
     {
@@ -110,6 +110,14 @@
       "required": true
     },
     {
+      "key": "resultQuoteLength",
+      "title": "Result quote length",
+      "description": "Length of matching line to quote in the search results. To always quote the full line set this to 0.",
+      "type": "number",
+      "default": 100,
+      "required": true
+    },
+    {
       "key": "matchCase",
       "title": "Match case when searching?",
       "description": "Do searches match case (capitalisation) or not?",
@@ -118,7 +126,7 @@
       "required": true
     },
     {
-      "key": "highlightOccurrences",
+      "key": "highlightResults",
       "title": "Highlight matching search terms?",
       "description": "Whether to use ==highlight== of matched occurrences in output. (Works best when using a theme with highlighting.)",
       "type": "bool",
@@ -126,7 +134,7 @@
       "required": false
     },
     {
-      "key": "showEmptyOccurrences",
+      "key": "showEmptyResults",
       "title": "Show empty matches?",
       "description": "If no matches of the search term(s) are found, setting this true will still show a heading for the term(s)",
       "type": "bool",
@@ -136,13 +144,13 @@
     {
       "key": "dateStyle",
       "title": "Date style",
-      "description": "Where the context for a match is a date, does it get shown as a 'date' using your locale, or as a NP date 'link' (`>date`), or `at` (`@date`) or 'none'",
+      "description": "Where the context for a match is a date, does it get shown as a 'date' using your locale, or as a NP date 'link' ([[2022-06-30]]), `at` (`@2022-06-30`), 'date' (date formatted for your locale, or 'scheduled' (`>2022-06-30`).",
       "type": "string",
       "choices": [
         "at",
         "date",
         "link",
-        "none"
+        "scheduled"
       ],
       "default": "link",
       "required": true

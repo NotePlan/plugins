@@ -14,10 +14,10 @@ beforeAll(() => {
 
 beforeEach(() => {
   const paragraphs = [
-    new Paragraph({ type: 'title', content: 'theTitle', headingLevel: 1, indents: 0, lineIndex: 0 }),
-    new Paragraph({ type: 'text', content: 'line 2', headingLevel: 1, indents: 0, lineIndex: 1 }),
-    new Paragraph({ type: 'empty', content: '', headingLevel: 1, indents: 0, lineIndex: 2 }),
-    new Paragraph({ type: 'text', content: 'line 3', headingLevel: 1, indents: 0, lineIndex: 3 }),
+    new Paragraph({ type: 'title', lineIndex: 1, content: 'theTitle', headingLevel: 1, indents: 0, lineIndex: 0 }),
+    new Paragraph({ type: 'text', lineIndex: 1, content: 'line 2', headingLevel: 1, indents: 0, lineIndex: 1 }),
+    new Paragraph({ type: 'empty', lineIndex: 1, content: '', headingLevel: 1, indents: 0, lineIndex: 2 }),
+    new Paragraph({ type: 'text', lineIndex: 1, content: 'line 3', headingLevel: 1, indents: 0, lineIndex: 3 }),
   ]
   Editor.note = new Note({ paragraphs })
 })
@@ -105,4 +105,88 @@ describe('paragraph.js', () => {
     })
   })
 
+  describe('findEndOfActivePartOfNote()', () => {
+    const noteA = {
+      paragraphs: [
+        { type: "title", lineIndex: 0, content: "NoteA Title", headingLevel: 1 },
+        { type: "empty", lineIndex: 1 },
+        { type: "title", lineIndex: 2, content: "Section 1", headingLevel: 2 },
+        { type: "open", lineIndex: 3, content: "task 1" },
+        { type: "text", lineIndex: 4, content: "some ordinary text" },
+        { type: "empty", lineIndex: 5 },
+        { type: "title", lineIndex: 6, content: "Done ...", headingLevel: 2 },
+        { type: "done", lineIndex: 7, content: "task 2 done" },
+        { type: "done", lineIndex: 8, content: "task 3 done" },
+        { type: "empty", lineIndex: 9 },
+        { type: "title", lineIndex: 10, content: "Cancelled", headingLevel: 2 },
+        { type: "cancelled", lineIndex: 11, content: "task 4 not done" },
+        { type: "title", lineIndex: 12, content: "Done (more)", headingLevel: 2 },
+      ]
+    }
+    test('should find at line 6 (note A)', () => {
+      const result = p.findEndOfActivePartOfNote(noteA)
+      expect(result).toEqual(6)
+    })
+    const noteB = {
+      paragraphs: [
+        { type: "title", lineIndex: 0, content: "NoteA Title", headingLevel: 1 },
+        { type: "empty", lineIndex: 1 },
+        { type: "title", lineIndex: 2, content: "Section 1", headingLevel: 2 },
+        { type: "open", lineIndex: 3, content: "task 1" },
+        { type: "text", lineIndex: 4, content: "some ordinary text" },
+        { type: "separator", lineIndex: 5 },
+        { type: "title", lineIndex: 6, content: "Done ...", headingLevel: 2 },
+        { type: "done", lineIndex: 7, content: "task 2 done" },
+        { type: "done", lineIndex: 8, content: "task 3 done" },
+        { type: "empty", lineIndex: 9 },
+        { type: "title", lineIndex: 10, content: "Cancelled", headingLevel: 2 },
+        { type: "cancelled", lineIndex: 11, content: "task 4 not done" },
+        { type: "title", lineIndex: 12, content: "Done (more)", headingLevel: 2 },
+      ]
+    }
+    test('should find at line 5 (note B)', () => {
+      const result = p.findEndOfActivePartOfNote(noteB)
+      expect(result).toEqual(5)
+    })
+    const noteC = {
+      paragraphs: [
+        { type: "title", lineIndex: 0, content: "NoteB Title", headingLevel: 1 },
+        { type: "empty", lineIndex: 1 },
+        { type: "title", lineIndex: 2, content: "Section 1", headingLevel: 2 },
+        { type: "open", lineIndex: 3, content: "task 1" },
+        { type: "text", lineIndex: 4, content: "some ordinary text" },
+        { type: "empty", lineIndex: 5 },
+        { type: "title", lineIndex: 6, content: "Section 2", headingLevel: 3 },
+        { type: "quote", lineIndex: 7, content: "quotation" },
+        { type: "done", lineIndex: 8, content: "task 3 done" },
+        { type: "empty", lineIndex: 9 },
+        { type: "title", lineIndex: 10, content: "Cancelled...", headingLevel: 2 },
+        { type: "cancelled", lineIndex: 11, content: "task 4 not done" },
+      ]
+    }
+    test('should find at line 10 (note C)', () => {
+      const result = p.findEndOfActivePartOfNote(noteC)
+      expect(result).toEqual(10)
+    })
+    const noteD = {
+      paragraphs: [
+        { type: "title", lineIndex: 0, content: "NoteB Title", headingLevel: 1 },
+        { type: "empty", lineIndex: 1 },
+        { type: "title", lineIndex: 2, content: "Section 1", headingLevel: 2 },
+        { type: "open", lineIndex: 3, content: "task 1" },
+        { type: "text", lineIndex: 4, content: "some ordinary text" },
+        { type: "empty", lineIndex: 5 },
+        { type: "title", lineIndex: 6, content: "Section 2", headingLevel: 3 },
+        { type: "quote", lineIndex: 7, content: "quotation" },
+        { type: "done", lineIndex: 8, content: "task 3 done" },
+        { type: "empty", lineIndex: 9 },
+        { type: "title", lineIndex: 10, content: "Section 3...", headingLevel: 2 },
+        { type: "cancelled", lineIndex: 11, content: "task 4 not done" },
+      ]
+    }
+    test('should not find either (note D), so do paras length', () => {
+      const result = p.findEndOfActivePartOfNote(noteD)
+      expect(result).toEqual(12)
+    })
+  })
 })

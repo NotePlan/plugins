@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Create statistics for hasthtags and mentions for time periods
 // Jonathan Clark, @jgclark
-// Last updated 24.6.2022 for v0.9.1
+// Last updated 30.6.2022 for v0.9.1+
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -12,15 +12,13 @@ import pluginJson from '../plugin.json'
 import {
   calcHashtagStatsPeriod,
   calcMentionStatsPeriod,
-  getPeriodStartEndDates,
   getSummariesSettings,
 } from './summaryHelpers'
 import {
   getWeek,
-  // hyphenatedDateString,
   unhyphenatedDate,
-  // weekStartEnd,
 } from '@helpers/dateTime'
+import { getPeriodStartEndDates } from '@helpers/NPdateTime'
 import { log, logError } from '@helpers/dev'
 import {
   CaseInsensitiveMap,
@@ -138,9 +136,9 @@ export async function statsPeriod(): Promise<void> {
   // --------------------------------------------------------------------------
   // Ask where to save this summary to
   const outputOptions = [
-    { label: '🖊 Append to your current note', value: 'current' },
     { label: `🖊 Create/update a note in folder '${config.folderToStore}'`, value: 'note' },
-    { label: '📋 Write to console log', value: 'log' },
+    { label: '🖊 Append to your current note', value: 'current' },
+    { label: '📋 Write to plugin console log', value: 'log' },
     { label: '❌ Cancel', value: 'cancel' },
   ]
   switch (periodType) {
@@ -165,7 +163,7 @@ export async function statsPeriod(): Promise<void> {
     case 'current': {
       const currentNote = Editor.note
       if (currentNote == null) {
-        logError(pluginJson, `no note is open`)
+        logError(pluginJson, `No note is open. Stopping.`)
       } else {
         log(pluginJson, `appending results to current note (${currentNote.filename ?? ''})`)
         currentNote.appendParagraph(
@@ -186,7 +184,7 @@ export async function statsPeriod(): Promise<void> {
     case 'note': { // Summaries note
       const note = await getOrMakeNote(periodString, config.folderToStore)
       if (note == null) {
-        logError(pluginJson, `cannot get new note`)
+        logError(pluginJson, `Cannot get new note`)
         await showMessage('There was an error getting the new note ready to write')
         return
       }
@@ -209,9 +207,8 @@ export async function statsPeriod(): Promise<void> {
 
     case 'weekly': { // Weekly note (from v3.6)
       const todaysDate = new Date()
-      // couldn't get const { y, m, d } = getYearMonthDate(todaysDate) to work ??
       const y = todaysDate.getFullYear()
-      const w = getWeek(todaysDate) + 1 // TODO(Eduard): not using ISO def of week number
+      const w = getWeek(todaysDate)
 
       log(pluginJson, `Opening weekly note for ${y} / ${w}`)
       await Editor.openWeeklyNote(y, w)

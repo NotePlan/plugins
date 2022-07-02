@@ -241,8 +241,10 @@ export function smartPrependPara(note: TNote, paraText: string, paragraphType: P
 /**
  * Works out where the first ## Done or ## Cancelled section starts, if present.
  * Works with folded Done or Cancelled sections.
- * If not, return the last paragraph index.
+ * If the previous line was a separator, use that line instead
+ * If neither Done or Cancelled present, return the line count.
  * @author @jgclark
+ * @tests in jest file
  *
  * @param {TNote} note - the note to assess
  * @return {number} - the index number
@@ -250,17 +252,22 @@ export function smartPrependPara(note: TNote, paraText: string, paragraphType: P
 export function findEndOfActivePartOfNote(note: TNote): number {
   const paras = note.paragraphs
   const lineCount = paras.length
-  let doneHeaderLine = 0
-  let cancelledHeaderLine = 0
-  for (let i = 0; i < lineCount; i++) {
-    const p = paras[i]
-    if (p.headingLevel === 2 && p.content.startsWith('Done')) {
-      doneHeaderLine = i
-    }
-    if (p.headingLevel === 2 && p.content.startsWith('Cancelled')) {
-      cancelledHeaderLine = i
-    }
+
+  // Find first example of ## Done
+  const doneHeaderLines = paras.filter((p) => p.headingLevel === 2 && p.content.startsWith('Done')) ?? []
+  let doneHeaderLine = doneHeaderLines.length > 0 ? doneHeaderLines[0].lineIndex : 0
+  // Now check to see if previous line was a separator; if so use that line instead
+  if (doneHeaderLine > 2 && paras[doneHeaderLine - 1].type === 'separator') {
+    doneHeaderLine -= 1
   }
+  // Find first example of ## Cancelled
+  const cancelledHeaderLines = paras.filter((p) => p.headingLevel === 2 && p.content.startsWith('Cancelled')) ?? []
+  let cancelledHeaderLine = cancelledHeaderLines.length > 0 ? cancelledHeaderLines[0].lineIndex : 0
+  // Now check to see if previous line was a separator; if so use that line instead
+  if (cancelledHeaderLine > 2 && paras[cancelledHeaderLine - 1].type === 'separator') {
+    cancelledHeaderLine -= 1
+  }
+
   const endOfActive = doneHeaderLine > 0 ? doneHeaderLine : cancelledHeaderLine > 0 ? cancelledHeaderLine : lineCount
   // log('paragraph/findEndOfActivePartOfNote', `  dHL = ${doneHeaderLine}, cHL = ${cancelledHeaderLine} endOfActive = ${endOfActive}`)
   return endOfActive
@@ -409,52 +416,6 @@ export function getOrMakeMetadataLine(note: TNote): number {
   return lineNumber
 }
 
-/**
- * Remove all paragraphs in the section of a note, given:
- * - Note to use
- * - Section heading line to look for (needs to match from start of line but not necessarily the end)
- * A section is defined (here at least) as all the lines between the heading,
- * and the next heading of that same or higher level, or the end of the file
- * if that's sooner.
- * @author @jgclark
- *
- * @param {TNote} note to use
- * @param {string} heading to remove
- * @return {number} lineIndex of the found heading, or if not found the last line of the note
- */
-export function removeSection(note: TNote, heading: string): number {
-  const ps = note.paragraphs ?? []
-  let existingHeadingIndex // undefined
-  // log('paragraph/removeSection', `remove '${heading}' from note '${displayTitle(note)}' with ${ps.length} paras`)
-  let sectionHeadingLevel = 2
-
-  for (const p of ps) {
-    if (p.type === 'title' && p.content.startsWith(heading)) {
-      existingHeadingIndex = p.lineIndex
-      sectionHeadingLevel = p.headingLevel
-    }
-  }
-
-  if (existingHeadingIndex !== undefined && existingHeadingIndex < ps.length) {
-    // Work out the set of paragraphs to remove
-    const psToRemove = []
-    note.removeParagraph(ps[existingHeadingIndex])
-    for (let i = existingHeadingIndex + 1; i < ps.length; i++) {
-      // stop removing when we reach heading of same or higher level
-      if (ps[i].type === 'title' && ps[i].headingLevel <= sectionHeadingLevel) {
-        break
-      }
-      psToRemove.push(ps[i])
-    }
-
-    // Delete the saved set of paragraphs
-    note.removeParagraphs(psToRemove)
-    // log('paragraph/removeSection', `-> removed ${psToRemove.length} paragraphs`)
-    return existingHeadingIndex
-  } else {
-    return ps.length - 1 // end of the file (zero-based line index)
-  }
-}
 
 /**
  * Find a heading/title that matches the string given
