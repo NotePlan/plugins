@@ -7,7 +7,7 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/",
-  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.SearchExtensions/CHANGELOG.md", 
+  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.SearchExtensions/CHANGELOG.md",
   "plugin.version": "0.1.0",
   "plugin.lastUpdateInfo": "",
   "plugin.dependencies": [],
@@ -62,7 +62,9 @@
       "description": "List of folders to exclude in these commands. May be empty. (Note that @Trash, @Templates and @Archive are always excluded.)",
       "type": "[string]",
       "default": [
-        "Summaries", "Saved Searches", "TEST"
+        "Summaries",
+        "Saved Searches",
+        "TEST"
       ],
       "required": false
     },

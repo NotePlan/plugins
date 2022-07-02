@@ -7,7 +7,7 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
-  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Summaries/CHANGELOG.md", 
+  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Summaries/CHANGELOG.md",
   "plugin.version": "0.11.0",
   "plugin.lastUpdateInfo": "moved '/saveSearch' commands to new SearchHelpers plugin",
   "plugin.dependencies": [],
@@ -68,7 +68,8 @@
       "description": "List of folders to exclude in these commands. May be empty. (Note that @Trash, @Templates and @Archive are always excluded.)",
       "type": "[string]",
       "default": [
-        "Summaries", "Saved Searches"
+        "Summaries",
+        "Saved Searches"
       ],
       "required": false
     },

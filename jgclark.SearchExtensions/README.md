@@ -1,5 +1,5 @@
 # 🔎 Search Extensions plugin
-NotePlan can search over your notes, but it is currently not very flexible or easy to use; in particular it's difficult to navigate betwen the search results and any of the actual notes it shows.   This plugin attempts to add some power and usability to searching.  Most things can be configured, but by default the search runs and **saves the results in a note that it opens as a split view** next to where you're working.
+NotePlan can search over your notes, but it is currently not very flexible or easy to use; in particular it's difficult to navigate between the search results and any of the actual notes it shows.   This plugin attempts to add some power and usability to searching.  Most things can be configured, but by default the search runs and **saves the results in a note that it opens as a split view** next to where you're working.
 
 ![demo](demo1.gif)
 
