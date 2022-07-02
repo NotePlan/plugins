@@ -3,7 +3,7 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 1.7.2022 for v0.1.0, @jgclark
+// Last updated 2.7.2022 for v0.1.0, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -14,11 +14,16 @@ import pluginJson from '../plugin.json'
 import {
   getSearchSettings,
   type resultObjectType,
+  runSearches,
+  writeResultsNote,
 } from './searchHelpers'
 import {
   formatNoteDate,
   getDateStringFromCalendarFilename,
-  nowLocaleDateTime,
+  // nowLocaleDateTime,
+  RE_ISO_DATE,
+  RE_YYYYMMDD_DATE,
+  unhyphenateString,
   unhyphenatedDate,
   withinDateRange,
 } from '@helpers/dateTime'
@@ -70,13 +75,22 @@ export async function saveSearchPeriod(
       if (fromDateArg === 'default') {
         fromDate = moment.now().startOf('day').subtract(91, 'days').toJSDate() // 91 days ago
       } else {
-        fromDateStr = fromDateArg
-        // TODO: cope with YYYY-MM-DD as well. See code in Quick Capture?
+        // cope with YYYYMMDD or YYYY-MM-DD formats
+        fromDateStr = fromDateArg.match(RE_ISO_DATE) // for YYYY-MM-DD
+          ? fromDateArg
+          : fromDateArg.match(RE_YYYYMMDD_DATE) // for YYYYMMDD
+            ? unhyphenateString(fromDateArg)
+            : 'error'
       }
       if (fromDateArg === 'default') {
         toDate = moment.now().startOf('day').toJSDate() // today
       } else {
-        toDateStr = toDateArg
+        // cope with YYYYMMDD or YYYY-MM-DD formats
+        toDateStr = toDateArg.match(RE_ISO_DATE) // for YYYY-MM-DD
+          ? toDateArg
+          : toDateArg.match(RE_YYYYMMDD_DATE) // for YYYYMMDD
+            ? unhyphenateString(toDateArg)
+            : 'error'
       }
       periodString = `${fromDateStr} - ${toDateStr}`
     } else {
@@ -180,6 +194,8 @@ export async function saveSearchPeriod(
     // newer search method using search() API available from v3.6.0
     // Strategy: search all calendar notes, and then only select in
     // the notes that match the selected time period.
+    // TODO: Ideally update runSearches/runSearch to be able to be used here
+    // TODO: and then switch to using Promise system
     const startTime = new Date
     let resultCount = 0
     const results: Array<resultObjectType> = []
@@ -190,7 +206,7 @@ export async function saveSearchPeriod(
       const resultParas = await DataStore.search(searchTerm, ['calendar'], undefined, config.foldersToExclude) // search over all notes
       const lines = resultParas
       // output a heading first
-      const thisResultHeading = `${searchTerm} ${config.searchHeading} for ${periodString}${periodPartStr !== '' ? ` (at ${periodPartStr})` : ''}`
+      // const thisResultHeading = `${searchTerm} ${config.searchHeading} for ${periodString}${periodPartStr !== '' ? ` (at ${periodPartStr})` : ''}`
       // outputArray.push(`${headingMarker} '${searchTerm}' ${config.searchHeading} for ${periodString}${periodPartStr !== '' ? ` (at ${periodPartStr})` : ''}`)
       if (lines.length > 0) {
         log(pluginJson, `- Found ${lines.length} results for '${searchTerm}'`)
@@ -241,11 +257,11 @@ export async function saveSearchPeriod(
         outputArray.push('(no matches)')
       }
       // Save this search term and results as a new object in results array
-      results.push({ resultHeading: thisResultHeading, resultLines: outputArray })
+      results.push({ searchTerm: searchTerm, resultLines: outputArray, resultCount: resultCount })
 
     }
     const elapsedTimeAPI = timer(startTime)
-    log(pluginJson, `Search time (API): ${elapsedTimeAPI} -> ${resultCount} results`)
+    log(pluginJson, `Search time (API): ${termsToMatchArr.length} searches in ${elapsedTimeAPI} -> ${resultCount} results`)
 
     const labelString = `🖊 Create/update note '${periodString}' in folder '${String(config.folderToStore)}'`
 
@@ -259,7 +275,7 @@ export async function saveSearchPeriod(
     } else {
       // else ask user
       destination = await chooseOption(
-        `Where should I save the ${resultCount} search results for ${periodString}?`,
+        `Where should I save the search results for ${periodString}?`,
         [
           { label: labelString, value: 'newnote' },
           { label: '🖊 Append/update your current note', value: 'current' },
@@ -284,7 +300,8 @@ export async function saveSearchPeriod(
         } else {
           log(pluginJson, `Will write update/append to current note (${currentNote.filename ?? ''})`)
           for (const r of results) {
-            replaceSection(currentNote, r.resultHeading, r.resultHeading, config.headingLevel, r.resultLines.join('\n'))
+            const thisResultHeading = `${r.searchTerm} (${r.resultCount} results) for ${periodString}${periodPartStr !== '' ? ` (at ${periodPartStr})` : ''}`
+            replaceSection(currentNote, r.searchTerm, thisResultHeading, config.headingLevel, r.resultLines.join('\n'))
           }
         }
         break
@@ -294,47 +311,54 @@ export async function saveSearchPeriod(
         // We will write an overarching heading, as we need an identifying title for the note.
         // As this is likely to be a note just used for this set of search terms, just delete the whole
         // note contents and re-write each search term's block.
+        // Also don't include x-callback link, as
+        //   a) it's hard to work back from start/end dates to the human-friendly period string
+        //   b) over a fixed time period it's unlikely to need updating
 
-        let outputNote: ?TNote
-        let noteFilename = ''
+        // let outputNote: ?TNote
+        // let noteFilename = ''
         const requestedTitle = `${termsToMatchStr} ${config.searchHeading} for ${periodString}${periodPartStr !== '' ? ` (at ${periodPartStr})` : ''}`
-        const xcallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearchResultsInPeriod&arg0=${encodeURIComponent(termsToMatchStr)}&arg1=${fromDateStr}&arg2=${toDateStr}`
-        let fullNoteContent = `# ${requestedTitle}\nat ${nowLocaleDateTime} [Click to refresh these results](${xcallbackLink})`
-        for (const r of results) {
-          fullNoteContent += `\n${headingMarker} ${r.resultHeading}\n${r.resultLines.join('\n')}`
-        }
+        // const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearchResultsInPeriod&arg0=${encodeURIComponent(termsToMatchStr)}&arg1=${fromDateStr}&arg2=${toDateStr}`
 
-        // See if this note has already been created
-        // (look only in active notes, not Archive or Trash)
-        const existingNotes: $ReadOnlyArray<TNote> =
-          DataStore.projectNoteByTitle(requestedTitle, true, false) ?? []
-        log(pluginJson, `found ${existingNotes.length} existing search result notes titled ${periodString}`)
+        const noteFilename = await writeResultsNote(results, requestedTitle, config.folderToStore,
+          config.headingLevel, calledIndirectly, '') //xCallbackLink)
 
-        // const outputText = `at ${nowLocaleDateTime}. [Click to refresh these results](${xcallbackLink})\n${outputArray.join('\n')}`
+        // let fullNoteContent = `# ${requestedTitle}\nat ${nowLocaleDateTime} [Click to refresh these results](${xCallbackLink})`
+        // for (const r of results) {
+        //   fullNoteContent += `\n${headingMarker} ${r.searchTerm} (${r.resultCount} results) ${config.searchHeading} for ${periodString}${periodPartStr !== '' ? ` (at ${periodPartStr})` : ''}\n${r.resultLines.join('\n')}`
+        // }
 
-        if (existingNotes.length > 0) {
-          outputNote = existingNotes[0] // pick the first if more than one
-          // log(pluginJson, `filename of first matching note: ${displayTitle(note)}`)
-          outputNote.content = fullNoteContent
+        // // See if this note has already been created
+        // // (look only in active notes, not Archive or Trash)
+        // const existingNotes: $ReadOnlyArray<TNote> =
+        //   DataStore.projectNoteByTitle(requestedTitle, true, false) ?? []
+        // log(pluginJson, `found ${existingNotes.length} existing search result notes titled ${periodString}`)
 
-        } else {
-          // make a new note for this. NB: filename here = folder + filename
-          // noteFilename = DataStore.newNote(periodString, config.folderToStore) ?? ''
-          noteFilename = DataStore.newNoteWithContent(fullNoteContent, config.folderToStore, requestedTitle)
-          if (!noteFilename) {
-            logError(pluginJson, `Can't create new note (filename: ${noteFilename})`)
-            await showMessage('There was an error creating the new note')
-            return
-          }
-          outputNote = DataStore.projectNoteByFilename(noteFilename)
-          log(pluginJson, `Created new search note with filename: ${noteFilename}`)
-          // if (outputNote == null) {
-          //   logError(pluginJson, `Can't get new note (filename: ${noteFilename})`)
-          //   await showMessage('There was an error getting the new note ready to write')
-          //   return
-          // }
-        }
-        log(pluginJson, `written results to note '${periodString}'`)
+        // // const outputText = `at ${nowLocaleDateTime}. [Click to refresh these results](${xcallbackLink})\n${outputArray.join('\n')}`
+
+        // if (existingNotes.length > 0) {
+        //   outputNote = existingNotes[0] // pick the first if more than one
+        //   // log(pluginJson, `filename of first matching note: ${displayTitle(note)}`)
+        //   outputNote.content = fullNoteContent
+
+        // } else {
+        //   // make a new note for this. NB: filename here = folder + filename
+        //   // noteFilename = DataStore.newNote(periodString, config.folderToStore) ?? ''
+        //   noteFilename = DataStore.newNoteWithContent(fullNoteContent, config.folderToStore, requestedTitle)
+        //   if (!noteFilename) {
+        //     logError(pluginJson, `Can't create new note (filename: ${noteFilename})`)
+        //     await showMessage('There was an error creating the new note')
+        //     return
+        //   }
+        //   outputNote = DataStore.projectNoteByFilename(noteFilename)
+        //   log(pluginJson, `Created new search note with filename: ${noteFilename}`)
+        //   // if (outputNote == null) {
+        //   //   logError(pluginJson, `Can't get new note (filename: ${noteFilename})`)
+        //   //   await showMessage('There was an error getting the new note ready to write')
+        //   //   return
+        //   // }
+        // }
+        // log(pluginJson, `written results to note '${periodString}'`)
 
         // // Do we have an existing Hashtag counts section? If so, delete it.
         // // (Sets place to insert either after the found section heading, or at end of note)
@@ -365,7 +389,7 @@ export async function saveSearchPeriod(
 
       case 'log': {
         for (const r of results) {
-          log(pluginJson, r.resultHeading)
+          log(pluginJson, `${headingMarker} ${r.searchTerm}(${r.resultCount} results)`)
           log(pluginJson, r.resultLines.join('\n'))
         }
         break

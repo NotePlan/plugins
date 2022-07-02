@@ -38,7 +38,8 @@
       "jsFunction": "saveSearchPeriod",
       "arguments": [
         "search term(s) (separated by commas)",
-        "optional number of days to search over (from before today). If not given then defaults to 3 months"
+        "start date to search over (YYYYMMDD or YYYY-MM-DD). If not given, then defaults to 3 months ago",
+        "end date to search over (YYYYMMDD or YYYY-MM-DD). If not given, then defaults to today"
       ]
     }
   ],
