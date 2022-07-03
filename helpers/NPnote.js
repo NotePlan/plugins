@@ -2,15 +2,15 @@
 //-------------------------------------------------------------------------------
 // Note-level Functions that require NP API calls
 
-import { log, logError } from './dev'
+import { log, logError, timer } from './dev'
 import { displayTitle } from './general'
 import { showMessage } from './userInput'
-
+import { checkNoteForPlusDates } from './note.js'
 /**
  * Convert the note to using frontmatter Syntax
  * If optional default text is given, this is added to the frontmatter.
  * @author @jgclark
- * @param {TNote} note 
+ * @param {TNote} note
  * @param {string} defaultText (optional) to add after title in the frontmatter
  */
 export async function convertNoteToFrontmatter(note: TNote, defaultText?: string = ''): Promise<void> {
@@ -28,7 +28,10 @@ export async function convertNoteToFrontmatter(note: TNote, defaultText?: string
   // Get title
   const firstLine = note.paragraphs[0]
   if (firstLine.content === '---') {
-    logError('note/convertToFrontmatter', `'${displayTitle(note)}' appears to already use frontmatter. Stopping conversion.`)
+    logError(
+      'note/convertToFrontmatter',
+      `'${displayTitle(note)}' appears to already use frontmatter. Stopping conversion.`,
+    )
     await showMessage(`Cannot convert '${displayTitle(note)}' as it already appears to use frontmatter.`)
     return
   }
@@ -45,4 +48,38 @@ export async function convertNoteToFrontmatter(note: TNote, defaultText?: string
   note.insertParagraph(`title: ${title}`, 0, 'text')
   note.insertParagraph('---', 0, 'separator')
   log('note/convertToFrontmatter', `Note '${displayTitle(note)}' converted to use frontmatter.`)
+}
+
+/**
+ * Search the DataStore looking for notes with >date+ tags which need to be converted to >today tags going forward
+ * If plusTags are found (today or later), then convert them to >today tags
+ * @param {TNote} note
+ * @param {boolean} openTasksOnly - if true, only find/convert notes with >date+ tags that are open tasks
+ * @param {Array<string>} foldersToIgnore (e.g. tests/templates)
+ * @author @dwertheimer
+ */
+export function findAndUpdateDatePlusTags(openOnly: boolean = true, foldersToIgnore: ?Array<string> = []): void {
+  const start = new Date()
+  let notesWithDates = [...DataStore.projectNotes, ...DataStore.calendarNotes].filter((n) => n?.datedTodos?.length > 0)
+  if (foldersToIgnore) {
+    notesWithDates = notesWithDates.filter((note) =>
+      foldersToIgnore.every((skipFolder) => !note.filename.includes(`${skipFolder}/`)),
+    )
+  }
+  log(`NPNote::findAndUpdateDatePlusTags`, `total notesWithDates: ${notesWithDates.length}`)
+  let updatedParas = []
+  notesWithDates.forEach((note) => {
+    if (note) {
+      const updates = checkNoteForPlusDates(note, openOnly)
+      if (updates.length > 0) {
+        updatedParas = updatedParas.concat(updates)
+        note?.updateParagraphs(updatedParas)
+        log(
+          `NPNote::findAndUpdateDatePlusTags`,
+          `Updated ${updates.length} todos in note "${note.filename || ''}" ("${note.title || ''}")`,
+        )
+      }
+    }
+  })
+  log(`NPNote::findAndUpdateDatePlusTags`, `Total checkNoteForPlusDates scan took: ${timer(start)}`)
 }
