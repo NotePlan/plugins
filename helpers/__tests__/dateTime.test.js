@@ -360,9 +360,6 @@ describe(`${PLUGIN_NAME}`, () => {
       test('test date1 style at', () => {
         expect(dt.formatNoteDate(date1, 'at')).toEqual('@2022-12-31')
       })
-      test('test date1 style date', () => {
-        expect(dt.formatNoteDate(date1, 'date')).toEqual('31/12/2022')
-      })
       test('test date1 style scheduled', () => {
         expect(dt.formatNoteDate(date1, 'scheduled')).toEqual('>2022-12-31')
       })
@@ -372,14 +369,19 @@ describe(`${PLUGIN_NAME}`, () => {
       test('test date1 style at', () => {
         expect(dt.formatNoteDate(date2, 'at')).toEqual('@2023-01-01')
       })
-      test('test date1 style date', () => {
-        expect(dt.formatNoteDate(date2, 'date')).toEqual('01/01/2023')
-      })
       test('test date1 style scheduled', () => {
         expect(dt.formatNoteDate(date2, 'scheduled')).toEqual('>2023-01-01')
       })
       test('test date1 style link', () => {
         expect(dt.formatNoteDate(date2, 'link')).toEqual('[[2023-01-01]]')
+      })
+      // The remaining tests are dependent on user's locale. 
+      // TODO: find a way to control this in the tests
+      test('test date1 style date', () => {
+        expect(dt.formatNoteDate(date1, 'date')).toEqual('31/12/2022')
+      })
+      test('test date1 style date', () => {
+        expect(dt.formatNoteDate(date2, 'date')).toEqual('01/01/2023')
       })
     })
   })
