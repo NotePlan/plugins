@@ -3,12 +3,14 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 2.7.2022 for v0.1.0, @jgclark
+// Last updated 3.7.2022 for v0.1.1, @jgclark
 //-----------------------------------------------------------------------------
-/** FIXME(Eduard): 
- * the search API appears to return hits on notes in 'Saved Search'
- * even when that folder is on the exclusion list.
+/** 
+ * FIXME(Eduard): 
+ * - the search API appears to return hits on notes in 'Saved Search' even when that folder is on the exclusion list
+ * - search over type ['notes']
  */
+
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -18,23 +20,8 @@ import {
   writeResultsNote,
   runSearches,
 } from './searchHelpers'
-import {
-  // formatNoteDate,
-  // hyphenatedDateString,
-  // nowLocaleDateTime,
-} from '@helpers/dateTime'
 import { log, logWarn, logError, timer } from '@helpers/dev'
-import {
-  // displayTitle,
-  // titleAsLink
-} from '@helpers/general'
 import { replaceSection } from '@helpers/note'
-// import { gatherMatchingLines } from '@helpers/NPParagraph'
-// import {
-//   isTermInMarkdownPath,
-//   isTermInURL,
-// } from '@helpers/paragraph'
-// import { trimAndHighlightTermInLine } from '@helpers/search'
 import {
   chooseOption,
   getInput,
@@ -43,14 +30,29 @@ import {
 
 //-------------------------------------------------------------------------------
 
+export async function saveSearchOverNotes(searchTermsArg?: string): Promise<void> {
+  // Call the main function, but requesting only Project notes be searched.
+  await saveSearch(['notes'], searchTermsArg ?? undefined)
+}
+
+export async function saveSearchOverAll(searchTermsArg?: string): Promise<void> {
+  // Call the main function, but requesting only Project notes be searched.
+  await saveSearch(['notes', 'calendar'], searchTermsArg ?? undefined)
+}
+
+
 /**
  * Run a search over all notes, saving the results in one of several locations.
  * Works interactively (if no arguments given) or in the background (using supplied arguments).
  * @author @jgclark
  * 
+ * @param {Array<string>} noteTypesToInclude array defined by DataStore.search() command: curretnly 'project','calendar' or both
  * @param {string?} searchTermsArg optional comma-separated list of search terms to search
  */
-export async function saveSearch(searchTermsArg?: string): Promise<void> {
+export async function saveSearch(
+  noteTypesToInclude: Array<string>,
+  searchTermsArg?: string,
+): Promise<void> {
   try {
     // get relevant settings
     const config = await getSearchSettings()
@@ -69,7 +71,7 @@ export async function saveSearch(searchTermsArg?: string): Promise<void> {
     else {
       // or by asking user
       termsToMatchArr = Array.from(config.defaultSearchTerms)
-      const newTerms = await getInput(`Enter search term (or comma-separated set of terms)`, 'OK', `Search`, termsToMatchArr.join(', '))
+      const newTerms = await getInput(`Enter search term (or terms separated by OR or commas). (Searches are not case sensitive.)`, 'OK', `Search`, termsToMatchArr.join(', '))
       if (typeof newTerms === 'boolean') {
         // i.e. user has cancelled
         log(pluginJson, `User has cancelled operation.`)
@@ -82,7 +84,7 @@ export async function saveSearch(searchTermsArg?: string): Promise<void> {
     // Weed out any too-short search terms
     const filteredTermsToMatchArr = termsToMatchArr.filter((t) => t.length > 2)
     const termsToMatchStr = String(filteredTermsToMatchArr)
-    log(pluginJson, `Search terms: ${termsToMatchStr} over all notes (except in folders ${config.foldersToExclude.join(', ')})`)
+    log(pluginJson, `Search terms: ${termsToMatchStr} over note types [${noteTypesToInclude.join(', ')}] (except in folders ${config.foldersToExclude.join(', ')})`)
     if (filteredTermsToMatchArr.length < termsToMatchArr.length) {
       logWarn(pluginJson, `Note: some search terms were removed because they were less than 3 characters long.`)
       await showMessage(`Some search terms were removed as they were less than 3 characters long.`)
@@ -112,7 +114,7 @@ export async function saveSearch(searchTermsArg?: string): Promise<void> {
     // for (const untrimmedSearchTerm of termsToMatchArr) {
       // search over all notes, apart from specified folders
       // const searchTerm = untrimmedSearchTerm.trim()
-    const resultsProm = runSearches(termsToMatchArr, ['notes', 'calendar'], [], config.foldersToExclude, config)
+    const resultsProm = runSearches(termsToMatchArr, noteTypesToInclude, [], config.foldersToExclude, config)
       // const resultObject: resultObjectType = await runSearch(searchTerm, ['calendar', 'notes'], [], config.foldersToExclude, config)
       
       // Save this search term and results as a new object in results array

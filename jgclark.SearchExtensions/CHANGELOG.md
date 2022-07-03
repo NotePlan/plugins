@@ -4,6 +4,12 @@
 - searches now run over Weekly Notes as well (now the underlying API has been extended)
 -->
 
+## [0.1.1] - 2022-07-03
+Mostly to help track down apparent inconsistency in the API.
+### Added
+- added /saveSearchOverNotes command
+- added /saveSearchOverCalendar command
+
 ## [0.1.0] - 2022-07-02
 First release, with commands from earlier Summaries plugin.
 ### Changes

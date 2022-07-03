@@ -1,5 +1,5 @@
 {
-  "noteplan.minAppVersion": "3.3.2",
+  "noteplan.minAppVersion": "3.6.0",
   "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.SearchExtensions",
   "plugin.name": "🔎 Search Extensions",
@@ -8,33 +8,61 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.SearchExtensions/CHANGELOG.md",
-  "plugin.version": "0.1.0",
-  "plugin.lastUpdateInfo": "",
+  "plugin.version": "0.1.1",
+  "plugin.lastUpdateInfo": "Add /saveSearchOverNotes and /saveSearchOverCalendar commands",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
   "plugin.commands": [
     {
-      "name": "saveSearchResults",
+      "name": "saveSearch",
       "alias": [
-        "period",
-        "search",
-        "occurrence"
+        "save",
+        "search"
       ],
       "description": "Save results from a search over all notes",
-      "jsFunction": "saveSearch",
+      "jsFunction": "saveSearchOverAll",
       "arguments": [
         "search term(s) (separated by commas)"
       ]
     },
     {
-      "name": "saveSearchResultsInPeriod",
+      "name": "saveSearchOverNotes",
+      "alias": [
+        "save",
+        "search"
+      ],
+      "description": "Save results from a search over all project notes",
+      "jsFunction": "saveSearchOverNotes",
+      "arguments": [
+        "search term(s) (separated by commas)"
+      ]
+    },
+    {
+      "name": "saveSearchInPeriod",
+      "alias": [
+        "calendar",
+        "search",
+        "daily",
+        "weekly"
+      ],
+      "description": "Save results from a search of specified tags or mentions over Calendar notes from a time period",
+      "jsFunction": "saveSearchPeriod",
+      "arguments": [
+        "search term(s) (separated by commas)",
+        "start date to search over (YYYYMMDD or YYYY-MM-DD). If not given, then defaults to 3 months ago",
+        "end date to search over (YYYYMMDD or YYYY-MM-DD). If not given, then defaults to today"
+      ]
+    },
+    {
+      "name": "saveSearchOverCalendar",
       "alias": [
         "period",
-        "summary",
-        "occurrence"
+        "search",
+        "daily",
+        "weekly"
       ],
-      "description": "Save results from a search of specified tags or mentions over notes from a time period",
+      "description": "Save results from a search of specified tags or mentions over Calendar notes from a time period",
       "jsFunction": "saveSearchPeriod",
       "arguments": [
         "search term(s) (separated by commas)",
@@ -121,6 +149,8 @@
       "required": true
     },
     {
+      "hidden": true,
+      "todo": "TODO: hopefully change this in time",
       "key": "matchCase",
       "title": "Match case when searching?",
       "description": "Do searches match case (capitalisation) or not?",
