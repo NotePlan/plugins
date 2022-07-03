@@ -6,10 +6,8 @@ import { log, logError } from './dev'
 import { getFolderFromFilename } from './folders'
 import { findEndOfActivePartOfNote } from './paragraph'
 import { showMessage } from './userInput'
-import {
-  displayTitle,
-  type headingLevelType
-} from './general'
+import { displayTitle, type headingLevelType } from './general'
+import { hyphenatedDateString } from '@helpers/dateTime'
 
 /**
  * Print summary of note details to log
@@ -23,16 +21,22 @@ export function printNote(note: TNote): void {
   }
 
   if (note.type === 'Notes') {
-    log('printNote()',
-      `title: ${note.title ?? ''}\n\tfilename: ${note.filename ?? ''}\n\tcreated: ${String(note.createdDate) ?? ''}\n\tchanged: ${String(note.changedDate) ?? ''}\n\tparagraphs: ${note.paragraphs.length}\n\thashtags: ${
+    log(
+      'printNote()',
+      `title: ${note.title ?? ''}\n\tfilename: ${note.filename ?? ''}\n\tcreated: ${
+        String(note.createdDate) ?? ''
+      }\n\tchanged: ${String(note.changedDate) ?? ''}\n\tparagraphs: ${note.paragraphs.length}\n\thashtags: ${
         note.hashtags?.join(',') ?? ''
       }\n\tmentions: ${note.mentions?.join(',') ?? ''}`,
     )
   } else {
-    log('printNote()',
-      `filename: ${note.filename ?? ''}\n\tcreated: ${String(note.createdDate) ?? ''}\n\tchanged: ${String(note.changedDate) ?? ''}\n\tparagraphs: ${note.paragraphs.length}\n\thashtags: ${
-        note.hashtags?.join(',') ?? ''
-      }\n\tmentions: ${note.mentions?.join(',') ?? ''}`,
+    log(
+      'printNote()',
+      `filename: ${note.filename ?? ''}\n\tcreated: ${String(note.createdDate) ?? ''}\n\tchanged: ${
+        String(note.changedDate) ?? ''
+      }\n\tparagraphs: ${note.paragraphs.length}\n\thashtags: ${note.hashtags?.join(',') ?? ''}\n\tmentions: ${
+        note.mentions?.join(',') ?? ''
+      }`,
     )
   }
 }
@@ -47,17 +51,30 @@ export function printNote(note: TNote): void {
  * @param {boolean} useProjNoteByFilename (default: true)
  * @returns {any} - the note that was opened
  */
-export async function noteOpener(fullPath: string,
+export async function noteOpener(
+  fullPath: string,
   desc: string,
-  useProjNoteByFilename: boolean = true
+  useProjNoteByFilename: boolean = true,
 ): Promise<?TNote> {
-  log('noteOpener()', `  About to open filename: "${fullPath}" (${desc}) using ${useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename'}`)
-  const newNote = useProjNoteByFilename ? await DataStore.projectNoteByFilename(fullPath) : await DataStore.noteByFilename(fullPath, 'Notes')
+  log(
+    'noteOpener()',
+    `  About to open filename: "${fullPath}" (${desc}) using ${
+      useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename'
+    }`,
+  )
+  const newNote = useProjNoteByFilename
+    ? await DataStore.projectNoteByFilename(fullPath)
+    : await DataStore.noteByFilename(fullPath, 'Notes')
   if (newNote != null) {
     log('noteOpener()', `    Opened ${fullPath} (${desc} version) `)
     return newNote
   } else {
-    log('noteOpener()', `    Didn't work! ${useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename'} returned ${(newNote: any)}`)
+    log(
+      'noteOpener()',
+      `    Didn't work! ${
+        useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename'
+      } returned ${(newNote: any)}`,
+    )
   }
 }
 
@@ -73,7 +90,10 @@ export async function getOrMakeNote(noteTitle: string, noteFolder: string): Prom
   // first see if this note has already been created (ignoring Archive and Trash)
   const potentialNotes: $ReadOnlyArray<TNote> = DataStore.projectNoteByTitle(noteTitle, true, false) ?? []
   log('getOrMakeNote()', `  found ${potentialNotes.length} existing '${noteTitle}' note(s)`)
-  const existingNotes = potentialNotes && noteFolder !== '/' ? potentialNotes.filter((n) => n.filename.startsWith(noteFolder)) : potentialNotes
+  const existingNotes =
+    potentialNotes && noteFolder !== '/'
+      ? potentialNotes.filter((n) => n.filename.startsWith(noteFolder))
+      : potentialNotes
 
   if (existingNotes.length > 0) {
     log('getOrMakeNote()', `  found ${existingNotes.length} notes. [0] = ${existingNotes[0].filename}`)
@@ -109,9 +129,10 @@ export async function getOrMakeNote(noteTitle: string, noteFolder: string): Prom
  * @param {?boolean} includeSubfolders - if folder given, whether to look in subfolders of this folder or not (optional, defaults to false)
  * @return {Array<TNote>}
  */
-export function findNotesMatchingHashtags(tag: string,
+export function findNotesMatchingHashtags(
+  tag: string,
   folder: ?string,
-  includeSubfolders: ?boolean = false
+  includeSubfolders: ?boolean = false,
 ): Array<TNote> {
   let projectNotesInFolder: Array<TNote>
   // If folder given (not empty) then filter using it
@@ -129,8 +150,12 @@ export function findNotesMatchingHashtags(tag: string,
     projectNotesInFolder = DataStore.projectNotes.slice()
   }
   // Filter by tag (if one has been given)
-  const projectNotesWithTag = tag !== '' ? projectNotesInFolder.filter((n) => n.hashtags.includes(tag)) : projectNotesInFolder
-  log('findNotesMatchingHashtags', `In folder '${folder ?? '<all>'}' found ${projectNotesWithTag.length} notes matching '${tag}'`)
+  const projectNotesWithTag =
+    tag !== '' ? projectNotesInFolder.filter((n) => n.hashtags.includes(tag)) : projectNotesInFolder
+  log(
+    'findNotesMatchingHashtags',
+    `In folder '${folder ?? '<all>'}' found ${projectNotesWithTag.length} notes matching '${tag}'`,
+  )
   return projectNotesWithTag
 }
 
@@ -171,7 +196,9 @@ export function notesInFolderSortedByTitle(folder: string): Array<TNote> {
     notesInFolder = DataStore.projectNotes.slice()
   }
   // Sort alphabetically on note's title
-  const notesSortedByTitle = notesInFolder.sort((first, second) => (first.title ?? '').localeCompare(second.title ?? ''))
+  const notesSortedByTitle = notesInFolder.sort((first, second) =>
+    (first.title ?? '').localeCompare(second.title ?? ''),
+  )
   return notesSortedByTitle
 }
 
@@ -223,7 +250,7 @@ export function calendarNotesSortedByChanged(): Array<TNote> {
  *
  * @return {Array<TNote>} - list of notes
  */
-export const RE_WEEKLY_NOTE_FILENAME = "\\/?\\d{4}-W\\d{2}\\."
+export const RE_WEEKLY_NOTE_FILENAME = '\\/?\\d{4}-W\\d{2}\\.'
 export function weeklyNotesSortedByChanged(): Array<TNote> {
   const weeklyNotes = DataStore.calendarNotes.slice().filter((f) => f.filename.match(RE_WEEKLY_NOTE_FILENAME))
   return weeklyNotes.sort((first, second) => second.changedDate - first.changedDate)
@@ -287,29 +314,27 @@ export const clearNote = (note: TNote) => {
  * @param {number} newSectionHeadingLevel
  * @param {string} newSectionContent
  */
-export function replaceSection(note: TNote,
+export function replaceSection(
+  note: TNote,
   headingOfSectionToReplace: string,
   newSectionHeading: string,
   sectionHeadingLevel: headingLevelType,
-  newSectionContent: string
+  newSectionContent: string,
 ): void {
-  log('note/replaceSection', `in note '${displayTitle(note)}' will remove '${headingOfSectionToReplace}' -> '${newSectionHeading}' level ${sectionHeadingLevel}`)
+  log(
+    'note/replaceSection',
+    `in note '${displayTitle(
+      note,
+    )}' will remove '${headingOfSectionToReplace}' -> '${newSectionHeading}' level ${sectionHeadingLevel}`,
+  )
   // First remove existing heading (the start of the heading text will probably be right, but the end will probably need to be changed)
   const insertionLineIndex = removeSection(note, headingOfSectionToReplace)
   // log('note/replaceSection', `  insertionLineIndex = ${insertionLineIndex}`)
 
   // Set place to insert either after the found section heading, or at end of note
   // write in reverse order to avoid having to calculate insertion point again
-  note.insertHeading(
-    newSectionHeading,
-    insertionLineIndex,
-    sectionHeadingLevel,
-  )
-  note.insertParagraph(
-    newSectionContent,
-    insertionLineIndex + 1,
-    'text',
-  )
+  note.insertHeading(newSectionHeading, insertionLineIndex, sectionHeadingLevel)
+  note.insertParagraph(newSectionContent, insertionLineIndex + 1, 'text')
 }
 
 /**
@@ -327,7 +352,10 @@ export function replaceSection(note: TNote,
  */
 export function removeSection(note: TNote, headingOfSectionToRemove: string): number {
   const paras = note.paragraphs ?? []
-  log('note/removeSection', `Trying to remove '${headingOfSectionToRemove}' from note '${displayTitle(note)}' with ${paras.length} paras`)
+  log(
+    'note/removeSection',
+    `Trying to remove '${headingOfSectionToRemove}' from note '${displayTitle(note)}' with ${paras.length} paras`,
+  )
 
   const endOfActive = findEndOfActivePartOfNote(note)
   let matchedHeadingIndex // undefined
@@ -356,7 +384,10 @@ export function removeSection(note: TNote, headingOfSectionToRemove: string): nu
 
     // Delete the saved set of paragraphs
     note.removeParagraphs(parasToRemove)
-    log('note/removeSection', `-> removed section '${headingOfSectionToRemove}': total  ${parasToRemove.length} paragraphs. Returning line ${matchedHeadingIndex}`)
+    log(
+      'note/removeSection',
+      `-> removed section '${headingOfSectionToRemove}': total  ${parasToRemove.length} paragraphs. Returning line ${matchedHeadingIndex}`,
+    )
 
     // Return line index of found headingOfSectionToRemove
     return matchedHeadingIndex
@@ -364,4 +395,35 @@ export function removeSection(note: TNote, headingOfSectionToRemove: string): nu
     log('note/removeSection', `-> heading not found; setting end of active part of file instead (line ${endOfActive}).`)
     return endOfActive // end of the active part of the file (zero-based line index)
   }
+}
+
+/**
+ * Scan a Note looking for items which have >date+ tags and return the list of updated paragraphs that are today or later
+ * Typically called and followed by a call which calls updateParagraphs() to update those paragraphs
+ * @author @dwertheimer
+ * @param {TNote} note
+ * @returns {Array<TParagraph>} list of paragraphs with updated content
+ */
+export function checkNoteForPlusDates(note: TNote, openOnly: boolean = true): Array<TParagraph> {
+  const RE_PLUS_DATE = />(\d{4}-\d{2}-\d{2})(\+)+/
+  const todayHyphenated = hyphenatedDateString(new Date())
+  const updatedParas = []
+  const datedOpenTodos = openOnly ? note?.datedTodos?.filter((t) => t.type === 'open') || [] : note?.datedTodos || []
+  datedOpenTodos.forEach((todo) => {
+    const datePlus = todo?.content?.match(RE_PLUS_DATE)
+    if (datePlus?.length === 3) {
+      const [fullDate, isoDate, operator] = datePlus
+      // log(`note.js::checkNoteForPlusDates`, `fullDate: ${fullDate} isoDate: ${isoDate} todayHyph: ${todayHyphenated} operator: ${operator}`)
+      if (todayHyphenated >= isoDate && operator === '+') {
+        log(
+          `note.js::checkNoteForPlusDates`,
+          `type: ${todo.type} fullDate: ${fullDate} isoDate: ${isoDate} operator: ${operator}`,
+        )
+        todo.content = todo.content.replace(fullDate, `>today`)
+        // log(`note.js::checkNoteForPlusDates`, `plus date found: ${fullDate} | New content: ${todo.content}`)
+        updatedParas.push(todo)
+      }
+    }
+  })
+  return updatedParas
 }
