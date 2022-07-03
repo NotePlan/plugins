@@ -767,7 +767,7 @@ async function writeNoteContents(
   renderedTemplate: string,
   writeUnderHeading: string,
   location: string,
-  options: any = { shouldOpenInEditor: false, createMissingHeading: false },
+  options?: any = { shouldOpenInEditor: false, createMissingHeading: false },
 ): Promise<void> {
   if (note) {
     if (note.content.indexOf(`${writeUnderHeading}\n`) !== -1 || options.createMissingHeading) {
@@ -838,14 +838,14 @@ export async function templateFileByTitle(selectedTemplate?: string = '', openIn
           } else {
             note = DataStore.calendarNoteByDate(new Date())
             if (note) {
-              await writeNoteContents(note, renderedTemplate, writeUnderHeading, location, { shouldOpenInEditor: false })
+              await writeNoteContents(note, renderedTemplate, writeUnderHeading, location)
             }
           }
         } else {
           // use current note
           if (noteTitle === '<current>') {
             if (Editor.type === 'Notes' || Editor.type === 'Calendar') {
-              await writeNoteContents(Editor.note, renderedTemplate, writeUnderHeading, location, { shouldOpenInEditor: false, createMissingHeading: true })
+              await writeNoteContents(Editor.note, renderedTemplate, writeUnderHeading, location)
             } else {
               await CommandBar.prompt('You must have either Project Note or Calendar Note open when using "<current>".', '')
             }
@@ -889,24 +889,32 @@ export async function templateFileByTitle(selectedTemplate?: string = '', openIn
  */
 export async function templateGetXcallbackForTemplate(): Promise<void> {
   try {
+    if (!Editor?.filename?.includes('@Templates')) {
+      await CommandBar.prompt('Invalid Template', 'Please open template you wish to execute for x-callback execution\n\n' + helpInfo('Getting x-callback'))
+      return
+    }
+
     let message = `Enter any variables and values you want to pass to the template in key=value pairs:\n\n myTemplateVar=value,otherVar=value2\n\n (where "myTemplateVar" and "otherVar" are the name of variables you use in your template. Multiple variables are separated by commas)`
     let result = await getInputTrimmed(message, 'OK', 'Template Variables to Pass')
-    const args = [Editor.filename || '', String(result)]
-    let link = createRunPluginCallbackUrl(pluginJson['plugin.id'], `np:tr`, args)
-    message = `Would you like the link for pasting inside NotePlan or a raw URL?`
-    result = await CommandBar.prompt('Link Type', message, ['NotePlan Link', 'Raw URL'])
-    if (result === 0) {
-      message = `What text would you like to display for this link?`
-      const linkText = await getInputTrimmed(message, 'Link Text', 'Link Text')
-      if (typeof linkText === 'string') {
-        link = `[${linkText}](${link})`
+    if (result) {
+      const args = [Editor.filename || '', String(result)]
+      let link = createRunPluginCallbackUrl(pluginJson['plugin.id'], `np:tr`, args)
+      message = `Would you like the link for pasting inside NotePlan or a raw URL?`
+      result = await CommandBar.prompt('Link Type', message, ['NotePlan Link', 'Raw URL'])
+
+      if (result === 0) {
+        message = `What text would you like to display for this link?`
+        const linkText = await getInputTrimmed(message, 'Link Text', 'Link Text')
+        if (typeof linkText === 'string') {
+          link = `[${linkText}](${link})`
+        }
       }
-    }
-    Clipboard.string = String(link)
-    message = 'Link has been copied to clipboard. Would you like to insert at cursor?'
-    result = await CommandBar.prompt('Paste at cursor?', message, ['Paste at Cursor', 'No'])
-    if (result === 0) {
-      Editor.insertTextAtCursor(link)
+      Clipboard.string = String(link)
+      message = 'Link has been copied to clipboard. Would you like to insert at cursor?'
+      result = await CommandBar.prompt('Paste at cursor?', message, ['Yes', 'No'])
+      if (result === 0) {
+        Editor.insertTextAtCursor(link)
+      }
     }
   } catch (error) {
     logError(pluginJson, error)

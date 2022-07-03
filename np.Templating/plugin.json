@@ -177,8 +177,11 @@
       "jsFunction": "templateRunner"
     },
     {
-      "name": "np:gx",
-      "alias": [],
+      "name": "np:xcb",
+      "alias": [
+        "np:gx",
+        "npx"
+      ],
       "description": "Get an x-callback URL that invokes this template",
       "jsFunction": "templateGetXcallbackForTemplate"
     }

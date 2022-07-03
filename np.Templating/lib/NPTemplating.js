@@ -845,6 +845,10 @@ export default class NPTemplating {
         newTemplateData = newTemplateData.replace(tag, tempTag)
       }
 
+      if (tag.toLowerCase().includes(':return:') || tag.toLowerCase().includes(':cr:')) {
+        newTemplateData = newTemplateData.replace(tag, '')
+      }
+
       const getType = (value: any) => {
         if (value.includes('[')) {
           return 'array'

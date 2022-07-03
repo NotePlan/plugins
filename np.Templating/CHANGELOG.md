@@ -3,7 +3,7 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
-## [2.0.0-alpha.01] - 2022-06-05 .. 2022-06-26 (mikeerickson)
+## [2.0.0-alpha.01] - 2022-06-05 .. 2022-07-05 (mikeerickson)
 
 - added template code block execution
 - added `import` statement for importing any type of helper modules
@@ -19,6 +19,7 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/
 - added `clo` helper which can be used to help debug more complex templates
 - added `calendar` module placeholder (more coming in the future but didn't want to lose signt )
 - `getTemplateList` will now filter out any templates which have `type = ignore` (@dwertheimer)
+- added `np:gx` command to build x-callback for current template
 
 ## [1.2.0] - 2022-06-04 (mikeerickson)
 
