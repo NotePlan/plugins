@@ -151,7 +151,7 @@ export async function insertItemsIntoNote(
     if (shouldFold && heading !== '') {
       const thePara = note.paragraphs.find((p) => p.type === 'title' && p.content.includes(heading))
       if (thePara) {
-        log(pluginJson, `insertItemsIntoNote: folding "${heading}"`)
+        log(pluginJson, `insertItemsIntoNote: folding "${heading}" - isFolded=${Editor.isFolded(thePara)}`)
         // $FlowIgnore[method-unbinding] - the function is not being removed from the Editor object.
         if (Editor.isFolded) {
           // make sure this command exists
