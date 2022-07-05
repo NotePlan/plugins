@@ -2,7 +2,11 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions).)
 <!-- 
 - searches now run over Weekly Notes as well (now the underlying API has been extended)
+- ??? sort ordering?
 -->
+## [0.1.2] - 2022-07-03
+### Fixed
+- fixed problem with /saveSearchOverNotes command
 
 ## [0.1.1] - 2022-07-03
 Mostly to help track down apparent inconsistency in the API.

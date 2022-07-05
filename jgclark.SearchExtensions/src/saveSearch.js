@@ -3,12 +3,11 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 3.7.2022 for v0.1.1, @jgclark
+// Last updated 5.7.2022 for v0.1.2, @jgclark
 //-----------------------------------------------------------------------------
 /** 
  * FIXME(Eduard): 
  * - the search API appears to return hits on notes in 'Saved Search' even when that folder is on the exclusion list
- * - search over type ['notes']
  */
 
 //-----------------------------------------------------------------------------
@@ -16,11 +15,11 @@
 import pluginJson from '../plugin.json'
 import {
   getSearchSettings,
-  type resultObjectType,
+  // type resultObjectType,
   writeResultsNote,
   runSearches,
 } from './searchHelpers'
-import { log, logWarn, logError, timer } from '@helpers/dev'
+import { log, logWarn, logError } from '@helpers/dev'
 import { replaceSection } from '@helpers/note'
 import {
   chooseOption,
@@ -104,8 +103,8 @@ export async function saveSearch(
 
     //---------------------------------------------------------
     // Search using search() API available from v3.6.0
-    let results: Array<resultObjectType> = []
-    let resultCount = 0
+    // let results: Array<resultObjectType> = []
+    // let resultCount = 0
 
     // const startTime = new Date
     // CommandBar.showLoading(true, `Running search for ${String(termsToMatchArr)} ...`)
@@ -114,7 +113,7 @@ export async function saveSearch(
     // for (const untrimmedSearchTerm of termsToMatchArr) {
       // search over all notes, apart from specified folders
       // const searchTerm = untrimmedSearchTerm.trim()
-    const resultsProm = runSearches(termsToMatchArr, noteTypesToInclude, [], config.foldersToExclude, config)
+    const resultsProm = runSearches(termsToMatchArr, noteTypesToInclude, null, config.foldersToExclude, config)
       // const resultObject: resultObjectType = await runSearch(searchTerm, ['calendar', 'notes'], [], config.foldersToExclude, config)
       
       // Save this search term and results as a new object in results array
