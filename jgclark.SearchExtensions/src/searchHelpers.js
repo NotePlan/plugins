@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Search Extensions helpers
 // Jonathan Clark
-// Last updated 5.7.2022 for v0.1.2 by @jgclark
+// Last updated 5.7.2022 for v0.2.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -11,7 +11,7 @@ import {
   nowLocaleDateTime,
   toISOShortDateTimeString,
 } from '@helpers/dateTime'
-import { log, logError, timer } from '@helpers/dev'
+import { copyObject, log, logError, timer } from '@helpers/dev'
 import {
   displayTitle,
   type headingLevelType,
@@ -45,6 +45,7 @@ export type SearchConfig = {
   defaultSearchTerms: Array<string>,
   searchHeading: string,
   groupResultsByNote: boolean,
+  sortOrder: string,
   resultPrefix: string,
   resultQuoteLength: number,
   highlightResults: boolean,
@@ -189,22 +190,38 @@ export async function runSearch(
     if (resultParas.length > 0) {
       log(pluginJson, `- Found ${resultParas.length} results for '${searchTerm}'`)
 
-      // TODO: sort the results by changedDate (most recent first)
-      // sortListBy(sortedLines, ['-changedDate']) doesn't work,
-      // nor does sortListBy(sortedLines, ['-.note.changedDate'])
-      // FIXME:
-      // const sortedLines = resultParas.slice().sort(sortByChangedDate)
-      const sortedLines = resultParas.slice().sort(sortByTitle)
-      // const sortedLines = resultParas.slice() // straight copy at the moment
+      // Sort the results by the user-selected sort order
+      // @dwertheimer has worked out that a copy of objects returned from the API don't work as normal.
+      // So he wrote the copyObject() function to help.
+      // His sortListBy() function only works with elements at the top level of the object, so in order to
+      // to access p.note.changedDate etc. we need to create a special new object which is what this odes:
+      const resultParasWithNoteFields = resultParas
+        .map(p => ({
+          ...copyObject(p),
+          ...{ changedDate: p.note?.changedDate },
+          ...{ createdDate: p.note?.createdDate },
+          ...{ title: displayTitle(p.note) }
+        }))
+      const sortMap = new Map([
+        ['alphabetical', 'title'],
+        ['updated (most recent first)', '-changedDate'],
+        ['updated (least recent first)', 'changedDate'],
+        ['created (newest first)', '-createdDate'],
+        ['created (oldest first)', 'createdDate'],
+      ])
+      const sortKey = sortMap.get(config.sortOrder) ?? 'title' // get value, falling back to 'title'
+      log(pluginJson, `- Will use sortKey: ${sortKey} from ${config.sortOrder}`)
+      const sortedLines = sortListBy(resultParasWithNoteFields.slice(), [sortKey])
 
       // form the output
       let previousNoteTitle = ''
       for (let i = 0; i < sortedLines.length; i++) {
         // log the info on the paras
+        // $FlowFixMe[incompatible-type]
         const thisLine: TParagraph = sortedLines[i]
         // $FlowFixMe[incompatible-type]
         const thisNote: TNote = thisLine.note
-        console.log(`- ${displayTitle(thisNote)}\t${toISOShortDateTimeString(thisNote.changedDate)}\t${toISOShortDateTimeString(thisNote.createdDate)}`)
+        // console.log(`- ${displayTitle(thisNote)}\t${toISOShortDateTimeString(thisNote.changedDate)}\t${toISOShortDateTimeString(thisNote.createdDate)}`)
 
         let matchLine = thisLine.content
         const thisNoteTitleDisplay = (thisNote.date != null)

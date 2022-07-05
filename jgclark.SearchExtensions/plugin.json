@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.SearchExtensions/CHANGELOG.md",
-  "plugin.version": "0.1.2",
-  "plugin.lastUpdateInfo": "Fix problem in /saveSearchOverNotes",
+  "plugin.version": "0.2.0",
+  "plugin.lastUpdateInfo": "Results can be sorted using new 'Sort Order' setting.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -130,6 +130,21 @@
       "description": "This controls how results are displayed. If true, matches found within the same note are grouped together. If false, every match is shown with a note link at the end of the match.",
       "type": "bool",
       "default": true,
+      "required": true
+    },
+    {
+      "key": "sortOrder",
+      "title": "Sort order for results",
+      "description": "This controls the order that the results are displayed. Please choose from one of the options.",
+      "type": "string",
+      "choices": [
+        "alphabetical",
+        "created (newest first)",
+        "created (oldest first)",
+        "updated (most recent first)",
+        "updated (least recent first)"
+      ],
+      "default": "updated (most recent first)",
       "required": true
     },
     {

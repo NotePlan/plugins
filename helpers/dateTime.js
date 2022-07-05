@@ -76,7 +76,7 @@ export function hyphenatedDate(date: Date): string {
 }
 
 export function toISOShortDateTimeString(dateObj: Date): string {
-  return dateObj.toISOString().slice(0, 16)
+  return dateObj !== undefined ? dateObj.toISOString().slice(0, 16) : 'undefined'
 }
 
 export function toLocaleDateTimeString(dateObj: Date, locale: string | Array<string> =
