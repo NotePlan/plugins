@@ -1,9 +1,15 @@
-# dwertheimer.EventAutomations Changelog
+# AutoTimeBlocking Change Log
 
-## Changelog
+README: [How to use AutoTimeBlocking](https://noteplan.co/n/#/1EF12392-B544-4044-AC7A-428F57EB2DFC)
+
+## What's New in AutoTimeBlocking
+
+[1.4.0] 2022-07-03 @dwertheimer
+- added command "/Update >date+ tags in Notes" (including foldersToIgnore config setting)
+- added autoupdater code
+- change default TimeBlocks heading to the "button" [Time Blocks](noteplan://runPlugin?pluginID=dwertheimer.EventAutomations&command=atb%20-%20Create%20AutoTimeBlocks%20for%20%3Etoday%27s%20Tasks)
 
 [1.3.4] 2022-06-24 @dwertheimer
-
 - Fix race condition calling DataStore.preference too many times quickly on "Remove All Previous..." commands
  
 [1.3.3] 2022-06-23 @dwertheimer

@@ -6,11 +6,13 @@ export function getTimeBlockingDefaults(): { [key: string]: any } {
   return {
     todoChar: '*' /* character at the front of a timeblock line - can be *,-,or a heading, e.g. #### */,
     timeBlockTag: `#🕑` /* placed at the end of the timeblock to show it was created by this plugin */,
-    timeBlockHeading: 'Time Blocks' /* if this heading exists in the note, timeblocks will be placed under it */,
+    timeBlockHeading:
+      '[Time Blocks](noteplan://runPlugin?pluginID=dwertheimer.EventAutomations&command=atb%20-%20Create%20AutoTimeBlocks%20for%20%3Etoday%27s%20Tasks)' /* if this heading exists in the note, timeblocks will be placed under it */,
     foldTimeBlockHeading: false,
     workDayStart: '00:00' /* needs to be in 24 hour format (two digits, leading zero) */,
     workDayEnd: '23:59' /* needs to be in 24 hour format (two digits, leading zero) */,
-    durationMarker: "'" /* signifies how long a task is, e.g. apostrophe: '2h5m or use another character, e.g. tilde: ~2h5m */,
+    durationMarker:
+      "'" /* signifies how long a task is, e.g. apostrophe: '2h5m or use another character, e.g. tilde: ~2h5m */,
     intervalMins: 5 /* inverval on which to calculate time blocks */,
     removeDuration: true /* remove duration when creating timeblock text */,
     defaultDuration: 20 /* default duration of a task that has no duration/end time */,
@@ -20,7 +22,8 @@ export function getTimeBlockingDefaults(): { [key: string]: any } {
     passBackResults: false /* pass back the results to the caller (e.g. for template calls) */,
     createCalendarEntries: false /* create calendar entries for the timeblocks */,
     eventEnteredOnCalTag: '#event_created' /* needs to match @jgclark config/events/processedTagName */,
-    deletePreviousCalendarEntries: false /* before creating new calendar entries, delete previous calendar entries for the timeblocks; 
+    deletePreviousCalendarEntries:
+      false /* before creating new calendar entries, delete previous calendar entries for the timeblocks; 
                to keep a calendar entry around, just remove the timeBlockTag */,
     includeTasksWithText: [] /* limit to tasks with ANY of these tags/text */,
     excludeTasksWithText: [] /* exclude tasks with ANY of these tags/text */,
@@ -31,6 +34,8 @@ export function getTimeBlockingDefaults(): { [key: string]: any } {
     foldSyncedCopiesHeading: false,
     runSilently: false,
     timeblockTextMustContainString: '' /* is set automatically when config is pulled */,
+    datePlusOpenOnly: true,
+    foldersToIgnore: [],
     presets: [
       { label: 'Limit Time Blocks to Work Hours', workDayStart: '08:00', workDayEnd: '17:59' },
       {
@@ -71,6 +76,8 @@ export function validateTimeBlockConfig(config: { [key: string]: any }): { [key:
     linkText: 'string',
     includeTasksWithText: { type: 'array', optional: true },
     excludeTasksWithText: { type: 'array', optional: true },
+    datePlusOpenOnly: 'boolean',
+    foldersToIgnore: { type: 'array', optional: true },
     presets: { type: 'array', optional: true },
     nowStrOverride: { type: /^\d{2}:\d{2}$/, optional: true },
     timeblockTextMustContainString: 'string',
