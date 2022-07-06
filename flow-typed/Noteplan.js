@@ -647,14 +647,14 @@ declare class DataStore {
    * @param {Array<string>?} types ["notes", "calendar"] (by default all, or pass `null`)
    * @param {Array<string>?} list (optional)
    * @param {Array<string>?} list (optional)
-   * @return {$ReadOnlyArray<ParagraphObject>} array of results
+   * @return {$ReadOnlyArray<TParagraph>} array of results
    */
   static search(
     keyword: string,
     types?: Array<string>,
     inFolders?: Array<string>,
     notInFolders?: Array<string>,
-  ): Promise<$ReadOnlyArray<ParagraphObject>>;
+): Promise < $ReadOnlyArray < TParagraph >>;
 
   /**
    * Searches all project notes for a keyword (uses multiple threads to speed it up).
@@ -666,22 +666,22 @@ declare class DataStore {
    * @param {string} = keyword to search for
    * @param {Array<string>?} folders list (optional)
    * @param {Array<string>?} folders list (optional)
-   * @return {$ReadOnlyArray<ParagraphObject>} results array
+   * @return {$ReadOnlyArray<TParagraph>} results array
    */
   static searchProjectNotes(
     keyword: string,
     inFolders?: Array<string>,
     notInFolders?: Array<string>,
-  ): Promise<$ReadOnlyArray<ParagraphObject>>;
+): Promise < $ReadOnlyArray < TParagraph >>;
 
   /**
    * Searches all calendar notes for a keyword (uses multiple threads to speed it up).
    * This function is async, use it with `await`, so that the UI is not being blocked during a long search.
    * Note: Available from v3.6.0
    * @param {string} = keyword to search for
-   * @return {$ReadOnlyArray<ParagraphObject>} array of results
+   * @return {$ReadOnlyArray<TParagraph>} array of results
    */
-  static searchCalendarNotes(keyword: string): Promise<$ReadOnlyArray<ParagraphObject>>;
+  static searchCalendarNotes(keyword: string): Promise < $ReadOnlyArray < TParagraph >>;
 }
 
 /**
@@ -1164,7 +1164,7 @@ children(): $ReadOnlyArray < TParagraph >;
 /**
  * Returns an array of all paragraphs having the same blockID (including this paragraph). You can use `paragraph[0].note` to access the note behind it and make updates via `paragraph[0].note.updateParagraph(paragraph[0])` if you make changes to the content, type, etc (like checking it off as type = "done")
  * Note: Available from v3.5.2
- * @type {[ParagraphObject]} - getter
+ * @type {[TParagraph]} - getter
  */
 +referencedBlocks: [TParagraph];
 /**

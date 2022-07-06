@@ -1,15 +1,16 @@
 {
-  "COMMENT1": "Note If you are not going to use the `npm run autowatch` command to compile, then delete the macOS.minVersion line below",
   "macOS.minVersion": "10.13.0",
   "noteplan.minAppVersion": "3.6", 
   "plugin.id": "dwertheimer.EventAutomations",
   "plugin.name": "🗓 AutoTimeBlocking & Synced Today Todos",
   "plugin.description": "Automatically find time in your calendar and create Time Blocks for items marked for >today and put copies of today's todos in the editor",
   "plugin.author": "dwertheimer",
-  "plugin.version": "1.3.4",
+  "plugin.version": "1.4.0",
+  "plugin.lastUpdateInfo": "1.4.0: Added support for >date+ tags and autoupdates",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://noteplan.co/n/#/1EF12392-B544-4044-AC7A-428F57EB2DFC",
+  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.EventAutomations/CHANGELOG.md",
   "plugin.commands": [
     {
       "name": "atb - Create AutoTimeBlocks for >today's Tasks",
@@ -60,8 +61,13 @@
       "jsFunction": "removePreviousTimeBlocks",
       "alias": ["remAllTimeBlocks"],
       "arguments": ["Run silently with no pop-up messages (e.g. running from a Template) - (yes/no) - yes to run silently"]
+    },
+    {
+      "name": "Update >date+ tags in Notes",
+      "description": "Search for >date+ tags in all notes and update them to >today if today is >= the date",
+      "jsFunction": "updateDatePlusTags",
+      "alias": ["updateDatePlusTags"]
     }
-    
   ],
   "plugin.settings": [
     {
@@ -125,7 +131,7 @@
         "validation": "^[^#+].*",
         "title": "Heading for time blocks in note",
         "description": "If this heading exists in the open note when running the AutoTimeBlock command, the generated time blocks will be placed under it. If you leave it blank, the time blocks will be placed at the top of the note. Text only -- should *not* include any #'s at the beginning of the heading.",
-        "default": "Time Blocks",
+        "default": "[Time Blocks](noteplan://runPlugin?pluginID=dwertheimer.EventAutomations&command=atb%20-%20Create%20AutoTimeBlocks%20for%20%3Etoday%27s%20Tasks)",
         "required": true
     },
     {
@@ -164,8 +170,8 @@
     {
         "key": "createSyncedCopies",
         "type": "bool",
-        "title": "Create synced copies of referenced items",
-        "description": "Write a copy of the referenced item in the calendar note under the timeblock. Can look a little repetitive, but it will save you time when you want to edit the underlying item.",
+        "title": "Create synced copies of References items",
+        "description": "Write a synced line (copy) of the Reference item in the calendar note. Can look a little repetitive, but it will save you time when you want to edit the underlying item.",
         "default": false,
         "required": true
     },
@@ -303,6 +309,35 @@
         "default": "PRIORITY_FIRST",
         "required": true
     },
+    {
+      "type": "separator  "
+    },
+    {
+      "type": "heading",
+      "title": ">Date+ Settings"
+    },
+    {
+      "key": "datePlusOpenOnly",
+      "title": "Look only for OPEN/incomplete tasks with >date+",
+      "description": "When searching for >date+ tags, only look for tasks that are OPEN/incomplete. If unchecked, it will find/process all lines containing a >date+ tag, whether plain text lines, list/bullets, or completed items.",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },  
+    {
+      "key": "foldersToIgnore",
+      "title": "Folders to ignore when searching for >Date+ Tags",
+      "description": "A comma-separated list of folders to ignore when searching for items tagged >date+.",
+      "type": "[string]",
+      "default": [
+        "@Templates",
+        "@Searches",
+        "Reviews",
+        "Summaries",
+        "@Archive"
+      ],
+      "required": false
+    },    
     {
       "type": "separator  "
     },

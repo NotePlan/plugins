@@ -45,6 +45,7 @@ import {
   insertContentUnderHeading,
   removeContentUnderHeadingInAllNotes,
 } from '@helpers/NPParagraph'
+import { findAndUpdateDatePlusTags } from '@helpers/NPNote'
 
 /**
  * Get the config for this plugin, from DataStore.settings or the defaults if settings are not valid
@@ -150,7 +151,7 @@ export async function insertItemsIntoNote(
     if (shouldFold && heading !== '') {
       const thePara = note.paragraphs.find((p) => p.type === 'title' && p.content.includes(heading))
       if (thePara) {
-        log(pluginJson, `insertItemsIntoNote: folding "${heading}"`)
+        log(pluginJson, `insertItemsIntoNote: folding "${heading}" - isFolded=${Editor.isFolded(thePara)}`)
         // $FlowIgnore[method-unbinding] - the function is not being removed from the Editor object.
         if (Editor.isFolded) {
           // make sure this command exists
@@ -653,6 +654,20 @@ export async function selectCalendar(isPluginEntry: boolean = true): Promise<voi
       settings[calendarConfigField] = updatedCalendar
       DataStore.settings = settings
     }
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
+}
+
+/**
+ * Find and update date+ tags
+ * (plugin entry point for "/Update >date+ tags in Notes")
+ * @param {*} incoming
+ */
+export function updateDatePlusTags() {
+  try {
+    const { datePlusOpenOnly, foldersToIgnore } = DataStore.settings
+    findAndUpdateDatePlusTags(datePlusOpenOnly, foldersToIgnore)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }

@@ -203,7 +203,7 @@ export async function saveSearchPeriod(
       const searchTerm = untrimmedSearchTerm.trim()
       const outputArray = []
       // get list of matching paragraphs for this string
-      const resultParas = await DataStore.search(searchTerm, ['calendar'], undefined, config.foldersToExclude) // search over all notes
+      const resultParas = await DataStore.search(searchTerm, ['calendar'], null, config.foldersToExclude) // search over all notes
       const lines = resultParas
       // output a heading first
       // const thisResultHeading = `${searchTerm} ${config.searchHeading} for ${periodString}${periodPartStr !== '' ? ` (at ${periodPartStr})` : ''}`
