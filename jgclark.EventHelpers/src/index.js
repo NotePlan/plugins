@@ -3,13 +3,13 @@
 //-----------------------------------------------------------------------------
 // Event Helpers
 // Jonathan Clark
-// last updated 13.5.2022, for v0.16.0
+// last updated 16.6.2022, for v0.16.0+
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json' 
-import { log, logWarn, logError } from "@helpers/dev"
-import { migrateConfiguration, updateSettingData } from '@helpers/NPconfiguration'
+import { log } from "@helpers/dev"
+import { migrateConfiguration, updateSettingData } from '@helpers/NPConfiguration'
 
 export { timeBlocksToCalendar } from './timeblocks'
 export {

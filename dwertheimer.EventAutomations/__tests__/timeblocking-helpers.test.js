@@ -125,8 +125,19 @@ describe(`${PLUGIN_NAME}`, () => {
           '* 08:00-09:00 foo bar #tag',
         )
       })
+      test('should add tb text when timeblockTextMustContainString is set', () => {
+        const cfg = { ...config, timeblockTextMustContainString: '#tb', removeDuration: true }
+        expect(tb.createTimeBlockLine({ title: "foo bar '2h22m", start: '08:00', end: '09:00' }, cfg)).toEqual(
+          '* 08:00-09:00 foo bar #🕑 #tb',
+        )
+      })
+      test('should not add tb text when timeblockTextMustContainString is set and tb text is already in the string', () => {
+        const cfg = { ...config, timeblockTextMustContainString: '#tb', removeDuration: true }
+        expect(tb.createTimeBlockLine({ title: "foo bar#tb '2h22m", start: '08:00', end: '09:00' }, cfg)).toEqual(
+          '* 08:00-09:00 foo bar#tb #🕑',
+        )
+      })
     })
-
     describe('blockOutEvents ', () => {
       test('should block (only) times on the time map for the event given', () => {
         const map = tb.getBlankDayMap(5)
@@ -292,6 +303,16 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(timeBlocks.length).toEqual(2)
       expect(timeBlocks[0]).toEqual({ start: '00:00', end: '00:05', minsAvailable: 5 })
       expect(timeBlocks[1]).toEqual({ start: '00:15', end: '00:30', minsAvailable: 15 })
+      timeMap = [
+        // one item and one contiguous block
+        { start: '23:40', busy: false, index: 0 },
+        { start: '23:45', busy: false, index: 1 },
+        { start: '23:50', busy: false, index: 2 },
+        { start: '23:55', busy: false, index: 3 },
+      ]
+      timeBlocks = tb.findTimeBlocks(timeMap, config)
+      expect(timeBlocks.length).toEqual(1)
+      expect(timeBlocks[0]).toEqual({ start: '23:40', end: '23:59', minsAvailable: 20 }) //FIXME: this doesn't seem right!
     })
 
     describe('addMinutesToTimeText', () => {
@@ -404,6 +425,33 @@ describe(`${PLUGIN_NAME}`, () => {
         }
         const res = tb.getTimeBlockTimesForEvents([{ start: '00:00', busy: false, index: 0 }], todosByType['open'], cfg)
         expect(res.timeBlockTextList).toEqual([])
+      })
+      test('should place only items that fit in rest of day', () => {
+        const timeMap = [
+          // one item and one contiguous block
+          { start: '23:40', busy: false, index: 0 },
+          { start: '23:45', busy: false, index: 1 },
+          { start: '23:50', busy: false, index: 2 },
+          { start: '23:55', busy: false, index: 4 },
+        ]
+        const todos = [
+          { content: "!! line1 '8m", type: 'open' },
+          { content: "! line2 '1m", type: 'open' },
+          { content: "!!! line3 '7m", type: 'open' },
+        ]
+        const todosByType = getTasksByType(todos)
+
+        const cfg = {
+          ...config,
+          workDayStart: '23:00',
+          intervalMins: 5,
+          workDayEnd: '23:59',
+          nowStrOverride: '23:54',
+          mode: 'PRIORITY_FIRST',
+          allowEventSplits: false,
+        }
+        const res = tb.getTimeBlockTimesForEvents(timeMap, todosByType['open'], cfg)
+        expect(res.timeBlockTextList).toEqual(['* 23:55-23:56 ! line2 #🕑'])
       })
     })
 
@@ -650,6 +698,29 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result[0].content).toEqual('baz')
       })
     })
+
+    describe('dwertheimer.EventAutomations - timeblocking.getFullParagraphsCorrespondingToSortList ', () => {
+      const origParas = [
+        { content: 'foo', rawContent: 'foo' },
+        { content: 'bar', rawContent: 'bar' },
+        { content: 'baz', rawContent: 'baz' },
+      ]
+      const sortList = [
+        { content: 'baz', raw: 'baz' },
+        { content: 'foo', raw: 'foo' },
+        { content: 'bar', raw: 'bar' },
+      ]
+      test('should match the order', () => {
+        const res = tb.getFullParagraphsCorrespondingToSortList(origParas, sortList)
+        expect(res.length).toEqual(3)
+        expect(res[0]).toEqual(origParas[2])
+      })
+      test('should exclude tasks with spaces', () => {
+        const res = tb.getFullParagraphsCorrespondingToSortList(origParas, sortList)
+        expect(res[0]).toEqual(origParas[2])
+      })
+    })
+
     describe('findTodosInNote', () => {
       const note = {
         paragraphs: [
@@ -736,6 +807,34 @@ describe(`${PLUGIN_NAME}`, () => {
       test('should eliminate paragraphs if duplicate in mixed bag', () => {
         const before = [{ content: 'foo' }, { content: 'bar' }, { content: 'foo' }]
         expect(tb.eliminateDuplicateParagraphs(before)).toEqual([{ content: 'foo' }, { content: 'bar' }])
+      })
+      test('should eliminate paragraphs content is the same but its the same block reference from the same file', () => {
+        const before = [
+          { content: 'foo', filename: 'a', blockId: '^b' },
+          { content: 'foo', filename: 'a', blockId: '^b' },
+        ]
+        expect(tb.eliminateDuplicateParagraphs(before).length).toEqual(1)
+      })
+      test('should allow apparently duplicate content if blockID is different', () => {
+        const before = [
+          { content: 'foo', filename: 'a', blockId: '^h' },
+          { content: 'foo', filename: 'b', blockId: '^j' },
+        ]
+        expect(tb.eliminateDuplicateParagraphs(before)).toEqual(before)
+      })
+      test('should allow apparently duplicate content if blockID is undefined in both but filename is different', () => {
+        const before = [
+          { content: 'foo', filename: 'a' },
+          { content: 'foo', filename: 'b' },
+        ]
+        expect(tb.eliminateDuplicateParagraphs(before)).toEqual(before)
+      })
+      test('should not allow apparently duplicate content if blockID is same and file is different', () => {
+        const before = [
+          { content: 'foo', filename: 'a', blockId: '^h' },
+          { content: 'foo', filename: 'b', blockId: '^h' },
+        ]
+        expect(tb.eliminateDuplicateParagraphs(before).length).toEqual(1)
       })
     })
     describe('isAutoTimeBlockLine', () => {

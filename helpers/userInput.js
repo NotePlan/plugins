@@ -34,7 +34,11 @@ export type Option<T> = $ReadOnly<{
  * @param {TDefault} defaultValue - default label:value to use
  * @return {TDefault} - string that the user enters. Maybe be the empty string.
  */
-export async function chooseOption<T, TDefault = T>(message: string, options: $ReadOnlyArray<Option<T>>, defaultValue: TDefault): Promise<T | TDefault> {
+export async function chooseOption<T, TDefault = T>(
+  message: string,
+  options: $ReadOnlyArray<Option<T>>,
+  defaultValue: TDefault
+): Promise<T | TDefault> {
   const { index } = await CommandBar.showOptions(
     options.map((option) => option.label),
     message,
@@ -87,6 +91,7 @@ export async function getInputTrimmed(message: string, okLabel: string = 'OK', d
 /**
  * Show a single-button dialog-box like message (modal) using CommandBar.
  * Will now use newer native dialog if available (from 3.3.2), which adds a title.
+ * Note: There's a copy in helpersNPParagaph.js to avoid a circular dependency
  * @author @jgclark, updating @dwertheimer, updating @nmn
  *
  * @param {string} message - text to display to user
@@ -105,6 +110,7 @@ export async function showMessage(message: string, confirmButton: string = 'OK',
 /**
  * Show a simple yes/no (could be OK/Cancel, etc.) dialog using CommandBar.
  * Will now use newer native dialog if available (from 3.3.2), which adds a title.
+ * Note: There's a copy in helpersNPParagaph.js to avoid a circular dependency
  * @author @jgclark, updating @nmn
  *
  * @param {string} message - text to display to user
@@ -175,7 +181,12 @@ export async function chooseFolder(msg: string, includeArchive: boolean = false)
  * @param {boolean} optionCreateNewHeading - whether to offer to create a new heading at the top or bottom of the note. Default: false.
  * @return {string} - the selected heading as text without any markdown heading markers. Blank string implies end of note
  */
-export async function chooseHeading(note: TNote, optionAddAtBottom: boolean = true, optionCreateNewHeading: boolean = false, includeArchive: boolean = false): Promise<string> {
+export async function chooseHeading(
+  note: TNote,
+  optionAddAtBottom: boolean = true,
+  optionCreateNewHeading: boolean = false,
+  includeArchive: boolean = false
+): Promise<string> {
   let headingStrings = []
   // Decide whether to include all headings in note, or just those in the first
   // before the Done/Cancelled section
@@ -314,7 +325,7 @@ export async function datePicker(dateParams: string, config?: { [string]: ?mixed
     const dateParamsTrimmed = dateParams.trim()
     const paramConfig =
       dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}') ? await parseJSON5(dateParams) : dateParamsTrimmed !== '' ? await parseJSON5(`{${dateParams}}`) : {}
-    // $FlowIgnore[incompatible-type] -- TODO: Is there a @dwertheimer function that can help here?
+    // $FlowIgnore[incompatible-type]
     log('userInput/datePicker', `params: ${dateParams} -> ${JSON.stringify(paramConfig)}`)
     // '...' = "gather the remaining parameters into an array"
     const allSettings: { [string]: mixed } = {
@@ -424,7 +435,13 @@ export async function inputMood(moodArray: Array<string>): Promise<string> {
  * @param maxAnswers maximum amount of answers the user could type in (optional)
  * @returns {Promise<Array<string>>} all the answers as an array
  */
-export const multipleInputAnswersAsArray = async (question: string, submit: string, showCounter: boolean, minAnswers: number = 0, maxAnswers?: number): Promise<Array<string>> => {
+export const multipleInputAnswersAsArray = async (
+  question: string,
+  submit: string,
+  showCounter: boolean,
+  minAnswers: number = 0,
+  maxAnswers?: number
+): Promise<Array<string>> => {
   let input = '-'
   const answers = []
 
@@ -436,4 +453,45 @@ export const multipleInputAnswersAsArray = async (question: string, submit: stri
     }
   }
   return answers
+}
+
+/**
+ * Choose a particular note from a CommandBar list of notes
+ * @param {boolean} includeProjectNotes
+ * @param {boolean} includeCalendarNotes
+ * @param {Array<string>} foldersToIgnore - a list of folder names to ignore
+ * @param {boolean} showFolders - whether to show folders in the title list
+ * @returns
+ */
+export async function chooseNote(
+  includeProjectNotes: boolean = true,
+  includeCalendarNotes: boolean = false,
+  foldersToIgnore: Array<string> = [],
+  showFolders: boolean = false, // TODO(@dwertheimer): not used
+): Promise<TNote | null> {
+  let noteList = []
+  const projectNotes = DataStore.projectNotes
+  const calendarNotes = DataStore.calendarNotes
+  if (includeProjectNotes) {
+    noteList = noteList.concat(projectNotes)
+  }
+  if (includeCalendarNotes) {
+    noteList = noteList.concat(calendarNotes)
+  }
+  const noteListFiltered = noteList.filter((note) => {
+    // filter out notes that are in folders to ignore
+    let isInIgnoredFolder = false
+    foldersToIgnore.forEach((folder) => {
+      if (note.filename.includes(`${folder}/`)) {
+        isInIgnoredFolder = true
+      }
+    })
+    return !isInIgnoredFolder
+  })
+  const opts = noteListFiltered.map((note) => {
+    return note.title && note.title !== '' ? note?.title : note?.filename
+  })
+  clo(noteListFiltered[0], 'opts')
+  const re = await CommandBar.showOptions(opts, 'Choose note')
+  return noteListFiltered[re.index] ?? null
 }

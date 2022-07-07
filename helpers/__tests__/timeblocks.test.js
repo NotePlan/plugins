@@ -1,13 +1,22 @@
-/* globals describe, expect, it, test */
+/* globals describe, expect, test, beforeAll */
 import colors from 'chalk'
 import * as tb from '../timeblocks'
+import DataStore from '../../__mocks__/DataStore.mock'
+
+beforeAll(() => {
+  global.DataStore = DataStore
+})
 
 const HELPER_NAME = `📙 ${colors.yellow('helpers/timeblocks')}`
 const section = colors.blue
+// const method = colors.magenta.bold
 
 describe(`${HELPER_NAME}`, () => {
   describe(section('timeblocks.js'), () => {
     describe('isTimeBlockLine SHOULD MATCH', () => {
+      test('1a: yes: 1:30-2:45', () => {
+        expect(tb.isTimeBlockLine('1:30-2:45')).toEqual(true)
+      })
       test('1b: yes: - @done(2021-12-12) 2:30-3:45', () => {
         expect(tb.isTimeBlockLine('- @done(2021-12-12) 2:30-3:45')).toEqual(true)
       })
@@ -84,16 +93,10 @@ describe(`${HELPER_NAME}`, () => {
         expect(tb.isTimeBlockLine('at 5pm')).toEqual(true)
       })
       test('18: yes: 2PM-3PM', () => {
-        expect(tb.isTimeBlockLine('at 2PM-3PM')).toEqual(true)
-      })
-      test('19: yes: 2-3', () => {
-        expect(tb.isTimeBlockLine('at 2-3')).toEqual(true)
+        expect(tb.isTimeBlockLine('2PM-3PM')).toEqual(true)
       })
       test('20: yes: 2-3PM', () => {
-        expect(tb.isTimeBlockLine('at 2-3PM')).toEqual(true)
-      })
-      test('21: yes: 2PM-3', () => {
-        expect(tb.isTimeBlockLine('at 2PM-3')).toEqual(true)
+        expect(tb.isTimeBlockLine('2-3PM')).toEqual(true)
       })
       test('22a: yes: 1️⃣ 6:00 AM - 8:30 AM - Part I', () => {
         expect(tb.isTimeBlockLine('1️⃣ 6:00 AM - 8:30 AM - Part I')).toEqual(true)
@@ -113,8 +116,8 @@ describe(`${HELPER_NAME}`, () => {
       test('24b: yes: at midnight:24', () => {
         expect(tb.isTimeBlockLine('at midnight:24')).toEqual(true)
       })
-      test.skip('25: 5-6am...', () => {
-        expect(tb.isTimeBlockLine('5-6am Do something #hash [[wikilink]] [url](something) ')).toEqual(true)
+      test('25a: yes: do something 12:30', () => {
+        expect(tb.isTimeBlockLine('do something 12:30')).toEqual(true)
       })
     })
 
@@ -131,11 +134,17 @@ describe(`${HELPER_NAME}`, () => {
       test('17: no: 2021-06-02 2.15PM-3.45PM (dots not allowed)', () => {
         expect(tb.isTimeBlockLine('2021-06-02 2.15PM-3.45PM')).toEqual(false)
       })
+      test('19: no: 2-3', () => {
+        expect(tb.isTimeBlockLine('2-3')).toEqual(false)
+      })
+      test('21: no: 2PM-3', () => {
+        expect(tb.isTimeBlockLine('2PM-3')).toEqual(false)
+      })
       // One of the ISO standard ways, but not supported by NP parsing, so don't support it fully
       test('25: no: 2021-12-02T12:34', () => {
         expect(tb.isTimeBlockLine('2021-12-02T12:34')).toEqual(false)
       })
-      // Not quite one of the ISO standard ways
+      // Not quite one of the ISO standard ways, so don't support it
       test('26: no: at TT23:45', () => {
         expect(tb.isTimeBlockLine('at TT23:45')).toEqual(false)
       })
@@ -174,7 +183,8 @@ describe(`${HELPER_NAME}`, () => {
         expect(tb.isTimeBlockLine(cal)).toEqual(false)
       })
     })
-    describe('findLongestStringInArray ', () => {
+
+    describe('findLongestStringInArray()', () => {
       test('should return longest string in array', () => {
         expect(tb.findLongestStringInArray(['a', 'bb', '', 'dddd'])).toEqual('dddd')
       })
@@ -182,9 +192,9 @@ describe(`${HELPER_NAME}`, () => {
         expect(tb.findLongestStringInArray(['a', 'bb', '', 'dd🔬d'])).toEqual('dd🔬d')
       })
       // Doesn't pass, but we don't think this will be an actual issue, so disable
-      // test('should return longest string in array with emojis in other terms', () => {
-      //   expect(tb.findLongestStringInArray(['a🔬', 'bb', 'cc🔬', 'dddd'])).toEqual('dd🔬d')
-      // })
+      test.skip('should return longest string in array with emojis in other terms', () => {
+        expect(tb.findLongestStringInArray(['a🔬', 'bb', 'cc🔬', 'dddd'])).toEqual('dd🔬d')
+      })
       test('should return longest string in array wherever it is in array', () => {
         expect(tb.findLongestStringInArray(['aa', 'bbbbb', '', 'cc'])).toEqual('bbbbb')
       })
@@ -193,11 +203,10 @@ describe(`${HELPER_NAME}`, () => {
       })
     })
 
-    describe('getTimeBlockString ', () => {
+    describe('getTimeBlockString()', () => {
       test("should return '' if no timeblock present", () => {
         expect(tb.getTimeBlockString('01. no timeblock here :')).toEqual('')
       })
-      // Currently failing, and not sure why
       test("should return '12:30' ", () => {
         expect(tb.getTimeBlockString('something 2022-01-01 12:30 and nothing else')).toEqual('12:30')
       })
@@ -206,41 +215,64 @@ describe(`${HELPER_NAME}`, () => {
       })
     })
 
-    describe('isTypeThatCanHaveATimeBlock', () => {
+    describe('isTimeBlockPara()', () => {
+      test("should return false: 'no timeblock here'", () => {
+        const p = { type: 'open', content: '01. no timeblock here :' }
+        expect(tb.isTimeBlockPara(p)).toEqual(false)
+      })
+      test("should return true: 'do something 12:30' ", () => {
+        const p = { type: 'open', content: 'do something 12:30' }
+        expect(tb.isTimeBlockPara(p)).toEqual(true)
+      })
+      test("should return true: '2am-3PM'", () => {
+        const p = { type: 'open', content: '- 2022-01-01 2am-3PM here' }
+        expect(tb.isTimeBlockPara(p)).toEqual(true)
+      })
+      test("should return false: '12:30' in a URL ", () => {
+        const p = { type: 'open', content: 'something in https://example.com/blog/2022-01-01/12:30 and nothing else' }
+        expect(tb.isTimeBlockPara(p)).toEqual(false)
+      })
+      test("should return true: '2am-3PM' in a filepath", () => {
+        const p = { type: 'open', content: '- [2022-01-01](file:/something/2am-3PM.txt) here' }
+        expect(tb.isTimeBlockPara(p)).toEqual(false)
+      })
+    })
+
+    describe('isTypeThatCanHaveATimeBlock()', () => {
       test('type .open YES', () => {
-        let p = { type: 'open' }
+        const p = { type: 'open' }
         expect(tb.isTypeThatCanHaveATimeBlock(p)).toEqual(true)
       })
       test('type .done YES', () => {
-        let p = { type: 'done' }
+        const p = { type: 'done' }
         expect(tb.isTypeThatCanHaveATimeBlock(p)).toEqual(true)
       })
       test('type .title YES', () => {
-        let p = { type: 'title' }
+        const p = { type: 'title' }
         expect(tb.isTypeThatCanHaveATimeBlock(p)).toEqual(true)
       })
       test('type .list YES', () => {
-        let p = { type: 'list' }
+        const p = { type: 'list' }
         expect(tb.isTypeThatCanHaveATimeBlock(p)).toEqual(true)
       })
       test('type .scheduled NO', () => {
-        let p = { type: 'scheduled' }
+        const p = { type: 'scheduled' }
         expect(tb.isTypeThatCanHaveATimeBlock(p)).toEqual(false)
       })
       test('type .text NO', () => {
-        let p = { type: 'text' }
+        const p = { type: 'text' }
         expect(tb.isTypeThatCanHaveATimeBlock(p)).toEqual(false)
       })
       test('type .cancelled NO', () => {
-        let p = { type: 'cancelled' }
+        const p = { type: 'cancelled' }
         expect(tb.isTypeThatCanHaveATimeBlock(p)).toEqual(false)
       })
       test('type .empty NO', () => {
-        let p = { type: 'empty' }
+        const p = { type: 'empty' }
         expect(tb.isTypeThatCanHaveATimeBlock(p)).toEqual(false)
       })
       test('type .quote NO', () => {
-        let p = { type: 'quote' }
+        const p = { type: 'quote' }
         expect(tb.isTypeThatCanHaveATimeBlock(p)).toEqual(false)
       })
     })

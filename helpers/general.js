@@ -4,34 +4,100 @@
 //-------------------------------------------------------------------------------
 
 import json5 from 'json5'
-// import toml from 'toml'
-// import { load } from 'js-yaml'
-import { hyphenatedDateString } from './dateTime'
-import { log, logWarn, logError } from './dev'
+import { logError } from './dev'
 import { showMessage } from './userInput'
+
+export type headingLevelType = 1 | 2 | 3 | 4 | 5
+
+//-------------------------------------------------------------------------------
+/**
+ * Case Insensitive version of Map
+ * Keeps the first seen capitalasiation of a given key in a private #keysMap
+ * It will be given in preference to the lowercase version of the key in
+ *     for (const [key, value] of termCounts.entries()) {...}  // Note: the .entries() is required
+ * Adapted from https://stackoverflow.com/a/68882687/3238281
+ * @author @nmn, @jgclark
+ */
+export class CaseInsensitiveMap<TVal> extends Map<string, TVal> {
+  // This is how private keys work in actual Javascript now.
+  #keysMap = new Map<string, string>()
+
+  constructor(iterable?: Iterable<[string, TVal]>) {
+    super()
+    if (iterable) {
+      for (const [key, value] of iterable) {
+        this.set(key, value)
+      }
+    }
+  }
+
+  set(key: string, value: TVal): this {
+    const keyLowerCase = typeof key === 'string' ? key.toLowerCase() : key
+    if (!this.#keysMap.has(keyLowerCase)) {
+      this.#keysMap.set(keyLowerCase, key) // e.g. 'test': 'TEst'
+      // console.log(`new map entry: public '${keyLowerCase}' and private '${key}'`)
+    }
+    super.set(keyLowerCase, value) // set main Map to use 'test': value
+    return this
+  }
+
+  get(key: string): TVal | void {
+    return typeof key === 'string' ? super.get(key.toLowerCase()) : super.get(key)
+  }
+
+  has(key: string): boolean {
+    return typeof key === 'string' ? super.has(key.toLowerCase()) : super.has(key)
+  }
+
+  delete(key: string): boolean {
+    const keyLowerCase = typeof key === 'string' ? (key.toLowerCase(): string) : key
+    this.#keysMap.delete(keyLowerCase)
+
+    return super.delete(keyLowerCase)
+  }
+
+  clear(): void {
+    this.#keysMap.clear()
+    super.clear()
+  }
+
+  keys(): Iterator<string> {
+    return this.#keysMap.values()
+  }
+
+  *entries(): Iterator<[string, TVal]> {
+    for (const [keyLowerCase, value] of super.entries()) {
+      const key = this.#keysMap.get(keyLowerCase) ?? keyLowerCase
+      yield [key, value]
+    }
+  }
+
+  forEach(callbackfn: (value: TVal, key: string, map: Map<string, TVal>) => mixed): void {
+    for (const [keyLowerCase, value] of super.entries()) {
+      const key = this.#keysMap.get(keyLowerCase) ?? keyLowerCase
+      callbackfn(value, key, this)
+    }
+  }
+}
 
 //-------------------------------------------------------------------------------
 // Parsing structured data functions
 // by @nmn
 
-// export async function parseJSON(contents: string): Promise<?{ [string]: ?mixed }> {
-//   try {
-//     return JSON.parse(contents)
-//   } catch (e) {
-//     console.log(e)
-//     await showMessage('Invalid JSON in your configuration. Please fix it to use configuration')
-//     return {}
-//   }
-// }
-
-// NB: There is a local copy of this fn in helpers/paragraph.js to avoid a circular dependency
+/**
+ * Parse JSON5 string and return object representation.
+ * Note: There is a local copy of this fn in helpers/paragraph.js to avoid a circular dependency
+ * @author @nmn
+ * @param {string} contents
+ * @returns { {Array<string>: ?mixed} }
+ */
 export async function parseJSON5(contents: string): Promise<?{ [string]: ?mixed }> {
   try {
     const value = json5.parse(contents)
     return (value: any)
   } catch (e) {
     logError('general/parseJSON5()', e)
-    await showMessage('Invalid JSON5 in your configuration. Please fix it to use configuration')
+    await showMessage('Invalid data found when parsing JSON5 data.')
     return {}
   }
 }
@@ -40,10 +106,17 @@ export async function parseJSON5(contents: string): Promise<?{ [string]: ?mixed 
 // Other functions
 // @jgclark except where shown
 
-// Return string with percentage value appended
-// @eduardme
+/**
+ * Return string with percentage (rounded to ones place) value appended
+ * @author @eduardme
+ * @param {number} value
+ * @param {number} total
+ * @return {string}
+ */
 export function percent(value: number, total: number): string {
-  return total > 0 ? `${value.toLocaleString()} (${Math.round((value / total) * 100)}%)` : `${value.toLocaleString()}`
+  return total > 0
+    ? `${value.toLocaleString()} (${Math.round((value / total) * 100)}%)`
+    : `${value.toLocaleString()} (0%)`
 }
 
 // Deprecated: more trouble than they're worth ...
@@ -58,8 +131,11 @@ export function percent(value: number, total: number): string {
 //     : '*'
 
 /**
- * Pretty print range information
+ * Return range information as a string
+ * Note: There is a copy of this is note.js to avoid a circular dependency.
  * @author @EduardMe
+ * @param {Range} r range to convert
+ * @return {string}
  */
 export function rangeToString(r: Range): string {
   if (r == null) {
@@ -69,15 +145,21 @@ export function rangeToString(r: Range): string {
 }
 
 /**
- * return title of note useful for display, even for calendar notes (the YYYYMMDD)
- * NB:: local copy of this in helpers/paragraph.js to avoid circular dependency
+ * Return title of note useful for display, including for
+ * - daily calendar notes (the YYYYMMDD)
+ * - weekly notes (the YYYY-Wnn)
+ * Note: local copy of this in helpers/paragraph.js to avoid circular dependency.
  * @author @jgclark
  *
  * @param {?TNote} n - note to get title for
  * @return {string}
  */
 export function displayTitle(n: ?TNote): string {
-  return !n ? 'error' : n.type === 'Calendar' && n.date != null ? hyphenatedDateString(n.date) : n.title ?? ''
+  return !n
+    ? 'error'
+    : n.type === 'Calendar' && n.date != null
+    ? n.filename.split('.')[0] // without file extension
+    : n.title ?? ''
 }
 
 /**
@@ -93,43 +175,84 @@ export function titleAsLink(note: TNote): string {
 
 /**
  * Create internal link from title string (and optional heading string)
- * @dwertheimer
+ * @author @dwertheimer
  * @param {string} noteTitle - title of the note
  * @param {string | null} heading - heading inside of note (optional)
  * @returns {string} the [[link#heading]]
+ * @tests available
  */
-export function createLink(noteTitle: string, heading: string | null = ''): string {
+export function returnNoteLink(noteTitle: string, heading: string | null = ''): string {
   return `[[${noteTitle}${heading && heading !== '' ? `#${heading}` : ''}]]`
 }
 
 /**
  * Create xcallback link text from title string (and optional heading string)
- * @dwertheimer
+ * @author @dwertheimer
  * @param {string} titleOrFilename - title of the note or the filename
- * @param {boolean} isFilename - true if title is a filename instead of note title
+ * @param {string} paramType - 'title' | 'filename' | 'date' (default is 'title')
  * @param {string | null} heading - heading inside of note (optional)
+ * @param {string} openType - 'subWindow' | 'splitView' | 'useExistingSubWindow' (default: null)
+ * @param {boolean} isDeleteNote - whether this is actually a deleteNote
  * @returns {string} the x-callback-url string
+ * @tests available
  */
-export function createOpenNoteCallbackUrl(
+export function createOpenOrDeleteNoteCallbackUrl(
   titleOrFilename: string,
-  isFilename: boolean = false,
+  paramType: 'title' | 'filename' | 'date' = 'title',
   heading: string | null = null,
+  openType: 'subWindow' | 'splitView' | 'useExistingSubWindow' | null = null,
+  isDeleteNote: boolean = false,
 ): string {
-  const xcb = `noteplan://x-callback-url/openNote?${isFilename ? `filename` : `noteTitle`}=`
+  const isFilename = paramType === 'filename'
+  const paramStr = isFilename ? `filename` : paramType === 'date' ? `noteDate` : `noteTitle`
+  const xcb = `noteplan://x-callback-url/${isDeleteNote ? 'deleteNote' : 'openNote'}?${paramStr}=`
   // FIXME: this is working around an API bug that does not allow heading references in filename xcallbacks
   // When @eduard fixes it, this line can be removed
-  const head = isFilename ? '' : heading
+  const head = paramType === 'title' && heading?.length ? heading : ''
+  // console.log(`createOpenOrDeleteNoteCallbackUrl: ${xcb}${titleOrFilename}${head ? `&heading=${head}` : ''}`)
   const encoded = encodeURIComponent(titleOrFilename).replace(/\(/g, '%28').replace(/\)/g, '%29')
-  return `${xcb}${encoded}${head && head !== '' ? `#${head}` : ''}`
+  const openAs =
+    openType && ['subWindow', 'splitView', 'useExistingSubWindow'].includes(openType) ? `&${openType}=yes` : ''
+  return `${xcb}${encoded}${head && head !== '' ? `#${head}` : ''}${openAs}`
+}
+
+/**
+ * Create an addText callback url
+ * @param {TNote | string} note (either a note object or a date-related string, e.g. today, yesterday, tomorrow)
+ * @param {{ text: string, mode: string, openNote: string }} options - text to add, mode ('append', 'prepend'), and whether to open the note
+ * @returns {string}
+ * @tests available
+ */
+export function createAddTextCallbackUrl(
+  note: TNote | string,
+  options: { text: string, mode: string, openNote: string },
+): string {
+  const { text, mode, openNote } = options
+  if (typeof note !== 'string') {
+    // this is a note
+    const encoded = encodeURIComponent(note.filename).replace(/\(/g, '%28').replace(/\)/g, '%29')
+    if (note && note.filename) {
+      return `noteplan://x-callback-url/addText?filename=${encoded}&mode=${mode}&openNote=${openNote}&text=${encodeURIComponent(
+        text,
+      )}`
+    }
+  } else {
+    // this is a date type argument
+    return `noteplan://x-callback-url/addText?noteDate=${note}&mode=${mode}&openNote=${openNote}&text=${encodeURIComponent(
+      text,
+    )}`
+  }
+  return ''
 }
 
 /**
  * Create xcallback link text for running a plugin
- * @dwertheimer
+ * @author @dwertheimer
  * @param {string} pluginID - ID of the plugin from plugin.json
  * @param {boolean} command - the "name" of the command in plugin.json
  * @param {Array<string>} args - a flat array of arguments to be sent
  * @returns {string} the x-callback-url URL string (not the pretty part)
+ * @tests available
  */
 export function createRunPluginCallbackUrl(pluginID: string, command: string, args: Array<string> = []): string {
   let xcb = `noteplan://x-callback-url/runPlugin?pluginID=${pluginID}&command=${encodeURIComponent(command)}`
@@ -142,22 +265,22 @@ export function createRunPluginCallbackUrl(pluginID: string, command: string, ar
 }
 
 /**
- * Create a pretty/short link hiding an xcallback link text from title string (and optional heading string)
- * e.g. [linkText](x-callback-url)
- * @dwertheimer
- * @param {string} linkText - the text to display for the link
- * @param {string} pluginID - ID of the plugin from plugin.json
- * @param {boolean} command - the "name" of the command in plugin.json
- * @param {Array<string>} args - a flat array of arguments to be sent
- * @returns {string} the pretty x-callback-url string: [linkText](x-callback-url)
+ * A generic function for creating xcallback text for running a plugin
+ * @author @dwertheimer
+ * @param {string} commandName - the command (e.g. "search", "addNote", etc.)
+ * @param {object} paramObj - key/value pairs of parameters to be sent (all strings)
+ * @returns {string} the x-callback-url URL string (not the pretty part)
+ * @tests available
  */
-export function createPrettyLink(
-  linkText: string,
-  titleOrFilename: string,
-  isFilename: boolean = false,
-  heading: string | null = null,
-): string {
-  return `[${linkText}](${createOpenNoteCallbackUrl(titleOrFilename, isFilename, heading)})`
+export function createCallbackUrl(commandName: string, paramObj: { [string]: string } = {}): string {
+  let params = []
+  Object.keys(paramObj).forEach((key) => {
+    paramObj[key] = encodeURIComponent(paramObj[key])
+    params.push(`${key}=${paramObj[key]}`)
+  })
+  const paramStr = params.length ? `?${params.join('&')}` : ''
+  const xcb = `noteplan://x-callback-url/${commandName}${paramStr}`
+  return xcb
 }
 
 /**
@@ -169,6 +292,7 @@ export function createPrettyLink(
  * @param {boolean} command - the "name" of the command in plugin.json
  * @param {Array<string>} args - a flat array of arguments to be sent
  * @returns {string} the pretty x-callback-url string: [linkText](x-callback-url)
+ * @tests available
  */
 export function createPrettyOpenNoteLink(
   linkText: string,
@@ -176,7 +300,11 @@ export function createPrettyOpenNoteLink(
   isFilename: boolean = false,
   heading: string | null = null,
 ): string {
-  return `[${linkText}](${createOpenNoteCallbackUrl(titleOrFilename, isFilename, heading)})`
+  return `[${linkText}](${createOpenOrDeleteNoteCallbackUrl(
+    titleOrFilename,
+    isFilename ? 'filename' : 'title',
+    heading,
+  )})`
 }
 
 /**
@@ -188,6 +316,7 @@ export function createPrettyOpenNoteLink(
  * @param {boolean} isFilename - true if title is a filename instead of note title
  * @param {string | null} heading - heading inside of note (optional)
  * @returns {string} the x-callback-url string
+ * @tests available
  */
 export function createPrettyRunPluginLink(
   linkText: string,
@@ -201,9 +330,9 @@ export function createPrettyRunPluginLink(
 /**
  * From an array of strings, return the first string that matches the wanted string.
  * @author @jgclark
- *
  * @param {Array<string>} list - list of strings to search
  * @param {string} search - string to match
+ * @tests available
  */
 export function getStringFromList(list: $ReadOnlyArray<string>, search: string): string {
   // console.log(`getsearchFromList for: ${search}`)
@@ -214,7 +343,6 @@ export function getStringFromList(list: $ReadOnlyArray<string>, search: string):
 /**
  * Extract contents of bracketed part of a string (e.g. '@mention(something)').
  * @author @jgclark
- *
  * @param {string} - string that contains a bracketed mention e.g. @review(2w)
  * @return {?string} - string from between the brackets, if found (e.g. '2w')
  */
@@ -236,7 +364,7 @@ type Replacement = { key: string, value: string }
 
 /**
  * Replace all mentions of array key with value in inputString
- * Note: Not reliable, so dropped from use in EventHelpers.
+ * Note: Not reliable on some edge cases (of repeated copies of specified terms), so dropped from use in EventHelpers.
  * @author @m1well
  * @param {string} inputString
  * @param {array} replacementArray // array of objects with {key: stringToLookFor, value: replacementValue}
@@ -245,9 +373,7 @@ type Replacement = { key: string, value: string }
 export function stringReplace(inputString: string = '', replacementArray: Array<Replacement>): string {
   let outputString = inputString
   replacementArray.forEach((r) => {
-    // if (outputString.includes(r.key)) {
     outputString = outputString.replace(r.key, r.value)
-    // }
   })
   return outputString
 }
@@ -280,9 +406,9 @@ export async function getTagParamsFromString(paramString: string, wantedParam: s
 }
 
 /**
+ * Capitalizes the first letter of a string
  * @param {string} s - the string to capitalize
  * @returns {string} the string capitalized
- * @description Capitalizes the first letter of a string
  */
 export function capitalize(s: string): string {
   if (typeof s !== 'string') return ''
@@ -293,7 +419,7 @@ export function capitalize(s: string): string {
  * Remove any markdown URLs from a string
  * @dwertheimer (with regex wizardry help from @jgclark)
  * @param {string} s - input string
- * @returns {string} with all the [[wikilinks] and [links](url) removed
+ * @returns {string} with all the [[wikilinks]] and [links](url) removed
  */
 export function stripLinkFromString(s: string): string {
   // strip markdown URL
@@ -315,12 +441,12 @@ export function semverVersionToNumber(version: string): number {
     }
   }
 
-  // $FlowIgnore
-  parts.forEach((part: number) => {
-    if (part >= 1024) {
+  for (let part of parts) {
+    part = parseInt(part, 10)
+    if (Number.isNaN(part) || part >= 1024) {
       throw new Error(`Version string invalid, ${part} is too large`)
     }
-  })
+  }
 
   let numericVersion = 0
   // Shift all parts either 0, 10 or 20 bits to the left.

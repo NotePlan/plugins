@@ -7,19 +7,15 @@
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
-import pluginJson from '../plugin.json' 
-import { migrateConfiguration, updateSettingData } from '../../helpers/NPconfiguration'
+import pluginJson from '../plugin.json'
+import { migrateConfiguration, updateSettingData } from '../../helpers/NPConfiguration'
 import { log, logError } from '../../helpers/dev'
 
-export {
-  logReviewList, projectLists, startReviews, nextReview, finishReview,
-} from './reviews'
+export { logReviewList, projectLists, startReviews, nextReview, finishReview } from './reviews'
 
-export {
-  completeProject, cancelProject,
-} from './projects'
+export { completeProject, cancelProject } from './projects'
 
-const configKey = "review"
+const configKey = 'review'
 
 export function init(): void {
   // Placeholder only

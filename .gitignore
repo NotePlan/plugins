@@ -3,9 +3,7 @@ node_modules/
 dist/
 .cache/
 */ts-template/*.*
-package-lock.json
 .pluginpath
-*/.eslintrc
 *test*.yaml
 *.code-workspace
 *.dict

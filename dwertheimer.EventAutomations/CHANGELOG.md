@@ -1,6 +1,54 @@
-# dwertheimer.EventAutomations Changelog
+# AutoTimeBlocking Change Log
 
-## Changelog
+README: [How to use AutoTimeBlocking](https://noteplan.co/n/#/1EF12392-B544-4044-AC7A-428F57EB2DFC)
+
+## What's New in AutoTimeBlocking
+
+[1.4.0] 2022-07-03 @dwertheimer
+- added command "/Update >date+ tags in Notes" (including foldersToIgnore config setting)
+- added autoupdater code
+- change default TimeBlocks heading to the "button" [Time Blocks](noteplan://runPlugin?pluginID=dwertheimer.EventAutomations&command=atb%20-%20Create%20AutoTimeBlocks%20for%20%3Etoday%27s%20Tasks)
+
+[1.3.4] 2022-06-24 @dwertheimer
+- Fix race condition calling DataStore.preference too many times quickly on "Remove All Previous..." commands
+ 
+[1.3.3] 2022-06-23 @dwertheimer
+- Add check for pre-existing timeblocks including the "mustInclude" string (thx @jgclark)
+
+[1.3.2] 2022-06-21 @dwertheimer
+- Fix calendar changeover (00:00) bug
+
+[1.3.0] 2022-06-21 @dwertheimer
+- Added cleanup commands: 
+  - Remove Synced Todos for Open Calendar Note
+  - Remove Time Blocks for Open Calendar Note
+  - Remove All Previous Synced Copies Written by this Plugin
+
+[1.2.1] 2022-07-10 @dwertheimer
+- Remove the requirement for Synced lines to run only on today's note (@Stacey's suggestion)
+
+- added: added command "/Insert Synced Today Todos at Cursor" to add synced lines without timeblocks
+[1.2.0] 2022-07-10 @dwertheimer
+- added: added command "/Insert Synced Today Todos at Cursor" to add synced lines without timeblocks
+- changed plugin name to "AutoTimeBlocking & Synced Today Todos"
+
+[1.1.6] 2022-07-10 @dwertheimer
+- fix: added loading screen during delete/add events to calendar
+
+[1.1.5] 2022-07-10 @dwertheimer
+- fix: made TB tag addition more robust
+
+[1.1.4] 2022-07-10 @dwertheimer
+- fix: pull timeblock string from prefs (DataStore.preference("timeblockTextMustContainString")) and append it
+  
+[1.1.3] 2022-07-10 @dwertheimer
+- fix: read calendar name after it gets changed by user
+
+[1.1.2] 2022-07-09 @dwertheimer
+- fix: crasher bug in removing items from calendar
+
+[1.1.1] 2022-07-09 @dwertheimer
+- fixed bug found by @atlgc where same text in diff files wouldn't create synced line
 
 [1.1.0] 2022-05-26 @dwertheimer
 - added duplicate removal to eliminate multiple copies of synced lines + tests

@@ -1,12 +1,25 @@
+// @flow
+
+/**
+ * Modern case insensitive sorting function
+ * More details at https://stackoverflow.com/a/49004987/3238281
+ * @param {string} a 
+ * @param {string} b 
+ */
+export function caseInsensitiveCompare(a: string, b: string): number {
+  return a.localeCompare(b, 'en', { sensitivity: 'base' })
+}
+
 /**
  * Function to sort a list of object by an array of fields (of property names)
  * put a - in front of the field name to sort descending
- * @param {[mixed]} list - items
- * @param {[string] | string} objectPropertySortOrder - field names to sort by -- either a single string or an array of strings/sort-order
- * @return the sorted task list
+ * @author @dwertheimer
  * @example const sortedHomes = sortListBy([{state:"CA",price:1000}],['state', '-price']); //the - in front of name is DESC
+ * @param {Array<mixed>} list - items
+ * @param {Array<string> | string} objectPropertySortOrder - field names to sort by -- either a single string or an array of strings/sort-order
+ * @return the sorted task list
  */
-export function sortListBy(list, objectPropertySortOrder) {
+export function sortListBy(list: Array<mixed>, objectPropertySortOrder: Array<string> | string): Array<mixed> {
   const sortBy = typeof objectPropertySortOrder === 'string' ? [objectPropertySortOrder] : objectPropertySortOrder
   list.sort(fieldSorter(sortBy))
   return list
@@ -15,12 +28,13 @@ export function sortListBy(list, objectPropertySortOrder) {
 /**
  * Multi-level object property sorting callback function (for use in sort())
  * undefined values are treated as the lowest value (i.e. sorted to the bottom)
- * @param field list - property array, e.g. ['date', 'title']
+ * @author @dwertheimer
  * @example const sortedHomes = homes.sort(fieldSorter(['state', '-price'])); //the - in front of name is DESC
+ * @param {Array<string>} field list - property array, e.g. ['date', 'title']
  * @returns {function} callback function for sort()
  */
 
-export const fieldSorter = (fields) => (a, b) =>
+export const fieldSorter = (fields: Array<string>): function => (a, b) =>
   fields
     .map((field) => {
       let dir = 1
@@ -44,10 +58,11 @@ export const fieldSorter = (fields) => (a, b) =>
  * Helper function for fieldSorter fields. If the value is an array,
  * return the first value
  * if it's not an array, just return the value, and if it's a string, lowercase value.
- * @param {*} val
+ * @author @dwertheimer
+ * @param {any} val
  * @returns
  */
-export const firstValue = (val) => {
+export const firstValue = (val: any): string => {
   const retVal = Array.isArray(val) ? val[0] : val
   return typeof retVal === 'string' ? retVal.toLowerCase() : retVal
 }

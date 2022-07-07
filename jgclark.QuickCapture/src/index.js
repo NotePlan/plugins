@@ -3,40 +3,53 @@
 //-----------------------------------------------------------------------------
 // Quick Capture plugin for NotePlan
 // Jonathan Clark
-// Last updated 3.2.22 for v0.4.2, @jgclark
+// Last updated 27.6.22 for v0.10.1, @jgclark
 //-----------------------------------------------------------------------------
 
-import { log, logWarn, logError } from "@helpers/dev"
+// allow changes in plugin.json to trigger recompilation
+import pluginJson from '../plugin.json'
+import { JSP, log, logError } from "@helpers/dev"
+import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
+import { showMessage } from '@helpers/userInput'
+
 export {
   addTaskToInbox,
   addTaskToNoteHeading,
   addTextToNoteHeading,
   appendTaskToDailyNote,
+  appendTaskToWeeklyNote,
   appendTextToDailyJournal,
   prependTaskToDailyNote,
   appendTaskToNote,
   prependTaskToNote
 } from './quickCapture'
 
-// allow changes in plugin.json to trigger recompilation
-import pluginJson from '../plugin.json' 
-
-// Moving to ConfigV2
-import { migrateConfiguration, updateSettingData } from '../../helpers/NPconfiguration'
-
 const configKey = 'inbox'
 
+/**
+ * Runs every time the plugin starts up (any command in this plugin is run)
+ */
+export function init(): void {
+  try {
+    // Check for the latest version of the plugin, and if a minor update is available, install it and show a message
+    DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false).then((r) =>
+      pluginUpdated(pluginJson, r),
+    )
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
+}
 // refactor previous variables to new types
-export async function onUpdateOrInstall(config: any = { silent: false }): Promise<void> {
+export async function onUpdateOrInstall(): Promise<void> {
   try {
     log(pluginJson, `${configKey}: onUpdateOrInstall running`)
-    // migrate _configuration data to data/<plugin>/settings.json (only executes migration once)
-    const migrationResult: number = await migrateConfiguration(configKey, pluginJson, config?.silent)
-    log(pluginJson, `${configKey}: onUpdateOrInstall migrateConfiguration code: ${migrationResult}`)
-    if (migrationResult === 0) {
-       const updateSettings = updateSettingData(pluginJson)
-       log(pluginJson, `${configKey}: onUpdateOrInstall updateSettingData code: ${updateSettings}`)
-     }
+    const updateSettings = updateSettingData(pluginJson)
+    log(pluginJson, `${configKey}: onUpdateOrInstall updateSettingData code: ${updateSettings}`)
+    if (pluginJson['plugin.lastUpdateInfo'] !== undefined) {
+      await showMessage(pluginJson['plugin.lastUpdateInfo'], 'OK, thanks',
+        `Plugin ${pluginJson['plugin.name']} updated to v${pluginJson['plugin.version']}`
+      )
+    }
   } catch (error) {
     logError(pluginJson, error)
   }

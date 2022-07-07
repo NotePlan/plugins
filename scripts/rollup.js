@@ -20,7 +20,6 @@ const { nodeResolve } = require('@rollup/plugin-node-resolve')
 
 const { babel } = require('@rollup/plugin-babel')
 const { terser } = require('rollup-plugin-terser')
-const resolve = require('@rollup/plugin-node-resolve').default
 const mkdirp = require('mkdirp')
 const { program } = require('commander')
 const ProgressBar = require('progress')
@@ -30,7 +29,13 @@ const createPluginListing = require('./createPluginListing')
 
 let progress
 
-const { getFolderFromCommandLine, getPluginFileContents, writeMinifiedPluginFileContents, getCopyTargetPath, getPluginConfig } = require('./shared')
+const {
+  getFolderFromCommandLine,
+  getPluginFileContents,
+  writeMinifiedPluginFileContents,
+  getCopyTargetPath,
+  getPluginConfig,
+} = require('./shared')
 
 const FOLDERS_TO_IGNORE = ['scripts', 'flow-typed', 'node_modules', 'np.plugin-flow-skeleton']
 const rootFolderPath = path.join(__dirname, '..')
@@ -63,14 +68,14 @@ const copyBuild = async (outputFile = '', isBuildTask = false) => {
 
     let msg = COMPACT
       ? `${dateTime} - ${pluginFolder} (v${pluginJsonData['plugin.version']})`
-      : colors.cyan(`${dateTime} -- ${pluginFolder} (v${pluginJsonData['plugin.version']})`) + '\n   Built and copied to the "Plugins" folder.'
+      : colors.cyan(`${dateTime} -- ${pluginFolder} (v${pluginJsonData['plugin.version']})`) +
+        '\n   Built and copied to the "Plugins" folder.'
 
     if (DEBUGGING) {
       msg += colors.yellow(`\n   Built in DEBUG mode. Not ready to deploy.\n`)
     } else {
       if (!COMPACT) {
-        msg += `\n   To debug this plugin without transpiling use: ${`npm run autowatch "${pluginFolder}" -- --debug`}\n\
-   To release this plugin, update changelog.md and run: ${`npm run release "${pluginFolder}"\n`}`
+        msg += ` To release this plugin, update changelog.md and run:\n   ${`npm run release "${pluginFolder}"\n`}`
       }
     }
 
@@ -176,7 +181,10 @@ async function main() {
   const rootLevelFolders = rootFolder
     .filter(
       (dirent) =>
-        dirent.isDirectory() && !dirent.name.startsWith('.') && !FOLDERS_TO_IGNORE.includes(dirent.name) && (limitToFolders.length === 0 || limitToFolders.includes(dirent.name)),
+        dirent.isDirectory() &&
+        !dirent.name.startsWith('.') &&
+        !FOLDERS_TO_IGNORE.includes(dirent.name) &&
+        (limitToFolders.length === 0 || limitToFolders.includes(dirent.name)),
     )
     .map(async (dirent) => {
       const pluginFolder = path.join(__dirname, '..', dirent.name)
@@ -245,7 +253,10 @@ async function build() {
     const rootLevelFolders = rootFolder
       .filter(
         (dirent) =>
-          dirent.isDirectory() && !dirent.name.startsWith('.') && !FOLDERS_TO_IGNORE.includes(dirent.name) && (limitToFolders.length === 0 || limitToFolders.includes(dirent.name)),
+          dirent.isDirectory() &&
+          !dirent.name.startsWith('.') &&
+          !FOLDERS_TO_IGNORE.includes(dirent.name) &&
+          (limitToFolders.length === 0 || limitToFolders.includes(dirent.name)),
       )
       .map(async (dirent) => {
         const pluginFolder = path.join(__dirname, '..', dirent.name)
@@ -352,9 +363,6 @@ function getConfig(pluginPath) {
           }),
           commonjs(),
           json(),
-          resolve({
-            browser: false,
-          }),
           nodeResolve({ browser: true, jsnext: true }),
         ]
       : [
@@ -365,9 +373,6 @@ function getConfig(pluginPath) {
           commonjs(),
           json(),
           nodeResolve({ browser: true, jsnext: true }),
-          resolve({
-            browser: false,
-          }),
           terser({
             compress: false,
             mangle: false,

@@ -1,9 +1,9 @@
 // @flow strict
 
-import { getTagParamsFromString } from '../../helpers/general'
-import { filenameDateString } from '../../helpers/dateTime'
-import { chooseOption, showMessage } from '../../helpers/userInput'
 import { default as sweepNote } from './sweepNote'
+import { getTagParamsFromString } from '@helpers/general'
+import { filenameDateString } from '@helpers/dateTime'
+import { chooseOption, showMessage } from '@helpers/userInput'
 
 type RescheduleType = 'move' | 'reschedule' | 'updateDate' | 'makeToday' | false
 

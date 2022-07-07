@@ -7,6 +7,7 @@ TODO: /ctt is working, but future commands could easily rewrite the order so the
 import { clo, JSP, log } from '../../helpers/dev'
 import { showMessage } from '../../helpers/userInput'
 import { getElementsFromTask } from './taskHelpers'
+import { getParagraphContainingPosition } from '@helpers/NPParagraph'
 import pluginJson from '../plugin.json'
 
 type TagsList = { hashtags: Array<string>, mentions: Array<string> } //include the @ and # characters
@@ -37,39 +38,6 @@ export function getTagsFromString(content: string): TagsList {
 }
 
 /**
- * Search through the note for a paragraph containing a specific cursor position
- * @param {TNote} note - the note to look in
- * @param {number} position - the position to look for
- * @returns {TParagraph} the paragraph containing the position in question or null if not found
- */
-function getParagraphContainingPosition(note: TNote | Editor, position: number): TParagraph | null {
-  let foundParagraph = null
-  note.paragraphs.forEach((p, i) => {
-    const { start, end } = p.contentRange
-    if (start <= position && end >= position) {
-      foundParagraph = p
-      if (i > 0)
-        log(
-          pluginJson,
-          `getParagraphContainingPosition: paragraph before: ${i - 1} (${note.paragraphs[i - 1].contentRange.start}-${note.paragraphs[i - 1].contentRange.end}) - "${
-            note.paragraphs[i - 1].content
-          }"`,
-        )
-      log(pluginJson, `getParagraphContainingPosition: found position ${position} in paragraph ${i} (${start}-${end}) -- "${p.content}"`)
-    }
-  })
-  if (!foundParagraph) {
-    log(pluginJson, `getParagraphContainingPosition: *** Looking for cursor position ${position}`)
-    note.paragraphs.forEach((p, i) => {
-      const { start, end } = p.contentRange
-      log(pluginJson, `getParagraphContainingPosition: paragraph ${i} (${start}-${end}) "${p.content}"`)
-    })
-    log(pluginJson, `getParagraphContainingPosition: *** position ${position} not found`)
-  }
-  return foundParagraph
-}
-
-/**
  * Add tags to a list without duplicates
  * Given an array of tags, and an array of newTags you want to merge in,
  * return an array of tags that are merged and not duplicated
@@ -77,7 +45,10 @@ function getParagraphContainingPosition(note: TNote | Editor, position: number):
  * @param {Array<string>} newTags
  * @returns
  */
-export function getUnduplicatedMergedTagArray(existingTags: Array<string> = [], newTags: Array<string> = []): Array<string> {
+export function getUnduplicatedMergedTagArray(
+  existingTags: Array<string> = [],
+  newTags: Array<string> = [],
+): Array<string> {
   return [...new Set([...existingTags, ...newTags])]
 }
 
@@ -118,8 +89,13 @@ function getSelectedParagraph(): TParagraph | null {
     thisParagraph = getParagraphContainingPosition(Editor, Editor.selection.start)
   }
   if (!thisParagraph || !Editor.selection?.start) {
-    log(pluginJson, `getSelectedParagraph: no paragraph found for cursor position Editor.selection?.start=${Editor.selection?.start} thisParagraph=${thisParagraph}`)
-    showMessage(`No paragraph found selection.start: ${selection?.start} Editor.selectedParagraphs.length = ${Editor.selectedParagraphs?.length}`)
+    log(
+      pluginJson,
+      `getSelectedParagraph: no paragraph found for cursor position Editor.selection?.start=${Editor.selection?.start} thisParagraph=${thisParagraph}`,
+    )
+    showMessage(
+      `No paragraph found selection.start: ${selection?.start} Editor.selectedParagraphs.length = ${Editor.selectedParagraphs?.length}`,
+    )
   }
   return thisParagraph
 }
@@ -161,7 +137,10 @@ function copyLineForTags(type: 'hashtags' | 'mentions'): void {
       const tag = tagsInQuestion[i]
       if (i > 0) {
         tagsInQuestion.push(tagsInQuestion.shift())
-        const updatedText = appendTagsToText(contentWithoutTheseTags, { ...existingTags, ...{ [type]: tagsInQuestion } })
+        const updatedText = appendTagsToText(contentWithoutTheseTags, {
+          ...existingTags,
+          ...{ [type]: tagsInQuestion },
+        })
         if (updatedText) {
           Editor.insertParagraphAfterParagraph(updatedText, thisParagraph, thisParagraph.type)
         }
@@ -198,12 +177,12 @@ export function copyTagsFromLineAbove() {
   if (lineIndex > 0) {
     const prevLineTags = getTagsFromString(getParagraphByIndex(Editor, lineIndex - 1).content)
     const updatedText = appendTagsToText(thisParagraph.content, prevLineTags)
-    log(pluginJson, `copyTagsFromLineAbove: updatedText=${updatedText}`)
+    // log(pluginJson, `copyTagsFromLineAbove: updatedText=${updatedText}`)
     if (updatedText) {
-      clo(thisParagraph, `thisParagraph before:`)
+      // clo(thisParagraph, `thisParagraph before:`)
       thisParagraph.content = updatedText
       Editor.updateParagraph(thisParagraph)
-      clo(thisParagraph, `thisParagraph after:`)
+      // clo(thisParagraph, `thisParagraph after:`)
     }
   } else {
     showMessage(`Cannot run this command on the first line of the ${noteType}`)

@@ -1,6 +1,11 @@
 # What's changed in 🔬 Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Review), and how to configure.
 
+## [0.6.5] - 2022-06-13
+### Added
+- % completion to project summary lines (with the /project lists command) (for @DocJulien)
+- includes a count of 'future tasks' in project summary lines
+
 ## [0.6.4] - 2022-05-13
 ### Added
 - new setting 'Confirm next review' to allow turning off the confirmation dialog before the next review starts from the '/next project review' command (default is now false)

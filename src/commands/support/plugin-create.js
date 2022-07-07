@@ -103,9 +103,10 @@ module.exports = {
       result = await this.merge(path.join(dest, 'plugin.json'), pluginInfo)
       result = await this.merge(path.join(dest, 'README.md'), pluginInfo)
       result = await this.merge(path.join(dest, 'changelog.md'), pluginInfo)
-      result = await this.merge(path.join(dest, 'src', 'NPHelloWorld.js'), pluginInfo)
+      result = await this.merge(path.join(dest, 'src', 'NPPluginMain.js'), pluginInfo)
 
-      result = await this.merge(path.join(dest, '__tests__', 'utils.test.js'), pluginInfo)
+      result = await this.merge(path.join(dest, '__tests__', 'helpers.test.js'), pluginInfo)
+      result = await this.merge(path.join(dest, '__tests__', 'NPPluginMain.test.js'), pluginInfo)
 
       await filesystem.delete(path.join(dest, 'script.js'))
     } catch (error) {

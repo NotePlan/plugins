@@ -9,7 +9,8 @@
  * --------------------------------------------------------------------------------------------------------------------------*/
 
 import json5 from 'json5'
-import { clo } from '@helpers/dev'
+import { clo, log, JSP } from '@helpers/dev'
+import { showMessageYesNo } from '@helpers/userInput'
 
 // this is the only possible location for _configuration note
 const STATIC_TEMPLATE_FOLDER = '📋 Templates'
@@ -30,23 +31,15 @@ const dt = (): string => {
 }
 
 /**
- * Log to console and np-out.log (with date time and category)
- * @author @codedungeon
- * @param {string} msg - log message
- * @return void
- */
-const log = (msg: string = ''): void => {
-  console.log(`${dt()} : configuration :: ${msg}`)
-}
-
-/**
  * Get NotePlan Configuration block for given section
  * @author @codedungeon
  * @param {string} section - NotePlan _configuration section
  * @return return this as structured data, in the format specified by the first line of the codeblock (should be `javascript`)
  */
 export async function getConfiguration(configSection: string = ''): Promise<any> {
-  const configFile = DataStore.projectNotes.filter((n) => n.filename?.startsWith(STATIC_TEMPLATE_FOLDER)).find((n) => !!n.title?.startsWith('_configuration'))
+  const configFile = DataStore.projectNotes
+    .filter((n) => n.filename?.startsWith(STATIC_TEMPLATE_FOLDER))
+    .find((n) => !!n.title?.startsWith('_configuration'))
 
   const content: ?string = configFile?.content
   if (content == null) {
@@ -97,7 +90,11 @@ export async function initConfiguration(pluginJsonData: any): Promise<any> {
  * @param {any} pluginJsonData - plugin.json data for which plugin is being migrated
  * @return {number} migration result (-1 migration section not found, 1 success, 0 no migration necessary)
  */
-export async function migrateConfiguration(configSection: string, pluginJsonData: any, silentMode?: boolean = false): Promise<number> {
+export async function migrateConfiguration(
+  configSection: string,
+  pluginJsonData: any,
+  silentMode?: boolean = false,
+): Promise<number> {
   // migrationResult
   // will be 1 if _configuration was migrated to plugin settings
   // will be 0 if no migration necessary
@@ -205,9 +202,23 @@ export function getSetting(pluginName: string = '', key: string = '', defaultVal
   return typeof settings === 'object' && settings.hasOwnProperty(key) ? settings[key] : defaultValue
 }
 
-export function getSettings(pluginName: string = '', defaultValue?: any = {}): any | null {
-  const settings = DataStore.loadJSON(`../../data/${pluginName}/settings.json`)
+export async function getSettings(pluginName: string = '', defaultValue?: any = {}): any | null {
+  const settings = await DataStore.loadJSON(`../../data/${pluginName}/settings.json`)
   return typeof settings === 'object' ? settings : defaultValue
+}
+
+export async function saveSettings(pluginName: string = '', value?: any = {}): any | null {
+  return await DataStore.saveJSON(value, `../../data/${pluginName}/settings.json`)
+}
+
+export async function savePluginJson(pluginName: string = '', value?: any = {}): any | null {
+  log(`NPConfiguration: writing ${pluginName}/plugin.json`)
+  return await DataStore.saveJSON(value, `../../${pluginName}/plugin.json`)
+}
+
+export async function getPluginJson(pluginName: string = ''): any | null {
+  log(`NPConfiguration: getting ${pluginName}/plugin.json`)
+  return await DataStore.loadJSON(`../../${pluginName}/plugin.json`)
 }
 
 /**
@@ -260,4 +271,41 @@ export function semverVersionToNumber(version: string): number {
     numericVersion |= parseInt(parts[i]) << (i * 10)
   }
   return numericVersion
+}
+
+/**
+ * Notify the user that a plugin was automatically updated. Typical usage:
+ * @usage DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], true, false, false).then((r) => pluginUpdated(pluginJson, r))
+ * @author @dwertheimer
+ * @param {{ code: number, message: string }} result
+ */
+export async function pluginUpdated(pluginJson: any, result: { code: number, message: string }): Promise<void> {
+  // result.codes = 0=no update, 1=updated, -1=error
+  if (result.code === 1) {
+    log(pluginJson, `Plugin was updated`)
+    const newSettings = await getPluginJson(pluginJson['plugin.id'])
+    if (newSettings) {
+      const hasChangelog = newSettings['plugin.changelog']
+      const hasUpdateMessage = newSettings['plugin.lastUpdateInfo']
+      const updateMessage = hasUpdateMessage ? `Changes include:\n"${hasUpdateMessage}"\n\n` : ''
+      const version = newSettings['plugin.version']
+      const openReadme = await showMessageYesNo(
+        `The Plugin:\n"${
+          newSettings['plugin.name']
+        }"\nwas automatically updated to v${version}. ${updateMessage}Would you like to open the Plugin's ${
+          hasChangelog ? 'Change Log' : 'Documentation'
+        } to see more details?`,
+        ['Yes', 'No'],
+        'New Plugin Version Installed',
+      )
+      if (openReadme === 'Yes') {
+        const url = hasChangelog ? newSettings['plugin.changelog'] : newSettings['plugin.url'] || ''
+        NotePlan.openURL(url)
+      }
+    } else {
+      log(pluginJson, `Plugin was updated, but no new settings were loaded: newSettings was:${JSP(newSettings)}`)
+    }
+  } else if (result.code === -1) {
+    log(pluginJson, `Plugin update failed: ${result.message}`)
+  }
 }

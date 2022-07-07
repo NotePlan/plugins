@@ -1,115 +1,154 @@
 {
-	"noteplan.minAppVersion": "3.3.2",
-	"plugin.id": "jgclark.Reviews",
-	"plugin.name": "🔬Reviews",
-	"plugin.description": "Commands to help review Project-style notes, GTD-style.",
-	"plugin.icon": "",
-	"plugin.author": "Jonathan Clark",
-	"plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
-	"plugin.version": "0.6.4",
-	"plugin.dependencies": [],
-	"plugin.script": "script.js",
-	"plugin.isRemote": "false",
-	"plugin.commands": [
-		{
-			"name": "project lists",
-			"alias": ["gtd", "list"],
-			"description": "creates/updates a human-readable list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete.",
-			"jsFunction": "projectLists"
-		},
-		{
-			"name": "start reviews",
-			"alias": ["gtd"],
-			"description": "start a new series of reviews, deciding which are now ready for review, and kicking off the first one",
-			"jsFunction": "startReviews"
-		},
-		{
-			"name": "finish project review",
-			"alias": ["gtd", "reviewed"],
-			"description": "updates the current open project's @reviewed() date",
-			"jsFunction": "finishReview"
-		},
-		{
-			"name": "next project review",
-			"alias": ["gtd", "review"],
-			"description": "updates this project's @reviewed() date, and jump to next project to review",
-			"jsFunction": "nextReview"
-		},
-		{
-			"name": "complete project",
-			"alias": ["gtd", "complete", "project"],
-			"description": "add @completed(date) to the open project note, adds its details to a yearly note in Summaries folder (if the folder exists), and offers to move the note to the NotePlan Archive",
-			"jsFunction": "completeProject"
-		},
-		{
-			"name": "cancel project",
-			"alias": ["gtd", "cancel", "project"],
-			"description": "add @cancelled(date) date to the open project note, adds its details to a yearly note in Summaries folder (if the folder exists), and offers to move the note to the NotePlan Archive",
-			"jsFunction": "cancelProject"
-		},
-		{
-			"name": "rev:logReviewList",
-			"description": "write reviewList pref to log",
-			"jsFunction": "logReviewList"
-		},
-		{
-			"name": "rev:upgrade",
-			"description": "upgrade Reviews plugin settings",
-			"jsFunction": "onUpdateOrInstall"
-		}
-	],
-	"plugin.settings": [
+  "noteplan.minAppVersion": "3.3.2",
+  "macOS.minVersion": "10.13.0",
+  "plugin.id": "jgclark.Reviews",
+  "plugin.name": "🔬Reviews",
+  "plugin.description": "Commands to help review Project-style notes, GTD-style.",
+  "plugin.icon": "",
+  "plugin.author": "Jonathan Clark",
+  "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
+  "plugin.version": "0.6.5",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.isRemote": "false",
+  "plugin.commands": [
     {
-			"type": "heading",
-			"title": "Review Plugin settings"
+      "name": "project lists",
+      "alias": [
+        "gtd",
+        "list"
+      ],
+      "description": "creates/updates a human-readable list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete.",
+      "jsFunction": "projectLists"
     },
     {
-			"key": "folderToStore",
-			"title": "Folder to store review notes",
-			"description": "Folder where review notes will be stored (will be created if necessary)",
-			"type": "string",
-			"default": "Reviews",
-			"required": true
-		},
-    {
-			"key": "foldersToIgnore",
-			"title": "Folders to ignore in reviews",
-			"description": "A comma-separated list of folders to ignore in reviews. Can be empty. Where an ignored folder has a sub-folder these will also be ignored.",
-			"type": "[string]",
-			"default": ["@Templates", "Reviews", "Summaries", "@Archive"],
-			"required": false
-		},
-    {
-			"key": "noteTypeTags",
-			"title": "Note type hashtags",
-			"description": "A comma-separated list of hashtags to indicate notes to include in this review system",
-			"type": "[string]",
-			"default": ["#area", "#project"],
-			"required": true
-		},
-    {
-			"key": "confirmNextReview",
-			"title": "Confirm next Review?",
-			"description": "When running '/next project review' shows a dialog with the title of the next project to review, and asking to confirm whether to start that review.",
-			"type": "bool",
-			"default": false,
-			"required": true
-		},
-
-		{
-			"type": "heading",
-			"title": "Settings for /projectLists command"
+      "name": "start reviews",
+      "alias": [
+        "gtd"
+      ],
+      "description": "start a new series of reviews, deciding which are now ready for review, and kicking off the first one",
+      "jsFunction": "startReviews"
     },
-		{
-			"key": "displayOrder",
-			"title": "Displayed order of notes titles",
-			"description": "The sort options  are 'due' date, 'review' date or 'alpha'",
-			"type": "string",
-			"choices": ["alpha", "due", "review"],
-			"default": "alpha",
-			"required": true
-		},
-		{
+    {
+      "name": "finish project review",
+      "alias": [
+        "gtd",
+        "reviewed"
+      ],
+      "description": "updates the current open project's @reviewed() date",
+      "jsFunction": "finishReview"
+    },
+    {
+      "name": "next project review",
+      "alias": [
+        "gtd",
+        "review"
+      ],
+      "description": "updates this project's @reviewed() date, and jump to next project to review",
+      "jsFunction": "nextReview"
+    },
+    {
+      "name": "complete project",
+      "alias": [
+        "gtd",
+        "complete",
+        "project"
+      ],
+      "description": "add @completed(date) to the open project note, adds its details to a yearly note in Summaries folder (if the folder exists), and offers to move the note to the NotePlan Archive",
+      "jsFunction": "completeProject"
+    },
+    {
+      "name": "cancel project",
+      "alias": [
+        "gtd",
+        "cancel",
+        "project"
+      ],
+      "description": "add @cancelled(date) date to the open project note, adds its details to a yearly note in Summaries folder (if the folder exists), and offers to move the note to the NotePlan Archive",
+      "jsFunction": "cancelProject"
+    },
+    {
+      "name": "rev:logReviewList",
+      "description": "write reviewList pref to log",
+      "jsFunction": "logReviewList"
+    },
+    {
+      "name": "rev:upgrade",
+      "description": "upgrade Reviews plugin settings",
+      "jsFunction": "onUpdateOrInstall"
+    }
+  ],
+  "plugin.settings": [
+    {
+      "type": "heading",
+      "title": "Review Plugin settings"
+    },
+    {
+      "key": "folderToStore",
+      "title": "Folder to store review notes",
+      "description": "Folder where review notes will be stored (will be created if necessary)",
+      "type": "string",
+      "default": "Reviews",
+      "required": true
+    },
+    {
+      "key": "foldersToIgnore",
+      "title": "Folders to ignore in reviews",
+      "description": "A comma-separated list of folders to ignore in reviews. Can be empty. Where an ignored folder has a sub-folder these will also be ignored.",
+      "type": "[string]",
+      "default": [
+        "@Templates",
+        "Reviews",
+        "Summaries",
+        "@Archive"
+      ],
+      "required": false
+    },
+    {
+      "key": "noteTypeTags",
+      "title": "Note type hashtags",
+      "description": "A comma-separated list of hashtags to indicate notes to include in this review system",
+      "type": "[string]",
+      "default": [
+        "#area",
+        "#project"
+      ],
+      "required": true
+    },
+    {
+      "key": "confirmNextReview",
+      "title": "Confirm next Review?",
+      "description": "When running '/next project review' shows a dialog with the title of the next project to review, and asking to confirm whether to start that review.",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "type": "heading",
+      "title": "Settings for /projectLists command"
+    },
+    {
+      "key": "displayOrder",
+      "title": "Displayed order of notes titles",
+      "description": "The sort options  are 'due' date, 'review' date or 'alpha'",
+      "type": "string",
+      "choices": [
+        "alpha",
+        "due",
+        "review"
+      ],
+      "default": "alpha",
+      "required": true
+    },
+    {
+      "key": "includePercentages",
+      "title": "Include task complete percentages?",
+      "description": "Include % task complete in review list?",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
       "key": "displayGroupedByFolder",
       "title": "Display grouped by folder?",
       "description": "Whether to group the notes by folder",
@@ -125,70 +164,69 @@
       "default": true,
       "required": true
     },
-		{
-			"type": "heading",
-			"title": "Setting for /completeProject and /cancelProject"
+    {
+      "type": "heading",
+      "title": "Setting for /completeProject and /cancelProject"
     },
     {
-			"key": "finishedListHeading",
-			"title": "Finished List Heading",
-			"description": "Heading of list of completed or cancelled projects/areas",
-			"type": "string",
-			"default": "Finished Projects/Areas",
-			"required": true
-		},
-
-		{
-			"type": "heading",
-			"title": "Customise the @strings"
+      "key": "finishedListHeading",
+      "title": "Finished List Heading",
+      "description": "Heading of list of completed or cancelled projects/areas",
+      "type": "string",
+      "default": "Finished Projects/Areas",
+      "required": true
     },
     {
-			"key": "startMentionStr",
-			"title": "Project start string",
-			"description": "@string indicating date a project/area was started (default: @start)",
-			"type": "string",
-			"default": "@start",
-			"required": true
-		},
+      "type": "heading",
+      "title": "Customise the @strings"
+    },
     {
-			"key": "completedMentionStr",
-			"title": "Project completed string",
-			"description": "@string indicating date a project/area was completed (default: @completed)",
-			"type": "string",
-			"default": "@completed",
-			"required": true
-		},
+      "key": "startMentionStr",
+      "title": "Project start string",
+      "description": "@string indicating date a project/area was started (default: @start)",
+      "type": "string",
+      "default": "@start",
+      "required": true
+    },
     {
-			"key": "cancelledMentionStr",
-			"title": "Project cancelled string",
-			"description": "@string indicating date a project/area was cancelled (default: @cancelled)",
-			"type": "string",
-			"default": "@cancelled",
-			"required": true
-		},
+      "key": "completedMentionStr",
+      "title": "Project completed string",
+      "description": "@string indicating date a project/area was completed (default: @completed)",
+      "type": "string",
+      "default": "@completed",
+      "required": true
+    },
     {
-			"key": "dueMentionStr",
-			"title": "Project due string",
-			"description": "@string indicating date a project/area is due to be finished (default: @due)",
-			"type": "string",
-			"default": "@due",
-			"required": true
-		},
+      "key": "cancelledMentionStr",
+      "title": "Project cancelled string",
+      "description": "@string indicating date a project/area was cancelled (default: @cancelled)",
+      "type": "string",
+      "default": "@cancelled",
+      "required": true
+    },
     {
-			"key": "reviewIntervalMentionStr",
-			"title": "Project review interval string",
-			"description": "@string indicating review interval for project/area (default: @review)",
-			"type": "string",
-			"default": "@review",
-			"required": true
-		},
+      "key": "dueMentionStr",
+      "title": "Project due string",
+      "description": "@string indicating date a project/area is due to be finished (default: @due)",
+      "type": "string",
+      "default": "@due",
+      "required": true
+    },
     {
-			"key": "reviewedMentionStr",
-			"title": "Project reviewed string",
-			"description": "@string indicating date a project/area was last reviewed (default: @reviewed)",
-			"type": "string",
-			"default": "@reviewed",
-			"required": true
-		}
-	]
+      "key": "reviewIntervalMentionStr",
+      "title": "Project review interval string",
+      "description": "@string indicating review interval for project/area (default: @review)",
+      "type": "string",
+      "default": "@review",
+      "required": true
+    },
+    {
+      "key": "reviewedMentionStr",
+      "title": "Project reviewed string",
+      "description": "@string indicating date a project/area was last reviewed (default: @reviewed)",
+      "type": "string",
+      "default": "@reviewed",
+      "required": true
+    }
+  ]
 }

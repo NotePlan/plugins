@@ -1,0 +1,39 @@
+{
+  "macOS.minVersion": "10.13.0",
+  "noteplan.minAppVersion": "3.5.0",
+  "plugin.id": "np.Globals",
+  "plugin.name": " ⚙️ Global Settings",
+  "plugin.version": "0.0.2",
+  "plugin.description": "NotePlan Globals Plugin",
+  "plugin.author": "codedungeon",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/np.Globals/README.md",
+  "plugin.commands": [
+    {
+      "name": "global:update",
+      "alias": [],
+      "description": "Run np.Globals Update",
+      "jsFunction": "onUpdateOrInstall"
+    }
+  ],
+  "plugin.settings": [
+    {
+      "type": "heading",
+      "title": "NotePlan Globals Settings"
+    },
+    {
+      "key": "version",
+      "type": "hidden",
+      "description": "NotePlan Globals Plugin Settings Version"
+    },
+    {
+      "key": "locale",
+      "title": "System Locale",
+      "description": "Locale used when display dates, times, etc (leave blank for system locale)\n\nDefault: <system>",
+      "type": "string",
+      "default": "<system>",
+      "required": false
+    }
+  ]
+}

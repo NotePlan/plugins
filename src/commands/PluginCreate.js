@@ -122,7 +122,7 @@ module.exports = {
     console.log(colors.green.bold('✔ 🧩 Project Creation Complete'))
 
     print.info('\n👉 Next Steps:\n')
-    print.info(`   Edit your files in the ${flags.pluginId} folder (e.g. NPHelloWorld.js)`)
+    print.info(`   Edit your files in the ${flags.pluginId} folder (e.g. plugin.json, index.js, NPPluginMain.js)`)
     // print.info(`   ${toolbox.colors.gray('$')} cd ${flags.pluginId}`)
     print.info(`   Run the following command to watch for changes and rebuild your plugin:`)
     print.info(`   ${toolbox.colors.gray('$')} noteplan-cli plugin:dev ${flags.pluginId} --watch`)

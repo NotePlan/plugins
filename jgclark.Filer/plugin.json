@@ -7,7 +7,8 @@
   "plugin.icon": "",
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Filer",
-  "plugin.version": "0.7.0-beta2",
+  "plugin.version": "0.8.1",
+  "plugin.lastUpdateInfo": "Add '/new note from clipboard' command",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -16,83 +17,134 @@
       "name": "move paragraphs",
       "alias": [
         "mp",
+        "fp",
         "file"
       ],
       "description": "move (file) paragraphs to different notes",
       "jsFunction": "moveParas"
     },
     {
-      "name": "fp",
+      "name": "file paragraphs",
       "alias": [
         "mp",
-        "file",
         "move",
-        "paragraph"
+        "fp"
       ],
       "description": "file (move) paragraphs to different notes",
       "jsFunction": "moveParas"
     },
     {
-      "name": "mp",
+      "name": "quick move to Today's note",
       "alias": [
-        "fp",
-        "file",
-        "move",
-        "paragraph"
+        "qmtd",
+        "day",
+        "daily"
       ],
-      "description": "move (file) paragraphs to different notes",
-      "jsFunction": "moveParas"
+      "description": "quick move paragraphs to Today's note",
+      "jsFunction": "moveParasToToday"
     },
     {
-      "name": "nns",
+      "name": "quick move to Tomorrow's note",
+      "alias": [
+        "qmtm",
+        "day",
+        "daily"
+      ],
+      "description": "quick move paragraphs to Tomorrow's daily note",
+      "jsFunction": "moveParasToTomorrow"
+    },
+    {
+      "name": "quick move to Weekly note",
+      "alias": [
+        "qmtw",
+        "week"
+      ],
+      "description": "quick move paragraphs to the current Weekly note",
+      "jsFunction": "moveParasToThisWeekly"
+    },
+    {
+      "name": "quick move to Next Weekly note",
+      "alias": [
+        "qmnw",
+        "week"
+      ],
+      "description": "quick move paragraphs to Next Week's note",
+      "jsFunction": "moveParasToNextWeekly"
+    },
+    {
+      "name": "new note from clipboard",
+      "alias": [
+        "nnc",
+        "new"
+      ],
+      "description": "New note from clipboard",
+      "jsFunction": "newNoteFromClipboard"
+    },
+    {
+      "name": "new note from selection",
+      "alias": [
+        "nns",
+        "new"
+      ],
       "description": "New note from selection (and leave link to it in its place)",
       "jsFunction": "newNoteFromSelection"
     },
     {
       "name": "add sync'd copy to note",
-      "alias": ["asc", "sync"],
+      "alias": [
+        "asc",
+        "sync",
+        "lines"
+      ],
       "description": "Add a sync'd copy of the current line to a section in another note",
       "jsFunction": "addIDAndAddToOtherNote"
     }
   ],
   "plugin.settings": [
     {
-        "type": "heading",
-        "title": "Filer plugin settings"
+      "type": "heading",
+      "title": "Filer plugin settings"
     },
     {
-        "key": "addDateBacklink",
-        "title": "Add date reference?",
-        "description": "If true, adds date reference on the moved paragraph(s) when moved from a daily note.",
-        "type": "bool",
-        "default": false,
-        "required": true
+      "key": "addDateBacklink",
+      "title": "Add date reference?",
+      "description": "If true, adds date reference on the moved paragraph(s) when moved from a daily note.",
+      "type": "bool",
+      "default": false,
+      "required": true
     },
     {
-        "key": "dateRefStyle",
-        "title": "Date reference style",
-        "description": "The style of added date reference on a moved note: add either 'link' ('>date') or 'at' ('@date') or 'date' (a formatted date string).",
-        "type": "string",
-        "choices": ["at", "date", "link"],
-        "default": "link",
-        "required": true
+      "key": "dateRefStyle",
+      "title": "Date reference style",
+      "description": "The style of added date reference on a moved note: add either 'link' ('>date') or 'at' ('@date') or 'date' (a formatted date string).",
+      "type": "string",
+      "choices": [
+        "at",
+        "date",
+        "link"
+      ],
+      "default": "link",
+      "required": true
     },
     {
-        "key": "useExtendedBlockDefinition",
-        "title": "Use extended block definition?",
-        "description": "Controls whether all the lines in the current heading's section are included in the block to move (true) or whether only the following ones that are more deeply indented are included (false; this is the default). In both cases a block is closed by a blank line or a separator (horizontal line).",
-        "type": "bool",
-        "default": false,
-        "required": true
+      "key": "useExtendedBlockDefinition",
+      "title": "Use extended block definition?",
+      "description": "Controls whether all the lines in the current heading's section are included in the block to move (true) or whether only the following ones that are more deeply indented are included (false; this is the default). In both cases a block is closed by a blank line or a separator (horizontal line).",
+      "type": "bool",
+      "default": false,
+      "required": true
     },
     {
-        "key": "whereToAddInSection",
-        "title": "Where to add in section",
-        "description": "Controls whether moved lines get inserted at the \"start\" or \"end\" of the chosen section.",
-        "type": "string",
-        "choices": ["start", "end"],
-        "default": "start",
-        "required": true
+      "key": "whereToAddInSection",
+      "title": "Where to add in section",
+      "description": "Controls whether moved lines get inserted at the \"start\" or \"end\" of the chosen section.",
+      "type": "string",
+      "choices": [
+        "start",
+        "end"
+      ],
+      "default": "start",
+      "required": true
     }
   ]
 }

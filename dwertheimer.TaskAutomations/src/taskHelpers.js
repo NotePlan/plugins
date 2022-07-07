@@ -87,6 +87,7 @@ export function getTasksByType(paragraphs: Array<Paragraph>, ignoreIndents: bool
           mentions,
           exclamations,
           parensPriority,
+          filename: para.filename,
           indents: para.indents,
           children: [],
         }

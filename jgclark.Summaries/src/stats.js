@@ -2,51 +2,40 @@
 //-----------------------------------------------------------------------------
 // Create statistics for hasthtags and mentions for time periods
 // Jonathan Clark, @jgclark
-// Last updated for v0.3.0+, 29.12.2021  (+ code re-factoring)
+// Last updated 30.6.2022 for v0.9.1+
 //-----------------------------------------------------------------------------
-
-// TODO:
-// - When weekly/monthly notes are made possible in NP, then output changes there as well
 
 //-----------------------------------------------------------------------------
 // Helper functions
 
+import pluginJson from '../plugin.json'
 import {
   calcHashtagStatsPeriod,
   calcMentionStatsPeriod,
   getSummariesSettings,
-  getPeriodStartEndDates,
 } from './summaryHelpers'
-import type { SummariesConfig } from './summaryHelpers'
 import {
   getWeek,
-  hyphenatedDateString,
-  monthNameAbbrev,
-  todaysDateISOString,
-  toISOShortDateTimeString,
   unhyphenatedDate,
-  weekStartEnd,
-} from '../../helpers/dateTime'
+} from '@helpers/dateTime'
+import { getPeriodStartEndDates } from '@helpers/NPdateTime'
+import { log, logError } from '@helpers/dev'
 import {
-  quarterStartEnd,
-} from '../../helpers/NPdateTime'
-import { JSP } from '../../helpers/dev'
-import {
+  CaseInsensitiveMap,
   displayTitle,
-  stringReplace,
-  getContentFromBrackets,
-} from '../../helpers/general'
+} from '@helpers/general'
 import {
-  clearNote,
-  getOrMakeNote
-} from '../../helpers/note'
-import { removeSection } from '../../helpers/paragraph'
-import { logAllEnvironmentSettings } from '../../helpers/NPdev'
+  getOrMakeNote,
+  printNote,
+  replaceSection,
+} from '@helpers/note'
+// import { logAllEnvironmentSettings } from '@helpers/NPdev'
+import { caseInsensitiveCompare } from '@helpers/sorting'
 import {
   chooseOption,
-  getInput,
+  // getInput,
   showMessage,
-} from '../../helpers/userInput'
+} from '@helpers/userInput'
 
 //-------------------------------------------------------------------------------
 
@@ -55,133 +44,117 @@ import {
  * @author @jgclark
 */
 export async function statsPeriod(): Promise<void> {
-  // console.log(`Contents of NotePlan.environment...:`)
-  console.log(JSP(NotePlan.environment))
+  // log(pluginJson, `Contents of NotePlan.environment...:`)
   // logAllEnvironmentSettings()
 
-  // Get config settings from Template folder _configuration note
-  let config = await getSummariesSettings()
+  // Get config settings
+  const config = await getSummariesSettings()
 
   // Get time period
-  const [fromDate, toDate, periodString, periodPartStr] = await getPeriodStartEndDates()  
+  const [fromDate, toDate, periodType, periodString, periodPartStr] = await getPeriodStartEndDates()  
   if (fromDate == null || toDate == null) {
-    console.log('\nstatsPeriod: error in calculating dates for chosen time period')
+    log(pluginJson, 'statsPeriod: error in calculating dates for chosen time period')
     return
   }
-  const fromDateStr = unhyphenatedDate(fromDate) //fromDate.toISOString().slice(0, 10).replace(/-/g, '')
-  const toDateStr = unhyphenatedDate(toDate) // toDate.toISOString().slice(0, 10).replace(/-/g, '')
-  console.log('')
-  console.log(
-    `statsPeriod: calculating for ${periodString} (${fromDateStr} - ${toDateStr}):`,
-  )
+  const fromDateStr = unhyphenatedDate(fromDate)
+  const toDateStr = unhyphenatedDate(toDate)
+  log(pluginJson, `statsPeriod: calculating for ${periodString} (${fromDateStr} - ${toDateStr}):`)
 
   // Calc hashtags stats (returns two maps)
   const hOutputArray = []
-  // $FlowIgnore[invalid-tuple-arity]
   let results = await calcHashtagStatsPeriod(fromDateStr, toDateStr, config.includeHashtags, config.excludeHashtags)
-  const hCounts = results?.[0]
-  const hSumTotals = results?.[1]
+  const hCounts: CaseInsensitiveMap<number> = results?.[0] ?? new CaseInsensitiveMap < number >
+  const hSumTotals: CaseInsensitiveMap<number> = results?.[1] ?? new CaseInsensitiveMap < number >
   if (hSumTotals == null || hCounts == null) {
-    console.log('no hSumTotals value')
+    log(pluginJson, `no matching hashtags found in ${periodString}`)
     return
   }
 
-  // Custom sort method to sort arrays of two values each
-  // const sortedHCounts = new Map(
-  //   [...(hCounts?.entries() ?? [])].sort(([key1, _v1], [key2, _v2]) =>
-  //     key1.localeCompare(key2),
-  //   ),
-  // )
-
   // First process more complex 'SumTotals', calculating appropriately
-  for (const [key, value] of hSumTotals) {
-    // .entries() implied
+  for (const [key, value] of hSumTotals.entries()) {
     const hashtagString = config.showAsHashtagOrMention ? key : key.slice(1)
-    const count = hCounts.get(key)
-    if (count != null) {
-      const total: string = value.toLocaleString()
-      const average: string = (value / count).toFixed(1)
-      hOutputArray.push(
-        `${hashtagString}\t${count}\t(total ${total}\taverage ${average})`,
-      )
-      hCounts.delete(key) // remove the entry from the next map, as not longer needed
+    const count = hSumTotals.get(key) ?? NaN
+    if (isNaN(count)) {
+      // console.log(`  no totals for ${key}`)
+    } else {
+      const count = hCounts.get(key) ?? NaN
+      const totalStr: string = value.toLocaleString()
+      const avgStr: string = (value / count).toLocaleString([], { maximumSignificantDigits: 2 })
+      hOutputArray.push(`${hashtagString}\t${count}\t(total ${totalStr}\taverage ${avgStr})`)
+      hCounts.delete(key) // remove the entry from the next map, as no longer needed
     }
   }
   // Then process simpler 'Counts'
-  for (const [key, value] of hCounts) {
-    // .entries() implied
+  for (const [key, value] of hCounts.entries()) {
     const hashtagString = config.showAsHashtagOrMention ? key : key.slice(1)
     hOutputArray.push(`${hashtagString}\t${value}`)
   }
   // If there's nothing to report, let's make that clear, otherwise sort output
   if (hOutputArray.length > 0) {
-    hOutputArray.sort()
+    hOutputArray.sort(caseInsensitiveCompare)
   } else {
     hOutputArray.push('(none)')
   }
 
+  // --------------------------------------------------------------------------
   // Calc mentions stats (returns two maps)
   const mOutputArray = []
-  // $FlowIgnore[invalid-tuple-arity]
   results = await calcMentionStatsPeriod(fromDateStr, toDateStr, config.includeMentions, config.excludeMentions)
-  const mCounts = results?.[0]
-  const mSumTotals = results?.[1]
+  const mCounts: CaseInsensitiveMap<number> = results?.[0] ?? new CaseInsensitiveMap < number >
+  const mSumTotals: CaseInsensitiveMap<number> = results?.[1] ?? new CaseInsensitiveMap < number >
   if (mCounts == null || mSumTotals == null) {
+    log(pluginJson, `no matching mentions found in ${periodString}`)
     return
   }
 
   // First process more complex 'SumTotals', calculating appropriately
-  for (const [key, value] of mSumTotals) {
-    // .entries() implied
+  for (const [key, value] of mSumTotals.entries()) {
     const mentionString = config.showAsHashtagOrMention ? key : key.slice(1)
-    const count = mCounts.get(key)
-    if (count != null) {
-      const total = value.toLocaleString()
-      const average = (value / count).toFixed(1)
-      mOutputArray.push(
-        `${mentionString}\t${count}\t(total ${total}\taverage ${average})`,
-      )
+    const total = mSumTotals.get(key) ?? NaN
+    if (isNaN(total)) {
+      // console.log(`  no totals for ${key}`)
+    } else {
+      const count = mCounts.get(key) ?? NaN
+      const totalStr: string = value.toLocaleString()
+      const avgStr: string = (value / count).toLocaleString([], { maximumSignificantDigits: 2 })
+      mOutputArray.push(`${mentionString}\t${count}\t(total ${totalStr}\taverage ${avgStr})`)
       mCounts.delete(key) // remove the entry from the next map, as not longer needed
     }
   }
   // Then process simpler 'Counts'
-  for (const [key, value] of mCounts) {
+  for (const [key, value] of mCounts.entries()) {
     const mentionString = config.showAsHashtagOrMention ? key : key.slice(1)
     mOutputArray.push(`${mentionString}\t${value}`)
   }
   // If there's nothing to report, let's make that clear, otherwise sort output
   if (mOutputArray.length > 0) {
-    mOutputArray.sort()
+    mOutputArray.sort(caseInsensitiveCompare)
   } else {
     mOutputArray.push('(none)')
   }
 
+  // --------------------------------------------------------------------------
   // Ask where to save this summary to
-  const labelString = `🖊 Create/update a note in folder '${config.folderToStore}'`
+  const outputOptions = [
+    { label: `🖊 Create/update a note in folder '${config.folderToStore}'`, value: 'note' },
+    { label: '🖊 Append to your current note', value: 'current' },
+    { label: '📋 Write to plugin console log', value: 'log' },
+    { label: '❌ Cancel', value: 'cancel' },
+  ]
+  switch (periodType) {
+    case 'userwtd': {
+      outputOptions.unshift({ label: `📅 Add/Update your current Weekly note`, value: 'weekly' })
+      break
+    }
+    // TODO: When monthly notes are made possible in NP, add this option
+    // case 'mtd': {
+    //   outputOptions.unshift({ label: `📅 Add/Update your Monthly note`, value: 'monthly' })
+    //   break
+    // }
+  }
   const destination = await chooseOption(
     `Where to save the summary for ${periodString}?`,
-    [
-      {
-        // TODO: When weekly/monthly notes are made possible in NP, then add options like this
-        //   label: "📅 Append to this month's note",
-        //   value: "today"
-        // }, {
-        label: labelString,
-        value: 'note',
-      },
-      {
-        label: '🖊 Append to current note',
-        value: 'current',
-      },
-      {
-        label: '📋 Write to console log',
-        value: 'log',
-      },
-      {
-        label: '❌ Cancel',
-        value: 'cancel',
-      },
-    ],
+    outputOptions,
     'note',
   )
 
@@ -190,88 +163,79 @@ export async function statsPeriod(): Promise<void> {
     case 'current': {
       const currentNote = Editor.note
       if (currentNote == null) {
-        console.log(`\terror: no note is open`)
+        logError(pluginJson, `No note is open. Stopping.`)
       } else {
-        console.log(
-          `\tappending results to current note (${currentNote.filename ?? ''})`,
-        )
+        log(pluginJson, `appending results to current note (${currentNote.filename ?? ''})`)
         currentNote.appendParagraph(
-          `${String(
-            config.hashtagCountsHeading,
-          )} for ${periodString} ${periodPartStr}`,
+          `${config.hashtagCountsHeading} for ${periodString} at ${periodPartStr}`,
           'text',
         )
         currentNote.appendParagraph(hOutputArray.join('\n'), 'text')
         currentNote.appendParagraph(
-          `${String(
-            config.mentionCountsHeading,
-          )} for ${periodString} ${periodPartStr}`,
+          `${config.mentionCountsHeading} for ${periodString} at ${periodPartStr}`,
           'empty',
         )
         currentNote.appendParagraph(mOutputArray.join('\n'), 'text')
-        console.log(`\tappended results to current note`)
+        log(pluginJson, `appended results to current note`)
       }
       break
     }
-    case 'note': {
+
+    case 'note': { // Summaries note
       const note = await getOrMakeNote(periodString, config.folderToStore)
       if (note == null) {
-        console.log(`\tError getting new note`)
+        logError(pluginJson, `Cannot get new note`)
         await showMessage('There was an error getting the new note ready to write')
         return
       }
 
-      // Do we have an existing Hashtag counts section? If so, delete it.
-      let insertionLineIndex = removeSection(
-        note,
-        config.hashtagCountsHeading,
-      )
-      console.log(`\tHashtag insertionLineIndex: ${String(insertionLineIndex)}`)
-      // Set place to insert either after the found section heading, or at end of note
-      // write in reverse order to avoid having to calculate insertion point again
-      note.insertHeading(
+      // Replace or add Hashtag counts section
+      replaceSection(note, config.hashtagCountsHeading,
         `${config.hashtagCountsHeading} ${periodPartStr}`,
-        insertionLineIndex,
-        config.headingLevel,
-      )
-      note.insertParagraph(
-        hOutputArray.join('\n'),
-        insertionLineIndex + 1,
-        'text',
-      )
+        config.headingLevel, hOutputArray.join('\n'))
 
-      // Do we have an existing Mentions counts section? If so, delete it.
-      insertionLineIndex = removeSection(
-        note,
-        config.mentionCountsHeading,
-      )
-      console.log(`\tMention insertionLineIndex: ${insertionLineIndex}`)
-      note.insertHeading(
+      // Replace or add Mentions counts section
+      replaceSection(note, config.mentionCountsHeading,
         `${config.mentionCountsHeading} ${periodPartStr}`,
-        insertionLineIndex,
-        config.headingLevel,
-      )
-      note.insertParagraph(
-        mOutputArray.join('\n'),
-        insertionLineIndex + 1,
-        'text',
-      )
+        config.headingLevel, mOutputArray.join('\n'))
       // open this note in the Editor
       Editor.openNoteByFilename(note.filename)
 
-      console.log(`\twritten results to note '${periodString}'`)
+      log(pluginJson, `Written results to note '${periodString}'`)
+      break
+    }
+
+    case 'weekly': { // Weekly note (from v3.6)
+      const todaysDate = new Date()
+      const y = todaysDate.getFullYear()
+      const w = getWeek(todaysDate)
+
+      log(pluginJson, `Opening weekly note for ${y} / ${w}`)
+      await Editor.openWeeklyNote(y, w)
+      const { note } = Editor
+      if (note == null) {
+        logError(pluginJson, `cannot get Weekly note`)
+        await showMessage('There was an error getting the Weekly ready to write')
+        return
+      }
+      printNote(note)
+
+      // Replace or add Hashtag counts section
+      replaceSection(note, config.hashtagCountsHeading, `${config.hashtagCountsHeading} ${periodPartStr}`, config.headingLevel, hOutputArray.join('\n'))
+      // Replace or add Mentions counts section
+      replaceSection(note, config.mentionCountsHeading, `${config.mentionCountsHeading} ${periodPartStr}`, config.headingLevel, mOutputArray.join('\n'))
+
+      // open this note in the Editor
+      // Editor.openNoteByFilename(note.filename)
+      log(pluginJson, `Written results to note '${displayTitle(note)}'`)
       break
     }
 
     case 'log': {
-      console.log(
-        `${config.hashtagCountsHeading} for ${periodString} ${periodPartStr}`,
-      )
-      console.log(hOutputArray.join('\n'))
-      console.log(
-        `${config.mentionCountsHeading} for ${periodString} ${periodPartStr}`,
-      )
-      console.log(mOutputArray.join('\n'))
+      log(pluginJson, `${config.hashtagCountsHeading} for ${periodString} at ${periodPartStr}`)
+      log(pluginJson, hOutputArray.join('\n'))
+      log(pluginJson, `${config.mentionCountsHeading} for ${periodString} at ${periodPartStr}`)
+      log(pluginJson, mOutputArray.join('\n'))
       break
     }
 

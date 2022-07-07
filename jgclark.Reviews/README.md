@@ -50,7 +50,7 @@ type: template, quick-note, empty-note
 newNoteTitle: <%- prompt('noteTitle', 'Project name') %>
 folder: '/'
 ---
-#project @start(<%- pickDate({'question':'Enter start date'}) %>) @due(<%- pickDate({'question':'Enter due date'}) %>) @review(<%- pickDateInterval({'question':'Enter review interval'}) %>)
+#project @start(<%- promptDate('question':'Enter start date') %>) @due(<%- promptDate('question':'Enter due date') %>) @review(<%- promptDateInterval('question':'Enter review interval') %>)
 Aim: <%- prompt('aim') %>
 Context: <%- prompt('context') %>
 ```
@@ -63,24 +63,27 @@ You can specify folders to ignore using the `foldersToIgnore` setting; I have th
 
 When you have [configured the plugin](#configuration), and added suitable metadata to notes, you're then ready to use some or all of the following commands:
 
-### `/project lists`
-This creates/updates a list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete. This is stored in summary note(s) in the 'Reviews' folder (or whatever you set `folderToStore` setting to be).
+### /project lists
+This creates/updates a list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete. This is stored in summary note(s) in the 'Reviews' folder (or whatever you set `folderToStore` setting to be). For example:
+
+![/project lists example](project-list-example.png)
+
 You can specify folders to ignore using the `foldersToIgnore` setting, and see Configuration below for more details on the `displayOrder`, `displayGroupedByFolder` and `displayArchivedProjects` settings.
 
-### `/start reviews`
+### /start reviews
 This creates a hidden list of notes ready for review, and then kicks off the most overdue review by opening that note in the editor. When you have finished the review run one of the next two commands ...
 
-### `/complete review`
-This updates the current open project's @reviewed() date.
+### /complete review
+This updates the current open project's `@reviewed(date)`.
 
-### `/next review`
-This updates this project's @reviewed() date, and jumps to the next project to review. If there are none left ready for review it will show a congratulations message.
+### /next review
+This updates this project's `@reviewed(date)`, and jumps to the next project to review. If there are none left ready for review it will show a congratulations message.
 
-### `/complete project`
-This add an #archive tag, and a @completed(date) mention to the metadata line of the open project note, removes the project/area from the review list, and offers to move it to the NotePlan Archive area.
+### /complete project
+This add an #archive tag, and a `@completed(date)` mention to the metadata line of the open project note, removes the project/area from the review list, and offers to move it to the NotePlan Archive area.
 
-### `/cancel project`
-This add an #archive tag, and a @cancelled(date) mention to the metadata line of the open project note, removes the project/area from the review list, and offers to move it to the NotePlan Archive area.
+### /cancel project
+This add an #archive tag, and a `@cancelled(date)` mention to the metadata line of the open project note, removes the project/area from the review list, and offers to move it to the NotePlan Archive area.
 
 ## Configuration
 These commands require configuration, which is done by clicking the gear button on the 'Summaries' line in the Plugin Preferences panel.

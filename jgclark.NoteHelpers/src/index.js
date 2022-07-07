@@ -3,24 +3,27 @@
 // -----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// last changed 22.5.2021 for v0.12.0, @jgclark
+// last changed 3.6.2022 for v0.13.1, @jgclark
 // -----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
 import { log, logError } from '@helpers/dev'
 // settings
-import { migrateConfiguration, updateSettingData } from '@helpers/NPconfiguration'
+import { migrateConfiguration, updateSettingData } from '@helpers/NPConfiguration'
+export { countAndAddDays } from './countDays'
 
 export {
   convertToFrontmatter,
   jumpToDone,
   jumpToHeading,
   jumpToNoteHeading,
+  convertLocalLinksToPluginLinks,
   moveNote,
   openCurrentNoteNewSplit,
   openNoteNewWindow,
   openNoteNewSplit,
+  renameNoteFile,
 } from './noteHelpers'
 export { indexFolders } from './indexFolders'
 

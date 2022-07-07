@@ -13,6 +13,10 @@ module.exports = {
       replacement: path.resolve('./helpers'),
     },
     {
+      find: '@mocks',
+      replacement: path.resolve('./__mocks__'),
+    },
+    {
       find: '@templating',
       replacement: path.resolve('./np.Templating/lib'),
     },

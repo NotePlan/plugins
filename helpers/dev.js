@@ -28,7 +28,7 @@ const dt = (): string => {
  */
 export function JSP(obj: any, space: string | number = 2): string {
   const PARAM_BLACKLIST = ['referencedBlocks'] // fields not to be traversed (e.g. circular references)
-  if (typeof obj !== 'object') {
+  if (typeof obj !== 'object' || obj instanceof Date) {
     return String(obj)
   } else {
     if (Array.isArray(obj)) {
@@ -44,7 +44,7 @@ export function JSP(obj: any, space: string | number = 2): string {
       })
       return `${isValues ? '[' : ''}${arrInfo.join(isValues ? ', ' : ',\n')}${isValues ? ']' : ''}`
     }
-    const propNames = getAllPropertyNames(obj)
+    const propNames = getFilteredProps(obj)
     const fullObj = propNames.reduce((acc, propName) => {
       if (!/^__/.test(propName)) {
         if (Array.isArray(obj[propName])) {
@@ -64,9 +64,9 @@ export function JSP(obj: any, space: string | number = 2): string {
             console.log(
               `Caught error in JSP for propname=${propName} : ${error} typeof obj[propName]=${typeof obj[
                 propName
-              ]} isArray=${Array.isArray(obj[propName])} len=${obj[propName]?.length} \n VALUE: ${JSON.stringify(
-                obj[propName],
-              )}`,
+              ]} isArray=${String(Array.isArray(obj[propName]))} len=${
+                obj[propName]?.length
+              } \n VALUE: ${JSON.stringify(obj[propName])}`,
             )
           }
         } else {
@@ -75,7 +75,10 @@ export function JSP(obj: any, space: string | number = 2): string {
       }
       return acc
     }, {})
-    return cleanStrigifiedResults(JSON.stringify(fullObj, null, space ?? null))
+    // return cleanStringifiedResults(JSON.stringify(fullObj, null, space ?? null))
+    return typeof fullObj === 'object' && !(fullObj instanceof Date)
+      ? JSON.stringify(fullObj, null, space ?? null)
+      : 'date'
   }
 }
 
@@ -84,7 +87,7 @@ export function JSP(obj: any, space: string | number = 2): string {
  * @param {*} str
  * @returns
  */
-function cleanStrigifiedResults(str: string): string {
+function cleanStringifiedResults(str: string): string {
   let retStr = str
   retStr = retStr.replace(/","/gm, ',')
   retStr = retStr.replace(/"\{"/gm, '{').replace(/"\}"/gm, '}')
@@ -125,14 +128,15 @@ export function dump(
 
 /**
  * Create a list of the properties of an object, including inherited properties (which are not typically visible in JSON.stringify)
+ * Often includes a bunch of properties that are not useful for the user, e.g. constructor, __proto__
+ * See getFilteredProps for a cleaner version
  * @author @dwertheimer (via StackOverflow)
  *
  * @param {object} inObj
  * @returns [string]
  * @reference https://stackoverflow.com/questions/59228638/console-log-an-object-does-not-log-the-method-added-via-prototype-in-node-js-c
  */
-
-export function getAllPropertyNames(inObj: { [string]: mixed }): Array<string> {
+export function getAllPropertyNames(inObj: interface { [string]: mixed }): Array<string> {
   let obj = inObj
   var props = []
   do {
@@ -143,6 +147,20 @@ export function getAllPropertyNames(inObj: { [string]: mixed }): Array<string> {
     })
   } while ((obj = Object.getPrototypeOf(obj)))
   return props
+}
+
+/**
+ * Get the cleanest version of
+ * @param {object} object
+ * @returns {Array<string>} - an array of the interesting properties of the object
+ */
+export const getFilteredProps = (object: any): Array<string> => {
+  const ignore = ['toString', 'toLocaleString', 'valueOf', 'hasOwnProperty', 'propertyIsEnumerable', 'isPrototypeOf']
+  if (typeof object !== 'object' || Array.isArray(object)) {
+    console.log(`getFilteredProps improper type: ${typeof object}`)
+    return []
+  }
+  return getAllPropertyNames(object).filter((prop) => !/(^__)|(constructor)/.test(prop) && !ignore.includes(prop))
 }
 
 /**

@@ -3,6 +3,10 @@
 # details here - https://github.com/facebook/flow/issues/6646#issuecomment-447272772
 # <PROJECT_ROOT>/node_modules/.*
 
+# This particular sub-folder should be ignored because it includes malformed JSON
+<PROJECT_ROOT>/node_modules/resolve/test/.*
+.*/.history/.*
+
 [include]
 
 [libs]
@@ -19,6 +23,7 @@ suppress_type=$FlowFixMe
 suppress_type=$FlowTODO
 module.name_mapper='^@plugins' ->'<PROJECT_ROOT>'
 module.name_mapper='^@helpers' ->'<PROJECT_ROOT>/helpers'
+module.name_mapper='^@mocks' ->'<PROJECT_ROOT>/__mocks__'
 module.name_mapper='^NPTemplating' ->'<PROJECT_ROOT>/np.Templating/lib/NPTemplating'
 module.name_mapper='^TemplatingEngine' ->'<PROJECT_ROOT>/np.Templating/lib/TemplatingEngine'
 module.name_mapper='^@templating' ->'<PROJECT_ROOT>/np.Templating/lib'

@@ -1,8 +1,18 @@
 // @flow
 import pluginJson from '../plugin.json'
-import { migrateConfiguration, updateSettingData } from '../../helpers/NPconfiguration'
+import { migrateConfiguration, updateSettingData, pluginUpdated } from '../../helpers/NPConfiguration'
 
-export { insertTodosAsTimeblocks, insertTodosAsTimeblocksWithPresets } from './NPTimeblocking'
+export {
+  insertTodosAsTimeblocks,
+  insertTodosAsTimeblocksWithPresets,
+  selectCalendar,
+  insertSyncedCopiesOfTodayTodos,
+  removeSyncedCopiesOfTodayTodos,
+  removeTimeBlocks,
+  removePreviousSyncedCopies,
+  removePreviousTimeBlocks,
+  updateDatePlusTags,
+} from './NPTimeblocking'
 
 const PLUGIN_ID = 'autoTimeBlocking' // the key that's used in _configuration note
 
@@ -20,4 +30,15 @@ export async function onUpdateOrInstall(config: any = { silent: false }): Promis
     console.log(error)
   }
   console.log(`${PLUGIN_ID}: onUpdateOrInstall finished`)
+}
+
+export async function onSettingsUpdated() {
+  // console.log(`${PLUGIN_ID}: onSettingsUpdated ran - nothing to do`)
+}
+
+export function init(): void {
+  // this runs every time the plugin starts up (any command in this plugin is run)
+  DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], true, false, false).then((r) =>
+    pluginUpdated(pluginJson, r),
+  )
 }

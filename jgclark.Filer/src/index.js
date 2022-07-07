@@ -3,34 +3,52 @@
 // -----------------------------------------------------------------------------
 // Plugin to help move selected pargraphs to other notes
 // Jonathan Clark
-// Last updated 17.5.2022, for v0.7.0
+// Last updated 25.6.2022, for v0.8.0
 // -----------------------------------------------------------------------------
 
-export { moveParas } from './fileItems'
-export { addIDAndAddToOtherNote } from './IDs'
-export { newNoteFromSelection } from './newNoteFromSelection'
-
 // allow changes in plugin.json to trigger recompilation
-import pluginJson from '../plugin.json' 
+import pluginJson from '../plugin.json'
+import { JSP, log, logError } from "@helpers/dev"
+import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
+import { showMessage } from '@helpers/userInput'
 
-// Moving to ConfigV2
-import { migrateConfiguration, updateSettingData } from '../../helpers/NPconfiguration'
+export {
+  moveParas,
+  moveParasToCalendarDate,
+  moveParasToCalendarWeekly,
+  moveParasToNextWeekly,
+  moveParasToThisWeekly,
+  moveParasToToday,
+  moveParasToTomorrow,
+} from './fileItems'
+export { addIDAndAddToOtherNote } from './IDs'
+export { newNoteFromClipboard, newNoteFromSelection } from './newNote'
 
 const configKey = "filer"
 
-// refactor previous variables to new types
-export async function onUpdateOrInstall(config: any = { silent: false }): Promise<void> {
+export function init(): void {
   try {
-    console.log(`${configKey}: onUpdateOrInstall running`)
-    // migrate _configuration data to data/<plugin>/settings.json (only executes migration once)
-    const migrationResult: number = await migrateConfiguration(configKey, pluginJson, config?.silent)
-    console.log(`${configKey}: onUpdateOrInstall migrateConfiguration code: ${migrationResult}`)
-    if (migrationResult === 0) {
-       const updateSettings = updateSettingData(pluginJson)
-       console.log(`${configKey}: onUpdateOrInstall updateSettingData code: ${updateSettings}`)
-     }
+    // Check for the latest version of the plugin, and if a minor update is available, install it and show a message
+    DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false).then((r) =>
+      pluginUpdated(pluginJson, r),
+    )
   } catch (error) {
-    console.log(error)
+    logError(pluginJson, JSP(error))
   }
-  console.log(`${configKey}: onUpdateOrInstall finished`)
+}
+// refactor previous variables to new types
+export async function onUpdateOrInstall(): Promise<void> {
+  try {
+    log(pluginJson, `${configKey}: onUpdateOrInstall running`)
+    const updateSettings = updateSettingData(pluginJson)
+    log(pluginJson, `${configKey}: onUpdateOrInstall updateSettingData code: ${updateSettings}`)
+    if (pluginJson['plugin.lastUpdateInfo'] !== undefined) {
+      await showMessage(pluginJson['plugin.lastUpdateInfo'], 'OK, thanks',
+        `Plugin ${pluginJson['plugin.name']} updated to v${pluginJson['plugin.version']}`
+      )
+    }
+  } catch (error) {
+    logError(pluginJson, error)
+  }
+  log(pluginJson, `${configKey}: onUpdateOrInstall finished`)
 }
