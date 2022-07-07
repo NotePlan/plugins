@@ -1,3 +1,4 @@
+/* eslint-disable */
 /*
  * Note mock class
  *

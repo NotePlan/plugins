@@ -1,5 +1,6 @@
-/*
- * Backlink mock class
+/* eslint-disable */
+
+/* Backlink mock class
  *
  * Usage: const myBacklink = new Backlink({ param changes here })
  *

@@ -1,3 +1,4 @@
+/* eslint-disable */
 /*
  * PluginObject mock class
  *
