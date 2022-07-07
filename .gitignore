@@ -16,3 +16,4 @@ lcov*
 coverage/
 .history/**/*
 .hyperlayout
+.eslintignore
