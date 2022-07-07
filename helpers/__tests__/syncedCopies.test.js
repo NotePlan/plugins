@@ -1,3 +1,4 @@
+/* global describe, expect, test */
 import colors from 'chalk'
 import * as sc from '../syncedCopies'
 

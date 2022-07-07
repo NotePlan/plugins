@@ -1,11 +1,12 @@
-/* global describe, expect, test, toEqual */
+// @flow
+/* global describe, expect, test */
 import * as e from '../src/eventsToNotes'
-import { clo } from '../../helpers/dev'
+// import { clo } from '../../helpers/dev'
 
 describe('eventsToNotes.js tests', () => {
 
   describe('sortByCalendarNameThenStartTime() using HH:MM-strings as times', () => {
-    let mapForSorting: { cal: string, start: string, text: string }[] = []
+    const mapForSorting: { cal: string, start: string, text: string }[] = []
     mapForSorting.push({ cal: 'calB', start: '09:00', text: 'event string 1' })
     mapForSorting.push({ cal: 'calA', start: '10:00', text: 'event string 2' })
     mapForSorting.push({ cal: 'calC', start: '11:00', text: 'event string 3' })
@@ -13,7 +14,7 @@ describe('eventsToNotes.js tests', () => {
     mapForSorting.push({ cal: 'calA', start: '23:00', text: 'event string 5' })
     mapForSorting.push({ cal: 'calC', start: '00:00', text: 'event string 6' })
 
-    let sortedMap: { cal: string, start: string, text: string }[] = []
+    const sortedMap: { cal: string, start: string, text: string }[] = []
     sortedMap.push({ cal: 'calA', start: '10:00', text: 'event string 2' })
     sortedMap.push({ cal: 'calA', start: '23:00', text: 'event string 5' })
     sortedMap.push({ cal: 'calB', start: '09:00', text: 'event string 1' })
@@ -29,7 +30,7 @@ describe('eventsToNotes.js tests', () => {
   })
 
   describe('sortByCalendarNameThenStartTime() using Dates', () => {
-    let mapForSorting: { cal: string, start: Date, text: string }[] = []
+    const mapForSorting: { cal: string, start: Date, text: string }[] = []
     mapForSorting.push({ cal: 'calB', start: new Date(2021, 0, 1, 9, 0, 0), text: 'event string 1' })
     mapForSorting.push({ cal: 'calA', start: new Date(2021, 0, 1, 10, 0, 0), text: 'event string 2' })
     mapForSorting.push({ cal: 'calC', start: new Date(2021, 0, 1, 11, 0, 0), text: 'event string 3' })
@@ -37,7 +38,7 @@ describe('eventsToNotes.js tests', () => {
     mapForSorting.push({ cal: 'calA', start: new Date(2021, 0, 1, 23, 0, 0), text: 'event string 5' })
     mapForSorting.push({ cal: 'calC', start: new Date(2021, 0, 1, 0, 0, 0), text: 'event string 6' })
 
-    let sortedMap: { cal: string, start: Date, text: string }[] = []
+    const sortedMap: { cal: string, start: Date, text: string }[] = []
     sortedMap.push({ cal: 'calA', start: new Date(2021, 0, 1, 10, 0, 0), text: 'event string 2' })
     sortedMap.push({ cal: 'calA', start: new Date(2021, 0, 1, 23, 0, 0), text: 'event string 5' })
     sortedMap.push({ cal: 'calB', start: new Date(2021, 0, 1, 9, 0, 0), text: 'event string 1' })
@@ -53,23 +54,23 @@ describe('eventsToNotes.js tests', () => {
   })
 
   describe('smartStringReplace()', () => {
-    let config = {
+    const config = {
       calendarNameMappings: [],
       locale: "en-GB",
       timeOptions: ""
     }
-    let format1 = "- (*|CAL|*) *|TITLE|**| URL|**|\n> NOTES|*\n*|ATTENDEES|*" // simpler
-    let format2 = "### (*|CAL, |**|START|**|-END|*) *|TITLE|**|\nEVENTLINK|**| URL|**| with ATTENDEENAMES|**|\n> NOTES|*\n---\n" // more complex
-    let format3 = "### [*|START|*] *|TITLE|*\n- \n \n*****\n" // for @EasyTarget test
-    let format4 = "### [*|START|*] *|TITLE|*\n- \n\n\n\n\n" // for @EasyTarget test
-    let startDT = new Date(2021, 0, 1, 20, 0, 0)
-    let endDT = new Date(2021, 0, 1, 22, 0, 0)
-    let attendeesArray = ["✓ Jonathan Clark", "? James Bond", "x Martha", "? bob@example.com"]
-    let attendeeNamesArray = ["Jonathan Clark", "Martha Clark", "bob@example.com"]
-    let event1 = { calendar: 'Jonathan', title: 'title of event1', url: 'https://example.com/easy', date: startDT, endDate: endDT, notes: 'a few notes', attendees: attendeesArray, attendeeNames: attendeeNamesArray } // simple case
-    let event2 = { calendar: 'Us', title: 'title of event2 with <brackets> & more', url: 'https://example.com/bothersomeURL/example', date: startDT, endDate: endDT, notes: 'a few notes with TITLE and URL', attendees: attendeesArray, attendeeNames: attendeeNamesArray } // case with inclusion
-    let replacements1 = e.getReplacements(event1, config)
-    let replacements2 = e.getReplacements(event2, config)
+    const format1 = "- (*|CAL|*) *|TITLE|**| URL|**|\n> NOTES|*\n*|ATTENDEES|*" // simpler
+    const format2 = "### (*|CAL, |**|START|**|-END|*) *|TITLE|**|\nEVENTLINK|**| URL|**| with ATTENDEENAMES|**|\n> NOTES|*\n---\n" // more complex
+    const format3 = "### [*|START|*] *|TITLE|*\n- \n \n*****\n" // for @EasyTarget test
+    const format4 = "### [*|START|*] *|TITLE|*\n- \n\n\n\n\n" // for @EasyTarget test
+    const startDT = new Date(2021, 0, 1, 20, 0, 0)
+    const endDT = new Date(2021, 0, 1, 22, 0, 0)
+    const attendeesArray = ["✓ Jonathan Clark", "? James Bond", "x Martha", "? bob@example.com"]
+    const attendeeNamesArray = ["Jonathan Clark", "Martha Clark", "bob@example.com"]
+    const event1 = { calendar: 'Jonathan', title: 'title of event1', url: 'https://example.com/easy', date: startDT, endDate: endDT, notes: 'a few notes', attendees: attendeesArray, attendeeNames: attendeeNamesArray } // simple case
+    const event2 = { calendar: 'Us', title: 'title of event2 with <brackets> & more', url: 'https://example.com/bothersomeURL/example', date: startDT, endDate: endDT, notes: 'a few notes with TITLE and URL', attendees: attendeesArray, attendeeNames: attendeeNamesArray } // case with inclusion
+    const replacements1 = e.getReplacements(event1, config)
+    const replacements2 = e.getReplacements(event2, config)
 
     test('event 1 format 1 easy', () => {
       const result = e.smartStringReplace(format1, replacements1)

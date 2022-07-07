@@ -59,7 +59,7 @@ export const checkArray =
   <T>(checker: Checker<T>): Checker<$ReadOnlyArray<T>> =>
   (value: mixed): Array<T> => {
     if (Array.isArray(value)) {
-      for (let el of value) {
+      for (const el of value) {
         checker(el)
       }
       // This is a limitation of Flow
@@ -74,7 +74,7 @@ export const checkObj =
   <Obj: { +[string]: Checker<mixed> }>(checkerObj: Obj): Checker<$ObjMap<Obj, CheckerToValue>> =>
   (value: mixed) => {
     if (typeof value === 'object' && value !== null) {
-      for (let key in checkerObj) {
+      for (const key in checkerObj) {
         checkerObj[key](value[key])
       }
       // This is a limitation of Flow

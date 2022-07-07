@@ -14,10 +14,10 @@ beforeAll(() => {
 
 beforeEach(() => {
   const paragraphs = [
-    new Paragraph({ type: 'title', lineIndex: 1, content: 'theTitle', headingLevel: 1, indents: 0, lineIndex: 0 }),
-    new Paragraph({ type: 'text', lineIndex: 1, content: 'line 2', headingLevel: 1, indents: 0, lineIndex: 1 }),
-    new Paragraph({ type: 'empty', lineIndex: 1, content: '', headingLevel: 1, indents: 0, lineIndex: 2 }),
-    new Paragraph({ type: 'text', lineIndex: 1, content: 'line 3', headingLevel: 1, indents: 0, lineIndex: 3 }),
+    new Paragraph({ type: 'title', content: 'theTitle', headingLevel: 1, indents: 0, lineIndex: 0 }),
+    new Paragraph({ type: 'text', content: 'line 2', headingLevel: 1, indents: 0, lineIndex: 1 }),
+    new Paragraph({ type: 'empty', content: '', headingLevel: 1, indents: 0, lineIndex: 2 }),
+    new Paragraph({ type: 'text', content: 'line 3', headingLevel: 1, indents: 0, lineIndex: 3 }),
   ]
   Editor.note = new Note({ paragraphs })
 })

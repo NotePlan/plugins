@@ -79,13 +79,13 @@ export function keepTodayPortionOnly(input: Array<TCalendarItem>, whatDate: Date
  * @return {string} comma-separated list of parsed attendees
  */
 export function attendeesAsString(attendees: Map<string, string>, returnType?: 'email' | 'name' = 'name'): string {
-  let attArr = []
-  let splitterRE = /\[(.*?)\]\((.*?)\)/
+  const attArr = []
+  const splitterRE = /\[(.*?)\]\((.*?)\)/
 
-  for(let v of attendees.values()) {
-    let result = splitterRE.exec(v)
+  for (const v of attendees.values()) {
+    const result = splitterRE.exec(v)
     if (result && result?.length) {
-      if ((returnType === 'email' && result[2]) || (returnType === 'name' && result[1] == '' && result[2])) {
+      if ((returnType === 'email' && result[2]) || (returnType === 'name' && result[1] === '' && result[2])) {
         attArr.push(result[2])
       } else {
         attArr.push(result[1])

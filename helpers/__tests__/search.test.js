@@ -1,4 +1,4 @@
-/* global describe, expect, test, toEqual */
+/* global describe, expect, test */
 import * as s from '../search'
 
 describe('search.js tests', () => {
