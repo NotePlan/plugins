@@ -30,8 +30,8 @@ export function helpInfo(section: string, userDocPage?: string): string {
       case 'Template Anatomty: Frontmatter':
         docPage = 'templating-basics/template-anatomy#template-configuration'
         break
-      case 'Getting x-callback':
-        docPage = 'templating-commands/overview#npgx'
+      case 'Executing from x-callback':
+        docPage = 'templating-commands/xcallback'
         break
       case 'Plugin Error':
         docPage = 'templating-modules/helpers#noteplan-plugin-helpers'

@@ -3,7 +3,7 @@
   "noteplan.minAppVersion": "3.5.0",
   "plugin.id": "np.Templating",
   "plugin.name": "📒 np.Templating",
-  "plugin.version": "1.5.0-alpha.01",
+  "plugin.version": "2.0.0-alpha.01",
   "plugin.description": "Templating Plugin for NotePlan",
   "plugin.author": "Mike Erickson (@codedungeon)",
   "plugin.dependencies": [],

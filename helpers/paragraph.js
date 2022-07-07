@@ -3,28 +3,75 @@
 // Paragraph and block-level helpers functions
 //-----------------------------------------------------------------------------
 
-import { hyphenatedDateString } from './dateTime'
+import { log, logError, logWarn } from './dev'
 
 //-----------------------------------------------------------------------------
 // Paragraph-level Functions
 
-/**
- * Check to see if search term is present within a URL or file path
- * @author @jgclark
+export const RE_URI = '(\\w+:\\/\\/[\\w\\.\\/\\?\\#\\&\\d\\-\\=%*,]+)'
+export const RE_MARKDOWN_PATH = '\\[.+?\\]\\(([^\\s]*?)\\)'
 
+/**
+ * Check to see if search term is present within a URL or file path, using case sensitive searching.
+ * Now updated to _not match_ if the search term is present in the rest of the line.
+ * @author @jgclark
+ *
+ * @tests available in jest file
  * @param {string} term - term to check
  * @param {string} string - string to check in
  * @return {boolean} true if found
  */
-export function termInURL(term: string, searchString: string): boolean {
-  // create tailored Regex to test for presence of the term in the file/URL
-  const testTermInURI = `(?:https?://|file:/)[^\\s]*?${term}.*?[\\s\\.$]`
-  return !!searchString.match(testTermInURI)
+export function isTermInURL(term: string, searchString: string): boolean {
+  // create version of searchString that doesn't include the URL and test that first
+  const URIMatches = searchString.match(RE_URI) ?? []
+  const thisURI = URIMatches[1] ?? ''
+  if (thisURI !== '') {
+    const restOfLine = searchString.replace(thisURI, '')
+    if (restOfLine.match(term)) {
+      return false
+    } else {
+      // create tailored Regex to test for presence of the term
+      // const testTermInURI = `(\\w+:\\/\\/)[^\\s]*?${term}.*?[\\s\\.$]`
+      return !!thisURI.match(term)
+    }
+  } else {
+    // console.log(`  No URI -> false`)
+    return false
+  }
+}
+
+/**
+ * Check to see if search term is present within the path of a [...](path), using case sensitive searching.
+ * Now updated to _not match_ if the search term is present in the rest of the line.
+ * @author @jgclark
+ *
+ * @tests available in jest file
+ * @param {string} term - term to check
+ * @param {string} string - string to check in
+ * @return {boolean} true if found
+ */
+export function isTermInMarkdownPath(term: string, searchString: string): boolean {
+  // create version of searchString that doesn't include the URL and test that first
+  const MDPathMatches = searchString.match(RE_MARKDOWN_PATH) ?? []
+  const thisMDPath = MDPathMatches[1] ?? ''
+  if (thisMDPath !== '') {
+    const restOfLine = searchString.replace(thisMDPath, '')
+    if (restOfLine.match(term)) {
+      return false
+    } else {
+      // create tailored Regex to test for presence of the term
+      // const testTermInMDPath = `\[.+?\]\([^\\s]*?${term}[^\\s]*?\)`
+      return !!thisMDPath.match(term)
+    }
+  } else {
+    // console.log(`  No MD path -> false`)
+    return false
+  }
 }
 
 /**
  * Pretty print range information
- * NB: This is a copy of what's in general.js to avoid circular dependency.
+ * Note: This is a copy of what's in general.js to avoid circular dependency.
  * @author @EduardMe
  */
 export function rangeToString(r: Range): string {
@@ -35,19 +82,21 @@ export function rangeToString(r: Range): string {
 }
 
 /**
- * Return title of note useful for display, even for calendar notes (the YYYYMMDD)
- * NB: this fn is a local copy of the one in helpers/general.js to avoid circular dependency
+ * Return title of note useful for display, including for
+ * - daily calendar notes (the YYYYMMDD)
+ * - weekly notes (the YYYY-Wnn)
+ * Note: this is a local copy of the main helpers/general.js to avoid a circular dependency
  * @author @jgclark
  *
- * @param {TNote} n - note
- * @return {string} - title to use
+ * @param {?TNote} n - note to get title for
+ * @return {string}
  */
-function displayTitle(n: TNote): string {
-  if (n.type === 'Calendar' && n.date != null) {
-    return hyphenatedDateString(n.date)
-  } else {
-    return n.title ?? ''
-  }
+export function displayTitle(n: ?TNote): string {
+  return !n
+    ? 'error'
+    : n.type === 'Calendar' && n.date != null
+    ? n.filename.split('.')[0] // without file extension
+    : n.title ?? ''
 }
 
 /**
@@ -58,7 +107,7 @@ function displayTitle(n: TNote): string {
  * @return {string} - string representation of those paragraphs, without trailling newline
  */
 export function parasToText(paras: Array<TParagraph>): string {
-  // console.log('parasToText: starting with ' + paras.length + ' paragraphs')
+  // log('paragraph/parasToText', `starting with ${paras.length} paragraphs`)
   let text = ''
   for (let i = 0; i < paras.length; i++) {
     const p = paras[i]
@@ -76,7 +125,7 @@ export function parasToText(paras: Array<TParagraph>): string {
  */
 export function printParagraph(p: TParagraph) {
   if (p === null) {
-    console.log('ERROR: paragraph is undefined')
+    logError('paragraph/printParagraph', `paragraph is undefined`)
     return
   }
 
@@ -130,7 +179,7 @@ export function calcSmartPrependPoint(note: TNote): number {
       }
       if (insertionLine === 1) {
         // If we get here we haven't found an end to the YAML block.
-        console.log(`Warning: couldn't find end of YAML frontmatter in note ${displayTitle(note)}`)
+        logWarn('paragraph/calcSmartPrependPoint', `Couldn't find end of YAML frontmatter in note ${displayTitle(note)}`)
         // It's not clear what to do at this point, so will leave insertion point as is
       }
     } else if (lines[1].match(/^#[A-z]/)) {
@@ -174,8 +223,10 @@ export function smartPrependPara(note: TNote, paraText: string, paragraphType: P
 /**
  * Works out where the first ## Done or ## Cancelled section starts, if present.
  * Works with folded Done or Cancelled sections.
- * If not, return the last paragraph index.
+ * If the previous line was a separator, use that line instead
+ * If neither Done or Cancelled present, return the line count.
  * @author @jgclark
+ * @tests in jest file
  *
  * @param {TNote} note - the note to assess
  * @return {number} - the index number
@@ -183,24 +234,29 @@ export function smartPrependPara(note: TNote, paraText: string, paragraphType: P
 export function findEndOfActivePartOfNote(note: TNote): number {
   const paras = note.paragraphs
   const lineCount = paras.length
-  let doneHeaderLine = 0
-  let cancelledHeaderLine = 0
-  for (let i = 0; i < lineCount; i++) {
-    const p = paras[i]
-    if (p.headingLevel === 2 && p.content.startsWith('Done')) {
-      doneHeaderLine = i
-    }
-    if (p.headingLevel === 2 && p.content.startsWith('Cancelled')) {
-      cancelledHeaderLine = i
-    }
+
+  // Find first example of ## Done
+  const doneHeaderLines = paras.filter((p) => p.headingLevel === 2 && p.content.startsWith('Done')) ?? []
+  let doneHeaderLine = doneHeaderLines.length > 0 ? doneHeaderLines[0].lineIndex : 0
+  // Now check to see if previous line was a separator; if so use that line instead
+  if (doneHeaderLine > 2 && paras[doneHeaderLine - 1].type === 'separator') {
+    doneHeaderLine -= 1
   }
+  // Find first example of ## Cancelled
+  const cancelledHeaderLines = paras.filter((p) => p.headingLevel === 2 && p.content.startsWith('Cancelled')) ?? []
+  let cancelledHeaderLine = cancelledHeaderLines.length > 0 ? cancelledHeaderLines[0].lineIndex : 0
+  // Now check to see if previous line was a separator; if so use that line instead
+  if (cancelledHeaderLine > 2 && paras[cancelledHeaderLine - 1].type === 'separator') {
+    cancelledHeaderLine -= 1
+  }
+
   const endOfActive = doneHeaderLine > 0 ? doneHeaderLine : cancelledHeaderLine > 0 ? cancelledHeaderLine : lineCount
-  // console.log(`  dHL = ${doneHeaderLine}, cHL = ${cancelledHeaderLine} endOfActive = ${endOfActive}`)
+  // log('paragraph/findEndOfActivePartOfNote', `  dHL = ${doneHeaderLine}, cHL = ${cancelledHeaderLine} endOfActive = ${endOfActive}`)
   return endOfActive
 }
 
 /**
- * Works out which is the last line of the frontmatter (or 0 if not present)
+ * Works out which is the last line of the frontmatter (or 0 if not present).
  * @author @jgclark
  *
  * @param {TNote} note - the note to assess
@@ -209,91 +265,78 @@ export function findEndOfActivePartOfNote(note: TNote): number {
 export function endOfFrontmatterLineIndex(note: TNote): number {
   const paras = note.paragraphs
   const lineCount = paras.length
+  console.log(`starting with lineCount = ${lineCount}`)
   let inFrontMatter: boolean = false
-  let i = 0
-  while (i < lineCount) {
-    const p = paras[i]
+  let lineIndex = 0
+  while (lineIndex < lineCount) {
+    const p = paras[lineIndex]
     if (p.type === 'separator') {
       if (!inFrontMatter) {
         inFrontMatter = true
       } else {
         inFrontMatter = false
-        return i
+        return lineIndex
       }
     }
-    i++
+    lineIndex++
   }
   return 0
 }
 
 /**
- * Works out where the first line of the note is, following the first paragraph of type 'title', or frontmatter (if present).
+ * Works out where the first 'active' line of the note is, following the first paragraph of type 'title', or frontmatter (if present).
  * Additionally, it skips past any front-matter like section in a project note, as used by the Reviews plugin before frontmatter was supported.
  * This is indicated by a #hashtag starting the next line. If there is, run on to next heading or blank line.
+ * Note: given this is a precursor to writing to a note, it first checks if the note is completely empty (0 lines). If so, a first 'empty' line is added, to avoid edge cases in calling code.
  * @author @jgclark
  *
  * @param {TNote} note - the note to assess
  * @return {number} - the line index number
  */
 export function findStartOfActivePartOfNote(note: TNote): number {
-  const paras = note.paragraphs
-  const lineCount = paras.length
-  let inFrontMatter: boolean = false
-  let i = 0
-
-  // set line to start looking at: after H1 or frontmatter (if present)
-  let startOfActive = endOfFrontmatterLineIndex(note) + 1
-
-  // additionally, we're going to skip past any front-matter like section in a project note, 
-  // indicated by a #hashtag starting the next line.
-  // If there is, run on to next heading or blank line.
-  if (paras[startOfActive].content.match(/^#\w/)) {
-    for (i = startOfActive; i < lineCount; i++) {
-      const p = paras[i]
-      if (p.type === 'title' || p.type === 'empty') {
-        startOfActive = i + 1
-        break
+  try {
+    let paras = note.paragraphs
+    // First check there's actually anything at all! If note, add a first empty paragraph
+    if (paras.length === 0) {
+      log(`paragraph/findStartOfActivePartOfNote`, `Note was empty; adding a blank line to make writing to the note work`)
+      note.appendParagraph('', 'empty')
+      return 0
+    }
+    if (note.type === 'Calendar') {
+      // Calendar notes are simple -> line index 0
+      // But first check there's actually anything at all! If so -> NaN
+      return 0
+    } else {
+      // Looking at project/regular notes
+      // set line to start looking at: after H1 or frontmatter (if present)
+      const endOfTitleOrFMIndex = endOfFrontmatterLineIndex(note)
+      let startOfActive = endOfTitleOrFMIndex + 1
+      if (paras.length === startOfActive) {
+        // NB: length = line index + 1
+        // There is no line after title or FM, so add a blank line to use
+        log('paragraph/findStartOfActivePartOfNote', `Added a blank line after title/frontmatter of '${displayTitle(note)}'`)
+        note.appendParagraph('', 'empty')
+        paras = note.paragraphs
       }
-    }
-  }
-  return startOfActive
-}
 
-/**
- * Get paragraph numbers of the start and end of the current selection in the Editor.
- * @author @jgclark
- *
- * @param {TRange} selection - the current selection rnage object
- * @return {[number, number]} the line index number of start and end of selection
- */
-export function selectedLinesIndex(selection: Range, paragraphs: $ReadOnlyArray<TParagraph>): [number, number] {
-  let firstSelParaIndex = 0
-  let lastSelParaIndex = 0
-  const startParaRange = Editor.paragraphRangeAtCharacterIndex(selection.start)
-  const endParaRange: Range = Editor.paragraphRangeAtCharacterIndex(selection.end)
-
-  // Get the set of selected paragraphs (which can be different from selection),
-  // and work out what selectedPara number(index) this selected selectedPara is
-  for (let i = 0; i < paragraphs.length; i++) {
-    const p = paragraphs[i]
-    if (startParaRange.start === p.contentRange?.start) {
-      firstSelParaIndex = i
-      break
+      // additionally, we're going to skip past any front-matter like section in a project note,
+      // indicated by a #hashtag starting the next line.
+      // If there is, run on to next heading or blank line.
+      if (paras[startOfActive].content.match(/^#\w/)) {
+        for (let i = startOfActive; i < paras.length; i++) {
+          const p = paras[i]
+          if (p.type === 'title' || p.type === 'empty') {
+            startOfActive = i + 1
+            break
+          }
+        }
+      }
+      return startOfActive
     }
+  } catch (err) {
+    logError('paragraph/findStartOfActivePartOfNote', err.message)
+    return NaN // for completeness
   }
-  for (let i = paragraphs.length - 1; i >= 0; i--) {
-    const p = paragraphs[i]
-    if (endParaRange.end >= (p.contentRange?.end ?? 0)) {
-      lastSelParaIndex = i
-      break
-    }
-  }
-  if (lastSelParaIndex === 0) {
-    lastSelParaIndex = firstSelParaIndex
-  }
-  // Now get the first paragraph, and as many following ones as are in that block
-  // console.log(`\t-> paraIndexes ${firstSelParaIndex}-${lastSelParaIndex}`)
-  return [firstSelParaIndex, lastSelParaIndex]
 }
 
 /**
@@ -305,13 +348,12 @@ export function selectedLinesIndex(selection: Range, paragraphs: $ReadOnlyArray<
  */
 export function getParaFromContent(note: TNote, contentToFind: string): TParagraph | void {
   const { paragraphs } = note
-  let result = 0 // default result
-  for (let p of paragraphs) {
+  for (const p of paragraphs) {
     if (p.content === contentToFind) {
       return p
     }
   }
-  console.log(`gPFC: warning couldn't find '${contentToFind}`)
+  logWarn('helper/getParaFromContent', `warning couldn't find '${contentToFind}`)
   return
 }
 
@@ -335,7 +377,7 @@ export function getOrMakeMetadataLine(note: TNote): number {
       break
     }
   }
-  if (lineNumber === NaN) {
+  if (Number.isNaN(lineNumber)) {
     // If no metadataPara found, then insert one straight after the title
     console.log(`Warning: Can't find an existing metadata line, so will insert a new second line for it`)
     Editor.insertParagraph('', 1, 'empty')
@@ -346,48 +388,21 @@ export function getOrMakeMetadataLine(note: TNote): number {
 }
 
 /**
- * Remove all paragraphs in the section of a note, given:
- * - Note to use
- * - Section heading line to look for (needs to match from start of line but not necessarily the end)
- * A section is defined (here at least) as all the lines between the heading,
- * and the next heading of that same or higher level, or the end of the file
- * if that's sooner.
- * @author @jgclark
+ * Find a heading/title that matches the string given
+ * Note: There's a copy in helpers/NPParagaph.js to avoid a circular dependency
+ * @author @dwertheimer
  *
- * @param {TNote} note to use
- * @param {string} heading to remove
- * @return {number} lineIndex of the found heading, or if not found the last line of the note
+ * @param {TNote} note
+ * @param {string} heading
+ * @returns {TParagraph | null} - returns the actual paragraph or null if not found
+ * @tests exist
  */
-export function removeSection(note: TNote, heading: string): number {
-  const ps = note.paragraphs
-  let existingHeadingIndex = ps.length // start at end of file
-  let sectionHeadingLevel = 2
-  console.log(`\tremoveSection: '${heading}' from note '${note.title ?? ''}' with ${ps.length} paras:`)
+export function findHeading(note: TNote, heading: string): TParagraph | null {
+  if (heading) {
+    const paragraphs = note.paragraphs
+    const para = paragraphs.find((paragraph) => paragraph.type === 'title' && paragraph.content.trim() === heading.trim())
 
-  for (const p of ps) {
-    if (p.type === 'title' && p.content.startsWith(heading)) {
-      existingHeadingIndex = p.lineIndex
-      sectionHeadingLevel = p.headingLevel
-    }
+    if (para) return para
   }
-
-  if (existingHeadingIndex !== undefined && existingHeadingIndex < ps.length) {
-    // Work out the set of paragraphs to remove
-    const psToRemove = []
-    note.removeParagraph(ps[existingHeadingIndex])
-    for (let i = existingHeadingIndex + 1; i < ps.length; i++) {
-      // stop removing when we reach heading of same or higher level
-      if (ps[i].type === 'title' && ps[i].headingLevel <= sectionHeadingLevel) {
-        break
-      }
-      psToRemove.push(ps[i])
-    }
-
-    // Delete the saved set of paragraphs
-    note.removeParagraphs(psToRemove)
-    console.log(`\t  -> removed ${psToRemove.length} paragraphs`)
-    return existingHeadingIndex
-  } else {
-    return ps.length
-  }
+  return null
 }

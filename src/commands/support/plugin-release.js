@@ -1,7 +1,7 @@
 'use strict'
 
 const util = require('util')
-const { filesystem, colors, print, path, system, prompt, strings } = require('@codedungeon/gunner')
+const { filesystem, colors, print, path, system, prompt, strings, api: http } = require('@codedungeon/gunner')
 const ListPrompt = require('inquirer/lib/prompts/list')
 const Listr = require('listr')
 const split = require('split')
@@ -24,10 +24,33 @@ const exec = (cmd, args) => {
   return merge(streamToObservable(cp.stdout.pipe(split())), streamToObservable(cp.stderr.pipe(split())), cp).pipe(filter(Boolean))
 }
 
+const buildDeleteCommands = async (pluginId = '', currentVersion = '') => {
+  const deleteCommands = []
+
+  const api = http.create({
+    baseURL: 'https://api.github.com',
+    headers: { Accept: 'application/vnd.github.v3+json' },
+  })
+
+  const releases = await api.get('repos/NotePlan/plugins/releases')
+  if (releases.data.length > 0) {
+    releases.data.forEach((release) => {
+      const tag = release.tag_name
+      if (tag.includes(pluginId) && !tag.includes(currentVersion)) {
+        const version = tag.replace(pluginId, '').replace('-v', '')
+        deleteCommands.push(`gh release delete "${pluginId}-v${version}" -y`)
+      }
+    })
+  }
+
+  return deleteCommands
+}
+
 module.exports = {
   run: async (pluginId = '', pluginName = '', pluginVersion = '', args = {}) => {
     const runTests = false
     const runBuild = !args?.noBuild
+    const deletePrevious = !args?.noDelete
     const preview = args?.preview
     const testRunner = `./node_modules/.bin/jest`
     const testCommand = ['run', 'test:dev', `${pluginId}/__tests__/*.test.js`]
@@ -129,12 +152,31 @@ module.exports = {
       ])
     }
 
+    if (deletePrevious) {
+      tasks.add([
+        {
+          title: 'Deleting previous releases',
+          skip: async () => {
+            const cmds = buildDeleteCommands(pluginId, pluginVersion)
+            if (args.preview) {
+              return `[Preview] ${(await cmds).join(', ')}`
+            }
+          },
+          task: async () => {
+            const cmds = buildDeleteCommands(pluginId, pluginVersion)
+            cmds.forEach(async (cmd) => {
+              const result = await system.run(cmd, true)
+            })
+          },
+        },
+      ])
+    }
+
     tasks.add([
       {
         title: 'Publishing release',
         skip: async () => {
           const cmd = await releaseTasks(pluginId, pluginVersion, args)
-
           if (args.preview) {
             return `[Preview] ${cmd}`
           }
@@ -143,7 +185,6 @@ module.exports = {
           const cmd = await releaseTasks(pluginId, pluginVersion, args)
           if (cmd.includes(`gh release create "${pluginId}-v${pluginVersion}" -t "${pluginName}" -F`)) {
             const result = await system.run(cmd, true)
-            console.log(result)
           }
         },
       },

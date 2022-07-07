@@ -46,6 +46,12 @@ module.exports = {
       description: `Skip Build Process ${colors.gray('(will use current build)')}`,
       required: false,
     },
+    noDelete: {
+      aliases: ['d'],
+      type: 'boolean',
+      description: `Skip Delete Process ${colors.gray('(do not delete existing releases for plugin)')}`,
+      required: false,
+    },
     noTests: {
       aliases: ['t'],
       type: 'boolean',
@@ -102,6 +108,7 @@ module.exports = {
     const preview = args.preview || false
     const force = args.force || false
     const noTests = args.noTests || false
+    const noDelete = args.noDelete || false
     const noBuild = args.noBuild || false
 
     if (result.length === 0) {

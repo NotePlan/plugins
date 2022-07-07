@@ -4,7 +4,7 @@ const tildify = require('tildify')
 const gitUserLocal = require('git-user-local')
 const githubUsername = require('github-username')
 
-const buildQuestion = (name = '', message = '', initial = '') => {
+const buildQuestion = (name = '', message = '', initial = '', validator = null) => {
   return {
     type: 'input',
     name,
@@ -19,34 +19,57 @@ module.exports = {
   run: async (toolbox) => {
     try {
       const ghUserLocal = await gitUserLocal()
-      const ghUserName = await githubUsername(ghUserLocal.user.email)
+      let ghUserName = '<author>'
+      if (!toolbox.arguments.force) {
+        ghUserName = await githubUsername(ghUserLocal.user.email)
+      }
+
       !toolbox.arguments.hasOwnProperty('id')
         ? questions.push(
-            buildQuestion('pluginId', 'What would you like to name your plugin?', `${ghUserName}.PluginName`),
+            toolbox.prompts.buildQuestion('input', 'pluginId', 'What would you like to name your plugin?', {
+              input: ghUserName === '<author>' ? '' : `${ghUserName}.PluginName`,
+              hint: ghUserName === '<author>' ? 'e.g. githubUserName.MyPlugin' : '',
+              validate: (value, state, item, index) => {
+                if (value.length === 0 || value.indexOf('<author>') !== -1) {
+                  return toolbox.colors.red(`You must supply a valid plugin author (e.g. githubUserName.MyPlugin)`)
+                }
+                return true
+              },
+            }),
           )
         : null
 
       !toolbox.arguments.hasOwnProperty('name')
-        ? questions.push(
-            buildQuestion(
-              'pluginName',
-              'Name as it will appear in NotePlan Preferences Plugins List?',
-              `My Plugin Name`,
-            ),
-          )
+        ? questions.push(toolbox.prompts.buildQuestion('input', 'pluginName', 'Name as it will appear in NotePlan Preferences Plugins List?', { input: `My Plugin Name` }))
         : null
 
       !toolbox.arguments.hasOwnProperty('description')
-        ? questions.push(buildQuestion('pluginDescription', 'Simple Plugin Description', `My Plugin for NotePlan`))
+        ? questions.push(toolbox.prompts.buildQuestion('input', 'pluginDescription', 'Simple Plugin Description', { input: `My Plugin for NotePlan` }))
         : null
 
       !toolbox.arguments.hasOwnProperty('author')
-        ? questions.push(buildQuestion('pluginAuthor', 'Your Name or Organization', ghUserName))
+        ? questions.push(
+            toolbox.prompts.buildQuestion('input', 'pluginAuthor', 'Your Name or Organization Name', {
+              input: ghUserName === '<author>' ? '' : ghUserName,
+              hint: ghUserName === '<author>' ? 'e.g. codedungeon' : '',
+              validate: (value, state, item, index) => {
+                if (value.length === 0 || value.indexOf('<author>') !== -1) {
+                  if (ghUserName.indexOf('<pluginAuthor>') !== -1) {
+                    return toolbox.colors.red('You must supply a valid plugin author name (e.g. codedungeon)')
+                  } else {
+                    return toolbox.colors.red(`You must supply a valid plugin author name (e.g. ${ghUserName})`)
+                  }
+                }
+                return true
+              },
+            }),
+          )
         : null
 
       let answers = {}
+
       if (questions.length > 0) {
-        answers = { ...(await prompt(questions)) }
+        answers = { ...(await toolbox.prompts.show(questions)) }
       }
       const result = {
         ...{

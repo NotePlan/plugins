@@ -18,9 +18,7 @@ module.exports = {
     id: {
       type: 'string',
       aliases: ['i'],
-      description: `Unique Plugin ID ${colors.gray(
-        '(recommended format "<githubUserName.PluginName>" e.g., "codedungeon.Toolbox")',
-      )}`,
+      description: `Unique Plugin ID ${colors.gray('(recommended format "<githubUserName.PluginName>" e.g., "codedungeon.Toolbox")')}`,
       required: true,
       prompt: {
         type: 'input',
@@ -52,6 +50,12 @@ module.exports = {
       prompt: {
         type: 'input',
       },
+    },
+    force: {
+      type: 'boolean',
+      aliases: ['f'],
+      description: `Force Plugin Creation ${colors.red('(will not verify if desired plugin.id already exists)')}`,
+      required: false,
     },
   },
 
@@ -100,6 +104,13 @@ module.exports = {
     flags.pluginName = flags.pluginName?.split('.').pop()
 
     // all good, createPlugin
+
+    if (!flags?.pluginId) {
+      console.log('')
+      print.warning('Opeartioin aborted, plugin not created', 'ABORT')
+      process.exit()
+    }
+
     const pluginPath = path.join(process.cwd(), flags.pluginId)
     console.log()
     flags.ghUserName = ghUserName
@@ -120,11 +131,6 @@ module.exports = {
     print.info(`   - Open NotePlan and run your new plugin command ${colors.yellow('/sayHello')}`)
     print.info(`     from NotePlan Command Bar (CMD-J) or inline (/)`)
     console.log('')
-    print.warn(
-      `Use ${colors.cyan(
-        'noteplan-cli plugin:info --check <your_command>',
-      )} to check if a command name you want to use is available`,
-      'TIP',
-    )
+    print.warn(`Use ${colors.cyan('noteplan-cli plugin:info --check <your_command>')} to check if a command name you want to use is available`, 'TIP')
   },
 }

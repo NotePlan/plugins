@@ -890,13 +890,13 @@ export async function templateFileByTitle(selectedTemplate?: string = '', openIn
 export async function templateGetXcallbackForTemplate(): Promise<void> {
   try {
     if (!Editor?.filename?.includes('@Templates')) {
-      await CommandBar.prompt('Invalid Template', 'Please open template you wish to execute for x-callback execution\n\n' + helpInfo('Getting x-callback'))
+      await CommandBar.prompt('Invalid Template', 'Please open template you wish to execute for x-callback execution\n\n' + helpInfo('Executing from x-callback'))
       return
     }
 
     let message = `Enter any variables and values you want to pass to the template in key=value pairs:\n\n myTemplateVar=value,otherVar=value2\n\n (where "myTemplateVar" and "otherVar" are the name of variables you use in your template. Multiple variables are separated by commas)`
     let result = await getInputTrimmed(message, 'OK', 'Template Variables to Pass')
-    if (result) {
+    if (typeof result === 'string') {
       const args = [Editor.filename || '', String(result)]
       let link = createRunPluginCallbackUrl(pluginJson['plugin.id'], `np:tr`, args)
       message = `Would you like the link for pasting inside NotePlan or a raw URL?`
