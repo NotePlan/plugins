@@ -1,3 +1,4 @@
+/* eslint-disable */
 /*
  * DataStore mocks
  *
@@ -55,7 +56,7 @@ const DataStore = {
       case 'timeblockTextMustContainString':
         // return 'at' // to test use of 'must contain string'
         // return deliberatelyUndefined // to test an error case
-        return ''// set to blank to mimic no additional NP checking of text strings
+        return '' // set to blank to mimic no additional NP checking of text strings
         break
       case 'isAsteriskTodo':
         return true

@@ -1,3 +1,4 @@
+/* eslint-disable */
 /*
  * Range mock class
  *

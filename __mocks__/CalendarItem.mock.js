@@ -1,3 +1,4 @@
+/* eslint-disable */
 /*
  * CalendarItem mock class
  *
