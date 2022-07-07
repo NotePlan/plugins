@@ -4,6 +4,11 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/codedungeon.Toolbox/README.md) for details on available commands and use case.
 
+## [1.4.0] - 2022-07-07 (@mikeerickson)
+
+- Removed dead code
+- Fixed linting errors
+
 ## [1.3.1] - 2022-05-24 (@mikeerickson)
 
 - Removed `convertToRtf` as it has been added to NotePlan

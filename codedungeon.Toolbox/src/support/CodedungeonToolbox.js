@@ -13,8 +13,8 @@ const removeAttributes = (str = '', attrs = []) => {
   const reg = /<\s*(\w+).*?>/gm
   const reg2 = /\s*(\w+)=\"[^\"]+\"/gm
 
-  str = str.replace(reg, (match, i) => {
-    const result = match.replace(reg2, (match_, i) => {
+  str = str.replace(reg, (match) => {
+    const result = match.replace(reg2, (match_) => {
       const matchFound = reg2.exec(match_)
       if (matchFound) {
         return attrs.indexOf(matchFound[1]) >= 0 ? match_ : ''
@@ -25,8 +25,6 @@ const removeAttributes = (str = '', attrs = []) => {
   })
   return str
 }
-
-function convertHtmlToRtf(html) {}
 
 export default class CodedungeonToolbox {
   markdownToHtml(text = '', options = { removeAttributes: true }) {
@@ -54,10 +52,7 @@ export default class CodedungeonToolbox {
     let richText = html
 
     // Singleton tags
-    richText = richText.replace(
-      /<(?:hr)(?:\s+[^>]*)?\s*[\/]?>/gi,
-      '{\\pard \\brdrb \\brdrs \\brdrw10 \\brsp20 \\par}\n{\\pard\\par}\n',
-    )
+    richText = richText.replace(/<(?:hr)(?:\s+[^>]*)?\s*[\/]?>/gi, '{\\pard \\brdrb \\brdrs \\brdrw10 \\brsp20 \\par}\n{\\pard\\par}\n')
     richText = richText.replace(/<(?:br)(?:\s+[^>]*)?\s*[\/]?>/gi, '{\\pard\\par}\n')
 
     // Empty tags
@@ -65,15 +60,9 @@ export default class CodedungeonToolbox {
     richText = richText.replace(/<(?:[^>]+)\/>/g, '')
 
     // Hyperlinks
-    richText = richText.replace(
-      /<a(?:\s+[^>]*)?(?:\s+href=(["'])(?:javascript:void\(0?\);?|#|return false;?|void\(0?\);?|)\1)(?:\s+[^>]*)?>/gi,
-      '{{{\n',
-    )
+    richText = richText.replace(/<a(?:\s+[^>]*)?(?:\s+href=(["'])(?:javascript:void\(0?\);?|#|return false;?|void\(0?\);?|)\1)(?:\s+[^>]*)?>/gi, '{{{\n')
     const tmpRichText = richText
-    richText = richText.replace(
-      /<a(?:\s+[^>]*)?(?:\s+href=(["'])(.+)\1)(?:\s+[^>]*)?>/gi,
-      '{\\field{\\*\\fldinst{HYPERLINK\n "$2"\n}}{\\fldrslt{\\ul\\cf1\n',
-    )
+    richText = richText.replace(/<a(?:\s+[^>]*)?(?:\s+href=(["'])(.+)\1)(?:\s+[^>]*)?>/gi, '{\\field{\\*\\fldinst{HYPERLINK\n "$2"\n}}{\\fldrslt{\\ul\\cf1\n')
     const hasHyperlinks = richText !== tmpRichText
     richText = richText.replace(/<a(?:\s+[^>]*)?>/gi, '{{{\n')
     richText = richText.replace(/<\/a(?:\s+[^>]*)?>/gi, '\n}}}')
@@ -96,13 +85,12 @@ export default class CodedungeonToolbox {
 
     // Prefix and suffix the rich text with the necessary syntax
     /* eslint-disable prefer-template*/
-    richText =
-      '{\\rtf1\\ansi\n' + (hasHyperlinks ? '{\\colortbl\n;\n\\red0\\green0\\blue255;\n}\n' : '') + richText + '\n}'
+    richText = '{\\rtf1\\ansi\n' + (hasHyperlinks ? '{\\colortbl\n;\n\\red0\\green0\\blue255;\n}\n' : '') + richText + '\n}'
 
     return richText
   }
 
-  async reorderList(listData = '') {
+  reorderList(listData = '') {
     const workingData = [...listData]
 
     let lineItem = 0

@@ -4,7 +4,6 @@
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
  * -----------------------------------------------------------------------------------------*/
 
-import { showMessage } from '../../helpers/userInput'
 import CodedungeonToolbox from './support/CodedungeonToolbox'
 
 export async function reorderList(): Promise<void> {
