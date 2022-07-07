@@ -4,7 +4,6 @@ const { CLI } = require('@codedungeon/gunner')
 const colors = require('chalk')
 const parseArgs = require('minimist')
 
-const appUtils = require('./src/utils/app')
 const pkgInfo = require('./package.json')
 
 const getLogDirectory = (argv, defaultLocation = 'system') => {

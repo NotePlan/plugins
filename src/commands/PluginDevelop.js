@@ -1,3 +1,4 @@
+/* eslint-disable */
 const { colors, helpers, print, prompt, system, filesystem, path } = require('@codedungeon/gunner')
 const { defaultsDeep } = require('lodash')
 const tildify = require('tildify')

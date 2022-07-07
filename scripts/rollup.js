@@ -1,4 +1,5 @@
 // @flow
+/* eslint-disable */
 'use strict'
 
 // $FlowFixMe
@@ -29,13 +30,7 @@ const createPluginListing = require('./createPluginListing')
 
 let progress
 
-const {
-  getFolderFromCommandLine,
-  getPluginFileContents,
-  writeMinifiedPluginFileContents,
-  getCopyTargetPath,
-  getPluginConfig,
-} = require('./shared')
+const { getFolderFromCommandLine, getPluginFileContents, writeMinifiedPluginFileContents, getCopyTargetPath, getPluginConfig } = require('./shared')
 
 const FOLDERS_TO_IGNORE = ['scripts', 'flow-typed', 'node_modules', 'np.plugin-flow-skeleton']
 const rootFolderPath = path.join(__dirname, '..')
@@ -68,8 +63,7 @@ const copyBuild = async (outputFile = '', isBuildTask = false) => {
 
     let msg = COMPACT
       ? `${dateTime} - ${pluginFolder} (v${pluginJsonData['plugin.version']})`
-      : colors.cyan(`${dateTime} -- ${pluginFolder} (v${pluginJsonData['plugin.version']})`) +
-        '\n   Built and copied to the "Plugins" folder.'
+      : colors.cyan(`${dateTime} -- ${pluginFolder} (v${pluginJsonData['plugin.version']})`) + '\n   Built and copied to the "Plugins" folder.'
 
     if (DEBUGGING) {
       msg += colors.yellow(`\n   Built in DEBUG mode. Not ready to deploy.\n`)
@@ -181,10 +175,7 @@ async function main() {
   const rootLevelFolders = rootFolder
     .filter(
       (dirent) =>
-        dirent.isDirectory() &&
-        !dirent.name.startsWith('.') &&
-        !FOLDERS_TO_IGNORE.includes(dirent.name) &&
-        (limitToFolders.length === 0 || limitToFolders.includes(dirent.name)),
+        dirent.isDirectory() && !dirent.name.startsWith('.') && !FOLDERS_TO_IGNORE.includes(dirent.name) && (limitToFolders.length === 0 || limitToFolders.includes(dirent.name)),
     )
     .map(async (dirent) => {
       const pluginFolder = path.join(__dirname, '..', dirent.name)
@@ -253,10 +244,7 @@ async function build() {
     const rootLevelFolders = rootFolder
       .filter(
         (dirent) =>
-          dirent.isDirectory() &&
-          !dirent.name.startsWith('.') &&
-          !FOLDERS_TO_IGNORE.includes(dirent.name) &&
-          (limitToFolders.length === 0 || limitToFolders.includes(dirent.name)),
+          dirent.isDirectory() && !dirent.name.startsWith('.') && !FOLDERS_TO_IGNORE.includes(dirent.name) && (limitToFolders.length === 0 || limitToFolders.includes(dirent.name)),
       )
       .map(async (dirent) => {
         const pluginFolder = path.join(__dirname, '..', dirent.name)

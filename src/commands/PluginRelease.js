@@ -1,3 +1,4 @@
+/* eslint-disable */
 const { colors, helpers, print, strings, system, prompt, filesystem, path } = require('@codedungeon/gunner')
 const Messenger = require('@codedungeon/messenger')
 const appUtils = require('../utils/app')
@@ -112,7 +113,10 @@ module.exports = {
     const noBuild = args.noBuild || false
 
     if (result.length === 0) {
-      toolbox.print.error(`Unable to locate plugin ${pluginId}, make sure you are at the project root directory`, 'ERROR')
+      toolbox.print.error(
+        `Unable to locate plugin ${pluginId}, make sure you are at the project root directory`,
+        'ERROR',
+      )
       process.exit()
     }
     const configData = pluginUtils.getPluginConfig(pluginId)

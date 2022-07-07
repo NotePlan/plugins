@@ -3,6 +3,8 @@
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
  * -----------------------------------------------------------------------------------------*/
 
+/* eslint-disable */
+
 const colors = require('chalk')
 const Table = require('cli-table3')
 const { print, helpers } = require('@codedungeon/gunner')
@@ -87,7 +89,9 @@ module.exports = {
       if (plugin) {
         toolbox.print.error(` 🚫 '${check}' exists in ${plugin.pluginName} [${plugin.pluginId}].`)
       } else {
-        toolbox.print.success(` ✅ '${check}' is currently not used by any NotePlan plugin and can be used in your plugin.`)
+        toolbox.print.success(
+          ` ✅ '${check}' is currently not used by any NotePlan plugin and can be used in your plugin.`,
+        )
       }
       process.exit()
     }
@@ -117,7 +121,13 @@ module.exports = {
         ids.push(pluginId)
       }
       if (item.pluginId !== 'yourGitID.yourPluginCollectionName') {
-        table.push([`${pluginId}\n${pluginAuthor}`, pluginName, item.name, item.jsFunction, item.description.substring(0, 75)])
+        table.push([
+          `${pluginId}\n${pluginAuthor}`,
+          pluginName,
+          item.name,
+          item.jsFunction,
+          item.description.substring(0, 75),
+        ])
       }
     })
 

@@ -2,8 +2,8 @@
   "name": "np.plugins",
   "packageName": "noteplan-cli",
   "info": "noteplan plugin development toolbox",
-  "version": "3.8.0",
-  "build": "350",
+  "version": "3.10.0",
+  "build": "031000",
   "description": "noteplan-cli",
   "repository": "https://github.com/NotePlan/plugins",
   "contributors": [
@@ -61,7 +61,6 @@
     "@rollup/plugin-commonjs": "^19.0.0",
     "@rollup/plugin-json": "4.1.0",
     "@rollup/plugin-node-resolve": "13.0.4",
-    "axios": "0.27.2",
     "concurrently": "^6.2.0",
     "eslint": "^7.26.0",
     "eslint-config-prettier": "^8.3.0",
@@ -103,7 +102,7 @@
     "docs": "documentation build helpers/*.js flow-typed/Noteplan.js --sort-order=alpha --project-name=\"NotePlan API+@helpers shared files\" --project-description=\"An attempt to help find @helper functions\" --project-homepage \"https://help.noteplan.co/article/70-javascript-plugin-api\" -f html -o \"Documentation-Helpers\""
   },
   "prettier": {
-    "printWidth": 120,
+    "printWidth": 180,
     "parser": "flow",
     "semi": false,
     "trailingComma": "all",

@@ -1,7 +1,7 @@
 // github utilties
 const util = require('util')
 const git = require('git-state')
-const { filesystem, colors, print, path, system, shell, execa } = require('@codedungeon/gunner')
+const { filesystem, colors, print, path, system, shell, execa } = require('@codedungeon/gunner') // eslint-disable-line
 
 const gitCheck = util.promisify(git.check)
 
@@ -41,9 +41,17 @@ module.exports = {
     return releases
   },
 
-  getReleaseCommand: async function (version = null, pluginId = null, pluginName = null, fileList = null, sendToGithub = false) {
+  getReleaseCommand: function (
+    version = null,
+    pluginId = null,
+    pluginName = null,
+    fileList = null,
+    sendToGithub = false,
+  ) {
     const changeLog = fileList?.changelog ? `-F "${fileList.changelog}"` : ''
-    const cmd = `gh release create "${pluginId}-v${version}" -t "${pluginName}" ${changeLog} ${!sendToGithub ? `--draft` : ''} ${fileList.files.map((m) => `"${m}"`).join(' ')}`
+    const cmd = `gh release create "${pluginId}-v${version}" -t "${pluginName}" ${changeLog} ${
+      !sendToGithub ? `--draft` : ''
+    } ${fileList.files.map((m) => `"${m}"`).join(' ')}`
 
     return cmd
   },

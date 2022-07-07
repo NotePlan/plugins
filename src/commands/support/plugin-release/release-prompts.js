@@ -24,7 +24,7 @@ module.exports = {
     major = type === 'major' ? colors.cyan(major) : major
     minor = type === 'minor' ? colors.cyan(minor) : minor
     patch = type === 'patch' ? colors.cyan(patch) : patch
-    remainder = remainder ? `.${remainder}` : ''
+    remainder = remainder ? `.${remainder}` : '' // eslint-disable-line
 
     return `${major}.${minor}.${patch}`
   },
@@ -62,6 +62,7 @@ module.exports = {
       if (answer.length > 0) {
         if (answer[0].value === 'Other (Specify)') {
           answer = await prompt.input('Enter version', {
+            /* eslint-disable */
             validate(value, state, item, index) {
               if (!semver.valid(value)) {
                 return colors.red.bold('version should be a valid semver value (major.minor.patch)')

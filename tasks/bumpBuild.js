@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-/* global require */
 
 /*-------------------------------------------------------------------------------------------
  * Copyright (c) 2018-2021 Mike Erickson / Codedungeon.  All rights reserved.

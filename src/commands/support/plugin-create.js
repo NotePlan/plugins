@@ -1,17 +1,9 @@
+/* eslint-disable */
 const { filesystem, colors, print, path } = require('@codedungeon/gunner')
 const { prompt } = require('enquirer')
 const tildify = require('tildify')
 const gitUserLocal = require('git-user-local')
 const githubUsername = require('github-username')
-
-const buildQuestion = (name = '', message = '', initial = '', validator = null) => {
-  return {
-    type: 'input',
-    name,
-    message,
-    initial,
-  }
-}
 
 const questions = []
 
@@ -40,11 +32,22 @@ module.exports = {
         : null
 
       !toolbox.arguments.hasOwnProperty('name')
-        ? questions.push(toolbox.prompts.buildQuestion('input', 'pluginName', 'Name as it will appear in NotePlan Preferences Plugins List?', { input: `My Plugin Name` }))
+        ? questions.push(
+            toolbox.prompts.buildQuestion(
+              'input',
+              'pluginName',
+              'Name as it will appear in NotePlan Preferences Plugins List?',
+              { input: `My Plugin Name` },
+            ),
+          )
         : null
 
       !toolbox.arguments.hasOwnProperty('description')
-        ? questions.push(toolbox.prompts.buildQuestion('input', 'pluginDescription', 'Simple Plugin Description', { input: `My Plugin for NotePlan` }))
+        ? questions.push(
+            toolbox.prompts.buildQuestion('input', 'pluginDescription', 'Simple Plugin Description', {
+              input: `My Plugin for NotePlan`,
+            }),
+          )
         : null
 
       !toolbox.arguments.hasOwnProperty('author')

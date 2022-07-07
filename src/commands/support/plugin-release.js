@@ -1,6 +1,9 @@
+/* eslint-disable no-unused-vars */
+
 'use strict'
 
-const util = require('util')
+const util = require('util') // eslint-disable-line
+/* eslint-disable */
 const { filesystem, colors, print, path, system, prompt, strings, api: http } = require('@codedungeon/gunner')
 const ListPrompt = require('inquirer/lib/prompts/list')
 const Listr = require('listr')
@@ -157,16 +160,18 @@ module.exports = {
         {
           title: 'Deleting previous releases',
           skip: async () => {
-            const cmds = buildDeleteCommands(pluginId, pluginVersion)
+            const cmds = await buildDeleteCommands(pluginId, pluginVersion)
             if (args.preview) {
               return `[Preview] ${(await cmds).join(', ')}`
             }
           },
           task: async () => {
-            const cmds = buildDeleteCommands(pluginId, pluginVersion)
-            cmds.forEach(async (cmd) => {
-              const result = await system.run(cmd, true)
-            })
+            const cmds = await buildDeleteCommands(pluginId, pluginVersion)
+            if (cmds.length > 0) {
+              cmds.forEach(async (cmd) => {
+                const result = await system.run(cmd, true)
+              })
+            }
           },
         },
       ])

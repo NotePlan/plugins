@@ -386,7 +386,7 @@ module.exports = {
     return result
   },
 
-  async executeSubCommand(cmd = null) {
+  executeSubCommand(cmd = null) {
     if (cmd) {
       try {
         // eslint-disable-next-line
@@ -400,7 +400,7 @@ module.exports = {
     }
   },
 
-  async run(cmd = null) {
+  run(cmd = null) {
     execa('noteplan-cli', [cmd, '--help'], {
       env: { FORCE_COLOR: 'true' },
     }).then((data) => console.log(data.stdout))

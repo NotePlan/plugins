@@ -4,6 +4,11 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/codedungeon.Toolbox/README.md) for details on available commands and use case.
 
+## [3.10.0] - 2022-07-07 (@codedungeon)
+- added `--force` option to `npc plugin:create` which will skip all network lookups (when retrieving github user information) (@dwertheimer)
+- added task to `npc plugin:release` which remove previous releases for same pluginId (@jgclark)
+> you can use the `--noDelete` flag to skip delete tasks (this will rarely be used, but added for completeness)
+
 ## [3.9.0] - 2022-06-17 (@jgclark)
 - removed luxon
 - (unmentioned here but I believe @nmn remove luxon-business-days about 2022-06-12)

@@ -7,7 +7,6 @@ const mkdirp = require('mkdirp')
 const pathToNoteplanTypeDefs = path.resolve(__dirname, '../flow-typed/Noteplan.js')
 const pathToDocs = path.resolve(__dirname, '../../plugin-docs/docs/plugin-api')
 
-const backtick = '`'
 const typescriptStart = '```typescript'
 const codeblockFence = '```'
 
@@ -27,7 +26,7 @@ async function generateSimpleTypeAlias(node, index, folderPath = pathToDocs) {
   const fileName = `${title}.md`
   const filePath = path.resolve(folderPath, fileName)
 
-  let file = `---
+  const file = `---
 sidebar_position: ${index + 1}
 ---
 
@@ -43,22 +42,14 @@ ${docs}
 }
 
 async function genDocsForValue(node, index, folderPath = pathToDocs) {
-  if (
-    node.type === 'DeclareVariable' &&
-    node.id.typeAnnotation.type === 'TypeAnnotation' &&
-    node.id.typeAnnotation.typeAnnotation.type === 'GenericTypeAnnotation'
-  ) {
+  if (node.type === 'DeclareVariable' && node.id.typeAnnotation.type === 'TypeAnnotation' && node.id.typeAnnotation.typeAnnotation.type === 'GenericTypeAnnotation') {
     await generateSimpleTypeAlias(node, index, folderPath)
-  } else if (
-    node.type === 'DeclareVariable' &&
-    node.id.typeAnnotation.type === 'TypeAnnotation' &&
-    node.id.typeAnnotation.typeAnnotation.type === 'ObjectTypeAnnotation'
-  ) {
-    for (let indexer of node.id.typeAnnotation.typeAnnotation.indexers) {
+  } else if (node.type === 'DeclareVariable' && node.id.typeAnnotation.type === 'TypeAnnotation' && node.id.typeAnnotation.typeAnnotation.type === 'ObjectTypeAnnotation') {
+    for (const indexer of node.id.typeAnnotation.typeAnnotation.indexers) {
       console.log(generate(indexer).code)
     }
 
-    for (let prop of node.id.typeAnnotation.typeAnnotation.properties) {
+    for (const prop of node.id.typeAnnotation.typeAnnotation.properties) {
       console.log(generate(prop).code)
     }
 

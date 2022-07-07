@@ -1,11 +1,11 @@
 'use strict'
 
 const { filesystem, path } = require('@codedungeon/gunner')
-const { defaultsDeep } = require('lodash')
 const github = require('./github')
 
 module.exports = {
   checkVersion: async function (pluginName, pluginVersion) {
+    /* eslint-disable */
     const pluginPath = path.resolve(pluginName)
 
     const releaseList = await github.releaseList(pluginName, pluginVersion)
@@ -17,7 +17,7 @@ module.exports = {
     return matching.length === 0
   },
 
-  checkChangelogNotes: async function (pluginName = null, version = null) {
+  checkChangelogNotes: function (pluginName = null, version = null) {
     const changelogFilename = path.resolve(path.join(pluginName, 'CHANGELOG.md'))
     if (filesystem.existsSync(changelogFilename)) {
       const data = filesystem.readFileSync(changelogFilename)
@@ -68,7 +68,7 @@ module.exports = {
     }
   },
 
-  verifyPluginData: async function (pluginName = '') {
+  verifyPluginData: function (pluginName = '') {
     const requiredKeys = [
       'macOS.minVersion',
       'noteplan.minAppVersion',
@@ -131,7 +131,9 @@ module.exports = {
               pluginAliases.forEach((alias) => {
                 pluginCommands.push({
                   pluginId: pluginObj.hasOwnProperty('plugin.id') ? pluginObj['plugin.id'] : 'missing plugin-id',
-                  pluginName: pluginObj.hasOwnProperty('plugin.name') ? pluginObj['plugin.name'] : 'missing plugin-name',
+                  pluginName: pluginObj.hasOwnProperty('plugin.name')
+                    ? pluginObj['plugin.name']
+                    : 'missing plugin-name',
                   name: alias,
                   description: command.description,
                   jsFunction: command.jsFunction,

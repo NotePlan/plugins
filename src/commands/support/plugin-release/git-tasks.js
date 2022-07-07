@@ -4,6 +4,7 @@ const { print } = require('@codedungeon/gunner')
 const Listr = require('listr')
 const github = require('../github')
 
+/* eslint-disable */
 module.exports = (pluginName, options) => {
   const tasks = [
     {

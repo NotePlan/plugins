@@ -1,4 +1,6 @@
 // @flow
+/* eslint-disable */
+
 const TEST = false // when set to true, doesn't actually create or delete anything. Just a dry run
 const COMMAND = 'Plugin Release'
 

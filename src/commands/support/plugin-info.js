@@ -5,7 +5,7 @@ const pluginUtils = require('./plugin-utils')
 module.exports = {
   // returns true if every passed
   // returns false something failed verification
-  sanityCheck: async function () {
+  sanityCheck: function () {
     const uniqueCommands = []
     const commands = pluginUtils.getPluginCommands('./')
     commands.forEach((command) => {

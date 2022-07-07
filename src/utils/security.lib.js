@@ -1,3 +1,4 @@
+/* eslint-disable */
 function _0xaa0f() {
   const _0x4fa0a6 = [
     '3144102kSNFJf',

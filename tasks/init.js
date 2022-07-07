@@ -2,7 +2,7 @@ const os = require('os')
 const username = os.userInfo().username
 const { filesystem, system, path, print, colors } = require('@codedungeon/gunner')
 
-async function init(cwd = null) {
+function init(cwd = null) {
   const pluginDirectory = cwd
   let completedTasks = 0
 
@@ -12,7 +12,7 @@ async function init(cwd = null) {
     completedTasks++
   }
 
-  const pluginPathFilename = path.join(cwd, '.pluginpath')
+  const pluginPathFilename = path.join(pluginDirectory, '.pluginpath')
   if (!filesystem.existsSync(pluginPathFilename)) {
     const data = `/Users/${username}/Library/Containers/co.noteplan.NotePlan3/Data/Library/Application Support/co.noteplan.NotePlan3/Plugins`
     filesystem.writeFileSync(pluginPathFilename, data)

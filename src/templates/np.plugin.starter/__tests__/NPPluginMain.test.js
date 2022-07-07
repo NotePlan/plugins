@@ -1,5 +1,6 @@
 // Jest testing docs: https://jestjs.io/docs/using-matchers
 /* global describe, expect, test, beforeAll */
+/* eslint-disable */
 
 import * as mainFile from '../src/NPPluginMain'
 import { copyObject } from '@helpers/dev'

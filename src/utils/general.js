@@ -6,6 +6,7 @@ if (!globalThis.fetch) {
 }
 
 module.exports = {
+  // eslint-disable-next-line
   quote: async (quoteParams = null, quoteConfig = null) => {
     const availableModes = [
       'today', // Zenquotes
@@ -22,10 +23,7 @@ module.exports = {
     const pref_author = quoteConfig?.author // Available authors: https://premium.zenquotes.io/available-authors/
     const pref_zenquotes_key = quoteConfig?.zenquotesKey ?? '' // https://premium.zenquotes.io/
     const API = `https://zenquotes.io/api/`
-    const URL =
-      pref_mode === 'author' && pref_author && pref_zenquotes_key
-        ? `${API}quotes/${pref_mode}/${pref_author}/${pref_zenquotes_key}`
-        : `${API}${pref_mode}`
+    const URL = pref_mode === 'author' && pref_author && pref_zenquotes_key ? `${API}quotes/${pref_mode}/${pref_author}/${pref_zenquotes_key}` : `${API}${pref_mode}`
 
     const response = await fetch(URL)
 
@@ -40,6 +38,4 @@ module.exports = {
       return `Error in Quote lookup to ${API}. Please check your _configuration note.`
     }
   },
-
-  weather: async (config = {}) => {},
 }

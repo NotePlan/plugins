@@ -1,11 +1,12 @@
 const { filesystem, path } = require('@codedungeon/gunner')
+/* eslint-disable */
 const appUtils = require('../../utils/app')
 
 module.exports = {
   getTestFilenames: function () {
     const commands = filesystem.directoryList('./', { directoriesOnly: true })
 
-    let result = []
+    let result = [] // eslint-disable-line
     commands.forEach((directory) => {
       const dirname = path.join(directory, 'src')
       if (filesystem.existsSync(dirname)) {
@@ -24,7 +25,7 @@ module.exports = {
   directoriesWithTestFiles: function () {
     const commands = filesystem.directoryList('./', { directoriesOnly: true })
 
-    let result = []
+    let result = [] // eslint-disable-line
     commands.forEach((directory) => {
       const dirname = path.join(directory, 'src')
       if (filesystem.existsSync(dirname)) {
