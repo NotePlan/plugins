@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/codedungeon.Toolbox/README.md) for details on available commands and use case.
 
+## [1.4.1] - 2022-07-07 (@mikeerickson)
+
+- No changes, forcing version update
+
 ## [1.4.0] - 2022-07-07 (@mikeerickson)
 
 - Removed dead code
