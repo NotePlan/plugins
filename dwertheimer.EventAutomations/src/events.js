@@ -1,5 +1,4 @@
 // @flow
-import { add } from 'date-fns'
 import { getEventsForDay } from '../../helpers/NPCalendar'
 import { getTodaysDateUnhyphenated, type HourMinObj, toLocaleTime } from '../../helpers/dateTime'
 import { chooseOption, chooseFolder } from '../../helpers/userInput'
@@ -20,11 +19,11 @@ function getTimeOffset(offset: HourMinObj = { h: 0, m: 0 }) {
 }
 
 export async function createNoteForCalendarItemWithQuickTemplate(): Promise<void> {
-  createNoteForCalendarItem(true)
+  await createNoteForCalendarItem(true)
 }
 
 export async function createNoteForCalendarItemWithoutQuickTemplate(): Promise<void> {
-  createNoteForCalendarItem(false)
+  await createNoteForCalendarItem(false)
 }
 
 export async function createNoteForCalendarItem(useQuickTemplate: boolean = true): Promise<void> {
@@ -34,12 +33,12 @@ export async function createNoteForCalendarItem(useQuickTemplate: boolean = true
   console.log(`Found ${allDaysEvents.length} events for today`)
   const nowIshEvents = await getEventsForDay(date, [], getTimeOffset({ h: -1, m: 0 }), getTimeOffset({ h: +1, m: 0 })) // second param now implies consider all calendars
   console.log(`Found ${nowIshEvents.length} events for nowIsh`)
-  let events = allDaysEvents
+  // const events = allDaysEvents
   if (nowIshEvents.length > 0) {
-    events = [...nowIshEvents, ...[{ title: '---' }], ...allDaysEvents]
+    // events = [...nowIshEvents, ...[{ title: '---' }], ...allDaysEvents]
   }
   // $FlowIgnore
-  const selections = allDaysEvents.map((event, i) => {
+  const selections = allDaysEvents.map((event) => {
     // $FlowIgnore
     const time = toLocaleTime(event.date, [], { hour: '2-digit', minute: '2-digit', hour12: false })
     // $FlowIgnore
@@ -51,10 +50,10 @@ export async function createNoteForCalendarItem(useQuickTemplate: boolean = true
   // $FlowIgnore
   const selEvent = selections.find((event) => event.value === selectedEvent)
   // $FlowIgnore
-  const theTime = selEvent.time === '00:00' ? '' : selEvent.time
+  // const theTime = selEvent.time === '00:00' ? '' : selEvent.time
   console.log(`Selected event: ${selectedEvent} ${String(JSON.stringify(selEvent))}`)
   // $FlowIgnore
-  const theTitle = `${selectedEvent} {{date8601()}} ${theTime || ''}`
+  // const theTitle = `${selectedEvent} {{date8601()}} ${theTime || ''}`
   if (selectedEvent && useQuickTemplate) {
     // quickTemplateNote is not defined!
     // await quickTemplateNote(theTitle)
@@ -84,9 +83,9 @@ export async function createNoteForCalendarItem(useQuickTemplate: boolean = true
   }
 }
 
-function printEventsToConsole(events: Array<Object>): void {
-  events.forEach((event) => {
-    //  ${event.notes} ${event.url}
-    console.log(`${event.title} ${event.date} ${event.endDate} ${event.isAllDay}`)
-  })
-}
+// function printEventsToConsole(events: Array<Object>): void {
+//   events.forEach((event) => {
+//     //  ${event.notes} ${event.url}
+//     console.log(`${event.title} ${event.date} ${event.endDate} ${event.isAllDay}`)
+//   })
+// }
