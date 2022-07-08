@@ -103,36 +103,24 @@ export async function saveSearch(
 
     //---------------------------------------------------------
     // Search using search() API available from v3.6.0
-    // let results: Array<resultObjectType> = []
-    // let resultCount = 0
-
     // const startTime = new Date
     // CommandBar.showLoading(true, `Running search for ${String(termsToMatchArr)} ...`)
     // await CommandBar.onAsyncThread()
 
-    // for (const untrimmedSearchTerm of termsToMatchArr) {
-      // search over all notes, apart from specified folders
-      // const searchTerm = untrimmedSearchTerm.trim()
+    // TODO: once release >809 is out change null to []
     const resultsProm = runSearches(termsToMatchArr, noteTypesToInclude, null, config.foldersToExclude, config)
-      // const resultObject: resultObjectType = await runSearch(searchTerm, ['calendar', 'notes'], [], config.foldersToExclude, config)
-      
-      // Save this search term and results as a new object in results array
-      // results.push(resultObject)
-      // results.push( { resultHeading: thisResultHeading, resultLines: outputArray })
-      // resultCount += resultObject.resultCount
-    // }
+
     // await CommandBar.onMainThread()
     // CommandBar.showLoading(false)
-
     // const elapsedTimeAPI = timer(startTime)
     // log(pluginJson, `Search time (API): ${termsToMatchArr.length} searches in ${elapsedTimeAPI} -> ${resultCount} results`)
 
     //---------------------------------------------------------
-    // Work out where to save this summary to
+    // Work out where to save this summary
     let destination = ''
-    if (calledIndirectly) {
+    if (calledIndirectly || config.autoSave) {
       // Being called from x-callback so will only write to 'newnote' destination
-      log(pluginJson, `  running from x-callback so will write to a note in the specified folder.`)
+      // Or we have a setting asking to save automatically to 'newnote'
       destination = 'newnote'
     }
     else {

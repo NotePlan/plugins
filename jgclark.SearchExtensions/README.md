@@ -35,6 +35,8 @@ There are two ways results can be displayed, controlled by the "Group results by
 
 The length of the quote of the matched line can be limited by the "Result quote length" setting.
 
+The setting 'Automatically save' when turned on automatically decides the name of the note to save the search results to (based on the search term), which avoids the final prompt.
+
 ## Configuration
 To change the default **configuration**, click the gear button on the 'Search Extensions' line in the Plugin Preferences panel to configure this plugin. Each setting has an explanation.
 

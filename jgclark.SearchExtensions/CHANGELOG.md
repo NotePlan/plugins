@@ -4,6 +4,10 @@
 - searches now run over Weekly Notes as well (now the underlying API has been extended)
 - ??? sort ordering?
 -->
+## [0.3.0] - 2022-07-???
+### Added
+- new setting 'Automatically save' when turned on automatically decides the name of the note to save the search results to (based on the search term), which avoids the final prompt. (for @dwertheimer)
+
 ## [0.2.0] - 2022-07-05
 ### Added
 - the order of results can now be set: by title, created date, or changed date of the note the result is found in. This can be changed in the Settings.

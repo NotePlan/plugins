@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.SearchExtensions/CHANGELOG.md",
-  "plugin.version": "0.2.0",
-  "plugin.lastUpdateInfo": "Results can be sorted using new 'Sort Order' setting.",
+  "plugin.version": "0.3.0",
+  "plugin.lastUpdateInfo": "New 'Automatically save' setting available",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -75,6 +75,14 @@
     {
       "type": "heading",
       "title": "Search Extensions plugin settings"
+    },
+    {
+      "key": "autoSave",
+      "title": "Automatically save",
+      "description": "If true, will save to an automatically-named note in the configured folder",
+      "type": "bool",
+      "default": false,
+      "required": true
     },
     {
       "key": "folderToStore",

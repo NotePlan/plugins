@@ -3,7 +3,7 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 2.7.2022 for v0.1.0, @jgclark
+// Last updated 8.7.2022 for v0.3.0, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -160,36 +160,6 @@ export async function saveSearchPeriod(
       return
     }
 
-    //------------------------------------------------------------
-    // Find matches in notes for the time period (original method)
-    // const outputArray = []
-    // let resultCount = 0
-    // let startTime = new Date // for timer
-    // for (const untrimmedSearchTerm of filteredTermsToMatchArr) {
-    //   const searchTerm = untrimmedSearchTerm.trim()
-    //   // get list of matching paragraphs for this string
-    //   // FIXME: why always zero results?
-    //   const results = gatherMatchingLines(periodDailyNotes, searchTerm,
-    //     config.highlightResults, config.dateStyle, config.matchCase)
-    //   const lines = results?.[0]
-    //   resultCount += lines.length
-    //   const context = results?.[1]
-    //   // output a heading first
-    //   outputArray.push(`${headingMarker} ${searchTerm}`)
-    //   if (lines.length > 0) {
-    //     log(pluginJson, `- Found ${lines.length} results for '${searchTerm}'`)
-    //     // form the output
-    //     for (let i = 0; i < lines.length; i++) {
-    //       outputArray.push(`${config.resultPrefix}${lines[i]} ${context[i]}`)
-    //     }
-    //   } else if (config.showEmptyResults) {
-    //     // If there's nothing to report, make that clear
-    //     outputArray.push('(no matches)')
-    //   }
-    // }
-    // const elapsedTimeGML = timer(startTime)
-    // log(pluginJson, `Search time (GML): ${elapsedTimeGML} -> ${resultCount} results`)
-
     //-------------------------------------------------------------
     // newer search method using search() API available from v3.6.0
     // Strategy: search all calendar notes, and then only select in
@@ -203,6 +173,7 @@ export async function saveSearchPeriod(
       const searchTerm = untrimmedSearchTerm.trim()
       const outputArray = []
       // get list of matching paragraphs for this string
+      // TODO: After b809 change null to []
       const resultParas = await DataStore.search(searchTerm, ['calendar'], null, config.foldersToExclude) // search over all notes
       const lines = resultParas
       // output a heading first
@@ -215,11 +186,14 @@ export async function saveSearchPeriod(
         let previousNoteTitle = ''
         for (let i = 0; i < lines.length; i++) {
           let matchLine = lines[i].content
-          const thisNoteTitleDisplay = (lines[i].note.date != null)
-            ? formatNoteDate(lines[i].note.date, config.dateStyle)
-            : titleAsLink(lines[i].note)
+          const noteContainingMatchLine = lines[i].note
+          const thisNoteTitleDisplay = (noteContainingMatchLine?.date)
+            ? formatNoteDate(noteContainingMatchLine.date, config.dateStyle)
+            // $FlowFixMe[incompatible-call]
+            : titleAsLink(noteContainingMatchLine)
           // Keep this match if within selected date range
-          if (withinDateRange(getDateStringFromCalendarFilename(lines[i].note.filename), fromDateStr, toDateStr)) {
+          // $FlowFixMe[incompatible-use]
+          if (withinDateRange(getDateStringFromCalendarFilename(noteContainingMatchLine.filename), fromDateStr, toDateStr)) {
             // const thisNoteTitle = displayTitle(lines[i].note)
             // If the test is within a URL or the path of a [!][link](path) skip this result
             if (isTermInURL(searchTerm, matchLine)) {
@@ -266,11 +240,11 @@ export async function saveSearchPeriod(
     const labelString = `🖊 Create/update note '${periodString}' in folder '${String(config.folderToStore)}'`
 
     //---------------------------------------------------------
-    // Work out where to save this summary to
+    // Work out where to save this summary
     let destination = ''
-    if (calledIndirectly) {
+    if (calledIndirectly || config.autoSave) {
       // Being called from x-callback so will only write to 'newnote' destination
-      log(pluginJson, `  running from x-callback so will write to note in the specified folder.`)
+      // Or we have a setting asking to save automatically to 'newnote'
       destination = 'newnote'
     } else {
       // else ask user

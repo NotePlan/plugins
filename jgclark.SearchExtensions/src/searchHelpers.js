@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Search Extensions helpers
 // Jonathan Clark
-// Last updated 5.7.2022 for v0.2.0 by @jgclark
+// Last updated 8.7.2022 for v0.3.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -39,6 +39,7 @@ export type resultObjectType = {
 const configKey = 'search'
 
 export type SearchConfig = {
+  autoSave: boolean,
   folderToStore: string,
   foldersToExclude: Array<string>,
   headingLevel: headingLevelType,
