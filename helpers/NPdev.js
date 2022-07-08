@@ -1,6 +1,6 @@
 // @flow
 
-import { clo, JSP, log, logError, logAllPropertyNames, getAllPropertyNames, getFilteredProps } from './dev'
+import { clo, log } from './dev'
 
 import { createRunPluginCallbackUrl } from './general'
 import { chooseOption, getInput, showMessageYesNo } from './userInput'
@@ -50,9 +50,9 @@ export async function chooseRunPluginXCallbackURL(
 
   let res
   if (chosenCommand && command?.length && pluginID) {
-    let finished = false,
-      i = 0,
-      args = []
+    let finished = false
+    let i = 0
+    const args = []
     const url = chosenCommand?.plugin?.repoUrl || ''
     if (url.length) {
       const getYesNo = await showMessageYesNo(

@@ -1,4 +1,4 @@
-/* globals describe, expect, test, DataStore, afterAll */
+/* globals describe, expect, test, afterAll */
 import * as f from '../folders'
 
 global.DataStore = {

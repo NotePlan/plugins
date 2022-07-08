@@ -50,7 +50,7 @@ export const checkOr =
       try {
         return checkB(value)
       } catch (eB) {
-        throw new Error(eA.toString() + '\n' + eB.toString())
+        throw new Error(`${eA.toString()}\n${eB.toString()}`)
       }
     }
   }

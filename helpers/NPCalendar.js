@@ -14,23 +14,33 @@
 // NB: The actual detection allows for more time types than is mentioned in the docs.
 // ----------------------------------------------------------------------------
 
+import {
+  addMinutes,
+  differenceInMinutes
+} from 'date-fns'
 import { keepTodayPortionOnly } from './calendar'
-import { getDateFromUnhyphenatedDateString, getISODateStringFromYYYYMMDD, type HourMinObj, printDateRange, removeDateTagsAndToday, todaysDateISOString } from './dateTime'
-import { addMinutes, differenceInMinutes } from 'date-fns'
-import { clo, log, logError, logWarn, JSP } from './dev'
+import {
+  getDateFromUnhyphenatedDateString,
+  getISODateStringFromYYYYMMDD,
+  type HourMinObj,
+  // printDateRange,
+  removeDateTagsAndToday,
+  todaysDateISOString
+} from './dateTime'
+import { clo, log, logError, logWarn } from './dev'
 import { displayTitle } from './general'
 import { findEndOfActivePartOfNote } from './paragraph'
 import {
   RE_ISO_DATE,
-  RE_HOURS,
-  RE_MINUTES,
-  RE_TIME,
-  RE_AMPM,
-  RE_AMPM_OPT,
-  RE_DONE_DATETIME,
-  RE_DONE_DATE_OPT_TIME,
+  // RE_HOURS,
+  // RE_MINUTES,
+  // RE_TIME,
+  // RE_AMPM,
+  // RE_AMPM_OPT,
+  // RE_DONE_DATETIME,
+  // RE_DONE_DATE_OPT_TIME,
   RE_TIMEBLOCK,
-  RE_TIMEBLOCK_FOR_THEMES,
+  // RE_TIMEBLOCK_FOR_THEMES,
   isTimeBlockPara,
   getTimeBlockString,
 } from './timeblocks'
@@ -87,7 +97,10 @@ export async function chooseCalendar(calendars: $ReadOnlyArray<string>): Promise
  * @param {boolean} forceUserToChoose - if calendar is not set or not writeable, force use to choose a calendar (default: false)
  * @returns {string|null} either null for no changes required (use the calendar name passed in), or a new calendar name that was chosen by the user
  */
-export async function checkOrGetCalendar(calendarName: string, forceUserToChoose: boolean = false): Promise<string | null> {
+export async function checkOrGetCalendar(
+  calendarName: string,
+  forceUserToChoose: boolean = false
+): Promise<string | null> {
   let chosenCalendar = calendarName
   const writableCalendars: $ReadOnlyArray<string> = Calendar.availableCalendarTitles(true)
   if (writableCalendars.length) {
@@ -125,7 +138,11 @@ export async function checkOrGetCalendar(calendarName: string, forceUserToChoose
  * @param {boolean} showLoadingProgress -- show progress counter while adding events
  * @author @jgclark
  */
-export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNote | TEditor, showLoadingProgress: boolean = false): Promise<void> {
+export async function writeTimeBlocksToCalendar(
+  config: EventsConfig,
+  note: TNote | TEditor,
+  showLoadingProgress: boolean = false
+): Promise<void> {
   const { paragraphs } = note
   if (paragraphs == null || note == null) {
     logWarn('NPCalendar/writeTimeBlocksToCalendar()', 'no content found')
@@ -200,7 +217,8 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
 
           // First see if this is a zero-length event, which happens when no end time
           // was specified. If we have a defaultEventDuration then use it.
-          if (differenceInMinutes(timeblockDateRange.start, timeblockDateRange.end) === 0 && config.defaultEventDuration > 0) {
+          if (differenceInMinutes(timeblockDateRange.start, timeblockDateRange.end) === 0
+            && config.defaultEventDuration > 0) {
             const newEndDate = addMinutes(timeblockDateRange.end, config.defaultEventDuration)
             timeblockDateRange = { start: timeblockDateRange.start, end: newEndDate }
           }
@@ -208,11 +226,11 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
           // Strip out time + date (if present) from the timeblock line,
           // as we don't want those to go into the calendar event itself (=restOfTask).
           // But also keep a version with date (if present) as we don't want to lose that from the task itself.
-          let restOfTaskWithoutTimeBlock = thisPara.content
+          const restOfTaskWithoutTimeBlock = thisPara.content
             .replace(origTimeBlockString, '')
             .replace(/\s{2,}/g, ' ')
             .trimEnd() // take off timeblock
-          let restOfTaskWithoutDateTime = removeDateTagsAndToday(restOfTaskWithoutTimeBlock)
+          const restOfTaskWithoutDateTime = removeDateTagsAndToday(restOfTaskWithoutTimeBlock)
             .replace(timeBlockString, '')
             .replace(/\s{2,}/g, ' ')
           log('NPCalendar/writeTimeBlocksToCalendar()', `\tWill process time block '${timeBlockString}' for '${restOfTaskWithoutDateTime}'`)
@@ -276,7 +294,11 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
  * @param {string} - calendarName: name of calendar to write to. Needs to be writable!
  * @return {string} Calendar ID of new event (or 'error')
  */
-async function createEventFromDateRange(eventTitle: string, dateRange: DateRange, calendarName: string): Promise<string> {
+async function createEventFromDateRange(
+  eventTitle: string,
+  dateRange: DateRange,
+  calendarName: string
+): Promise<string> {
   // log('', `\tStarting cEFDR with ${eventTitle} for calendar ${pref_calendarToWriteTo}`)
   // If we have a pref_calendarToWriteTo setting, then include that in the call
   const event: TCalendarItem = CalendarItem.create(
@@ -341,57 +363,3 @@ export async function getEventsForDay(
   }
   return eArr
 }
-
-//----------------------------------------------------------------------
-// Markdown to test timeblock functionality
-// These should create:
-// - 2:30-3:45 TBT1a
-//  - TBT1b @done(2021-12-12) 2:30-3:45
-//  - TBT1c at 2:30-3:45
-// - TBT2a at 2PM-3PM
-// - TBT2b @done(2021-12-12) at 2PM-3PM -- but fails in API?
-// - TBT3 at 2-3PM
-// - TBT4 at 2PM-3
-// - TBT5a at 2-3
-// - TBT5b at 2 -3
-// * TBT5c at 2- 3
-//  * TBT5d at 2 - 3
-// 	* TBT5e at 2~3
-// * [ ] TBT5f at 2to3
-// - [ ] TBT5h at 2 to 3
-// - TBT5i at 2–3
-// - [ ] TBT6 >2021-06-02 at 2-3
-// - TBT7 >2021-06-02 at 2:30-3:45
-// - TBT8 >2021-06-02 at 2am-3PM
-// - TBT9 >2021-06-02 2:15 - 3:45
-// - TBT10 2021-06-02 2:15 - 3:45
-// - TBT11a >2021-06-02 16:00 - 16:45
-// * TBT11b 2021-06-02 16:00 - 16:45
-// * TBT12 @done(2021-12-12) 2:30-3:45
-// * [x] TBT13 done at 2PM-3PM @done(2021-12-12)
-// - TBT14 at 5-5:45pm
-// - TBT15 at 5pm
-// * TBT22a 1️⃣ 6:00 AM - 9:30 AM - Part I -- but parsed wrongly
-// - [ ] TBT22b 1️⃣ 6:00AM - 9:30AM
-// * TBT23 at noon
-// * TBT24 at noon:24
-// - TBT25 at midnight
-// - TBT26 at midnight:26
-// These shouldn't create:
-// - TBT16a at 5a
-// - TBT16b at 5p
-// - TBT17 shouldn't create 2021-06-02 2.15PM-3.45PM
-// - TBT18 shouldn't create 2PM-3PM _doesn't parse_
-// - TBT9 shouldn't create 2-3 _parsed wrongly_
-// - TBT0 shouldn't create 2-3PM _doesn't parse_
-// - [ ] TBT21 shouldn't create 2PM-3 _doesn't parse_
-// - TBT27 cost was 23.12
-// - TBT28 Philippians 2.6-11
-// - TBT29 ### 21/11/2021  CCC Hybrid service
-// - TBT30 _not yet clear whether this should pass:_ terminal 5
-// * TBT31 Do something <2022-01-05
-// * [x] TBT32 Done something @done(2022-01-05)
-// - TBT33 the temp is 17-18 -- does create but really shouldn't
-// - TBT34 no: I sat 2pm onwards
-// - TBT35 no: somethingfrom 2pm onwards
-// - TBT36 no: 1234:56
