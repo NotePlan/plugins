@@ -7,16 +7,17 @@ Another neat feature is the inclusion of a " [Click to refresh these results]" p
 
 ![refresh results](highlight-refresh-in-search-results.png)
 
-There are two /commands:
+There are several /commands:
 
-![the search commands](search-commands.png)
-
-1. **/saveSearchResults** searches across **all notes** (both calendar and projects) for text string(s) you give.
-2. **/saveSearchResultsInPeriod**: searches over the **daily <!--and weekly--> notes** of the time period you select:
+1. **/quickSearch** searches across **all notes** (both calendar and regular notes), saving to a pre-determined 'Quick Search Results' note (but see Configuration below).
+2. **/saveSearch** searches across **all notes**  (both calendar and regular notes)
+3. **/saveSearchOverNotes** searches across **all regular** (non-calendar) notes
+4. **/saveSearchOverCalendar** searches across **all calendar**  notes
+5. **/saveSearchResultsInPeriod**: searches over the **calendar <!--and weekly--> notes of the time period you select**:
 
 ![selecting a period](period-selection.png)
 
-The note is saved with the search terms as its title, in a "Saved Searches" folder (which is created if necessary). If the same search terms are used again they will *update* the same note.  But you also are given the option of saving to the current note, or to the plugin console.
+The note is saved with the search terms as its title (apart from /quickSearch), in a "Saved Searches" folder (which is created if necessary). If the same search terms are used again they will *update* the same note.  But you also are given the option of saving to the current note, or to the plugin console.
 
 As the results are saved to a note, the following sorts of uses are then possible:
 - keep track of all the great `@win`s or clever `#idea`s you noted down
@@ -40,7 +41,7 @@ The setting 'Automatically save' when turned on automatically decides the name o
 ## Configuration
 To change the default **configuration**, click the gear button on the 'Search Extensions' line in the Plugin Preferences panel to configure this plugin. Each setting has an explanation.
 
-![search settings](search-settings.png)
+![search settings](search-settings.jpg)
 
 ## Results highlighting
 To see **highlighting** of matching terms in the output, you'll need to be using a theme that highlights lines using `==this syntax==`. You can customise an existing theme by adding something like:
@@ -89,8 +90,11 @@ Notes:
 
 | Command | x-callback start | arg0 | arg1 | arg2 |
 |-----|-------------|-----|-----|-----|
-| /saveSearchResults | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearchResults&` | search term(s) (separated by commas) |  |  |
-| /saveSearchResultsInPeriod | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearchResultsInPeriod&` | search term(s) (separated by commas) | start date to search over (YYYYMMDD or YYYY-MM-DD format). If not given, then defaults to 3 months ago. | end date to search over (YYYYMMDD or YYYY-MM-DD format). If not given, then defaults to today. |
+| /quickSearch | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=quickSearch&` | search term(s) (separated by commas) |  |  |
+| /saveSearch | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearch&` | search term(s) (separated by commas) |  |  |
+| /saveSearchOverCalendar | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearchOverCalendar&` | search term(s) (separated by commas) |  |  |
+| /saveSearchOverNotes | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearchOverNotes&` | search term(s) (separated by commas) |  |  |
+| /saveSearchInPeriod | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearchInPeriod&` | search term(s) (separated by commas) | start date to search over (YYYYMMDD or YYYY-MM-DD format). If not given, then defaults to 3 months ago. | end date to search over (YYYYMMDD or YYYY-MM-DD format). If not given, then defaults to today. |
 
 ## History
 Please see the [CHANGELOG](CHANGELOG.md).

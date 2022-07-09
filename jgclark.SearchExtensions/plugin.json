@@ -8,12 +8,24 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.SearchExtensions/CHANGELOG.md",
-  "plugin.version": "0.3.0",
-  "plugin.lastUpdateInfo": "New 'Automatically save' setting available",
+  "plugin.version": "0.4.0",
+  "plugin.lastUpdateInfo": "New /quickSearch command and '/quickSearch note title' setting",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
   "plugin.commands": [
+    {
+      "name": "quickSearch",
+      "alias": [
+        "save",
+        "search"
+      ],
+      "description": "quick Search over all notes, showing results in a fixed Quick Search results note",
+      "jsFunction": "quickSearch",
+      "arguments": [
+        "search term(s) (separated by commas)"
+      ]
+    },
     {
       "name": "saveSearch",
       "alias": [
@@ -22,18 +34,6 @@
       ],
       "description": "Save results from a search over all notes",
       "jsFunction": "saveSearchOverAll",
-      "arguments": [
-        "search term(s) (separated by commas)"
-      ]
-    },
-    {
-      "name": "saveSearchOverNotes",
-      "alias": [
-        "save",
-        "search"
-      ],
-      "description": "Save results from a search over all project notes",
-      "jsFunction": "saveSearchOverNotes",
       "arguments": [
         "search term(s) (separated by commas)"
       ]
@@ -62,12 +62,22 @@
         "daily",
         "weekly"
       ],
-      "description": "Save results from a search of specified tags or mentions over Calendar notes from a time period",
-      "jsFunction": "saveSearchPeriod",
+      "description": "Save results from a search of specified tags or mentions over all Calendar notes",
+      "jsFunction": "saveSearchOverCalendar",
       "arguments": [
-        "search term(s) (separated by commas)",
-        "start date to search over (YYYYMMDD or YYYY-MM-DD). If not given, then defaults to 3 months ago",
-        "end date to search over (YYYYMMDD or YYYY-MM-DD). If not given, then defaults to today"
+        "search term(s) (separated by commas)"
+      ]
+    },
+    {
+      "name": "saveSearchOverNotes",
+      "alias": [
+        "save",
+        "search"
+      ],
+      "description": "Save results from a search over all project notes",
+      "jsFunction": "saveSearchOverNotes",
+      "arguments": [
+        "search term(s) (separated by commas)"
       ]
     }
   ],
@@ -79,7 +89,7 @@
     {
       "key": "autoSave",
       "title": "Automatically save",
-      "description": "If true, will save to an automatically-named note in the configured folder",
+      "description": "If true, will save to an automatically-named note in the configured folder, starting with the search terms.",
       "type": "bool",
       "default": false,
       "required": true
@@ -90,6 +100,14 @@
       "description": "Folder to store any output files in",
       "type": "string",
       "default": "Saved Searches",
+      "required": true
+    },
+    {
+      "key": "quickSearchResultsTitle",
+      "title": "/quickSearch note title",
+      "description": "note title for results for/quickSearch",
+      "type": "string",
+      "default": "Quick Search Results",
       "required": true
     },
     {

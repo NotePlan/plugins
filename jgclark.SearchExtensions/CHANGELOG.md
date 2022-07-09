@@ -4,7 +4,11 @@
 - searches now run over Weekly Notes as well (now the underlying API has been extended)
 - ??? sort ordering?
 -->
-## [0.3.0] - 2022-07-???
+## [0.4.0] - 2022-07-09
+### Added
+- new command **/quickSearch** which searches over all notes and shows the results in a fixed results note, whose title is given by new setting '/quickSearch note title' (default: Quick Search Results)
+
+## [0.3.0] - 2022-07-08
 ### Added
 - new setting 'Automatically save' when turned on automatically decides the name of the note to save the search results to (based on the search term), which avoids the final prompt. (for @dwertheimer)
 

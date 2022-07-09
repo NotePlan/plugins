@@ -3,10 +3,10 @@
 //-----------------------------------------------------------------------------
 // Summary commands for notes
 // Jonathan Clark
-// Last updated 3.7.2022 for v0.2.0
+// Last updated 9.7.2022 for v0.4.0
 //-----------------------------------------------------------------------------
 
-export { saveSearch, saveSearchOverAll, saveSearchOverNotes } from './saveSearch'
+export { quickSearch, saveSearch, saveSearchOverAll, saveSearchOverNotes, saveSearchOverCalendar } from './saveSearch'
 export { saveSearchPeriod } from './saveSearchPeriod'
 
 // allow changes in plugin.json to trigger recompilation

@@ -156,6 +156,7 @@ export async function runSearches(
   }
   catch (err) {
     logError(pluginJson, err.message)
+    return [] // for completeness
   }
 }
 
@@ -266,6 +267,9 @@ export async function runSearch(
   }
   catch (err) {
     logError(pluginJson, err.message)
+    const emptyResultObject = { searchTerm: '', resultsLines: [], resultCount: 0 }
+    // $FlowFixMe[prop-missing]
+    return emptyResultObject // for completeness
   }
 }
 
@@ -324,5 +328,6 @@ export async function writeResultsNote(
   }
   catch (err) {
     logError(pluginJson, err.message)
+    return 'error'  // for completeness
   }
 }
