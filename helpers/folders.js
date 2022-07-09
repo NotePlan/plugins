@@ -18,11 +18,11 @@ export function filterFolderList(exclusions: Array<string>): Array<string> {
   if (exclusions.length > 0) {
     const exclusionsTerminatedWithSlash: Array<string> = []
     for (const e of exclusions) {
-      exclusionsTerminatedWithSlash.push( e.endsWith('/') ? e : e+'/' )
+      exclusionsTerminatedWithSlash.push(e.endsWith('/') ? e : `${e}/`)
     }
     const folderListTerminatedWithSlash: Array<string> = []
     for (const f of folderList) {
-      folderListTerminatedWithSlash.push( f.endsWith('/') ? f : f+'/' )
+      folderListTerminatedWithSlash.push(f.endsWith('/') ? f : `${f}/`)
     }
     for (const ff of folderListTerminatedWithSlash) {
       let matchedAnExcludedFolder = false

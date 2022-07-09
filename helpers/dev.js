@@ -11,10 +11,10 @@ const dt = (): string => {
   const d = new Date()
 
   const pad = (value: number): string => {
-    return value < 10 ? '0' + value : value.toString()
+    return value < 10 ? `0${value}` : value.toString()
   }
 
-  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + d.toLocaleTimeString('en-GB')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${d.toLocaleTimeString('en-GB')}`
 }
 
 /**
@@ -87,7 +87,7 @@ export function JSP(obj: any, space: string | number = 2): string {
  * @param {*} str
  * @returns
  */
-function cleanStringifiedResults(str: string): string {
+export function cleanStringifiedResults(str: string): string {
   let retStr = str
   retStr = retStr.replace(/","/gm, ',')
   retStr = retStr.replace(/"\{"/gm, '{').replace(/"\}"/gm, '}')
@@ -138,7 +138,7 @@ export function dump(
  */
 export function getAllPropertyNames(inObj: interface { [string]: mixed }): Array<string> {
   let obj = inObj
-  var props = []
+  const props = []
   do {
     Object.getOwnPropertyNames(obj).forEach(function (prop) {
       if (props.indexOf(prop) === -1) {
@@ -233,8 +233,8 @@ export function log(pluginInfo: any, message: any = '', type: string = 'LOG'): s
   let msg = ''
   let pluginId = ''
   let pluginVersion = ''
-  let msgType = ''
-  let isPluginJson = typeof pluginInfo === 'object' && pluginInfo.hasOwnProperty('plugin.id')
+  // let msgType = ''
+  const isPluginJson = typeof pluginInfo === 'object' && pluginInfo.hasOwnProperty('plugin.id')
 
   if (isPluginJson) {
     pluginId = pluginInfo.hasOwnProperty('plugin.id') ? pluginInfo['plugin.id'] : 'INVALID_PLUGIN_ID'
@@ -263,7 +263,7 @@ export function log(pluginInfo: any, message: any = '', type: string = 'LOG'): s
  */
 export function logError(pluginInfo: any, error?: any): string {
   if (typeof error === 'object' && error != null) {
-    let msg = `${error.filename ?? '<unknown file>'} ${error.lineNumber ?? '<unkonwn line>'}: ${error.message}`
+    const msg = `${error.filename ?? '<unknown file>'} ${error.lineNumber ?? '<unkonwn line>'}: ${error.message}`
     return log(pluginInfo, msg, 'ERROR')
   }
   return log(pluginInfo, error, 'ERROR')

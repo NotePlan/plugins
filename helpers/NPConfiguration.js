@@ -9,7 +9,7 @@
  * --------------------------------------------------------------------------------------------------------------------------*/
 
 import json5 from 'json5'
-import { clo, log, JSP } from '@helpers/dev'
+import { log, JSP } from '@helpers/dev'
 import { showMessageYesNo } from '@helpers/userInput'
 
 // this is the only possible location for _configuration note
@@ -20,14 +20,14 @@ const STATIC_TEMPLATE_FOLDER = '📋 Templates'
  * @author @codedungeon
  * @return {string} formatted date time
  */
-const dt = (): string => {
+export const dt = (): string => {
   const d = new Date()
 
   const pad = (value: number): string => {
-    return value < 10 ? '0' + value : value.toString()
+    return value < 10 ? `0${value}` : value.toString()
   }
 
-  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + d.toLocaleTimeString()
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${d.toLocaleTimeString()}`
 }
 
 /**
@@ -127,7 +127,7 @@ export async function migrateConfiguration(
           configData[key] = setting.default
 
           // Convert json to an object
-          if (setting.type == 'json' && setting.default !== 'undefined') {
+          if (setting.type === 'json' && setting.default !== 'undefined') {
             configData[key] = JSON.parse(setting.default)
           }
         }
@@ -153,7 +153,7 @@ export async function migrateConfiguration(
   }
 
   // if settings data was migrated (first time only)
-  if (migrationResult == 1 && !silentMode) {
+  if (migrationResult === 1 && !silentMode) {
     const reviewMessage: string = canEditSettings ? `\n\nWould you like to review the plugin settings now?` : ''
     const answer: mixed = await CommandBar.prompt(
       'Configuration Migration Complete',
@@ -236,15 +236,14 @@ export async function parseConfiguration(block: string): Promise<?{ [string]: ?m
 
     let [format, ...contents] = block.split('\n')
     contents = contents.join('\n')
-    format = format.trim()
+    format = format.trim() // TODO(@mikeerickson): this isn't used?
 
     const value: any = json5.parse(contents)
     return value
   } catch (error) {
     await CommandBar.prompt(
       'NotePlan Error',
-      "Failed to parse your _configuration note, it seems to be malformed (e.g. a missing comma).\n\nPlease correct it, delete the plugin (click on the plugin name in the preferences to see the 'delete' button), and redownload it.\n\nError: " +
-        error,
+      `Failed to parse your _configuration note, it seems to be malformed (e.g. a missing comma).\n\nPlease correct it, delete the plugin (click on the plugin name in the preferences to see the 'delete' button), and redownload it.\n\nError: ${error}`,
     )
   }
 }

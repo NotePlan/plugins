@@ -34,9 +34,10 @@ There are two ways results can be displayed, controlled by the "Group results by
 1. matches found within the same note are grouped together ('true', the default)
 2. every match is shown with a note link at the end of the match ('false')
 
-The length of the quote of the matched line can be limited by the "Result quote length" setting.
-
-The setting 'Automatically save' when turned on automatically decides the name of the note to save the search results to (based on the search term), which avoids the final prompt.
+You can also set:
+- the length of the quote of the matched line can be limited by the "Result quote length" setting.
+- the ordering of the results (by the title, created date or changed date of the note the search term is found in).
+- the commands to automatically decides the name of the note to save the search results to (based on the search term), which avoids the final prompt, by the 'Automatically save' setting.
 
 ## Configuration
 To change the default **configuration**, click the gear button on the 'Search Extensions' line in the Plugin Preferences panel to configure this plugin. Each setting has an explanation.

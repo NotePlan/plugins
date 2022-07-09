@@ -273,7 +273,7 @@ export function createRunPluginCallbackUrl(pluginID: string, command: string, ar
  * @tests available
  */
 export function createCallbackUrl(commandName: string, paramObj: { [string]: string } = {}): string {
-  let params = []
+  const params = []
   Object.keys(paramObj).forEach((key) => {
     paramObj[key] = encodeURIComponent(paramObj[key])
     params.push(`${key}=${paramObj[key]}`)

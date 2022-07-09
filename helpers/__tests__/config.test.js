@@ -1,4 +1,4 @@
-/* globals describe, expect, it, test, jest */
+/* globals describe, expect, test */
 
 import colors from 'chalk'
 import * as c from '../config'
