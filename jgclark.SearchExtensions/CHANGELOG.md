@@ -4,9 +4,12 @@
 - searches now run over Weekly Notes as well (now the underlying API has been extended)
 - ??? sort ordering?
 -->
-## [0.4.0] - 2022-07-09
+## [0.4.1] - 2022-07-09
 ### Added
 - new command **/quickSearch** which searches over all notes and shows the results in a fixed results note, whose title is given by new setting '/quickSearch note title' (default: Quick Search Results)
+
+### Fixed
+- The opening in split window now works reliably (thanks to @dwertheimer)
 
 ## [0.3.0] - 2022-07-08
 ### Added

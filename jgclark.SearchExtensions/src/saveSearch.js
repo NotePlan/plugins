@@ -192,10 +192,10 @@ export async function saveSearch(
           // normally I'd use await... in the next line, but can't as we're now in then...
           const noteFilenameProm = writeResultsNote(results, requestedTitle, config.folderToStore,
             config.headingLevel, calledIndirectly, xCallbackLink)
-          noteFilenameProm.then((filename) => {
+          noteFilenameProm.then(async (filename) => {
             console.log(filename)
             // Open the results note in a new split window
-            Editor.openNoteByFilename(filename, false, 0, 0, true)
+            await Editor.openNoteByFilename(filename, false, 0, 0, true)
           })
           break
         }
@@ -209,11 +209,11 @@ export async function saveSearch(
           // normally I'd use await... in the next line, but can't as we're now in then...
           const noteFilenameProm = writeResultsNote(results, requestedTitle, config.folderToStore,
             config.headingLevel, calledIndirectly, xCallbackLink)
-          noteFilenameProm.then((filename) => {
+          noteFilenameProm.then(async (filename) => {
             console.log(filename)
             // Open the results note in a new split window, unless called from the x-callback ...
             if (!calledIndirectly) {
-              Editor.openNoteByFilename(filename, false, 0, 0, true)
+              await Editor.openNoteByFilename(filename, false, 0, 0, true)
             }
           })
           break

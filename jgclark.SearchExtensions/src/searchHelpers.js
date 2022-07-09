@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Search Extensions helpers
 // Jonathan Clark
-// Last updated 8.7.2022 for v0.3.0 by @jgclark
+// Last updated 9.7.2022 for v0.4.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -311,6 +311,7 @@ export async function writeResultsNote(
       // write to the existing note (the first matching if more than one)
       outputNote = existingNotes[0]
       outputNote.content = fullNoteContent
+      noteFilename = outputNote.filename
 
     } else {
       // make a new note for this. NB: filename here = folder + filename
