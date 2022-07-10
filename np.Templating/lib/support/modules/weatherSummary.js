@@ -1,7 +1,8 @@
 // @flow
+/* eslint-disable */
 
 import pluginJson from '../../../plugin.json'
-import { clo, log, logWarn, logError } from '../../../../helpers/dev'
+import { logError } from '../../../../helpers/dev'
 import { stringReplace } from '../../../../helpers/general'
 
 /**

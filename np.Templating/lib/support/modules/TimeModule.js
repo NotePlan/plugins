@@ -4,13 +4,12 @@
  * -----------------------------------------------------------------------------------------*/
 
 import moment from 'moment/min/moment-with-locales'
-import { clo } from '../../../../helpers/dev'
 
-export function time(format: string = 'h:mm A') {
+export function time(format = 'h:mm A') {
   return moment(new Date()).format(format && format.length > 0 ? format : 'h:mm A')
 }
 
-export function currentTime(format: string = 'h:mm A') {
+export function currentTime(format = 'h:mm A') {
   return moment(new Date()).format(format && format.length > 0 ? format : 'h:mm A')
 }
 
@@ -34,6 +33,7 @@ export default class TimeModule {
     const time12h = userTime.replace('_AM', ' AM').replace('_PM', ' PM')
     const [time, modifier] = time12h.split(' ')
 
+    // eslint-disable-next-line
     let [hours, minutes] = time.split(':')
 
     if (hours === '12') {
@@ -60,14 +60,12 @@ export default class TimeModule {
     }
   }
 
-  now(format = '', offset = '') {
+  now(format = '') {
     const locale = this.config?.locale || 'en-US'
     const configFormat = this.config?.timeFormat || 'short'
 
     format = format.length > 0 ? format : configFormat
     let formattedTime = moment(new Date()).format(format)
-
-    // TODO: Implement offset for time
 
     if (format === 'short' || format === 'medium' || format === 'long' || format === 'full') {
       formattedTime = new Intl.DateTimeFormat(locale, { timeStyle: format }).format(new Date())

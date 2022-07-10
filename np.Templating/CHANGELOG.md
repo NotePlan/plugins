@@ -3,21 +3,21 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
-## [2.0.0-alpha.01] - 2022-06-05 .. 2022-07-05 (mikeerickson)
+## [2.0.0-alpha.01] - 2022-06-05 .. 2022-07-07 (mikeerickson)
 
 - added template code block execution
 - added `import` statement for importing any type of helper modules
 - added `include` method (will include project notes, calendar notes, templates)
   > when "including" template, it will be rendered automatically
 - added `template` method
-  > you can also use `include` with template and it will perform the same action as `include` method
+  > you can also use `include` with the template and it will perform the same action as the `include` method
   > when "including" template, it will be rendered automatically
 - added `note` method
-    > you can also use `include` with note and it will perform the same action as `note` method
+    > you can also use `include` with a note and it will perform the same action as the `note` method
 - added `calendar` method
-    > you can also use `include` with note and it will perform the same action as `calendar` method
+    > you can also use `include` with a note and it will perform the same action as the `calendar` method
 - added `clo` helper which can be used to help debug more complex templates
-- added `calendar` module placeholder (more coming in the future but didn't want to lose signt )
+- added a `calendar` module placeholder (more coming in the future but didn't want to lose sight )
 - `getTemplateList` will now filter out any templates which have `type = ignore` (@dwertheimer)
 - added `np:gx` command to build x-callback for current template
 

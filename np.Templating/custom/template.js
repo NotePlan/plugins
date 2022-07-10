@@ -23,7 +23,7 @@ module.exports = {
     }
   },
 
-  render: async function (templateData = '', data = {}, options = { extended: false, tags: [] }) {
+  render: function (templateData = '', data = {}, options = { extended: false, tags: [] }) {
     const renderData = { ...helpers(), ...data }
 
     const renderOptions = this.renderConfig()

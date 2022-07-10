@@ -1,5 +1,5 @@
-/* eslint-disable no-case-declarations */
 // @flow
+/* eslint-disable */
 
 /*-------------------------------------------------------------------------------------------
  * Copyright (c) 2021-2022 Mike Erickson / Codedungeon.  All rights reserved.
