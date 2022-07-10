@@ -4,7 +4,6 @@
  * -----------------------------------------------------------------------------------------*/
 
 import path from 'path'
-import colors from 'chalk'
 import fs from 'fs/promises'
 import { existsSync } from 'fs'
 

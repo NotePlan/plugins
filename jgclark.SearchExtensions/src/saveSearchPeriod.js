@@ -48,7 +48,8 @@ import {
  * @author @jgclark
  *
  * @param {string?} searchTermsArg optional comma-separated list of search terms to search
- * @param {number?} periodArg optional number of days to search over (from before today). If not given then defaults to 3 months
+ * @param {string?} fromDateArg optional start date to search over (YYYYMMDD or YYYY-MM-DD). If not given, then defaults to 3 months ago.
+ * @param {string?} toDateArg optional end date to search over (YYYYMMDD or YYYY-MM-DD). If not given, then defaults to today.
  */
 export async function saveSearchPeriod(
   searchTermsArg?: string,
@@ -173,7 +174,7 @@ export async function saveSearchPeriod(
       const searchTerm = untrimmedSearchTerm.trim()
       const outputArray = []
       // get list of matching paragraphs for this string
-      // TODO: After b809 change null to []
+      // $FlowFixMe TODO: On full 3.6.0 release, change null to []
       const resultParas = await DataStore.search(searchTerm, ['calendar'], null, config.foldersToExclude) // search over all notes
       const lines = resultParas
       // output a heading first

@@ -1,6 +1,7 @@
 // @flow
 
 // including so rollup will trigger build when plugin.json is modified
+// eslint-disable-next-line
 import pluginJson from '../plugin.json'
 
 // NotePlan Event Hooks

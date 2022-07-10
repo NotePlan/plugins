@@ -34,11 +34,7 @@ export type Option<T> = $ReadOnly<{
  * @param {TDefault} defaultValue - default label:value to use
  * @return {TDefault} - string that the user enters. Maybe be the empty string.
  */
-export async function chooseOption<T, TDefault = T>(
-  message: string,
-  options: $ReadOnlyArray<Option<T>>,
-  defaultValue: TDefault
-): Promise<T | TDefault> {
+export async function chooseOption<T, TDefault = T>(message: string, options: $ReadOnlyArray<Option<T>>, defaultValue: TDefault): Promise<T | TDefault> {
   const { index } = await CommandBar.showOptions(
     options.map((option) => option.label),
     message,
@@ -181,12 +177,7 @@ export async function chooseFolder(msg: string, includeArchive: boolean = false)
  * @param {boolean} optionCreateNewHeading - whether to offer to create a new heading at the top or bottom of the note. Default: false.
  * @return {string} - the selected heading as text without any markdown heading markers. Blank string implies end of note
  */
-export async function chooseHeading(
-  note: TNote,
-  optionAddAtBottom: boolean = true,
-  optionCreateNewHeading: boolean = false,
-  includeArchive: boolean = false
-): Promise<string> {
+export async function chooseHeading(note: TNote, optionAddAtBottom: boolean = true, optionCreateNewHeading: boolean = false, includeArchive: boolean = false): Promise<string> {
   let headingStrings = []
   // Decide whether to include all headings in note, or just those in the first
   // before the Done/Cancelled section
@@ -435,13 +426,7 @@ export async function inputMood(moodArray: Array<string>): Promise<string> {
  * @param maxAnswers maximum amount of answers the user could type in (optional)
  * @returns {Promise<Array<string>>} all the answers as an array
  */
-export const multipleInputAnswersAsArray = async (
-  question: string,
-  submit: string,
-  showCounter: boolean,
-  minAnswers: number = 0,
-  maxAnswers?: number
-): Promise<Array<string>> => {
+export const multipleInputAnswersAsArray = async (question: string, submit: string, showCounter: boolean, minAnswers: number = 0, maxAnswers?: number): Promise<Array<string>> => {
   let input = '-'
   const answers = []
 
@@ -460,15 +445,9 @@ export const multipleInputAnswersAsArray = async (
  * @param {boolean} includeProjectNotes
  * @param {boolean} includeCalendarNotes
  * @param {Array<string>} foldersToIgnore - a list of folder names to ignore
- * @param {boolean} showFolders - whether to show folders in the title list
  * @returns
  */
-export async function chooseNote(
-  includeProjectNotes: boolean = true,
-  includeCalendarNotes: boolean = false,
-  foldersToIgnore: Array<string> = [],
-  showFolders: boolean = false, // TODO(@dwertheimer): not used
-): Promise<TNote | null> {
+export async function chooseNote(includeProjectNotes: boolean = true, includeCalendarNotes: boolean = false, foldersToIgnore: Array<string> = []): Promise<TNote | null> {
   let noteList = []
   const projectNotes = DataStore.projectNotes
   const calendarNotes = DataStore.calendarNotes

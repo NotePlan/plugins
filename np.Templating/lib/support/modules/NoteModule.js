@@ -1,4 +1,5 @@
 // @flow
+/* eslint-disable */
 
 /*-------------------------------------------------------------------------------------------
  * Copyright (c) 2022 Mike Erickson / Codedungeon.  All rights reserved.

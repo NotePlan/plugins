@@ -10,15 +10,14 @@ import {
   monthNameAbbrev,
   todaysDateISOString,
   toISODateString,
-  toISOShortDateTimeString
+  toISOShortDateTimeString,
   // weekStartEnd,
 } from './dateTime'
-import { log, logError } from './dev'
+import { logError } from './dev'
 import { chooseOption, getInput } from './userInput'
 
 // TODO: Finish moving references to this file from dateTime.js
-export function toLocaleDateTimeString(dateObj: Date, locale: string | Array<string> = [],
-  options: Intl$DateTimeFormatOptions = {}): string {
+export function toLocaleDateTimeString(dateObj: Date, locale: string | Array<string> = [], options: Intl$DateTimeFormatOptions = {}): string {
   /**
    * TODO: use details from NotePlan.environment...
    *  "languageCode": "en",
@@ -32,8 +31,7 @@ export function toLocaleDateTimeString(dateObj: Date, locale: string | Array<str
 }
 
 // TODO: Finish moving references to this file from dateTime.js
-export function toLocaleDateString(dateObj: Date, locale: string | Array<string> = [],
-  options: Intl$DateTimeFormatOptions = {}): string {
+export function toLocaleDateString(dateObj: Date, locale: string | Array<string> = [], options: Intl$DateTimeFormatOptions = {}): string {
   /**
    * TODO: use details from NotePlan.environment...
    *  "languageCode": "en",
@@ -46,8 +44,7 @@ export function toLocaleDateString(dateObj: Date, locale: string | Array<string>
 }
 
 // TODO: Finish moving references to this file from dateTime.js
-export function toLocaleTime(dateObj: Date, locale: string | Array<string> = [],
-  options: Intl$DateTimeFormatOptions = {}): string {
+export function toLocaleTime(dateObj: Date, locale: string | Array<string> = [], options: Intl$DateTimeFormatOptions = {}): string {
   /**
    * TODO: use details from NotePlan.environment...
    *  "languageCode": "en",
@@ -251,7 +248,7 @@ export function weekStartEnd(week: number, year: number): [Date, Date] {
 export function getUsersFirstDayOfWeekUTC(): number {
   // Get user preference for start of week.
   // In NP this is Sunday = 1 ...Sat = 6.  Can also be undefined -> 1.
-  return (typeof DataStore.preference("firstDayOfWeek") === 'number') ? Number(DataStore.preference("firstDayOfWeek")) - 1 : 1
+  return typeof DataStore.preference('firstDayOfWeek') === 'number' ? Number(DataStore.preference('firstDayOfWeek')) - 1 : 1
 }
 
 /**
@@ -316,16 +313,13 @@ export const periodTypesAndDescriptions = [
  * - {string} periodType    (e.g. 'lq' for 'Last Quarter')
  * - {string} periodString  (e.g. '2022 Q2 (Apr-June)')
  * - {string} periodPartStr (e.g. 'day 4' showing how far through we are in a partial ('... to date') time period)
- * 
+ *
  * @author @jgclark
  * @param {string} question to show user
  * @param {string} periodType optional; if not provided ask user instead
- * @return {[Date, Date, string, string, string]} 
-*/
-export async function getPeriodStartEndDates(
-  question: string = 'Create stats for which period?',
-  periodTypeToUse?: string
-): Promise<[Date, Date, string, string, string]> {
+ * @return {[Date, Date, string, string, string]}
+ */
+export async function getPeriodStartEndDates(question: string = 'Create stats for which period?', periodTypeToUse?: string): Promise<[Date, Date, string, string, string]> {
   let periodType: string
   // If we're passed the period, then use that, otherwise ask user
   if (periodTypeToUse) {
@@ -333,11 +327,7 @@ export async function getPeriodStartEndDates(
     periodType = trimAnyQuotes(periodTypeToUse)
   } else {
     // Ask user what date interval to do tag counts for
-    periodType = await chooseOption(
-      question,
-      periodTypesAndDescriptions,
-      'mtd',
-    )
+    periodType = await chooseOption(question, periodTypesAndDescriptions, 'mtd')
   }
   let fromDate: Date = new Date()
   let toDate: Date = new Date()

@@ -5,6 +5,6 @@
 
 import affirmations from './data/affirmations'
 
-export async function getAffirmation(): Promise<string> {
+export function getAffirmation() {
   return affirmations[Math.floor(Math.random() * affirmations.length)]
 }

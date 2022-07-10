@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Search Extensions helpers
 // Jonathan Clark
-// Last updated 8.7.2022 for v0.3.0 by @jgclark
+// Last updated 9.7.2022 for v0.4.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -156,6 +156,7 @@ export async function runSearches(
   }
   catch (err) {
     logError(pluginJson, err.message)
+    return [] // for completeness
   }
 }
 
@@ -266,6 +267,9 @@ export async function runSearch(
   }
   catch (err) {
     logError(pluginJson, err.message)
+    const emptyResultObject = { searchTerm: '', resultsLines: [], resultCount: 0 }
+    // $FlowFixMe[prop-missing]
+    return emptyResultObject // for completeness
   }
 }
 
@@ -307,6 +311,7 @@ export async function writeResultsNote(
       // write to the existing note (the first matching if more than one)
       outputNote = existingNotes[0]
       outputNote.content = fullNoteContent
+      noteFilename = outputNote.filename
 
     } else {
       // make a new note for this. NB: filename here = folder + filename
@@ -324,5 +329,6 @@ export async function writeResultsNote(
   }
   catch (err) {
     logError(pluginJson, err.message)
+    return 'error'  // for completeness
   }
 }

@@ -3,6 +3,8 @@
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
  * -----------------------------------------------------------------------------------------*/
 
+/* eslint-disable */
+
 import moment from 'moment/min/moment-with-locales'
 import { default as momentBusiness } from 'moment-business-days'
 

@@ -4,9 +4,10 @@
  * -----------------------------------------------------------------------------------------*/
 
 // @flow
+/* eslint-disable */
 
-import { log, clo } from '@helpers/dev'
 import pluginJson from '../plugin.json'
+import { log, clo } from '@helpers/dev'
 
 export function helpInfo(section: string, userDocPage?: string): string {
   let docPage = userDocPage || ''

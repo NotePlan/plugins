@@ -3,7 +3,7 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 5.7.2022 for v0.1.2, @jgclark
+// Last updated 9.7.2022 for v0.4.0, @jgclark
 //-----------------------------------------------------------------------------
 /** 
  * FIXME(Eduard): 
@@ -29,14 +29,24 @@ import {
 
 //-------------------------------------------------------------------------------
 
+export async function saveSearchOverCalendar(searchTermsArg?: string): Promise<void> {
+  // Call the main function, but requesting only Calendar notes be searched.
+  await saveSearch(['calendar'], searchTermsArg ?? undefined)
+}
+
 export async function saveSearchOverNotes(searchTermsArg?: string): Promise<void> {
   // Call the main function, but requesting only Project notes be searched.
   await saveSearch(['notes'], searchTermsArg ?? undefined)
 }
 
 export async function saveSearchOverAll(searchTermsArg?: string): Promise<void> {
-  // Call the main function, but requesting only Project notes be searched.
+  // Call the main function, searching over all notes.
   await saveSearch(['notes', 'calendar'], searchTermsArg ?? undefined)
+}
+
+export async function quickSearch(searchTermsArg?: string): Promise<void> {
+  // Call the main function, searching over all notes.
+  await saveSearch(['notes', 'calendar'], searchTermsArg ?? undefined, 'quick')
 }
 
 
@@ -51,6 +61,7 @@ export async function saveSearchOverAll(searchTermsArg?: string): Promise<void> 
 export async function saveSearch(
   noteTypesToInclude: Array<string>,
   searchTermsArg?: string,
+  destinationArg?: string
 ): Promise<void> {
   try {
     // get relevant settings
@@ -101,13 +112,15 @@ export async function saveSearch(
       return
     }
 
+    log(pluginJson, `- called indirectly? ${String(calledIndirectly)}`)
+
     //---------------------------------------------------------
     // Search using search() API available from v3.6.0
     // const startTime = new Date
     // CommandBar.showLoading(true, `Running search for ${String(termsToMatchArr)} ...`)
     // await CommandBar.onAsyncThread()
 
-    // TODO: once release >809 is out change null to []
+    // $FlowFixMe TODO: On full 3.6.0 release, change null to []
     const resultsProm = runSearches(termsToMatchArr, noteTypesToInclude, null, config.foldersToExclude, config)
 
     // await CommandBar.onMainThread()
@@ -118,7 +131,11 @@ export async function saveSearch(
     //---------------------------------------------------------
     // Work out where to save this summary
     let destination = ''
-    if (calledIndirectly || config.autoSave) {
+    if (destinationArg !== undefined) {
+      console.log(`destinationArg = ${destinationArg}`)
+      destination = destinationArg
+    }
+    else if (calledIndirectly || config.autoSave) {
       // Being called from x-callback so will only write to 'newnote' destination
       // Or we have a setting asking to save automatically to 'newnote'
       destination = 'newnote'
@@ -175,11 +192,28 @@ export async function saveSearch(
           // normally I'd use await... in the next line, but can't as we're now in then...
           const noteFilenameProm = writeResultsNote(results, requestedTitle, config.folderToStore,
             config.headingLevel, calledIndirectly, xCallbackLink)
-          noteFilenameProm.then((filename) => {
+          noteFilenameProm.then(async (filename) => {
             console.log(filename)
-            // Make it open in split note, unless called from the x-callback ...
+            // Open the results note in a new split window
+            await Editor.openNoteByFilename(filename, false, 0, 0, true)
+          })
+          break
+        }
+
+        case 'quick': {
+          // Write to the same 'Quick Search Results' note (or whatever the user's setting is)
+          // Delete the note's contents and re-write each time.
+          const requestedTitle = config.quickSearchResultsTitle
+          const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearchResults&arg0=${encodeURIComponent(termsToMatchStr)}`
+
+          // normally I'd use await... in the next line, but can't as we're now in then...
+          const noteFilenameProm = writeResultsNote(results, requestedTitle, config.folderToStore,
+            config.headingLevel, calledIndirectly, xCallbackLink)
+          noteFilenameProm.then(async (filename) => {
+            console.log(filename)
+            // Open the results note in a new split window, unless called from the x-callback ...
             if (!calledIndirectly) {
-              Editor.openNoteByFilename(filename, false, 0, 0, true)
+              await Editor.openNoteByFilename(filename, false, 0, 0, true)
             }
           })
           break

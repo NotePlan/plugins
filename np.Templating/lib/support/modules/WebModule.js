@@ -12,7 +12,6 @@ import { getService } from './service'
 import { getDailyQuote } from './quote'
 import { getAffirmation } from './affirmation'
 import { getWeatherSummary } from './weatherSummary'
-import { clo } from '@helpers/dev'
 
 export default class WebModule {
   async advice(): Promise<string> {
@@ -29,8 +28,9 @@ export default class WebModule {
 
   async weather(templateConfig: any, params: string = ''): Promise<string> {
     let weatherFormat = params.length > 0 ? params : ''
+    // eslint-disable-next-line
     weatherFormat = weatherFormat.length === 0 && templateConfig?.weatherFormat?.length > 0 ? templateConfig?.weatherFormat : weatherFormat
-
+    // eslint-disable-next-line
     return weatherFormat.length === 0 ? await (await getWeather()).trim() : await (await getWeatherSummary(weatherFormat)).trim()
   }
 

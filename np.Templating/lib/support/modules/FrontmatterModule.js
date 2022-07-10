@@ -95,7 +95,7 @@ export default class FrontmatterModule {
       return -1
     }
 
-    let lines = note.split('\n')
+    const lines = note.split('\n')
     if (lines.length === 0) {
       return -1
     }

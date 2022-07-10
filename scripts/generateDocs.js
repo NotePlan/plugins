@@ -72,4 +72,5 @@ async function printDocs() {
   }
 }
 
+// eslint-disable-next-line
 printDocs()
