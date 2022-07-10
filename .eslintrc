@@ -86,7 +86,8 @@
     ".history",
     "node_modules",
     "flow-typed",
-    "*/script.js"
+    "*/script.js",
+    "np.Templating/lib/support/ejs.js"
   ],
   "settings": {
     "import/resolver": {

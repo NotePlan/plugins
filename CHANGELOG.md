@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/codedungeon.Toolbox/README.md) for details on available commands and use case.
 
+## [3.10.2] - 2022-07-10 (@codedungeon)
+
+- added `np.Templating/lib/support/ejs.js` to `.eslintrc :: ignorePatterns`
+
 ## [3.10.1] - 2022-07-10 (@codedungeon)
 
 - Fixed linting errors
