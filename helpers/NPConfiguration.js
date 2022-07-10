@@ -2,7 +2,7 @@
 
 /*----------------------------------------------------------------------------------------------------------------------------
  * Configuration Utilities
- * Version 0.0.4
+ * Version 0.0.5
  * @author @codedungeon unless otherwise noted
  * Requires NotePlan 3.4 or greater (waiting for NotePlan.environment version method to perform proper validation)
  * Note: Everything is self contained in this method, no other dependencies beyond `json5` plugin
@@ -37,9 +37,7 @@ export const dt = (): string => {
  * @return return this as structured data, in the format specified by the first line of the codeblock (should be `javascript`)
  */
 export async function getConfiguration(configSection: string = ''): Promise<any> {
-  const configFile = DataStore.projectNotes
-    .filter((n) => n.filename?.startsWith(STATIC_TEMPLATE_FOLDER))
-    .find((n) => !!n.title?.startsWith('_configuration'))
+  const configFile = DataStore.projectNotes.filter((n) => n.filename?.startsWith(STATIC_TEMPLATE_FOLDER)).find((n) => !!n.title?.startsWith('_configuration'))
 
   const content: ?string = configFile?.content
   if (content == null) {
@@ -90,11 +88,7 @@ export async function initConfiguration(pluginJsonData: any): Promise<any> {
  * @param {any} pluginJsonData - plugin.json data for which plugin is being migrated
  * @return {number} migration result (-1 migration section not found, 1 success, 0 no migration necessary)
  */
-export async function migrateConfiguration(
-  configSection: string,
-  pluginJsonData: any,
-  silentMode?: boolean = false,
-): Promise<number> {
+export async function migrateConfiguration(configSection: string, pluginJsonData: any, silentMode?: boolean = false): Promise<number> {
   // migrationResult
   // will be 1 if _configuration was migrated to plugin settings
   // will be 0 if no migration necessary
@@ -234,9 +228,9 @@ export async function parseConfiguration(block: string): Promise<?{ [string]: ?m
       return {}
     }
 
+    // eslint-disable-next-line
     let [format, ...contents] = block.split('\n')
     contents = contents.join('\n')
-    format = format.trim() // TODO(@mikeerickson): this isn't used?
 
     const value: any = json5.parse(contents)
     return value
@@ -289,9 +283,7 @@ export async function pluginUpdated(pluginJson: any, result: { code: number, mes
       const updateMessage = hasUpdateMessage ? `Changes include:\n"${hasUpdateMessage}"\n\n` : ''
       const version = newSettings['plugin.version']
       const openReadme = await showMessageYesNo(
-        `The Plugin:\n"${
-          newSettings['plugin.name']
-        }"\nwas automatically updated to v${version}. ${updateMessage}Would you like to open the Plugin's ${
+        `The Plugin:\n"${newSettings['plugin.name']}"\nwas automatically updated to v${version}. ${updateMessage}Would you like to open the Plugin's ${
           hasChangelog ? 'Change Log' : 'Documentation'
         } to see more details?`,
         ['Yes', 'No'],

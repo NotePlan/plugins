@@ -12,7 +12,8 @@
 // Typically, listed below are only the top-level plugin functions listed in plugin.json
 import pluginJson from '../plugin.json'
 import { updateSettingData } from '../../helpers/NPConfiguration'
-export async function onUpdateOrInstall(): Promise<void> {
+
+export function onUpdateOrInstall(): void {
   updateSettingData(pluginJson)
 }
 export { helloWorld } from './helloWorld'

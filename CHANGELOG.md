@@ -4,6 +4,18 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/codedungeon.Toolbox/README.md) for details on available commands and use case.
 
+## [3.10.1] - 2022-07-10 (@codedungeon)
+
+- Fixed linting errors
+- Updated `.eslintrc` to define max-len to match prettier setting in `package.json`
+  > I am hoping you all will be cool with the updated max-len value
+  > I work on a 30" most of the time so a longer line length is easier to read, if this becomes an issue I will try and get used to someting smaller (we used to have 120)
+- Updated `test:dev` and `test:watch` npm scripts
+  > Run `test:dev` to perform a single test run of all specs in `__tests__` directories
+  > Run `test:watch` to perform a run test for all specs in `__tests__` using watch mode
+- Updated `test` npm script to also call `test:dev`
+- small refactor to `np.plugin-flow-skeleton`
+
 ## [3.10.0] - 2022-07-07 (@codedungeon)
 - added `--force` option to `npc plugin:create` which will skip all network lookups (when retrieving github user information) (@dwertheimer)
 - added task to `npc plugin:release` which remove previous releases for same pluginId (@jgclark)

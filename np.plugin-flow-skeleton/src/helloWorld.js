@@ -12,5 +12,5 @@ export async function helloWorld(): Promise<void> {
   console.log(message)
 
   // this will be inserted at cursor position
-  Editor.insertTextAtCursor(message)
+  await Editor.insertTextAtCursor(message)
 }
