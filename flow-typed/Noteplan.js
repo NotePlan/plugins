@@ -40,44 +40,34 @@ declare var Editor: TEditor
 /**
  * The Editor class. This lets you access the currently opened note.
  */
-declare interface TEditor extends ParagraphBridge {
+declare interface TEditor extends CoreNoteFields {
   /**
    * Get the note object of the opened note in the editor
    */
   +note: ?TNote;
   /**
-   * Get or set the markdown text of the note (will be saved to file directly)
+   * Inserts the given text at the given character position (index)
+   * @param text 	  - Text to insert
+   * @param index   - Position to insert at (you can get this using 'renderedSelection' for example)
    */
-  content: ?string;
+  insertTextAtCharacterIndex(text: string, index: number): void;
   /**
-   * Get title of the note (first line)
+   * Get or set the array of paragraphs contained in this note, such as tasks,
+   * bullets, etc. If you set the paragraphs, the content of the note will be
+   * updated.
    */
-  +title: ?string;
+  paragraphs: $ReadOnlyArray<TParagraph>;
   /**
-   * Get the type of the note (indicates also where it is saved)
+   * Get an array of selected lines. The cursor doesn't have to select the full
+   * line, NotePlan returns all complete lines the cursor "touches".
    */
-  +type: ?NoteType;
+  +selectedLinesText: $ReadOnlyArray<string>;
   /**
-   * Get the filename of the note.
+   * Get or set the array of paragraphs contained in this note, such as tasks,
+   * bullets, etc. If you set the paragraphs, the content of the note will be
+   * updated.
    */
-  +filename: ?string;
-  /**
-  * Get or set the array of paragraphs contained in this note, such as tasks,
-  * bullets, etc. If you set the paragraphs, the content of the note will be
-  * updated.
-  */
-  paragraphs: $ReadOnlyArray < TParagraph >;
-  /**
-  * Get an array of selected lines. The cursor doesn't have to select the full
-  * line, NotePlan returns all complete lines the cursor "touches".
-  */
-  +selectedLinesText: $ReadOnlyArray < string >;
-  /**
-  * Get or set the array of paragraphs contained in this note, such as tasks,
-  * bullets, etc. If you set the paragraphs, the content of the note will be
-  * updated.
-  */
-  paragraphs: $ReadOnlyArray < TParagraph >;
+  paragraphs: $ReadOnlyArray<TParagraph>;
   /**
    * Get an array of selected paragraphs. The cursor doesn't have to select the
    * full paragraph, NotePlan returns all complete paragraphs the cursor
@@ -96,12 +86,7 @@ declare interface TEditor extends ParagraphBridge {
    * Get the selected text.
    */
   +selectedText: ?string;
-  /**
-   * Inserts the given text at the given character position (index)
-   * @param text 	  - Text to insert
-   * @param index   - Position to insert at (you can get this using 'renderedSelection' for example)
-   */
-  insertTextAtCharacterIndex(text: string, index: number): void;
+
   /**
    * Inserts the given text at the current cursor position
    * @param text - Text to insert
@@ -130,13 +115,7 @@ declare interface TEditor extends ParagraphBridge {
    * @param {boolean} createIfNeeded - (optional) Create the note with the given filename if it doesn't exist (only project notes, v3.5.2+)
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned (use with await ... or .then())
    */
-  openNoteByFilename(
-    filename: string,
-    newWindow?: boolean,
-    highlightStart?: number,
-    highlightEnd?: number,
-    splitView?: boolean,
-  ): Promise<TNote>;
+  openNoteByFilename(filename: string, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<TNote>;
   /**
    * Opens a note by searching for the give title (first line of the note)
    * Note: 'splitView' parameter available for macOS from v3.4
@@ -147,13 +126,7 @@ declare interface TEditor extends ParagraphBridge {
    * @param {boolean} splitView - (optional) Open note in a new split view
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
-  openNoteByTitle(
-    title: string,
-    newWindow?: boolean,
-    highlightStart?: number,
-    highlightEnd?: number,
-    splitView?: boolean,
-  ): Promise<TNote>;
+  openNoteByTitle(title: string, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<TNote>;
   /**
    * Opens a note by searching for the give title (first line of the note)
    * Note: 'splitView' parameter available for macOS from v3.4
@@ -164,14 +137,7 @@ declare interface TEditor extends ParagraphBridge {
    * @param {boolean} splitView - (optional) Open note in a new split view
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
-  openNoteByTitleCaseInsensitive(
-    title: string,
-    newWindow?: boolean,
-    caseSensitive?: boolean,
-    highlightStart?: number,
-    highlightEnd?: number,
-    splitView?: boolean,
-  ): Promise<TNote>;
+  openNoteByTitleCaseInsensitive(title: string, newWindow?: boolean, caseSensitive?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<TNote>;
   /**
    * Opens a calendar note by the given date
    * Note: 'splitView' parameter available for macOS from v3.4
@@ -184,14 +150,7 @@ declare interface TEditor extends ParagraphBridge {
    * @param {string} timeframe - (optional) Timeframe "day" (default) or "week"
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
-  openNoteByDate(
-    date: Date,
-    newWindow?: boolean,
-    highlightStart?: number,
-    highlightEnd?: number,
-    splitView?: boolean,
-    timeframe?: string,
-  ): Promise<TNote>;
+  openNoteByDate(date: Date, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean, timeframe?: string): Promise<TNote>;
   /**
    * Opens a calendar note by the given date string
    * Note: from v3.6 also accepts weeks in the main parameter
@@ -202,13 +161,7 @@ declare interface TEditor extends ParagraphBridge {
    * @param {boolean} splitView - (optional) Open note in a new split view
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
-  openNoteByDateString(
-    filename: string,
-    newWindow?: boolean,
-    highlightStart?: number,
-    highlightEnd?: number,
-    splitView?: boolean,
-  ): Promise<TNote | void>;
+  openNoteByDateString(filename: string, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<TNote | void>;
   /**
    * Opens a weekly calendar note by the given year and week number
    * Note: available from v3.6
@@ -220,14 +173,7 @@ declare interface TEditor extends ParagraphBridge {
    * @param {boolean} splitView     - (optional) Open note in a new split view
    * @return {Promise<void>}        - When the note has been opened, a promise will be returned
    */
-  openWeeklyNote(
-    year: number,
-    weeknumber: number,
-    newWindow?: boolean,
-    highlightStart?: number,
-    highlightEnd?: number,
-    splitView?: boolean,
-  ): Promise<void>;
+  openWeeklyNote(year: number, weeknumber: number, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<void>;
   /**
    * Selects the full text in the editor.
    * Note: Available from v3.2
@@ -348,12 +294,6 @@ declare interface TEditor extends ParagraphBridge {
    * @return {boolean}
    */
   addTheme(json: string, filename: string): boolean;
-  /**
-   * Print current note, optionally with backlinks and events sections
-   * Note: available from v3.4, on macOS
-   * @param {boolean} addReferenceSections
-   */
-  printNote(boolean: addReferenceSections): void;
 }
 
 /**
@@ -511,11 +451,7 @@ declare class DataStore {
    * notes in trash and archive as well.
    * By default NotePlan won't return notes in trash and archive.
    */
-  static projectNoteByTitle(
-    title: string,
-    caseInsensitive?: boolean,
-    searchAllFolders?: boolean,
-  ): ?$ReadOnlyArray<TNote>;
+  static projectNoteByTitle(title: string, caseInsensitive?: boolean, searchAllFolders?: boolean): ?$ReadOnlyArray<TNote>;
   /**
    * Returns all regular notes with the given case insensitive title.
    * Note: Since multiple notes can have the same title, an array is returned.
@@ -557,7 +493,7 @@ declare class DataStore {
    * @param {string} filename of the new note (optional) (available from v3.5.2)
    * @return {string}
    */
-  static newNoteWithContent(content: string, folder: string, filename ?: string): string;
+  static newNoteWithContent(content: string, folder: string, filename?: string): string;
 
   /**
    * Returns an array of paragraphs having the same blockID like the given one (which is also part of the return array).
@@ -649,12 +585,7 @@ declare class DataStore {
    * @param {Array<string>?} list (optional)
    * @return {$ReadOnlyArray<TParagraph>} array of results
    */
-  static search(
-    keyword: string,
-    types?: Array<string>,
-    inFolders?: Array<string>,
-    notInFolders?: Array<string>,
-): Promise < $ReadOnlyArray < TParagraph >>;
+  static search(keyword: string, types?: Array<string>, inFolders?: Array<string>, notInFolders?: Array<string>): Promise<$ReadOnlyArray<TParagraph>>;
 
   /**
    * Searches all project notes for a keyword (uses multiple threads to speed it up).
@@ -668,11 +599,7 @@ declare class DataStore {
    * @param {Array<string>?} folders list (optional)
    * @return {$ReadOnlyArray<TParagraph>} results array
    */
-  static searchProjectNotes(
-    keyword: string,
-    inFolders?: Array<string>,
-    notInFolders?: Array<string>,
-): Promise < $ReadOnlyArray < TParagraph >>;
+  static searchProjectNotes(keyword: string, inFolders?: Array<string>, notInFolders?: Array<string>): Promise<$ReadOnlyArray<TParagraph>>;
 
   /**
    * Searches all calendar notes for a keyword (uses multiple threads to speed it up).
@@ -681,7 +608,7 @@ declare class DataStore {
    * @param {string} = keyword to search for
    * @return {$ReadOnlyArray<TParagraph>} array of results
    */
-  static searchCalendarNotes(keyword: string): Promise < $ReadOnlyArray < TParagraph >>;
+  static searchCalendarNotes(keyword: string): Promise<$ReadOnlyArray<TParagraph>>;
 }
 
 /**
@@ -802,10 +729,7 @@ declare class CommandBar {
    * Use the `.index` attribute to refer back to the selected item in the
    * original array.
    */
-  static showOptions<TOption: string = string>(
-    options: $ReadOnlyArray<TOption>,
-    placeholder: string,
-  ): Promise<{ +index: number, +value: TOption }>;
+  static showOptions<TOption: string = string>(options: $ReadOnlyArray<TOption>, placeholder: string): Promise<{ +index: number, +value: TOption }>;
   /**
    * Asks the user to enter something into the CommandBar.
    *
@@ -1092,93 +1016,93 @@ declare interface Paragraph {
    * (with the Markdown 'type' prefix, such as '* [ ]' for open task)
    */
   +rawContent: string;
-/**
- * Get the Markdown prefix of the paragraph (like '* [ ]' for open task)
- */
-+prefix: string;
-/**
- * Get the range of the paragraph.
- */
-+contentRange: Range | void;
-/**
- * Get the line index of the paragraph.
- */
-+lineIndex: number;
-/**
- * Get the date of the paragraph, if any (in case of scheduled tasks).
- */
-+date: Date | void;
-/**
- * Get the heading of the paragraph (looks for a previous heading paragraph).
- */
-+heading: string;
-/**
- * Get the heading range of the paragraph
- * (looks for a previous heading paragraph).
- */
-+headingRange: Range | void;
-/**
- * Get the heading level of the paragraph ('# heading' = level 1).
- */
-+headingLevel: number;
-/**
- * If the task is a recurring one (contains '@repeat(...)')
- */
-+isRecurring: boolean;
-/**
- * Get the amount of indentations.
- */
-+indents: number;
-/**
- * Get the filename of the note this paragraph was loaded from
- */
-+filename: ?string;
-/**
- * Get the note type of the note this paragraph was loaded from.
- */
-+noteType: ?NoteType;
-/**
- * Get the linked note titles this paragraph contains,
- * such as '[[Note Name]]' (will return names without the brackets).
- */
-+linkedNoteTitles: $ReadOnlyArray < string >;
-/**
- * Creates a duplicate object, so you can change values without affecting the
- * original object
- */
-duplicate(): Paragraph;
-/**
- * Returns indented paragraphs (children) underneath a task
- * Only tasks can have children, but any paragraph indented underneath a task
- * can be a child of the task. This includes bullets, tasks, quotes, text.
- * Children are counted until a blank line, HR, title, or another item at the
- * same level as the parent task. So for items to be counted as children, they
- * need to be contiguous vertically.
- * Important note: .children() for a task paragraph will return every child,
- * grandchild, greatgrandchild, etc. So a task that has a child task that has
- * a child task will have 2 children (and the first child will have one)
- * Note: Available from v3.3
- * @return {[TParagraph]}
- */
-children(): $ReadOnlyArray < TParagraph >;
-/**
- * Returns an array of all paragraphs having the same blockID (including this paragraph). You can use `paragraph[0].note` to access the note behind it and make updates via `paragraph[0].note.updateParagraph(paragraph[0])` if you make changes to the content, type, etc (like checking it off as type = "done")
- * Note: Available from v3.5.2
- * @type {[TParagraph]} - getter
- */
-+referencedBlocks: [TParagraph];
-/**
- * Returns the NoteObject behind this paragraph. This is a convenience method, so you don't need to use DataStore.
- * Note: Available from v3.5.2
- * @type {TNote?}
- */
-+note: ?TNote;
-/**
- * Returns the given blockId if any.
- * Note: Available from v3.5.2
- * @type {string?}
- */
-+blockId: ?string;
+  /**
+   * Get the Markdown prefix of the paragraph (like '* [ ]' for open task)
+   */
+  +prefix: string;
+  /**
+   * Get the range of the paragraph.
+   */
+  +contentRange: Range | void;
+  /**
+   * Get the line index of the paragraph.
+   */
+  +lineIndex: number;
+  /**
+   * Get the date of the paragraph, if any (in case of scheduled tasks).
+   */
+  +date: Date | void;
+  /**
+   * Get the heading of the paragraph (looks for a previous heading paragraph).
+   */
+  +heading: string;
+  /**
+   * Get the heading range of the paragraph
+   * (looks for a previous heading paragraph).
+   */
+  +headingRange: Range | void;
+  /**
+   * Get the heading level of the paragraph ('# heading' = level 1).
+   */
+  +headingLevel: number;
+  /**
+   * If the task is a recurring one (contains '@repeat(...)')
+   */
+  +isRecurring: boolean;
+  /**
+   * Get the amount of indentations.
+   */
+  +indents: number;
+  /**
+   * Get the filename of the note this paragraph was loaded from
+   */
+  +filename: ?string;
+  /**
+   * Get the note type of the note this paragraph was loaded from.
+   */
+  +noteType: ?NoteType;
+  /**
+   * Get the linked note titles this paragraph contains,
+   * such as '[[Note Name]]' (will return names without the brackets).
+   */
+  +linkedNoteTitles: $ReadOnlyArray<string>;
+  /**
+   * Creates a duplicate object, so you can change values without affecting the
+   * original object
+   */
+  duplicate(): Paragraph;
+  /**
+   * Returns indented paragraphs (children) underneath a task
+   * Only tasks can have children, but any paragraph indented underneath a task
+   * can be a child of the task. This includes bullets, tasks, quotes, text.
+   * Children are counted until a blank line, HR, title, or another item at the
+   * same level as the parent task. So for items to be counted as children, they
+   * need to be contiguous vertically.
+   * Important note: .children() for a task paragraph will return every child,
+   * grandchild, greatgrandchild, etc. So a task that has a child task that has
+   * a child task will have 2 children (and the first child will have one)
+   * Note: Available from v3.3
+   * @return {[TParagraph]}
+   */
+  children(): $ReadOnlyArray<TParagraph>;
+  /**
+   * Returns an array of all paragraphs having the same blockID (including this paragraph). You can use `paragraph[0].note` to access the note behind it and make updates via `paragraph[0].note.updateParagraph(paragraph[0])` if you make changes to the content, type, etc (like checking it off as type = "done")
+   * Note: Available from v3.5.2
+   * @type {[TParagraph]} - getter
+   */
+  +referencedBlocks: [TParagraph];
+  /**
+   * Returns the NoteObject behind this paragraph. This is a convenience method, so you don't need to use DataStore.
+   * Note: Available from v3.5.2
+   * @type {TNote?}
+   */
+  +note: ?TNote;
+  /**
+   * Returns the given blockId if any.
+   * Note: Available from v3.5.2
+   * @type {string?}
+   */
+  +blockId: ?string;
 }
 
 type TNote = Note
@@ -1190,20 +1114,7 @@ type NoteType = 'Calendar' | 'Notes'
  * paragraph editing examples under Editor. NoteObject and Editor both
  * inherit the same paragraph functions.
  */
-declare interface Note extends ParagraphBridge {
-  /**
-   * Folder + Filename of the note (the path is relative to the root of the chosen storage location)
-   * From v3.6.0 can also *set* the filename, which does a rename.
-   */
-  filename: string;
-  /**
-   * Type of the note, either "Notes" or "Calendar".
-   */
-  +type: NoteType;
-  /**
-   * Title = first line of the note. (NB: Getter only.)
-   */
-  +title: string | void;
+declare interface Note extends CoreNoteFields {
   /**
    * Optional date if it's a calendar note
    */
@@ -1224,12 +1135,6 @@ declare interface Note extends ParagraphBridge {
    * All @mentions contained in this note.
    */
   +mentions: $ReadOnlyArray<string>;
-  /**
-   * Get or set the raw text of the note (without hiding or rendering any Markdown).
-   * If you set the content, NotePlan will write it immediately to file.
-   * If you get the content, it will be read directly from the file.
-   */
-  content: string | void;
   /**
    * Get paragraphs contained in this note which contain a link to another [[project note]] or [[YYYY-MM-DD]] daily note.
    * Note: Available from v3.2.0
@@ -1253,28 +1158,6 @@ declare interface Note extends ParagraphBridge {
    * Note: Available from v3.5.0
    */
   +frontmatterTypes: $ReadOnlyArray<string>;
-  /**
-   * Print the note, optionally with backlinks and events sections
-   * Note: available from v3.4 on macOS
-   * @param {boolean} addReferenceSections
-   */
-  printNote(addReferenceSections: boolean): void;
-  /**
-   * Generates a unique block ID and adds it to the content of this paragraph.
-   * Remember to call .updateParagraph(p) to write it to the note.
-   * You can call this on the Editor or note you got the paragraph from.
-   * Note: Available from v3.5.2
-   * @param {TParagraph}
-   */
-  addBlockID(paragraph: TParagraph): void;
-  /**
-   * Removes the unique block ID, if it exists in the content.
-   * Remember to call .updateParagraph(p) to write it to the note afterwards.
-   * You can call this on the Editor or note you got the paragraph from.
-   * Note: Available from v3.5.2
-   * @param {TParagraph}
-   */
-  removeBlockID(paragraph: TParagraph): void;
 }
 
 /**
@@ -1473,24 +1356,30 @@ declare class Clipboard {
 /* Available paragraph types
  * Note: 'separator' added v3.4.1
  */
-type ParagraphType =
-  | 'open'
-  | 'done'
-  | 'scheduled'
-  | 'cancelled'
-  | 'title'
-  | 'quote'
-  | 'list'
-  | 'empty'
-  | 'text'
-  | 'code'
-  | 'separator'
+type ParagraphType = 'open' | 'done' | 'scheduled' | 'cancelled' | 'title' | 'quote' | 'list' | 'empty' | 'text' | 'code' | 'separator'
 
-type TParagraphBridge = ParagraphBridge
-declare interface ParagraphBridge {
-  // impossible constructor.
-  constructor(_: empty): empty;
-
+type TCoreNoteFields = CoreNoteFields
+declare interface CoreNoteFields {
+  /**
+   * Title = first line of the note. (NB: Getter only.)
+   */
+  +title: string | void;
+  /**
+   * Type of the note, either "Notes" or "Calendar".
+   */
+  +type: NoteType;
+  /**
+   * Get the filename of the note.
+   * Folder + Filename of the note (the path is relative to the root of the chosen storage location)
+   * From v3.6.0 can also *set* the filename, which does a rename.
+   */
+  filename: string;
+  /**
+   * Get or set the raw text of the note (without hiding or rendering any Markdown).
+   * If you set the content, NotePlan will write it immediately to file.
+   * If you get the content, it will be read directly from the file.
+   */
+  content: string | void;
   /**
    * Get or set the array of paragraphs contained in this note, such as tasks,
    * bullets, etc. If you set the paragraphs, the content of the note will be
@@ -1580,13 +1469,7 @@ declare interface ParagraphBridge {
    * @param {boolean} shouldAppend - If the todo should be appended at the bottom of existing text
    * @param {boolean} shouldCreate - If the heading should be created if non-existing
    */
-  addParagraphBelowHeadingTitle(
-    title: string,
-    paragraphType: ParagraphType,
-    headingTitle: string,
-    shouldAppend: boolean,
-    shouldCreate: boolean,
-  ): void;
+  addParagraphBelowHeadingTitle(title: string, paragraphType: ParagraphType, headingTitle: string, shouldAppend: boolean, shouldCreate: boolean): void;
 
   /**
    * Appends a todo below the given heading index (at the end of existing text)
@@ -1670,6 +1553,29 @@ declare interface ParagraphBridge {
    * @param length - Amount of characters to replace from the location
    */
   replaceTextInCharacterRange(text: string, location: number, length: number): void;
+  /**
+   * Generates a unique block ID and adds it to the content of this paragraph.
+   * Remember to call .updateParagraph(p) to write it to the note.
+   * You can call this on the Editor or note you got the paragraph from.
+   * Note: Available from v3.5.2
+   * @param {TParagraph}
+   */
+  addBlockID(paragraph: TParagraph): void;
+
+  /**
+   * Removes the unique block ID, if it exists in the content.
+   * Remember to call .updateParagraph(p) to write it to the note afterwards.
+   * You can call this on the Editor or note you got the paragraph from.
+   * Note: Available from v3.5.2
+   * @param {TParagraph}
+   */
+  removeBlockID(paragraph: TParagraph): void;
+  /**
+   * Print the note, optionally with backlinks and events sections
+   * Note: available from v3.4 on macOS
+   * @param {boolean} addReferenceSections
+   */
+  printNote(addReferenceSections: boolean): void;
 }
 
 declare class NotePlan {
