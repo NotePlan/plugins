@@ -6,21 +6,10 @@
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import {
-  formatNoteDate,
-  nowLocaleDateTime,
-  toISOShortDateTimeString,
-} from '@helpers/dateTime'
+import { formatNoteDate, nowLocaleDateTime, toISOShortDateTimeString } from '@helpers/dateTime'
 import { copyObject, log, logError, timer } from '@helpers/dev'
-import {
-  displayTitle,
-  type headingLevelType,
-  titleAsLink,
-} from '@helpers/general'
-import {
-  isTermInMarkdownPath,
-  isTermInURL,
-} from '@helpers/paragraph'
+import { displayTitle, type headingLevelType, titleAsLink } from '@helpers/general'
+import { isTermInMarkdownPath, isTermInURL } from '@helpers/paragraph'
 import { trimAndHighlightTermInLine } from '@helpers/search'
 import { sortListBy } from '@helpers/sorting'
 import { showMessage } from '@helpers/userInput'
@@ -30,7 +19,7 @@ import { showMessage } from '@helpers/userInput'
 export type resultObjectType = {
   searchTerm: string,
   resultLines: Array<string>,
-  resultCount: number
+  resultCount: number,
 }
 
 //------------------------------------------------------------------------------
@@ -107,17 +96,17 @@ export const sortByTitle = (): Function => {
 }
 
 /**
- * Run a search over all search terms in 'termsToMatchArr' over the set of notes determined by 
+ * Run a search over all search terms in 'termsToMatchArr' over the set of notes determined by
  * - notesTypesToInclude (['notes'] or ['calendar'] or both)
  * - foldersToInclude (can be empty list)
  * - foldersToExclude (can be empty list)
  * - config for various settings
- * 
- * @param {Array<string>} termsToMatchArr 
- * @param {Array<string>} noteTypesToInclude 
- * @param {Array<string>} foldersToInclude 
- * @param {Array<string>} foldersToExclude 
- * @param {SearchConfig} config 
+ *
+ * @param {Array<string>} termsToMatchArr
+ * @param {Array<string>} noteTypesToInclude
+ * @param {Array<string>} foldersToInclude
+ * @param {Array<string>} foldersToExclude
+ * @param {SearchConfig} config
  * @returns {Array<resultObjectType>} array of result sets
  */
 export async function runSearches(
@@ -125,18 +114,18 @@ export async function runSearches(
   noteTypesToInclude: Array<string>,
   foldersToInclude: Array<string>,
   foldersToExclude: Array<string>,
-  config: SearchConfig
+  config: SearchConfig,
 ): Promise<Array<resultObjectType>> {
   try {
     const results: Array<resultObjectType> = []
     let resultCount = 0
-    const outerStartTime = new Date
+    const outerStartTime = new Date()
 
     // CommandBar.showLoading(true, `Running search for ${String(termsToMatchArr)} ...`)
     // await CommandBar.onAsyncThread()
 
     for (const untrimmedSearchTerm of termsToMatchArr) {
-      const innerStartTime = new Date
+      const innerStartTime = new Date()
       // search over all notes, apart from specified folders
       const searchTerm = untrimmedSearchTerm.trim()
       const resultObject = await runSearch(searchTerm, noteTypesToInclude, foldersToInclude, foldersToExclude, config)
@@ -153,25 +142,24 @@ export async function runSearches(
 
     log(pluginJson, `Total Search time (API): ${termsToMatchArr.length} searches in ${timer(outerStartTime)} -> ${resultCount} results`)
     return results
-  }
-  catch (err) {
+  } catch (err) {
     logError(pluginJson, err.message)
     return [] // for completeness
   }
 }
 
 /**
- * Run a search for 'searchTerm' over the set of notes determined by 
+ * Run a search for 'searchTerm' over the set of notes determined by
  * - notesTypesToInclude (['notes'] or ['calendar'] or both)
  * - foldersToInclude (can be empty list)
  * - foldersToExclude (can be empty list)
  * - config for various settings
- * 
- * @param {Array<string>} searchTerm 
- * @param {Array<string>} noteTypesToInclude 
- * @param {Array<string>} foldersToInclude 
- * @param {Array<string>} foldersToExclude 
- * @param {SearchConfig} config 
+ *
+ * @param {Array<string>} searchTerm
+ * @param {Array<string>} noteTypesToInclude
+ * @param {Array<string>} foldersToInclude
+ * @param {Array<string>} foldersToExclude
+ * @param {SearchConfig} config
  * @returns {resultObjectType} single result set
  */
 export async function runSearch(
@@ -179,7 +167,7 @@ export async function runSearch(
   noteTypesToInclude: Array<string>,
   foldersToInclude: Array<string>,
   foldersToExclude: Array<string>,
-  config: SearchConfig
+  config: SearchConfig,
 ): Promise<resultObjectType> {
   try {
     const outputArray = []
@@ -197,13 +185,11 @@ export async function runSearch(
       // So he wrote the copyObject() function to help.
       // His sortListBy() function only works with elements at the top level of the object, so in order to
       // to access p.note.changedDate etc. we need to create a special new object which is what this odes:
-      const resultParasWithNoteFields = resultParas
-        .map(p => ({
-          ...copyObject(p),
-          ...{ changedDate: p.note?.changedDate },
-          ...{ createdDate: p.note?.createdDate },
-          ...{ title: displayTitle(p.note) }
-        }))
+      const resultParasWithNoteFields = resultParas.map((p) => {
+        const newP = copyObject(p)
+        const note = p.note
+        return { ...newP, ...{ changedDate: note?.changedDate, createdDate: note?.createdDate, title: displayTitle(note) } }
+      })
       const sortMap = new Map([
         ['alphabetical', 'title'],
         ['updated (most recent first)', '-changedDate'],
@@ -226,9 +212,7 @@ export async function runSearch(
         // console.log(`- ${displayTitle(thisNote)}\t${toISOShortDateTimeString(thisNote.changedDate)}\t${toISOShortDateTimeString(thisNote.createdDate)}`)
 
         let matchLine = thisLine.content
-        const thisNoteTitleDisplay = (thisNote.date != null)
-          ? formatNoteDate(thisNote.date, config.dateStyle)
-          : titleAsLink(thisNote)
+        const thisNoteTitleDisplay = thisNote.date != null ? formatNoteDate(thisNote.date, config.dateStyle) : titleAsLink(thisNote)
         // If the test is within a URL or the path of a [!][link](path) skip this result
         if (isTermInURL(searchTerm, matchLine)) {
           // log(pluginJson, `  - Info: Match '${searchTerm}' ignored in '${matchLine} because it's in a URL`)
@@ -239,8 +223,7 @@ export async function runSearch(
           continue
         }
         // Format the line and context for output (trimming, highlighting)
-        matchLine = trimAndHighlightTermInLine(matchLine, searchTerm,
-          config.highlightResults, config.resultQuoteLength)
+        matchLine = trimAndHighlightTermInLine(matchLine, searchTerm, config.highlightResults, config.resultQuoteLength)
         if (config.groupResultsByNote) {
           // Write out note title (if not seen before) then the matchLine
           if (previousNoteTitle !== thisNoteTitleDisplay) {
@@ -262,10 +245,9 @@ export async function runSearch(
     return {
       searchTerm: searchTerm,
       resultLines: outputArray,
-      resultCount: resultCount
+      resultCount: resultCount,
     }
-  }
-  catch (err) {
+  } catch (err) {
     logError(pluginJson, err.message)
     const emptyResultObject = { searchTerm: '', resultsLines: [], resultCount: 0 }
     // $FlowFixMe[prop-missing]
@@ -296,15 +278,14 @@ export async function writeResultsNote(
     let outputNote: ?TNote
     let noteFilename = ''
     const headingMarker = '#'.repeat(headingLevel)
-    let fullNoteContent = `# ${requestedTitle}\nat ${nowLocaleDateTime}${(xCallbackURL !== '') ? ` [Click to refresh these results](${xCallbackURL})` : ''}`
+    let fullNoteContent = `# ${requestedTitle}\nat ${nowLocaleDateTime}${xCallbackURL !== '' ? ` [Click to refresh these results](${xCallbackURL})` : ''}`
     for (const r of results) {
       fullNoteContent += `\n${headingMarker} ${r.searchTerm} (${r.resultCount} results)\n${r.resultLines.join('\n')}`
     }
 
     // See if this note has already been created
     // (look only in active notes, not Archive or Trash)
-    const existingNotes: $ReadOnlyArray<TNote> =
-      DataStore.projectNoteByTitle(requestedTitle, true, false) ?? []
+    const existingNotes: $ReadOnlyArray<TNote> = DataStore.projectNoteByTitle(requestedTitle, true, false) ?? []
     log(pluginJson, `- found ${existingNotes.length} existing search result note(s) titled ${requestedTitle}`)
 
     if (existingNotes.length > 0) {
@@ -312,7 +293,6 @@ export async function writeResultsNote(
       outputNote = existingNotes[0]
       outputNote.content = fullNoteContent
       noteFilename = outputNote.filename
-
     } else {
       // make a new note for this. NB: filename here = folder + filename
       noteFilename = DataStore.newNoteWithContent(fullNoteContent, folderToStore, requestedTitle)
@@ -326,9 +306,8 @@ export async function writeResultsNote(
     }
     log(pluginJson, `written results to the new note '${displayTitle(outputNote)}'`)
     return noteFilename
-  }
-  catch (err) {
+  } catch (err) {
     logError(pluginJson, err.message)
-    return 'error'  // for completeness
+    return 'error' // for completeness
   }
 }
