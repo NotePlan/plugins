@@ -18,7 +18,7 @@ import pluginJson from '../plugin.json'
 // updateSettingsData will execute whenever your plugin is installed or updated
 import { updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'
 
-export { xCallbackWizard } from './NPXCallbackWizard' // this makes the command function available to NotePlan (see plugin.json for details)
+export { xCallbackWizard, headingLink } from './NPXCallbackWizard' // this makes the command function available to NotePlan (see plugin.json for details)
 
 export function onUpdateOrInstall(): void {
   // this runs after the plugin is installed or updated. the following command updates the plugin's settings data
@@ -27,9 +27,7 @@ export function onUpdateOrInstall(): void {
 
 export function init(): void {
   // this runs every time the plugin starts up (any command in this plugin is run)
-  DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], true, false, false).then((r) =>
-    pluginUpdated(pluginJson, r),
-  )
+  DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], true, false, false).then((r) => pluginUpdated(pluginJson, r))
 }
 
 export async function onSettingsUpdated(): Promise<void> {

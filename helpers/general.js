@@ -114,9 +114,7 @@ export async function parseJSON5(contents: string): Promise<?{ [string]: ?mixed 
  * @return {string}
  */
 export function percent(value: number, total: number): string {
-  return total > 0
-    ? `${value.toLocaleString()} (${Math.round((value / total) * 100)}%)`
-    : `${value.toLocaleString()} (0%)`
+  return total > 0 ? `${value.toLocaleString()} (${Math.round((value / total) * 100)}%)` : `${value.toLocaleString()} (0%)`
 }
 
 // Deprecated: more trouble than they're worth ...
@@ -208,11 +206,10 @@ export function createOpenOrDeleteNoteCallbackUrl(
   const xcb = `noteplan://x-callback-url/${isDeleteNote ? 'deleteNote' : 'openNote'}?${paramStr}=`
   // FIXME: this is working around an API bug that does not allow heading references in filename xcallbacks
   // When @eduard fixes it, this line can be removed
-  const head = paramType === 'title' && heading?.length ? heading : ''
-  // console.log(`createOpenOrDeleteNoteCallbackUrl: ${xcb}${titleOrFilename}${head ? `&heading=${head}` : ''}`)
+  const head = paramType === 'title' && heading?.length ? encodeURIComponent(heading) : ''
+  console.log(`createOpenOrDeleteNoteCallbackUrl: ${xcb}${titleOrFilename}${head ? `&heading=${head}` : ''}`)
   const encoded = encodeURIComponent(titleOrFilename).replace(/\(/g, '%28').replace(/\)/g, '%29')
-  const openAs =
-    openType && ['subWindow', 'splitView', 'useExistingSubWindow'].includes(openType) ? `&${openType}=yes` : ''
+  const openAs = openType && ['subWindow', 'splitView', 'useExistingSubWindow'].includes(openType) ? `&${openType}=yes` : ''
   return `${xcb}${encoded}${head && head !== '' ? `#${head}` : ''}${openAs}`
 }
 
@@ -223,24 +220,17 @@ export function createOpenOrDeleteNoteCallbackUrl(
  * @returns {string}
  * @tests available
  */
-export function createAddTextCallbackUrl(
-  note: TNote | string,
-  options: { text: string, mode: string, openNote: string },
-): string {
+export function createAddTextCallbackUrl(note: TNote | string, options: { text: string, mode: string, openNote: string }): string {
   const { text, mode, openNote } = options
   if (typeof note !== 'string') {
     // this is a note
     const encoded = encodeURIComponent(note.filename).replace(/\(/g, '%28').replace(/\)/g, '%29')
     if (note && note.filename) {
-      return `noteplan://x-callback-url/addText?filename=${encoded}&mode=${mode}&openNote=${openNote}&text=${encodeURIComponent(
-        text,
-      )}`
+      return `noteplan://x-callback-url/addText?filename=${encoded}&mode=${mode}&openNote=${openNote}&text=${encodeURIComponent(text)}`
     }
   } else {
     // this is a date type argument
-    return `noteplan://x-callback-url/addText?noteDate=${note}&mode=${mode}&openNote=${openNote}&text=${encodeURIComponent(
-      text,
-    )}`
+    return `noteplan://x-callback-url/addText?noteDate=${note}&mode=${mode}&openNote=${openNote}&text=${encodeURIComponent(text)}`
   }
   return ''
 }
@@ -294,17 +284,8 @@ export function createCallbackUrl(commandName: string, paramObj: { [string]: str
  * @returns {string} the pretty x-callback-url string: [linkText](x-callback-url)
  * @tests available
  */
-export function createPrettyOpenNoteLink(
-  linkText: string,
-  titleOrFilename: string,
-  isFilename: boolean = false,
-  heading: string | null = null,
-): string {
-  return `[${linkText}](${createOpenOrDeleteNoteCallbackUrl(
-    titleOrFilename,
-    isFilename ? 'filename' : 'title',
-    heading,
-  )})`
+export function createPrettyOpenNoteLink(linkText: string, titleOrFilename: string, isFilename: boolean = false, heading: string | null = null): string {
+  return `[${linkText}](${createOpenOrDeleteNoteCallbackUrl(titleOrFilename, isFilename ? 'filename' : 'title', heading)})`
 }
 
 /**
@@ -318,12 +299,7 @@ export function createPrettyOpenNoteLink(
  * @returns {string} the x-callback-url string
  * @tests available
  */
-export function createPrettyRunPluginLink(
-  linkText: string,
-  pluginID: string,
-  command: string,
-  args: Array<string> = [],
-): string {
+export function createPrettyRunPluginLink(linkText: string, pluginID: string, command: string, args: Array<string> = []): string {
   return `[${linkText}](${createRunPluginCallbackUrl(pluginID, command, args)})`
 }
 
