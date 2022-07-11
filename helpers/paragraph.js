@@ -91,10 +91,10 @@ export function rangeToString(r: Range): string {
  * @param {?TNote} n - note to get title for
  * @return {string}
  */
-export function displayTitle(n: ?TNote): string {
+export function displayTitle(n: ?CoreNoteFields): string {
   return !n
     ? 'error'
-    : n.type === 'Calendar' && n.date != null
+    : n.type === 'Calendar' && ((n: $FlowFixMe): TNote).date != null
     ? n.filename.split('.')[0] // without file extension
     : n.title ?? ''
 }
@@ -231,7 +231,7 @@ export function smartPrependPara(note: TNote, paraText: string, paragraphType: P
  * @param {TNote} note - the note to assess
  * @return {number} - the index number
  */
-export function findEndOfActivePartOfNote(note: TNote): number {
+export function findEndOfActivePartOfNote(note: CoreNoteFields): number {
   const paras = note.paragraphs
   const lineCount = paras.length
 
@@ -262,7 +262,7 @@ export function findEndOfActivePartOfNote(note: TNote): number {
  * @param {TNote} note - the note to assess
  * @return {number} - the line index number
  */
-export function endOfFrontmatterLineIndex(note: TNote): number {
+export function endOfFrontmatterLineIndex(note: CoreNoteFields): number {
   const paras = note.paragraphs
   const lineCount = paras.length
   console.log(`starting with lineCount = ${lineCount}`)
@@ -293,7 +293,7 @@ export function endOfFrontmatterLineIndex(note: TNote): number {
  * @param {TNote} note - the note to assess
  * @return {number} - the line index number
  */
-export function findStartOfActivePartOfNote(note: TNote): number {
+export function findStartOfActivePartOfNote(note: CoreNoteFields): number {
   try {
     let paras = note.paragraphs
     // First check there's actually anything at all! If note, add a first empty paragraph

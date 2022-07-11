@@ -52,22 +52,10 @@ declare interface TEditor extends CoreNoteFields {
    */
   insertTextAtCharacterIndex(text: string, index: number): void;
   /**
-   * Get or set the array of paragraphs contained in this note, such as tasks,
-   * bullets, etc. If you set the paragraphs, the content of the note will be
-   * updated.
-   */
-  paragraphs: $ReadOnlyArray<TParagraph>;
-  /**
    * Get an array of selected lines. The cursor doesn't have to select the full
    * line, NotePlan returns all complete lines the cursor "touches".
    */
   +selectedLinesText: $ReadOnlyArray<string>;
-  /**
-   * Get or set the array of paragraphs contained in this note, such as tasks,
-   * bullets, etc. If you set the paragraphs, the content of the note will be
-   * updated.
-   */
-  paragraphs: $ReadOnlyArray<TParagraph>;
   /**
    * Get an array of selected paragraphs. The cursor doesn't have to select the
    * full paragraph, NotePlan returns all complete paragraphs the cursor
@@ -1386,6 +1374,19 @@ declare interface CoreNoteFields {
    * updated.
    */
   paragraphs: $ReadOnlyArray<TParagraph>;
+  /**
+   * Inserts the given text at the given character position (index)
+   * @param text 	  - Text to insert
+   * @param index   - Position to insert at (you can get this using 'renderedSelection' for example)
+   */
+  insertTextInCharacterIndex(text: string, index: number): void;
+  /**
+   * Replaces the text at the given range with the given text
+   * @param text 	    - Text to insert
+   * @param location  - Position to insert at (you can get this using 'renderedSelection' for example)
+   * @param length    - Amount of characters to replace from the location
+   */
+  replaceTextAtCharacterRange(text: string, location: number, length: number): void;
   /**
    * Returns a range object of the full paragraph of the given character
    * position.

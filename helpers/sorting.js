@@ -3,8 +3,8 @@
 /**
  * Modern case insensitive sorting function
  * More details at https://stackoverflow.com/a/49004987/3238281
- * @param {string} a 
- * @param {string} b 
+ * @param {string} a
+ * @param {string} b
  */
 export function caseInsensitiveCompare(a: string, b: string): number {
   return a.localeCompare(b, 'en', { sensitivity: 'base' })
@@ -34,23 +34,26 @@ export function sortListBy(list: Array<mixed>, objectPropertySortOrder: Array<st
  * @returns {function} callback function for sort()
  */
 
-export const fieldSorter = (fields: Array<string>): function => (a, b) =>
-  fields
-    .map((field) => {
-      let dir = 1
-      const isDesc = field[0] === '-'
-      if (isDesc) {
-        dir = -1
-        field = field.substring(1)
-      }
-      const aValue = firstValue(a[field])
-      const bValue = firstValue(b[field])
-      if (aValue === bValue) return 0
-      if (aValue === undefined) return isDesc ? -dir : dir
-      if (bValue === undefined) return isDesc ? dir : -dir
-      return aValue > bValue ? dir : -dir
-    })
-    .reduce((p, n) => (p ? p : n), 0)
+export const fieldSorter =
+  (fields: Array<string>): function =>
+  (a, b) =>
+    fields
+      .map((_field) => {
+        let field = _field
+        let dir = 1
+        const isDesc = field[0] === '-'
+        if (isDesc) {
+          dir = -1
+          field = field.substring(1)
+        }
+        const aValue = firstValue(a[field])
+        const bValue = firstValue(b[field])
+        if (aValue === bValue) return 0
+        if (aValue === undefined) return isDesc ? -dir : dir
+        if (bValue === undefined) return isDesc ? dir : -dir
+        return aValue > bValue ? dir : -dir
+      })
+      .reduce((p, n) => (p ? p : n), 0)
 
 /**
  * Sometimes you you want to sort on the value of a field that is an array
