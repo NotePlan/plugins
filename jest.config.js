@@ -10,4 +10,5 @@ module.exports = {
     '^TemplatingEngine/(.*)$': '<rootDir>/np.Templating/lib/TemplatingEngine',
     '^NPGlobals/(.*)$': '<rootDir>/np.Globals/lib/NPGlobals',
   },
+  testPathIgnorePatterns: ['<rootDir>/src/templates/np.plugin.starter'],
 }
