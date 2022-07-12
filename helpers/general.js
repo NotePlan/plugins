@@ -435,19 +435,16 @@ export function semverVersionToNumber(version: string): number {
 export const forceLeadingSlash = (str: string): string => (str[0] === '/' ? str : `/${str}`)
 
 /**
- * Check if a filename is in a list of folders (or not in one of the list of folders)
+ * Check if a filename is in a list of folders (negate the result to get *not in folder*)
  * @param {string} filename
  * @param {Array<string>} folderList
- * @param {'in' | 'notIn'} includeOrExclude - 'in' means the filename must be in the list of folders, 'notIn' means it must not be in the list of folders
  * @param {boolean} caseSensitive - whether to do a case sensitive check (defaults to false)
+ * @example filteredTasks = allTasks.filter((f) => inFolderList(f.filename, inFolders)) // filename in one of these folders
+ * @example filteredTasks = allTasks.filter((f) => !inFolderList(f.filename, notInFolders)) // filename not in any of these folders
  * @returns
  */
-export function inFolderList(filenameStr: string, folderListArr: Array<string>, includeOrExclude: 'in' | 'notIn' = 'in', caseSensitive: boolean = false): boolean {
+export function inFolderList(filenameStr: string, folderListArr: Array<string>, caseSensitive: boolean = false): boolean {
   const filename = caseSensitive ? forceLeadingSlash(filenameStr) : forceLeadingSlash(filenameStr.toLowerCase())
   const folderList = caseSensitive ? folderListArr.map((f) => forceLeadingSlash(f)) : folderListArr.map((f) => forceLeadingSlash(f.toLowerCase()))
-  if (includeOrExclude === 'in') {
-    return folderList.some((f) => filename.includes(f))
-  } else {
-    return !folderList.some((f) => filename.includes(f))
-  }
+  return folderList.some((f) => filename.includes(f))
 }

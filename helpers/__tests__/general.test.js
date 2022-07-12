@@ -254,63 +254,41 @@ describe(`${FILE}`, () => {
      * inFolderList()
      */
     describe('inFolderList()' /* function */, () => {
-      describe('in', () => {
-        test('should work for case mismatch', () => {
-          const filename = 'FOO'
-          const folderList = ['foo']
-          const result = g.inFolderList(filename, folderList, 'in', false)
-          expect(result).toEqual(true)
-        })
-        test('should work for lowercase', () => {
-          const filename = 'FOO'
-          const folderList = ['foo']
-          const result = g.inFolderList(filename, folderList, 'in', false)
-          expect(result).toEqual(true)
-        })
-        test('should work for slashed filename', () => {
-          const filename = '/FOO'
-          const folderList = ['foo']
-          const result = g.inFolderList(filename, folderList, 'in', false)
-          expect(result).toEqual(true)
-        })
-        test('same test should fail for case sensitive filename', () => {
-          const filename = '/FOO'
-          const folderList = ['foo']
-          const result = g.inFolderList(filename, folderList, 'in', true)
-          expect(result).toEqual(false)
-        })
-        test('should work for full matches', () => {
-          const filename = '_TEST/foo'
-          const folderList = ['_TEST']
-          const result = g.inFolderList(filename, folderList, 'in', true)
-          expect(result).toEqual(true)
-        })
-        test('should not work for partial matches', () => {
-          const filename = '_TEST/foo'
-          const folderList = ['TEST']
-          const result = g.inFolderList(filename, folderList, 'in', true)
-          expect(result).toEqual(false)
-        })
+      test('should work for case mismatch', () => {
+        const filename = 'FOO'
+        const folderList = ['foo']
+        const result = g.inFolderList(filename, folderList, false)
+        expect(result).toEqual(true)
       })
-      describe('notIn', () => {
-        test('should work for lowercase', () => {
-          const filename = 'FOO'
-          const folderList = ['foo']
-          const result = g.inFolderList(filename, folderList, 'notIn', false)
-          expect(result).toEqual(false)
-        })
-        test('should work for slashed filename', () => {
-          const filename = '/FOO'
-          const folderList = ['foo']
-          const result = g.inFolderList(filename, folderList, 'notIn', false)
-          expect(result).toEqual(false)
-        })
-        test('should fail with slash and notIn', () => {
-          const filename = '/FOO'
-          const folderList = ['foo']
-          const result = g.inFolderList(filename, folderList, 'notIn', false)
-          expect(result).toEqual(false)
-        })
+      test('should work for lowercase', () => {
+        const filename = 'FOO'
+        const folderList = ['foo']
+        const result = g.inFolderList(filename, folderList, false)
+        expect(result).toEqual(true)
+      })
+      test('should work for slashed filename', () => {
+        const filename = '/FOO'
+        const folderList = ['foo']
+        const result = g.inFolderList(filename, folderList, false)
+        expect(result).toEqual(true)
+      })
+      test('same test should fail for case sensitive filename', () => {
+        const filename = '/FOO'
+        const folderList = ['foo']
+        const result = g.inFolderList(filename, folderList, true)
+        expect(result).toEqual(false)
+      })
+      test('should work for full matches', () => {
+        const filename = '_TEST/foo'
+        const folderList = ['_TEST']
+        const result = g.inFolderList(filename, folderList, true)
+        expect(result).toEqual(true)
+      })
+      test('should not work for partial matches', () => {
+        const filename = '_TEST/foo'
+        const folderList = ['TEST']
+        const result = g.inFolderList(filename, folderList, true)
+        expect(result).toEqual(false)
       })
     })
   })
