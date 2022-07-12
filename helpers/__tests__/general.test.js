@@ -53,22 +53,16 @@ describe(`${FILE}`, () => {
   describe(section('createOpenOrDeleteNoteCallbackUrl()'), () => {
     describe('using noteTitle', () => {
       test('should create a link with a heading', () => {
-        expect(g.createOpenOrDeleteNoteCallbackUrl('foo', 'title', 'bar')).toEqual(
-          'noteplan://x-callback-url/openNote?noteTitle=foo#bar',
-        )
+        expect(g.createOpenOrDeleteNoteCallbackUrl('foo', 'title', 'bar')).toEqual('noteplan://x-callback-url/openNote?noteTitle=foo#bar')
       })
       test('should create a link if heading is missing', () => {
         expect(g.createOpenOrDeleteNoteCallbackUrl('foo')).toEqual('noteplan://x-callback-url/openNote?noteTitle=foo')
       })
       test('should create a link with heading passed as null', () => {
-        expect(g.createOpenOrDeleteNoteCallbackUrl('foo', 'title', null)).toEqual(
-          'noteplan://x-callback-url/openNote?noteTitle=foo',
-        )
+        expect(g.createOpenOrDeleteNoteCallbackUrl('foo', 'title', null)).toEqual('noteplan://x-callback-url/openNote?noteTitle=foo')
       })
       test('should create a link with heading passed as empty string', () => {
-        expect(g.createOpenOrDeleteNoteCallbackUrl('foo', 'title', '')).toEqual(
-          'noteplan://x-callback-url/openNote?noteTitle=foo',
-        )
+        expect(g.createOpenOrDeleteNoteCallbackUrl('foo', 'title', '')).toEqual('noteplan://x-callback-url/openNote?noteTitle=foo')
       })
     })
     describe('using note filename', () => {
@@ -76,31 +70,21 @@ describe(`${FILE}`, () => {
       // re-enable this test when @eduard fixes API bug
       // should also add a test for a filename with parentheses
       test('should create a link with filename with parentheses', () => {
-        expect(g.createOpenOrDeleteNoteCallbackUrl('foo/bar(xx)', 'filename', 'bar')).toEqual(
-          'noteplan://x-callback-url/openNote?filename=foo%2Fbar%28xx%29',
-        )
+        expect(g.createOpenOrDeleteNoteCallbackUrl('foo/bar(xx)', 'filename', 'bar')).toEqual('noteplan://x-callback-url/openNote?filename=foo%2Fbar%28xx%29')
       })
       test('should create a urlencoded link for spaces', () => {
-        expect(g.createOpenOrDeleteNoteCallbackUrl('foo bar', 'filename', 'bar')).toEqual(
-          'noteplan://x-callback-url/openNote?filename=foo%20bar',
-        )
+        expect(g.createOpenOrDeleteNoteCallbackUrl('foo bar', 'filename', 'bar')).toEqual('noteplan://x-callback-url/openNote?filename=foo%20bar')
       })
       test.skip('should create a link with a heading', () => {
-        expect(g.createOpenOrDeleteNoteCallbackUrl('foo', 'filename', 'bar')).toEqual(
-          'noteplan://x-callback-url/openNote?filename=foo#bar',
-        )
+        expect(g.createOpenOrDeleteNoteCallbackUrl('foo', 'filename', 'bar')).toEqual('noteplan://x-callback-url/openNote?filename=foo#bar')
       })
       test('should create a link stripping the heading for the API bug workaround', () => {
-        expect(g.createOpenOrDeleteNoteCallbackUrl('foo', 'filename', 'bar')).toEqual(
-          'noteplan://x-callback-url/openNote?filename=foo',
-        )
+        expect(g.createOpenOrDeleteNoteCallbackUrl('foo', 'filename', 'bar')).toEqual('noteplan://x-callback-url/openNote?filename=foo')
       })
     })
     describe('using date', () => {
       test('should create a link stripping the heading for the API bug workaround', () => {
-        expect(g.createOpenOrDeleteNoteCallbackUrl('yesterday', 'date')).toEqual(
-          'noteplan://x-callback-url/openNote?noteDate=yesterday',
-        )
+        expect(g.createOpenOrDeleteNoteCallbackUrl('yesterday', 'date')).toEqual('noteplan://x-callback-url/openNote?noteDate=yesterday')
       })
     })
     describe('using openTypes', () => {
@@ -125,11 +109,8 @@ describe(`${FILE}`, () => {
 
   describe(section(`createRunPluginCallbackUrl`), () => {
     test('should create a link with a heading', () => {
-      const expected =
-        'noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.DataQuerying&command=runSearch&arg0=New%20Note%20-%2043.9400'
-      expect(g.createRunPluginCallbackUrl(`dwertheimer.DataQuerying`, `runSearch`, [`New Note - 43.9400`])).toEqual(
-        expected,
-      )
+      const expected = 'noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.DataQuerying&command=runSearch&arg0=New%20Note%20-%2043.9400'
+      expect(g.createRunPluginCallbackUrl(`dwertheimer.DataQuerying`, `runSearch`, [`New Note - 43.9400`])).toEqual(expected)
     })
   })
 
@@ -164,9 +145,7 @@ describe(`${FILE}`, () => {
       // re-enable this test when @eduard fixes API bug
 
       test.skip('should create a link with a heading', () => {
-        expect(g.createPrettyOpenNoteLink('baz', 'foo', true, 'bar')).toEqual(
-          '[baz](noteplan://x-callback-url/openNote?filename=foo#bar)',
-        )
+        expect(g.createPrettyOpenNoteLink('baz', 'foo', true, 'bar')).toEqual('[baz](noteplan://x-callback-url/openNote?filename=foo#bar)')
       })
     })
     describe(section('stripLinkFromString()'), () => {
@@ -187,14 +166,10 @@ describe(`${FILE}`, () => {
           expect(g.stripLinkFromString('foo [[bar#heading]] baz [[quux#heading]] quux')).toEqual('foo baz quux')
         })
         test('should strip a link from a string with a heading and trailing text and multiple links and multiple headings and multiple links', () => {
-          expect(g.stripLinkFromString('foo [[bar#heading]] baz [[quux#heading]] quux [[foo#heading]]')).toEqual(
-            'foo baz quux',
-          )
+          expect(g.stripLinkFromString('foo [[bar#heading]] baz [[quux#heading]] quux [[foo#heading]]')).toEqual('foo baz quux')
         })
         test('should strip a link from a string with a heading and trailing text and multiple links and multiple headings and multiple links and multiple headings', () => {
-          expect(
-            g.stripLinkFromString('foo [[bar#heading]] baz [[quux#heading]] quux [[foo#heading]] [[bar#heading]]'),
-          ).toEqual('foo baz quux')
+          expect(g.stripLinkFromString('foo [[bar#heading]] baz [[quux#heading]] quux [[foo#heading]] [[bar#heading]]')).toEqual('foo baz quux')
         })
       })
       describe('using full urls', () => {
@@ -208,25 +183,15 @@ describe(`${FILE}`, () => {
           expect(g.stripLinkFromString('foo [bar](http://www.google.com#heading) baz quux')).toEqual('foo baz quux')
         })
         test('should strip a link from a string with a heading and trailing text and multiple links', () => {
-          expect(
-            g.stripLinkFromString(
-              'foo [bar](http://www.google.com#heading) baz [bar](http://www.google.com#heading) quux',
-            ),
-          ).toEqual('foo baz quux')
+          expect(g.stripLinkFromString('foo [bar](http://www.google.com#heading) baz [bar](http://www.google.com#heading) quux')).toEqual('foo baz quux')
         })
         test('should strip a link from a string with a heading and trailing text and multiple links and multiple headings', () => {
-          expect(
-            g.stripLinkFromString(
-              'foo [bar](http://www.google.com#heading) baz [bar](http://www.google.com#heading) quux',
-            ),
-          ).toEqual('foo baz quux')
+          expect(g.stripLinkFromString('foo [bar](http://www.google.com#heading) baz [bar](http://www.google.com#heading) quux')).toEqual('foo baz quux')
         })
         test('should strip a link from a string with a heading and trailing text and multiple links and multiple headings and multiple links', () => {
-          expect(
-            g.stripLinkFromString(
-              'foo [bar](http://www.google.com#heading) baz [bar](http://www.google.com#heading) quux [bar](http://www.google.com#heading)',
-            ),
-          ).toEqual('foo baz quux')
+          expect(g.stripLinkFromString('foo [bar](http://www.google.com#heading) baz [bar](http://www.google.com#heading) quux [bar](http://www.google.com#heading)')).toEqual(
+            'foo baz quux',
+          )
         })
         test('should strip a link from a string with a heading and trailing text and multiple links and multiple headings and multiple links and multiple headings', () => {
           expect(
@@ -266,6 +231,86 @@ describe(`${FILE}`, () => {
       test('should create callback with more than one param (urlencoded)', () => {
         const result = g.createCallbackUrl('text', { foo: 'bar baz', quux: 'quuz' })
         expect(result).toEqual(`${base}text?foo=bar%20baz&quux=quuz`)
+      })
+    })
+    /*
+     * forceLeadingSlash()
+     */
+    describe('forceLeadingSlash()' /* function */, () => {
+      test("should force slash when there's not one", () => {
+        const result = g.forceLeadingSlash('foo')
+        expect(result).toEqual('/foo')
+      })
+      test("should force slash when there's not one", () => {
+        const result = g.forceLeadingSlash('f/oo')
+        expect(result).toEqual('/f/oo')
+      })
+      test('should not force slash if there is one', () => {
+        const result = g.forceLeadingSlash('/foo')
+        expect(result).toEqual('/foo')
+      })
+    })
+    /*
+     * inFolderList()
+     */
+    describe('inFolderList()' /* function */, () => {
+      describe('in', () => {
+        test('should work for case mismatch', () => {
+          const filename = 'FOO'
+          const folderList = ['foo']
+          const result = g.inFolderList(filename, folderList, 'in', false)
+          expect(result).toEqual(true)
+        })
+        test('should work for lowercase', () => {
+          const filename = 'FOO'
+          const folderList = ['foo']
+          const result = g.inFolderList(filename, folderList, 'in', false)
+          expect(result).toEqual(true)
+        })
+        test('should work for slashed filename', () => {
+          const filename = '/FOO'
+          const folderList = ['foo']
+          const result = g.inFolderList(filename, folderList, 'in', false)
+          expect(result).toEqual(true)
+        })
+        test('same test should fail for case sensitive filename', () => {
+          const filename = '/FOO'
+          const folderList = ['foo']
+          const result = g.inFolderList(filename, folderList, 'in', true)
+          expect(result).toEqual(false)
+        })
+        test('should work for full matches', () => {
+          const filename = '_TEST/foo'
+          const folderList = ['_TEST']
+          const result = g.inFolderList(filename, folderList, 'in', true)
+          expect(result).toEqual(true)
+        })
+        test('should not work for partial matches', () => {
+          const filename = '_TEST/foo'
+          const folderList = ['TEST']
+          const result = g.inFolderList(filename, folderList, 'in', true)
+          expect(result).toEqual(false)
+        })
+      })
+      describe('notIn', () => {
+        test('should work for lowercase', () => {
+          const filename = 'FOO'
+          const folderList = ['foo']
+          const result = g.inFolderList(filename, folderList, 'notIn', false)
+          expect(result).toEqual(false)
+        })
+        test('should work for slashed filename', () => {
+          const filename = '/FOO'
+          const folderList = ['foo']
+          const result = g.inFolderList(filename, folderList, 'notIn', false)
+          expect(result).toEqual(false)
+        })
+        test('should fail with slash and notIn', () => {
+          const filename = '/FOO'
+          const folderList = ['foo']
+          const result = g.inFolderList(filename, folderList, 'notIn', false)
+          expect(result).toEqual(false)
+        })
       })
     })
   })
