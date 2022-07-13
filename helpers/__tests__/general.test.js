@@ -255,40 +255,52 @@ describe(`${FILE}`, () => {
      */
     describe('inFolderList()' /* function */, () => {
       test('should work for case mismatch', () => {
-        const filename = 'FOO'
+        const filename = 'FOO/bar.md'
         const folderList = ['foo']
         const result = g.inFolderList(filename, folderList, false)
         expect(result).toEqual(true)
       })
       test('should work for lowercase', () => {
-        const filename = 'FOO'
+        const filename = 'FOO/bar.md'
         const folderList = ['foo']
         const result = g.inFolderList(filename, folderList, false)
         expect(result).toEqual(true)
       })
       test('should work for slashed filename', () => {
-        const filename = '/FOO'
+        const filename = '/FOO/bar.md'
         const folderList = ['foo']
         const result = g.inFolderList(filename, folderList, false)
         expect(result).toEqual(true)
       })
       test('same test should fail for case sensitive filename', () => {
-        const filename = '/FOO'
+        const filename = '/FOO/bar.md'
         const folderList = ['foo']
         const result = g.inFolderList(filename, folderList, true)
         expect(result).toEqual(false)
       })
       test('should work for full matches', () => {
-        const filename = '_TEST/foo'
+        const filename = '_TEST/foo/bar.md'
         const folderList = ['_TEST']
         const result = g.inFolderList(filename, folderList, true)
         expect(result).toEqual(true)
       })
-      test('should not work for partial matches', () => {
-        const filename = '_TEST/foo'
+      test('should work for intermediate folder matches', () => {
+        const filename = '_TEST/foo/bar.md'
+        const folderList = ['foo']
+        const result = g.inFolderList(filename, folderList, true)
+        expect(result).toEqual(true)
+      })
+      test('should not be true for partial matches', () => {
+        const filename = '_TEST/foo/bar.md'
         const folderList = ['TEST']
         const result = g.inFolderList(filename, folderList, true)
         expect(result).toEqual(false)
+      })
+      test('should work for root folder', () => {
+        const filename = 'nofolder.md'
+        const folderList = ['/']
+        const result = g.inFolderList(filename, folderList, false)
+        expect(result).toEqual(true)
       })
     })
   })
