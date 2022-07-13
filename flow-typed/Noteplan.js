@@ -103,7 +103,8 @@ declare interface TEditor extends CoreNoteFields {
    * @param {boolean} createIfNeeded - (optional) Create the note with the given filename if it doesn't exist (only project notes, v3.5.2+)
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned (use with await ... or .then())
    */
-  openNoteByFilename(filename: string, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<TNote | void>;
+  openNoteByFilename(filename: string, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean, createIfNeeded?: false): Promise<TNote | void>;
+  openNoteByFilename(filename: string, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean, createIfNeeded: true): Promise<TNote>;
   /**
    * Opens a note by searching for the give title (first line of the note)
    * Note: 'splitView' parameter available for macOS from v3.4
