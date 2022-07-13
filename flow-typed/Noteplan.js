@@ -103,7 +103,7 @@ declare interface TEditor extends CoreNoteFields {
    * @param {boolean} createIfNeeded - (optional) Create the note with the given filename if it doesn't exist (only project notes, v3.5.2+)
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned (use with await ... or .then())
    */
-  openNoteByFilename(filename: string, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<TNote>;
+  openNoteByFilename(filename: string, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<TNote | void>;
   /**
    * Opens a note by searching for the give title (first line of the note)
    * Note: 'splitView' parameter available for macOS from v3.4
@@ -114,7 +114,7 @@ declare interface TEditor extends CoreNoteFields {
    * @param {boolean} splitView - (optional) Open note in a new split view
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
-  openNoteByTitle(title: string, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<TNote>;
+  openNoteByTitle(title: string, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<TNote | void>;
   /**
    * Opens a note by searching for the give title (first line of the note)
    * Note: 'splitView' parameter available for macOS from v3.4
@@ -125,7 +125,14 @@ declare interface TEditor extends CoreNoteFields {
    * @param {boolean} splitView - (optional) Open note in a new split view
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
-  openNoteByTitleCaseInsensitive(title: string, newWindow?: boolean, caseSensitive?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<TNote>;
+  openNoteByTitleCaseInsensitive(
+    title: string,
+    newWindow?: boolean,
+    caseSensitive?: boolean,
+    highlightStart?: number,
+    highlightEnd?: number,
+    splitView?: boolean,
+  ): Promise<TNote | void>;
   /**
    * Opens a calendar note by the given date
    * Note: 'splitView' parameter available for macOS from v3.4
@@ -138,7 +145,7 @@ declare interface TEditor extends CoreNoteFields {
    * @param {string} timeframe - (optional) Timeframe "day" (default) or "week"
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
-  openNoteByDate(date: Date, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean, timeframe?: string): Promise<TNote>;
+  openNoteByDate(date: Date, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean, timeframe?: string): Promise<TNote | void>;
   /**
    * Opens a calendar note by the given date string
    * Note: from v3.6 also accepts weeks in the main parameter
@@ -161,7 +168,7 @@ declare interface TEditor extends CoreNoteFields {
    * @param {boolean} splitView     - (optional) Open note in a new split view
    * @return {Promise<void>}        - When the note has been opened, a promise will be returned
    */
-  openWeeklyNote(year: number, weeknumber: number, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<void>;
+  openWeeklyNote(year: number, weeknumber: number, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<TNote | void>;
   /**
    * Selects the full text in the editor.
    * Note: Available from v3.2
