@@ -165,16 +165,16 @@ export function findNotesMatchingHashtag(
 }
 
 /**
- * Return array of array of notes with a particular hashtags (plural), optionally from the given folder.
+ * Return array of array of notes with particular hashtags (plural), optionally from the given folder.
  * @author @jgclark
  *
  * @param {Array<string>} tag - tags to look for
  * @param {?string} folder - optional folder to limit to
  * @param {?boolean} includeSubfolders - if folder given, whether to look in subfolders of this folder or not (optional, defaults to false)
- * @return {Array<Array<TNote>>}
+ * @return {Array<Array<TNote>>} array of list of notes
  */
 export function findNotesMatchingHashtags(
-  tags: string,
+  tags: Array<string>,
   folder: ?string,
   includeSubfolders: ?boolean = false,
 ): Array<Array<TNote>> {
