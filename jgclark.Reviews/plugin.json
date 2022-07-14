@@ -7,7 +7,9 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
-  "plugin.version": "0.6.5",
+  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
+  "plugin.version": "0.7.0",
+  "plugin.lastUpdateInfo": "Will automatically update hidden list of reviews where necessary, avoiding some warning messages.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -19,7 +21,7 @@
         "list"
       ],
       "description": "creates/updates a human-readable list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete.",
-      "jsFunction": "projectLists"
+      "jsFunction": "makeProjectLists"
     },
     {
       "name": "start reviews",
@@ -73,6 +75,11 @@
       "jsFunction": "logReviewList"
     },
     {
+      "name": "rev:makeReviewList",
+      "description": "make/update reviewList pref",
+      "jsFunction": "makeReviewList"
+    },
+    {
       "name": "rev:upgrade",
       "description": "upgrade Reviews plugin settings",
       "jsFunction": "onUpdateOrInstall"
@@ -118,7 +125,7 @@
     {
       "key": "confirmNextReview",
       "title": "Confirm next Review?",
-      "description": "When running '/next project review' shows a dialog with the title of the next project to review, and asking to confirm whether to start that review.",
+      "description": "When running '/next project review' it ask whether to start the next review.",
       "type": "bool",
       "default": false,
       "required": true

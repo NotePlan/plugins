@@ -2,21 +2,21 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // @jgclark
-// Last updated 14.6.2022 for v0.6.5, @jgclark
+// Last updated 7.7.2022 for v0.7.0, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
 // Import Helper functions
 import pluginJson from "../plugin.json"
 import { checkString } from "@helpers/checkType"
-import {
-  castBooleanFromMixed,
-  castHeadingLevelFromMixed,
-  castNumberFromMixed,
-  castStringArrayFromMixed,
-  castStringFromMixed,
-  trimAnyQuotes,
-} from '@helpers/dataManipulation'
+// import {
+//   castBooleanFromMixed,
+//   castHeadingLevelFromMixed,
+//   castNumberFromMixed,
+//   castStringArrayFromMixed,
+//   castStringFromMixed,
+//   trimAnyQuotes,
+// } from '@helpers/dataManipulation'
 import {
   daysBetween,
   getDateObjFromDateString,
@@ -25,23 +25,23 @@ import {
   toISODateString,
 } from '@helpers/dateTime'
 import { calcOffsetDate } from '@helpers/NPdateTime'
-import { clo, log, logError, logWarn } from '@helpers/dev'
+import { log, logError, logWarn } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
-import { percent } from '@helpers/general'
-import { findNotesMatchingHashtags } from '@helpers/note'
 import {
   getContentFromBrackets,
   getStringFromList,
+  // percent,
 } from '@helpers/general'
 import {
-  getOrMakeMetadataLine,
+  findEndOfActivePartOfNote,
+  getOrMakeMetadataLine
 } from '@helpers/paragraph'
 import { showMessage } from '@helpers/userInput'
 
 //------------------------------
 // Config setup
 
-const configKey = "review"
+// const configKey = "review"
 
 export type ReviewConfig = {
   folderToStore: string,
@@ -146,6 +146,30 @@ export  function getParamMentionFromList(
   return res.length > 0 ? res[0] : ''
 }
 
+/**
+ * Read lines in 'note' and return any lines that contain fields
+ * (that start with 'fieldName' parameter before a colon with text after).
+ * The matching is done case insensitively, and only in the active region of the note.
+ * TODO: add check to see if the note uses frontmatter; if so, restrict to searching there?
+ * @param {TNote} note
+ * @param {string} fieldName
+ * @returns {Array<string>}
+ */
+export function getFieldsFromNote(note: TNote, fieldName: string): Array<string> {
+  const paras = note.paragraphs
+  const endOfActive = findEndOfActivePartOfNote(note)
+  const matchArr = []
+  const RE = new RegExp(`^${fieldName}:\\s*(.+)`, "i") // case-insensitive match at start of line
+  for (const p of paras) {
+    const matchRE = p.content.match(RE)
+    if (matchRE && p.lineIndex < endOfActive) {
+      matchArr.push(matchRE[1])
+    }
+  }
+  // log('getFieldsFromNote()', `Found ${matchArr.length} fields matching '${fieldName}'`)
+  return matchArr
+}
+
 //-----------------------------------------------------------------------------
 
 /**
@@ -180,7 +204,8 @@ export class Project {
   isActive: boolean
   isCancelled: boolean
   folder: string
-  
+  percentComplete: string
+
   constructor(note: TNote) {
     const mentions: $ReadOnlyArray<string> = note.mentions
     const hashtags: $ReadOnlyArray<string> = note.hashtags
@@ -191,15 +216,15 @@ export class Project {
     // log(pluginJson, `new Project: ${this.title} with metadata in line ${this.metadataPara.lineIndex}`)
     this.folder = getFolderFromFilename(note.filename)
 
-    // work out note type (or '')
+    // work out note review type: 'project' or 'area' or ''
     this.noteType = (hashtags.includes('#project'))
       ? 'project'
       : (hashtags.includes('#area'))
         ? 'area'
         : ''
 
-    // read in start date (if found)
-    // now uses DataStore.preference mechanism to pick up current terms for @start, @due, @reviewed etc.
+    // read in various metadata fields (if present)
+    // (now uses DataStore.preference mechanism to pick up current terms for @start, @due, @reviewed etc.)
     let tempDateStr = getParamMentionFromList(mentions, checkString(DataStore.preference('startMentionStr')))
     this.startDate = tempDateStr !== '' ? getDateObjFromDateString(tempDateStr) : undefined
     // read in due date (if found)
@@ -235,6 +260,20 @@ export class Project {
       filter((p) => p.type === 'open').
       filter((p) => includesScheduledFutureDate(p.content)).
       length
+    // Track percentComplete: either through calculation from counts ...
+    this.percentComplete = (this.completedTasks > 0)
+      ? `${String(Math.round((this.completedTasks / (this.completedTasks + this.openTasks)) * 100))}%`
+      : '-%'
+    // ... or TODO: through specific 'Progress' field
+    // this.percentComplete = ''
+    const progressLines = getFieldsFromNote(this.note, 'progress')
+    if (progressLines.length > 0) {
+      // Get the first part of the value of the Progress field: nn@YYYY-MM-DD ...
+      const progressLine = progressLines[0]
+      console.log(progressLine)
+      this.percentComplete = progressLine.split(/[\s:]/, 1).toString() // last part redundant but avoids flow error
+      log(pluginJson, `  found ${this.percentComplete} from field`)
+    }
 
     // make project completed if @completed_date set
     this.isCompleted = (this.completedDate != null) ? true : false
@@ -319,7 +358,7 @@ export class Project {
     log(pluginJson, `... metadata now '${newMetadataLine}'`)
     this.metadataPara.content = newMetadataLine
 
-    // send update to Editor
+    // send update to Editor TODO: Will need updating when supporting frontmatter for metadata
     Editor.updateParagraph(this.metadataPara)
     return true
   }
@@ -344,7 +383,7 @@ export class Project {
     log(pluginJson, `... metadata now '${newMetadataLine}'`)
     this.metadataPara.content = newMetadataLine
 
-    // send update to Editor
+    // send update to Editor TODO: Will need updating when supporting frontmatter for metadata
     Editor.updateParagraph(this.metadataPara)
     return true
   }
@@ -388,7 +427,7 @@ export class Project {
    * @return {string} - title as wikilink
   */
   decoratedProjectTitle(includeFolderName: boolean): string {
-    let folderNamePart = (includeFolderName) ? (this.folder+' ') : ''
+    const folderNamePart = (includeFolderName) ? (this.folder + ' ') : ''
     if (this.isCompleted) {
       return `[x] ${folderNamePart}[[${this.title ?? ''}]]`
     } else if (this.isCancelled) {
@@ -421,7 +460,8 @@ export class Project {
       output += `\t(Cancelled ${relativeDateFromNumber(this.finishedDays)})`
     }
     if (includePercentage) {
-      output += `\tc${percent(this.completedTasks, (this.completedTasks + this.openTasks))} / o${this.openTasks} / w${this.waitingTasks} / f${this.futureTasks}`
+      output += `\tc${this.completedTasks.toLocaleString()} (${this.percentComplete}) / o${this.openTasks} / w${this.waitingTasks} / f${this.futureTasks}`
+      // output += `\tc${percent(this.completedTasks, (this.completedTasks + this.openTasks))} / o${this.openTasks} / w${this.waitingTasks} / f${this.futureTasks}`
     } else {
       output += `\tc${this.completedTasks} / o${this.openTasks} / w${this.waitingTasks} / f${this.futureTasks}`
     }

@@ -11,9 +11,18 @@ import pluginJson from '../plugin.json'
 import { migrateConfiguration, updateSettingData } from '../../helpers/NPConfiguration'
 import { log, logError } from '../../helpers/dev'
 
-export { logReviewList, projectLists, startReviews, nextReview, finishReview } from './reviews'
-
-export { completeProject, cancelProject } from './projects'
+export {
+  logReviewList,
+  makeReviewList,
+  makeProjectLists,
+  startReviews,
+  nextReview,
+  finishReview
+} from './reviews'
+export {
+  completeProject,
+  cancelProject
+} from './projects'
 
 const configKey = 'review'
 

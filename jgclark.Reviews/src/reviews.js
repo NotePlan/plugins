@@ -1,12 +1,10 @@
 // @flow
-
 //-----------------------------------------------------------------------------
 // Commands for Reviewing project-style notes, GTD-style.
 // by @jgclark
-// Last updated 14.6.2022 for v0.6.5, @jgclark
+// Last updated 7.7.2022 for v0.7.0, @jgclark
 //-----------------------------------------------------------------------------
 
-// Import Helper functions
 import pluginJson from "../plugin.json"
 import {
   getReviewSettings,
@@ -19,13 +17,13 @@ import {
   nowLocaleDateTime,
   RE_DATE, // find dates of form YYYY-MM-DD
 } from '@helpers/dateTime'
-import { log, logWarn, logError } from '@helpers/dev'
+import { log, logWarn, logError, timer } from '@helpers/dev'
 import {
   filterFolderList,
-  getFolderFromFilename
 } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
 import {
+  findNotesMatchingHashtag,
   findNotesMatchingHashtags,
   getOrMakeNote,
 } from '@helpers/note'
@@ -38,7 +36,7 @@ import {
 //-----------------------------------------------------------------------------
 
 // Settings
-let filteredFolderList: Array<string> = []
+// let filteredFolderList: Array<string> = []
 const reviewListPref = 'jgclark.Reviews.reviewList'
 
 //-------------------------------------------------------------------------------
@@ -56,11 +54,11 @@ export function logReviewList(): void{
  * and write out to note(s) in the config.folderToStore folder.
  * @author @jgclark
  */
-export async function projectLists(): Promise<void> {
+export async function makeProjectLists(): Promise<void> {
   const config = await getReviewSettings()
-  const filteredFolderList = filterFolderList(config.foldersToIgnore)
+  // const filteredFolderList = filterFolderList(config.foldersToIgnore)
 
-  log(pluginJson, `projectLists() starting for ${config.noteTypeTags.toString()} tags:`)
+  log(pluginJson, `makeProjectLists() starting for ${config.noteTypeTags.toString()} tags:`)
 
   if (config.noteTypeTags.length > 0) {
     // We have defined tag(s) to filter and group by
@@ -108,23 +106,23 @@ export async function projectLists(): Promise<void> {
   }
 }
 
-//-------------------------------------------------------------------------------
 /**
  * Generate machine-readable list of project-type notes ready for review,
  * ordered by oldest next review date.
  * This is V2, which uses reviewList pref to store the list
  * @author @jgclark
  */
-export async function startReviews(): Promise<void> {
+export async function makeReviewList(): Promise<void> {
   const config = await getReviewSettings()
   const filteredFolderList = filterFolderList(config.foldersToIgnore)
   const summaryArray = []
-  
-  log(pluginJson, `startReviews() starting for ${config.noteTypeTags.toString()} tags:`)
+
+  log(pluginJson, `makeReviewList() starting for ${config.noteTypeTags.toString()} tags:`)
 
   CommandBar.showLoading(true, `Generating Project Review list`)
   await CommandBar.onAsyncThread()
 
+  const startTime = new Date()
   // Iterate over the folders ...
   // ... but ignoring any in the config.foldersToIgnore list
   for (const folder of filteredFolderList) {
@@ -132,14 +130,16 @@ export async function startReviews(): Promise<void> {
     const tags = (config.noteTypeTags != null && config.noteTypeTags.length > 0)
       ? config.noteTypeTags
       : []
-    for (const tag of tags) {
-      // Get notes that include noteTag in this folder, ignoring subfolders
-      const notes = findNotesMatchingHashtags(tag, folder, false)
-      const projectsReadyToReview = []
-      if (notes.length > 0) {
+
+    // Get notes that include noteTag in this folder, ignoring subfolders
+    // $FlowFixMe[incompatible-call]
+    const projectNotesArrArr = findNotesMatchingHashtags(tags, folder, false)
+    const projectsReadyToReview = []
+    for (const pnarr of projectNotesArrArr) {
+      if (pnarr.length > 0) {
         // Get Project class representation of each note,
         // saving those which are ready for review in projectsReadyToReview array
-        for (const n of notes) {
+        for (const n of pnarr) {
           const np = new Project(n)
           if (np.isReadyForReview && !config.foldersToIgnore.includes(np.folder)) {
             projectsReadyToReview.push(np)
@@ -153,25 +153,39 @@ export async function startReviews(): Promise<void> {
       }
     }
   }
-
+  log(pluginJson, `${Number(config.noteTypeTags.length * filteredFolderList.length)} folder/tag combinations reviewed in ${timer(startTime)}s`)
   await CommandBar.onMainThread()
   CommandBar.showLoading(false)
 
   // dedupe the list, in case it contains duplicates
-  let dedupedArray = []  
+  const dedupedArray = []
   summaryArray.forEach((element) => {
     if (!dedupedArray.includes(element)) {
-      dedupedArray.push(element);
+      dedupedArray.push(element)
     }
   })
-  
+
   // sort the list by first field
-  // $FlowIgnore[unsafe-addition]
-  const outputArray = dedupedArray.slice().sort((first, second) => first.split('\t')[0] - second.split('\t')[0])
+  const outputArray = dedupedArray.slice().sort((first, second) =>
+    Number(first.split('\t')[0]) - Number(second.split('\t')[0]))
 
   // write summary to reviewList pref
   DataStore.setPreference(reviewListPref, outputArray.join('\n'))
-  log(pluginJson, `  There are ${outputArray.length} lines in the reviewListPref`)
+  log(pluginJson, `-> Now ${outputArray.length} lines in the reviewListPref`)
+}
+
+/**
+ * Start a series of project reviews.
+ * This starts by generating a new machine-readable list of project-type notes ready
+ * for review, ordered by oldest next review date.
+ * Then offers to load the first note to review.
+ * @author @jgclark
+ */
+export async function startReviews(): Promise<void> {
+  const config = await getReviewSettings()
+
+  // Make/update list of projects ready for review
+  await makeReviewList()
 
   // Now offer first review
   const noteToReview = await getNextNoteToReview()
@@ -212,15 +226,17 @@ async function makeNoteTypeSummary(noteTag: string): Promise<Array<string>> {
 
   // if we want a summary broken down by folder, create list of folders
   // otherwise use a single folder
-  const folderList = config.displayGroupedByFolder ? DataStore.folders : ['/']
+  // const folderList = config.displayGroupedByFolder ? DataStore.folders : ['/']
   // log(pluginJson, `  Processing ${folderList.length} folders`)
 
   // Iterate over the folders (ignoring any in the pref_foldersToIgnore list)
   CommandBar.showLoading(true, `Summarising ${noteTag} in ${filteredFolderList.length} folders`)
   await CommandBar.onAsyncThread()
+
+  const startTime = new Date()
   for (const folder of filteredFolderList) {
     // Get notes that include noteTag in this folder, ignoring subfolders
-    const notes = findNotesMatchingHashtags(noteTag, folder, false)
+    const notes = findNotesMatchingHashtag(noteTag, folder, false)
     if (notes.length > 0) {
       // Create array of Project class representation of each note,
       // ignoring any in a folder we want to ignore (by one of the settings)
@@ -272,6 +288,7 @@ async function makeNoteTypeSummary(noteTag: string): Promise<Array<string>> {
   }
   await CommandBar.onMainThread()
   CommandBar.showLoading(false)
+  log(pluginJson, `${Number(noteCount)} notes reviewed in ${timer(startTime)}s`)
 
   // Add summary/ies onto the start (remember: unshift adds to the very front each time)
   if (noteCount > 0) {
@@ -295,6 +312,7 @@ export async function nextReview(): Promise<void> {
   const config = await getReviewSettings()
 
   // First update @review(date) on current open note
+  // eslint-disable-next-line no-unused-vars, unused-imports/no-unused-vars
   const openNote: ?TNote = await finishReview()
 
   // Read review list to work out what's the next one to review
@@ -329,10 +347,11 @@ export async function updateReviewListAfterReview(note: TNote): Promise<void> {
   log(pluginJson, `Removing '${reviewedTitle}' from review list`)
 
   // Get pref that contains the project list
-  const reviewList = DataStore.preference(reviewListPref)
+  let reviewList = DataStore.preference(reviewListPref)
   if (reviewList === undefined) {
-    logWarn(pluginJson, `Can't find pref ${reviewListPref}. Please re-run '/start reviews'.`)
-    return
+    logWarn(pluginJson, `Couldn't find pref ${reviewListPref}. Will run makeReviewList() ...`)
+    await makeReviewList()
+    reviewList = DataStore.preference(reviewListPref)
   }
 
   // Now read contents and parse, this time as lines
@@ -353,7 +372,8 @@ export async function updateReviewListAfterReview(note: TNote): Promise<void> {
     DataStore.setPreference(reviewListPref, lines.join('\n'))
     // log(pluginJson, `\tRemoved line ${lineNum} from reviewList pref as its review is completed`)
   } else {
-    logError(pluginJson, `Couldn't find '${reviewedTitle}' to remove from review list`)
+    log(pluginJson, `Couldn't find '${reviewedTitle}' to remove from review list. Will run makeReviewList ...`)
+    await makeReviewList()
     return
   }
 }
@@ -366,11 +386,11 @@ export async function updateReviewListAfterReview(note: TNote): Promise<void> {
  */
 async function getNextNoteToReview(): Promise<?TNote> {
   // Get pref that contains the project list
-  const reviewList = DataStore.preference(reviewListPref)
+  let reviewList = DataStore.preference(reviewListPref)
   if (reviewList === undefined) {
-    await showMessage(`Oops: I now can't find my pref. Try re-running '/start reviews' command.`, 'OK')
-    logError(pluginJson, `getNextNoteToReview(): Can't find pref jgclark.Review.reviewList. Try re-running '/start reviews' command.`)
-    return
+    logWarn(pluginJson, `getNextNoteToReview: Couldn't find pref ${reviewListPref}. Will run makeReviewList() ...`)
+    await makeReviewList()
+    reviewList = DataStore.preference(reviewListPref)
   }
   const reviewListStr = checkString(reviewList)
   // Now read off the first line
@@ -379,11 +399,11 @@ async function getNextNoteToReview(): Promise<?TNote> {
     const firstLine = lines[0]
     // log(pluginJson, `pref: has ${lines.length} items, starting ${firstLine}`)
     const nextNoteTitle = firstLine.split('\t')[1] // get second field in list
-    log(pluginJson, `Next project note to review = '${nextNoteTitle}'`)
+    log(pluginJson, `getNextNoteToReview: -> '${nextNoteTitle}'`)
     const nextNotes = DataStore.projectNoteByTitle(nextNoteTitle, true, false) ?? []
     return nextNotes[0] // return first matching note
   } else {
-    log(pluginJson, `getNextNoteToReview(): Review list was empty. Try re-running '/start reviews' command.`)
+    log(pluginJson, `getNextNoteToReview: Review list was empty.`)
     return
   }
 }
@@ -443,9 +463,10 @@ export async function finishReview(): Promise<?TNote> {
     Editor.updateParagraph(metaPara)
   }
   // remove this note from the review list
-  // $FlowIgnore[incompatible-call]
-  await updateReviewListAfterReview(Editor.note)
-
-  // return current note, to help next function
-  return Editor.note
+  if (Editor.note != null) {
+    await updateReviewListAfterReview(Editor.note)
+    // return current note, to help next function
+    return Editor.note
+  }
+  return null // shouldn't get here
 }

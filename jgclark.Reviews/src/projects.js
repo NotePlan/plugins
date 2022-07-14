@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Commands for working with Project and Area notes, seen in NotePlan notes.
 // by @jgclark
-// Last updated 14.6.2022 for v0.6.5, @jgclark
+// Last updated 7.7.2022 for v0.7.0, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -16,14 +16,12 @@ import {
 } from './reviewHelpers'
 import { hyphenatedDateString } from '@helpers/dateTime'
 import { log, logWarn, logError } from '@helpers/dev'
-import { getFolderFromFilename } from '@helpers/folders'
-import {
-  displayTitle,
-} from '@helpers/general'
+// import { getFolderFromFilename } from '@helpers/folders'
+// import { displayTitle } from '@helpers/general'
 import { getOrMakeNote } from '@helpers/note'
-import { getOrMakeMetadataLine } from '@helpers/paragraph'
+// import { getOrMakeMetadataLine } from '@helpers/paragraph'
 import {
-  getInput,
+  // getInput,
   showMessageYesNo
 } from '@helpers/userInput'
 
@@ -83,6 +81,7 @@ export async function completeProject(): Promise<void> {
     // ... and finally ask whether to move it to the @Archive
     if (filename != null &&
       (await showMessageYesNo('Shall I move this completed note to the Archive?', ['Yes', 'No'])) === 'Yes') {
+      // eslint-disable-next-line no-unused-vars, unused-imports/no-unused-vars
       const newFilename = DataStore.moveNote(filename, '@Archive')
     }
   } else {
@@ -140,6 +139,7 @@ export async function cancelProject(): Promise<void> {
     // ... and finally ask whether to move it to the @Archive
     if (filename != null &&
       (await showMessageYesNo('Shall I move this cancelled note to the Archive?', ['Yes', 'No'])) === 'Yes') {
+      // eslint-disable-next-line no-unused-vars, unused-imports/no-unused-vars
       const newFilename = DataStore.moveNote(filename, '@Archive')
       log(pluginJson, `Project note has been moved to the @Archive.`)
     }

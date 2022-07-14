@@ -1,6 +1,10 @@
 # What's changed in 🔬 Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Review), and how to configure.
 
+## [0.7.0] - 2022-07-14
+### Added
+- Now automatically update hidden list of reviews where necessary, avoiding some warning messages.
+
 ## [0.6.5] - 2022-06-13
 ### Added
 - % completion to project summary lines (with the /project lists command) (for @DocJulien)
