@@ -42,7 +42,7 @@ Note: currently cannot be customized. If you desperately need it to be customiza
 - By default, the format of dates and times is "en-US" format.
 - By default, the `/formatted` command uses `%Y-%m-%d %I:%M:%S %P` (see `Templates` use below)
 
-*Note: You can create your own formats by installing the `Templates` plugin and following the directions to create your own `_configuration` note, which can include a `date` property (inside the code fences)*
+*Note: You can create your own formats in templates installing the `Templating` plugin and [following the directions](https://nptemplating-docs.netlify.app/docs/templating-modules/date-module)*
 
 If you install this plugin and run `/dp` command, you will get some ideas for dateStyle and timeStyle settings
 
