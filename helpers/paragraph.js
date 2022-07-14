@@ -406,3 +406,22 @@ export function findHeading(note: TNote, heading: string): TParagraph | null {
   }
   return null
 }
+
+/**
+ * Remove duplicate synced lines (same content, same blockID, different files), and return only one copy of each
+ * @param {Array<TParagraph>} paras
+ * @returns {Array<TParagraph>} unduplicated paragraphs
+ * @author @dwertheimer
+ */
+export function removeDuplicateSyncedLines(paras: $ReadOnlyArray<TParagraph>): $ReadOnlyArray<TParagraph> {
+  const notSyncedArr = [],
+    syncedMap = new Map()
+  paras.forEach(function (p) {
+    if (p.blockId) {
+      syncedMap.set(p.blockId, p)
+    } else {
+      notSyncedArr.push(p)
+    }
+  })
+  return [...syncedMap.values(), ...notSyncedArr]
+}

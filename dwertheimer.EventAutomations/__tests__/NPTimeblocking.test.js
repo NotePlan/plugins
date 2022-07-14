@@ -1,4 +1,5 @@
 // @flow
+// Flow/Lint note: just waiting for ParagraphBridge to remove the EditorOrNote bits
 // Jest testing docs: https://jestjs.io/docs/using-matchers
 /* global describe, test, jest, expect, beforeAll */
 
@@ -37,7 +38,7 @@ Editor.filename = note.filename
  * @param {*} regex - a regex to match the spy call's arguments
  * @returns {boolean} was called or not
  */
-export const mockWasCalledWith = (spy, regex: RegExp): boolean => {
+export const mockWasCalledWith = (spy: any, regex: RegExp): boolean => {
   let found = []
   if (spy?.mock?.calls?.length) {
     const calls = spy.mock.calls
@@ -188,10 +189,7 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
       })
       */
       test('should not delete anything if no matches', () => {
-        const paras = [
-          new Paragraph({ content: 'line1', type: 'open' }),
-          new Paragraph({ content: 'line2', type: 'open' }),
-        ]
+        const paras = [new Paragraph({ content: 'line1', type: 'open' }), new Paragraph({ content: 'line2', type: 'open' })]
         const note = new Note({ paragraphs: paras })
         const spy = jest.spyOn(note, 'removeParagraphs')
         mainFile.deleteParagraphsContainingString(note, 'xxx')
@@ -199,13 +197,10 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         spy.mockRestore()
       })
       test('should call delete with matching line', () => {
-        const paras = [
-          new Paragraph({ content: 'line1', type: 'open' }),
-          new Paragraph({ content: 'line2', type: 'open' }),
-        ]
+        const paras = [new Paragraph({ content: 'line1', type: 'open' }), new Paragraph({ content: 'line2', type: 'open' })]
         const note = new Note({ paragraphs: paras })
         const spy = jest.spyOn(note, 'removeParagraphs')
-        const ret = mainFile.deleteParagraphsContainingString(note, 'line1')
+        mainFile.deleteParagraphsContainingString(note, 'line1')
         expect(spy).toHaveBeenCalledWith([paras[0]])
         spy.mockRestore()
       })
@@ -224,7 +219,7 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         const note = new Note({ type: 'Notes', paragraphs: [new Paragraph({ content: 'line1', type: 'open' })] })
         const list = null
         const spy = jest.spyOn(note, 'insertParagraph')
-        const result = mainFile.insertItemsIntoNote(note, list)
+        mainFile.insertItemsIntoNote(note, list)
         expect(spy).not.toHaveBeenCalled() //inserts nothing
         spy.mockRestore()
       })
@@ -232,7 +227,7 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         const note = new Note({ type: 'Notes', paragraphs: [new Paragraph({ content: 'line1', type: 'open' })] })
         const list = []
         const spy = jest.spyOn(note, 'insertParagraph')
-        const result = mainFile.insertItemsIntoNote(note, list)
+        mainFile.insertItemsIntoNote(note, list)
         expect(spy).not.toHaveBeenCalled() //inserts nothing
         spy.mockRestore()
       })
@@ -240,7 +235,7 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         const note = new Note({ type: 'Notes', paragraphs: [new Paragraph({ content: 'line1', type: 'open' })] })
         const list = ['line1', 'line2']
         const spy = jest.spyOn(note, 'insertParagraph')
-        const result = mainFile.insertItemsIntoNote(note, list)
+        mainFile.insertItemsIntoNote(note, list)
         expect(spy).toHaveBeenCalledWith(list.join('\n'), 1, 'text')
         spy.mockRestore()
       })
@@ -251,7 +246,7 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         const heading = ''
         const config = configFile.getTimeBlockingDefaults()
         const spy = jest.spyOn(note, 'insertParagraph')
-        const result = mainFile.insertItemsIntoNote(note, list, heading, false, config)
+        mainFile.insertItemsIntoNote(note, list, heading, false, config)
         expect(spy).toHaveBeenCalledWith(list.join('\n'), 1, 'text')
         spy.mockRestore()
       })
@@ -261,7 +256,7 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         const heading = 'heading'
         const config = configFile.getTimeBlockingDefaults()
         const spy = jest.spyOn(note, 'insertParagraph')
-        const result = mainFile.insertItemsIntoNote(note, list, heading, false, config)
+        mainFile.insertItemsIntoNote(note, list, heading, false, config)
         const text = `## ${heading}\n`.concat(list.join('\n')).concat('\n')
         expect(spy).toHaveBeenCalledWith(text, 1, 'text')
         spy.mockRestore()
@@ -272,7 +267,7 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         const heading = ''
         const config = configFile.getTimeBlockingDefaults()
         const spy = jest.spyOn(note, 'insertParagraph')
-        const result = mainFile.insertItemsIntoNote(note, list, heading, true, config)
+        mainFile.insertItemsIntoNote(note, list, heading, true, config)
         expect(spy).toHaveBeenCalledWith(list.join('\n'), 1, 'text') //inserts nothing
         spy.mockRestore()
       })
@@ -289,7 +284,7 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         const heading = 'old1head'
         const config = configFile.getTimeBlockingDefaults()
         const spy = jest.spyOn(note, 'insertParagraph')
-        const result = mainFile.insertItemsIntoNote(note, list, heading, true, config)
+        mainFile.insertItemsIntoNote(note, list, heading, true, config)
         expect(spy).toHaveBeenCalledWith(list.join('\n'), 1, 'text') //inserts nothing
         spy.mockRestore()
       })

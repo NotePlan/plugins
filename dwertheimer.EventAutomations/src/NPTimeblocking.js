@@ -12,14 +12,10 @@
 import { addMinutes } from 'date-fns'
 import { getTimedEntries, keepTodayPortionOnly } from '../../helpers/calendar'
 import { getEventsForDay, writeTimeBlocksToCalendar, checkOrGetCalendar } from '../../helpers/NPCalendar'
-import {
-  getDateStringFromCalendarFilename,
-  getTodaysDateHyphenated,
-  getTodaysDateUnhyphenated,
-} from '../../helpers/dateTime'
+import { getDateStringFromCalendarFilename, getTodaysDateHyphenated, getTodaysDateUnhyphenated } from '../../helpers/dateTime'
 import { getTasksByType } from '../../dwertheimer.TaskAutomations/src/taskHelpers'
 import { sortListBy } from '../../helpers/sorting'
-import { showMessage, chooseOption, showMessageYesNo } from '../../helpers/userInput'
+import { showMessage, chooseOption } from '../../helpers/userInput'
 import { getTimeBlockString, isTimeBlockLine } from '../../helpers/timeblocks'
 import { JSP, clo, log, logError } from '../../helpers/dev'
 import { checkNumber, checkWithDefault } from '../../helpers/checkType'
@@ -40,11 +36,7 @@ import {
 import { getTimeBlockingDefaults, validateTimeBlockConfig } from './config'
 import { getPresetOptions, setConfigForPreset } from './presets'
 import type { IntervalMap, PartialCalendarItem, EditorOrNote } from './timeblocking-flow-types'
-import {
-  removeContentUnderHeading,
-  insertContentUnderHeading,
-  removeContentUnderHeadingInAllNotes,
-} from '@helpers/NPParagraph'
+import { removeContentUnderHeading, insertContentUnderHeading, removeContentUnderHeadingInAllNotes } from '@helpers/NPParagraph'
 import { findAndUpdateDatePlusTags } from '@helpers/NPNote'
 
 /**
@@ -52,7 +44,7 @@ import { findAndUpdateDatePlusTags } from '@helpers/NPNote'
  * Note: augments settings with current DataStore.preference('timeblockTextMustContainString') setting
  * @returns {} config object
  */
-export function getConfig(): Promise<{ [string]: [mixed] }> {
+export function getConfig(): { [string]: [mixed] } {
   const config = DataStore.settings || {}
   if (Object.keys(config).length) {
     try {
@@ -61,9 +53,7 @@ export function getConfig(): Promise<{ [string]: [mixed] }> {
       validateTimeBlockConfig(config)
       return config
     } catch (error) {
-      showMessage(
-        `Plugin Settings ${error.message}\nRunning with default settings. You should probably open the plugin configuration dialog and fix the problem(s) listed above.`,
-      )
+      showMessage(`Plugin Settings ${error.message}\nRunning with default settings. You should probably open the plugin configuration dialog and fix the problem(s) listed above.`)
     }
   } else {
     log(pluginJson, `config was empty. will use defaults`)
@@ -73,10 +63,10 @@ export function getConfig(): Promise<{ [string]: [mixed] }> {
 }
 
 // $FlowIgnore
-export const editorOrNote: EditorOrNote = (note: EditorOrNote) =>
-  Editor.filename === note?.filename || !note ? Editor : note
+// eslint-disable-next-line max-len
+export const editorOrNote: EditorOrNote = (note: EditorOrNote): TEditor | TNote => (Editor.filename === note?.filename || !note ? Editor : note)
 
-export const editorIsOpenToToday = () => {
+export const editorIsOpenToToday = (): boolean => {
   const fileName = Editor.filename
   if (fileName == null) {
     return false
@@ -137,7 +127,7 @@ export function getTodaysReferences(pNote: TNote | null = null): Array<TParagrap
 
 export async function insertItemsIntoNote(
   note: TNote | TEditor,
-  list: Array<string>,
+  list: Array<string> | null = [],
   heading: string = '',
   shouldFold: boolean = false,
   config: { [string]: any } = {},
@@ -151,7 +141,7 @@ export async function insertItemsIntoNote(
     if (shouldFold && heading !== '') {
       const thePara = note.paragraphs.find((p) => p.type === 'title' && p.content.includes(heading))
       if (thePara) {
-        log(pluginJson, `insertItemsIntoNote: folding "${heading}" - isFolded=${Editor.isFolded(thePara)}`)
+        log(pluginJson, `insertItemsIntoNote: folding "${heading}" - isFolded=${Boolean(Editor.isFolded(thePara))}`)
         // $FlowIgnore[method-unbinding] - the function is not being removed from the Editor object.
         if (Editor.isFolded) {
           // make sure this command exists
@@ -171,9 +161,7 @@ export async function insertItemsIntoNote(
     }
   } else {
     if (config && !config.passBackResults) {
-      await showMessage(
-        'No items to insert or work hours left. Check config/presents. Also look for calendar events which may have blocked off the rest of the day.',
-      )
+      await showMessage('No items to insert or work hours left. Check config/presents. Also look for calendar events which may have blocked off the rest of the day.')
     }
   }
 }
@@ -184,10 +172,7 @@ export async function insertItemsIntoNote(
  * @param {*} defaultDuration
  * @returns
  */
-function getExistingTimeBlocksFromNoteAsEvents(
-  note: TEditor | TNote,
-  defaultDuration: number,
-): Array<PartialCalendarItem> {
+function getExistingTimeBlocksFromNoteAsEvents(note: TEditor | TNote, defaultDuration: number): Array<PartialCalendarItem> {
   const timeBlocksAsEvents = []
   note.paragraphs.forEach((p) => {
     if (isTimeBlockLine(p.content)) {
@@ -212,11 +197,7 @@ function getExistingTimeBlocksFromNoteAsEvents(
   return timeBlocksAsEvents
 }
 
-async function getPopulatedTimeMapForToday(
-  dateStr: string,
-  intervalMins: number,
-  config: { [string]: mixed },
-): Promise<IntervalMap> {
+async function getPopulatedTimeMapForToday(dateStr: string, intervalMins: number, config: { [string]: mixed }): Promise<IntervalMap> {
   // const todayEvents = await Calendar.eventsToday()
   const eventsArray: Array<TCalendarItem> = await getEventsForDay(dateStr)
   const eventsWithStartAndEnd = getTimedEntries(eventsArray)
@@ -247,11 +228,7 @@ export async function deleteCalendarEventsWithTag(tag: string, dateStr: string):
         log(pluginJson, `deleteCalendarEventsWithTag: deleting event ${event.title}`)
         clo(event, `deleteCalendarEventsWithTag; event=`)
         await Calendar.remove(event)
-        CommandBar.showLoading(
-          true,
-          `Deleting Calendar Events\n(${i + 1}/${eventsArray.length})`,
-          (i + 1) / eventsArray.length,
-        )
+        CommandBar.showLoading(true, `Deleting Calendar Events\n(${i + 1}/${eventsArray.length})`, (i + 1) / eventsArray.length)
         log(pluginJson, `deleteCalendarEventsWithTag: deleting event ${event.title} -- deleted`)
       }
     }
@@ -342,15 +319,9 @@ export async function getTodaysFilteredTodos(config: { [key: string]: mixed }): 
   const undupedBackLinkParas = eliminateDuplicateParagraphs(backlinkParas)
   console.log(`Found ${undupedBackLinkParas.length} undupedBackLinkParas after duplicate elimination`)
   let todosParagraphs: Array<TParagraph> = makeAllItemsTodos(undupedBackLinkParas) //some items may not be todos but we want to pretend they are and timeblock for them
-  todosParagraphs =
-    Array.isArray(includeTasksWithText) && includeTasksWithText?.length > 0
-      ? includeTasksWithPatterns(todosParagraphs, includeTasksWithText)
-      : todosParagraphs
+  todosParagraphs = Array.isArray(includeTasksWithText) && includeTasksWithText?.length > 0 ? includeTasksWithPatterns(todosParagraphs, includeTasksWithText) : todosParagraphs
   console.log(`After includeTasksWithText, ${todosParagraphs.length} potential items`)
-  todosParagraphs =
-    Array.isArray(excludeTasksWithText) && excludeTasksWithText?.length > 0
-      ? excludeTasksWithPatterns(todosParagraphs, excludeTasksWithText)
-      : todosParagraphs
+  todosParagraphs = Array.isArray(excludeTasksWithText) && excludeTasksWithText?.length > 0 ? excludeTasksWithPatterns(todosParagraphs, excludeTasksWithText) : todosParagraphs
   console.log(`After excludeTasksWithText, ${todosParagraphs.length} potential items`)
   return todosParagraphs
 }
@@ -382,11 +353,7 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: mi
     const cleanTodayTodoParas = removeDateTagsFromArray(todosParagraphs)
     console.log(`After removeDateTagsFromArray, ${cleanTodayTodoParas.length} potential items`)
     const todosWithLinksMaybe = appendLinkIfNecessary(cleanTodayTodoParas, config)
-    console.log(
-      `After appendLinkIfNecessary, ${
-        todosWithLinksMaybe?.length ?? 0
-      } potential items (may include headings or completed)`,
-    )
+    console.log(`After appendLinkIfNecessary, ${todosWithLinksMaybe?.length ?? 0} potential items (may include headings or completed)`)
     const tasksByType = todosWithLinksMaybe.length ? getTasksByType(todosWithLinksMaybe, true) : null // puts in object by type of task and enriches with sort info (like priority)
     console.log(`After getTasksByType, ${tasksByType?.open.length ?? 0} OPEN items`)
     if (deletePreviousCalendarEntries) {
@@ -402,23 +369,15 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: mi
       await deleteParagraphsContainingString(editorOrNote(note), eventEnteredOnCalTag) // Delete @jgclark timeblocks->calendar breadcrumbs also
       const calendarMapWithEvents = await getPopulatedTimeMapForToday(dateStr, intervalMins, config)
       console.log(
-        `After getPopulatedTimeMapForToday, ${calendarMapWithEvents.length} timeMap slots; last = ${JSON.stringify(
-          calendarMapWithEvents[calendarMapWithEvents.length - 1],
-        )}`,
+        `After getPopulatedTimeMapForToday, ${calendarMapWithEvents.length} timeMap slots; last = ${JSON.stringify(calendarMapWithEvents[calendarMapWithEvents.length - 1])}`,
       )
       const eventsToTimeblock = getTimeBlockTimesForEvents(calendarMapWithEvents, sortedTodos, config)
       const { timeBlockTextList, blockList } = eventsToTimeblock
       clo(timeBlockTextList, `timeBlockTextList`)
-      console.log(
-        `After getTimeBlockTimesForEvents, blocks:\n\tblockList.length=${blockList.length} \n\ttimeBlockTextList.length=${timeBlockTextList.length}`,
-      )
-      console.log(
-        `After getTimeBlockTimesForEvents, insertIntoEditor=${insertIntoEditor} createCalendarEntries=${createCalendarEntries}`,
-      )
+      console.log(`After getTimeBlockTimesForEvents, blocks:\n\tblockList.length=${blockList.length} \n\ttimeBlockTextList.length=${timeBlockTextList.length}`)
+      console.log(`After getTimeBlockTimesForEvents, insertIntoEditor=${insertIntoEditor} createCalendarEntries=${createCalendarEntries}`)
       if (insertIntoEditor || createCalendarEntries) {
-        console.log(
-          `After getTimeBlockTimesForEvents, config.createSyncedCopies=${config.createSyncedCopies} todosWithLinksMaybe.length=${todosWithLinksMaybe.length}`,
-        )
+        console.log(`After getTimeBlockTimesForEvents, config.createSyncedCopies=${config.createSyncedCopies} todosWithLinksMaybe.length=${todosWithLinksMaybe.length}`)
 
         console.log(`About to insert ${timeBlockTextList?.length} timeblock items into note`)
         if (!String(config.timeBlockHeading)?.length) {
@@ -455,12 +414,8 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: mi
         }
       }
       if (config.createSyncedCopies && todosWithLinksMaybe?.length) {
-        console.log(
-          `createSyncedCopies is true, so we will create synced copies of the todosParagraphs: ${todosParagraphs.length} timeblocks`,
-        )
-        const sortedParas = getFullParagraphsCorrespondingToSortList(todosParagraphs, sortedTodos).filter(
-          (p) => p.filename !== Editor.filename,
-        )
+        console.log(`createSyncedCopies is true, so we will create synced copies of the todosParagraphs: ${todosParagraphs.length} timeblocks`)
+        const sortedParas = getFullParagraphsCorrespondingToSortList(todosParagraphs, sortedTodos).filter((p) => p.filename !== Editor.filename)
         await writeSyncedCopies(sortedParas, config)
       }
       return passBackResults ? timeBlockTextList : []
@@ -642,10 +597,7 @@ export async function insertTodosAsTimeblocksWithPresets(note: TNote): Promise<v
  */
 export async function selectCalendar(isPluginEntry: boolean = true): Promise<void> {
   try {
-    clo(
-      Calendar.availableCalendarTitles(true),
-      'NPTimeblocking::selectCalendar: Calendar.availableCalendarTitles(true)',
-    )
+    clo(Calendar.availableCalendarTitles(true), 'NPTimeblocking::selectCalendar: Calendar.availableCalendarTitles(true)')
     const calendarConfigField = 'calendarToWriteTo'
     const settings = DataStore.settings
     const calendarToWriteTo = isPluginEntry ? '' : settings[calendarConfigField] //if called from the commandbar, you are trying to set it

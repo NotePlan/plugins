@@ -576,9 +576,9 @@ declare class DataStore {
    * It will sort it by filename (so search results from the same notes stay together) and calendar notes also by filename with the newest at the top (highest dates).
    * Note: Available from v3.6.0
    * @param {string} = keyword to search for
-   * @param {Array<string>?} types ["notes", "calendar"] (by default all, or pass `null`)
-   * @param {Array<string>?} list (optional)
-   * @param {Array<string>?} list (optional)
+   * @param {Array<string> | null?} types ["notes", "calendar"] (by default all, or pass `null`)
+   * @param {Array<string> | null?} list (optional)
+   * @param {Array<string> | null?} list (optional)
    * @return {$ReadOnlyArray<TParagraph>} array of results
    */
   static search(keyword: string, types?: Array<string>, inFolders?: Array<string>, notInFolders?: Array<string>): Promise<$ReadOnlyArray<TParagraph>>;
@@ -591,8 +591,8 @@ declare class DataStore {
    * Searches for keywords are case-insensitive.
    * Note: Available from v3.6.0
    * @param {string} = keyword to search for
-   * @param {Array<string>?} folders list (optional)
-   * @param {Array<string>?} folders list (optional)
+   * @param {Array<string> | null?} folders list (optional)
+   * @param {Array<string> | null?} folders list (optional)
    * @return {$ReadOnlyArray<TParagraph>} results array
    */
   static searchProjectNotes(keyword: string, inFolders?: Array<string>, notInFolders?: Array<string>): Promise<$ReadOnlyArray<TParagraph>>;

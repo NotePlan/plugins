@@ -3,9 +3,9 @@
   "macOS.minVersion": "10.13.0",
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "np.CallbackURLs",
-  "plugin.name": "🧩 X-Callback-URL & RunPlugin Creator",
-  "plugin.version": "0.6.0",
-  "plugin.lastUpdateInfo": "0.6.0: Added support for deleteNote, x-success, and noteInfo",
+  "plugin.name": "🧩 External Links, X-Callback-URLs, RunPlugin Creator",
+  "plugin.version": "1.0.1",
+  "plugin.lastUpdateInfo": "1.0.0: Added support for link to heading & headingLink direct command",
   "plugin.description": "Helps you form links/x-callback-urls to perform actions from within NotePlan or between other applications and NotePlan",
   "plugin.author": "dwertheimer",
   "plugin.dependencies": [],
@@ -19,6 +19,14 @@
       "jsFunction": "xCallbackWizard",
       "alias": [
         "xcallback","url","link"
+      ]
+    },
+    {
+      "name": "Create Link to Current Note+Heading",
+      "description": "External link to open this note",
+      "jsFunction": "headingLink",
+      "alias": [
+        "headinglink","notelink"
       ]
     }
   ],

@@ -10,9 +10,9 @@ TODO: maybe create choosers based on arguments text
 import { log, logError, clo, JSP } from '../../helpers/dev'
 import { createOpenOrDeleteNoteCallbackUrl, createAddTextCallbackUrl, createCallbackUrl } from '../../helpers/general'
 import pluginJson from '../plugin.json'
-import { showMessageYesNo } from '@helpers/userInput'
 import { chooseRunPluginXCallbackURL } from '@helpers/NPdev'
-import { chooseOption, showMessage, chooseFolder, chooseNote, getInput } from '@helpers/userInput'
+import { chooseOption, showMessage, showMessageYesNo, chooseFolder, chooseNote, getInput } from '@helpers/userInput'
+import { getSelectedParagraph } from '@helpers/NPParagraph'
 
 // https://help.noteplan.co/article/49-x-callback-url-scheme#addnote
 
@@ -21,9 +21,7 @@ import { chooseOption, showMessage, chooseFolder, chooseNote, getInput } from '@
  * @param {string} command - 'openNote' | 'addText' (default: 'openNote')
  * @returns {string} the URL or false if user canceled
  */
-async function getAddTextOrOpenNoteURL(
-  command: 'openNote' | 'addText' | 'deleteNote' = 'openNote',
-): Promise<string | false> {
+async function getAddTextOrOpenNoteURL(command: 'openNote' | 'addText' | 'deleteNote' = 'openNote'): Promise<string | false> {
   let url = '',
     note,
     fields
@@ -147,21 +145,12 @@ export async function addNote(): Promise<string> {
   vars.noteTitle = await getInput(`What's the title?\n(optional - click OK to leave blank)`, `OK`, `Title of Note`, '')
   if (vars.noteTitle === false) return ''
   vars.folder = await chooseFolder(`What folder?`)
-  vars.noteText = await getInput(
-    `What text for content?\n(optional - click OK to leave blank)`,
-    `OK`,
-    `Note Content`,
-    '',
-  )
+  vars.noteText = await getInput(`What text for content?\n(optional - click OK to leave blank)`, `OK`, `Note Content`, '')
   if (vars.noteText === false) return ''
   vars.openNote = await showMessageYesNo(`Open note automatically?`, ['yes', 'no'], `Open Note`)
   vars.subWindow = await showMessageYesNo(`Open in Floating Window?`, ['yes', 'no'], `Open in Window`)
   vars.splitView = await showMessageYesNo(`Open in Split View?`, ['yes', 'no'], `Open in Split View`)
-  vars.useExistingSubWindow = await showMessageYesNo(
-    `Open in Already-opened Floating Window?`,
-    ['yes', 'no'],
-    `Open in Existing Window`,
-  )
+  vars.useExistingSubWindow = await showMessageYesNo(`Open in Already-opened Floating Window?`, ['yes', 'no'], `Open in Existing Window`)
   for (const key in vars) {
     if (['openNote', 'subWindow', 'splitView', 'useExistingSubWindow'].indexOf(key) > -1 && vars[key] === 'no') {
       delete vars[key]
@@ -197,13 +186,8 @@ export async function getReturnCallback(incomingString: string): Promise<string>
     ['yes', 'no'],
     `Return to Other App`,
   )
-  if (shouldReturn && shouldReturn !== '') {
-    const callback = await getInput(
-      `Enter the other app xcallback to call after running the NotePlan function. e.g.\notherapp://x-callback-url`,
-      'OK',
-      'Callback URL',
-      '',
-    )
+  if (shouldReturn && shouldReturn === 'yes') {
+    const callback = await getInput(`Enter the other app xcallback to call after running the NotePlan function. e.g.\notherapp://x-callback-url`, 'OK', 'Callback URL', '')
     if (callback && callback !== '') {
       return `${incomingString}&x-success=${encodeURIComponent(callback)}`
     }
@@ -219,6 +203,28 @@ export async function runShortcut(): Promise<string> {
   return ''
 }
 
+export async function getHeadingLink(): Promise<string> {
+  const selectedPara = await getSelectedParagraph()
+  clo(selectedPara, 'selectedPara')
+  if (selectedPara && selectedPara?.note?.title !== null) {
+    // if a heading is selected, use that. otherwise look for the heading this note is in
+    const heading = selectedPara.type === 'title' ? selectedPara.content : selectedPara.heading
+    log(pluginJson, `selectedPara.heading: ${heading}`)
+    // $FlowIgnore
+    const url = createOpenOrDeleteNoteCallbackUrl(selectedPara.note.title, 'title', heading)
+    Clipboard.string = url
+    await showMessage(`Link to this note and heading "${heading}" copied to clipboard`)
+    return url
+  } else {
+    await showMessage(`Paragraph info could not be ascertained`)
+  }
+}
+
+// Plugin command entry point for creating a heading link
+export async function headingLink() {
+  await xCallbackWizard(`headingLink`)
+}
+
 /**
  * Walk user through creation of a xcallback url
  * @param {string} incoming - text coming in from a runPlugin link
@@ -227,25 +233,29 @@ export async function xCallbackWizard(incoming: ?string = ''): Promise<void> {
   try {
     let url = '',
       canceled = false
-
-    const options = [
-      { label: 'OPEN a note', value: 'openNote' },
-      { label: 'NEW NOTE with title and text', value: 'addNote' },
-      { label: 'ADD text to a note', value: 'addText' },
-      { label: 'FILTER Notes by Preset', value: 'filter' },
-      { label: 'SEARCH for text in notes', value: 'search' },
-      { label: 'Get NOTE INFO (x-success) for use in another app', value: 'noteInfo' },
-      { label: 'RUN a Plugin Command', value: 'runPlugin' },
-      { label: 'RUN a Shortcut', value: 'runShortcut' },
-      { label: 'DELETE a note by title', value: 'deleteNote' },
-      /*
+    let commandType
+    if (incoming) {
+      commandType = incoming
+    } else {
+      const options = [
+        { label: 'Copy URL to NOTE+Heading of current line', value: 'headingLink' },
+        { label: 'OPEN a note', value: 'openNote' },
+        { label: 'NEW NOTE with title and text', value: 'addNote' },
+        { label: 'ADD text to a note', value: 'addText' },
+        { label: 'FILTER Notes by Preset', value: 'filter' },
+        { label: 'SEARCH for text in notes', value: 'search' },
+        { label: 'Get NOTE INFO (x-success) for use in another app', value: 'noteInfo' },
+        { label: 'RUN a Plugin Command', value: 'runPlugin' },
+        { label: 'RUN a Shortcut', value: 'runShortcut' },
+        { label: 'DELETE a note by title', value: 'deleteNote' },
+        /*
       { label: 'Select a TAG in the sidebar', value: 'selectTag' },
       */
-    ]
-    const res = await chooseOption(`Select an X-Callback type`, options, '')
-
+      ]
+      commandType = await chooseOption(`Select a link type to create`, options, '')
+    }
     let runplugin
-    switch (res) {
+    switch (commandType) {
       case '':
         log(pluginJson, 'No option selected')
         canceled = true
@@ -261,6 +271,10 @@ export async function xCallbackWizard(incoming: ?string = ''): Promise<void> {
         break
       case 'filter':
         url = await filter()
+        break
+      case 'headingLink':
+        url = getHeadingLink()
+        canceled = true //getHeadingLink copies to clipboard, so we can stop here
         break
       case 'search':
         url = await search()
@@ -281,19 +295,19 @@ export async function xCallbackWizard(incoming: ?string = ''): Promise<void> {
         }
         break
       default:
-        showMessage(`${res}: This type is not yet available in this plugin`, 'OK', 'Sorry!')
+        showMessage(`${commandType}: This type is not yet available in this plugin`, 'OK', 'Sorry!')
         break
     }
     if (url === false) canceled = true // user hit cancel on one of the input prompts
-    console.log(`canceled:${canceled} res:${res}\nresulting url: ${url}`)
+    console.log(`canceled:${canceled} commandType:${commandType}\nresulting url: ${String(url)}`)
 
     if (!canceled && typeof url === 'string') {
-      url = res !== 'noteInfo' ? await getReturnCallback(url) : url
+      url = commandType !== 'noteInfo' ? await getReturnCallback(url) : url
       const op = [
         { label: `Raw/long URL (${url})`, value: 'raw' },
         { label: '[Pretty link](hide long URL)', value: 'pretty' },
       ]
-      if (res === 'runPlugin') {
+      if (commandType === 'runPlugin') {
         op.push({ label: 'Templating <% runPlugin %> command', value: 'template' })
       }
       const urlType = await chooseOption(`What type of URL do you want?`, op, 'raw')
@@ -306,9 +320,7 @@ export async function xCallbackWizard(incoming: ?string = ''): Promise<void> {
         //  static invokePluginCommandByName(command: string, pluginID: string, arguments ?: $ReadOnlyArray < mixed >): Promise < any >;
         // { pluginID, command, args, url: createRunPluginCallbackUrl(pluginID, command, args) }
 
-        url = `<% await DataStore.invokePluginCommandByName("${runplugin.command}","${
-          runplugin.pluginID
-        }",${JSON.stringify(runplugin.args)})  %>`
+        url = `<% await DataStore.invokePluginCommandByName("${runplugin.command}","${runplugin.pluginID}",${JSON.stringify(runplugin.args)})  %>`
       }
       Editor.insertTextAtCursor(url)
       Clipboard.string = url

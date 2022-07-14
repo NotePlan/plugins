@@ -7,7 +7,7 @@ TODO: /ctt is working, but future commands could easily rewrite the order so the
 import { clo, JSP, log } from '../../helpers/dev'
 import { showMessage } from '../../helpers/userInput'
 import { getElementsFromTask } from './taskHelpers'
-import { getParagraphContainingPosition } from '@helpers/NPParagraph'
+import { getSelectedParagraph } from '@helpers/NPParagraph'
 import pluginJson from '../plugin.json'
 
 type TagsList = { hashtags: Array<string>, mentions: Array<string> } //include the @ and # characters
@@ -45,10 +45,7 @@ export function getTagsFromString(content: string): TagsList {
  * @param {Array<string>} newTags
  * @returns
  */
-export function getUnduplicatedMergedTagArray(
-  existingTags: Array<string> = [],
-  newTags: Array<string> = [],
-): Array<string> {
+export function getUnduplicatedMergedTagArray(existingTags: Array<string> = [], newTags: Array<string> = []): Array<string> {
   return [...new Set([...existingTags, ...newTags])]
 }
 
@@ -75,29 +72,6 @@ export function appendTagsToText(paraText: string, tagsToCopy: TagsList): string
     console.log('no tags found or no tags need to be copied in list: ', tagsToCopy.toString())
     return paraText
   }
-}
-
-/**
- * Try to determine the paragraph that the cursor is in (in the Editor)
- * There are some NotePlan bugs that make this not work perfectly
- * @returns {TParagraph} the paragraph that the cursor is in or null if not found
- */
-function getSelectedParagraph(): TParagraph | null {
-  //   const thisParagraph = Editor.selectedParagraphs // recommended by @eduard but currently not reliable (Editor.selectedParagraphs is empty on a new line)
-  let thisParagraph
-  if (Editor.selection?.start) {
-    thisParagraph = getParagraphContainingPosition(Editor, Editor.selection.start)
-  }
-  if (!thisParagraph || !Editor.selection?.start) {
-    log(
-      pluginJson,
-      `getSelectedParagraph: no paragraph found for cursor position Editor.selection?.start=${Editor.selection?.start} thisParagraph=${thisParagraph}`,
-    )
-    showMessage(
-      `No paragraph found selection.start: ${selection?.start} Editor.selectedParagraphs.length = ${Editor.selectedParagraphs?.length}`,
-    )
-  }
-  return thisParagraph
 }
 
 /**

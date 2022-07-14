@@ -474,24 +474,29 @@ async function showMessageYesNo(message: string, choicesArray: Array<string> = [
  * Search through the note for a paragraph containing a specific cursor position
  * @param {TNote} note - the note to look in
  * @param {number} position - the position to look for
+ * @author @dwertheimer
  * @returns {TParagraph} the paragraph containing the position in question or null if not found
  */
 export function getParagraphContainingPosition(note: CoreNoteFields, position: number): TParagraph | null {
   let foundParagraph = null
   const pluginJson = 'NPParagraph:getParagraphContainingPosition'
   note.paragraphs.forEach((p, i) => {
-    const { start, end } = p.contentRange || {}
-    if (start <= position && end >= position) {
-      foundParagraph = p
-      if (i > 0) {
-        log(
-          pluginJson,
-          `getParagraphContainingPosition: paragraph before: ${i - 1} (${note.paragraphs[i - 1].contentRange?.start ?? 0}-${note.paragraphs[i - 1].contentRange?.end ?? 0}) - "${
-            note.paragraphs[i - 1].content
-          }"`,
-        )
+    if (typeof p.contentRange?.start === 'number' && typeof p.contentRange.end == 'number') {
+      if (p.contentRange.start && p.contentRange.end) {
+        const { start, end } = p.contentRange || {}
+        if (start <= position && end >= position) {
+          foundParagraph = p
+          if (i > 0) {
+            log(
+              pluginJson,
+              `getParagraphContainingPosition: paragraph before: ${i - 1} (${String(note.paragraphs[i - 1].contentRange?.start)}-${String(
+                note.paragraphs[i - 1]?.contentRange?.end || 'n/a',
+              )}) - "${note.paragraphs[i - 1].content}"`,
+            )
+          }
+          log(pluginJson, `getParagraphContainingPosition: found position ${position} in paragraph ${i} (${start}-${end}) -- "${p.content}"`)
+        }
       }
-      log(pluginJson, `getParagraphContainingPosition: found position ${position} in paragraph ${i} (${start}-${end}) -- "${p.content}"`)
     }
   })
   if (!foundParagraph) {
@@ -503,4 +508,23 @@ export function getParagraphContainingPosition(note: CoreNoteFields, position: n
     log(pluginJson, `getParagraphContainingPosition: *** position ${position} not found`)
   }
   return foundParagraph
+}
+
+/**
+ * Try to determine the paragraph that the cursor is in (in the Editor)
+ * There are some NotePlan bugs that make this not work perfectly
+ * @author @dwertheimer
+ * @returns {TParagraph} the paragraph that the cursor is in or null if not found
+ */
+export async function getSelectedParagraph(): Promise<TParagraph | null> {
+  //   const thisParagraph = Editor.selectedParagraphs // recommended by @eduard but currently not reliable (Editor.selectedParagraphs is empty on a new line)
+  let thisParagraph
+  if (typeof Editor.selection?.start === 'number') {
+    thisParagraph = getParagraphContainingPosition(Editor, Editor.selection.start)
+  }
+  if (!thisParagraph || !Editor.selection?.start) {
+    log(`NPParagraph`, `getSelectedParagraph: no paragraph found for cursor position Editor.selection?.start=${String(Editor.selection?.start)}`)
+    await showMessage(`No paragraph found selection.start: ${String(Editor.selection?.start)} Editor.selectedParagraphs.length = ${Editor.selectedParagraphs?.length}`)
+  }
+  return thisParagraph || null
 }

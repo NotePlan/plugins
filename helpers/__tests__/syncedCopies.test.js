@@ -23,4 +23,8 @@ describe(`${FILE}`, () => {
       expect(sc.textWithoutSyncedCopyTag('a ^x29vcq xx')).toEqual('a xx')
     })
   })
+  // TODO: need to add tests for: getSyncedCopiesAsList
+  describe('getSyncedCopiesAsList', () => {
+    test('should ', () => {})
+  })
 })

@@ -1,6 +1,11 @@
-# X-Callback-URL Creator Plugin Noteplan Plugin
+# 🧩 External Links, X-Callback-URLs, RunPlugin Creator Plugin
 
 [Help/Support on Discord](https://discord.com/channels/763107030223290449/989382962736922635/989382964016193597)
+
+## Links to Notes and a specific heading
+The simplest use case is to create a link to the currently-open document and the currently-selected heading level (e.g. a link to block).
+You can run this command directly by running the commmand: 
+    `/Create Link to Current Note+Heading`
 
 ## About X-Callback-URL Creator
 X-Callback-URLs are extremely useful. They can be used to create links which open notes and perform actions from inside of NotePlan. They also allow you to automate things inside of NotePlan from Shortcuts or other apps. How to use X-Callback-URLs is covered in [the documentation](https://help.noteplan.co/article/49-x-callback-url-scheme), but creating the URLs can be a little challenging. Hence why this wizard was created. It helps take *some* of the guesswork out of creating URLs that you can use to open notes, run plugins, etc.
