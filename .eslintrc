@@ -61,8 +61,8 @@
     "import/order": "error",
     "no-useless-escape": "off",
     "require-await": "error",
-    "unused-imports/no-unused-imports": "error",
-    "unused-imports/no-unused-vars": "error"
+    "unused-imports/no-unused-imports": "off",
+    "unused-imports/no-unused-vars": "off"
   },
   "env": {
     "node": true,

@@ -29,7 +29,7 @@ export function removeHeadingFromNote(note: TNote | TEditor, headingStr: string,
  * @param {boolean} useExtendedBlockDefinition (default: false) // TODO(@dwertheimer): flow shows this isn't used
  * @param {boolean} keepHeading (default: true)
  */
-export function deleteEntireBlock(note: TNote | TEditor, para: TParagraph, _useExtendedBlockDefinition: boolean = false, keepHeading: boolean = true): void {
+export function deleteEntireBlock(note: CoreNoteFields, para: TParagraph, _useExtendedBlockDefinition: boolean = false, keepHeading: boolean = true): void {
   const paraBlock: Array<TParagraph> = getParagraphBlock(note, para.lineIndex, _useExtendedBlockDefinition)
   log(`NPParagraph/deleteEntireBlock`, `Removing ${paraBlock.length} items under ${para.content}`)
   keepHeading ? paraBlock.shift() : null
@@ -48,7 +48,7 @@ export function deleteEntireBlock(note: TNote | TEditor, para: TParagraph, _useE
  * @param {boolean} useExtendedBlockDefinition (default: false)
  * @param {boolean} keepHeading - keep the heading after deleting contents (default: true)
  */
-export function removeContentUnderHeading(note: TNote | TEditor, heading: string, useExtendedBlockDefinition: boolean = false, keepHeading: boolean = true) {
+export function removeContentUnderHeading(note: CoreNoteFields, heading: string, useExtendedBlockDefinition: boolean = false, keepHeading: boolean = true) {
   // log(`NPParagraph/removeContentUnderHeading`, `In '${note.title ?? ''}' remove items under title: "${heading}"`)
   const para = note.paragraphs.find((p) => p.type === 'title' && p.content.includes(heading))
   if (para && para.lineIndex != null) {
@@ -65,7 +65,7 @@ export function removeContentUnderHeading(note: TNote | TEditor, heading: string
  * @param {string} parasAsText - text to insert (multiple lines, separated by newlines)
  * @param {number} headingLevel of the heading to insert where necessary (1-5, default 2)
  */
-export async function insertContentUnderHeading(destNote: TNote | TEditor, headingToFind: string, parasAsText: string, headingLevel: number = 2) {
+export async function insertContentUnderHeading(destNote: CoreNoteFields, headingToFind: string, parasAsText: string, headingLevel: number = 2) {
   log(`NPParagraph/insertContentUnderHeading`, `Called for '${headingToFind}' with ${parasAsText.split('\n').length} paras)`)
   const headingMarker = '#'.repeat(headingLevel)
   const startOfNote = findStartOfActivePartOfNote(destNote)
@@ -124,7 +124,7 @@ export async function replaceContentUnderHeading(
  * @param {boolean} useExtendedBlockDefinition
  * @return {[TParagraph]} the set of selectedParagraphs in the block
  */
-export function getParagraphBlock(note: TNote, selectedParaIndex: number, useExtendedBlockDefinition: boolean = false): Array<TParagraph> {
+export function getParagraphBlock(note: CoreNoteFields, selectedParaIndex: number, useExtendedBlockDefinition: boolean = false): Array<TParagraph> {
   const parasInBlock: Array<TParagraph> = [] // to hold set of paragraphs in block to return
   const endOfActiveSection = findEndOfActivePartOfNote(note)
   const startOfActiveSection = findStartOfActivePartOfNote(note)
@@ -415,7 +415,11 @@ export async function removeContentUnderHeadingInAllNotes(noteTypes: Array<strin
         res = await showMessageYesNo(`Remove "${heading}"+content in ${prevCopies.length} notes?`)
       }
       if (res === 'Yes') {
-        prevCopies.forEach(async (paragraph) => await removeContentUnderHeading(paragraph.note, heading, false, keepHeading))
+        prevCopies.forEach(async (paragraph) => {
+          if (paragraph.note != null) {
+            await removeContentUnderHeading(paragraph.note, heading, false, keepHeading)
+          }
+        })
       }
     } else {
       if (!(runSilently === 'yes')) await showMessage(`Found no previous notes with "${heading}"`)
@@ -473,7 +477,7 @@ async function showMessageYesNo(message: string, choicesArray: Array<string> = [
  * @author @dwertheimer
  * @returns {TParagraph} the paragraph containing the position in question or null if not found
  */
-export function getParagraphContainingPosition(note: TNote | TEditor, position: number): TParagraph | null {
+export function getParagraphContainingPosition(note: CoreNoteFields, position: number): TParagraph | null {
   let foundParagraph = null
   const pluginJson = 'NPParagraph:getParagraphContainingPosition'
   note.paragraphs.forEach((p, i) => {

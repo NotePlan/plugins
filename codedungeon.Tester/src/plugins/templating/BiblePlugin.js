@@ -45,6 +45,7 @@ const formatResponse = (response: any, type: string = 'text', formatting = ''): 
       return response.replace(/<b>/gi, '**').replace(/<\/b>/gi, '**')
     case 'json':
       if (formatting === 'raw') {
+        // eslint-disable-next-line prefer-template
         return '```\n' + formatData(response) + '\n```'
       }
       const data = JSON.parse(response)[0]
@@ -58,9 +59,7 @@ const BiblePlugin = {
 
   async verse(verse: string, type: string = 'text', formatting: string = ''): Promise<string> {
     const formattedVerse = verse.replace(' ', '%20')
-    const url: string = `${this.baseURL}passage=${formattedVerse}&type=${getResponseType(
-      type,
-    )}&formatting=${getFormatting(formatting)}`
+    const url: string = `${BiblePlugin.baseURL}passage=${formattedVerse}&type=${getResponseType(type)}&formatting=${getFormatting(formatting)}`
 
     try {
       // $FlowFixMe
@@ -72,7 +71,7 @@ const BiblePlugin = {
   },
 
   async votd(type: string = 'text', formatting: string = ''): Promise<string> {
-    const url: string = `${this.baseURL}passage=votd&type=${type}&formatting=${getFormatting(formatting)}`
+    const url: string = `${BiblePlugin.baseURL}passage=votd&type=${type}&formatting=${getFormatting(formatting)}`
     try {
       // $FlowFixMe
       const response: any = await fetch(url)
@@ -83,9 +82,7 @@ const BiblePlugin = {
   },
 
   async random(type: string = 'text', formatting: string = ''): Promise<string> {
-    const url: string = `${this.baseURL}passage=random&type=${getResponseType(type)}&formatting=${getFormatting(
-      formatting,
-    )}`
+    const url: string = `${BiblePlugin.baseURL}passage=random&type=${getResponseType(type)}&formatting=${getFormatting(formatting)}`
     try {
       // $FlowFixMe
       const response: any = await fetch(url)
