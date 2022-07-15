@@ -323,7 +323,7 @@ declare class DataStore {
   /**
    * Get all cached hashtags (#tag) that are used across notes.
    * It returns hashtags without leading '#'.
-   * @type {[String]}
+   * @type {Array<string>}
    * Note: Available from v3.6.0
    */
   static +hashtags: $ReadOnlyArray<string>;
@@ -331,13 +331,13 @@ declare class DataStore {
    * Get all cached mentions (@name) that are used across notes.
    * It returns mentions without leading '@'.
    * Note: Available from v3.6.0
-   * @type {[String]}
+   * @type {Array<string>}
    */
   static +mentions: $ReadOnlyArray<string>;
   /**
    * Get list of all filter names
    * Note: Available from v3.6.0
-   * @type {[String]}
+   * @type {Array<string>}
    */
   static +filters: $ReadOnlyArray<string>;
 
@@ -835,13 +835,13 @@ declare class Calendar {
    * Get the titles of all calendars the user has access to. Set `writeOnly` true, if you want to get only the calendars the user has write access to (some calendars, like holidays are not writable).
    * Note: Available from v3.1
    * @param {boolean}
-   * @return {[string]}
+   * @return {Array<string>}
    */
   static availableCalendarTitles(writeOnly: boolean): $ReadOnlyArray<string>;
   /**
    * Get the titles of all reminders the user has access to.
    * Note: Available from v3.1
-   * @return {[string]}
+   * @return {Array<string>}
    */
   static availableReminderListTitles(): $ReadOnlyArray<string>;
   /**
@@ -978,7 +978,7 @@ declare class Calendar {
    * If you keep the lists variable empty, NotePlan will return all reminders from all lists. You can get all Reminders lists calling `Calendar.availableReminderListTitles()`
    * This function fetches reminders asynchronously, so use async/await.
    * Note: Available from v3.5.2
-   * @param {[string]?}
+   * @param {Array<string>?}
    * @return {Promise}
    */
   static remindersByLists(lists: $ReadOnlyArray<string>): Promise<Array<TCalendarItem>>;
@@ -1223,7 +1223,7 @@ declare interface TCalendarItem {
    * All the dates the event or reminder occurs (if it's a multi-day event for example)
    * Note: Available from v3.0.15
    */
-  +occurrences: [Date];
++occurrences: Array < Date >;
   /**
    * The calendar or reminders list where this event or reminder is (or should be) saved. If you set nothing, the event or reminder will be added to the default and this field will be set after adding.
    * Note: Available from v3.0.15.
@@ -1258,12 +1258,12 @@ declare interface TCalendarItem {
    * But I think it is closer to being a JS Map [string, string].
    * Note: Available from v3.5.0
    */
-  +attendees: [string];
++attendees: Array < string >;
   /**
    * List of attendee names (or email addresses if name isn't available).
    * Note: Available from v3.5.2
    */
-  +attendeeNames: [string];
++attendeeNames: Array < string >;
   /**
    * Markdown link for the given event. If you add this link to a note, NotePlan will link the event with the note and show the note in the dropdown when you click on the note icon of the event in the sidebar.
    * Note: Available from v3.5, only events, reminders are not supported yet
@@ -1605,7 +1605,7 @@ declare class NotePlan {
    *   .languageCode: string?
    *   .regionCode: string?
    *   .is12hFormat: boolean
-   *   .preferredLanguages: [string]
+   *   .preferredLanguages: Array<string>
    *   .secondsFromGMT: integer
    *   .localTimeZoneAbbreviation: string
    *   .localTimeZoneIdentifier: string
@@ -1646,4 +1646,4 @@ declare class NotePlan {
 
 // Every function made available must be assigned to `globalThis`
 // This type ensures that only functions are made available as plugins
-declare var globalThis: { [string]: () => mixed, document: mixed }
+declare var globalThis: { Array<string>: () => mixed, document: mixed }

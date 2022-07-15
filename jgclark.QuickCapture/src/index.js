@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Quick Capture plugin for NotePlan
 // Jonathan Clark
-// Last updated 27.6.22 for v0.10.1, @jgclark
+// Last updated 15.7.22 for v0.11.0, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -24,7 +24,6 @@ export {
   prependTaskToNote
 } from './quickCapture'
 
-const configKey = 'inbox'
 
 /**
  * Runs every time the plugin starts up (any command in this plugin is run)
@@ -39,7 +38,13 @@ export function init(): void {
     logError(pluginJson, JSP(error))
   }
 }
-// refactor previous variables to new types
+
+export function onSettingsUpdated(): void {
+  // Placeholder only to stop error in logs
+}
+
+const configKey = 'inbox'
+
 export async function onUpdateOrInstall(): Promise<void> {
   try {
     log(pluginJson, `${configKey}: onUpdateOrInstall running`)
