@@ -2,6 +2,7 @@
 /* global describe, expect, test */
 import * as e from '../src/eventsToNotes'
 // import { clo } from '../../helpers/dev'
+import { type EventsConfig } from '@helpers/NPCalendar'
 
 describe('eventsToNotes.js tests', () => {
 
@@ -54,7 +55,8 @@ describe('eventsToNotes.js tests', () => {
   })
 
   describe('smartStringReplace()', () => {
-    const config = {
+    // This function's tests use $Shape<...> to use a subset of large objects without causing errors
+    const config: $Shape<EventsConfig> = {
       calendarNameMappings: [],
       locale: "en-GB",
       timeOptions: ""
@@ -65,10 +67,10 @@ describe('eventsToNotes.js tests', () => {
     const format4 = "### [*|START|*] *|TITLE|*\n- \n\n\n\n\n" // for @EasyTarget test
     const startDT = new Date(2021, 0, 1, 20, 0, 0)
     const endDT = new Date(2021, 0, 1, 22, 0, 0)
-    const attendeesArray = ["✓ Jonathan Clark", "? James Bond", "x Martha", "? bob@example.com"]
-    const attendeeNamesArray = ["Jonathan Clark", "Martha Clark", "bob@example.com"]
-    const event1 = { calendar: 'Jonathan', title: 'title of event1', url: 'https://example.com/easy', date: startDT, endDate: endDT, notes: 'a few notes', attendees: attendeesArray, attendeeNames: attendeeNamesArray } // simple case
-    const event2 = { calendar: 'Us', title: 'title of event2 with <brackets> & more', url: 'https://example.com/bothersomeURL/example', date: startDT, endDate: endDT, notes: 'a few notes with TITLE and URL', attendees: attendeesArray, attendeeNames: attendeeNamesArray } // case with inclusion
+    const attendeesArray: Array<string> = ["✓ Jonathan Clark", "? James Bond", "x Martha", "? bob@example.com"]
+    const attendeeNamesArray: Array<string> = ["Jonathan Clark", "Martha Clark", "bob@example.com"]
+    const event1: $Shape<TCalendarItem> = { calendar: 'Jonathan', title: 'title of event1', url: 'https://example.com/easy', date: startDT, endDate: endDT, notes: 'a few notes', attendees: attendeesArray, attendeeNames: attendeeNamesArray } // simple case
+    const event2: $Shape<TCalendarItem> = { calendar: 'Us', title: 'title of event2 with <brackets> & more', url: 'https://example.com/bothersomeURL/example', date: startDT, endDate: endDT, notes: 'a few notes with TITLE and URL', attendees: attendeesArray, attendeeNames: attendeeNamesArray } // case with inclusion
     const replacements1 = e.getReplacements(event1, config)
     const replacements2 = e.getReplacements(event2, config)
 
