@@ -1,12 +1,15 @@
 # What's changed in ⚡️ Quick Capture
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.QuickCapture), and how to configure.
 
-## [0.10.1] - 2022-06-27
-### Fixed
-- issue with passing YYYY-MM-DD dates as part of an x-callback invocation
-## [0.10.0] - 2022-06-25
+## [0.11.0] - 2022-07-15
+### Changed
+- the **/addToInboxNote** command can now send to the current Weekly as well as Daily or other fixed note. **Note: please review your settings**, as they have changed to accommodate this.
+
+## [0.10.1..0.10.0] - 2022-06-27
 ### Added
 - new command **/quick add to Weekly note** command
+### Fixed
+- issue with passing YYYY-MM-DD dates as part of an x-callback invocation
 
 ## [0.9.1..0.9.0] - 2022-05-12
 ### Added
