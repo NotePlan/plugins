@@ -13,6 +13,12 @@ import NPTemplating from 'NPTemplating'
 // import helloWorldUtils from './support/hello-world'
 import { log } from '@helpers/dev'
 
+/**
+ * FIXME(Eduard): please document me!
+ * @param {*} origFileName 
+ * @param {*} dailyNoteDate 
+ * @returns 
+ */
 export async function insertNoteTemplate(origFileName: string, dailyNoteDate: Date): Promise<void> {
   log(pluginJson, 'chooseTemplateIfNeeded')
   const templateFilename: ?string = await chooseTemplateIfNeeded(origFileName, false)
@@ -47,6 +53,11 @@ export async function insertNoteTemplate(origFileName: string, dailyNoteDate: Da
   }
 }
 
+/**
+ * FIXME(Eduard): please document me!
+ * @param {*} _selectedEvent 
+ * @param {*} _templateFilename 
+ */
 export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateFilename?: string): Promise<void> {
   log(pluginJson, 'chooseTemplateIfNeeded')
   const templateFilename: ?string = await chooseTemplateIfNeeded(_templateFilename, true)
@@ -80,10 +91,10 @@ export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateFi
     let newTitle = null
     if (append || prepend) {
       log(pluginJson, 'append/prepend template')
-      newTitle = await appendPrependNewNote(append, prepend, folder, result)
+      newTitle = await appendPrependNewNote(append, prepend, folder, result) ?? '<error>'
     } else {
       log(pluginJson, 'create a new note with the rendered template')
-      newTitle = await newNoteWithFolder(result, folder, newNoteTitle)
+      newTitle = await newNoteWithFolder(result, folder, newNoteTitle) ?? '<error>' // FIXME(Eduard): only 2 params allowed
     }
 
     log(pluginJson, 'write the note-link into the event')
@@ -93,12 +104,17 @@ export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateFi
   }
 }
 
-function writeNoteLinkIntoEvent(selectedEvent, newTitle) {
+/**
+ * FIXME(Eduard): please document me!
+ * @param {*} selectedEvent 
+ * @param {*} newTitle 
+ */
+function writeNoteLinkIntoEvent(selectedEvent: TCalendarItem, newTitle: string): void {
   try {
     // Only add the link to events without attendees
     log(pluginJson, 'writing event link into event notes.')
 
-    if (newTitle && selectedEvent.attendees.length == 0 && selectedEvent.isCalendarWritable) {
+    if (newTitle && selectedEvent.attendees.length == 0 && selectedEvent.isCalendarWritable) { // FIXME(Eduard): no such field on Calendar or CalendarItem
       let noteLink = 'noteplan://x-callback-url/openNote?noteTitle=' + encodeURIComponent(newTitle)
       let eventNotes = selectedEvent.notes
       if (eventNotes.length > 0) {
@@ -122,7 +138,15 @@ function writeNoteLinkIntoEvent(selectedEvent, newTitle) {
   }
 }
 
-async function appendPrependNewNote(append, prepend, folder = '', content) {
+/**
+ * FIXME(Eduard): please document me!
+ * @param {*} append 
+ * @param {*} prepend 
+ * @param {*} folder 
+ * @param {*} content 
+ * @returns 
+ */
+async function appendPrependNewNote(append: string, prepend: string, folder: string = '', content: string): Promise<?string> {
   try {
     const noteName = append || prepend
 
@@ -206,7 +230,13 @@ async function appendPrependNewNote(append, prepend, folder = '', content) {
   }
 }
 
-async function newNoteWithFolder(content, _folder) {
+/**
+ * FIXME(Eduard): please document me!  Also I suggest you put a verb on the front of this function so its clearer what it is doing.
+ * @param {*} content 
+ * @param {*} _folder 
+ * @returns 
+ */
+async function newNoteWithFolder(content: string, _folder: string): Promise<?string> {
   let folder = _folder
   try {
     if (folder === '<select>') {
@@ -234,6 +264,7 @@ async function newNoteWithFolder(content, _folder) {
     }
 
     log(pluginJson, 'create a new note')
+    // $FlowFixMe
     const filename = DataStore.newNoteWithContent(content, folder)
 
     log(pluginJson, 'open the created note')
@@ -247,9 +278,16 @@ async function newNoteWithFolder(content, _folder) {
     return null
   } catch (error) {
     log(pluginJson, `error in newNoteWithFolder: ${error}`)
+    return null
   }
 }
 
+/**
+ * FIXME(Eduard): please document me!
+ * @param {*} templateFilename 
+ * @param {*} onlyMeetingNotes 
+ * @returns 
+ */
 async function chooseTemplateIfNeeded(templateFilename?: string, onlyMeetingNotes: boolean = false): Promise<?string> {
   try {
     if (!templateFilename) {
@@ -277,6 +315,11 @@ async function chooseTemplateIfNeeded(templateFilename?: string, onlyMeetingNote
   }
 }
 
+/**
+ * FIXME(Eduard): please document me!
+ * @param {*} selectedEvent 
+ * @returns 
+ */
 async function chooseEventIfNeeded(selectedEvent?: TCalendarItem) {
   try {
     if (!selectedEvent) {
@@ -310,7 +353,12 @@ async function chooseEventIfNeeded(selectedEvent?: TCalendarItem) {
   }
 }
 
-function generateTemplateData(selectedEvent) {
+/**
+ * FIXME(Eduard): please document me!
+ * @param {*} selectedEvent 
+ * @returns 
+ */
+function generateTemplateData(selectedEvent: TCalendarItem) {
   return {
     data: {
       eventTitle: selectedEvent.title,
@@ -319,7 +367,7 @@ function generateTemplateData(selectedEvent) {
       calendarItemLink: selectedEvent.calendarItemLink,
       eventAttendees: selectedEvent.attendees.join(', '),
       eventAttendeeNames: selectedEvent.attendeeNames.join(', '),
-      eventLocation: selectedEvent.location,
+      // eventLocation: selectedEvent.location, // not yet supported
       eventCalendar: selectedEvent.calendar,
     },
     methods: {
