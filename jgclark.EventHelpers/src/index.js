@@ -3,13 +3,14 @@
 //-----------------------------------------------------------------------------
 // Event Helpers
 // Jonathan Clark
-// last updated 16.6.2022, for v0.16.0+
+// last updated 15.7.2022, for v0.16.0+
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json' 
 import { log } from "@helpers/dev"
 import { migrateConfiguration, updateSettingData } from '@helpers/NPConfiguration'
+import { showMessage } from '@helpers/userInput'
 
 export { timeBlocksToCalendar } from './timeblocks'
 export {
@@ -34,13 +35,13 @@ const configKey = "events"
 export async function onUpdateOrInstall(config: any = { silent: false }): Promise<void> {
   try {
     log(pluginJson, `${configKey}: onUpdateOrInstall running`)
-    // migrate _configuration data to data/<plugin>/settings.json (only executes migration once)
-    const migrationResult: number = await migrateConfiguration(configKey, pluginJson, config?.silent)
-    log(pluginJson, `${configKey}: onUpdateOrInstall migrateConfiguration code: ${migrationResult}`)
-    if (migrationResult === 0) {
-       const updateSettings = updateSettingData(pluginJson)
-       log(pluginJson, `${configKey}: onUpdateOrInstall updateSettingData code: ${updateSettings}`)
-     }
+    const updateSettings = updateSettingData(pluginJson)
+    log(pluginJson, `${configKey}: onUpdateOrInstall updateSettingData code: ${updateSettings}`)
+    if (pluginJson['plugin.lastUpdateInfo'] !== undefined) {
+      await showMessage(pluginJson['plugin.lastUpdateInfo'], 'OK, thanks',
+        `Plugin ${pluginJson['plugin.name']} updated to v${pluginJson['plugin.version']}`
+      )
+    }
   } catch (error) {
     log(pluginJson, error)
   }
