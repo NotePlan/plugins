@@ -3,6 +3,9 @@
 ## About np.CallbackURLs Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.CallbackURLs/README.md) for details on available commands and use cases.
 
+## [1.1.0] - 2022-07-16 (@dwertheimer)
+- Added TemplateRunner code to run templates from links
+  
 ## [1.0.0] - 2022-07-11 (@dwertheimer)
 - Changed plugin Name to: "🧩 External Links, X-Callback-URLs, RunPlugin Creator"
 - Added command "Create Link to Current Note+Heading" with direct access from command bar
