@@ -770,6 +770,8 @@ async function writeNoteContents(
   location: string,
   options?: any = { shouldOpenInEditor: false, createMissingHeading: false },
 ): Promise<void> {
+  console.log(`writeNoteContents: ${note.filename}`)
+  clo(options, 'options')
   if (note) {
     if (note.content.indexOf(`${writeUnderHeading}\n`) !== -1 || options.createMissingHeading) {
       if (writeUnderHeading) {
@@ -827,7 +829,7 @@ export async function templateFileByTitle(selectedTemplate?: string = '', openIn
 
         const { openNoteTitle, writeNoteTitle, location, writeUnderHeading } = frontmatterAttributes
         let noteTitle = (openNoteTitle && openNoteTitle.trim()) || (writeNoteTitle && writeNoteTitle?.trim()) || ''
-        let shouldOpenInEditor = openNoteTitle && openNoteTitle.length > 0
+        let shouldOpenInEditor = (openNoteTitle && openNoteTitle.length > 0) || openInEditor
         const isTodayNote = /<today>/i.test(openNoteTitle) || /<today>/i.test(writeNoteTitle)
         let note
         if (isTodayNote) {
