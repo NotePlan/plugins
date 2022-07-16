@@ -1580,7 +1580,16 @@ declare interface CoreNoteFields {
    * Note: Available from v3.5.2
    * @param {TParagraph}
    */
-  removeBlockID(paragraph: TParagraph): void;
+removeBlockID(paragraph: TParagraph): void;
+  /**
+   * Returns an array of paragraphs having the same blockID like the given one.
+   * You can use 'paragraph [0].note to access the note behind it and make updates via `paragraph[0].note.updateParagraph(paragraph [0])` if you make changes to the content, type, etc (like checking it off as type = "done").
+   * If you pass no paragraph as argument this will return all synced lines that are available.
+   * Note: Available from v3.5.2
+   * @param {TParagraph?}
+   * @return {Array<TParagraph>}
+   */
+referencedBlocks(paragraph ?: TParagraph): Array < TParagraph >;
   /**
    * Print the note, optionally with backlinks and events sections
    * Note: available from v3.4 on macOS
