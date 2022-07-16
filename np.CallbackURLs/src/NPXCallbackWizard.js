@@ -2,17 +2,19 @@
 
 /*
 REMEMBER: Always build a flow cancel path every time you offer a prompt
+TODO: add wizard for template variables
 TODO: new search?text=noteplan or search?filter=Upcoming
 TODO: add back button to return to previous step (@qualitativeeasing)
 TODO: maybe create choosers based on arguments text
 */
 
-import { log, logError, clo, JSP } from '../../helpers/dev'
-import { createOpenOrDeleteNoteCallbackUrl, createAddTextCallbackUrl, createCallbackUrl } from '../../helpers/general'
+import { log, logError, JSP } from '../../helpers/dev'
+import { createOpenOrDeleteNoteCallbackUrl, createAddTextCallbackUrl, createCallbackUrl, createRunPluginCallbackUrl } from '../../helpers/general'
 import pluginJson from '../plugin.json'
 import { chooseRunPluginXCallbackURL } from '@helpers/NPdev'
-import { chooseOption, showMessage, showMessageYesNo, chooseFolder, chooseNote, getInput } from '@helpers/userInput'
+import { chooseOption, showMessage, showMessageYesNo, chooseFolder, chooseNote, getInput, getInputTrimmed } from '@helpers/userInput'
 import { getSelectedParagraph } from '@helpers/NPParagraph'
+import NPTemplating from 'NPTemplating'
 
 // https://help.noteplan.co/article/49-x-callback-url-scheme#addnote
 
@@ -64,7 +66,7 @@ async function getAddTextOrOpenNoteURL(command: 'openNote' | 'addText' | 'delete
   }
 }
 
-export async function filter() {
+export async function getFilter(): Promise<string | false> {
   const filters = DataStore.filters
   if (filters.length) {
     const opts = filters.map((f) => ({ label: f, value: f }))
@@ -72,13 +74,14 @@ export async function filter() {
     const chosen = await chooseOption('Choose a filter', opts, opts[0].value)
     if (chosen === '__new__') {
       NotePlan.openURL(`noteplan://x-callback-url/search?filter=__new__`)
-      return
+      return false
     } else {
-      return createCallbackUrl('search', { filter: chosen })
+      return createCallbackUrl('search', { filter: chosen }) || false
     }
   } else {
-    showMessage('No filters found. Please add a filter before running this command')
+    await showMessage('No filters found. Please add a filter before running this command')
   }
+  return false
 }
 
 export async function search(): Promise<string> {
@@ -95,13 +98,13 @@ export async function search(): Promise<string> {
  * @returns {Promise<string>} YYYYMMDD like '20180122' or use 'today', 'yesterday', 'tomorrow' instead of a date; '' if they want to enter a title, or false if date entry failed
  */
 async function askAboutDate(): Promise<string | false> {
-  let opts = [
+  const opts = [
     { label: 'Open/use a Calendar/Daily Note', value: 'date' },
     { label: 'Open/use a Project Note (by title)', value: '' },
   ]
   let choice = await chooseOption('What kind of note do you want to use/open?', opts, opts[0].value)
   if (choice === 'date') {
-    let opts = [
+    const opts = [
       { label: 'Enter a specific date', value: 'nameDate' },
       { label: 'today (always current day)', value: 'today' },
       { label: "tomorrow (always tomorrow's date)", value: 'tomorrow' },
@@ -110,7 +113,7 @@ async function askAboutDate(): Promise<string | false> {
     choice = await chooseOption('What date?', opts, opts[0].value)
     if (choice === 'nameDate') {
       choice = await getInput('Enter a date in YYYYMMDD format (no dashes)')
-      if (!choice || choice == '' || /^\d{8}$/.test(choice) === false) {
+      if (!choice || choice === '' || /^\d{8}$/.test(choice) === false) {
         showMessage(`You entered "${String(choice)}", but that is not in the correct format (YYYYMMDD).`)
         return false
       }
@@ -120,16 +123,16 @@ async function askAboutDate(): Promise<string | false> {
 }
 
 async function getAddTextAdditions(): Promise<{ text: string, mode: string, openNote: string } | false> {
-  let text = await getInput('Enter text to add to the note', 'OK', 'Text to Add', 'PLACEHOLDER')
+  const text = await getInput('Enter text to add to the note', 'OK', 'Text to Add', 'PLACEHOLDER')
   log(pluginJson, `getAddTextAdditions: ${text || ''}`)
   if (text === false) return false
-  let opts = [
+  const opts = [
     { label: 'Prepend text to the top of the note', value: 'prepend' },
     { label: 'Append text to the end of the note', value: 'append' },
   ]
-  let mode = await chooseOption('How would you like to add the text?', opts, opts[0].value)
+  const mode = await chooseOption('How would you like to add the text?', opts, opts[0].value)
   if (mode === false) return false
-  let openNote = await chooseOption(
+  const openNote = await chooseOption(
     'Open the note after adding the text?',
     [
       { label: 'Yes', value: 'yes' },
@@ -205,24 +208,63 @@ export async function runShortcut(): Promise<string> {
 
 export async function getHeadingLink(): Promise<string> {
   const selectedPara = await getSelectedParagraph()
-  clo(selectedPara, 'selectedPara')
   if (selectedPara && selectedPara?.note?.title !== null) {
     // if a heading is selected, use that. otherwise look for the heading this note is in
     const heading = selectedPara.type === 'title' ? selectedPara.content : selectedPara.heading
     log(pluginJson, `selectedPara.heading: ${heading}`)
     // $FlowIgnore
-    const url = createOpenOrDeleteNoteCallbackUrl(selectedPara.note.title, 'title', heading)
+    const url = createOpenOrDeleteNoteCallbackUrl(selectedPara.note.title, 'title', heading) || ''
     Clipboard.string = url
     await showMessage(`Link to this note and heading "${heading}" copied to clipboard`)
     return url
   } else {
     await showMessage(`Paragraph info could not be ascertained`)
   }
+  return ''
 }
 
 // Plugin command entry point for creating a heading link
 export async function headingLink() {
   await xCallbackWizard(`headingLink`)
+}
+
+/**
+ * Create an xcallback URL to invoke a template from a link inside NotePlan or a Shortcut/browser
+ * (plugin entry point for /np:gx)
+ */
+export async function getXcallbackForTemplate(): Promise<string | false> {
+  try {
+    let filename, templateTitle, args
+    if (Editor?.filename?.includes('@Templates')) {
+      const useThis = await showMessageYesNo(`Use the current template?\n(${Editor?.title || ''})`, ['yes', 'no'], 'Use Open Template')
+      if (useThis === 'yes') {
+        filename = Editor.filename
+      }
+    }
+    if (!filename) {
+      const selectedTemplate = await NPTemplating.chooseTemplate()
+      if (selectedTemplate) {
+        const template = await DataStore.noteByFilename(selectedTemplate, 'Notes')
+        templateTitle = template?.title || null
+      }
+    }
+    if (templateTitle) {
+      const openIt = await showMessageYesNo(`Open the resulting document in the Editor when link is clicked?`, ['yes', 'no'], 'Open in Editor')
+      args = [templateTitle, String(openIt === 'yes')]
+      const message = `Enter any variables and values you want to pass to the template in key=value pairs:\n\n myTemplateVar=value,otherVar=value2\n\n (where "myTemplateVar" and "otherVar" are the name of variables you use in your template. Multiple variables are separated by commas)`
+      const result = await getInputTrimmed(message, 'OK', `Template Variables to Pass to "${templateTitle}"`)
+      if (typeof result === 'string') {
+        args = args.concat(String(result))
+      }
+      return createRunPluginCallbackUrl(`np.Templating`, `templateRunner`, args)
+    } else {
+      await showMessage(`Template could not be located`)
+      return false
+    }
+  } catch (e) {
+    log(pluginJson, `Error in getXcallbackForTemplate: ${e}`)
+  }
+  return false
 }
 
 /**
@@ -246,6 +288,7 @@ export async function xCallbackWizard(incoming: ?string = ''): Promise<void> {
         { label: 'SEARCH for text in notes', value: 'search' },
         { label: 'Get NOTE INFO (x-success) for use in another app', value: 'noteInfo' },
         { label: 'RUN a Plugin Command', value: 'runPlugin' },
+        { label: 'RUN a Template', value: 'runTemplate' },
         { label: 'RUN a Shortcut', value: 'runShortcut' },
         { label: 'DELETE a note by title', value: 'deleteNote' },
         /*
@@ -270,7 +313,7 @@ export async function xCallbackWizard(incoming: ?string = ''): Promise<void> {
         url = await getAddTextOrOpenNoteURL('deleteNote')
         break
       case 'filter':
-        url = await filter()
+        url = await getFilter()
         break
       case 'headingLink':
         url = getHeadingLink()
@@ -284,6 +327,9 @@ export async function xCallbackWizard(incoming: ?string = ''): Promise<void> {
         break
       case 'addNote':
         url = await addNote()
+        break
+      case 'runTemplate':
+        url = await getXcallbackForTemplate()
         break
       case 'noteInfo':
         url = await noteInfo()
@@ -299,7 +345,6 @@ export async function xCallbackWizard(incoming: ?string = ''): Promise<void> {
         break
     }
     if (url === false) canceled = true // user hit cancel on one of the input prompts
-    console.log(`canceled:${canceled} commandType:${commandType}\nresulting url: ${String(url)}`)
 
     if (!canceled && typeof url === 'string') {
       url = commandType !== 'noteInfo' ? await getReturnCallback(url) : url
