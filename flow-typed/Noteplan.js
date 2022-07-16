@@ -579,9 +579,10 @@ declare class DataStore {
    * @param {Array<string> | null?} types ["notes", "calendar"] (by default all, or pass `null`)
    * @param {Array<string> | null?} list (optional)
    * @param {Array<string> | null?} list (optional)
+   * @param {boolean?} (optional) true to enable date-referenced items to be included in the search
    * @return {$ReadOnlyArray<TParagraph>} array of results
    */
-  static search(keyword: string, types?: Array<string>, inFolders?: Array<string>, notInFolders?: Array<string>): Promise<$ReadOnlyArray<TParagraph>>;
+  static search(keyword: string, types ?: Array < string >, inFolders ?: Array < string >, notInFolders ?: Array < string >, shouldLoadDatedTodos ?: boolean): Promise < $ReadOnlyArray < TParagraph >>;
 
   /**
    * Searches all project notes for a keyword (uses multiple threads to speed it up).
@@ -602,9 +603,10 @@ declare class DataStore {
    * This function is async, use it with `await`, so that the UI is not being blocked during a long search.
    * Note: Available from v3.6.0
    * @param {string} = keyword to search for
+   * @param {boolean?} (optional) true to enable date-referenced items to be included in the search
    * @return {$ReadOnlyArray<TParagraph>} array of results
    */
-  static searchCalendarNotes(keyword: string): Promise<$ReadOnlyArray<TParagraph>>;
+  static searchCalendarNotes(keyword: string, shouldLoadDatedTodos ?: boolean): Promise < $ReadOnlyArray < TParagraph >>;
 }
 
 /**
@@ -1637,4 +1639,4 @@ declare class NotePlan {
 
 // Every function made available must be assigned to `globalThis`
 // This type ensures that only functions are made available as plugins
-declare var globalThis: { Array<string>: () => mixed, document: mixed }
+declare var globalThis: { [string]: () => mixed, document: mixed }
