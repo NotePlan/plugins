@@ -32,7 +32,7 @@ import DateModule from '../lib/support/modules/DateModule'
 import { migrateTemplates, migrateQuickNotes, _checkTemplatesMigrated } from './migration'
 
 // Editor
-import { templateFileByTitleEx } from './Editor'
+import { templateFileByTitleEx } from './NPEditor'
 
 export async function init(): Promise<void> {
   try {

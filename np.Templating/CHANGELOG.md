@@ -3,7 +3,11 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
-## [2.0.0-alpha.03] - 2022-07-16 (mikeerickson)
+## [2.0.0-alpha.04] - 2022-07-17 (mikeerickson)
+
+- Renamed `src/Editor.js` -> `src/NPEditor.js` (my bad, didn't follow naming convention rules)
+
+## [2.0.0-alpha.03] - 2022-07-17 (mikeerickson)
 
 - quite a bit of refactoring, addressing growing Templating.js file (969 loc -> 647 loc)
 - removed outdated commands (no longer a need as most users templates have been migrated)
