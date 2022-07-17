@@ -385,5 +385,38 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(dt.formatNoteDate(date2, 'date')).toContain('01')
       })
     })
+    /*
+     * getWeekNumber()
+     */
+    describe('getWeekNumber()' /* function */, () => {
+      test('should deliver proper week for 1/1', () => {
+        const result = dt.getISOWeekString('2020-01-01')
+        expect(result).toEqual(`2020-W01`)
+      })
+      test('should deliver proper week for 1/10', () => {
+        const result = dt.getISOWeekString('2020-01-10')
+        expect(result).toEqual(`2020-W02`)
+      })
+      test('should deliver proper week for 12/31', () => {
+        const result = dt.getISOWeekString('2020-12-31')
+        expect(result).toEqual(`2020-W53`)
+      })
+      test('should add 7 days', () => {
+        const result = dt.getISOWeekString('2020-01-01', 7, 'day')
+        expect(result).toEqual(`2020-W02`)
+      })
+      test('should add 1 week', () => {
+        const result = dt.getISOWeekString('2020-01-01', 1, 'week')
+        expect(result).toEqual(`2020-W02`)
+      })
+      test('should remove one day and end up in last year', () => {
+        const result = dt.getISOWeekString('2020-01-01', -1, 'day')
+        expect(result).toEqual(`2020-W01`)
+      })
+      test('should remove one week and end up in last year', () => {
+        const result = dt.getISOWeekString('2020-01-01', -1, 'week')
+        expect(result).toEqual(`2019-W52`)
+      })
+    })
   })
 })
