@@ -52,7 +52,7 @@ export function getYearMonthDate(dateObj: Date): $ReadOnly<{
 
 export type HourMinObj = { h: number, m: number }
 
-export function unhyphenateString(dateString: string): string {
+export function unhyphenateString(date: string): string {
   return dateString.replace(/-/g, '')
 }
 
@@ -79,18 +79,15 @@ export function toISOShortDateTimeString(dateObj: Date): string {
   return dateObj !== undefined ? dateObj.toISOString().slice(0, 16) : 'undefined'
 }
 
-export function toLocaleDateTimeString(dateObj: Date, locale: string | Array<string> =
-  [], options: Intl$DateTimeFormatOptions = {}): string {
+export function toLocaleDateTimeString(dateObj: Date, locale: string | Array<string> = [], options: Intl$DateTimeFormatOptions = {}): string {
   return dateObj.toLocaleString(locale, options)
 }
 
-export function toLocaleDateString(dateObj: Date, locale: string | Array<string> =
-  [], options: Intl$DateTimeFormatOptions = {}): string {
+export function toLocaleDateString(dateObj: Date, locale: string | Array<string> = [], options: Intl$DateTimeFormatOptions = {}): string {
   return dateObj.toLocaleDateString(locale, options)
 }
 
-export function toLocaleTime(dateObj: Date, locale: string | Array<string> =
-  [], options: Intl$DateTimeFormatOptions = {}): string {
+export function toLocaleTime(dateObj: Date, locale: string | Array<string> = [], options: Intl$DateTimeFormatOptions = {}): string {
   return dateObj.toLocaleTimeString(locale, options)
 }
 
@@ -117,7 +114,7 @@ export function filenameDateString(dateObj: Date): string {
 
 /**
  * Return note of calendar date in a variety of styles
- * TODO: support Weekly notes, when Eduard does through links 
+ * TODO: support Weekly notes, when Eduard does through links
  * @author @jgclark
  * @param {string} style to return
  * @param {Date} inputDate
@@ -130,7 +127,8 @@ export function formatNoteDate(inputDate: Date, style: string): string {
       output = `@${hyphenatedDateString(inputDate)}`
       break
     }
-    case 'date': { // note this will vary depending on tester's locale
+    case 'date': {
+      // note this will vary depending on tester's locale
       output = `${toLocaleDateString(inputDate)}`
       break
     }
@@ -138,7 +136,8 @@ export function formatNoteDate(inputDate: Date, style: string): string {
       output = `>${hyphenatedDateString(inputDate)}`
       break
     }
-    default: { // link or links
+    default: {
+      // link or links
       output = `[[${hyphenatedDateString(inputDate)}]]`
       break
     }
@@ -219,7 +218,7 @@ export function daysBetween(d1: Date, d2: Date): number {
 /**
  * Test if a date is within two start and end dates (inclusive)
  * @author @jgclark
- * 
+ *
  * @param {string} testDate - date to look for (YYYYMMDD without hyphens)
  * @param {string} fromDate - start Date (YYYYMMDD without hyphens)
  * @param {string} endDate - end Date (YYYYMMDD without hyphens)
@@ -235,7 +234,7 @@ export function withinDateRange(testDate: string, fromDate: string, toDate: stri
  * If date is in the past then adds 'ago'.
  * This is v2, now using moment library instead, but tweaking slightly to produce exactly the output as my v1 did.
  * @author @jgclark
- * 
+ *
  * @param {number} diffIn - number of days difference (positive or negative)
  * @return {string} - relative date string (e.g. today, 3w ago, 2m, 4y ago.)
  */
@@ -273,10 +272,10 @@ export function relativeDateFromNumber(diffIn: number): string {
 }
 
 /**
- * Turn a string that includes YYYY-MM-DD into a JS Date. 
+ * Turn a string that includes YYYY-MM-DD into a JS Date.
  * The first found date is used; if no dates found a warning is written to the log.
  * @author @jgclark
- * 
+ *
  * @param {string} - string that contains a date e.g. @due(2021-03-04)
  * @return {?Date} - JS Date version, if valid date found
  * @test - available in jest file
@@ -506,7 +505,7 @@ export function calcOffsetDateStr(baseDateISO: string, interval: string): string
       return '(error)'
     }
 
-    const baseDateMoment = moment(baseDateISO, "YYYY-MM-DD")
+    const baseDateMoment = moment(baseDateISO, 'YYYY-MM-DD')
     const unit = interval.charAt(interval.length - 1) // get last character
     const num = Number(interval.substr(0, interval.length - 1)) // return all but last character
 
@@ -524,10 +523,8 @@ export function calcOffsetDateStr(baseDateISO: string, interval: string): string
         break
     }
     // calc offset (Note: library functions cope with negative nums, so just always use 'add' function)
-    const newDate = (unit !== 'b')
-      ? baseDateMoment.add(num, unitForMoment)
-      : momentBusiness(baseDateMoment).businessAdd(num)
-    const newDateISO = newDate.format("YYYY-MM-DD")
+    const newDate = unit !== 'b' ? baseDateMoment.add(num, unitForMoment) : momentBusiness(baseDateMoment).businessAdd(num)
+    const newDateISO = newDate.format('YYYY-MM-DD')
     // log('helpers/cODS', `for '${baseDateISO}' interval ${num} / ${unitForMoment} -> '${newDateISO}'`)
     return newDateISO
   } catch (e) {
@@ -540,12 +537,25 @@ export function calcOffsetDateStr(baseDateISO: string, interval: string): string
  * Does this line include a scheduled date in the future?
  * (Should work even with >date in brackets or with non-white-space before it.)
  * @author @jgclark
- * 
+ *
  * @param {string} line to search in
  * @return {boolean}
  * @test - available in jest file
  */
 export function includesScheduledFutureDate(line: string): boolean {
   const m = line.match(RE_SCHEDULED_ISO_DATE) ?? []
-  return (m.length > 0 && m[0] > todaysDateISOString)
+  return m.length > 0 && m[0] > todaysDateISOString
+}
+
+/**
+ * Get the week number string for a given date string
+ * @param {string} date - date string in format YYYY-MM-DD OR a Date object
+ * @param {number} offsetIncrement - number of days|weeks|month to add (or negative=subtract) to date (default: 0)
+ * @param {string} offsetType - 'day'|'week'|'month'|'year' (default: 'week')
+ * @returns
+ */
+export function getISOWeekString(date: string | Date, offsetIncrement: number = 0, offsetType: string = 'week'): string {
+  const theDate = typeof date === 'string' ? date : hyphenatedDate(date)
+  const newMom = moment(theDate, 'YYYY-MM-DD').add(offsetIncrement, offsetType)
+  return newMom.format('GGGG-[W]WW')
 }
