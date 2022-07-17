@@ -14,6 +14,7 @@ import { getTemplateFolder } from 'NPTemplating'
 import { helpInfo } from '../lib/helpers'
 import { getSetting } from '@helpers/NPConfiguration'
 
+import { getISOWeekAndYear, getISOWeekString } from '@helpers/dateTime'
 import { createRunPluginCallbackUrl } from '@helpers/general'
 import { chooseOption, showMessage, getInputTrimmed } from '@helpers/userInput'
 import { replaceContentUnderHeading } from '@helpers/NPParagraph'
@@ -771,7 +772,7 @@ async function writeNoteContents(
   options?: any = { shouldOpenInEditor: false, createMissingHeading: false },
 ): Promise<void> {
   if (note) {
-    if (note.content.indexOf(`${writeUnderHeading}\n`) !== -1 || options.createMissingHeading) {
+    if (note?.content?.indexOf(`${writeUnderHeading}\n`) !== -1 || options.createMissingHeading) {
       if (writeUnderHeading) {
         if (location === 'replace') {
           await replaceContentUnderHeading(note, writeUnderHeading, renderedTemplate)
@@ -795,15 +796,13 @@ async function writeNoteContents(
  * The unique title of the template to run must be passed in as the first argument
  * TODO:
  * - enum('location',['append','cursor','insert', ... 'prepend'])
- * - Hide commands from user once tested
  * - add Presets to documentation Notes below then delete these notes
- * Note: use /np:gx to create a link to invoke the currently open template
+ * Note: use XCallbackCreator to create a link to invoke the currently open template
  * Note: location === 'prepend' prepends, otherwise appends
  * Note: location will be 'append' or 'prepend' | if writeUnderHeading is set, then appends/prepends there, otherwise the note's content
  * Note: if you are inserting title text as part of your template, then you should always prepend, because your title will confuse future appends
  * Note: ask CD what the reserved frontmatter fields should be and trap for them
  * xcallback note: arg1 is template name, arg2 is whether to open in editor, arg3 is a list of vars to pass to template equals sign is %3d
- *
  */
 export async function templateFileByTitle(selectedTemplate?: string = '', openInEditor?: boolean = false, args?: string = ''): Promise<void> {
   try {
@@ -827,26 +826,46 @@ export async function templateFileByTitle(selectedTemplate?: string = '', openIn
 
         const { openNoteTitle, writeNoteTitle, location, writeUnderHeading } = frontmatterAttributes
         let noteTitle = (openNoteTitle && openNoteTitle.trim()) || (writeNoteTitle && writeNoteTitle?.trim()) || ''
-        let shouldOpenInEditor = openNoteTitle && openNoteTitle.length > 0
+        let shouldOpenInEditor = (openNoteTitle && openNoteTitle.length > 0) || openInEditor
+        const createMissingHeading = true
         const isTodayNote = /<today>/i.test(openNoteTitle) || /<today>/i.test(writeNoteTitle)
+        const isThisWeek = /<thisweek>/i.test(openNoteTitle) || /<thisweek>/i.test(writeNoteTitle)
+        const isNextWeek = /<nextweek>/i.test(openNoteTitle) || /<nextweek>/i.test(writeNoteTitle)
+
         let note
         if (isTodayNote) {
           if (shouldOpenInEditor) {
             await Editor.openNoteByDate(new Date())
             if (Editor?.note) {
-              await writeNoteContents(Editor.note, renderedTemplate, writeUnderHeading, location, { shouldOpenInEditor: false })
+              await writeNoteContents(Editor.note, renderedTemplate, writeUnderHeading, location, { shouldOpenInEditor: false, createMissingHeading })
             }
           } else {
             note = DataStore.calendarNoteByDate(new Date())
             if (note) {
-              await writeNoteContents(note, renderedTemplate, writeUnderHeading, location)
+              await writeNoteContents(note, renderedTemplate, writeUnderHeading, location, { shouldOpenInEditor: false, createMissingHeading })
+            }
+          }
+        } else if (isThisWeek || isNextWeek) {
+          const dateInfo = getISOWeekAndYear(new Date(), isThisWeek ? 0 : 1, 'week')
+          if (shouldOpenInEditor) {
+            await Editor.openWeeklyNote(dateInfo.year, dateInfo.week)
+            if (Editor?.note) {
+              await writeNoteContents(Editor.note, renderedTemplate, writeUnderHeading, location, { shouldOpenInEditor: false, createMissingHeading })
+            }
+          } else {
+            const dateString = getISOWeekString(new Date(), isThisWeek ? 0 : 1, 'week')
+            note = DataStore.calendarNoteByDateString(dateString)
+            if (note) {
+              await writeNoteContents(note, renderedTemplate, writeUnderHeading, location, { shouldOpenInEditor: false, createMissingHeading })
             }
           }
         } else {
           // use current note
           if (noteTitle === '<current>') {
             if (Editor.type === 'Notes' || Editor.type === 'Calendar') {
-              await writeNoteContents(Editor.note, renderedTemplate, writeUnderHeading, location)
+              if (Editor.note) {
+                await writeNoteContents(Editor.note, renderedTemplate, writeUnderHeading, location, { shouldOpenInEditor: false, createMissingHeading })
+              }
             } else {
               await CommandBar.prompt('You must have either Project Note or Calendar Note open when using "<current>".', '')
             }
@@ -868,7 +887,7 @@ export async function templateFileByTitle(selectedTemplate?: string = '', openIn
               if (!note) {
                 await CommandBar.prompt(`Unable to locate note matching "${noteTitle}"`, helpInfo('Presets'))
               } else {
-                await writeNoteContents(note, renderedTemplate, writeUnderHeading, location, { shouldOpenInEditor })
+                await writeNoteContents(note, renderedTemplate, writeUnderHeading, location, { shouldOpenInEditor, createMissingHeading })
               }
             }
           } else {
