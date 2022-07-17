@@ -204,7 +204,9 @@ export async function templateAppend(): Promise<void> {
       let data = { ...frontmatterAttributes, frontmatter: { ...frontmatterAttributes } }
 
       // $FlowIgnore
+
       let renderedTemplate = await NPTemplating.render(frontmatterBody, data)
+      // renderedTemplate = frontmatterBody
 
       Editor.insertTextAtCharacterIndex(renderedTemplate, content.length)
     } else {
@@ -681,6 +683,30 @@ export async function templateTest(): Promise<void> {
     plugins.forEach((plugin) => {
       clo(plugin)
     })
+  } catch (error) {
+    logError(pluginJson, error)
+  }
+}
+
+export async function templateWOTD(): Promise<void> {
+  try {
+    const url = 'https://wordsapiv1.p.rapidapi.com/words/?random=true'
+
+    const options = {
+      method: 'GET',
+      headers: {
+        'X-RapidAPI-Key': 'Xwiq2Q2FCrmshVLkpU1ApDOasM3rp1OIm7vjsnlVvRfpkFBmeX',
+        'X-RapidAPI-Host': 'wordsapiv1.p.rapidapi.com',
+      },
+    }
+
+    const result = await fetch(url, options)
+
+    let data = JSON.parse(result)
+
+    Editor.insertTextAtCursor(data.word)
+
+    // Editor.insertTextAtCursor(response)
   } catch (error) {
     logError(pluginJson, error)
   }

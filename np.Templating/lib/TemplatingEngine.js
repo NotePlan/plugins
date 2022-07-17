@@ -113,6 +113,9 @@ export default class TemplatingEngine {
         weather: async (params = '') => {
           return await new WebModule().weather(this.templateConfig, params)
         },
+        wotd: async (params = '') => {
+          return await new WebModule().wotd(this.templateConfig, params)
+        },
         services: async (url = '', key = '') => {
           return await new WebModule().service(this.templateConfig, url, key)
         },

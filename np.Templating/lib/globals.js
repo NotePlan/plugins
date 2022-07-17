@@ -16,6 +16,7 @@ import { time } from './support/modules/TimeModule'
 import { getAffirmation } from './support/modules/affirmation'
 import { getAdvice } from './support/modules/advice'
 import { getDailyQuote } from './support/modules/quote'
+import { getWOTD } from './support/modules/wotd'
 import { getWeather } from './support/modules/weather'
 import { getWeatherSummary } from './support/modules/weatherSummary'
 import { parseJSON5 } from '@helpers/general'
@@ -94,6 +95,10 @@ const globals = {
 
   quote: async (): Promise<string> => {
     return getDailyQuote()
+  },
+
+  wotd: async (): Promise<string> => {
+    return getWOTD()
   },
 
   legacyDate: async (params: any = ''): Promise<string> => {

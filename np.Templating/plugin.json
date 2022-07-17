@@ -3,7 +3,7 @@
   "noteplan.minAppVersion": "3.5.0",
   "plugin.id": "np.Templating",
   "plugin.name": "📒 np.Templating",
-  "plugin.version": "2.0.0-alpha.01",
+  "plugin.version": "2.0.0-alpha.03",
   "plugin.description": "Templating Plugin for NotePlan",
   "plugin.author": "Mike Erickson (@codedungeon)",
   "plugin.dependencies": [],
@@ -11,17 +11,6 @@
   "plugin.url.old": "https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md",
   "plugin.url": "https://nptemplating-docs.netlify.app/docs/intro",
   "plugin.commands": [
-    {
-      "name": "np:insert",
-      "alias": [
-        "insert",
-        "it",
-        "template",
-        "npi"
-      ],
-      "description": "Insert template to current note",
-      "jsFunction": "templateInsert"
-    },
     {
       "name": "np:append",
       "alias": [
@@ -34,12 +23,23 @@
       "jsFunction": "templateAppend"
     },
     {
+      "name": "np:insert",
+      "alias": [
+        "insert",
+        "it",
+        "template",
+        "npi"
+      ],
+      "description": "Insert template to current note",
+      "jsFunction": "templateInsert"
+    },
+    {
       "name": "np:invoke",
       "alias": [
         "invoke",
         "npv"
       ],
-      "description": "Place template using <location> attribute",
+      "description": "Place template using <location> attribute in template",
       "jsFunction": "templateInvoke"
     },
     {
@@ -50,7 +50,7 @@
         "template",
         "npn"
       ],
-      "description": "Create new note with title, in chosen folder with optional template",
+      "description": "Create new note with title, using folder attribute",
       "jsFunction": "templateNew"
     },
     {
@@ -88,32 +88,29 @@
         "npu"
       ],
       "description": "Run np.Templating Setting",
-      "jsFunction": "onUpdateOrInstall"
+      "jsFunction": "onUpdateOrInstall",
+      "hidden": true
     },
     {
       "name": "np:migrate-templates",
       "alias": [],
       "description": "Run Template Migration",
-      "jsFunction": "migrateTemplatesCommand"
+      "jsFunction": "migrateTemplatesCommand",
+      "hidden": true
     },
     {
       "name": "np:migrate-quick-notes",
       "alias": [],
       "description": "Run Quick Note Migration (_configuration :: quickNotes)",
-      "jsFunction": "migrateQuickNotes"
-    },
-    {
-      "name": "np:invoke",
-      "alias": [],
-      "description": "np.Templating Invoke...",
-      "jsFunction": "testInvoke"
+      "jsFunction": "migrateQuickNotes",
+      "hidden": true
     },
     {
       "name": "np:convert",
       "alias": [
         "npc"
       ],
-      "description": "np.Templating Convert Project Note to Frontmatter...",
+      "description": "Convert Project Note to Frontmatter format",
       "jsFunction": "templateConvertNote"
     },
     {
@@ -127,14 +124,22 @@
       "alias": [
         "npe"
       ],
-      "description": "np.Templating Execute Fragment",
+      "description": "Execute Template Script",
       "jsFunction": "templateExecute"
+    },
+    {
+      "name": "np:wotd",
+      "alias": [],
+      "description": "Word Of The Day",
+      "jsFunction": "templateWOTD",
+      "hidden": true
     },
     {
       "name": "np:test",
       "alias": [],
       "description": "np.Templating Testbed",
-      "jsFunction": "templateTest"
+      "jsFunction": "templateTest",
+      "hidden": true
     },
     {
       "name": "getTemplate",
@@ -163,18 +168,20 @@
     {
       "name": "np:tft",
       "alias": [
-        "Template file by title"
+        "Template file by title",
+        "np:run",
+        "npr"
       ],
       "description": "Run a template file by title/preset",
-      "hidden": true,
-      "jsFunction": "templateFileByTitle"
+      "jsFunction": "templateFileByTitle",
+      "hidden": false
     },
     {
       "name": "templateRunner",
       "alias": [],
       "description": "Load and run self-contained template instructions with arguments",
-      "hidden": true,
-      "jsFunction": "templateRunner"
+      "jsFunction": "templateRunner",
+      "hidden": true
     },
     {
       "name": "np:xcb",

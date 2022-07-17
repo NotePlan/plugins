@@ -3,6 +3,19 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [2.0.0-alpha.03] - 2022-07-16 (mikeerickson)
+
+- removed outdated commands (no longer a need as most users templates have been migrated)
+  > Note: The automatic template conversion will still run when np.Templating is installed, just removing command noise
+- fixed issues when template code contained reserved words `include`, `note`, `calendar`, and `template` (was to loose with keyword replacement)
+- expanded template error output to include line and position (results will vary depending on how you have constructed template)
+
+## [2.0.0-alpha.02] - 2022-07-13 (mikeerickson)
+
+- added Word Of The Day
+  > Use `np:wotd` to insert at cursor of current note
+  > Or, use in template `<%- web.wotd() %>`
+
 ## [2.0.0-alpha.01] - 2022-06-05 .. 2022-07-07 (mikeerickson)
 
 - added template code block execution
@@ -19,7 +32,7 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/
 - added `clo` helper which can be used to help debug more complex templates
 - added a `calendar` module placeholder (more coming in the future but didn't want to lose sight )
 - `getTemplateList` will now filter out any templates which have `type = ignore` (@dwertheimer)
-- added `np:gx` command to build x-callback for current template
+- added `np:xcb` command to build x-callback for current template
 
 ## [1.2.0] - 2022-06-04 (mikeerickson)
 

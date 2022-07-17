@@ -785,15 +785,15 @@ export default class NPTemplating {
         tag = '' // clear tag as it has been removed from process
       }
 
-      if (tag.includes('note')) {
+      if (tag.includes('note(')) {
         newTemplateData = newTemplateData.replace(tag, await this.preProcessNote(tag))
       }
 
-      if (tag.includes('calendar')) {
+      if (tag.includes('calendar(')) {
         newTemplateData = newTemplateData.replace(tag, await this.preProcessCalendar(tag))
       }
 
-      if (tag.includes('include') || tag.includes('template')) {
+      if (tag.includes('include(') || tag.includes('template(')) {
         if (!isCommentTag(tag)) {
           let includeInfo = tag
           const keywords = ['<%=', '<%-', '<%', '_%>', '-%>', '%>', 'include', 'template']
@@ -980,6 +980,7 @@ export default class NPTemplating {
       }
 
       templateData = convertJavaScriptBlocksToTags(templateData)
+
       // $FlowIgnore
       const { newTemplateData, newSettingData } = await this.preProcess(templateData, sessionData)
       sessionData = { ...newSettingData }

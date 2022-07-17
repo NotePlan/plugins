@@ -6,9 +6,10 @@
  * -----------------------------------------------------------------------------------------*/
 
 import { getVerse } from './verse'
+import { getWOTD } from './wotd'
 import { getAdvice } from './advice'
 import { getWeather } from './weather'
-import { getService } from './service'
+import { getService } from './data/service'
 import { getDailyQuote } from './quote'
 import { getAffirmation } from './affirmation'
 import { getWeatherSummary } from './weatherSummary'
@@ -40,5 +41,9 @@ export default class WebModule {
 
   async service(templateConfig: any, serviceUrl: string = '', key: string = ''): Promise<string> {
     return await getService(templateConfig, serviceUrl, key)
+  }
+
+  async wotd(templateConfig: any, params: any = ''): Promise<string> {
+    return await getWOTD(params)
   }
 }

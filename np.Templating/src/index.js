@@ -26,6 +26,7 @@ export { templateConvertNote } from './Templating'
 export { templateSamples } from './Templating'
 export { templateExecute } from './Templating'
 export { templateRunner } from './Templating'
+export { templateWOTD } from './Templating'
 
 // np.Templating Utility Commands
 export { templateAbout } from './Templating'
