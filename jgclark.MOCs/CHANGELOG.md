@@ -1,5 +1,9 @@
 # What's Changed in 🕸 Map of Contents plugin?
 
+## [0.2.1] - 17.7.2022
+### Added
+- fixed problem with #hashtag and @mention in search terms
+
 ## [0.2.0] - 13.6.2022
 ### Added
 - new option 'Sort order for results', and now defaults to 'alphabetical', with other options 'createdDate' and 'updatedDate' [requested by @John1]

@@ -151,7 +151,7 @@ export async function makeMOC(): Promise<void> {
   // Find matches in this set of notes
   for (const searchTerm of stringsToMatch) {
     const outputArray = []
-    const results = gatherMatchingLines(projectNotesToInclude, searchTerm, false, 'none', config.caseInsensitive)
+    const results = await gatherMatchingLines(projectNotesToInclude, searchTerm, false, 'none', config.caseInsensitive)
     const resultTitles = results?.[1]
     if (resultTitles.length > 0) {
       // dedupe results by making and unmaking it into a set

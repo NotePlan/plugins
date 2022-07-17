@@ -7,7 +7,9 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.MOCs/",
-  "plugin.version": "0.2.0",
+  "plugin.changelog": "https://github.com/NotePlan/plugins/tree/main/jgclark.MOCs/CHANGELOG.md",
+  "plugin.version": "0.2.1",
+  "plugin.lastUpdateInfo": "Fixed issue with #hashtags and @mentions",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -20,11 +22,6 @@
         "map"
       ],
       "jsFunction": "makeMOC"
-    },
-    {
-      "name": "onUpdateOrInstall:MOCs",
-      "description": "onUpdateOrInstall",
-      "jsFunction": "onUpdateOrInstall"
     }
   ],
   "plugin.settings": [
