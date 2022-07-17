@@ -906,8 +906,11 @@ export default class NPTemplating {
     try {
       await this.setup()
 
-      let templateData = await this.getTemplate(templateName)
-      let renderedData = await this.render(templateData, userData, userOptions)
+      const templateData = await this.getTemplate(templateName)
+      const { frontmatterBody, frontmatterAttributes } = await this.preRender(templateData)
+      const data = { ...frontmatterAttributes, frontmatter: { ...frontmatterAttributes }, ...userData }
+
+      const renderedData = await this.render(frontmatterBody, data, userOptions)
 
       return this._filterTemplateResult(renderedData)
     } catch (error) {
