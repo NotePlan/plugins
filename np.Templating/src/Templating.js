@@ -831,6 +831,8 @@ export async function templateFileByTitle(selectedTemplate?: string = '', openIn
         let noteTitle = (openNoteTitle && openNoteTitle.trim()) || (writeNoteTitle && writeNoteTitle?.trim()) || ''
         let shouldOpenInEditor = (openNoteTitle && openNoteTitle.length > 0) || openInEditor
         const isTodayNote = /<today>/i.test(openNoteTitle) || /<today>/i.test(writeNoteTitle)
+        const isThisWeek = /<thisweek>/i.test(openNoteTitle) || /<thisweek>/i.test(writeNoteTitle)
+
         let note
         if (isTodayNote) {
           if (shouldOpenInEditor) {
