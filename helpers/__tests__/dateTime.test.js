@@ -422,5 +422,22 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result).toEqual(`2020-W01`)
       })
     })
+    /*
+     * getISOWeekAndYear()
+     */
+    describe('getISOWeekAndYear()' /* function */, () => {
+      test('should return proper date with string input', () => {
+        const result = dt.getISOWeekAndYear('2020-01-01')
+        expect(result).toEqual({ year: 2020, week: 1 })
+      })
+      test('should return proper date with Date obj input', () => {
+        const result = dt.getISOWeekAndYear(new Date('2020-01-01'))
+        expect(result).toEqual({ year: 2020, week: 1 })
+      })
+      test('should return proper date with Date obj input', () => {
+        const result = dt.getISOWeekAndYear(new Date('2020-01-01'), 1, 'week')
+        expect(result).toEqual({ year: 2020, week: 2 })
+      })
+    })
   })
 })

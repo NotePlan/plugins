@@ -52,7 +52,7 @@ export function getYearMonthDate(dateObj: Date): $ReadOnly<{
 
 export type HourMinObj = { h: number, m: number }
 
-export function unhyphenateString(date: string): string {
+export function unhyphenateString(dateString: string): string {
   return dateString.replace(/-/g, '')
 }
 
@@ -548,14 +548,31 @@ export function includesScheduledFutureDate(line: string): boolean {
 }
 
 /**
- * Get the week number string for a given date string
+ * Get the week number string for a given date string or Date object.
  * @param {string} date - date string in format YYYY-MM-DD OR a Date object
  * @param {number} offsetIncrement - number of days|weeks|month to add (or negative=subtract) to date (default: 0)
  * @param {string} offsetType - 'day'|'week'|'month'|'year' (default: 'week')
- * @returns
+ * @returns {string} - week number string in format 'YYYYWww'
+ * @author @dwertheimer
+ * @test - available in jest file
  */
 export function getISOWeekString(date: string | Date, offsetIncrement: number = 0, offsetType: string = 'week'): string {
   const theDate = typeof date === 'string' ? date : hyphenatedDate(date)
   const newMom = moment(theDate, 'YYYY-MM-DD').add(offsetIncrement, offsetType)
   return newMom.format('GGGG-[W]WW')
+}
+
+/**
+ * Get the year and week number for a given date string or Date object
+ * @param {string} date - date string in format YYYY-MM-DD OR a Date object
+ * @param {number} offsetIncrement - number of days|weeks|month to add (or negative=subtract) to date (default: 0)
+ * @param {string} offsetType - 'day'|'week'|'month'|'year' (default: 'week')
+ * @returns { {year: number, week: number} } - year and week number
+ * @author @dwertheimer
+ * @test - available in jest file
+ */
+export function getISOWeekAndYear(date: string | Date, offsetIncrement: number = 0, offsetType: string = 'week'): { week: number, year: number } {
+  const theDate = typeof date === 'string' ? date : hyphenatedDate(date)
+  const newMom = moment(theDate, 'YYYY-MM-DD').add(offsetIncrement, offsetType)
+  return { year: Number(newMom.format('GGGG')), week: Number(newMom.format('WW')) }
 }
