@@ -259,17 +259,17 @@ export function getBlockUnderHeading(note: TNote, heading: TParagraph | string, 
  * @param {boolean} matchCase - whether to search case insensitively (default: false)
  * @return [Array, Array] - array of lines with matching term, and array of contexts for those lines (dates for daily notes; title for project notes).
  */
-export function gatherMatchingLines(
+export async function gatherMatchingLines(
   notes: Array<TNote>,
   stringToLookFor: string,
   highlightResults: boolean = true,
   dateStyle: string = 'link',
   matchCase: boolean = false,
-): [Array<string>, Array<string>] {
+): Promise<[Array<string>, Array<string>]> {
   log('NPParagraph/gatherMatchingLines', `Looking for '${stringToLookFor}' in ${notes.length} notes`)
-  // Don't know why this loading indicator stopped working
-  // CommandBar.showLoading(true, `Searching in ${notes.length} notes ...`)
-  // await CommandBar.onAsyncThread()
+
+  CommandBar.showLoading(true, `Searching in ${notes.length} notes ...`)
+  await CommandBar.onAsyncThread()
 
   const matches: Array<string> = []
   const noteContexts: Array<string> = []
@@ -292,7 +292,7 @@ export function gatherMatchingLines(
 
     // set up regex for searching, now with word boundaries on either side
     // find any matches
-    const stringToLookForWithDelimiters = `\\b${stringToLookFor}\\b`
+    const stringToLookForWithDelimiters = `[\\b\\s\\^]${stringToLookFor}[\\b\\s\\$]`
     const re = matchCase ? new RegExp(stringToLookForWithDelimiters) : new RegExp(stringToLookForWithDelimiters, 'i')
     const matchingParas = n.paragraphs.filter((q) => re.test(q.content))
     for (const p of matchingParas) {
@@ -320,14 +320,12 @@ export function gatherMatchingLines(
       // log('NPParagraph/gatherMatchingLines', `${n.title ?? ''}: ${matchLine}`)
       noteContexts.push(noteContext)
     }
-    if (i % 100 === 0) {
-      // Don't know why this loading indicator stopped working
-      // CommandBar.showLoading(true, `Searching in ${notes.length} notes ...`, i / notes.length)
+    if (i % 50 === 0) {
+      CommandBar.showLoading(true, `Searching in ${notes.length} notes ...`, i / notes.length)
     }
   }
-  // Don't know why this loading indicator stopped working
-  // await CommandBar.onMainThread()
-  // CommandBar.showLoading(false)
+  await CommandBar.onMainThread()
+  CommandBar.showLoading(false)
   return [matches, noteContexts]
 }
 
