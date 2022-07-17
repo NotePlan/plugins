@@ -771,8 +771,6 @@ async function writeNoteContents(
   location: string,
   options?: any = { shouldOpenInEditor: false, createMissingHeading: false },
 ): Promise<void> {
-  console.log(`writeNoteContents: ${note.filename}`)
-  clo(options, 'options')
   if (note) {
     if (note?.content?.indexOf(`${writeUnderHeading}\n`) !== -1 || options.createMissingHeading) {
       if (writeUnderHeading) {
