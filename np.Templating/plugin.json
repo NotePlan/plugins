@@ -92,13 +92,6 @@
       "hidden": true
     },
     {
-      "name": "np:migrate-templates",
-      "alias": [],
-      "description": "Run Template Migration",
-      "jsFunction": "migrateTemplatesCommand",
-      "hidden": true
-    },
-    {
       "name": "np:migrate-quick-notes",
       "alias": [],
       "description": "Run Quick Note Migration (_configuration :: quickNotes)",
@@ -126,13 +119,6 @@
       ],
       "description": "Execute Template Script",
       "jsFunction": "templateExecute"
-    },
-    {
-      "name": "np:wotd",
-      "alias": [],
-      "description": "Word Of The Day",
-      "jsFunction": "templateWOTD",
-      "hidden": true
     },
     {
       "name": "np:test",
@@ -174,7 +160,7 @@
       ],
       "description": "Run a template file by title/preset",
       "jsFunction": "templateFileByTitle",
-      "hidden": false
+      "hidden": true
     },
     {
       "name": "templateRunner",
@@ -182,15 +168,6 @@
       "description": "Load and run self-contained template instructions with arguments",
       "jsFunction": "templateRunner",
       "hidden": true
-    },
-    {
-      "name": "np:xcb",
-      "alias": [
-        "np:gx",
-        "npx"
-      ],
-      "description": "Get an x-callback URL that invokes this template",
-      "jsFunction": "templateGetXcallbackForTemplate"
     }
   ],
   "plugin.settings": [

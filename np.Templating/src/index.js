@@ -10,9 +10,7 @@ export { onSettingsUpdated } from './Templating'
 export { onUpdateOrInstall } from './Templating'
 
 // np.Templating Migration Commands
-export { migrateTemplates } from './Templating'
-export { migrateTemplatesCommand } from './Templating'
-export { migrateQuickNotes } from './Templating'
+export { migrateTemplates, migrateQuickNotes } from './migration'
 
 // np.Templating Commands
 export { templateInit } from './Templating'
@@ -30,7 +28,6 @@ export { templateWOTD } from './Templating'
 
 // np.Templating Utility Commands
 export { templateAbout } from './Templating'
-export { templateGetXcallbackForTemplate } from './Templating'
 
 // np.Templating Testing
 export { templateTest } from './Templating'
@@ -40,3 +37,5 @@ export { getTemplate } from './Templating'
 export { preRender } from './Templating'
 export { render } from './Templating'
 export { renderTemplate } from './Templating'
+
+export { templateFileByTitle } from './Templating'

@@ -14,24 +14,25 @@ import { getTemplateFolder } from 'NPTemplating'
 import { helpInfo } from '../lib/helpers'
 import { getSetting } from '@helpers/NPConfiguration'
 
-import { getISOWeekAndYear, getISOWeekString } from '@helpers/dateTime'
-import { createRunPluginCallbackUrl } from '@helpers/general'
-import { chooseOption, showMessage, getInputTrimmed } from '@helpers/userInput'
-import { replaceContentUnderHeading } from '@helpers/NPParagraph'
-
-import { getOrMakeNote } from '@helpers/note'
+// helpers
 import { getWeatherSummary } from '../lib/support/modules/weatherSummary'
 import { getAffirmation } from '../lib/support/modules/affirmation'
 import { getAdvice } from '../lib/support/modules/advice'
 import { getWeather } from '../lib/support/modules/weather'
 import { getDailyQuote } from '../lib/support/modules/quote'
 import { getVerse, getVersePlain } from '../lib/support/modules/verse'
-import { getConfiguration, initConfiguration, migrateConfiguration, updateSettingData } from '../../helpers/NPConfiguration'
-import { log, logError, clo } from '@helpers/dev'
-import { debug } from '../lib/helpers'
+
+import { initConfiguration, migrateConfiguration, updateSettingData } from '../../helpers/NPConfiguration'
+import { logError, clo } from '@helpers/dev'
 
 import pluginJson from '../plugin.json'
 import DateModule from '../lib/support/modules/DateModule'
+
+// migrations
+import { migrateTemplates, migrateQuickNotes, _checkTemplatesMigrated } from './migration'
+
+// Editor
+import { templateFileByTitleEx } from './Editor'
 
 export async function init(): Promise<void> {
   try {
@@ -110,48 +111,6 @@ export async function onUpdateOrInstall(config: any = { silent: false }): Promis
 
 export async function onStartup(): Promise<void> {
   log(pluginJson, 'onStartup')
-}
-
-export async function migrateQuickNotes(): Promise<any> {
-  try {
-    let result = 0
-
-    const configData = await getConfiguration('quickNotes')
-    if (typeof configData === 'object') {
-      configData.forEach(async (quickNote) => {
-        const templateFilename = `🗒 Quick Notes/${quickNote.label}`
-        const templateData: ?TNote = await getOrMakeNote(quickNote.template, '📋 Templates')
-        let templateContent = templateData?.content || ''
-
-        let title = quickNote.title
-        title = title.replace('{{meetingName}}', '<%- meetingName %>')
-        title = title.replace('{{MeetingName}}', '<%- meetingName %>')
-        title = title.replace('{{date8601()}}', '<%- date8601() %>')
-        title = title.replace("{{weekDates({format:'yyyy-MM-dd'})}}", "<%- date.startOfWeek('ddd YYYY-MM-DD',null,1) %>  - <%- date.endOfWeek('ddd YYYY-MM-DD',null,1) %>")
-        title = title.replace('{{', '<%-').replace('}}', '%>')
-
-        templateContent = templateContent.replace('{{', '<%- ').replace('}}', ' %>')
-
-        const enquote = (str: string = '') => {
-          const matches = str.match(/^[a-zA-Z]/gi) || []
-          return matches?.length === 0 ? `"${str}"` : str
-        }
-
-        const metaData = {
-          newNoteTitle: enquote(title),
-          folder: enquote(quickNote.folder),
-          type: 'quick-note',
-        }
-
-        // $FlowIgnore
-        const createResult = await NPTemplating.createTemplate(templateFilename, metaData, templateContent)
-
-        return createResult ? 1 : 0
-      })
-    }
-  } catch (error) {
-    logError(pluginJson, error)
-  }
 }
 
 export async function templateInit(): Promise<void> {
@@ -561,88 +520,6 @@ export async function templateRunner(...args: Array<string>) {
   }
 }
 
-export async function migrateTemplates(silent: boolean = false): Promise<any> {
-  try {
-    const templateFolder = '📋 Templates'
-    const newTemplateFolder: string = await getTemplateFolder()
-
-    const templateNotes = DataStore.projectNotes.filter((n) => n.filename?.startsWith(templateFolder)).filter((n) => !n.title?.startsWith('_configuration'))
-    const newTemplates = DataStore.projectNotes.filter((n) => n.filename?.startsWith(newTemplateFolder)).filter((n) => !n.title?.startsWith('_configuration'))
-
-    if (newTemplates.length > 0) {
-      let result = await CommandBar.prompt(
-        'Templates Already Migrated',
-        'Your templates have already been migrated.\n\nAll existing templates will be moved to NotePlan Trash.\n\nAre you sure you wish to continue?',
-        ['Continue', 'Stop'],
-      )
-      if (result === 1) {
-        return 0
-      }
-      newTemplates.forEach((note) => {
-        DataStore.moveNote(note.filename, '@Trash')
-      })
-    }
-
-    // proceed with migration
-    const newTemplateNotes = templateNotes.filter(async (note) => {
-      const noteFilename = note.filename || ''
-      let content = ''
-      if (noteFilename.indexOf(templateFolder) !== -1) {
-        const parts = note.filename.split('/')
-        const item = parts.shift()
-        const noteTitle = parts.pop().replace('.md', '')
-        const folderName = parts.join('/')
-        if (noteTitle.length > 0 && noteTitle !== '_configuration') {
-          const originalNoteTitle: string = note?.title || ''
-          if (originalNoteTitle.length > 0) {
-            let content = note.content || ''
-            content = content.replace(/{{/gi, '<%- ').replace(/}}/gi, ' %>')
-            content = content.replace(' date(', ' legacyDate(')
-
-            // handle some comment `pickDate` conversions
-            content = content.replace(/pickDate/gi, 'promptDate')
-            content = content.replace(/\{question:'Please enter a date:'\}/gi, "'dateVar','Pleasee enter a date:'")
-            content = content.replace(/---/gi, '*****')
-
-            // handle some comment `pickDate` conversions
-            content = content.replace(/pickInterval/gi, 'promptInterval')
-            content = content.replace(/\{question:'Date interval to use:'\}/gi, "'dateInterval','Date interval to use:'")
-
-            let templateFilename = `${newTemplateFolder}/${folderName}/${noteTitle}`
-            const fullPath = `${newTemplateFolder}/${folderName}/${noteTitle}.md`.replace('//', '/') // .replace('(', '').replace(')', '')
-            const testNote = DataStore.projectNoteByFilename(note.filename)
-            let filename = fullPath
-            if (testNote) {
-              let templateContent = `---\ntitle: ${originalNoteTitle}\ntype: empty-note\ntags: migrated-template\n---\n${content}`
-              filename = DataStore.newNote(originalNoteTitle, `${newTemplateFolder}/${folderName}`)
-              if (filename && content.length > 0) {
-                const newNote = DataStore.projectNoteByFilename(filename)
-                if (newNote) {
-                  newNote.content = templateContent
-                }
-              }
-              return { filename }
-            }
-          }
-        }
-      }
-    })
-
-    await CommandBar.prompt(`${newTemplateNotes.length} Templates Migrated Successfully`, 'Your template cache will be rebuilt now.')
-
-    // this will throw error in console until it is available
-    await NotePlan.resetCaches()
-
-    return 1
-  } catch (error) {
-    logError(pluginJson, error)
-  }
-}
-
-export async function migrateTemplatesCommand(): Promise<void> {
-  log(pluginJson, 'Migrating Templates')
-}
-
 export async function templateAbout(params: any = []): Promise<string> {
   try {
     const version = pluginJson['plugin.version']
@@ -654,20 +531,6 @@ export async function templateAbout(params: any = []): Promise<string> {
   } catch (error) {
     return logError(pluginJson, error)
   }
-}
-
-export async function _checkTemplatesMigrated(): Promise<boolean> {
-  const templateFolder = '📋 Templates'
-
-  const migratedTemplates = await NPTemplating.getTemplateListByTags('migrated-template')
-  const legacyTemplates = DataStore.projectNotes.filter((n) => n.filename?.startsWith(templateFolder)).filter((n) => !n.title?.startsWith('_configuration'))
-
-  // const result = legacyTemplates.length > 0 && migratedTemplates.length > 0
-  // 2022-05-03 5:37:04 PM, checking if this has a positive impact as per @dwertheimer comment
-  // https://discord.com/channels/763107030223290449/971096330044862514/971171560746549339
-  const result = migratedTemplates.length > 0 || !(legacyTemplates.length > 0 && migratedTemplates.length === 0)
-
-  return result
 }
 
 export async function templateSamples(): Promise<void> {
@@ -779,190 +642,6 @@ export async function renderTemplate(templateName: string = '', userData: any = 
   return await NPTemplating.renderTemplate(templateName, userData, userOptions)
 }
 
-/**
- * Write out the contents to either Today's Calendar note or the Note which was opened
- * @author @dwertheimer
- * @param {TNote} note - the note to work on
- * @param {string} renderedTemplate - the rendered template string (post-render)
- * @param {string} writeUnderHeading - the heading to write under
- * @param {string} location - 'append','replace' else prepend
- * @param {*} options
- *    shouldOpenInEditor - if true, will open the note in the editor, otherwise will write silently to the note
- *    createMissingHeading - if true, will create heading when it does not exist in note
- */
-async function writeNoteContents(
-  note: TNote,
-  renderedTemplate: string,
-  writeUnderHeading: string,
-  location: string,
-  options?: any = { shouldOpenInEditor: false, createMissingHeading: false },
-): Promise<void> {
-  if (note) {
-    if (note?.content?.indexOf(`${writeUnderHeading}\n`) !== -1 || options.createMissingHeading) {
-      if (writeUnderHeading) {
-        if (location === 'replace') {
-          await replaceContentUnderHeading(note, writeUnderHeading, renderedTemplate)
-        } else {
-          note.addParagraphBelowHeadingTitle(renderedTemplate, 'text', writeUnderHeading, location === 'append', true)
-        }
-      } else {
-        location == 'append' ? note.appendParagraph(renderedTemplate, 'text') : note.prependParagraph(renderedTemplate, 'text')
-      }
-      if (options.shouldOpenInEditor) {
-        await Editor.openNoteByFilename(note.filename)
-      }
-    } else {
-      await CommandBar.prompt(`"${writeUnderHeading}" heading does not exist in note.`, '')
-    }
-  }
-}
-
-/**
- * Process a template that provides an existing filename or <today> for today's Calendar Note
- * The unique title of the template to run must be passed in as the first argument
- * TODO:
- * - enum('location',['append','cursor','insert', ... 'prepend'])
- * - add Presets to documentation Notes below then delete these notes
- * Note: use XCallbackCreator to create a link to invoke the currently open template
- * Note: location === 'prepend' prepends, otherwise appends
- * Note: location will be 'append' or 'prepend' | if writeUnderHeading is set, then appends/prepends there, otherwise the note's content
- * Note: if you are inserting title text as part of your template, then you should always prepend, because your title will confuse future appends
- * Note: ask CD what the reserved frontmatter fields should be and trap for them
- * xcallback note: arg1 is template name, arg2 is whether to open in editor, arg3 is a list of vars to pass to template equals sign is %3d
- */
-export async function templateFileByTitle(selectedTemplate?: string = '', openInEditor?: boolean = false, args?: string = ''): Promise<void> {
-  try {
-    if (selectedTemplate.length !== 0) {
-      let argObj = {}
-      args.split(',').forEach((arg) => (arg.split('=').length === 2 ? (argObj[arg.split('=')[0]] = arg.split('=')[1]) : null))
-      if (!selectedTemplate || selectedTemplate.length === 0) {
-        await CommandBar.prompt('You must supply a template title as the first argument', helpInfo('Presets'))
-      }
-      let failed = false
-      const templateData = await NPTemplating.getTemplate(selectedTemplate)
-      if (!templateData) {
-        failed = true
-      }
-
-      const isFrontmatter = new FrontmatterModule().isFrontmatterTemplate(templateData)
-      if (!failed && isFrontmatter) {
-        const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
-        let data = { ...frontmatterAttributes, ...argObj, frontmatter: { ...frontmatterAttributes, ...argObj } }
-        let renderedTemplate = await NPTemplating.render(frontmatterBody, data)
-
-        const { openNoteTitle, writeNoteTitle, location, writeUnderHeading } = frontmatterAttributes
-        let noteTitle = (openNoteTitle && openNoteTitle.trim()) || (writeNoteTitle && writeNoteTitle?.trim()) || ''
-        let shouldOpenInEditor = (openNoteTitle && openNoteTitle.length > 0) || openInEditor
-        const createMissingHeading = true
-        const isTodayNote = /<today>/i.test(openNoteTitle) || /<today>/i.test(writeNoteTitle)
-        const isThisWeek = /<thisweek>/i.test(openNoteTitle) || /<thisweek>/i.test(writeNoteTitle)
-        const isNextWeek = /<nextweek>/i.test(openNoteTitle) || /<nextweek>/i.test(writeNoteTitle)
-
-        let note
-        if (isTodayNote) {
-          if (shouldOpenInEditor) {
-            await Editor.openNoteByDate(new Date())
-            if (Editor?.note) {
-              await writeNoteContents(Editor.note, renderedTemplate, writeUnderHeading, location, { shouldOpenInEditor: false, createMissingHeading })
-            }
-          } else {
-            note = DataStore.calendarNoteByDate(new Date())
-            if (note) {
-              await writeNoteContents(note, renderedTemplate, writeUnderHeading, location, { shouldOpenInEditor: false, createMissingHeading })
-            }
-          }
-        } else if (isThisWeek || isNextWeek) {
-          const dateInfo = getISOWeekAndYear(new Date(), isThisWeek ? 0 : 1, 'week')
-          if (shouldOpenInEditor) {
-            await Editor.openWeeklyNote(dateInfo.year, dateInfo.week)
-            if (Editor?.note) {
-              await writeNoteContents(Editor.note, renderedTemplate, writeUnderHeading, location, { shouldOpenInEditor: false, createMissingHeading })
-            }
-          } else {
-            const dateString = getISOWeekString(new Date(), isThisWeek ? 0 : 1, 'week')
-            note = DataStore.calendarNoteByDateString(dateString)
-            if (note) {
-              await writeNoteContents(note, renderedTemplate, writeUnderHeading, location, { shouldOpenInEditor: false, createMissingHeading })
-            }
-          }
-        } else {
-          // use current note
-          if (noteTitle === '<current>') {
-            if (Editor.type === 'Notes' || Editor.type === 'Calendar') {
-              if (Editor.note) {
-                await writeNoteContents(Editor.note, renderedTemplate, writeUnderHeading, location, { shouldOpenInEditor: false, createMissingHeading })
-              }
-            } else {
-              await CommandBar.prompt('You must have either Project Note or Calendar Note open when using "<current>".', '')
-            }
-            // using current note, no further processing required
-            return
-          }
-          if (noteTitle.length) {
-            const notes = await DataStore.projectNoteByTitle(noteTitle)
-            const length = notes ? notes.length : 0
-            if (!notes || length == 0 || (notes && notes.length > 1)) {
-              let msg = `Unable to locate any notes matching "${noteTitle}"`
-              if (length > 1) {
-                msg = `${length} notes found matching "${noteTitle}"`
-              }
-
-              await CommandBar.prompt(`${msg}.\n\nThe title must be unique to ensure correct note is updated.`, helpInfo('Presets'))
-            } else {
-              note = notes[0] || null
-              if (!note) {
-                await CommandBar.prompt(`Unable to locate note matching "${noteTitle}"`, helpInfo('Presets'))
-              } else {
-                await writeNoteContents(note, renderedTemplate, writeUnderHeading, location, { shouldOpenInEditor, createMissingHeading })
-              }
-            }
-          } else {
-            await CommandBar.prompt(`openNoteTitle or writeNoteTitle is required`, helpInfo('Presets'))
-          }
-        }
-      } else {
-        await CommandBar.prompt(`Unable to locate template "${selectedTemplate}"`, helpInfo('Presets'))
-      }
-    }
-  } catch (error) {
-    logError(pluginJson, error)
-  }
-}
-
-/**
- * Create an xcallback URL to invoke a template from a link inside NotePlan or a Shortcut/browser
- * (plugin entry point for /np:gx)
- */
-export async function templateGetXcallbackForTemplate(): Promise<void> {
-  try {
-    if (!Editor?.filename?.includes('@Templates')) {
-      await CommandBar.prompt('Invalid Template', 'Please open template you wish to execute for x-callback execution\n\n' + helpInfo('Executing from x-callback'))
-      return
-    }
-
-    let message = `Enter any variables and values you want to pass to the template in key=value pairs:\n\n myTemplateVar=value,otherVar=value2\n\n (where "myTemplateVar" and "otherVar" are the name of variables you use in your template. Multiple variables are separated by commas)`
-    let result = await getInputTrimmed(message, 'OK', 'Template Variables to Pass')
-    if (typeof result === 'string') {
-      const args = [Editor.filename || '', String(result)]
-      let link = createRunPluginCallbackUrl(pluginJson['plugin.id'], `np:tr`, args)
-      message = `Would you like the link for pasting inside NotePlan or a raw URL?`
-      result = await CommandBar.prompt('Link Type', message, ['NotePlan Link', 'Raw URL'])
-
-      if (result === 0) {
-        message = `What text would you like to display for this link?`
-        const linkText = await getInputTrimmed(message, 'Link Text', 'Link Text')
-        if (typeof linkText === 'string') {
-          link = `[${linkText}](${link})`
-        }
-      }
-      Clipboard.string = String(link)
-      message = 'Link has been copied to clipboard. Would you like to insert at cursor?'
-      result = await CommandBar.prompt('Paste at cursor?', message, ['Yes', 'No'])
-      if (result === 0) {
-        Editor.insertTextAtCursor(link)
-      }
-    }
-  } catch (error) {
-    logError(pluginJson, error)
-  }
+export async function templateFileByTitle(selectedTemplate?: string = '', openInEditor?: boolean = false, args?: string = '') {
+  await templateFileByTitleEx(selectedTemplate, openInEditor, args)
 }

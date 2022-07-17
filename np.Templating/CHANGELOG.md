@@ -5,6 +5,7 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/
 
 ## [2.0.0-alpha.03] - 2022-07-16 (mikeerickson)
 
+- quite a bit of refactoring, addressing growing Templating.js file (969 loc -> 647 loc)
 - removed outdated commands (no longer a need as most users templates have been migrated)
   > Note: The automatic template conversion will still run when np.Templating is installed, just removing command noise
 - fixed issues when template code contained reserved words `include`, `note`, `calendar`, and `template` (was to loose with keyword replacement)
