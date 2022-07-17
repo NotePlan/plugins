@@ -417,6 +417,10 @@ describe(`${PLUGIN_NAME}`, () => {
         const result = dt.getISOWeekString('2020-01-01', -1, 'week')
         expect(result).toEqual(`2019-W52`)
       })
+      test('should remove one week and end up in last year', () => {
+        const result = dt.getISOWeekString(new Date('2020-01-01'))
+        expect(result).toEqual(`2020-W01`)
+      })
     })
   })
 })

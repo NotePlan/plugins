@@ -52,7 +52,7 @@ export function getYearMonthDate(dateObj: Date): $ReadOnly<{
 
 export type HourMinObj = { h: number, m: number }
 
-export function unhyphenateString(dateString: string): string {
+export function unhyphenateString(date: string): string {
   return dateString.replace(/-/g, '')
 }
 
@@ -549,12 +549,13 @@ export function includesScheduledFutureDate(line: string): boolean {
 
 /**
  * Get the week number string for a given date string
- * @param {string} dateString - date string in format YYYY-MM-DD
+ * @param {string} date - date string in format YYYY-MM-DD OR a Date object
  * @param {number} offsetIncrement - number of days|weeks|month to add (or negative=subtract) to date (default: 0)
  * @param {string} offsetType - 'day'|'week'|'month'|'year' (default: 'week')
  * @returns
  */
-export function getISOWeekString(dateString: string, offsetIncrement: number = 0, offsetType: string = 'week'): number {
-  const newMom = moment(dateString, 'YYYY-MM-DD').add(offsetIncrement, offsetType)
+export function getISOWeekString(date: string | Date, offsetIncrement: number = 0, offsetType: string = 'week'): string {
+  const theDate = typeof date === 'string' ? date : hyphenatedDate(date)
+  const newMom = moment(theDate, 'YYYY-MM-DD').add(offsetIncrement, offsetType)
   return newMom.format('GGGG-[W]WW')
 }
