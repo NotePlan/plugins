@@ -1,0 +1,103 @@
+{
+  "COMMENT": "Details on these fields: https://help.noteplan.co/article/67-create-command-bar-plugins",
+  "macOS.minVersion": "10.13.0",
+  "noteplan.minAppVersion": "3.4.0",
+  "plugin.id": "np.WeatherLookup",
+  "plugin.name": "🌤 Weather Lookup by Location",
+  "plugin.version": "0.1.0",
+  "plugin.description": "Look up weather by location (lat/long or by name) - requires OpenWeather API key",
+  "plugin.author": "dwertheimer",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/np.WeatherLookup/README.md",
+  "plugin.commands": [
+    {
+      "COMMENT": "DO NOT PASTE COMMAND ABOVE THIS; IT WILL BREAK THE PLUGIN; WE ARE RELYING ON [0] ORDER",
+      "name": "Weather by Lat/Long",
+      "description": "Get weather by latitude and longitude",
+      "jsFunction": "weatherByLatLong",
+      "hidden": true,
+      "alias": [
+        "latlong"
+      ]
+    },
+    {
+      "name": "Weather by Location Name (NOT WORKING YET)",
+      "description": "Prompt for location; Insert at cursor",
+      "jsFunction": "insertWeatherByLocation",
+      "alias": [
+        "insertweather",
+        "location"
+      ]
+    },
+    {
+      "name": "Get weather XCallbackURL",
+      "description": "Insert weatherCallbackURL at cursor",
+      "jsFunction": "insertWeatherCallbackURL",
+      "alias": [
+      ]
+    },
+    {
+      "name": "Weather: Set My Default Location",
+      "description": "Look up my lat/lon and set as default for weather lookup",
+      "jsFunction": "setDefaultLocation",
+      "alias": [
+      ]
+    }
+  ],
+  "plugin.settings": [
+    {
+      "COMMENT": "Plugin settings documentation: https://help.noteplan.co/article/123-plugin-configuration",
+      "type": "heading",
+      "title": "Weather Lookup by Location Settings"
+    },
+    {
+      "title": "OpenWeather API Key",
+      "key": "appid",
+      "type": "string",
+      "description": "This plugin requires a (free) API key for OpenWeatherMap (the weather lookup service). Get an API key here: https://home.openweathermap.org/users/sign_up",
+      "default": ""
+    },
+    {
+      "title": "Temperature Units",
+      "key": "units",
+      "type": "string",
+      "choices": ["metric", "imperial"],
+      "description": "What format to display temperatures in. Metric is C°, Imperial is F°",
+      "default": "imperial"
+    },
+    {
+      "key": "version",
+      "type": "hidden",
+      "description": "Weather Lookup by Location Settings Version"
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "My Default Location"
+    },
+    {
+      "key": "locationName",
+      "type": "string",
+      "title": "Location Name",
+      "default": "",
+      "description": "Default Location Name -- You can type it in, or use the 'Weather: Set My Default Location' command to prompt for a location and set this automatically"
+    },
+    {
+      "key": "lat",
+      "type": "string",
+      "title": "Latitude",
+      "default": "",
+      "description": "Default Location Latitude -- You can type it in, or use the 'Weather: Set My Default Location' command to prompt for a location and set this automatically"
+    },
+    {
+      "key": "lon",
+      "type": "string",
+      "title": "Longitude",
+      "default": "",
+      "description": "Default Location Longitude -- You can type it in, or use the 'Weather: Set My Default Location' command to prompt for a location and set this automatically"
+    }
+  ]
+}
