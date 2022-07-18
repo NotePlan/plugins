@@ -6,7 +6,7 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Ta
 - Added commands:
   - /open todo links in browser
   - /open URL on this line
-  - 
+  - /taskSync - for creating synced list of tasks via XCallback
 
 ## [1.6.2] 2022-05-17
 - adding /cth and copy tags /ctm /ctt
