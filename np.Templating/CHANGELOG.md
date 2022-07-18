@@ -3,6 +3,10 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [2.0.0-alpha.05] - 2022-07-17 (mikeerickson)
+
+- Added preRender code to `NPTemplating.renderTemplate`
+
 ## [2.0.0-alpha.04] - 2022-07-17 (mikeerickson)
 
 - Renamed `src/Editor.js` -> `src/NPEditor.js` (my bad, didn't follow naming convention rules)
