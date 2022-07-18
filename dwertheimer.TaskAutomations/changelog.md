@@ -2,6 +2,12 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Ta
 
 # What's Changed in this Plugin?
 
+## [2.0.0] 2022-07-12 (@dwertheimer)
+- Added commands:
+  - /open todo links in browser
+  - /open URL on this line
+  - 
+
 ## [1.6.2] 2022-05-17
 - adding /cth and copy tags /ctm /ctt
 

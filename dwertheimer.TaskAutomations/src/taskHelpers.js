@@ -2,7 +2,7 @@
 /* eslint-disable no-unused-vars */
 import { fieldSorter } from '../../helpers/sorting'
 import { hyphenatedDateString } from './dateHelpers'
-import { clo } from '../../helpers/dev'
+import { clo, copyObject } from '../../helpers/dev'
 
 export const HASHTAGS = /\B#([a-zA-Z0-9\/]+\b)/g
 export const MENTIONS = /\B@([a-zA-Z0-9\/]+\b)/g
@@ -90,6 +90,7 @@ export function getTasksByType(paragraphs: Array<Paragraph>, ignoreIndents: bool
           filename: para.filename,
           indents: para.indents,
           children: [],
+          paragraph: para,
         }
         // console.log(`new: ${index}: indents:${para.indents} ${para.rawContent}`)
         task.priority = getNumericPriority(task)

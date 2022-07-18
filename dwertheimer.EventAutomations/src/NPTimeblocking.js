@@ -36,6 +36,7 @@ import {
 import { getTimeBlockingDefaults, validateTimeBlockConfig } from './config'
 import { getPresetOptions, setConfigForPreset } from './presets'
 import type { IntervalMap, PartialCalendarItem, EditorOrNote } from './timeblocking-flow-types'
+import { getSyncedCopiesAsList } from '@helpers/NPSyncedCopies'
 import { removeContentUnderHeading, insertContentUnderHeading, removeContentUnderHeadingInAllNotes } from '@helpers/NPParagraph'
 import { findAndUpdateDatePlusTags } from '@helpers/NPNote'
 
@@ -293,23 +294,6 @@ function getEventsConfig(atbConfig: { [string]: mixed }): TEventConfig {
     removeTimeBlocksWhenProcessed: true,
     addEventID: false,
   }
-}
-
-/**
- * Make copies of all OPEN task references as Synced Lines and return them as an array of strings
- * @param {*} allTodayParagraphs
- * @returns array of strings with the sync codes attached
- */
-export function getSyncedCopiesAsList(allTodayParagraphs: Array<TParagraph>): Array<string> {
-  const syncedLinesList = []
-  allTodayParagraphs.forEach((p) => {
-    if (p.type === 'open') {
-      p.note?.addBlockID(p)
-      p.note?.updateParagraph(p)
-      syncedLinesList.push(p.rawContent)
-    }
-  })
-  return syncedLinesList
 }
 
 export async function getTodaysFilteredTodos(config: { [key: string]: mixed }): Promise<Array<TParagraph>> {
