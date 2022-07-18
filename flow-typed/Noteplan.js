@@ -1386,12 +1386,14 @@ declare interface CoreNoteFields {
   paragraphs: $ReadOnlyArray<TParagraph>;
   /**
    * Inserts the given text at the given character position (index)
+   * Note: this is not quite the same as Editor.insertTextAtCharacterIndex()
    * @param text 	  - Text to insert
    * @param index   - Position to insert at (you can get this using 'renderedSelection' for example)
    */
   insertTextInCharacterIndex(text: string, index: number): void;
   /**
    * Replaces the text at the given range with the given text
+   * Note: this is not quite the same name as Editor.replaceTextInCharacterRange()
    * @param text 	    - Text to insert
    * @param location  - Position to insert at (you can get this using 'renderedSelection' for example)
    * @param length    - Amount of characters to replace from the location
