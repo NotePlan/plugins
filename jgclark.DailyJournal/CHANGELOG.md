@@ -1,4 +1,8 @@
 # What's changed in ☀️ Daily Journal Plugin?
+_Please also see the Plugin [README]()._
+## [0.12.1] - 2022-07-18
+### Changed
+- under-the-hood change to be ready for **Templating 2.0** framework.
 
 ## [0.12.0] - 2022-03-13
 ### Changed

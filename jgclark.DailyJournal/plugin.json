@@ -7,7 +7,9 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/README.md",
-  "plugin.version": "0.12.0",
+  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/CHANGELOG.md",
+  "plugin.version": "0.12.1",
+  "plugin.lastUpdateInfo": "Under-the-hood changes only.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -42,7 +44,7 @@
     {
         "key": "templateTitle",
         "title": "Daily Template Title",
-        "description": "The name of the template that `/dayStart` and `/todayStart` will use.",
+        "description": "The name of the template that `/dayStart` and `/todayStart` commands will use.",
         "type": "string",
         "default": "Daily Note Template",
         "required": true
