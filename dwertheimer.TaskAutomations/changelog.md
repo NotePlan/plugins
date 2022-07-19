@@ -2,12 +2,22 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Ta
 
 # What's Changed in this Plugin?
 
+<<<<<<< HEAD
 ## [2.0.0] 2022-07-12 (@dwertheimer)
 - Added commands:
   - /open todo links in browser
   - /open URL on this line
   - /taskSync - for creating synced list of tasks via XCallback
 
+||||||| merged common ancestors
+=======
+## [2.0.0] 2022-07-12 (@dwertheimer)
+- Added commands:
+  - /open todo links in browser
+  - /open URL on this line
+  - 
+
+>>>>>>> feat-taskSync
 ## [1.6.2] 2022-05-17
 - adding /cth and copy tags /ctm /ctt
 

@@ -32,6 +32,9 @@ Note: Because the plugin needs to delete the tasks in order to sort and re-inser
 
 Note: At this time, the plugin will ignore headings that are attached to the tasks (e.g. tasks indented under root-level #headings). I need to understand/think more about this use case and how to deal with it in sorting.
 
+## / Task Sync (only available via xcallback/url)
+
+
 ## Configuration
 None required
 
