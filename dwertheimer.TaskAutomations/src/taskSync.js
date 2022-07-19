@@ -102,7 +102,7 @@ export async function taskSync(
     //   console.log(`sorted: ${t.type} ${t.filename} ${t.content}`)
     // })
     // create synced copies
-    const syncedCopyList = getSyncedCopiesAsList(sortedParas, includeTaskTypes)
+    const syncedCopyList = sortedParas && sortedParas.length ? getSyncedCopiesAsList(sortedParas, includeTaskTypes) : []
     // open or create file
     const { includeInstructions, defaultFolderName } = DataStore.settings
     const instructions = includeInstructions
