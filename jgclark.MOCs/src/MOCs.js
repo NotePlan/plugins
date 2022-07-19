@@ -148,8 +148,9 @@ export async function makeMOC(filenameArg?: string, termsArg?: string): Promise<
     // Add an x-callback link under the title to allow this MOC to be re-created
     const xCallbackLine = `[Click to refresh these results](noteplan://x-callback-url/runPlugin?pluginID=jgclark.MOC&command=make%20MOC&arg0=${encodeURIComponent(noteFilename)}&arg1=${encodeURIComponent(termsToMatchStr)})`
     // Either replace the existing line that starts the same way, or insert a new line after the title, so as not to disrupt any other section headings
-    const line1content = note.paragraphs[1].content
-    if (line1content.startsWith('[Click to refresh these results](noteplan://x-callback-url/')) {
+    const line1content = (note.paragraphs.length >= 2) ? note.paragraphs[1].content : ''
+    console.log(line1content)
+    if (line1content?.startsWith('[Click to refresh these results](noteplan://x-callback-url/')) {
       console.log('update xcallback at line 1')
       note.paragraphs[1].content = xCallbackLine
       note.updateParagraph(note.paragraphs[1])
