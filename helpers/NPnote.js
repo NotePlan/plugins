@@ -5,7 +5,8 @@
 import { log, logError, timer } from './dev'
 import { displayTitle } from './general'
 import { showMessage } from './userInput'
-import { checkNoteForPlusDates } from './note.js'
+import { checkNoteForPlusDates } from './note'
+import { findStartOfActivePartOfNote } from './paragraph'
 /**
  * Convert the note to using frontmatter Syntax
  * If optional default text is given, this is added to the frontmatter.
@@ -79,13 +80,13 @@ export function findAndUpdateDatePlusTags(openOnly: boolean = true, foldersToIgn
 /**
  * Select the first non-title line in Editor
  * NotePlan will always show you the ## before a title if your cursor is on a title line, but
- * this is ugly. And so in this function we find and select the first title line
+ * this is ugly. And so in this function we find and select the first non-title line
  * @author @dwertheimer
  * @returns
  */
-export function selectFirstNonTitleLineInEditor() {
-  if (Editor.content) {
-    for (let i = 0; i < Editor.paragraphs.length; i++) {
+export function selectFirstNonTitleLineInEditor(): void {
+  if (Editor.content && Editor.note) {
+    for (let i = findStartOfActivePartOfNote(Editor.note); i < Editor.paragraphs.length; i++) {
       const line = Editor.paragraphs[i]
       if (line.type !== 'title' && line?.contentRange && line.contentRange.start >= 0) {
         Editor.select(line.contentRange.start, 0)
