@@ -92,22 +92,6 @@
       "description": "Open Tasks to Top - Bring open tasks in note to top", 
       "jsFunction": "openTasksToTop"
     }  
-<<<<<<< HEAD
-  ],
-  "plugin.settings": [
-    {
-      "type": "heading",
-      "title": "Task Sync Output Settings"
-    },
-    {
-      "key": "includeInstructions",
-      "type": "bool",
-      "default": true,
-      "title": "Include Reminder Text in Output",
-      "description": "By default, there is text appended to the note reminding you not to add content in the search results (because it will be overwritten). This setting allows you to suppress that instruction if you will remember it on your own."
-    }
-||||||| merged common ancestors
-=======
   ],
   "plugin.settings": [
     {
@@ -129,6 +113,5 @@
       "title": "Default Folder Name",
       "description": "If no filename is provided, a filename will be generated from the search string and the results will be saved in this folder. Setting a filename overrides this setting."
     }
->>>>>>> feat-taskSync
   ]
 } 
