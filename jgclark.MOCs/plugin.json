@@ -8,7 +8,7 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.MOCs/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/tree/main/jgclark.MOCs/CHANGELOG.md",
-  "plugin.version": "0.2.1",
+  "plugin.version": "0.2.2-beta",
   "plugin.lastUpdateInfo": "Fixed issue with #hashtags and @mentions",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
@@ -21,7 +21,12 @@
         "MOC",
         "map"
       ],
-      "jsFunction": "makeMOC"
+      "jsFunction": "makeMOC",
+      "arguments": [
+        "filename of MOC to write to",
+        "comma-settings list of search term(s) to use",
+        "string"
+      ]
     }
   ],
   "plugin.settings": [
