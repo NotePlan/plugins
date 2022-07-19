@@ -73,17 +73,17 @@ export type SortableParagraph = {
 }
 
 export type GroupedTasks = {
-  open?: Array<SortableParagraph>,
-  scheduled?: Array<SortableParagraph>,
-  cancelled?: Array<SortableParagraph>,
-  done?: Array<SortableParagraph>,
-  title?: Array<SortableParagraph>,
-  quote?: Array<SortableParagraph>,
-  list?: Array<SortableParagraph>,
-  empty?: Array<SortableParagraph>,
-  text?: Array<SortableParagraph>,
-  code?: Array<SortableParagraph>,
-  separator?: Array<SortableParagraph>,
+  open: Array<SortableParagraph>,
+  scheduled: Array<SortableParagraph>,
+  cancelled: Array<SortableParagraph>,
+  done: Array<SortableParagraph>,
+  title: Array<SortableParagraph>,
+  quote: Array<SortableParagraph>,
+  list: Array<SortableParagraph>,
+  empty: Array<SortableParagraph>,
+  text: Array<SortableParagraph>,
+  code: Array<SortableParagraph>,
+  separator: Array<SortableParagraph>,
 }
 
 /**
@@ -92,7 +92,7 @@ export type GroupedTasks = {
  * @param {boolean} ignoreIndents - whether to pay attention to child/indented paragraphs
  * @returns {GroupedTasks} - object of tasks by type {'open':[], 'scheduled'[], 'done':[], 'cancelled':[], etc.}
  */
-export function getTasksByType(paragraphs: Array<Paragraph>, ignoreIndents: boolean = false): GroupedTasks {
+export function getTasksByType(paragraphs: $ReadOnlyArray<Paragraph>, ignoreIndents: boolean = false): GroupedTasks {
   const tasks = { open: [], scheduled: [], done: [], cancelled: [], title: [], quote: [], list: [], empty: [], text: [], code: [], separator: [] }
   // * @type {"open", "done", "scheduled", "cancelled", "title", "quote", "list" (= bullet), "empty" (no content) or "text" (= plain text)}
   TASK_TYPES.forEach((t) => (tasks[t] = []))
