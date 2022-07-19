@@ -20,6 +20,7 @@ import { getTimeBlockString, isTimeBlockLine } from '../../helpers/timeblocks'
 import { JSP, clo, log, logError } from '../../helpers/dev'
 import { checkNumber, checkWithDefault } from '../../helpers/checkType'
 import pluginJson from '../plugin.json'
+import type { AutoTimeBlockingConfig } from './config'
 import {
   blockOutEvents,
   excludeTasksWithPatterns,
@@ -33,9 +34,9 @@ import {
   eliminateDuplicateParagraphs,
   getFullParagraphsCorrespondingToSortList,
 } from './timeblocking-helpers'
-import { getTimeBlockingDefaults, validateTimeBlockConfig } from './config'
+import { getTimeBlockingDefaults, validateAutoTimeBlockingConfig } from './config'
 import { getPresetOptions, setConfigForPreset } from './presets'
-import type { IntervalMap, PartialCalendarItem, EditorOrNote } from './timeblocking-flow-types'
+import type { IntervalMap, PartialCalendarItem } from './timeblocking-flow-types'
 import { getSyncedCopiesAsList } from '@helpers/NPSyncedCopies'
 import { removeContentUnderHeading, insertContentUnderHeading, removeContentUnderHeadingInAllNotes } from '@helpers/NPParagraph'
 import { findAndUpdateDatePlusTags } from '@helpers/NPNote'
@@ -45,13 +46,13 @@ import { findAndUpdateDatePlusTags } from '@helpers/NPNote'
  * Note: augments settings with current DataStore.preference('timeblockTextMustContainString') setting
  * @returns {} config object
  */
-export function getConfig(): { [string]: [mixed] } {
+export function getConfig(): AutoTimeBlockingConfig {
   const config = DataStore.settings || {}
   if (Object.keys(config).length) {
     try {
       // $FlowIgnore
       config.timeblockTextMustContainString = DataStore.preference('timeblockTextMustContainString') || ''
-      validateTimeBlockConfig(config)
+      validateAutoTimeBlockingConfig(config)
       return config
     } catch (error) {
       showMessage(`Plugin Settings ${error.message}\nRunning with default settings. You should probably open the plugin configuration dialog and fix the problem(s) listed above.`)
@@ -63,10 +64,6 @@ export function getConfig(): { [string]: [mixed] } {
   return defaultConfig
 }
 
-// $FlowIgnore
-// eslint-disable-next-line max-len
-export const editorOrNote: EditorOrNote = (note: EditorOrNote): TEditor | TNote => (Editor.filename === note?.filename || !note ? Editor : note)
-
 export const editorIsOpenToToday = (): boolean => {
   const fileName = Editor.filename
   if (fileName == null) {
@@ -75,7 +72,7 @@ export const editorIsOpenToToday = (): boolean => {
   return getDateStringFromCalendarFilename(fileName) === getTodaysDateUnhyphenated()
 }
 
-export function deleteParagraphsContainingString(destNote: TNote, timeBlockTag: string): void {
+export function deleteParagraphsContainingString(destNote: CoreNoteFields, timeBlockTag: string): void {
   const destNoteParas = destNote.paragraphs
   const parasToDelete = []
   for (let i = 0; i < destNoteParas.length; i++) {
@@ -127,11 +124,11 @@ export function getTodaysReferences(pNote: TNote | null = null): Array<TParagrap
 }
 
 export async function insertItemsIntoNote(
-  note: TNote | TEditor,
+  note: CoreNoteFields,
   list: Array<string> | null = [],
   heading: string = '',
   shouldFold: boolean = false,
-  config: { [string]: any } = {},
+  config: AutoTimeBlockingConfig = getConfig(),
 ) {
   if (list && list.length > 0 && note) {
     // $FlowIgnore
@@ -142,7 +139,7 @@ export async function insertItemsIntoNote(
     if (shouldFold && heading !== '') {
       const thePara = note.paragraphs.find((p) => p.type === 'title' && p.content.includes(heading))
       if (thePara) {
-        log(pluginJson, `insertItemsIntoNote: folding "${heading}" - isFolded=${Boolean(Editor.isFolded(thePara))}`)
+        log(pluginJson, `insertItemsIntoNote: folding "${heading}" - isFolded=${String(Editor.isFolded(thePara))}`)
         // $FlowIgnore[method-unbinding] - the function is not being removed from the Editor object.
         if (Editor.isFolded) {
           // make sure this command exists
@@ -173,7 +170,7 @@ export async function insertItemsIntoNote(
  * @param {*} defaultDuration
  * @returns
  */
-function getExistingTimeBlocksFromNoteAsEvents(note: TEditor | TNote, defaultDuration: number): Array<PartialCalendarItem> {
+function getExistingTimeBlocksFromNoteAsEvents(note: CoreNoteFields, defaultDuration: number): Array<PartialCalendarItem> {
   const timeBlocksAsEvents = []
   note.paragraphs.forEach((p) => {
     if (isTimeBlockLine(p.content)) {
@@ -198,7 +195,7 @@ function getExistingTimeBlocksFromNoteAsEvents(note: TEditor | TNote, defaultDur
   return timeBlocksAsEvents
 }
 
-async function getPopulatedTimeMapForToday(dateStr: string, intervalMins: number, config: { [string]: mixed }): Promise<IntervalMap> {
+async function getPopulatedTimeMapForToday(dateStr: string, intervalMins: number, config: AutoTimeBlockingConfig): Promise<IntervalMap> {
   // const todayEvents = await Calendar.eventsToday()
   const eventsArray: Array<TCalendarItem> = await getEventsForDay(dateStr)
   const eventsWithStartAndEnd = getTimedEntries(eventsArray)
@@ -250,7 +247,7 @@ type TEventConfig = {
 }
 // @nmn's checker code here was not working -- always sending back the defaults
 // so I'm commenting it out for now -- I think it has something to do with atbConfig never being used!
-// function getEventsConfig(atbConfig: { [string]: mixed }): TEventConfig {
+// function getEventsConfig(atbconfig: AutoTimeBlockingConfig): TEventConfig {
 //   try {
 //     const checkedConfig: {
 //       eventEnteredOnCalTag: string,
@@ -285,7 +282,7 @@ type TEventConfig = {
 //   return {}
 // }
 
-function getEventsConfig(atbConfig: { [string]: mixed }): TEventConfig {
+function getEventsConfig(atbConfig: AutoTimeBlockingConfig): TEventConfig {
   return {
     processedTagName: String(atbConfig.eventEnteredOnCalTag) || '#event_created',
     calendarToWriteTo: String(atbConfig.calendarToWriteTo) || '',
@@ -296,7 +293,7 @@ function getEventsConfig(atbConfig: { [string]: mixed }): TEventConfig {
   }
 }
 
-export async function getTodaysFilteredTodos(config: { [key: string]: mixed }): Promise<Array<TParagraph>> {
+export function getTodaysFilteredTodos(config: AutoTimeBlockingConfig): Array<TParagraph> {
   const { includeTasksWithText, excludeTasksWithText } = config
   const backlinkParas = getTodaysReferences(Editor.note)
   console.log(`Found ${backlinkParas.length} backlinks+today-note items (may include completed items)`)
@@ -310,19 +307,9 @@ export async function getTodaysFilteredTodos(config: { [key: string]: mixed }): 
   return todosParagraphs
 }
 
-export async function createTimeBlocksForTodaysTasks(config: { [key: string]: mixed } = {}): Promise<?Array<string>> {
+export async function createTimeBlocksForTodaysTasks(config: AutoTimeBlockingConfig = getConfig()): Promise<?Array<string>> {
   // console.log(`Starting createTimeBlocksForTodaysTasks. Time is ${new Date().toLocaleTimeString()}`)
-  const {
-    timeBlockTag,
-    intervalMins,
-    insertIntoEditor,
-    createCalendarEntries,
-    passBackResults,
-    deletePreviousCalendarEntries,
-    eventEnteredOnCalTag,
-    includeTasksWithText,
-    excludeTasksWithText,
-  } = config
+  const { timeBlockTag, intervalMins, insertIntoEditor, createCalendarEntries, passBackResults, deletePreviousCalendarEntries, eventEnteredOnCalTag } = config
   const hypenatedDate = getTodaysDateHyphenated()
   log(pluginJson, `createTimeBlocksForTodaysTasks hypenatedDate=${hypenatedDate}`)
   const date = getTodaysDateUnhyphenated()
@@ -348,9 +335,9 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: mi
       const sortedTodos = tasksByType['open'].length ? sortListBy(tasksByType['open'], '-priority') : []
       console.log(`After sortListBy, ${sortedTodos.length} open items`)
       // $FlowIgnore
-      await deleteParagraphsContainingString(editorOrNote(note), timeBlockTag) // Delete our timeblocks before scanning note for user-entered timeblocks
+      await deleteParagraphsContainingString(note, timeBlockTag) // Delete our timeblocks before scanning note for user-entered timeblocks
       // $FlowIgnore
-      await deleteParagraphsContainingString(editorOrNote(note), eventEnteredOnCalTag) // Delete @jgclark timeblocks->calendar breadcrumbs also
+      await deleteParagraphsContainingString(note, eventEnteredOnCalTag) // Delete @jgclark timeblocks->calendar breadcrumbs also
       const calendarMapWithEvents = await getPopulatedTimeMapForToday(dateStr, intervalMins, config)
       console.log(
         `After getPopulatedTimeMapForToday, ${calendarMapWithEvents.length} timeMap slots; last = ${JSON.stringify(calendarMapWithEvents[calendarMapWithEvents.length - 1])}`,
@@ -369,14 +356,7 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: mi
           return
         } else {
           // $FlowIgnore -- Delete any previous timeblocks we created
-          await insertItemsIntoNote(
-            /*  editorOrNote(note), */
-            Editor,
-            timeBlockTextList,
-            config.timeBlockHeading,
-            config.foldTimeBlockHeading,
-            config,
-          )
+          await insertItemsIntoNote(Editor, timeBlockTextList, config.timeBlockHeading, config.foldTimeBlockHeading, config)
         }
 
         console.log(`\n\nAUTOTIMEBLOCKING SUMMARY:\n\n`)
@@ -393,7 +373,7 @@ export async function createTimeBlocksForTodaysTasks(config: { [key: string]: mi
           if (!insertIntoEditor) {
             // If user didn't want the timeblocks inserted into the editor, then we delete them now that they're in calendar
             // $FlowIgnore
-            await deleteParagraphsContainingString(editorOrNote(note), timeBlockTag)
+            await deleteParagraphsContainingString(note, timeBlockTag)
           }
         }
       }
@@ -437,14 +417,7 @@ export async function writeSyncedCopies(todosParagraphs: Array<TParagraph>, conf
     }
     console.log(`Inserting synced list content: ${syncedList.length} items`)
     // $FlowIgnore
-    await insertItemsIntoNote(
-      /* editorOrNote(note), */
-      Editor,
-      syncedList,
-      config.syncedCopiesTitle,
-      config.foldSyncedCopiesHeading,
-      config,
-    )
+    await insertItemsIntoNote(Editor, syncedList, config.syncedCopiesTitle, config.foldSyncedCopiesHeading, config)
   }
 }
 
@@ -560,7 +533,7 @@ export async function insertTodosAsTimeblocksWithPresets(note: TNote): Promise<v
       // console.log(`Utilizing preset: ${JSON.stringify(config.presets[presetIndex])}`)
       config = setConfigForPreset(config, overrides)
       try {
-        validateTimeBlockConfig(config) //  check to make sure the overrides were valid
+        validateAutoTimeBlockingConfig(config) //  check to make sure the overrides were valid
       } catch (error) {
         showMessage(error)
         // console.log(`insertTodosAsTimeblocksWithPresets: invalid config: ${error}`)

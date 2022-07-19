@@ -69,9 +69,9 @@ export function printDateRange(dr: DateRange) {
  *
  * @param {string} baseDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type
  * @param {interval} string of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in English)
- * @return {Date} new date as a JS Date
+ * @return {Date} new date as a JS Date (or null if there is an error)
  */
-export function calcOffsetDate(baseDateISO: string, interval: string): Date {
+export function calcOffsetDate(baseDateISO: string, interval: string): Date | null {
   try {
     const momentDate = moment(baseDateISO) // use moment() to work in the local timezone [says @dwertheimer]
     // const baseDate = new Date(baseDateISO)
@@ -140,8 +140,7 @@ export function calcOffsetDate(baseDateISO: string, interval: string): Date {
     return newDate
   } catch (e) {
     logError('helpers/calcOffsetDate', `${e.message} for baseDateISO '${baseDateISO}'`)
-    // $FlowIgnore
-    return
+    return null
   }
 }
 
@@ -157,7 +156,7 @@ export function calcOffsetDate(baseDateISO: string, interval: string): Date {
  */
 export function calcOffsetDateStr(baseDateISO: string, interval: string): string {
   const newDate = calcOffsetDate(baseDateISO, interval)
-  return toISODateString(newDate)
+  return newDate ? toISODateString(newDate) : ''
 }
 
 /**

@@ -2,7 +2,7 @@
 
 import { validateConfigProperties } from '../../helpers/config'
 
-export function getTimeBlockingDefaults(): { [key: string]: any } {
+export function getTimeBlockingDefaults(): AutoTimeBlockingConfig {
   return {
     todoChar: '*' /* character at the front of a timeblock line - can be *,-,or a heading, e.g. #### */,
     timeBlockTag: `#🕑` /* placed at the end of the timeblock to show it was created by this plugin */,
@@ -11,8 +11,7 @@ export function getTimeBlockingDefaults(): { [key: string]: any } {
     foldTimeBlockHeading: false,
     workDayStart: '00:00' /* needs to be in 24 hour format (two digits, leading zero) */,
     workDayEnd: '23:59' /* needs to be in 24 hour format (two digits, leading zero) */,
-    durationMarker:
-      "'" /* signifies how long a task is, e.g. apostrophe: '2h5m or use another character, e.g. tilde: ~2h5m */,
+    durationMarker: "'" /* signifies how long a task is, e.g. apostrophe: '2h5m or use another character, e.g. tilde: ~2h5m */,
     intervalMins: 5 /* inverval on which to calculate time blocks */,
     removeDuration: true /* remove duration when creating timeblock text */,
     defaultDuration: 20 /* default duration of a task that has no duration/end time */,
@@ -22,8 +21,7 @@ export function getTimeBlockingDefaults(): { [key: string]: any } {
     passBackResults: false /* pass back the results to the caller (e.g. for template calls) */,
     createCalendarEntries: false /* create calendar entries for the timeblocks */,
     eventEnteredOnCalTag: '#event_created' /* needs to match @jgclark config/events/processedTagName */,
-    deletePreviousCalendarEntries:
-      false /* before creating new calendar entries, delete previous calendar entries for the timeblocks; 
+    deletePreviousCalendarEntries: false /* before creating new calendar entries, delete previous calendar entries for the timeblocks; 
                to keep a calendar entry around, just remove the timeBlockTag */,
     includeTasksWithText: [] /* limit to tasks with ANY of these tags/text */,
     excludeTasksWithText: [] /* exclude tasks with ANY of these tags/text */,
@@ -36,6 +34,7 @@ export function getTimeBlockingDefaults(): { [key: string]: any } {
     timeblockTextMustContainString: '' /* is set automatically when config is pulled */,
     datePlusOpenOnly: true,
     foldersToIgnore: [],
+    calendarToWriteTo: '',
     presets: [
       { label: 'Limit Time Blocks to Work Hours', workDayStart: '08:00', workDayEnd: '17:59' },
       {
@@ -49,7 +48,7 @@ export function getTimeBlockingDefaults(): { [key: string]: any } {
   }
 }
 
-export function validateTimeBlockConfig(config: { [key: string]: any }): { [key: string]: any } {
+export function validateAutoTimeBlockingConfig(config: AutoTimeBlockingConfig): AutoTimeBlockingConfig {
   const configTypeCheck = {
     todoChar: /^(?!(?:.*\*){2})[\*|\-|#{1,}]+$/,
     timeBlockTag: /^#.*/,
@@ -77,6 +76,7 @@ export function validateTimeBlockConfig(config: { [key: string]: any }): { [key:
     includeTasksWithText: { type: 'array', optional: true },
     excludeTasksWithText: { type: 'array', optional: true },
     datePlusOpenOnly: 'boolean',
+    calendarToWriteTo: 'string',
     foldersToIgnore: { type: 'array', optional: true },
     presets: { type: 'array', optional: true },
     nowStrOverride: { type: /^\d{2}:\d{2}$/, optional: true },
@@ -85,11 +85,46 @@ export function validateTimeBlockConfig(config: { [key: string]: any }): { [key:
   try {
     // $FlowIgnore
     const validatedConfig = validateConfigProperties(config, configTypeCheck)
+    // $FlowIgnore
     return validatedConfig
   } catch (error) {
-    // console.log(`NPTimeblocking::validateTimeBlockConfig: ${String(error)}\nInvalid config:\n${JSON.stringify(config)}`)
+    // console.log(`NPTimeblocking::validateAutoTimeBlockingConfig: ${String(error)}\nInvalid config:\n${JSON.stringify(config)}`)
     throw new Error(`${String(error)}`)
   }
 }
 
 export const arrayToCSV = (inStr: Array<string> | string): string => (Array.isArray(inStr) ? inStr.join(', ') : inStr)
+
+export type AutoTimeBlockingConfig = {
+  todoChar: string,
+  timeBlockTag: string,
+  timeBlockHeading: string,
+  foldTimeBlockHeading: boolean,
+  workDayStart: string,
+  workDayEnd: string,
+  durationMarker: string,
+  intervalMins: number,
+  removeDuration: boolean,
+  createSyncedCopies: boolean,
+  syncedCopiesTitle: string,
+  foldSyncedCopiesHeading: boolean,
+  defaultDuration: number,
+  mode: string,
+  allowEventSplits: boolean,
+  insertIntoEditor: boolean,
+  runSilently?: boolean,
+  passBackResults?: boolean,
+  createCalendarEntries: boolean,
+  deletePreviousCalendarEntries: boolean,
+  calendarToWriteTo: string,
+  eventEnteredOnCalTag: string,
+  includeLinks: string,
+  linkText: string,
+  includeTasksWithText?: Array<string>,
+  excludeTasksWithText?: Array<string>,
+  datePlusOpenOnly: boolean,
+  foldersToIgnore?: Array<string>,
+  presets?: any,
+  nowStrOverride?: string,
+  timeblockTextMustContainString: string,
+}

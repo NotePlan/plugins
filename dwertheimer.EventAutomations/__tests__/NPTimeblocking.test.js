@@ -1,5 +1,4 @@
 // @flow
-// Flow/Lint note: just waiting for ParagraphBridge to remove the EditorOrNote bits
 // Jest testing docs: https://jestjs.io/docs/using-matchers
 /* global describe, test, jest, expect, beforeAll */
 
@@ -90,32 +89,6 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         const c = mainFile.getConfig()
         expect(c).toEqual(DataStore.settings)
         DataStore.settings = oldSettings
-      })
-    })
-    /*
-     * editorOrNote()
-     */
-    describe('editorOrNote()' /* function */, () => {
-      test('should return Editor if same file is open in the Editor', () => {
-        const editorWas = { note: Editor.note, filename: Editor.filename }
-        note.filename = 'foo.md'
-        Editor.note = note
-        Editor.filename = note.filename
-        const result = mainFile.editorOrNote(Editor.note)
-        expect(result).toEqual(Editor)
-        Editor.note = editorWas.note
-        Editor.filename = editorWas.filename
-      })
-      test('should return note if file and Editor are different', () => {
-        const editorWas = { note: Editor.note, filename: Editor.filename }
-        note.filename = 'foo.md'
-        Editor.note = note
-        Editor.filename = 'something else'
-        const result = mainFile.editorOrNote(Editor.note)
-        expect(result).toEqual(note)
-        expect(result).not.toEqual(Editor)
-        Editor.note = editorWas.note
-        Editor.filename = editorWas.filename
       })
     })
     /*

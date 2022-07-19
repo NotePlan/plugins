@@ -7,8 +7,8 @@
 
 //-----------------------------------------------------------------------------
 // Import Helper functions
-import pluginJson from "../plugin.json"
-import { checkString } from "@helpers/checkType"
+import pluginJson from '../plugin.json'
+import { checkString } from '@helpers/checkType'
 // import {
 //   castBooleanFromMixed,
 //   castHeadingLevelFromMixed,
@@ -17,14 +17,8 @@ import { checkString } from "@helpers/checkType"
 //   castStringFromMixed,
 //   trimAnyQuotes,
 // } from '@helpers/dataManipulation'
-import {
-  daysBetween,
-  getDateObjFromDateString,
-  includesScheduledFutureDate,
-  relativeDateFromNumber,
-  toISODateString,
-} from '@helpers/dateTime'
-import { calcOffsetDate } from '@helpers/NPdateTime'
+import { daysBetween, getDateObjFromDateString, includesScheduledFutureDate, relativeDateFromNumber, toISODateString } from '@helpers/dateTime'
+import { calcOffsetDate } from '@helpers/NPDateTime'
 import { log, logError, logWarn } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import {
@@ -32,10 +26,7 @@ import {
   getStringFromList,
   // percent,
 } from '@helpers/general'
-import {
-  findEndOfActivePartOfNote,
-  getOrMakeMetadataLine
-} from '@helpers/paragraph'
+import { findEndOfActivePartOfNote, getOrMakeMetadataLine } from '@helpers/paragraph'
 import { showMessage } from '@helpers/userInput'
 
 //------------------------------
@@ -70,7 +61,7 @@ export async function getReviewSettings(): Promise<any> {
   // log(pluginJson, `Start of getReviewSettings()`)
   try {
     // Get settings using ConfigV2
-    const v2Config: ReviewConfig = await DataStore.loadJSON("../jgclark.Reviews/settings.json")
+    const v2Config: ReviewConfig = await DataStore.loadJSON('../jgclark.Reviews/settings.json')
 
     if (v2Config == null || Object.keys(v2Config).length === 0) {
       await showMessage(`Cannot find settings for the 'Reviews' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
@@ -94,8 +85,7 @@ export async function getReviewSettings(): Promise<any> {
     // console.log(`written '${DataStore.preference('reviewedMentionStr')} to reviewedMentionStr`)
 
     return v2Config
-  }
-  catch (err) {
+  } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
     await showMessage(err.message)
     return
@@ -122,10 +112,7 @@ export function logPreference(prefName: string): void {
  * @return {Date} - JS Date
  */
 export function calcNextReviewDate(lastReviewDate: Date, interval: string): Date {
-  const reviewDate: Date =
-    lastReviewDate != null
-      ? calcOffsetDate(toISODateString(lastReviewDate), interval)
-      : new Date() // today's date
+  const reviewDate: Date = lastReviewDate != null ? calcOffsetDate(toISODateString(lastReviewDate), interval) : new Date() // today's date
   return reviewDate
 }
 
@@ -137,10 +124,7 @@ export function calcNextReviewDate(lastReviewDate: Date, interval: string): Date
  * @param {string} mention - string to match (with a following '(' to indicate start of parameter)
  * @return {?Date} - JS Date version, if valid date found
  */
-export  function getParamMentionFromList(
-  mentionList: $ReadOnlyArray<string>,
-  mention: string,
-): string {
+export function getParamMentionFromList(mentionList: $ReadOnlyArray<string>, mention: string): string {
   // log(pluginJson, `getMentionFromList for: ${mention}`)
   const res = mentionList.filter((m) => m.startsWith(`${mention}(`))
   return res.length > 0 ? res[0] : ''
@@ -159,7 +143,7 @@ export function getFieldsFromNote(note: TNote, fieldName: string): Array<string>
   const paras = note.paragraphs
   const endOfActive = findEndOfActivePartOfNote(note)
   const matchArr = []
-  const RE = new RegExp(`^${fieldName}:\\s*(.+)`, "i") // case-insensitive match at start of line
+  const RE = new RegExp(`^${fieldName}:\\s*(.+)`, 'i') // case-insensitive match at start of line
   for (const p of paras) {
     const matchRE = p.content.match(RE)
     if (matchRE && p.lineIndex < endOfActive) {
@@ -178,7 +162,7 @@ export function getFieldsFromNote(note: TNote, fieldName: string): Array<string>
  * number of closed, open & waiting for tasks.
  * To create a note call 'const x = new Project(note)'
  * @author @jgclark
-*/
+ */
 export class Project {
   // Types for the class instance properties
   note: TNote
@@ -217,11 +201,7 @@ export class Project {
     this.folder = getFolderFromFilename(note.filename)
 
     // work out note review type: 'project' or 'area' or ''
-    this.noteType = (hashtags.includes('#project'))
-      ? 'project'
-      : (hashtags.includes('#area'))
-        ? 'area'
-        : ''
+    this.noteType = hashtags.includes('#project') ? 'project' : hashtags.includes('#area') ? 'area' : ''
 
     // read in various metadata fields (if present)
     // (now uses DataStore.preference mechanism to pick up current terms for @start, @due, @reviewed etc.)
@@ -246,24 +226,12 @@ export class Project {
     this.calcDurations()
 
     // count tasks
-    this.openTasks = note.paragraphs.
-      filter((p) => p.type === 'open').
-      length
-    this.completedTasks = note.paragraphs.
-      filter((p) => p.type === 'done').
-      length
-    this.waitingTasks = note.paragraphs.
-      filter((p) => p.type === 'open').
-      filter((p) => p.content.match('#waiting')).
-      length
-    this.futureTasks = note.paragraphs.
-      filter((p) => p.type === 'open').
-      filter((p) => includesScheduledFutureDate(p.content)).
-      length
+    this.openTasks = note.paragraphs.filter((p) => p.type === 'open').length
+    this.completedTasks = note.paragraphs.filter((p) => p.type === 'done').length
+    this.waitingTasks = note.paragraphs.filter((p) => p.type === 'open').filter((p) => p.content.match('#waiting')).length
+    this.futureTasks = note.paragraphs.filter((p) => p.type === 'open').filter((p) => includesScheduledFutureDate(p.content)).length
     // Track percentComplete: either through calculation from counts ...
-    this.percentComplete = (this.completedTasks > 0)
-      ? `${String(Math.round((this.completedTasks / (this.completedTasks + this.openTasks)) * 100))}%`
-      : '-%'
+    this.percentComplete = this.completedTasks > 0 ? `${String(Math.round((this.completedTasks / (this.completedTasks + this.openTasks)) * 100))}%` : '-%'
     // ... or TODO: through specific 'Progress' field
     // this.percentComplete = ''
     const progressLines = getFieldsFromNote(this.note, 'progress')
@@ -276,22 +244,15 @@ export class Project {
     }
 
     // make project completed if @completed_date set
-    this.isCompleted = (this.completedDate != null) ? true : false
+    this.isCompleted = this.completedDate != null ? true : false
     // make project archived if #archive tag present
     this.isArchived = getStringFromList(hashtags, '#archive') !== ''
     // make project cancelled if #cancelled or #someday flag set or @cancelled date set
-    this.isCancelled = getStringFromList(hashtags, '#cancelled') !== ''
-      || getStringFromList(hashtags, '#someday') !== ''
-      || (this.completedDate != null)
+    this.isCancelled = getStringFromList(hashtags, '#cancelled') !== '' || getStringFromList(hashtags, '#someday') !== '' || this.completedDate != null
 
     // set project to active if #active is set or a @review date found,
     // and not completed / cancelled.
-    this.isActive = (
-      (getStringFromList(hashtags, '#active') !== '' || this.reviewInterval != null)
-      && !this.isCompleted
-      && !this.isCancelled
-      && !this.isArchived
-    ) ? true : false
+    this.isActive = (getStringFromList(hashtags, '#active') !== '' || this.reviewInterval != null) && !this.isCompleted && !this.isCancelled && !this.isArchived ? true : false
     // log(pluginJson, `Project object created OK with Metadata = '${this.generateMetadataLine()}'`)
   }
 
@@ -299,26 +260,26 @@ export class Project {
    * Is this project ready for review?
    * Return true if review is overdue and not archived or completed
    * @return {boolean}
-  */
+   */
   get isReadyForReview(): boolean {
     // log(pluginJson, `isReadyForReview: ${this.title}:  ${this.nextReviewDays} ${this.isActive}`)
-    return (this.nextReviewDays != null
-      && this.nextReviewDays <= 0
-      && this.isActive)
+    return this.nextReviewDays != null && this.nextReviewDays <= 0 && this.isActive
   }
 
   /**
    * From the metadata read in, calculate due/review/finished durations
-  */
+   */
   calcDurations(): void {
     const now = new Date()
-    this.dueDays = (this.dueDate != null)
-      // NB: Written while there was an error in EM's Calendar.unitsBetween() function
-      ? daysBetween(now, this.dueDate)
-      : undefined
-    this.finishedDays = (this.completedDate != null && this.startDate != null)
-      ? daysBetween(this.startDate, this.completedDate)
-      : (this.cancelledDate != null && this.startDate != null)
+    this.dueDays =
+      this.dueDate != null
+        ? // NB: Written while there was an error in EM's Calendar.unitsBetween() function
+          daysBetween(now, this.dueDate)
+        : undefined
+    this.finishedDays =
+      this.completedDate != null && this.startDate != null
+        ? daysBetween(this.startDate, this.completedDate)
+        : this.cancelledDate != null && this.startDate != null
         ? daysBetween(this.startDate, this.cancelledDate)
         : undefined
     if (this.reviewInterval != null) {
@@ -334,11 +295,11 @@ export class Project {
   }
 
   /**
-  * Close a Project/Area note by updating the metadata and saving it:
-  * - adding @completed(<today's date>) to the current note in the Editor
-  * - add '#archive' flag to metadata line
-  * @author @jgclark
-  */
+   * Close a Project/Area note by updating the metadata and saving it:
+   * - adding @completed(<today's date>) to the current note in the Editor
+   * - add '#archive' flag to metadata line
+   * @author @jgclark
+   */
   completeProject(): boolean {
     // const todayStr = hyphenatedDateString(new Date())
     // const yearStr = todayStr.substring(0, 4)
@@ -364,11 +325,11 @@ export class Project {
   }
 
   /**
-  * Cancel a Project/Area note by updating the metadata and saving it:
-  * - adding @cancelled(<today's date>)
-  * - add '#archive' flag to metadata line
-  * @author @jgclark
-  */
+   * Cancel a Project/Area note by updating the metadata and saving it:
+   * - adding @cancelled(<today's date>)
+   * - add '#archive' flag to metadata line
+   * @author @jgclark
+   */
   cancelProject(): boolean {
     // update the metadata fields
     this.isArchived = true
@@ -395,39 +356,40 @@ export class Project {
     let output = ''
     // output = (this.isActive) ? '#active ' : ''
     // output = (this.isCancelled) ? '#cancelled ' : ''
-    output = (this.isArchived) ? '#archive ' : ''
-    output += (this.noteType === 'project' || this.noteType === 'area') ? `#${this.noteType} ` : ''
+    output = this.isArchived ? '#archive ' : ''
+    output += this.noteType === 'project' || this.noteType === 'area' ? `#${this.noteType} ` : ''
     // $FlowIgnore[incompatible-call]
-    output += (this.startDate && this.startDate !== undefined) ? `${checkString(DataStore.preference('startMentionStr'))}(${toISODateString(this.startDate)}) ` : ''
+    output += this.startDate && this.startDate !== undefined ? `${checkString(DataStore.preference('startMentionStr'))}(${toISODateString(this.startDate)}) ` : ''
     // $FlowIgnore[incompatible-call]
-    output += (this.dueDate && this.startDate !== undefined) ? `${checkString(DataStore.preference('dueMentionStr'))}(${toISODateString(this.dueDate)}) ` : ''
-    output += (this.reviewInterval && this.reviewInterval !== undefined) ? `${checkString(DataStore.preference('reviewIntervalMentionStr'))}(${checkString(this.reviewInterval)}) ` : ''
+    output += this.dueDate && this.startDate !== undefined ? `${checkString(DataStore.preference('dueMentionStr'))}(${toISODateString(this.dueDate)}) ` : ''
+    output +=
+      this.reviewInterval && this.reviewInterval !== undefined ? `${checkString(DataStore.preference('reviewIntervalMentionStr'))}(${checkString(this.reviewInterval)}) ` : ''
     // $FlowIgnore[incompatible-call]
-    output += (this.reviewedDate && this.reviewedDate !== undefined) ? `${checkString(DataStore.preference('reviewedMentionStr'))}(${toISODateString(this.reviewedDate)}) ` : ''
+    output += this.reviewedDate && this.reviewedDate !== undefined ? `${checkString(DataStore.preference('reviewedMentionStr'))}(${toISODateString(this.reviewedDate)}) ` : ''
     // $FlowIgnore[incompatible-call]
-    output += (this.completedDate && this.completedDate !== undefined) ? `${checkString(DataStore.preference('completedMentionStr'))}(${toISODateString(this.completedDate)}) ` : ''
+    output += this.completedDate && this.completedDate !== undefined ? `${checkString(DataStore.preference('completedMentionStr'))}(${toISODateString(this.completedDate)}) ` : ''
     // $FlowIgnore[incompatible-call]
-    output += (this.cancelledDate && this.cancelledDate !== undefined) ? `${checkString(DataStore.preference('cancelledMentionStr'))}(${toISODateString(this.cancelledDate)}) ` : ''
+    output += this.cancelledDate && this.cancelledDate !== undefined ? `${checkString(DataStore.preference('cancelledMentionStr'))}(${toISODateString(this.cancelledDate)}) ` : ''
     return output
   }
 
   /**
    * Returns CSV line showing days until next review + title
    * @return {string}
-  */
+   */
   machineSummaryLine(): string {
     const numString = this.nextReviewDays?.toString() ?? ''
     return `${numString}\t${this.title}`
   }
 
   /**
-   * return title of note as folder name + internal link, 
+   * return title of note as folder name + internal link,
    * also showing complete or cancelled where relevant
    * @param {boolean} includeFolderName whether to include folder name at the start of the entry.
    * @return {string} - title as wikilink
-  */
+   */
   decoratedProjectTitle(includeFolderName: boolean): string {
-    const folderNamePart = (includeFolderName) ? (this.folder + ' ') : ''
+    const folderNamePart = includeFolderName ? this.folder + ' ' : ''
     if (this.isCompleted) {
       return `[x] ${folderNamePart}[[${this.title ?? ''}]]`
     } else if (this.isCancelled) {
@@ -447,15 +409,14 @@ export class Project {
    * @param {boolean} includeFolderName at the start of the entry
    * @param {boolean} includePercentage of completed tasks (optional; if missing defaults to true)
    * @return {string}
-  */
+   */
   detailedSummaryLine(includeFolderName: boolean, includePercentage: boolean = true): string {
     let output = '- '
     output += `${this.decoratedProjectTitle(includeFolderName)}`
     if (this.completedDate != null) {
       // $FlowIgnore[incompatible-call]
       output += `\t(Completed ${relativeDateFromNumber(this.finishedDays)})`
-    }
-    else if (this.cancelledDate != null) {
+    } else if (this.cancelledDate != null) {
       // $FlowIgnore[incompatible-call]
       output += `\t(Cancelled ${relativeDateFromNumber(this.finishedDays)})`
     }
@@ -466,14 +427,13 @@ export class Project {
       output += `\tc${this.completedTasks} / o${this.openTasks} / w${this.waitingTasks} / f${this.futureTasks}`
     }
     if (!this.isCompleted && !this.isCancelled) {
-      output = (this.nextReviewDays != null)
-        ? ( (this.nextReviewDays > 0)
-          ? `${output} / ${relativeDateFromNumber(this.nextReviewDays)}`
-          : `${output} / **${relativeDateFromNumber(this.nextReviewDays)}**`) 
-        : `${output} / -`
-      output = (this.dueDays != null)
-        ? `${output} / ${relativeDateFromNumber(this.dueDays)}`
-        : `${output} / -`
+      output =
+        this.nextReviewDays != null
+          ? this.nextReviewDays > 0
+            ? `${output} / ${relativeDateFromNumber(this.nextReviewDays)}`
+            : `${output} / **${relativeDateFromNumber(this.nextReviewDays)}**`
+          : `${output} / -`
+      output = this.dueDays != null ? `${output} / ${relativeDateFromNumber(this.dueDays)}` : `${output} / -`
     }
     return output
   }

@@ -6,13 +6,9 @@
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import {
-  calcHashtagStatsPeriod,
-  calcMentionStatsPeriod,
-  getSummariesSettings,
-} from './summaryHelpers'
+import { calcHashtagStatsPeriod, calcMentionStatsPeriod, getSummariesSettings } from './summaryHelpers'
 import { unhyphenatedDate } from '@helpers/dateTime'
-import { getPeriodStartEndDates } from '@helpers/NPdateTime'
+import { getPeriodStartEndDates } from '@helpers/NPDateTime'
 import { log, logError } from '@helpers/dev'
 import {
   CaseInsensitiveMap,
@@ -53,15 +49,12 @@ export async function insertProgressUpdate(params?: string): Promise<string | vo
   const toDateStr = unhyphenatedDate(toDate)
 
   // Main work: calculate the progress update as an array of strings
-  const outputArray = calcProgressUpdate(interval, periodString,
-    fromDateStr, toDateStr,
-    config.progressHashtags, config.progressMentions)
+  const outputArray = calcProgressUpdate(interval, periodString, fromDateStr, toDateStr, config.progressHashtags, config.progressMentions)
 
   // Send output to chosen required destination
   if (params) {
     // this was a template command call, so simply return the output text
     return `### ${heading}: ${periodPartStr} for ${periodString}\n${outputArray}`
-
   } else {
     // This is called by a plugin command
     // Mow decide whether to write to current note (the only option before v0.10)
@@ -91,7 +84,8 @@ export async function insertProgressUpdate(params?: string): Promise<string | vo
         break
       }
 
-      default: { // = 'current' 
+      default: {
+        // = 'current'
         if (Editor == null) {
           // Now insert the summary to the current note
           logError(pluginJson, `No note is open`)
@@ -102,11 +96,7 @@ export async function insertProgressUpdate(params?: string): Promise<string | vo
             currentLineIndex = Editor.paragraphs.length - 1
           }
           // log(pluginJson, `\tinserting results to current note (${Editor.filename ?? ''}) at line ${currentLineIndex}`)
-          Editor.insertHeading(
-            `${heading}: ${periodPartStr} for ${periodString}`,
-            currentLineIndex,
-            3,
-          )
+          Editor.insertHeading(`${heading}: ${periodPartStr} for ${periodString}`, currentLineIndex, 3)
           Editor.insertParagraph(outputArray, currentLineIndex + 1, 'text')
           log(pluginJson, `  appended results to current note for ${periodPartStr}.`)
         }
@@ -125,52 +115,44 @@ export async function insertProgressUpdate(params?: string): Promise<string | vo
  * @param {string} period - week to date ("wtd") or month to date ("mtd")
  * @return {string} - either return string to Template, or void to plugin // FIXME:
  */
-function calcProgressUpdate(
-  interval: string,
-  periodString: string,
-  fromDateStr: string,
-  toDateStr: string,
-  hashtagList: Array<string>,
-  mentionList: Array<string>,
-): string {
+function calcProgressUpdate(interval: string, periodString: string, fromDateStr: string, toDateStr: string, hashtagList: Array<string>, mentionList: Array<string>): string {
   log('calcProgressUpdate()', `starting ${interval} for ${periodString} ${interval} (= ${fromDateStr} - ${toDateStr}):`)
 
-    // Calc hashtags stats (returns two maps) for just the inclusion list 'progressHashtags'
+  // Calc hashtags stats (returns two maps) for just the inclusion list 'progressHashtags'
   const outputArray: Array<string> = []
 
-    // First check progressHashtags is not empty
+  // First check progressHashtags is not empty
   if (hashtagList.length > 0) {
     const hResults = calcHashtagStatsPeriod(fromDateStr, toDateStr, hashtagList, [])
-    const hCounts: CaseInsensitiveMap<number> = hResults?.[0] ?? new CaseInsensitiveMap < number >
-      const hSumTotals: CaseInsensitiveMap<number> = hResults?.[1] ?? new CaseInsensitiveMap < number >
-      if (hSumTotals == null && hCounts == null) {
+    const hCounts: CaseInsensitiveMap<number> = hResults?.[0] ?? new CaseInsensitiveMap<number>()
+    const hSumTotals: CaseInsensitiveMap<number> = hResults?.[1] ?? new CaseInsensitiveMap<number>()
+    if (hSumTotals == null && hCounts == null) {
       log(pluginJson, `no matching hashtags found in ${periodString}`)
-      }
-      else {
-        // console.log("hSumTotals results:")
-        // for (const [key, value] of hSumTotals.entries()) {
-        //   console.log(`  ${key}: ${value}`)
-        // }
+    } else {
+      // console.log("hSumTotals results:")
+      // for (const [key, value] of hSumTotals.entries()) {
+      //   console.log(`  ${key}: ${value}`)
+      // }
 
-        // First process more complex 'SumTotals', calculating appropriately
-        for (const [key, value] of hSumTotals.entries()) {
-          const tagString = key.slice(1) // show without leading '#' to avoid double counting issues
-          const total = hSumTotals.get(key) ?? NaN
-          if (isNaN(total)) {
-            // console.log(`  no totals for ${key}`)
-          } else {
-            const count = hSumTotals.get(key) ?? NaN
-            const totalStr = value.toLocaleString()
-            const avgStr = (value / count).toLocaleString([], { maximumSignificantDigits: 2 })
-            outputArray.push(`${tagString}\t${count}\t(total ${totalStr}\taverage ${avgStr})`)
-            hCounts.delete(key) // remove the entry from the next map, as no longer needed
-          }
+      // First process more complex 'SumTotals', calculating appropriately
+      for (const [key, value] of hSumTotals.entries()) {
+        const tagString = key.slice(1) // show without leading '#' to avoid double counting issues
+        const total = hSumTotals.get(key) ?? NaN
+        if (isNaN(total)) {
+          // console.log(`  no totals for ${key}`)
+        } else {
+          const count = hSumTotals.get(key) ?? NaN
+          const totalStr = value.toLocaleString()
+          const avgStr = (value / count).toLocaleString([], { maximumSignificantDigits: 2 })
+          outputArray.push(`${tagString}\t${count}\t(total ${totalStr}\taverage ${avgStr})`)
+          hCounts.delete(key) // remove the entry from the next map, as no longer needed
         }
+      }
 
-        // console.log("hCounts results:")
-        // for (const [key, value] of hCounts.entries()) {
-        //   console.log(`  ${key}: ${value}`)
-        // }
+      // console.log("hCounts results:")
+      // for (const [key, value] of hCounts.entries()) {
+      //   console.log(`  ${key}: ${value}`)
+      // }
 
       // Then process simpler 'Counts'
       for (const [key, value] of hCounts.entries()) {
@@ -180,16 +162,15 @@ function calcProgressUpdate(
     }
   }
 
-    // Calc mentions stats (returns two maps) for just the inclusion list 'progressMentions'
-    // First check progressMentions is not empty
+  // Calc mentions stats (returns two maps) for just the inclusion list 'progressMentions'
+  // First check progressMentions is not empty
   if (mentionList.length > 0) {
     const mResults = calcMentionStatsPeriod(fromDateStr, toDateStr, mentionList, [])
-    const mCounts: CaseInsensitiveMap<number> = mResults?.[0] ?? new CaseInsensitiveMap < number >
-      const mSumTotals: CaseInsensitiveMap<number> = mResults?.[1] ?? new CaseInsensitiveMap < number >
-      if (mCounts == null && mSumTotals == null) {
+    const mCounts: CaseInsensitiveMap<number> = mResults?.[0] ?? new CaseInsensitiveMap<number>()
+    const mSumTotals: CaseInsensitiveMap<number> = mResults?.[1] ?? new CaseInsensitiveMap<number>()
+    if (mCounts == null && mSumTotals == null) {
       log(pluginJson, `no matching mentions found in ${periodString}`)
     } else {
-
       // console.log("mSumTotals results:")
       // for (const [key, value] of mSumTotals.entries()) {
       //   console.log(`  ${key}: ${value}`)
@@ -209,7 +190,7 @@ function calcProgressUpdate(
           mCounts.delete(key) // remove the entry from the next map, as not longer needed
         }
       }
-      }
+    }
 
     // console.log("mCounts results:")
     // for (const [key, value] of mCounts.entries()) {

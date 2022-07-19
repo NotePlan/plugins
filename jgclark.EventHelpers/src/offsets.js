@@ -5,7 +5,7 @@
 // Last updated 16.6.2022 for v0.16.0+, by @jgclark
 // ----------------------------------------------------------------------------
 
-import pluginJson from "../plugin.json"
+import pluginJson from '../plugin.json'
 import { getEventsSettings } from './config'
 import { timeBlocksToCalendar } from './timeblocks'
 import {
@@ -17,9 +17,9 @@ import {
   RE_DATE_INTERVAL,
   // todaysDateISOString,
 } from '@helpers/dateTime'
-import { log, logWarn, logError } from "@helpers/dev"
+import { log, logWarn, logError } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-// import { calcOffsetDateStr } from '@helpers/NPdateTime'
+// import { calcOffsetDateStr } from '@helpers/NPDateTime'
 import { findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { askDateInterval, datePicker, showMessage, showMessageYesNo } from '@helpers/userInput'
 
@@ -43,7 +43,7 @@ export async function shiftDates(): Promise<void> {
       return
     }
     if (selection == null) {
-      // 
+      //
       pArr = paragraphs.slice(0, findEndOfActivePartOfNote(note))
     } else {
       pArr = Editor.selectedParagraphs
@@ -65,7 +65,7 @@ export async function shiftDates(): Promise<void> {
 
     // Shift dates
     let updatedCount = 0
-    pArr.forEach(p => {
+    pArr.forEach((p) => {
       const c = p.content
       log(pluginJson, `${c}`)
       if (c.match(RE_BARE_DATE)) {
@@ -81,8 +81,7 @@ export async function shiftDates(): Promise<void> {
       }
     })
     log(pluginJson, `Shifted ${updatedCount} dates`)
-  }
-  catch (err) {
+  } catch (err) {
     logError(pluginJson, err.message)
   }
 }
@@ -98,7 +97,7 @@ export async function shiftDates(): Promise<void> {
  * offset date after the 'pivot date'.
  * Offsets apply within a contiguous section; a section is considered ended when
  * a line has a lower indent or heading level, or is a blank line or separator line.
- * 
+ *
  * @author @jgclark
  */
 export async function processDateOffsets(): Promise<void> {
@@ -117,7 +116,7 @@ export async function processDateOffsets(): Promise<void> {
 
   try {
     let currentTargetDate = ''
-    let currentTargetDateLine = 0  // the line number where we found the currentTargetDate. Zero means not set.
+    let currentTargetDateLine = 0 // the line number where we found the currentTargetDate. Zero means not set.
     let lastCalcDate = ''
     let n = 0
     const endOfActive = findEndOfActivePartOfNote(note)
@@ -139,9 +138,7 @@ export async function processDateOffsets(): Promise<void> {
 
       while (n < endOfActive) {
         let line = paragraphs[n].content // don't think this needs to be rawContent
-        thisLevel = (paragraphs[n].type === 'title')
-          ? thisLevel = -1
-          : paragraphs[n].indents
+        thisLevel = paragraphs[n].type === 'title' ? (thisLevel = -1) : paragraphs[n].indents
         // log(pluginJson, `  Line ${n} (${thisLevel}) ${line}`)
 
         // Decide whether to clear CTD
@@ -188,7 +185,7 @@ export async function processDateOffsets(): Promise<void> {
             if (currentTargetDate === '' && lastCalcDate === '') {
               // This is currently an orphaned date offset
               logWarn(pluginJson, `Line ${paragraphs[n].lineIndex}: offset date '${dateOffsetString}' is an orphan, as no currentTargetDate or lastCalcDate is set`)
-            
+
               // now ask for the date to use instead
               currentTargetDate = await datePicker("{ question: 'Please enter a base date to use to offset against' }", {})
               if (currentTargetDate === '') {
@@ -233,8 +230,7 @@ export async function processDateOffsets(): Promise<void> {
       logWarn(pluginJson, `No date offset patterns found.`)
       await showMessage(`No date offset patterns found.`, `OK`, `Process Date Offsets`)
     }
-  }
-  catch (err) {
+  } catch (err) {
     logError(pluginJson, err.message)
   }
 }

@@ -11,7 +11,7 @@ TODO: maybe create choosers based on arguments text
 import { log, logError, JSP } from '../../helpers/dev'
 import { createOpenOrDeleteNoteCallbackUrl, createAddTextCallbackUrl, createCallbackUrl, createRunPluginCallbackUrl } from '../../helpers/general'
 import pluginJson from '../plugin.json'
-import { chooseRunPluginXCallbackURL } from '@helpers/NPdev'
+import { chooseRunPluginXCallbackURL } from '@helpers/NPDev'
 import { chooseOption, showMessage, showMessageYesNo, chooseFolder, chooseNote, getInput, getInputTrimmed } from '@helpers/userInput'
 import { getSelectedParagraph } from '@helpers/NPParagraph'
 import NPTemplating from 'NPTemplating'

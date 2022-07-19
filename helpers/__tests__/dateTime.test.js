@@ -434,7 +434,7 @@ describe(`${PLUGIN_NAME}`, () => {
         const result = dt.getISOWeekAndYear(new Date('2020-01-01'))
         expect(result).toEqual({ year: 2020, week: 1 })
       })
-      test('should return proper date with Date obj input', () => {
+      test('should add increment to date', () => {
         const result = dt.getISOWeekAndYear(new Date('2020-01-01'), 1, 'week')
         expect(result).toEqual({ year: 2020, week: 2 })
       })

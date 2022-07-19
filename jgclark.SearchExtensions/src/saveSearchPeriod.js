@@ -11,12 +11,7 @@
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import {
-  getSearchSettings,
-  type resultObjectType,
-  runSearches,
-  writeResultsNote,
-} from './searchHelpers'
+import { getSearchSettings, type resultObjectType, runSearches, writeResultsNote } from './searchHelpers'
 import {
   formatNoteDate,
   getDateStringFromCalendarFilename,
@@ -27,17 +22,13 @@ import {
   unhyphenatedDate,
   withinDateRange,
 } from '@helpers/dateTime'
-import { getPeriodStartEndDates } from '@helpers/NPdateTime'
+import { getPeriodStartEndDates } from '@helpers/NPDateTime'
 import { log, logWarn, logError, timer } from '@helpers/dev'
 import { titleAsLink } from '@helpers/general'
 import { replaceSection } from '@helpers/note'
 import { isTermInMarkdownPath, isTermInURL } from '@helpers/paragraph'
 import { trimAndHighlightTermInLine } from '@helpers/search'
-import {
-  chooseOption,
-  getInput,
-  showMessage,
-} from '@helpers/userInput'
+import { chooseOption, getInput, showMessage } from '@helpers/userInput'
 
 //-------------------------------------------------------------------------------
 
@@ -51,11 +42,7 @@ import {
  * @param {string?} fromDateArg optional start date to search over (YYYYMMDD or YYYY-MM-DD). If not given, then defaults to 3 months ago.
  * @param {string?} toDateArg optional end date to search over (YYYYMMDD or YYYY-MM-DD). If not given, then defaults to today.
  */
-export async function saveSearchPeriod(
-  searchTermsArg?: string,
-  fromDateArg?: string = 'default',
-  toDateArg?: string = 'default',
-): Promise<void> {
+export async function saveSearchPeriod(searchTermsArg?: string, fromDateArg?: string = 'default', toDateArg?: string = 'default'): Promise<void> {
   try {
     // Get config settings from Template folder _configuration note
     // await getPluginSettings()
@@ -80,8 +67,8 @@ export async function saveSearchPeriod(
         fromDateStr = fromDateArg.match(RE_ISO_DATE) // for YYYY-MM-DD
           ? fromDateArg
           : fromDateArg.match(RE_YYYYMMDD_DATE) // for YYYYMMDD
-            ? unhyphenateString(fromDateArg)
-            : 'error'
+          ? unhyphenateString(fromDateArg)
+          : 'error'
       }
       if (fromDateArg === 'default') {
         toDate = moment.now().startOf('day').toJSDate() // today
@@ -90,13 +77,13 @@ export async function saveSearchPeriod(
         toDateStr = toDateArg.match(RE_ISO_DATE) // for YYYY-MM-DD
           ? toDateArg
           : toDateArg.match(RE_YYYYMMDD_DATE) // for YYYYMMDD
-            ? unhyphenateString(toDateArg)
-            : 'error'
+          ? unhyphenateString(toDateArg)
+          : 'error'
       }
       periodString = `${fromDateStr} - ${toDateStr}`
     } else {
       // Otherwise ask user
-      [fromDate, toDate, periodType, periodString, periodPartStr] = await getPeriodStartEndDates(`What period shall I search over?`) // eslint-disable-line
+      ;[fromDate, toDate, periodType, periodString, periodPartStr] = await getPeriodStartEndDates(`What period shall I search over?`) // eslint-disable-line
       if (fromDate == null || toDate == null) {
         logError(pluginJson, 'dates could not be parsed')
         return
@@ -148,13 +135,7 @@ export async function saveSearchPeriod(
     }
 
     // Get array of all daily notes that are within this time period
-    const periodDailyNotes = DataStore.calendarNotes.filter((p) =>
-      withinDateRange(
-        getDateStringFromCalendarFilename(p.filename),
-        fromDateStr,
-        toDateStr,
-      ),
-    )
+    const periodDailyNotes = DataStore.calendarNotes.filter((p) => withinDateRange(getDateStringFromCalendarFilename(p.filename), fromDateStr, toDateStr))
     if (periodDailyNotes.length === 0) {
       logWarn(pluginJson, 'no matching daily notes found')
       await showMessage(`No matching daily notes found; stopping.`)
@@ -167,7 +148,7 @@ export async function saveSearchPeriod(
     // the notes that match the selected time period.
     // TODO: Ideally update runSearches/runSearch to be able to be used here
     // TODO: and then switch to using Promise system
-    const startTime = new Date
+    const startTime = new Date()
     let resultCount = 0
     const results: Array<resultObjectType> = []
     for (const untrimmedSearchTerm of filteredTermsToMatchArr) {
@@ -188,10 +169,10 @@ export async function saveSearchPeriod(
         for (let i = 0; i < lines.length; i++) {
           let matchLine = lines[i].content
           const noteContainingMatchLine = lines[i].note
-          const thisNoteTitleDisplay = (noteContainingMatchLine?.date)
+          const thisNoteTitleDisplay = noteContainingMatchLine?.date
             ? formatNoteDate(noteContainingMatchLine.date, config.dateStyle)
-            // $FlowFixMe[incompatible-call]
-            : titleAsLink(noteContainingMatchLine)
+            : // $FlowFixMe[incompatible-call]
+              titleAsLink(noteContainingMatchLine)
           // Keep this match if within selected date range
           // $FlowFixMe[incompatible-use]
           if (withinDateRange(getDateStringFromCalendarFilename(noteContainingMatchLine.filename), fromDateStr, toDateStr)) {
@@ -206,8 +187,7 @@ export async function saveSearchPeriod(
               continue
             }
             // Format the line and context for output (trimming, highlighting)
-            matchLine = trimAndHighlightTermInLine(matchLine, searchTerm,
-              config.highlightResults, config.resultQuoteLength)
+            matchLine = trimAndHighlightTermInLine(matchLine, searchTerm, config.highlightResults, config.resultQuoteLength)
             if (config.groupResultsByNote) {
               // Write out note title (if not seen before) then the matchLine
               if (previousNoteTitle !== thisNoteTitleDisplay) {
@@ -233,7 +213,6 @@ export async function saveSearchPeriod(
       }
       // Save this search term and results as a new object in results array
       results.push({ searchTerm: searchTerm, resultLines: outputArray, resultCount: resultCount })
-
     }
     const elapsedTimeAPI = timer(startTime)
     log(pluginJson, `Search time (API): ${termsToMatchArr.length} searches in ${elapsedTimeAPI} -> ${resultCount} results`)
@@ -295,8 +274,7 @@ export async function saveSearchPeriod(
         const requestedTitle = `${termsToMatchStr} ${config.searchHeading} for ${periodString}${periodPartStr !== '' ? ` (at ${periodPartStr})` : ''}`
         // const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearchResultsInPeriod&arg0=${encodeURIComponent(termsToMatchStr)}&arg1=${fromDateStr}&arg2=${toDateStr}`
 
-        const noteFilename = await writeResultsNote(results, requestedTitle, config.folderToStore,
-          config.headingLevel, calledIndirectly, '') //xCallbackLink)
+        const noteFilename = await writeResultsNote(results, requestedTitle, config.folderToStore, config.headingLevel, calledIndirectly, '') //xCallbackLink)
 
         // let fullNoteContent = `# ${requestedTitle}\nat ${nowLocaleDateTime} [Click to refresh these results](${xCallbackLink})`
         // for (const r of results) {
@@ -380,8 +358,7 @@ export async function saveSearchPeriod(
         break
       }
     }
-  }
-  catch (err) {
+  } catch (err) {
     logError(pluginJson, err.message)
   }
 }

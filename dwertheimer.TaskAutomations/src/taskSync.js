@@ -10,7 +10,7 @@ import { sortListBy } from '../../helpers/sorting'
 import { getTasksByType } from './taskHelpers'
 import { clo, JSP, log, logError } from '@helpers/dev'
 import { inFolderList } from '@helpers/general'
-import { selectFirstNonTitleLineInEditor } from '@helpers/NPnote'
+import { selectFirstNonTitleLineInEditor } from '@helpers/NPNote'
 import { removeDuplicateSyncedLines } from '@helpers/paragraph'
 import { getSyncedCopiesAsList } from '@helpers/NPSyncedCopies'
 import { replaceContentUnderHeading } from '@helpers/NPParagraph'
@@ -53,7 +53,6 @@ export async function taskSync(
     const notInFolders = notInFoldersStr === '*' ? [] : notInFoldersStr.split(',')
     const filename = outputFilename !== '*' ? (/.txt|.md/.test(outputFilename) ? outputFilename : `${outputFilename}.${DataStore.defaultFileExtension}`) : ''
 
-    // $FlowIgnore
     log(
       pluginJson,
       `Running: searchFor="${searchFor}" searchInTypes=[${String(searchInTypes)}] includeTaskTypes=[${String(includeTaskTypes)}] sortByFields=[${String(
@@ -102,7 +101,10 @@ export async function taskSync(
     //   console.log(`sorted: ${t.type} ${t.filename} ${t.content}`)
     // })
     // create synced copies
-    const syncedCopyList = sortedParas && sortedParas.length ? getSyncedCopiesAsList(sortedParas, includeTaskTypes) : []
+    let syncedCopyList = []
+    if (sortedParas.length) {
+      syncedCopyList = sortedParas && sortedParas.length ? getSyncedCopiesAsList(sortedParas, includeTaskTypes) : []
+    }
     // open or create file
     const { includeInstructions, defaultFolderName } = DataStore.settings
     const instructions = includeInstructions

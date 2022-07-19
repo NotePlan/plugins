@@ -33,5 +33,3 @@ export type PartialCalendarItem = {
   type: string,
   availability: number,
 }
-
-export type EditorOrNote = TEditor | TNote

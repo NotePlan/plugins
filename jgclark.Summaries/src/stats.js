@@ -9,27 +9,13 @@
 // Helper functions
 
 import pluginJson from '../plugin.json'
-import {
-  calcHashtagStatsPeriod,
-  calcMentionStatsPeriod,
-  getSummariesSettings,
-} from './summaryHelpers'
-import {
-  getWeek,
-  unhyphenatedDate,
-} from '@helpers/dateTime'
-import { getPeriodStartEndDates } from '@helpers/NPdateTime'
+import { calcHashtagStatsPeriod, calcMentionStatsPeriod, getSummariesSettings } from './summaryHelpers'
+import { getWeek, unhyphenatedDate } from '@helpers/dateTime'
+import { getPeriodStartEndDates } from '@helpers/NPDateTime'
 import { log, logError } from '@helpers/dev'
-import {
-  CaseInsensitiveMap,
-  displayTitle,
-} from '@helpers/general'
-import {
-  getOrMakeNote,
-  printNote,
-  replaceSection,
-} from '@helpers/note'
-// import { logAllEnvironmentSettings } from '@helpers/NPdev'
+import { CaseInsensitiveMap, displayTitle } from '@helpers/general'
+import { getOrMakeNote, printNote, replaceSection } from '@helpers/note'
+// import { logAllEnvironmentSettings } from '@helpers/NPDev'
 import { caseInsensitiveCompare } from '@helpers/sorting'
 import {
   chooseOption,
@@ -42,7 +28,7 @@ import {
 /**
  * Ask user which period to cover, call main stats function accordingly, and present results
  * @author @jgclark
-*/
+ */
 export async function statsPeriod(): Promise<void> {
   // log(pluginJson, `Contents of NotePlan.environment...:`)
   // logAllEnvironmentSettings()
@@ -51,7 +37,7 @@ export async function statsPeriod(): Promise<void> {
   const config = await getSummariesSettings()
 
   // Get time period
-  const [fromDate, toDate, periodType, periodString, periodPartStr] = await getPeriodStartEndDates()  
+  const [fromDate, toDate, periodType, periodString, periodPartStr] = await getPeriodStartEndDates()
   if (fromDate == null || toDate == null) {
     log(pluginJson, 'statsPeriod: error in calculating dates for chosen time period')
     return
@@ -63,8 +49,8 @@ export async function statsPeriod(): Promise<void> {
   // Calc hashtags stats (returns two maps)
   const hOutputArray = []
   let results = await calcHashtagStatsPeriod(fromDateStr, toDateStr, config.includeHashtags, config.excludeHashtags)
-  const hCounts: CaseInsensitiveMap<number> = results?.[0] ?? new CaseInsensitiveMap < number >
-  const hSumTotals: CaseInsensitiveMap<number> = results?.[1] ?? new CaseInsensitiveMap < number >
+  const hCounts: CaseInsensitiveMap<number> = results?.[0] ?? new CaseInsensitiveMap<number>()
+  const hSumTotals: CaseInsensitiveMap<number> = results?.[1] ?? new CaseInsensitiveMap<number>()
   if (hSumTotals == null || hCounts == null) {
     log(pluginJson, `no matching hashtags found in ${periodString}`)
     return
@@ -100,8 +86,8 @@ export async function statsPeriod(): Promise<void> {
   // Calc mentions stats (returns two maps)
   const mOutputArray = []
   results = await calcMentionStatsPeriod(fromDateStr, toDateStr, config.includeMentions, config.excludeMentions)
-  const mCounts: CaseInsensitiveMap<number> = results?.[0] ?? new CaseInsensitiveMap < number >
-  const mSumTotals: CaseInsensitiveMap<number> = results?.[1] ?? new CaseInsensitiveMap < number >
+  const mCounts: CaseInsensitiveMap<number> = results?.[0] ?? new CaseInsensitiveMap<number>()
+  const mSumTotals: CaseInsensitiveMap<number> = results?.[1] ?? new CaseInsensitiveMap<number>()
   if (mCounts == null || mSumTotals == null) {
     log(pluginJson, `no matching mentions found in ${periodString}`)
     return
@@ -152,11 +138,7 @@ export async function statsPeriod(): Promise<void> {
     //   break
     // }
   }
-  const destination = await chooseOption(
-    `Where to save the summary for ${periodString}?`,
-    outputOptions,
-    'note',
-  )
+  const destination = await chooseOption(`Where to save the summary for ${periodString}?`, outputOptions, 'note')
 
   // Ask where to send the results
   switch (destination) {
@@ -166,22 +148,17 @@ export async function statsPeriod(): Promise<void> {
         logError(pluginJson, `No note is open. Stopping.`)
       } else {
         log(pluginJson, `appending results to current note (${currentNote.filename ?? ''})`)
-        currentNote.appendParagraph(
-          `${config.hashtagCountsHeading} for ${periodString} at ${periodPartStr}`,
-          'text',
-        )
+        currentNote.appendParagraph(`${config.hashtagCountsHeading} for ${periodString} at ${periodPartStr}`, 'text')
         currentNote.appendParagraph(hOutputArray.join('\n'), 'text')
-        currentNote.appendParagraph(
-          `${config.mentionCountsHeading} for ${periodString} at ${periodPartStr}`,
-          'empty',
-        )
+        currentNote.appendParagraph(`${config.mentionCountsHeading} for ${periodString} at ${periodPartStr}`, 'empty')
         currentNote.appendParagraph(mOutputArray.join('\n'), 'text')
         log(pluginJson, `appended results to current note`)
       }
       break
     }
 
-    case 'note': { // Summaries note
+    case 'note': {
+      // Summaries note
       const note = await getOrMakeNote(periodString, config.folderToStore)
       if (note == null) {
         logError(pluginJson, `Cannot get new note`)
@@ -190,14 +167,10 @@ export async function statsPeriod(): Promise<void> {
       }
 
       // Replace or add Hashtag counts section
-      replaceSection(note, config.hashtagCountsHeading,
-        `${config.hashtagCountsHeading} ${periodPartStr}`,
-        config.headingLevel, hOutputArray.join('\n'))
+      replaceSection(note, config.hashtagCountsHeading, `${config.hashtagCountsHeading} ${periodPartStr}`, config.headingLevel, hOutputArray.join('\n'))
 
       // Replace or add Mentions counts section
-      replaceSection(note, config.mentionCountsHeading,
-        `${config.mentionCountsHeading} ${periodPartStr}`,
-        config.headingLevel, mOutputArray.join('\n'))
+      replaceSection(note, config.mentionCountsHeading, `${config.mentionCountsHeading} ${periodPartStr}`, config.headingLevel, mOutputArray.join('\n'))
       // open this note in the Editor
       Editor.openNoteByFilename(note.filename)
 
@@ -205,7 +178,8 @@ export async function statsPeriod(): Promise<void> {
       break
     }
 
-    case 'weekly': { // Weekly note (from v3.6)
+    case 'weekly': {
+      // Weekly note (from v3.6)
       const todaysDate = new Date()
       const y = todaysDate.getFullYear()
       const w = getWeek(todaysDate)

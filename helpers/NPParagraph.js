@@ -1,7 +1,7 @@
 // @flow
 
 import { hyphenatedDate } from './dateTime'
-import { toLocaleDateTimeString } from './NPdateTime'
+import { toLocaleDateTimeString } from './NPDateTime'
 import { JSP, log, logError, logWarn } from './dev'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote, isTermInMarkdownPath, isTermInURL } from './paragraph'
 
