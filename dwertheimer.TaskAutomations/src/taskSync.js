@@ -10,12 +10,14 @@ import { sortListBy } from '../../helpers/sorting'
 import { getTasksByType } from './taskHelpers'
 import { clo, JSP, log, logError } from '@helpers/dev'
 import { inFolderList } from '@helpers/general'
+import { selectFirstNonTitleLineInEditor } from '@helpers/NPnote'
 import { removeDuplicateSyncedLines } from '@helpers/paragraph'
 import { getSyncedCopiesAsList } from '@helpers/NPSyncedCopies'
 import { replaceContentUnderHeading } from '@helpers/NPParagraph'
 
 // eslint-disable-next-line max-len
 export async function searchForTasks(searchString: string, types: Array<string>, inFolders: Array<string>, notInFolders: Array<string>): Promise<$ReadOnlyArray<TParagraph>> {
+  log(pluginJson, `${String(searchString)} ${String(types)} ${String(inFolders)} ${String(notInFolders)}`)
   const data = await DataStore.search(searchString)
   // FIXME: when @eduard fixes the API, can use the following line (needs testing)
   // const data = await DataStore.search(searchString, types.length ? types : ['calendar', 'notes'], inFolders.length ? inFolders : null, notInFolders.length ? notInFolders : null)
@@ -145,10 +147,12 @@ export async function taskSync(
       if (note?.content?.length && note?.content?.length > 2) {
         log(pluginJson, `Found existing note with content, replacing content under ${link}`)
         await replaceContentUnderHeading(note, link, body, false, 2)
+        selectFirstNonTitleLineInEditor()
       } else {
         log(pluginJson, `Note exists but had no content ("${String(note?.content) || ''}"), adding content`)
         note.content = `# ${title}${whatFolders}\n## ${link}\n${body}\n---${instructions}\n`
         log(pluginJson, `note.content set to: >>>\n# ${searchFor}\n## ${link}\n${body}---${instructions}\n<<<`)
+        selectFirstNonTitleLineInEditor()
       }
       // note ? (note.content = content) : ''
     } else {

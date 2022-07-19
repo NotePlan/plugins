@@ -1,21 +1,23 @@
+// @flow
+
 /* eslint-disable max-len */
 /* eslint-disable no-unused-vars */
-import { fieldSorter } from '../../helpers/sorting'
 import { hyphenatedDateString } from './dateHelpers'
-import { clo, copyObject } from '../../helpers/dev'
+import { fieldSorter } from '@helpers/sorting'
+import { clo, copyObject } from '@helpers/dev'
 
-export const HASHTAGS = /\B#([a-zA-Z0-9\/]+\b)/g
-export const MENTIONS = /\B@([a-zA-Z0-9\/]+\b)/g
-const EXCLAMATIONS = /\B(!+\B)/g
-const PARENS_PRIORITY = /^\s*\(([a-zA-z])\)\B/g // must be at start of content
-export const TASK_TYPES = ['open', 'scheduled', 'done', 'cancelled']
+export const HASHTAGS: RegExp = /\B#([a-zA-Z0-9\/]+\b)/g
+export const MENTIONS: RegExp = /\B@([a-zA-Z0-9\/]+\b)/g
+const EXCLAMATIONS: RegExp = /\B(!+\B)/g
+const PARENS_PRIORITY: RegExp = /^\s*\(([a-zA-z])\)\B/g // must be at start of content
+export const TASK_TYPES: Array<string> = ['open', 'scheduled', 'done', 'cancelled']
 
-export function getElementsFromTask(content, reSearch) {
+export function getElementsFromTask(content: string, reSearch: RegExp): Array<string> {
   const found = []
   let matches = reSearch.exec(content)
 
   do {
-    if (matches?.length > 1) {
+    if (matches !== null && matches.length > 1) {
       found.push(matches[1].trim())
     }
   } while ((matches = reSearch.exec(content)) !== null)
@@ -25,7 +27,7 @@ export function getElementsFromTask(content, reSearch) {
 /*
  * Get numeric priority level based on !!! or (B)
  */
-function getNumericPriority(item) {
+function getNumericPriority(item: SortableParagraph): number {
   let prio = -1
   if (item.exclamations[0]) {
     prio = item.exclamations[0].length
@@ -42,28 +44,59 @@ const hasTypedDate = (t) => (/>\d{4}-\d{2}-\d{2}/g.test(t.content) ? t.date : nu
 
 // Note: nmn.sweep limits how far back you look with: && hyphenatedDateString(p.date) >= afterHyphenatedDate,
 // For now, we are assuming that sweep was already done, and we're just looking at this one note
-export const isOverdue = (t) => {
+export const isOverdue = (t: TParagraph): boolean => {
   let theDate = null
   if (t.type === 'scheduled') theDate = t.date
   if (t.type === 'open') theDate = hasTypedDate(t)
-  return theDate && hyphenatedDateString(theDate) < hyphenatedDateString(new Date())
+  return theDate == null ? false : hyphenatedDateString(theDate) < hyphenatedDateString(new Date())
 }
 
 /*
  * @param paragraphs array
  * @return filtered list of overdue tasks
  */
-export const getOverdueTasks = (paras) => paras.filter((p) => isOverdue(p))
+export const getOverdueTasks = (paras: Array<TParagraph>): Array<TParagraph> => paras.filter((p) => isOverdue(p))
 
-/*
- * @param Paragraphs array
- * @return tasks object of tasks by type {'open':[], 'scheduled'[], 'done':[], 'cancelled':[]}
+export type SortableParagraph = {
+  content: string,
+  index: number,
+  raw: string,
+  hashtags: Array<string>,
+  mentions: Array<string>,
+  exclamations: Array<string>,
+  parensPriority: Array<string>,
+  priority?: number,
+  filename: string,
+  indents: number,
+  children: Array<SortableParagraph>,
+  paragraph: ?TParagraph,
+}
+
+export type GroupedTasks = {
+  open?: Array<SortableParagraph>,
+  scheduled?: Array<SortableParagraph>,
+  cancelled?: Array<SortableParagraph>,
+  done?: Array<SortableParagraph>,
+  title?: Array<SortableParagraph>,
+  quote?: Array<SortableParagraph>,
+  list?: Array<SortableParagraph>,
+  empty?: Array<SortableParagraph>,
+  text?: Array<SortableParagraph>,
+  code?: Array<SortableParagraph>,
+  separator?: Array<SortableParagraph>,
+}
+
+/**
+ * Sort paragraphs into groups of like types (open, scheduled, done, cancelled, etc.) for task sorting
+ * @param {Array<Paragraph>} paragraphs - array of paragraph objects input
+ * @param {boolean} ignoreIndents - whether to pay attention to child/indented paragraphs
+ * @returns {GroupedTasks} - object of tasks by type {'open':[], 'scheduled'[], 'done':[], 'cancelled':[], etc.}
  */
-export function getTasksByType(paragraphs: Array<Paragraph>, ignoreIndents: boolean = false) {
-  const tasks = {}
+export function getTasksByType(paragraphs: Array<Paragraph>, ignoreIndents: boolean = false): GroupedTasks {
+  const tasks = { open: [], scheduled: [], done: [], cancelled: [], title: [], quote: [], list: [], empty: [], text: [], code: [], separator: [] }
   // * @type {"open", "done", "scheduled", "cancelled", "title", "quote", "list" (= bullet), "empty" (no content) or "text" (= plain text)}
   TASK_TYPES.forEach((t) => (tasks[t] = []))
-  let lastParent = { indents: 999 }
+  let lastParent = { indents: 999, children: [] }
   // clo(paragraphs, 'getTasksByType')
   for (let index = 0; index < paragraphs.length; index++) {
     // console.log(`getTasksByType paragraphs.length:${paragraphs.length}`)
@@ -79,7 +112,7 @@ export function getTasksByType(paragraphs: Array<Paragraph>, ignoreIndents: bool
         const mentions = getElementsFromTask(content, MENTIONS)
         const exclamations = getElementsFromTask(content, EXCLAMATIONS)
         const parensPriority = getElementsFromTask(content, PARENS_PRIORITY)
-        const task = {
+        const task: SortableParagraph = {
           content: para.content,
           index,
           raw: para.rawContent,
@@ -87,7 +120,7 @@ export function getTasksByType(paragraphs: Array<Paragraph>, ignoreIndents: bool
           mentions,
           exclamations,
           parensPriority,
-          filename: para.filename,
+          filename: para?.filename || '',
           indents: para.indents,
           children: [],
           paragraph: para,
