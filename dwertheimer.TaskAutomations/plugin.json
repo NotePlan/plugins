@@ -1,10 +1,11 @@
 {
-  "noteplan.minAppVersion": "3.0.23", 
+  "noteplan.minAppVersion": "3.6.1", 
   "plugin.id": "dwertheimer.TaskAutomations", 
   "plugin.name": "✅ Task Automations", 
   "plugin.description": "Functions for handling Tasks", 
   "plugin.author": "@dwertheimer",
-  "plugin.version": "1.6.2", 
+  "plugin.version": "2.0.0", 
+  "plugin.lastUpdateInfo": "2.0.0: Added autoupdates and URL opening",
   "plugin.dependencies": [ ], 
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.TaskAutomations/readme.md",
@@ -53,6 +54,36 @@
       "name": "ctt - Copy line for each hashtag", 
       "description": "Copy line for each #hashtag, listing it first",
       "jsFunction": "copyLineForEachHashtag"
+    },
+    {
+      "name": "task sync", 
+      "description": "Create synced copies of tasks from frontmatter fields",
+      "jsFunction": "taskSync",
+      "hidden": true,
+      "arguments": [ 
+        "search string",
+        "type of notes to search in (['calendar', 'notes'])",
+        "types of tasks to include (['open', 'scheduled', 'done', 'cancelled'])",
+        "fields to sort by (['date', '-priority', 'title']) (minus at front for descending order)",
+        "filename to save the output to (with or without the file extension)",
+        "folders to look in",
+        "folder to ignore",
+        "heading-TBD"]
+    },
+    {
+      "name": "open todos containing links in browser",
+      "alias": [
+      ],
+      "description": "Open URLs in open todo items on the page",
+      "jsFunction": "openIncompleteLinksInNote"
+    },
+    {
+      "name": "open URL on this line",
+      "alias": [
+        "openurl","launch"
+      ],
+      "description": "Open the URL on the current line in the default browser",
+      "jsFunction": "openURLOnLine"
     }
   ],
   "disabled": [
@@ -61,5 +92,26 @@
       "description": "Open Tasks to Top - Bring open tasks in note to top", 
       "jsFunction": "openTasksToTop"
     }  
+  ],
+  "plugin.settings": [
+    {
+      "type": "heading",
+      "title": "Task Sync Output Settings"
+    },
+    {
+      "key": "includeInstructions",
+      "type": "bool",
+      "default": true,
+      "title": "Include Reminder Text in Output",
+      "description": "By default, there is text appended to the note reminding you not to add content in the search results (because it will be overwritten). This setting allows you to suppress that instruction if you will remember it on your own."
+    },
+    {
+      "key": "defaultFolderName",
+      "type": "string",
+      "default": "@OpenTaskSync",
+      "required": true,
+      "title": "Default Folder Name",
+      "description": "If no filename is provided, a filename will be generated from the search string and the results will be saved in this folder. Setting a filename overrides this setting."
+    }
   ]
 } 

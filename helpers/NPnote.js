@@ -28,10 +28,7 @@ export async function convertNoteToFrontmatter(note: TNote, defaultText?: string
   // Get title
   const firstLine = note.paragraphs[0]
   if (firstLine.content === '---') {
-    logError(
-      'note/convertToFrontmatter',
-      `'${displayTitle(note)}' appears to already use frontmatter. Stopping conversion.`,
-    )
+    logError('note/convertToFrontmatter', `'${displayTitle(note)}' appears to already use frontmatter. Stopping conversion.`)
     await showMessage(`Cannot convert '${displayTitle(note)}' as it already appears to use frontmatter.`)
     return
   }
@@ -62,9 +59,7 @@ export function findAndUpdateDatePlusTags(openOnly: boolean = true, foldersToIgn
   const start = new Date()
   let notesWithDates = [...DataStore.projectNotes, ...DataStore.calendarNotes].filter((n) => n?.datedTodos?.length > 0)
   if (foldersToIgnore) {
-    notesWithDates = notesWithDates.filter((note) =>
-      foldersToIgnore.every((skipFolder) => !note.filename.includes(`${skipFolder}/`)),
-    )
+    notesWithDates = notesWithDates.filter((note) => foldersToIgnore.every((skipFolder) => !note.filename.includes(`${skipFolder}/`)))
   }
   log(`NPNote::findAndUpdateDatePlusTags`, `total notesWithDates: ${notesWithDates.length}`)
   let updatedParas = []
@@ -74,12 +69,28 @@ export function findAndUpdateDatePlusTags(openOnly: boolean = true, foldersToIgn
       if (updates.length > 0) {
         updatedParas = updatedParas.concat(updates)
         note?.updateParagraphs(updatedParas)
-        log(
-          `NPNote::findAndUpdateDatePlusTags`,
-          `Updated ${updates.length} todos in note "${note.filename || ''}" ("${note.title || ''}")`,
-        )
+        log(`NPNote::findAndUpdateDatePlusTags`, `Updated ${updates.length} todos in note "${note.filename || ''}" ("${note.title || ''}")`)
       }
     }
   })
   log(`NPNote::findAndUpdateDatePlusTags`, `Total checkNoteForPlusDates scan took: ${timer(start)}`)
+}
+
+/**
+ * Select the first non-title line in Editor
+ * NotePlan will always show you the ## before a title if your cursor is on a title line, but
+ * this is ugly. And so in this function we find and select the first title line
+ * @author @dwertheimer
+ * @returns
+ */
+export function selectFirstNonTitleLineInEditor() {
+  if (Editor.content) {
+    for (let i = 0; i < Editor.paragraphs.length; i++) {
+      const line = Editor.paragraphs[i]
+      if (line.type !== 'title' && line?.contentRange && line.contentRange.start >= 0) {
+        Editor.select(line.contentRange.start, 0)
+        return
+      }
+    }
+  }
 }
