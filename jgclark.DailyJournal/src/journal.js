@@ -2,17 +2,17 @@
 //-----------------------------------------------------------------------------
 // Daily Journal plugin for NotePlan
 // Jonathan Clark
-// last update 13.3.2022 for v0.12.0+ by @jgclark
+// last update 17.7.2022 for v0.12.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json' 
-import { clo, log, logError } from '../../helpers/dev'
-import { displayTitle } from '../../helpers/general'
+import { clo, log, logError } from '@helpers/dev'
+import { displayTitle } from '@helpers/general'
 import {
   getInputTrimmed,
   isInt,
   showMessage
-} from '../../helpers/userInput'
+} from '@helpers/userInput'
 import NPTemplating from 'NPTemplating'
 
 //-----------------------------------------------------------------------------
@@ -28,14 +28,10 @@ type JournalConfigType = {
 }
 
 /**
- * Get or make config settings from _configuration, with no minimum required config
- * Updated for #ConfigV2
+ * Get or make config settings. Updated for #ConfigV2
  * @author @jgclark
  */
-async function getJournalSettings(): Promise<JournalConfigType> {
-  // Wish the following was possible:
-  // if (NotePlan.environment.version >= "3.4") {
-  
+async function getJournalSettings(): Promise<JournalConfigType> {  
   const tempConfig: JournalConfigType = DataStore.settings
   if ((tempConfig != null) && Object.keys(tempConfig).length > 0) {
     const config: JournalConfigType = tempConfig
@@ -43,7 +39,6 @@ async function getJournalSettings(): Promise<JournalConfigType> {
     return config
 
   } else {
-    // No longer support reading settings from _configuration
     logError(pluginJson, `couldn't read config for '${configKey}. Will use defaults instead.`)
     // Will just use defaults
     const config: JournalConfigType = {
@@ -90,10 +85,12 @@ export async function dayStart(today: boolean = false): Promise<void> {
   const config: JournalConfigType = await getJournalSettings()
 
   try {
-    const result = await NPTemplating.renderTemplate(config.templateTitle)
-    Editor.insertTextAtCursor(result)
+    // const result = await NPTemplating.renderTemplate(config.templateTitle) // early method
+    const result = await DataStore.invokePluginCommandByName('renderTemplate', 'np.Templating', [config.templateTitle]) // decoupled method of invoking a different plugin
+    // Editor.insertTextAtCursor(result) // previous method
+    Editor.insertTextAtCharacterIndex(result, 0) // insert at top
   } catch (error) {
-    logError(pluginJson, `${error} from todayStart() with template name '${config.templateTitle}'`)
+    logError(pluginJson, `(to)dayStart(): ${error} with template '${config.templateTitle}'`)
   }  
 }
 

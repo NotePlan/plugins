@@ -3,18 +3,19 @@
 //-----------------------------------------------------------------------------
 // Summary commands for notes
 // Jonathan Clark
-// Last updated 10.6.2022 for v0.1.0
+// Last updated 17.7.2022 for v0.2.1
 //-----------------------------------------------------------------------------
-
-export { makeMOC } from './MOCs'
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
-
 import { migrateConfiguration, updateSettingData } from '@helpers/NPConfiguration'
+import { showMessage } from '@helpers/userInput'
+
+export { makeMOC } from './MOCs'
 
 export function init(): void {
-  // Placeholder only
+  // In the background, see if there is an update to the plugin to install, and if so let user know
+  DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false)
 }
 
 export function onSettingsUpdated(): void {
@@ -23,12 +24,17 @@ export function onSettingsUpdated(): void {
 
 const configKey = 'mocs'
 
-// refactor previous variables to new types
-export async function onUpdateOrInstall(config: any = { silent: false }): Promise<void> {
+export async function onUpdateOrInstall(): Promise<void> {
   try {
     console.log(`${configKey}: onUpdateOrInstall running`)
-    const updateSettings = updateSettingData(pluginJson)
-    console.log(`${configKey}: onUpdateOrInstall updateSettingData code: ${updateSettings}`)
+    const updateSettingsResult = updateSettingData(pluginJson)
+    console.log(`${configKey}: onUpdateOrInstall updateSettingData code: ${updateSettingsResult}`)
+    // Tell user the plugin has been updated
+    if (pluginJson['plugin.lastUpdateInfo'] !== undefined) {
+      await showMessage(pluginJson['plugin.lastUpdateInfo'], 'OK, thanks',
+        `Plugin ${pluginJson['plugin.name']} updated to v${pluginJson['plugin.version']}`
+      )
+    }
   } catch (error) {
     console.log(error)
   }

@@ -3,32 +3,43 @@
 //-----------------------------------------------------------------------------
 // Daily Journal commands
 // Jonathan Clark
-// Last updated 4.2.22 for v0.11.2
+// Last updated 18.7.22 for v0.12.1
 //-----------------------------------------------------------------------------
-
-export { dayStart, dayReview, todayStart } from './journal'
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
+import { log, logError } from '@helpers/dev'
+import { updateSettingData } from '@helpers/NPConfiguration'
+import { showMessage } from '@helpers/userInput'
 
-// Moving to ConfigV2
-import { migrateConfiguration, updateSettingData } from '../../helpers/NPConfiguration'
+export { dayStart, dayReview, todayStart } from './journal'
 
-const PLUGIN_ID = 'dailyJournal'
+export function init(): void {
+  // In the background, see if there is an update to the plugin to install, and if so let user know
+  DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false)
+}
 
-// refactor previous variables to new types
-export async function onUpdateOrInstall(config: any = { silent: false }): Promise<void> {
+export function onSettingsUpdated(): void {
+  // Placeholder only to stop error in logs
+}
+
+const configKey = 'dailyJournal'
+
+export async function onUpdateOrInstall(): Promise<void> {
   try {
-    console.log(`${PLUGIN_ID}: onUpdateOrInstall running`)
-    // migrate _configuration data to data/<plugin>/settings.json (only executes migration once)
-    const migrationResult: number = await migrateConfiguration(PLUGIN_ID, pluginJson, config?.silent)
-    console.log(`${PLUGIN_ID}: onUpdateOrInstall migrateConfiguration code: ${migrationResult}`)
-    if (migrationResult === 0) {
-      const updateSettings = updateSettingData(pluginJson)
-      console.log(`${PLUGIN_ID}: onUpdateOrInstall updateSettingData code: ${updateSettings}`)
+    log(pluginJson, `${configKey}: onUpdateOrInstall running`)
+    // Try updating settings data
+    const updateSettings = updateSettingData(pluginJson)
+    log(pluginJson, `${configKey}: onUpdateOrInstall updateSettingData code: ${updateSettings}`)
+
+    // Tell user the plugin has been updated
+    if (pluginJson['plugin.lastUpdateInfo'] !== 'undefined') {
+      await showMessage(pluginJson['plugin.lastUpdateInfo'], 'OK, thanks',
+        `Plugin ${pluginJson['plugin.name']}\nupdated to v${pluginJson['plugin.version']}`
+      )
     }
   } catch (error) {
-    console.log(error)
+    logError(pluginJson, error)
   }
-  console.log(`${PLUGIN_ID}: onUpdateOrInstall finished`)
+  log(pluginJson, `${configKey}: onUpdateOrInstall finished`)
 }

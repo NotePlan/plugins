@@ -1382,16 +1382,19 @@ declare interface CoreNoteFields {
    * Get or set the array of paragraphs contained in this note, such as tasks,
    * bullets, etc. If you set the paragraphs, the content of the note will be
    * updated.
+   * TODO: Should this really be $ReadOnlyArray?
    */
   paragraphs: $ReadOnlyArray<TParagraph>;
   /**
    * Inserts the given text at the given character position (index)
+   * Note: this is not quite the same as Editor.insertTextAtCharacterIndex()
    * @param text 	  - Text to insert
    * @param index   - Position to insert at (you can get this using 'renderedSelection' for example)
    */
   insertTextInCharacterIndex(text: string, index: number): void;
   /**
    * Replaces the text at the given range with the given text
+   * Note: this is not quite the same name as Editor.replaceTextInCharacterRange()
    * @param text 	    - Text to insert
    * @param location  - Position to insert at (you can get this using 'renderedSelection' for example)
    * @param length    - Amount of characters to replace from the location
@@ -1484,64 +1487,64 @@ declare interface CoreNoteFields {
 
   /**
    * Appends a todo below the given heading index (at the end of existing text)
-   * @param title - Text of the todo
-   * @param headingLineIndex - Line index of the heading (get the line index from a paragraph object)
+   * @param {string} title - Text of the todo
+   * @param {number} headingLineIndex - Line index of the heading (get the line index from a paragraph object)
    */
   appendTodoBelowHeadingLineIndex(title: string, headingLineIndex: number): void;
 
   /**
    * Appends a paragraph below the given heading index (at the end of existing text)
-   * @param title - Text of the paragraph
-   * @param paragraphType
-   * @param headingLineIndex - Line index of the heading (get the line index from a paragraph object)
+   * @param {string} title - Text of the paragraph
+   * @param {paragraphType} paragraphType
+   * @param {number} headingLineIndex - Line index of the heading (get the line index from a paragraph object)
    */
   appendParagraphBelowHeadingLineIndex(title: string, paragraphType: ParagraphType, headingLineIndex: number): void;
 
   /**
    * Inserts a todo after a given paragraph
-   * @param title - Text of the paragraph
-   * @param otherParagraph - Another paragraph, get it from `.paragraphs`
+   * @param {string} title - Text of the paragraph
+   * @param {TParagraph} otherParagraph - Another paragraph, get it from `.paragraphs`
    */
   insertTodoAfterParagraph(title: string, otherParagraph: TParagraph): void;
 
   /**
    * Inserts a todo before a given paragraph
-   * @param title - Text of the paragraph
-   * @param otherParagraph - Another paragraph, get it from `.paragraphs`
+   * @param {string} title - Text of the paragraph
+   * @param {TParagraph} otherParagraph - Another paragraph, get it from `.paragraphs`
    */
   insertTodoBeforeParagraph(title: string, otherParagraph: TParagraph): void;
 
   /**
    * Inserts a paragraph after a given paragraph
-   * @param title - Text of the paragraph
-   * @param otherParagraph - Another paragraph, get it from `.paragraphs`
-   * @param paragraphType
+   * @param {string} title - Text of the paragraph
+   * @param {TParagraph} otherParagraph - Another paragraph, get it from `.paragraphs`
+   * @param {paragraphType} paragraphType
    */
   insertParagraphAfterParagraph(title: string, otherParagraph: TParagraph, paragraphType: ParagraphType): void;
 
   /**
    * Inserts a paragraph before a given paragraph
-   * @param title - Text of the paragraph
-   * @param otherParagraph - Another paragraph, get it from `.paragraphs`
-   * @param paragraphType
+   * @param {string} title - Text of the paragraph
+   * @param {TParagraph} otherParagraph - Another paragraph, get it from `.paragraphs`
+   * @param {paragraphType} paragraphType
    */
   insertParagraphBeforeParagraph(title: string, otherParagraph: TParagraph, paragraphType: ParagraphType): void;
 
   /**
    * Removes a paragraph at a given line index
-   * @param lineIndex - Line index of the paragraph
+   * @param {number} lineIndex - Line index of the paragraph
    */
   removeParagraphAtIndex(lineIndex: number): void;
 
   /**
    * Removes a given paragraph
-   * @param paragraph - Paragraph object to remove, get it from `.paragraphs`
+   * @param {TParagraph} paragraph - Paragraph object to remove, get it from `.paragraphs`
    */
   removeParagraph(paragraph: TParagraph): void;
 
   /**
    * Removes given paragraphs
-   * @param paragraphs - Array of Paragraph object to remove, get it from `.paragraphs`
+   * @param {Array<TParagraph>} paragraphs - Array of Paragraph object to remove, get it from `.paragraphs`
    */
   removeParagraphs(paragraphs: $ReadOnlyArray<TParagraph>): void;
 
@@ -1553,15 +1556,16 @@ declare interface CoreNoteFields {
 
   /**
    * Updates an array paragraphs. Get the paragraphs, then modify them and update the text in the note or editor using this method.
-   * @param paragraphs - Paragraph objects to update, get it from `.paragraphs`
+   * @param {Array<TParagraph>} paragraphs - Paragraph objects to update, get it from `.paragraphs`
+   * TODO: Should this really be $ReadOnlyArray?
    */
   updateParagraphs(paragraphs: $ReadOnlyArray<TParagraph>): void;
 
   /**
    * Replaces the text at the given range with the given text
-   * @param text - Text to insert
-   * @param location - Position to insert at (you can get this using 'renderedSelection' for example)
-   * @param length - Amount of characters to replace from the location
+   * @param {string} text - Text to insert
+   * @param {number} location - Position to insert at (you can get this using 'renderedSelection' for example)
+   * @param {number} length - Amount of characters to replace from the location
    */
   replaceTextInCharacterRange(text: string, location: number, length: number): void;
   /**
