@@ -265,7 +265,7 @@ export function findEndOfActivePartOfNote(note: CoreNoteFields): number {
 export function endOfFrontmatterLineIndex(note: CoreNoteFields): number {
   const paras = note.paragraphs
   const lineCount = paras.length
-  console.log(`starting with lineCount = ${lineCount}`)
+  log(`paragraph.js::endOfFrontmatterLineIndex`, `total paragraphs in note (lineCount) = ${lineCount}`)
   let inFrontMatter: boolean = false
   let lineIndex = 0
   while (lineIndex < lineCount) {
