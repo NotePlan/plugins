@@ -19,7 +19,7 @@ export function caseInsensitiveCompare(a: string, b: string): number {
  * @param {Array<string> | string} objectPropertySortOrder - field names to sort by -- either a single string or an array of strings/sort-order
  * @return the sorted task list
  */
-export function sortListBy(list: Array<mixed>, objectPropertySortOrder: Array<string> | string): Array<mixed> {
+export function sortListBy<T>(list: Array<T>, objectPropertySortOrder: Array<string> | string): Array<T> {
   const sortBy = typeof objectPropertySortOrder === 'string' ? [objectPropertySortOrder] : objectPropertySortOrder
   list.sort(fieldSorter(sortBy))
   return list

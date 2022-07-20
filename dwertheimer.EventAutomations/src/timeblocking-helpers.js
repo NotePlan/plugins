@@ -1,17 +1,19 @@
 // @flow
 import { endOfDay, startOfDay, eachMinuteOfInterval, formatISO9075, addMinutes, differenceInMinutes } from 'date-fns'
-import { getDateObjFromDateTimeString, getTimeStringFromDate, removeDateTagsAndToday } from '../../helpers/dateTime'
-import { sortListBy } from '../../helpers/sorting'
-import { getTodaysDateHyphenated } from '../../helpers/dateTime'
-import { returnNoteLink, createPrettyOpenNoteLink } from '../../helpers/general'
-import { textWithoutSyncedCopyTag } from '../../helpers/syncedCopies'
-import { logError, JSP, copyObject } from '../../helpers/dev'
+import type { IntervalMap, OpenBlock, BlockArray, TimeBlocksWithMap, BlockData, TimeBlockDefaults, PartialCalendarItem } from './timeblocking-flow-types'
+import type { AutoTimeBlockingConfig } from './config'
+import { getDateObjFromDateTimeString, getTimeStringFromDate, getTodaysDateHyphenated, removeDateTagsAndToday } from '@helpers/dateTime'
+import { sortListBy } from '@helpers/sorting'
+import { returnNoteLink, createPrettyOpenNoteLink } from '@helpers/general'
+import { textWithoutSyncedCopyTag } from '@helpers/syncedCopies'
+import { logError, JSP, copyObject, clo } from '@helpers/dev'
 
 // import { timeblockRegex1, timeblockRegex2 } from '../../helpers/markdown-regex'
-import type { IntervalMap, OpenBlock, BlockArray, TimeBlocksWithMap, BlockData, TimeBlockDefaults, PartialCalendarItem } from './timeblocking-flow-types'
 
 // A read-write expansion of Paragraph
-export interface ExtendedParagraph extends Paragraph {}
+export interface ExtendedParagraph extends Paragraph {
+  title: string;
+}
 
 /**
  * Create a map of the time intervals for a portion of day
@@ -23,8 +25,7 @@ export interface ExtendedParagraph extends Paragraph {}
  */
 export function createIntervalMap(time: { start: Date, end: Date }, valueToSet: false | string = false, options: { step: number } = { step: 5 }): IntervalMap {
   const { start, end } = time
-  if (options?.step > 0) {
-    // $FlowFixMe - incompatible with undefined
+  if (options && options.step && options.step > 0) {
     const intervals = eachMinuteOfInterval({ start, end }, options)
     return intervals.map((interval, i) => {
       const start = formatISO9075(interval).slice(0, -3)
@@ -129,7 +130,7 @@ export function getDurationFromLine(line: string, durationMarker: string): numbe
   const regex = durationRegEx(durationMarker)
   const match = regex.exec(line)
   let mins = 0
-  const duration = match ? match[0] : 0
+  // const duration = match ? match[0] : 0
   if (match) {
     const hours = match[2] ? Number(match[2]) : 0
     const minutes = match[4] ? Number(match[4]) : 0
@@ -140,23 +141,18 @@ export function getDurationFromLine(line: string, durationMarker: string): numbe
 
 /**
  * Remove >date and >today tags from a paragraphs array and return only the most important parts
+ * Note: rawContent is used later for mapping sorted tasks back to paragraphs
  * @author @dwertheimer
  *
  * @param {*} paragraphsArray
  * @returns
  */
-export function removeDateTagsFromArray(paragraphsArray: $ReadOnlyArray<Paragraph>): Array<Paragraph> | $ReadOnlyArray<Paragraph> {
+export function removeDateTagsFromArray(paragraphsArray: $ReadOnlyArray<TParagraph>): Array<TParagraph> | $ReadOnlyArray<TParagraph> {
   try {
-    const newPA = paragraphsArray.map((p, i): Paragraph => {
-      const copy: Paragraph = copyObject(p)
+    const newPA = paragraphsArray.map((p): any => {
+      const copy = copyObject(p)
       copy.content = removeDateTagsAndToday(p.content)
       copy.rawContent = removeDateTagsAndToday(p.rawContent)
-      // clo(
-      //   copy,
-      //   `copy.content: ${copy.content} after removeDateTagsAndToday: ${removeDateTagsAndToday(p.content)} on ${
-      //     p.content
-      //   }`,
-      // )
       return copy
     })
     return newPA
@@ -256,12 +252,6 @@ export function addMinutesToTimeText(startTimeText: string, minutesToAdd: number
   }
 }
 
-export function findOptimalTimeForEvent(timeMap: IntervalMap, todo: { [string]: [mixed] }, config: { [key: string]: any }): any {
-  const newMap = timeMap.map((t) => {})
-  return newMap
-  // TODO: FINISH HERE
-}
-
 /**
  * Blocks time for the block specified and returns a new IntervalMap, new BlockList, and new TextList of time blocks
  * @param {*} tbm
@@ -283,7 +273,7 @@ interface ParagraphWithDuration extends Paragraph {
 }
 
 export function matchTasksToSlots(sortedTaskList: Array<ParagraphWithDuration>, tmb: TimeBlocksWithMap, config: { [key: string]: any }): TimeBlocksWithMap {
-  const { timeMap, blockList: incomingBlockList } = tmb
+  const { timeMap } = tmb
   let newMap = filterTimeMapToOpenSlots(timeMap, config)
   let newBlockList = findTimeBlocks(newMap, config)
   const { durationMarker } = config
@@ -346,7 +336,7 @@ export function matchTasksToSlots(sortedTaskList: Array<ParagraphWithDuration>, 
  * @param { * } config
  * @returns
  */
-export function appendLinkIfNecessary(todos: $ReadOnlyArray<TParagraph>, config: { [key: string]: any }): Array<TParagraph> {
+export function appendLinkIfNecessary(todos: Array<ExtendedParagraph>, config: AutoTimeBlockingConfig): Array<ExtendedParagraph> {
   let todosWithLinks = []
   try {
     if (todos.length && config.includeLinks !== 'OFF') {
@@ -355,6 +345,7 @@ export function appendLinkIfNecessary(todos: $ReadOnlyArray<TParagraph>, config:
         if (e.type !== 'title') {
           let link = ''
           if (config.includeLinks === '[[internal#links]]') {
+            clo(e, `appendLinkIfNecessary, e:`)
             link = ` ${returnNoteLink(e.title ?? '', e.heading)}`
           } else {
             if (config.includeLinks === 'Pretty Links') {
@@ -456,25 +447,25 @@ export function getTimeBlockTimesForEvents(timeMap: IntervalMap, todos: Array<TP
  * Remove all the timeblock added text so as to not add it to the todo list (mostly for synced lines)
  * @param {*} line
  */
-export function isAutoTimeBlockLine(line: string, config?: { [key: string]: any }): null | string {
-  // otherwise, let's scan it for the ATB signature
-  // this is probably superfluous, but it's here for completeness
-  let re = /(?:[-|\*] \d{2}:\d{2}-\d{2}:\d{2} )(.*)(( \[.*\]\(.*\))|( \[\[.*\]\]))(?: #.*)/
-  let m = re.exec(line)
-  if (m && m[1]) {
-    return m[1]
-  }
-  return null
-}
+// export function isAutoTimeBlockLine(line: string, config?: { [key: string]: any }): null | string {
+//   // otherwise, let's scan it for the ATB signature
+//   // this is probably superfluous, but it's here for completeness
+//   let re = /(?:[-|\*] \d{2}:\d{2}-\d{2}:\d{2} )(.*)(( \[.*\]\(.*\))|( \[\[.*\]\]))(?: #.*)/
+//   let m = re.exec(line)
+//   if (m && m[1]) {
+//     return m[1]
+//   }
+//   return null
+// }
 
 /**
  * (unused)
  * Remove items from paragraph list that are auto-time-block lines
  * @param {*} paras
  */
-export function removeTimeBlockParas(paras: Array<TParagraph>): Array<TParagraph> {
-  return paras.filter((p) => !isAutoTimeBlockLine(p.content))
-}
+// export function removeTimeBlockParas(paras: Array<TParagraph>): Array<TParagraph> {
+//   return paras.filter((p) => !isAutoTimeBlockLine(p.content))
+// }
 
 // pattern could be a string or a /regex/ in a string
 export function getRegExOrString(input: string | RegExp): RegExp | string {
@@ -524,7 +515,7 @@ export function findTodosInNote(note: TNote): Array<ExtendedParagraph> {
   if (note.paragraphs) {
     note.paragraphs.forEach((p) => {
       if (isTodayItem(p.content) && p.type !== 'done') {
-        const newP = p
+        const newP = copyObject(p)
         newP.type = 'open' // Pretend it's a todo even if it's text or a listitem
         // $FlowIgnore
         newP.title = (p.filename ?? '').replace('.md', '').replace('.txt', '')
