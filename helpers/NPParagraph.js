@@ -7,7 +7,7 @@ import { findStartOfActivePartOfNote, findEndOfActivePartOfNote, isTermInMarkdow
 
 /**
  * Remove all headings (type=='title') from a note matching the given text
- * @param {TNote|TEditor} note
+ * @param {CoreNoteFields} note
  * @param {string} headingStr - the heading text to look for
  * @param {boolean} search rawText (headingStr above includes the #'s etc) default=false
  * @returns {void}
@@ -24,7 +24,7 @@ export function removeHeadingFromNote(note: TNote | TEditor, headingStr: string,
  * See getParagraphBlock below for definition of what constitutes a block an definition of useExtendedBlockDefinition
  * Optionally leave the title in place
  * @author @dwertheimer
- * @param {TNote|TEditor} note
+ * @param {CoreNoteFields} note
  * @param {TParagraph} para
  * @param {boolean} useExtendedBlockDefinition (default: false) // TODO(@dwertheimer): flow shows this isn't used
  * @param {boolean} keepHeading (default: true)
@@ -43,7 +43,7 @@ export function deleteEntireBlock(note: CoreNoteFields, para: TParagraph, _useEx
  * Given a heading (string), delete all the content of the block under this heading (optionally and the heading also)
  * See getParagraphBlock below for definition of what constitutes a block an definition of useExtendedBlockDefinition
  * (Note: if the heading occurs more than once, acts on the first one only)
- * @param {TNote|TEditor} note
+ * @param {CoreNoteFields} note
  * @param {string} heading
  * @param {boolean} useExtendedBlockDefinition (default: false)
  * @param {boolean} keepHeading - keep the heading after deleting contents (default: true)
@@ -60,7 +60,7 @@ export function removeContentUnderHeading(note: CoreNoteFields, heading: string,
 
 /**
  * Insert text content under a given title (string)
- * @param {TNote|TEditor} destNote
+ * @param {CoreNoteFields} destNote
  * @param {string} headingToFind - without the #
  * @param {string} parasAsText - text to insert (multiple lines, separated by newlines)
  * @param {number} headingLevel of the heading to insert where necessary (1-5, default 2)
@@ -87,14 +87,14 @@ export async function insertContentUnderHeading(destNote: CoreNoteFields, headin
 /**
  * Replace content under a given heading (string)
  * See getParagraphBlock below for definition of what constitutes a block an definition of useExtendedBlockDefinition
- * @param {TNote|TEditor} note
+ * @param {CoreNoteFields} note
  * @param {string} heading
  * @param {string} newContentText - text to insert (multiple lines, separated by newlines)
  * @param {boolean} useExtendedBlockDefinition
  * @param {number} headingLevel of the heading to insert where necessary (1-5, default 2)
  */
 export async function replaceContentUnderHeading(
-  note: TNote | TEditor,
+  note: CoreNoteFields,
   heading: string,
   newContentText: string,
   useExtendedBlockDefinition: boolean = false,
