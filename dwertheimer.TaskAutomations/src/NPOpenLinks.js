@@ -54,8 +54,10 @@ export async function openIncompleteLinksInNote() {
  */
 // eslint-disable-next-line require-await
 export async function openURLOnLine(incomingParagraph: TParagraph | null = null) {
-  const para = incomingParagraph ?? getParagraphContainingPosition(Editor.note, Editor.selection?.start || 0)
-  if (para) {
-    openLinksInParagraphs([para])
+  if (Editor.note) {
+    const para = incomingParagraph ?? getParagraphContainingPosition(Editor.note, Editor.selection?.start || 0)
+    if (para) {
+      openLinksInParagraphs([para])
+    }
   }
 }
