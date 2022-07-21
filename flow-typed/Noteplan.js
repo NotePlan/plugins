@@ -807,7 +807,13 @@ declare class CommandBar {
 }
 
 type CalendarDateUnit = 'year' | 'month' | 'day' | 'hour' | 'minute' | 'second'
+
 type DateRange = {
+  +start: Date,
+  +end: Date,
+}
+
+type ParsedTextDateRange = {
   /**
    * The start date of the parsed date text.
    */
@@ -885,7 +891,7 @@ declare class Calendar {
    *   - on Friday at 12
    * The function helpers/dateTime.js::isReallyAllDay() can be used to disambiguate
    */
-  static parseDateText(text: string): $ReadOnlyArray<DateRange>;
+  static parseDateText(text: string): $ReadOnlyArray<ParsedTextDateRange>;
   /**
    * Create a date object from parts. Like year could be 2021 as a number.
    * Note: month uses Swift counting (1-12) not Javascript counting (0-11).

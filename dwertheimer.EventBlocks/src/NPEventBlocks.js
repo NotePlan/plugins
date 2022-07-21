@@ -19,7 +19,7 @@ export type EventBlocksConfig = {
 
 type ConfirmedEvent = {
   revisedLine: string,
-  dateRangeInfo: DateRange,
+  dateRangeInfo: ParsedTextDateRange,
   paragraph: TParagraph,
   index: number,
 }
@@ -120,7 +120,7 @@ export async function chooseTheHeading(note: TNote): Promise<TParagraph | null> 
  * @param {*} potentials
  * @returns {object} returns a Range++ object for the correct time range
  */
-export async function confirmPotentialTimeChoice(text: string, potentials: any): Promise<DateRange> {
+export async function confirmPotentialTimeChoice(text: string, potentials: any): Promise<ParsedTextDateRange> {
   const opts = potentials.map((potential, i) => ({
     label: `${potential.start.toLocaleString()} (text: "${potential.text}")`,
     value: i,

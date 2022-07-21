@@ -14,10 +14,7 @@
 // NB: The actual detection allows for more time types than is mentioned in the docs.
 // ----------------------------------------------------------------------------
 
-import {
-  addMinutes,
-  differenceInMinutes
-} from 'date-fns'
+import { addMinutes, differenceInMinutes } from 'date-fns'
 import { keepTodayPortionOnly } from './calendar'
 import {
   getDateFromUnhyphenatedDateString,
@@ -25,7 +22,7 @@ import {
   type HourMinObj,
   // printDateRange,
   removeDateTagsAndToday,
-  todaysDateISOString
+  todaysDateISOString,
 } from './dateTime'
 import { clo, log, logError, logWarn } from './dev'
 import { displayTitle } from './general'
@@ -97,10 +94,7 @@ export async function chooseCalendar(calendars: $ReadOnlyArray<string>): Promise
  * @param {boolean} forceUserToChoose - if calendar is not set or not writeable, force use to choose a calendar (default: false)
  * @returns {string|null} either null for no changes required (use the calendar name passed in), or a new calendar name that was chosen by the user
  */
-export async function checkOrGetCalendar(
-  calendarName: string,
-  forceUserToChoose: boolean = false
-): Promise<string | null> {
+export async function checkOrGetCalendar(calendarName: string, forceUserToChoose: boolean = false): Promise<string | null> {
   let chosenCalendar = calendarName
   const writableCalendars: $ReadOnlyArray<string> = Calendar.availableCalendarTitles(true)
   if (writableCalendars.length) {
@@ -138,11 +132,7 @@ export async function checkOrGetCalendar(
  * @param {boolean} showLoadingProgress -- show progress counter while adding events
  * @author @jgclark
  */
-export async function writeTimeBlocksToCalendar(
-  config: EventsConfig,
-  note: TNote | TEditor,
-  showLoadingProgress: boolean = false
-): Promise<void> {
+export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNote | TEditor, showLoadingProgress: boolean = false): Promise<void> {
   const { paragraphs } = note
   if (paragraphs == null || note == null) {
     logWarn('NPCalendar/writeTimeBlocksToCalendar()', 'no content found')
@@ -210,15 +200,14 @@ export async function writeTimeBlocksToCalendar(
         }
         timeBlockString = `${datePart} ${timeBlockString}`
         // NB: parseDateText returns an array, so we'll use the first one as most likely
-        let timeblockDateRange = Calendar.parseDateText(timeBlockString)[0]
+        let timeblockDateRange = { ...Calendar.parseDateText(timeBlockString)[0] }
 
         if (timeblockDateRange) {
           // We have a valid timeblock, so let's make the event etc.
 
           // First see if this is a zero-length event, which happens when no end time
           // was specified. If we have a defaultEventDuration then use it.
-          if (differenceInMinutes(timeblockDateRange.start, timeblockDateRange.end) === 0
-            && config.defaultEventDuration > 0) {
+          if (differenceInMinutes(timeblockDateRange.start, timeblockDateRange.end) === 0 && config.defaultEventDuration > 0) {
             const newEndDate = addMinutes(timeblockDateRange.end, config.defaultEventDuration)
             timeblockDateRange = { start: timeblockDateRange.start, end: newEndDate }
           }
@@ -242,8 +231,8 @@ export async function writeTimeBlocksToCalendar(
               continue // go to next time block
             }
           }
-
-          const eventID = (await createEventFromDateRange(restOfTaskWithoutDateTime, timeblockDateRange, calendarToWriteTo)) ?? '<error getting eventID>'
+          const eventRange = {start: timeblockDateRange.start, end: timeblockDateRange.end}
+          const eventID = (await createEventFromDateRange(restOfTaskWithoutDateTime, eventRange, calendarToWriteTo)) ?? '<error getting eventID>'
 
           // Remove time block string (if wanted)
           let thisParaContent = thisPara.content
@@ -294,11 +283,7 @@ export async function writeTimeBlocksToCalendar(
  * @param {string} - calendarName: name of calendar to write to. Needs to be writable!
  * @return {string} Calendar ID of new event (or 'error')
  */
-async function createEventFromDateRange(
-  eventTitle: string,
-  dateRange: DateRange,
-  calendarName: string
-): Promise<string> {
+async function createEventFromDateRange(eventTitle: string, dateRange: DateRange, calendarName: string): Promise<string> {
   // log('', `\tStarting cEFDR with ${eventTitle} for calendar ${pref_calendarToWriteTo}`)
   // If we have a pref_calendarToWriteTo setting, then include that in the call
   const event: TCalendarItem = CalendarItem.create(

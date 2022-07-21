@@ -1,6 +1,8 @@
+// @flow
+
 import { addMinutes } from 'date-fns'
 import { getTimeBlockString, isTimeBlockLine } from '../../helpers/timeblocks'
-import { PartialCalendarItem } from './timeblocking-flow-types'
+import type { PartialCalendarItem } from './timeblocking-flow-types'
 
 /**
  * Scan note for user-entered timeblocks and return them as an array of Calendar Items
@@ -8,7 +10,7 @@ import { PartialCalendarItem } from './timeblocking-flow-types'
  * @param {*} defaultDuration
  * @returns
  */
-export function getExistingTimeBlocksFromNoteAsEvents(note: TEditor | TNote, defaultDuration: number): Array<PartialCalendarItem> {
+export function getExistingTimeBlocksFromNoteAsEvents(note: CoreNoteFields, defaultDuration: number): Array<PartialCalendarItem> {
   const timeBlocksAsEvents = []
   note.paragraphs.forEach((p) => {
     if (isTimeBlockLine(p.content)) {

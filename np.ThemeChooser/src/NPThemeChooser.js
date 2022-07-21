@@ -2,11 +2,9 @@
 // From the command line:
 // `noteplan-cli plugin:dev np.ThemeChooser --test --watch --coverage`
 
-import * as helpers from './support/helpers'
-import { log, logError, clo, JSP } from '@helpers/dev'
-import { createRunPluginCallbackUrl } from '@helpers/general'
-import { showMessage, showMessageYesNo, chooseOption } from '@helpers/userInput'
 import pluginJson from '../plugin.json'
+import { log, logError, clo, JSP } from '@helpers/dev'
+import { showMessage, showMessageYesNo, chooseOption } from '@helpers/userInput'
 import { setCommandDetailsForFunctionNamed, getCommandIndex } from '@helpers/config'
 import { getPluginJson, savePluginJson } from '@helpers/NPConfiguration'
 
@@ -16,7 +14,7 @@ const PRESET_DESC = `Switch Theme`
 export async function chooseTheme(incoming: ?string = ''): Promise<void> {
   // every command/plugin entry point should always be wrapped in a try/catch block
   try {
-    const settings = DataStore.settings // Plugin settings documentation: https://help.noteplan.co/article/123-plugin-configuration
+    // const settings = DataStore.settings // Plugin settings documentation: https://help.noteplan.co/article/123-plugin-configuration
     const themes = Editor.availableThemes
     if (incoming?.length) {
       const themeName = incoming.trim()
@@ -25,10 +23,7 @@ export async function chooseTheme(incoming: ?string = ''): Promise<void> {
         return
       } else {
         await showMessage(`Theme "${incoming}" does not seem to be installed.`)
-        log(
-          pluginJson,
-          `chooseTheme: Theme "${incoming}" does not seem to be installed. Installed = ${themes.toString()}`,
-        )
+        log(pluginJson, `chooseTheme: Theme "${incoming}" does not seem to be installed. Installed = ${themes.toString()}`)
       }
     }
     const selected = await getThemeChoice()
@@ -38,9 +33,9 @@ export async function chooseTheme(incoming: ?string = ''): Promise<void> {
   }
 }
 
-export async function getThemeChoice(lightOrDark: string = null): Promise<string> {
-  let themes = Editor.availableThemes
-  if (lightOrDark) {
+export async function getThemeChoice(lightOrDark: string = ''): Promise<string> {
+  const themes = Editor.availableThemes
+  if (lightOrDark !== '') {
     // would be nice to filter here, but how to read system themes?
   }
   const selection = await CommandBar.showOptions(themes, 'Choose a Theme')
@@ -49,12 +44,7 @@ export async function getThemeChoice(lightOrDark: string = null): Promise<string
 
 export async function saveThemeNameAsCommand(commandName: string, themeName: string) {
   if (themeName !== '') {
-    log(
-      pluginJson,
-      `NPThemeChooser::saveThemeNameAsCommand: setting: ${String(commandName)} to: ${String(
-        themeName,
-      )}; First will pull the existing plugin.json`,
-    )
+    log(pluginJson, `NPThemeChooser::saveThemeNameAsCommand: setting: ${String(commandName)} to: ${String(themeName)}; First will pull the existing plugin.json`)
     const livePluginJson = await getPluginJson(pluginJson['plugin.id'])
     const newPluginJson = setCommandDetailsForFunctionNamed(livePluginJson, commandName, themeName, PRESET_DESC, false)
     const settings = DataStore.settings
@@ -66,12 +56,14 @@ export async function saveThemeNameAsCommand(commandName: string, themeName: str
 
 export async function changePreset() {
   const livePluginJson = await getPluginJson(pluginJson['plugin.id'])
-  const commands = livePluginJson['plugin.commands']
-  const presetCommands = commands.filter((command) => command.description === PRESET_DESC)
-  const opts = presetCommands.map((command) => ({ label: command.name, value: command.jsFunction }))
-  const chosen = await chooseOption('Choose a preset to change', opts)
-  if (chosen) {
-    await presetChosen(chosen, true)
+  if (livePluginJson) {
+    const commands = livePluginJson['plugin.commands']
+    const presetCommands = commands.filter((command) => command.description === PRESET_DESC)
+    const opts = presetCommands.map((command) => ({ label: command.name, value: command.jsFunction }))
+    const chosen = await chooseOption('Choose a preset to change', opts)
+    if (chosen) {
+      await presetChosen(chosen, true)
+    }
   }
 }
 
@@ -79,7 +71,7 @@ export async function presetChosen(selectedItem: string, overwrite: boolean = fa
   const commandName = selectedItem
   const livePluginJson = await getPluginJson(pluginJson['plugin.id'])
   const index = getCommandIndex(livePluginJson, commandName)
-  if (index > -1) {
+  if (livePluginJson && index > -1) {
     const commandDetails = livePluginJson['plugin.commands'][index]
     log(pluginJson, `presetChosen: command.name = "${commandDetails.name}"`)
     const themeIsUnset = commandDetails.name.match(/Theme Chooser: Set Preset/)
@@ -87,9 +79,7 @@ export async function presetChosen(selectedItem: string, overwrite: boolean = fa
     if (themeIsUnset || overwrite) {
       const themeName = await getThemeChoice()
       await saveThemeNameAsCommand(commandName, themeName)
-      await showMessage(
-        `Menu command set to:\n"${themeName}"\nYou will find it in the CommandBar immediately, but won't see it in the menu until you restart NotePlan.`,
-      )
+      await showMessage(`Menu command set to:\n"${themeName}"\nYou will find it in the CommandBar immediately, but won't see it in the menu until you restart NotePlan.`)
     } else {
       Editor.setTheme(commandDetails.name)
       log(pluginJson, `Setting theme to: ${commandDetails.name}`)
@@ -117,9 +107,7 @@ export async function setDefaultLightDarkTheme() {
       } else {
         DataStore.setPreference('themeChooserDark', themeChoice)
       }
-      await showMessage(
-        `Default ${which} theme set to: ${themeChoice}. You may need to restart NotePlan to see it in action.`,
-      )
+      await showMessage(`Default ${which} theme set to: ${themeChoice}. You may need to restart NotePlan to see it in action.`)
     }
   } catch (error) {
     logError(pluginJson, JSP(error))
@@ -145,9 +133,7 @@ export async function toggleTheme() {
         log(pluginJson, `Theme Toggle: Setting theme to: ${switchTo}`)
       }
     } else {
-      await showMessage(
-        `You need to set the default Light and Dark themes first.\nYour current themes are:\nLight: ${lightTheme}\nDark: ${darkTheme}`,
-      )
+      await showMessage(`You need to set the default Light and Dark themes first.\nYour current themes are:\nLight: ${String(lightTheme)}\nDark: ${String(darkTheme)}`)
       await setDefaultLightDarkTheme()
       await toggleTheme()
     }
