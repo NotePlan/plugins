@@ -576,3 +576,33 @@ export function getISOWeekAndYear(date: string | Date, offsetIncrement: number =
   const newMom = moment(theDate, 'YYYY-MM-DD').add(offsetIncrement, offsetType)
   return { year: Number(newMom.format('GGGG')), week: Number(newMom.format('WW')) }
 }
+
+/**
+ * Determine if a parseDateText return object is meant to be an all-day calendar item
+ * For using with DataStore.parseDateText() results
+ * Chrono returns 12:00 (midday) for any day you give it without a time, 
+ * (e.g. "Jan 19" comes back with a date of Jan 19 at 12:00:00 GMT)
+ * so we need to disambiguate noon-ish text which will look the same in 
+ * parseDateText()'s return. For example:
+ *   - on Friday 
+ *   - on Friday at 12
+ * (two very different things which will look the same in parseDateText's return)
+ * Here will assume that this is an all-day thing
+ * unless we have a noon or something like midday or "@ 12"
+ * @example usage:
+ * if (!isAllDay(range) && range.start === range.end) {
+    // if it's not an all day event, and the start and end are the same, then it's probably "at 12" or something, so we add time to the end to make it an event
+    range.end = addMinutes(range.start, config.eventLength || '30')
+  } 
+ * @param {DateRange} parseDateReturnObj - one DateRange object returned by parseDateText()
+  @return {boolean} true if this is likely meant to be an all day event; false if it was probably an "at noon" event
+ */
+export const isReallyAllDay = (parseDateReturnObj: any): boolean => {
+  return (
+    parseDateReturnObj.start.getMinutes() === 0 &&
+    parseDateReturnObj.start.getHours() === 12 &&
+    parseDateReturnObj.end.getMinutes() === 0 &&
+    parseDateReturnObj.end.getHours() === 12 &&
+    !/noon|at 12|@12|@ 12|midday/.test(parseDateReturnObj.text)
+  )
+}

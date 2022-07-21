@@ -821,6 +821,14 @@ type DateRange = {
    * respective times and dates set.
    */
   +end: Date,
+  /**
+   * The detected date string (e.g. the specific words that parseDate used to create a date/time)
+   */
+  +text: string,
+  /**
+   *  The character index of the start of the detected date string
+   */
+  +index: number,
 }
 
 type TCalendar = Class<Calendar>
@@ -866,10 +874,16 @@ declare class Calendar {
    *   .end: time
    *   .index: character index of the start of the detected date string (available from v3.6.0)
    *   .text: the detected date string (available from v3.6.0)
-   * The results can also be converted and used as JSON. For example:
-   *    JSON.stringify(Calendar.parseDateText("* Next F1 race is Sun June 19 (Canadian GP)"))
+   * Example:
+   *    Calendar.parseDateText("* Next F1 race is Sun June 19 (Canadian GP)")
    * -> [{"index":18,"start":"2023-06-19T17:00:00.000Z","text":"Sun June 19 ","end":"2023-06-19T17:00:00.000Z"}]
    * Under the hood this uses the Chrono library.
+   * IMPORTANT NOTE:
+   * when .parseDate thinks something is an all-day event, it puts it at noon (both start/end at noon).
+   * That means that these two (quite different) lines look identical in the return:
+   *   - on Friday
+   *   - on Friday at 12
+   * The function helpers/dateTime.js::isReallyAllDay() can be used to disambiguate
    */
   static parseDateText(text: string): $ReadOnlyArray<DateRange>;
   /**

@@ -2,9 +2,10 @@
 
 import { addMinutes } from 'date-fns'
 import pluginJson from '../plugin.json'
-import { log, logError, JSP, clo } from '@helpers/dev'
+import { log, logError, JSP, clo, logWarn } from '@helpers/dev'
 import { chooseHeading, chooseOption } from '@helpers/userInput'
 import { findHeading, getBlockUnderHeading } from '@helpers/NPParagraph'
+import { isReallyAllDay } from '@helpers/dateTime'
 
 export const hasCalendarLink = (line: string): boolean => /\!\[📅\]/.test(line)
 
@@ -32,21 +33,6 @@ export const replaceCalendarLinkText = (line: string, replaceWith: string): stri
     log(pluginJson, `replaceCalendarLinkText: could not split/find 4 parts for link: ${line}`)
     return line
   }
-}
-
-/**
- * Chrono apparently returns 12:00 (midday) for any day you give it without a time, so we need to assume that this is an all-day thing
- * unless we have a noon or something
- * @param {*} dateObj
- */
-export const isAllDay = (dateObj: any): boolean => {
-  return (
-    dateObj.start.getMinutes() === 0 &&
-    dateObj.start.getHours() === 12 &&
-    dateObj.end.getMinutes() === 0 &&
-    dateObj.end.getHours() === 12 &&
-    !/noon|at 12|@12|@ 12|midday/.test(dateObj.text)
-  )
 }
 
 /**
@@ -84,8 +70,9 @@ export function parseDateTextChecker() {
   Editor.appendParagraph(`${new Date().toString()} - now`, 'text')
   tests.forEach((element) => {
     const val = Calendar.parseDateText(element)
-    Editor.appendParagraph(`${val[0].start.toString()} - "${element}" ${isAllDay(val[0]) ? 'allday' : ''}`, 'text')
-    clo(val, `NPEventBlocks.parseDateTextChecker: Element`)
+    Editor.appendParagraph(`${val[0].start.toString()} - "${element}" ${isReallyAllDay(val[0]) ? 'allday' : ''}`, 'text')
+    // clo(val, `NPEventBlocks.parseDateTextChecker: Element`)
+    console.log(JSON.stringify(val))
   })
 }
 
@@ -168,8 +155,8 @@ export async function createEvent(title: string, range: { start: Date, end: Date
     url ?: string,
 ): TCalendarItem;
 */
-  const isAllDayEvent = isAllDay(range) // make an educated guess about whether this was intended to be an all day event
-  // log(pluginJson, `createEvent: ${title} allday:${isAllDay(range)}`)
+  const isAllDayEvent = isReallyAllDay(range) // make an educated guess about whether this was intended to be an all day event
+  // log(pluginJson, `createEvent: ${title} allday:${isReallyAllDay(range)}`)
   if (!isAllDayEvent && range.start === range.end) {
     // if it's not an all day event, and the start and end are the same, then it's probably "at 12" or something, so we add time to the end to make it an event
     range.end = addMinutes(range.start, config.eventLength || '30')
