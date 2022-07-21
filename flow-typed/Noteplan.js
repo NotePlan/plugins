@@ -582,7 +582,13 @@ declare class DataStore {
    * @param {boolean?} (optional) true to enable date-referenced items to be included in the search
    * @return {$ReadOnlyArray<TParagraph>} array of results
    */
-  static search(keyword: string, types ?: Array < string >, inFolders ?: Array < string >, notInFolders ?: Array < string >, shouldLoadDatedTodos ?: boolean): Promise < $ReadOnlyArray < TParagraph >>;
+  static search(
+    keyword: string,
+    types?: Array<string>,
+    inFolders?: Array<string>,
+    notInFolders?: Array<string>,
+    shouldLoadDatedTodos?: boolean,
+  ): Promise<$ReadOnlyArray<TParagraph>>;
 
   /**
    * Searches all project notes for a keyword (uses multiple threads to speed it up).
@@ -606,7 +612,7 @@ declare class DataStore {
    * @param {boolean?} (optional) true to enable date-referenced items to be included in the search
    * @return {$ReadOnlyArray<TParagraph>} array of results
    */
-  static searchCalendarNotes(keyword: string, shouldLoadDatedTodos ?: boolean): Promise < $ReadOnlyArray < TParagraph >>;
+  static searchCalendarNotes(keyword: string, shouldLoadDatedTodos?: boolean): Promise<$ReadOnlyArray<TParagraph>>;
 }
 
 /**
@@ -966,7 +972,7 @@ declare class Calendar {
    * @param {string}
    * @return {Promise(CalendarItem)}
    */
-  static eventByID(id: string): Promise<Array<TCalendarItem>>;
+  static eventByID(id: string): Promise<TCalendarItem>;
   /**
    * Returns the reminder by the given ID. You can get the ID from a CalendarItem, which you got from using `.add(...)` (the return value is a CalendarItem with ID) or when you query the event using `remindersBetween(...)`, `reminderByID(...)`, etc.
    * Use with async/await.
@@ -974,7 +980,7 @@ declare class Calendar {
    * @param {string}
    * @return {Promise(CalendarItem)}
    */
-  static reminderByID(id: string): Promise<Array<TCalendarItem>>;
+  static reminderByID(id: string): Promise<TCalendarItem>;
   /**
    * Returns all reminders (completed and incomplete) for the given lists (array of strings).
    * If you keep the lists variable empty, NotePlan will return all reminders from all lists. You can get all Reminders lists calling `Calendar.availableReminderListTitles()`
@@ -1225,7 +1231,7 @@ declare interface TCalendarItem {
    * All the dates the event or reminder occurs (if it's a multi-day event for example)
    * Note: Available from v3.0.15
    */
-+occurrences: Array < Date >;
+  +occurrences: Array<Date>;
   /**
    * The calendar or reminders list where this event or reminder is (or should be) saved. If you set nothing, the event or reminder will be added to the default and this field will be set after adding.
    * Note: Available from v3.0.15.
@@ -1260,12 +1266,12 @@ declare interface TCalendarItem {
    * But I think it is closer to being a JS Map [string, string].
    * Note: Available from v3.5.0
    */
-+attendees: Array < string >;
+  +attendees: Array<string>;
   /**
    * List of attendee names (or email addresses if name isn't available).
    * Note: Available from v3.5.2
    */
-+attendeeNames: Array < string >;
+  +attendeeNames: Array<string>;
   /**
    * Markdown link for the given event. If you add this link to a note, NotePlan will link the event with the note and show the note in the dropdown when you click on the note icon of the event in the sidebar.
    * Note: Available from v3.5, only events, reminders are not supported yet
@@ -1584,7 +1590,7 @@ declare interface CoreNoteFields {
    * Note: Available from v3.5.2
    * @param {TParagraph}
    */
-removeBlockID(paragraph: TParagraph): void;
+  removeBlockID(paragraph: TParagraph): void;
   /**
    * Returns an array of paragraphs having the same blockID like the given one.
    * You can use 'paragraph [0].note to access the note behind it and make updates via `paragraph[0].note.updateParagraph(paragraph [0])` if you make changes to the content, type, etc (like checking it off as type = "done").
@@ -1593,7 +1599,7 @@ removeBlockID(paragraph: TParagraph): void;
    * @param {TParagraph?}
    * @return {Array<TParagraph>}
    */
-referencedBlocks(paragraph ?: TParagraph): Array < TParagraph >;
+  referencedBlocks(paragraph?: TParagraph): Array<TParagraph>;
   /**
    * Print the note, optionally with backlinks and events sections
    * Note: available from v3.4 on macOS

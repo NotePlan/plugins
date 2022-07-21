@@ -2,11 +2,19 @@
 
 import { addMinutes } from 'date-fns'
 import pluginJson from '../plugin.json'
-import { log, logError, JSP } from '@helpers/dev'
+import { log, logError, JSP, clo } from '@helpers/dev'
 import { chooseHeading, chooseOption } from '@helpers/userInput'
 import { findHeading, getBlockUnderHeading } from '@helpers/NPParagraph'
 
 export const hasCalendarLink = (line: string): boolean => /\!\[📅\]/.test(line)
+
+export type EventBlocksConfig = {
+  confirm: boolean,
+  eventLength: string,
+  removeDateText: boolean,
+  linkText: string,
+  version?: string,
+}
 
 /**
  * Replace the text of the calendar link with different text
@@ -36,7 +44,7 @@ export const isAllDay = (dateObj: any): boolean => {
     dateObj.start.getMinutes() === 0 &&
     dateObj.start.getHours() === 12 &&
     dateObj.end.getMinutes() === 0 &&
-    dateObj.end.getHours() == 12 &&
+    dateObj.end.getHours() === 12 &&
     !/noon|at 12|@12|@ 12|midday/.test(dateObj.text)
   )
 }
@@ -77,6 +85,7 @@ export function parseDateTextChecker() {
   tests.forEach((element) => {
     const val = Calendar.parseDateText(element)
     Editor.appendParagraph(`${val[0].start.toString()} - "${element}" ${isAllDay(val[0]) ? 'allday' : ''}`, 'text')
+    clo(val, `NPEventBlocks.parseDateTextChecker: Element`)
   })
 }
 
@@ -85,13 +94,16 @@ export function parseDateTextChecker() {
  * Doesn't do much. This may be replaced when this moves to a @jgclark plugin
  * @returns
  */
-export function getPluginSettings() {
+export function getPluginSettings(): EventBlocksConfig {
   const settings = DataStore.settings
   if (settings && Object.keys(settings)) {
     return settings
   } else {
     return {
-      // default settings
+      confirm: true,
+      eventLength: '30',
+      removeDateText: true,
+      linkText: '→',
     }
   }
 }
@@ -107,13 +119,22 @@ export async function chooseTheHeading(note: TNote): Promise<TParagraph | null> 
   return headingPara
 }
 
+type CalendarItemChoice = {
+  label: string,
+  value: number,
+  start: Date,
+  end: Date,
+  text: string,
+  index: number,
+}
+
 /**
  * NotePlan may return multiple potential time Range objects for this particular line. Ask the user to choose the right one
  * @param {*} text
  * @param {*} potentials
  * @returns {object} returns a Range++ object for the correct time range
  */
-export async function confirmPotentialTimeChoice(text: string, potentials: any): Promise<any> {
+export async function confirmPotentialTimeChoice(text: string, potentials: any): Promise<CalendarItemChoice> {
   const opts = potentials.map((potential, i) => ({
     label: `${potential.start.toLocaleString()} (text: "${potential.text}")`,
     value: i,
@@ -133,11 +154,7 @@ export async function confirmPotentialTimeChoice(text: string, potentials: any):
  * @param {*} config
  * @returns {Promis<void>}
  */
-export async function createEvent(
-  title: string,
-  range: { start: Date, end: Date },
-  config: any,
-): Promise<TCalendarItem | null> {
+export async function createEvent(title: string, range: { start: Date, end: Date }, config: any): Promise<TCalendarItem | null> {
   /* NOTE: TODO: add in missing fields (eg calendar)
   create(
     title: string,
@@ -177,8 +194,8 @@ type EventBlockLine = {
  * @param {{[string]:any}} config
  * @returns {{paragraph:{TParagraph}, time:{Range++ object with start, end | null}}}
  */
-export async function processTimeLines(block: Array<TParagraph>, config: any) {
-  // parseDateTextChecker()
+export async function processTimeLines(block: Array<TParagraph>, config: EventBlocksConfig): Promise<Array<{ time: string, paragraph: TParagraph, event: TCalendarItem | null }>> {
+  parseDateTextChecker()
   const { confirm, linkText, removeDateText } = config
   const timeLines = [],
     intermediate = []
@@ -218,16 +235,15 @@ export async function processTimeLines(block: Array<TParagraph>, config: any) {
     for (let j = 0; j < intermediate.length; j++) {
       const item = intermediate[j]
       CommandBar.showLoading(true, `Creating Events:\n(${j}/${intermediate.length})`)
-      let event = await createEvent(item.revisedLine, item.chosen, config)
-      if (event && event?.id) {
+      const range = { start: item.chosen.start, end: item.chosen.end }
+      let event = await createEvent(item.revisedLine, range, config)
+      if (event && event.id !== null && typeof event.id === 'string') {
         log(pluginJson, `created event ${event.title}`)
-        event = await Calendar.eventByID(event.id)
+        const { id, title, calendarItemLink } = event
+        event = id ? await Calendar.eventByID(id) : null
 
-        log(pluginJson, `processTimeLines event=${event.title} event.calendarItemLink=${event.calendarItemLink}`)
-        const editedLink = replaceCalendarLinkText(
-          event?.calendarItemLink,
-          removeDateText ? `${item.chosen.text} ${linkText}` : linkText,
-        )
+        log(pluginJson, `processTimeLines event=${title} event.calendarItemLink=${calendarItemLink}`)
+        const editedLink = replaceCalendarLinkText(calendarItemLink, removeDateText ? `${item.chosen.text || ''} ${linkText}` : linkText)
         item.line.content = `${item.revisedLine} ${editedLink || ''}`
         timeLines.push({ time: item.chosen, paragraph: item.line, event })
         log(pluginJson, `processTimeLines timeLines.length=${timeLines.length}`)
@@ -254,18 +270,21 @@ export async function processTimeLines(block: Array<TParagraph>, config: any) {
  */
 export async function createEvents(heading: string = '', confirm: string = 'yes'): Promise<void> {
   try {
-    if (Editor?.note) {
+    const note = Editor.note
+    if (note) {
       const config = getPluginSettings()
       config.confirm = confirm === 'yes'
-      const headingPara = heading !== '' ? findHeading(Editor.note, heading) : await chooseTheHeading(Editor.note)
-      const paragraphsBlock = getBlockUnderHeading(Editor.note, headingPara)
-      if (paragraphsBlock.length) {
-        const timeLines = await processTimeLines(paragraphsBlock, config)
-        if (timeLines.length) {
-          const paras = timeLines.map((timeLine) => timeLine.paragraph)
-          Editor.updateParagraphs(paras)
-        } else {
-          logError(pluginJson, `No time lines found under heading: ${heading}`)
+      const headingPara = heading !== '' ? findHeading(note, heading) : await chooseTheHeading(note)
+      if (headingPara) {
+        const paragraphsBlock = getBlockUnderHeading(note, headingPara)
+        if (paragraphsBlock.length) {
+          const timeLines = await processTimeLines(paragraphsBlock, config)
+          if (timeLines.length) {
+            const paras = timeLines.map((timeLine) => timeLine.paragraph)
+            Editor.updateParagraphs(paras)
+          } else {
+            logError(pluginJson, `No time lines found under heading: ${heading}`)
+          }
         }
       }
     }
