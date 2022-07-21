@@ -17,7 +17,15 @@ export type EventBlocksConfig = {
   version?: string,
 }
 
+type ConfirmedEvent = {
+  revisedLine: string,
+  dateRangeInfo: DateRange,
+  paragraph: TParagraph,
+  index: number,
+}
+
 /**
+ * (not used because NotePlan seems to rewrite the text on every page load so this is useless)
  * Replace the text of the calendar link with different text
  * @param {string} line - the line to check and replace
  * @param {string} replaceWith - the text to replace the calendar link text with
@@ -106,22 +114,13 @@ export async function chooseTheHeading(note: TNote): Promise<TParagraph | null> 
   return headingPara
 }
 
-type CalendarItemChoice = {
-  label: string,
-  value: number,
-  start: Date,
-  end: Date,
-  text: string,
-  index: number,
-}
-
 /**
  * NotePlan may return multiple potential time Range objects for this particular line. Ask the user to choose the right one
  * @param {*} text
  * @param {*} potentials
  * @returns {object} returns a Range++ object for the correct time range
  */
-export async function confirmPotentialTimeChoice(text: string, potentials: any): Promise<CalendarItemChoice> {
+export async function confirmPotentialTimeChoice(text: string, potentials: any): Promise<DateRange> {
   const opts = potentials.map((potential, i) => ({
     label: `${potential.start.toLocaleString()} (text: "${potential.text}")`,
     value: i,
@@ -131,7 +130,7 @@ export async function confirmPotentialTimeChoice(text: string, potentials: any):
     index: potential.index,
   }))
   const val = await chooseOption(`Which of these is "${text}"?`, opts, opts[0].value)
-  return opts[val]
+  return potentials[val]
 }
 
 /**
@@ -166,74 +165,82 @@ export async function createEvent(title: string, range: { start: Date, end: Date
   return result || null
 }
 
-type EventBlockLine = {
-  start: Date,
-  end: Date,
-  text: string,
-  index: number,
-  paragraph: ?TParagraph,
-  revisedText: ?string,
+/**
+ * Find the paragraphs that contain event text which needs to be created. If time/date text is ambiguous
+ * then ask the user to choose the correct one. Return the ConfirmedEvent data for each line to be turned into an event
+ * @param {Array<TParagraph>} paragraphBlock
+ * @param {EventBlocksConfig} config
+ * @returns {Promise<Array<ConfirmedEvent>>} - the list of unambiguous event info to create
+ */
+export async function confirmEventTiming(paragraphBlock: Array<TParagraph>, config: EventBlocksConfig): Promise<Array<ConfirmedEvent>> {
+  const { confirm, removeDateText } = config
+  const confirmedEventData = []
+  for (let i = 0; i < paragraphBlock.length; i++) {
+    const line = paragraphBlock[i]
+    if (hasCalendarLink(line.content)) {
+      log(pluginJson, `Skipping line with calendar link: ${line.content}`)
+    } else {
+      const potentials = Calendar.parseDateText(line.content) //returns {start: Date, end: Date}
+      if (potentials.length > 0) {
+        let chosenDateRange = { ...potentials[0] }
+        if (potentials.length > 1) {
+          if (confirm && line.content.length) {
+            const dateRangeItem = await confirmPotentialTimeChoice(line.content, potentials)
+            chosenDateRange = { ...dateRangeItem }
+          }
+        }
+        // Remove the timing part from the line now that we have a link
+        // Calendar.parseDateText = [{"start":"2022-06-24T13:00:00.000Z","end":"2022-06-24T13:00:00.000Z","text":"friday at 8","index":0}]
+        let revisedLine = line.content
+          .replace(removeDateText && chosenDateRange?.text?.length ? chosenDateRange.text : '', '')
+          .replace(/\s{2,}/g, ' ')
+          .trim()
+        if (revisedLine.length === 0) revisedLine = '...' // If the line was all a date description, we need something to show
+        confirmedEventData.push({ revisedLine, dateRangeInfo: chosenDateRange, paragraph: line, index: i })
+      } else {
+        // do nothing with this line?
+        log(pluginJson, `processTimeLines no times found for "${line.content}"`)
+      }
+    }
+  }
+  return confirmedEventData
 }
 
 /**
  * Take in a array of TParagraphs (block of lines), loop through and create events for the ones that should be events
+ * Make changes to the paragraph lines and return all changed paragraphs as an array so they can be updated in one go
  * @param {Array<TParagraph>} block
  * @param {{[string]:any}} config
  * @returns {{paragraph:{TParagraph}, time:{Range++ object with start, end | null}}}
  */
-export async function processTimeLines(block: Array<TParagraph>, config: EventBlocksConfig): Promise<Array<{ time: string, paragraph: TParagraph, event: TCalendarItem | null }>> {
-  parseDateTextChecker()
-  const { confirm, linkText, removeDateText } = config
-  const timeLines = [],
-    intermediate = []
+export async function processTimeLines(paragraphBlock: Array<TParagraph>, config: EventBlocksConfig): Promise<Array<TParagraph>> {
+  // parseDateTextChecker()
+  const timeLines = []
   try {
     // First, we need to get all the data necessary to create this event, including user input
     // before we can show a status bar
-    for (let i = 0; i < block.length; i++) {
-      const line = block[i]
-      if (hasCalendarLink(line.content)) {
-        log(pluginJson, `Skipping line with calendar link: ${line.content}`)
-      } else {
-        const potentials = Calendar.parseDateText(line.content) //returns {start: Date, end: Date}
-        if (potentials.length > 0) {
-          let chosen = potentials[0]
-          if (potentials.length > 1) {
-            if (confirm && line.content.length) {
-              chosen = await confirmPotentialTimeChoice(line.content, potentials)
-            }
-          }
-          // Remove the timing part from the line now that we have a link
-          // Calendar.parseDateText = [{"start":"2022-06-24T13:00:00.000Z","end":"2022-06-24T13:00:00.000Z","text":"friday at 8","index":0}]
-          let revisedLine = line.content
-            .replace(removeDateText && chosen?.text?.length ? chosen.text : '', '')
-            .replace(/\s{2,}/g, ' ')
-            .trim()
-          if (revisedLine.length === 0) revisedLine = '...' // If the line was all a date description, we need something to show
-          intermediate.push({ revisedLine, chosen, line, index: i })
-        } else {
-          // do nothing with this line?
-          log(pluginJson, `processTimeLines no times found for "${line.content}"`)
-        }
-      }
-    }
+    const eventsToCreate = (await confirmEventTiming(paragraphBlock, config)) || []
     // Now that we have all the info we need, we can create the events with a status bar
-    CommandBar.showLoading(true, `Creating Events:\n(${0}/${intermediate.length})`)
+    CommandBar.showLoading(true, `Creating Events:\n(${0}/${eventsToCreate.length})`)
     await CommandBar.onAsyncThread()
-    for (let j = 0; j < intermediate.length; j++) {
-      const item = intermediate[j]
-      CommandBar.showLoading(true, `Creating Events:\n(${j}/${intermediate.length})`)
-      const range = { start: item.chosen.start, end: item.chosen.end }
-      let event = await createEvent(item.revisedLine, range, config)
-      if (event && event.id !== null && typeof event.id === 'string') {
-        log(pluginJson, `created event ${event.title}`)
-        const { id, title, calendarItemLink } = event
-        event = id ? await Calendar.eventByID(id) : null
-
-        log(pluginJson, `processTimeLines event=${title} event.calendarItemLink=${calendarItemLink}`)
-        const editedLink = replaceCalendarLinkText(calendarItemLink, removeDateText ? `${item.chosen.text || ''} ${linkText}` : linkText)
-        item.line.content = `${item.revisedLine} ${editedLink || ''}`
-        timeLines.push({ time: item.chosen, paragraph: item.line, event })
-        log(pluginJson, `processTimeLines timeLines.length=${timeLines.length}`)
+    for (let j = 0; j < eventsToCreate.length; j++) {
+      const item = eventsToCreate[j]
+      CommandBar.showLoading(true, `Creating Events:\n(${j}/${eventsToCreate.length})`)
+      const range = { start: item.dateRangeInfo.start, end: item.dateRangeInfo.end }
+      const eventWithoutLink = await createEvent(item.revisedLine, range, config)
+      if (eventWithoutLink && eventWithoutLink.id !== null && typeof eventWithoutLink.id === 'string') {
+        log(pluginJson, `created event ${eventWithoutLink.title}`)
+        const { id, title } = eventWithoutLink
+        const event = id ? await Calendar.eventByID(id) : null
+        if (event) {
+          const { calendarItemLink } = event
+          log(pluginJson, `processTimeLines event=${title} event.calendarItemLink=${calendarItemLink}`)
+          // const editedLink = replaceCalendarLinkText(calendarItemLink, removeDateText ? `${item.dateRangeInfo.text || ''} ${linkText}` : linkText)
+          item.paragraph.content = `${item.revisedLine} ${calendarItemLink}`
+          // timeLines.push({ time: item.dateRangeInfo, paragraph: item.paragraph, event })
+          timeLines.push(item.paragraph)
+          // log(pluginJson, `processTimeLines timeLines.length=${timeLines.length}`)
+        }
       } else {
         log(pluginJson, `processTimeLines no event created for "${item.revisedLine}"`)
       }
@@ -267,8 +274,7 @@ export async function createEvents(heading: string = '', confirm: string = 'yes'
         if (paragraphsBlock.length) {
           const timeLines = await processTimeLines(paragraphsBlock, config)
           if (timeLines.length) {
-            const paras = timeLines.map((timeLine) => timeLine.paragraph)
-            Editor.updateParagraphs(paras)
+            Editor.updateParagraphs(timeLines)
           } else {
             logError(pluginJson, `No time lines found under heading: ${heading}`)
           }
