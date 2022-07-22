@@ -3,11 +3,10 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 9.7.2022 for v0.4.0, @jgclark
+// Last updated 22.7.2022 for v0.5.0, @jgclark
 //-----------------------------------------------------------------------------
 /** 
- * FIXME(Eduard): 
- * - the search API appears to return hits on notes in 'Saved Search' even when that folder is on the exclusion list
+ * TODO: test again to see if notInFolder param is working.
  */
 
 //-----------------------------------------------------------------------------
@@ -15,12 +14,15 @@
 import pluginJson from '../plugin.json'
 import {
   getSearchSettings,
-  // type resultObjectType,
-  writeResultsNote,
-  runSearches,
+  type resultOutputType,
+  runSearchesV2,
+  type typedSearchTerm,
+  validateSearchTerms,
+  writeSearchResultsToNote,
 } from './searchHelpers'
-import { log, logWarn, logError } from '@helpers/dev'
+import { log, logDebug, logWarn, logError } from '@helpers/dev'
 import { replaceSection } from '@helpers/note'
+
 import {
   chooseOption,
   getInput,
@@ -29,37 +31,47 @@ import {
 
 //-------------------------------------------------------------------------------
 
+/** 
+ * Call the main function, but requesting only Calendar notes be searched.
+ * * TODO: andd start date, end date args
+ */
 export async function saveSearchOverCalendar(searchTermsArg?: string): Promise<void> {
-  // Call the main function, but requesting only Calendar notes be searched.
-  await saveSearch(['calendar'], searchTermsArg ?? undefined)
+  await saveSearch('calendar', searchTermsArg ?? undefined)
 }
 
+/** 
+ * Call the main function, but requesting only Project notes be searched.
+ */
 export async function saveSearchOverNotes(searchTermsArg?: string): Promise<void> {
-  // Call the main function, but requesting only Project notes be searched.
-  await saveSearch(['notes'], searchTermsArg ?? undefined)
+  await saveSearch('notes', searchTermsArg ?? undefined)
 }
 
+/**
+ * Call the main function, searching over all notes.
+ */
 export async function saveSearchOverAll(searchTermsArg?: string): Promise<void> {
-  // Call the main function, searching over all notes.
-  await saveSearch(['notes', 'calendar'], searchTermsArg ?? undefined)
+  await saveSearch('both', searchTermsArg ?? undefined)
 }
 
-export async function quickSearch(searchTermsArg?: string): Promise<void> {
-  // Call the main function, searching over all notes.
-  await saveSearch(['notes', 'calendar'], searchTermsArg ?? undefined, 'quick')
+/** 
+ * Call the main function, searching over all notes.
+ * This is also the refresh an existing search note route in.
+ */
+export async function quickSearch(notesTypesToInclude?: string, searchTermsArg?: string): Promise<void> {
+  await saveSearch(notesTypesToInclude ?? 'both', searchTermsArg ?? undefined, 'quick')
 }
-
 
 /**
  * Run a search over all notes, saving the results in one of several locations.
  * Works interactively (if no arguments given) or in the background (using supplied arguments).
  * @author @jgclark
  * 
- * @param {Array<string>} noteTypesToInclude array defined by DataStore.search() command: curretnly 'project','calendar' or both
+ * @param {string} noteTypesToInclude either 'project','calendar' or 'both' -- as string not array
  * @param {string?} searchTermsArg optional comma-separated list of search terms to search
+ * @param {string?} destinationArg optional output desination indicator: 'quick', 'current', 'newnote', 'log'
  */
 export async function saveSearch(
-  noteTypesToInclude: Array<string>,
+  noteTypesToIncludeArg: string,
   searchTermsArg?: string,
   destinationArg?: string
 ): Promise<void> {
@@ -69,13 +81,17 @@ export async function saveSearch(
     const headingMarker = '#'.repeat(config.headingLevel)
     let calledIndirectly = false
 
+    // Get the noteTypes to include
+    const noteTypesToInclude = (noteTypesToIncludeArg === 'both') ? ['notes', 'calendar'] : [noteTypesToIncludeArg]
+    logDebug(pluginJson, `saveSearch: arg0 -> '${noteTypesToInclude.toString()}'`)
+
     // Get the search terms, treating ' OR ' and ',' as equivalent term separators
     let termsToMatchArr = []
     if (searchTermsArg !== undefined) {
       // either from argument supplied
-      termsToMatchArr = searchTermsArg.replace(/ OR /, ',').split(',')
-      log(pluginJson, `saveSearch: will use arg0 '${searchTermsArg}'`)
-      // make note we're running indirectly (probably from x-callback call)
+      logDebug(pluginJson, `saveSearch: will use searchTermsArg: '${searchTermsArg}'`)
+      termsToMatchArr = searchTermsArg.split(/[, ]/)
+      // we are running indirectly (probably from x-callback call)
       calledIndirectly = true
     }
     else {
@@ -87,32 +103,20 @@ export async function saveSearch(
         log(pluginJson, `User has cancelled operation.`)
         return
       } else {
-        termsToMatchArr = Array.from(newTerms.replace(/ OR /, ',').split(','))
+        // termsToMatchArr = Array.from(newTerms.split(','))
+        termsToMatchArr = Array.from(newTerms.split(/[, ]/))
       }
     }
+    const termsToMatchStr = termsToMatchArr.join(' ')
 
-    // Weed out any too-short search terms
-    const filteredTermsToMatchArr = termsToMatchArr.filter((t) => t.length > 2)
-    const termsToMatchStr = String(filteredTermsToMatchArr)
-    log(pluginJson, `Search terms: ${termsToMatchStr} over note types [${noteTypesToInclude.join(', ')}] (except in folders ${config.foldersToExclude.join(', ')})`)
-    if (filteredTermsToMatchArr.length < termsToMatchArr.length) {
-      logWarn(pluginJson, `Note: some search terms were removed because they were less than 3 characters long.`)
-      await showMessage(`Some search terms were removed as they were less than 3 characters long.`)
-    }
-    // Stop if we don't have any search terms
-    if (termsToMatchArr.length === 0 || termsToMatchStr === '') {
-      logWarn(pluginJson, 'no search terms given; stopping.')
-      await showMessage(`No search terms given; stopping.`)
-      return
-    }
-    // Stop if we have a silly number of search terms
-    if (termsToMatchArr.length > 7) {
-      logWarn(pluginJson, `too many search terms given (${termsToMatchArr.length}); stopping as this might be an error.`)
-      await showMessage(`Too many search terms given(${termsToMatchArr.length}); stopping as this might be an error.`)
+    // Validate the search terms: an empty return means failure. There is error logging in the function.
+    const validatedSearchTerms = await validateSearchTerms(termsToMatchArr)
+    if (validateSearchTerms == null || validateSearchTerms.length === 0) {
+      await showMessage(`These search terms aren't valid. Please see Plugin Console for details.`)
       return
     }
 
-    log(pluginJson, `- called indirectly? ${String(calledIndirectly)}`)
+    logDebug(pluginJson, `- called indirectly? ${String(calledIndirectly)}`)
 
     //---------------------------------------------------------
     // Search using search() API available from v3.6.0
@@ -120,8 +124,7 @@ export async function saveSearch(
     // CommandBar.showLoading(true, `Running search for ${String(termsToMatchArr)} ...`)
     // await CommandBar.onAsyncThread()
 
-    // $FlowFixMe TODO: On full 3.6.0 release, change null to []
-    const resultsProm = runSearches(termsToMatchArr, noteTypesToInclude, null, config.foldersToExclude, config)
+    const resultsProm: resultOutputType = runSearchesV2(validatedSearchTerms, noteTypesToInclude, [], config.foldersToExclude, config) // note no await
 
     // await CommandBar.onMainThread()
     // CommandBar.showLoading(false)
@@ -132,7 +135,7 @@ export async function saveSearch(
     // Work out where to save this summary
     let destination = ''
     if (destinationArg !== undefined) {
-      console.log(`destinationArg = ${destinationArg}`)
+      logDebug(pluginJson, `destinationArg = ${destinationArg}`)
       destination = destinationArg
     }
     else if (calledIndirectly || config.autoSave) {
@@ -156,7 +159,7 @@ export async function saveSearch(
       )
     }
 
-    resultsProm.then((results) => {
+    resultsProm.then((resultSet) => {
       // log(pluginJson, `resultsProm resolved`)
       // clo(results, 'resultsProm resolved ->')
 
@@ -164,7 +167,7 @@ export async function saveSearch(
       // Do output
       const headingString = `${termsToMatchStr} ${config.searchHeading}`
 
-      // console.log(`before destination switch ${destination}`)
+      // logDebug(pluginJson, `before destination switch ${destination}`)
       switch (destination) {
         case 'current': {
           // We won't write an overarching heading.
@@ -173,11 +176,13 @@ export async function saveSearch(
           if (currentNote == null) {
             logError(pluginJson, `No note is open`)
           } else {
-            log(pluginJson, `Will write update/append to current note (${currentNote.filename ?? ''})`)
-            for (const r of results) {
-              const thisResultHeading = `${r.searchTerm} ${config.searchHeading} (${r.resultCount} results)`
-              replaceSection(currentNote, r.searchTerm, thisResultHeading, config.headingLevel, r.resultLines.join('\n'))
-            }
+            logDebug(pluginJson, `Will write update/append to current note (${currentNote.filename ?? ''})`)
+            // for (const r of results) {
+            // const thisResultHeading = `${r.searchTerm} ${config.searchHeading} (${r.resultCount} results)`
+            // replaceSection(currentNote, r.searchTerm, thisResultHeading, config.headingLevel, r.resultLines.join('\n'))
+            // }
+            const thisResultHeading = `${resultSet.searchTerm} ${config.searchHeading} (${resultSet.resultCount} results)`
+            replaceSection(currentNote, resultSet.searchTerm, thisResultHeading, config.headingLevel, resultSet.resultLines.join('\n'))
           }
           break
         }
@@ -187,13 +192,13 @@ export async function saveSearch(
           // As this is likely to be a note just used for this set of search terms, just delete the whole
           // note contents and re-write each search term's block.
           const requestedTitle = headingString
-          const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearchResults&arg0=${encodeURIComponent(termsToMatchStr)}`
+          const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=quickSearch&arg0=notes&arg1=${encodeURIComponent(termsToMatchStr)}` // FIXME: for 'both' or 'calendar' section undo hard-wiring
 
           // normally I'd use await... in the next line, but can't as we're now in then...
-          const noteFilenameProm = writeResultsNote(results, requestedTitle, config.folderToStore,
-            config.headingLevel, calledIndirectly, xCallbackLink)
+          // FIXME: is the [results] correct?
+          const noteFilenameProm = writeSearchResultsToNote(resultSet, requestedTitle, config.folderToStore, config.headingLevel, calledIndirectly, xCallbackLink)
           noteFilenameProm.then(async (filename) => {
-            console.log(filename)
+            logDebug(pluginJson, `${filename}`)
             // Open the results note in a new split window
             await Editor.openNoteByFilename(filename, false, 0, 0, true)
           })
@@ -204,13 +209,13 @@ export async function saveSearch(
           // Write to the same 'Quick Search Results' note (or whatever the user's setting is)
           // Delete the note's contents and re-write each time.
           const requestedTitle = config.quickSearchResultsTitle
-          const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearchResults&arg0=${encodeURIComponent(termsToMatchStr)}`
+          const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=quickSearch&arg0=notes&arg1=${encodeURIComponent(termsToMatchStr)}` // FIXME: for 'both' or 'calendar' section undo hard-wiring
 
           // normally I'd use await... in the next line, but can't as we're now in then...
-          const noteFilenameProm = writeResultsNote(results, requestedTitle, config.folderToStore,
-            config.headingLevel, calledIndirectly, xCallbackLink)
+          const noteFilenameProm = writeSearchResultsToNote(resultSet, requestedTitle, config.folderToStore, config.headingLevel, calledIndirectly, xCallbackLink)
+
           noteFilenameProm.then(async (filename) => {
-            console.log(filename)
+            logDebug(pluginJson, `${filename}`)
             // Open the results note in a new split window, unless called from the x-callback ...
             if (!calledIndirectly) {
               await Editor.openNoteByFilename(filename, false, 0, 0, true)
@@ -220,10 +225,8 @@ export async function saveSearch(
         }
 
         case 'log': {
-          for (const r of results) {
-            log(pluginJson, `${headingMarker} ${r.searchTerm}(${r.resultCount} results)`)
-            log(pluginJson, r.resultLines.join('\n'))
-          }
+          log(pluginJson, `${headingMarker} ${resultSet.searchTerm}(${resultSet.resultCount} results)`)
+          log(pluginJson, resultSet.resultLines.join('\n'))
           break
         }
 
@@ -237,7 +240,7 @@ export async function saveSearch(
           break
         }
       }
-        
+
     })
 
   }

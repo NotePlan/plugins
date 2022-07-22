@@ -1,13 +1,14 @@
 // @flow
-
 //-----------------------------------------------------------------------------
-// Summary commands for notes
+// More advanced searching
 // Jonathan Clark
-// Last updated 9.7.2022 for v0.4.0
+// Last updated 22.7.2022 for v0.5.0
 //-----------------------------------------------------------------------------
 
 export { quickSearch, saveSearch, saveSearchOverAll, saveSearchOverNotes, saveSearchOverCalendar } from './saveSearch'
 export { saveSearchPeriod } from './saveSearchPeriod'
+
+const pluginID = "jgclark.SearchExtensions"
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
@@ -23,14 +24,12 @@ export function onSettingsUpdated(): void {
   // Placeholder only to stop error in logs
 }
 
-const configKey = "search"
-
 // refactor previous variables to new types
 export async function onUpdateOrInstall(): Promise<void> {
   try {
-    console.log(`${configKey}: onUpdateOrInstall running`)
+    console.log(`${pluginID}: onUpdateOrInstall running`)
     const updateSettingsResult = updateSettingData(pluginJson)
-    console.log(`${configKey}: onUpdateOrInstall updateSettingData code: ${updateSettingsResult}`)
+    console.log(`${pluginID}: onUpdateOrInstall updateSettingData code: ${updateSettingsResult}`)
     // Tell user the plugin has been updated
     if (pluginJson['plugin.lastUpdateInfo'] !== undefined) {
       await showMessage(pluginJson['plugin.lastUpdateInfo'], 'OK, thanks',
@@ -40,5 +39,5 @@ export async function onUpdateOrInstall(): Promise<void> {
   } catch (error) {
     console.log(error)
   }
-  console.log(`${configKey}: onUpdateOrInstall finished`)
+  console.log(`${pluginID}: onUpdateOrInstall finished`)
 }
