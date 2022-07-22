@@ -6,18 +6,25 @@
 
 ## [0.5.0] - 2022-07-22
 ### Added
-- Major new version, that now supports + and - search operators for terms that must appear, and cannot appear, respectively.  For example `+"must have me" may could -"cannot have me"` has 4 search terms, the first must be present, the last mustn't be present, and the middle two (may, could) can be.
-- the test for + and - is done per line in notes
+- Major new version, that now supports + and - search operators for terms that _must_ appear, and _must not_ appear, respectively.  For example `+"must have me" may could -"cannot have me"` has 4 search terms, the first must be present, the last mustn't be present, and the middle two (may, could) can be.
+- the test for + and - is done per line in notes. If you wish to ignore the whole note that has a term, you can use the ! operator, e.g. `+must !not-me`.
 - adds a button under the heading to 'refresh results'
+- provides API call version for this that also restricting search to one or more paragraph types (e.g. 'open' for incomplete tasks), through the last parameter on `runSearchV2(...)`.
+- provides x-callback entry points for these searches
 
-**NB**:
+**Notes for beta1**:
 - I've only really tested the /quickSearch command so far
+- TODO: finish test for applySearchOperartors
+- TODO: provide more tests for @dwertheimer sort function, to see what's going on with last lineIndex entries
 - TODO: support `"multi-word terms"`
-- TODO: support ! operator as well (defeat a whole note if a 'cannot' term appears in it)
 - TODO: decide whether to support case insensitivity option still
+- TODO: support un-grouped results (?)
 - TODO: hook up x-callback for calendar-only searching
-- ___your feedback is most welcome!___
+- TODO: properly test x-callbacks
+- TODO: support simple 'x AND y' or 'x OR y' inputs, for backwards compatibility
+- TODO: update README
 
+___your feedback is most welcome!___
 
 ## [0.4.1] - 2022-07-11
 ### Added
