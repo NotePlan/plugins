@@ -6,10 +6,13 @@ NotePlan Plugins provides an extensive API for extending default editing and tas
 Each plugin command can be invoked using the [NotePlan Command Bar](https://help.noteplan.co/article/65-commandbar-plugins), or by entering any of available commands directly in the editor by entering `/command` (NotePlan will auto update the list of possible commands as you type)
 ![](https://d33v4339jhl8k0.cloudfront.net/docs/assets/6081f7f4c9133261f23f4b41/images/608c5886f8c0ef2d98df845c/file-fLVrMGjoZr.png)
 
+## Anatomy of a Plugin
+If you want to develop plugins, Step 1 is to read the [NotePlan Knowledgebase Document](https://help.noteplan.co/article/67-create-command-bar-plugins) describing how plugins work in NotePlan and the basic plugin anatomy. Once you have read that carefully and understand the basics, you should return here to acquire and start using the NotePlan Plugin tooling described below.
+
 ## Prerequisite
 The following items are required for NotePlan Plugin Development
 
-- Node 12.15 .. 14.15.5 -- **Do Not Use Expirimental Version of Node (e.g. Node 17.x.x)**
+- Node 12.15 .. 16 -- **Do Not Use Expirimental Version of Node (e.g. Node 17.x.x)**
 - npm version 8.x
 - NotePlan 3.4 or greater
 - macOS Catalina 10.15.2 or greater (strongly recommend macOS Big Sur 11.x or Monterey 12.x)
@@ -27,6 +30,10 @@ If you are a developer and want to contribute and build your plugins, see the [p
 **Step 1: Clone NotePlan Plugin Repository**
 
 [Clone this repository](https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository-from-github/cloning-a-repository)
+
+**Step 1.5 Have a look at the code**
+
+When you have cloned this repository, you will not only have the tooling, but you will have the actual source code for every publicly-available NotePlan plugin. This will give you a wealth of material to learn from and borrow from. Speaking of which, there is a `/helpers` directory at the root of the repository that contains a lot of re-usable code that is built upon the NotePlan APIs and will speed up your development. It would be good to familiarize yourself with that code. 
 
 **Step 2: Install Node (if not installed)**
 
