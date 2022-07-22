@@ -77,7 +77,8 @@ Answer the prompt questions (or supply all the necessary options from command li
 
 **Step 4: Startup Auto Watch Process**
 
-`npc plugin:dev <your_plugin_folder>` from the root directory to build your plugin as you develop so it can be tested in NotePlan.
+Open up a Terminal shell, `cd` to the repository root directory, and issue the command:
+`npc plugin:dev <your_plugin_folder> --watch` from the root directory to build your plugin as you develop so it can be tested in NotePlan. This will compile your code and put it into your NotePlan app directory so you can test your plugin. The `--watch` flag keeps the process looking for changes to your files and will automatically rebuild the plugin for you. (more on that below) 
 
 **Step 5: Start your plugin command develop and test locally**
 
@@ -91,9 +92,9 @@ At this point, if you would like to make your plugin available publicly, you can
 These are the most common commands you will use while developing:
 
 #### File Watcher
-The default watch command `npc plugin:dev --watch` (without any other arguments) command will rebuild _all_ plugins just in case shared files affect another plugin.
+The default watch command `npc plugin:dev <your_plugin_folder> --watch`:
 
-`npc plugin:dev` from the root of your local `NotePlan/plugins` repository which will bundle all the files in your `/src` directory into single file `scripts.js` and will be copied from your repository directory to your Plugins folder in the running NotePlan data directory for testing.
+`npc plugin:dev` from the root of your local `NotePlan/plugins` repository which will bundle all the files in your `/src` directory into single file `script.js` and will be copied from your repository directory to your Plugins folder in the running NotePlan data directory for testing.
 
 *Note: The watcher will remain running, _watching_ the NotePlan directory and re-compile whenever changes have been made to your `<your_plugin>/src` JavaScript files.*
 
