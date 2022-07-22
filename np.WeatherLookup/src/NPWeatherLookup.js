@@ -7,7 +7,7 @@ TODO: add setting for template replacements (use https://stackoverflow.com/quest
 */
 
 import * as utils from './support/weather-utils'
-import { log, logError, clo, JSP } from '@helpers/dev'
+import { log, logDebug,logError, clo, JSP } from '@helpers/dev'
 import { createRunPluginCallbackUrl, createPrettyRunPluginLink } from '@helpers/general'
 import { chooseOption, getInput, showMessage } from '@helpers/userInput'
 import pluginJson from '../plugin.json'
@@ -44,7 +44,7 @@ async function getLatLongForLocation(searchLocationStr: string = ''): Promise<Lo
     const params = DataStore.settings
     const results = await getLatLongListForName(searchLocationStr, params)
     if (results && results.length > 0) {
-      log(pluginJson, `getLatLongForLocation: Potential Location Results: ${results?.length}`)
+      log(pluginJson, `getLatLongForLocation: Potential Location Results: ${String(results?.length)}`)
       const options = results.map((r, i) => ({
         lat: r.lat,
         lon: r.lon,
@@ -65,11 +65,11 @@ async function getLatLongForLocation(searchLocationStr: string = ''): Promise<Lo
     } else {
       await showMessage(`No results found for "${searchLocationStr}"`)
       logError(pluginJson, `getLatLongForLocation: No results found for ${searchLocationStr}`)
-      return null
     }
   } else {
     logError(pluginJson, `getLatLongForLocation: No location string to search for ${searchLocationStr}`)
   }
+    return null
 }
 
 /**
@@ -78,11 +78,11 @@ async function getLatLongForLocation(searchLocationStr: string = ''): Promise<Lo
  * @param {string} params
  * @returns {Promise<Array<{}>} - array of potential locations
  */
-export async function getLatLongListForName(name: string, params: WeatherParams): Promise<Array<{ [string]: any }>> {
+export async function getLatLongListForName(name: string, params: WeatherParams): Promise<any> {
   const url = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(name)}&appid=${params.appid}&limit=5`
   log(`weather-utils::getLatLongForName`, `url: ${url}`)
   try {
-    const response = await fetch(url, { timeout: 3000 })
+    const response:any = await fetch(url, { timeout: 3000 })
     if (response) {
       return JSON.parse(response)
     }
@@ -117,20 +117,19 @@ function getConfigErrorText(): string {
  * @param {settings} params
  * @returns
  */
-async function getWeatherForLocation(location: LocationOption, weatherParams: WeatherParams): Promise<{ [string]: any }> {
+async function getWeatherForLocation(location: LocationOption, weatherParams: WeatherParams): Promise<{ [string]: any }|null> {
   const params = weatherParams ? weatherParams : DataStore.settings
   const url = utils.getWeatherURLLatLong(location.lat, location.lon, params.appid, params.units)
-  log(`weather-utils::getWeatherForLocation`, `url: \n${url}`)
+  logDebug(`weather-utils::getWeatherForLocation`, `url: \n${url}`)
   try {
     const res = await fetch(url, { timeout: 3000 })
     if (res) {
-      let weather = JSON.parse(res)
-      return weather
+      logDebug(pluginJson,typeof res)
     }
   } catch (error) {
     logError(pluginJson, `getWeatherForLocation: error: ${JSP(error)}`)
   }
-  return []
+  return null
 }
 
 /*
@@ -186,7 +185,6 @@ export async function insertWeatherCallbackURL(incoming: string = ''): Promise<s
  * @returns
  */
 export async function insertWeatherByLocation(incoming: ?string = '', returnLocation: boolean = true): Promise<void> {
-  // every command/plugin entry point should always be wrapped in a try/catch block
   try {
     if (!(await validateWeatherParams(DataStore.settings))) {
       Editor.insertTextAtCursor(getConfigErrorText())
@@ -198,14 +196,19 @@ export async function insertWeatherByLocation(incoming: ?string = '', returnLoca
       }
       if (location) {
         const result = await getLatLongForLocation(location)
+        if (result) {
+          // {"lat":34.0536909,"lon":-118.242766,"name":"Los Angeles","country":"US","state":"California","label":"Los Angeles, California, US","value":0}
+          logDebug(pluginJson,result.label)
+          
+        }
         Editor.insertTextAtCursor('This function is not functional yet. Please use the URL version instead.')
-        return result
+        return 
       }
     }
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
-  return null
+  return
 }
 
 /**
@@ -229,6 +232,7 @@ export async function weatherByLatLong(incoming: string = '', showPopup: string 
         if (location.lat && location.lon) {
           log(pluginJson, `weatherByLatLong: have lat/lon for ${location.label}`)
           const weather = await getWeatherForLocation(location, DataStore.settings)
+          if (weather) {
           locTime = UTCToLocalTimeString(new Date(), 'LT', weather['timezone_offset'])
           log(pluginJson, locTime)
           const currentWeather = utils.getCurrentConditions(weather.current)
@@ -253,6 +257,7 @@ export async function weatherByLatLong(incoming: string = '', showPopup: string 
       } else {
         logError(pluginJson, `weatherByLatLong: No location to look for; param was: "${incoming}"`)
       }
+    }
     }
   } catch (error) {
     logError(pluginJson, JSP(error))

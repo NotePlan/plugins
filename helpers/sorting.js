@@ -1,6 +1,6 @@
 // @flow
 
-export type SortableParagraphSubset = {
+export interface SortableParagraphSubset  {
   content: string,
   index: number,
   raw: string,

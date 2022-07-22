@@ -7,6 +7,7 @@ import { sortListBy } from '@helpers/sorting'
 import { returnNoteLink, createPrettyOpenNoteLink } from '@helpers/general'
 import { textWithoutSyncedCopyTag } from '@helpers/syncedCopies'
 import { logError, JSP, copyObject, clo } from '@helpers/dev'
+import type { SortableParagraphSubset } from "../../helpers/sorting";
 
 // import { timeblockRegex1, timeblockRegex2 } from '../../helpers/markdown-regex'
 
@@ -392,7 +393,7 @@ export const eliminateDuplicateParagraphs = (todos: Array<TParagraph>): Array<TP
   return revisedTodos
 }
 
-export const addDurationToTasks = (tasks: Array<TParagraph>, config: { [key: string]: any }): Array<ParagraphWithDuration> => {
+export const addDurationToTasks = (tasks: Array<SortableParagraphSubset>, config: { [key: string]: any }): Array<ParagraphWithDuration> => {
   const dTasks = tasks.map((t) => {
     // $FlowIgnore - Flow doesn't like spreading interfaces
     const copy = { ...t, duration: 0 }
@@ -402,7 +403,7 @@ export const addDurationToTasks = (tasks: Array<TParagraph>, config: { [key: str
   return dTasks
 }
 
-export function getTimeBlockTimesForEvents(timeMap: IntervalMap, todos: Array<ExtendedParagraph>, config: { [key: string]: any }): TimeBlocksWithMap {
+export function getTimeBlockTimesForEvents(timeMap: IntervalMap, todos: Array<SortableParagraphSubset>, config: { [key: string]: any }): TimeBlocksWithMap {
   let newInfo = { timeMap, blockList: [], timeBlockTextList: [] }
   // $FlowIgnore
   const availableTimes = filterTimeMapToOpenSlots(timeMap, config)
@@ -532,7 +533,7 @@ export function findTodosInNote(note: TNote): Array<ExtendedParagraph> {
  * @param {Array<any>} sortList (FIXME: should provide a Flow type for this)
  * @returns {Array<TParagraph>} paragraphs sorted in the order of sortlist
  */
-export function getFullParagraphsCorrespondingToSortList(paragraphs: Array<TParagraph>, sortList: Array<{ [string]: any }>): Array<TParagraph> {
+export function getFullParagraphsCorrespondingToSortList(paragraphs: Array<TParagraph>, sortList: Array<SortableParagraphSubset>): Array<TParagraph> {
   if (sortList && paragraphs) {
     const sortedParagraphs =
       sortList
