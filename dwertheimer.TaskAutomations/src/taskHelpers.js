@@ -27,7 +27,7 @@ export function getElementsFromTask(content: string, reSearch: RegExp): Array<st
 /*
  * Get numeric priority level based on !!! or (B)
  */
-function getNumericPriority(item: SortableParagraph): number {
+function getNumericPriority(item: SortableParagraphSubset): number {
   let prio = -1
   if (item.exclamations[0]) {
     prio = item.exclamations[0].length
@@ -57,34 +57,7 @@ export const isOverdue = (t: TParagraph): boolean => {
  */
 export const getOverdueTasks = (paras: Array<TParagraph>): Array<TParagraph> => paras.filter((p) => isOverdue(p))
 
-export type SortableParagraph = {
-  content: string,
-  index: number,
-  raw: string,
-  hashtags: Array<string>,
-  mentions: Array<string>,
-  exclamations: Array<string>,
-  parensPriority: Array<string>,
-  priority?: number,
-  filename: string,
-  indents: number,
-  children: Array<SortableParagraph>,
-  paragraph: ?TParagraph,
-}
-
-export type GroupedTasks = {
-  open: Array<SortableParagraph>,
-  scheduled: Array<SortableParagraph>,
-  cancelled: Array<SortableParagraph>,
-  done: Array<SortableParagraph>,
-  title: Array<SortableParagraph>,
-  quote: Array<SortableParagraph>,
-  list: Array<SortableParagraph>,
-  empty: Array<SortableParagraph>,
-  text: Array<SortableParagraph>,
-  code: Array<SortableParagraph>,
-  separator: Array<SortableParagraph>,
-}
+import type { SortableParagraphSubset, GroupedTasks } from '@helpers/sorting'
 
 /**
  * Sort paragraphs into groups of like types (open, scheduled, done, cancelled, etc.) for task sorting
@@ -92,7 +65,7 @@ export type GroupedTasks = {
  * @param {boolean} ignoreIndents - whether to pay attention to child/indented paragraphs
  * @returns {GroupedTasks} - object of tasks by type {'open':[], 'scheduled'[], 'done':[], 'cancelled':[], etc.}
  */
-export function getTasksByType(paragraphs: $ReadOnlyArray<Paragraph>, ignoreIndents: boolean = false): GroupedTasks {
+export function getTasksByType(paragraphs: $ReadOnlyArray<TParagraph>, ignoreIndents: boolean = false): GroupedTasks {
   const tasks = { open: [], scheduled: [], done: [], cancelled: [], title: [], quote: [], list: [], empty: [], text: [], code: [], separator: [] }
   // * @type {"open", "done", "scheduled", "cancelled", "title", "quote", "list" (= bullet), "empty" (no content) or "text" (= plain text)}
   TASK_TYPES.forEach((t) => (tasks[t] = []))
@@ -112,7 +85,7 @@ export function getTasksByType(paragraphs: $ReadOnlyArray<Paragraph>, ignoreInde
         const mentions = getElementsFromTask(content, MENTIONS)
         const exclamations = getElementsFromTask(content, EXCLAMATIONS)
         const parensPriority = getElementsFromTask(content, PARENS_PRIORITY)
-        const task: SortableParagraph = {
+        const task: SortableParagraphSubset = {
           content: para.content,
           index,
           raw: para.rawContent,

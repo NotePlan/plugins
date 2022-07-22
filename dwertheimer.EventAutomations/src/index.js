@@ -1,6 +1,7 @@
 // @flow
 import pluginJson from '../plugin.json'
 import { migrateConfiguration, updateSettingData, pluginUpdated } from '../../helpers/NPConfiguration'
+import { log, logDebug, clo } from "../../helpers/dev";
 
 export {
   insertTodosAsTimeblocks,
@@ -32,8 +33,7 @@ export async function onUpdateOrInstall(config: any = { silent: false }): Promis
   console.log(`${PLUGIN_ID}: onUpdateOrInstall finished`)
 }
 
-export async function onSettingsUpdated() {
-  // console.log(`${PLUGIN_ID}: onSettingsUpdated ran - nothing to do`)
+export function onSettingsUpdated() {
 }
 
 export function init(): void {

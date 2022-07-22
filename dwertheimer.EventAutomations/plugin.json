@@ -5,7 +5,7 @@
   "plugin.name": "🗓 AutoTimeBlocking & Synced Today Todos",
   "plugin.description": "Automatically find time in your calendar and create Time Blocks for items marked for >today and put copies of today's todos in the editor",
   "plugin.author": "dwertheimer",
-  "plugin.version": "1.4.0",
+  "plugin.version": "1.5.0",
   "plugin.lastUpdateInfo": "1.4.0: Added support for >date+ tags and autoupdates",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
@@ -238,7 +238,7 @@
       "description": "If Pretty Links is on, this it the character the link will display."
     },
     {
-      "type": "separator  "
+      "type": "separator"
     },
     {
       "type": "heading",
@@ -286,7 +286,7 @@
         "required": true
     },
     {
-      "type": "separator  "
+      "type": "separator"
     },
     {
       "type": "heading",
@@ -310,7 +310,7 @@
         "required": true
     },
     {
-      "type": "separator  "
+      "type": "separator"
     },
     {
       "type": "heading",
@@ -339,7 +339,7 @@
       "required": false
     },    
     {
-      "type": "separator  "
+      "type": "separator"
     },
     {
       "type": "heading",
@@ -352,6 +352,22 @@
         "description": "Presets are useful for changing some of the settings above but just for certain runs of the plugin (e.g. on the weekend, etc.). Read the documentation for how to use presets.",
         "default": "[\n{\n\t\"label\":\"Limit Time Blocks to Work Hours\",\n\t\"workDayStart\":\"08:00\",\n\t\"workDayEnd\":\"17:59\"\n},\n{\n\t\"label\":\"Create Timeblocks on Calendar\",\n\t\"createCalendarEntries\":true,\n\t\"deletePreviousCalendarEntries\":true,\n\t\"todoChar\":\"*\"\n}\n]",
         "required": false
-    }                        
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Debugging"
+    },
+    {
+        "key": "_logLevel",
+        "type": "string",
+        "title": "Log Level",
+        "choices": ["DEBUG","LOG","WARN","ERROR","none"],
+        "description": "Set how much output will be displayed for this plugin the NotePlan > Help > Plugin Console. DEBUG is the most verbose; NONE is the least (silent)",
+        "default": "LOG",
+        "required": true
+    }
   ]
 }

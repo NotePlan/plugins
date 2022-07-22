@@ -4,6 +4,9 @@ README: [How to use AutoTimeBlocking](https://noteplan.co/n/#/1EF12392-B544-4044
 
 ## What's New in AutoTimeBlocking
 
+[1.5.0] 2022-07-21 @dwertheimer
+- Added Log Level Settings in Preferences
+
 [1.4.0] 2022-07-03 @dwertheimer
 - added command "/Update >date+ tags in Notes" (including foldersToIgnore config setting)
 - added autoupdater code

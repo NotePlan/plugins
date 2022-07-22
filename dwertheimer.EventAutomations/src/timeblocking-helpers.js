@@ -1,6 +1,6 @@
 // @flow
 import { endOfDay, startOfDay, eachMinuteOfInterval, formatISO9075, addMinutes, differenceInMinutes } from 'date-fns'
-import type { IntervalMap, OpenBlock, BlockArray, TimeBlocksWithMap, BlockData, TimeBlockDefaults, PartialCalendarItem } from './timeblocking-flow-types'
+import type { IntervalMap, OpenBlock, BlockArray, TimeBlocksWithMap, BlockData, TimeBlockDefaults, PartialCalendarItem, ExtendedParagraph } from './timeblocking-flow-types'
 import type { AutoTimeBlockingConfig } from './config'
 import { getDateObjFromDateTimeString, getTimeStringFromDate, getTodaysDateHyphenated, removeDateTagsAndToday } from '@helpers/dateTime'
 import { sortListBy } from '@helpers/sorting'
@@ -9,11 +9,6 @@ import { textWithoutSyncedCopyTag } from '@helpers/syncedCopies'
 import { logError, JSP, copyObject, clo } from '@helpers/dev'
 
 // import { timeblockRegex1, timeblockRegex2 } from '../../helpers/markdown-regex'
-
-// A read-write expansion of Paragraph
-export interface ExtendedParagraph extends Paragraph {
-  title: string;
-}
 
 /**
  * Create a map of the time intervals for a portion of day
@@ -25,8 +20,9 @@ export interface ExtendedParagraph extends Paragraph {
  */
 export function createIntervalMap(time: { start: Date, end: Date }, valueToSet: false | string = false, options: { step: number } = { step: 5 }): IntervalMap {
   const { start, end } = time
-  if (options && options.step && options.step > 0) {
-    const intervals = eachMinuteOfInterval({ start, end }, options)
+  const { step } = options
+  if (step && step > 0) {
+    const intervals = eachMinuteOfInterval({ start, end }, { step })
     return intervals.map((interval, i) => {
       const start = formatISO9075(interval).slice(0, -3)
       const time = start.split(' ')[1]
@@ -345,7 +341,6 @@ export function appendLinkIfNecessary(todos: Array<ExtendedParagraph>, config: A
         if (e.type !== 'title') {
           let link = ''
           if (config.includeLinks === '[[internal#links]]') {
-            clo(e, `appendLinkIfNecessary, e:`)
             link = ` ${returnNoteLink(e.title ?? '', e.heading)}`
           } else {
             if (config.includeLinks === 'Pretty Links') {
@@ -407,7 +402,7 @@ export const addDurationToTasks = (tasks: Array<TParagraph>, config: { [key: str
   return dTasks
 }
 
-export function getTimeBlockTimesForEvents(timeMap: IntervalMap, todos: Array<TParagraph>, config: { [key: string]: any }): TimeBlocksWithMap {
+export function getTimeBlockTimesForEvents(timeMap: IntervalMap, todos: Array<ExtendedParagraph>, config: { [key: string]: any }): TimeBlocksWithMap {
   let newInfo = { timeMap, blockList: [], timeBlockTextList: [] }
   // $FlowIgnore
   const availableTimes = filterTimeMapToOpenSlots(timeMap, config)

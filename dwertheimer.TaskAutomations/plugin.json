@@ -112,6 +112,23 @@
       "required": true,
       "title": "Default Folder Name",
       "description": "If no filename is provided, a filename will be generated from the search string and the results will be saved in this folder. Setting a filename overrides this setting."
+    },
+    {
+      "NOTE": "DO NOT CHANGE THE FOLLOWING SETTINGS; ADD YOUR SETTINGS ABOVE ^^^",
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Debugging"
+    },
+    {
+        "key": "_logLevel",
+        "type": "string",
+        "title": "Log Level",
+        "choices": ["DEBUG","INFO","WARN","ERROR","none"],
+        "description": "Set how much output will be displayed for this plugin the NotePlan > Help > Plugin Console. DEBUG is the most verbose; NONE is the least (silent)",
+        "default": "LOG",
+        "required": true
     }
   ]
 } 

@@ -6,7 +6,8 @@
  * @param {Array<string>} taskTypesToInclude - default is ['open']
  * @returns array of strings with the sync codes attached
  */
-import type { ExtendedParagraph } from '../dwertheimer.EventAutomations/src/timeblocking-helpers'
+import type { ExtendedParagraph } from '../dwertheimer.EventAutomations/src/timeblocking-flow-types'
+import { log, logDebug, clo } from '@helpers/dev'
 
 export function getSyncedCopiesAsList(allTodayParagraphs: Array<TParagraph | ExtendedParagraph> = [], taskTypesToInclude: Array<string> = ['open']): Array<string> {
   const syncedLinesList = []
@@ -17,5 +18,6 @@ export function getSyncedCopiesAsList(allTodayParagraphs: Array<TParagraph | Ext
       syncedLinesList.push(p.rawContent)
     }
   })
+  logDebug(`getSyncedCopiesAsList:`, `${allTodayParagraphs.length} items`)
   return syncedLinesList
 }

@@ -1,5 +1,34 @@
 // @flow
 
+export type SortableParagraphSubset = {
+  content: string,
+  index: number,
+  raw: string,
+  hashtags: Array<string>,
+  mentions: Array<string>,
+  exclamations: Array<string>,
+  parensPriority: Array<string>,
+  priority?: number,
+  filename: string,
+  indents: number,
+  children: Array<SortableParagraphSubset>,
+  paragraph: ?TParagraph,
+}
+
+export type GroupedTasks = {
+  open: Array<SortableParagraphSubset>,
+  scheduled: Array<SortableParagraphSubset>,
+  cancelled: Array<SortableParagraphSubset>,
+  done: Array<SortableParagraphSubset>,
+  title: Array<SortableParagraphSubset>,
+  quote: Array<SortableParagraphSubset>,
+  list: Array<SortableParagraphSubset>,
+  empty: Array<SortableParagraphSubset>,
+  text: Array<SortableParagraphSubset>,
+  code: Array<SortableParagraphSubset>,
+  separator: Array<SortableParagraphSubset>,
+}
+
 /**
  * Modern case insensitive sorting function
  * More details at https://stackoverflow.com/a/49004987/3238281

@@ -33,3 +33,8 @@ export type PartialCalendarItem = {
   type: string,
   availability: number,
 }
+
+// A read-write expansion of Paragraph
+export interface ExtendedParagraph extends Paragraph {
+  title?: string;
+}
