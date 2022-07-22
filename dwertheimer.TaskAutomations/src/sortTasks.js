@@ -8,7 +8,7 @@ import { default as sweepNote, type ReturnStatus } from '../../nmn.sweep/src/swe
 import { getTagParamsFromString } from '../../helpers/general'
 import { removeHeadingFromNote } from '../../helpers/NPParagraph'
 import { sortListBy } from '../../helpers/sorting'
-import { getTasksByType, TASK_TYPES } from './taskHelpers'
+import { getTasksByType, TASK_TYPES } from '@helpers/sorting'
 // Note: not currently using getOverdueTasks from taskHelpers (because if it's open, we are moving it)
 // But the functions exist to look for open items with a date that is less than today
 //
