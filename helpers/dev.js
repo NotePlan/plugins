@@ -62,9 +62,7 @@ export function JSP(obj: any, space: string | number = 2): string {
             }
           } catch (error) {
             console.log(
-              `Caught error in JSP for propname=${propName} : ${error} typeof obj[propName]=${typeof obj[
-                propName
-              ]} isArray=${String(Array.isArray(obj[propName]))} len=${
+              `Caught error in JSP for propname=${propName} : ${error} typeof obj[propName]=${typeof obj[propName]} isArray=${String(Array.isArray(obj[propName]))} len=${
                 obj[propName]?.length
               } \n VALUE: ${JSON.stringify(obj[propName])}`,
             )
@@ -76,9 +74,7 @@ export function JSP(obj: any, space: string | number = 2): string {
       return acc
     }, {})
     // return cleanStringifiedResults(JSON.stringify(fullObj, null, space ?? null))
-    return typeof fullObj === 'object' && !(fullObj instanceof Date)
-      ? JSON.stringify(fullObj, null, space ?? null)
-      : 'date'
+    return typeof fullObj === 'object' && !(fullObj instanceof Date) ? JSON.stringify(fullObj, null, space ?? null) : 'date'
   }
 }
 
@@ -109,18 +105,13 @@ export function cleanStringifiedResults(str: string): string {
  */
 export function clo(obj: any, preamble: string = '', space: string | number = 2): void {
   if (typeof obj !== 'object') {
-    logDebug(preamble,`${obj}`)
+    logDebug(preamble, `${obj}`)
   } else {
-    logDebug(preamble,JSP(obj, space))
+    logDebug(preamble, JSP(obj, space))
   }
 }
 
-export function dump(
-  pluginInfo: any,
-  obj: { [string]: mixed },
-  preamble: string = '',
-  space: string | number = 2,
-): void {
+export function dump(pluginInfo: any, obj: { [string]: mixed }, preamble: string = '', space: string | number = 2): void {
   log(pluginInfo, '-------------------------------------------')
   clo(obj, preamble, space)
   log(pluginInfo, '-------------------------------------------')
@@ -229,8 +220,8 @@ const _message = (message: any): string => {
  * @param {string} type
  * @returns {string}
  */
-export function log(pluginInfo: any, message: any = '', type: string = 'LOG'): string {
-  const LOG_LEVELS = ['DEBUG','LOG','WARN','ERROR','none']
+export function log(pluginInfo: any, message: any = '', type: string = 'INFO'): string {
+  const LOG_LEVELS = ['DEBUG', 'INFO', 'WARN', 'ERROR', 'none']
   const thisMessageLevel = LOG_LEVELS.indexOf(type)
   let msg = ''
   let pluginId = ''
@@ -240,9 +231,7 @@ export function log(pluginInfo: any, message: any = '', type: string = 'LOG'): s
 
   if (isPluginJson) {
     pluginId = pluginInfo.hasOwnProperty('plugin.id') ? pluginInfo['plugin.id'] : 'INVALID_PLUGIN_ID'
-    pluginVersion = pluginInfo.hasOwnProperty('plugin.version')
-      ? pluginInfo['plugin.version']
-      : 'INVALID_PLUGIN_VERSION'
+    pluginVersion = pluginInfo.hasOwnProperty('plugin.version') ? pluginInfo['plugin.version'] : 'INVALID_PLUGIN_VERSION'
     msg = `${dt().padEnd(19)} | ${type.padEnd(5)} | ${pluginId} v${pluginVersion} :: ${_message(message)}`
   } else {
     if (message.length > 0) {
@@ -251,7 +240,7 @@ export function log(pluginInfo: any, message: any = '', type: string = 'LOG'): s
       msg = `${dt().padEnd(19)} | ${type.padEnd(5)} | ${_message(pluginInfo)}`
     }
   }
-  const userLogLevel = DataStore.settings["_logLevel"] || 1
+  const userLogLevel = DataStore.settings['_logLevel'] || 1
   const userLogLevelIndex = LOG_LEVELS.indexOf(userLogLevel)
   if (thisMessageLevel >= userLogLevelIndex) {
     console.log(msg)
