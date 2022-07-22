@@ -32,47 +32,13 @@ describe('sorting.js', () => {
     })
   })
 
-  // indirectly testing fieldSorter which is hard to
-  // test because it returns a function
-  describe('fieldSorter() via sortListBy()', () => {
-    test('sorting - sortListBy ', () => {
-      const list = [
-        { propA: 10, propB: 0 },
-        { propA: 0, propB: 4 },
-        { propA: 5, propB: 10 },
-        { propA: 0, propB: 0 },
-        { propA: 6 },
-        { propB: 7 },
-      ]
-      const immutableOrigList = _.cloneDeep(list)
-      // sort by propA (string, not array)
-      let sorted = s.sortListBy(list, 'propA')
-      expect(sorted[0]).toEqual(immutableOrigList[1])
-      expect(sorted[2]).toEqual(immutableOrigList[2])
-      // sort by propA (array)
-      sorted = s.sortListBy(list, ['propA'])
-      expect(sorted[0]).toEqual(immutableOrigList[1])
-      expect(sorted[2]).toEqual(immutableOrigList[2])
-      // sort by propB
-      sorted = s.sortListBy(list, ['propB', 'propA'])
-      expect(sorted[0].propB).toEqual(0)
-      expect(sorted[3]).toEqual(immutableOrigList[5])
-      expect(sorted[0]).toEqual(immutableOrigList[3])
-      // undefined should be last
-      expect(sorted[5]).toEqual(immutableOrigList[4])
-      // sort in reverse/DESC by propB
-      sorted = s.sortListBy(list, '-propB')
-      expect(sorted[0]).toEqual(immutableOrigList[2])
-      expect(sorted[1]).toEqual(immutableOrigList[5])
-      // undefined should be last in DESC sort also
-      expect(sorted[5]).toEqual(immutableOrigList[4])
-    })
-  })
      /*
      * fieldSorter()
+       (indirectly testing fieldSorter which is hard to
+        test because it returns a function - so it is getting exercised in sortListBy)
      */
     describe('fieldSorter()' /* function */, () => {
-      test.skip('should sort by alpha field', () => {
+      test.skip('should do something', () => {
         const result = s.fieldSorter()
         expect(result).toEqual(true)
       })
@@ -110,5 +76,68 @@ describe('sorting.js', () => {
         const result = s.sortListBy(list,"-date")
         expect(result).toEqual([a,b])
       })
+      // @jgclark pls add more tests here
+      /*
+       * older (basic) tests (need to refactor to use newer test format ^^^)
+       */
+      test('sorting - sortListBy ', () => {
+      const list = [
+        { propA: 10, propB: 0 },
+        { propA: 0, propB: 4 },
+        { propA: 5, propB: 10 },
+        { propA: 0, propB: 0 },
+        { propA: 6 },
+        { propB: 7 },
+      ]
+      const immutableOrigList = _.cloneDeep(list)
+      // sort by propA (string, not array)
+      let sorted = s.sortListBy(list, 'propA')
+      expect(sorted[0]).toEqual(immutableOrigList[1])
+      expect(sorted[2]).toEqual(immutableOrigList[2])
+      // sort by propA (array)
+      sorted = s.sortListBy(list, ['propA'])
+      expect(sorted[0]).toEqual(immutableOrigList[1])
+      expect(sorted[2]).toEqual(immutableOrigList[2])
+      // sort by propB
+      sorted = s.sortListBy(list, ['propB', 'propA'])
+      expect(sorted[0].propB).toEqual(0)
+      expect(sorted[3]).toEqual(immutableOrigList[5])
+      expect(sorted[0]).toEqual(immutableOrigList[3])
+      // undefined should be last
+      expect(sorted[5]).toEqual(immutableOrigList[4])
+      // sort in reverse/DESC by propB
+      sorted = s.sortListBy(list, '-propB')
+      expect(sorted[0]).toEqual(immutableOrigList[2])
+      expect(sorted[1]).toEqual(immutableOrigList[5])
+      // undefined should be last in DESC sort also
+      expect(sorted[5]).toEqual(immutableOrigList[4])
+    })
      })
+})
+
+  /**
+   * getTasksByType()
+   */
+  describe('getTasksByType()', () => {
+      test('Should group tasks by type', () => {
+
+    const paragraphs = [
+      {
+        type: 'open',
+        indents: 0,
+        content: 'test content',
+        rawContent: '* test content',
+      },
+      {
+        type: 'scheduled',
+        indents: 0,
+        content: 'test content',
+        rawContent: '* test content',
+      },
+    ]
+    let taskList = s.getTasksByType(paragraphs)
+    expect(taskList['open'].length).toEqual(1)
+    expect(taskList['scheduled'].length).toEqual(1)
+    expect(taskList['open'][0].content).toEqual(paragraphs[0].content)
+  })
 })
