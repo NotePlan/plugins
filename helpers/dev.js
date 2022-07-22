@@ -240,7 +240,12 @@ export function log(pluginInfo: any, message: any = '', type: string = 'INFO'): 
       msg = `${dt().padEnd(19)} | ${type.padEnd(5)} | ${_message(pluginInfo)}`
     }
   }
-  const userLogLevel = DataStore.settings['_logLevel'] || 1
+  let userLogLevel = 1
+  try {
+    userLogLevel = DataStore ? DataStore?.settings['_logLevel'] || 1 : 1
+  } catch (error) {
+    
+  }
   const userLogLevelIndex = LOG_LEVELS.indexOf(userLogLevel)
   if (thisMessageLevel >= userLogLevelIndex) {
     console.log(msg)
