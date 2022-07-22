@@ -44,9 +44,9 @@ export function caseInsensitiveCompare(a: string, b: string): number {
  * put a - in front of the field name to sort descending
  * @author @dwertheimer
  * @example const sortedHomes = sortListBy([{state:"CA",price:1000}],['state', '-price']); //the - in front of name is DESC
- * @param {Array<mixed>} list - items
+ * @param {Array<T>} list - items
  * @param {Array<string> | string} objectPropertySortOrder - field names to sort by -- either a single string or an array of strings/sort-order
- * @return the sorted task list
+ * @returns {Array<T>} the sorted task list
  */
 export function sortListBy<T>(list: Array<T>, objectPropertySortOrder: Array<string> | string): Array<T> {
   const sortBy = typeof objectPropertySortOrder === 'string' ? [objectPropertySortOrder] : objectPropertySortOrder
@@ -62,7 +62,6 @@ export function sortListBy<T>(list: Array<T>, objectPropertySortOrder: Array<str
  * @param {Array<string>} field list - property array, e.g. ['date', 'title']
  * @returns {function} callback function for sort()
  */
-
 export const fieldSorter =
   (fields: Array<string>): function =>
   (a, b) =>
