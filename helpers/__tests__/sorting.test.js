@@ -3,7 +3,7 @@ import { _ } from 'lodash'
 import * as s from '../sorting'
 
 // Jest suite
-describe('sorting', () => {
+describe('sorting.js', () => {
   describe('caseInsensitiveCompare()', () => {
     test('should sorted default (caps first)', () => {
       const unsorted = ['ee', 'B', 'a', 'c', 'F', 'cc', 'D']
@@ -68,5 +68,47 @@ describe('sorting', () => {
       expect(sorted[5]).toEqual(immutableOrigList[4])
     })
   })
+     /*
+     * fieldSorter()
+     */
+    describe('fieldSorter()' /* function */, () => {
+      test.skip('should sort by alpha field', () => {
+        const result = s.fieldSorter()
+        expect(result).toEqual(true)
+      })
+     })
 
+    /*
+     * sortListBy()
+     */
+    describe('sortListBy()' /* function */, () => {
+      test('should sort by alpha field ASC', () => {
+        const a = {text:"B"}
+        const b = {text:"A"}
+        const list = [a,b]
+        const result = s.sortListBy(list,"text")
+        expect(result).toEqual([b,a])
+      })
+      test('should sort by alpha field DESC', () => {
+        const a = {text:"B"}
+        const b = {text:"A"}
+        const list = [a,b]
+        const result = s.sortListBy(list,"-text")
+        expect(result).toEqual([a,b])
+      })
+      test('should sort by date field ASC', () => {
+        const a = {date:new Date("2022-01-01")}
+        const b = {date:new Date("2021-01-01")}
+        const list = [a,b]
+        const result = s.sortListBy(list,"date")
+        expect(result).toEqual([b,a])
+      })
+      test('should sort by date field DESC', () => {
+        const a = {date:new Date("2022-01-01")}
+        const b = {date:new Date("2021-01-01")}
+        const list = [a,b]
+        const result = s.sortListBy(list,"-date")
+        expect(result).toEqual([a,b])
+      })
+     })
 })
