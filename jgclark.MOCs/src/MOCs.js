@@ -1,6 +1,6 @@
 // @flow
 //-----------------------------------------------------------------------------
-// Last updated 18.7.2022 for v0.2.2, @jgclark
+// Last updated 22.7.2022 for v0.2.2, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -8,14 +8,11 @@ import {
   gatherMatchingLines,
   replaceContentUnderHeading
 } from '@helpers/NPParagraph'
-// import { nowLocaleDateTime } from '@helpers/dateTime'
-import { log, logError, logWarn } from '@helpers/dev'
+import { clo, log, logDebug, logError, logWarn } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
-// import { findEndOfActivePartOfNote } from '@helpers/paragraph'
 import {
   chooseFolder,
-  // chooseOption,
   getInput,
   showMessage,
   showMessageYesNo,
@@ -41,11 +38,11 @@ export type MOCsConfig = {
  * @return {MOCsConfig} object with configuration
  */
 export async function getMOCsSettings(): Promise<any> {
-  log(pluginJson, `Start of getMOCsSettings()`)
+  logDebug(pluginJson, `Start of getMOCsSettings()`)
   try {
     // Get settings using ConfigV2
     const v2Config: MOCsConfig = await DataStore.loadJSON('../jgclark.MOCs/settings.json')
-    // clo(v2Config, `${configKey} settings from V2:`)
+    clo(v2Config, `${configKey} settings from V2:`)
 
     if (v2Config == null || Object.keys(v2Config).length === 0) {
       throw new Error(`Cannot find settings for '${configKey}' plugin`)
@@ -81,7 +78,7 @@ export async function makeMOC(filenameArg?: string, termsArg?: string): Promise<
       noteFilename = noteFilename
       termsToMatch = Array.from(termsArg.split(','))
       termsToMatchStr = termsArg
-      log(pluginJson, `- called with 2 args: filename '${noteFilename}' / strings '${termsToMatchStr}'`)
+      logDebug(pluginJson, `- called with 2 args: filename '${noteFilename}' / strings '${termsToMatchStr}'`)
       note = DataStore.projectNoteByFilename(noteFilename)
       if (note == null) {
         logError(pluginJson, `Can't get new note (filename: ${noteFilename})`)
@@ -100,7 +97,7 @@ export async function makeMOC(filenameArg?: string, termsArg?: string): Promise<
       } else {
         termsToMatch = Array.from(newTerms.split(','))
       }
-      // log(pluginJson, `makeMOC: looking for '${String(termsToMatch)}' over all notes:`)
+      logDebug(pluginJson, `makeMOC: looking for '${String(termsToMatch)}' over all notes:`)
 
       // Get note title + folder to write to
       requestedTitle = await getInput(`What do you want to call this note?`, 'OK', 'Make MOC', `${newTerms} MOC`)
@@ -119,21 +116,21 @@ export async function makeMOC(filenameArg?: string, termsArg?: string): Promise<
       // See if this note has already been created (in active notes, not Archive or Trash)
       const existingNotes: $ReadOnlyArray<TNote> =
         DataStore.projectNoteByTitle(requestedTitle, true, false) ?? []
-      log(pluginJson, `  found ${existingNotes.length} existing '${requestedTitle}' notes`)
+      logDebug(pluginJson, `  found ${existingNotes.length} existing '${requestedTitle}' notes`)
 
       if (existingNotes.length > 0) {
         note = existingNotes[0] // pick the first if more than one
-        log(pluginJson, `  will write MOC to existing note: ${displayTitle(note)}`)
+        logDebug(pluginJson, `  will write MOC to existing note: ${displayTitle(note)}`)
       } else {
       // make a new note for this. NB: filename here = folder + filename
         // (API says don't add "/" for root, though.)
         noteFilename = DataStore.newNote(requestedTitle, folderName) ?? ''
         if (noteFilename === '') {
-          log(pluginJson, `  Error creating new note (filename '${noteFilename}')`)
+          logError(pluginJson, `Error creating new note (filename '${noteFilename}')`)
           await showMessage('There was an error creating the new note')
           return
         }
-        log(pluginJson, `  newNote filename: ${noteFilename}`)
+        logDebug(pluginJson, `  newNote filename: ${noteFilename}`)
         note = DataStore.projectNoteByFilename(noteFilename)
 
         if (note == null) {
@@ -149,13 +146,13 @@ export async function makeMOC(filenameArg?: string, termsArg?: string): Promise<
     const xCallbackLine = `[Click to refresh these results](noteplan://x-callback-url/runPlugin?pluginID=jgclark.MOC&command=make%20MOC&arg0=${encodeURIComponent(noteFilename)}&arg1=${encodeURIComponent(termsToMatchStr)})`
     // Either replace the existing line that starts the same way, or insert a new line after the title, so as not to disrupt any other section headings
     const line1content = (note.paragraphs.length >= 2) ? note.paragraphs[1].content : ''
-    console.log(line1content)
+    logDebug(pluginJson, line1content)
     if (line1content?.startsWith('[Click to refresh these results](noteplan://x-callback-url/')) {
-      console.log('update xcallback at line 1')
+      logDebug(pluginJson, 'update xcallback at line 1')
       note.paragraphs[1].content = xCallbackLine
       note.updateParagraph(note.paragraphs[1])
     } else {
-      console.log('insert xcallback at line 1')
+      logDebug(pluginJson, 'insert xcallback at line 1')
       note.insertParagraph(xCallbackLine, 1, 'text')
     }
     // TODO: test calling from x-callback
@@ -169,10 +166,10 @@ export async function makeMOC(filenameArg?: string, termsArg?: string): Promise<
       if (!config.foldersToExclude.includes(thisFolder)) {
         projectNotesToInclude.push(pn)
       } else {
-        // log(pluginJson, `  excluded note '${pn.filename}'`)
+        // logDebug(pluginJson, `  excluded note '${pn.filename}'`)
       }
     }
-    log(pluginJson, `Will use ${projectNotesToInclude.length} project notes out of ${allProjectNotes.length}`)
+    logDebug(pluginJson, `Will use ${projectNotesToInclude.length} project notes out of ${allProjectNotes.length}`)
 
     // Sort this list by whatever the user's setting says
     // (Need to do this before the gatherMatchingLines, as afterwards we don't have date information.)
@@ -189,7 +186,7 @@ export async function makeMOC(filenameArg?: string, termsArg?: string): Promise<
     }
 
     // Main loop: find entries and then decide whether to add or not
-    log(pluginJson, `makeMOC: looking for '${String(termsToMatch)}' over all notes:`)
+    logDebug(pluginJson, `makeMOC: looking for '${String(termsToMatch)}' over all notes:`)
     // Find matches in this set of notes
     for (const searchTerm of termsToMatch) {
       const outputArray = []
@@ -226,20 +223,20 @@ export async function makeMOC(filenameArg?: string, termsArg?: string): Promise<
           if (config.showEmptyOccurrences) {
             replaceContentUnderHeading(note, `'${searchTerm}'`, `No notes found`, true, config.headingLevel)
           } else {
-            log(pluginJson, `- no matches for search term '${searchTerm}'`)
+            logWarn(pluginJson, `- no matches for search term '${searchTerm}'`)
           }
         }
       } else {
         if (config.showEmptyOccurrences) {
           replaceContentUnderHeading(note, `'${searchTerm}'`, `No notes found`, true, config.headingLevel)
         } else {
-          log(pluginJson, `- no matches for search term '${searchTerm}'`)
+          logWarn(pluginJson, `- no matches for search term '${searchTerm}'`)
         }
       }
     }
 
     // Open the newly-written MOC note
-    // log(pluginJson, `Written results to note '${requestedTitle}'`)
+    // logDebug(pluginJson, `Written results to note '${requestedTitle}'`)
     await Editor.openNoteByFilename(note.filename)
   }
   catch (err) {

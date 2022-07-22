@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.MOCs/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/tree/main/jgclark.MOCs/CHANGELOG.md",
-  "plugin.version": "0.2.2-beta",
-  "plugin.lastUpdateInfo": "Fixed issue with #hashtags and @mentions",
+  "plugin.version": "0.2.2",
+  "plugin.lastUpdateInfo": "Under-the-hood change only: now using newer logging framework.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -89,6 +89,28 @@
       "type": "bool",
       "default": false,
       "required": false
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Debugging"
+    },
+    {
+      "key": "_logLevel",
+      "title": "Log Level",
+      "description": "Set how much output will be displayed for this plugin the NotePlan > Help > Plugin Console. DEBUG is the most verbose; NONE is the least (silent)",
+      "type": "string",
+      "choices": [
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "none"
+      ],
+      "default": "WARN",
+      "required": true
     }
   ]
 }
