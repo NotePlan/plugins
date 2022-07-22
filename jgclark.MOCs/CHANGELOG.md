@@ -1,8 +1,13 @@
 # What's Changed in 🕸 Map of Contents plugin?
 
+## [0.2.2] - 2022-07-22
+### Changed
+- updated to newer logging framework. No functional changes, I think.
+
 ## [0.2.1] - 17.7.2022
 ### Added
 - fixed problem with #hashtag and @mention in search terms
+- Note: there is an issue in NotePlan with created notes with @ or # in the title: they tend to disappear, which makes the refreshing of MOCs _into the existing MOC_ unreliable.
 
 ## [0.2.0] - 13.6.2022
 ### Added

@@ -1,8 +1,8 @@
 // @flow
 
 import { hyphenatedDate } from './dateTime'
-import { toLocaleDateTimeString } from './NPDateTime'
-import { JSP, log, logError, logWarn } from './dev'
+import { toLocaleDateTimeString } from './NPdateTime'
+import { JSP, log, logDebug, logError, logWarn, timer } from './dev'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote, isTermInMarkdownPath, isTermInURL } from './paragraph'
 
 /**
@@ -20,48 +20,58 @@ export function removeHeadingFromNote(note: TNote | TEditor, headingStr: string,
 }
 
 /**
- * Given a paragraph object, delete all the content of the block containing this paragraph
- * See getParagraphBlock below for definition of what constitutes a block an definition of useExtendedBlockDefinition
- * Optionally leave the title in place
+ * Given a paragraph object, delete all the content of the block containing this paragraph.
+ * See getParagraphBlock below for definition of what constitutes a block an definition of includeFromStartOfSection.
+ * Optionally leave the title in place.
  * @author @dwertheimer
  * @param {CoreNoteFields} note
  * @param {TParagraph} para
- * @param {boolean} useExtendedBlockDefinition (default: false) // TODO(@dwertheimer): flow shows this isn't used
+ * @param {boolean} includeFromStartOfSection (default: false)
  * @param {boolean} keepHeading (default: true)
  */
-export function deleteEntireBlock(note: CoreNoteFields, para: TParagraph, _useExtendedBlockDefinition: boolean = false, keepHeading: boolean = true): void {
-  const paraBlock: Array<TParagraph> = getParagraphBlock(note, para.lineIndex, _useExtendedBlockDefinition)
-  log(`NPParagraph/deleteEntireBlock`, `Removing ${paraBlock.length} items under ${para.content}`)
+export function deleteEntireBlock(note: CoreNoteFields, para: TParagraph, includeFromStartOfSection: boolean = false, keepHeading: boolean = true): void {
+  const paraBlock: Array<TParagraph> = getParagraphBlock(note, para.lineIndex, includeFromStartOfSection)
+  logDebug(`NPParagraph/deleteEntireBlock`, `Removing ${paraBlock.length} items under ${para.content}`)
   keepHeading ? paraBlock.shift() : null
   if (paraBlock.length > 0) {
     note.removeParagraphs(paraBlock) //seems to not work only if it's a note, not Editor
+    logDebug(`NPParagraph/deleteEntireBlock`, `Removed ${paraBlock.length} items under ${para.content} (from line ${para.lineIndex})`)
     // note.updateParagraphs(paraBlock)
+  }
+  else {
+    logDebug(`NPParagraph/deleteEntireBlock`, `No paragraphs to remove under ${para.content} (line # ${para.lineIndex})`)
   }
 }
 
 /**
  * Given a heading (string), delete all the content of the block under this heading (optionally and the heading also)
- * See getParagraphBlock below for definition of what constitutes a block an definition of useExtendedBlockDefinition
+ * See getParagraphBlock below for definition of what constitutes a block an definition of includeFromStartOfSection
  * (Note: if the heading occurs more than once, acts on the first one only)
  * @param {CoreNoteFields} note
  * @param {string} heading
- * @param {boolean} useExtendedBlockDefinition (default: false)
+ * @param {boolean} includeFromStartOfSection (default: false)
  * @param {boolean} keepHeading - keep the heading after deleting contents (default: true)
  */
-export function removeContentUnderHeading(note: CoreNoteFields, heading: string, useExtendedBlockDefinition: boolean = false, keepHeading: boolean = true) {
+export function removeContentUnderHeading(note: CoreNoteFields, heading: string, includeFromStartOfSection: boolean = false, keepHeading: boolean = true) {
   // log(`NPParagraph/removeContentUnderHeading`, `In '${note.title ?? ''}' remove items under title: "${heading}"`)
-  const para = note.paragraphs.find((p) => p.type === 'title' && p.content.includes(heading))
-  if (para && para.lineIndex != null) {
-    deleteEntireBlock(note, para, useExtendedBlockDefinition, keepHeading)
+  const paras = note.paragraphs.find((p) => p.type === 'title' && p.content.includes(heading))
+  if (paras && paras.lineIndex != null) {
+    deleteEntireBlock(note, paras, includeFromStartOfSection, keepHeading)
+    logDebug(`NPParagraph/removeContentUnderHeading`, `Note now has ${note.paragraphs.length} lines`)
+    // for (const p of note.paragraphs) {
+    //   log('NPParagraph / removeContentUnderHeading', `- ${p.lineIndex}: ${p.rawContent}`)
+    // }
   } else {
-    log(`NPParagraph/removeContentUnderHeading`, `did not find heading: "${heading}"`)
+    logWarn(`NPParagraph/removeContentUnderHeading`, `Did not find heading: "${heading}", so nothing removed.`)
   }
 }
 
 /**
- * Insert text content under a given title (string)
+ * Insert text content under a given section heading. 
+ * If section heading is not found, then insert that section heading first at the start of the note.
+ * The 'headingToFind' uses a startsWith not exact match, to allow datestamps or number of results etc. to be used in headings
  * @param {CoreNoteFields} destNote
- * @param {string} headingToFind - without the #
+ * @param {string} headingToFind - without leading #
  * @param {string} parasAsText - text to insert (multiple lines, separated by newlines)
  * @param {number} headingLevel of the heading to insert where necessary (1-5, default 2)
  */
@@ -70,38 +80,37 @@ export async function insertContentUnderHeading(destNote: CoreNoteFields, headin
   const headingMarker = '#'.repeat(headingLevel)
   const startOfNote = findStartOfActivePartOfNote(destNote)
   let insertionIndex = startOfNote // top of note by default
-  log(`NPParagraph/insertContentUnderHeading`, `insertionIndex = ${insertionIndex}`)
   for (let i = 0; i < destNote.paragraphs.length; i++) {
     const p = destNote.paragraphs[i]
-    if (p.content.trim().includes(headingToFind) && p.type === 'title') {
+    if (p.content.trim().startsWith(headingToFind) && p.type === 'title') {
       insertionIndex = i + 1
       break
     }
   }
-  log(`NPParagraph/insertContentUnderHeading`, `insertionIndex = ${insertionIndex}`)
+  logDebug(`NPParagraph/insertContentUnderHeading`, `insertionIndex = ${insertionIndex} (startOfNote = ${startOfNote})`)
   // If we didn't find the heading, insert at the top of the note
   const paraText = insertionIndex === startOfNote && headingToFind !== '' ? `${headingMarker} ${headingToFind}\n${parasAsText}\n` : parasAsText
   await destNote.insertParagraph(paraText, insertionIndex, 'text')
 }
 
 /**
- * Replace content under a given heading (string)
- * See getParagraphBlock below for definition of what constitutes a block an definition of useExtendedBlockDefinition
+ * Replace content under a given heading.
+ * See getParagraphBlock below for definition of what constitutes a block an definition of includeFromStartOfSection.
  * @param {CoreNoteFields} note
  * @param {string} heading
  * @param {string} newContentText - text to insert (multiple lines, separated by newlines)
- * @param {boolean} useExtendedBlockDefinition
+ * @param {boolean} includeFromStartOfSection
  * @param {number} headingLevel of the heading to insert where necessary (1-5, default 2)
  */
 export async function replaceContentUnderHeading(
   note: CoreNoteFields,
   heading: string,
   newContentText: string,
-  useExtendedBlockDefinition: boolean = false,
+  includeFromStartOfSection: boolean = false,
   headingLevel: number = 2,
 ) {
   log(`NPParagraph / replaceContentUnderHeading`, `In '${note.title ?? 'Untitled Note'}' replace items under heading: "${heading}"`)
-  removeContentUnderHeading(note, heading, useExtendedBlockDefinition)
+  removeContentUnderHeading(note, heading, includeFromStartOfSection)
   await insertContentUnderHeading(note, heading, newContentText, headingLevel)
 }
 
@@ -112,51 +121,46 @@ export async function replaceContentUnderHeading(
  * - if this line is a heading, then the current line and its following section
  *   (up until the next empty line, same-level heading or horizontal line).
  *
- * If setting 'useExtendedBlockDefinition' is true, then it can include more lines:
- * - it will work as if the cursor is on the preceding heading line,
- *   and take all its lines up until the next empty line, same-level heading,
- *   or horizontal line
- * NB: setting 'useExtendedBlockDefinition' defaults off (false)
+ * If setting 'includeFromStartOfSection' is true (and it is by default false), then it can include more lines:
+ * it will work as if the cursor is on the preceding heading line, and then using the same rules as above.
+ * (This used to be called 'useExtendedBlockDefinition'.)
  * @author @jgclark
  *
- * @param {[TParagraph]} allParas - all selectedParas in the note
+ * @param {Array<TParagraph>} allParas - all selectedParas in the note
  * @param {number} selectedParaIndex - the index of the current Paragraph
- * @param {boolean} useExtendedBlockDefinition
- * @return {[TParagraph]} the set of selectedParagraphs in the block
+ * @param {boolean} includeFromStartOfSection
+ * @returns {Array<TParagraph>} the set of selectedParagraphs in the block
  */
-export function getParagraphBlock(note: CoreNoteFields, selectedParaIndex: number, useExtendedBlockDefinition: boolean = false): Array<TParagraph> {
+export function getParagraphBlock(note: CoreNoteFields, selectedParaIndex: number, includeFromStartOfSection: boolean = false): Array<TParagraph> {
   const parasInBlock: Array<TParagraph> = [] // to hold set of paragraphs in block to return
   const endOfActiveSection = findEndOfActivePartOfNote(note)
   const startOfActiveSection = findStartOfActivePartOfNote(note)
   const allParas = note.paragraphs
   let startLine = selectedParaIndex
   let selectedPara = allParas[startLine]
-  // log(
-  //   `NPParagraph / getParagraphBlock`,
-  //   `  getParaBlock: starting line ${selectedParaIndex}: '${selectedPara.content}'`,
-  // )
+  logDebug(`NPParagraph / getParagraphBlock`, `  getParaBlock: starting line ${selectedParaIndex}: '${selectedPara.content}'`)
 
-  if (useExtendedBlockDefinition) {
+  if (includeFromStartOfSection) {
     // First look earlier to find earlier lines up to a blank line or horizontal rule;
     // include line unless we hit a new heading, an empty line, or a less-indented line.
     for (let i = selectedParaIndex - 1; i >= startOfActiveSection - 1; i--) {
       const p = allParas[i]
-      // log(`NPParagraph / getParagraphBlock`, `  ${ i } / ${p.type} / ${ p.content }`)
+      logDebug(`NPParagraph / getParagraphBlock`, `  ${i} / ${p.type} / ${p.content}`)
       if (p.type === 'separator') {
-        // log(`NPParagraph / getParagraphBlock`, `      ${i}: Found separator line`)
+        logDebug(`NPParagraph / getParagraphBlock`, `      ${i}: Found separator line`)
         startLine = i + 1
         break
       } else if (p.content === '') {
-        // log(`NPParagraph / getParagraphBlock`, `      ${i}: Found blank line`)
+        logDebug(`NPParagraph / getParagraphBlock`, `      ${i}: Found blank line`)
         startLine = i + 1
         break
       } else if (p.type === 'title') {
-        // log(`NPParagraph / getParagraphBlock`, `      ${i}: Found heading`)
+        logDebug(`NPParagraph / getParagraphBlock`, `      ${i}: Found heading`)
         startLine = i
         break
       }
     }
-    log(`NPParagraph / getParagraphBlock`, `For extended block worked back and will now start at line ${startLine}`)
+    logDebug(`NPParagraph / getParagraphBlock`, `For extended block worked back and will now start at line ${startLine}`)
   }
   selectedPara = allParas[startLine]
 
@@ -164,24 +168,24 @@ export function getParagraphBlock(note: CoreNoteFields, selectedParaIndex: numbe
   if (selectedPara.type === 'title') {
     // includes all heading levels
     const thisHeadingLevel = selectedPara.headingLevel
-    // log(`NPParagraph / getParagraphBlock`, `    Found heading level ${thisHeadingLevel}`)
+    logDebug(`NPParagraph / getParagraphBlock`, `    Found heading level ${thisHeadingLevel}`)
     parasInBlock.push(selectedPara) // make this the first line to move
     // Work out how far this section extends. (NB: headingRange doesn't help us here.)
     for (let i = startLine + 1; i < endOfActiveSection; i++) {
       const p = allParas[i]
       if (p.type === 'title' && p.headingLevel <= thisHeadingLevel) {
-        // log(`NPParagraph / getParagraphBlock`, `      ${i}: ${i}: Found new heading of same or higher level`)
+        logDebug(`NPParagraph / getParagraphBlock`, `      ${i}: ${i}: Found new heading of same or higher level`)
         break
       } else if (p.type === 'separator') {
-        // log(`NPParagraph / getParagraphBlock`, `      ${i}: Found HR`)
+        logDebug(`NPParagraph / getParagraphBlock`, `      ${i}: Found HR`)
         break
       } else if (p.content === '') {
-        // log(`NPParagraph / getParagraphBlock`, `      ${i}: Found blank line`)
+        logDebug(`NPParagraph / getParagraphBlock`, `      ${i}: Found blank line`)
         break
       }
       parasInBlock.push(p)
     }
-    // log(`NPParagraph / getParagraphBlock`, `  Found ${ parasInBlock.length } heading section lines`)
+    logDebug(`NPParagraph / getParagraphBlock`, `  Found ${parasInBlock.length} heading section lines`)
   } else {
     // This isn't a heading
     const startingIndentLevel = selectedPara.indents
@@ -191,28 +195,28 @@ export function getParagraphBlock(note: CoreNoteFields, selectedParaIndex: numbe
     // See if there are following indented lines to move as well
     for (let i = startLine + 1; i < endOfActiveSection; i++) {
       const p = allParas[i]
-      // log(`NPParagraph / getParagraphBlock`, `  ${i} / indent ${p.indents} / ${p.content}`)
+      logDebug(`NPParagraph / getParagraphBlock`, `  ${i} / indent ${p.indents} / ${p.content}`)
       // stop if horizontal line
       if (p.type === 'separator') {
-        // log(`NPParagraph / getParagraphBlock`, `      ${i}: Found HR`)
+        logDebug(`NPParagraph / getParagraphBlock`, `      ${i}: Found HR`)
         break
       } else if (p.type === 'title') {
-        // log(`NPParagraph / getParagraphBlock`, `      ${i}: Found heading`)
+        logDebug(`NPParagraph / getParagraphBlock`, `      ${i}: Found heading`)
         break
       } else if (p.content === '') {
-        // log(`NPParagraph / getParagraphBlock`, `      ${i}: Found blank line`)
+        logDebug(`NPParagraph / getParagraphBlock`, `      ${i}: Found blank line`)
         break
-      } else if (p.indents <= startingIndentLevel && !useExtendedBlockDefinition) {
+      } else if (p.indents <= startingIndentLevel && !includeFromStartOfSection) {
         // if we aren't using the Extended Block Definition, then
         // stop as this selectedPara is same or less indented than the starting line
-        // log(`NPParagraph / getParagraphBlock`, `      ${i}: Stopping as found same or lower indent`)
+        logDebug(`NPParagraph / getParagraphBlock`, `      ${i}: Stopping as found same or lower indent`)
         break
       }
       parasInBlock.push(p) // add onto end of array
     }
   }
 
-  log(`NPParagraph / getParagraphBlock`, `  Found ${parasInBlock.length} paras in block starting with: "${allParas[selectedParaIndex].content}"`)
+  logDebug(`NPParagraph / getParagraphBlock`, `  Found ${parasInBlock.length} paras in block starting with: "${allParas[selectedParaIndex].content}"`)
   // for (const pib of parasInBlock) {
   //   log(`NPParagraph / getParagraphBlock`, `    ${ pib.content }`)
   // }
@@ -257,7 +261,7 @@ export function getBlockUnderHeading(note: TNote, heading: TParagraph | string, 
  * @param {boolean} highlightResults - whether to enclose found string in ==highlight marks==
  * @param {string} dateStyle - where the context for an occurrence is a date, does it get appended as a 'date' using your locale, or as a NP date 'link' (`> date`) or 'none'
  * @param {boolean} matchCase - whether to search case insensitively (default: false)
- * @return [Array, Array] - array of lines with matching term, and array of contexts for those lines (dates for daily notes; title for project notes).
+ * @returns [Array<string>, Array<string>] - tuple of array of lines with matching term, and array of contexts for those lines (dates for daily notes; title for project notes).
  */
 export async function gatherMatchingLines(
   notes: Array<TNote>,
@@ -266,7 +270,7 @@ export async function gatherMatchingLines(
   dateStyle: string = 'link',
   matchCase: boolean = false,
 ): Promise<[Array<string>, Array<string>]> {
-  log('NPParagraph/gatherMatchingLines', `Looking for '${stringToLookFor}' in ${notes.length} notes`)
+  logDebug('NPParagraph/gatherMatchingLines', `Looking for '${stringToLookFor}' in ${notes.length} notes`)
 
   CommandBar.showLoading(true, `Searching in ${notes.length} notes ...`)
   await CommandBar.onAsyncThread()
@@ -274,21 +278,22 @@ export async function gatherMatchingLines(
   const matches: Array<string> = []
   const noteContexts: Array<string> = []
   let i = 0
+  const startDT = new Date()
   for (const n of notes) {
     i += 1
     const noteContext =
       n.date == null
         ? `[[${n.title ?? ''}]]`
         : dateStyle.startsWith('link') // to deal with earlier typo where default was set to 'links'
-        ? // $FlowIgnore(incompatible-call)
+          ? // $FlowIgnore(incompatible-call)
           ` > ${hyphenatedDate(n.date)} `
-        : dateStyle === 'date'
-        ? // $FlowIgnore(incompatible-call)
-          ` (${toLocaleDateTimeString(n.date)})`
-        : dateStyle === 'at'
-        ? // $FlowIgnore(incompatible-call)
-          ` @${hyphenatedDate(n.date)} `
-        : ''
+          : dateStyle === 'date'
+            ? // $FlowIgnore(incompatible-call)
+            ` (${toLocaleDateTimeString(n.date)})`
+            : dateStyle === 'at'
+              ? // $FlowIgnore(incompatible-call)
+              ` @${hyphenatedDate(n.date)} `
+              : ''
 
     // set up regex for searching, now with word boundaries on either side
     // find any matches
@@ -324,14 +329,16 @@ export async function gatherMatchingLines(
       CommandBar.showLoading(true, `Searching in ${notes.length} notes ...`, i / notes.length)
     }
   }
+  log('NPParagraph/gatherMatchingLines', `... in ${timer(startDT)}`)
   await CommandBar.onMainThread()
   CommandBar.showLoading(false)
+
   return [matches, noteContexts]
 }
 
 /**
  * Get the paragraph index of the start of the current selection, or 0 if no selection is active.
- * Note: Not currently used, I think.  See selectedLinesIndex instead (below).
+ * Note: Not currently used, I think. See selectedLinesIndex instead (below).
  * @author @jgclark
  * @returns {number}
  */
@@ -363,7 +370,7 @@ export function getSelectedParaIndex(): number {
  * @author @jgclark
  *
  * @param {TRange} selection - the current selection rnage object
- * @return {[number, number]} the line index number of start and end of selection
+ * @returns {[number, number]} the line index number of start and end of selection
  */
 export function selectedLinesIndex(selection: Range, paragraphs: $ReadOnlyArray<TParagraph>): [number, number] {
   let firstSelParaIndex = 0
@@ -396,7 +403,8 @@ export function selectedLinesIndex(selection: Range, paragraphs: $ReadOnlyArray<
 
 /**
  * Remove all previously written blocks under a given heading in all notes (e.g. for deleting previous "TimeBlocks" or "SyncedCopoes")
- * This is DANGEROUS. Could delete a lot of content. You have been warned!
+ * WARNING: This is DANGEROUS. Could delete a lot of content. You have been warned!
+ * @author @mikeerickson
  * @param {Array<string>} noteTypes - the types of notes to look in -- e.g. ['calendar','notes']
  * @param {string} heading - the heading too look for in the notes
  * @param {boolean} keepHeading - whether to leave the heading in place afer all the content underneath is
@@ -404,7 +412,7 @@ export function selectedLinesIndex(selection: Range, paragraphs: $ReadOnlyArray<
  */
 export async function removeContentUnderHeadingInAllNotes(noteTypes: Array<string>, heading: string, keepHeading: boolean = false, runSilently: string = 'no'): Promise<void> {
   try {
-    log(`NPParagraph`, `removeContentUnderHeadingInAllNotes running`)
+    logDebug(`NPParagraph`, `removeContentUnderHeadingInAllNotes running`)
     // For speed, let's first multi-core search the notes to find the notes that contain this string
     const prevCopies = await DataStore.search(heading, noteTypes)
     if (prevCopies.length) {
@@ -422,7 +430,7 @@ export async function removeContentUnderHeadingInAllNotes(noteTypes: Array<strin
     } else {
       if (!(runSilently === 'yes')) await showMessage(`Found no previous notes with "${heading}"`)
     }
-    log(`NPParagraph`, `removeContentUnderHeadingInAllNotes found ${prevCopies.length} previous ${String(noteTypes)} notes with heading: "${heading}"`)
+    logDebug(`NPParagraph`, `removeContentUnderHeadingInAllNotes found ${prevCopies.length} previous ${String(noteTypes)} notes with heading: "${heading}"`)
   } catch (error) {
     logError(`NPParagraph`, `removeContentUnderHeadingInAllNotes error: ${JSP(error)}`)
   }
@@ -485,25 +493,24 @@ export function getParagraphContainingPosition(note: CoreNoteFields, position: n
         if (start <= position && end >= position) {
           foundParagraph = p
           if (i > 0) {
-            log(
-              pluginJson,
+            logDebug(pluginJson,
               `getParagraphContainingPosition: paragraph before: ${i - 1} (${String(note.paragraphs[i - 1].contentRange?.start)}-${String(
                 note.paragraphs[i - 1]?.contentRange?.end || 'n/a',
               )}) - "${note.paragraphs[i - 1].content}"`,
             )
           }
-          log(pluginJson, `getParagraphContainingPosition: found position ${position} in paragraph ${i} (${start}-${end}) -- "${p.content}"`)
+          logDebug(pluginJson, `getParagraphContainingPosition: found position ${position} in paragraph ${i} (${start}-${end}) -- "${p.content}"`)
         }
       }
     }
   })
   if (!foundParagraph) {
-    log(pluginJson, `getParagraphContainingPosition: *** Looking for cursor position ${position}`)
+    logDebug(pluginJson, `getParagraphContainingPosition: *** Looking for cursor position ${position}`)
     note.paragraphs.forEach((p, i) => {
       const { start, end } = p.contentRange || {}
-      log(pluginJson, `getParagraphContainingPosition: paragraph ${i} (${start}-${end}) "${p.content}"`)
+      logDebug(pluginJson, `getParagraphContainingPosition: paragraph ${i} (${start}-${end}) "${p.content}"`)
     })
-    log(pluginJson, `getParagraphContainingPosition: *** position ${position} not found`)
+    logDebug(pluginJson, `getParagraphContainingPosition: *** position ${position} not found`)
   }
   return foundParagraph
 }
@@ -515,13 +522,13 @@ export function getParagraphContainingPosition(note: CoreNoteFields, position: n
  * @returns {TParagraph} the paragraph that the cursor is in or null if not found
  */
 export async function getSelectedParagraph(): Promise<TParagraph | null> {
-  //   const thisParagraph = Editor.selectedParagraphs // recommended by @eduard but currently not reliable (Editor.selectedParagraphs is empty on a new line)
+  // const thisParagraph = Editor.selectedParagraphs // recommended by @eduard but currently not reliable (Editor.selectedParagraphs is empty on a new line)
   let thisParagraph
   if (typeof Editor.selection?.start === 'number') {
     thisParagraph = getParagraphContainingPosition(Editor, Editor.selection.start)
   }
   if (!thisParagraph || !Editor.selection?.start) {
-    log(`NPParagraph`, `getSelectedParagraph: no paragraph found for cursor position Editor.selection?.start=${String(Editor.selection?.start)}`)
+    logWarn(`NPParagraph`, `getSelectedParagraph: no paragraph found for cursor position Editor.selection?.start=${String(Editor.selection?.start)}`)
     await showMessage(`No paragraph found selection.start: ${String(Editor.selection?.start)} Editor.selectedParagraphs.length = ${Editor.selectedParagraphs?.length}`)
   }
   return thisParagraph || null

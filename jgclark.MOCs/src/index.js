@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Map of Contents plugin
 // Jonathan Clark
-// Last updated 17.7.2022 for v0.2.1
+// Last updated 22.7.2022 for v0.2.2-b2
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -22,13 +22,13 @@ export function onSettingsUpdated(): void {
   // Placeholder only to stop error in logs
 }
 
-const configKey = 'mocs'
+const pluginID = 'jgclark.MOCs'
 
 export async function onUpdateOrInstall(): Promise<void> {
   try {
-    console.log(`${configKey}: onUpdateOrInstall running`)
+    console.log(`${pluginID}: onUpdateOrInstall running`)
     const updateSettingsResult = updateSettingData(pluginJson)
-    console.log(`${configKey}: onUpdateOrInstall updateSettingData code: ${updateSettingsResult}`)
+    console.log(`${pluginID}: onUpdateOrInstall updateSettingData code: ${updateSettingsResult}`)
     // Tell user the plugin has been updated
     if (pluginJson['plugin.lastUpdateInfo'] !== undefined) {
       await showMessage(pluginJson['plugin.lastUpdateInfo'], 'OK, thanks',
@@ -38,5 +38,5 @@ export async function onUpdateOrInstall(): Promise<void> {
   } catch (error) {
     console.log(error)
   }
-  console.log(`${configKey}: onUpdateOrInstall finished`)
+  console.log(`${pluginID}: onUpdateOrInstall finished`)
 }
