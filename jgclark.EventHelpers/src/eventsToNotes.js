@@ -1,7 +1,7 @@
 // @flow
 // ----------------------------------------------------------------------------
 // Command to bring calendar events into notes
-// Last updated 16.6.2022 for v0.16.1+, by @jgclark
+// Last updated 22.7.2022 for v0.16.6, by @jgclark
 // @jgclark, with additions by @dwertheimer, @weyert, @m1well
 // ----------------------------------------------------------------------------
 
@@ -15,10 +15,9 @@ import {
   getISODateStringFromYYYYMMDD,
   toLocaleDateString,
   toLocaleTime,
-  // unhyphenatedDate,
   unhyphenateString,
 } from '@helpers/dateTime'
-import { log, logError } from '@helpers/dev'
+import { log, logDebug, logError } from '@helpers/dev'
 import { getTagParamsFromString } from '@helpers/general'
 import { showMessage } from '@helpers/userInput'
 
@@ -36,7 +35,7 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
   }
   try {
     const baseDateStr = getDateStringFromCalendarFilename(Editor.filename)
-    log(pluginJson, `listDaysEvents for date ${baseDateStr} with paramString='${paramString}'`)
+    logDebug(pluginJson, `listDaysEvents for date ${baseDateStr} with paramString='${paramString}'`)
 
     // Get config settings
     const config = await getEventsSettings()
@@ -81,12 +80,12 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
 
       // Get all the events for this day
       const eArr: Array<TCalendarItem> = await getEventsForDay(dateStr, config.calendarSet)
-      log(pluginJson, `${eArr.length} events found on ${dateStr} from calendarSet of ${config.calendarSet.length} calendars`)
+      logDebug(pluginJson, `${eArr.length} events found on ${dateStr} from calendarSet of ${config.calendarSet.length} calendars`)
       const mapForSorting: { cal: string, start: Date, text: string }[] = []
 
       // Process each event
       for (const e of eArr) {
-        log(pluginJson, `  Processing event '${e.title}' (${typeof e})`)
+        logDebug(pluginJson, `  Processing event '${e.title}' (${typeof e})`)
         // Replace any mentions of the keywords in the e.title string
         const replacements = getReplacements(e, config)
         const thisEventStr = smartStringReplace(e.isAllDay ? alldayformat : format, replacements)
@@ -109,7 +108,7 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
     }
 
     const output = outputArray.join('\n') // If this array is empty -> empty string
-    // log(pluginJson, output)
+    logDebug(pluginJson, output)
     return output
   }
   catch (err) {
@@ -152,7 +151,7 @@ export async function listMatchingDaysEvents(
 ): Promise<string> {
   // $FlowIgnore[incompatible-call] - called by a function that checks Editor is valid.
   const baseDateStr = getDateStringFromCalendarFilename(Editor.filename)
-  log(pluginJson, `listMatchingDaysEvents for date ${baseDateStr} with paramString=${paramString}`)
+  logDebug(pluginJson, `listMatchingDaysEvents for date ${baseDateStr} with paramString=${paramString}`)
 
   // Get config settings
   const config = await getEventsSettings()
@@ -166,7 +165,7 @@ export async function listMatchingDaysEvents(
   }
   const textToMatchArr = Object.keys(config.addMatchingEvents)
   const formatArr = Object.values(config.addMatchingEvents)
-  log(pluginJson, `From settings found ${textToMatchArr.length} match strings to look for`)
+  logDebug(pluginJson, `From settings found ${textToMatchArr.length} match strings to look for`)
 
   // Get a couple of other supplied parameters, or use defaults
   const includeHeadings = await getTagParamsFromString(paramString, 'includeHeadings', true)
@@ -201,7 +200,7 @@ export async function listMatchingDaysEvents(
         const withCalendarName = thisFormat.includes('CAL')
         const reMatch = new RegExp(textToMatchArr[j], 'i')
         if (e.title.match(reMatch)) {
-          log(pluginJson, `  Found match to event '${e.title}'`)
+          logDebug(pluginJson, `  Found match to event '${e.title}'`)
           // Replace any mentions of the keywords in the e.title string
           const replacements = getReplacements(e, config)
           const thisEventStr = smartStringReplace(thisFormat, replacements)
@@ -214,7 +213,7 @@ export async function listMatchingDaysEvents(
             text: thisEventStr
           })
         } else {
-          // log(pluginJson, `No match to ${e.title}`)
+          logDebug(pluginJson, `No match to ${e.title}`)
         }
       }
     }
@@ -235,7 +234,7 @@ export async function listMatchingDaysEvents(
   }
 
   const output = outputArray.join('\n') // If this array is empty -> empty string
-  // log(pluginJson, output)
+  logDebug(pluginJson, output)
   return output
 }
 
@@ -266,7 +265,7 @@ export async function insertMatchingDaysEvents(paramString: ?string): Promise<vo
  * @return {Map<string, string>}
  */
 export function getReplacements(item: TCalendarItem, config: EventsConfig): Map<string, string> {
-  // log(pluginJson, 'starting getReplacementsV2')
+  logDebug(pluginJson, 'starting getReplacementsV2')
   const outputObject = new Map < string, string> ()
 
   outputObject.set('CAL', calendarNameWithMapping(item.calendar, config.calendarNameMappings))
@@ -280,7 +279,7 @@ export function getReplacements(item: TCalendarItem, config: EventsConfig): Map<
   outputObject.set('END', item.endDate != null && !item.isAllDay ? toLocaleTime(item.endDate, config.locale, config.timeOptions) : '')
   outputObject.set('URL', item.url)
 
-  // outputObject.forEach((v, k, map) => { console.log(`${k} : ${v}`) })
+  // outputObject.forEach((v, k, map) => { logDebug(pluginJson, `${k} : ${v}`) })
   return outputObject
 }
 
@@ -297,7 +296,7 @@ export function getReplacements(item: TCalendarItem, config: EventsConfig): Map<
  * @return {{string, string}}
  */
 export function smartStringReplace(format: string, replacements: Map<string, string>): string {
-  // log(pluginJson, `smartStringReplaceV2 starting for format <${format}>`)
+  // logDebug(pluginJson, `smartStringReplaceV2 starting for format <${format}>`)
   let output = format
 
   // For each possible placeholder, process it if it present in format AND the value for this event is not empty
@@ -315,12 +314,12 @@ export function smartStringReplace(format: string, replacements: Map<string, str
       const replacementValue = replacements.get(p) ?? ''
       if (replacementValue !== '') {
         const replacementForTag = matchedTagInternals.replace(p, replacementValue)
-        log(pluginJson, `    replacing ${replacementValue} for ${p}`)
+        logDebug(pluginJson, `    replacing ${replacementValue} for ${p}`)
         output = output.replace(matchedTag, replacementForTag)
       } else {
         output = output.replace(matchedTag, '')
       }
-      log(pluginJson, `  => ${output}`)
+      logDebug(pluginJson, `  => ${output}`)
     }
   }
 

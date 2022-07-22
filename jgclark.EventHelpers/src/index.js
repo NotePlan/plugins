@@ -3,12 +3,12 @@
 //-----------------------------------------------------------------------------
 // Event Helpers
 // Jonathan Clark
-// last updated 15.7.2022, for v0.16.0+
+// last updated 22.7.2022, for v0.16.6
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json' 
-import { log } from "@helpers/dev"
+import { log, logError } from "@helpers/dev"
 import { migrateConfiguration, updateSettingData } from '@helpers/NPConfiguration'
 import { showMessage } from '@helpers/userInput'
 
@@ -22,28 +22,29 @@ export {
 export { processDateOffsets, shiftDates } from './offsets'
 
 export function init(): void {
-  // Placeholder only
+  // In the background, see if there is an update to the plugin to install, and if so let user know
+  DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false)
 }
 
-export function onSettingsUpdated(): void {
-  // Placeholder only to stop error in logs
-}
+const pluginID = "jgclark.EventHelpers"
 
-const configKey = "events"
+export async function onSettingsUpdated(): Promise<void> {
+  // Placeholder to avoid complaints
+}
 
 // refactor previous variables to new types
-export async function onUpdateOrInstall(config: any = { silent: false }): Promise<void> {
+export async function onUpdateOrInstall(): Promise<void> {
   try {
-    log(pluginJson, `${configKey}: onUpdateOrInstall running`)
+    log(pluginJson, `${pluginID}: onUpdateOrInstall running`)
     const updateSettings = updateSettingData(pluginJson)
-    log(pluginJson, `${configKey}: onUpdateOrInstall updateSettingData code: ${updateSettings}`)
+    log(pluginJson, `${pluginID}: onUpdateOrInstall updateSettingData code: ${updateSettings}`)
     if (pluginJson['plugin.lastUpdateInfo'] !== undefined) {
       await showMessage(pluginJson['plugin.lastUpdateInfo'], 'OK, thanks',
         `Plugin ${pluginJson['plugin.name']} updated to v${pluginJson['plugin.version']}`
       )
     }
   } catch (error) {
-    log(pluginJson, error)
+    logError(pluginJson, error)
   }
-  log(pluginJson, `${configKey}: onUpdateOrInstall finished`)
+  log(pluginJson, `${pluginID}: onUpdateOrInstall finished`)
 }

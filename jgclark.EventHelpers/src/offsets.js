@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Command to Process Date Offsets
 // @jgclark
-// Last updated 16.6.2022 for v0.16.0+, by @jgclark
+// Last updated 22.7.2022 for v0.16.6, by @jgclark
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -15,11 +15,9 @@ import {
   RE_OFFSET_DATE,
   RE_OFFSET_DATE_CAPTURE,
   RE_DATE_INTERVAL,
-  // todaysDateISOString,
 } from '@helpers/dateTime'
-import { log, logWarn, logError } from '@helpers/dev'
+import { log, logDebug, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-// import { calcOffsetDateStr } from '@helpers/NPDateTime'
 import { findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { askDateInterval, datePicker, showMessage, showMessageYesNo } from '@helpers/userInput'
 
@@ -48,7 +46,7 @@ export async function shiftDates(): Promise<void> {
     } else {
       pArr = Editor.selectedParagraphs
     }
-    log(pluginJson, `shiftDates starting for ${pArr.length} lines`)
+    logDebug(pluginJson, `shiftDates starting for ${pArr.length} lines`)
     if (pArr.length === 0) {
       logError(pluginJson, `Empty selection found. Stopping.`)
       await showMessage('Please select some lines to process.', 'OK', 'Shift Dates')
@@ -67,12 +65,12 @@ export async function shiftDates(): Promise<void> {
     let updatedCount = 0
     pArr.forEach((p) => {
       const c = p.content
-      log(pluginJson, `${c}`)
+      logDebug(pluginJson, `${c}`)
       if (c.match(RE_BARE_DATE)) {
         const dates = c.match(RE_BARE_DATE_CAPTURE) ?? []
         const firstDate = dates[1]
         const shiftedDate = calcOffsetDateStr(firstDate, interval)
-        log(pluginJson, `  ${firstDate}: match found, will become ${shiftedDate}`)
+        logDebug(pluginJson, `  ${firstDate}: match found, will become ${shiftedDate}`)
         // Replace date part with the new shiftedDate
         const updatedP = c.replace(firstDate, shiftedDate).trimEnd()
         p.content = updatedP
@@ -80,7 +78,7 @@ export async function shiftDates(): Promise<void> {
         updatedCount += 1
       }
     })
-    log(pluginJson, `Shifted ${updatedCount} dates`)
+    logDebug(pluginJson, `Shifted ${updatedCount} dates`)
   } catch (err) {
     logError(pluginJson, err.message)
   }
@@ -111,7 +109,7 @@ export async function processDateOffsets(): Promise<void> {
     return
   }
   const noteTitle = displayTitle(note)
-  log(pluginJson, `for note '${noteTitle}'`)
+  logDebug(pluginJson, `processDateOffsets() for note '${noteTitle}'`)
   const config = await getEventsSettings() // eslint-disable-line
 
   try {
@@ -125,7 +123,7 @@ export async function processDateOffsets(): Promise<void> {
     // which can look like timeblocks
     const dateOffsetParas = paragraphs.filter((p) => p.content.match(RE_DATE_INTERVAL) && p.lineIndex < endOfActive)
     if (dateOffsetParas.length > 0) {
-      log(pluginJson, `Found ${dateOffsetParas.length} date offsets in '${noteTitle}'`)
+      logDebug(pluginJson, `Found ${dateOffsetParas.length} date offsets in '${noteTitle}'`)
       // Find first Done or Cancelled section and get its paragraph index
 
       // Go through each line in the active part of the file
@@ -139,13 +137,13 @@ export async function processDateOffsets(): Promise<void> {
       while (n < endOfActive) {
         let line = paragraphs[n].content // don't think this needs to be rawContent
         thisLevel = paragraphs[n].type === 'title' ? (thisLevel = -1) : paragraphs[n].indents
-        // log(pluginJson, `  Line ${n} (${thisLevel}) ${line}`)
+        logDebug(pluginJson, `  Line ${n} (${thisLevel}) ${line}`)
 
         // Decide whether to clear CTD
         // Specifically: clear on lower indent or heading or blank line or separator line
         if (thisLevel < previousFoundLevel || thisLevel === -1 || line === '' || paragraphs[n].type === 'separator') {
           if (currentTargetDate !== '') {
-            log(pluginJson, `- Cleared CTD`)
+            logDebug(pluginJson, `- Cleared CTD`)
 
             // If we had a current target date, and want to add addFinalDate, do so
             if (lastCalcDate !== '' && currentTargetDateLine > 0) {
@@ -168,7 +166,7 @@ export async function processDateOffsets(): Promise<void> {
           // We have a date string to use for any offsets in this line, and possibly following lines
           currentTargetDate = dateISOString
           currentTargetDateLine = n
-          log(pluginJson, `- Found CTD ${currentTargetDate} on line ${currentTargetDateLine}`)
+          logDebug(pluginJson, `- Found CTD ${currentTargetDate} on line ${currentTargetDateLine}`)
           previousFoundLevel = thisLevel
         }
 
@@ -176,7 +174,7 @@ export async function processDateOffsets(): Promise<void> {
         // NB: this only deals with the first on any line; it doesn't make sense to have more than one.
         let dateOffsetString = ''
         if (line.match(RE_OFFSET_DATE)) {
-          // log(pluginJson, `    - Found line '${line.trimEnd()}'`)
+          logDebug(pluginJson, `    - Found line '${line.trimEnd()}'`)
           const dateOffsetStrings = line.match(RE_OFFSET_DATE_CAPTURE) ?? ['']
           dateOffsetString = dateOffsetStrings[1] // first capture group
           let calcDate = ''
@@ -192,11 +190,11 @@ export async function processDateOffsets(): Promise<void> {
                 logError(pluginJson, `- Still no valid CTD, so stopping.`)
                 return
               } else {
-                log(pluginJson, `- User supplied CTD ${currentTargetDate}`)
+                logDebug(pluginJson, `- User supplied CTD ${currentTargetDate}`)
               }
             }
 
-            log(pluginJson, `  cTD=${currentTargetDate}; lCD=${lastCalcDate}`)
+            logDebug(pluginJson, `  cTD=${currentTargetDate}; lCD=${lastCalcDate}`)
             if (dateOffsetString.startsWith('^')) {
               calcDate = calcOffsetDateStr(lastCalcDate, dateOffsetString.slice(1))
             } else {
@@ -214,7 +212,7 @@ export async function processDateOffsets(): Promise<void> {
               line = `${line.slice(0, labelStart)} >${calcDate} ${line.slice(labelEnd + 1)}` // also trim off trailing whitespace
               paragraphs[n].content = line.trimEnd()
               note.updateParagraph(paragraphs[n])
-              log(pluginJson, `    -> '${line.trimEnd()}'`)
+              logDebug(pluginJson, `    -> '${line.trimEnd()}'`)
             }
           }
         }

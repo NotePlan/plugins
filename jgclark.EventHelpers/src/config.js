@@ -1,7 +1,7 @@
 // @flow
 // ----------------------------------------------------------------------------
 // Sort configuration for commands in the Event Helpers plugin.
-// Last updated 2.5.2022 for v0.15.0+, by @jgclark
+// Last updated 22.7.2022 for v0.16.5, by @jgclark
 // @jgclark
 // ----------------------------------------------------------------------------
 
@@ -15,7 +15,7 @@ import {
   trimAnyQuotes,
 } from '../../helpers/dataManipulation'
 import { type HourMinObj } from '../../helpers/dateTime'
-import { clo, log, logWarn, logError } from "../../helpers/dev"
+import { clo, log, logDebug, logWarn, logError } from "../../helpers/dev"
 import { type EventsConfig } from '../../helpers/NPCalendar'
 import { showMessage } from '../../helpers/userInput'
 
@@ -30,7 +30,7 @@ const configKey = 'events'
  * @return {EventsConfig} object with configuration
  */
 export async function getEventsSettings(): Promise<any> {
-  log(pluginJson, `Start of getEventsSettings()`)
+  logDebug(pluginJson, `Start of getEventsSettings()`)
   try {
     // Get settings using ConfigV2
     let v2Config: EventsConfig = await DataStore.loadJSON("../jgclark.EventHelpers/settings.json")
@@ -60,7 +60,7 @@ export async function getEventsSettings(): Promise<any> {
     }
     v2Config.locale = getLocale(v2Config)
     v2Config.timeOptions = getTimeOptions(v2Config)
-    // clo(v2Config, `${configKey} settings from V2:`)
+    clo(v2Config, `${configKey} settings from V2:`)
     return v2Config
   }
   catch (err) {
@@ -85,6 +85,6 @@ function getLocale(tempConfig: Object): string {
 function getTimeOptions(tempConfig: Object): Object {
   const env1224 = NotePlan?.environment ? NotePlan?.environment?.is12hFormat : false
   let tempTimeOptions = tempConfig?.timeOptions ?? { hour: '2-digit', minute: '2-digit', hour12: env1224 }
-  // clo(tempTimeOptions, `tempTimeOptions: `)
+  clo(tempTimeOptions, `tempTimeOptions: `)
   return tempTimeOptions
 }

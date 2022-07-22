@@ -7,7 +7,9 @@
   "plugin.icon": "",
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers",
-  "plugin.version": "0.16.5",
+  "plugin.changelog": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers/CHANGELOG.md",
+  "plugin.version": "0.16.6",
+  "plugin.lastUpdateInfo": "Under-the-hood change only: now using newer logging framework.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -221,6 +223,28 @@
       "type": "json",
       "default": "{\n\t\"hour\": \"2-digit\", \n\t\"minute\": \"2-digit\", \n\t\"hour12\": false\n}",
       "required": false
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Debugging"
+    },
+    {
+      "key": "_logLevel",
+      "title": "Log Level",
+      "description": "Set how much output will be displayed for this plugin the NotePlan > Help > Plugin Console. DEBUG is the most verbose; NONE is the least (silent)",
+      "type": "string",
+      "choices": [
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "none"
+      ],
+      "default": "WARN",
+      "required": true
     }
   ]
 }

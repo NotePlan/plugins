@@ -1,6 +1,10 @@
 # What's changed in 🕓 Event Helpers?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
+## [0.16.6] - 2022-07-22
+### Changed
+- updated to newer logging framework. No functional changes.
+
 ## [0.16.5] - 2022-06-17
 ### Fixed
 - work around a bug in NP's 'Timeblock text must contain string' setting (tracked down with help by @StuW)
