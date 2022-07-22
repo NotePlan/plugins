@@ -37,9 +37,21 @@
       "default": "This default setting was set in plugin preferences!"
     },
     {
-      "key": "version",
-      "type": "hidden",
-      "description": "{{pluginName}} Settings Version"
+      "NOTE": "DO NOT CHANGE THE FOLLOWING SETTINGS; ADD YOUR SETTINGS ABOVE ^^^",
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Debugging"
+    },
+    {
+        "key": "_logLevel",
+        "type": "string",
+        "title": "Log Level",
+        "choices": ["DEBUG","LOG","WARN","ERROR","none"],
+        "description": "Set how much output will be displayed for this plugin the NotePlan > Help > Plugin Console. DEBUG is the most verbose; NONE is the least (silent)",
+        "default": "WARN",
+        "required": true
     }
   ]
 }

@@ -109,9 +109,9 @@ export function cleanStringifiedResults(str: string): string {
  */
 export function clo(obj: any, preamble: string = '', space: string | number = 2): void {
   if (typeof obj !== 'object') {
-    console.log(`${obj} ${preamble}`)
+    logDebug(preamble,`${obj}`)
   } else {
-    console.log(`${preamble !== '' ? `${preamble} ` : ''}${JSP(obj, space)}`)
+    logDebug(preamble,JSP(obj, space))
   }
 }
 
@@ -230,6 +230,8 @@ const _message = (message: any): string => {
  * @returns {string}
  */
 export function log(pluginInfo: any, message: any = '', type: string = 'LOG'): string {
+  const LOG_LEVELS = ['DEBUG','LOG','WARN','ERROR','none']
+  const thisMessageLevel = LOG_LEVELS.indexOf(type)
   let msg = ''
   let pluginId = ''
   let pluginVersion = ''
@@ -249,8 +251,11 @@ export function log(pluginInfo: any, message: any = '', type: string = 'LOG'): s
       msg = `${dt().padEnd(19)} | ${type.padEnd(5)} | ${_message(pluginInfo)}`
     }
   }
-
-  console.log(msg)
+  const userLogLevel = DataStore.settings["_logLevel"] || 1
+  const userLogLevelIndex = LOG_LEVELS.indexOf(userLogLevel)
+  if (thisMessageLevel >= userLogLevelIndex) {
+    console.log(msg)
+  }
   return msg
 }
 
@@ -278,6 +283,17 @@ export function logError(pluginInfo: any, error?: any): string {
  */
 export function logWarn(pluginInfo: any, message: any = ''): string {
   return log(pluginInfo, message, 'WARN')
+}
+
+/**
+ * Formats log output as WARN to include timestamp pluginId, pluginVersion
+ * @author @dwertheimer
+ * @param {any} pluginInfo
+ * @param {any} message
+ * @returns {void}
+ */
+export function logDebug(pluginInfo: any, message: any = ''): string {
+  return log(pluginInfo, message, 'DEBUG')
 }
 
 /**

@@ -14,9 +14,22 @@
 // From the command line:
 // `noteplan-cli plugin:dev {{pluginId}} --test --watch --coverage`
 
+/**
+ * LOGGING 
+ * A user will be able to set their logging level in the plugin's settings (if you used the plugin:create command)
+ * As a general rule, you should use logDebug (see below) for messages while you're developing. As developer,
+ * you will set your log level in your plugin preferences to DEBUG and you will see these messages but
+ * an ordinary user will not. When you want to output a message,you can use the following
+ * logging level commands for different levels of messages:
+ * 
+ * logDebug(pluginJson,"Only developers or people helping debug will see these messages")
+ * log(pluginJson,"Ordinary users will see these informational messages") 
+ * logWarn(pluginJson,"All users will see these warning/non-fatal messages")
+ * logError(pluginJson,"All users will see these fatal/error messages")
+ */
 import pluginJson from '../plugin.json'
 import * as helpers from './support/helpers'
-import { log, logError, clo, JSP } from '@helpers/dev'
+import { log, logDebug, logError, logWarn, clo, JSP } from '@helpers/dev'
 import { createRunPluginCallbackUrl } from '@helpers/general'
 
 // eslint-disable-next-line require-await
