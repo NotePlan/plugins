@@ -220,20 +220,25 @@ export async function weatherByLatLong(incoming: string = '', showPopup: string 
   log(pluginJson, `weatherByLatLong: incoming: ${incoming} showPopup: ${showPopup}`)
   try {
     if (!(await validateWeatherParams(DataStore.settings))) {
-      getConfigErrorText()
-      return ''
+      const msg = getConfigErrorText()
+      await showMessage(msg)
     } else {
+      let location
       if (incoming?.length) {
-        const location = JSON.parse(incoming)
+         location = JSON.parse(incoming)
+      } else {
+        const settings = DataStore.settings
+        location = {lat:settings.lat,lon:settings.lon, label:settings.locationName}
+      }
         let text = ''
         let dfd = []
         let locTime = ''
-        if (location.lat && location.lon) {
-          log(pluginJson, `weatherByLatLong: have lat/lon for ${location.label}`)
+        if (location.lat && location.lon && location.label) {
+          logDebug(pluginJson, `weatherByLatLong: have lat/lon for ${location.label}`)
           const weather = await getWeatherForLocation(location, DataStore.settings)
           if (weather) {
           locTime = UTCToLocalTimeString(new Date(), 'LT', weather['timezone_offset'])
-          log(pluginJson, locTime)
+          logDebug(pluginJson, locTime)
           const currentWeather = utils.getCurrentConditions(weather.current)
           const weatherLine = utils.getWeatherDescLine(currentWeather)
           const now = [{ label: weatherLine, value: -1 }]
@@ -256,7 +261,6 @@ export async function weatherByLatLong(incoming: string = '', showPopup: string 
       } else {
         logError(pluginJson, `weatherByLatLong: No location to look for; param was: "${incoming}"`)
       }
-    }
     }
   } catch (error) {
     logError(pluginJson, JSP(error))
