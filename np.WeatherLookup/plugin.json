@@ -16,7 +16,6 @@
       "name": "Weather by Lat/Long",
       "description": "Get weather by latitude and longitude",
       "jsFunction": "weatherByLatLong",
-      "hidden": true,
       "alias": [
         "latlong"
       ]
@@ -98,6 +97,22 @@
       "title": "Longitude",
       "default": "",
       "description": "Default Location Longitude -- You can type it in, or use the 'Weather: Set My Default Location' command to prompt for a location and set this automatically"
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Debugging"
+    },
+    {
+        "key": "_logLevel",
+        "type": "string",
+        "title": "Log Level",
+        "choices": ["DEBUG","LOG","WARN","ERROR","none"],
+        "description": "Set how much output will be displayed for this plugin the NotePlan > Help > Plugin Console. DEBUG is the most verbose; NONE is the least (silent)",
+        "default": "LOG",
+        "required": true
     }
   ]
 }
