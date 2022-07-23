@@ -76,10 +76,8 @@ describe('sorting.js', () => {
         const result = s.sortListBy(list,"-date")
         expect(result).toEqual([a,b])
       })
-      // @jgclark pls add more tests here
-      /*
-       * older (basic) tests (need to refactor to use newer test format ^^^)
-       */
+
+      // older (basic) tests (need to refactor to use newer test format ^^^)
       test('sorting - sortListBy ', () => {
       const list = [
         { propA: 10, propB: 0 },
@@ -111,8 +109,25 @@ describe('sorting.js', () => {
       expect(sorted[1]).toEqual(immutableOrigList[5])
       // undefined should be last in DESC sort also
       expect(sorted[5]).toEqual(immutableOrigList[4])
+      })
+
+      // @jgclark's tests, to support SearchExtensions
+      test('should sort by alpha field ASC then lineIndex', () => {
+        const unsortedList = [
+          { title: "Title B", lineIndex: 20 }, { title: "Title B", lineIndex: 200 }, { title: "Title B", lineIndex: 2 },
+          { title: "Title AA", lineIndex: 30 }, { title: "Title AA", lineIndex: 300 }, { title: "Title AA", lineIndex: 3 },
+          { title: "Title CCC", lineIndex: 10 }, { title: "Title CCC", lineIndex: 100 }, { title: "Title CCC", lineIndex: 1 }, { title: "Title CCC", lineIndex: 11 },
+        ]
+        const sortedList = [
+          { title: "Title AA", lineIndex: 3 }, { title: "Title AA", lineIndex: 30 }, { title: "Title AA", lineIndex: 300 },
+          { title: "Title B", lineIndex: 2 }, { title: "Title B", lineIndex: 20 }, { title: "Title B", lineIndex: 200 },
+          { title: "Title CCC", lineIndex: 1 }, { title: "Title CCC", lineIndex: 10 }, { title: "Title CCC", lineIndex: 11 }, { title: "Title CCC", lineIndex: 100 },
+        ]
+        const result = s.sortListBy(unsortedList, "title,lineIndex")
+        expect(result).toEqual(sortedList)
+      })
+
     })
-     })
 })
 
   /**
@@ -135,7 +150,7 @@ describe('sorting.js', () => {
         rawContent: '* test content',
       },
     ]
-    let taskList = s.getTasksByType(paragraphs)
+        const taskList = s.getTasksByType(paragraphs)
     expect(taskList['open'].length).toEqual(1)
     expect(taskList['scheduled'].length).toEqual(1)
     expect(taskList['open'][0].content).toEqual(paragraphs[0].content)
