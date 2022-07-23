@@ -123,7 +123,7 @@ describe('sorting.js', () => {
           { title: "Title B", lineIndex: 2 }, { title: "Title B", lineIndex: 20 }, { title: "Title B", lineIndex: 200 },
           { title: "Title CCC", lineIndex: 1 }, { title: "Title CCC", lineIndex: 10 }, { title: "Title CCC", lineIndex: 11 }, { title: "Title CCC", lineIndex: 100 },
         ]
-        const result = s.sortListBy(unsortedList, "title,lineIndex")
+        const result = s.sortListBy(unsortedList, ['title', 'lineIndex'])
         expect(result).toEqual(sortedList)
       })
 

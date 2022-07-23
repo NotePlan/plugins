@@ -8,6 +8,8 @@ import {
   applySearchOperators,
   differenceByPropVal,
   differenceByInnerArrayLine,
+  normaliseSearchTerms,
+  validateAndTypeSearchTerms,
 } from '../src/searchHelpers'
 import { JSP, clo } from '../../helpers/dev'
 
@@ -156,6 +158,149 @@ describe('searchHelpers.js tests', () => {
       const result = applySearchOperators(combinedResults)
       clo(result, 'line-based test result for TERM1, -TERM2, +TERM3')
       expect(result).toEqual(expectedLineBasedOutput)
+    })
+  })
+
+  describe('normaliseSearchTerms', () => {
+    test('empty string', () => {
+      const result = normaliseSearchTerms('')
+      expect(result).toEqual([])
+    })
+    test('just spaces', () => {
+      const result = normaliseSearchTerms('  ')
+      expect(result).toEqual([])
+    })
+    test('free-floating operator +', () => {
+      const result = normaliseSearchTerms(' - + ! ')
+      expect(result).toEqual([])
+    })
+    test('too-short word term', () => {
+      const result = normaliseSearchTerms('aa')
+      expect(result).toEqual([])
+    })
+    test('single word term', () => {
+      const result = normaliseSearchTerms('xxx')
+      expect(result).toEqual(['xxx'])
+    })
+    test('single word term', () => {
+      const result = normaliseSearchTerms('xxx')
+      expect(result).toEqual(['xxx'])
+    })
+    test('xxx yyy', () => {
+      const result = normaliseSearchTerms('xxx yyy')
+      expect(result).toEqual(['xxx', 'yyy'])
+    })
+    test('#hashtag #hashtag/child @mention @run(5)', () => {
+      const result = normaliseSearchTerms('#hashtag #hashtag/child @mention @run(5)')
+      expect(result).toEqual(['#hashtag', '#hashtag/child', '@mention', '@run(5)'])
+    })
+    test('xxx OR yyy', () => {
+      const result = normaliseSearchTerms('xxx OR yyy')
+      expect(result).toEqual(['xxx', 'yyy'])
+    })
+    test('xxx OR yyy OR zzz', () => {
+      const result = normaliseSearchTerms('xxx OR yyy OR zzz')
+      expect(result).toEqual(['xxx', 'yyy', 'zzz'])
+    })
+    test('xxx, yyy', () => {
+      const result = normaliseSearchTerms('xxx, yyy')
+      expect(result).toEqual(['xxx', 'yyy'])
+    })
+    test('"1 John", 1Jn', () => {
+      const result = normaliseSearchTerms('"1 John", 1Jn')
+      expect(result).toEqual(['1 John', '1Jn'])
+    })
+    test('xxx,yyy, zzz', () => {
+      const result = normaliseSearchTerms('xxx,yyy, zzz')
+      expect(result).toEqual(['xxx', 'yyy', 'zzz'])
+    })
+    test('xxx AND yyy', () => {
+      const result = normaliseSearchTerms('xxx AND yyy')
+      expect(result).toEqual(['+xxx', '+yyy'])
+    })
+    test('xxx AND yyy AND z', () => {
+      const result = normaliseSearchTerms('xxx AND yyy AND zzz')
+      expect(result).toEqual(['+xxx', '+yyy', '+zzz'])
+    })
+    test('mix of quoted and unquoted terms', () => {
+      const result = normaliseSearchTerms('-term1 "term two" !term3')
+      expect(result).toEqual(['-term1', 'term two', '!term3'])
+    })
+    test('terms with apostrophes in quoted terms', () => {
+      const result = normaliseSearchTerms('-term1 "term two" !term3')
+      expect(result).toEqual(['-term1', 'term two', '!term3'])
+    })
+    test('terms with apostrophes in unquoted terms', () => {
+      const result = normaliseSearchTerms("can't-term term2")
+      expect(result).toEqual(["can't", 'term2'])
+    })
+    test('mix of quoted and unquoted terms', () => {
+      const result = normaliseSearchTerms('bob "xxx",\'yyy\', "asd\'sa" \'bob two\' "" hello')
+      expect(result).toEqual(['bob', 'xxx', 'yyy', "asd'sa", "bob two", "hello"])
+    })
+    test('mix of quoted and unquoted terms and operators', () => {
+      const result = normaliseSearchTerms('+bob "xxx",\'yyy\', !"asd\'sa" -\'bob two\' "" !hello')
+      expect(result).toEqual(['+bob', 'xxx', 'yyy', "!asd'sa", "-bob two", "!hello"])
+    })
+    // TODO: can't mix OR with +
+  })
+
+  describe('validateAndTypeSearchTerms', () => {
+    test('should return empty array from empty input', () => {
+      const result = validateAndTypeSearchTerms('')
+      expect(result).toEqual([])
+    })
+    test('should return empty array from short terms', () => {
+      const result = validateAndTypeSearchTerms('ab 12 c')
+      expect(result).toEqual([])
+    })
+    test('should return empty array from too many terms', () => {
+      const result = validateAndTypeSearchTerms('abc def ghi jkl mno pqr stu vwz')
+      expect(result).toEqual([])
+    })
+    test('should return empty array from no positive terms', () => {
+      const result = validateAndTypeSearchTerms('-term1 -term2 -term3')
+      expect(result).toEqual([])
+    })
+    test('single term string', () => {
+      const result = validateAndTypeSearchTerms('term1')
+      expect(result).toEqual([{ term: 'term1', type: 'may', termRep: 'term1' }])
+    })
+    test('single term array', () => {
+      const result = validateAndTypeSearchTerms('term1')
+      expect(result).toEqual([{ term: 'term1', type: 'may', termRep: 'term1' }])
+    })
+    test('two term string', () => {
+      const result = validateAndTypeSearchTerms('term1 "term two"')
+      expect(result).toEqual([
+        { term: 'term1', type: 'may', termRep: 'term1' },
+        { term: 'term two', type: 'may', termRep: 'term two' }])
+    })
+    test('two term array', () => {
+      const result = validateAndTypeSearchTerms('term1 "term two"')
+      expect(result).toEqual([
+        { term: 'term1', type: 'may', termRep: 'term1' },
+        { term: 'term two', type: 'may', termRep: 'term two' }])
+    })
+    test('three terms with +//-', () => {
+      const result = validateAndTypeSearchTerms('+term1 "term two" -term3')
+      expect(result).toEqual([
+        { term: 'term1', type: 'must', termRep: '+term1' },
+        { term: 'term two', type: 'may', termRep: 'term two' },
+        { term: 'term3', type: 'not-line', termRep: '-term3' }])
+    })
+    test('three terms with +//!', () => {
+      const result = validateAndTypeSearchTerms('+term1 "term two" !term3')
+      expect(result).toEqual([
+        { term: 'term1', type: 'must', termRep: '+term1' },
+        { term: 'term two', type: 'may', termRep: 'term two' },
+        { term: 'term3', type: 'not-note', termRep: '!term3' }])
+    })
+    test('"1 John", 1Jn', () => {
+      const result = validateAndTypeSearchTerms('"1 John", 1Jn')
+      expect(result).toEqual([
+        { term: '1 John', type: 'may', termRep: '1 John' },
+        { term: '1Jn', type: 'may', termRep: '1Jn' }])
     })
   })
 

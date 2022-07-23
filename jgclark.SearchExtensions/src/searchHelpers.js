@@ -55,15 +55,6 @@ export type reducedFieldSet = {
   lineIndex: number,
 }
 
-const sortMap = new Map([
-  ['title', ['title', 'lineIndex']],
-  ['folder name then title', ['filename', 'lineIndex']],
-  ['updated (most recent first)', ['-changedDate', 'lineIndex']],
-  ['updated (least recent first)', ['changedDate', 'lineIndex']],
-  ['created (newest first)', ['-createdDate', 'lineIndex']],
-  ['created (oldest first)', ['createdDate', 'lineIndex']],
-])
-
 //------------------------------------------------------------------------------
 // Settings things
 
@@ -109,17 +100,90 @@ export async function getSearchSettings(): Promise<any> {
 
 //------------------------------------------------------------------------------
 
+
 /**
+* Take a simple string as search input and process it to turn into an array of strings ready to validate and type.
+* @author @jgclark
+* @param {string | Array<string>} searchArg string containing search term(s) or array of search terms
+* @returns {Array<string>} normalised search term(s)
+* @tests in jest file
+*/
+export function normaliseSearchTerms(searchArg: string): Array<string> {
+  logDebug("normaliseSearchTerms()", `starting for <${searchArg}>`)
+  let outputArray = []
+  // Take a simple string and process it to turn into an array of string, according to one of several schemes:
+  if (!searchArg.match(/\w{3,}/)) {
+    // this has no words (at least 3 long) -> empty
+    logWarn(pluginJson, `No valid words found in '${searchArg}'`)
+    return []
+  }
+  if (searchArg.match(/\s[\+\-\!]\s/)) {
+    // this has free-floating operators -> error
+    logWarn(pluginJson, `Search string not valid: unattached search operators found in '${searchArg}'`)
+    return []
+  }
+
+  if (searchArg.match(/\w{3,}\s*,\s*\w{3,}/)) {
+    // this is of form 'x,y,z'
+    outputArray = searchArg.split(/\s*,\s*/)
+  }
+
+  else if (searchArg.match(/\sAND\s/) && !searchArg.match(/\sOR\s/)) {
+    // this is of form 'x AND y ...' (but not OR)
+    outputArray = searchArg.split(/\sAND\s/).map((s) => `+${s}`)
+  }
+
+  else if (searchArg.match(/\sOR\s/) && !searchArg.match(/\sAND\s/)) {
+    // this is of form 'x OR y ...' (but not AND)
+    outputArray = searchArg.split(/\sOR\s/)
+  }
+
+  else {
+    // else treat as 'x y z', with or without quoted phrases.
+    // Features of this regex:
+    // - Deal with double or single - quoted phrases plus words not in quotes
+    // - and prefixed search operators !/+/-
+    // - and #hashtag/child and @mention(5) possibilities
+    const RE_WOW = new RegExp(/\s([\-\+\!]?)([\-\+\!]?)(?:([\'"])(.+?)\3)|([\-\+\!]?[\w\-#@\/\(\)]+)/g)
+    // add space to front and end to make the regex more manageable
+    const searchArgPadded = ' ' + searchArg + ' '
+    const reResults = searchArgPadded.matchAll(RE_WOW)
+    if (reResults) {
+      for (const r of reResults) {
+        // this concats match groups:
+        // 1 (optional operator prefix)
+        // 4 (phrase inside quotes) or
+        // 5 (word not in quotes)
+        outputArray.push(`${r[1] ?? ''}${r[4] ?? ''}${r[5] ?? ''}`)
+      }
+    } else {
+      logWarn(pluginJson, `Failed to find valid search terms found in '${searchArg}' despite regex magic`)
+    }
+  }
+  if (outputArray.length === 0) logWarn(pluginJson, `No valid search terms found in '${searchArg}'`)
+
+  return outputArray
+}
+
+ /**
  * Validate and categorise search terms, returning searchTermObject(s).
- * TODO: support multi-word terms
- * @param {Array<string>} submittedTerms 
+ * @author @jgclark
+ * @param {string} searchArg string containing search term(s) or array of search terms
  * @returns Array<typedSearchTerm>
+ * @tests in jest file
  */
-export function validateSearchTerms(submittedTerms: Array<string>): Array<typedSearchTerm> {
-  // Iterate over submitted terms, weeding out short ones, and typing the rest
+export function validateAndTypeSearchTerms(searchArg: string): Array<typedSearchTerm> {
+
+  const normalisedTerms = normaliseSearchTerms(searchArg)
+  if (normalisedTerms.length === 0) {
+    // TODO: tell user
+    logError(pluginJson, `No search terms submitted. Stopping.`)
+  }
+  logDebug('validate...', `noramlised search terms: <${normalisedTerms.join('/')}>`)
+
+  // Now validate the terms, weeding out short ones, and typing the rest
   const validatedTerms: Array<typedSearchTerm> = []
-  let validTermsStr = ""
-  for (const u of submittedTerms) {
+  for (const u of normalisedTerms) {
     let t = u.trim()
     if (t.length >= 3) {
       let thisType = ''
@@ -142,9 +206,9 @@ export function validateSearchTerms(submittedTerms: Array<string>): Array<typedS
     }
   }
 
-  // Now check we have a valid set of terms, returning them.
+  // Now check we have a valid set of terms.
   // If they're not valid, return an empty array.
-  if (validatedTerms.length < submittedTerms.length) {
+  if (validatedTerms.length < normalisedTerms.length) {
     logWarn(pluginJson, 'Some search terms were removed as they were less than 3 characters long.')
   }
   // Invalid if we don't have any must-have or may-have search terms
@@ -158,8 +222,8 @@ export function validateSearchTerms(submittedTerms: Array<string>): Array<typedS
     return []
   }
 
-  validTermsStr += `[${validatedTerms.map((t) => t.termRep).join(', ')}]`
-  logDebug('search/validateSearchTerms', `Validated terms: ${validTermsStr}`)
+  let validTermsStr = `[${validatedTerms.map((t) => t.termRep).join(', ')}]`
+  logDebug('search/validateAndTypeSearchTerms', `Validated terms: ${validTermsStr}`)
   return validatedTerms
 }
 
@@ -470,7 +534,7 @@ export async function runSearchesV2(
   }
   catch (err) {
     logError(pluginJson, err.message)
-    // $FlowFixme[incompatible-return]
+    // $FlowFixMe[incompatible-return]
     return [] // for completeness
   }
 }
@@ -503,7 +567,6 @@ export async function runSearchV2(
   try {
     const outputArray = []
     const headingMarker = '#'.repeat(config.headingLevel)
-    let resultCount = 0
     const searchTerm = typedSearchTerm.term
 
     // get list of matching paragraphs for this string
@@ -512,6 +575,7 @@ export async function runSearchV2(
     CommandBar.showLoading(false)
 
     const noteAndLinesArr = []
+    let resultCount = 0
 
     if (resultParas.length > 0) {
       logDebug(pluginJson, `- Found ${resultParas.length} results for '${searchTerm}'`)
@@ -527,7 +591,8 @@ export async function runSearchV2(
           title: displayTitle(note),
           type: p.type,
           content: p.content,
-          rawContent: `${p.rawContent} [${p.lineIndex}]`,
+          // modify rawContent slightly by turning ## headings into **headings** to make output nicer
+          rawContent: (p.type === 'title') ? `**${p.content}**` : p.rawContent + ` [${p.lineIndex}]`,
           lineIndex: p.lineIndex,
         }
         return fieldSet
@@ -547,32 +612,45 @@ export async function runSearchV2(
       resultFieldSets = filteredParas.filter((f) => !isTermInURL(searchTerm, f.content)).filter((f) => !isTermInMarkdownPath(searchTerm, f.content))
       logDebug(pluginJson, `  - after URL filter, ${resultFieldSets.length} results`)
 
-      // Sort the results by the user-selected sort order
+      // Look-up table for sort details
+      const sortMap = new Map([
+        ['note title', ['title', 'lineIndex']],
+        ['folder name then note title', ['filename', 'lineIndex']],
+        ['updated (most recent note first)', ['-changedDate', 'lineIndex']],
+        ['updated (least recent note first)', ['changedDate', 'lineIndex']],
+        ['created (newest note first)', ['-createdDate', 'lineIndex']],
+        ['created (oldest note first)', ['createdDate', 'lineIndex']],
+      ])
       const sortKeys = sortMap.get(config.sortOrder) ?? 'title' // get value, falling back to 'title'
-      logDebug(pluginJson, `- Will use sortKeys: ${String(sortKeys)} from ${config.sortOrder}`)
+      logDebug(pluginJson, `- Will use sortKeys: [${String(sortKeys)}] from ${config.sortOrder}`)
       // FIXME: createdDate sorting not working
-      // FIXME: lineIndex secondary sorting not working (sometimes)
       const sortedFieldSets: Array<reducedFieldSet> = sortListBy(resultFieldSets, sortKeys)
       // const sortedFieldSets: Array<reducedFieldSet> = resultFieldSets.slice()
 
       // Form the return object from sortedFieldSets
-      // let lastP: TNote
+      // FIXME: The problem is in here for lineIndex!
       let previousMatchFilename = sortedFieldSets[0].filename
+      console.log(`${previousMatchFilename}:`)
       let tempLineArr = []
       for (let i = 0; i < sortedFieldSets.length; i++) {
         const thisObj = sortedFieldSets[i]
-        let thisMatchLine = thisObj.rawContent // TODO: was .content
         let thisMatchFilename = thisObj.filename
-        // logDebug(pluginJson, `${i}: <${previousMatchFilename}> '${thisMatchFilename}' -> '${thisMatchLine}'`)
+        // TODO: here an option for simpler output
+        let thisMatchLine = thisObj.rawContent
 
-        // Add to the output data structure
-        tempLineArr.push(thisMatchLine)
+        // If this is a new note, then write the previous note's details to output array
         if (thisMatchFilename !== previousMatchFilename) {
+          console.log(`${thisMatchFilename}:`)
           noteAndLinesArr.push({
             noteFilename: previousMatchFilename,
             lines: tempLineArr
           })
           tempLineArr = [] // reset this for next time
+        }
+        // Add to the output data structure
+        tempLineArr.push(thisMatchLine)
+        if (i < 30) {
+          console.log(`${thisObj.lineIndex}: ${thisMatchLine}`)
         }
 
         previousMatchFilename = thisMatchFilename

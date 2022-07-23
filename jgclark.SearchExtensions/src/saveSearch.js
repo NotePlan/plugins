@@ -3,7 +3,7 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 22.7.2022 for v0.5.0, @jgclark
+// Last updated 23.7.2022 for v0.5.0, @jgclark
 //-----------------------------------------------------------------------------
 /** 
  * TODO: test again to see if notInFolder param is working.
@@ -17,12 +17,12 @@ import {
   type resultOutputType,
   runSearchesV2,
   type typedSearchTerm,
-  validateSearchTerms,
+  validateAndTypeSearchTerms,
   writeSearchResultsToNote,
 } from './searchHelpers'
 import { log, logDebug, logWarn, logError } from '@helpers/dev'
+import { displayTitle } from '@helpers/general'
 import { replaceSection } from '@helpers/note'
-
 import {
   chooseOption,
   getInput,
@@ -86,32 +86,32 @@ export async function saveSearch(
     logDebug(pluginJson, `saveSearch: arg0 -> '${noteTypesToInclude.toString()}'`)
 
     // Get the search terms, treating ' OR ' and ',' as equivalent term separators
-    let termsToMatchArr = []
+    let termsToMatchStr = ''
     if (searchTermsArg !== undefined) {
       // either from argument supplied
       logDebug(pluginJson, `saveSearch: will use searchTermsArg: '${searchTermsArg}'`)
-      termsToMatchArr = searchTermsArg.split(/[, ]/)
+      termsToMatchStr = searchTermsArg
       // we are running indirectly (probably from x-callback call)
       calledIndirectly = true
     }
     else {
       // or by asking user
-      termsToMatchArr = Array.from(config.defaultSearchTerms)
-      const newTerms = await getInput(`Enter search term (or terms separated by OR or commas). (Searches are not case sensitive.)`, 'OK', `Search`, termsToMatchArr.join(', '))
+      // defaultTermsToMatchArr = Array.from(config.defaultSearchTerms)
+      const newTerms = await getInput(`Enter search term (or terms separated by OR or commas). (Searches are not case sensitive.)`, 'OK', `Search`, config.defaultSearchTerms)
       if (typeof newTerms === 'boolean') {
         // i.e. user has cancelled
         log(pluginJson, `User has cancelled operation.`)
         return
       } else {
         // termsToMatchArr = Array.from(newTerms.split(','))
-        termsToMatchArr = Array.from(newTerms.split(/[, ]/))
+        // termsToMatchArr = Array.from(newTerms.split(/[, ]/))
+        termsToMatchStr = newTerms
       }
     }
-    const termsToMatchStr = termsToMatchArr.join(' ')
 
     // Validate the search terms: an empty return means failure. There is error logging in the function.
-    const validatedSearchTerms = await validateSearchTerms(termsToMatchArr)
-    if (validateSearchTerms == null || validateSearchTerms.length === 0) {
+    const validatedSearchTerms = await validateAndTypeSearchTerms(termsToMatchStr)
+    if (validatedSearchTerms == null || validatedSearchTerms.length === 0) {
       await showMessage(`These search terms aren't valid. Please see Plugin Console for details.`)
       return
     }
@@ -189,18 +189,21 @@ export async function saveSearch(
 
         case 'newnote': {
           // We will write an overarching heading, as we need an identifying title for the note.
-          // As this is likely to be a note just used for this set of search terms, just delete the whole
-          // note contents and re-write each search term's block.
+          // As this is likely to be a note just used for this set of search terms, just delete the whole note contents and re-write each search term's block.
+          // TODO: Does *not* need to include a subhead with search term + result count
           const requestedTitle = headingString
-          const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=quickSearch&arg0=notes&arg1=${encodeURIComponent(termsToMatchStr)}` // FIXME: for 'both' or 'calendar' section undo hard-wiring
+          const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=quickSearch&arg0=notes&arg1=${encodeURIComponent(termsToMatchStr)}` // FIXME: for 'both' or 'calendar' section undo hard-wiring. Is arg0 = notes right?
 
           // normally I'd use await... in the next line, but can't as we're now in then...
-          // FIXME: is the [results] correct?
           const noteFilenameProm = writeSearchResultsToNote(resultSet, requestedTitle, config.folderToStore, config.headingLevel, calledIndirectly, xCallbackLink)
           noteFilenameProm.then(async (filename) => {
             logDebug(pluginJson, `${filename}`)
-            // Open the results note in a new split window
-            await Editor.openNoteByFilename(filename, false, 0, 0, true)
+            // Open the results note in a new split window, unless we already have this note open
+            const currentEditorNote = displayTitle(Editor.note)
+            // if (!calledIndirectly) {
+            if (currentEditorNote !== requestedTitle) {
+              await Editor.openNoteByFilename(filename, false, 0, 0, true)
+            }
           })
           break
         }
@@ -208,6 +211,7 @@ export async function saveSearch(
         case 'quick': {
           // Write to the same 'Quick Search Results' note (or whatever the user's setting is)
           // Delete the note's contents and re-write each time.
+          // *Does* need to include a subhead with search term + result count, as title is fixed.
           const requestedTitle = config.quickSearchResultsTitle
           const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=quickSearch&arg0=notes&arg1=${encodeURIComponent(termsToMatchStr)}` // FIXME: for 'both' or 'calendar' section undo hard-wiring
 
@@ -216,8 +220,10 @@ export async function saveSearch(
 
           noteFilenameProm.then(async (filename) => {
             logDebug(pluginJson, `${filename}`)
-            // Open the results note in a new split window, unless called from the x-callback ...
-            if (!calledIndirectly) {
+            // Open the results note in a new split window, unless we already have this note open
+            const currentEditorNote = displayTitle(Editor.note)
+            // if (!calledIndirectly) {
+            if (Editor.note?.filename !== filename) {
               await Editor.openNoteByFilename(filename, false, 0, 0, true)
             }
           })

@@ -11,7 +11,12 @@
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { getSearchSettings, type resultObjectType, writeSearchResultsToNote } from './searchHelpers'
+import {
+  getSearchSettings,
+  type resultObjectType,
+  validateAndTypeSearchTerms,
+  writeSearchResultsToNote
+} from './searchHelpers'
 import {
   formatNoteDate,
   getDateStringFromCalendarFilename,
@@ -23,7 +28,7 @@ import {
 } from '@helpers/dateTime'
 import { getPeriodStartEndDates } from '@helpers/NPDateTime'
 import { log, logDebug, logWarn, logError, timer } from '@helpers/dev'
-import { titleAsLink } from '@helpers/general'
+import { displayTitle, titleAsLink } from '@helpers/general'
 import { replaceSection } from '@helpers/note'
 import { isTermInMarkdownPath, isTermInURL } from '@helpers/paragraph'
 import { trimAndHighlightTermInLine } from '@helpers/search'
@@ -93,10 +98,10 @@ export async function saveSearchPeriod(searchTermsArg?: string, fromDateArg?: st
     logDebug(pluginJson, `  time period: ${periodString}`)
 
     // Get the search terms, treating ' OR ' and ',' as equivalent term separators
-    let termsToMatchArr = []
+    let termsToMatchStr = ''
     if (searchTermsArg !== undefined) {
       // either from argument supplied
-      termsToMatchArr = searchTermsArg.replace(/ OR /, ',').split(',')
+      termsToMatchStr = searchTermsArg
       logDebug(pluginJson, `  will use arg0 '${searchTermsArg}'`)
       calledIndirectly = true
     } else {
@@ -108,28 +113,15 @@ export async function saveSearchPeriod(searchTermsArg?: string, fromDateArg?: st
         log(pluginJson, `User has cancelled operation.`)
         return
       } else {
-        termsToMatchArr = Array.from(newTerms.replace(/ OR /, ',').split(','))
+        // termsToMatchArr = Array.from(newTerms.replace(/ OR /, ',').split(','))
+        termsToMatchStr = newTerms
       }
     }
 
-    // Weed out any too-short search terms
-    const filteredTermsToMatchArr = termsToMatchArr.filter((t) => t.length > 2)
-    const termsToMatchStr = String(filteredTermsToMatchArr)
-    log(pluginJson, `Search terms: ${termsToMatchStr} over all Calendar notes (except in folders ${config.foldersToExclude.join(', ')})`)
-    if (filteredTermsToMatchArr.length < termsToMatchArr.length) {
-      logWarn(pluginJson, `Note: some search terms were removed because they were less than 3 characters long.`)
-      await showMessage(`Some search terms were removed as they were less than 3 characters long.`)
-    }
-    // Stop if we don't have any search terms
-    if (termsToMatchArr.length === 0 || termsToMatchStr === '') {
-      logWarn(pluginJson, 'no search terms given; stopping.')
-      await showMessage(`No search terms given; stopping.`)
-      return
-    }
-    // Stop if we have a silly number of search terms
-    if (termsToMatchArr.length > 7) {
-      logWarn(pluginJson, `too many search terms given (${termsToMatchArr.length}); stopping as this might be an error.`)
-      await showMessage(`Too many search terms given(${termsToMatchArr.length}); stopping as this might be an error.`)
+    // Validate the search terms: an empty return means failure. There is error logging in the function.
+    const validatedSearchTerms = await validateAndTypeSearchTerms(termsToMatchStr)
+    if (validatedSearchTerms == null || validatedSearchTerms.length === 0) {
+      await showMessage(`These search terms aren't valid. Please see Plugin Console for details.`)
       return
     }
 
@@ -331,8 +323,10 @@ export async function saveSearchPeriod(searchTermsArg?: string, fromDateArg?: st
         // // )
         // await Editor.openNoteByFilename(outputNote.filename)
 
-        // Make it open in split note, unless called from the x-callback ...
-        if (!calledIndirectly) {
+        // Open the results note in a new split window, unless we already have this note open
+        const currentEditorNote = displayTitle(Editor.note)
+        // if (!calledIndirectly) {
+        if (currentEditorNote !== requestedTitle) {
           await Editor.openNoteByFilename(noteFilename, false, 0, 0, true)
         }
         break
