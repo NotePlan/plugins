@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.SearchExtensions/CHANGELOG.md",
-  "plugin.version": "0.4.1",
-  "plugin.lastUpdateInfo": "New /quickSearch command and '/quickSearch note title' setting. The opening in split window now works reliably.",
+  "plugin.version": "0.5.0-beta1",
+  "plugin.lastUpdateInfo": "Big speed up. Now supports more search operators: + (must match) - (can't match) in place of just 'OR'.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -23,6 +23,7 @@
       "description": "quick Search over all notes, showing results in a fixed Quick Search results note",
       "jsFunction": "quickSearch",
       "arguments": [
+        "noteTypesToInclude either 'project','calendar' or 'both'",
         "search term(s) (separated by commas)"
       ]
     },
@@ -79,6 +80,11 @@
       "arguments": [
         "search term(s) (separated by commas)"
       ]
+    },
+    {
+      "name": "dev:update Search settings",
+      "description": "update search settings",
+      "jsFunction": "onUpdateOrInstall"
     }
   ],
   "plugin.settings": [
@@ -164,7 +170,8 @@
       "description": "This controls the order that the results are displayed. Please choose from one of the options.",
       "type": "string",
       "choices": [
-        "alphabetical",
+        "title",
+        "folder name then title",
         "created (newest first)",
         "created (oldest first)",
         "updated (most recent first)",
@@ -228,6 +235,22 @@
       ],
       "default": "link",
       "required": true
+    },
+        {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Debugging"
+    },
+    {
+        "key": "_logLevel",
+        "title": "Log Level",
+        "description": "Set how much output will be displayed for this plugin the NotePlan > Help > Plugin Console. DEBUG is the most verbose; NONE is the least (silent)",
+        "type": "string",
+        "choices": ["DEBUG","INFO","WARN","ERROR","none"],
+        "default": "INFO",
+        "required": true
     }
   ]
 }

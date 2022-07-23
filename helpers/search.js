@@ -4,10 +4,11 @@
 // Jonathan Clark
 //-----------------------------------------------------------------------------
 
-// import { log, logWarn, logError } from '@helpers/dev'
+// import pluginJson from '../plugins.config'
+// import { log, logWarn } from '@helpers/dev'
 
 /**
- * Perform string match, but ignoring case
+ * Perform string match, ignoring case
  * @author @jgclark
  * @param {string} searchTerm 
  * @param {string} textToSearch 
@@ -20,7 +21,7 @@ export function caseInsensitiveMatch(searchTerm: string, textToSearch: string): 
 }
 
 /**
- * Perform string startsWith string check, but ignoring case
+ * Perform string startsWith, ignoring case
  * @author @jgclark
  * @param {string} searchTerm 
  * @param {string} textToSearch 
@@ -109,22 +110,25 @@ export function trimAndHighlightTermInLine(
     const re = new RegExp(`(?:^|\\b)(.{0,${String(LRSplit)}}${term}.{0,${String(maxChars - LRSplit)}})\\b\\w+`, "gi")
     const matches = input.match(re) ?? [] // multiple matches
     if (matches.length > 0) {
+      // If we have more than 1 match in the line, join the results together with '...'
       output = matches.join(' ...')
-      if (output.match(/^\W/)) { // i.e. starts with a non-word character (an approximation)
+      // If starts with a non-word character, then (it's approximately right that) we have landed in the middle of sentence, so prepend '...'
+      if (output.match(/^\W/)) {
         output = `...${output}`
       }
-      if (output.length < input.length) { // TODO: an approximation
+      // If we now have a shortened string, then (it's approximately right that) we have trimmed off the end, so append '...'
+      if (output.length < input.length) {
         output = `${output} ...`
       }
       //
     } else {
-      // For some reason we didn't find the matching term, so return first part of line
+      // For some reason we didn't find the matching term, so return the first part of line
       return (output.length >= maxChars) ? output.slice(0, maxChars) : output
     }
   } else {
     // just pass input through to output
   }
-  // Add highlighting if wanted (using defined Regex si can use 'g' flag)
+  // Add highlighting if wanted (using defined Regex so can use 'g' flag)
   // (A simple .replace() command doesn't work as it won't keep capitalisation)
   if (addHighlight) {
     const re = new RegExp(term, "gi")

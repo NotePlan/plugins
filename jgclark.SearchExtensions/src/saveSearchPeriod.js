@@ -3,7 +3,7 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 8.7.2022 for v0.3.0, @jgclark
+// Last updated 22.7.2022 for v0.5.0, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -11,11 +11,10 @@
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { getSearchSettings, type resultObjectType, runSearches, writeResultsNote } from './searchHelpers'
+import { getSearchSettings, type resultObjectType, writeSearchResultsToNote } from './searchHelpers'
 import {
   formatNoteDate,
   getDateStringFromCalendarFilename,
-  // nowLocaleDateTime,
   RE_ISO_DATE,
   RE_YYYYMMDD_DATE,
   unhyphenateString,
@@ -23,7 +22,7 @@ import {
   withinDateRange,
 } from '@helpers/dateTime'
 import { getPeriodStartEndDates } from '@helpers/NPDateTime'
-import { log, logWarn, logError, timer } from '@helpers/dev'
+import { log, logDebug, logWarn, logError, timer } from '@helpers/dev'
 import { titleAsLink } from '@helpers/general'
 import { replaceSection } from '@helpers/note'
 import { isTermInMarkdownPath, isTermInURL } from '@helpers/paragraph'
@@ -67,8 +66,8 @@ export async function saveSearchPeriod(searchTermsArg?: string, fromDateArg?: st
         fromDateStr = fromDateArg.match(RE_ISO_DATE) // for YYYY-MM-DD
           ? fromDateArg
           : fromDateArg.match(RE_YYYYMMDD_DATE) // for YYYYMMDD
-          ? unhyphenateString(fromDateArg)
-          : 'error'
+            ? unhyphenateString(fromDateArg)
+            : 'error'
       }
       if (fromDateArg === 'default') {
         toDate = moment.now().startOf('day').toJSDate() // today
@@ -77,8 +76,8 @@ export async function saveSearchPeriod(searchTermsArg?: string, fromDateArg?: st
         toDateStr = toDateArg.match(RE_ISO_DATE) // for YYYY-MM-DD
           ? toDateArg
           : toDateArg.match(RE_YYYYMMDD_DATE) // for YYYYMMDD
-          ? unhyphenateString(toDateArg)
-          : 'error'
+            ? unhyphenateString(toDateArg)
+            : 'error'
       }
       periodString = `${fromDateStr} - ${toDateStr}`
     } else {
@@ -91,14 +90,14 @@ export async function saveSearchPeriod(searchTermsArg?: string, fromDateArg?: st
       fromDateStr = unhyphenatedDate(fromDate)
       toDateStr = unhyphenatedDate(toDate)
     }
-    log(pluginJson, `  time period: ${periodString}`)
+    logDebug(pluginJson, `  time period: ${periodString}`)
 
     // Get the search terms, treating ' OR ' and ',' as equivalent term separators
     let termsToMatchArr = []
     if (searchTermsArg !== undefined) {
       // either from argument supplied
       termsToMatchArr = searchTermsArg.replace(/ OR /, ',').split(',')
-      log(pluginJson, `  will use arg0 '${searchTermsArg}'`)
+      logDebug(pluginJson, `  will use arg0 '${searchTermsArg}'`)
       calledIndirectly = true
     } else {
       // or by asking user
@@ -155,8 +154,7 @@ export async function saveSearchPeriod(searchTermsArg?: string, fromDateArg?: st
       const searchTerm = untrimmedSearchTerm.trim()
       const outputArray = []
       // get list of matching paragraphs for this string
-      // $FlowFixMe TODO: On full 3.6.0 release, change null to []
-      const resultParas = await DataStore.search(searchTerm, ['calendar'], null, config.foldersToExclude) // search over all notes
+      const resultParas = await DataStore.search(searchTerm, ['calendar'], [], config.foldersToExclude) // search over all notes
       const lines = resultParas
       // output a heading first
       // const thisResultHeading = `${searchTerm} ${config.searchHeading} for ${periodString}${periodPartStr !== '' ? ` (at ${periodPartStr})` : ''}`
@@ -172,18 +170,18 @@ export async function saveSearchPeriod(searchTermsArg?: string, fromDateArg?: st
           const thisNoteTitleDisplay = noteContainingMatchLine?.date
             ? formatNoteDate(noteContainingMatchLine.date, config.dateStyle)
             : // $FlowFixMe[incompatible-call]
-              titleAsLink(noteContainingMatchLine)
+            titleAsLink(noteContainingMatchLine)
           // Keep this match if within selected date range
           // $FlowFixMe[incompatible-use]
           if (withinDateRange(getDateStringFromCalendarFilename(noteContainingMatchLine.filename), fromDateStr, toDateStr)) {
             // const thisNoteTitle = displayTitle(lines[i].note)
             // If the test is within a URL or the path of a [!][link](path) skip this result
             if (isTermInURL(searchTerm, matchLine)) {
-              log(pluginJson, `  - Info: Match '${searchTerm}' ignored in '${matchLine} because it's in a URL`)
+              logDebug(pluginJson, `  - Info: Match '${searchTerm}' ignored in '${matchLine} because it's in a URL`)
               continue
             }
             if (isTermInMarkdownPath(searchTerm, matchLine)) {
-              log(pluginJson, `  - Info: Match '${searchTerm}' ignored in '${matchLine} because it's in a [...](path)`)
+              logDebug(pluginJson, `  - Info: Match '${searchTerm}' ignored in '${matchLine} because it's in a [...](path)`)
               continue
             }
             // Format the line and context for output (trimming, highlighting)
@@ -212,6 +210,7 @@ export async function saveSearchPeriod(searchTermsArg?: string, fromDateArg?: st
         outputArray.push('(no matches)')
       }
       // Save this search term and results as a new object in results array
+      // TODO: results -> resultSet?
       results.push({ searchTerm: searchTerm, resultLines: outputArray, resultCount: resultCount })
     }
     const elapsedTimeAPI = timer(startTime)
@@ -240,7 +239,7 @@ export async function saveSearchPeriod(searchTermsArg?: string, fromDateArg?: st
       )
     }
 
-    //---------------------------------------------------------
+    //------------------  ---------------------------------------
     // Do output
     // const sectionStringToRemove = `${termsToMatchStr} ${config.searchHeading}`
 
@@ -253,10 +252,8 @@ export async function saveSearchPeriod(searchTermsArg?: string, fromDateArg?: st
           logError(pluginJson, `No note is open`)
         } else {
           log(pluginJson, `Will write update/append to current note (${currentNote.filename ?? ''})`)
-          for (const r of results) {
-            const thisResultHeading = `${r.searchTerm} (${r.resultCount} results) for ${periodString}${periodPartStr !== '' ? ` (at ${periodPartStr})` : ''}`
-            replaceSection(currentNote, r.searchTerm, thisResultHeading, config.headingLevel, r.resultLines.join('\n'))
-          }
+          const thisResultHeading = `${resultSet.searchTerm} (${resultSet.resultCount} results) for ${periodString}${periodPartStr !== '' ? ` (at ${periodPartStr})` : ''}`
+          replaceSection(currentNote, resultSet.searchTerm, thisResultHeading, config.headingLevel, resultSet.resultLines.join('\n'))
         }
         break
       }
@@ -272,9 +269,10 @@ export async function saveSearchPeriod(searchTermsArg?: string, fromDateArg?: st
         // let outputNote: ?TNote
         // let noteFilename = ''
         const requestedTitle = `${termsToMatchStr} ${config.searchHeading} for ${periodString}${periodPartStr !== '' ? ` (at ${periodPartStr})` : ''}`
-        // const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearchResultsInPeriod&arg0=${encodeURIComponent(termsToMatchStr)}&arg1=${fromDateStr}&arg2=${toDateStr}`
+        const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearchInPeriod&arg0=${encodeURIComponent(termsToMatchStr)}&arg1=${fromDateStr}&arg2=${toDateStr}`
 
-        const noteFilename = await writeResultsNote(results, requestedTitle, config.folderToStore, config.headingLevel, calledIndirectly, '') //xCallbackLink)
+        // TODO: Test the x-callback
+        const noteFilename = await writeSearchResultsToNote(resultSet, requestedTitle, config.folderToStore, config.headingLevel, calledIndirectly, xCallbackLink)
 
         // let fullNoteContent = `# ${requestedTitle}\nat ${nowLocaleDateTime} [Click to refresh these results](${xCallbackLink})`
         // for (const r of results) {
@@ -285,13 +283,13 @@ export async function saveSearchPeriod(searchTermsArg?: string, fromDateArg?: st
         // // (look only in active notes, not Archive or Trash)
         // const existingNotes: $ReadOnlyArray<TNote> =
         //   DataStore.projectNoteByTitle(requestedTitle, true, false) ?? []
-        // log(pluginJson, `found ${existingNotes.length} existing search result notes titled ${periodString}`)
+        // logDebug(pluginJson, `found ${existingNotes.length} existing search result notes titled ${periodString}`)
 
         // // const outputText = `at ${nowLocaleDateTime}. [Click to refresh these results](${xcallbackLink})\n${outputArray.join('\n')}`
 
         // if (existingNotes.length > 0) {
         //   outputNote = existingNotes[0] // pick the first if more than one
-        //   // log(pluginJson, `filename of first matching note: ${displayTitle(note)}`)
+        //   // logDebug(pluginJson, `filename of first matching note: ${displayTitle(note)}`)
         //   outputNote.content = fullNoteContent
 
         // } else {
@@ -319,7 +317,7 @@ export async function saveSearchPeriod(searchTermsArg?: string, fromDateArg?: st
         //   outputNote,
         //   config.searchHeading,
         // )
-        // // log(pluginJson, `\tinsertionLineIndex: ${String(insertionLineIndex)}`)
+        // // logDebug(pluginJson, `\tinsertionLineIndex: ${String(insertionLineIndex)}`)
         // // write in reverse order to avoid having to calculate insertion point again
         // outputNote.insertParagraph(
         //   outputText,
@@ -341,10 +339,8 @@ export async function saveSearchPeriod(searchTermsArg?: string, fromDateArg?: st
       }
 
       case 'log': {
-        for (const r of results) {
-          log(pluginJson, `${headingMarker} ${r.searchTerm}(${r.resultCount} results)`)
-          log(pluginJson, r.resultLines.join('\n'))
-        }
+        log(pluginJson, `${headingMarker} ${resultSet.searchTerm}(${resultSet.resultCount} results)`)
+        log(pluginJson, resultSet.resultLines.join('\n'))
         break
       }
 
