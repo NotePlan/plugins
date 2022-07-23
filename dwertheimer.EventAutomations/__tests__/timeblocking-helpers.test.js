@@ -2,12 +2,11 @@
 import colors from 'chalk'
 import { exportAllDeclaration } from '@babel/types'
 import { differenceInCalendarDays, endOfDay, startOfDay, eachMinuteOfInterval, format } from 'date-fns'
-import { getTasksByType } from '../../dwertheimer.TaskAutomations/src/taskHelpers'
+import { getTasksByType } from '@helpers/sorting'
 import * as tb from '../src/timeblocking-helpers'
 
 // import * as ch from '../../helpers/calendar'
-// import { sortListBy, getTasksByType } from '../../dwertheimer.TaskAutomations/src/taskHelpers'
-import { JSP } from '../../helpers/dev'
+import { JSP } from '@helpers/dev'
 const _ = require('lodash')
 
 const PLUGIN_NAME = `📙 ${colors.yellow('dwertheimer.EventAutomations')}`
@@ -62,7 +61,7 @@ describe(`${PLUGIN_NAME}`, () => {
         const result = tb.createIntervalMap(
           { start: new Date('2020-01-01 00:00:00'), end: new Date('2020-01-01 23:59:59') },
           null,
-          null,
+          {},
         )
         expect(result).toEqual([])
       })
@@ -609,9 +608,6 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(res.timeBlockTextList).toEqual([`* 00:00-00:13 line4 ${config.timeBlockTag}`])
       })
     })
-    test('findOptimalTimeForEvent ', () => {
-      expect(tb.findOptimalTimeForEvent([], [], config)).toEqual([])
-    })
 
     describe('getRegExOrString', () => {
       test('should return items that are a string', () => {
@@ -837,33 +833,33 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(tb.eliminateDuplicateParagraphs(before).length).toEqual(1)
       })
     })
-    describe('isAutoTimeBlockLine', () => {
-      test('should return null if there are no ATB lines', () => {
-        const line = '222 no timeblock in here #foo'
-        expect(tb.isAutoTimeBlockLine(line, {})).toEqual(null)
-      })
-      test('should find a standard timeblock line', () => {
-        const line = '- 21:00-21:15 Respond to x.la [–](noteplan://x-callback-url/openNote?filename=20220512.md) #🕑'
-        const exp = 'Respond to x.la'
-        expect(tb.isAutoTimeBlockLine(line, {})).toEqual(exp)
-      })
-      test('should find a * at the front', () => {
-        const line = '* 21:00-21:15 Respond to x.la [–](noteplan://x-callback-url/openNote?filename=20220512.md) #🕑'
-        const exp = 'Respond to x.la'
-        expect(tb.isAutoTimeBlockLine(line, {})).toEqual(exp)
-      })
-      test('should find with nonstandard tag', () => {
-        const line =
-          '* 21:00-21:15 Respond to x.la [–](noteplan://x-callback-url/openNote?filename=20220512.md) #something'
-        const exp = 'Respond to x.la'
-        expect(tb.isAutoTimeBlockLine(line, {})).toEqual(exp)
-      })
-      test('should find with a wiki link', () => {
-        const line = '- 19:20-19:35 Send landing page howto [[yo#something]] #🕑'
-        const exp = `Send landing page howto`
-        expect(tb.isAutoTimeBlockLine(line, {})).toEqual(exp)
-      })
-    })
+    // describe('isAutoTimeBlockLine', () => {
+    //   test('should return null if there are no ATB lines', () => {
+    //     const line = '222 no timeblock in here #foo'
+    //     expect(tb.isAutoTimeBlockLine(line, {})).toEqual(null)
+    //   })
+    //   test('should find a standard timeblock line', () => {
+    //     const line = '- 21:00-21:15 Respond to x.la [–](noteplan://x-callback-url/openNote?filename=20220512.md) #🕑'
+    //     const exp = 'Respond to x.la'
+    //     expect(tb.isAutoTimeBlockLine(line, {})).toEqual(exp)
+    //   })
+    //   test('should find a * at the front', () => {
+    //     const line = '* 21:00-21:15 Respond to x.la [–](noteplan://x-callback-url/openNote?filename=20220512.md) #🕑'
+    //     const exp = 'Respond to x.la'
+    //     expect(tb.isAutoTimeBlockLine(line, {})).toEqual(exp)
+    //   })
+    //   test('should find with nonstandard tag', () => {
+    //     const line =
+    //       '* 21:00-21:15 Respond to x.la [–](noteplan://x-callback-url/openNote?filename=20220512.md) #something'
+    //     const exp = 'Respond to x.la'
+    //     expect(tb.isAutoTimeBlockLine(line, {})).toEqual(exp)
+    //   })
+    //   test('should find with a wiki link', () => {
+    //     const line = '- 19:20-19:35 Send landing page howto [[yo#something]] #🕑'
+    //     const exp = `Send landing page howto`
+    //     expect(tb.isAutoTimeBlockLine(line, {})).toEqual(exp)
+    //   })
+    // })
   })
 })
 

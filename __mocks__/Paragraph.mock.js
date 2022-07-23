@@ -52,9 +52,9 @@ export class Paragraph {
   async children() {
     throw 'Paragraph :: children Not implemented yet'
   }
-  async duplicate() {
-    throw 'Paragraph :: duplicate Not implemented yet'
-  }
+  // async duplicate() {
+  //   return this
+  // }
   async init() {
     throw 'Paragraph :: init Not implemented yet'
   }

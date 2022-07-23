@@ -1,9 +1,8 @@
 /* globals describe, expect, it, test, DataStore */
-import { exportAllDeclaration } from '@babel/types'
 import { differenceInCalendarDays, endOfDay, startOfDay, eachMinuteOfInterval, formatISO9075 } from 'date-fns'
 import * as tb from '../src/timeblocking-helpers'
-import { getTasksByType } from '../../dwertheimer.TaskAutomations/src/taskHelpers'
-import { sortListBy } from '../../helpers/sorting'
+import { getTasksByType } from '@helpers/sorting'
+import { sortListBy } from '@helpers/sorting'
 const _ = require('lodash')
 // import { isNullableTypeAnnotation } from '@babel/types'
 
@@ -11,7 +10,6 @@ const _ = require('lodash')
 describe('taskSorting', () => {
   // testing this here because i am using it here and want to be sure it works
   // and the signatures don't change
-  // TODO: Maybe move this to dwertheimer.TaskAutomations?
   test('dwertheimer.TaskAutomations - getTasksByType ', () => {
     const paragraphs = [
       {
@@ -85,7 +83,7 @@ describe('taskSorting', () => {
   test('dwertheimer.TaskAutomations - sortListBy priority (!,!!,!!!)', () => {
     const paragraphs = [
       {
-        type: 'open',
+        type: 'open', 
         indents: 0,
         content: 'test content !',
         rawContent: '* test content !',
