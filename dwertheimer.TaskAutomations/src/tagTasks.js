@@ -4,9 +4,9 @@ TODO: /ctt is working, but future commands could easily rewrite the order so the
 
 */
 
-import { clo, JSP, log } from '../../helpers/dev'
+import { clo, JSP, log, logDebug } from '../../helpers/dev'
 import { showMessage } from '../../helpers/userInput'
-import { getElementsFromTask } from './taskHelpers'
+import { getElementsFromTask } from '@helpers/sorting'
 import { getSelectedParagraph } from '@helpers/NPParagraph'
 import pluginJson from '../plugin.json'
 
@@ -55,21 +55,21 @@ export function getUnduplicatedMergedTagArray(existingTags: Array<string> = [], 
  * @param {TagsList} tagsToCopy in form of {hashtags: [], mentions: []}
  */
 export function appendTagsToText(paraText: string, tagsToCopy: TagsList): string | null {
-  log(pluginJson, `appendTagsToText: tagsToCopy.mentions=${tagsToCopy.mentions.toString()}`)
+ logDebug(pluginJson, `appendTagsToText: tagsToCopy.mentions=${tagsToCopy.mentions.toString()}`)
   const existingTags = getTagsFromString(paraText)
   const nakedLine = removeTagsFromLine(paraText, [...existingTags.mentions, ...existingTags.hashtags])
-  log(pluginJson, `appendTagsToText: nakedLine=${nakedLine}`)
-  log(pluginJson, `existingTags: existingTags.mentions=${existingTags.mentions.toString()}`)
+ logDebug(pluginJson, `appendTagsToText: nakedLine=${nakedLine}`)
+ logDebug(pluginJson, `existingTags: existingTags.mentions=${existingTags.mentions.toString()}`)
   const mentions = getUnduplicatedMergedTagArray(existingTags.mentions, tagsToCopy.mentions)
   const hashtags = getUnduplicatedMergedTagArray(existingTags.hashtags, tagsToCopy.hashtags)
-  log(pluginJson, `appendTagsToText: mentions=${mentions.toString()}`)
+ logDebug(pluginJson, `appendTagsToText: mentions=${mentions.toString()}`)
   if (hashtags.length || mentions.length) {
     const stuff = `${hashtags.join(' ')} ${mentions.join(' ')}`.trim()
     if (stuff.length) {
       return `${nakedLine ? `${nakedLine} ` : ''} ${stuff}`.replace(/\s{2,}/gm, ' ')
     }
   } else {
-    console.log('no tags found or no tags need to be copied in list: ', tagsToCopy.toString())
+    logDebug('no tags found or no tags need to be copied in list: ', tagsToCopy.toString())
     return paraText
   }
 }
@@ -151,7 +151,7 @@ export function copyTagsFromLineAbove() {
   if (lineIndex > 0) {
     const prevLineTags = getTagsFromString(getParagraphByIndex(Editor, lineIndex - 1).content)
     const updatedText = appendTagsToText(thisParagraph.content, prevLineTags)
-    // log(pluginJson, `copyTagsFromLineAbove: updatedText=${updatedText}`)
+    //logDebug(pluginJson, `copyTagsFromLineAbove: updatedText=${updatedText}`)
     if (updatedText) {
       // clo(thisParagraph, `thisParagraph before:`)
       thisParagraph.content = updatedText

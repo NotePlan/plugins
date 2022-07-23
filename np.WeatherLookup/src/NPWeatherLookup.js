@@ -199,7 +199,6 @@ export async function insertWeatherByLocation(incoming: ?string = '', returnLoca
         if (result) {
           // {"lat":34.0536909,"lon":-118.242766,"name":"Los Angeles","country":"US","state":"California","label":"Los Angeles, California, US","value":0}
           logDebug(pluginJson,result.label)
-          
         }
         Editor.insertTextAtCursor('This function is not functional yet. Please use the URL version instead.')
         return 

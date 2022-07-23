@@ -9,15 +9,15 @@ describe('dwertheimer.EventAutomations AutoTimeBlocking', () => {
         expect(keys.length).toBeGreaterThan(1)
       })
     })
-    describe('validateTimeBlockConfig', () => {
+    describe('validateAutoTimeBlockingConfig', () => {
       test('should be a function', () => {
         const config = c.getTimeBlockingDefaults()
-        expect(c.validateTimeBlockConfig(config)).toEqual(config)
+        expect(c.validateAutoTimeBlockingConfig(config)).toEqual(config)
       })
       test('should throw an error on a bad config', () => {
         const config = c.getTimeBlockingDefaults()
         config.timeBlockTag = false
-        expect(() => c.validateTimeBlockConfig(config)).toThrow(/timeBlockTag/)
+        expect(() => c.validateAutoTimeBlockingConfig(config)).toThrow(/timeBlockTag/)
       })
     })
     describe('arrayToCSV', () => {

@@ -3,7 +3,7 @@
 /* eslint-disable max-len */
 import { hyphenatedDateString } from './dateHelpers'
 import { fieldSorter } from '@helpers/sorting'
-import { clo, copyObject } from '@helpers/dev'
+import { clo, copyObject, logDebug } from '@helpers/dev'
 
 // returns a date object if it exists, and null if there is no forward date
 const hasTypedDate = (t) => (/>\d{4}-\d{2}-\d{2}/g.test(t.content) ? t.date : null)

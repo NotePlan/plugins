@@ -6,7 +6,7 @@ import { getDateObjFromDateTimeString, getTimeStringFromDate, getTodaysDateHyphe
 import { sortListBy } from '@helpers/sorting'
 import { returnNoteLink, createPrettyOpenNoteLink } from '@helpers/general'
 import { textWithoutSyncedCopyTag } from '@helpers/syncedCopies'
-import { logError, JSP, copyObject, clo } from '@helpers/dev'
+import { logError, JSP, copyObject, clo, logDebug } from '@helpers/dev'
 import type { SortableParagraphSubset } from "../../helpers/sorting";
 
 // import { timeblockRegex1, timeblockRegex2 } from '../../helpers/markdown-regex'
@@ -511,7 +511,7 @@ export function findTodosInNote(note: TNote): Array<ExtendedParagraph> {
   if (note.paragraphs) {
     note.paragraphs.forEach((p) => {
       if (isTodayItem(p.content) && p.type !== 'done') {
-        const newP = copyObject(p)
+        const newP = p.duplicate ? p.duplicate() : p
         newP.type = 'open' // Pretend it's a todo even if it's text or a listitem
         // $FlowIgnore
         newP.title = (p.filename ?? '').replace('.md', '').replace('.txt', '')
