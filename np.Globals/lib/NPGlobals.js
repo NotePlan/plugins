@@ -7,7 +7,7 @@
 import pluginJson from '../plugin.json'
 
 import { semverVersionToNumber } from '@helpers/general'
-import { clo, log, logError } from '@helpers/dev'
+import { clo, log } from '@helpers/dev'
 
 type GlobalsConfig = $ReadOnly<{
   locale?: string,
@@ -52,15 +52,17 @@ export default class NPGlobals {
   }
 
   static async getSettings(): any {
-    let data = DataStore.loadJSON('../np.Globals/settings.json')
+    let data = await DataStore.loadJSON('../np.Globals/settings.json')
     if (!data) {
-      const result = DataStore.saveJSON(DEFAULT_GLOBALS_CONFIG, `../${pluginJson['plugin.id']}/settings.json`)
-      data = DataStore.loadJSON(`../${pluginJson['plugin.id']}/settings.json`)
+      const result = await DataStore.saveJSON(DEFAULT_GLOBALS_CONFIG, `../${pluginJson['plugin.id']}/settings.json`)
+      clo(result)
+      data = await DataStore.loadJSON(`../${pluginJson['plugin.id']}/settings.json`)
     }
 
     return data
   }
 
+  // eslint-disable-next-line
   static async updateOrInstall(currentSettings: any, currentVersion: string): Promise<GlobalsConfig> {
     const settingsData = { ...currentSettings }
 
