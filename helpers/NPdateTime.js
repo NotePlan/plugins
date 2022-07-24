@@ -13,7 +13,7 @@ import {
   toISOShortDateTimeString,
   // weekStartEnd,
 } from './dateTime'
-import { logError } from './dev'
+import { logDebug, logError } from './dev'
 import { chooseOption, getInput } from './userInput'
 
 // TODO: Finish moving references to this file from dateTime.js
@@ -69,7 +69,7 @@ export function printDateRange(dr: DateRange) {
  *
  * @param {string} baseDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type
  * @param {interval} string of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in English)
- * @return {Date} new date as a JS Date (or null if there is an error)
+ * @returns {Date} new date as a JS Date (or null if there is an error)
  */
 export function calcOffsetDate(baseDateISO: string, interval: string): Date | null {
   try {
@@ -152,7 +152,7 @@ export function calcOffsetDate(baseDateISO: string, interval: string): Date | nu
  *
  * @param {string} baseDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type
  * @param {interval} string of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in English)
- * @return {string} new date in ISO Date format
+ * @returns {string} new date in ISO Date format
  */
 export function calcOffsetDateStr(baseDateISO: string, interval: string): string {
   const newDate = calcOffsetDate(baseDateISO, interval)
@@ -164,7 +164,7 @@ export function calcOffsetDateStr(baseDateISO: string, interval: string): string
   // TODO: change to use date arithmetic in moment library and move to dateTime.js
  * @param {number} qtr - quarter number in year (1-4)
  * @param {number} year - year (4-digits)
- * @return {[Date, Date]}} - start and end dates (as JS Dates)
+ * @returns {[Date, Date]}} - start and end dates (as JS Dates)
  */
 export function quarterStartEnd(qtr: number, year: number): [Date, Date] {
   // Default values are needed to account for the
@@ -218,7 +218,7 @@ export function quarterStartEnd(qtr: number, year: number): [Date, Date] {
  *
  * @param {number} week - week number in year (1-53)
  * @param {number} year - year (4-digits)
- * @return {[Date, Date]}} - start and end dates (as JS Dates)
+ * @returns {[Date, Date]}} - start and end dates (as JS Dates)
  * @test - defined in Jest, but won't work until Calendar.addUnitToDate can be stubbed out
  */
 export function weekStartEnd(week: number, year: number): [Date, Date] {
@@ -242,7 +242,7 @@ export function weekStartEnd(week: number, year: number): [Date, Date] {
 /**
  * Returns the user's chosen day of the week in the specified date according to UTC, where 0 represents Sunday.
  * @author @jgclark
- * @return {number}
+ * @returns {number}
  */
 export function getUsersFirstDayOfWeekUTC(): number {
   // Get user preference for start of week.
@@ -306,17 +306,18 @@ export const periodTypesAndDescriptions = [
 ]
 
 /**
- * Ask user to select a time period from 'periodTypesAndDescriptions' (e.g. 'Last Quarter') and returns a set of details for it:
+ * Get a time period from 'periodTypesAndDescriptions' (e.g. 'Last Quarter') and returns a set of details for it:
  * - {Date} start (js) date of time period
  * - {Date} end (js) date of time period
  * - {string} periodType    (e.g. 'lq' for 'Last Quarter')
  * - {string} periodString  (e.g. '2022 Q2 (Apr-June)')
  * - {string} periodPartStr (e.g. 'day 4' showing how far through we are in a partial ('... to date') time period)
- *
+ * Normally does this by asking user, unless param 'periodType' is supplied.
  * @author @jgclark
+ * 
  * @param {string} question to show user
  * @param {string} periodType optional; if not provided ask user instead
- * @return {[Date, Date, string, string, string]}
+ * @returns {[Date, Date, string, string, string]}
  */
 export async function getPeriodStartEndDates(question: string = 'Create stats for which period?', periodTypeToUse?: string): Promise<[Date, Date, string, string, string]> {
   let periodType: string
@@ -428,12 +429,13 @@ export async function getPeriodStartEndDates(question: string = 'Create stats fo
       break
     }
     case 'userwtd': {
-      // week to date from user's chosen start date
+      // week to date from user's chosen Week Start (in app settings)
       const dayOfWeekWithSundayZero = new Date().getDay()
       // Get user preference for start of week, with Sunday = 0 ...
       const usersStartOfWeekWithSundayZero = getUsersFirstDayOfWeekUTC()
       // Work out day number (1..7) within user's week
       const dateWithinInterval = ((dayOfWeekWithSundayZero + 7 - usersStartOfWeekWithSundayZero) % 7) + 1
+      logDebug('getPeriodStartEndDates()', `userwtd: dayOfWeekWithSundayZero: ${dayOfWeekWithSundayZero}, usersStartOfWeekWithSundayZero: ${usersStartOfWeekWithSundayZero}, dateWithinInterval: ${dateWithinInterval}`)
       fromDate = Calendar.addUnitToDate(Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset), 'day', -(dateWithinInterval - 1))
       toDate = Calendar.addUnitToDate(fromDate, 'day', 6)
       periodString = `this week`
@@ -453,7 +455,10 @@ export async function getPeriodStartEndDates(question: string = 'Create stats fo
       fromDate = tempObj[0]
       toDate = tempObj[1]
       periodString = `${theYear}-W${currentWeekNum}`
-      periodPartStr = `day ${todaysDate.getDay()}`
+      // get ISO dayOfWeek (Monday = 1 to Sunday = 7)
+      const todaysISODayOfWeek = moment().isoWeekday()
+      periodPartStr = `day ${todaysISODayOfWeek}`
+      logDebug('getPeriodStartEndDates()', `wtd: currentWeekNum: ${currentWeekNum}, theYear: ${theYear}, todaysISODayOfWeek: ${todaysISODayOfWeek}`)
       break
     }
     case 'ow': {

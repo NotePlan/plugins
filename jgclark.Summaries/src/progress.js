@@ -2,14 +2,14 @@
 //-----------------------------------------------------------------------------
 // Progress update on some key goals to include in notes
 // Jonathan Clark, @jgclark
-// Last updated 30.6.2022 for v0.10.0+, @jgclark
+// Last updated 24.7.2022 for v0.11.1, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { calcHashtagStatsPeriod, calcMentionStatsPeriod, getSummariesSettings } from './summaryHelpers'
 import { unhyphenatedDate } from '@helpers/dateTime'
 import { getPeriodStartEndDates } from '@helpers/NPDateTime'
-import { log, logError } from '@helpers/dev'
+import { logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import {
   CaseInsensitiveMap,
   displayTitle,
@@ -42,7 +42,7 @@ export async function insertProgressUpdate(params?: string): Promise<string | vo
   // Get time period of interest
   const [fromDate, toDate, periodType, periodString, periodPartStr] = await getPeriodStartEndDates('', interval)
   if (fromDate == null || toDate == null) {
-    log(pluginJson, `insertProgressUpdate: Error calculating dates`)
+    logWarn(pluginJson, `insertProgressUpdate: Error calculating dates`)
     return `Error calculating dates`
   }
   const fromDateStr = unhyphenatedDate(fromDate)
@@ -54,6 +54,7 @@ export async function insertProgressUpdate(params?: string): Promise<string | vo
   // Send output to chosen required destination
   if (params) {
     // this was a template command call, so simply return the output text
+    logDebug(pluginJson, `-> returning text to template for '${heading}: ${periodPartStr} for ${periodString}'`)
     return `### ${heading}: ${periodPartStr} for ${periodString}\n${outputArray}`
   } else {
     // This is called by a plugin command
@@ -63,7 +64,7 @@ export async function insertProgressUpdate(params?: string): Promise<string | vo
       case 'daily': {
         const destNote = DataStore.calendarNoteByDate(new Date(), 'day')
         if (destNote) {
-          log(pluginJson, `  about to update section '${heading}' in note '${displayTitle(destNote)}' for ${periodPartStr}`)
+          logDebug(pluginJson, `- about to update section '${heading}' in daily note '${destNote.filename}' for ${periodPartStr}`)
           // Replace or add Section
           replaceSection(destNote, heading, `${heading}: ${periodPartStr} for ${periodString}`, config.headingLevel, outputArray)
         } else {
@@ -75,7 +76,7 @@ export async function insertProgressUpdate(params?: string): Promise<string | vo
         // get weekly
         const destNote = DataStore.calendarNoteByDate(new Date(), 'week')
         if (destNote) {
-          log(pluginJson, `  about to update section '${heading}' in note '${displayTitle(destNote)}' for ${periodPartStr}`)
+          logDebug(pluginJson, `- about to update section '${heading}' in weekly note '${destNote.filename}' for ${periodPartStr}`)
           // Replace or add Section
           replaceSection(destNote, heading, `${heading}: ${periodPartStr} for ${periodString}`, config.headingLevel, outputArray)
         } else {
@@ -88,17 +89,17 @@ export async function insertProgressUpdate(params?: string): Promise<string | vo
         // = 'current'
         if (Editor == null) {
           // Now insert the summary to the current note
-          logError(pluginJson, `No note is open`)
+          logError(pluginJson, `No note is open in the Editor, so I can't write to it.`)
         } else {
           let currentLineIndex = getSelectedParaIndex()
           if (currentLineIndex === 0) {
             logError(pluginJson, `Couldn't find correct cursor position, so will append to note instead.`)
             currentLineIndex = Editor.paragraphs.length - 1
           }
-          // log(pluginJson, `\tinserting results to current note (${Editor.filename ?? ''}) at line ${currentLineIndex}`)
+          logDebug(pluginJson, `\tinserting results to current note (${Editor.filename ?? ''}) at line ${currentLineIndex}`)
           Editor.insertHeading(`${heading}: ${periodPartStr} for ${periodString}`, currentLineIndex, 3)
           Editor.insertParagraph(outputArray, currentLineIndex + 1, 'text')
-          log(pluginJson, `  appended results to current note for ${periodPartStr}.`)
+          logDebug(pluginJson, `  appended results to current note for ${periodPartStr}.`)
         }
         break
       }
@@ -116,7 +117,7 @@ export async function insertProgressUpdate(params?: string): Promise<string | vo
  * @return {string} - either return string to Template, or void to plugin // FIXME:
  */
 function calcProgressUpdate(interval: string, periodString: string, fromDateStr: string, toDateStr: string, hashtagList: Array<string>, mentionList: Array<string>): string {
-  log('calcProgressUpdate()', `starting ${interval} for ${periodString} ${interval} (= ${fromDateStr} - ${toDateStr}):`)
+  logDebug('calcProgressUpdate()', `starting ${interval} for ${periodString} ${interval} (= ${fromDateStr} - ${toDateStr}):`)
 
   // Calc hashtags stats (returns two maps) for just the inclusion list 'progressHashtags'
   const outputArray: Array<string> = []
@@ -127,19 +128,19 @@ function calcProgressUpdate(interval: string, periodString: string, fromDateStr:
     const hCounts: CaseInsensitiveMap<number> = hResults?.[0] ?? new CaseInsensitiveMap<number>()
     const hSumTotals: CaseInsensitiveMap<number> = hResults?.[1] ?? new CaseInsensitiveMap<number>()
     if (hSumTotals == null && hCounts == null) {
-      log(pluginJson, `no matching hashtags found in ${periodString}`)
+      logDebug(pluginJson, `no matching hashtags found in ${periodString}`)
     } else {
-      // console.log("hSumTotals results:")
-      // for (const [key, value] of hSumTotals.entries()) {
-      //   console.log(`  ${key}: ${value}`)
-      // }
+      logDebug("hSumTotals results:")
+      for (const [key, value] of hSumTotals.entries()) {
+        logDebug(`  ${key}: ${value}`)
+      }
 
       // First process more complex 'SumTotals', calculating appropriately
       for (const [key, value] of hSumTotals.entries()) {
         const tagString = key.slice(1) // show without leading '#' to avoid double counting issues
         const total = hSumTotals.get(key) ?? NaN
         if (isNaN(total)) {
-          // console.log(`  no totals for ${key}`)
+          logDebug(`  no totals for ${key}`)
         } else {
           const count = hSumTotals.get(key) ?? NaN
           const totalStr = value.toLocaleString()
@@ -149,10 +150,10 @@ function calcProgressUpdate(interval: string, periodString: string, fromDateStr:
         }
       }
 
-      // console.log("hCounts results:")
-      // for (const [key, value] of hCounts.entries()) {
-      //   console.log(`  ${key}: ${value}`)
-      // }
+      logDebug("hCounts results:")
+      for (const [key, value] of hCounts.entries()) {
+        logDebug(`  ${key}: ${value}`)
+      }
 
       // Then process simpler 'Counts'
       for (const [key, value] of hCounts.entries()) {
@@ -169,19 +170,19 @@ function calcProgressUpdate(interval: string, periodString: string, fromDateStr:
     const mCounts: CaseInsensitiveMap<number> = mResults?.[0] ?? new CaseInsensitiveMap<number>()
     const mSumTotals: CaseInsensitiveMap<number> = mResults?.[1] ?? new CaseInsensitiveMap<number>()
     if (mCounts == null && mSumTotals == null) {
-      log(pluginJson, `no matching mentions found in ${periodString}`)
+      logDebug(pluginJson, `no matching mentions found in ${periodString}`)
     } else {
-      // console.log("mSumTotals results:")
-      // for (const [key, value] of mSumTotals.entries()) {
-      //   console.log(`  ${key}: ${value}`)
-      // }
+      logDebug("mSumTotals results:")
+      for (const [key, value] of mSumTotals.entries()) {
+        logDebug(`  ${key}: ${value}`)
+      }
 
       // First process more complex 'SumTotals', calculating appropriately
       for (const [key, value] of mSumTotals.entries()) {
         const mentionString = key.slice(1) // show without leading '@' to avoid double counting issues
         const total = mSumTotals.get(key) ?? NaN
         if (isNaN(total)) {
-          // console.log(`  no totals for ${key}`)
+          logDebug(`  no totals for ${key}`)
         } else {
           const count = mCounts.get(key) ?? NaN
           const totalStr = value.toLocaleString()
@@ -192,10 +193,10 @@ function calcProgressUpdate(interval: string, periodString: string, fromDateStr:
       }
     }
 
-    // console.log("mCounts results:")
-    // for (const [key, value] of mCounts.entries()) {
-    //   console.log(`  ${key}: ${value}`)
-    // }
+    logDebug("mCounts results:")
+    for (const [key, value] of mCounts.entries()) {
+      logDebug(`  ${key}: ${value}`)
+    }
 
     // Then process simpler 'Counts'
     for (const [key, value] of mCounts.entries()) {

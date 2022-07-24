@@ -2,14 +2,14 @@
 //-----------------------------------------------------------------------------
 // Create weekly stats for a number of weeks, and format ready to use by gnuplot
 // Jonathan Clark, @jgclark
-// Last updated 26.4.2022 for v0.7.1, @jgclark
+// Last updated 26.7.2022 for v0.11.1, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { calcHashtagStatsPeriod, calcMentionStatsPeriod, getSummariesSettings } from './summaryHelpers'
 import type { SummariesConfig } from './summaryHelpers'
 import { calcWeekOffset, getWeek, hyphenatedDateString, unhyphenatedDate, weekStartEnd } from '../../helpers/dateTime'
-import { log, logWarn, logError } from '../../helpers/dev'
+import { logError, logDebug, logInfo, logWarn } from '../../helpers/dev'
 import { clearNote, getOrMakeNote } from '../../helpers/note'
 import { chooseOption, getInput, showMessage } from '../../helpers/userInput'
 
@@ -145,7 +145,7 @@ export async function weeklyStats(): Promise<void> {
     endWeek = thisWeek
   }
   const periodString = `${startYear}W${startWeek} - ${endYear}W${endWeek}`
-  log(pluginJson, `weeklyStats: calculating for ${periodString} (${period} weeks)`)
+  logInfo(pluginJson, `weeklyStats: calculating for ${periodString} (${period} weeks)`)
 
   // Pop up UI wait dialog as this can be a long-running process
   CommandBar.showLoading(true, `Calculating weekly stats over ${period} weeks`)
@@ -164,7 +164,7 @@ export async function weeklyStats(): Promise<void> {
     w = answer.week
     y = answer.year
     counter++
-    // log(pluginJson, `${counter}: w ${w} y ${y}`)
+    logDebug(pluginJson, `${counter}: w ${w} y ${y}`)
     const [weekStartDate, weekEndDate] = weekStartEnd(w, y)
 
     // Calc hashtags stats (returns two maps)
@@ -240,7 +240,7 @@ export async function weeklyStats(): Promise<void> {
     // Now go through this array tweaking output to suit gnuplot
     hOutputArray = formatForGnuplot(hResultsArray)
   } else {
-    logWarn(pluginJson, `no Hashtags found in weekly summaries`)
+    logInfo(pluginJson, `no Hashtags found in weekly summaries`)
   }
 
   let mOutputArray = []
@@ -250,7 +250,7 @@ export async function weeklyStats(): Promise<void> {
     // Now go through this array tweaking output to suit gnuplot
     mOutputArray = formatForGnuplot(mResultsArray)
   } else {
-    logWarn(pluginJson, `no Mentions found in weekly summaries`)
+    logInfo(pluginJson, `no Mentions found in weekly summaries`)
   }
 
   // Get note to write out to
@@ -271,5 +271,5 @@ export async function weeklyStats(): Promise<void> {
   // open this note in the Editor
   Editor.openNoteByFilename(note.filename)
 
-  log(pluginJson, `  written results to note '${noteTitle}'`)
+  logInfo(pluginJson, `  written results to note '${noteTitle}'`)
 }
