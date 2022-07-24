@@ -1,11 +1,12 @@
+// @flow
 import { log, logError, clo, JSP, timer } from '@helpers/dev'
 
-export const isWeatherKeyValid = (key) => key !== null && /[a-f0-9]{32}/.test(key)
+export const isWeatherKeyValid = (key:string):boolean => key !== null && /[a-f0-9]{32}/.test(key)
 
-export const getWeatherURLLatLong = (lat, lon, appid, units) => `https://api.openweathermap.org/data/2.5/onecall?lat=${lat}&lon=${lon}&appid=${appid}&units=${units}`
+export const getWeatherURLLatLong = (lat:string, lon:string, appid:string, units:string):string => `https://api.openweathermap.org/data/2.5/onecall?lat=${lat}&lon=${lon}&appid=${appid}&units=${units}`
 // NOTE: There is a version 3.0, but it sends back a 401 error
 
-export const getCurrentConditions = (currentWeather: { [string]: any }): Array<{}> => {
+export const getCurrentConditions = (currentWeather: { [string]: any }): any => {
   let { sunrise, sunset, temp, feels_like, pressure, humidity, dew_point, uvi, clouds, visibility, wind_speed, wind_deg, weather } = currentWeather
   temp = Math.round(temp)
   return {
@@ -14,7 +15,7 @@ export const getCurrentConditions = (currentWeather: { [string]: any }): Array<{
     temp,
     uvi,
     humidity,
-    feels_like,
+    feels_like, 
     description: weather[0].description,
     main: weather[0].main,
     icon: getWeatherIcon(weather[0].description),
@@ -65,7 +66,7 @@ export const extractDailyForecastData = (weather: { [string]: any }): Array<{}> 
   return dailyForecast
 }
 
-export const getWeatherIcon = (description) => {
+export const getWeatherIcon = (description:string):string => {
   const weatherDescText = ['showers', 'rain', 'sunny intervals', 'partly sunny', 'sunny', 'clear sky', 'cloud', 'snow ', 'thunderstorm', 'tornado']
   const weatherDescIcons = ['🌦️', '🌧️', '🌤', '⛅', '☀️', '☀️', '☁️', '🌨️', '⛈', '🌪']
   let weatherIcon = ''
