@@ -6,8 +6,8 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/codedungeon.To
 
 ## [3.11.0] - 2022-07-24 (@codedungeon)
 
-- Added `logInfo`, `logError`, `logWarn`, `logDebug` helpers, support plugin `Debugging` section
-- Updated plugin starter (`npc plugin:create`) to include `Debugging` section in settings
+- Added `logInfo`, `logError`, `logWarn`, `logDebug` helpers, support plugin `Debugging` section (@dwertheimer)
+- Updated plugin starter (`npc plugin:create`) to include `Debugging` section in settings (@codedungeon)
 
 ## [3.10.2] - 2022-07-10 (@codedungeon)
 
