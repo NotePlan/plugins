@@ -23,7 +23,7 @@ import { getDailyQuote } from '../lib/support/modules/quote'
 import { getVerse, getVersePlain } from '../lib/support/modules/verse'
 
 import { initConfiguration, migrateConfiguration, updateSettingData } from '../../helpers/NPConfiguration'
-import { logError, clo } from '@helpers/dev'
+import { clo, logError } from '@helpers/dev'
 
 import pluginJson from '../plugin.json'
 import DateModule from '../lib/support/modules/DateModule'
@@ -163,10 +163,7 @@ export async function templateAppend(): Promise<void> {
       let { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
       let data = { ...frontmatterAttributes, frontmatter: { ...frontmatterAttributes } }
 
-      // $FlowIgnore
-
       let renderedTemplate = await NPTemplating.render(frontmatterBody, data)
-      // renderedTemplate = frontmatterBody
 
       Editor.insertTextAtCharacterIndex(renderedTemplate, content.length)
     } else {

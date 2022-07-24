@@ -254,6 +254,11 @@ export default class NPTemplating {
     //   log(pluginJson, `==> np.Templating 1.0.3 Updates Applied`)
     // }
 
+    if (settingsVersion < semverVersionToNumber('2.0.0')) {
+      log(pluginJson, `==> np.Templating 2.0.0 Updates Applied`)
+      updatesApplied++
+    }
+
     if (settingsVersion < semverVersionToNumber('1.1.3')) {
       log(pluginJson, `==> np.Templating 1.1.3 Updates Applied`)
       updatesApplied++

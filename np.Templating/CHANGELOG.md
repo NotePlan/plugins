@@ -3,6 +3,10 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [2.0.0-alpha.06] - 2022-07-24 (mikeerickson)
+
+- incorporated Debugging section to np.Templating Settings (thanks @dwertheimer)
+
 ## [2.0.0-alpha.05] - 2022-07-17 (mikeerickson)
 
 - Added preRender code to `NPTemplating.renderTemplate`
