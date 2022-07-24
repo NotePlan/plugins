@@ -13,9 +13,16 @@ import { debug, helpInfo } from './helpers'
 
 import globals from './globals'
 import { chooseOption } from '@helpers/userInput'
-import { clo, log, logError } from '@helpers/dev'
+import { clo } from '@helpers/dev'
 import { datePicker, askDateInterval } from '@helpers/userInput'
 
+const log = (msg) => {
+  console.log(msg)
+}
+
+const logError = (msg) => {
+  console.log(msg)
+}
 /*eslint-disable */
 import TemplatingEngine from './TemplatingEngine'
 
@@ -915,7 +922,7 @@ export default class NPTemplating {
       const { frontmatterBody, frontmatterAttributes } = await this.preRender(templateData)
       const data = { ...frontmatterAttributes, frontmatter: { ...frontmatterAttributes }, ...userData }
 
-      const renderedData = await this.render(frontmatterBody, data, userOptions)
+      const renderedData = await this.render(templateData, data, userOptions)
 
       return this._filterTemplateResult(renderedData)
     } catch (error) {
