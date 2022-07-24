@@ -2,11 +2,11 @@
 //-----------------------------------------------------------------------------
 // Daily Journal plugin for NotePlan
 // Jonathan Clark
-// last update 17.7.2022 for v0.12.1 by @jgclark
+// last update 24.7.2022 for v0.12.1+ by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json' 
-import { clo, log, logError } from '@helpers/dev'
+import { clo, logDebug, logError } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import {
   getInputTrimmed,
@@ -81,7 +81,7 @@ export async function dayStart(today: boolean = false): Promise<void> {
       return
     }
   }
-  log(pluginJson, `for '${displayTitle(Editor.note)}'`)
+  logDebug(pluginJson, `for '${displayTitle(Editor.note)}'`)
   const config: JournalConfigType = await getJournalSettings()
 
   try {
@@ -112,13 +112,13 @@ export async function dayReview(): Promise<void> {
   const typeRE = new RegExp('<(.*)>')
   const questionLines = config.reviewQuestions.split('\n')
   const numQs = questionLines.length
-  log(pluginJson, `\tFound ${numQs} question lines`)
+  logDebug(pluginJson, `\tFound ${numQs} question lines`)
   for (i = 0; i < numQs; i++) {
     // remove type indicators from the question string
     question[i] = questionLines[i].replace(/:|\(|\)|<string>|<int>|<number>|<mood>|<subheading>/g, '').trim()
     const reArray = questionLines[i].match(typeRE)
     questionType[i] = reArray?.[1] ?? '<error in question type>'
-    // log(pluginJson, '\t' + i + ': ' + question[i] + ' / ' + questionType[i])
+    logDebug(pluginJson, '\t' + i + ': ' + question[i] + ' / ' + questionType[i])
   }
 
   try {
@@ -127,13 +127,13 @@ export async function dayReview(): Promise<void> {
       // Each question type is handled slightly differently, but in all cases a blank
       // or invalid answer means the question is ignored.
       let reviewLine = ''
-      log(pluginJson, `\tQ${i}: ${question[i]} / ${questionType[i]}`)
+      logDebug(pluginJson, `\tQ${i}: ${question[i]} / ${questionType[i]}`)
 
       // Look to see if this question has already been put into the note with something following it.
       // If so, skip this question.
       const resAQ = returnAnsweredQuestion(question[i])
       if (resAQ !== '') {
-        log(pluginJson, `\t  Found existing Q answer '${resAQ}', so won't ask again`)
+        logDebug(pluginJson, `\t  Found existing Q answer '${resAQ}', so won't ask again`)
         continue
       }
 
@@ -186,7 +186,7 @@ export async function dayReview(): Promise<void> {
               reviewLine = replyString !== '' ? questionLines[i].replace(/<string>/, replyString) : ''
             }
           } else {
-            log(pluginJson, `Null or empty string for answer to question '${question[i]}'`)
+            logDebug(pluginJson, `Null or empty string for answer to question '${question[i]}'`)
           }
           break
         }
@@ -208,7 +208,7 @@ export async function dayReview(): Promise<void> {
           break
         }
       }
-      // log(pluginJson, `\tAnswer to '${question[i]}' = ${reviewLine[i]}`)
+      logDebug(pluginJson, `\tAnswer to '${question[i]}' = ${reviewLine[i]}`)
       if (reviewLine !== '') {
         output += `${reviewLine}\n`
       }
@@ -217,13 +217,13 @@ export async function dayReview(): Promise<void> {
     // Add the finished review text to the current daily note,
     // appending after the line found in config.reviewSectionHeading.
     // If this doesn't exist, then append it first.
-    log(pluginJson, `\tAppending answers to heading '${config.reviewSectionHeading}'`)
+    logDebug(pluginJson, `\tAppending answers to heading '${config.reviewSectionHeading}'`)
     Editor.addParagraphBelowHeadingTitle(output, 'empty', config.reviewSectionHeading, true, true)
   } catch (e) {
     if (e === 'cancelled') {
-      log(pluginJson, `Asking questions cancelled by user: stopping.`)
+      logDebug(pluginJson, `Asking questions cancelled by user: stopping.`)
     } else {
-      log(pluginJson, `Stopping, following error ${e}.`)
+      logDebug(pluginJson, `Stopping, following error ${e}.`)
     }
   }
 }

@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Repeat Extensions plugin for NotePlan
 // Jonathan Clark
-// last updated 2022-02-20 for v0.3.1+
+// last updated 24.7.2022 for v0.3.1+
 //-----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -15,7 +15,7 @@ import {
 } from '../../helpers/dateTime'
 import { showMessage } from '../../helpers/userInput'
 import { findEndOfActivePartOfNote } from '../../helpers/paragraph'
-import { log, logWarn, logError } from "@helpers/dev"
+import { logDebug, logInfo, logWarn, logError } from "@helpers/dev"
 
 //------------------------------------------------------------------
 /**
@@ -84,14 +84,14 @@ export async function repeats(): Promise<void> {
       reReturnArray = line.match(RE_DONE_DATE_CAPTURE) ?? []
       completedDate = reReturnArray[1]
       completedTime = reReturnArray[2]
-      log(pluginJson, `Found completed repeat ${completedDate} ${completedTime} in line ${n}`)
+      logDebug(pluginJson, `Found completed repeat ${completedDate} ${completedTime} in line ${n}`)
       
       // remove time string from completed date-time
       updatedLine = line.replace(completedTime, '') // couldn't get a regex to work here
       p.content = updatedLine
       // Send the update to the Editor
       Editor.updateParagraph(p)
-      // log(pluginJson, `    updated Paragraph ${p.lineIndex}`)
+      // logDebug(pluginJson, `    updated Paragraph ${p.lineIndex}`)
 
       // Test if this is one of my special extended repeats
       if (updatedLine.match(RE_EXTENDED_REPEAT)) {
@@ -102,7 +102,7 @@ export async function repeats(): Promise<void> {
         reReturnArray = updatedLine.match(RE_EXTENDED_REPEAT_CAPTURE)
         // $FlowIgnore[incompatible-use]
         let dateIntervalString = (reReturnArray.length > 0) ? reReturnArray[1] : ''
-        log(pluginJson, `  Found EXTENDED @repeat syntax: '${dateIntervalString}'`)
+        logDebug(pluginJson, `  Found EXTENDED @repeat syntax: '${dateIntervalString}'`)
 
         if (dateIntervalString[0].startsWith('+')) {
           // New repeat date = completed date + interval
@@ -111,30 +111,30 @@ export async function repeats(): Promise<void> {
             dateIntervalString.length,
           )
           newRepeatDate = calcOffsetDateStr(completedDate, dateIntervalString)
-          log(pluginJson, `  Adding from completed date --> ${newRepeatDate}`)
+          logDebug(pluginJson, `  Adding from completed date --> ${newRepeatDate}`)
           // Remove any >date
           updatedLine = updatedLine.replace(/\s+>\d{4}-[01]\d{1}-\d{2}/, '') // i.e. RE_DUE_DATE, but can't get regex to work with variables like this
-          // logWarn(pluginJson, `\tupdatedLine: ${updatedLine}`)
+          logDebug(pluginJson, `\tupdatedLine: ${updatedLine}`)
 
         } else {
           // New repeat date = due date + interval
           // look for the due date(>YYYY-MM-DD)
           let dueDate = ''
           const resArray = updatedLine.match(RE_DUE_DATE_CAPTURE) ?? []
-          // log(pluginJson, resArray.length)
+          // logDebug(pluginJson, resArray.length)
           if (resArray[1] != null) {
-            logWarn(pluginJson, `  match => ${resArray[1]}`)
+            logDebug(pluginJson, `  match => ${resArray[1]}`)
             dueDate = resArray[1]
             // need to remove the old due date
             updatedLine = updatedLine.replace(`>${dueDate}`, '')
-            // log(pluginJson, updatedLine);
+            // logDebug(pluginJson, updatedLine);
           } else {
             // but if there is no due date then treat that as today
             dueDate = completedDate
-            // logWarn(pluginJson, `\tno match => use completed date ${dueDate}`)
+            logDebug(pluginJson, `- no match => use completed date ${dueDate}`)
           }
           newRepeatDate = calcOffsetDateStr(dueDate, dateIntervalString)
-          log(pluginJson, `  Adding from due date --> ${newRepeatDate}`)
+          logDebug(pluginJson, `- Adding from due date --> ${newRepeatDate}`)
         }
 
         outputLine = updatedLine.replace(/@done\(.*\)/, '').trim()
@@ -143,23 +143,23 @@ export async function repeats(): Promise<void> {
         if (type === 'Notes') {
           // ...either in same project note
           outputLine += ` >${newRepeatDate}`
-          // logWarn(pluginJson, `\toutputLine: ${outputLine}`)
+          logDebug(pluginJson, `- outputLine: ${outputLine}`)
           await Editor.insertParagraphAfterParagraph(outputLine, p, 'open')
-          log(pluginJson, `  Inserted new para after line ${p.lineIndex}`)
+          logDebug(pluginJson, `- Inserted new para after line ${p.lineIndex}`)
         }
         else {
           // ... or in the future daily note (prepend)
           const newRepeatDateShorter = unhyphenateString(newRepeatDate)
           const newDailyNote = await DataStore.calendarNoteByDateString(newRepeatDateShorter)
           if (newDailyNote?.title != null) {
-            // logWarn(pluginJson, newDailyNote.filename)
+            logDebug(pluginJson, newDailyNote.filename)
             await newDailyNote.appendTodo(outputLine)
-            log(pluginJson, `  Inserted new repeat in daily note ${newRepeatDateShorter}`)
+            logDebug(pluginJson, `  Inserted new repeat in daily note ${newRepeatDateShorter}`)
           } else {
             // After a fix to future calendar note creation in r635, we shouldn't get here.
             // But just in case, we'll create new repeat in today's daily note
             outputLine += ` >${newRepeatDate}`
-            log(pluginJson, `\toutputLine: ${outputLine}`)
+            logDebug(pluginJson, `- outputLine: ${outputLine}`)
 
             await Editor.insertParagraphAfterParagraph(outputLine, p, 'open')
             logWarn(pluginJson, 'Inserted new repeat in original daily note')

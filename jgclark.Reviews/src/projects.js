@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Commands for working with Project and Area notes, seen in NotePlan notes.
 // by @jgclark
-// Last updated 7.7.2022 for v0.7.0, @jgclark
+// Last updated 24.7.2022 for v0.7.0+, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -15,11 +15,8 @@ import {
   Project
 } from './reviewHelpers'
 import { hyphenatedDateString } from '@helpers/dateTime'
-import { log, logWarn, logError } from '@helpers/dev'
-// import { getFolderFromFilename } from '@helpers/folders'
-// import { displayTitle } from '@helpers/general'
+import { logDebug, logInfo, logWarn, logError } from '@helpers/dev'
 import { getOrMakeNote } from '@helpers/note'
-// import { getOrMakeMetadataLine } from '@helpers/paragraph'
 import {
   // getInput,
   showMessageYesNo
@@ -67,7 +64,7 @@ export async function completeProject(): Promise<void> {
       const lineToAdd = projectNote.detailedSummaryLine(true)
       const summaryNote = await getOrMakeNote(thisYearStr, config.folderToStore)
       if (summaryNote != null) {
-        log(pluginJson, `Will add '${lineToAdd}' to note '${summaryNote.filename}'`)
+        logInfo(pluginJson, `Will add '${lineToAdd}' to note '${summaryNote.filename}'`)
         summaryNote.addParagraphBelowHeadingTitle(
           lineToAdd,
           'text', // bullet character gets included in the passed in string
@@ -85,7 +82,7 @@ export async function completeProject(): Promise<void> {
       const newFilename = DataStore.moveNote(filename, '@Archive')
     }
   } else {
-    log(pluginJson, `Error: something has gone wrong in Completing this project note`)
+    logError(pluginJson, `Error: something has gone wrong in Completing this project note`)
   }
 }
 
@@ -125,7 +122,7 @@ export async function cancelProject(): Promise<void> {
       const lineToAdd = projectNote.detailedSummaryLine(true)
       const yearlyNote = await getOrMakeNote(thisYearStr, config.folderToStore)
       if (yearlyNote != null) {
-        log(pluginJson, `Will add '${lineToAdd}' to note '${yearlyNote.filename}'`)
+        logInfo(pluginJson, `Will add '${lineToAdd}' to note '${yearlyNote.filename}'`)
         yearlyNote.addParagraphBelowHeadingTitle(
           lineToAdd,
           'text', // bullet character gets included in the passed in string
@@ -141,7 +138,7 @@ export async function cancelProject(): Promise<void> {
       (await showMessageYesNo('Shall I move this cancelled note to the Archive?', ['Yes', 'No'])) === 'Yes') {
       // eslint-disable-next-line no-unused-vars, unused-imports/no-unused-vars
       const newFilename = DataStore.moveNote(filename, '@Archive')
-      log(pluginJson, `Project note has been moved to the @Archive.`)
+      logInfo(pluginJson, `Project note has been moved to the @Archive.`)
     }
   } else {
     logError(pluginJson, `Something has gone wrong in Cancelling this project note.`)
