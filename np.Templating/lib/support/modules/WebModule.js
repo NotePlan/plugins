@@ -44,6 +44,7 @@ export default class WebModule {
   }
 
   async wotd(templateConfig: any, params: any = ''): Promise<string> {
-    return await getWOTD(params)
+    const confg = { ...templateConfig, ...params }
+    return await getWOTD(confg)
   }
 }

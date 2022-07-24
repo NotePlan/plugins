@@ -2,17 +2,17 @@
 
 import pluginJson from '../plugin.json'
 
-import { log, logError, clo } from '@helpers/dev'
-import { getSetting } from '@helpers/NPConfiguration'
-import { updateSettingData } from '@helpers/NPconfiguration'
+import { logError } from '@helpers/dev'
 
 import NPGlobals from 'NPGlobals'
 
+// eslint-disable-next-line
 export async function onUpdateOrInstall(config: any = { silent: false }): Promise<void> {
   try {
     const pluginSettingsData = await DataStore.loadJSON(`../${pluginJson['plugin.id']}/settings.json`)
     // if we don't have settings, this will be a first time install so we will perform migrations
     if (typeof pluginSettingsData == 'undefined') {
+      // do work here
     }
 
     // ===== PLUGIN SPECIFIC SETTING UPDATE CODE

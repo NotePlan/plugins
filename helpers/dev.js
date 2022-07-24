@@ -244,7 +244,7 @@ export function log(pluginInfo: any, message: any = '', type: string = 'INFO'): 
   try {
     userLogLevel = DataStore ? DataStore?.settings['_logLevel'] || 1 : 1
   } catch (error) {
-    
+    logError(error)
   }
   const userLogLevelIndex = LOG_LEVELS.indexOf(userLogLevel)
   if (thisMessageLevel >= userLogLevelIndex) {
@@ -277,6 +277,17 @@ export function logError(pluginInfo: any, error?: any): string {
  */
 export function logWarn(pluginInfo: any, message: any = ''): string {
   return log(pluginInfo, message, 'WARN')
+}
+
+/**
+ * Formats log output as INFO to include timestamp pluginId, pluginVersion
+ * @author @codedungeon
+ * @param {any} pluginInfo
+ * @param {any} message
+ * @returns {void}
+ */
+export function logInfo(pluginInfo: any, message: any = ''): string {
+  return log(pluginInfo, message, 'INFO')
 }
 
 /**
