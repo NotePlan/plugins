@@ -212,6 +212,7 @@ const _message = (message: any): string => {
 
   return logMessage
 }
+
 /**
  * Formats log output to include timestamp pluginId, pluginVersion
  * @author @codedungeon
@@ -241,11 +242,15 @@ export function log(pluginInfo: any, message: any = '', type: string = 'INFO'): 
     }
   }
   let userLogLevel = 1
-  try {
-    userLogLevel = DataStore ? DataStore?.settings['_logLevel'] || 1 : 1
-  } catch (error) {
-    logError(error)
+
+  const pluginSettings = typeof DataStore !== 'undefined' ? DataStore.settings : null
+  // this was the main offender.  Perform a null change against a value that is `undefined` will be true
+  // sure wish NotePlan would not return `undefined` but instead null, then the previous implementataion would not have failed
+  if (pluginSettings && pluginSettings.hasOwnProperty('_logLevel')) {
+    // eslint-disable-next-line
+    userLogLevel = pluginSettings['_logLevel']
   }
+
   const userLogLevelIndex = LOG_LEVELS.indexOf(userLogLevel)
   if (thisMessageLevel >= userLogLevelIndex) {
     console.log(msg)

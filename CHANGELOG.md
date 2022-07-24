@@ -4,6 +4,12 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/codedungeon.Toolbox/README.md) for details on available commands and use case.
 
+## [3.12.0] - 2022-07-24 (@codedungeon)
+
+- fixed `maximum stack call` error with new log level implementation
+- all tests are currently passing, with the exception of 3 (@jgclark has been notified)
+- fixed all core linting errors (individual plugins from @dwertheimer or @jgbclark still need some more at time of this release)
+
 ## [3.11.0] - 2022-07-24 (@codedungeon)
 
 - Added `logInfo`, `logError`, `logWarn`, `logDebug` helpers, support plugin `Debugging` section (@dwertheimer)
