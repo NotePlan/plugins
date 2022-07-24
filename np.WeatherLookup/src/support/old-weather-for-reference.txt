@@ -56,9 +56,9 @@ export async function getWeatherSummary(weatherParams: string): Promise<string> 
 
   // Get config settings from Template folder _configuration note
   // $FlowIgnore[incompatible-type]
-  console.log(`\tWeather settings are ${JSON.stringify(weatherConfig)}`)
+  logDebug(`\tWeather settings are ${JSON.stringify(weatherConfig)}`)
   if (weatherConfig == null) {
-    console.log("Cannot find 'weather' settings in Templates/_configuration note.")
+    logDebug("Cannot find 'weather' settings in Templates/_configuration note.")
     return "Error: Cannot find 'weather' settings in Templates/_configuration note."
   }
 
@@ -67,7 +67,7 @@ export async function getWeatherSummary(weatherParams: string): Promise<string> 
   const { openWeatherAPIKey, latPosition, longPosition, openWeatherUnits } = weatherConfig
   // $FlowIgnore[incompatible-use]
   if (openWeatherAPIKey !== null && !openWeatherAPIKey?.match(/[a-f0-9]{32}/)) {
-    console.log("Cannot find a valid API Key 'weather' settings in Templates/_configuration note.")
+    logDebug("Cannot find a valid API Key 'weather' settings in Templates/_configuration note.")
     return "Error: Cannot find a valid API Key 'weather' settings in Templates/_configuration note."
   }
 
@@ -89,10 +89,10 @@ export async function getWeatherSummary(weatherParams: string): Promise<string> 
   //    So have to use a way that Flow doesn't like.
   //    See Issue 7 **
   // const response = await fetch(getWeatherURL)
-  // console.log(response.status)
-  // console.log(response.statusText)
-  // console.log(response.type)
-  // console.log(response.url)
+  // logDebug(response.status)
+  // logDebug(response.statusText)
+  // logDebug(response.type)
+  // logDebug(response.url)
   // let jsonIn
   // if (response.ok) { // if HTTP-status is 200-299
   //   jsonIn = await response.json()
@@ -100,13 +100,13 @@ export async function getWeatherSummary(weatherParams: string): Promise<string> 
   //   return `Sorry; error ${response.status} in Weather lookup`
   // }
 
-  // console.log(getWeatherURL)
+  // logDebug(getWeatherURL)
   let jsonIn, allWeatherData
   try {
     jsonIn = await fetch(getWeatherURL)
-    // console.log(`  HTTP response ${jsonIn.status}`) //  .status always returns 'undefined', even when it works?!
+    // logDebug(`  HTTP response ${jsonIn.status}`) //  .status always returns 'undefined', even when it works?!
   } catch (err) {
-    console.log(`Error ${err.message} parsing Weather data lookup. Please check your _configuration note.`)
+    logDebug(`Error ${err.message} parsing Weather data lookup. Please check your _configuration note.`)
     return `Error ${err.message} parsing Weather data lookup. Please check your _configuration note.`
   }
   if (jsonIn != null) {
@@ -114,10 +114,10 @@ export async function getWeatherSummary(weatherParams: string): Promise<string> 
       // $FlowIgnore[incompatible-call]
       allWeatherData = JSON.parse(jsonIn)
     } catch (err) {
-      console.log(`Error ${err.message} parsing Weather data lookup. Please check your _configuration note.`)
+      logDebug(`Error ${err.message} parsing Weather data lookup. Please check your _configuration note.`)
       return `Error ${err.message} parsing Weather data lookup. Please check your _configuration note.`
     }
-    // console.log(`WeatherData: ${JSON.stringify(allWeatherData)}`)
+    // logDebug(`WeatherData: ${JSON.stringify(allWeatherData)}`)
     if (allWeatherData.cod === 401) {
       return `Weather: Invalid configuration settings. ${allWeatherData.message}`
     }
@@ -158,7 +158,7 @@ export async function getWeatherSummary(weatherParams: string): Promise<string> 
     //   (weatherParams !== '' && getTagParams(weatherParams, 'template') !== '')
     //     ? getTagParams(weatherParams, 'template')
     //     : defaultWeatherLine
-    console.log(`\toutput template: '${template}' ; about to call stringReplace`)
+    logDebug(`\toutput template: '${template}' ; about to call stringReplace`)
     return stringReplace(template, replacements)
   } else {
     // $FlowFixMe[incompatible-type]

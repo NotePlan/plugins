@@ -81,8 +81,9 @@ export const getWeatherIcon = (description) => {
   return weatherIcon
 }
 
-export const getWeatherDescLine = (weather: { [string]: any }, unitsParam: string) => {
+export const getWeatherDescLine = (weather: { [string]: any }, unitsParam: string, settings:any) => {
   const units = unitsParam === 'metric' ? 'C' : 'F'
   const { sunrise, sunset, temp, uvi, humidity, feels_like, description, main, icon, min, max, day, night, date } = weather
+  // TODO: should get the actual formatting desired by user from settings instead of hard-coding it like this:
   return `${date}: ${icon} ${description} ${min}°${units} - ${max}°${units} uvi: ${uvi}`
 }
