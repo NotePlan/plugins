@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.SearchExtensions/CHANGELOG.md",
-  "plugin.version": "0.5.0-beta1",
-  "plugin.lastUpdateInfo": "Big speed up. Now supports more search operators: + (must match) - (can't match) in place of just 'OR'.",
+  "plugin.version": "0.5.0-beta2",
+  "plugin.lastUpdateInfo": "Big speed up. Now supports search operators: + (must match) - (can't match in line) ! (can't match in note) in place of just 'OR'.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -80,17 +80,16 @@
       "arguments": [
         "search term(s) (separated by commas)"
       ]
-    },
-    {
-      "name": "dev:update Search settings",
-      "description": "update search settings",
-      "jsFunction": "onUpdateOrInstall"
     }
   ],
   "plugin.settings": [
     {
       "type": "heading",
       "title": "Search Extensions plugin settings"
+    },
+    {
+      "type": "heading",
+      "title": "File and Folder options"
     },
     {
       "key": "autoSave",
@@ -127,6 +126,13 @@
         "TEST"
       ],
       "required": false
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Output options"
     },
     {
       "key": "headingLevel",
@@ -167,15 +173,15 @@
     {
       "key": "sortOrder",
       "title": "Sort order for results",
-      "description": "This controls the order that the results are displayed. Please choose from one of the options.",
+      "description": "This controls the order that the results are displayed",
       "type": "string",
       "choices": [
-        "title",
-        "folder name then title",
-        "created (newest first)",
-        "created (oldest first)",
-        "updated (most recent first)",
-        "updated (least recent first)"
+        "note title",
+        "folder name then note title",
+        "created (newest note first)",
+        "created (oldest note first)",
+        "updated (most recent note first)",
+        "updated (least recent note first)"
       ],
       "default": "updated (most recent first)",
       "required": true
@@ -197,35 +203,44 @@
       "required": true
     },
     {
-      "hidden": true,
-      "todo": "TODO: hopefully change this in time",
+      "todo": "TODO: review. was 'bool' type",
       "key": "matchCase",
       "title": "Match case when searching?",
       "description": "Do searches match case (capitalisation) or not?",
-      "type": "bool",
+      "type": "hidden",
       "default": false,
+      "required": true
+    },
+    {
+      "key": "resultStyle",
+      "title": "Style for search results",
+      "description": "Choose the style to use:\nNormal NotePlan styling, tweaked slightly for matching headings\nUse simplified text (like Google results)\n",
+      "type": "string",
+      "choices": ["NotePlan", "Simplified"],
+      "default": "NotePlan-style",
       "required": true
     },
     {
       "key": "highlightResults",
       "title": "Highlight matching search terms?",
-      "description": "Whether to use ==highlight== of matched occurrences in output. (Works best when using a theme with highlighting.)",
+      "description": "Whether to ==highlight== the matches in the result lines. (Works best when using a theme with highlighting.)",
       "type": "bool",
       "default": true,
       "required": false
     },
     {
+      "todo": "TODO: review. was 'bool' type",
       "key": "showEmptyResults",
       "title": "Show empty matches?",
-      "description": "If no matches of the search term(s) are found, setting this true will still show a heading for the term(s)",
-      "type": "bool",
-      "default": false,
-      "required": false
+      "description": "If no matches of the search term(s) are found, setting this true will still show a heading for the term(s) where relevant",
+      "type": "hidden",
+      "default": true,
+      "required": true
     },
     {
       "key": "dateStyle",
       "title": "Date style",
-      "description": "Where the context for a match is a date, does it get shown as a 'date' using your locale, or as a NP date 'link' ([[2022-06-30]]), `at` (`@2022-06-30`), 'date' (date formatted for your locale, or 'scheduled' (`>2022-06-30`).",
+      "description": "Where the match is in a calendar note, choose where that link is shown as a 'date' using your locale, or as a NP date 'link' ([[2022-06-30]]), `at` (`@2022-06-30`), 'date' (date formatted for your locale, or 'scheduled' (`>2022-06-30`).",
       "type": "string",
       "choices": [
         "at",
@@ -236,7 +251,7 @@
       "default": "link",
       "required": true
     },
-        {
+    {
       "type": "separator"
     },
     {
@@ -246,7 +261,7 @@
     {
         "key": "_logLevel",
         "title": "Log Level",
-        "description": "Set how much output will be displayed for this plugin the NotePlan > Help > Plugin Console. DEBUG is the most verbose; NONE is the least (silent)",
+        "description": "Set how much output will be displayed for this plugin in the NotePlan > Help > Plugin Console. DEBUG is the most verbose; NONE is the least (silent).",
         "type": "string",
         "choices": ["DEBUG","INFO","WARN","ERROR","none"],
         "default": "INFO",

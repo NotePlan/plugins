@@ -23,11 +23,11 @@ type WeatherParams = {
 type LocationOption = {
   lat: string,
   lon: string,
-  name: string,
-  country: string,
-  state: string,
   label: string,
-  value: string,
+  name?: string,
+  country?: string,
+  state?: string,
+  value?: string,
 }
 
 function UTCToLocalTimeString(d, format, timeOffset) {
@@ -39,12 +39,20 @@ function UTCToLocalTimeString(d, format, timeOffset) {
   return moment(d).format(format)
 }
 
+/**
+ * Get the specific location (lat/long) for a city name
+ * We can then use this lat/long to get weather now or store it in settings for getting weather later
+ * Requires the openWeather api to be already stored in DataStore.settings
+ * calls getLatLongListForName() to do the lookup
+ * @param {*} searchLocationStr - the name of the city/location to look up
+ * @returns {LocationOption | null} - the location details from the API lookup and maybe user 
+ */
 async function getLatLongForLocation(searchLocationStr: string = ''): Promise<LocationOption | null> {
   if (searchLocationStr?.length > 0) {
     const params = DataStore.settings
     const results = await getLatLongListForName(searchLocationStr, params)
     if (results && results.length > 0) {
-      log(pluginJson, `getLatLongForLocation: Potential Location Results: ${String(results?.length)}`)
+      logDebug(pluginJson, `getLatLongForLocation: Potential Location Results: ${String(results?.length)}`)
       const options = results.map((r, i) => ({
         lat: r.lat,
         lon: r.lon,
@@ -60,7 +68,7 @@ async function getLatLongForLocation(searchLocationStr: string = ''): Promise<Lo
         chosenIndex = await chooseOption(`Which of these?`, options, 0)
       }
       const location = options[chosenIndex]
-      log(pluginJson, `Chosen location: ${JSON.stringify(location)}`)
+      logDebug(pluginJson, `Chosen location: ${JSON.stringify(location)}`)
       return location
     } else {
       await showMessage(`No results found for "${searchLocationStr}"`)
@@ -73,21 +81,28 @@ async function getLatLongForLocation(searchLocationStr: string = ''): Promise<Lo
 }
 
 /**
- * Call the OpenWeatherMap API to get the weather for a particular location
- * @param {string} name
- * @param {string} params
+ * Call the OpenWeatherMap API to ask for lat/long details for a string location
+ * Generally, OpenWeatherMap will return multiple choices
+ * This function will return all the potential results from the API
+ * (for example, there are several "Los Angeles" in the world)
+ * @param {string} params - plugin settings, we only use params.appid in this function
  * @returns {Promise<Array<{}>} - array of potential locations
  */
 export async function getLatLongListForName(name: string, params: WeatherParams): Promise<any> {
+  if (validateWeatherParams(params)) {
   const url = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(name)}&appid=${params.appid}&limit=5`
-  log(`weather-utils::getLatLongForName`, `url: ${url}`)
+  logDebug(`weather-utils::getLatLongForName`, `url: ${url}`)
   try {
     const response:any = await fetch(url, { timeout: 3000 })
     if (response) {
+      clo(response,`getLatLongListForName: response=`)
       return JSON.parse(response)
     }
   } catch (error) {
     logError(`weather-utils::getLatLongForName`, `error: ${JSP(error)}`)
+  }
+  } else {
+    await showMessage(getConfigErrorText())
   }
   return []
 }
@@ -122,9 +137,11 @@ async function getWeatherForLocation(location: LocationOption, weatherParams: We
   const url = utils.getWeatherURLLatLong(location.lat, location.lon, params.appid, params.units)
   logDebug(`weather-utils::getWeatherForLocation`, `url: \n${url}`)
   try {
-    const res = await fetch(url, { timeout: 3000 })
+    const res:any = await fetch(url, { timeout: 3000 })
     if (res) {
-      logDebug(pluginJson,typeof res)
+      logDebug(pluginJson,`getWeatherForLocation received weather for location`)
+      clo(res,`getWeatherForLocation result:`)
+      return JSON.parse(res)
     }
   } catch (error) {
     logError(pluginJson, `getWeatherForLocation: error: ${JSP(error)}`)
@@ -151,9 +168,9 @@ export async function insertWeatherCallbackURL(incoming: string = ''): Promise<s
       let locationString = incoming
       if (!locationString?.length) locationString = await CommandBar.textPrompt('Weather Lookup', 'Enter a location name to lookup weather for:', '')
       if (locationString && locationString?.length) {
-        log(pluginJson, `insertWeatherCallbackURL: locationString: ${String(locationString)}`)
+        logDebug(pluginJson, `insertWeatherCallbackURL: locationString: ${String(locationString)}`)
         const location = await getLatLongForLocation(locationString)
-        log(pluginJson, `insertWeatherCallbackURL: location: ${JSON.stringify(location)}`)
+        logDebug(pluginJson, `insertWeatherCallbackURL: location: ${JSON.stringify(location)}`)
         if (location) {
           let text = ''
           if (locationString.length) {
@@ -177,10 +194,9 @@ export async function insertWeatherCallbackURL(incoming: string = ''): Promise<s
 }
 
 /**
+ * (Plugin entry point for /Weather by Location Name)
  * Get weather for a particular location (passed through variable or via user input)
  * TODO: THIS NEEDS TO BE FINISHED SO IT WRITES WEATHER OUT FORMATTED
- * TODO: Format now weather differently
- * (Plugin entry point for /Weather by Location Name)
  * @param {*} incoming
  * @returns
  */
@@ -195,12 +211,15 @@ export async function insertWeatherByLocation(incoming: ?string = '', returnLoca
         location = await getInput(`What location do you want to lookup?`)
       }
       if (location) {
-        const result = await getLatLongForLocation(location)
+        const result:any = await getLatLongForLocation(location)
         if (result) {
           // {"lat":34.0536909,"lon":-118.242766,"name":"Los Angeles","country":"US","state":"California","label":"Los Angeles, California, US","value":0}
           logDebug(pluginJson,result.label)
+          clo(result,`insertWeatherByLocation: result from openWeather for ${location}`)
+          //TODO: Format output per user settings and output to cursor
+          Editor.insertTextAtCursor('This function is not fully functional yet.\n')
+          await weatherByLatLong(result,'no') //sending as string because that's what weatherByLatLong expects
         }
-        Editor.insertTextAtCursor('This function is not functional yet. Please use the URL version instead.')
         return 
       }
     }
@@ -214,12 +233,13 @@ export async function insertWeatherByLocation(incoming: ?string = '', returnLoca
  * Look up weather for a particular location (passed through variable in xcallback or template)
  * @param {string} incoming - the JSON stringified location object to look for ({lat, lon, label})
  * @param {string} showPopup - 'yes' to show the weather text in a popup, 'no' to just return it
- * (Plugin entry point for /Weather by Lat/Long -- hidden -- accessible by xcallback)
+ * (Plugin entry point for /Weather by Lat/Long -- accessible directly or by xcallback)
  */
 export async function weatherByLatLong(incoming: string = '', showPopup: string = 'no'): Promise<string> {
-  log(pluginJson, `weatherByLatLong: incoming: ${incoming} showPopup: ${showPopup}`)
+  logDebug(pluginJson, `weatherByLatLong: incoming: ${incoming} showPopup: ${showPopup}`)
   try {
-    if (!(await validateWeatherParams(DataStore.settings))) {
+    const settings = DataStore.settings
+    if (!(await validateWeatherParams(settings))) {
       const msg = getConfigErrorText()
       await showMessage(msg)
     } else {
@@ -227,7 +247,6 @@ export async function weatherByLatLong(incoming: string = '', showPopup: string 
       if (incoming?.length) {
          location = JSON.parse(incoming)
       } else {
-        const settings = DataStore.settings
         location = {lat:settings.lat,lon:settings.lon, label:settings.locationName}
       }
         let text = ''
@@ -245,17 +264,20 @@ export async function weatherByLatLong(incoming: string = '', showPopup: string 
           dfd = utils.extractDailyForecastData(weather)
           if (dfd && dfd.length) {
             dfd.forEach((w, i) => {
-              dfd[i].label = utils.getWeatherDescLine(w)
+              // TODO: This is [WIP] - utils.getWeatherDescLine should format the weather the way the user wants
+              dfd[i].label = utils.getWeatherDescLine(w, settings)
               dfd[i].value = i
             })
           }
           dfd = [...now, ...dfd]
+          logDebug(dfd,`Parsed weather data:`)
         }
         if (showPopup && showPopup == 'yes') {
-          await chooseOption(`${location.label} as of ${locTime} (local time)`, dfd, 0)
-          // Editor.insertTextAtCursor(text)
+          const chosen = await chooseOption(`${location.label} as of ${locTime} (local time)`, dfd, '')
+          Editor.insertTextAtCursor(chosen)
         } else {
           text = dfd.map((w) => w.label).join('\n')
+          Editor.insertTextAtCursor(`*[WIP] Need to format this per user prefs:*\n${text}`)
           return text
         }
       } else {
