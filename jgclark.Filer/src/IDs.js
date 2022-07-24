@@ -2,20 +2,16 @@
 // ----------------------------------------------------------------------------
 // Plugin to help link lines between notes with Line IDs
 // Jonathan Clark
-// last updated 18.5.2022 for v0.7.0+
+// last updated 24.7.2022 for v0.7.0+
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
 import { getFilerSettings, addParasAsText } from './fileItems'
-import { log, logError, logWarn } from '@helpers/dev'
+import { logDebug, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { allNotesSortedByChanged } from '@helpers/note'
 import { getSelectedParaIndex } from '@helpers/NPParagraph'
-import {
-  // calcSmartPrependPoint,
-  parasToText,
-  // selectedLinesIndex,
-} from '@helpers/paragraph'
+import { parasToText } from '@helpers/paragraph'
 import { chooseHeading } from '@helpers/userInput'
 // import { showMessage } from '@helpers/userInput'
 
@@ -45,7 +41,7 @@ export async function addIDAndAddToOtherNote(): Promise<void> {
   note.updateParagraph(para)
   const newBlockID = para.blockId
   if (newBlockID) {
-    log(pluginJson, `blockId added: '${newBlockID}'`)
+    logDebug(pluginJson, `blockId added: '${newBlockID}'`)
   } else {
     logError(pluginJson, `no blockId created. Stopping.`)
     return
@@ -62,16 +58,16 @@ export async function addIDAndAddToOtherNote(): Promise<void> {
   )
   const destNote = notes[res.index]
   // Note: showOptions returns the first item if something else is typed. And I can't see a way to distinguish between the two.
-  log(pluginJson, displayTitle(destNote)) // NB: -> first item in list (if a new item is typed)
+  logDebug(pluginJson, displayTitle(destNote)) // NB: -> first item in list (if a new item is typed)
 
   // Ask to which heading to add the selectedParas
   const headingToFind = (await chooseHeading(destNote, true, true, false))
-  // log(pluginJson, `  Adding to note: ${displayTitle(destNote)} under heading: '${headingToFind}'`)
+  // logDebug(pluginJson, `  Adding to note: ${displayTitle(destNote)} under heading: '${headingToFind}'`)
 
   // Add text to the new location in destination note
   await addParasAsText(destNote, selectedParasAsText, headingToFind, config.whereToAddInSection)
 
   // NB: handily, the blockId goes with it as part of the para.content
-  // log(pluginJson, `Inserting 1 para at index ${insertionIndex} into ${displayTitle(destNote)}`)
+  // logDebug(pluginJson, `Inserting 1 para at index ${insertionIndex} into ${displayTitle(destNote)}`)
   // await destNote.insertParagraph(para.content, insertionIndex, paraType)  
 }

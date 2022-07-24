@@ -1,9 +1,13 @@
 # What's Changed in 🗃 Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
+## [0.11.1] - 2022-07-24
+### Changed
+- tweaked **/insertProgressUpdate** output to use ISO day-of-week numbering when run as the command (Monday = 1)
+- upgraded the logging framework (thanks, @dwertheimer)
+
 ## [0.11.0] - 2022-07-02
 ### Changed
 - moved the **/saveSearchResults** **/saveSearchResultsInPeriod** commands to a separate **SearchHelpers** plugin.
-
 ## [0.10.0] - 2022-06-26
 ### Changed
 - the **/countsInPeriod** command now offers to write to the new weekly notes (available from in v3.6) if the selected period is 'this week'

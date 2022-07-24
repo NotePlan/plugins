@@ -12,7 +12,7 @@ import pluginJson from '../plugin.json'
 import { calcHashtagStatsPeriod, calcMentionStatsPeriod, getSummariesSettings } from './summaryHelpers'
 import { getWeek, unhyphenatedDate } from '@helpers/dateTime'
 import { getPeriodStartEndDates } from '@helpers/NPDateTime'
-import { log, logError } from '@helpers/dev'
+import { logInfo, logDebug, logError } from '@helpers/dev'
 import { CaseInsensitiveMap, displayTitle } from '@helpers/general'
 import { getOrMakeNote, printNote, replaceSection } from '@helpers/note'
 // import { logAllEnvironmentSettings } from '@helpers/NPDev'
@@ -30,21 +30,18 @@ import {
  * @author @jgclark
  */
 export async function statsPeriod(): Promise<void> {
-  // log(pluginJson, `Contents of NotePlan.environment...:`)
-  // logAllEnvironmentSettings()
-
   // Get config settings
   const config = await getSummariesSettings()
 
   // Get time period
   const [fromDate, toDate, periodType, periodString, periodPartStr] = await getPeriodStartEndDates()
   if (fromDate == null || toDate == null) {
-    log(pluginJson, 'statsPeriod: error in calculating dates for chosen time period')
+    logError(pluginJson, 'statsPeriod: error in calculating dates for chosen time period')
     return
   }
   const fromDateStr = unhyphenatedDate(fromDate)
   const toDateStr = unhyphenatedDate(toDate)
-  log(pluginJson, `statsPeriod: calculating for ${periodString} (${fromDateStr} - ${toDateStr}):`)
+  logInfo(pluginJson, `statsPeriod: calculating for ${periodString} (${fromDateStr} - ${toDateStr}):`)
 
   // Calc hashtags stats (returns two maps)
   const hOutputArray = []
@@ -52,7 +49,7 @@ export async function statsPeriod(): Promise<void> {
   const hCounts: CaseInsensitiveMap<number> = results?.[0] ?? new CaseInsensitiveMap<number>()
   const hSumTotals: CaseInsensitiveMap<number> = results?.[1] ?? new CaseInsensitiveMap<number>()
   if (hSumTotals == null || hCounts == null) {
-    log(pluginJson, `no matching hashtags found in ${periodString}`)
+    logInfo(pluginJson, `no matching hashtags found in ${periodString}`)
     return
   }
 
@@ -61,7 +58,7 @@ export async function statsPeriod(): Promise<void> {
     const hashtagString = config.showAsHashtagOrMention ? key : key.slice(1)
     const count = hSumTotals.get(key) ?? NaN
     if (isNaN(count)) {
-      // console.log(`  no totals for ${key}`)
+      logDebug(`  no totals for ${key}`)
     } else {
       const count = hCounts.get(key) ?? NaN
       const totalStr: string = value.toLocaleString()
@@ -89,7 +86,7 @@ export async function statsPeriod(): Promise<void> {
   const mCounts: CaseInsensitiveMap<number> = results?.[0] ?? new CaseInsensitiveMap<number>()
   const mSumTotals: CaseInsensitiveMap<number> = results?.[1] ?? new CaseInsensitiveMap<number>()
   if (mCounts == null || mSumTotals == null) {
-    log(pluginJson, `no matching mentions found in ${periodString}`)
+    logDebug(pluginJson, `no matching mentions found in ${periodString}`)
     return
   }
 
@@ -98,7 +95,7 @@ export async function statsPeriod(): Promise<void> {
     const mentionString = config.showAsHashtagOrMention ? key : key.slice(1)
     const total = mSumTotals.get(key) ?? NaN
     if (isNaN(total)) {
-      // console.log(`  no totals for ${key}`)
+      logDebug(`  no totals for ${key}`)
     } else {
       const count = mCounts.get(key) ?? NaN
       const totalStr: string = value.toLocaleString()
@@ -147,12 +144,11 @@ export async function statsPeriod(): Promise<void> {
       if (currentNote == null) {
         logError(pluginJson, `No note is open. Stopping.`)
       } else {
-        log(pluginJson, `appending results to current note (${currentNote.filename ?? ''})`)
+        logDebug(pluginJson, `appending results to current note (${currentNote.filename ?? ''})`)
         currentNote.appendParagraph(`${config.hashtagCountsHeading} for ${periodString} at ${periodPartStr}`, 'text')
         currentNote.appendParagraph(hOutputArray.join('\n'), 'text')
         currentNote.appendParagraph(`${config.mentionCountsHeading} for ${periodString} at ${periodPartStr}`, 'empty')
         currentNote.appendParagraph(mOutputArray.join('\n'), 'text')
-        log(pluginJson, `appended results to current note`)
       }
       break
     }
@@ -174,7 +170,7 @@ export async function statsPeriod(): Promise<void> {
       // open this note in the Editor
       Editor.openNoteByFilename(note.filename)
 
-      log(pluginJson, `Written results to note '${periodString}'`)
+      logDebug(pluginJson, `Written results to note '${periodString}'`)
       break
     }
 
@@ -184,7 +180,7 @@ export async function statsPeriod(): Promise<void> {
       const y = todaysDate.getFullYear()
       const w = getWeek(todaysDate)
 
-      log(pluginJson, `Opening weekly note for ${y} / ${w}`)
+      logDebug(pluginJson, `Opening weekly note for ${y} / ${w}`)
       await Editor.openWeeklyNote(y, w)
       const { note } = Editor
       if (note == null) {
@@ -201,15 +197,15 @@ export async function statsPeriod(): Promise<void> {
 
       // open this note in the Editor
       // Editor.openNoteByFilename(note.filename)
-      log(pluginJson, `Written results to note '${displayTitle(note)}'`)
+      logDebug(pluginJson, `Written results to note '${displayTitle(note)}'`)
       break
     }
 
     case 'log': {
-      log(pluginJson, `${config.hashtagCountsHeading} for ${periodString} at ${periodPartStr}`)
-      log(pluginJson, hOutputArray.join('\n'))
-      log(pluginJson, `${config.mentionCountsHeading} for ${periodString} at ${periodPartStr}`)
-      log(pluginJson, mOutputArray.join('\n'))
+      logInfo(pluginJson, `${config.hashtagCountsHeading} for ${periodString} at ${periodPartStr}`)
+      logInfo(pluginJson, hOutputArray.join('\n'))
+      logInfo(pluginJson, `${config.mentionCountsHeading} for ${periodString} at ${periodPartStr}`)
+      logInfo(pluginJson, mOutputArray.join('\n'))
       break
     }
 

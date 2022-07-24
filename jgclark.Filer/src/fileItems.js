@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Plugin to help move selected Paragraphs to other notes
 // Jonathan Clark
-// last updated 25.6.2022 for v0.8.0
+// last updated 24.7.2022 for v0.8.0+
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -10,7 +10,7 @@ import {
   hyphenatedDate,
   toLocaleDateTimeString
 } from '@helpers/dateTime'
-import { log, logError, logWarn } from '@helpers/dev'
+import { logDebug, logError, logWarn } from '@helpers/dev'
 // import { displayTitle } from '@helpers/general'
 import { allNotesSortedByChanged } from '@helpers/note'
 import {
@@ -27,7 +27,7 @@ import {
 //-----------------------------------------------------------------------------
 // Get settings
 
-const configKey = 'filer'
+const pluginID = 'jgclark.Filer'
 
 type FilerConfig = {
   addDateBacklink: boolean,
@@ -42,11 +42,11 @@ export async function getFilerSettings(): Promise<any> {
     const v2Config: FilerConfig = await DataStore.loadJSON("../jgclark.Filer/settings.json")
 
     if (v2Config == null || Object.keys(v2Config).length === 0) {
-      log(pluginJson, `getFilerSettings() cannot find '${configKey}' plugin settings. Stopping.`)
-      await showMessage(`Cannot find settings for the '${configKey}' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
+      logDebug(pluginJson, `getFilerSettings() cannot find '${pluginID}' plugin settings. Stopping.`)
+      await showMessage(`Cannot find settings for the '${pluginID}' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
       return
     } else {
-      // clo(v2Config, `${configKey} settings from V2:`)
+      // clo(v2Config, `${pluginID} settings from V2:`)
       return v2Config
     }
   } catch (err) {
@@ -121,17 +121,17 @@ export async function moveParas(): Promise<void> {
   )
   const destNote = notes[res.index]
   // Note: showOptions returns the first item if something else is typed. And I can't see a way to distinguish between the two.
-  // log(pluginJson, displayTitle(destNote)) // NB: -> first item in list (if a new item is typed)
+  // logDebug(pluginJson, displayTitle(destNote)) // NB: -> first item in list (if a new item is typed)
 
   // Ask to which heading to add the selectedParas
   const headingToFind = (await chooseHeading(destNote, true, true, false))
-  // log(pluginJson, `  Moving to note: ${displayTitle(destNote)} under heading: '${headingToFind}'`)
+  // logDebug(pluginJson, `  Moving to note: ${displayTitle(destNote)} under heading: '${headingToFind}'`)
 
   // Add text to the new location in destination note
   addParasAsText(destNote, selectedParasAsText, headingToFind, config.whereToAddInSection)
 
   // delete from existing location
-  log(pluginJson, `Removing ${parasInBlock.length} paras from original note`)
+  logDebug(pluginJson, `Removing ${parasInBlock.length} paras from original note`)
   note.removeParagraphs(parasInBlock)
 }
 
@@ -189,7 +189,7 @@ export async function moveParasToCalendarWeekly(destDate: Date): Promise<void> {
   // Get current selection, and its range
   const selection = Editor.selection
   if (selection == null) {
-    logWarn(pluginJson, 'No selection found, so stopping.')
+    logError(pluginJson, 'No selection found, so stopping.')
     return
   }
   // Get paragraph indexes for the start and end of the selection (can be the same)
@@ -208,7 +208,7 @@ export async function moveParasToCalendarWeekly(destDate: Date): Promise<void> {
   addParasAsText(destNote, selectedParasAsText, '', config.whereToAddInSection)
 
   // delete from existing location
-  log(pluginJson, `Removing ${parasInBlock.length} paras from original note`)
+  logDebug(pluginJson, `Removing ${parasInBlock.length} paras from original note`)
   note.removeParagraphs(parasInBlock)
 }
 
@@ -244,7 +244,7 @@ export async function moveParasToCalendarDate(destDate: Date): Promise<void> {
   // Pre-flight checks
   if (content == null || selectedParagraphs == null || note == null) {
     // No note open, or no selectedParagraph selection (perhaps empty note), so don't do anything.
-    logWarn(pluginJson, 'No note open, so stopping.')
+    logError(pluginJson, 'No note open, so stopping.')
     return
   }
   // Find the Daily note to move to
@@ -259,7 +259,7 @@ export async function moveParasToCalendarDate(destDate: Date): Promise<void> {
   // Get current selection, and its range
   const selection = Editor.selection
   if (selection == null) {
-    logWarn(pluginJson, 'No selection found, so stopping.')
+    logError(pluginJson, 'No selection found, so stopping.')
     return
   }
   // Get paragraph indexes for the start and end of the selection (can be the same)
@@ -278,7 +278,7 @@ export async function moveParasToCalendarDate(destDate: Date): Promise<void> {
   addParasAsText(destNote, selectedParasAsText, '', config.whereToAddInSection)
 
   // delete from existing location
-  log(pluginJson, `Removing ${parasInBlock.length} paras from original note`)
+  logDebug(pluginJson, `Removing ${parasInBlock.length} paras from original note`)
   note.removeParagraphs(parasInBlock)
 }
 
@@ -306,21 +306,21 @@ export function addParasAsText(
   if (headingToFind === destinationNote.title || headingToFind.includes('(top of note)')) {
     // i.e. the first line in project or calendar note
     insertionIndex = calcSmartPrependPoint(destinationNote)
-    log(pluginJson, `-> top of note, line ${insertionIndex}`)
+    logDebug(pluginJson, `-> top of note, line ${insertionIndex}`)
     destinationNote.insertParagraph(selectedParasAsText, insertionIndex, 'text')
 
   } else if (headingToFind === '') {
     // blank return from chooseHeading has special meaning of 'end of note'
     insertionIndex = destinationNoteParas.length + 1
-    log(pluginJson, `-> bottom of note, line ${insertionIndex}`)
+    logDebug(pluginJson, `-> bottom of note, line ${insertionIndex}`)
     destinationNote.insertParagraph(selectedParasAsText, insertionIndex, 'text')
 
   } else if (whereToAddInSection === 'start') {
-    log(pluginJson, `-> Inserting at start of section '${headingToFind}'`)
+    logDebug(pluginJson, `-> Inserting at start of section '${headingToFind}'`)
     destinationNote.addParagraphBelowHeadingTitle(selectedParasAsText, 'text', headingToFind, false, false)
 
   } else if (whereToAddInSection === 'end') {
-    log(pluginJson, `-> Inserting at end of section '${headingToFind}'`)
+    logDebug(pluginJson, `-> Inserting at end of section '${headingToFind}'`)
     destinationNote.addParagraphBelowHeadingTitle(selectedParasAsText, 'text', headingToFind, true, false)
 
   } else {

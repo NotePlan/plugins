@@ -7,7 +7,7 @@
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { log, logError, logWarn } from '@helpers/dev'
+import { logDebug, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { getUniqueNoteTitle, noteOpener } from '@helpers/note'
 import { chooseFolder, getInput, showMessage, showMessageYesNo } from '@helpers/userInput'
@@ -20,7 +20,7 @@ export async function newNoteFromClipboard(): Promise<void> {
   const { string } = Clipboard
 
   if (string != null && string.length > 0) {
-    log(pluginJson, `  starting: have ${string.length} characters in clipboard`)
+    logDebug(pluginJson, `  starting: have ${string.length} characters in clipboard`)
 
     // Get title for this note
     // Offer the first line to use, shorn of any leading # marks
@@ -38,7 +38,7 @@ export async function newNoteFromClipboard(): Promise<void> {
       if (title) {
         // Create new note in the specific folder
         const filename = (await DataStore.newNoteWithContent(content, currentFolder)) ?? ''
-        log(pluginJson, ` -> filename: ${filename}`)
+        logDebug(pluginJson, ` -> filename: ${filename}`)
 
         if (await showMessageYesNo('New Note created. Open it now?', ['Yes', 'No'], `New Note from Clipboard`) === 'Yes') {
           await Editor.openNoteByFilename(filename)
@@ -47,10 +47,10 @@ export async function newNoteFromClipboard(): Promise<void> {
         logError(pluginJson, 'Undefined or empty title')
       }
     } else {
-      log(pluginJson, 'The user cancelled the operation.')
+      logWarn(pluginJson, 'The user cancelled the operation.')
     }
   } else {
-    log(pluginJson, 'The clipboard was empty, so nothing to do.')
+    logWarn(pluginJson, 'The clipboard was empty, so nothing to do.')
     showMessage("The clipboard was empty, so there's nothing to do.", "OK, I'll try again", `New Note from Clipboard`)
   }
 }
@@ -63,7 +63,7 @@ export async function newNoteFromSelection(): Promise<void> {
   const { selectedLinesText, selectedText, selectedParagraphs, note } = Editor
 
   if (note != null && selectedLinesText.length && selectedText !== '') {
-    log(pluginJson, `  with ${selectedParagraphs.length} selected:`)
+    logDebug(pluginJson, `  with ${selectedParagraphs.length} selected:`)
     const selectedLinesTextToMutate = selectedLinesText.slice() // copy that we can change
 
     // Get title for this note
@@ -86,9 +86,9 @@ export async function newNoteFromSelection(): Promise<void> {
       if (title) {
         // Create new note in the specific folder
         const origFile = displayTitle(note) // Calendar notes have no title, so need to make one
-        log(pluginJson, `origFile: ${origFile}`)
+        logDebug(pluginJson, `origFile: ${origFile}`)
         const filename = (await DataStore.newNote(title, currentFolder)) ?? ''
-        log(pluginJson, `newNote() -> filename: ${filename}`)
+        logDebug(pluginJson, `newNote() -> filename: ${filename}`)
 
         // This question needs to be here after newNote and before noteOpener
         // to force a cache refresh after newNote. This API bug will eventually be fixed.
@@ -98,8 +98,8 @@ export async function newNoteFromSelection(): Promise<void> {
         const newNote = await noteOpener(filename, 'using filename')
 
         if (newNote) {
-          // log(pluginJson, `newNote's title: ${String(newNote.title)}`)
-          // log(pluginJson, `newNote's content: ${String(newNote.content)} ...`)
+          // logDebug(pluginJson, `newNote's title: ${String(newNote.title)}`)
+          // logDebug(pluginJson, `newNote's content: ${String(newNote.content)} ...`)
 
           const insertBackLink = iblq.index === 0
           // $FlowFixMe[method-unbinding] - Flow thinks the function is being removed from the object, but it's not
@@ -127,10 +127,10 @@ export async function newNoteFromSelection(): Promise<void> {
         logError(pluginJson, 'Undefined or empty title')
       }
     } else {
-      log(pluginJson, 'The user cancelled the operation.')
+      logWarn(pluginJson, 'The user cancelled the operation.')
     }
   } else {
-    log(pluginJson, 'No text was selected, so nothing to do.')
+    logDebug(pluginJson, 'No text was selected, so nothing to do.')
     showMessage('No text was selected, so nothing to do.', "OK, I'll try again", `New Note from Selection`)
   }
 }

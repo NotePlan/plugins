@@ -2,24 +2,16 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // @jgclark
-// Last updated 7.7.2022 for v0.7.0, @jgclark
+// Last updated 24.7.2022 for v0.7.0+, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
 // Import Helper functions
 import pluginJson from '../plugin.json'
 import { checkString } from '@helpers/checkType'
-// import {
-//   castBooleanFromMixed,
-//   castHeadingLevelFromMixed,
-//   castNumberFromMixed,
-//   castStringArrayFromMixed,
-//   castStringFromMixed,
-//   trimAnyQuotes,
-// } from '@helpers/dataManipulation'
 import { daysBetween, getDateObjFromDateString, includesScheduledFutureDate, relativeDateFromNumber, toISODateString } from '@helpers/dateTime'
 import { calcOffsetDate } from '@helpers/NPDateTime'
-import { log, logError, logWarn } from '@helpers/dev'
+import { logDebug, logError, logWarn } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import {
   getContentFromBrackets,
@@ -58,7 +50,7 @@ export type ReviewConfig = {
  * @return {ReviewConfig} object with configuration
  */
 export async function getReviewSettings(): Promise<any> {
-  // log(pluginJson, `Start of getReviewSettings()`)
+  // logDebug(pluginJson, `Start of getReviewSettings()`)
   try {
     // Get settings using ConfigV2
     const v2Config: ReviewConfig = await DataStore.loadJSON('../jgclark.Reviews/settings.json')
@@ -72,17 +64,11 @@ export async function getReviewSettings(): Promise<any> {
 
     // Need to store some things in the Preferences API mechanism, in order to pass things to the Project class
     DataStore.setPreference('startMentionStr', v2Config.startMentionStr)
-    // console.log(`written '${DataStore.preference('startMentionStr')} to startMentionStr`)
     DataStore.setPreference('completedMentionStr', v2Config.completedMentionStr)
-    // console.log(`written '${DataStore.preference('completedMentionStr')} to completedMentionStr`)
     DataStore.setPreference('cancelledMentionStr', v2Config.cancelledMentionStr)
-    // console.log(`written '${DataStore.preference('cancelledMentionStr')} to cancelledMentionStr`)
     DataStore.setPreference('dueMentionStr', v2Config.dueMentionStr)
-    // console.log(`written '${DataStore.preference('dueMentionStr')} to dueMentionStr`)
     DataStore.setPreference('reviewIntervalMentionStr', v2Config.reviewIntervalMentionStr)
-    // console.log(`written '${DataStore.preference('reviewIntervalMentionStr')} to reviewIntervalMentionStr`)
     DataStore.setPreference('reviewedMentionStr', v2Config.reviewedMentionStr)
-    // console.log(`written '${DataStore.preference('reviewedMentionStr')} to reviewedMentionStr`)
 
     return v2Config
   } catch (err) {
@@ -100,7 +86,7 @@ export async function getReviewSettings(): Promise<any> {
  * @param {string} prefName
  */
 export function logPreference(prefName: string): void {
-  log(pluginJson, `${prefName} contents:\n${checkString(DataStore.preference(prefName))}`)
+  logDebug(pluginJson, `${prefName} contents:\n${checkString(DataStore.preference(prefName))}`)
 }
 
 /**
@@ -112,6 +98,7 @@ export function logPreference(prefName: string): void {
  * @return {Date} - JS Date
  */
 export function calcNextReviewDate(lastReviewDate: Date, interval: string): Date {
+  // $FlowFixMe[incompatible-type]
   const reviewDate: Date = lastReviewDate != null ? calcOffsetDate(toISODateString(lastReviewDate), interval) : new Date() // today's date
   return reviewDate
 }
@@ -125,7 +112,7 @@ export function calcNextReviewDate(lastReviewDate: Date, interval: string): Date
  * @return {?Date} - JS Date version, if valid date found
  */
 export function getParamMentionFromList(mentionList: $ReadOnlyArray<string>, mention: string): string {
-  // log(pluginJson, `getMentionFromList for: ${mention}`)
+  // logDebug(pluginJson, `getMentionFromList for: ${mention}`)
   const res = mentionList.filter((m) => m.startsWith(`${mention}(`))
   return res.length > 0 ? res[0] : ''
 }
@@ -150,7 +137,7 @@ export function getFieldsFromNote(note: TNote, fieldName: string): Array<string>
       matchArr.push(matchRE[1])
     }
   }
-  // log('getFieldsFromNote()', `Found ${matchArr.length} fields matching '${fieldName}'`)
+  logDebug('getFieldsFromNote()', `Found ${matchArr.length} fields matching '${fieldName}'`)
   return matchArr
 }
 
@@ -197,7 +184,7 @@ export class Project {
     const mln = getOrMakeMetadataLine(note)
     this.metadataPara = note.paragraphs[mln]
     this.title = note.title ?? '(error)'
-    // log(pluginJson, `new Project: ${this.title} with metadata in line ${this.metadataPara.lineIndex}`)
+    // logDebug(pluginJson, `new Project: ${this.title} with metadata in line ${this.metadataPara.lineIndex}`)
     this.folder = getFolderFromFilename(note.filename)
 
     // work out note review type: 'project' or 'area' or ''
@@ -238,9 +225,9 @@ export class Project {
     if (progressLines.length > 0) {
       // Get the first part of the value of the Progress field: nn@YYYY-MM-DD ...
       const progressLine = progressLines[0]
-      console.log(progressLine)
+      logDebug(pluginJson, `progressLine: ${progressLine}`)
       this.percentComplete = progressLine.split(/[\s:]/, 1).toString() // last part redundant but avoids flow error
-      log(pluginJson, `  found ${this.percentComplete} from field`)
+      logDebug(pluginJson, `  found ${this.percentComplete} from field`)
     }
 
     // make project completed if @completed_date set
@@ -253,7 +240,7 @@ export class Project {
     // set project to active if #active is set or a @review date found,
     // and not completed / cancelled.
     this.isActive = (getStringFromList(hashtags, '#active') !== '' || this.reviewInterval != null) && !this.isCompleted && !this.isCancelled && !this.isArchived ? true : false
-    // log(pluginJson, `Project object created OK with Metadata = '${this.generateMetadataLine()}'`)
+    logDebug(pluginJson, `Project object created OK with Metadata = '${this.generateMetadataLine()}'`)
   }
 
   /**
@@ -262,7 +249,7 @@ export class Project {
    * @return {boolean}
    */
   get isReadyForReview(): boolean {
-    // log(pluginJson, `isReadyForReview: ${this.title}:  ${this.nextReviewDays} ${this.isActive}`)
+    logDebug(pluginJson, `isReadyForReview: ${this.title}:  ${String(this.nextReviewDays)} ${String(this.isActive)}`)
     return this.nextReviewDays != null && this.nextReviewDays <= 0 && this.isActive
   }
 
@@ -314,9 +301,9 @@ export class Project {
     this.calcDurations()
 
     // re-write the note's metadata line
-    log(pluginJson, `Completing ${this.title} ...`)
+    logDebug(pluginJson, `Completing ${this.title} ...`)
     const newMetadataLine = this.generateMetadataLine()
-    log(pluginJson, `... metadata now '${newMetadataLine}'`)
+    logDebug(pluginJson, `... metadata now '${newMetadataLine}'`)
     this.metadataPara.content = newMetadataLine
 
     // send update to Editor TODO: Will need updating when supporting frontmatter for metadata
@@ -339,9 +326,9 @@ export class Project {
     this.calcDurations()
 
     // re-write the note's metadata line
-    log(pluginJson, `Cancelling ${this.title} ...`)
+    logDebug(pluginJson, `Cancelling ${this.title} ...`)
     const newMetadataLine = this.generateMetadataLine()
-    log(pluginJson, `... metadata now '${newMetadataLine}'`)
+    logDebug(pluginJson, `... metadata now '${newMetadataLine}'`)
     this.metadataPara.content = newMetadataLine
 
     // send update to Editor TODO: Will need updating when supporting frontmatter for metadata

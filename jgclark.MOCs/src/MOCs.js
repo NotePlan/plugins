@@ -1,6 +1,6 @@
 // @flow
 //-----------------------------------------------------------------------------
-// Last updated 22.7.2022 for v0.2.2, @jgclark
+// Last updated 24.7.2022 for v0.2.2+, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -8,7 +8,7 @@ import {
   gatherMatchingLines,
   replaceContentUnderHeading
 } from '@helpers/NPParagraph'
-import { clo, log, logDebug, logError, logWarn } from '@helpers/dev'
+import { clo, logInfo, logDebug, logError, logWarn } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
 import {
@@ -92,7 +92,7 @@ export async function makeMOC(filenameArg?: string, termsArg?: string): Promise<
       const newTerms = await getInput(`Enter search term (or comma-separated set of terms)`, 'OK', `Make MOC`, '')
       if (typeof newTerms === 'boolean') {
         // i.e. user has cancelled
-        log(pluginJson, `User has cancelled operation.`)
+        logDebug(pluginJson, `User has cancelled operation.`)
         return
       } else {
         termsToMatch = Array.from(newTerms.split(','))
@@ -138,7 +138,7 @@ export async function makeMOC(filenameArg?: string, termsArg?: string): Promise<
           await showMessage('There was an error getting the new note ready to write')
           return
         }
-        log(pluginJson, `Will write MOC to the new note '${displayTitle(note)}'`)
+        logDebug(pluginJson, `Will write MOC to the new note '${displayTitle(note)}'`)
       }
     }
 
@@ -207,7 +207,7 @@ export async function makeMOC(filenameArg?: string, termsArg?: string): Promise<
           const myn = await showMessageYesNo(`There are ${uniqTitles.length} matches for '${searchTerm}'. Shall I add them?`, ['Yes', 'No', 'Cancel'], `Make MOC: ${requestedTitle}`)
           if (typeof myn === 'boolean' || myn === 'Cancel') {
             // i.e. user has cancelled
-            log(pluginJson, `User has cancelled operation.`)
+            logDebug(pluginJson, `User has cancelled operation.`)
             return
           }
           if (myn === 'Yes') {
