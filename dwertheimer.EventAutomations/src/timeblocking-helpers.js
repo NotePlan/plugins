@@ -511,7 +511,7 @@ export function findTodosInNote(note: TNote): Array<ExtendedParagraph> {
   if (note.paragraphs) {
     note.paragraphs.forEach((p) => {
       if (isTodayItem(p.content) && p.type !== 'done') {
-        const newP = p.duplicate ? p.duplicate() : p
+        const newP = copyObject(p)
         newP.type = 'open' // Pretend it's a todo even if it's text or a listitem
         // $FlowIgnore
         newP.title = (p.filename ?? '').replace('.md', '').replace('.txt', '')
