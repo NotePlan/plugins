@@ -6,12 +6,12 @@ TODO: add setting for whether to add now at the top
 TODO: add setting for template replacements (use https://stackoverflow.com/questions/377961/efficient-javascript-string-replacement)
 */
 
-import * as utils from './support/weather-utils'
-import { log, logDebug,logError, clo, JSP } from '@helpers/dev'
-import { createRunPluginCallbackUrl, createPrettyRunPluginLink } from '@helpers/general'
-import { chooseOption, getInput, showMessage } from '@helpers/userInput'
-import pluginJson from '../plugin.json'
 import moment from 'moment'
+import pluginJson from '../plugin.json'
+import * as utils from './support/weather-utils'
+import { log, logDebug, logError, clo, JSP } from '@helpers/dev'
+import { /* createRunPluginCallbackUrl, */ createPrettyRunPluginLink } from '@helpers/general'
+import { chooseOption, getInput, showMessage } from '@helpers/userInput'
 
 type WeatherParams = {
   appid: string,
@@ -45,7 +45,7 @@ function UTCToLocalTimeString(d, format, timeOffset) {
  * Requires the openWeather api to be already stored in DataStore.settings
  * calls getLatLongListForName() to do the lookup
  * @param {*} searchLocationStr - the name of the city/location to look up
- * @returns {LocationOption | null} - the location details from the API lookup and maybe user 
+ * @returns {LocationOption | null} - the location details from the API lookup and maybe user
  */
 async function getLatLongForLocation(searchLocationStr: string = ''): Promise<LocationOption | null> {
   if (searchLocationStr?.length > 0) {
@@ -77,7 +77,7 @@ async function getLatLongForLocation(searchLocationStr: string = ''): Promise<Lo
   } else {
     logError(pluginJson, `getLatLongForLocation: No location string to search for ${searchLocationStr}`)
   }
-    return null
+  return null
 }
 
 /**
@@ -90,17 +90,17 @@ async function getLatLongForLocation(searchLocationStr: string = ''): Promise<Lo
  */
 export async function getLatLongListForName(name: string, params: WeatherParams): Promise<any> {
   if (validateWeatherParams(params)) {
-  const url = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(name)}&appid=${params.appid}&limit=5`
-  logDebug(`weather-utils::getLatLongForName`, `url: ${url}`)
-  try {
-    const response:any = await fetch(url, { timeout: 3000 })
-    if (response) {
-      clo(response,`getLatLongListForName: response=`)
-      return JSON.parse(response)
+    const url = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(name)}&appid=${params.appid}&limit=5`
+    logDebug(`weather-utils::getLatLongForName`, `url: ${url}`)
+    try {
+      const response: any = await fetch(url, { timeout: 3000 })
+      if (response) {
+        clo(response, `getLatLongListForName: response=`)
+        return JSON.parse(response)
+      }
+    } catch (error) {
+      logError(`weather-utils::getLatLongForName`, `error: ${JSP(error)}`)
     }
-  } catch (error) {
-    logError(`weather-utils::getLatLongForName`, `error: ${JSP(error)}`)
-  }
   } else {
     await showMessage(getConfigErrorText())
   }
@@ -132,15 +132,15 @@ function getConfigErrorText(): string {
  * @param {settings} params
  * @returns
  */
-async function getWeatherForLocation(location: LocationOption, weatherParams: WeatherParams): Promise<{ [string]: any }|null> {
+async function getWeatherForLocation(location: LocationOption, weatherParams: WeatherParams): Promise<{ [string]: any } | null> {
   const params = weatherParams ? weatherParams : DataStore.settings
-  const url = utils.getWeatherURLLatLong(location.lat, location.lon, params.appid, params.units)
+  const url = utils.getWeatherURLLatLong(location.lat, location.lon, params.appid, params.units || 'metric')
   logDebug(`weather-utils::getWeatherForLocation`, `url: \n${url}`)
   try {
-    const res:any = await fetch(url, { timeout: 3000 })
+    const res: any = await fetch(url, { timeout: 3000 })
     if (res) {
-      logDebug(pluginJson,`getWeatherForLocation received weather for location`)
-      clo(res,`getWeatherForLocation result:`)
+      logDebug(pluginJson, `getWeatherForLocation received weather for location`)
+      clo(res, `getWeatherForLocation result:`)
       return JSON.parse(res)
     }
   } catch (error) {
@@ -200,6 +200,7 @@ export async function insertWeatherCallbackURL(incoming: string = ''): Promise<s
  * @param {*} incoming
  * @returns
  */
+// eslint-disable-next-line no-unused-vars
 export async function insertWeatherByLocation(incoming: ?string = '', returnLocation: boolean = true): Promise<void> {
   try {
     if (!(await validateWeatherParams(DataStore.settings))) {
@@ -211,16 +212,16 @@ export async function insertWeatherByLocation(incoming: ?string = '', returnLoca
         location = await getInput(`What location do you want to lookup?`)
       }
       if (location) {
-        const result:any = await getLatLongForLocation(location)
+        const result: any = await getLatLongForLocation(location)
         if (result) {
           // {"lat":34.0536909,"lon":-118.242766,"name":"Los Angeles","country":"US","state":"California","label":"Los Angeles, California, US","value":0}
-          logDebug(pluginJson,result.label)
-          clo(result,`insertWeatherByLocation: result from openWeather for ${location}`)
+          logDebug(pluginJson, result.label)
+          clo(result, `insertWeatherByLocation: result from openWeather for ${location}`)
           //TODO: Format output per user settings and output to cursor
           Editor.insertTextAtCursor('This function is not fully functional yet.\n')
-          await weatherByLatLong(result,'no') //sending as string because that's what weatherByLatLong expects
+          await weatherByLatLong(result, 'no') //sending as string because that's what weatherByLatLong expects
         }
-        return 
+        return
       }
     }
   } catch (error) {
@@ -245,34 +246,34 @@ export async function weatherByLatLong(incoming: string = '', showPopup: string 
     } else {
       let location
       if (incoming?.length) {
-         location = JSON.parse(incoming)
+        location = JSON.parse(incoming)
       } else {
-        location = {lat:settings.lat,lon:settings.lon, label:settings.locationName}
+        location = { lat: settings.lat, lon: settings.lon, label: settings.locationName }
       }
-        let text = ''
-        let dfd = []
-        let locTime = ''
-        if (location.lat && location.lon && location.label) {
-          logDebug(pluginJson, `weatherByLatLong: have lat/lon for ${location.label}`)
-          const weather = await getWeatherForLocation(location, DataStore.settings)
-          if (weather) {
+      let text = ''
+      let dfd = []
+      let locTime = ''
+      if (location.lat && location.lon && location.label) {
+        logDebug(pluginJson, `weatherByLatLong: have lat/lon for ${location.label}`)
+        const weather = await getWeatherForLocation(location, DataStore.settings)
+        if (weather) {
           locTime = UTCToLocalTimeString(new Date(), 'LT', weather['timezone_offset'])
           logDebug(pluginJson, locTime)
           const currentWeather = utils.getCurrentConditions(weather.current)
           const weatherLine = utils.getWeatherDescLine(currentWeather)
-          const now = [{ label: weatherLine, value: -1 }]
+          const now = [{ label: weatherLine, value: String(-1) }]
           dfd = utils.extractDailyForecastData(weather)
           if (dfd && dfd.length) {
             dfd.forEach((w, i) => {
               // TODO: This is [WIP] - utils.getWeatherDescLine should format the weather the way the user wants
               dfd[i].label = utils.getWeatherDescLine(w, settings)
-              dfd[i].value = i
+              dfd[i].value = String(i)
             })
           }
           dfd = [...now, ...dfd]
-          logDebug(dfd,`Parsed weather data:`)
+          logDebug(dfd, `Parsed weather data:`)
         }
-        if (showPopup && showPopup == 'yes') {
+        if (showPopup && showPopup === 'yes' && dfd.length) {
           const chosen = await chooseOption(`${location.label} as of ${locTime} (local time)`, dfd, '')
           Editor.insertTextAtCursor(chosen)
         } else {
@@ -294,6 +295,7 @@ export async function weatherByLatLong(incoming: string = '', showPopup: string 
  * Get lat/lon details for your default location
  * @param {string} incoming
  */
+// eslint-disable-next-line no-unused-vars
 export async function setDefaultLocation(incoming: string = ''): Promise<void> {
   try {
     if (!(await validateWeatherParams(DataStore.settings))) {
