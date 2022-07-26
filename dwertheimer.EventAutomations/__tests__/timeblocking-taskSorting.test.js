@@ -1,8 +1,7 @@
 /* globals describe, expect, it, test, DataStore */
 import { differenceInCalendarDays, endOfDay, startOfDay, eachMinuteOfInterval, formatISO9075 } from 'date-fns'
 import * as tb from '../src/timeblocking-helpers'
-import { getTasksByType } from '@helpers/sorting'
-import { sortListBy } from '@helpers/sorting'
+import { getTasksByType , sortListBy } from '@helpers/sorting'
 const _ = require('lodash')
 // import { isNullableTypeAnnotation } from '@babel/types'
 
@@ -25,7 +24,7 @@ describe('taskSorting', () => {
         rawContent: '* test content',
       },
     ]
-    let taskList = getTasksByType(paragraphs)
+    const taskList = getTasksByType(paragraphs)
     expect(taskList['open'].length).toEqual(1)
     expect(taskList['scheduled'].length).toEqual(1)
     expect(taskList['open'][0].content).toEqual(paragraphs[0].content)

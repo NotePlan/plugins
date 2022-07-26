@@ -1,7 +1,7 @@
 // @flow
 import pluginJson from '../plugin.json'
 import { migrateConfiguration, updateSettingData, pluginUpdated } from '../../helpers/NPConfiguration'
-import { log, logDebug, clo } from "../../helpers/dev";
+import { log, logDebug, clo } from "../../helpers/dev"
 
 export {
   insertTodosAsTimeblocks,

@@ -1,7 +1,9 @@
 // @flow
 
-import pluginJson from '../plugin.json'
 import { getMonth, getYear } from 'date-fns'
+import pluginJson from '../plugin.json'
+import { clo, log, logError } from '../../helpers/dev'
+import { getInputTrimmed, inputNumber } from '../../helpers/userInput'
 import {
   aggregateByCategoriesAndMonth,
   castFixedExpensesArrayFromMixed,
@@ -15,8 +17,6 @@ import {
 } from './expensesHelper'
 import type { Config, ExpenseTrackingRow } from './expensesModels'
 import { amountOk, categoryOk, validateConfig } from './expensesChecks'
-import { clo, log, logError } from '../../helpers/dev'
-import { getInputTrimmed, inputNumber } from '../../helpers/userInput'
 
 const CONFIG_KEYS = {
   folderPath: 'folderPath',

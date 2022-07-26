@@ -1,3 +1,4 @@
+import colors from 'chalk'
 import * as tt from '../src/tagTasks'
 
 /*
@@ -7,7 +8,6 @@ import * as tt from '../src/tagTasks'
   */
 
 // Jest codedungeon bersion
-import colors from 'chalk'
 const PLUGIN_NAME = `${colors.yellow('dwertheimer.TaskAutomations')}`
 const section = colors.blue
 describe(`${PLUGIN_NAME}`, () => {

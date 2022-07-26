@@ -1,3 +1,4 @@
+/* global describe, expect, test */
 import * as w from '../src/support/weather-utils'
 
 // Jest docs for matchers: https://jestjs.io/docs/using-matchers
@@ -5,19 +6,19 @@ import * as w from '../src/support/weather-utils'
 describe('np.WeatherLookup' /* pluginID */, () => {
   describe('utils' /* file */, () => {
     describe('isWeatherKeyValid' /* function */, () => {
-      test('should return false on empty string', async () => {
+      test('should return false on empty string',  () => {
         const result = w.isWeatherKeyValid('')
         expect(result).toEqual(false)
       })
-      test('should return false on undefined string', async () => {
+      test('should return false on undefined string',  () => {
         const result = w.isWeatherKeyValid(undefined)
         expect(result).toEqual(false)
       })
-      test('should return false on wrong string', async () => {
+      test('should return false on wrong string',  () => {
         const result = w.isWeatherKeyValid(`foo`)
         expect(result).toEqual(false)
       })
-      test('should return true on correct string signature', async () => {
+      test('should return true on correct string signature',  () => {
         const result = w.isWeatherKeyValid(`11634c5bc8f3ac1aa1442085146b969a`)
         expect(result).toEqual(true)
       })

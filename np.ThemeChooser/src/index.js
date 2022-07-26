@@ -31,16 +31,13 @@ export {
 import pluginJson from '../plugin.json'
 import { saveThemeNameAsCommand } from './NPThemeChooser'
 import { log, clo } from '@helpers/dev'
-import { getPluginJson } from '@helpers/NPConfiguration'
+import { /* getPluginJson ,*/ updateSettingData } from '@helpers/NPConfiguration'
 
 /*
  * NOTEPLAN HOOKS
  * The rest of these functions are called by NotePlan automatically under certain conditions
  * It is unlikely you will need to edit/add anything below this line
  */
-
-// eslint-disable-next-line import/order
-import { updateSettingData } from '@helpers/NPConfiguration'
 
 /**
  * NotePlan calls this function after the plugin is installed or updated.

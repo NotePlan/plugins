@@ -6,9 +6,9 @@ TODO: /ctt is working, but future commands could easily rewrite the order so the
 
 import { clo, JSP, log, logDebug } from '../../helpers/dev'
 import { showMessage } from '../../helpers/userInput'
+import pluginJson from '../plugin.json'
 import { getElementsFromTask } from '@helpers/sorting'
 import { getSelectedParagraph } from '@helpers/NPParagraph'
-import pluginJson from '../plugin.json'
 
 type TagsList = { hashtags: Array<string>, mentions: Array<string> } //include the @ and # characters
 
@@ -100,7 +100,7 @@ function copyLineForTags(type: 'hashtags' | 'mentions'): void {
   const thisParagraph = getSelectedParagraph()
   const { noteType, lineIndex } = thisParagraph
   const existingTags = getTagsFromString(thisParagraph.content)
-  let tagsInQuestion = existingTags[type]
+  const tagsInQuestion = existingTags[type]
   if (tagsInQuestion.length <= 1) {
     showMessage(`No ${type} to copy`)
     return
@@ -169,13 +169,13 @@ export function copyTagsFromLineAbove() {
  * (plugin Entry Point for "cth - Copy tags from heading above")
  */
 export function copyTagsFromHeadingAbove() {
-  let thisParagraph = getSelectedParagraph()
+  const thisParagraph = getSelectedParagraph()
   const { noteType, lineIndex, heading, headingRange } = thisParagraph
   const topOfNote = noteType === 'Notes' ? 1 : 0
   if (heading.length) {
     const headingPara = getParagraphContainingPosition(Editor, headingRange.start)
     if (headingPara) {
-      let headingLineTags = getTagsFromString(heading)
+      const headingLineTags = getTagsFromString(heading)
       for (let index = headingPara.lineIndex + 1; index <= thisParagraph.lineIndex; index++) {
         const currentPara = getParagraphByIndex(Editor.note, index)
         const updatedText = appendTagsToText(currentPara.content, headingLineTags)
