@@ -15,9 +15,9 @@
 // `noteplan-cli plugin:dev dwertheimer.JestHelpers --test --watch --coverage`
 
 import pluginJson from '../plugin.json'
-import * as helpers from './support/helpers'
+// import * as helpers from './support/helpers'
 import { log, logError, clo, JSP, getFilteredProps } from '@helpers/dev'
-import { createRunPluginCallbackUrl } from '@helpers/general'
+// import { createRunPluginCallbackUrl } from '@helpers/general'
 import { getInput } from '@helpers/userInput'
 
 /**
@@ -159,31 +159,31 @@ export async function generateMock(incoming: ?string = ''): Promise<void> {
 }
 
 // Returns NP object to prove that the mock is working from inside NP calls
-export async function getCalendar(): any {
+export function getCalendar(): any {
   return Calendar
 }
 
 // Returns NP object to prove that the mock is working from inside NP calls
-export async function getClipboard(): any {
+export function getClipboard(): any {
   return Clipboard
 }
 
 // Returns NP object to prove that the mock is working from inside NP calls
-export async function getCommandBar(): any {
+export function getCommandBar(): any {
   return CommandBar
 }
 
 // Returns NP object to prove that the mock is working from inside NP calls
-export async function getDataStore(): any {
+export function getDataStore(): any {
   return DataStore
 }
 
 // Returns NP object to prove that the mock is working from inside NP calls
-export async function getEditor(): any {
+export function getEditor(): any {
   return Editor
 }
 
 // Returns NP object to prove that the mock is working from inside NP calls
-export async function getNotePlan(): any {
+export function getNotePlan(): any {
   return NotePlan
 }

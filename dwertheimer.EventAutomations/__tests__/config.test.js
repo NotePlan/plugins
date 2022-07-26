@@ -1,4 +1,4 @@
-/* globals describe, expect, it, test */
+/* globals describe, expect, test */
 import * as c from '../src/config'
 
 describe('dwertheimer.EventAutomations AutoTimeBlocking', () => {
