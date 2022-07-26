@@ -14,7 +14,7 @@
 import pluginJson from '../plugin.json'
 import {
   getSearchSettings,
-  type resultOutputType,
+  type resultOutputTypeV2,
   runSearchesV2,
   type typedSearchTerm,
   validateAndTypeSearchTerms,
@@ -36,29 +36,40 @@ import {
  * * TODO: andd start date, end date args
  */
 export async function saveSearchOverCalendar(searchTermsArg?: string): Promise<void> {
-  await saveSearch('calendar', searchTermsArg ?? undefined)
+  await saveSearch(
+    'calendar',
+    searchTermsArg ?? undefined)
 }
 
 /** 
  * Call the main function, but requesting only Project notes be searched.
  */
 export async function saveSearchOverNotes(searchTermsArg?: string): Promise<void> {
-  await saveSearch('notes', searchTermsArg ?? undefined)
+  await saveSearch(
+    'notes',
+    searchTermsArg ?? undefined)
 }
 
 /**
  * Call the main function, searching over all notes.
  */
 export async function saveSearchOverAll(searchTermsArg?: string): Promise<void> {
-  await saveSearch('both', searchTermsArg ?? undefined)
+  await saveSearch(
+    'both',
+    searchTermsArg ?? undefined)
 }
 
 /** 
  * Call the main function, searching over all notes.
- * This is also the refresh an existing search note route in.
+ * This is also the route in for refresh-an-existing-search-note
+ * TODO: confirm this is still true
  */
-export async function quickSearch(notesTypesToInclude?: string, searchTermsArg?: string): Promise<void> {
-  await saveSearch(notesTypesToInclude ?? 'both', searchTermsArg ?? undefined, 'quick')
+export async function quickSearch(notesTypesToInclude?: string, searchTermsArg?: string, paraTypeFilterArg?: string): Promise<void> {
+  await saveSearch(
+    notesTypesToInclude ?? 'both',
+    searchTermsArg ?? undefined,
+    'quick',
+    paraTypeFilterArg ?? undefined)
 }
 
 /**
@@ -73,7 +84,8 @@ export async function quickSearch(notesTypesToInclude?: string, searchTermsArg?:
 export async function saveSearch(
   noteTypesToIncludeArg: string,
   searchTermsArg?: string,
-  destinationArg?: string
+  destinationArg?: string,
+  paraTypeFilterArg?: string // TODO: wire this in
 ): Promise<void> {
   try {
     // get relevant settings
@@ -85,7 +97,7 @@ export async function saveSearch(
     const noteTypesToInclude = (noteTypesToIncludeArg === 'both') ? ['notes', 'calendar'] : [noteTypesToIncludeArg]
     logDebug(pluginJson, `saveSearch: arg0 -> '${noteTypesToInclude.toString()}'`)
 
-    // Get the search terms, treating ' OR ' and ',' as equivalent term separators
+    // Get the search terms
     let termsToMatchStr = ''
     if (searchTermsArg !== undefined) {
       // either from argument supplied
@@ -124,7 +136,7 @@ export async function saveSearch(
     // CommandBar.showLoading(true, `Running search for ${String(termsToMatchArr)} ...`)
     // await CommandBar.onAsyncThread()
 
-    const resultsProm: resultOutputType = runSearchesV2(validatedSearchTerms, noteTypesToInclude, [], config.foldersToExclude, config) // note no await
+    const resultsProm: resultOutputTypeV2 = runSearchesV2(validatedSearchTerms, noteTypesToInclude, [], config.foldersToExclude, config) // note no await
 
     // await CommandBar.onMainThread()
     // CommandBar.showLoading(false)
@@ -192,10 +204,12 @@ export async function saveSearch(
           // As this is likely to be a note just used for this set of search terms, just delete the whole note contents and re-write each search term's block.
           // TODO: Does *not* need to include a subhead with search term + result count
           const requestedTitle = headingString
-          const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=quickSearch&arg0=notes&arg1=${encodeURIComponent(termsToMatchStr)}` // FIXME: for 'both' or 'calendar' section undo hard-wiring. Is arg0 = notes right?
+          // FIXME: don't hard-wire 'both' in what follows, but use noteTypesToIncludeArg
+          const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=quickSearch&arg0=both&arg1=${encodeURIComponent(termsToMatchStr)}`
 
           // normally I'd use await... in the next line, but can't as we're now in then...
-          const noteFilenameProm = writeSearchResultsToNote(resultSet, requestedTitle, config.folderToStore, config.headingLevel, calledIndirectly, xCallbackLink)
+          // const noteFilenameProm = writeSearchResultsToNote(resultSet, requestedTitle, config.folderToStore, config.resultStyle, config.headingLevel, config.groupResultsByNote, config.resultPrefix, config.highlightResults, config.resultQuoteLength, calledIndirectly, xCallbackLink)
+          const noteFilenameProm = writeSearchResultsToNote(resultSet, requestedTitle, config, xCallbackLink)
           noteFilenameProm.then(async (filename) => {
             logDebug(pluginJson, `${filename}`)
             // Open the results note in a new split window, unless we already have this note open
@@ -213,15 +227,16 @@ export async function saveSearch(
           // Delete the note's contents and re-write each time.
           // *Does* need to include a subhead with search term + result count, as title is fixed.
           const requestedTitle = config.quickSearchResultsTitle
-          const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=quickSearch&arg0=notes&arg1=${encodeURIComponent(termsToMatchStr)}` // FIXME: for 'both' or 'calendar' section undo hard-wiring
+          // FIXME: don't hard-wire 'both' in what follows, but use noteTypesToIncludeArg
+          const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=quickSearch&arg0=both&arg1=${encodeURIComponent(termsToMatchStr)}`
 
           // normally I'd use await... in the next line, but can't as we're now in then...
-          const noteFilenameProm = writeSearchResultsToNote(resultSet, requestedTitle, config.folderToStore, config.headingLevel, calledIndirectly, xCallbackLink)
+          // const noteFilenameProm = writeSearchResultsToNote(resultSet, requestedTitle, config.folderToStore, config.resultStyle, config.headingLevel, config.groupResultsByNote, config.resultPrefix, config.highlightResults, config.resultQuoteLength, calledIndirectly, xCallbackLink)
+          const noteFilenameProm = writeSearchResultsToNote(resultSet, requestedTitle, config, xCallbackLink)
 
           noteFilenameProm.then(async (filename) => {
             logDebug(pluginJson, `${filename}`)
             // Open the results note in a new split window, unless we already have this note open
-            const currentEditorNote = displayTitle(Editor.note)
             // if (!calledIndirectly) {
             if (Editor.note?.filename !== filename) {
               await Editor.openNoteByFilename(filename, false, 0, 0, true)

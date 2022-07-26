@@ -9,7 +9,7 @@ Another neat feature is the inclusion of a " [Click to refresh these results]" p
 
 There are several /commands:
 
-1. **/quickSearch** searches across **all notes** (both calendar and regular notes), saving to a pre-determined 'Quick Search Results' note (but see Configuration below).
+1. **/quickSearch** searches across **all notes** (both calendar and regular notes), saving to a pre-set 'Quick Search Results' note.
 2. **/saveSearch** searches across **all notes**  (both calendar and regular notes)
 3. **/saveSearchOverNotes** searches across **all regular** (non-calendar) notes
 4. **/saveSearchOverCalendar** searches across **all calendar**  notes

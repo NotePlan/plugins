@@ -4,7 +4,7 @@
 - searches now run over Weekly Notes as well (now the underlying API has been extended)
 -->
 
-## [0.5.0] - 2022-07-22
+## [0.5.0] - 2022-07-???
 ### Added
 - Major new version, that now supports + and - search operators for terms that _must_ appear, and _must not_ appear, respectively.  For example `+"must have me" may could -"cannot have me"` has 4 search terms, the first must be present, the last mustn't be present, and the middle two (may, could) can be.
 - the test for + and - is done per line in notes. If you wish to ignore the whole note that has a term, you can use the ! operator, e.g. `+must !not-me`.
@@ -12,29 +12,33 @@
 - an API call for this that also allows restricting search to one or more paragraph types (e.g. 'open' for incomplete tasks), through the last parameter on `runSearchV2(...)`.
 - provides x-callback entry points for these searches -- see README for details.
 
-**Notes for beta2**:
+**Notes for beta3** (2022-07-???):
+- still only really tested the /quickSearch command so far, but carried over most new logic to /saveSearchPeriod too
+- - added a "Style for search results" setting. This chooses the style to use:
+  - Normal "NotePlan" styling, tweaked slightly for matching headings
+  - Use "Simplified" text (like Google results)
+- added support for un-grouped results (a simple list with appended date context or title)
+- added support for highlighting search terms
+ 
+**Notes for beta2** (2022-07-23):
 - fixed ordering of result lines within a note
 - added support for search strings using older `x AND y AND z` or `x OR y OR z` or `x, y, z` styles. (Note: you can't mix AND and OR style, as it's hard to then be clear what the right logic is. The newer syntax is clearer.)
 - added support for `"multi word search terms"` -- though I now discover that NotePlan might not support this :-(
 
-**Notes for beta1**:
+**Notes for beta1** (2022-07-22):
 - I've only really tested the /quickSearch command so far
 
 **Still TODO:**:
 - resolve API question about multi-word search phrases
-- added a "Style for search results" setting. This chooses the style to use:
-  - Normal "NotePlan" styling, tweaked slightly for matching headings
-  - Use "Simplified" text (like Google results)
-- add highlighting in
 - finish test for applySearchOperators
 - support `"multi-word terms"`
 - decide whether to support case insensitivity option still
 - decide whether to support showEmptyResults option still, or just turn on?
-- support un-grouped results (?)
 - hook up x-callback for calendar-only searching
 - properly test x-callbacks
 - update README
 - shift some functions and tests to helpers/search.
+- tidy up display in special case of matching H1
 
 ___your feedback is most welcome!___
 

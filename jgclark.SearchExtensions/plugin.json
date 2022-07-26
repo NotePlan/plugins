@@ -8,7 +8,7 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.SearchExtensions/CHANGELOG.md",
-  "plugin.version": "0.5.0-beta2",
+  "plugin.version": "0.5.0-beta3",
   "plugin.lastUpdateInfo": "Big speed up. Now supports search operators: + (must match) - (can't match in line) ! (can't match in note) in place of just 'OR'.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
@@ -24,7 +24,9 @@
       "jsFunction": "quickSearch",
       "arguments": [
         "noteTypesToInclude either 'project','calendar' or 'both'",
-        "search term(s) (separated by commas)"
+        "search term(s) (separated by commas)",
+        "destination ???",
+        "terms to filter by paragraph type (separated by commas)"
       ]
     },
     {
@@ -66,7 +68,10 @@
       "description": "Save results from a search of specified tags or mentions over all Calendar notes",
       "jsFunction": "saveSearchOverCalendar",
       "arguments": [
-        "search term(s) (separated by commas)"
+        "search term(s) (separated by commas)",
+        "???",
+        "???",
+        "terms to filter by paragraph type (separated by commas)"
       ]
     },
     {
@@ -85,7 +90,22 @@
   "plugin.settings": [
     {
       "type": "heading",
-      "title": "Search Extensions plugin settings"
+      "title": "Search term settings"
+    },
+    {
+      "key": "defaultSearchTerms",
+      "title": "Default Search terms",
+      "description": "Optional list of search terms to use to pre-populate the search term box.",
+      "type": "[string]",
+      "default": [
+        "idea",
+        "@review",
+        "#question"
+      ],
+      "required": false
+    },
+    {
+      "type": "separator"
     },
     {
       "type": "heading",
@@ -143,32 +163,12 @@
       "required": true
     },
     {
-      "key": "defaultSearchTerms",
-      "title": "Default Search terms",
-      "description": "Optional list of search terms to use by default. If empty, you will be asked for terms each time you run the command.",
-      "type": "[string]",
-      "default": [
-        "idea",
-        "@review",
-        "#question"
-      ],
-      "required": false
-    },
-    {
       "key": "searchHeading",
       "title": "Saved Search heading",
       "description": "Text to append to headings in search results (optional)",
       "type": "string",
       "default": "(Search Results)",
       "required": false
-    },
-    {
-      "key": "groupResultsByNote",
-      "title": "Group results by Note?",
-      "description": "This controls how results are displayed. If true, matches found within the same note are grouped together. If false, every match is shown with a note link at the end of the match.",
-      "type": "bool",
-      "default": true,
-      "required": true
     },
     {
       "key": "sortOrder",
@@ -187,9 +187,26 @@
       "required": true
     },
     {
+      "key": "groupResultsByNote",
+      "title": "Group results by Note?",
+      "description": "This controls how results are displayed. If true, matches found within the same note are grouped together. If false, every match is shown with a note link at the end of the match.",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
+      "key": "resultStyle",
+      "title": "Style for search result lines",
+      "description": "Choose the style to use:\nNormal NotePlan styling, tweaked slightly for matching headings\nUse simplified text (like Google results)\n",
+      "type": "string",
+      "choices": ["NotePlan", "Simplified"],
+      "default": "NotePlan-style",
+      "required": true
+    },
+    {
       "key": "resultPrefix",
       "title": "Prefix for search result lines",
-      "description": "String to put at the start of each search result line. Default is '- '. Can also be empty.",
+      "description": "String to put at the start of each search result line (where Style is 'Simplified'). Default is '- '. Can also be empty.",
       "type": "string",
       "default": "- ",
       "required": true
@@ -209,15 +226,6 @@
       "description": "Do searches match case (capitalisation) or not?",
       "type": "hidden",
       "default": false,
-      "required": true
-    },
-    {
-      "key": "resultStyle",
-      "title": "Style for search results",
-      "description": "Choose the style to use:\nNormal NotePlan styling, tweaked slightly for matching headings\nUse simplified text (like Google results)\n",
-      "type": "string",
-      "choices": ["NotePlan", "Simplified"],
-      "default": "NotePlan-style",
       "required": true
     },
     {

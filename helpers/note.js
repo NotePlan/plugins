@@ -7,10 +7,34 @@ import { getFolderFromFilename } from './folders'
 import { findEndOfActivePartOfNote } from './paragraph'
 import { showMessage } from './userInput'
 import { displayTitle, type headingLevelType } from './general'
-import { hyphenatedDateString } from '@helpers/dateTime'
+import { hyphenatedDate, hyphenatedDateString, toLocaleDateString } from '@helpers/dateTime'
 
 export const RE_DAILY_NOTE_FILENAME = '\\/?\\d{4}[0-1]\\d[0-2]\\d.'
 export const RE_WEEKLY_NOTE_FILENAME = '\\/?\\d{4}-W\\d{2}\\.'
+
+export function getNoteContextAsSuffix(filename: string, dateStyle: string): string {
+  const noteType = (filename.match(RE_DAILY_NOTE_FILENAME) || filename.match(RE_WEEKLY_NOTE_FILENAME)) ? "Calendar" : "Notes"
+  const note = DataStore.noteByFilename(filename, noteType)
+  if (!note) {
+    return '<error>'
+  }
+  if (note.date != null) {
+    return dateStyle.startsWith('link') // to deal with earlier typo where default was set to 'links'
+      ? ` ([[${displayTitle(note)}]])`
+      : dateStyle === 'scheduled'
+        ? // $FlowIgnore(incompatible-call)
+        ` >${hyphenatedDate(note.date)} `
+        : dateStyle === 'date'
+          ? // $FlowIgnore(incompatible-call)
+          ` (${toLocaleDateString(note.date)})`
+          : dateStyle === 'at'
+            ? // $FlowIgnore(incompatible-call)
+            ` @${hyphenatedDate(note.date)} `
+            : '?'
+  } else {
+    return ` ([[${note.title ?? ''}]])`
+  }
+}
 
 /**
  * Print summary of note details to log

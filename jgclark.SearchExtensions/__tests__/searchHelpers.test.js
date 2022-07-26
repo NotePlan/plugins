@@ -121,13 +121,13 @@ describe('searchHelpers.js tests', () => {
     test('should return narrower !term results', () => {
       // For TERM1, -TERM2, +TERM3
       const combinedResults: Array<resultObjectTypeV2> = [
-        { searchTerm: searchTerms[0], resultNoteAndLines: mayArr, resultCount: 1 },
-        { searchTerm: searchTerms[3], resultNoteAndLines: notArr, resultCount: 2 }, // the !TERM2 alternative
-        { searchTerm: searchTerms[2], resultNoteAndLines: mustArr, resultCount: 4 },
+        { searchTerm: searchTerms[0], resultNoteAndLinesArr: mayArr, resultCount: 1 },
+        { searchTerm: searchTerms[3], resultNoteAndLinesArr: notArr, resultCount: 2 }, // the !TERM2 alternative
+        { searchTerm: searchTerms[2], resultNoteAndLinesArr: mustArr, resultCount: 4 },
       ]
       const expectedNoteBasedOutput: resultOutputType = { // For TERM1, -TERM2, +TERM3 matching *notes*
         searchTermsRep: "TERM1 !TERM2 +TERM3",
-        resultNoteAndLines: [
+        resultNoteAndLinesArr: [
           { noteFilename: 'file5', lines: ['5.1 includes TERM1', '5.2 includes TERM3'] },
           { noteFilename: 'file7', lines: ['7.1 (W£%&W(*%&)) TERM1', '7.2 has TERM1', '7.3 has TERM3'] },
         ],
@@ -141,13 +141,13 @@ describe('searchHelpers.js tests', () => {
     test('should return wider -term results', () => {
       // For TERM1, -TERM2, +TERM3
       const combinedResults: Array<resultObjectTypeV2> = [
-        { searchTerm: searchTerms[0], resultNoteAndLines: mayArr, resultCount: 1 },
-        { searchTerm: searchTerms[1], resultNoteAndLines: notArr, resultCount: 2 },
-        { searchTerm: searchTerms[2], resultNoteAndLines: mustArr, resultCount: 4 },
+        { searchTerm: searchTerms[0], resultNoteAndLinesArr: mayArr, resultCount: 1 },
+        { searchTerm: searchTerms[1], resultNoteAndLinesArr: notArr, resultCount: 2 },
+        { searchTerm: searchTerms[2], resultNoteAndLinesArr: mustArr, resultCount: 4 },
       ]
       const expectedLineBasedOutput: resultOutputType = { // For TERM1, -TERM2, +TERM3 matching *lines*
         searchTermsRep: "TERM1 -TERM2 +TERM3",
-        resultNoteAndLines: [
+        resultNoteAndLinesArr: [
           { noteFilename: 'file4', lines: ['4.2 includes TERM3', '4.3 also has TERM3'] },
           { noteFilename: 'file5', lines: ['5.1 includes TERM1', '5.2 includes TERM3'] },
           { noteFilename: 'file6', lines: ['6.1 includes TERM1', '6.3 has TERM3', '6.4 TERM3 has gone "(*$&(*%^" and with TERM1'] },
