@@ -1,3 +1,4 @@
+/* global describe, test, expect */
 import colors from 'chalk'
 import * as tt from '../src/tagTasks'
 
