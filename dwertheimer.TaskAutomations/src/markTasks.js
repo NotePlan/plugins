@@ -24,7 +24,7 @@ async function setTasks(dir) {
     }
     if (dir === 'openToday' && para.type === 'open') {
       para.content = para.content.replace(/ *>today/gm, '').replace(/ *\@done\(.*\)/gm, '')
-      para.content = para.content + ' >today'
+      para.content = `${para.content  } >today`
     }
     Editor.updateParagraph(para)
   })

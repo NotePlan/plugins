@@ -1,5 +1,6 @@
 // @flow
 import { endOfDay, startOfDay, eachMinuteOfInterval, formatISO9075, addMinutes, differenceInMinutes } from 'date-fns'
+import type { SortableParagraphSubset } from "../../helpers/sorting"
 import type { IntervalMap, OpenBlock, BlockArray, TimeBlocksWithMap, BlockData, TimeBlockDefaults, PartialCalendarItem, ExtendedParagraph } from './timeblocking-flow-types'
 import type { AutoTimeBlockingConfig } from './config'
 import { getDateObjFromDateTimeString, getTimeStringFromDate, getTodaysDateHyphenated, removeDateTagsAndToday } from '@helpers/dateTime'
@@ -7,7 +8,6 @@ import { sortListBy } from '@helpers/sorting'
 import { returnNoteLink, createPrettyOpenNoteLink } from '@helpers/general'
 import { textWithoutSyncedCopyTag } from '@helpers/syncedCopies'
 import { logError, JSP, copyObject, clo, logDebug } from '@helpers/dev'
-import type { SortableParagraphSubset } from "../../helpers/sorting";
 
 // import { timeblockRegex1, timeblockRegex2 } from '../../helpers/markdown-regex'
 
@@ -511,7 +511,7 @@ export function findTodosInNote(note: TNote): Array<ExtendedParagraph> {
   if (note.paragraphs) {
     note.paragraphs.forEach((p) => {
       if (isTodayItem(p.content) && p.type !== 'done') {
-        const newP = p.duplicate ? p.duplicate() : p
+        const newP = copyObject(p)
         newP.type = 'open' // Pretend it's a todo even if it's text or a listitem
         // $FlowIgnore
         newP.title = (p.filename ?? '').replace('.md', '').replace('.txt', '')

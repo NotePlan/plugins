@@ -142,12 +142,12 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         Editor.note.backlinks = []
       })
       test('should find todos in the Editor note', async () => {
-        const paras = [new Paragraph({ content: 'line1 >today', type: 'open' })]
+        const paras = [new Paragraph({ content: 'line1 >today', type: 'open' }), new Paragraph({ content: 'this is not today content', type: 'open' })]
         const noteWas = Editor.note
         Editor.note.backlinks = []
         Editor.note.paragraphs = paras
         const result = await mainFile.getTodaysReferences()
-        expect(result).toEqual(paras)
+        expect(result[0].content).toEqual(paras[0].content)
         Editor.note = noteWas
       })
     })

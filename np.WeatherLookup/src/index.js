@@ -14,8 +14,8 @@
 // including so rollup will trigger build when plugin.json is modified
 
 import pluginJson from '../plugin.json'
-import { isWeatherKeyValid } from '../src/support/weather-utils'
-import { showMessage } from '@helpers/userInput'
+// import { isWeatherKeyValid } from '../src/support/weather-utils'
+// import { showMessage } from '@helpers/userInput'
 
 // updateSettingsData will execute whenever your plugin is installed or updated
 import { updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'

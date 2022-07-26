@@ -1,4 +1,5 @@
 // Jest testing docs: https://jestjs.io/docs/using-matchers
+/* global describe, test, expect */
 
 import * as helpers from '../src/support/helpers'
 

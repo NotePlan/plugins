@@ -2,7 +2,7 @@
 // TODO: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat
 
 import strftime from 'strftime'
-import { format as dateFormat, formatDistance, formatRelative, subDays, startOfWeek, endOfWeek, lightFormat } from 'date-fns'
+import { format as dateFormat, startOfWeek, endOfWeek } from 'date-fns'
 import { hyphenatedDateString, getFormattedTime } from '../../helpers/dateTime'
 import { getTagParamsFromString } from '../../helpers/general'
 import { showMessage } from '../../helpers/userInput'
@@ -34,7 +34,7 @@ function asDateConfig(obj: mixed): ?DateConfig {
   }
 }
 
-async function getDateConfig(): Promise<DateConfig> {
+function getDateConfig(): DateConfig {
   const config = DataStore.settings
   const dateConfig = asDateConfig(config)
   if (dateConfig) {
@@ -62,9 +62,9 @@ async function getDateConfig(): Promise<DateConfig> {
  * Create a list of options for combinations of date & time formats
  * @returns [{allDateOptions}] props: dateStyle, timeStyle, label, text (to be inserted if chosen)
  */
-async function getFormattedDateTime() {
+function getFormattedDateTime() {
   // pull options and create options for various dateStyles and timeStyles
-  const dateConfig = await getDateConfig()
+  const dateConfig = getDateConfig()
   const dateStyles = ['short', 'medium', 'long'] // pulling out 'full' for now
   const timeStyles = ['', 'short', 'medium', 'long'] // pulling out 'full' for now
   const hour12 = [false, true]
@@ -72,6 +72,7 @@ async function getFormattedDateTime() {
   const format = dateConfig?.format ? dateConfig.format : '%Y-%m-%d %I:%M:%S %P'
 
   // Pluck all values except `dateStyle` and `timeStyle`
+  // eslint-disable-next-line no-unused-vars
   const { dateStyle: _1, timeStyle: _2, ...config } = { ...dateConfig }
 
   // Get user default locale
@@ -133,21 +134,22 @@ async function getFormattedDateTime() {
 }
 
 // /iso
-export async function insertISODate() {
+export function insertISODate() {
   const nowISO = new Date().toISOString()
   Editor.insertTextAtCursor(nowISO)
 }
 
 // /date
-export async function insertDate() {
-  const { timeStyle: _, ...dateConfig } = await getDateConfig()
+export function insertDate() {
+  // eslint-disable-next-line no-unused-vars
+  const { timeStyle: _, ...dateConfig } = getDateConfig()
   const dateText = new Intl.DateTimeFormat(dateConfig.locale, dateConfig).format()
   Editor.insertTextAtCursor(dateText)
 }
 
 // /now
-export async function insertDateTime() {
-  const _dateConfig = await getDateConfig()
+export function insertDateTime() {
+  const _dateConfig = getDateConfig()
   const dateConfig = {
     ..._dateConfig,
     dateStyle: _dateConfig.dateStyle ?? 'full',
@@ -162,13 +164,14 @@ export function get8601String(): string {
 }
 
 // /now
-export async function insertDateTime8601() {
+export function insertDateTime8601() {
   Editor.insertTextAtCursor(`${strftime(`%Y-%m-%d %H:%M`)}`)
 }
 
 // /time
-export async function insertTime() {
-  const { dateStyle: _, ...dateConfig } = await getDateConfig()
+export function insertTime() {
+  // eslint-disable-next-line no-unused-vars
+  const { dateStyle: _, ...dateConfig } = getDateConfig()
   const editableConfig = { ...dateConfig }
   if (!editableConfig.timeStyle) editableConfig.timeStyle = 'medium'
 
@@ -183,7 +186,7 @@ export function insertCalendarNoteLink() {
 
 // /dp
 export async function dateFormatPicker() {
-  const dateChoices = await getFormattedDateTime()
+  const dateChoices = getFormattedDateTime()
 
   const re = await CommandBar.showOptions(
     dateChoices.map((d) => d.label),
@@ -193,7 +196,7 @@ export async function dateFormatPicker() {
 }
 
 // /formatted
-export async function insertStrftime() {
+export function insertStrftime() {
   const dateConfig = DataStore.settings
   const format = dateConfig?.format ? dateConfig.format : '%Y-%m-%d %I:%M:%S %P'
   const strftimeFormatted = strftime(format)

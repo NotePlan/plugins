@@ -2,8 +2,7 @@
 // @flow
 
 import pluginJson from '../plugin.json'
-import { sortListBy } from '../../helpers/sorting'
-import { getTasksByType } from '@helpers/sorting'
+import { sortListBy , getTasksByType } from '../../helpers/sorting'
 
 import { clo, JSP, log, logError, logDebug, timer } from '@helpers/dev'
 import { inFolderList } from '@helpers/general'

@@ -7,8 +7,7 @@ import { chooseOption, showMessageYesNo } from '../../helpers/userInput'
 import { default as sweepNote, type ReturnStatus } from '../../nmn.sweep/src/sweepNote'
 import { getTagParamsFromString } from '../../helpers/general'
 import { removeHeadingFromNote } from '../../helpers/NPParagraph'
-import { sortListBy } from '../../helpers/sorting'
-import { getTasksByType, TASK_TYPES } from '@helpers/sorting'
+import { sortListBy , getTasksByType, TASK_TYPES } from '../../helpers/sorting'
 import {logDebug} from '@helpers/dev'
 
 // Note: not currently using getOverdueTasks from taskHelpers (because if it's open, we are moving it)

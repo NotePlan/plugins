@@ -14,10 +14,10 @@
 // From the command line:
 // `noteplan-cli plugin:dev dwertheimer.JestHelpers --test --watch --coverage`
 
+import pluginJson from '../plugin.json'
 import * as helpers from './support/helpers'
 import { log, logError, clo, JSP, getFilteredProps } from '@helpers/dev'
 import { createRunPluginCallbackUrl } from '@helpers/general'
-import pluginJson from '../plugin.json'
 import { getInput } from '@helpers/userInput'
 
 /**
@@ -29,7 +29,7 @@ import { getInput } from '@helpers/userInput'
 function createMockOutput(object: any, name: string): void {
   // log(`NPdev::createMockOutput object type is: `, `${typeof object}`)
   const props = getFilteredProps(object).sort()
-  let output = props.map((prop) => {
+  const output = props.map((prop) => {
     let propType,
       value = ''
     if (typeof object[prop] === 'object') {
@@ -104,7 +104,7 @@ export class ${name} {
 
 export function createMockClass(object: any, name: string): void {
   log(`NPdev::createMockOutput object type is: `, `${typeof object}`)
-  let classProps = [],
+  const classProps = [],
     classMethods = []
   const properties = getFilteredProps(object).sort()
   properties.forEach((prop) => {
