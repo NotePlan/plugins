@@ -1399,6 +1399,15 @@ declare interface CoreNoteFields {
    */
   filename: string;
   /**
+   * Renames the note. You can also define a folder path. The note will be moved to that folder and the folder will be automatically created.
+   * If the filename already exists, a number will be appended. If the filename begins with ".", it will be removed.
+   * It returns the actual filename.
+   * Note: Available from v3.6.1
+   * @param {String} newFilename requested
+   * @returns {String} actualFilename
+  */
+rename(newFilename: string): string;
+  /**
    * Get or set the raw text of the note (without hiding or rendering any Markdown).
    * If you set the content, NotePlan will write it immediately to file.
    * If you get the content, it will be read directly from the file.
