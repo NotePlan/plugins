@@ -12,7 +12,33 @@
 - an API call for this that also allows restricting search to one or more paragraph types (e.g. 'open' for incomplete tasks), through the last parameter on `runSearchV2(...)`.
 - provides x-callback entry points for these searches -- see README for details.
 
-**Notes for beta3** (2022-07-???):
+<!--
+**Notes for beta5** (2022-08-???):
+- [ ] tested /saveSearchNotes  -- still writing quickSearch in URL
+  - [ ] can repeat same note with different terms
+  - [ ] can cope with nil results
+  - [x] can use noteType parameter/s
+- [ ] tested /saveSearchInPeriod
+  - [ ] can repeat same note with different notes:
+    - [ ] new param on writeResults()?
+    - [ ] destination changes to Quick
+  - [ ] can use noteType parameter
+  - [ ] can cope with nil results
+- [ ] tested /saveSearchCalendar
+  - [ ] can repeat same note with different notes:
+  - [ ] can use noteType parameter
+  - [ ] can cope with nil results
+- [ ] tested /quickSearch
+  - [ ] can repeat to same note
+  - [ ] can use noteType parameter
+  - [ ] can cope with nil results
+-->
+**Notes for beta4** (2022-07-30):
+- [x] NP-style always start with the leading markdown
+- [x] blockIDs are now removed via new simplifyRawContent() function
+- [x] trimAndHighlightTermInLine() now supports multiple search terms
+
+**Notes for beta3** (2022-07-26):
 - still only really tested the /quickSearch command so far, but carried over most new logic to /saveSearchPeriod too
 - - added a "Style for search results" setting. This chooses the style to use:
   - Normal "NotePlan" styling, tweaked slightly for matching headings
@@ -29,8 +55,9 @@
 - I've only really tested the /quickSearch command so far
 
 **Still TODO:**:
-- resolve API question about multi-word search phrases
+- fix 
 - finish test for applySearchOperators
+- resolve API question about multi-word search phrases
 - support `"multi-word terms"`
 - decide whether to support case insensitivity option still
 - decide whether to support showEmptyResults option still, or just turn on?

@@ -10,9 +10,9 @@ import { formatISO9075 } from 'date-fns'
 import { log, logError, logWarn } from './dev'
 
 export const RE_DATE = '\\d{4}-[01]\\d-\\d{2}' // find ISO dates of form YYYY-MM-DD
-export const RE_ISO_DATE = '\\d{4}-[01]\\d-[012]\\d' // find ISO dates of form YYYY-MM-DD (slightly stricter)
-export const RE_SCHEDULED_ISO_DATE = '>\\d{4}-[01]\\d-[012]\\d' // find scheduled dates of form >YYYY-MM-DD
-export const RE_YYYYMMDD_DATE = '\\d{4}[01]\\d[012]\\d' // find dates of form YYYYMMDD
+export const RE_ISO_DATE = '\\d{4}-[01]\\d-[0123]\\d' // find ISO dates of form YYYY-MM-DD (stricter)
+export const RE_SCHEDULED_ISO_DATE = '>\\d{4}-[01]\\d-[0123]\\d' // find scheduled dates of form >YYYY-MM-DD
+export const RE_YYYYMMDD_DATE = '\\d{4}[01]\\d[0123]\\d' // find dates of form YYYYMMDD
 export const RE_TIME = '[0-2]\\d{1}:[0-5]\\d{1}\\s?(?:AM|PM|am|pm)?' // find '12:23' with optional '[ ][AM|PM|am|pm]'
 export const RE_DATE_INTERVAL = `[+\\-]?\\d+[bdwmqy]`
 export const RE_OFFSET_DATE = `{\\^?${RE_DATE_INTERVAL}}`

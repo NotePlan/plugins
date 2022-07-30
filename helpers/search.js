@@ -85,19 +85,41 @@ export function isMentionWanted(mentionToTest: string,
 }
 
 /**
- * Take a line's .rawContent and remove leading metadata markers (not quite the same as .content)
+ * Take a line's .rawContent and return any starting metadata markers
+ * for open/closed/cancelled/sched tasks, quotes, lists, headings (not quite the same as .content)
+ * @author @jgclark
+ * @param {string} input
+ * @returns {string} simplified output
+ * @tests in jest file
+ */
+export function getLineMainContentPos(input: string): number {
+  // const trimmed = input.trim()
+  // const res = input.match(/^((?:#{1,5}\s+|[*\-]\s(?:\[[ x\->]\]\s+)?|>\s+)).*/) // regex which needs input left trimming first
+  const res = input.match(/^(\s*(?:\#{1,5}\s+|(?:[*\-]\s(?:\[[ x\->]\])?|>))\s*)/) // regex which doesn't need input left trimming first
+  if (res) {
+    return res[0].length
+  } else {
+    return 0
+  }
+}
+
+/**
+ * Take a line and simplify if needed.
+ * Note: this is currently a null transform.
+ * Note: a different function deals with start-of-line Markdown markers (for open/closed/cancelled/sched tasks, quotes, lists, headings).
+ * Also trim the output.
+ * @author @jgclark
  * @param {string} input 
  * @returns {string} simplified output
+ * @tests in jest file
  */
 export function simplifyRawContent(input: string): string {
-  const trimmed = input.trim()
-
-  const res = trimmed.match(/^(?:#{1,5}\s+|\s*[*-] \[[ x\->]\]\s+|\s*\*\s+|\s*-\s+|\s*>\s+)(.*)/)
-  if (res) {
-    return res[1].trim()
-  } else {
-    return trimmed
-  }
+  let output = input
+  // Remove blockIDs (which otherwise can mess up the other sync'd copies)
+  output = output.replace(/\^[A-z0-9]{6}([^A-z0-9]|$)/g, '')
+  // Trim whitespace at start/end
+  output = output.trim()
+  return output
 }
 
 /**
@@ -119,22 +141,31 @@ export function trimAndHighlightTermInLine(
   input: string,
   terms: Array<string>,
   simplifyLine: boolean,
-  resultPrefix: string,
   addHighlight: boolean,
+  resultPrefix: string = '- ',
   maxChars: number = 0
 ): string {
-  let output = input
-  // First simplify rawContent line by trimming off leading chars
+  let output = ''
+
+  // Take off starting markdown markers, and right trim
+  const startOfMainLineContentPos = getLineMainContentPos(input)
+  const startOfLineMarker = input.slice(0, startOfMainLineContentPos)
+  let mainPart = input.slice(startOfMainLineContentPos)
+
   if (simplifyLine) {
-    output = resultPrefix + simplifyRawContent(input)
+    // Simplify rawContent line by trimming off leading chars
+    mainPart = simplifyRawContent(mainPart)
+  } else {
+    // or at least right trim
+    mainPart = mainPart.trimRight()
   }
   // Now trim the line content if necessary
-  if (maxChars > 0 && output.length > maxChars) {
+  if (maxChars > 0 && mainPart.length > maxChars) {
     // this split point ensures we put the term with a little more context before it than after it
     const LRSplit = Math.round(maxChars * 0.55)
     // regex:
     const re = new RegExp(`(?:^|\\b)(.{0,${String(LRSplit)}}${terms.join('|')}.{0,${String(maxChars - LRSplit)}})\\b\\w+`, "gi")
-    const matches = output.match(re) ?? [] // multiple matches
+    const matches = mainPart.match(re) ?? [] // multiple matches
     if (matches.length > 0) {
       // If we have more than 1 match in the line, join the results together with '...'
       output = matches.join(' ...')
@@ -143,7 +174,7 @@ export function trimAndHighlightTermInLine(
         output = `...${output}`
       }
       // If we now have a shortened string, then (it's approximately right that) we have trimmed off the end, so append '...'
-      if (output.length < input.length) {
+      if (output.length < mainPart.length) {
         output = `${output} ...`
       }
       //
@@ -152,8 +183,13 @@ export function trimAndHighlightTermInLine(
       output = (output.length >= maxChars) ? output.slice(0, maxChars) : output
     }
   } else {
-    // just pass input through to output
+    // just pass mainPart through to output:
+    output = mainPart
   }
+
+  // Now add on the appropriate prefix
+  output = ((simplifyLine) ? resultPrefix : startOfLineMarker) + output
+
   // Add highlighting if wanted (using defined Regex so can use 'g' flag)
   // (A simple .replace() command doesn't work as it won't keep capitalisation)
   if (addHighlight) {
@@ -167,7 +203,7 @@ export function trimAndHighlightTermInLine(
       const rightPos = leftPos + tm[0].length // as terms change have to get feedback from this match
       const highlitOutput = `${output.slice(0, leftPos)}==${output.slice(leftPos, rightPos)}==${output.slice(rightPos,)}`
       output = highlitOutput
-      logDebug('trimAndHighlight()', `highlight ${highlitOutput}`)
+      // logDebug('trimAndHighlight()', `highlight ${highlitOutput}`)
       offset += 4
     }
   }

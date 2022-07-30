@@ -5,6 +5,7 @@
 // Last updated 22.7.2022 for v0.5.0 by @jgclark
 //-----------------------------------------------------------------------------
 
+import * as note from "../../helpers/note";
 import pluginJson from '../plugin.json'
 import { formatNoteDate, nowLocaleDateTime, toISOShortDateTimeString } from '@helpers/dateTime'
 import { clo, copyObject, log, logDebug, logError, logWarn, timer } from '@helpers/dev'
@@ -20,11 +21,11 @@ export type noteAndLines = {
   lines: Array<string>
 }
 
-export type resultObjectType = {
-  searchTerm: string,
-  resultLines: noteAndLines,
-  resultCount: number,
-}
+// export type resultObjectType = {
+//   searchTerm: string,
+//   resultLines: noteAndLines,
+//   resultCount: number,
+// }
 
 export type typedSearchTerm = {
   term: string, // (e.g. 'fixed')
@@ -38,11 +39,11 @@ export type resultObjectTypeV2 = {
   resultCount: number,
 }
 
-export type resultOutputType = {
-  searchTermsRep: string,
-  resultNoteAndLinesArr: Array<noteAndLines>,
-  resultCount: number,
-}
+// export type resultOutputType = {
+//   searchTermsRep: string,
+//   resultNoteAndLinesArr: Array<noteAndLines>,
+//   resultCount: number,
+// }
 
 export type resultOutputTypeV2 = {
   searchTermsRepArr: Array<string>,
@@ -74,6 +75,7 @@ export type SearchConfig = {
   searchHeading: string,
   groupResultsByNote: boolean,
   sortOrder: string,
+  resultStyle: string,
   resultPrefix: string,
   resultQuoteLength: number,
   highlightResults: boolean,
@@ -115,17 +117,17 @@ export async function getSearchSettings(): Promise<any> {
 * @tests in jest file
 */
 export function normaliseSearchTerms(searchArg: string): Array<string> {
-  logDebug("normaliseSearchTerms()", `starting for <${searchArg}>`)
+  logDebug("normaliseSearchTerms()", `starting for [${searchArg}]`)
   let outputArray = []
   // Take a simple string and process it to turn into an array of string, according to one of several schemes:
   if (!searchArg.match(/\w{3,}/)) {
     // this has no words (at least 3 long) -> empty
-    logWarn(pluginJson, `No valid words found in '${searchArg}'`)
+    logWarn(pluginJson, `No valid words found in [${searchArg}]`)
     return []
   }
   if (searchArg.match(/\s[\+\-\!]\s/)) {
     // this has free-floating operators -> error
-    logWarn(pluginJson, `Search string not valid: unattached search operators found in '${searchArg}'`)
+    logWarn(pluginJson, `Search string not valid: unattached search operators found in [${searchArg}]`)
     return []
   }
 
@@ -163,10 +165,10 @@ export function normaliseSearchTerms(searchArg: string): Array<string> {
         outputArray.push(`${r[1] ?? ''}${r[4] ?? ''}${r[5] ?? ''}`)
       }
     } else {
-      logWarn(pluginJson, `Failed to find valid search terms found in '${searchArg}' despite regex magic`)
+      logWarn(pluginJson, `Failed to find valid search terms found in [${searchArg}] despite regex magic`)
     }
   }
-  if (outputArray.length === 0) logWarn(pluginJson, `No valid search terms found in '${searchArg}'`)
+  if (outputArray.length === 0) logWarn(pluginJson, `No valid search terms found in [${searchArg}]`)
 
   return outputArray
 }
@@ -185,7 +187,6 @@ export function validateAndTypeSearchTerms(searchArg: string): Array<typedSearch
     // TODO: tell user
     logError(pluginJson, `No search terms submitted. Stopping.`)
   }
-  logDebug('validate...', `noramlised search terms: <${normalisedTerms.join('/')}>`)
 
   // Now validate the terms, weeding out short ones, and typing the rest
   const validatedTerms: Array<typedSearchTerm> = []
@@ -325,15 +326,15 @@ export function differenceByInnerArrayLine(arr: $ReadOnlyArray<noteAndLines>, ex
  * Work out what subset of results to return, using the must/may/not terms
  * @param {Array<resultObjectTypeV2>}
  * @param {boolean}
- * @return {resultOutputType}
+ * @return {resultOutputTypeV2}
  * @tests in jest file
  */
-export function applySearchOperators(termsResults: Array<resultObjectTypeV2>): resultOutputType {
+export function applySearchOperators(termsResults: Array<resultObjectTypeV2>): resultOutputTypeV2 {
   // const searchTermsRep = getSearchTermsRep(termsResults.map((t) => t.searchTerm))
   const mustResultObjects: Array<resultObjectTypeV2> = termsResults.filter((t) => t.searchTerm.type === 'must')
   const mayResultObjects: Array<resultObjectTypeV2> = termsResults.filter((t) => t.searchTerm.type === 'may')
   const notResultObjects: Array<resultObjectTypeV2> = termsResults.filter((t) => t.searchTerm.type.startsWith('not'))
-  log('applySearchOperators', `Starting with ${mustResultObjects.length} must terms; ${mayResultObjects.length} may terms; ${notResultObjects.length} not terms.`)
+  logDebug('applySearchOperators', `Starting with ${mustResultObjects.length} must terms; ${mayResultObjects.length} may terms; ${notResultObjects.length} not terms.`)
 
   // clo(termsResults, 'resultObjectV2: ')
   let consolidatedNotesAndLines: Array<noteAndLines> = []
@@ -464,7 +465,7 @@ export function applySearchOperators(termsResults: Array<resultObjectTypeV2>): r
  * @param {Array<string>} foldersToExclude (can be empty list)
  * @param {SearchConfig} config object for various settings
  * @param {Array<ParagraphType>?} typesToInclude optional list of paragraph types to include (e.g. 'open'). If not given, then no paragraph types will be excluded.
- * @returns {resultOutputType} results optimised for output
+ * @returns {resultOutputTypeV2} results optimised for output
  */
 export async function runSearchesV2(
   termsToMatchArr: Array<typedSearchTerm>,
@@ -478,10 +479,12 @@ export async function runSearchesV2(
     const termsResults: Array<resultObjectTypeV2> = []
     let resultCount = 0
     const outerStartTime = new Date()
+    logDebug(pluginJson, `runSearchesV2() starting with ${termsToMatchArr.length} search terms`)
 
     //------------------------------------------------------------------
     // Get results for each search term independently and save
     for (const typedSearchTerm of termsToMatchArr) {
+      logDebug(pluginJson, `searching for term [${typedSearchTerm.termRep}] ...`)
       const innerStartTime = new Date()
 
       // do search for this search term, using configured options
@@ -490,10 +493,10 @@ export async function runSearchesV2(
       // Save this search term and results as a new object in results array
       termsResults.push(resultObjectV2)
       resultCount += resultObjectV2.resultCount
-      log(pluginJson, `- search (API): ${timer(innerStartTime)} for '${typedSearchTerm.termRep}' -> ${resultObjectV2.resultCount} results`)
+      logDebug(pluginJson, `- search (API): ${timer(innerStartTime)} for '${typedSearchTerm.termRep}' -> ${resultObjectV2.resultCount} results`)
     }
 
-    log(pluginJson, `= Total Search (API): ${timer(outerStartTime)} for ${termsToMatchArr.length} searches -> ${resultCount} results`)
+    logDebug(pluginJson, `= Total Search (API): ${timer(outerStartTime)} for ${termsToMatchArr.length} searches -> ${resultCount} results`)
 
     //------------------------------------------------------------------
     // Work out what subset of results to return, taking into the must/may/not terms
@@ -536,6 +539,7 @@ export async function runSearchV2(
     const outputArray = []
     const headingMarker = '#'.repeat(config.headingLevel)
     const searchTerm = typedSearchTerm.term
+    logDebug(pluginJson, `runSearchV2() starting for [${searchTerm}]`)
 
     // get list of matching paragraphs for this string
     CommandBar.showLoading(true, `Running search for ${typedSearchTerm.termRep} ...`)
@@ -556,7 +560,7 @@ export async function runSearchV2(
           filename: note?.filename ?? '<error>',
           changedDate: note?.changedDate,
           createdDate: note?.createdDate,
-          title: displayTitle(note), // FIXME: add details here?
+          title: displayTitle(note),
           type: p.type,
           content: p.content,
           // modify rawContent slightly by turning ## headings into **headings** to make output nicer
@@ -593,14 +597,13 @@ export async function runSearchV2(
       logDebug(pluginJson, `- Will use sortKeys: [${String(sortKeys)}] from ${config.sortOrder}`)
       const sortedFieldSets: Array<reducedFieldSet> = sortListBy(resultFieldSets, sortKeys)
       // const sortedFieldSets: Array<reducedFieldSet> = resultFieldSets.slice()
-
+      clo(sortedFieldSets[0], 'sFS[0] ')
       // Form the return object from sortedFieldSets
       let previousMatchFilename = sortedFieldSets[0].filename
       let tempLineArr = []
       for (let i = 0; i < sortedFieldSets.length; i++) {
         const thisObj = sortedFieldSets[i]
         let thisMatchFilename = thisObj.filename
-        // TODO: here an option for simpler output
         let thisMatchLine = thisObj.rawContent
 
         // If this is a new note, then write the previous note's details to output array
@@ -622,7 +625,7 @@ export async function runSearchV2(
       outputArray.push('(no matches)')
     }
 
-    log(pluginJson, `- end of runSearchV2 for '${searchTerm}': ${resultCount} results and ${noteAndLinesArr.length.toString()} nALA items`)
+    logDebug(pluginJson, `- end of runSearchV2 for '${searchTerm}': ${resultCount} results and ${noteAndLinesArr.length.toString()} nALA items`)
 
     const returnObject: resultObjectTypeV2 = {
       searchTerm: typedSearchTerm,
@@ -666,14 +669,6 @@ export async function writeSearchResultsToNote(
   resultSet: resultOutputTypeV2,
   requestedTitle: string,
   config: SearchConfig,
-  // folderToStore: string,
-  // resultStyle: string,
-  // headingLevel: number,
-  // groupResultsByNote: boolean,
-  // resultPrefix: string,
-  // highlightResults: boolean,
-  // resultQuoteLength: number,
-  // calledIndirectly: boolean,
   xCallbackURL: string = '',
 ): Promise<string> {
   try {
@@ -683,29 +678,14 @@ export async function writeSearchResultsToNote(
     const headingMarker = '#'.repeat(config.headingLevel)
     const searchTermsRepStr = resultSet.searchTermsRepArr.join(' ')
     const xCallbackLine = (xCallbackURL !== '') ? ` [🔄 Click to refresh results for '${searchTermsRepStr}'](${xCallbackURL})` : ''
-    const resultOutputLines: Array<string> = []
 
-    const simplifyLine = (config.resultStyle === 'Simplified')
     // Get array of 'may' or 'must' search terms
     const mayOrMustTerms = resultSet.searchTermsRepArr.filter((f) => f[0] !== '-')
+
     // Add each result line to output array
-    for (const rnal of resultSet.resultNoteAndLinesArr) {
-      if (config.groupResultsByNote) {
-        // Write each line without transformation, grouped by Note, with Note headings inserted accordingly
-        resultOutputLines.push(`${headingMarker} ${getNoteTitleFromFilename(rnal.noteFilename, true)}`)
-        for (const origLine of rnal.lines) {
-          const outputLine = trimAndHighlightTermInLine(origLine, mayOrMustTerms, simplifyLine, config.resultPrefix, config.highlightResults, config.resultQuoteLength)
-          resultOutputLines.push(outputLine)
-        }
-      } else {
-        // Write each line, first transforming it to add context on the end, and make other changes according to what the user has configured
-        for (const origLine of rnal.lines) {
-          const outputLine = trimAndHighlightTermInLine(origLine, mayOrMustTerms, simplifyLine, config.resultPrefix, config.highlightResults, config.resultQuoteLength) + getNoteContextAsSuffix(rnal.noteFilename, config.dateStyle)
-          resultOutputLines.push(outputLine)
-        }
-      }
-    }
+    const resultOutputLines: Array<string> = createFormattedResultLines(resultSet, config)
     let fullNoteContent = `# ${requestedTitle}\nat ${nowLocaleDateTime}${xCallbackLine}`
+
     // TODO: get count of lines too
     fullNoteContent += `\n${headingMarker} ${searchTermsRepStr} (results from ${resultSet.resultCount} notes)\n${resultOutputLines.join('\n')}`
 
@@ -723,7 +703,7 @@ export async function writeSearchResultsToNote(
       // make a new note for this. NB: filename here = folder + filename
       noteFilename = DataStore.newNoteWithContent(fullNoteContent, config.folderToStore, requestedTitle)
       if (!noteFilename) {
-        logError(pluginJson, `Error create new search note with requestedTitle '${requestedTitle}'`)
+        logError(pluginJson, `Error creating new search note with requestedTitle '${requestedTitle}'`)
         await showMessage('There was an error creating the new search note')
         return '' // for completeness
       }
@@ -737,4 +717,32 @@ export async function writeSearchResultsToNote(
     logError(pluginJson, err.message)
     return 'error' // for completeness
   }
+}
+
+export function createFormattedResultLines(resultSet: resultOutputTypeV2, config: SearchConfig): Array<string> {
+  const resultOutputLines: Array<string> = []
+  const headingMarker = '#'.repeat(config.headingLevel)
+  const simplifyLine = (config.resultStyle === 'Simplified')
+
+  //TODO: when NP-style, need to be smarter about the trimming
+  // Get array of 'may' or 'must' search terms
+  const mayOrMustTerms = resultSet.searchTermsRepArr.filter((f) => f[0] !== '-')
+  // Add each result line to output array
+  for (const rnal of resultSet.resultNoteAndLinesArr) {
+    if (config.groupResultsByNote) {
+      // Write each line without transformation, grouped by Note, with Note headings inserted accordingly
+      resultOutputLines.push(`${headingMarker} ${getNoteTitleFromFilename(rnal.noteFilename, true)}`)
+      for (const origLine of rnal.lines) {
+        const outputLine = trimAndHighlightTermInLine(origLine, mayOrMustTerms, simplifyLine, config.highlightResults, config.resultPrefix, config.resultQuoteLength)
+        resultOutputLines.push(outputLine)
+      }
+    } else {
+      // Write each line, first transforming it to add context on the end, and make other changes according to what the user has configured
+      for (const origLine of rnal.lines) {
+        const outputLine = trimAndHighlightTermInLine(origLine, mayOrMustTerms, simplifyLine, config.highlightResults, config.resultPrefix, config.resultQuoteLength) + getNoteContextAsSuffix(rnal.noteFilename, config.dateStyle)
+        resultOutputLines.push(outputLine)
+      }
+    }
+  }
+  return resultOutputLines
 }

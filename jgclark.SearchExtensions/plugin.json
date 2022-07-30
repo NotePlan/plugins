@@ -90,19 +90,7 @@
   "plugin.settings": [
     {
       "type": "heading",
-      "title": "Search term settings"
-    },
-    {
-      "key": "defaultSearchTerms",
-      "title": "Default Search terms",
-      "description": "Optional list of search terms to use to pre-populate the search term box.",
-      "type": "[string]",
-      "default": [
-        "idea",
-        "@review",
-        "#question"
-      ],
-      "required": false
+      "title": "Search Extensions settings"
     },
     {
       "type": "separator"
@@ -130,7 +118,7 @@
     {
       "key": "quickSearchResultsTitle",
       "title": "/quickSearch note title",
-      "description": "note title for results for/quickSearch",
+      "description": "note title for results for command /quickSearch",
       "type": "string",
       "default": "Quick Search Results",
       "required": true
@@ -264,7 +252,19 @@
     },
     {
       "type": "heading",
-      "title": "Debugging"
+      "title": "For Debugging"
+    },
+    {
+      "key": "defaultSearchTerms",
+      "title": "Default Search terms",
+      "description": "Optional list of search terms to use to pre-populate the search term box.",
+      "type": "[string]",
+      "default": [
+        "idea",
+        "@review",
+        "#question"
+      ],
+      "required": false
     },
     {
         "key": "_logLevel",
