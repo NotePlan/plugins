@@ -1,5 +1,5 @@
 // Jest testing docs: https://jestjs.io/docs/using-matchers
-/* global describe, test, jest, expect, beforeEach, beforeAll */
+/* global describe, test, beforeEach, beforeAll */
 
 import * as mainFile from '../src/NPEventBlocks'
 import { copyObject } from '@helpers/dev'

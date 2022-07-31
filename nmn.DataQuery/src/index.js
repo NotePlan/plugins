@@ -15,12 +15,12 @@ export async function openTestHTML() {
     if (paragraph.type === 'code') {
       console.log('in code block')
       if (inCodeBlock) {
-        queryString += paragraph.content + '\n'
+        queryString += `${paragraph.content  }\n`
       } else if (paragraph.content.startsWith('```javascript')) {
         console.log('found start of codeblock')
         inCodeBlock = true
       } else {
-        console.log('Huh!' + paragraph.content)
+        console.log(`Huh!${  paragraph.content}`)
       }
     } else {
       if (inCodeBlock) {
@@ -59,5 +59,5 @@ export async function openTestHTML() {
     return
   }
 
-  NotePlan.openURL('shortcuts://x-callback-url/run-shortcut?name=ShowHTML&input=' + encodeURIComponent(`<html><body><pre>${html}</pre></body></html>`))
+  NotePlan.openURL(`shortcuts://x-callback-url/run-shortcut?name=ShowHTML&input=${  encodeURIComponent(`<html><body><pre>${html}</pre></body></html>`)}`)
 }

@@ -1,3 +1,4 @@
+/* global describe, test, expect */
 import utils from '../src/support/utils'
 
 describe('np.CallbackURLs' /* pluginID */, () => {

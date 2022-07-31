@@ -25,7 +25,7 @@ function getOrMadeDataFile() {
 }
 
 function getConfig(): ?TData {
-  let configFile = getOrMadeDataFile()
+  const configFile = getOrMadeDataFile()
   if (configFile == null) {
     return null
   }
@@ -39,9 +39,9 @@ function getConfig(): ?TData {
 }
 
 function setConfig(data: TData): null | void {
-  let configFile = getOrMadeDataFile()
+  const configFile = getOrMadeDataFile()
   if (configFile == null) {
     return null
   }
-  configFile.content = configFile.paragraphs[0].content + '\n\n```json\n' + JSON.stringify(data, null, 2) + '\n```\n'
+  configFile.content = `${configFile.paragraphs[0].content  }\n\n\`\`\`json\n${  JSON.stringify(data, null, 2)  }\n\`\`\`\n`
 }
