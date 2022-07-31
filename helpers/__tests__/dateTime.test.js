@@ -442,7 +442,7 @@ describe(`${PLUGIN_NAME}`, () => {
 * isValidCalendarNoteTitle()
 */
   describe('isValidCalendarNoteTitle()' /* function */, () => {
-    describe('passes' /* function */, () => {
+    describe('passes', () => {
     test('should work for iso date1 01-01', () => {
       const result = dt.isValidCalendarNoteTitle(`2020-01-01`)
       expect(result).toEqual(true)
@@ -463,8 +463,24 @@ describe(`${PLUGIN_NAME}`, () => {
       const result = dt.isValidCalendarNoteTitle(`2020-W49`)
       expect(result).toEqual(true)
     })
+      test('should work for week date W53', () => {
+        const result = dt.isValidCalendarNoteTitle(`2020-W53`)
+        expect(result).toEqual(true)
+      })
+      test('should work for week 10', () => {
+        const result = dt.isValidCalendarNoteTitle(`2021-W10`)
+        expect(result).toEqual(true)
+      })
+      test('should work for week 21', () => {
+        const result = dt.isValidCalendarNoteTitle(`2021-W21`)
+        expect(result).toEqual(true)
+      })
+      test('should work for week 39', () => {
+        const result = dt.isValidCalendarNoteTitle(`2021-W39`)
+        expect(result).toEqual(true)
+      })
   })
-    describe('fails' /* function */, () => {
+    describe('fails', () => {
       test('should fail for iso date1 01-1', () => {
         const result = dt.isValidCalendarNoteTitle(`2020-01-1`)
         expect(result).toEqual(false)
@@ -479,6 +495,14 @@ describe(`${PLUGIN_NAME}`, () => {
       })
       test('should fail for week date 21-W52', () => {
         const result = dt.isValidCalendarNoteTitle(`21-W52`)
+        expect(result).toEqual(false)
+      })
+      test('should fail for week 54', () => {
+        const result = dt.isValidCalendarNoteTitle(`2021-W54`)
+        expect(result).toEqual(false)
+      })
+      test('should fail for week 00', () => {
+        const result = dt.isValidCalendarNoteTitle(`2021-W00`)
         expect(result).toEqual(false)
       })
     })

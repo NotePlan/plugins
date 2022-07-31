@@ -614,4 +614,6 @@ export const isReallyAllDay = (parseDateReturnObj: any): boolean => {
  * @param {string} text 
  * @returns {boolean} whether it passes the @jgclark RegEx texts for date and week
  */
-export const isValidCalendarNoteTitle = (text: string): boolean => (new RegExp(`${RE_ISO_DATE}|${RE_WEEK_DATE}`).test(text))
+// export const isValidCalendarNoteTitle = (text: string): boolean => (new RegExp(`${RE_ISO_DATE}|${RE_WEEK_DATE}`).test(text))
+export const isValidCalendarNoteTitle = (text: string): boolean => (new RegExp("(([0-9]{4})-((0[1-9]|1[0-2])-(0[1-9]|1[0-9]|2[0-9]|3[0-1])|W0[1-9]|W[1-4]\\d|W5[0-3]))").test(text))
+
