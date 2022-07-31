@@ -11,6 +11,7 @@ import { log, logError, logWarn } from './dev'
 
 export const RE_DATE = '\\d{4}-[01]\\d-\\d{2}' // find ISO dates of form YYYY-MM-DD
 export const RE_ISO_DATE = '\\d{4}-[01]\\d-[012]\\d' // find ISO dates of form YYYY-MM-DD (slightly stricter)
+export const RE_WEEK_DATE = '\\d{4}-W[0-6]\\d([^\\d]|$)' // find weekly dates of form YYYY-Www (quite strict) 
 export const RE_SCHEDULED_ISO_DATE = '>\\d{4}-[01]\\d-[012]\\d' // find scheduled dates of form >YYYY-MM-DD
 export const RE_YYYYMMDD_DATE = '\\d{4}[01]\\d[012]\\d' // find dates of form YYYYMMDD
 export const RE_TIME = '[0-2]\\d{1}:[0-5]\\d{1}\\s?(?:AM|PM|am|pm)?' // find '12:23' with optional '[ ][AM|PM|am|pm]'
