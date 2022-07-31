@@ -607,3 +607,11 @@ export const isReallyAllDay = (parseDateReturnObj: any): boolean => {
     !/noon|at 12|@12|@ 12|midday/.test(parseDateReturnObj.text)
   )
 }
+
+
+/**
+ * Validate if a string can be used to pull up a calendar note (2020-01-01 or 2020-W01 and hopefully month, year in the future)
+ * @param {string} text 
+ * @returns {boolean} whether it passes the @jgclark RegEx texts for date and week
+ */
+export const isValidCalendarNoteTitle = (text: string): boolean => (new RegExp(`${RE_ISO_DATE}|${RE_WEEK_DATE}`).test(text))

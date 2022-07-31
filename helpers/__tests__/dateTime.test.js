@@ -9,7 +9,6 @@ const PLUGIN_NAME = `📙 ${colors.yellow('helpers/dateTime')}`
 const section = colors.blue
 
 describe(`${PLUGIN_NAME}`, () => {
-  describe(section('dateTime.js'), () => {
     describe('getDateObjFromDateString', () => {
       test('fail with empty string', () => {
         expect(dt.getDateObjFromDateString('')).toEqual(undefined)
@@ -439,5 +438,49 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result).toEqual({ year: 2020, week: 2 })
       })
     })
+  /*
+* isValidCalendarNoteTitle()
+*/
+  describe('isValidCalendarNoteTitle()' /* function */, () => {
+    describe('passes' /* function */, () => {
+    test('should work for iso date1 01-01', () => {
+      const result = dt.isValidCalendarNoteTitle(`2020-01-01`)
+      expect(result).toEqual(true)
+    })
+    test('should work for iso date with 12-31', () => {
+      const result = dt.isValidCalendarNoteTitle(`2020-12-21`)
+      expect(result).toEqual(true)
+    })
+    test('should work for week date W01', () => {
+      const result = dt.isValidCalendarNoteTitle(`2020-W01`)
+      expect(result).toEqual(true)
+    })
+    test('should work for week date W52', () => {
+      const result = dt.isValidCalendarNoteTitle(`2020-W52`)
+      expect(result).toEqual(true)
+    })
+    test('should work for week date W49', () => {
+      const result = dt.isValidCalendarNoteTitle(`2020-W49`)
+      expect(result).toEqual(true)
+    })
   })
-})
+    describe('fails' /* function */, () => {
+      test('should fail for iso date1 01-1', () => {
+        const result = dt.isValidCalendarNoteTitle(`2020-01-1`)
+        expect(result).toEqual(false)
+      })
+      test('should fail for iso date with 13-31', () => {
+        const result = dt.isValidCalendarNoteTitle(`2020-13-31`)
+        expect(result).toEqual(false)
+      })
+      test('should fail for week date W1', () => {
+        const result = dt.isValidCalendarNoteTitle(`2020-W1`)
+        expect(result).toEqual(false)
+      })
+      test('should fail for week date 21-W52', () => {
+        const result = dt.isValidCalendarNoteTitle(`21-W52`)
+        expect(result).toEqual(false)
+      })
+    })
+  })
+  })
