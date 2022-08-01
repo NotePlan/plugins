@@ -28,7 +28,7 @@ import pluginJson from '../plugin.json'
 
 // eslint-disable-next-line import/order
 import { updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'
-import { logError, JSP } from '@helpers/dev'
+import { logError, JSP, clo } from '@helpers/dev'
 /**
  * NotePlan calls this function after the plugin is installed or updated.
  * The `updateSettingData` function looks through the new plugin settings in plugin.json and updates
@@ -45,6 +45,7 @@ export async function onUpdateOrInstall(): Promise<void> {
 // eslint-disable-next-line require-await
 export async function init(): Promise<void> {
   try {
+    clo(DataStore.settings,`${pluginJson["plugin.id"]} Plugin Settings`)
     // Check for the latest version of this plugin, and if a minor update is available, install it and show a message
     DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false).then((r) =>
       pluginUpdated(pluginJson, r),
