@@ -31,32 +31,40 @@ function filterTasks(
 ): Array<TParagraph> {
   const tasks = [...tasksIn]
  logDebug(pluginJson, `Filtering ${tasksIn.length} tasks; sliced: ${tasks.length} t0content="${tasks[0].content}"`)
+  // tasks.forEach(t => logDebug(`Before Filtering for ${includeTaskTypes}: ${t.type} | ${t.content}`))
   let filteredTasks = includeTaskTypes.length ? tasks.filter((task) => includeTaskTypes.includes(task.type)) : tasks
  logDebug(pluginJson, `Found: ${filteredTasks.length} results of type [${String(includeTaskTypes)}]`)
+  filteredTasks.forEach(t => logDebug(`After Filtering for ${includeTaskTypes}: ${t.type} | ${t.content}`))
   if (inFolders?.length) {
     filteredTasks = filteredTasks.filter((f) => f.filename?.length && inFolderList(f.filename, inFolders))
    logDebug(pluginJson, `Found: ${filteredTasks.length} after inFolderList: [${String(inFolders)}]`)
   }
+  filteredTasks.forEach((t) => logDebug(`After inFolders: ${t.type} | ${t.content}`))
   if (notInFolders?.length) {
     filteredTasks = filteredTasks.filter((f) => f.filename && !inFolderList(f.filename, notInFolders))
    logDebug(pluginJson, `Found: ${filteredTasks.length} after notInFolders: [${String(notInFolders)}]`)
   }
+  filteredTasks.forEach((t) => logDebug(`After notInFolders: ${t.type} | ${t.filename} ${t.content}`))
   // filter out items in this file (on re-runs)
   filteredTasks = filename !== '' ? filteredTasks.filter((f) => f.filename !== filename) : filteredTasks
-  // filteredTasks.forEach((t) => {
-  //   logDebug(`${t.type} ${t.filename} ${t.content}`)
-  // })
+  logDebug(pluginJson, `After notThisFile (filename) filter -- filteredTasks.length=${filteredTasks.length}`)
+  filteredTasks.forEach((t) => logDebug(`After Filter for this filename: ${t.type} | ${t.filename} ${t.content}`))
   // filter out duplicate tasks (esp synced lines)
   filteredTasks = [...removeDuplicateSyncedLines(filteredTasks)]
+  filteredTasks.forEach((t) => logDebug(`After removeDuplicateSyncedLines: ${t.type} | ${t.filename} ${t.content}`))
   // filter for task types
  logDebug(pluginJson, `Found: ${filteredTasks.length} unduplicated (non-synced) results of type [${String(includeTaskTypes)}]`)
   return filteredTasks
 }
 
 function sortTasks(filteredTasks: Array<TParagraph>, includeTaskTypes: Array<string>, sortByFields: Array<string>): Array<TParagraph> {
-  const tasksByType = getTasksByType(filteredTasks)
+  const tasksByType = getTasksByType(filteredTasks) //FIXME: need to check getTasksbyType -- numbers are wrong
   let consolidatedTasks = []
-  Object.keys(tasksByType).forEach((type) => {
+  // Object.keys(tasksByType).forEach((type) => {
+  //   consolidatedTasks = [...consolidatedTasks, ...tasksByType[type]]
+  // })
+  includeTaskTypes.forEach((type) => {
+    logDebug(pluginJson, `${tasksByType[type].length} tasks before consolidating | ${consolidatedTasks.length} tasks `)
     consolidatedTasks = [...consolidatedTasks, ...tasksByType[type]]
   })
  logDebug(pluginJson, `Found: ${consolidatedTasks.length} unsorted consolidated tasks [${String(includeTaskTypes)}]`)
@@ -143,23 +151,17 @@ async function openSyncedTasksNoteInEditor(filename: string, searchFor: string, 
  * @param {string} notInFoldersStr - folder to ignore (* for ignore none)
  * @param {string} headings - TBD
  */
-export async function taskSync(
-  searchFor: string = '',
-  searchInTypesStr: string = '',
-  includeTaskTypesStr: string = '',
-  sortByFieldsStr: string = '',
-  outputFilename: string = '',
-  inFoldersStr: string = '',
-  notInFoldersStr: string = '',
-  headings: string = '',
-): Promise<void> {
+export async function taskSync(...args:Array<string>): Promise<void> {
   try {
-    const searchInTypes = searchInTypesStr.split(',')
-    const includeTaskTypes = includeTaskTypesStr.split(',')
-    const sortByFields = sortByFieldsStr.split(',')
-    const inFolders = inFoldersStr === '*' ? [] : inFoldersStr.split(',')
-    const notInFolders = notInFoldersStr === '*' ? [] : notInFoldersStr.split(',')
-    const filename = outputFilename !== '*' ? (/.txt|.md/.test(outputFilename) ? outputFilename : `${outputFilename}.${DataStore.defaultFileExtension}`) : ''
+    const [searchFor, searchInTypesStr, includeTaskTypesStr, sortByFieldsStr, outputFilename, inFoldersStr, notInFoldersStr, headings] = args
+    log(`searchInTypesStr=${searchInTypesStr} typeof searchInTypesStr=${typeof searchInTypesStr} length=${searchInTypesStr?.length} BEFORE`)
+    const searchInTypes = searchInTypesStr?.length ? searchInTypesStr.split(',') : ["calendar","notes"]
+    log(`searchInTypes=${searchInTypes} AFTER`)
+    const includeTaskTypes = includeTaskTypesStr?.length ? includeTaskTypesStr.split(',') : ['open']
+    const sortByFields = sortByFieldsStr?.length ? sortByFieldsStr.split(',') : ["-priority","content"]
+    const inFolders = inFoldersStr?.length ? inFoldersStr === '*' ? [] : inFoldersStr.split(',') : []
+    const notInFolders = notInFoldersStr?.length ? notInFoldersStr === '*' ? [] : notInFoldersStr.split(',') : []
+    const filename = outputFilename?.length ? outputFilename !== '*' ? (/.txt|.md/.test(outputFilename) ? outputFilename : `${outputFilename}.${DataStore.defaultFileExtension}`) : '' : ''
    logDebug(
       pluginJson,
       `Running: searchFor="${searchFor}" searchInTypes=[${String(searchInTypes)}] includeTaskTypes=[${String(includeTaskTypes)}] sortByFields=[${String(

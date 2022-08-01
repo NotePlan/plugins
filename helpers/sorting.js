@@ -1,5 +1,7 @@
 // @flow
 
+import {logDebug} from '@helpers/dev'
+
 export interface SortableParagraphSubset  {
   content: string,
   index: number,
@@ -152,7 +154,6 @@ export function getTasksByType(paragraphs: $ReadOnlyArray<TParagraph>, ignoreInd
     if (isTask || (!ignoreIndents && para.indents > lastParent.indents)) {
       const content = para.content
       // console.log(`found: ${index}: ${para.type}: ${para.content}`)
-      try {
         const hashtags = getElementsFromTask(content, HASHTAGS)
         const mentions = getElementsFromTask(content, MENTIONS)
         const exclamations = getElementsFromTask(content, EXCLAMATIONS)
@@ -178,9 +179,6 @@ export function getTasksByType(paragraphs: $ReadOnlyArray<TParagraph>, ignoreInd
           const len = tasks[para.type].push(task)
           lastParent = tasks[para.type][len - 1]
         }
-      } catch (error) {
-        console.log(error, para.content, index)
-      }
     } else {
       // console.log(`\t\tSkip: ${para.content}`) //not a task
     }

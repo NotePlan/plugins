@@ -109,50 +109,117 @@ describe('sorting.js', () => {
       expect(sorted[1]).toEqual(immutableOrigList[5])
       // undefined should be last in DESC sort also
       expect(sorted[5]).toEqual(immutableOrigList[4])
-      })
-
-      // @jgclark's tests, to support SearchExtensions
-      test('should sort by alpha field ASC then lineIndex', () => {
-        const unsortedList = [
-          { title: "Title B", lineIndex: 20 }, { title: "Title B", lineIndex: 200 }, { title: "Title B", lineIndex: 2 },
-          { title: "Title AA", lineIndex: 30 }, { title: "Title AA", lineIndex: 300 }, { title: "Title AA", lineIndex: 3 },
-          { title: "Title CCC", lineIndex: 10 }, { title: "Title CCC", lineIndex: 100 }, { title: "Title CCC", lineIndex: 1 }, { title: "Title CCC", lineIndex: 11 },
-        ]
-        const sortedList = [
-          { title: "Title AA", lineIndex: 3 }, { title: "Title AA", lineIndex: 30 }, { title: "Title AA", lineIndex: 300 },
-          { title: "Title B", lineIndex: 2 }, { title: "Title B", lineIndex: 20 }, { title: "Title B", lineIndex: 200 },
-          { title: "Title CCC", lineIndex: 1 }, { title: "Title CCC", lineIndex: 10 }, { title: "Title CCC", lineIndex: 11 }, { title: "Title CCC", lineIndex: 100 },
-        ]
-        const result = s.sortListBy(unsortedList, ['title', 'lineIndex'])
-        expect(result).toEqual(sortedList)
-      })
-
     })
-})
-
   /**
    * getTasksByType()
    */
   describe('getTasksByType()', () => {
-      test('Should group tasks by type', () => {
-
-    const paragraphs = [
-      {
-        type: 'open',
-        indents: 0,
-        content: 'test content',
-        rawContent: '* test content',
-      },
-      {
-        type: 'scheduled',
-        indents: 0,
-        content: 'test content',
-        rawContent: '* test content',
-      },
-    ]
-        const taskList = s.getTasksByType(paragraphs)
-    expect(taskList['open'].length).toEqual(1)
-    expect(taskList['scheduled'].length).toEqual(1)
-    expect(taskList['open'][0].content).toEqual(paragraphs[0].content)
+    test('Should group tasks by type', () => {
+      const paragraphs = [
+        {
+          type: 'open',
+          indents: 0,
+          content: 'test content',
+          rawContent: '* test content',
+        },
+        {
+          type: 'scheduled',
+          indents: 0,
+          content: 'test content',
+          rawContent: '* test content',
+        },
+      ]
+      const taskList = s.getTasksByType(paragraphs)
+      expect(taskList['open'].length).toEqual(1)
+      expect(taskList['scheduled'].length).toEqual(1)
+      expect(taskList['open'][0].rawContent).toEqual(paragraphs[0].corawContentntent)
   })
+    test('Should ignore items which are not tasks', () => {
+      const paragraphs = [
+        {
+          type: 'open',
+          indents: 0,
+          content: 'test content',
+          rawContent: '* test content',
+        },
+        {
+          type: 'title',
+          indents: 0,
+          content: 'test title',
+          rawContent: '## test title',
+        },
+        {
+          type: 'scheduled',
+          indents: 0,
+          content: 'test content',
+          rawContent: '* test content',
+        },
+      ]
+      const taskList = s.getTasksByType(paragraphs)
+      expect(taskList['title'].length).toEqual(0)
+  })
+    test('Should add children tasks to parents if indented', () => {
+      const paragraphs = [
+        {
+          type: 'open',
+          indents: 0,
+          content: 'test content',
+          rawContent: '* test content',
+        },
+        {
+          type: 'open',
+          indents: 1,
+          content: 'underneath',
+          rawContent: '\tunderneath',
+        },
+      ]
+      const taskList = s.getTasksByType(paragraphs, false)
+      expect(taskList['open'].length).toEqual(1)
+      expect(taskList['open'][0].children[0].content).toEqual(`underneath`)
+  })
+    test('Should add children text content to parents if indented', () => {
+      const paragraphs = [
+        {
+          type: 'open',
+          indents: 0,
+          content: 'test content',
+          rawContent: '* test content',
+        },
+        {
+          type: 'text',
+          indents: 1,
+          content: 'underneath',
+          rawContent: '\tunderneath',
+        },
+      ]
+      const taskList = s.getTasksByType(paragraphs, false)
+      expect(taskList['open'].length).toEqual(1)
+      expect(taskList['open'][0].children[0].content).toEqual(`underneath`)
+  })
+    test('Should add children of children tasks if double indented', () => {
+      const paragraphs = [
+        {
+          type: 'open',
+          indents: 0,
+          content: 'test content',
+          rawContent: '* test content',
+        },
+        {
+          type: 'text',
+          indents: 1,
+          content: 'underneath',
+          rawContent: '\tunderneath',
+        },
+        {
+          type: 'open',
+          indents: 2,
+          content: 'task underneath',
+          rawContent: '\t\t* underneath',
+        },
+      ]
+      const taskList = s.getTasksByType(paragraphs, false)
+      expect(taskList['open'].length).toEqual(1)
+      expect(taskList['open'][0].children[0].children[0].content).toEqual(`task underneath`)
+  })
+})
 })
