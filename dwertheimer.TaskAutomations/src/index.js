@@ -9,12 +9,14 @@ export { taskSync } from './taskSync'
 export { copyTagsFromLineAbove, copyTagsFromHeadingAbove, copyLineForEachMention, copyLineForEachHashtag } from './tagTasks'
 export { openIncompleteLinksInNote, openURLOnLine } from './NPOpenLinks'
 import pluginJson from '../plugin.json'
+import {clo} from '@helpers/dev'
 
 // updateSettingsData will execute whenever your plugin is installed or updated
 import { updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'
 
 export function init(): void {
   // this runs every time the plugin starts up (any command in this plugin is run)
+  clo(DataStore.settings,`${pluginJson["plugin.id"]} Plugin Settings`)
   DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], true, false, false).then((r) => pluginUpdated(pluginJson, r))
 }
 
