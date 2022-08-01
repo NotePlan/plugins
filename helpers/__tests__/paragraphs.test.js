@@ -105,6 +105,77 @@ describe('paragraph.js', () => {
     })
   })
 
+  describe('calcSmartPrependPoint()', () => {
+    const noteA = {
+      type: "notes",
+      paragraphs: [
+        { type: 'title', lineIndex: 0, content: 'Note title' },
+        { type: 'empty', lineIndex: 1, content: '' },
+        { type: 'text', lineIndex: 2, content: 'First real content' },
+      ]
+    }
+    test('should return 1 for basic note with title', () => {
+      const result = p.calcSmartPrependPoint(noteA)
+      expect(result).toEqual(1)
+    })
+    const noteB = {
+      type: "notes",
+      paragraphs: [
+        { type: 'separator', lineIndex: 0, content: '---' },
+        { type: 'text', lineIndex: 1, content: 'title: Note title' },
+        { type: 'text', lineIndex: 2, content: 'field: another' },
+        { type: 'separator', lineIndex: 3, content: '---' },
+        { type: 'empty', lineIndex: 4, content: '' },
+        { type: 'text', lineIndex: 5, content: 'First real content' },
+      ],
+    }
+    test('should return 4 for note with frontmatter', () => {
+      const result = p.calcSmartPrependPoint(noteB)
+      expect(result).toEqual(4)
+    })
+    const noteC = {
+      type: "notes",
+      paragraphs: [
+        { type: 'title', lineIndex: 0, content: 'Note title' },
+        { type: 'text', lineIndex: 1, content: '#project metadata' },
+        { type: 'empty', lineIndex: 2, content: '' },
+        { type: 'text', lineIndex: 3, content: 'First real content' },
+      ]
+    }
+    test('should return 3 for basic note with title, metadata and blank line', () => {
+      const result = p.calcSmartPrependPoint(noteC)
+      expect(result).toEqual(3)
+    })
+    const noteE = {
+      type: "Calendar",
+      paragraphs: [
+        { type: 'empty', lineIndex: 0, content: '' },
+      ],
+    }
+    test('should return 0 for single empty para', () => {
+      const result = p.calcSmartPrependPoint(noteE)
+      expect(result).toEqual(0)
+    })
+    const noteF = {
+      type: "Calendar",
+      paragraphs: [
+        { type: 'text', lineIndex: 0, content: 'Single line only' },
+      ],
+    }
+    test('should return 0 for single empty para', () => {
+      const result = p.calcSmartPrependPoint(noteF)
+      expect(result).toEqual(0)
+    })
+    const noteG = {
+      type: "Calendar",
+      paragraphs: [],
+    }
+    test('should return 0 for no paras at all', () => {
+      const result = p.calcSmartPrependPoint(noteG)
+      expect(result).toEqual(0)
+    })
+  })
+
   describe('findEndOfActivePartOfNote()', () => {
     const noteA = {
       paragraphs: [
@@ -184,29 +255,91 @@ describe('paragraph.js', () => {
         { type: 'cancelled', lineIndex: 11, content: 'task 4 not done' },
       ],
     }
-    test('should not find either (note D), so do paras length', () => {
+    test('should not find either (note D), so do last lineIndex', () => {
       const result = p.findEndOfActivePartOfNote(noteD)
-      expect(result).toEqual(12)
+      expect(result).toEqual(11)
     })
-    describe('removeDuplicateSyncedLines()', () => {
-      test('should pass through unsynced lines with duplicate values', () => {
-        const linesBefore = [{ content: 'some ordinary text' }, { content: 'some ordinary text' }]
-        expect(p.removeDuplicateSyncedLines(linesBefore)).toEqual(linesBefore)
-      })
-      test('should undupe duplicate blockIDs', () => {
-        const linesBefore = [
-          { content: 'some ordinary text', blockId: '^123456' },
-          { content: 'some ordinary text', blockId: '^123456' },
-        ]
-        expect(p.removeDuplicateSyncedLines(linesBefore).length).toEqual(1)
-      })
-      test('should pass through different blockIDs', () => {
-        const linesBefore = [
-          { content: 'some ordinary text', blockId: '^aaaaaa' },
-          { content: 'some ordinary text', blockId: '^123456' },
-        ]
-        expect(p.removeDuplicateSyncedLines(linesBefore)).toEqual(linesBefore)
-      })
+    const noteE = {
+      paragraphs: [
+        { type: 'empty', lineIndex: 0, content: '' },
+      ],
+    }
+    test('should return 0 for single empty para', () => {
+      const result = p.findEndOfActivePartOfNote(noteE)
+      expect(result).toEqual(0)
+    })
+    const noteF = {
+      paragraphs: [
+        { type: 'text', lineIndex: 0, content: 'Single line only' },
+      ],
+    }
+    test('should return 0 for single empty para', () => {
+      const result = p.findEndOfActivePartOfNote(noteF)
+      expect(result).toEqual(0)
+    })
+    const noteG = {
+      paragraphs: [],
+    }
+    test('should return 0 for no paras at all', () => {
+      const result = p.findEndOfActivePartOfNote(noteG)
+      expect(result).toEqual(0)
+    })
+  })
+
+  describe('removeDuplicateSyncedLines()', () => {
+    test('should pass through unsynced lines with duplicate values', () => {
+      const linesBefore = [{ content: 'some ordinary text' }, { content: 'some ordinary text' }]
+      expect(p.removeDuplicateSyncedLines(linesBefore)).toEqual(linesBefore)
+    })
+    test('should undupe duplicate blockIDs', () => {
+      const linesBefore = [
+        { content: 'some ordinary text', blockId: '^123456' },
+        { content: 'some ordinary text', blockId: '^123456' },
+      ]
+      expect(p.removeDuplicateSyncedLines(linesBefore).length).toEqual(1)
+    })
+    test('should pass through different blockIDs', () => {
+      const linesBefore = [
+        { content: 'some ordinary text', blockId: '^aaaaaa' },
+        { content: 'some ordinary text', blockId: '^123456' },
+      ]
+      expect(p.removeDuplicateSyncedLines(linesBefore)).toEqual(linesBefore)
+    })
+  })
+
+  describe('findHeadingStartsWith()', () => {
+    const noteA = {
+      paragraphs: [
+        { type: 'title', lineIndex: 0, content: 'NoteA Title', headingLevel: 1 },
+        { type: 'empty', lineIndex: 1 },
+        { type: 'title', lineIndex: 2, content: 'Tasks for 3.4.22', headingLevel: 2 },
+        { type: 'open', lineIndex: 3, content: 'task 1' },
+        { type: 'title', lineIndex: 4, content: 'Journal for 3.4.22' },
+        { type: 'list', lineIndex: 5, content: 'first journal entry' },
+        { type: 'list', lineIndex: 6, content: 'second journal entry' },
+        { type: 'empty', lineIndex: 7 },
+        { type: 'title', lineIndex: 8, content: 'Done ...', headingLevel: 2 },
+        { type: 'title', lineIndex: 9, content: 'Cancelled', headingLevel: 2 },
+        { type: 'cancelled', lineIndex: 10, content: 'task 4 not done' },
+      ],
+    }
+    test("should not match with empty search term", () => {
+      expect(p.findHeadingStartsWith(noteA, '')).toEqual('')
+    })
+    test("should match 'Journal' with line 'Journal for 3.4.22'", () => {
+      expect(p.findHeadingStartsWith(noteA, 'Journal')).toEqual('Journal for 3.4.22')
+    })
+    test("should match 'JOURNAL' with line 'Journal for 3.4.22'", () => {
+      expect(p.findHeadingStartsWith(noteA, 'JOURNAL')).toEqual('Journal for 3.4.22')
+    })
+    test("should match 'journal' with line 'Journal for 3.4.22'", () => {
+      expect(p.findHeadingStartsWith(noteA, 'JOURNAL')).toEqual('Journal for 3.4.22')
+    })
+    test("should match 'Journal for 3.4.22' to 'Journal for 3.4.22'", () => {
+      expect(p.findHeadingStartsWith(noteA, 'Journal')).toEqual('Journal for 3.4.22')
+    })
+    test("should match 'Journal for 3.4.22' with 'Journal'", () => {
+      expect(p.findHeadingStartsWith(noteA, 'Journal')).toEqual('Journal for 3.4.22')
     })
   })
 })

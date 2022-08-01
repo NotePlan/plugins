@@ -12,8 +12,8 @@ import { JSP, log, logError } from "@helpers/dev"
 import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
 import { showMessage } from '@helpers/userInput'
 
+export { addTaskToInbox } from './inbox'
 export {
-  addTaskToInbox,
   addTaskToNoteHeading,
   addTextToNoteHeading,
   appendTaskToDailyNote,
@@ -23,7 +23,6 @@ export {
   appendTaskToNote,
   prependTaskToNote
 } from './quickCapture'
-
 
 /**
  * Runs every time the plugin starts up (any command in this plugin is run)

@@ -1,8 +1,13 @@
 # What's changed in ⚡️ Quick Capture
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.QuickCapture), and how to configure.
 
+## [0.12.0] - 2022-08-01
+### Added
+- greater flexibility when running these functions from x-callback calls. It's possible to send one or more empty arguments, and that will cause the missing argument(s) be requested from the user, as it it were run interactively. Note: this only works from NotePlan v3.6.1. (Requested by @John1)
+- the matching of section headings in /qalh and /qath from x-callback calls is done as an exact match, or (from 0.12) just the first part of it. This means it's possible to have a section such as `## Journal for 3.4.22` that changes every day, but still refer to it by the unchanging string `Journal`.
+
 ## [0.11.0] - 2022-07-15
-### Changed
+### Added
 - the **/addToInboxNote** command can now send to the current Weekly as well as Daily or other fixed note. **Note: please review your settings**, as they have changed to accommodate this.
 
 ## [0.10.1..0.10.0] - 2022-06-27
