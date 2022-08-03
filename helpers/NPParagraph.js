@@ -439,10 +439,10 @@ export async function removeContentUnderHeadingInAllNotes(noteTypes: Array<strin
 /**
  * COPY FROM helpers/NPParagaph.js to avoid a circular dependency
  */
-export function findHeading(note: TNote, heading: string): TParagraph | null {
-  if (heading) {
+export function findHeading(note: TNote, heading: string, includesString: boolean = false): TParagraph | null {
+  if (heading && heading !== '') {
     const paragraphs = note.paragraphs
-    const para = paragraphs.find((paragraph) => paragraph.type === 'title' && paragraph.content.trim() === heading.trim())
+    const para = paragraphs.find((paragraph) => paragraph.type === 'title' && (includesString ? paragraph.content.includes(heading) : paragraph.content.trim() === heading.trim()))
 
     if (para) return para
   }
