@@ -410,14 +410,15 @@ export function getOrMakeMetadataLine(note: TNote): number {
  * @author @dwertheimer
  *
  * @param {TNote} note
- * @param {string} headingToFind to find (exact match)
+ * @param {string} headingToFind to find (exact match if includesString is set to false)
+ * @param {boolean} includesString - search for a paragraph which simply includes the string vs. exact match (default: false - require strict match)
  * @returns {TParagraph | null} - returns the actual paragraph or null if not found
  * @tests in jest file
  */
-export function findHeading(note: TNote, headingToFind: string): TParagraph | null {
-  if (headingToFind) {
+export function findHeading(note: TNote, heading: string, includesString: boolean = false): TParagraph | null {
+  if (heading && heading !== '') {
     const paragraphs = note.paragraphs
-    const para = paragraphs.find((paragraph) => paragraph.type === 'title' && paragraph.content.trim() === headingToFind.trim())
+    const para = paragraphs.find((paragraph) => paragraph.type === 'title' && (includesString ? paragraph.content.includes(heading) : paragraph.content.trim() === heading.trim()))
 
     if (para) return para
   }
