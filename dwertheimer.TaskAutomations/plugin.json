@@ -1,66 +1,65 @@
 {
-  "noteplan.minAppVersion": "3.6.1", 
-  "plugin.id": "dwertheimer.TaskAutomations", 
-  "plugin.name": "✅ Task Automations", 
-  "plugin.description": "Functions for handling Tasks", 
+  "noteplan.minAppVersion": "3.6.1",
+  "plugin.id": "dwertheimer.TaskAutomations",
+  "plugin.name": "✅ Task Automations",
+  "plugin.description": "Functions for handling Tasks",
   "plugin.author": "@dwertheimer",
-  "plugin.version": "2.0.0", 
+  "plugin.version": "2.0.0",
   "plugin.lastUpdateInfo": "2.0.0: Added autoupdates and URL opening",
-  "plugin.dependencies": [ ], 
+  "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.TaskAutomations/readme.md",
-  "plugin.commands": [ 
+  "plugin.commands": [
     {
-      "name": "ts", 
-      "description": "Tasks Sort - Sort tasks on the page (e.g. after a sweep)", 
+      "name": "ts",
+      "description": "Tasks Sort - Sort tasks on the page (e.g. after a sweep)",
       "jsFunction": "sortTasks"
-    },  
+    },
     {
-      "name": "tt", 
-      "description": "Tasks to Top - Bring all tasks in note to top", 
+      "name": "tt",
+      "description": "Tasks to Top - Bring all tasks in note to top",
       "jsFunction": "tasksToTop"
-    },     
+    },
     {
-      "name": "mat", 
-      "description": "Mark All Tasks (choose open or complete)", 
+      "name": "mat",
+      "description": "Mark All Tasks (choose open or complete)",
       "jsFunction": "markTasks"
-    },  
+    },
     {
-      "name": "tsm", 
-      "description": "Tasks Sort by @Mention - Sort tasks on the page by mention/person", 
+      "name": "tsm",
+      "description": "Tasks Sort by @Mention - Sort tasks on the page by mention/person",
       "jsFunction": "sortTasksByPerson"
-    },  
+    },
     {
-      "name": "tst", 
-      "description": "Tasks Sort by #Tag - Sort tasks on the page by hashtag", 
+      "name": "tst",
+      "description": "Tasks Sort by #Tag - Sort tasks on the page by hashtag",
       "jsFunction": "sortTasksByTag"
     },
     {
-      "name": "cta - Copy tags from previous line", 
-      "description": "Copy #tags and @mentions from previous line", 
+      "name": "cta - Copy tags from previous line",
+      "description": "Copy #tags and @mentions from previous line",
       "jsFunction": "copyTagsFromLineAbove"
     },
     {
-      "name": "cth - Copy tags from heading above", 
+      "name": "cth - Copy tags from heading above",
       "description": "Copy #tags/@mentions from heading to all lines between",
       "jsFunction": "copyTagsFromHeadingAbove"
     },
     {
-      "name": "ctm - Copy line for each mention", 
+      "name": "ctm - Copy line for each mention",
       "description": "Copy line for each @mention, listing it first",
       "jsFunction": "copyLineForEachMention"
     },
     {
-      "name": "ctt - Copy line for each hashtag", 
+      "name": "ctt - Copy line for each hashtag",
       "description": "Copy line for each #hashtag, listing it first",
       "jsFunction": "copyLineForEachHashtag"
     },
     {
-      "name": "task sync", 
+      "name": "task sync",
       "description": "Create synced copies of tasks from frontmatter fields",
       "jsFunction": "taskSync",
-      "hidden": true,
-      "arguments": [ 
+      "arguments": [
         "search string",
         "type of notes to search in (['calendar', 'notes'])",
         "types of tasks to include (['open', 'scheduled', 'done', 'cancelled'])",
@@ -68,19 +67,20 @@
         "filename to save the output to (with or without the file extension)",
         "folders to look in",
         "folder to ignore",
-        "heading-TBD"]
+        "heading-TBD"
+      ]
     },
     {
       "name": "open todos containing links in browser",
-      "alias": [
-      ],
+      "alias": [],
       "description": "Open URLs in open todo items on the page",
       "jsFunction": "openIncompleteLinksInNote"
     },
     {
       "name": "open URL on this line",
       "alias": [
-        "openurl","launch"
+        "openurl",
+        "launch"
       ],
       "description": "Open the URL on the current line in the default browser",
       "jsFunction": "openURLOnLine"
@@ -88,10 +88,10 @@
   ],
   "disabled": [
     {
-      "name": "ott", 
-      "description": "Open Tasks to Top - Bring open tasks in note to top", 
+      "name": "ott",
+      "description": "Open Tasks to Top - Bring open tasks in note to top",
       "jsFunction": "openTasksToTop"
-    }  
+    }
   ],
   "plugin.settings": [
     {
@@ -122,13 +122,19 @@
       "title": "Debugging"
     },
     {
-        "key": "_logLevel",
-        "type": "string",
-        "title": "Log Level",
-        "choices": ["DEBUG","INFO","WARN","ERROR","none"],
-        "description": "Set how much output will be displayed for this plugin the NotePlan > Help > Plugin Console. DEBUG is the most verbose; NONE is the least (silent)",
-        "default": "LOG",
-        "required": true
+      "key": "_logLevel",
+      "type": "string",
+      "title": "Log Level",
+      "choices": [
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "none"
+      ],
+      "description": "Set how much output will be displayed for this plugin the NotePlan > Help > Plugin Console. DEBUG is the most verbose; NONE is the least (silent)",
+      "default": "LOG",
+      "required": true
     }
   ]
-} 
+}

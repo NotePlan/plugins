@@ -1,6 +1,10 @@
 /*eslint no-unused-vars: [2, {"args": "all", "varsIgnorePattern": "clo|timer|log|logError|JSP"}]*/
 // @flow
 
+/**
+ * TODO: 
+ * - Prompt for nulls
+ */
 import pluginJson from '../plugin.json'
 import { sortListBy , getTasksByType } from '../../helpers/sorting'
 
@@ -8,6 +12,7 @@ import { clo, JSP, log, logError, logDebug, timer } from '@helpers/dev'
 import { inFolderList } from '@helpers/general'
 import { selectFirstNonTitleLineInEditor } from '@helpers/NPNote'
 import { removeDuplicateSyncedLines } from '@helpers/paragraph'
+import {getInput} from '@helpers/userInput'
 import { getSyncedCopiesAsList } from '@helpers/NPSyncedCopies'
 import { replaceContentUnderHeading } from '@helpers/NPParagraph'
 // import type { ExtendedParagraph } from '../../dwertheimer.EventAutomations/src/timeblocking-helpers'
@@ -140,20 +145,34 @@ async function openSyncedTasksNoteInEditor(filename: string, searchFor: string, 
   }
 }
 
+async function fillInMissingArguments(args) {
+  let [searchFor, searchInTypesStr, includeTaskTypesStr, sortByFieldsStr, outputFilename, inFoldersStr, notInFoldersStr, headings] = args
+  searchFor = (searchFor == null) ? (await getInput(`Search for:`,`Submit`,`Search`) || '') : searchFor
+  searchInTypesStr = (searchInTypesStr == null) ? (await getInput(`Note Types to search in -- calendar,notes or both (separated by comma)\nLeave blank for all types of notes (calendar and notes)`,`Submit`,`Task Types`) || '','calendar,notes') : searchInTypesStr
+  includeTaskTypesStr = (includeTaskTypesStr == null) ? (await getInput(`Task Types to search for -- multiple types can be separated by commas, e.g.\nopen,done,scheduled\nLeave blank for all types of tasks`,`Submit`,`Task Types`) || '*','*') : includeTaskTypesStr
+  sortByFieldsStr = (sortByFieldsStr == null) ? (await getInput(`Sort resulting tasks by field (put a minus in front for high-to-low sort; can be multi-level sort with comma separated variables), e.g.\n-priority,content\nLeave blank for default search (-priority,content)`,`Submit`,`Sort Tasks`) || '-priority,content','-priority,content') : sortByFieldsStr
+  outputFilename = (outputFilename == null) ? (await getInput(`What should be the filename (including folders) of the results note?\nLeave blank for automatic naming based on search criteria in default folder (in preferences)`,`Submit`,`Results File Name`) || '*') : outputFilename
+  inFoldersStr = (inFoldersStr == null) ? (await getInput(`Folders to restrict search to?\nLeave blank to search all folders (except for the ones you specify to skip in the next step)`,`Submit`,`Folders to Search`) || '*','*') : inFoldersStr
+  notInFoldersStr = (notInFoldersStr == null) ? (await getInput(`Folders to not search in?\nLeave blank to not restrict the search`,`Submit`,`Folders to Not Search`) || '*','*') : notInFoldersStr
+  headings = String(headings) //TBD
+  return [searchFor, searchInTypesStr, includeTaskTypesStr, sortByFieldsStr, outputFilename, inFoldersStr, notInFoldersStr, headings]
+}
+
 /**
  * Create synced tasks in a document per params passed
- * @param {string} searchFor - search string
- * @param {string} searchInTypesStr - type of notes to search in (['calendar', 'notes'])
- * @param {string} includeTaskTypesStr - types of tasks to include (['open', 'scheduled', 'done', 'cancelled'])
- * @param {string} sortByFieldsStr - fields to sort by (['date', '-priority', 'title']) (minus at front for descending order)
- * @param {string} outputFilename - filename to save the output to (with or without the file extension) (* for auto-generated name)
- * @param {string} inFoldersStr - folders to look in (* for all)
- * @param {string} notInFoldersStr - folder to ignore (* for ignore none)
- * @param {string} headings - TBD
+ * @param {string|null} searchFor - search string
+ * @param {string|null} searchInTypesStr - type of notes to search in (['calendar', 'notes'])
+ * @param {string|null} includeTaskTypesStr - types of tasks to include (['open', 'scheduled', 'done', 'cancelled'])
+ * @param {string|null} sortByFieldsStr - fields to sort by (['date', '-priority', 'title']) (minus at front for descending order)
+ * @param {string|null} outputFilename - filename to save the output to (with or without the file extension) (* for auto-generated name)
+ * @param {string|null} inFoldersStr - folders to look in (* for all)
+ * @param {string|null} notInFoldersStr - folder to ignore (* for ignore none)
+ * @param {string|null} headings - TBD
  */
 export async function taskSync(...args:Array<string>): Promise<void> {
   try {
-    const [searchFor, searchInTypesStr, includeTaskTypesStr, sortByFieldsStr, outputFilename, inFoldersStr, notInFoldersStr, headings] = args
+    // Setting this up this way so that args passing via xcallback ordering can be easily modified later
+    const [searchFor, searchInTypesStr, includeTaskTypesStr, sortByFieldsStr, outputFilename, inFoldersStr, notInFoldersStr, headings] = await fillInMissingArguments(args)
     log(`searchInTypesStr=${searchInTypesStr} typeof searchInTypesStr=${typeof searchInTypesStr} length=${searchInTypesStr?.length} BEFORE`)
     const searchInTypes = searchInTypesStr?.length ? searchInTypesStr.split(',') : ["calendar","notes"]
     log(`searchInTypes=${searchInTypes} AFTER`)
@@ -168,7 +187,7 @@ export async function taskSync(...args:Array<string>): Promise<void> {
         sortByFields,
       )}] outputFilename="${String(outputFilename)}" inFolders:[${String(inFolders)}] notInFolders: [${String(notInFolders)}] headings="${headings}"`,
     )
-
+    return
     CommandBar.showLoading(true, `Searching for:\n"${searchFor}"...`)
     await CommandBar.onAsyncThread()
 
