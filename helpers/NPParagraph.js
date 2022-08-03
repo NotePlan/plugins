@@ -533,3 +533,57 @@ export async function getSelectedParagraph(): Promise<TParagraph | null> {
   }
   return thisParagraph || null
 }
+
+/**
+ * Works out which line (if any) of the current note is project-style metadata line, defined as
+ * - line starting 'project:' or 'medadata:'
+ * - first line containing a @review() or @reviewed() mention
+ * - first line starting with a hashtag
+ * If these can't be found, then create a new line for this after the title line, and populate with optional metadataLinePlaceholder param.
+ * @author @jgclark
+ * @tests in jest file
+ * 
+ * @param {TNote} note to use
+ * @param {TNote} placeholder to use if we need to make a metadata line
+ * @returns {number} the line number for the metadata line
+ */
+export function getOrMakeMetadataLine(
+  note: TNote,
+  metadataLinePlaceholder: string = ''
+): number {
+  try {
+    const lines = note.paragraphs?.map(s => s.content) ?? []
+    logDebug('NPparagraph/getOrMakeMetadataLine', `Starting with ${lines.length} lines`)
+
+    // Belt-and-Braces: deal with empty or almost-empty notes
+    if (lines.length === 0) {
+      note.appendParagraph('<placeholder title>', 'title')
+      note.appendParagraph(metadataLinePlaceholder, 'text')
+      return 1
+    }
+    else if (lines.length === 1) {
+      note.appendParagraph(metadataLinePlaceholder, 'text')
+      return 1
+    }
+
+    let lineNumber: number = NaN
+    for (let i = 1; i < lines.length; i++) {
+      if (lines[i].match(/^project:/i) || lines[i].match(/^metadata:/i) || lines[i].match(/^#[\w]/) || lines[i].match(/(@review|@reviewed)\(.+\)/)) {
+        lineNumber = i
+        break
+      }
+    }
+    // If no metadataPara found, then insert one straight after the title
+    if (Number.isNaN(lineNumber)) {
+      logDebug('NPparagraph/getOrMakeMetadataLine', `Warning: Can't find an existing metadata line, so will insert a new line for it after title`)
+      note.insertParagraph(metadataLinePlaceholder, 1, 'text')
+      lineNumber = 1
+    }
+    logDebug('NPparagraph/getOrMakeMetadataLine', `Metadata line = ${lineNumber}`)
+    return lineNumber
+  }
+  catch (error) {
+    logError('NPparagraph/getOrMakeMetadataLine', error.message)
+    return 0
+  }
+}

@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // @jgclark
-// Last updated 24.7.2022 for v0.7.0+, @jgclark
+// Last updated 2.8.2022 for v0.7.1, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -11,14 +11,15 @@ import pluginJson from '../plugin.json'
 import { checkString } from '@helpers/checkType'
 import { daysBetween, getDateObjFromDateString, includesScheduledFutureDate, relativeDateFromNumber, toISODateString } from '@helpers/dateTime'
 import { calcOffsetDate } from '@helpers/NPDateTime'
-import { logDebug, logError, logWarn } from '@helpers/dev'
+import { clo, logDebug, logError, logWarn } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import {
   getContentFromBrackets,
   getStringFromList,
   // percent,
 } from '@helpers/general'
-import { findEndOfActivePartOfNote, getOrMakeMetadataLine } from '@helpers/paragraph'
+import { findEndOfActivePartOfNote } from '@helpers/paragraph'
+import { getOrMakeMetadataLine } from '@helpers/NPparagraph'
 import { showMessage } from '@helpers/userInput'
 
 //------------------------------
@@ -60,7 +61,7 @@ export async function getReviewSettings(): Promise<any> {
       return
     }
     // $FlowIgnore[incompatible-call]
-    // clo(v2Config, `${configKey} settings from V2:`)
+    clo(v2Config, `Review settings:`)
 
     // Need to store some things in the Preferences API mechanism, in order to pass things to the Project class
     DataStore.setPreference('startMentionStr', v2Config.startMentionStr)

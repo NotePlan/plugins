@@ -9,6 +9,8 @@ beforeAll(() => {
   global.CommandBar = CommandBar
   global.DataStore = DataStore
   global.Editor = Editor
+  global.Note = Note
+  global.Paragraph = Paragraph
   global.NotePlan = NotePlan
 })
 
@@ -64,3 +66,71 @@ describe('getBlockUnderHeading()' /* function */, () => {
     expect(result[1].content).toEqual(`line 2`)
   })
 })
+
+// Note: commented out, as I don't know how to get the mocks working for
+// .insertParagraph and .appendParagraph
+// despite the imports at the beginning.
+
+// describe('getOrMakeMetadataLine()', () => {
+//   const noteA = {
+//     paragraphs: [
+//       { type: 'title', lineIndex: 0, content: 'NoteA Title', headingLevel: 1 },
+//       { type: 'empty', lineIndex: 1, content: '' },
+//       { type: 'title', lineIndex: 2, content: 'Tasks for 3.4.22', headingLevel: 2 },
+//       { type: 'open', lineIndex: 3, content: 'task 1' },
+//       { type: 'title', lineIndex: 4, content: 'Journal for 3.4.22' },
+//       { type: 'list', lineIndex: 5, content: 'first journal entry' },
+//       { type: 'list', lineIndex: 6, content: 'second journal entry' },
+//       { type: 'empty', lineIndex: 7, content: '' },
+//       { type: 'title', lineIndex: 8, content: 'Done ...', headingLevel: 2 },
+//       { type: 'title', lineIndex: 9, content: 'Cancelled', headingLevel: 2 },
+//       { type: 'cancelled', lineIndex: 10, content: 'task 4 not done' },
+//     ],
+//   }
+//   test("should return blank line after title", () => {
+//     expect(p.getOrMakeMetadataLine(noteA)).toEqual(1)
+//   })
+//   test("should return metadata line style 1", () => {
+//     const noteB = {
+//       paragraphs: [
+//         { type: 'title', lineIndex: 0, content: 'NoteA Title', headingLevel: 1 },
+//         { type: 'text', lineIndex: 1, content: '@due(2023-01-01) @review(2m)' },
+//       ],
+//     }
+//     expect(p.getOrMakeMetadataLine(noteB)).toEqual(1)
+//   })
+//   test("should return metadata line style 2", () => {
+//     const noteC = {
+//       paragraphs: [
+//         { type: 'title', lineIndex: 0, content: 'NoteA Title', headingLevel: 1 },
+//         { type: 'text', lineIndex: 1, content: '#project @due(2023-01-01) @reviewed(2022-08-01)' },
+//       ],
+//     }
+//     expect(p.getOrMakeMetadataLine(noteC)).toEqual(1)
+//   })
+//   test('should return line after single empty para', () => {
+//     const noteE = {
+//       paragraphs: [
+//         { type: 'empty', lineIndex: 0, content: '' },
+//       ],
+//     }
+//     const result = p.getOrMakeMetadataLine(noteE)
+//     expect(result).toEqual(1)
+//   })
+//   test('should return line after single para', () => {
+//     const noteF = {
+//       paragraphs: [
+//         { type: 'text', lineIndex: 0, content: 'Single line only' },
+//       ],
+//     }
+//     const result = p.getOrMakeMetadataLine(noteF)
+//     expect(result).toEqual(1)
+//   })
+//   test('should return 1 for no paras at all', () => {
+//     const noteG = {
+//       paragraphs: [],
+//     }
+//     const result = p.getOrMakeMetadataLine(noteG)
+//     expect(result).toEqual(1)
+//   })
+// })

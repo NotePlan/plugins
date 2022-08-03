@@ -273,7 +273,7 @@ describe('paragraph.js', () => {
         { type: 'text', lineIndex: 0, content: 'Single line only' },
       ],
     }
-    test('should return 0 for single empty para', () => {
+    test('should return 0 for single para only', () => {
       const result = p.findEndOfActivePartOfNote(noteF)
       expect(result).toEqual(0)
     })

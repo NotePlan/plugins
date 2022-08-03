@@ -211,7 +211,7 @@ export function calcSmartPrependPoint(note: TNote): number {
 }
 
 /**
- * Prepends a task to a chosen note, but more smartly than usual.
+ * Prepends text to a chosen note, but more smartly than usual.
  * I.e. if the note starts with YAML frontmatter (e.g. https://docs.zettlr.com/en/core/yaml-frontmatter/)
  * or a metadata line (= starts with a hashtag), then add after that.
  * @author @jgclark
@@ -372,36 +372,6 @@ export function getParaFromContent(note: TNote, contentToFind: string): TParagra
   }
   logWarn('helper/getParaFromContent', `warning couldn't find '${contentToFind}`)
   return
-}
-
-/**
- * Works out which line (if any) of the current note is a metadata line, defined as
- * - line starting 'project:' or 'medadata:'
- * - first line containing a @review() mention
- * - first line starting with a hashtag
- * If these can't be found, then create a new line for this after the title line.
- * @author @jgclark
- *
- * @param {TNote} note to use
- * @return {number} the line number for the metadata line
- */
-export function getOrMakeMetadataLine(note: TNote): number {
-  let lineNumber: number = NaN
-  const lines = note.content?.split('\n') ?? ['']
-  for (let i = 1; i < lines.length; i++) {
-    if (lines[i].match(/^project:/i) || lines[i].match(/^metadata:/i) || lines[i].match(/^#[\w]/) || lines[i].match(/(@review|@reviewed)\(.+\)/)) {
-      lineNumber = i
-      break
-    }
-  }
-  if (Number.isNaN(lineNumber)) {
-    // If no metadataPara found, then insert one straight after the title
-    logDebug('paragraph/getOrMakeMetadataLine', `Warning: Can't find an existing metadata line, so will insert a new second line for it`)
-    Editor.insertParagraph('', 1, 'empty')
-    lineNumber = 1
-  }
-  // logDebug('paragraph/getOrMakeMetadataLine', `Metadata line = ${lineNumber}`)
-  return lineNumber
 }
 
 /**
