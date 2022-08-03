@@ -3,7 +3,7 @@
 // Paragraph and block-level helpers functions
 //-----------------------------------------------------------------------------
 
-import { log, logError, logWarn } from './dev'
+import { logDebug, logError, logWarn } from './dev'
 
 //-----------------------------------------------------------------------------
 // Paragraph-level Functions
@@ -35,7 +35,7 @@ export function isTermInURL(term: string, searchString: string): boolean {
       return !!thisURI.match(term)
     }
   } else {
-    // console.log(`  No URI -> false`)
+    // logDebug('???', `  No URI -> false`)
     return false
   }
 }
@@ -64,7 +64,7 @@ export function isTermInMarkdownPath(term: string, searchString: string): boolea
       return !!thisMDPath.match(term)
     }
   } else {
-    // console.log(`  No MD path -> false`)
+    // logDebug('paragraph/isTermInMarkdownPath', `No MD path -> false`)
     return false
   }
 }
@@ -107,7 +107,7 @@ export function displayTitle(n: ?CoreNoteFields): string {
  * @return {string} - string representation of those paragraphs, without trailling newline
  */
 export function parasToText(paras: Array<TParagraph>): string {
-  // log('paragraph/parasToText', `starting with ${paras.length} paragraphs`)
+  // logDebug('paragraph/parasToText', `starting with ${paras.length} paragraphs`)
   let text = ''
   for (let i = 0; i < paras.length; i++) {
     const p = paras[i]
@@ -147,58 +147,63 @@ export function printParagraph(p: TParagraph) {
     noteType,
     linkedNoteTitles,
   }
-
-  console.log(JSON.stringify(logObject, null, 2))
+  logDebug('paragraph/printParagraph', JSON.stringify(logObject, null, 2))
 }
 
 /**
  * Works out which line to insert at top of file. Rather than just after title line,
  * go after any YAML frontmatter or a metadata line (= starts with a hashtag).
  * @author @jgclark
+ * @tests in jest file
  *
  * @param {TNote} note - the note of interest
  * @return {number} line - the calculated line to insert/prepend at
  */
 export function calcSmartPrependPoint(note: TNote): number {
-  const lines = note.content?.split('\n') ?? ['']
+  const lines = note.paragraphs.map(s => s.content)
+  logDebug('paragraph/calcSmartPrependPoint', `Starting with ${lines.length} lines`)
 
-  // By default we prepend at line 1, i.e. right after the Title line
+  // By default we prepend at line 1, i.e. right after the Title line for regulat notes
   let insertionLine = note.type === 'Calendar' ? 0 : 1
   // If we have any content, check for these special cases
   if (lines.length > 0) {
     if (lines[0] === '---') {
-      // console.log(`YAML start found. Will check ${lines.length} lines`)
+      logDebug('paragraph/calcSmartPrependPoint', `- YAML start found. Will check ${lines.length} lines`)
       // We (probably) have a YAML block
       // Find end of YAML/frontmatter
       for (let i = 1; i < lines.length; i++) {
         if (lines[i] === '---' || lines[i] === '...') {
-          // console.log(`YAML end at ${i}`)
+          // logDebug('???', `YAML end at ${i}`)
           insertionLine = i + 1
           break
         }
       }
       if (insertionLine === 1) {
         // If we get here we haven't found an end to the YAML block.
-        logWarn('paragraph/calcSmartPrependPoint', `Couldn't find end of YAML frontmatter in note ${displayTitle(note)}`)
+        logWarn('paragraph/calcSmartPrependPoint', `- Couldn't find end of YAML frontmatter in note ${displayTitle(note)}`)
         // It's not clear what to do at this point, so will leave insertion point as is
       }
-    } else if (lines[1].match(/^#[A-z]/)) {
+    }
+    else if (lines.length >= 2 && lines[1].match(/^#[A-z]/)) {
       // We have a hashtag at the start of the line, making this a metadata line
       // Move insertion point to after the next blank line, or before the next
       // heading line, whichever is sooner.
-      // console.log(`Metadata line found`)
+      logDebug('paragraph/calcSmartPrependPoint', `- Metadata line found`)
       for (let i = 2; i < lines.length; i++) {
-        // console.log(`${i}: ${lines[i]}`)
+        // logDebug('???', `${i}: ${lines[i]}`)
         if (lines[i].match(/^#{1,5}\s/)) {
-          // console.log(`  Heading at ${i}`)
+          logDebug('paragraph/calcSmartPrependPoint', `  - Heading at ${i}`)
           insertionLine = i + 1
           break
         } else if (lines[i] === '') {
-          // console.log(`  Blank line at ${i}`)
+          logDebug('paragraph/calcSmartPrependPoint', `  - Blank line at ${i}`)
           insertionLine = i + 1
           break
         }
       }
+    }
+    else {
+      logDebug('paragraph/calcSmartPrependPoint', `  - neither frontmatter nor metadata line found -> line ${insertionLine}`)
     }
   }
   // Return the smarter insertionLine number
@@ -224,35 +229,47 @@ export function smartPrependPara(note: TNote, paraText: string, paragraphType: P
  * Works out where the first ## Done or ## Cancelled section starts, if present.
  * Works with folded Done or Cancelled sections.
  * If the previous line was a separator, use that line instead
- * If neither Done or Cancelled present, return the line count.
+ * If neither Done or Cancelled present, return the last non-empty lineIndex.
  * @author @jgclark
  * @tests in jest file
  *
  * @param {TNote} note - the note to assess
- * @return {number} - the index number
+ * @returns {number} - the index number (counting from zero)
  */
 export function findEndOfActivePartOfNote(note: CoreNoteFields): number {
   const paras = note.paragraphs
-  const lineCount = paras.length
+  let lineCount = paras.length
 
-  // Find first example of ## Done
-  const doneHeaderLines = paras.filter((p) => p.headingLevel === 2 && p.content.startsWith('Done')) ?? []
-  let doneHeaderLine = doneHeaderLines.length > 0 ? doneHeaderLines[0].lineIndex : 0
-  // Now check to see if previous line was a separator; if so use that line instead
-  if (doneHeaderLine > 2 && paras[doneHeaderLine - 1].type === 'separator') {
-    doneHeaderLine -= 1
+  // If no lines, return 0
+  if (lineCount === 0) {
+    return 0
   }
-  // Find first example of ## Cancelled
-  const cancelledHeaderLines = paras.filter((p) => p.headingLevel === 2 && p.content.startsWith('Cancelled')) ?? []
-  let cancelledHeaderLine = cancelledHeaderLines.length > 0 ? cancelledHeaderLines[0].lineIndex : 0
-  // Now check to see if previous line was a separator; if so use that line instead
-  if (cancelledHeaderLine > 2 && paras[cancelledHeaderLine - 1].type === 'separator') {
-    cancelledHeaderLine -= 1
-  }
+  else {
+    // If last line is empty, ignore it.
+    if (paras[paras.length - 1].type === 'empty') {
+      logDebug('paragraph/findEndOfActivePartOfNote', `last para is empty so ignoring it`)
+      lineCount--
+    }
 
-  const endOfActive = doneHeaderLine > 0 ? doneHeaderLine : cancelledHeaderLine > 0 ? cancelledHeaderLine : lineCount
-  // log('paragraph/findEndOfActivePartOfNote', `  dHL = ${doneHeaderLine}, cHL = ${cancelledHeaderLine} endOfActive = ${endOfActive}`)
-  return endOfActive
+    // Find first example of ## Done
+    const doneHeaderLines = paras.filter((p) => p.headingLevel === 2 && p.content.startsWith('Done')) ?? []
+    let doneHeaderLine = doneHeaderLines.length > 0 ? doneHeaderLines[0].lineIndex : 0
+    // Now check to see if previous line was a separator; if so use that line instead
+    if (doneHeaderLine > 2 && paras[doneHeaderLine - 1].type === 'separator') {
+      doneHeaderLine -= 1
+    }
+    // Find first example of ## Cancelled
+    const cancelledHeaderLines = paras.filter((p) => p.headingLevel === 2 && p.content.startsWith('Cancelled')) ?? []
+    let cancelledHeaderLine = cancelledHeaderLines.length > 0 ? cancelledHeaderLines[0].lineIndex : 0
+    // Now check to see if previous line was a separator; if so use that line instead
+    if (cancelledHeaderLine > 2 && paras[cancelledHeaderLine - 1].type === 'separator') {
+      cancelledHeaderLine -= 1
+    }
+
+    const endOfActive = doneHeaderLine > 0 ? doneHeaderLine : cancelledHeaderLine > 0 ? cancelledHeaderLine : lineCount > 0 ? lineCount - 1 : 0
+    logDebug('paragraph/findEndOfActivePartOfNote', `doneHeaderLine = ${doneHeaderLine}, cancelledHeaderLine = ${cancelledHeaderLine} endOfActive = ${endOfActive}`)
+    return endOfActive
+  }
 }
 
 /**
@@ -265,7 +282,7 @@ export function findEndOfActivePartOfNote(note: CoreNoteFields): number {
 export function endOfFrontmatterLineIndex(note: CoreNoteFields): number {
   const paras = note.paragraphs
   const lineCount = paras.length
-  log(`paragraph.js::endOfFrontmatterLineIndex`, `total paragraphs in note (lineCount) = ${lineCount}`)
+  logDebug(`paragraph/endOfFrontmatterLineIndex`, `total paragraphs in note (lineCount) = ${lineCount}`)
   let inFrontMatter: boolean = false
   let lineIndex = 0
   while (lineIndex < lineCount) {
@@ -298,7 +315,7 @@ export function findStartOfActivePartOfNote(note: CoreNoteFields): number {
     let paras = note.paragraphs
     // First check there's actually anything at all! If note, add a first empty paragraph
     if (paras.length === 0) {
-      log(`paragraph/findStartOfActivePartOfNote`, `Note was empty; adding a blank line to make writing to the note work`)
+      logDebug(`paragraph/findStartOfActivePartOfNote`, `Note was empty; adding a blank line to make writing to the note work`)
       note.appendParagraph('', 'empty')
       return 0
     }
@@ -314,7 +331,7 @@ export function findStartOfActivePartOfNote(note: CoreNoteFields): number {
       if (paras.length === startOfActive) {
         // NB: length = line index + 1
         // There is no line after title or FM, so add a blank line to use
-        log('paragraph/findStartOfActivePartOfNote', `Added a blank line after title/frontmatter of '${displayTitle(note)}'`)
+        logDebug('paragraph/findStartOfActivePartOfNote', `Added a blank line after title/frontmatter of '${displayTitle(note)}'`)
         note.appendParagraph('', 'empty')
         paras = note.paragraphs
       }
@@ -379,32 +396,56 @@ export function getOrMakeMetadataLine(note: TNote): number {
   }
   if (Number.isNaN(lineNumber)) {
     // If no metadataPara found, then insert one straight after the title
-    console.log(`Warning: Can't find an existing metadata line, so will insert a new second line for it`)
+    logDebug('paragraph/getOrMakeMetadataLine', `Warning: Can't find an existing metadata line, so will insert a new second line for it`)
     Editor.insertParagraph('', 1, 'empty')
     lineNumber = 1
   }
-  // console.log(`Metadata line = ${lineNumber}`)
+  // logDebug('paragraph/getOrMakeMetadataLine', `Metadata line = ${lineNumber}`)
   return lineNumber
 }
 
 /**
- * Find a heading/title that matches the string given
+ * Find a note's heading/title that matches the string given
  * Note: There's a copy in helpers/NPParagaph.js to avoid a circular dependency
  * @author @dwertheimer
  *
  * @param {TNote} note
- * @param {string} heading
+ * @param {string} headingToFind to find (exact match)
  * @returns {TParagraph | null} - returns the actual paragraph or null if not found
- * @tests exist
+ * @tests in jest file
  */
-export function findHeading(note: TNote, heading: string): TParagraph | null {
-  if (heading) {
+export function findHeading(note: TNote, headingToFind: string): TParagraph | null {
+  if (headingToFind) {
     const paragraphs = note.paragraphs
-    const para = paragraphs.find((paragraph) => paragraph.type === 'title' && paragraph.content.trim() === heading.trim())
+    const para = paragraphs.find((paragraph) => paragraph.type === 'title' && paragraph.content.trim() === headingToFind.trim())
 
     if (para) return para
   }
   return null
+}
+
+/**
+ * Find a note's heading/title whose start matches the given string (ignoring case).
+ * Example: given 'JOURNAL' matches heading 'Journal for 3.4.22' or the other way around
+ * @author @jgclark
+ *
+ * @param {TNote} note
+ * @param {string} headingToFind
+ * @returns {string} - returns the matching (probably shorter) title/heading or empty if not found
+ * @tests in jest file
+ */
+export function findHeadingStartsWith(note: TNote, headingToFind: string): string {
+  if (headingToFind) {
+    const headingToFindLC = headingToFind.toLowerCase()
+    const paragraphs = note.paragraphs
+    const para = paragraphs.find((paragraph) => paragraph.type === 'title'
+      && (paragraph.content.toLowerCase().startsWith(headingToFindLC)
+        || headingToFindLC === paragraph.content.toLowerCase()
+        || headingToFindLC.startsWith(paragraph.content.toLowerCase())))
+
+    if (para) return para.content
+  }
+  return ''
 }
 
 /**

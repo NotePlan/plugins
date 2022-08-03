@@ -1,5 +1,5 @@
 {
-  "noteplan.minAppVersion": "3.3.2",
+  "noteplan.minAppVersion": "3.6.1",
   "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.QuickCapture",
   "plugin.name": "⚡️ Quick Capture",
@@ -7,8 +7,8 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.QuickCapture/",
-  "plugin.version": "0.11.0",
-  "plugin.lastUpdateInfo": "The Inbox location can now send to the current Weekly as well as Daily or other fixed note. Note: please review your settings.",
+  "plugin.version": "0.12.0",
+  "plugin.lastUpdateInfo": "The Inbox location can now send to the current Weekly as well as Daily or other fixed note. (Note: please review your settings.) Also more flexible use from x-callback calls.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -142,7 +142,7 @@
     {
       "key": "inboxLocation",
       "title": "Where is your Inbox?",
-      "description": "Select 'Daily' or 'Weekly' to use whatever is the current daily or weekly note. Or  choose 'Fixed' and then add the note title in the next setting.",
+      "description": "Select 'Daily' or 'Weekly' to use whatever is the current daily or weekly note.\nOr  choose 'Fixed' and then add the note title in the next setting.",
       "type": "string",
       "choices": [
         "Daily",
@@ -161,9 +161,21 @@
       "required": false
     },
     {
+      "type": "string",
+      "key": "textToAppendToTasks",
+      "title": "Text to append to new inbox tasks",
+      "description": "Optional text (that can include hashtags or mentions) that will be appended to all new tasks captured to the inbox.",
+      "default": "",
+      "required": false
+    },
+    {
+      "type": "heading",
+      "title": "Other settings"
+    },
+    {
       "key": "addInboxPosition",
-      "title": "Where to add in Inbox?",
-      "description": "Where to Add to Inbox note: start (prepend) or end (append)",
+      "title": "Where to add in notes?",
+      "description": "Where to add in the selected note (or section of a note): start (prepend) or end (append)?",
       "type": "string",
       "choices": [
         "append",
@@ -174,11 +186,27 @@
     },
     {
       "type": "string",
-      "key": "textToAppendToTasks",
-      "title": "Text to append to new inbox tasks",
-      "description": "optional text (that can include hashtags or mentions) that will be appended to all new tasks captured to the inbox.",
-      "default": "",
+      "key": "journalHeading",
+      "title": "Heading for your Journal entries",
+      "description": "Optional heading for '/quick add to journal today' to add your journal entries under.",
+      "default": "Journal",
       "required": false
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Debugging"
+    },
+    {
+        "key": "_logLevel",
+        "title": "Log Level",
+        "description": "Set how much output will be displayed for this plugin in the NotePlan > Help > Plugin Console. DEBUG is the most verbose; NONE is the least (silent).",
+        "type": "string",
+        "choices": ["DEBUG","INFO","WARN","ERROR","none"],
+        "default": "INFO",
+        "required": true
     }
   ]
 }
