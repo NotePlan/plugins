@@ -1,7 +1,7 @@
 // @flow
 
 import { addMinutes } from 'date-fns'
-import pluginJson from '../../dwertheimer.EventBlocks/plugin.json'
+import pluginJson from '../plugin.json'
 import { log, logError, JSP, clo, logWarn, logDebug } from '@helpers/dev'
 import { chooseHeading, chooseOption } from '@helpers/userInput'
 import { findHeading, getBlockUnderHeading } from '@helpers/NPParagraph'
@@ -280,8 +280,8 @@ export async function createEvents(heading: string = '', confirm: string = 'yes'
           }
         }
       } else {
-        logDebug(pluginJson,`Could not find heading containing ${heading}; headings in note:\n`)
-        const titles = note.paragraphs.filter(p=>p.type === "title").map(p=>p.content)
+        logDebug(pluginJson,`Could not find heading containing "${heading}"; headings in note:\n`)
+        const titles = note.paragraphs.filter(p=>p.type === "title").map(p=>p.content).join(`\n`)
         logDebug(pluginJson, titles)
       }
     }
