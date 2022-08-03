@@ -2,7 +2,7 @@
 
 import { addMinutes } from 'date-fns'
 import pluginJson from '../plugin.json'
-import { log, logError, JSP, clo, logWarn } from '@helpers/dev'
+import { log, logError, JSP, clo, logWarn, logDebug } from '@helpers/dev'
 import { chooseHeading, chooseOption } from '@helpers/userInput'
 import { findHeading, getBlockUnderHeading } from '@helpers/NPParagraph'
 import { isReallyAllDay } from '@helpers/dateTime'
@@ -38,7 +38,7 @@ export const replaceCalendarLinkText = (line: string, replaceWith: string): stri
 
     return parts.join(':::')
   } else {
-    log(pluginJson, `replaceCalendarLinkText: could not split/find 4 parts for link: ${line}`)
+   logDebug(pluginJson, `replaceCalendarLinkText: could not split/find 4 parts for link: ${line}`)
     return line
   }
 }
@@ -155,7 +155,7 @@ export async function createEvent(title: string, range: { start: Date, end: Date
 ): TCalendarItem;
 */
   const isAllDayEvent = isReallyAllDay(range) // make an educated guess about whether this was intended to be an all day event
-  // log(pluginJson, `createEvent: ${title} allday:${isReallyAllDay(range)}`)
+  //logDebug(pluginJson, `createEvent: ${title} allday:${isReallyAllDay(range)}`)
   if (!isAllDayEvent && range.start === range.end) {
     // if it's not an all day event, and the start and end are the same, then it's probably "at 12" or something, so we add time to the end to make it an event
     range.end = addMinutes(range.start, config.eventLength || '30')
@@ -178,7 +178,7 @@ export async function confirmEventTiming(paragraphBlock: Array<TParagraph>, conf
   for (let i = 0; i < paragraphBlock.length; i++) {
     const line = paragraphBlock[i]
     if (hasCalendarLink(line.content)) {
-      log(pluginJson, `Skipping line with calendar link: ${line.content}`)
+     logDebug(pluginJson, `Skipping line with calendar link: ${line.content}`)
     } else {
       const potentials = Calendar.parseDateText(line.content) //returns {start: Date, end: Date}
       if (potentials.length > 0) {
@@ -199,7 +199,7 @@ export async function confirmEventTiming(paragraphBlock: Array<TParagraph>, conf
         confirmedEventData.push({ revisedLine, dateRangeInfo: chosenDateRange, paragraph: line, index: i })
       } else {
         // do nothing with this line?
-        log(pluginJson, `processTimeLines no times found for "${line.content}"`)
+       logDebug(pluginJson, `processTimeLines no times found for "${line.content}"`)
       }
     }
   }
@@ -229,27 +229,27 @@ export async function processTimeLines(paragraphBlock: Array<TParagraph>, config
       const range = { start: item.dateRangeInfo.start, end: item.dateRangeInfo.end }
       const eventWithoutLink = await createEvent(item.revisedLine, range, config)
       if (eventWithoutLink && eventWithoutLink.id !== null && typeof eventWithoutLink.id === 'string') {
-        log(pluginJson, `created event ${eventWithoutLink.title}`)
+       logDebug(pluginJson, `created event ${eventWithoutLink.title}`)
         const { id, title } = eventWithoutLink
         const event = id ? await Calendar.eventByID(id) : null
         if (event) {
           const { calendarItemLink } = event
-          log(pluginJson, `processTimeLines event=${title} event.calendarItemLink=${calendarItemLink}`)
+         logDebug(pluginJson, `processTimeLines event=${title} event.calendarItemLink=${calendarItemLink}`)
           // const editedLink = replaceCalendarLinkText(calendarItemLink, removeDateText ? `${item.dateRangeInfo.text || ''} ${linkText}` : linkText)
           item.paragraph.content = `${item.revisedLine} ${calendarItemLink}`
           // timeLines.push({ time: item.dateRangeInfo, paragraph: item.paragraph, event })
           timeLines.push(item.paragraph)
-          // log(pluginJson, `processTimeLines timeLines.length=${timeLines.length}`)
+          //logDebug(pluginJson, `processTimeLines timeLines.length=${timeLines.length}`)
         }
       } else {
-        log(pluginJson, `processTimeLines no event created for "${item.revisedLine}"`)
+       logDebug(pluginJson, `processTimeLines no event created for "${item.revisedLine}"`)
       }
       // confirmPotentialTimeChoices()
       // CreateEvents() // + tag created events
     }
     await CommandBar.onMainThread()
     CommandBar.showLoading(false)
-    log(pluginJson, `processTimeLines RETURNING ${timeLines.length} processed lines`)
+   logDebug(pluginJson, `processTimeLines RETURNING ${timeLines.length} processed lines`)
   } catch (error) {
     logError(pluginJson, `processTimeLines error=${JSP(error)}`)
   }
@@ -266,9 +266,9 @@ export async function createEvents(heading: string = '', confirm: string = 'yes'
   try {
     const note = Editor.note
     if (note) {
-      const config = getPluginSettings()
-      config.confirm = confirm === 'yes'
-      const headingPara = heading !== '' ? findHeading(note, heading) : await chooseTheHeading(note)
+      const config = {...DataStore.settings}
+      config.confirm = confirm === 'yes' || config.confirm
+      const headingPara = heading !== '' ? findHeading(note, heading, true) : await chooseTheHeading(note)
       if (headingPara) {
         const paragraphsBlock = getBlockUnderHeading(note, headingPara)
         if (paragraphsBlock.length) {
@@ -279,6 +279,10 @@ export async function createEvents(heading: string = '', confirm: string = 'yes'
             logError(pluginJson, `No time lines found under heading: ${heading}`)
           }
         }
+      } else {
+        logDebug(pluginJson,`Could not find heading containing "${heading}"; headings in note:\n`)
+        const titles = note.paragraphs.filter(p=>p.type === "title").map(p=>p.content).join(`\n`)
+        logDebug(pluginJson, titles)
       }
     }
   } catch (error) {

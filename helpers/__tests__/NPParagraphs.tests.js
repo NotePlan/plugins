@@ -28,16 +28,10 @@ beforeEach(() => {
  * findHeading()
  */
 describe('findHeading()' /* function */, () => {
-  /* template:
-      test('should XXX', () => {
-        const spy = jest.spyOn(CommandBar, 'prompt')
-        const result = mainFile.findHeading()
-        expect(result).toEqual(true)
-  expect(spy).toHaveBeenCalledWith()
-        spy.mockRestore()
-      })
-      */
-
+  test('should return null if no heading', () => {
+    const result = p.findHeading(Editor.note, '')
+    expect(result).toEqual(null)
+  })
   test('should return a paragraph when matched', () => {
     const result = p.findHeading(Editor.note, 'theTitle')
     expect(result).not.toEqual(null)
@@ -46,6 +40,10 @@ describe('findHeading()' /* function */, () => {
   test('should return null when not matched', () => {
     const result = p.findHeading(Editor.note, 'NoTitleMatch')
     expect(result).toEqual(null)
+  })
+  test('should return partial match', () => {
+    const result = p.findHeading(Editor.note, 'eTit',true)
+    expect(result.content).toEqual(`theTitle`)
   })
 })
 

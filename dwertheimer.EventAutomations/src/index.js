@@ -15,6 +15,8 @@ export {
   updateDatePlusTags,
 } from './NPTimeblocking'
 
+export {createEvents} from './NPEventBlocks'
+
 const PLUGIN_ID = 'autoTimeBlocking' // the key that's used in _configuration note
 
 export async function onUpdateOrInstall(config: any = { silent: false }): Promise<void> {

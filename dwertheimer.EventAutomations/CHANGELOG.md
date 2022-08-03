@@ -4,7 +4,12 @@ README: [How to use AutoTimeBlocking](https://noteplan.co/n/#/1EF12392-B544-4044
 
 ## What's New in AutoTimeBlocking
 
-[1.5.0] 2022-07-21 @dwertheimer (NOT RELEASED YET)
+[1.6.0] 2022-07-21 @dwertheimer
+- Added Create Events from Text Block capability (/cevt - Create Events from Text)
+- Added Log Level Settings in Preferences
+- Renamed plugin to AutoTimeBlocking & Event Automations
+
+[1.5.0] 2022-07-21 @dwertheimer 
 - Added Log Level Settings in Preferences
 
 [1.4.0] 2022-07-03 @dwertheimer
