@@ -4,6 +4,11 @@ Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree
 <!-- ### Added
 - [when environment() API call is available] ??? will use system locale in dates, where possible
 -->
+## [0.9.0-beta1] - 2022-08-04
+### Changed
+- Split a setting into two: 'Include lines from start of Section in the Block?' and 'Use a tighter definition of when a Block finishes?'  This gives more control over the number of lines that are automatically selected to move. _You can still manually select a specific range of lines to move._
+- ??? where the command is working out which lines to include in the block, it will now show them highlighted while it's asking which note to move them to. This provides a useful way of checking it's doing what you expect.
+
 ## [0.8.1] - 2022-06-27
 ### Added
 - new **/new note from clipboard** command (alias **nnc**) added back in from 0.7.0 beta
