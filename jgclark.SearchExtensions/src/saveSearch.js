@@ -162,9 +162,9 @@ export async function saveSearch(
 
     //---------------------------------------------------------
     // Work out where to save this summary
-    // TODO: Review whether this is needed, if autoSave is always true
     let destination = ''
-    if (originatorCommand !== undefined) {
+    // FIXME: Review whether this is appropriate, if autoSave is always true
+    if (originatorCommand === 'quickSearch') {
       destination = 'quick'
     }
     else if (calledIndirectly || config.autoSave) {

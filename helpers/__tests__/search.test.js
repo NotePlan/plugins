@@ -117,9 +117,13 @@ describe('search.js tests', () => {
       const output = s.simplifyRawContent('  > quotation line ')
       expect(output).toEqual('> quotation line')
     })
-    test('remove: blockID at end', () => {
+    test('remove: blockID 1 at end', () => {
       const output = s.simplifyRawContent('  > blockID line ^abc123 ')
       expect(output).toEqual('> blockID line')
+    })
+    test('remove: blockID 2 at end', () => {
+      const output = s.simplifyRawContent('- this is open at root @menty @everse/Kyle ^i0kuo6')
+      expect(output).toEqual('- this is open at root @menty @everse/Kyle')
     })
     test('remove: blockID at start', () => {
       const output = s.simplifyRawContent('^abc123 > blockID line ')
@@ -249,7 +253,7 @@ describe('search.js tests', () => {
     })
     test('should return 3 highlights; not simplified; from tab padded', () => {
       const output = s.trimAndHighlightTermInLine("\t\tThere's Tennis and tennis.org and unTENNISlike behaviour!  ", ['tennis'], false, true, '- ', 100)
-      expect(output).toEqual("\t\tThere's ==Tennis== and ==tennis==.org and un==TENNIS==like behaviour!")
+      expect(output).toEqual("There's ==Tennis== and ==tennis==.org and un==TENNIS==like behaviour!")
     })
     test('should return 3 highlights; simplified; from tab padded', () => {
       const output = s.trimAndHighlightTermInLine("\t\tThere's Tennis and tennis.org and unTENNISlike behaviour!  ", ['tennis'], true, true, '- ', 100)

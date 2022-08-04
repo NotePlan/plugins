@@ -7,17 +7,25 @@
 ## [0.5.0] - 2022-07-???
 ### Added
 - Major new version, that now supports + and - search operators for terms that _must_ appear, and _must not_ appear, respectively.  For example `+"must have me" may could -"cannot have me"` has 4 search terms, the first must be present, the last mustn't be present, and the middle two (may, could) can be.
-- the test for + and - is done per line in notes. If you wish to ignore the whole note that has a term, you can use the ! operator, e.g. `+must !not-me`.
 - you can now refresh results in a single click, with the 'button link' under the heading on each search page
-- an API call for this that also allows restricting search to one or more paragraph types (e.g. 'open' for incomplete tasks), through the last parameter on `runSearchV2(...)`.
+- the test for + and - is done per line in notes. If you wish to ignore the whole note that has a term, you can use the ! operator, e.g. `+must !not-me`. (thanks @dwertheimer for this suggestion)
 - provides x-callback entry points for these searches -- see README for details.
+- added an API call for this that also allows restricting search to one or more paragraph types (e.g. 'open' for incomplete tasks), through the last parameter on `runSearchV2(...)`.
 
-<!--
+
 **Notes for beta5** (2022-08-???):
-- [ ] tested /saveSearchNotes  -- still writing quickSearch in URL
+- [x] fix when results are only found in 1 note
+- [x] actually use the new simplifyRawContent() function, not just test it!
+- [ ] tested /quickSearch
+  - [x] can repeat to same note
+  - [x] can use single noteType parameter
+  - [ ] can use multiple noteType parameters TODO: not working
+  - [x] can cope with nil results
+- [ ] tested /saveSearchNotes
+  - [x] writing to correct note title
   - [ ] can repeat same note with different terms
   - [ ] can cope with nil results
-  - [x] can use noteType parameter/s
+  - [ ] can use noteType parameter/s
 - [ ] tested /saveSearchInPeriod
   - [ ] can repeat same note with different notes:
     - [ ] new param on writeResults()?
@@ -28,11 +36,8 @@
   - [ ] can repeat same note with different notes:
   - [ ] can use noteType parameter
   - [ ] can cope with nil results
-- [ ] tested /quickSearch
-  - [ ] can repeat to same note
-  - [ ] can use noteType parameter
-  - [ ] can cope with nil results
--->
+- [ ] check [callback] empty result for note 20220270
+
 **Notes for beta4** (2022-07-30):
 - [x] NP-style always start with the leading markdown
 - [x] blockIDs are now removed via new simplifyRawContent() function
@@ -55,7 +60,6 @@
 - I've only really tested the /quickSearch command so far
 
 **Still TODO:**:
-- fix 
 - finish test for applySearchOperators
 - resolve API question about multi-word search phrases
 - support `"multi-word terms"`
@@ -63,6 +67,7 @@
 - decide whether to support showEmptyResults option still, or just turn on?
 - hook up x-callback for calendar-only searching
 - properly test x-callbacks
+- update plugin.json function parameters
 - update README
 - shift some functions and tests to helpers/search.
 - tidy up display in special case of matching H1

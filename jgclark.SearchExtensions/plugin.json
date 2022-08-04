@@ -8,7 +8,7 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.SearchExtensions/CHANGELOG.md",
-  "plugin.version": "0.5.0-beta3",
+  "plugin.version": "0.5.0-beta5",
   "plugin.lastUpdateInfo": "Big speed up. Now supports search operators: + (must match) - (can't match in line) ! (can't match in note) in place of just 'OR'.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
@@ -25,7 +25,6 @@
       "arguments": [
         "noteTypesToInclude either 'project','calendar' or 'both'",
         "search term(s) (separated by commas)",
-        "destination ???",
         "terms to filter by paragraph type (separated by commas)"
       ]
     },
@@ -38,7 +37,8 @@
       "description": "Save results from a search over all notes",
       "jsFunction": "saveSearchOverAll",
       "arguments": [
-        "search term(s) (separated by commas)"
+        "search term(s) (separated by commas)",
+        "terms to filter by paragraph type (separated by commas)"
       ]
     },
     {
@@ -54,7 +54,8 @@
       "arguments": [
         "search term(s) (separated by commas)",
         "start date to search over (YYYYMMDD or YYYY-MM-DD). If not given, then defaults to 3 months ago",
-        "end date to search over (YYYYMMDD or YYYY-MM-DD). If not given, then defaults to today"
+        "end date to search over (YYYYMMDD or YYYY-MM-DD). If not given, then defaults to today",
+        "terms to filter by paragraph type (separated by commas)"
       ]
     },
     {
@@ -69,8 +70,6 @@
       "jsFunction": "saveSearchOverCalendar",
       "arguments": [
         "search term(s) (separated by commas)",
-        "???",
-        "???",
         "terms to filter by paragraph type (separated by commas)"
       ]
     },
@@ -229,7 +228,7 @@
       "key": "showEmptyResults",
       "title": "Show empty matches?",
       "description": "If no matches of the search term(s) are found, setting this true will still show a heading for the term(s) where relevant",
-      "type": "hidden",
+      "type": "bool",
       "default": true,
       "required": true
     },

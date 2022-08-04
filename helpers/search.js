@@ -105,7 +105,6 @@ export function getLineMainContentPos(input: string): number {
 
 /**
  * Take a line and simplify if needed.
- * Note: this is currently a null transform.
  * Note: a different function deals with start-of-line Markdown markers (for open/closed/cancelled/sched tasks, quotes, lists, headings).
  * Also trim the output.
  * @author @jgclark
@@ -152,13 +151,14 @@ export function trimAndHighlightTermInLine(
   const startOfLineMarker = input.slice(0, startOfMainLineContentPos)
   let mainPart = input.slice(startOfMainLineContentPos)
 
-  if (simplifyLine) {
+  // if (simplifyLine) {
     // Simplify rawContent line by trimming off leading chars
     mainPart = simplifyRawContent(mainPart)
-  } else {
-    // or at least right trim
-    mainPart = mainPart.trimRight()
-  }
+  // } else {
+  //   // or at least right trim
+  //   mainPart = mainPart.trimRight()
+  // }
+
   // Now trim the line content if necessary
   if (maxChars > 0 && mainPart.length > maxChars) {
     // this split point ensures we put the term with a little more context before it than after it
