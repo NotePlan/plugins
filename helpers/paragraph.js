@@ -226,9 +226,9 @@ export function smartPrependPara(note: TNote, paraText: string, paragraphType: P
 }
 
 /**
- * Works out where the first ## Done or ## Cancelled section starts, if present.
+ * Works out where the first ## Done or ## Cancelled section starts, if present, and returns the paragraph before that.
  * Works with folded Done or Cancelled sections.
- * If the previous line was a separator, use that line instead
+ * If the result is a separator, use the line before that instead
  * If neither Done or Cancelled present, return the last non-empty lineIndex.
  * @author @jgclark
  * @tests in jest file
@@ -266,7 +266,10 @@ export function findEndOfActivePartOfNote(note: CoreNoteFields): number {
       cancelledHeaderLine -= 1
     }
 
-    const endOfActive = doneHeaderLine > 0 ? doneHeaderLine : cancelledHeaderLine > 0 ? cancelledHeaderLine : lineCount > 0 ? lineCount - 1 : 0
+    const endOfActive = doneHeaderLine > 1 ? doneHeaderLine - 1
+      : cancelledHeaderLine > 1 ? cancelledHeaderLine - 1
+        : lineCount > 1 ? lineCount - 1
+          : 0
     logDebug('paragraph/findEndOfActivePartOfNote', `doneHeaderLine = ${doneHeaderLine}, cancelledHeaderLine = ${cancelledHeaderLine} endOfActive = ${endOfActive}`)
     return endOfActive
   }

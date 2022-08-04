@@ -7,8 +7,8 @@
   "plugin.icon": "",
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Filer",
-  "plugin.version": "0.8.1",
-  "plugin.lastUpdateInfo": "Add '/new note from clipboard' command",
+  "plugin.version": "0.9.0-beta1",
+  "plugin.lastUpdateInfo": "Split a setting into two: 'Include lines from start of Section in the Block?' and 'Use a tighter definition of when a Block finishes?'",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -20,7 +20,7 @@
         "fp",
         "file"
       ],
-      "description": "move (file) paragraphs to different notes",
+      "description": "move (file) a block of paragraphs to different notes",
       "jsFunction": "moveParas"
     },
     {
@@ -40,7 +40,7 @@
         "day",
         "daily"
       ],
-      "description": "quick move paragraphs to Today's note",
+      "description": "quick move a block of paragraphs to Today's note",
       "jsFunction": "moveParasToToday"
     },
     {
@@ -50,7 +50,7 @@
         "day",
         "daily"
       ],
-      "description": "quick move paragraphs to Tomorrow's daily note",
+      "description": "quick move a block of paragraphs to Tomorrow's daily note",
       "jsFunction": "moveParasToTomorrow"
     },
     {
@@ -59,7 +59,7 @@
         "qmtw",
         "week"
       ],
-      "description": "quick move paragraphs to the current Weekly note",
+      "description": "quick move a block of paragraphs to the current Weekly note",
       "jsFunction": "moveParasToThisWeekly"
     },
     {
@@ -68,7 +68,7 @@
         "qmnw",
         "week"
       ],
-      "description": "quick move paragraphs to Next Week's note",
+      "description": "quick move a block of paragraphs to Next Week's note",
       "jsFunction": "moveParasToNextWeekly"
     },
     {
@@ -106,6 +106,34 @@
       "title": "Filer plugin settings"
     },
     {
+      "key": "includeFromStartOfSection",
+      "title": "Include lines from start of Section in the Block?",
+      "description": "Controls whether all the lines in the current heading's section are included in the block to move (true) or whether only the following ones that are more deeply indented are included (false; this is the default).",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "key": "useTightBlockDefinition",
+      "title": "Use a tighter definition of when a Block finishes?",
+      "description": "By default a Block includes blank lines and separators. If you wish those to instead mark the end of a Block, then set this to true.",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "key": "whereToAddInSection",
+      "title": "Where to add in section",
+      "description": "Controls whether moved lines get inserted at the \"start\" or \"end\" of the chosen section.",
+      "type": "string",
+      "choices": [
+        "start",
+        "end"
+      ],
+      "default": "start",
+      "required": true
+    },
+    {
       "key": "addDateBacklink",
       "title": "Add date reference?",
       "description": "If true, adds date reference on the moved paragraph(s) when moved from a daily note.",
@@ -124,26 +152,6 @@
         "link"
       ],
       "default": "link",
-      "required": true
-    },
-    {
-      "key": "useExtendedBlockDefinition",
-      "title": "Use extended block definition?",
-      "description": "Controls whether all the lines in the current heading's section are included in the block to move (true) or whether only the following ones that are more deeply indented are included (false; this is the default). In both cases a block is closed by a blank line or a separator (horizontal line).",
-      "type": "bool",
-      "default": false,
-      "required": true
-    },
-    {
-      "key": "whereToAddInSection",
-      "title": "Where to add in section",
-      "description": "Controls whether moved lines get inserted at the \"start\" or \"end\" of the chosen section.",
-      "type": "string",
-      "choices": [
-        "start",
-        "end"
-      ],
-      "default": "start",
       "required": true
     }
   ]
