@@ -16,6 +16,19 @@ export function trimAnyQuotes(inStr: string): string {
 }
 
 /**
+ * Trims a string to be be no more than maxLen long; if trimmed add '...'
+ * @author @jgclark
+ * 
+ * @param {string} inStr the string to trim
+ * @returns {string}
+ */
+export function trimString(inStr: string, maxLen: number): string {
+  return inStr.length > maxLen
+    ? inStr.slice(0, maxLen) + ' ...'
+    : inStr
+}
+
+/**
  * Cast boolean from the config mixed. Based on @m1well's config system.
  *
  * @param val the config mixed

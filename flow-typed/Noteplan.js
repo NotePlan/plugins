@@ -212,7 +212,7 @@ declare interface TEditor extends CoreNoteFields {
   /**
    * Scrolls to and highlights the given range. If the paragraph is folded, it
    * will be unfolded.
-   * @param {RangeObject} range
+   * @param {Range} range
    */
   highlightByRange(range: Range): void;
   /**
