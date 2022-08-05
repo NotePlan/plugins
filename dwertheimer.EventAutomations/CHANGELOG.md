@@ -4,6 +4,10 @@ README: [How to use AutoTimeBlocking](https://noteplan.co/n/#/1EF12392-B544-4044
 
 ## What's New in AutoTimeBlocking
 
+[1.7.0] 2022-08-04 @dwertheimer
+- Event Blocks: Added temporary display of start time for event
+- Fix bug where last event wasn't picked up
+
 [1.6.0] 2022-07-21 @dwertheimer
 - Added Create Events from Text Block capability (/cevt - Create Events from Text)
 - Added Log Level Settings in Preferences

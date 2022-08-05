@@ -5,8 +5,8 @@
   "plugin.name": "🗓 AutoTimeBlocking & Event Automations",
   "plugin.description": "Various Event Automations:\n- Automatically find time in your calendar and create Time Blocks for items marked for >today,\n- Write out synced copies of Today's todos (without the AutoTimeBlocking), and\n- Create calendar events for all text items under a specific heading",
   "plugin.author": "dwertheimer",
-  "plugin.version": "1.6.0",
-  "plugin.lastUpdateInfo": "1.6.0: Added: Event Blocks and debugging code",
+  "plugin.version": "1.7.0",
+  "plugin.lastUpdateInfo": "1.7.0: Bug fix and added calendar start date display",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://noteplan.co/n/#/1EF12392-B544-4044-AC7A-428F57EB2DFC",
@@ -419,7 +419,8 @@
       "required": false
     },
     {
-      "type": "separator"
+      "type": "separator",
+      "COMMENT": "---------- EVENT BLOCKS SETTINGS ----------"
     },
     {
       "type": "heading",
@@ -449,10 +450,17 @@
       "default": "30"
     },
     {
-      "title": "Remove date text from content & place in calendar link",
+      "title": "Remove date text from content",
       "key": "removeDateText",
       "type": "bool",
-      "description": "If selected, the text (e.g. 'Friday at 9am') will be removed from the text and placed inside the link to the calendar event.",
+      "description": "If selected, the text pertaining to date/time (e.g. 'Friday at 9am') will be removed from the text line when the event is created. Leaving this unchecked and the following setting checked is a good way to double-check the events get created at the proper date/time.",
+      "default": false
+    },
+    {
+      "title": "Show Event Created Date/Time",
+      "key": "showResultingTimeDate",
+      "type": "bool",
+      "description": "If selected, the start time/date of the calendar event which was created will (temporarily) be displayed in the calendar event link. This is a good way to double-check that the computer understood what you meant in your text. Note: This text (but not the event link) goes away when the note is reloaded.",
       "default": true
     },
     {

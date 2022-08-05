@@ -14,11 +14,13 @@ export type EventBlocksConfig = {
   eventLength: string,
   removeDateText: boolean,
   linkText: string,
+  showResultingTimeDate: boolean,
   version?: string,
 }
 
 type ConfirmedEvent = {
   revisedLine: string,
+  originalLine: string,
   dateRangeInfo: ParsedTextDateRange,
   paragraph: TParagraph,
   index: number,
@@ -99,6 +101,7 @@ export function getPluginSettings(): EventBlocksConfig {
       eventLength: '30',
       removeDateText: true,
       linkText: '→',
+      showResultingTimeDate: true,
     }
   }
 }
@@ -192,11 +195,11 @@ export async function confirmEventTiming(paragraphBlock: Array<TParagraph>, conf
         // Remove the timing part from the line now that we have a link
         // Calendar.parseDateText = [{"start":"2022-06-24T13:00:00.000Z","end":"2022-06-24T13:00:00.000Z","text":"friday at 8","index":0}]
         let revisedLine = line.content
-          .replace(removeDateText && chosenDateRange?.text?.length ? chosenDateRange.text : '', '')
+          .replace(chosenDateRange?.text?.length ? chosenDateRange.text : '', '')
           .replace(/\s{2,}/g, ' ')
           .trim()
         if (revisedLine.length === 0) revisedLine = '...' // If the line was all a date description, we need something to show
-        confirmedEventData.push({ revisedLine, dateRangeInfo: chosenDateRange, paragraph: line, index: i })
+        confirmedEventData.push({ originalLine: line.content, revisedLine, dateRangeInfo: chosenDateRange, paragraph: line, index: i })
       } else {
         // do nothing with this line?
        logDebug(pluginJson, `processTimeLines no times found for "${line.content}"`)
@@ -233,10 +236,12 @@ export async function processTimeLines(paragraphBlock: Array<TParagraph>, config
         const { id, title } = eventWithoutLink
         const event = id ? await Calendar.eventByID(id) : null
         if (event) {
-          const { calendarItemLink } = event
+          clo(event,`Created event:`)
+          const { calendarItemLink, date } = event
          logDebug(pluginJson, `processTimeLines event=${title} event.calendarItemLink=${calendarItemLink}`)
-          // const editedLink = replaceCalendarLinkText(calendarItemLink, removeDateText ? `${item.dateRangeInfo.text || ''} ${linkText}` : linkText)
-          item.paragraph.content = `${item.revisedLine} ${calendarItemLink}`
+          const created = config.showResultingTimeDate ? ` ${date.toLocaleString()}` : ''
+          const editedLink = config.showResultingTimeDate ? replaceCalendarLinkText(calendarItemLink, created) : calendarItemLink
+          item.paragraph.content = `${config.removeDateText ? item.revisedLine : item.originalLine} ${editedLink}`
           // timeLines.push({ time: item.dateRangeInfo, paragraph: item.paragraph, event })
           timeLines.push(item.paragraph)
           //logDebug(pluginJson, `processTimeLines timeLines.length=${timeLines.length}`)
