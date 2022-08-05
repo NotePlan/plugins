@@ -7,6 +7,7 @@ Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree
 ## [0.9.0] - 2022-08-05
 ### Changed
 - Split a setting into two: 'Include lines from start of Section in the Block?' and 'Use a tighter definition of when a Block finishes?'  This gives more control over the number of lines that are automatically selected to move. _You can still manually select a specific range of lines to move._
+- Updated logging framework
 
 ## [0.8.1] - 2022-06-27
 ### Added

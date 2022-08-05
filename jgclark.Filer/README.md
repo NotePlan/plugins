@@ -44,5 +44,11 @@ This command (alias **/nnc**) takes the current text in the clipboard to form th
 ## /new note from selection
 This command (alias **/nns**) takes the current selected text to form the basis of a new note. The command asks for the note title and folder location.
 
+## Support
+If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
+
+If you would like to support my late-night work extending NotePlan through writing these plugins, you can through:
+![https://www.buymeacoffee.com/revjgc](https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg). Thanks!
+
 ## History
 Please see the [CHANGELOG](CHANGELOG.md).

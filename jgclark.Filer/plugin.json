@@ -153,6 +153,22 @@
       ],
       "default": "link",
       "required": true
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Debugging"
+    },
+    {
+        "key": "_logLevel",
+        "title": "Log Level",
+        "description": "Set how much output will be displayed for this plugin in the NotePlan > Help > Plugin Console. DEBUG is the most verbose; NONE is the least (silent).",
+        "type": "string",
+        "choices": ["DEBUG","INFO","WARN","ERROR","none"],
+        "default": "INFO",
+        "required": true
     }
   ]
 }
