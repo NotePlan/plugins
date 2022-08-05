@@ -3,12 +3,7 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 26.7.2022 for v0.5.0, @jgclark
-//-----------------------------------------------------------------------------
-/** 
- * TODO: test again to see if notInFolder param is working.
- */
-
+// Last updated 5.8.2022 for v0.5.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -143,6 +138,7 @@ export async function saveSearch(
     logDebug(pluginJson, `arg2 -> originatorCommand = '${originatorCommand}'`)
 
     // Get the paraTypes to include
+    // $FlowFixMe[incompatible-type]
     const paraTypesToInclude: Array<ParagraphType> = (paraTypeFilterArg !== '') ? paraTypeFilterArg.split(',') : []
     logDebug(pluginJson, `arg3 -> para types '${paraTypesToInclude.toString()}'`)
 
