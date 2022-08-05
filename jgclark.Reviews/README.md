@@ -93,4 +93,10 @@ Please see the [CHANGELOG](CHANGELOG.md).
 
 ## To do
 - update the `/project lists` output to use a table view, _when then this is available in NotePlan_
-- look at updating the plugin to take advantage of YAML frontmatter blocks, introduced in v3.4.x
+- look at updating the plugin to take advantage of YAML frontmatter blocks
+
+## Support
+If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
+
+If you would like to support my late-night work extending NotePlan through writing these plugins, you can through:
+![https://www.buymeacoffee.com/revjgc](https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg). Thanks!

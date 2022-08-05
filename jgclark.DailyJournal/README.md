@@ -86,3 +86,9 @@ Mood -> 😇 Blessed
 - Thankful 3
 ```
 Tip: you can also avoid answering like in Thought 3/3 - then there is also no bullet point in the final note.
+
+## Support
+If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
+
+If you would like to support my late-night work extending NotePlan through writing these plugins, you can through:
+![https://www.buymeacoffee.com/revjgc](https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg). Thanks!
