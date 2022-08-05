@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Plugin to help move selected Paragraphs to other notes
 // Jonathan Clark
-// last updated 4.8.2022 for v0.9.0
+// last updated 5.8.2022 for v0.9.0
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -107,17 +107,21 @@ export async function moveParas(): Promise<void> {
     } else {
       parasInBlock = getParagraphBlock(note, firstSelLineIndex, config.includeFromStartOfSection, config.useTightBlockDefinition)
       // Now attempt to highlight them to help user check all is well
+      // $FlowFixMe[incompatible-use]
       const firstStartIndex = parasInBlock[0].contentRange.start
-      logDebug(pluginJson, firstStartIndex)
+      // $FlowFixMe[incompatible-use]
       const lastStartIndex = parasInBlock[parasInBlock.length - 1].contentRange.start
-      logDebug(pluginJson, lastStartIndex)
+      // $FlowFixMe[incompatible-use]
       const lastLength = parasInBlock[parasInBlock.length - 1].contentRange.length
-      logDebug(pluginJson, lastLength)
+      // $FlowFixMe[incompatible-use]
       const lastEndIndex = parasInBlock[parasInBlock.length - 1].contentRange.end
-      logDebug(pluginJson, lastEndIndex)
-      // const parasCharIndexRange = { start: firstSelLineIndex, end: lastStartIndex + lastLength, length: lastStartIndex + lastLength - firstStartIndex }
+      // logDebug(pluginJson, firstStartIndex)
+      // logDebug(pluginJson, lastStartIndex)
+      // logDebug(pluginJson, lastLength)
+      // logDebug(pluginJson, lastEndIndex)
+      // const parasCharIndexRange = { start: firstStartIndex, end: lastStartIndex + lastLength, length: lastStartIndex + lastLength - firstStartIndex }
       const parasCharIndexRange: Range = { start: firstStartIndex, end: lastEndIndex - 1, length: lastEndIndex - firstStartIndex }
-      logDebug(pluginJson, `- highlighting automatic block selection range ${rangeToString(parasCharIndexRange)}`)
+      logDebug(pluginJson, `- will try to highlight automatic block selection range ${rangeToString(parasCharIndexRange)}`)
       // FIXME: Waiting for Eduard to advise why this is failing with an Objective-C error
       // Editor.highlightByRange(parasCharIndexRange)
     }
