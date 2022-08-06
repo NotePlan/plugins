@@ -4,7 +4,7 @@
 - searches now run over Weekly Notes as well (now the underlying API has been extended)
 -->
 
-## [0.5.0] - 2022-07-???
+## [0.5.0] - 2022-08-???
 ### Added
 - Major new version, that now supports + and - search operators for terms that _must_ appear, and _must not_ appear, respectively.  For example `+"must have me" may could -"cannot have me"` has 4 search terms, the first must be present, the last mustn't be present, and the middle two (may, could) can be.
 - you can now refresh results in a single click, with the 'button link' under the heading on each search page
@@ -28,11 +28,11 @@
   - [x] can use button to repeat same note
   - [x] can cope with nil results
   - [x] can use noteType parameter/s
-- [ ] tested /saveSearchNotes
+- [x] tested /saveSearchNotes
   - [x] writing to correct note title
-  - [ ] can use button to repeat same note
-  - [ ] can cope with nil results
-  - [ ] can use noteType parameter/s
+  - [x] can use button to repeat same note
+  - [x] can cope with nil results
+  - [x] can use noteType parameter/s
 - [ ] tested /saveSearchInPeriod
   - [ ] can use button to repeat same note
     - [ ] new param on writeResults()?
