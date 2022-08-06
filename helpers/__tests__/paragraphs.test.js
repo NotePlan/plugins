@@ -44,6 +44,10 @@ describe('paragraph.js', () => {
       const result = p.isTermInURL('tennis', 'Something about file://bob/things/tennis/booster.')
       expect(result).toEqual(true)
     })
+    test('should find search term in a NotePlan callback', () => {
+      const result = p.isTermInURL('callback', "<@763430583702519878> I think I may have discovered an issue with the Search Extensions plugin. I'm using '/saveSearchOverNotes' and I'm unable to update the document using the url link. My search terms do have @mentions in them so I thought it might be the issue you identified the other day, but I've noticed that the url uses the plugin command, 'saveSearchResults' rather than 'saveSearchOverNotes'.I think it may be doing this for the other versions of save search too. When I manually change the url, it refreshes fine. See eg: noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearchResults&arg0=")
+      expect(result).toEqual(true)
+    })
     test('should not find search term in a file path as it is in rest of line', () => {
       const result = p.isTermInURL('tennis', 'Something about tennis in file://bob/things/tennis/booster.')
       expect(result).toEqual(false)
@@ -188,25 +192,27 @@ describe('paragraph.js', () => {
       const result = p.findEndOfActivePartOfNote(noteD)
       expect(result).toEqual(12)
     })
-    describe('removeDuplicateSyncedLines()', () => {
-      test('should pass through unsynced lines with duplicate values', () => {
-        const linesBefore = [{ content: 'some ordinary text' }, { content: 'some ordinary text' }]
-        expect(p.removeDuplicateSyncedLines(linesBefore)).toEqual(linesBefore)
-      })
-      test('should undupe duplicate blockIDs', () => {
-        const linesBefore = [
-          { content: 'some ordinary text', blockId: '^123456' },
-          { content: 'some ordinary text', blockId: '^123456' },
-        ]
-        expect(p.removeDuplicateSyncedLines(linesBefore).length).toEqual(1)
-      })
-      test('should pass through different blockIDs', () => {
-        const linesBefore = [
-          { content: 'some ordinary text', blockId: '^aaaaaa' },
-          { content: 'some ordinary text', blockId: '^123456' },
-        ]
-        expect(p.removeDuplicateSyncedLines(linesBefore)).toEqual(linesBefore)
-      })
+  })
+
+  describe('removeDuplicateSyncedLines()', () => {
+    test('should pass through unsynced lines with duplicate values', () => {
+      const linesBefore = [{ content: 'some ordinary text' }, { content: 'some ordinary text' }]
+      expect(p.removeDuplicateSyncedLines(linesBefore)).toEqual(linesBefore)
+    })
+    test('should undupe duplicate blockIDs', () => {
+      const linesBefore = [
+        { content: 'some ordinary text', blockId: '^123456' },
+        { content: 'some ordinary text', blockId: '^123456' },
+      ]
+      expect(p.removeDuplicateSyncedLines(linesBefore).length).toEqual(1)
+    })
+    test('should pass through different blockIDs', () => {
+      const linesBefore = [
+        { content: 'some ordinary text', blockId: '^aaaaaa' },
+        { content: 'some ordinary text', blockId: '^123456' },
+      ]
+      expect(p.removeDuplicateSyncedLines(linesBefore)).toEqual(linesBefore)
     })
   })
 })
+
