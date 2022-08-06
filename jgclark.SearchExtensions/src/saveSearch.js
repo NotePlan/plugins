@@ -10,7 +10,7 @@ import pluginJson from '../plugin.json'
 import {
   createFormattedResultLines,
   getSearchSettings,
-  type resultOutputTypeV2,
+  type resultOutputTypeV3,
   runSearchesV2,
   // type typedSearchTerm,
   validateAndTypeSearchTerms,
@@ -39,9 +39,9 @@ import {
  */
 export async function saveSearchOverAll(searchTermsArg?: string, paraTypeFilterArg?: string): Promise<void> {
   await saveSearch(
-    'both',
     searchTermsArg ?? undefined,
-    'saveSearchOverAll',
+    'both',
+    'saveSearch', // the command name, not the called function
     paraTypeFilterArg ?? undefined)
 }
 
@@ -50,8 +50,8 @@ export async function saveSearchOverAll(searchTermsArg?: string, paraTypeFilterA
  */
 export async function saveSearchOverCalendar(searchTermsArg?: string, paraTypeFilterArg?: string): Promise<void> {
   await saveSearch(
-    'calendar',
     searchTermsArg ?? undefined,
+    'calendar',
     'saveSearchOverCalendar',
     paraTypeFilterArg ?? undefined)
 }
@@ -61,8 +61,8 @@ export async function saveSearchOverCalendar(searchTermsArg?: string, paraTypeFi
  */
 export async function saveSearchOverNotes(searchTermsArg?: string, paraTypeFilterArg?: string): Promise<void> {
   await saveSearch(
-    'notes',
     searchTermsArg ?? undefined,
+    'notes',
     'saveSearchOverNotes',
     paraTypeFilterArg ?? undefined)
 }
@@ -72,8 +72,8 @@ export async function saveSearchOverNotes(searchTermsArg?: string, paraTypeFilte
  */
 export async function quickSearch(notesTypesToInclude?: string, searchTermsArg?: string, paraTypeFilterArg?: string): Promise<void> {
   await saveSearch(
-    notesTypesToInclude ?? 'both',
     searchTermsArg ?? undefined,
+    notesTypesToInclude ?? 'both',
     'quickSearch',
     paraTypeFilterArg ?? undefined)
 }
@@ -89,8 +89,8 @@ export async function quickSearch(notesTypesToInclude?: string, searchTermsArg?:
 * @param {string?} paraTypeFilterArg optional list of paragraph types to filter by
 */
 export async function saveSearch(
-  noteTypesToIncludeArg?: string = 'both',
   searchTermsArg?: string,
+  noteTypesToIncludeArg?: string = 'both',
   originatorCommand?: string = 'quickSearch',
   paraTypeFilterArg?: string = ''
 ): Promise<void> {
@@ -149,7 +149,7 @@ export async function saveSearch(
     // await CommandBar.onAsyncThread()
 
     // $FlowFixMe[incompatible-exact]
-    const resultsProm: resultOutputTypeV2 = runSearchesV2(validatedSearchTerms, noteTypesToInclude, [], config.foldersToExclude, config, paraTypesToInclude) // Note: no await
+    const resultsProm: resultOutputTypeV3 = runSearchesV2(validatedSearchTerms, noteTypesToInclude, [], config.foldersToExclude, config, paraTypesToInclude) // Note: no await
 
     // await CommandBar.onMainThread()
     // CommandBar.showLoading(false)
@@ -185,6 +185,7 @@ export async function saveSearch(
     }
     logDebug(pluginJson, `destination = ${destination}, started with originatorCommand = ${originatorCommand ?? 'undefined'}`)
 
+    // $FlowFixMe
     resultsProm.then((resultSet) => {
       logDebug(pluginJson, `resultsProm resolved`)
       // clo(results, 'resultsProm resolved ->')
@@ -218,7 +219,7 @@ export async function saveSearch(
           // As this is likely to be a note just used for this set of search terms, just delete the whole note contents and re-write each search term's block.
           // TODO: Does *not* need to include a subhead with search term + result count
           const requestedTitle = headingString
-          const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=${originatorCommand}&arg0=${noteTypesToIncludeArg}&arg1=${encodeURIComponent(termsToMatchStr)}&arg2=${encodeURIComponent(paraTypeFilterArg)}`
+          const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=${originatorCommand}&arg0=${encodeURIComponent(termsToMatchStr)}&arg1=${paraTypeFilterArg}`
 
           // normally I'd use await... in the next line, but can't as we're now in then...
           // const noteFilenameProm = writeSearchResultsToNote(resultSet, requestedTitle, config.folderToStore, config.resultStyle, config.headingLevel, config.groupResultsByNote, config.resultPrefix, config.highlightResults, config.resultQuoteLength, calledIndirectly, xCallbackLink)
@@ -240,7 +241,7 @@ export async function saveSearch(
           // Delete the note's contents and re-write each time.
           // *Does* need to include a subhead with search term + result count, as title is fixed.
           const requestedTitle = config.quickSearchResultsTitle
-          const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=quickSearch&arg0=${noteTypesToIncludeArg}&arg1=${encodeURIComponent(termsToMatchStr)}&arg2=${encodeURIComponent(paraTypeFilterArg)}`
+          const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=quickSearch&arg0=${encodeURIComponent(termsToMatchStr)}&arg1=${paraTypeFilterArg}`
 
           // normally I'd use await... in the next line, but can't as we're now in then...
           const noteFilenameProm = writeSearchResultsToNote(resultSet, requestedTitle, config, xCallbackLink)

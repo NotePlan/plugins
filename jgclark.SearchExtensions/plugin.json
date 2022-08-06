@@ -23,8 +23,8 @@
       "description": "quick Search over all notes, showing results in a fixed Quick Search results note",
       "jsFunction": "quickSearch",
       "arguments": [
-        "noteTypesToInclude either 'project','calendar' or 'both'",
         "search term(s) (separated by commas)",
+        "noteTypesToInclude either 'project','calendar' or 'both'",
         "terms to filter by paragraph type (separated by commas)"
       ]
     },
@@ -82,6 +82,7 @@
       "description": "Save results from a search over all project notes",
       "jsFunction": "saveSearchOverNotes",
       "arguments": [
+        "terms to filter by paragraph type (separated by commas)",
         "search term(s) (separated by commas)"
       ]
     }
@@ -184,7 +185,7 @@
     {
       "key": "resultStyle",
       "title": "Style for search result lines",
-      "description": "Choose the style to use:\nNormal NotePlan styling, tweaked slightly for matching headings\nUse simplified text (like Google results)\n",
+      "description": "Choose the style to use:\n- Normal 'NotePlan' styling, showing tasks, bullets and quotes, tweaked slightly for matching headings\n- Use 'Simplified' text (like Google results)\n",
       "type": "string",
       "choices": ["NotePlan", "Simplified"],
       "default": "NotePlan-style",
@@ -222,15 +223,6 @@
       "type": "bool",
       "default": true,
       "required": false
-    },
-    {
-      "todo": "TODO: review. was 'bool' type",
-      "key": "showEmptyResults",
-      "title": "Show empty matches?",
-      "description": "If no matches of the search term(s) are found, setting this true will still show a heading for the term(s) where relevant",
-      "type": "bool",
-      "default": true,
-      "required": true
     },
     {
       "key": "dateStyle",

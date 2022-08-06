@@ -12,31 +12,40 @@
 - provides x-callback entry points for these searches -- see README for details.
 - added an API call for this that also allows restricting search to one or more paragraph types (e.g. 'open' for incomplete tasks), through the last parameter on `runSearchV2(...)`.
 
-
-**Notes for beta5** (2022-08-???):
+**Notes for beta5** (2022-08-06):
+- [x] rewrite to use de-normalised main data structure part (noteAndLine vs noteAndLines)
 - [x] fix when results are only found in 1 note
 - [x] actually use the new simplifyRawContent() function, not just test it!
-- [ ] tested /quickSearch
-  - [x] can repeat to same note
+- [x] tested /quickSearch
+  - [x] basic user command
+  - [x] can use button to repeat to same note
   - [x] can use single noteType parameter
-  - [ ] can use multiple noteType parameters TODO: not working
+  - [x] can use multiple noteType parameters
   - [x] can cope with nil results
+- [x] tested /saveSearch
+  - [x] basic user command
+  - [x] writing to correct note title
+  - [x] can use button to repeat same note
+  - [x] can cope with nil results
+  - [x] can use noteType parameter/s
 - [ ] tested /saveSearchNotes
   - [x] writing to correct note title
-  - [ ] can repeat same note with different terms
+  - [ ] can use button to repeat same note
   - [ ] can cope with nil results
   - [ ] can use noteType parameter/s
 - [ ] tested /saveSearchInPeriod
-  - [ ] can repeat same note with different notes:
+  - [ ] can use button to repeat same note
     - [ ] new param on writeResults()?
     - [ ] destination changes to Quick
   - [ ] can use noteType parameter
   - [ ] can cope with nil results
 - [ ] tested /saveSearchCalendar
-  - [ ] can repeat same note with different notes:
+  - [ ] can use button to repeat same note
   - [ ] can use noteType parameter
   - [ ] can cope with nil results
 - [ ] check [callback] empty result for note 20220270
+- [ ] check [release] finding an '(error)' title note (actually: 20210830)
+- [ ] check to see if notInFolder param is working
 
 **Notes for beta4** (2022-07-30):
 - [x] NP-style always start with the leading markdown
