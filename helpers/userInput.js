@@ -4,7 +4,7 @@
 
 import json5 from 'json5'
 import { RE_DATE, RE_DATE_INTERVAL } from './dateTime'
-import { clo, log, logWarn, logError } from './dev'
+import { clo, logDebug, logError, logWarn } from './dev'
 import { calcSmartPrependPoint, findEndOfActivePartOfNote } from './paragraph'
 
 // NB: This fn is a local copy from helpers/general.js, to avoid a circular dependency
@@ -163,7 +163,7 @@ export async function chooseFolder(msg: string, includeArchive: boolean = false)
     // no Folders so go to root
     folder = '/'
   }
-  // log('chooseFolder', `-> ${folder}`)
+  // logDebug('chooseFolder', `-> ${folder}`)
   return folder
 }
 
@@ -217,12 +217,13 @@ export async function chooseHeading(note: TNote, optionAddAtBottom: boolean = tr
       newHeading = await getInput(`Enter heading to add at the start of the note`)
       if (newHeading && typeof newHeading === 'string') {
         const startPos = calcSmartPrependPoint(note)
-        log('chooseHeading', `prepending new heading ${newHeading} at line ${startPos}`)
+        logDebug('chooseHeading', `prepending new heading ${newHeading} at line ${startPos}`)
         note.insertHeading(newHeading, startPos, 2)
         headingToFind = newHeading
       } else {
         // i.e. input was cancelled -- TODO: ideally would quit here?
-        return '(error)'
+        logWarn('userInput/chooseHeading', `Input was cancelled by user`)
+        return ''
       }
       break
 
@@ -231,18 +232,19 @@ export async function chooseHeading(note: TNote, optionAddAtBottom: boolean = tr
       newHeading = await getInput(`Enter heading to add at the end of the note`)
       if (newHeading && typeof newHeading === 'string') {
         const endPos = indexEndOfActive - 1
-        log('chooseHeading', `appending new heading ${newHeading} at line ${endPos}`)
+        logDebug('chooseHeading', `appending new heading ${newHeading} at line ${endPos}`)
         note.insertHeading(newHeading, endPos, 2)
         headingToFind = newHeading
       } else {
         // i.e. input was cancelled -- TODO: ideally would quit here?
-        return '(error)'
+        logWarn('userInput/chooseHeading', `Input was cancelled by user`)
+        return ''
       }
       break
 
     case '⬇️ (bottom of note)':
       // get
-      log('chooseHeading', `selected end note, rather than a heading`)
+      logDebug('chooseHeading', `selected end note, rather than a heading`)
       headingToFind = ''
       break
 
@@ -260,11 +262,11 @@ export async function chooseHeading(note: TNote, optionAddAtBottom: boolean = tr
  * @return {string} - the returned interval string, or empty if an invalid string given
  */
 export async function askDateInterval(dateParams: string): Promise<string> {
-  // log('askDateInterval', `starting with '${dateParams}':`)
+  // logDebug('askDateInterval', `starting with '${dateParams}':`)
   const dateParamsTrimmed = dateParams?.trim() || ''
   const paramConfig =
     dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}') ? await parseJSON5(dateParams) : dateParamsTrimmed !== '' ? await parseJSON5(`{${dateParams}}`) : {}
-  // log('askDateInterval', `param config: ${dateParams} as ${JSON.stringify(paramConfig) ?? ''}`)
+  // logDebug('askDateInterval', `param config: ${dateParams} as ${JSON.stringify(paramConfig) ?? ''}`)
   // ... = "gather the remaining parameters into an array"
   const allSettings: { [string]: mixed } = { ...paramConfig }
   // grab just question parameter, or provide a default
@@ -289,7 +291,7 @@ export async function askDateInterval(dateParams: string): Promise<string> {
  * @return {string} - the returned ISO date as a string, or empty if an invalid string given
  */
 export async function askForFutureISODate(question: string): Promise<string> {
-  // log('askForFutureISODate', `starting ...`)
+  // logDebug('askForFutureISODate', `starting ...`)
   const reply = (await CommandBar.showInput(question, `Date (YYYY-MM-DD): %@`)) ?? ''
   const reply2 = reply.replace('>', '').trim() // remove leading '>' and trim
   if (reply2.match(RE_DATE) == null) {
@@ -317,13 +319,13 @@ export async function datePicker(dateParams: string, config?: { [string]: ?mixed
     const paramConfig =
       dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}') ? await parseJSON5(dateParams) : dateParamsTrimmed !== '' ? await parseJSON5(`{${dateParams}}`) : {}
     // $FlowIgnore[incompatible-type]
-    log('userInput/datePicker', `params: ${dateParams} -> ${JSON.stringify(paramConfig)}`)
+    logDebug('userInput/datePicker', `params: ${dateParams} -> ${JSON.stringify(paramConfig)}`)
     // '...' = "gather the remaining parameters into an array"
     const allSettings: { [string]: mixed } = {
       ...dateConfig,
       ...paramConfig,
     }
-    // log('userInput/datePicker', allSettings.toString())
+    // logDebug('userInput/datePicker', allSettings.toString())
     // grab just question parameter, or provide a default
     let { question, defaultValue } = (allSettings: any)
     console.log(`defaultValue: ${defaultValue}`)
@@ -442,10 +444,11 @@ export const multipleInputAnswersAsArray = async (question: string, submit: stri
 
 /**
  * Choose a particular note from a CommandBar list of notes
+ * @author @dwertheimer
  * @param {boolean} includeProjectNotes
  * @param {boolean} includeCalendarNotes
  * @param {Array<string>} foldersToIgnore - a list of folder names to ignore
- * @returns
+ * @returns {TNote | null} note
  */
 export async function chooseNote(includeProjectNotes: boolean = true, includeCalendarNotes: boolean = false, foldersToIgnore: Array<string> = []): Promise<TNote | null> {
   let noteList = []

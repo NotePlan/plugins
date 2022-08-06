@@ -9,7 +9,7 @@ import { showMessage } from './userInput'
 import { displayTitle, type headingLevelType } from './general'
 import { hyphenatedDate, hyphenatedDateString, toLocaleDateString } from '@helpers/dateTime'
 
-export const RE_DAILY_NOTE_FILENAME = '\\/?\\d{4}[0-1]\\d[0-2]\\d.'
+export const RE_DAILY_NOTE_FILENAME = '\\/?\\d{4}[0-1]\\d[0-3]\\d.'
 export const RE_WEEKLY_NOTE_FILENAME = '\\/?\\d{4}-W\\d{2}\\.'
 
 export function getNoteContextAsSuffix(filename: string, dateStyle: string): string {
@@ -144,6 +144,7 @@ export function getNoteTitleFromFilename(filename: string, makeLink?: boolean = 
   if (note) {
     return makeLink ? `[[${displayTitle(note) ?? ''}]]` : displayTitle(note)
   } else {
+    logError('note/getNoteTitleFromFilename', `Couldn't get valid title for note filename '${filename}'`)
     return '(error)'
   }
 }
