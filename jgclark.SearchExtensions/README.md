@@ -1,18 +1,18 @@
 # 🔎 Search Extensions plugin
-NotePlan can search over your notes, but it is currently not very flexible or easy to use; in particular it's difficult to navigate between the search results and any of the actual notes it shows.   This plugin attempts to add some power and usability to searching.  Most things can be configured, but by default the search runs and **saves the results in a note that it opens as a split view** next to where you're working.
+NotePlan can search over your notes, but it is currently not very flexible or easy to use; in particular it's difficult to navigate between the search results and any of the actual notes it shows.  This plugin attempts to add some power and usability to searching.  Most things can be configured, but by default the search runs and **saves the results in a note that it opens as a split view** next to where you're working.
 
 ![demo](demo1.gif)
 
-Another neat feature is the inclusion of a " [Click to refresh these results]" pseudo-button under the title of the note. Clicking that runs the search again, and replaces the earlier set of results. (Thanks to @dwertheimer for the suggestion, which uses the x-callback mechanism -- see below.)
+Another neat feature is the inclusion of a " [🔄 Click to refresh results]" pseudo-button under the title of the note. Clicking that runs the search again, and replaces the earlier set of results. (Thanks to @dwertheimer for the suggestion, which is a good use of the x-callback mechanism -- see below.)
 
 ![refresh results](highlight-refresh-in-search-results.png)
 
 There are several /commands:
 
-1. **/quickSearch** searches across **all notes** (both calendar and regular notes), saving to a pre-set 'Quick Search Results' note.
-2. **/saveSearch** searches across **all notes**  (both calendar and regular notes)
-3. **/saveSearchOverNotes** searches across **all regular** (non-calendar) notes
-4. **/saveSearchOverCalendar** searches across **all calendar**  notes
+1. **/quickSearch** searches across **all notes** (both calendar and regular notes), saving to a pre-set 'Quick Search Results' note. (Alias: **/qs**.)
+2. **/saveSearch** searches across **all notes**  (both calendar and regular notes). (Alias: **/ss**.)
+3. **/saveSearchOverNotes** searches across **all regular** (non-calendar) notes.
+4. **/saveSearchOverCalendar** searches across **all calendar**  notes.
 5. **/saveSearchResultsInPeriod**: searches over the **calendar <!--and weekly--> notes of the time period you select**:
 
 ![selecting a period](period-selection.png)
@@ -24,8 +24,10 @@ As the results are saved to a note, the following sorts of uses are then possibl
 - show all the things you had `Gratitude:` for in your daily journal
 
 ## Notes about searches
-- the **searches** are simple ones, matching on whole or partial words, not using fuzzy matching or regular expressions
-- to search for terms X or Y use `X, Y` or `X OR Y`
+- (from v0.5) put a `+`  and `-` search operator on the front of terms that **must** appear, and **must not** appear, respectively.  For example `+must may could -cannot"` has 4 search terms, the first must be present, the last mustn't be present, and the middle two (may, could) can be.
+- the test for + and - is done per line in notes. If you wish to ignore the whole note that has a term, you can use the ! operator, e.g. `+must_have_me !no_way_jose`. (thanks @dwertheimer for this suggestion)
+- you can also use older search style: for example searching for terms X or Y using `X, Y` or `X OR Y`
+- the searches are simple ones, matching on whole or partial words, not using fuzzy matching or regular expressions
 - you can set default search terms (in the `Default Search terms` setting); if set you can still always override them.
 - all notes in the special folders (@Archive, @Templates and @Trash) are ignored.  Others can be exluded too using the "Folders to exclude" setting.
 
@@ -36,16 +38,16 @@ There are two ways results can be displayed, controlled by the "Group results by
 
 You can also set:
 - the length of the quote of the matched line can be limited by the "Result quote length" setting.
-- the ordering of the results (by the title, created date or changed date of the note the search term is found in).
-- the commands to automatically decides the name of the note to save the search results to (based on the search term), which avoids the final prompt, by the 'Automatically save' setting.
+- the ordering of the results by the title, created date or changed date of the note the search term is found in.
+- the commands to automatically decides the name of the note to save the search results to based on the search term, which avoids the final prompt, by the 'Automatically save?' setting.
 
-## Configuration
-To change the default **configuration**, click the gear button on the 'Search Extensions' line in the Plugin Preferences panel to configure this plugin. Each setting has an explanation.
+## Settings
+To change the default **settings**, click the gear button on the 'Search Extensions' line in the Plugin Preferences panel to configure this plugin. Each setting has an explanation.
 
 ![search settings](search-settings.jpg)
 
 ## Results highlighting
-To see **highlighting** of matching terms in the output, you'll need to be using a theme that highlights lines using `==this syntax==`. You can customise an existing theme by adding something like:
+To see **highlighting** of matching terms in the output, you'll need to be using a theme that highlights lines using `==this syntax==`. You can [customise an existing theme](https://help.noteplan.co/article/44-customize-themes) by adding something like:
 
 ```jsonc
 {
@@ -91,11 +93,14 @@ Notes:
 
 | Command | x-callback start | arg0 | arg1 | arg2 |
 |-----|-------------|-----|-----|-----|
-| /quickSearch | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=quickSearch&` | search term(s) (separated by commas) |  |  |
-| /saveSearch | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearch&` | search term(s) (separated by commas) |  |  |
-| /saveSearchOverCalendar | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearchOverCalendar&` | search term(s) (separated by commas) |  |  |
-| /saveSearchOverNotes | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearchOverNotes&` | search term(s) (separated by commas) |  |  |
+| /quickSearch | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=quickSearch&` | search term(s) (separated by commas) | terms to filter by paragraph type (separated by commas) | noteTypesToInclude either 'project','calendar' or 'both' |
+| /saveSearch | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearch&` | search term(s) (separated by commas) | terms to filter by paragraph type (separated by commas) |  |
+| /saveSearchOverCalendar | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearchOverCalendar&` | search term(s) (separated by commas) | terms to filter by paragraph type (separated by commas) |  |
+| /saveSearchOverNotes | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearchOverNotes&` | search term(s) (separated by commas) | terms to filter by paragraph type (separated by commas) |  |
 | /saveSearchInPeriod | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearchInPeriod&` | search term(s) (separated by commas) | start date to search over (YYYYMMDD or YYYY-MM-DD format). If not given, then defaults to 3 months ago. | end date to search over (YYYYMMDD or YYYY-MM-DD format). If not given, then defaults to today. |
+
+## Future work
+In time I hope to be able to support searching for phrases such as `Bob Smith`, meaning that exact two-word phrase. However, the underlying API doesn't yet make this a realisitic possibility.
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).

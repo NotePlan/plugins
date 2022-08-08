@@ -9,7 +9,7 @@ import pluginJson from '../plugin.json'
 import { formatNoteDate, nowLocaleDateTime, toISOShortDateTimeString } from '@helpers/dateTime'
 import { clo, logDebug, logError, logWarn, timer } from '@helpers/dev'
 import { displayTitle, type headingLevelType, titleAsLink } from '@helpers/general'
-import { getNoteContextAsSuffix, getNoteTitleFromFilename } from '@helpers/note'
+import { getNoteContextAsSuffix, getNoteTitleFromFilename, getOrMakeNote, getProjectNotesInFolder } from '@helpers/note'
 import { isTermInMarkdownPath, isTermInURL } from '@helpers/paragraph'
 import { trimAndHighlightTermInLine } from '@helpers/search'
 import { sortListBy } from '@helpers/sorting'
@@ -110,7 +110,6 @@ export async function getSearchSettings(): Promise<any> {
     // Get settings using ConfigV2
     const v2Config: SearchConfig = await DataStore.loadJSON(`../${pluginID}/settings.json`)
     clo(v2Config, `${pluginID} settings:`)
-
     if (v2Config == null || Object.keys(v2Config).length === 0) {
       throw new Error(`Cannot find settings for '${pluginID}' plugin`)
     }
@@ -404,56 +403,54 @@ export function applySearchOperators(termsResults: Array<resultObjectTypeV3>): r
 
       // Just add these 'must' results to the consolidated set
       consolidatedNALs.push(rnal)
-      consolidatedLineCount++
       j++
-      // consolidatedNoteCount++
     }
     if (j === 0) {
       logDebug('applySearchOperators', `- must: No results found for must-find search terms.`)
     } else {
     }
   }
+  consolidatedNoteCount = numberOfUniqueFilenames(consolidatedNALs)
+  consolidatedLineCount = consolidatedNALs.length
   logDebug('applySearchOperators', `Must: at end, ${consolidatedLineCount} results`)
 
   // Check if we can add the 'may' search results to consolidated set
-  let j = 0
+  let addedAny = false
   for (const r of mayResultObjects) {
     const tempArr: Array<noteAndLine> = consolidatedNALs
     // Add this result if 0 must terms, or it matches 1+ must results
     if (mustResultObjects.length === 0) {
-      logDebug('applySearchOperators', `- may: as 0 must terms, we can add all for ${r.searchTerm.term}`)
+      logDebug('applySearchOperators', `- may: as 0 'must' terms, we can add all for ${r.searchTerm.term}`)
       for (const rnal of r.resultNoteAndLineArr) {
         // logDebug('applySearchOperators', `- may: + ${rnal.noteFilename} / '${rnal.line}'`)
         consolidatedNALs.push(rnal)
-        consolidatedLineCount++
-        j++
+        addedAny = true
       }
     } else {
       logDebug('applySearchOperators', `- may: there are 'must' terms, so will check before adding 'may' results`)
-      // $FlowFixMe[prop-missing]
       for (const rnal of r.resultNoteAndLineArr) {
         // If this noteFilename is amongst the 'must' results then add
         if (consolidatedNALs.filter((f) => f.noteFilename === rnal.noteFilename).length > 0) {
           logDebug('applySearchOperators', `- may: + ${rnal.noteFilename} / '${rnal.line}'`)
           consolidatedNALs.push(rnal)
-          consolidatedLineCount++
-          j++
+          addedAny = true
         }
       }
     }
   }
-  if (j === 0) {
-    logDebug('applySearchOperators', `- may: No results found.`)
-  } else {
+  if (addedAny) {
     // Now need to consolidate the NALs
     consolidatedNALs = reduceAndSortNoteAndLineArray(consolidatedNALs)
     consolidatedNoteCount = numberOfUniqueFilenames(consolidatedNALs)
+    consolidatedLineCount = consolidatedNALs.length
     // clo(consolidatedNALs, '(after may) consolidatedNALs:')
+  } else {
+    logDebug('applySearchOperators', `- may: No results found.`)
   }
   logDebug('applySearchOperators', `May: at end, ${consolidatedLineCount} results from ${consolidatedNoteCount} notes:`)
 
   // Delete any results from the consolidated set that match 'not-...' terms
-  let i = 0
+  let removedAny = false
   for (const r of notResultObjects) {
     let searchTermStr = r.searchTerm.termRep
     let tempArr: Array<noteAndLine> = consolidatedNALs
@@ -475,6 +472,7 @@ export function applySearchOperators(termsResults: Array<resultObjectTypeV3>): r
     else if (r.searchTerm.type === 'not-note') {
       reducedArr = differenceByPropVal(tempArr, r.resultNoteAndLineArr, 'noteFilename')
     }
+    removedAny = true
     // clo(reducedArr, 'reducedArr: ')
     let removedNotes = lastResultNotesCount - numberOfUniqueFilenames(reducedArr)
     let removedLines = lastResultLinesCount - reducedArr.length
@@ -485,12 +483,13 @@ export function applySearchOperators(termsResults: Array<resultObjectTypeV3>): r
     consolidatedNALs = reducedArr
     lastResultNotesCount = consolidatedNoteCount
     lastResultLinesCount = consolidatedLineCount
-    i++
   }
   // Now need to consolidate the NALs
-  consolidatedNALs = reduceAndSortNoteAndLineArray(consolidatedNALs)
-  consolidatedLineCount = consolidatedNALs.length
-  consolidatedNoteCount = numberOfUniqueFilenames(consolidatedNALs)
+  if (removedAny) {
+    consolidatedNALs = reduceAndSortNoteAndLineArray(consolidatedNALs)
+    consolidatedLineCount = consolidatedNALs.length
+    consolidatedNoteCount = numberOfUniqueFilenames(consolidatedNALs)
+  }
   logDebug('applySearchOperators', `Not: at end, ${consolidatedLineCount} results from ${consolidatedNoteCount} notes`)
 
   // Form the output data structure
@@ -541,14 +540,14 @@ export function numberOfUniqueFilenames(inArray: Array<noteAndLine>): number {
 /**
  * Run a search over all search terms in 'termsToMatchArr' over the set of notes determined by the parameters.
  * V2 of this function
- * Has an optional 'typesToInclude' parameter of paragraph type(s) to include (e.g. ['open'] to include only open tasks). If not given, then no paragraph types will be excluded.
+ * Has an optional 'paraTypesToInclude' parameter of paragraph type(s) to include (e.g. ['open'] to include only open tasks). If not given, then no paragraph types will be excluded.
  * 
  * @param {Array<string>} termsToMatchArr
  * @param {Array<string>} noteTypesToInclude (['notes'] or ['calendar'] or both)
  * @param {Array<string>} foldersToInclude (can be empty list)
  * @param {Array<string>} foldersToExclude (can be empty list)
  * @param {SearchConfig} config object for various settings
- * @param {Array<ParagraphType>?} typesToInclude optional list of paragraph types to include (e.g. 'open'). If not given, then no paragraph types will be excluded.
+ * @param {Array<string>?} paraTypesToInclude optional list of paragraph types to include (e.g. 'open'). If not given, then no paragraph types will be excluded.
  * @returns {resultOutputTypeV2} results optimised for output
  */
 export async function runSearchesV2(
@@ -557,13 +556,13 @@ export async function runSearchesV2(
   foldersToInclude: Array<string>,
   foldersToExclude: Array<string>,
   config: SearchConfig,
-  typesToInclude?: Array<ParagraphType> = [],
+  paraTypesToInclude?: Array<string> = [], // TODO: ideally Array<ParagraphType> instead
 ): Promise<resultOutputTypeV3> {
   try {
     const termsResults: Array<resultObjectTypeV3> = []
     let resultCount = 0
     const outerStartTime = new Date()
-    logDebug('runSearchesV2', `Starting with ${termsToMatchArr.length} search terms`)
+    logDebug('runSearchesV2', `Starting with ${termsToMatchArr.length} search terms (and ${paraTypesToInclude.length} paraTypes)`)
 
     //------------------------------------------------------------------
     // Get results for each search term independently and save
@@ -572,7 +571,7 @@ export async function runSearchesV2(
       const innerStartTime = new Date()
 
       // do search for this search term, using configured options
-      const resultObject: resultObjectTypeV3 = await runSearchV2(typedSearchTerm, noteTypesToInclude, foldersToInclude, foldersToExclude, config, typesToInclude)
+      const resultObject: resultObjectTypeV3 = await runSearchV2(typedSearchTerm, noteTypesToInclude, foldersToInclude, foldersToExclude, config, paraTypesToInclude)
 
       // Save this search term and results as a new object in results array
       termsResults.push(resultObject)
@@ -603,14 +602,14 @@ export async function runSearchesV2(
  *   resultNotesAndLines: Array<noteAndLines>  -- note: array
  *   resultCount: number
  * }
- * Has an optional 'typesToInclude' parameter of paragraph type(s) to include (e.g. ['open'] to include only open tasks). If not given, then no paragraph types will be excluded.
+ * Has an optional 'paraTypesToInclude' parameter of paragraph type(s) to include (e.g. ['open'] to include only open tasks). If not given, then no paragraph types will be excluded.
  * @author @jgclark
  * @param {Array<string>} typedSearchTerm object containing term and type
  * @param {Array<string>} noteTypesToInclude (['notes'] or ['calendar'] or both)
  * @param {Array<string>} foldersToInclude (can be empty list)
  * @param {Array<string>} foldersToExclude (can be empty list)
  * @param {SearchConfig} config object for various settings
- * @param {Array<ParagraphType>} typesToInclude optional list of paragraph types to include (e.g. 'open'). If not given, then no paragraph types will be excluded.
+ * @param {Array<string>?} paraTypesToInclude optional list of paragraph types to include (e.g. 'open'). If not given, then no paragraph types will be excluded.
  * @returns {resultOutputType} combined result set optimised for output
  */
 export async function runSearchV2(
@@ -619,12 +618,12 @@ export async function runSearchV2(
   foldersToInclude: Array<string>,
   foldersToExclude: Array<string>,
   config: SearchConfig,
-  typesToInclude?: Array<ParagraphType> = [],
+  paraTypesToInclude?: Array<string> = [], // TODO: ideally Array<ParagraphType> instead
 ): Promise<resultObjectTypeV3> {
   try {
     const headingMarker = '#'.repeat(config.headingLevel)
     const searchTerm = typedSearchTerm.term
-    logDebug('runSearchV2', `runSearchV2() starting for [${searchTerm}]`)
+    logDebug('runSearchV2', `Starting for [${searchTerm}]`)
 
     // get list of matching paragraphs for this string
     CommandBar.showLoading(true, `Running search for ${typedSearchTerm.termRep} ...`)
@@ -632,7 +631,6 @@ export async function runSearchV2(
     CommandBar.showLoading(false)
 
     const noteAndLineArr: Array<noteAndLine> = []
-    let resultCount = 0
 
     if (resultParas.length > 0) {
       logDebug('runSearchV2', `- Found ${resultParas.length} results for '${searchTerm}'`)
@@ -657,17 +655,18 @@ export async function runSearchV2(
 
       // Drop out search results with the wrong paragraph type (if any given)
       let filteredParas: Array<reducedFieldSet> = []
-      if (typesToInclude.length > 0) {
-        filteredParas = resultFieldSets.filter((p) => typesToInclude.includes(p.type))
-        logDebug('runSearchV2', `  - after types filter (to ${String(typesToInclude)}), ${filteredParas.length} results`)
+      if (paraTypesToInclude.length > 0) {
+        filteredParas = resultFieldSets.filter((p) => paraTypesToInclude.includes(p.type))
+        logDebug('runSearchV2', `  - after types filter (to ${String(paraTypesToInclude)}), ${filteredParas.length} results`)
       } else {
         filteredParas = resultFieldSets
         logDebug('runSearchV2', `  - no type filtering requested`)
       }
 
-      // Drop out search results found in a URL or the path of a [!][link](path)
+      // Drop out search results found only in a URL or the path of a [!][link](path)
       resultFieldSets = filteredParas.filter((f) => !isTermInURL(searchTerm, f.content)).filter((f) => !isTermInMarkdownPath(searchTerm, f.content))
       logDebug('runSearchV2', `  - after URL filter, ${resultFieldSets.length} results`)
+      // TODO: this is failing to drop [callback] in a noteplan://x-callback-url/... in my note 2022-07-20, but I can't see why.
 
       // Look-up table for sort details
       const sortMap = new Map([
@@ -681,7 +680,7 @@ export async function runSearchV2(
       const sortKeys = sortMap.get(config.sortOrder) ?? 'title' // get value, falling back to 'title'
       logDebug('runSearchV2', `- Will use sortKeys: [${String(sortKeys)}] from ${config.sortOrder}`)
       const sortedFieldSets: Array<reducedFieldSet> = sortListBy(resultFieldSets, sortKeys)
-      // logDebug('runSearchV2', `- ${String(sortedFieldSets.length)} sortedFieldSets after sort`)
+      logDebug('runSearchV2', `- ${String(sortedFieldSets.length)} sortedFieldSets after sort`)
 
       // Form the return object from sortedFieldSets
       for (let i = 0; i < sortedFieldSets.length; i++) {
@@ -691,7 +690,8 @@ export async function runSearchV2(
         })
       }
     }
-    logDebug('runSearchV2', `- end of runSearchV2 for [${searchTerm}]: ${resultCount} results from ${noteAndLineArr.length.toString()} notes`)
+    let resultCount = noteAndLineArr.length
+    logDebug('runSearchV2', `- end of runSearchV2 for [${searchTerm}]: ${resultCount} results from ${numberOfUniqueFilenames(noteAndLineArr)} notes`)
 
     const returnObject: resultObjectTypeV3 = {
       searchTerm: typedSearchTerm,
@@ -723,17 +723,16 @@ function getSearchTermsRep(typedSearchTerms: Array<typedSearchTerm>): string {
  * @author @jgclark
  * 
  * @param {resultOutputTypeV3} resultSet object
- * @param {string} requestedTitle
- * @param {string} folderToStore
- * @param {number} headingLevel
- * @param {boolean} groupResultsByNote
- * @param {boolean} calledIndirectly
+ * @param {string} requestedTitle requested note title to use/make
+ * @param {string} titleToMatch partial title to match against existing note titles
+ * @param {SearchConfig} config
  * @param {string?} xCallbackURL
  * @returns {string} filename of note we've written to
  */
 export async function writeSearchResultsToNote(
   resultSet: resultOutputTypeV3,
   requestedTitle: string,
+  titleToMatch: string,
   config: SearchConfig,
   xCallbackURL: string = '',
 ): Promise<string> {
@@ -760,26 +759,39 @@ export async function writeSearchResultsToNote(
 
     // See if this note has already been created
     // (look only in active notes, not Archive or Trash)
-    const existingNotes: $ReadOnlyArray<TNote> = DataStore.projectNoteByTitle(requestedTitle, true, false) ?? []
-    logDebug('writeSearchResultsToNote', `- found ${existingNotes.length} existing search result note(s) titled ${requestedTitle}`)
 
-    if (existingNotes.length > 0) {
+    // Newer method, doing a partial title match, if that is supplied, or requestedTitle if not.
+    outputNote = await getOrMakeNote(requestedTitle, config.folderToStore, titleToMatch)
+    if (outputNote) {
       // write to the existing note (the first matching if more than one)
-      outputNote = existingNotes[0]
       outputNote.content = fullNoteContent
       noteFilename = outputNote.filename
-    } else {
-      // make a new note for this. NB: filename here = folder + filename
-      noteFilename = DataStore.newNoteWithContent(fullNoteContent, config.folderToStore, requestedTitle)
-      if (!noteFilename) {
-        logError('writeSearchResultsToNote', `Error creating new search note with requestedTitle '${requestedTitle}'`)
-        await showMessage('There was an error creating the new search note')
-        return '' // for completeness
-      }
-      outputNote = DataStore.projectNoteByFilename(noteFilename)
-      logDebug('writeSearchResultsToNote', `Created new search note with filename: ${noteFilename}`)
     }
-    logDebug('writeSearchResultsToNote', `written resultSet for '${searchTermsRepStr}' to the new note '${displayTitle(outputNote)}'`)
+    else {
+      throw new Error(`Couldn't find or make note for ${requestedTitle}. Stopping.`)
+    }
+
+    // const existingNotes: $ReadOnlyArray<TNote> = DataStore.projectNoteByTitle(requestedTitle, true, false) ?? []
+    // logDebug('writeSearchResultsToNote', `- found ${existingNotes.length} existing search result note(s) titled ${requestedTitle}`)
+
+    // if (existingNotes.length > 0) {
+    //   // write to the existing note (the first matching if more than one)
+    //   outputNote = existingNotes[0]
+    //   outputNote.content = fullNoteContent
+    //   noteFilename = outputNote.filename
+    // } else {
+    //   // make a new note for this. NB: filename here = folder + filename
+    //   noteFilename = DataStore.newNoteWithContent(fullNoteContent, config.folderToStore, requestedTitle)
+    //   if (!noteFilename) {
+    //     logError('writeSearchResultsToNote', `Error creating new search note with requestedTitle '${requestedTitle}'`)
+    //     await showMessage('There was an error creating the new search note')
+    //     return '' // for completeness
+    //   }
+    //   outputNote = DataStore.projectNoteByFilename(noteFilename)
+    //   logDebug('writeSearchResultsToNote', `Created new search note with filename: ${noteFilename}`)
+    // }
+
+    logDebug('writeSearchResultsToNote', `written resultSet for '${searchTermsRepStr}' to the note '${displayTitle(outputNote)}'`)
     return noteFilename
   }
   catch (err) {
@@ -823,6 +835,5 @@ export function createFormattedResultLines(resultSet: resultOutputTypeV3, config
       resultOutputLines.push(outputLine)
     }
   }
-  logDebug(pluginJson, nc)
   return resultOutputLines
 }

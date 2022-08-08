@@ -3,7 +3,7 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 22.7.2022 for v0.5.0, @jgclark
+// Last updated 8.8.2022 for v0.5.0, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -14,8 +14,9 @@ import pluginJson from '../plugin.json'
 import {
   createFormattedResultLines,
   getSearchSettings,
-  type noteAndLines,
-  type resultOutputTypeV2,
+  type noteAndLine,
+  numberOfUniqueFilenames,
+  type resultOutputTypeV3,
   runSearchesV2,
   validateAndTypeSearchTerms,
   writeSearchResultsToNote
@@ -48,15 +49,15 @@ import { chooseOption, getInput, showMessage } from '@helpers/userInput'
  * @param {string?} searchTermsArg optional comma-separated list of search terms to search
  * @param {string?} fromDateArg optional start date to search over (YYYYMMDD or YYYY-MM-DD). If not given, then defaults to 3 months ago.
  * @param {string?} toDateArg optional end date to search over (YYYYMMDD or YYYY-MM-DD). If not given, then defaults to today.
- * @param {string?} destinationArg optional output desination indicator: 'quick', 'current', 'newnote', 'log'
  * @param {string?} paraTypeFilterArg optional list of paragraph types to filter by
+ * @param {string?} destinationArg optional output desination indicator: 'quick', 'current', 'newnote', 'log'
  */
 export async function saveSearchPeriod(
   searchTermsArg?: string,
   fromDateArg?: string = 'default',
   toDateArg?: string = 'default',
-  destinationArg?: string,
-  paraTypeFilterArg?: string = ''
+  paraTypeFilterArg?: string = '',
+  destinationArg?: string
 ): Promise<void> {
   try {
     // Get relevant settings
@@ -105,6 +106,10 @@ export async function saveSearchPeriod(
       fromDateStr = unhyphenatedDate(fromDate)
       toDateStr = unhyphenatedDate(toDate)
     }
+    if (fromDateStr > toDateStr) {
+      logError(pluginJson, `Stopping: fromDate ${fromDateStr} is after toDate ${toDateStr}`)
+      return
+    }
     logDebug(pluginJson, `- time period for search: ${periodString}`)
 
     // Get the search terms
@@ -145,10 +150,8 @@ export async function saveSearchPeriod(
     }
 
     // Get the paraTypes to include
-    // $FlowFixMe TODO:
-    const paraTypesToInclude: Array<ParagraphType> = (paraTypeFilterArg !== '') ? paraTypeFilterArg.split(',') : []
-    logDebug(pluginJson, `arg3 -> note types '${paraTypesToInclude.toString()}'`)
-
+    const paraTypesToInclude: Array<string> = (paraTypeFilterArg != null && paraTypeFilterArg !== 'null') ? paraTypeFilterArg.split(',') : [] // TODO: ideally Array<ParagraphType> instead
+    clo(paraTypesToInclude, `arg3 -> para types`)
 
     //---------------------------------------------------------
     // Search using search() API available from v3.6.0
@@ -157,7 +160,7 @@ export async function saveSearchPeriod(
     // await CommandBar.onAsyncThread()
 
     // $FlowFixMe[incompatible-exact]
-    const resultsProm: resultOutputTypeV2 = runSearchesV2(validatedSearchTerms, ['calendar'], [], config.foldersToExclude, config, paraTypesToInclude) // Note: no await
+    const resultsProm: resultOutputTypeV3 = runSearchesV2(validatedSearchTerms, ['calendar'], [], config.foldersToExclude, config, paraTypesToInclude) // Note: no await
 
     // await CommandBar.onMainThread()
     // CommandBar.showLoading(false)
@@ -190,18 +193,20 @@ export async function saveSearchPeriod(
     // $FlowFixMe
     resultsProm.then((resultSet) => {
       logDebug(pluginJson, `resultsProm resolved`)
-      // clo(results, 'resultsProm resolved ->')
+      // clo(resultSet, 'resultsProm resolved ->')
 
       //---------------------------------------------------------
       // Filter out the results that aren't within the specified period
 
-      logDebug(pluginJson, `Before filtering out by date: ${resultSet.resultNoteAndLinesArr.length} RNALs`)
-      const reducedRNAL: Array<noteAndLines> = resultSet.resultNoteAndLinesArr.filter((f) => withinDateRange(getDateStringFromCalendarFilename(f.noteFilename), fromDateStr, toDateStr))
-      let c = reducedRNAL.length
-      resultSet.resultNoteAndLinesArr = reducedRNAL
-      logDebug(pluginJson, `After filtering out by date: ${c} RNALs remain`)
-      clo(reducedRNAL, 'reducedRNAL:')
-      // TODO: no results case
+      logDebug(pluginJson, `Before filtering out by date: ${resultSet.resultNoteAndLineArr.length} results`)
+      // clo(resultSet.resultNoteAndLineArr, '- resultSet.resultNoteAndLineArr:')
+      const reducedRNALArray: Array<noteAndLine> = resultSet.resultNoteAndLineArr.filter((f) => withinDateRange(getDateStringFromCalendarFilename(f.noteFilename), fromDateStr, toDateStr))
+      resultSet.resultNoteAndLineArr = reducedRNALArray
+      resultSet.resultCount = reducedRNALArray.length
+      resultSet.resultNoteCount = numberOfUniqueFilenames(reducedRNALArray)
+      let numResultLines = resultSet.resultNoteAndLineArr.length
+      logDebug(pluginJson, `After filtering out by date: ${resultSet.resultCount} results remain from ${resultSet.resultNoteCount} notes:`)
+      clo(resultSet.resultNoteAndLineArr, 'resultSet.resultNoteAndLineArr')
 
       //---------------------------------------------------------
       // Do output
@@ -220,8 +225,6 @@ export async function saveSearchPeriod(
             // replaceSection(currentNote, resultSet.searchTerm, thisResultHeading, config.headingLevel, resultSet.resultLines.join('\n'))
             const resultOutputLines: Array<string> = createFormattedResultLines(resultSet, config)
             replaceSection(currentNote, resultSet.searchTerm, thisResultHeading, config.headingLevel, resultOutputLines.join('\n'))
-          // TODO: can we use writeSearchResultsToNote in some way? Or abstract the formatting out to use here?
-
           }
           break
         }
@@ -230,19 +233,19 @@ export async function saveSearchPeriod(
           // We will write an overarching heading, as we need an identifying title for the note.
           // As this is likely to be a note just used for this set of search terms, just delete the whole
           // note contents and re-write each search term's block.
-          // Also don't include x-callback link, as
+          // TODO: decide whether to remove the x-callback link, as
           //   a) it's hard to work back from start/end dates to the human-friendly period string
           //   b) over a fixed time period it's unlikely to need updating
 
           // let outputNote: ?TNote
           // let noteFilename = ''
+          const titleToMatch = `${termsToMatchStr} ${config.searchHeading}`
           const requestedTitle = `${termsToMatchStr} ${config.searchHeading} for ${periodString}${periodPartStr !== '' ? ` (at ${periodPartStr})` : ''}`
-          const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearchInPeriod&arg0=${encodeURIComponent(termsToMatchStr)}&arg1=${fromDateStr}&arg2=${toDateStr}&arg3=${destinationArg ?? ''}&arg4=${paraTypeFilterArg}`
-          // TODO: Test the x-callback
+          const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearchInPeriod&arg0=${encodeURIComponent(termsToMatchStr)}&arg1=${fromDateStr}&arg2=${toDateStr}&arg3=${paraTypeFilterArg}&arg4=${destinationArg ?? ''}`
 
           // normally I'd use await... in the next line, but can't as we're now in then...
           // TODO: wrong display of result counts in subhead
-          const noteFilenameProm = writeSearchResultsToNote(resultSet, requestedTitle, config, xCallbackLink)
+          const noteFilenameProm = writeSearchResultsToNote(resultSet, requestedTitle, titleToMatch, config, xCallbackLink)
 
           noteFilenameProm.then(async (filename) => {
             logDebug(pluginJson, `- filename to open in split: ${filename}`)

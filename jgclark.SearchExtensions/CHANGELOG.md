@@ -1,16 +1,42 @@
 # What's Changed in 🔎 Search Extensions plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions).)
-<!-- 
-- searches now run over Weekly Notes as well (now the underlying API has been extended)
--->
 
 ## [0.5.0] - 2022-08-???
 ### Added
-- Major new version, that now supports + and - search operators for terms that _must_ appear, and _must not_ appear, respectively.  For example `+"must have me" may could -"cannot have me"` has 4 search terms, the first must be present, the last mustn't be present, and the middle two (may, could) can be.
-- you can now refresh results in a single click, with the 'button link' under the heading on each search page
+- Major new version, that now supports `+` and `-` search operators for terms that **must** appear, and **must not** appear, respectively.  For example `+must may could -cannot"` has 4 search terms, the first must be present, the last mustn't be present, and the middle two (may, could) can be.
 - the test for + and - is done per line in notes. If you wish to ignore the whole note that has a term, you can use the ! operator, e.g. `+must !not-me`. (thanks @dwertheimer for this suggestion)
-- provides x-callback entry points for these searches -- see README for details.
+- you can now refresh results in a single click, with the " [🔄 Click to refresh results]" pseudo-button under the heading on each search page
+- searches now run over Weekly Notes as well (now the underlying API has been extended)
+- provides x-callback entry points for these searches, and provides options for restricting searches to certain types of line -- see the [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions) for details.
 - added an API call for this that also allows restricting search to one or more paragraph types (e.g. 'open' for incomplete tasks), through the last parameter on `runSearchV2(...)`.
+
+**Notes for beta7** (2022-08-???):
+- [ ] update code to reflect NP not supporting search phrases
+- [ ] why ""{\"noteFilename\":\"20210519.md\",\"line\":\"- Kate Dean #picture big tap but dripping one drop at a time. Arrow pointing to tap, showing it’s not turned on far at all. → openness to Holy Spirit\"}",` getting output as an empty bullet?
+- [ ] go through TODOs in searchHelpers.js
+- [ ] go through TODOs in saveSearch.js
+- [ ] go through TODOs in saveSearchPeriod.js
+
+**Notes for beta6** (2022-08-08):
+- [-] check edge case of hit in URL (e.g. [callback] in note 2022-02-70) -- failed to find cause
+- [x] fix [release] finding an '(error)' title note (actually: 20210830)
+- [x] fix [callback] case: end may 32/20, then end not 29/20, when no not term?
+- [x] check to see if notInFolder param is working
+- [x] update doc to reflect NP not supporting search phrases
+- [x] tested /saveSearchCalendar
+  - [x] can use button to repeat same note
+  - [x] can use noteType parameter
+  - [x] can cope with nil results
+- [x] tested /saveSearchInPeriod
+  - [x] new param on writeResults()
+  - [x] filtering dates out OK
+  - [x] will write sensible reduced title that can be re-used
+  - [x] can use button to repeat same note
+  - [x] can use noteType parameter(s)
+  - [x] can cope with nil results
+- [x] go through FIXMEs in searchHelpers.js
+- [x] go through FIXMEs in saveSearch.js
+- [x] go through FIXMEs in saveSearchPeriod.js
 
 **Notes for beta5** (2022-08-06):
 - [x] rewrite to use de-normalised main data structure part (noteAndLine vs noteAndLines)
@@ -33,19 +59,6 @@
   - [x] can use button to repeat same note
   - [x] can cope with nil results
   - [x] can use noteType parameter/s
-- [ ] tested /saveSearchInPeriod
-  - [ ] can use button to repeat same note
-    - [ ] new param on writeResults()?
-    - [ ] destination changes to Quick
-  - [ ] can use noteType parameter
-  - [ ] can cope with nil results
-- [ ] tested /saveSearchCalendar
-  - [ ] can use button to repeat same note
-  - [ ] can use noteType parameter
-  - [ ] can cope with nil results
-- [ ] check [callback] empty result for note 20220270
-- [ ] check [release] finding an '(error)' title note (actually: 20210830)
-- [ ] check to see if notInFolder param is working
 
 **Notes for beta4** (2022-07-30):
 - [x] NP-style always start with the leading markdown
@@ -54,7 +67,7 @@
 
 **Notes for beta3** (2022-07-26):
 - still only really tested the /quickSearch command so far, but carried over most new logic to /saveSearchPeriod too
-- - added a "Style for search results" setting. This chooses the style to use:
+- added a "Style for search results" setting. This chooses the style to use:
   - Normal "NotePlan" styling, tweaked slightly for matching headings
   - Use "Simplified" text (like Google results)
 - added support for un-grouped results (a simple list with appended date context or title)

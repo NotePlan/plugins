@@ -8,7 +8,7 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.SearchExtensions/CHANGELOG.md",
-  "plugin.version": "0.5.0-beta5",
+  "plugin.version": "0.5.0-beta6",
   "plugin.lastUpdateInfo": "Big speed up. Now supports search operators: + (must match) - (can't match in line) ! (can't match in note) in place of just 'OR'.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
@@ -17,6 +17,7 @@
     {
       "name": "quickSearch",
       "alias": [
+        "qs",
         "save",
         "search"
       ],
@@ -24,13 +25,14 @@
       "jsFunction": "quickSearch",
       "arguments": [
         "search term(s) (separated by commas)",
-        "noteTypesToInclude either 'project','calendar' or 'both'",
-        "terms to filter by paragraph type (separated by commas)"
+        "terms to filter by paragraph type (separated by commas)",
+        "noteTypesToInclude either 'project','calendar' or 'both'"
       ]
     },
     {
       "name": "saveSearch",
       "alias": [
+        "ss",
         "save",
         "search"
       ],

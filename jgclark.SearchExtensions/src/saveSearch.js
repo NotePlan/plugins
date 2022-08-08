@@ -70,10 +70,10 @@ export async function saveSearchOverNotes(searchTermsArg?: string, paraTypeFilte
 /**
  * Call the main function, searching over all notes, but using a fixed note for results
  */
-export async function quickSearch(notesTypesToInclude?: string, searchTermsArg?: string, paraTypeFilterArg?: string): Promise<void> {
+export async function quickSearch(searchTermsArg?: string, paraTypeFilterArg?: string, noteTypesToIncludeArg?: string): Promise<void> {
   await saveSearch(
     searchTermsArg ?? undefined,
-    notesTypesToInclude ?? 'both',
+    noteTypesToIncludeArg ?? 'both',
     'quickSearch',
     paraTypeFilterArg ?? undefined)
 }
@@ -139,7 +139,7 @@ export async function saveSearch(
 
     // Get the paraTypes to include
     // $FlowFixMe[incompatible-type]
-    const paraTypesToInclude: Array<ParagraphType> = (paraTypeFilterArg !== '') ? paraTypeFilterArg.split(',') : []
+    const paraTypesToInclude: Array<string> = (paraTypeFilterArg !== '') ? paraTypeFilterArg.split(',') : [] // TODO: ideally Array<ParagraphType> instead
     logDebug(pluginJson, `arg3 -> para types '${paraTypesToInclude.toString()}'`)
 
     //---------------------------------------------------------
@@ -159,7 +159,7 @@ export async function saveSearch(
     //---------------------------------------------------------
     // Work out where to save this summary
     let destination = ''
-    // FIXME: Review whether this is appropriate, if autoSave is always true
+    // TODO: Review whether this is appropriate, if autoSave is always true
     if (originatorCommand === 'quickSearch') {
       destination = 'quick'
     }
@@ -198,9 +198,8 @@ export async function saveSearch(
       switch (destination) {
         // TODO: Looks to be rationalisable to just 'newnote', but with varying requestedTitle, if autoSave is always true
         case 'current': {
-          // TODO: can we use writeSearchResultsToNote in some way? Or abstract the formatting out to use here?
           // We won't write an overarching heading.
-          // For each search term result set, replace the search term's block (if already present) or append.
+          // Replace the search term's block (if already present) or append.
           const currentNote = Editor.note
           if (currentNote == null) {
             logError(pluginJson, `No note is open`)
@@ -217,13 +216,13 @@ export async function saveSearch(
         case 'newnote': {
           // We will write an overarching heading, as we need an identifying title for the note.
           // As this is likely to be a note just used for this set of search terms, just delete the whole note contents and re-write each search term's block.
-          // TODO: Does *not* need to include a subhead with search term + result count
+          // Note: Does *not* need to include a subhead with search term + result count
           const requestedTitle = headingString
           const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=${originatorCommand}&arg0=${encodeURIComponent(termsToMatchStr)}&arg1=${paraTypeFilterArg}`
 
           // normally I'd use await... in the next line, but can't as we're now in then...
           // const noteFilenameProm = writeSearchResultsToNote(resultSet, requestedTitle, config.folderToStore, config.resultStyle, config.headingLevel, config.groupResultsByNote, config.resultPrefix, config.highlightResults, config.resultQuoteLength, calledIndirectly, xCallbackLink)
-          const noteFilenameProm = writeSearchResultsToNote(resultSet, requestedTitle, config, xCallbackLink)
+          const noteFilenameProm = writeSearchResultsToNote(resultSet, requestedTitle, requestedTitle, config, xCallbackLink)
           noteFilenameProm.then(async (filename) => {
             logDebug(pluginJson, `- filename to open in split: ${filename}`)
             // Open the results note in a new split window, unless we already have this note open
@@ -241,10 +240,10 @@ export async function saveSearch(
           // Delete the note's contents and re-write each time.
           // *Does* need to include a subhead with search term + result count, as title is fixed.
           const requestedTitle = config.quickSearchResultsTitle
-          const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=quickSearch&arg0=${encodeURIComponent(termsToMatchStr)}&arg1=${paraTypeFilterArg}`
+          const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=quickSearch&arg0=${encodeURIComponent(termsToMatchStr)}&arg1=${paraTypeFilterArg}&arg2=${noteTypesToIncludeArg}`
 
           // normally I'd use await... in the next line, but can't as we're now in then...
-          const noteFilenameProm = writeSearchResultsToNote(resultSet, requestedTitle, config, xCallbackLink)
+          const noteFilenameProm = writeSearchResultsToNote(resultSet, requestedTitle, requestedTitle, config, xCallbackLink)
 
           noteFilenameProm.then(async (filename) => {
             logDebug(pluginJson, `- filename to open in split: ${filename}`)
