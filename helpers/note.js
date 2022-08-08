@@ -9,8 +9,8 @@ import { displayTitle, type headingLevelType } from './general'
 import { findEndOfActivePartOfNote } from './paragraph'
 import { showMessage } from './userInput'
 
-export const RE_DAILY_NOTE_FILENAME = '\\/?\\d{4}[0-1]\\d[0-3]\\d.'
-export const RE_WEEKLY_NOTE_FILENAME = '\\/?\\d{4}-W\\d{2}\\.'
+export const RE_DAILY_NOTE_FILENAME = '\\/?\\d{4}[0-1]\\d[0-3]\\d\\.'
+export const RE_WEEKLY_NOTE_FILENAME = '\\/?\\d{4}-W[0-5]\\d\\.'
 
 export function getNoteContextAsSuffix(filename: string, dateStyle: string): string {
   const noteType = (filename.match(RE_DAILY_NOTE_FILENAME) || filename.match(RE_WEEKLY_NOTE_FILENAME)) ? "Calendar" : "Notes"

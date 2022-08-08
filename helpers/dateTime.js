@@ -8,11 +8,13 @@ import moment from 'moment/min/moment-with-locales'
 import { default as momentBusiness } from 'moment-business-days'
 import { formatISO9075 } from 'date-fns'
 import { log, logError, logWarn } from './dev'
+import { RE_DAILY_NOTE_FILENAME, RE_WEEKLY_NOTE_FILENAME } from '@helpers/note'
 
 export const RE_DATE = '\\d{4}-[01]\\d-\\d{2}' // find ISO dates of form YYYY-MM-DD
 export const RE_ISO_DATE = '\\d{4}-[01]\\d-[0123]\\d' // find ISO dates of form YYYY-MM-DD (stricter)
 export const RE_SCHEDULED_ISO_DATE = '>\\d{4}-[01]\\d-[0123]\\d' // find scheduled dates of form >YYYY-MM-DD
 export const RE_YYYYMMDD_DATE = '\\d{4}[01]\\d[0123]\\d' // find dates of form YYYYMMDD
+export const RE_YYYY_Wnn_DATE = '\\d{4}\\-W[0-5]\\d' // find dates of form YYYY-Wnn
 export const RE_TIME = '[0-2]\\d{1}:[0-5]\\d{1}\\s?(?:AM|PM|am|pm)?' // find '12:23' with optional '[ ][AM|PM|am|pm]'
 export const RE_DATE_INTERVAL = `[+\\-]?\\d+[bdwmqy]`
 export const RE_OFFSET_DATE = `{\\^?${RE_DATE_INTERVAL}}`
@@ -159,11 +161,26 @@ export function getTimeStringFromDate(date: Date): string {
   // return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
+/**
+ * Return 
+ * @param {string} filename 
+ * @returns string YYYYMMDD date
+ * @tests in jest file
+ */
 export function getDateStringFromCalendarFilename(filename: string): string {
-  if (filename.match(/^\d{8}\.(md|txt)$/)) {
-    return filename.slice(0, 8)
-  } else {
-    return '(invalid date)'
+  try {
+    if (filename.match(RE_DAILY_NOTE_FILENAME)) {
+      return filename.slice(0, 8)
+    }
+    else if (filename.match(RE_WEEKLY_NOTE_FILENAME)) {
+      return weekStartDateStr(filename.slice(0, 8))
+    }
+    else {
+      throw new Error(`Invalid calendar filename: ${filename}`)
+    }
+  } catch (err) {
+    logError('dateTime / getDateStringFromCalendarFilename', err.message)
+    return '(invalid date)' // for completeness
   }
 }
 
@@ -430,9 +447,8 @@ export function getWeek(inDate: Date): number {
 
 /**
  * Return start and end dates for a given week number.
- * Uses ISO 8601 definition of week, except that week start is Sunday not Monday.
- * TODO: Use locale-specific first day of week (e.g. Mon for USA)
- * TODO: Shift to moment library
+ * Uses ISO 8601 definition of week.
+ * V2 now uses Moment library
  * @author @jgclark
  *
  * @param {number} week - week number in year (1-53)
@@ -442,20 +458,39 @@ export function getWeek(inDate: Date): number {
  */
 export function weekStartEnd(week: number, year: number): [Date, Date] {
   if (week > 53 || week < 1) {
-    log('helpers/weekStartEnd', `warning: invalid week number ${week} given, but will still calculate correctly, relative to year ${year}.`)
+    logWarn('helpers/weekStartEnd', `Invalid week number ${week} given, but will still calculate correctly, relative to year ${year}.`)
   }
 
-  let firstDay = 0
-  let testWeek = 0
-  do {
-    firstDay++
-    testWeek = getWeek(new Date(year, 0, firstDay))
-  } while (testWeek !== 1)
-
-  const startDate: Date = Calendar.addUnitToDate(new Date(year, 0, firstDay), 'day', (week - 1) * 7)
-  const endDate: Date = Calendar.addUnitToDate(startDate, 'day', 6)
-  // log('helpers/weekStartEnd', `  -> ${toLocaleTime(startDate)} - ${toLocaleTime(endDate)}`)
+  const start = moment().year(year).isoWeeks(week).hours(0).minutes(0).seconds(0).milliseconds(0)
+  const startDate = start.toDate()
+  const endDate = start.add(6, 'days').toDate()
   return [startDate, endDate]
+}
+
+/**
+ * Return start YYYYMMDD date for a given YYYY-Wnn week number.
+ * @author @jgclark
+ * 
+ * @param {string} startDate
+ * @returns {string} YYYYMMDD
+ * @tests in Jest file
+*/
+export function weekStartDateStr(inStr: string): string {
+  try {
+    if (inStr.match(RE_YYYY_Wnn_DATE)) {
+      const parts = inStr.split('-W') // Split YYYY-Wnn string into parts
+      const year = Number(parts[0])
+      const week = Number(parts[1])
+      console.log(`${inStr} -> ${week} / ${year}`)
+      const m = moment().year(year).isoWeeks(week)
+      return m.format("YYYYMMDD")
+    } else {
+      throw new Error(`Invalid date ${inStr}`)
+    }
+  } catch (err) {
+    logError('dateTime/weekStartDateStr', err.message)
+    return '(error)'
+  }
 }
 
 /**

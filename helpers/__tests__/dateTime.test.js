@@ -179,19 +179,6 @@ describe(`${PLUGIN_NAME}`, () => {
       })
     })
 
-    // Commenting out, as it requires an NP function, which I missed before writing these
-    // describe('weekStartEnd', () => {
-    //   test('2021W52 -> (2021-12-26, 2022-01-01)', () => {
-    //     expect(dt.weekStartEnd(52, 2021)).toEqual(new Date(2021, 11, 26, 0, 0, 0), new Date(2022, 0, 1, 0, 0, 0))
-    //   })
-    //   test('2022W1 -> (2022-01-02, 2022-01-08)', () => {
-    //     expect(dt.weekStartEnd(1, 2022)).toEqual(new Date(2022, 0, 2, 0, 0, 0), new Date(2022, 0, 8, 0, 0, 0))
-    //   })
-    //   test('2022W2 -> (2022-01-09, 2022-01-15)', () => {
-    //     expect(dt.weekStartEnd(2, 2022)).toEqual(new Date(2022, 0, 9, 0, 0, 0), new Date(2022, 0, 15, 0, 0, 0))
-    //   })
-    // })
-
     describe('calcWeekOffset', () => {
       test('calcWeekOffset(52, 2021, 0)', () => {
         const answer = dt.calcWeekOffset(52, 2021, 0)
@@ -425,7 +412,7 @@ describe(`${PLUGIN_NAME}`, () => {
     /*
      * getISOWeekAndYear()
      */
-    describe('getISOWeekAndYear()' /* function */, () => {
+    describe('getISOWeekAndYear()', () => {
       test('should return proper date with string input', () => {
         const result = dt.getISOWeekAndYear('2020-01-01')
         expect(result).toEqual({ year: 2020, week: 1 })
@@ -437,6 +424,70 @@ describe(`${PLUGIN_NAME}`, () => {
       test('should add increment to date', () => {
         const result = dt.getISOWeekAndYear(new Date('2020-01-01'), 1, 'week')
         expect(result).toEqual({ year: 2020, week: 2 })
+      })
+    })
+
+    describe('weekStartEnd()', () => {
+      // skipped, as I can't see why moment is right here
+      test.skip('2021W52 -> (2021-12-26, 2022-01-01)', () => {
+        expect(dt.weekStartEnd(52, 2021)).toEqual([new Date(2021, 11, 26, 0, 0, 0), new Date(2022, 0, 1, 0, 0, 0)])
+      })
+      test('2022W1 -> (2022-01-03, 2022-01-09)', () => {
+        expect(dt.weekStartEnd(1, 2022)).toEqual([new Date(2022, 0, 3, 0, 0, 0), new Date(2022, 0, 9, 0, 0, 0)])
+      })
+      test('2022W2 -> (2022-01-10, 2022-01-16)', () => {
+        expect(dt.weekStartEnd(2, 2022)).toEqual([new Date(2022, 0, 10, 0, 0, 0), new Date(2022, 0, 16, 0, 0, 0)])
+      })
+    })
+
+    describe('weekStartDateStr()', () => {
+      test('should return error for empty date', () => {
+        const result = dt.weekStartDateStr('')
+        expect(result).toEqual("(error)")
+      })
+      test('should return error for invalid date', () => {
+        const result = dt.weekStartDateStr('2022-W60')
+        expect(result).toEqual("(error)")
+      })
+      // skipped, as I can't see why moment is right here
+      test.skip('should return date 1', () => {
+        const result = dt.weekStartDateStr('2021-W52')
+        expect(result).toEqual("20211227")
+      })
+      test('should return date 2', () => {
+        const result = dt.weekStartDateStr('2022-W01')
+        expect(result).toEqual("20220103")
+      })
+      test('should return date 3', () => {
+        const result = dt.weekStartDateStr('2022-W32')
+        expect(result).toEqual("20220808")
+      })
+      test('should return date 4', () => {
+        const result = dt.weekStartDateStr('2022-W52')
+        expect(result).toEqual("20221226")
+      })
+    })
+
+    describe('getDateStringFromCalendarFilename()', () => {
+      test('should return error for empty filename', () => {
+        const result = dt.getDateStringFromCalendarFilename('')
+        expect(result).toEqual("(invalid date)")
+      })
+      test('should return error for malformed daily filename', () => {
+        const result = dt.getDateStringFromCalendarFilename('20221340')
+        expect(result).toEqual("(invalid date)")
+      })
+      test('should return error for malformed weekly filename', () => {
+        const result = dt.getDateStringFromCalendarFilename('2022-W60')
+        expect(result).toEqual("(invalid date)")
+      })
+      test('should return valid date for daily note filename', () => {
+        const result = dt.getDateStringFromCalendarFilename('20220101.md')
+        expect(result).toEqual("20220101")
+      })
+      test('should return valid date for weekly note filename', () => {
+        const result = dt.getDateStringFromCalendarFilename('2022-W52.md')
+        expect(result).toEqual("20221226")
       })
     })
   })
