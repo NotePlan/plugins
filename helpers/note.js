@@ -2,12 +2,12 @@
 //-------------------------------------------------------------------------------
 // Note-level Functions
 
+import { hyphenatedDate, hyphenatedDateString, toLocaleDateString } from './dateTime'
 import { log, logDebug, logError } from './dev'
 import { getFolderFromFilename } from './folders'
+import { displayTitle, type headingLevelType } from './general'
 import { findEndOfActivePartOfNote } from './paragraph'
 import { showMessage } from './userInput'
-import { displayTitle, type headingLevelType } from './general'
-import { hyphenatedDate, hyphenatedDateString, toLocaleDateString } from '@helpers/dateTime'
 
 export const RE_DAILY_NOTE_FILENAME = '\\/?\\d{4}[0-1]\\d[0-3]\\d.'
 export const RE_WEEKLY_NOTE_FILENAME = '\\/?\\d{4}-W\\d{2}\\.'
@@ -91,42 +91,58 @@ export async function noteOpener(
 }
 
 /**
- * Get or create the relevant note in the given folder
+ * Get or create the relevant regular note in the given folder (not calendar notes)
  * @author @jgclark
  *
- * @param {string} noteTitle - title of summary note
+ * @param {string} noteTitle - title of note to look for
  * @param {string} noteFolder - folder to look in (must be full path or "/")
+ * @param {boolean?} partialTitleToMatch - optional partial note title to use with a starts-with not exact match
  * @return {Promise<TNote>} - note object
  */
-export async function getOrMakeNote(noteTitle: string, noteFolder: string): Promise<?TNote> {
-  // first see if this note has already been created (ignoring Archive and Trash)
-  const potentialNotes: $ReadOnlyArray<TNote> = DataStore.projectNoteByTitle(noteTitle, true, false) ?? []
-  logDebug('getOrMakeNote', `  found ${potentialNotes.length} existing '${noteTitle}' note(s)`)
-  const existingNotes =
-    potentialNotes && noteFolder !== '/'
+export async function getOrMakeNote(
+  noteTitle: string,
+  noteFolder: string,
+  partialTitleToMatch: string = ''
+): Promise<?TNote> {
+  logDebug('note / getOrMakeNote', `starting with noteTitle '${noteTitle}' / folder '${noteFolder}' / partialTitleToMatch ${partialTitleToMatch}`)
+  let existingNotes: $ReadOnlyArray<TNote> = []
+
+  // If we want to do a partial match, see if matching note(s) have already been created (ignoring @Archive and @Trash)
+  if (partialTitleToMatch) {
+    const allNotesInFolder = getProjectNotesInFolder(noteFolder)
+    existingNotes = allNotesInFolder.filter((f) => f.title?.startsWith(partialTitleToMatch))
+    logDebug('note / getOrMakeNote', `- found ${existingNotes.length} existing partial '${partialTitleToMatch}' note matches`)
+  } else {
+    // Otherwise do an exact match on noteTitle
+    const potentialNotes = DataStore.projectNoteByTitle(noteTitle, true, false) ?? []
+    // now filter out wrong folders
+    existingNotes = potentialNotes && noteFolder !== '/'
       ? potentialNotes.filter((n) => n.filename.startsWith(noteFolder))
       : potentialNotes
+    logDebug('note / getOrMakeNote', `- found ${existingNotes.length} existing '${noteTitle}' note(s)`)
+  }
 
   if (existingNotes.length > 0) {
-    logDebug('getOrMakeNote', `  found ${existingNotes.length} notes. [0] = ${existingNotes[0].filename}`)
+    logDebug('note / getOrMakeNote', `- first filename = '${existingNotes[0].filename}'`)
     return existingNotes[0] // return the only or first match (if more than one)
   } else {
+    logDebug('note / getOrMakeNote', `- found no existing notes, so will try to make one`)
     // no existing note, so need to make a new one
     const noteFilename = await DataStore.newNote(noteTitle, noteFolder)
     // NB: filename here = folder + filename
     if (noteFilename != null && noteFilename !== '') {
-      logDebug('getOrMakeNote', `  newNote filename: ${String(noteFilename)}`)
+      logDebug('note / getOrMakeNote', `- newNote filename: ${String(noteFilename)}`)
       const note = await DataStore.projectNoteByFilename(noteFilename)
       if (note != null) {
         return note
       } else {
         showMessage(`Oops: I can't make new ${noteTitle} note`, 'OK')
-        logError('getOrMakeNote()', `can't read new ${noteTitle} note`)
+        logError('note / getOrMakeNote', `can't read new ${noteTitle} note`)
         return
       }
     } else {
       showMessage(`Oops: I can't make new ${noteTitle} note`, 'OK')
-      logError('getOrMakeNote()', `empty filename of new ${noteTitle} note`)
+      logError('note / getOrMakeNote', `empty filename of new ${noteTitle} note`)
       return
     }
   }
@@ -241,23 +257,33 @@ export function findNotesMatchingHashtags(
 }
 
 /**
- * Get all notes in a given folder (or all project notes if no folder given)
- * @author @dwertheimer
+ * Get all notes in a given folder:
+ * - matching all folders that include the 'forFolder' parameter
+ * - or just those in the root folder (if forFolder === '/')
+ * - or all project notes if no folder given
+ * Now also caters for searches just in root folder.
+ * @author @dwertheimer + @jgclark
 
- * @param {string} forFolder name (e.g. 'myFolderName')
+ * @param {string} forFolder optional folder name (e.g. 'myFolderName'), matching all folders that include this string
  * @returns {$ReadOnlyArray<TNote>} array of notes in the folder
  */
 export function getProjectNotesInFolder(forFolder: string = ''): $ReadOnlyArray<TNote> {
   const notes: $ReadOnlyArray<TNote> = DataStore.projectNotes
+  let filteredNotes = []
   if (forFolder === '') {
-    return notes
-  } else {
+    filteredNotes = notes
+  }
+  else if (forFolder === '/') {
+    // root folder ('/') has to be treated as a special case
+    filteredNotes = notes.filter((note) => !note.filename.includes('/'))
+  }
+  else {
     // if last character is a slash, remove it
     const folderWithSlash = forFolder.charAt(forFolder.length - 1) === '/' ? forFolder : `${forFolder}/`
-    const filteredNotes = notes.filter((note) => note.filename.includes(folderWithSlash))
-    logDebug('note/getProjectNotesIFolder', `Found ${filteredNotes.length} notes in folder ${forFolder}`)
-    return filteredNotes
+    filteredNotes = notes.filter((note) => note.filename.includes(folderWithSlash))
   }
+  logDebug('note / getProjectNotesIFolder', `Found ${filteredNotes.length} notes in folder '${forFolder}'`)
+  return filteredNotes
 }
 
 /**
