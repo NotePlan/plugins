@@ -2,15 +2,15 @@
 //-------------------------------------------------------------------------------
 // Note-level Functions
 
-import { hyphenatedDate, hyphenatedDateString, toLocaleDateString } from './dateTime'
+import {
+  hyphenatedDate, hyphenatedDateString, toLocaleDateString,
+  RE_DAILY_NOTE_FILENAME, RE_WEEKLY_NOTE_FILENAME,
+} from './dateTime'
 import { log, logDebug, logError } from './dev'
 import { getFolderFromFilename } from './folders'
 import { displayTitle, type headingLevelType } from './general'
 import { findEndOfActivePartOfNote } from './paragraph'
 import { showMessage } from './userInput'
-
-export const RE_DAILY_NOTE_FILENAME = '\\/?\\d{4}[0-1]\\d[0-3]\\d\\.'
-export const RE_WEEKLY_NOTE_FILENAME = '\\/?\\d{4}-W[0-5]\\d\\.'
 
 export function getNoteContextAsSuffix(filename: string, dateStyle: string): string {
   const noteType = (filename.match(RE_DAILY_NOTE_FILENAME) || filename.match(RE_WEEKLY_NOTE_FILENAME)) ? "Calendar" : "Notes"
@@ -123,7 +123,7 @@ export async function getOrMakeNote(
   }
 
   if (existingNotes.length > 0) {
-    logDebug('note / getOrMakeNote', `- first filename = '${existingNotes[0].filename}'`)
+    logDebug('note / getOrMakeNote', `- first matching note filename = '${existingNotes[0].filename}'`)
     return existingNotes[0] // return the only or first match (if more than one)
   } else {
     logDebug('note / getOrMakeNote', `- found no existing notes, so will try to make one`)

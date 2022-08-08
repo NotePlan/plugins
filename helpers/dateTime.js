@@ -7,14 +7,15 @@ import strftime from 'strftime'
 import moment from 'moment/min/moment-with-locales'
 import { default as momentBusiness } from 'moment-business-days'
 import { formatISO9075 } from 'date-fns'
-import { log, logError, logWarn } from './dev'
-import { RE_DAILY_NOTE_FILENAME, RE_WEEKLY_NOTE_FILENAME } from '@helpers/note'
+import { log, logDebug, logError, logWarn } from './dev'
 
 export const RE_DATE = '\\d{4}-[01]\\d-\\d{2}' // find ISO dates of form YYYY-MM-DD
 export const RE_ISO_DATE = '\\d{4}-[01]\\d-[0123]\\d' // find ISO dates of form YYYY-MM-DD (stricter)
 export const RE_SCHEDULED_ISO_DATE = '>\\d{4}-[01]\\d-[0123]\\d' // find scheduled dates of form >YYYY-MM-DD
 export const RE_YYYYMMDD_DATE = '\\d{4}[01]\\d[0123]\\d' // find dates of form YYYYMMDD
 export const RE_YYYY_Wnn_DATE = '\\d{4}\\-W[0-5]\\d' // find dates of form YYYY-Wnn
+export const RE_DAILY_NOTE_FILENAME = '\\/?\\d{4}[0-1]\\d[0-3]\\d\\.'
+export const RE_WEEKLY_NOTE_FILENAME = '\\/?\\d{4}-W[0-5]\\d\\.'
 export const RE_TIME = '[0-2]\\d{1}:[0-5]\\d{1}\\s?(?:AM|PM|am|pm)?' // find '12:23' with optional '[ ][AM|PM|am|pm]'
 export const RE_DATE_INTERVAL = `[+\\-]?\\d+[bdwmqy]`
 export const RE_OFFSET_DATE = `{\\^?${RE_DATE_INTERVAL}}`
@@ -61,7 +62,7 @@ export function unhyphenateString(dateString: string): string {
 // NB: This does not work to get reliable date string from note.date for daily notes
 // Instead use hyphenatedDateFromNote()
 export function toISODateString(dateObj: Date): string {
-  // log('toISODateString', `${dateObj.toISOString()} // ${toLocaleDateTimeString(dateObj)}`)
+  logDebug('dateTime/toISODateString', `${dateObj.toISOString()} // ${toLocaleDateTimeString(dateObj)}`)
   return dateObj.toISOString().slice(0, 10)
 }
 
@@ -70,7 +71,7 @@ export function toISODateString(dateObj: Date): string {
 // which happens to be identical.
 export function hyphenatedDate(date: Date): string {
   if (date != null) {
-    // log('hyphenatedDate', `${toLocaleDateTimeString(date)} -> ${toLocaleDateString(date, 'sv-SE')}`)
+    logDebug('dateTime/hyphenatedDate', `${toLocaleDateTimeString(date)} -> ${toLocaleDateString(date, 'sv-SE')}`)
     return toLocaleDateString(date, 'sv-SE')
   } else {
     return 'hyphenatedDate: error: not a valid JS Date'
@@ -94,7 +95,7 @@ export function toLocaleTime(dateObj: Date, locale: string | Array<string> = [],
 }
 
 export function printDateRange(dr: DateRange) {
-  log('helpers/printDateRange', `<${toISOShortDateTimeString(dr.start)} - ${toISOShortDateTimeString(dr.end)}>`)
+  log('dateTime/printDateRange', `<${toISOShortDateTimeString(dr.start)} - ${toISOShortDateTimeString(dr.end)}>`)
 }
 
 export function unhyphenatedDate(dateObj: Date): string {
@@ -259,7 +260,7 @@ export function relativeDateFromNumber(diffIn: number): string {
   let output = ''
   let diff = diffIn
   let isPast = false
-  // log('helpers/relativeDateFromNumber', `original diff = ${diff}`)
+  logDebug('dateTime/relativeDateFromNumber', `original diff = ${diff}`)
   if (diff < 0) {
     diff = Math.abs(diff)
     isPast = true
@@ -284,7 +285,7 @@ export function relativeDateFromNumber(diffIn: number): string {
   } else {
     output = `in ${output}`
   }
-  // log('relativeDateFromNumber', `--> ${output}`)
+  logDebug('dateTime/relativeDateFromNumber', `--> ${output}`)
   return output
 }
 
@@ -300,7 +301,7 @@ export function relativeDateFromNumber(diffIn: number): string {
 export function getDateObjFromDateString(mention: string): ?Date {
   const RE_DATE_CAPTURE = `(${RE_DATE})` // capture date of form YYYY-MM-DD
 
-  // log('getDateObjFromDateString', `  ${mention}`)
+  logDebug('dateTime/getDateObjFromDateString', `for ${mention}`)
   const res = mention.match(RE_DATE_CAPTURE) ?? []
   // Use first match, if found
   if (res[1]?.length > 0) {
@@ -309,10 +310,10 @@ export function getDateObjFromDateString(mention: string): ?Date {
       Number(res[1].slice(5, 7)) - 1, // only seems to be needed for months?!
       Number(res[1].slice(8, 10)),
     )
-    // log('getDateObjFromDateString', toISOShortDateTimeString(date))
+    logDebug('dateTime/getDateObjFromDateString', toISOShortDateTimeString(date))
     return date
   } else {
-    logWarn('getDateObjFromDateString', `getDateFromString: no valid date found in '${mention}'`)
+    logWarn('dateTime/getDateObjFromDateString', `getDateFromString: no valid date found in '${mention}'`)
     return
   }
 }
@@ -363,7 +364,7 @@ export const getDateObjFromDateTimeString = (dateTimeString: string): Date => {
 export function getDateFromUnhyphenatedDateString(inputString: string): ?Date {
   const RE_DATE_CAPTURE = `(\\d{4}[01]\\d{1}\\d{2})` // capture date of form YYYYMMDD
 
-  // log('getDateFromUnhyphenatedDateString', inputString)
+  logDebug('dateTime/getDateFromUnhyphenatedDateString', inputString)
   const res = inputString.match(RE_DATE_CAPTURE) ?? []
   // Use first match, if found
   if (res[1]?.length > 0) {
@@ -372,10 +373,10 @@ export function getDateFromUnhyphenatedDateString(inputString: string): ?Date {
       Number(res[1].slice(4, 6)) - 1, // only needed for months!
       Number(res[1].slice(6, 8)),
     )
-    // log('getDateFromUnhyphenatedDateString', toISOShortDateTimeString(date))
+    logDebug('dateTime/getDateFromUnhyphenatedDateString', toISOShortDateTimeString(date))
     return date
   } else {
-    logWarn('getDateFromUnhyphenatedDateString', `  no valid date found in '${inputString}'`)
+    logWarn('dateTime/getDateFromUnhyphenatedDateString', `  no valid date found in '${inputString}'`)
     return
   }
 }
@@ -481,7 +482,6 @@ export function weekStartDateStr(inStr: string): string {
       const parts = inStr.split('-W') // Split YYYY-Wnn string into parts
       const year = Number(parts[0])
       const week = Number(parts[1])
-      console.log(`${inStr} -> ${week} / ${year}`)
       const m = moment().year(year).isoWeeks(week)
       return m.format("YYYYMMDD")
     } else {
@@ -519,7 +519,7 @@ export function calcWeekOffset(startWeek: number, startYear: number, offset: num
     week -= 52
     year += 1
   }
-  // log('helpers/calcWeekOffset', `${startYear}W${startWeek} - ${year}W${week}`)
+  logDebug('dateTime/calcWeekOffset', `${startYear}W${startWeek} - ${year}W${week}`)
   return { week, year }
 }
 
@@ -536,7 +536,7 @@ export function calcWeekOffset(startWeek: number, startYear: number, offset: num
 export function calcOffsetDateStr(baseDateISO: string, interval: string): string {
   try {
     if (!interval.match(RE_DATE_INTERVAL)) {
-      logError('helpers/cODS', `Invalid date interval '${interval}'`)
+      logError('dateTime/cODS', `Invalid date interval '${interval}'`)
       return '(error)'
     }
 
@@ -560,10 +560,10 @@ export function calcOffsetDateStr(baseDateISO: string, interval: string): string
     // calc offset (Note: library functions cope with negative nums, so just always use 'add' function)
     const newDate = unit !== 'b' ? baseDateMoment.add(num, unitForMoment) : momentBusiness(baseDateMoment).businessAdd(num)
     const newDateISO = newDate.format('YYYY-MM-DD')
-    // log('helpers/cODS', `for '${baseDateISO}' interval ${num} / ${unitForMoment} -> '${newDateISO}'`)
+    logDebug('dateTime/cODS', `for '${baseDateISO}' interval ${num} / ${unitForMoment} -> '${newDateISO}'`)
     return newDateISO
   } catch (e) {
-    logError('helpers/cODS', `${e.message} for '${baseDateISO}' interval '${interval}'`)
+    logError('dateTime/cODS', `${e.message} for '${baseDateISO}' interval '${interval}'`)
     return '(error)'
   }
 }
