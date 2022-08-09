@@ -125,7 +125,7 @@ export function simplifyRawContent(input: string): string {
  * Takes a line of text and prepares it for display:
  * - shortens it to maxChars characters around the first matching term (if maxChars > 0)
  * - tries to shorten at word boundaries (thanks to the power of regex!).
- * - adds ==highlight== to matching terms if wanted.
+ * - adds ==highlight== to matching terms if wanted (and if not already highlighted)
  * @author @jgclark
  * 
  * @param {string} input string
@@ -135,6 +135,7 @@ export function simplifyRawContent(input: string): string {
  * @param {boolean} addHighlight add highlighting to the matched terms?
  * @param {number} maxChars to return around first matching term. If zero, or missing, then treat as being no limit.
  * @returns {string}
+ * @tests in jest file
  */
 export function trimAndHighlightTermInLine(
   input: string,
@@ -151,13 +152,8 @@ export function trimAndHighlightTermInLine(
   const startOfLineMarker = input.slice(0, startOfMainLineContentPos)
   let mainPart = input.slice(startOfMainLineContentPos)
 
-  // if (simplifyLine) {
-    // Simplify rawContent line by trimming off leading chars
-    mainPart = simplifyRawContent(mainPart)
-  // } else {
-  //   // or at least right trim
-  //   mainPart = mainPart.trimRight()
-  // }
+  // Simplify rawContent line by trimming off leading chars
+  mainPart = simplifyRawContent(mainPart)
 
   // Now trim the line content if necessary
   if (maxChars > 0 && mainPart.length > maxChars) {
@@ -193,17 +189,17 @@ export function trimAndHighlightTermInLine(
   // Add highlighting if wanted (using defined Regex so can use 'g' flag)
   // (A simple .replace() command doesn't work as it won't keep capitalisation)
   if (addHighlight) {
-    // regex: find any of the match terms, all times
-    const re = new RegExp(`${terms.join('|')}`, "gi")
+    // regex: find any of the match terms in all the text
+    const re = new RegExp(`(?:[^=](${terms.join('|')})[^=])`, "gi")
     const termMatches = output.matchAll(re)
     let offset = 0
     for (const tm of termMatches) {
-      // logDebug('trimAndHighlight()', `${tm[0]}, ${tm[0].length}, ${tm.index}, ${offset}}`)
-      const leftPos = tm.index + offset // last adds previous ==...== additions
-      const rightPos = leftPos + tm[0].length // as terms change have to get feedback from this match
+      // logDebug('search/trimAndHighlight', `${tm[0]}, ${tm[0].length}, ${tm.index}, ${offset}`)
+      const leftPos = tm.index + offset + 1 // last adds previous ==...== additions
+      const rightPos = leftPos + tm[1].length // as terms change have to get feedback from this match
       const highlitOutput = `${output.slice(0, leftPos)}==${output.slice(leftPos, rightPos)}==${output.slice(rightPos,)}`
       output = highlitOutput
-      // logDebug('trimAndHighlight()', `highlight ${highlitOutput}`)
+      // logDebug('search/trimAndHighlight', `highlight ${highlitOutput}`)
       offset += 4
     }
   }

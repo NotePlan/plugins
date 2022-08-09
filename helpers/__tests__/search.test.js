@@ -279,10 +279,14 @@ describe('search.js tests', () => {
       const output = s.trimAndHighlightTermInLine("  * [x] Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod tempor incididunt", ['sed'], true, false, '- ', 70)
       expect(output).toEqual("- Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed ...")
     })
-    // Run out of energy to do the detail on this ...
+    // TODO: Ran out of energy to do the detail on this ...
     test.skip('should return 1 highlight and front and end trimming', () => {
       const output = s.trimAndHighlightTermInLine("Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod tempor incididunt", ['sed'], false, false, '- ', 48)
       expect(output).toEqual("... ipsum dolor sit amet, sed consectetur adipisicing elit, ...")
+    })
+    test('should return 1 new highlight but not add extra to existing highlit term', () => {
+      const output = s.trimAndHighlightTermInLine("Should add highlight to tennis, but not to this existing one: ==tennis==", ['tennis'], false, true, '- ')
+      expect(output).toEqual("Should add highlight to ==tennis==, but not to this existing one: ==tennis==")
     })
   })
 })
