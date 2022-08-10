@@ -23,5 +23,22 @@
       "jsFunction": "insertNoteTemplate",
       "hidden": true
     }
+  ],
+  "plugin.settings": [
+    {
+      "key": "_logLevel",
+      "type": "string",
+      "title": "Log Level",
+      "choices": [
+        "DEBUG",
+        "LOG",
+        "WARN",
+        "ERROR",
+        "none"
+      ],
+      "description": "Set how much output will be displayed for this plugin the NotePlan > Help > Plugin Console. DEBUG is the most verbose; NONE is the least (silent)",
+      "default": "LOG",
+      "required": true
+    }
   ]
 }
