@@ -3,11 +3,20 @@
 import pluginJson from '../plugin.json'
 
 // updateSettingsData will execute whenever your plugin is installed or updated
-import { updateSettingData } from '@helpers/NPConfiguration'
+import { log, logDebug, clo } from "../../helpers/dev"
+import { updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'
 
-export { newMeetingNote } from './meetingNotes'
-export { insertNoteTemplate } from './meetingNotes'
+export { newMeetingNote } from './NPMeetingNotes'
+export { insertNoteTemplate } from './NPMeetingNotes'
 
 export async function onUpdateOrInstall(): Promise<void> {
   await updateSettingData(pluginJson)
+}
+
+export function init(): void {
+  // this runs every time the plugin starts up (any command in this plugin is run)
+  clo(DataStore.settings,`${pluginJson["plugin.id"]} Plugin Settings`)
+  DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false).then((r) =>
+    pluginUpdated(pluginJson, r),
+  )
 }

@@ -4,7 +4,7 @@ import moment from 'moment-business-days'
 import fm from 'front-matter'
 
 import pluginJson from '../plugin.json'
-import { log, logError } from '@helpers/dev'
+import { log, logDebug, logError } from '@helpers/dev'
 
 /**
  * FIXME(Eduard): please document me!
@@ -13,13 +13,13 @@ import { log, logError } from '@helpers/dev'
  * @returns
  */
 export async function insertNoteTemplate(origFileName: string, dailyNoteDate: Date): Promise<void> {
-  // log(pluginJson, 'chooseTemplateIfNeeded')
+  logDebug(pluginJson, 'chooseTemplateIfNeeded')
   const templateFilename: ?string = await chooseTemplateIfNeeded(origFileName, false)
   if (!templateFilename) {
     return
   }
 
-  // log(pluginJson, 'get content of template for rendering')
+  logDebug(pluginJson, 'get content of template for rendering')
   let templateContent = DataStore.projectNoteByFilename(templateFilename)?.content
 
   if (!templateContent) {
@@ -29,22 +29,22 @@ export async function insertNoteTemplate(origFileName: string, dailyNoteDate: Da
     return
   }
 
-  // log(pluginJson, 'preRender template')
+  logDebug(pluginJson, 'preRender template')
   // const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateContent)
   const { frontmatterBody, frontmatterAttributes } = await DataStore.invokePluginCommandByName('preRender', 'np.Templating', [templateContent])
 
-  // log(pluginJson, 'render template')
+  logDebug(pluginJson, 'render template')
   // const result = await NPTemplating.render(frontmatterBody, frontmatterAttributes)
   const result = await DataStore.invokePluginCommandByName('render', 'np.Templating', [frontmatterBody, frontmatterAttributes])
 
   if (dailyNoteDate) {
-    // log(pluginJson, `apply rendered template to daily note with date ${String(dailyNoteDate)}`)
+    logDebug(pluginJson, `apply rendered template to daily note with date ${String(dailyNoteDate)}`)
     const note = DataStore.calendarNoteByDate(dailyNoteDate)
     if (note) {
       note.content = result
     }
   } else {
-    // log(pluginJson, 'apply rendered template to the current editor')
+    logDebug(pluginJson, 'apply rendered template to the current editor')
     Editor.content = result
   }
 }
@@ -55,20 +55,20 @@ export async function insertNoteTemplate(origFileName: string, dailyNoteDate: Da
  * @param {*} _templateFilename
  */
 export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateFilename?: string): Promise<void> {
-  // log(pluginJson, 'chooseTemplateIfNeeded')
+  logDebug(pluginJson, 'chooseTemplateIfNeeded')
   const templateFilename: ?string = await chooseTemplateIfNeeded(_templateFilename, true)
 
-  // log(pluginJson, 'chooseEventIfNeeded')
+  logDebug(pluginJson, 'chooseEventIfNeeded')
   const selectedEvent = await chooseEventIfNeeded(_selectedEvent)
 
   try {
-    log(pluginJson, 'generateTemplateData')
+    logDebug(pluginJson, 'generateTemplateData')
     const templateData = generateTemplateData(selectedEvent)
 
-    log(pluginJson, 'get template content')
+    logDebug(pluginJson, 'get template content')
     const templateContent = DataStore.projectNoteByFilename(templateFilename).content
 
-    log(pluginJson, 'preRender template')
+    logDebug(pluginJson, 'preRender template')
     // const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateContent, templateData)
     const { frontmatterBody, frontmatterAttributes } = await DataStore.invokePluginCommandByName('preRender', 'np.Templating', [templateContent, templateData])
 
@@ -78,7 +78,7 @@ export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateFi
     const prepend = attrs?.prepend || ''
     const newNoteTitle = attrs?.newNoteTitle || ''
 
-    // log(pluginJson, 'render template')
+    logDebug(pluginJson, 'render template')
     // let result = await NPTemplating.render(frontmatterBody, frontmatterAttributes)
     let result = await DataStore.invokePluginCommandByName('render', 'NPTemplating', [frontmatterBody, frontmatterAttributes])
 
@@ -88,15 +88,17 @@ export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateFi
 
     let newTitle = null
     if (append || prepend) {
-      // log(pluginJson, 'append/prepend template')
+      logDebug(pluginJson, 'append/prepend template')
       newTitle = (await appendPrependNewNote(append, prepend, folder, result)) ?? '<error>'
     } else {
       logError(pluginJson, 'create a new note with the rendered template')
-      newTitle = (await newNoteWithFolder(result, folder, newNoteTitle)) ?? '<error>' // FIXME(Eduard): only 2 params allowed
+      newTitle = (await newNoteWithFolder(result, folder)) ?? '<error>' // FIXME(Eduard): only 2 params allowed
     }
 
-    // log(pluginJson, 'write the note-link into the event')
-    writeNoteLinkIntoEvent(selectedEvent, newTitle)
+    logDebug(pluginJson, 'write the note-link into the event')
+    if (selectedEvent) {
+      writeNoteLinkIntoEvent(selectedEvent, newTitle)
+    }
   } catch (error) {
     logError(pluginJson, `error in newMeetingNote: ${error}`)
   }
@@ -110,7 +112,7 @@ export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateFi
 function writeNoteLinkIntoEvent(selectedEvent: TCalendarItem, newTitle: string): void {
   try {
     // Only add the link to events without attendees
-    // log(pluginJson, 'writing event link into event notes.')
+    logDebug(pluginJson, 'writing event link into event notes.')
 
     if (newTitle && selectedEvent.attendees.length === 0 && selectedEvent.isCalendarWritable) {
       // FIXME(Eduard): no such field on Calendar or CalendarItem
@@ -122,10 +124,10 @@ function writeNoteLinkIntoEvent(selectedEvent: TCalendarItem, newTitle: string):
 
       selectedEvent.notes = eventNotes + noteLink
 
-      log(pluginJson, 'update the event')
+      logDebug(pluginJson, 'update the event')
       Calendar.update(selectedEvent)
     } else {
-      log(pluginJson, `note link not written to event because it contains attendees (${selectedEvent.attendees.length}) or calendar doesnt allow content changes.`)
+      logDebug(pluginJson, `note link not written to event because it contains attendees (${selectedEvent.attendees.length}) or calendar doesnt allow content changes.`)
     }
   } catch (error) {
     logError(pluginJson, `error in writeNoteLinkIntoEvent: ${error}`)
@@ -146,12 +148,12 @@ async function appendPrependNewNote(append: string, prepend: string, folder: str
 
     let note = undefined
     if (noteName === '<select>') {
-      log(pluginJson, 'load project notes (sorted) to display for selection')
+      logDebug(pluginJson, 'load project notes (sorted) to display for selection')
       let notes = [...DataStore.projectNotes].sort((a, b) => (a.changedDate < b.changedDate ? 1 : -1))
 
       // If a folder was defined, filter down the options
       if (folder) {
-        log(pluginJson, 'a folder was defined, so filter the available notes')
+        logDebug(pluginJson, 'a folder was defined, so filter the available notes')
         const filteredNotes = notes.filter((n) => n.filename.startsWith(folder))
         if (filteredNotes.length > 0) {
           // If it's empty, show all notes
@@ -159,24 +161,24 @@ async function appendPrependNewNote(append: string, prepend: string, folder: str
         }
       }
 
-      log(pluginJson, 'display notes for selection')
+      logDebug(pluginJson, 'display notes for selection')
       const selection = await CommandBar.showOptions(
         notes.map((n) => n.title ?? 'Untitled Note'),
         'Select a note',
       )
       note = notes[selection.index]
     } else if (noteName === '<current>') {
-      log(pluginJson, 'use the current note')
+      logDebug(pluginJson, 'use the current note')
       note = Editor.note
     } else {
       // TODO: We don't know if its a title or a filename, so try first looking for a filename, then title
-      log(pluginJson, 'find the note by title')
+      logDebug(pluginJson, 'find the note by title')
       const availableNotes = DataStore.projectNoteByTitle(noteName)
       note = availableNotes[0]
 
       if (folder) {
         // Look for the note in the defined folder
-        log(pluginJson, 'a folder was defined, check for the note there first')
+        logDebug(pluginJson, 'a folder was defined, check for the note there first')
         const filteredNotes = availableNotes?.filter((n) => n.filename.startsWith(folder)) ?? []
         if (filteredNotes.length > 0) {
           note = filteredNotes[0]
@@ -185,11 +187,11 @@ async function appendPrependNewNote(append: string, prepend: string, folder: str
     }
 
     if (!note) {
-      log(pluginJson, 'note not found, create a new one')
+      logDebug(pluginJson, 'note not found, create a new one')
 
       const filename = DataStore.newNote(noteName, folder)
       if (filename) {
-        log(pluginJson, 'note created, now get the Note object')
+        logDebug(pluginJson, 'note created, now get the Note object')
         note = DataStore.projectNoteByFilename(filename)
       }
 
@@ -202,25 +204,25 @@ async function appendPrependNewNote(append: string, prepend: string, folder: str
     const originalContentLength = note.content?.length ?? 0
 
     if (append) {
-      log(pluginJson, 'append the template')
+      logDebug(pluginJson, 'append the template')
       note.appendParagraph(content, 'text')
     } else if (prepend) {
-      log(pluginJson, 'prepend the template')
+      logDebug(pluginJson, 'prepend the template')
       note.prependParagraph(content, 'text')
     }
 
-    log(pluginJson, 'open the note')
+    logDebug(pluginJson, 'open the note')
     await Editor.openNoteByFilename(note.filename)
 
     // Scroll to the paragraph if we appended it
     if (append) {
-      log(pluginJson, 'scroll down to the appended template text')
+      logDebug(pluginJson, 'scroll down to the appended template text')
       Editor.select(originalContentLength + 3, 0)
     }
 
     return note.title
   } catch (error) {
-    log(pluginJson, `error in appendPrependNewNote: ${error}`)
+    logDebug(pluginJson, `error in appendPrependNewNote: ${error}`)
   }
 }
 
@@ -234,12 +236,12 @@ async function newNoteWithFolder(content: string, _folder: string): Promise<?str
   let folder = _folder
   try {
     if (folder === '<select>') {
-      log(pluginJson, 'get all folders and show them for selection')
+      logDebug(pluginJson, 'get all folders and show them for selection')
       const folders = DataStore.folders
       const selection = await CommandBar.showOptions(folders, 'Select a folder')
       folder = folders[selection.index]
     } else if (folder === '<current>') {
-      log(pluginJson, 'find the current folder of the opened note')
+      logDebug(pluginJson, 'find the current folder of the opened note')
       let currentFilename = ''
 
       if (Editor.note) {
@@ -252,26 +254,26 @@ async function newNoteWithFolder(content: string, _folder: string): Promise<?str
           folder = ''
         }
       } else {
-        log(pluginJson, 'choose the folder which is selected in the sidebar')
+        logDebug(pluginJson, 'choose the folder which is selected in the sidebar')
         folder = NotePlan.selectedSidebarFolder
       }
     }
 
-    log(pluginJson, 'create a new note')
+    logDebug(pluginJson, 'create a new note')
     // $FlowFixMe
     const filename = DataStore.newNoteWithContent(content, folder)
 
-    log(pluginJson, 'open the created note')
+    logDebug(pluginJson, 'open the created note')
     Editor.openNoteByFilename(filename)
 
-    log(pluginJson, 'find the note and return the title')
+    logDebug(pluginJson, 'find the note and return the title')
     const note = DataStore.projectNoteByFilename(filename)
     if (note) {
       return note.title
     }
     return null
   } catch (error) {
-    log(pluginJson, `error in newNoteWithFolder: ${error}`)
+    logDebug(pluginJson, `error in newNoteWithFolder: ${error}`)
     return null
   }
 }
@@ -285,17 +287,17 @@ async function newNoteWithFolder(content: string, _folder: string): Promise<?str
 async function chooseTemplateIfNeeded(templateFilename?: string, onlyMeetingNotes: boolean = false): Promise<?string> {
   try {
     if (!templateFilename) {
-      log(pluginJson, 'no template was defined, find all available templates and show them')
+      logDebug(pluginJson, 'no template was defined, find all available templates and show them')
       let templates = DataStore.projectNotes.filter((n) => n.filename.startsWith(NotePlan.environment.templateFolder))
 
-      log(pluginJson, 'include/exlcude meeting notes')
+      logDebug(pluginJson, 'include/exlcude meeting notes')
       if (onlyMeetingNotes) {
         templates = templates.filter((n) => fm(n.content)?.attributes.type === 'meeting-note')
       } else {
         templates = templates.filter((n) => fm(n.content)?.attributes.type !== 'meeting-note')
       }
 
-      log(pluginJson, 'show template options')
+      logDebug(pluginJson, 'show template options')
       const selectedTemplate = await CommandBar.showOptions(
         templates.map((n) => n.title ?? 'Untitled Note'),
         'Select a template',
@@ -305,7 +307,7 @@ async function chooseTemplateIfNeeded(templateFilename?: string, onlyMeetingNote
 
     return templateFilename
   } catch (error) {
-    log(pluginJson, `error in chooseTemplateIfNeeded: ${error}`)
+    logDebug(pluginJson, `error in chooseTemplateIfNeeded: ${error}`)
   }
 }
 
@@ -319,7 +321,7 @@ async function chooseEventIfNeeded(selectedEvent?: TCalendarItem) {
     if (!selectedEvent) {
       let events = undefined
 
-      log(pluginJson, 'load available events for the given timeframe')
+      logDebug(pluginJson, 'load available events for the given timeframe')
       if (Editor.type === 'Calendar') {
         const date = Editor.note?.date ?? new Date()
         events = await Calendar.eventsBetween(date, date)
@@ -328,12 +330,12 @@ async function chooseEventIfNeeded(selectedEvent?: TCalendarItem) {
       }
 
       if (events.length === 0) {
-        log(pluginJson, 'no events found')
+        logDebug(pluginJson, 'no events found')
         CommandBar.prompt('No events on the selected day, try another.', '')
         return
       }
 
-      log(pluginJson, 'show available events')
+      logDebug(pluginJson, 'show available events')
       const selectedEventValue = await CommandBar.showOptions(
         events.map((event) => event.title),
         'Select an event',
@@ -361,7 +363,7 @@ function generateTemplateData(selectedEvent: TCalendarItem) {
       calendarItemLink: selectedEvent.calendarItemLink,
       eventAttendees: selectedEvent.attendees.join(', '),
       eventAttendeeNames: selectedEvent.attendeeNames.join(', '),
-      // eventLocation: selectedEvent.location, // not yet supported
+      eventLocation: selectedEvent.location, // not yet documented!
       eventCalendar: selectedEvent.calendar,
     },
     methods: {
