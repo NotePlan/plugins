@@ -80,7 +80,7 @@ export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateFi
 
     logDebug(pluginJson, 'render template')
     // let result = await NPTemplating.render(frontmatterBody, frontmatterAttributes)
-    let result = await DataStore.invokePluginCommandByName('render', 'NPTemplating', [frontmatterBody, frontmatterAttributes])
+    let result = await DataStore.invokePluginCommandByName('render', 'np.Templating', [frontmatterBody, frontmatterAttributes])
 
     if (newNoteTitle.length > 0) {
       result = `# ${newNoteTitle}\n${result}`
