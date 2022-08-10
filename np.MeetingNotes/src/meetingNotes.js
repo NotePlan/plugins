@@ -25,17 +25,17 @@ export async function insertNoteTemplate(origFileName: string, dailyNoteDate: Da
   if (!templateContent) {
     logError(pluginJson, `couldnt load content of template "${templateFilename}", try NPTemplating method`)
     // templateContent = await NPTemplating.getTemplate(templateFilename)
-    templateContent = await DataStore.invokePluginCommandByName('getTemplate', 'NPTemplating', [templateFilename])
+    templateContent = await DataStore.invokePluginCommandByName('getTemplate', 'np.Templating', [templateFilename])
     return
   }
 
   // log(pluginJson, 'preRender template')
   // const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateContent)
-  const { frontmatterBody, frontmatterAttributes } = await DataStore.invokePluginCommandByName('preRender', 'NPTemplating', [templateContent])
+  const { frontmatterBody, frontmatterAttributes } = await DataStore.invokePluginCommandByName('preRender', 'np.Templating', [templateContent])
 
   // log(pluginJson, 'render template')
   // const result = await NPTemplating.render(frontmatterBody, frontmatterAttributes)
-  const result = await DataStore.invokePluginCommandByName('render', 'NPTemplating', [frontmatterBody, frontmatterAttributes])
+  const result = await DataStore.invokePluginCommandByName('render', 'np.Templating', [frontmatterBody, frontmatterAttributes])
 
   if (dailyNoteDate) {
     // log(pluginJson, `apply rendered template to daily note with date ${String(dailyNoteDate)}`)
@@ -70,7 +70,7 @@ export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateFi
 
     log(pluginJson, 'preRender template')
     // const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateContent, templateData)
-    const { frontmatterBody, frontmatterAttributes } = await DataStore.invokePluginCommandByName('preRender', 'NPTemplating', [templateContent, templateData])
+    const { frontmatterBody, frontmatterAttributes } = await DataStore.invokePluginCommandByName('preRender', 'np.Templating', [templateContent, templateData])
 
     const attrs = frontmatterAttributes
     const folder = attrs?.folder || ''
