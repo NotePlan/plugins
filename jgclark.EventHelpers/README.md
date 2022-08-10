@@ -55,8 +55,8 @@ Most of these commands require configuration. In NotePlan v3.4 and above, please
 Here are details on the various settings:
 
 - **Events heading**: in `/insert today's events as list` command (or `events()` template call), the heading to put before the list of the day's events. Optional.
-- **Events List display format**: the format string to use to customise how events are displayed (when run as a /command, not through a Template). The available placeholders are 'CAL', 'TITLE', 'EVENTLINK', 'DATE', 'START', 'END', 'NOTES', 'ATTENDEES', 'NOTES', 'URL'.  (Default is `- (*|CAL, |**|START|*) *|TITLE|**|\nEVENTLINK|**|\nwith ATTENDEES|**|\nNOTES|*`.)
-- **Events List display format for all-day events**: the format string to use to customise how all-day events are displayed (when run as a /command, not through a Template). The available placeholders are 'CAL', 'TITLE', 'EVENTLINK', 'DATE', 'NOTES', 'ATTENDEES', 'NOTES', 'URL'. (Default is `- (*|CAL, |**|START|*) *|TITLE|**|\nEVENTLINK|**|\nwith ATTENDEES|**|\nNOTES|*`.)
+- **Events List display format**: the format string to use to customise how events are displayed (when run as a /command, not through a Template). The available placeholders are 'CAL', 'TITLE', 'LOCATION', 'EVENTLINK', 'DATE', 'START', 'END', 'NOTES', 'ATTENDEES', 'NOTES', 'URL'.  (Default is `- (*|CAL, |**|START|*) *|TITLE|**|\nEVENTLINK|**|\nwith ATTENDEES|**|\nNOTES|*`.)
+- **Events List display format for all-day events**: the format string to use to customise how all-day events are displayed (when run as a /command, not through a Template). The available placeholders are 'CAL', 'TITLE', 'LOCATION', 'EVENTLINK', 'DATE', 'NOTES', 'ATTENDEES', 'NOTES', 'URL'. (Default is `- (*|CAL, |**|START|*) *|TITLE|**|\nEVENTLINK|**|\nwith ATTENDEES|**|\nNOTES|*`.)
 - **Sort order of events list**: by 'time' or by 'calendar'
 - **Calendars to include**: optional ["array","of calendar","names"] to filter by when showing list of events. If empty or missing, no filtering will be done.
 - **Calendar name mappings**: optional - add mappings for your calendar names to appear in the output - e.g. from "Thomas" to "Me" with "Thomas;Me".
@@ -73,7 +73,7 @@ For example:
 - **Default event duration**: Event duration (in minutes) to use when making an event from a time block, if no end time is given.
 - **Confirm Event Creation?**: optional boolean tag to indicate whether to ask user to confirm each event to be created
 - **Remove time blocks when processed?**: in `time blocks...` whether to remove time block after making an event from it
-- **Add event ID?**: whether to add an `⏰event:ID` string when creating an event from a time block. This returns rather long strings (e.g. `⏰event:287B39C1-4D0A-46DC-BD72-84D79167EFDF`) and so you might want to use a theme option to shorten them until needed (details [below](#theme-customisation)).
+- **Add event link?**: whether to add a nicely-formatted event link when creating an event from a time block.<!--This returns rather long strings (e.g. `⏰event:287B39C1-4D0A-46DC-BD72-84D79167EFDF`) and so you might want to use a theme option to shorten them until needed (details [below](#theme-customisation)). -->
 - **Processed tag name**: if this is set, then this tag will get added on the end of the line with the time block, to show that it has been processed. Otherwise, next time this command is run, it will create another event. This can be used with or without addEventID.
 - **Locale**: optional Locale to use for times in events. If not given, will default to what the OS reports, or failing that, 'en-US'.
 - **Time options**: Optional Time format settings. Default is `{\n\t\"hour\": \"2-digit\", \n\t\"minute\": \"2-digit\", \n\t\"hour12\": false\n}`.
@@ -83,7 +83,7 @@ If you use Templating, this command can be called when a Template is inserted (i
 
 You can place  `<%- listMatchingEvents() %>` in Templates in a similar way, and similar customisations are possible. However, as each match can have a different format of output, the matches and format strings are entered in a JSON-formatted array, which is specified in the Plugin's settings.
 
-**Formats**: The `*|CAL|*`, `*|TITLE|*`, `*|START|*`, `*|END|*`,  `*|DATE|*`,  `*|NOTES|*`, `*|URL|*`,  `*|ATTENDEES|*`, `*|ATTENDEENAMES|*`,  and `*|EVENTLINK|*` can be mixed with whatever markdown characters or other text you like, and they will get replaced accordingly with the fields from each matching event found. (Note the difference between the } and ) bracket types, and use of double quotes around the parameter's setting. I didn't design this syntax ...)
+**Formats**: The `*|CAL|*`, `*|TITLE|*`, `*|LOCATION|*`, `*|START|*`, `*|END|*`,  `*|DATE|*`,  `*|NOTES|*`, `*|URL|*`,  `*|ATTENDEES|*`, `*|ATTENDEENAMES|*`,  and `*|EVENTLINK|*` can be mixed with whatever markdown characters or other text you like, and they will get replaced accordingly with the fields from each matching event found. (Note the difference between the } and ) bracket types, and use of double quotes around the parameter's setting. I didn't design this syntax ...)
 
 Most of these are self-explanatory for events in most types of calendars, other than:
 - `*|ATTENDEES|*` gives the full details of event attendees provided by the operating system, and can be a mix of names, email addresses, and other details;
@@ -97,7 +97,7 @@ If you want to disable the adding of the heading, add the following parameter `i
 For example:
 
 ```js
-<%- events( {format:"### *|CAL|*: *|TITLE|* (*|START|*-*|END|*)*|\nEVENTLINK|**|with ATTENDEES|**|\nNOTES|*", allday_format:"### *|TITLE|**|\nEVENTLINK|**|\nNOTES|*", includeHeadings:false} ) %>
+<%- events( {format:"### *|CAL|*: *|TITLE|* (*|START|*-*|END|*)*|\nEVENTLINK|**|with ATTENDEES|**|\nLOCATION|**|\nNOTES|*", allday_format:"### *|TITLE|**|\nEVENTLINK|**|\nNOTES|*", includeHeadings:false} ) %>
 ```
 
 If you wish to see multiple day's output, not just the day for the active calendar note, add the `daysToCover` paramter. For example: include `daysToCover: 3` to the parameter string to see events for the selected day, plus the following 2. (Note: if you use this, then H3 date headings will be inserted between dates for clarity, even if the `includingHeadings` parameter is false.)
@@ -114,7 +114,7 @@ NotePlan allows extensive [customisation of fonts and colours through its Themes
 }
 ```
 
-If you're adding event IDs through the `/time blocks to calendar` command, then you might want to **hide the long `event:ID` string until you move the cursor to the ⏰ marker**. To do this add the following:
+<!-- If you're adding event IDs through the `/time blocks to calendar` command, then you might want to **hide the long `event:ID` string until you move the cursor to the ⏰ marker**. To do this add the following:
 ```jsonc
 "eventID": {
   "regex": "(event:[A-F0-9-]{36,37})",
@@ -123,7 +123,7 @@ If you're adding event IDs through the `/time blocks to calendar` command, then 
   "isHiddenWithoutCursor": true,
   "isRevealOnCursorRange": true
  }
-```
+``` -->
 
 ## History
 Please see the [CHANGELOG](CHANGELOG.md).
