@@ -31,15 +31,10 @@
         "ipu"
       ],
       "description": "Insert weekly/monthly progress update to current note",
-      "jsFunction": "insertProgressUpdate"
-    },
-    {
-      "name": "testProgressUpdate",
-      "alias": [
-        "tpu"
-      ],
-      "description": "Test version of /ipu",
-      "jsFunction": "testProgressUpdate"
+      "jsFunction": "insertProgressUpdate",
+      "arguments": [
+        "JSON-format parameter list"
+      ]
     },
     {
       "name": "weeklyStats",

@@ -2,8 +2,10 @@
 //-----------------------------------------------------------------------------
 // Progress update on some key goals to include in notes
 // Jonathan Clark, @jgclark
-// Last updated 12.8.2022 for v0.12.0, @jgclark
+// Last updated 13.8.2022 for v0.12.0, @jgclark
 //-----------------------------------------------------------------------------
+// TODO: why showSparklines not carrying through?
+// TODO: apply to general summaries?  
 
 import pluginJson from '../plugin.json'
 import {
@@ -18,7 +20,7 @@ import {
   unhyphenatedDate
 } from '@helpers/dateTime'
 import { getPeriodStartEndDates } from '@helpers/NPDateTime'
-import { logDebug, logError, logInfo, logWarn } from '@helpers/dev'
+import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import {
   CaseInsensitiveMap,
   displayTitle,
@@ -31,13 +33,8 @@ import {
   caseInsensitiveStartsWith,
 } from '@helpers/search'
 import { caseInsensitiveCompare } from '@helpers/sorting'
-import { spark_line } from './ascii-graphs-lib'
 
 //-------------------------------------------------------------------------------
-
-export async function testProgressUpdate(params?: string): Promise<void> {
-  await insertProgressUpdate("{ interval: 'mtd', heading: 'Habits', showSparkline: false }")
-}
 
 /**
  * Work out the progress stats of interest (on hashtags and/or mentions) so far this week or month, and write out to current note.
@@ -57,6 +54,7 @@ export async function insertProgressUpdate(params?: string): Promise<string | vo
     const interval = await getTagParamsFromString(params ?? '', 'interval', 'userwtd')
     const heading = await getTagParamsFromString(params ?? '', 'heading', config.progressHeading)
     const showSparklines = await getTagParamsFromString(params ?? '', 'showSparklines', config.showSparklines)
+    logDebug(pluginJson, `starting ${interval} titled '${heading}' and showSparklines? ${showSparklines}`)
 
     // Get time period of interest
     const [fromDate, toDate, periodType, periodString, periodPartStr] = await getPeriodStartEndDates('', interval)
@@ -74,7 +72,8 @@ export async function insertProgressUpdate(params?: string): Promise<string | vo
 
     const tmOccurrencesArray = await gatherOccurrences(periodString, fromDateStr, toDateStr, config.progressHashtags, config.progressMentions)
 
-    const output = generateProgressUpdate(tmOccurrencesArray, periodString, fromDateStr, toDateStr, config.showSparklines).join('\n')
+    const output = generateProgressUpdate(tmOccurrencesArray, periodString, fromDateStr, toDateStr, 'markdown', config.showSparklines).join('\n')
+
 
     // Send output to chosen required destination
     if (params) {
@@ -151,31 +150,34 @@ function gatherOccurrences(periodString: string, fromDateStr: string, toDateStr:
 
     // Note: in the following is a workaround to an API 'feature' in note.hashtags
     // where #one/two/three gets reported as #one, #one/two, and #one/two/three.
-    // Go backwards through the hashtag array, and then check
+    // To take account of this the tag/mention loops below go backwards to use the longest first
 
     let tmOccurrencesArr: Array<TMOccurrences> = [] // to hold what we find 
 
     // Review each wanted hashtag
     for (let wantedTag of progressHashtags) {
       // initialise a new TMOccurence for this mention
-      const thisOcc = new TMOccurrences(wantedTag, 'count', fromDateStr, toDateStr)
+      const thisOcc = new TMOccurrences(wantedTag, 'all', fromDateStr, toDateStr)
 
       // For each daily note in the period
       for (const n of periodDailyNotes) {
+        const thisDateStr = getDateStringFromCalendarFilename(n.filename)
         const seenTags = n.hashtags.slice().reverse()
         let lastTag = ''
         for (const tag of seenTags) {
+          const tagWithoutClosingNumber = (tag.match(/\/-?\d+(\.\d+)?$/)) ? (tag.match(/(.*)\/-?\d+(\.\d+)?$/))[1] : tag
+          // logDebug(pluginJson, `orig: ${tag} this:${tagWithoutClosingNumber} last:${lastTag} `)
           // if this tag is starting subset of the last one, assume this is an example of the bug, so skip this tag
-          if (caseInsensitiveStartsWith(tag, lastTag)) {
-            logDebug('calcHashtagStatsPeriod', `- Found ${tag} but ignoring as part of a longer hashtag of the same name`)
+          if (caseInsensitiveStartsWith(tagWithoutClosingNumber, lastTag)) {
+            // logDebug('calcHashtagStatsPeriod', `- Found ${tag} but ignoring as part of a longer hashtag of the same name`)
           }
           else {
-            // check this is on inclusion, or not on exclusion list, before adding
-            if (caseInsensitiveMatch(tag, wantedTag)) {
-              logDebug('gatherOccurrences', `found matching occurrence ${tag} on date ${n.filename}`)
-              thisOcc.addOccurrence(tag, getDateStringFromCalendarFilename(n.filename))
+            // check this is one of the ones we're after, then add
+            if (caseInsensitiveMatch(tagWithoutClosingNumber, wantedTag)) {
+              // logDebug('gatherOccurrences', `- Found matching occurrence ${tag} on date ${n.filename}`)
+              thisOcc.addOccurrence(tag, thisDateStr)
             } else {
-              logDebug('gatherOccurrences', `- x ${tag} not wanted`)
+              // logDebug('gatherOccurrences', `- x ${tag} not wanted`)
             }
           }
           lastTag = tag
@@ -198,13 +200,14 @@ function gatherOccurrences(periodString: string, fromDateStr: string, toDateStr:
           const mentionWithoutNumberPart = (mention.split('(', 1))[0]
           // logDebug('gatherOccurrences', `- reviewing ${mention} [${mentionWithoutNumberPart}] looking for ${wantedMention} on ${thisDateStr}`)
           // if this tag is starting subset of the last one, assume this is an example of the issue, so skip this tag
-          if (caseInsensitiveStartsWith(mention, lastMention)) {
-            logDebug('calcHashtagStatsPeriod', `- Found ${mention} but ignoring as part of a longer mention of the same name`)
+          if (caseInsensitiveStartsWith(mentionWithoutNumberPart, lastMention)) {
+            // logDebug('calcHashtagStatsPeriod', `- Found ${mention} but ignoring as part of a longer mention of the same name`)
             continue
           }
           else {
             // check this is on inclusion, or not on exclusion list, before adding
             if (caseInsensitiveMatch(mentionWithoutNumberPart, wantedMention)) {
+              logDebug('gatherOccurrences', `- Found matching occurrence ${tag} on date ${n.filename}`)
               thisOcc.addOccurrence(mention, thisDateStr)
             } else {
               // logDebug('gatherOccurrences', `- x ${mention} not wanted`)
@@ -216,25 +219,6 @@ function gatherOccurrences(periodString: string, fromDateStr: string, toDateStr:
       tmOccurrencesArr.push(thisOcc)
     }
 
-    // const testOccObjA = new TMOccurrences('@work', 'average', '2022-W32', 7)
-    // testOccObjA.addOccurrence('4', '20220812')
-    // testOccObjA.addOccurrence('8.2', '20220813')
-    // testOccObjA.addOccurrence('14.4', '20220815')
-    // testOccObjA.addOccurrence('-2.2', '20220817')
-    // tmOccurrencesArr.push(testOccObjA)
-
-    // const testOccObjB = new TMOccurrences('#dogwalk', 'yesno', '2022-W32', 7)
-    // testOccObjB.addOccurrence('1', '20220813')
-    // testOccObjB.addOccurrence('1', '20220814')
-    // testOccObjB.addOccurrence('1', '20220816')
-    // tmOccurrencesArr.push(testOccObjB)
-
-    // const testOccObjC = new TMOccurrences('#dogwalk', 'total', '2022-W32', 7)
-    // testOccObjC.addOccurrence('4.6', '20220812')
-    // testOccObjC.addOccurrence('2.3', '20220815')
-    // testOccObjC.addOccurrence('4.5', '20220817')
-    // tmOccurrencesArr.push(testOccObjC)
-
     logDebug('gatherOccurrences', `Finished with ${tmOccurrencesArr.length} occObjects`)
     return tmOccurrencesArr
   }
@@ -244,19 +228,43 @@ function gatherOccurrences(periodString: string, fromDateStr: string, toDateStr:
   }
 }
 
-function generateProgressUpdate(occObjs: Array<TMOccurrences>, periodString: string, fromDateStr: string, toDateStr: string, showSparklines: boolean): Array<string> {
+/**
+ * Generate output lines for each term, according to the specified style, starting with a heading.
+ * Currently the only style available is 'markdown'.
+ * @param {Array<TMOccurrences>} occObjs 
+ * @param {string} periodString 
+ * @param {string} fromDateStr 
+ * @param {string} toDateStr 
+ * @param {string} style 
+ * @param {boolean} showSparklines 
+ * @returns Array<string>
+ */
+function generateProgressUpdate(occObjs: Array<TMOccurrences>, periodString: string, fromDateStr: string, toDateStr: string, style: string, showSparklines: boolean): Array<string> {
   try {
-    logDebug('generateProgressUpdate', `starting for ${periodString} (${fromDateStr}-${toDateStr})`)
+    logDebug('generateProgressUpdate', `starting for ${periodString} (${fromDateStr}-${toDateStr}) with ${occObjs.length} occObjs and showSparklines ${showSparklines}`)
+
+    // Get length of longest progress term
+    const maxTermLen = Math.max(...occObjs.map((m) => m.term.length))
+
     let outputArray: Array<string> = []
     for (let occObj of occObjs) {
       // occObj.logValuesMap()
       let thisOutput = ''
-      if (showSparklines) {
-        thisOutput = "`" + occObj.getTerm(12) + " " + occObj.getSparkline('ascii') + "`"
-      } else {
-        thisOutput = occObj.getTerm(12)
+      switch (style) {
+        case 'markdown': {
+          if (showSparklines) {
+            thisOutput = "`" + occObj.getTerm(maxTermLen) + " " + occObj.getSparkline('ascii') + "`"
+          } else {
+            thisOutput = "**" + occObj.getTerm() + "**:\t"
+          }
+          thisOutput += " " + occObj.getStats('text')
+          break
+        }
+        default: {
+          logError('generateProgressUpdate', `style '${style}' is not available`)
+          break
+        }
       }
-      thisOutput += " " + occObj.getStats('text')
       outputArray.push(thisOutput)
     }
     return outputArray
@@ -385,35 +393,4 @@ function calcProgressUpdate(periodString: string, fromDateStr: string, toDateStr
     logError(pluginJson, error.message)
     return '' // for completeness
   }
-}
-
-/**
- * Generate an ASCII-art sparkline of the provided values.
- * Notes:
- * - will require minimum 0 in the sparkline
- * - allows for NaN in the array of values, which implies a missing data point, and will be displayed differently
- * @param {string} tagString 
- * @param {Array<number>} tagValues
- * @returns 
- */
-function generateSparkline(tagString: string, tagValues: Array<number> = [], style: string = 'ascii'): string { // TODO: in time remove = []
-  // randomly generated length array 0 <= A[N] <= 39
-  const values = (tagValues.length === 0) ? tagValues :
-    Array.from({ length: 20 }, () => Math.floor(Math.random() * 40))
-
-  let out = ''
-  switch (style) {
-    case 'ascii': {
-      // using characters "█▇▆▅▄▃▁"
-      // Or possible some of ∙▣⍟⊚●★✪☓■▒▉█☗
-      const sparklineOptions = { min: 0, addStats: false, divider: '|', missingDataChar: '☓' }
-      out = spark_line(values, sparklineOptions)
-      break
-    }
-    default: {
-      logError('generateSparkline', `style '${style}' is not available`)
-      break
-    }
-  }
-  return out
 }
