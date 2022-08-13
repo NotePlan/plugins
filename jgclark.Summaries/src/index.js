@@ -8,6 +8,7 @@
 
 export { weeklyStats } from './forPlotting'
 export { insertProgressUpdate } from './progress'
+export { testProgressUpdate } from './progress'
 export { statsPeriod } from './stats'
 
 // allow changes in plugin.json to trigger recompilation

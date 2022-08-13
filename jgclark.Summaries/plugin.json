@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Summaries/CHANGELOG.md",
-  "plugin.version": "0.11.1",
-  "plugin.lastUpdateInfo": "Updated logging framework",
+  "plugin.version": "0.12.0",
+  "plugin.lastUpdateInfo": "Added sparklines to '/insert progress summary'",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -32,6 +32,14 @@
       ],
       "description": "Insert weekly/monthly progress update to current note",
       "jsFunction": "insertProgressUpdate"
+    },
+    {
+      "name": "testProgressUpdate",
+      "alias": [
+        "tpu"
+      ],
+      "description": "Test version of /ipu",
+      "jsFunction": "testProgressUpdate"
     },
     {
       "name": "weeklyStats",
@@ -187,6 +195,14 @@
       "type": "[string]",
       "default": [],
       "required": false
+    },
+    {
+      "key": "showSparklines",
+      "title": "Include sparkline graphs?",
+      "description": "This adds basic ASCII-art sparklines for each item, reflecting each day's data.",
+      "type": "bool",
+      "default": true,
+      "required": true
     },
     {
       "type": "separator"
