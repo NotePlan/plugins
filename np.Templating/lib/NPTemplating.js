@@ -13,16 +13,9 @@ import { debug, helpInfo } from './helpers'
 
 import globals from './globals'
 import { chooseOption } from '@helpers/userInput'
-import { clo } from '@helpers/dev'
+import { clo, log, logError } from '@helpers/dev'
 import { datePicker, askDateInterval } from '@helpers/userInput'
 
-const log = (msg) => {
-  console.log(msg)
-}
-
-const logError = (msg) => {
-  console.log(msg)
-}
 /*eslint-disable */
 import TemplatingEngine from './TemplatingEngine'
 
@@ -1457,7 +1450,7 @@ export default class NPTemplating {
     let newTemplateData = templateData
     const tags = (await this.getTags(templateData)) || []
     for (let tag of tags) {
-      if (!isCommentTag(tag) && tag.includes('import')) {
+      if (!isCommentTag(tag) && tag.includes('import(')) {
         const importInfo = tag.replace('<%-', '').replace('<%', '').replace('%>', '').replace('import', '').replace('(', '').replace(')', '')
         const parts = importInfo.split(',')
         if (parts.length > 0) {
