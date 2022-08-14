@@ -41,16 +41,16 @@ Aim: Make sure car continues to run well, is legal etc.
 ```
 
 ## Creating a new Project/Area note
-A good way to quickly create a new Project or Area note is to use the `/np:qtn` (Quick template note) command from the Templating plugin. Here is what I use as my New Project Template:
+A good way to quickly create a new Project or Area note is to use the `/np:new` (new note from template) or `/np:qtn` (Quick template note) command from the Templating plugin. Here is what I use as my New Project Template:
 
 ```markdown
 ---
 title: Create a new Project note
-type: template, quick-note, empty-note
-newNoteTitle: <%- prompt('noteTitle', 'Project name') %>
-folder: '/'
+type: template, quick-note, empty-note, project-note
+folder: <select>
 ---
-#project @start(<%- promptDate('question':'Enter start date') %>) @due(<%- promptDate('question':'Enter due date') %>) @review(<%- promptDateInterval('question':'Enter review interval') %>)
+# <%- prompt('noteTitle', 'Project name') %>
+#project @start(<%- promptDate('startDate', 'Enter start date') %>) @due(<%- promptDate('dueDate', 'Enter due date') %>) @review(<%- promptDateInterval('question', 'Enter review interval') %>)
 Aim: <%- prompt('aim') %>
 Context: <%- prompt('context') %>
 ```
