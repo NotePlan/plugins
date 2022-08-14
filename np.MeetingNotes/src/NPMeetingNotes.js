@@ -5,6 +5,7 @@ import fm from 'front-matter'
 
 import pluginJson from '../plugin.json'
 import { log, logDebug, logError } from '@helpers/dev'
+import NPTemplating from 'NPTemplating'
 
 /**
  * FIXME(Eduard): please document me!
@@ -24,18 +25,21 @@ export async function insertNoteTemplate(origFileName: string, dailyNoteDate: Da
 
   if (!templateContent) {
     logError(pluginJson, `couldnt load content of template "${templateFilename}", try NPTemplating method`)
-    // templateContent = await NPTemplating.getTemplate(templateFilename)
-    templateContent = await DataStore.invokePluginCommandByName('getTemplate', 'np.Templating', [templateFilename])
+    templateContent = await NPTemplating.getTemplate(templateFilename)
+    // 
+    // templateContent = await DataStore.invokePluginCommandByName('getTemplate', 'np.Templating', [templateFilename])
     return
   }
 
   logDebug(pluginJson, 'preRender template')
-  // const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateContent)
-  const { frontmatterBody, frontmatterAttributes } = await DataStore.invokePluginCommandByName('preRender', 'np.Templating', [templateContent])
+  const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateContent)
+
+  // const { frontmatterBody, frontmatterAttributes } = await DataStore.invokePluginCommandByName('preRender', 'np.Templating', [templateContent])
 
   logDebug(pluginJson, 'render template')
-  // const result = await NPTemplating.render(frontmatterBody, frontmatterAttributes)
-  const result = await DataStore.invokePluginCommandByName('render', 'np.Templating', [frontmatterBody, frontmatterAttributes])
+  const result = await NPTemplating.render(frontmatterBody, frontmatterAttributes)
+
+  // const result = await DataStore.invokePluginCommandByName('render', 'np.Templating', [frontmatterBody, frontmatterAttributes])
 
   if (dailyNoteDate) {
     logDebug(pluginJson, `apply rendered template to daily note with date ${String(dailyNoteDate)}`)
@@ -70,6 +74,7 @@ export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateFi
 
     logDebug(pluginJson, 'preRender template')
     // const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateContent, templateData)
+    
     const { frontmatterBody, frontmatterAttributes } = await DataStore.invokePluginCommandByName('preRender', 'np.Templating', [templateContent, templateData])
 
     const attrs = frontmatterAttributes
@@ -79,8 +84,9 @@ export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateFi
     const newNoteTitle = attrs?.newNoteTitle || ''
 
     logDebug(pluginJson, 'render template')
-    // let result = await NPTemplating.render(frontmatterBody, frontmatterAttributes)
-    let result = await DataStore.invokePluginCommandByName('render', 'np.Templating', [frontmatterBody, frontmatterAttributes])
+    let result = await NPTemplating.render(frontmatterBody, frontmatterAttributes)
+
+    // let result = await DataStore.invokePluginCommandByName('render', 'np.Templating', [frontmatterBody, frontmatterAttributes])
 
     if (newNoteTitle.length > 0) {
       result = `# ${newNoteTitle}\n${result}`

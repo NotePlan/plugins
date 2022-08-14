@@ -13,7 +13,7 @@ import { debug, helpInfo } from './helpers'
 
 import globals from './globals'
 import { chooseOption } from '@helpers/userInput'
-import { clo } from '@helpers/dev'
+import { clo , logDebug } from '@helpers/dev'
 import { datePicker, askDateInterval } from '@helpers/userInput'
 
 const log = (msg) => {
@@ -344,6 +344,7 @@ export default class NPTemplating {
   static templateErrorMessage(method: string = '', message: any = ''): string {
     if (message?.name?.indexOf('YAMLException') >= 0) {
       const frontMatterErrorMessage = this._frontmatterError(message)
+            logDebug(pluginJson, `347 error message Error: ${message}`)
       return frontMatterErrorMessage
     }
 
@@ -1179,6 +1180,8 @@ export default class NPTemplating {
   static async processPrompts(templateData: string, userData: any, startTag: string = '<%', endTag: string = '%>'): Promise<any> {
     const sessionData = { ...userData }
     const methods = userData.hasOwnProperty('methods') ? Object.keys(userData?.methods) : []
+    clo(methods,`methods`)
+    logDebug(pluginJson,`${typeof methods.eventDate}`)
 
     let sessionTemplateData = templateData
 
