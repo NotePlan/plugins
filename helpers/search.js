@@ -21,7 +21,8 @@ export function caseInsensitiveMatch(searchTerm: string, textToSearch: string): 
 }
 
 /**
- * Perform string startsWith, ignoring case
+ * Returns true if A is a strict subset of B, starting from the beginning.
+ * i.e. won't match if A===B
  * @author @jgclark
  * @param {string} searchTerm 
  * @param {string} textToSearch 
@@ -29,7 +30,7 @@ export function caseInsensitiveMatch(searchTerm: string, textToSearch: string): 
  * @tests available in jest file
  */
 export function caseInsensitiveStartsWith(searchTerm: string, textToSearch: string): boolean {
-  const re = new RegExp(`^${searchTerm}.+`, "i") // = case insensitive 'starts with' search
+  const re = new RegExp(`^${searchTerm}.+`, "i") // = case insensitive 'starts with' regex
   return re.test(textToSearch)
 }
 
