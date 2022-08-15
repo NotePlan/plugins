@@ -79,7 +79,6 @@ export async function getFilerSettings(): Promise<any> {
  */
 export async function moveParas(): Promise<void> {
   try {
-    logDebug(pluginJson, `moveParas: starting ...`)
     const { content, paragraphs, selectedParagraphs, note } = Editor
     if (content == null || selectedParagraphs == null || note == null) {
       // No note open, or no selectedParagraph selection (perhaps empty note), so don't do anything.
@@ -102,28 +101,30 @@ export async function moveParas(): Promise<void> {
     // Get paragraphs for the selection or block
     let parasInBlock: Array<TParagraph>
     if (lastSelLineIndex !== firstSelLineIndex) {
-      logDebug(pluginJson, `- user has selected lineIndexes ${firstSelLineIndex}-${lastSelLineIndex}`)
+      logDebug(pluginJson, `moveParas: user has selected lineIndexes ${firstSelLineIndex}-${lastSelLineIndex}`)
       parasInBlock = selectedParagraphs.slice() // copy to avoid $ReadOnlyArray problem
     } else {
       parasInBlock = getParagraphBlock(note, firstSelLineIndex, config.includeFromStartOfSection, config.useTightBlockDefinition)
-      // Now attempt to highlight them to help user check all is well
-      // $FlowFixMe[incompatible-use]
-      const firstStartIndex = parasInBlock[0].contentRange.start
-      // $FlowFixMe[incompatible-use]
-      const lastStartIndex = parasInBlock[parasInBlock.length - 1].contentRange.start
-      // $FlowFixMe[incompatible-use]
-      const lastLength = parasInBlock[parasInBlock.length - 1].contentRange.length
-      // $FlowFixMe[incompatible-use]
-      const lastEndIndex = parasInBlock[parasInBlock.length - 1].contentRange.end
-      // logDebug(pluginJson, firstStartIndex)
-      // logDebug(pluginJson, lastStartIndex)
-      // logDebug(pluginJson, lastLength)
-      // logDebug(pluginJson, lastEndIndex)
-      // const parasCharIndexRange = { start: firstStartIndex, end: lastStartIndex + lastLength, length: lastStartIndex + lastLength - firstStartIndex }
-      const parasCharIndexRange: Range = { start: firstStartIndex, end: lastEndIndex - 1, length: lastEndIndex - firstStartIndex }
-      logDebug(pluginJson, `- will try to highlight automatic block selection range ${rangeToString(parasCharIndexRange)}`)
-      // FIXME: Waiting for Eduard to advise why this is failing with an Objective-C error
-      // Editor.highlightByRange(parasCharIndexRange)
+
+      // Now attempt to highlight them to help user check all is well (but only works from v3.6.2 (approx build 841))
+      if (NotePlan.environment.buildVersion > 841) {
+        // $FlowFixMe[incompatible-use]
+        const firstStartIndex = parasInBlock[0].contentRange.start
+        // $FlowFixMe[incompatible-use]
+        const lastStartIndex = parasInBlock[parasInBlock.length - 1].contentRange.start
+        // $FlowFixMe[incompatible-use]
+        const lastLength = parasInBlock[parasInBlock.length - 1].contentRange.length
+        // $FlowFixMe[incompatible-use]
+        const lastEndIndex = parasInBlock[parasInBlock.length - 1].contentRange.end
+        // FIXME: Waiting for Eduard to provide a constructor for Range, to avoid this failing with an Objective-C error.
+        // TODO: Also apply to IDs, I think.
+        // const parasCharIndexRange = { start: firstStartIndex, end: lastStartIndex + lastLength, length: lastStartIndex + lastLength - firstStartIndex }
+        // const parasCharIndexRange: Range = { start: firstStartIndex, end: lastEndIndex - 1 }
+        // $FlowIgnore TODO: remove when Eduard's addition has been tested
+        const parasCharIndexRange: Range = Range.create(firstStartIndex, lastEndIndex - 1)
+        logDebug(pluginJson, `- will try to highlight automatic block selection range ${rangeToString(parasCharIndexRange)}`)
+        Editor.highlightByRange(parasCharIndexRange)
+      }
     }
 
     // If this is a calendar note we've moving from, and the user wants to
@@ -151,11 +152,10 @@ export async function moveParas(): Promise<void> {
     )
     const destNote = notes[res.index]
     // Note: showOptions returns the first item if something else is typed. And I can't see a way to distinguish between the two.
-    // logDebug(pluginJson, displayTitle(destNote)) // NB: -> first item in list (if a new item is typed)
 
     // Ask to which heading to add the selectedParas
     const headingToFind = (await chooseHeading(destNote, true, true, false))
-    logDebug(pluginJson, `- Moving to note: ${displayTitle(destNote)} under heading: '${headingToFind}'`)
+    logDebug(pluginJson, `- Moving to note '${displayTitle(destNote)}' under heading: '${headingToFind}'`)
 
     // Add text to the new location in destination note
     addParasAsText(destNote, selectedParasAsText, headingToFind, config.whereToAddInSection)

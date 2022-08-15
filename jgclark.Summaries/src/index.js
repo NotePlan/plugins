@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Summary commands for notes
 // Jonathan Clark
-// Last updated 14.8.2022 for v0.12.0
+// Last updated 15.8.2022 for v0.13.0
 //-----------------------------------------------------------------------------
 
 export { weeklyStats } from './forPlotting'
@@ -12,15 +12,21 @@ export { statsPeriod } from './stats'
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
-import { logDebug, logError, logInfo } from '@helpers/dev'
+import { JSP, logDebug, logError, logInfo } from '@helpers/dev'
 import { pluginUpdated, semverVersionToNumber, updateSettingData } from '@helpers/NPConfiguration'
 import { showMessage, showMessageYesNo } from '@helpers/userInput'
 
 const pluginID = "jgclark.Summaries"
 
 export function init(): void {
-  // In the background, see if there is an update to the plugin to install, and if so let user know
-  DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false)
+  try {
+    // Check for the latest version of the plugin, and if a minor update is available, install it and show a message
+    DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false).then((r) =>
+      pluginUpdated(pluginJson, r),
+    )
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
 }
 
 export function onSettingsUpdated(): void {
@@ -59,7 +65,6 @@ export function testUpdate(): void {
   onUpdateOrInstall(true) // force update mechanism to fire
 }
 
-// refactor previous variables to new types
 export async function onUpdateOrInstall(testUpdate: boolean = false): Promise<void> {
   try {
     logInfo(pluginID, `onUpdateOrInstall ...`)
