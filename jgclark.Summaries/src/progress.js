@@ -2,10 +2,8 @@
 //-----------------------------------------------------------------------------
 // Progress update on some key goals to include in notes
 // Jonathan Clark, @jgclark
-// Last updated 13.8.2022 for v0.12.0, @jgclark
+// Last updated 14.8.2022 for v0.12.0, @jgclark
 //-----------------------------------------------------------------------------
-// TODO: why showSparklines not carrying through?
-// TODO: apply to general summaries?  
 
 import pluginJson from '../plugin.json'
 import {
@@ -70,9 +68,9 @@ export async function insertProgressUpdate(params?: string): Promise<string | vo
     // Main work: calculate the progress update as an array of strings
     // const outputArray = calcProgressUpdate(periodString, fromDateStr, toDateStr, config.progressHashtags, config.progressMentions, config.showSparklines)
 
-    const tmOccurrencesArray = await gatherOccurrences(periodString, fromDateStr, toDateStr, config.progressHashtags, config.progressMentions)
+    const tmOccurrencesArray = await gatherOccurrences(periodString, fromDateStr, toDateStr, config.progressHashtags, config.progressMentions, config.progressYesNo)
 
-    const output = generateProgressUpdate(tmOccurrencesArray, periodString, fromDateStr, toDateStr, 'markdown', config.showSparklines).join('\n')
+    const output = generateProgressUpdate(tmOccurrencesArray, periodString, fromDateStr, toDateStr, 'markdown', showSparklines).join('\n')
 
 
     // Send output to chosen required destination
@@ -102,6 +100,7 @@ export async function insertProgressUpdate(params?: string): Promise<string | vo
           const destNote = DataStore.calendarNoteByDate(new Date(), 'week')
           if (destNote) {
             logDebug(pluginJson, `- about to update section '${heading}' in weekly note '${destNote.filename}' for ${periodPartStr}`)
+            // FIXME: look at why the append on /ipu is sometimes coming in a line early
             // Replace or add Section
             replaceSection(destNote, heading, `${heading}: ${periodPartStr} for ${periodString}`, config.headingLevel, output)
             logInfo(pluginJson, `Updated section '${heading}' in weekly note '${destNote.filename}' for ${periodPartStr}`)
@@ -137,7 +136,7 @@ export async function insertProgressUpdate(params?: string): Promise<string | vo
   }
 }
 
-function gatherOccurrences(periodString: string, fromDateStr: string, toDateStr: string, progressHashtags: Array<string>, progressMentions: Array<string>): Array<TMOccurrences> {
+function gatherOccurrences(periodString: string, fromDateStr: string, toDateStr: string, progressHashtags: Array<string>, progressMentions: Array<string>, progressYesNo: Array<string> | string): Array<TMOccurrences> {
   try {
 
     logDebug('gatherOccurrences', `starting for ${periodString} (${fromDateStr}-${toDateStr})`)
@@ -152,7 +151,39 @@ function gatherOccurrences(periodString: string, fromDateStr: string, toDateStr:
     // where #one/two/three gets reported as #one, #one/two, and #one/two/three.
     // To take account of this the tag/mention loops below go backwards to use the longest first
 
-    let tmOccurrencesArr: Array<TMOccurrences> = [] // to hold what we find 
+    let tmOccurrencesArr: Array<TMOccurrences> = [] // to hold what we find
+    // Review each wanted YesNo type
+    const YesNoListArr = (typeof progressYesNo === 'string') ? progressYesNo.split(',') : progressYesNo
+    for (let wantedItem of YesNoListArr) {
+      // initialise a new TMOccurence for this mention
+      const thisOcc = new TMOccurrences(wantedItem, 'yesno', fromDateStr, toDateStr)
+
+      // For each daily note in the period
+      for (const n of periodDailyNotes) {
+        const thisDateStr = getDateStringFromCalendarFilename(n.filename)
+        const seenTags = n.hashtags.slice().reverse()
+        let lastTag = ''
+        for (const tag of seenTags) {
+          const tagWithoutClosingNumber = (tag.match(/\/-?\d+(\.\d+)?$/)) ? (tag.match(/(.*)\/-?\d+(\.\d+)?$/))[1] : tag
+          // logDebug(pluginJson, `orig: ${tag} this:${tagWithoutClosingNumber} last:${lastTag} `)
+          // if this tag is starting subset of the last one, assume this is an example of the bug, so skip this tag
+          if (caseInsensitiveStartsWith(tagWithoutClosingNumber, lastTag)) {
+            // logDebug('calcHashtagStatsPeriod', `- Found ${tag} but ignoring as part of a longer hashtag of the same name`)
+          }
+          else {
+            // check this is one of the ones we're after, then add
+            if (caseInsensitiveMatch(tagWithoutClosingNumber, wantedItem)) {
+              // logDebug('gatherOccurrences', `- Found matching occurrence ${tag} on date ${n.filename}`)
+              thisOcc.addOccurrence(tag, thisDateStr)
+            } else {
+              // logDebug('gatherOccurrences', `- x ${tag} not wanted`)
+            }
+          }
+          lastTag = tag
+        }
+      }
+      tmOccurrencesArr.push(thisOcc)
+    }
 
     // Review each wanted hashtag
     for (let wantedTag of progressHashtags) {
@@ -201,13 +232,13 @@ function gatherOccurrences(periodString: string, fromDateStr: string, toDateStr:
           // logDebug('gatherOccurrences', `- reviewing ${mention} [${mentionWithoutNumberPart}] looking for ${wantedMention} on ${thisDateStr}`)
           // if this tag is starting subset of the last one, assume this is an example of the issue, so skip this tag
           if (caseInsensitiveStartsWith(mentionWithoutNumberPart, lastMention)) {
-            // logDebug('calcHashtagStatsPeriod', `- Found ${mention} but ignoring as part of a longer mention of the same name`)
+            // logDebug('gatherOccurrences', `- Found ${mention} but ignoring as part of a longer mention of the same name`)
             continue
           }
           else {
             // check this is on inclusion, or not on exclusion list, before adding
             if (caseInsensitiveMatch(mentionWithoutNumberPart, wantedMention)) {
-              logDebug('gatherOccurrences', `- Found matching occurrence ${tag} on date ${n.filename}`)
+              // logDebug('gatherOccurrences', `- Found matching occurrence ${mention} on date ${n.filename}`)
               thisOcc.addOccurrence(mention, thisDateStr)
             } else {
               // logDebug('gatherOccurrences', `- x ${mention} not wanted`)
@@ -243,7 +274,7 @@ function generateProgressUpdate(occObjs: Array<TMOccurrences>, periodString: str
   try {
     logDebug('generateProgressUpdate', `starting for ${periodString} (${fromDateStr}-${toDateStr}) with ${occObjs.length} occObjs and showSparklines ${showSparklines}`)
 
-    // Get length of longest progress term
+    // Get length of longest progress term (to use with sparklines)
     const maxTermLen = Math.max(...occObjs.map((m) => m.term.length))
 
     let outputArray: Array<string> = []
@@ -255,7 +286,7 @@ function generateProgressUpdate(occObjs: Array<TMOccurrences>, periodString: str
           if (showSparklines) {
             thisOutput = "`" + occObj.getTerm(maxTermLen) + " " + occObj.getSparkline('ascii') + "`"
           } else {
-            thisOutput = "**" + occObj.getTerm() + "**:\t"
+            thisOutput = "**" + occObj.getTerm() + "**: "
           }
           thisOutput += " " + occObj.getStats('text')
           break

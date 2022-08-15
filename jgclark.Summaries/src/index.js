@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Summary commands for notes
 // Jonathan Clark
-// Last updated 24.7.2022 for v0.11.1
+// Last updated 14.8.2022 for v0.12.0
 //-----------------------------------------------------------------------------
 
 export { weeklyStats } from './forPlotting'
@@ -12,8 +12,11 @@ export { statsPeriod } from './stats'
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
-import { updateSettingData } from '@helpers/NPConfiguration'
-import { showMessage } from '@helpers/userInput'
+import { logDebug, logError, logInfo } from '@helpers/dev'
+import { pluginUpdated, semverVersionToNumber, updateSettingData } from '@helpers/NPConfiguration'
+import { showMessage, showMessageYesNo } from '@helpers/userInput'
+
+const pluginID = "jgclark.Summaries"
 
 export function init(): void {
   // In the background, see if there is an update to the plugin to install, and if so let user know
@@ -21,25 +24,57 @@ export function init(): void {
 }
 
 export function onSettingsUpdated(): void {
-  // Placeholder only to stop error in logs
+  logDebug(pluginID, 'starting onSettingsUpdated')
+  const newSettings = {}
+  const currentSettingData = DataStore.settings
+  const updatedPluginVersion = pluginJson["plugin.version"]
+  const updatedPluginVersionAsNumber = semverVersionToNumber(updatedPluginVersion)
+  logDebug(pluginID, `new version = ${updatedPluginVersion} (${updatedPluginVersionAsNumber})`)
+
+  // ** FOLLOWING IS GETTING READY FOR FUTURE RELEASE **
+  // If this was upgrade to v0.13.0 (semver ???)
+  // if (updatedPluginVersionAsNumber >= 12288) {
+  //   logDebug(pluginID, `Will try to update further settings for v0.12.0 ...`)
+  //   // Empty setting 'progressYesNo' has been added automatically
+  //   // Empty setting 'progressTotal' has been added automatically
+  //   // Empty setting 'progressAverage' has been added automatically
+  //   // Default setting 'progressYesNoChars' has been added automatically
+
+  //   const pluginSettings = pluginJson.hasOwnProperty('plugin.settings') ? pluginJson['plugin.settings'] : []
+  //   if (pluginSettings === []) {
+  //     logError(pluginID, `Cannot find any plugin.settings in ${pluginID}/plugin.json`)
+  //     return
+  //   }
+  //   // Copy 'progressMentions' to new 'progressAll' setting (for now without deleting the original)
+  //   // TODO: const progressMentionsSetting = pluginJson.hasOwnProperty('plugin.settings') ? pluginJson['plugin.settings'] : []
+
+  //   // Copy 'progressHashtags' to new 'progressCount' setting (for now without deleting the original)
+  //   // TODO:
+  //   logDebug(pluginID, `... done.`)
+  // }
 }
 
-const pluginID = "jgclark.Summaries"
+// test the update mechanism, including display to user
+export function testUpdate(): void {
+  onUpdateOrInstall(true) // force update mechanism to fire
+}
 
 // refactor previous variables to new types
-export async function onUpdateOrInstall(): Promise<void> {
+export async function onUpdateOrInstall(testUpdate: boolean = false): Promise<void> {
   try {
-    console.log(`${pluginID}: onUpdateOrInstall running`)
-    const updateSettingsResult = updateSettingData(pluginJson)
-    console.log(`${pluginID}: onUpdateOrInstall updateSettingData code: ${updateSettingsResult}`)
-    // Tell user the plugin has been updated
-    if (pluginJson['plugin.lastUpdateInfo'] !== undefined) {
-      await showMessage(pluginJson['plugin.lastUpdateInfo'], 'OK, thanks',
-        `Plugin ${pluginJson['plugin.name']} updated to v${pluginJson['plugin.version']}`
-      )
+    logInfo(pluginID, `onUpdateOrInstall ...`)
+    let updateSettingsResult = updateSettingData(pluginJson)
+    logInfo(pluginID, `- updateSettingData code: ${updateSettingsResult}`)
+
+    if (testUpdate) {
+      updateSettingsResult = 1 // updated
+      logDebug(pluginID, '- forcing pluginUpdated() tu run ...')
     }
+    // Tell user the plugin has been updated
+    await pluginUpdated(pluginJson, { code: updateSettingsResult, message: 'unused?' })
+
   } catch (error) {
-    console.log(error)
+    logError(pluginID, error.message)
   }
-  console.log(`${pluginID}: onUpdateOrInstall finished`)
+  logInfo(pluginID, `- finished`)
 }

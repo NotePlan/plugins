@@ -9,7 +9,7 @@
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Summaries/CHANGELOG.md",
   "plugin.version": "0.12.0",
-  "plugin.lastUpdateInfo": "Added sparklines to '/insert progress summary'",
+  "plugin.lastUpdateInfo": "Added sparklines to '/insert progress summary' and tidied up the stats display.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -47,9 +47,9 @@
       "jsFunction": "weeklyStats"
     },
     {
-      "name": "jgc:upgrade Summaries plugin settings",
-      "description": "Summaries:PluginUpgradeSettings",
-      "jsFunction": "onUpdateOrInstall"
+      "name": "test:update Summaries plugin settings",
+      "description": "Summaries: test update settings",
+      "jsFunction": "testUpdate"
     }
   ],
   "plugin.settings": [
@@ -189,6 +189,22 @@
       "description": "List of @mentions to include in Progress updates. If this list is empty, no mentions will be included.",
       "type": "[string]",
       "default": [],
+      "required": false
+    },
+    {
+      "key": "progressYesNo",
+      "title": "Yes/No progress items",
+      "description": "Comma-separated list of #hashtags and/or @mentions to track in a simple 'did I do it this day or not?' way.",
+      "type": "hidden",
+      "default": "",
+      "required": false
+    },
+    {
+      "key": "progressYesNoChars",
+      "title": "Yes/No characters",
+      "description": "Pair of characters to use as Yes and No in output of Yes/No progress items. The first is for Yes, the second for No.\nHere are some you might like to use for Yes: ✓✔■⧫▉ and for No: ·◦✕✖◌□.\nYou can use emojis, such as ✅❌, but they are likely to mess up the horizontal spacing.",
+      "type": "hidden",
+      "default": "✓·",
       "required": false
     },
     {
