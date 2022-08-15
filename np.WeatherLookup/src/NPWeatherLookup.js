@@ -47,9 +47,11 @@ function UTCToLocalTimeString(d, format, timeOffset) {
  * @param {*} searchLocationStr - the name of the city/location to look up
  * @returns {LocationOption | null} - the location details from the API lookup and maybe user
  */
-async function getLatLongForLocation(searchLocationStr: string = ''): Promise<LocationOption | null> {
+async function getLatLongForLocation(searchLocationStr: string = '', settings:any|null = null): Promise<LocationOption | null> {
   if (searchLocationStr?.length > 0) {
-    const params = DataStore.settings
+    clo(settings, `getLatLongForLocation settings=`)
+    const params = settings ?? DataStore.settings
+    clo(params, `getLatLongForLocation settings=`)
     const results = await getLatLongListForName(searchLocationStr, params)
     if (results && results.length > 0) {
       logDebug(pluginJson, `getLatLongForLocation: Potential Location Results: ${String(results?.length)}`)
@@ -161,6 +163,7 @@ async function getWeatherForLocation(location: LocationOption, weatherParams: We
  */
 export async function insertWeatherCallbackURL(incoming: string = ''): Promise<string> {
   try {
+    clo(DataStore.settings,`insertWeatherCallbackURL: DataStore.settings=`)
     if (!(await validateWeatherParams(DataStore.settings))) {
       Editor.insertTextAtCursor(getConfigErrorText())
       return ''
@@ -169,7 +172,7 @@ export async function insertWeatherCallbackURL(incoming: string = ''): Promise<s
       if (!locationString?.length) locationString = await CommandBar.textPrompt('Weather Lookup', 'Enter a location name to lookup weather for:', '')
       if (locationString && locationString?.length) {
         logDebug(pluginJson, `insertWeatherCallbackURL: locationString: ${String(locationString)}`)
-        const location = await getLatLongForLocation(locationString)
+        const location = await getLatLongForLocation(locationString, DataStore.settings)
         logDebug(pluginJson, `insertWeatherCallbackURL: location: ${JSON.stringify(location)}`)
         if (location) {
           let text = ''
@@ -212,7 +215,7 @@ export async function insertWeatherByLocation(incoming: ?string = '', returnLoca
         location = await getInput(`What location do you want to lookup?`)
       }
       if (location) {
-        const result: any = await getLatLongForLocation(location)
+        const result: any = await getLatLongForLocation(location, DataStore.settings)
         if (result) {
           // {"lat":34.0536909,"lon":-118.242766,"name":"Los Angeles","country":"US","state":"California","label":"Los Angeles, California, US","value":0}
           logDebug(pluginJson, result.label)
@@ -240,6 +243,7 @@ export async function weatherByLatLong(incoming: string = '', showPopup: string 
   logDebug(pluginJson, `weatherByLatLong: incoming: ${incoming} showPopup: ${showPopup}`)
   try {
     const settings = DataStore.settings
+    clo(settings,"weatherByLatLong: settings")
     if (!(await validateWeatherParams(settings))) {
       const msg = getConfigErrorText()
       await showMessage(msg)
