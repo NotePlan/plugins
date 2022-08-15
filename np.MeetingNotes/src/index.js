@@ -15,8 +15,8 @@ export async function onUpdateOrInstall(): Promise<void> {
 
 export function init(): void {
   // this runs every time the plugin starts up (any command in this plugin is run)
+  // turning updates to silentmode since users won't know np.MeetingNotes is installed
+  // updates will happen (or not happen) silently
   clo(DataStore.settings,`${pluginJson["plugin.id"]} Plugin Settings`)
-  DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false).then((r) =>
-    pluginUpdated(pluginJson, r),
-  )
+  DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false)
 }
