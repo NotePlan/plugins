@@ -9,7 +9,7 @@
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "CorePlugins",
-  "plugin.hidden": true,
+  "plugin.hidden": false,
   "plugin.commands": [
     {
       "name": "newMeetingNote",
@@ -25,6 +25,11 @@
     }
   ],
   "plugin.settings": [
+    {
+      "key": "_pluginID",
+      "type": "hidden",
+      "default": "np.MeetingNotes"
+    },
     {
       "key": "_logLevel",
       "type": "string",
