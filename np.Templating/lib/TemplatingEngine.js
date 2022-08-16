@@ -21,6 +21,8 @@ import { debug } from '../lib/helpers'
 // this is a customized version of `ejs` adding support for async actions (use await in template)
 // review `Test (Async)` template for example`
 import ejs from './support/ejs'
+import { logDebug } from "../../helpers/dev";
+import logError from "concurrently/src/flow-control/log-error";
 
 const getProperyValue = (object: any, key: string): any => {
   key.split('.').forEach((token) => {
@@ -135,13 +137,18 @@ export default class TemplatingEngine {
 
     // apply custom plugin modules
     this.templateModules.forEach((moduleItem) => {
+      clo(moduleItem,`moduleItem`)
       if (this.isClass(moduleItem.module)) {
+              clo(moduleItem.module,`is class`)
         const methods = Object.getOwnPropertyNames(moduleItem.module.prototype)
         log(pluginJson, `np.Templating Error: ES6 Classes are not supported [${moduleItem.moduleNamespace}]`)
       } else {
         for (const [key, method] of Object.entries(moduleItem.module)) {
+                        logDebug( `key: ${key} method:${typeof method}`)
+
           renderData[moduleItem.moduleNamespace] = {}
           for (const [moduleKey, moduleMethod] of Object.entries(moduleItem.module)) {
+            logDebug( `moduleKey: ${moduleKey} moduleMethod:${typeof moduleMethod}`)
             renderData[moduleItem.moduleNamespace][moduleKey] = moduleMethod
           }
         }
@@ -183,12 +190,20 @@ export default class TemplatingEngine {
     })
 
     try {
-      let result = await ejs.render(processedTemplateData, renderData, options)
-
+      clo(renderData,`193 renderData`)
+      clo(processedTemplateData,`194 processedTemplateData`)
+      clo(options,`195 options`)
+      logDebug(`196 typeof eventDate="${typeof renderData.eventDate}"`)
+      logDebug(`196 typeof eventEndDate="${typeof renderData.eventEndDate}"`)
+        let result = await ejs.render(processedTemplateData, renderData, options)
+      logDebug(`194 np.Templating result: ${result}`)
       result = (result && result?.replace(/undefined/g, '')) || ''
+      clo(result,`196 result`)
 
       return result
     } catch (error) {
+            logDebug(`199 np.Templating error: ${error}`)
+
       const message = error.message.replace('\n\n', '')
 
       let block = ''
@@ -220,8 +235,11 @@ export default class TemplatingEngine {
       }
 
       format = formatType === 'date' ? 'YYYY-MM-DD' : 'HH:mm:ss A'
+            logDebug(pluginJson, `230 np.Templating format: ${format}`)
+
       return format
     } catch (error) {
+      logError(`231 np.Templating Error: ${error}`)
       return this.templateErrorMessage('TemplatingEngine.getDefaultFormat', error)
     }
   }
