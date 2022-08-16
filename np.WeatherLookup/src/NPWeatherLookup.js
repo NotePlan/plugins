@@ -132,7 +132,7 @@ function getConfigErrorText(): string {
  * @param {settings} params
  * @returns
  */
-async function getWeatherForLocation(location: LocationOption, weatherParams: WeatherParams): Promise<{ [string]: any } | null> {
+async function getWeatherForLocation(location: LocationOption, weatherParams: WeatherParams = null): Promise<{ [string]: any } | null> {
   const params = weatherParams ? weatherParams : DataStore.settings
   const url = utils.getWeatherURLLatLong(location.lat, location.lon, params.appid, params.units || 'metric')
   logDebug(`weather-utils::getWeatherForLocation`, `url: \n${url}`)

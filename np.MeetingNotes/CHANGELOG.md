@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.MeetingNotes/README.md) for details on available commands and use case.
 
+## [0.1.2] - 2022-08-16 (@dwertheiemr)
+- Commented out DataStore.invokePluginCommandByName
+- Other minor changes
+
 ## [0.1.0] - 2022-08-09 (@codedungeon)
 
 - Fixed linting errors

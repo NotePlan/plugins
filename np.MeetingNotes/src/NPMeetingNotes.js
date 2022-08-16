@@ -73,9 +73,9 @@ export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateFi
     const templateContent = DataStore.projectNoteByFilename(templateFilename).content
 
     logDebug(pluginJson, 'preRender template')
-    // const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateContent, templateData)
+    const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateContent, templateData)
     
-    const { frontmatterBody, frontmatterAttributes } = await DataStore.invokePluginCommandByName('preRender', 'np.Templating', [templateContent, templateData])
+    // const { frontmatterBody, frontmatterAttributes } = await DataStore.invokePluginCommandByName('preRender', 'np.Templating', [templateContent, templateData])
 
     const attrs = frontmatterAttributes
     const folder = attrs?.folder || ''
