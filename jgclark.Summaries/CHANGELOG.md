@@ -1,5 +1,16 @@
 # What's Changed in 🗃 Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
+
+<!-- TODO: apply to general summaries too?-->
+<!-- FIXME: look at why the append on /ipu is sometimes coming in a line early -->
+
+## [0.12.0] - 2022-08-14
+### Added
+- now little 'sparkline' charts can be shown in the **/insert progress summary** command. They're done using ASCII art, and are just a bit of fun really, until such a time we can have proper graphs or charts.
+- they are also available in the equivalent template command, such as `<%- progressUpdate({interval: 'wtd', heading: 'Habits', showSparklines: true}) %>`.
+### Changed
+- the stats summary for each line is now a little smarter about what it shows.
+
 ## [0.11.1] - 2022-07-24
 ### Changed
 - tweaked **/insertProgressUpdate** output to use ISO day-of-week numbering when run as the command (Monday = 1)

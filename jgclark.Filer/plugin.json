@@ -7,8 +7,9 @@
   "plugin.icon": "",
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Filer",
-  "plugin.version": "0.9.0",
-  "plugin.lastUpdateInfo": "Split a setting into two: 'Include lines from start of Section in the Block?' and 'Use a tighter definition of when a Block finishes?'",
+  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Filer/CHANGELOG.md",
+  "plugin.version": "0.9.1",
+  "plugin.lastUpdateInfo": "Adds visual highlighting of selection before it will be moved (from NotePlan v3.6.2).",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -98,6 +99,11 @@
       ],
       "description": "Add a sync'd copy of the current line to a section in another note",
       "jsFunction": "addIDAndAddToOtherNote"
+    },
+    {
+      "name": "test:update Filer plugin",
+      "description": "Filer: test update plugin",
+      "jsFunction": "testUpdate"
     }
   ],
   "plugin.settings": [
@@ -152,6 +158,28 @@
         "link"
       ],
       "default": "link",
+      "required": true
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Debugging"
+    },
+    {
+      "key": "_logLevel",
+      "title": "Log Level",
+      "description": "Set how much output will be displayed for this plugin in the NotePlan > Help > Plugin Console. DEBUG is the most verbose; NONE is the least (silent).",
+      "type": "string",
+      "choices": [
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "none"
+      ],
+      "default": "INFO",
       "required": true
     }
   ]

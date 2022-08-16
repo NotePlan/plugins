@@ -12,8 +12,8 @@ async function parseJSON5(contents: string): Promise<?{ [string]: ?mixed }> {
   try {
     const value = json5.parse(contents)
     return (value: any)
-  } catch (e) {
-    logError('parseJSON5', e)
+  } catch (error) {
+    logError('userInput / parseJSON5', error.message)
     await showMessage('Invalid JSON5 in your configuration. Please fix it to use configuration')
     return {}
   }
@@ -163,7 +163,7 @@ export async function chooseFolder(msg: string, includeArchive: boolean = false)
     // no Folders so go to root
     folder = '/'
   }
-  // logDebug('chooseFolder', `-> ${folder}`)
+  // logDebug('userInput / chooseFolder', `-> ${folder}`)
   return folder
 }
 
@@ -219,7 +219,7 @@ export async function chooseHeading(note: TNote, optionAddAtBottom: boolean = tr
         newHeading = await getInput(`Enter heading to add at the start of the note`)
         if (newHeading && typeof newHeading === 'string') {
           const startPos = calcSmartPrependPoint(note)
-          logDebug('userInput/chooseHeading', `prepending new heading ${newHeading} at line ${startPos}`)
+          logDebug('userInput / chooseHeading', `prepending new heading ${newHeading} at line ${startPos}`)
           note.insertHeading(newHeading, startPos, headingLevel)
           headingToReturn = newHeading
         } else {
@@ -231,9 +231,9 @@ export async function chooseHeading(note: TNote, optionAddAtBottom: boolean = tr
         // ask for new heading, and then append it
         newHeading = await getInput(`Enter heading to add at the end of the note`)
         if (newHeading && typeof newHeading === 'string') {
-          const endPos = indexEndOfActive
-          logDebug('userInput/chooseHeading', `appending new heading ${newHeading} at line ${endPos}`)
-          note.insertHeading(newHeading, endPos, headingLevel)
+          const newLindeIndex = indexEndOfActive + 1
+          logDebug('userInput / chooseHeading', `appending new heading ${newHeading} at line ${newLindeIndex}`)
+          note.insertHeading(newHeading, newLindeIndex, headingLevel)
           headingToReturn = newHeading
         } else {
           throw new Error(`user cancelled operation`)
@@ -241,18 +241,18 @@ export async function chooseHeading(note: TNote, optionAddAtBottom: boolean = tr
         break
 
       case '⬇️ (bottom of note)':
-        // get
-        logDebug('userInput/chooseHeading', `selected end of note, rather than a heading`)
+        logDebug('userInput / chooseHeading', `selected end of note, rather than a heading`)
         headingToReturn = ''
         break
 
       default:
+        logDebug('userInput / chooseHeading', `User picked existing heading #${result.index + 1} ('headingToReturn') from ${headingStrings.length} ..`)
         break
     }
     return headingToReturn
   }
   catch (error) {
-    logError('userInput/chooseHeading', error.message)
+    logError('userInput / chooseHeading', error.message)
     return '<error>'
   }
 }
@@ -318,21 +318,21 @@ export async function datePicker(dateParams: string, config?: { [string]: ?mixed
   try {
     const dateConfig = config.date ?? {}
     // $FlowIgnore[incompatible-call]
-    clo(dateConfig, 'userInput/datePicker dateConfig object:')
+    clo(dateConfig, 'userInput / datePicker dateConfig object:')
     const dateParamsTrimmed = dateParams.trim()
     const paramConfig =
       dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}') ? await parseJSON5(dateParams) : dateParamsTrimmed !== '' ? await parseJSON5(`{${dateParams}}`) : {}
     // $FlowIgnore[incompatible-type]
-    logDebug('userInput/datePicker', `params: ${dateParams} -> ${JSON.stringify(paramConfig)}`)
+    logDebug('userInput / datePicker', `params: ${dateParams} -> ${JSON.stringify(paramConfig)}`)
     // '...' = "gather the remaining parameters into an array"
     const allSettings: { [string]: mixed } = {
       ...dateConfig,
       ...paramConfig,
     }
-    // logDebug('userInput/datePicker', allSettings.toString())
+    // logDebug('userInput / datePicker', allSettings.toString())
     // grab just question parameter, or provide a default
     let { question, defaultValue } = (allSettings: any)
-    // logDebug('userInput/datePicker', `defaultValue: ${defaultValue}`)
+    // logDebug('userInput / datePicker', `defaultValue: ${defaultValue}`)
     question = question ? question : 'Please enter a date'
     defaultValue = defaultValue ? defaultValue : 'YYYY-MM-DD'
 
@@ -347,11 +347,11 @@ export async function datePicker(dateParams: string, config?: { [string]: ?mixed
       }
       return reply2
     } else {
-      logWarn('userInput/datePicker', 'User cancelled date input')
+      logWarn('userInput / datePicker', 'User cancelled date input')
       return ''
     }
   } catch (e) {
-    logError('userInput/datePicker', e.message)
+    logError('userInput / datePicker', e.message)
     return ''
   }
 }
@@ -368,7 +368,7 @@ export async function inputInteger(question: string): Promise<number> {
   if (reply != null && isInt(reply)) {
     return Number(reply)
   } else {
-    logError('inputInteger', `Error trying to get integer answer for question '${question}'`)
+    logError('userInput / inputInteger', `Error trying to get integer answer for question '${question}'`)
     return NaN
   }
 }
@@ -398,7 +398,7 @@ export async function inputNumber(question: string): Promise<number> {
   if (reply != null && Number(reply)) {
     return Number(reply)
   } else {
-    logError('inputNumber', `Error trying to get number answer for question '${question}'`)
+    logError('userInput / inputNumber', `Error trying to get number answer for question '${question}'`)
     return NaN
   }
 }

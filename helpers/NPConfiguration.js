@@ -283,11 +283,11 @@ export async function pluginUpdated(pluginJson: any, result: { code: number, mes
       const updateMessage = hasUpdateMessage ? `Changes include:\n"${hasUpdateMessage}"\n\n` : ''
       const version = newSettings['plugin.version']
       const openReadme = await showMessageYesNo(
-        `The Plugin:\n"${newSettings['plugin.name']}"\nwas automatically updated to v${version}. ${updateMessage}Would you like to open the Plugin's ${
+        `The '${newSettings['plugin.name']}' plugin was automatically updated to v${version}. ${updateMessage}Would you like to open the Plugin's ${
           hasChangelog ? 'Change Log' : 'Documentation'
         } to see more details?`,
         ['Yes', 'No'],
-        'New Plugin Version Installed',
+        `'${newSettings['plugin.name']}' Plugin Updated`,
       )
       if (openReadme === 'Yes') {
         const url = hasChangelog ? newSettings['plugin.changelog'] : newSettings['plugin.url'] || ''

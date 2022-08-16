@@ -24,18 +24,11 @@ import {
   removeDateTagsAndToday,
   todaysDateISOString,
 } from './dateTime'
-import { clo, log, logDebug, logError, logWarn } from './dev'
+import { clo, logDebug, logError, logInfo, logWarn } from './dev'
 import { displayTitle } from './general'
 import { findEndOfActivePartOfNote } from './paragraph'
 import {
   RE_ISO_DATE,
-  // RE_HOURS,
-  // RE_MINUTES,
-  // RE_TIME,
-  // RE_AMPM,
-  // RE_AMPM_OPT,
-  // RE_DONE_DATETIME,
-  // RE_DONE_DATE_OPT_TIME,
   RE_TIMEBLOCK,
   // RE_TIMEBLOCK_FOR_THEMES,
   isTimeBlockPara,
@@ -129,18 +122,18 @@ export async function checkOrGetCalendar(calendarName: string, forceUserToChoose
  * and then add them as events.
  * @param {EventsConfig} config - the configuration for the timeblocks and event creation
  * @param {TNote|TEditor} note - the note to scan for time blocks
- * @param {boolean} showLoadingProgress -- show progress counter while adding events
+ * @param {boolean} showLoadingProgress -- show progress counter while adding events (default: false)
  * @author @jgclark
  */
 export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNote | TEditor, showLoadingProgress: boolean = false): Promise<void> {
   const { paragraphs } = note
   if (paragraphs == null || note == null) {
-    logWarn('NPCalendar/writeTimeBlocksToCalendar()', 'no content found')
+    logWarn('NPCalendar / writeTimeBlocksToCalendar', 'no content found')
     return
   }
   // $FlowFixMe - Flow doesn't like note or Editor being called here. But for these purposes they should be identical
   const noteTitle = displayTitle(note)
-  logDebug('NPCalendar/writeTimeBlocksToCalendar()', `Starting for note '${noteTitle}' ...`)
+  logDebug('NPCalendar / writeTimeBlocksToCalendar', `Starting for note '${noteTitle}' ...`)
 
   let calendarToWriteTo = '' // NP will then use the default
   if (config.calendarToWriteTo != null && config.calendarToWriteTo !== '') {
@@ -148,9 +141,9 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
     const writableCalendars: $ReadOnlyArray<string> = Calendar.availableCalendarTitles(true)
     if (writableCalendars.includes(config.calendarToWriteTo)) {
       calendarToWriteTo = config.calendarToWriteTo || ''
-      logDebug('NPCalendar/writeTimeBlocksToCalendar()', `- will write to calendar '${String(calendarToWriteTo)}'`)
+      logDebug('NPCalendar / writeTimeBlocksToCalendar', `- will write to calendar '${String(calendarToWriteTo)}'`)
     } else {
-      logWarn('NPCalendar/writeTimeBlocksToCalendar()', `- requested calendar '${String(config.calendarToWriteTo)}' is not writeable. Will use default calendar instead.`)
+      logWarn('NPCalendar / writeTimeBlocksToCalendar', `- requested calendar '${String(config.calendarToWriteTo)}' is not writeable. Will use default calendar instead.`)
     }
   }
 
@@ -159,7 +152,7 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
   const endOfActive = findEndOfActivePartOfNote(note)
   const timeblockParas = paragraphs.filter((p) => isTimeBlockPara(p) && p.lineIndex <= endOfActive)
   if (timeblockParas.length > 0) {
-    logDebug('NPCalendar/writeTimeBlocksToCalendar()', `-   found ${timeblockParas.length} in '${noteTitle}'`)
+    logDebug('NPCalendar / writeTimeBlocksToCalendar', `-   found ${timeblockParas.length} in '${noteTitle}'`)
     // Work out our current date context (as YYYY-MM-DD):
     // - if a calendar note -> date of note
     // - if a project note -> today's date
@@ -174,24 +167,24 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
     for (let i = 0; i < timeblockParas.length; i++) {
       const thisPara = timeblockParas[i]
       const thisParaContent = thisPara.content ?? ''
-      logDebug('NPCalendar/writeTimeBlocksToCalendar()', `${i}: ${thisParaContent}`)
+      logDebug('NPCalendar / writeTimeBlocksToCalendar', `${i}: ${thisParaContent}`)
       const reResults = thisParaContent.match(RE_TIMEBLOCK) ?? ['']
-      logDebug('NPCalendar/writeTimeBlocksToCalendar()', reResults.toString())
+      logDebug('NPCalendar / writeTimeBlocksToCalendar', reResults.toString())
       let timeBlockString = reResults[0].trim() // or ...
       timeBlockString = getTimeBlockString(thisParaContent).trim()
 
       // Check to see if this line has been processed before, by looking for the
       // processed tag, or an [[event:ID]]
       if ((config.processedTagName !== '' && thisParaContent.match(config.processedTagName || '')) || thisParaContent.match(RE_EVENT_ID)) {
-        logDebug('NPCalendar/writeTimeBlocksToCalendar()', `- Ignoring timeblock in '${thisParaContent}' as it has already been processed`)
+        logDebug('NPCalendar / writeTimeBlocksToCalendar', `- Ignoring timeblock in '${thisParaContent}' as it has already been processed`)
       } else {
         // Go ahead and process this time block
-        logDebug('NPCalendar/writeTimeBlocksToCalendar()', `- Found timeblock '${timeBlockString}'`)
+        logDebug('NPCalendar / writeTimeBlocksToCalendar', `- Found timeblock '${timeBlockString}'`)
         let datePart = ''
         // Now add date part (or dateContext if there wasn't one in the paragraph)
         const origTimeBlockString = timeBlockString
         if (!thisParaContent.match(RE_ISO_DATE)) {
-          logDebug('NPCalendar/writeTimeBlocksToCalendar()', `- No date in time block so will add current dateContext (${dateContext})`)
+          logDebug('NPCalendar / writeTimeBlocksToCalendar', `- No date in time block so will add current dateContext (${dateContext})`)
           datePart = dateContext
         } else {
           const temp = thisParaContent.match(RE_ISO_DATE) ?? []
@@ -221,7 +214,7 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
           const restOfTaskWithoutDateTime = removeDateTagsAndToday(restOfTaskWithoutTimeBlock)
             .replace(timeBlockString, '')
             .replace(/\s{2,}/g, ' ')
-          logDebug('NPCalendar/writeTimeBlocksToCalendar()', `- Will process time block '${timeBlockString}' for '${restOfTaskWithoutDateTime}'`)
+          logDebug('NPCalendar / writeTimeBlocksToCalendar', `- Will process time block '${timeBlockString}' for '${restOfTaskWithoutDateTime}'`)
 
           // Do we want to add this particular event?
           if (config.confirmEventCreation) {
@@ -231,35 +224,40 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
             }
           }
           const eventRange = {start: timeblockDateRange.start, end: timeblockDateRange.end}
-          const eventID = (await createEventFromDateRange(restOfTaskWithoutDateTime, eventRange, calendarToWriteTo)) ?? '<error getting eventID>'
+          const eventID = (await createEventFromDateRange(restOfTaskWithoutDateTime, eventRange, calendarToWriteTo))
 
-          // Remove time block string (if wanted)
-          let thisParaContent = thisPara.content
-          logDebug('NPCalendar/writeTimeBlocksToCalendar()', `- starting with thisPara.content: '${thisParaContent}'`)
-          if (config.removeTimeBlocksWhenProcessed) {
-            thisParaContent = restOfTaskWithoutTimeBlock
-          }
-          // Add processedTag (if not empty)
-          if (config.processedTagName !== '') {
-            thisParaContent += ` ${String(config.processedTagName)}`
-          }
-          // Add event ID (if wanted)
-          if (config.addEventID) {
-            thisParaContent += ` ⏰event:${eventID}`
-          }
-          thisPara.content = thisParaContent
-          // log('NPCalendar/writeTimeBlocksToCalendar()', `\tsetting thisPara.content -> '${thisParaContent}'`)
-          // FIXME(@EduardMe): there's something odd going on here. Often 3 characters are left or repeated at the end of the line as a result of this
-          if (showLoadingProgress && !config.confirmEventCreation) {
-            CommandBar.showLoading(true, `Inserting Calendar Events\n(${i + 1}/${timeblockParas.length})`, (i + 1) / timeblockParas.length)
-            await CommandBar.onMainThread()
-            Editor.updateParagraph(thisPara)
-            await CommandBar.onAsyncThread()
+          if (eventID != null && eventID !== '') {
+            // Remove time block string (if wanted)
+            let thisParaContent = thisPara.content
+            logDebug('NPCalendar / writeTimeBlocksToCalendar', `- starting with thisPara.content: '${thisParaContent}'`)
+            if (config.removeTimeBlocksWhenProcessed) {
+              thisParaContent = restOfTaskWithoutTimeBlock
+            }
+            // Add processedTag (if not empty)
+            if (config.processedTagName !== '') {
+              thisParaContent += ` ${String(config.processedTagName)}`
+            }
+            // Add event ID (if wanted)
+            if (config.addEventID) {
+              const createdEvent = await Calendar.eventByID(eventID) ?? null
+              thisParaContent += ` ${createdEvent?.calendarItemLink ?? ''}`
+            }
+            thisPara.content = thisParaContent
+            logDebug('NPCalendar / writeTimeBlocksToCalendar', `- setting thisPara.content -> '${thisParaContent}'`)
+            // FIXME(@EduardMe): there's something odd going on here. Often 3 characters are left or repeated at the end of the line as a result of this
+            if (showLoadingProgress && !config.confirmEventCreation) {
+              CommandBar.showLoading(true, `Inserting Calendar Events\n(${i + 1}/${timeblockParas.length})`, (i + 1) / timeblockParas.length)
+              await CommandBar.onMainThread()
+              Editor.updateParagraph(thisPara)
+              await CommandBar.onAsyncThread()
+            } else {
+              Editor.updateParagraph(thisPara)
+            }
           } else {
-            Editor.updateParagraph(thisPara)
+            logError('NPcalendar / writeTimeBlocksToCalendar', `Error creating new event for '${timeBlockString}'`)
           }
         } else {
-          logError('NPCalendar/writeTimeBlocksToCalendar()', `Can't get DateRange from '${timeBlockString}'`)
+          logError('NPCalendar / writeTimeBlocksToCalendar', `Can't get DateRange from '${timeBlockString}'`)
         }
       }
     }
@@ -268,7 +266,7 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
       CommandBar.showLoading(false)
     }
   } else {
-    log('NPCalendar/writeTimeBlocksToCalendar()', `  -> No time blocks found.`)
+    logInfo('NPCalendar / writeTimeBlocksToCalendar()', `  -> No time blocks found.`)
     await showMessage(`Sorry, no time blocks found.`)
   }
 }
@@ -280,10 +278,10 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
  * @param {string} - eventTitle: title to use for this event
  * @param {DateRange} - dateRange: date range for this event
  * @param {string} - calendarName: name of calendar to write to. Needs to be writable!
- * @return {string} Calendar ID of new event (or 'error')
+ * @returns {string} CalendarItem of new event
  */
 async function createEventFromDateRange(eventTitle: string, dateRange: DateRange, calendarName: string): Promise<string> {
-  // log('', `\tStarting cEFDR with ${eventTitle} for calendar ${pref_calendarToWriteTo}`)
+  // logDebug('NPCalendar / createEventFromDateRange', `Starting with ${eventTitle} for calendar ${pref_calendarToWriteTo}`)
   // If we have a pref_calendarToWriteTo setting, then include that in the call
   const event: TCalendarItem = CalendarItem.create(
     eventTitle,
@@ -295,17 +293,18 @@ async function createEventFromDateRange(eventTitle: string, dateRange: DateRange
     false, // isCompleted
     '', // notes
     '', // url
+    // availability
   )
   const createdEvent = Calendar.add(event)
   const calendarDisplayName = calendarName !== '' ? calendarName : 'system default'
   if (createdEvent != null) {
     const newID = createdEvent.id ?? 'undefined'
-    log('NPCalendar/createEventFromDateRange()', `-> Event created with id: ${newID} in ${calendarDisplayName} calendar `)
+    logInfo('NPCalendar / createEventFromDateRange', `-> Event created with id: ${newID} in ${calendarDisplayName} calendar `)
     return newID
   } else {
-    logError('NPCalendar/createEventFromDateRange()', `failed to create event in ${calendarDisplayName} calendar`)
+    logError('NPCalendar / createEventFromDateRange', `failed to create event in ${calendarDisplayName} calendar`)
     await showMessage(`Sorry, I failed to create event in ${calendarDisplayName} calendar`, 'OK', `Create Event Error`)
-    return 'error'
+    return ''
   }
 }
 
@@ -332,9 +331,9 @@ export async function getEventsForDay(
   const d = parseInt(dateStr.slice(6, 8))
   const startOfDay = Calendar.dateFrom(y, m, d, start.h, start.m, 0)
   const endOfDay = Calendar.dateFrom(y, m, d, end.h, end.m, 59)
-  // log('NPCalendar/getEventsForDay()', `getEventsForDay: ${startOfDay.toString()} - ${endOfDay.toString()}`)
+  // log('NPCalendar / getEventsForDay', `getEventsForDay: ${startOfDay.toString()} - ${endOfDay.toString()}`)
   let eArr: Array<TCalendarItem> = await Calendar.eventsBetween(startOfDay, endOfDay)
-  // log('NPCalendar/getEventsForDay()', `\tretrieved ${eArr.length} events from NP Calendar store`)
+  // log('NPCalendar / getEventsForDay', `\tretrieved ${eArr.length} events from NP Calendar store`)
 
   // Filter out parts of multi-day events not in today
   eArr = keepTodayPortionOnly(eArr, getDateFromUnhyphenatedDateString(dateStr) ?? new Date())
@@ -343,7 +342,7 @@ export async function getEventsForDay(
   if (calendarSet.length > 0) {
     // const filteredEventArray = calendarSet.slice().filter(c => eArr.some(e => e.calendar === c))
     eArr = eArr.filter((e) => calendarSet.some((c) => e.calendar === c))
-    logDebug('NPCalendar/getEventsForDay', `- ${eArr.length} Events kept for ${dateStr} after filtering with ${calendarSet.toString()}`)
+    logDebug('NPCalendar / getEventsForDay', `- ${eArr.length} Events kept for ${dateStr} after filtering with ${calendarSet.toString()}`)
   }
   return eArr
 }

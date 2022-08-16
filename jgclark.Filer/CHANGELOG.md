@@ -1,12 +1,15 @@
 # What's changed in 📦 Filer plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Filer) for more details, including the available settings.
 
-<!-- ### Added
-- ??? where the command is working out which lines to include in the block, it will now show them highlighted while it's asking which note to move them to. This provides a useful way of checking it's doing what you expect.
--->
+## [0.9.1] - 2022-08-15
+### Added
+- where the command is working out which lines to include in the block, it will now show them highlighted while it's asking which note to move them to. This provides a useful way of checking it's going to do what you intend. (Though it's unlikely to be very visible on small screen devices.) (_This won't work on versions of NotePlan before v3.6.2._)
+- more logging available when needed
+
 ## [0.9.0] - 2022-08-05
 ### Changed
 - Split a setting into two: 'Include lines from start of Section in the Block?' and 'Use a tighter definition of when a Block finishes?'  This gives more control over the number of lines that are automatically selected to move. _You can still manually select a specific range of lines to move._
+- Updated logging framework
 
 ## [0.8.1] - 2022-06-27
 ### Added
