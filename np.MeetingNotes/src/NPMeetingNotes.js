@@ -26,7 +26,7 @@ export async function insertNoteTemplate(origFileName: string, dailyNoteDate: Da
   if (!templateContent) {
     logError(pluginJson, `couldnt load content of template "${templateFilename}", try NPTemplating method`)
     templateContent = await NPTemplating.getTemplate(templateFilename)
-    // 
+    //
     // templateContent = await DataStore.invokePluginCommandByName('getTemplate', 'np.Templating', [templateFilename])
     return
   }
@@ -49,7 +49,8 @@ export async function insertNoteTemplate(origFileName: string, dailyNoteDate: Da
     }
   } else {
     logDebug(pluginJson, 'apply rendered template to the current editor')
-    Editor.content = result
+    // Editor.content = result
+    Editor.insertTextAtCursor(result)
   }
 }
 
@@ -74,7 +75,7 @@ export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateFi
 
     logDebug(pluginJson, 'preRender template')
     const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateContent, templateData)
-    
+
     // const { frontmatterBody, frontmatterAttributes } = await DataStore.invokePluginCommandByName('preRender', 'np.Templating', [templateContent, templateData])
 
     const attrs = frontmatterAttributes
