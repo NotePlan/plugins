@@ -160,10 +160,19 @@ export function getParagraphBlock(note: CoreNoteFields,
         logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found blank line`)
         startLine = i + 1
         break
-      } else if (p.type === 'title') {
-        logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found heading`)
+      } else if (p.type === 'title' && p.headingLevel === 1) {
+        logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found title`)
+        startLine = i + 1
+        break
+      } else if (p.type === 'title' && p.headingLevel > 1) {
+        logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found other heading`)
         startLine = i
         break
+      }
+      // If it's the last iteration and we get here, then we had a continuous block, so make that
+      if (i === startActiveLineIndex) {
+        logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found start of active part of note`)
+        startLine = i
       }
     }
     logDebug(`NPParagraph / getParagraphBlock`, `For includeFromStartOfSection worked back and will now start at line ${startLine}`)

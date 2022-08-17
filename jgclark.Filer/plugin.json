@@ -8,31 +8,29 @@
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Filer",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Filer/CHANGELOG.md",
-  "plugin.version": "0.9.1",
-  "plugin.lastUpdateInfo": "Adds visual highlighting of selection before it will be moved (from NotePlan v3.6.2).",
+  "plugin.version": "1.0.0-beta1",
+  "plugin.lastUpdateInfo": "Changes '/move paragraph' to work just on current paragraph or selection, while new command '/move block of paragraphs' moves paragraph in the rest of its block as well.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
   "plugin.commands": [
     {
-      "name": "move paragraphs",
+      "name": "move paragraph or selection",
       "alias": [
         "mp",
-        "fp",
         "file"
       ],
-      "description": "move (file) a block of paragraphs to different notes",
+      "description": "moves this paragraph (or selected paragraphs) to a different note",
       "jsFunction": "moveParas"
     },
     {
-      "name": "file paragraphs",
+      "name": "move paragraph block",
       "alias": [
-        "mp",
-        "move",
-        "fp"
+        "mb",
+        "block"
       ],
-      "description": "file (move) paragraphs to different notes",
-      "jsFunction": "moveParas"
+      "description": "moves all paragraphs in the current block to a different note",
+      "jsFunction": "moveParaBlock"
     },
     {
       "name": "quick move to Today's note",

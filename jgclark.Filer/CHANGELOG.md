@@ -1,6 +1,16 @@
 # What's changed in 📦 Filer plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Filer) for more details, including the available settings.
 
+## [1.0.0-beta1] - 2022-08-18
+### Change to Commands
+- existing command **/move paragraphs** renamed to **/move paragraph or selection**. This moves this paragraph (or selected paragraphs) to a different note
+- added command **/move paragraph block** moves all paragraphs in the current block to a different note. Use the settings to determine how far before and after the current paragraph the block will extend.
+- retired the command alias **/file paragraphs**, as **/move paragraphs** is clearer
+
+## [0.9.2] - 2022-08-16
+### Fixed
+- was failing to offer the last heading in a note to move/copy lines to
+
 ## [0.9.1] - 2022-08-15
 ### Added
 - where the command is working out which lines to include in the block, it will now show them highlighted while it's asking which note to move them to. This provides a useful way of checking it's going to do what you intend. (Though it's unlikely to be very visible on small screen devices.) (_This won't work on versions of NotePlan before v3.6.2._)
