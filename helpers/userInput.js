@@ -181,72 +181,91 @@ export async function chooseHeading(note: TNote, optionAddAtBottom: boolean = tr
   try {
     let headingStrings = []
     const headingLevel = 2
+    const spacer = '    '
     // Decide whether to include all headings in note, or just those in the first
     // before the Done/Cancelled section
     const indexEndOfActive = findEndOfActivePartOfNote(note)
-    const headingParas = includeArchive
+    const headingParas = (includeArchive)
       ? note.paragraphs.filter((p) => p.type === 'title') // = all headings, not just the top 'Title'
-      : note.paragraphs.filter((p) => p.type === 'title' && p.lineIndex < indexEndOfActive) // = all headings in the active part of the note
+      : note.paragraphs.filter((p) => p.type === 'title' && p.lineIndex <= indexEndOfActive) // = all headings in the active part of the note
     if (headingParas.length > 0) {
       headingStrings = headingParas.map((p) => {
         let prefix = ''
         for (let i = 1; i < p.headingLevel; i++) {
-          prefix += '    '
+          prefix += spacer
         }
         return prefix + p.content
       })
+      logDebug('userInput / chooseHeading', `found followig headings:\n${headingStrings.toString()}`)
     }
     if (optionCreateNewHeading) {
       // Add options to add new heading at top or bottom of note
-      headingStrings.unshift('➕ ⬆️ (first insert new heading at the start of the note)') // insert at second item
-      // headingStrings.splice(1, 0, '➕ ⬆️ (first insert new heading at the start of the note)') // insert at second item
-      headingStrings.push('➕ ⬇️ (first insert new heading at the end of the note)')
+      if (note.type === 'Calendar') {
+        headingStrings.unshift('➕ ⬆️ (first insert new heading at the start of the note)') // insert at start
+      } else {
+        headingStrings.splice(1, 0, `${spacer}➕ ⬆️ (first insert new heading under the title)`) // insert as second item, after title
+      }
+      headingStrings.push(`${spacer}➕ ⬇️ (first insert new heading at the end of the note)`)
     }
+    // Had wanted to use this, but would then need to break existing return type in order to able to differentiate between 'top of note' and 'bottom of bote'
     // if (note.type === 'Calendar') {
     //   headingStrings.unshift('⬆️ (top of note)') // add at start (as it has no title heading)
     // }
     if (optionAddAtBottom) {
       // Ensure we can always add at top and bottom of note
-      headingStrings.push('⬇️ (bottom of note)') // add at end
+      headingStrings.push('⏬ (bottom of note)') // add at end
     }
     const result = await CommandBar.showOptions(headingStrings, `Select a heading from note '${note.title ?? 'Untitled'}'`)
     let headingToReturn = headingStrings[result.index].trim()
     let newHeading = ''
 
     switch (headingToReturn) {
-      case '➕ ⬆️ (first insert new heading at the start of the note)':
+      case `➕ ⬆️ (first insert new heading at the start of the note)`:
+        // ask for new heading, and insert right at top
+        newHeading = await getInput(`Enter heading to add at the start of the note`)
+        if (newHeading && typeof newHeading === 'string') {
+          const startPos = 0
+          note.insertHeading(newHeading, startPos, headingLevel)
+          logDebug('userInput / chooseHeading', `prepended new heading '${newHeading}' at line ${startPos} (calendar note)`)
+          headingToReturn = newHeading
+        } else {
+          throw new Error(`user cancelled operation`)
+        }
+        break
+
+      case '➕ ⬆️ (first insert new heading under the title)':
         // ask for new heading, find smart insertion position, and insert it
         newHeading = await getInput(`Enter heading to add at the start of the note`)
         if (newHeading && typeof newHeading === 'string') {
           const startPos = calcSmartPrependPoint(note)
-          logDebug('userInput / chooseHeading', `prepending new heading ${newHeading} at line ${startPos}`)
           note.insertHeading(newHeading, startPos, headingLevel)
+          logDebug('userInput / chooseHeading', `prepended new heading '${newHeading}' at line ${startPos} (project note)`)
           headingToReturn = newHeading
         } else {
           throw new Error(`user cancelled operation`)
         }
         break
 
-      case '➕ ⬇️ (first insert new heading at the end of the note)':
+      case `➕ ⬇️ (first insert new heading at the end of the note)`:
         // ask for new heading, and then append it
         newHeading = await getInput(`Enter heading to add at the end of the note`)
         if (newHeading && typeof newHeading === 'string') {
           const newLindeIndex = indexEndOfActive + 1
-          logDebug('userInput / chooseHeading', `appending new heading ${newHeading} at line ${newLindeIndex}`)
           note.insertHeading(newHeading, newLindeIndex, headingLevel)
+          logDebug('userInput / chooseHeading', `appended new heading '${newHeading}' at line ${newLindeIndex}`)
           headingToReturn = newHeading
         } else {
           throw new Error(`user cancelled operation`)
         }
         break
 
-      case '⬇️ (bottom of note)':
+      case '⏬ (bottom of note)':
         logDebug('userInput / chooseHeading', `selected end of note, rather than a heading`)
         headingToReturn = ''
         break
 
       default:
-        logDebug('userInput / chooseHeading', `User picked existing heading #${result.index + 1} ('headingToReturn') from ${headingStrings.length} ..`)
+        logDebug('userInput / chooseHeading', `User picked existing heading #${result.index + 1} ('${headingToReturn}') from ${headingStrings.length} ..`)
         break
     }
     return headingToReturn

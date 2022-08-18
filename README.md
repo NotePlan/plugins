@@ -12,7 +12,7 @@ If you want to develop plugins, Step 1 is to read the [NotePlan Knowledgebase Do
 ## Prerequisite
 The following items are required for NotePlan Plugin Development
 
-- Node 12.15 .. 16 -- **Do Not Use Expirimental Version of Node (e.g. Node 17.x.x)**
+- Node 12.15 .. 16 -- **Do Not Use Experimental Version of Node (e.g. Node 17.x.x)**
 - npm version 8.x
 - NotePlan 3.4 or greater
 - macOS Catalina 10.15.2 or greater (strongly recommend macOS Big Sur 11.x or Monterey 12.x)
@@ -21,7 +21,7 @@ The following items are required for NotePlan Plugin Development
 _NotePlan Plugin API has been tested using Node.js range, any version outside of this range may lead to unexpected issues_
 
 ## Plugin Information
-If you have an idea for a plugin, [submit them here](https://feedback.noteplan.co/plugins-scripting) or inquire in the [NotePlan Discord community](https://discord.gg/D4268MT)'s `#plugin-ideas` channel.
+If you have an idea for a plugin, [submit them here](https://feedback.noteplan.co/plugins-scripting) or inquire in the [NotePlan Discord community](https://discord.gg/D4268MT)'s `#plugin` channel.
 
 If you are a developer and want to contribute and build your plugins, see the [plugin writing documentation](https://help.noteplan.co/article/67-create-command-bar-plugins) and discuss this with other developers on [Discord](https://discord.gg/D4268MT) `#plugin-dev` channel.  You might want to consult this [good modern JavaScript tutorial](https://javascript.info/).
 
@@ -49,10 +49,10 @@ npm install && npm run init
 
 This will install the necessary npm dependencies and initialize your plugin working directory, including:
 
- - Configure `eslint` [eslint](https://eslint.org/) (for checking code conventions)
- - Configure `flow` [flow](https://flow.org/) (for type checking)
- - Configure `babel` [babel](https://babeljs.io/) (a JS compiler)
- - Configure `rollup` [rollup](https://rollupjs.org/guide/en/) (for bundling multiple source files into a single release).
+ - Configuring `eslint` [eslint](https://eslint.org/) (for checking code conventions)
+ - Configuring `flow` [flow](https://flow.org/) (for type checking)
+ - Configuring `babel` [babel](https://babeljs.io/) (a JS compiler)
+ - Configuring `rollup` [rollup](https://rollupjs.org/guide/en/) (for bundling multiple source files into a single release).
 
 Each of these tools have their own configuration files at the root directory (e.g., `.flowconfig` or `.eslintrc`)
 
@@ -215,6 +215,7 @@ Use the setup guide for your preferred editor (we prefer Visual Studio Code), an
       - `flow` "Flow Language Support" by flowtype
       - `eslint` "ESLint" by Dirk Baeumer
       - `prettier` "Prettier - Code formatter" by Prettier
+      - (optional) "TODO Highlight V2" by wayou/jgclark
 
 **Update Settings**
 

@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Plugin to help move selected Paragraphs to other notes
 // Jonathan Clark
-// last updated 5.8.2022 for v0.9.0
+// last updated 17.8.2022, for v1.0.0-beta1
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -26,7 +26,6 @@ import {
   selectedLinesIndex,
   // getSelectedParaIndex,
 } from '@helpers/NPParagraph'
-import first from "eslint-plugin-import/lib/rules/first";
 
 //-----------------------------------------------------------------------------
 // Get settings
@@ -77,9 +76,28 @@ export async function getFilerSettings(): Promise<any> {
  *   empty line as well.
  * @author @jgclark
  */
-export async function moveParas(): Promise<void> {
+export async function moveParaBlock(): Promise<void> {
+  await moveParas(true)
+}
+
+/**
+ * Move text to a different note.
+ * NB: Can't select dates without an existing Calendar note.
+ *   Note: Waiting for better date picker from Eduard before working further on this.
+ *
+ * This is how we identify what we're moving (in priority order):
+ * - current selection
+ * - current heading + its following section
+ * - current line
+ * - current line (plus any paragraphs directly following). NB: the Setting
+ *   'includeFromStartOfSection' decides whether these directly following paragaphs
+ *   have to be indented (false) or can take all following lines at same level until next
+ *   empty line as well.
+ * @author @jgclark
+ */
+export async function moveParas(withBlockContext: boolean = false): Promise<void> {
   try {
-    const { content, paragraphs, selectedParagraphs, note } = Editor
+    const { note, content, paragraphs, selection, selectedParagraphs } = Editor
     if (content == null || selectedParagraphs == null || note == null) {
       // No note open, or no selectedParagraph selection (perhaps empty note), so don't do anything.
       logWarn(pluginJson, 'moveParas: No note open, so stopping.')
@@ -89,22 +107,34 @@ export async function moveParas(): Promise<void> {
     // Get config settings
     const config = await getFilerSettings()
 
+    let parasInBlock: Array<TParagraph>
+
     // Get current selection, and its range
-    const selection = Editor.selection
     if (selection == null) {
       // Really a belt-and-braces check that the editor is active
-      logWarn(pluginJson, 'moveParas: No selection found, so stopping.')
+      logError(pluginJson, 'moveParas: No selection found, so stopping.')
       return
     }
+
     // Get paragraph indexes for the start and end of the selection (can be the same)
     const [firstSelLineIndex, lastSelLineIndex] = selectedLinesIndex(selection, paragraphs)
     // Get paragraphs for the selection or block
-    let parasInBlock: Array<TParagraph>
     if (lastSelLineIndex !== firstSelLineIndex) {
+      // use only the selected paras
       logDebug(pluginJson, `moveParas: user has selected lineIndexes ${firstSelLineIndex}-${lastSelLineIndex}`)
       parasInBlock = selectedParagraphs.slice() // copy to avoid $ReadOnlyArray problem
     } else {
-      parasInBlock = getParagraphBlock(note, firstSelLineIndex, config.includeFromStartOfSection, config.useTightBlockDefinition)
+      // there is no user selection
+      // now see whether user wants to work on the surrounding block or not
+      if (withBlockContext) {
+        // user has requested working on the surrounding block
+        parasInBlock = getParagraphBlock(note, firstSelLineIndex, config.includeFromStartOfSection, config.useTightBlockDefinition)
+        logDebug(pluginJson, `moveParas: move block of ${parasInBlock.length} paras`)
+      } else {
+        // user just wants to move the current line
+        parasInBlock = selectedParagraphs.slice(0, 1) // just first para
+        logDebug(pluginJson, `moveParas: move current para only`)
+      }
 
       // Now attempt to highlight them to help user check all is well (but only works from v3.6.2 (approx build 841))
       if (NotePlan.environment.buildVersion > 841) {
@@ -148,7 +178,7 @@ export async function moveParas(): Promise<void> {
 
     const res = await CommandBar.showOptions(
       notes.map((n) => n.title ?? 'untitled'),
-      `Select note to move ${parasInBlock.length} lines to`,
+      `Select note to move ${(parasInBlock.length > 1) ? parasInBlock.length + ' lines' : 'current line'} to`,
     )
     const destNote = notes[res.index]
     // Note: showOptions returns the first item if something else is typed. And I can't see a way to distinguish between the two.
@@ -322,7 +352,6 @@ export async function moveParasToCalendarDate(destDate: Date): Promise<void> {
     logError(pluginJson, error.message)
   }
 }
-
 
 /**
  * Function to write text either to top of note, bottom of note, or after a heading

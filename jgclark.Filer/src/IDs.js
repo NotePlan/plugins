@@ -22,7 +22,7 @@ import { chooseHeading } from '@helpers/userInput'
  */
 export async function addIDAndAddToOtherNote(): Promise<void> {
   try {
-    const { content, paragraphs, selectedParagraphs, note } = Editor
+    const { note, content, paragraphs, selectedParagraphs } = Editor
     if (content == null || selectedParagraphs == null || note == null) {
       // No note open, or no selectedParagraph selection (perhaps empty note), so don't do anything.
       logWarn(pluginJson, 'No note open, so stopping.')
@@ -33,6 +33,7 @@ export async function addIDAndAddToOtherNote(): Promise<void> {
     const config = await getFilerSettings()
 
     // Get current paragraph
+    // TODO: why not use selectedParagraphs[0]?
     const firstSelParaIndex = getSelectedParaIndex()
     const para = paragraphs[firstSelParaIndex]
 
@@ -64,7 +65,7 @@ export async function addIDAndAddToOtherNote(): Promise<void> {
     logDebug(pluginJson, `- Will add to note '${displayTitle(destNote)}' under heading: '${headingToFind}'`)
 
     // Add text to the new location in destination note
-    await addParasAsText(destNote, selectedParasAsText, headingToFind, config.whereToAddInSection)
+    addParasAsText(destNote, selectedParasAsText, headingToFind, config.whereToAddInSection)
 
     // NB: handily, the blockId goes with it as part of the para.content
     // logDebug(pluginJson, `- Inserting 1 para at index ${insertionIndex} into ${displayTitle(destNote)}`)

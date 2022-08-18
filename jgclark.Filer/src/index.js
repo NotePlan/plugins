@@ -3,7 +3,7 @@
 // -----------------------------------------------------------------------------
 // Plugin to help move selected pargraphs to other notes
 // Jonathan Clark
-// Last updated 15.8.2022, for v0.9.1
+// Last updated 17.8.2022, for v1.0.0-beta1
 // -----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -14,6 +14,7 @@ import { showMessage } from '@helpers/userInput'
 
 export {
   moveParas,
+  moveParaBlock,
   moveParasToCalendarDate,
   moveParasToCalendarWeekly,
   moveParasToNextWeekly,
