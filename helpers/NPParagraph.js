@@ -3,7 +3,7 @@
 import { trimString } from './dataManipulation'
 import { hyphenatedDate } from './dateTime'
 import { toLocaleDateTimeString } from './NPdateTime'
-import { JSP, log, logDebug, logError, logWarn, timer } from './dev'
+import { JSP, log, logDebug, logError, clo, logWarn, timer } from './dev'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote, isTermInMarkdownPath, isTermInURL } from './paragraph'
 
 /**
@@ -495,8 +495,9 @@ export function getParagraphContainingPosition(note: CoreNoteFields, position: n
   const pluginJson = 'NPParagraph:getParagraphContainingPosition'
   note.paragraphs.forEach((p, i) => {
     if (typeof p.contentRange?.start === 'number' && typeof p.contentRange.end == 'number') {
-      if (p.contentRange.start && p.contentRange.end) {
+      if (p.contentRange.start >= 0 && p.contentRange.end >= 0) {
         const { start, end } = p.contentRange || {}
+        logDebug(pluginJson, `NPParagraph::getParagraphContaining start:${start} end:${end}`)
         if (start <= position && end >= position) {
           foundParagraph = p
           if (i > 0) {
@@ -512,6 +513,13 @@ export function getParagraphContainingPosition(note: CoreNoteFields, position: n
     }
   })
   if (!foundParagraph) {
+    if (position === 0 && note.paragraphs.length === 0) {
+      note.prependParagraph("\n", "empty") //can't add a line without a return
+      if (Editor === note) {
+        Editor.select(0,0) //put the cursor before the return we just added
+      }
+      return note.paragraphs[0]
+    }
     logDebug(pluginJson, `getParagraphContainingPosition: *** Looking for cursor position ${position}`)
     note.paragraphs.forEach((p, i) => {
       const { start, end } = p.contentRange || {}

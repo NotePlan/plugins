@@ -303,5 +303,30 @@ describe(`${FILE}`, () => {
         expect(result).toEqual(true)
       })
     })
+    /*
+     * formatWithFields()
+     */
+    describe('formatWithFields()' /* function */, () => {
+      test('should not replace anything with empty object', () => {
+        const template = `Sample {{foo}}`
+        const result = g.formatWithFields(template, {})
+        expect(result).toEqual(template)
+      })
+      test('should not replace anything with empty object', () => {
+        const template = `Sample {{foo}}`
+        const result = g.formatWithFields(template, {foo:"bar"})
+        expect(result).toEqual(`Sample bar`)
+      })
+      test('should replace multiple copies of the same string', () => {
+        const template = `{{foo}} Sample {{foo}}`
+        const result = g.formatWithFields(template, {foo:"bar"})
+        expect(result).toEqual(`bar Sample bar`)
+      })
+      test('should replace multiple strings', () => {
+        const template = `{{sam}} Sample {{foo}}`
+        const result = g.formatWithFields(template, {foo:"bar", sam:"baz"})
+        expect(result).toEqual(`baz Sample bar`)
+      })
+     })
   })
 })
