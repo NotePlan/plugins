@@ -6,6 +6,8 @@ See [CHANGELOG](https://github.com/NotePlan/plugins/blob/main/dwertheimer.MathSo
 
 ## About This Plugin 
 
+![mathblock](https://user-images.githubusercontent.com/8949588/185295717-81264273-2a13-444f-a416-193931a41039.gif)
+
 This Plugin allows you to write basic math with descriptive text in your NotePlan notes and calculate the values. The inspiration was the ever-useful [Soulver App](https://soulver.app/) and incorporates some great open-source code from [Lorenzo Corbella](https://github.com/LorenzoCorbella74/soulver-web).
 
 This Plugin searches the active document looking for "math" code blocks (aka Math Blocks) -- you can have as many Math Blocks on a page as you wish. When the Calculate command is run, all the Math Blocks on the page are calculated.
