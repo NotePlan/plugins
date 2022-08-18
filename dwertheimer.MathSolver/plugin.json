@@ -4,8 +4,8 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "dwertheimer.MathSolver",
   "plugin.name": "🟰 Math Solver",
-  "plugin.version": "1.0.0",
-  "plugin.lastUpdateInfo": "Initial release",
+  "plugin.version": "1.0.2",
+  "plugin.lastUpdateInfo": "Added [TotalsOnly] button. Removed annotations from basic assignment lines. Thx @QualitativeEasing!",
   "plugin.description": "Write basic math in your NotePlan notes and use this plugin to calculate it.",
   "plugin.author": "dwertheimer",
   "plugin.dependencies": [],
@@ -27,12 +27,23 @@
       ]
     },
     {
-      "COMMENT": "DO NOT INSERT ABOVE THIS COMMAND -- This command must be the first command in the array",
+      "COMMENT": "DO NOT INSERT ABOVE THIS COMMAND -- This command must be the second command in the array",
       "name": "Remove Math Annotations from Active Document",
       "description": "Remove Calculations placed by this plugin",
       "jsFunction": "removeAllAnnotations",
       "alias": [
         "clearAnnotations"
+      ],
+      "arguments": []
+    },
+    {
+      "COMMENT": "DO NOT INSERT ABOVE THIS COMMAND -- This command must be the third command in the array",
+      "name": "Calculate Totals Only",
+      "description": "Calculate Math Block (show totals only)",
+      "jsFunction": "calculateEditorMathBlocksTotalsOnly",
+      "alias": [
+        "mathTotals",
+        "mathCalcTotals"
       ],
       "arguments": []
     },
@@ -65,6 +76,13 @@
       "key": "includeCalc",
       "type": "bool",
       "description": "When a Math Block is inserted by the plugin, include a Calculate link/button",
+      "default": true
+    },
+    {
+      "title": "Include Totals button when inserting Math Block",
+      "key": "includeTotals",
+      "type": "bool",
+      "description": "When a Math Block is inserted by the plugin, include a Totals link/button (to show only totals and not the rest of the calculations)",
       "default": true
     },
     {

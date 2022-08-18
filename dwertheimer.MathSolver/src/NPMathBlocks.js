@@ -27,11 +27,17 @@ import { getCodeBlocksOfType } from '@helpers/codeBlocks'
  */
 export function formatOutput(results:Array<LineInfo>, formatTemplate:string = "{{originalText}} {{value}}"): Array<string> {
   const resultsWithStringValues = results.map(line => {
-    line.value = (line.lineValue === 0 || String(line.lineValue) === line.expression) ? '' : `//= ${String(line.lineValue)}` // eslint-disable-line eqeqeq
+    const isPctOf = /(\d*[\.,])?(\d+\s?)(as|as a)?(\s*%)(\s+(of)\s+)(\d*[\.,])?(\d+\s?)/g.test(line.originalText)
+    const isZero = line.lineValue === 0
+    const isNotCalc = (String(line.lineValue) === line.expression) && !isPctOf
+    const isNumericalAssignment = line.typeOfResult === "A" && !(/(\+|\-|\*|\/)+/.test(line.originalText))
+    line.value = (isZero || isNotCalc || isNumericalAssignment) ? '' : `//= ${String(line.lineValue)}` // eslint-disable-line eqeqeq
     // logDebug(pluginJson, `line.value: ${line.value} line.expression: ${line.expression}`)
     return line
   })
   const formatted = resultsWithStringValues.map(line => formatWithFields(formatTemplate, line))
+  logDebug(pluginJson,`Formatted data: ${JSON.stringify(resultsWithStringValues,null,2)}`)
+
   return formatted
 }
 
@@ -78,7 +84,7 @@ export function removeAnnotations(note:CoreNoteFields, blockData:$ReadOnly<CodeB
   if (updates.length) note.updateParagraphs(updates)
 }
 
-export function annotateResults(note:CoreNoteFields, blockData:$ReadOnly<CodeBlock>, results: Array<LineInfo>, template:string): void {
+export function annotateResults(note:CoreNoteFields, blockData:$ReadOnly<CodeBlock>, results: Array<LineInfo>, template:string, totalsOnly:boolean): void {
   const formatted = formatOutput(results,template) // writes .value using template?
   removeAnnotations(note, blockData)
   const updates = []
@@ -86,7 +92,8 @@ export function annotateResults(note:CoreNoteFields, blockData:$ReadOnly<CodeBlo
   for(let i = 0; i < blockData.paragraphs.length; i++) {
     const paragraph = blockData.paragraphs[i]
     const solverData = results[j]
-    if (solverData.value !== '') {
+    const shouldPrint = !totalsOnly || (totalsOnly && (solverData.typeOfResult === "T" || solverData.typeOfResult === "S"))
+    if (solverData.value !== '' && shouldPrint) {
       const comment = `  ${solverData.value}`
       clo(solverData, `annotateResults solverData`)
       logDebug(pluginJson,`$comment=${comment}`)
@@ -140,55 +147,76 @@ export function removeAllAnnotations(): void {
 }
 
 /**
+ * Generic math block processing function (can be called by calculate or totalsOnly)
+ * @param {string} incoming - math block text to process
+ * @param {boolean} totalsOnly - if true, only calculate totals (default: false)
+ */
+export async function calculateBlocks(incoming:string|null = null, totalsOnly:boolean = true): Promise<void> {
+  try {
+    const { popUpTemplate } = DataStore.settings
+    // get the code blocks in the editor
+      let codeBlocks = (incoming === '' || incoming === null) ? getCodeBlocksOfType(Editor, `math`) : [{ type: "unknown", code: incoming, startLineIndex: -1 }]
+      logDebug(pluginJson,`calculateEditorMathBlocks: codeBlocks.length: ${codeBlocks.length}`)
+    if (codeBlocks.length && Editor) {
+      for (let b =0; b < codeBlocks.length; b++) {
+        if (b>0) {
+          // get the codeblocks again because the line indexes may have changed if the last round made edits
+          codeBlocks = getCodeBlocksOfType(Editor,`math`)
+        }
+        const block = codeBlocks[b]
+        // clo(block,`calculateEditorMathBlocks block=`)
+        let currentData = {info: [], variables: {}, relations: [], expressions: [], rows: 0}
+        block.code.split("\n").forEach((line,i)=>{
+            currentData.rows = i+1
+            currentData = parse(line,i,currentData)
+        })
+        const totalData = parse("TOTAL",currentData.rows,currentData)
+        const t = totalData.info[currentData.rows]
+        const totalLine = {
+          "lineValue": t.lineValue,
+          "originalText": t.originalText,
+          "expression": t.expression,
+          "row": -1,
+          "typeOfResult": t.typeOfResult,
+          "typeOfResultFormat": t.typeOfResultFormat,
+          "value": t.value,
+          error: ''
+        }
+        // logDebug(pluginJson,`Final data: ${JSON.stringify(currentData,null,2)}`)
+        // TODO: Maybe add a total if there isn't one? But maybe people are not adding?
+        // if (currentData.info[currentData.info.length-1].typeOfResult !== "T") {
+        //   currentData = parse("total",i,currentData)
+        // }
+        // TODO: add user pref for whether to include total or not
+        await annotateResults(Editor,block,currentData.info,popUpTemplate,totalsOnly)
+        // await showResultsInPopup([totalLine,...currentData.info], popUpTemplate, `Block ${b+1}`)
+      }
+    } else {
+      const msg = `Did not find any 'math' code blocks in active editor`
+      logDebug(pluginJson,msg)
+      await showMessage(msg)
+    }  
+  } catch (error) {
+    logError(pluginJson, `calculateBlocks error: ${error}`)
+  }
+}
+
+/**
  * Calculate all the math blocks on the current page
  * (plugin entrypoint for command: /Calculate Math Code Blocks in Active Document)
  * @param {*} incoming 
  */
-export async function calculateEditorMathBlocks(incoming:string = '') {
+export async function calculateEditorMathBlocks(incoming:string|null = null) {
   try {
-  const { popUpTemplate } = DataStore.settings
-  // get the code blocks in the editor
-    let codeBlocks = (incoming === '' || incoming === null) ? getCodeBlocksOfType(Editor, `math`) : [{ type: "unknown", code: incoming, startLineIndex: -1 }]
-    logDebug(pluginJson,`calculateEditorMathBlocks: codeBlocks.length: ${codeBlocks.length}`)
-  if (codeBlocks.length && Editor) {
-    for (let b =0; b < codeBlocks.length; b++) {
-      if (b>0) {
-        // get the codeblocks again because the line indexes may have changed if the last round made edits
-        codeBlocks = getCodeBlocksOfType(Editor,`math`)
-      }
-      const block = codeBlocks[b]
-      // clo(block,`calculateEditorMathBlocks block=`)
-      let currentData = {info: [], variables: {}, relations: [], expressions: [], rows: 0}
-      block.code.split("\n").forEach((line,i)=>{
-          currentData.rows = i+1
-          currentData = parse(line,i,currentData)
-      })
-      const totalData = parse("TOTAL",currentData.rows,currentData)
-      const t = totalData.info[currentData.rows]
-      const totalLine = {
-        "lineValue": t.lineValue,
-        "originalText": t.originalText,
-        "expression": t.expression,
-        "row": -1,
-        "typeOfResult": t.typeOfResult,
-        "typeOfResultFormat": t.typeOfResultFormat,
-        "value": t.value,
-        error: ''
-      }
-      logDebug(pluginJson,`Final data: ${JSON.stringify(currentData)}`)
-      // TODO: Maybe add a total if there isn't one? But maybe people are not adding?
-      // if (currentData.info[currentData.info.length-1].typeOfResult !== "T") {
-      //   currentData = parse("total",i,currentData)
-      // }
-      // TODO: add user pref for whether to include total or not
-      await annotateResults(Editor,block,currentData.info,popUpTemplate)
-      // await showResultsInPopup([totalLine,...currentData.info], popUpTemplate, `Block ${b+1}`)
-    }
-  } else {
-    const msg = `Did not find any 'math' code blocks in active editor`
-    logDebug(pluginJson,msg)
-    await showMessage(msg)
+    await calculateBlocks(incoming,false)
+  } catch (error) {
+    logError(pluginJson,error)
   }
+}
+
+export async function calculateEditorMathBlocksTotalsOnly(incoming:string|null = null) {
+  try {
+    await calculateBlocks(incoming,true)    
   } catch (error) {
     logError(pluginJson,error)
   }
@@ -200,12 +228,14 @@ export async function calculateEditorMathBlocks(incoming:string = '') {
  */
 export async function insertMathBlock() {
   try {
-    const {includeCalc,includeClear} = DataStore.settings
+    const {includeCalc,includeClear, includeTotals} = DataStore.settings
     // NOTE: this relies on the calculate command being the first in the list in plugin.json
     const calcLink = includeCalc ? `[Calculate](${createRunPluginCallbackUrl(pluginJson['plugin.id'], pluginJson['plugin.commands'][0].name)})` : ''
     const clrLink = includeClear ? `[Clear](${createRunPluginCallbackUrl(pluginJson['plugin.id'], pluginJson['plugin.commands'][1].name)})` : ''
+    const totLink = includeTotals ? `[Totals](${createRunPluginCallbackUrl(pluginJson['plugin.id'], pluginJson['plugin.commands'][2].name)})` : ''
     let buttonLine = includeClear ? clrLink : ''
-    buttonLine = includeCalc ? `${buttonLine + (includeClear ? ` ` : '')  }${  calcLink}` : buttonLine
+    buttonLine = includeCalc ? `${buttonLine + (includeClear ? ` ` : '')}${calcLink}` : buttonLine
+    buttonLine = includeTotals ? `${buttonLine + (includeClear || includeCalc ? ` ` : '')}${totLink}` : buttonLine
     buttonLine = buttonLine.length ? `${buttonLine}\n` : ''
     const onLine = getParagraphContainingPosition(Editor, Editor.selection.start)
     const returnIfNeeded = onLine?.type !== "empty" ? "\n" : ""

@@ -87,6 +87,12 @@ describe('dwertheimer.MathSolver' /* pluginID */, () => {
         const result = s.parse(str,0,currentData)
         expect(result.variables['R0']).toEqual(24.20)
       })
+      test('should work for percentages 10%', () => {
+        const str = "10%"
+        const currentData = {info: [], variables: {}, relations: [], expressions: []}
+        const result = s.parse(str,0,currentData)
+        expect(result.variables['R0']).toEqual(.1)
+      })
       test('should work for +10%', () => {
         const str = "10 + 10%"
         const currentData = {info: [], variables: {}, relations: [], expressions: []}

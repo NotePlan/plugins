@@ -20,9 +20,21 @@ This will (as the name implies) insert a "Math Block" in your document and a "Ca
 
 ## Buttons/Links
 
-- Clicking/tapping `Calculate` button will recalculate any Math Blocks in the currently active document
+- Clicking/tapping `Calculate` button will recalculate any Math Blocks in the currently active document, showing work on any line there are calculations. 
 
 - The `Clear` button will clear any previous calculations/comments previously placed on the page by the plugin. Note: because recalculating is not automatic (you have to click/tap Calculate), it's a good habit to click "Clear" before you change/add/remove numbers in your Math Block so that you remember to recalculate and don't end up with stale calculations.
+
+- the `Totals` button will do the same as `Calculate` but will not show work along the way. You will only see annotated results next to "subtotal" or "total" lines. e.g.:
+```math
+1+2
+1
+subtotal  //= 4
+2
+total  //= 6
+```
+
+> **Note**
+> It is generally a good idea to click "Calculate" just so you know the math parser understood your intended calculations correctly. You can then immediately click "Totals" to hide the line-by-line verifications and show the totals only.
 
 ## Basic Numbers
 - Placing basic numbers on a line works like a calculator (e.g. 2 * 3 * 5)
