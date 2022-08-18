@@ -1,6 +1,6 @@
 # What's Changed in 🕸 Map of Contents plugin?
 
-## [0.2.2] - 2022-07-22
+## [0.2.2] - 2022-08-18
 ### Changed
 - updated to newer logging framework. No functional changes, I think.
 

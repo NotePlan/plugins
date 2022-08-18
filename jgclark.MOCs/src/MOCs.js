@@ -1,6 +1,6 @@
 // @flow
 //-----------------------------------------------------------------------------
-// Last updated 24.7.2022 for v0.2.2+, @jgclark
+// Last updated 27.7.2022 for v0.2.2+, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -8,7 +8,7 @@ import {
   gatherMatchingLines,
   replaceContentUnderHeading
 } from '@helpers/NPParagraph'
-import { clo, logInfo, logDebug, logError, logWarn } from '@helpers/dev'
+import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
 import {
@@ -20,10 +20,10 @@ import {
 
 //-------------------------------------------------------------------------------
 
-const configKey = 'mocs'
+const pluginID = 'jgclark.MOCs'
 
 export type headingLevelType = 1 | 2 | 3 | 4 | 5
-export type MOCsConfig = {
+export type MOCsConfigType = {
   caseInsensitive: boolean,
   foldersToExclude: Array<string>,
   headingLevel: headingLevelType,
@@ -35,22 +35,21 @@ export type MOCsConfig = {
 /**
  * Get config settings using Config V2 system. (Have now removed support for Config V1.)
  *
- * @return {MOCsConfig} object with configuration
+ * @return {MOCsConfigType} object with configuration
  */
-export async function getMOCsSettings(): Promise<any> {
+export async function getMOCsSettings(): Promise<any> { // want to use 'Promise<MOCsConfigType>' but too many Flow problems result
   logDebug(pluginJson, `Start of getMOCsSettings()`)
   try {
     // Get settings using ConfigV2
-    const v2Config: MOCsConfig = await DataStore.loadJSON('../jgclark.MOCs/settings.json')
-    clo(v2Config, `${configKey} settings from V2:`)
+    const v2Config: MOCsConfigType = await DataStore.loadJSON(`../${pluginID}/settings.json`)
+    clo(v2Config, `${pluginID} settings:`)
 
     if (v2Config == null || Object.keys(v2Config).length === 0) {
-      throw new Error(`Cannot find settings for '${configKey}' plugin`)
+      throw new Error(`Cannot find settings for '${pluginID}' plugin`)
     }
     return v2Config
   } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
-    return null // for completeness
   }
 }
 
@@ -63,8 +62,8 @@ export async function getMOCsSettings(): Promise<any> {
  */
 export async function makeMOC(filenameArg?: string, termsArg?: string): Promise<void> {
   try {
-  // get relevant settings
-  const config = await getMOCsSettings()
+    // get relevant settings
+    const config: MOCsConfigType = await getMOCsSettings()
     let termsToMatch = []
     let termsToMatchStr = ''
     let noteFilename = ''
@@ -143,11 +142,11 @@ export async function makeMOC(filenameArg?: string, termsArg?: string): Promise<
     }
 
     // Add an x-callback link under the title to allow this MOC to be re-created
-    const xCallbackLine = `[Click to refresh these results](noteplan://x-callback-url/runPlugin?pluginID=jgclark.MOC&command=make%20MOC&arg0=${encodeURIComponent(noteFilename)}&arg1=${encodeURIComponent(termsToMatchStr)})`
+    const xCallbackLine = `[🔄 Click to refresh](noteplan://x-callback-url/runPlugin?pluginID=jgclark.MOC&command=make%20MOC&arg0=${encodeURIComponent(noteFilename)}&arg1=${encodeURIComponent(termsToMatchStr)})`
     // Either replace the existing line that starts the same way, or insert a new line after the title, so as not to disrupt any other section headings
     const line1content = (note.paragraphs.length >= 2) ? note.paragraphs[1].content : ''
     logDebug(pluginJson, line1content)
-    if (line1content?.startsWith('[Click to refresh these results](noteplan://x-callback-url/')) {
+    if (line1content?.startsWith('[🔄Click to refresh](noteplan://x-callback-url/')) {
       logDebug(pluginJson, 'update xcallback at line 1')
       note.paragraphs[1].content = xCallbackLine
       note.updateParagraph(note.paragraphs[1])
