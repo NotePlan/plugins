@@ -1188,19 +1188,29 @@ declare interface Note extends CoreNoteFields {
  * Ranges are used when you deal with selections or need to know where a
  * paragraph is in the complete text.
  */
-declare interface Range {
+declare var Range: TRange
+declare interface TRange {
   /**
-   * Character start index of the range.
+   * Character start index of the range. (Get or set.)
    */
-  +start: number;
+  start: number;
   /**
-   * Character end index of the range.
+   * Character end index of the range. (Get or set.)
    */
-  +end: number;
+  end: number;
   /**
-   * Character length of the range (end - start).
+   * Character length of the range (end - start). (Get only.)
    */
   +length: number;
+/**
+ * Create an instance of a Range object with the start and end positions. 
+ * The length variable is calculated automatically and doesn't have to be set.
+ * Example: Range.create(0, 10) 
+* @param {number} start
+* @param {number} end
+* @returns {Range}
+*/
+create(start: number, end: number): Range;
 }
 
 type CalenderItemType = 'event' | 'reminder'
