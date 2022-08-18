@@ -3,13 +3,13 @@
   "noteplan.minAppVersion": "3.5.0",
   "plugin.id": "np.MeetingNotes",
   "plugin.name": "✍️ Meeting Notes",
-  "plugin.version": "0.0.1",
+  "plugin.version": "1.0.1",
   "plugin.description": "Create Meeting Notes from events using templates.",
   "plugin.author": "NotePlan",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "CorePlugins",
-  "plugin.hidden": true,
+  "plugin.hidden": false,
   "plugin.commands": [
     {
       "name": "newMeetingNote",
@@ -22,6 +22,28 @@
       "description": "Inserts a template into the current note",
       "jsFunction": "insertNoteTemplate",
       "hidden": true
+    }
+  ],
+  "plugin.settings": [
+    {
+      "key": "_pluginID",
+      "type": "hidden",
+      "default": "np.MeetingNotes"
+    },
+    {
+      "key": "_logLevel",
+      "type": "string",
+      "title": "Log Level",
+      "choices": [
+        "DEBUG",
+        "LOG",
+        "WARN",
+        "ERROR",
+        "none"
+      ],
+      "description": "Set how much output will be displayed for this plugin the NotePlan > Help > Plugin Console. DEBUG is the most verbose; NONE is the least (silent)",
+      "default": "LOG",
+      "required": true
     }
   ]
 }
