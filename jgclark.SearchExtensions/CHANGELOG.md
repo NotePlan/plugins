@@ -1,25 +1,45 @@
 # What's Changed in 🔎 Search Extensions plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions).)
+<!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 
-## [0.5.0] - 2022-08-???
+## [1.0.0-beta1] - 2022-08-19
+### Changed
+- **This is a major re-write, so read carefully!**
+- simplified most command names from `saveSearch*` to just `search*`
 ### Added
-- Major new version, that now supports `+` and `-` search operators for terms that **must** appear, and **must not** appear, respectively.  For example `+must may could -cannot"` has 4 search terms, the first must be present, the last mustn't be present, and the middle two (may, could) can be.
-- the test for + and - is done per line in notes. If you wish to ignore the whole note that has a term, you can use the ! operator, e.g. `+must !not-me`. (thanks @dwertheimer for this suggestion)
-- you can now refresh results in a single click, with the " [🔄 Click to refresh results]" pseudo-button under the heading on each search page
-- searches now run over Weekly Notes as well (now the underlying API has been extended)
+- Major new version, that now supports `+` and `-` search operators for terms that **must** appear, and **must not** appear, respectively.  For example `+must may could -cannot` has 4 search terms, the first must be present, the last mustn't be present, and the middle two (may, could) can be.  The test for + and - is done per line in notes. If you wish to ignore the whole note that has a term, you can use the ! operator, e.g. `+must !not-me`. (thanks @dwertheimer for this suggestion)
+- you can now refresh results in a single click, with the " [🔄 Click to refresh results]" pseudo-button under the heading on each search page.
+- searches run over the new Weekly Notes as well.
+- `"multi word"` search phrases aren't supported by the underlying API, but instead they will be treated as `+multi +word`, which means a match will only happen if they are at least on the same line.
 - provides x-callback entry points for these searches, and provides options for restricting searches to certain types of line -- see the [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions) for details.
 - added an API call for this that also allows restricting search to one or more paragraph types (e.g. 'open' for incomplete tasks), through the last parameter on `runSearchV2(...)`.
 
-**Notes for beta7** (2022-08-???):
-- [ ] update code to reflect NP not supporting search phrases
-- [ ] why ""{\"noteFilename\":\"20210519.md\",\"line\":\"- Kate Dean #picture big tap but dripping one drop at a time. Arrow pointing to tap, showing it’s not turned on far at all. → openness to Holy Spirit\"}",` getting output as an empty bullet?
+___Your feedback is most welcome!___
+
+<!-- 
+### Todo
+- [ ] tidy up display in special case of matching H1
 - [ ] go through TODOs in searchHelpers.js
 - [ ] go through TODOs in saveSearch.js
 - [ ] go through TODOs in saveSearchPeriod.js
+- [ ] why ""{\"noteFilename\":\"20210519.md\",\"line\":\"- KD #picture big tap but dripping one drop at a time. Arrow pointing to tap, showing it's not turned on far at all. -> openness to Holy Spirit\"}",` getting output as an empty bullet?
+- [ ] why ["improving documentation"] (-> [+improving +documentation]) doesn't have both terms highlit in 20220407?
+-->
+
+<!--
+## Notes on earlier private 0.5.0-beta series
+**Notes for beta7** (2022-08-19):
+- [x] simplify command names from `saveSearch*` to just `search*`
+- [x] resolve API question about `multi word` search phrases -> not supported in API
+  - [x] update README to reflect NP not supporting search phrases directly
+  - [x] modify code to change `"multi word"` search phrases to `+multi +word` instead
+- [x] make rendering smarter by not adding ==...== around existing ==...== (for @dwertheimer)
+- [-] move some searchHelper functions to helpers/search
 
 **Notes for beta6** (2022-08-08):
 - [-] check edge case of hit in URL (e.g. [callback] in note 2022-02-70) -- failed to find cause
 - [x] fix [release] finding an '(error)' title note (actually: 20210830)
+- [x] decide whether to support showEmptyResults option still
 - [x] fix [callback] case: end may 32/20, then end not 29/20, when no not term?
 - [x] check to see if notInFolder param is working
 - [x] update doc to reflect NP not supporting search phrases
@@ -42,6 +62,7 @@
 - [x] rewrite to use de-normalised main data structure part (noteAndLine vs noteAndLines)
 - [x] fix when results are only found in 1 note
 - [x] actually use the new simplifyRawContent() function, not just test it!
+- [x] update plugin.json function parameters
 - [x] tested /quickSearch
   - [x] basic user command
   - [x] can use button to repeat to same note
@@ -80,25 +101,11 @@
 
 **Notes for beta1** (2022-07-22):
 - I've only really tested the /quickSearch command so far
-
-**Still TODO:**:
-- finish test for applySearchOperators
-- resolve API question about multi-word search phrases
-- support `"multi-word terms"`
-- decide whether to support case insensitivity option still
-- decide whether to support showEmptyResults option still, or just turn on?
-- hook up x-callback for calendar-only searching
-- properly test x-callbacks
-- update plugin.json function parameters
-- update README
-- shift some functions and tests to helpers/search.
-- tidy up display in special case of matching H1
-
-___your feedback is most welcome!___
+-->
 
 ## [0.4.1] - 2022-07-11
 ### Added
-- new command **/quickSearch** which searches over all notes and shows the results in a fixed results note, whose title is given by new setting '/quickSearch note title' (default: Quick Search Results)
+- new command **/quickSearch** which searches over all notes and shows the results in a fixed results note, whose title is given by new setting '/quickSearch note title' (default: `Quick Search Results`)
 ### Changed
 - much speedier searches, now it can take advantage of NotePlan improvements in build 813+
 ### Fixed
@@ -122,5 +129,6 @@ ___your feedback is most welcome!___
 ## [0.1.0] - 2022-07-02
 First release, with commands from earlier Summaries plugin.
 ### Changes
-- speeded up the **/saveSearchResults** **/saveSearchResultsInPeriod** commands significantly. (Under the hood the plugin now uses an API that takes advantage of caching.)
+- speeded up the **/saveSearchResults** and **/saveSearchResultsInPeriod** commands significantly. (Under the hood the plugin now uses an API that takes advantage of caching.)
 - now trims the display of matching results in search output, but still highlights the matched terms
+

@@ -4,7 +4,7 @@
 // Jonathan Clark
 //-----------------------------------------------------------------------------
 
-import { clo, logDebug } from '@helpers/dev'
+import { clo, logDebug, logError } from '@helpers/dev'
 
 /**
  * Perform string match, ignoring case
@@ -145,63 +145,69 @@ export function trimAndHighlightTermInLine(
   resultPrefix: string = '- ',
   maxChars: number = 0
 ): string {
-  let output = ''
+  try {
+    let output = ''
 
-  // Take off starting markdown markers, and right trim
-  const startOfMainLineContentPos = getLineMainContentPos(input)
-  const startOfLineMarker = input.slice(0, startOfMainLineContentPos)
-  let mainPart = input.slice(startOfMainLineContentPos)
+    // Take off starting markdown markers, and right trim
+    const startOfMainLineContentPos = getLineMainContentPos(input)
+    const startOfLineMarker = input.slice(0, startOfMainLineContentPos)
+    let mainPart = input.slice(startOfMainLineContentPos)
 
-  // Simplify rawContent line by trimming off leading chars
-  mainPart = simplifyRawContent(mainPart)
+    // Simplify rawContent line by trimming off leading chars
+    mainPart = simplifyRawContent(mainPart)
 
-  // Now trim the line content if necessary
-  if (maxChars > 0 && mainPart.length > maxChars) {
-    // this split point ensures we put the term with a little more context before it than after it
-    const LRSplit = Math.round(maxChars * 0.55)
-    // regex:
-    const re = new RegExp(`(?:^|\\b)(.{0,${String(LRSplit)}}${terms.join('|')}.{0,${String(maxChars - LRSplit)}})\\b\\w+`, "gi")
-    const matches = mainPart.match(re) ?? [] // multiple matches
-    if (matches.length > 0) {
-      // If we have more than 1 match in the line, join the results together with '...'
-      output = matches.join(' ...')
-      // If starts with a non-word character, then (it's approximately right that) we have landed in the middle of sentence, so prepend '...'
-      if (output.match(/^\W/)) {
-        output = `...${output}`
+    // Now trim the line content if necessary
+    if (maxChars > 0 && mainPart.length > maxChars) {
+      // this split point ensures we put the term with a little more context before it than after it
+      const LRSplit = Math.round(maxChars * 0.55)
+      // regex:
+      const re = new RegExp(`(?:^|\\b)(.{0,${String(LRSplit)}}${terms.join('|')}.{0,${String(maxChars - LRSplit)}})\\b\\w+`, "gi")
+      const matches = mainPart.match(re) ?? [] // multiple matches
+      if (matches.length > 0) {
+        // If we have more than 1 match in the line, join the results together with '...'
+        output = matches.join(' ...')
+        // If starts with a non-word character, then (it's approximately right that) we have landed in the middle of sentence, so prepend '...'
+        if (output.match(/^\W/)) {
+          output = `...${output}`
+        }
+        // If we now have a shortened string, then (it's approximately right that) we have trimmed off the end, so append '...'
+        if (output.length < mainPart.length) {
+          output = `${output} ...`
+        }
+        //
+      } else {
+        // For some reason we didn't find the matching term, so return the first part of line
+        output = (output.length >= maxChars) ? output.slice(0, maxChars) : output
       }
-      // If we now have a shortened string, then (it's approximately right that) we have trimmed off the end, so append '...'
-      if (output.length < mainPart.length) {
-        output = `${output} ...`
-      }
-      //
     } else {
-      // For some reason we didn't find the matching term, so return the first part of line
-      output = (output.length >= maxChars) ? output.slice(0, maxChars) : output
+      // just pass mainPart through to output:
+      output = mainPart
     }
-  } else {
-    // just pass mainPart through to output:
-    output = mainPart
-  }
 
-  // Now add on the appropriate prefix
-  output = ((simplifyLine) ? resultPrefix : startOfLineMarker) + output
+    // Now add on the appropriate prefix
+    output = ((simplifyLine) ? resultPrefix : startOfLineMarker) + output
 
-  // Add highlighting if wanted (using defined Regex so can use 'g' flag)
-  // (A simple .replace() command doesn't work as it won't keep capitalisation)
-  if (addHighlight) {
-    // regex: find any of the match terms in all the text
-    const re = new RegExp(`(?:[^=](${terms.join('|')})[^=])`, "gi")
-    const termMatches = output.matchAll(re)
-    let offset = 0
-    for (const tm of termMatches) {
-      // logDebug('search/trimAndHighlight', `${tm[0]}, ${tm[0].length}, ${tm.index}, ${offset}`)
-      const leftPos = tm.index + offset + 1 // last adds previous ==...== additions
-      const rightPos = leftPos + tm[1].length // as terms change have to get feedback from this match
-      const highlitOutput = `${output.slice(0, leftPos)}==${output.slice(leftPos, rightPos)}==${output.slice(rightPos,)}`
-      output = highlitOutput
-      // logDebug('search/trimAndHighlight', `highlight ${highlitOutput}`)
-      offset += 4
+    // Add highlighting if wanted (using defined Regex so can use 'g' flag)
+    // (A simple .replace() command doesn't work as it won't keep capitalisation)
+    if (addHighlight) {
+      // regex: find any of the match terms in all the text
+      const re = new RegExp(`(?:[^=](${terms.join('|')})[^=])`, "gi")
+      const termMatches = output.matchAll(re)
+      let offset = 0
+      for (const tm of termMatches) {
+        // logDebug('search / trimAndHighlight', `${tm[0]}, ${tm[0].length}, ${tm.index}, ${offset}`)
+        const leftPos = tm.index + offset + 1 // last adds previous ==...== additions
+        const rightPos = leftPos + tm[1].length // as terms change have to get feedback from this match
+        const highlitOutput = `${output.slice(0, leftPos)}==${output.slice(leftPos, rightPos)}==${output.slice(rightPos,)}`
+        output = highlitOutput
+        // logDebug('search / trimAndHighlight', `highlight ${highlitOutput}`)
+        offset += 4
+      }
     }
+    return output
   }
-  return output
+  catch (error) {
+    logError('search / trimAndHighlight', error.message)
+    return 'error' // for completeness
+  }
 }

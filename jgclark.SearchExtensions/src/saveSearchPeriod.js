@@ -52,7 +52,7 @@ import { chooseOption, getInput, showMessage } from '@helpers/userInput'
  * @param {string?} paraTypeFilterArg optional list of paragraph types to filter by
  * @param {string?} destinationArg optional output desination indicator: 'quick', 'current', 'newnote', 'log'
  */
-export async function saveSearchPeriod(
+export async function searchPeriod(
   searchTermsArg?: string,
   fromDateArg?: string = 'default',
   toDateArg?: string = 'default',
@@ -241,7 +241,7 @@ export async function saveSearchPeriod(
           // let noteFilename = ''
           const titleToMatch = `${termsToMatchStr} ${config.searchHeading}`
           const requestedTitle = `${termsToMatchStr} ${config.searchHeading} for ${periodString}${periodPartStr !== '' ? ` (at ${periodPartStr})` : ''}`
-          const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearchInPeriod&arg0=${encodeURIComponent(termsToMatchStr)}&arg1=${fromDateStr}&arg2=${toDateStr}&arg3=${paraTypeFilterArg}&arg4=${destinationArg ?? ''}`
+          const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=searchInPeriod&arg0=${encodeURIComponent(termsToMatchStr)}&arg1=${fromDateStr}&arg2=${toDateStr}&arg3=${paraTypeFilterArg}&arg4=${destinationArg ?? ''}`
 
           // normally I'd use await... in the next line, but can't as we're now in then...
           // TODO: wrong display of result counts in subhead

@@ -3,13 +3,13 @@
   "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.SearchExtensions",
   "plugin.name": "🔎 Search Extensions",
-  "plugin.description": "Save search results. Click link for more details and settings.",
+  "plugin.description": "Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. Click link for more details and settings.",
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.SearchExtensions/CHANGELOG.md",
-  "plugin.version": "0.5.0-beta6",
-  "plugin.lastUpdateInfo": "Big speed up. Now supports search operators: + (must match) - (can't match in line) ! (can't match in note) in place of just 'OR'.",
+  "plugin.version": "1.0.0-beta1",
+  "plugin.lastUpdateInfo": "Major new version, with big speed up, and new commands. Now supports search operators: + (must match) - (can't match in line) ! (can't match in note) in place of just 'OR'.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -30,29 +30,29 @@
       ]
     },
     {
-      "name": "saveSearch",
+      "name": "search",
       "alias": [
         "ss",
-        "save",
-        "search"
+        "save"
       ],
       "description": "Save results from a search over all notes",
-      "jsFunction": "saveSearchOverAll",
+      "jsFunction": "searchOverAll",
       "arguments": [
         "search term(s) (separated by commas)",
         "terms to filter by paragraph type (separated by commas)"
       ]
     },
     {
-      "name": "saveSearchInPeriod",
+      "name": "searchInPeriod",
       "alias": [
+        "save",
         "calendar",
         "search",
         "daily",
         "weekly"
       ],
       "description": "Save results from a search of specified tags or mentions over Calendar notes from a time period",
-      "jsFunction": "saveSearchPeriod",
+      "jsFunction": "searchPeriod",
       "arguments": [
         "search term(s) (separated by commas)",
         "start date to search over (YYYYMMDD or YYYY-MM-DD). If not given, then defaults to 3 months ago",
@@ -61,32 +61,38 @@
       ]
     },
     {
-      "name": "saveSearchOverCalendar",
+      "name": "searchOverCalendar",
       "alias": [
+        "save",
         "period",
         "search",
         "daily",
         "weekly"
       ],
       "description": "Save results from a search of specified tags or mentions over all Calendar notes",
-      "jsFunction": "saveSearchOverCalendar",
+      "jsFunction": "searchOverCalendar",
       "arguments": [
         "search term(s) (separated by commas)",
         "terms to filter by paragraph type (separated by commas)"
       ]
     },
     {
-      "name": "saveSearchOverNotes",
+      "name": "searchOverNotes",
       "alias": [
         "save",
         "search"
       ],
       "description": "Save results from a search over all project notes",
-      "jsFunction": "saveSearchOverNotes",
+      "jsFunction": "searchOverNotes",
       "arguments": [
         "terms to filter by paragraph type (separated by commas)",
         "search term(s) (separated by commas)"
       ]
+    },
+    {
+      "name": "test:updateSearchPlugin",
+      "description": "test:updateSearchPlugin",
+      "jsFunction": "onUpdateOrInstall"
     }
   ],
   "plugin.settings": [
@@ -189,7 +195,10 @@
       "title": "Style for search result lines",
       "description": "Choose the style to use:\n- Normal 'NotePlan' styling, showing tasks, bullets and quotes, tweaked slightly for matching headings\n- Use 'Simplified' text (like Google results)\n",
       "type": "string",
-      "choices": ["NotePlan", "Simplified"],
+      "choices": [
+        "NotePlan",
+        "Simplified"
+      ],
       "default": "NotePlan-style",
       "required": true
     },
@@ -199,7 +208,7 @@
       "description": "String to put at the start of each search result line (where Style is 'Simplified'). Default is '- '. Can also be empty.",
       "type": "string",
       "default": "- ",
-      "required": true
+      "required": false
     },
     {
       "key": "resultQuoteLength",
@@ -260,13 +269,19 @@
       "required": false
     },
     {
-        "key": "_logLevel",
-        "title": "Log Level",
-        "description": "Set how much output will be displayed for this plugin in the NotePlan > Help > Plugin Console. DEBUG is the most verbose; NONE is the least (silent).",
-        "type": "string",
-        "choices": ["DEBUG","INFO","WARN","ERROR","none"],
-        "default": "INFO",
-        "required": true
+      "key": "_logLevel",
+      "title": "Log Level",
+      "description": "Set how much output will be displayed for this plugin in the NotePlan > Help > Plugin Console. DEBUG is the most verbose; NONE is the least (silent).",
+      "type": "string",
+      "choices": [
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "none"
+      ],
+      "default": "INFO",
+      "required": true
     }
   ]
 }

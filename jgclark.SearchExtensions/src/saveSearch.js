@@ -37,33 +37,33 @@ import {
 /**
  * Call the main function, searching over all notes.
  */
-export async function saveSearchOverAll(searchTermsArg?: string, paraTypeFilterArg?: string): Promise<void> {
+export async function searchOverAll(searchTermsArg?: string, paraTypeFilterArg?: string): Promise<void> {
   await saveSearch(
     searchTermsArg ?? undefined,
     'both',
-    'saveSearch', // the command name, not the called function
+    'saveSearch',
     paraTypeFilterArg ?? undefined)
 }
 
 /**
  * Call the main function, but requesting only Calendar notes be searched.
  */
-export async function saveSearchOverCalendar(searchTermsArg?: string, paraTypeFilterArg?: string): Promise<void> {
+export async function searchOverCalendar(searchTermsArg?: string, paraTypeFilterArg?: string): Promise<void> {
   await saveSearch(
     searchTermsArg ?? undefined,
     'calendar',
-    'saveSearchOverCalendar',
+    'searchOverCalendar',
     paraTypeFilterArg ?? undefined)
 }
 
 /**
  * Call the main function, but requesting only Project notes be searched.
  */
-export async function saveSearchOverNotes(searchTermsArg?: string, paraTypeFilterArg?: string): Promise<void> {
+export async function searchOverNotes(searchTermsArg?: string, paraTypeFilterArg?: string): Promise<void> {
   await saveSearch(
     searchTermsArg ?? undefined,
     'notes',
-    'saveSearchOverNotes',
+    'searchOverNotes',
     paraTypeFilterArg ?? undefined)
 }
 
@@ -86,7 +86,7 @@ export async function quickSearch(searchTermsArg?: string, paraTypeFilterArg?: s
  * @param {string} noteTypesToInclude either 'project','calendar' or 'both' -- as string not array
  * @param {string?} searchTermsArg optional comma-separated list of search terms to search
  * @param {string?} originatorCommand optional output desination indicator: 'quick', 'current', 'newnote', 'log'
-* @param {string?} paraTypeFilterArg optional list of paragraph types to filter by
+ * @param {string?} paraTypeFilterArg optional list of paragraph types to filter by
 */
 export async function saveSearch(
   searchTermsArg?: string,

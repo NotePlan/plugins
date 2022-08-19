@@ -124,13 +124,18 @@ export async function getSearchSettings(): Promise<any> {
 
 /**
 * Take a simple string as search input and process it to turn into an array of strings ready to validate and type.
+* Quoted multi-word search terms (e.g. ["Bob Smith"]) are by default treated as [+Bob +Smith] as I now discover the API doesn't support quoted multi-word search phrases (from beta7).
 * @author @jgclark
 * @param {string | Array<string>} searchArg string containing search term(s) or array of search terms
+* @param {boolean?} modifyQuotedTermsToAndedTerms 
 * @returns {Array<string>} normalised search term(s)
 * @tests in jest file
 */
-export function normaliseSearchTerms(searchArg: string): Array<string> {
-  logDebug("normaliseSearchTerms()", `starting for [${searchArg}]`)
+export function normaliseSearchTerms(
+  searchArg: string,
+  modifyQuotedTermsToAndedTerms?: boolean = true
+): Array<string> {
+  logDebug("normaliseSearchTerms()", `starting for [${searchArg}] with modifyQuotedTermsToAndedTerms ${String(modifyQuotedTermsToAndedTerms)}`)
   let outputArray = []
   // Take a simple string and process it to turn into an array of string, according to one of several schemes:
   if (!searchArg.match(/\w{3,}/)) {
@@ -144,23 +149,45 @@ export function normaliseSearchTerms(searchArg: string): Array<string> {
     return []
   }
 
+  // change simple form [x,y,z] style -> array of x,y,z
   if (searchArg.match(/\w{3,}\s*,\s*\w{3,}/)) {
-    // this is of form 'x,y,z'
     outputArray = searchArg.split(/\s*,\s*/)
   }
 
+  // change simple form [x AND y ...] (but not OR) style -> array of +x,+y,+z
   else if (searchArg.match(/\sAND\s/) && !searchArg.match(/\sOR\s/)) {
-    // this is of form 'x AND y ...' (but not OR)
     outputArray = searchArg.split(/\sAND\s/).map((s) => `+${s}`)
   }
 
+  // change simple form [x OR y ...] (but not AND) style -> array of x,y,z
   else if (searchArg.match(/\sOR\s/) && !searchArg.match(/\sAND\s/)) {
-    // this is of form 'x OR y ...' (but not AND)
     outputArray = searchArg.split(/\sOR\s/)
   }
 
+  // // As we want to modify quoted phrases to +words, Go through terms to find multi-word ones, and change to individual + terms
+  // else if (modifyQuotedTermsToAndedTerms) {
+  //   const reResults = searchArg.match(/(?:[^!+-])(?:([\"'])(.+?)\1)/g)
+  //   if (reResults) {
+  //     for (const r of reResults) {
+  //       // the match groups are
+  //       // 0/total matches [ "word1 word2"]
+  //       // 1 first of matching pair of quotes
+  //       // 2 phrase in quotes
+  //       // modify searchArg to make +words instead
+  //       const innerTerms = r[2].split(' ')
+  //       for (const t of innerTerms) {
+  //         outputArray.push(`+${t}`)
+  //       }
+  //     }
+  //   }
+
+  //   // Now need to add terms not in quotes
+  //   // ???
+
+  // }
+
+  // else treat as [x y z], with or without quoted phrases.
   else {
-    // else treat as 'x y z', with or without quoted phrases.
     // Features of this regex:
     // - Deal with double or single - quoted phrases plus words not in quotes
     // - and prefixed search operators !/+/-
@@ -175,7 +202,22 @@ export function normaliseSearchTerms(searchArg: string): Array<string> {
         // 1 (optional operator prefix)
         // 4 (phrase inside quotes) or
         // 5 (word not in quotes)
-        outputArray.push(`${r[1] ?? ''}${r[4] ?? ''}${r[5] ?? ''}`)
+
+        if (r[4] && r[4].includes(' ') && modifyQuotedTermsToAndedTerms) {
+          // if we want to modify quoted phrases to +words, and we have some quoted phrases,
+          // go through terms to find multi-word ones, and change to individual + terms.
+          // But if we have a simple quoted ["word"] then strip quotes but don't add +
+          // TODO: deal with [-"word1 word2"] case -> '-word1', '-word2' I guess.
+          // TODO: deal with mid-word apostrophe [can't term] case
+          const innerTerms = r[4].split(' ')
+          for (const t of innerTerms) {
+            outputArray.push(`+${t}`)
+          }
+        }
+        else {
+          // add whichever bit of the term matches
+          outputArray.push(`${r[1] ?? ''}${r[4] ?? ''}${r[5] ?? ''}`)
+        }
       }
     } else {
       logWarn(pluginJson, `Failed to find valid search terms found in [${searchArg}] despite regex magic`)
@@ -310,6 +352,24 @@ export function differenceByObjectEquality<P: string, T: { +[P]: mixed, ... }> (
 }
 
 /**
+ * Returns array of intersection of arrA + arrB (only for noteAndLine types)
+ * @param {Array<noteAndLine>} arrA 
+ * @param {Array<noteAndLine>} arrB 
+ * @returns {Array<noteAndLine>} array of intersection of arrA + arrB
+ */
+export function noteAndLineIntersection(arrA: Array<noteAndLine>, arrB: Array<noteAndLine>):
+  Array<noteAndLine> {
+  const modA = arrA.map((m) => m.noteFilename + ':::' + m.line)
+  const modB = arrB.map((m) => m.noteFilename + ':::' + m.line)
+  const intersectionModArr = modA.filter(f => modB.includes(f))
+  const intersectionArr: Array<noteAndLine> = intersectionModArr.map((m) => {
+    let firstPart = (m.split(':::', 1))[0]
+    return { noteFilename: firstPart, line: m.slice(firstPart.length + 3) }
+  })
+  return intersectionArr
+}
+
+/**
  * Compute difference of two arrays, by a given property value
  * from https://stackoverflow.com/a/68151533/3238281 example 2
  * @param {Array<noteAndLines>} arr The initial array
@@ -390,29 +450,54 @@ export function applySearchOperators(termsResults: Array<resultObjectTypeV3>): r
 
   // clo(termsResults, 'resultObjectV3: ')
 
-  // Write any 'must' search results to consolidated set
   let consolidatedNALs: Array<noteAndLine> = []
   let consolidatedNoteCount = 0
   let consolidatedLineCount = 0
   let uniquedFilenames = []
-  for (const r of mustResultObjects) {
-    let j = 0
-    for (const rnal of r.resultNoteAndLineArr) {  // flow complains on forEach version as well
+
+  // Write any *first* 'must' search results to consolidated set
+  if (mustResultObjects.length > 0) {
+    const r = mustResultObjects[0]
+    for (const rnal of r.resultNoteAndLineArr) {
       // clo(rnal, 'must[${i}] / rnal: `)
       // logDebug('applySearchOperators', `- must: ${rnal.noteFilename} / '${rnal.line}'`)
 
       // Just add these 'must' results to the consolidated set
       consolidatedNALs.push(rnal)
-      j++
     }
-    if (j === 0) {
-      logDebug('applySearchOperators', `- must: No results found for must-find search terms.`)
-    } else {
+    consolidatedNoteCount = numberOfUniqueFilenames(consolidatedNALs)
+    consolidatedLineCount = consolidatedNALs.length
+    logDebug('applySearchOperators', `- must: after term 1, ${consolidatedLineCount} results`)
+
+    // Write any *subsequent* 'must' search results to consolidated set,
+    // having computed the intersection with the consolidated set
+    if (mustResultObjects.length > 1) {
+      let addedAny = false
+      let j = 0
+      for (const r of mustResultObjects) {
+        // ignore first item; we compute the intersection of the others
+        if (j === 0) {
+          j++
+          continue
+        }
+
+        const intersectionNALArray = noteAndLineIntersection(consolidatedNALs, r.resultNoteAndLineArr)
+        logDebug('applySearchOperators', `- must: intersection of ${r.searchTerm.termRep} -> ${intersectionNALArray.length} results`)
+        consolidatedNALs = intersectionNALArray
+        // clo(consolidatedNALs, `consolidatedNALs after must[${j}] intersection`)
+        j++
+      }
+
+      // Now need to consolidate the NALs
+      consolidatedNALs = reduceAndSortNoteAndLineArray(consolidatedNALs)
+      consolidatedNoteCount = numberOfUniqueFilenames(consolidatedNALs)
+      consolidatedLineCount = consolidatedNALs.length
+      // clo(consolidatedNALs, '(after must) consolidatedNALs:')
     }
+    logDebug('applySearchOperators', `Must: at end, ${consolidatedLineCount} results`)
+  } else {
+    logDebug('applySearchOperators', `- must: No results found for must-find search terms.`)
   }
-  consolidatedNoteCount = numberOfUniqueFilenames(consolidatedNALs)
-  consolidatedLineCount = consolidatedNALs.length
-  logDebug('applySearchOperators', `Must: at end, ${consolidatedLineCount} results`)
 
   // Check if we can add the 'may' search results to consolidated set
   let addedAny = false
@@ -757,9 +842,6 @@ export async function writeSearchResultsToNote(
       fullNoteContent += `\n${headingMarker} ${searchTermsRepStr}\n(no matches)`
     }
 
-    // See if this note has already been created
-    // (look only in active notes, not Archive or Trash)
-
     // Newer method, doing a partial title match, if that is supplied, or requestedTitle if not.
     outputNote = await getOrMakeNote(requestedTitle, config.folderToStore, titleToMatch)
     if (outputNote) {
@@ -770,27 +852,6 @@ export async function writeSearchResultsToNote(
     else {
       throw new Error(`Couldn't find or make note for ${requestedTitle}. Stopping.`)
     }
-
-    // const existingNotes: $ReadOnlyArray<TNote> = DataStore.projectNoteByTitle(requestedTitle, true, false) ?? []
-    // logDebug('writeSearchResultsToNote', `- found ${existingNotes.length} existing search result note(s) titled ${requestedTitle}`)
-
-    // if (existingNotes.length > 0) {
-    //   // write to the existing note (the first matching if more than one)
-    //   outputNote = existingNotes[0]
-    //   outputNote.content = fullNoteContent
-    //   noteFilename = outputNote.filename
-    // } else {
-    //   // make a new note for this. NB: filename here = folder + filename
-    //   noteFilename = DataStore.newNoteWithContent(fullNoteContent, config.folderToStore, requestedTitle)
-    //   if (!noteFilename) {
-    //     logError('writeSearchResultsToNote', `Error creating new search note with requestedTitle '${requestedTitle}'`)
-    //     await showMessage('There was an error creating the new search note')
-    //     return '' // for completeness
-    //   }
-    //   outputNote = DataStore.projectNoteByFilename(noteFilename)
-    //   logDebug('writeSearchResultsToNote', `Created new search note with filename: ${noteFilename}`)
-    // }
-
     logDebug('writeSearchResultsToNote', `written resultSet for '${searchTermsRepStr}' to the note '${displayTitle(outputNote)}'`)
     return noteFilename
   }
@@ -808,32 +869,40 @@ export async function writeSearchResultsToNote(
  * @returns {Array<string>} formatted search reuslts
  */
 export function createFormattedResultLines(resultSet: resultOutputTypeV3, config: SearchConfig): Array<string> {
-  const resultOutputLines: Array<string> = []
-  const headingMarker = '#'.repeat(config.headingLevel)
-  const simplifyLine = (config.resultStyle === 'Simplified')
+  try {
+    const resultOutputLines: Array<string> = []
+    const headingMarker = '#'.repeat(config.headingLevel)
+    const simplifyLine = (config.resultStyle === 'Simplified')
 
-  // Get array of 'may' or 'must' search terms ready to display highlights
-  const mayOrMustTerms = resultSet.searchTermsRepArr.filter((f) => f[0] !== '-')
-  // Add each result line to output array
-  let lastFilename = undefined
-  let nc = 0
-  for (const rnal of resultSet.resultNoteAndLineArr) {
-    if (config.groupResultsByNote) {
-      // Write each line without transformation, grouped by Note, with Note headings inserted accordingly
-      let thisFilename = rnal.noteFilename
-      if (thisFilename !== lastFilename && thisFilename !== '') {
-        // though only insert heading if noteFilename isn't blank
-        resultOutputLines.push(`${headingMarker} ${getNoteTitleFromFilename(rnal.noteFilename, true)}`)
-        nc++
+    // Get array of 'may' or 'must' search terms ready to display highlights
+    const mayOrMustTermsRep = resultSet.searchTermsRepArr.filter((f) => f[0] !== '-')
+    // Take off leading + or ! if necessary
+    const mayOrMustTerms = mayOrMustTermsRep.map((f) => (f.match(/^[\+\!]/)) ? f.slice(1) : f)
+    // Add each result line to output array
+    let lastFilename = undefined
+    let nc = 0
+    for (const rnal of resultSet.resultNoteAndLineArr) {
+      if (config.groupResultsByNote) {
+        // Write each line without transformation, grouped by Note, with Note headings inserted accordingly
+        let thisFilename = rnal.noteFilename
+        if (thisFilename !== lastFilename && thisFilename !== '') {
+          // though only insert heading if noteFilename isn't blank
+          resultOutputLines.push(`${headingMarker} ${getNoteTitleFromFilename(rnal.noteFilename, true)}`)
+          nc++
+        }
+        const outputLine = trimAndHighlightTermInLine(rnal.line, mayOrMustTerms, simplifyLine, config.highlightResults, config.resultPrefix, config.resultQuoteLength)
+        resultOutputLines.push(outputLine)
+        lastFilename = thisFilename
+      } else {
+        // Write the line, first transforming it to add context on the end, and make other changes according to what the user has configured
+        const outputLine = trimAndHighlightTermInLine(rnal.line, mayOrMustTerms, simplifyLine, config.highlightResults, config.resultPrefix, config.resultQuoteLength) + getNoteContextAsSuffix(rnal.noteFilename, config.dateStyle)
+        resultOutputLines.push(outputLine)
       }
-      const outputLine = trimAndHighlightTermInLine(rnal.line, mayOrMustTerms, simplifyLine, config.highlightResults, config.resultPrefix, config.resultQuoteLength)
-      resultOutputLines.push(outputLine)
-      lastFilename = thisFilename
-    } else {
-      // Write the line, first transforming it to add context on the end, and make other changes according to what the user has configured
-      const outputLine = trimAndHighlightTermInLine(rnal.line, mayOrMustTerms, simplifyLine, config.highlightResults, config.resultPrefix, config.resultQuoteLength) + getNoteContextAsSuffix(rnal.noteFilename, config.dateStyle)
-      resultOutputLines.push(outputLine)
     }
+    return resultOutputLines
   }
-  return resultOutputLines
+  catch (err) {
+    logError('createFormattedResultLines', err.message)
+    return [] // for completeness
+  }
 }
