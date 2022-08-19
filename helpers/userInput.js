@@ -178,39 +178,31 @@ export async function chooseFolder(msg: string, includeArchive: boolean = false)
  * @returns {string} - the selected heading as text without any markdown heading markers. Blank string implies no heading selected, and user wishes to write to the end of the note.
  */
 export async function chooseHeading(note: TNote, optionAddAtBottom: boolean = true, optionCreateNewHeading: boolean = false, includeArchive: boolean = false): Promise<string> {
-  try {
-    let headingStrings = []
-    const headingLevel = 2
-    const spacer = '    '
-    // Decide whether to include all headings in note, or just those in the first
-    // before the Done/Cancelled section
-    const indexEndOfActive = findEndOfActivePartOfNote(note)
-    const headingParas = (includeArchive)
-      ? note.paragraphs.filter((p) => p.type === 'title') // = all headings, not just the top 'Title'
-      : note.paragraphs.filter((p) => p.type === 'title' && p.lineIndex <= indexEndOfActive) // = all headings in the active part of the note
-    if (headingParas.length > 0) {
-      headingStrings = headingParas.map((p) => {
-        let prefix = ''
-        for (let i = 1; i < p.headingLevel; i++) {
-          prefix += spacer
-        }
-        return prefix + p.content
-      })
-      logDebug('userInput / chooseHeading', `found followig headings:\n${headingStrings.toString()}`)
-    }
-    if (optionCreateNewHeading) {
-      // Add options to add new heading at top or bottom of note
-      if (note.type === 'Calendar') {
-        headingStrings.unshift('➕ ⬆️ (first insert new heading at the start of the note)') // insert at start
-      } else {
-        headingStrings.splice(1, 0, `${spacer}➕ ⬆️ (first insert new heading under the title)`) // insert as second item, after title
+  let headingStrings = []
+  // Decide whether to include all headings in note, or just those in the first
+  // before the Done/Cancelled section
+  const indexEndOfActive = findEndOfActivePartOfNote(note)
+  const headingParas = includeArchive
+    ? note.paragraphs.filter((p) => p.type === 'title') // = all headings, not just the top 'Title'
+    : note.paragraphs.filter((p) => p.type === 'title' && p.lineIndex < indexEndOfActive) // = all headings in the active part of the note
+  if (headingParas.length > 0) {
+    headingStrings = headingParas.map((p) => {
+      let prefix = ''
+      for (let i = 1; i < p.headingLevel; i++) {
+        prefix += '    '
       }
-      headingStrings.push(`${spacer}➕ ⬇️ (first insert new heading at the end of the note)`)
-    }
-    // Had wanted to use this, but would then need to break existing return type in order to able to differentiate between 'top of note' and 'bottom of bote'
-    // if (note.type === 'Calendar') {
-    //   headingStrings.unshift('⬆️ (top of note)') // add at start (as it has no title heading)
-    // }
+      return prefix + p.content
+    })
+  }
+  if (optionCreateNewHeading) {
+    // Add options to add new heading at top or bottom of note
+    headingStrings.unshift('➕ ⬆️ (first insert new heading at the start of the note)') // insert at second item
+    // headingStrings.splice(1, 0, '➕ ⬆️ (first insert new heading at the start of the note)') // insert at second item
+    headingStrings.push('➕ ⬇️ (first insert new heading at the end of the note)')
+  }
+  // if (note.type === 'Calendar') {
+  //   headingStrings.unshift('⬆️ (top of note)') // add at start (as it has no title heading)
+  // }
     if (optionAddAtBottom) {
       // Ensure we can always add at top and bottom of note
       headingStrings.push('⏬ (bottom of note)') // add at end
@@ -466,12 +458,12 @@ export const multipleInputAnswersAsArray = async (question: string, submit: stri
 }
 
 /**
- * Choose a particular note from a CommandBar list of notes.
+ * Choose a particular note from a CommandBar list of notes
  * @author @dwertheimer
  * @param {boolean} includeProjectNotes
  * @param {boolean} includeCalendarNotes
  * @param {Array<string>} foldersToIgnore - a list of folder names to ignore
- * @returns {TNote | null}
+ * @returns {TNote | null} note
  */
 export async function chooseNote(includeProjectNotes: boolean = true, includeCalendarNotes: boolean = false, foldersToIgnore: Array<string> = []): Promise<TNote | null> {
   let noteList = []

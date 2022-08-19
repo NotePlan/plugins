@@ -11,7 +11,7 @@ import {
   todaysDateISOString,
   toISODateString,
   toISOShortDateTimeString,
-  // weekStartEnd,
+  weekStartEnd,
 } from './dateTime'
 import { logDebug, logError } from './dev'
 import { chooseOption, getInput } from './userInput'
@@ -206,36 +206,6 @@ export function quarterStartEnd(qtr: number, year: number): [Date, Date] {
       break
     }
   }
-  return [startDate, endDate]
-}
-
-/**
- * Return start and end dates for a given week number.
- * Uses ISO 8601 definition of week, except that week start is Sunday not Monday.
- * TODO: change to use moment library to do date math, and move to dateTime.js
- * - moment().isoWeek(n).year(n)?
- * @author @jgclark
- *
- * @param {number} week - week number in year (1-53)
- * @param {number} year - year (4-digits)
- * @returns {[Date, Date]}} - start and end dates (as JS Dates)
- * @test - defined in Jest, but won't work until Calendar.addUnitToDate can be stubbed out
- */
-export function weekStartEnd(week: number, year: number): [Date, Date] {
-  if (week > 53 || week < 1) {
-    console.log(`warning: invalid week number ${week} given, but will still calculate correctly, relative to year ${year}.`)
-  }
-
-  let firstDay = 0
-  let testWeek = 0
-  do {
-    firstDay++
-    testWeek = getWeek(new Date(year, 0, firstDay))
-  } while (testWeek !== 1)
-
-  const startDate: Date = Calendar.addUnitToDate(new Date(year, 0, firstDay), 'day', (week - 1) * 7)
-  const endDate: Date = Calendar.addUnitToDate(startDate, 'day', 6)
-  // log('helpers/weekStartEnd', `  -> ${toLocaleTime(startDate)} - ${toLocaleTime(endDate)}`)
   return [startDate, endDate]
 }
 
