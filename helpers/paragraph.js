@@ -74,7 +74,7 @@ export function isTermInMarkdownPath(term: string, searchString: string): boolea
  * Note: This is a copy of what's in general.js to avoid circular dependency.
  * @author @EduardMe
  */
-export function rangeToString(r: Range): string {
+export function rangeToString(r: TRange): string {
   if (r == null) {
     return 'Range is undefined!'
   }

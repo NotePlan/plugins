@@ -388,11 +388,11 @@ export function getSelectedParaIndex(): number {
  * @param {TRange} selection - the current selection rnage object
  * @returns {[number, number]} the line index number of start and end of selection
  */
-export function selectedLinesIndex(selection: Range, paragraphs: $ReadOnlyArray<TParagraph>): [number, number] {
+export function selectedLinesIndex(selection: TRange, paragraphs: $ReadOnlyArray<TParagraph>): [number, number] {
   let firstSelParaIndex = 0
   let lastSelParaIndex = 0
-  const startParaRange: Range = Editor.paragraphRangeAtCharacterIndex(selection.start)
-  const endParaRange: Range = Editor.paragraphRangeAtCharacterIndex(selection.end)
+  const startParaRange: TRange = Editor.paragraphRangeAtCharacterIndex(selection.start)
+  const endParaRange: TRange = Editor.paragraphRangeAtCharacterIndex(selection.end)
 
   // Get the set of selected paragraphs (which can be different from selection),
   // and work out what selectedPara number(index) this selected selectedPara is
