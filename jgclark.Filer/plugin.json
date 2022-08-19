@@ -7,31 +7,30 @@
   "plugin.icon": "",
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Filer",
-  "plugin.version": "0.8.1",
-  "plugin.lastUpdateInfo": "Add '/new note from clipboard' command",
+  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Filer/CHANGELOG.md",
+  "plugin.version": "1.0.0-beta1",
+  "plugin.lastUpdateInfo": "Changes '/move paragraph' to work just on current paragraph or selection, while new command '/move block of paragraphs' moves paragraph in the rest of its block as well.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
   "plugin.commands": [
     {
-      "name": "move paragraphs",
+      "name": "move paragraph or selection",
       "alias": [
         "mp",
-        "fp",
         "file"
       ],
-      "description": "move (file) paragraphs to different notes",
+      "description": "moves this paragraph (or selected paragraphs) to a different note",
       "jsFunction": "moveParas"
     },
     {
-      "name": "file paragraphs",
+      "name": "move paragraph block",
       "alias": [
-        "mp",
-        "move",
-        "fp"
+        "mb",
+        "block"
       ],
-      "description": "file (move) paragraphs to different notes",
-      "jsFunction": "moveParas"
+      "description": "moves all paragraphs in the current block to a different note",
+      "jsFunction": "moveParaBlock"
     },
     {
       "name": "quick move to Today's note",
@@ -40,7 +39,7 @@
         "day",
         "daily"
       ],
-      "description": "quick move paragraphs to Today's note",
+      "description": "quick move a block of paragraphs to Today's note",
       "jsFunction": "moveParasToToday"
     },
     {
@@ -50,7 +49,7 @@
         "day",
         "daily"
       ],
-      "description": "quick move paragraphs to Tomorrow's daily note",
+      "description": "quick move a block of paragraphs to Tomorrow's daily note",
       "jsFunction": "moveParasToTomorrow"
     },
     {
@@ -59,7 +58,7 @@
         "qmtw",
         "week"
       ],
-      "description": "quick move paragraphs to the current Weekly note",
+      "description": "quick move a block of paragraphs to the current Weekly note",
       "jsFunction": "moveParasToThisWeekly"
     },
     {
@@ -68,7 +67,7 @@
         "qmnw",
         "week"
       ],
-      "description": "quick move paragraphs to Next Week's note",
+      "description": "quick move a block of paragraphs to Next Week's note",
       "jsFunction": "moveParasToNextWeekly"
     },
     {
@@ -98,12 +97,45 @@
       ],
       "description": "Add a sync'd copy of the current line to a section in another note",
       "jsFunction": "addIDAndAddToOtherNote"
+    },
+    {
+      "name": "test:update Filer plugin",
+      "description": "Filer: test update plugin",
+      "jsFunction": "testUpdate"
     }
   ],
   "plugin.settings": [
     {
       "type": "heading",
       "title": "Filer plugin settings"
+    },
+    {
+      "key": "includeFromStartOfSection",
+      "title": "Include lines from start of Section in the Block?",
+      "description": "Controls whether all the lines in the current heading's section are included in the block to move (true) or whether only the following ones that are more deeply indented are included (false; this is the default).",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "key": "useTightBlockDefinition",
+      "title": "Use a tighter definition of when a Block finishes?",
+      "description": "By default a Block includes blank lines and separators. If you wish those to instead mark the end of a Block, then set this to true.",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "key": "whereToAddInSection",
+      "title": "Where to add in section",
+      "description": "Controls whether moved lines get inserted at the \"start\" or \"end\" of the chosen section.",
+      "type": "string",
+      "choices": [
+        "start",
+        "end"
+      ],
+      "default": "start",
+      "required": true
     },
     {
       "key": "addDateBacklink",
@@ -127,23 +159,25 @@
       "required": true
     },
     {
-      "key": "useExtendedBlockDefinition",
-      "title": "Use extended block definition?",
-      "description": "Controls whether all the lines in the current heading's section are included in the block to move (true) or whether only the following ones that are more deeply indented are included (false; this is the default). In both cases a block is closed by a blank line or a separator (horizontal line).",
-      "type": "bool",
-      "default": false,
-      "required": true
+      "type": "separator"
     },
     {
-      "key": "whereToAddInSection",
-      "title": "Where to add in section",
-      "description": "Controls whether moved lines get inserted at the \"start\" or \"end\" of the chosen section.",
+      "type": "heading",
+      "title": "Debugging"
+    },
+    {
+      "key": "_logLevel",
+      "title": "Log Level",
+      "description": "Set how much output will be displayed for this plugin in the NotePlan > Help > Plugin Console. DEBUG is the most verbose; NONE is the least (silent).",
       "type": "string",
       "choices": [
-        "start",
-        "end"
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "none"
       ],
-      "default": "start",
+      "default": "INFO",
       "required": true
     }
   ]

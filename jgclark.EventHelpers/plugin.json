@@ -8,8 +8,8 @@
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers",
   "plugin.changelog": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers/CHANGELOG.md",
-  "plugin.version": "0.16.6",
-  "plugin.lastUpdateInfo": "Under-the-hood change only: now using newer logging framework.",
+  "plugin.version": "0.17.0",
+  "plugin.lastUpdateInfo": "Add support for LOCATION in events, and for adding nicely-formmatted event links rather than eventIDs.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -187,8 +187,8 @@
     },
     {
       "key": "addEventID",
-      "title": "Add event ID?",
-      "description": "Whether to add an '⏰event:ID' string in place of the time block, when creating an event from it",
+      "title": "Add event link?",
+      "description": "Whether to add an event link in place of the time block, when creating an event from it",
       "type": "bool",
       "default": false,
       "required": true

@@ -1,30 +1,28 @@
 # What's changed in 📙 Note Helpers plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/).
+<!-- ### Added
+<!-- TODO: Decide whether to shift "/add number of days to dates" to a different plugin -->
 
-## [0.16.0] - 2022-06-26
+## [0.15.0] - 2022-07-30
+### Added
+- new command **/rename note filename** renames the currently open note. Note: this changes the underlying _filename_ not the visible _title_. (It only works with NotePlan v3.6.1 and later.)
+- new command **/enable heading links** converts local links to headings (they start with the `#` character) to `x-callback-url` links that use the Noteplan URL-scheme to run the `jumpToHeading` function mentioned below. So while Noteplan doesn't support the standard way of linking to headings within notes, this plugin command now enables that feature if you're willing to change the destination of your links.  (by @nmn)
 ### Updated
-- The function `jumpToHeading` (which is used for jumping to headings within the same note) can Now be used via `x-callback-url` by passing the text of the heading in as an argument
-### Added
-- **/enable heading links**: A new command that convert Local links to headings (they start with the `#` character) to `x-callback-url` links that use the Noteplan URL-scheme to run the `jumpToHeading` function mentioned above. So while, Noteplan doesn't support the standard way of linking to headings within notes, this plugin command now enables that feature if you're willing to change the destination of your links.
+- The command **/jump to heading** (which is used for jumping to headings within the same note) can now be used via `x-callback-url`s by passing the text of the heading in as an arg0.
 
-## [0.15.0] - 2022-06-???
+## [0.14.1] - 2022-06-12 (by @nmn)
 ### Added
-- waiting on FIXME(EM): new command '/rename note filename' to rename the currently open note. Note: this changes the underlying _filename_ not the visible _title_. It only works with NotePlan v3.6.0 onwards.
-TODO: Decide whether to shift the next one
-
-## [0.14.0] - 2022-06-12 (by @nmn)
-### Added
-- new command "/add number of days to dates" that looks for bullets in your current open note that end with `[[YYYY-MM-DD]]:` and adds the number of days to or since that date.
+- new command **/add number of days to dates** that looks for bullets in your current open note that end with `[[YYYY-MM-DD]]:` and adds the number of days to or since that date.
 
 ## [0.13.0] - 2022-06-02
 ### Added
-- new command "/open current note new split" opens the current note in a new split window to the side in the main window
+- new command **/open current note new split** opens the current note in a new split window to the side in the main window
 
 ## [0.12.0..0.12.1] - 2022-06-02
 ### Added
-- command "/convert to frontmatter" which convert the current note to use frontmatter syntax, including optional default text that can be added in the Plugin's settings.
+- command **/convert to frontmatter** which convert the current note to use frontmatter syntax, including optional default text that can be added in the Plugin's settings.
 ### Changed
-- when using "/open note new window" or "/open note new split" it now places the cursor at what it judges to be the start of the main content of the note (i.e. after title or frontmatter) or project-related metadata.
+- when using **/open note new window** or **/open note new split** it now places the cursor at what it judges to be the start of the main content of the note (i.e. after title or frontmatter) or project-related metadata.
 
 ## [0.11.0..0.11.1] - 2022-05-10
 ### Added

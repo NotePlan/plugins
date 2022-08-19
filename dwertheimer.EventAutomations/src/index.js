@@ -1,7 +1,7 @@
 // @flow
 import pluginJson from '../plugin.json'
 import { migrateConfiguration, updateSettingData, pluginUpdated } from '../../helpers/NPConfiguration'
-import { log, logDebug, clo } from "../../helpers/dev";
+import { log, logDebug, clo } from "../../helpers/dev"
 
 export {
   insertTodosAsTimeblocks,
@@ -14,6 +14,8 @@ export {
   removePreviousTimeBlocks,
   updateDatePlusTags,
 } from './NPTimeblocking'
+
+export {createEvents} from './NPEventBlocks'
 
 const PLUGIN_ID = 'autoTimeBlocking' // the key that's used in _configuration note
 
@@ -38,6 +40,7 @@ export function onSettingsUpdated() {
 
 export function init(): void {
   // this runs every time the plugin starts up (any command in this plugin is run)
+  clo(DataStore.settings,`${pluginJson["plugin.id"]} Plugin Settings`)
   DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], true, false, false).then((r) =>
     pluginUpdated(pluginJson, r),
   )

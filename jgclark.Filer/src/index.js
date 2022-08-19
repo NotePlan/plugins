@@ -3,17 +3,18 @@
 // -----------------------------------------------------------------------------
 // Plugin to help move selected pargraphs to other notes
 // Jonathan Clark
-// Last updated 25.6.2022, for v0.8.0
+// Last updated 17.8.2022, for v1.0.0-beta1
 // -----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
-import { JSP, log, logError } from "@helpers/dev"
+import { JSP, logDebug, logInfo, logError } from "@helpers/dev"
 import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
 import { showMessage } from '@helpers/userInput'
 
 export {
   moveParas,
+  moveParaBlock,
   moveParasToCalendarDate,
   moveParasToCalendarWeekly,
   moveParasToNextWeekly,
@@ -24,7 +25,7 @@ export {
 export { addIDAndAddToOtherNote } from './IDs'
 export { newNoteFromClipboard, newNoteFromSelection } from './newNote'
 
-const configKey = "filer"
+const pluginID = "filer"
 
 export function init(): void {
   try {
@@ -36,19 +37,32 @@ export function init(): void {
     logError(pluginJson, JSP(error))
   }
 }
-// refactor previous variables to new types
-export async function onUpdateOrInstall(): Promise<void> {
+
+export function onSettingsUpdated(): void {
+  // empty, but avoids NotePlan error
+}
+
+// test the update mechanism, including display to user
+export function testUpdate(): void {
+  onUpdateOrInstall(true) // force update mechanism to fire
+}
+
+export async function onUpdateOrInstall(testUpdate: boolean = false): Promise<void> {
   try {
-    log(pluginJson, `${configKey}: onUpdateOrInstall running`)
-    const updateSettings = updateSettingData(pluginJson)
-    log(pluginJson, `${configKey}: onUpdateOrInstall updateSettingData code: ${updateSettings}`)
-    if (pluginJson['plugin.lastUpdateInfo'] !== undefined) {
-      await showMessage(pluginJson['plugin.lastUpdateInfo'], 'OK, thanks',
-        `Plugin ${pluginJson['plugin.name']} updated to v${pluginJson['plugin.version']}`
-      )
+    logInfo(pluginID, `onUpdateOrInstall ...`)
+    let updateSettingsResult = updateSettingData(pluginJson)
+    logInfo(pluginID, `- updateSettingData code: ${updateSettingsResult}`)
+
+    if (testUpdate) {
+      updateSettingsResult = 1 // updated
+      logDebug(pluginID, '- forcing pluginUpdated() to run ...')
     }
+
+    // Tell user the plugin has been updated
+    await pluginUpdated(pluginJson, { code: updateSettingsResult, message: 'unused?' })
+
   } catch (error) {
-    logError(pluginJson, error)
+    logError(pluginID, error.message)
   }
-  log(pluginJson, `${configKey}: onUpdateOrInstall finished`)
+  logInfo(pluginID, `- finished`)
 }

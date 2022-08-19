@@ -1188,19 +1188,29 @@ declare interface Note extends CoreNoteFields {
  * Ranges are used when you deal with selections or need to know where a
  * paragraph is in the complete text.
  */
-declare interface Range {
+declare var Range: TRange
+declare interface TRange {
   /**
-   * Character start index of the range.
+   * Character start index of the range. (Get or set.)
    */
-  +start: number;
+  start: number;
   /**
-   * Character end index of the range.
+   * Character end index of the range. (Get or set.)
    */
-  +end: number;
+  end: number;
   /**
-   * Character length of the range (end - start).
+   * Character length of the range (end - start). (Get only.)
    */
   +length: number;
+/**
+ * Create an instance of a Range object with the start and end positions. 
+ * The length variable is calculated automatically and doesn't have to be set.
+ * Example: Range.create(0, 10) 
+* @param {number} start
+* @param {number} end
+* @returns {Range}
+*/
+create(start: number, end: number): Range;
 }
 
 type CalenderItemType = 'event' | 'reminder'
@@ -1220,53 +1230,54 @@ declare interface TCalendarItem {
    *
    * Use the ID later to refer to this event (to modify or delete).
    */
-  +id: string | void;
+  +id: ?string;
   /**
    * The title of the event or reminder.
    */
-  +title: string;
+title: string;
   /**
    * The date (with time) of the event or reminder.
    */
-  +date: Date;
+date: Date;
   /**
    * The endDate (with time) of the event (reminders have no endDate).
    * So, this can be optional.
    */
-  +endDate: ?Date;
+endDate: ? Date;
   /**
-   * The type of the calendar item, either "event" or "reminder".
+   * The type of the calendar item, either "event" or "reminder". 
+   * Cannot be set.
    */
   +type: string;
   /**
    * If the calendar item is all-day, means it has no specific time.
    */
-  +isAllDay: boolean;
+isAllDay: boolean;
   /**
    * If the calendar item is completed. This applies only to reminders.
    * Note: Available from v3.0.15
    */
-  +isCompleted: boolean;
+isCompleted: boolean;
   /**
    * All the dates the event or reminder occurs (if it's a multi-day event for example)
    * Note: Available from v3.0.15
    */
-  +occurrences: Array<Date>;
++occurrences: $ReadOnlyArray < Date >;
   /**
    * The calendar or reminders list where this event or reminder is (or should be) saved. If you set nothing, the event or reminder will be added to the default and this field will be set after adding.
    * Note: Available from v3.0.15.
    */
-  +calendar: string;
+calendar: string;
   /**
    * Text saved in the "Notes" field of the event or reminder.
    * Note: Available from v3.0.26
    */
-  +notes: string;
+notes: string;
   /**
    * URL saved with the event or reminder.
    * Note: Available from v3.0.26
    */
-  +url: string;
+url: string;
   /**
    * If supported, shows the availability for the event. The default is 0 = busy.
    * notSupported = -1
@@ -1276,7 +1287,7 @@ declare interface TCalendarItem {
    * unavailable = 3
    * Note: Available from v3.3
    */
-  +availability: number;
+availability: number;
   /**
    * List of attendee names or emails.
    * Some example result strings show the variety possible:
@@ -1286,23 +1297,38 @@ declare interface TCalendarItem {
    * But I think it is closer to being a JS Map [string, string].
    * Note: Available from v3.5.0
    */
-  +attendees: Array<string>;
+attendees: Array < string >;
   /**
    * List of attendee names (or email addresses if name isn't available).
    * Note: Available from v3.5.2
    */
-  +attendeeNames: Array<string>;
++attendeeNames: $ReadOnlyArray < string >;
   /**
    * Markdown link for the given event. If you add this link to a note, NotePlan will link the event with the note and show the note in the dropdown when you click on the note icon of the event in the sidebar.
-   * Note: Available from v3.5, only events, reminders are not supported yet
+   * Note: Available from v3.5, only events; reminders are not supported yet
    */
-  +calendarItemLink: string;
+calendarItemLink: string;
+/**
+ * Location in the event
+ * Note: Available from v3.5.2? for events
+ */
+location: string;
+/**
+ * Is this from a writeable calendar?
+ * Note: get only
+ */
++isCalendarWritable: boolean;
+/**
+ * Is the event part of a recurring series?
+ * Note: get only
+ */
++isRecurring: boolean;
   /**
    * Create a CalendarItem. The .endDate is optional, but recommended for events.
    * Reminders don't use this field.
    *
-   * The type can be "event" or "reminder". And isAllDay can be used if you
-   * don't want to define a specific time, like holidays.
+   * The type can be "event" or "reminder". 
+   * And isAllDay can be used if you don't want to define a specific time, like holidays.
    * Use the calendar variable, if you want to add the event or reminder to another
    * calendar or reminders list other than the default. This is optional: if you set
    * nothing, it will use the default.
@@ -1319,6 +1345,7 @@ declare interface TCalendarItem {
     isCompleted?: boolean,
     notes?: string,
     url?: string,
+    availability ?: number
   ): TCalendarItem;
 }
 

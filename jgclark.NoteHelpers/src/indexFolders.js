@@ -1,24 +1,27 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 3.1.2022 for v0.10.7+
+// Last updated 24.7.2022 for v0.10.7+
 //-----------------------------------------------------------------------------
 
+import pluginJson from '../plugin.json'
 import {
   daysBetween,
   nowLocaleDateTime,
   relativeDateFromNumber,
-} from '../../helpers/dateTime'
-import { getFolderFromFilename } from '../../helpers/folders'
+  toISOShortDateTimeString,
+} from '@helpers/dateTime'
+import { logDebug, logError, logInfo } from '@helpers/dev'
+import { getFolderFromFilename } from '@helpers/folders'
 import {
   returnNoteLink,
-} from '../../helpers/general'
-import { notesInFolderSortedByTitle } from '../../helpers/note'
+} from '@helpers/general'
+import { notesInFolderSortedByTitle } from '@helpers/note'
 import {
   chooseFolder,
   chooseOption,
-  showMessage,
-} from '../../helpers/userInput'
+  // showMessage,
+} from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
 /** 
@@ -34,7 +37,7 @@ function makeFolderIndex(
   folder: string,
   includeSubfolders: boolean,
 ): Array<string> {
-  console.log(
+  logDebug(pluginJson, 
     `\nmakeFolderIndex for '${folder}' (${
       includeSubfolders ? 'with' : 'without'
     } subfolders)`,
@@ -49,7 +52,7 @@ function makeFolderIndex(
     // otherwise use a single folder
     folderList = [folder]
   }
-  console.log(`\tFound ${folderList.length} matching folder(s)`)
+  logDebug(pluginJson, `\tFound ${folderList.length} matching folder(s)`)
 
   // Iterate over the folders
   let subFolder = false
@@ -65,7 +68,10 @@ function makeFolderIndex(
       // iterate over this folder's notes
       for (const note of notes) {
         const relativeTimeSinceUpdate = relativeDateFromNumber(daysBetween(new Date(), note.changedDate))
-        outputArray.push(`${returnNoteLink(note.title ?? 'error')} ${relativeTimeSinceUpdate}`)
+        // TODO:have option about use of createdDate
+        // TODO: have option about sort order
+        const createdDateTime = toISOShortDateTimeString(note.changedDate)
+        outputArray.push(`${returnNoteLink(note.title ?? 'error')}\t${createdDateTime}\t${relativeTimeSinceUpdate}`)
       }
       outputArray.push('')
     } else {
@@ -93,32 +99,36 @@ export async function indexFolders(): Promise<void> {
   let outputArray: Array<string> = []
 
   if (fullFilename === undefined) {
-    console.log(`  Info: No current filename (and therefore folder) found, so will ask instead.`)
+    logInfo(pluginJson, `  Info: No current filename (and therefore folder) found, so will ask instead.`)
     thisFolder = await chooseFolder(`Please pick folder to index`)
   } else {
     thisFolder = getFolderFromFilename(fullFilename)
   }
-  console.log(`\nindexFolders from folder ${thisFolder}`)
+  logDebug(pluginJson, `\nindexFolders from folder ${thisFolder}`)
 
   const option = await chooseOption(
     'Create index for which folder(s)?',
     [
       {
-        label: `This folder only (insert into current note)`,
+        label: `🖊 This folder only (insert into current note)`,
         value: 'one-to-current',
       },
       {
-        label: `This folder only (add/update to _index note)`,
+        label: `🖊 This folder only (add/update to _index note)`,
         value: 'one-to-index',
       },
       {
-        label: `This folder and sub-folders (add/update to single _index note)`,
+        label: `🖊 This folder and sub-folders (add/update to single _index note)`,
         value: 'all-to-one-index',
       },
       {
-        label: `(NOT YET WORKING) This folder and sub-folders (add/update to _index notes)`,
-        value: 'all-to-many-index',
+        label: `📋 This folder only (to console log)`,
+        value: 'one-to-log',
       },
+      // { // TODO: Complete me
+      //   label: `(NOT YET WORKING) This folder and sub-folders (add/update to _index notes)`,
+      //   value: 'all-to-many-index',
+      // },
       {
         label: '❌ Cancel',
         value: false,
@@ -131,7 +141,7 @@ export async function indexFolders(): Promise<void> {
     return
   }
 
-  console.log(`  option: ${option}`)
+  // logDebug(pluginJson, `  option: ${option}`)
   if (option.startsWith('one')) {
     outputArray = makeFolderIndex(thisFolder, false)
   } else if (option.startsWith('all')) {
@@ -148,26 +158,30 @@ export async function indexFolders(): Promise<void> {
     if (outputNote == null) {
       // make a new note for this
       outputFilename = await DataStore.newNote('_index', thisFolder)
-      console.log(`\tnewNote filename: ${String(outputFilename)}`)
+      logDebug(pluginJson, `\tnewNote filename: ${String(outputFilename)}`)
       // outputFilename = `${pref_folderToStore}/${String(outputFilename)}` ?? '(error)'
       // NB: filename here = folder + filename
       if (outputFilename == null) {
         return
       }
       outputNote = await DataStore.projectNoteByFilename(outputFilename)
-      console.log(`\twriting results to the new note '${outputFilename}'`)
+      logInfo(pluginJson, `writing results to the new note '${outputFilename}'`)
     }
 
     if (outputNote != null) {
       outputNote.content = `# ${outString}` // overwrite what was there before
     } else {
-      console.log('error after newNote(): no valid note to write to')
+      logError(pluginJson, 'error after newNote(): no valid note to write to')
       return
     }
   } else if (option.endsWith('current')) {
     // write out to the current file
     Editor.insertTextAtCursor(`${outString}`)
+  } else {
+    // write out to the log
+    // TODO: add more detail to output?
+    logDebug(pluginJson, outString)
   }
 
-  console.log(`Finished indexFolders.`)
+  logDebug(pluginJson, `Finished indexFolders.`)
 }

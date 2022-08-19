@@ -31,6 +31,13 @@ module.exports = {
       aliases: ['c'],
       description: `Use Compact Display ${colors.gray('(available in watch mode)')}`,
     },
+    minify: {
+      type: 'boolean',
+      aliases: ['m'],
+      hidden: false,
+      description: `Minify/Mangle Output to reduce size`,
+      initial: false,
+    },
     fix: {
       type: 'boolean',
       aliases: ['f'],
@@ -85,6 +92,7 @@ module.exports = {
     const watch = args.watch
     const silent = args.silent
     const compact = args.compact
+    const minify = args.minify
     const test = args.test
     const coverage = args.coverage
 
@@ -140,8 +148,8 @@ module.exports = {
         }
       }
       cmd = watch
-        ? `node scripts/rollup.js ${plugin} ${compact ? '--compact' : ''} ${notify ? '--notify' : ''}`
-        : `node scripts/rollup.js ${plugin} --build ${notify ? '--notify' : ''}`
+        ? `node scripts/rollup.js ${plugin} ${compact ? '--compact' : ''} ${notify ? '--notify' : ''} ${minify ? '--minify' : ''}`
+        : `node scripts/rollup.js ${plugin} --build ${notify ? '--notify' : ''} ${minify ? '--minify' : ''}`
     } else {
       const directory = plugin.length > 0 ? `${plugin}` : ''
       cmd = `./node_modules/.bin/jest ${directory} ${silent ? '--silent' : ''} ${watch ? '--watch' : ''} ${coverage ? '--coverage' : ''} --verbose false`

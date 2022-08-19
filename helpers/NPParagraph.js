@@ -1,8 +1,9 @@
 // @flow
 
+import { trimString } from './dataManipulation'
 import { hyphenatedDate } from './dateTime'
 import { toLocaleDateTimeString } from './NPdateTime'
-import { JSP, log, logDebug, logError, logWarn, timer } from './dev'
+import { JSP, log, logDebug, logError, clo, logWarn, timer } from './dev'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote, isTermInMarkdownPath, isTermInURL } from './paragraph'
 
 /**
@@ -125,42 +126,56 @@ export async function replaceContentUnderHeading(
  * it will work as if the cursor is on the preceding heading line, and then using the same rules as above.
  * (This used to be called 'useExtendedBlockDefinition'.)
  * @author @jgclark
+ * @tests available in jest file
  *
  * @param {Array<TParagraph>} allParas - all selectedParas in the note
  * @param {number} selectedParaIndex - the index of the current Paragraph
  * @param {boolean} includeFromStartOfSection
  * @returns {Array<TParagraph>} the set of selectedParagraphs in the block
  */
-export function getParagraphBlock(note: CoreNoteFields, selectedParaIndex: number, includeFromStartOfSection: boolean = false): Array<TParagraph> {
+export function getParagraphBlock(note: CoreNoteFields,
+  selectedParaIndex: number,
+  includeFromStartOfSection: boolean = false,
+  useTightBlockDefinition: boolean = false
+): Array<TParagraph> {
   const parasInBlock: Array<TParagraph> = [] // to hold set of paragraphs in block to return
-  const endOfActiveSection = findEndOfActivePartOfNote(note)
-  const startOfActiveSection = findStartOfActivePartOfNote(note)
+  const startActiveLineIndex = findStartOfActivePartOfNote(note)
+  const endActiveLineIndex = findEndOfActivePartOfNote(note)
   const allParas = note.paragraphs
   let startLine = selectedParaIndex
   let selectedPara = allParas[startLine]
-  logDebug(`NPParagraph / getParagraphBlock`, `  getParaBlock: starting line ${selectedParaIndex}: '${selectedPara.content}'`)
+  logDebug(`NPParagraph / getParagraphBlock`, `getParaBlock: starting with start/end active = ${startActiveLineIndex}/${endActiveLineIndex} at lineIndex ${selectedParaIndex} ('${trimString(selectedPara.content, 50)}')`)
 
   if (includeFromStartOfSection) {
     // First look earlier to find earlier lines up to a blank line or horizontal rule;
     // include line unless we hit a new heading, an empty line, or a less-indented line.
-    for (let i = selectedParaIndex - 1; i >= startOfActiveSection - 1; i--) {
+    for (let i = selectedParaIndex - 1; i >= startActiveLineIndex; i--) {
       const p = allParas[i]
-      logDebug(`NPParagraph / getParagraphBlock`, `  ${i} / ${p.type} / ${p.content}`)
+      // logDebug(`NPParagraph / getParagraphBlock`, `  ${i} / ${p.type} / ${trimString(p.content, 50)}`)
       if (p.type === 'separator') {
-        logDebug(`NPParagraph / getParagraphBlock`, `      ${i}: Found separator line`)
+        logDebug(`NPParagraph / getParagraphBlock`, `   - ${i}: Found separator line`)
         startLine = i + 1
         break
       } else if (p.content === '') {
-        logDebug(`NPParagraph / getParagraphBlock`, `      ${i}: Found blank line`)
+        logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found blank line`)
         startLine = i + 1
         break
-      } else if (p.type === 'title') {
-        logDebug(`NPParagraph / getParagraphBlock`, `      ${i}: Found heading`)
+      } else if (p.type === 'title' && p.headingLevel === 1) {
+        logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found title`)
+        startLine = i + 1
+        break
+      } else if (p.type === 'title' && p.headingLevel > 1) {
+        logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found other heading`)
         startLine = i
         break
       }
+      // If it's the last iteration and we get here, then we had a continuous block, so make that
+      if (i === startActiveLineIndex) {
+        logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found start of active part of note`)
+        startLine = i
+      }
     }
-    logDebug(`NPParagraph / getParagraphBlock`, `For extended block worked back and will now start at line ${startLine}`)
+    logDebug(`NPParagraph / getParagraphBlock`, `For includeFromStartOfSection worked back and will now start at line ${startLine}`)
   }
   selectedPara = allParas[startLine]
 
@@ -168,57 +183,59 @@ export function getParagraphBlock(note: CoreNoteFields, selectedParaIndex: numbe
   if (selectedPara.type === 'title') {
     // includes all heading levels
     const thisHeadingLevel = selectedPara.headingLevel
-    logDebug(`NPParagraph / getParagraphBlock`, `    Found heading level ${thisHeadingLevel}`)
+    logDebug(`NPParagraph / getParagraphBlock`, `- Block starts line ${startLine} at heading '${selectedPara.content}' level ${thisHeadingLevel}`)
     parasInBlock.push(selectedPara) // make this the first line to move
     // Work out how far this section extends. (NB: headingRange doesn't help us here.)
-    for (let i = startLine + 1; i < endOfActiveSection; i++) {
+    logDebug(`NPParagraph / getParagraphBlock`, `- Scanning forward through rest of note ...`)
+    for (let i = startLine + 1; i <= endActiveLineIndex; i++) {
       const p = allParas[i]
       if (p.type === 'title' && p.headingLevel <= thisHeadingLevel) {
-        logDebug(`NPParagraph / getParagraphBlock`, `      ${i}: ${i}: Found new heading of same or higher level`)
+        logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found new heading of same or higher level: "${p.content}" -> stopping`)
         break
-      } else if (p.type === 'separator') {
-        logDebug(`NPParagraph / getParagraphBlock`, `      ${i}: Found HR`)
+      } else if (useTightBlockDefinition && p.type === 'separator') {
+        logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found HR: "${p.content}" -> stopping`)
         break
-      } else if (p.content === '') {
-        logDebug(`NPParagraph / getParagraphBlock`, `      ${i}: Found blank line`)
+      } else if (useTightBlockDefinition && p.content === '') {
+        logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found blank line -> stopping`)
         break
       }
+      logDebug(`NPParagraph / getParagraphBlock`, `  - Adding to results: line[${i}]: ${p.type}: "${trimString(p.content, 50)}"`)
       parasInBlock.push(p)
     }
-    logDebug(`NPParagraph / getParagraphBlock`, `  Found ${parasInBlock.length} heading section lines`)
+    logDebug(`NPParagraph / getParagraphBlock`, `- Found ${parasInBlock.length} heading section lines`)
   } else {
     // This isn't a heading
     const startingIndentLevel = selectedPara.indents
-    log(`NPParagraph / getParagraphBlock`, `  Found single line with indent level ${startingIndentLevel}`)
+    logDebug(`NPParagraph / getParagraphBlock`, `Found single line with indent level ${startingIndentLevel}. Now scanning forward through rest of note ...`)
     parasInBlock.push(selectedPara)
 
     // See if there are following indented lines to move as well
-    for (let i = startLine + 1; i < endOfActiveSection; i++) {
+    for (let i = startLine + 1; i <= endActiveLineIndex; i++) {
       const p = allParas[i]
-      logDebug(`NPParagraph / getParagraphBlock`, `  ${i} / indent ${p.indents} / ${p.content}`)
-      // stop if horizontal line
-      if (p.type === 'separator') {
-        logDebug(`NPParagraph / getParagraphBlock`, `      ${i}: Found HR`)
+      // logDebug(`NPParagraph / getParagraphBlock`, `  ${i} / indent ${p.indents} / ${trimString(p.content, 50)}`)
+      if (useTightBlockDefinition && p.type === 'separator') {
+        // stop if horizontal line
+        logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found HR -> stopping`)
+        break
+      } else if (useTightBlockDefinition && p.content === '') {
+        logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found blank line -> stopping`)
         break
       } else if (p.type === 'title') {
-        logDebug(`NPParagraph / getParagraphBlock`, `      ${i}: Found heading`)
+        logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found heading -> stopping`)
         break
-      } else if (p.content === '') {
-        logDebug(`NPParagraph / getParagraphBlock`, `      ${i}: Found blank line`)
-        break
-      } else if (p.indents <= startingIndentLevel && !includeFromStartOfSection) {
+      } else if (p.indents < startingIndentLevel && !includeFromStartOfSection) {
         // if we aren't using the Extended Block Definition, then
-        // stop as this selectedPara is same or less indented than the starting line
-        logDebug(`NPParagraph / getParagraphBlock`, `      ${i}: Stopping as found same or lower indent`)
+        // stop as this selectedPara is less indented than the starting line
+        logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found same or lower indent -> stopping`)
         break
       }
       parasInBlock.push(p) // add onto end of array
     }
   }
 
-  logDebug(`NPParagraph / getParagraphBlock`, `  Found ${parasInBlock.length} paras in block starting with: "${allParas[selectedParaIndex].content}"`)
+  logDebug(`NPParagraph / getParagraphBlock`, `  - Found ${parasInBlock.length} paras in block starting with: "${allParas[selectedParaIndex].content}"`)
   // for (const pib of parasInBlock) {
-  //   log(`NPParagraph / getParagraphBlock`, `    ${ pib.content }`)
+  //   log(`NPParagraph / getParagraphBlock`, `  ${pib.content}`)
   // }
   return parasInBlock
 }
@@ -241,8 +258,7 @@ export function getBlockUnderHeading(note: TNote, heading: TParagraph | string, 
     headingPara = heading
   }
   let paras: Array<TParagraph> = []
-  if (headingPara?.lineIndex !== null) {
-    // $FlowFixMe(incompataible-use)
+  if (headingPara?.lineIndex != null) {
     paras = getParagraphBlock(note, headingPara.lineIndex)
   }
   if (paras.length && !returnHeading) {
@@ -439,10 +455,10 @@ export async function removeContentUnderHeadingInAllNotes(noteTypes: Array<strin
 /**
  * COPY FROM helpers/NPParagaph.js to avoid a circular dependency
  */
-export function findHeading(note: TNote, heading: string): TParagraph | null {
-  if (heading) {
+export function findHeading(note: TNote, heading: string, includesString: boolean = false): TParagraph | null {
+  if (heading && heading !== '') {
     const paragraphs = note.paragraphs
-    const para = paragraphs.find((paragraph) => paragraph.type === 'title' && paragraph.content.trim() === heading.trim())
+    const para = paragraphs.find((paragraph) => paragraph.type === 'title' && (includesString ? paragraph.content.includes(heading) : paragraph.content.trim() === heading.trim()))
 
     if (para) return para
   }
@@ -488,8 +504,9 @@ export function getParagraphContainingPosition(note: CoreNoteFields, position: n
   const pluginJson = 'NPParagraph:getParagraphContainingPosition'
   note.paragraphs.forEach((p, i) => {
     if (typeof p.contentRange?.start === 'number' && typeof p.contentRange.end == 'number') {
-      if (p.contentRange.start && p.contentRange.end) {
+      if (p.contentRange.start >= 0 && p.contentRange.end >= 0) {
         const { start, end } = p.contentRange || {}
+        logDebug(pluginJson, `NPParagraph::getParagraphContaining start:${start} end:${end}`)
         if (start <= position && end >= position) {
           foundParagraph = p
           if (i > 0) {
@@ -505,6 +522,13 @@ export function getParagraphContainingPosition(note: CoreNoteFields, position: n
     }
   })
   if (!foundParagraph) {
+    if (position === 0 && note.paragraphs.length === 0) {
+      note.prependParagraph("\n", "empty") //can't add a line without a return
+      if (Editor === note) {
+        Editor.select(0,0) //put the cursor before the return we just added
+      }
+      return note.paragraphs[0]
+    }
     logDebug(pluginJson, `getParagraphContainingPosition: *** Looking for cursor position ${position}`)
     note.paragraphs.forEach((p, i) => {
       const { start, end } = p.contentRange || {}
@@ -532,4 +556,58 @@ export async function getSelectedParagraph(): Promise<TParagraph | null> {
     await showMessage(`No paragraph found selection.start: ${String(Editor.selection?.start)} Editor.selectedParagraphs.length = ${Editor.selectedParagraphs?.length}`)
   }
   return thisParagraph || null
+}
+
+/**
+ * Works out which line (if any) of the current note is project-style metadata line, defined as
+ * - line starting 'project:' or 'medadata:'
+ * - first line containing a @review() or @reviewed() mention
+ * - first line starting with a hashtag
+ * If these can't be found, then create a new line for this after the title line, and populate with optional metadataLinePlaceholder param.
+ * @author @jgclark
+ * @tests in jest file
+ * 
+ * @param {TNote} note to use
+ * @param {TNote} placeholder to use if we need to make a metadata line
+ * @returns {number} the line number for the metadata line
+ */
+export function getOrMakeMetadataLine(
+  note: TNote,
+  metadataLinePlaceholder: string = ''
+): number {
+  try {
+    const lines = note.paragraphs?.map(s => s.content) ?? []
+    logDebug('NPparagraph/getOrMakeMetadataLine', `Starting with ${lines.length} lines`)
+
+    // Belt-and-Braces: deal with empty or almost-empty notes
+    if (lines.length === 0) {
+      note.appendParagraph('<placeholder title>', 'title')
+      note.appendParagraph(metadataLinePlaceholder, 'text')
+      return 1
+    }
+    else if (lines.length === 1) {
+      note.appendParagraph(metadataLinePlaceholder, 'text')
+      return 1
+    }
+
+    let lineNumber: number = NaN
+    for (let i = 1; i < lines.length; i++) {
+      if (lines[i].match(/^project:/i) || lines[i].match(/^metadata:/i) || lines[i].match(/^#[\w]/) || lines[i].match(/(@review|@reviewed)\(.+\)/)) {
+        lineNumber = i
+        break
+      }
+    }
+    // If no metadataPara found, then insert one straight after the title
+    if (Number.isNaN(lineNumber)) {
+      logDebug('NPparagraph/getOrMakeMetadataLine', `Warning: Can't find an existing metadata line, so will insert a new line for it after title`)
+      note.insertParagraph(metadataLinePlaceholder, 1, 'text')
+      lineNumber = 1
+    }
+    logDebug('NPparagraph/getOrMakeMetadataLine', `Metadata line = ${lineNumber}`)
+    return lineNumber
+  }
+  catch (error) {
+    logError('NPparagraph/getOrMakeMetadataLine', error.message)
+    return 0
+  }
 }

@@ -1,7 +1,7 @@
 // @flow
 // ----------------------------------------------------------------------------
 // Command to bring calendar events into notes
-// Last updated 22.7.2022 for v0.16.6, by @jgclark
+// Last updated 10.8.2022 for v0.16.7, by @jgclark
 // @jgclark, with additions by @dwertheimer, @weyert, @m1well
 // ----------------------------------------------------------------------------
 
@@ -45,14 +45,14 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
     // NB: be aware that this call doesn't do type checking
     // NB: allow previous parameter names 'template' and 'allday_template' still.
     const format = (paramString.includes('"format":'))
-      ? String(await getTagParamsFromString(paramString, 'format', '- *|CAL|*: *|TITLE|* (*|START|*)*| with ATTENDEENAMES|**|\nNOTES|**|\nURL|*'))
+      ? String(await getTagParamsFromString(paramString, 'format', '- *|CAL|*: *|TITLE|* (*|START|*)*| with ATTENDEENAMES|**|\nLOCATION|**|\nNOTES|**|\nURL|*'))
       : (paramString.includes('"template":'))
-        ? String(await getTagParamsFromString(paramString, 'template', '- *|CAL|*: *|TITLE|* (*|START|*)*| with ATTENDEENAMES|**|\nNOTES|**|\nURL|*'))
+        ? String(await getTagParamsFromString(paramString, 'template', '- *|CAL|*: *|TITLE|* (*|START|*)*| with ATTENDEENAMES|**|\nLOCATION|**|\nNOTES|**|\nURL|*'))
         : config.formatEventsDisplay
     const alldayformat = (paramString.includes('"allday_format":'))
-      ? String(await getTagParamsFromString(paramString, 'allday_format', '- *|CAL|*: *|TITLE|**| with ATTENDEENAMES|**|\nNOTES|**|\nURL|*'))
+      ? String(await getTagParamsFromString(paramString, 'allday_format', '- *|CAL|*: *|TITLE|**| with ATTENDEENAMES|**|\nLOCATION|**|\nNOTES|**|\nURL|*'))
       : (paramString.includes('"allday_template":'))
-        ? String(await getTagParamsFromString(paramString, 'allday_template', '- *|CAL|*: *|TITLE|**| with ATTENDEENAMES|**|\nNOTES|**|\nURL|*'))
+        ? String(await getTagParamsFromString(paramString, 'allday_template', '- *|CAL|*: *|TITLE|**| with ATTENDEENAMES|**|\nLOCATION|**|\nNOTES|**|\nURL|*'))
         : config.formatAllDayEventsDisplay
     const includeHeadings = await getTagParamsFromString(paramString, 'includeHeadings', true)
     const daysToCover: number = await getTagParamsFromString(paramString, 'daysToCover', 1)
@@ -213,7 +213,7 @@ export async function listMatchingDaysEvents(
             text: thisEventStr
           })
         } else {
-          logDebug(pluginJson, `No match to ${e.title}`)
+          // logDebug(pluginJson, `No match to ${e.title}`)
         }
       }
     }
@@ -274,12 +274,13 @@ export function getReplacements(item: TCalendarItem, config: EventsConfig): Map<
   outputObject.set('ATTENDEENAMES', item.attendeeNames ? item.attendeeNames.join(', ') : '')
   outputObject.set('ATTENDEES', item.attendees ? item.attendees.join(', ') : '')
   outputObject.set('EVENTLINK', item.calendarItemLink ? item.calendarItemLink : '')
+  outputObject.set('LOCATION', item.location ? item.location : '')
   outputObject.set('DATE', toLocaleDateString(item.date))
   outputObject.set('START', !item.isAllDay ? toLocaleTime(item.date, config.locale, config.timeOptions) : '')
   outputObject.set('END', item.endDate != null && !item.isAllDay ? toLocaleTime(item.endDate, config.locale, config.timeOptions) : '')
   outputObject.set('URL', item.url)
 
-  // outputObject.forEach((v, k, map) => { logDebug(pluginJson, `${k} : ${v}`) })
+  outputObject.forEach((v, k, map) => { logDebug('getReplacements', `- ${k} : ${v}`) })
   return outputObject
 }
 
@@ -301,7 +302,7 @@ export function smartStringReplace(format: string, replacements: Map<string, str
 
   // For each possible placeholder, process it if it present in format AND the value for this event is not empty
   // (For safety ATTENDEES needs to come before END in the list, as 'END' is part of 'ATTENDEES'!)
-  const placeholders = ['CAL', 'TITLE', 'EVENTLINK', 'ATTENDEENAMES', 'ATTENDEES', 'DATE', 'START', 'END', 'NOTES', 'URL']
+  const placeholders = ['CAL', 'TITLE', 'EVENTLINK', 'LOCATION', 'ATTENDEENAMES', 'ATTENDEES', 'DATE', 'START', 'END', 'NOTES', 'URL']
   for (const p of placeholders) {
     const thisRE = new RegExp(`\\*\\|([^|*]*?${p}.*?)\\|\\*`)
     const REResult = output.match(thisRE) // temp RE result

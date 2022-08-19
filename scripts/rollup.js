@@ -94,6 +94,7 @@ console.log(colors.yellow.bold(`🧩 NotePlan Plugin Development v${pkgInfo.vers
 // Command line options
 program
   .option('-d, --debug', 'Rollup: allow for better JS debugging - no minification or transpiling')
+  .option('-m, --minify', 'Rollup: create minified output to reduce file size')
   .option('-c, --compact', 'Rollup: use compact output')
   .option('-n, --notify', 'Show Notification')
   .option('-b, --build', 'Rollup: build plugin only (no watcher)')
@@ -101,6 +102,7 @@ program
 
 const options = program.opts()
 const DEBUGGING = options.debug || false
+const MINIFY = options.minify || false
 const COMPACT = options.compact || false
 const BUILD = options.build || false
 const NOTIFY = options.notify || false
@@ -115,6 +117,9 @@ if (DEBUGGING && !COMPACT) {
 if (COMPACT) {
   console.log('')
   console.log(colors.green.bold(`==> Rollup autowatch running. Will use compact output when there are no errors\n`))
+}
+if (MINIFY) {
+  console.log(colors.cyan.bold(`==> Rollup autowatch running. Will use minified output\n`))
 }
 let watcher
 
@@ -353,7 +358,25 @@ function getConfig(pluginPath) {
           json(),
           nodeResolve({ browser: true, jsnext: true }),
         ]
-      : [
+      : MINIFY ? [
+          alias({
+            entries: pluginConfig.aliasEntries,
+          }),
+          babel({ babelHelpers: 'bundled', compact: true }),
+          commonjs(),
+          json(),
+          nodeResolve({ browser: true, jsnext: true }),
+          terser({
+            compress: true,
+            mangle: true,
+            output: {
+              comments: false,
+              beautify: false,
+              indent_level: 2,
+            },
+          }),
+      ] :
+      [
           alias({
             entries: pluginConfig.aliasEntries,
           }),
@@ -370,7 +393,7 @@ function getConfig(pluginPath) {
               indent_level: 2,
             },
           }),
-        ],
+      ],
     context: 'this',
   }
 }

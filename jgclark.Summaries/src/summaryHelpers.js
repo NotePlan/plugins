@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Summary commands for notes
 // Jonathan Clark
-// Last updated 24.7.2022 for v0.11.1 by @jgclark
+// Last updated 14.8.2022 for v0.12.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -10,7 +10,7 @@ import {
   getDateStringFromCalendarFilename,
   withinDateRange,
 } from '@helpers/dateTime'
-import { logDebug, logInfo, logWarn, logError } from '@helpers/dev'
+import { clo, logDebug, logInfo, logWarn, logError } from '@helpers/dev'
 import {
   CaseInsensitiveMap,
   type headingLevelType,
@@ -21,7 +21,6 @@ import {
   isHashtagWanted,
   isMentionWanted,
 } from '@helpers/search'
-// import { chooseOption, getInput } from '@helpers/userInput'
 
 //------------------------------------------------------------------------------
 // Get settings
@@ -44,11 +43,204 @@ export type SummariesConfig = {
   progressHeading: string,
   progressHashtags: Array<string>,
   progressMentions: Array<string>,
+  progressYesNo: Array<string>,
+  progressYesNoChars: string,
+  showSparklines: boolean,
 }
 
 /**
- * Get config settings using Config V2 system. (Have now removed support for Config V1.)
- *
+ * Class to hold occurence summary of Hashtags and/or Mentions ('TM') for a given time period.
+ * A progress term has a 'type': 'daily-average', 'item-average', 'total', 'yesno', 'count'
+ * These tailor the display
+ */
+export class TMOccurrences {
+  // the class instance properties
+  term: string
+  type: string // 'daily-average', 'item-average', 'total', 'yesno', 'count'
+  period: string
+  numDays: number
+  valuesMap: Map<string, number>
+  total: number
+  count: number
+
+  /**
+   * Create a new object, initialising the main valuesMap to the required number of values, as 'NaN', so that we can distinguish zero from no occurrences.
+   * (Unless type 'yesno' )
+   * @param {string} term 
+   * @param {string} type 
+   * @param {string} fromDateStr 
+   * @param {string} toDateStr 
+   */
+  constructor(term: string, type: string, fromDateStr: string, toDateStr: string) {
+    this.term = term
+    this.type = type
+    this.numDays = Number(toDateStr) - Number(fromDateStr) + 1 // inclusive
+    this.valuesMap = new Map < string, number > ()
+    this.total = 0
+    this.count = 0
+    // Initialise all values to NaN, unless type 'yesno'
+    for (let i = 0; i < this.numDays; i++) {
+      let thisDateStr = String(Number(fromDateStr) + i)
+      this.valuesMap.set(thisDateStr, (this.type == 'yesno') ? 0 : NaN)
+    }
+    logDebug('TMOccurrences / constructor', `Constructed ${term}: first date = ${fromDateStr} for ${this.valuesMap.size} days`)
+  }
+
+  addOccurrence(occStr: string, dateStr: string): void {
+    // logDebug('TMOccurrences / addOccurrence', `starting for ${occStr} on date = ${dateStr}`)
+    // isolate the value
+
+    let key = occStr
+    let value = NaN
+    // if this tag that finishes '/number', then break into its two parts, ready to sum the numbers as well
+    // Note: testing includes decimal part of a number, but the API .hashtags drops them
+    if (occStr.match(/\/-?\d+(\.\d+)?$/)) {
+      const tagParts = occStr.split('/')
+      key = tagParts[0]
+      value = Number(tagParts[1])
+      // logDebug('TMOccurrences / addOccurrence', `- found tagParts ${key} / ${value.toString()}`)
+    }
+    // if this is a mention that finishes (number), then break into separate parts first
+    else if (occStr.match(/\(-?\d+(\.\d+)?\)$/)) {
+      const mentionParts = occStr.split('(')
+      key = mentionParts[0]
+      value = Number.parseFloat(mentionParts[1].slice(0, -1)) // chop off final ')' character
+      // logDebug('TMOccurrences / addOccurrence', `- found tagParts ${key} / ${value.toString()}`)
+    }
+
+    // if this has a numeric value add to total, taking into account that the
+    // day may have several values.
+    const prevValue = isNaN(this.valuesMap.get(dateStr)) ? 0 : this.valuesMap.get(dateStr)
+    if (!isNaN(value)) {
+      this.valuesMap.set(dateStr, prevValue + value)
+      this.count++
+      this.total += value
+      logDebug('TMOccurrences / addOccurrence', `- ${key} / ${value} -> ${this.total} from ${this.count}`)
+    } else {
+      // else just update the count
+      this.valuesMap.set(dateStr, prevValue + 1)
+      this.count++
+      this.total++
+      logDebug('TMOccurrences / addOccurrence', `- ${key} increment -> ${this.total} from ${this.count}`)
+    }
+  }
+
+  /**
+   * Return the term for the current occObj, remove leading '@' or '#',
+   *  and optionally right-padded to a given width.
+   */
+  getTerm(paddingSize?: number): string {
+    const pad = (paddingSize && paddingSize > 0) ? ' '.repeat(paddingSize - this.term.length) : ''
+    return pad + this.term.slice(1)
+  }
+
+  /**
+   * Return just the values (not keys) from the valuesMap
+   */
+  getValues(): Array<number> {
+    let outArr = []
+    for (let f of this.valuesMap.values()) {
+      outArr.push(f)
+    }
+    logDebug('getValues', `for ${this.term} = ${outArr.toString()}`)
+    return outArr
+  }
+
+  /**
+   * Log all the details in the main valuesMap
+   */
+  logValuesMap(): void {
+    logDebug('logValuesMap', `- valuesMap for ${this.term}:`)
+    this.valuesMap.forEach((v, k, m) => {
+      logDebug('logValuesMap', `  - ${k}: ${v}`)
+    })
+  }
+
+  /**
+   * Get sparkline for a particular term for the current period, in a specified style.
+   * Currently the only style available is 'ascii'.
+   * TODO: Add proper graphs in HTML as png or svg or interactive chart.
+   * FIXME: change name
+   */
+  getSparkline(style: string = 'ascii'): string {
+    let out = ''
+    switch (style) {
+      case 'ascii': {
+        if (this.type !== 'yesno') {
+          const options = { min: 0, divider: '|', missingDataChar: '.' }
+          out = makeSparkline(this.getValues(), options)
+        } else {
+          const options = { divider: '|', yesNoChars: '✓·' }
+          out = makeYesNoLine(this.getValues(), options)
+        }
+        break
+      }
+      default: {
+        logError('summaryHelpers / getSparkline', `style '${style}' is not available`)
+        break
+      }
+    }
+    return out
+  }
+
+  /**
+   * Get stats for a particular term, over the current period, in a specified style.
+   * Currently the only style available is 'text'.
+   * It also changes depending on the 'type' of the 'term'. By default it will give all stats, but 
+   */
+  getStats(style: string): string {
+    let output = ''
+    // logDebug('getStats', `starting for ${ this.term } type ${ this.type } style ${ style } `)
+
+    const countStr = (!isNaN(this.count)) ? this.count.toLocaleString() : `none`
+    const totalStr = (!isNaN(this.total) && this.total > 0) ? `total ${this.total.toLocaleString()}` : ''
+    // This is the average per item, not the average per day. In general I feel this is more useful for numeric amounts
+    const itemAvgStr = (!isNaN(this.total) && this.count > 0) ? `avg ${(this.total / this.count).toLocaleString([], { maximumSignificantDigits: 2 })}` : ''
+    // TODO: Decide how/when to use daily average instead of an item average
+    // const dailyAvgStr = (!isNaN(this.total)) ? `dailyAvg ${(this.total / this.numDays).toLocaleString([], { maximumSignificantDigits: 2 })}` : ''
+
+    switch (style) {
+      case 'text': {
+        output = countStr // always start with count
+        if (this.count === this.total && this.type !== 'yesno') break // if it's a simple count, treat as such, even if that wasn't it's given type
+        switch (this.type) {
+          case 'yesno': {
+            output += " from " + this.numDays.toLocaleString()
+            break
+          }
+          case 'all': {
+            if (totalStr !== '') output += ", " + totalStr
+            if (itemAvgStr !== '') output += ", " + itemAvgStr
+            // if (dailyAvgStr !== '') output += ", " + dailyAvgStr
+            break
+          }
+          case 'total': {
+            output += ": " + totalStr
+            break
+          }
+          case 'average': {
+            if (itemAvgStr !== '') output += ": " + itemAvgStr
+            // if (dailyAvgStr !== '') output += ", " + dailyAvgStr
+            break
+          }
+          default: {
+            // nothing to add
+          }
+        }
+        break
+      }
+      default: {
+        logError('summaryHelpers / getStats', `style '${style}' is not available`)
+        output = '(unsupported style)'
+        break
+      }
+    }
+    return output
+  }
+}
+
+/**
+ * Get config settings using Config V2 system.
  * @return {SummariesConfig} object with configuration
  */
 export async function getSummariesSettings(): Promise<any> {
@@ -91,7 +283,7 @@ export function calcHashtagStatsPeriod(
   const periodDailyNotes = DataStore.calendarNotes.filter(
     (p) => withinDateRange(getDateStringFromCalendarFilename(p.filename), fromDateStr, toDateStr))
   if (periodDailyNotes.length === 0) {
-    logWarn(pluginJson, `no matching daily notes found between ${fromDateStr} and ${toDateStr}`)
+    logWarn('calcHashtagStatsPeriod', `no matching daily notes found between ${fromDateStr} and ${toDateStr}`)
     return
   }
 
@@ -108,15 +300,14 @@ export function calcHashtagStatsPeriod(
     termSumTotals.set(termKey, NaN)
   }
 
-  logDebug("hCounts init:")
+  logDebug('calcHashtagStatsPeriod', "hCounts init:")
   for (const [key, value] of termCounts.entries()) {
-    logDebug(`  ${key}: ${value}`)
+    logDebug('calcHashtagStatsPeriod', `  ${key}: ${value}`)
   }
 
   // For each daily note review each included hashtag
   for (const n of periodDailyNotes) {
-    // TODO(EduardMet): fix API bug
-    // The following is a workaround to an API bug in note.hashtags where
+    // The following is a workaround to an API 'feature' in note.hashtags where
     // #one/two/three gets reported as #one, #one/two, and #one/two/three.
     // Go backwards through the hashtag array, and then check
     const seenTags = n.hashtags.slice().reverse()
@@ -135,7 +326,7 @@ export function calcHashtagStatsPeriod(
           const tagParts = tag.split('/')
           k = tagParts[0] // tag
           v = Number(tagParts[1]) // number after tag
-          logDebug(pluginJson, `  found tagParts ${k} / ${v.toString()}`)
+          logDebug('calcHashtagStatsPeriod', `  found tagParts ${k} / ${v.toString()}`)
         }
         // check this is on inclusion, or not on exclusion list, before adding
         if (isHashtagWanted(k, includedTerms, excludedTerms)) {
@@ -145,27 +336,27 @@ export function calcHashtagStatsPeriod(
             const prevTotal = !isNaN(termSumTotals.get(k)) ? termSumTotals.get(k) : 0
             // $FlowIgnore[unsafe-addition]
             termSumTotals.set(k, prevTotal + v)
-            logDebug(pluginJson, `  ${k} add ${v} -> ${String(termSumTotals.get(k))} from ${String(termCounts.get(k))}`)
+            logDebug('calcHashtagStatsPeriod', `  ${k} add ${v} -> ${String(termSumTotals.get(k))} from ${String(termCounts.get(k))}`)
           } else {
             // else just save this to the counts map
             termCounts.set(tag, (termCounts.get(k) ?? 0) + 1)
-            logDebug(pluginJson, `  ${k} increment -> ${String(termCounts.get(k))}`)
+            logDebug('calcHashtagStatsPeriod', `  ${k} increment -> ${String(termCounts.get(k))}`)
           }
         } else {
-          logDebug(pluginJson, `  ${k} -> not wanted`)
+          logDebug('calcHashtagStatsPeriod', `  ${k} -> not wanted`)
         }
       }
       lastTag = tag
     }
   }
 
-  // console.log("Hashtag Keys:")
+  // logDebug('calcHashtagStatsPeriod', "Hashtag Keys:")
   // for (let a of termCounts.keys()) {
-  //   console.log(a)
+  //   logDebug('calcHashtagStatsPeriod', a)
   // }
-  // console.log("Values:")
+  // logDebug('calcHashtagStatsPeriod', "Values:")
   // termCounts.forEach(h => {
-  //   console.log(h)
+  //   logDebug('calcHashtagStatsPeriod', h)
   // })
   for (const [key, value] of termCounts) {
     logDebug(`${key}\t${value}`)
@@ -215,14 +406,13 @@ export function calcMentionStatsPeriod(
     termSumTotals.set(k, NaN) // start with NaN so we can tell if there has been nothing added
   }
 
-  logDebug("mSumTotals init:")
+  logDebug('calcMentionStatsPeriod', "mSumTotals init:")
   for (const [key, value] of termSumTotals.entries()) {
-    logDebug(`  ${key}: ${value}`)
+    logDebug('calcMentionStatsPeriod', `  ${key}: ${value}`)
   }
 
   for (const n of periodDailyNotes) {
-    // TODO(EduardMet): fix API bug
-    // The following is a workaround to an API bug in note.mentions where
+    // The following is a workaround to an API 'feature' in note.mentions where
     // @one/two/three gets reported as @one, @one/two, and @one/two/three.
     // Go backwards through the mention array, and then check
     // Note: The .mentions includes part in brackets afterwards
@@ -243,7 +433,7 @@ export function calcMentionStatsPeriod(
           const mentionParts = m.split('(')
           k = mentionParts[0]
           v = Number.parseFloat(mentionParts[1].slice(0, -1)) // chop off final ')' character
-          logDebug(pluginJson, `  found tagParts ${k} / ${v}`)
+          logDebug('calcMentionStatsPeriod', `  found tagParts ${k} / ${v}`)
         }
         // check this is on inclusion, or not on exclusion list, before adding.
         if (isMentionWanted(k, includedTerms, excludedTerms)) {
@@ -252,31 +442,112 @@ export function calcMentionStatsPeriod(
             const prevTotal = !isNaN(termSumTotals.get(k)) ? termSumTotals.get(k) : 0
             // $FlowIgnore[unsafe-addition]
             termSumTotals.set(k, prevTotal + v)
-            logDebug(pluginJson, `  ${k} add ${v} -> ${String(termSumTotals.get(k))} from ${String(termCounts.get(k))}`)
+            logDebug('calcMentionStatsPeriod', `  ${k} add ${v} -> ${String(termSumTotals.get(k))} from ${String(termCounts.get(k))}`)
           } else {
             // just save this to the main map
             termCounts.set(m, (termCounts.get(m) ?? 0) + 1)
-            logDebug(pluginJson, `  ${m} increment -> ${String(termCounts.get(m))}`)
+            logDebug('calcMentionStatsPeriod', `  ${m} increment -> ${String(termCounts.get(m))}`)
           }
         } else {
-          logDebug(pluginJson, `  ${k} -> not wanted`)
+          logDebug('calcMentionStatsPeriod', `  ${k} -> not wanted`)
         }
       }
       lastMention = m
     }
   }
 
-  // console.log("Mention Keys:")
+  // logDebug('calcMentionStatsPeriod', "Mention Keys:")
   // for (let a of termSumTotals.keys()) {
-  //   console.log(a)
+  //   logDebug('calcMentionStatsPeriod', a)
   // }
-  // console.log("Values:")
+  // logDebug('calcMentionStatsPeriod', "Values:")
   // termSumTotals.forEach(h => {
-  //   console.log(h)
+  //   logDebug('calcMentionStatsPeriod', h)
   // })
   for (const [key, value] of termCounts) {
     logDebug(`${key}\t${value}`)
   }
 
   return [termCounts, termSumTotals]
+}
+
+/**
+ * Calculate a 'sparkline' string for the 'data' set.
+ * - where a data point is 'NaN', output a different 'missingDataChar' 
+ * - if the data point is 0, output a blank space
+ * - otherwise scale from 0 to max over the 8 available block characters increasing in size
+ * Options:
+ * - min: number: the minimum value to use for this sparkline (normally 0)
+ * - divider: string
+ * - missingDataChar: single-char string
+ * - 
+ * @author @jgclark drawing on https://github.com/zz85/ascii-graphs.js
+ * @param {Array<number>} data 
+ * @param {Object} options 
+ * @returns {string} output
+ */
+function makeSparkline(data: Array<number>, options: Object = {}): string {
+  const spark_line_chars = "▁▂▃▄▅▆▇█".split('')
+  const divider = options.divider ?? '|'
+  const missingDataChar = options.missingDataChar ?? '.'
+
+  let values = data
+  const realNumberValues = values.slice().filter(x => !isNaN(x))
+  const min = options.min ?? Math.min(...values)
+  let max = options.max ?? Math.max(...realNumberValues)
+  max -= min
+
+  values = values.map(v => v - min)
+  const sum = realNumberValues.reduce((x, y) => x + y, 0)
+  const avg = sum / realNumberValues.length
+  // clo(values, 'values to sparkline')
+  // logDebug('makeSparkline', `-> ${min} - ${max} / ${sum} from ${values.length}`)
+
+  const value_mapper = (value, i) => {
+    if (isNaN(value)) {
+      return missingDataChar
+    } else if (value === 0) {
+      return ' '
+    } else {
+      let fraction = value / max
+      fraction = Math.max(Math.min(1, fraction), 0); // clamp 0..1
+
+      const index = Math.round(fraction * spark_line_chars.length) - 1
+      return spark_line_chars[index > 0 ? index : 0]
+    }
+  }
+
+  const chart = values.map(value_mapper).join('')
+  let output = `${divider}${chart}${divider}`
+  return output
+}
+
+/**
+ * Calculate a 'sparkline'-like string of Yes/No for the 'data' set.
+ * - if the data point is >0, output yesChar
+ * - where a data point is 0 or 'NaN', output noChar
+ * Options:
+ * - divider: string
+ * - noChar: single-char string
+ * - yesChar: single-char string
+ * @author @jgclark
+ * @param {Array<number>} data 
+ * @param {Object} options 
+ * @returns {string} output
+ */
+function makeYesNoLine(data: Array<number>, options: Object = {}): string {
+  const yesChar = options.yesNoChars[0]
+  const noChar = options.yesNoChars[1]
+  const divider = options.divider ?? '|'
+
+  let values = data
+  clo(values, 'values to yesNoLine')
+
+  const value_mapper = (value, i) => {
+    return (value > 0) ? yesChar : noChar
+  }
+
+  const chart = values.map(value_mapper).join('')
+  let output = `${divider}${chart}${divider}`
+  return output
 }

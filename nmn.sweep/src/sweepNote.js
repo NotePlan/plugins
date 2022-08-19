@@ -39,7 +39,7 @@ export default async function sweepNote(
 
   let lastRootItem: ?TParagraph = null
 
-  let overdueOnlyStr = overdueOnly ? 'true' : 'false'
+  const overdueOnlyStr = overdueOnly ? 'true' : 'false'
 
   console.log(`Starting sweepNote for file: "${note.filename}" paragraphs:${paragraphs.length} overdueOnly:${overdueOnlyStr}`)
   paragraphs.forEach((p) => {

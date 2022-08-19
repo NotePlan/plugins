@@ -31,16 +31,13 @@ export {
 import pluginJson from '../plugin.json'
 import { saveThemeNameAsCommand } from './NPThemeChooser'
 import { log, clo } from '@helpers/dev'
-import { getPluginJson } from '@helpers/NPConfiguration'
+import { /* getPluginJson ,*/ updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'
 
 /*
  * NOTEPLAN HOOKS
  * The rest of these functions are called by NotePlan automatically under certain conditions
  * It is unlikely you will need to edit/add anything below this line
  */
-
-// eslint-disable-next-line import/order
-import { updateSettingData } from '@helpers/NPConfiguration'
 
 /**
  * NotePlan calls this function after the plugin is installed or updated.
@@ -68,7 +65,10 @@ export async function onUpdateOrInstall(): Promise<void> {
  * NotePlan calls this function every time the plugin is run (any command in this plugin)
  * You should not need to edit this function. All work should be done in the commands themselves
  */
-export async function init(): Promise<void> {}
+export function init(): void {
+  clo(DataStore.settings,`${pluginJson["plugin.id"]} Plugin Settings`)
+  DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], true, false, false).then((r) => pluginUpdated(pluginJson, r))
+}
 
 /**
  * NotePlan calls this function settings are updated in the Preferences panel
