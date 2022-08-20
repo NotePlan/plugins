@@ -4,6 +4,11 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/codedungeon.Toolbox/README.md) for details on available commands and use case.
 
+## [3.13.0] - 2022-08-19 (@dwertheimer)
+
+- added mathjs module for math calculations
+- added -m | --minify option to build process to minify/mangle output for large plugins
+
 ## [3.12.0] - 2022-07-24 (@codedungeon)
 
 - fixed `maximum stack call` error with new log level implementation

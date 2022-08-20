@@ -132,7 +132,7 @@ function getConfigErrorText(): string {
  * @param {settings} params
  * @returns
  */
-async function getWeatherForLocation(location: LocationOption, weatherParams: WeatherParams): Promise<{ [string]: any } | null> {
+async function getWeatherForLocation(location: LocationOption, weatherParams: WeatherParams = null): Promise<{ [string]: any } | null> {
   const params = weatherParams ? weatherParams : DataStore.settings
   const url = utils.getWeatherURLLatLong(location.lat, location.lon, params.appid, params.units || 'metric')
   logDebug(`weather-utils::getWeatherForLocation`, `url: \n${url}`)
@@ -208,21 +208,28 @@ export async function insertWeatherByLocation(incoming: ?string = '', returnLoca
       return
     } else {
       let location = incoming
-      if (location?.length === 0) {
-        location = await getInput(`What location do you want to lookup?`)
-      }
-      if (location) {
-        const result: any = await getLatLongForLocation(location)
-        if (result) {
-          // {"lat":34.0536909,"lon":-118.242766,"name":"Los Angeles","country":"US","state":"California","label":"Los Angeles, California, US","value":0}
-          logDebug(pluginJson, result.label)
-          clo(result, `insertWeatherByLocation: result from openWeather for ${location}`)
-          //TODO: Format output per user settings and output to cursor
-          Editor.insertTextAtCursor('This function is not fully functional yet.\n')
-          await weatherByLatLong(result, 'no') //sending as string because that's what weatherByLatLong expects
+      do {
+        if (location?.length === 0) {
+            location = await getInput(`What city do you want to lookup? (do not include state)`,"OK","Weather Lookup")   
         }
-        return
-      }
+        if (location) {
+          const result: any = await getLatLongForLocation(location)
+          if (result) {
+            // {"lat":34.0536909,"lon":-118.242766,"name":"Los Angeles","country":"US","state":"California","label":"Los Angeles, California, US","value":0}
+            logDebug(pluginJson, result.label)
+            clo(result, `insertWeatherByLocation: result from openWeather for ${location}`)
+            //TODO: Format output per user settings and output to cursor
+            Editor.insertTextAtCursor('This function is not fully functional yet.\n')
+            await weatherByLatLong(result, 'no') //sending as string because that's what weatherByLatLong expects
+            return
+          } else {
+            location = ''
+          }
+        } else {
+          logDebug(pluginJson,`insertWeatherByLocation: No location to look for: ${location}`)
+        }
+      } while (location !== false)
+
     }
   } catch (error) {
     logError(pluginJson, JSP(error))

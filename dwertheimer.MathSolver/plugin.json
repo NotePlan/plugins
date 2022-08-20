@@ -1,0 +1,126 @@
+{
+  "COMMENT": "Details on these fields: https://help.noteplan.co/article/67-create-command-bar-plugins",
+  "macOS.minVersion": "10.13.0",
+  "noteplan.minAppVersion": "3.4.0",
+  "plugin.id": "dwertheimer.MathSolver",
+  "plugin.name": "🟰 Math Solver",
+  "plugin.version": "1.0.2",
+  "plugin.lastUpdateInfo": "Added [TotalsOnly] button. Removed annotations from basic assignment lines. Thx @QualitativeEasing!",
+  "plugin.description": "Write basic math in your NotePlan notes and use this plugin to calculate it.",
+  "plugin.author": "dwertheimer",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "hidden": true,
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.MathSolver/README.md",
+  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.MathSolver/CHANGELOG.md",
+  "plugin.commands": [
+    {
+      "COMMENT": "DO NOT INSERT ABOVE THIS COMMAND -- This command must be the first command in the array",
+      "name": "Calculate Math Code Blocks in Active Document",
+      "description": "Read math text in current document and calculate the results",
+      "jsFunction": "calculateEditorMathBlocks",
+      "alias": [
+        "math"
+      ],
+      "arguments": [
+        "Text math contents to evaluate (don't read Editor's math blocks)"
+      ]
+    },
+    {
+      "COMMENT": "DO NOT INSERT ABOVE THIS COMMAND -- This command must be the second command in the array",
+      "name": "Remove Math Annotations from Active Document",
+      "description": "Remove Calculations placed by this plugin",
+      "jsFunction": "removeAllAnnotations",
+      "alias": [
+        "clearAnnotations"
+      ],
+      "arguments": []
+    },
+    {
+      "COMMENT": "DO NOT INSERT ABOVE THIS COMMAND -- This command must be the third command in the array",
+      "name": "Calculate Totals Only",
+      "description": "Calculate Math Block (show totals only)",
+      "jsFunction": "calculateEditorMathBlocksTotalsOnly",
+      "alias": [
+        "mathTotals",
+        "mathCalcTotals"
+      ],
+      "arguments": []
+    },
+    {
+      "name": "Insert Math Block at Cursor",
+      "description": "Place Math Block and Calculation Link",
+      "jsFunction": "insertMathBlock",
+      "alias": [
+        "insertMath",
+        "mathBlock"
+      ],
+      "arguments": []
+    }
+  ],
+  "plugin.settings": [
+    {
+      "COMMENT": "Plugin settings documentation: https://help.noteplan.co/article/123-plugin-configuration",
+      "type": "heading",
+      "title": "Math Solver Settings"
+    },
+    {
+      "title": "Include Clear button when inserting Math Block",
+      "key": "includeClear",
+      "type": "bool",
+      "description": "When a Math Block is inserted by the plugin, include a Clear link/button",
+      "default": true
+    },
+    {
+      "title": "Include Calculate button when inserting Math Block",
+      "key": "includeCalc",
+      "type": "bool",
+      "description": "When a Math Block is inserted by the plugin, include a Calculate link/button",
+      "default": true
+    },
+    {
+      "title": "Include Totals button when inserting Math Block",
+      "key": "includeTotals",
+      "type": "bool",
+      "description": "When a Math Block is inserted by the plugin, include a Totals link/button (to show only totals and not the rest of the calculations)",
+      "default": true
+    },
+    {
+      "title": "Format for Math Display in Popup Preview",
+      "key": "popUpTemplate",
+      "type": "string",
+      "description": "Each line will be displayed in a single popup preview. Lines need to be short. Use a key name wrapped in double curly braces, e.g. ({{someThing}}) for key/values to substitute. Key options:\n{{row}} - row number\n{{originalText}} - line's text in the math block\n{{value}} - value to display\n{{expression}} - expression the computer constructed to evaluate (just for verification purposes)\n{{typeOfResult}} - the type of this line (mostly for debugging)",
+      "default": "\"{{originalText}}\" {{value}} {{error}}"
+    },
+    {
+      "title": "Format for Math Replacement in Document",
+      "key": "documentTemplate",
+      "type": "string",
+      "description": "After calculation, the math line will be written according to this format. Use a key name wrapped in double curly braces, e.g. ({{someThing}}) for key/values to substitute. Key options:\n{{row}} - row number\n{{originalText}} - line's text in the math block\n{{value}} - value to display\n{{expression}} - expression the computer constructed to evaluate (just for verification purposes)\n{{typeOfResult}} - the type of this line (mostly for debugging)",
+      "default": "{{originalText}} {{value}} {{error}}"
+    },
+    {
+      "NOTE": "DO NOT CHANGE THE FOLLOWING SETTINGS; ADD YOUR SETTINGS ABOVE ^^^",
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Debugging"
+    },
+    {
+      "key": "_logLevel",
+      "type": "string",
+      "title": "Log Level",
+      "choices": [
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "none"
+      ],
+      "description": "Set how much logging output will be displayed when executing Math Solver commands in NotePlan Plugin Console Logs (NotePlan -> Help -> Plugin Console)\n\n - DEBUG: Show All Logs\n - INFO: Only Show Info, Warnings, and Errors\n - WARN: Only Show Errors or Warnings\n - ERROR: Only Show Errors\n - none: Don't show any logs",
+      "default": "INFO",
+      "required": true
+    }
+  ]
+}

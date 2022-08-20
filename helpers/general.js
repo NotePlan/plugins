@@ -239,13 +239,13 @@ export function createAddTextCallbackUrl(note: TNote | string, options: { text: 
  * Create xcallback link text for running a plugin
  * @author @dwertheimer
  * @param {string} pluginID - ID of the plugin from plugin.json
- * @param {boolean} command - the "name" of the command in plugin.json
+ * @param {boolean} commandName - the "name" of the command in plugin.json
  * @param {Array<string>} args - a flat array of arguments to be sent
  * @returns {string} the x-callback-url URL string (not the pretty part)
  * @tests available
  */
-export function createRunPluginCallbackUrl(pluginID: string, command: string, args: Array<string> = []): string {
-  let xcb = `noteplan://x-callback-url/runPlugin?pluginID=${pluginID}&command=${encodeURIComponent(command)}`
+export function createRunPluginCallbackUrl(pluginID: string, commandName: string, args: Array<string> = []): string {
+  let xcb = `noteplan://x-callback-url/runPlugin?pluginID=${pluginID}&command=${encodeURIComponent(commandName)}`
   if (args?.length) {
     args.forEach((arg, i) => {
       xcb += `&arg${i}=${encodeURIComponent(arg)}`
@@ -450,3 +450,19 @@ export function inFolderList(filenameStr: string, folderListArr: Array<string>, 
   const folderList = caseSensitive ? folderListArr.map((f) => forceLeadingSlash(f)) : folderListArr.map((f) => forceLeadingSlash(f.toLowerCase()))
   return folderList.some((f) => filename.includes(`${f}/`) || (f === '/' && !filename.slice(1).includes('/')))
 }
+
+/**
+ * Super simple template string replace function (merge field replacement)
+ * Generally for user formatting of output in their preferences
+ * @param {string} templateString - the template string with mustache fields for replacement (e.g. {{field1}})
+ * @param {{[string]:string}} fieldValues - a map of field names to values to replace in the template string
+ * Note: if you do not want a string to show, set the field to null in the fieldValues map
+ * @returns {string} the resulting string
+ */
+export function formatWithFields(templateString:string,fieldValues:{[string]:string}): string {
+  return Object.keys(fieldValues).reduce((textbody,key) => textbody.replace(new RegExp(`{{${key}}}`,'gm'),(fieldValues[key] !== null) ? fieldValues[key] : ''),templateString).replace(/ +/g,' ')
+  // const field = textbody.replace(/{([^{}]+)}/g, function(textMatched, key) {
+  //     return user[key] || "";
+  // }
+}
+

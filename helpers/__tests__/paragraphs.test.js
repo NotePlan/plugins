@@ -44,6 +44,10 @@ describe('paragraph.js', () => {
       const result = p.isTermInURL('tennis', 'Something about file://bob/things/tennis/booster.')
       expect(result).toEqual(true)
     })
+    test('should find search term in a NotePlan callback', () => {
+      const result = p.isTermInURL('callback', "<@763430583702519878> I think I may have discovered an issue with the Search Extensions plugin. I'm using '/saveSearchOverNotes' and I'm unable to update the document using the url link. My search terms do have @mentions in them so I thought it might be the issue you identified the other day, but I've noticed that the url uses the plugin command, 'saveSearchResults' rather than 'saveSearchOverNotes'.I think it may be doing this for the other versions of save search too. When I manually change the url, it refreshes fine. See eg: noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearchResults&arg0=")
+      expect(result).toEqual(true)
+    })
     test('should not find search term in a file path as it is in rest of line', () => {
       const result = p.isTermInURL('tennis', 'Something about tennis in file://bob/things/tennis/booster.')
       expect(result).toEqual(false)
@@ -194,9 +198,9 @@ describe('paragraph.js', () => {
         { type: 'title', lineIndex: 12, content: 'Done (more)', headingLevel: 2 },
       ],
     }
-    test('should find at line 6 (note A)', () => {
+    test('should find at line 5 (note A)', () => {
       const result = p.findEndOfActivePartOfNote(noteA)
-      expect(result).toEqual(6)
+      expect(result).toEqual(5)
     })
     const noteB = {
       paragraphs: [
@@ -215,9 +219,9 @@ describe('paragraph.js', () => {
         { type: 'title', lineIndex: 12, content: 'Done (more)', headingLevel: 2 },
       ],
     }
-    test('should find at line 5 (note B)', () => {
+    test('should find at line 4 (note B)', () => {
       const result = p.findEndOfActivePartOfNote(noteB)
-      expect(result).toEqual(5)
+      expect(result).toEqual(4)
     })
     const noteC = {
       paragraphs: [
@@ -235,27 +239,28 @@ describe('paragraph.js', () => {
         { type: 'cancelled', lineIndex: 11, content: 'task 4 not done' },
       ],
     }
-    test('should find at line 10 (note C)', () => {
+    test('should find at line 9 (note C)', () => {
       const result = p.findEndOfActivePartOfNote(noteC)
-      expect(result).toEqual(10)
+      expect(result).toEqual(9)
     })
     const noteD = {
       paragraphs: [
         { type: 'title', lineIndex: 0, content: 'NoteB Title', headingLevel: 1 },
-        { type: 'empty', lineIndex: 1 },
+        { type: 'empty', lineIndex: 1, content: '' },
         { type: 'title', lineIndex: 2, content: 'Section 1', headingLevel: 2 },
         { type: 'open', lineIndex: 3, content: 'task 1' },
         { type: 'text', lineIndex: 4, content: 'some ordinary text' },
-        { type: 'empty', lineIndex: 5 },
+        { type: 'empty', lineIndex: 5, content: '' },
         { type: 'title', lineIndex: 6, content: 'Section 2', headingLevel: 3 },
         { type: 'quote', lineIndex: 7, content: 'quotation' },
         { type: 'done', lineIndex: 8, content: 'task 3 done' },
-        { type: 'empty', lineIndex: 9 },
+        { type: 'empty', lineIndex: 9, content: '' },
         { type: 'title', lineIndex: 10, content: 'Section 3...', headingLevel: 2 },
         { type: 'cancelled', lineIndex: 11, content: 'task 4 not done' },
+        { type: 'empty', lineIndex: 12, content: '' },
       ],
     }
-    test('should not find either (note D), so do last lineIndex', () => {
+    test('should not find either (note D), so do last non-empty lineIndex (11)', () => {
       const result = p.findEndOfActivePartOfNote(noteD)
       expect(result).toEqual(11)
     })
@@ -273,7 +278,7 @@ describe('paragraph.js', () => {
         { type: 'text', lineIndex: 0, content: 'Single line only' },
       ],
     }
-    test('should return 0 for single empty para', () => {
+    test('should return 0 for single para only', () => {
       const result = p.findEndOfActivePartOfNote(noteF)
       expect(result).toEqual(0)
     })
@@ -343,3 +348,4 @@ describe('paragraph.js', () => {
     })
   })
 })
+

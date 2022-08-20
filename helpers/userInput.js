@@ -12,8 +12,8 @@ async function parseJSON5(contents: string): Promise<?{ [string]: ?mixed }> {
   try {
     const value = json5.parse(contents)
     return (value: any)
-  } catch (e) {
-    logError('parseJSON5', e)
+  } catch (error) {
+    logError('userInput / parseJSON5', error.message)
     await showMessage('Invalid JSON5 in your configuration. Please fix it to use configuration')
     return {}
   }
@@ -163,7 +163,7 @@ export async function chooseFolder(msg: string, includeArchive: boolean = false)
     // no Folders so go to root
     folder = '/'
   }
-  // logDebug('chooseFolder', `-> ${folder}`)
+  // logDebug('userInput / chooseFolder', `-> ${folder}`)
   return folder
 }
 
@@ -181,6 +181,7 @@ export async function chooseHeading(note: TNote, optionAddAtBottom: boolean = tr
   try {
     let headingStrings = []
     const headingLevel = 2
+    const spacer = '    '
     // Decide whether to include all headings in note, or just those in the first
     // before the Done/Cancelled section
     const indexEndOfActive = findEndOfActivePartOfNote(note)
@@ -191,68 +192,90 @@ export async function chooseHeading(note: TNote, optionAddAtBottom: boolean = tr
       headingStrings = headingParas.map((p) => {
         let prefix = ''
         for (let i = 1; i < p.headingLevel; i++) {
-          prefix += '    '
+          prefix += spacer
         }
         return prefix + p.content
       })
     }
     if (optionCreateNewHeading) {
       // Add options to add new heading at top or bottom of note
+      if (note.type === 'Calendar') {
+        headingStrings.unshift('➕ ⬆️ (first insert new heading at the start of the note)') // insert at start
+      } else {
+        headingStrings.splice(1, 0, `${spacer}➕ ⬆️ (first insert new heading under the title)`) // insert as second item, after title
+      }
+
       headingStrings.unshift('➕ ⬆️ (first insert new heading at the start of the note)') // insert at second item
-      // headingStrings.splice(1, 0, '➕ ⬆️ (first insert new heading at the start of the note)') // insert at second item
-      headingStrings.push('➕ ⬇️ (first insert new heading at the end of the note)')
+      headingStrings.push(`${spacer}➕ ⬇️ (first insert new heading at the end of the note)`)
     }
+
+    // Had wanted to use this, but would then need to break existing return type in order to able to differentiate between 'top of note' and 'bottom of bote'
     // if (note.type === 'Calendar') {
     //   headingStrings.unshift('⬆️ (top of note)') // add at start (as it has no title heading)
     // }
+
     if (optionAddAtBottom) {
       // Ensure we can always add at top and bottom of note
-      headingStrings.push('⬇️ (bottom of note)') // add at end
+      headingStrings.push('⏬ (bottom of note)') // add at end
     }
+
     const result = await CommandBar.showOptions(headingStrings, `Select a heading from note '${note.title ?? 'Untitled'}'`)
     let headingToReturn = headingStrings[result.index].trim()
     let newHeading = ''
 
     switch (headingToReturn) {
-      case '➕ ⬆️ (first insert new heading at the start of the note)':
+      case `➕ ⬆️ (first insert new heading at the start of the note)`:
+        // ask for new heading, and insert right at top
+        newHeading = await getInput(`Enter heading to add at the start of the note`)
+        if (newHeading && typeof newHeading === 'string') {
+          const startPos = 0
+          note.insertHeading(newHeading, startPos, headingLevel)
+          logDebug('userInput / chooseHeading', `prepended new heading '${newHeading}' at line ${startPos} (calendar note)`)
+          headingToReturn = newHeading
+        } else {
+          throw new Error(`user cancelled operation`)
+        }
+        break
+
+      case '➕ ⬆️ (first insert new heading under the title)':
         // ask for new heading, find smart insertion position, and insert it
         newHeading = await getInput(`Enter heading to add at the start of the note`)
         if (newHeading && typeof newHeading === 'string') {
           const startPos = calcSmartPrependPoint(note)
-          logDebug('userInput/chooseHeading', `prepending new heading ${newHeading} at line ${startPos}`)
           note.insertHeading(newHeading, startPos, headingLevel)
+          logDebug('userInput / chooseHeading', `prepended new heading '${newHeading}' at line ${startPos} (project note)`)
           headingToReturn = newHeading
         } else {
           throw new Error(`user cancelled operation`)
         }
         break
 
-      case '➕ ⬇️ (first insert new heading at the end of the note)':
+      case `➕ ⬇️ (first insert new heading at the end of the note)`:
         // ask for new heading, and then append it
         newHeading = await getInput(`Enter heading to add at the end of the note`)
         if (newHeading && typeof newHeading === 'string') {
-          const endPos = indexEndOfActive
-          logDebug('userInput/chooseHeading', `appending new heading ${newHeading} at line ${endPos}`)
-          note.insertHeading(newHeading, endPos, headingLevel)
+          const newLindeIndex = indexEndOfActive + 1
+          note.insertHeading(newHeading, newLindeIndex, headingLevel)
+          logDebug('userInput / chooseHeading', `appended new heading '${newHeading}' at line ${newLindeIndex}`)
           headingToReturn = newHeading
         } else {
           throw new Error(`user cancelled operation`)
         }
         break
 
-      case '⬇️ (bottom of note)':
-        // get
-        logDebug('userInput/chooseHeading', `selected end of note, rather than a heading`)
+      case '⏬ (bottom of note)':
+        logDebug('userInput / chooseHeading', `selected end of note, rather than a heading`)
         headingToReturn = ''
         break
 
       default:
+        logDebug('userInput / chooseHeading', `User picked existing heading #${result.index + 1} ('${headingToReturn}') from ${headingStrings.length} ..`)
         break
     }
     return headingToReturn
   }
   catch (error) {
-    logError('userInput/chooseHeading', error.message)
+    logError('userInput / chooseHeading', error.message)
     return '<error>'
   }
 }
@@ -318,21 +341,21 @@ export async function datePicker(dateParams: string, config?: { [string]: ?mixed
   try {
     const dateConfig = config.date ?? {}
     // $FlowIgnore[incompatible-call]
-    clo(dateConfig, 'userInput/datePicker dateConfig object:')
+    clo(dateConfig, 'userInput / datePicker dateConfig object:')
     const dateParamsTrimmed = dateParams.trim()
     const paramConfig =
       dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}') ? await parseJSON5(dateParams) : dateParamsTrimmed !== '' ? await parseJSON5(`{${dateParams}}`) : {}
     // $FlowIgnore[incompatible-type]
-    logDebug('userInput/datePicker', `params: ${dateParams} -> ${JSON.stringify(paramConfig)}`)
+    logDebug('userInput / datePicker', `params: ${dateParams} -> ${JSON.stringify(paramConfig)}`)
     // '...' = "gather the remaining parameters into an array"
     const allSettings: { [string]: mixed } = {
       ...dateConfig,
       ...paramConfig,
     }
-    // logDebug('userInput/datePicker', allSettings.toString())
+    // logDebug('userInput / datePicker', allSettings.toString())
     // grab just question parameter, or provide a default
     let { question, defaultValue } = (allSettings: any)
-    // logDebug('userInput/datePicker', `defaultValue: ${defaultValue}`)
+    // logDebug('userInput / datePicker', `defaultValue: ${defaultValue}`)
     question = question ? question : 'Please enter a date'
     defaultValue = defaultValue ? defaultValue : 'YYYY-MM-DD'
 
@@ -347,11 +370,11 @@ export async function datePicker(dateParams: string, config?: { [string]: ?mixed
       }
       return reply2
     } else {
-      logWarn('userInput/datePicker', 'User cancelled date input')
+      logWarn('userInput / datePicker', 'User cancelled date input')
       return ''
     }
   } catch (e) {
-    logError('userInput/datePicker', e.message)
+    logError('userInput / datePicker', e.message)
     return ''
   }
 }
@@ -368,7 +391,7 @@ export async function inputInteger(question: string): Promise<number> {
   if (reply != null && isInt(reply)) {
     return Number(reply)
   } else {
-    logError('inputInteger', `Error trying to get integer answer for question '${question}'`)
+    logError('userInput / inputInteger', `Error trying to get integer answer for question '${question}'`)
     return NaN
   }
 }
@@ -398,7 +421,7 @@ export async function inputNumber(question: string): Promise<number> {
   if (reply != null && Number(reply)) {
     return Number(reply)
   } else {
-    logError('inputNumber', `Error trying to get number answer for question '${question}'`)
+    logError('userInput / inputNumber', `Error trying to get number answer for question '${question}'`)
     return NaN
   }
 }
@@ -447,12 +470,12 @@ export const multipleInputAnswersAsArray = async (question: string, submit: stri
 }
 
 /**
- * Choose a particular note from a CommandBar list of notes.
+ * Choose a particular note from a CommandBar list of notes
  * @author @dwertheimer
  * @param {boolean} includeProjectNotes
  * @param {boolean} includeCalendarNotes
  * @param {Array<string>} foldersToIgnore - a list of folder names to ignore
- * @returns {TNote | null}
+ * @returns {TNote | null} note
  */
 export async function chooseNote(includeProjectNotes: boolean = true, includeCalendarNotes: boolean = false, foldersToIgnore: Array<string> = []): Promise<TNote | null> {
   let noteList = []

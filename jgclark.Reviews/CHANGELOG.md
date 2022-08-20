@@ -1,5 +1,8 @@
 # What's changed in 🔬 Reviews plugin?
-See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Review), and how to configure.
+See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.
+## [0.7.1] - 2022-08-03
+### Fixed
+- fixed crashes, and updated logging
 
 ## [0.7.0] - 2022-07-14
 ### Added

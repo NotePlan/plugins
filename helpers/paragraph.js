@@ -74,7 +74,7 @@ export function isTermInMarkdownPath(term: string, searchString: string): boolea
  * Note: This is a copy of what's in general.js to avoid circular dependency.
  * @author @EduardMe
  */
-export function rangeToString(r: Range): string {
+export function rangeToString(r: TRange): string {
   if (r == null) {
     return 'Range is undefined!'
   }
@@ -211,7 +211,7 @@ export function calcSmartPrependPoint(note: TNote): number {
 }
 
 /**
- * Prepends a task to a chosen note, but more smartly than usual.
+ * Prepends text to a chosen note, but more smartly than usual.
  * I.e. if the note starts with YAML frontmatter (e.g. https://docs.zettlr.com/en/core/yaml-frontmatter/)
  * or a metadata line (= starts with a hashtag), then add after that.
  * @author @jgclark
@@ -226,9 +226,9 @@ export function smartPrependPara(note: TNote, paraText: string, paragraphType: P
 }
 
 /**
- * Works out where the first ## Done or ## Cancelled section starts, if present.
+ * Works out where the first ## Done or ## Cancelled section starts, if present, and returns the paragraph before that.
  * Works with folded Done or Cancelled sections.
- * If the previous line was a separator, use that line instead
+ * If the result is a separator, use the line before that instead
  * If neither Done or Cancelled present, return the last non-empty lineIndex.
  * @author @jgclark
  * @tests in jest file
@@ -266,7 +266,10 @@ export function findEndOfActivePartOfNote(note: CoreNoteFields): number {
       cancelledHeaderLine -= 1
     }
 
-    const endOfActive = doneHeaderLine > 0 ? doneHeaderLine : cancelledHeaderLine > 0 ? cancelledHeaderLine : lineCount > 0 ? lineCount - 1 : 0
+    const endOfActive = doneHeaderLine > 1 ? doneHeaderLine - 1
+      : cancelledHeaderLine > 1 ? cancelledHeaderLine - 1
+        : lineCount > 1 ? lineCount - 1
+          : 0
     logDebug('paragraph/findEndOfActivePartOfNote', `doneHeaderLine = ${doneHeaderLine}, cancelledHeaderLine = ${cancelledHeaderLine} endOfActive = ${endOfActive}`)
     return endOfActive
   }
@@ -375,49 +378,20 @@ export function getParaFromContent(note: TNote, contentToFind: string): TParagra
 }
 
 /**
- * Works out which line (if any) of the current note is a metadata line, defined as
- * - line starting 'project:' or 'medadata:'
- * - first line containing a @review() mention
- * - first line starting with a hashtag
- * If these can't be found, then create a new line for this after the title line.
- * @author @jgclark
- *
- * @param {TNote} note to use
- * @return {number} the line number for the metadata line
- */
-export function getOrMakeMetadataLine(note: TNote): number {
-  let lineNumber: number = NaN
-  const lines = note.content?.split('\n') ?? ['']
-  for (let i = 1; i < lines.length; i++) {
-    if (lines[i].match(/^project:/i) || lines[i].match(/^metadata:/i) || lines[i].match(/^#[\w]/) || lines[i].match(/(@review|@reviewed)\(.+\)/)) {
-      lineNumber = i
-      break
-    }
-  }
-  if (Number.isNaN(lineNumber)) {
-    // If no metadataPara found, then insert one straight after the title
-    logDebug('paragraph/getOrMakeMetadataLine', `Warning: Can't find an existing metadata line, so will insert a new second line for it`)
-    Editor.insertParagraph('', 1, 'empty')
-    lineNumber = 1
-  }
-  // logDebug('paragraph/getOrMakeMetadataLine', `Metadata line = ${lineNumber}`)
-  return lineNumber
-}
-
-/**
  * Find a note's heading/title that matches the string given
  * Note: There's a copy in helpers/NPParagaph.js to avoid a circular dependency
  * @author @dwertheimer
  *
  * @param {TNote} note
- * @param {string} headingToFind to find (exact match)
+ * @param {string} headingToFind to find (exact match if includesString is set to false)
+ * @param {boolean} includesString - search for a paragraph which simply includes the string vs. exact match (default: false - require strict match)
  * @returns {TParagraph | null} - returns the actual paragraph or null if not found
  * @tests in jest file
  */
-export function findHeading(note: TNote, headingToFind: string): TParagraph | null {
-  if (headingToFind) {
+export function findHeading(note: TNote, heading: string, includesString: boolean = false): TParagraph | null {
+  if (heading && heading !== '') {
     const paragraphs = note.paragraphs
-    const para = paragraphs.find((paragraph) => paragraph.type === 'title' && paragraph.content.trim() === headingToFind.trim())
+    const para = paragraphs.find((paragraph) => paragraph.type === 'title' && (includesString ? paragraph.content.includes(heading) : paragraph.content.trim() === heading.trim()))
 
     if (para) return para
   }

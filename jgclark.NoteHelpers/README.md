@@ -17,7 +17,7 @@ This plugin provides these commands to help jump quickly between NotePlan notes,
 From v0.15 it's possible to call the "/jump to heading" command from [outside NotePlan using the **x-callback mechanism**](https://help.noteplan.co/article/49-x-callback-url-scheme#runplugin). The URL calls all take the same form:
 ```
 noteplan://x-callback-url/runPlugin?pluginID=jgclark.NoteHelpers&command=jump%20to%20heading&arg0=<encoded string>
-```
+```https://github.com/NotePlan/plugins/pull/331/conflict?name=jgclark.NoteHelpers%252FREADME.md&ancestor_oid=01fcfb0fbf17f8396777be687fdf51b5091f5ceb&base_oid=e39b5af7a3e72985f61f90eb58daff4422f1ab19&head_oid=d503b2c168f41615b4a7fd46d04bcfa33a751502
 
 This can be used in a template or shortcut, or any other place a URL can be accessed.
 <!-- Notes:
@@ -32,5 +32,12 @@ This can be used in a template or shortcut, or any other place a URL can be acce
 ## History
 See [CHANGELOG](CHANGELOG.md) for the plugin's history.
 
-If you would like to support my late-night work extending NotePlan through writing plugins, you can through:
-![https://www.buymeacoffee.com/revjgc](https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg)
+## Support
+If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
+
+If you would like to support my late-night work extending NotePlan through writing these plugins, you can through:
+
+[<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
+
+Thanks!
+

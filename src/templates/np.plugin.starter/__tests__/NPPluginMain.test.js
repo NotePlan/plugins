@@ -85,9 +85,12 @@ describe('{{pluginId}}' /* pluginID */, () => {
         const spy = jest.spyOn(console, 'log')
         const oldValue = Editor.insertTextAtCursor
         delete Editor.insertTextAtCursor
-        const result = await mainFile.sayHello()
-        expect(spy).toHaveBeenCalled()
-        expect(spy).toHaveBeenNthCalledWith(2, expect.stringMatching(/ERROR/))
+        try {
+          const result = await mainFile.sayHello()
+        } catch (e) {
+          expect(e.message).stringMatching(/ERROR/)
+        }
+        expect(spy).toHaveBeenCalledWith(expect.stringMatching(/ERROR/))
         Editor.insertTextAtCursor = oldValue
         spy.mockRestore()
       })

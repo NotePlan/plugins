@@ -2,42 +2,52 @@
 //-----------------------------------------------------------------------------
 // More advanced searching
 // Jonathan Clark
-// Last updated 22.7.2022 for v0.5.0
+// Last updated 19.8.2022 for v1.0.0-beta1
 //-----------------------------------------------------------------------------
 
-export { quickSearch, saveSearch, saveSearchOverAll, saveSearchOverNotes, saveSearchOverCalendar } from './saveSearch'
-export { saveSearchPeriod } from './saveSearchPeriod'
+export {
+  quickSearch,
+  saveSearch,
+  searchOverAll,
+  searchOverNotes,
+  searchOverCalendar
+} from './saveSearch'
+export { searchPeriod } from './saveSearchPeriod'
 
 const pluginID = "jgclark.SearchExtensions"
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
-import { updateSettingData } from '@helpers/NPConfiguration'
-import { showMessage } from '@helpers/userInput'
+import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
+import { JSP, logError, logInfo } from '@helpers/dev'
 
 export function init(): void {
-  // In the background, see if there is an update to the plugin to install, and if so let user know
-  DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false)
+  try {
+    // Check for the latest version of the plugin, and if a minor update is available, install it and show a message
+    DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false).then((r) =>
+      pluginUpdated(pluginJson, r),
+    )
+  } catch (error) {
+    logError(pluginID, error.message)
+    logError(pluginID, JSP(error))
+  }
 }
 
 export function onSettingsUpdated(): void {
   // Placeholder only to stop error in logs
 }
 
-// refactor previous variables to new types
 export async function onUpdateOrInstall(): Promise<void> {
   try {
-    console.log(`${pluginID}: onUpdateOrInstall running`)
-    const updateSettingsResult = updateSettingData(pluginJson)
-    console.log(`${pluginID}: onUpdateOrInstall updateSettingData code: ${updateSettingsResult}`)
+    logInfo(pluginID, `onUpdateOrInstall ...`)
+    let updateSettingsResult = updateSettingData(pluginJson)
+    logInfo(pluginID, `- updateSettingData code: ${updateSettingsResult}`)
+
     // Tell user the plugin has been updated
-    if (pluginJson['plugin.lastUpdateInfo'] !== undefined) {
-      await showMessage(pluginJson['plugin.lastUpdateInfo'], 'OK, thanks',
-        `Plugin ${pluginJson['plugin.name']} updated to v${pluginJson['plugin.version']}`
-      )
-    }
+    await pluginUpdated(pluginJson, { code: updateSettingsResult, message: 'unused' })
+
   } catch (error) {
-    console.log(error)
+    logError(pluginID, error.message)
   }
-  console.log(`${pluginID}: onUpdateOrInstall finished`)
+  logInfo(pluginID, `- finished`)
 }

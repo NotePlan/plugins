@@ -1,5 +1,5 @@
 // @flow
-import { log } from '@helpers/dev'
+import { log, JSP } from '@helpers/dev'
 
 export async function pluginTester(): Promise<void> {
   const test = 'Evaluation is ' ?? 'NOT '
@@ -21,4 +21,8 @@ export function writeToNewCalendarNote(): void {
   const n = DataStore.calendarNoteByDateString(cf)
   n?.insertParagraph('new text line', 0, 'text')
   log('tester', `written a new line to ${cf}`)
+}
+
+export function testOutputEditorContents(): void {
+  log(`PluginTester`,JSP(Editor))
 }

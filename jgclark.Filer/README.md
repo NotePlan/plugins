@@ -1,27 +1,23 @@
 # 🗃 Filer plugin
 This plugin provides several commands to help move things around in NotePlan.
 
-It has a few settings, which you see and change by clicking on the ⚙️ gear button on the 'Filer' line in the Plugin Preferences panel. 
+It has a few settings, which you review and change by clicking on the ⚙️ gear button on the 'Filer' line in the Plugin Preferences panel. 
 
-## /move paragraph
-The **/move paragraph** command (aliased to **/mp** and **/fp**) quickly **files** (moves) lines to different notes in NotePlan, _without having to lose your flow by switching to the other note_. It works on any number and sort of lines in a block, not just tasks.
+## /move paragraph or selection
+The **/move paragraph** command (aliased to **/mp** and **/fp**) quickly **files** (moves) lines to different notes in NotePlan, _without having to lose your flow by switching to the other note_. It works on any sort of lines, not just tasks.
 
-It pops up the command bar to choose the note you want to move it to, followed by the heading within that note to move it after.  You can press Escape (on Mac) at any time to cancel.  The move happens in the background, leaving you in the current note.  
+It pops up the command bar to choose the note you want to move it to, followed by the heading within that note to move it after. Where possible it will visually highlight the lines it will be moving (on NotePlan v3.6.2+). You can press Escape (on Mac) at any time to cancel.  The move happens in the background, leaving you in the current note.
 
-It works out what you want moving from the current open note using this priority order:
+It will move either the currently selected region (you don't need to select the whole of the first or last lines; the plugin will grab the whole lines), or just the current line the cursor is in, plus any indented ('children') lines that follow it.
 
-- current selected region (you don't need to select the whole of the first or last lines; the plugin will grab the whole lines)
-- current heading and its following section (up to the next title of the same level or higher)
-- current line the cursor is in, plus any indented ('children') lines that follow it
+NB: due to limitations in the API it's not yet possible to move items to a Calendar note that doesn't already exist. I intend to improve this when the API supports it.
 
-The 'following section' finishes at the next empty line, heading or horizontal line.
+## /move paragraph block
+This extends the first command, by also moving commands in the current paragraph 'block'. If the 'Include lines from start of Section in the Block?' setting is true, it takes the most recent heading and its following section, up to the next heading of the same level or higher, or the next horizontal line, or the start of the `## Done` or `## Cancelled` section. This means you don't have to move the cursor to the start of the section before you run it.
 
-From v0.7.0, you can turn on 'Extended Block Definition' in the settings, which additionally includes the whole section around the current line the cursor is in. (So you don't then have to move to the start of the section.)
+From v0.7.0, you can turn on 'Use a tighter definition of when a Block finishes?' in the settings, which will stop the section at the next blank line, as well as next heading of the same level or higher, or the next horizontal line, or the start of the `## Done` or `## Cancelled` section.
 
-NB: due to limitations in the API it's not yet possible to move items to a Calendar note that doesn't already exist. (I will improve this when the API supports it.)
-
-
-## /quick move to ... note
+## /quick move to <...> note
 These 4 commands each moves lines to the current weekly note, using the same selection strategy as /mp (see above). The move happens in the background, leaving you in the flow in your current note. (Available with weekly notes from NotePlan v3.6.)
 
 - **/quick move to Today's note** (alias **/qmtd**) -- Note: this is different from the existing 'Move Task To Today ⌘0' shortcut, which actually _schedules_ not moves.
@@ -43,6 +39,15 @@ This command (alias **/nnc**) takes the current text in the clipboard to form th
 
 ## /new note from selection
 This command (alias **/nns**) takes the current selected text to form the basis of a new note. The command asks for the note title and folder location.
+
+## Support
+If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
+
+If you would like to support my late-night work extending NotePlan through writing these plugins, you can through:
+
+[<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
+
+Thanks!
 
 ## History
 Please see the [CHANGELOG](CHANGELOG.md).

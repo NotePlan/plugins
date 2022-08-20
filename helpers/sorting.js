@@ -56,6 +56,37 @@ export function sortListBy<T>(list: Array<T>, objectPropertySortOrder: Array<str
   return list
 }
 
+/** Code from @jgclark which is probably redundant given sortListBy() above */
+// export const sortByChangedDate = (): Function => {
+//   return (b, a) => {
+//     if (a.note.changedDate !== b.note.changedDate) {
+//       if (a.note.changedDate > b.note.changedDate) {
+//         return -1
+//       }
+//       if (b.note.changedDate > a.note.changedDate) {
+//         return 1
+//       }
+//     }
+//     return 0
+//   }
+// }
+
+// export const sortByTitle = (): Function => {
+//   return (b, a) => {
+//     const aTitle = displayTitle(a)
+//     const bTitle = displayTitle(b)
+//     if (aTitle !== bTitle) {
+//       if (aTitle > bTitle) {
+//         return -1
+//       }
+//       if (bTitle > aTitle) {
+//         return 1
+//       }
+//     }
+//     return 0
+//   }
+// }
+
 /**
  * Multi-level object property sorting callback function (for use in sort())
  * undefined values are treated as the lowest value (i.e. sorted to the bottom)

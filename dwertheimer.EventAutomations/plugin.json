@@ -1,12 +1,12 @@
 {
   "macOS.minVersion": "10.13.0",
-  "noteplan.minAppVersion": "3.6", 
+  "noteplan.minAppVersion": "3.6",
   "plugin.id": "dwertheimer.EventAutomations",
-  "plugin.name": "🗓 AutoTimeBlocking & Synced Today Todos",
-  "plugin.description": "Automatically find time in your calendar and create Time Blocks for items marked for >today and put copies of today's todos in the editor",
+  "plugin.name": "🗓 AutoTimeBlocking & Event Automations",
+  "plugin.description": "Various Event Automations:\n- Automatically find time in your calendar and create Time Blocks for items marked for >today,\n- Write out synced copies of Today's todos (without the AutoTimeBlocking), and\n- Create calendar events for all text items under a specific heading",
   "plugin.author": "dwertheimer",
-  "plugin.version": "1.5.0",
-  "plugin.lastUpdateInfo": "1.4.0: Added support for >date+ tags and autoupdates",
+  "plugin.version": "1.7.0",
+  "plugin.lastUpdateInfo": "1.7.0: Bug fix and added calendar start date display",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://noteplan.co/n/#/1EF12392-B544-4044-AC7A-428F57EB2DFC",
@@ -16,57 +16,100 @@
       "name": "atb - Create AutoTimeBlocks for >today's Tasks",
       "description": "Read >today todos and insert them into today's calendar note as timeblocks",
       "jsFunction": "insertTodosAsTimeblocks",
-      "alias": ["atb","abt","timeblocks","block","todoblocks"]
+      "alias": [
+        "atb",
+        "abt",
+        "timeblocks",
+        "block",
+        "todoblocks"
+      ]
     },
     {
       "name": "Create AutoTimeBlocks using presets",
       "description": "Read >today todos and insert them into today's calendar note as timeblocks, but using presets defined in _configuration note",
       "jsFunction": "insertTodosAsTimeblocksWithPresets",
-      "alias": ["atbp","abtp","tbp"]
+      "alias": [
+        "atbp",
+        "abtp",
+        "tbp"
+      ]
     },
     {
       "name": "Choose Calendar for /atb to write to",
       "description": "Select a calendar to write to when using /atb",
       "jsFunction": "selectCalendar",
-      "alias": ["selectCalendar","atbcalendar"]
+      "alias": [
+        "selectCalendar",
+        "atbcalendar"
+      ]
     },
     {
       "name": "Insert Synced Todos for Open Calendar Note",
       "description": "Output a list of todos for the day open in the editor (any todos in the References pane will show up -- either >dated or >today if you're on today's note)",
       "jsFunction": "insertSyncedCopiesOfTodayTodos",
-      "alias": ["syncedTodos","insertSynced"]
+      "alias": [
+        "syncedTodos",
+        "insertSynced"
+      ]
     },
     {
       "name": "Remove Synced Todos for Open Calendar Note",
       "description": "Remove the contents of Synced Todos created by this plugin",
       "jsFunction": "removeSyncedCopiesOfTodayTodos",
-      "alias": ["remSync"]
+      "alias": [
+        "remSync"
+      ]
     },
     {
       "name": "Remove Time Blocks for Open Calendar Note",
       "description": "Remove the contents of Time Blocks created by this plugin",
       "jsFunction": "removeTimeBlocks",
-      "alias": ["remTimeBlocks"]
+      "alias": [
+        "remTimeBlocks"
+      ]
     },
     {
       "name": "Remove All Previous Synced Copies Written by this Plugin",
       "description": "Remove previously written Synced Copies",
       "jsFunction": "removePreviousSyncedCopies",
-      "alias": ["remAllSync"],
-      "arguments": ["Run silently with no pop-up messages (e.g. running from a Template) - (yes/no)"]
+      "alias": [
+        "remAllSync"
+      ],
+      "arguments": [
+        "Run silently with no pop-up messages (e.g. running from a Template) - (yes/no)"
+      ]
     },
     {
       "name": "Remove All Previous Time Blocks in Calendar Notes Written by this Plugin",
       "description": "Remove previously written Time Blocks",
       "jsFunction": "removePreviousTimeBlocks",
-      "alias": ["remAllTimeBlocks"],
-      "arguments": ["Run silently with no pop-up messages (e.g. running from a Template) - (yes/no) - yes to run silently"]
+      "alias": [
+        "remAllTimeBlocks"
+      ],
+      "arguments": [
+        "Run silently with no pop-up messages (e.g. running from a Template) - (yes/no) - yes to run silently"
+      ]
     },
     {
       "name": "Update >date+ tags in Notes",
       "description": "Search for >date+ tags in all notes and update them to >today if today is >= the date",
       "jsFunction": "updateDatePlusTags",
-      "alias": ["updateDatePlusTags"]
+      "alias": [
+        "updateDatePlusTags"
+      ]
+    },
+    {
+      "name": "cevt - Create Events From Text",
+      "description": "Create calendar events by writing (natural language) text under a heading",
+      "jsFunction": "createEvents",
+      "alias": [
+        "cevt",
+        "createevents"
+      ],
+      "arguments": [
+        "Heading under which events are written",
+        "Ask for confirmation on choices? yes or no for best guess"
+      ]
     }
   ],
   "plugin.settings": [
@@ -75,90 +118,105 @@
       "title": "AutoTimeBlocking Settings: General"
     },
     {
-        "key": "defaultDuration",
-        "type": "number",
-        "title": "Default time block duration (minutes)",
-        "description": "Any task that does not have a specific duration stated (see below) will have this default length in minutes",
-        "default": 15,
-        "required": true
+      "key": "defaultDuration",
+      "type": "number",
+      "title": "Default time block duration (minutes)",
+      "description": "Any task that does not have a specific duration stated (see below) will have this default length in minutes",
+      "default": 15,
+      "required": true
     },
     {
-        "key": "allowEventSplits",
-        "type": "bool",
-        "title": "Allow tasks to be split",
-        "description": "Allow tasks to be split into multiple time blocks",
-        "default": false,
-        "required": true
+      "key": "allowEventSplits",
+      "type": "bool",
+      "title": "Allow tasks to be split",
+      "description": "Allow tasks to be split into multiple time blocks",
+      "default": false,
+      "required": true
     },
     {
-        "key": "durationMarker",
-        "type": "string",
-        "title": "Task duration marker",
-        "description": "The character that signifies the start of a task duration (e.g. in the task: \n* do something '2h44m\nThe duration marker is the apostrophe",
-        "default": "'",
-		    "choices": ["'","~","^",";","%","$","+"],
-        "required": true
-    },
-    {  
-        "key": "todoChar",
-        "type": "string",
-        "validation": "^(?!(?:.*\\*){2})[\\*|\\-|#{1,}]+$",
-		    "choices": ["*","-","#","##","###","####"],
-        "title": "Time block leading character",
-        "description": "For NotePlan to recognize a line as a Time Block, the leading character must be one of: a '*', a '-' or one or more '#'s. AutoTimeBlocking will use this to create your timeblocks. You can choose between the 3, but if you are going to create real calendar events from your Time Blocks, you must use the '*'",
-        "default": "-",
-        "required": true
+      "key": "durationMarker",
+      "type": "string",
+      "title": "Task duration marker",
+      "description": "The character that signifies the start of a task duration (e.g. in the task: \n* do something '2h44m\nThe duration marker is the apostrophe",
+      "default": "'",
+      "choices": [
+        "'",
+        "~",
+        "^",
+        ";",
+        "%",
+        "$",
+        "+"
+      ],
+      "required": true
     },
     {
-        "key": "timeBlockTag",
-        "type": "string",
-        "title": "Unique AutoTimeBlock #tag",
-        "description": "The tag that will be used to identify lines created the AutoTimeBlock plugin. This tag can be #(anything), but should be not ever used by you in other places.",
-        "default": "#🕑",
-        "required": true
+      "key": "todoChar",
+      "type": "string",
+      "validation": "^(?!(?:.*\\*){2})[\\*|\\-|#{1,}]+$",
+      "choices": [
+        "*",
+        "-",
+        "#",
+        "##",
+        "###",
+        "####"
+      ],
+      "title": "Time block leading character",
+      "description": "For NotePlan to recognize a line as a Time Block, the leading character must be one of: a '*', a '-' or one or more '#'s. AutoTimeBlocking will use this to create your timeblocks. You can choose between the 3, but if you are going to create real calendar events from your Time Blocks, you must use the '*'",
+      "default": "-",
+      "required": true
     },
     {
-        "key": "removeDuration",
-        "type": "bool",
-        "title": "Remove duration from time block",
-        "description": "The plugin uses your duration designation (e.g. '2h44m) to determine how long a task should take. But you probably don't want that duration to show on the calendar. If you do want to see it, uncheck this item.",
-        "default": true,
-        "required": true
-    },       
-    {
-        "key": "timeBlockHeading",
-        "type": "string",
-        "validation": "^[^#+].*",
-        "title": "Heading for time blocks in note",
-        "description": "If this heading exists in the open note when running the AutoTimeBlock command, the generated time blocks will be placed under it. If you leave it blank, the time blocks will be placed at the top of the note. Text only -- should *not* include any #'s at the beginning of the heading.",
-        "default": "[Time Blocks](noteplan://runPlugin?pluginID=dwertheimer.EventAutomations&command=atb%20-%20Create%20AutoTimeBlocks%20for%20%3Etoday%27s%20Tasks)",
-        "required": true
+      "key": "timeBlockTag",
+      "type": "string",
+      "title": "Unique AutoTimeBlock #tag",
+      "description": "The tag that will be used to identify lines created the AutoTimeBlock plugin. This tag can be #(anything), but should be not ever used by you in other places.",
+      "default": "#🕑",
+      "required": true
     },
     {
-        "key": "foldTimeBlockHeading",
-        "type": "bool",
-        "title": "Fold created time blocks under heading",
-        "description": "Reduce the noise on your calendar page by folding the time blocks that get created under the heading.",
-        "default": false,
-        "required": true
-    },  
-    {
-        "key": "workDayStart",
-        "type": "string",
-        "validation": "^\\d{2}:\\d{2}$",
-        "title": "Start of work day",
-        "description": "If set to anything other than 00:00, no time blocks will be placed before this time. needs to be in 24 hour format (two digits, leading zero, colon in between).",
-        "default": "00:00",
-        "required": true
+      "key": "removeDuration",
+      "type": "bool",
+      "title": "Remove duration from time block",
+      "description": "The plugin uses your duration designation (e.g. '2h44m) to determine how long a task should take. But you probably don't want that duration to show on the calendar. If you do want to see it, uncheck this item.",
+      "default": true,
+      "required": true
     },
     {
-        "key": "workDayEnd",
-        "type": "string",
-        "validation": "^\\d{2}:\\d{2}$",
-        "title": "End of work day",
-        "description": "If set to anything other than 23:59, no time blocks will be allowed to extend past this time. needs to be in 24 hour format (two digits, leading zero, colon in between).",
-        "default": "23:59",
-        "required": true
+      "key": "timeBlockHeading",
+      "type": "string",
+      "validation": "^[^#+].*",
+      "title": "Heading for time blocks in note",
+      "description": "If this heading exists in the open note when running the AutoTimeBlock command, the generated time blocks will be placed under it. If you leave it blank, the time blocks will be placed at the top of the note. Text only -- should *not* include any #'s at the beginning of the heading.",
+      "default": "[Time Blocks](noteplan://runPlugin?pluginID=dwertheimer.EventAutomations&command=atb%20-%20Create%20AutoTimeBlocks%20for%20%3Etoday%27s%20Tasks)",
+      "required": true
+    },
+    {
+      "key": "foldTimeBlockHeading",
+      "type": "bool",
+      "title": "Fold created time blocks under heading",
+      "description": "Reduce the noise on your calendar page by folding the time blocks that get created under the heading.",
+      "default": false,
+      "required": true
+    },
+    {
+      "key": "workDayStart",
+      "type": "string",
+      "validation": "^\\d{2}:\\d{2}$",
+      "title": "Start of work day",
+      "description": "If set to anything other than 00:00, no time blocks will be placed before this time. needs to be in 24 hour format (two digits, leading zero, colon in between).",
+      "default": "00:00",
+      "required": true
+    },
+    {
+      "key": "workDayEnd",
+      "type": "string",
+      "validation": "^\\d{2}:\\d{2}$",
+      "title": "End of work day",
+      "description": "If set to anything other than 23:59, no time blocks will be allowed to extend past this time. needs to be in 24 hour format (two digits, leading zero, colon in between).",
+      "default": "23:59",
+      "required": true
     },
     {
       "type": "separator"
@@ -168,28 +226,28 @@
       "title": "Synced Copies"
     },
     {
-        "key": "createSyncedCopies",
-        "type": "bool",
-        "title": "Create synced copies of References items",
-        "description": "Write a synced line (copy) of the Reference item in the calendar note. Can look a little repetitive, but it will save you time when you want to edit the underlying item.",
-        "default": false,
-        "required": true
+      "key": "createSyncedCopies",
+      "type": "bool",
+      "title": "Create synced copies of References items",
+      "description": "Write a synced line (copy) of the Reference item in the calendar note. Can look a little repetitive, but it will save you time when you want to edit the underlying item.",
+      "default": false,
+      "required": true
     },
     {
-        "key": "syncedCopiesTitle",
-        "type": "string",
-        "title": "Title/heading for synced copies of today's items",
-        "description": "If you have turned on synced copies, they will be placed under this heading in the calendar note",
-        "default": "Today's Synced Tasks",
-        "required": true
+      "key": "syncedCopiesTitle",
+      "type": "string",
+      "title": "Title/heading for synced copies of today's items",
+      "description": "If you have turned on synced copies, they will be placed under this heading in the calendar note",
+      "default": "Today's Synced Tasks",
+      "required": true
     },
     {
-        "key": "foldSyncedCopiesHeading",
-        "type": "bool",
-        "title": "Fold created synced copies under heading",
-        "description": "Reduce the noise on your calendar page by folding the synced copy lines  that get created under the heading.",
-        "default": false,
-        "required": true
+      "key": "foldSyncedCopiesHeading",
+      "type": "bool",
+      "title": "Fold created synced copies under heading",
+      "description": "Reduce the noise on your calendar page by folding the synced copy lines  that get created under the heading.",
+      "default": false,
+      "required": true
     },
     {
       "type": "separator"
@@ -199,24 +257,24 @@
       "title": "Filters"
     },
     {
-        "key": "includeTasksWithText",
-        "type": "[string]",
-        "title": "Include any tasks that match text:",
-        "description": "If this field is set to any text, then any task that contains this text will be included in the timeblocks. This is useful if you want to limit tasks to items with a specific #hashtag for example. This field can also contain a comma separated list, e.g. 'someRawText, #hashtag1, #hashtag2'",
-        "default": [],
-        "required": false
+      "key": "includeTasksWithText",
+      "type": "[string]",
+      "title": "Include any tasks that match text:",
+      "description": "If this field is set to any text, then any task that contains this text will be included in the timeblocks. This is useful if you want to limit tasks to items with a specific #hashtag for example. This field can also contain a comma separated list, e.g. 'someRawText, #hashtag1, #hashtag2'",
+      "default": [],
+      "required": false
     },
     {
-        "key": "excludeTasksWithText",
-        "type": "[string]",
-        "title": "Exclude any tasks that match text:",
-        "description": "If this field is set to any text, then any task that contains this text will *not* be included in the timeblocks. This field can also contain a comma separated list, e.g. 'someRawText, #hashtag1, @hashtag2'",
-        "default": [],
-        "required": false
-    },     
+      "key": "excludeTasksWithText",
+      "type": "[string]",
+      "title": "Exclude any tasks that match text:",
+      "description": "If this field is set to any text, then any task that contains this text will *not* be included in the timeblocks. This field can also contain a comma separated list, e.g. 'someRawText, #hashtag1, @hashtag2'",
+      "default": [],
+      "required": false
+    },
     {
       "type": "separator"
-    },       
+    },
     {
       "type": "heading",
       "title": "Include Links"
@@ -225,7 +283,11 @@
       "type": "string",
       "title": "Include links to task location in time blocks",
       "key": "includeLinks",
-      "choices": ["OFF","[[internal#links]]","Pretty Links"],
+      "choices": [
+        "OFF",
+        "[[internal#links]]",
+        "Pretty Links"
+      ],
       "default": "OFF",
       "description": "Appends a link to the original location of a particular task. Can create a standard internal NotePlan link, e.g. [[internal#links]], or if you want to reduce clutter, a Pretty Link which will display only a single character (see below)."
     },
@@ -245,20 +307,20 @@
       "title": "Advanced: Calendar-Related Settings (EXPERIMENTAL)"
     },
     {
-        "key": "createCalendarEntries",
-        "type": "bool",
-        "title": "Create calendar entries from time blocks",
-        "description": "Write Time Blocks as actual calendar entries rather than ephemeral Time Block overlays. Read the documentation before turning this on.",
-        "default": false,
-        "required": true         
+      "key": "createCalendarEntries",
+      "type": "bool",
+      "title": "Create calendar entries from time blocks",
+      "description": "Write Time Blocks as actual calendar entries rather than ephemeral Time Block overlays. Read the documentation before turning this on.",
+      "default": false,
+      "required": true
     },
     {
-        "key": "deletePreviousCalendarEntries",
-        "type": "bool",
-        "title": "Delete previously entered time blocks",
-        "description": "Delete Time Blocks the plugin previously wrote to the calendar. Read the documentation before turning this on.",
-        "default": false,
-        "required": true         
+      "key": "deletePreviousCalendarEntries",
+      "type": "bool",
+      "title": "Delete previously entered time blocks",
+      "description": "Delete Time Blocks the plugin previously wrote to the calendar. Read the documentation before turning this on.",
+      "default": false,
+      "required": true
     },
     {
       "key": "calendarToWriteTo",
@@ -269,21 +331,21 @@
       "required": false
     },
     {
-        "key": "eventEnteredOnCalTag",
-        "type": "string",
-        "validation": "",
-        "title": "Processed tag name",
-        "description": "Tag attached to events which were written into the calendar. Because we use a different plugin to write to the calendar, this setting needs to match EventHelpers>events/Processed tag name",
-        "default": "#event_created",
-        "required": false
-    },  
+      "key": "eventEnteredOnCalTag",
+      "type": "string",
+      "validation": "",
+      "title": "Processed tag name",
+      "description": "Tag attached to events which were written into the calendar. Because we use a different plugin to write to the calendar, this setting needs to match EventHelpers>events/Processed tag name",
+      "default": "#event_created",
+      "required": false
+    },
     {
-        "key": "insertIntoEditor",
-        "type": "bool",
-        "title": "Insert time blocks into note Editor",
-        "description": "Leave resulting time blocks in the open note in the Editor window. The only reason to set this to false is if you are using the 'CreateCalendarEntries' setting and don't want to see any vestiges of time blocks in the Editor after the events are written to the Calendar as actual calendar events.",
-        "default": true,
-        "required": true
+      "key": "insertIntoEditor",
+      "type": "bool",
+      "title": "Insert time blocks into note Editor",
+      "description": "Leave resulting time blocks in the open note in the Editor window. The only reason to set this to false is if you are using the 'CreateCalendarEntries' setting and don't want to see any vestiges of time blocks in the Editor after the events are written to the Calendar as actual calendar events.",
+      "default": true,
+      "required": true
     },
     {
       "type": "separator"
@@ -291,23 +353,26 @@
     {
       "type": "heading",
       "title": "Advanced: Other Settings"
-    },  
-    {
-        "key": "intervalMins",
-        "type": "number",
-        "title": "Time block start interval",
-        "description": "Time blocks can only start every N minutes as dictated by this setting. For instance, if you want time blocks to only start every 15 minutes, set this to 15. This means you would at maximum have 4 time blocks per hour.",
-        "default": 5,
-        "required": true
     },
     {
-        "key": "mode",
-        "type": "string",
-        "title": "Task->Time Block processing mode",
-        "choices": ["PRIORITY_FIRST","LARGEST_FIRST"],
-        "description": "PRIORITY_FIRST places the highest priority (most !'s) first (if there's a slot) and then continues down the priority stack. LARGEST_FIRST tries to place the longest/largest duration item first.",
-        "default": "PRIORITY_FIRST",
-        "required": true
+      "key": "intervalMins",
+      "type": "number",
+      "title": "Time block start interval",
+      "description": "Time blocks can only start every N minutes as dictated by this setting. For instance, if you want time blocks to only start every 15 minutes, set this to 15. This means you would at maximum have 4 time blocks per hour.",
+      "default": 5,
+      "required": true
+    },
+    {
+      "key": "mode",
+      "type": "string",
+      "title": "Task->Time Block processing mode",
+      "choices": [
+        "PRIORITY_FIRST",
+        "LARGEST_FIRST"
+      ],
+      "description": "PRIORITY_FIRST places the highest priority (most !'s) first (if there's a slot) and then continues down the priority stack. LARGEST_FIRST tries to place the longest/largest duration item first.",
+      "default": "PRIORITY_FIRST",
+      "required": true
     },
     {
       "type": "separator"
@@ -323,7 +388,7 @@
       "type": "bool",
       "default": true,
       "required": true
-    },  
+    },
     {
       "key": "foldersToIgnore",
       "title": "Folders to ignore when searching for >Date+ Tags",
@@ -337,7 +402,7 @@
         "@Archive"
       ],
       "required": false
-    },    
+    },
     {
       "type": "separator"
     },
@@ -346,12 +411,65 @@
       "title": "AutoTimeBlocking Settings: Presets"
     },
     {
-        "key": "presets",
-        "type": "json",
-        "title": "Presets to temporarily override settings above",
-        "description": "Presets are useful for changing some of the settings above but just for certain runs of the plugin (e.g. on the weekend, etc.). Read the documentation for how to use presets.",
-        "default": "[\n{\n\t\"label\":\"Limit Time Blocks to Work Hours\",\n\t\"workDayStart\":\"08:00\",\n\t\"workDayEnd\":\"17:59\"\n},\n{\n\t\"label\":\"Create Timeblocks on Calendar\",\n\t\"createCalendarEntries\":true,\n\t\"deletePreviousCalendarEntries\":true,\n\t\"todoChar\":\"*\"\n}\n]",
-        "required": false
+      "key": "presets",
+      "type": "json",
+      "title": "Presets to temporarily override settings above",
+      "description": "Presets are useful for changing some of the settings above but just for certain runs of the plugin (e.g. on the weekend, etc.). Read the documentation for how to use presets.",
+      "default": "[\n{\n\t\"label\":\"Limit Time Blocks to Work Hours\",\n\t\"workDayStart\":\"08:00\",\n\t\"workDayEnd\":\"17:59\"\n},\n{\n\t\"label\":\"Create Timeblocks on Calendar\",\n\t\"createCalendarEntries\":true,\n\t\"deletePreviousCalendarEntries\":true,\n\t\"todoChar\":\"*\"\n}\n]",
+      "required": false
+    },
+    {
+      "type": "separator",
+      "COMMENT": "---------- EVENT BLOCKS SETTINGS ----------"
+    },
+    {
+      "type": "heading",
+      "title": "Event Blocks Settings"
+    },
+    {
+      "title": "Confirm when there are multiple options for what a date should be?",
+      "key": "confirm",
+      "type": "bool",
+      "description": "Text you enter is processed and NotePlan makes a guess at what you mean. If NotePlan is not sure, it will give you choices. If you uncheck this, NotePlan will just use the first choice it finds (which may or may not be what you wanted).",
+      "default": true
+    },
+    {
+      "title": "Default event length (in mins) for items which have no end time",
+      "key": "eventLength",
+      "type": "string",
+      "choices": [
+        "5",
+        "15",
+        "20",
+        "30",
+        "60",
+        "90",
+        "120"
+      ],
+      "description": "If you enter 'Do something at 3pm', how long (in minutes) should that calendar item be?",
+      "default": "30"
+    },
+    {
+      "title": "Remove date text from content",
+      "key": "removeDateText",
+      "type": "bool",
+      "description": "If selected, the text pertaining to date/time (e.g. 'Friday at 9am') will be removed from the text line when the event is created. Leaving this unchecked and the following setting checked is a good way to double-check the events get created at the proper date/time.",
+      "default": false
+    },
+    {
+      "title": "Show Event Created Date/Time",
+      "key": "showResultingTimeDate",
+      "type": "bool",
+      "description": "If selected, the start time/date of the calendar event which was created will (temporarily) be displayed in the calendar event link. This is a good way to double-check that the computer understood what you meant in your text. Note: This text (but not the event link) goes away when the note is reloaded.",
+      "default": true
+    },
+    {
+      "COMMENT": "Commenting this out for now because NP rewrites the text",
+      "title": "Calendar link text",
+      "key": "linkText",
+      "type": "hidden",
+      "description": "Use this text for the short link to the calendar item. Leave blank for just the date text.",
+      "default": "→"
     },
     {
       "type": "separator"
@@ -361,13 +479,19 @@
       "title": "Debugging"
     },
     {
-        "key": "_logLevel",
-        "type": "string",
-        "title": "Log Level",
-        "choices": ["DEBUG","LOG","WARN","ERROR","none"],
-        "description": "Set how much output will be displayed for this plugin the NotePlan > Help > Plugin Console. DEBUG is the most verbose; NONE is the least (silent)",
-        "default": "LOG",
-        "required": true
+      "key": "_logLevel",
+      "type": "string",
+      "title": "Log Level",
+      "choices": [
+        "DEBUG",
+        "LOG",
+        "WARN",
+        "ERROR",
+        "none"
+      ],
+      "description": "Set how much output will be displayed for this plugin the NotePlan > Help > Plugin Console. DEBUG is the most verbose; NONE is the least (silent)",
+      "default": "LOG",
+      "required": true
     }
   ]
 }

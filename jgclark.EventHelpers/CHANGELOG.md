@@ -1,6 +1,12 @@
 # What's changed in 🕓 Event Helpers?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
+## [0.17.0] - 2022-08-10
+### Added
+- the **location** of an event is now available in the output of "/insert day's event as list" and "/insert matching events" commands. It's formatting code is `*|LOCATION|*`.
+### Changed
+- the 'Add event ID?' option for "/time blocks to calendar" command now inserts one of the nicely-formatted event links rather than the underlying eventID. The setting has been renamed 'Add event link?' to reflect this.
+
 ## [0.16.6] - 2022-07-22
 ### Changed
 - updated to newer logging framework. No functional changes.

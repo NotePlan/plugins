@@ -41,16 +41,16 @@ Aim: Make sure car continues to run well, is legal etc.
 ```
 
 ## Creating a new Project/Area note
-A good way to quickly create a new Project or Area note is to use the `/np:qtn` (Quick template note) command from the Templating plugin. Here is what I use as my New Project Template:
+A good way to quickly create a new Project or Area note is to use the `/np:new` (new note from template) or `/np:qtn` (Quick template note) command from the Templating plugin. Here is what I use as my New Project Template:
 
 ```markdown
 ---
 title: Create a new Project note
-type: template, quick-note, empty-note
-newNoteTitle: <%- prompt('noteTitle', 'Project name') %>
-folder: '/'
+type: template, quick-note, empty-note, project-note
+folder: <select>
 ---
-#project @start(<%- promptDate('question':'Enter start date') %>) @due(<%- promptDate('question':'Enter due date') %>) @review(<%- promptDateInterval('question':'Enter review interval') %>)
+# <%- prompt('noteTitle', 'Project name') %>
+#project @start(<%- promptDate('startDate', 'Enter start date') %>) @due(<%- promptDate('dueDate', 'Enter due date') %>) @review(<%- promptDateInterval('question', 'Enter review interval') %>)
 Aim: <%- prompt('aim') %>
 Context: <%- prompt('context') %>
 ```
@@ -88,9 +88,20 @@ This add an #archive tag, and a `@cancelled(date)` mention to the metadata line 
 ## Configuration
 These commands require configuration, which is done by clicking the gear button on the 'Summaries' line in the Plugin Preferences panel.
 
-## Changes
-Please see the [CHANGELOG](CHANGELOG.md).
-
 ## To do
 - update the `/project lists` output to use a table view, _when then this is available in NotePlan_
 - look at updating the plugin to take advantage of YAML frontmatter blocks, introduced in v3.4.x
+
+
+## Support
+If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
+
+If you would like to support my late-night work extending NotePlan through writing these plugins, you can through:
+
+[<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
+
+Thanks!
+
+## Changes
+Please see the [CHANGELOG](CHANGELOG.md).
+

@@ -3,13 +3,13 @@
   "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.SearchExtensions",
   "plugin.name": "🔎 Search Extensions",
-  "plugin.description": "Save search results. Click link for more details and settings.",
+  "plugin.description": "Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. Click link for more details and settings.",
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.SearchExtensions/CHANGELOG.md",
-  "plugin.version": "0.5.0-beta2",
-  "plugin.lastUpdateInfo": "Big speed up. Now supports search operators: + (must match) - (can't match in line) ! (can't match in note) in place of just 'OR'.",
+  "plugin.version": "1.0.0-beta1",
+  "plugin.lastUpdateInfo": "Major new version, with big speed up, and new commands. Now supports search operators: + (must match) - (can't match in line) ! (can't match in note) in place of just 'OR'.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -17,75 +17,91 @@
     {
       "name": "quickSearch",
       "alias": [
+        "qs",
         "save",
         "search"
       ],
       "description": "quick Search over all notes, showing results in a fixed Quick Search results note",
       "jsFunction": "quickSearch",
       "arguments": [
-        "noteTypesToInclude either 'project','calendar' or 'both'",
-        "search term(s) (separated by commas)"
+        "search term(s) (separated by commas)",
+        "terms to filter by paragraph type (separated by commas)",
+        "noteTypesToInclude either 'project','calendar' or 'both'"
       ]
     },
     {
-      "name": "saveSearch",
+      "name": "search",
       "alias": [
-        "save",
-        "search"
+        "ss",
+        "save"
       ],
       "description": "Save results from a search over all notes",
-      "jsFunction": "saveSearchOverAll",
+      "jsFunction": "searchOverAll",
       "arguments": [
-        "search term(s) (separated by commas)"
+        "search term(s) (separated by commas)",
+        "terms to filter by paragraph type (separated by commas)"
       ]
     },
     {
-      "name": "saveSearchInPeriod",
+      "name": "searchInPeriod",
       "alias": [
+        "save",
         "calendar",
         "search",
         "daily",
         "weekly"
       ],
       "description": "Save results from a search of specified tags or mentions over Calendar notes from a time period",
-      "jsFunction": "saveSearchPeriod",
+      "jsFunction": "searchPeriod",
       "arguments": [
         "search term(s) (separated by commas)",
         "start date to search over (YYYYMMDD or YYYY-MM-DD). If not given, then defaults to 3 months ago",
-        "end date to search over (YYYYMMDD or YYYY-MM-DD). If not given, then defaults to today"
+        "end date to search over (YYYYMMDD or YYYY-MM-DD). If not given, then defaults to today",
+        "terms to filter by paragraph type (separated by commas)"
       ]
     },
     {
-      "name": "saveSearchOverCalendar",
+      "name": "searchOverCalendar",
       "alias": [
+        "save",
         "period",
         "search",
         "daily",
         "weekly"
       ],
       "description": "Save results from a search of specified tags or mentions over all Calendar notes",
-      "jsFunction": "saveSearchOverCalendar",
+      "jsFunction": "searchOverCalendar",
       "arguments": [
-        "search term(s) (separated by commas)"
+        "search term(s) (separated by commas)",
+        "terms to filter by paragraph type (separated by commas)"
       ]
     },
     {
-      "name": "saveSearchOverNotes",
+      "name": "searchOverNotes",
       "alias": [
         "save",
         "search"
       ],
       "description": "Save results from a search over all project notes",
-      "jsFunction": "saveSearchOverNotes",
+      "jsFunction": "searchOverNotes",
       "arguments": [
+        "terms to filter by paragraph type (separated by commas)",
         "search term(s) (separated by commas)"
       ]
+    },
+    {
+      "name": "test:updateSearchPlugin",
+      "description": "test:updateSearchPlugin",
+      "jsFunction": "onUpdateOrInstall"
     }
   ],
   "plugin.settings": [
     {
       "type": "heading",
-      "title": "Search Extensions plugin settings"
+      "title": "Search Extensions settings"
+    },
+    {
+      "type": "separator"
     },
     {
       "type": "heading",
@@ -110,7 +126,7 @@
     {
       "key": "quickSearchResultsTitle",
       "title": "/quickSearch note title",
-      "description": "note title for results for/quickSearch",
+      "description": "note title for results for command /quickSearch",
       "type": "string",
       "default": "Quick Search Results",
       "required": true
@@ -143,32 +159,12 @@
       "required": true
     },
     {
-      "key": "defaultSearchTerms",
-      "title": "Default Search terms",
-      "description": "Optional list of search terms to use by default. If empty, you will be asked for terms each time you run the command.",
-      "type": "[string]",
-      "default": [
-        "idea",
-        "@review",
-        "#question"
-      ],
-      "required": false
-    },
-    {
       "key": "searchHeading",
       "title": "Saved Search heading",
       "description": "Text to append to headings in search results (optional)",
       "type": "string",
       "default": "(Search Results)",
       "required": false
-    },
-    {
-      "key": "groupResultsByNote",
-      "title": "Group results by Note?",
-      "description": "This controls how results are displayed. If true, matches found within the same note are grouped together. If false, every match is shown with a note link at the end of the match.",
-      "type": "bool",
-      "default": true,
-      "required": true
     },
     {
       "key": "sortOrder",
@@ -187,12 +183,32 @@
       "required": true
     },
     {
+      "key": "groupResultsByNote",
+      "title": "Group results by Note?",
+      "description": "This controls how results are displayed. If true, matches found within the same note are grouped together. If false, every match is shown with a note link at the end of the match.",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
+      "key": "resultStyle",
+      "title": "Style for search result lines",
+      "description": "Choose the style to use:\n- Normal 'NotePlan' styling, showing tasks, bullets and quotes, tweaked slightly for matching headings\n- Use 'Simplified' text (like Google results)\n",
+      "type": "string",
+      "choices": [
+        "NotePlan",
+        "Simplified"
+      ],
+      "default": "NotePlan-style",
+      "required": true
+    },
+    {
       "key": "resultPrefix",
       "title": "Prefix for search result lines",
-      "description": "String to put at the start of each search result line. Default is '- '. Can also be empty.",
+      "description": "String to put at the start of each search result line (where Style is 'Simplified'). Default is '- '. Can also be empty.",
       "type": "string",
       "default": "- ",
-      "required": true
+      "required": false
     },
     {
       "key": "resultQuoteLength",
@@ -212,30 +228,12 @@
       "required": true
     },
     {
-      "key": "resultStyle",
-      "title": "Style for search results",
-      "description": "Choose the style to use:\nNormal NotePlan styling, tweaked slightly for matching headings\nUse simplified text (like Google results)\n",
-      "type": "string",
-      "choices": ["NotePlan", "Simplified"],
-      "default": "NotePlan-style",
-      "required": true
-    },
-    {
       "key": "highlightResults",
       "title": "Highlight matching search terms?",
       "description": "Whether to ==highlight== the matches in the result lines. (Works best when using a theme with highlighting.)",
       "type": "bool",
       "default": true,
       "required": false
-    },
-    {
-      "todo": "TODO: review. was 'bool' type",
-      "key": "showEmptyResults",
-      "title": "Show empty matches?",
-      "description": "If no matches of the search term(s) are found, setting this true will still show a heading for the term(s) where relevant",
-      "type": "hidden",
-      "default": true,
-      "required": true
     },
     {
       "key": "dateStyle",
@@ -256,16 +254,34 @@
     },
     {
       "type": "heading",
-      "title": "Debugging"
+      "title": "For Debugging"
     },
     {
-        "key": "_logLevel",
-        "title": "Log Level",
-        "description": "Set how much output will be displayed for this plugin in the NotePlan > Help > Plugin Console. DEBUG is the most verbose; NONE is the least (silent).",
-        "type": "string",
-        "choices": ["DEBUG","INFO","WARN","ERROR","none"],
-        "default": "INFO",
-        "required": true
+      "key": "defaultSearchTerms",
+      "title": "Default Search terms",
+      "description": "Optional list of search terms to use to pre-populate the search term box.",
+      "type": "[string]",
+      "default": [
+        "idea",
+        "@review",
+        "#question"
+      ],
+      "required": false
+    },
+    {
+      "key": "_logLevel",
+      "title": "Log Level",
+      "description": "Set how much output will be displayed for this plugin in the NotePlan > Help > Plugin Console. DEBUG is the most verbose; NONE is the least (silent).",
+      "type": "string",
+      "choices": [
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "none"
+      ],
+      "default": "INFO",
+      "required": true
     }
   ]
 }
