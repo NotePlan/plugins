@@ -6,7 +6,8 @@ This plugin provides commands to more quickly add tasks/todos or general text to
 - **/quick add line under heading** (alias **/qalh**): Quickly add text lines at the top of a chosen note's heading
 - **/quick add to daily note** (alias **/qad**): Quickly add a task to a chosen daily note
 - **/quick add to weekly note** (alias **/qaw**): Quickly add a task to a chosen weekly note
-- **/quick add to journal today** (alias **/qaj**): Quickly add text to the Journal section of today's daily note
+- **/quick add to journal today** (alias **/qajd**): Quickly add text to the Journal section of today's daily note
+- **/quick add to journal this week** (alias **/qajw**): Quickly add text to the Journal section of this week's note
 - **/quick add task to note** (alias **/qat**): Quickly append a task to a chosen project note
 - **/quick prepend task to daily note** (alias **/qpd**): Quickly prepend a task to a chosen daily note
 - **/quick prepend task to note** (alias **/qpt**): Quickly prepend a task to a chosen project note. (Inserts after title or YAML frontmatter, or starting metadata lines.)
@@ -45,12 +46,10 @@ Notes:
 | /quick add to daily note | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.QuickCapture&command=quick%20add%20to%20daily%20note` | note date (YYYYMMDD or YYYY-MM-DD) | text to add |  |
 | /quick add to weekly note | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.QuickCapture&command=quick%20add%20to%20weekly%20note` | note date (YYYY-Mnn) | text to add |  |
 | /quick add to journal today | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.QuickCapture&command=quick%20add%20to%20journal%20today` | text to add |  |  |
+| /quick add to journal this week | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.QuickCapture&command=quick%20add%20to%20journal%20this%20week` | text to add |  |  |
 | /quick prepend task to daily note | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.QuickCapture&command=quick%20add%20to%20daily%20note` | note date (YYYYMMDD or YYYY-MM-DD) | text to add |  |
 | /quick append task to note | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.QuickCapture&command=quick%20append%20task%20to%20note` | note title | task to append | |
 | /quick prepend task to note | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.QuickCapture&command=quick%20prepend%20task%20to%20note` | note title | task to prepend | |
-
-## History
-See [CHANGELOG](CHANGELOG.md)
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
@@ -61,3 +60,5 @@ If you would like to support my late-night work extending NotePlan through writi
 
 Thanks!
 
+## History
+See [CHANGELOG](CHANGELOG.md)

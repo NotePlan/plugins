@@ -2,9 +2,7 @@
 // ----------------------------------------------------------------------------
 // QuickCapture plugin for NotePlan
 // by Jonathan Clark
-// last update v0.12.0, 1.8.2022 by @jgclark
-// ----------------------------------------------------------------------------
-// TODO: Work the argument-handling changes in /qalh into rest of functions
+// last update v0.12.1, 21.8.2022 by @jgclark
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -437,8 +435,8 @@ export async function appendTaskToDailyNote(
  * Quickly add to Weekly note
  * Added in v0.10.0
  * @author @jgclark
- * @param {string?) dateArg week date (YYYY-Wnn)
- * @param {string?) textArg text to add
+ * @param {string?} dateArg week date (YYYY-Wnn)
+ * @param {string?} textArg text to add
  */
 export async function appendTaskToWeeklyNote(
   dateArg?: string = '',
@@ -482,12 +480,12 @@ export async function appendTaskToWeeklyNote(
   }
 }
 
-/** /qaj
+/** /qajd
  * Quickly append text to today's journal
  * Extended in v0.9.0 to allow use from x-callback with single passed argument
  * Helpfully, doesn't fail if extra arguments passed
  * @author @jgclark
- * @param {string?) textArg
+ * @param {string?} textArg
  */
 export async function appendTextToDailyJournal(textArg?: string = ''): Promise<void> {
   logDebug(pluginJson, `starting /qaj with arg0='${textArg}'`)
@@ -496,11 +494,42 @@ export async function appendTextToDailyJournal(textArg?: string = ''): Promise<v
     const config = await getQuickCaptureSettings()
 
     // Get input either from passed argument or ask user
-    const text = (textArg != null && textArg !== '' /* || typeof textArg === 'object'*/)
+    const text = (textArg != null && textArg !== '')
       ? textArg
       : await CommandBar.showInput('Type the text to add', `Add text '%@' to ${todaysDateStr}`)
 
-    const note = DataStore.calendarNoteByDateString(todaysDateStr)
+    const note = DataStore.calendarNoteByDate(new Date(), 'day')
+    if (note != null) {
+      const matchedHeading = findHeadingStartsWith(note, config.journalHeading)
+      logDebug(pluginJson, `Adding '${text}' to ${displayTitle(note)} under matchedHeading '${matchedHeading}'`)
+      // Add text to the heading in the note (and add the heading if it doesn't exist)
+      note.addParagraphBelowHeadingTitle(text, 'empty', matchedHeading ? matchedHeading : config.journalHeading, true, true)
+    } else {
+      logError(pluginJson, `Cannot find daily note for ${todaysDateStr}`)
+    }
+  } catch (err) {
+    logWarn(pluginJson, `${err.name}: ${err.message}`)
+    await showMessage(err.message)
+  }
+}
+
+/** /qajw
+ * Quickly append text to this week's journal
+ * @author @jgclark
+ * @param {string?} textArg
+ */
+export async function appendTextToWeeklyJournal(textArg?: string = ''): Promise<void> {
+  logDebug(pluginJson, `starting /qajw with arg0='${textArg}'`)
+  try {
+    const todaysDateStr = getTodaysDateUnhyphenated()
+    const config = await getQuickCaptureSettings()
+
+    // Get input either from passed argument or ask user
+    const text = (textArg != null && textArg !== '')
+      ? textArg
+      : await CommandBar.showInput('Type the text to add', `Add text '%@' to ${todaysDateStr}`)
+
+    const note = DataStore.calendarNoteByDate(new Date(), 'week')
     if (note != null) {
       const matchedHeading = findHeadingStartsWith(note, config.journalHeading)
       logDebug(pluginJson, `Adding '${text}' to ${displayTitle(note)} under matchedHeading '${matchedHeading}'`)

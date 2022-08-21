@@ -7,8 +7,8 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.QuickCapture/",
-  "plugin.version": "0.12.0",
-  "plugin.lastUpdateInfo": "The Inbox location can now send to the current Weekly as well as Daily or other fixed note. (Note: please review your settings.) Also more flexible use from x-callback calls.",
+  "plugin.version": "0.12.1",
+  "plugin.lastUpdateInfo": "Added '/quick add to journal this week' command",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -82,12 +82,25 @@
     {
       "name": "quick add to journal today",
       "alias": [
-        "qaj",
+        "qajd",
         "add",
         "today"
       ],
       "description": "Quickly append text to the Journal in today's note",
       "jsFunction": "appendTextToDailyJournal",
+      "arguments": [
+        "text to add"
+      ]
+    },
+    {
+      "name": "quick add to journal this week",
+      "alias": [
+        "qajw",
+        "add",
+        "week"
+      ],
+      "description": "Quickly append text to the Journal in this week's note",
+      "jsFunction": "appendTextToWeeklyJournal",
       "arguments": [
         "text to add"
       ]
@@ -129,8 +142,8 @@
       ]
     },
     {
-      "name": "jgc:update QuickCapture plugin",
-      "description": "jgc:update QuickCapture plugin",
+      "name": "test:update QuickCapture plugin",
+      "description": "test:update QuickCapture plugin",
       "jsFunction": "onUpdateOrInstall"
     }
   ],
@@ -200,13 +213,19 @@
       "title": "Debugging"
     },
     {
-        "key": "_logLevel",
-        "title": "Log Level",
-        "description": "Set how much output will be displayed for this plugin in the NotePlan > Help > Plugin Console. DEBUG is the most verbose; NONE is the least (silent).",
-        "type": "string",
-        "choices": ["DEBUG","INFO","WARN","ERROR","none"],
-        "default": "INFO",
-        "required": true
+      "key": "_logLevel",
+      "title": "Log Level",
+      "description": "Set how much output will be displayed for this plugin in the NotePlan > Help > Plugin Console. DEBUG is the most verbose; NONE is the least (silent).",
+      "type": "string",
+      "choices": [
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "none"
+      ],
+      "default": "INFO",
+      "required": true
     }
   ]
 }

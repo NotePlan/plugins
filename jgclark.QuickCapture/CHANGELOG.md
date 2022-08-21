@@ -1,5 +1,8 @@
 # What's changed in ⚡️ Quick Capture
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.QuickCapture), and how to configure.
+## [0.12.1] - 2022-08-21
+### Added
+- new **/quick add to journal this week** command, for those using weekly journals (for @john1)
 
 ## [0.12.0] - 2022-08-01
 ### Added
