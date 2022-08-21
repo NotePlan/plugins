@@ -2,14 +2,14 @@
   "noteplan.minAppVersion": "3.3.2",
   "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.DailyJournal",
-  "plugin.name": "☀️ Daily Journal",
+  "plugin.name": "💭 Journalling",
   "plugin.description": "Support for daily journalling in NotePlan, including start-of-day template, and end-of-day review questions. Before use it requires some configuration: please see website for details.",
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/README.md",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/CHANGELOG.md",
-  "plugin.version": "0.12.1",
-  "plugin.lastUpdateInfo": "Under-the-hood changes only.",
+  "plugin.version": "0.13.0",
+  "plugin.lastUpdateInfo": "Added support for /weekReview, /monthReview and /quarterlyReview, each of which have settings for their different Review Questions. /dayStart now uses the template's location field to determine where in the note to insert.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -22,8 +22,7 @@
         "template"
       ],
       "description": "Apply Daily Note Template to Today's Calendar Note (requires configuring)",
-      "jsFunction": "todayStart",
-      "requested_interval": "24h"
+      "jsFunction": "todayStart"
     },
     {
       "name": "dayStart",
@@ -32,8 +31,7 @@
         "template"
       ],
       "description": "Apply Daily Note Template (requires configuring)",
-      "jsFunction": "dayStart",
-      "requested_interval": "24h"
+      "jsFunction": "dayStart"
     },
     {
       "name": "dayReview",
@@ -42,9 +40,38 @@
         "journal",
         "review"
       ],
-      "description": "Ask journal questions for an end-of-day review (requires configuring)",
-      "jsFunction": "dayReview",
-      "requested_interval": "8h"
+      "description": "Ask Journal questions for an end-of-day review (requires configuring)",
+      "jsFunction": "dailyJournalQuestions"
+    },
+    {
+      "name": "weekReview",
+      "alias": [
+        "week",
+        "journal",
+        "review"
+      ],
+      "description": "Ask Journal questions for an end-of-week review (requires configuring)",
+      "jsFunction": "weeklyJournalQuestions"
+    },
+    {
+      "name": "monthReview",
+      "alias": [
+        "month",
+        "journal",
+        "review"
+      ],
+      "description": "Ask Journal questions for an end-of-month review (requires configuring)",
+      "jsFunction": "monthlyJournalQuestions"
+    },
+    {
+      "name": "quarterReview",
+      "alias": [
+        "quarter",
+        "journal",
+        "review"
+      ],
+      "description": "Ask Journal questions for an end-of-quarter review (requires configuring)",
+      "jsFunction": "quarterlyJournalQuestions"
     }
   ],
   "plugin.settings": [
@@ -70,10 +97,34 @@
     },
     {
       "key": "reviewQuestions",
-      "title": "Journal Questions",
-      "description": "This string includes both the Journal/Review questions and how to layout the answers in the daily note. (NB: can include line breaks.) The special codes that define the type of question asked are '<int>', '<number>', '<string>', '<subheading>' and '<mood>'.",
+      "title": "Daily Journal Questions",
+      "description": "This string includes both the Journal/Review questions and how to lay out the answers in the daily note. (NB: can include line breaks.) The special codes that define the type of question asked are '<int>', '<number>', '<string>', '<subheading>' and '<mood>'.",
       "type": "string",
       "default": "@sleep(<int>)\n@work(<int>)\n@fruitveg(<int>)\nMood: <mood>\nGratitude: <string>\nGod was: <string>\nAlive: <string>\nNot Great: <string>\nLearn: <string>\nRemember: <string>",
+      "required": true
+    },
+    {
+      "key": "weeklyReviewQuestions",
+      "title": "Weekly Journal Questions",
+      "description": "This string includes both the Journal/Review questions and how to lay out the answers in the daily note. (NB: can include line breaks.) The special codes that define the type of question asked are '<int>', '<number>', '<string>', '<subheading>' and '<mood>'.",
+      "type": "string",
+      "default": "Big win: <string>\nNew/improved: <string>\nRegret: <string>\nFocus for next week: <string>",
+      "required": true
+    },
+    {
+      "key": "monthlyReviewQuestions",
+      "title": "Monthly Journal Questions",
+      "description": "This string includes both the Journal/Review questions and how to lay out the answers in the daily note. (NB: can include line breaks.) The special codes that define the type of question asked are '<int>', '<number>', '<string>', '<subheading>' and '<mood>'.",
+      "type": "string",
+      "default": "What's working well in processes: <string>\nProcesses that need work: <string>Personal Goals progress: <string>",
+      "required": true
+    },
+    {
+      "key": "quarterlyReviewQuestions",
+      "title": "Quarterly Journal Questions",
+      "description": "This string includes both the Journal/Review questions and how to lay out the answers in the daily note. (NB: can include line breaks.) The special codes that define the type of question asked are '<int>', '<number>', '<string>', '<subheading>' and '<mood>'.",
+      "type": "string",
+      "default": "Goals met: <string>\nNew goals identified: <string>\nProjects finished: <string>\nNew projects identified: <string>",
       "required": true
     },
     {

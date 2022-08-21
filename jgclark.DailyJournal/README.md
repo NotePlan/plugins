@@ -1,53 +1,38 @@
-# ☀️ Daily Journal plugin
-This plugin provides two commands for daily journalling, including start-of-day template, and end-of-day review questions.  
-Both work on the currently open daily calendar note:
+# 💭 Journalling plugin
+This plugin helps you write daily, weekly, monthly and/or quarterly **journals**, by prompting you for review questions that you set in advance. It also speeds up applying a pre-set daily template each day.
 
-- `/dayStart`: Apply your `Daily Note Template` to the currently open calendar note (which by default includes list of today's events and local weather lookup)
-- `/todayStart`: Apply your `Daily Note Template` to today's calendar note (which by default includes list of today's events and local weather lookup)
-- `/dayReview`: Ask journal questions for an end-of-day review in the currently open calendar note. See below for details and examples.
+The commands are:
+- `/dayStart`: Apply your 'Daily Note' Template to the currently open calendar note
+- `/todayStart`: Apply your 'Daily Note' Template to today's calendar note
+- `/dayReview`: Ask journal questions for an end-of-day review, and write answers in the currently open daily note. See below for details and examples.
+- `/weekReview`: Ask journal questions for an end-of-week review, and write answers in the currently open weekly note.
+- `/monthReview`: Ask journal questions for an end-of-month review, and write answers in the currently open note.
+- `/quarterReview`: Ask journal questions for an end-of-quarter review, and write answers in the currently open note.
 
-## Changes
-Please see the [CHANGELOG](CHANGELOG.md).
-
-## Requirements
-This plugin requires prior installation of the [Templates plugin](https://github.com/NotePlan/plugins/tree/main/nmn.Templates/).
+The `/(to)dayStart` 
 
 ## Configuration
+Click the gear button on the 'Journalling' line in the Plugin Preferences panel, and fill in the settings accordingly. Defaults are given for each one, to give you some ideas.
 
 ### /dayStart and /todayStart
-`/dayStart` and `/todayStart` use the `Daily Note Template` note found in the `Templates` folder (or configure another one).  
-If this note has not been added, it should prompt you to create one.
+These commands require the [Templating plugin](https://github.com/NotePlan/plugins/tree/main/np.Templating/) to be installed.
 
-For details of the tag commands you can use in a Template, including a list of events, a quote-of-the-day or summary weather forecast, see [Templates plugin README](https://github.com/NotePlan/plugins/tree/main/nmn.Templates/). NB: Be careful with `/dayStart` in another calendar note than today using template tag commands like `{{date... / formattedDate...}}` or `{{weather()}}` -> because this renders the TODAY content!  
+They then use your pre-set Template name stored in the special NotePlan `Templates` folder. By default this is set to `Daily Note Template`.
 
-### /dayReview
-You first need to configure the set of questions to ask (though a default set is provided).
-In NotePlan v3.4 and above, please click the gear button on the 'Daily Journal' line in the Plugin Preferences panel, and fill in accordingly.
-For versions before v3.4 you write settings in the first code block of the special `📋 Templates/_configuration` note, in JSON format. The first time the plugin is run it should detect it doesn't have configuration, and offer to write some to this note. Alternatively, in that note, include the following settings you want in its first code block. This is the annotated list of settings, with their defaults:
+The NotePlan website has good [articles on getting started with Templates](https://help.noteplan.co/article/136-templates). For more details of the tag commands you can use in a Template, including a list of events, a quote-of-the-day or summary weather forecast, see the [Templating Getting Started](https://nptemplating-docs.netlify.app/docs/templating-basics/getting-started). 
 
-```json5
-{
-  dailyJournal: {
-    templateTitle: 'Daily Note Template',
-    reviewSectionHeading: "Journal",
-    reviewQuestions: "@sleep(<int>)\n@work(<int>)\n@fruitveg(<int>)\nMood: <mood>\nGratitude: <string>\nGod was: <string>\nAlive: <string>\nNot Great: <string>\nWife: <string>\nRemember: <string>",
-    // NB: need to use "\n" for linebreaks rather than actual linebreaks, as even JSON5 doesn't fully support multi-line strings.
-    moods: "🤩 Great,🙂 Good,😇 Blessed,🥱 Tired,😫 Stressed,😤 Frustrated,😔 Low,🥵 Sick,Other"
-  }
-}
-```
-(This example is in JSON5 format: see the help text in the default `_configuration` note.)
+NB: Be careful with `/dayStart` in another calendar note than today using template tag commands like `<%- date... / formattedDate... %>` or `<%- weather() %>` -> because this renders the TODAY content!  
+
+### /dayReview, /weekReview, /monthReview, and /quarterReview
+You first need to configure the sets of questions to ask (though a default set is provided to get you started).
 
 Each setting is explained:
 
-#### templateTitle
-The name of the template that `/dayStart` and `/todayStart` will use
-
-#### reviewSectionHeading
+#### Journal Section Heading
 The name of an existing markdown heading after which the review answers are added. If it doesn't exist, it is added at the end of the note.
 
-#### reviewQuestions
-This string includes both the questions and how to layout the answers in the daily note. There are several possible question types:
+#### Daily Journal Questions
+This string includes both the questions and how to lay out the answers in the daily note. There are several possible question types:
 - `<int>` -> asks for a integer number
 - `<number>` -> asks for a (floating point) number
 - `<string>` -> asks for a string
@@ -59,22 +44,25 @@ There is also another "question type" but no question is asked here:
 
 You can indicate new lines with `\n` characters.
 
-#### moods
+#### Weekly / Monthly / Quarterly Journal Questions
+These strings include both the questions and how to lay out the answers in the weekly note.  The details are as for Daily Journal Questions, above.
+
+#### Moods
 A comma-separated list of possible moods to select from.  They don't have to have emoji, but I rather like them.
 
-### /dayReview Example
+## /dayReview Example
 The following `reviewQuestions` string:  
 ```
-@work(<int>)\n@fruitveg(<int>)\nMood -> <mood>\nThoughts <subheading>\n- (Thought 1/3) <string>\n- (Thought 2/3) <string>\n
+@work(<int>)\n@fruitveg(<int>)\nMood: <mood>\nThoughts <subheading>\n- (Thought 1/3) <string>\n- (Thought 2/3) <string>\n
 - (Thought 3/3) <string>\nGratitude <subheading>\n- (Gratitude 1/3) <string>\n- (Gratitude 2/3) <string>\n- (Gratitude 3/3) <string>\n
 ```
 would get rendered something like this in today's note:  
 
 ```markdown
-## Journalling
+## Journal
 @work(3)
 @fruitveg(2)
-Mood -> 😇 Blessed
+Mood: 😇 Blessed
 
 ### Thoughts
 - Thought 1
@@ -91,4 +79,10 @@ Tip: you can also avoid answering like in Thought 3/3 - then there is also no bu
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
 
 If you would like to support my late-night work extending NotePlan through writing these plugins, you can through:
-![https://www.buymeacoffee.com/revjgc](https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg). Thanks!
+
+[<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
+
+Thanks!
+
+## History
+Please see the [CHANGELOG](CHANGELOG.md).

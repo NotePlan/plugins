@@ -1,5 +1,16 @@
-# What's changed in ☀️ Daily Journal Plugin?
+# What's changed in 💭 Journalling Plugin?
 _Please also see the Plugin [README]()._
+
+<!-- TODO: improved flexibility of questions -->
+## [0.13.0] - 2022-08-21
+### Added
+- added **/weekReview**, **/monthReview** and **/quarterReview** commands, each with a setting so you can tailor the questions to them as suits your life and work. (None need to be used!)
+- /dayStart and /todayStart now uses the template's location field to determine where in the note to insert the results of the template.
+- 
+### Changed
+- because of the new commands, the plugin name has changed to the **Journalling plugin**.
+- updated logging framework
+
 ## [0.12.1] - 2022-07-18
 ### Changed
 - under-the-hood change to be ready for **Templating 2.0** framework.
