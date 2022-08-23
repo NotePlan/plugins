@@ -6,6 +6,7 @@ import { log, logError, JSP, clo, logWarn, logDebug } from '@helpers/dev'
 import { chooseHeading, chooseOption } from '@helpers/userInput'
 import { findHeading, getBlockUnderHeading } from '@helpers/NPParagraph'
 import { isReallyAllDay } from '@helpers/dateTime'
+import { checkOrGetCalendar } from '@helpers/NPCalendar'
 
 export const hasCalendarLink = (line: string): boolean => /\!\[📅\]/.test(line)
 
@@ -16,6 +17,7 @@ export type EventBlocksConfig = {
   linkText: string,
   showResultingTimeDate: boolean,
   version?: string,
+  calendar?: string
 }
 
 type ConfirmedEvent = {
@@ -40,7 +42,7 @@ export const replaceCalendarLinkText = (line: string, replaceWith: string): stri
 
     return parts.join(':::')
   } else {
-   logDebug(pluginJson, `replaceCalendarLinkText: could not split/find 4 parts for link: ${line}`)
+    logDebug(pluginJson, `replaceCalendarLinkText: could not split/find 4 parts for link: ${line}`)
     return line
   }
 }
@@ -162,8 +164,11 @@ export async function createEvent(title: string, range: { start: Date, end: Date
   if (!isAllDayEvent && range.start === range.end) {
     // if it's not an all day event, and the start and end are the same, then it's probably "at 12" or something, so we add time to the end to make it an event
     range.end = addMinutes(range.start, config.eventLength || '30')
+  } else if (isAllDayEvent) {
+    range.end = addMinutes(range.end, -1) // parseDateText returns 12am one day to 12am the next day for a full day event
   }
-  const calendarItem = await CalendarItem.create(title, range.start, range.end || null, 'event', isAllDayEvent)
+  logDebug(pluginJson, `createEvent: creating: title:"${title}" start:${range.start} end:${range.end} isAllDayEvent:${isAllDayEvent} calendar:${config.calendar}} `)
+  const calendarItem = await CalendarItem.create(title, range.start, range.end || null, 'event', isAllDayEvent, config.calendar || '')
   const result = await Calendar.add(calendarItem)
   return result || null
 }
@@ -181,7 +186,7 @@ export async function confirmEventTiming(paragraphBlock: Array<TParagraph>, conf
   for (let i = 0; i < paragraphBlock.length; i++) {
     const line = paragraphBlock[i]
     if (hasCalendarLink(line.content)) {
-     logDebug(pluginJson, `Skipping line with calendar link: ${line.content}`)
+      logDebug(pluginJson, `Skipping line with calendar link: ${line.content}`)
     } else {
       const potentials = Calendar.parseDateText(line.content) //returns {start: Date, end: Date}
       if (potentials.length > 0) {
@@ -202,7 +207,7 @@ export async function confirmEventTiming(paragraphBlock: Array<TParagraph>, conf
         confirmedEventData.push({ originalLine: line.content, revisedLine, dateRangeInfo: chosenDateRange, paragraph: line, index: i })
       } else {
         // do nothing with this line?
-       logDebug(pluginJson, `processTimeLines no times found for "${line.content}"`)
+        logDebug(pluginJson, `processTimeLines no times found for "${line.content}"`)
       }
     }
   }
@@ -224,6 +229,7 @@ export async function processTimeLines(paragraphBlock: Array<TParagraph>, config
     // before we can show a status bar
     const eventsToCreate = (await confirmEventTiming(paragraphBlock, config)) || []
     // Now that we have all the info we need, we can create the events with a status bar
+    config.calendar = await checkOrGetCalendar('', true)
     CommandBar.showLoading(true, `Creating Events:\n(${0}/${eventsToCreate.length})`)
     await CommandBar.onAsyncThread()
     for (let j = 0; j < eventsToCreate.length; j++) {
@@ -232,14 +238,20 @@ export async function processTimeLines(paragraphBlock: Array<TParagraph>, config
       const range = { start: item.dateRangeInfo.start, end: item.dateRangeInfo.end }
       const eventWithoutLink = await createEvent(item.revisedLine, range, config)
       if (eventWithoutLink && eventWithoutLink.id !== null && typeof eventWithoutLink.id === 'string') {
-       logDebug(pluginJson, `created event ${eventWithoutLink.title}`)
+        logDebug(pluginJson, `created event ${eventWithoutLink.title}`)
         const { id, title } = eventWithoutLink
         const event = id ? await Calendar.eventByID(id) : null
         if (event) {
-          clo(event,`Created event:`)
-          const { calendarItemLink, date } = event
-         logDebug(pluginJson, `processTimeLines event=${title} event.calendarItemLink=${calendarItemLink}`)
-          const created = config.showResultingTimeDate ? ` ${date.toLocaleString()}` : ''
+          clo(event, `Created event:`)
+          let { calendarItemLink, date, endDate, isAllDay } = event
+          // work around the fact that eventByID sends back the wrong endDate for all day events
+          if (isAllDay) endDate = addMinutes(endDate,-1) // https://discord.com/channels/763107030223290449/1011492449769762836/1011492451460059246
+          logDebug(pluginJson, `processTimeLines event=${title} event.calendarItemLink=${calendarItemLink}`)
+          const startDateString = date.toLocaleString().split(", ")[0]
+          const endDateString = endDate.toLocaleString().split(", ")[0]
+          const dateStr = isAllDay ? `${startDateString}${startDateString === endDateString ? '' : `-${endDateString}`}` : date.toLocaleString()
+          logDebug(pluginJson,`noDuration: ${startDateString === endDateString} dateStr = "${dateStr}" endDate: ${endDate.toString()} ${endDate.toLocaleString()}`)
+          const created = config.showResultingTimeDate ? ` ${dateStr}` : ''
           const editedLink = config.showResultingTimeDate ? replaceCalendarLinkText(calendarItemLink, created) : calendarItemLink
           item.paragraph.content = `${config.removeDateText ? item.revisedLine : item.originalLine} ${editedLink}`
           // timeLines.push({ time: item.dateRangeInfo, paragraph: item.paragraph, event })
@@ -247,14 +259,14 @@ export async function processTimeLines(paragraphBlock: Array<TParagraph>, config
           //logDebug(pluginJson, `processTimeLines timeLines.length=${timeLines.length}`)
         }
       } else {
-       logDebug(pluginJson, `processTimeLines no event created for "${item.revisedLine}"`)
+        logDebug(pluginJson, `processTimeLines no event created for "${item.revisedLine}"`)
       }
       // confirmPotentialTimeChoices()
       // CreateEvents() // + tag created events
     }
     await CommandBar.onMainThread()
     CommandBar.showLoading(false)
-   logDebug(pluginJson, `processTimeLines RETURNING ${timeLines.length} processed lines`)
+    logDebug(pluginJson, `processTimeLines RETURNING ${timeLines.length} processed lines`)
   } catch (error) {
     logError(pluginJson, `processTimeLines error=${JSP(error)}`)
   }
@@ -271,7 +283,7 @@ export async function createEvents(heading: string = '', confirm: string = 'yes'
   try {
     const note = Editor.note
     if (note) {
-      const config = {...DataStore.settings}
+      const config = { ...DataStore.settings }
       config.confirm = confirm === 'yes' || config.confirm
       const headingPara = heading !== '' ? findHeading(note, heading, true) : await chooseTheHeading(note)
       if (headingPara) {
@@ -285,8 +297,11 @@ export async function createEvents(heading: string = '', confirm: string = 'yes'
           }
         }
       } else {
-        logDebug(pluginJson,`Could not find heading containing "${heading}"; headings in note:\n`)
-        const titles = note.paragraphs.filter(p=>p.type === "title").map(p=>p.content).join(`\n`)
+        logDebug(pluginJson, `Could not find heading containing "${heading}"; headings in note:\n`)
+        const titles = note.paragraphs
+          .filter((p) => p.type === 'title')
+          .map((p) => p.content)
+          .join(`\n`)
         logDebug(pluginJson, titles)
       }
     }
