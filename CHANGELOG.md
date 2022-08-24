@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/codedungeon.Toolbox/README.md) for details on available commands and use case.
 
+## [3.14.0] - 2022-08-19 (@dwertheimer)
+
+- added columnify for columnar output
+
 ## [3.13.0] - 2022-08-19 (@dwertheimer)
 
 - added mathjs module for math calculations
