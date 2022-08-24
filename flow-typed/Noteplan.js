@@ -270,16 +270,40 @@ declare interface TEditor extends CoreNoteFields {
   /**
    * Get the names of all supported themes (including custom themes imported into the Theme folder).
    * Use together with `.setTheme(name)`
-   * Note: Available from v3.1
+   * Note: available from v3.6.2, returning array of these objects:
+   * {
+      "name": String, // name as in the JSON
+      "mode": String, // "dark", or "light" = reported value in the json
+      "filename": String, // filename.json in the folder
+      "values": Object // fully parsed JSON theme file
+    }
+   * (Originally available from v3.1, returning a read-only array of strings)
    * @return {$ReadOnlyArray<string>}
    */
-  +availableThemes: $ReadOnlyArray<string>;
++availableThemes: $ReadOnlyArray < Object >;
+/**
+ * Get the current theme name and mode as an object with these keys:
+ *  - "name" in the JSON theme
+ *  - "filename" of the JSON theme file
+ *  - "mode" ("dark" or "light")
+ *  - "values" -- all the JSON in the theme
+ * Note: Available from NotePlan v3.6.2 (build >847)
+ * @type {name: String, mode: String ("dark", "light")}
+ */
++currentTheme: Object;
   /**
-   * Change the current theme. Get all available theme names using `.availableThemes`. Custom themes are also supported. Use the filename in this case.
-   * Note: Available from v3.1+
-   * @param {string}
+   * Change the current theme.
+   * Get all available theme names using `.availableThemes`. Custom themes are also supported.
+   * Note: Available from NotePlan v3.1
+   * @param {string} name of theme to change to.
    */
-  setTheme(name: string): void;
+setTheme(name: string): void;
+  /**
+   * Save theme as the default for the specified mode.
+   * @param {string} theme_name (already-installed; not filename)
+   * @param {string} mode "dark" | "light" | "auto"
+   */
+saveDefaultTheme(name: string, mode: string): void;
   /**
    * Add a new theme using the raw json string. It will be added as a custom theme and you can load it right away with `.setTheme(name)` using the filename defined as second parameter. Use ".json" as file extension.
    * It returns true if adding was successful and false if not. An error will be also printed into the console.
@@ -405,7 +429,10 @@ declare class DataStore {
    */
   static loadJSON(filename?: string): Object;
   /**
-   * Save data to a file, as base64 string. The file will be saved under "[NotePlan Folder]/Plugins/data/[plugin-id]/[filename]".
+   * Save data to a file. 
+   * Can use this with base64 encoding to save arbitary binary data.
+   * The file will be saved under "[NotePlan Folder]/Plugins/data/[plugin-id]/[filename]".
+   * If the file already exists, it will be over-written.
    * Returns true if the file could be saved, false if not and prints the error.
    * Note: Available from v3.2.0
    * @param {string}
@@ -414,7 +441,8 @@ declare class DataStore {
    */
   static saveData(data: string, filename: string): boolean;
   /**
-   * Load binary data from file encoded as base64 string.
+   * Load data from a file.
+   * Can be used with saveData() to save and load binary data from encoded as a base64 string.
    * The file has to be located in "[NotePlan Folder]/Plugins/data/[plugin-id]/[filename]".
    * You can access the files of other plugins as well, if the filename is known using relative paths "../[other plugin-id]/[filename]" or simply go into the "data"'s root directory "../[filename]" to access a global file.
    * Returns undefined, if the file couldn't be loaded and prints an error message.
@@ -1710,6 +1738,17 @@ declare class NotePlan {
    * Opens the given URL using the default browser (x-callback-urls can also be triggered with this).
    */
   static openURL(url: string): void;
+}
+
+declare class HTMLView {
+  // Impossible constructor.
+  constructor(_: empty): empty;
+  /**
+   * Show HTML in a NotePlan sheet.
+   * Note: Available from v3.6.2
+   * @param {string} HTML to show
+   */
+  static showSheet(HTML: string): void;
 }
 
 // Every function made available must be assigned to `globalThis`
