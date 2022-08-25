@@ -430,27 +430,29 @@ declare class DataStore {
   static loadJSON(filename?: string): Object;
   /**
    * Save data to a file. 
-   * Can use this with base64 encoding to save arbitary binary data.
+   * Can use this with base64 encoding to save arbitary binary data, or with string-based data (using loadAsString flag).
    * The file will be saved under "[NotePlan Folder]/Plugins/data/[plugin-id]/[filename]".
    * If the file already exists, it will be over-written.
    * Returns true if the file could be saved, false if not and prints the error.
-   * Note: Available from v3.2.0
-   * @param {string}
-   * @param {string}
-   * @return {booleanean}
+   * Note: Available from v3.2.0; loadAsString option only from v3.6.2.
+   * @param {string} data to write
+   * @param {string} filename to write to
+   * @param {boolean} loadAsString?
+   * @return {boolean}
    */
-  static saveData(data: string, filename: string): boolean;
+  static saveData(data: string, filename: string, loadAsString: boolean): boolean;
   /**
    * Load data from a file.
-   * Can be used with saveData() to save and load binary data from encoded as a base64 string.
+   * Can be used with saveData() to save and load binary data from encoded as a base64 string, or string-based data (using loadAsString flag).
    * The file has to be located in "[NotePlan Folder]/Plugins/data/[plugin-id]/[filename]".
    * You can access the files of other plugins as well, if the filename is known using relative paths "../[other plugin-id]/[filename]" or simply go into the "data"'s root directory "../[filename]" to access a global file.
-   * Returns undefined, if the file couldn't be loaded and prints an error message.
-   * Note: Available from v3.2.0
+   * Returns undefined if the file couldn't be loaded and prints an error message.
+   * Note: Available from v3.2.0; loadAsString option only from v3.6.2.
    * @param {string}
+   * @param {boolean} loadAsString?
    * @return {string?}
    */
-  static loadData(filename: string): ?string;
+  static loadData(filename: string, loadAsString: boolean): ?string;
   /**
    * Returns the calendar note for the given date and timeframe (optional, the default is "day", use "week" for weekly notes).
    * Note: 'timeframe' available from v3.6.0
