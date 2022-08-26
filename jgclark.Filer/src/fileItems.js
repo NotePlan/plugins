@@ -136,24 +136,15 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
         logDebug(pluginJson, `moveParas: move current para only`)
       }
 
-      // Now attempt to highlight them to help user check all is well (but only works from v3.6.2 (approx build 841))
-      if (NotePlan.environment.buildVersion > 841) {
-        // $FlowFixMe[incompatible-use]
-        const firstStartIndex = parasInBlock[0].contentRange.start
-        // $FlowFixMe[incompatible-use]
-        const lastStartIndex = parasInBlock[parasInBlock.length - 1].contentRange.start
-        // $FlowFixMe[incompatible-use]
-        const lastLength = parasInBlock[parasInBlock.length - 1].contentRange.length
-        // $FlowFixMe[incompatible-use]
-        const lastEndIndex = parasInBlock[parasInBlock.length - 1].contentRange.end
-        // FIXME: Waiting for Eduard to provide a constructor for Range, to avoid this failing with an Objective-C error.
-        // TODO: Also apply to IDs, I think.
-        // const parasCharIndexRange = { start: firstStartIndex, end: lastStartIndex + lastLength, length: lastStartIndex + lastLength - firstStartIndex }
-        // const parasCharIndexRange: Range = { start: firstStartIndex, end: lastEndIndex - 1 }
-        // $FlowIgnore TODO: remove when Eduard's addition has been tested
-        const parasCharIndexRange: Range = Range.create(firstStartIndex, lastEndIndex - 1)
-        logDebug(pluginJson, `- will try to highlight automatic block selection range ${rangeToString(parasCharIndexRange)}`)
-        Editor.highlightByRange(parasCharIndexRange)
+      // Now attempt to highlight them to help user check all is well (but only works from v3.6.2, build 844)
+      if (NotePlan.environment.buildVersion > 844) {
+        const firstStartIndex = parasInBlock[0].contentRange?.start ?? null
+        const lastEndIndex = parasInBlock[parasInBlock.length - 1].contentRange?.end ?? null
+        if (firstStartIndex && lastEndIndex) {
+          const parasCharIndexRange: TRange = Range.create(firstStartIndex, lastEndIndex)
+          // logDebug(pluginJson, `- will try to highlight automatic block selection range ${rangeToString(parasCharIndexRange)}`)
+          Editor.highlightByRange(parasCharIndexRange)
+        }
       }
     }
 

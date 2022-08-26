@@ -25,7 +25,7 @@ export {
 export { addIDAndAddToOtherNote } from './IDs'
 export { newNoteFromClipboard, newNoteFromSelection } from './newNote'
 
-const pluginID = "filer"
+const pluginID = "jgclark.Filer"
 
 export function init(): void {
   try {
