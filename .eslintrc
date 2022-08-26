@@ -86,6 +86,7 @@
     "CalendarItem": true,
     "Clipboard": true,
     "NotePlan": true,
+    "HTMLView": true,
     "globalThis": true,
     "fetch": true
   },
