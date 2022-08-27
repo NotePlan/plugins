@@ -50,6 +50,7 @@ function filterTasks(
     logDebug(pluginJson, `Found: ${filteredTasks.length} after notInFolders: [${String(notInFolders)}]`)
   }
   filteredTasks.forEach((t) => logDebug(`After notInFolders: ${t.type} | ${t.filename || ''} ${t.content}`))
+
   // filter out items in this file (on re-runs)
   filteredTasks = filename !== '' ? filteredTasks.filter((f) => f.filename !== filename) : filteredTasks
   logDebug(pluginJson, `After notThisFile (filename) filter -- filteredTasks.length=${filteredTasks.length}`)
@@ -212,6 +213,7 @@ async function fillInMissingArguments(args) {
  * @param {string|null} headings - TBD
  */
 export async function taskSync(...args: Array<string>): Promise<void> {
+
   try {
     // Setting this up this way so that args passing via xcallback ordering can be easily modified later
     const [searchFor, searchInTypesStr, includeTaskTypesStr, sortByFieldsStr, outputFilename, inFoldersStr, notInFoldersStr, headings] = await fillInMissingArguments(args)
