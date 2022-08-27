@@ -3,7 +3,7 @@
 import { addMinutes } from 'date-fns'
 import { getTimeBlockString, isTimeBlockLine } from '../../helpers/timeblocks'
 import type { PartialCalendarItem } from './timeblocking-flow-types'
-import {logDebug} from '@helpers/dev'
+import { logDebug } from '@helpers/dev'
 
 /**
  * Scan note for user-entered timeblocks and return them as an array of Calendar Items

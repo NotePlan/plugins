@@ -12,7 +12,9 @@ const Editor = {
   // async addParagraphBelowHeadingTitle() { return null },
   // async addTheme() { return null },
   // async addTodoBelowHeadingTitle() { return null },
-  async appendParagraph(title = 'mock tester', type: 'text') { return null },
+  async appendParagraph(title = 'mock tester', type: 'text') {
+    return null
+  },
   // async appendParagraphBelowHeadingLineIndex() { return null },
   // async appendTodo() { return null },
   // async appendTodoBelowHeadingLineIndex() { return null },
@@ -27,7 +29,9 @@ const Editor = {
   // async insertCompletedTodo() { return null },
   // async insertHeading() { return null },
   // async insertList() { return null },
-  async insertParagraph(name = 'mock tester', lineIndex = 1, type: 'text') { return null },
+  async insertParagraph(name = 'mock tester', lineIndex = 1, type: 'text') {
+    return null
+  },
   // async insertParagraphAfterParagraph() { return null },
   // async insertParagraphAtCursor() { return null },
   // async insertParagraphBeforeParagraph() { return null },
@@ -47,14 +51,7 @@ const Editor = {
   },
   note: null,
 
-  async openNoteByDate(
-    date: Date,
-    newWindow?: boolean,
-    highlightStart?: number,
-    highlightEnd?: number,
-    splitView?: boolean,
-    timeframe?: string,
-  ): Promise<TNote> {
+  async openNoteByDate(date: Date, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean, timeframe?: string): Promise<TNote> {
     return this.note
   },
   // async openNoteByDateString() { return null },

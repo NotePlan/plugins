@@ -1,10 +1,10 @@
 // @flow
 import { showMessageYesNo, chooseOption } from '../../helpers/userInput'
-import {logDebug} from '@helpers/dev'
+import { logDebug } from '@helpers/dev'
 
 type Direction = 'open' | 'done' | null
 
-async function setTasks(dir) {
+function setTasks(dir) {
   const paragraphs = Editor.paragraphs
   logDebug(`setTasks: ${String(paragraphs.length || 'zero')} paragraphs`)
   logDebug(`setTasks; setting to: ${dir || 'null'}`)
@@ -24,7 +24,7 @@ async function setTasks(dir) {
     }
     if (dir === 'openToday' && para.type === 'open') {
       para.content = para.content.replace(/ *>today/gm, '').replace(/ *\@done\(.*\)/gm, '')
-      para.content = `${para.content  } >today`
+      para.content = `${para.content} >today`
     }
     Editor.updateParagraph(para)
   })

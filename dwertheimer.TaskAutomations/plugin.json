@@ -1,66 +1,76 @@
 {
-  "noteplan.minAppVersion": "3.6.1", 
-  "plugin.id": "dwertheimer.TaskAutomations", 
-  "plugin.name": "✅ Task Automations", 
-  "plugin.description": "Functions for handling Tasks", 
+  "noteplan.minAppVersion": "3.6.1",
+  "plugin.id": "dwertheimer.TaskAutomations",
+  "plugin.name": "✅ Task Automations",
+  "plugin.description": "Functions for handling Tasks",
   "plugin.author": "@dwertheimer",
-  "plugin.version": "2.0.0", 
-  "plugin.lastUpdateInfo": "2.0.0: Added autoupdates and URL opening",
-  "plugin.dependencies": [ ], 
+  "plugin.version": "2.1.0",
+  "plugin.lastUpdateInfo": "2.1.0:\n- Added new sort orders (hashtags+mentions) for @George65.\n- Added /tsd & default sorting field in preferences.",
+  "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.TaskAutomations/readme.md",
-  "plugin.commands": [ 
+  "plugin.commands": [
     {
-      "name": "ts", 
-      "description": "Tasks Sort - Sort tasks on the page (e.g. after a sweep)", 
+      "name": "ts",
+      "description": "Tasks Sort - Sort tasks on the page (e.g. after a sweep)",
       "jsFunction": "sortTasks"
-    },  
+    },
     {
-      "name": "tt", 
-      "description": "Tasks to Top - Bring all tasks in note to top", 
+      "name": "tt",
+      "description": "Tasks to Top - Bring all tasks in note to top",
       "jsFunction": "tasksToTop"
-    },     
+    },
     {
-      "name": "mat", 
-      "description": "Mark All Tasks (choose open or complete)", 
+      "name": "mat",
+      "description": "Mark All Tasks (choose open or complete)",
       "jsFunction": "markTasks"
-    },  
+    },
     {
-      "name": "tsm", 
-      "description": "Tasks Sort by @Mention - Sort tasks on the page by mention/person", 
+      "name": "tsm",
+      "description": "Tasks Sort by @Mention - Sort tasks on the page by mention/person",
       "jsFunction": "sortTasksByPerson"
-    },  
+    },
     {
-      "name": "tst", 
-      "description": "Tasks Sort by #Tag - Sort tasks on the page by hashtag", 
+      "name": "tsd",
+      "description": "Tasks Sort by default (in settings)",
+      "jsFunction": "sortTasksDefault"
+    },
+    {
+      "name": "tstm",
+      "description": "Tasks Sort by #tag and then @mention",
+      "jsFunction": "sortTasksTagMention"
+    },
+    {
+      "name": "tst",
+      "description": "Tasks Sort by #Tag - Sort tasks on the page by hashtag",
       "jsFunction": "sortTasksByTag"
     },
     {
-      "name": "cta - Copy tags from previous line", 
-      "description": "Copy #tags and @mentions from previous line", 
+      "name": "cta - Copy tags from previous line",
+      "description": "Copy #tags and @mentions from previous line",
       "jsFunction": "copyTagsFromLineAbove"
     },
     {
-      "name": "cth - Copy tags from heading above", 
+      "name": "cth - Copy tags from heading above",
       "description": "Copy #tags/@mentions from heading to all lines between",
       "jsFunction": "copyTagsFromHeadingAbove"
     },
     {
-      "name": "ctm - Copy line for each mention", 
+      "name": "ctm - Copy line for each mention",
       "description": "Copy line for each @mention, listing it first",
       "jsFunction": "copyLineForEachMention"
     },
     {
-      "name": "ctt - Copy line for each hashtag", 
+      "name": "ctt - Copy line for each hashtag",
       "description": "Copy line for each #hashtag, listing it first",
       "jsFunction": "copyLineForEachHashtag"
     },
     {
-      "name": "task sync", 
+      "name": "task sync",
       "description": "Create synced copies of tasks from frontmatter fields",
       "jsFunction": "taskSync",
       "hidden": true,
-      "arguments": [ 
+      "arguments": [
         "search string",
         "type of notes to search in (['calendar', 'notes'])",
         "types of tasks to include (['open', 'scheduled', 'done', 'cancelled'])",
@@ -68,19 +78,20 @@
         "filename to save the output to (with or without the file extension)",
         "folders to look in",
         "folder to ignore",
-        "heading-TBD"]
+        "heading-TBD"
+      ]
     },
     {
       "name": "open todos containing links in browser",
-      "alias": [
-      ],
+      "alias": [],
       "description": "Open URLs in open todo items on the page",
       "jsFunction": "openIncompleteLinksInNote"
     },
     {
       "name": "open URL on this line",
       "alias": [
-        "openurl","launch"
+        "openurl",
+        "launch"
       ],
       "description": "Open the URL on the current line in the default browser",
       "jsFunction": "openURLOnLine"
@@ -88,12 +99,54 @@
   ],
   "disabled": [
     {
-      "name": "ott", 
-      "description": "Open Tasks to Top - Bring open tasks in note to top", 
+      "name": "ott",
+      "description": "Open Tasks to Top - Bring open tasks in note to top",
       "jsFunction": "openTasksToTop"
-    }  
+    }
   ],
   "plugin.settings": [
+    {
+      "type": "heading",
+      "title": "Task Sync Output Settings"
+    },
+    {
+      "key": "defaultSort1",
+      "title": "Default Sort: Primary Sort Field",
+      "description": "When invoking the default sorting method (/tsd), sort first by this field. Note: a minus in front means sort that key in reverse order. hashtags are for #tags, mentions are for @mentions, priority is the number of !!!'s and content is alphabetical.",
+      "type": "string",
+      "default": "-priority",
+      "required": true,
+      "choices": ["priority","-priority","mentions","-mentions","hashtags","-hashtags","content","-content"]
+    },
+    {
+      "key": "defaultSort2",
+      "title": "Default Sort: Secondary Sort Field",
+      "description": "When invoking the default sorting method (/tsd), sort secondly by this field (for all fields in the first sort pass above which were the same). Note: a minus in front means sort that key in reverse order. hashtags are for #tags, mentions are for @mentions, priority is the number of !!!'s and content is alphabetical.",
+      "type": "string",
+      "default": "-content",
+      "required": true,
+      "choices": ["priority","-priority","mentions","-mentions","hashtags","-hashtags","content","-content"]
+    },
+    {
+      "type": "heading",
+      "title": "Default Output Style (Include Headings?)"
+    },
+    {
+      "key": "includeHeading",
+      "title": "Include Task Status Heading in Output",
+      "description": "For all quick task sorting commands (other than /ts), you can specify whether you want the headings to be in the output or not. Task Status headings are, e.g. 'Open Tasks', 'Completed Tasks’, etc.",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
+      "key": "includeSubHeading",
+      "title": "Include Primary Sort Key Heading in Output",
+      "description": "For all quick task sorting commands (other than /ts), you can specify whether you want the subheadings to be in the output or not. Sort Key headings are, e.g. '#tagA', or '@PersonB', etc.",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },    
     {
       "type": "heading",
       "title": "Task Sync Output Settings"
@@ -122,13 +175,19 @@
       "title": "Debugging"
     },
     {
-        "key": "_logLevel",
-        "type": "string",
-        "title": "Log Level",
-        "choices": ["DEBUG","INFO","WARN","ERROR","none"],
-        "description": "Set how much output will be displayed for this plugin the NotePlan > Help > Plugin Console. DEBUG is the most verbose; NONE is the least (silent)",
-        "default": "LOG",
-        "required": true
+      "key": "_logLevel",
+      "type": "string",
+      "title": "Log Level",
+      "choices": [
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "none"
+      ],
+      "description": "Set how much output will be displayed for this plugin the NotePlan > Help > Plugin Console. DEBUG is the most verbose; NONE is the least (silent)",
+      "default": "LOG",
+      "required": true
     }
   ]
-} 
+}

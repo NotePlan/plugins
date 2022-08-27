@@ -1,13 +1,6 @@
 // @flow
 import { chooseOption, showMessage } from '../../helpers/userInput'
-import {
-  getFavoriteDefault,
-  getFavoritedTitle,
-  filterForFaves,
-  getFaveOptionsArray,
-  hasFavoriteIcon,
-  removeFavoriteFromTitle,
-} from './favorites'
+import { getFavoriteDefault, getFavoritedTitle, filterForFaves, getFaveOptionsArray, hasFavoriteIcon, removeFavoriteFromTitle } from './favorites'
 
 function getConfig() {
   const config = { favoriteIcon: getFavoriteDefault(), position: 'prepend' }

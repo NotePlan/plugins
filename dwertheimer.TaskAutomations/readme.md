@@ -10,9 +10,17 @@ This plugin will give you a choice of whether to mark all open tasks as complete
 Sort the Tasks in the open note by (the first) #Tag and display with subheadings for each unique tag
 [If you want more granular control over whether there are or aren't headings, use /ts]
 
+## /tstm - Tasks Sort by Tag/Mention
+Sort the Tasks in the open note by (the first) #tag (and then by @Mention) 
+[If you want more granular control over whether there are or aren't headings, use /ts]
+
 ## /tsm - Tasks Sort by Mention/Person
 Sort the Tasks in the open note by (the first) @Mention and display with subheadings for each unique @mention
 [If you want more granular control over whether there are or aren't headings, use /ts]
+
+## /tsd - Task Sort By Default
+Sort tasks in note by user setting primary/secondary sort fields
+Set the primary and secondary sort order for this default search in plugin preferences
 
 ## /ts - Tasks Sort (Interactively choose sort order and headings style)
 This plugin will sort your tasks in the open note in the Editor

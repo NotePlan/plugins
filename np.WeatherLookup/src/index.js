@@ -21,12 +21,7 @@ import pluginJson from '../plugin.json'
 import { updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'
 import { logError, JSP, clo } from '@helpers/dev'
 
-export {
-  insertWeatherByLocation,
-  insertWeatherCallbackURL,
-  weatherByLatLong,
-  setDefaultLocation,
-} from './NPWeatherLookup' // this makes the command function available to NotePlan (see plugin.json for details)
+export { insertWeatherByLocation, insertWeatherCallbackURL, weatherByLatLong, setDefaultLocation } from './NPWeatherLookup' // this makes the command function available to NotePlan (see plugin.json for details)
 
 /*
  * NOTEPLAN HOOKS
@@ -52,11 +47,9 @@ export async function onUpdateOrInstall(): Promise<void> {
 // eslint-disable-next-line require-await
 export async function init(): Promise<void> {
   try {
-    clo(DataStore.settings,`${pluginJson["plugin.id"]} Plugin Settings`)
+    clo(DataStore.settings, `${pluginJson['plugin.id']} Plugin Settings`)
     // Check for the latest version of this plugin, and if a minor update is available, install it and show a message
-    DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false).then((r) =>
-      pluginUpdated(pluginJson, r),
-    )
+    DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false).then((r) => pluginUpdated(pluginJson, r))
   } catch (error) {
     logError(pluginJson, JSP(error))
   }

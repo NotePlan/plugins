@@ -14,9 +14,7 @@ export function getYearMonthDate(dateObj: Date = new Date()): $ReadOnly<{
 
 export function hyphenatedDateString(dateObj: Date): string {
   const { year, month, date } = getYearMonthDate(dateObj)
-  return `${year}-${month < 10 ? '0' : ''}${month}-${
-    date < 10 ? '0' : ''
-  }${date}`
+  return `${year}-${month < 10 ? '0' : ''}${month}-${date < 10 ? '0' : ''}${date}`
 }
 
 export function filenameDateString(dateObj: Date): string {

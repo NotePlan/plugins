@@ -21,7 +21,7 @@ describe('dwertheimer.JestHelpers' /* pluginID */, () => {
         expect(cal.availableCalendarTitles(true)).toEqual(['cal1'])
       })
     })
-    describe('NP file settings mock' /* function */,  () => {
+    describe('NP file settings mock' /* function */, () => {
       test('should return mock data: availableCalendarTitles', async () => {
         const cal = await NPfile.getCalendar() // should come back with the mock
         expect(cal.availableCalendarTitles(false)).toEqual(['cal1', 'cal2'])
@@ -31,7 +31,7 @@ describe('dwertheimer.JestHelpers' /* pluginID */, () => {
 
   describe('Clipboard' /* file */, () => {
     describe('local settings mock' /* function */, () => {
-      test('should return mock data: string',  () => {
+      test('should return mock data: string', () => {
         const clip = Clipboard // should work in local context
         expect(clip.string).toEqual('clipString')
       })
@@ -46,7 +46,7 @@ describe('dwertheimer.JestHelpers' /* pluginID */, () => {
 
   describe('CommandBar' /* file */, () => {
     describe('local settings mock' /* function */, () => {
-      test('should return mock data: placeholder',  () => {
+      test('should return mock data: placeholder', () => {
         const commandBar = CommandBar //works because DataStore is mocked inside this context
         expect(commandBar.placeholder).toEqual('CommandBar placeholder')
       })
@@ -61,7 +61,7 @@ describe('dwertheimer.JestHelpers' /* pluginID */, () => {
 
   describe('DataStore' /* file */, () => {
     describe('local settings mock' /* function */, () => {
-      test('should return mock data: settings',  () => {
+      test('should return mock data: settings', () => {
         const res = DataStore.settings //works because DataStore is mocked inside this context
         expect(res?.settingsFieldName).toEqual('Settings field value')
       })
@@ -76,7 +76,7 @@ describe('dwertheimer.JestHelpers' /* pluginID */, () => {
 
   describe('Editor' /* file */, () => {
     describe('local settings mock' /* function */, () => {
-      test('should return mock data: filename',  () => {
+      test('should return mock data: filename', () => {
         const editor = Editor // should work in local context
         expect(editor.filename).toEqual('thisFileName.txt')
       })
@@ -91,7 +91,7 @@ describe('dwertheimer.JestHelpers' /* pluginID */, () => {
 
   describe('NotePlan' /* file */, () => {
     describe('local settings mock' /* function */, () => {
-      test('should return mock data: selectedSidebarFolder',  () => {
+      test('should return mock data: selectedSidebarFolder', () => {
         const noteplan = NotePlan // should work in local context
         expect(noteplan.selectedSidebarFolder).toEqual('SelectedFolder')
       })
@@ -105,7 +105,7 @@ describe('dwertheimer.JestHelpers' /* pluginID */, () => {
   })
 
   describe('Note' /* file */, () => {
-    test('should return mocked note',  () => {
+    test('should return mocked note', () => {
       const note = new Note({ filename: 'foo' }) // should work in local context
       expect(note.filename).toEqual('foo')
       expect(note.backlinks).toEqual([])
@@ -113,7 +113,7 @@ describe('dwertheimer.JestHelpers' /* pluginID */, () => {
   })
 
   describe('Paragraph' /* file */, () => {
-    test('should return mocked paragraph',  () => {
+    test('should return mocked paragraph', () => {
       const para = new Paragraph({ filename: 'foo' }) // should work in local context
       expect(para.filename).toEqual('foo')
       expect(para.linkedNoteTitles).toEqual([])
