@@ -2,7 +2,7 @@
 
 // import { log, logError, JSP, clo } from '@helpers/dev'
 import { getParagraphContainingPosition } from '@helpers/NPParagraph'
-import {logDebug} from '@helpers/dev'
+import { logDebug } from '@helpers/dev'
 
 /**
  * Find URLs in an array of paragraphs

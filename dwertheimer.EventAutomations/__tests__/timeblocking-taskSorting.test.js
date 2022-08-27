@@ -1,7 +1,7 @@
 /* globals describe, expect, it, test, DataStore */
 // import { differenceInCalendarDays, endOfDay, startOfDay, eachMinuteOfInterval, formatISO9075 } from 'date-fns'
 import * as tb from '../src/timeblocking-helpers'
-import { getTasksByType , sortListBy } from '@helpers/sorting'
+import { getTasksByType, sortListBy } from '@helpers/sorting'
 const _ = require('lodash')
 // import { isNullableTypeAnnotation } from '@babel/types'
 
@@ -82,7 +82,7 @@ describe('taskSorting', () => {
   test('dwertheimer.TaskAutomations - sortListBy priority (!,!!,!!!)', () => {
     const paragraphs = [
       {
-        type: 'open', 
+        type: 'open',
         indents: 0,
         content: 'test content !',
         rawContent: '* test content !',

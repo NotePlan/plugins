@@ -3,12 +3,12 @@
 // Type checking reference: https://flow.org/
 // Specific how-to re: Noteplan: https://github.com/NotePlan/plugins/blob/main/Flow_Guide.md
 
-import { chooseOption, showMessageYesNo } from '../../helpers/userInput'
-import { default as sweepNote, type ReturnStatus } from '../../nmn.sweep/src/sweepNote'
-import { getTagParamsFromString } from '../../helpers/general'
-import { removeHeadingFromNote } from '../../helpers/NPParagraph'
-import { sortListBy , getTasksByType, TASK_TYPES } from '../../helpers/sorting'
-import {logDebug} from '@helpers/dev'
+import pluginJson from '../plugin.json'
+import { chooseOption, showMessageYesNo } from '@helpers/userInput'
+import { getTagParamsFromString } from '@helpers/general'
+import { removeHeadingFromNote } from '@helpers/NPParagraph'
+import { sortListBy, getTasksByType, TASK_TYPES } from '@helpers/sorting'
+import { logDebug, logError, clo, JSP } from '@helpers/dev'
 
 // Note: not currently using getOverdueTasks from taskHelpers (because if it's open, we are moving it)
 // But the functions exist to look for open items with a date that is less than today
@@ -33,6 +33,10 @@ const SORT_ORDERS = [
     name: 'By #tag in task, then by priority',
   },
   {
+    sortFields: ['hashtags', 'mentions', '-priority'],
+    name: 'By #tag in task, them by @Person',
+  },
+  {
     sortFields: ['content', '-priority'],
     name: 'Alphabetical, then by priority',
   },
@@ -46,20 +50,20 @@ const SORT_ORDERS = [
  * @param {string} heading The text that goes above the tasks. Should have a \n at the end.
  * @param {string} separator The line that goes beneath the tasks. Should have a \n at the end.
  */
-export async function openTasksToTop(heading: string = '## Tasks:\n', separator: string = '---\n') {
+export function openTasksToTop(heading: string = '## Tasks:\n', separator: string = '---\n') {
   if (Editor.note == null) {
     return // if no note, stop. Should resolve 2 flow errors below, but doesn't :-(
   }
   logDebug(`openTasksToTop(): Bringing open tasks to top`)
-  //FIXME: need to make this work
+  //FIXME: need to make this work now that nmn.sweep is gone
   // MAYBE ADD A QUESTION IN THE FLOW FOR WHICH TASKS TO MOVE
 
-  let sweptTasks: ReturnStatus = { msg: '', status: '', taskArray: [], tasks: 0 }
-  if (Editor.type === 'Calendar') {
-    if (Editor.note) sweptTasks = await sweepNote(Editor.note, false, true, false, false, true, false, 'move')
-  } else {
-    if (Editor.note) sweptTasks = await sweepNote(Editor.note, false, true, false, true, true, false, 'move')
-  }
+  const sweptTasks = { msg: '', status: '', taskArray: [], tasks: 0 }
+  // if (Editor.type === 'Calendar') {
+  //   if (Editor.note) sweptTasks = await sweepNote(Editor.note, false, true, false, false, true, false, 'move')
+  // } else {
+  //   if (Editor.note) sweptTasks = await sweepNote(Editor.note, false, true, false, true, true, false, 'move')
+  // }
   if (sweptTasks) logDebug(`openTasksToTop(): ${sweptTasks?.taskArray?.length || 0} open tasks:`)
   logDebug(JSON.stringify(sweptTasks))
   if (sweptTasks.taskArray?.length) {
@@ -89,17 +93,48 @@ export async function sortTasksViaTemplate(paramStr: string = ''): Promise<void>
  * @returns {Promise<void>}
  */
 export async function tasksToTop() {
-  logDebug(`tasksToTop(): Bringing tasks to top`)
-  await sortTasks(false, [])
+  try {
+    logDebug(`tasksToTop(): Bringing tasks to top`)
+    await sortTasks(false, [])
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
 }
 
 export async function sortTasksByPerson() {
-  logDebug('Person!')
-  await sortTasks(false, ['mentions', '-priority', 'content'], true, true)
+  try {
+    const { includeHeading, includeSubHeading } = DataStore.settings
+    await sortTasks(false, ['mentions', '-priority', 'content'], includeHeading, includeSubHeading)
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
 }
 
 export async function sortTasksByTag() {
-  await sortTasks(false, ['hashtags', '-priority', 'content'], true, true)
+  try {
+    const { includeHeading, includeSubHeading } = DataStore.settings
+    await sortTasks(false, ['hashtags', '-priority', 'content'], includeHeading, includeSubHeading)
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
+}
+
+export async function sortTasksDefault() {
+  try {
+    const { defaultSort1, defaultSort2, includeHeading, includeSubHeading } = DataStore.settings
+    await sortTasks(false, [defaultSort1, defaultSort2], includeHeading, includeSubHeading)
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
+}
+
+export async function sortTasksTagMention() {
+  try {
+    const { includeHeading, includeSubHeading } = DataStore.settings
+    await sortTasks(false, ['hashtags', 'mentions'], includeHeading, includeSubHeading)
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
 }
 
 const DEFAULT_SORT_INDEX = 0

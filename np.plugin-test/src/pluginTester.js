@@ -24,5 +24,5 @@ export function writeToNewCalendarNote(): void {
 }
 
 export function testOutputEditorContents(): void {
-  log(`PluginTester`,JSP(Editor))
+  log(`PluginTester`, JSP(Editor))
 }

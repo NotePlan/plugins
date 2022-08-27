@@ -31,7 +31,7 @@ import type { IntervalMap, PartialCalendarItem } from './timeblocking-flow-types
 import { getTimedEntries, keepTodayPortionOnly } from '@helpers/calendar'
 import { getEventsForDay, writeTimeBlocksToCalendar, checkOrGetCalendar } from '@helpers/NPCalendar'
 import { getDateStringFromCalendarFilename, getTodaysDateHyphenated, getTodaysDateUnhyphenated } from '@helpers/dateTime'
-import { getTasksByType , sortListBy } from '@helpers/sorting'
+import { getTasksByType, sortListBy } from '@helpers/sorting'
 import { showMessage, chooseOption } from '@helpers/userInput'
 import { getTimeBlockString, isTimeBlockLine } from '@helpers/timeblocks'
 import { JSP, clo, log, logError, logWarn, logDebug } from '@helpers/dev'
