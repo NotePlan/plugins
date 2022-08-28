@@ -4,8 +4,8 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "dwertheimer.MathSolver",
   "plugin.name": "🟰 Math Solver",
-  "plugin.version": "1.0.2",
-  "plugin.lastUpdateInfo": "Added [TotalsOnly] button. Removed annotations from basic assignment lines. Thx @QualitativeEasing!",
+  "plugin.version": "1.0.10",
+  "plugin.lastUpdateInfo": "1.0.10: Basic time math, e.g.\n'2hrs + 4mins'\nAlso other units now possible. Check README!\nThx @george65 & @qualitativeEasing!",
   "plugin.description": "Write basic math in your NotePlan notes and use this plugin to calculate it.",
   "plugin.author": "dwertheimer",
   "plugin.dependencies": [],
@@ -56,6 +56,14 @@
         "mathBlock"
       ],
       "arguments": []
+    },
+    {
+      "name": "Debug Math Calculations",
+      "description": "Calculate Math Blocks and Show Verbose Output",
+      "jsFunction": "debugMath",
+      "alias": [
+      ],
+      "arguments": []
     }
   ],
   "plugin.settings": [
@@ -86,18 +94,33 @@
       "default": true
     },
     {
+      "title": "Preset Variables/Values",
+      "key": "presetValues",
+      "type": "json",
+      "description": "Variables you use frequently can be placed here. Must be in JSON format.\nExample: {\n\"x\": 2,\n\"y\": 3\n}\nNote: Go to https://jsonlint.com/ if you want to validate your JSON.",
+      "default": "{\n\"placeholderVariable\": 99,\n\"placeholderVariable2\": 50\n}"
+    },
+    {
       "title": "Format for Math Display in Popup Preview",
       "key": "popUpTemplate",
-      "type": "string",
+      "type": "hidden",
       "description": "Each line will be displayed in a single popup preview. Lines need to be short. Use a key name wrapped in double curly braces, e.g. ({{someThing}}) for key/values to substitute. Key options:\n{{row}} - row number\n{{originalText}} - line's text in the math block\n{{value}} - value to display\n{{expression}} - expression the computer constructed to evaluate (just for verification purposes)\n{{typeOfResult}} - the type of this line (mostly for debugging)",
       "default": "\"{{originalText}}\" {{value}} {{error}}"
     },
     {
       "title": "Format for Math Replacement in Document",
       "key": "documentTemplate",
-      "type": "string",
+      "type": "hidden",
       "description": "After calculation, the math line will be written according to this format. Use a key name wrapped in double curly braces, e.g. ({{someThing}}) for key/values to substitute. Key options:\n{{row}} - row number\n{{originalText}} - line's text in the math block\n{{value}} - value to display\n{{expression}} - expression the computer constructed to evaluate (just for verification purposes)\n{{typeOfResult}} - the type of this line (mostly for debugging)",
       "default": "{{originalText}} {{value}} {{error}}"
+    },
+    {
+      "key": "columnarOutput",
+      "title": "Format MathBlock Results into Columns",
+      "description": "If set to true, the plugin will line up all the calculations in columns in the Math Block (horizontal space permitting)",
+      "type": "bool",
+      "default": true,
+      "required": true
     },
     {
       "NOTE": "DO NOT CHANGE THE FOLLOWING SETTINGS; ADD YOUR SETTINGS ABOVE ^^^",

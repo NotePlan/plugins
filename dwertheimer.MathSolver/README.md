@@ -53,12 +53,34 @@ total  //= 6
 - NOTE: Math.js does not understand currencies (e.g. $4) -- use numbers only
 
 ## Variables/Named Values
-- **Assignment** operations store values in named variables, e.g. 
+
+### Assignment operations 
+
+Assignment operations store values in named variables, e.g.
     `taxRate = 10%`
-- Assigned numbers are tabulated when the assigned numbers are later used in a line (either alone on a line or as part of an equation), e.g. 
-    `taxRate` or `20 * taxRate` 
-- NOTE: always use the ` = ` to assign to a variable. Text like:\n
-    ` taxrate: 20% `
+    Notes:
+        - Assigned numbers are tabulated when the assigned numbers are later used in a line (either alone on a line or as part of an equation), e.g. 
+            `taxRate` or `20 * taxRate` 
+        - Always use the ` = ` to assign to a variable. Text like: ` taxrate: 20% ` does not do variable assignment
+
+**Note**: Variables must not contain spaces (one block of characters)
+
+### Preset variables
+
+If there are variables you want to use over and over again in different documents, you can save them in the "Preset Variables" field in this plugin's preferences. Those variables will then be available to you by name in any Math Block.
+
+If, on the other hand, there are variables you want to re-use in multiple math blocks inside one particular note, you can save those variables in the frontmatter of the note indented (***with spaces (NOT TABS)***) under a heading called `mathPresets`, e.g.:
+```
+---
+mathPresets:
+  myVar: 20
+  anotherOne: 50
+---
+note content here
+```
+> **Tip**: An easy way to create frontmatter is a command in @jgclark's plugin "Note Helpers":
+>   `/convert note to frontmatter`
+
 ## (sub)Totals
 Use the word "total" or "subtotal" (alone on a line) to add all the numbers on the previous lines
 - `subtotal` or `total` on a line adds all preceeding non-assignment numbers/equations (Note: these words are not case sensitive -- you can use `Total` or `TOTAL` and get the same result)
@@ -73,6 +95,20 @@ Use the word "total" or "subtotal" (alone on a line) to add all the numbers on t
     total // will be 10 (all the numbers in the math block)
 ```
 As you can see `subtotal` can be very useful for large math blocks.
+
+- Note: You can also assign a (sub)total to a variable (thx George), e.g.
+
+```math
+Quickbooks: 300
+Windows: 500
+softwareTotal = subtotal
+
+PC: 1000
+Mouse: 50
+hardwareTotal = subtotal
+
+bill = softwareTotal +  hardwareTotal //= 1850
+```
 
 ## Text
 Text that is not a number or an assignment to a variable will be ignored. This means you can use words to create context. For instance:
@@ -90,6 +126,39 @@ total
     `6/19/2020: 2+2` (the date will be ignored)
     `Grocery list: 20` (will ignore the words "Grocery list")
 
+## Time Math
+You can calculate basic time math as well, e.g.:
+```
+3h + 20mins
+4hours + 1minute
+total //= 7.35 h
+```
+
+> **NOTE** Notice there is no space between the number and the abbreviation. If you enter a space, calculations will not work properly.
+
+Legal abbreviations are:
+- second (s, secs, seconds)
+- minute (mins, minutes) -- ***note: you cannot use "m" for minutes, because that's meters**
+- hour (h, hr, hrs, hours), 
+- day (days)
+- week (weeks)
+- month (months), year (years)
+
+> **WARNING** Mixing time-math and regular math in the same Math Block will not be reliable. 
+
+## Unit Calculations
+Like time, there are other unit calculations that [math.js](https://mathjs.org/docs/datatypes/units.html#reference) understands and therefore will work in math blocks. For instance:
+```
+2inches + 2feet      //= 26 inches                                                                                              
+```
+
+> **INFO** Notice how the results are expressed in terms of the first item you gave -- in this case, the result is in inches, because the first item was in inches. If we wanted this same result in feet, we could do the reverse:
+```
+2feet + 2inches      //= 2.1666666666666665 feet     
+```
+For the full list of units, [click here](https://mathjs.org/docs/datatypes/units.html#reference).
+
+
 ## Advanced Math
 - Under the hood, this plugin uses math.js to evaluate the equations, so ultimately you will get all the functionality that [math.js](https://mathjs.org/examples/basic_usage.js.html) offers, including functions like:
 ```
@@ -99,3 +168,7 @@ That said, getting all of it into the plugin will take some more coding, so be s
 
 ## Work-in-Progress / Future Work
 - +/- X%
+
+## Acknowledgements - Special Thanks for the Ideas/Testing:
+- @george65
+- @QualitativeEasing
