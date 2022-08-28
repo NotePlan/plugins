@@ -118,7 +118,7 @@ async function openSyncedTasksNoteInEditor(filename: string, searchFor: string, 
 
   if (Editor.filename === generatedFilename) {
     logDebug(pluginJson, `We are in Editor; File open already: Editor.filename is: "${Editor.filename}"`)
-    note = Editor.note
+    note = Editor
   } else {
     logDebug(pluginJson, `Opening filename: "${generatedFilename}"`)
     note = await Editor.openNoteByFilename(generatedFilename, false, 0, 0, true, true)

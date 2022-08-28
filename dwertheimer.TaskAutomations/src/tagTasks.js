@@ -188,8 +188,8 @@ export async function copyTagsFromHeadingAbove() {
       if (headingPara) {
         const headingLineTags = getTagsFromString(heading)
         for (let index = headingPara.lineIndex + 1; index <= thisParagraph.lineIndex; index++) {
-          if (Editor.note) {
-            const currentPara = getParagraphByIndex(Editor.note, index)
+          if (Editor) {
+            const currentPara = getParagraphByIndex(Editor, index)
             if (currentPara) {
               const updatedText = appendTagsToText(currentPara.content, headingLineTags)
               if (updatedText) {

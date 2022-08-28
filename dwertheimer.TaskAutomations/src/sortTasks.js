@@ -41,6 +41,10 @@ const SORT_ORDERS = [
     name: 'Alphabetical, then by priority',
   },
   {
+    sortFields: ['due','-priority'],
+    name: 'By Due Date, then by priority',
+  },
+  {
     sortFields: [],
     name: 'Unsorted, bring to top in same order',
   },
@@ -105,6 +109,15 @@ export async function sortTasksByPerson() {
   try {
     const { includeHeading, includeSubHeading } = DataStore.settings
     await sortTasks(false, ['mentions', '-priority', 'content'], includeHeading, includeSubHeading)
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
+}
+
+export async function sortTasksByDue() {
+  try {
+    const { includeHeading, includeSubHeading } = DataStore.settings
+    await sortTasks(false, ['due', '-priority', 'content'], includeHeading, includeSubHeading)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
@@ -316,14 +329,22 @@ async function deleteExistingTasks(note, tasks, shouldBackupTasks = true) {
       logDebug(`tasksAndIndented=${tasksAndIndented.length} \n${JSON.stringify(tasksAndIndented)}`)
       const deleteList = note
         ? tasksAndIndented.map((t) => {
+            clo(t.paragraph,`deleteExistingTasks map t`)
             // $FlowFixMe
-            return findRawParagraph(note, t.raw || null)
+            // return findRawParagraph(note, t.raw || null)
+            return t.paragraph
           })
         : []
       //$FlowIgnore
-      logDebug(`deleteList=${deleteList.length} \n${JSON.stringify(deleteList)}`)
+      // logDebug(`deleteList.length=${deleteList.length} \n${JSON.stringify(deleteList)}`)
+      // deleteList.map(t=>logDebug(`Before: lineIndex:${t.lineIndex} content:${t.content}`))
+      // logDebug(`Editor content before remove: ${Editor.content || ''}`)
       // $FlowFixMe
-      if (deleteList && deleteList.length) Editor.note.removeParagraphs(deleteList)
+      const deleteListByIndex = sortListBy(deleteList,['lineIndex']) //NP API may give wrong results if lineIndexes are not in ASC order
+      if (deleteList && deleteList.length) Editor.removeParagraphs(deleteListByIndex)
+      // Editor.paragraphs.map(t=>logDebug(`After: lineIndex:${t.lineIndex} content:${t.content}`))
+
+      // logDebug(`Editor content after remove: ${Editor.content || ''}`)
     } catch (e) {
       logDebug(`**** ERROR deleting ${typ} ${JSON.stringify(e)}`)
     }
@@ -338,7 +359,7 @@ async function deleteExistingTasks(note, tasks, shouldBackupTasks = true) {
  * @param {boolean} withHeadings
  * @param {any|null|string} withSubheadings // @jgclark comment: suggest change name to subHeadingCategory, as otherwise it sounds like a boolean
  */
-async function writeOutTasks(note: TNote, tasks: any, drawSeparators = false, withHeadings = false, withSubheadings = null): Promise<void> {
+async function writeOutTasks(note: CoreNoteFields, tasks: any, drawSeparators = false, withHeadings = false, withSubheadings = null): Promise<void> {
   const headings = {
     open: 'Open Tasks',
     scheduled: 'Scheduled Tasks',
@@ -391,7 +412,7 @@ export default async function sortTasks(
   withHeadings: boolean | null = null,
   withSubHeadings: boolean | null = null,
 ) {
-  if (Editor.note == null) {
+  if (Editor == null) {
     return // if no note, stop. Should resolve 2 flow errors below, but only resolves 1 :-(
   }
   logDebug(`\n\nStarting sortTasks(${String(withUserInput)},${JSON.stringify(sortFields)},${String(withHeadings)}):`)
@@ -409,17 +430,17 @@ export default async function sortTasks(
     logDebug(`\twithSubHeadings=${String(withSubHeadings)} printSubHeadings=${String(printSubHeadings)}  cat=${printSubHeadings ? sortField1 : ''}`)
   }
   logDebug(`\tFinished wantSubHeadings()=${String(printSubHeadings)}, now running sortTasksInNote`)
-  const sortedTasks = sortTasksInNote(Editor.note, sortOrder)
+  const sortedTasks = sortTasksInNote(Editor, sortOrder)
   logDebug(`\tFinished sortTasksInNote, now running deleteExistingTasks`)
-  await deleteExistingTasks(Editor.note, sortedTasks, MAKE_BACKUP) // need to do this before adding new lines to preserve line numbers
+  await deleteExistingTasks(Editor, sortedTasks, MAKE_BACKUP) // need to do this before adding new lines to preserve line numbers
   logDebug(`\tFinished deleteExistingTasks, now running writeOutTasks`)
 
-  if (Editor.note) {
+  if (Editor) {
     if (printSubHeadings) {
       // TODO: come back to this with new template fields
       // await deleteParagraphsContainingString(Editor)
     }
-    await writeOutTasks(Editor.note, sortedTasks, false, printHeadings, printSubHeadings ? sortField1 : '')
+    await writeOutTasks(Editor, sortedTasks, false, printHeadings, printSubHeadings ? sortField1 : '')
   }
   logDebug(`\tFinished writeOutTasks, now finished`)
 

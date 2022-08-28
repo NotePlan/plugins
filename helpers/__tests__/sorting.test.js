@@ -76,6 +76,14 @@ describe('sorting.js', () => {
         const result = s.sortListBy(list,"-date")
         expect(result).toEqual([a,b])
       })
+      test('should sort by date field with empty', () => {
+        const a = {date:new Date("2022-01-01")}
+        const b = {date:new Date("2021-01-01")}
+        const c = {date:null}
+        const list = [a,b,c]
+        const result = s.sortListBy(list,"date")
+        expect(result).toEqual([b,a,c])
+      })
 
       // older (basic) tests (need to refactor to use newer test format ^^^)
       test('sorting - sortListBy ', () => {

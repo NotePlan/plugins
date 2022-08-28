@@ -4,8 +4,8 @@
   "plugin.name": "✅ Task Automations",
   "plugin.description": "Functions for handling Tasks",
   "plugin.author": "@dwertheimer",
-  "plugin.version": "2.1.3",
-  "plugin.lastUpdateInfo": "2.1.3:\n- Attempting to reduce lag in changes reflected in Editor\n- Added new sort orders (hashtags+mentions) for @George65.\n- Added /tsd & default sorting field in preferences.",
+  "plugin.version": "2.2.0",
+  "plugin.lastUpdateInfo": "2.2.0:\n-Add sort by date (thx @jgclark)\n- Fix for intermittent duplicate tasks\n- Attempting to reduce lag in changes reflected in Editor\n- Added new sort orders (hashtags+mentions) for @George65.\n- Added /tsd & default sorting field in preferences.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.TaskAutomations/readme.md",
@@ -19,6 +19,11 @@
       "name": "tsd",
       "description": "Tasks Sort by User Default (in settings)",
       "jsFunction": "sortTasksDefault"
+    },
+    {
+      "name": "tsc",
+      "description": "Tasks Sort by calendar due date",
+      "jsFunction": "sortTasksByDue"
     },
     {
       "name": "tsm",
@@ -116,7 +121,7 @@
       "type": "string",
       "default": "-priority",
       "required": true,
-      "choices": ["priority","-priority","mentions","-mentions","hashtags","-hashtags","content","-content"]
+      "choices": ["priority","-priority","due","-due","mentions","-mentions","hashtags","-hashtags","content","-content"]
     },
     {
       "key": "defaultSort2",
@@ -125,7 +130,7 @@
       "type": "string",
       "default": "-content",
       "required": true,
-      "choices": ["priority","-priority","mentions","-mentions","hashtags","-hashtags","content","-content"]
+      "choices": ["priority","-priority","due","-due","mentions","-mentions","hashtags","-hashtags","content","-content"]
     },
     {
       "type": "heading",

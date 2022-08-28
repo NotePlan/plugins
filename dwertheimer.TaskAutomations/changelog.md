@@ -2,6 +2,14 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Ta
 
 # What's Changed in this Plugin?
 
+## [2.2.0] (@dwertheimer) 2022-08-27 
+- Add sort by due date
+## [2.1.5] (@dwertheimer) 2022-08-27
+- Work around bug in removeParagraphs() that resulted in duplicates if lines are not in lineIndex order
+
+## [2.1.4] (@dwertheimer) 2022-08-27
+- Add logging to try to identify Editor crash
+
 ## [2.1.3] (@dwertheimer) 2022-08-27
 - Fix Readme and docs. Thx @jgclark for the Eagle Eye
 

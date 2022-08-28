@@ -81,7 +81,8 @@ export function deleteParagraphsContainingString(destNote: CoreNoteFields, timeB
     }
   }
   if (parasToDelete.length > 0) {
-    destNote.removeParagraphs(parasToDelete)
+    const deleteListByIndex = sortListBy(parasToDelete,['lineIndex']) //NP API may give wrong results if lineIndexes are not in ASC order
+    destNote.removeParagraphs(deleteListByIndex)
   }
 }
 

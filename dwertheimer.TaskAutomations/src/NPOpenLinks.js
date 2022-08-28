@@ -42,7 +42,7 @@ export function openLinksInParagraphs(paras: Array<TParagraph>) {
 // eslint-disable-next-line require-await
 export async function openIncompleteLinksInNote() {
   if (Editor?.note) {
-    const openParas = Editor.note.paragraphs.filter((p) => p.type === 'open')
+    const openParas = Editor.paragraphs.filter((p) => p.type === 'open')
     openLinksInParagraphs(openParas)
   }
 }
@@ -55,8 +55,8 @@ export async function openIncompleteLinksInNote() {
  */
 // eslint-disable-next-line require-await
 export async function openURLOnLine(incomingParagraph: TParagraph | null = null) {
-  if (Editor.note) {
-    const para = incomingParagraph ?? getParagraphContainingPosition(Editor.note, Editor.selection?.start || 0)
+  if (Editor) {
+    const para = incomingParagraph ?? getParagraphContainingPosition(Editor, Editor.selection?.start || 0)
     if (para) {
       openLinksInParagraphs([para])
     }
