@@ -2,6 +2,13 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Ta
 
 # What's Changed in this Plugin?
 
+## [2.1.3] (@dwertheimer) 2022-08-27
+- Fix Readme and docs. Thx @jgclark for the Eagle Eye
+
+## [2.1.1] (@dwertheimer) 2022-08-27
+- Fix typo
+- Attempting to reduce lag in changes reflected in Editor
+
 ## [2.1.0] (@dwertheimer)
 - Added /tsd default task sorting settings
 - Added default settings for headings/subheadings in output

@@ -4,8 +4,8 @@
   "plugin.name": "✅ Task Automations",
   "plugin.description": "Functions for handling Tasks",
   "plugin.author": "@dwertheimer",
-  "plugin.version": "2.1.0",
-  "plugin.lastUpdateInfo": "2.1.0:\n- Added new sort orders (hashtags+mentions) for @George65.\n- Added /tsd & default sorting field in preferences.",
+  "plugin.version": "2.1.3",
+  "plugin.lastUpdateInfo": "2.1.3:\n- Attempting to reduce lag in changes reflected in Editor\n- Added new sort orders (hashtags+mentions) for @George65.\n- Added /tsd & default sorting field in preferences.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.TaskAutomations/readme.md",
@@ -16,6 +16,26 @@
       "jsFunction": "sortTasks"
     },
     {
+      "name": "tsd",
+      "description": "Tasks Sort by User Default (in settings)",
+      "jsFunction": "sortTasksDefault"
+    },
+    {
+      "name": "tsm",
+      "description": "Tasks Sort by @Mention - Sort tasks on the page by mention/person",
+      "jsFunction": "sortTasksByPerson"
+    },
+    {
+      "name": "tst",
+      "description": "Tasks Sort by #Tag - Sort tasks on the page by hashtag",
+      "jsFunction": "sortTasksByTag"
+    },
+    {
+      "name": "tstm",
+      "description": "Tasks Sort by #Tag and then @Mention",
+      "jsFunction": "sortTasksTagMention"
+    },
+    {
       "name": "tt",
       "description": "Tasks to Top - Bring all tasks in note to top",
       "jsFunction": "tasksToTop"
@@ -24,26 +44,6 @@
       "name": "mat",
       "description": "Mark All Tasks (choose open or complete)",
       "jsFunction": "markTasks"
-    },
-    {
-      "name": "tsm",
-      "description": "Tasks Sort by @Mention - Sort tasks on the page by mention/person",
-      "jsFunction": "sortTasksByPerson"
-    },
-    {
-      "name": "tsd",
-      "description": "Tasks Sort by default (in settings)",
-      "jsFunction": "sortTasksDefault"
-    },
-    {
-      "name": "tstm",
-      "description": "Tasks Sort by #tag and then @mention",
-      "jsFunction": "sortTasksTagMention"
-    },
-    {
-      "name": "tst",
-      "description": "Tasks Sort by #Tag - Sort tasks on the page by hashtag",
-      "jsFunction": "sortTasksByTag"
     },
     {
       "name": "cta - Copy tags from previous line",
@@ -107,7 +107,7 @@
   "plugin.settings": [
     {
       "type": "heading",
-      "title": "Task Sync Output Settings"
+      "title": "Task Sorting Output Settings"
     },
     {
       "key": "defaultSort1",
