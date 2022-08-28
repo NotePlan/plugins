@@ -34,7 +34,7 @@ subtotal  //= 4
 total  //= 6
 ```
 
-> **Note**
+> **NOTE**
 > It is generally a good idea to click "Calculate" just so you know the math parser understood your intended calculations correctly. You can then immediately click "Totals" to hide the line-by-line verifications and show the totals only.
 
 ## Basic Numbers
@@ -66,9 +66,10 @@ Assignment operations store values in named variables, e.g.
     Notes:
         - Assigned numbers are tabulated when the assigned numbers are later used in a line (either alone on a line or as part of an equation), e.g.
             `taxRate` or `20 * taxRate`
-        - Always use the ` = ` to assign to a variable. Text like: ` taxrate: 20% ` does not do variable assignment
+        - Always use the ` = ` to assign to a variable. Text like: ` taxrate: 20% ` does not do variable assignment. 
 
-**Note**: Variables must not contain spaces (one block of characters)
+> **NOTE**
+> Variables must not contain spaces (one block of characters)
 
 ### Preset variables
 
@@ -107,7 +108,8 @@ Use the word "total" or "subtotal" (alone on a line) to add all the numbers on t
 
 As you can see `subtotal` can be very useful for large math blocks.
 
-- Note: You can also assign a (sub)total to a variable (thx George), e.g.
+> **NOTE:** 
+> You can also assign a (sub)total to a variable (thx George), e.g.
 
 ```math
 Quickbooks: 300
@@ -152,7 +154,8 @@ You can calculate basic time math as well, e.g.:
 total //= 7.35 h
 ```
 
-> **NOTE** Notice there is no space between the number and the abbreviation. If you enter a space, calculations will not work properly.
+> **NOTE** 
+> Notice there is no space between the number and the abbreviation. If you enter a space, calculations will not work properly.
 
 Legal abbreviations are:
 
@@ -163,9 +166,10 @@ Legal abbreviations are:
 - week (weeks)
 - month (months), year (years)
 
-> **WARNING** Mixing time-math and regular math in the same Math Block will not be reliable.
+> **WARNING** 
+> Mixing time-math and regular math in the same Math Block will not be reliable.
 
-## Unit Calculations
+## Other Unit Calculations
 
 Like time, there are other unit calculations that [math.js](https://mathjs.org/docs/datatypes/units.html#reference) understands and therefore will work in math blocks. For instance:
 
@@ -173,7 +177,8 @@ Like time, there are other unit calculations that [math.js](https://mathjs.org/d
 2inches + 2feet      //= 26 inches                                                                                              
 ```
 
-> **INFO** Notice how the results are expressed in terms of the first item you gave -- in this case, the result is in inches, because the first item was in inches. If we wanted this same result in feet, we could do the reverse:
+> **INFO** 
+> Notice how the results are expressed in terms of the first item you gave -- in this case, the result is in inches, because the first item was in inches. If we wanted this same result in feet, we could do the reverse:
 
 ```
 2feet + 2inches      //= 2.1666666666666665 feet     
