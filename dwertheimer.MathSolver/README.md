@@ -184,6 +184,14 @@ Like time, there are other unit calculations that [math.js](https://mathjs.org/d
 2feet + 2inches      //= 2.1666666666666665 feet     
 ```
 
+So, if you want to ensure the following calculation comes out in hours vs. minutes, add a 0h in the first line (alternatively, you could add a line at the top that says "0h"):
+```
+initial draft session 0h + 36mins                         
+session two 42mins                                        
+session three 17mins                                      
+total                             //= 1.5833333333333333 h
+```
+
 For the full list of units, [click here](https://mathjs.org/docs/datatypes/units.html#reference).
 
 ## Advanced Math
