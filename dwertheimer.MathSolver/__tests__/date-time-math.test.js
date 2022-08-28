@@ -2,7 +2,7 @@
 /* global describe, expect, test, beforeAll */
 /* eslint-disable */
 
-import * as mainFile from '../src/NPMathBlocks'
+import * as d from '../src/support/date-time-math'
 import { copyObject } from '@helpers/dev'
 
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, Note, Paragraph } from '@mocks/index'
@@ -17,7 +17,12 @@ beforeAll(() => {
 })
 
 describe.skip('dwertheimer.MathSolver' /* pluginID */, () => {
-  describe('placeholder' /* file */, () => {
-    test('should hold space for new tests', () => {})
+  describe('date-time-math' /* file */, () => {
+    describe('checkForTime' /* file */, () => {
+        test('should find time in a line and return it', () => {
+            const res = d.checkForTime("03:00-04:00 yo",{})
+            expect(res.strToBeParsed).toEqual("")
+        })
   })
+})
 }) /* describe */

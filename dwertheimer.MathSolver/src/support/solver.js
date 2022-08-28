@@ -16,86 +16,115 @@
 /**
  * Parsed line metadata
  * {string} typeOfResult: H for header/comment, N per normal number line, S per subtotal, T per total, A for assignment, E for Error
- * {string} typeOfResultFormat: N for normal, % for percentage
+ * {string} typeOfResultFormat: N for normal, % for percentage, B for assigned total (A=total)
  */
 
 export type LineInfo = {
-    "lineValue": number|null,
-    "originalText": string,
-    "expression": string,
-    "row": number,
-    "typeOfResult": string, //"H"|"N"|"S"|"T"|"A"|"E",
-    "typeOfResultFormat": string, //"N"|"%" /* Does not appear the % is ever used */,
-    "value"?: string,
-    error?: string
+  lineValue: number | null,
+  originalText: string,
+  expression: string,
+  row: number,
+  typeOfResult: string, //"H" (Heading/comment)|"N" (Number)|"S" (Subtotal)|"T" (Total)|"A" (Assignment) |"E" (Error)| "B" (Assignment of Total Line - A=total)
+  typeOfResultFormat: string, //"N"|"%" /* Does not appear the % is ever used */,
+  complete: boolean,
+  value?: string,
+  error?: string,
 }
 
 /**
  * Running data
  */
 export type CurrentData = {
-    info: Array<LineInfo>, variables: {[string]:any}, relations: Array<Array<string>|null>, expressions: Array<string>, rows: number 
+  info: Array<LineInfo>,
+  variables: { [string]: any },
+  relations: Array<Array<string> | null>,
+  expressions: Array<string>,
+  rows: number,
 }
 
-
 import math from './math.min'
-import {log,logDebug,logError,clo,JSP} from '@helpers/dev'
+// import {create, all} from 'mathjs/lib/esm/number'
+// const math = create(all)
+
+import { log, logDebug, logError, clo, JSP } from '@helpers/dev'
+
+// whitespace (not-colon maybe) = (not-colon not-space) chars
+// const reAssignmentSides = /\s*([^:]*?)\s*=\s*([^:\s]*)/g //original version (only grabs first number after =)
+const reAssignmentSides = /\s*([^:]*?)\s*=(.*)/g // dbw version: allows for math on right side
 
 const functionNames = ['sin', 'cos', 'tan', 'exp', 'sqrt', 'ceil', 'floor', 'abs', 'acos', 'asin', 'atan', 'log', 'round']
 const specialOperator = ['in\\b', 'k\\b', 'M\\b', 'mm\\b', 'cm\\b', 'm\\b', 'km\\b', 'mg\\b', 'g\\b', 'kg\\b', 'cm2\\b', 'm2\\b', 'km2\\b']
-const currencies = ["$"]
+const currencies = ['$']
 
 // let rows = 0;
 // let selectedRow = 0;
 // const expressions = [];
 // let variables = {};
 // let results = [];
-// let relations = []; // indicates in which row the totals are to be reloaded 
+// let relations = []; // indicates in which row the totals are to be reloaded
 // let info = [];
 // let importedFile = {};
 // const APP_VERSION = 'V 0.1.6';
 // let isDark = false;
 // let statusListening = 'stop';
 
-
-export function removeParentheticals(inString:string) {
-    const reParens = /(?:[\"\[])(.*?)(?:[\"\]])/g
-    const matches = inString.match(reParens)
-    // matches[0] includes the delimiter, matches[1] is the inside string
-    // NEED TO DO A doWhile to get them all
-    //FIXME: I AM HERE
-    let match, newStr = inString
-    while (match = reParens.exec(inString)) {
-        newStr = newStr.replace(match[0], "")
-    }
-    return newStr.replace(/ {2,}/g, " ").trim()
+/**
+ * Remove items enclosed in quotes or square brackets to be sent directly to mathjs
+ * @param {string} inString
+ * @returns {[string,string]} [stringFound, stringWithoutFoundText]
+ */
+export function removeParentheticals(inString: string): [string, Array<string>] {
+  const reParens = /(?:\"|{)(.*?)(?:\"|})/g
+  const matches = inString.match(reParens)
+  // matches[0] includes the delimiter, matches[1] is the inside string
+  // NEED TO DO A doWhile to get them all
+  // FIXME: I AM HERE
+  let match,
+    quotedContent = [],
+    newStr = inString
+  while ((match = reParens.exec(inString))) {
+    newStr = newStr.replace(match[0], '').replace(/ {2,}/g, ' ').trim()
+    quotedContent.push(match[1])
+  }
+  return [quotedContent.length ? quotedContent : [], newStr]
 }
 
-function checkIfUnit (obj) {
-    return typeof obj === 'object' && obj !== null && obj.value
+/**
+ * Is line type included in the array?
+ * @param {line} - the info line to search in
+ * @param {string|Array<string>} - the type to compare against
+ */
+export function isLineType(line:LineInfo,searchForType:string|Array<string>) {
+  const lineTypes = Array.isArray(searchForType) ? searchForType : [searchForType]
+  return (lineTypes.indexOf(line.typeOfResult) > -1)
+}
+
+function checkIfUnit(obj) {
+  return typeof obj === 'object' && obj !== null && obj.value
 }
 
 // update each line according to the presence of the variables present in 'relations'
-function updateRelated (data) {
-    for (let numRow = 0; numRow < data.rows; numRow++) { // for all the rows you see those that include the variables in the relationships
-        const who = data.relations.map(e => e && (e.includes(`R${numRow}`) || Object.keys(data.variables).findIndex(a => a === e) > -1)) // FIXME: to be reviewed...
-        if (who && who.length > 0) {
-            who.forEach((element) => {
-                if (element) {
-                    try {
-                        const results = math.evaluate(data.expressions, data.variables)
-                        results.map((e, i) => data.variables[`R${i}`] = checkIfUnit(e) ? math.unit(e) : e)  // put the row results in the variables
-                        // updateResultInRow(results[index] ? formatResults(results[index]) : '', index)  // the current row is updated
-                    } catch (error) {
-                        // updateResultInRow('', index)
-                        console.log('Completing expression', error)
-                    }
-                }
-            })
-        }
-    }
-    return data
-}
+// function updateRelated(data) {
+//   for (let numRow = 0; numRow < data.rows; numRow++) {
+//     // for all the rows you see those that include the variables in the relationships
+//     const who = data.relations.map((e) => e && (e.includes(`R${numRow}`) || Object.keys(data.variables).findIndex((a) => a === e) > -1)) // FIXME: to be reviewed...
+//     if (who && who.length > 0) {
+//       who.forEach((element) => {
+//         if (element) {
+//           try {
+//             const results = math.evaluate(data.expressions, data.variables)
+//             results.map((e, i) => (data.variables[`R${i}`] = checkIfUnit(e) ? math.unit(e) : e)) // put the row results in the variables
+//             // updateResultInRow(results[index] ? formatResults(results[index]) : '', index)  // the current row is updated
+//           } catch (error) {
+//             // updateResultInRow('', index)
+//             console.log('Completing expression', error)
+//           }
+//         }
+//       })
+//     }
+//   }
+//   return data
+// }
 
 // assegna ad ogni riga le variabili presenti
 /*
@@ -105,176 +134,241 @@ function updateRelated (data) {
         [R0,R1]
     ]
 */
-function setRelation (selectedRow, presences, relations) {
-    relations[selectedRow] = presences
-    return relations
+function setRelation(selectedRow, presences, relations) {
+  relations[selectedRow] = presences
+  return relations
 }
 
-export function removeTextPlusColon(strToBeParsed) {
-    const line = strToBeParsed.trim()
-    const isTotal = /(sub)?total/i.test(strToBeParsed)
-    return isTotal ? strToBeParsed : strToBeParsed.replace(/^.*:/gm,'')
+export function removeTextPlusColon(strToBeParsed: string): string {
+  const isTotal = /(sub)?total:/i.test(strToBeParsed) // allow total: or subtotal:
+  return isTotal ? strToBeParsed : strToBeParsed.replace(/^.*:/gm, '').trim()
 }
 
-function removeTextFromStr (strToBeParsed, variables) {
-    // remove all characters but not the substrings of variables, function names and units of measure
-    const varConcatenated = Object.keys(variables).concat(functionNames).concat(currencies).concat(specialOperator).join("|")
-    const re = varConcatenated ? `\\b(?!${varConcatenated})\\b([a-zA-Z:])+` : '[a-zA-Z:]+'
-    return strToBeParsed.replace(new RegExp(re, "g"), "").replace(/\&nbsp;/g, '').replace(/\&;/g, '')
+function removeTextFromStr(strToBeParsed, variables) {
+  // remove all characters but not the substrings of variables, function names and units of measure
+  const varConcatenated = Object.keys(variables).concat(functionNames).concat(currencies).concat(specialOperator).join('|')
+  const re = varConcatenated ? `\\b(?!${varConcatenated})\\b([a-zA-Z:])+` : '[a-zA-Z:]+'
+  return strToBeParsed
+    .replace(new RegExp(re, 'g'), '')
+    .replace(/\&nbsp;/g, '')
+    .replace(/\&;/g, '')
 }
 
-export function parse (thisLineStr: string, lineIndex: number, currentData: CurrentData): CurrentData {
-    let strToBeParsed = thisLineStr
-    const {info,variables,expressions,rows} = currentData
-    let relations = currentData.relations // we need to be able to write this one
-    // typeOfResult: H for header/comment, N per normal number line, S per subtotal, T per total, A for assignment
-    // typeOfResultFormat: N per noraml, % per percentage
-    let match
-    const selectedRow = lineIndex
-    info[selectedRow] = { row: selectedRow, typeOfResult: 'N', typeOfResultFormat: 'N', originalText: strToBeParsed, expression: "", lineValue: 0, error: '' }
- 
-    // Remove comments/headers
-    if (/(^|\s)#(.*)/g.test(strToBeParsed)) {
-        strToBeParsed = strToBeParsed.replace(/(^|\s)#(.*)/g, "$1").replace("\t","").trim() // remove anything beyond double slashes
-        info[selectedRow].typeOfResult = (strToBeParsed === "") ? 'H' : 'N'
-    } else if (/\/\/(.*)/g.test(strToBeParsed)) {
-        strToBeParsed = strToBeParsed.replace(/\/\/(.*)/g, "").trim() // remove anything beyond double slashes
-    }
-
+function removeComments (incomingString:string,currentData:CurrentData,selectedRow:number):string {
+  let strToBeParsed = incomingString
+  if (currentData.info[selectedRow].complete !== true) {
     // Remove comment+colon
     strToBeParsed = removeTextPlusColon(strToBeParsed)
-    
-    // Subtotals
-    if (/(subtotal\b).*/ig.test(strToBeParsed)) {
-        info[selectedRow].typeOfResult = 'S'
-        let out = '0'
-        for (let i = selectedRow - 1; i >= 0; i--) {
-            if (info[i].typeOfResult === 'N') {
-                out += `+ R${i}`
-            // H for header, S per subtotal, T per total
-            } else if (info[i].typeOfResult === 'S' || info[i].typeOfResult === 'T') {
-                break
-            }
+    if (/(^|\s)#(.*)/g.test(strToBeParsed)) {
+      strToBeParsed = strToBeParsed
+        .replace(/(^|\s)#(.*)/g, '$1')
+        .replace('\t', '')
+        .trim() // remove anything beyond double slashes
+    } else if (/\/\/(.*)/g.test(strToBeParsed)) {
+      strToBeParsed = strToBeParsed.replace(/\/\/(.*)/g, '').trim() // remove anything beyond double slashes
+    }
+    if (strToBeParsed.trim() === '') {
+      currentData.info[selectedRow].typeOfResult =  'H'
+      currentData.info[selectedRow].complete = true
+    }
+     // logDebug(pluginJson,`str="${strToBeParsed}" = ${info[selectedRow].typeOfResult}`)
+    // edit outStr & set .complete if finished
+  }
+  return strToBeParsed
+}
+
+export function parse(thisLineStr: string, lineIndex: number, cd: CurrentData): CurrentData {
+  const currentData = cd
+  const pluginJson = 'solver::parse'
+  let strToBeParsed = thisLineStr.trim()
+  const { info, variables, expressions, rows } = currentData
+  // let relations = currentData.relations // we need to be able to write this one
+  let match
+  const selectedRow = lineIndex
+  currentData.info[selectedRow] = { row: selectedRow, typeOfResult: 'N', typeOfResultFormat: 'N', originalText: strToBeParsed, expression: '', lineValue: 0, error: '', complete: false }
+
+  // Remove comments/headers $FlowIgnore
+  strToBeParsed = removeComments(strToBeParsed,currentData,selectedRow) 
+
+  let preProcessedValue = null
+  try {
+    logDebug(pluginJson,`---`)
+    logDebug(pluginJson,`about to preproc str = "${strToBeParsed}"`)
+    clo(currentData,`currentData before pre-process`)
+    logDebug(pluginJson,`str = now will pre-proc "${strToBeParsed}"`)
+    const results = math.evaluate([strToBeParsed], variables)
+    clo(results, `solver::parse math.js pre-process success on: "${strToBeParsed}" Result is Array<${typeof results[0]}> =`)
+    preProcessedValue = results[0]
+  } catch (error) {
+    // errors are to be expected since we are pre-processing
+    // error messages: "Undefined symbol total", "Unexpected part "4" (char 7)"
+    logDebug(pluginJson, `math.js pre-process FAILED on "${strToBeParsed}" with message: "${error.message}"`)
+  }
+
+  // Look for passthroughs (quoted or square brackets)
+  // const [foundStr, strWithoutFound] = removeParentheticals(strToBeParsed)
+  // if (foundStr) {
+  //   strToBeParsed = strWithoutFound
+  //   const results = math.evaluate([foundStr], variables)
+  //   info[selectedRow].typeOfResult = 'H'
+  //   info[selectedRow].lineValue = results[0]
+  //   clo(results, `passtrhough ${foundStr}`)
+  // }
+
+  let out = '0' // used for subtotals and totals
+
+  // Subtotals
+  if (!/((sub)?total\s*={1,})/.test(strToBeParsed)) {
+    // guard against someone using "total = a + b"
+    if (/(subtotal\b).*/gi.test(strToBeParsed)) {
+      info[selectedRow].typeOfResult = 'S'
+      for (let i = selectedRow - 1; i >= 0; i--) {
+        if (info[i].typeOfResult === 'N') {
+          out += `+ R${i}`
+          // H for header, S per subtotal, T per total
+        } else if (info[i].typeOfResult === 'S' || info[i].typeOfResult === 'T' || info[i].typeOfResult === 'B') {
+          break
         }
-        strToBeParsed = out    // si costruisce la stringa per i totali
-
-    // Totals
-    } else if (/(total\b).*/ig.test(strToBeParsed)) {
-        info[selectedRow].typeOfResult = 'T'
-        let out = '0'
-        for (let i = 0; i <= rows - 2; i++) {
-            if (info[i].typeOfResult === 'N') {
-                out += `+ R${i}`
-            }
+      }
+      // Totals
+    } else if (/(total\b).*/gi.test(strToBeParsed)) {
+      info[selectedRow].typeOfResult = 'T'
+      for (let i = 0; i <= rows - 2; i++) {
+        if (info[i].typeOfResult === 'N') {
+          out += `+ R${i}`
         }
-    //    logDebug(`solver::parse/total`,out)
-        strToBeParsed = out    // si costruisce la stringa per i totali
+      }
     }
-
-    // k - A number can have a little "k" behind it to denote 1,000 * the number (e.g. `4k`)
-    // if (/(?<=\d)([k])/g.test(strToBeParsed)) { // positive lookbehind was crashing NP plugin. trying without. i am not sure why it was necessary
-    if (/(\d+(?:\.\d+)?)(k)/g.test(strToBeParsed)) {
-        // strToBeParsed = strToBeParsed.replace(/(?<=\d)([k])/g, "*1000").trim() // see note above
-        strToBeParsed = strToBeParsed.replace(/(\d+(?:\.\d+)?)(k)/g, "\$1*1000").trim()
-    }
-    // M - a number can have an uppercase "M" behind it to denote 1,000,000 * the number (e.g. `5M`)
-    if (/(\d+(?:\.\d+)?)(M)/g.test(strToBeParsed)) {
-        strToBeParsed = strToBeParsed.replace(/(\d+(?:\.\d+)?)(M)/g, "\$1*1000000").trim()
-    }
-
-    // variable assignment
-    if (/[=]/.test(strToBeParsed)) {
-        // TODO: expression management inside the DX of an assignment ...
-        const reg = /\s*([^:]*?)\s*=\s*([^:\s]*)/g
-        let match
-        while (match = reg.exec(strToBeParsed)) {
-            // logDebug(`solver::parse/assignment`,`strToBeParsed="${strToBeParsed}"; matches = ${match.toString()}`)
-            if (match[1]?.trim() !== '' && match[2]?.trim() !== '') {
-                info[selectedRow].typeOfResult = 'A'
-                variables[match[1]] = match[2]
-            } else {
-                // incomplete assigments (e.g. in progress) will be ignored
-                info[selectedRow].typeOfResult = 'H'
-            }
+    if (out !== '0') {
+      if (/[=]/.test(strToBeParsed)) {
+        while ((match = reAssignmentSides.exec(strToBeParsed))) {
+          if (match[1]?.trim() !== '' && match[2]?.trim() !== '') {
+            strToBeParsed = strToBeParsed.replace(match[0], `${match[1]} = ${out}`)
+          }
         }
+        info[selectedRow].typeOfResult = 'B' // for Assign-Equal-(sub)Total
+      } else {
+        strToBeParsed = out // build the string for the totals
+      }
     }
+  }
 
-    // 10.5% of 100.5   TODO: 10.5% di (espressione) non funziona
-    // SOURCE: https://stackoverflow.com/questions/12812902/javascript-regular-expression-matching-cityname // how to take only specific parts
-    const reg = /(\d*[\.,])?(\d+)(\s?%)(\s+)(of)(\s+)(\d*[\.,])?(\d+\s?)/g
-    while (match = reg.exec(strToBeParsed)) {
-        // console.log(match);
-        const num = match[1] ? match[1] + match[2] : match[2]
-        const dest = match[7] ? match[7] + match[8] : match[8]
-        const sostituzione = (Number(dest) * (Number(num) / 100)).toString()
-        strToBeParsed = strToBeParsed.replace(/(\d*[\.,])?(\d+)(\s?%)(\s+)(di|of)(\s+)(\d*[\.,])?(\d+\s?)/g, sostituzione)
-    }
+  // k - A number can have a little "k" behind it to denote 1,000 * the number (e.g. `4k`)
+  // if (/(?<=\d)([k])/g.test(strToBeParsed)) { // positive lookbehind was crashing NP plugin. trying without. i am not sure why it was necessary
+  if (/(\d+(?:\.\d+)?)(k)/g.test(strToBeParsed)) {
+    // strToBeParsed = strToBeParsed.replace(/(?<=\d)([k])/g, "*1000").trim() // see note above
+    strToBeParsed = strToBeParsed.replace(/(\d+(?:\.\d+)?)(k)/g, '$1*1000').trim()
+  }
+  // M - a number can have an uppercase "M" behind it to denote 1,000,000 * the number (e.g. `5M`)
+  if (/(\d+(?:\.\d+)?)(M)/g.test(strToBeParsed)) {
+    strToBeParsed = strToBeParsed.replace(/(\d+(?:\.\d+)?)(M)/g, '$1*1000000').trim()
+  }
 
-    // +/- 10 % TODO: (2 + 22%)% non funziona!
-    const add = /\+\s?(\d*[\.,])?(\d+\s?)(%)/g
-    while (match = add.exec(strToBeParsed)) {
-        const num = match[1] ? match[1] + match[2] : match[2]
-        const sostituzione = ((Number(num) + 100) / 100).toString()
-        strToBeParsed = strToBeParsed.replace(/\+\s?(\d*[\.,])?(\d+\s?)(%)/g, `*${sostituzione}`)
+  // variable assignment
+  if (/[=]/.test(strToBeParsed)) {
+    // TODO: expression management inside the DX of an assignment ...
+    let match
+    while ((match = reAssignmentSides.exec(strToBeParsed))) {
+      // logDebug(`solver::parse/assignment`,`strToBeParsed="${strToBeParsed}"; matches = ${match.toString()}`)
+      if (match[1]?.trim() !== '' && match[2]?.trim() !== '') {
+        if (info[selectedRow].typeOfResult !== "B") {
+          info[selectedRow].typeOfResult = 'A' 
+        }
+        variables[match[1]] = match[2]
+      } else {
+        // incomplete assigments (e.g. in progress) will be ignored
+        info[selectedRow].typeOfResult = 'H'
+      }
     }
-    const sub = /\-\s?(\d*[\.,])?(\d+\s?)(%)/g
-    while (match = sub.exec(strToBeParsed)) {
-        const num = match[1] ? match[1] + match[2] : match[2]
-        const sostituzione = ((100 - Number(num)) / 100).toString()
-        strToBeParsed = strToBeParsed.replace(/\-\s?(\d*[\.,])?(\d+\s?)(%)/g, `*${sostituzione}`)
-    }
+  }
 
-    // 10.1 as % of 1000 
-    const as = /(\d*[\.,])?(\d+\s?)(as|as a)(\s+%)(\s+(of)\s+)(\d*[\.,])?(\d+\s?)/g
-    while (match = as.exec(strToBeParsed)) {
-        const num1 = match[1] ? match[1] + match[2] : match[2]
-        const num2 = match[7] ? match[7] + match[8] : match[8]
-        const sostituzione = (Number(num1) / Number(num2)).toString()
-        strToBeParsed = strToBeParsed.replace(/(\d*[\.,])?(\d+\s?)(as|as a)(\s+%)(\s+(of)\s+)(\d*[\.,])?(\d+\s?)/g, `${sostituzione}`)
-    }
+  // 10.5% of 100.5   TODO: 10.5% di (espressione) non funziona
+  // SOURCE: https://stackoverflow.com/questions/12812902/javascript-regular-expression-matching-cityname // how to take only specific parts
+  const reg = /(\d*[\.,])?(\d+)(\s?%)(\s+)(of)(\s+)(\d*[\.,])?(\d+\s?)/g
+  while ((match = reg.exec(strToBeParsed))) {
+    // console.log(match);
+    const num = match[1] ? match[1] + match[2] : match[2]
+    const dest = match[7] ? match[7] + match[8] : match[8]
+    const sostituzione = (Number(dest) * (Number(num) / 100)).toString()
+    strToBeParsed = strToBeParsed.replace(/(\d*[\.,])?(\d+)(\s?%)(\s+)(di|of)(\s+)(\d*[\.,])?(\d+\s?)/g, sostituzione)
+  }
 
-//    logDebug(`String before mathOnlyStr: ${strToBeParsed}`)
-    let mathOnlyStr = removeTextFromStr(strToBeParsed, variables).replace(/ +/g,' ')
-    if (mathOnlyStr.trim() === '=') {
-        mathOnlyStr = ''
-    }
-    // logDebug(`String after mathOnlyStr for ${strToBeParsed}: ${mathOnlyStr}`)
+  // +/- 10 % TODO: (2 + 22%)% non funziona!
+  const add = /\+\s?(\d*[\.,])?(\d+\s?)(%)/g
+  while ((match = add.exec(strToBeParsed))) {
+    const num = match[1] ? match[1] + match[2] : match[2]
+    const sostituzione = ((Number(num) + 100) / 100).toString()
+    strToBeParsed = strToBeParsed.replace(/\+\s?(\d*[\.,])?(\d+\s?)(%)/g, `*${sostituzione}`)
+  }
+  const sub = /\-\s?(\d*[\.,])?(\d+\s?)(%)/g
+  while ((match = sub.exec(strToBeParsed))) {
+    const num = match[1] ? match[1] + match[2] : match[2]
+    const sostituzione = ((100 - Number(num)) / 100).toString()
+    strToBeParsed = strToBeParsed.replace(/\-\s?(\d*[\.,])?(\d+\s?)(%)/g, `*${sostituzione}`)
+  }
 
-    // if there are variables used, relations are defined so the proper lines can be updated later
-    const vars = Object.keys(variables)
-    const relRegStr = `\\b(${vars.join('|')})\\b`
-    const relReg = new RegExp(relRegStr, "g")
-    const matches = mathOnlyStr.match(relReg)
-    //FIXME: dbw figure out what is going on in this line, because it seems to be a problem
-    let presences = matches ? (/\b(sub)?total(e)?\b/g.exec(strToBeParsed) ? matches.map(e => e.replace(/\+/g, '')) : (matches)) : null
-    if (Array.isArray(presences) && presences.length > 0) presences = presences.filter(f=>f!=='')
-    expressions[selectedRow] = mathOnlyStr.replace(/^0\+/g, '').trim() || "0"  // it removes the 0+ fix sums with units
-    // logDebug(`solver::parse Relations:`,relations)
-    relations = setRelation(selectedRow, presences, relations)
-    
-    try {
-        const results = math.evaluate(expressions, variables)
-        // results.map((e, i) => variables[`R${i}`] = checkIfUnit(e) ? math.unit(e) : e)  // you put the row results in the variables
-        results.map((e, i) => {
-            const rounded = Number(math.format(e, {precision: 14}))
-            variables[`R${i}`] = checkIfUnit(e) ? math.unit(e) : isNaN(rounded) ? e : rounded
-            info[i].lineValue = variables[`R${i}`]
-            info[i].expression = expressions[i]
-            if (info[i].typeOfResult === "N" && mathOnlyStr.trim() === '' && info[i].expression === "0") {
-                // logDebug(`solver::parse`,`R${i}: "${info[i].originalText}" is a number; info[i].typeOfResult=${info[i].typeOfResult} expressions[i]=${expressions[i]}`)
-                info[i].error = `was not a number, equation, variable or comment`
-            }
-        }) // keep for NP output metadata
-        const data = updateRelated({info,variables,relations,expressions,rows})
+  // 10.1 as % of 1000
+  const as = /(\d*[\.,])?(\d+\s?)(as|as a)(\s+%)(\s+(of)\s+)(\d*[\.,])?(\d+\s?)/g
+  while ((match = as.exec(strToBeParsed))) {
+    const num1 = match[1] ? match[1] + match[2] : match[2]
+    const num2 = match[7] ? match[7] + match[8] : match[8]
+    const sostituzione = (Number(num1) / Number(num2)).toString()
+    strToBeParsed = strToBeParsed.replace(/(\d*[\.,])?(\d+\s?)(as|as a)(\s+%)(\s+(of)\s+)(\d*[\.,])?(\d+\s?)/g, `${sostituzione}`)
+  }
+
+  //    logDebug(`String before mathOnlyStr: ${strToBeParsed}`)
+  let mathOnlyStr = removeTextFromStr(strToBeParsed, variables).replace(/ +/g, ' ')
+  if (mathOnlyStr.trim() === '=') {
+    mathOnlyStr = ''
+  }
+  // logDebug(`String after mathOnlyStr for ${strToBeParsed}: ${mathOnlyStr}`)
+
+  // if there are variables used, relations are defined so the proper lines can be updated later
+  const vars = Object.keys(variables)
+  const relRegStr = `\\b(${vars.join('|')})\\b`
+  const relReg = new RegExp(relRegStr, 'g')
+  const matches = mathOnlyStr.match(relReg)
+  //FIXME: dbw figure out what is going on in this line, because it seems to be a problem
+  let presences = matches ? (/\b(sub)?total(e)?\b/g.exec(strToBeParsed) ? matches.map((e) => e.replace(/\+/g, '')) : matches) : null
+  if (Array.isArray(presences) && presences.length > 0) presences = presences.filter((f) => f !== '')
+  expressions[selectedRow] = mathOnlyStr.replace(/^0\+/g, '').trim() || '0' // it removes the 0+ fix sums with units
+  // logDebug(`solver::parse Relations:`,relations)
+  // relations = setRelation(selectedRow, presences, relations)
+
+  try {
+    const results = math.evaluate(expressions, variables)
+    // results.map((e, i) => variables[`R${i}`] = checkIfUnit(e) ? math.unit(e) : e)  // you put the row results in the variables
+    results.map((e, i) => {
+      clo(expressions[i], `parse:expressions[${i}]`)
+      const rounded = Number(math.format(e, { precision: 14 }))
+      variables[`R${i}`] = checkIfUnit(e) ? math.unit(e) : isNaN(rounded) ? e : rounded
+      info[i].lineValue = variables[`R${i}`]
+      if (info[i].typeOfResult === 'N' && mathOnlyStr.trim() === '' && info[i].expression === '0') {
+        logDebug(`solver::parse`,`R${i}: "${info[i].originalText}" is a number; info[i].typeOfResult=${info[i].typeOfResult} expressions[i]=${expressions[i]}`)
+        if (info[i].originalText.trim() !== '') {
+          info[i].error = `was not a number, equation, variable or comment`
+          info[i].typeOfResult === 'H' // remove it from calculations
+        }
+        info[i].expression = ""
+      } else {
+        info[i].expression = expressions[i]
+      }
+    }) // keep for NP output metadata
+    // let data = { info, variables, relations, expressions, rows }
+    // data = updateRelated(data)
     //    logDebug(`solver::parse`,`Returning (one-line):\n${JSON.stringify(data)}`)
     //    logDebug(`solver::parse`,`Returning (Pretty):\n${JSON.stringify(data,null,2)}`)
-        return(data)
-        // createOrUpdateResult(results[selectedRow] ? formatResults(results[selectedRow]) : '') // the current row is updated
-    } catch (error) {
-        // createOrUpdateResult('')
-        console.log(`Error completing expression in: ${String(expressions)} ${error}`)
-        return({info,variables,relations,expressions,rows})
-    }
+    return currentData // all variables inside have been updated because the desctructuring just creates references
+    // createOrUpdateResult(results[selectedRow] ? formatResults(results[selectedRow]) : '') // the current row is updated
+  } catch (error) {
+    // createOrUpdateResult('')
+    console.log(`Error completing expression in: ${String(expressions)} ${error}`)
+    clo(expressions && expressions.length ? expressions : {},`parse--expressions`)
+    info[selectedRow].error = error.toString()
+    info[selectedRow].typeOfResult = 'E'
+    expressions[selectedRow] = ''
+    return currentData
+  }
 }
 
 // function formatResults (result) {
@@ -291,7 +385,6 @@ export function parse (thisLineStr: string, lineIndex: number, currentData: Curr
 //     }
 //     return output
 // }
-
 
 // function initSpeechRecognition () {
 //     try {
