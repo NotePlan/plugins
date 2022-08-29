@@ -4,6 +4,9 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.MathSolver/README.md) for details on available commands and use case.
 
+## [1.0.11] - 2022-08-28 (@dwertheimer)
+- Added rounding digits preference and command '/Calculate Math Blocks (no rounding)'
+
 ## [1.0.10] - 2022-08-28 (@dwertheimer)
 - Basic Time Math & other Math.js units
 

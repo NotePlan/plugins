@@ -2,8 +2,8 @@
 /**
  * TODO:
  * why doesn't dollars work? $2 + $4
+ * "round by default" and "show no-rounding button"
  * what to do about commas
- * separate date-time math
  * as you calculate and recalculate, seems to cycle between totals and non-totals
  * refactor to make more modular and eliminate relations and one of the each-line-loops
  * maybe print zero in output on subtotal or total lines only
@@ -24,6 +24,7 @@
  * (done) save variables you use frequently in preferences and reference them without defining them every time
  * (done) pricePerHour = 20  //= 20 (does not need to print this out)
  * (done) ignore date on left
+  * (done) basic time math
  * Reference: https://numpad.io/
  * Playground: https://mathnotepad.com/
  */
@@ -32,7 +33,7 @@ import columnify from 'columnify'
 import pluginJson from '../plugin.json'
 import { chooseOption, showMessage } from '../../helpers/userInput'
 import type { CodeBlock } from '../../helpers/codeBlocks'
-import { type LineInfo, parse, isLineType } from './support/solver'
+import { type LineInfo, parse, isLineType, checkIfUnit } from './support/solver'
 import { getParagraphContainingPosition } from '@helpers/NPParagraph'
 import { log, logDebug, logError, logWarn, clo, JSP } from '@helpers/dev'
 import { createRunPluginCallbackUrl, formatWithFields } from '@helpers/general'
@@ -56,18 +57,41 @@ export function getFrontmatterVariables(noteContent: string): any {
 }
 
 /**
+ * Round a number to a certain number of significant digits in the decimal
+ * @param {*} n - the number
+ * @param {*} d - the number of digits to round to (zeros will be omitted)
+ * @returns 
+ */
+const round = (n,d) => Math.round(n*Math.pow(10,d))/Math.pow(10,d)
+
+/**
  * Format the output according to user preferences
  * @param {Array<LineInfo>} results - the results of the solver's info property
+ * @param {string} formatTemplate - the template to use for formatting output (not currently implemented)
+ * @param {string} precisionSetting - the precision to round to (default "No Rounding")
  * @returns {Array<string>} formatted text
  */
-export function formatOutput(results: Array<LineInfo>, formatTemplate: string = '{{originalText}} {{value}}'): Array<string> {
+export function formatOutput(results: Array<LineInfo>, formatTemplate: string = '{{originalText}} {{value}}', precisionSetting: string = "No Rounding"): Array<string> {
+  const precision = (precisionSetting === "No Rounding") ? 14 : Number(precisionSetting)
   const resultsWithStringValues = results.map((line) => {
     const isPctOf = /(\d*[\.,])?(\d+\s?)(as|as a)?(\s*%)(\s+(of)\s+)(\d*[\.,])?(\d+\s?)/g.test(line.originalText)
     const isZero = line.lineValue === 0 && isLineType(line,["N","S","T"]) // && !/total/i.test(line.originalText)
     const isNotCalc = String(line.lineValue) === line.expression && !isPctOf
     const isNumericalAssignment = line.typeOfResult === 'A' && !/(\+|\-|\*|\/)+/.test(line.originalText)
     const isUndefined = (line.lineValue === undefined)
-    line.value = isZero || isNotCalc || isNumericalAssignment || isUndefined ? '' : `//= ${String(line.lineValue)}` // eslint-disable-line eqeqeq
+    let val = line.lineValue
+    if (!isUndefined) {
+      logDebug(pluginJson,`checking line.lineValue: ${line.lineValue}`)
+      if (checkIfUnit(line.lineValue)) {
+        const strValue = String(line.lineValue).split(" ")
+        val = round(Number(strValue[0]),precision)+" "+strValue[1]
+        logDebug(pluginJson,`checking val.value: ${val}`)
+      } else {
+        val = round(val,precision)
+      }
+    } 
+    // val = val.toFixed(precision).replace(/(?:\.\d*)(0+)$/,"")
+    line.value = (!line.lineValue || isZero || isNotCalc || isNumericalAssignment || isUndefined) ? '' : `//= ${String(val)}` // eslint-disable-line eqeqeq
     if (line.error) line.value += ` //= ${line.error}`
     // logDebug(pluginJson, `line.value: ${line.value} line.expression: ${line.expression}`)
     return line
@@ -123,12 +147,13 @@ export function removeAnnotations(note: CoreNoteFields, blockData: $ReadOnly<Cod
 }
 
 export function annotateResults(note: CoreNoteFields, blockData: $ReadOnly<CodeBlock>, results: Array<LineInfo>, template: string, mode: string): void {
-  const {columnarOutput} = DataStore.settings
+  const {columnarOutput,precisionSetting} = DataStore.settings
   logDebug(pluginJson,`mode=${mode}`)
   const totalsOnly = mode === 'totalsOnly'
   const debug = mode === 'debug'
-  const formatted = formatOutput(results, template) // writes .value using template?
-  const updates = []
+  const precision = mode==="noRounding" ? "No Rounding" : precisionSetting
+  const formatted = formatOutput(results, template, precision) // writes .value using template?
+  // const updates = []
   let j = 0
   const debugOutput = []
   const outputObjects = []
@@ -226,7 +251,9 @@ export  function removeAllAnnotations(): void {
  */
 export async function calculateBlocks(incoming: string | null = null, mode: string = '', vars: any = {}): Promise<void> {
   try {
-    const { popUpTemplate, presetValues } = DataStore.settings
+    const { popUpTemplate, presetValues, precisionSetting } = DataStore.settings
+    // const precision = (precisionSetting === "No Rounding") ? null : Number(precisionSetting) // doing rounding inside parse does not work well. Will do it inside annotate
+    const precision = null
     // get the code blocks in the editor
     await removeAllAnnotations()
     let codeBlocks = incoming === '' || incoming === null ? getCodeBlocksOfType(Editor, `math`) : [{ type: 'unknown', code: incoming, startLineIndex: -1 }]
@@ -240,11 +267,14 @@ export async function calculateBlocks(incoming: string | null = null, mode: stri
         const block = codeBlocks[b]
         // removeAnnotations(Editor, block) //FIXME: MAYBE put this back, especially for non-columnar output
         // clo(block,`calculateEditorMathBlocks block=`)
-        let currentData = { info: [], variables: { ...presetValues, ...vars }, relations: [], expressions: [], rows: 0 }
+        let currentData = { info: [], variables: { ...presetValues, ...vars }, relations: [], expressions: [], rows: 0, precision }
         block.code.split('\n').forEach((line, i) => {
           currentData.rows = i + 1
           currentData = parse(line, i, currentData)
         })
+        if (mode === "noRounding") {
+          currentData.precision = null
+        }
         const totalData = parse('TOTAL', currentData.rows, currentData)
         const t = totalData.info[currentData.rows]
         const totalLine = {
@@ -301,6 +331,18 @@ export async function calculateEditorMathBlocksTotalsOnly(incoming: string | nul
     logError(pluginJson, JSON.stringify(error))
   }
 }
+
+/**
+* Calculate Math Blocks with no rounding
+* Plugin entrypoint for "/Calculate Math Blocks (no rounding)"
+*/
+export async function calculateNoRounding(incoming:string) {
+  try {
+    await calculateBlocks(incoming, 'noRounding', getFrontmatterVariables(Editor.content || ''))    
+  } catch (error) {
+    logError(pluginJson,JSON.stringify(error))
+  }
+ }
 
 /**
  * Insert a math block and a calculate button

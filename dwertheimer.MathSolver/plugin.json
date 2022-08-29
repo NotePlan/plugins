@@ -4,13 +4,13 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "dwertheimer.MathSolver",
   "plugin.name": "🟰 Math Solver",
-  "plugin.version": "1.0.10",
-  "plugin.lastUpdateInfo": "1.0.10: Basic time math, e.g.\n'2hrs + 4mins'\nAlso other units now possible. Check README!\nThx @george65 & @qualitativeEasing!",
+  "plugin.version": "1.1.0-notreleasedyet",
+  "plugin.lastUpdateInfo": "1.0.11: Added rounding digits preference and command '/Calculate Math Blocks (no rounding)'. Check README!\nThx @george65 & @qualitativeEasing!",
   "plugin.description": "Write basic math in your NotePlan notes and use this plugin to calculate it.",
   "plugin.author": "dwertheimer",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
-  "hidden": true,
+  "hidden": false,
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.MathSolver/README.md",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.MathSolver/CHANGELOG.md",
   "plugin.commands": [
@@ -48,6 +48,14 @@
       "arguments": []
     },
     {
+      "name": "Calculate Math Blocks (no rounding)",
+      "description": "Override rounding/precision preferences setting and display full decimals (where they exist)",
+      "jsFunction": "calculateNoRounding",
+      "alias": [
+      ],
+      "arguments": []
+    },
+    {
       "name": "Insert Math Block at Cursor",
       "description": "Place Math Block and Calculation Link",
       "jsFunction": "insertMathBlock",
@@ -71,6 +79,15 @@
       "COMMENT": "Plugin settings documentation: https://help.noteplan.co/article/123-plugin-configuration",
       "type": "heading",
       "title": "Math Solver Settings"
+    },
+    {
+      "key": "precisionSetting",
+      "title": "Number of decimal digits (precision)",
+      "description": "Round numbers to this number of significant digits MAXIMUM (will not force there to be digits if the digits are zeros). Set to 0 for no decimals ever (integers only). Note: You can always override this setting with the command:\n/Calculate Math Blocks (no rounding)",
+      "type": "string",
+      "default": "2",
+      "required": true,
+      "choices": ["No Rounding","0","1","2","3","4","5","6","7","8","9","10","11","12","13","14"]
     },
     {
       "title": "Include Clear button when inserting Math Block",
