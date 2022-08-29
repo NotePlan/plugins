@@ -190,19 +190,12 @@ export default class TemplatingEngine {
     })
 
     try {
-      clo(renderData,`193 renderData`)
-      clo(processedTemplateData,`194 processedTemplateData`)
-      clo(options,`195 options`)
-      logDebug(`196 typeof eventDate="${typeof renderData.eventDate}"`)
-      logDebug(`196 typeof eventEndDate="${typeof renderData.eventEndDate}"`)
-        let result = await ejs.render(processedTemplateData, renderData, options)
-      logDebug(`194 np.Templating result: ${result}`)
+      let result = await ejs.render(processedTemplateData, renderData, options)
       result = (result && result?.replace(/undefined/g, '')) || ''
-      clo(result,`196 result`)
 
       return result
     } catch (error) {
-            logDebug(`199 np.Templating error: ${error}`)
+      logDebug(`199 np.Templating error: ${error}`)
 
       const message = error.message.replace('\n\n', '')
 
