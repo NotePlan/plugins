@@ -61,7 +61,7 @@ export async function completeProject(): Promise<void> {
 
     // Now add to the Summary note for this year (if present)
     if (DataStore.folders.includes('Summaries')) {
-      const lineToAdd = projectNote.detailedSummaryLine(true)
+      const lineToAdd = projectNote.detailedSummaryLine('markdown', true)
       const summaryNote = await getOrMakeNote(thisYearStr, config.folderToStore)
       if (summaryNote != null) {
         logInfo(pluginJson, `Will add '${lineToAdd}' to note '${summaryNote.filename}'`)
@@ -119,7 +119,7 @@ export async function cancelProject(): Promise<void> {
 
     // Now add to the Summary note for this year (if present)
     if (DataStore.folders.includes(config.folderToStore)) {
-      const lineToAdd = projectNote.detailedSummaryLine(true)
+      const lineToAdd = projectNote.detailedSummaryLine('markdown', true)
       const yearlyNote = await getOrMakeNote(thisYearStr, config.folderToStore)
       if (yearlyNote != null) {
         logInfo(pluginJson, `Will add '${lineToAdd}' to note '${yearlyNote.filename}'`)

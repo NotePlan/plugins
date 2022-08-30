@@ -1,0 +1,86 @@
+<!doctype html>
+<!--
+  Similar to v3 (same source?) but not working
+-->
+<html>
+<title>SVG Circle Progress Test (Attempt 2)</title>
+<head>
+<style type="text/css" />
+html, body {
+  background-color: #2962FF;
+  /* display: flex; */
+  align-items: left;
+  justify-content: top;
+  height: 100%;
+  position: relative;
+}
+
+.progress-ring {
+  
+}
+
+.progress-ring__circle {
+  transition: 0.35s stroke-dashoffset;
+  // axis compensation
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+}
+
+input {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  width: 80px;
+}
+</style>
+
+<script type="text/javascript">
+  var circle = document.querySelector('circle');
+  var radius = circle.r.baseVal.value;
+  var circumference = radius * 2 * Math.PI;
+
+  circle.style.strokeDasharray = `${circumference} ${circumference}`;
+  circle.style.strokeDashoffset = `${circumference}`;
+
+  function setProgress(percent) {
+    const offset = circumference - percent / 100 * circumference;
+    circle.style.strokeDashoffset = offset;
+  }
+
+  const input = document.querySelector('input');
+  setProgress(input.value);
+
+  input.addEventListener('change', function(e) {
+    if (input.value < 101 && input.value > -1) {
+      setProgress(input.value);
+    }  
+  })
+</script>
+</head>
+<body>
+<h1>SVG Circle Progress Test (Attempt 2)</h1>
+<p>Based on https://css-tricks.com/building-progress-ring-quickly/</p>
+
+<svg class="progress-ring" width="4rem" height="4rem">
+  <circle
+    class="progress-ring__circle"
+    stroke="white"
+    stroke-width="0.5rem"
+    fill="transparent"
+    r="45%"
+    cx="50%"
+    cy="50%"
+  />
+</svg>
+
+<input
+  value="35"
+  type="number"
+  step="5"
+  min="0"
+  max="100"
+  placeholder="progress"
+>
+
+</body>
+</html>

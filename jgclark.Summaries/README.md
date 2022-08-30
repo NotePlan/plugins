@@ -49,6 +49,14 @@ in a Template. This takes two possible parameters:
 
 But it can be used on demand through the  /insertProgressUpdate command.
 
+<!--
+Status: ✅ = Done, 👎 = Missed, 🟠 = Average, 🟢 = Good, 🔴
+✅✅✅✅✅✅✅
+👎👎👎👎👎👎👎
+🟠🟠🟠🟠🟠🟠🟠
+🟢🟢🟢🟢🟢🟢🟢
+-->
+
 #### Sparkline graphs
 The little "**sparkline**" graphs are a simple in-line visualisation of the recorded activity for each item you're tracking. A dot `.` indicates there's no data for that day; the height of the bar indicates the value of that day, relative to the maximum in that time period. The mimimum is always 0, not the lowest value.
 
@@ -66,6 +74,8 @@ In particular it uses the `code` attribute of the theme (if set). Here's an exam
 Note: According to [several](https://wiki.mobileread.com/wiki/List_of_fonts_included_with_each_device) [sources](http://iosfonts.com/) the only monospace fonts on iPhone/iPad are forms of Courier (e.g. `Courier-Bold`) and Menlo (e.g. `Menlo-Regular`).
 
 <!-- more on the other types, starting with YesNo -->
+
+<!-- https://help.noteplan.co/article/144-habit-tracking -->
 
 ### /countsInPeriod
 This command generates some simple counts and other statistics of #hashtags or @mentions that you specify. For example:

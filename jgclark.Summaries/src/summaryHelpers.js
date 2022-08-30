@@ -67,9 +67,9 @@ export class TMOccurrences {
    * Create a new object, initialising the main valuesMap to the required number of values, as 'NaN', so that we can distinguish zero from no occurrences.
    * (Unless type 'yesno' )
    * @param {string} term 
-   * @param {string} type 
-   * @param {string} fromDateStr 
-   * @param {string} toDateStr 
+   * @param {string} type
+   * @param {string} fromDateStr
+   * @param {string} toDateStr
    */
   constructor(term: string, type: string, fromDateStr: string, toDateStr: string) {
     this.term = term
@@ -110,7 +110,8 @@ export class TMOccurrences {
 
     // if this has a numeric value add to total, taking into account that the
     // day may have several values.
-    const prevValue = isNaN(this.valuesMap.get(dateStr)) ? 0 : this.valuesMap.get(dateStr)
+    // $FlowFixMe
+    const prevValue: number = isNaN(this.valuesMap.get(dateStr)) ? 0 : this.valuesMap.get(dateStr)
     if (!isNaN(value)) {
       this.valuesMap.set(dateStr, prevValue + value)
       this.count++

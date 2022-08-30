@@ -1,0 +1,174 @@
+<!-- 
+  Show progress circle, just using HTML and CSS
+  Adapted from https://codeconvey.com/css-percentage-circle/ 
+  Problems: 
+  - Not set up well to adapt to changing sizes
+  - Doesn't work as is for more than one circle on the page
+-->
+
+<html>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+<title>Pure CSS Percentage Circle Demo</title>
+
+<style type="text/css" />
+body {
+  font-family: "Lato", "Roboto", sans-serif;
+  background:#d7bd94;
+}
+
+.header-row {
+  position: -webkit-sticky; /* Safari */
+  position: sticky; 
+  top: 0;
+  background:#a7bd94;
+  border-bottom: solid 1px darkgrey
+}
+.circle-wrap { /* outside circle background */
+  display: block;
+  margin: 0.1rem; /* 50px auto; */
+  margin-right: 0.8rem;
+  width: 3rem;
+  height: 3rem;
+  background: #e6e2e7;
+  border-radius: 50%; 
+}
+
+.circle-wrap .circle .mask,
+.circle-wrap .circle .fill {
+  width: 3rem;
+  height: 3rem;
+  position: absolute;
+  border-radius: 50%;
+}
+
+.circle-wrap .circle .mask {
+  clip: rect(0px, 3rem, 3rem, 1.5rem);
+}
+
+.circle-wrap .circle .mask .fill {
+  clip: rect(0px, 1.5rem, 3rem, 0px);
+  background-color: #9e00b1;
+}
+
+.circle-wrap .circle .mask.full,
+.circle-wrap .circle .fill {
+  animation: fill ease-in-out 0.3s;
+  transform: rotate(126deg);
+}
+
+#a @keyframes fill {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(126deg);
+  }
+}
+#b @keyframes fill {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(206deg);
+  }
+}
+
+.circle-wrap .inside-circle {
+  position: absolute;
+  width: 2rem;
+  height: 2rem;
+  margin: 0.5rem;
+  border-radius: 50%;
+  background: #fff;
+  line-height: 2rem;
+  text-align: center;
+  z-index: 100;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+</style>
+</head>
+
+<body>	
+<h1>Percentage Circle CSS Only (no JS)</h1>
+
+<table>
+  <tr class="header-row">
+    <th>%</th>
+    <th>Title</th>
+  </tr>
+
+  <tr>
+    <td>
+  <div class="circle-wrap">
+    <div class="circle">
+      <div class="mask full">
+        <div class="fill"></div>
+      </div>
+      <div class="mask half">
+        <div class="fill"></div>
+      </div>
+      <div class="inside-circle">70</div>
+    </div>
+  </div>
+  </td>
+  <td>
+  And here's a line to go with it.</p>
+    </td>
+  </tr>
+
+  <tr>
+    <td>
+  <span class="circle-wrap">
+    <span class="circle">
+      <span class="mask full">
+        <span class="fill"></span>
+      </span>
+      <span class="mask half">
+        <span class="fill"></span>
+      </span>
+      <span class="inside-circle">40</span>
+    </span>
+  </span>
+  </td>
+  <td>
+  And here's a second to go with this one.</p>
+    </td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>Some more stuff</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>Some more stuff</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>Some more stuff</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>Some more stuff</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>Some more stuff</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>Some more stuff</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>Some more stuff</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>Some more stuff</td>
+  </tr>
+</table>
+</body>
+</html>

@@ -2,30 +2,24 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // @jgclark
-// Last updated 2.8.2022 for v0.7.1, @jgclark
+// Last updated 29.8.2022 for v0.8.0-beta, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
 // Import Helper functions
 import pluginJson from '../plugin.json'
 import { checkString } from '@helpers/checkType'
-import { daysBetween, getDateObjFromDateString, includesScheduledFutureDate, relativeDateFromNumber, toISODateString } from '@helpers/dateTime'
+import { daysBetween, getDateObjFromDateString, getDateFromUnhyphenatedDateString, includesScheduledFutureDate, relativeDateFromDate, relativeDateFromNumber, toISODateString, unhyphenateString } from '@helpers/dateTime'
 import { calcOffsetDate } from '@helpers/NPDateTime'
 import { clo, logDebug, logError, logWarn } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
-import {
-  getContentFromBrackets,
-  getStringFromList,
-  // percent,
-} from '@helpers/general'
+import { getContentFromBrackets, getStringFromList } from '@helpers/general'
 import { findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { getOrMakeMetadataLine } from '@helpers/NPparagraph'
 import { showMessage } from '@helpers/userInput'
 
 //------------------------------
 // Config setup
-
-// const configKey = "review"
 
 export type ReviewConfig = {
   folderToStore: string,
@@ -46,21 +40,20 @@ export type ReviewConfig = {
 }
 
 /**
- * Get config settings using Config V2 system. (Have now removed support for Config V1.)
+ * Get config settings using Config V2 system.
  * @author @jgclark
  * @return {ReviewConfig} object with configuration
  */
 export async function getReviewSettings(): Promise<any> {
   // logDebug(pluginJson, `Start of getReviewSettings()`)
   try {
-    // Get settings using ConfigV2
+    // Get settings
     const v2Config: ReviewConfig = await DataStore.loadJSON('../jgclark.Reviews/settings.json')
 
     if (v2Config == null || Object.keys(v2Config).length === 0) {
       await showMessage(`Cannot find settings for the 'Reviews' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
       return
     }
-    // $FlowIgnore[incompatible-call]
     clo(v2Config, `Review settings:`)
 
     // Need to store some things in the Preferences API mechanism, in order to pass things to the Project class
@@ -138,7 +131,7 @@ export function getFieldsFromNote(note: TNote, fieldName: string): Array<string>
       matchArr.push(matchRE[1])
     }
   }
-  logDebug('getFieldsFromNote()', `Found ${matchArr.length} fields matching '${fieldName}'`)
+  // logDebug('getFieldsFromNote()', `Found ${matchArr.length} fields matching '${fieldName}'`)
   return matchArr
 }
 
@@ -176,16 +169,19 @@ export class Project {
   isActive: boolean
   isCancelled: boolean
   folder: string
-  percentComplete: string
+  percentComplete: number = NaN // FIXME: Why Comms Review NaN?
+  lastProgressComment: string = '' // e.g. "Progress: 60@20220809: comment
+  ID: number
 
   constructor(note: TNote) {
+    this.ID = Math.round((Math.random()) * 99999) // TODO: Make a one-up number
     const mentions: $ReadOnlyArray<string> = note.mentions
     const hashtags: $ReadOnlyArray<string> = note.hashtags
     this.note = note
     const mln = getOrMakeMetadataLine(note)
     this.metadataPara = note.paragraphs[mln]
     this.title = note.title ?? '(error)'
-    // logDebug(pluginJson, `new Project: ${this.title} with metadata in line ${this.metadataPara.lineIndex}`)
+    logDebug(pluginJson, `new Project: ${this.title} with metadata in line ${this.metadataPara.lineIndex}`)
     this.folder = getFolderFromFilename(note.filename)
 
     // work out note review type: 'project' or 'area' or ''
@@ -219,16 +215,29 @@ export class Project {
     this.waitingTasks = note.paragraphs.filter((p) => p.type === 'open').filter((p) => p.content.match('#waiting')).length
     this.futureTasks = note.paragraphs.filter((p) => p.type === 'open').filter((p) => includesScheduledFutureDate(p.content)).length
     // Track percentComplete: either through calculation from counts ...
-    this.percentComplete = this.completedTasks > 0 ? `${String(Math.round((this.completedTasks / (this.completedTasks + this.openTasks)) * 100))}%` : '-%'
-    // ... or TODO: through specific 'Progress' field
-    // this.percentComplete = ''
+    if (this.completedTasks > 0) {
+      this.percentComplete = Math.round((this.completedTasks / (this.completedTasks + this.openTasks)) * 100)
+      logDebug(pluginJson, `- ${this.title}: % complete = ${this.percentComplete}`)
+    } else {
+      this.percentComplete = NaN
+      logDebug(pluginJson, `- ${this.title}: % complete = NaN`)
+    }
+    // ... or through specific 'Progress' field
     const progressLines = getFieldsFromNote(this.note, 'progress')
     if (progressLines.length > 0) {
-      // Get the first part of the value of the Progress field: nn@YYYY-MM-DD ...
+      // Use the first field found, which ought to be the most recent one. TODO: read all of them and decide
       const progressLine = progressLines[0]
+      // Get the first part of the value of the Progress field: nn@YYYYMMDD ...
       logDebug(pluginJson, `progressLine: ${progressLine}`)
-      this.percentComplete = progressLine.split(/[\s:]/, 1).toString() // last part redundant but avoids flow error
-      logDebug(pluginJson, `  found ${this.percentComplete} from field`)
+      const progressLineParts = progressLine.split(/[:@]/)
+      if (progressLineParts.length >= 3) {
+        this.percentComplete = Number(progressLineParts[0])
+        const datePart = unhyphenateString(progressLineParts[1])
+        this.lastProgressComment = `${relativeDateFromDate(getDateFromUnhyphenatedDateString(datePart))}: ${progressLineParts[2].trim()}`
+        logDebug(pluginJson, `- progress field -> ${this.percentComplete} / '${this.lastProgressComment}' from <${progressLine}>`)
+      } else {
+        logWarn(pluginJson, `- cannot properly parse progress field <${progressLine}>`)
+      }
     }
 
     // make project completed if @completed_date set
@@ -307,7 +316,8 @@ export class Project {
     logDebug(pluginJson, `... metadata now '${newMetadataLine}'`)
     this.metadataPara.content = newMetadataLine
 
-    // send update to Editor TODO: Will need updating when supporting frontmatter for metadata
+    // send update to Editor
+    // TODO: Will need updating when supporting frontmatter for metadata
     Editor.updateParagraph(this.metadataPara)
     return true
   }
@@ -337,6 +347,9 @@ export class Project {
     return true
   }
 
+  /**
+   * Generate a one-line tab-sep summary line ready for MD note 
+   */
   generateMetadataLine(): string {
     // get config settings
     // const config = await getReviewSettings()
@@ -371,58 +384,157 @@ export class Project {
   }
 
   /**
-   * return title of note as folder name + internal link,
-   * also showing complete or cancelled where relevant
+   * Returns title of note as folder name + link, also showing complete or cancelled where relevant.
+   * Now also supports 'markdown' or 'HTML' styling.
+   * TODO: do I support scheduled/postponed? If so style.checked-scheduled ...
+   * @param {string} style 'markdown' or 'HTML'
    * @param {boolean} includeFolderName whether to include folder name at the start of the entry.
    * @return {string} - title as wikilink
    */
-  decoratedProjectTitle(includeFolderName: boolean): string {
+  decoratedProjectTitle(style: string, includeFolderName: boolean): string {
     const folderNamePart = includeFolderName ? this.folder + ' ' : ''
-    if (this.isCompleted) {
-      return `[x] ${folderNamePart}[[${this.title ?? ''}]]`
-    } else if (this.isCancelled) {
-      return `[-] ${folderNamePart}[[${this.title ?? ''}]]`
-    } else {
-      return `${folderNamePart}[[${this.title ?? ''}]]`
+    const titlePart = this.title ?? '(error, not available)'
+    switch (style) {
+      case 'HTML':
+        if (this.isCompleted) {
+          // <i class="fa-solid fa-square-check"></i> from https://fontawesome.com/icons/square-check?s=solid
+          // TODO: pick up colour from style.checked.color
+          // return `<span class="checkbox">* [x]</span> <span class="task-checked">&#x2611; ${folderNamePart}${titlePart}</span>`
+          return `<span class="task-checked">${folderNamePart}${titlePart}</span>`
+        } else if (this.isCancelled) {
+          // TODO: pick up colour from style.checked-cancelled.color
+          // or https://fontawesome.com/icons/rectangle-xmark?s=solid
+          // Also: refresh = https://fontawesome.com/icons/arrow-rotate-right?s=solid
+          // Also: start = https://fontawesome.com/icons/circle-play?s=solid
+          // return `<span class="checkbox">* [-]</span> <span class="task-cancelled">&#x2612; ${folderNamePart}${titlePart}</span>`
+          return `<span class="task-cancelled">${folderNamePart}${titlePart}</span>`
+        } else {
+          // return `<span class="checkbox">* [ ]</span> &#x2610; ${folderNamePart}${titlePart}`
+          return `${folderNamePart}${titlePart}`
+        }
+
+      default: // including 'markdown'
+        if (this.isCompleted) {
+          return `[x] ${folderNamePart}[[${titlePart}]]`
+        } else if (this.isCancelled) {
+          return `[-] ${folderNamePart}[[${titlePart}]]`
+        } else {
+          return `${folderNamePart}[[${titlePart}]]`
+        }
     }
   }
 
-  static detailedSummaryLineHeader(): string {
-    return `_Key: \tTitle\t #open / #complete / #waiting / #future tasks / next review date / due date_`
+  /** 
+   * Returns line to go before main output summary lines. Two output styles are available:
+   * - markdown
+   * - HTML
+   */
+  static detailedSummaryLineHeader(style: string): string {
+    switch (style) {
+      case 'HTML':
+        // return `<thead>\n<th>Project/Area Title</th><th>#open tasks</th><th>#complete</th><th>#waiting</th><th>#future</th><th>next review</th><th>due</th>\n</thead>\n<tbody>\n`
+        return `<thead>\n\t<tr class="sticky-row">\n\t<th>%</th><th>Project/Area Title</th><th>Dates</th><th></th>\n\t</tr>\n</thead>\n<tbody>\n`
+
+      default: // including 'markdown'
+        return `_Key:\tProject/Area Title\t#tasks open / complete / waiting / future / next review / due_`
+    }
   }
 
   /**
    * Returns line showing more detailed summary of the project, for output to a note.
-   * TODO: when tables are supported, make this write a table row.
    * @param {boolean} includeFolderName at the start of the entry
    * @param {boolean} includePercentage of completed tasks (optional; if missing defaults to true)
    * @return {string}
    */
-  detailedSummaryLine(includeFolderName: boolean, includePercentage: boolean = true): string {
-    let output = '- '
-    output += `${this.decoratedProjectTitle(includeFolderName)}`
-    if (this.completedDate != null) {
-      // $FlowIgnore[incompatible-call]
-      output += `\t(Completed ${relativeDateFromNumber(this.finishedDays)})`
-    } else if (this.cancelledDate != null) {
-      // $FlowIgnore[incompatible-call]
-      output += `\t(Cancelled ${relativeDateFromNumber(this.finishedDays)})`
-    }
-    if (includePercentage) {
-      output += `\tc${this.completedTasks.toLocaleString()} (${this.percentComplete}) / o${this.openTasks} / w${this.waitingTasks} / f${this.futureTasks}`
-      // output += `\tc${percent(this.completedTasks, (this.completedTasks + this.openTasks))} / o${this.openTasks} / w${this.waitingTasks} / f${this.futureTasks}`
-    } else {
-      output += `\tc${this.completedTasks} / o${this.openTasks} / w${this.waitingTasks} / f${this.futureTasks}`
-    }
-    if (!this.isCompleted && !this.isCancelled) {
-      output =
-        this.nextReviewDays != null
-          ? this.nextReviewDays > 0
-            ? `${output} / ${relativeDateFromNumber(this.nextReviewDays)}`
-            : `${output} / **${relativeDateFromNumber(this.nextReviewDays)}**`
-          : `${output} / -`
-      output = this.dueDays != null ? `${output} / ${relativeDateFromNumber(this.dueDays)}` : `${output} / -`
+  detailedSummaryLine(style: string, includeFolderName: boolean, includePercentage: boolean = true): string {
+    let output = ''
+    switch (style) {
+      case 'HTML':
+        output = '\t<tr>'
+        if (!this.isCompleted && !this.isCancelled) {
+          output += '<td>' + this.makeSVGPercentRing(this.percentComplete, 'orange', String(this.percentComplete)) + '</td>'
+        }
+        else if (this.isCompleted) {
+          output += '<td>' + this.makeSVGPercentRing(100, 'forestgreen', '*') + '</td>'
+        }
+        else if (this.isCancelled) {
+          output += '<td>' + this.makeSVGPercentRing(100, 'red', '-') + '</td>'
+        } else { // other cases, including NaN
+          output += '<td>' + this.makeSVGPercentRing(100, 'grey', '?') + '</td>'
+        }
+        output += `<td>${this.decoratedProjectTitle(style, includeFolderName)}`
+        // Add this.lastProgressComment (if it exists) on line under title (and project is still open)
+        output = (this.lastProgressComment !== '' && !this.isCompleted && !this.isCancelled)
+          ? `${output}<br /><i>${this.lastProgressComment}</i></td>`
+          : `${output}</td>`
+
+        if (this.completedDate != null) {
+          output += `<td class="task-checked">Completed ${relativeDateFromDate(this.completedDate)}</td><td></td>`
+        } else if (this.cancelledDate != null) {
+          output += `<td class="task-cancelled">Cancelled ${relativeDateFromDate(this.cancelledDate)}</td><td></td>` // TODO: test this 
+        }
+        if (!this.isCompleted && !this.isCancelled) {
+          output = (this.dueDays != null)
+            ? (this.dueDays > 0)
+              ? `${output}<td>Due ${relativeDateFromNumber(this.dueDays)}`
+              : `${output}<td>Due <b>${relativeDateFromNumber(this.dueDays)}</b></td>`
+            : `${output}<td></td>`
+          output = (this.nextReviewDays != null)
+            ? (this.nextReviewDays > 0)
+              ? `${output}<td>Review ${relativeDateFromNumber(this.nextReviewDays)}</td>`
+              : `${output}<td>Review <b>${relativeDateFromNumber(this.nextReviewDays)}</b></td>`
+            : `${output}<td></td>`
+        }
+        output += '</tr>'
+        break
+
+      default: // = 'markdown'
+        output = '- '
+        output += `${this.decoratedProjectTitle(style, includeFolderName)}`
+        if (this.completedDate != null) {
+          // $FlowIgnore[incompatible-call]
+          output += `\t(Completed ${relativeDateFromNumber(this.finishedDays)})`
+        } else if (this.cancelledDate != null) {
+          // $FlowIgnore[incompatible-call]
+          output += `\t(Cancelled ${relativeDateFromNumber(this.finishedDays)})`
+        }
+        if (includePercentage) {
+          const thisPercent = (isNaN(this.percentComplete)) ? '-%' : `${this.percentComplete}%`
+          output += `\tc${this.completedTasks.toLocaleString()} (${thisPercent}) / o${this.openTasks} / w${this.waitingTasks} / f${this.futureTasks}`
+        } else {
+          output += `\tc${this.completedTasks.toLocaleString()} / o${this.openTasks} / w${this.waitingTasks} / f${this.futureTasks}`
+        }
+        if (!this.isCompleted && !this.isCancelled) {
+          output =
+            this.nextReviewDays != null
+              ? this.nextReviewDays > 0
+                ? `${output} / ${relativeDateFromNumber(this.nextReviewDays)}`
+                : `${output} / **${relativeDateFromNumber(this.nextReviewDays)}**`
+              : `${output} / -`
+          output = this.dueDays != null ? `${output} / ${relativeDateFromNumber(this.dueDays)}` : `${output} / -`
+        }
+        break
     }
     return output
+  }
+
+  /**
+   * Draw percent ring with the number in the middle.
+   * If 'textToShow' is given then use this instead of the percentage.
+   * Note: harder than it looks to change text color: see my contribution at https://stackoverflow.com/questions/17466707/how-to-apply-a-color-to-a-svg-text-element/73538662#73538662 when I worked out how.
+   * @param {number} percent 0-100
+   * @param {string} ringColor 
+   * @param {string} textToShow inside ring (which can be different from just the percent)
+   * @returns {string} SVG code to insert in HTML
+   */
+  makeSVGPercentRing(percent: number, ringColor: string = 'forestgreen', text: string = ''): string {
+    const textToShow = (text !== '') ? text : String(percent)
+    return `
+  <svg id="pring${this.ID}" class="percent-ring" height="200" width="200" viewBox="0 0 100 100">
+    <circle class="percent-ring-circle" stroke="${ringColor}" stroke-width=13% fill="transparent" r=40% cx=50% cy=50% />
+    <g class="circle-percent-text">
+    <text class="circle-percent-text" x=50% y=53% dominant-baseline="middle" text-anchor="middle" fill="currentcolor" stroke="currentcolor">${textToShow}</text>
+    </g>
+  </svg>\n`
   }
 }

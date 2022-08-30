@@ -1,0 +1,90 @@
+<!doctype html>
+<!--
+  BIG ACKNOWLEDGMENT:
+  This expands on the great example from:
+  https://css-tricks.com/building-progress-ring-quickly/
+  at http://andrewnoske.com/wiki/SVG_-_Percent_Ring
+  - Can work with two instances without repeating everything
+  - tidied up to scale nicely
+!-->
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Progress Ring Demo Attempt 3</title>
+  
+  <script>
+  /**
+   * Sets the value of a SVG percent ring.
+   * @param {number} percent The percent value to set.
+   */
+  function setPercentRing(percent, ID) {
+    var svg = document.getElementById(ID);
+    console.log(svg);
+
+    var circle = svg.querySelector('circle');
+    var radius = circle.r.baseVal.value;
+    var circumference = radius * 2 * Math.PI;
+    circle.style.strokeDasharray = `${circumference} ${circumference}`;
+    circle.style.strokeDashoffset = `${circumference}`;
+
+    const offset = circumference - percent / 100 * circumference;
+    circle.style.strokeDashoffset = -offset;  // Set to positive for clockwise.
+
+    var text = svg.querySelector('text');
+    text.textContent = String(percent); // + '%';
+  }
+  </script>
+  
+  <style>
+  /* Set size of rings */
+  .percent-ring {
+    width: 2rem;
+    height: 2rem
+  }
+  /* details of ring-circle that can be set in CSS */
+  .percent-ring-circle { 
+    transition: 0.5s stroke-dashoffset;
+    transform: rotate(-90deg);
+    transform-origin: 50% 50%;
+  }
+  /* details of ring text that can be set in CSS */
+  .circle-percent-text { 
+    font-size: 2rem;
+    font-weight: bold;
+    font-family: sans-serif;
+    color: "darkgreen"
+  }    
+  </style>
+  
+</head>
+
+<body>
+
+<button type="button" onclick="setPercentRing(Math.round(Math.random() * 100), 'id-percent-ring-1');">Randomize</button>
+
+<svg
+  id="id-percent-ring-1"
+  class="percent-ring"
+  height="200" width="200" // SVG units
+  viewBox="0 0 100 100" // scale to 100x100
+  >
+  <circle
+    class="percent-ring-circle"
+    stroke="forestgreen"
+    stroke-width=15%
+    fill="transparent"
+    r=40%  // Set radius slightly less than half-height.
+    cx=50%
+    cy=50% />
+  <text
+    class="circle-percent-text"  // You can also set text properties in CSS (or a mix).
+    x=50%
+    y=53%
+//    dominant-baseline="middle"
+//    text-anchor="middle"
+    >0%</text>
+</svg>
+
+
+</body>
+</html>

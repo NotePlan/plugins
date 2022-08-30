@@ -164,7 +164,8 @@ function gatherOccurrences(periodString: string, fromDateStr: string, toDateStr:
         const seenTags = n.hashtags.slice().reverse()
         let lastTag = ''
         for (const tag of seenTags) {
-          const tagWithoutClosingNumber = (tag.match(/\/-?\d+(\.\d+)?$/)) ? (tag.match(/(.*)\/-?\d+(\.\d+)?$/))[1] : tag
+          const reMatches = tag.match(/(.*)\/-?\d+(\.\d+)?$/) ?? []
+          const tagWithoutClosingNumber = (reMatches.length >= 1) ? reMatches[1] : tag
           // logDebug(pluginJson, `orig: ${tag} this:${tagWithoutClosingNumber} last:${lastTag} `)
           // if this tag is starting subset of the last one, assume this is an example of the bug, so skip this tag
           if (caseInsensitiveStartsWith(tagWithoutClosingNumber, lastTag)) {
@@ -196,7 +197,8 @@ function gatherOccurrences(periodString: string, fromDateStr: string, toDateStr:
         const seenTags = n.hashtags.slice().reverse()
         let lastTag = ''
         for (const tag of seenTags) {
-          const tagWithoutClosingNumber = (tag.match(/\/-?\d+(\.\d+)?$/)) ? (tag.match(/(.*)\/-?\d+(\.\d+)?$/))[1] : tag
+          const reMatches = tag.match(/\/-?\d+(\.\d+)?$/) ?? []
+          const tagWithoutClosingNumber = (reMatches.length >= 1) ? reMatches[1] : tag
           // logDebug(pluginJson, `orig: ${tag} this:${tagWithoutClosingNumber} last:${lastTag} `)
           // if this tag is starting subset of the last one, assume this is an example of the bug, so skip this tag
           if (caseInsensitiveStartsWith(tagWithoutClosingNumber, lastTag)) {
@@ -272,7 +274,7 @@ function gatherOccurrences(periodString: string, fromDateStr: string, toDateStr:
  */
 function generateProgressUpdate(occObjs: Array<TMOccurrences>, periodString: string, fromDateStr: string, toDateStr: string, style: string, showSparklines: boolean): Array<string> {
   try {
-    logDebug('generateProgressUpdate', `starting for ${periodString} (${fromDateStr}-${toDateStr}) with ${occObjs.length} occObjs and showSparklines ${showSparklines}`)
+    logDebug('generateProgressUpdate', `starting for ${periodString} (${fromDateStr}-${toDateStr}) with ${occObjs.length} occObjs`)
 
     // Get length of longest progress term (to use with sparklines)
     const maxTermLen = Math.max(...occObjs.map((m) => m.term.length))
@@ -350,8 +352,7 @@ function calcProgressUpdate(periodString: string, fromDateStr: string, toDateStr
             const count = hSumTotals.get(key) ?? NaN
             const totalStr = value.toLocaleString()
             const avgStr = (value / count).toLocaleString([], { maximumSignificantDigits: 2 })
-            const sparkline = (showSparklines) ? generateSparkline(tagString, [], 'ascii') : ''
-            outputArray.push(`\`${tagString}\t${sparkline}\`\t${count}\t(total ${totalStr}\tavg ${avgStr})`)
+            outputArray.push(`${tagString}\t${count}\t(total ${totalStr}\tavg ${avgStr})`)
             hCounts.delete(key) // remove the entry from the next map, as no longer needed
           }
         }
@@ -393,8 +394,7 @@ function calcProgressUpdate(periodString: string, fromDateStr: string, toDateStr
             const count = mCounts.get(key) ?? NaN
             const totalStr = value.toLocaleString()
             const avgStr = (value / count).toLocaleString([], { maximumSignificantDigits: 2 })
-            const sparkline = (showSparklines) ? generateSparkline(mentionString, [], 'ascii') : ''
-            outputArray.push(`\`${mentionString}\t${sparkline}\`\t${count}\t(total ${totalStr}\tavg ${avgStr})`)
+            outputArray.push(`${mentionString}\t${count}\t(total ${totalStr}\tavg ${avgStr})`)
             mCounts.delete(key) // remove the entry from the next map, as not longer needed
           }
         }

@@ -8,12 +8,21 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "0.7.1",
-  "plugin.lastUpdateInfo": "Fixed reported crashes.",
+  "plugin.version": "0.8.0-beta1",
+  "plugin.lastUpdateInfo": "Proof of Concept HTML output from '/HTML project lists', requiring NP v3.6.2.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
   "plugin.commands": [
+    {
+      "name": "HTML project lists",
+      "alias": [
+        "gtd",
+        "list"
+      ],
+      "description": "shows a table of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete.",
+      "jsFunction": "makeProjectListsHTML"
+    },
     {
       "name": "project lists",
       "alias": [
@@ -80,9 +89,24 @@
       "jsFunction": "makeReviewList"
     },
     {
-      "name": "rev:upgrade",
+      "name": "rev:test update Reviews plugin",
       "description": "upgrade Reviews plugin settings",
-      "jsFunction": "onUpdateOrInstall"
+      "jsFunction": "testUpdated"
+    },
+    {
+      "name": "test:generateCSSFromTheme",
+      "description": "generateCSSFromTheme",
+      "jsFunction": "generateCSSFromTheme"
+    },
+    {
+      "name": "test:NoteplanstateFont",
+      "description": "test Noteplanstate Font",
+      "jsFunction": "testNoteplanStateFont"
+    },
+    {
+      "name": "test:CSS-circle",
+      "description": "test CSS Circle",
+      "jsFunction": "testCSSCircle"
     }
   ],
   "plugin.settings": [
@@ -92,7 +116,7 @@
     },
     {
       "key": "folderToStore",
-      "title": "Folder to store review notes",
+      "title": "Folder to store (markdown) review notes",
       "description": "Folder where review notes will be stored (will be created if necessary)",
       "type": "string",
       "default": "Reviews",
@@ -137,14 +161,14 @@
     {
       "key": "displayOrder",
       "title": "Displayed order of notes titles",
-      "description": "The sort options  are 'due' date, 'review' date or 'alpha'",
+      "description": "The sort options  are by 'due' date, by 'review' date or 'title'",
       "type": "string",
       "choices": [
-        "alpha",
         "due",
-        "review"
+        "review",
+        "title"
       ],
-      "default": "alpha",
+      "default": "title",
       "required": true
     },
     {

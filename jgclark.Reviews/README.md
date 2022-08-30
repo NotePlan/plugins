@@ -64,6 +64,8 @@ You can specify folders to ignore using the `foldersToIgnore` setting; I have th
 When you have [configured the plugin](#configuration), and added suitable metadata to notes, you're then ready to use some or all of the following commands:
 
 ### /project lists
+**Now with new alternative command: '/HTML project lists'!**. _Note:  this provides a richer view, but it can't be saved for later._
+
 This creates/updates a list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete. This is stored in summary note(s) in the 'Reviews' folder (or whatever you set `folderToStore` setting to be). For example:
 
 ![/project lists example](project-list-example.png)
@@ -92,16 +94,11 @@ These commands require configuration, which is done by clicking the gear button 
 - update the `/project lists` output to use a table view, _when then this is available in NotePlan_
 - look at updating the plugin to take advantage of YAML frontmatter blocks, introduced in v3.4.x
 
-
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
 
 If you would like to support my late-night work extending NotePlan through writing these plugins, you can through:
-
-[<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
-
-Thanks!
+![https://www.buymeacoffee.com/revjgc](https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg). Thanks!
 
 ## Changes
 Please see the [CHANGELOG](CHANGELOG.md).
-
