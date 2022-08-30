@@ -14,7 +14,7 @@ This Plugin searches the active document looking for "math" code blocks (aka Mat
 
 ## What it's not (and will likely never be)
 
-A pretty math formatter a la LateX/MathJax. Those are great tools, and hopefully one of the enterprising plugin developers who understands that world will implement an HTML view that can display equations in a pretty way. This plugin is designed for doing everyday calculations in your notes without having to go out to a calculator or spreadsheet and pasting the results in your note.
+This plugin is not a pretty math formatter a la LateX/MathJax. Those are great tools, and hopefully one of the enterprising plugin developers who understands that world will implement an HTML view that can display equations in a pretty way. This plugin is designed for doing everyday calculations in your notes without having to go out to a calculator or spreadsheet and pasting the results in your note.
 
 ## Using The Plugin
 
@@ -43,7 +43,7 @@ total  //= 6
 
 ## Basic Numbers
 
-- Placing basic numbers on a line works like a calculator (e.g. 2 *3* 5)
+- Placing basic numbers on a line works like a calculator (include operators, e.g. "2 + 3 + 4" or simply put a number on each line vertically)
 - Each successive line is automatically added by default unless the line is assigned to a variable, e.g.
 
 ```math
