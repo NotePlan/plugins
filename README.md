@@ -37,7 +37,7 @@ When you have cloned this repository, you will not only have the tooling, but yo
 
 **Step 2: Install Node (if not installed)**
 
-Make sure you have a recent version of `node` and `npm` installed (if you need to install node, `brew install node` is the quickest method, you can follow instructions on [node website](https://nodejs.org/en/download/)).
+Make sure you have a recent version of `node` and `npm` installed (if you need to install node, `brew install node@16` is the quickest method, you can follow instructions on [node website](https://nodejs.org/en/download/)).
 
 **Step 3: Initialize Local Development Environment**
 
