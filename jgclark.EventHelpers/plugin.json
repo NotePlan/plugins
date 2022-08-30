@@ -8,8 +8,8 @@
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers",
   "plugin.changelog": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers/CHANGELOG.md",
-  "plugin.version": "0.17.0",
-  "plugin.lastUpdateInfo": "Add support for LOCATION in events, and for adding nicely-formmatted event links rather than eventIDs.",
+  "plugin.version": "0.17.1",
+  "plugin.lastUpdateInfo": "DATE can now be overridden with the 'Shared Settings > Locale' setting",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -211,7 +211,7 @@
     {
       "key": "locale",
       "title": "Locale",
-      "description": "Optional Locale to use for times in events. If not given, will default to what the OS reports, or failing that, 'en-US'.",
+      "description": "Optional Locale to use for the date and times in events. If not given, will default to what the OS reports, or failing that, 'en-US'.",
       "type": "string",
       "default": "",
       "required": false
