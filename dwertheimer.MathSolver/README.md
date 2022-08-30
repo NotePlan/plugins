@@ -12,6 +12,10 @@ This Plugin allows you to write basic math with descriptive text in your NotePla
 
 This Plugin searches the active document looking for "math" code blocks (aka Math Blocks) -- you can have as many Math Blocks on a page as you wish. When the Calculate command is run, all the Math Blocks on the page are calculated.
 
+## What it's not (and will likely never be)
+
+A pretty math formatter a la LateX/MathJax. Those are great tools, and hopefully one of the enterprising plugin developers who understands that world will implement an HTML view that can display equations in a pretty way. This plugin is designed for doing everyday calculations in your notes without having to go out to a calculator or spreadsheet and pasting the results in your note.
+
 ## Using The Plugin
 
 The easiest way to start using this plugin is by running the command:
@@ -66,7 +70,7 @@ Assignment operations store values in named variables, e.g.
     Notes:
         - Assigned numbers are tabulated when the assigned numbers are later used in a line (either alone on a line or as part of an equation), e.g.
             `taxRate` or `20 * taxRate`
-        - Always use the ` = ` to assign to a variable. Text like: ` taxrate: 20% ` does not do variable assignment. 
+        - Always use the ` = ` to assign to a variable. Text like: ` taxrate: 20% ` does not do variable assignment.
 
 > **NOTE**
 > Variables must not contain spaces (one block of characters)
@@ -108,7 +112,7 @@ Use the word "total" or "subtotal" (alone on a line) to add all the numbers on t
 
 As you can see `subtotal` can be very useful for large math blocks.
 
-> **NOTE:** 
+> **NOTE:**
 > You can also assign a (sub)total to a variable (thx George), e.g.
 
 ```math
@@ -154,7 +158,7 @@ You can calculate basic time math as well, e.g.:
 total //= 7.35 h
 ```
 
-> **NOTE** 
+> **NOTE**
 > Notice there is no space between the number and the abbreviation. If you enter a space, calculations will not work properly.
 
 Legal abbreviations are:
@@ -166,7 +170,7 @@ Legal abbreviations are:
 - week (weeks)
 - month (months), year (years)
 
-> **WARNING** 
+> **WARNING**
 > Mixing time-math and regular math in the same Math Block will not be reliable.
 
 ## Other Unit Calculations
@@ -177,7 +181,7 @@ Like time, there are other unit calculations that [math.js](https://mathjs.org/d
 2inches + 2feet      //= 26 inches                                                                                              
 ```
 
-> **INFO** 
+> **INFO**
 > Notice how the results are expressed in terms of the first item you gave -- in this case, the result is in inches, because the first item was in inches. If we wanted this same result in feet, we could do the reverse:
 
 ```
@@ -185,6 +189,7 @@ Like time, there are other unit calculations that [math.js](https://mathjs.org/d
 ```
 
 So, if you want to ensure the following calculation comes out in hours vs. minutes, add a 0h in the first line (alternatively, you could add a line at the top that says "0h"):
+
 ```
 initial draft session 0h + 36mins                         
 session two 42mins                                        
