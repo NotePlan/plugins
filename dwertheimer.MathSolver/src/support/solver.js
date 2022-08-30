@@ -20,7 +20,7 @@
  */
 
 export type LineInfo = {
-  lineValue: number | null,
+  lineValue: number | null | {mathjs:string,value:number,unit:string,fixPrefix:string},
   originalText: string,
   expression: string,
   row: number,
@@ -40,6 +40,7 @@ export type CurrentData = {
   relations: Array<Array<string> | null>,
   expressions: Array<string>,
   rows: number,
+  precision: ?number
 }
 
 import math from './math.min'
@@ -99,7 +100,7 @@ export function isLineType(line:LineInfo,searchForType:string|Array<string>) {
   return (lineTypes.indexOf(line.typeOfResult) > -1)
 }
 
-function checkIfUnit(obj) {
+export function checkIfUnit(obj) {
   return typeof obj === 'object' && obj !== null && obj.value
 }
 
@@ -181,7 +182,7 @@ export function parse(thisLineStr: string, lineIndex: number, cd: CurrentData): 
   const currentData = cd
   const pluginJson = 'solver::parse'
   let strToBeParsed = thisLineStr.trim()
-  const { info, variables, expressions, rows } = currentData
+  const { info, variables, expressions, rows, precision } = currentData
   // let relations = currentData.relations // we need to be able to write this one
   let match
   const selectedRow = lineIndex
@@ -340,7 +341,7 @@ export function parse(thisLineStr: string, lineIndex: number, cd: CurrentData): 
     // results.map((e, i) => variables[`R${i}`] = checkIfUnit(e) ? math.unit(e) : e)  // you put the row results in the variables
     results.map((e, i) => {
       clo(expressions[i], `parse:expressions[${i}]`)
-      const rounded = Number(math.format(e, { precision: 14 }))
+      const rounded = precision ? Number(math.format(e, { precision })) : e
       variables[`R${i}`] = checkIfUnit(e) ? math.unit(e) : isNaN(rounded) ? e : rounded
       info[i].lineValue = variables[`R${i}`]
       if (info[i].typeOfResult === 'N' && mathOnlyStr.trim() === '' && info[i].expression === '0') {
