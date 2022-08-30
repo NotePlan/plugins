@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/codedungeon.Toolbox/README.md) for details on available commands and use case.
 
+## [3.15.0] - 2022-08-30 (@akrabat)
+
+- updated node-libcurl to 2.3.4 for Apple Silicon compatibility
+
 ## [3.14.0] - 2022-08-19 (@dwertheimer)
 
 - added columnify for columnar output
