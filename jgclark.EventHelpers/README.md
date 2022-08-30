@@ -126,4 +126,11 @@ NotePlan allows extensive [customisation of fonts and colours through its Themes
 ``` -->
 
 ## History
-Please see the [CHANGELOG](CHANGELOG.md).
+See [CHANGELOG](CHANGELOG.md) for the plugin's history.
+
+## Support
+If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
+
+[<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
+
+Thanks!
