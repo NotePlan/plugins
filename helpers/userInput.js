@@ -4,7 +4,7 @@
 
 import json5 from 'json5'
 import { RE_DATE, RE_DATE_INTERVAL } from './dateTime'
-import { clo, logDebug, logError, logWarn } from './dev'
+import { clo, logDebug, logError, logWarn, JSP } from './dev'
 import { calcSmartPrependPoint, findEndOfActivePartOfNote } from './paragraph'
 
 // NB: This fn is a local copy from helpers/general.js, to avoid a circular dependency
@@ -31,15 +31,18 @@ export type Option<T> = $ReadOnly<{
  *
  * @param {string} message - text to display to user
  * @param {Array<T>} options - array of label:value options to present to the user
- * @param {TDefault} defaultValue - default label:value to use
- * @return {TDefault} - string that the user enters. Maybe be the empty string.
+ * @param {TDefault} defaultValue - (optional) default value to use (default: options[0].value)
+ * @return {TDefault} - the value attribute of the user-chosen item
  */
-export async function chooseOption<T, TDefault = T>(message: string, options: $ReadOnlyArray<Option<T>>, defaultValue: TDefault): Promise<T | TDefault> {
+export async function chooseOption<T, TDefault = T>(message: string, options: $ReadOnlyArray<Option<T>>, defaultValue: TDefault|null = null): Promise<T | TDefault> {
+  logDebug(`deleteme before`)
+  clo(options,`chooseOption::options=`)
   const { index } = await CommandBar.showOptions(
     options.map((option) => option.label),
     message,
   )
-  return options[index]?.value ?? defaultValue
+  logDebug(`deleteme after index:${index}`)
+  return options[index]?.value ?? defaultValue ?? options[0].value
 }
 
 /**
@@ -495,12 +498,12 @@ export async function chooseNote(includeProjectNotes: boolean = true, includeCal
         isInIgnoredFolder = true
       }
     })
+    isInIgnoredFolder = isInIgnoredFolder || !/(\.md|\.txt)$/i.test(note.filename) //do not include non-markdown files
     return !isInIgnoredFolder
   })
-  const opts = noteListFiltered.map((note) => {
-    return note.title && note.title !== '' ? note?.title : note?.filename
+  let opts = noteListFiltered.map((note) => {
+    return note.title && note.title !== '' ? note.title : note.filename
   })
-  clo(noteListFiltered[0], 'chooseNote(): opts')
-  const re = await CommandBar.showOptions(opts, 'Choose note')
-  return noteListFiltered[re.index] ?? null
+  const {index} = await CommandBar.showOptions(opts, 'Choose note')
+  return noteListFiltered[index] ?? null
 }

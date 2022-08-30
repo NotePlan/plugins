@@ -3,6 +3,12 @@
 ### About np.Templating Plugin
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [2.0.0-alpha.09] - 2022-08-12 (dwertheimer)
+
+- self-running templates: fixed problems in introduced by API changes in how args are passed using xcallbacks
+- self-running templates: added <select>|<choose> for heading and for file to open
+- removed some logging I had previously put in for debugging MeetingNotes
+
 ## [2.0.0-alpha.08] - 2022-08-12 (mikeerickson)
 
 - fixed issues with prompts that included reserved words such as `import`, `note`.

@@ -12,6 +12,10 @@ This Plugin allows you to write basic math with descriptive text in your NotePla
 
 This Plugin searches the active document looking for "math" code blocks (aka Math Blocks) -- you can have as many Math Blocks on a page as you wish. When the Calculate command is run, all the Math Blocks on the page are calculated.
 
+## What it's not (and will likely never be)
+
+A pretty math formatter a la LateX/MathJax. Those are great tools, and hopefully one of the enterprising plugin developers who understands that world will implement an HTML view that can display equations in a pretty way. This plugin is designed for doing everyday calculations in your notes without having to go out to a calculator or spreadsheet and pasting the results in your note.
+
 ## Using The Plugin
 
 The easiest way to start using this plugin is by running the command:
