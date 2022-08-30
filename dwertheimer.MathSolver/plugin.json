@@ -4,13 +4,13 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "dwertheimer.MathSolver",
   "plugin.name": "🟰 Math Solver",
-  "plugin.version": "1.0.2",
-  "plugin.lastUpdateInfo": "Added [TotalsOnly] button. Removed annotations from basic assignment lines. Thx @QualitativeEasing!",
+  "plugin.version": "1.1.0",
+  "plugin.lastUpdateInfo": "1.1.0: Public release version.\nThx @george65 & @qualitativeEasing for all the great ideas and testing!",
   "plugin.description": "Write basic math in your NotePlan notes and use this plugin to calculate it.",
   "plugin.author": "dwertheimer",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
-  "hidden": true,
+  "hidden": false,
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.MathSolver/README.md",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.MathSolver/CHANGELOG.md",
   "plugin.commands": [
@@ -48,12 +48,28 @@
       "arguments": []
     },
     {
+      "name": "Calculate Math Blocks (no rounding)",
+      "description": "Override rounding/precision preferences setting and display full decimals (where they exist)",
+      "jsFunction": "calculateNoRounding",
+      "alias": [
+      ],
+      "arguments": []
+    },
+    {
       "name": "Insert Math Block at Cursor",
       "description": "Place Math Block and Calculation Link",
       "jsFunction": "insertMathBlock",
       "alias": [
         "insertMath",
         "mathBlock"
+      ],
+      "arguments": []
+    },
+    {
+      "name": "Debug Math Calculations",
+      "description": "Calculate Math Blocks and Show Verbose Output",
+      "jsFunction": "debugMath",
+      "alias": [
       ],
       "arguments": []
     }
@@ -63,6 +79,15 @@
       "COMMENT": "Plugin settings documentation: https://help.noteplan.co/article/123-plugin-configuration",
       "type": "heading",
       "title": "Math Solver Settings"
+    },
+    {
+      "key": "precisionSetting",
+      "title": "Number of decimal digits (precision)",
+      "description": "Round numbers to this number of significant digits MAXIMUM (will not force there to be digits if the digits are zeros). Set to 0 for no decimals ever (integers only). Note: You can always override this setting with the command:\n/Calculate Math Blocks (no rounding)",
+      "type": "string",
+      "default": "2",
+      "required": true,
+      "choices": ["No Rounding","0","1","2","3","4","5","6","7","8","9","10","11","12","13","14"]
     },
     {
       "title": "Include Clear button when inserting Math Block",
@@ -86,18 +111,33 @@
       "default": true
     },
     {
+      "title": "Preset Variables/Values",
+      "key": "presetValues",
+      "type": "json",
+      "description": "Variables you use frequently can be placed here. Must be in JSON format.\nExample: {\n\"x\": 2,\n\"y\": 3\n}\nNote: Go to https://jsonlint.com/ if you want to validate your JSON.",
+      "default": "{\n\"placeholderVariable\": 99,\n\"placeholderVariable2\": 50\n}"
+    },
+    {
       "title": "Format for Math Display in Popup Preview",
       "key": "popUpTemplate",
-      "type": "string",
+      "type": "hidden",
       "description": "Each line will be displayed in a single popup preview. Lines need to be short. Use a key name wrapped in double curly braces, e.g. ({{someThing}}) for key/values to substitute. Key options:\n{{row}} - row number\n{{originalText}} - line's text in the math block\n{{value}} - value to display\n{{expression}} - expression the computer constructed to evaluate (just for verification purposes)\n{{typeOfResult}} - the type of this line (mostly for debugging)",
       "default": "\"{{originalText}}\" {{value}} {{error}}"
     },
     {
       "title": "Format for Math Replacement in Document",
       "key": "documentTemplate",
-      "type": "string",
+      "type": "hidden",
       "description": "After calculation, the math line will be written according to this format. Use a key name wrapped in double curly braces, e.g. ({{someThing}}) for key/values to substitute. Key options:\n{{row}} - row number\n{{originalText}} - line's text in the math block\n{{value}} - value to display\n{{expression}} - expression the computer constructed to evaluate (just for verification purposes)\n{{typeOfResult}} - the type of this line (mostly for debugging)",
       "default": "{{originalText}} {{value}} {{error}}"
+    },
+    {
+      "key": "columnarOutput",
+      "title": "Format MathBlock Results into Columns",
+      "description": "If set to true, the plugin will line up all the calculations in columns in the Math Block (horizontal space permitting)",
+      "type": "bool",
+      "default": true,
+      "required": true
     },
     {
       "NOTE": "DO NOT CHANGE THE FOLLOWING SETTINGS; ADD YOUR SETTINGS ABOVE ^^^",

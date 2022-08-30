@@ -8,6 +8,7 @@ export interface SortableParagraphSubset  {
   mentions: Array<string>,
   exclamations: Array<string>,
   parensPriority: Array<string>,
+  due: ?Date,
   priority?: number,
   filename: string,
   indents: number,
@@ -199,6 +200,7 @@ export function getTasksByType(paragraphs: $ReadOnlyArray<TParagraph>, ignoreInd
           filename: para?.filename || '',
           indents: para.indents,
           children: [],
+          due: para.date ?? new Date("2099-12-31"),
           paragraph: para,
         }
         // console.log(`new: ${index}: indents:${para.indents} ${para.rawContent}`)

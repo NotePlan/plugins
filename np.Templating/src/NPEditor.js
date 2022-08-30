@@ -8,20 +8,23 @@
 
 import { replaceContentUnderHeading } from '@helpers/NPParagraph'
 import { helpInfo } from '../lib/helpers'
-import { logError } from '@helpers/dev'
+import { logError, logDebug, JSP } from '@helpers/dev'
 import { getISOWeekAndYear, getISOWeekString } from '@helpers/dateTime'
+import { chooseNote } from "@helpers/userInput"
 
 import NPTemplating from 'NPTemplating'
 import FrontmatterModule from '@templatingModules/FrontmatterModule'
 
 import pluginJson from '../plugin.json'
+import { chooseHeading } from "@helpers/userInput";
+import { selectFirstNonTitleLineInEditor } from "@helpers/NPnote";
 
 /**
  * Write out the contents to either Today's Calendar note or the Note which was opened
  * @author @dwertheimer
  * @param {TNote} note - the note to work on
  * @param {string} renderedTemplate - the rendered template string (post-render)
- * @param {string} writeUnderHeading - the heading to write under
+ * @param {string} headingName - the heading to write under
  * @param {string} location - 'append','replace' else prepend
  * @param {*} options
  *    shouldOpenInEditor - if true, will open the note in the editor, otherwise will write silently to the note
@@ -30,12 +33,17 @@ import pluginJson from '../plugin.json'
 export async function writeNoteContents(
   note: TNote,
   renderedTemplate: string,
-  writeUnderHeading: string,
+  headingName: string,
   location: string,
   options?: any = { shouldOpenInEditor: false, createMissingHeading: false },
 ): Promise<void> {
+  let writeUnderHeading = headingName
   if (note) {
-    if (note?.content?.indexOf(`${writeUnderHeading}\n`) !== -1 || options.createMissingHeading) {
+    logDebug(pluginJson,`openNote:"${note.title}" writeUnderHeading:${writeUnderHeading} location:${location} options:${JSP(options)} renderedTemplate:\n---\n${renderedTemplate}\n---`)
+    if (/<choose>/i.test(writeUnderHeading) || /<select>/i.test(writeUnderHeading)) {
+      writeUnderHeading = await chooseHeading(note,true)
+    }
+    if ((writeUnderHeading && note?.content?.indexOf(`${writeUnderHeading}\n`) !== -1) || options.createMissingHeading) {
       if (writeUnderHeading) {
         if (location === 'replace') {
           await replaceContentUnderHeading(note, writeUnderHeading, renderedTemplate)
@@ -47,6 +55,7 @@ export async function writeNoteContents(
       }
       if (options.shouldOpenInEditor) {
         await Editor.openNoteByFilename(note.filename)
+        selectFirstNonTitleLineInEditor()
       }
     } else {
       await CommandBar.prompt(`"${writeUnderHeading}" heading does not exist in note.`, '')
@@ -55,7 +64,7 @@ export async function writeNoteContents(
 }
 
 /**
- * Process a template that provides an existing filename or <today> for today's Calendar Note
+ * Process a template that provides an existing filename or <today> for today's Calendar Note (aka "self-running templates")
  * The unique title of the template to run must be passed in as the first argument
  * TODO:
  * - enum('location',['append','cursor','insert', ... 'prepend'])
@@ -66,12 +75,14 @@ export async function writeNoteContents(
  * Note: if you are inserting title text as part of your template, then you should always prepend, because your title will confuse future appends
  * Note: ask CD what the reserved frontmatter fields should be and trap for them
  * xcallback note: arg1 is template name, arg2 is whether to open in editor, arg3 is a list of vars to pass to template equals sign is %3d
+ * @author @dwertheimer
  */
-export async function templateFileByTitleEx(selectedTemplate?: string = '', openInEditor?: boolean = false, args?: string = ''): Promise<void> {
+export async function templateFileByTitleEx(selectedTemplate?: string = '', openInEditor?: boolean = false, args?: string|null = null): Promise<void> {
   try {
+    logDebug(pluginJson,`templateFileByTitleEx Starting Self-Running Template Execution: "${selectedTemplate}" openInEditor:${String(openInEditor)} args:${args?.toString()||''}`)
     if (selectedTemplate.length !== 0) {
       let argObj = {}
-      args.split(',').forEach((arg) => (arg.split('=').length === 2 ? (argObj[arg.split('=')[0]] = arg.split('=')[1]) : null))
+      args && args.split(',').forEach((arg) => (arg.split('=').length === 2 ? (argObj[arg.split('=')[0]] = arg.split('=')[1]) : null))
       if (!selectedTemplate || selectedTemplate.length === 0) {
         await CommandBar.prompt('You must supply a template title as the first argument', helpInfo('Presets'))
       }
@@ -86,15 +97,22 @@ export async function templateFileByTitleEx(selectedTemplate?: string = '', open
         const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
         let data = { ...frontmatterAttributes, ...argObj, frontmatter: { ...frontmatterAttributes, ...argObj } }
         let renderedTemplate = await NPTemplating.render(frontmatterBody, data)
+        logDebug(pluginJson,`templateFileByTitleEx Template Render Complete renderedTemplate= "${renderedTemplate}"`)
 
         const { openNoteTitle, writeNoteTitle, location, writeUnderHeading } = frontmatterAttributes
         let noteTitle = (openNoteTitle && openNoteTitle.trim()) || (writeNoteTitle && writeNoteTitle?.trim()) || ''
         let shouldOpenInEditor = (openNoteTitle && openNoteTitle.length > 0) || openInEditor
         const createMissingHeading = true
+        logDebug(pluginJson,`templateFileByTitleEx First checks noteTitle= "${noteTitle}"`)
+        if (/<choose>/i.test(noteTitle) || /<select>/i.test(noteTitle)) {
+          logDebug(pluginJson,`templateFileByTitleEx Inside choose code`)
+          const chosenNote = await chooseNote()
+          noteTitle = chosenNote?.title || ''
+          logDebug(pluginJson,`templateFileByTitleEx: noteTitle: ${noteTitle}`)
+        }
         const isTodayNote = /<today>/i.test(openNoteTitle) || /<today>/i.test(writeNoteTitle)
         const isThisWeek = /<thisweek>/i.test(openNoteTitle) || /<thisweek>/i.test(writeNoteTitle)
         const isNextWeek = /<nextweek>/i.test(openNoteTitle) || /<nextweek>/i.test(writeNoteTitle)
-
         let note
         if (isTodayNote) {
           if (shouldOpenInEditor) {
@@ -150,6 +168,7 @@ export async function templateFileByTitleEx(selectedTemplate?: string = '', open
               if (!note) {
                 await CommandBar.prompt(`Unable to locate note matching "${noteTitle}"`, helpInfo('Presets'))
               } else {
+                logDebug(pluginJson,`templateFileByTitleEx: About to call writeNoteContents with "${note?.title || ''}"`)
                 await writeNoteContents(note, renderedTemplate, writeUnderHeading, location, { shouldOpenInEditor, createMissingHeading })
               }
             }
@@ -162,6 +181,6 @@ export async function templateFileByTitleEx(selectedTemplate?: string = '', open
       }
     }
   } catch (error) {
-    logError(pluginJson, error)
+    logError(pluginJson, JSP(error))
   }
 }

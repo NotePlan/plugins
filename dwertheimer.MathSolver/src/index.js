@@ -15,7 +15,7 @@
 // So you need to add a line below for each function that you want NP to have access to.
 // Typically, listed below are only the top-level plug-in functions listed in plugin.json
 
-export { calculateEditorMathBlocks, removeAllAnnotations, insertMathBlock, calculateEditorMathBlocksTotalsOnly } from './NPMathBlocks' // add one of these for every command specifified in plugin.json (the function could be in any file as long as it's exported)
+export { calculateEditorMathBlocks, removeAllAnnotations, insertMathBlock, calculateEditorMathBlocksTotalsOnly, calculateNoRounding, debugMath } from './NPMathBlocks' // add one of these for every command specifified in plugin.json (the function could be in any file as long as it's exported)
 
 // Do not change this line. This is here so your plugin will get recompiled every time you change your plugin.json file
 import pluginJson from '../plugin.json'
@@ -45,11 +45,9 @@ export async function onUpdateOrInstall(): Promise<void> {
 // eslint-disable-next-line require-await
 export async function init(): Promise<void> {
   try {
-    clo(DataStore.settings,`${pluginJson["plugin.id"]} Plugin Settings`)
+    clo(DataStore.settings, `${pluginJson['plugin.id']} Plugin Settings`)
     // Check for the latest version of this plugin, and if a minor update is available, install it and show a message
-    DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false).then((r) =>
-      pluginUpdated(pluginJson, r),
-    )
+    DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false).then((r) => pluginUpdated(pluginJson, r))
   } catch (error) {
     logError(pluginJson, JSP(error))
   }

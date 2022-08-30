@@ -31,7 +31,7 @@ import type { IntervalMap, PartialCalendarItem } from './timeblocking-flow-types
 import { getTimedEntries, keepTodayPortionOnly } from '@helpers/calendar'
 import { getEventsForDay, writeTimeBlocksToCalendar, checkOrGetCalendar } from '@helpers/NPCalendar'
 import { getDateStringFromCalendarFilename, getTodaysDateHyphenated, getTodaysDateUnhyphenated } from '@helpers/dateTime'
-import { getTasksByType , sortListBy } from '@helpers/sorting'
+import { getTasksByType, sortListBy } from '@helpers/sorting'
 import { showMessage, chooseOption } from '@helpers/userInput'
 import { getTimeBlockString, isTimeBlockLine } from '@helpers/timeblocks'
 import { JSP, clo, log, logError, logWarn, logDebug } from '@helpers/dev'
@@ -81,7 +81,8 @@ export function deleteParagraphsContainingString(destNote: CoreNoteFields, timeB
     }
   }
   if (parasToDelete.length > 0) {
-    destNote.removeParagraphs(parasToDelete)
+    const deleteListByIndex = sortListBy(parasToDelete,['lineIndex']) //NP API may give wrong results if lineIndexes are not in ASC order
+    destNote.removeParagraphs(deleteListByIndex)
   }
 }
 

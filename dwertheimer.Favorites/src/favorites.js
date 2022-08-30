@@ -7,8 +7,7 @@ export type FavoritesConfig = {
 
 export const getFavoriteDefault = (): string => '⭐️'
 
-export const filterForFaves = (notes: $ReadOnlyArray<TNote>, config: FavoritesConfig): Array<TNote> =>
-  notes.filter((n) => hasFavoriteIcon(n.title || '', config.favoriteIcon))
+export const filterForFaves = (notes: $ReadOnlyArray<TNote>, config: FavoritesConfig): Array<TNote> => notes.filter((n) => hasFavoriteIcon(n.title || '', config.favoriteIcon))
 
 export const getFaveOptionsArray = (notes: Array<TNote>): Array<{ label: string, value: string }> =>
   notes

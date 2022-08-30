@@ -1,22 +1,18 @@
 // @flow
-export { default as sortTasks } from './sortTasks'
-export { sortTasksByPerson } from './sortTasks'
-export { sortTasksByTag } from './sortTasks'
-export { tasksToTop, openTasksToTop } from './sortTasks'
+export { default as sortTasks, sortTasksByPerson, sortTasksByTag, sortTasksByDue, tasksToTop, openTasksToTop, sortTasksViaTemplate, sortTasksTagMention, sortTasksDefault } from './sortTasks'
 export { default as markTasks } from './markTasks'
-export { sortTasksViaTemplate } from './sortTasks'
 export { taskSync } from './taskSync'
 export { copyTagsFromLineAbove, copyTagsFromHeadingAbove, copyLineForEachMention, copyLineForEachHashtag } from './tagTasks'
 export { openIncompleteLinksInNote, openURLOnLine } from './NPOpenLinks'
 import pluginJson from '../plugin.json'
-import {clo} from '@helpers/dev'
+import { clo } from '@helpers/dev'
 
 // updateSettingsData will execute whenever your plugin is installed or updated
 import { updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'
 
 export function init(): void {
   // this runs every time the plugin starts up (any command in this plugin is run)
-  clo(DataStore.settings,`${pluginJson["plugin.id"]} Plugin Settings`)
+  clo(DataStore.settings, `${pluginJson['plugin.id']} Plugin Settings`)
   DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], true, false, false).then((r) => pluginUpdated(pluginJson, r))
 }
 

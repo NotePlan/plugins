@@ -15,9 +15,10 @@ export async function chooseTheme(incoming: ?string = ''): Promise<void> {
   // every command/plugin entry point should always be wrapped in a try/catch block
   try {
     // const settings = DataStore.settings // Plugin settings documentation: https://help.noteplan.co/article/123-plugin-configuration
-    const themes = Editor.availableThemes
     if (incoming?.length) {
       const themeName = incoming.trim()
+      const themeData = Editor.availableThemes // {name:string,mode:'light'|'dark',values:<themedata>}
+      const themes = themeData.map(t=>t.name.replace(".json",''))
       if (themes.includes(themeName)) {
         Editor.setTheme(themeName)
         return
@@ -34,7 +35,8 @@ export async function chooseTheme(incoming: ?string = ''): Promise<void> {
 }
 
 export async function getThemeChoice(lightOrDark: string = ''): Promise<string> {
-  const themes = Editor.availableThemes
+  const themeData = Editor.availableThemes // {name:string,mode:'light'|'dark',values:<themedata>}
+  const themes = themeData.map(t=>t.name.replace(".json",''))
   if (lightOrDark !== '') {
     // would be nice to filter here, but how to read system themes?
   }
@@ -104,8 +106,10 @@ export async function setDefaultLightDarkTheme() {
     if (themeChoice && which) {
       if (which === 'Light') {
         DataStore.setPreference('themeChooserLight', themeChoice)
+        Editor.saveDefaultTheme(themeChoice,which.toLowerCase())
       } else {
         DataStore.setPreference('themeChooserDark', themeChoice)
+        Editor.saveDefaultTheme(themeChoice,which.toLowerCase())
       }
       await showMessage(`Default ${which} theme set to: ${themeChoice}. You may need to restart NotePlan to see it in action.`)
     }

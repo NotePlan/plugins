@@ -1,10 +1,11 @@
 {
   "COMMENT": "Details on these fields: https://help.noteplan.co/article/67-create-command-bar-plugins",
   "macOS.minVersion": "10.13.0",
-  "noteplan.minAppVersion": "3.4.0",
+  "noteplan.minAppVersion": "3.6.2",
   "plugin.id": "np.ThemeChooser",
   "plugin.name": "🎨 Theme Chooser",
-  "plugin.version": "1.2.1",
+  "plugin.version": "1.3.0",
+  "plugin.lastUpdateInfo": "1.3.0: Update theme chooser for API changes",
   "plugin.description": "Choose from your favorite themes",
   "plugin.author": "dwertheimer",
   "plugin.dependencies": [],
@@ -38,12 +39,6 @@
       "name": "Change Theme Preset",
       "description": "Add/Change a theme preset to another theme",
       "jsFunction": "changePreset"
-    },
-    {
-      "name": "touoi",
-      "description": "",
-      "jsFunction": "onUpdateOrInstall",
-      "hidden": true
     },
     {
       "name": "Theme Chooser: Set Preset 01",
@@ -147,6 +142,29 @@
       "default" : "",
       "title": "Preset 01",
       "description": "Do not change this setting manually. Use the \"/Change Theme Preset\" command."
+    },
+    {
+      "NOTE": "DO NOT CHANGE THE FOLLOWING SETTINGS; ADD YOUR SETTINGS ABOVE ^^^",
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Debugging"
+    },
+    {
+      "key": "_logLevel",
+      "type": "string",
+      "title": "Log Level",
+      "choices": [
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "none"
+      ],
+      "description": "Set how much logging output will be displayed when executing Math Solver commands in NotePlan Plugin Console Logs (NotePlan -> Help -> Plugin Console)\n\n - DEBUG: Show All Logs\n - INFO: Only Show Info, Warnings, and Errors\n - WARN: Only Show Errors or Warnings\n - ERROR: Only Show Errors\n - none: Don't show any logs",
+      "default": "INFO",
+      "required": true
     }
   ]
 }

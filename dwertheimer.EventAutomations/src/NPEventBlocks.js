@@ -17,7 +17,7 @@ export type EventBlocksConfig = {
   linkText: string,
   showResultingTimeDate: boolean,
   version?: string,
-  calendar?: string
+  calendar?: string,
 }
 
 type ConfirmedEvent = {
@@ -245,12 +245,12 @@ export async function processTimeLines(paragraphBlock: Array<TParagraph>, config
           clo(event, `Created event:`)
           let { calendarItemLink, date, endDate, isAllDay } = event
           // work around the fact that eventByID sends back the wrong endDate for all day events
-          if (isAllDay) endDate = addMinutes(endDate,-1) // https://discord.com/channels/763107030223290449/1011492449769762836/1011492451460059246
+          if (isAllDay) endDate = addMinutes(endDate, -1) // https://discord.com/channels/763107030223290449/1011492449769762836/1011492451460059246
           logDebug(pluginJson, `processTimeLines event=${title} event.calendarItemLink=${calendarItemLink}`)
-          const startDateString = date.toLocaleString().split(", ")[0]
-          const endDateString = endDate.toLocaleString().split(", ")[0]
+          const startDateString = date.toLocaleString().split(', ')[0]
+          const endDateString = endDate.toLocaleString().split(', ')[0]
           const dateStr = isAllDay ? `${startDateString}${startDateString === endDateString ? '' : `-${endDateString}`}` : date.toLocaleString()
-          logDebug(pluginJson,`noDuration: ${startDateString === endDateString} dateStr = "${dateStr}" endDate: ${endDate.toString()} ${endDate.toLocaleString()}`)
+          logDebug(pluginJson, `noDuration: ${startDateString === endDateString} dateStr = "${dateStr}" endDate: ${endDate.toString()} ${endDate.toLocaleString()}`)
           const created = config.showResultingTimeDate ? ` ${dateStr}` : ''
           const editedLink = config.showResultingTimeDate ? replaceCalendarLinkText(calendarItemLink, created) : calendarItemLink
           item.paragraph.content = `${config.removeDateText ? item.revisedLine : item.originalLine} ${editedLink}`

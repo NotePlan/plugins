@@ -2,11 +2,30 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.Ta
 
 # What's Changed in this Plugin?
 
+## [2.2.0] (@dwertheimer) 2022-08-27 
+- Add sort by due date
+## [2.1.5] (@dwertheimer) 2022-08-27
+- Work around bug in removeParagraphs() that resulted in duplicates if lines are not in lineIndex order
+
+## [2.1.4] (@dwertheimer) 2022-08-27
+- Add logging to try to identify Editor crash
+
+## [2.1.3] (@dwertheimer) 2022-08-27
+- Fix Readme and docs. Thx @jgclark for the Eagle Eye
+
+## [2.1.1] (@dwertheimer) 2022-08-27
+- Fix typo
+- Attempting to reduce lag in changes reflected in Editor
+
+## [2.1.0] (@dwertheimer)
+- Added /tsd default task sorting settings
+- Added default settings for headings/subheadings in output
+- Added task sort by hashtag/mention (for @George65)
+
 ## [2.0.0] 2022-07-12 (@dwertheimer)
 - Added commands:
   - /open todo links in browser
   - /open URL on this line
-  - 
 
 ## [1.6.2] 2022-05-17
 - adding /cth and copy tags /ctm /ctt

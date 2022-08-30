@@ -651,3 +651,24 @@ export const isReallyAllDay = (parseDateReturnObj: any): boolean => {
 // export const isValidCalendarNoteTitle = (text: string): boolean => (new RegExp(`${RE_ISO_DATE}|${RE_WEEK_DATE}`).test(text))
 export const isValidCalendarNoteTitle = (text: string): boolean => (new RegExp("(([0-9]{4})-((0[1-9]|1[0-2])-(0[1-9]|1[0-9]|2[0-9]|3[0-1])|W0[1-9]|W[1-4]\\d|W5[0-3]))").test(text))
 
+/**
+ * Given a number of seconds, send back a human-readable version (e.g. 1 year 2 months 3 seconds) 
+ * @param {number} seconds 
+ * @returns {string} formatted string
+ */
+export function TimeFormatted(seconds:number) {
+  const y = Math.floor(seconds / 31536000)
+  const mo = Math.floor((seconds % 31536000) / 2628000)
+  const d = Math.floor(((seconds % 31536000) % 2628000) / 86400)
+  const h = Math.floor((seconds % (3600 * 24)) / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  const s = Math.floor(seconds % 60)
+
+  const yDisplay = y > 0 ? y + (y === 1 ? " year, " : " years, ") : ""
+  const moDisplay = mo > 0 ? mo + (mo === 1 ? " month, " : " months, ") : ""
+  const dDisplay = d > 0 ? d + (d === 1 ? " day, " : " days, ") : ""
+  const hDisplay = h > 0 ? h + (h === 1 ? " hour, " : " hours, ") : ""
+  const mDisplay = m > 0 ? m + (m === 1 ? " minute " : " minutes, ") : ""
+  const sDisplay = s > 0 ? s + (s === 1 ? " second" : " seconds ") : ""
+  return yDisplay + moDisplay + dDisplay + hDisplay + mDisplay + sDisplay
+}

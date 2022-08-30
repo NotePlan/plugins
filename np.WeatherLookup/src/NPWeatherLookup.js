@@ -210,7 +210,7 @@ export async function insertWeatherByLocation(incoming: ?string = '', returnLoca
       let location = incoming
       do {
         if (location?.length === 0) {
-            location = await getInput(`What city do you want to lookup? (do not include state)`,"OK","Weather Lookup")   
+          location = await getInput(`What city do you want to lookup? (do not include state)`, 'OK', 'Weather Lookup')
         }
         if (location) {
           const result: any = await getLatLongForLocation(location)
@@ -226,10 +226,9 @@ export async function insertWeatherByLocation(incoming: ?string = '', returnLoca
             location = ''
           }
         } else {
-          logDebug(pluginJson,`insertWeatherByLocation: No location to look for: ${location}`)
+          logDebug(pluginJson, `insertWeatherByLocation: No location to look for: ${location}`)
         }
       } while (location !== false)
-
     }
   } catch (error) {
     logError(pluginJson, JSP(error))

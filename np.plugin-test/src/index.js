@@ -1,6 +1,2 @@
 // @flow
-export {
-  pluginTester,
-  writeToNewCalendarNote,
-  testOutputEditorContents
-} from './pluginTester'
+export { pluginTester, writeToNewCalendarNote, testOutputEditorContents } from './pluginTester'
