@@ -37,7 +37,7 @@ When you have cloned this repository, you will not only have the tooling, but yo
 
 **Step 2: Install Node (if not installed)**
 
-Make sure you have a recent version of `node` and `npm` installed (if you need to install node, `brew install node` is the quickest method, you can follow instructions on [node website](https://nodejs.org/en/download/)).
+Make sure you have a recent version of `node` and `npm` installed (if you need to install node, `brew install node@16` is the quickest method, you can follow instructions on [node website](https://nodejs.org/en/download/)).
 
 **Step 3: Initialize Local Development Environment**
 
@@ -95,6 +95,8 @@ These are the most common commands you will use while developing:
 The default watch command `npc plugin:dev <your_plugin_folder> --watch`:
 
 `npc plugin:dev` from the root of your local `NotePlan/plugins` repository which will bundle all the files in your `/src` directory into single file `script.js` and will be copied from your repository directory to your Plugins folder in the running NotePlan data directory for testing.
+
+The `init` script should have detected whether you are using the SetApp or App Store version of NotePlan and set the correct path to your Plugins folder. If it did not, you can manually change it in `.pluginpath`.
 
 *Note: The watcher will remain running, _watching_ the NotePlan directory and re-compile whenever changes have been made to your `<your_plugin>/src` JavaScript files.*
 
