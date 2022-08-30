@@ -308,6 +308,7 @@ export function endOfFrontmatterLineIndex(note: CoreNoteFields): number {
  * Additionally, it skips past any front-matter like section in a project note, as used by the Reviews plugin before frontmatter was supported.
  * This is indicated by a #hashtag starting the next line. If there is, run on to next heading or blank line.
  * Note: given this is a precursor to writing to a note, it first checks if the note is completely empty (0 lines). If so, a first 'empty' line is added, to avoid edge cases in calling code.
+ * Note: for a calendar note, the start is always lineIndex 0
  * @author @jgclark
  *
  * @param {TNote} note - the note to assess
@@ -324,7 +325,6 @@ export function findStartOfActivePartOfNote(note: CoreNoteFields): number {
     }
     if (note.type === 'Calendar') {
       // Calendar notes are simple -> line index 0
-      // But first check there's actually anything at all! If so -> NaN
       return 0
     } else {
       // Looking at project/regular notes

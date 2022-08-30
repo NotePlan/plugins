@@ -233,15 +233,17 @@ export function getParagraphBlock(note: CoreNoteFields,
     }
   }
 
-  logDebug(`NPParagraph / getParagraphBlock`, `  - Found ${parasInBlock.length} paras in block starting with: "${allParas[selectedParaIndex].content}"`)
-  // for (const pib of parasInBlock) {
-  //   log(`NPParagraph / getParagraphBlock`, `  ${pib.content}`)
-  // }
+  logDebug(`NPParagraph / getParagraphBlock`, `  - Found ${parasInBlock.length} paras in block starting with: "${parasInBlock[0].content}"`)
+  for (const pib of parasInBlock) {
+    log(`NPParagraph / getParagraphBlock`, `  ${pib.content}`)
+  }
   return parasInBlock
 }
 
 /**
  * Get the paragraphs beneath a title/heading in a note (optionally return the contents without the heading)
+ * It uses getParagraphBlock() which won't return the title of a note in the first block.
+ * TODO: this really needs a global setting for the two getParagraphBlock() settings that are currently fixed below.
  * Note: Moved from helpers/paragraph.js to avoid circular depdency problem with getParagraphBlock()
  * @author @dwertheimer
  * @tests available in jest file
@@ -259,10 +261,12 @@ export function getBlockUnderHeading(note: TNote, heading: TParagraph | string, 
   }
   let paras: Array<TParagraph> = []
   if (headingPara?.lineIndex != null) {
-    paras = getParagraphBlock(note, headingPara.lineIndex)
+    // TODO: should use global settings here, not fixed as
+    paras = getParagraphBlock(note, headingPara.lineIndex, true, true)
+    // logDebug('getBlockUnderHeading', `= ${paras.length},${paras[0].type},${paras[0].headingLevel}`)
   }
-  if (paras.length && !returnHeading) {
-    paras.shift() //remove the header paragraph
+  if (paras.length && paras[0].type === 'title' && !returnHeading) {
+    paras.shift() //remove the heading paragraph
   }
   return paras
 }
@@ -453,7 +457,7 @@ export async function removeContentUnderHeadingInAllNotes(noteTypes: Array<strin
 }
 
 /**
- * COPY FROM helpers/NPParagaph.js to avoid a circular dependency
+ * COPY FROM helpers/paragaph.js to avoid a circular dependency
  */
 export function findHeading(note: TNote, heading: string, includesString: boolean = false): TParagraph | null {
   if (heading && heading !== '') {
