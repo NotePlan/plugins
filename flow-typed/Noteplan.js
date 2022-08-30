@@ -278,7 +278,7 @@ declare interface TEditor extends CoreNoteFields {
       "values": Object // fully parsed JSON theme file
     }
    * (Originally available from v3.1, returning a read-only array of strings)
-   * @return {$ReadOnlyArray<string>}
+   * @return {$ReadOnlyArray<Object>}
    */
 +availableThemes: $ReadOnlyArray < Object >;
 /**
@@ -288,7 +288,7 @@ declare interface TEditor extends CoreNoteFields {
  *  - "mode" ("dark" or "light")
  *  - "values" -- all the JSON in the theme
  * Note: Available from NotePlan v3.6.2 (build >847)
- * @type {name: String, mode: String ("dark", "light")}
+ * @return {Object}
  */
 +currentTheme: Object;
   /**
