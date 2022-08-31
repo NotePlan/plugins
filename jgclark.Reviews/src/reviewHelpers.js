@@ -171,10 +171,10 @@ export class Project {
   folder: string
   percentComplete: number = NaN // FIXME: Why Comms Review NaN?
   lastProgressComment: string = '' // e.g. "Progress: 60@20220809: comment
-  ID: number
+  ID: string
 
   constructor(note: TNote) {
-    this.ID = Math.round((Math.random()) * 99999) // TODO: Make a one-up number
+    this.ID = String(Math.round((Math.random()) * 99999)) // TODO: Make a one-up number
     const mentions: $ReadOnlyArray<string> = note.mentions
     const hashtags: $ReadOnlyArray<string> = note.hashtags
     this.note = note
@@ -271,7 +271,7 @@ export class Project {
     this.dueDays =
       this.dueDate != null
         ? // NB: Written while there was an error in EM's Calendar.unitsBetween() function
-          daysBetween(now, this.dueDate)
+      daysBetween(now, this.dueDate)
         : undefined
     this.finishedDays =
       this.completedDate != null && this.startDate != null
@@ -432,8 +432,20 @@ export class Project {
   static detailedSummaryLineHeader(style: string): string {
     switch (style) {
       case 'HTML':
-        // return `<thead>\n<th>Project/Area Title</th><th>#open tasks</th><th>#complete</th><th>#waiting</th><th>#future</th><th>next review</th><th>due</th>\n</thead>\n<tbody>\n`
-        return `<thead>\n\t<tr class="sticky-row">\n\t<th>%</th><th>Project/Area Title</th><th>Dates</th><th></th>\n\t</tr>\n</thead>\n<tbody>\n`
+        // Include colgroup to help massage widths a bit
+        return `<thead>
+<colgroup>
+\t<col>
+\t<col>
+\t<col width="20%">
+\t<col width="20%">
+</colgroup>
+\t<tr class="sticky-row">
+\t<th>%</th><th>Project/Area Title</th><th>Dates</th><th></th>
+\t</tr>
+</thead>
+<tbody>
+`
 
       default: // including 'markdown'
         return `_Key:\tProject/Area Title\t#tasks open / complete / waiting / future / next review / due_`
@@ -451,16 +463,17 @@ export class Project {
     switch (style) {
       case 'HTML':
         output = '\t<tr>'
-        if (!this.isCompleted && !this.isCancelled) {
-          output += '<td>' + this.makeSVGPercentRing(this.percentComplete, 'orange', String(this.percentComplete)) + '</td>'
-        }
-        else if (this.isCompleted) {
-          output += '<td>' + this.makeSVGPercentRing(100, 'forestgreen', '*') + '</td>'
+        if (this.isCompleted) {
+          output += '<td>' + this.addNPStateIcon('forestgreen', 'a') + '</td>' // ✓
         }
         else if (this.isCancelled) {
-          output += '<td>' + this.makeSVGPercentRing(100, 'red', '-') + '</td>'
-        } else { // other cases, including NaN
-          output += '<td>' + this.makeSVGPercentRing(100, 'grey', '?') + '</td>'
+          output += '<td>' + this.addNPStateIcon('red', 'c') + '</td>' // X
+        }
+        else if (isNaN(this.percentComplete)) { // NaN
+          output += '<td>' + this.makeSVGPercentRing(100, 'grey', '0') + '</td>'
+        }
+        else {
+          output += '<td>' + this.makeSVGPercentRing(this.percentComplete, 'orange', String(this.percentComplete)) + '</td>'
         }
         output += `<td>${this.decoratedProjectTitle(style, includeFolderName)}`
         // Add this.lastProgressComment (if it exists) on line under title (and project is still open)
@@ -522,19 +535,31 @@ export class Project {
    * Draw percent ring with the number in the middle.
    * If 'textToShow' is given then use this instead of the percentage.
    * Note: harder than it looks to change text color: see my contribution at https://stackoverflow.com/questions/17466707/how-to-apply-a-color-to-a-svg-text-element/73538662#73538662 when I worked out how.
+   * Note: It needs accompanying JS function setPercentRing() to properly set the ring.
    * @param {number} percent 0-100
-   * @param {string} ringColor 
-   * @param {string} textToShow inside ring (which can be different from just the percent)
+   * @param {string?} color for ring and text
+   * @param {string?} textToShow inside ring (which can be different from just the percent)
    * @returns {string} SVG code to insert in HTML
    */
-  makeSVGPercentRing(percent: number, ringColor: string = 'forestgreen', text: string = ''): string {
+  makeSVGPercentRing(percent: number, color: string = 'forestgreen', text: string = ''): string {
     const textToShow = (text !== '') ? text : String(percent)
     return `
-  <svg id="pring${this.ID}" class="percent-ring" height="200" width="200" viewBox="0 0 100 100">
-    <circle class="percent-ring-circle" stroke="${ringColor}" stroke-width=13% fill="transparent" r=40% cx=50% cy=50% />
-    <g class="circle-percent-text">
+  <svg id="pring${this.ID}" class="percent-ring" height="200" width="200" viewBox="0 0 100 100" onload="setPercentRing(${percent}, 'pring${this.ID}');">
+    <circle class="percent-ring-circle" stroke="${color}" stroke-width=13% fill="transparent" r=40% cx=50% cy=50% />
+    <g class="circle-percent-text" color=${color}>
     <text class="circle-percent-text" x=50% y=53% dominant-baseline="middle" text-anchor="middle" fill="currentcolor" stroke="currentcolor">${textToShow}</text>
     </g>
   </svg>\n`
+  }
+
+  /**
+   * Insert one of NP's state icons in given color.
+   * Other styling comes from CSS for 'circle-char-text'
+   * @param {string} color 
+   * @param {string} char to display (normally 1)
+   * @returns HTML string to insert
+   */
+  addNPStateIcon(color: string, char: string): string {
+    return `<span class="circle-char-text" style="color: ${color}">${char}</span>`
   }
 }

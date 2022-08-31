@@ -61,10 +61,16 @@ export function logReviewList(): void{
 const reviewListCSS = [
   '',
   '/* CSS specific to reviewList() from jgclark.Reviews plugin */',
+  `@font-face {
+  font-family: "noteplanstate";
+  src: url('noteplanstate.ttf') format('truetype');
+}`, // local font
   'table { font-size: 0.9rem;', // make text a little smaller
-  '\tborder-collapse: collapse; }', // always!
+  '\tborder-collapse: collapse;', // always!
+  '\tempty-cells: show; }',
   '.sticky-row { position: sticky; top: 0; }', // Keep a header stuck to top of window
   'th { text-align: left; padding: 4px; border-left: 0px solid --tint-color; border-right: 0px solid --tint-color; border-bottom: 1px solid --tint-color; }', // // removed L-R borders for now
+  'th td:first-child {text-align: center;}',
   'td.new-section-header { color: --h3-color; padding-top: 1.0rem; font-size: 1.0rem; font-weight: bold }',
   'td { padding: 4px; border-left: 0px solid --tint-color; border-right: 0px solid --tint-color; }', // removed L-R borders for now
   // 'table tbody tr:first-child { border-top: 1px solid --tint-color; }', // turn on tbody section top border -- now set in main CSS
@@ -74,8 +80,30 @@ const reviewListCSS = [
   '.checkbox { font: "noteplanstate", font-size: 1.4rem; }', // make checkbox display larger, and like in the app
   '.percent-ring { width: 2rem; height: 2rem; }', // Set size of percent-display rings
   '.percent-ring-circle { transition: 0.5s stroke-dashoffset; transform: rotate(-90deg); transform-origin: 50% 50%; }', // details of ring-circle that can be set in CSS
-  '.circle-percent-text { font-size: 2.2rem; color: --fg-main-color; }' // details of ring text that can be set in CSS
+  '.circle-percent-text { font-size: 2.2rem; color: --fg-main-color; }', // details of ring text that can be set in CSS
+  '.circle-char-text { font-size: 1.9rem; font-family: "noteplanstate" }' // details of ring text that can be set in CSS, including font, locally set above
 ].join('\n\t')
+
+const setPercentRingJSFunc = `
+  /**
+   * Sets the value of a SVG percent ring.
+   * @param {number} percent The percent value to set.
+   */
+  function setPercentRing(percent, ID) {
+    let svg = document.getElementById(ID);
+    let circle = svg.querySelector('circle');
+    const radius = circle.r.baseVal.value;
+    const circumference = radius * 2 * Math.PI;
+    circle.style.strokeDasharray = String(circumference) + ' ' + String(circumference);
+    circle.style.strokeDashoffset = String(circumference);
+
+    const offset = circumference - percent / 100 * circumference;
+    circle.style.strokeDashoffset = offset;  // Set to negative for anti-clockwise.
+
+    // let text = svg.querySelector('text');
+    // text.textContent = String(percent); // + '%';
+  }
+  `
 
 /**
  * Generate human-readable lists of project notes for each tag of interest
@@ -114,9 +142,9 @@ export async function makeProjectListsHTML(): Promise<void> {
           noteTitle,
           '', // no extra header tags
           outputArray.join('\n'),
-          '', // get general CSS set automatically
+          '', // = set general CSS from current theme
           reviewListCSS,
-          '',
+          setPercentRingJSFunc,
           '',
           noteTitleWithoutHash)
         logDebug(pluginJson, `- written results to HTML`)
