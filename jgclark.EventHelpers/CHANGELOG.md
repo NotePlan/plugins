@@ -1,6 +1,10 @@
 # What's changed in 🕓 Event Helpers?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
+## [0.17.1] - 2022-08-31
+### Changed
+- the format of `*|DATE|*` can now be overridden with the 'Shared Settings > Locale' setting.
+
 ## [0.17.0] - 2022-08-10
 ### Added
 - the **location** of an event is now available in the output of "/insert day's event as list" and "/insert matching events" commands. It's formatting code is `*|LOCATION|*`.

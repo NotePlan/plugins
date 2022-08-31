@@ -1,8 +1,8 @@
 // @flow
 // ----------------------------------------------------------------------------
 // Command to bring calendar events into notes
-// Last updated 10.8.2022 for v0.16.7, by @jgclark
-// @jgclark, with additions by @dwertheimer, @weyert, @m1well
+// Last updated 30.8.2022 for v0.17.1, by @akrabat
+// @jgclark, with additions by @dwertheimer, @weyert, @m1well, @akrabat
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -275,7 +275,7 @@ export function getReplacements(item: TCalendarItem, config: EventsConfig): Map<
   outputObject.set('ATTENDEES', item.attendees ? item.attendees.join(', ') : '')
   outputObject.set('EVENTLINK', item.calendarItemLink ? item.calendarItemLink : '')
   outputObject.set('LOCATION', item.location ? item.location : '')
-  outputObject.set('DATE', toLocaleDateString(item.date))
+  outputObject.set('DATE', toLocaleDateString(item.date, config.locale))
   outputObject.set('START', !item.isAllDay ? toLocaleTime(item.date, config.locale, config.timeOptions) : '')
   outputObject.set('END', item.endDate != null && !item.isAllDay ? toLocaleTime(item.endDate, config.locale, config.timeOptions) : '')
   outputObject.set('URL', item.url)
