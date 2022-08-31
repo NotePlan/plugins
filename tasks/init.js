@@ -15,7 +15,7 @@ function init(cwd = null) {
   const pluginPathFilename = path.join(pluginDirectory, '.pluginpath')
   if (!filesystem.existsSync(pluginPathFilename)) {
     const noteplanDirectory = filesystem.existsSync(`/Users/${username}/Library/Containers/co.noteplan.NotePlan-setapp`) ? `co.noteplan.NotePlan-setapp` : `co.noteplan.NotePlan3`
-    const data = `/Users/${username}/Library/Containers/${noteplanDirectory}/Data/Library/Application Support/co.noteplan.NotePlan3/Plugins`
+    const data = `/Users/${username}/Library/Containers/${noteplanDirectory}/Data/Library/Application Support/${noteplanDirectory}/Plugins`
     filesystem.writeFileSync(pluginPathFilename, data)
     completedTasks++
   }
