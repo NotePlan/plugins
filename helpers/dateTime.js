@@ -462,9 +462,10 @@ export function weekStartEnd(week: number, year: number): [Date, Date] {
     logWarn('helpers/weekStartEnd', `Invalid week number ${week} given, but will still calculate correctly, relative to year ${year}.`)
   }
 
-  const start = moment().year(year).isoWeeks(week).hours(0).minutes(0).seconds(0).milliseconds(0)
-  const startDate = start.toDate()
-  const endDate = start.add(6, 'days').toDate()
+  // the .milliseconds in the following shouldn't really be needed, but it seems to
+  const startDate = moment().year(year).isoWeeks(week).startOf('isoWeek').milliseconds(0).toDate()
+  // const endDate = start.add(6, 'days').hours(23).minutes(59).seconds(59).toDate()
+  const endDate = moment().year(year).isoWeeks(week).endOf('isoWeek').milliseconds(0).toDate()
   return [startDate, endDate]
 }
 
@@ -482,7 +483,7 @@ export function weekStartDateStr(inStr: string): string {
       const parts = inStr.split('-W') // Split YYYY-Wnn string into parts
       const year = Number(parts[0])
       const week = Number(parts[1])
-      const m = moment().year(year).isoWeeks(week)
+      const m = moment().year(year).isoWeeks(week).startOf('isoWeek')
       return m.format("YYYYMMDD")
     } else {
       throw new Error(`Invalid date ${inStr}`)
@@ -652,11 +653,12 @@ export const isReallyAllDay = (parseDateReturnObj: any): boolean => {
 export const isValidCalendarNoteTitle = (text: string): boolean => (new RegExp("(([0-9]{4})-((0[1-9]|1[0-2])-(0[1-9]|1[0-9]|2[0-9]|3[0-1])|W0[1-9]|W[1-4]\\d|W5[0-3]))").test(text))
 
 /**
- * Given a number of seconds, send back a human-readable version (e.g. 1 year 2 months 3 seconds) 
+ * Given a number of seconds, send back a human-readable version (e.g. 1 year 2 months 3 seconds)
+ * @author @dwertheimer
  * @param {number} seconds 
  * @returns {string} formatted string
  */
-export function TimeFormatted(seconds:number) {
+export function TimeFormatted(seconds: number): string {
   const y = Math.floor(seconds / 31536000)
   const mo = Math.floor((seconds % 31536000) / 2628000)
   const d = Math.floor(((seconds % 31536000) % 2628000) / 86400)

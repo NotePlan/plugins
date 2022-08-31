@@ -6,7 +6,7 @@ import colors from 'chalk'
 import * as dt from '../dateTime'
 
 const PLUGIN_NAME = `📙 ${colors.yellow('helpers/dateTime')}`
-const section = colors.blue
+// const section = colors.blue
 
 describe(`${PLUGIN_NAME}`, () => {
     describe('getDateObjFromDateString', () => {
@@ -154,21 +154,17 @@ describe(`${PLUGIN_NAME}`, () => {
       test('2022-01-01 (Sat) -> week 52', () => {
         expect(dt.getWeek(new Date(2022, 0, 1, 0, 0, 0))).toEqual(52)
       })
-      // the following returns 52 which looks like an error to me,
-      // but who am I to question moment??
-      test.skip('2022-01-02 (Sun) -> week 1 (1st day of week)', () => {
-        expect(dt.getWeek(new Date(2022, 0, 2, 0, 0, 0))).toEqual(1)
+      test('2022-01-02 (Sun) -> week 52 (last day of that week)', () => {
+        expect(dt.getWeek(new Date(2022, 0, 2, 0, 0, 0))).toEqual(52)
       })
       test('2022-01-03 (Mon) -> week 1', () => {
         expect(dt.getWeek(new Date(2022, 0, 3, 0, 0, 0))).toEqual(1)
       })
-      test('2022-01-08 (Sat) -> week 1 (last day of week)', () => {
+      test('2022-01-08 (Sat) -> week 1', () => {
         expect(dt.getWeek(new Date(2022, 0, 8, 0, 0, 0))).toEqual(1)
       })
-      // the following returns 1 which looks like an error to me,
-      // but who am I to question moment??
-      test.skip('2022-01-09 (Sun) -> week 2', () => {
-        expect(dt.getWeek(new Date(2022, 0, 9, 0, 0, 0))).toEqual(2)
+      test('2022-01-09 (Sun) -> week 1', () => {
+        expect(dt.getWeek(new Date(2022, 0, 9, 0, 0, 0))).toEqual(1)
       })
       test('2026-12-26 (Sat) -> week 52', () => {
         expect(dt.getWeek(new Date(2026, 11, 26, 0, 0, 0))).toEqual(52)
@@ -430,14 +426,14 @@ describe(`${PLUGIN_NAME}`, () => {
 
     describe('weekStartEnd()', () => {
       // skipped, as I can't see why moment is right here
-      test.skip('2021W52 -> (2021-12-26, 2022-01-01)', () => {
-        expect(dt.weekStartEnd(52, 2021)).toEqual([new Date(2021, 11, 26, 0, 0, 0), new Date(2022, 0, 1, 0, 0, 0)])
+      test('2021W52 -> (2021-12-27, 2022-01-02)', () => {
+        expect(dt.weekStartEnd(52, 2021)).toEqual([new Date(2021, 11, 27, 0, 0, 0), new Date(2022, 0, 2, 23, 59, 59)])
       })
       test('2022W1 -> (2022-01-03, 2022-01-09)', () => {
-        expect(dt.weekStartEnd(1, 2022)).toEqual([new Date(2022, 0, 3, 0, 0, 0), new Date(2022, 0, 9, 0, 0, 0)])
+        expect(dt.weekStartEnd(1, 2022)).toEqual([new Date(2022, 0, 3, 0, 0, 0), new Date(2022, 0, 9, 23, 59, 59)])
       })
       test('2022W2 -> (2022-01-10, 2022-01-16)', () => {
-        expect(dt.weekStartEnd(2, 2022)).toEqual([new Date(2022, 0, 10, 0, 0, 0), new Date(2022, 0, 16, 0, 0, 0)])
+        expect(dt.weekStartEnd(2, 2022)).toEqual([new Date(2022, 0, 10, 0, 0, 0), new Date(2022, 0, 16, 23, 59, 59)])
       })
     })
 
@@ -451,7 +447,7 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result).toEqual("(error)")
       })
       // skipped, as I can't see why moment is right here
-      test.skip('should return date 1', () => {
+      test('should return date 1', () => {
         const result = dt.weekStartDateStr('2021-W52')
         expect(result).toEqual("20211227")
       })
