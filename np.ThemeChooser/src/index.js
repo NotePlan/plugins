@@ -15,6 +15,8 @@
 // So you need to add a line below for each function that you want NP to have access to.
 // Typically, listed below are only the top-level plug-in functions listed in plugin.json
 
+import { showMessage } from "../../helpers/userInput";
+
 export { chooseTheme, changePreset, setDefaultLightDarkTheme, toggleTheme, setPreset01, setPreset02, setPreset03, setPreset04, setPreset05 } from './NPThemeChooser' // add one of these for every command specifified in plugin.json (the function could be in any file as long as it's exported)
 
 // Do not change this line. This is here so your plugin will get recompiled every time you change your plugin.json file
@@ -55,7 +57,7 @@ export async function onUpdateOrInstall(): Promise<void> {
  * NotePlan calls this function every time the plugin is run (any command in this plugin)
  * You should not need to edit this function. All work should be done in the commands themselves
  */
-export function init(): void {
+export async function init(): void {
   clo(DataStore.settings, `${pluginJson['plugin.id']} Plugin Settings`)
   DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], true, false, false).then((r) => pluginUpdated(pluginJson, r))
 }
