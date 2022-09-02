@@ -12,7 +12,6 @@ export {
   removeTimeBlocks,
   removePreviousSyncedCopies,
   removePreviousTimeBlocks,
-  updateDatePlusTags,
 } from './NPTimeblocking'
 
 export { createEvents } from './NPEventBlocks'

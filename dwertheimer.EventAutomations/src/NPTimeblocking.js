@@ -38,7 +38,6 @@ import { JSP, clo, log, logError, logWarn, logDebug } from '@helpers/dev'
 import { checkNumber, checkWithDefault } from '@helpers/checkType'
 import { getSyncedCopiesAsList } from '@helpers/NPSyncedCopies'
 import { removeContentUnderHeading, insertContentUnderHeading, removeContentUnderHeadingInAllNotes } from '@helpers/NPParagraph'
-import { findAndUpdateDatePlusTags } from '@helpers/NPNote'
 
 /**
  * Get the config for this plugin, from DataStore.settings or the defaults if settings are not valid
@@ -574,20 +573,6 @@ export async function selectCalendar(isPluginEntry: boolean = true): Promise<voi
       settings[calendarConfigField] = updatedCalendar
       DataStore.settings = settings
     }
-  } catch (error) {
-    logError(pluginJson, JSP(error))
-  }
-}
-
-/**
- * Find and update date+ tags
- * (plugin entry point for "/Update >date+ tags in Notes")
- * @param {*} incoming
- */
-export function updateDatePlusTags() {
-  try {
-    const { datePlusOpenOnly, foldersToIgnore } = DataStore.settings
-    findAndUpdateDatePlusTags(datePlusOpenOnly, foldersToIgnore)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }

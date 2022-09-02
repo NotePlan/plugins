@@ -498,7 +498,7 @@ export async function chooseNote(includeProjectNotes: boolean = true, includeCal
     isInIgnoredFolder = isInIgnoredFolder || !/(\.md|\.txt)$/i.test(note.filename) //do not include non-markdown files
     return !isInIgnoredFolder
   })
-  let opts = noteListFiltered.map((note) => {
+  const opts = noteListFiltered.map((note) => {
     return note.title && note.title !== '' ? note.title : note.filename
   })
   const {index} = await CommandBar.showOptions(opts, 'Choose note')

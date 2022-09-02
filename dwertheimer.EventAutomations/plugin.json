@@ -5,8 +5,8 @@
   "plugin.name": "🗓 AutoTimeBlocking & Event Automations",
   "plugin.description": "Various Event Automations:\n- Automatically find time in your calendar and create Time Blocks for items marked for >today,\n- Write out synced copies of Today's todos (without the AutoTimeBlocking), and\n- Create calendar events for all text items under a specific heading",
   "plugin.author": "dwertheimer",
-  "plugin.version": "1.8.0",
-  "plugin.lastUpdateInfo": "1.8.0: Ask for calendar selection in Event Blocks Creation",
+  "plugin.version": "1.10.0",
+  "plugin.lastUpdateInfo": "1.10.0: Moved >date+ functions to Task Automations Plugin",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://noteplan.co/n/#/1EF12392-B544-4044-AC7A-428F57EB2DFC",
@@ -89,15 +89,7 @@
       "arguments": [
         "Run silently with no pop-up messages (e.g. running from a Template) - (yes/no) - yes to run silently"
       ]
-    },
-    {
-      "name": "Update >date+ tags in Notes",
-      "description": "Search for >date+ tags in all notes and update them to >today if today is >= the date",
-      "jsFunction": "updateDatePlusTags",
-      "alias": [
-        "updateDatePlusTags"
-      ]
-    },
+    }, 
     {
       "name": "cevt - Create Events From Text",
       "description": "Create calendar events by writing (natural language) text under a heading",
@@ -373,35 +365,6 @@
       "description": "PRIORITY_FIRST places the highest priority (most !'s) first (if there's a slot) and then continues down the priority stack. LARGEST_FIRST tries to place the longest/largest duration item first.",
       "default": "PRIORITY_FIRST",
       "required": true
-    },
-    {
-      "type": "separator"
-    },
-    {
-      "type": "heading",
-      "title": ">Date+ Settings"
-    },
-    {
-      "key": "datePlusOpenOnly",
-      "title": "Look only for OPEN/incomplete tasks with >date+",
-      "description": "When searching for >date+ tags, only look for tasks that are OPEN/incomplete. If unchecked, it will find/process all lines containing a >date+ tag, whether plain text lines, list/bullets, or completed items.",
-      "type": "bool",
-      "default": true,
-      "required": true
-    },
-    {
-      "key": "foldersToIgnore",
-      "title": "Folders to ignore when searching for >Date+ Tags",
-      "description": "A comma-separated list of folders to ignore when searching for items tagged >date+.",
-      "type": "[string]",
-      "default": [
-        "@Templates",
-        "@Searches",
-        "Reviews",
-        "Summaries",
-        "@Archive"
-      ],
-      "required": false
     },
     {
       "type": "separator"

@@ -84,7 +84,7 @@ export function formatOutput(results: Array<LineInfo>, formatTemplate: string = 
       logDebug(pluginJson,`checking line.lineValue: ${line.lineValue}`)
       if (checkIfUnit(line.lineValue)) {
         const strValue = String(line.lineValue).split(" ")
-        val = round(Number(strValue[0]),precision)+" "+strValue[1]
+        val = `${round(Number(strValue[0]),precision)} ${strValue[1]}`
         logDebug(pluginJson,`checking val.value: ${val}`)
       } else {
         val = round(val,precision)
