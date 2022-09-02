@@ -62,7 +62,7 @@ export function unhyphenateString(dateString: string): string {
 // NB: This does not work to get reliable date string from note.date for daily notes
 // Instead use hyphenatedDateFromNote()
 export function toISODateString(dateObj: Date): string {
-  logDebug('dateTime/toISODateString', `${dateObj.toISOString()} // ${toLocaleDateTimeString(dateObj)}`)
+  // logDebug('dateTime/toISODateString', `${dateObj.toISOString()} // ${toLocaleDateTimeString(dateObj)}`)
   return dateObj.toISOString().slice(0, 10)
 }
 
@@ -71,7 +71,7 @@ export function toISODateString(dateObj: Date): string {
 // which happens to be identical.
 export function hyphenatedDate(date: Date): string {
   if (date != null) {
-    logDebug('dateTime/hyphenatedDate', `${toLocaleDateTimeString(date)} -> ${toLocaleDateString(date, 'sv-SE')}`)
+    // logDebug('dateTime/hyphenatedDate', `${toLocaleDateTimeString(date)} -> ${toLocaleDateString(date, 'sv-SE')}`)
     return toLocaleDateString(date, 'sv-SE')
   } else {
     return 'hyphenatedDate: error: not a valid JS Date'
@@ -260,7 +260,7 @@ export function relativeDateFromNumber(diffIn: number): string {
   let output = ''
   let diff = diffIn
   let isPast = false
-  logDebug('dateTime/relativeDateFromNumber', `original diff = ${diff}`)
+  // logDebug('dateTime/relativeDateFromNumber', `original diff = ${diff}`)
   if (diff < 0) {
     diff = Math.abs(diff)
     isPast = true
@@ -285,7 +285,7 @@ export function relativeDateFromNumber(diffIn: number): string {
   } else {
     output = `in ${output}`
   }
-  logDebug('dateTime/relativeDateFromNumber', `--> ${output}`)
+  // logDebug('dateTime/relativeDateFromNumber', `--> ${output}`)
   return output
 }
 
@@ -301,7 +301,7 @@ export function relativeDateFromNumber(diffIn: number): string {
 export function getDateObjFromDateString(mention: string): ?Date {
   const RE_DATE_CAPTURE = `(${RE_DATE})` // capture date of form YYYY-MM-DD
 
-  logDebug('dateTime/getDateObjFromDateString', `for ${mention}`)
+  // logDebug('dateTime/getDateObjFromDateString', `for ${mention}`)
   const res = mention.match(RE_DATE_CAPTURE) ?? []
   // Use first match, if found
   if (res[1]?.length > 0) {
@@ -310,7 +310,7 @@ export function getDateObjFromDateString(mention: string): ?Date {
       Number(res[1].slice(5, 7)) - 1, // only seems to be needed for months?!
       Number(res[1].slice(8, 10)),
     )
-    logDebug('dateTime/getDateObjFromDateString', toISOShortDateTimeString(date))
+    // logDebug('dateTime/getDateObjFromDateString', toISOShortDateTimeString(date))
     return date
   } else {
     logWarn('dateTime/getDateObjFromDateString', `getDateFromString: no valid date found in '${mention}'`)
@@ -364,7 +364,7 @@ export const getDateObjFromDateTimeString = (dateTimeString: string): Date => {
 export function getDateFromUnhyphenatedDateString(inputString: string): ?Date {
   const RE_DATE_CAPTURE = `(\\d{4}[01]\\d{1}\\d{2})` // capture date of form YYYYMMDD
 
-  logDebug('dateTime/getDateFromUnhyphenatedDateString', inputString)
+  // logDebug('dateTime/getDateFromUnhyphenatedDateString', inputString)
   const res = inputString.match(RE_DATE_CAPTURE) ?? []
   // Use first match, if found
   if (res[1]?.length > 0) {
@@ -373,7 +373,7 @@ export function getDateFromUnhyphenatedDateString(inputString: string): ?Date {
       Number(res[1].slice(4, 6)) - 1, // only needed for months!
       Number(res[1].slice(6, 8)),
     )
-    logDebug('dateTime/getDateFromUnhyphenatedDateString', toISOShortDateTimeString(date))
+    // logDebug('dateTime/getDateFromUnhyphenatedDateString', toISOShortDateTimeString(date))
     return date
   } else {
     logWarn('dateTime/getDateFromUnhyphenatedDateString', `  no valid date found in '${inputString}'`)
@@ -520,7 +520,7 @@ export function calcWeekOffset(startWeek: number, startYear: number, offset: num
     week -= 52
     year += 1
   }
-  logDebug('dateTime/calcWeekOffset', `${startYear}W${startWeek} - ${year}W${week}`)
+  // logDebug('dateTime/calcWeekOffset', `${startYear}W${startWeek} - ${year}W${week}`)
   return { week, year }
 }
 
@@ -561,7 +561,7 @@ export function calcOffsetDateStr(baseDateISO: string, interval: string): string
     // calc offset (Note: library functions cope with negative nums, so just always use 'add' function)
     const newDate = unit !== 'b' ? baseDateMoment.add(num, unitForMoment) : momentBusiness(baseDateMoment).businessAdd(num)
     const newDateISO = newDate.format('YYYY-MM-DD')
-    logDebug('dateTime/cODS', `for '${baseDateISO}' interval ${num} / ${unitForMoment} -> '${newDateISO}'`)
+    // logDebug('dateTime/cODS', `for '${baseDateISO}' interval ${num} / ${unitForMoment} -> '${newDateISO}'`)
     return newDateISO
   } catch (e) {
     logError('dateTime/cODS', `${e.message} for '${baseDateISO}' interval '${interval}'`)
