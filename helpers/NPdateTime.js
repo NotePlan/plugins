@@ -329,7 +329,7 @@ export async function getPeriodStartEndDates(question: string = 'Create stats fo
     }
     case 'mtd': {
       fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, 1, 0, 0, 0), 'minute', -TZOffset) // start of this month
-      toDate = Calendar.dateFrom(y, m, d, 0, 0, 0)
+      toDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset) 
       periodString = `${monthNameAbbrev(m)} ${y}`
       periodPartStr = `day ${d}`
       break
@@ -412,7 +412,7 @@ export async function getPeriodStartEndDates(question: string = 'Create stats fo
       periodPartStr = `day ${dateWithinInterval}`
       break
     }
-    case 'wtd': { // FIXME:
+    case 'wtd': {
       // week to date, using ISO 8601 date definition, which always starts on a Monday
       let theYear = y
       const currentWeekNum = getWeek(todaysDate)
@@ -468,8 +468,8 @@ export async function getPeriodStartEndDates(question: string = 'Create stats fo
     }
 
     case 'ly': {
-      fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y - 1, 1, 1, 0, 0, 0), 'minute', -TZOffset) // start of last year
-      toDate = Calendar.addUnitToDate(Calendar.dateFrom(y - 1, 12, 31, 0, 0, 0), 'minute', -TZOffset) // end of last year
+      fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y - 1, 1, 1, 0, 0, 0), 'minute', -TZOffset)
+      toDate = Calendar.addUnitToDate(Calendar.dateFrom(y - 1, 12, 31, 0, 0, 0), 'minute', -TZOffset)
       periodString = `${y - 1}`
       break
     }
