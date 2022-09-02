@@ -2,16 +2,16 @@
 //-----------------------------------------------------------------------------
 // Create weekly stats for a number of weeks, and format ready to use by gnuplot
 // Jonathan Clark, @jgclark
-// Last updated 26.7.2022 for v0.11.1, @jgclark
+// Last updated 2.9.2022 for v0.13.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { calcHashtagStatsPeriod, calcMentionStatsPeriod, getSummariesSettings } from './summaryHelpers'
 import type { SummariesConfig } from './summaryHelpers'
-import { calcWeekOffset, getWeek, hyphenatedDateString, unhyphenatedDate, weekStartEnd } from '../../helpers/dateTime'
-import { logError, logDebug, logInfo, logWarn } from '../../helpers/dev'
-import { clearNote, getOrMakeNote } from '../../helpers/note'
-import { chooseOption, getInput, showMessage } from '../../helpers/userInput'
+import { calcWeekOffset, getWeek, hyphenatedDateString, unhyphenatedDate, weekStartEnd } from '@helpers/dateTime'
+import { logError, logDebug, logInfo, logWarn } from '@helpers/dev'
+import { clearNote, getOrMakeNote } from '@helpers/note'
+import { chooseOption, getInput, showMessage } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
 
@@ -65,8 +65,6 @@ function formatForGnuplot(inArray): Array<string> {
  * @author @jgclark
  */
 export async function weeklyStats(): Promise<void> {
-  // Get config settings from Template folder _configuration note
-  // await getWeeklyStatsSettings()
   let config = await getSummariesSettings()
 
   let period: number

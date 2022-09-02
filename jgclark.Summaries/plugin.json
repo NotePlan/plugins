@@ -2,23 +2,38 @@
   "noteplan.minAppVersion": "3.3.2",
   "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.Summaries",
-  "plugin.name": "🗃 Summaries",
+  "plugin.name": "⏱ Habits and Summaries",
   "plugin.description": "Generate summaries from notes for a given time period, or save search results, and save to notes. Requires configuring to suit your use of NotePlan. Click link for more details and settings.",
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Summaries/CHANGELOG.md",
-  "plugin.version": "0.12.0",
-  "plugin.lastUpdateInfo": "Added sparklines to '/insert progress summary' and tidied up the stats display.",
+  "plugin.version": "0.13.0",
+  "plugin.lastUpdateInfo": "Plugin and some command names have changed! Also added several new features -- please look at the CHANGELOG and README.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
   "plugin.commands": [
     {
-      "name": "countsInPeriod",
+      "name": "insertProgressUpdate",
       "alias": [
-        "stp",
+        "ipu",
+        "progress",
+        "habitTracker",
+        "track"
+      ],
+      "description": "Insert weekly/monthly habit and progress update",
+      "jsFunction": "insertProgressUpdate",
+      "arguments": [
+        "JSON-formatted parameter list"
+      ]
+    },
+    {
+      "name": "periodStats",
+      "alias": [
+        "cip",
         "period",
+        "countsInPeriod",
         "stats",
         "count"
       ],
@@ -26,18 +41,7 @@
       "jsFunction": "statsPeriod"
     },
     {
-      "name": "insertProgressUpdate",
-      "alias": [
-        "ipu"
-      ],
-      "description": "Insert weekly/monthly progress update to current note",
-      "jsFunction": "insertProgressUpdate",
-      "arguments": [
-        "JSON-format parameter list"
-      ]
-    },
-    {
-      "name": "weeklyStats",
+      "name": "weeklyStatsToCSV",
       "alias": [
         "week",
         "stats",
@@ -55,15 +59,7 @@
   "plugin.settings": [
     {
       "type": "heading",
-      "title": "Summaries plugin settings"
-    },
-    {
-      "key": "folderToStore",
-      "title": "Folder name",
-      "description": "Folder to store any output files in",
-      "type": "string",
-      "default": "Summaries",
-      "required": true
+      "title": "Habits and Summaries common settings"
     },
     {
       "key": "foldersToExclude",
@@ -77,75 +73,20 @@
       "required": false
     },
     {
-      "key": "headingLevel",
-      "title": "Heading level",
-      "description": "Heading level (1-5) to use when writing output to notes",
-      "type": "number",
-      "default": 3,
-      "required": true
-    },
-    {
-      "type": "heading",
-      "title": "/countsInPeriod command settings"
-    },
-    {
-      "key": "hashtagCountsHeading",
-      "title": "Hashtag counts heading",
-      "description": "Heading to go before section of #hashtag counts",
-      "type": "string",
-      "default": "#hashtag counts",
-      "required": false
-    },
-    {
-      "key": "mentionCountsHeading",
-      "title": "Mention counts heading",
-      "description": "Heading to go before section of @mention counts",
-      "type": "string",
-      "default": "#hashtag counts",
-      "required": false
-    },
-    {
-      "key": "showAsHashtagOrMention",
-      "title": "Show hashtag or mention as links?",
-      "description": "Whether to show the # or @ symbols, or hide them to stop them being active links. (Beware double counting if you turn this on and save results in daily notes.)",
+      "key": "showSparklines",
+      "title": "Include sparkline graphs?",
+      "description": "Where appropriate, this adds basic ASCII-art sparklines for each item, reflecting each day's data.\nNote: Sparklines won't be shown where the summarised time period is more than a month.",
       "type": "bool",
       "default": true,
       "required": true
     },
     {
-      "key": "includeHashtags",
-      "title": "Include hashtags",
-      "description": "List of #hashtags to include in counts (e.g. '#holiday', '#jog', '#commute', '#webinar'). These take precedence over any excluded hashtags (next field). If this list is empty, all hashtags will be included.",
-      "type": "[string]",
-      "default": [],
-      "required": false
-    },
-    {
-      "key": "excludeHashtags",
-      "title": "Exclude hashtags",
-      "description": "List of #hashtags to exclude in counts. If empty, none will be excluded.",
-      "type": "[string]",
-      "default": [],
-      "required": false
-    },
-    {
-      "key": "includeMentions",
-      "title": "Include @mentions",
-      "description": "List of @mentions to include in counts (e.g. '@work', '@fruitveg', '@water', '@sleep'). These take precedence over any excluded mentions (next field). If this list is empty, all mentions will be included.",
-      "type": "[string]",
-      "default": [],
-      "required": false
-    },
-    {
-      "key": "excludeMentions",
-      "title": "Exclude @mentions",
-      "description": "List of @mentions to exclude in counts. If empty, none will be excluded.",
-      "type": "[string]",
-      "default": [
-        "@done",
-        "@repeat"
-      ],
-      "required": false
+      "key": "headingLevel",
+      "title": "Heading level",
+      "description": "Heading level (1-5) to use when writing headings to notes",
+      "type": "number",
+      "default": 3,
+      "required": true
     },
     {
       "type": "separator"
@@ -155,9 +96,25 @@
       "title": "/insertProgressUpdate command settings"
     },
     {
+      "key": "progressPeriod",
+      "title": "What time period should the Progress update cover?",
+      "description": "Pick one of the options: 'wtd' (week to date), 'userwtd' (user's week to date), 'last7d' (last 7 days), 'mtd' (month to date), 'last2w' (last 2 weeks), 'last4w' (last 4 weeks).\n(This can be overriden when called from a Template by setting the relevant parameter.)",
+      "type": "string",
+      "choices": [
+        "wtd",
+        "userwtd",
+        "last7d",
+        "mtd",
+        "last2w",
+        "last4w"
+      ],
+      "default": "last7d",
+      "required": true
+    },
+    {
       "key": "progressDestination",
       "title": "Where to write the progress update?",
-      "description": "Write to 'current' note, or to the current 'daily' or 'weekly' note. (If the progress update section already exists, it will be updated, rather than be repeated.)",
+      "description": "Write to 'current' note, or to the current 'daily' or 'weekly' note.\n(If the progress update section already exists, it will be updated, rather than be repeated.)",
       "type": "string",
       "choices": [
         "current",
@@ -177,7 +134,7 @@
     },
     {
       "key": "progressHashtags",
-      "title": "Included #hashtags for Progress",
+      "title": "#hashtags to count",
       "description": "List of #hashtags to include in Progress updates. If this list is empty, no hashtags will be included.",
       "type": "[string]",
       "default": [],
@@ -185,7 +142,7 @@
     },
     {
       "key": "progressMentions",
-      "title": "Included @mentions for Progress",
+      "title": "@mentions to count",
       "description": "List of @mentions to include in Progress updates. If this list is empty, no mentions will be included.",
       "type": "[string]",
       "default": [],
@@ -193,30 +150,103 @@
     },
     {
       "key": "progressYesNo",
-      "title": "Yes/No progress items",
-      "description": "Comma-separated list of #hashtags and/or @mentions to track in a simple 'did I do it this day or not?' way.",
-      "type": "hidden",
-      "default": "",
+      "title": "Did/Didn't Do items",
+      "description": "Comma-separated list of #hashtags and/or @mentions to track by being present or not 'did I do it this day or not?'.",
+      "type": "[string]",
+      "default": [],
       "required": false
     },
     {
       "key": "progressYesNoChars",
       "title": "Yes/No characters",
-      "description": "Pair of characters to use as Yes and No in output of Yes/No progress items. The first is for Yes, the second for No.\nHere are some you might like to use for Yes: ✓✔■⧫▉ and for No: ·◦✕✖◌□.\nYou can use emojis, such as ✅❌, but they are likely to mess up the horizontal spacing.",
-      "type": "hidden",
+      "description": "Pair of characters to use as Yes and No in output of Yes/No progress items. The first is for Yes, the second for No.\nHere are some you might like to use for Yes: ✓✔■⧫▉ and for No: ·◦✕✖◌□.\nYou can use emojis, such as ✅🟢❌👎🔴, but they are likely to mess up the horizontal spacing.",
+      "type": "string",
       "default": "✓·",
       "required": false
     },
     {
-      "key": "showSparklines",
-      "title": "Include sparkline graphs?",
-      "description": "This adds basic ASCII-art sparklines for each item, reflecting each day's data.",
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "/progressStats command settings"
+    },
+    {
+      "key": "folderToStore",
+      "title": "Folder name",
+      "description": "Folder to store the summaries in",
+      "type": "string",
+      "default": "Summaries",
+      "required": true
+    },
+    {
+      "key": "statsHeading",
+      "title": "Stats heading",
+      "description": "Heading to go before progressResults' output section",
+      "type": "string",
+      "default": "Period Stats",
+      "required": true
+    },
+    {
+      "key": "hashtagCountsHeading",
+      "title": "Hashtag counts heading",
+      "description": "(Optional) Heading to go before section of #hashtag stats",
+      "type": "hidden",
+      "default": "",
+      "required": false
+    },
+    {
+      "key": "mentionCountsHeading",
+      "title": "Mention counts heading",
+      "description": "(Optional) Heading to go before section of @mention stats",
+      "type": "hidden",
+      "default": "",
+      "required": false
+    },
+    {
+      "key": "showAsHashtagOrMention",
+      "title": "Show hashtag or mention as links?",
+      "description": "Whether to show the # or @ symbols, or hide them to stop them being active links. (Beware double counting if you turn this on and save results in daily notes.)",
       "type": "bool",
       "default": true,
       "required": true
     },
     {
-      "type": "separator"
+      "key": "includeHashtags",
+      "title": "#hashtags to include",
+      "description": "List of #hashtags to include in counts (e.g. '#holiday', '#jog', '#commute', '#webinar'). If empty, none will be included.",
+      "description_": "List of #hashtags to include in counts (e.g. '#holiday', '#jog', '#commute', '#webinar'). These take precedence over any excluded hashtags (next field). If this list is empty, all hashtags will be included.",
+      "type": "[string]",
+      "default": [],
+      "required": false
+    },
+    {
+      "key": "excludeHashtags",
+      "title": "#hashtags to exclude",
+      "description": "List of #hashtags to exclude in counts. If empty, none will be excluded.",
+      "type": "hidden",
+      "default": [],
+      "required": false
+    },
+    {
+      "key": "includeMentions",
+      "title": "@mentions to include",
+      "description": "List of @mentions to include in counts (e.g. '@work', '@fruitveg', '@water', '@sleep'). If empty, none will be included.",
+      "description_": "List of @mentions to include in counts (e.g. '@work', '@fruitveg', '@water', '@sleep'). These take precedence over any excluded mentions (next field). If this list is empty, all mentions will be included.",
+      "type": "[string]",
+      "default": [],
+      "required": false
+    },
+    {
+      "key": "excludeMentions",
+      "title": "@mentions to exclude",
+      "description": "List of @mentions to exclude in counts. If empty, none will be excluded.",
+      "type": "hidden",
+      "default": [
+        "@done",
+        "@repeat"
+      ],
+      "required": false
     },
     {
       "type": "heading",
