@@ -97,6 +97,7 @@ const DataStore = {
   // async setPreference() { return null },
   settings: {
     settingsFieldName: 'Settings field value',
+    _logLevel: 'DEBUG',
   },
 }
 

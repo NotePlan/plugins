@@ -1,19 +1,19 @@
 // @flow
 
-export interface SortableParagraphSubset  {
-  content: string,
-  index: number,
-  raw: string,
-  hashtags: Array<string>,
-  mentions: Array<string>,
-  exclamations: Array<string>,
-  parensPriority: Array<string>,
-  due: ?Date,
-  priority?: number,
-  filename: string,
-  indents: number,
-  children: Array<SortableParagraphSubset>,
-  paragraph: ?TParagraph,
+export interface SortableParagraphSubset {
+  content: string;
+  index: number;
+  raw: string;
+  hashtags: Array<string>;
+  mentions: Array<string>;
+  exclamations: Array<string>;
+  parensPriority: Array<string>;
+  due: ?Date;
+  priority?: number;
+  filename: string;
+  indents: number;
+  children: Array<SortableParagraphSubset>;
+  paragraph: ?TParagraph;
 }
 
 export type GroupedTasks = {
@@ -43,6 +43,8 @@ export function caseInsensitiveCompare(a: string, b: string): number {
 /**
  * Function to sort a list of object by an array of fields (of property names)
  * put a - in front of the field name to sort descending
+ * Note: this will work for arrays of arrays (in addition to arrays of objects), in this case, send
+ * the number of the array index to check as a string, e.g. "2" or "-2" will use the second element to sort on
  * @author @dwertheimer
  * @example const sortedHomes = sortListBy([{state:"CA",price:1000}],['state', '-price']); //the - in front of name is DESC
  * @param {Array<T>} list - items
@@ -88,6 +90,8 @@ export function sortListBy<T>(list: Array<T>, objectPropertySortOrder: Array<str
 
 /**
  * Multi-level object property sorting callback function (for use in sort())
+ * Note: this will work for arrays of arrays (in addition to arrays of objects), in this case, send
+ * the number of the array index to check as a string, e.g. "2" or "-2" will use the second element to sort on
  * undefined values are treated as the lowest value (i.e. sorted to the bottom)
  * @author @dwertheimer
  * @example const sortedHomes = homes.sort(fieldSorter(['state', '-price'])); //the - in front of name is DESC
@@ -105,12 +109,18 @@ export const fieldSorter =
         if (isDesc) {
           dir = -1
           field = field.substring(1)
+          field = isNaN(field) ? field : Number(field)
+          console.log(`fieldSorter field=${_field} field=${field} typeof=${typeof field}`)
+        } else {
+          console.log(`fieldSorter before: field=${_field} field=${field} typeof=${typeof field}`)
+          field = isNaN(field) ? field : Number(field)
+          console.log(`fieldSorter after field=${_field} field=${field} typeof=${typeof field}`)
         }
         const aValue = firstValue(a[field])
         const bValue = firstValue(b[field])
         if (aValue === bValue) return 0
-        if (aValue === undefined) return isDesc ? -dir : dir
-        if (bValue === undefined) return isDesc ? dir : -dir
+        if (aValue == null) return isDesc ? -dir : dir //null or undefined always come last
+        if (bValue == null) return isDesc ? dir : -dir
         return aValue > bValue ? dir : -dir
       })
       .reduce((p, n) => (p ? p : n), 0)
@@ -200,7 +210,7 @@ export function getTasksByType(paragraphs: $ReadOnlyArray<TParagraph>, ignoreInd
           filename: para?.filename || '',
           indents: para.indents,
           children: [],
-          due: para.date ?? new Date("2099-12-31"),
+          due: para.date ?? new Date('2099-12-31'),
           paragraph: para,
         }
         // console.log(`new: ${index}: indents:${para.indents} ${para.rawContent}`)
