@@ -110,11 +110,8 @@ export const fieldSorter =
           dir = -1
           field = field.substring(1)
           field = isNaN(field) ? field : Number(field)
-          console.log(`fieldSorter field=${_field} field=${field} typeof=${typeof field}`)
         } else {
-          console.log(`fieldSorter before: field=${_field} field=${field} typeof=${typeof field}`)
           field = isNaN(field) ? field : Number(field)
-          console.log(`fieldSorter after field=${_field} field=${field} typeof=${typeof field}`)
         }
         const aValue = firstValue(a[field])
         const bValue = firstValue(b[field])

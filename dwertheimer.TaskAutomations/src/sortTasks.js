@@ -41,7 +41,7 @@ const SORT_ORDERS = [
     name: 'Alphabetical, then by priority',
   },
   {
-    sortFields: ['due','-priority'],
+    sortFields: ['due', '-priority'],
     name: 'By Due Date, then by priority',
   },
   {
@@ -162,7 +162,7 @@ const MAKE_BACKUP = false
  * @param {string} subHeadingCategory
  * @return {int} next line number  // @jgclark comment: no such type as 'int'
  */
-function insertTodos(note: TNote, todos, heading = '', separator = '', subHeadingCategory = '') {
+function insertTodos(note: CoreNoteFields, todos, heading = '', separator = '', subHeadingCategory = '') {
   // THE API IS SUPER SLOW TO INSERT TASKS ONE BY ONE
   // let currentLine = startingLine ? startingLine : heading ? 1 : 2
   // if (heading) {
@@ -272,17 +272,17 @@ async function getUserSort(sortChoices = SORT_ORDERS) {
   return sortChoices[choice.index].sortFields
 }
 
-function findRawParagraph(note: TNote, content) {
-  if (content) {
-    const found = note.paragraphs.filter((p) => p.rawContent === content)
-    if (found && found.length > 1) {
-      logDebug(`** Found ${found.length} identical occurrences for "${content}". Deleting the first.`)
-    }
-    return found[0] || null
-  } else {
-    return null
-  }
-}
+// function findRawParagraph(note: TNote, content) {
+//   if (content) {
+//     const found = note.paragraphs.filter((p) => p.rawContent === content)
+//     if (found && found.length > 1) {
+//       logDebug(`** Found ${found.length} identical occurrences for "${content}". Deleting the first.`)
+//     }
+//     return found[0] || null
+//   } else {
+//     return null
+//   }
+// }
 
 // TODO: seems like somewhere there's not an await where there should be
 async function saveBackup(taskList) {
@@ -329,7 +329,7 @@ async function deleteExistingTasks(note, tasks, shouldBackupTasks = true) {
       logDebug(`tasksAndIndented=${tasksAndIndented.length} \n${JSON.stringify(tasksAndIndented)}`)
       const deleteList = note
         ? tasksAndIndented.map((t) => {
-            clo(t.paragraph,`deleteExistingTasks map t`)
+            clo(t.paragraph, `deleteExistingTasks map t`)
             // $FlowFixMe
             // return findRawParagraph(note, t.raw || null)
             return t.paragraph
@@ -340,7 +340,7 @@ async function deleteExistingTasks(note, tasks, shouldBackupTasks = true) {
       // deleteList.map(t=>logDebug(`Before: lineIndex:${t.lineIndex} content:${t.content}`))
       // logDebug(`Editor content before remove: ${Editor.content || ''}`)
       // $FlowFixMe
-      const deleteListByIndex = sortListBy(deleteList,['lineIndex']) //NP API may give wrong results if lineIndexes are not in ASC order
+      const deleteListByIndex = sortListBy(deleteList, ['lineIndex']) //NP API may give wrong results if lineIndexes are not in ASC order
       if (deleteList && deleteList.length) Editor.removeParagraphs(deleteListByIndex)
       // Editor.paragraphs.map(t=>logDebug(`After: lineIndex:${t.lineIndex} content:${t.content}`))
 

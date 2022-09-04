@@ -2,18 +2,16 @@
 //-------------------------------------------------------------------------------
 // Note-level Functions
 
-import {
-  hyphenatedDate, hyphenatedDateString, toLocaleDateString,
-  RE_DAILY_NOTE_FILENAME, RE_WEEKLY_NOTE_FILENAME,
-} from './dateTime'
-import { log, logDebug, logError } from './dev'
+import { hyphenatedDate, hyphenatedDateString, toLocaleDateString, RE_DAILY_NOTE_FILENAME, RE_WEEKLY_NOTE_FILENAME } from './dateTime'
+import { log, logDebug, logError, clo, JSP } from './dev'
 import { getFolderFromFilename } from './folders'
 import { displayTitle, type headingLevelType } from './general'
 import { findEndOfActivePartOfNote } from './paragraph'
+import { sortListBy } from './sorting'
 import { showMessage } from './userInput'
 
 export function getNoteContextAsSuffix(filename: string, dateStyle: string): string {
-  const noteType = (filename.match(RE_DAILY_NOTE_FILENAME) || filename.match(RE_WEEKLY_NOTE_FILENAME)) ? "Calendar" : "Notes"
+  const noteType = filename.match(RE_DAILY_NOTE_FILENAME) || filename.match(RE_WEEKLY_NOTE_FILENAME) ? 'Calendar' : 'Notes'
   const note = DataStore.noteByFilename(filename, noteType)
   if (!note) {
     return '<error>'
@@ -22,15 +20,15 @@ export function getNoteContextAsSuffix(filename: string, dateStyle: string): str
     return dateStyle.startsWith('link') // to deal with earlier typo where default was set to 'links'
       ? ` ([[${displayTitle(note)}]])`
       : dateStyle === 'scheduled'
-        ? // $FlowIgnore(incompatible-call)
+      ? // $FlowIgnore(incompatible-call)
         ` >${hyphenatedDate(note.date)} `
-        : dateStyle === 'date'
-          ? // $FlowIgnore(incompatible-call)
-          ` (${toLocaleDateString(note.date)})`
-          : dateStyle === 'at'
-            ? // $FlowIgnore(incompatible-call)
-            ` @${hyphenatedDate(note.date)} `
-            : '?'
+      : dateStyle === 'date'
+      ? // $FlowIgnore(incompatible-call)
+        ` (${toLocaleDateString(note.date)})`
+      : dateStyle === 'at'
+      ? // $FlowIgnore(incompatible-call)
+        ` @${hyphenatedDate(note.date)} `
+      : '?'
   } else {
     return ` ([[${note.title ?? ''}]])`
   }
@@ -48,16 +46,18 @@ export function printNote(note: TNote): void {
   }
 
   if (note.type === 'Notes') {
-    log('note/printNote',
-      `title: ${note.title ?? ''}\n\tfilename: ${note.filename ?? ''}\n\tcreated: ${String(note.createdDate) ?? ''
-      }\n\tchanged: ${String(note.changedDate) ?? ''}\n\tparagraphs: ${note.paragraphs.length}\n\thashtags: ${note.hashtags?.join(',') ?? ''
-      }\n\tmentions: ${note.mentions?.join(',') ?? ''}`,
+    log(
+      'note/printNote',
+      `title: ${note.title ?? ''}\n\tfilename: ${note.filename ?? ''}\n\tcreated: ${String(note.createdDate) ?? ''}\n\tchanged: ${String(note.changedDate) ?? ''}\n\tparagraphs: ${
+        note.paragraphs.length
+      }\n\thashtags: ${note.hashtags?.join(',') ?? ''}\n\tmentions: ${note.mentions?.join(',') ?? ''}`,
     )
   } else {
-    log('note/printNote',
-      `filename: ${note.filename ?? ''}\n\tcreated: ${String(note.createdDate) ?? ''}\n\tchanged: ${String(note.changedDate) ?? ''
-      }\n\tparagraphs: ${note.paragraphs.length}\n\thashtags: ${note.hashtags?.join(',') ?? ''}\n\tmentions: ${note.mentions?.join(',') ?? ''
-      }`,
+    log(
+      'note/printNote',
+      `filename: ${note.filename ?? ''}\n\tcreated: ${String(note.createdDate) ?? ''}\n\tchanged: ${String(note.changedDate) ?? ''}\n\tparagraphs: ${
+        note.paragraphs.length
+      }\n\thashtags: ${note.hashtags?.join(',') ?? ''}\n\tmentions: ${note.mentions?.join(',') ?? ''}`,
     )
   }
 }
@@ -72,21 +72,14 @@ export function printNote(note: TNote): void {
  * @param {boolean} useProjNoteByFilename (default: true)
  * @returns {any} - the note that was opened
  */
-export async function noteOpener(
-  fullPath: string,
-  desc: string,
-  useProjNoteByFilename: boolean = true,
-): Promise<?TNote> {
+export async function noteOpener(fullPath: string, desc: string, useProjNoteByFilename: boolean = true): Promise<?TNote> {
   logDebug('note/noteOpener', `  About to open filename: "${fullPath}" (${desc}) using ${useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename'}`)
-  const newNote = useProjNoteByFilename
-    ? await DataStore.projectNoteByFilename(fullPath)
-    : await DataStore.noteByFilename(fullPath, 'Notes')
+  const newNote = useProjNoteByFilename ? await DataStore.projectNoteByFilename(fullPath) : await DataStore.noteByFilename(fullPath, 'Notes')
   if (newNote != null) {
     logDebug('note/noteOpener', `    Opened ${fullPath} (${desc} version) `)
     return newNote
   } else {
-    logDebug('note/noteOpener', `    Didn't work! ${useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename'} returned ${(newNote: any)}`,
-    )
+    logDebug('note/noteOpener', `    Didn't work! ${useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename'} returned ${(newNote: any)}`)
   }
 }
 
@@ -99,11 +92,7 @@ export async function noteOpener(
  * @param {boolean?} partialTitleToMatch - optional partial note title to use with a starts-with not exact match
  * @return {Promise<TNote>} - note object
  */
-export async function getOrMakeNote(
-  noteTitle: string,
-  noteFolder: string,
-  partialTitleToMatch: string = ''
-): Promise<?TNote> {
+export async function getOrMakeNote(noteTitle: string, noteFolder: string, partialTitleToMatch: string = ''): Promise<?TNote> {
   logDebug('note / getOrMakeNote', `starting with noteTitle '${noteTitle}' / folder '${noteFolder}' / partialTitleToMatch ${partialTitleToMatch}`)
   let existingNotes: $ReadOnlyArray<TNote> = []
 
@@ -116,9 +105,7 @@ export async function getOrMakeNote(
     // Otherwise do an exact match on noteTitle
     const potentialNotes = DataStore.projectNoteByTitle(noteTitle, true, false) ?? []
     // now filter out wrong folders
-    existingNotes = potentialNotes && noteFolder !== '/'
-      ? potentialNotes.filter((n) => n.filename.startsWith(noteFolder))
-      : potentialNotes
+    existingNotes = potentialNotes && noteFolder !== '/' ? potentialNotes.filter((n) => n.filename.startsWith(noteFolder)) : potentialNotes
     logDebug('note / getOrMakeNote', `- found ${existingNotes.length} existing '${noteTitle}' note(s)`)
   }
 
@@ -151,11 +138,11 @@ export async function getOrMakeNote(
 /**
  * Get a note's display title from its filename.
  * Handles both Notes and Calendar, matching the latter by regex matches. (Not foolproof though.)
- * @param {string} filename 
+ * @param {string} filename
  * @returns {string} title of note
  */
 export function getNoteTitleFromFilename(filename: string, makeLink?: boolean = false): string {
-  const noteType = (filename.match(RE_DAILY_NOTE_FILENAME) || filename.match(RE_WEEKLY_NOTE_FILENAME)) ? "Calendar" : "Notes"
+  const noteType = filename.match(RE_DAILY_NOTE_FILENAME) || filename.match(RE_WEEKLY_NOTE_FILENAME) ? 'Calendar' : 'Notes'
   const note = DataStore.noteByFilename(filename, noteType)
   if (note) {
     return makeLink ? `[[${displayTitle(note) ?? ''}]]` : displayTitle(note)
@@ -174,11 +161,7 @@ export function getNoteTitleFromFilename(filename: string, makeLink?: boolean = 
  * @param {?boolean} includeSubfolders - if folder given, whether to look in subfolders of this folder or not (optional, defaults to false)
  * @return {Array<TNote>}
  */
-export function findNotesMatchingHashtag(
-  tag: string,
-  folder: ?string,
-  includeSubfolders: ?boolean = false,
-): Array<TNote> {
+export function findNotesMatchingHashtag(tag: string, folder: ?string, includeSubfolders: ?boolean = false): Array<TNote> {
   let projectNotesInFolder: Array<TNote>
   // If folder given (not empty) then filter using it
   if (folder != null) {
@@ -218,11 +201,7 @@ export function findNotesMatchingHashtag(
  * @param {?boolean} includeSubfolders - if folder given, whether to look in subfolders of this folder or not (optional, defaults to false)
  * @return {Array<Array<TNote>>} array of list of notes
  */
-export function findNotesMatchingHashtags(
-  tags: Array<string>,
-  folder: ?string,
-  includeSubfolders: ?boolean = false,
-): Array<Array<TNote>> {
+export function findNotesMatchingHashtags(tags: Array<string>, folder: ?string, includeSubfolders: ?boolean = false): Array<Array<TNote>> {
   if (tags.length === 0) {
     logError('note/findNotesMatchingHashtags', `No hashtags supplied. Stopping`)
     return []
@@ -248,9 +227,7 @@ export function findNotesMatchingHashtags(
   const projectNotesWithTags = [[]]
   for (const tag of tags) {
     const projectNotesWithTag = projectNotesInFolder.filter((n) => n.hashtags.includes(tag))
-    logDebug('note/findNotesMatchingHashtags',
-      `In folder '${folder ?? '<all>'}' found ${projectNotesWithTag.length} notes matching '${tag}'`,
-    )
+    logDebug('note/findNotesMatchingHashtags', `In folder '${folder ?? '<all>'}' found ${projectNotesWithTag.length} notes matching '${tag}'`)
     projectNotesWithTags.push(projectNotesWithTag)
   }
   return projectNotesWithTags
@@ -272,12 +249,10 @@ export function getProjectNotesInFolder(forFolder: string = ''): $ReadOnlyArray<
   let filteredNotes = []
   if (forFolder === '') {
     filteredNotes = notes
-  }
-  else if (forFolder === '/') {
+  } else if (forFolder === '/') {
     // root folder ('/') has to be treated as a special case
     filteredNotes = notes.filter((note) => !note.filename.includes('/'))
-  }
-  else {
+  } else {
     // if last character is a slash, remove it
     const folderWithSlash = forFolder.charAt(forFolder.length - 1) === '/' ? forFolder : `${forFolder}/`
     filteredNotes = notes.filter((note) => note.filename.includes(folderWithSlash))
@@ -303,9 +278,7 @@ export function notesInFolderSortedByTitle(folder: string): Array<TNote> {
     notesInFolder = DataStore.projectNotes.slice()
   }
   // Sort alphabetically on note's title
-  const notesSortedByTitle = notesInFolder.sort((first, second) =>
-    (first.title ?? '').localeCompare(second.title ?? ''),
-  )
+  const notesSortedByTitle = notesInFolder.sort((first, second) => (first.title ?? '').localeCompare(second.title ?? ''))
   return notesSortedByTitle
 }
 
@@ -428,11 +401,7 @@ export function replaceSection(
   newSectionContent: string,
 ): void {
   try {
-    logDebug('note / replaceSection',
-      `in note '${displayTitle(
-        note,
-      )}' will remove '${headingOfSectionToReplace}' -> '${newSectionHeading}' level ${newSectionHeadingLevel}`,
-    )
+    logDebug('note / replaceSection', `in note '${displayTitle(note)}' will remove '${headingOfSectionToReplace}' -> '${newSectionHeading}' level ${newSectionHeadingLevel}`)
     // First remove existing heading (the start of the heading text will probably be right, but the end will probably need to be changed)
     const insertionLineIndex = removeSection(note, headingOfSectionToReplace)
     // logDebug('note / replaceSection', `- insertionLineIndex = ${insertionLineIndex}`)
@@ -444,8 +413,7 @@ export function replaceSection(
     logDebug('note / replaceSection', `- after insertHeading() there are ${note.paragraphs.length} paras`)
     note.insertParagraph(newSectionContent, insertionLineIndex + 1, 'text')
     logDebug('note / replaceSection', `- after insertParagraph() there are ${note.paragraphs.length} paras`)
-  }
-  catch (error) {
+  } catch (error) {
     logError('note / replaceSection', error.message)
   }
 }
@@ -504,36 +472,57 @@ export function removeSection(note: TNote, headingOfSectionToRemove: string): nu
       logDebug('note / removeSection', `-> heading not found; will go after end of active part of file instead (line ${endOfActive + 1}).`)
       return endOfActive + 1
     }
-  }
-  catch (error) {
+  } catch (error) {
     logError('note / removeSection', error.message)
     return NaN // for completeness
   }
 }
 
 /**
- * Scan a Note looking for items which have >date+ tags and return the list of updated paragraphs that are today or later
+ * Scan a Note looking for items which are overdue and/or have >date+ tags and return the list of updated paragraphs that are today or later
  * Typically called and followed by a call which calls updateParagraphs() to update those paragraphs
+ * NOTE: this function finds and does the replacement but not the actual updates (returns paras to be updated outside)
  * @author @dwertheimer
  * @param {TNote} note
+ * @param {boolean} openOnly - restrict function to only open tasks
+ * @param {boolean} plusOnlyTypes - limit function to only >date+ tags (do not include normal overdue dates)
+ * @param {boolean} replaceDate - replace the due date with a >today (otherwise leave the date for posterity)
  * @returns {Array<TParagraph>} list of paragraphs with updated content
  */
-export function checkNoteForPlusDates(note: TNote, openOnly: boolean = true): Array<TParagraph> {
-  const RE_PLUS_DATE = />(\d{4}-\d{2}-\d{2})(\+)+/
+export function convertOverdueTasksToToday(note: TNote, openOnly: boolean = true, plusOnlyTypes: boolean = true, replaceDate: boolean = true): Array<TParagraph> {
+  const RE_PLUS_DATE = />(\d{4}-\d{2}-\d{2})(\+)*/g
   const todayHyphenated = hyphenatedDateString(new Date())
   const updatedParas = []
   const datedOpenTodos = openOnly ? note?.datedTodos?.filter((t) => t.type === 'open') || [] : note?.datedTodos || []
   datedOpenTodos.forEach((todo) => {
-    const datePlus = todo?.content?.match(RE_PLUS_DATE)
-    if (datePlus?.length === 3) {
-      const [fullDate, isoDate, operator] = datePlus
-      // logDebug(`note/checkNoteForPlusDates`, `fullDate: ${fullDate} isoDate: ${isoDate} todayHyph: ${todayHyphenated} operator: ${operator}`)
-      if (todayHyphenated >= isoDate && operator === '+') {
-        logDebug(`note/checkNoteForPlusDates`, `type: ${todo.type} fullDate: ${fullDate} isoDate: ${isoDate} operator: ${operator}`)
-        todo.content = todo.content.replace(fullDate, `>today`)
-        // logDebug(`note/checkNoteForPlusDates`, `plus date found: ${fullDate} | New content: ${todo.content}`)
-        updatedParas.push(todo)
-      }
+    if (!/>today/i.test(todo.content)) {
+      const datePlusAll = [...todo?.content?.matchAll(RE_PLUS_DATE)] //there could be multiple dates on a line
+      const sorted = sortListBy(datePlusAll, '-1') // put the latest date at the top
+      let madeChange = false
+      sorted.forEach((datePlus, i) => {
+        if (datePlus?.length === 3) {
+          const [fullDate, isoDate, operator] = datePlus
+          // Date+ should be converted starting today, but overdue should start tomorrow
+          const pastDue = (operator && todayHyphenated >= isoDate) || todayHyphenated > isoDate
+          // logDebug(`note/convertOverdueTasksToToday`, `fullDate: ${fullDate} isoDate: ${isoDate} todayHyph: ${todayHyphenated} operator: ${operator}`)
+          if (pastDue && (plusOnlyTypes === false || (plusOnlyTypes === true && operator === '+'))) {
+            // logDebug(`note/convertOverdueTasksToToday`, `type: ${todo.type} fullDate: ${fullDate} isoDate: ${isoDate} operator: ${operator}`)
+            if (operator || (pastDue && i === 0)) {
+              const replacement = madeChange ? '' : ` >today` //if there are multiple dates and we already have one >today, eliminate the rest
+              if (operator) {
+                todo.content = replaceDate ? todo.content.replace(` ${fullDate}`, replacement) : todo.content.replace(` ${fullDate}`, ` >${isoDate}${replacement}`)
+              } else {
+                todo.content = replaceDate ? todo.content.replace(` ${fullDate}`, replacement) : `${todo.content}${replacement}`
+              }
+              // logDebug(`note/convertOverdueTasksToToday`, `plus date found: ${fullDate} | New content: ${todo.content}`)
+              if (madeChange === false) updatedParas.push(todo)
+              madeChange = true
+            }
+          }
+        }
+      })
+    } else {
+      // do not return a task already marked with a >todo
     }
   })
   return updatedParas
