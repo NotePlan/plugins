@@ -3,7 +3,21 @@
 > **NOTE:**
 > See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.TaskAutomations/readme.md) for details on commands and how to use it
 
-# What's Changed in this Plugin?
+## What's Changed in this Plugin?
+
+## [2.4.0] (@dwertheimer) 2022-09-04
+
+- Overdue: Add search in active document only command (@jgclark)
+- Overdue: Add search in chosen notes folder command (@jgclark)
+- Overdue: Fix documentation and command description (@jgclark)
+- Overdue: Add some date choices to bottom of dropdown (@john1)
+- Overdue: Change "do not change" to start with "skip" (@john1)
+- Task Sorter: @jgclark: sort priority todos to the top, sort remaining open tasks by ascending due date (where given)
+- Task Sorter: @jgclark: sort priority todos to the top
+- Task Sorter: Add additional /ts filters for @george65
+- Task Sorter: Add tertiary sort field (@george65)
+- Task Sorter: Fix longstanding bug that would output "@undefined" for items with no defined terms
+- Task Sorter: Remove blank headings from previous sorts
 
 ## [2.3.0] (@dwertheimer) 2022-09-04
 

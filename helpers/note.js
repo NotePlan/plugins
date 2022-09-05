@@ -10,6 +10,8 @@ import { findEndOfActivePartOfNote } from './paragraph'
 import { sortListBy } from './sorting'
 import { showMessage } from './userInput'
 
+export const RE_PLUS_DATE: RegExp = />(\d{4}-\d{2}-\d{2})(\+)*/g
+
 export function getNoteContextAsSuffix(filename: string, dateStyle: string): string {
   const noteType = filename.match(RE_DAILY_NOTE_FILENAME) || filename.match(RE_WEEKLY_NOTE_FILENAME) ? 'Calendar' : 'Notes'
   const note = DataStore.noteByFilename(filename, noteType)
@@ -490,7 +492,6 @@ export function removeSection(note: TNote, headingOfSectionToRemove: string): nu
  * @returns {Array<TParagraph>} list of paragraphs with updated content
  */
 export function convertOverdueTasksToToday(note: TNote, openOnly: boolean = true, plusOnlyTypes: boolean = true, replaceDate: boolean = true): Array<TParagraph> {
-  const RE_PLUS_DATE = />(\d{4}-\d{2}-\d{2})(\+)*/g
   const todayHyphenated = hyphenatedDateString(new Date())
   const updatedParas = []
   const datedOpenTodos = openOnly ? note?.datedTodos?.filter((t) => t.type === 'open') || [] : note?.datedTodos || []

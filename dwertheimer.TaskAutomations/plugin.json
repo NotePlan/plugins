@@ -4,8 +4,8 @@
   "plugin.name": "✅ Task Automations",
   "plugin.description": "Functions for handling Tasks",
   "plugin.author": "@dwertheimer",
-  "plugin.version": "2.3.0",
-  "plugin.lastUpdateInfo": "2.2.0:\n-Add sort by date (thx @jgclark)\n- Fix for intermittent duplicate tasks\n- Attempting to reduce lag in changes reflected in Editor\n- Added new sort orders (hashtags+mentions) for @George65.\n- Added /tsd & default sorting field in preferences.",
+  "plugin.version": "2.4.0",
+  "plugin.lastUpdateInfo": "2.3.1 Add single-note search, Review overdue tasks in <Choose Folder>, Add date choices to dropdown, fix documentation and command description. Previously:\nRelease of '/Review overdue tasks'",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.TaskAutomations/readme.md",
@@ -103,10 +103,10 @@
     },
     {
       "name": "Review overdue tasks (by Note)",
-      "description": "Search for overdue tasks in all notes and update them to >today if today is >= the date",
+      "description": "Search for overdue tasks in all notes and review them one note at a time. Update tasks to >today if today is >= the date",
       "jsFunction": "reviewOverdueTasksByNote",
       "alias": [
-        "updateTasks"
+        "updateNoteTasks"
       ],
       "arguments": [
         "By default will ask you to confirm changes. 'silent' here to to update tasks silently"
@@ -114,10 +114,32 @@
     },  
     {
       "name": "Review overdue tasks (by Task)",
-      "description": "Search for overdue tasks in all notes and update them to >today if today is >= the date",
+      "description": "Search for overdue tasks in all notes and review them individually, setting to >today if today is >= the date",
       "jsFunction": "reviewOverdueTasksByTask",
       "alias": [
         "updateTasks"
+      ],
+      "arguments": [
+        "By default will ask you to confirm changes. 'silent' here to to update tasks silently"
+      ]
+    }, 
+    {
+      "name": "Review overdue tasks (in Active Note)",
+      "description": "Search for overdue tasks in the foreground note and review them individually, setting to >today if today is >= the date",
+      "jsFunction": "reviewOverdueTasksInNote",
+      "alias": [
+        "updateSingleNote"
+      ],
+      "arguments": [
+        "By default will ask you to confirm changes. 'silent' here to to update tasks silently"
+      ]
+    }, 
+    {
+      "name": "Review overdue tasks in <Choose Folder>",
+      "description": "Search for overdue tasks in a folder you choose review them individually, setting to >today if today is >= the date",
+      "jsFunction": "reviewOverdueTasksInFolder",
+      "alias": [
+        "updateFolderTasks"
       ],
       "arguments": [
         "By default will ask you to confirm changes. 'silent' here to to update tasks silently"
@@ -161,7 +183,16 @@
       "title": "Default Sort: Secondary Sort Field",
       "description": "When invoking the default sorting method (/tsd), sort secondly by this field (for all fields in the first sort pass above which were the same). Note: a minus in front means sort that key in reverse order. hashtags are for #tags, mentions are for @mentions, priority is the number of !!!'s and content is alphabetical.",
       "type": "string",
-      "default": "-content",
+      "default": "hashtags",
+      "required": true,
+      "choices": ["priority","-priority","due","-due","mentions","-mentions","hashtags","-hashtags","content","-content"]
+    },
+    {
+      "key": "defaultSort3",
+      "title": "Default Sort: Tertiary Sort Field",
+      "description": "When invoking the default sorting method (/tsd), sort thirdly by this field (for all fields in the first sorts pass above which were the same). Note: a minus in front means sort that key in reverse order. hashtags are for #tags, mentions are for @mentions, priority is the number of !!!'s and content is alphabetical.",
+      "type": "string",
+      "default": "mentions",
       "required": true,
       "choices": ["priority","-priority","due","-due","mentions","-mentions","hashtags","-hashtags","content","-content"]
     },
@@ -185,6 +216,14 @@
       "default": true,
       "required": true
     },    
+    {
+      "key": "eliminateSpinsters",
+      "title": "Eliminate Headings with No Content",
+      "description": "After running this command multiple times, you may end up with widowed headings that have no content underneath. If this is checked, after tasks are sorted, the plugin will delete any third/fourth level headings with no content underneath.\nBEWARE: It's pretty smart/careful about what empty headings it deletes, but if you have other empty 4th level headings ending in a colon in your document, don't!",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },  
     {
       "type": "separator"
     },

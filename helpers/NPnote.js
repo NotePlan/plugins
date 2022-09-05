@@ -5,8 +5,9 @@
 import { log, logError, logDebug, timer, clo } from './dev'
 import { displayTitle } from './general'
 import { chooseOption, showMessage } from './userInput'
-import { convertOverdueTasksToToday } from './note'
+import { convertOverdueTasksToToday, RE_PLUS_DATE } from './note'
 import { findStartOfActivePartOfNote } from './paragraph'
+import { getDateOptions } from '@helpers/dateTime'
 const pluginJson = 'NPnote.js'
 
 /**
@@ -51,17 +52,21 @@ export async function convertNoteToFrontmatter(note: TNote, defaultText?: string
 }
 
 async function processLineClick(origPara: TParagraph, updatedPara: TParagraph): Promise<{ action: string, changed?: TParagraph }> {
+  logDebug(pluginJson, `processLineClick "${origPara.note?.title || ''}": "${origPara.content || ''}"`)
   const range = origPara.contentRange
   if (origPara?.note?.filename) await Editor.openNoteByFilename(origPara.note.filename, false, range?.start || 0, range?.end || 0)
   const content = origPara?.content || ''
+  const dateOpts = getDateOptions()
+  // clo(dateOpts, `processLineClick dateOpts`)
   const opts = [
     { label: `✏️ Edit this task in note: "${origPara.note?.title || ''}"`, value: '__edit__' },
-    { label: `> Change this task to >today`, value: '__yes__' },
+    { label: `> Change this task to >today (repeating until complete)`, value: '__yes__' },
     { label: `✓ Mark this task complete`, value: '__mark__' },
     { label: `🙅‍♂️ Mark this task cancelled`, value: '__canceled__' },
-    { label: `❌ Do not change "${content}" (and continue)`, value: '__no__' },
+    { label: `❌ Skip - Do not change "${content}" (and continue)`, value: '__no__' },
     { label: '⎋ Cancel Review ⎋', value: '__xcl__' },
-  ]
+    { label: '------ Set Due Date To: -------', value: '-----' },
+  ].concat(dateOpts)
   const res = await chooseOption(`Task: "${origPara.content}"`, opts)
   clo(res, `processLineClick after chooseOption res=`)
   if (res) {
@@ -88,6 +93,10 @@ async function processLineClick(origPara: TParagraph, updatedPara: TParagraph): 
         return { action: 'set', changed: origPara }
       }
     }
+    if (res[0] === '>') {
+      origPara.content = origPara.content.replace(RE_PLUS_DATE, res)
+      return { action: 'set', changed: origPara }
+    }
     logDebug(pluginJson, `processLineClick chosen: ${res} returning`)
   }
   return { action: 'cancel' }
@@ -106,18 +115,20 @@ async function showOverdueNote(note: TNote, updates: Array<TParagraph>, index: n
   await Editor.openNoteByFilename(note.filename, false, range?.start || 0, range?.end || 0)
   // const options = updates.map((p) => ({ label: showUpdatedTask ? p.content : note.paragraphs[Number(p.lineIndex) || 0].content, value: `${p.lineIndex}` })) //show the original value
   const options = updates.map((p) => ({ label: `${note.paragraphs[Number(p.lineIndex) || 0].content}`, value: `${p.lineIndex}` })) //show the original value
+  const dateOpts = getDateOptions()
   const opts = [
     { label: '>> SELECT A TASK OR MARK THEM ALL <<', value: '-----' },
     ...options,
     { label: '----------------------------------------------------------------', value: '-----' },
-    { label: `> Mark the above tasks as >today`, value: '__yes__' },
+    { label: `> Mark the above tasks as >today (repeating until complete)`, value: '__yes__' },
     { label: `✓ Mark the above tasks done/complete`, value: '__mark__' },
     { label: `🙅‍♂️ Mark the above tasks cancelled`, value: '__canceled__' },
-    { label: `❌ Do not change tasks in "${note?.title || ''}" (and continue)`, value: '__no__' },
+    { label: `❌ Skip -- Do not change tasks in "${note?.title || ''}" (and continue)`, value: '__no__' },
     { label: `⎋ Cancel Review ⎋`, value: '__xcl__' },
-  ]
+    { label: '------ Set All Due Date(s) To: -------', value: '-----' },
+  ].concat(dateOpts)
   const res = await chooseOption(`Note (${index + 1}/${totalNotesToUpdate}): "${note?.title || ''}"`, opts)
-  logDebug(`NPnote`, `findNotesWithOverdueTasksAndMakeToday note:"${note?.title || ''}" res ${res}`)
+  logDebug(`NPnote`, `findNotesWithOverdueTasksAndMakeToday note:"${note?.title || ''}" user action: ${res}`)
   return res
 }
 
@@ -129,25 +140,51 @@ type OverdueSearchOptions = {
   showUpdatedTask: boolean,
   showNote: boolean,
   replaceDate: boolean,
+  singleNote: ?boolean,
+  noteFolder: ?string | false,
 }
 
 /**
  * Search the DataStore looking for notes with >date and >date+ tags which need to be converted to >today tags going forward
  * If plusTags are found (today or later), then convert them to >today tags
- * @param {TNote} note
- * @param {boolean} openTasksOnly - if true, only find/convert notes with >date tags that are open tasks
- * @param {Array<string>} foldersToIgnore (e.g. tests/templates)
- * @param {boolean} datePlusOnly - true = only find/convert notes with >date+ tags (otherwise all overdue tasks)
- * @param {boolean} confirm - should NotePlan pop up a message about how many changes are about to be made
- * @param {boolean} showUpdatedTask - show the updated version of the task
+ * @param {OverdueSearchOptions} - options object with the following characteristics:
+ * {TNote} note
+ * {boolean} openOnly - if true, only find/convert notes with >date tags that are open tasks
+ * {Array<string>} foldersToIgnore (e.g. tests/templates)
+ * {boolean} datePlusOnly - true = only find/convert notes with >date+ tags (otherwise all overdue tasks)
+ * {boolean} confirm - should NotePlan pop up a message about how many changes are about to be made
+ * {boolean} showNote - show the note as review is happening
+ * {boolean} replaceDate - whether to replace date with >today or just tack it on (leaving date in place)
+ * {boolean} singleNote - run on the open note in the Editor
+ * {string} noteFolder - one specific folder to look in (or false)
  * @author @dwertheimer
  */
 export async function findNotesWithOverdueTasksAndMakeToday(options: OverdueSearchOptions): Promise<void> {
-  const { openOnly = true, foldersToIgnore = [], datePlusOnly = true, confirm = false, showNote = true, replaceDate = true /*, showUpdatedTask = true */ } = options
+  const {
+    openOnly = true,
+    foldersToIgnore = [],
+    datePlusOnly = true,
+    confirm = false,
+    showNote = true,
+    replaceDate = true,
+    singleNote = false /*, showUpdatedTask = true */,
+    noteFolder = false,
+  } = options
   const start = new Date()
-  let notesWithDates = [...DataStore.projectNotes, ...DataStore.calendarNotes].filter((n) => n?.datedTodos?.length > 0)
-  if (foldersToIgnore) {
-    notesWithDates = notesWithDates.filter((note) => foldersToIgnore.every((skipFolder) => !note.filename.includes(`${skipFolder}/`)))
+  let notesWithDates
+  if (singleNote) {
+    notesWithDates = [Editor.note].filter((n) => n?.datedTodos?.length || 0 > 0)
+  } else {
+    if (noteFolder) {
+      notesWithDates = [...DataStore.projectNotes, ...DataStore.calendarNotes]
+        .filter((n) => (n?.filename ? n.filename.includes(`${noteFolder}/`) : false))
+        .filter((n) => (n?.datedTodos ? n.datedTodos?.length > 0 : false))
+    } else {
+      notesWithDates = [...DataStore.projectNotes, ...DataStore.calendarNotes].filter((n) => (n?.datedTodos ? n.datedTodos?.length > 0 : false))
+    }
+  }
+  if (!singleNote && foldersToIgnore) {
+    notesWithDates = notesWithDates.filter((note) => foldersToIgnore.every((skipFolder) => !(note?.filename ? note.filename.includes(`${skipFolder}/`) : false)))
   }
   logDebug(`NPNote::findNotesWithOverdueTasksAndMakeToday`, `total notesWithDates: ${notesWithDates.length}`)
   // let updatedParas = []
@@ -161,6 +198,9 @@ export async function findNotesWithOverdueTasksAndMakeToday(options: OverdueSear
     }
   }
   logDebug(`NPNote::findNotesWithOverdueTasksAndMakeToday`, `total notes with overdue dates: ${notesToUpdate.length}`)
+  if (!notesToUpdate.length && confirm) {
+    await showMessage('Did not find any overdue tasks...congratulations!')
+  }
   for (let i = 0; i < notesToUpdate.length; i++) {
     let updates = notesToUpdate[i],
       currentTaskIndex = showNote ? -1 : 0,
@@ -229,6 +269,15 @@ export async function findNotesWithOverdueTasksAndMakeToday(options: OverdueSear
                   })
                   doIt = true
                   break
+              }
+              if (typeof res === 'string' && res[0] === '>') {
+                updates = updates.map((p) => {
+                  const origPara = note.paragraphs[p.lineIndex]
+                  p.content = origPara.content.replace(RE_PLUS_DATE, String(res))
+                  return p
+                })
+                // clo(updates, `findNotesWithOverdueTasksAndMakeToday updates=`)
+                doIt = true
               }
             }
             if (currentTaskIndex > -1) {

@@ -4,41 +4,63 @@
 // Specific how-to re: Noteplan: https://github.com/NotePlan/plugins/blob/main/Flow_Guide.md
 
 import pluginJson from '../plugin.json'
-import { chooseOption, showMessageYesNo } from '@helpers/userInput'
+import { chooseOption } from '@helpers/userInput'
 import { getTagParamsFromString } from '@helpers/general'
 import { removeHeadingFromNote } from '@helpers/NPParagraph'
 import { sortListBy, getTasksByType, TASK_TYPES } from '@helpers/sorting'
 import { logDebug, logError, clo, JSP } from '@helpers/dev'
 
+const TOP_LEVEL_HEADINGS = {
+  open: 'Open Tasks',
+  scheduled: 'Scheduled Tasks',
+  done: 'Completed Tasks',
+  cancelled: 'Cancelled Tasks',
+}
+
 // Note: not currently using getOverdueTasks from taskHelpers (because if it's open, we are moving it)
 // But the functions exist to look for open items with a date that is less than today
 //
-/* TODO: from @colin
-When I used it on a note: there were two items. 1- I didn't want the completed and cancelled items to migrate to the top. 
-2- I didn't need the sorting. Sorting didn't matter but the migration messed up some completed and cancelled actions that 
-I wanted to remain with the header. A reference to the header would be very helpful for me.
-*/
+
 const SORT_ORDERS = [
   {
     sortFields: ['-priority', 'content'],
     name: 'By Priority (!!! and (A)) then by content',
   },
-  /* FIXME: non-priority fields not working yet */
+  {
+    sortFields: ['-priority', 'due', 'content'],
+    name: 'By Priority then by due date, then content',
+  },
   {
     sortFields: ['mentions', '-priority', 'content'],
-    name: 'By @Person in task, then by priority',
+    name: 'By @Person in task, then by priority and content',
   },
   {
     sortFields: ['hashtags', '-priority', 'content'],
-    name: 'By #tag in task, then by priority',
+    name: 'By #tag in task, then by priority and content',
   },
   {
     sortFields: ['hashtags', 'mentions', '-priority'],
-    name: 'By #tag in task, them by @Person',
+    name: 'By #tag in task, then by @Person & priority',
+  },
+  {
+    sortFields: ['hashtags', 'mentions', 'date'],
+    name: 'By #tag in task, then by @Person & Due date',
   },
   {
     sortFields: ['content', '-priority'],
     name: 'Alphabetical, then by priority',
+  },
+  {
+    sortFields: ['due', 'hashtags', '-priority'],
+    name: 'By Due Date, then by #tag & priority',
+  },
+  {
+    sortFields: ['due', 'hashtags', '-priority'],
+    name: 'By Due Date, then by @Person & priority',
+  },
+  {
+    sortFields: ['due', '-priority', 'mentions'],
+    name: 'By Due Date, then by priority & @Person',
   },
   {
     sortFields: ['due', '-priority'],
@@ -69,7 +91,7 @@ export function openTasksToTop(heading: string = '## Tasks:\n', separator: strin
   //   if (Editor.note) sweptTasks = await sweepNote(Editor.note, false, true, false, true, true, false, 'move')
   // }
   if (sweptTasks) logDebug(`openTasksToTop(): ${sweptTasks?.taskArray?.length || 0} open tasks:`)
-  logDebug(JSON.stringify(sweptTasks))
+  // logDebug(JSON.stringify(sweptTasks))
   if (sweptTasks.taskArray?.length) {
     if (sweptTasks.taskArray[0].content === Editor.title) {
       sweptTasks.taskArray.shift()
@@ -134,8 +156,8 @@ export async function sortTasksByTag() {
 
 export async function sortTasksDefault() {
   try {
-    const { defaultSort1, defaultSort2, includeHeading, includeSubHeading } = DataStore.settings
-    await sortTasks(false, [defaultSort1, defaultSort2], includeHeading, includeSubHeading)
+    const { defaultSort1, defaultSort2, defaultSort3, includeHeading, includeSubHeading } = DataStore.settings
+    await sortTasks(false, [defaultSort1, defaultSort2, defaultSort3], includeHeading, includeSubHeading)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
@@ -164,17 +186,8 @@ const MAKE_BACKUP = false
  */
 function insertTodos(note: CoreNoteFields, todos, heading = '', separator = '', subHeadingCategory = '') {
   // THE API IS SUPER SLOW TO INSERT TASKS ONE BY ONE
-  // let currentLine = startingLine ? startingLine : heading ? 1 : 2
-  // if (heading) {
-  //   Editor.insertParagraph(heading, 1, 'text')
-  //   currentLine++
-  // }
-  // for (let i = todos.length - 1; i >= 0; i--) {
-  //   Editor.insertTodo(todos].content, currentLine++)
-  // }
-  // return currentLine
   // SO INSTEAD, JUST PASTE THEM ALL IN ONE BIG STRING
-  logDebug(`\tInsertTodos: subHeadingCategory=${String(subHeadingCategory)} ${todos.length} todos`)
+  logDebug(`InsertTodos: subHeadingCategory=${String(subHeadingCategory)} typeof=${typeof subHeadingCategory} ${todos.length} todos`)
   let todosWithSubheadings = []
   const headingStr = heading ? `${heading}\n` : ''
   if (heading) {
@@ -188,12 +201,15 @@ function insertTodos(note: CoreNoteFields, todos, heading = '', separator = '', 
       mentions: '@',
       priority: '',
       content: '',
+      due: '',
     }
     let lastSubcat = ''
     for (const lineIndex in todos) {
+      const shcZero = todos[lineIndex][subHeadingCategory][0] ?? `<none>`
+      // logDebug(`InsertTodos: shcZero=${shcZero} typeof=${typeof shcZero} todos[lineIndex][subHeadingCategory]=${todos[lineIndex][subHeadingCategory]}`)
       const subCat =
         /* $FlowIgnore - complaining about -priority being missing. */
-        (leadingDigit[subHeadingCategory] ? leadingDigit[subHeadingCategory] : '') + todos[lineIndex][subHeadingCategory][0] || todos[lineIndex][subHeadingCategory] || ''
+        (leadingDigit[subHeadingCategory] ? leadingDigit[subHeadingCategory] : '') + shcZero || todos[lineIndex][subHeadingCategory] || ''
       // logDebug(
       //   `lastSubcat[${subHeadingCategory}]=${subCat} check: ${JSON.stringify(
       //     todos[lineIndex],
@@ -201,7 +217,9 @@ function insertTodos(note: CoreNoteFields, todos, heading = '', separator = '', 
       // )
       if (lastSubcat !== subCat) {
         lastSubcat = subCat
-        const headingStr = `#### ${subCat}`
+        // logDebug(pluginJson, `insertTodos subCat:"${subCat}" typeof=${typeof subCat} length=${subCat.length}`)
+
+        const headingStr = `#### ${subCat}:`
         todosWithSubheadings.push({ raw: `\n${headingStr}` })
         // delete the former version of this subheading
         removeHeadingFromNote(note, subCat)
@@ -221,7 +239,7 @@ function insertTodos(note: CoreNoteFields, todos, heading = '', separator = '', 
       return str
     })
     .join(`\n`)
-  logDebug(`Inserting tasks into Editor:\n${contentStr}`)
+  // logDebug(`Inserting tasks into Editor:\n${contentStr}`)
   // logDebug(`inserting tasks: \n${JSON.stringify(todosWithSubheadings)}`)
   note.insertParagraph(`${headingStr}${contentStr}${separator ? `\n${separator}` : ''}`, note.type === 'Calendar' ? 0 : 1, 'text')
 }
@@ -313,7 +331,7 @@ async function saveBackup(taskList) {
 
 async function deleteExistingTasks(note, tasks, shouldBackupTasks = true) {
   for (const typ of TASK_TYPES) {
-    logDebug(`\tDeleting ${tasks[typ].length} ${typ} tasks from note`)
+    if (tasks[typ].length) logDebug(`\tDeleting ${tasks[typ].length} ${typ} tasks from note`)
     // Have to find all the paragraphs again
     if (shouldBackupTasks) {
       await saveBackup(tasks[typ])
@@ -326,10 +344,10 @@ async function deleteExistingTasks(note, tasks, shouldBackupTasks = true) {
           tasksAndIndented = [...tasksAndIndented, ...taskPara.children]
         }
       })
-      logDebug(`tasksAndIndented=${tasksAndIndented.length} \n${JSON.stringify(tasksAndIndented)}`)
+      // if (tasksAndIndented.length) logDebug(`tasksAndIndented=${tasksAndIndented.length}=${JSON.stringify(tasksAndIndented)}`)
       const deleteList = note
         ? tasksAndIndented.map((t) => {
-            clo(t.paragraph, `deleteExistingTasks map t`)
+            // clo(t.paragraph, `deleteExistingTasks map t`)
             // $FlowFixMe
             // return findRawParagraph(note, t.raw || null)
             return t.paragraph
@@ -360,12 +378,7 @@ async function deleteExistingTasks(note, tasks, shouldBackupTasks = true) {
  * @param {any|null|string} withSubheadings // @jgclark comment: suggest change name to subHeadingCategory, as otherwise it sounds like a boolean
  */
 async function writeOutTasks(note: CoreNoteFields, tasks: any, drawSeparators = false, withHeadings = false, withSubheadings = null): Promise<void> {
-  const headings = {
-    open: 'Open Tasks',
-    scheduled: 'Scheduled Tasks',
-    done: 'Completed Tasks',
-    cancelled: 'Cancelled Tasks',
-  }
+  const headings = TOP_LEVEL_HEADINGS
   const tasksTypesReverse = TASK_TYPES.slice().reverse()
   for (let i = 0; i < tasksTypesReverse.length; i++) {
     const ty = tasksTypesReverse[i]
@@ -376,7 +389,7 @@ async function writeOutTasks(note: CoreNoteFields, tasks: any, drawSeparators = 
           ? await insertTodos(note, tasks[ty], withHeadings ? `### ${headings[ty]}:` : '', drawSeparators ? `${i === tasks[ty].length - 1 ? '---' : ''}` : '', withSubheadings)
           : null
       } catch (e) {
-        logDebug(JSON.stringify(e))
+        logError(pluginJson, JSON.stringify(e))
       }
     }
   }
@@ -404,7 +417,40 @@ async function wantSubHeadings() {
   )
 }
 
-showMessageYesNo // @jgclark comment: this looks strange!
+export function removeEmptyHeadings(note: CoreNoteFields) {
+  const paras = note.paragraphs
+  const updates = []
+  const topLevelHeadings = Object.keys(TOP_LEVEL_HEADINGS).map((key) => TOP_LEVEL_HEADINGS[key])
+  for (let i = 0; i < paras.length; i++) {
+    const para = paras[i]
+    const nextPara = i < paras.length - 1 ? paras[i + 1] : null
+    // clo(para, `removeEmptyHeadings`)
+    // logDebug(pluginJson, `${para.type} ${para.headingLevel} ${topLevelHeadings.indexOf(`${para.content.replace(':', '')}`)}`)
+    if (para.type === 'title' && para.headingLevel === 3 && topLevelHeadings.indexOf(`${para.content.replace(':', '')}`) > -1) {
+      if ((nextPara && nextPara.type === 'empty') || !nextPara) {
+        updates.push(para)
+        if (nextPara) {
+          updates.push(nextPara)
+          i++ //skip nextPara
+        }
+      }
+    }
+    if (para.type === 'title' && para.headingLevel === 4 && para.content[para.content.length - 1] === ':') {
+      if ((nextPara && nextPara.type === 'empty') || !nextPara) {
+        updates.push(para)
+        if (nextPara) {
+          updates.push(nextPara)
+          i++ //skip nextPara
+        }
+      }
+    }
+  }
+  if (updates.length) {
+    // updates.map((u) => logDebug(pluginJson, `removeEmptyHeadings deleting spinster lineIndex[${u.lineIndex}] ${u.rawContent}`))
+    // note.updateParagraphs(updates)
+    note.removeParagraphs(updates)
+  }
+}
 
 export default async function sortTasks(
   withUserInput: boolean = true,
@@ -412,16 +458,18 @@ export default async function sortTasks(
   withHeadings: boolean | null = null,
   withSubHeadings: boolean | null = null,
 ) {
+  const { eliminateSpinsters } = DataStore.settings
+
   if (Editor == null) {
     return // if no note, stop. Should resolve 2 flow errors below, but only resolves 1 :-(
   }
   logDebug(`\n\nStarting sortTasks(${String(withUserInput)},${JSON.stringify(sortFields)},${String(withHeadings)}):`)
   const sortOrder = withUserInput ? await getUserSort() : sortFields
   logDebug(`\tUser specified sort=${JSON.stringify(sortOrder)}`)
-  logDebug(`\tFinished getUserSort, now running wantHeadings`)
+  // logDebug(`\tFinished getUserSort, now running wantHeadings`)
 
   const printHeadings = withHeadings === null ? await wantHeadings() : withHeadings
-  logDebug(`\tFinished wantHeadings()=${String(printHeadings)}, now running wantSubHeadings`)
+  // logDebug(`\tFinished wantHeadings()=${String(printHeadings)}, now running wantSubHeadings`)
   let printSubHeadings = true //by default in case you're not sorting
   let sortField1 = ''
   if (sortOrder.length) {
@@ -429,11 +477,11 @@ export default async function sortTasks(
     printSubHeadings = ['hashtags', 'mentions'].indexOf(sortField1) !== -1 ? (withSubHeadings === null ? await wantSubHeadings() : true) : false
     logDebug(`\twithSubHeadings=${String(withSubHeadings)} printSubHeadings=${String(printSubHeadings)}  cat=${printSubHeadings ? sortField1 : ''}`)
   }
-  logDebug(`\tFinished wantSubHeadings()=${String(printSubHeadings)}, now running sortTasksInNote`)
+  // logDebug(`\tFinished wantSubHeadings()=${String(printSubHeadings)}, now running sortTasksInNote`)
   const sortedTasks = sortTasksInNote(Editor, sortOrder)
-  logDebug(`\tFinished sortTasksInNote, now running deleteExistingTasks`)
+  // logDebug(`\tFinished sortTasksInNote, now running deleteExistingTasks`)
   await deleteExistingTasks(Editor, sortedTasks, MAKE_BACKUP) // need to do this before adding new lines to preserve line numbers
-  logDebug(`\tFinished deleteExistingTasks, now running writeOutTasks`)
+  // logDebug(`\tFinished deleteExistingTasks, now running writeOutTasks`)
 
   if (Editor) {
     if (printSubHeadings) {
@@ -443,6 +491,8 @@ export default async function sortTasks(
     await writeOutTasks(Editor, sortedTasks, false, printHeadings, printSubHeadings ? sortField1 : '')
   }
   logDebug(`\tFinished writeOutTasks, now finished`)
-
+  if (eliminateSpinsters) {
+    removeEmptyHeadings(Editor)
+  }
   logDebug('Finished sortTasks()!')
 }

@@ -20,6 +20,14 @@ Find all overdue tasks (tasks which have a >date earlier than yesterday, and cha
 
 Same as `/Review overdue tasks (by Note)` but skip the Note-level review and review each overdue task invidually
 
+### Command `/Review overdue tasks (in Active Note)`
+
+Same as above, but limited to the foreground note in the Editor
+
+### Command `/Review overdue tasks in <Choose Folder>`
+
+In this version, you will be prompted for a folder to search for overdue tasks in
+
 ## >Date+ tags
 
 Sometimes you want to set a >date at which you want something to become a `>today` task rather than tagging it `today` right now. To do this, create a todo and tag it with some date in the future and put a "+" at the end of the date (e.g. >2025-01-01+). This task will show up in your references section on that date, and if you run the command: `/Update >date+ (Date-Plus) tags in Notes` each day, you will convert those tasks from that day forward as `>today` (with user input along the way). The easiest way to do this is to run this command within your Daily Note template, e.g.:
