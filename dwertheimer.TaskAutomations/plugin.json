@@ -4,7 +4,7 @@
   "plugin.name": "✅ Task Automations",
   "plugin.description": "Functions for handling Tasks",
   "plugin.author": "@dwertheimer",
-  "plugin.version": "2.4.0",
+  "plugin.version": "2.4.1",
   "plugin.lastUpdateInfo": "2.3.1 Add single-note search, Review overdue tasks in <Choose Folder>, Add date choices to dropdown, fix documentation and command description. Previously:\nRelease of '/Review overdue tasks'",
   "plugin.dependencies": [],
   "plugin.script": "script.js",

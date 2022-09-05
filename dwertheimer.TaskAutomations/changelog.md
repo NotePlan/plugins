@@ -5,6 +5,11 @@
 
 ## What's Changed in this Plugin?
 
+## [2.4.1] (@dwertheimer) 2022-09-04
+
+- Overdue: Remove tasks which have been dealt with (@jgclark)
+- Overdue: Changes to instructions/README (@docjulien)
+
 ## [2.4.0] (@dwertheimer) 2022-09-04
 
 - Overdue: Add search in active document only command (@jgclark)

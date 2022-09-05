@@ -145,6 +145,123 @@ type OverdueSearchOptions = {
 }
 
 /**
+ * Review a single note get user input on what to do with it (either the whole note or the tasks on this note)
+ * @param {Array<Array<TParagraph>>} notesToUpdate
+ * @param {number} noteIndex
+ * @param {OverdueSearchOptions} options
+ * @returns {number} the new note index (e.g. to force it to review this note again) by default, just return the index you got. -2 means user canceled. noteIndex-1 means show this note again
+ */
+async function reviewSingleNote(notesToUpdate: Array<Array<TParagraph>>, noteIndex: number, options: OverdueSearchOptions): Promise<number> {
+  const { showNote, confirm } = options
+  let updates = notesToUpdate[noteIndex],
+    currentTaskIndex = showNote ? -1 : 0,
+    currentTaskLineIndex = updates[0].lineIndex,
+    res
+  const note = updates[0].note
+  if (note) {
+    if (updates.length > 0) {
+      let makeChanges = !confirm
+      if (confirm) {
+        do {
+          if (!updates.length) return currentTaskIndex
+          if (showNote) {
+            res = await showOverdueNote(note, updates, noteIndex, notesToUpdate.length)
+          } else {
+            res = currentTaskLineIndex // skip note and process each task as if someone clicked it to edit
+          }
+          if (!isNaN(res)) {
+            // this was an index of a line to edit
+            logDebug(`NPnote`, `reviewSingleNote ${note.paragraphs[Number(res) || 0].content}`)
+            // edit a single task item
+            clo(note.paragraphs[Number(res) || 0], `reviewSingleNote paraClicked=`)
+            const origPara = note.paragraphs[Number(res) || 0]
+            const index = updates.findIndex((u) => u.lineIndex === origPara.lineIndex) || 0
+            const updatedPara = updates[index]
+            const result = await processLineClick(origPara, updatedPara)
+            clo(result, 'NPNote::reviewSingleNote result')
+            if (result) {
+              switch (result.action) {
+                case 'set':
+                  logDebug('NPNote::reviewSingleNote', `received set command; index= ${index}`)
+                  clo(result.changed, 'NPNote::reviewSingleNote result')
+                  if (result?.changed) {
+                    updates[index] = result.changed
+                    note.updateParagraph(updates[index])
+                    logDebug('NPNote::reviewSingleNote', `after set command; updates[index].content= ${updates[index].content}`)
+                    updates.splice(index, 1) //remove item which was updated from note's updates
+                    logDebug(
+                      'NPNote::reviewSingleNote',
+                      `after splice/remove this line from updates.length=${updates.length} noteIndex=${noteIndex} ; will return noteIndex=${
+                        updates.length ? noteIndex - 1 : noteIndex
+                      }`,
+                    )
+                  }
+                  // if there are still updates on this note, subtract one so the i++ in the caller function will increment
+                  // it and show this note again for the other tasks to be update
+                  // if there are no updates, do nothing and let the i++ take us to the next note
+                  return updates.length ? noteIndex - 1 : noteIndex
+                case 'cancel': {
+                  const range = note.paragraphs[updates[0].lineIndex].contentRange
+                  await Editor.openNoteByFilename(note.filename, false, range?.start || 0, range?.end || 0, true)
+                  return -2
+                }
+              }
+              //user selected an item in the list to come back to later (in splitview)
+              // const range = note.paragraphs[Number(res) || 0].contentRange
+              // await Editor.openNoteByFilename(note.filename, false, range?.start || 0, range?.end || 0, true)
+              // if (range) Editor.select(range.start,range.end-range.start)
+              // makeChanges = false
+            }
+          } else {
+            switch (res) {
+              case '__xcl__': {
+                // const range = note.paragraphs[updates[0].lineIndex].contentRange
+                // await Editor.openNoteByFilename(note.filename, false, range?.start || 0, range?.end || 0, true)
+                return -2
+              }
+              case '__yes__':
+                makeChanges = true
+                break
+              case '__mark__':
+              case '__canceled__':
+                updates = updates.map((p) => {
+                  p.type = res === '__mark__' ? 'done' : 'cancelled'
+                  return p
+                })
+                makeChanges = true
+                break
+            }
+            if (typeof res === 'string' && res[0] === '>') {
+              updates = updates.map((p) => {
+                const origPara = note.paragraphs[p.lineIndex]
+                p.content = origPara.content.replace(RE_PLUS_DATE, String(res))
+                return p
+              })
+              // clo(updates, `reviewSingleNote updates=`)
+              makeChanges = true
+            }
+          }
+          if (currentTaskIndex > -1) {
+            currentTaskIndex = currentTaskIndex < updates.length - 2 ? currentTaskIndex++ : -1
+            currentTaskLineIndex = updates[currentTaskIndex].lineIndex
+          }
+        } while (currentTaskIndex !== -1)
+      }
+      if (makeChanges) {
+        // updatedParas = updatedParas.concat(updates)
+        logDebug(`NPNote::reviewSingleNote`, `about to update ${updates.length} todos in note "${note.filename || ''}" ("${note.title || ''}")`)
+        note?.updateParagraphs(updates)
+        logDebug(`NPNote::reviewSingleNote`, `Updated ${updates.length} todos in note "${note.filename || ''}" ("${note.title || ''}")`)
+      } else {
+        logDebug(`NPNote::reviewSingleNote`, `No update because makeChanges = ${String(makeChanges)}`)
+      }
+      // clo(updatedParas,`overdue tasks to be updated`)
+    }
+  }
+  return noteIndex
+}
+
+/**
  * Search the DataStore looking for notes with >date and >date+ tags which need to be converted to >today tags going forward
  * If plusTags are found (today or later), then convert them to >today tags
  * @param {OverdueSearchOptions} - options object with the following characteristics:
@@ -165,7 +282,7 @@ export async function findNotesWithOverdueTasksAndMakeToday(options: OverdueSear
     foldersToIgnore = [],
     datePlusOnly = true,
     confirm = false,
-    showNote = true,
+    /* showNote = true, // unused variable */
     replaceDate = true,
     singleNote = false /*, showUpdatedTask = true */,
     noteFolder = false,
@@ -201,101 +318,16 @@ export async function findNotesWithOverdueTasksAndMakeToday(options: OverdueSear
   if (!notesToUpdate.length && confirm) {
     await showMessage('Did not find any overdue tasks...congratulations!')
   }
+
+  // loop through all notes and process each individually
   for (let i = 0; i < notesToUpdate.length; i++) {
-    let updates = notesToUpdate[i],
-      currentTaskIndex = showNote ? -1 : 0,
-      currentTaskLineIndex = updates[0].lineIndex,
-      res
-    const note = updates[0].note
-    if (note) {
-      if (updates.length > 0) {
-        let doIt = !confirm
-        if (confirm) {
-          do {
-            if (showNote) {
-              res = await showOverdueNote(note, updates, i, notesToUpdate.length)
-            } else {
-              res = currentTaskLineIndex // skip note and process each task as if someone clicked it to edit
-            }
-            if (!isNaN(res)) {
-              // this was an index of a line to edit
-              logDebug(`NPnote`, `findNotesWithOverdueTasksAndMakeToday ${note.paragraphs[Number(res) || 0].content}`)
-              // edit a single task item
-              clo(note.paragraphs[Number(res) || 0], `findNotesWithOverdueTasksAndMakeToday paraClicked=`)
-              const origPara = note.paragraphs[Number(res) || 0]
-              const index = updates.findIndex((u) => u.lineIndex === origPara.lineIndex) || 0
-              const updatedPara = updates[index]
-              const result = await processLineClick(origPara, updatedPara)
-              clo(result, 'NPNote::findNotesWithOverdueTasksAndMakeToday result')
-              if (result) {
-                switch (result.action) {
-                  case 'set':
-                    logDebug('NPNote::findNotesWithOverdueTasksAndMakeToday', `received set command; index= ${index}`)
-                    clo(result.changed, 'NPNote::findNotesWithOverdueTasksAndMakeToday result')
-                    if (result?.changed) {
-                      updates[index] = result.changed
-                      note.updateParagraph(updates[index])
-                    }
-                    logDebug('NPNote::findNotesWithOverdueTasksAndMakeToday', `after set command; updates[index].content= ${updates[index].content}`)
-                    i-- //show it again so it can be adjusted
-                    continue
-                  case 'cancel': {
-                    const range = note.paragraphs[updates[0].lineIndex].contentRange
-                    await Editor.openNoteByFilename(note.filename, false, range?.start || 0, range?.end || 0, true)
-                    return
-                  }
-                }
-                //user selected an item in the list to come back to later (in splitview)
-                // const range = note.paragraphs[Number(res) || 0].contentRange
-                // await Editor.openNoteByFilename(note.filename, false, range?.start || 0, range?.end || 0, true)
-                // if (range) Editor.select(range.start,range.end-range.start)
-                // doIt = false
-              }
-            } else {
-              switch (res) {
-                case '__xcl__': {
-                  // const range = note.paragraphs[updates[0].lineIndex].contentRange
-                  // await Editor.openNoteByFilename(note.filename, false, range?.start || 0, range?.end || 0, true)
-                  return
-                }
-                case '__yes__':
-                  doIt = true
-                  break
-                case '__mark__':
-                case '__canceled__':
-                  updates = updates.map((p) => {
-                    p.type = res === '__mark__' ? 'done' : 'cancelled'
-                    return p
-                  })
-                  doIt = true
-                  break
-              }
-              if (typeof res === 'string' && res[0] === '>') {
-                updates = updates.map((p) => {
-                  const origPara = note.paragraphs[p.lineIndex]
-                  p.content = origPara.content.replace(RE_PLUS_DATE, String(res))
-                  return p
-                })
-                // clo(updates, `findNotesWithOverdueTasksAndMakeToday updates=`)
-                doIt = true
-              }
-            }
-            if (currentTaskIndex > -1) {
-              currentTaskIndex = currentTaskIndex < updates.length - 2 ? currentTaskIndex++ : -1
-              currentTaskLineIndex = updates[currentTaskIndex].lineIndex
-            }
-          } while (currentTaskIndex !== -1)
-        }
-        if (doIt) {
-          // updatedParas = updatedParas.concat(updates)
-          logDebug(`NPNote::findNotesWithOverdueTasksAndMakeToday`, `about to update ${updates.length} todos in note "${note.filename || ''}" ("${note.title || ''}")`)
-          note?.updateParagraphs(updates)
-          logDebug(`NPNote::findNotesWithOverdueTasksAndMakeToday`, `Updated ${updates.length} todos in note "${note.filename || ''}" ("${note.title || ''}")`)
-        } else {
-          logDebug(`NPNote::findNotesWithOverdueTasksAndMakeToday`, `No update because doIt = ${String(doIt)}`)
-        }
-        // clo(updatedParas,`overdue tasks to be updated`)
-      }
+    logDebug(
+      `NPNote::findNotesWithOverdueTasksAndMakeToday`,
+      `starting note loop:${i} of ${notesToUpdate.length} notes;  number of updates left: notesToUpdate[i].length=${notesToUpdate[i].length}`,
+    )
+    if (notesToUpdate[i].length) {
+      i = await reviewSingleNote(notesToUpdate, i, options) // result may decrement index to see the note again after one line change
+      if (i === -2) break //user selected cancel
     }
   }
   logDebug(`NPNote::findNotesWithOverdueTasksAndMakeToday`, `Total convertOverdueTasksToToday scan took: ${timer(start)}`)
