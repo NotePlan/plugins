@@ -1749,8 +1749,19 @@ declare class HTMLView {
    * Show HTML in a NotePlan sheet.
    * Note: Available from v3.6.2
    * @param {string} HTML to show
+   * @param {number?} width (optional integer)
+   * @param {number?} height (optional integer)
    */
-  static showSheet(HTML: string): void;
+  static showSheet(HTML: string, width?: number, height?: number): void;
+  /**
+  * Open a non-modal window above the main window with the given html code and window title.
+  * Note: Available from v3.7.0 (build >862)
+  * @param {string} HTML to show
+  * @param {string} title for window
+  * @param {number?} width (optional integer)
+  * @param {number?} height (optional integer)
+  */
+  static showWindow(html: string, title: string, width?: number, height?: number): void;
 }
 
 // Every function made available must be assigned to `globalThis`

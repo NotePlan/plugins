@@ -208,9 +208,10 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
 }
 
 /**
- * 
+ * Convert NotePlan Theme style information to CSS equivalent(s)
+ * @author @jgclark
  * @param {Object} style object from JSON theme
- * @returns {Array}
+ * @returns {Array} CSS elements
  */
 function convertStyleObjectBlock(styleObject: any): Array<string> {
   let cssStyleLinesOutput: Array<string> = []
@@ -261,21 +262,35 @@ export function textDecorationFromNP(selector: string, value: string = ''): stri
     }
   }
   else if (selector === 'strikethrough') {
-    switch (value) {
-      case '1': { // FIXME: why doesn't this fire?
-        return "text-decoration: line-through"
-      }
-      case '9': { // double TODO: Test me
-        return "text-decoration: line-through double"
-      }
-      case '513': { // dashed TODO: Test me
-        return "text-decoration: line-through dashed"
-      }
-      default: {
-        logWarn('textDecorationFromNP', `No matching CSS found for style strikethrough value '${value}'`)
-        return ""
-      }
+    // FIXME: Why is this reporting number for value?
+    // FIXME: Neither if-else or switch-case is wokring.
+    console.log(`- value: ${typeof value} with ${value}`)
+    if (value === "1") {
+      return "text-decoration: line-through"
     }
+    if (value === "9") {
+      return "text-decoration: line-through double"
+    }
+    if (value === "513") {
+      return "text-decoration: line-through dashed"
+    }
+    logWarn('textDecorationFromNP', `No matching CSS found for style strikethrough value '${value}'`)
+    return ""
+
+    // switch (value) {
+    //   case '1': { //
+    //     return "text-decoration: line-through"
+    //   }
+    //   case '9': { // double TEST: Test me
+    //     return "text-decoration: line-through double"
+    //   }
+    //   case '513': { // dashed TEST: Test me
+    //     return "text-decoration: line-through dashed"
+    //   }
+    //   default: {
+    //     logWarn('textDecorationFromNP', `No matching CSS found for style strikethrough value '${value}'`)
+    //     return ""
+    //  }
   }
   else {
     logWarn('textDecorationFromNP', `No matching CSS found for style setting "${selector}"`)
@@ -284,10 +299,11 @@ export function textDecorationFromNP(selector: string, value: string = ''): stri
 }
 
 /**
- * Convert a font size (in px) to rem (as a string) using baseFontSize (in px) to be the basis for 1.0rem.
+ * Convert a font size (in px) to rem (as a string).
+ * Uses the NP theme's baseFontSize (in px) to be the basis for 1.0rem.
  * @param {number} thisFontSize 
  * @param {number} baseFontSize 
- * @returns {string}
+ * @returns {string} size including 'rem' units
  */
 function pxToRem(thisFontSize: number, baseFontSize: number): string {
   const output = `${String((thisFontSize / baseFontSize).toPrecision(2))}rem`
@@ -305,60 +321,126 @@ function RGBColourConvert(RGBIn: string): string {
   // we have ARGB, so need to switch things round
   let output = RGBIn
   if (RGBIn.match(/#[0-9A-Fa-f]{8}/)) {
-    output = '#' + RGBIn.slice(7, 9) + RGBIn.slice(1, 7)
+    output = `#${RGBIn.slice(7, 9)}${RGBIn.slice(1, 7)}`
   }
   return output
 }
 
 /**
  * Translate from the font name, as used in the NP Theme file,
- * and the form CSS is expecting.
+ * to the form CSS is expecting.
  * If no translation is defined, try to use the user's own default font.
- * If that fails, use built-in font.
+ * If that fails, use fallback font 'sans'.
  * Further info at https://help.noteplan.co/article/44-customize-themes#fonts
  * @author @jgclark
  * @param {string} fontNameNP 
  * @returns {Array<string>} resulting CSS font properties
  */
 export function fontPropertiesFromNP(fontNameNP: string): Array<string> {
-  const fontList = new Map()
-  // lookup list
-  fontList.set('noteplanstate', ['noteplanstate', 'regular', 'normal'])
-  fontList.set('AvenirNext', ['Avenir Next', 'regular', 'normal'])
-  fontList.set('AvenirNext-Italic', ['Avenir Next', 'regular', 'italic'])
-  fontList.set('AvenirNext-DemiBold', ['Avenir Next', '500', 'normal'])
-  fontList.set('AvenirNext-Bold', ['Avenir Next', 'bold', 'normal'])
-  fontList.set('Avenir Next', ['Avenir Next', 'regular', 'normal'])
-  fontList.set('HelveticaNeue', ['Helvetica Neue', 'regular', 'normal'])
-  fontList.set('HelveticaNeue-Italic', ['Helvetica Neue', 'regular', 'italic'])
-  fontList.set('HelveticaNeue-Bold', ['Helvetica Neue', 'bold', 'normal'])
-  fontList.set('Helvetica Neue', ['Helvetica Neue', 'regular', 'normal'])
-
-  // Set fallbacks first
-  let translatedFamily: string = 'Sans'
-  let translatedWeight: string = 'regular'
-  let translatedStyle: string = 'normal'
-
-  let tuple: [string, string, string] = fontList.get(fontNameNP) ?? ['', '', '']
-  translatedFamily = tuple[0]
-  if (tuple[0] !== '') {
-    // set properties from the lookup list
-    translatedFamily = tuple[0]
-    translatedWeight = tuple[1]
-    translatedStyle = tuple[2]
-  } else {
-    // otherwise try using user's default font setting
-    const userFont: string = String(DataStore.preference('fontFamily')) ?? ''
-    tuple = fontList.get(userFont) ?? ['', '', '']
-    if (tuple[0] !== '') {
-      // set properties from the lookup list
-      translatedFamily = tuple[0]
-      translatedWeight = tuple[1]
-      translatedStyle = tuple[2]
-    }
-  }
+  const specialFontList = new Map()
+  // lookup list of special cases
+  specialFontList.set('System', ['sans', 'regular', 'normal'])
+  specialFontList.set('', ['sans', 'regular', 'normal'])
+  specialFontList.set('noteplanstate', ['noteplanstate', 'regular', 'normal'])
 
   const outputArr = []
+
+  // First test to see if this is one of the specials
+  const specials = specialFontList.get(fontNameNP) // or undefined if none match
+  if (specials !== undefined) {
+    outputArr.push(`font-family: "${specials[0]}"`)
+    outputArr.push(`font-weight: "${specials[1]}"`)
+    outputArr.push(`font-style: "${specials[2]}"`)
+    // logDebug('translateFontNameNPToCSS', `${fontNameNP} ->  ${outputArr.toString()}`)
+    console.log(`specials: ${fontNameNP} ->  ${outputArr.toString()}`)
+    return outputArr
+  }
+
+  // Not a special. So now split input string into parts either side of '-'
+  // and then insert spaces before capital letters
+  let translatedFamily: string
+  let translatedWeight: string = "400"
+  let translatedStyle: string = "normal"
+  const splitParts = fontNameNP.split('-')
+  const namePartNoSpaces = splitParts[0]
+  let namePartSpaced = ''
+  const modifierLC = (splitParts.length > 0) ? splitParts[1]?.toLowerCase() : ''
+  for (let i = 0; i < namePartNoSpaces.length; i++) {
+    const c = namePartNoSpaces[i]
+    if (c.match(/[A-Z]/)) {
+      namePartSpaced += ` ${c}`
+    } else {
+      namePartSpaced += c
+    }
+  }
+  translatedFamily = namePartSpaced.trim()
+  // logDebug('translateFontNameNPToCSS', `${fontNameNP} -> ${translatedFamily}`)
+
+  // Using the numeric font-weight system
+  // With info from https://developer.mozilla.org/en-US/docs/Web/CSS/font-weight#common_weight_name_mapping
+  switch (modifierLC) {
+    case 'thin': {
+      translatedWeight = "100"
+      break
+    }
+    case 'light': {
+      translatedWeight = "300"
+      break
+    }
+    case 'book': {
+      translatedWeight = "500"
+      break
+    }
+    case 'demi-bold': {
+      translatedWeight = "600"
+      break
+    }
+    case 'semi-bold': {
+      translatedWeight = "600"
+      break
+    }
+    case 'bold': {
+      translatedWeight = "700"
+      break
+    }
+    case 'heavy': {
+      translatedWeight = "900"
+      break
+    }
+    case 'black': {
+      translatedWeight = "900"
+      break
+    }
+    case 'italic': {
+      translatedStyle = "italic"
+      break
+    }
+    case 'bolditalic': {
+      translatedWeight = "700"
+      translatedStyle = "italic"
+      break
+    }
+    case 'slant': {
+      translatedStyle = "italic"
+      break
+    }
+    default: { // including '', 'normal' and 'regular'
+      translatedWeight = "400"
+      translatedStyle = "normal"
+      break
+    }
+  }
+  // logDebug('translateFontNameNPToCSS', `  - ${translatedStyle} / ${translatedWeight}`)
+
+  // Finally if we're still working on default 'Sans', then
+  // at least try to use the user's default font setting.
+  if (translatedFamily === 'Sans') {
+    logDebug('fontPropertiesFromNP', `For '${fontNameNP}' trying user's default font setting`)
+    const userFont: string = String(DataStore.preference('fontFamily')) ?? ''
+    logDebug('fontPropertiesFromNP', `- userFont = '${userFont}'`)
+    translatedFamily = userFont
+  }
+
   outputArr.push(`font-family: "${translatedFamily}"`)
   outputArr.push(`font-weight: "${translatedWeight}"`)
   outputArr.push(`font-style: "${translatedStyle}"`)
@@ -381,78 +463,94 @@ function makeCSSSelector(selector: string, settingsArray: Array<string>): string
 }
 
 /**
- * Helper function to construct HTML to show
- * @param {string} noteTitle 
+ * Helper function to construct HTML to show in a new window
+ * @param {string} title of window
  * @param {string} headerTags 
  * @param {string} body 
  * @param {string} generalCSSIn 
  * @param {string} specificCSS
+ * @param {boolean} makeModal?
  * @param {string?} preBodyScript
  * @param {string?} postBodyScript
  * @param {string?} filenameForSavedFileVersion
+ * @param {number?} width
+ * @param {number?} height
  * TODO: Allow for style file when we can save arbitrary data files, not just read them
  * TODO: How to allow for emojis?
  */
 export function showHTML(
-  noteTitle: string,
+  title: string,
   headerTags: string,
   body: string,
   generalCSSIn: string,
   specificCSS: string,
+  makeModal: boolean = false,
   preBodyScript: string = '',
   postBodyScript: string = '',
-  filenameForSavedFileVersion: string = ''
+  filenameForSavedFileVersion: string = '',
+  width?: number,
+  height?: number
 ): void {
+  try {
+    const fullHTML = []
+    fullHTML.push('<html>')
+    fullHTML.push('<head>')
+    fullHTML.push(`<title>${title}</title>`)
+    fullHTML.push(`<meta charset="utf-8">`)
+    fullHTML.push(headerTags)
+    fullHTML.push('<style type="text/css">')
+    // If CSS is empty, then generate it from the current theme
+    const generalCSS = (generalCSSIn && generalCSSIn !== '') ? generalCSSIn : generateCSSFromTheme('')
+    fullHTML.push(generalCSS)
+    fullHTML.push(specificCSS)
+    fullHTML.push('</style>')
+    if (preBodyScript !== '') {
+      fullHTML.push('\n<script>')
+      fullHTML.push(preBodyScript)
+      fullHTML.push('\n</script>')
+    }
+    fullHTML.push('</head>')
+    fullHTML.push('\n<body>')
+    fullHTML.push(`<h1>${title}</h1>`)
+    fullHTML.push(body)
+    fullHTML.push('\n</body>')
+    if (postBodyScript !== '') {
+      fullHTML.push('\n<script>')
+      fullHTML.push(postBodyScript)
+      fullHTML.push('\n</script>')
+    }
+    fullHTML.push('</html>')
+    const fullHTMLStr = fullHTML.join('\n')
 
-  const fullHTML = []
-  fullHTML.push('<html>')
-  fullHTML.push('<head>')
-  fullHTML.push(`<title>${noteTitle}</title>`)
-  fullHTML.push(headerTags)
-  fullHTML.push('<style type="text/css">')
-  // If CSS is empty, then generate it from the current theme
-  const generalCSS = (generalCSSIn && generalCSSIn !== '') ? generalCSSIn : generateCSSFromTheme('')
-  fullHTML.push(generalCSS)
-  fullHTML.push(specificCSS)
-  fullHTML.push('</style>')
-  if (preBodyScript !== '') {
-    fullHTML.push('\n<script>')
-    fullHTML.push(preBodyScript)
-    fullHTML.push('\n</script>')
-  }
-  fullHTML.push('</head>')
-  fullHTML.push('\n<body>')
-  fullHTML.push(`<h1>${noteTitle}</h1>`)
-  fullHTML.push(body)
-  fullHTML.push('\n</body>')
-  if (postBodyScript !== '') {
-    fullHTML.push('\n<script>')
-    fullHTML.push(postBodyScript)
-    fullHTML.push('\n</script>')
-  }
-  fullHTML.push('</html>')
-
-  HTMLView.showSheet(fullHTML.join('\n'))
-
-  // If wanted, also write this HTML to a note so we can work on it offline. (Works only with 3.6.2 build >847.)
-  if (filenameForSavedFileVersion !== '' && NotePlan.environment.buildVersion > 847) {
-
-    // NEWER METHOD (to arbitrary file in NP sandbox)
-    const res = DataStore.saveData(fullHTML.join('\n'), filenameForSavedFileVersion, true)
-    if (res) {
-      logDebug('showHTML', `Saved resulting HTML to ${filenameForSavedFileVersion} as well.`)
+    // Call the appropriate function, with or without h/w params
+    // TODO: Remove build 863 check in time
+    if (width === undefined || height === undefined) {
+      if (makeModal || NotePlan.environment.buildVersion < 863) {
+        HTMLView.showSheet(fullHTMLStr) // available from 3.6.2
+      } else {
+        HTMLView.showWindow(fullHTMLStr, title) // available from 3.7.0
+      }
     } else {
-      logDebug('showHTML', `Couoldn't Save resulting HTML to ${filenameForSavedFileVersion} as well.`)
+      if (makeModal) {
+        HTMLView.showSheet(fullHTMLStr, width, height)
+      } else {
+        HTMLView.showWindow(fullHTMLStr, title, width, height)
+      }
     }
 
-    // OLDER METHOD (to MD note in main Notes folder)
-    // const folderToStore = '/' // could be smarter
-    // const note: ?TNote = await getOrMakeNote(filenameForSavedFileVersion, folderToStore)
-    // if (note != null) {
-    //   logDebug('showHTML', `writing HTML to note with filename '${note.filename}'`)
-    //   note.content = fullHTML.join('\n')
-    // } else {
-    //   logError('showHTML', `couldn't write to note '${filenameForSavedFileVersion}'`)
-    // }
+    // If wanted, also write this HTML to a file so we can work on it offline.
+    // Note: this is saved to the Plugins/Data/<Plugin> folder, not a user-accessible Note.
+    if (filenameForSavedFileVersion !== '') {
+      // Write to arbitrary file in NP sandbox
+      const res = DataStore.saveData(fullHTMLStr, filenameForSavedFileVersion, true)
+      if (res) {
+        logDebug('showHTML', `Saved resulting HTML '${title}' to ${filenameForSavedFileVersion} as well.`)
+      } else {
+        logError('showHTML', `Couoldn't save resulting HTML '${title}'  to ${filenameForSavedFileVersion} as well.`)
+      }
+    }
+  }
+  catch (error) {
+    logError('HTMLView / showHTML', error.message)
   }
 }
