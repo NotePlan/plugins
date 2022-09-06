@@ -7,7 +7,7 @@
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
-import { generateCSSFromTheme } from '../../helpers/NPThemeToCSS'
+// import { generateCSSFromTheme } from '@helpers/HTMLView'
 import pluginJson from '../plugin.json'
 import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
 import { JSP, logError, logInfo } from '@helpers/dev'
@@ -27,7 +27,7 @@ export {
 } from './projects'
 export {
   generateCSSFromTheme
-} from '../../helpers/NPThemeToCSS'
+} from '@helpers/HTMLView'
 
 // NB: There are other possible exports, including:
 // export { testNoteplanStateFont } from '../test/noteplanstateFontTest.js'

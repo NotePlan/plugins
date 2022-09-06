@@ -9,20 +9,11 @@
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
   "plugin.version": "0.8.0-beta1",
-  "plugin.lastUpdateInfo": "Proof of Concept HTML output from '/HTML project lists', requiring NP v3.6.2.",
+  "plugin.lastUpdateInfo": "Offers Proof of Concept HTML view of '/project lists', requiring NP v3.6.2.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
   "plugin.commands": [
-    {
-      "name": "HTML project lists",
-      "alias": [
-        "gtd",
-        "list"
-      ],
-      "description": "shows a table of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete.",
-      "jsFunction": "makeProjectListsHTML"
-    },
     {
       "name": "project lists",
       "alias": [
@@ -115,6 +106,18 @@
       "title": "Review Plugin settings"
     },
     {
+      "key": "outputStyle",
+      "title": "Output style to use",
+      "description": "Use Rich (HTML) output where possible? Note: This is an experimental style available from NotePlan v3.6.2, which currently shows a temporary modal window, and doesn't result in a saved note.\nOr the original NotePlan (Markdown) output style.",
+      "type": "string",
+      "choices": [
+        "Rich",
+        "NotePlan"
+      ],
+      "default": "markdown",
+      "required": true
+    },
+    {
       "key": "folderToStore",
       "title": "Folder to store (markdown) review notes",
       "description": "Folder where review notes will be stored (will be created if necessary)",
@@ -169,14 +172,6 @@
         "title"
       ],
       "default": "title",
-      "required": true
-    },
-    {
-      "key": "includePercentages",
-      "title": "Include task complete percentages?",
-      "description": "Include % task complete in review list?",
-      "type": "bool",
-      "default": true,
       "required": true
     },
     {
@@ -258,6 +253,28 @@
       "type": "string",
       "default": "@reviewed",
       "required": true
-    }
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Debugging"
+    },
+    {
+      "key": "_logLevel",
+      "title": "Log Level",
+      "description": "Set how much output will be displayed for this plugin in the NotePlan > Help > Plugin Console. DEBUG is the most verbose; NONE is the least (silent).",
+      "type": "string",
+      "choices": [
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "none"
+      ],
+      "default": "INFO",
+      "required": true
+     }
   ]
 }

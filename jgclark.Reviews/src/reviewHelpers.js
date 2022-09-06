@@ -22,11 +22,11 @@ import { showMessage } from '@helpers/userInput'
 // Config setup
 
 export type ReviewConfig = {
+  outputStyle: string,
   folderToStore: string,
   foldersToIgnore: Array<string>,
   noteTypeTags: Array<string>,
   displayOrder: string,
-  includePercentages: boolean,
   displayGroupedByFolder: boolean,
   displayArchivedProjects: boolean,
   finishedListHeading: string,
@@ -396,21 +396,27 @@ export class Project {
     const titlePart = this.title ?? '(error, not available)'
     switch (style) {
       case 'HTML':
+        // Method 1: make [[notelinks]] via x-callbacks
+        const noteTitleWithOpenAction = `<a href="noteplan://x-callback-url/openNote?noteTitle=${titlePart}">${folderNamePart}${titlePart}</a>`
+        // Method 2: internal links
+        // see discussion at https://discord.com/channels/763107030223290449/1007295214102269982/1016443125302034452
+        // const noteTitleWithOpenAction = `<button onclick=openNote()>${folderNamePart}${titlePart}</button>`
+
         if (this.isCompleted) {
           // <i class="fa-solid fa-square-check"></i> from https://fontawesome.com/icons/square-check?s=solid
           // TODO: pick up colour from style.checked.color
-          // return `<span class="checkbox">* [x]</span> <span class="task-checked">&#x2611; ${folderNamePart}${titlePart}</span>`
-          return `<span class="task-checked">${folderNamePart}${titlePart}</span>`
+          // return `<span class="checkbox">* [x]</span> <span class="task-checked">&#x2611; ${noteTitleWithOpenAction}</span>`
+          return `<span class="task-checked">${noteTitleWithOpenAction}</span>`
         } else if (this.isCancelled) {
           // TODO: pick up colour from style.checked-cancelled.color
           // or https://fontawesome.com/icons/rectangle-xmark?s=solid
           // Also: refresh = https://fontawesome.com/icons/arrow-rotate-right?s=solid
           // Also: start = https://fontawesome.com/icons/circle-play?s=solid
-          // return `<span class="checkbox">* [-]</span> <span class="task-cancelled">&#x2612; ${folderNamePart}${titlePart}</span>`
-          return `<span class="task-cancelled">${folderNamePart}${titlePart}</span>`
+          // return `<span class="checkbox">* [-]</span> <span class="task-cancelled">&#x2612; ${noteTitleWithOpenAction}</span>`
+          return `<span class="task-cancelled">${noteTitleWithOpenAction}</span>`
         } else {
-          // return `<span class="checkbox">* [ ]</span> &#x2610; ${folderNamePart}${titlePart}`
-          return `${folderNamePart}${titlePart}`
+          // return `<span class="checkbox">* [ ]</span> &#x2610; ${noteTitleWithOpenAction}`
+          return `${noteTitleWithOpenAction}`
         }
 
       default: // including 'markdown'
@@ -455,10 +461,9 @@ export class Project {
   /**
    * Returns line showing more detailed summary of the project, for output to a note.
    * @param {boolean} includeFolderName at the start of the entry
-   * @param {boolean} includePercentage of completed tasks (optional; if missing defaults to true)
-   * @return {string}
+   * @returns {string}
    */
-  detailedSummaryLine(style: string, includeFolderName: boolean, includePercentage: boolean = true): string {
+  detailedSummaryLine(style: string, includeFolderName: boolean): string {
     let output = ''
     switch (style) {
       case 'HTML':
@@ -511,12 +516,12 @@ export class Project {
           // $FlowIgnore[incompatible-call]
           output += `\t(Cancelled ${relativeDateFromNumber(this.finishedDays)})`
         }
-        if (includePercentage) {
+        // if (includePercentage) {
           const thisPercent = (isNaN(this.percentComplete)) ? '-%' : `${this.percentComplete}%`
           output += `\tc${this.completedTasks.toLocaleString()} (${thisPercent}) / o${this.openTasks} / w${this.waitingTasks} / f${this.futureTasks}`
-        } else {
-          output += `\tc${this.completedTasks.toLocaleString()} / o${this.openTasks} / w${this.waitingTasks} / f${this.futureTasks}`
-        }
+        // } else {
+        //   output += `\tc${this.completedTasks.toLocaleString()} / o${this.openTasks} / w${this.waitingTasks} / f${this.futureTasks}`
+        // }
         if (!this.isCompleted && !this.isCancelled) {
           output =
             this.nextReviewDays != null
@@ -545,7 +550,7 @@ export class Project {
     const textToShow = (text !== '') ? text : String(percent)
     return `
   <svg id="pring${this.ID}" class="percent-ring" height="200" width="200" viewBox="0 0 100 100" onload="setPercentRing(${percent}, 'pring${this.ID}');">
-    <circle class="percent-ring-circle" stroke="${color}" stroke-width=13% fill="transparent" r=40% cx=50% cy=50% />
+    <circle class="percent-ring-circle" stroke="${color}" stroke-width=12% fill="transparent" r=40% cx=50% cy=50% />
     <g class="circle-percent-text" color=${color}>
     <text class="circle-percent-text" x=50% y=53% dominant-baseline="middle" text-anchor="middle" fill="currentcolor" stroke="currentcolor">${textToShow}</text>
     </g>

@@ -2,17 +2,10 @@
 //-----------------------------------------------------------------------------
 // Commands for Reviewing project-style notes, GTD-style.
 // by @jgclark
-// Last updated 28.8.2022 for v0.8.0-beta1, @jgclark
+// Last updated 1.9.2022 for v0.8.0-beta1, @jgclark
 //-----------------------------------------------------------------------------
-// In time add this to plugin.json
-// {
-//   "key": "outputStyle",
-//     "title": "Use rich output style",
-//       "description": "Use rich (HTML) output where possible?\nNB: This is an experimental style, which currently doesn't result in a saved note.",
-//         "type": "bool",
-//           "default": true,
-//             "required": true
-// },
+// TODO: Try to deal with emojis
+// TODO: Plumb in the HTML option
 
 import pluginJson from "../plugin.json"
 import {
@@ -20,7 +13,6 @@ import {
   logPreference,
   Project,
 } from './reviewHelpers'
-import { showHTML } from '../../helpers/NPThemeToCSS'
 import { checkString } from '@helpers/checkType'
 import {
   hyphenatedDateString,
@@ -32,6 +24,7 @@ import {
   filterFolderList,
 } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
+import { showHTML } from '@helpers/HTMLView'
 import {
   findNotesMatchingHashtag,
   findNotesMatchingHashtags,
@@ -77,6 +70,9 @@ const reviewListCSS = [
   // 'table tbody tr:last-child { border-bottom: 1px solid --tint-color; }', // turn on tbody section bottom border -- now set in main CSS
   'table tr td:first-child, table tr th:first-child { border-left: 0px; }', // turn off outer table right borders
   'table tr td:last-child, table tr th:last-child { border-right: 0px; }', // turn off outer table right borders
+  'a, a:visited, a:active { color: inherit }', // note links: turn off text color
+  'a:hover { }', // perhaps use hover for note links
+  'button { font-size: 1.0rem; font-weight: bold; }',
   '.checkbox { font: "noteplanstate", font-size: 1.4rem; }', // make checkbox display larger, and like in the app
   '.percent-ring { width: 2rem; height: 2rem; }', // Set size of percent-display rings
   '.percent-ring-circle { transition: 0.5s stroke-dashoffset; transform: rotate(-90deg); transform-origin: 50% 50%; }', // details of ring-circle that can be set in CSS
@@ -104,6 +100,17 @@ const setPercentRingJSFunc = `
     // text.textContent = String(percent); // + '%';
   }
   `
+/**
+ * Decide which of the project list outputs to call.
+ */
+export async function makeProjectLists(): Promise<void> {
+  const config = await getReviewSettings()
+  if (config.outputStyle === 'Rich' && NotePlan.environment.buildVersion >= 845) {
+    await makeProjectListsHTML()
+  } else {
+    await makeProjectListsMarkdown()
+  }
+}
 
 /**
  * Generate human-readable lists of project notes for each tag of interest
@@ -144,9 +151,10 @@ export async function makeProjectListsHTML(): Promise<void> {
           outputArray.join('\n'),
           '', // = set general CSS from current theme
           reviewListCSS,
+          false, // = not modal window
           setPercentRingJSFunc,
           '',
-          noteTitleWithoutHash)
+          noteTitleWithoutHash) // not giving window dimensions
         logDebug(pluginJson, `- written results to HTML`)
       }
     } else {
@@ -163,9 +171,10 @@ export async function makeProjectListsHTML(): Promise<void> {
         outputArray.join('\n'),
         '', // get general CSS set automatically
         reviewListCSS,
+        false, // = not modal window
         '',
         '',
-        noteTitle)
+        noteTitle) // not giving window dimensions
       logDebug(pluginJson, `written results to HTML`)
     }
   }
@@ -175,11 +184,11 @@ export async function makeProjectListsHTML(): Promise<void> {
 }
 
 /**
- * Generate human-readable lists of project notes for each tag of interest
+ * Generate human-readable lists of project notes in markdown for each tag of interest
  * and write out to note(s) in the config.folderToStore folder.
  * @author @jgclark
  */
-export async function makeProjectLists(): Promise<void> {
+export async function makeProjectListsMarkdown(): Promise<void> {
   try {
     const style = 'markdown'
     const config = await getReviewSettings()
@@ -191,7 +200,7 @@ export async function makeProjectLists(): Promise<void> {
         // handle #hashtags in the note title (which get stripped out by NP, it seems)
         const tagWithoutHash = tag.replace('#', '')
         const noteTitle = `${tag} Review List`
-        const noteTitleWithoutHash = `${tagWithoutHash} List`
+        const noteTitleWithoutHash = `${tagWithoutHash} Review List`
 
         // Do the main work
         const note: ?TNote = await getOrMakeNote(noteTitleWithoutHash, config.folderToStore)
@@ -201,9 +210,10 @@ export async function makeProjectLists(): Promise<void> {
           outputArray.unshift(`# ${noteTitle}`)
 
           // Save the list(s) to this note
-          logDebug(pluginJson, `- writing results to the note with filename '${note.filename}'`)
           note.content = outputArray.join('\n')
           logDebug(pluginJson, `- written results to note '${noteTitle}'`)
+          // Open the note in a new window
+          await Editor.openNoteByFilename(note.filename, true, 0, 0, false)
         } else {
           await showMessage('Oops: failed to find or make project summary note', 'OK')
           logError(pluginJson, "Shouldn't get here -- no valid note to write to!")
@@ -220,9 +230,11 @@ export async function makeProjectLists(): Promise<void> {
         outputArray.unshift(`# ${noteTitle}`)
 
         // Save the list(s) to this note
-        logDebug(pluginJson, `- writing results to the note with filename '${note.filename}'`)
         note.content = outputArray.join('\n')
         logInfo(pluginJson, `written results to note '${noteTitle}'`)
+        // Open the note in a new window
+        // TODO: Ideally not open another copy of the note if its already open. But API doesn't support this yet.
+        await Editor.openNoteByFilename(note.filename, true, 0, 0, false, false)
       } else {
         await showMessage('Oops: failed to find or make project summary note', 'OK')
         logError(pluginJson, "Shouldn't get here -- no valid note to write to!")
@@ -279,7 +291,7 @@ export async function makeReviewList(): Promise<void> {
         // For each readyToReview note get the machine-readable summary line for it
         for (const thisProject of projectsReadyToReview) {
           summaryArray.push(thisProject.machineSummaryLine())
-          logDebug(pluginJson, `-> ${thisProject.machineSummaryLine()}`)
+          // logDebug(pluginJson, `-> ${thisProject.machineSummaryLine()}`)
         }
       }
     }
@@ -430,7 +442,7 @@ async function makeNoteTypeSummary(noteTag: string, style: string): Promise<Arra
         noteCount += sortedProjects.length
 
       } else {
-        logInfo(pluginJson, `- No notes found for '${noteTag}'`)
+        logInfo(pluginJson, `- No notes found in ${folder} for '${noteTag}'`)
       }
       CommandBar.showLoading(true, `Summarising ${noteTag} in ${filteredFolderList.length} folders`, (noteCount / filteredFolderList.length))
     }
@@ -438,23 +450,26 @@ async function makeNoteTypeSummary(noteTag: string, style: string): Promise<Arra
     CommandBar.showLoading(false)
     logInfo(pluginJson, `${Number(noteCount)} notes reviewed in ${timer(startTime)}s`)
 
+    let startReviewButton = ''
     // Add summary/ies onto the start (remember: unshift adds to the very front each time)
     switch (style) {
       case 'HTML':
+        startReviewButton = `<button onClick="noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=next%20project%20review">${overdue} ready for review</button>`
         // writing backwards to suit .unshift
         outputArray.unshift(Project.detailedSummaryLineHeader(style))
         outputArray.unshift('\n<table>')
         if (!config.displayGroupedByFolder) {
           outputArray.unshift(`<h3>All folders (${noteCount} notes)</h3>`)
         }
-        outputArray.unshift(`<p>Total: ${noteCount} active notes${(overdue > 0) ? `, <b>${overdue} ready for review</b>` : ''}. <i>Last updated: ${nowLocaleDateTime}</i></p>`)
+        outputArray.unshift(`<p>Total: ${noteCount} active notes${(overdue > 0) ? `, <b>${startReviewButton}</b>` : ''}. <i>Last updated: ${nowLocaleDateTime}</i></p>`)
         break
 
       default: // include 'markdown'
+        startReviewButton = `[${overdue} ready for review](noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=next%20project%20review)`
         if (noteCount > 0) { // print just the once
           outputArray.unshift(Project.detailedSummaryLineHeader(style))
         }
-        outputArray.unshift(`Total: ${noteCount} active notes${(overdue > 0) ? `, **${overdue} ready for review**` : ''}. _Last updated: ${nowLocaleDateTime}_`)
+        outputArray.unshift(`Total: ${noteCount} active notes${(overdue > 0) ? `, **${startReviewButton}**` : ''}. _Last updated: ${nowLocaleDateTime}_`)
         if (!config.displayGroupedByFolder) {
           outputArray.unshift(`### All folders (${noteCount} notes)`)
         }
