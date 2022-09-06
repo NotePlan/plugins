@@ -35,13 +35,10 @@ export type Option<T> = $ReadOnly<{
  * @return {TDefault} - the value attribute of the user-chosen item
  */
 export async function chooseOption<T, TDefault = T>(message: string, options: $ReadOnlyArray<Option<T>>, defaultValue: TDefault|null = null): Promise<T | TDefault> {
-  logDebug(`deleteme before`)
-  clo(options,`chooseOption::options=`)
   const { index } = await CommandBar.showOptions(
     options.map((option) => option.label),
     message,
   )
-  logDebug(`deleteme after index:${index}`)
   return options[index]?.value ?? defaultValue ?? options[0].value
 }
 
@@ -501,7 +498,7 @@ export async function chooseNote(includeProjectNotes: boolean = true, includeCal
     isInIgnoredFolder = isInIgnoredFolder || !/(\.md|\.txt)$/i.test(note.filename) //do not include non-markdown files
     return !isInIgnoredFolder
   })
-  let opts = noteListFiltered.map((note) => {
+  const opts = noteListFiltered.map((note) => {
     return note.title && note.title !== '' ? note.title : note.filename
   })
   const {index} = await CommandBar.showOptions(opts, 'Choose note')

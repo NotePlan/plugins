@@ -13,7 +13,7 @@ import { findStartOfActivePartOfNote, findEndOfActivePartOfNote, isTermInMarkdow
  * @param {boolean} search rawText (headingStr above includes the #'s etc) default=false
  * @returns {void}
  */
-export function removeHeadingFromNote(note: TNote | TEditor, headingStr: string, rawTextSearch: boolean = false) {
+export function removeHeadingFromNote(note: CoreNoteFields, headingStr: string, rawTextSearch: boolean = false) {
   const prevExists = note.paragraphs.filter((p) => (p.type === 'title' && rawTextSearch ? p.rawContent === headingStr : p.content === headingStr))
   if (prevExists.length) {
     note.removeParagraphs(prevExists)
@@ -38,8 +38,7 @@ export function deleteEntireBlock(note: CoreNoteFields, para: TParagraph, includ
     note.removeParagraphs(paraBlock) //seems to not work only if it's a note, not Editor
     logDebug(`NPParagraph/deleteEntireBlock`, `Removed ${paraBlock.length} items under ${para.content} (from line ${para.lineIndex})`)
     // note.updateParagraphs(paraBlock)
-  }
-  else {
+  } else {
     logDebug(`NPParagraph/deleteEntireBlock`, `No paragraphs to remove under ${para.content} (line # ${para.lineIndex})`)
   }
 }
@@ -68,7 +67,7 @@ export function removeContentUnderHeading(note: CoreNoteFields, heading: string,
 }
 
 /**
- * Insert text content under a given section heading. 
+ * Insert text content under a given section heading.
  * If section heading is not found, then insert that section heading first at the start of the note.
  * The 'headingToFind' uses a startsWith not exact match, to allow datestamps or number of results etc. to be used in headings
  * @param {CoreNoteFields} destNote
@@ -133,10 +132,11 @@ export async function replaceContentUnderHeading(
  * @param {boolean} includeFromStartOfSection
  * @returns {Array<TParagraph>} the set of selectedParagraphs in the block
  */
-export function getParagraphBlock(note: CoreNoteFields,
+export function getParagraphBlock(
+  note: CoreNoteFields,
   selectedParaIndex: number,
   includeFromStartOfSection: boolean = false,
-  useTightBlockDefinition: boolean = false
+  useTightBlockDefinition: boolean = false,
 ): Array<TParagraph> {
   const parasInBlock: Array<TParagraph> = [] // to hold set of paragraphs in block to return
   const startActiveLineIndex = findStartOfActivePartOfNote(note)
@@ -144,7 +144,10 @@ export function getParagraphBlock(note: CoreNoteFields,
   const allParas = note.paragraphs
   let startLine = selectedParaIndex
   let selectedPara = allParas[startLine]
-  logDebug(`NPParagraph / getParagraphBlock`, `getParaBlock: starting with start/end active = ${startActiveLineIndex}/${endActiveLineIndex} at lineIndex ${selectedParaIndex} ('${trimString(selectedPara.content, 50)}')`)
+  logDebug(
+    `NPParagraph / getParagraphBlock`,
+    `getParaBlock: starting with start/end active = ${startActiveLineIndex}/${endActiveLineIndex} at lineIndex ${selectedParaIndex} ('${trimString(selectedPara.content, 50)}')`,
+  )
 
   if (includeFromStartOfSection) {
     // First look earlier to find earlier lines up to a blank line or horizontal rule;
@@ -305,15 +308,15 @@ export async function gatherMatchingLines(
       n.date == null
         ? `[[${n.title ?? ''}]]`
         : dateStyle.startsWith('link') // to deal with earlier typo where default was set to 'links'
-          ? // $FlowIgnore(incompatible-call)
+        ? // $FlowIgnore(incompatible-call)
           ` > ${hyphenatedDate(n.date)} `
-          : dateStyle === 'date'
-            ? // $FlowIgnore(incompatible-call)
-            ` (${toLocaleDateTimeString(n.date)})`
-            : dateStyle === 'at'
-              ? // $FlowIgnore(incompatible-call)
-              ` @${hyphenatedDate(n.date)} `
-              : ''
+        : dateStyle === 'date'
+        ? // $FlowIgnore(incompatible-call)
+          ` (${toLocaleDateTimeString(n.date)})`
+        : dateStyle === 'at'
+        ? // $FlowIgnore(incompatible-call)
+          ` @${hyphenatedDate(n.date)} `
+        : ''
 
     // set up regex for searching, now with word boundaries on either side
     // find any matches
@@ -514,7 +517,8 @@ export function getParagraphContainingPosition(note: CoreNoteFields, position: n
         if (start <= position && end >= position) {
           foundParagraph = p
           if (i > 0) {
-            logDebug(pluginJson,
+            logDebug(
+              pluginJson,
               `getParagraphContainingPosition: paragraph before: ${i - 1} (${String(note.paragraphs[i - 1].contentRange?.start)}-${String(
                 note.paragraphs[i - 1]?.contentRange?.end || 'n/a',
               )}) - "${note.paragraphs[i - 1].content}"`,
@@ -527,9 +531,9 @@ export function getParagraphContainingPosition(note: CoreNoteFields, position: n
   })
   if (!foundParagraph) {
     if (position === 0 && note.paragraphs.length === 0) {
-      note.prependParagraph("\n", "empty") //can't add a line without a return
+      note.prependParagraph('\n', 'empty') //can't add a line without a return
       if (Editor === note) {
-        Editor.select(0,0) //put the cursor before the return we just added
+        Editor.select(0, 0) //put the cursor before the return we just added
       }
       return note.paragraphs[0]
     }
@@ -570,17 +574,14 @@ export async function getSelectedParagraph(): Promise<TParagraph | null> {
  * If these can't be found, then create a new line for this after the title line, and populate with optional metadataLinePlaceholder param.
  * @author @jgclark
  * @tests in jest file
- * 
+ *
  * @param {TNote} note to use
  * @param {TNote} placeholder to use if we need to make a metadata line
  * @returns {number} the line number for the metadata line
  */
-export function getOrMakeMetadataLine(
-  note: TNote,
-  metadataLinePlaceholder: string = ''
-): number {
+export function getOrMakeMetadataLine(note: TNote, metadataLinePlaceholder: string = ''): number {
   try {
-    const lines = note.paragraphs?.map(s => s.content) ?? []
+    const lines = note.paragraphs?.map((s) => s.content) ?? []
     logDebug('NPparagraph/getOrMakeMetadataLine', `Starting with ${lines.length} lines`)
 
     // Belt-and-Braces: deal with empty or almost-empty notes
@@ -588,8 +589,7 @@ export function getOrMakeMetadataLine(
       note.appendParagraph('<placeholder title>', 'title')
       note.appendParagraph(metadataLinePlaceholder, 'text')
       return 1
-    }
-    else if (lines.length === 1) {
+    } else if (lines.length === 1) {
       note.appendParagraph(metadataLinePlaceholder, 'text')
       return 1
     }
@@ -609,8 +609,7 @@ export function getOrMakeMetadataLine(
     }
     logDebug('NPparagraph/getOrMakeMetadataLine', `Metadata line = ${lineNumber}`)
     return lineNumber
-  }
-  catch (error) {
+  } catch (error) {
     logError('NPparagraph/getOrMakeMetadataLine', error.message)
     return 0
   }

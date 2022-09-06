@@ -132,10 +132,10 @@ export function percent(value: number, total: number): string {
  * Return range information as a string
  * Note: There is a copy of this is note.js to avoid a circular dependency.
  * @author @EduardMe
- * @param {Range} r range to convert
+ * @param {TRange} r range to convert
  * @return {string}
  */
-export function rangeToString(r: Range): string {
+export function rangeToString(r: TRange): string {
   if (r == null) {
     return 'Range is undefined!'
   }
@@ -459,10 +459,11 @@ export function inFolderList(filenameStr: string, folderListArr: Array<string>, 
  * Note: if you do not want a string to show, set the field to null in the fieldValues map
  * @returns {string} the resulting string
  */
-export function formatWithFields(templateString:string,fieldValues:{[string]:string}): string {
-  return Object.keys(fieldValues).reduce((textbody,key) => textbody.replace(new RegExp(`{{${key}}}`,'gm'),(fieldValues[key] !== null) ? fieldValues[key] : ''),templateString).replace(/ +/g,' ')
+export function formatWithFields(templateString: string, fieldValues: { [string]: string }): string {
+  return Object.keys(fieldValues)
+    .reduce((textbody, key) => textbody.replace(new RegExp(`{{${key}}}`, 'gm'), fieldValues[key] !== null ? fieldValues[key] : ''), templateString)
+    .replace(/ +/g, ' ')
   // const field = textbody.replace(/{([^{}]+)}/g, function(textMatched, key) {
   //     return user[key] || "";
   // }
 }
-

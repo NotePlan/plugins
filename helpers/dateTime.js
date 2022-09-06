@@ -6,8 +6,9 @@
 import strftime from 'strftime'
 import moment from 'moment/min/moment-with-locales'
 import { default as momentBusiness } from 'moment-business-days'
-import { formatISO9075 } from 'date-fns'
-import { logInfo, logDebug, logError, logWarn } from './dev'
+import { formatISO9075, eachWeekendOfInterval, format, add } from 'date-fns'
+import { log, logDebug, logError, logWarn, clo } from './dev'
+import { type Option } from '@helpers/userInput'
 
 export const RE_DATE = '\\d{4}-[01]\\d-\\d{2}' // find ISO dates of form YYYY-MM-DD
 export const RE_ISO_DATE = '\\d{4}-[01]\\d-[0123]\\d' // find ISO dates of form YYYY-MM-DD (stricter)
@@ -163,8 +164,8 @@ export function getTimeStringFromDate(date: Date): string {
 }
 
 /**
- * Return 
- * @param {string} filename 
+ * Return
+ * @param {string} filename
  * @returns string YYYYMMDD date
  * @tests in jest file
  */
@@ -172,11 +173,9 @@ export function getDateStringFromCalendarFilename(filename: string): string {
   try {
     if (filename.match(RE_DAILY_NOTE_FILENAME)) {
       return filename.slice(0, 8)
-    }
-    else if (filename.match(RE_WEEKLY_NOTE_FILENAME)) {
+    } else if (filename.match(RE_WEEKLY_NOTE_FILENAME)) {
       return weekStartDateStr(filename.slice(0, 8))
-    }
-    else {
+    } else {
       throw new Error(`Invalid calendar filename: ${filename}`)
     }
   } catch (err) {
@@ -462,28 +461,29 @@ export function weekStartEnd(week: number, year: number): [Date, Date] {
     logWarn('helpers/weekStartEnd', `Invalid week number ${week} given, but will still calculate correctly, relative to year ${year}.`)
   }
 
-  const start = moment().year(year).isoWeeks(week).hours(0).minutes(0).seconds(0).milliseconds(0)
-  const startDate = start.toDate()
-  const endDate = start.add(6, 'days').toDate()
+  // the .milliseconds in the following shouldn't really be needed, but it seems to
+  const startDate = moment().year(year).isoWeeks(week).startOf('isoWeek').milliseconds(0).toDate()
+  // const endDate = start.add(6, 'days').hours(23).minutes(59).seconds(59).toDate()
+  const endDate = moment().year(year).isoWeeks(week).endOf('isoWeek').milliseconds(0).toDate()
   return [startDate, endDate]
 }
 
 /**
  * Return start YYYYMMDD date for a given YYYY-Wnn week number.
  * @author @jgclark
- * 
+ *
  * @param {string} startDate
  * @returns {string} YYYYMMDD
  * @tests in Jest file
-*/
+ */
 export function weekStartDateStr(inStr: string): string {
   try {
     if (inStr.match(RE_YYYY_Wnn_DATE)) {
       const parts = inStr.split('-W') // Split YYYY-Wnn string into parts
       const year = Number(parts[0])
       const week = Number(parts[1])
-      const m = moment().year(year).isoWeeks(week)
-      return m.format("YYYYMMDD")
+      const m = moment().year(year).isoWeeks(week).startOf('isoWeek')
+      return m.format('YYYYMMDD')
     } else {
       throw new Error(`Invalid date ${inStr}`)
     }
@@ -519,7 +519,7 @@ export function calcWeekOffset(startWeek: number, startYear: number, offset: num
     week -= 52
     year += 1
   }
-  logDebug('dateTime / calcWeekOffset', `${startYear}W${startWeek} - ${year}W${week}`)
+  // logDebug('dateTime / calcWeekOffset', `${startYear}W${startWeek} - ${year}W${week}`)
   return { week, year }
 }
 
@@ -560,7 +560,7 @@ export function calcOffsetDateStr(baseDateISO: string, interval: string): string
     // calc offset (Note: library functions cope with negative nums, so just always use 'add' function)
     const newDate = unit !== 'b' ? baseDateMoment.add(num, unitForMoment) : momentBusiness(baseDateMoment).businessAdd(num)
     const newDateISO = newDate.format('YYYY-MM-DD')
-    logDebug('dateTime / cODS', `for '${baseDateISO}' interval ${num} / ${unitForMoment} -> '${newDateISO}'`)
+    // logDebug('dateTime / cODS', `for '${baseDateISO}' interval ${num} / ${unitForMoment} -> '${newDateISO}'`)
     return newDateISO
   } catch (e) {
     logError('dateTime / cODS', `${e.message} for '${baseDateISO}' interval '${interval}'`)
@@ -642,18 +642,18 @@ export const isReallyAllDay = (parseDateReturnObj: any): boolean => {
   )
 }
 
-
 /**
  * Validate if a string can be used to pull up a calendar note (2020-01-01 or 2020-W01 and hopefully month, year in the future)
- * @param {string} text 
+ * @param {string} text
  * @returns {boolean} whether it passes the @jgclark RegEx texts for date and week
  */
 // export const isValidCalendarNoteTitle = (text: string): boolean => (new RegExp(`${RE_ISO_DATE}|${RE_WEEK_DATE}`).test(text))
-export const isValidCalendarNoteTitle = (text: string): boolean => (new RegExp("(([0-9]{4})-((0[1-9]|1[0-2])-(0[1-9]|1[0-9]|2[0-9]|3[0-1])|W0[1-9]|W[1-4]\\d|W5[0-3]))").test(text))
+export const isValidCalendarNoteTitle = (text: string): boolean => new RegExp('(([0-9]{4})-((0[1-9]|1[0-2])-(0[1-9]|1[0-9]|2[0-9]|3[0-1])|W0[1-9]|W[1-4]\\d|W5[0-3]))').test(text)
 
 /**
- * Given a number of seconds, send back a human-readable version (e.g. 1 year 2 months 3 seconds) 
- * @param {number} seconds 
+ * Given a number of seconds, send back a human-readable version (e.g. 1 year 2 months 3 seconds)
+ * @author @dwertheimer
+ * @param {number} seconds
  * @returns {string} formatted string
  */
 export function TimeFormatted(seconds: number): string {
@@ -664,11 +664,60 @@ export function TimeFormatted(seconds: number): string {
   const m = Math.floor((seconds % 3600) / 60)
   const s = Math.floor(seconds % 60)
 
-  const yDisplay = y > 0 ? y + (y === 1 ? " year, " : " years, ") : ""
-  const moDisplay = mo > 0 ? mo + (mo === 1 ? " month, " : " months, ") : ""
-  const dDisplay = d > 0 ? d + (d === 1 ? " day, " : " days, ") : ""
-  const hDisplay = h > 0 ? h + (h === 1 ? " hour, " : " hours, ") : ""
-  const mDisplay = m > 0 ? m + (m === 1 ? " minute " : " minutes, ") : ""
-  const sDisplay = s > 0 ? s + (s === 1 ? " second" : " seconds ") : ""
+  const yDisplay = y > 0 ? y + (y === 1 ? ' year, ' : ' years, ') : ''
+  const moDisplay = mo > 0 ? mo + (mo === 1 ? ' month, ' : ' months, ') : ''
+  const dDisplay = d > 0 ? d + (d === 1 ? ' day, ' : ' days, ') : ''
+  const hDisplay = h > 0 ? h + (h === 1 ? ' hour, ' : ' hours, ') : ''
+  const mDisplay = m > 0 ? m + (m === 1 ? ' minute ' : ' minutes, ') : ''
+  const sDisplay = s > 0 ? s + (s === 1 ? ' second' : ' seconds ') : ''
   return yDisplay + moDisplay + dDisplay + hDisplay + mDisplay + sDisplay
+}
+
+/**
+ * Get upcoming date string options for use in chooseOption
+ * uses date-fns:
+ * - formats: https://date-fns.org/v2.29.2/docs/format
+ * - add:https://date-fns.org/v2.29.2/docs/add
+ * @author: @dwertheimer
+ */
+export function getDateOptions<T>(): $ReadOnlyArray<Option<T>> {
+  // const result = formatISO(new Date(2019, 8, 18, 19, 0, 52), { representation: 'date' })
+  // d: dateObj, l: label, f: format, v: value
+  const now = new Date()
+  const formats = {
+    withDay: ' (EEE, yyyy-MM-dd)',
+    noDay: ' yyyy-MM-dd',
+    arrowDay: '>yyyy-MM-dd',
+  }
+  const weekends = eachWeekendOfInterval({ start: now, end: add(now, { months: 1 }) }).filter((d) => d > now)
+  const inputs = [
+    { l: `Today`, d: now, f: 'withDay' },
+    { l: `Tomorrow`, d: add(now, { days: 1 }), f: 'withDay' },
+    { l: `Next weekend`, d: weekends[0], f: 'withDay' },
+    { l: `Following weekend`, d: weekends[1], f: 'withDay' },
+    { l: `in 2 days`, d: add(now, { days: 2 }), f: 'withDay' },
+    { l: `in 3 days`, d: add(now, { days: 3 }), f: 'withDay' },
+    { l: `in 4 days`, d: add(now, { days: 4 }), f: 'withDay' },
+    { l: `in 5 days`, d: add(now, { days: 5 }), f: 'withDay' },
+    { l: `in 6 days`, d: add(now, { days: 6 }), f: 'withDay' },
+    { l: `in 1 week`, d: add(now, { weeks: 1 }), f: 'withDay' },
+    { l: `in 2 weeks`, d: add(now, { weeks: 2 }), f: 'withDay' },
+    { l: `in 3 weeks`, d: add(now, { weeks: 3 }), f: 'withDay' },
+    { l: `in 1 month`, d: add(now, { months: 1 }), f: 'withDay' },
+    { l: `in 2 months`, d: add(now, { months: 2 }), f: 'withDay' },
+    { l: `in 3 months`, d: add(now, { months: 3 }), f: 'withDay' },
+    { l: `in 4 months`, d: add(now, { months: 4 }), f: 'withDay' },
+    { l: `in 5 months`, d: add(now, { months: 5 }), f: 'withDay' },
+    { l: `in 6 months`, d: add(now, { months: 6 }), f: 'withDay' },
+    { l: `in 9 months`, d: add(now, { months: 9 }), f: 'withDay' },
+    { l: `in 1 year`, d: add(now, { years: 1 }), f: 'withDay' },
+  ]
+
+  const options = inputs.map((i) => ({
+    label: `${i['l']} ${format(i['d'], formats[i['f']])}`,
+    // $FlowIgnore
+    value: format(i['d'], formats['arrowDay']),
+  }))
+  // clo(options, `getDateOptions: options=`)
+  return options
 }

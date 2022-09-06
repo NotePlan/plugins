@@ -184,7 +184,6 @@ describe('dwertheimer.MathSolver' /* pluginID */, () => {
         const result = s.parse(str, 1, currentData)
         expect(result.expressions).toEqual(['varname = 4 + 2', 'varname + 99'])
         expect(result.variables).toEqual({ R0: 6, R1: 105, varname: 6 })
-        expect(result.relations).toEqual([['varname'], ['varname']])
       })
       test('should subtotal', () => {
         const str = 'subtotal'
@@ -199,7 +198,6 @@ describe('dwertheimer.MathSolver' /* pluginID */, () => {
         expect(result.expressions).toEqual(['varname = 4 + 2', '0'])
         expect(result.variables).toEqual({ R0: 6, R1: 0, varname: 6 })
         expect(result.info[1].typeOfResult).toEqual('S')
-        expect(result.relations).toEqual([['varname'], null])
       })
       test('should subtotal in caps (case insensitive)', () => {
         const str = 'SubTotal'
@@ -214,7 +212,6 @@ describe('dwertheimer.MathSolver' /* pluginID */, () => {
         expect(result.expressions).toEqual(['varname = 4 + 2', '0'])
         expect(result.variables).toEqual({ R0: 6, R1: 0, varname: 6 })
         expect(result.info[1].typeOfResult).toEqual('S')
-        expect(result.relations).toEqual([['varname'], null])
       })
       test('should total in caps (case insensitive)', () => {
         const str = 'TOTAL:'
@@ -229,7 +226,6 @@ describe('dwertheimer.MathSolver' /* pluginID */, () => {
         expect(result.expressions).toEqual(['varname = 4 + 2', '0'])
         expect(result.variables).toEqual({ R0: 6, R1: 0, varname: 6 })
         expect(result.info[1].typeOfResult).toEqual('T')
-        expect(result.relations).toEqual([['varname'], null])
       })
       test('should create relations of dependent variables (assignment)', () => {
         const str = 'secondVar = varname + 99'
@@ -243,7 +239,6 @@ describe('dwertheimer.MathSolver' /* pluginID */, () => {
         const result = s.parse(str, 1, currentData)
         expect(result.expressions).toEqual([currentData.expressions[0], str])
         expect(result.variables).toEqual({ R0: 6, R1: 105, secondVar: 105, varname: 6 })
-        expect(result.relations).toEqual([['varname'], ['secondVar', 'varname']])
       })
       test('should create relations of dependent variables (assignment)', () => {
         let currentData = { info: [], variables: {}, relations: [], expressions: [] }
@@ -367,7 +362,7 @@ describe('dwertheimer.MathSolver' /* pluginID */, () => {
       })
       test('should subtotal properly when there are subtotal assignments', () => {
         let currentData = { info: [], variables: {}, relations: [], expressions: [] }
-        const severalLines = ['Quickbooks: 300','myVar = subtotal','subtotal','Frogs = 22','subtotal','stuff = 2 + Frogs','1*1','total','stuff']
+        const severalLines = ['Quickbooks: 300', 'myVar = subtotal', 'subtotal', 'Frogs = 22', 'subtotal', 'stuff = 2 + Frogs', '1*1', 'total', 'stuff']
         for (let i = 0; i < severalLines.length; i++) {
           const line = severalLines[i]
           currentData.rows = i + 1
@@ -387,7 +382,7 @@ describe('dwertheimer.MathSolver' /* pluginID */, () => {
           currentData.rows = i + 1
           currentData = s.parse(line, i, currentData)
         }
-        expect(currentData.info[1].error).toEqual("")
+        expect(currentData.info[1].error).toEqual('')
       })
     })
 

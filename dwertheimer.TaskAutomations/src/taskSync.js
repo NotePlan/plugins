@@ -213,7 +213,6 @@ async function fillInMissingArguments(args) {
  * @param {string|null} headings - TBD
  */
 export async function taskSync(...args: Array<string>): Promise<void> {
-
   try {
     // Setting this up this way so that args passing via xcallback ordering can be easily modified later
     const [searchFor, searchInTypesStr, includeTaskTypesStr, sortByFieldsStr, outputFilename, inFoldersStr, notInFoldersStr, headings] = await fillInMissingArguments(args)
@@ -237,7 +236,7 @@ export async function taskSync(...args: Array<string>): Promise<void> {
         sortByFields,
       )}] outputFilename="${String(outputFilename)}" inFolders:[${String(inFolders)}] notInFolders: [${String(notInFolders)}] headings="${headings}"`,
     )
-    return
+    return //FIXME: debugging...stopping here for now
     CommandBar.showLoading(true, `Searching for:\n"${searchFor}"...`)
     await CommandBar.onAsyncThread()
 

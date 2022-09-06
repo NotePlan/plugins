@@ -1,8 +1,19 @@
 // @flow
-export { default as sortTasks, sortTasksByPerson, sortTasksByTag, sortTasksByDue, tasksToTop, openTasksToTop, sortTasksViaTemplate, sortTasksTagMention, sortTasksDefault } from './sortTasks'
+export {
+  default as sortTasks,
+  sortTasksByPerson,
+  sortTasksByTag,
+  sortTasksByDue,
+  tasksToTop,
+  openTasksToTop,
+  sortTasksViaTemplate,
+  sortTasksTagMention,
+  sortTasksDefault,
+} from './sortTasks'
 export { default as markTasks } from './markTasks'
 export { taskSync } from './taskSync'
 export { copyTagsFromLineAbove, copyTagsFromHeadingAbove, copyLineForEachMention, copyLineForEachHashtag } from './tagTasks'
+export { updateDatePlusTags, reviewOverdueTasksByNote, reviewOverdueTasksByTask, reviewOverdueTasksInNote, reviewOverdueTasksInFolder } from './overdue'
 export { openIncompleteLinksInNote, openURLOnLine } from './NPOpenLinks'
 import pluginJson from '../plugin.json'
 import { clo } from '@helpers/dev'

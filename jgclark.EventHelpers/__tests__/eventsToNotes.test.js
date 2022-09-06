@@ -58,15 +58,16 @@ describe('eventsToNotes.js tests', () => {
     // This function's tests use $Shape<...> to use a subset of large objects without causing errors
     const config: $Shape<EventsConfig> = {
       calendarNameMappings: [],
-      locale: "en-GB",
+      locale: "se-SE",
       timeOptions: ""
     }
     const format1 = "- (*|CAL|*) *|TITLE|**| URL|**|\n> NOTES|*\n*|ATTENDEES|*" // simpler
     const format2 = "### (*|CAL, |**|START|**|-END|*) *|TITLE|**|\nEVENTLINK|**| URL|**| with ATTENDEENAMES|**|\n> NOTES|*\n---\n" // more complex
     const format3 = "### [*|START|*] *|TITLE|*\n- \n \n*****\n" // for @EasyTarget test
     const format4 = "### [*|START|*] *|TITLE|*\n- \n\n\n\n\n" // for @EasyTarget test
-    const startDT = new Date(2021, 0, 1, 20, 0, 0)
-    const endDT = new Date(2021, 0, 1, 22, 0, 0)
+    const format5 = "- *|DATE|*" // date formatting using configured locale
+    const startDT = new Date(2021, 0, 23, 20, 0, 0)
+    const endDT = new Date(2021, 0, 23, 22, 0, 0)
     const attendeesArray: Array<string> = ["✓ Jonathan Clark", "? James Bond", "x Martha", "? bob@example.com"]
     const attendeeNamesArray: Array<string> = ["Jonathan Clark", "Martha Clark", "bob@example.com"]
     const event1: $Shape<TCalendarItem> = { calendar: 'Jonathan', title: 'title of event1', url: 'https://example.com/easy', date: startDT, endDate: endDT, notes: 'a few notes', attendees: attendeesArray, attendeeNames: attendeeNamesArray } // simple case
@@ -109,6 +110,11 @@ describe('eventsToNotes.js tests', () => {
       console.log(expected.length)
       expect(result).toEqual(expected)
     })
+    test('event 1 format 5 date test', () => {
+      const result = e.smartStringReplace(format5, replacements1)
+      expect(result).toEqual('- 2021-01-23')
+    })
+
 
   })
 

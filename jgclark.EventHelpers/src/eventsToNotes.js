@@ -1,8 +1,8 @@
 // @flow
 // ----------------------------------------------------------------------------
 // Command to bring calendar events into notes
-// Last updated 10.8.2022 for v0.16.7, by @jgclark
-// @jgclark, with additions by @dwertheimer, @weyert, @m1well
+// Last updated 30.8.2022 for v0.17.1, by @akrabat
+// @jgclark, with additions by @dwertheimer, @weyert, @m1well, @akrabat
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -54,6 +54,7 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
       : (paramString.includes('"allday_template":'))
         ? String(await getTagParamsFromString(paramString, 'allday_template', '- *|CAL|*: *|TITLE|**| with ATTENDEENAMES|**|\nLOCATION|**|\nNOTES|**|\nURL|*'))
         : config.formatAllDayEventsDisplay
+    const includeAllDayEvents: boolean = await getTagParamsFromString(paramString, 'includeAllDayEvents', true)
     const includeHeadings = await getTagParamsFromString(paramString, 'includeHeadings', true)
     const daysToCover: number = await getTagParamsFromString(paramString, 'daysToCover', 1)
     // If the format contains 'CAL' then we care about calendar names in output
@@ -86,6 +87,11 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
       // Process each event
       for (const e of eArr) {
         logDebug(pluginJson, `  Processing event '${e.title}' (${typeof e})`)
+        if (!includeAllDayEvents && e.isAllDay) {
+          logDebug(pluginJson, `    skipping as event is all day and includeAllDayEvents is false`)
+          continue
+        }
+  
         // Replace any mentions of the keywords in the e.title string
         const replacements = getReplacements(e, config)
         const thisEventStr = smartStringReplace(e.isAllDay ? alldayformat : format, replacements)
@@ -168,6 +174,7 @@ export async function listMatchingDaysEvents(
   logDebug(pluginJson, `From settings found ${textToMatchArr.length} match strings to look for`)
 
   // Get a couple of other supplied parameters, or use defaults
+  const includeAllDayEvents: boolean = await getTagParamsFromString(paramString, 'includeAllDayEvents', true)
   const includeHeadings = await getTagParamsFromString(paramString, 'includeHeadings', true)
   const daysToCover: number = await getTagParamsFromString(paramString, 'daysToCover', 1)
 
@@ -195,6 +202,10 @@ export async function listMatchingDaysEvents(
 
     // for each event, check each of the strings we want to match
     for (const e of eArr) {
+      if (!includeAllDayEvents && e.isAllDay) {
+        continue
+      }
+
       for (let j = 0; j < textToMatchArr.length; j++) {
         const thisFormat: string = String(formatArr[j])
         const withCalendarName = thisFormat.includes('CAL')
@@ -275,7 +286,7 @@ export function getReplacements(item: TCalendarItem, config: EventsConfig): Map<
   outputObject.set('ATTENDEES', item.attendees ? item.attendees.join(', ') : '')
   outputObject.set('EVENTLINK', item.calendarItemLink ? item.calendarItemLink : '')
   outputObject.set('LOCATION', item.location ? item.location : '')
-  outputObject.set('DATE', toLocaleDateString(item.date))
+  outputObject.set('DATE', toLocaleDateString(item.date, config.locale))
   outputObject.set('START', !item.isAllDay ? toLocaleTime(item.date, config.locale, config.timeOptions) : '')
   outputObject.set('END', item.endDate != null && !item.isAllDay ? toLocaleTime(item.endDate, config.locale, config.timeOptions) : '')
   outputObject.set('URL', item.url)

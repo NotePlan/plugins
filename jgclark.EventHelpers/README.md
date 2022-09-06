@@ -95,6 +95,8 @@ v0.15.0 added more flexibility in the formatting of event lists. So now instead 
 
 If you want to disable the adding of the heading, add the following parameter `includeHeadings:false` (no double quotes around `false` as its being treated as JSON).
 
+If you want to exclude all-day events, add the following parameter `includeAllDayEvents:false` (no double quotes around `false` as its being treated as JSON).
+
 For example:
 
 ```js

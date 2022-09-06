@@ -221,7 +221,7 @@ export function getUsersFirstDayOfWeekUTC(): number {
 }
 
 /**
- * Array of period types and their descriptions, as used by getPeriodStartEndDates().
+ * Array of period types and their descriptions, as used by getPeriodStartEndDates() when we need to ask user for a period.
  * (Not dependent on NotePlan functions, but easier to keep it with the function that uses it.)
  */
 export const periodTypesAndDescriptions = [
@@ -329,7 +329,7 @@ export async function getPeriodStartEndDates(question: string = 'Create stats fo
     }
     case 'mtd': {
       fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, 1, 0, 0, 0), 'minute', -TZOffset) // start of this month
-      toDate = Calendar.dateFrom(y, m, d, 0, 0, 0)
+      toDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset) 
       periodString = `${monthNameAbbrev(m)} ${y}`
       periodPartStr = `day ${d}`
       break
@@ -431,6 +431,30 @@ export async function getPeriodStartEndDates(question: string = 'Create stats fo
       logDebug('getPeriodStartEndDates()', `wtd: currentWeekNum: ${currentWeekNum}, theYear: ${theYear}, todaysISODayOfWeek: ${todaysISODayOfWeek}`)
       break
     }
+    case 'last7d': {
+      // last 7 days
+      fromDate = Calendar.addUnitToDate(Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset), 'day', -6)
+      toDate = Calendar.addUnitToDate(fromDate, 'day', 6)
+      periodString = `last 7 days`
+      periodPartStr = ``
+      break
+    }
+    case 'last2w': {
+      // last 2 weeks
+      fromDate = Calendar.addUnitToDate(Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset), 'day', -13)
+      toDate = Calendar.addUnitToDate(fromDate, 'day', 13)
+      periodString = `last 2 weeks`
+      periodPartStr = ``
+      break
+    }
+    case 'last4w': {
+      // last 4 weeks
+      fromDate = Calendar.addUnitToDate(Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset), 'day', -27)
+      toDate = Calendar.addUnitToDate(fromDate, 'day', 27)
+      periodString = `last 4 weeks`
+      periodPartStr = ``
+      break
+    }
     case 'ow': {
       // other week
       const theYear = Number(await getInput(`Choose year, e.g. ${y}`, 'OK', 'Counts for Week', String(y)))
@@ -444,8 +468,8 @@ export async function getPeriodStartEndDates(question: string = 'Create stats fo
     }
 
     case 'ly': {
-      fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y - 1, 1, 1, 0, 0, 0), 'minute', -TZOffset) // start of last year
-      toDate = Calendar.addUnitToDate(Calendar.dateFrom(y - 1, 12, 31, 0, 0, 0), 'minute', -TZOffset) // end of last year
+      fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y - 1, 1, 1, 0, 0, 0), 'minute', -TZOffset)
+      toDate = Calendar.addUnitToDate(Calendar.dateFrom(y - 1, 12, 31, 0, 0, 0), 'minute', -TZOffset)
       periodString = `${y - 1}`
       break
     }

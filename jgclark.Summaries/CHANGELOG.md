@@ -1,12 +1,21 @@
-# What's Changed in 🗃 Summaries plugin?
+# What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
-<!-- TODO: apply to general summaries too?-->
-<!-- FIXME: look at why the append on /ipu is sometimes coming in a line early -->
+## [0.13.0] - 2022-09-02
+### Name changes
+- The Summaries Plugin is renamed to **⏱ Habits and Summaries** Plugin, to better reflect what it now does.
+- the /countsInPeriod command is now renamed **/periodStats**, though you can still use the original as an alias to it.
+- the /insertProgressUpdate command is now aliased to **/habitTracker**, which gives more of a hint about it can be used
+### Added
+- Added simpler '**Did/Didn't Do**' items your can track (for example for `#closedrings`), which can get displayed in the graphs with its own pair of characters or emojis that you choose (for example '✅❌' or '✓·').
+- the **/insertProgressUpdate** command, and its template equivalent, now also supports 'last7d', 'last2w', 'last4w' as options for the 'period' parameter (for @george65)
+- the **/periodStats** command now includes sparklines for periods up to a month, if you request them.
+### Changed
+- in the /periodStats command the '@mentions to exclude' and '#hashtags to exclude' settings have now been removed, as I don't think they're useful any more, and make the code much harder to extend. If you're affected by this please get in touch -- the details at the end of the README. 
 
 ## [0.12.0] - 2022-08-14
 ### Added
-- now little 'sparkline' charts can be shown in the **/insert progress summary** command. They're done using ASCII art, and are just a bit of fun really, until such a time we can have proper graphs or charts.
+- now little 'sparkline' charts can be shown in the **/insertProgressUpdate** command. They're done using ASCII art, and are just a bit of fun really, until such a time we can have proper graphs or charts.
 - they are also available in the equivalent template command, such as `<%- progressUpdate({interval: 'wtd', heading: 'Habits', showSparklines: true}) %>`.
 ### Changed
 - the stats summary for each line is now a little smarter about what it shows.
@@ -18,7 +27,7 @@
 
 ## [0.11.0] - 2022-07-02
 ### Changed
-- moved the **/saveSearchResults** **/saveSearchResultsInPeriod** commands to a separate **SearchHelpers** plugin.
+- moved the **/saveSearchResults** and **/saveSearchResultsInPeriod** commands to a separate **SearchHelpers** plugin.
 ## [0.10.0] - 2022-06-26
 ### Changed
 - the **/countsInPeriod** command now offers to write to the new weekly notes (available from in v3.6) if the selected period is 'this week'
