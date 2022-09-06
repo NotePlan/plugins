@@ -7,7 +7,7 @@ import strftime from 'strftime'
 import moment from 'moment/min/moment-with-locales'
 import { default as momentBusiness } from 'moment-business-days'
 import { formatISO9075, eachWeekendOfInterval, format, add } from 'date-fns'
-import { log, logDebug, logError, logWarn, clo } from './dev'
+import { logDebug, logError, logInfo, logWarn, clo } from './dev'
 import { type Option } from '@helpers/userInput'
 
 export const RE_DATE = '\\d{4}-[01]\\d-\\d{2}' // find ISO dates of form YYYY-MM-DD
