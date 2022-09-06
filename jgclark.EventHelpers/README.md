@@ -88,6 +88,7 @@ You can place  `<%- listMatchingEvents() %>` in Templates in a similar way, and 
 Most of these are self-explanatory for events in most types of calendars, other than:
 - `*|ATTENDEES|*` gives the full details of event attendees provided by the operating system, and can be a mix of names, email addresses, and other details;
 - `*|ATTENDEENAMES|*` just gives the name of event attendees, or if that's missing, just the email address;
+- `*|DATE|*` is formatted using the locale settings from your operating system, unless you override that with the 'Shared Settings > Locale' setting;
 - `*|EVENTLINK|*` is specific to NotePlan: it will make a nicely-formatted link to the actual calendar event, and clicking on it will show a pop with all the event's details.
 
 v0.15.0 added more flexibility in the formatting of event lists. So now instead of including (for example) `*|ATTENDEENAMES|*` you can now include other text (including line breaks indicated by `\n`) within the placeholder. For example in `*|\nwith ATTENDEENAMES|*` if the ATTENDEENAMES is not empty, then it will output the list after a newline and the text 'with '.
