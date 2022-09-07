@@ -321,6 +321,7 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
 
     //------------------------------
     // Review each wanted YesNo type
+    // FIXME: Allow simple @mentions as well.
     const YesNoListArr = (typeof progressYesNo === 'string') ? progressYesNo.split(',') : progressYesNo
     for (let wantedItem of YesNoListArr) {
       // initialise a new TMOccurence for this YesNo item
@@ -329,19 +330,17 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
       // For each daily note in the period
       for (const n of periodDailyNotes) {
         const thisDateStr = getDateStringFromCalendarFilename(n.filename)
+        // Look at hashtags first ...
         const seenTags = n.hashtags.slice().reverse()
         let lastTag = ''
         for (const tag of seenTags) {
-          const reMatches = tag.match(/(.*)\/-?\d+(\.\d+)?$/) ?? []
-          const tagWithoutClosingNumber = (reMatches.length >= 1) ? reMatches[1] : tag
-          // logDebug(pluginJson, `orig: ${tag} this:${tagWithoutClosingNumber} last:${lastTag} `)
           // if this tag is starting subset of the last one, assume this is an example of the bug, so skip this tag
-          if (caseInsensitiveStartsWith(tagWithoutClosingNumber, lastTag)) {
+          if (caseInsensitiveStartsWith(tag, lastTag)) {
             // logDebug('calcHashtagStatsPeriod', `- Found ${tag} but ignoring as part of a longer hashtag of the same name`)
           }
           else {
             // check this is one of the ones we're after, then add
-            if (caseInsensitiveMatch(tagWithoutClosingNumber, wantedItem)) {
+            if (caseInsensitiveMatch(tag, wantedItem)) {
               // logDebug('gatherOccurrences', `- Found matching occurrence ${tag} on date ${n.filename}`)
               thisOcc.addOccurrence(tag, thisDateStr)
             } else {
@@ -350,6 +349,19 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
           }
           lastTag = tag
         }
+
+        // Then mentions ...
+        const seenMentions = n.mentions.slice().reverse()
+        let lastMention = ''
+        for (const mention of seenMentions) {
+          // check this is one of the ones we're after, then add
+          if (caseInsensitiveMatch(mention, wantedItem)) {
+            // logDebug('gatherOccurrences', `- Found matching occurrence ${mention} on date ${n.filename}`)
+            thisOcc.addOccurrence(mention, thisDateStr)
+          } else {
+            // logDebug('gatherOccurrences', `- x ${mention} not wanted`)
+          }
+        }        
       }
       tmOccurrencesArr.push(thisOcc)
     }

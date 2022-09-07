@@ -1,6 +1,10 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
+## [0.13.1] - 2022-09-03
+### Fixed
+- the new '**Did/Didn't Do**' items can now include track simple **@mention**s (i.e. without something in brackets after them) as well as #hashtags.
+
 ## [0.13.0] - 2022-09-02
 ### Name changes
 - The Summaries Plugin is renamed to **⏱ Habits and Summaries** Plugin, to better reflect what it now does.

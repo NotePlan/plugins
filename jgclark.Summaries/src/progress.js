@@ -57,7 +57,7 @@ export async function insertProgressUpdate(params?: string): Promise<string | vo
     // If no params are passed, then we've been called by a plugin command (and so use defaults from config).
     const heading = await getTagParamsFromString(params ?? '', 'heading', config.progressHeading)
     const showSparklines = await getTagParamsFromString(params ?? '', 'showSparklines', config.showSparklines)
-    // TEST: Allow 'period' instead of 'interval'
+    // Allow 'period' instead of 'interval'
     const intervalParam = await getTagParamsFromString(params ?? '', 'interval', '')
     if (intervalParam !== '') {
       period = intervalParam

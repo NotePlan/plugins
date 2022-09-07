@@ -55,7 +55,7 @@ The **settings** for this command are:
 - Progress Heading: e.g. 'Progress Update'
 - #hashtags to count: e.g. '#tv, #podcast'
 - @mentions to count: e.g. '@sleep, @work, @fruitveg, @run'
-- Did/Didn't Do items: Comma-separated list of #hashtags and/or @mentions to track by being present or not 'did I do it this day or not?'. e.g. '#closedrings, #prayed, #tookMeds'
+- (new) **Did/Didn't Do items**: Comma-separated list of #hashtags and/or @mentions to track by being present or not 'did I do it this day or not?'. e.g. '#closedrings, #prayed, #tookMeds'
 - Yes/No characters: sets the pair of characters to use as Yes and No in output of "Yes/No items". The first is for Yes, the second for No. Here are some you might like to use for Yes: ✓✔■⧫▉ and for No: ·◦✕✖◌□. (You can use emojis, such as ✅🟢❌👎🔴, but they are likely to mess up the horizontal spacing.)
 - 'Include sparkline graphs?' true or false
 
