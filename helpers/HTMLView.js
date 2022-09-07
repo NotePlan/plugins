@@ -5,6 +5,7 @@
 
 import { clo, logDebug, logError, logWarn } from '@helpers/dev'
 // import { getOrMakeNote } from '@helpers/note'
+const pluginJson = 'helpers/HTMLView'
 
 let baseFontSize = 14
 
@@ -28,7 +29,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       logDebug('generateCSSFromTheme', availableThemeNames.toString())
 
       // if themeName is blank, then use Editor.currentTheme
-      themeName = (themeNameIn && themeNameIn !== '') ? themeNameIn : Editor.currentTheme.name
+      themeName = themeNameIn && themeNameIn !== '' ? themeNameIn : Editor.currentTheme.name
 
       if (!availableThemeNames.includes(themeName)) {
         logError('generateCSSFromTheme', `Theme '${themeName}' is not in list of available themes. Stopping`)
@@ -36,7 +37,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       }
     } else {
       // if themeName is blank, then use user's dark theme (which we can access before NP 3.6.2)
-      themeName = (themeNameIn && themeNameIn !== '') ? themeNameIn : String(DataStore.preference('themeDark'))
+      themeName = themeNameIn && themeNameIn !== '' ? themeNameIn : String(DataStore.preference('themeDark'))
     }
 
     // try simplest way first (for NP b850+)
@@ -71,10 +72,10 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     // set global variable
     baseFontSize = Number(DataStore.preference('fontSize')) ?? 14
     // tempSel.push(`color: ${themeJSON.styles.body.color}` ?? "#DAE3E8")
-    tempSel.push(`background: ${themeJSON.editor.backgroundColor}` ?? "#1D1E1F")
+    tempSel.push(`background: ${themeJSON.editor.backgroundColor}` ?? '#1D1E1F')
     output.push(makeCSSSelector('html', tempSel))
     // rootSel.push(`--fg-main-color: ${themeJSON.styles.body.color}` ?? "#DAE3E8")
-    rootSel.push(`--bg-main-color: ${themeJSON.editor.backgroundColor}` ?? "#1D1E1F")
+    rootSel.push(`--bg-main-color: ${themeJSON.editor.backgroundColor}` ?? '#1D1E1F')
 
     // Set body:
     // - main font = styles.body.font)
@@ -84,18 +85,18 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel = []
     styleObj = themeJSON.styles.body
     if (styleObj) {
-      const thisColor = RGBColourConvert(themeJSON.editor.textColor) ?? "#CC6666"
+      const thisColor = RGBColourConvert(themeJSON.editor.textColor) ?? '#CC6666'
       tempSel.push(`color: ${thisColor}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('body', tempSel))
-      rootSel.push(`--fg-main-color: ${RGBColourConvert(themeJSON.editor.textColor)}` ?? "#CC6666")
+      rootSel.push(`--fg-main-color: ${RGBColourConvert(themeJSON.editor.textColor)}` ?? '#CC6666')
     }
 
     // Set H1 (styles.title1)
     tempSel = []
     styleObj = themeJSON.styles.title1
     if (styleObj) {
-      const thisColor = RGBColourConvert(themeJSON.styles.title1.color) ?? "#CC6666"
+      const thisColor = RGBColourConvert(themeJSON.styles.title1.color) ?? '#CC6666'
       tempSel.push(`color: ${thisColor}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('h1', tempSel))
@@ -105,7 +106,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel = []
     styleObj = themeJSON.styles.title2
     if (styleObj) {
-      const thisColor = RGBColourConvert(themeJSON.styles.title2.color) ?? "#E9C062"
+      const thisColor = RGBColourConvert(themeJSON.styles.title2.color) ?? '#E9C062'
       tempSel.push(`color: ${thisColor}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('h2', tempSel))
@@ -115,7 +116,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel = []
     styleObj = themeJSON.styles.title3
     if (styleObj) {
-      const thisColor = RGBColourConvert(themeJSON.styles.title3.color) ?? "#E9C062"
+      const thisColor = RGBColourConvert(themeJSON.styles.title3.color) ?? '#E9C062'
       tempSel.push(`color: ${thisColor}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('h3', tempSel))
@@ -125,34 +126,27 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel = []
     styleObj = themeJSON.styles.title4
     if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(themeJSON.styles.title4.color)}` ?? "#E9C062")
+      tempSel.push(`color: ${RGBColourConvert(themeJSON.styles.title4.color)}` ?? '#E9C062')
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('h4', tempSel))
     }
     // NP doesn't support H5 styling
 
     // Set core table features from theme:
-    const altColor = RGBColourConvert(themeJSON.editor?.altBackgroundColor) ?? "#2E2F30"
-    output.push(makeCSSSelector('tr:nth-child(even)', [
-      `background-color: ${altColor}`,
-    ]))
-    output.push(makeCSSSelector('th', [
-      `background-color: ${altColor}`,
-    ]))
+    const altColor = RGBColourConvert(themeJSON.editor?.altBackgroundColor) ?? '#2E2F30'
+    output.push(makeCSSSelector('tr:nth-child(even)', [`background-color: ${altColor}`]))
+    output.push(makeCSSSelector('th', [`background-color: ${altColor}`]))
     rootSel.push(`--bg-alt-color: ${altColor}`)
-    const tintColor = RGBColourConvert(themeJSON.editor?.tintColor) ?? "#E9C0A2"
-    output.push(makeCSSSelector('table tbody tr:first-child', [
-      `border-top: 1px solid ${tintColor}`]))
-    output.push(makeCSSSelector('table tbody tr:last-child', [
-      `border-bottom: 1px solid ${RGBColourConvert(themeJSON.editor?.tintColor)}` ?? "1px solid #E9C0A2",
-    ]))
+    const tintColor = RGBColourConvert(themeJSON.editor?.tintColor) ?? '#E9C0A2'
+    output.push(makeCSSSelector('table tbody tr:first-child', [`border-top: 1px solid ${tintColor}`]))
+    output.push(makeCSSSelector('table tbody tr:last-child', [`border-bottom: 1px solid ${RGBColourConvert(themeJSON.editor?.tintColor)}` ?? '1px solid #E9C0A2']))
     rootSel.push(`--tint-color: ${tintColor}`)
 
     // Set bold text if present
     tempSel = []
     styleObj = themeJSON.styles.bold
     if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color)}` ?? "#CC6666") // FIXME:
+      tempSel.push(`color: ${RGBColourConvert(styleObj.color)}` ?? '#CC6666') // FIXME:
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('b', tempSel))
     }
@@ -160,7 +154,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel = []
     styleObj = themeJSON.styles.italic
     if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color)}` ?? "#96CBFE") // FIXME:
+      tempSel.push(`color: ${RGBColourConvert(styleObj.color)}` ?? '#96CBFE') // FIXME:
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('i', tempSel))
     }
@@ -170,7 +164,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel = []
     styleObj = themeJSON.styles.checked
     if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color)}` ?? "#9DC777")
+      tempSel.push(`color: ${RGBColourConvert(styleObj.color)}` ?? '#9DC777')
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('.task-checked', tempSel))
     }
@@ -180,7 +174,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel = []
     styleObj = themeJSON.styles['checked-canceled']
     if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color)}` ?? "#9DC777")
+      tempSel.push(`color: ${RGBColourConvert(styleObj.color)}` ?? '#9DC777')
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('.task-cancelled', tempSel))
     }
@@ -190,7 +184,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel = []
     styleObj = themeJSON.styles['checked-scheduled']
     if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color)}` ?? "#9DC777")
+      tempSel.push(`color: ${RGBColourConvert(styleObj.color)}` ?? '#9DC777')
     }
     tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
     output.push(makeCSSSelector('.task-scheduled', tempSel))
@@ -201,8 +195,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
 
     logDebug('generateCSSFromTheme', `Generated CSS:\n${output.join('\n')}`)
     return output.join('\n')
-  }
-  catch (error) {
+  } catch (error) {
     logError('generateCSSFromTheme', error.message)
   }
 }
@@ -237,7 +230,7 @@ function convertStyleObjectBlock(styleObject: any): Array<string> {
 
 /**
  * Convert NP strikethrough/underline styling to CSS setting (or empty string if none)
- * Full details at  
+ * Full details at
  * @author @jgclark
  * @param {string}
  * @returns {string}
@@ -247,35 +240,36 @@ export function textDecorationFromNP(selector: string, value: string = ''): stri
   if (selector === 'underline') {
     switch (value) {
       case '1': {
-        return "text-decoration: underline"
+        return 'text-decoration: underline'
       }
-      case '9': { // double  TODO: Test me
-        return "text-decoration: underline double"
+      case '9': {
+        // double  TODO: Test me
+        return 'text-decoration: underline double'
       }
-      case '513': { // dashed TODO: Test me
-        return "text-decoration: underline dashed"
+      case '513': {
+        // dashed TODO: Test me
+        return 'text-decoration: underline dashed'
       }
       default: {
         logWarn('textDecorationFromNP', `No matching CSS found for underline style value '${value}'`)
-        return ""
+        return ''
       }
     }
-  }
-  else if (selector === 'strikethrough') {
+  } else if (selector === 'strikethrough') {
     // FIXME: Why is this reporting number for value?
     // FIXME: Neither if-else or switch-case is wokring.
-    console.log(`- value: ${typeof value} with ${value}`)
-    if (value === "1") {
-      return "text-decoration: line-through"
+    logDebug(`- value: ${typeof value} with ${value}`)
+    if (value === '1') {
+      return 'text-decoration: line-through'
     }
-    if (value === "9") {
-      return "text-decoration: line-through double"
+    if (value === '9') {
+      return 'text-decoration: line-through double'
     }
-    if (value === "513") {
-      return "text-decoration: line-through dashed"
+    if (value === '513') {
+      return 'text-decoration: line-through dashed'
     }
     logWarn('textDecorationFromNP', `No matching CSS found for style strikethrough value '${value}'`)
-    return ""
+    return ''
 
     // switch (value) {
     //   case '1': { //
@@ -291,18 +285,17 @@ export function textDecorationFromNP(selector: string, value: string = ''): stri
     //     logWarn('textDecorationFromNP', `No matching CSS found for style strikethrough value '${value}'`)
     //     return ""
     //  }
-  }
-  else {
+  } else {
     logWarn('textDecorationFromNP', `No matching CSS found for style setting "${selector}"`)
-    return ""
+    return ''
   }
 }
 
 /**
  * Convert a font size (in px) to rem (as a string).
  * Uses the NP theme's baseFontSize (in px) to be the basis for 1.0rem.
- * @param {number} thisFontSize 
- * @param {number} baseFontSize 
+ * @param {number} thisFontSize
+ * @param {number} baseFontSize
  * @returns {string} size including 'rem' units
  */
 function pxToRem(thisFontSize: number, baseFontSize: number): string {
@@ -333,7 +326,7 @@ function RGBColourConvert(RGBIn: string): string {
  * If that fails, use fallback font 'sans'.
  * Further info at https://help.noteplan.co/article/44-customize-themes#fonts
  * @author @jgclark
- * @param {string} fontNameNP 
+ * @param {string} fontNameNP
  * @returns {Array<string>} resulting CSS font properties
  */
 export function fontPropertiesFromNP(fontNameNP: string): Array<string> {
@@ -352,19 +345,19 @@ export function fontPropertiesFromNP(fontNameNP: string): Array<string> {
     outputArr.push(`font-weight: "${specials[1]}"`)
     outputArr.push(`font-style: "${specials[2]}"`)
     // logDebug('translateFontNameNPToCSS', `${fontNameNP} ->  ${outputArr.toString()}`)
-    console.log(`specials: ${fontNameNP} ->  ${outputArr.toString()}`)
+    logDebug(pluginJson, `specials: ${fontNameNP} ->  ${outputArr.toString()}`)
     return outputArr
   }
 
   // Not a special. So now split input string into parts either side of '-'
   // and then insert spaces before capital letters
   let translatedFamily: string
-  let translatedWeight: string = "400"
-  let translatedStyle: string = "normal"
+  let translatedWeight: string = '400'
+  let translatedStyle: string = 'normal'
   const splitParts = fontNameNP.split('-')
   const namePartNoSpaces = splitParts[0]
   let namePartSpaced = ''
-  const modifierLC = (splitParts.length > 0) ? splitParts[1]?.toLowerCase() : ''
+  const modifierLC = splitParts.length > 0 ? splitParts[1]?.toLowerCase() : ''
   for (let i = 0; i < namePartNoSpaces.length; i++) {
     const c = namePartNoSpaces[i]
     if (c.match(/[A-Z]/)) {
@@ -380,53 +373,54 @@ export function fontPropertiesFromNP(fontNameNP: string): Array<string> {
   // With info from https://developer.mozilla.org/en-US/docs/Web/CSS/font-weight#common_weight_name_mapping
   switch (modifierLC) {
     case 'thin': {
-      translatedWeight = "100"
+      translatedWeight = '100'
       break
     }
     case 'light': {
-      translatedWeight = "300"
+      translatedWeight = '300'
       break
     }
     case 'book': {
-      translatedWeight = "500"
+      translatedWeight = '500'
       break
     }
     case 'demi-bold': {
-      translatedWeight = "600"
+      translatedWeight = '600'
       break
     }
     case 'semi-bold': {
-      translatedWeight = "600"
+      translatedWeight = '600'
       break
     }
     case 'bold': {
-      translatedWeight = "700"
+      translatedWeight = '700'
       break
     }
     case 'heavy': {
-      translatedWeight = "900"
+      translatedWeight = '900'
       break
     }
     case 'black': {
-      translatedWeight = "900"
+      translatedWeight = '900'
       break
     }
     case 'italic': {
-      translatedStyle = "italic"
+      translatedStyle = 'italic'
       break
     }
     case 'bolditalic': {
-      translatedWeight = "700"
-      translatedStyle = "italic"
+      translatedWeight = '700'
+      translatedStyle = 'italic'
       break
     }
     case 'slant': {
-      translatedStyle = "italic"
+      translatedStyle = 'italic'
       break
     }
-    default: { // including '', 'normal' and 'regular'
-      translatedWeight = "400"
-      translatedStyle = "normal"
+    default: {
+      // including '', 'normal' and 'regular'
+      translatedWeight = '400'
+      translatedStyle = 'normal'
       break
     }
   }
@@ -450,8 +444,8 @@ export function fontPropertiesFromNP(fontNameNP: string): Array<string> {
 
 /**
  * Make a CSS selector from an array of parameters
- * @param {string} selector 
- * @param {Array<string>} settingsArray 
+ * @param {string} selector
+ * @param {Array<string>} settingsArray
  * @returns {string} CSS selector with its various parameters
  */
 function makeCSSSelector(selector: string, settingsArray: Array<string>): string {
@@ -465,9 +459,9 @@ function makeCSSSelector(selector: string, settingsArray: Array<string>): string
 /**
  * Helper function to construct HTML to show in a new window
  * @param {string} title of window
- * @param {string} headerTags 
- * @param {string} body 
- * @param {string} generalCSSIn 
+ * @param {string} headerTags
+ * @param {string} body
+ * @param {string} generalCSSIn
  * @param {string} specificCSS
  * @param {boolean} makeModal?
  * @param {string?} preBodyScript
@@ -489,7 +483,7 @@ export function showHTML(
   postBodyScript: string = '',
   filenameForSavedFileVersion: string = '',
   width?: number,
-  height?: number
+  height?: number,
 ): void {
   try {
     const fullHTML = []
@@ -500,7 +494,7 @@ export function showHTML(
     fullHTML.push(headerTags)
     fullHTML.push('<style type="text/css">')
     // If CSS is empty, then generate it from the current theme
-    const generalCSS = (generalCSSIn && generalCSSIn !== '') ? generalCSSIn : generateCSSFromTheme('')
+    const generalCSS = generalCSSIn && generalCSSIn !== '' ? generalCSSIn : generateCSSFromTheme('')
     fullHTML.push(generalCSS)
     fullHTML.push(specificCSS)
     fullHTML.push('</style>')
@@ -549,8 +543,7 @@ export function showHTML(
         logError('showHTML', `Couoldn't save resulting HTML '${title}'  to ${filenameForSavedFileVersion} as well.`)
       }
     }
-  }
-  catch (error) {
+  } catch (error) {
     logError('HTMLView / showHTML', error.message)
   }
 }

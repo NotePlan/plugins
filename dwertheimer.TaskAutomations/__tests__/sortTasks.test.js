@@ -1,6 +1,17 @@
+/* eslint-disable no-unused-vars */
 /* global jest, describe, test, expect, beforeAll */
 import * as f from '../src/sortTasks'
-import { DataStore } from '@mocks/index'
+import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan /*, Note, Paragraph */ } from '@mocks/index'
+
+beforeAll(() => {
+  global.Calendar = Calendar
+  global.Clipboard = Clipboard
+  global.CommandBar = CommandBar
+  global.DataStore = DataStore
+  global.Editor = Editor
+  global.NotePlan = NotePlan
+  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging
+})
 
 const PLUGIN_NAME = `dwertheimer.TaskAutomations`
 const FILENAME = `sortTasks`
@@ -27,8 +38,10 @@ describe(`${PLUGIN_NAME}`, () => {
         { type: 'title', content: 'foo', headingLevel: 1 },
         { type: 'text', content: 'bar', headingLevel: 1 },
       ]
-      note.updateParagraphs = (paras) => console.log(`updateParagraphs: ${paras.length} received`)
-      const spy = jest.spyOn(note, 'updateParagraphs')
+      note.removeParagraphs = (paras) => {
+        /*console.log(`removeParagraphs: ${paras.length} received`)*/
+      }
+      const spy = jest.spyOn(note, 'removeParagraphs')
       f.removeEmptyHeadings(note)
       expect(spy).not.toHaveBeenCalled()
       spy.mockRestore()
@@ -40,8 +53,10 @@ describe(`${PLUGIN_NAME}`, () => {
         { type: 'title', content: 'foo', headingLevel: 3 },
         { type: 'empty', content: '', headingLevel: 3 },
       ]
-      note.updateParagraphs = (paras) => console.log(`updateParagraphs: ${paras.length} received`)
-      const spy = jest.spyOn(note, 'updateParagraphs')
+      note.removeParagraphs = (paras) => {
+        /*console.log(`removeParagraphs: ${paras.length} received`)*/
+      }
+      const spy = jest.spyOn(note, 'removeParagraphs')
       f.removeEmptyHeadings(note)
       expect(spy).not.toHaveBeenCalled()
       spy.mockRestore()
@@ -53,8 +68,10 @@ describe(`${PLUGIN_NAME}`, () => {
         { type: 'title', content: 'Open Tasks:', headingLevel: 3 },
         { type: 'empty', content: '', headingLevel: 3 },
       ]
-      note.updateParagraphs = (paras) => console.log(`updateParagraphs: ${paras.length} received`)
-      const spy = jest.spyOn(note, 'updateParagraphs')
+      note.removeParagraphs = (paras) => {
+        /*console.log(`removeParagraphs: ${paras.length} received`)*/
+      }
+      const spy = jest.spyOn(note, 'removeParagraphs')
       f.removeEmptyHeadings(note)
       expect(spy).toHaveBeenCalledWith(note.paragraphs)
       spy.mockRestore()
@@ -66,8 +83,10 @@ describe(`${PLUGIN_NAME}`, () => {
         { type: 'empty', content: '', headingLevel: 3 },
         { type: 'title', content: 'Open Tasks:', headingLevel: 3 },
       ]
-      note.updateParagraphs = (paras) => console.log(`updateParagraphs: ${paras.length} received`)
-      const spy = jest.spyOn(note, 'updateParagraphs')
+      note.removeParagraphs = (paras) => {
+        /*console.log(`removeParagraphs: ${paras.length} received`)*/
+      }
+      const spy = jest.spyOn(note, 'removeParagraphs')
       f.removeEmptyHeadings(note)
       expect(spy).toHaveBeenCalledWith([note.paragraphs[1]])
       spy.mockRestore()
@@ -79,8 +98,10 @@ describe(`${PLUGIN_NAME}`, () => {
         { type: 'title', content: 'Open Tasks:', headingLevel: 3 },
         { type: 'text', content: 'text', headingLevel: 3 },
       ]
-      note.updateParagraphs = (paras) => console.log(`updateParagraphs: ${paras.length} received`)
-      const spy = jest.spyOn(note, 'updateParagraphs')
+      note.removeParagraphs = (paras) => {
+        /* console.log(`removeParagraphs: ${paras.length} received`) */
+      }
+      const spy = jest.spyOn(note, 'removeParagraphs')
       f.removeEmptyHeadings(note)
       expect(spy).not.toHaveBeenCalled()
       spy.mockRestore()
@@ -92,8 +113,10 @@ describe(`${PLUGIN_NAME}`, () => {
         { type: 'title', content: 'foo', headingLevel: 3 },
         { type: 'text', content: 'bar', headingLevel: 3 },
       ]
-      note.updateParagraphs = (paras) => console.log(`updateParagraphs: ${paras.length} received`)
-      const spy = jest.spyOn(note, 'updateParagraphs')
+      note.removeParagraphs = (paras) => {
+        /*console.log(`removeParagraphs: ${paras.length} received`)*/
+      }
+      const spy = jest.spyOn(note, 'removeParagraphs')
       f.removeEmptyHeadings(note)
       expect(spy).not.toHaveBeenCalled()
       spy.mockRestore()
@@ -105,8 +128,10 @@ describe(`${PLUGIN_NAME}`, () => {
         { type: 'title', content: 'foo', headingLevel: 4 },
         { type: 'empty', content: '', headingLevel: 4 },
       ]
-      note.updateParagraphs = (paras) => console.log(`updateParagraphs: ${paras.length} received`)
-      const spy = jest.spyOn(note, 'updateParagraphs')
+      note.removeParagraphs = (paras) => {
+        /*console.log(`removeParagraphs: ${paras.length} received`)*/
+      }
+      const spy = jest.spyOn(note, 'removeParagraphs')
       f.removeEmptyHeadings(note)
       expect(spy).not.toHaveBeenCalled()
       spy.mockRestore()
@@ -118,8 +143,10 @@ describe(`${PLUGIN_NAME}`, () => {
         { type: 'title', content: '@horticulture:', headingLevel: 4 },
         { type: 'empty', content: '', headingLevel: 4 },
       ]
-      note.updateParagraphs = (paras) => console.log(`updateParagraphs: ${paras.length} received`)
-      const spy = jest.spyOn(note, 'updateParagraphs')
+      note.removeParagraphs = (paras) => {
+        /*console.log(`removeParagraphs: ${paras.length} received`)*/
+      }
+      const spy = jest.spyOn(note, 'removeParagraphs')
       f.removeEmptyHeadings(note)
       expect(spy).toHaveBeenCalledWith(note.paragraphs)
       spy.mockRestore()
@@ -131,8 +158,10 @@ describe(`${PLUGIN_NAME}`, () => {
         { type: 'empty', content: '', headingLevel: 4 },
         { type: 'title', content: '@foo:', headingLevel: 4 },
       ]
-      note.updateParagraphs = (paras) => console.log(`updateParagraphs: ${paras.length} received`)
-      const spy = jest.spyOn(note, 'updateParagraphs')
+      note.removeParagraphs = (paras) => {
+        /* console.log(`removeParagraphs: ${paras.length} received`) */
+      }
+      const spy = jest.spyOn(note, 'removeParagraphs')
       f.removeEmptyHeadings(note)
       expect(spy).toHaveBeenCalledWith([note.paragraphs[1]])
       spy.mockRestore()
@@ -144,8 +173,10 @@ describe(`${PLUGIN_NAME}`, () => {
         { type: 'title', content: 'sample:', headingLevel: 4 },
         { type: 'text', content: 'text', headingLevel: 4 },
       ]
-      note.updateParagraphs = (paras) => console.log(`updateParagraphs: ${paras.length} received`)
-      const spy = jest.spyOn(note, 'updateParagraphs')
+      note.removeParagraphs = (paras) => {
+        /* console.log(`removeParagraphs: ${paras.length} received`) */
+      }
+      const spy = jest.spyOn(note, 'removeParagraphs')
       f.removeEmptyHeadings(note)
       expect(spy).not.toHaveBeenCalled()
       spy.mockRestore()
@@ -157,8 +188,8 @@ describe(`${PLUGIN_NAME}`, () => {
         { type: 'title', content: 'foo', headingLevel: 4 },
         { type: 'text', content: 'bar', headingLevel: 4 },
       ]
-      note.updateParagraphs = (paras) => console.log(`updateParagraphs: ${paras.length} received`)
-      const spy = jest.spyOn(note, 'updateParagraphs')
+      note.removeParagraphs = (paras) => console.log(`removeParagraphs: ${paras.length} received`)
+      const spy = jest.spyOn(note, 'removeParagraphs')
       f.removeEmptyHeadings(note)
       expect(spy).not.toHaveBeenCalled()
       spy.mockRestore()

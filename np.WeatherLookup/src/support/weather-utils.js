@@ -69,8 +69,8 @@ export const extractDailyForecastData = (weather: { [string]: any }): Array<any>
 }
 
 export const getWeatherIcon = (description: string): string => {
-  const weatherDescText = ['showers', 'rain', 'sunny intervals', 'partly sunny', 'sunny', 'clear sky', 'cloud', 'snow ', 'thunderstorm', 'tornado']
-  const weatherDescIcons = ['🌦️', '🌧️', '🌤', '⛅', '☀️', '☀️', '☁️', '🌨️', '⛈', '🌪']
+  const weatherDescText = ['showers', 'rain', 'sunny intervals', 'partly sunny', 'sunny', 'clear sky', 'cloud', 'snow ', 'thunderstorm', 'tornado', 'smoke']
+  const weatherDescIcons = ['🌦️', '🌧️', '🌤', '⛅', '☀️', '☀️', '☁️', '🌨️', '⛈', '🌪', `💨`]
   let weatherIcon = ''
   for (let i = 0; i < weatherDescText.length; i++) {
     if (description.match(weatherDescText[i])) {
