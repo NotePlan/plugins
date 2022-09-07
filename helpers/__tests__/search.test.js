@@ -259,9 +259,17 @@ describe('search.js tests', () => {
       const output = s.trimAndHighlightTermInLine("\t\tThere's Tennis and tennis.org and unTENNISlike behaviour!  ", ['tennis'], true, true, '- ', 100)
       expect(output).toEqual("- There's ==Tennis== and ==tennis==.org and un==TENNIS==like behaviour!")
     })
-    test('should return 2 highlight and no trimming', () => {
+    test('should return 2 highlights and no trimming', () => {
       const output = s.trimAndHighlightTermInLine("Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod tempor incididunt", ['sed'], false, true, '- ', 100)
       expect(output).toEqual("Lorem ipsum dolor sit amet, ==sed== consectetur adipisicing elit, ==sed== do eiusmod tempor incididunt")
+    })
+    test('should return highlights from 2 terms and no trimming', () => {
+      const output = s.trimAndHighlightTermInLine("Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod tempor incididunt", ['sed', 'eiusmod'], false, true, '- ', 100)
+      expect(output).toEqual("Lorem ipsum dolor sit amet, ==sed== consectetur adipisicing elit, ==sed== do ==eiusmod== tempor incididunt")
+    })
+    test('should return highlights from 2 different consecutive terms', () => {
+      const output = s.trimAndHighlightTermInLine("Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod tempor incididunt", ['tempor', 'eiusmod'], false, true, '- ', 100)
+      expect(output).toEqual("Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do ==eiusmod== ==tempor== incididunt")
     })
     test('should return 1 highlight and end trimmng', () => {
       const output = s.trimAndHighlightTermInLine("Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod tempor incididunt", ['sed'], false, false, '- ', 86)
@@ -287,6 +295,10 @@ describe('search.js tests', () => {
     test('should return 1 new highlight but not add extra to existing highlit term', () => {
       const output = s.trimAndHighlightTermInLine("Should add highlight to tennis, but not to this existing one: ==tennis==", ['tennis'], false, true, '- ')
       expect(output).toEqual("Should add highlight to ==tennis==, but not to this existing one: ==tennis==")
+    })
+    test('specific case that was returning just a bullet', () => {
+      const output = s.trimAndHighlightTermInLine("- Kate Dean #picture big tap but dripping one drop at a time. Arrow pointing to tap, showing it’s not turned on far at all. → openness to Holy Spirit", ['Holy', 'Spirit'], false, true, '- ', 200)
+      expect(output).toEqual("- Kate Dean #picture big tap but dripping one drop at a time. Arrow pointing to tap, showing it’s not turned on far at all. → openness to ==Holy== ==Spirit==")
     })
   })
 })

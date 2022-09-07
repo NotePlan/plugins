@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.SearchExtensions/CHANGELOG.md",
-  "plugin.version": "1.0.0-beta1",
-  "plugin.lastUpdateInfo": "Major new version, with big speed up, and new commands. Now supports search operators: + (must match) - (can't match in line) ! (can't match in note) in place of just 'OR'.",
+  "plugin.version": "1.0.0-beta2",
+  "plugin.lastUpdateInfo": "beta2 just has small small bugfixes.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -193,7 +193,7 @@
     {
       "key": "resultStyle",
       "title": "Style for search result lines",
-      "description": "Choose the style to use:\n- Normal 'NotePlan' styling, showing tasks, bullets and quotes, tweaked slightly for matching headings\n- Use 'Simplified' text (like Google results)\n",
+      "description": "Choose the style to use:\n- Normal 'NotePlan' styling, showing tasks, bullets and quotes, tweaked slightly for matching headings\n- Use 'Simplified' text, more like web search engine results.",
       "type": "string",
       "choices": [
         "NotePlan",

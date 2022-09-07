@@ -14,7 +14,7 @@ import {
   normaliseSearchTerms,
   noteAndLineIntersection,
   numberOfUniqueFilenames,
-  reduceAndSortNoteAndLineArray,
+  reduceNoteAndLineArray,
   validateAndTypeSearchTerms,
 } from '../src/searchHelpers'
 import { JSP, clo } from '../../helpers/dev'
@@ -77,24 +77,39 @@ describe('searchHelpers.js tests', () => {
     })
   })
 
-  describe('reduceAndSortNoteAndLineArray()', () => {
+  describe('reduceNoteAndLineArray()', () => {
     test('should return same as mustArr', () => {
-      const dupedUnsortedMustArr: Array<noteAndLine> = [
-        { noteFilename: 'file5', line: '5.2 includes TERM3' },
+      const dupedMustArr: Array<noteAndLine> = [
+        { noteFilename: 'file4', line: '4.2 also has TERM3' },
         { noteFilename: 'file4', line: '4.3 also has TERM3' },
         { noteFilename: 'file5', line: '5.2 includes TERM3' },
-        { noteFilename: 'file7', line: '7.3 has TERM3' },
-        { noteFilename: 'file4', line: '4.2 also has TERM3' },
         { noteFilename: 'file6', line: '6.3 has TERM3' },
-        { noteFilename: 'file7', line: '7.3 has TERM3' },
         { noteFilename: 'file4', line: '4.3 also has TERM3' },
         { noteFilename: 'file6', line: '6.3 has TERM3' },
         { noteFilename: 'file6', line: '6.4 TERM3 has gone "(*$&(*%^" and with TERM1' },
+        { noteFilename: 'file5', line: '5.2 includes TERM3' },
+        { noteFilename: 'file7', line: '7.3 has TERM3' },
+        { noteFilename: 'file7', line: '7.3 has TERM3' },
       ]
-      const result = reduceAndSortNoteAndLineArray(dupedUnsortedMustArr)
+      const result = reduceNoteAndLineArray(dupedMustArr)
       expect(result).toEqual(mustArr)
     })
-    // TODO: more ???
+    test('as above, but reversed', () => {
+      const dupedReversedMustArr: Array<noteAndLine> = [
+        { noteFilename: 'file7', line: '7.3 has TERM3' },
+        { noteFilename: 'file7', line: '7.3 has TERM3' },
+        { noteFilename: 'file6', line: '6.4 TERM3 has gone "(*$&(*%^" and with TERM1' },
+        { noteFilename: 'file6', line: '6.3 has TERM3' },
+        { noteFilename: 'file5', line: '5.2 includes TERM3' },
+        { noteFilename: 'file6', line: '6.3 has TERM3' },
+        { noteFilename: 'file4', line: '4.3 also has TERM3' },
+        { noteFilename: 'file5', line: '5.2 includes TERM3' },
+        { noteFilename: 'file4', line: '4.3 also has TERM3' },
+        { noteFilename: 'file4', line: '4.2 also has TERM3' },
+      ]
+      const result = reduceNoteAndLineArray(dupedReversedMustArr)
+      expect(result).toEqual(mustArr.reverse())
+    })
   })
 
   describe('noteAndLineIntersection', () => {

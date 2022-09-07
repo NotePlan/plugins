@@ -130,7 +130,7 @@ export function simplifyRawContent(input: string): string {
  * @author @jgclark
  * 
  * @param {string} input string
- * @param {Array<string>} terms to find/highlight
+ * @param {Array<string>} terms to find/highlight (without search operator prefixes)
  * @param {boolean} simplifyLine trim off leading markdown markers?
  * @param {string} resultPrefix string to use if line is simplified
  * @param {boolean} addHighlight add highlighting to the matched terms?
@@ -192,7 +192,7 @@ export function trimAndHighlightTermInLine(
     // (A simple .replace() command doesn't work as it won't keep capitalisation)
     if (addHighlight) {
       // regex: find any of the match terms in all the text
-      const re = new RegExp(`(?:[^=](${terms.join('|')})[^=])`, "gi")
+      const re = new RegExp(`(?:[^=](${terms.join('|')})(?=$|[^=]))`, "gi")
       const termMatches = output.matchAll(re)
       let offset = 0
       for (const tm of termMatches) {

@@ -353,6 +353,10 @@ export function differenceByObjectEquality<P: string, T: { +[P]: mixed, ... }> (
 
 /**
  * Returns array of intersection of arrA + arrB (only for noteAndLine types)
+ * TODO: Make a more generic version of this, possibly using help from 
+ * https://stackoverflow.com/questions/1885557/simplest-code-for-array-intersection-in-javascript
+ * @author @jgclark
+ * 
  * @param {Array<noteAndLine>} arrA 
  * @param {Array<noteAndLine>} arrB 
  * @returns {Array<noteAndLine>} array of intersection of arrA + arrB
@@ -489,7 +493,7 @@ export function applySearchOperators(termsResults: Array<resultObjectTypeV3>): r
       }
 
       // Now need to consolidate the NALs
-      consolidatedNALs = reduceAndSortNoteAndLineArray(consolidatedNALs)
+      consolidatedNALs = reduceNoteAndLineArray(consolidatedNALs)
       consolidatedNoteCount = numberOfUniqueFilenames(consolidatedNALs)
       consolidatedLineCount = consolidatedNALs.length
       // clo(consolidatedNALs, '(after must) consolidatedNALs:')
@@ -525,7 +529,7 @@ export function applySearchOperators(termsResults: Array<resultObjectTypeV3>): r
   }
   if (addedAny) {
     // Now need to consolidate the NALs
-    consolidatedNALs = reduceAndSortNoteAndLineArray(consolidatedNALs)
+    consolidatedNALs = reduceNoteAndLineArray(consolidatedNALs)
     consolidatedNoteCount = numberOfUniqueFilenames(consolidatedNALs)
     consolidatedLineCount = consolidatedNALs.length
     // clo(consolidatedNALs, '(after may) consolidatedNALs:')
@@ -571,7 +575,7 @@ export function applySearchOperators(termsResults: Array<resultObjectTypeV3>): r
   }
   // Now need to consolidate the NALs
   if (removedAny) {
-    consolidatedNALs = reduceAndSortNoteAndLineArray(consolidatedNALs)
+    consolidatedNALs = reduceNoteAndLineArray(consolidatedNALs)
     consolidatedLineCount = consolidatedNALs.length
     consolidatedNoteCount = numberOfUniqueFilenames(consolidatedNALs)
   }
@@ -590,18 +594,19 @@ export function applySearchOperators(termsResults: Array<resultObjectTypeV3>): r
 
 
 /**
- * Take unordered and possibly duplicative array, and reduce to unique items and order
+ * Take possibly duplicative array, and reduce to unique items, retaining order.
  * There's an almost-same solution at https://stackoverflow.com/questions/53452875/find-if-two-arrays-are-repeated-in-array-and-then-select-them/53453045#53453045
  * but I can't make it work, so I'm going to hack it by joining the two object parts together,
  * then deduping, and then splitting out again
+ * @author @jgclark
  * @param {Array<noteAndLine>} inArray 
  * @returns {Array<noteAndLine>} outArray
- * @test in jest file
+ * @tests in jest file
  */
-export function reduceAndSortNoteAndLineArray(inArray: Array<noteAndLine>): Array<noteAndLine> {
+export function reduceNoteAndLineArray(inArray: Array<noteAndLine>): Array<noteAndLine> {
   const simplifiedArray = inArray.map((m) => m.noteFilename + ':::' + m.line)
-  const sortedArray = simplifiedArray.sort()
-  const reducedArray = [... new Set(sortedArray)]
+  // const sortedArray = simplifiedArray.sort()
+  const reducedArray = [... new Set(simplifiedArray)]
   const outputArray: Array<noteAndLine> = reducedArray.map((m) => {
     let parts = m.split(':::')
     return { noteFilename: parts[0], line: parts[1] }
@@ -765,7 +770,6 @@ export async function runSearchV2(
       const sortKeys = sortMap.get(config.sortOrder) ?? 'title' // get value, falling back to 'title'
       logDebug('runSearchV2', `- Will use sortKeys: [${String(sortKeys)}] from ${config.sortOrder}`)
       const sortedFieldSets: Array<reducedFieldSet> = sortListBy(resultFieldSets, sortKeys)
-      logDebug('runSearchV2', `- ${String(sortedFieldSets.length)} sortedFieldSets after sort`)
 
       // Form the return object from sortedFieldSets
       for (let i = 0; i < sortedFieldSets.length; i++) {
