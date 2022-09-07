@@ -23,6 +23,7 @@ beforeAll(() => {
     trace: console.trace,
     // map other methods that you want to use like console.table
   }
+  DataStore.settings['logLevel'] = 'none' // change to DEBUG to see more output
 })
 
 const paragraphs = [new Paragraph({ content: 'line1' }), new Paragraph({ content: 'line2' })]
@@ -127,6 +128,8 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
       })
       test('should console.log and return empty array if note is null', async () => {
         const spy = jest.spyOn(console, 'log')
+        const oldLogLevel = DataStore.settings['_logLevel']
+        DataStore.settings['_logLevel'] = 'DEBUG'
         const editorWas = Editor.note
         Editor.note = null
         const result = await mainFile.getTodaysReferences(null)
@@ -134,6 +137,7 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         expect(mockWasCalledWith(spy, /timeblocking could not open Note/)).toBe(true)
         spy.mockRestore()
         Editor.note = editorWas
+        DataStore.settings['_logLevel'] = oldLogLevel
       })
       test('should tell user there was a problem with config', async () => {
         Editor.note.backlinks = [{ content: 'line1', subItems: [{ test: 'here' }] }]
