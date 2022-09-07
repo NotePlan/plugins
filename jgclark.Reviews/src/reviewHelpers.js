@@ -233,6 +233,7 @@ export class Project {
       if (progressLineParts.length >= 3) {
         this.percentComplete = Number(progressLineParts[0])
         const datePart = unhyphenateString(progressLineParts[1])
+        // $FlowFixMe
         this.lastProgressComment = `${relativeDateFromDate(getDateFromUnhyphenatedDateString(datePart))}: ${progressLineParts[2].trim()}`
         logDebug(pluginJson, `- progress field -> ${this.percentComplete} / '${this.lastProgressComment}' from <${progressLine}>`)
       } else {

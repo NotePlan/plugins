@@ -2,7 +2,7 @@
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.
 
 ## [0.8.0] - ???
-??? - HTML
+??? - HTML (requires NotePlan 3.7)
 ??? - now open the review list note after /
 ## [0.7.1] - 2022-08-03
 ### Fixed
