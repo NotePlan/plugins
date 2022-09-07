@@ -1,7 +1,18 @@
-/* globals describe, expect, test */
+/* globals describe, expect, test, beforeAll */
 
 import colors from 'chalk'
 import * as c from '../config'
+import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan /* Note, Paragraph */ } from '@mocks/index'
+
+beforeAll(() => {
+  global.Calendar = Calendar
+  global.Clipboard = Clipboard
+  global.CommandBar = CommandBar
+  global.DataStore = DataStore
+  global.Editor = Editor
+  global.NotePlan = NotePlan
+  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging
+})
 
 const FILE = `${colors.yellow('helpers/config')}`
 const section = colors.blue
@@ -67,49 +78,31 @@ describe(`${FILE}`, () => {
         expect(c.validateConfigProperties({}, {})).toEqual({})
       })
       test('for required field missing ', () => {
-        expect(() => c.validateConfigProperties({}, { test: 'string' })).toThrow(
-          createConfigError('missing', 'test', 'string'),
-        )
+        expect(() => c.validateConfigProperties({}, { test: 'string' })).toThrow(createConfigError('missing', 'test', 'string'))
       })
       test('for required field missing marked as optional:false ', () => {
-        expect(() => c.validateConfigProperties({}, { test: { type: 'string', optional: false } })).toThrow(
-          createConfigError('missing', 'test', 'string'),
-        )
+        expect(() => c.validateConfigProperties({}, { test: { type: 'string', optional: false } })).toThrow(createConfigError('missing', 'test', 'string'))
       })
       test('for number ', () => {
-        expect(() => c.validateConfigProperties({ test: true }, { test: 'string' })).toThrow(
-          createConfigError('type', 'test', 'string'),
-        )
+        expect(() => c.validateConfigProperties({ test: true }, { test: 'string' })).toThrow(createConfigError('type', 'test', 'string'))
       })
       test('for string ', () => {
-        expect(() => c.validateConfigProperties({ test: true }, { test: 'string' })).toThrow(
-          createConfigError('type', 'test', 'string'),
-        )
+        expect(() => c.validateConfigProperties({ test: true }, { test: 'string' })).toThrow(createConfigError('type', 'test', 'string'))
       })
       test('for object ', () => {
-        expect(() => c.validateConfigProperties({ test: true }, { test: 'object' })).toThrow(
-          createConfigError('type', 'test', 'object'),
-        )
+        expect(() => c.validateConfigProperties({ test: true }, { test: 'object' })).toThrow(createConfigError('type', 'test', 'object'))
       })
       test('for array ', () => {
-        expect(() => c.validateConfigProperties({ test: true }, { test: 'array' })).toThrow(
-          createConfigError('type', 'test', 'array'),
-        )
+        expect(() => c.validateConfigProperties({ test: true }, { test: 'array' })).toThrow(createConfigError('type', 'test', 'array'))
       })
       test('for regex failed on string', () => {
-        expect(() => c.validateConfigProperties({ test: 'foo' }, { test: /test/ })).toThrow(
-          createConfigError('regex', 'test', /test/, 'foo'),
-        )
+        expect(() => c.validateConfigProperties({ test: 'foo' }, { test: /test/ })).toThrow(createConfigError('regex', 'test', /test/, 'foo'))
       })
       test('for regex but config item wasnt string', () => {
-        expect(() => c.validateConfigProperties({ test: true }, { test: /test/ })).toThrow(
-          createConfigError('regex', 'test', /test/, true),
-        )
+        expect(() => c.validateConfigProperties({ test: true }, { test: /test/ })).toThrow(createConfigError('regex', 'test', /test/, true))
       })
       test('for boolean ', () => {
-        expect(() => c.validateConfigProperties({ test: 'string' }, { test: 'boolean' })).toThrow(
-          createConfigError('type', 'test', 'boolean'),
-        )
+        expect(() => c.validateConfigProperties({ test: 'string' }, { test: 'boolean' })).toThrow(createConfigError('type', 'test', 'boolean'))
       })
     })
   })

@@ -19,8 +19,10 @@
  * {string} typeOfResultFormat: N for normal, % for percentage, B for assigned total (A=total)
  */
 
+const pluginJson = 'dwertheimer.MathSolver/solver.js'
+
 export type LineInfo = {
-  lineValue: number | null | {mathjs:string,value:number,unit:string,fixPrefix:string},
+  lineValue: number | null | { mathjs: string, value: number, unit: string, fixPrefix: string },
   originalText: string,
   expression: string,
   row: number,
@@ -40,7 +42,7 @@ export type CurrentData = {
   relations: Array<Array<string> | null>,
   expressions: Array<string>,
   rows: number,
-  precision: ?number
+  precision: ?number,
 }
 
 import math from './math.min'
@@ -95,9 +97,9 @@ export function removeParentheticals(inString: string): [string, Array<string>] 
  * @param {line} - the info line to search in
  * @param {string|Array<string>} - the type to compare against
  */
-export function isLineType(line:LineInfo,searchForType:string|Array<string>) {
+export function isLineType(line: LineInfo, searchForType: string | Array<string>) {
   const lineTypes = Array.isArray(searchForType) ? searchForType : [searchForType]
-  return (lineTypes.indexOf(line.typeOfResult) > -1)
+  return lineTypes.indexOf(line.typeOfResult) > -1
 }
 
 export function checkIfUnit(obj) {
@@ -155,7 +157,7 @@ function removeTextFromStr(strToBeParsed, variables) {
     .replace(/\&;/g, '')
 }
 
-function removeComments (incomingString:string,currentData:CurrentData,selectedRow:number):string {
+function removeComments(incomingString: string, currentData: CurrentData, selectedRow: number): string {
   let strToBeParsed = incomingString
   if (currentData.info[selectedRow].complete !== true) {
     // Remove comment+colon
@@ -169,10 +171,10 @@ function removeComments (incomingString:string,currentData:CurrentData,selectedR
       strToBeParsed = strToBeParsed.replace(/\/\/(.*)/g, '').trim() // remove anything beyond double slashes
     }
     if (strToBeParsed.trim() === '') {
-      currentData.info[selectedRow].typeOfResult =  'H'
+      currentData.info[selectedRow].typeOfResult = 'H'
       currentData.info[selectedRow].complete = true
     }
-     // logDebug(pluginJson,`str="${strToBeParsed}" = ${info[selectedRow].typeOfResult}`)
+    // logDebug(pluginJson,`str="${strToBeParsed}" = ${info[selectedRow].typeOfResult}`)
     // edit outStr & set .complete if finished
   }
   return strToBeParsed
@@ -186,20 +188,29 @@ export function parse(thisLineStr: string, lineIndex: number, cd: CurrentData): 
   // let relations = currentData.relations // we need to be able to write this one
   let match
   const selectedRow = lineIndex
-  currentData.info[selectedRow] = { row: selectedRow, typeOfResult: 'N', typeOfResultFormat: 'N', originalText: strToBeParsed, expression: '', lineValue: 0, error: '', complete: false }
+  currentData.info[selectedRow] = {
+    row: selectedRow,
+    typeOfResult: 'N',
+    typeOfResultFormat: 'N',
+    originalText: strToBeParsed,
+    expression: '',
+    lineValue: 0,
+    error: '',
+    complete: false,
+  }
 
   // Remove comments/headers $FlowIgnore
-  strToBeParsed = removeComments(strToBeParsed,currentData,selectedRow) 
+  strToBeParsed = removeComments(strToBeParsed, currentData, selectedRow)
 
-  let preProcessedValue = null
+  // let preProcessedValue = null
   try {
-    logDebug(pluginJson,`---`)
-    logDebug(pluginJson,`about to preproc str = "${strToBeParsed}"`)
-    clo(currentData,`currentData before pre-process`)
-    logDebug(pluginJson,`str = now will pre-proc "${strToBeParsed}"`)
+    logDebug(pluginJson, `---`)
+    logDebug(pluginJson, `about to preproc str = "${strToBeParsed}"`)
+    clo(currentData, `currentData before pre-process`)
+    logDebug(pluginJson, `str = now will pre-proc "${strToBeParsed}"`)
     const results = math.evaluate([strToBeParsed], variables)
     clo(results, `solver::parse math.js pre-process success on: "${strToBeParsed}" Result is Array<${typeof results[0]}> =`)
-    preProcessedValue = results[0]
+    // preProcessedValue = results[0]
   } catch (error) {
     // errors are to be expected since we are pre-processing
     // error messages: "Undefined symbol total", "Unexpected part "4" (char 7)"
@@ -272,8 +283,8 @@ export function parse(thisLineStr: string, lineIndex: number, cd: CurrentData): 
     while ((match = reAssignmentSides.exec(strToBeParsed))) {
       // logDebug(`solver::parse/assignment`,`strToBeParsed="${strToBeParsed}"; matches = ${match.toString()}`)
       if (match[1]?.trim() !== '' && match[2]?.trim() !== '') {
-        if (info[selectedRow].typeOfResult !== "B") {
-          info[selectedRow].typeOfResult = 'A' 
+        if (info[selectedRow].typeOfResult !== 'B') {
+          info[selectedRow].typeOfResult = 'A'
         }
         variables[match[1]] = match[2]
       } else {
@@ -345,12 +356,12 @@ export function parse(thisLineStr: string, lineIndex: number, cd: CurrentData): 
       variables[`R${i}`] = checkIfUnit(e) ? math.unit(e) : isNaN(rounded) ? e : rounded
       info[i].lineValue = variables[`R${i}`]
       if (info[i].typeOfResult === 'N' && mathOnlyStr.trim() === '' && info[i].expression === '0') {
-        logDebug(`solver::parse`,`R${i}: "${info[i].originalText}" is a number; info[i].typeOfResult=${info[i].typeOfResult} expressions[i]=${expressions[i]}`)
+        logDebug(`solver::parse`, `R${i}: "${info[i].originalText}" is a number; info[i].typeOfResult=${info[i].typeOfResult} expressions[i]=${expressions[i]}`)
         if (info[i].originalText.trim() !== '') {
           info[i].error = `was not a number, equation, variable or comment`
           info[i].typeOfResult === 'H' // remove it from calculations
         }
-        info[i].expression = ""
+        info[i].expression = ''
       } else {
         info[i].expression = expressions[i]
       }
@@ -363,8 +374,8 @@ export function parse(thisLineStr: string, lineIndex: number, cd: CurrentData): 
     // createOrUpdateResult(results[selectedRow] ? formatResults(results[selectedRow]) : '') // the current row is updated
   } catch (error) {
     // createOrUpdateResult('')
-    console.log(`Error completing expression in: ${String(expressions)} ${error}`)
-    clo(expressions && expressions.length ? expressions : {},`parse--expressions`)
+    logDebug(pluginJson, `Error completing expression in: ${String(expressions)} ${error}`)
+    clo(expressions && expressions.length ? expressions : {}, `parse--expressions`)
     info[selectedRow].error = error.toString()
     info[selectedRow].typeOfResult = 'E'
     expressions[selectedRow] = ''

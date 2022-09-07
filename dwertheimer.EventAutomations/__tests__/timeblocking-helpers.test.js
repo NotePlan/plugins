@@ -1,4 +1,4 @@
-/* globals describe, expect, test */
+/* globals describe, expect, test, beforeAll */
 import colors from 'chalk'
 import { /* differenceInCalendarDays, endOfDay, startOfDay, eachMinuteOfInterval, */ format } from 'date-fns'
 import * as tb from '../src/timeblocking-helpers'
@@ -7,6 +7,17 @@ import { getTasksByType } from '@helpers/sorting'
 // import * as ch from '../../helpers/calendar'
 import { JSP } from '@helpers/dev'
 // const _ = require('lodash')
+import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan /*, Note, Paragraph */ } from '@mocks/index'
+
+beforeAll(() => {
+  global.Calendar = Calendar
+  global.Clipboard = Clipboard
+  global.CommandBar = CommandBar
+  global.DataStore = DataStore
+  global.Editor = Editor
+  global.NotePlan = NotePlan
+  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging
+})
 
 const PLUGIN_NAME = `📙 ${colors.yellow('dwertheimer.EventAutomations')}`
 const section = colors.blue

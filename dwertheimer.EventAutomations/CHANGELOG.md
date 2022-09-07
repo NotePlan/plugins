@@ -4,6 +4,10 @@ README: [How to use AutoTimeBlocking](https://noteplan.co/n/#/1EF12392-B544-4044
 
 ## What's New in AutoTimeBlocking
 
+[1.10.1] - 2022-09-07 @dwertheimer
+
+- Fixed minor bug: datePlusOpenOnly setting missing
+
 [1.10.0] - 2022-09-02 @dwertheimer
 
 - Moved >date+ functionality to TaskAutomations plugin (and expanded it)

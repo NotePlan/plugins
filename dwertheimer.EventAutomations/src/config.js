@@ -33,7 +33,6 @@ export function getTimeBlockingDefaults(): AutoTimeBlockingConfig {
     foldSyncedCopiesHeading: false,
     runSilently: false,
     timeblockTextMustContainString: '' /* is set automatically when config is pulled */,
-    datePlusOpenOnly: true,
     foldersToIgnore: [],
     calendarToWriteTo: '',
     presets: [
@@ -76,7 +75,6 @@ export function validateAutoTimeBlockingConfig(config: AutoTimeBlockingConfig): 
     linkText: 'string',
     includeTasksWithText: { type: 'array', optional: true },
     excludeTasksWithText: { type: 'array', optional: true },
-    datePlusOpenOnly: 'boolean',
     calendarToWriteTo: 'string',
     foldersToIgnore: { type: 'array', optional: true },
     presets: { type: 'array', optional: true },
@@ -123,7 +121,6 @@ export type AutoTimeBlockingConfig = {
   linkText: string,
   includeTasksWithText?: Array<string>,
   excludeTasksWithText?: Array<string>,
-  datePlusOpenOnly: boolean,
   foldersToIgnore?: Array<string>,
   presets?: any,
   nowStrOverride?: string,

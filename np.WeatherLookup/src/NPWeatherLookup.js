@@ -266,7 +266,7 @@ export async function weatherByLatLong(incoming: string = '', showPopup: string 
           locTime = UTCToLocalTimeString(new Date(), 'LT', weather['timezone_offset'])
           logDebug(pluginJson, locTime)
           const currentWeather = utils.getCurrentConditions(weather.current)
-          const weatherLine = utils.getWeatherDescLine(currentWeather)
+          const weatherLine = utils.getWeatherDescLine(currentWeather, settings)
           const now = [{ label: weatherLine, value: String(-1) }]
           dfd = utils.extractDailyForecastData(weather)
           if (dfd && dfd.length) {
