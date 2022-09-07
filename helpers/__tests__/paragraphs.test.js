@@ -10,6 +10,7 @@ beforeAll(() => {
   global.DataStore = DataStore
   global.Editor = Editor
   global.NotePlan = NotePlan
+  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging
 })
 
 beforeEach(() => {
@@ -45,7 +46,10 @@ describe('paragraph.js', () => {
       expect(result).toEqual(true)
     })
     test('should find search term in a NotePlan callback', () => {
-      const result = p.isTermInURL('callback', "<@763430583702519878> I think I may have discovered an issue with the Search Extensions plugin. I'm using '/saveSearchOverNotes' and I'm unable to update the document using the url link. My search terms do have @mentions in them so I thought it might be the issue you identified the other day, but I've noticed that the url uses the plugin command, 'saveSearchResults' rather than 'saveSearchOverNotes'.I think it may be doing this for the other versions of save search too. When I manually change the url, it refreshes fine. See eg: noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearchResults&arg0=")
+      const result = p.isTermInURL(
+        'callback',
+        "<@763430583702519878> I think I may have discovered an issue with the Search Extensions plugin. I'm using '/saveSearchOverNotes' and I'm unable to update the document using the url link. My search terms do have @mentions in them so I thought it might be the issue you identified the other day, but I've noticed that the url uses the plugin command, 'saveSearchResults' rather than 'saveSearchOverNotes'.I think it may be doing this for the other versions of save search too. When I manually change the url, it refreshes fine. See eg: noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearchResults&arg0=",
+      )
       expect(result).toEqual(true)
     })
     test('should not find search term in a file path as it is in rest of line', () => {
@@ -111,19 +115,19 @@ describe('paragraph.js', () => {
 
   describe('calcSmartPrependPoint()', () => {
     const noteA = {
-      type: "notes",
+      type: 'notes',
       paragraphs: [
         { type: 'title', lineIndex: 0, content: 'Note title' },
         { type: 'empty', lineIndex: 1, content: '' },
         { type: 'text', lineIndex: 2, content: 'First real content' },
-      ]
+      ],
     }
     test('should return 1 for basic note with title', () => {
       const result = p.calcSmartPrependPoint(noteA)
       expect(result).toEqual(1)
     })
     const noteB = {
-      type: "notes",
+      type: 'notes',
       paragraphs: [
         { type: 'separator', lineIndex: 0, content: '---' },
         { type: 'text', lineIndex: 1, content: 'title: Note title' },
@@ -138,40 +142,36 @@ describe('paragraph.js', () => {
       expect(result).toEqual(4)
     })
     const noteC = {
-      type: "notes",
+      type: 'notes',
       paragraphs: [
         { type: 'title', lineIndex: 0, content: 'Note title' },
         { type: 'text', lineIndex: 1, content: '#project metadata' },
         { type: 'empty', lineIndex: 2, content: '' },
         { type: 'text', lineIndex: 3, content: 'First real content' },
-      ]
+      ],
     }
     test('should return 3 for basic note with title, metadata and blank line', () => {
       const result = p.calcSmartPrependPoint(noteC)
       expect(result).toEqual(3)
     })
     const noteE = {
-      type: "Calendar",
-      paragraphs: [
-        { type: 'empty', lineIndex: 0, content: '' },
-      ],
+      type: 'Calendar',
+      paragraphs: [{ type: 'empty', lineIndex: 0, content: '' }],
     }
     test('should return 0 for single empty para', () => {
       const result = p.calcSmartPrependPoint(noteE)
       expect(result).toEqual(0)
     })
     const noteF = {
-      type: "Calendar",
-      paragraphs: [
-        { type: 'text', lineIndex: 0, content: 'Single line only' },
-      ],
+      type: 'Calendar',
+      paragraphs: [{ type: 'text', lineIndex: 0, content: 'Single line only' }],
     }
     test('should return 0 for single empty para', () => {
       const result = p.calcSmartPrependPoint(noteF)
       expect(result).toEqual(0)
     })
     const noteG = {
-      type: "Calendar",
+      type: 'Calendar',
       paragraphs: [],
     }
     test('should return 0 for no paras at all', () => {
@@ -265,18 +265,14 @@ describe('paragraph.js', () => {
       expect(result).toEqual(11)
     })
     const noteE = {
-      paragraphs: [
-        { type: 'empty', lineIndex: 0, content: '' },
-      ],
+      paragraphs: [{ type: 'empty', lineIndex: 0, content: '' }],
     }
     test('should return 0 for single empty para', () => {
       const result = p.findEndOfActivePartOfNote(noteE)
       expect(result).toEqual(0)
     })
     const noteF = {
-      paragraphs: [
-        { type: 'text', lineIndex: 0, content: 'Single line only' },
-      ],
+      paragraphs: [{ type: 'text', lineIndex: 0, content: 'Single line only' }],
     }
     test('should return 0 for single para only', () => {
       const result = p.findEndOfActivePartOfNote(noteF)
@@ -328,7 +324,7 @@ describe('paragraph.js', () => {
         { type: 'cancelled', lineIndex: 10, content: 'task 4 not done' },
       ],
     }
-    test("should not match with empty search term", () => {
+    test('should not match with empty search term', () => {
       expect(p.findHeadingStartsWith(noteA, '')).toEqual('')
     })
     test("should match 'Journal' with line 'Journal for 3.4.22'", () => {
@@ -348,4 +344,3 @@ describe('paragraph.js', () => {
     })
   })
 })
-

@@ -1,5 +1,7 @@
 // @flow
 
+import { logDebug } from './dev'
+
 /**
  * Check whether this config meets a minimum defined spec of keys and types. This function replaces
  * the old validateMinimumConfig function
@@ -26,10 +28,7 @@
  *  console.log(e.message)
  * }
  */
-export function validateConfigProperties(
-  config: { [string]: mixed },
-  validations: { [string]: mixed },
-): { [string]: mixed } {
+export function validateConfigProperties(config: { [string]: mixed }, validations: { [string]: mixed }): { [string]: mixed } {
   let failed = ''
   const propsToValidate = Object.keys(validations)
   if (propsToValidate.length) {
@@ -41,9 +40,7 @@ export function validateConfigProperties(
 
       if (configFieldValue === null || configFieldValue === undefined) {
         if (!isOptional) {
-          console.log(
-            `validateConfigProperties: configFieldValue: ${configFieldValue ?? 'null'} for ${v} is null or undefined`,
-          )
+          logDebug(`validateConfigProperties: configFieldValue: ${configFieldValue ?? 'null'} for ${v} is null or undefined`)
           failed = `Config required field: "${v}" is missing;\n`
         }
       } else {
@@ -52,8 +49,7 @@ export function validateConfigProperties(
             failed += `Config field: "${v}" (${String(config[v])}) is not the proper type;\n`
           }
         } else {
-          const test =
-            requiredType === 'array' ? Array.isArray(configFieldValue) : typeof configFieldValue === requiredType
+          const test = requiredType === 'array' ? Array.isArray(configFieldValue) : typeof configFieldValue === requiredType
           if (!test) {
             failed += `Config required field: "${v}" is not of type "${String(requiredType)}";\n`
           }

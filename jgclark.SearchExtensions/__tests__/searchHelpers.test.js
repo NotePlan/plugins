@@ -1,5 +1,5 @@
 // @flow
-/* global describe, expect, test */
+/* global describe, expect, test, beforeAll */
 import {
   type noteAndLine,
   type resultObjectTypeV3,
@@ -18,6 +18,17 @@ import {
   validateAndTypeSearchTerms,
 } from '../src/searchHelpers'
 import { JSP, clo } from '../../helpers/dev'
+import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan /*, Note, Paragraph */ } from '@mocks/index'
+
+beforeAll(() => {
+  global.Calendar = Calendar
+  global.Clipboard = Clipboard
+  global.CommandBar = CommandBar
+  global.DataStore = DataStore
+  global.Editor = Editor
+  global.NotePlan = NotePlan
+  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging
+})
 
 const searchTerms: Array<typedSearchTerm> = [
   { term: 'TERM1', type: 'may', termRep: 'TERM1' },
@@ -31,7 +42,8 @@ const searchTerms: Array<typedSearchTerm> = [
 
 const emptyArr: Array<noteAndLine> = []
 
-const mayArr: Array<noteAndLine> = [ // lines with TERM1, ordered by filename
+const mayArr: Array<noteAndLine> = [
+  // lines with TERM1, ordered by filename
   { noteFilename: 'file1', line: '1.1 includes TERM1 and TERM2' },
   { noteFilename: 'file1', line: '1.2 includes TERM1 and TERM2 again' },
   { noteFilename: 'file2', line: '2.1 includes TERM1 and TERM2' },
@@ -45,7 +57,8 @@ const mayArr: Array<noteAndLine> = [ // lines with TERM1, ordered by filename
 ]
 // clo(mayArr, 'mayArr:')
 
-const notArr: Array<noteAndLine> = [ // lines with TERM2, ordered by filename
+const notArr: Array<noteAndLine> = [
+  // lines with TERM2, ordered by filename
   { noteFilename: 'file1', line: '1.1 includes TERM1 and TERM2' },
   { noteFilename: 'file1', line: '1.2 includes TERM1 and TERM2 again' },
   { noteFilename: 'file2', line: '2.1 includes TERM1 and TERM2' },
@@ -55,7 +68,8 @@ const notArr: Array<noteAndLine> = [ // lines with TERM2, ordered by filename
 ]
 // clo(notArr, 'notArr:')
 
-const mustArr: Array<noteAndLine> = [ // lines with TERM3, ordered by filename
+const mustArr: Array<noteAndLine> = [
+  // lines with TERM3, ordered by filename
   { noteFilename: 'file4', line: '4.2 also has TERM3' },
   { noteFilename: 'file4', line: '4.3 also has TERM3' },
   { noteFilename: 'file5', line: '5.2 includes TERM3' },
@@ -138,7 +152,8 @@ describe('searchHelpers.js tests', () => {
     })
 
     test('should return narrower (note) diff of mayArr, notArr (using noteFilename)', () => {
-      const diffArr: Array<noteAndLine> = [ // *notes* with TERM1 but not TERM2
+      const diffArr: Array<noteAndLine> = [
+        // *notes* with TERM1 but not TERM2
         { noteFilename: 'file3', line: '3.1 boring but has TERM1' },
         { noteFilename: 'file5', line: '5.1 includes TERM1' },
         { noteFilename: 'file7', line: '7.1 (W£%&W(*%&)) TERM1' },
@@ -149,7 +164,8 @@ describe('searchHelpers.js tests', () => {
       expect(result).toEqual(diffArr)
     })
     test('should return narrower (note) diff of mustArr, notArr (using noteFilename)', () => {
-      const diffArr: Array<noteAndLine> = [ // *notes* with TERM3 but not TERM2
+      const diffArr: Array<noteAndLine> = [
+        // *notes* with TERM3 but not TERM2
         { noteFilename: 'file5', line: '5.2 includes TERM3' },
         { noteFilename: 'file7', line: '7.3 has TERM3' },
       ]
@@ -194,7 +210,8 @@ describe('searchHelpers.js tests', () => {
         { noteFilename: 'file6', line: '6.4 TERM3 has gone "(*$&(*%^" and with TERM1' },
         { noteFilename: 'file7', line: '7.3 has TERM3' },
       ]
-      const diffArr: Array<noteAndLine> = [ // *lines* with TERM3 but not TERM2
+      const diffArr: Array<noteAndLine> = [
+        // *lines* with TERM3 but not TERM2
         { noteFilename: 'file4', line: '4.2 also has TERM3' },
         { noteFilename: 'file4', line: '4.3 also has TERM3' },
         { noteFilename: 'file5', line: '5.2 includes TERM3' },
@@ -214,11 +231,10 @@ describe('searchHelpers.js tests', () => {
 
     test('should return no results from simple no results', () => {
       // For empty results
-      const combinedResults: Array<resultObjectTypeV3> = [
-        { searchTerm: searchTerms[0], resultNoteAndLineArr: emptyArr, resultCount: 0 },
-      ]
-      const expectedNoteBasedOutput: resultOutputTypeV3 = { // for no results
-        searchTermsRepArr: ["TERM1"],
+      const combinedResults: Array<resultObjectTypeV3> = [{ searchTerm: searchTerms[0], resultNoteAndLineArr: emptyArr, resultCount: 0 }]
+      const expectedNoteBasedOutput: resultOutputTypeV3 = {
+        // for no results
+        searchTermsRepArr: ['TERM1'],
         resultNoteAndLineArr: [],
         resultCount: 0,
         resultNoteCount: 0,
@@ -234,8 +250,9 @@ describe('searchHelpers.js tests', () => {
         { searchTerm: searchTerms[4], resultNoteAndLineArr: notArr, resultCount: 6 },
         { searchTerm: searchTerms[1], resultNoteAndLineArr: notArr, resultCount: 6 },
       ]
-      const expectedNoteBasedOutput: resultOutputTypeV3 = { // for no results
-        searchTermsRepArr: ["TERM2", "-TERM2"],
+      const expectedNoteBasedOutput: resultOutputTypeV3 = {
+        // for no results
+        searchTermsRepArr: ['TERM2', '-TERM2'],
         resultNoteAndLineArr: [],
         resultCount: 0,
         resultNoteCount: 0,
@@ -251,7 +268,7 @@ describe('searchHelpers.js tests', () => {
         { searchTerm: searchTerms[6], resultNoteAndLineArr: notArr, resultCount: 6 },
       ]
       const expectedNoteBasedOutput: resultOutputTypeV3 = {
-        searchTermsRepArr: ["+TERM1", "+TERM2"],
+        searchTermsRepArr: ['+TERM1', '+TERM2'],
         resultNoteAndLineArr: [
           { noteFilename: 'file1', line: '1.1 includes TERM1 and TERM2' },
           { noteFilename: 'file1', line: '1.2 includes TERM1 and TERM2 again' },
@@ -272,8 +289,9 @@ describe('searchHelpers.js tests', () => {
         { searchTerm: searchTerms[3], resultNoteAndLineArr: notArr, resultCount: 2 }, // the !TERM2 alternative
         { searchTerm: searchTerms[2], resultNoteAndLineArr: mustArr, resultCount: 4 },
       ]
-      const expectedNoteBasedOutput: resultOutputTypeV3 = { // For TERM1, -TERM2, +TERM3 matching *notes*
-        searchTermsRepArr: ["TERM1", "!TERM2", "+TERM3"],
+      const expectedNoteBasedOutput: resultOutputTypeV3 = {
+        // For TERM1, -TERM2, +TERM3 matching *notes*
+        searchTermsRepArr: ['TERM1', '!TERM2', '+TERM3'],
         resultNoteAndLineArr: [
           { noteFilename: 'file5', line: '5.1 includes TERM1' },
           { noteFilename: 'file5', line: '5.2 includes TERM3' },
@@ -296,8 +314,9 @@ describe('searchHelpers.js tests', () => {
         { searchTerm: searchTerms[1], resultNoteAndLineArr: notArr, resultCount: 2 },
         { searchTerm: searchTerms[2], resultNoteAndLineArr: mustArr, resultCount: 4 },
       ]
-      const expectedLineBasedOutput: resultOutputTypeV3 = { // For TERM1, -TERM2, +TERM3 matching *lines*
-        searchTermsRepArr: ["TERM1", "-TERM2", "+TERM3"],
+      const expectedLineBasedOutput: resultOutputTypeV3 = {
+        // For TERM1, -TERM2, +TERM3 matching *lines*
+        searchTermsRepArr: ['TERM1', '-TERM2', '+TERM3'],
         resultNoteAndLineArr: [
           { noteFilename: 'file4', line: '4.2 also has TERM3' },
           { noteFilename: 'file4', line: '4.3 also has TERM3' },
@@ -380,7 +399,7 @@ describe('searchHelpers.js tests', () => {
       const result = normaliseSearchTerms('"1 John", 1Jn', false)
       expect(result).toEqual(['1 John', '1Jn'])
     })
-    test("mix of quoted and unquoted terms (do modify)", () => {
+    test('mix of quoted and unquoted terms (do modify)', () => {
       const result = normaliseSearchTerms('-term1 "term two" !term3', true)
       expect(result).toEqual(['-term1', '+term', '+two', '!term3'])
     })
@@ -388,35 +407,35 @@ describe('searchHelpers.js tests', () => {
       const result = normaliseSearchTerms('-term1 "term two" !term3', false)
       expect(result).toEqual(['-term1', 'term two', '!term3'])
     })
-    test("terms with apostrophes in quoted terms (do modify)", () => {
+    test('terms with apostrophes in quoted terms (do modify)', () => {
       const result = normaliseSearchTerms('-term1 "couldn\'t possibly" !term3', true)
-      expect(result).toEqual(['-term1', '+couldn\'t', '+possibly', '!term3'])
+      expect(result).toEqual(['-term1', "+couldn't", '+possibly', '!term3'])
     })
     test("terms with apostrophes in quoted terms (don't modify)", () => {
       const result = normaliseSearchTerms('-term1 "couldn\'t possibly" !term3', false)
-      expect(result).toEqual(['-term1', 'couldn\'t possibly', '!term3'])
+      expect(result).toEqual(['-term1', "couldn't possibly", '!term3'])
     })
     // TODO: This one failing on the apostophe -> [- "can't",+ "can",+ "t", "term2"]
-    test.skip("terms with apostrophes in unquoted terms", () => {
+    test.skip('terms with apostrophes in unquoted terms', () => {
       const result = normaliseSearchTerms("can't term2")
       expect(result).toEqual(["can't", 'term2'])
     })
-    test("mix of quoted and unquoted terms (do modify)", () => {
+    test('mix of quoted and unquoted terms (do modify)', () => {
       const result = normaliseSearchTerms('bob "xxx",\'yyy\', "asd\'sa" \'bob two\' "" hello', true)
-      expect(result).toEqual(['bob', 'xxx', 'yyy', "asd'sa", "+bob", "+two", "hello"])
+      expect(result).toEqual(['bob', 'xxx', 'yyy', "asd'sa", '+bob', '+two', 'hello'])
     })
     test("mix of quoted and unquoted terms (don't modify)", () => {
       const result = normaliseSearchTerms('bob "xxx",\'yyy\', "asd\'sa" \'bob two\' "" hello', false)
-      expect(result).toEqual(['bob', 'xxx', 'yyy', "asd'sa", "bob two", "hello"])
+      expect(result).toEqual(['bob', 'xxx', 'yyy', "asd'sa", 'bob two', 'hello'])
     })
     // TODO: This one failing on "-bob two" -> [- "-bob two", '+bob' '+two']
-    test.skip("mix of quoted and unquoted terms and operators (do modify)", () => {
+    test.skip('mix of quoted and unquoted terms and operators (do modify)', () => {
       const result = normaliseSearchTerms('+bob "xxx",\'yyy\', !"asd\'sa" -\'bob two\' "" !hello', true)
-      expect(result).toEqual(['+bob', 'xxx', 'yyy', "!asd'sa", "-bob two", "!hello"])
+      expect(result).toEqual(['+bob', 'xxx', 'yyy', "!asd'sa", '-bob two', '!hello'])
     })
     test("mix of quoted and unquoted terms and operators (don't modify)", () => {
       const result = normaliseSearchTerms('+bob "xxx",\'yyy\', !"asd\'sa" -\'bob two\' "" !hello', false)
-      expect(result).toEqual(['+bob', 'xxx', 'yyy', "!asd'sa", "-bob two", "!hello"])
+      expect(result).toEqual(['+bob', 'xxx', 'yyy', "!asd'sa", '-bob two', '!hello'])
     })
     // TODO: can't mix OR with +
   })
@@ -451,14 +470,16 @@ describe('searchHelpers.js tests', () => {
       expect(result).toEqual([
         { term: 'term1', type: 'may', termRep: 'term1' },
         { term: 'term', type: 'must', termRep: '+term' },
-        { term: 'two', type: 'must', termRep: '+two' }])
+        { term: 'two', type: 'must', termRep: '+two' },
+      ])
     })
     test('two term array', () => {
       const result = validateAndTypeSearchTerms('term1 "term two"')
       expect(result).toEqual([
         { term: 'term1', type: 'may', termRep: 'term1' },
         { term: 'term', type: 'must', termRep: '+term' },
-        { term: 'two', type: 'must', termRep: '+two' }])
+        { term: 'two', type: 'must', termRep: '+two' },
+      ])
     })
     test('three terms with +//-', () => {
       const result = validateAndTypeSearchTerms('+term1 "term two" -term3')
@@ -466,7 +487,8 @@ describe('searchHelpers.js tests', () => {
         { term: 'term1', type: 'must', termRep: '+term1' },
         { term: 'term', type: 'must', termRep: '+term' },
         { term: 'two', type: 'must', termRep: '+two' },
-        { term: 'term3', type: 'not-line', termRep: '-term3' }])
+        { term: 'term3', type: 'not-line', termRep: '-term3' },
+      ])
     })
     test('three terms with +//!', () => {
       const result = validateAndTypeSearchTerms('+term1 "term two" !term3')
@@ -474,26 +496,36 @@ describe('searchHelpers.js tests', () => {
         { term: 'term1', type: 'must', termRep: '+term1' },
         { term: 'term', type: 'must', termRep: '+term' },
         { term: 'two', type: 'must', termRep: '+two' },
-        { term: 'term3', type: 'not-note', termRep: '!term3' }])
+        { term: 'term3', type: 'not-note', termRep: '!term3' },
+      ])
     })
     test('"1 John", 1Jn', () => {
       const result = validateAndTypeSearchTerms('"1 John", 1Jn')
       expect(result).toEqual([
         { term: 'John', type: 'must', termRep: '+John' },
-        { term: '1Jn', type: 'may', termRep: '1Jn' }])
+        { term: '1Jn', type: 'may', termRep: '1Jn' },
+      ])
     })
   })
 
   // Just a no-result test -- rest too hard to mock up
   describe('createFormattedResultLines', () => {
-    test("for empty result", () => {
+    test('for empty result', () => {
       const resultSet: resultOutputTypeV3 = {
-        searchTermsRepArr: ["TERM1", "-TERM2"],
+        searchTermsRepArr: ['TERM1', '-TERM2'],
         resultNoteAndLineArr: [],
         resultCount: 0,
         resultNoteCount: 0,
       }
-      const config: $Shape<SearchConfig> = { resultStyle: 'NotePlan', headingLevel: 2, groupResultsByNote: true, highlightResults: true, resultPrefix: '- ', resultQuoteLength: 120, dateStyle: 'date' }
+      const config: $Shape<SearchConfig> = {
+        resultStyle: 'NotePlan',
+        headingLevel: 2,
+        groupResultsByNote: true,
+        highlightResults: true,
+        resultPrefix: '- ',
+        resultQuoteLength: 120,
+        dateStyle: 'date',
+      }
       const result = createFormattedResultLines(resultSet, config)
       expect(result).toEqual([])
     })
@@ -501,40 +533,40 @@ describe('searchHelpers.js tests', () => {
 })
 
 // ----------------------------------
-  // Removed, as this is no longer used, and relied on state of file at 0.5.0-beta4
-  // describe('differenceByInnerArrayLine()', () => {
-  //   test('should return empty array, from empty input1', () => {
-  //     const result = differenceByInnerArrayLine([], notArr)
-  //     expect(result).toEqual([])
-  //   })
-  //   test('should return input array, from empty exclude', () => {
-  //     const result = differenceByInnerArrayLine(mayArr, [])
-  //     expect(result).toEqual(mayArr)
-  //   })
+// Removed, as this is no longer used, and relied on state of file at 0.5.0-beta4
+// describe('differenceByInnerArrayLine()', () => {
+//   test('should return empty array, from empty input1', () => {
+//     const result = differenceByInnerArrayLine([], notArr)
+//     expect(result).toEqual([])
+//   })
+//   test('should return input array, from empty exclude', () => {
+//     const result = differenceByInnerArrayLine(mayArr, [])
+//     expect(result).toEqual(mayArr)
+//   })
 
-  //   // Removed, as this is no longer used
-  //   test('should return wider (line) diff of mayArr, notArr (using noteFilename)', () => {
-  //     const diffArr: Array<noteAndLines> = [ // *lines* with TERM1 but not TERM2
-  //       { noteFilename: 'file2', lines: ['2.2 includes TERM1 only'] },
-  //       { noteFilename: 'file3', lines: ['3.1 boring but has TERM1'] },
-  //       { noteFilename: 'file5', lines: ['5.1 includes TERM1'] },
-  //       { noteFilename: 'file6', lines: ['6.1 includes TERM1', '6.4 TERM3 has gone "(*$&(*%^" and with TERM1'] },
-  //       { noteFilename: 'file7', lines: ['7.1 (W£%&W(*%&)) TERM1', '7.2 has TERM1'] },
-  //     ]
-  //     const result = differenceByInnerArrayLine(mayArr, notArr)
-  //     // clo(result, 'test result for TERM1 but not TERM2')
-  //     expect(result).toEqual(diffArr)
-  //   })
+//   // Removed, as this is no longer used
+//   test('should return wider (line) diff of mayArr, notArr (using noteFilename)', () => {
+//     const diffArr: Array<noteAndLines> = [ // *lines* with TERM1 but not TERM2
+//       { noteFilename: 'file2', lines: ['2.2 includes TERM1 only'] },
+//       { noteFilename: 'file3', lines: ['3.1 boring but has TERM1'] },
+//       { noteFilename: 'file5', lines: ['5.1 includes TERM1'] },
+//       { noteFilename: 'file6', lines: ['6.1 includes TERM1', '6.4 TERM3 has gone "(*$&(*%^" and with TERM1'] },
+//       { noteFilename: 'file7', lines: ['7.1 (W£%&W(*%&)) TERM1', '7.2 has TERM1'] },
+//     ]
+//     const result = differenceByInnerArrayLine(mayArr, notArr)
+//     // clo(result, 'test result for TERM1 but not TERM2')
+//     expect(result).toEqual(diffArr)
+//   })
 
-  //   test('should return wider (line) diff of mustArr, notArr (using noteFilename)', () => {
-  //     const diffArr: Array<noteAndLines> = [ // *lines* with TERM3 but not TERM2
-  //       { noteFilename: 'file4', lines: ['4.2 includes TERM3', '4.3 also has TERM3'] },
-  //       { noteFilename: 'file5', lines: ['5.2 includes TERM3'] },
-  //       { noteFilename: 'file6', lines: ['6.3 has TERM3', '6.4 TERM3 has gone "(*$&(*%^" and with TERM1'] },
-  //       { noteFilename: 'file7', lines: ['7.3 has TERM3'] },
-  //     ]
-  //     const result = differenceByInnerArrayLine(mustArr, notArr)
-  //     // clo(result, 'test result for TERM3 but not TERM2')
-  //     expect(result).toEqual(diffArr)
-  //   })
-  // })
+//   test('should return wider (line) diff of mustArr, notArr (using noteFilename)', () => {
+//     const diffArr: Array<noteAndLines> = [ // *lines* with TERM3 but not TERM2
+//       { noteFilename: 'file4', lines: ['4.2 includes TERM3', '4.3 also has TERM3'] },
+//       { noteFilename: 'file5', lines: ['5.2 includes TERM3'] },
+//       { noteFilename: 'file6', lines: ['6.3 has TERM3', '6.4 TERM3 has gone "(*$&(*%^" and with TERM1'] },
+//       { noteFilename: 'file7', lines: ['7.3 has TERM3'] },
+//     ]
+//     const result = differenceByInnerArrayLine(mustArr, notArr)
+//     // clo(result, 'test result for TERM3 but not TERM2')
+//     expect(result).toEqual(diffArr)
+//   })
+// })

@@ -3,11 +3,13 @@
 import { format } from 'date-fns'
 import { showMessage } from '../../helpers/userInput'
 import type { Config } from './expensesModels'
+import { logDebug, logError } from '@helpers/dev'
 
 const DEFAULT_DELIMITER = ';'
 const ALLOWED_DELIMTER = [';', '%', 'TAB']
 const MINIMAL_COLUMNS = ['date', 'category', 'amount']
 const ALLOWED_AMOUNT_FORMATS = ['full', 'short']
+const pluginJson = 'm1well.Expenses/expensesChecks'
 
 /**
  * check if the amount is smaller than 1_000_000 and greater than -1_000_000 and is not 0 or null or NaN
@@ -57,7 +59,7 @@ export const validateConfig = (config: Config, currentDate: Date): Config => {
 
   if (!config.delimiter) {
     // if there is no delimiter configured, then set default
-    logMessage(`no delimiter configured - set default to '${DEFAULT_DELIMITER}'`)
+    logDebug(pluginJson, `no delimiter configured - set default to '${DEFAULT_DELIMITER}'`)
     config.delimiter = DEFAULT_DELIMITER
   } else {
     if (!ALLOWED_DELIMTER.includes(config.delimiter)) {
@@ -102,13 +104,9 @@ export const validateConfig = (config: Config, currentDate: Date): Config => {
   return config
 }
 
-export const logMessage = (msg: string): void => {
-  console.log(`\texpenses log: ${msg}`)
-}
-
-export const logError = async (msg: string): Promise<void> => {
-  console.log(`\texpenses error: ${msg}`)
-  if (global.CommandBar && global.CommandBar.prompt) {
-    await showMessage(`ERROR: ${msg}`)
-  }
-}
+// export const logError = async (msg: string): Promise<void> => {
+//   logError(pluginJson, `\texpenses error: ${msg}`)
+//   if (global.CommandBar && global.CommandBar.prompt) {
+//     await showMessage(`ERROR: ${msg}`)
+//   }
+// }
