@@ -14,6 +14,7 @@ beforeAll(() => {
   global.DataStore = DataStore
   global.Editor = Editor
   global.NotePlan = NotePlan
+  DataStore.settings['_logLevel'] = 'none' // change this to DEBUG to see console.logs from logDebug etc. (or none to suppress all logs)
 })
 
 describe('{{pluginId}}' /* pluginID */, () => {

@@ -273,7 +273,7 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         spy.mockRestore()
       })
       test.skip('should do nothing if there are no backlinks', async () => {
-        DataStore.settings = {} //should get default settings
+        // DataStore.settings = {} //should get default settings
         Editor.note.backlinks = []
         const spy = jest.spyOn(CommandBar, 'prompt')
         await mainFile.insertTodosAsTimeblocks(note)
