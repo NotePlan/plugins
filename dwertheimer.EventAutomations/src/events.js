@@ -2,6 +2,7 @@
 import { getEventsForDay } from '../../helpers/NPCalendar'
 import { getTodaysDateUnhyphenated, type HourMinObj, toLocaleTime } from '../../helpers/dateTime'
 import { chooseOption, chooseFolder } from '../../helpers/userInput'
+import pluginJson from '../plugin.json'
 import { logDebug } from '@helpers/dev'
 
 function getTimeOffset(offset: HourMinObj = { h: 0, m: 0 }) {
@@ -15,7 +16,7 @@ function getTimeOffset(offset: HourMinObj = { h: 0, m: 0 }) {
   let hr = now.getHours() + offset.h + hrCorrect
   if (hr < 0) hr = 0
   if (hr > 23) hr = 23
-  // console.log(`${hr}:${min}`)
+  // logDebug(pluginJson,`${hr}:${min}`)
   return { h: hr, m: min }
 }
 
@@ -29,11 +30,11 @@ export async function createNoteForCalendarItemWithoutQuickTemplate(): Promise<v
 
 export async function createNoteForCalendarItem(useQuickTemplate: boolean = true): Promise<void> {
   const date = getTodaysDateUnhyphenated()
-  console.log(`Creating note for today's date: ${date}`)
+  logDebug(pluginJson, `Creating note for today's date: ${date}`)
   const allDaysEvents = await getEventsForDay(date)
-  console.log(`Found ${allDaysEvents.length} events for today`)
+  logDebug(pluginJson, `Found ${allDaysEvents.length} events for today`)
   const nowIshEvents = await getEventsForDay(date, [], getTimeOffset({ h: -1, m: 0 }), getTimeOffset({ h: +1, m: 0 })) // second param now implies consider all calendars
-  console.log(`Found ${nowIshEvents.length} events for nowIsh`)
+  logDebug(pluginJson, `Found ${nowIshEvents.length} events for nowIsh`)
   // const events = allDaysEvents
   if (nowIshEvents.length > 0) {
     // events = [...nowIshEvents, ...[{ title: '---' }], ...allDaysEvents]
@@ -52,7 +53,7 @@ export async function createNoteForCalendarItem(useQuickTemplate: boolean = true
   const selEvent = selections.find((event) => event.value === selectedEvent)
   // $FlowIgnore
   // const theTime = selEvent.time === '00:00' ? '' : selEvent.time
-  console.log(`Selected event: ${selectedEvent} ${String(JSON.stringify(selEvent))}`)
+  logDebug(pluginJson, `Selected event: ${selectedEvent} ${String(JSON.stringify(selEvent))}`)
   // $FlowIgnore
   // const theTitle = `${selectedEvent} {{date8601()}} ${theTime || ''}`
   if (selectedEvent && useQuickTemplate) {
@@ -76,7 +77,7 @@ export async function createNoteForCalendarItem(useQuickTemplate: boolean = true
     if (selEvent) {
       const title = `${selEvent.value} ${selEvent.date} ${selEvent.time && selEvent.time !== '00:00' ? selEvent.time : ''}`
       const fname = (await DataStore.newNote(title, folder)) ?? ''
-      console.log(`Creating note with title: ${title}, fname=${fname}`)
+      logDebug(pluginJson, `Creating note with title: ${title}, fname=${fname}`)
       if (fname) {
         await Editor.openNoteByFilename(fname, false)
       }
@@ -87,6 +88,6 @@ export async function createNoteForCalendarItem(useQuickTemplate: boolean = true
 // function printEventsToConsole(events: Array<Object>): void {
 //   events.forEach((event) => {
 //     //  ${event.notes} ${event.url}
-//     console.log(`${event.title} ${event.date} ${event.endDate} ${event.isAllDay}`)
+//     logDebug(pluginJson,`${event.title} ${event.date} ${event.endDate} ${event.isAllDay}`)
 //   })
 // }

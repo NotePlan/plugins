@@ -1,6 +1,17 @@
-/* global describe, it, expect */
+/* global describe, it, expect, beforeAll */
 import colors from 'chalk'
 import * as tt from '../src/tagTasks'
+import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan /*, Note, Paragraph */ } from '@mocks/index'
+
+beforeAll(() => {
+  global.Calendar = Calendar
+  global.Clipboard = Clipboard
+  global.CommandBar = CommandBar
+  global.DataStore = DataStore
+  global.Editor = Editor
+  global.NotePlan = NotePlan
+  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging
+})
 
 /*
   describe(section('copyTagsFromLineAbove'), () => {

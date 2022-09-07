@@ -61,7 +61,8 @@ export function JSP(obj: any, space: string | number = 2): string {
               acc[propName] = obj[propName] //do not traverse any further
             }
           } catch (error) {
-            console.log(
+            logDebug(
+              'helpers/dev',
               `Caught error in JSP for propname=${propName} : ${error} typeof obj[propName]=${typeof obj[propName]} isArray=${String(Array.isArray(obj[propName]))} len=${
                 obj[propName]?.length
               } \n VALUE: ${JSON.stringify(obj[propName])}`,
@@ -148,7 +149,7 @@ export function getAllPropertyNames(inObj: interface { [string]: mixed }): Array
 export const getFilteredProps = (object: any): Array<string> => {
   const ignore = ['toString', 'toLocaleString', 'valueOf', 'hasOwnProperty', 'propertyIsEnumerable', 'isPrototypeOf']
   if (typeof object !== 'object' || Array.isArray(object)) {
-    console.log(`getFilteredProps improper type: ${typeof object}`)
+    // console.log(`getFilteredProps improper type: ${typeof object}`)
     return []
   }
   return getAllPropertyNames(object).filter((prop) => !/(^__)|(constructor)/.test(prop) && !ignore.includes(prop))
@@ -181,7 +182,10 @@ export function copyObject(obj: any): any {
 // because it will display in two lines
 export function logAllPropertyNames(obj?: mixed): void {
   if (typeof obj !== 'object' || obj == null) return // recursive approach
-  console.log(Object.getOwnPropertyNames(obj).filter((x) => /^__/.test(x) === false))
+  logDebug(
+    'helpers/dev',
+    Object.getOwnPropertyNames(obj).filter((x) => /^__/.test(x) === false),
+  )
   logAllPropertyNames(obj.__proto__)
 }
 
