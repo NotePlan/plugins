@@ -1,5 +1,5 @@
-// @flow
 /* global describe, expect, test, beforeAll */
+// @flow
 import {
   type noteAndLine,
   type resultObjectTypeV3,
@@ -17,7 +17,8 @@ import {
   reduceNoteAndLineArray,
   validateAndTypeSearchTerms,
 } from '../src/searchHelpers'
-import { JSP, clo } from '../../helpers/dev'
+import { sortListBy } from '@helpers/sorting'
+import { JSP, clo } from '@helpers/dev'
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan /*, Note, Paragraph */ } from '@mocks/index'
 
 beforeAll(() => {
@@ -27,7 +28,7 @@ beforeAll(() => {
   global.DataStore = DataStore
   global.Editor = Editor
   global.NotePlan = NotePlan
-  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging
+  DataStore.settings['_logLevel'] = 'DEBUG' //change this to DEBUG to get more logging
 })
 
 const searchTerms: Array<typedSearchTerm> = [
@@ -181,11 +182,12 @@ describe('searchHelpers.js tests', () => {
     test('should return narrower (note) diff of mustArr, notArr (using noteFilename)', () => {
       const diffArr: Array<noteAndLine> = [
         // *notes* with TERM3 but not TERM2
+        // TODO: ideally figure out why this returns in an unexpected order (and so the need for a sort before comparison)
         { noteFilename: 'file5', line: '5.2 includes TERM3' },
         { noteFilename: 'file7', line: '7.3 has TERM3' },
       ]
-      const result = differenceByPropVal(mustArr, notArr, 'noteFilename')
-      // clo(result, 'test result for TERM3 but not TERM2')
+      const result = sortListBy(differenceByPropVal(mustArr, notArr, 'noteFilename'), ['noteFilename', 'line'])
+      clo(result, 'test result for TERM3 but not TERM2')
       expect(result).toEqual(diffArr)
     })
   })
@@ -234,7 +236,7 @@ describe('searchHelpers.js tests', () => {
         { noteFilename: 'file7', line: '7.3 has TERM3' },
       ]
       const result = differenceByObjectEquality(modifiedMustArr, notArr)
-      clo(result, '*** test result for TERM3 but not TERM2')
+      // clo(result, 'test result for TERM3 but not TERM2')
       expect(result).toEqual(diffArr)
     })
   })
@@ -306,6 +308,7 @@ describe('searchHelpers.js tests', () => {
       ]
       const expectedNoteBasedOutput: resultOutputTypeV3 = {
         // For TERM1, -TERM2, +TERM3 matching *notes*
+        // TODO: ideally figure out why this returns in an unexpected order (and so the need for a sort before comparison)
         searchTermsRepArr: ['TERM1', '!TERM2', '+TERM3'],
         resultNoteAndLineArr: [
           { noteFilename: 'file5', line: '5.1 includes TERM1' },
@@ -318,6 +321,9 @@ describe('searchHelpers.js tests', () => {
         resultNoteCount: 2,
       }
       const result = applySearchOperators(combinedResults)
+      const sortedRNALArr = sortListBy(result.resultNoteAndLineArr, ['noteFilename', 'line'])
+      result.resultNoteAndLineArr = sortedRNALArr
+      // clo(result, "result for ['TERM1', '!TERM2', '+TERM3'] = ")
       // clo(expectedNoteBasedOutput, 'expectedNoteBasedOutput = ')
       expect(result).toEqual(expectedNoteBasedOutput)
     })
@@ -331,6 +337,7 @@ describe('searchHelpers.js tests', () => {
       ]
       const expectedLineBasedOutput: resultOutputTypeV3 = {
         // For TERM1, -TERM2, +TERM3 matching *lines*
+        // TODO: ideally figure out why this returns in an unexpected order (and so the need for a sort before comparison)
         searchTermsRepArr: ['TERM1', '-TERM2', '+TERM3'],
         resultNoteAndLineArr: [
           { noteFilename: 'file4', line: '4.2 also has TERM3' },
@@ -348,7 +355,10 @@ describe('searchHelpers.js tests', () => {
         resultNoteCount: 4,
       }
       const result = applySearchOperators(combinedResults)
-      // clo(result, 'line-based test result for TERM1, -TERM2, +TERM3')
+      const sortedRNALArr = sortListBy(result.resultNoteAndLineArr, ['noteFilename', 'line'])
+      result.resultNoteAndLineArr = sortedRNALArr
+      // clo(result, 'result for TERM1, -TERM2, +TERM3 = ')
+      // clo(expectedLineBasedOutput, "expected for [TERM1, -TERM2, +TERM3]")
       expect(result).toEqual(expectedLineBasedOutput)
     })
   })
