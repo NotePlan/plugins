@@ -1,7 +1,9 @@
 // @flow
-// --------------------------------
-// HTML helpers
-// --------------------------------
+// ---------------------------------------------------------
+// HTML helper functions for use with HTMLView API
+// by @jgclark
+// Last updated 12.9.2022
+// ---------------------------------------------------------
 
 import { clo, logDebug, logError, logWarn } from '@helpers/dev'
 // import { getOrMakeNote } from '@helpers/note'
@@ -487,6 +489,7 @@ export function showHTML(
 ): void {
   try {
     const fullHTML = []
+    fullHTML.push('<!DOCTYPE html>') // needed to let emojis work without special coding
     fullHTML.push('<html>')
     fullHTML.push('<head>')
     fullHTML.push(`<title>${title}</title>`)
