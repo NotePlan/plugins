@@ -1,8 +1,10 @@
-# codedungeon.Toolbox Changelog
+# Package.json Changelog
 
-### About codedungeon.Toolbox Plugin
+## About Plugins/package.json / package-lock.json
 
-See Plugin [README](https://github.com/NotePlan/plugins/blob/main/codedungeon.Toolbox/README.md) for details on available commands and use case.
+## [3.16.0] - 2022-09-13 (@dwertheimer)
+
+- added fsevents to try to reduce CPU usage of node on the autowatch per [article](https://medium.com/@manusajith/fix-for-100-cpu-usage-by-node-js-529916100aa6)
 
 ## [3.15.0] - 2022-08-30 (@akrabat)
 
@@ -45,11 +47,14 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/codedungeon.To
 - small refactor to `np.plugin-flow-skeleton`
 
 ## [3.10.0] - 2022-07-07 (@codedungeon)
+
 - added `--force` option to `npc plugin:create` which will skip all network lookups (when retrieving github user information) (@dwertheimer)
 - added task to `npc plugin:release` which remove previous releases for same pluginId (@jgclark)
+
 > you can use the `--noDelete` flag to skip delete tasks (this will rarely be used, but added for completeness)
 
 ## [3.9.0] - 2022-06-17 (@jgclark)
+
 - removed luxon
 - (unmentioned here but I believe @nmn remove luxon-business-days about 2022-06-12)
 
@@ -60,6 +65,7 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/codedungeon.To
 - added .watchmanconfig
 
 ## [3.6.0] - 2022-06-08 (@codedungeon)
+
 - added `documentation` module back in and edited the `npm run docs` command
 
 - Updated @codedungeon/gunner CLI library
@@ -83,10 +89,12 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/codedungeon.To
   - You can remove as you see fit, but it was not being used anywhere so it should not be causing any issues
 
 ## [3.4.0] - 2022-05-15 (@jgclark)
+
 - add `luxon` depedency
   - luxon-business-days
 
 ## [3.3.0] - 2022-05-06 (@dwertheimer)
+
 - added support for searching notes using packages:
   - fuse.js
   - bqpjs
@@ -122,50 +130,59 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/codedungeon.To
 - added `fetchWithTimeout` helper to `./helpers/dev`
 
 ## [3.1.2] - 2022-02-27 (@mikeerickson)
+
 - fixed issue with `npc plugin:release` build test command
 - removed test execution when running test build (addresses item test imports)
 
 ## [3.1.1] - 2022-02-23 (@mikeerickson)
+
 - updated `date-fns` dependency to `^2.23.0` (requested by @m1well)
 - added `eslin-plugin-unused-imports: 1.1.5` (requested by @m1well)
 - updated CLI command description and examples
 
 ## [3.1.0] - 2022-02-19 (@mikeerickson)
+
 - fixed issue with release script
 - refactored release validation in CLI `npc plugin:release`
 - add guard to make sure releasing from plugins directory
 
 ## [3.0.2] - 2022-02-17 (@mikeerickson)
+
 - restored `docs` command
 
 ## [3.0.1] - 2022-02-17 (@mikeerickson)
+
 - updated Plugins v3.0
 
 ## [2.2.0] - 2021-09-06 (@mikeerickson)
 
 ### Fixed
+
 - fixed `plugin:create` command to use latest `@codedungeon/gunner`
 - fixed `plugin:info` command to use latest `@codedungeon/gunner`
 
 ## [2.1.0] - 2021-08-26 (@mikeerickson)
 
 ### Added
+
 - added `showdown` node dependency
 - added `codedungeon.Toolbox` v1.0.0
 
 ## [2.0.1] - 2021-08-26 (@mikeerickson)
 
 ### Changed
+
 - modified `.flowconfig` configuration, address error messsage for node_modules which do not contain type definitions
 
 ## [2.0.0] - 2021-08-16 (@mikeerickson)
 
-### Added
 Initial Release
 
 ## Changelog
+
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Plugin Versioning Uses Semver
+
 All NotePlan plugins follow `semver` versioning. For details, please refer to [semver website](https://semver.org/)
