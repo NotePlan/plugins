@@ -3,7 +3,7 @@
 // Note-level Functions
 
 import { hyphenatedDate, hyphenatedDateString, toLocaleDateString, RE_DAILY_NOTE_FILENAME, RE_WEEKLY_NOTE_FILENAME } from './dateTime'
-import { log, logDebug, logError, clo, JSP } from './dev'
+import { clo, JSP, logDebug, logError, logInfo } from './dev'
 import { getFolderFromFilename } from './folders'
 import { displayTitle, type headingLevelType } from './general'
 import { findEndOfActivePartOfNote } from './paragraph'
@@ -48,14 +48,14 @@ export function printNote(note: TNote): void {
   }
 
   if (note.type === 'Notes') {
-    log(
+    logInfo(
       'note/printNote',
       `title: ${note.title ?? ''}\n\tfilename: ${note.filename ?? ''}\n\tcreated: ${String(note.createdDate) ?? ''}\n\tchanged: ${String(note.changedDate) ?? ''}\n\tparagraphs: ${
         note.paragraphs.length
       }\n\thashtags: ${note.hashtags?.join(',') ?? ''}\n\tmentions: ${note.mentions?.join(',') ?? ''}`,
     )
   } else {
-    log(
+    logInfo(
       'note/printNote',
       `filename: ${note.filename ?? ''}\n\tcreated: ${String(note.createdDate) ?? ''}\n\tchanged: ${String(note.changedDate) ?? ''}\n\tparagraphs: ${
         note.paragraphs.length
@@ -155,15 +155,16 @@ export function getNoteTitleFromFilename(filename: string, makeLink?: boolean = 
 }
 
 /**
- * Return list of notes with a particular hashtag (singular), optionally in the given folder.
+ * Return list of notes with a particular hashtag (singular), with further optional parameters about which (sub)folders to look in, and a term to defeat on.
  * @author @jgclark
  *
  * @param {string} tag - tag name to look for
- * @param {?string} folder - optional folder to limit to
- * @param {?boolean} includeSubfolders - if folder given, whether to look in subfolders of this folder or not (optional, defaults to false)
+ * @param {string?} folder - optional folder to limit to
+ * @param {boolean?} includeSubfolders - if folder given, whether to look in subfolders of this folder or not (optional, defaults to false)
+ * @param {string?} tagToExclude - optional tag that if found in the note, excludes the note
  * @return {Array<TNote>}
  */
-export function findNotesMatchingHashtag(tag: string, folder: ?string, includeSubfolders: ?boolean = false): Array<TNote> {
+export function findNotesMatchingHashtag(tag: string, folder: ?string, includeSubfolders: ?boolean = false, tagToExclude: string = ''): Array<TNote> {
   let projectNotesInFolder: Array<TNote>
   // If folder given (not empty) then filter using it
   if (folder != null) {
@@ -180,17 +181,26 @@ export function findNotesMatchingHashtag(tag: string, folder: ?string, includeSu
     projectNotesInFolder = DataStore.projectNotes.slice()
   }
 
-  // Filter by tag
-  if (tag !== '') {
-    const projectNotesWithTag = projectNotesInFolder.filter((n) => n.hashtags.includes(tag))
-    // logDebug(
-    //   'findNotesMatchingHashtag',
-    //   `In folder '${folder ?? '<all>'}' found ${projectNotesWithTag.length} notes matching '${tag}'`,
-    // )
-    return projectNotesWithTag
-  } else {
+  // Check for special conditions first
+  if (tag === '') {
     logError('findNotesMatchingHashtag', `No hashtag given. Stopping`)
     return [] // for completeness
+  }
+  // Filter by tag
+  const projectNotesWithTag = projectNotesInFolder.filter((n) => n.hashtags.includes(tag))
+  logDebug('findNotesMatchingHashtag', `In folder '${folder ?? '<all>'}' found ${projectNotesWithTag.length} notes matching '${tag}'`)
+
+  // If we care about the excluded tag, then further filter out notes where it is found
+  if (tagToExclude !== '') {
+    const projectNotesWithTagWithoutExclusion = projectNotesWithTag.filter((n) => !n.hashtags.includes(tagToExclude))
+    const removedItems = projectNotesWithTag.length - projectNotesWithTagWithoutExclusion.length
+    if (removedItems > 0) {
+      logDebug('findNotesMatchingHashtag', `- but removed ${removedItems} excluded notes:`)
+      logDebug('findNotesMatchingHashtag', `= ${String(projectNotesWithTag.filter((n) => n.hashtags.includes(tagToExclude)).map((m) => m.title))}`)
+    }
+    return projectNotesWithTagWithoutExclusion
+  } else {
+    return projectNotesWithTag
   }
 }
 
