@@ -253,9 +253,10 @@ export function withinDateRange(testDate: string, fromDate: string, toDate: stri
  * @author @jgclark
  *
  * @param {number} diffIn - number of days difference (positive or negative)
- * @return {string} - relative date string (e.g. today, 3w ago, 2m, 4y ago.)
+ * @param {boolean?} shortStyle?
+ * @returns {string} - relative date string (e.g. today, 3w ago, 2m, 4y ago.)
  */
-export function relativeDateFromNumber(diffIn: number): string {
+export function relativeDateFromNumber(diffIn: number, useShortStyle: boolean = false): string {
   let output = ''
   let diff = diffIn
   let isPast = false
@@ -264,18 +265,34 @@ export function relativeDateFromNumber(diffIn: number): string {
     diff = Math.abs(diff)
     isPast = true
   }
-  if (diff === 1) {
-    output = `${diff}d` // day
-  } else if (diff < 9) {
-    output = `${diff}d` // days
-  } else if (diff < 12) {
-    output = `${Math.round(diff / 7.0)}w` // wk
-  } else if (diff < 29) {
-    output = `${Math.round(diff / 7.0)}w` // wks
-  } else if (diff < 550) {
-    output = `${Math.round(diff / 30.4)}m` // mon
+  if (useShortStyle) {
+    if (diff === 1) {
+      output = `${diff}d` // day
+    } else if (diff < 9) {
+      output = `${diff}d` // days
+    } else if (diff < 12) {
+      output = `${Math.round(diff / 7.0)}w` // wk
+    } else if (diff < 29) {
+      output = `${Math.round(diff / 7.0)}w` // wks
+    } else if (diff < 550) {
+      output = `${Math.round(diff / 30.4)}m` // mon
+    } else {
+      output = `${Math.round(diff / 365.0)}y` // yrs
+    }
   } else {
-    output = `${Math.round(diff / 365.0)}y` // yrs
+    if (diff === 1) {
+      output = `${diff} day`
+    } else if (diff < 9) {
+      output = `${diff} days`
+    } else if (diff < 12) {
+      output = `${Math.round(diff / 7.0)} wk`
+    } else if (diff < 29) {
+      output = `${Math.round(diff / 7.0)} wks`
+    } else if (diff < 550) {
+      output = `${Math.round(diff / 30.4)} mon`
+    } else {
+      output = `${Math.round(diff / 365.0)} yrs`
+    }
   }
   if (diff === 0) {
     output = `today`
