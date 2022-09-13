@@ -1055,7 +1055,7 @@ declare class Calendar {
   */
   static startOfWeek(date: Date): Date;
   /**
-   * Returns the last day of the given date's week adjusted by the start of the week configured by the user in the preferences (means the returned date will always be the configured first day of the week).
+   * Returns the last day of the given date's week adjusted by the start of the week configured by the user in the preferences (means the returned endOfWeek date will always be the day before the first day of the week specified in Preferences).
   * @param {Date} date
   * @returns {Date} date of last day of week
    * Note: Available from v3.7.0
