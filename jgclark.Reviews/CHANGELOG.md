@@ -2,8 +2,14 @@
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.
 
 ## [0.8.0] - ???
-??? - HTML (requires NotePlan 3.7)
-??? - now open the review list note after /
+Major new version of the **/project lists** command:
+- option for 'rich' style output which shows an HTML view (requires NotePlan 3.7)
+- now opens the review list note (if previous 'NotePlan' style used)
+- project progress is now shown as either as your most recent `Progress:` field, or as the stats it can calculate (e.g. `75% of 32 tasks`)
+- now removes folders with no active projects from the output lists
+- new option 'Display dates?' that can suppress printing project dates if you want (for @LaurenaRehbein)
+- new option 'Display progress?' that can suppress printing project progress if you want (for @LaurenaRehbein)
+
 ## [0.7.1] - 2022-08-03
 ### Fixed
 - fixed crashes, and updated logging

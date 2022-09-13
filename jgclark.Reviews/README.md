@@ -66,11 +66,16 @@ When you have [configured the plugin](#configuration), and added suitable metada
 ### /project lists
 **Now with new alternative command: '/HTML project lists'!**. _Note:  this provides a richer view, but it can't be saved for later._
 
-This creates/updates a list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete. This is stored in summary note(s) in the 'Reviews' folder (or whatever you set `folderToStore` setting to be). For example:
+This creates/updates a list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete. This is stored in summary note(s) in the 'Reviews' folder (or whatever you set the 'Folder to store' setting to be). For example:
 
 ![/project lists example](project-list-example.png)
 
-You can specify folders to ignore using the `foldersToIgnore` setting, and see Configuration below for more details on the `displayOrder`, `displayGroupedByFolder` and `displayArchivedProjects` settings.
+You can specify folders to ignore using the 'Folders to ignore' shared setting (as above), and also these more specific settings:
+- Display project dates?  Whether to display the project's review and due dates (where set).
+- Display project's latest progress?  Whether to show the project's latest progress (where available). If a specific 'Progress:' field is set it will use that, otherwise it will calculate %completion based on the number of completed and open tasks.
+- Display order for projects: The sort options  are by 'due' date, by 'review' date or 'title'.
+- Display grouped by folder? Whether to group the projects by their folder.
+- Display archived projects? Whether to display project notes marked as `#archive`.
 
 ### /start reviews
 This creates a hidden list of notes ready for review, and then kicks off the most overdue review by opening that note in the editor. When you have finished the review run one of the next two commands ...
@@ -91,7 +96,6 @@ This add an #archive tag, and a `@cancelled(date)` mention to the metadata line 
 These commands require configuration, which is done by clicking the gear button on the 'Summaries' line in the Plugin Preferences panel.
 
 ## To do
-- update the `/project lists` output to use a table view, _when then this is available in NotePlan_
 - look at updating the plugin to take advantage of YAML frontmatter blocks, introduced in v3.4.x
 
 ## Support

@@ -159,12 +159,28 @@
     },
     {
       "type": "heading",
-      "title": "Settings for /projectLists command"
+      "title": "Settings for '/project lists' command"
+    },
+    {
+      "key": "displayDates",
+      "title": "Display project dates?",
+      "description": "Whether to display the project's review and due dates (where set)",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
+      "key": "displayProgress",
+      "title": "Display project's latest progress?",
+      "description": "Whether to show the project's latest progress (where available). If a specific 'Progress:' field is set it will use that, otherwise it will calculate %completion based on the number of completed and open tasks.",
+      "type": "bool",
+      "default": true,
+      "required": true
     },
     {
       "key": "displayOrder",
-      "title": "Displayed order of notes titles",
-      "description": "The sort options  are by 'due' date, by 'review' date or 'title'",
+      "title": "Display order for projects",
+      "description": "The sort options  are by 'due' date, by 'review' date or 'title'.",
       "type": "string",
       "choices": [
         "due",
@@ -176,8 +192,8 @@
     },
     {
       "key": "displayGroupedByFolder",
-      "title": "Display grouped by folder?",
-      "description": "Whether to group the notes by folder",
+      "title": "Display projects grouped by folder?",
+      "description": "Whether to group the projects by their folder.",
       "type": "bool",
       "default": true,
       "required": true
@@ -185,7 +201,7 @@
     {
       "key": "displayArchivedProjects",
       "title": "Display archived projects?",
-      "description": "Whether to display project notes marked #archive",
+      "description": "Whether to display project notes marked as #archive.",
       "type": "bool",
       "default": true,
       "required": true

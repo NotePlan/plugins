@@ -1,9 +1,9 @@
 // @flow
 
 //-----------------------------------------------------------------------------
-// Statistic commands for notes and projects
+// Index for Reviews plugin
 // Jonathan Clark
-// Last updated 26.8.2022 for v0.8.0-betas, @jgclark
+// Last updated 13.9.2022 for v0.8.0-betas, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -15,12 +15,14 @@ import { JSP, logError, logInfo } from '@helpers/dev'
 export {
   logReviewList,
   makeReviewList,
-  makeProjectLists,
-  makeProjectListsHTML,
   startReviews,
   nextReview,
   finishReview,
 } from './reviews'
+export {
+  makeProjectLists,
+  makeProjectListsHTML,
+} from './projectLists'
 export {
   completeProject,
   cancelProject

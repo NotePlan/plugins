@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // @jgclark
-// Last updated 29.8.2022 for v0.8.0-beta, @jgclark
+// Last updated 13.9.2022 for v0.8.0-betas, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -11,7 +11,7 @@ import pluginJson from '../plugin.json'
 import { checkString } from '@helpers/checkType'
 import { daysBetween, getDateObjFromDateString, getDateFromUnhyphenatedDateString, includesScheduledFutureDate, relativeDateFromDate, relativeDateFromNumber, toISODateString, unhyphenateString } from '@helpers/dateTime'
 import { calcOffsetDate } from '@helpers/NPDateTime'
-import { clo, logDebug, logError, logWarn } from '@helpers/dev'
+import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { getContentFromBrackets, getStringFromList } from '@helpers/general'
 import { findEndOfActivePartOfNote } from '@helpers/paragraph'
@@ -26,6 +26,8 @@ export type ReviewConfig = {
   folderToStore: string,
   foldersToIgnore: Array<string>,
   noteTypeTags: Array<string>,
+  displayDates: boolean,
+  displayProgress: boolean,
   displayOrder: string,
   displayGroupedByFolder: boolean,
   displayArchivedProjects: boolean,
@@ -141,7 +143,8 @@ export function getFieldsFromNote(note: TNote, fieldName: string): Array<string>
  * Define 'Project' class to use in GTD.
  * Holds title, last reviewed date, due date, review interval, completion date,
  * number of closed, open & waiting for tasks.
- * To create a note call 'const x = new Project(note)'
+ * 
+ * @example To create a project instance for a note call 'const x = new Project(note)'
  * @author @jgclark
  */
 export class Project {
@@ -169,9 +172,9 @@ export class Project {
   isActive: boolean
   isCancelled: boolean
   folder: string
-  percentComplete: number = NaN // FIXME: Why Comms Review NaN?
+  percentComplete: number = NaN
   lastProgressComment: string = '' // e.g. "Progress: 60@20220809: comment
-  ID: string
+  ID: string // required when making HTML views
 
   constructor(note: TNote) {
     this.ID = String(Math.round((Math.random()) * 99999)) // TODO: Make a one-up number
@@ -234,7 +237,7 @@ export class Project {
         this.percentComplete = Number(progressLineParts[0])
         const datePart = unhyphenateString(progressLineParts[1])
         // $FlowFixMe
-        this.lastProgressComment = `${relativeDateFromDate(getDateFromUnhyphenatedDateString(datePart))}: ${progressLineParts[2].trim()}`
+        this.lastProgressComment = `${progressLineParts[2].trim()} (${relativeDateFromDate(getDateFromUnhyphenatedDateString(datePart))})`
         logDebug(pluginJson, `- progress field -> ${this.percentComplete} / '${this.lastProgressComment}' from <${progressLine}>`)
       } else {
         logWarn(pluginJson, `- cannot properly parse progress field <${progressLine}>`)
@@ -352,8 +355,6 @@ export class Project {
    * Generate a one-line tab-sep summary line ready for MD note 
    */
   generateMetadataLine(): string {
-    // get config settings
-    // const config = await getReviewSettings()
 
     let output = ''
     // output = (this.isActive) ? '#active ' : ''
@@ -372,11 +373,12 @@ export class Project {
     output += this.completedDate && this.completedDate !== undefined ? `${checkString(DataStore.preference('completedMentionStr'))}(${toISODateString(this.completedDate)}) ` : ''
     // $FlowIgnore[incompatible-call]
     output += this.cancelledDate && this.cancelledDate !== undefined ? `${checkString(DataStore.preference('cancelledMentionStr'))}(${toISODateString(this.cancelledDate)}) ` : ''
+
     return output
   }
 
   /**
-   * Returns CSV line showing days until next review + title
+   * Returns CSV line showing just days until next review + title
    * @return {string}
    */
   machineSummaryLine(): string {
@@ -420,14 +422,18 @@ export class Project {
           return `${noteTitleWithOpenAction}`
         }
 
-      default: // including 'markdown'
+      case 'markdown':
         if (this.isCompleted) {
           return `[x] ${folderNamePart}[[${titlePart}]]`
         } else if (this.isCancelled) {
           return `[-] ${folderNamePart}[[${titlePart}]]`
         } else {
-          return `${folderNamePart}[[${titlePart}]]`
+          return `${folderNamePart}[[${titlePart}]]` // if this has a [ ] prefix then it of course turns it into a task, which is probably not what we want.
         }
+
+      default:
+        logWarn('Project::decoratedProjectTitle', `Unknown style '${style}'; nothing returned.`)
+        return ''
     }
   }
 
@@ -436,11 +442,12 @@ export class Project {
    * - markdown
    * - HTML
    */
-  static detailedSummaryLineHeader(style: string): string {
+  static detailedSummaryLineHeader(style: string, displayDates: boolean = true, displayProgress: boolean = true): string {
     switch (style) {
       case 'HTML':
-        // Include colgroup to help massage widths a bit
-        return `<thead>
+        // In some cases, include colgroup to help massage widths a bit
+        if (displayDates && displayProgress) {
+          return `<thead>
 <colgroup>
 \t<col>
 \t<col>
@@ -448,23 +455,65 @@ export class Project {
 \t<col width="20%">
 </colgroup>
 \t<tr class="sticky-row">
-\t<th>%</th><th>Project/Area Title</th><th>Dates</th><th></th>
+\t<th>%</th><th>Project/Area Title</th><th>Due Date</th><th>Next Review</th>
 \t</tr>
 </thead>
 <tbody>
 `
+        }
+        else if (!displayDates && displayProgress) {
+          return `<thead>
+\t<tr class="sticky-row">
+\t<th>%</th><th>Project/Area Title</th><th>Progress</th>
+\t</tr>
+</thead>
+<tbody>
+`
+        }
+        else if (displayDates && !displayProgress) {
+          return `<thead>
+\t<tr class="sticky-row">
+\t<th>%</th><th>Project/Area Title</th><th>Due Date</th><th>Next Review</th>
+\t</tr>
+</thead>
+<tbody>
+`
+        } else {
+          return `<thead>
+\t<tr class="sticky-row">
+\t<th>%</th><th>Project/Area Title</th><th>Due Date</th><th>Next Review</th>
+\t</tr>
+</thead>
+<tbody>
+`
+        }
 
-      default: // including 'markdown'
-        return `_Key:\tProject/Area Title\t#tasks open / complete / waiting / future / next review / due_`
+      case 'markdown':
+        let output = '_Key:\tProject/Area Title\t'
+        if (displayProgress) {
+          output += '#tasks open / complete / waiting / future'
+        }
+        if (displayDates) {
+          output += ' / next review / due date'
+        }
+        output += '_'
+        return output
+
+      default:
+        logWarn('Project::detailedSummaryLineHeader', `Unknown style '${style}'; nothing returned.`)
+        return ''
     }
   }
 
   /**
    * Returns line showing more detailed summary of the project, for output to a note.
-   * @param {boolean} includeFolderName at the start of the entry
+   * @param {string} style
+   * @param {boolean} includeFolderName
+   * @param {boolean?} displayDates
+   * @param {boolean?} displayProgress
    * @returns {string}
    */
-  detailedSummaryLine(style: string, includeFolderName: boolean): string {
+  detailedSummaryLine(style: string, includeFolderName: boolean, displayDates: boolean = true, displayProgress: boolean = true): string {
     let output = ''
     switch (style) {
       case 'HTML':
@@ -482,48 +531,73 @@ export class Project {
           output += '<td>' + this.makeSVGPercentRing(this.percentComplete, 'orange', String(this.percentComplete)) + '</td>'
         }
         output += `<td>${this.decoratedProjectTitle(style, includeFolderName)}`
-        // Add this.lastProgressComment (if it exists) on line under title (and project is still open)
-        output = (this.lastProgressComment !== '' && !this.isCompleted && !this.isCancelled)
-          ? `${output}<br /><i>${this.lastProgressComment}</i></td>`
-          : `${output}</td>`
-
-        if (this.completedDate != null) {
-          output += `<td class="task-checked">Completed ${relativeDateFromDate(this.completedDate)}</td><td></td>`
-        } else if (this.cancelledDate != null) {
-          output += `<td class="task-cancelled">Cancelled ${relativeDateFromDate(this.cancelledDate)}</td><td></td>` // TODO: test this 
+        if (displayProgress && !this.isCompleted && !this.isCancelled) {
+          // Add this.lastProgressComment (if it exists) on line under title (and project is still open)
+          const thisPercent = (isNaN(this.percentComplete)) ? '0%' : ` ${this.percentComplete}%`
+          const totalTasksStr = (this.completedTasks + this.openTasks).toLocaleString()
+          const statsProgress = `${thisPercent} of ${totalTasksStr} tasks`
+          if (displayDates) {
+            if (this.lastProgressComment !== '') {
+              output = `${output}<br />${this.lastProgressComment}</td>`
+            } else {
+              output = `${output}<br />${statsProgress}</td>`
+            }
+          } else {
+            // write progress in next cell instead
+            if (this.lastProgressComment !== '') {
+              output += `</td><td>${this.lastProgressComment}</td>`
+            } else {
+              output += `</td><td>${statsProgress}</td>`
+            }
+          }
         }
-        if (!this.isCompleted && !this.isCancelled) {
-          output = (this.dueDays != null)
-            ? (this.dueDays > 0)
-              ? `${output}<td>Due ${relativeDateFromNumber(this.dueDays)}`
-              : `${output}<td>Due <b>${relativeDateFromNumber(this.dueDays)}</b></td>`
-            : `${output}<td></td>`
-          output = (this.nextReviewDays != null)
-            ? (this.nextReviewDays > 0)
-              ? `${output}<td>Review ${relativeDateFromNumber(this.nextReviewDays)}</td>`
-              : `${output}<td>Review <b>${relativeDateFromNumber(this.nextReviewDays)}</b></td>`
-            : `${output}<td></td>`
+        if (displayDates) {
+          if (this.completedDate != null) {
+            output += `<td class="task-checked">Completed ${relativeDateFromDate(this.completedDate)}</td><td></td>`
+          } else if (this.cancelledDate != null) {
+            output += `<td class="task-cancelled">Cancelled ${relativeDateFromDate(this.cancelledDate)}</td><td></td>`
+          }
+          if (!this.isCompleted && !this.isCancelled) {
+            output = (this.dueDays != null)
+              ? (this.dueDays > 0)
+                ? `${output}<td>${relativeDateFromNumber(this.dueDays)}`
+                : `${output}<td><b>${relativeDateFromNumber(this.dueDays)}</b></td>`
+              : `${output}<td></td>`
+            output = (this.nextReviewDays != null)
+              ? (this.nextReviewDays > 0)
+                ? `${output}<td>${relativeDateFromNumber(this.nextReviewDays)}</td>`
+                : `${output}<td><b>${relativeDateFromNumber(this.nextReviewDays)}</b></td>`
+              : `${output}<td></td>`
+          }
         }
         output += '</tr>'
         break
 
-      default: // = 'markdown'
+      case 'markdown':
+        // TEST: implement displayDates & displayProgress
         output = '- '
         output += `${this.decoratedProjectTitle(style, includeFolderName)}`
-        if (this.completedDate != null) {
-          // $FlowIgnore[incompatible-call]
-          output += `\t(Completed ${relativeDateFromNumber(this.finishedDays)})`
-        } else if (this.cancelledDate != null) {
-          // $FlowIgnore[incompatible-call]
-          output += `\t(Cancelled ${relativeDateFromNumber(this.finishedDays)})`
+        if (displayDates) {
+          if (this.completedDate != null) {
+            // $FlowIgnore[incompatible-call]
+            output += `\t(Completed ${relativeDateFromNumber(this.finishedDays)})`
+          } else if (this.cancelledDate != null) {
+            // $FlowIgnore[incompatible-call]
+            output += `\t(Cancelled ${relativeDateFromNumber(this.finishedDays)})`
+          }
         }
-        // if (includePercentage) {
-          const thisPercent = (isNaN(this.percentComplete)) ? '-%' : `${this.percentComplete}%`
-          output += `\tc${this.completedTasks.toLocaleString()} (${thisPercent}) / o${this.openTasks} / w${this.waitingTasks} / f${this.futureTasks}`
-        // } else {
-        //   output += `\tc${this.completedTasks.toLocaleString()} / o${this.openTasks} / w${this.waitingTasks} / f${this.futureTasks}`
-        // }
-        if (!this.isCompleted && !this.isCancelled) {
+        if (displayProgress && !this.isCompleted && !this.isCancelled) {
+          // Show progress comment if available ...
+          if (this.lastProgressComment !== '' && !this.isCompleted && !this.isCancelled) {
+            output += `\t${this.lastProgressComment}`
+          }
+          // ... else show stats
+          else {
+            const thisPercent = (isNaN(this.percentComplete)) ? '' : ` (${this.percentComplete}%)`
+            output += `\tc${this.completedTasks.toLocaleString()}${thisPercent} / o${this.openTasks} / w${this.waitingTasks} / f${this.futureTasks}`
+          }
+        }
+        if (displayDates && !this.isCompleted && !this.isCancelled) {
           output =
             this.nextReviewDays != null
               ? this.nextReviewDays > 0
@@ -533,6 +607,10 @@ export class Project {
           output = this.dueDays != null ? `${output} / ${relativeDateFromNumber(this.dueDays)}` : `${output} / -`
         }
         break
+
+      default:
+        logWarn('Project::detailedSummaryLine', `Unknown style '${style}'; nothing returned.`)
+        output = ''
     }
     return output
   }
@@ -562,7 +640,7 @@ export class Project {
    * Insert one of NP's state icons in given color.
    * Other styling comes from CSS for 'circle-char-text'
    * @param {string} color 
-   * @param {string} char to display (normally 1)
+   * @param {string} char to display (normally just 1 character)
    * @returns HTML string to insert
    */
   addNPStateIcon(color: string, char: string): string {
