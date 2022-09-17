@@ -205,12 +205,12 @@ export async function saveSettings(pluginName: string = '', value?: any = {}): a
   return await DataStore.saveJSON(value, `../../data/${pluginName}/settings.json`)
 }
 
-export async function savePluginJson(pluginName: string = '', value?: any = {}): any | null {
+export async function savePluginJson(pluginName: string = '', value?: any = {}): Promise<boolean> {
   log(`NPConfiguration: writing ${pluginName}/plugin.json`)
   return await DataStore.saveJSON(value, `../../${pluginName}/plugin.json`)
 }
 
-export async function getPluginJson(pluginName: string = ''): any | null {
+export async function getPluginJson(pluginName: string = ''): any {
   log(`NPConfiguration: getting ${pluginName}/plugin.json`)
   return await DataStore.loadJSON(`../../${pluginName}/plugin.json`)
 }

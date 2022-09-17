@@ -1,0 +1,129 @@
+{
+    "noteplan.minAppVersion": "3.0.21",
+    "macOS.minVersion": "10.15.7",
+    "iOS.minVersion": "14",
+    "plugin.id": "eduardme.move",
+    "plugin.name": "Move selected note to another folder",
+    "plugin.description": "Move a note from the current folder into another.",
+    "plugin.author": "Eduard Metzger",
+    "plugin.url": "https://&hellip;",
+    "plugin.version": "0.0.2",
+    "plugin.dependencies": [],
+    "plugin.script": "script.js",
+    "plugin.commands": [
+        {
+            "name": "move",
+            "alias": [
+                "m",
+                "mv"
+            ],
+            "description": "Moves note to another folder",
+            "jsFunction": "moveNote",
+            "arguments": [
+                "note title",
+                "heading"
+            ]
+        },
+        {
+            "name": "command1Name",
+            "jsFunction": "command1",
+            "description": "",
+            "isPreset": true
+        },
+        {
+            "name": "command2Name",
+            "jsFunction": "command2",
+            "description": "",
+            "data": "foos",
+            "isPreset": true
+        },
+        {
+            "name": "run preset sample",
+            "jsFunction": "runPreset01",
+            "description": "run preset desc",
+            "isPreset": true
+        }
+    ],
+    "plugin.settings": [
+        {
+            "type": "hidden",
+            "key": "hiddenKey",
+            "default": "hello world"
+        },
+        {
+            "type": "string",
+            "key": "someString",
+            "title": "String Setting",
+            "description": "An example of a string setting.",
+            "default": "What a value",
+            "required": true
+        },
+        {
+            "type": "number",
+            "key": "someNumber",
+            "title": "Number Setting",
+            "description": "An example of a number setting."
+        },
+        {
+            "type": "separator"
+        },
+        {
+            "type": "heading",
+            "title": "Heading"
+        },
+        {
+            "type": "bool",
+            "key": "someBool",
+            "title": "Boolean Setting",
+            "description": "An example of a boolean setting."
+        },
+        {
+            "type": "date",
+            "key": "someDate",
+            "title": "Date Setting",
+            "description": "An example of a date setting.",
+            "format": "YYYY-MM-dd"
+        },
+        {
+            "type": "separator"
+        },
+        {
+            "type": "heading",
+            "title": "Heading"
+        },
+        {
+            "type": "[string]",
+            "key": "someStringArray",
+            "title": "String Array Setting",
+            "description": "An example of a string array setting.",
+            "default": [
+                "one",
+                "two",
+                "three"
+            ]
+        },
+        {
+            "type": "separator"
+        },
+        {
+            "type": "string",
+            "key": "someStringEnum",
+            "title": "String Setting With Choices",
+            "description": "An example of a string setting with choices.",
+            "choices": [
+                "one",
+                "two",
+                "three"
+            ]
+        },
+        {
+            "type": "json",
+            "key": "shortcutExpenses",
+            "title": "Shortcut Expenses",
+            "description": "Just some example shortcut expenses - please adapt to your needs. You can also add an amount, then you can insert the shortcut without any question.",
+            "default": "[\n\t{\n\thello: \"world\"\n\t}\n]",
+            "required": true,
+            "boxHeight": 300
+        }
+    ]
+}

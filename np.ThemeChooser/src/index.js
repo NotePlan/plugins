@@ -15,15 +15,14 @@
 // So you need to add a line below for each function that you want NP to have access to.
 // Typically, listed below are only the top-level plug-in functions listed in plugin.json
 
-import { showMessage } from "../../helpers/userInput"
-
-export { chooseTheme, changePreset, setDefaultLightDarkTheme, toggleTheme, setPreset01, setPreset02, setPreset03, setPreset04, setPreset05 } from './NPThemeChooser' // add one of these for every command specifified in plugin.json (the function could be in any file as long as it's exported)
-
+export { chooseTheme, setDefaultLightDarkTheme, toggleTheme } from './NPThemeChooser' // add one of these for every command specifified in plugin.json (the function could be in any file as long as it's exported)
+export { copyThemeStyle, editStyleAttribute } from './NPThemeCustomizer'
+export { changePreset, runPreset01, runPreset02, runPreset03, runPreset04, runPreset05 } from './NPThemePresets'
 // Do not change this line. This is here so your plugin will get recompiled every time you change your plugin.json file
 import pluginJson from '../plugin.json'
-import { saveThemeNameAsCommand } from './NPThemeChooser'
 import { log, clo } from '@helpers/dev'
 import { /* getPluginJson ,*/ updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'
+import { rememberPresetsAfterInstall } from '@helpers/NPPresets'
 
 /*
  * NOTEPLAN HOOKS
@@ -39,25 +38,14 @@ import { /* getPluginJson ,*/ updateSettingData, pluginUpdated } from '@helpers/
 export async function onUpdateOrInstall(): Promise<void> {
   log(pluginJson, 'NPThemeChooser::onUpdateOrInstall running')
   await updateSettingData(pluginJson)
-  const settings = DataStore.settings
-  const keys = Object.keys(settings)
-  for (let index = 0; index < keys.length; index++) {
-    const key = keys[index]
-    if (key.includes('setPreset')) {
-      log(pluginJson, `NPThemeChooser::onUpdateOrInstall ${key}=${settings[key]}`)
-      await saveThemeNameAsCommand(key, settings[key])
-    }
-  }
-  // clo(pluginJson, `Before plugin update/install, pluginJson is:`)
-  // const livePluginJson = await getPluginJson(pluginJson['plugin.id'])
-  // clo(livePluginJson, `After plugin update/install, pluginJson is:`)
+  await rememberPresetsAfterInstall(pluginJson)
 }
 
 /**
  * NotePlan calls this function every time the plugin is run (any command in this plugin)
  * You should not need to edit this function. All work should be done in the commands themselves
  */
-export async function init(): void {
+export function init(): void {
   clo(DataStore.settings, `${pluginJson['plugin.id']} Plugin Settings`)
   DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], true, false, false).then((r) => pluginUpdated(pluginJson, r))
 }

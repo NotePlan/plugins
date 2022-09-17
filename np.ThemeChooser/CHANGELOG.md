@@ -1,6 +1,11 @@
 # np.ThemeChooser Changelog
 
-## [1.3.1] 2022-09-01 @dwertheimer
+## [1.4.0] 2022-09-15 @dwertheimer
+
+- Allow users to change the name of the command
+- Under-the-hood tweaks to genericize the presets functionality
+
+## [1.3.0] 2022-09-01 @dwertheimer
 
 - Change to match new API signature for theme getting/setting
 
