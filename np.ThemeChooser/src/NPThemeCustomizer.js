@@ -27,6 +27,10 @@ export async function saveTheme(themeObj: any, filename: string) {
  */
 export async function copyThemeStyle() {
   try {
+    if (!Editor) {
+      showMessage(`You must be in the Editor with a document open to run this command`)
+      return
+    }
     // @qualitativeeasing: this works, but should probably turn this into a do-while loop so you can keep adding styles without re-invoking the plugin. just put a showMessageYesNo at the end asking if they want to add more
     // clo(masterTheme, `NPStyleChooser::copyThemeStyle masterTheme=`) //if you want to console.log the whole theme file
     // NOTE: in order to see the console logs, go to the plugin settings and set log level to DEBUG
@@ -70,6 +74,10 @@ export async function copyThemeStyle() {
  */
 export async function editStyleAttribute() {
   try {
+    if (!Editor) {
+      showMessage(`You must be in the Editor with a document open to run this command`)
+      return
+    }
     const activeTheme = Editor.currentTheme
     const theme = activeTheme.values
     let done = false,

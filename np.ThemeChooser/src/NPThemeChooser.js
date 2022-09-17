@@ -18,8 +18,10 @@ export async function getThemeObjByName(name: string): Promise<any | null> {
   // clo(theme,`getThemeObjByName After filter`)
   logDebug(pluginJson, `getThemeObjByName, after filter themename = ${theme[0].name}`)
   if (theme.length) {
+    clo(theme[0], `getThemeObjByName returning theme object`)
     return theme[0]
   } else {
+    logDebug(pluginJson, `getThemeObjByName Could not find theme named: ${name}`)
     await showMessage(`Could not find theme named: ${name}`)
     return null
   }
@@ -29,22 +31,29 @@ export async function chooseTheme(incoming: ?string = ''): Promise<void> {
   // every command/plugin entry point should always be wrapped in a try/catch block
   try {
     // const settings = DataStore.settings // Plugin settings documentation: https://help.noteplan.co/article/123-plugin-configuration
+    if (!Editor) {
+      showMessage(`You must be in the Editor with a document open to run this command`)
+      return
+    }
     if (incoming?.length) {
       const themeName = incoming.trim()
       const theme = await getThemeObjByName(themeName)
       if (theme && theme.filename) {
+        logDebug(pluginJson, `chooseTheme, setting theme to filename: ${theme.filename}`)
         Editor.setTheme(theme.filename)
+        logDebug(pluginJson, `chooseTheme, After Editor.setTheme. We're done and out.`)
         return
       } else {
-        await showMessage(`Theme "${incoming}" does not seem to be installed.`)
-        logDebug(pluginJson, `chooseTheme: Theme "${incoming}" does not seem to be installed. Installed = ${themes.toString()}`)
+        await showMessage(`Passed Theme "${incoming || ''}" does not seem to be installed.`)
+        logDebug(pluginJson, `chooseTheme: Theme "${incoming || ''}" does not seem to be installed`)
         return
       }
     }
     const themeName = await getThemeChoice()
-    logDebug(pluginJson, `chooseTheme: ${themeName} chosen`)
+    logDebug(pluginJson, `chooseTheme: "${themeName}" chosen`)
     const selected = await getThemeObjByName(themeName)
     if (selected && selected.filename) {
+      logDebug(pluginJson, `chooseTheme: About to Editor.setTheme(${selected.filename})`)
       Editor.setTheme(selected.filename)
     } else {
       logError(pluginJson, `chooseTheme filename does not exist: selected=${JSP(selected)}`)
@@ -75,6 +84,10 @@ export async function getThemeChoice(lightOrDark: string = '', message: string =
 
 export async function setDefaultLightDarkTheme() {
   try {
+    if (!Editor) {
+      showMessage(`You must be in the Editor with a document open to run this command`)
+      return
+    }
     const which = await showMessageYesNo(
       `Default Light/Dark Themes need to be set on a per-device basis. Which default theme do you want to set?`,
       ['Light', 'Dark'],
@@ -107,6 +120,10 @@ export async function setDefaultLightDarkTheme() {
  */
 export async function toggleTheme() {
   try {
+    if (!Editor) {
+      showMessage(`You must be in the Editor with a document open to run this command`)
+      return
+    }
     const lightTheme = String(DataStore.preference('themeChooserLight')) || ''
     const darkTheme = String(DataStore.preference('themeChooserDark')) || ''
     logDebug(pluginJson, `toggleTheme: lightTheme = ${String(lightTheme)} | darkTheme = ${String(darkTheme)}`)

@@ -14,6 +14,10 @@ import { getPluginJson } from '@helpers/NPConfiguration'
  * @param {boolean} overwrite - this is a set/reset call
  */
 export async function themePresetChosen(commandDetails: PresetCommand | null = null, overwrite: boolean = false) {
+  if (!Editor) {
+    showMessage(`You must be in the Editor with a document open to run this command`)
+    return
+  }
   if (commandDetails?.name) {
     const commandName = commandDetails.name
     logDebug(pluginJson, `themePresetChosen: command.name = "${commandDetails.name}" overwrite?:${String(overwrite)}`)
