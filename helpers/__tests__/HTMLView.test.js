@@ -31,31 +31,31 @@ describe(`${FILE}`, () => {
       expect(res).toEqual('')
     })
     test('should return empty from unsupported value', () => {
-      const res = n.textDecorationFromNP('underline', 'bob')
+      const res = n.textDecorationFromNP('underlineStyle', 'bob')
       expect(res).toEqual('')
     })
     test('should return OK with valid params', () => {
-      const res = n.textDecorationFromNP('underline', '1')
+      const res = n.textDecorationFromNP('underlineStyle', 1)
       expect(res).toEqual('text-decoration: underline')
     })
     test('should return OK with valid params', () => {
-      const res = n.textDecorationFromNP('underline', '9')
+      const res = n.textDecorationFromNP('underlineStyle', 9)
       expect(res).toEqual('text-decoration: underline double')
     })
     test('should return OK with valid params', () => {
-      const res = n.textDecorationFromNP('underline', '513')
+      const res = n.textDecorationFromNP('underlineStyle', 513)
       expect(res).toEqual('text-decoration: underline dashed')
     })
     test('should return OK with valid params', () => {
-      const res = n.textDecorationFromNP('strikethrough', '1')
+      const res = n.textDecorationFromNP('strikethroughStyle', 1)
       expect(res).toEqual('text-decoration: line-through')
     })
     test('should return OK with valid params', () => {
-      const res = n.textDecorationFromNP('strikethrough', '9')
+      const res = n.textDecorationFromNP('strikethroughStyle', 9)
       expect(res).toEqual('text-decoration: line-through double')
     })
     test('should return OK with valid params', () => {
-      const res = n.textDecorationFromNP('strikethrough', '513')
+      const res = n.textDecorationFromNP('strikethroughStyle', 513)
       expect(res).toEqual('text-decoration: line-through dashed')
     })
   })

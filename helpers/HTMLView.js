@@ -2,7 +2,7 @@
 // ---------------------------------------------------------
 // HTML helper functions for use with HTMLView API
 // by @jgclark
-// Last updated 12.9.2022
+// Last updated 16.9.2022
 // ---------------------------------------------------------
 
 import { clo, logDebug, logError, logWarn } from '@helpers/dev'
@@ -215,41 +215,45 @@ function convertStyleObjectBlock(styleObject: any): Array<string> {
   }
   if (styleObject?.paragraphSpacingBefore) {
     cssStyleLinesOutput.push(`line-height: ${pxToRem(styleObject?.paragraphSpacingBefore, baseFontSize)}`)
+    // `padding-top: ${themeJSON.styles.body.paragraphSpacingBefore}` ?? "0" + 'px', // TODO:
+  }
+  if (styleObject?.paragraphSpacing) {
+    cssStyleLinesOutput.push(`padding-bottom: ${pxToRem(styleObject?.paragraphSpacing, baseFontSize)}`)
+    // `padding-bottom: ${themeJSON.styles.body.paragraphSpacing}` ?? "6" + 'px', // TODO:
   }
   if (styleObject?.font) {
     cssStyleLinesOutput = cssStyleLinesOutput.concat(fontPropertiesFromNP(styleObject?.font))
   }
   if (styleObject?.strikethroughStyle) {
-    cssStyleLinesOutput.push(textDecorationFromNP('strikethrough', styleObject?.strikethroughStyle))
+    cssStyleLinesOutput.push(textDecorationFromNP('strikethroughStyle', Number(styleObject?.strikethroughStyle)))
   }
   if (styleObject?.underlineStyle) {
-    cssStyleLinesOutput.push(textDecorationFromNP('underline', styleObject?.underlineStyle))
+    cssStyleLinesOutput.push(textDecorationFromNP('underlineStyle', Number(styleObject?.underlineStyle)))
   }
-  // `padding-bottom: ${themeJSON.styles.body.paragraphSpacing}` ?? "6" + 'px', // TODO:
-  // `padding-top: ${themeJSON.styles.body.paragraphSpacingBefore}` ?? "0" + 'px', // TODO:
   return cssStyleLinesOutput
 }
 
 /**
  * Convert NP strikethrough/underline styling to CSS setting (or empty string if none)
- * Full details at
+ * Full details at https://help.noteplan.co/article/48-strikethrough-underline-styles
  * @author @jgclark
- * @param {string}
- * @returns {string}
+ * @param {string} selector to use from NP
+ * @param {number} value to use from NP
+ * @returns {string} CSS setting to return
  */
-export function textDecorationFromNP(selector: string, value: string = ''): string {
-  logDebug('textDecorationFromNP', `starting for ${selector} / ${value}`)
-  if (selector === 'underline') {
+export function textDecorationFromNP(selector: string, value: number): string {
+  // logDebug('textDecorationFromNP', `starting for ${selector} / ${value}`)
+  if (selector === 'underlineStyle') {
     switch (value) {
-      case '1': {
+      case 1: {
         return 'text-decoration: underline'
       }
-      case '9': {
-        // double  TODO: Test me
+      case 9: {
+        // double
         return 'text-decoration: underline double'
       }
-      case '513': {
-        // dashed TODO: Test me
+      case 513: {
+        // dashed
         return 'text-decoration: underline dashed'
       }
       default: {
@@ -257,36 +261,22 @@ export function textDecorationFromNP(selector: string, value: string = ''): stri
         return ''
       }
     }
-  } else if (selector === 'strikethrough') {
-    // FIXME: Why is this reporting number for value?
-    // FIXME: Neither if-else or switch-case is wokring.
-    logDebug(`- value: ${typeof value} with ${value}`)
-    if (value === '1') {
-      return 'text-decoration: line-through'
+  } else if (selector === 'strikethroughStyle') {
+    switch (value) {
+      case 1: {
+        return "text-decoration: underline dashed" //line-through"
+      }
+      case 9: { // double
+        return "text-decoration: line-through double"
+      }
+      case 513: { // dashed
+        return "text-decoration: line-through dashed"
+      }
+      default: {
+        logWarn('textDecorationFromNP', `No matching CSS found for style strikethrough value '${value}'`)
+        return ""
+      }
     }
-    if (value === '9') {
-      return 'text-decoration: line-through double'
-    }
-    if (value === '513') {
-      return 'text-decoration: line-through dashed'
-    }
-    logWarn('textDecorationFromNP', `No matching CSS found for style strikethrough value '${value}'`)
-    return ''
-
-    // switch (value) {
-    //   case '1': { //
-    //     return "text-decoration: line-through"
-    //   }
-    //   case '9': { // double TEST: Test me
-    //     return "text-decoration: line-through double"
-    //   }
-    //   case '513': { // dashed TEST: Test me
-    //     return "text-decoration: line-through dashed"
-    //   }
-    //   default: {
-    //     logWarn('textDecorationFromNP', `No matching CSS found for style strikethrough value '${value}'`)
-    //     return ""
-    //  }
   } else {
     logWarn('textDecorationFromNP', `No matching CSS found for style setting "${selector}"`)
     return ''
@@ -538,7 +528,7 @@ export function showHTML(
     // If wanted, also write this HTML to a file so we can work on it offline.
     // Note: this is saved to the Plugins/Data/<Plugin> folder, not a user-accessible Note.
     if (filenameForSavedFileVersion !== '') {
-      // Write to arbitrary file in NP sandbox
+      // Write to specified file in NP sandbox
       const res = DataStore.saveData(fullHTMLStr, filenameForSavedFileVersion, true)
       if (res) {
         logDebug('showHTML', `Saved resulting HTML '${title}' to ${filenameForSavedFileVersion} as well.`)
@@ -549,4 +539,52 @@ export function showHTML(
   } catch (error) {
     logError('HTMLView / showHTML', error.message)
   }
+}
+
+/**
+ * Draw (animated) percent ring with the number in the middle.
+ * If 'textToShow' is given then use this instead of the percentage.
+ * Note: harder than it looks to change text color: see my contribution at https://stackoverflow.com/questions/17466707/how-to-apply-a-color-to-a-svg-text-element/73538662#73538662 when I worked out how.
+ * Note: It needs to be followed by call to JS function setPercentRing() to set the ring's state.
+ * @param {number} percent 0-100
+ * @param {string?} color for ring and text (as colour name or #RGB)
+ * @param {string?} textToShow inside ring (which can be different from just the percent)
+ * @param {ID} string identifier for this ring (unique within the HTML page)
+ * @returns {string} SVG code to insert in HTML
+ */
+export function makeSVGPercentRing(percent: number, color: string, textToShow: string, ID: string): string {
+  return `
+  <svg id="pring${ID}" class="percent-ring" height="200" width="200" viewBox="0 0 100 100" onload="setPercentRing(${percent}, 'pring${ID}');">
+    <circle class="percent-ring-circle" stroke="${color}" stroke-width=12% fill="transparent" r=40% cx=50% cy=50% />
+    <g class="circle-percent-text" color=${color}>
+    <text class="circle-percent-text" x=50% y=53% dominant-baseline="middle" text-anchor="middle" fill="currentcolor" stroke="currentcolor">${textToShow}</text>
+    </g>
+  </svg>\n`
+}
+
+/**
+ * Create an interpolated colour from red (0%) to green (100%), passing through yellow.
+ * Note: not using quite pure red to pure green, to make it less harsh, and spending more time from red to yellow than yellow to green, to make it look better.
+ * Tweaked from https://stackoverflow.com/a/6394340/3238281
+ * @param {number} percent 
+ * @returns {string} #RRGGBB value
+ */
+export function redToGreenInterpolation(percent: number): string {
+  // Work out colour ranges from nearly pure red to nearly full green, passing through yellow
+  const red = (percent > 60 ? 1 - 2 * (percent - 60) / 100.0 : 1.0) * 223
+  const green = (percent > 40 ? 1.0 : 2 * percent / 100.0) * 223
+  const blue = Math.abs(50.0 - percent) // add some blue increasingly at both red and green ends
+  return rgbToHex(Math.round(red), Math.round(green), Math.round(blue))
+}
+
+/**
+ * Create '#RRGGBB' string from RGB values each from 0-255
+ * From https://stackoverflow.com/a/5624139/3238281
+ * @param {number} r 
+ * @param {number} g 
+ * @param {number} b 
+ * @returns {string} #RRGGBB value
+ */
+export function rgbToHex(r: number, g: number, b: number): string {
+  return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)
 }

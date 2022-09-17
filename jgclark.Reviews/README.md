@@ -7,7 +7,7 @@ User George Crump (@george65) has created a [great video showing how the plugin 
 
 ## Using NotePlan for Project-like work
 
-Each **Project** is described by a separate note. Each such project contains the `#project` hashtag, `@review(...)` and some other metadata fields on the line immediately after the title.  For example:
+Each **Project** is described by a separate note. Each such project contains the `#project` hashtag, `@review(...)` and some other metadata fields on a line (which I suggest comes after the title).  For example:
 
 ```markdown
 # Secret Undertaking
@@ -56,7 +56,7 @@ Context: <%- prompt('context') %>
 ```
 
 ## Reviewing Projects and/or Areas
-Use the `noteTypeTags` setting to control which notes are included in the review lists:
+Use the 'Note Type Hashtags' setting to control which notes are included in the review lists:
 - If this setting is empty, then it will include all notes for review that include a `@review(...)` string.
 - if it is set (e.g. `#project, #area`), then it will include just those notes which also have one or more of those tags.
 You can specify folders to ignore using the `foldersToIgnore` setting; I have this set to `Summaries, Reviews, @Templates, @Archive, @Trash`.
@@ -64,18 +64,23 @@ You can specify folders to ignore using the `foldersToIgnore` setting; I have th
 When you have [configured the plugin](#configuration), and added suitable metadata to notes, you're then ready to use some or all of the following commands:
 
 ### /project lists
-**Now with new alternative command: '/HTML project lists'!**. _Note:  this provides a richer view, but it can't be saved for later._
-
 This creates/updates a list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete. This is stored in summary note(s) in the 'Reviews' folder (or whatever you set the 'Folder to store' setting to be). For example:
 
 ![/project lists example](project-list-example.png)
 
-You can specify folders to ignore using the 'Folders to ignore' shared setting (as above), and also these more specific settings:
+From v0.8 you can now set the '**Output style to use**'. This is either a new 'rich' (HTML) or original 'NotePlan' (Markdown) output style.
+<!-- ??? -->(_Note:  the 'rich' style provides a richer view (using a web view), but it isn't a normal NotePlan note that is saved and can be accessed again later. You will need to re-run the command to see the list again._)
+
+Other settings:
+- Specify folders to ignore using the 'Folders to ignore' shared setting (as above).
 - Display project dates?  Whether to display the project's review and due dates (where set).
 - Display project's latest progress?  Whether to show the project's latest progress (where available). If a specific 'Progress:' field is set it will use that, otherwise it will calculate %completion based on the number of completed and open tasks.
 - Display order for projects: The sort options  are by 'due' date, by 'review' date or 'title'.
 - Display grouped by folder? Whether to group the projects by their folder.
 - Display archived projects? Whether to display project notes marked as `#archive`.
+
+On the second line is a button 'Start reviewing _N_ ready for review', which is a shortcut to the '/start reviews' command (described next).
+Each project title is also an active link which can be clicked to take you to that project note. (Or Option-click to open that in a new split window, which keeps the review list open.)
 
 ### /start reviews
 This creates a hidden list of notes ready for review, and then kicks off the most overdue review by opening that note in the editor. When you have finished the review run one of the next two commands ...

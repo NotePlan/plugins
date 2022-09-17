@@ -21,7 +21,7 @@ export {
 } from './reviews'
 export {
   makeProjectLists,
-  makeProjectListsHTML,
+  makeProjectListsHTML
 } from './projectLists'
 export {
   completeProject,
@@ -35,6 +35,7 @@ export {
 // export { testNoteplanStateFont } from '../test/noteplanstateFontTest.js'
 
 export { testCSSCircle } from './testCSSCircle'
+export { testRedToGreenInterpolation } from './projectLists'
 
 const pluginID = 'jgclark.Reviews'
 

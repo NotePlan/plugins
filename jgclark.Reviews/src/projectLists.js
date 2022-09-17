@@ -2,8 +2,9 @@
 //-----------------------------------------------------------------------------
 // Commands for producing Project lists
 // by @jgclark
-// Last updated 13.9.2022 for v0.8.0-beta, @jgclark
+// Last updated 17.9.2022 for v0.8.0-beta, @jgclark
 //-----------------------------------------------------------------------------
+// TODO: add x-callback support
 
 import pluginJson from "../plugin.json"
 import {
@@ -22,7 +23,7 @@ import {
   filterFolderList,
 } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
-import { showHTML } from '@helpers/HTMLView'
+import { makeSVGPercentRing, redToGreenInterpolation, showHTML } from '@helpers/HTMLView'
 import {
   findNotesMatchingHashtag,
   findNotesMatchingHashtags,
@@ -57,7 +58,7 @@ const reviewListCSS = [
   'table tr td:last-child, table tr th:last-child { border-right: 0px; }', // turn off outer table right borders
   'a, a:visited, a:active { color: inherit }', // note links: turn off text color
   'a:hover { }', // perhaps use hover for note links
-  'button { font-size: 1.0rem; font-weight: bold; }',
+  'button { font-size: 1.0rem; font-weight: 700; }',
   '.checkbox { font: "noteplanstate", font-size: 1.4rem; }', // make checkbox display larger, and like in the app
   '.percent-ring { width: 2rem; height: 2rem; }', // Set size of percent-display rings
   '.percent-ring-circle { transition: 0.5s stroke-dashoffset; transform: rotate(-90deg); transform-origin: 50% 50%; }', // details of ring-circle that can be set in CSS
@@ -256,17 +257,19 @@ async function makeNoteTypeSummary(noteTag: string, style: string): Promise<Arra
     // otherwise use a single folder
 
     // Iterate over the folders (ignoring any in the pref_foldersToIgnore list)
-    CommandBar.showLoading(true, `Summarising ${noteTag} in ${filteredFolderList.length} folders`)
+    const fflInitLength = filteredFolderList.length
+    CommandBar.showLoading(true, `Summarising ${noteTag} in ${fflInitLength} folders`)
     await CommandBar.onAsyncThread()
 
     const startTime = new Date()
-    let c = 0
-    for (const folder of filteredFolderList) {
+    let processed = 0
+    for (let fflCounter = 0; fflCounter < filteredFolderList.length; fflCounter++) {
+      const folder = filteredFolderList[fflCounter]
       // Get notes that include noteTag in this folder, ignoring subfolders
       // and ignoring projects with '#archive' if wanted
       const notes = findNotesMatchingHashtag(noteTag, folder, false, config.displayArchivedProjects ? '' : '#archive')
       if (notes.length > 0) {
-        logDebug('makeNoteTypeSummary', `${notes.length} found in ${folder} (index ${c})).`)
+        logDebug('makeNoteTypeSummary', `${notes.length} found in ${folder} (index ${fflCounter})).`)
 
         // Create array of Project class representation of each note,
         // ignoring any in a folder we want to ignore (by one of the settings)
@@ -278,8 +281,7 @@ async function makeNoteTypeSummary(noteTag: string, style: string): Promise<Arra
           if (!np.isArchived || config.displayArchivedProjects) {
             projects.push(np)
           } else {
-
-            logDebug('makeNoteTypeSummary', `${np.title} as archived`)
+            logDebug('makeNoteTypeSummary', `${np.title} ignored as it is archived`)
           }
           if (np.nextReviewDays != null && np.nextReviewDays < 0) {
             overdue += 1
@@ -322,23 +324,27 @@ async function makeNoteTypeSummary(noteTag: string, style: string): Promise<Arra
         noteCount += sortedProjects.length
 
       } else {
-        logDebug('makeNoteTypeSummary', `0 notes found in ${folder} for '${noteTag}'. Will remove it from folder list (index ${c}).`)
-        filteredFolderList.splice(c, 1)
-        c--
-        logDebug('makeNoteTypeSummary', `- filteredFolderList length now ${filteredFolderList.length}`)
+        logDebug('makeNoteTypeSummary', `0 notes found in ${fflCounter}=${folder} for '${noteTag}'. Will remove it from folder list.`)
+        filteredFolderList.splice(fflCounter, 1)
+        fflCounter--
       }
-      CommandBar.showLoading(true, `Summarising ${noteTag} in ${filteredFolderList.length} folders`, (noteCount / filteredFolderList.length))
-      c++
+      processed++
+      CommandBar.showLoading(true, `Summarising ${noteTag} in ${fflInitLength} folders`, (processed / fflInitLength))
     }
     await CommandBar.onMainThread()
     CommandBar.showLoading(false)
-    logDebug('makeNoteTypeSummary', `${noteCount} notes reviewed in ${timer(startTime)}s`)
+    logDebug('makeNoteTypeSummary', `${processed} notes reviewed in ${timer(startTime)}s`)
 
     let startReviewButton = ''
-    // Add summary/ies onto the start (remember: unshift adds to the very front each time)
+    // Add summary/ies and 'start review' button onto the start (remember: unshift adds to the very front each time)
     switch (style) {
       case 'HTML':
-        startReviewButton = `<button onClick="noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=next%20project%20review">${overdue} ready for review</button>`
+        // Create the HTML for the 'start review button'
+        // - Version 1: does work inside Safari, but not for some reason in a NP view. Eduard doesn't know why.
+        // startReviewButton = `<button onClick="noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews\&command=next%20project%20review">Start reviewing ${overdue} ready for review</button>`
+        // - Version 2: does work in NP, but doesn't look like a button
+        startReviewButton = `<a class="button" href="noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=next%20project%20review">Start reviewing ${overdue} ready for review</a>`
+
         // writing backwards to suit .unshift
         outputArray.unshift(Project.detailedSummaryLineHeader(style, config.displayDates, config.displayProgress))
         outputArray.unshift('\n<table>')
@@ -349,7 +355,7 @@ async function makeNoteTypeSummary(noteTag: string, style: string): Promise<Arra
         break
 
       default: // include 'markdown'
-        startReviewButton = `[${overdue} ready for review](noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=next%20project%20review)`
+        startReviewButton = `[Start reviewing ${overdue} ready for review](noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=next%20project%20review)`
         if (noteCount > 0) { // print just the once
           outputArray.unshift(Project.detailedSummaryLineHeader(style, config.displayDates, config.displayProgress))
         }
@@ -370,4 +376,23 @@ async function makeNoteTypeSummary(noteTag: string, style: string): Promise<Arra
     logError('makeNoteTypeSummary', `${error.message}`)
     return []
   }
+}
+
+export function testRedToGreenInterpolation(): void {
+  let body = '<p>Testing out the colour interpolation.</p>'
+  for (let i = 0; i <= 100; i = i + 5) {
+    body += `${makeSVGPercentRing(100, redToGreenInterpolation(i), `${i}%`, `id${i}`)}
+`
+  }
+  showHTML(
+    'Red to Green test',
+    '',
+    body,
+    '',
+    reviewListCSS,
+    false, // not modal
+    setPercentRingJSFunc,
+    '',
+    'redToGreenInterpolation.test.html'
+  )
 }

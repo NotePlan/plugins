@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // @jgclark
-// Last updated 13.9.2022 for v0.8.0-betas, @jgclark
+// Last updated 15.9.2022 for v0.8.0-betas, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -17,6 +17,8 @@ import { getContentFromBrackets, getStringFromList } from '@helpers/general'
 import { findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { getOrMakeMetadataLine } from '@helpers/NPparagraph'
 import { showMessage } from '@helpers/userInput'
+
+import { showHTML, rgbToHex, redToGreenInterpolation, makeSVGPercentRing } from '@helpers/HTMLView'
 
 //------------------------------
 // Config setup
@@ -137,6 +139,25 @@ export function getFieldsFromNote(note: TNote, fieldName: string): Array<string>
   return matchArr
 }
 
+function mostRecentProgressLine(progressLines: Array<string>): string {
+  // Default to returning first line
+  let outputLine = progressLines[0]
+  // Then check each line to see if its newer
+  let lastDatePart = '1000-01-01' // earliest possible YYYY-MM-DD date
+  for (const progressLine of progressLines) {
+    const progressLineParts = progressLine.split(/[:@]/)
+    if (progressLineParts.length >= 3) {
+      const thisDatePart = progressLineParts[1]
+      if (thisDatePart > lastDatePart) {
+        outputLine = progressLine
+        // logDebug('Project::mostRecentProgressLine', `Found latest datePart ${thisDatePart}`)
+      }
+      lastDatePart = thisDatePart
+    }
+  }
+  return outputLine
+}
+
 //-----------------------------------------------------------------------------
 
 /**
@@ -228,10 +249,11 @@ export class Project {
     // ... or through specific 'Progress' field
     const progressLines = getFieldsFromNote(this.note, 'progress')
     if (progressLines.length > 0) {
-      // Use the first field found, which ought to be the most recent one. TODO: read all of them and decide
-      const progressLine = progressLines[0]
+      // Get the most recent line to use
+      const progressLine = mostRecentProgressLine(progressLines)
+
       // Get the first part of the value of the Progress field: nn@YYYYMMDD ...
-      logDebug(pluginJson, `progressLine: ${progressLine}`)
+      // logDebug(pluginJson, `progressLine: ${progressLine}`)
       const progressLineParts = progressLine.split(/[:@]/)
       if (progressLineParts.length >= 3) {
         this.percentComplete = Number(progressLineParts[0])
@@ -240,7 +262,7 @@ export class Project {
         this.lastProgressComment = `${progressLineParts[2].trim()} (${relativeDateFromDate(getDateFromUnhyphenatedDateString(datePart))})`
         logDebug(pluginJson, `- progress field -> ${this.percentComplete} / '${this.lastProgressComment}' from <${progressLine}>`)
       } else {
-        logWarn(pluginJson, `- cannot properly parse progress field <${progressLine}>`)
+        logWarn(pluginJson, `- cannot properly parse progress field <${progressLine}> in project '${this.title}'`)
       }
     }
 
@@ -389,7 +411,7 @@ export class Project {
   /**
    * Returns title of note as folder name + link, also showing complete or cancelled where relevant.
    * Now also supports 'markdown' or 'HTML' styling.
-   * TODO: do I support scheduled/postponed? If so style.checked-scheduled ...
+   * TODO: do I really support scheduled/postponed? If so style.checked-scheduled ...
    * @param {string} style 'markdown' or 'HTML'
    * @param {boolean} includeFolderName whether to include folder name at the start of the entry.
    * @return {string} - title as wikilink
@@ -406,16 +428,14 @@ export class Project {
         // const noteTitleWithOpenAction = `<button onclick=openNote()>${folderNamePart}${titlePart}</button>`
 
         if (this.isCompleted) {
-          // <i class="fa-solid fa-square-check"></i> from https://fontawesome.com/icons/square-check?s=solid
-          // TODO: pick up colour from style.checked.color
-          // return `<span class="checkbox">* [x]</span> <span class="task-checked">&#x2611; ${noteTitleWithOpenAction}</span>`
+          // Looked earlier at FontAwesome icons:
+          // - <i class="fa-solid fa-square-check"></i> from https://fontawesome.com/icons/square-check?s=solid
           return `<span class="task-checked">${noteTitleWithOpenAction}</span>`
         } else if (this.isCancelled) {
-          // TODO: pick up colour from style.checked-cancelled.color
-          // or https://fontawesome.com/icons/rectangle-xmark?s=solid
-          // Also: refresh = https://fontawesome.com/icons/arrow-rotate-right?s=solid
-          // Also: start = https://fontawesome.com/icons/circle-play?s=solid
-          // return `<span class="checkbox">* [-]</span> <span class="task-cancelled">&#x2612; ${noteTitleWithOpenAction}</span>`
+          // Looked earlier at FontAwesome icons:
+          // - https://fontawesome.com/icons/rectangle-xmark?s=solid
+          // - refresh = https://fontawesome.com/icons/arrow-rotate-right?s=solid
+          // - start = https://fontawesome.com/icons/circle-play?s=solid
           return `<span class="task-cancelled">${noteTitleWithOpenAction}</span>`
         } else {
           // return `<span class="checkbox">* [ ]</span> &#x2610; ${noteTitleWithOpenAction}`
@@ -463,6 +483,11 @@ export class Project {
         }
         else if (!displayDates && displayProgress) {
           return `<thead>
+<colgroup>
+\t<col>
+\t<col width="30%">
+\t<col>
+</colgroup>
 \t<tr class="sticky-row">
 \t<th>%</th><th>Project/Area Title</th><th>Progress</th>
 \t</tr>
@@ -489,12 +514,13 @@ export class Project {
         }
 
       case 'markdown':
-        let output = '_Key:\tProject/Area Title\t'
+        let output = '_Key:  Project/Area Title'
         if (displayProgress) {
-          output += '#tasks open / complete / waiting / future'
+          // output += '#tasks open / complete / waiting / future'
+          output += '\tProgress'
         }
         if (displayDates) {
-          output += ' / next review / due date'
+          output += '\tNext review / Due date'
         }
         output += '_'
         return output
@@ -515,27 +541,30 @@ export class Project {
    */
   detailedSummaryLine(style: string, includeFolderName: boolean, displayDates: boolean = true, displayProgress: boolean = true): string {
     let output = ''
+    const thisPercent = (isNaN(this.percentComplete)) ? '0%' : ` ${this.percentComplete}%`
+    const totalTasksStr = (this.completedTasks + this.openTasks).toLocaleString()
+    const statsProgress = `${thisPercent} done (of ${totalTasksStr} ${(this.openTasks > 1) ? 'tasks' : 'task'})`
+
     switch (style) {
       case 'HTML':
         output = '\t<tr>'
         if (this.isCompleted) {
-          output += '<td>' + this.addNPStateIcon('forestgreen', 'a') + '</td>' // ✓
+          output += '<td>' + this.addNPStateIcon('#00D050', 'a') + '</td>' // ✓
+          output += `<td colspan=2>${this.decoratedProjectTitle(style, includeFolderName)}`
         }
         else if (this.isCancelled) {
-          output += '<td>' + this.addNPStateIcon('red', 'c') + '</td>' // X
+          output += '<td>' + this.addNPStateIcon('#D00050', 'c') + '</td>' // X
+          output += `<td colspan=2>${this.decoratedProjectTitle(style, includeFolderName)}`
         }
         else if (isNaN(this.percentComplete)) { // NaN
-          output += '<td>' + this.makeSVGPercentRing(100, 'grey', '0') + '</td>'
+          output += '<td>' + this.addSVGPercentRing(100, 'grey', '0') + '</td>'
         }
         else {
-          output += '<td>' + this.makeSVGPercentRing(this.percentComplete, 'orange', String(this.percentComplete)) + '</td>'
+          output += '<td>' + this.addSVGPercentRing(this.percentComplete, 'multicol', String(this.percentComplete)) + '</td>'
+          output += `<td>${this.decoratedProjectTitle(style, includeFolderName)}`
         }
-        output += `<td>${this.decoratedProjectTitle(style, includeFolderName)}`
         if (displayProgress && !this.isCompleted && !this.isCancelled) {
           // Add this.lastProgressComment (if it exists) on line under title (and project is still open)
-          const thisPercent = (isNaN(this.percentComplete)) ? '0%' : ` ${this.percentComplete}%`
-          const totalTasksStr = (this.completedTasks + this.openTasks).toLocaleString()
-          const statsProgress = `${thisPercent} of ${totalTasksStr} tasks`
           if (displayDates) {
             if (this.lastProgressComment !== '') {
               output = `${output}<br />${this.lastProgressComment}</td>`
@@ -587,14 +616,16 @@ export class Project {
           }
         }
         if (displayProgress && !this.isCompleted && !this.isCancelled) {
+          // const thisPercent = (isNaN(this.percentComplete)) ? '' : ` (${this.percentComplete}%)`
           // Show progress comment if available ...
           if (this.lastProgressComment !== '' && !this.isCompleted && !this.isCancelled) {
-            output += `\t${this.lastProgressComment}`
+            output += `\t${thisPercent} done: ${this.lastProgressComment}`
           }
           // ... else show stats
           else {
-            const thisPercent = (isNaN(this.percentComplete)) ? '' : ` (${this.percentComplete}%)`
-            output += `\tc${this.completedTasks.toLocaleString()}${thisPercent} / o${this.openTasks} / w${this.waitingTasks} / f${this.futureTasks}`
+            output += `\t${statsProgress}`
+            // Older more detailed stats:
+            // output += `\tc${this.completedTasks.toLocaleString()}${thisPercent} / o${this.openTasks} / w${this.waitingTasks} / f${this.futureTasks}`
           }
         }
         if (displayDates && !this.isCompleted && !this.isCancelled) {
@@ -616,24 +647,20 @@ export class Project {
   }
 
   /**
-   * Draw percent ring with the number in the middle.
-   * If 'textToShow' is given then use this instead of the percentage.
-   * Note: harder than it looks to change text color: see my contribution at https://stackoverflow.com/questions/17466707/how-to-apply-a-color-to-a-svg-text-element/73538662#73538662 when I worked out how.
-   * Note: It needs accompanying JS function setPercentRing() to properly set the ring.
+   * Add SVG ready for percent ring with the number in the middle.
+   * @@@
+   * Note: It needs to be followed by call to JS function setPercentRing() to set the ring's state.
    * @param {number} percent 0-100
-   * @param {string?} color for ring and text
-   * @param {string?} textToShow inside ring (which can be different from just the percent)
+   * @param {string?} color for ring and text (as colour name or #RGB), or 'multicol' to mean shading between red and green
+   * @param {string?} textToShow inside ring, which can be different from just the percent, which is used by default
    * @returns {string} SVG code to insert in HTML
    */
-  makeSVGPercentRing(percent: number, color: string = 'forestgreen', text: string = ''): string {
+  addSVGPercentRing(percent: number, colorIn: string = 'multicol', text: string = ''): string {
     const textToShow = (text !== '') ? text : String(percent)
-    return `
-  <svg id="pring${this.ID}" class="percent-ring" height="200" width="200" viewBox="0 0 100 100" onload="setPercentRing(${percent}, 'pring${this.ID}');">
-    <circle class="percent-ring-circle" stroke="${color}" stroke-width=12% fill="transparent" r=40% cx=50% cy=50% />
-    <g class="circle-percent-text" color=${color}>
-    <text class="circle-percent-text" x=50% y=53% dominant-baseline="middle" text-anchor="middle" fill="currentcolor" stroke="currentcolor">${textToShow}</text>
-    </g>
-  </svg>\n`
+    const colorToUse = (colorIn === 'multicol')
+      ? redToGreenInterpolation(percent)
+      : colorIn
+    return makeSVGPercentRing(percent, colorToUse, textToShow, this.ID)
   }
 
   /**
