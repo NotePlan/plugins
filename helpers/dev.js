@@ -331,11 +331,13 @@ export function timer(startTime: Date): string {
 
 /**
  * Add or override parameters from args to the supplied config object. 
- * This is the **simple version** that treats all the passed arguments as strings, leaving any typing to the developer.
- * Note: use the advanced version to pass arrays
+ * This is the **simple version** that treats all the passed arguments as strings, leaving some of the typing to the developer.
+ * Tested with strings, ints, floats, boolean and simple array of strings.
+ * Note: Different parameters are separated by ';' (not the more usual ',' to allow for comma-separated arrays)
+ * Note: use the advanced version to pass more advanced quoted arrays, and items containing commas or semicolons.
  * @author @jgclark and @dwertheimer
  * @param {any} config object
- * @param {string} argsAsString e.g. 'field1=Bob Skinner,field2=Charlie Rose'
+ * @param {string} argsAsString e.g. 'field1=Bob Skinner;field2=false;field3=simple,little,array'
  * @returns {any} configOut 
  */
 export function overrideSettingsWithStringArgs(config: any, argsAsString: string): any {
@@ -343,7 +345,7 @@ export function overrideSettingsWithStringArgs(config: any, argsAsString: string
     // Parse argsAsJSON (if any) into argObj using assuming JSON
     if (argsAsString) {
       const argObj = {}
-      argsAsString.split(',').forEach((arg) => (arg.split('=').length === 2 ? (argObj[arg.split('=')[0]] = arg.split('=')[1]) : null))
+      argsAsString.split(';').forEach((arg) => (arg.split('=').length === 2 ? (argObj[arg.split('=')[0]] = arg.split('=')[1]) : null))
 
       // use the built-in way to add (or override) from argObj into config
       const configOut = Object.assign(config)
@@ -351,7 +353,6 @@ export function overrideSettingsWithStringArgs(config: any, argsAsString: string
       // Attempt to change arg values that are numerics or booleans to the right types, otherwise they will stay as strings
       for (const key in argObj) {
         let value = argObj[key]
-        console.log(`For ${typeof value} '${value}'`)
         if (!isNaN(value)) {
           // Change to number type
           value = Number(value)
@@ -363,6 +364,10 @@ export function overrideSettingsWithStringArgs(config: any, argsAsString: string
         else if (value === "true") {
           // Change to boolean type
           value = true
+        }
+        else if (value.includes(',')) {
+          // Split to make an array
+          value = value.split(',')
         }
         configOut[key] = value
       }
@@ -378,7 +383,7 @@ export function overrideSettingsWithStringArgs(config: any, argsAsString: string
 }
 
 /**
- * Add or override parameters from args to the supplied config object. This is the **advanced version** that respects typing of the passed arguments, by using JSON.
+ * Add or override parameters from args to the supplied config object. This is the **advanced version** that respects more complex typing of the passed arguments, by using JSON.
  * Note: tested with strings, ints, floats, boolean and array of strings.
  * @author @jgclark
  * @param {any} config object

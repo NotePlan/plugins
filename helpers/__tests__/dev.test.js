@@ -68,7 +68,7 @@ describe('helpers/dev', () => {
   })
 
   /** 
-   * Test overrideSettingsWithStringArgs() using JSON inputs
+   * Test overrideSettingsWithStringArgs() using semicolon-seperated string inputs
    */
   describe('overrideSettingsWithStringArgs', () => {
     const testConfig = {
@@ -80,7 +80,8 @@ describe('helpers/dev', () => {
       numNaN: NaN,
       boolA: true,
       boolB: false,
-      undef: undefined
+      undef: undefined,
+      stringArr: ["this", "is a", "simple array of words"]
     }
 
     test("expect no change to config with empty args", () => {
@@ -97,14 +98,14 @@ describe('helpers/dev', () => {
       const expectedConfig = Object.assign({}, testConfig)
       expectedConfig.friend1 = 'Bob Skinner'
       expectedConfig.friend2 = 'Charlie Rose'
-      const res = d.overrideSettingsWithStringArgs(testConfig, 'friend1=Bob Skinner,friend2=Charlie Rose')
+      const res = d.overrideSettingsWithStringArgs(testConfig, 'friend1=Bob Skinner;friend2=Charlie Rose')
       expect(res).toEqual(expectedConfig)
     })
     test("expect change to config on intersecting string args", () => {
       const expectedConfig = Object.assign({}, testConfig)
       expectedConfig.stringA = "Bob Skinner"
       expectedConfig.stringB = "Charlie Rose"
-      const res = d.overrideSettingsWithStringArgs(testConfig, 'stringA=Bob Skinner,stringB=Charlie Rose')
+      const res = d.overrideSettingsWithStringArgs(testConfig, 'stringA=Bob Skinner;stringB=Charlie Rose')
       expect(res).toEqual(expectedConfig)
     })
     test("expect change to config on intersecting numeric args", () => {
@@ -112,14 +113,20 @@ describe('helpers/dev', () => {
       expectedConfig.numInt = 8
       expectedConfig.numNegInt = -12
       expectedConfig.numFloat = 23.2
-      const res = d.overrideSettingsWithStringArgs(testConfig, 'numInt=8,numNegInt=-12,numFloat=23.2')
+      const res = d.overrideSettingsWithStringArgs(testConfig, 'numInt=8;numNegInt=-12;numFloat=23.2')
       expect(res).toEqual(expectedConfig)
     })
     test("expect change to config on intersecting boolean args", () => {
       const expectedConfig = Object.assign({}, testConfig)
       expectedConfig.boolA = false
       expectedConfig.boolB = true
-      const res = d.overrideSettingsWithStringArgs(testConfig, 'boolA=false,boolB=true')
+      const res = d.overrideSettingsWithStringArgs(testConfig, 'boolA=false;boolB=true')
+      expect(res).toEqual(expectedConfig)
+    })
+    test("expect change to config on intersecting string list args", () => {
+      const expectedConfig = Object.assign({}, testConfig)
+      expectedConfig.stringArr = ["this is a", "different", "array of", "strings"]
+      const res = d.overrideSettingsWithStringArgs(testConfig, 'stringArr=this is a,different,array of,strings')
       expect(res).toEqual(expectedConfig)
     })
   })
