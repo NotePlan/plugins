@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Index for Reviews plugin
 // Jonathan Clark
-// Last updated 13.9.2022 for v0.8.0-betas, @jgclark
+// Last updated 17.9.2022 for v0.8.0-betas, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -34,8 +34,12 @@ export {
 // NB: There are other possible exports, including:
 // export { testNoteplanStateFont } from '../test/noteplanstateFontTest.js'
 
-export { testCSSCircle } from './testCSSCircle'
-export { testRedToGreenInterpolation } from './projectLists'
+export {
+  testButtonTriggerCommand,
+  testButtonTriggerOpenNote,
+  testCSSCircle,
+  testRedToGreenInterpolation,
+} from './HTMLtests'
 
 const pluginID = 'jgclark.Reviews'
 
