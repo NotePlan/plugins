@@ -125,7 +125,7 @@ export function dump(pluginInfo: any, obj: { [string]: mixed }, preamble: string
  * @author @dwertheimer (via StackOverflow)
  *
  * @param {object} inObj
- * @returns [string]
+ * @returns {Array<string>}
  * @reference https://stackoverflow.com/questions/59228638/console-log-an-object-does-not-log-the-method-added-via-prototype-in-node-js-c
  */
 export function getAllPropertyNames(inObj: interface { [string]: mixed }): Array<string> {
@@ -142,7 +142,8 @@ export function getAllPropertyNames(inObj: interface { [string]: mixed }): Array
 }
 
 /**
- * Get the cleanest version of
+ * Get the properties of interest (i.e. excluding all the ones added automatically)
+ * @author @dwertheimer
  * @param {object} object
  * @returns {Array<string>} - an array of the interesting properties of the object
  */
@@ -161,7 +162,7 @@ export const getFilteredProps = (object: any): Array<string> => {
  * prototypes that are not normally visible in JSON.stringify
  * (e.g. most objects that come from the NotePlan API)
  * @author @dwertheimer
- * @param {*} obj
+ * @param {any} obj
  */
 export function copyObject(obj: any): any {
   const props = getAllPropertyNames(obj)
@@ -174,7 +175,6 @@ export function copyObject(obj: any): any {
 /**
  * Print to the console log, the properties of an object (including its prototype/private methods). This is useful if you want to know which properties are on the object vs the prototype because it will display in two lines, but it's more succinct to use getAllPropertyNames()
  * @author @dwertheimer
- *
  * @param {object} obj
  * @returns {void}
  */
@@ -327,4 +327,95 @@ export function timer(startTime: Date): string {
   const d = new Date(difference)
   const diffText = `${d.getMinutes()}m${d.getSeconds()}s.${d.getMilliseconds()}ms`
   return diffText
+}
+
+/**
+ * Add or override parameters from args to the supplied config object. 
+ * This is the **simple version** that treats all the passed arguments as strings, leaving any typing to the developer.
+ * Note: use the advanced version to pass arrays
+ * @author @jgclark and @dwertheimer
+ * @param {any} config object
+ * @param {string} argsAsString e.g. 'field1=Bob Skinner,field2=Charlie Rose'
+ * @returns {any} configOut 
+ */
+export function overrideSettingsWithStringArgs(config: any, argsAsString: string): any {
+  try {
+    // Parse argsAsJSON (if any) into argObj using assuming JSON
+    if (argsAsString) {
+      const argObj = {}
+      argsAsString.split(',').forEach((arg) => (arg.split('=').length === 2 ? (argObj[arg.split('=')[0]] = arg.split('=')[1]) : null))
+
+      // use the built-in way to add (or override) from argObj into config
+      const configOut = Object.assign(config)
+
+      // Attempt to change arg values that are numerics or booleans to the right types, otherwise they will stay as strings
+      for (const key in argObj) {
+        let value = argObj[key]
+        console.log(`For ${typeof value} '${value}'`)
+        if (!isNaN(value)) {
+          // Change to number type
+          value = Number(value)
+        }
+        else if (value === "false") {
+          // Change to boolean type
+          value = false
+        }
+        else if (value === "true") {
+          // Change to boolean type
+          value = true
+        }
+        configOut[key] = value
+      }
+      return configOut
+    }
+    else {
+      return config
+    }
+  }
+  catch (error) {
+    console.log(JSP(error))
+  }
+}
+
+/**
+ * Add or override parameters from args to the supplied config object. This is the **advanced version** that respects typing of the passed arguments, by using JSON.
+ * Note: tested with strings, ints, floats, boolean and array of strings.
+ * @author @jgclark
+ * @param {any} config object
+ * @param {string} argsAsJSON e.g. '{"style":"markdown", "exludedFolders:["one","two","three"]}'
+ * @returns {any} configOut 
+ */
+export function overrideSettingsWithTypedArgs(config: any, argsAsJSON: string): any {
+  try {
+    // Parse argsAsJSON (if any) into argObj using assuming JSON
+    if (argsAsJSON) {
+      let argObj = {}
+      argObj = JSON.parse(argsAsJSON)
+      // use the built-in way to add (or override) from argObj into config
+      const configOut = Object.assign(config, argObj)
+      return configOut
+    }
+    else {
+      return config
+    }
+  }
+  catch (error) {
+    console.log(JSP(error))
+  }
+}
+
+/**
+ * A version of overrideSettingsWithTypedArgs that first URL-decodes the args
+ * @author @jgclark
+ * @param {any} config object
+ * @param {string} argsAsEncodedJSON e.g. '%7B%22style%22%3A%22markdown%22%2C%20%22exludedFolders%3A%5B%22one%22%2C%22two%22%2C%22three%22%5D%7D'
+ * @returns {any} configOut 
+ */
+export function overrideSettingsWithEncodedTypedArgs(config: any, argsAsEncodedJSON: string): any {
+  try {
+    return (overrideSettingsWithTypedArgs(config, decodeURIComponent(argsAsEncodedJSON)))
+  }
+  catch (error) {
+    console.log(JSP(error))
+  }
 }
