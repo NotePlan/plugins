@@ -3,7 +3,7 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 
 <!-- TODO: Think about saving 'noteplan' view as well as 'rich' style each time -->
 
-## [0.8.0] - ???
+## [0.8.0] - 2022-09-18
 Major new version of the **/project lists** command:
 - option for 'rich' style output which shows an HTML view (requires NotePlan 3.7) complete with coloured progress rings
 - now opens the review list note (if previous 'NotePlan' style used)
@@ -11,7 +11,7 @@ Major new version of the **/project lists** command:
 - now removes folders with no active projects from the output lists
 - new option 'Display dates?' that can suppress printing project dates if you want (for @LaurenaRehbein)
 - new option 'Display progress?' that can suppress printing project progress if you want (for @LaurenaRehbein)
-??? - now can be triggered by an x-callback call (see README for details)
+- now can be triggered by an x-callback call (see README for details)
 
 ## [0.7.1] - 2022-08-03
 ### Fixed

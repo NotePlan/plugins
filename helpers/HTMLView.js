@@ -50,7 +50,6 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     themeJSON = Editor.currentTheme.values
 
     // TODO: allow for specified theme, not just current one
-    // Read theme (old way)
     // logDebug('generateCSSFromTheme', `Reading theme '${themeName}'`)
     // const relativeThemeFilepath = `../../../Themes/${themeName}.json` // TODO: will need updating
     // const themeJSON = DataStore.loadJSON(relativeThemeFilepath)
@@ -264,7 +263,7 @@ export function textDecorationFromNP(selector: string, value: number): string {
   } else if (selector === 'strikethroughStyle') {
     switch (value) {
       case 1: {
-        return "text-decoration: underline dashed" //line-through"
+        return "text-decoration: line-through"
       }
       case 9: { // double
         return "text-decoration: line-through double"
@@ -586,5 +585,6 @@ export function redToGreenInterpolation(percent: number): string {
  * @returns {string} #RRGGBB value
  */
 export function rgbToHex(r: number, g: number, b: number): string {
+  // eslint-disable-next-line prefer-template
   return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)
 }

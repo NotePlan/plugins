@@ -58,7 +58,7 @@ export async function getReviewSettings(): Promise<any> {
       await showMessage(`Cannot find settings for the 'Reviews' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
       return
     }
-    clo(v2Config, `Review settings:`)
+    // clo(v2Config, `Review settings:`)
 
     // Need to store some things in the Preferences API mechanism, in order to pass things to the Project class
     DataStore.setPreference('startMentionStr', v2Config.startMentionStr)
@@ -514,16 +514,16 @@ export class Project {
         }
 
       case 'markdown':
-        let output = '_Key:  Project/Area Title'
-        if (displayProgress) {
-          // output += '#tasks open / complete / waiting / future'
-          output += '\tProgress'
-        }
+        // only add header if putting dates, otherwise not needed
         if (displayDates) {
-          output += '\tNext review / Due date'
+          let output = '_Key:  Project/Area Title'
+          if (displayProgress) {
+            // output += '#tasks open / complete / waiting / future'
+            output += '\tProgress'
+          }
+          output += '\tNext review / Due date_'
+          return output
         }
-        output += '_'
-        return output
 
       default:
         logWarn('Project::detailedSummaryLineHeader', `Unknown style '${style}'; nothing returned.`)

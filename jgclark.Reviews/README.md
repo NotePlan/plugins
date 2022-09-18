@@ -1,7 +1,9 @@
 # 🔬 Reviews  plugin
-Unlike many task or project management apps, NotePlan has very little enforced structure, and entirely text/markdown based.  This makes it much more flexible, but makes it less obvious how to use it for tracking and managing complex work, loosely referred to here as 'Projects'.   This plugin provides commands to help **review** Project-based notes, and it helps me manage about 100 such projects.. This will be familiar to people who use David Allen's **Getting Things Done** approach, or any other where **regular reviews** are important. (It probably won't have much applicability to people who just use NotePlan as a Zettelkasten-style knowledge base.)
+Unlike many task or project management apps, NotePlan has very little enforced structure, and is entirely text/markdown based.  This makes it much more flexible, but makes it less obvious how to use it for tracking and managing complex work, loosely referred to here as 'Projects'.
 
-(If you're using the helpful [PARA Approach](https://fortelabs.co/blog/series/para/), then your **Areas** are also a form of Project, at least as far as Reviewing them goes.)
+This plugin provides commands to help **review** Project-based notes, and it helps me manage over 50 such projects. This will be familiar to people who use David Allen's **Getting Things Done** approach, or any other where **regular reviews** are important. (It probably won't have much applicability to people who just use NotePlan as a Zettelkasten-style knowledge base.)
+
+If, like me, you're using the helpful [PARA Approach](https://fortelabs.co/blog/series/para/), then your **Areas** are also a form of Project, at least as far as Reviewing them goes.
 
 User George Crump (@george65) has created a [great video showing how the plugin works](https://bit.ly/3l1tSw4).
 
@@ -82,6 +84,15 @@ Other settings:
 On the second line is a button 'Start reviewing _N_ ready for review', which is a shortcut to the '/start reviews' command (described next).
 Each project title is also an active link which can be clicked to take you to that project note. (Or Option-click to open that in a new split window, which keeps the review list open.)
 
+#### Running from x-callback call
+From v0.8 this command can be run from an x-callback call:
+
+`noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=project%20lists`
+
+If you wish to override your current settings for this call, add `&arg0=` followed by a URL encoded version of keys and values e.g. `arg0=displayDates%3Dtrue%2CdisplayProgress%3Dfalse%2CdisplayGroupedByFolder%3Dfalse`.
+
+The name of the settings are taken from the `key`s from the plugin's `plugin.json` file, which are mostly the names shown in the settings dialog without spaces.
+
 ### /start reviews
 This creates a hidden list of notes ready for review, and then kicks off the most overdue review by opening that note in the editor. When you have finished the review run one of the next two commands ...
 
@@ -106,8 +117,11 @@ These commands require configuration, which is done by clicking the gear button 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
 
-If you would like to support my late-night work extending NotePlan through writing these plugins, you can through:
-![https://www.buymeacoffee.com/revjgc](https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg). Thanks!
+If you would like to support my late-night work extending NotePlan through writing these plugins, you can through
+
+![https://www.buymeacoffee.com/revjgc](https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg)
+
+Thanks!
 
 ## Changes
 Please see the [CHANGELOG](CHANGELOG.md).

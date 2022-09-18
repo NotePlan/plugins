@@ -2,9 +2,10 @@
 //-----------------------------------------------------------------------------
 // Commands for producing Project lists
 // by @jgclark
-// Last updated 17.9.2022 for v0.8.0-beta, @jgclark
+// Last updated 19.9.2022 for v0.8.0, @jgclark
 //-----------------------------------------------------------------------------
-// TODO: add x-callback support
+// FIXME: 0% complete projects are missing their titles in HTML view
+// FIXME: button again
 
 import pluginJson from "../plugin.json"
 import {
@@ -18,7 +19,7 @@ import {
   nowLocaleDateTime,
   RE_DATE,
 } from '@helpers/dateTime'
-import { logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
+import { clo, JSP, logDebug, logError, logInfo, logWarn, overrideSettingsWithStringArgs, timer } from '@helpers/dev'
 import {
   filterFolderList,
 } from '@helpers/folders'
@@ -37,7 +38,7 @@ import {
 
 //-----------------------------------------------------------------------------
 
-const reviewListCSS = [
+export const reviewListCSS: string = [
   '',
   '/* CSS specific to reviewList() from jgclark.Reviews plugin */',
   `@font-face {
@@ -66,7 +67,7 @@ const reviewListCSS = [
   '.circle-char-text { font-size: 1.9rem; font-family: "noteplanstate" }' // details of ring text that can be set in CSS, including font, locally set above
 ].join('\n\t')
 
-const setPercentRingJSFunc = `
+export const setPercentRingJSFunc: string = `
   /**
    * Sets the value of a SVG percent ring.
    * @param {number} percent The percent value to set.
@@ -86,25 +87,41 @@ const setPercentRingJSFunc = `
     // text.textContent = String(percent); // + '%';
   }
   `
+
 /**
  * Decide which of the project list outputs to call.
+ * Now includes support for calling from x-callback, using simple "a=b,x=y" version of settings and values.
  */
-export async function makeProjectLists(): Promise<void> {
-  const config = await getReviewSettings()
-  if (config.outputStyle === 'Rich' && NotePlan.environment.buildVersion >= 845) {
-    await makeProjectListsHTML()
-  } else {
-    await makeProjectListsMarkdown()
+export async function makeProjectLists(argsIn?: string | null = null): Promise<void> {
+  try {
+    let args = argsIn?.toString() || ''
+    logDebug('makeProjectLists', `starting with args <${args}>`)
+    let config = await getReviewSettings()
+    if (args !== '') {
+      config = overrideSettingsWithStringArgs(config, args)
+      clo(config, 'Review settings updated with args:')
+    } else {
+      clo(config, 'Review settings with no args:')
+    }
+
+    // Call the relevant function with the updated config
+    if (config.outputStyle === 'Rich' && NotePlan.environment.buildVersion >= 845) {
+      await makeProjectListsHTML(config)
+    } else {
+      await makeProjectListsMarkdown(config)
+    }
+  } catch (error) {
+    logError(pluginJson, JSP(error))
   }
 }
 
 /**
- * Generate human-readable lists of project notes for each tag of interest
- * using temporary HTML output. 
- * Note: Requires NP 3.6.2 (build 844) or greater.
+ * Generate human-readable lists of project notes for each tag of interest using HTML output. 
+ * Note: Requires NP 3.7.0 (build 844) or greater.
  * @author @jgclark
- */
-export async function makeProjectListsHTML(): Promise<void> {
+* @param {any} config - from settings (and any passed args)
+*/
+export async function makeProjectListsHTML(config: any): Promise<void> {
   try {
     // Check to see if we're running v3.6.2, build 844) or later
     if (NotePlan.environment.buildVersion <= 844) {
@@ -114,8 +131,7 @@ export async function makeProjectListsHTML(): Promise<void> {
 
     const style = 'HTML'
 
-    const config = await getReviewSettings()
-    logDebug(pluginJson, `makeProjectListsHTML: starting for ${config.noteTypeTags.toString()} tags:`)
+    logDebug(pluginJson, `makeProjectListsHTML: starting for ${config.noteTypeTags.toString()} tags`)
 
     if (config.noteTypeTags.length > 0) {
       // We have defined tag(s) to filter and group by
@@ -127,7 +143,7 @@ export async function makeProjectListsHTML(): Promise<void> {
 
         // Do the main work
         // Calculate the Summary list(s)
-        const outputArray = await makeNoteTypeSummary(tag, style)
+        const outputArray = await makeNoteTypeSummary(tag, style, config)
 
         // Display the list(s) as HTML
         logDebug(pluginJson, `- writing results to HTML output ...`)
@@ -148,7 +164,7 @@ export async function makeProjectListsHTML(): Promise<void> {
       const title = `Review List`
       const noteTitle = `Review List.HTML`
       // Calculate the Summary list(s)
-      const outputArray = await makeNoteTypeSummary('', style)
+      const outputArray = await makeNoteTypeSummary('', style, config)
 
       // Show the list(s) as HTML, and save a copy as file
       logDebug(pluginJson, `- writing results to HTML output ...`)
@@ -173,12 +189,12 @@ export async function makeProjectListsHTML(): Promise<void> {
  * Generate human-readable lists of project notes in markdown for each tag of interest
  * and write out to note(s) in the config.folderToStore folder.
  * @author @jgclark
+ * @param {any} config - from settings (and any passed args)
  */
-export async function makeProjectListsMarkdown(): Promise<void> {
+export async function makeProjectListsMarkdown(config: any): Promise<void> {
   try {
     const style = 'markdown'
-    const config = await getReviewSettings()
-    logDebug(pluginJson, `makeProjectLists: starting for ${config.noteTypeTags.toString()} tags:`)
+    logDebug(pluginJson, `makeProjectLists: starting for ${config.noteTypeTags.toString()} tags`)
 
     if (config.noteTypeTags.length > 0) {
       // We have defined tag(s) to filter and group by
@@ -192,7 +208,7 @@ export async function makeProjectListsMarkdown(): Promise<void> {
         const note: ?TNote = await getOrMakeNote(noteTitleWithoutHash, config.folderToStore)
         if (note != null) {
           // Calculate the Summary list(s)
-          const outputArray = await makeNoteTypeSummary(tag, style)
+          const outputArray = await makeNoteTypeSummary(tag, style, config)
           outputArray.unshift(`# ${noteTitle}`)
 
           // Save the list(s) to this note
@@ -212,7 +228,7 @@ export async function makeProjectListsMarkdown(): Promise<void> {
       const note: ?TNote = await getOrMakeNote(noteTitle, config.folderToStore)
       if (note != null) {
         // Calculate the Summary list(s)
-        const outputArray = await makeNoteTypeSummary('', style)
+        const outputArray = await makeNoteTypeSummary('', style, config)
         outputArray.unshift(`# ${noteTitle}`)
 
         // Save the list(s) to this note
@@ -240,12 +256,13 @@ export async function makeProjectListsMarkdown(): Promise<void> {
  * 
  * @param {string} noteTag - hashtag to look for
  * @param {string} style - 'markdown' or 'HTML'
+ * @param {any} config - from settings (and any passed args)
  * @returns {Array<string>} summary lines to write out to a note
  */
-async function makeNoteTypeSummary(noteTag: string, style: string): Promise<Array<string>> {
+async function makeNoteTypeSummary(noteTag: string, style: string, config: any): Promise<Array<string>> {
   try {
     logDebug('makeNoteTypeSummary', `Starting for '${noteTag}' in ${style} style`)
-    const config = await getReviewSettings()
+
     const filteredFolderList = filterFolderList(config.foldersToIgnore)
     logDebug('makeNoteTypeSummary', `- for ${filteredFolderList.length} folders: '${String(filteredFolderList)}'`)
 
@@ -376,23 +393,4 @@ async function makeNoteTypeSummary(noteTag: string, style: string): Promise<Arra
     logError('makeNoteTypeSummary', `${error.message}`)
     return []
   }
-}
-
-export function testRedToGreenInterpolation(): void {
-  let body = '<p>Testing out the colour interpolation.</p>'
-  for (let i = 0; i <= 100; i = i + 5) {
-    body += `${makeSVGPercentRing(100, redToGreenInterpolation(i), `${i}%`, `id${i}`)}
-`
-  }
-  showHTML(
-    'Red to Green test',
-    '',
-    body,
-    '',
-    reviewListCSS,
-    false, // not modal
-    setPercentRingJSFunc,
-    '',
-    'redToGreenInterpolation.test.html'
-  )
 }

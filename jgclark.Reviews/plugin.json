@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "0.8.0-beta4",
-  "plugin.lastUpdateInfo": "Offers Proof of Concept HTML view of '/project lists', requiring NP v3.6.2.",
+  "plugin.version": "0.8.0-beta5",
+  "plugin.lastUpdateInfo": "Offers Proof of Concept HTML view of '/project lists', requiring NP v3.7. Can now be run from x-callback.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -21,7 +21,10 @@
         "list"
       ],
       "description": "creates/updates a human-readable list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete.",
-      "jsFunction": "makeProjectLists"
+      "jsFunction": "makeProjectLists",
+      "arguments": [
+        "comma-separated list of setting keys and their values"
+      ]
     },
     {
       "name": "start reviews",
@@ -37,7 +40,7 @@
         "gtd",
         "reviewed"
       ],
-      "description": "updates the current open project's @reviewed() date",
+      "description": "updates the currently open project's @reviewed() date",
       "jsFunction": "finishReview"
     },
     {
@@ -91,7 +94,7 @@
     },
     {
       "name": "test:NoteplanstateFont",
-      "description": "test Noteplanstate Font",
+      "description": "test 'noteplanstate' font glyphs",
       "jsFunction": "testNoteplanStateFont"
     },
     {
@@ -103,6 +106,16 @@
       "name": "test:redToGreenInterpolation",
       "description": "test red - green interpolation",
       "jsFunction": "testRedToGreenInterpolation"
+    },
+    {
+      "name": "test:ButtonTriggerCommand",
+      "description": "test Button Trigger Command",
+      "jsFunction": "testButtonTriggerCommand"
+    },
+    {
+      "name": "test:buttonTriggerOpenNote",
+      "description": "test Button Trigger OpenNote",
+      "jsFunction": "testButtonTriggerOpenNote"
     }
   ],
   "plugin.settings": [
@@ -113,8 +126,7 @@
     {
       "key": "outputStyle",
       "title": "Output style to use",
-      "comment": "TODO: this will need to change.",
-      "description": "Use Rich (HTML) output where possible? Note: This is an experimental style available from NotePlan v3.7, which doesn't result in a saved note.\nOr use the original NotePlan (Markdown) output style.",
+      "description": "Use 'Rich' (HTML) output (an experimental style available from NotePlan v3.7).\nOr use the original 'NotePlan' (Markdown) output style.\nNote: the 'Rich' output doesn't result in a saved note.",
       "type": "string",
       "choices": [
         "Rich",
