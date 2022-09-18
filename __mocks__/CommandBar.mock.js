@@ -8,20 +8,40 @@
  */
 
 const CommandBar = {
-  // async hide() { return null },
-  // async onAsyncThread() { return null },
-  // async onMainThread() { return null },
-  // async openURL() { return null },
+  async hide() {
+    return
+  },
+  async onAsyncThread() {
+    return
+  },
+  async onMainThread() {
+    return
+  },
+  async openURL() {
+    return
+  },
   placeholder: 'CommandBar placeholder',
   async prompt(title = '', message = '') {
     console.log(`CommandBar prompt: ${title}: ${message}`)
     return `CommandBar.prompt ${title} ${message}`
   },
-  // searchText: VALUE ,
-  // async showInput() { return null },
-  // async showLoading() { return null },
-  // async showOptions() { return null },
-  // async textPrompt() { return null },
+  searchText: 'some text',
+  async showInput(placeholder, submitText) {
+    return placeholder //return the placeholder string as input
+  },
+
+  async showLoading(visible, text, progress) {
+    return
+  },
+  async showOptions(options, placeholder) {
+    return { index: 0, value: options[0], keyModifiers: ['cmd', 'opt', 'shift', 'ctrl'] }
+  },
+  async prompt(title, message, buttons) {
+    return message //return the message string as input
+  },
+  async textPrompt(title, message, defaultText) {
+    return message //return the message string as input
+  },
 }
 
 module.exports = CommandBar

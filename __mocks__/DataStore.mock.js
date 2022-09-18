@@ -6,6 +6,9 @@
  * For functions: check whether async or not & add params & return value
  *
  */
+import * as samplePlugin from './support/pluginSample.json'
+
+let __json = samplePlugin //variable used for saving/getting json
 
 const DataStore = {
   // async calendarNoteByDate() { return null },
@@ -42,7 +45,9 @@ const DataStore = {
   // async isPluginInstalledByID() { return null },
   // async listPlugins() { return null },
   // async loadData() { return null },
-  // async loadJSON() { return null },
+  async loadJSON(str) {
+    return __json
+  },
   // async moveNote() { return null },
   async newNote(title = '', folder = '') {
     return `# ${title}`
@@ -90,7 +95,10 @@ const DataStore = {
 } }], */
   // async referencedBlocks() { return null },
   // async saveData() { return null },
-  // async saveJSON() { return null },
+  async saveJSON(object, filename) {
+    __json = object
+    return true
+  },
   // async search() { return null },
   // async searchCalendarNotes() { return null },
   // async searchProjectNotes() { return null },

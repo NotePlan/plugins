@@ -1,4 +1,5 @@
 // @flow
+// this file is boilerplate (for now, until you write some functions that can be Jest tested without NotePlan API)
 // Here's an example function that can be imported and used in the plugin code
 // More importantly, this function is pure (no NotePlan API calls), which means it can be tested
 // see __tests__/helpers.test.js

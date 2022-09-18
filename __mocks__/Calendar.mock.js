@@ -23,7 +23,9 @@ const Calendar = {
   // async eventByID() { return null },
   // async eventsBetween() { return null },
   // async eventsToday() { return null },
-  parseDateText(str) { return ({start: new Date("2022-01-01 00:00"), end: new Date("2022-01-01 03:00"), text: str, index: 2}) },
+  parseDateText(str) {
+    return { start: new Date('2022-01-01 00:00'), end: new Date('2022-01-01 03:00'), text: str, index: 2 }
+  },
   // async reminderByID() { return null },
   // async remindersBetween() { return null },
   // async remindersByLists() { return null },
@@ -35,6 +37,9 @@ const Calendar = {
   // async unitsBetween() { return null },
   // async unitsUntilNow() { return null },
   // async update() { return null },
+  endOfWeek(date) {},
+  startOfWeek(date) {},
+  weekNumber(date) {},
 }
 
 module.exports = Calendar

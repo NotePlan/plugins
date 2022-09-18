@@ -4,8 +4,8 @@
   "noteplan.minAppVersion": "3.6.2",
   "plugin.id": "np.ThemeChooser",
   "plugin.name": "🎨 Theme Chooser",
-  "plugin.version": "1.3.1",
-  "plugin.lastUpdateInfo": "1.3.0: Update theme chooser for API changes",
+  "plugin.version": "1.4.1",
+  "plugin.lastUpdateInfo": "1.4.1: Ensure Editor is active before running. Hunting for an iOS bug\n1.4.0: Revamping under-the-hood to allow users to set their own preset names. Sorry that this is a breaking change and may require you to reset your presets. 1.3.0: Update theme chooser for API changes",
   "plugin.description": "Choose from your favorite themes",
   "plugin.author": "dwertheimer",
   "plugin.dependencies": [],
@@ -41,33 +41,52 @@
       "jsFunction": "changePreset"
     },
     {
+      "name": "Add a Style to a Custom Theme",
+      "description": "Choose Style from Master Stylesheet",
+      "jsFunction": "copyThemeStyle",
+      "alias": [],
+      "arguments": []
+    },
+    {
+      "name": "Edit a Theme Style Attribute",
+      "description": "Choose Style from Custom Theme",
+      "jsFunction": "editStyleAttribute",
+      "alias": [],
+      "arguments": []
+    },
+    {
       "name": "Theme Chooser: Set Preset 01",
       "description": "Switch Theme",
-      "jsFunction": "setPreset01",
+      "jsFunction": "runPreset01",
+      "isPreset": true,
       "hidden": true
     },
     {
       "name": "Theme Chooser: Set Preset 02",
       "description": "Switch Theme",
-      "jsFunction": "setPreset02",
+      "jsFunction": "runPreset02",
+      "isPreset": true,
       "hidden": true
     },
     {
       "name": "Theme Chooser: Set Preset 03",
       "description": "Switch Theme",
-      "jsFunction": "setPreset03",
+      "jsFunction": "runPreset03",
+      "isPreset": true,
       "hidden": true
     },
     {
       "name": "Theme Chooser: Set Preset 04",
       "description": "Switch Theme",
-      "jsFunction": "setPreset04",
+      "jsFunction": "runPreset04",
+      "isPreset": true,
       "hidden": true
     },
     {
       "name": "Theme Chooser: Set Preset 05",
       "description": "Switch Theme",
-      "jsFunction": "setPreset05",
+      "jsFunction": "runPreset05",
+      "isPreset": true,
       "hidden": true
     }
   ],
@@ -102,42 +121,42 @@
       "title": "Theme Chooser Settings"
     },
     {
-      "key": "setPreset01",
+      "key": "runPreset01",
       "type": "hidden",
       "default" : "",
       "title": "Preset 01",
       "description": "Do not change this setting manually. Use the \"/Change Theme Preset\" command."
     },
     {
-      "key": "setPreset01",
+      "key": "runPreset01",
       "type": "hidden",
       "default" : "",
       "title": "Preset 01",
       "description": "Do not change this setting manually. Use the \"/Change Theme Preset\" command."
     },
     {
-      "key": "setPreset02",
+      "key": "runPreset02",
       "type": "hidden",
       "default" : "",
       "title": "Preset 01",
       "description": "Do not change this setting manually. Use the \"/Change Theme Preset\" command."
     },
     {
-      "key": "setPreset03",
+      "key": "runPreset03",
       "type": "hidden",
       "default" : "",
       "title": "Preset 01",
       "description": "Do not change this setting manually. Use the \"/Change Theme Preset\" command."
     },
     {
-      "key": "setPreset04",
+      "key": "runPreset04",
       "type": "hidden",
       "default" : "",
       "title": "Preset 01",
       "description": "Do not change this setting manually. Use the \"/Change Theme Preset\" command."
     },
     {
-      "key": "setPreset05",
+      "key": "runPreset05",
       "type": "hidden",
       "default" : "",
       "title": "Preset 01",
