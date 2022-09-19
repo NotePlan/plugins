@@ -929,10 +929,14 @@ export default class NPTemplating {
     try {
       await this.setup()
 
-      let sessionData = { ...userData }
+      let sessionData = { ...userData },
+        templateData = ''
 
-      // work around an issue when creating templates references on iOS (Smart Quotes Enabled)
-      let templateData = inTemplateData.replace(/‘/gi, `'`).replace(/’/gi, `'`).replace(/“/gi, `'`).replace(/”/gi, `'`)
+      if (inTemplateData?.replace) {
+        // front-matter doesn't always return strings (e.g. "true" is turned into a boolean)
+        // work around an issue when creating templates references on iOS (Smart Quotes Enabled)
+        templateData = inTemplateData.replace(/‘/gi, `'`).replace(/’/gi, `'`).replace(/“/gi, `'`).replace(/”/gi, `'`)
+      }
 
       // small edge case, likey never hit
       if (typeof templateData !== 'string') {
@@ -1043,7 +1047,7 @@ export default class NPTemplating {
     for (const item of attributeKeys) {
       let value = frontmatterAttributes[item]
 
-      let attributeValue = await this.render(value, sectionData)
+      let attributeValue = typeof value === 'string' ? await this.render(value, sectionData) : value
       sectionData[item] = attributeValue
       frontmatterAttributes[item] = attributeValue
     }

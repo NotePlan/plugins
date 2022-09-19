@@ -6,18 +6,22 @@
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
  * -----------------------------------------------------------------------------------------*/
 
+import moment from 'moment'
 import { replaceContentUnderHeading } from '@helpers/NPParagraph'
+import { findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { helpInfo } from '../lib/helpers'
-import { logError, logDebug, JSP } from '@helpers/dev'
+import { logError, logDebug, JSP, clo, overrideSettingsWithStringArgs } from '@helpers/dev'
 import { getISOWeekAndYear, getISOWeekString } from '@helpers/dateTime'
-import { chooseNote } from "@helpers/userInput"
+import { getNPWeekData } from '@helpers/NPdateTime'
+import { chooseNote } from '@helpers/userInput'
 
 import NPTemplating from 'NPTemplating'
 import FrontmatterModule from '@templatingModules/FrontmatterModule'
 
 import pluginJson from '../plugin.json'
-import { chooseHeading } from "@helpers/userInput";
-import { selectFirstNonTitleLineInEditor } from "@helpers/NPnote";
+import { chooseHeading } from '@helpers/userInput'
+import { selectFirstNonTitleLineInEditor } from '@helpers/NPnote'
+import { showMessage } from '../../helpers/userInput'
 
 /**
  * Write out the contents to either Today's Calendar note or the Note which was opened
@@ -29,37 +33,59 @@ import { selectFirstNonTitleLineInEditor } from "@helpers/NPnote";
  * @param {*} options
  *    shouldOpenInEditor - if true, will open the note in the editor, otherwise will write silently to the note
  *    createMissingHeading - if true, will create heading when it does not exist in note
+ *    replaceNoteContents - if yes (true doesn't work not sure why), will replace all the content in the note (other than the title)
  */
 export async function writeNoteContents(
   note: TNote,
   renderedTemplate: string,
   headingName: string,
   location: string,
-  options?: any = { shouldOpenInEditor: false, createMissingHeading: false },
+  options?: any = { shouldOpenInEditor: false, createMissingHeading: false, replaceNoteContents: false },
 ): Promise<void> {
   let writeUnderHeading = headingName
   if (note) {
-    logDebug(pluginJson,`openNote:"${note.title}" writeUnderHeading:${writeUnderHeading} location:${location} options:${JSP(options)} renderedTemplate:\n---\n${renderedTemplate}\n---`)
-    if (/<choose>/i.test(writeUnderHeading) || /<select>/i.test(writeUnderHeading)) {
-      writeUnderHeading = await chooseHeading(note,true)
-    }
-    if ((writeUnderHeading && note?.content?.indexOf(`${writeUnderHeading}\n`) !== -1) || options.createMissingHeading) {
-      if (writeUnderHeading) {
-        if (location === 'replace') {
-          await replaceContentUnderHeading(note, writeUnderHeading, renderedTemplate)
+    logDebug(
+      pluginJson,
+      `writeNoteContents title:"${note.title || ''}" writeUnderHeading:${writeUnderHeading} location:${location} options:${JSP(
+        options,
+      )} renderedTemplate:\n---\n${renderedTemplate}\n---`,
+    )
+    if (options.replaceNoteContents) {
+      logDebug(pluginJson, `NPEditor::writeNoteContents replacing note contents (options.replaceNoteContents === true)`)
+      const startIndex = findStartOfActivePartOfNote(note)
+      logDebug(pluginJson, `NPEditor::writeNoteContents deleting everything after line #${startIndex}`)
+      const parasToKeep = note.paragraphs.filter((p) => p.lineIndex < startIndex)
+      const parasToRemove = note.paragraphs.filter((p) => p.lineIndex >= startIndex)
+      const strToKeep = parasToKeep.map((p) => p.rawContent).join('\n')
+      logDebug(pluginJson, `NPEditor::adding in renderedTemplate (${renderedTemplate.split('\n').length} lines)`)
+      note.content = `${strToKeep}\n${renderedTemplate}`
+      // note.insertParagraph(renderedTemplate, startIndex, 'text') // Note: not dealing with headings due to race conditions after delete
+      // options.createMissingHeading = true
+      return
+    } else {
+      if (/<choose>/i.test(writeUnderHeading) || /<select>/i.test(writeUnderHeading)) {
+        writeUnderHeading = await chooseHeading(note, true)
+      }
+      if ((writeUnderHeading && note?.content?.indexOf(`${writeUnderHeading}\n`) !== -1) || options.createMissingHeading) {
+        if (writeUnderHeading) {
+          if (location === 'replace') {
+            await replaceContentUnderHeading(note, writeUnderHeading, renderedTemplate)
+          } else {
+            note.addParagraphBelowHeadingTitle(renderedTemplate, 'text', writeUnderHeading, location === 'append', true)
+          }
         } else {
-          note.addParagraphBelowHeadingTitle(renderedTemplate, 'text', writeUnderHeading, location === 'append', true)
+          location == 'append' ? note.appendParagraph(renderedTemplate, 'text') : note.prependParagraph(renderedTemplate, 'text')
+        }
+        if (options.shouldOpenInEditor) {
+          await Editor.openNoteByFilename(note.filename)
+          selectFirstNonTitleLineInEditor()
         }
       } else {
-        location == 'append' ? note.appendParagraph(renderedTemplate, 'text') : note.prependParagraph(renderedTemplate, 'text')
+        await CommandBar.prompt(`"${writeUnderHeading}" heading does not exist in note.`, '')
       }
-      if (options.shouldOpenInEditor) {
-        await Editor.openNoteByFilename(note.filename)
-        selectFirstNonTitleLineInEditor()
-      }
-    } else {
-      await CommandBar.prompt(`"${writeUnderHeading}" heading does not exist in note.`, '')
     }
+  } else {
+    logDebug(pluginJson, `NPEditor::writeNoteContents -- there was no note to write to`)
   }
 }
 
@@ -77,12 +103,16 @@ export async function writeNoteContents(
  * xcallback note: arg1 is template name, arg2 is whether to open in editor, arg3 is a list of vars to pass to template equals sign is %3d
  * @author @dwertheimer
  */
-export async function templateFileByTitleEx(selectedTemplate?: string = '', openInEditor?: boolean = false, args?: string|null = null): Promise<void> {
+export async function templateFileByTitleEx(selectedTemplate?: string = '', openInEditor?: boolean = false, args?: string | null = null): Promise<void> {
   try {
-    logDebug(pluginJson,`templateFileByTitleEx Starting Self-Running Template Execution: "${selectedTemplate}" openInEditor:${String(openInEditor)} args:${args?.toString()||''}`)
+    logDebug(
+      pluginJson,
+      `templateFileByTitleEx Starting Self-Running Template Execution: "${selectedTemplate}" openInEditor:${String(openInEditor)} args:${args?.toString() || ''}`,
+    )
     if (selectedTemplate.length !== 0) {
-      let argObj = {}
-      args && args.split(',').forEach((arg) => (arg.split('=').length === 2 ? (argObj[arg.split('=')[0]] = arg.split('=')[1]) : null))
+      const argObj = overrideSettingsWithStringArgs({}, args || '')
+      clo(argObj, `templateFileByTitleEx after overrideSettingsWithStringArgs argObj`)
+      // args && args.split(',').forEach((arg) => (arg.split('=').length === 2 ? (argObj[arg.split('=')[0]] = arg.split('=')[1]) : null))
       if (!selectedTemplate || selectedTemplate.length === 0) {
         await CommandBar.prompt('You must supply a template title as the first argument', helpInfo('Presets'))
       }
@@ -95,57 +125,62 @@ export async function templateFileByTitleEx(selectedTemplate?: string = '', open
       const isFrontmatter = new FrontmatterModule().isFrontmatterTemplate(templateData)
       if (!failed && isFrontmatter) {
         const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
+        // clo(frontmatterAttributes, `templateFileByTitleEx frontMatterAttributes after preRender`)
         let data = { ...frontmatterAttributes, ...argObj, frontmatter: { ...frontmatterAttributes, ...argObj } }
         let renderedTemplate = await NPTemplating.render(frontmatterBody, data)
-        logDebug(pluginJson,`templateFileByTitleEx Template Render Complete renderedTemplate= "${renderedTemplate}"`)
-
-        const { openNoteTitle, writeNoteTitle, location, writeUnderHeading } = frontmatterAttributes
+        // logDebug(pluginJson, `templateFileByTitleEx Template Render Complete renderedTemplate= "${renderedTemplate}"`)
+        // clo(frontmatterAttributes, `templateFileByTitleEx frontMatterAttributes before set`)
+        const { openNoteTitle, writeNoteTitle, location, writeUnderHeading, replaceNoteContents } = frontmatterAttributes
+        // clo(frontmatterAttributes, `templateFileByTitleEx after destructure - replaceNoteContents`)
         let noteTitle = (openNoteTitle && openNoteTitle.trim()) || (writeNoteTitle && writeNoteTitle?.trim()) || ''
         let shouldOpenInEditor = (openNoteTitle && openNoteTitle.length > 0) || openInEditor
         const createMissingHeading = true
-        logDebug(pluginJson,`templateFileByTitleEx First checks noteTitle= "${noteTitle}"`)
         if (/<choose>/i.test(noteTitle) || /<select>/i.test(noteTitle)) {
-          logDebug(pluginJson,`templateFileByTitleEx Inside choose code`)
+          logDebug(pluginJson, `templateFileByTitleEx Inside choose code`)
           const chosenNote = await chooseNote()
           noteTitle = chosenNote?.title || ''
-          logDebug(pluginJson,`templateFileByTitleEx: noteTitle: ${noteTitle}`)
+          logDebug(pluginJson, `templateFileByTitleEx: noteTitle: ${noteTitle}`)
         }
         const isTodayNote = /<today>/i.test(openNoteTitle) || /<today>/i.test(writeNoteTitle)
         const isThisWeek = /<thisweek>/i.test(openNoteTitle) || /<thisweek>/i.test(writeNoteTitle)
         const isNextWeek = /<nextweek>/i.test(openNoteTitle) || /<nextweek>/i.test(writeNoteTitle)
         let note
+        let options = { shouldOpenInEditor: false, createMissingHeading, replaceNoteContents }
         if (isTodayNote) {
           if (shouldOpenInEditor) {
             await Editor.openNoteByDate(new Date())
             if (Editor?.note) {
-              await writeNoteContents(Editor.note, renderedTemplate, writeUnderHeading, location, { shouldOpenInEditor: false, createMissingHeading })
+              await writeNoteContents(Editor.note, renderedTemplate, writeUnderHeading, location, options)
             }
           } else {
             note = DataStore.calendarNoteByDate(new Date())
             if (note) {
-              await writeNoteContents(note, renderedTemplate, writeUnderHeading, location, { shouldOpenInEditor: false, createMissingHeading })
+              await writeNoteContents(note, renderedTemplate, writeUnderHeading, location, options)
             }
           }
         } else if (isThisWeek || isNextWeek) {
-          const dateInfo = getISOWeekAndYear(new Date(), isThisWeek ? 0 : 1, 'week')
-          if (shouldOpenInEditor) {
-            await Editor.openWeeklyNote(dateInfo.year, dateInfo.week)
-            if (Editor?.note) {
-              await writeNoteContents(Editor.note, renderedTemplate, writeUnderHeading, location, { shouldOpenInEditor: false, createMissingHeading })
+          const dateInfo = getNPWeekData(moment().toDate(), isThisWeek ? 0 : 1, 'week')
+          if (dateInfo) {
+            if (shouldOpenInEditor) {
+              await Editor.openWeeklyNote(dateInfo.weekYear, dateInfo.weekNumber)
+              if (Editor?.note) {
+                await writeNoteContents(Editor.note, renderedTemplate, writeUnderHeading, location, options)
+              }
+            } else {
+              note = DataStore.calendarNoteByDateString(dateInfo.weekString)
+              if (note) {
+                await writeNoteContents(note, renderedTemplate, writeUnderHeading, location, options)
+              }
             }
           } else {
-            const dateString = getISOWeekString(new Date(), isThisWeek ? 0 : 1, 'week')
-            note = DataStore.calendarNoteByDateString(dateString)
-            if (note) {
-              await writeNoteContents(note, renderedTemplate, writeUnderHeading, location, { shouldOpenInEditor: false, createMissingHeading })
-            }
+            logError(pluginJson, `templateFileByTitleEx: Could not get proper week info for ${openNoteTitle}`)
           }
         } else {
           // use current note
           if (noteTitle === '<current>') {
             if (Editor.type === 'Notes' || Editor.type === 'Calendar') {
               if (Editor.note) {
-                await writeNoteContents(Editor.note, renderedTemplate, writeUnderHeading, location, { shouldOpenInEditor: false, createMissingHeading })
+                await writeNoteContents(Editor.note, renderedTemplate, writeUnderHeading, location, options)
               }
             } else {
               await CommandBar.prompt('You must have either Project Note or Calendar Note open when using "<current>".', '')
@@ -168,8 +203,8 @@ export async function templateFileByTitleEx(selectedTemplate?: string = '', open
               if (!note) {
                 await CommandBar.prompt(`Unable to locate note matching "${noteTitle}"`, helpInfo('Presets'))
               } else {
-                logDebug(pluginJson,`templateFileByTitleEx: About to call writeNoteContents with "${note?.title || ''}"`)
-                await writeNoteContents(note, renderedTemplate, writeUnderHeading, location, { shouldOpenInEditor, createMissingHeading })
+                logDebug(pluginJson, `templateFileByTitleEx: About to call writeNoteContents in note: "${note?.title || ''}"`)
+                await writeNoteContents(note, renderedTemplate, writeUnderHeading, location, { ...options, ...{ shouldOpenInEditor, createMissingHeading } })
               }
             }
           } else {
