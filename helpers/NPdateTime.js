@@ -511,9 +511,9 @@ type NotePlanWeekInfo = {
  * @param {string} offsetType - the increment to add/subtract: 'day'|'week'|'month'|'year' (default: 'week')
  * @returns { NotePlanWeekInfo } - an object with all the week details
  * {
- *   weekNumber: number,
- *   weekYear: number,
- *   weekString: string,
+ *   weekNumber: number, // e.g. 1
+ *   weekYear: number, // e.g. 2022
+ *   weekString: string, // e.g. 2022-W01
  *   startDate: Date,
  *   endDate: Date,
  *   date: Date,
@@ -539,7 +539,7 @@ export function getNPWeekData(dateIn: string | Date, offsetIncrement: number = 0
       const weekStartYear = startDate.getFullYear()
       const weekEndYear = endDate.getFullYear()
       const weekYear = weekStartYear === weekEndYear ? weekStartYear : weekNumber === 1 ? weekEndYear : weekStartYear
-      const weekString = `${weekYear}W${weekNumber}`
+      const weekString = `${weekYear}-W${weekNumber}`
       return { weekNumber, startDate, endDate, weekYear, date, weekString }
     }
   }
