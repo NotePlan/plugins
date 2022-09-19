@@ -600,6 +600,7 @@ export function includesScheduledFutureDate(line: string): boolean {
 }
 
 /**
+ * WARNING: DO NOT USE THESE FOR NOTEPLAN WEEK CALCULATIONS BECAUSE NOTEPLAN DOES NOT ACTUALLY USE ISO WEEKS (IT'S OFFSET DUE TO USER PREFS START-WEEK-ON)
  * Get the week number string for a given date string or Date object.
  * @param {string} date - date string in format YYYY-MM-DD OR a Date object
  * @param {number} offsetIncrement - number of days|weeks|month to add (or negative=subtract) to date (default: 0)
@@ -615,6 +616,7 @@ export function getISOWeekString(date: string | Date, offsetIncrement: number = 
 }
 
 /**
+ * WARNING: DO NOT USE THESE FOR NOTEPLAN WEEK CALCULATIONS BECAUSE NOTEPLAN DOES NOT ACTUALLY USE ISO WEEKS (IT'S OFFSET DUE TO USER PREFS START-WEEK-ON)
  * Get the year and week number for a given date string or Date object
  * @param {string} date - date string in format YYYY-MM-DD OR a Date object
  * @param {number} offsetIncrement - number of days|weeks|month to add (or negative=subtract) to date (default: 0)

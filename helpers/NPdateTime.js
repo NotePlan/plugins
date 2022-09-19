@@ -5,14 +5,7 @@
 
 import moment from 'moment'
 import { trimAnyQuotes } from './dataManipulation'
-import {
-  getWeek,
-  monthNameAbbrev,
-  todaysDateISOString,
-  toISODateString,
-  toISOShortDateTimeString,
-  weekStartEnd,
-} from './dateTime'
+import { RE_YYYYMMDD_DATE, getWeek, monthNameAbbrev, todaysDateISOString, toISODateString, toISOShortDateTimeString, hyphenatedDate, weekStartEnd } from './dateTime'
 import { logDebug, logError } from './dev'
 import { chooseOption, getInput } from './userInput'
 
@@ -284,7 +277,7 @@ export const periodTypesAndDescriptions = [
  * - {string} periodPartStr (e.g. 'day 4' showing how far through we are in a partial ('... to date') time period)
  * Normally does this by asking user, unless param 'periodType' is supplied.
  * @author @jgclark
- * 
+ *
  * @param {string} question to show user
  * @param {string} periodType optional; if not provided ask user instead
  * @returns {[Date, Date, string, string, string]}
@@ -329,7 +322,7 @@ export async function getPeriodStartEndDates(question: string = 'Create stats fo
     }
     case 'mtd': {
       fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, 1, 0, 0, 0), 'minute', -TZOffset) // start of this month
-      toDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset) 
+      toDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset)
       periodString = `${monthNameAbbrev(m)} ${y}`
       periodPartStr = `day ${d}`
       break
@@ -405,7 +398,10 @@ export async function getPeriodStartEndDates(question: string = 'Create stats fo
       const usersStartOfWeekWithSundayZero = getUsersFirstDayOfWeekUTC()
       // Work out day number (1..7) within user's week
       const dateWithinInterval = ((dayOfWeekWithSundayZero + 7 - usersStartOfWeekWithSundayZero) % 7) + 1
-      logDebug('getPeriodStartEndDates()', `userwtd: dayOfWeekWithSundayZero: ${dayOfWeekWithSundayZero}, usersStartOfWeekWithSundayZero: ${usersStartOfWeekWithSundayZero}, dateWithinInterval: ${dateWithinInterval}`)
+      logDebug(
+        'getPeriodStartEndDates()',
+        `userwtd: dayOfWeekWithSundayZero: ${dayOfWeekWithSundayZero}, usersStartOfWeekWithSundayZero: ${usersStartOfWeekWithSundayZero}, dateWithinInterval: ${dateWithinInterval}`,
+      )
       fromDate = Calendar.addUnitToDate(Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset), 'day', -(dateWithinInterval - 1))
       toDate = Calendar.addUnitToDate(fromDate, 'day', 6)
       periodString = `this week`
@@ -493,4 +489,59 @@ export async function getPeriodStartEndDates(question: string = 'Create stats fo
   }
   // log(pluginJson, `-> ${fromDate.toString()}, ${toDate.toString()}, ${periodString}, ${periodPartStr}`)
   return [fromDate, toDate, periodType, periodString, periodPartStr]
+}
+
+type NotePlanWeekInfo = {
+  weekNumber: number,
+  weekYear: number,
+  weekString: string,
+  startDate: Date,
+  endDate: Date,
+  date: Date,
+}
+
+/**
+ * Get all the week details for a given unhyphenated|hyphenated(ISO8601) date string or a Date object
+ * @param {string} date - date string in format YYYY-MM-DD OR a Date object. NOTE:
+ *    Make sure that if you send in a date that it's a date in the correct time/timezone you want.
+ *    If you create a new date of your own without a time (e.g. new Date("2022-01-01")) it could produce a date
+ *    in a previous or next day depending on your timezone. So if you are creating the date, just send through
+ *    the date string rather than a date object
+ * @param {number} offsetIncrement - number of days|weeks|month to add (or negative=subtract) to date (default: 0)
+ * @param {string} offsetType - the increment to add/subtract: 'day'|'week'|'month'|'year' (default: 'week')
+ * @returns { NotePlanWeekInfo } - an object with all the week details
+ * {
+ *   weekNumber: number,
+ *   weekYear: number,
+ *   weekString: string,
+ *   startDate: Date,
+ *   endDate: Date,
+ *   date: Date,
+ * }
+ * @author @dwertheimer
+ * @test - available in jest file
+ */
+export function getNPWeekData(dateIn: string | Date, offsetIncrement: number = 0, offsetType: string = 'week'): NotePlanWeekInfo | null {
+  let dateStrFormat = 'YYYY-MM-DD',
+    newMom
+  if (typeof dateIn === 'string') {
+    if (new RegExp(RE_YYYYMMDD_DATE).test(dateIn)) dateStrFormat = 'YYYYMMDD'
+    newMom = moment(dateIn, dateStrFormat).add(offsetIncrement, offsetType)
+  } else {
+    newMom = moment(dateIn).add(offsetIncrement, offsetType)
+  }
+  if (newMom) {
+    const date = newMom.toDate()
+    if (date) {
+      const weekNumber = Calendar.weekNumber(date)
+      const startDate = Calendar.startOfWeek(date)
+      const endDate = Calendar.endOfWeek(date)
+      const weekStartYear = startDate.getFullYear()
+      const weekEndYear = endDate.getFullYear()
+      const weekYear = weekStartYear === weekEndYear ? weekStartYear : weekNumber === 1 ? weekEndYear : weekStartYear
+      const weekString = `${weekYear}W${weekNumber}`
+      return { weekNumber, startDate, endDate, weekYear, date, weekString }
+    }
+  }
+  return null
 }
