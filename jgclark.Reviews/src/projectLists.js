@@ -4,8 +4,7 @@
 // by @jgclark
 // Last updated 19.9.2022 for v0.8.0, @jgclark
 //-----------------------------------------------------------------------------
-// FIXME: 0% complete projects are missing their titles in HTML view
-// FIXME: button again
+// FIXME: button again ... use the DataStore.invokePluginCommandByName method ?
 
 import pluginJson from "../plugin.json"
 import {
@@ -58,16 +57,34 @@ export const reviewListCSS: string = [
   'table tr td:first-child, table tr th:first-child { border-left: 0px; }', // turn off outer table right borders
   'table tr td:last-child, table tr th:last-child { border-right: 0px; }', // turn off outer table right borders
   'a, a:visited, a:active { color: inherit }', // note links: turn off text color
-  'a:hover { }', // perhaps use hover for note links
+  // 'a:hover { }', // perhaps use hover for note links
   'button { font-size: 1.0rem; font-weight: 700; }',
-  '.checkbox { font: "noteplanstate", font-size: 1.4rem; }', // make checkbox display larger, and like in the app
+  '.checkbox { font-family: "noteplanstate"; font-size: 1.4rem; }', // make checkbox display larger, and like in the app
   '.percent-ring { width: 2rem; height: 2rem; }', // Set size of percent-display rings
   '.percent-ring-circle { transition: 0.5s stroke-dashoffset; transform: rotate(-90deg); transform-origin: 50% 50%; }', // details of ring-circle that can be set in CSS
   '.circle-percent-text { font-size: 2.2rem; color: --fg-main-color; }', // details of ring text that can be set in CSS
   '.circle-char-text { font-size: 1.9rem; font-family: "noteplanstate" }' // details of ring text that can be set in CSS, including font, locally set above
 ].join('\n\t')
 
-export const setPercentRingJSFunc: string = `
+const startReviewsCommandCall = (`(function() {
+    DataStore.invokePluginCommandByName("start reviews", "jgclark.Reviews");
+  })()`
+)
+// logDebug('makeProjectListsHTML','startReviewsCommandCall');
+
+function makeCommandCall(commandCallJSON: string): string {
+  return `<script>
+  const callCommand = () => {
+    window.webkit.messageHandlers.jsBridge.postMessage({
+      code: ${commandCallJSON},
+      onHandle: "onHandleUpdateLabel",
+      id: "1"
+    });
+  };
+</script>`
+}
+
+export const setPercentRingJSFunc: string = `<script>
   /**
    * Sets the value of a SVG percent ring.
    * @param {number} percent The percent value to set.
@@ -86,6 +103,7 @@ export const setPercentRingJSFunc: string = `
     // let text = svg.querySelector('text');
     // text.textContent = String(percent); // + '%';
   }
+  </script>
   `
 
 /**
@@ -144,6 +162,7 @@ export async function makeProjectListsHTML(config: any): Promise<void> {
         // Do the main work
         // Calculate the Summary list(s)
         const outputArray = await makeNoteTypeSummary(tag, style, config)
+        outputArray.unshift(`<h1>${noteTitle}</h1>`)
 
         // Display the list(s) as HTML
         logDebug(pluginJson, `- writing results to HTML output ...`)
@@ -155,7 +174,7 @@ export async function makeProjectListsHTML(config: any): Promise<void> {
           reviewListCSS,
           false, // = not modal window
           setPercentRingJSFunc,
-          '',
+          makeCommandCall(startReviewsCommandCall),
           noteTitleWithoutHash) // not giving window dimensions
         logDebug(pluginJson, `- written results to HTML`)
       }
@@ -165,6 +184,7 @@ export async function makeProjectListsHTML(config: any): Promise<void> {
       const noteTitle = `Review List.HTML`
       // Calculate the Summary list(s)
       const outputArray = await makeNoteTypeSummary('', style, config)
+      outputArray.unshift(`<h1>${noteTitle}</h1>`)
 
       // Show the list(s) as HTML, and save a copy as file
       logDebug(pluginJson, `- writing results to HTML output ...`)
@@ -359,8 +379,10 @@ async function makeNoteTypeSummary(noteTag: string, style: string, config: any):
         // Create the HTML for the 'start review button'
         // - Version 1: does work inside Safari, but not for some reason in a NP view. Eduard doesn't know why.
         // startReviewButton = `<button onClick="noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews\&command=next%20project%20review">Start reviewing ${overdue} ready for review</button>`
-        // - Version 2: does work in NP, but doesn't look like a button
+        // - Version 2: using x-callback: does work in NP, but doesn't look like a button
         startReviewButton = `<a class="button" href="noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=next%20project%20review">Start reviewing ${overdue} ready for review</a>`
+        // - Version 3: using proper link to the internal function FIXME: doesn't yet work
+        // startReviewButton = `<button onclick=callCommand()>Start reviewing ${overdue} ready for review</button>`
 
         // writing backwards to suit .unshift
         outputArray.unshift(Project.detailedSummaryLineHeader(style, config.displayDates, config.displayProgress))

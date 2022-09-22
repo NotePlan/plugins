@@ -18,6 +18,8 @@ Aim: Do this amazing secret thing
 
 ## Details
 * recruit James Bond
+* task Q with building a new spy gadget
+* set up Deliveroo account
 ...
 ```
 

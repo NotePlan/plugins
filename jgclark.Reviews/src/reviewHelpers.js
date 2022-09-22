@@ -18,7 +18,7 @@ import { findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { getOrMakeMetadataLine } from '@helpers/NPparagraph'
 import { showMessage } from '@helpers/userInput'
 
-import { showHTML, rgbToHex, redToGreenInterpolation, makeSVGPercentRing } from '@helpers/HTMLView'
+import { rgbToHex, redToGreenInterpolation, makeSVGPercentRing } from '@helpers/HTMLView'
 
 //------------------------------
 // Config setup
@@ -471,8 +471,8 @@ export class Project {
 <colgroup>
 \t<col>
 \t<col>
-\t<col width="20%">
-\t<col width="20%">
+\t<col width="15%">
+\t<col width="15%">
 </colgroup>
 \t<tr class="sticky-row">
 \t<th>%</th><th>Project/Area Title</th><th>Due Date</th><th>Next Review</th>
@@ -558,6 +558,7 @@ export class Project {
         }
         else if (isNaN(this.percentComplete)) { // NaN
           output += '<td>' + this.addSVGPercentRing(100, 'grey', '0') + '</td>'
+          output += `<td>${this.decoratedProjectTitle(style, includeFolderName)}`
         }
         else {
           output += '<td>' + this.addSVGPercentRing(this.percentComplete, 'multicol', String(this.percentComplete)) + '</td>'

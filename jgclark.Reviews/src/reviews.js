@@ -22,7 +22,7 @@ import {
   filterFolderList,
 } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
-import { showHTML } from '@helpers/HTMLView'
+// import { showHTML } from '@helpers/HTMLView'
 import {
   findNotesMatchingHashtag,
   findNotesMatchingHashtags,
