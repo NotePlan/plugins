@@ -115,7 +115,7 @@ body {
  * circles 0-100%
  */
 export function testRedToGreenInterpolation(): void {
-  let body = '<p>Testing out the colour interpolation.</p>'
+  let body = '<p>Testing out the red to green colour interpolation.</p>'
   for (let i = 0; i <= 100; i = i + 5) {
     body += `${makeSVGPercentRing(100, redToGreenInterpolation(i), `${i}%`, `id${i}`)}
 `
@@ -194,7 +194,7 @@ export function testButtonTriggerCommand(): void {
 
 const startReviewsCommandCall = JSON.stringify(`
   (function() {
-    startReviews()
+    DataStore.invokePluginCommandByName("start reviews", "jgclark.Reviews");
   })()
 `)
 
@@ -206,18 +206,18 @@ const triggerCommandHTML = `
 </head>
 <body>
   <p id="Label1">Not started</p>
-  <button onclick=openNote()>Start reviews</button>
+  <button onclick=callCommand()>Start reviews</button>
 </body>
 <script>
   const callCommand = () => {
     window.webkit.messageHandlers.jsBridge.postMessage({
       code: ${startReviewsCommandCall},
-      onHandle: "onHandleuUpdateLabel",
+      onHandle: "onHandleUpdateLabel",
       id: "1"
     });
   };
 
-  function onHandleuUpdateLabel(re, id) {
+  function onHandleUpdateLabel(re, id) {
     document.getElementById("Label1").innerHTML = "Started!";
   };
 </script>

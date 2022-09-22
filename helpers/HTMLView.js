@@ -461,7 +461,6 @@ function makeCSSSelector(selector: string, settingsArray: Array<string>): string
  * @param {number?} width
  * @param {number?} height
  * TODO: Allow for style file when we can save arbitrary data files, not just read them
- * TODO: How to allow for emojis?
  */
 export function showHTML(
   title: string,
@@ -491,19 +490,18 @@ export function showHTML(
     fullHTML.push(specificCSS)
     fullHTML.push('</style>')
     if (preBodyScript !== '') {
-      fullHTML.push('\n<script>')
+      fullHTML.push('\n')
       fullHTML.push(preBodyScript)
-      fullHTML.push('\n</script>')
+      fullHTML.push('\n')
     }
     fullHTML.push('</head>')
     fullHTML.push('\n<body>')
-    fullHTML.push(`<h1>${title}</h1>`)
     fullHTML.push(body)
     fullHTML.push('\n</body>')
     if (postBodyScript !== '') {
-      fullHTML.push('\n<script>')
+      fullHTML.push('\n')
       fullHTML.push(postBodyScript)
-      fullHTML.push('\n</script>')
+      fullHTML.push('\n')
     }
     fullHTML.push('</html>')
     const fullHTMLStr = fullHTML.join('\n')
@@ -527,8 +525,9 @@ export function showHTML(
     // If wanted, also write this HTML to a file so we can work on it offline.
     // Note: this is saved to the Plugins/Data/<Plugin> folder, not a user-accessible Note.
     if (filenameForSavedFileVersion !== '') {
+      const filenameWithoutSpaces = filenameForSavedFileVersion.split(' ').join('')
       // Write to specified file in NP sandbox
-      const res = DataStore.saveData(fullHTMLStr, filenameForSavedFileVersion, true)
+      const res = DataStore.saveData(fullHTMLStr, filenameWithoutSpaces, true)
       if (res) {
         logDebug('showHTML', `Saved resulting HTML '${title}' to ${filenameForSavedFileVersion} as well.`)
       } else {
