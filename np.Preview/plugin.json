@@ -1,0 +1,37 @@
+{
+  "noteplan.minAppVersion": "3.7.0",
+  "macOS.minVersion": "10.13.0",
+  "plugin.id": "np.Preview",
+  "plugin.name": "Previewer",
+  "plugin.description": "Shows HTML preview of the current note",
+  "plugin.icon": "",
+  "plugin.author": "Jonathan Clark",
+  "plugin.url": "https://github.com/NotePlan/plugins/tree/main/np.Preview/",
+  "plugin.version": "0.1.0",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.isRemote": "false",
+  "plugin.assets": [
+    "mermaid.min.js"
+  ],
+  "plugin.commands": [
+    {
+      "name": "preview",
+      "alias": [
+        "pn"
+      ],
+      "description": "Preview note in HTML window",
+      "jsFunction": "previewNote"
+    },
+    {
+      "name": "test:mermaid3",
+      "description": "Test Mermaid 3",
+      "jsFunction": "testMermaid3"
+    },
+    {
+      "name": "test:mermaid4",
+      "description": "Test Mermaid 4",
+      "jsFunction": "testMermaid4"
+    }
+  ]
+}
