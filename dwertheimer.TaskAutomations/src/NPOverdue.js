@@ -383,7 +383,7 @@ export async function searchForOpenTasks(incoming: string | null = null, byTask:
       replaceDate,
       noteTaskList: null,
       noteFolder: false,
-      overdueOnly: true,
+      overdueOnly: false,
     }
     await reviewTasksInNotes(notes, options)
   } catch (error) {
