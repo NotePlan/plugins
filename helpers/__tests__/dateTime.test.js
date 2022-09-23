@@ -20,6 +20,49 @@ const PLUGIN_NAME = `📙 ${colors.yellow('helpers/dateTime')}`
 // const section = colors.blue
 
 describe(`${PLUGIN_NAME}`, () => {
+  /*
+   * isScheduled()
+   */
+  describe('isScheduled()' /* function */, () => {
+    test('should be true for a date', () => {
+      const result = dt.isScheduled('foo >2020-01-01')
+      expect(result).toEqual(true)
+    })
+    test('should be true for a date+', () => {
+      const result = dt.isScheduled('foo >2020-01-01+')
+      expect(result).toEqual(true)
+    })
+    test('should be true for a >today', () => {
+      const result = dt.isScheduled('foo >today')
+      expect(result).toEqual(true)
+    })
+    test('should be true for multiples', () => {
+      const result = dt.isScheduled('foo >2020-01-01 >today')
+      expect(result).toEqual(true)
+    })
+    test('should be false if nothing is there', () => {
+      const result = dt.isScheduled('foo bar baz')
+      expect(result).toEqual(false)
+    })
+  })
+  /*
+   * replaceArrowDatesInString()
+   */
+  describe('replaceArrowDatesInString()' /* function */, () => {
+    test('should replace today with todays date', () => {
+      const result = dt.replaceArrowDatesInString('foo >today bar')
+      expect(result).toEqual(`foo bar ${dt.getTodaysDateAsArrowDate()}`)
+    })
+    test('should replace multiples with todays date', () => {
+      const result = dt.replaceArrowDatesInString('>2021-02-02 foo >today bar >2022-05-05')
+      expect(result).toEqual(`foo bar ${dt.getTodaysDateAsArrowDate()}`)
+    })
+    test('should replace multiples with my string', () => {
+      const result = dt.replaceArrowDatesInString('>2021-02-02 foo >today bar >2022-05-05', 'baz')
+      expect(result).toEqual(`foo bar baz`)
+    })
+  })
+
   describe('getDateObjFromDateString', () => {
     test('fail with empty string', () => {
       expect(dt.getDateObjFromDateString('')).toEqual(undefined)
@@ -235,6 +278,12 @@ describe(`${PLUGIN_NAME}`, () => {
     })
     test('should remove nothing if no date tag ', () => {
       expect(dt.removeDateTagsAndToday(`test no date`)).toEqual('test no date')
+    })
+    test('should work for single >week also ', () => {
+      expect(dt.removeDateTagsAndToday(`test >2000-W02`, true)).toEqual('test')
+    })
+    test('should work for many items in a line ', () => {
+      expect(dt.removeDateTagsAndToday(`test >2000-W02 >2020-01-01 <2020-02-02 >2020-09-28`, true)).toEqual('test')
     })
   })
 

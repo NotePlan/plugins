@@ -10,7 +10,7 @@ import * as samplePlugin from './support/pluginSample.json'
 
 let __json = samplePlugin //variable used for saving/getting json
 
-const DataStore = {
+export const DataStore = {
   // async calendarNoteByDate() { return null },
   // async calendarNoteByDateString() { return null },
   /* calendarNotes: [{ return {
@@ -109,4 +109,4 @@ const DataStore = {
   },
 }
 
-module.exports = DataStore
+// module.exports = DataStore

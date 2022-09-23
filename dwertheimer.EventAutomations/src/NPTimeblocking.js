@@ -21,14 +21,13 @@ import {
   makeAllItemsTodos,
   removeDateTagsFromArray,
   appendLinkIfNecessary,
-  findTodosInNote,
-  eliminateDuplicateParagraphs,
   getFullParagraphsCorrespondingToSortList,
 } from './timeblocking-helpers'
 import { getTimeBlockingDefaults, validateAutoTimeBlockingConfig } from './config'
 import { getPresetOptions, setConfigForPreset } from './presets'
 import type { IntervalMap, PartialCalendarItem } from './timeblocking-flow-types'
 import { getTimedEntries, keepTodayPortionOnly } from '@helpers/calendar'
+import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
 import { getEventsForDay, writeTimeBlocksToCalendar, checkOrGetCalendar } from '@helpers/NPCalendar'
 import { getDateStringFromCalendarFilename, getTodaysDateHyphenated, getTodaysDateUnhyphenated } from '@helpers/dateTime'
 import { getTasksByType, sortListBy } from '@helpers/sorting'
@@ -37,6 +36,7 @@ import { getTimeBlockString, isTimeBlockLine } from '@helpers/timeblocks'
 import { JSP, clo, log, logError, logWarn, logDebug } from '@helpers/dev'
 import { checkNumber, checkWithDefault } from '@helpers/checkType'
 import { getSyncedCopiesAsList } from '@helpers/NPSyncedCopies'
+import { getTodaysReferences, findTodosInNote } from '@helpers/NPnote'
 import { removeContentUnderHeading, insertContentUnderHeading, removeContentUnderHeadingInAllNotes } from '@helpers/NPParagraph'
 
 /**
@@ -54,6 +54,7 @@ export function getConfig(): AutoTimeBlockingConfig {
       return config
     } catch (error) {
       showMessage(`Plugin Settings ${error.message}\nRunning with default settings. You should probably open the plugin configuration dialog and fix the problem(s) listed above.`)
+      logDebug(pluginJson, `Plugin Settings ${error.message} Running with default settings`)
     }
   } else {
     logDebug(pluginJson, `config was empty. will use defaults`)
@@ -80,46 +81,9 @@ export function deleteParagraphsContainingString(destNote: CoreNoteFields, timeB
     }
   }
   if (parasToDelete.length > 0) {
-    const deleteListByIndex = sortListBy(parasToDelete,['lineIndex']) //NP API may give wrong results if lineIndexes are not in ASC order
+    const deleteListByIndex = sortListBy(parasToDelete, ['lineIndex']) //NP API may give wrong results if lineIndexes are not in ASC order
     destNote.removeParagraphs(deleteListByIndex)
   }
-}
-
-/**
- * Get linked items from the references section (.backlinks)
- * @param { note | null} pNote
- * @returns
- * Backlinks format: {"type":"note","content":"_Testing scheduled sweeping","rawContent":"_Testing scheduled sweeping","prefix":"","lineIndex":0,"heading":"","headingLevel":0,"isRecurring":0,"indents":0,"filename":"zDELETEME/Test scheduled.md","noteType":"Notes","linkedNoteTitles":[],"subItems":[{},{},{},{}]}
- * backlinks[0].subItems[0] =JSLog: {"type":"open","content":"scheduled for 10/4 using app >today","rawContent":"* scheduled for 10/4 using app
- * ","prefix":"* ","contentRange":{},"lineIndex":2,"date":"2021-11-07T07:00:00.000Z","heading":"_Testing scheduled sweeping","headingRange":{},"headingLevel":1,"isRecurring":0,"indents":0,"filename":"zDELETEME/Test scheduled.md","noteType":"Notes","linkedNoteTitles":[],"subItems":[]}
- */
-export function getTodaysReferences(pNote: TNote | null = null): Array<TParagraph> {
-  logDebug(pluginJson, `getTodaysReferences starting`)
-  const note = pNote || Editor.note
-  if (note == null) {
-    logDebug(pluginJson, `timeblocking could not open Note`)
-    return []
-  }
-  const backlinks: Array<TParagraph> = [...note.backlinks] // an array of notes which link to this note
-  logDebug(pluginJson, `backlinks.length:${backlinks.length}`)
-  let todayParas = []
-  backlinks.forEach((link) => {
-    // $FlowIgnore Flow(prop-missing) -- subItems is not in Flow defs but is real
-    const subItems = link.subItems
-    subItems.forEach((subItem) => {
-      subItem.title = link.content.replace('.md', '').replace('.txt', '')
-      todayParas.push(subItem)
-    })
-  })
-  let todosInNote = findTodosInNote(note)
-  if (todosInNote.length > 0) {
-    logDebug(pluginJson, `getTodaysReferences: todosInNote Found ${todosInNote.length} items in today's note. Adding them.`)
-    // eliminate linked lines (for synced lines on the page)
-    // because these should be in the references from other pages
-    todosInNote = todosInNote.filter((todo) => !/\^[a-zA-Z0-9]{6}/.test(todo.content))
-    todayParas = [...todayParas, ...todosInNote]
-  }
-  return todayParas
 }
 
 export async function insertItemsIntoNote(
@@ -149,7 +113,6 @@ export async function insertItemsIntoNote(
         } else {
           thePara.content = `${String(heading)} …` // this was the old hack for folding
           await note.updateParagraph(thePara)
-          // FIXME: hoping for an API to do this so we don't have to force a redraw so it will fold the heading
           note.content = note.content ?? ''
         }
       } else {
@@ -295,8 +258,16 @@ function getEventsConfig(atbConfig: AutoTimeBlockingConfig): TEventConfig {
 export function getTodaysFilteredTodos(config: AutoTimeBlockingConfig): Array<TParagraph> {
   const { includeTasksWithText, excludeTasksWithText } = config
   const backlinkParas = getTodaysReferences(Editor.note)
-  logDebug(pluginJson, `Found ${backlinkParas.length} backlinks+today-note items (may include completed items)`)
-  const undupedBackLinkParas = eliminateDuplicateParagraphs(backlinkParas)
+  let todosInNote = Editor.note ? findTodosInNote(Editor.note) : []
+  if (todosInNote.length > 0) {
+    logDebug(pluginJson, `getTodaysFilteredTodos: todosInNote Found ${todosInNote.length} items in today's note. Adding them.`)
+    // eliminate linked lines (for synced lines on the page)
+    // because these should be in the references from other pages
+    todosInNote = todosInNote.filter((todo) => !/\^[a-zA-Z0-9]{6}/.test(todo.content))
+  }
+  const backLinksAndNoteTodos = [...backlinkParas, ...todosInNote]
+  logDebug(pluginJson, `Found ${backLinksAndNoteTodos.length} backlinks+today-note items (may include completed items)`)
+  const undupedBackLinkParas = eliminateDuplicateSyncedParagraphs(backLinksAndNoteTodos)
   logDebug(pluginJson, `Found ${undupedBackLinkParas.length} undupedBackLinkParas after duplicate elimination`)
   let todosParagraphs: Array<TParagraph> = makeAllItemsTodos(undupedBackLinkParas) //some items may not be todos but we want to pretend they are and timeblock for them
   todosParagraphs = Array.isArray(includeTasksWithText) && includeTasksWithText?.length > 0 ? includeTasksWithPatterns(todosParagraphs, includeTasksWithText) : todosParagraphs
@@ -513,7 +484,7 @@ export async function removePreviousTimeBlocks(runSilently: string = 'no'): Prom
  * (entry point for /atb)
  * @param {*} note
  */
-export async function insertTodosAsTimeblocks(note: TNote): Promise<void> {
+export async function insertTodosAsTimeblocks(/* note: TNote */): Promise<void> {
   try {
     logDebug(pluginJson, `====== /atb =======\nStarting insertTodosAsTimeblocks`)
     if (!editorIsOpenToToday()) await Editor.openNoteByDate(new Date(), false) //open editor to today
@@ -530,7 +501,7 @@ export async function insertTodosAsTimeblocks(note: TNote): Promise<void> {
   }
 }
 
-export async function insertTodosAsTimeblocksWithPresets(note: TNote): Promise<void> {
+export async function insertTodosAsTimeblocksWithPresets(/* note: TNote */): Promise<void> {
   // logDebug(pluginJson,`====== /atbp =======\nStarting insertTodosAsTimeblocksWithPresets`)
   // if (!editorIsOpenToToday()) await Editor.openNoteByDate(new Date(), false) //open editor to today
   let config = await getConfig()

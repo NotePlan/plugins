@@ -6,15 +6,17 @@
 import strftime from 'strftime'
 import moment from 'moment/min/moment-with-locales'
 import { default as momentBusiness } from 'moment-business-days'
-import { formatISO9075, eachWeekendOfInterval, format, add } from 'date-fns'
+import { formatISO9075, eachDayOfInterval, eachWeekendOfInterval, format, add } from 'date-fns'
 import { logDebug, logError, logInfo, logWarn, clo } from './dev'
-import { type Option } from '@helpers/userInput'
 
+export const RE_PLUS_DATE_G: RegExp = />(\d{4}-\d{2}-\d{2})(\+)*/g
+export const RE_PLUS_DATE: RegExp = />(\d{4}-\d{2}-\d{2})(\+)*/
 export const RE_DATE = '\\d{4}-[01]\\d-\\d{2}' // find ISO dates of form YYYY-MM-DD
 export const RE_ISO_DATE = '\\d{4}-[01]\\d-[0123]\\d' // find ISO dates of form YYYY-MM-DD (stricter)
 export const RE_SCHEDULED_ISO_DATE = '>\\d{4}-[01]\\d-[0123]\\d' // find scheduled dates of form >YYYY-MM-DD
 export const RE_YYYYMMDD_DATE = '\\d{4}[01]\\d[0123]\\d' // find dates of form YYYYMMDD
 export const RE_YYYY_Wnn_DATE = '\\d{4}\\-W[0-5]\\d' // find dates of form YYYY-Wnn
+export const WEEK_NOTE_LINK = `[\<\>]${RE_YYYY_Wnn_DATE}`
 export const RE_DAILY_NOTE_FILENAME = '\\/?\\d{4}[0-1]\\d[0-3]\\d\\.'
 export const RE_WEEKLY_NOTE_FILENAME = '\\/?\\d{4}-W[0-5]\\d\\.'
 export const RE_TIME = '[0-2]\\d{1}:[0-5]\\d{1}\\s?(?:AM|PM|am|pm)?' // find '12:23' with optional '[ ][AM|PM|am|pm]'
@@ -24,16 +26,46 @@ export const RE_OFFSET_DATE_CAPTURE = `{(\\^?${RE_DATE_INTERVAL})}`
 export const RE_BARE_DATE = `[^\d(<\/-]${RE_DATE}` // an ISO date without a digit or ( or < or / or - before it
 export const RE_BARE_DATE_CAPTURE = `[^\d(<\/-](${RE_DATE})` // capturing date in above
 
-export const todaysDateISOString: string = new Date().toISOString().slice(0, 10)
-export const nowLocaleDateTime: string = new Date().toLocaleString()
+export const todaysDateISOString: string = moment().toDate().toISOString().slice(0, 10)
+export const nowLocaleDateTime: string = moment().toDate().toLocaleString()
 export const getFormattedTime = (format: string = '%Y-%m-%d %I:%M:%S %P'): string => strftime(format)
 
 export function getTodaysDateHyphenated(): string {
-  return hyphenatedDate(new Date())
+  return hyphenatedDate(moment().toDate())
+}
+
+export function getTodaysDateAsArrowDate(): string {
+  return `>${getTodaysDateHyphenated()}`
 }
 
 export function getTodaysDateUnhyphenated(): string {
   return strftime(`%Y%m%d`)
+}
+
+/**
+ * Test if a string has a date (e.g. was scheduled for a specific date/week or has a >today tag)
+ * @param {string} content
+ * @returns {boolean} true if the content contains a date in the form YYYY-MM-DD or a >today or weekly note
+ * @author @dwertheimer
+ */
+export const isScheduled = (content: string) => RE_PLUS_DATE.test(content) || />today/.test(content) || new RegExp(RE_YYYY_Wnn_DATE).test(content)
+
+/**
+ * Remove all >date or >today occurrences in a string and add (>today's-date by default) or the supplied string to the end
+ * @param {string} inString - the string to start with
+ * @param {?string | null} replaceWith - the string to add to the end (if nothing sent, will use >todaysDate)
+ * @returns {string} string with the replacements made
+ */
+export function replaceArrowDatesInString(inString: string, replaceWith: string | null = null): string {
+  let str = inString
+  let repl = replaceWith
+  if (!replaceWith) {
+    repl = getTodaysDateAsArrowDate()
+  }
+  while (isScheduled(str)) {
+    str = str.replace(RE_PLUS_DATE, '').replace('>today', '').replace(/ {2,}/g, ' ').trim()
+  }
+  return repl && repl.length > 0 ? `${str} ${repl}` : str
 }
 
 //-------------------------------------------------------------------------------
@@ -206,11 +238,24 @@ export function removeDateTags(content: string): string {
 }
 
 // @dwertheimer
-export function removeDateTagsAndToday(tag: string): string {
-  return removeDateTags(tag)
-    .replace(/>today/, '')
-    .replace(/\s{2,}/g, ' ')
-    .trimEnd()
+/**
+ * Remove all >date -related things from a line (and optionally >week ones also)
+ * @param {*} tag
+ * @param {*} weeklyAlso
+ * @returns
+ */
+export function removeDateTagsAndToday(tag: string, weeklyAlso: boolean = false): string {
+  let newString = tag,
+    lastPass = tag
+  do {
+    lastPass = newString
+    newString = removeDateTags(tag)
+      .replace(weeklyAlso ? new RegExp(WEEK_NOTE_LINK, 'g') : '', '')
+      .replace(/>today/, '')
+      .replace(/\s{2,}/g, ' ')
+      .trimEnd()
+  } while (newString !== lastPass)
+  return newString
 }
 
 export const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
@@ -694,49 +739,53 @@ export function TimeFormatted(seconds: number): string {
 
 /**
  * Get upcoming date string options for use in chooseOption
+ * Note: there is a weeks version of this in ./NPdateTime (relies on Calendar)
  * uses date-fns:
  * - formats: https://date-fns.org/v2.29.2/docs/format
  * - add:https://date-fns.org/v2.29.2/docs/add
  * @author: @dwertheimer
  */
-export function getDateOptions<T>(): $ReadOnlyArray<Option<T>> {
+export function getDateOptions(): $ReadOnlyArray<{ label: string, value: string }> {
   // const result = formatISO(new Date(2019, 8, 18, 19, 0, 52), { representation: 'date' })
   // d: dateObj, l: label, f: format, v: value
-  const now = new Date()
+  const now = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
   const formats = {
     withDay: ' (EEE, yyyy-MM-dd)',
-    noDay: ' yyyy-MM-dd',
+    parensNoDay: ' (yyyy-MM-dd)',
+    noDay: 'yyyy-MM-dd',
     arrowDay: '>yyyy-MM-dd',
+    arrowISOWeek: '>yyyy[W]II',
   }
   const weekends = eachWeekendOfInterval({ start: now, end: add(now, { months: 1 }) }).filter((d) => d > now)
-  const inputs = [
-    { l: `Today`, d: now, f: 'withDay' },
-    { l: `Tomorrow`, d: add(now, { days: 1 }), f: 'withDay' },
-    { l: `Next weekend`, d: weekends[0], f: 'withDay' },
-    { l: `Following weekend`, d: weekends[1], f: 'withDay' },
-    { l: `in 2 days`, d: add(now, { days: 2 }), f: 'withDay' },
-    { l: `in 3 days`, d: add(now, { days: 3 }), f: 'withDay' },
-    { l: `in 4 days`, d: add(now, { days: 4 }), f: 'withDay' },
-    { l: `in 5 days`, d: add(now, { days: 5 }), f: 'withDay' },
-    { l: `in 6 days`, d: add(now, { days: 6 }), f: 'withDay' },
-    { l: `in 1 week`, d: add(now, { weeks: 1 }), f: 'withDay' },
-    { l: `in 2 weeks`, d: add(now, { weeks: 2 }), f: 'withDay' },
-    { l: `in 3 weeks`, d: add(now, { weeks: 3 }), f: 'withDay' },
-    { l: `in 1 month`, d: add(now, { months: 1 }), f: 'withDay' },
-    { l: `in 2 months`, d: add(now, { months: 2 }), f: 'withDay' },
-    { l: `in 3 months`, d: add(now, { months: 3 }), f: 'withDay' },
-    { l: `in 4 months`, d: add(now, { months: 4 }), f: 'withDay' },
-    { l: `in 5 months`, d: add(now, { months: 5 }), f: 'withDay' },
-    { l: `in 6 months`, d: add(now, { months: 6 }), f: 'withDay' },
-    { l: `in 9 months`, d: add(now, { months: 9 }), f: 'withDay' },
-    { l: `in 1 year`, d: add(now, { years: 1 }), f: 'withDay' },
+  const next7days = eachDayOfInterval({ start: add(now, { days: 1 }), end: add(now, { days: 7 }) })
+  let inputs = [
+    { l: `Today`, d: now, lf: 'withDay', vf: 'arrowDay' },
+    { l: `Tomorrow`, d: add(now, { days: 1 }), lf: 'withDay', vf: 'arrowDay' },
+    { l: `Next weekend`, d: weekends[0], lf: 'withDay', vf: 'arrowDay' },
+    { l: `Following weekend`, d: weekends[2], lf: 'withDay', vf: 'arrowDay' },
+    { l: `in 2 days`, d: add(now, { days: 2 }), lf: 'withDay', vf: 'arrowDay' },
+    { l: `in 3 days`, d: add(now, { days: 3 }), lf: 'withDay', vf: 'arrowDay' },
+    { l: `in 4 days`, d: add(now, { days: 4 }), lf: 'withDay', vf: 'arrowDay' },
+    { l: `in 5 days`, d: add(now, { days: 5 }), lf: 'withDay', vf: 'arrowDay' },
+    { l: `in 6 days`, d: add(now, { days: 6 }), lf: 'withDay', vf: 'arrowDay' },
+    { l: `in 1 week`, d: add(now, { weeks: 1 }), lf: 'withDay', vf: 'arrowDay' },
+    { l: `in 2 weeks`, d: add(now, { weeks: 2 }), lf: 'withDay', vf: 'arrowDay' },
+    { l: `in 3 weeks`, d: add(now, { weeks: 3 }), lf: 'withDay', vf: 'arrowDay' },
+    { l: `in 1 month`, d: add(now, { months: 1 }), lf: 'withDay', vf: 'arrowDay' },
+    { l: `in 2 months`, d: add(now, { months: 2 }), lf: 'withDay', vf: 'arrowDay' },
+    { l: `in 3 months`, d: add(now, { months: 3 }), lf: 'withDay', vf: 'arrowDay' },
+    { l: `in 4 months`, d: add(now, { months: 4 }), lf: 'withDay', vf: 'arrowDay' },
+    { l: `in 5 months`, d: add(now, { months: 5 }), lf: 'withDay', vf: 'arrowDay' },
+    { l: `in 6 months`, d: add(now, { months: 6 }), lf: 'withDay', vf: 'arrowDay' },
+    { l: `in 9 months`, d: add(now, { months: 9 }), lf: 'withDay', vf: 'arrowDay' },
+    { l: `in 1 year`, d: add(now, { years: 1 }), lf: 'withDay', vf: 'arrowDay' },
   ]
+  inputs = [...inputs, ...next7days.map((day) => ({ l: format(day, 'eeee'), d: day, lf: 'parensNoDay', vf: 'arrowDay' }))]
 
   const options = inputs.map((i) => ({
-    label: `${i['l']} ${format(i['d'], formats[i['f']])}`,
+    label: `${i['l']} ${format(i['d'], formats[i['lf']])}`,
     // $FlowIgnore
-    value: format(i['d'], formats['arrowDay']),
+    value: format(i['d'], formats[i['vf']]),
   }))
-  // clo(options, `getDateOptions: options=`)
   return options
 }

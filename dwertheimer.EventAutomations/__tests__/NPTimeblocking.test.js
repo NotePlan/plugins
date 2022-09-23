@@ -8,6 +8,7 @@ import * as mainFile from '../src/NPTimeblocking'
 import * as configFile from '../src/config'
 
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, Note, Paragraph } from '@mocks/index'
+import { mockWasCalledWith } from '@mocks/mockHelpers'
 import { unhyphenatedDate } from '@helpers/dateTime'
 
 beforeAll(() => {
@@ -31,21 +32,6 @@ const note = new Note({ paragraphs })
 note.filename = `${unhyphenatedDate(new Date())}.md`
 Editor.note = note
 Editor.filename = note.filename
-
-/**
- * Check if a spy was called (at any point) with a regex
- * @param { JestSpyType } spy
- * @param {*} regex - a regex to match the spy call's arguments
- * @returns {boolean} was called or not
- */
-export const mockWasCalledWith = (spy: any, regex: RegExp): boolean => {
-  let found = []
-  if (spy?.mock?.calls?.length) {
-    const calls = spy.mock.calls
-    found = calls.filter((call) => call.find((arg) => regex.test(arg)))
-  }
-  return found.length > 0
-}
 
 describe('dwertheimer.EventAutomations' /* pluginID */, () => {
   describe('NPTimeblocking.js' /* file */, () => {
@@ -76,8 +62,8 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         expect(Object.keys(result).length).toBeGreaterThan(1)
       })
       test('should complain about improper config', () => {
-        const oldSettings = DataStore.settings
-        DataStore.settings = { improper: 'key' }
+        const oldSettings = { ...DataStore.settings }
+        DataStore.settings = { improper: 'key', __logLevel: 'DEBUG' }
         const spy = jest.spyOn(console, 'log')
         mainFile.getConfig()
         expect(mockWasCalledWith(spy, /Running with default settings/)).toBe(true)
@@ -118,43 +104,7 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         expect(result).toEqual(true)
       })
     })
-    /*
-     * getTodaysReferences()
-     */
-    describe('getTodaysReferences()' /* function */, () => {
-      test('should return empty array if no backlinks', async () => {
-        const result = await mainFile.getTodaysReferences({ ...note, backlinks: [] })
-        expect(result).toEqual([])
-      })
-      test('should console.log and return empty array if note is null', async () => {
-        const spy = jest.spyOn(console, 'log')
-        const oldLogLevel = DataStore.settings['_logLevel']
-        DataStore.settings['_logLevel'] = 'DEBUG'
-        const editorWas = Editor.note
-        Editor.note = null
-        const result = await mainFile.getTodaysReferences(null)
-        expect(result).toEqual([])
-        expect(mockWasCalledWith(spy, /timeblocking could not open Note/)).toBe(true)
-        spy.mockRestore()
-        Editor.note = editorWas
-        DataStore.settings['_logLevel'] = oldLogLevel
-      })
-      test('should tell user there was a problem with config', async () => {
-        Editor.note.backlinks = [{ content: 'line1', subItems: [{ test: 'here' }] }]
-        const result = await mainFile.getTodaysReferences()
-        expect(result).toEqual([{ test: 'here', title: 'line1' }])
-        Editor.note.backlinks = []
-      })
-      test('should find todos in the Editor note', async () => {
-        const paras = [new Paragraph({ content: 'line1 >today', type: 'open' }), new Paragraph({ content: 'this is not today content', type: 'open' })]
-        const noteWas = Editor.note
-        Editor.note.backlinks = []
-        Editor.note.paragraphs = paras
-        const result = await mainFile.getTodaysReferences()
-        expect(result[0].content).toEqual(paras[0].content)
-        Editor.note = noteWas
-      })
-    })
+
     /*
      * deleteParagraphsContainingString()
      */

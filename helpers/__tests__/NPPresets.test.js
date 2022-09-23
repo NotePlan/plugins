@@ -1,6 +1,6 @@
 /* global jest, describe, test, expect, beforeAll */
 import * as f from '../NPPresets'
-import { DataStore, CommandBar } from '@mocks/index'
+import { DataStore, CommandBar } from '@mocks/index' //had to skip all the tests because the DataStore __json needs to be figured out
 
 const PLUGIN_NAME = `helpers`
 const FILENAME = `NPPresets`
@@ -22,6 +22,8 @@ import { mockWasCalledWith } from '@mocks/mockHelpers'
 */
 
 describe(`${PLUGIN_NAME}`, () => {
+  //had to skip all the tests because the DataStore __json needs to be figured out
+
   describe(`${FILENAME}`, () => {
     /*
      * updateJSONForFunctionNamed()
@@ -87,7 +89,7 @@ describe(`${PLUGIN_NAME}`, () => {
       })
       test('should return the jsFunction of a command (with hidden types sent as false)', async () => {
         const pluginJson = await DataStore.loadJSON('') //get the default json
-        const result = await f.choosePreset(null, 'messsage', false)
+        const result = await f.choosePreset(pluginJson, 'messsage', false)
         expect(result).toEqual(false)
       })
     })

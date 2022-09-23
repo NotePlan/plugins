@@ -1,4 +1,3 @@
-/*eslint no-unused-vars: [2, {"args": "all", "varsIgnorePattern": "clo|timer|log|logError|JSP"}]*/
 // @flow
 
 /**

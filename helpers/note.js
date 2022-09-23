@@ -2,15 +2,13 @@
 //-------------------------------------------------------------------------------
 // Note-level Functions
 
-import { hyphenatedDate, hyphenatedDateString, toLocaleDateString, RE_DAILY_NOTE_FILENAME, RE_WEEKLY_NOTE_FILENAME } from './dateTime'
+import { RE_PLUS_DATE_G, hyphenatedDate, hyphenatedDateString, toLocaleDateString, RE_DAILY_NOTE_FILENAME, RE_WEEKLY_NOTE_FILENAME } from './dateTime'
 import { clo, JSP, logDebug, logError, logInfo } from './dev'
 import { getFolderFromFilename } from './folders'
 import { displayTitle, type headingLevelType } from './general'
 import { findEndOfActivePartOfNote } from './paragraph'
 import { sortListBy } from './sorting'
 import { showMessage } from './userInput'
-
-export const RE_PLUS_DATE: RegExp = />(\d{4}-\d{2}-\d{2})(\+)*/g
 
 export function getNoteContextAsSuffix(filename: string, dateStyle: string): string {
   const noteType = filename.match(RE_DAILY_NOTE_FILENAME) || filename.match(RE_WEEKLY_NOTE_FILENAME) ? 'Calendar' : 'Notes'
@@ -507,7 +505,7 @@ export function convertOverdueTasksToToday(note: TNote, openOnly: boolean = true
   const datedOpenTodos = openOnly ? note?.datedTodos?.filter((t) => t.type === 'open') || [] : note?.datedTodos || []
   datedOpenTodos.forEach((todo) => {
     if (!/>today/i.test(todo.content)) {
-      const datePlusAll = [...todo?.content?.matchAll(RE_PLUS_DATE)] //there could be multiple dates on a line
+      const datePlusAll = [...todo?.content?.matchAll(RE_PLUS_DATE_G)] //there could be multiple dates on a line
       const sorted = sortListBy(datePlusAll, '-1') // put the latest date at the top
       let madeChange = false
       sorted.forEach((datePlus, i) => {
@@ -537,4 +535,31 @@ export function convertOverdueTasksToToday(note: TNote, openOnly: boolean = true
     }
   })
   return updatedParas
+}
+
+/**
+ * Filter a list of notes against a list of folders to ignore and return the filtered list
+ * @param {Array<TNote>} notes - array of notes to review
+ * @param {Array<string>} excludedFolders - array of folder names to exclude/ignore (if a file is in one of these folders, it will be removed)
+ * @param {boolean} excludeNonMarkdownFiles - if true, exclude non-markdown files (must have .txt or .md to get through)
+ * @returns {Array<TNote>} - array of notes that are not in excluded folders
+ * @author @dwertheimer
+ */
+export function filterNotesAgainstExcludeFolders(notes: Array<TNote>, excludedFolders: Array<string>, excludeNonMarkdownFiles: boolean = false): Array<TNote> {
+  // const ignoreThisFolder = excludedFolders.length && !!ignoreFolders.filter((folder) => note.filename.includes(`${folder}/`)).length
+  let noteListFiltered = notes
+  if (excludedFolders.length) {
+    noteListFiltered = notes.filter((note) => {
+      // filter out notes that are in folders to ignore
+      let isInIgnoredFolder = false
+      excludedFolders.forEach((folder) => {
+        if (note.filename.includes(`${folder}/`)) {
+          isInIgnoredFolder = true
+        }
+      })
+      isInIgnoredFolder = isInIgnoredFolder || (excludeNonMarkdownFiles && !/(\.md|\.txt)$/i.test(note.filename)) //do not include non-markdown files
+      return !isInIgnoredFolder
+    })
+  }
+  return noteListFiltered
 }

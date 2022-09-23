@@ -34,12 +34,34 @@ export type Option<T> = $ReadOnly<{
  * @param {TDefault} defaultValue - (optional) default value to use (default: options[0].value)
  * @return {TDefault} - the value attribute of the user-chosen item
  */
-export async function chooseOption<T, TDefault = T>(message: string, options: $ReadOnlyArray<Option<T>>, defaultValue: TDefault|null = null): Promise<T | TDefault> {
+export async function chooseOption<T, TDefault = T>(message: string, options: $ReadOnlyArray<Option<T>>, defaultValue: TDefault | null = null): Promise<T | TDefault> {
   const { index } = await CommandBar.showOptions(
     options.map((option) => option.label),
     message,
   )
   return options[index]?.value ?? defaultValue ?? options[0].value
+}
+
+/**
+ * Ask user to choose from a set of options (from nmn.sweep) using CommandBar
+ * @author @dwertheimer based on @nmn chooseOption
+ *
+ * @param {string} message - text to display to user
+ * @param {Array<T>} options - array of label:value options to present to the user
+ * @param {TDefault} defaultValue - (optional) default value to use (default: options[0].value)
+ * @return {TDefault} - the value attribute of the user-chosen item
+ */
+// @nmn we need some $FlowFixMe
+export async function chooseOptionWithModifiers<T, TDefault = T>(
+  message: string,
+  options: $ReadOnlyArray<Option<T>>,
+): Promise<{ ...TDefault, index: number, keyModifiers: Array<string> }> {
+  const { index, keyModifiers } = await CommandBar.showOptions(
+    options.map((option) => option.label),
+    message,
+  )
+  // $FlowFixMe
+  return { ...options[index], index, keyModifiers }
 }
 
 /**
@@ -93,9 +115,10 @@ export async function getInputTrimmed(message: string, okLabel: string = 'OK', d
  * @param {string} message - text to display to user
  * @param {?string} confirmButton - the "button" (option) text (default: 'OK')
  * @param {?string} dialogTitle - title for the dialog (default: empty)
+ * @param {?boolean} useCommandBar - force use NP CommandBar instead of native prompt (default: false)
  */
-export async function showMessage(message: string, confirmButton: string = 'OK', dialogTitle: string = ''): Promise<void> {
-  if (typeof CommandBar.prompt === 'function') {
+export async function showMessage(message: string, confirmButton: string = 'OK', dialogTitle: string = '', useCommandBar: boolean = false): Promise<void> {
+  if (typeof CommandBar.prompt === 'function' && !useCommandBar) {
     // i.e. do we have .textPrompt available?
     await CommandBar.prompt(dialogTitle, message, [confirmButton])
   } else {
@@ -112,11 +135,12 @@ export async function showMessage(message: string, confirmButton: string = 'OK',
  * @param {string} message - text to display to user
  * @param {?Array<string>} choicesArray - an array of the choices to give (default: ['Yes', 'No'])
  * @param {?string} dialogTitle - title for the dialog (default: empty)
+ * @param {?boolean} useCommandBar - force use NP CommandBar instead of native prompt (default: false)
  * @returns {string} - returns the user's choice - the actual *text* choice from the input array provided
  */
-export async function showMessageYesNo(message: string, choicesArray: Array<string> = ['Yes', 'No'], dialogTitle: string = ''): Promise<string> {
+export async function showMessageYesNo(message: string, choicesArray: Array<string> = ['Yes', 'No'], dialogTitle: string = '', useCommandBar: boolean = false): Promise<string> {
   let answer: number
-  if (typeof CommandBar.prompt === 'function') {
+  if (typeof CommandBar.prompt === 'function' && !useCommandBar) {
     // i.e. do we have .textPrompt available?
     answer = await CommandBar.prompt(dialogTitle, message, choicesArray)
   } else {
@@ -273,8 +297,7 @@ export async function chooseHeading(note: TNote, optionAddAtBottom: boolean = tr
         break
     }
     return headingToReturn
-  }
-  catch (error) {
+  } catch (error) {
     logError('userInput / chooseHeading', error.message)
     return '<error>'
   }
@@ -501,6 +524,6 @@ export async function chooseNote(includeProjectNotes: boolean = true, includeCal
   const opts = noteListFiltered.map((note) => {
     return note.title && note.title !== '' ? note.title : note.filename
   })
-  const {index} = await CommandBar.showOptions(opts, 'Choose note')
+  const { index } = await CommandBar.showOptions(opts, 'Choose note')
   return noteListFiltered[index] ?? null
 }

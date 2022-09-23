@@ -5,6 +5,14 @@
 
 ## What's Changed in this Plugin?
 
+## [2.5.0] (@dwertheimer) 2022-09-
+
+- Added open task search (separate from overdue)
+- Added weekly reschedule tags (to point tasks to weekly note)
+- Added capability to review items marked for today
+- Added day names for rescheduling
+- Added preference to review today's tasks after overdue review 
+
 ## [2.4.1] (@dwertheimer) 2022-09-04
 
 - Overdue: Remove tasks which have been dealt with (@jgclark)

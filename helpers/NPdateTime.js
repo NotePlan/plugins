@@ -4,9 +4,10 @@
 // @jgclark except where shown
 
 import moment from 'moment'
+import { format, add, eachWeekOfInterval } from 'date-fns'
 import { trimAnyQuotes } from './dataManipulation'
-import { RE_YYYYMMDD_DATE, getWeek, monthNameAbbrev, todaysDateISOString, toISODateString, toISOShortDateTimeString, hyphenatedDate, weekStartEnd } from './dateTime'
-import { logDebug, logError } from './dev'
+import { RE_YYYYMMDD_DATE, getWeek, monthNameAbbrev, todaysDateISOString, toISODateString, toISOShortDateTimeString, weekStartEnd } from './dateTime'
+import { logDebug, logError, clo, JSP } from './dev'
 import { chooseOption, getInput } from './userInput'
 
 // TODO: Finish moving references to this file from dateTime.js
@@ -522,6 +523,9 @@ type NotePlanWeekInfo = {
  * @test - available in jest file
  */
 export function getNPWeekData(dateIn: string | Date, offsetIncrement: number = 0, offsetType: string = 'week'): NotePlanWeekInfo | null {
+  function pad(n) {
+    return n < 10 ? `0${n}` : n
+  }
   let dateStrFormat = 'YYYY-MM-DD',
     newMom
   if (typeof dateIn === 'string') {
@@ -539,9 +543,55 @@ export function getNPWeekData(dateIn: string | Date, offsetIncrement: number = 0
       const weekStartYear = startDate.getFullYear()
       const weekEndYear = endDate.getFullYear()
       const weekYear = weekStartYear === weekEndYear ? weekStartYear : weekNumber === 1 ? weekEndYear : weekStartYear
-      const weekString = `${weekYear}-W${weekNumber}`
+      const weekString = `${weekYear}-W${pad(weekNumber)}`
       return { weekNumber, startDate, endDate, weekYear, date, weekString }
     }
   }
   return null
+}
+
+/**
+ * Get upcoming date string options for use in chooseOption
+ * Note: the day-specific version of this function is in ./dateTime (getDateOptions)
+ * uses date-fns:
+ * - formats: https://date-fns.org/v2.29.2/docs/format
+ * - add:https://date-fns.org/v2.29.2/docs/add
+ * @author: @dwertheimer
+ */
+export function getWeekOptions(): $ReadOnlyArray<{ label: string, value: string }> {
+  const now = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
+  const formats = {
+    withDay: ' (EEE, yyyy-MM-dd)',
+    noDay: 'yyyy-MM-dd',
+    arrowDay: '>yyyy-MM-dd',
+    arrowISOWeek: '>yyyy[W]II',
+  }
+  // const thisWeek = { date: now, start: startOfISOWeek(now), end: endOfISOWeek(now) }
+  const weeks = eachWeekOfInterval({ start: now, end: add(now, { months: 6 }) })
+  const weekOpts = weeks?.length
+    ? weeks.map((w) => {
+        const weekData = getNPWeekData(w)
+        if (weekData) {
+          const start = weekData.startDate
+          const end = weekData.endDate
+          const arrowWeek = `>${weekData.weekString}`
+          const arrowWeekLabel = `>${weekData.weekString} Weekly Note`
+          return {
+            label: `${arrowWeekLabel} (${format(start, formats.noDay)} - ${format(end, formats.noDay)})`,
+            // $FlowIgnore
+            value: arrowWeek,
+          }
+        }
+      })
+    : []
+  if (weekOpts && weekOpts?.length && weekOpts[0]?.label && weekOpts[1]?.label) {
+    const extras = [
+      { ...weekOpts[0], ...{ label: `>thisweek -- ${weekOpts[0].label}` } },
+      { ...weekOpts[1], ...{ label: `>nextweek -- ${weekOpts[1].label}` } },
+    ]
+    // clo(options, `getDateOptions: options=`)
+    // $FlowIgnore
+    return [...extras, ...weekOpts]
+  }
+  return []
 }

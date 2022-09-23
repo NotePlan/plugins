@@ -1,7 +1,7 @@
 /* globals describe, expect, test, beforeAll */
 import colors from 'chalk'
 import * as tb from '../timeblocks'
-import DataStore from '../../__mocks__/DataStore.mock'
+import { DataStore } from '@mocks/index'
 
 beforeAll(() => {
   global.DataStore = DataStore

@@ -13,6 +13,11 @@ export function getSyncedCopiesAsList(allTodayParagraphs: Array<TParagraph | Ext
   const syncedLinesList = []
   allTodayParagraphs.forEach((p) => {
     if (taskTypesToInclude.indexOf(p.type) > -1) {
+      logDebug(
+        `NPSyncedCopies::getSyncedCopiesAsList`,
+        `noteType:"${p.note?.type || ''}" noteFilename:"${p.note?.filename || ''}" noteTitle: "${p.note?.title || ''}" paraContent: "${p.content || ''}"`,
+      )
+      clo(p, `NPSyncedCopies::getSyncedCopiesAsList paragraph=`)
       p.note?.addBlockID(p)
       p.note?.updateParagraph(p)
       syncedLinesList.push(p.rawContent)

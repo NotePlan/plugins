@@ -27,7 +27,7 @@ const dt = (): string => {
  * @example console.log(JSP(obj, '\t')) // prints the full object with newlines and tabs for indentation
  */
 export function JSP(obj: any, space: string | number = 2): string {
-  const PARAM_BLACKLIST = ['referencedBlocks'] // fields not to be traversed (e.g. circular references)
+  const PARAM_BLACKLIST = ['referencedBlocks', 'availableThemes', 'currentTheme'] // fields not to be traversed (e.g. circular references)
   if (typeof obj !== 'object' || obj instanceof Date) {
     return String(obj)
   } else {

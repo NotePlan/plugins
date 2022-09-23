@@ -1,7 +1,4 @@
-/* es lint-disable no-unused-vars */
 // @flow
-// Type checking reference: https://flow.org/
-// Specific how-to re: Noteplan: https://github.com/NotePlan/plugins/blob/main/Flow_Guide.md
 
 import pluginJson from '../plugin.json'
 import { chooseOption } from '@helpers/userInput'
