@@ -46,6 +46,19 @@ describe(`${PLUGIN_NAME}`, () => {
     })
   })
   /*
+   * isWeeklyNote()
+   */
+  describe('isWeeklyNote()' /* function */, () => {
+    test('should find a weekly filename', () => {
+      const result = dt.isWeeklyNote({ filename: '2022-W35.md' })
+      expect(result).toEqual(true)
+    })
+    test('should fail on a non-weekly filename', () => {
+      const result = dt.isWeeklyNote({ filename: 'xyz2022-W35.md' })
+      expect(result).toEqual(false)
+    })
+  })
+  /*
    * replaceArrowDatesInString()
    */
   describe('replaceArrowDatesInString()' /* function */, () => {

@@ -1,13 +1,15 @@
 // @flow
 
+import moment from 'moment'
 import pluginJson from '../plugin.json'
 import { showMessageYesNo, chooseFolder, showMessage, chooseOptionWithModifiers } from '../../helpers/userInput'
 import { reviewTasksInNotes, getNotesAndTasksToReview, createArrayOfNotesAndTasks } from './NPTaskScanAndProcess'
 import { JSP, clo, log, logError, logWarn, logDebug } from '@helpers/dev'
-import { filenameDateString, isScheduled } from '@helpers/dateTime'
+import { filenameDateString, isScheduled, isWeeklyNote } from '@helpers/dateTime'
 import { getTodaysReferences } from '@helpers/NPnote'
 import { /* getTasksByType, */ sortListBy } from '@helpers/sorting'
 import { filterNotesAgainstExcludeFolders } from '@helpers/note'
+import { getNPWeekData } from '../../helpers/NPdateTime'
 
 /**
  * After an overdue task scan is complete,
@@ -285,7 +287,6 @@ export async function getOpenTasksByNote(
     if (openTasks.length) notesWithOpenTasks.push(openTasks)
   }
   if (sortOrder) {
-    // searchForgottenTasksOldestToNewest //FIXME: I am here
     const mapForSorting = notesWithOpenTasks.reduce((acc, n, i) => {
       acc?.push({ filename: n[0].filename, changedDate: n[0].note?.changedDate, index: i, item: n })
       return acc
@@ -322,13 +323,22 @@ export async function getNotesToReviewForOpenTasks(ignoreScheduledTasks: boolean
     const { value, keyModifiers } = history
     const { num, unit } = value
     const afterDate = Calendar.addUnitToDate(new Date(), unit, -num)
+    const thisWeek = getNPWeekData(moment().toDate())?.weekString
+    const afterWeek = getNPWeekData(afterDate)?.weekString
     logDebug(pluginJson, `afterdate=${afterDate.toString()}`)
     const afterDateFileName = filenameDateString(Calendar.addUnitToDate(new Date(), unit, -num))
     logDebug(pluginJson, `afterDateFileName=${afterDateFileName}`)
     const todayFileName = `${filenameDateString(new Date())}.${DataStore.defaultFileExtension}`
     logDebug(pluginJson, `todayFileName=${todayFileName}`)
     // Calendar Notes
-    let recentCalNotes = DataStore.calendarNotes.filter((note) => note.filename < todayFileName && note.filename >= afterDateFileName)
+    let recentCalNotes = DataStore.calendarNotes.filter((note) => {
+      if (isWeeklyNote(note) && thisWeek && afterWeek) {
+        return note.filename < thisWeek && note.filename >= afterWeek
+      } else {
+        return note.filename < todayFileName && note.filename >= afterDateFileName
+      }
+    })
+    //TODO: insert weekly check here
     logDebug(pluginJson, `Calendar Notes in date range: ${recentCalNotes.length}`)
     recentCalNotes = filterNotesAgainstExcludeFolders(recentCalNotes, overdueFoldersToIgnore, true)
     logDebug(pluginJson, `Calendar Notes after exclude folder filter: ${recentCalNotes.length}`)
