@@ -37,9 +37,15 @@ const Calendar = {
   // async unitsBetween() { return null },
   // async unitsUntilNow() { return null },
   // async update() { return null },
-  endOfWeek(date) {},
-  startOfWeek(date) {},
-  weekNumber(date) {},
+  endOfWeek(date) {
+    return new Date('2022-01-07 23:59')
+  },
+  startOfWeek(date) {
+    return new Date('2022-01-01 00:00')
+  },
+  weekNumber(date) {
+    return 20
+  },
 }
 
 module.exports = Calendar

@@ -7,6 +7,9 @@ import { displayTitle } from './general'
 import { showMessage } from './userInput'
 import { findStartOfActivePartOfNote } from './paragraph'
 import { getTodaysDateHyphenated } from '@helpers/dateTime'
+import { getNPWeekData } from './NPdateTime'
+import moment from 'moment'
+import { WEEK_NOTE_LINK } from './dateTime'
 
 // A read-write expansion of Paragraph
 export interface ExtendedParagraph extends Paragraph {
@@ -130,4 +133,23 @@ export function getTodaysReferences(pNote: TNote | null = null): $ReadOnlyArray<
     })
   })
   return todayParas
+}
+
+/**
+ * Determines whether a line is overdue or not. A line with multiple dates is only overdue if all dates are overdue.
+ * Finds >weekDates in a string and returns an array of the dates found if all dates are overdue (or an empty array)
+ * NOTE: this function calls getNPWeekData which requires a Calendar mock to Jest test it
+ * @param {string} line
+ * @returns foundDates - array of dates found
+ * @author @dwertheimer
+ * @testsExist yes
+ */
+export function findOverdueWeeksInString(line: string) {
+  const weekData = getNPWeekData(moment().toDate())
+  const dates = line.match(new RegExp(WEEK_NOTE_LINK, 'g'))
+  if (dates && weekData) {
+    const overdue = dates.filter((d) => d.slice(1) < weekData.weekString)
+    return overdue.length === dates.length ? overdue.sort() : [] // if all dates are overdue, return them sorted
+  }
+  return []
 }

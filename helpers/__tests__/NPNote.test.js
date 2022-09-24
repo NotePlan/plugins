@@ -1,13 +1,14 @@
 /* global jest, describe, test, expect, beforeAll */
 import { format } from 'date-fns'
 import * as NPNote from '../NPnote'
-import { DataStore, Paragraph, Note, Editor } from '@mocks/index'
+import { DataStore, Paragraph, Note, Editor, Calendar } from '@mocks/index'
 import { mockWasCalledWith } from '@mocks/mockHelpers'
 import { unhyphenatedDate } from '@helpers/dateTime'
 
 beforeAll(() => {
   DataStore.settings['logLevel'] = 'none' // change to DEBUG to see more console output during test runs
   global.DataStore = DataStore // so we see DEBUG logs in VSCode Jest debugs
+  global.Calendar = Calendar // so we see DEBUG logs in VSCode Jest debugs
   global.Editor = Editor // so we see DEBUG logs in VSCode Jest debugs
 })
 
@@ -65,6 +66,30 @@ describe(`${PLUGIN_NAME}`, () => {
       })
     })
 
+    /*
+     * findOverdueWeeksInString()
+     */
+    describe('findOverdueWeeksInString()' /* function */, () => {
+      test('should find no date in line with no date', () => {
+        const result = NPNote.findOverdueWeeksInString('no date here')
+        expect(result.length).toEqual(0)
+      })
+      test('should find no date in line not overdue yet', () => {
+        const result = NPNote.findOverdueWeeksInString('>2922-W22')
+        expect(result.length).toEqual(0)
+      })
+      test('should find date in line with overdue', () => {
+        const result = NPNote.findOverdueWeeksInString('>1999-W22')
+        expect(result.length).toEqual(1)
+        expect(result).toEqual(['>1999-W22'])
+      })
+      test('should find 2 overdue dates', () => {
+        const result = NPNote.findOverdueWeeksInString('>1999-W22 >2000-W22')
+        expect(result.length).toEqual(2)
+        expect(result[1]).toEqual('>2000-W22')
+      })
+    })
+
     describe('findTodosInNote', () => {
       const note = {
         paragraphs: [
@@ -97,16 +122,6 @@ describe(`${PLUGIN_NAME}`, () => {
         const note2 = { paragraphs: [{ content: 'foo >today bar', type: 'done', filename: 'foof.md' }] }
         const res = NPNote.findTodosInNote(note2)
         expect(res).toEqual([])
-      })
-      test('should return a title from the filename.md', () => {
-        const note2 = { paragraphs: [{ content: 'foo >today bar', type: 'open', filename: 'foof.md', title: 'not' }] }
-        const res = NPNote.findTodosInNote(note2)
-        expect(res[0].title).toEqual('foof')
-      })
-      test('should return a title from the filename.txt', () => {
-        const note2 = { paragraphs: [{ content: 'foo >today bar', type: 'open', filename: 'foof.txt', title: 'not' }] }
-        const res = NPNote.findTodosInNote(note2)
-        expect(res[0].title).toEqual('foof')
       })
     })
   })

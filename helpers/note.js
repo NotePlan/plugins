@@ -1,14 +1,25 @@
 // @flow
 //-------------------------------------------------------------------------------
 // Note-level Functions
-
-import { RE_PLUS_DATE_G, hyphenatedDate, hyphenatedDateString, toLocaleDateString, RE_DAILY_NOTE_FILENAME, RE_WEEKLY_NOTE_FILENAME } from './dateTime'
+import moment from 'moment'
+import {
+  RE_PLUS_DATE_G,
+  RE_SCHEDULED_ISO_DATE,
+  WEEK_NOTE_LINK,
+  hyphenatedDate,
+  hyphenatedDateString,
+  toLocaleDateString,
+  RE_DAILY_NOTE_FILENAME,
+  RE_WEEKLY_NOTE_FILENAME,
+  isWeeklyNote,
+} from './dateTime'
 import { clo, JSP, logDebug, logError, logInfo } from './dev'
 import { getFolderFromFilename } from './folders'
 import { displayTitle, type headingLevelType } from './general'
 import { findEndOfActivePartOfNote } from './paragraph'
 import { sortListBy } from './sorting'
 import { showMessage } from './userInput'
+import { findOverdueWeeksInString } from './NPnote'
 
 export function getNoteContextAsSuffix(filename: string, dateStyle: string): string {
   const noteType = filename.match(RE_DAILY_NOTE_FILENAME) || filename.match(RE_WEEKLY_NOTE_FILENAME) ? 'Calendar' : 'Notes'
@@ -499,7 +510,8 @@ export function removeSection(note: TNote, headingOfSectionToRemove: string): nu
  * @param {boolean} replaceDate - replace the due date with a >today (otherwise leave the date for posterity)
  * @returns {Array<TParagraph>} list of paragraphs with updated content
  */
-export function convertOverdueTasksToToday(note: TNote, openOnly: boolean = true, plusOnlyTypes: boolean = true, replaceDate: boolean = true): Array<TParagraph> {
+export function updateDatePlusTags(note: TNote, options: { openOnly: boolean, plusOnlyTypes: boolean, replaceDate: boolean }): Array<TParagraph> {
+  const { openOnly, plusOnlyTypes, replaceDate } = options
   const todayHyphenated = hyphenatedDateString(new Date())
   const updatedParas = []
   const datedOpenTodos = openOnly ? note?.datedTodos?.filter((t) => t.type === 'open') || [] : note?.datedTodos || []
@@ -513,9 +525,9 @@ export function convertOverdueTasksToToday(note: TNote, openOnly: boolean = true
           const [fullDate, isoDate, operator] = datePlus
           // Date+ should be converted starting today, but overdue should start tomorrow
           const pastDue = (operator && todayHyphenated >= isoDate) || todayHyphenated > isoDate
-          // logDebug(`note/convertOverdueTasksToToday`, `fullDate: ${fullDate} isoDate: ${isoDate} todayHyph: ${todayHyphenated} operator: ${operator}`)
+          // logDebug(`note/updateDatePlusTags`, `fullDate: ${fullDate} isoDate: ${isoDate} todayHyph: ${todayHyphenated} operator: ${operator}`)
           if (pastDue && (plusOnlyTypes === false || (plusOnlyTypes === true && operator === '+'))) {
-            // logDebug(`note/convertOverdueTasksToToday`, `type: ${todo.type} fullDate: ${fullDate} isoDate: ${isoDate} operator: ${operator}`)
+            // logDebug(`note/updateDatePlusTags`, `type: ${todo.type} fullDate: ${fullDate} isoDate: ${isoDate} operator: ${operator}`)
             if (operator || (pastDue && i === 0)) {
               const replacement = madeChange ? '' : ` >today` //if there are multiple dates and we already have one >today, eliminate the rest
               if (operator) {
@@ -523,7 +535,7 @@ export function convertOverdueTasksToToday(note: TNote, openOnly: boolean = true
               } else {
                 todo.content = replaceDate ? todo.content.replace(` ${fullDate}`, replacement) : `${todo.content}${replacement}`
               }
-              // logDebug(`note/convertOverdueTasksToToday`, `plus date found: ${fullDate} | New content: ${todo.content}`)
+              // logDebug(`note/updateDatePlusTags`, `plus date found: ${fullDate} | New content: ${todo.content}`)
               if (madeChange === false) updatedParas.push(todo)
               madeChange = true
             }
@@ -532,6 +544,49 @@ export function convertOverdueTasksToToday(note: TNote, openOnly: boolean = true
       })
     } else {
       // do not return a task already marked with a >todo
+    }
+  })
+  return updatedParas
+}
+
+/**
+ * Determines whether a line is overdue or not. A line with multiple dates is only overdue if all dates are overdue.
+ * Finds ISO8601 dates in a string and returns an array of the dates found if all dates are overdue (or an empty array)
+ * @param {string} line
+ * @returns foundDates - array of dates found
+ */
+export function findOverdueDatesInString(line: string) {
+  const todayHyphenated = hyphenatedDateString(moment().toDate())
+  const dates = line.match(RE_PLUS_DATE_G)
+  if (dates) {
+    const overdue = dates.filter((d) => d.slice(1) < todayHyphenated)
+    return overdue.length === dates.length ? overdue.sort() : [] // if all dates are overdue, return them sorted
+  }
+  return []
+}
+
+/**
+ * Get all paragraphs in a note which are open tasks and overdue (were scheduled and all the dates have passed)
+ * Return the paragraphs with new content with the date replaced with {replaceOverdueDatesWith} or empty
+ * Does not actually update the note/paragraph, but returns each one clean if you want to run note.updateParagraphs() on it
+ * @param {TNote} note
+ * @param {string} replaceOverdueDatesWith
+ * @param {*} options
+ */
+export function getOverdueParagraphs(note: TNote, replaceOverdueDatesWith: string = ''): Array<TParagraph> {
+  const fileType = note.type === 'Notes' ? 'Notes' : note.type === 'Calendar' && isWeeklyNote(note) ? 'Weekly' : 'Daily'
+  const datedOpenTodos = note?.datedTodos?.filter((t) => t.type === 'open') || [] // only open tasks
+  const updatedParas = []
+  datedOpenTodos.forEach((todo) => {
+    if (fileType === 'Notes' || fileType === 'Daily') {
+      const overdueDates = findOverdueDatesInString(todo.content).concat(findOverdueWeeksInString(todo.content))
+      overdueDates.forEach(
+        (d) =>
+          (todo.content = replaceOverdueDatesWith.length
+            ? todo.content.replace(d, replaceOverdueDatesWith).trim().replace(/ {2,}/, ' ')
+            : todo.content.replace(d, '').trim().replace(/ {2,}/, ' ')),
+      )
+      overdueDates.length ? updatedParas.push(todo) : null
     }
   })
   return updatedParas

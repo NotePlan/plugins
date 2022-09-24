@@ -7,11 +7,13 @@
 
 ## [2.5.0] (@dwertheimer) 2022-09-
 
+- Added weekly tasks to marooned task search
 - Added open task search (separate from overdue)
 - Added weekly reschedule tags (to point tasks to weekly note)
 - Added capability to review items marked for today
 - Added day names for rescheduling
 - Added preference to review today's tasks after overdue review 
+- Removed Date+ - no longer necessary with overdue scan
 
 ## [2.4.1] (@dwertheimer) 2022-09-04
 

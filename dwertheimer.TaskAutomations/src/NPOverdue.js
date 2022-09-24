@@ -56,6 +56,7 @@ export async function askToReviewForgottenTasks(byTask: boolean = false) {
   }
 }
 
+// WITH THE NEW OVERDUE TASK SCAN, DATE PLUS PROBABLY ISN'T NEEDED ANYMORE
 /**
  * Find and update date+ tags
  * (plugin entry point for "/Update >date+ tags in Notes")

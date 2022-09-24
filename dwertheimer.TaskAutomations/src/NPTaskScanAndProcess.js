@@ -4,9 +4,9 @@ import pluginJson from '../plugin.json'
 import { getDateOptions, getTodaysDateAsArrowDate, replaceArrowDatesInString } from '@helpers/dateTime'
 import { getWeekOptions } from '@helpers/NPdateTime'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
-import { convertOverdueTasksToToday } from '@helpers/note'
 import { chooseOptionWithModifiers, showMessage } from '@helpers/userInput'
 import { eliminateDuplicateSyncedParagraphs, textWithoutSyncedCopyTag } from '@helpers/syncedCopies'
+import { getOverdueParagraphs } from '@helpers/note'
 
 export type OverdueSearchOptions = {
   openOnly: boolean,
@@ -49,10 +49,10 @@ function getSharedOptions(origPara: TParagraph | { note: TNote }, isSingleLine: 
     ...skip,
     { label: `> Change ${taskText} to >today (repeating until complete)`, value: '__yes__' },
     { label: `✓ Mark ${taskText} done/complete`, value: '__mark__' },
-    { label: `🙅‍♂️ Mark ${taskText} cancelled`, value: '__canceled__' },
+    { label: `🚫 Mark ${taskText} cancelled`, value: '__canceled__' },
     { label: `⌫ Remove the >date from ${taskText}`, value: '__remove__' },
-    { label: `- Convert task to a bullet/list item`, value: '__list__' },
-    { label: '⎋ Cancel Review ⎋', value: '__xcl__' },
+    { label: `⦿ Convert task to a bullet/list item`, value: '__list__' },
+    { label: '❌ Cancel Review', value: '__xcl__' },
     { label: '------ Set Due Date To: -------', value: '-----' },
     ...dateOpts,
   ]
@@ -395,7 +395,10 @@ export function getNotesAndTasksToReview(options: OverdueSearchOptions): Array<A
     for (const n of notesWithDates) {
       if (n) {
         // FIXME: I am here. maybe this function need to change now that it's not really about today
-        const updates = convertOverdueTasksToToday(n, openOnly, datePlusOnly, replaceDate)
+        // Yes, this is way too >today focused. needs to be refactored to deal with >week dates also
+
+        // const updates = updateDatePlusTags(n, { openOnly, datePlusOnly, replaceDate })
+        const updates = getOverdueParagraphs(n, '')
         if (updates.length > 0) {
           notesToUpdate.push(updates)
         }
