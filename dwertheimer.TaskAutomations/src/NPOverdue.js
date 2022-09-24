@@ -41,14 +41,16 @@ export async function askToReviewTodaysTasks(byTask: boolean = false) {
  */
 export async function askToReviewForgottenTasks(byTask: boolean = false) {
   try {
-    const { askToReviewForgottenTasks } = DataStore.settings
+    const { askToReviewForgottenTasks, ignoreScheduledInForgottenReview } = DataStore.settings
     if (askToReviewForgottenTasks) {
       await Editor.openNoteByDate(new Date())
-      let answer = await showMessageYesNo('Do you want to review (potentially forgotten) tasks from previous Calendar days?', ['Yes', 'No'], "Review Today's Tasks", true)
+      let answer = await showMessageYesNo('Review undated tasks from prev days?', ['Yes', 'No'], "Review Today's Tasks", true)
       if (answer === 'Yes') {
-        answer = await showMessageYesNo('Ignore items which have dates/are scheduled?', ['Yes', 'No'], "Review Today's Tasks", true)
+        // Commented out this ask about ignoring scheduled tasks. It works cand can be uncommented, but it felt like too many questions
+        // added a user preference for it instead
+        // answer = await showMessageYesNo('Ignore items which have dates/are scheduled?', ['Yes', 'No'], "Review Today's Tasks", true)
         logDebug(pluginJson, `askToReviewForgottenTasks: now launching review of today's tasks; byTask=${String(byTask)}`)
-        await searchForOpenTasks(null, byTask, answer === 'Yes')
+        await searchForOpenTasks(null, byTask, ignoreScheduledInForgottenReview)
       }
     }
   } catch (error) {

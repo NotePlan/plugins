@@ -84,7 +84,7 @@ export function selectFirstNonTitleLineInEditor(): void {
  * @param {*} config
  * @returns {Array<TParagraph>} of paragraphs which are open and tagged for today
  */
-export function findTodosInNote(note: TNote): Array<TParagraph> {
+export function findTodayTodosInNote(note: TNote): Array<TParagraph> {
   const hyphDate = getTodaysDateHyphenated()
   // const toDate = getDateObjFromDateTimeString(hyphDate)
   const isTodayItem = (text) => [`>${hyphDate}`, '>today'].filter((a) => text.indexOf(a) > -1).length > 0
@@ -102,7 +102,7 @@ export function findTodosInNote(note: TNote): Array<TParagraph> {
     //   }
     // })
   }
-  // console.log(`findTodosInNote found ${todos.length} todos - adding to list`)
+  // console.log(`findTodayTodosInNote found ${todos.length} todos - adding to list`)
   return []
 }
 

@@ -249,13 +249,13 @@
     },
     {
       "type": "heading",
-      "title": "Overdue Task Conversion (to >today) Settings"
+      "title": "Overdue Task Scan Settings"
     },
     {
       "key": "overdueOpenOnly",
       "title": "Look only for OPEN/incomplete tasks with >date that has passed",
       "description": "When searching for overdue tasks, only look for tasks that are OPEN/incomplete. If unchecked, it will find/process all lines containing a >date tag, whether plain text lines, list/bullets, or completed items.",
-      "type": "bool",
+      "type": "hidden",
       "default": true,
       "required": true
     },
@@ -263,7 +263,7 @@
       "key": "replaceDate",
       "title": "When changing overdue tasks to >today, delete the original date",
       "description": "When modifying overdue tasks and adding >today to the task, the default is to replace the pre-existing date with the >today tag. Uncheck this option if you want to add >today but leave the previous date also for posterity.",
-      "type": "bool",
+      "type": "hidden",
       "default": true,
       "required": true
     },
@@ -302,6 +302,14 @@
       "key": "askToReviewForgottenTasks",
       "title": "Review Forgotten Tasks After Overdue",
       "description": "After reviewing overdue tasks, if this box is checked, you will be asked if you want to interactively review all open tasks which exist in previous Calendar (or Project) notes over a specified period of time.",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
+      "key": "ignoreScheduledInForgottenReview",
+      "title": "Ignore all scheduled tasks in forgotten task review",
+      "description": "When searching for forgotten tasks, should we ignore all tasks which have a date set? This seems to be safe, because if something is overdue, the overdue filter will pick it up, and if scheduled for in the future, why mess with it? If you uncheck this, the review cycle will include all tasks, including scheduled ones.",
       "type": "bool",
       "default": true,
       "required": true

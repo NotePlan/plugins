@@ -60,7 +60,7 @@ describe(`${PLUGIN_NAME}`, () => {
         const noteWas = Editor.note
         Editor.note.backlinks = []
         Editor.note.paragraphs = paras
-        const result = await NPNote.findTodosInNote(Editor.note)
+        const result = await NPNote.findTodayTodosInNote(Editor.note)
         expect(result[0].content).toEqual(paras[0].content)
         Editor.note = noteWas
       })
@@ -90,7 +90,7 @@ describe(`${PLUGIN_NAME}`, () => {
       })
     })
 
-    describe('findTodosInNote', () => {
+    describe('findTodayTodosInNote', () => {
       const note = {
         paragraphs: [
           { content: 'foo', type: 'done', filename: 'foof.md' },
@@ -100,13 +100,13 @@ describe(`${PLUGIN_NAME}`, () => {
         ],
       }
       test('should find nothing if there are no today marked items', () => {
-        const res = NPNote.findTodosInNote(note)
+        const res = NPNote.findTodayTodosInNote(note)
         expect(res).toEqual([])
       })
       test('should find items with >today in them', () => {
         const note2 = { paragraphs: [{ content: 'foo >today bar', type: 'open', filename: 'foof.md' }] }
         const consolidated = { paragraphs: [...note2.paragraphs, ...note.paragraphs] }
-        const res = NPNote.findTodosInNote(consolidated)
+        const res = NPNote.findTodayTodosInNote(consolidated)
         expect(res.length).toEqual(1)
         expect(res[0].content).toEqual(note2.paragraphs[0].content)
       })
@@ -114,13 +114,13 @@ describe(`${PLUGIN_NAME}`, () => {
         const tdh = format(new Date(), 'yyyy-MM-dd')
         const note2 = { paragraphs: [{ content: `foo >${tdh} bar`, type: 'open', filename: 'foof.md' }] }
         const consolidated = { paragraphs: [...note2.paragraphs, ...note.paragraphs] }
-        const res = NPNote.findTodosInNote(consolidated)
+        const res = NPNote.findTodayTodosInNote(consolidated)
         expect(res.length).toEqual(1)
         expect(res[0].content).toEqual(note2.paragraphs[0].content)
       })
       test('should not find items with >today if they are done', () => {
         const note2 = { paragraphs: [{ content: 'foo >today bar', type: 'done', filename: 'foof.md' }] }
-        const res = NPNote.findTodosInNote(note2)
+        const res = NPNote.findTodayTodosInNote(note2)
         expect(res).toEqual([])
       })
     })

@@ -36,7 +36,7 @@ import { getTimeBlockString, isTimeBlockLine } from '@helpers/timeblocks'
 import { JSP, clo, log, logError, logWarn, logDebug } from '@helpers/dev'
 import { checkNumber, checkWithDefault } from '@helpers/checkType'
 import { getSyncedCopiesAsList } from '@helpers/NPSyncedCopies'
-import { getTodaysReferences, findTodosInNote } from '@helpers/NPnote'
+import { getTodaysReferences, findTodayTodosInNote } from '@helpers/NPnote'
 import { removeContentUnderHeading, insertContentUnderHeading, removeContentUnderHeadingInAllNotes } from '@helpers/NPParagraph'
 
 /**
@@ -258,7 +258,7 @@ function getEventsConfig(atbConfig: AutoTimeBlockingConfig): TEventConfig {
 export function getTodaysFilteredTodos(config: AutoTimeBlockingConfig): Array<TParagraph> {
   const { includeTasksWithText, excludeTasksWithText } = config
   const backlinkParas = getTodaysReferences(Editor.note)
-  let todosInNote = Editor.note ? findTodosInNote(Editor.note) : []
+  let todosInNote = Editor.note ? findTodayTodosInNote(Editor.note) : []
   if (todosInNote.length > 0) {
     logDebug(pluginJson, `getTodaysFilteredTodos: todosInNote Found ${todosInNote.length} items in today's note. Adding them.`)
     // eliminate linked lines (for synced lines on the page)

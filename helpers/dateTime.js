@@ -42,7 +42,7 @@ export function getTodaysDateUnhyphenated(): string {
   return strftime(`%Y%m%d`)
 }
 
-export const isWeeklyNote = (note: TNote): boolean => new RegExp(RE_WEEKLY_NOTE_FILENAME).test(note.filename)
+export const isWeeklyNote = (note: TNote): boolean => new RegExp(`^${RE_WEEKLY_NOTE_FILENAME}(md|txt)$`).test(note.filename)
 
 /**
  * Test if a string has a date (e.g. was scheduled for a specific date/week or has a >today tag)
@@ -62,7 +62,8 @@ export const isScheduled = (content: string) => RE_PLUS_DATE.test(content) || />
 export function replaceArrowDatesInString(inString: string, replaceWith: string | null = null): string {
   let str = inString
   let repl = replaceWith
-  if (!replaceWith) {
+  if (replaceWith === null) {
+    // if no replacement string, use today's date (e.g. replace >today with todays date instead)
     repl = getTodaysDateAsArrowDate()
   }
   while (isScheduled(str)) {
