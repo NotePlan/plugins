@@ -422,7 +422,7 @@ export class Project {
     switch (style) {
       case 'HTML':
         // Method 1: make [[notelinks]] via x-callbacks
-        const noteTitleWithOpenAction = `<a href="noteplan://x-callback-url/openNote?noteTitle=${titlePart}">${folderNamePart}${titlePart}</a>`
+        const noteTitleWithOpenAction = `<span class="noteTitle"><a href="noteplan://x-callback-url/openNote?noteTitle=${titlePart}">${folderNamePart}${titlePart}</a></span>`
         // Method 2: internal links
         // see discussion at https://discord.com/channels/763107030223290449/1007295214102269982/1016443125302034452
         // const noteTitleWithOpenAction = `<button onclick=openNote()>${folderNamePart}${titlePart}</button>`

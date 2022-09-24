@@ -506,16 +506,18 @@ export function showHTML(
     fullHTML.push('</html>')
     const fullHTMLStr = fullHTML.join('\n')
 
-    // Call the appropriate function, with or without h/w params
-    // TODO: Remove build 863 check in time
+    // Call the appropriate function, with or without h/w params.
+    // Currently non-modal windows only available on macOS and from 3.7 (build 864)
     if (width === undefined || height === undefined) {
-      if (makeModal || NotePlan.environment.buildVersion < 863) {
+      if (makeModal || NotePlan.environment.platform !== 'macOS' || NotePlan.environment.buildVersion < 863) {
+        logDebug('showHTML', `Using modal view for ${NotePlan.environment.buildVersion} build on ${NotePlan.environment.platform}`)
         HTMLView.showSheet(fullHTMLStr) // available from 3.6.2
       } else {
         HTMLView.showWindow(fullHTMLStr, title) // available from 3.7.0
       }
     } else {
-      if (makeModal) {
+      if (makeModal || NotePlan.environment.platform !== 'macOS' || NotePlan.environment.buildVersion < 863) {
+        logDebug('showHTML', `Using modal view for ${NotePlan.environment.buildVersion} build on ${NotePlan.environment.platform}`)
         HTMLView.showSheet(fullHTMLStr, width, height)
       } else {
         HTMLView.showWindow(fullHTMLStr, title, width, height)

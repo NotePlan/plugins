@@ -2,9 +2,11 @@
 //-----------------------------------------------------------------------------
 // Commands for producing Project lists
 // by @jgclark
-// Last updated 19.9.2022 for v0.8.0, @jgclark
+// Last updated 19.9.2022 for v0.8.0-beta, @jgclark
 //-----------------------------------------------------------------------------
 // FIXME: button again ... use the DataStore.invokePluginCommandByName method ?
+// TODO: Ignore all @folders automatically
+// TODO: Swap order of 2 date columns
 
 import pluginJson from "../plugin.json"
 import {
@@ -59,6 +61,7 @@ export const reviewListCSS: string = [
   'a, a:visited, a:active { color: inherit }', // note links: turn off text color
   // 'a:hover { }', // perhaps use hover for note links
   'button { font-size: 1.0rem; font-weight: 700; }',
+  '.noteTitle { font-weight: 700; }', // make noteTitles bold
   '.checkbox { font-family: "noteplanstate"; font-size: 1.4rem; }', // make checkbox display larger, and like in the app
   '.percent-ring { width: 2rem; height: 2rem; }', // Set size of percent-display rings
   '.percent-ring-circle { transition: 0.5s stroke-dashoffset; transform: rotate(-90deg); transform-origin: 50% 50%; }', // details of ring-circle that can be set in CSS
