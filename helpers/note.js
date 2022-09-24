@@ -21,8 +21,9 @@ import { sortListBy } from './sorting'
 import { showMessage } from './userInput'
 import { findOverdueWeeksInString } from './NPnote'
 
+export const noteType = (filename: string) => (filename.match(RE_DAILY_NOTE_FILENAME) || filename.match(RE_WEEKLY_NOTE_FILENAME) ? 'Calendar' : 'Notes')
+
 export function getNoteContextAsSuffix(filename: string, dateStyle: string): string {
-  const noteType = filename.match(RE_DAILY_NOTE_FILENAME) || filename.match(RE_WEEKLY_NOTE_FILENAME) ? 'Calendar' : 'Notes'
   const note = DataStore.noteByFilename(filename, noteType)
   if (!note) {
     return '<error>'
@@ -153,8 +154,8 @@ export async function getOrMakeNote(noteTitle: string, noteFolder: string, parti
  * @returns {string} title of note
  */
 export function getNoteTitleFromFilename(filename: string, makeLink?: boolean = false): string {
-  const noteType = filename.match(RE_DAILY_NOTE_FILENAME) || filename.match(RE_WEEKLY_NOTE_FILENAME) ? 'Calendar' : 'Notes'
-  const note = DataStore.noteByFilename(filename, noteType)
+  const noteTyp = noteType(filename)
+  const note = DataStore.noteByFilename(filename, noteTyp)
   if (note) {
     return makeLink ? `[[${displayTitle(note) ?? ''}]]` : displayTitle(note)
   } else {

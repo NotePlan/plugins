@@ -1,12 +1,14 @@
 // @flow
 
 import pluginJson from '../plugin.json'
-import { getDateOptions, getTodaysDateAsArrowDate, replaceArrowDatesInString } from '@helpers/dateTime'
+import { getDateOptions, getTodaysDateAsArrowDate, replaceArrowDatesInString, RE_DATE, RE_WEEKLY_NOTE_FILENAME, isWeeklyNote } from '@helpers/dateTime'
 import { getWeekOptions } from '@helpers/NPdateTime'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 import { chooseOptionWithModifiers, showMessage } from '@helpers/userInput'
 import { eliminateDuplicateSyncedParagraphs, textWithoutSyncedCopyTag } from '@helpers/syncedCopies'
-import { getOverdueParagraphs } from '@helpers/note'
+import { getOverdueParagraphs, noteType } from '@helpers/note'
+import { calcSmartPrependPoint } from '@helpers/paragraph'
+import { sortListBy } from '@helpers/sorting'
 
 export type OverdueSearchOptions = {
   openOnly: boolean,
@@ -32,6 +34,61 @@ type RescheduleUserAction =
   | string /* >dateOptions */
   | number /* lineIndex of item to pop open */
 
+function noteHasContent(note, content): boolean {
+  return note.paragraphs.some((p) => p.content === content)
+}
+
+/**
+ * Move the tasks to the specified note
+ * Thx @jgclark for code lifted from fileItems.js
+ * TODO: add user preference for where to move tasks in note - see @jgclark's code fileItems.js
+ */
+export function moveParagraph(para: TParagraph, destinationNote: TNote): boolean {
+  // for now, insert at the top of the note
+  if (!para || !para.note || !destinationNote) return
+  const insertionIndex = calcSmartPrependPoint(destinationNote)
+  // logDebug(pluginJson, `moveParagraph -> top of note "${destinationNote.title || ''}", line ${insertionIndex}`)
+  destinationNote.insertParagraph(para.rawContent, insertionIndex, 'text')
+  // because I am nervous about people losing data, I am going to check that the paragraph has been inserted before deleting the original
+  if (noteHasContent(destinationNote, para.content)) {
+    logDebug(pluginJson, `NPTaskScan...moveParagraph verified content got moved. to new note @ line: ${insertionIndex}. So deleting from old note...`)
+    // para?.note?.removeParagraphs([para]) // this is not working for some reason (adding but not deleting)
+    return true
+  }
+  return false
+}
+
+/**
+ * An individual task command was selected with a modifier key pressed
+ * @param {*} para
+ * @param {*} keyModifiers
+ * @param {*} userChoice
+ * @return {boolean} true if moved
+ */
+export async function userChoseModifier(para: TParagraph, keyModifiers: Array<string>, userChoice: string = ''): Promise<boolean> {
+  logDebug(pluginJson, `userChoseModifier(): ${keyModifiers.toString()} userChoice=${userChoice}`)
+  if (userChoice.length && userChoice[0] === '>') {
+    let date = userChoice?.slice(1)
+    if (new RegExp(RE_DATE).test(date)) {
+      date = date.replace(/-/g, '') // convert 8601 date to daily note filename
+    }
+    let filename = `${date}.${DataStore.defaultFileExtension}`
+    const nType = noteType(filename)
+    if (nType === 'Calendar' && !new RegExp(`^${RE_WEEKLY_NOTE_FILENAME}(md|txt)$`).test(filename)) filename = filename.replace(/-/g, '')
+    if (keyModifiers.includes('cmd')) {
+      // MOVE TASK TO SPECIFIED NOTE
+      const note = await DataStore.noteByFilename(filename, nType)
+      if (note) {
+        logDebug(pluginJson, `userChoseModifier ready to write task to: ${filename}`)
+        return moveParagraph(para, note)
+      } else {
+        logDebug(pluginJson, `userChoseModifier could not open: ${filename}. Leaving task in place (${para.content})`)
+      }
+    }
+  }
+  return false
+}
+
 /**
  * Get shared CommandBar options to be displayed for both full notes or individual tasks
  * @param {TPara} origPara
@@ -40,7 +97,7 @@ type RescheduleUserAction =
  */
 function getSharedOptions(origPara: TParagraph | { note: TNote }, isSingleLine: boolean): $ReadOnlyArray<{ label: string, value: string }> {
   const dateOpts = [...getDateOptions(), ...getWeekOptions()]
-  // clo(dateOpts, `promptUserToActOnLine dateOpts`)
+  // clo(dateOpts, `getSharedOptions dateOpts`)
   const note = origPara.note
   const taskText = isSingleLine ? `this task` : `the above tasks`
   const contentText = isSingleLine ? `"${origPara?.content || ''}"` : `tasks in "${note?.title || ''}"`
@@ -63,7 +120,7 @@ function getSharedOptions(origPara: TParagraph | { note: TNote }, isSingleLine: 
  * @param {*} origPara
  * @returns {Promise<RescheduleUserAction | false>} the user choice or false
  */
-async function promptUserToActOnLine(origPara: TParagraph /*, updatedPara: TParagraph */): Promise<RescheduleUserAction | false> {
+async function promptUserToActOnLine(origPara: TParagraph /*, updatedPara: TParagraph */): Promise<{ value: RescheduleUserAction, keyModifiers: Array<string> } | false> {
   logDebug(pluginJson, `promptUserToActOnLine "${origPara.note?.title || ''}": "${origPara.content || ''}"`)
   const range = origPara.contentRange
   if (origPara?.note?.filename) await Editor.openNoteByFilename(origPara.note.filename, false, range?.start || 0, range?.end || 0)
@@ -77,7 +134,7 @@ async function promptUserToActOnLine(origPara: TParagraph /*, updatedPara: TPara
   ]
   const res = await chooseOptionWithModifiers(`Task: "${content}"`, opts)
   clo(res, `promptUserToActOnLine after chooseOption res=`)
-  return res.value
+  return res
 }
 
 /**
@@ -91,8 +148,9 @@ async function promptUserToActOnLine(origPara: TParagraph /*, updatedPara: TPara
 export async function processUserActionOnLine(
   origPara: TParagraph,
   updatedPara: TParagraph,
-  userChoice: RescheduleUserAction | false,
-): Promise<{ action: string, changed?: TParagraph }> {
+  userChoiceObj: any,
+): Promise<{ action: string, changed?: TParagraph, userChoice?: string }> {
+  const userChoice = userChoiceObj?.value
   if (userChoice) {
     const content = origPara?.content || ''
     logDebug(pluginJson, `processUserActionOnLine on content: "${content}" res= "${userChoice}"`)
@@ -120,6 +178,7 @@ export async function processUserActionOnLine(
       case `__delete__`:
         return { action: 'delete' }
       case `__yes__`: {
+        origPara.content = replaceArrowDatesInString(origPara.content, '>today')
         return { action: 'set', changed: updatedPara }
       }
       case `__no__`: {
@@ -130,7 +189,7 @@ export async function processUserActionOnLine(
     }
     if (typeof userChoice === 'string' && userChoice[0] === '>') {
       origPara.content = replaceArrowDatesInString(origPara.content, userChoice)
-      return { action: 'set', changed: origPara }
+      return { action: 'set', changed: origPara, userChoice }
     }
     logDebug(pluginJson, `processUserActionOnLine chosen: ${userChoice} returning`)
   }
@@ -186,7 +245,7 @@ async function showOverdueNote(note: TNote, updates: Array<TParagraph>, index: n
  */
 async function reviewNote(notesToUpdate: Array<Array<TParagraph>>, noteIndex: number, options: OverdueSearchOptions): Promise<number> {
   const { showNote, confirm } = options
-  let updates = notesToUpdate[noteIndex],
+  let updates = sortListBy(notesToUpdate[noteIndex], '-lineIndex'), //reverse so we can delete from the end without messing up the lineIndexes and confusing NotePlan
     currentTaskIndex = showNote ? -1 : 0,
     currentTaskLineIndex = updates[0].lineIndex,
     res
@@ -207,7 +266,7 @@ async function reviewNote(notesToUpdate: Array<Array<TParagraph>>, noteIndex: nu
           }
           if (!isNaN(res)) {
             // this was an index of a line to edit
-            logDebug(`NPnote`, `reviewNote ${note.paragraphs[Number(res) || 0].content}`)
+            logDebug(`NPnote`, `reviewNote "${note.paragraphs[Number(res) || 0].content}"`)
             // edit a single task item
             // clo(note.paragraphs[Number(res) || 0], `reviewNote paraClicked=`)
             const origPara = note.paragraphs[Number(res) || 0]
@@ -222,13 +281,23 @@ async function reviewNote(notesToUpdate: Array<Array<TParagraph>>, noteIndex: nu
                   logDebug('NPNote::reviewNote', `received set command; index= ${index}`)
                   if (result?.changed) {
                     updates[index] = result.changed
-                    note.updateParagraph(updates[index])
                     logDebug(
                       'NPNote::reviewNote',
                       `after set command; updates[index].content="${updates[index].content}" origPara.content="${origPara.content}" | "${
                         note.paragraphs[Number(res) || 0].content
                       }"`,
                     )
+                    if (choice && choice.keyModifiers.length) {
+                      logDebug('NPNote::reviewNote', `received set+cmd key; index= ${index}`)
+                      const success = await userChoseModifier(updates[index], choice.keyModifiers, result.userChoice || '')
+                      if (success) {
+                        updates[index]?.note?.removeParagraph(updates[index])
+                      } else {
+                        note.updateParagraph(updates[index]) //have to do this to eliminate race condition on set/delete
+                      }
+                    } else {
+                      note.updateParagraph(updates[index])
+                    }
                     updates.splice(index, 1) //remove item which was updated from note's updates
                     logDebug(
                       'NPNote::reviewNote',
@@ -290,6 +359,9 @@ async function reviewNote(notesToUpdate: Array<Array<TParagraph>>, noteIndex: nu
               updates = updates.map((p) => {
                 const origPara = note.paragraphs[p.lineIndex]
                 p.content = replaceArrowDatesInString(origPara.content, String(res))
+                // if (choice.keyModifiers.includes('cmd')) {
+                //   // user selected move //TODO: do something with full notes? let's start with tasks only
+                // }
                 return p
               })
               // clo(updates, `reviewNote updates=`)

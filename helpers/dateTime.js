@@ -66,9 +66,11 @@ export function replaceArrowDatesInString(inString: string, replaceWith: string 
     // if no replacement string, use today's date (e.g. replace >today with todays date instead)
     repl = getTodaysDateAsArrowDate()
   }
+  logDebug(`replaceArrowDatesInString: BEFORE inString=${inString}, replaceWith=${replaceWith}, repl=${repl}`)
   while (isScheduled(str)) {
-    str = str.replace(RE_PLUS_DATE, '').replace('>today', '').replace(new RegExp(WEEK_NOTE_LINK)).replace(/ {2,}/g, ' ').trim()
+    str = str.replace(RE_PLUS_DATE, '').replace('>today', '').replace(new RegExp(WEEK_NOTE_LINK), '').replace(/ {2,}/g, ' ').trim()
   }
+  logDebug(`replaceArrowDatesInString: AFTER str=${str}, replaceWith=${replaceWith}, repl=${repl}`)
   return repl && repl.length > 0 ? `${str} ${repl}` : str
 }
 

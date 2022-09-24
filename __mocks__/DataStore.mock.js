@@ -35,7 +35,7 @@ export const DataStore = {
 				"{"type":"open","content":"foo","rawContent":"* foo","prefix":"* ","contentRange":{},"lineIndex":1,"heading":"","headingLevel":-1,"isRecurring":false,"indents":0,"filename":"20200202.md","noteType":"Calendar","linkedNoteTitles":[],"subItems":[],"referencedBlocks":[],"note":{}}"
 		]
 } }], */
-  // defaultFileExtension: VALUE ,
+  defaultFileExtension: 'md',
   /* folders: [{ return / }], */
   // async installOrUpdatePluginsByID() { return null },
   // async installPlugin() { return null },
