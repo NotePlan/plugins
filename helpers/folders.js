@@ -2,19 +2,23 @@
 //-------------------------------------------------------------------------------
 // Folder-level Functions
 
-import { log, logWarn } from './dev'
+import { logDebug, logInfo, logWarn } from './dev'
 
 /**
  * Return list of folders, excluding those on the given list (and any of their sub-folders).
+ * Optionally exclude all special @... folders as well.
  * @author @jgclark
  *
- * @param {[string]} exclusions
- * @returns {[string]} array of folder names
+ * @param {Array<string>} exclusions
+ * @param {boolean} excludeSpecialFolders?
+ * @returns {Array<string>} array of folder names
  */
-export function filterFolderList(exclusions: Array<string>): Array<string> {
+export function filterFolderList(exclusions: Array<string>, excludeSpecialFolders: boolean = true): Array<string> {
+  // Get all folders as array of strings (other than @Trash).
   const folderList = DataStore.folders
+  logDebug('filterFolderList', `List of DataStore.folders: ${folderList.toString()}`)
   const reducedList: Array<string> = []
-  log('filterFolderList()', `filterFolderList: Starting with exclusions ${exclusions.toString()}`)
+  logDebug('filterFolderList', `filterFolderList: Starting with exclusions ${exclusions.toString()}`)
   if (exclusions.length > 0) {
     const exclusionsTerminatedWithSlash: Array<string> = []
     for (const e of exclusions) {
@@ -33,13 +37,14 @@ export function filterFolderList(exclusions: Array<string>): Array<string> {
           break
         }
       }
-      if (!matchedAnExcludedFolder) {
-        reducedList.push(ff.substr(0, ff.length-1))
-        // console.log(`  ${ff} didn't match`)
+      if (!matchedAnExcludedFolder && !(excludeSpecialFolders && ff.startsWith('@'))) {
+        reducedList.push(ff.substr(0, ff.length - 1))
+          // console.log(`  ${ff} didn't match`)
       }
     }
+    logDebug('filterFolderList', `-> filteredList: ${reducedList.toString()}`)
   } else {
-    logWarn('filterFolderList()', `empty excluded folder list`)
+    logInfo('filterFolderList', `empty excluded folder list`)
     reducedList.push(...folderList.slice())
   }
   return reducedList

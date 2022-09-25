@@ -17,6 +17,12 @@ afterAll(() => {
   delete global.DataStore
 })
 
+/**
+ * Tests for filterFolderList:
+ * Parameters:
+ * - {Array<string>} exclusions
+ * - {boolean} excludeSpecialFolders?
+ */
 describe('helpers/folders', () => {
   describe('filterFolderList tests', () => {
     test('empty exclusions -> should return same list', () => {
@@ -49,6 +55,7 @@ describe('helpers/folders', () => {
       const folders = Object.keys(f.filterFolderList(exclusions))
       expect(folders.length).toBe(9)
     })
+    // TODO: Ideally add tests for (new) second boolean parameter
   })
 
   describe('getFolderFromFilename tests', () => {
