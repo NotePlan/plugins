@@ -8,13 +8,12 @@ import { JSP, clo, log, logError, logWarn, logDebug } from '@helpers/dev'
 import { filenameDateString, isScheduled, isWeeklyNote } from '@helpers/dateTime'
 import { getTodaysReferences } from '@helpers/NPnote'
 import { /* getTasksByType, */ sortListBy } from '@helpers/sorting'
-import { filterNotesAgainstExcludeFolders } from '@helpers/note'
-import { getNPWeekData } from '../../helpers/NPdateTime'
+import { filterNotesAgainstExcludeFolders, getOverdueParagraphs } from '@helpers/note'
+import { getNPWeekData } from '@helpers/NPdateTime'
 
 /**
  * After an overdue task scan is complete,
  * ask user if they want to review all the items marked for >today or today's date
- * Plugin entrypoint for command: "/COMMAND"
  * @param {*} incoming
  */
 export async function askToReviewTodaysTasks(byTask: boolean = false) {
@@ -22,7 +21,7 @@ export async function askToReviewTodaysTasks(byTask: boolean = false) {
     const { askToReviewTodaysTasks } = DataStore.settings
     if (askToReviewTodaysTasks) {
       await Editor.openNoteByDate(new Date())
-      const answer = await showMessageYesNo("Do you want to review today's tasks?", ['Yes', 'No'], "Review Today's Tasks", true)
+      const answer = await showMessageYesNo('Want to review tasks scheduled for today?', ['Yes', 'No'], "Review Today's Tasks", true)
       if (answer === 'Yes') {
         logDebug(pluginJson, `askToReviewTodaysTasks: now launching review of today's tasks; byTask=${String(byTask)}`)
         await reviewEditorReferencedTasks(null, byTask)
@@ -44,7 +43,7 @@ export async function askToReviewForgottenTasks(byTask: boolean = false) {
     const { askToReviewForgottenTasks, ignoreScheduledInForgottenReview } = DataStore.settings
     if (askToReviewForgottenTasks) {
       await Editor.openNoteByDate(new Date())
-      let answer = await showMessageYesNo('Review undated tasks from prev days?', ['Yes', 'No'], "Review Today's Tasks", true)
+      const answer = await showMessageYesNo('Review undated tasks from prev days?', ['Yes', 'No'], "Review Today's Tasks", true)
       if (answer === 'Yes') {
         // Commented out this ask about ignoring scheduled tasks. It works cand can be uncommented, but it felt like too many questions
         // added a user preference for it instead
@@ -165,6 +164,7 @@ export async function reviewOverdueTasksInNote(incoming: string): Promise<void> 
     logDebug(pluginJson, `reviewOverdueTasksInNote: incoming="${incoming}" typeof=${typeof incoming}`)
     const confirmResults = incoming ? false : true
     const { overdueOpenOnly, overdueFoldersToIgnore, showUpdatedTask, replaceDate } = DataStore.settings
+    const overdues = Editor.note ? getOverdueParagraphs(Editor?.note) : []
     const options = {
       openOnly: overdueOpenOnly,
       foldersToIgnore: overdueFoldersToIgnore,
@@ -174,12 +174,22 @@ export async function reviewOverdueTasksInNote(incoming: string): Promise<void> 
       showNote: true,
       replaceDate,
       noteFolder: false,
-      noteTaskList: Editor.note?.datedTodos?.length ? Editor.note?.datedTodos : [],
+      noteTaskList: overdues,
       overdueOnly: true,
     }
     // $FlowIgnore
     const notesToReview = getNotesAndTasksToReview(options)
     await reviewTasksInNotes(notesToReview, options)
+    if ((overdues && overdues.length < Editor?.note?.datedTodos?.length) || 0) {
+      if ((await showMessageYesNo(`Review the other tasks in this note?`, 'OK', 'Task Review', true)) === 'Yes') {
+        //FIXME: I am here
+        const diffTasks = Editor?.note?.datedTodos.filter((task) => !overdues.some((ot) => ot.lineIndex === task.lineIndex))
+        await reviewTasksInNotes([Editor.note], { ...options, noteTaskList: diffTasks })
+      }
+    }
+    await showMessage(`Review Complete!`, 'OK', 'Task Review', true)
+    await askToReviewTodaysTasks(true)
+    await askToReviewForgottenTasks(true)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
@@ -254,6 +264,8 @@ export async function reviewOverdueTasksInFolder(incoming: string): Promise<void
     }
     const notesToReview = getNotesAndTasksToReview(options)
     await reviewTasksInNotes(notesToReview, options)
+    await askToReviewTodaysTasks(true)
+    await askToReviewForgottenTasks(true)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
@@ -277,7 +289,6 @@ export async function getOpenTasksByNote(
   for (const note of notes) {
     CommandBar.showLoading(true, `Searching for open tasks...\n${note.title || ''}`)
     const paras = note.paragraphs
-    let hasOpens = false
 
     const openTasks = []
     for (let index = 0; index < paras.length; index++) {
@@ -321,7 +332,7 @@ export async function getNotesToReviewForOpenTasks(ignoreScheduledTasks: boolean
       // { label: '❌ Cancel', value: { num: -1, unit: 'day' } },
     ]
     // const DEFAULT_OPTION: Option1 = { unit: 'day', num: 0 }
-    const history = await chooseOptionWithModifiers<Option1>('Review Calendar Note Tasks From the Last...', OPTIONS)
+    const history = await chooseOptionWithModifiers('Review Calendar Note Tasks From the Last...', OPTIONS)
     if (!history || history.num === -1) return false
     const { value, keyModifiers } = history
     const { num, unit } = value
@@ -369,6 +380,7 @@ export async function getNotesToReviewForOpenTasks(ignoreScheduledTasks: boolean
     return notesWithOpenTasks
   } catch (error) {
     logError(pluginJson, JSP(error))
+    return false
   }
 }
 
@@ -380,6 +392,7 @@ export async function getNotesToReviewForOpenTasks(ignoreScheduledTasks: boolean
 export async function searchForOpenTasks(incoming: string | null = null, byTask: boolean = false, ignoreScheduledTasks: boolean = true) {
   try {
     const { overdueOpenOnly, overdueFoldersToIgnore, showUpdatedTask, replaceDate } = DataStore.settings
+    logDebug(pluginJson, `searchForOpenTasks incoming:${incoming || ''} byTask:${String(byTask)} ignoreScheduledTasks:${String(ignoreScheduledTasks)}`)
     const notes = await getNotesToReviewForOpenTasks(ignoreScheduledTasks)
     if (!notes) throw new Error('Canceled by user')
     if (!notes.length) {
