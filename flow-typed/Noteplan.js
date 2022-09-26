@@ -330,18 +330,18 @@ declare class DataStore {
    */
   static +defaultFileExtension: string;
   /**
-   * Get all folders as array of strings. Including the root "/" and excluding
-   * folders from Archive or Trash.
+   * Get all folders as array of strings. 
+   * Note: Includes the root "/" and folders that begin with "@" such as "@Archive" and "@Templates". It excludes the trash folder though.
    */
   static +folders: $ReadOnlyArray<string>;
   /**
    * Get all calendar notes.
-   * Note: from v3.4 this includes all future-referenced dates, not just those with
-   * an actual created note.
+   * Note: from v3.4 this includes all future-referenced dates, not just those with an actual created note.
    */
   static +calendarNotes: $ReadOnlyArray<TNote>;
   /**
    * Get all regular, project notes.
+   * Note: This includes notes and templates from folders that begin with "@" such as "@Archive" and "@Templates". It excludes notes in the trash folder though.
    */
   static +projectNotes: $ReadOnlyArray<TNote>;
   /**
