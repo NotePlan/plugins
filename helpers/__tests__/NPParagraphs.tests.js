@@ -1,4 +1,4 @@
-/* global describe, expect, test, beforeAll */
+/* global describe, expect, test, beforeAll, beforeEach */
 import * as p from '../NPParagraph'
 import { clo, logDebug } from '../dev'
 
@@ -53,7 +53,7 @@ describe('findHeading()' /* function */, () => {
     expect(result).toEqual(null)
   })
   test('should return partial match in middle with includesString true', () => {
-    const result = p.findHeading(Editor.note, 'eTit', true)// FIXME:
+    const result = p.findHeading(Editor.note, 'eTit', true) // FIXME:
     expect(result?.content).toEqual('theTitle')
   })
 })
@@ -130,16 +130,18 @@ describe('getParagraphBlock() for project note' /* function */, () => {
  */
 // similar to above, but mimicking a calendar note
 describe('getParagraphBlock() for calendar note' /* function */, () => {
-  paragraphs = [
-    new Paragraph({ type: 'text', content: 'line 1 (not title)', headingLevel: 0, indents: 0, lineIndex: 0 }),
-    new Paragraph({ type: 'task', content: 'Task on line 2', headingLevel: 0, indents: 0, lineIndex: 1 }),
-    new Paragraph({ type: 'text', content: 'line 3', headingLevel: 0, indents: 0, lineIndex: 2 }),
-    new Paragraph({ type: 'text', content: 'task on line 4', headingLevel: 0, indents: 0, lineIndex: 3 }),
-    new Paragraph({ type: 'empty', content: '', headingLevel: 1, indents: 0, lineIndex: 4 }),
-    new Paragraph({ type: 'separator', content: '---', lineIndex: 5 }),
-    new Paragraph({ type: 'title', content: 'Done', headingLevel: 2, indents: 0, lineIndex: 6 }),
-  ]
-  Editor.note = new Note({ paragraphs, type: 'Calendar' })
+  beforeEach(() => {
+    paragraphs = [
+      new Paragraph({ type: 'text', content: 'line 1 (not title)', headingLevel: 0, indents: 0, lineIndex: 0 }),
+      new Paragraph({ type: 'task', content: 'Task on line 2', headingLevel: 0, indents: 0, lineIndex: 1 }),
+      new Paragraph({ type: 'text', content: 'line 3', headingLevel: 0, indents: 0, lineIndex: 2 }),
+      new Paragraph({ type: 'text', content: 'task on line 4', headingLevel: 0, indents: 0, lineIndex: 3 }),
+      new Paragraph({ type: 'empty', content: '', headingLevel: 1, indents: 0, lineIndex: 4 }),
+      new Paragraph({ type: 'separator', content: '---', lineIndex: 5 }),
+      new Paragraph({ type: 'title', content: 'Done', headingLevel: 2, indents: 0, lineIndex: 6 }),
+    ]
+    Editor.note = new Note({ paragraphs, type: 'Calendar' })
+  })
 
   test('should return block lineIndex 0-3 from 2/true/true [for calendar note]', () => {
     // FIXME: returns 1-3
@@ -180,20 +182,21 @@ describe('getParagraphBlock() for calendar note' /* function */, () => {
  */
 describe('getBlockUnderHeading()', () => {
   // mimicking a project note
-  const paragraphs = [
-    new Paragraph({ type: 'title', content: 'theTitle', headingLevel: 1, indents: 0, lineIndex: 0 }),
-    new Paragraph({ type: 'text', content: 'line 2', headingLevel: 1, indents: 0, lineIndex: 1 }),
-    new Paragraph({ type: 'text', content: 'line 3 (child of 2)', headingLevel: 1, indents: 1, lineIndex: 2 }),
-    new Paragraph({ type: 'text', content: 'task on line 4', headingLevel: 1, indents: 0, lineIndex: 3 }),
-    new Paragraph({ type: 'empty', content: '', headingLevel: 1, indents: 0, lineIndex: 4 }),
-    new Paragraph({ type: 'title', content: 'a Heading', headingLevel: 2, indents: 0, lineIndex: 5 }),
-    new Paragraph({ type: 'text', content: 'line 2', headingLevel: 2, indents: 0, lineIndex: 6 }),
-    new Paragraph({ type: 'text', content: 'line 3 (child of 2)', headingLevel: 2, indents: 1, lineIndex: 7 }),
-    new Paragraph({ type: 'separator', content: '---', lineIndex: 8 }),
-    new Paragraph({ type: 'title', content: 'Done', headingLevel: 2, indents: 0, lineIndex: 9 }),
-  ]
-  Editor.note = new Note({ paragraphs, type: 'Notes' })
-
+  beforeEach(() => {
+    const paragraphs = [
+      new Paragraph({ type: 'title', content: 'theTitle', headingLevel: 1, indents: 0, lineIndex: 0 }),
+      new Paragraph({ type: 'text', content: 'line 2', headingLevel: 1, indents: 0, lineIndex: 1 }),
+      new Paragraph({ type: 'text', content: 'line 3 (child of 2)', headingLevel: 1, indents: 1, lineIndex: 2 }),
+      new Paragraph({ type: 'text', content: 'task on line 4', headingLevel: 1, indents: 0, lineIndex: 3 }),
+      new Paragraph({ type: 'empty', content: '', headingLevel: 1, indents: 0, lineIndex: 4 }),
+      new Paragraph({ type: 'title', content: 'a Heading', headingLevel: 2, indents: 0, lineIndex: 5 }),
+      new Paragraph({ type: 'text', content: 'line 2', headingLevel: 2, indents: 0, lineIndex: 6 }),
+      new Paragraph({ type: 'text', content: 'line 3 (child of 2)', headingLevel: 2, indents: 1, lineIndex: 7 }),
+      new Paragraph({ type: 'separator', content: '---', lineIndex: 8 }),
+      new Paragraph({ type: 'title', content: 'Done', headingLevel: 2, indents: 0, lineIndex: 9 }),
+    ]
+    Editor.note = new Note({ paragraphs, type: 'Notes' })
+  })
   test('should return block (with heading) when passed a heading string', () => {
     const result = p.getBlockUnderHeading(Editor.note, 'a Heading', true)
     expect(result).toEqual(Editor.note.paragraphs.slice(5, 8))

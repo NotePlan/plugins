@@ -1,7 +1,7 @@
 // @flow
 
 import pluginJson from '../plugin.json'
-import { getDateOptions, getTodaysDateAsArrowDate, replaceArrowDatesInString, RE_DATE, RE_WEEKLY_NOTE_FILENAME, isWeeklyNote } from '@helpers/dateTime'
+import { getDateOptions, replaceArrowDatesInString, RE_DATE, RE_WEEKLY_NOTE_FILENAME } from '@helpers/dateTime'
 import { getWeekOptions } from '@helpers/NPdateTime'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 import { chooseOptionWithModifiers, showMessage } from '@helpers/userInput'
@@ -45,7 +45,7 @@ function noteHasContent(note, content): boolean {
  */
 export function moveParagraph(para: TParagraph, destinationNote: TNote): boolean {
   // for now, insert at the top of the note
-  if (!para || !para.note || !destinationNote) return
+  if (!para || !para.note || !destinationNote) return false
   const insertionIndex = calcSmartPrependPoint(destinationNote)
   // logDebug(pluginJson, `moveParagraph -> top of note "${destinationNote.title || ''}", line ${insertionIndex}`)
   destinationNote.insertParagraph(para.rawContent, insertionIndex, 'text')
@@ -148,9 +148,9 @@ async function promptUserToActOnLine(origPara: TParagraph /*, updatedPara: TPara
 export async function processUserActionOnLine(
   origPara: TParagraph,
   updatedPara: TParagraph,
-  userChoiceObj: any,
+  userChoice: any,
 ): Promise<{ action: string, changed?: TParagraph, userChoice?: string }> {
-  const userChoice = userChoiceObj?.value
+  // const userChoice = userChoiceObj?.value
   if (userChoice) {
     const content = origPara?.content || ''
     logDebug(pluginJson, `processUserActionOnLine on content: "${content}" res= "${userChoice}"`)
@@ -273,7 +273,7 @@ async function reviewNote(notesToUpdate: Array<Array<TParagraph>>, noteIndex: nu
             const index = updates.findIndex((u) => u.lineIndex === origPara.lineIndex) || 0
             const updatedPara = updates[index]
             const choice = await promptUserToActOnLine(origPara /*, updatedPara */)
-            const result = await processUserActionOnLine(origPara, updatedPara, choice) //FIXME: use modifiers key
+            const result = await processUserActionOnLine(origPara, updatedPara, choice && choice.value) //FIXME: use modifiers key
             // clo(result, 'NPNote::reviewNote result')
             if (result) {
               switch (result.action) {
@@ -444,7 +444,7 @@ export function createArrayOfNotesAndTasks(tasks: Array<TParagraph>): Array<Arra
  * @author @dwertheimer
  */
 export function getNotesAndTasksToReview(options: OverdueSearchOptions): Array<Array<TParagraph>> {
-  const { openOnly = true, foldersToIgnore = [], datePlusOnly = true, replaceDate = true, noteTaskList = null, noteFolder = false } = options
+  const { foldersToIgnore = [], /* openOnly = true, datePlusOnly = true, replaceDate = true, */ noteTaskList = null, noteFolder = false } = options
   let notesWithDates = []
   if (!noteTaskList) {
     if (noteFolder) {
@@ -477,6 +477,7 @@ export function getNotesAndTasksToReview(options: OverdueSearchOptions): Array<A
       }
     }
   } else {
+    logDebug(pluginJson, `getNotesAndTasksToReview using supplied task list: ${noteTaskList.length} tasks`)
     notesToUpdate = noteTaskList
   }
   logDebug(`NPNote::getNotesAndTasksToReview`, `total notesToUpdate: ${notesToUpdate.length}`)
