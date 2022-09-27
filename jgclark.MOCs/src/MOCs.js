@@ -1,6 +1,6 @@
 // @flow
 //-----------------------------------------------------------------------------
-// Last updated 27.7.2022 for v0.2.2+, @jgclark
+// Last updated 27.9.2022 for v0.2.3, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -9,8 +9,9 @@ import {
   replaceContentUnderHeading
 } from '@helpers/NPParagraph'
 import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
-import { getFolderFromFilename } from '@helpers/folders'
+import { getFilteredFolderList, getFolderFromFilename } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
+import { projectNotesFromFilteredFolders } from '@helpers/NPnote'
 import {
   chooseFolder,
   getInput,
@@ -113,6 +114,7 @@ export async function makeMOC(filenameArg?: string, termsArg?: string): Promise<
       }
 
       // See if this note has already been created (in active notes, not Archive or Trash)
+      // TODO: Can this be replaced by getOrMakeNote call?
       const existingNotes: $ReadOnlyArray<TNote> =
         DataStore.projectNoteByTitle(requestedTitle, true, false) ?? []
       logDebug(pluginJson, `  found ${existingNotes.length} existing '${requestedTitle}' notes`)
@@ -147,49 +149,47 @@ export async function makeMOC(filenameArg?: string, termsArg?: string): Promise<
     const line1content = (note.paragraphs.length >= 2) ? note.paragraphs[1].content : ''
     logDebug(pluginJson, line1content)
     if (line1content?.startsWith('[🔄Click to refresh](noteplan://x-callback-url/')) {
-      logDebug(pluginJson, 'update xcallback at line 1')
+      logDebug(pluginJson, '- updating xcallback at line 1')
       note.paragraphs[1].content = xCallbackLine
       note.updateParagraph(note.paragraphs[1])
     } else {
-      logDebug(pluginJson, 'insert xcallback at line 1')
+      logDebug(pluginJson, '- inserting xcallback at line 1')
       note.insertParagraph(xCallbackLine, 1, 'text')
     }
     // TODO: test calling from x-callback
 
-    // Create list of project notes not in excluded folders
-    const allProjectNotes = DataStore.projectNotes
-    const projectNotesToInclude = []
-    // Iterate over the folders ...
-    for (const pn of allProjectNotes) {
-      const thisFolder = getFolderFromFilename(pn.filename)
-      if (!config.foldersToExclude.includes(thisFolder)) {
-        projectNotesToInclude.push(pn)
-      } else {
-        // logDebug(pluginJson, `  excluded note '${pn.filename}'`)
-      }
-    }
-    logDebug(pluginJson, `Will use ${projectNotesToInclude.length} project notes out of ${allProjectNotes.length}`)
+    // Create list of project notes not in excluded folders, starting with NP's list of Project Notes (which only excludes the @Trash).
+    const projectNotesToUse = projectNotesFromFilteredFolders(config.foldersToExclude, true)
+    // // Iterate over the folders ...
+    // for (const pn of allProjectNotes) {
+    //   const thisFolder = getFolderFromFilename(pn.filename)
+    //   if (!config.foldersToExclude.includes(thisFolder)) {
+    //     projectNotesToUse.push(pn)
+    //   } else {
+    //     // logDebug(pluginJson, `  excluded note '${pn.filename}'`)
+    //   }
+    // }
 
     // Sort this list by whatever the user's setting says
     // (Need to do this before the gatherMatchingLines, as afterwards we don't have date information.)
     switch (config.resultSortOrder) {
       case 'alphabetical':
-        projectNotesToInclude.sort((a, b) => (displayTitle(a).toUpperCase() < displayTitle(b).toUpperCase() ? -1 : 1))
+        projectNotesToUse.sort((a, b) => (displayTitle(a).toUpperCase() < displayTitle(b).toUpperCase() ? -1 : 1))
         break
       case 'createdDate':
-        projectNotesToInclude.sort((a, b) => (a.createdDate > b.createdDate ? -1 : 1))
+        projectNotesToUse.sort((a, b) => (a.createdDate > b.createdDate ? -1 : 1))
         break
       default: // updatedDate
-        projectNotesToInclude.sort((a, b) => (a.changedDate > b.changedDate ? -1 : 1))
+        projectNotesToUse.sort((a, b) => (a.changedDate > b.changedDate ? -1 : 1))
         break
     }
 
     // Main loop: find entries and then decide whether to add or not
-    logDebug(pluginJson, `makeMOC: looking for '${String(termsToMatch)}' over all notes:`)
+    logDebug(pluginJson, `makeMOC: looking for '${String(termsToMatch)}' in ${projectNotesToUse.length} notes:`)
     // Find matches in this set of notes
     for (const searchTerm of termsToMatch) {
       const outputArray = []
-      const results = await gatherMatchingLines(projectNotesToInclude, searchTerm, false, 'none', config.caseInsensitive)
+      const results = await gatherMatchingLines(projectNotesToUse, searchTerm, false, 'none', config.caseInsensitive)
       const resultTitles = results?.[1]
       if (resultTitles.length > 0) {
         // dedupe results by making and unmaking it into a set

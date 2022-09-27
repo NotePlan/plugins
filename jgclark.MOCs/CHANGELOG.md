@@ -1,5 +1,9 @@
 # What's Changed in 🕸 Map of Contents plugin?
 
+## [0.2.3] - 2022-09-27
+### Changed
+- Now automatically excludes the special folders (Archive, Templates, Searches) from being included when creating MOCs. The Trash was already excluded.
+
 ## [0.2.2] - 2022-08-18
 ### Changed
 - updated to newer logging framework. No functional changes, I think.
