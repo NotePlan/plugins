@@ -3,7 +3,7 @@
   "macOS.minVersion": "10.13.0",
   "plugin.id": "np.Preview",
   "plugin.name": "Previewer",
-  "plugin.description": "Shows HTML preview of the current note",
+  "plugin.description": "Shows HTML preview of the current note, including Mermaid diagrams or MathJax equations.",
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/np.Preview/",
@@ -22,6 +22,41 @@
       ],
       "description": "Preview note in HTML window",
       "jsFunction": "previewNote"
+    },
+    {
+      "name": "test:MathML1",
+      "description": "Test MathML 1",
+      "jsFunction": "testMathML1"
+    },
+    {
+      "name": "test:MathML2",
+      "description": "Test MathML 2",
+      "jsFunction": "testMathML2"
+    },
+    {
+      "name": "test:MathML3",
+      "description": "Test MathML 3",
+      "jsFunction": "testMathML3"
+    },
+    {
+      "name": "test:MathML4",
+      "description": "Test MathML 4",
+      "jsFunction": "testMathML4"
+    },
+    {
+      "name": "test:MathJax1",
+      "description": "Test MathJax 1",
+      "jsFunction": "testMathJax1"
+    },
+    {
+      "name": "test:MathJax2",
+      "description": "Test MathJax 2",
+      "jsFunction": "testMathJax2"
+    },
+    {
+      "name": "test:MathJax3",
+      "description": "Test MathJax 3",
+      "jsFunction": "testMathJax3"
     },
     {
       "name": "test:mermaid3",
