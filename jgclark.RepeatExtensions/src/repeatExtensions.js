@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Repeat Extensions plugin for NotePlan
 // Jonathan Clark
-// last updated 24.7.2022 for v0.3.1+
+// last updated 27.9.2022 for v0.3.1+
 //-----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -10,12 +10,15 @@ import {
   calcOffsetDateStr,
   RE_DATE, // find dates of form YYYY-MM-DD
   RE_DATE_INTERVAL,
+  RE_DATE_TIME,
+  RE_DONE_DATE_TIME,
+  RE_DONE_DATE_TIME_CAPTURES,
   RE_TIME, // find '12:23' with optional '[ ][AM|PM|am|pm]'
   unhyphenateString,
-} from '../../helpers/dateTime'
-import { showMessage } from '../../helpers/userInput'
-import { findEndOfActivePartOfNote } from '../../helpers/paragraph'
+} from '@helpers/dateTime'
 import { logDebug, logInfo, logWarn, logError } from "@helpers/dev"
+import { findEndOfActivePartOfNote } from '@helpers/paragraph'
+import { showMessage } from '@helpers/userInput'
 
 //------------------------------------------------------------------
 /**
@@ -37,9 +40,6 @@ export async function repeats(): Promise<void> {
 
   // const RE_DUE_DATE = '\\s+>' + RE_DATE; // find ' >2021-02-23' etc.
   const RE_DUE_DATE_CAPTURE = `\\s+>(${RE_DATE})` // find ' >2021-02-23' and return just date part
-  const RE_DATE_TIME = `${RE_DATE} ${RE_TIME}` // YYYY-MM-DD HH:MM[AM|PM]
-  const RE_DONE_DATE_TIME = `@done\\(${RE_DATE_TIME}\\)` // find @done(...) and return date-time part
-  const RE_DONE_DATE_CAPTURE = `@done\\((${RE_DATE})( ${RE_TIME})\\)` // find @done(...) and return date-time part
   const RE_EXTENDED_REPEAT = `@repeat\\(${RE_DATE_INTERVAL}\\)` // find @repeat()
   const RE_EXTENDED_REPEAT_CAPTURE = `@repeat\\((.*?)\\)` // find @repeat() and return part inside brackets
 
@@ -81,7 +81,7 @@ export async function repeats(): Promise<void> {
     // logWarn(pluginJson, `  [${n}] ${line}`)
     if (p.content.match(RE_DONE_DATE_TIME)) {
       // get completed date and time
-      reReturnArray = line.match(RE_DONE_DATE_CAPTURE) ?? []
+      reReturnArray = line.match(RE_DONE_DATE_TIME_CAPTURES) ?? []
       completedDate = reReturnArray[1]
       completedTime = reReturnArray[2]
       logDebug(pluginJson, `Found completed repeat ${completedDate} ${completedTime} in line ${n}`)
