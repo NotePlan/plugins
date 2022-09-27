@@ -1,6 +1,11 @@
 # What's changed in 🕓 Event Helpers?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
+## [0.19.0] - 2022-09-27
+### Added
+- new setting "Remove @done dates?" for the "/shift dates" command.
+- "/shift dates" command now also works for weekly dates (e.g. `2022-W34`), leaving the date written as a weekly date.
+
 ## [0.18.0] - 2022-08-31
 ### Added
 - new `includeAllDayEvents` parameter for the `events()` and `matchingEvents()` template functions.

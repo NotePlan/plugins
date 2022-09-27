@@ -8,7 +8,7 @@ import { isTermInURL } from './paragraph'
 // import { getTime } from "date-fns";
 
 // Regular Expressions -- the easy ones!
-export const RE_ISO_DATE = '\\d{4}-[01]\\d{1}-\\d{2}'
+export const RE_ISO_DATE = '\\d{4}-[01]\\d{1}-\\d{2}' // this is now a near dupe of helpers/dateTime
 export const RE_HOURS = '[0-2]?\\d'
 export const RE_HOURS_EXT = `(${RE_HOURS}|NOON|noon|MIDNIGHT|midnight)`
 export const RE_MINUTES = '[0-5]\\d'
@@ -18,8 +18,8 @@ export const RE_TIME_EXT = `${RE_HOURS_EXT}:${RE_MINUTES}`
 export const RE_AMPM = `(AM|am|PM|pm)` // logic changed in v3.4
 export const RE_AMPM_OPT = `${RE_AMPM}?`
 export const RE_TIME_TO = `\\s*(\\-|\\–|\\~|\\〜|to)\\s*`
-export const RE_DONE_DATETIME = `@done\\(${RE_ISO_DATE} ${RE_TIME}${RE_AMPM}?\\)`
-export const RE_DONE_DATE_OPT_TIME = `@done\\(${RE_ISO_DATE}( ${RE_TIME}${RE_AMPM}?)?\\)`
+export const RE_DONE_DATETIME = `@done\\(${RE_ISO_DATE} ${RE_TIME}${RE_AMPM}?\\)` // this is now a near dupe of helpers/dateTime
+export const RE_DONE_DATE_OPT_TIME = `@done\\(${RE_ISO_DATE}( ${RE_TIME}${RE_AMPM}?)?\\)` // this is now a dupe of helpers/dateTime
 
 //-----------------------------------------------------------------------------
 // NB: According to @EduardMe in Discord 29.1.2022, the detection is tightened in v3.4

@@ -9,22 +9,29 @@ import { default as momentBusiness } from 'moment-business-days'
 import { formatISO9075, eachDayOfInterval, eachWeekendOfInterval, format, add } from 'date-fns'
 import { logDebug, logError, logInfo, logWarn, clo } from './dev'
 
-export const RE_PLUS_DATE_G: RegExp = />(\d{4}-\d{2}-\d{2})(\+)*/g
-export const RE_PLUS_DATE: RegExp = />(\d{4}-\d{2}-\d{2})(\+)*/
+export const RE_TIME = '[0-2]\\d{1}:[0-5]\\d{1}\\s?(?:AM|PM|am|pm)?' // find '12:23' with optional '[ ][AM|PM|am|pm]'
 export const RE_DATE = '\\d{4}-[01]\\d-\\d{2}' // find ISO dates of form YYYY-MM-DD
 export const RE_ISO_DATE = '\\d{4}-[01]\\d-[0123]\\d' // find ISO dates of form YYYY-MM-DD (stricter)
+export const RE_PLUS_DATE_G: RegExp = />(\d{4}-\d{2}-\d{2})(\+)*/g
+export const RE_PLUS_DATE: RegExp = />(\d{4}-\d{2}-\d{2})(\+)*/
 export const RE_SCHEDULED_ISO_DATE = '>\\d{4}-[01]\\d-[0123]\\d' // find scheduled dates of form >YYYY-MM-DD
 export const RE_YYYYMMDD_DATE = '\\d{4}[01]\\d[0123]\\d' // find dates of form YYYYMMDD
+export const RE_DATE_TIME = `${RE_DATE} ${RE_TIME}` // YYYY-MM-DD HH:MM[AM|PM]
 export const RE_YYYY_Wnn_DATE = '\\d{4}\\-W[0-5]\\d' // find dates of form YYYY-Wnn
 export const WEEK_NOTE_LINK = `[\<\>]${RE_YYYY_Wnn_DATE}`
 export const RE_DAILY_NOTE_FILENAME = '\\/?\\d{4}[0-1]\\d[0-3]\\d\\.'
 export const RE_WEEKLY_NOTE_FILENAME = '\\/?\\d{4}-W[0-5]\\d\\.'
-export const RE_TIME = '[0-2]\\d{1}:[0-5]\\d{1}\\s?(?:AM|PM|am|pm)?' // find '12:23' with optional '[ ][AM|PM|am|pm]'
 export const RE_DATE_INTERVAL = `[+\\-]?\\d+[bdwmqy]`
 export const RE_OFFSET_DATE = `{\\^?${RE_DATE_INTERVAL}}`
 export const RE_OFFSET_DATE_CAPTURE = `{(\\^?${RE_DATE_INTERVAL})}`
-export const RE_BARE_DATE = `[^\d(<\/-]${RE_DATE}` // an ISO date without a digit or ( or < or / or - before it
+export const RE_BARE_DATE = `[^\d(<\/-]${RE_DATE}` // an ISO date without a digit or ( or < or / or - before it. Note: > is allowed.
+export const RE_BARE_WEEKLY_DATE = `[^\d(<\/-]${RE_YYYY_Wnn_DATE}` // a YYYY-Www date without a digit or ( or < or / or - before it. Note: > is allowed.
 export const RE_BARE_DATE_CAPTURE = `[^\d(<\/-](${RE_DATE})` // capturing date in above
+export const RE_BARE_WEEKLY_DATE_CAPTURE = `[^\d(<\/-](${RE_YYYY_Wnn_DATE})` // capturing date in above
+export const RE_DONE_DATE_TIME = `@done\\(${RE_DATE_TIME}\\)` // find @done(...) and return date-time part
+export const RE_DONE_DATE_TIME_CAPTURES = `@done\\((${RE_DATE})( ${RE_TIME})\\)` // find @done(...) and return date-time part
+export const RE_DONE_DATE_OPT_TIME = `@done\\(${RE_ISO_DATE}( ${RE_TIME})?\\)`
+
 
 export const todaysDateISOString: string = moment().toDate().toISOString().slice(0, 10)
 export const nowLocaleDateTime: string = moment().toDate().toLocaleString()
@@ -50,7 +57,7 @@ export const isWeeklyNote = (note: TNote): boolean => new RegExp(`^${RE_WEEKLY_N
  * @returns {boolean} true if the content contains a date in the form YYYY-MM-DD or a >today or weekly note
  * @author @dwertheimer
  */
-export const isScheduled = (content: string) => RE_PLUS_DATE.test(content) || />today/.test(content) || new RegExp(RE_YYYY_Wnn_DATE).test(content)
+export const isScheduled = (content: string): boolean => RE_PLUS_DATE.test(content) || />today/.test(content) || new RegExp(RE_YYYY_Wnn_DATE).test(content)
 
 /**
  * Remove all >date or >today occurrences in a string and add (>today's-date by default) or the supplied string to the end
@@ -66,10 +73,12 @@ export function replaceArrowDatesInString(inString: string, replaceWith: string 
     // if no replacement string, use today's date (e.g. replace >today with todays date instead)
     repl = getTodaysDateAsArrowDate()
   }
+  // $FlowIgnore[incompatible-type]
   logDebug(`replaceArrowDatesInString: BEFORE inString=${inString}, replaceWith=${replaceWith}, repl=${repl}`)
   while (isScheduled(str)) {
     str = str.replace(RE_PLUS_DATE, '').replace('>today', '').replace(new RegExp(WEEK_NOTE_LINK), '').replace(/ {2,}/g, ' ').trim()
   }
+  // $FlowIgnore[incompatible-type]
   logDebug(`replaceArrowDatesInString: AFTER str=${str}, replaceWith=${replaceWith}, repl=${repl}`)
   return repl && repl.length > 0 ? `${str} ${repl}` : str
 }
@@ -156,7 +165,6 @@ export function filenameDateString(dateObj: Date): string {
 
 /**
  * Return note of calendar date in a variety of styles
- * TODO: support Weekly notes, when Eduard does through links
  * @author @jgclark
  * @param {string} style to return
  * @param {Date} inputDate
@@ -224,7 +232,7 @@ export function getDateStringFromCalendarFilename(filename: string): string {
 
 /**
  * Change a YYYYMMDD date string to YYYY-MM-DD
- * @param {*} dateStr without hyphens
+ * @param {string} dateStr without hyphens
  * @returns {string} ISO hyphenated string
  */
 export function getISODateStringFromYYYYMMDD(filename: string): string {
@@ -235,7 +243,13 @@ export function getISODateStringFromYYYYMMDD(filename: string): string {
   }
 }
 
-// @nmn
+
+/**
+ * Remove >date and <date from a string
+ * @author @nmn
+ * @param {string} input
+ * @returns {string} output
+ */
 export function removeDateTags(content: string): string {
   return content
     .replace(/<\d{4}-\d{2}-\d{2}/g, '')
@@ -243,9 +257,9 @@ export function removeDateTags(content: string): string {
     .trimEnd()
 }
 
-// @dwertheimer
 /**
  * Remove all >date -related things from a line (and optionally >week ones also)
+ * @author @dwertheimer
  * @param {*} tag
  * @param {*} weeklyAlso
  * @returns
@@ -266,7 +280,7 @@ export function removeDateTagsAndToday(tag: string, weeklyAlso: boolean = false)
 
 export const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 export const monthsAbbrev = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-
+// TODO: Could use moment instead ... might be more locale aware too
 export function monthNameAbbrev(m: number): string {
   return monthsAbbrev[m - 1]
 }
@@ -592,13 +606,14 @@ export function calcWeekOffset(startWeek: number, startYear: number, offset: num
 }
 
 /**
- * Calculate an offset date, as ISO Strings.
- * v4 method, using 'moment' library to avoid using NP calls
+ * Calculate an offset date of either a NP daily or weekly date, and return _in the same format as supplied_.
+ * v5 method, using 'moment' library to avoid using NP calls, now extended to allow for Weekly strings as well.
+ * Moment docs: https://momentjs.com/docs/#/get-set/
  * @author @jgclark
  *
  * @param {string} baseDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type
  * @param {interval} string of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in English)
- * @return {string} new date in ISO Date format
+ * @return {string} new date in the same format that was supplied
  * @test - available in jest file
  */
 export function calcOffsetDateStr(baseDateISO: string, interval: string): string {
@@ -607,8 +622,6 @@ export function calcOffsetDateStr(baseDateISO: string, interval: string): string
       logError('dateTime / cODS', `Invalid date interval '${interval}'`)
       return '(error)'
     }
-
-    const baseDateMoment = moment(baseDateISO, 'YYYY-MM-DD')
     const unit = interval.charAt(interval.length - 1) // get last character
     const num = Number(interval.substr(0, interval.length - 1)) // return all but last character
 
@@ -625,11 +638,24 @@ export function calcOffsetDateStr(baseDateISO: string, interval: string): string
         unitForMoment = unit
         break
     }
-    // calc offset (Note: library functions cope with negative nums, so just always use 'add' function)
+
+    let momentDateFormat = ''
+    if (baseDateISO.match(RE_ISO_DATE)) {
+      momentDateFormat = 'YYYY-MM-DD'
+    }
+    else if (baseDateISO.match(RE_YYYY_Wnn_DATE)) {
+      momentDateFormat = 'YYYY-[W]WW'
+    }
+    else {
+      throw new Error('Invalid date string')
+    }
+    const baseDateMoment = moment(baseDateISO, momentDateFormat)
     const newDate = unit !== 'b' ? baseDateMoment.add(num, unitForMoment) : momentBusiness(baseDateMoment).businessAdd(num)
-    const newDateISO = newDate.format('YYYY-MM-DD')
+    const newDateStr = newDate.format(momentDateFormat)
+
+    // calc offset (Note: library functions cope with negative nums, so just always use 'add' function)
     // logDebug('dateTime / cODS', `for '${baseDateISO}' interval ${num} / ${unitForMoment} -> '${newDateISO}'`)
-    return newDateISO
+    return newDateStr
   } catch (e) {
     logError('dateTime / cODS', `${e.message} for '${baseDateISO}' interval '${interval}'`)
     return '(error)'

@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Command to Process Date Offsets
 // @jgclark
-// Last updated 22.7.2022 for v0.16.6, by @jgclark
+// Last updated 27.9.2022 for v0.18.1, by @jgclark
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -12,6 +12,9 @@ import {
   calcOffsetDateStr,
   RE_BARE_DATE_CAPTURE,
   RE_BARE_DATE,
+  RE_BARE_WEEKLY_DATE,
+  RE_BARE_WEEKLY_DATE_CAPTURE,
+  RE_DONE_DATE_OPT_TIME,
   RE_OFFSET_DATE,
   RE_OFFSET_DATE_CAPTURE,
   RE_DATE_INTERVAL,
@@ -26,12 +29,15 @@ import { askDateInterval, datePicker, showMessage, showMessageYesNo } from '@hel
 // ----------------------------------------------------------------------------
 /**
  * Shift Dates
- * Go through currently selected lines in the open note and shift YYYY-MM-DD dates by an interval given by the user
- * Note: doesn't touch @done(...) dates, or others than don't have whitespace or newline before them
+ * Go through currently selected lines in the open note and shift YYYY-MM-DD dates by an interval given by the user.
+ * And now supports YYYY-Www dates too.
+ * Note: can remove @done(...) dates if wanted, but doesn't touch other others than don't have whitespace or newline before them.
  * @author @jgclark
  */
 export async function shiftDates(): Promise<void> {
   try {
+    const config = await getEventsSettings()
+
     // Get working selection as an array of paragraphs
     const { paragraphs, selection, note } = Editor
     let pArr = []
@@ -65,20 +71,42 @@ export async function shiftDates(): Promise<void> {
     let updatedCount = 0
     pArr.forEach((p) => {
       const c = p.content
-      logDebug(pluginJson, `${c}`)
+      let dates = []
+      let originalDateStr = ''
+      let shiftedDateStr = ''
+      // logDebug(pluginJson, `${c}`)
       if (c.match(RE_BARE_DATE)) {
-        const dates = c.match(RE_BARE_DATE_CAPTURE) ?? []
-        const firstDate = dates[1]
-        const shiftedDate = calcOffsetDateStr(firstDate, interval)
-        logDebug(pluginJson, `  ${firstDate}: match found, will become ${shiftedDate}`)
-        // Replace date part with the new shiftedDate
-        const updatedP = c.replace(firstDate, shiftedDate).trimEnd()
-        p.content = updatedP
+        // Process this YYYY-MM-DD date
+        dates = c.match(RE_BARE_DATE_CAPTURE) ?? []
+        originalDateStr = dates[1]
+        shiftedDateStr = calcOffsetDateStr(originalDateStr, interval)
+      }
+      else if (c.match(RE_BARE_WEEKLY_DATE)) {
+        // Process this YYYY-Www date TEST:
+        dates = c.match(RE_BARE_WEEKLY_DATE_CAPTURE) ?? []
+        originalDateStr = dates[1]
+        shiftedDateStr = calcOffsetDateStr(originalDateStr, interval)
+      }
+
+      if (shiftedDateStr !== '') {
+        logDebug(pluginJson, `- ${originalDateStr}: match found, will become ${shiftedDateStr}`)
+        // Replace date part with the new shiftedDateStr
+        let updatedP = c.replace(originalDateStr, shiftedDateStr)
+        // If wanted, also remove @done(...) part
+        const doneDatePart = (updatedP.match(RE_DONE_DATE_OPT_TIME)) ?? ['']
+        if (config.removeDoneDates && doneDatePart[0] !== '') {
+          updatedP = updatedP.replace(doneDatePart[0], '')
+        }
+        p.content = updatedP.trimEnd()
+        logDebug(pluginJson, `-> '${p.content}'`)
         note.updateParagraph(p)
         updatedCount += 1
       }
     })
     logDebug(pluginJson, `Shifted ${updatedCount} dates`)
+
+    // undo selection for safety, and because the end won't now be correct
+    Editor.highlight(pArr[0])
   } catch (err) {
     logError(pluginJson, err.message)
   }

@@ -1,7 +1,7 @@
 // @flow
-// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------
 // Helpers for Events/Calendar -- that require NotePlan functions
-// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------
 //
 // A note on Time Blocks:
 //
@@ -12,7 +12,7 @@
 //   And, you don't have to define an end time."
 // They work on tasks, titles, and list lines, but not scheduled/cancelled tasks, quotes, or just text.
 // NB: The actual detection allows for more time types than is mentioned in the docs.
-// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------
 
 import { addMinutes, differenceInMinutes } from 'date-fns'
 import { keepTodayPortionOnly } from './calendar'
@@ -21,6 +21,7 @@ import {
   getISODateStringFromYYYYMMDD,
   type HourMinObj,
   // printDateRange,
+  RE_ISO_DATE,
   removeDateTagsAndToday,
   todaysDateISOString,
 } from './dateTime'
@@ -28,9 +29,7 @@ import { clo, logDebug, logError, logInfo, logWarn } from './dev'
 import { displayTitle } from './general'
 import { findEndOfActivePartOfNote } from './paragraph'
 import {
-  RE_ISO_DATE,
   RE_TIMEBLOCK,
-  // RE_TIMEBLOCK_FOR_THEMES,
   isTimeBlockPara,
   getTimeBlockString,
 } from './timeblocks'
@@ -53,14 +52,15 @@ export type EventsConfig = {
   removeTimeBlocksWhenProcessed?: boolean,
   calendarToWriteTo?: string,
   defaultEventDuration: number,
+  removeDoneDates: boolean
 }
 
-// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------
 // Additional Regular Expressions
 
 const RE_EVENT_ID = `event:[A-F0-9-]{36,37}`
 
-// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------
 
 /**
  * Prompt user for which of the writeable calendars to use

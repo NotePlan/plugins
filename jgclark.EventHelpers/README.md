@@ -5,7 +5,7 @@ This plugin provides commands to help you do useful things with Events and Calen
 - **/insert matching events**: insert a  list of this day's calendar events that match certain patterns into the current note
 - **/time blocks to calendar**: takes [NotePlan-defined time blocks](https://help.noteplan.co/article/52-part-2-tasks-events-and-reminders#timeblocking) and converts to them to full Calendar events in your current default calendar, as set by iCal. If you have set a Time Block 'text must contain' string in NotePlan's 'Todo' preferences pane, then this is honoured when finding potential time blocks.
 - **/process date offsets**: finds date offset patterns and turns them into due dates, based on date at start of section. (See [Date Offsets](#process-date-offsets) below for full details.)
-- **/shift dates**: takes dates _in the selected lines_ and shifts them forwards or backwards by a given date interval. (It doesn't change dates in `@done(...) mentions, or that are in brackets.)
+- **/shift dates**: takes dates _in the selected lines_ and shifts them forwards or backwards by a given date interval. It works on both `>YYYY-MM-DD` and `>YYYY-Wnn` style dates.
 
 The first four of these have a number of [options described below](#configuration).
 See [Theme customisation](#theme-customisation) below for more on how to customise display of time blocks and events.
@@ -14,6 +14,8 @@ See [Theme customisation](#theme-customisation) below for more on how to customi
 When using `/insert day's events as list` or `/insert matching events` it defaults orders the list by increasing start time of the events. If you wish to have them ordered first by calendar name then by start time, choose the 'calendar' option for the 'Sort order' setting described below, rather than the 'time' default.
 
 ## /shift dates
+There is a setting to decide whether to remove `@done(...)` dates; by default it will. It doesn't remove any dates that are just in `(...)` brackets though.
+
 User George Crump (@george65) has created a [video showing how this command works](https://storone.zoom.us/rec/play/tzI6AreYeKvoyHRw11HX93IGVf2OI-U7WgKXYn2rmGJvbFHXZp8PSr6ajmOrtWymOU5jFIItScSJnL9U.tboBQEXjdw1uRTqu).
 
 ## /process date offsets

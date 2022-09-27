@@ -13,11 +13,11 @@ import {
   castStringArrayFromMixed,
   castStringFromMixed,
   trimAnyQuotes,
-} from '../../helpers/dataManipulation'
-import { type HourMinObj } from '../../helpers/dateTime'
-import { clo, log, logDebug, logWarn, logError } from "../../helpers/dev"
-import { type EventsConfig } from '../../helpers/NPCalendar'
-import { showMessage } from '../../helpers/userInput'
+} from '@helpers/dataManipulation'
+import { type HourMinObj } from '@helpers/dateTime'
+import { clo, log, logDebug, logWarn, logError } from "@helpers/dev"
+import { type EventsConfig } from '@helpers/NPCalendar'
+import { showMessage } from '@helpers/userInput'
 
 //------------------------------------------------------------------------------
 // Get settings
@@ -54,7 +54,8 @@ export async function getEventsSettings(): Promise<any> {
         processedTagName: "",
         removeTimeBlocksWhenProcessed: true,
         calendarToWriteTo: "",
-        defaultEventDuration: 60
+        defaultEventDuration: 60,
+        removeDoneDates: true
       }
       v2Config = defaultConfig
     }
