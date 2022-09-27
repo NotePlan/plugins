@@ -2,21 +2,47 @@
 //-------------------------------------------------------------------------------
 // Note-level Functions that require NP API calls
 
-import { log, logError, logDebug, timer, clo, copyObject } from './dev'
-import { displayTitle } from './general'
-import { showMessage } from './userInput'
-import { findStartOfActivePartOfNote } from './paragraph'
-import { getTodaysDateHyphenated } from '@helpers/dateTime'
-import { getNPWeekData } from './NPdateTime'
 import moment from 'moment'
-import { WEEK_NOTE_LINK } from './dateTime'
+import { getTodaysDateHyphenated, WEEK_NOTE_LINK } from '@helpers/dateTime'
+import { getNPWeekData } from '@helpers/NPdateTime'
+import { log, logError, logDebug, timer, clo } from '@helpers/dev'
+import { getFilteredFolderList, getFolderFromFilename } from '@helpers/folders'
+import { displayTitle } from '@helpers/general'
+import { findStartOfActivePartOfNote } from '@helpers/paragraph'
+import { showMessage } from '@helpers/userInput'
+
+const pluginJson = 'NPnote.js'
+
+//-------------------------------------------------------------------------------
+/**
+ * Return array of all project notes, excluding those in list of folders to exclude, and (if requested) from special '@...' folders
+ * @author @jgclark
+ * @param {Array<string>} foldersToExclude 
+ * @param {boolean} excludeSpecialFolders 
+ * @returns {Array<TNote>} wanted notes
+ */
+export function projectNotesFromFilteredFolders(foldersToExclude: Array<string>, excludeSpecialFolders: boolean): Array<TNote> {
+  // Get list of wanted folders
+  const filteredFolders = getFilteredFolderList(foldersToExclude, excludeSpecialFolders)
+
+  // Iterate over all project notes and keep the notes in the wanted folders ...
+  const allProjectNotes = DataStore.projectNotes
+  const projectNotesToInclude = []
+  for (const pn of allProjectNotes) {
+    const thisFolder = getFolderFromFilename(pn.filename)
+    if (filteredFolders.includes(thisFolder)) {
+      projectNotesToInclude.push(pn)
+    } else {
+      logDebug(pluginJson, `  excluded note '${pn.filename}'`)
+    }
+  }
+  return projectNotesToInclude
+}
 
 // A read-write expansion of Paragraph
 export interface ExtendedParagraph extends Paragraph {
   title?: string;
 }
-
-const pluginJson = 'NPnote.js'
 
 /**
  * Convert the note to using frontmatter Syntax
@@ -139,12 +165,12 @@ export function getTodaysReferences(pNote: TNote | null = null): $ReadOnlyArray<
  * Determines whether a line is overdue or not. A line with multiple dates is only overdue if all dates are overdue.
  * Finds >weekDates in a string and returns an array of the dates found if all dates are overdue (or an empty array)
  * NOTE: this function calls getNPWeekData which requires a Calendar mock to Jest test it
- * @param {string} line
- * @returns foundDates - array of dates found
  * @author @dwertheimer
+ * @param {string} line
+ * @returns foundDates - array of dates found TODO(@dwertheimer): can you please be more explicit about type of dates found -- they're strings but what format strings?
  * @testsExist yes
  */
-export function findOverdueWeeksInString(line: string) {
+export function findOverdueWeeksInString(line: string): Array<string> {
   const weekData = getNPWeekData(moment().toDate())
   const dates = line.match(new RegExp(WEEK_NOTE_LINK, 'g'))
   if (dates && weekData) {

@@ -13,12 +13,12 @@ import { logDebug, logInfo, logWarn } from './dev'
  * @param {boolean} excludeSpecialFolders?
  * @returns {Array<string>} array of folder names
  */
-export function filterFolderList(exclusions: Array<string>, excludeSpecialFolders: boolean = true): Array<string> {
+export function getFilteredFolderList(exclusions: Array<string>, excludeSpecialFolders: boolean = true): Array<string> {
   // Get all folders as array of strings (other than @Trash).
   const folderList = DataStore.folders
-  logDebug('filterFolderList', `List of DataStore.folders: ${folderList.toString()}`)
+  // logDebug('filteredFolderList', `List of DataStore.folders: ${folderList.toString()}`)
   const reducedList: Array<string> = []
-  logDebug('filterFolderList', `filterFolderList: Starting with exclusions ${exclusions.toString()}`)
+  logDebug('filteredFolderList', `filteredFolderList: Starting with exclusions ${exclusions.toString()}`)
   if (exclusions.length > 0) {
     const exclusionsTerminatedWithSlash: Array<string> = []
     for (const e of exclusions) {
@@ -42,9 +42,9 @@ export function filterFolderList(exclusions: Array<string>, excludeSpecialFolder
           // console.log(`  ${ff} didn't match`)
       }
     }
-    logDebug('filterFolderList', `-> filteredList: ${reducedList.toString()}`)
+    logDebug('filteredFolderList', `-> filteredList: ${reducedList.toString()}`)
   } else {
-    logInfo('filterFolderList', `empty excluded folder list`)
+    logInfo('filteredFolderList', `empty excluded folder list`)
     reducedList.push(...folderList.slice())
   }
   return reducedList

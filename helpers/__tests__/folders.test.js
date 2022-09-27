@@ -18,41 +18,41 @@ afterAll(() => {
 })
 
 /**
- * Tests for filterFolderList:
+ * Tests for filteredFolderList:
  * Parameters:
  * - {Array<string>} exclusions
  * - {boolean} excludeSpecialFolders?
  */
 describe('helpers/folders', () => {
-  describe('filterFolderList tests', () => {
+  describe('filteredFolderList tests', () => {
     test('empty exclusions -> should return same list', () => {
       const exclusions = []
-      const folders = Object.keys(f.filterFolderList(exclusions))
+      const folders = Object.keys(f.getFilteredFolderList(exclusions))
       expect(folders.length).toBe(9)
     })
     test('TEST exclusions -> 6 left', () => {
       const exclusions = ['TEST']
-      const folders = Object.keys(f.filterFolderList(exclusions))
+      const folders = Object.keys(f.getFilteredFolderList(exclusions))
       expect(folders.length).toBe(6)
     })
     test('TEST+CCC Areas exclusions -> 4 left', () => {
       const exclusions = ['TEST', 'CCC Areas']
-      const folders = Object.keys(f.filterFolderList(exclusions))
+      const folders = Object.keys(f.getFilteredFolderList(exclusions))
       expect(folders.length).toBe(4)
     })
     test('📋 Templates exclusions -> 8 left', () => {
       const exclusions = ['📋 Templates']
-      const folders = Object.keys(f.filterFolderList(exclusions))
+      const folders = Object.keys(f.getFilteredFolderList(exclusions))
       expect(folders.length).toBe(8)
     })
     test('Subfolder exclusion -> 7 left', () => {
       const exclusions = ['TEST/TEST LEVEL 2']
-      const folders = Object.keys(f.filterFolderList(exclusions))
+      const folders = Object.keys(f.getFilteredFolderList(exclusions))
       expect(folders.length).toBe(7)
     })
     test('Subfolder exclusion not matching -> 9 left', () => {
       const exclusions = ['TEST/TEST LEVEL 3']
-      const folders = Object.keys(f.filterFolderList(exclusions))
+      const folders = Object.keys(f.getFilteredFolderList(exclusions))
       expect(folders.length).toBe(9)
     })
     // TODO: Ideally add tests for (new) second boolean parameter
