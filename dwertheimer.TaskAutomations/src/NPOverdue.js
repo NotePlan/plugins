@@ -171,7 +171,7 @@ export async function reviewOverdueTasksInNote(incoming: string): Promise<void> 
       datePlusOnly: false,
       confirm: confirmResults,
       showUpdatedTask,
-      showNote: true,
+      showNote: false,
       replaceDate,
       noteFolder: false,
       noteTaskList: overdues,
@@ -180,11 +180,12 @@ export async function reviewOverdueTasksInNote(incoming: string): Promise<void> 
     // $FlowIgnore
     const notesToReview = getNotesAndTasksToReview(options)
     await reviewTasksInNotes(notesToReview, options)
-    if ((overdues && overdues.length < Editor?.note?.datedTodos?.length) || 0) {
-      if ((await showMessageYesNo(`Review the other tasks in this note?`, 'OK', 'Task Review', true)) === 'Yes') {
-        //FIXME: I am here
+    if (overdues && overdues.length < (Editor?.note?.datedTodos?.length || 0)) {
+      if ((await showMessageYesNo(`Review the other tasks in this note?`, ['Yes', 'No'], 'Task Review', true)) === 'Yes') {
         const diffTasks = Editor?.note?.datedTodos.filter((task) => !overdues.some((ot) => ot.lineIndex === task.lineIndex))
-        await reviewTasksInNotes([Editor.note], { ...options, noteTaskList: diffTasks })
+        if (diffTasks && diffTasks.length) {
+          await reviewTasksInNotes([diffTasks], { ...options, noteTaskList: [diffTasks] || [] })
+        }
       }
     }
     await showMessage(`Review Complete!`, 'OK', 'Task Review', true)

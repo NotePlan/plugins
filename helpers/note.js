@@ -2,17 +2,7 @@
 //-------------------------------------------------------------------------------
 // Note-level Functions
 import moment from 'moment'
-import {
-  RE_PLUS_DATE_G,
-  RE_SCHEDULED_ISO_DATE,
-  WEEK_NOTE_LINK,
-  hyphenatedDate,
-  hyphenatedDateString,
-  toLocaleDateString,
-  RE_DAILY_NOTE_FILENAME,
-  RE_WEEKLY_NOTE_FILENAME,
-  isWeeklyNote,
-} from './dateTime'
+import { RE_PLUS_DATE_G, hyphenatedDate, hyphenatedDateString, toLocaleDateString, RE_DAILY_NOTE_FILENAME, RE_WEEKLY_NOTE_FILENAME, isWeeklyNote } from './dateTime'
 import { clo, JSP, logDebug, logError, logInfo } from './dev'
 import { getFolderFromFilename } from './folders'
 import { displayTitle, type headingLevelType } from './general'
@@ -21,7 +11,7 @@ import { sortListBy } from './sorting'
 import { showMessage } from './userInput'
 import { findOverdueWeeksInString } from './NPnote'
 
-export const noteType = (filename: string) => (filename.match(RE_DAILY_NOTE_FILENAME) || filename.match(RE_WEEKLY_NOTE_FILENAME) ? 'Calendar' : 'Notes')
+export const noteType = (filename: string): NoteType => (filename.match(RE_DAILY_NOTE_FILENAME) || filename.match(RE_WEEKLY_NOTE_FILENAME) ? 'Calendar' : 'Notes')
 
 export function getNoteContextAsSuffix(filename: string, dateStyle: string): string {
   const note = DataStore.noteByFilename(filename, noteType)
@@ -556,7 +546,7 @@ export function updateDatePlusTags(note: TNote, options: { openOnly: boolean, pl
  * @param {string} line
  * @returns foundDates - array of dates found
  */
-export function findOverdueDatesInString(line: string) {
+export function findOverdueDatesInString(line: string): Array<string> {
   const todayHyphenated = hyphenatedDateString(moment().toDate())
   const dates = line.match(RE_PLUS_DATE_G)
   if (dates) {

@@ -251,7 +251,7 @@ export function createRunPluginCallbackUrl(pluginID: string, commandName: string
       xcb += `&arg${i}=${encodeURIComponent(arg)}`
     })
   }
-  return xcb
+  return xcb.replace(/\(/g, '%28').replace(/\)/g, '%29')
 }
 
 /**
