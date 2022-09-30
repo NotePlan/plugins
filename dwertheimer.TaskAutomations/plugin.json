@@ -108,6 +108,7 @@
       "alias": [
         "updateNoteTasks"
       ],
+      "hidden": true,
       "arguments": [
         "By default will ask you to confirm changes. 'silent' here to to update tasks silently"
       ]

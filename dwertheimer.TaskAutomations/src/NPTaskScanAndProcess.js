@@ -95,15 +95,18 @@ export async function userChoseModifier(para: TParagraph, keyModifiers: Array<st
  * @param {boolean} isSingleLine
  * @returns {$ReadOnlyArray<{ label: string, value: string }>} the options for feeding to a command bar
  */
-function getSharedOptions(origPara: TParagraph | { note: TNote }, isSingleLine: boolean): $ReadOnlyArray<{ label: string, value: string }> {
+function getSharedOptions(origPara: TParagraph | { note: TNote }, isSingleLine: boolean): Array<{ label: string, value: string }> {
   const dateOpts = [...getDateOptions(), ...getWeekOptions()]
   // clo(dateOpts, `getSharedOptions dateOpts`)
   const note = origPara.note
   const taskText = isSingleLine ? `this task` : `the above tasks`
   const contentText = isSingleLine ? `"${origPara?.content || ''}"` : `tasks in "${note?.title || ''}"`
   const skip = isSingleLine ? [] : [{ label: `➡️ Skip - Do not change ${contentText} (and continue)`, value: '__skip__' }]
+  const todayLine = dateOpts.splice(0, 1)
+  todayLine[0].label = `⬇︎ Change date to ${todayLine[0].label}`
   return [
     ...skip,
+    ...todayLine,
     { label: `> Change ${taskText} to >today (repeating until complete)`, value: '__yes__' },
     { label: `✓ Mark ${taskText} done/complete`, value: '__mark__' },
     { label: `🚫 Mark ${taskText} cancelled`, value: '__canceled__' },
@@ -125,9 +128,11 @@ async function promptUserToActOnLine(origPara: TParagraph /*, updatedPara: TPara
   const range = origPara.contentRange
   if (origPara?.note?.filename) await Editor.openNoteByFilename(origPara.note.filename, false, range?.start || 0, range?.end || 0)
   const sharedOpts = getSharedOptions(origPara, true)
+  const todayLines = sharedOpts.splice(0, 2) // get the two >today lines and bring to top
   const content = textWithoutSyncedCopyTag(origPara.content)
   const opts = [
     { label: `➡️ Skip - Do not change "${content}" (and continue)`, value: '__skip__' },
+    ...todayLines,
     { label: `✏️ Edit this task in note: "${origPara.note?.title || ''}"`, value: '__edit__' },
     ...sharedOpts,
     { label: `␡ Delete this line (be sure!)`, value: '__delete__' },
