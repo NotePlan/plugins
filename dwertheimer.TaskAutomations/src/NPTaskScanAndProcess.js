@@ -121,7 +121,7 @@ function getSharedOptions(origPara: TParagraph | { note: TNote }, isSingleLine: 
  * @returns {Promise<RescheduleUserAction | false>} the user choice or false
  */
 async function promptUserToActOnLine(origPara: TParagraph /*, updatedPara: TParagraph */): Promise<{ value: RescheduleUserAction, keyModifiers: Array<string> } | false> {
-  logDebug(pluginJson, `promptUserToActOnLine "${origPara.note?.title || ''}": "${origPara.content || ''}"`)
+  logDebug(pluginJson, `promptUserToActOnLine note:"${origPara.note?.title || ''}": task:"${origPara.content || ''}"`)
   const range = origPara.contentRange
   if (origPara?.note?.filename) await Editor.openNoteByFilename(origPara.note.filename, false, range?.start || 0, range?.end || 0)
   const sharedOpts = getSharedOptions(origPara, true)
@@ -133,7 +133,8 @@ async function promptUserToActOnLine(origPara: TParagraph /*, updatedPara: TPara
     { label: `␡ Delete this line (be sure!)`, value: '__delete__' },
   ]
   const res = await chooseOptionWithModifiers(`Task: "${content}"`, opts)
-  clo(res, `promptUserToActOnLine after chooseOption res=`)
+  logDebug(pluginJson, `promptUserToActOnLine user selection: ${JSP(res)}`)
+  // clo(res, `promptUserToActOnLine after chooseOption res=`)
   return res
 }
 
@@ -273,7 +274,9 @@ async function reviewNote(notesToUpdate: Array<Array<TParagraph>>, noteIndex: nu
             const index = updates.findIndex((u) => u.lineIndex === origPara.lineIndex) || 0
             const updatedPara = updates[index]
             const choice = await promptUserToActOnLine(origPara /*, updatedPara */)
+            logDebug(pluginJson, `reviewNote: back from promptUser, calling processUserActionOnLine with: ${JSP(res)}`)
             const result = await processUserActionOnLine(origPara, updatedPara, choice && choice.value) //FIXME: use modifiers key
+            logDebug(pluginJson, `reviewNote: back from processUserActionOnLine: result=${JSP(result)}`)
             // clo(result, 'NPNote::reviewNote result')
             if (result) {
               switch (result.action) {
