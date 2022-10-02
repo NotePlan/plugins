@@ -28,8 +28,9 @@ export const RE_BARE_DATE = `[^\d(<\/-]${RE_DATE}` // an ISO date without a digi
 export const RE_BARE_WEEKLY_DATE = `[^\d(<\/-]${RE_YYYY_Wnn_DATE}` // a YYYY-Www date without a digit or ( or < or / or - before it. Note: > is allowed.
 export const RE_BARE_DATE_CAPTURE = `[^\d(<\/-](${RE_DATE})` // capturing date in above
 export const RE_BARE_WEEKLY_DATE_CAPTURE = `[^\d(<\/-](${RE_YYYY_Wnn_DATE})` // capturing date in above
-export const RE_DONE_DATE_TIME = `@done\\(${RE_DATE_TIME}\\)` // find @done(...) and return date-time part
-export const RE_DONE_DATE_TIME_CAPTURES = `@done\\((${RE_DATE})( ${RE_TIME})\\)` // find @done(...) and return date-time part
+export const RE_DONE_DATE_TIME = `@done\\(${RE_DATE_TIME}\\)` // find @done(DATE TIME)
+export const RE_DONE_DATE_TIME_CAPTURES = `@done\\((${RE_DATE})( ${RE_TIME})\\)` // find @done(DATE TIME) and return date-time part
+export const RE_DONE_DATE_OR_DATE_TIME_DATE_CAPTURE = `@done\\((${RE_DATE})( ${RE_TIME})?\\)` // find @done(DATE TIME) and return date-time part
 export const RE_DONE_DATE_OPT_TIME = `@done\\(${RE_ISO_DATE}( ${RE_TIME})?\\)`
 
 

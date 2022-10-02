@@ -4,7 +4,6 @@
 // Jonathan Clark
 // Last updated 2.9.2022 for v0.13.0 by @jgclark
 //-----------------------------------------------------------------------------
-// TODO: Add proper graphs in HTML as png or svg or interactive chart.
 
 import pluginJson from '../plugin.json'
 import {
@@ -69,6 +68,7 @@ export async function getSummariesSettings(): Promise<any> {
     if (v2Config == null || Object.keys(v2Config).length === 0) {
       throw new Error(`Cannot find settings for '${pluginID}' plugin`)
     }
+
     return v2Config
   } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)

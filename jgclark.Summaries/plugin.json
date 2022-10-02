@@ -3,13 +3,13 @@
   "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.Summaries",
   "plugin.name": "⏱ Habits and Summaries",
-  "plugin.description": "Generate summaries from notes for a given time period, or save search results, and save to notes. Requires configuring to suit your use of NotePlan. Click link for more details and settings.",
+  "plugin.description": "Generate summaries from notes for a given time period and saves to notes; show heatmap of when tasks were completed. Click link for more details and settings.",
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Summaries/CHANGELOG.md",
-  "plugin.version": "0.13.1",
-  "plugin.lastUpdateInfo": "Plugin and some command names have changed! Also added several new features -- please look at the CHANGELOG and README. Now allows @mention as Did/Didn't terms.",
+  "plugin.version": "0.14.0",
+  "plugin.lastUpdateInfo": "Adds /showTaskCompletionenHeatmap command.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -41,6 +41,12 @@
       "jsFunction": "statsPeriod"
     },
     {
+      "name": "heatmap for complete tasks",
+      "alias": [],
+      "description": "Show a heatmap for complete tasks",
+      "jsFunction": "showTaskCompletionenHeatmap"
+    },
+    {
       "name": "weeklyStatsToCSV",
       "alias": [
         "week",
@@ -54,6 +60,26 @@
       "name": "test:update Summaries plugin settings",
       "description": "Summaries: test update settings",
       "jsFunction": "testUpdate"
+    },
+    {
+      "name": "test:GenStats",
+      "description": "test daily gen stats",
+      "jsFunction": "testGenStats"
+    },
+    {
+      "name": "test:HeatMapGeneration1",
+      "description": "test heatmap gen 1",
+      "jsFunction": "testHeatMapGeneration1"
+    },
+    {
+      "name": "test:HeatMapGeneration2",
+      "description": "test heatmap gen 2",
+      "jsFunction": "testHeatMapGeneration2"
+    },
+    {
+      "name": "test:HeatMapGeneration3",
+      "description": "test heatmap gen 3",
+      "jsFunction": "testHeatMapGeneration3"
     }
   ],
   "plugin.settings": [
@@ -250,15 +276,15 @@
     },
     {
       "type": "heading",
-      "title": "/weeklyStats command settings"
+      "title": "Chart command settings"
     },
     {
       "key": "weeklyStatsDuration",
-      "title": "Weekly Stats Duration (in weeks)",
-      "description": "Number of weeks to look back when generating weekly stats for plotting",
+      "title": "Chart Duration (in weeks)",
+      "description": "Number of weeks to look back when generating charts (including heatmaps), not including sparklines. If set to 0, the plugin will generate a sensible period between 6 months and 1 year.",
       "type": "number",
       "default": 26,
-      "required": false
+      "required": true
     },
     {
       "type": "separator"

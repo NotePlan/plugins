@@ -1,12 +1,21 @@
 // @flow
 
 //-----------------------------------------------------------------------------
-// Summary commands for notes
+// Summary plugin commands
 // Jonathan Clark
-// Last updated 15.8.2022 for v0.13.0
+// Last updated 2.10.2022 for v0.14.0
 //-----------------------------------------------------------------------------
 
-export { weeklyStats } from './forPlotting'
+export {
+  testHeatMapGeneration1,
+  testHeatMapGeneration2,
+  testHeatMapGeneration3,
+} from './testCharting'
+export {
+  showTaskCompletionenHeatmap,
+  testGenStats,
+  weeklyStats
+} from './forCharting'
 export { insertProgressUpdate } from './progress'
 export { statsPeriod } from './stats'
 

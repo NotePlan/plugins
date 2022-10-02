@@ -449,7 +449,7 @@ function makeCSSSelector(selector: string, settingsArray: Array<string>): string
 
 /**
  * Helper function to construct HTML to show in a new window
- * @param {string} title of window
+ * @param {string} windowTitle
  * @param {string} headerTags
  * @param {string} body
  * @param {string} generalCSSIn
@@ -463,7 +463,7 @@ function makeCSSSelector(selector: string, settingsArray: Array<string>): string
  * TODO: Allow for style file when we can save arbitrary data files, not just read them
  */
 export function showHTML(
-  title: string,
+  windowTitle: string,
   headerTags: string,
   body: string,
   generalCSSIn: string,
@@ -480,7 +480,7 @@ export function showHTML(
     fullHTML.push('<!DOCTYPE html>') // needed to let emojis work without special coding
     fullHTML.push('<html>')
     fullHTML.push('<head>')
-    fullHTML.push(`<title>${title}</title>`)
+    fullHTML.push(`<title>${windowTitle}</title>`)
     fullHTML.push(`<meta charset="utf-8">`)
     fullHTML.push(headerTags)
     fullHTML.push('<style type="text/css">')
@@ -513,14 +513,14 @@ export function showHTML(
         logDebug('showHTML', `Using modal view for ${NotePlan.environment.buildVersion} build on ${NotePlan.environment.platform}`)
         HTMLView.showSheet(fullHTMLStr) // available from 3.6.2
       } else {
-        HTMLView.showWindow(fullHTMLStr, title) // available from 3.7.0
+        HTMLView.showWindow(fullHTMLStr, windowTitle) // available from 3.7.0
       }
     } else {
       if (makeModal || NotePlan.environment.platform !== 'macOS' || NotePlan.environment.buildVersion < 863) {
         logDebug('showHTML', `Using modal view for ${NotePlan.environment.buildVersion} build on ${NotePlan.environment.platform}`)
         HTMLView.showSheet(fullHTMLStr, width, height)
       } else {
-        HTMLView.showWindow(fullHTMLStr, title, width, height)
+        HTMLView.showWindow(fullHTMLStr, windowTitle, width, height)
       }
     }
 
@@ -531,9 +531,9 @@ export function showHTML(
       // Write to specified file in NP sandbox
       const res = DataStore.saveData(fullHTMLStr, filenameWithoutSpaces, true)
       if (res) {
-        logDebug('showHTML', `Saved resulting HTML '${title}' to ${filenameForSavedFileVersion} as well.`)
+        logDebug('showHTML', `Saved resulting HTML '${windowTitle}' to ${filenameForSavedFileVersion} as well.`)
       } else {
-        logError('showHTML', `Couoldn't save resulting HTML '${title}'  to ${filenameForSavedFileVersion} as well.`)
+        logError('showHTML', `Couoldn't save resulting HTML '${windowTitle}'  to ${filenameForSavedFileVersion} as well.`)
       }
     }
   } catch (error) {

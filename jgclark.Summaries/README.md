@@ -1,20 +1,19 @@
 # ⏱ Habits and Summaries plugin
 
-This Plugin lets you do the following:
+This Plugin lets you do the following sorts of things:
 - track habits: for example, show when this week I've managed to `#closedmyrings` or `#tookMeds`? 
+<img alt="Habit Tracker example" src="ipu-2w-with-sparkline.jpg" width=360px/>
 - show your progress over the last 2 weeks against your goal of getting an average 8 hours `@sleep`
 - count every time you've noted you've visited  `#family` or watched `#tv` this month
 - count the times you've met with staff member `@alice` this year so far
-- sum the length of your `@run()`s in the last quarter
-
-![Habit Tracker example](ipu-2w-with-sparkline.png)
+- sum the length of your `@run`s in the last quarter
+- show a heatmap chart of how many tasks you've completed recently
+![Heatmap example](heatmap-1y.jpg)
 
 It does this by providing commands that generate several different sorts of **summaries** and **basic stats from your daily notes**.
 
 Each command is considered in turn. **Please note** that in each of these: 
-- all notes in the special folders (@Archive, @Templates and @Trash) are **ignored**.  Others can be exluded too using the `foldersToExclude` setting (see below).
-- the **searches** are simple ones, matching on whole words, not using fuzzy matching or regular expressions.
-- now that NP doesn't force all #hashtags and @mentions to be lower-case, the searching by default now doesn't match case ("case insensitive"). The new setting 'Match case when searching?' allows you to change this if you wish.
+- all notes in the special folders (@Archive, @Templates and @Trash) are **ignored**.  Others can be exluded too using the `foldersToExclude` setting.
 - these commands require **some setup**, so it knows what you want to summarise. Do this in the Plugin Preferences panel by clicking the gear button on the 'Summaries' line. Each setting has an explanation, and they are grouped into relevant sections.
 
 (Note: the /savedSearch commands now live in the separate [SearchExtensions plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/).)
@@ -35,8 +34,12 @@ In particular it uses the `code` attribute of the theme (if set). Here's an exam
 
 Note: According to [several](https://wiki.mobileread.com/wiki/List_of_fonts_included_with_each_device) [sources](http://iosfonts.com/) the only monospace fonts on iPhone/iPad are forms of Courier (e.g. `Courier-Bold`) and Menlo (e.g. `Menlo-Regular`).
 
+## /heatmap for complete tasks
+This displays a 'heatmap' chart of many tasks you've completed on each day (see example above). This checks in all daily, weekly and project notes over the number of weeks you specify to look back (via the 'Chart Duration (in weeks)' setting). If you don't set it, the plugin will generate a sensible period up to 12 months.
 
-## /insertProgressUpdate command
+Note: This is a first attempt at generating heatmaps, and I want to make it much more flexible in future. But this will require rolling my own charts, rather than using one from AnyChart, which if you rely on it should be licensed.
+
+## /insertProgressUpdate
 As NotePlan is such a flexible app, there are [various ways people use it to track habits](https://help.noteplan.co/article/144-habit-tracking). 
  
 This Plugin command helps show progress within the current week, fortnight or month against items you track (e.g. `@work(9)`, `@run(5.3)` or `#prayed`). It does this by generating stats for the configured hashtags or mentions over the time interval you select, and inserts it as a section into the destination note. If the progress update section already exists in the destination note -- if for example you have it set to insert in the weekly note -- it will be updated, rather than be repeated.
@@ -71,7 +74,7 @@ in a Template. This has 3 optional parameters, _which if present override the ma
 
 <!-- Status: ✅ = Done, 👎 = Missed, 🟠 = Average, 🟢 = Good, 🔴 = Bad -->
 
-## /periodStats command (alias: /countsInPeriod or /cip)
+## /periodStats (alias: /countsInPeriod or /cip)
 This command generates some simple counts and other statistics of #hashtags or @mentions that you specify, and saves them into notes in a special 'Summaries' folder. For example:
 - **count** every time you've noted you've visited  family this month -- i.e. counts the number of times `#family` is mentioned in calendar notes this month
 - **count** the times you've met with staff member Alice this year so far -- i.e. counts the number of times `@alice` is mentioned in calendar notes this year
@@ -121,12 +124,12 @@ The settings for this command are:
 
 > (Why use `@run(...)` rather than `#run(...)`? Well, it just felt more right to use `@run()` as there are already `@done(...)` and `@repeat(...)` mentions in use in NotePlan that include a value. And in NotePlan, hashtags that end with a decimal number ignore the fractional part (e.g. `#run/5.3` ignores the `.3`).  However, you can use a `#hashtag/value` if you don't mind this limitation.
 
-## /weeklyStatsToCSV command
+## /weeklyStatsToCSV
 This is a very niche command! It generates stats for the specified mentions and hashtags over a period of consecutive weeks, and write out as a CSV table to 'Summaries/weekly_stats'. This is designed for plotting using the third-party gnuplot tool.
 
 The relevant settings for this command are:
 - Folder name: e.g. 'Summaries'
-- Weekly Stats Duration (in weeks): e.g. 26
+- Chart Duration (in weeks): e.g. 26. If no number is given, the plugin will generate a sensible longish period up to 1 year.
 
 ## To do
 - if/when NotePlan makes this possible, show proper graphs of numeric summaries. (The 'ASCII art' sparklines are hopefully an interim step towards this.)
