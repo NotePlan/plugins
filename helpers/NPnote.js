@@ -33,7 +33,7 @@ export function projectNotesFromFilteredFolders(foldersToExclude: Array<string>,
     if (filteredFolders.includes(thisFolder)) {
       projectNotesToInclude.push(pn)
     } else {
-      logDebug(pluginJson, `  excluded note '${pn.filename}'`)
+      // logDebug(pluginJson, `  excluded note '${pn.filename}'`)
     }
   }
   return projectNotesToInclude

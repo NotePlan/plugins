@@ -255,6 +255,17 @@ function getEventsConfig(atbConfig: AutoTimeBlockingConfig): TEventConfig {
   }
 }
 
+/**
+ * Find all (unduplicated) todos:
+ * - todo items from references list (aka "backlinks")
+ * + items in the current note marked >today or with today's >date
+ * + ...which include the include pattern (if specified in the config)
+ * - ...which do not include items the exclude pattern (if specified in the config)
+ * - items in the current note that are synced tasks to elsewhere (will be in references also)
+ *
+ * @param {*} config
+ * @returns
+ */
 export function getTodaysFilteredTodos(config: AutoTimeBlockingConfig): Array<TParagraph> {
   const { includeTasksWithText, excludeTasksWithText } = config
   const backlinkParas = getTodaysReferences(Editor.note)
@@ -360,7 +371,8 @@ export async function createTimeBlocksForTodaysTasks(config: AutoTimeBlockingCon
       if (config.createSyncedCopies && todosWithLinksMaybe?.length) {
         logDebug(pluginJson, `createSyncedCopies is true, so we will create synced copies of the todosParagraphs: ${todosParagraphs.length} timeblocks`)
         const sortedParas = getFullParagraphsCorrespondingToSortList(todosParagraphs, sortedTodos).filter((p) => p.filename !== Editor.filename)
-        await writeSyncedCopies(sortedParas, config)
+        const sortedParasExcludingCurrentNote = sortedParas.filter((p) => p.filename !== Editor.filename)
+        await writeSyncedCopies(sortedParasExcludingCurrentNote, config)
       }
       return passBackResults ? timeBlockTextList : []
     } else {
@@ -414,7 +426,8 @@ export async function insertSyncedCopiesOfTodayTodos(): Promise<void> {
     const config = await getConfig()
     clo(config, 'insertSyncedCopiesOfTodayTodos config')
     const todosParagraphs = await getTodaysFilteredTodos(config)
-    await writeSyncedCopies(todosParagraphs, DataStore.settings)
+    const sortedParasExcludingCurrentNote = todosParagraphs.filter((p) => p.filename !== Editor.filename)
+    await writeSyncedCopies(sortedParasExcludingCurrentNote, config)
     if (start) {
       Editor.select(start, 1)
     }

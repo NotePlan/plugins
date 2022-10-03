@@ -1,6 +1,8 @@
 import { logDebug } from '@helpers/dev'
 
-function createConfigOptions() {}
+/**
+ * This is used for the TimeBlocking presets in preferences
+ */
 
 /**
  * Presets have a label and other properties which overwrite the default config
@@ -24,8 +26,9 @@ export const getPresetOptions = (presets) => {
   })
 }
 
-function getPreset(config) {
+export function getPreset(config) {
   if (config.preset && config.preset.length) {
+    return config.preset
   } else {
     return null
   }

@@ -222,7 +222,7 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
     describe('insertTodosAsTimeblocks()' /* function */, () => {
       test.skip('should tell user there was a problem with config', async () => {
         const spy = jest.spyOn(CommandBar, 'prompt')
-        await mainFile.insertTodosAsTimeblocks(note)
+        await mainFile.insertTodosAsTimeblocks()
         expect(spy.mock.calls[0][1]).toMatch(/Plugin Settings Error/)
         spy.mockRestore()
       })
@@ -230,7 +230,7 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         // DataStore.settings = {} //should get default settings
         Editor.note.backlinks = []
         const spy = jest.spyOn(CommandBar, 'prompt')
-        await mainFile.insertTodosAsTimeblocks(note)
+        await mainFile.insertTodosAsTimeblocks()
         // $FlowIgnore - jest doesn't know about this param
         expect(mockWasCalledWith(spy, /No todos\/references marked for >today/)).toBe(true)
         spy.mockRestore()
@@ -239,7 +239,7 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
       test.skip('should do something if there are backlinks', async () => {
         Editor.note.backlinks = [{ subItems: [{ content: 'line1' }] }]
         const spy = jest.spyOn(CommandBar, 'prompt')
-        await mainFile.insertTodosAsTimeblocks(note)
+        await mainFile.insertTodosAsTimeblocks()
         // $FlowIgnore - jest doesn't know about this param
         expect(spy.mock.lastCall[1]).toEqual(`No todos/references marked for >today`)
         spy.mockRestore()

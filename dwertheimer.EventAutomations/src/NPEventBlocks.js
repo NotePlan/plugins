@@ -167,7 +167,10 @@ export async function createEvent(title: string, range: { start: Date, end: Date
   } else if (isAllDayEvent) {
     range.end = addMinutes(range.end, -1) // parseDateText returns 12am one day to 12am the next day for a full day event
   }
-  logDebug(pluginJson, `createEvent: creating: title:"${title}" start:${range.start} end:${range.end} isAllDayEvent:${isAllDayEvent} calendar:${config.calendar}} `)
+  logDebug(
+    pluginJson,
+    `createEvent: creating: title:"${title}" start:${String(range.start)} end:${String(range.end)} isAllDayEvent:${String(isAllDayEvent)} calendar:${config.calendar}} `,
+  )
   const calendarItem = await CalendarItem.create(title, range.start, range.end || null, 'event', isAllDayEvent, config.calendar || '')
   const result = await Calendar.add(calendarItem)
   return result || null
@@ -181,7 +184,7 @@ export async function createEvent(title: string, range: { start: Date, end: Date
  * @returns {Promise<Array<ConfirmedEvent>>} - the list of unambiguous event info to create
  */
 export async function confirmEventTiming(paragraphBlock: Array<TParagraph>, config: EventBlocksConfig): Promise<Array<ConfirmedEvent>> {
-  const { confirm, removeDateText } = config
+  const { confirm /*, removeDateText */ } = config
   const confirmedEventData = []
   for (let i = 0; i < paragraphBlock.length; i++) {
     const line = paragraphBlock[i]
@@ -229,7 +232,7 @@ export async function processTimeLines(paragraphBlock: Array<TParagraph>, config
     // before we can show a status bar
     const eventsToCreate = (await confirmEventTiming(paragraphBlock, config)) || []
     // Now that we have all the info we need, we can create the events with a status bar
-    config.calendar = await checkOrGetCalendar('', true)
+    config.calendar = (await checkOrGetCalendar('', true)) || ''
     CommandBar.showLoading(true, `Creating Events:\n(${0}/${eventsToCreate.length})`)
     await CommandBar.onAsyncThread()
     for (let j = 0; j < eventsToCreate.length; j++) {
@@ -243,14 +246,20 @@ export async function processTimeLines(paragraphBlock: Array<TParagraph>, config
         const event = id ? await Calendar.eventByID(id) : null
         if (event) {
           clo(event, `Created event:`)
-          let { calendarItemLink, date, endDate, isAllDay } = event
+          let { endDate } = event
+          const { calendarItemLink, date, isAllDay } = event
           // work around the fact that eventByID sends back the wrong endDate for all day events
-          if (isAllDay) endDate = addMinutes(endDate, -1) // https://discord.com/channels/763107030223290449/1011492449769762836/1011492451460059246
+          if (isAllDay && endDate) endDate = addMinutes(endDate, -1) // https://discord.com/channels/763107030223290449/1011492449769762836/1011492451460059246
           logDebug(pluginJson, `processTimeLines event=${title} event.calendarItemLink=${calendarItemLink}`)
           const startDateString = date.toLocaleString().split(', ')[0]
-          const endDateString = endDate.toLocaleString().split(', ')[0]
+          const endDateString = endDate ? endDate.toLocaleString().split(', ')[0] : ''
           const dateStr = isAllDay ? `${startDateString}${startDateString === endDateString ? '' : `-${endDateString}`}` : date.toLocaleString()
-          logDebug(pluginJson, `noDuration: ${startDateString === endDateString} dateStr = "${dateStr}" endDate: ${endDate.toString()} ${endDate.toLocaleString()}`)
+          logDebug(
+            pluginJson,
+            `noDuration: ${String(startDateString === endDateString)} dateStr = "${dateStr}" endDate: ${endDate ? endDate.toString() : ''} ${
+              endDate ? endDate.toLocaleString() : ''
+            }`,
+          )
           const created = config.showResultingTimeDate ? ` ${dateStr}` : ''
           const editedLink = config.showResultingTimeDate ? replaceCalendarLinkText(calendarItemLink, created) : calendarItemLink
           item.paragraph.content = `${config.removeDateText ? item.revisedLine : item.originalLine} ${editedLink}`

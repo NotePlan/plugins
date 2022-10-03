@@ -75,6 +75,7 @@ export async function getThemeChoice(lightOrDark: string = '', message: string =
     // would be nice to filter here, but how to read system themes?
   }
   const selection = await CommandBar.showOptions(themeOpts, message)
+  logDebug(pluginJson, `getThemeChoice user selected: ${JSP(selection)}`)
   return selection ? selection.value : ''
 }
 

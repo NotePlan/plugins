@@ -2,7 +2,7 @@
   "noteplan.minAppVersion": "3.7",
   "plugin.id": "dwertheimer.TaskAutomations",
   "plugin.name": "✅ Task Automations",
-  "plugin.description": "Functions for handling Tasks",
+  "plugin.description": "Automations for handling Tasks:\n- Overdue/Forgotten task scanning\n- Task sorting within a note\n- Copying #tags/@mentions from one task to another\n- Mark all tasks in note open/completed\n- Automatically opening URLs of task lines",
   "plugin.author": "@dwertheimer",
   "plugin.version": "2.5.0-notreleased",
   "plugin.lastUpdateInfo": "2.5: Added open task search (separate from overdue); Added weekly reschedule tags (to point tasks to weekly note); Added capability to review items marked for today; Added day names for rescheduling; Added preference to review today's tasks after overdue review.\n2.3.1 Add single-note search, Review overdue tasks in <Choose Folder>, Add date choices to dropdown, fix documentation and command description. Previously:\nRelease of '/Review overdue tasks'",
@@ -108,6 +108,7 @@
       "alias": [
         "updateNoteTasks"
       ],
+      "hidden": true,
       "arguments": [
         "By default will ask you to confirm changes. 'silent' here to to update tasks silently"
       ]
@@ -143,7 +144,7 @@
     }, 
     {
       "name": "Review/Reschedule Tasks Dated Today",
-      "description": "Open Document's References",
+      "description": "Review all tasks marked for today's date",
       "jsFunction": "reviewEditorReferencedTasks",
       "alias": [
         "references"

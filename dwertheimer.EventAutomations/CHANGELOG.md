@@ -4,6 +4,10 @@ README: [How to use AutoTimeBlocking](https://noteplan.co/n/#/1EF12392-B544-4044
 
 ## What's New in AutoTimeBlocking
 
+[1.10.3] - 2022-09-29 @dwertheimer
+
+- Bug fix to keep today todos from becoming synced copies
+
 [1.10.2] - 2022-09-07 @dwertheimer
 
 - Name change (back to EventAutomations) and code clean up
