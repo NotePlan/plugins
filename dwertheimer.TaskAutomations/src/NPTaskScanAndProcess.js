@@ -512,5 +512,5 @@ export async function reviewTasksInNotes(notesToUpdate: Array<Array<TParagraph>>
       if (i === -2) break //user selected cancel
     }
   }
-  if (notesToUpdate.length && confirm) await showMessage(`Review Done!`, 'OK', 'Task Search', true)
+  if (notesToUpdate.length && confirm) await showMessage(`${overdueOnly ? 'Overdue Task ' : ''}Review Complete!`, 'OK', 'Task Search', true)
 }

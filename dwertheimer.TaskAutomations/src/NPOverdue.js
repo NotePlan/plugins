@@ -11,6 +11,8 @@ import { /* getTasksByType, */ sortListBy } from '@helpers/sorting'
 import { filterNotesAgainstExcludeFolders, getOverdueParagraphs } from '@helpers/note'
 import { getNPWeekData } from '@helpers/NPdateTime'
 
+const todayFileName = `${filenameDateString(new Date())}.${DataStore.defaultFileExtension}`
+
 /**
  * After an overdue task scan is complete,
  * ask user if they want to review all the items marked for >today or today's date
@@ -156,14 +158,14 @@ export async function reviewOverdueTasksByTask(incoming: string): Promise<void> 
 /**
  * Find and update all overdue tasks, including >date and >date+ in Active Note in Editor
  *  DISPLAY EACH NOTE'S TASK FIRST, WITH OPTION TO EXPLORE EACH TASK
- * (plugin entry point for "/Review overdue tasks (by Task)")
+ * (plugin entry point for "/Review overdue tasks (by Note)")
  * @param {string} incoming - comes from xcallback - any string runs this command silently
  */
 export async function reviewOverdueTasksInNote(incoming: string): Promise<void> {
   try {
     logDebug(pluginJson, `reviewOverdueTasksInNote: incoming="${incoming}" typeof=${typeof incoming}`)
     const confirmResults = incoming ? false : true
-    const { overdueOpenOnly, overdueFoldersToIgnore, showUpdatedTask, replaceDate } = DataStore.settings
+    const { overdueOpenOnly, overdueFoldersToIgnore, showUpdatedTask, replaceDate, confirm } = DataStore.settings
     const overdues = Editor.note ? getOverdueParagraphs(Editor?.note) : []
     const options = {
       openOnly: overdueOpenOnly,
@@ -180,17 +182,19 @@ export async function reviewOverdueTasksInNote(incoming: string): Promise<void> 
     // $FlowIgnore
     const notesToReview = getNotesAndTasksToReview(options)
     await reviewTasksInNotes(notesToReview, options)
-    if (overdues && overdues.length < (Editor?.note?.datedTodos?.length || 0)) {
-      if ((await showMessageYesNo(`Review the other tasks in this note?`, ['Yes', 'No'], 'Task Review', true)) === 'Yes') {
-        const diffTasks = Editor?.note?.datedTodos.filter((task) => !overdues.some((ot) => ot.lineIndex === task.lineIndex))
-        if (diffTasks && diffTasks.length) {
-          await reviewTasksInNotes([diffTasks], { ...options, noteTaskList: [diffTasks] || [] })
-        }
+    // find tasks in Editor note that are not in overdues (match by lineIndex property)
+    const paras = Editor?.note?.paragraphs || []
+    const diffTasks = paras.filter((task) => task.type === 'open' && !overdues.find((ot) => ot.lineIndex !== undefined && ot.lineIndex === task.lineIndex))
+    // if there are more tasks in the note than the overdue ones we found, ask if we should review the rest
+    if (diffTasks && diffTasks.length) {
+      if ((await showMessageYesNo(`Review other open tasks in this note?`, ['Yes', 'No'], 'Task Review', true)) === 'Yes') {
+        await reviewTasksInNotes([diffTasks], { ...options, noteTaskList: [diffTasks] || [], overdueOnly: false })
       }
     }
-    await showMessage(`Review Complete!`, 'OK', 'Task Review', true)
-    await askToReviewTodaysTasks(true)
-    await askToReviewForgottenTasks(true)
+    if (confirm) await showMessage(`Note Review Complete!`, 'OK', 'Task Review', true)
+    if (Editor.filename === todayFileName && confirm) {
+      await askToReviewTodaysTasks(true)
+    }
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
@@ -343,7 +347,6 @@ export async function getNotesToReviewForOpenTasks(ignoreScheduledTasks: boolean
     logDebug(pluginJson, `afterdate=${afterDate.toString()}`)
     const afterDateFileName = filenameDateString(Calendar.addUnitToDate(new Date(), unit, -num))
     logDebug(pluginJson, `afterDateFileName=${afterDateFileName}`)
-    const todayFileName = `${filenameDateString(new Date())}.${DataStore.defaultFileExtension}`
     logDebug(pluginJson, `todayFileName=${todayFileName}`)
     // Calendar Notes
     let recentCalNotes = DataStore.calendarNotes.filter((note) => {
@@ -353,9 +356,8 @@ export async function getNotesToReviewForOpenTasks(ignoreScheduledTasks: boolean
         return note.filename < todayFileName && note.filename >= afterDateFileName
       }
     })
-    //TODO: insert weekly check here
     logDebug(pluginJson, `Calendar Notes in date range: ${recentCalNotes.length}`)
-    recentCalNotes = filterNotesAgainstExcludeFolders(recentCalNotes, overdueFoldersToIgnore, true)
+    // recentCalNotes = filterNotesAgainstExcludeFolders(recentCalNotes, overdueFoldersToIgnore, true)
     logDebug(pluginJson, `Calendar Notes after exclude folder filter: ${recentCalNotes.length}`)
     // Project Notes
     let recentProjNotes = []
