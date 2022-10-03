@@ -59,7 +59,7 @@ export async function testGenStats(): Promise<void> {
  * Create heatmap of task completion for last config.weeklyStatsDuration weeks (or if not specified, a sensible period between 6 and 12 months).
  * @author @jgclark
  */
-export async function showTaskCompletionenHeatmap(): Promise<void> {
+export async function showTaskCompletionHeatmap(): Promise<void> {
   const config = await getSummariesSettings()
 
   // Work out time interval to use
@@ -85,12 +85,17 @@ export async function showTaskCompletionenHeatmap(): Promise<void> {
   // Calc total completed in period
   let total = 0
   for (let item of statsMap) {
-    total += item[1]
+    const isoDate = item[0]
+    const value = item[1]
+    if (withinDateRange(isoDate, fromDateStr, toDateStr)) {
+      // this test ignores any blanks on the front (though they will be 0 anyway)
+      total += (!isNaN(value)) ? value : 0
+    }
   }
 
   await generateHeatMap(
     'NotePlan Task Completion Heatmap',
-    `Task Completion Heatmap (${total.toLocaleString()} from ${fromDateStr})`,
+    `Task Completion Heatmap (${total.toLocaleString()} since ${fromDateStr})`,
     config.foldersToExclude,
     statsMap,
     '["#F4FFF4", "#00E400"]',
@@ -107,6 +112,7 @@ export async function showTaskCompletionenHeatmap(): Promise<void> {
  * - horizontal scroller (https://docs.anychart.com/Common_Settings/Scroller) 
  * - and tooltips (https://docs.anychart.com/Basic_Charts/Heat_Map_Chart#formatting_functions).
  * Note: Using trial (and watermarked) version of Anychart. I need to find a different solution for the longer term.
+ * Note: This AnyChart code isn't designed for time series, so doesn't really cope with missing data points, particularly if at the start of the (throws off Y axis) or a whole week (throws off X axis).
  * @author @jgclark
  * @param {string} windowTitle
  * @param {string} chartTitle
@@ -123,7 +129,7 @@ export async function generateHeatMap(
   chartTitle: string,
   foldersToExclude: Array<string>,
   statsMap: Map<string, number>,
-  colorScaleRange: string = '["#F4FFF4", "#00E400"]',
+  colorScaleRange: string = '["#FFFFFF", "#00E400"]',
   intervalType: string,
   fromDateStr: string,
   toDateStr: string,
@@ -133,35 +139,29 @@ export async function generateHeatMap(
     // const title = 'NotePlan Task Completion Heatmap'
     // const config = await getSummariesSettings()
     let fromDateStr = ''
-    logDebug('generateHeatMap', `Generating heatmap for ${fromDateStr} to ${toDateStr}...`)
-
-    // Potentially first found date is later than requested 'fromDate'. 
-    // TODO: So now check for this.
-    const firstFoundDate = '2022-01-01' // ??? how to get this, this early
+    logDebug('generateHeatMap', `Generating heatmap for ${fromDateStr} to ${toDateStr} with ${statsMap.size} statsMap elements...`)
 
     /**
      * Munge data into the form needed:
-        x, where column names are set,
-        y, where row names are set, and
-        val, where values are set.
+        x = column name
+        y = row name
+        heat = value (including possibly NaN)
+        isoDate = isoDate, for use in tooltips
      */
     const dataToPass = []
-    let total = 0
     for (let item of statsMap) {
       const isoDate = item[0]
-      const count = item[1]
-      // logDebug('', `- ${isoDate}: ${count}`) // OK
+      const value = item[1]
+      // logDebug('', `- ${isoDate}: ${value}`)
       const mom = moment(isoDate, 'YYYY-MM-DD')
       const weekNum = Number(mom.format('WW'))
       // Get string for heatmap column title: week number, or year number if week 1
       const weekTitle = (weekNum !== 1) ? mom.format('[W]WW') : mom.format('YYYY') // with this library the value needs to be identical all week
       const dayAbbrev = mom.format('ddd') // day of week (0-6) is 'd'
-      let dataPointObj = { x: weekTitle, y: dayAbbrev, heat: count, isoDate: isoDate }
-      if (withinDateRange(isoDate, fromDateStr, toDateStr)) {
-        // this test ignores any blanks on the front (though they will be 0 anyway)
-        total += item[1] // the count
-      } else {
-        dataPointObj.isoDate = null
+      let dataPointObj = { x: weekTitle, y: dayAbbrev, heat: value, isoDate: isoDate }
+      if (!withinDateRange(isoDate, fromDateStr, toDateStr)) {
+        // one of the data points added on the start to get the layour right ... don't pass the date      
+        dataPointObj.isoDate = ''
       }
       dataToPass.push(dataPointObj)
     }
@@ -208,7 +208,11 @@ export async function generateHeatMap(
       tooltip.padding().left(20);
       tooltip.separator(false);
       tooltip.format(function () {
-        return this.heat + '\\nDate: ' + this.getData("isoDate");
+        if (this.heat != null && !isNaN(this.heat)) {
+          return this.heat + '\\nDate: ' + this.getData("isoDate");
+        } else {
+          return 'No data';
+        }
       });
       
       chart.xScroller().enabled(true);
@@ -252,11 +256,27 @@ export async function generateHeatMap(
 export async function generateTaskCompletionStats(foldersToExclude: Array<string>, intervalType: string, fromDateStr: string, toDateStr: string = getTodaysDateHyphenated()): Promise<Map<string, number>> {
   try {
 
-    // Set up a object that sums occurences (in value) of key (date)
     const dateCounterMap = new Map < string, number> ()
+    // v1. Set up a function that sums occurences (in value) of key (date). Start with an empty Map.
+    // const addToObj = key => {
+    //   // $FlowIgnore[unsafe-addition]
+    //   dateCounterMap.set(key, (dateCounterMap.has(key) ? (dateCounterMap.get(key)) + 1 : 1))
+    // }
+
+    // v2. Set up a function that sums occurences (in value) of key (date). First, set up a Map for all dates of interest, with NaN values (to distinguish from zero).
+    const fromDateMoment = moment(fromDateStr, 'YYYY-MM-DD')
+    const toDateMoment = moment(toDateStr, 'YYYY-MM-DD')
+    const daysInInterval = toDateMoment.diff(fromDateStr, 'day')
+    // logDebug('generateTaskCompletionStats', `- daysInInterval = ${daysInInterval}`)
+    for (let i = 0; i < daysInInterval; i++) {
+      const thisDate = moment(fromDateStr, 'YYYY-MM-DD').add(i, 'days').format('YYYY-MM-DD')
+      dateCounterMap.set(thisDate, NaN)
+      // logDebug('', `- init dateCounterMap(${thisDate}) = ${String(dateCounterMap.get(thisDate))}`)
+    }
     const addToObj = key => {
       // $FlowIgnore[unsafe-addition]
-      dateCounterMap.set(key, (dateCounterMap.has(key) ? (dateCounterMap.get(key)) + 1 : 1))
+      dateCounterMap.set(key, (dateCounterMap.has(key) && !isNaN(dateCounterMap.get(key)) ? (dateCounterMap.get(key)) + 1 : 1))
+      // logDebug('', `\tupdated ${key} to ${String(dateCounterMap.get(key))}`)
     }
 
     // start a timer and spinner
@@ -285,19 +305,22 @@ export async function generateTaskCompletionStats(foldersToExclude: Array<string
     // let projectDataArray = Object.entries(dateCounterObj)
     let totalProjectDone = 0
     for (let item of dateCounterMap) {
-      totalProjectDone += Number(item[1])
+      if (!isNaN(item[1])) {
+        totalProjectDone += Number(item[1])
+      }
     }
     logDebug('generateTaskCompletionStats', `-> ${totalProjectDone} done tasks from all Project notes`)
 
     // do counts from all Calendar Notes from that period
     // TODO: have to look at calendar notes from longer ago to get their completions. Perhaps 6 months?
     // (This call includes Weekly notes)
+    const earlierFromDateStr = moment(fromDateStr, 'YYYY-MM-DD').subtract(6, 'months').format('YYYY-MM-DD')
     // $FlowIgnore[incompatible-call]
-    const periodCalendarNotes = DataStore.calendarNotes.filter((n) => withinDateRange(toISODateString(n.date), fromDateStr, toDateStr))
+    const periodCalendarNotes = DataStore.calendarNotes.filter((n) => withinDateRange(toISODateString(n.date), earlierFromDateStr, toDateStr))
     if (periodCalendarNotes.length === 0) {
-      logWarn(pluginJson, `no matching Calendar notes found between ${fromDateStr} and ${toDateStr}`)
+      logWarn(pluginJson, `no matching Calendar notes found between ${earlierFromDateStr} and ${toDateStr}`)
     } else {
-      logDebug('generateTaskCompletionStats', `Summarising for ${periodCalendarNotes.length} calendar notes`)
+      logDebug('generateTaskCompletionStats', `Summarising for ${periodCalendarNotes.length} calendar notes (looking 6 months before given fromDate)`)
     }
 
     for (let n of periodCalendarNotes) {
@@ -325,7 +348,9 @@ export async function generateTaskCompletionStats(foldersToExclude: Array<string
     let totalCalendarDone = 0
     let interimTotal = 0
     for (let item of dateCounterMap) {
-      interimTotal += Number(item[1])
+      if (!isNaN(item[1])) {
+        interimTotal += Number(item[1])
+      }
     }
     totalCalendarDone = interimTotal - totalProjectDone
     logDebug('generateTaskCompletionStats', `-> ${totalCalendarDone} done tasks from ${periodCalendarNotes.length} Calendar notes`)
@@ -357,7 +382,7 @@ export async function generateTaskCompletionStats(foldersToExclude: Array<string
     //     total += item[1] // the count
     //   }
     // }
-    // logInfo('generateTaskCompletionStats', `-> found  ${String(total)} completed tasks in this time range`)
+    logInfo('generateTaskCompletionStats', `-> ${outputMap.size} statsMap items.`)
 
     return outputMap
   }

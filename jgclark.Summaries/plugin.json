@@ -9,7 +9,7 @@
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Summaries/CHANGELOG.md",
   "plugin.version": "0.14.0",
-  "plugin.lastUpdateInfo": "Adds /showTaskCompletionenHeatmap command.",
+  "plugin.lastUpdateInfo": "Adds /showTaskCompletionHeatmap command.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -44,7 +44,7 @@
       "name": "heatmap for complete tasks",
       "alias": [],
       "description": "Show a heatmap for complete tasks",
-      "jsFunction": "showTaskCompletionenHeatmap"
+      "jsFunction": "showTaskCompletionHeatmap"
     },
     {
       "name": "weeklyStatsToCSV",
@@ -273,6 +273,9 @@
         "@repeat"
       ],
       "required": false
+    },
+    {
+      "type": "separator"
     },
     {
       "type": "heading",

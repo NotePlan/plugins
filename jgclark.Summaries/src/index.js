@@ -12,7 +12,7 @@ export {
   testHeatMapGeneration3,
 } from './testCharting'
 export {
-  showTaskCompletionenHeatmap,
+  showTaskCompletionHeatmap,
   testGenStats,
   weeklyStats
 } from './forCharting'
