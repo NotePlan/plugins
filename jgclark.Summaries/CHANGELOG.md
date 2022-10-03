@@ -4,6 +4,8 @@
 ## [0.14.0] - 2022-10-???
 ## Added
 - new **/heatmap for complete tasks** command displays a 'heatmap' chart of how many tasks you've completed on each day (see example above). This checks in all daily, weekly and project notes over the number of weeks you specify to look back (via the 'Chart Duration (in weeks)' setting). If you don't set it, the plugin will generate a sensible period up to 12 months. Note: requires NotePlan v3.7.
+### Changed
+- stop sparklines appearing in  the '**/periodStats**' command for periods of more than a month.
 
 ## [0.13.1] - 2022-09-03
 ### Fixed

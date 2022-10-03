@@ -469,7 +469,8 @@ export function generateProgressUpdate(occObjs: Array<TMOccurrences>, periodStri
       let thisOutput = ''
       switch (style) {
         case 'markdown': {
-          if (showSparklines) {
+          // Include sparklines if this period is a month or less
+          if (showSparklines && occObjs.length <= 31) {
             thisOutput = "`" + occObj.getTerm(maxTermLen) + " " + occObj.getSparkline('ascii') + "`"
           } else {
             thisOutput = "**" + occObj.getTerm() + "**: "

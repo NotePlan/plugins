@@ -11,6 +11,7 @@ import { logDebug, logError, logInfo, logWarn, clo } from './dev'
 
 export const RE_TIME = '[0-2]\\d{1}:[0-5]\\d{1}\\s?(?:AM|PM|am|pm)?' // find '12:23' with optional '[ ][AM|PM|am|pm]'
 export const RE_DATE = '\\d{4}-[01]\\d-\\d{2}' // find ISO dates of form YYYY-MM-DD
+export const RE_DATE_CAPTURE = `(\\d{4}[01]\\d{1}\\d{2})` // capture date of form YYYYMMDD
 export const RE_ISO_DATE = '\\d{4}-[01]\\d-[0123]\\d' // find ISO dates of form YYYY-MM-DD (stricter)
 export const RE_PLUS_DATE_G: RegExp = />(\d{4}-\d{2}-\d{2})(\+)*/g
 export const RE_PLUS_DATE: RegExp = />(\d{4}-\d{2}-\d{2})(\+)*/
@@ -441,12 +442,10 @@ export const getDateObjFromDateTimeString = (dateTimeString: string): Date => {
 /**
  * Turn a YYYYMMDD string into a JS Date. If no valid date found, then warning written to the log.
  * @param {string} - YYYYMMDD string
- * @return {?Date} - JS Date version
+ * @return {?Date} - JS Date version of 
  */
 export function getDateFromUnhyphenatedDateString(inputString: string): ?Date {
-  const RE_DATE_CAPTURE = `(\\d{4}[01]\\d{1}\\d{2})` // capture date of form YYYYMMDD
-
-  logDebug('dateTime / getDateFromUnhyphenatedDateString', inputString)
+  // logDebug('dateTime / getDateFromUnhyphenatedDateString', inputString)
   const res = inputString.match(RE_DATE_CAPTURE) ?? []
   // Use first match, if found
   if (res[1]?.length > 0) {
@@ -454,8 +453,9 @@ export function getDateFromUnhyphenatedDateString(inputString: string): ?Date {
       Number(res[1].slice(0, 4)),
       Number(res[1].slice(4, 6)) - 1, // only needed for months!
       Number(res[1].slice(6, 8)),
+      0, 0, 0, 0 // HH:MM:SS:mmm
     )
-    logDebug('dateTime / getDateFromUnhyphenatedDateString', toISOShortDateTimeString(date))
+    // logDebug('dateTime / getDateFromUnhyphenatedDateString', toLocaleDateTimeString(date))
     return date
   } else {
     logWarn('dateTime / getDateFromUnhyphenatedDateString', `  no valid date found in '${inputString}'`)
