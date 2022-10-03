@@ -1,4 +1,4 @@
-# 🧩 External Links, X-Callback-URLs, RunPlugin Creator Plugin
+# 🧩 Link Creator Plugin
 
 [Help/Support on Discord](https://discord.com/channels/763107030223290449/989382962736922635/989382964016193597)
 
