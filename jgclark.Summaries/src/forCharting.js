@@ -3,7 +3,7 @@
 // Create heatmap chart to use with NP HTML, and before then
 // weekly stats for a number of weeks, and format ready to use by gnuplot.
 // Jonathan Clark, @jgclark
-// Last updated 30.9.2022 for v0.14.0, @jgclark
+// Last updated 4.10.2022 for v0.14.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -29,7 +29,9 @@ import {
   weekStartEnd,
   withinDateRange,
 } from '@helpers/dateTime'
-import { clo, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
+import { getUsersFirstDayOfWeekUTC } from '@helpers/NPdateTime'
+import { logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
+import { displayTitle } from '@helpers/general'
 import { showHTML } from '@helpers/HTMLView'
 import { clearNote, getOrMakeNote } from '@helpers/note'
 import { projectNotesFromFilteredFolders } from '@helpers/NPnote'
@@ -95,10 +97,10 @@ export async function showTaskCompletionHeatmap(): Promise<void> {
 
   await generateHeatMap(
     'NotePlan Task Completion Heatmap',
-    `Task Completion Heatmap (${total.toLocaleString()} since ${fromDateStr})`,
+    `Task Completion Heatmap (${total.toLocaleString()} since ${moment(fromDateStr, 'YYYY-MM-DD').format('L')})`, // i.e. locale date (according to moment)
     config.foldersToExclude,
     statsMap,
-    '["#F4FFF4", "#00E400"]',
+    '["#F4FFF4", "#10B010"]',
     'day',
     fromDateStr,
     toDateStr,
@@ -118,7 +120,7 @@ export async function showTaskCompletionHeatmap(): Promise<void> {
  * @param {string} chartTitle
  * @param {Array<string>} foldersToExclude which may be empty
  * @param {Map<string, number>} statsMap input data in a Map<isoDateString, number>
- * @param {string} colorScaleRange - defaults to light green -> dark green
+ * @param {string} colorScaleRange - defaults to white -> Pakistan Green
  * @param {string} intervalType - currently only supports 'day'
  * @param {string} fromDateStr - ISO date to start
  * @param {string} toDateStr - ISO date to end
@@ -129,7 +131,7 @@ export async function generateHeatMap(
   chartTitle: string,
   foldersToExclude: Array<string>,
   statsMap: Map<string, number>,
-  colorScaleRange: string = '["#FFFFFF", "#00E400"]',
+  colorScaleRange: string = '["#FFFFFF", "#03B003"]',
   intervalType: string,
   fromDateStr: string,
   toDateStr: string,
@@ -247,7 +249,7 @@ export async function generateHeatMap(
 /**
  * Generate stats of number of completed tasks between two dates, for a intervalType (currently only 'day' is supported).
  * @author @jgclark
- * @param {Array<string>} foldersToExclude which may be empty
+ * @param {Array<string>} foldersToExclude which may be just []
  * @param {string} intervalType - array of CSV strings
  * @param {string} fromDateStr - ISO date to start
  * @param {string?} toDateStr - ISO date to end; if missing then today
@@ -256,14 +258,16 @@ export async function generateHeatMap(
 export async function generateTaskCompletionStats(foldersToExclude: Array<string>, intervalType: string, fromDateStr: string, toDateStr: string = getTodaysDateHyphenated()): Promise<Map<string, number>> {
   try {
 
+    // Initialise a Map to hold count of completed dates
+    // v1.  Start with a simple empty Map
     const dateCounterMap = new Map < string, number> ()
-    // v1. Set up a function that sums occurences (in value) of key (date). Start with an empty Map.
+    // Set up a function that sums occurences(in value) of key(date).
     // const addToObj = key => {
     //   // $FlowIgnore[unsafe-addition]
     //   dateCounterMap.set(key, (dateCounterMap.has(key) ? (dateCounterMap.get(key)) + 1 : 1))
     // }
 
-    // v2. Set up a function that sums occurences (in value) of key (date). First, set up a Map for all dates of interest, with NaN values (to distinguish from zero).
+    // v2. Initialise a Map for all dates of interest, with NaN values (to distinguish from zero).
     const fromDateMoment = moment(fromDateStr, 'YYYY-MM-DD')
     const toDateMoment = moment(toDateStr, 'YYYY-MM-DD')
     const daysInInterval = toDateMoment.diff(fromDateStr, 'day')
@@ -273,6 +277,8 @@ export async function generateTaskCompletionStats(foldersToExclude: Array<string
       dateCounterMap.set(thisDate, NaN)
       // logDebug('', `- init dateCounterMap(${thisDate}) = ${String(dateCounterMap.get(thisDate))}`)
     }
+
+    // Function that sums occurences(in value) of key(date).
     const addToObj = key => {
       // $FlowIgnore[unsafe-addition]
       dateCounterMap.set(key, (dateCounterMap.has(key) && !isNaN(dateCounterMap.get(key)) ? (dateCounterMap.get(key)) + 1 : 1))
@@ -311,34 +317,57 @@ export async function generateTaskCompletionStats(foldersToExclude: Array<string
     }
     logDebug('generateTaskCompletionStats', `-> ${totalProjectDone} done tasks from all Project notes`)
 
-    // do counts from all Calendar Notes from that period
-    // TODO: have to look at calendar notes from longer ago to get their completions. Perhaps 6 months?
-    // (This call includes Weekly notes)
-    const earlierFromDateStr = moment(fromDateStr, 'YYYY-MM-DD').subtract(6, 'months').format('YYYY-MM-DD')
+    // Do counts from all Calendar Notes from that period
     // $FlowIgnore[incompatible-call]
-    const periodCalendarNotes = DataStore.calendarNotes.filter((n) => withinDateRange(toISODateString(n.date), earlierFromDateStr, toDateStr))
-    if (periodCalendarNotes.length === 0) {
-      logWarn(pluginJson, `no matching Calendar notes found between ${earlierFromDateStr} and ${toDateStr}`)
-    } else {
-      logDebug('generateTaskCompletionStats', `Summarising for ${periodCalendarNotes.length} calendar notes (looking 6 months before given fromDate)`)
-    }
-
-    for (let n of periodCalendarNotes) {
-      const doneParas = n.paragraphs.filter((p) => p.type.includes('done'))
-      for (let dp of doneParas) {
-        let doneDate = undefined
-        if (dp.content.match(RE_DONE_DATE_OPT_TIME)) {
-          // get completed date (and ignore time)
-          const reReturnArray = dp.content.match(RE_DONE_DATE_OR_DATE_TIME_DATE_CAPTURE) ?? []
-          doneDate = reReturnArray[1] // date part
-        }
-        // If we've found a task done in the right period, save
-        if (doneDate && withinDateRange(doneDate, fromDateStr, toDateStr)) {
-          addToObj(doneDate)
+    const periodCalendarNotes = DataStore.calendarNotes.filter((n) => withinDateRange(toISODateString(n.date), fromDateStr, toDateStr))
+    if (periodCalendarNotes.length > 0) {
+      for (let n of periodCalendarNotes) {
+        const doneParas = n.paragraphs.filter((p) => p.type.includes('done'))
+        for (let dp of doneParas) {
+          let doneDate = undefined
+          if (dp.content.match(RE_DONE_DATE_OPT_TIME)) {
+            // get completed date (and ignore time)
+            const reReturnArray = dp.content.match(RE_DONE_DATE_OR_DATE_TIME_DATE_CAPTURE) ?? []
+            doneDate = reReturnArray[1] // date part
+          }
+          else {
+            // We have a completed task but not a done date
+            doneDate = moment(n.date).format('YYYY-MM-DD') // the note's date
+          }
+          // If we've found a task done in the right period, save
+          // $FlowIgnore[incompatible-call]
+          if (doneDate && withinDateRange(doneDate, fromDateStr, toDateStr)) {
+            addToObj(doneDate)
+          }
         }
       }
-    }
 
+      // As tasks can be completed on dates later than the daily note it resides in, we need to look at calendar notes from (say) the previous 6 months of daily and weekly notes.
+      // This time, only get proper '@done(...)' dates.
+      const earlierFromDateStr = moment(fromDateStr, 'YYYY-MM-DD').subtract(6, 'months').format('YYYY-MM-DD')
+      const earlierToDateStr = moment(fromDateStr, 'YYYY-MM-DD').subtract(1, 'days').format('YYYY-MM-DD')
+      // $FlowIgnore[incompatible-call]
+      const beforePeriodCalendarNotes = DataStore.calendarNotes.filter((n) => withinDateRange(toISODateString(n.date), earlierFromDateStr, earlierToDateStr))
+      logDebug('generateTaskCompletionStats', `Summarising for ${beforePeriodCalendarNotes.length} calendar notes (looking 6 months before given fromDate)`)
+
+      for (let n of beforePeriodCalendarNotes) {
+        const doneParas = n.paragraphs.filter((p) => p.type.includes('done'))
+        for (let dp of doneParas) {
+          let doneDate = undefined
+          if (dp.content.match(RE_DONE_DATE_OPT_TIME)) {
+            // get completed date (and ignore time)
+            const reReturnArray = dp.content.match(RE_DONE_DATE_OR_DATE_TIME_DATE_CAPTURE) ?? []
+            doneDate = reReturnArray[1] // date part
+          }
+          // If we've found a task done in the right period, save
+          if (doneDate && withinDateRange(doneDate, fromDateStr, toDateStr)) {
+            addToObj(doneDate)
+          }
+        }
+      }
+    } else {
+      logWarn(pluginJson, `No matching Calendar notes found between ${fromDateStr} and ${toDateStr}`)
+    }
     // end timer & spinner
     await CommandBar.onMainThread()
     CommandBar.showLoading(false)
@@ -359,7 +388,7 @@ export async function generateTaskCompletionStats(foldersToExclude: Array<string
     // (This needs to come before the sort)
     // e.g. 1.1.22 = a Saturday = fromDateDayOfWeek = 6
     const fromDateDayOfWeek = moment(fromDateStr, 'YYYY-MM-DD').format('d') // 1(Mon)-7(Sun) ??
-    const usersFirstDayOfWeek = Number(DataStore.preference('firstDayOfWeek')) // 1(Sun)-7(Sat)
+    const usersFirstDayOfWeek = getUsersFirstDayOfWeekUTC() // 0(Sun)-6(Sat); deals with undefined case
     logDebug('generateTaskCompletionStats', `- fromDateDayOfWeek = ${fromDateDayOfWeek}`)
     logDebug('generateTaskCompletionStats', `- usersFirstDayOfWeek = ${usersFirstDayOfWeek}`)
     const numBlanksToAdd = (fromDateDayOfWeek - 1) // TODO: test other start-day-of-week options
