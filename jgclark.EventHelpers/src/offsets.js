@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Command to Process Date Offsets
 // @jgclark
-// Last updated 27.9.2022 for v0.18.1, by @jgclark
+// Last updated 5.10.2022 for v0.19.1, by @jgclark
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -32,6 +32,7 @@ import { askDateInterval, datePicker, showMessage, showMessageYesNo } from '@hel
  * Go through currently selected lines in the open note and shift YYYY-MM-DD dates by an interval given by the user.
  * And now supports YYYY-Www dates too.
  * Note: can remove @done(...) dates if wanted, but doesn't touch other others than don't have whitespace or newline before them.
+ * Will also un-complete completed tasks.
  * @author @jgclark
  */
 export async function shiftDates(): Promise<void> {
@@ -89,16 +90,23 @@ export async function shiftDates(): Promise<void> {
       }
 
       if (shiftedDateStr !== '') {
-        logDebug(pluginJson, `- ${originalDateStr}: match found, will become ${shiftedDateStr}`)
+        logDebug(pluginJson, `- ${originalDateStr}: match found -> ${shiftedDateStr}`)
         // Replace date part with the new shiftedDateStr
         let updatedP = c.replace(originalDateStr, shiftedDateStr)
+
         // If wanted, also remove @done(...) part
         const doneDatePart = (updatedP.match(RE_DONE_DATE_OPT_TIME)) ?? ['']
         if (config.removeDoneDates && doneDatePart[0] !== '') {
           updatedP = updatedP.replace(doneDatePart[0], '')
         }
+
         p.content = updatedP.trimEnd()
         logDebug(pluginJson, `-> '${p.content}'`)
+
+        // If wanted, also set any complete tasks to not complete ('open')
+        if (config.uncompleteTasks && p.type === 'done') {
+          p.type = 'open'
+        }
         note.updateParagraph(p)
         updatedCount += 1
       }

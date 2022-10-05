@@ -1,7 +1,7 @@
 // @flow
 // ----------------------------------------------------------------------------
 // Sort configuration for commands in the Event Helpers plugin.
-// Last updated 22.7.2022 for v0.16.5, by @jgclark
+// Last updated 5.10.2022 for v0.19.1, by @jgclark
 // @jgclark
 // ----------------------------------------------------------------------------
 
@@ -55,7 +55,8 @@ export async function getEventsSettings(): Promise<any> {
         removeTimeBlocksWhenProcessed: true,
         calendarToWriteTo: "",
         defaultEventDuration: 60,
-        removeDoneDates: true
+        removeDoneDates: true,
+        uncompleteTasks: true
       }
       v2Config = defaultConfig
     }

@@ -1,6 +1,10 @@
 # What's changed in 🕓 Event Helpers?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
+## [0.19.1] - 2022-10-05
+### Added
+- new setting "Set any completed tasks to not complete?" for the "/shift dates" command.
+
 ## [0.19.0] - 2022-09-27
 ### Added
 - new setting "Remove @done dates?" for the "/shift dates" command.
